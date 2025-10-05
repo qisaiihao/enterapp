@@ -1,0 +1,237 @@
+{
+  "envId": "cloud1-5gb0pbyl400845f5",
+  "framework": {
+    "name": "uni-app",
+    "plugins": {
+      "functions": {
+        "use": "@cloudbase/framework-plugin-function",
+        "inputs": {
+          "functions": [
+            {
+              "name": "addComment",
+              "root": "./functions/addComment",
+              "timeout": 10,
+              "memory": 256
+            },
+            {
+              "name": "checkDuplicatePoem",
+              "root": "./functions/checkDuplicatePoem",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "clearAllMessages",
+              "root": "./functions/clearAllMessages",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "clearCollection",
+              "root": "./functions/clearCollection",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "contentCheck",
+              "root": "./functions/contentCheck",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "createUser",
+              "root": "./functions/createUser",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "deleteComment",
+              "root": "./functions/deleteComment",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "deleteMessage",
+              "root": "./functions/deleteMessage",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "deletePost",
+              "root": "./functions/deletePost",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "feedbackManager",
+              "root": "./functions/feedbackManager",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "follow",
+              "root": "./functions/follow",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "getAllTags",
+              "root": "./functions/getAllTags",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "getBatchFollowStatus",
+              "root": "./functions/getBatchFollowStatus",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "getBatchUserProfiles",
+              "root": "./functions/getBatchUserProfiles",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "getComments",
+              "root": "./functions/getComments",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "getHotFeed",
+              "root": "./functions/getHotFeed",
+              "timeout": 15,
+              "memory": 512
+            },
+            {
+              "name": "getMessages",
+              "root": "./functions/getMessages",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "getMyLikedPosts",
+              "root": "./functions/getMyLikedPosts",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "getMyProfileData",
+              "root": "./functions/getMyProfileData",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "getOpenId",
+              "root": "./functions/getOpenId",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "getPersonalizedFeed",
+              "root": "./functions/getPersonalizedFeed",
+              "timeout": 15,
+              "memory": 512
+            },
+            {
+              "name": "getPostDetail",
+              "root": "./functions/getPostDetail",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "getPostList",
+              "root": "./functions/getPostList",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "getRecommendationFeed",
+              "root": "./functions/getRecommendationFeed",
+              "timeout": 15,
+              "memory": 512
+            },
+            {
+              "name": "getUnreadMessageCount",
+              "root": "./functions/getUnreadMessageCount",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "getUserProfile",
+              "root": "./functions/getUserProfile",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "imageManager",
+              "root": "./functions/imageManager",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "likeComment",
+              "root": "./functions/likeComment",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "login",
+              "root": "./functions/login",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "markMessagesAsRead",
+              "root": "./functions/markMessagesAsRead",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "recordView",
+              "root": "./functions/recordView",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "searchPosts",
+              "root": "./functions/searchPosts",
+              "timeout": 10,
+              "memory": 256
+            },
+            {
+              "name": "updateUser",
+              "root": "./functions/updateUser",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "updateUserProfile",
+              "root": "./functions/updateUserProfile",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "upload",
+              "root": "./functions/upload",
+              "timeout": 30,
+              "memory": 512
+            },
+            {
+              "name": "uploadAvatar",
+              "root": "./functions/uploadAvatar",
+              "timeout": 30,
+              "memory": 512
+            },
+            {
+              "name": "vote",
+              "root": "./functions/vote",
+              "timeout": 5,
+              "memory": 128
+            }
+          ]
+        }
+      }
+    }
+  }
+}

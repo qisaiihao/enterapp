@@ -1,0 +1,107 @@
+<template>
+    <!-- miniprogram/components/cloudTipModal/index.wxml -->
+    <!-- wx:if="{{showUploadTip}}" -->
+    <view class="install_tip" v-if="showTip">
+        <view class="install_tip_back"></view>
+        <view class="install_tip_detail">
+            <image class="install_tip_close" @tap="onClose" src="/static/images/icons/close.png" />
+            <view class="install_tip_detail_title">{{ title }}</view>
+            <view class="install_tip_detail_tip">{{ content }}</view>
+        </view>
+    </view>
+</template>
+
+<script>
+export default {
+    data() {
+        return {
+            showTip: false
+        };
+    },
+
+    props: {
+        showTipProps: Boolean,
+        title: String,
+        content: String
+    },
+
+    watch: {
+        showTipProps: function (showTipProps) {
+            this.setData({
+                showTip: showTipProps
+            });
+        }
+    },
+
+    methods: {
+        onClose() {
+            this.setData({
+                showTip: !this.showTip
+            });
+        }
+    },
+
+    created: function () {}
+};
+</script>
+<style>
+.install_tip_back {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    z-index: 1;
+}
+.install_tip_close {
+    position: absolute;
+    right: 10rpx;
+    top: 10rpx;
+    width: 32px;
+    height: 32px;
+    /* background-color: red; */
+}
+.install_tip_detail {
+    position: fixed;
+    background-color: white;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    border-radius: 40rpx 40rpx 0 0;
+    padding: 50rpx 50rpx 100rpx 50rpx;
+    z-index: 9;
+}
+
+.install_tip_detail_title {
+    font-weight: 400;
+    font-size: 40rpx;
+    text-align: center;
+}
+
+.install_tip_detail_tip {
+    font-size: 25rpx;
+    color: rgba(0, 0, 0, 0.4);
+    margin-top: 20rpx;
+    text-align: left;
+}
+.install_tip_detail_buttons {
+    padding-top: 50rpx;
+    display: flex;
+}
+.install_tip_detail_button {
+    color: #07c160;
+    font-weight: 500;
+    background-color: rgba(0, 0, 0, 0.1);
+    width: 40%;
+    text-align: center;
+    /* height: 90rpx; */
+    border-radius: 10rpx;
+    margin: 0 auto;
+}
+
+.install_tip_detail_button_primary {
+    background-color: #07c160;
+    color: #fff;
+}
+</style>
