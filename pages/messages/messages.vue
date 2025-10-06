@@ -35,7 +35,7 @@
         </view>
 
         <!-- 消息列表 -->
-        <scroll-view :scroll-y="true" class="message-list" @scrolltolower="onReachBottom">
+        <scroll-view :scroll-y="true" class="message-list" @scrolltolower="onReachBottom" @scrolltoupper="onScrollToUpper">
             <view v-if="messages.length === 0 && !isLoading" class="empty-container">
                 <image class="empty-icon" src="/static/images/icons/empty-message.svg" mode="aspectFit"></image>
                 <text class="empty-text">暂无消息通知</text>
@@ -164,6 +164,10 @@ export default {
         }
         this.loadMessages();
     },
+    onScrollToUpper: function () {
+        // 滚动到顶部时的处理，可以用于刷新
+        console.log('滚动到顶部');
+    },
     methods: {
         // 兼容性云函数调用方法
         callCloudFunction(name, data = {}) {
@@ -180,9 +184,10 @@ export default {
                 
                 if (method === 'tcb') {
                     // 使用TCB调用云函数（H5和App环境）
-                    if (this.$tcb && this.$tcb.callFunction) {
+                    const app = getApp();
+                    if (app && app.$tcb && app.$tcb.callFunction) {
                         console.log(`🔍 [消息页] TCB环境调用云函数: ${name}`);
-                        this.$tcb.callFunction({
+                        app.$tcb.callFunction({
                             name: name,
                             data: data
                         }).then(resolve).catch(reject);
@@ -237,6 +242,7 @@ export default {
             if (this.isLoading) {
                 return;
             }
+            console.log('🔍 [消息页] 开始加载消息，页码:', this.page, '类型:', this.activeTab);
             this.setData({
                 isLoading: true
             });
@@ -246,6 +252,7 @@ export default {
                 limit: PAGE_SIZE,
                 type: activeTab === 'all' ? null : activeTab
             }).then((res) => {
+                console.log('🔍 [消息页] 云函数返回结果:', res);
                     if (res.result && res.result.success) {
                         const newMessages = res.result.messages || [];
                         const totalCount = res.result.totalCount || 0;
