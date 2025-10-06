@@ -202,6 +202,59 @@ export default {
         }
     },
     methods: {
+        // 兼容性云函数调用方法
+        callCloudFunction(name, data = {}) {
+            console.log(`🔍 [诗歌页] 调用云函数: ${name}`, data);
+            
+            return new Promise((resolve, reject) => {
+                // 使用新的平台检测工具
+                const { getCurrentPlatform, getCloudFunctionMethod } = require('../../utils/platformDetector.js');
+                
+                const platform = getCurrentPlatform();
+                const method = getCloudFunctionMethod();
+                
+                console.log(`🔍 [诗歌页] 运行环境检测 - 平台: ${platform}, 方法: ${method}`);
+                
+                if (method === 'tcb') {
+                    // 使用TCB调用云函数（H5和App环境）
+                    const app = getApp();
+                    if (app && app.$tcb && app.$tcb.callFunction) {
+                        console.log(`🔍 [诗歌页] TCB环境调用云函数: ${name}`);
+                        app.$tcb.callFunction({
+                            name: name,
+                            data: data
+                        }).then(resolve).catch(reject);
+                    } else {
+                        console.error(`❌ [诗歌页] TCB实例不可用`);
+                        reject(new Error('TCB实例不可用'));
+                    }
+                } else if (method === 'wx-cloud') {
+                    // 使用微信云开发调用云函数（小程序环境）
+                    if (wx.cloud && wx.cloud.callFunction) {
+                        console.log(`🔍 [诗歌页] 小程序环境调用云函数: ${name}`);
+                        wx.cloud.callFunction({
+                            name: name,
+                            data: data,
+                            success: (res) => {
+                                console.log(`✅ [诗歌页] 云函数调用成功: ${name}`, res);
+                                resolve(res);
+                            },
+                            fail: (err) => {
+                                console.error(`❌ [诗歌页] 云函数调用失败: ${name}`, err);
+                                reject(err);
+                            }
+                        });
+                    } else {
+                        console.error(`❌ [诗歌页] 微信云开发不可用`);
+                        reject(new Error('微信云开发不可用'));
+                    }
+                } else {
+                    console.error(`❌ [诗歌页] 不支持的云函数调用方式: ${method}`);
+                    reject(new Error(`不支持的云函数调用方式: ${method}`));
+                }
+            });
+        },
+
         // 新增：刷新诗歌数据的方法
         refreshPoemData: function () {
             console.log('【poem】开始刷新诗歌数据');
@@ -311,15 +364,10 @@ export default {
                     });
                 });
 
-            // 原来的云函数调用（保留作为备用）
-            // 使用TCB调用云函数
-            if (this.$tcb && this.$tcb.callFunction) {
-                this.$tcb.callFunction({
-                    name: 'getUserProfile',
-                    data: {
-                        userId: authorOpenid
-                    },
-                }).then((res) => {
+            // 使用兼容性云函数调用
+            this.callCloudFunction('getUserProfile', {
+                userId: authorOpenid
+            }).then((res) => {
                     console.log('【poem】getUserProfile返回结果:', res);
                     if (res.result && res.result.success && res.result.userInfo) {
                         const user = res.result.userInfo;
@@ -381,27 +429,6 @@ export default {
             const skip = this.page * PAGE_SIZE;
             console.log('🔍 [Poem] 请求参数 - skip:', skip, 'page:', this.page, 'PAGE_SIZE:', PAGE_SIZE);
             
-            // 检查TCB实例
-            if (!this.$tcb) {
-                console.error('❌ [Poem] TCB实例不存在');
-                uni.showToast({
-                    title: 'TCB未初始化',
-                    icon: 'none'
-                });
-                this.setData({ isLoading: false });
-                return;
-            }
-            
-            if (!this.$tcb.callFunction) {
-                console.error('❌ [Poem] TCB callFunction方法不存在');
-                uni.showToast({
-                    title: 'TCB方法不可用',
-                    icon: 'none'
-                });
-                this.setData({ isLoading: false });
-                return;
-            }
-            
             console.log('🔍 [Poem] 开始调用云函数 getPostList');
             console.log('🔍 [Poem] 云函数参数:', {
                 skip: skip,
@@ -410,15 +437,12 @@ export default {
                 isOriginal: true
             });
             
-            // 使用TCB调用云函数
-            this.$tcb.callFunction({
-                name: 'getPostList',
-                data: {
-                    skip: skip,
-                    limit: PAGE_SIZE,
-                    isPoem: true,
-                    isOriginal: true
-                }
+            // 使用兼容性云函数调用
+            this.callCloudFunction('getPostList', {
+                skip: skip,
+                limit: PAGE_SIZE,
+                isPoem: true,
+                isOriginal: true
             }).then((res) => {
                 console.log('✅ [Poem] 云函数调用成功，原始响应:', res);
                 
@@ -629,17 +653,13 @@ export default {
 
             const skip = this.page * PAGE_SIZE;
             console.log('开始加载更多路诗歌，skip:', skip, 'page:', this.page);
-            // 使用TCB调用云函数
-            if (this.$tcb && this.$tcb.callFunction) {
-                this.$tcb.callFunction({
-                    name: 'getPostList',
-                    data: {
-                        skip: skip,
-                        limit: PAGE_SIZE,
-                        isPoem: true,
-                        isOriginal: true
-                    }
-                }).then((res) => {
+            // 使用兼容性云函数调用
+            this.callCloudFunction('getPostList', {
+                skip: skip,
+                limit: PAGE_SIZE,
+                isPoem: true,
+                isOriginal: true
+            }).then((res) => {
                     console.log('加载更多路诗歌结果:', res);
                     if (res.result && res.result.success) {
                         const posts = res.result.posts || [];
@@ -670,7 +690,6 @@ export default {
                         cb();
                     }
                 });
-            }
         },
 
         // 预加载下一首的背景图
@@ -897,7 +916,7 @@ export default {
                     }
                 }
             });
-        },
+        }
 
     }
 };
