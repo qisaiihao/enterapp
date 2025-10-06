@@ -542,7 +542,13 @@ export default {
                         .then(blob => {
                             const reader = new FileReader();
                             reader.onload = () => {
-                                const base64 = reader.result.split(',')[1];
+                                const result = reader.result;
+                                if (!result || typeof result !== 'string') {
+                                    console.error('❌ [Add页面] FileReader结果无效:', result);
+                                    reject(new Error('文件读取失败'));
+                                    return;
+                                }
+                                const base64 = result.split(',')[1];
                                 console.log(`🔍 [Add页面] 文件转换为base64完成，长度: ${base64.length}`);
                                 // 检查base64大小，如果太大则进一步压缩
                                 if (base64.length > 6 * 1024 * 1024) { // 6MB base64约等于4.5MB文件

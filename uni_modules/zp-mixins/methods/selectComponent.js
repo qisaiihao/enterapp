@@ -60,6 +60,9 @@ const match = (node, selector) => {
 };
 
 const selectorBuilder = (selector) => {
+	if (!selector || typeof selector !== 'string') {
+		return function() { return []; };
+	}
 	selector = selector.replace(/>>>/g, '>');
 	selector = selector.split('>').map(s => {
 		return s.trim().split(' ').join(`').descendant('`);

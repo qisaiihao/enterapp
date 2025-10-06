@@ -70,7 +70,7 @@ class ImageManager {
 
             // 生成云端路径
             const timestamp = Date.now();
-            const extension = filePath.split('.').pop() || 'png';
+            const extension = (filePath && typeof filePath === 'string') ? filePath.split('.').pop() || 'png' : 'png';
             const cloudPath = options.name ? `${options.name}_${timestamp}.${extension}` : `image_${timestamp}.${extension}`;
 
             // 调用云函数上传
