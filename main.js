@@ -31,7 +31,11 @@ Vue.prototype.$requireOpenid = function () {
   const appInstance = getApp();
   const openid = appInstance && appInstance.globalData && appInstance.globalData.openid;
   if (!openid) {
-    uni.showToast({ title: '用户未登录', icon: 'none' });
+    // 检查是否是应用启动初期（避免在自动登录过程中显示提示）
+    const isAppStarting = !appInstance.globalData || !appInstance.globalData._loginProcessCompleted;
+    if (!isAppStarting) {
+      uni.showToast({ title: '用户未登录', icon: 'none' });
+    }
   }
   return openid;
 };
@@ -44,7 +48,11 @@ function resolveOpenidForCall(functionName) {
   const appInstance = getApp();
   const openid = appInstance && appInstance.globalData && appInstance.globalData.openid;
   if (!openid) {
-    uni.showToast({ title: '用户未登录', icon: 'none' });
+    // 检查是否是应用启动初期（避免在自动登录过程中显示提示）
+    const isAppStarting = !appInstance.globalData || !appInstance.globalData._loginProcessCompleted;
+    if (!isAppStarting) {
+      uni.showToast({ title: '用户未登录', icon: 'none' });
+    }
     return { openid: null, allowed: false };
   }
   return { openid, allowed: true };
@@ -123,7 +131,11 @@ export function createApp() {
     // --- VUE3 环境下的 TCB 初始化 (为您一并写好，以备未来升级) ---
     // 1. 初始化
     const tcbApp = tcb.init({
-      env: 'cloud1-5gb0pbyl400845f5'  // 使用正确的环境ID
+      env: 'cloud1-5gb0pbyl400845f5',  // 使用正确的环境ID
+      // 启用匿名认证，允许未登录用户调用云函数
+      auth: {
+        persistence: 'local'
+      }
     });
     // 2. 挂载
     app.config.globalProperties.$tcb = tcbApp;

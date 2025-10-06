@@ -1,0 +1,6 @@
+{
+  "name": "contentCheck",
+  "root": "./functions/contentCheck",
+  "timeout": 5,
+  "memory": 128
+}

@@ -32,12 +32,6 @@
               "memory": 128
             },
             {
-              "name": "contentCheck",
-              "root": "./functions/contentCheck",
-              "timeout": 5,
-              "memory": 128
-            },
-            {
               "name": "createUser",
               "root": "./functions/createUser",
               "timeout": 5,

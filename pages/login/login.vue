@@ -190,82 +190,122 @@ export default {
             console.log('🔍 [上传] 通过云函数上传文件...');
             
             // 将文件转换为base64，通过云函数上传
-            const reader = new FileReader();
-            reader.onload = () => {
-                const base64 = reader.result.split(',')[1]; // 移除data:image/jpeg;base64,前缀
-                
-                this.$tcb.callFunction({
-                    name: 'uploadAvatar',
-                    data: {
-                        fileData: base64,
-                        cloudPath: cloudPath,
-                        openid: openid
-                    }
-                }).then((res) => {
-                    console.log('✅ [上传文件] 成功：', res);
-                    if (res.result && res.result.fileID) {
-                        const fileID = res.result.fileID;
-                        console.log('🔍 [上传] 获取到fileID:', fileID);
-                        
-                        // 使用CloudBase SDK获取临时URL用于显示
-                        console.log('🔍 [上传] 获取临时URL用于显示...');
-                        this.$tcb.getTempFileURL({
-                            fileList: [fileID]
-                        }).then((tempRes) => {
-                            console.log('🔍 [上传] 临时URL获取结果:', tempRes);
-                            const tempUrl = tempRes.fileList[0].tempFileURL;
-                            console.log('🔍 [上传] 临时URL:', tempUrl);
-                            
-                            this.setData({
-                                avatarFileID: fileID,
-                                localAvatarTempPath: tempUrl // 使用临时URL显示图片
-                            });
-                            
-                            console.log('🔍 [上传] 设置后的avatarFileID:', this.avatarFileID);
-                            console.log('🔍 [上传] 设置后的localAvatarTempPath:', this.localAvatarTempPath);
-                        }).catch((tempErr) => {
-                            console.error('❌ [上传] 获取临时URL失败:', tempErr);
-                            // 如果获取临时URL失败，使用原始fileID
-                            this.setData({
-                                avatarFileID: fileID,
-                                localAvatarTempPath: fileID
-                            });
-                        });
-
-                        uni.hideLoading();
-                        uni.showToast({
-                            title: '头像上传成功',
-                            icon: 'success',
-                            duration: 1000
+            // 使用兼容的文件读取方式
+            const filePath = fileObject.path || fileObject.tempFilePath;
+            console.log('🔍 [上传] 文件路径:', filePath);
+            
+            // 检查环境并使用相应的文件读取方式
+            if (typeof window !== 'undefined' && typeof FileReader !== 'undefined') {
+                // H5环境使用FileReader
+                console.log('🔍 [上传] 使用FileReader读取文件');
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const base64 = reader.result.split(',')[1];
+                    this.uploadFileToCloud(base64, cloudPath, openid);
+                };
+                reader.onerror = () => {
+                    console.error('❌ [上传] FileReader读取失败');
+                    this.handleUploadFailure('文件读取失败');
+                };
+                reader.readAsDataURL(fileObject);
+            } else {
+                // App环境使用uni-app API
+                console.log('🔍 [上传] 使用uni-app API读取文件');
+                try {
+                    const fs = uni.getFileSystemManager();
+                    if (fs && fs.readFile) {
+                        fs.readFile({
+                            filePath: filePath,
+                            encoding: 'base64',
+                            success: (readRes) => {
+                                const base64 = readRes.data;
+                                this.uploadFileToCloud(base64, cloudPath, openid);
+                            },
+                            fail: (readErr) => {
+                                console.error('❌ [文件读取] 失败：', readErr);
+                                this.handleUploadFailure(`文件读取失败: ${readErr.errMsg || '未知错误'}`);
+                            }
                         });
                     } else {
-                        throw new Error('云函数返回格式错误');
+                        // 如果getFileSystemManager不可用，直接上传文件路径
+                        console.log('🔍 [上传] getFileSystemManager不可用，直接上传文件路径');
+                        this.uploadFileToCloud(null, cloudPath, openid, filePath);
                     }
-                }).catch((e) => {
-                    console.error('❌ [上传文件] 失败：', e);
-                    uni.hideLoading();
-                    uni.showToast({
-                        title: `上传失败: ${e.message || '未知错误'}`,
-                        icon: 'none',
-                        duration: 3000
-                    });
-                    this.setData({
-                        avatarFileID: ''
-                    });
-                });
+                } catch (error) {
+                    console.error('❌ [上传] 文件系统API调用失败:', error);
+                    this.handleUploadFailure('文件系统API不可用');
+                }
+            }
+        },
+
+        // 提取上传到云端的逻辑
+        uploadFileToCloud: function(base64, cloudPath, openid, filePath = null) {
+            const uploadData = {
+                cloudPath: cloudPath,
+                openid: openid
             };
             
-            reader.onerror = () => {
-                console.error('❌ [上传文件] 文件读取失败');
+            if (base64) {
+                uploadData.fileData = base64;
+            } else if (filePath) {
+                uploadData.filePath = filePath;
+            }
+            
+            this.$tcb.callFunction({
+                name: 'uploadAvatar',
+                data: uploadData
+            }).then((res) => {
+                console.log('✅ [上传文件] 成功：', res);
+                if (res.result && res.result.fileID) {
+                    const fileID = res.result.fileID;
+                    console.log('🔍 [上传] 获取到fileID:', fileID);
+                    
+                    // 使用CloudBase SDK获取临时URL用于显示
+                    console.log('🔍 [上传] 获取临时URL用于显示...');
+                    this.$tcb.getTempFileURL({
+                        fileList: [fileID]
+                    }).then((tempRes) => {
+                        console.log('🔍 [上传] 临时URL获取结果:', tempRes);
+                        const tempUrl = tempRes.fileList[0].tempFileURL;
+                        console.log('🔍 [上传] 临时URL:', tempUrl);
+                        
+                        this.setData({
+                            avatarFileID: fileID,
+                            localAvatarTempPath: tempUrl // 使用临时URL显示图片
+                        });
+                        
+                        console.log('🔍 [上传] 设置后的avatarFileID:', this.avatarFileID);
+                        console.log('🔍 [上传] 设置后的localAvatarTempPath:', this.localAvatarTempPath);
+                    }).catch((tempErr) => {
+                        console.error('❌ [上传] 获取临时URL失败:', tempErr);
+                        // 如果获取临时URL失败，使用原始fileID
+                        this.setData({
+                            avatarFileID: fileID,
+                            localAvatarTempPath: fileID
+                        });
+                    });
+
+                    uni.hideLoading();
+                    uni.showToast({
+                        title: '头像上传成功',
+                        icon: 'success',
+                        duration: 1000
+                    });
+                } else {
+                    throw new Error('云函数返回格式错误');
+                }
+            }).catch((e) => {
+                console.error('❌ [上传文件] 失败：', e);
                 uni.hideLoading();
                 uni.showToast({
-                    title: '文件读取失败',
+                    title: `上传失败: ${e.message || '未知错误'}`,
                     icon: 'none',
                     duration: 3000
                 });
-            };
-            
-            reader.readAsDataURL(fileObject);
+                this.setData({
+                    avatarFileID: ''
+                });
+            });
         },
 
         // 处理上传失败

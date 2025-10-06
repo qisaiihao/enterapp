@@ -21,6 +21,13 @@ exports.main = async (event, context) => {
       cloudPath: event.cloudPath, // 文件在云端的路径，由前端传过来
       fileContent: Buffer.from(event.fileContent, 'base64'), // 文件的二进制内容，由前端传过来
     })
+    
+    console.log('上传成功，返回结果:', {
+      fileID: res.fileID,
+      cloudPath: event.cloudPath,
+      fileIDType: typeof res.fileID
+    });
+    
     return {
       success: true,
       fileID: res.fileID,

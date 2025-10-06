@@ -47,17 +47,66 @@ export default {
             console.log('⏳ 3. 准备调用云函数 [login]...');
             // ================== 新增的调试日志 End ====================
 
-            // 步骤一：优先从本地缓存读取用户信息
+            // 步骤一：检查本地缓存，但需要验证云端账户
             const cachedUserInfo = uni.getStorageSync('userInfo');
             if (cachedUserInfo && cachedUserInfo._openid) {
-                console.log('✅ [登录流程] 从缓存中找到用户信息，自动登录成功', cachedUserInfo);
-                this.globalData.userInfo = cachedUserInfo;
-                this.globalData.openid = cachedUserInfo._openid;
+                console.log('🔍 [登录流程] 从缓存中找到用户信息，开始验证云端账户...', cachedUserInfo);
                 
-                // 将用户信息挂载到 getApp() 上，方便其他页面访问
-                // this 在 App.vue 中指向 VueComponent 实例，而非 getApp() 返回的 App 实例
-                getApp().globalData = this.globalData;
-                return; // 登录成功，结束流程
+                try {
+                    // 先进行匿名认证
+                    const currentUser = this.$tcb.auth().currentUser;
+                    if (!currentUser) {
+                        console.log('🔐 [认证] 尝试匿名登录...');
+                        const authResult = await this.$tcb.auth().signInAnonymously();
+                        console.log('✅ [认证] 匿名登录成功:', authResult);
+                    } else {
+                        console.log('✅ [认证] 用户已登录，跳过匿名登录');
+                    }
+                    
+                    // 调用云函数验证用户是否存在
+                    const verifyRes = await this.$tcb.callFunction({
+                        name: 'getUserProfile',
+                        data: { userId: cachedUserInfo._openid }
+                    });
+                    
+                    if (verifyRes.result && verifyRes.result.success && verifyRes.result.userInfo) {
+                        console.log('✅ [登录流程] 云端验证成功，用户账户存在，自动登录成功');
+                        
+                        // 使用云端返回的最新用户信息
+                        const latestUserInfo = verifyRes.result.userInfo;
+                        
+                        // 同时更新 this.globalData 和 getApp().globalData
+                        this.globalData.userInfo = latestUserInfo;
+                        this.globalData.openid = latestUserInfo._openid;
+                        
+                        // 确保 getApp().globalData 也被正确设置
+                        const appInstance = getApp();
+                        if (appInstance) {
+                            appInstance.globalData = appInstance.globalData || {};
+                            appInstance.globalData.userInfo = latestUserInfo;
+                            appInstance.globalData.openid = latestUserInfo._openid;
+                            console.log('✅ [登录流程] getApp().globalData 已更新:', appInstance.globalData);
+                        } else {
+                            console.error('❌ [登录流程] getApp() 返回空值');
+                        }
+                        
+                        // 更新本地缓存为最新的用户信息
+                        uni.setStorageSync('userInfo', latestUserInfo);
+                        
+                        return; // 登录成功，结束流程
+                    } else {
+                        console.log('⚠️ [登录流程] 云端验证失败，用户账户不存在，将重新注册');
+                        // 清除无效的缓存
+                        uni.removeStorageSync('userInfo');
+                        // 继续执行注册流程
+                    }
+                } catch (error) {
+                    console.error('❌ [登录流程] 云端验证失败:', error);
+                    console.log('⚠️ [登录流程] 验证失败，将重新注册');
+                    // 清除可能无效的缓存
+                    uni.removeStorageSync('userInfo');
+                    // 继续执行注册流程
+                }
             }
 
             // 步骤二：缓存未命中，执行完整的云端登录
@@ -124,11 +173,28 @@ export default {
                 }
                 
                 // 无论新旧用户，都更新 getApp() 的 globalData
-                getApp().globalData = this.globalData;
+                const appInstance = getApp();
+                if (appInstance) {
+                    appInstance.globalData = appInstance.globalData || {};
+                    appInstance.globalData.userInfo = this.globalData.userInfo;
+                    appInstance.globalData.openid = this.globalData.openid;
+                    appInstance.globalData._loginProcessCompleted = true; // 标记登录流程已完成
+                    console.log('✅ [登录流程] getApp().globalData 已更新:', appInstance.globalData);
+                } else {
+                    console.error('❌ [登录流程] getApp() 返回空值');
+                }
 
             } catch (err) {
                 // 【重要】打印完整的错误对象，而不是只有 message
                 console.error('❌ [登录流程] 捕获到严重错误，完整的错误对象如下:', err);
+                
+                // 即使登录失败，也标记登录流程已完成，避免后续显示登录提示
+                const appInstance = getApp();
+                if (appInstance) {
+                    appInstance.globalData = appInstance.globalData || {};
+                    appInstance.globalData._loginProcessCompleted = true;
+                }
+                
                 uni.showToast({
                     icon: 'none',
                     title: '登录失败，请稍后重试'

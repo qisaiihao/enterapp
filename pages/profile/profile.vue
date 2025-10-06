@@ -552,24 +552,26 @@ export default {
         },
 
         checkLoginAndFetchData: function () {
-            const storedUserInfo = uni.getStorageSync('userInfo');
-            console.log('存储的用户信息:', storedUserInfo);
-            if (storedUserInfo && storedUserInfo._openid) {
-                console.log('用户已登录，开始获取个人资料和帖子数据');
+            // 使用登录状态调试工具
+            const { checkLoginStatusInPage } = require('../../utils/loginStatusDebug.js');
+            
+            const isLoggedIn = checkLoginStatusInPage('Profile页面');
+            
+            if (isLoggedIn) {
+                console.log('✅ [Profile页面] 用户已登录，开始获取个人资料和帖子数据');
                 this.fetchUserProfile();
                 // 首次加载时也要加载帖子数据
                 this.loadMyPosts();
             } else {
-                console.log('用户未登录，存储的用户信息:', storedUserInfo);
+                console.log('❌ [Profile页面] 用户未登录，静默处理（不显示提示）');
                 this.setData({
                     isLoading: false
                 });
-                uni.showToast({
-                    title: '请先登录',
-                    icon: 'none'
-                });
-                // Optionally, redirect to a login page
-                // wx.redirectTo({ url: '/pages/login/login' });
+                // 移除登录提示，让用户自然进入登录流程
+                // uni.showToast({
+                //     title: '请先登录',
+                //     icon: 'none'
+                // });
             }
         },
 

@@ -12,26 +12,45 @@ class FollowCache {
         console.log(`🔍 [FollowCache] 调用云函数: ${name}`, data);
         
         return new Promise((resolve, reject) => {
-            // 检查运行环境
-            const isH5 = typeof window !== 'undefined';
-            const isMiniProgram = typeof wx !== 'undefined';
+            // 使用新的平台检测工具
+            const { getCurrentPlatform, getCloudFunctionMethod, logPlatformInfo } = require('./platformDetector.js');
+            const { debugEnvironmentDetection, testCloudFunctionCapability } = require('./debugPlatform.js');
             
-            if (isH5) {
-                // H5环境使用TCB
+            // 详细的环境检测调试
+            debugEnvironmentDetection();
+            
+            const platform = getCurrentPlatform();
+            const method = getCloudFunctionMethod();
+            const capability = testCloudFunctionCapability();
+            
+            console.log(`🔍 [FollowCache] 运行环境: ${platform}, 调用方式: ${method}, 实际能力: ${capability}`);
+            
+            // 打印详细的平台信息（调试用）
+            logPlatformInfo();
+            
+            // 如果检测到的调用方式与实际能力不匹配，使用实际能力
+            const actualMethod = capability !== 'none' ? capability : method;
+            console.log(`🔍 [FollowCache] 最终使用调用方式: ${actualMethod}`);
+            
+            if (actualMethod === 'tcb') {
+                // 使用TCB调用云函数（H5和App环境）
                 if (typeof getApp !== 'undefined' && getApp().$tcb && getApp().$tcb.callFunction) {
-                    console.log(`🔍 [FollowCache] H5环境使用TCB调用云函数: ${name}`);
+                    console.log(`🔍 [FollowCache] 使用TCB调用云函数: ${name} (环境: ${platform})`);
                     getApp().$tcb.callFunction({
                         name: name,
                         data: data
                     }).then(resolve).catch(reject);
                 } else {
-                    console.error(`❌ [FollowCache] H5环境TCB不可用`);
+                    console.error(`❌ [FollowCache] ${platform}环境TCB不可用`);
+                    console.error(`❌ [FollowCache] getApp():`, typeof getApp);
+                    console.error(`❌ [FollowCache] getApp().$tcb:`, typeof (getApp && getApp().$tcb));
+                    console.error(`❌ [FollowCache] getApp().$tcb.callFunction:`, typeof (getApp && getApp().$tcb && getApp().$tcb.callFunction));
                     reject(new Error('TCB实例不可用'));
                 }
-            } else if (isMiniProgram) {
-                // 小程序环境使用微信云开发
+            } else if (actualMethod === 'wx-cloud') {
+                // 使用微信云开发调用云函数（小程序环境）
                 if (wx.cloud && wx.cloud.callFunction) {
-                    console.log(`🔍 [FollowCache] 小程序环境使用微信云开发调用云函数: ${name}`);
+                    console.log(`🔍 [FollowCache] 使用微信云开发调用云函数: ${name}`);
                     wx.cloud.callFunction({
                         name: name,
                         data: data,
@@ -46,11 +65,13 @@ class FollowCache {
                     });
                 } else {
                     console.error(`❌ [FollowCache] 小程序环境微信云开发不可用`);
+                    console.error(`❌ [FollowCache] wx.cloud:`, typeof wx.cloud);
+                    console.error(`❌ [FollowCache] wx.cloud.callFunction:`, typeof (wx.cloud && wx.cloud.callFunction));
                     reject(new Error('微信云开发不可用'));
                 }
             } else {
-                console.error(`❌ [FollowCache] 未知运行环境`);
-                reject(new Error('未知运行环境'));
+                console.error(`❌ [FollowCache] 不支持的云函数调用方式: ${actualMethod}`);
+                reject(new Error(`不支持的云函数调用方式: ${actualMethod}`));
             }
         });
     }

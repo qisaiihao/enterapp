@@ -13,9 +13,15 @@ const db = cloud.database();
 const CmsClient = tencentcloud.cms.v20190321.Client;
 
 // 云函数入口函数
+// TODO: 此云函数已暂时禁用，因为腾讯云内容审核服务未续费
+// 未来续费后可以重新启用此云函数
 exports.main = async (event, context) => {
   console.log('=== 内容审核云函数开始执行 ===');
+  console.log('⚠️ 注意：内容审核服务已暂时禁用，因为腾讯云内容审核服务未续费');
   console.log('接收到的参数:', JSON.stringify(event, null, 2));
+  
+  // 暂时跳过审核，直接执行帖子创建逻辑
+  console.log('⚠️ 跳过内容审核，直接创建帖子');
 
   const wxContext = cloud.getWXContext();
   const openid = wxContext.OPENID || event.openid;
@@ -29,8 +35,16 @@ exports.main = async (event, context) => {
   }
 
   // 从 event 中获取要审查的文本和图片fileID
-  const { text, fileIDs, title, content, publishMode, isOriginal, author, tags } = event;
+  const { text, fileIDs, originalFileIDs, title, content, publishMode, isOriginal, author, tags } = event;
   
+  console.log('接收到的fileIDs:', fileIDs);
+  console.log('接收到的originalFileIDs:', originalFileIDs);
+  console.log('fileIDs类型:', typeof fileIDs);
+  console.log('fileIDs长度:', fileIDs ? fileIDs.length : 'undefined');
+  console.log('originalFileIDs长度:', originalFileIDs ? originalFileIDs.length : 'undefined');
+  
+  /* 
+  // 以下是原来的内容审核逻辑，暂时注释掉，未来续费后可以重新启用
   // 策略ID配置 - 使用默认策略ID（数字类型）
   // 注意：BizType 参数需要是数字类型，不是字符串
   const TEXT_BIZ_TYPE = 0; // 文本审核策略ID，使用默认策略
@@ -66,7 +80,9 @@ exports.main = async (event, context) => {
   
   console.log('创建腾讯云客户端...');
   const client = new CmsClient(clientConfig);
+  */
 
+  /*
   // ------------------- 1. 文本审核 -------------------
   if (DEBUG_SKIP_AUDIT) {
     console.log('调试模式：跳过文本审核');
@@ -173,14 +189,19 @@ exports.main = async (event, context) => {
       return { code: -2, msg: '图片审核服务异常' };
     }
   }
+  */
   
   // ------------------- 3. 审核全部通过，写入数据库 -------------------
   try {
     // 获取当前用户信息
+    const currentOpenid = cloud.getWXContext().OPENID || openid;
+    console.log('当前用户openid:', currentOpenid);
+    
     const userInfo = await db.collection('users').where({
-      _openid: cloud.getWXContext().OPENID
+      _openid: currentOpenid
     }).get();
     const userNickName = userInfo.data.length > 0 ? userInfo.data[0].nickName : '匿名用户';
+    console.log('用户昵称:', userNickName);
     
     // 确定作者信息
     let authorName = '';
@@ -198,7 +219,7 @@ exports.main = async (event, context) => {
     }
 
     const postData = {
-      _openid: cloud.getWXContext().OPENID, // 添加openid字段
+      _openid: currentOpenid, // 添加openid字段
       title: title || '',
       content: content || '',
       createTime: new Date(),
@@ -217,17 +238,73 @@ exports.main = async (event, context) => {
     };
     
     if (fileIDs && fileIDs.length > 0) {
-      postData.imageUrl = fileIDs[0];
-      postData.imageUrls = fileIDs;
+      // 过滤掉无效的fileID
+      const validFileIDs = fileIDs.filter(id => id && typeof id === 'string' && id.trim() !== '');
+      const validOriginalFileIDs = originalFileIDs ? originalFileIDs.filter(id => id && typeof id === 'string' && id.trim() !== '') : [];
       
-      // 如果是诗歌模式，第一张图片作为背景图
-      if (publishMode === 'poem' && fileIDs.length > 0) {
-        postData.poemBgImage = fileIDs[0];
+      console.log('设置图片URL到帖子数据:', {
+        originalFileIDs: fileIDs,
+        validFileIDs: validFileIDs,
+        originalOriginalFileIDs: originalFileIDs,
+        validOriginalFileIDs: validOriginalFileIDs,
+        imageUrl: validFileIDs[0],
+        imageUrls: validFileIDs,
+        originalImageUrl: validOriginalFileIDs[0],
+        originalImageUrls: validOriginalFileIDs,
+        imageUrlType: typeof validFileIDs[0]
+      });
+      
+      if (validFileIDs.length > 0) {
+        postData.imageUrl = validFileIDs[0];
+        postData.imageUrls = validFileIDs;
+        
+        // 设置原图URL
+        if (validOriginalFileIDs.length > 0) {
+          postData.originalImageUrl = validOriginalFileIDs[0];
+          postData.originalImageUrls = validOriginalFileIDs;
+        } else {
+          // 如果没有原图，使用压缩图作为原图
+          postData.originalImageUrl = validFileIDs[0];
+          postData.originalImageUrls = validFileIDs;
+        }
+        
+        // 如果是诗歌模式，第一张图片作为背景图
+        if (publishMode === 'poem') {
+          postData.poemBgImage = validFileIDs[0];
+        }
+      } else {
+        console.warn('没有有效的图片URL，跳过图片字段设置');
       }
     }
 
+    // 数据验证
+    if (!postData.title && !postData.content) {
+      throw new Error('标题和内容不能同时为空');
+    }
+    
+    if (!postData._openid) {
+      throw new Error('用户openid缺失');
+    }
+    
+    console.log('准备写入数据库的帖子数据:', JSON.stringify(postData, null, 2));
+    
+    // 测试数据库连接
+    try {
+      console.log('测试数据库连接...');
+      const testResult = await db.collection('posts').limit(1).get();
+      console.log('数据库连接正常，测试查询结果:', testResult);
+    } catch (testError) {
+      console.error('数据库连接测试失败:', testError);
+      throw new Error(`数据库连接失败: ${testError.message}`);
+    }
+    
     const result = await db.collection('posts').add({
       data: postData
+    });
+
+    console.log('数据库写入成功，返回结果:', {
+      postId: result._id,
+      insertedCount: result.stats?.inserted || 1
     });
 
     // 全部成功，返回成功状态
@@ -239,6 +316,15 @@ exports.main = async (event, context) => {
 
   } catch (dbError) {
     console.error("数据库写入失败:", dbError);
-    return { code: -3, msg: '数据存储失败' };
+    console.error("数据库错误详情:", {
+      message: dbError.message,
+      code: dbError.code,
+      stack: dbError.stack
+    });
+    return { 
+      code: -3, 
+      msg: `数据存储失败: ${dbError.message || '未知错误'}`,
+      error: dbError.message
+    };
   }
 };

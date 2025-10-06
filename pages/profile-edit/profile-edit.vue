@@ -4,8 +4,11 @@
         <view class="container">
             <view class="form-group">
                 <view class="label">头像</view>
-                <button class="avatar-wrapper" open-type="chooseAvatar" @chooseavatar="onChooseAvatar">
-                    <image class="avatar-preview" :src="avatarUrl"></image>
+                <button class="avatar-wrapper" @tap="onChooseAvatar">
+                    <image class="avatar-preview" :src="avatarUrl || '/static/images/avatar.png'"></image>
+                    <view class="avatar-placeholder" v-if="!avatarUrl">
+                        <text class="avatar-placeholder-text">点击选择头像</text>
+                    </view>
                 </button>
             </view>
 
@@ -78,50 +81,60 @@ export default {
     methods: {
         // 兼容性云函数调用方法
         callCloudFunction(name, data = {}) {
-            console.log(`🔍 [页面] 调用云函数: ${name}`, data);
+            console.log(`🔍 [ProfileEdit页面] 调用云函数: ${name}`, data);
             
             return new Promise((resolve, reject) => {
-                // 检查运行环境
-                const isH5 = typeof window !== 'undefined';
-                const isMiniProgram = typeof wx !== 'undefined';
+                // 使用新的平台检测工具
+                const { getCurrentPlatform, getCloudFunctionMethod, logPlatformInfo } = require('../../utils/platformDetector.js');
                 
-                console.log(`🔍 [页面] 运行环境检测 - H5: ${isH5}, 小程序: ${isMiniProgram}`);
+                const platform = getCurrentPlatform();
+                const method = getCloudFunctionMethod();
                 
-                if (isH5) {
-                    // H5环境使用TCB
-                    if (this.$tcb && this.$tcb.callFunction) {
-                        console.log(`🔍 [页面] H5环境使用TCB调用云函数: ${name}`);
-                        this.$tcb.callFunction({
+                console.log(`🔍 [ProfileEdit页面] 运行环境: ${platform}, 调用方式: ${method}`);
+                
+                // 打印详细的平台信息（调试用）
+                logPlatformInfo();
+                
+                if (method === 'tcb') {
+                    // 使用TCB调用云函数（H5和App环境）
+                    const app = getApp();
+                    if (app && app.$tcb && app.$tcb.callFunction) {
+                        console.log(`🔍 [ProfileEdit页面] 使用TCB调用云函数: ${name} (环境: ${platform})`);
+                        app.$tcb.callFunction({
                             name: name,
                             data: data
                         }).then(resolve).catch(reject);
                     } else {
-                        console.error(`❌ [页面] H5环境TCB不可用`);
+                        console.error(`❌ [ProfileEdit页面] ${platform}环境TCB不可用`);
+                        console.error(`❌ [ProfileEdit页面] app:`, app);
+                        console.error(`❌ [ProfileEdit页面] app.$tcb:`, app && app.$tcb);
                         reject(new Error('TCB实例不可用'));
                     }
-                } else if (isMiniProgram) {
-                    // 小程序环境使用微信云开发
+                } else if (method === 'wx-cloud') {
+                    // 使用微信云开发调用云函数（小程序环境）
                     if (wx.cloud && wx.cloud.callFunction) {
-                        console.log(`🔍 [页面] 小程序环境使用微信云开发调用云函数: ${name}`);
+                        console.log(`🔍 [ProfileEdit页面] 使用微信云开发调用云函数: ${name}`);
                         wx.cloud.callFunction({
                             name: name,
                             data: data,
                             success: (res) => {
-                                console.log(`✅ [页面] 云函数调用成功: ${name}`, res);
+                                console.log(`✅ [ProfileEdit页面] 云函数调用成功: ${name}`, res);
                                 resolve(res);
                             },
                             fail: (err) => {
-                                console.error(`❌ [页面] 云函数调用失败: ${name}`, err);
+                                console.error(`❌ [ProfileEdit页面] 云函数调用失败: ${name}`, err);
                                 reject(err);
                             }
                         });
                     } else {
-                        console.error(`❌ [页面] 小程序环境微信云开发不可用`);
+                        console.error(`❌ [ProfileEdit页面] 小程序环境微信云开发不可用`);
+                        console.error(`❌ [ProfileEdit页面] wx.cloud:`, typeof wx.cloud);
+                        console.error(`❌ [ProfileEdit页面] wx.cloud.callFunction:`, typeof (wx.cloud && wx.cloud.callFunction));
                         reject(new Error('微信云开发不可用'));
                     }
                 } else {
-                    console.error(`❌ [页面] 未知运行环境`);
-                    reject(new Error('未知运行环境'));
+                    console.error(`❌ [ProfileEdit页面] 不支持的云函数调用方式: ${method}`);
+                    reject(new Error(`不支持的云函数调用方式: ${method}`));
                 }
             });
         },
@@ -131,23 +144,30 @@ export default {
             console.log(`🔍 [ProfileEdit] 上传文件: ${cloudPath}`, filePath);
             
             return new Promise((resolve, reject) => {
-                // 检查运行环境
-                const isH5 = typeof window !== 'undefined';
-                const isMiniProgram = typeof wx !== 'undefined';
+                // 使用新的平台检测工具
+                const { getCurrentPlatform, getCloudFunctionMethod } = require('../../utils/platformDetector.js');
                 
-                if (isH5) {
-                    // H5环境使用TCB
-                    if (this.$tcb && this.$tcb.uploadFile) {
-                        console.log(`🔍 [ProfileEdit] H5环境使用TCB上传文件: ${cloudPath}`);
-                        this.$tcb.uploadFile({
+                const platform = getCurrentPlatform();
+                const method = getCloudFunctionMethod();
+                
+                console.log(`🔍 [ProfileEdit] 运行环境: ${platform}, 调用方式: ${method}`);
+                
+                if (method === 'tcb') {
+                    // H5和App环境使用TCB
+                    const app = getApp();
+                    if (app && app.$tcb && app.$tcb.uploadFile) {
+                        console.log(`🔍 [ProfileEdit] ${platform}环境使用TCB上传文件: ${cloudPath}`);
+                        app.$tcb.uploadFile({
                             cloudPath: cloudPath,
                             filePath: filePath
                         }).then(resolve).catch(reject);
                     } else {
-                        console.error(`❌ [ProfileEdit] H5环境TCB不可用`);
+                        console.error(`❌ [ProfileEdit] ${platform}环境TCB不可用`);
+                        console.error(`❌ [ProfileEdit] app:`, app);
+                        console.error(`❌ [ProfileEdit] app.$tcb:`, app && app.$tcb);
                         reject(new Error('TCB实例不可用'));
                     }
-                } else if (isMiniProgram) {
+                } else if (method === 'wx-cloud') {
                     // 小程序环境使用微信云开发
                     if (wx.cloud && wx.cloud.uploadFile) {
                         console.log(`🔍 [ProfileEdit] 小程序环境使用微信云开发上传文件: ${cloudPath}`);
@@ -168,8 +188,8 @@ export default {
                         reject(new Error('微信云开发不可用'));
                     }
                 } else {
-                    console.error(`❌ [ProfileEdit] 未知运行环境`);
-                    reject(new Error('未知运行环境'));
+                    console.error(`❌ [ProfileEdit] 不支持的云函数调用方式: ${method}`);
+                    reject(new Error(`不支持的云函数调用方式: ${method}`));
                 }
             });
         },
@@ -203,9 +223,45 @@ export default {
         },
 
         onChooseAvatar(e) {
-            const originalPath = e.detail.avatarUrl;
-            console.log('选择头像，原始路径:', originalPath);
-
+            console.log('🔍 [ProfileEdit] 开始选择头像...');
+            
+            // 检查运行环境
+            const { getCurrentPlatform } = require('../../utils/platformDetector.js');
+            const platform = getCurrentPlatform();
+            
+            console.log(`🔍 [ProfileEdit] 当前平台: ${platform}`);
+            
+            if (platform === 'mp-weixin' && e.detail && e.detail.avatarUrl) {
+                // 微信小程序环境，使用 chooseAvatar API
+                const originalPath = e.detail.avatarUrl;
+                console.log('🔍 [ProfileEdit] 微信小程序选择头像，原始路径:', originalPath);
+                this.processAvatar(originalPath);
+            } else {
+                // H5和App环境，使用 uni.chooseImage
+                console.log('🔍 [ProfileEdit] H5/App环境，使用uni.chooseImage选择头像');
+                uni.chooseImage({
+                    count: 1,
+                    sizeType: ['compressed'],
+                    sourceType: ['album', 'camera'],
+                    success: (res) => {
+                        const originalPath = res.tempFilePaths[0];
+                        console.log('🔍 [ProfileEdit] 选择头像成功，原始路径:', originalPath);
+                        this.processAvatar(originalPath);
+                    },
+                    fail: (err) => {
+                        console.error('🔍 [ProfileEdit] 选择头像失败:', err);
+                        uni.showToast({
+                            title: '选择头像失败',
+                            icon: 'none'
+                        });
+                    }
+                });
+            }
+        },
+        
+        processAvatar(originalPath) {
+            console.log('🔍 [ProfileEdit] 开始处理头像:', originalPath);
+            
             // 显示压缩提示
             uni.showLoading({
                 title: '压缩头像中...'
@@ -214,7 +270,7 @@ export default {
             // 压缩头像
             compressAvatar(originalPath)
                 .then((compressedPath) => {
-                    console.log('头像压缩完成，压缩后路径:', compressedPath);
+                    console.log('✅ [ProfileEdit] 头像压缩完成，压缩后路径:', compressedPath);
                     this.setData({
                         avatarUrl: compressedPath,
                         tempAvatarPath: compressedPath
@@ -227,7 +283,7 @@ export default {
                     });
                 })
                 .catch((err) => {
-                    console.error('头像压缩失败:', err);
+                    console.error('❌ [ProfileEdit] 头像压缩失败:', err);
                     // 压缩失败，使用原始图片
                     this.setData({
                         avatarUrl: originalPath,
@@ -541,6 +597,26 @@ export default {
     width: 120rpx;
     height: 120rpx;
     border-radius: 50%;
+}
+
+.avatar-placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 120rpx;
+    height: 120rpx;
+    border-radius: 50%;
+    background-color: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2rpx dashed #ccc;
+}
+
+.avatar-placeholder-text {
+    font-size: 20rpx;
+    color: #999;
+    text-align: center;
 }
 
 .input,

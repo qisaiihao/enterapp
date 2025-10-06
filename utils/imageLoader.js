@@ -231,3 +231,4 @@ class ImageLoader {
 // 创建单例
 const imageLoader = new ImageLoader();
 module.exports = imageLoader;
+
