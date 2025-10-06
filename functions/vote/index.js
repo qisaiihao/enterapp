@@ -112,9 +112,13 @@ exports.main = async (event, context) => {
     console.log('🔍 [vote] 获取帖子最新数据');
     updatedPost = await db.collection('posts').doc(postId).get();
 
+    // 确保获取到最新的数据
+    const finalVotes = updatedPost.data.votes || 0;
+    console.log('🔍 [vote] 最终票数:', finalVotes, '点赞状态:', isLiked);
+
     const result = {
       success: true,
-      votes: updatedPost.data.votes, // 返回最新的点赞数
+      votes: finalVotes, // 返回最新的点赞数
       isLiked: isLiked
     };
 

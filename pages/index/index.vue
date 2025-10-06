@@ -661,22 +661,25 @@ onReachBottom: function () {
                     this.setData({
                         postList: postList
                     });
-                } else if (postList[index].votes !== res.result.votes) {
-                    console.log('【点赞】服务器票数不同，更新为服务器数据');
-                    // 如果服务器返回的票数不同，更新为服务器数据
-                    postList[index].votes = res.result.votes;
-                    postList[index].likeIcon = likeIcon.getLikeIcon(postList[index].votes, postList[index].isVoted);
+                } else {
+                    // 使用服务器返回的最新数据更新UI
+                    const serverVotes = res.result.votes;
+                    const serverIsLiked = res.result.isLiked;
+                    const serverLikeIcon = likeIcon.getLikeIcon(serverVotes, serverIsLiked);
+                    
+                    postList[index].votes = serverVotes;
+                    postList[index].isVoted = serverIsLiked;
+                    postList[index].likeIcon = serverLikeIcon;
+                    
                     this.setData({
                         postList: postList
                     });
-                } else {
+                    
                     console.log('【点赞】云函数调用成功，数据已同步');
-                }
 
-                // === 新增：更新缓存中的帖子数据 ===
-                if (res.result.success) {
+                    // === 新增：更新缓存中的帖子数据 ===
                     console.log('【点赞】更新缓存中的帖子数据');
-                    dataCache.updatePostLikeInCache(postId, postList[index].votes, postList[index].isVoted, postList[index].likeIcon);
+                    dataCache.updatePostLikeInCache(postId, serverVotes, serverIsLiked, serverLikeIcon);
                 }
             }).catch((err) => {
                 console.error('【点赞】云函数调用失败:', err);
@@ -1242,6 +1245,58 @@ onReachBottom: function () {
             // 重新加载数据
             this.getIndexData();
         },
+
+        // 兼容性云函数调用方法
+        callCloudFunction(name, data = {}) {
+            console.log(`🔍 [首页] 调用云函数: ${name}`, data);
+            
+            return new Promise((resolve, reject) => {
+                // 使用新的平台检测工具
+                const { getCurrentPlatform, getCloudFunctionMethod } = require('../../utils/platformDetector.js');
+                
+                const platform = getCurrentPlatform();
+                const method = getCloudFunctionMethod();
+                
+                console.log(`🔍 [首页] 运行环境检测 - 平台: ${platform}, 方法: ${method}`);
+                
+                if (method === 'tcb') {
+                    // 使用TCB调用云函数（H5和App环境）
+                    if (this.$tcb && this.$tcb.callFunction) {
+                        console.log(`🔍 [首页] TCB环境调用云函数: ${name}`);
+                        this.$tcb.callFunction({
+                            name: name,
+                            data: data
+                        }).then(resolve).catch(reject);
+                    } else {
+                        console.error(`❌ [首页] TCB实例不可用`);
+                        reject(new Error('TCB实例不可用'));
+                    }
+                } else if (method === 'wx-cloud') {
+                    // 使用微信云开发调用云函数（小程序环境）
+                    if (wx.cloud && wx.cloud.callFunction) {
+                        console.log(`🔍 [首页] 小程序环境调用云函数: ${name}`);
+                        wx.cloud.callFunction({
+                            name: name,
+                            data: data,
+                            success: (res) => {
+                                console.log(`✅ [首页] 云函数调用成功: ${name}`, res);
+                                resolve(res);
+                            },
+                            fail: (err) => {
+                                console.error(`❌ [首页] 云函数调用失败: ${name}`, err);
+                                reject(err);
+                            }
+                        });
+                    } else {
+                        console.error(`❌ [首页] 微信云开发不可用`);
+                        reject(new Error('微信云开发不可用'));
+                    }
+                } else {
+                    console.error(`❌ [首页] 不支持的云函数调用方式: ${method}`);
+                    reject(new Error(`不支持的云函数调用方式: ${method}`));
+                }
+            });
+        }
 
     }
 };

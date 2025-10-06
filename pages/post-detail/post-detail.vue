@@ -613,17 +613,21 @@ export default {
                             'post.isVoted': originalIsVoted,
                             'post.likeIcon': likeIcon.getLikeIcon(originalVotes, originalIsVoted)
                         });
-                    } else if (newVotes !== res.result.votes) {
+                    } else {
+                        // 使用服务器返回的最新数据更新UI
+                        const serverVotes = res.result.votes;
+                        const serverIsLiked = res.result.isLiked;
+                        const serverLikeIcon = likeIcon.getLikeIcon(serverVotes, serverIsLiked);
+                        
                         this.setData({
-                            'post.votes': res.result.votes,
-                            'post.likeIcon': likeIcon.getLikeIcon(res.result.votes, newIsVoted)
+                            'post.votes': serverVotes,
+                            'post.isVoted': serverIsLiked,
+                            'post.likeIcon': serverLikeIcon
                         });
-                    }
 
-                    // === 新增：更新首页缓存中的帖子数据 ===
-                    if (res.result.success) {
+                        // === 新增：更新首页缓存中的帖子数据 ===
                         console.log('【帖子详情点赞】更新首页缓存中的帖子数据');
-                        dataCache.updatePostLikeInCache(postId, this.post.votes, this.post.isVoted, this.post.likeIcon);
+                        dataCache.updatePostLikeInCache(postId, serverVotes, serverIsLiked, serverLikeIcon);
                     }
                 }).catch(() => {
                     this.setData({
@@ -1009,23 +1013,19 @@ export default {
             }
             const openid = this.getCurrentUserId() || 'guest';
             const timestamp = Date.now();
+            
+            // 使用兼容性的文件上传方法
             return Promise.all(
                 images.map((image, index) => {
                     const uniqueKey = (openid || 'guest') + '_' + timestamp + '_' + index;
                     const compressedCloudPath = 'comment_images/' + uniqueKey + '_compressed.jpg';
-                    return uniCloud
-                        .uploadFile({
-                            cloudPath: compressedCloudPath,
-                            filePath: image.compressedPath || image.previewUrl || image.originalPath
-                        })
+                    
+                    // 使用兼容性的文件上传方法
+                    return this.uploadFile(compressedCloudPath, image.compressedPath || image.previewUrl || image.originalPath)
                         .then((compressedRes) => {
                             if (image.needCompression) {
                                 const originalCloudPath = 'comment_images/' + uniqueKey + '_original.jpg';
-                                return uniCloud
-                                    .uploadFile({
-                                        cloudPath: originalCloudPath,
-                                        filePath: image.originalPath
-                                    })
+                                return this.uploadFile(originalCloudPath, image.originalPath)
                                     .then((originalRes) => ({
                                         compressedUrl: compressedRes.fileID,
                                         originalUrl: originalRes.fileID
@@ -1605,6 +1605,58 @@ export default {
                         title: '跳转失败',
                         icon: 'none'
                     });
+                }
+            });
+        },
+
+        // 兼容性文件上传方法
+        uploadFile(cloudPath, filePath) {
+            console.log(`🔍 [帖子详情页] 上传文件: ${cloudPath}`, filePath);
+            
+            return new Promise((resolve, reject) => {
+                // 使用新的平台检测工具
+                const { getCurrentPlatform, getCloudFunctionMethod } = require('../../utils/platformDetector.js');
+                
+                const platform = getCurrentPlatform();
+                const method = getCloudFunctionMethod();
+                
+                console.log(`🔍 [帖子详情页] 运行环境检测 - 平台: ${platform}, 方法: ${method}`);
+                
+                if (method === 'tcb') {
+                    // 使用TCB上传文件（H5和App环境）
+                    if (this.$tcb && this.$tcb.uploadFile) {
+                        console.log(`🔍 [帖子详情页] TCB环境上传文件: ${cloudPath}`);
+                        this.$tcb.uploadFile({
+                            cloudPath: cloudPath,
+                            filePath: filePath
+                        }).then(resolve).catch(reject);
+                    } else {
+                        console.error(`❌ [帖子详情页] TCB实例不可用`);
+                        reject(new Error('TCB实例不可用'));
+                    }
+                } else if (method === 'wx-cloud') {
+                    // 使用微信云开发上传文件（小程序环境）
+                    if (wx.cloud && wx.cloud.uploadFile) {
+                        console.log(`🔍 [帖子详情页] 小程序环境上传文件: ${cloudPath}`);
+                        wx.cloud.uploadFile({
+                            cloudPath: cloudPath,
+                            filePath: filePath,
+                            success: (res) => {
+                                console.log(`✅ [帖子详情页] 文件上传成功: ${cloudPath}`, res);
+                                resolve(res);
+                            },
+                            fail: (err) => {
+                                console.error(`❌ [帖子详情页] 文件上传失败: ${cloudPath}`, err);
+                                reject(err);
+                            }
+                        });
+                    } else {
+                        console.error(`❌ [帖子详情页] 微信云开发不可用`);
+                        reject(new Error('微信云开发不可用'));
+                    }
+                } else {
+                    console.error(`❌ [帖子详情页] 不支持的文件上传方式: ${method}`);
+                    reject(new Error(`不支持的文件上传方式: ${method}`));
                 }
             });
         }

@@ -1312,13 +1312,10 @@ export default {
                         const app = getApp();
                         const currentOpenid = app && app.globalData && app.globalData.openid;
                         
-                        that.$tcb.callFunction({
-                            name: 'getMyProfileData',
-                            data: {
-                                action: 'removeFromFavorite',
-                                favoriteId: favoriteId,
-                                openid: currentOpenid
-                            }
+                        that.callCloudFunction('getMyProfileData', {
+                            action: 'removeFromFavorite',
+                            favoriteId: favoriteId,
+                            openid: currentOpenid
                         }).then((res) => {
                             uni.hideLoading();
                             if (res.result && res.result.success) {
@@ -1529,6 +1526,58 @@ export default {
 
         onTagClick() {
             console.log('占位：函数 onTagClick 未声明');
+        },
+
+        // 兼容性云函数调用方法
+        callCloudFunction(name, data = {}) {
+            console.log(`🔍 [个人资料页] 调用云函数: ${name}`, data);
+            
+            return new Promise((resolve, reject) => {
+                // 使用新的平台检测工具
+                const { getCurrentPlatform, getCloudFunctionMethod } = require('../../utils/platformDetector.js');
+                
+                const platform = getCurrentPlatform();
+                const method = getCloudFunctionMethod();
+                
+                console.log(`🔍 [个人资料页] 运行环境检测 - 平台: ${platform}, 方法: ${method}`);
+                
+                if (method === 'tcb') {
+                    // 使用TCB调用云函数（H5和App环境）
+                    if (this.$tcb && this.$tcb.callFunction) {
+                        console.log(`🔍 [个人资料页] TCB环境调用云函数: ${name}`);
+                        this.$tcb.callFunction({
+                            name: name,
+                            data: data
+                        }).then(resolve).catch(reject);
+                    } else {
+                        console.error(`❌ [个人资料页] TCB实例不可用`);
+                        reject(new Error('TCB实例不可用'));
+                    }
+                } else if (method === 'wx-cloud') {
+                    // 使用微信云开发调用云函数（小程序环境）
+                    if (wx.cloud && wx.cloud.callFunction) {
+                        console.log(`🔍 [个人资料页] 小程序环境调用云函数: ${name}`);
+                        wx.cloud.callFunction({
+                            name: name,
+                            data: data,
+                            success: (res) => {
+                                console.log(`✅ [个人资料页] 云函数调用成功: ${name}`, res);
+                                resolve(res);
+                            },
+                            fail: (err) => {
+                                console.error(`❌ [个人资料页] 云函数调用失败: ${name}`, err);
+                                reject(err);
+                            }
+                        });
+                    } else {
+                        console.error(`❌ [个人资料页] 微信云开发不可用`);
+                        reject(new Error('微信云开发不可用'));
+                    }
+                } else {
+                    console.error(`❌ [个人资料页] 不支持的云函数调用方式: ${method}`);
+                    reject(new Error(`不支持的云函数调用方式: ${method}`));
+                }
+            });
         }
     }
 };
