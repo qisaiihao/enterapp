@@ -73,7 +73,6 @@ export default {
                         
                         // 标记登录流程已完成
                         this.globalData._loginProcessCompleted = true;
-                        const appInstance = getApp();
                         if (appInstance) {
                             appInstance.globalData._loginProcessCompleted = true;
                         }
