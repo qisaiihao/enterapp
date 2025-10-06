@@ -19,6 +19,9 @@ export default {
         
         // 执行登录流程
         this.loginAndCheckUser();
+        
+        // 标记登录流程已开始
+        this.globalData._loginProcessStarted = true;
     },
 
     // 【重构】3. 将所有方法都放入 methods 对象中，这是 Vue 的标准做法
@@ -68,6 +71,14 @@ export default {
                         // 更新本地缓存为最新的用户信息
                         uni.setStorageSync('userInfo', latestUserInfo);
                         
+                        // 标记登录流程已完成
+                        this.globalData._loginProcessCompleted = true;
+                        const appInstance = getApp();
+                        if (appInstance) {
+                            appInstance.globalData._loginProcessCompleted = true;
+                        }
+                        
+                        console.log('✅ [登录流程] 缓存验证成功，用户已登录');
                         return; // 登录成功，结束流程
                     } else {
                         console.log('⚠️ [登录流程] 云端验证失败，用户账户不存在，将重新注册');

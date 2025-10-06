@@ -558,17 +558,51 @@ export default {
             // 检查登录状态
             const app = getApp();
             const userInfo = app.globalData && app.globalData.userInfo;
+            const loginProcessCompleted = app.globalData && app.globalData._loginProcessCompleted;
+            
+            console.log('🔍 [profile] 检查登录状态:', {
+                hasUserInfo: !!userInfo,
+                hasOpenid: !!(userInfo && userInfo._openid),
+                loginProcessCompleted: loginProcessCompleted
+            });
             
             if (userInfo && userInfo._openid) {
                 this.fetchUserProfile();
                 // 首次加载时也要加载帖子数据
                 this.loadMyPosts();
-            } else {
+            } else if (loginProcessCompleted) {
+                // 登录流程已完成但没有用户信息，说明用户未登录
                 this.setData({
                     isLoading: false
                 });
+                console.log('⚠️ [profile] 登录流程已完成但无用户信息，用户未登录');
                 // 移除登录提示，让用户自然进入登录流程
+            } else {
+                // 登录流程未完成，等待登录流程完成
+                console.log('⏳ [profile] 登录流程未完成，等待中...');
+                this.waitForLoginProcess();
             }
+        },
+
+        // 等待登录流程完成
+        waitForLoginProcess: function () {
+            const checkInterval = setInterval(() => {
+                const app = getApp();
+                const loginProcessCompleted = app.globalData && app.globalData._loginProcessCompleted;
+                
+                if (loginProcessCompleted) {
+                    clearInterval(checkInterval);
+                    console.log('✅ [profile] 登录流程已完成，重新检查登录状态');
+                    this.checkLoginAndFetchData();
+                }
+            }, 100); // 每100ms检查一次
+            
+            // 设置超时，避免无限等待
+            setTimeout(() => {
+                clearInterval(checkInterval);
+                console.log('⚠️ [profile] 等待登录流程超时，继续执行');
+                this.checkLoginAndFetchData();
+            }, 5000); // 5秒超时
         },
 
         fetchUserProfile: function () {
