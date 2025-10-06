@@ -918,8 +918,7 @@ export default {
             });
         }
 
-    }
-};
+
 </script>
 <style>
 page {
