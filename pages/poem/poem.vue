@@ -68,10 +68,6 @@
                 </view>
             </view>
 
-            <!-- 调试按钮 (仅在开发环境显示) -->
-            <view v-if="true" class="debug-button" @tap="testPoemData">
-                <view>🐛</view>
-            </view>
         </view>
 
     </view>
@@ -903,29 +899,6 @@ export default {
             });
         },
 
-        // 测试诗歌数据获取
-        testPoemData: function() {
-            console.log('🧪 [Poem] 开始测试诗歌数据获取');
-            console.log('🧪 [Poem] 当前状态:', {
-                postListLength: this.postList.length,
-                currentPostIndex: this.currentPostIndex,
-                isLoading: this.isLoading,
-                page: this.page,
-                hasMore: this.hasMore
-            });
-            
-            // 重置状态并重新获取数据
-            this.setData({
-                postList: [],
-                currentPostIndex: 0,
-                page: 0,
-                hasMore: true,
-                isLoading: false
-            });
-            
-            console.log('🧪 [Poem] 重置状态完成，开始重新获取数据');
-            this.getPostList();
-        }
     }
 };
 </script>
@@ -1226,21 +1199,4 @@ page {
     z-index: 1000;
 }
 
-/* 调试按钮 */
-.debug-button {
-    position: fixed;
-    bottom: 240rpx;
-    right: 30rpx;
-    width: 80rpx;
-    height: 80rpx;
-    background-color: #ff9500;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 32rpx;
-    box-shadow: 0 4rpx 16rpx rgba(255, 149, 0, 0.3);
-    z-index: 1000;
-}
 </style>

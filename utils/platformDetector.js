@@ -160,19 +160,7 @@ function getCloudFunctionMethod() {
  * 打印平台信息（调试用）
  */
 function logPlatformInfo() {
-    const info = getPlatformInfo();
-    console.log('🔍 [PlatformDetector] 平台信息:', {
-        平台: info.platform,
-        是否H5: info.isH5,
-        是否App: info.isApp,
-        是否小程序: info.isMiniProgram,
-        是否安卓: info.isAndroid,
-        是否iOS: info.isIOS,
-        是否微信: info.isWeixin,
-        支持云函数: supportsCloudFunction(),
-        云函数调用方式: getCloudFunctionMethod(),
-        详细信息: info.details
-    });
+    // 调试信息已移除，保持函数存在以避免引用错误
 }
 
 module.exports = {

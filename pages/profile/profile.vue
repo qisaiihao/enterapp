@@ -52,6 +52,9 @@
                         <view class="sidebar-item" v-if="isAdmin" @tap="navigateToFeedbackAdmin">
                             <text>反馈管理</text>
                         </view>
+                        <view class="sidebar-item logout-item" @tap="showLogoutConfirm">
+                            <text>退出登录</text>
+                        </view>
                     </view>
                 </view>
 
@@ -552,26 +555,19 @@ export default {
         },
 
         checkLoginAndFetchData: function () {
-            // 使用登录状态调试工具
-            const { checkLoginStatusInPage } = require('../../utils/loginStatusDebug.js');
+            // 检查登录状态
+            const app = getApp();
+            const userInfo = app.globalData && app.globalData.userInfo;
             
-            const isLoggedIn = checkLoginStatusInPage('Profile页面');
-            
-            if (isLoggedIn) {
-                console.log('✅ [Profile页面] 用户已登录，开始获取个人资料和帖子数据');
+            if (userInfo && userInfo._openid) {
                 this.fetchUserProfile();
                 // 首次加载时也要加载帖子数据
                 this.loadMyPosts();
             } else {
-                console.log('❌ [Profile页面] 用户未登录，静默处理（不显示提示）');
                 this.setData({
                     isLoading: false
                 });
                 // 移除登录提示，让用户自然进入登录流程
-                // uni.showToast({
-                //     title: '请先登录',
-                //     icon: 'none'
-                // });
             }
         },
 
@@ -593,8 +589,15 @@ export default {
                 }
 
                 // 继续获取用户资料（无论openid获取是否成功）
+                // 传递当前用户的openid给云函数
+                const app = getApp();
+                const currentOpenid = app && app.globalData && app.globalData.openid;
+                
                 return this.$tcb.callFunction({
-                    name: 'getMyProfileData'
+                    name: 'getMyProfileData',
+                    data: {
+                        openid: currentOpenid
+                    }
                 });
             }).then((res) => {
                 console.log('getMyProfileData 返回:', res);
@@ -631,8 +634,15 @@ export default {
             }).catch((err) => {
                 console.error('获取openid失败:', err);
                 // 即使openid获取失败，也要继续获取用户资料
+                // 传递当前用户的openid给云函数
+                const app = getApp();
+                const currentOpenid = app && app.globalData && app.globalData.openid;
+                
                 this.$tcb.callFunction({
-                    name: 'getMyProfileData'
+                    name: 'getMyProfileData',
+                    data: {
+                        openid: currentOpenid
+                    }
                 }).then((res) => {
                     console.log('getMyProfileData 返回:', res);
                     if (res.result && res.result.success && res.result.userInfo) {
@@ -698,11 +708,16 @@ export default {
                     isLoading: true
                 });
             }
+            // 传递当前用户的openid给云函数
+            const app = getApp();
+            const currentOpenid = app && app.globalData && app.globalData.openid;
+            
             this.$tcb.callFunction({
                 name: 'getMyProfileData',
                 data: {
                     skip: page * PAGE_SIZE,
-                    limit: PAGE_SIZE
+                    limit: PAGE_SIZE,
+                    openid: currentOpenid
                 }
             }).then((res) => {
                 if (res.result && res.result.success) {
@@ -903,11 +918,15 @@ export default {
                     };
 
                     // 保存到草稿箱
+                    const app = getApp();
+                    const currentOpenid = app && app.globalData && app.globalData.openid;
+                    
                     return this.$tcb.callFunction({
                         name: 'getMyProfileData',
                         data: {
                             action: 'saveDraft',
-                            draftData: draftData
+                            draftData: draftData,
+                            openid: currentOpenid
                         }
                     });
                 } else {
@@ -1203,12 +1222,17 @@ export default {
             this.setData({
                 favoriteLoading: true
             });
+            // 传递当前用户的openid给云函数
+            const app = getApp();
+            const currentOpenid = app && app.globalData && app.globalData.openid;
+            
             this.$tcb.callFunction({
                 name: 'getMyProfileData',
                 data: {
                     action: 'getAllFavorites',
                     skip: favoritePage * PAGE_SIZE,
-                    limit: PAGE_SIZE
+                    limit: PAGE_SIZE,
+                    openid: currentOpenid
                 }
             }).then((res) => {
                 console.log('【profile】获取收藏返回:', res);
@@ -1284,11 +1308,16 @@ export default {
                         uni.showLoading({
                             title: '取消收藏中...'
                         });
+                        // 传递当前用户的openid给云函数
+                        const app = getApp();
+                        const currentOpenid = app && app.globalData && app.globalData.openid;
+                        
                         that.$tcb.callFunction({
                             name: 'getMyProfileData',
                             data: {
                                 action: 'removeFromFavorite',
-                                favoriteId: favoriteId
+                                favoriteId: favoriteId,
+                                openid: currentOpenid
                             }
                         }).then((res) => {
                             uni.hideLoading();
@@ -1342,6 +1371,123 @@ export default {
         navigateToFeedbackAdmin: function () {
             uni.navigateTo({
                 url: '/pages/feedback-admin/feedback-admin'
+            });
+        },
+
+        // 显示退出登录确认对话框
+        showLogoutConfirm: function () {
+            // 先关闭侧边栏，避免遮挡确认对话框
+            if (this.isSidebarOpen) {
+                this.isSidebarOpen = false;
+            }
+            
+            // 延迟显示对话框，确保侧边栏关闭动画完成
+            setTimeout(() => {
+                uni.showModal({
+                    title: '退出登录',
+                    content: '确定要退出登录吗？',
+                    confirmText: '退出',
+                    cancelText: '取消',
+                    confirmColor: '#ff6b6b',
+                    success: (res) => {
+                        if (res.confirm) {
+                            this.performLogout();
+                        }
+                    }
+                });
+            }, 100);
+        },
+
+        // 执行退出登录
+        performLogout: function () {
+            console.log('🔍 [退出登录] 开始执行退出登录流程');
+            
+            try {
+                // 清除本地存储的用户信息
+                uni.removeStorageSync('userInfo');
+                uni.removeStorageSync('userOpenId');
+                
+                // 清除全局数据
+                const app = getApp();
+                if (app && app.globalData) {
+                    app.globalData.userInfo = null;
+                    app.globalData.openid = null;
+                    app.globalData._loginProcessCompleted = false; // 重置登录流程标记
+                }
+                
+                // 清除当前页面的用户数据
+                this.setData({
+                    userInfo: null,
+                    myPosts: [],
+                    favoriteList: [],
+                    isLoading: false,
+                    isSidebarOpen: false
+                });
+                
+                console.log('✅ [退出登录] 本地数据清除完成');
+                
+                // 重新初始化匿名openid，确保用户可以重新登录
+                this.reinitializeAnonymousOpenid();
+                
+                // 显示退出成功提示
+                uni.showToast({
+                    title: '已退出登录',
+                    icon: 'success',
+                    duration: 1500
+                });
+                
+                // 延迟跳转到登录页面
+                setTimeout(() => {
+                    uni.redirectTo({
+                        url: '/pages/login/login'
+                    });
+                }, 1500);
+                
+            } catch (error) {
+                console.error('❌ [退出登录] 退出登录失败:', error);
+                uni.showToast({
+                    title: '退出失败，请重试',
+                    icon: 'none'
+                });
+            }
+        },
+
+        // 重新初始化匿名openid
+        reinitializeAnonymousOpenid: function () {
+            console.log('🔄 [退出登录] 重新初始化匿名openid');
+            
+            // 调用login云函数获取新的匿名openid
+            this.$tcb.callFunction({
+                name: 'login'
+            }).then((loginRes) => {
+                console.log('✅ [退出登录] 匿名openid初始化成功:', loginRes);
+                
+                // 获取openid
+                let openid = null;
+                if (loginRes.result && loginRes.result.openid) {
+                    openid = loginRes.result.openid;
+                } else if (loginRes.openid) {
+                    openid = loginRes.openid;
+                } else if (loginRes.result && loginRes.result.uid) {
+                    openid = loginRes.result.uid;
+                }
+                
+                if (openid) {
+                    // 更新全局数据
+                    const app = getApp();
+                    if (app && app.globalData) {
+                        app.globalData.openid = openid;
+                        console.log('✅ [退出登录] 匿名openid已设置:', openid);
+                    }
+                    
+                    // 缓存openid
+                    uni.setStorageSync('userOpenId', openid);
+                } else {
+                    console.error('❌ [退出登录] 无法获取匿名openid');
+                }
+            }).catch((error) => {
+                console.error('❌ [退出登录] 匿名openid初始化失败:', error);
+                // 即使失败也不影响退出登录流程
             });
         },
 
@@ -1479,6 +1625,18 @@ export default {
     min-width: 32rpx;
     text-align: center;
     font-weight: bold;
+}
+
+/* 退出登录按钮特殊样式 */
+.logout-item {
+    border-top: 2rpx solid #f0f0f0;
+    margin-top: 20rpx;
+    color: #ff6b6b !important;
+    font-weight: 500;
+}
+
+.logout-item:active {
+    background-color: #fff5f5 !important;
 }
 
 .main-content {

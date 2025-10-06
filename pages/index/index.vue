@@ -271,10 +271,6 @@
                 <view>+</view>
             </navigator>
 
-            <!-- 调试按钮 (仅在开发环境显示) -->
-            <view v-if="true" class="debug-button" @tap="testLoadMore">
-                <view>🐛</view>
-            </view>
         </view>
 
     </view>
@@ -287,11 +283,9 @@ import skeleton from '@/components/skeleton/skeleton';
 const PAGE_SIZE = 5;
 const dataCache = require('../../utils/dataCache');
 const imageOptimizer = require('../../utils/imageOptimizer');
-const performanceMonitor = require('../../utils/performanceMonitor');
 const likeIcon = require('../../utils/likeIcon');
 const avatarCache = require('../../utils/avatarCache');
 const followCache = require('../../utils/followCache');
-const cloudFunction = require('../../utils/cloudFunction');
 export default {
     components: {
         skeleton
@@ -501,17 +495,13 @@ onReachBottom: function () {
             const cachedData = dataCache.get('index_postList_cache');
             if (cachedData) {
                 console.log('Index: 使用缓存数据');
-                performanceMonitor.recordCacheHit('index_postList_cache', true);
                 this.setData({
                     postList: cachedData,
                     page: Math.ceil(cachedData.length / PAGE_SIZE),
                     isLoading: false // 关键：数据返回，关闭骨架屏
                 });
 
-                performanceMonitor.recordPageLoad('index', this.pageLoadStartTime);
                 return;
-            } else {
-                performanceMonitor.recordCacheHit('index_postList_cache', false);
             }
 
             // 如果没有缓存，则加载数据
@@ -658,7 +648,7 @@ onReachBottom: function () {
             console.log('【点赞】调用云函数vote，postId:', postId);
             
             // 使用兼容性云函数调用工具
-            cloudFunction.callCloudFunctionInVue.call(this, 'vote', {
+            this.callCloudFunction('vote', {
                 postId: postId
             }).then((res) => {
                 console.log('【点赞】云函数返回结果:', res);
@@ -864,7 +854,6 @@ onReachBottom: function () {
                 }
             }).then((res) => {
                 console.log('✅ [首页] 云函数调用成功，原始响应:', res);
-                performanceMonitor.recordApiCall('getPostList', apiStartTime);
                 if (res.result && res.result.success) {
                     let posts = res.result.posts || [];
                     console.log('✅ [首页] 获取到帖子数量:', posts.length);
@@ -918,7 +907,6 @@ onReachBottom: function () {
                     if (isFirstLoad) {
                         dataCache.set('index_postList_cache', newPostList);
                         this.preloadImages(posts);
-                        performanceMonitor.recordPageLoad('index', this.pageLoadStartTime);
                     }
                 } else {
                     // 当没有更多数据时，不显示错误提示，而是设置hasMore为false
@@ -1255,25 +1243,6 @@ onReachBottom: function () {
             this.getIndexData();
         },
 
-        // 测试加载更多功能
-        testLoadMore: function() {
-            console.log('🧪 [首页] 开始测试加载更多功能');
-            console.log('🧪 [首页] 当前状态:', {
-                postListLength: this.postList.length,
-                page: this.page,
-                hasMore: this.hasMore,
-                isLoading: this.isLoading,
-                isLoadingMore: this.isLoadingMore
-            });
-            
-            // 手动触发加载更多
-            if (this.hasMore && !this.isLoading && !this.isLoadingMore) {
-                console.log('🧪 [首页] 手动触发加载更多');
-                this.getPostList();
-            } else {
-                console.log('🧪 [首页] 无法触发加载更多，状态不满足条件');
-            }
-        }
     }
 };
 </script>
@@ -1850,28 +1819,6 @@ onReachBottom: function () {
     font-size: 14px;
 }
 
-/* 移除可能干扰图片显示的强制样式 */
-.debug-button {
-    position: fixed;
-    left: 40rpx;
-    bottom: 120rpx;
-    width: 80rpx;
-    height: 80rpx;
-    background-color: #ff6b6b;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: white;
-    font-size: 40rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.2);
-    z-index: 100;
-    transition: transform 0.2s ease;
-}
-
-.debug-button:active {
-    transform: scale(0.9);
-}
 
 /* 标签样式 */
 .post-tags {

@@ -19,7 +19,14 @@ const $ = db.command.aggregate;
 // 云函数入口函数
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
-  const openid = wxContext.OPENID || event.openid;
+  // 优先使用前端传递的openid，如果没有则使用当前微信openid
+  const openid = event.openid || wxContext.OPENID;
+
+  console.log('【profile云函数】openid获取:', {
+    eventOpenid: event.openid,
+    wxContextOpenid: wxContext.OPENID,
+    finalOpenid: openid
+  });
 
   if (!openid) {
     return {

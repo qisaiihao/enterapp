@@ -1,9 +1,9 @@
 <template>
     <view>
-        <!-- 新的登录页面 -->
+        <!-- 注册页面 -->
         <view class="container">
-            <view class="title">欢迎回到回车键</view>
-            <view class="subtitle">请输入你的账号信息登录</view>
+            <view class="title">创建新账号</view>
+            <view class="subtitle">设置你的账号信息</view>
 
             <view class="form-wrapper">
                 <view class="input-wrapper">
@@ -11,7 +11,7 @@
                     <input 
                         class="input-field" 
                         type="text" 
-                        placeholder="请输入你的Poem ID" 
+                        placeholder="请输入Poem ID" 
                         v-model="poemId"
                         @input="onPoemIdInput" 
                     />
@@ -28,18 +28,40 @@
                     />
                 </view>
 
+                <view class="input-wrapper">
+                    <text class="input-label">确认密码</text>
+                    <input 
+                        class="input-field" 
+                        type="password" 
+                        placeholder="请再次输入密码" 
+                        v-model="confirmPassword"
+                        @input="onConfirmPasswordInput" 
+                    />
+                </view>
+
+                <view class="input-wrapper">
+                    <text class="input-label">昵称</text>
+                    <input 
+                        class="input-field" 
+                        type="text" 
+                        placeholder="请输入昵称" 
+                        v-model="nickName"
+                        @input="onNickNameInput" 
+                    />
+                </view>
+
                 <button 
-                    class="login-button" 
-                    @tap="onLogin" 
-                    :disabled="!canLogin || isLogging"
-                    :class="{ 'loading': isLogging }"
+                    class="register-button" 
+                    @tap="onRegister" 
+                    :disabled="!canRegister || isRegistering"
+                    :class="{ 'loading': isRegistering }"
                 >
-                    {{ isLogging ? '登录中...' : '登录' }}
+                    {{ isRegistering ? '注册中...' : '注册' }}
                 </button>
 
-                <view class="register-link-wrapper">
-                    <text class="register-text">还没有账号？</text>
-                    <text class="register-link" @tap="goToRegister">立即注册</text>
+                <view class="login-link-wrapper">
+                    <text class="login-text">已有账号？</text>
+                    <text class="login-link" @tap="goToLogin">立即登录</text>
                 </view>
             </view>
         </view>
@@ -47,7 +69,7 @@
 </template>
 
 <script>
-// pages/login/login.js
+// pages/register/register.js
 const app = getApp();
 
 export default {
@@ -55,79 +77,26 @@ export default {
         return {
             poemId: '',
             password: '',
-            isLogging: false
+            confirmPassword: '',
+            nickName: '',
+            isRegistering: false
         };
     },
     
     computed: {
-        canLogin() {
-            return this.poemId.trim() && this.password.trim();
+        canRegister() {
+            return this.poemId.trim() && 
+                   this.password.trim() && 
+                   this.confirmPassword.trim() && 
+                   this.nickName.trim() &&
+                   this.password === this.confirmPassword;
         }
     },
+    
     onLoad: function () {
-        console.log('🔍 [登录页面] 页面加载');
-        
-        // 检查是否需要重新初始化openid
-        this.checkAndInitializeOpenid();
     },
+    
     methods: {
-        // 检查并初始化openid
-        checkAndInitializeOpenid: function () {
-            console.log('🔍 [登录页面] 检查openid状态');
-            
-            const app = getApp();
-            const hasOpenid = app && app.globalData && app.globalData.openid;
-            
-            if (!hasOpenid) {
-                console.log('⚠️ [登录页面] 未检测到openid，尝试重新初始化');
-                this.initializeAnonymousOpenid();
-            } else {
-                console.log('✅ [登录页面] openid已存在:', app.globalData.openid);
-            }
-        },
-
-        // 初始化匿名openid
-        initializeAnonymousOpenid: function () {
-            console.log('🔄 [登录页面] 初始化匿名openid');
-            
-            // 使用TCB调用login云函数获取匿名openid
-            if (this.$tcb && this.$tcb.callFunction) {
-                this.$tcb.callFunction({
-                    name: 'login'
-                }).then((loginRes) => {
-                    console.log('✅ [登录页面] 匿名openid初始化成功:', loginRes);
-                    
-                    // 获取openid
-                    let openid = null;
-                    if (loginRes.result && loginRes.result.openid) {
-                        openid = loginRes.result.openid;
-                    } else if (loginRes.openid) {
-                        openid = loginRes.openid;
-                    } else if (loginRes.result && loginRes.result.uid) {
-                        openid = loginRes.result.uid;
-                    }
-                    
-                    if (openid) {
-                        // 更新全局数据
-                        const app = getApp();
-                        if (app && app.globalData) {
-                            app.globalData.openid = openid;
-                            console.log('✅ [登录页面] 匿名openid已设置:', openid);
-                        }
-                        
-                        // 缓存openid
-                        uni.setStorageSync('userOpenId', openid);
-                    } else {
-                        console.error('❌ [登录页面] 无法获取匿名openid');
-                    }
-                }).catch((error) => {
-                    console.error('❌ [登录页面] 匿名openid初始化失败:', error);
-                });
-            } else {
-                console.error('❌ [登录页面] TCB实例不可用，无法初始化openid');
-            }
-        },
-
         // 兼容性云函数调用方法
         callCloudFunction(name, data = {}) {
             return new Promise((resolve, reject) => {
@@ -136,6 +105,7 @@ export default {
                 
                 const platform = getCurrentPlatform();
                 const method = getCloudFunctionMethod();
+                
                 // 使用检测到的调用方式
                 const actualMethod = method;
                 
@@ -171,6 +141,54 @@ export default {
             });
         },
 
+        // 兼容性认证方法
+        async performAuth() {
+            console.log('🔐 [Register] 开始认证流程');
+            
+            return new Promise((resolve, reject) => {
+                const { getCurrentPlatform } = require('../../utils/platformDetector.js');
+                const platform = getCurrentPlatform();
+                
+                if (platform === 'h5' || platform === 'app') {
+                    // H5和App环境使用TCB认证
+                    if (this.$tcb && this.$tcb.auth) {
+                        const currentUser = this.$tcb.auth().currentUser;
+                        if (!currentUser) {
+                            console.log('🔐 [注册] 尝试匿名登录...');
+                            this.$tcb.auth().signInAnonymously().then((authResult) => {
+                                console.log('✅ [注册] 匿名登录成功:', authResult);
+                                resolve(authResult);
+                            }).catch(reject);
+                        } else {
+                            console.log('✅ [注册] 用户已登录，跳过匿名登录');
+                            resolve(currentUser);
+                        }
+                    } else {
+                        reject(new Error('TCB认证不可用'));
+                    }
+                } else if (platform === 'miniprogram') {
+                    // 小程序环境使用微信云开发认证
+                    if (wx.cloud && wx.cloud.auth) {
+                        const currentUser = wx.cloud.auth().currentUser;
+                        if (!currentUser) {
+                            console.log('🔐 [注册] 尝试匿名登录...');
+                            wx.cloud.auth().signInAnonymously().then((authResult) => {
+                                console.log('✅ [注册] 匿名登录成功:', authResult);
+                                resolve(authResult);
+                            }).catch(reject);
+                        } else {
+                            console.log('✅ [注册] 用户已登录，跳过匿名登录');
+                            resolve(currentUser);
+                        }
+                    } else {
+                        reject(new Error('微信云开发认证不可用'));
+                    }
+                } else {
+                    reject(new Error(`不支持的平台: ${platform}`));
+                }
+            });
+        },
+
         onPoemIdInput(e) {
             this.poemId = e.detail.value;
         },
@@ -179,32 +197,54 @@ export default {
             this.password = e.detail.value;
         },
 
-        async onLogin() {
-            if (!this.canLogin || this.isLogging) {
+        onConfirmPasswordInput(e) {
+            this.confirmPassword = e.detail.value;
+        },
+
+        onNickNameInput(e) {
+            this.nickName = e.detail.value;
+        },
+
+        async onRegister() {
+            if (!this.canRegister || this.isRegistering) {
                 return;
             }
 
-            this.isLogging = true;
+            // 检查密码是否一致
+            if (this.password !== this.confirmPassword) {
+                uni.showToast({
+                    title: '两次输入的密码不一致',
+                    icon: 'none',
+                    duration: 3000
+                });
+                return;
+            }
+
+            this.isRegistering = true;
             uni.showLoading({
-                title: '登录中...',
+                title: '注册中...',
                 mask: true
             });
 
             try {
-                // 调用登录验证云函数
-                const loginRes = await this.callCloudFunction('loginWithCredentials', {
+                // 先进行匿名登录获取openid
+                await this.performAuth();
+
+                // 调用注册云函数
+                const registerRes = await this.callCloudFunction('registerUser', {
                     poemId: this.poemId.trim(),
-                    password: this.password.trim()
+                    password: this.password.trim(),
+                    nickName: this.nickName.trim()
                 });
 
-                console.log('🔍 [登录] 云函数返回结果:', loginRes);
+                console.log('🔍 [注册] 云函数返回结果:', registerRes);
 
-                if (loginRes.result && loginRes.result.success) {
-                    // 登录成功
-                    const userInfo = loginRes.result.userInfo;
-                    const openid = loginRes.result.openid;
+                if (registerRes.result && registerRes.result.success) {
+                    // 注册成功
+                    const userInfo = registerRes.result.userInfo;
+                    const openid = registerRes.result.openid;
                     
-                    console.log('✅ [登录] 登录成功:', userInfo);
+                    console.log('✅ [注册] 注册成功:', userInfo);
                     
                     // 更新全局数据
                     const app = getApp();
@@ -216,7 +256,7 @@ export default {
                     uni.setStorageSync('userOpenId', openid);
                     
                     uni.showToast({
-                        title: '登录成功',
+                        title: '注册成功',
                         icon: 'success'
                     });
                     
@@ -228,8 +268,8 @@ export default {
                     }, 1000);
                     
                 } else {
-                    // 登录失败
-                    const message = loginRes.result?.message || '登录失败，请检查账号密码';
+                    // 注册失败
+                    const message = registerRes.result?.message || '注册失败，请重试';
                     uni.showToast({
                         title: message,
                         icon: 'none',
@@ -238,29 +278,28 @@ export default {
                 }
                 
             } catch (error) {
-                console.error('❌ [登录] 登录失败:', error);
+                console.error('❌ [注册] 注册失败:', error);
                 uni.showToast({
-                    title: '登录失败，请重试',
+                    title: '注册失败，请重试',
                     icon: 'none',
                     duration: 3000
                 });
             } finally {
                 uni.hideLoading();
-                this.isLogging = false;
+                this.isRegistering = false;
             }
         },
 
-        goToRegister() {
-            // 跳转到注册页面（原有的注册页面）
-            uni.navigateTo({
-                url: '/pages/register/register'
-            });
+        goToLogin() {
+            // 跳转到登录页面
+            uni.navigateBack();
         }
     }
 };
 </script>
+
 <style>
-/* 新的登录页面样式 */
+/* 注册页面样式 */
 .container {
     display: flex;
     flex-direction: column;
@@ -281,7 +320,7 @@ export default {
 .subtitle {
     font-size: 28rpx;
     color: #666;
-    margin-bottom: 100rpx;
+    margin-bottom: 80rpx;
     text-align: center;
 }
 
@@ -291,7 +330,7 @@ export default {
 }
 
 .input-wrapper {
-    margin-bottom: 40rpx;
+    margin-bottom: 30rpx;
     background: white;
     border-radius: 16rpx;
     padding: 30rpx;
@@ -319,7 +358,7 @@ export default {
     color: #999;
 }
 
-.login-button {
+.register-button {
     width: 100%;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
@@ -333,36 +372,36 @@ export default {
     transition: all 0.3s ease;
 }
 
-.login-button:active {
+.register-button:active {
     transform: translateY(2rpx);
     box-shadow: 0 4rpx 15rpx rgba(102, 126, 234, 0.3);
 }
 
-.login-button:disabled {
+.register-button:disabled {
     background: #ccc;
     box-shadow: none;
     transform: none;
 }
 
-.login-button.loading {
+.register-button.loading {
     background: #ccc;
     box-shadow: none;
 }
 
-.register-link-wrapper {
+.login-link-wrapper {
     display: flex;
     justify-content: center;
     align-items: center;
     margin-top: 40rpx;
 }
 
-.register-text {
+.login-text {
     font-size: 28rpx;
     color: #666;
     margin-right: 10rpx;
 }
 
-.register-link {
+.login-link {
     font-size: 28rpx;
     color: #667eea;
     font-weight: 500;

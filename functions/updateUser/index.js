@@ -10,7 +10,7 @@ const db = cloud.database();
 // 云函数入口函数
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
-  const { nickName, avatarUrl } = event;
+  const { nickName, avatarUrl, poemId, password } = event;
 
   // 获取用户标识，与login云函数保持一致
   const openid = wxContext.OPENID || event.openid;
@@ -41,25 +41,37 @@ exports.main = async (event, context) => {
     if (userRecord.data.length > 0) {
       // User exists, update it
       console.log('🔍 [updateUser] 用户已存在，执行更新');
+      const updateData = {
+        nickName,
+        avatarUrl,
+        updatedAt: new Date()
+      };
+      
+      // 如果提供了poemId和password，则更新这些字段
+      if (poemId) updateData.poemId = poemId;
+      if (password) updateData.password = password;
+      
       await db.collection('users').where({
         _openid: openid
       }).update({
-        data: {
-          nickName,
-          avatarUrl,
-          updatedAt: new Date()
-        }
+        data: updateData
       });
     } else {
       // User does not exist, add it
       console.log('🔍 [updateUser] 用户不存在，执行创建');
+      const createData = {
+        _openid: openid,
+        nickName,
+        avatarUrl,
+        createdAt: new Date()
+      };
+      
+      // 如果提供了poemId和password，则添加到创建数据中
+      if (poemId) createData.poemId = poemId;
+      if (password) createData.password = password;
+      
       await db.collection('users').add({
-        data: {
-          _openid: openid,
-          nickName,
-          avatarUrl,
-          createdAt: new Date()
-        }
+        data: createData
       });
     }
 

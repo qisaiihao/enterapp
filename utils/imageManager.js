@@ -1,5 +1,4 @@
 // 图片管理工具类
-const cloudFunction = require('./cloudFunction');
 
 class ImageManager {
     constructor() {

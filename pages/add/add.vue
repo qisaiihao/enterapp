@@ -451,68 +451,6 @@ export default {
     methods: {
         // 兼容性云函数调用方法
         callCloudFunction(name, data = {}) {
-            console.log(`🔍 [Add页面] 调用云函数: ${name}`, data);
-            
-            return new Promise((resolve, reject) => {
-                // 使用新的平台检测工具
-                const { getCurrentPlatform, getCloudFunctionMethod, logPlatformInfo } = require('../../utils/platformDetector.js');
-                
-                const platform = getCurrentPlatform();
-                const method = getCloudFunctionMethod();
-                
-                console.log(`🔍 [Add页面] 运行环境: ${platform}, 调用方式: ${method}`);
-                
-                // 打印详细的平台信息（调试用）
-                logPlatformInfo();
-                
-                if (method === 'tcb') {
-                    // 使用TCB调用云函数（H5和App环境）
-                    const app = getApp();
-                    if (app && app.$tcb && app.$tcb.callFunction) {
-                        console.log(`🔍 [Add页面] 使用TCB调用云函数: ${name} (环境: ${platform})`);
-                        app.$tcb.callFunction({
-                            name: name,
-                            data: data
-                        }).then(resolve).catch(reject);
-                    } else {
-                        console.error(`❌ [Add页面] ${platform}环境TCB不可用`);
-                        console.error(`❌ [Add页面] app:`, app);
-                        console.error(`❌ [Add页面] app.$tcb:`, app && app.$tcb);
-                        reject(new Error('TCB实例不可用'));
-                    }
-                } else if (method === 'wx-cloud') {
-                    // 使用微信云开发调用云函数（小程序环境）
-                    if (wx.cloud && wx.cloud.callFunction) {
-                        console.log(`🔍 [Add页面] 使用微信云开发调用云函数: ${name}`);
-                        wx.cloud.callFunction({
-                            name: name,
-                            data: data,
-                            success: (res) => {
-                                console.log(`✅ [Add页面] 云函数调用成功: ${name}`, res);
-                                resolve(res);
-                            },
-                            fail: (err) => {
-                                console.error(`❌ [Add页面] 云函数调用失败: ${name}`, err);
-                                reject(err);
-                            }
-                        });
-                    } else {
-                        console.error(`❌ [Add页面] 小程序环境微信云开发不可用`);
-                        console.error(`❌ [Add页面] wx.cloud:`, typeof wx.cloud);
-                        console.error(`❌ [Add页面] wx.cloud.callFunction:`, typeof (wx.cloud && wx.cloud.callFunction));
-                        reject(new Error('微信云开发不可用'));
-                    }
-                } else {
-                    console.error(`❌ [Add页面] 不支持的云函数调用方式: ${method}`);
-                    reject(new Error(`不支持的云函数调用方式: ${method}`));
-                }
-            });
-        },
-
-        // 兼容性文件上传方法
-        uploadFile(cloudPath, filePath) {
-            console.log(`🔍 [Add页面] 上传文件: ${cloudPath}`, filePath);
-            
             return new Promise((resolve, reject) => {
                 // 使用新的平台检测工具
                 const { getCurrentPlatform, getCloudFunctionMethod } = require('../../utils/platformDetector.js');
@@ -520,34 +458,68 @@ export default {
                 const platform = getCurrentPlatform();
                 const method = getCloudFunctionMethod();
                 
-                console.log(`🔍 [Add页面] 运行环境: ${platform}, 调用方式: ${method}`);
-                
                 if (method === 'tcb') {
-                    // H5和App环境：使用云函数上传，避免multipart/form-data格式问题
-                    console.log(`🔍 [Add页面] ${platform}环境使用云函数上传文件: ${cloudPath}`);
-                    this.uploadFileViaCloudFunction(cloudPath, filePath).then(resolve).catch(reject);
+                    // 使用TCB调用云函数（H5和App环境）
+                    const app = getApp();
+                    if (app && app.$tcb && app.$tcb.callFunction) {
+                        app.$tcb.callFunction({
+                            name: name,
+                            data: data
+                        }).then(resolve).catch(reject);
+                    } else {
+                        reject(new Error('TCB实例不可用'));
+                    }
                 } else if (method === 'wx-cloud') {
-                    // 小程序环境使用微信云开发
-                    if (wx.cloud && wx.cloud.uploadFile) {
-                        console.log(`🔍 [Add页面] 小程序环境使用微信云开发上传文件: ${cloudPath}`);
-                        wx.cloud.uploadFile({
-                            cloudPath: cloudPath,
-                            filePath: filePath,
+                    // 使用微信云开发调用云函数（小程序环境）
+                    if (wx.cloud && wx.cloud.callFunction) {
+                        wx.cloud.callFunction({
+                            name: name,
+                            data: data,
                             success: (res) => {
-                                console.log(`✅ [Add页面] 文件上传成功: ${cloudPath}`, res);
                                 resolve(res);
                             },
                             fail: (err) => {
-                                console.error(`❌ [Add页面] 文件上传失败: ${cloudPath}`, err);
                                 reject(err);
                             }
                         });
                     } else {
-                        console.error(`❌ [Add页面] 小程序环境微信云开发不可用`);
                         reject(new Error('微信云开发不可用'));
                     }
                 } else {
-                    console.error(`❌ [Add页面] 不支持的云函数调用方式: ${method}`);
+                    reject(new Error(`不支持的云函数调用方式: ${method}`));
+                }
+            });
+        },
+
+        // 兼容性文件上传方法
+        uploadFile(cloudPath, filePath) {
+            return new Promise((resolve, reject) => {
+                // 使用新的平台检测工具
+                const { getCurrentPlatform, getCloudFunctionMethod } = require('../../utils/platformDetector.js');
+                
+                const platform = getCurrentPlatform();
+                const method = getCloudFunctionMethod();
+                
+                if (method === 'tcb') {
+                    // H5和App环境：使用云函数上传，避免multipart/form-data格式问题
+                    this.uploadFileViaCloudFunction(cloudPath, filePath).then(resolve).catch(reject);
+                } else if (method === 'wx-cloud') {
+                    // 小程序环境使用微信云开发
+                    if (wx.cloud && wx.cloud.uploadFile) {
+                        wx.cloud.uploadFile({
+                            cloudPath: cloudPath,
+                            filePath: filePath,
+                            success: (res) => {
+                                resolve(res);
+                            },
+                            fail: (err) => {
+                                reject(err);
+                            }
+                        });
+                    } else {
+                        reject(new Error('微信云开发不可用'));
+                    }
+                } else {
                     reject(new Error(`不支持的云函数调用方式: ${method}`));
                 }
             });
@@ -556,12 +528,9 @@ export default {
         // 通过云函数上传文件（解决H5环境multipart/form-data问题）
         uploadFileViaCloudFunction(cloudPath, filePath, retryCount = 0) {
             return new Promise((resolve, reject) => {
-                console.log(`🔍 [Add页面] 开始通过云函数上传文件: ${cloudPath} (重试次数: ${retryCount})`);
-                
                 // 检查环境并使用相应的文件读取方式
                 if (typeof window !== 'undefined' && typeof FileReader !== 'undefined') {
                     // H5环境：使用fetch获取blob，然后转换为base64
-                    console.log('🔍 [Add页面] H5环境使用fetch+FileReader读取文件');
                     
                     fetch(filePath)
                         .then(response => {

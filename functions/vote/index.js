@@ -6,8 +6,6 @@ const _ = db.command
 
 // 云函数入口函数
 exports.main = async (event, context) => {
-  console.log('🔍 [vote] 云函数开始执行');
-  console.log('🔍 [vote] 接收到的参数:', event);
   
   try {
     const { postId } = event
@@ -120,16 +118,10 @@ exports.main = async (event, context) => {
       isLiked: isLiked
     };
 
-    console.log('✅ [vote] 云函数执行完成，返回结果:', result);
     return result;
 
   } catch (e) {
-    console.error('❌ [vote] 云函数执行失败:', e);
-    console.error('❌ [vote] 错误详情:', {
-      message: e.message,
-      stack: e.stack,
-      name: e.name
-    });
+    console.error('云函数执行失败:', e);
     return {
       success: false,
       error: {

@@ -16,7 +16,7 @@ exports.main = async (event, context) => {
     }
   }
 
-  const { nickName, avatarFileID } = event
+  const { nickName, avatarFileID, poemId, password } = event
 
   try {
     // 检查用户是否已存在
@@ -24,23 +24,35 @@ exports.main = async (event, context) => {
 
     if (userRecord.data.length > 0) {
       // 用户已存在，执行更新操作
+      const updateData = {
+        nickName: nickName,
+        avatarUrl: avatarFileID,
+        updateTime: new Date()
+      };
+      
+      // 如果提供了poemId和password，则更新这些字段
+      if (poemId) updateData.poemId = poemId;
+      if (password) updateData.password = password;
+      
       await db.collection('users').doc(userRecord.data[0]._id).update({
-        data: {
-          nickName: nickName,
-          avatarUrl: avatarFileID,
-          updateTime: new Date()
-        }
+        data: updateData
       })
       return { success: true, message: '用户信息更新成功' }
     } else {
       // 用户不存在，执行创建操作
+      const createData = {
+        _openid: openid,
+        nickName: nickName,
+        avatarUrl: avatarFileID,
+        createTime: new Date()
+      };
+      
+      // 如果提供了poemId和password，则添加到创建数据中
+      if (poemId) createData.poemId = poemId;
+      if (password) createData.password = password;
+      
       await db.collection('users').add({
-        data: {
-          _openid: openid,
-          nickName: nickName,
-          avatarUrl: avatarFileID,
-          createTime: new Date()
-        }
+        data: createData
       })
       return { success: true, message: '用户创建成功' }
     }

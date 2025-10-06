@@ -14,6 +14,12 @@
 			}
 		},
 		{
+			"path": "pages/register/register",
+			"style": {
+				"usingComponents": {}
+			}
+		},
+		{
 			"path": "pages/my-likes/my-likes",
 			"style": {
 				"navigationBarTitleText": "我的点赞",

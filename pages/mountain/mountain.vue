@@ -954,21 +954,4 @@ page {
     z-index: 1000;
 }
 
-/* 调试按钮 */
-.debug-button {
-    position: fixed;
-    bottom: 240rpx;
-    right: 30rpx;
-    width: 80rpx;
-    height: 80rpx;
-    background-color: #d2691e;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 32rpx;
-    box-shadow: 0 4rpx 16rpx rgba(210, 105, 30, 0.3);
-    z-index: 1000;
-}
 </style>

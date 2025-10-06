@@ -1,6 +1,5 @@
 // 头像缓存工具类
 const dataCache = require('./dataCache');
-const cloudFunction = require('./cloudFunction');
 
 class AvatarCache {
     constructor() {
@@ -9,68 +8,44 @@ class AvatarCache {
 
     // 兼容性云函数调用方法
     callCloudFunction(name, data = {}) {
-        console.log(`🔍 [AvatarCache] 调用云函数: ${name}`, data);
         
         return new Promise((resolve, reject) => {
             // 使用新的平台检测工具
-            const { getCurrentPlatform, getCloudFunctionMethod, logPlatformInfo } = require('./platformDetector.js');
-            const { debugEnvironmentDetection, testCloudFunctionCapability } = require('./debugPlatform.js');
-            
-            // 详细的环境检测调试
-            debugEnvironmentDetection();
+            const { getCurrentPlatform, getCloudFunctionMethod } = require('./platformDetector.js');
             
             const platform = getCurrentPlatform();
             const method = getCloudFunctionMethod();
-            const capability = testCloudFunctionCapability();
             
-            console.log(`🔍 [AvatarCache] 运行环境: ${platform}, 调用方式: ${method}, 实际能力: ${capability}`);
-            
-            // 打印详细的平台信息（调试用）
-            logPlatformInfo();
-            
-            // 如果检测到的调用方式与实际能力不匹配，使用实际能力
-            const actualMethod = capability !== 'none' ? capability : method;
-            console.log(`🔍 [AvatarCache] 最终使用调用方式: ${actualMethod}`);
+            // 使用检测到的调用方式
+            const actualMethod = method;
             
             if (actualMethod === 'tcb') {
                 // 使用TCB调用云函数（H5和App环境）
                 if (typeof getApp !== 'undefined' && getApp().$tcb && getApp().$tcb.callFunction) {
-                    console.log(`🔍 [AvatarCache] 使用TCB调用云函数: ${name} (环境: ${platform})`);
                     getApp().$tcb.callFunction({
                         name: name,
                         data: data
                     }).then(resolve).catch(reject);
                 } else {
-                    console.error(`❌ [AvatarCache] ${platform}环境TCB不可用`);
-                    console.error(`❌ [AvatarCache] getApp():`, typeof getApp);
-                    console.error(`❌ [AvatarCache] getApp().$tcb:`, typeof (getApp && getApp().$tcb));
-                    console.error(`❌ [AvatarCache] getApp().$tcb.callFunction:`, typeof (getApp && getApp().$tcb && getApp().$tcb.callFunction));
                     reject(new Error('TCB实例不可用'));
                 }
             } else if (actualMethod === 'wx-cloud') {
                 // 使用微信云开发调用云函数（小程序环境）
                 if (wx.cloud && wx.cloud.callFunction) {
-                    console.log(`🔍 [AvatarCache] 使用微信云开发调用云函数: ${name}`);
                     wx.cloud.callFunction({
                         name: name,
                         data: data,
                         success: (res) => {
-                            console.log(`✅ [AvatarCache] 云函数调用成功: ${name}`, res);
                             resolve(res);
                         },
                         fail: (err) => {
-                            console.error(`❌ [AvatarCache] 云函数调用失败: ${name}`, err);
                             reject(err);
                         }
                     });
                 } else {
-                    console.error(`❌ [AvatarCache] 小程序环境微信云开发不可用`);
-                    console.error(`❌ [AvatarCache] wx.cloud:`, typeof wx.cloud);
-                    console.error(`❌ [AvatarCache] wx.cloud.callFunction:`, typeof (wx.cloud && wx.cloud.callFunction));
                     reject(new Error('微信云开发不可用'));
                 }
             } else {
-                console.error(`❌ [AvatarCache] 不支持的云函数调用方式: ${actualMethod}`);
                 reject(new Error(`不支持的云函数调用方式: ${actualMethod}`));
             }
         });
