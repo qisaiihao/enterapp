@@ -7,7 +7,9 @@ const $ = _.aggregate;
 
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
-  const openid = wxContext.OPENID || event.openid;
+  const wxCtxOpenid = wxContext.OPENID;
+  const eventOpenid = event.openid;
+  const openid = eventOpenid || wxCtxOpenid;
   const { userId, limit = 3, skip = 0 } = event;
   const openId = userId || openid;
 
@@ -18,6 +20,13 @@ exports.main = async (event, context) => {
       code: 'NO_OPENID'
     };
   }
+
+  console.log('🔍 [getPersonalizedFeed] openid来源:', {
+    eventOpenid: eventOpenid ? '提供' : '未提供',
+    wxCtxOpenid: wxCtxOpenid ? '提供' : '未提供',
+    chosenOpenidSource: eventOpenid ? 'event.openid' : 'wxContext.OPENID',
+    chosenOpenidExists: !!openid
+  });
 
   try {
     // 1. 获取用户最近的互动记录（点赞、评论、浏览）
@@ -132,7 +141,8 @@ exports.main = async (event, context) => {
               $expr: {
                 $and: [
                   { $eq: ['$postId', '$$post_id'] },
-                  { $eq: ['$_openid', openId] }
+                  { $eq: ['$_openid', openId] },
+                  { $eq: ['$type', 'post'] }
                 ]
               }
             }

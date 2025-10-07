@@ -368,8 +368,8 @@ export default {
         });
         this.pageLoadStartTime = Date.now();
 
-        // onLoad 只负责触发异步请求，然后立即结束
-        this.getIndexData();
+        // 等待登录完成（openid 覆盖匿名后）再拉取首屏数据
+        this.waitForLoginThenInit();
     },
     onShow: function () {
         // TabBar 状态更新，使用兼容性处理
@@ -389,6 +389,9 @@ export default {
             console.log('CatchClause', e);
             console.error('检查刷新标记失败:', e);
         }
+
+        // 同步点赞状态：从缓存中获取最新的点赞状态
+        this.syncLikeStatusFromCache();
 
         // 检查未读消息数量
         this.checkUnreadMessageCount();
@@ -490,6 +493,33 @@ onReachBottom: function () {
         }, 100); // 100ms 防抖
     },
     methods: {
+        // 等待登录完成再初始化首页数据，避免 isVoted 计算出错
+        waitForLoginThenInit: function () {
+            const MAX_WAIT_MS = 5000; // 最多等待 5s
+            const CHECK_INTERVAL_MS = 100;
+            const start = Date.now();
+            const checkAndGo = () => {
+                try {
+                    const appInstance = getApp();
+                    const loginDone = appInstance && appInstance.globalData && appInstance.globalData._loginProcessCompleted;
+                    const openid = appInstance && appInstance.globalData && appInstance.globalData.openid;
+                    if (loginDone && openid) {
+                        console.log('🔐 [首页] 检测到登录完成且已获取 openid，开始拉取数据');
+                        this.getIndexData();
+                        return;
+                    }
+                } catch (e) {
+                    console.log('🔐 [首页] 登录检测异常（忽略继续等待）', e);
+                }
+                if (Date.now() - start >= MAX_WAIT_MS) {
+                    console.log('⏱️ [首页] 登录等待超时，兜底直接拉取数据');
+                    this.getIndexData();
+                    return;
+                }
+                setTimeout(checkAndGo, CHECK_INTERVAL_MS);
+            };
+            checkAndGo();
+        },
         getIndexData: function () {
             // 检查缓存
             const cachedData = dataCache.get('index_postList_cache');
@@ -970,6 +1000,48 @@ onReachBottom: function () {
             }).catch((err) => {
                 console.error('获取未读消息数量失败:', err);
             });
+        },
+
+        // 同步点赞状态：从缓存中获取最新的点赞状态
+        syncLikeStatusFromCache: function () {
+            console.log('【首页】同步点赞状态从缓存');
+            const cachedData = dataCache.get('index_postList_cache');
+            if (cachedData && Array.isArray(cachedData) && this.postList.length > 0) {
+                console.log('【首页】发现缓存数据，开始同步点赞状态');
+                let hasUpdate = false;
+                const updatedPostList = this.postList.map(post => {
+                    const cachedPost = cachedData.find(cached => cached._id === post._id);
+                    if (cachedPost && (
+                        cachedPost.votes !== post.votes || 
+                        cachedPost.isVoted !== post.isVoted || 
+                        cachedPost.likeIcon !== post.likeIcon
+                    )) {
+                        console.log(`【首页】同步帖子 ${post._id} 的点赞状态:`, {
+                            votes: `${post.votes} -> ${cachedPost.votes}`,
+                            isVoted: `${post.isVoted} -> ${cachedPost.isVoted}`
+                        });
+                        hasUpdate = true;
+                        return {
+                            ...post,
+                            votes: cachedPost.votes,
+                            isVoted: cachedPost.isVoted,
+                            likeIcon: cachedPost.likeIcon
+                        };
+                    }
+                    return post;
+                });
+                
+                if (hasUpdate) {
+                    console.log('【首页】点赞状态已同步，更新UI');
+                    this.setData({
+                        postList: updatedPostList
+                    });
+                } else {
+                    console.log('【首页】点赞状态无需同步');
+                }
+            } else {
+                console.log('【首页】无缓存数据或当前无帖子，跳过同步');
+            }
         },
 
         // 跳转到消息页面

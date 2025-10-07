@@ -10,11 +10,16 @@ exports.main = async (event, context) => {
   try {
     const { postId } = event
     const wxContext = cloud.getWXContext()
-    const openid = wxContext.OPENID || event.openid
+    const wxCtxOpenid = wxContext.OPENID
+    const eventOpenid = event.openid
+    const openid = eventOpenid || wxCtxOpenid
 
     console.log('🔍 [vote] 解析参数:', {
       postId,
-      openid: openid ? '已获取' : '未获取'
+      eventOpenid: eventOpenid ? '提供' : '未提供',
+      wxCtxOpenid: wxCtxOpenid ? '提供' : '未提供',
+      chosenOpenidSource: eventOpenid ? 'event.openid' : 'wxContext.OPENID',
+      chosenOpenidExists: !!openid
     });
 
     if (!openid) {
@@ -31,7 +36,7 @@ exports.main = async (event, context) => {
     const log = await db.collection('votes_log').where({
       _openid: openid,
       postId: postId,
-      type: 'post' // [修改点] 查询时精确匹配帖子类型
+      type: 'post'
     }).get()
 
     console.log('🔍 [vote] 投票记录查询结果:', log.data.length, '条记录');
@@ -57,7 +62,7 @@ exports.main = async (event, context) => {
         data: {
           _openid: openid,
           postId: postId,
-          type: 'post', // [修改点] 存入时明确指定类型为 post
+          type: 'post',
           createTime: new Date()
         }
       })

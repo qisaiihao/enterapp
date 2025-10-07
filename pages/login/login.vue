@@ -69,8 +69,29 @@ export default {
         
         // 检查是否需要重新初始化openid
         this.checkAndInitializeOpenid();
+
+        // 如果本地已有登录信息，自动设置全局并跳转，避免重复登录
+        this.tryAutoRedirect();
     },
     methods: {
+        // 已有本地登录信息则自动跳转
+        tryAutoRedirect: function () {
+            try {
+                const cachedUserInfo = uni.getStorageSync('userInfo');
+                const cachedOpenId = uni.getStorageSync('userOpenId');
+                if (cachedUserInfo && (cachedUserInfo._openid || cachedOpenId)) {
+                    const app = getApp();
+                    app.globalData = app.globalData || {};
+                    app.globalData.userInfo = cachedUserInfo;
+                    app.globalData.openid = cachedUserInfo._openid || cachedOpenId;
+                    app.globalData._loginProcessCompleted = true;
+                    console.log('✅ [登录页面] 检测到已登录用户，自动跳转');
+                    uni.switchTab({ url: '/pages/poem/poem' });
+                }
+            } catch (e) {
+                console.log('⚠️ [登录页面] 自动跳转检查失败(忽略)：', e);
+            }
+        },
         // 检查并初始化openid
         checkAndInitializeOpenid: function () {
             console.log('🔍 [登录页面] 检查openid状态');
@@ -208,11 +229,14 @@ export default {
                     
                     // 更新全局数据
                     const app = getApp();
-                    app.globalData.userInfo = userInfo;
+                    // 将 openid 合并进 userInfo，便于 App.vue 缓存分支命中
+                    const userInfoWithOpenId = Object.assign({}, userInfo || {}, { _openid: openid });
+                    app.globalData.userInfo = userInfoWithOpenId;
                     app.globalData.openid = openid;
+                    app.globalData._loginProcessCompleted = true;
                     
                     // 保存到本地缓存
-                    uni.setStorageSync('userInfo', userInfo);
+                    uni.setStorageSync('userInfo', userInfoWithOpenId);
                     uni.setStorageSync('userOpenId', openid);
                     
                     uni.showToast({

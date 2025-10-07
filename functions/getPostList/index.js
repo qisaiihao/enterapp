@@ -15,11 +15,16 @@ exports.main = async (event, context) => {
   console.log('🔍 [getPostList] 接收到的参数:', event);
   
   const wxContext = cloud.getWXContext();
-  const openid = wxContext.OPENID || event.openid;
+  const wxCtxOpenid = wxContext.OPENID;
+  const eventOpenid = event.openid;
+  const openid = eventOpenid || wxCtxOpenid;
   const { skip = 0, limit = 10, isPoem, isOriginal, tag = '' } = event; // 添加isPoem、isOriginal和tag参数
 
   console.log('🔍 [getPostList] 解析参数:', {
-    openid: openid ? '已获取' : '未获取',
+    eventOpenid: eventOpenid ? '提供' : '未提供',
+    wxCtxOpenid: wxCtxOpenid ? '提供' : '未提供',
+    chosenOpenidSource: eventOpenid ? 'event.openid' : 'wxContext.OPENID',
+    chosenOpenidExists: !!openid,
     skip,
     limit,
     isPoem,
@@ -106,7 +111,8 @@ exports.main = async (event, context) => {
               $expr: {
                 $and: [
                   { $eq: ['$postId', '$$post_id'] },
-                  { $eq: ['$_openid', wxContext.OPENID] }
+                  { $eq: ['$_openid', openid] },
+                  { $eq: ['$type', 'post'] }
                 ]
               }
             }

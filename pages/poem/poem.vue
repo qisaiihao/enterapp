@@ -400,7 +400,7 @@ export default {
                         isFetchingSignature: false
                     });
                 });
-            }
+            
         },
 
         // 签名图片加载成功
@@ -917,8 +917,8 @@ export default {
                 }
             });
         }
-
-
+    }
+}
 </script>
 <style>
 page {

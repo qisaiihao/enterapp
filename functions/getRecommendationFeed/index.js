@@ -277,7 +277,8 @@ async function getPersonalizedPosts(openId, limit, usedPostIds) {
               $expr: {
                 $and: [
                   { $eq: ['$postId', '$$post_id'] },
-                  { $eq: ['$_openid', openId] }
+                  { $eq: ['$_openid', openId] },
+                  { $eq: ['$type', 'post'] } // 只查询帖子点赞记录，排除评论点赞记录
                 ]
               }
             }
@@ -373,7 +374,8 @@ async function getHotPosts(limit, excludePostIds, openId) {
               $expr: {
                 $and: [
                   { $eq: ['$postId', '$$post_id'] },
-                  { $eq: ['$_openid', openId] }
+                  { $eq: ['$_openid', openId] },
+                  { $eq: ['$type', 'post'] } // 只查询帖子点赞记录，排除评论点赞记录
                 ]
               }
             }
@@ -642,7 +644,8 @@ async function getTagBasedPosts(openId, limit, usedPostIds) {
               $expr: {
                 $and: [
                   { $eq: ['$postId', '$$post_id'] },
-                  { $eq: ['$_openid', openId] }
+                  { $eq: ['$_openid', openId] },
+                  { $eq: ['$type', 'post'] } // 只查询帖子点赞记录，排除评论点赞记录
                 ]
               }
             }

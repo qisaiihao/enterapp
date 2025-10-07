@@ -67,7 +67,8 @@ exports.main = async (event, context) => {
               $expr: {
                 $and: [
                   { $eq: ['$postId', '$$post_id'] },
-                  { $eq: ['$_openid', openid] }
+                  { $eq: ['$_openid', openid] },
+                  { $eq: ['$type', 'post'] } // 只查询帖子点赞记录，排除评论点赞记录
                 ]
               }
             }

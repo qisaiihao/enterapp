@@ -29,7 +29,17 @@ console.log('🔧 [TCB初始化] 环境ID:', tcbApp.config?.env);
 console.log('🔧 [TCB初始化] 数据库方法可用:', typeof tcbApp.database === 'function');
 Vue.prototype.$requireOpenid = function () {
   const appInstance = getApp();
-  const openid = appInstance && appInstance.globalData && appInstance.globalData.openid;
+  let openid = appInstance && appInstance.globalData && appInstance.globalData.openid;
+  // H5/App 刷新后先从本地缓存兜底恢复
+  if (!openid) {
+    try {
+      openid = uni.getStorageSync('userOpenId') || uni.getStorageSync('openid');
+      if (openid) {
+        appInstance.globalData = appInstance.globalData || {};
+        appInstance.globalData.openid = openid;
+      }
+    } catch (e) {}
+  }
   if (!openid) {
     // 检查是否是应用启动初期（避免在自动登录过程中显示提示）
     const isAppStarting = !appInstance.globalData || !appInstance.globalData._loginProcessCompleted;
@@ -42,11 +52,22 @@ Vue.prototype.$requireOpenid = function () {
 // --- TCB 初始化结束 ---
 
 function resolveOpenidForCall(functionName) {
-  if (functionName === 'login') {
+  // 登录/获取 openid 类函数允许在无 openid 时调用
+  if (functionName === 'login' || functionName === 'getOpenId') {
     return { openid: null, allowed: true };
   }
   const appInstance = getApp();
-  const openid = appInstance && appInstance.globalData && appInstance.globalData.openid;
+  let openid = appInstance && appInstance.globalData && appInstance.globalData.openid;
+  // 刷新后优先从本地恢复 openid，并回填到 globalData，保证早期请求可用
+  if (!openid) {
+    try {
+      openid = uni.getStorageSync('userOpenId') || uni.getStorageSync('openid');
+      if (openid) {
+        appInstance.globalData = appInstance.globalData || {};
+        appInstance.globalData.openid = openid;
+      }
+    } catch (e) {}
+  }
   if (!openid) {
     // 检查是否是应用启动初期（避免在自动登录过程中显示提示）
     const isAppStarting = !appInstance.globalData || !appInstance.globalData._loginProcessCompleted;

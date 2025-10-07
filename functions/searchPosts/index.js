@@ -12,7 +12,9 @@ const $ = _.aggregate;
 // 云函数入口函数
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
-  const openid = wxContext.OPENID || event.openid;
+  const wxCtxOpenid = wxContext.OPENID;
+  const eventOpenid = event.openid;
+  const openid = eventOpenid || wxCtxOpenid;
   const { keyword = '', limit = 20 } = event;
 
   if (!openid) {
@@ -22,6 +24,13 @@ exports.main = async (event, context) => {
       code: 'NO_OPENID'
     };
   }
+
+  console.log('🔍 [searchPosts] openid来源:', {
+    eventOpenid: eventOpenid ? '提供' : '未提供',
+    wxCtxOpenid: wxCtxOpenid ? '提供' : '未提供',
+    chosenOpenidSource: eventOpenid ? 'event.openid' : 'wxContext.OPENID',
+    chosenOpenidExists: !!openid
+  });
 
   try {
     if (!keyword.trim()) {
@@ -225,7 +234,8 @@ exports.main = async (event, context) => {
         // 获取当前用户的点赞记录
         const voteRes = await db.collection('votes_log').where({
           _openid: openid,
-          postId: post._id
+          postId: post._id,
+          type: 'post'
         }).get();
 
         return {
