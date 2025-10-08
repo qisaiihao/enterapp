@@ -105,15 +105,17 @@
 
 <script>
 const app = getApp();
+const { previewImage } = require('../../utils/imagePreview.js');
+const { normalizePostList } = require('../../utils/postNormalizer.js');
+const { cloudCall } = require('../../utils/cloudCall.js');
+const postGalleryMixin = require('../../mixins/postGallery.js');
+const paginationMixin = require('../../mixins/pagination.js');
 const PAGE_SIZE = 5;
 export default {
+    mixins: [paginationMixin, postGalleryMixin],
     data() {
         return {
             likedPosts: [],
-            isLoading: false,
-            page: 0,
-            hasMore: true,
-            PAGE_SIZE: PAGE_SIZE,
             swiperHeights: {},
 
             // 每个帖子的swiper高度，跟随第一张图片
@@ -125,143 +127,67 @@ export default {
         };
     },
     onLoad: function (options) {
-        this.fetchLikedPosts();
-    },
-    onPullDownRefresh: function () {
-        console.log('【my-likes】下拉刷新触发，重置分页');
-        this.setData({
-            likedPosts: [],
-            page: 0,
-            hasMore: true
-        });
-        this.fetchLikedPosts(() => {
-            uni.stopPullDownRefresh();
-            console.log('【my-likes】下拉刷新结束');
-        });
-    },
-    onReachBottom: function () {
-        console.log('【my-likes】触底加载触发', 'hasMore:', this.hasMore, 'isLoading:', this.isLoading, '当前页:', this.page);
-        if (!this.hasMore || this.isLoading) {
-            return;
-        }
-        this.fetchLikedPosts();
+        this.initPagination(this.loadLikedPosts, { pageSize: PAGE_SIZE });
     },
     methods: {
-        // 兼容性云函数调用方法
-        callCloudFunction(name, data = {}) {
-            console.log(`🔍 [我的点赞页] 调用云函数: ${name}`, data);
-            
-            return new Promise((resolve, reject) => {
-                // 使用新的平台检测工具
-                const { getCurrentPlatform, getCloudFunctionMethod } = require('../../utils/platformDetector.js');
-                
-                const platform = getCurrentPlatform();
-                const method = getCloudFunctionMethod();
-                
-                console.log(`🔍 [我的点赞页] 运行环境检测 - 平台: ${platform}, 方法: ${method}`);
-                
-                if (method === 'tcb') {
-                    // 使用TCB调用云函数（H5和App环境）
-                    if (this.$tcb && this.$tcb.callFunction) {
-                        console.log(`🔍 [我的点赞页] TCB环境调用云函数: ${name}`);
-                        this.$tcb.callFunction({
-                            name: name,
-                            data: data
-                        }).then(resolve).catch(reject);
-                    } else {
-                        console.error(`❌ [我的点赞页] TCB实例不可用`);
-                        reject(new Error('TCB实例不可用'));
-                    }
-                } else if (method === 'wx-cloud') {
-                    // 使用微信云开发调用云函数（小程序环境）
-                    if (wx.cloud && wx.cloud.callFunction) {
-                        console.log(`🔍 [我的点赞页] 小程序环境调用云函数: ${name}`);
-                        wx.cloud.callFunction({
-                            name: name,
-                            data: data,
-                            success: (res) => {
-                                console.log(`✅ [我的点赞页] 云函数调用成功: ${name}`, res);
-                                resolve(res);
-                            },
-                            fail: (err) => {
-                                console.error(`❌ [我的点赞页] 云函数调用失败: ${name}`, err);
-                                reject(err);
-                            }
-                        });
-                    } else {
-                        console.error(`❌ [我的点赞页] 微信云开发不可用`);
-                        reject(new Error('微信云开发不可用'));
-                    }
-                } else {
-                    console.error(`❌ [我的点赞页] 不支持的云函数调用方式: ${method}`);
-                    reject(new Error(`不支持的云函数调用方式: ${method}`));
-                }
-            });
+        // 统一云函数调用
+        callCloudFunction(name, data = {}, extraOptions = {}) {
+            return cloudCall(name, data, Object.assign({ pageTag: 'my-likes', context: this, requireAuth: true }, extraOptions));
         },
-        fetchLikedPosts: function (cb) {
-            if (this.isLoading) {
-                return;
-            }
-            const { page, PAGE_SIZE } = this;
+        async loadLikedPosts({ page, isRefresh }) {
+            const skip = page * PAGE_SIZE;
             console.log('【my-likes】请求分页参数', {
                 page,
                 PAGE_SIZE,
-                skip: page * PAGE_SIZE,
+                skip,
                 limit: PAGE_SIZE
             });
-            this.setData({
-                isLoading: true
-            });
-            this.callCloudFunction('getMyLikedPosts', {
-                    skip: page * PAGE_SIZE,
+            if (isRefresh) {
+                this.setData({
+                    swiperHeights: {},
+                    imageClampHeights: {}
+                });
+            }
+
+            try {
+                const res = await this.callCloudFunction('getMyLikedPosts', {
+                    skip,
                     limit: PAGE_SIZE
-                }).then((res) => {
-                    if (res.result && res.result.success) {
-                        const posts = res.result.posts || [];
-                        console.log('【my-likes】本次返回帖子数量:', posts.length);
-                        const processPost = (post) => {
-                            post.formattedCreateTime = this.formatTime(post.createTime);
-                            if (post.imageUrl && !post.imageUrls) {
-                                post.imageUrls = [post.imageUrl];
-                            }
-                            if (post.originalImageUrl && !post.originalImageUrls) {
-                                post.originalImageUrls = [post.originalImageUrl];
-                            }
-                            if (!post.authorName) {
-                                post.authorName = '匿名用户';
-                            }
-                            if (!post.authorAvatar) {
-                                post.authorAvatar = '';
-                            }
-                            return post;
-                        };
-                        const newLikedPosts = page === 0 ? posts.map(processPost) : this.likedPosts.concat(posts.map(processPost));
-                        console.log('【my-likes】更新后 likedPosts 长度:', newLikedPosts.length, 'hasMore:', posts.length === PAGE_SIZE, 'page:', page + 1);
-                        this.setData({
-                            likedPosts: newLikedPosts,
-                            page: page + 1,
-                            hasMore: posts.length === PAGE_SIZE
-                        });
-                    } else {
-                        uni.showToast({
-                            title: res.result.message || '数据加载失败',
-                            icon: 'none'
-                        });
-                    }
-                }).catch((err) => {
-                    console.error('Failed to fetch liked posts', err);
+                });
+
+                if (!res.result || res.result.success !== true) {
+                    const message = (res.result && res.result.message) || '数据加载失败';
+                    uni.showToast({
+                        title: message,
+                        icon: 'none'
+                    });
+                    const error = new Error(message);
+                    error.__toastShown = true;
+                    throw error;
+                }
+
+                const posts = normalizePostList(res.result.posts || []);
+                console.log('【my-likes】本次返回帖子数量:', posts.length);
+                const newLikedPosts = page === 0 || isRefresh ? posts : this.likedPosts.concat(posts);
+                console.log('【my-likes】更新后 likedPosts 长度:', newLikedPosts.length, 'hasMore:', posts.length === PAGE_SIZE, 'page:', page + 1);
+                this.setData({
+                    likedPosts: newLikedPosts
+                });
+
+                return {
+                    list: posts,
+                    hasMore: posts.length === PAGE_SIZE
+                };
+            } catch (err) {
+                console.error('Failed to fetch liked posts', err);
+                if (!err || !err.__toastShown) {
                     uni.showToast({
                         title: '网络错误',
                         icon: 'none'
                     });
-                }).finally(() => {
-                    this.setData({
-                        isLoading: false
-                    });
-                    if (typeof cb === 'function') {
-                        cb();
-                    }
-                });
+                }
+                throw err;
+            }
         },
 
         navigateToPost: function (e) {
@@ -273,18 +199,9 @@ export default {
 
         // 预览图片（与首页、我的帖子页统一）
         handlePreview: function (event) {
-            const currentUrl = event.currentTarget.dataset.src;
-            const originalUrls = event.currentTarget.dataset.originalImageUrls;
-            if (currentUrl) {
-                uni.previewImage({
-                    current: currentUrl,
-                    urls: originalUrls || [currentUrl]
-                });
-            } else {
-                uni.showToast({
-                    title: '图片加载失败',
-                    icon: 'none'
-                });
+            const previewResult = previewImage(event);
+            if (previewResult === false) {
+                console.warn('【my-likes】图片预览失败，缺少必要数据');
             }
         },
 
@@ -310,89 +227,6 @@ export default {
                 src: src,
                 dataset: e.currentTarget.dataset
             });
-        },
-
-        // 图片加载成功时，动态设置swiper高度（与首页、我的帖子页统一）
-        onImageLoad: function (e) {
-            const { postid, postindex = 0, imgindex = 0, type } = e.currentTarget.dataset;
-            const { width: originalWidth, height: originalHeight } = e.detail;
-            if (!originalWidth || !originalHeight) {
-                return;
-            }
-
-            // 多图 Swiper 逻辑
-            if (type === 'multi' && imgindex === 0) {
-                const query = uni.createSelectorQuery().in(this);
-                query
-                    .select(`#swiper-${postid}`)
-                    .boundingClientRect((rect) => {
-                        if (rect && rect.width) {
-                            const containerWidth = rect.width;
-                            const actualRatio = originalWidth / originalHeight;
-                            const maxRatio = 1.7777777777777777;
-                            const minRatio = 0.5625;
-                            let targetRatio = actualRatio;
-                            if (actualRatio > maxRatio) targetRatio = maxRatio;
-                            else if (actualRatio < minRatio) {
-                                targetRatio = minRatio;
-                            }
-                            const displayHeight = containerWidth / targetRatio;
-                            if (this.swiperHeights[postindex] !== displayHeight) {
-                                this.setData({
-                                    [`swiperHeights[${postindex}]`]: displayHeight
-                                });
-                            }
-                        }
-                    })
-                    .exec();
-            }
-            // 单图
-            if (type === 'single') {
-                const actualRatio = originalWidth / originalHeight;
-                const minRatio = 0.5625;
-                if (actualRatio < minRatio) {
-                    const query = uni.createSelectorQuery().in(this);
-                    query
-                        .select(`#single-image-${postid}`)
-                        .boundingClientRect((rect) => {
-                            if (rect && rect.width) {
-                                const containerWidth = rect.width;
-                                const displayHeight = containerWidth / minRatio;
-                                if (this.imageClampHeights[postid] !== displayHeight) {
-                                    this.setData({
-                                        [`imageClampHeights.${postid}`]: displayHeight
-                                    });
-                                }
-                            }
-                        })
-                        .exec();
-                }
-            }
-        },
-
-        formatTime: function (dateString) {
-            if (!dateString) {
-                return '';
-            }
-            const date = new Date(dateString);
-            const now = new Date();
-            const diff = now.getTime() - date.getTime();
-            const minutes = Math.floor(diff / 60000);
-            if (minutes < 1) {
-                return '刚刚';
-            }
-            if (minutes < 60) {
-                return `${minutes}分钟前`;
-            }
-            const hours = Math.floor(diff / 3600000);
-            if (hours < 24) {
-                return `${hours}小时前`;
-            }
-            const days = Math.floor(diff / 86400000);
-            if (days < 7) {
-                return `${days}天前`;
-            }
-            return date.toLocaleDateString();
         },
 
         onAvatarError: function (e) {

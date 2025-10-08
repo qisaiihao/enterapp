@@ -126,18 +126,19 @@ import skeleton from '@/components/skeleton/skeleton';
 // pages/tag-filter/tag-filter.js
 // 修复：移除全局数据库实例，改为在方法中动态获取
 const PAGE_SIZE = 10;
+const { previewImage } = require('../../utils/imagePreview.js');
+const { normalizePostList } = require('../../utils/postNormalizer.js');
+const { cloudCall } = require('../../utils/cloudCall.js');
+const paginationMixin = require('../../mixins/pagination.js');
 export default {
     components: {
         skeleton
     },
+    mixins: [paginationMixin],
     data() {
         return {
             tag: '',
             postList: [],
-            page: 0,
-            hasMore: true,
-            isLoading: false,
-            isLoadingMore: false,
             img: ''
         };
     },
@@ -157,151 +158,53 @@ export default {
         uni.setNavigationBarTitle({
             title: `#${tag}`
         });
-        this.getPostList();
-    },
-    onReachBottom: function () {
-        if (!this.hasMore || this.isLoading || this.isLoadingMore) {
-            return;
-        }
-        this.getPostList();
-    },
-    onPullDownRefresh: function () {
-        this.setData(
-            {
-                postList: [],
-                page: 0,
-                hasMore: true
-            },
-            () => {
-                this.getPostList(() => {
-                    uni.stopPullDownRefresh();
-                });
-            }
-        );
+        this.initPagination(this.loadTagPosts.bind(this), { pageSize: PAGE_SIZE });
     },
     methods: {
-        // 兼容性云函数调用方法
-        callCloudFunction(name, data = {}) {
-            console.log(`🔍 [标签筛选页] 调用云函数: ${name}`, data);
-            
-            return new Promise((resolve, reject) => {
-                // 使用新的平台检测工具
-                const { getCurrentPlatform, getCloudFunctionMethod } = require('../../utils/platformDetector.js');
-                
-                const platform = getCurrentPlatform();
-                const method = getCloudFunctionMethod();
-                
-                console.log(`🔍 [标签筛选页] 运行环境检测 - 平台: ${platform}, 方法: ${method}`);
-                
-                if (method === 'tcb') {
-                    // 使用TCB调用云函数（H5和App环境）
-                    if (this.$tcb && this.$tcb.callFunction) {
-                        console.log(`🔍 [标签筛选页] TCB环境调用云函数: ${name}`);
-                        this.$tcb.callFunction({
-                            name: name,
-                            data: data
-                        }).then(resolve).catch(reject);
-                    } else {
-                        console.error(`❌ [标签筛选页] TCB实例不可用`);
-                        reject(new Error('TCB实例不可用'));
-                    }
-                } else if (method === 'wx-cloud') {
-                    // 使用微信云开发调用云函数（小程序环境）
-                    if (wx.cloud && wx.cloud.callFunction) {
-                        console.log(`🔍 [标签筛选页] 小程序环境调用云函数: ${name}`);
-                        wx.cloud.callFunction({
-                            name: name,
-                            data: data,
-                            success: (res) => {
-                                console.log(`✅ [标签筛选页] 云函数调用成功: ${name}`, res);
-                                resolve(res);
-                            },
-                            fail: (err) => {
-                                console.error(`❌ [标签筛选页] 云函数调用失败: ${name}`, err);
-                                reject(err);
-                            }
-                        });
-                    } else {
-                        console.error(`❌ [标签筛选页] 微信云开发不可用`);
-                        reject(new Error('微信云开发不可用'));
-                    }
-                } else {
-                    console.error(`❌ [标签筛选页] 不支持的云函数调用方式: ${method}`);
-                    reject(new Error(`不支持的云函数调用方式: ${method}`));
-                }
-            });
+        // 统一云函数调用方法
+        callCloudFunction(name, data = {}, extraOptions = {}) {
+            return cloudCall(name, data, Object.assign({ pageTag: 'tag-filter', context: this }, extraOptions));
         },
-        getPostList: function (cb) {
-            if (this.isLoading || this.isLoadingMore || !this.hasMore) {
-                if (typeof cb === 'function') {
-                    cb();
-                }
-                return;
-            }
-            const skip = this.page * PAGE_SIZE;
-            const isFirstLoad = this.page === 0;
-            if (isFirstLoad) {
-                this.setData({
-                    isLoading: true
-                });
-            } else {
-                this.setData({
-                    isLoadingMore: true
-                });
-            }
-            this.callCloudFunction('getPostList', {
+        async loadTagPosts({ page, isRefresh }) {
+            const skip = page * PAGE_SIZE;
+            try {
+                const res = await this.callCloudFunction('getPostList', {
                     skip: skip,
                     limit: PAGE_SIZE,
-                    tag: this.tag // 传递标签参数
-                }).then((res) => {
-                    if (res.result && res.result.success) {
-                        let posts = res.result.posts || [];
+                    tag: this.tag
+                });
 
-                        // 处理图片数据
-                        posts = posts.map((post) => {
-                            if (!post.imageUrls || post.imageUrls.length === 0) {
-                                post.imageUrls = post.imageUrl ? [post.imageUrl] : [];
-                            }
+                if (!res.result || res.result.success !== true) {
+                    const message = (res.result && res.result.message) || '加载失败';
+                    uni.showToast({
+                        title: message,
+                        icon: 'none'
+                    });
+                    const error = new Error(message);
+                    error.__toastShown = true;
+                    throw error;
+                }
 
-                            // 设置图片容器样式，确保图片能正确显示
-                            if (post.imageUrls.length > 0) {
-                                post.imageStyle = `height: 0; padding-bottom: 75%;`; // 4:3 宽高比占位
-                            }
+                const posts = normalizePostList(res.result.posts || []);
+                const newPostList = page === 0 || isRefresh ? posts : this.postList.concat(posts);
+                this.setData({
+                    postList: newPostList
+                });
 
-                            return post;
-                        });
-                        const newPostList = this.page === 0 ? posts : this.postList.concat(posts);
-                        this.setData({
-                            postList: newPostList,
-                            page: this.page + 1,
-                            hasMore: posts.length === PAGE_SIZE
-                        });
-                    } else {
-                        uni.showToast({
-                            title: '加载失败',
-                            icon: 'none'
-                        });
-                    }
-                }).catch((err) => {
-                    console.error('获取标签文章失败:', err);
+                return {
+                    list: posts,
+                    hasMore: posts.length === PAGE_SIZE
+                };
+            } catch (error) {
+                console.error('获取标签文章失败:', error);
+                if (!error || !error.__toastShown) {
                     uni.showToast({
                         title: '网络错误',
                         icon: 'none'
                     });
-                }).finally(() => {
-                    if (isFirstLoad) {
-                        this.setData({
-                            isLoading: false
-                        });
-                    } else {
-                        this.setData({
-                            isLoadingMore: false
-                        });
-                    }
-                    if (typeof cb === 'function') {
-                        cb();
-                    }
-                });
+                }
+                throw error;
+            }
         },
 
         // 跳转到帖子详情
@@ -332,14 +235,7 @@ export default {
 
         // 图片预览
         handlePreview: function (event) {
-            const current = event.currentTarget.dataset.src || event.currentTarget.dataset.imageUrl;
-            const urls = event.currentTarget.dataset.originalImageUrls;
-            if (current && urls && urls.length > 0) {
-                uni.previewImage({
-                    current,
-                    urls
-                });
-            }
+            return previewImage(event, { fallbackToast: false });
         },
 
         onImageError: function (e) {

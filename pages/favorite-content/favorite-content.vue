@@ -136,15 +136,18 @@
 
 <script>
 // pages/favorite-content/favorite-content.js
+const { formatRelativeTime } = require('../../utils/time.js');
+const { previewImage } = require('../../utils/imagePreview.js');
+const { cloudCall } = require('../../utils/cloudCall.js');
+const postGalleryMixin = require('../../mixins/postGallery.js');
+const paginationMixin = require('../../mixins/pagination.js');
 export default {
+    mixins: [paginationMixin, postGalleryMixin],
     data() {
         return {
             folderId: '',
             folderName: '',
             favorites: [],
-            isLoading: true,
-            hasMore: true,
-            page: 0,
             pageSize: 10,
             swiperHeights: {},
 
@@ -164,9 +167,6 @@ export default {
                 title: '参数错误：收藏夹ID为空',
                 icon: 'none'
             });
-            this.setData({
-                isLoading: false
-            });
             return;
         }
 
@@ -184,195 +184,127 @@ export default {
         this.setData({
             folderId: folderId,
             folderName: decodedFolderName,
-            favorites: [],
-            // 清空数据
-            page: 0,
-            // 重置页码
-            hasMore: true,
-            // 重置加载状态
-            isLoading: false // 重置加载状态
+            favorites: []
         });
 
         // 设置标题并加载数据
         uni.setNavigationBarTitle({
             title: decodedFolderName || '收藏夹'
         });
-        this.loadFavorites();
+        this.initPagination(this.loadFavorites, { pageSize: this.pageSize });
     },
     onShow: function () {
         // 不执行任何操作，避免干扰加载
     },
-    onPullDownRefresh: function () {
-        this.setData({
-            favorites: [],
-            page: 0,
-            hasMore: true,
-            isLoading: false
-        });
-        this.loadFavorites(() => {
-            uni.stopPullDownRefresh();
-        });
-    },
-    onReachBottom: function () {
-        if (this.hasMore) {
-            this.loadFavorites();
-        }
-    },
     methods: {
-        // 兼容性云函数调用方法
-        callCloudFunction(name, data = {}) {
-            console.log(`🔍 [收藏内容页] 调用云函数: ${name}`, data);
-            
-            return new Promise((resolve, reject) => {
-                // 使用新的平台检测工具
-                const { getCurrentPlatform, getCloudFunctionMethod } = require('../../utils/platformDetector.js');
-                
-                const platform = getCurrentPlatform();
-                const method = getCloudFunctionMethod();
-                
-                console.log(`🔍 [收藏内容页] 运行环境检测 - 平台: ${platform}, 方法: ${method}`);
-                
-                if (method === 'tcb') {
-                    // 使用TCB调用云函数（H5和App环境）
-                    if (this.$tcb && this.$tcb.callFunction) {
-                        console.log(`🔍 [收藏内容页] TCB环境调用云函数: ${name}`);
-                        this.$tcb.callFunction({
-                            name: name,
-                            data: data
-                        }).then(resolve).catch(reject);
-                    } else {
-                        console.error(`❌ [收藏内容页] TCB实例不可用`);
-                        reject(new Error('TCB实例不可用'));
-                    }
-                } else if (method === 'wx-cloud') {
-                    // 使用微信云开发调用云函数（小程序环境）
-                    if (wx.cloud && wx.cloud.callFunction) {
-                        console.log(`🔍 [收藏内容页] 小程序环境调用云函数: ${name}`);
-                        wx.cloud.callFunction({
-                            name: name,
-                            data: data,
-                            success: (res) => {
-                                console.log(`✅ [收藏内容页] 云函数调用成功: ${name}`, res);
-                                resolve(res);
-                            },
-                            fail: (err) => {
-                                console.error(`❌ [收藏内容页] 云函数调用失败: ${name}`, err);
-                                reject(err);
-                            }
-                        });
-                    } else {
-                        console.error(`❌ [收藏内容页] 微信云开发不可用`);
-                        reject(new Error('微信云开发不可用'));
-                    }
-                } else {
-                    console.error(`❌ [收藏内容页] 不支持的云函数调用方式: ${method}`);
-                    reject(new Error(`不支持的云函数调用方式: ${method}`));
-                }
-            });
+        // 统一云函数调用方法
+        callCloudFunction(name, data = {}, extraOptions = {}) {
+            return cloudCall(name, data, Object.assign({ pageTag: 'favorite-content', context: this, requireAuth: true }, extraOptions));
         },
-        loadFavorites: function (callback) {
+        async loadFavorites({ page, isRefresh }) {
             if (!this.folderId) {
-                this.setData({
-                    isLoading: false
-                });
-                return;
-            }
-            this.setData({
-                isLoading: true
-            });
-            const skip = this.page * this.pageSize;
-
-            // 设置加载超时机制
-            const loadTimeout = setTimeout(() => {
-                console.error('加载超时，强制结束加载状态');
-                this.setData({
-                    isLoading: false
-                });
+                const error = new Error('参数错误：收藏夹ID为空');
+                error.__toastShown = true;
                 uni.showToast({
-                    title: '加载超时，请重试',
+                    title: '参数错误：收藏夹ID为空',
                     icon: 'none'
                 });
-            }, 10000); // 10秒超时
+                throw error;
+            }
+            if (isRefresh) {
+                this.setData({
+                    favorites: [],
+                    swiperHeights: {},
+                    imageClampHeights: {}
+                });
+            }
 
-            // 添加全局错误保护
+            const skip = page * this.pageSize;
+            const timeoutMs = 10000;
+            let timeoutId = null;
+
+            const timeoutPromise = new Promise((_, reject) => {
+                timeoutId = setTimeout(() => {
+                    const timeoutError = new Error('加载超时，请重试');
+                    timeoutError.code = 'LOAD_TIMEOUT';
+                    timeoutError.__toastShown = true;
+                    uni.showToast({
+                        title: '加载超时，请重试',
+                        icon: 'none'
+                    });
+                    reject(timeoutError);
+                }, timeoutMs);
+            });
+
             try {
-                this.callCloudFunction('getMyProfileData', {
+                const res = await Promise.race([
+                    this.callCloudFunction('getMyProfileData', {
                         action: 'getFavoritesByFolder',
                         folderId: this.folderId,
-                        skip: skip,
+                        skip,
                         limit: this.pageSize
-                    }).then((res) => {
-                        clearTimeout(loadTimeout);
-                        console.log('云函数调用成功，返回结果:', res);
-                        console.log('res.result:', res.result);
-                        if (res.result && res.result.success) {
-                            const newFavorites = res.result.favorites || [];
-                            console.log('【收藏夹】获取到的收藏数据:', newFavorites);
-
-                            // 格式化时间和设置图片样式
-                            newFavorites.forEach((favorite, index) => {
-                                favorite.formattedCreateTime = this.formatTime(favorite.createTime);
-                                favorite.formattedPostCreateTime = this.formatTime(favorite.postCreateTime);
-
-                                // 调试日志：检查图片数据
-                                console.log(`【收藏夹】帖子${index}图片数据:`, {
-                                    postId: favorite._id,
-                                    postTitle: favorite.title,
-                                    imageUrls: favorite.imageUrls,
-                                    originalImageUrls: favorite.originalImageUrls,
-                                    hasImageUrls: !!(favorite.imageUrls && favorite.imageUrls.length > 0)
-                                });
-
-                                // 设置图片样式占位符（与我的页面保持一致）
-                                if (favorite.imageUrls && favorite.imageUrls.length > 0) {
-                                    favorite.imageStyle = `height: 0; padding-bottom: 75%;`; // 4:3 宽高比占位
-                                    console.log(`【收藏夹】设置图片样式:`, favorite.imageStyle);
-                                }
-                            });
-                            const allFavorites = this.page === 0 ? newFavorites : this.favorites.concat(newFavorites);
-                            this.setData({
-                                favorites: allFavorites,
-                                page: this.page + 1,
-                                hasMore: newFavorites.length === this.pageSize,
-                                isLoading: false
-                            });
-                        } else {
-                            uni.showToast({
-                                title: res.result?.message || '加载失败',
-                                icon: 'none'
-                            });
-                            this.setData({
-                                isLoading: false
-                            });
-                        }
-                    }).catch((err) => {
-                        clearTimeout(loadTimeout);
-                        console.error('云函数调用失败:', err);
-                        uni.showToast({
-                            title: '网络错误',
-                            icon: 'none'
-                        });
-                        this.setData({
-                            isLoading: false
-                        });
-                    }).finally(() => {
-                        clearTimeout(loadTimeout);
-                        if (typeof callback === 'function') {
-                            callback();
-                        }
+                    }),
+                    timeoutPromise
+                ]);
+                if (timeoutId) {
+                    clearTimeout(timeoutId);
+                }
+                console.log('云函数调用成功，返回结果:', res);
+                if (!res.result || res.result.success !== true) {
+                    const message = (res.result && res.result.message) || '加载失败';
+                    uni.showToast({
+                        title: message,
+                        icon: 'none'
                     });
-            } catch (error) {
-                console.error('加载过程发生异常:', error);
-                clearTimeout(loadTimeout);
+                    const error = new Error(message);
+                    error.__toastShown = true;
+                    throw error;
+                }
+
+                const newFavorites = (res.result.favorites || []).map((favorite, index) => {
+                    const item = Object.assign({}, favorite);
+                    item.formattedCreateTime = this.formatTime(item.createTime);
+                    item.formattedPostCreateTime = this.formatTime(item.postCreateTime);
+
+                    console.log(`【收藏夹】帖子${index}图片数据:`, {
+                        postId: item._id,
+                        postTitle: item.title,
+                        imageUrls: item.imageUrls,
+                        originalImageUrls: item.originalImageUrls,
+                        hasImageUrls: !!(item.imageUrls && item.imageUrls.length > 0)
+                    });
+
+                    if (item.imageUrls && item.imageUrls.length > 0) {
+                        item.imageStyle = 'height: 0; padding-bottom: 75%;';
+                        console.log('【收藏夹】设置图片样式:', item.imageStyle);
+                    }
+                    return item;
+                });
+
+                const allFavorites = page === 0 || isRefresh ? newFavorites : this.favorites.concat(newFavorites);
                 this.setData({
-                    isLoading: false
+                    favorites: allFavorites
                 });
-                uni.showToast({
-                    title: '加载异常，请重试',
-                    icon: 'none'
-                });
-                if (typeof callback === 'function') {
-                    callback();
+
+                return {
+                    list: newFavorites,
+                    hasMore: newFavorites.length === this.pageSize
+                };
+            } catch (error) {
+                if (timeoutId) {
+                    clearTimeout(timeoutId);
+                }
+                console.error('加载收藏数据失败:', error);
+                if (!error || !error.__toastShown) {
+                    uni.showToast({
+                        title: '网络错误',
+                        icon: 'none'
+                    });
+                }
+                throw error;
+            } finally {
+                if (timeoutId) {
+                    clearTimeout(timeoutId);
                 }
             }
         },
@@ -386,13 +318,7 @@ export default {
                 });
                 return;
             }
-            this.setData({
-                favorites: [],
-                page: 0,
-                hasMore: true,
-                isLoading: false
-            });
-            this.loadFavorites();
+            this.refresh();
         },
 
         // 点击收藏项跳转到详情页
@@ -465,32 +391,20 @@ export default {
         },
 
         // 图片预览
-        onImagePreview: function (e) {
-            const current = e.currentTarget.dataset.src;
-            const urls = e.currentTarget.dataset.urls;
-            if (current && urls && urls.length > 0) {
-                uni.previewImage({
-                    current,
-                    urls
-                });
-            }
+        onImagePreview: function (event) {
+            return previewImage(event, { fallbackToast: false });
         },
 
         // 预览图片（与点赞页面统一）
         handlePreview: function (event) {
-            const currentUrl = event.currentTarget.dataset.src;
-            const originalUrls = event.currentTarget.dataset.originalImageUrls;
-            if (currentUrl) {
-                uni.previewImage({
-                    current: currentUrl,
-                    urls: originalUrls || [currentUrl]
-                });
-            } else {
+            const result = previewImage(event, { fallbackToast: false });
+            if (!result) {
                 uni.showToast({
                     title: '图片加载失败',
                     icon: 'none'
                 });
             }
+            return result;
         },
 
         // 图片加载错误处理（与点赞页面统一）
@@ -518,97 +432,9 @@ export default {
             });
         },
 
-        // 图片加载成功时，动态设置swiper高度（与点赞页面统一）
-        onImageLoad: function (e) {
-            const { postid, postindex = 0, imgindex = 0, type } = e.currentTarget.dataset;
-            const { width: originalWidth, height: originalHeight } = e.detail;
-            console.log('【收藏夹】图片加载成功:', {
-                postid,
-                postindex,
-                imgindex,
-                type,
-                width: originalWidth,
-                height: originalHeight,
-                src: e.currentTarget.src
-            });
-            if (!originalWidth || !originalHeight) {
-                return;
-            }
-
-            // 多图 Swiper 逻辑
-            if (type === 'multi' && imgindex === 0) {
-                const query = uni.createSelectorQuery().in(this);
-                query
-                    .select(`#swiper-${postid}`)
-                    .boundingClientRect((rect) => {
-                        if (rect && rect.width) {
-                            const containerWidth = rect.width;
-                            const actualRatio = originalWidth / originalHeight;
-                            const maxRatio = 1.7777777777777777;
-                            const minRatio = 0.5625;
-                            let targetRatio = actualRatio;
-                            if (actualRatio > maxRatio) targetRatio = maxRatio;
-                            else if (actualRatio < minRatio) {
-                                targetRatio = minRatio;
-                            }
-                            const displayHeight = containerWidth / targetRatio;
-                            if (this.swiperHeights[postindex] !== displayHeight) {
-                                this.setData({
-                                    [`swiperHeights[${postindex}]`]: displayHeight
-                                });
-                            }
-                        }
-                    })
-                    .exec();
-            }
-            // 单图
-            if (type === 'single') {
-                const actualRatio = originalWidth / originalHeight;
-                const minRatio = 0.5625;
-                if (actualRatio < minRatio) {
-                    const query = uni.createSelectorQuery().in(this);
-                    query
-                        .select(`#single-image-${postid}`)
-                        .boundingClientRect((rect) => {
-                            if (rect && rect.width) {
-                                const containerWidth = rect.width;
-                                const displayHeight = containerWidth / minRatio;
-                                if (this.imageClampHeights[postid] !== displayHeight) {
-                                    this.setData({
-                                        [`imageClampHeights.${postid}`]: displayHeight
-                                    });
-                                }
-                            }
-                        })
-                        .exec();
-                }
-            }
-        },
-
         // 格式化时间
         formatTime: function (dateString) {
-            if (!dateString) {
-                return '';
-            }
-            const date = new Date(dateString);
-            const now = new Date();
-            const diff = now.getTime() - date.getTime();
-            const minutes = Math.floor(diff / 60000);
-            if (minutes < 1) {
-                return '刚刚';
-            }
-            if (minutes < 60) {
-                return `${minutes}分钟前`;
-            }
-            const hours = Math.floor(diff / 3600000);
-            if (hours < 24) {
-                return `${hours}小时前`;
-            }
-            const days = Math.floor(diff / 86400000);
-            if (days < 7) {
-                return `${days}天前`;
-            }
-            return date.toLocaleDateString();
+            return formatRelativeTime(dateString);
         },
 
         // 头像加载错误处理

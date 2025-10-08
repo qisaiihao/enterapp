@@ -343,14 +343,19 @@ import folderSelector from '@/components/folder-selector/folder-selector';
 // pages/post-detail/post-detail.js
 const app = getApp();
 const likeIcon = require('../../utils/likeIcon');
+const { togglePostLike } = require('../../utils/likeService.js');
+const { previewImage } = require('../../utils/imagePreview.js');
+const { formatRelativeTime } = require('../../utils/time.js');
 const avatarCache = require('../../utils/avatarCache');
 const followCache = require('../../utils/followCache');
-const dataCache = require('../../utils/dataCache');
+const { cloudCall } = require('../../utils/cloudCall.js');
+const postGalleryMixin = require('../../mixins/postGallery.js');
 export default {
     components: {
         cloudTipModal,
         folderSelector
     },
+    mixins: [postGalleryMixin],
     data() {
         return {
             post: null,
@@ -442,58 +447,23 @@ export default {
         this.recordViewBehavior();
     },
     methods: {
-        // 兼容性云函数调用方法
-        callCloudFunction(name, data = {}) {
-            return new Promise((resolve, reject) => {
-                // 使用新的平台检测工具
-                const { getCurrentPlatform, getCloudFunctionMethod } = require('../../utils/platformDetector.js');
-                
-                const platform = getCurrentPlatform();
-                const method = getCloudFunctionMethod();
-                // 使用检测到的调用方式
-                const actualMethod = method;
-                
-                if (actualMethod === 'tcb') {
-                    // 使用TCB调用云函数（H5和App环境）
-                    if (this.$tcb && this.$tcb.callFunction) {
-                        this.$tcb.callFunction({
-                            name: name,
-                            data: data
-                        }).then(resolve).catch(reject);
-                    } else {
-                        reject(new Error('TCB实例不可用'));
-                    }
-                } else if (actualMethod === 'wx-cloud') {
-                    // 使用微信云开发调用云函数（小程序环境）
-                    if (wx.cloud && wx.cloud.callFunction) {
-                        wx.cloud.callFunction({
-                            name: name,
-                            data: data,
-                            success: (res) => {
-                                resolve(res);
-                            },
-                            fail: (err) => {
-                                reject(err);
-                            }
-                        });
-                    } else {
-                        reject(new Error('微信云开发不可用'));
-                    }
-                } else {
-                    reject(new Error(`不支持的云函数调用方式: ${actualMethod}`));
-                }
-            });
+        // 统一云函数调用方法
+        callCloudFunction(name, data = {}, extraOptions = {}) {
+            return cloudCall(name, data, Object.assign({ pageTag: 'post-detail', context: this }, extraOptions));
         },
         loadPostDetail: function (postId) {
             uni.showLoading({
                 title: '加载中...'
             });
-            this.$tcb.callFunction({
-                name: 'getPostDetail',
-                data: {
+            this.callCloudFunction(
+                'getPostDetail',
+                {
                     postId: postId
+                },
+                {
+                    injectOpenId: false
                 }
-            }).then((res) => {
+            ).then((res) => {
                 if (res.result && res.result.post) {
                     let post = res.result.post;
                     post.formattedCreateTime = this.formatTime(post.createTime);
@@ -531,12 +501,15 @@ export default {
         },
 
         getComments: function (postId) {
-            this.$tcb.callFunction({
-                name: 'getComments',
-                data: {
+            this.callCloudFunction(
+                'getComments',
+                {
                     postId: postId
+                },
+                {
+                    injectOpenId: false
                 }
-            }).then((res) => {
+            ).then((res) => {
                 if (res.result && res.result.comments) {
                     const currentUserOpenid = this.openid || uni.getStorageSync('openid');
                     const comments = res.result.comments.map((comment) => {
@@ -604,46 +577,44 @@ export default {
                 'post.isVoted': newIsVoted,
                 'post.likeIcon': newLikeIcon
             });
-            this.callCloudFunction('vote', {
-                    postId: postId
-                }).then((res) => {
-                    if (!res.result.success) {
-                        this.setData({
-                            'post.votes': originalVotes,
-                            'post.isVoted': originalIsVoted,
-                            'post.likeIcon': likeIcon.getLikeIcon(originalVotes, originalIsVoted)
-                        });
-                    } else {
-                        // 使用服务器返回的最新数据更新UI
-                        const serverVotes = res.result.votes;
-                        const serverIsLiked = res.result.isLiked;
-                        const serverLikeIcon = likeIcon.getLikeIcon(serverVotes, serverIsLiked);
-                        
-                        this.setData({
-                            'post.votes': serverVotes,
-                            'post.isVoted': serverIsLiked,
-                            'post.likeIcon': serverLikeIcon
-                        });
+            togglePostLike(postId, {
+                pageTag: 'post-detail',
+                context: this,
+                currentVotes: originalVotes,
+                currentIsLiked: originalIsVoted,
+                requireAuth: true
+            }).then((result) => {
+                if (result.success) {
+                    this.setData({
+                        'post.votes': result.votes,
+                        'post.isVoted': result.isLiked,
+                        'post.likeIcon': result.likeIcon
+                    });
+                    return;
+                }
 
-                        // === 新增：更新首页缓存中的帖子数据 ===
-                        console.log('【帖子详情点赞】更新首页缓存中的帖子数据');
-                        dataCache.updatePostLikeInCache(postId, serverVotes, serverIsLiked, serverLikeIcon);
-                    }
-                }).catch(() => {
-                    this.setData({
-                        'post.votes': originalVotes,
-                        'post.isVoted': originalIsVoted,
-                        'post.likeIcon': likeIcon.getLikeIcon(originalVotes, originalIsVoted)
-                    });
-                    uni.showToast({
-                        title: '操作失败，请检查网络',
-                        icon: 'none'
-                    });
-                }).finally(() => {
-                    this.setData({
-                        votingInProgress: false
-                    });
+                const rollback = result.rollback || {
+                    votes: originalVotes,
+                    isLiked: originalIsVoted,
+                    likeIcon: likeIcon.getLikeIcon(originalVotes, originalIsVoted)
+                };
+                this.setData({
+                    'post.votes': rollback.votes,
+                    'post.isVoted': rollback.isLiked,
+                    'post.likeIcon': rollback.likeIcon
                 });
+            }).catch((error) => {
+                console.error('【帖子详情点赞】调用 likeService 失败', error);
+                this.setData({
+                    'post.votes': originalVotes,
+                    'post.isVoted': originalIsVoted,
+                    'post.likeIcon': likeIcon.getLikeIcon(originalVotes, originalIsVoted)
+                });
+            }).finally(() => {
+                this.setData({
+                    votingInProgress: false
+                });
+            });
         },
 
         onFavorite: function () {
@@ -679,73 +650,14 @@ export default {
         },
 
         handlePreview: function (event) {
-            const currentUrl = event.currentTarget.dataset.src;
-            const originalUrls = event.currentTarget.dataset.originalImageUrls;
-            if (currentUrl) {
-                uni.previewImage({
-                    current: currentUrl,
-                    urls: originalUrls || [currentUrl]
-                });
-            } else {
+            const result = previewImage(event, { fallbackToast: false });
+            if (!result) {
                 uni.showToast({
                     title: '图片加载失败',
                     icon: 'none'
                 });
             }
-        },
-
-        onImageLoad: function (e) {
-            const { postid, postindex = 0, imgindex = 0, type } = e.currentTarget.dataset;
-            const { width: originalWidth, height: originalHeight } = e.detail;
-            if (!originalWidth || !originalHeight) {
-                return;
-            }
-            if (type === 'multi' && imgindex === 0) {
-                const query = uni.createSelectorQuery().in(this);
-                query
-                    .select(`#swiper-${postid}`)
-                    .boundingClientRect((rect) => {
-                        if (rect && rect.width) {
-                            const containerWidth = rect.width;
-                            const actualRatio = originalWidth / originalHeight;
-                            const maxRatio = 1.7777777777777777;
-                            const minRatio = 0.5625;
-                            let targetRatio = actualRatio;
-                            if (actualRatio > maxRatio) targetRatio = maxRatio;
-                            else if (actualRatio < minRatio) {
-                                targetRatio = minRatio;
-                            }
-                            const displayHeight = containerWidth / targetRatio;
-                            if (this.swiperHeights[postindex] !== displayHeight) {
-                                this.setData({
-                                    [`swiperHeights[${postindex}]`]: displayHeight
-                                });
-                            }
-                        }
-                    })
-                    .exec();
-            }
-            if (type === 'single') {
-                const actualRatio = originalWidth / originalHeight;
-                const minRatio = 0.5625;
-                if (actualRatio < minRatio) {
-                    const query = uni.createSelectorQuery().in(this);
-                    query
-                        .select(`#single-image-${postid}`)
-                        .boundingClientRect((rect) => {
-                            if (rect && rect.width) {
-                                const containerWidth = rect.width;
-                                const displayHeight = containerWidth / minRatio;
-                                if (this.imageClampHeights[postid] !== displayHeight) {
-                                    this.setData({
-                                        [`imageClampHeights.${postid}`]: displayHeight
-                                    });
-                                }
-                            }
-                        })
-                        .exec();
-                }
-            }
+            return result;
         },
 
         onImageError: function (e) {
@@ -999,11 +911,12 @@ export default {
             if (!images.length) {
                 return;
             }
-            const urls = images.map((item) => item.previewUrl);
-            uni.previewImage({
-                current: urls[index],
-                urls: urls
-            });
+            const urls = images.map((item) => item.previewUrl).filter(Boolean);
+            if (!urls.length) {
+                return;
+            }
+            const current = urls[index] || urls[0];
+            return previewImage({ current, urls }, { fallbackToast: false });
         },
 
         uploadCommentImages: function () {
@@ -1072,10 +985,12 @@ export default {
             if (!images || !images.length) {
                 return;
             }
-            uni.previewImage({
-                current: images[imageIndex] || images[0],
-                urls: images
-            });
+            const filteredImages = images.filter(Boolean);
+            if (!filteredImages.length) {
+                return;
+            }
+            const current = filteredImages[imageIndex] || filteredImages[0];
+            return previewImage({ current, urls: filteredImages }, { fallbackToast: false });
         },
 
         onSubmitComment: async function () {
@@ -1113,14 +1028,18 @@ export default {
                 const imageUploadResults = await this.uploadCommentImages();
                 const imageUrls = imageUploadResults.map((item) => item.compressedUrl);
                 const originalImageUrls = imageUploadResults.map((item) => item.originalUrl);
-                const res = await this.callCloudFunction('addComment', {
+                const res = await this.callCloudFunction(
+                    'addComment',
+                    {
                         postId: postId,
                         content: trimmedContent,
                         parentId: parentId,
                         replyToAuthorName: replyToAuthor,
                         imageUrls: imageUrls,
                         originalImageUrls: originalImageUrls
-                    });
+                    },
+                    { requireAuth: true }
+                );
                 uni.hideLoading();
                 if (res.result && res.result.success) {
                     uni.showToast({
@@ -1207,9 +1126,13 @@ export default {
                         title: '正在删除',
                         mask: true
                     });
-                    this.callCloudFunction('deleteComment', {
+                    this.callCloudFunction(
+                        'deleteComment',
+                        {
                             commentId
-                        }).then((result) => {
+                        },
+                        { requireAuth: true }
+                    ).then((result) => {
                             if (result.result && result.result.success) {
                                 const deletedCount = Math.max(1, result.result.deletedCount || 1);
                                 let updatedComments;
@@ -1276,10 +1199,14 @@ export default {
             this.setData({
                 comments: comments
             });
-            this.callCloudFunction('likeComment', {
+            this.callCloudFunction(
+                'likeComment',
+                {
                     commentId: commentId,
                     postId: postId
-                }).then((res) => {
+                },
+                { requireAuth: true }
+            ).then((res) => {
                     if (res.result && res.result.success) {
                         if (comment.likes !== res.result.likes) {
                             this.updateCommentLikeStatus(commentId, newLikeState, res.result.likes);
@@ -1352,28 +1279,7 @@ export default {
         },
 
         formatTime: function (dateString) {
-            if (!dateString) {
-                return '';
-            }
-            const date = new Date(dateString);
-            const now = new Date();
-            const diff = now.getTime() - date.getTime();
-            const minutes = Math.floor(diff / 60000);
-            if (minutes < 1) {
-                return '刚刚';
-            }
-            if (minutes < 60) {
-                return `${minutes}分钟前`;
-            }
-            const hours = Math.floor(diff / 3600000);
-            if (hours < 24) {
-                return `${hours}小时前`;
-            }
-            const days = Math.floor(diff / 86400000);
-            if (days < 7) {
-                return `${days}天前`;
-            }
-            return date.toLocaleDateString();
+            return formatRelativeTime(dateString);
         },
 
         prepareFollowState: function (authorOpenid) {
@@ -1428,10 +1334,14 @@ export default {
             if (!targetOpenid) {
                 return;
             }
-            this.callCloudFunction('follow', {
+            this.callCloudFunction(
+                'follow',
+                {
                     action: 'checkFollow',
                     targetOpenid
-                }).then((res) => {
+                },
+                { requireAuth: true }
+            ).then((res) => {
                     if (res.result && res.result.success) {
                         this.setData({
                             isFollowing: !!res.result.isFollowing,
@@ -2491,4 +2401,3 @@ export default {
     flex-shrink: 0;
 }
 </style>
-

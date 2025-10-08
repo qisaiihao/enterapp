@@ -284,12 +284,18 @@ const PAGE_SIZE = 5;
 const dataCache = require('../../utils/dataCache');
 const imageOptimizer = require('../../utils/imageOptimizer');
 const likeIcon = require('../../utils/likeIcon');
+const { togglePostLike } = require('../../utils/likeService.js');
 const avatarCache = require('../../utils/avatarCache');
 const followCache = require('../../utils/followCache');
+const { previewImage } = require('../../utils/imagePreview.js');
+const { normalizePostList } = require('../../utils/postNormalizer.js');
+const { cloudCall } = require('../../utils/cloudCall.js');
+const postGalleryMixin = require('../../mixins/postGallery.js');
 export default {
     components: {
         skeleton
     },
+    mixins: [postGalleryMixin],
     data() {
         return {
             postList: [],
@@ -555,95 +561,16 @@ onReachBottom: function () {
             );
         },
 
-        onImageLoad: function (e) {
-            const { postid, postindex = 0, imgindex = 0, type } = e.currentTarget.dataset;
-            const { width: originalWidth, height: originalHeight } = e.detail;
-            if (!originalWidth || !originalHeight) {
-                return;
-            }
-
-            // 缓存图片尺寸信息
-            const imageKey = `${postid}_${imgindex}`;
-            this.imageCache[imageKey] = {
-                width: originalWidth,
-                height: originalHeight
-            };
-
-            // 多图 Swiper 逻辑
-            if (type === 'multi' && imgindex === 0) {
-                const query = uni.createSelectorQuery().in(this);
-                query
-                    .select(`#swiper-${postid}`)
-                    .boundingClientRect((rect) => {
-                        if (rect && rect.width) {
-                            const containerWidth = rect.width;
-                            const actualRatio = originalWidth / originalHeight;
-                            const maxRatio = 1.7777777777777777;
-                            const minRatio = 0.5625;
-                            let targetRatio = actualRatio;
-                            if (actualRatio > maxRatio) targetRatio = maxRatio;
-                            else if (actualRatio < minRatio) {
-                                targetRatio = minRatio;
-                            }
-                            const displayHeight = containerWidth / targetRatio;
-                            if (this.swiperHeights[postindex] !== displayHeight) {
-                                this.setData({
-                                    [`swiperHeights[${postindex}]`]: displayHeight
-                                });
-                            }
-                        }
-                    })
-                    .exec();
-            }
-            // 单图
-            if (type === 'single') {
-                const actualRatio = originalWidth / originalHeight;
-                const minRatio = 0.5625;
-                if (actualRatio < minRatio) {
-                    const query = uni.createSelectorQuery().in(this);
-                    query
-                        .select(`#single-image-${postid}`)
-                        .boundingClientRect((rect) => {
-                            if (rect && rect.width) {
-                                const containerWidth = rect.width;
-                                const displayHeight = containerWidth / minRatio;
-                                if (this.imageClampHeights[postid] !== displayHeight) {
-                                    this.setData({
-                                        [`imageClampHeights.${postid}`]: displayHeight
-                                    });
-                                }
-                            }
-                        })
-                        .exec();
-                }
-            }
-        },
-
         // catch:tap 用于图片预览，并阻止跳转
         handlePreview: function (event) {
             console.log('【图片预览】handlePreview事件触发');
-            console.log('【图片预览】event.currentTarget.dataset:', event.currentTarget.dataset);
-            const current = event.currentTarget.dataset.src || event.currentTarget.dataset.imageUrl;
-            const urls = event.currentTarget.dataset.originalImageUrls;
-            console.log('【图片预览】current:', current);
-            console.log('【图片预览】urls:', urls);
-            console.log('【图片预览】urls类型:', typeof urls);
-            console.log('【图片预览】urls长度:', urls ? urls.length : 'undefined');
-            if (current && urls && urls.length > 0) {
-                console.log('【图片预览】调用wx.previewImage，current:', current, 'urls:', urls);
-                uni.previewImage({
-                    current,
-                    urls,
-                    success: (res) => {
-                        console.log('【图片预览】预览成功:', res);
-                    },
-                    fail: (err) => {
-                        console.error('【图片预览】预览失败:', err);
-                    }
-                });
-            } else {
-                console.error('【图片预览】预览条件不满足 - current:', current, 'urls:', urls);
+            const dataset = event && event.currentTarget ? event.currentTarget.dataset : {};
+            console.log('【图片预览】event.currentTarget.dataset:', dataset);
+            const result = previewImage(event);
+            if (!result) {
+                console.error('【图片预览】预览条件不满足', dataset);
             }
+            return result;
         },
 
         onVote: function (event) {
@@ -674,58 +601,47 @@ onReachBottom: function () {
                 postList: postList
             });
 
-            // 调用云函数同步数据
-            console.log('【点赞】调用云函数vote，postId:', postId);
-            
-            // 使用兼容性云函数调用工具
-            this.callCloudFunction('vote', {
-                postId: postId
-            }).then((res) => {
-                console.log('【点赞】云函数返回结果:', res);
-                if (!res.result.success) {
-                    console.log('【点赞】云函数返回失败，回滚UI');
-                    // 如果服务器失败，回滚UI
-                    postList[index].votes = originalVotes;
-                    postList[index].isVoted = originalIsVoted;
-                    postList[index].likeIcon = likeIcon.getLikeIcon(originalVotes, originalIsVoted);
+            togglePostLike(postId, {
+                pageTag: 'index',
+                context: this,
+                currentVotes: originalVotes,
+                currentIsLiked: originalIsVoted,
+                requireAuth: true
+            }).then((result) => {
+                console.log('【点赞】服务返回结果:', result);
+                if (result.success) {
+                    postList[index].votes = result.votes;
+                    postList[index].isVoted = result.isLiked;
+                    postList[index].likeIcon = result.likeIcon;
                     this.setData({
                         postList: postList
                     });
-                } else {
-                    // 使用服务器返回的最新数据更新UI
-                    const serverVotes = res.result.votes;
-                    const serverIsLiked = res.result.isLiked;
-                    const serverLikeIcon = likeIcon.getLikeIcon(serverVotes, serverIsLiked);
-                    
-                    postList[index].votes = serverVotes;
-                    postList[index].isVoted = serverIsLiked;
-                    postList[index].likeIcon = serverLikeIcon;
-                    
-                    this.setData({
-                        postList: postList
-                    });
-                    
-                    console.log('【点赞】云函数调用成功，数据已同步');
-
-                    // === 新增：更新缓存中的帖子数据 ===
-                    console.log('【点赞】更新缓存中的帖子数据');
-                    dataCache.updatePostLikeInCache(postId, serverVotes, serverIsLiked, serverLikeIcon);
+                    console.log('【点赞】服务调用成功，数据已同步');
+                    return;
                 }
+
+                const rollback = result.rollback || {
+                    votes: originalVotes,
+                    isLiked: originalIsVoted,
+                    likeIcon: likeIcon.getLikeIcon(originalVotes, originalIsVoted)
+                };
+                console.warn('【点赞】服务返回失败，回滚UI');
+                postList[index].votes = rollback.votes;
+                postList[index].isVoted = rollback.isLiked;
+                postList[index].likeIcon = rollback.likeIcon;
+                this.setData({
+                    postList: postList
+                });
             }).catch((err) => {
-                console.error('【点赞】云函数调用失败:', err);
-                // 网络失败，回滚UI
+                console.error('【点赞】调用 likeService 失败:', err);
                 postList[index].votes = originalVotes;
                 postList[index].isVoted = originalIsVoted;
                 postList[index].likeIcon = likeIcon.getLikeIcon(originalVotes, originalIsVoted);
                 this.setData({
                     postList: postList
                 });
-                uni.showToast({
-                    title: '操作失败',
-                    icon: 'none'
-                });
             }).finally(() => {
-                console.log('【点赞】云函数调用完成');
+                console.log('【点赞】服务调用完成');
                 this.setData({
                     [`votingInProgress.${postId}`]: false
                 });
@@ -892,28 +808,10 @@ onReachBottom: function () {
                     console.log('✅ [首页] 获取到帖子数量:', posts.length);
                     console.log('✅ [首页] 完整响应数据:', res.result);
 
-                    // --- 关键优化：预处理图片尺寸，防止抖动 ---
-                    posts = posts.map((post) => {
-                        if (!post.imageUrls || post.imageUrls.length === 0) {
-                            post.imageUrls = post.imageUrl ? [post.imageUrl] : [];
-                        }
-
-                        // 处理原图URL数组
-                        if (!post.originalImageUrls || post.originalImageUrls.length === 0) {
-                            post.originalImageUrls = post.originalImageUrl ? [post.originalImageUrl] : post.imageUrls;
-                        }
-
-                        // 假设图片URL中包含了尺寸信息，或者你有固定的宽高比
-                        // 如果没有，则需要在onImageLoad中动态计算并更新，但最好有预设值
-                        // 这里我们假设一个默认的 4:3 比例用于占位
-                        if (post.imageUrls.length > 0) {
-                            post.imageStyle = `height: 0; padding-bottom: 75%;`; // 4:3 宽高比占位
-                        }
-
-                        // 添加点赞图标信息
-                        post.likeIcon = likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false);
-                        return post;
-                    });
+                    posts = normalizePostList(posts).map((post) => ({
+                        ...post,
+                        likeIcon: likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false)
+                    }));
 
                     // 预加载头像和关注状态
                     setTimeout(() => {
@@ -1234,38 +1132,23 @@ onReachBottom: function () {
                         `获取到推荐帖子数量: ${posts.length} (个性化: ${res.result.personalizedCount}, 按标签: ${res.result.tagBasedCount}, 热门: ${res.result.hotCount}, 最新: ${res.result.latestCount})`
                     );
 
-                    // 处理图片URL和样式
-                    posts.forEach((post) => {
-                        if (!post.imageUrls || post.imageUrls.length === 0) {
-                            post.imageUrls = post.imageUrl ? [post.imageUrl] : [];
-                        }
-
-                        // 处理原图URL数组
-                        if (!post.originalImageUrls || post.originalImageUrls.length === 0) {
-                            post.originalImageUrls = post.originalImageUrl ? [post.originalImageUrl] : post.imageUrls;
-                        }
-
-                        // 设置图片占位样式
-                        if (post.imageUrls.length > 0) {
-                            post.imageStyle = `height: 0; padding-bottom: 75%;`; // 4:3 宽高比占位
-                        }
-
-                        // 添加点赞图标信息
-                        post.likeIcon = likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false);
-                    });
+                    const normalizedPosts = normalizePostList(posts).map((post) => ({
+                        ...post,
+                        likeIcon: likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false)
+                    }));
 
                     // 记录已显示的帖子ID
-                    const newShownIds = posts.map((post) => post._id);
+                    const newShownIds = normalizedPosts.map((post) => post._id);
                     const updatedShownIds = [...this.discoverShownPostIds, ...newShownIds];
                     this.setData({
-                        discoverPostList: posts,
+                        discoverPostList: normalizedPosts,
                         discoverPage: 1,
                         discoverHasMore: false,
                         // 推荐算法只显示5个，没有更多
                         discoverShownPostIds: updatedShownIds,
                         discoverRefreshTime: Date.now()
                     });
-                    console.log('发现页推荐数据设置完成，帖子数量:', posts.length);
+                    console.log('发现页推荐数据设置完成，帖子数量:', normalizedPosts.length);
                 } else {
                     console.error('获取推荐数据失败:', res);
                     uni.showToast({
@@ -1318,56 +1201,9 @@ onReachBottom: function () {
             this.getIndexData();
         },
 
-        // 兼容性云函数调用方法
-        callCloudFunction(name, data = {}) {
-            console.log(`🔍 [首页] 调用云函数: ${name}`, data);
-            
-            return new Promise((resolve, reject) => {
-                // 使用新的平台检测工具
-                const { getCurrentPlatform, getCloudFunctionMethod } = require('../../utils/platformDetector.js');
-                
-                const platform = getCurrentPlatform();
-                const method = getCloudFunctionMethod();
-                
-                console.log(`🔍 [首页] 运行环境检测 - 平台: ${platform}, 方法: ${method}`);
-                
-                if (method === 'tcb') {
-                    // 使用TCB调用云函数（H5和App环境）
-                    if (this.$tcb && this.$tcb.callFunction) {
-                        console.log(`🔍 [首页] TCB环境调用云函数: ${name}`);
-                        this.$tcb.callFunction({
-                            name: name,
-                            data: data
-                        }).then(resolve).catch(reject);
-                    } else {
-                        console.error(`❌ [首页] TCB实例不可用`);
-                        reject(new Error('TCB实例不可用'));
-                    }
-                } else if (method === 'wx-cloud') {
-                    // 使用微信云开发调用云函数（小程序环境）
-                    if (wx.cloud && wx.cloud.callFunction) {
-                        console.log(`🔍 [首页] 小程序环境调用云函数: ${name}`);
-                        wx.cloud.callFunction({
-                            name: name,
-                            data: data,
-                            success: (res) => {
-                                console.log(`✅ [首页] 云函数调用成功: ${name}`, res);
-                                resolve(res);
-                            },
-                            fail: (err) => {
-                                console.error(`❌ [首页] 云函数调用失败: ${name}`, err);
-                                reject(err);
-                            }
-                        });
-                    } else {
-                        console.error(`❌ [首页] 微信云开发不可用`);
-                        reject(new Error('微信云开发不可用'));
-                    }
-                } else {
-                    console.error(`❌ [首页] 不支持的云函数调用方式: ${method}`);
-                    reject(new Error(`不支持的云函数调用方式: ${method}`));
-                }
-            });
+        // 统一云函数调用方法
+        callCloudFunction(name, data = {}, extraOptions = {}) {
+            return cloudCall(name, data, Object.assign({ pageTag: 'index', context: this }, extraOptions));
         }
 
     }
