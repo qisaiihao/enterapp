@@ -1,0 +1,12 @@
+feat(cache): user profile page uses unified CacheManager (event-driven invalidation)
+
+- add api-cache/user-profile.js: getUserInfo/getUserPosts + invalidate helpers (no TTL, manual invalidation)
+- integrate pages/user-profile/user-profile.vue to load from cache and listen to global events:
+  - avatar-updated → invalidate user info and refresh
+  - post-created → invalidate user posts and refresh
+  - favorite-changed → invalidate user posts and refresh
+- add api-cache/events.md documenting event names and expected payloads
+
+Behavior: personal homepage no longer re-fetches on每次进入；仅头像更换/发帖/收藏变更触发刷新。
+No cloudfunctions changed.
+

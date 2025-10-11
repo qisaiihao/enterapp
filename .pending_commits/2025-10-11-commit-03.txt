@@ -1,0 +1,7 @@
+feat(cache): Phase 3 – data cache wrappers + index unread integration
+
+- extend _utils/cache-manager.js: getOrFetch now supports SWR (swrMs)
+- add api-cache/unread.js and integrate into pages/index/index.vue (cached unread count)
+- add api-cache/profile.js (getMyProfile) and api-cache/tags.js (getAllTags) – usable by pages later
+- kept behavior backward compatible; no cloudfunctions changed
+

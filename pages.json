@@ -1,0 +1,242 @@
+{
+	"pages": [
+		{
+			"path": "pages/splash/splash",
+			"style": {
+				"usingComponents": {},
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/login/login",
+			"style": {
+				"usingComponents": {}
+			}
+		},
+		{
+			"path": "pages/register/register",
+			"style": {
+				"usingComponents": {}
+			}
+		},
+		{
+			"path": "pages/my-likes/my-likes",
+			"style": {
+				"navigationBarTitleText": "我的点赞",
+				"enablePullDownRefresh": true,
+				"usingComponents": {}
+			}
+		},
+		{
+			"path": "pages/index/index",
+			"style": {
+				"navigationBarTitleText": "回车键",
+				"enablePullDownRefresh": true,
+				"usingComponents": {
+					"skeleton": "/components/skeleton/skeleton"
+				}
+			}
+		},
+		{
+			"path": "pages/poem/poem",
+			"style": {
+				"usingComponents": {
+					"skeleton": "/components/skeleton/skeleton",
+					"folder-selector": "/components/folder-selector/folder-selector"
+				},
+				"navigationBarTitleText": "路"
+			}
+		},
+		{
+			"path": "pages/mountain/mountain",
+			"style": {
+				"usingComponents": {
+					"skeleton": "/components/skeleton/skeleton",
+					"folder-selector": "/components/folder-selector/folder-selector"
+				},
+				"navigationBarTitleText": "山"
+			}
+		},
+		{
+			"path": "pages/profile/profile",
+			"style": {
+				"navigationBarTitleText": "我的",
+				"enablePullDownRefresh": true,
+				"backgroundTextStyle": "dark",
+				"usingComponents": {}
+			}
+		},
+		{
+			"path": "pages/following/following",
+			"style": {
+				"navigationBarTitleText": "我关注的人",
+				"enablePullDownRefresh": true,
+				"usingComponents": {}
+			}
+		},
+		{
+			"path": "pages/fans/fans",
+			"style": {
+				"navigationBarTitleText": "我的粉丝",
+				"enablePullDownRefresh": true,
+				"usingComponents": {}
+			}
+		},
+		{
+			"path": "pages/user-profile/user-profile",
+			"style": {
+				"usingComponents": {},
+				"navigationBarTitleText": "用户主页",
+				"enablePullDownRefresh": true,
+				"onReachBottomDistance": 50
+			}
+		},
+		{
+			"path": "pages/profile-edit/profile-edit",
+			"style": {
+				"navigationBarTitleText": "编辑个人资料",
+				"usingComponents": {}
+			}
+		},
+		{
+			"path": "pages/post-detail/post-detail",
+			"style": {
+				"navigationBarTitleText": "帖子详情",
+				"usingComponents": {
+					"cloud-tip-modal": "/components/cloudTipModal/index",
+					"folder-selector": "/components/folder-selector/folder-selector"
+				}
+			}
+		},
+		{
+			"path": "pages/add/add",
+			"style": {
+				"usingComponents": {}
+			}
+		},
+		{
+			"path": "pages/favorite-folders/favorite-folders",
+			"style": {
+				"usingComponents": {},
+				"navigationBarTitleText": "我的收藏夹"
+			}
+		},
+		{
+			"path": "pages/favorite-content/favorite-content",
+			"style": {
+				"usingComponents": {},
+				"enablePullDownRefresh": true,
+				"onReachBottomDistance": 50
+			}
+		},
+		{
+			"path": "pages/messages/messages",
+			"style": {
+				"navigationBarTitleText": "消息通知",
+				"enablePullDownRefresh": true,
+				"backgroundColor": "#f8f9fa",
+				"backgroundTextStyle": "dark",
+				"usingComponents": {}
+			}
+		},
+		{
+			"path": "pages/image-manager/image-manager",
+			"style": {
+				"navigationBarTitleText": "图片管理",
+				"usingComponents": {}
+			}
+		},
+		{
+			"path": "pages/tag-filter/tag-filter",
+			"style": {
+				"usingComponents": {
+					"skeleton": "/components/skeleton/skeleton"
+				},
+				"enablePullDownRefresh": true,
+				"onReachBottomDistance": 50
+			}
+		},
+		{
+			"path": "pages/search/search",
+			"style": {
+				"usingComponents": {
+					"skeleton": "/components/skeleton/skeleton"
+				},
+				"navigationBarTitleText": "搜索",
+				"navigationBarBackgroundColor": "#ffffff",
+				"navigationBarTextStyle": "black",
+				"backgroundColor": "#f7f8fa"
+			}
+		},
+		{
+			"path": "pages/draft-box/draft-box",
+			"style": {
+				"usingComponents": {},
+				"navigationBarTitleText": "草稿箱"
+			}
+		},
+		{
+			"path": "pages/feedback/feedback",
+			"style": {
+				"navigationBarTitleText": "意见反馈",
+				"navigationStyle": "custom",
+				"backgroundColor": "#f5f5f5",
+				"usingComponents": {}
+			}
+		},
+		{
+			"path": "pages/feedback-admin/feedback-admin",
+			"style": {
+				"navigationBarTitleText": "反馈管理",
+				"navigationStyle": "custom",
+				"backgroundColor": "#f5f5f5",
+				"enablePullDownRefresh": true,
+				"usingComponents": {}
+			}
+		}
+	],
+	"tabBar": {
+		"custom": false,
+		"color": "#999999",
+		"selectedColor": "#9ed7ee",
+		"backgroundColor": "#ffffff",
+		"borderStyle": "black",
+		"list": [
+			{
+				"pagePath": "pages/index/index",
+				"text": "广场",
+				"iconPath": "static/images/market.png",
+				"selectedIconPath": "static/images/marketplus.png"
+			},
+			{
+				"pagePath": "pages/poem/poem",
+				"text": "路",
+				"iconPath": "static/images/road.png",
+				"selectedIconPath": "static/images/roadplus.png"
+			},
+			{
+				"pagePath": "pages/mountain/mountain",
+				"text": "山",
+				"iconPath": "static/images/mountain.png",
+				"selectedIconPath": "static/images/mountainplus.png"
+			},
+			{
+				"pagePath": "pages/profile/profile",
+				"text": "湖",
+				"iconPath": "static/images/pools.png",
+				"selectedIconPath": "static/images/poolsplus.png"
+			}
+		]
+	},
+	"sitemapLocation": "sitemap.json",
+	"style": "v2",
+	"lazyCodeLoading": "requiredComponents",
+	"globalStyle": {
+		"backgroundColor": "#F6F6F6",
+		"backgroundTextStyle": "light",
+		"navigationBarBackgroundColor": "#F6F6F6",
+		"navigationBarTitleText": "回车键",
+		"navigationBarTextStyle": "black"
+	},
+	"subPackages": []
+}

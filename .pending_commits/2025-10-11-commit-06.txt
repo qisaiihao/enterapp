@@ -1,0 +1,11 @@
+feat(events): emit favorite-changed on collect success; emit avatar-updated on profile save
+
+- pages/post-detail/post-detail.vue: in onFavoriteSuccess, emit
+  uni.$emit('favorite-changed', { userId, postId, favored: true })
+- pages/profile-edit/profile-edit.vue: after successful save, emit
+  uni.$emit('avatar-updated', { userId })
+- pages/add/add.vue: after publish success, emit
+  uni.$emit('post-created', { userId }) [already added in prior step]
+
+Note: user-profile listens to avatar/post only; My Profile listens to avatar/post/favorite.
+

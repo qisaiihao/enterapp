@@ -1,0 +1,13 @@
+feat(cache): integrate unified cache into My Profile page (posts + favorites) with event-driven invalidation
+
+- add api-cache/my.js: getMyInfo/getMyPosts/getMyFavorites + invalidate helpers (no TTL, manual invalidation)
+- pages/profile/profile.vue:
+  - import cache helpers and switch loadMyPosts/loadFavorites to cached versions (early-return usage)
+  - bind uni events in checkLoginAndFetchData():
+    * avatar-updated → invalidateMyInfo + refresh info
+    * post-created → invalidateMyPosts + refresh posts
+    * favorite-changed → invalidateMyFavorites + refresh favorites (only for My Profile)
+- no cloudfunctions changed; behavior respects your rule:
+  * user-profile: refresh on avatar/post only
+  * My Profile: also refresh on favorite changes
+

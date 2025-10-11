@@ -1,0 +1,7 @@
+feat(cache): Phase 2 – introduce CacheManager and wire file-url-cache to namespace
+
+- add _utils/cache-manager.js (memory LRU + optional uniStorage persistence)
+- update _utils/file-url-cache.js to read/write via CacheManager namespace('fileUrls')
+- keep default persistent OFF for fileUrls to avoid cross-user mixing; can enable later
+- no cloudfunctions changed; API of file-url-cache remains the same
+

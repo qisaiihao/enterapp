@@ -1,0 +1,12 @@
+feat(events): centralize emits + hook folder-selector
+
+- add utils/events.js with EVENTS and emit helpers
+- pages/add/add.vue: use emitPostCreated on publish success
+- pages/profile-edit/profile-edit.vue: use emitAvatarUpdated on save success
+- pages/profile/profile.vue: use emitFavoriteChanged on remove favorite
+- components/folder-selector/folder-selector.vue: on confirmFavorite success, emit favorite-changed globally
+
+Notes:
+- user-profile listens only avatar-updated/post-created;
+- My Profile listens avatar-updated/post-created/favorite-changed.
+

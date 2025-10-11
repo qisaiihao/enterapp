@@ -1,0 +1,8 @@
+feat(cache): Phase 1 – temp URL cache + page hydration
+
+- add _utils/file-url-cache.js with batch+TTL+multi-end resolver
+- add _utils/hydrate-temp-urls.js and wire into index & post-detail
+- fix index.vue async/await scope and this-binding
+- make main.js $tcb wrapper multi-end friendly (H5/App/MP)
+
+No cloudfunctions changed.
