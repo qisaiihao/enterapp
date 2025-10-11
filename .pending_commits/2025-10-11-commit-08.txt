@@ -1,0 +1,11 @@
+feat(cache): integrate CacheManager for home/discover/tag and clean old code
+
+- Home feed: add api-cache/home-posts.js (TTL 90s + SWR 45s); index.vue uses getHomePosts in getPostList/getIndexData
+- Discover: api-cache/discover.js wired; index.vue loadRecommendationPosts uses cached feed
+- Tag page: api-cache/tag-posts.js + hydrate/warm integration in tag-filter.vue
+- Cleanup: removed legacy direct call branch in index.vue; reduced dataCache usage (refresh/getIndexData); syncLikeStatusFromCache now no-op (CacheManager owns state)
+- Images: keep hydrate + warm for cloud:// URLs
+
+How to commit once Git is available:
+  git add -A
+  git commit -F .pending_commits/2025-10-11-commit-08.txt

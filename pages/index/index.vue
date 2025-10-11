@@ -551,8 +551,6 @@ onReachBottom: function () {
         },
 
         refreshData: function () {
-            // 清除缓存
-            dataCache.remove('index_postList_cache');
             this.setData(
                 {
                     postList: [],
@@ -816,46 +814,36 @@ onReachBottom: function () {
                 });
             }
             const apiStartTime = Date.now();
-            this.$tcb.callFunction({
-                name: 'getPostList',
-                data: {
-                    skip: skip,
-                    limit: PAGE_SIZE
-                }
-            }).then(async (res) => {
-                console.log('✅ [首页] 云函数调用成功，原始响应:', res);
-                if (res && res.result && res.result.success) {
-                    let posts = res.result.posts || [];
-                    console.log('✅ [首页] 获取到帖子数量:', posts.length);
-                    console.log('✅ [首页] 完整响应数据:', res.result);
+            // 使用缓存封装的首页分页数据，SWR + TTL
+            getHomePosts({ page: this.page, pageSize: PAGE_SIZE, context: this })
+                .then(async (list) => {
+                    const postsRaw = Array.isArray(list) ? list : [];
+                    console.log('✅ [首页] 获取到帖子数量（缓存封装）:', postsRaw.length);
 
-                    posts = normalizePostList(posts).map((post) => ({
+                    let posts = normalizePostList(postsRaw).map((post) => ({
                         ...post,
                         likeIcon: likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false)
                     }));
 
-                    // 将 cloud:// 映射为可访问 URL，并预热
                     posts = await hydrateTempUrls(posts);
                     warmTempUrlsFromPosts(posts);
 
-                    // 预加载头像和关注状态
                     const self = this;
                     setTimeout(() => {
                         if (self.preloadUserData && typeof self.preloadUserData === 'function') {
                             self.preloadUserData(posts);
                         }
                     }, 500);
+
                     const newPostsCount = posts.length;
                     const currentPostList = this.postList;
-
-                    // 使用更高效的方式更新列表数据 - 修复语法错误
                     const newPostList = currentPostList.concat(posts);
                     const updateData = {
                         postList: newPostList,
                         page: this.page + 1,
                         hasMore: newPostsCount === PAGE_SIZE
                     };
-                    console.log('✅ [首页] 更新数据:', {
+                    console.log('✅ [首页] 更新数据（缓存封装）:', {
                         newPostListLength: newPostList.length,
                         currentPage: this.page,
                         newPage: this.page + 1,
@@ -867,49 +855,22 @@ onReachBottom: function () {
                         dataCache.set('index_postList_cache', newPostList);
                         this.preloadImages(posts);
                     }
-                } else {
-                    // 当没有更多数据时，不显示错误提示，而是设置hasMore为false
-                    console.warn('⚠️ [首页] 云函数返回失败或无数据:', res);
-                    if (this.page === 0) {
-                        // 首次加载失败才显示错误
-                        uni.showToast({
-                            title: '加载失败',
-                            icon: 'none'
-                        });
-                    } else {
-                        // 加载更多时没有数据，这是正常情况，设置hasMore为false
-                        this.setData({
-                            hasMore: false
-                        });
+                })
+                .catch((err) => {
+                    console.error('【首页】getPostList（缓存封装）失败:', err);
+                    if (isFirstLoad) {
+                        uni.showToast({ title: '网络错误', icon: 'none' });
                     }
-                }
-            }).catch((err) => {
-                console.error('【首页】getPostList云函数调用失败:', err);
-                // 只有在首次加载失败时才显示网络错误提示
-                if (isFirstLoad) {
-                    uni.showToast({
-                        title: '网络错误',
-                        icon: 'none'
-                    });
-                } else {
-                    // 加载更多时网络错误，静默处理，不显示错误提示
-                    console.log('【首页】加载更多时网络错误，静默处理');
-                }
-            }).finally(() => {
-                // 请求完成后，根据加载类型释放相应的状态
-                if (isFirstLoad) {
-                    this.setData({
-                        isLoading: false
-                    });
-                } else {
-                    this.setData({
-                        isLoadingMore: false
-                    });
-                }
-                if (typeof cb === 'function') {
-                    cb();
-                }
-            });
+                })
+                .finally(() => {
+                    if (isFirstLoad) {
+                        this.setData({ isLoading: false });
+                    } else {
+                        this.setData({ isLoadingMore: false });
+                    }
+                    if (typeof cb === 'function') cb();
+                });
+            return;
         },
 
         // 模式切换现在通过底部tabBar实现，不再需要手动切换
@@ -923,44 +884,8 @@ onReachBottom: function () {
 
         // 同步点赞状态：从缓存中获取最新的点赞状态
         syncLikeStatusFromCache: function () {
-            console.log('【首页】同步点赞状态从缓存');
-            const cachedData = dataCache.get('index_postList_cache');
-            if (cachedData && Array.isArray(cachedData) && this.postList.length > 0) {
-                console.log('【首页】发现缓存数据，开始同步点赞状态');
-                let hasUpdate = false;
-                const updatedPostList = this.postList.map(post => {
-                    const cachedPost = cachedData.find(cached => cached._id === post._id);
-                    if (cachedPost && (
-                        cachedPost.votes !== post.votes || 
-                        cachedPost.isVoted !== post.isVoted || 
-                        cachedPost.likeIcon !== post.likeIcon
-                    )) {
-                        console.log(`【首页】同步帖子 ${post._id} 的点赞状态:`, {
-                            votes: `${post.votes} -> ${cachedPost.votes}`,
-                            isVoted: `${post.isVoted} -> ${cachedPost.isVoted}`
-                        });
-                        hasUpdate = true;
-                        return {
-                            ...post,
-                            votes: cachedPost.votes,
-                            isVoted: cachedPost.isVoted,
-                            likeIcon: cachedPost.likeIcon
-                        };
-                    }
-                    return post;
-                });
-                
-                if (hasUpdate) {
-                    console.log('【首页】点赞状态已同步，更新UI');
-                    this.setData({
-                        postList: updatedPostList
-                    });
-                } else {
-                    console.log('【首页】点赞状态无需同步');
-                }
-            } else {
-                console.log('【首页】无缓存数据或当前无帖子，跳过同步');
-            }
+            // 已由 CacheManager 接管首页分页，跳过 dataCache 同步
+            console.log('【首页】同步点赞状态：CacheManager 接管，跳过 dataCache 同步');
         },
 
         // 跳转到消息页面
