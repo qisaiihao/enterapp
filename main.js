@@ -1,5 +1,7 @@
 import App from './App';
 import fileUrlCache from './_utils/file-url-cache';
+import { setupCacheEventBridges } from '@/api-cache/events.js';
+import { getMyInfo } from '@/api-cache/my.js';
 
 // 全局mixins，用于实现setData等功能，请勿删除！';
 import zpMixins from '@/uni_modules/zp-mixins/index.js';
@@ -80,6 +82,51 @@ Vue.prototype.$requireOpenid = function () {
   return openid;
 };
 // --- TCB 初始化结束 ---
+
+// 缓存事件桥：监听发帖/头像更新等事件并失效相关缓存
+try { setupCacheEventBridges(); } catch (e) { console.warn('setupCacheEventBridges failed', e); }
+
+// 登录完成后预热：我的资料 + 头像
+try {
+  const waitLoginThen = (fn) => {
+    const start = Date.now();
+    const MAX = 5000; // 最多等待 5s
+    const timer = setInterval(() => {
+      try {
+        const app = getApp && getApp();
+        const done = app && app.globalData && app.globalData._loginProcessCompleted;
+        const oid = app && app.globalData && app.globalData.openid;
+        if ((done && oid) || Date.now() - start > MAX) {
+          clearInterval(timer);
+          fn && fn();
+        }
+      } catch (_) { clearInterval(timer); }
+    }, 120);
+  };
+
+  waitLoginThen(async () => {
+    try {
+      const ctx = { $tcb: (Vue && Vue.prototype && Vue.prototype.$tcb) ? Vue.prototype.$tcb : (typeof uni !== 'undefined' && uni.$tcb ? uni.$tcb : null) };
+      // 触发一次资料读取（内部会将 cloud:// 头像映射为 https，并写入持久层）
+      await getMyInfo(ctx);
+      console.log('🔰 [prewarm] getMyInfo done');
+    } catch (e) {
+      console.warn('🔰 [prewarm] getMyInfo failed', e);
+    }
+  });
+} catch (e) { console.warn('prewarm setup failed', e); }
+
+// 调试：读取本地 CACHE_DEBUG 开关并注入查看函数
+try {
+  const cacheManager = require('@/_utils/cache-manager').default;
+  let dbg = false;
+  try { const v = uni.getStorageSync && uni.getStorageSync('CACHE_DEBUG'); dbg = v === true || v === '1' || v === 1 || v === 'true'; } catch(_) {}
+  cacheManager.setDebug(!!dbg);
+  if (typeof uni !== 'undefined') {
+    uni.$cacheStats = () => { try { console.log('[CacheStats]', cacheManager.getStats()); } catch(e) { console.log('[CacheStats] failed', e); } };
+    uni.$cacheDebug = (on) => { try { cacheManager.setDebug(!!on); console.log('[CacheDebug] =', !!on); } catch(e) {} };
+  }
+} catch(e) { console.warn('cache debug setup failed', e); }
 
 function resolveOpenidForCall(functionName) {
   // 登录/获取 openid 类函数允许在无 openid 时调用

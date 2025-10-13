@@ -1,6 +1,10 @@
-// 头像缓存工具类
-const dataCache = require('./dataCache');
+// 头像缓存工具（迁移至 CacheManager）
+const cacheManager = require('../_utils/cache-manager').default;
+const fileUrlCache = require('../_utils/file-url-cache').default || require('../_utils/file-url-cache');
 const { cloudCall } = require('./cloudCall.js');
+
+const NS_AVATAR = cacheManager.namespace('avatars', { persistent: true, maxItems: 2048 });
+const AVATAR_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 
 class AvatarCache {
     constructor() {
@@ -18,7 +22,7 @@ class AvatarCache {
         }
 
         // 先检查缓存
-        const cached = dataCache.getAvatarCache(userId);
+        const cached = NS_AVATAR.get(userId);
         if (cached) {
             console.log(`【头像缓存】命中缓存: ${userId}`);
             return Promise.resolve(cached);
@@ -40,7 +44,7 @@ class AvatarCache {
             const checkInterval = setInterval(() => {
                 if (!this.loadingAvatars.has(userId)) {
                     clearInterval(checkInterval);
-                    const cached = dataCache.getAvatarCache(userId);
+                    const cached = NS_AVATAR.get(userId);
                     resolve(cached);
                 }
             }, 100);
@@ -62,18 +66,24 @@ class AvatarCache {
             // 调用云函数获取用户信息
             this.callCloudFunction('getUserProfile', {
                 userId: userId
-            }).then((res) => {
+            }).then(async (res) => {
                 if (res.result && res.result.success && res.result.userInfo) {
                     const userInfo = res.result.userInfo;
+                    let avatarUrl = userInfo.avatarUrl;
+                    try {
+                        if (typeof avatarUrl === 'string' && avatarUrl.startsWith('cloud://')) {
+                            avatarUrl = fileUrlCache && fileUrlCache.getTempUrl ? await fileUrlCache.getTempUrl(avatarUrl) : avatarUrl;
+                        }
+                    } catch (_) {}
                     const avatarData = {
-                        avatarUrl: userInfo.avatarUrl,
+                        avatarUrl,
                         nickName: userInfo.nickName,
                         bio: userInfo.bio,
                         lastUpdated: Date.now()
                     };
 
-                    // 缓存头像信息
-                    dataCache.setAvatarCache(userId, avatarData);
+                    // 缓存头像信息（持久化）
+                    NS_AVATAR.set(userId, avatarData, { ttlMs: AVATAR_TTL_MS });
                     console.log(`【头像缓存】加载并缓存成功: ${userId}`);
                     resolve(avatarData);
                 } else {
@@ -99,7 +109,7 @@ class AvatarCache {
 
         // 先检查缓存
         userIds.forEach((userId) => {
-            const cached = dataCache.getAvatarCache(userId);
+            const cached = NS_AVATAR.get(userId);
             if (cached) {
                 results[userId] = cached;
             } else {
@@ -113,20 +123,26 @@ class AvatarCache {
             return new Promise((resolve) => {
                 this.callCloudFunction('getBatchUserProfiles', {
                     userIds: needLoadUserIds
-                }).then((res) => {
+                }).then(async (res) => {
                     if (res.result && res.result.success && res.result.userProfiles) {
-                        res.result.userProfiles.forEach((userInfo) => {
+                        for (const userInfo of res.result.userProfiles) {
                             if (userInfo && userInfo._openid) {
+                                let avatarUrl = userInfo.avatarUrl;
+                                try {
+                                    if (typeof avatarUrl === 'string' && avatarUrl.startsWith('cloud://')) {
+                                        avatarUrl = fileUrlCache && fileUrlCache.getTempUrl ? await fileUrlCache.getTempUrl(avatarUrl) : avatarUrl;
+                                    }
+                                } catch (_) {}
                                 const avatarData = {
-                                    avatarUrl: userInfo.avatarUrl,
+                                    avatarUrl,
                                     nickName: userInfo.nickName,
                                     bio: userInfo.bio,
                                     lastUpdated: Date.now()
                                 };
                                 results[userInfo._openid] = avatarData;
-                                dataCache.setAvatarCache(userInfo._openid, avatarData);
+                                NS_AVATAR.set(userInfo._openid, avatarData, { ttlMs: AVATAR_TTL_MS });
                             }
-                        });
+                        }
                     }
                     resolve(results);
                 }).catch((error) => {
@@ -165,7 +181,7 @@ class AvatarCache {
             ...avatarData,
             lastUpdated: Date.now()
         };
-        return dataCache.setAvatarCache(userId, updatedData);
+        try { NS_AVATAR.set(userId, updatedData, { ttlMs: AVATAR_TTL_MS }); return true; } catch (e) { return false; }
     }
 
     // 清理用户头像缓存
@@ -173,7 +189,7 @@ class AvatarCache {
         if (!userId) {
             return false;
         }
-        return dataCache.remove(`avatar_${userId}`);
+        try { NS_AVATAR.delete(userId); return true; } catch (e) { return false; }
     }
 
     // 获取默认头像

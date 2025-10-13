@@ -1,6 +1,10 @@
-// 关注状态缓存工具类
-const dataCache = require('./dataCache');
+// 关注状态缓存工具（迁移至 CacheManager）
+const cacheManager = require('../_utils/cache-manager').default;
 const { cloudCall } = require('./cloudCall.js');
+
+function nsFollow(currentUserId) {
+    return cacheManager.namespace(`follow:${currentUserId}`, { persistent: true, maxItems: 4000 });
+}
 
 class FollowCache {
     constructor() {
@@ -18,7 +22,7 @@ class FollowCache {
         }
 
         // 先检查缓存
-        const cached = dataCache.getFollowStatusCache(currentUserId, targetUserId);
+        const cached = nsFollow(currentUserId).get(targetUserId);
         if (cached) {
             console.log(`【关注缓存】命中缓存: ${currentUserId} -> ${targetUserId}`);
             return Promise.resolve(cached);
@@ -41,7 +45,7 @@ class FollowCache {
             const checkInterval = setInterval(() => {
                 if (!this.loadingFollows.has(key)) {
                     clearInterval(checkInterval);
-                    const cached = dataCache.getFollowStatusCache(currentUserId, targetUserId);
+                    const cached = nsFollow(currentUserId).get(targetUserId);
                     resolve(cached);
                 }
             }, 100);
@@ -75,7 +79,7 @@ class FollowCache {
                     };
 
                     // 缓存关注状态
-                    dataCache.setFollowStatusCache(currentUserId, targetUserId, followData);
+                    nsFollow(currentUserId).set(targetUserId, followData, { ttlMs: 60 * 60 * 1000 });
                     console.log(`【关注缓存】加载并缓存成功: ${currentUserId} -> ${targetUserId}`, followData);
                     resolve(followData);
                 } else {
@@ -102,7 +106,7 @@ class FollowCache {
         // 先检查缓存
         targetUserIds.forEach((targetUserId) => {
             if (targetUserId !== currentUserId) {
-                const cached = dataCache.getFollowStatusCache(currentUserId, targetUserId);
+                const cached = nsFollow(currentUserId).get(targetUserId);
                 if (cached) {
                     results[targetUserId] = cached;
                 } else {
@@ -129,7 +133,7 @@ class FollowCache {
                                     lastUpdated: Date.now()
                                 };
                                 results[status.targetUserId] = followData;
-                                dataCache.setFollowStatusCache(currentUserId, status.targetUserId, followData);
+                                nsFollow(currentUserId).set(status.targetUserId, followData, { ttlMs: 60 * 60 * 1000 });
                             }
                         });
                     }
@@ -170,7 +174,7 @@ class FollowCache {
             ...followData,
             lastUpdated: Date.now()
         };
-        return dataCache.setFollowStatusCache(currentUserId, targetUserId, updatedData);
+        try { nsFollow(currentUserId).set(targetUserId, updatedData, { ttlMs: 60 * 60 * 1000 }); return true; } catch (e) { return false; }
     }
 
     // 切换关注状态并更新缓存
@@ -213,12 +217,7 @@ class FollowCache {
             return false;
         }
         try {
-            const keys = uni.getStorageInfoSync().keys;
-            keys.forEach((key) => {
-                if (key.startsWith(`follow_`) && key.includes(`_${userId}`)) {
-                    dataCache.remove(key);
-                }
-            });
+            nsFollow(userId).clear();
             return true;
         } catch (e) {
             console.log('CatchClause', e);
@@ -231,10 +230,12 @@ class FollowCache {
     // 清理所有关注状态缓存
     clearAllFollowCache() {
         try {
-            const keys = uni.getStorageInfoSync().keys;
-            keys.forEach((key) => {
-                if (key.startsWith(`follow_`)) {
-                    dataCache.remove(key);
+            const info = uni.getStorageInfoSync && uni.getStorageInfoSync();
+            const keys = (info && info.keys) || [];
+            keys.forEach((k) => {
+                if (typeof k === 'string' && k.startsWith('__cm__:follow:') && k.endsWith(':__keys__')) {
+                    const ns = k.substring('__cm__:'.length, k.length - ':__keys__'.length);
+                    try { cacheManager.namespace(ns, { persistent: true }).clear(); } catch (_) {}
                 }
             });
             return true;

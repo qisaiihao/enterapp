@@ -1,16 +1,32 @@
-import cacheManager from '@/\_utils/cache-manager';
+import cacheManager from '@/_utils/cache-manager';
+import fileUrlCache from '@/_utils/file-url-cache';
 const { cloudCall } = require('@/utils/cloudCall.js');
 
 // 当前用户资料（可直接用 api-cache/profile.getMyProfile，但这里保留命名方便聚合）
 const nsMyInfo = cacheManager.namespace('me:info', { persistent: true, maxItems: 8 });
+const PROFILE_TTL_MS = 30 * 60 * 1000; // 30min
+const PROFILE_SWR_MS = 5 * 60 * 1000;   // 5min
+
 export async function getMyInfo(context) {
-  return nsMyInfo.getOrFetch('me', async () => {
-    const res = await cloudCall('getMyProfileData', {}, { pageTag: 'me:info', context, injectOpenId: true });
-    if (res && res.result && (res.result.profile || res.result.data)) {
-      return res.result.profile || res.result.data;
-    }
-    return {};
-  }, { ttlMs: 0, swrMs: 0 });
+  return nsMyInfo.getOrFetch(
+    'me',
+    async () => {
+      const res = await cloudCall('getMyProfileData', {}, { pageTag: 'me:info', context, injectOpenId: true });
+      const result = (res && res.result) || {};
+      let user = result.userInfo || result.profile || result.data || {};
+      try {
+        const av = user && user.avatarUrl;
+        if (typeof av === 'string' && av.startsWith('cloud://')) {
+          const url = await fileUrlCache.getTempUrl(av);
+          // 带上版本参数，避免跨设备长 TTL 旧图
+          const ver = user.updatedAt || user.updateTime || user._updateTime || '';
+          user.avatarUrl = ver ? `${url}?v=${encodeURIComponent(ver)}` : url;
+        }
+      } catch (_) {}
+      return user;
+    },
+    { ttlMs: PROFILE_TTL_MS, swrMs: PROFILE_SWR_MS }
+  );
 }
 export function invalidateMyInfo() { nsMyInfo.delete('me'); }
 
@@ -45,4 +61,3 @@ export function invalidateMyFavorites(page, pageSize = 10) {
   const ns = nsFavorites();
   if (typeof page === 'number') ns.delete(`page:${page}:size:${pageSize}`); else ns.clear();
 }
-

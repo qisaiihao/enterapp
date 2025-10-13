@@ -281,13 +281,14 @@ import skeleton from '@/components/skeleton/skeleton';
 // index.js
 // 修复：移除全局数据库实例，改为在方法中动态获取
 const PAGE_SIZE = 5;
-const dataCache = require('../../utils/dataCache');
 const imageOptimizer = require('../../utils/imageOptimizer');
 const likeIcon = require('../../utils/likeIcon');
 const { togglePostLike } = require('../../utils/likeService.js');
 const avatarCache = require('../../utils/avatarCache');
+const followCache = require('../../utils/followCache');
 import { getUnreadCount } from '@/api-cache/unread.js';
 import { getDiscoverFeed } from '@/api-cache/discover.js';
+import { getHomePosts } from '@/api-cache/home-posts.js';
 import { hydrateTempUrls, warmTempUrlsFromPosts } from '@/_utils/hydrate-temp-urls';
 const { previewImage } = require('../../utils/imagePreview.js');
 const { normalizePostList } = require('../../utils/postNormalizer.js');
@@ -410,8 +411,6 @@ export default {
     },
     onPullDownRefresh: function () {
         console.log('🔍 [首页] 下拉刷新触发，当前页面:', this.currentPage);
-        // 清除缓存
-        dataCache.remove('index_postList_cache');
         if (this.currentPage === 'home') {
             // 主页刷新
             console.log('🔍 [首页] 执行主页刷新');
@@ -533,21 +532,35 @@ onReachBottom: function () {
             checkAndGo();
         },
         getIndexData: function () {
-            // 检查缓存
-            const cachedData = dataCache.get('index_postList_cache');
-            if (cachedData) {
-                console.log('Index: 使用缓存数据');
-                this.setData({
-                    postList: cachedData,
-                    page: Math.ceil(cachedData.length / PAGE_SIZE),
-                    isLoading: false // 关键：数据返回，关闭骨架屏
+            // 直接走 CacheManager 首页封装
+            this.setData({ isLoading: true, postList: [], page: 0, hasMore: true });
+            getHomePosts({ page: 0, pageSize: PAGE_SIZE, context: this })
+                .then(async (list) => {
+                    const postsRaw = Array.isArray(list) ? list : [];
+                    let posts = normalizePostList(postsRaw).map((post) => ({
+                        ...post,
+                        likeIcon: likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false)
+                    }));
+                    posts = await hydrateTempUrls(posts);
+                    warmTempUrlsFromPosts(posts);
+                    this.setData({
+                        postList: posts,
+                        page: 1,
+                        isLoading: false,
+                        hasMore: posts.length === PAGE_SIZE
+                    });
+                    const self = this;
+                    setTimeout(() => {
+                        if (self.preloadUserData && typeof self.preloadUserData === 'function') {
+                            self.preloadUserData(posts);
+                        }
+                    }, 500);
+                })
+                .catch((err) => {
+                    console.error('【首页】getIndexData（缓存封装）失败:', err);
+                    this.setData({ isLoading: false });
+                    uni.showToast({ title: '网络错误', icon: 'none' });
                 });
-
-                return;
-            }
-
-            // 如果没有缓存，则加载数据
-            this.getPostList();
         },
 
         refreshData: function () {
@@ -852,7 +865,6 @@ onReachBottom: function () {
                     });
                     this.setData(updateData);
                     if (isFirstLoad) {
-                        dataCache.set('index_postList_cache', newPostList);
                         this.preloadImages(posts);
                     }
                 })
@@ -1115,8 +1127,7 @@ onReachBottom: function () {
         refreshIndexData: function () {
             console.log('【index】开始刷新广场页数据');
 
-            // 清除缓存
-            dataCache.clear('index_postList_cache');
+            // 清除缓存：现由 CacheManager 接管，无需手动 dataCache 清理
 
             // 重置状态
             this.setData({

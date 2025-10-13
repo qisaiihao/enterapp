@@ -1,14 +1,7 @@
 // 点赞服务：封装 vote 云函数调用，统一缓存同步与错误提示。
 const { cloudCall } = require('./cloudCall.js');
 const likeIcon = require('./likeIcon.js');
-
-let dataCache = null;
-try {
-    // dataCache 可能不存在于某些端，保持容错
-    dataCache = require('./dataCache.js');
-} catch (error) {
-    console.warn('[likeService] dataCache 不可用，跳过缓存同步');
-}
+const cacheManager = require('../_utils/cache-manager').default;
 
 const DEFAULT_ERROR_MESSAGE = '操作失败，请稍后重试';
 
@@ -37,6 +30,48 @@ function createRollbackPayload({ votes, isLiked, icon }) {
         isLiked,
         likeIcon: icon
     };
+}
+
+// 尝试在 CacheManager 的相关命名空间中更新帖子点赞信息（局部键更新）
+function updatePostInCaches(postId, votes, isLiked, icon) {
+    try {
+        if (!postId) return;
+        const nsStats = cacheManager.getStats ? cacheManager.getStats() : {};
+        const nsNames = Object.keys(nsStats);
+        const targets = nsNames.filter((n) => (
+            n === 'posts:home' ||
+            n === 'posts:discover' ||
+            n.startsWith('posts:tag:') ||
+            n.startsWith('me:posts') ||
+            n.startsWith('userPosts:')
+        ));
+        targets.forEach((nsName) => {
+            try {
+                const ns = cacheManager.namespace(nsName);
+                const keys = (ns.keys && ns.keys()) || [];
+                keys.forEach((key) => {
+                    try {
+                        ns.update(key, (list) => {
+                            if (!Array.isArray(list)) return list;
+                            let changed = false;
+                            for (let i = 0; i < list.length; i += 1) {
+                                const p = list[i];
+                                if (p && (p._id === postId || p.id === postId)) {
+                                    p.votes = votes;
+                                    p.isVoted = isLiked;
+                                    p.likeIcon = icon;
+                                    changed = true;
+                                }
+                            }
+                            return changed ? list : list;
+                        });
+                    } catch (_) {}
+                });
+            } catch (_) {}
+        });
+    } catch (e) {
+        console.warn('[likeService] updatePostInCaches failed', e);
+    }
 }
 
 function showToast(message) {
@@ -156,12 +191,8 @@ async function togglePostLike(postId, options = {}) {
     const finalIsLiked = Boolean(result.isLiked);
     const finalIcon = resolveLikeIcon(likeIconResolver, finalVotes, finalIsLiked);
 
-    if (updateCache && dataCache && typeof dataCache.updatePostLikeInCache === 'function') {
-        try {
-            dataCache.updatePostLikeInCache(postId, finalVotes, finalIsLiked, finalIcon);
-        } catch (cacheError) {
-            console.warn('[likeService] 同步缓存失败', cacheError);
-        }
+    if (updateCache) {
+        updatePostInCaches(postId, finalVotes, finalIsLiked, finalIcon);
     }
 
     return {

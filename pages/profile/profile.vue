@@ -513,7 +513,7 @@ export default {
 
             // 刷新用户信息（只在有用户信息时刷新，避免重复调用）
             if (this.userInfo && this.userInfo._openid) {
-                this.fetchUserProfile();
+                this.fetchUserProfileFast();
             }
 
             // 使用与下拉刷新完全相同的逻辑
@@ -607,7 +607,7 @@ export default {
             });
             
             if (userInfo && userInfo._openid) {
-                this.fetchUserProfile();
+                this.fetchUserProfileFast();
                 // 首次加载时也要加载帖子数据
                 this.loadMyPosts();
             } else if (loginProcessCompleted) {
@@ -645,126 +645,24 @@ export default {
             }, 5000); // 5秒超时
         },
 
-        fetchUserProfile: function () {
-            // 首先获取当前用户的openid
-            this.$tcb.callFunction({
-                name: 'getOpenId'
-            }).then((openIdRes) => {
-                if (openIdRes.result && openIdRes.result.openid) {
-                    const currentOpenid = openIdRes.result.openid;
-                    const adminOpenids = ['ojYBd1_A3uCbQ1LGcHxWxOAeA5SE', 'ojYBd14JG3-ghYuGCI2WHmkMc9nE']; // 管理员openid列表
-                    const isAdmin = adminOpenids.includes(currentOpenid);
-                    console.log('当前用户openid:', currentOpenid);
-                    console.log('是否为管理员:', isAdmin);
-                    this.setData({
-                        currentUserOpenid: currentOpenid,
-                        isAdmin: isAdmin
-                    });
-                }
-
-                // 继续获取用户资料（无论openid获取是否成功）
-                // 传递当前用户的openid给云函数
-                const app = getApp();
-                const currentOpenid = app && app.globalData && app.globalData.openid;
-                
-                return this.$tcb.callFunction({
-                    name: 'getMyProfileData',
-                    data: {
-                        openid: currentOpenid
-                    }
-                });
-            }).then((res) => {
-                console.log('getMyProfileData 返回:', res);
-                if (res.result && res.result.success && res.result.userInfo) {
-                    const user = res.result.userInfo;
-                    if (user.birthday) {
-                        user.age = this.calculateAge(user.birthday);
-                    } else {
-                        user.age = '';
-                    }
-                    // 只更新 userInfo，不更新 myPosts
-                    this.setData({
-                        userInfo: user,
-                        isLoading: false // 关键：数据返回，关闭骨架屏
-                    });
-                } else {
-                    uni.showToast({
-                        title: '个人资料数据异常',
-                        icon: 'none',
-                        duration: 3000
-                    });
-                    console.error('个人资料数据异常', res);
+        // 新增：使用缓存封装的资料拉取，显著降低头像/签名首屏等待
+        fetchUserProfileFast: function () {
+            getMyInfo(this)
+                .then((user) => {
+                    if (user && user.birthday) user.age = this.calculateAge(user.birthday); else if (user) user.age = '';
+                    this.setData({ userInfo: user || {}, isLoading: false });
+                })
+                .catch((err) => {
+                    console.error('获取用户资料失败（缓存封装）:', err);
+                    this.setData({ isLoading: false });
                     const storedUserInfo = uni.getStorageSync('userInfo');
                     if (storedUserInfo) {
-                        if (storedUserInfo.birthday) {
-                            storedUserInfo.age = this.calculateAge(storedUserInfo.birthday);
-                        }
-                        this.setData({
-                            userInfo: storedUserInfo,
-                            isLoading: false // 关键：数据返回，关闭骨架屏
-                        });
-                    }
-                }
-            }).catch((err) => {
-                console.error('获取openid失败:', err);
-                // 即使openid获取失败，也要继续获取用户资料
-                // 传递当前用户的openid给云函数
-                const app = getApp();
-                const currentOpenid = app && app.globalData && app.globalData.openid;
-                
-                this.$tcb.callFunction({
-                    name: 'getMyProfileData',
-                    data: {
-                        openid: currentOpenid
-                    }
-                }).then((res) => {
-                    console.log('getMyProfileData 返回:', res);
-                    if (res.result && res.result.success && res.result.userInfo) {
-                        const user = res.result.userInfo;
-                        if (user.birthday) {
-                            user.age = this.calculateAge(user.birthday);
-                        } else {
-                            user.age = '';
-                        }
-                        this.setData({
-                            userInfo: user,
-                            isLoading: false
-                        });
+                        if (storedUserInfo.birthday) storedUserInfo.age = this.calculateAge(storedUserInfo.birthday);
+                        this.setData({ userInfo: storedUserInfo });
                     } else {
-                        uni.showToast({
-                            title: '个人资料数据异常',
-                            icon: 'none',
-                            duration: 3000
-                        });
-                        const storedUserInfo = uni.getStorageSync('userInfo');
-                        if (storedUserInfo) {
-                            if (storedUserInfo.birthday) {
-                                storedUserInfo.age = this.calculateAge(storedUserInfo.birthday);
-                            }
-                            this.setData({
-                                userInfo: storedUserInfo,
-                                isLoading: false
-                            });
-                        }
-                    }
-                }).catch((err) => {
-                    uni.showToast({
-                        title: '获取数据失败',
-                        icon: 'none'
-                    });
-                    console.error('获取数据失败', err);
-                    const storedUserInfo = uni.getStorageSync('userInfo');
-                    if (storedUserInfo) {
-                        if (storedUserInfo.birthday) {
-                            storedUserInfo.age = this.calculateAge(storedUserInfo.birthday);
-                        }
-                        this.setData({
-                            userInfo: storedUserInfo,
-                            isLoading: false
-                        });
+                        uni.showToast({ title: '获取数据失败', icon: 'none' });
                     }
                 });
-            });
         },
 
         loadMyPosts: function (cb) {

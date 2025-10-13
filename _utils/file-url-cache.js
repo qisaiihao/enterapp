@@ -47,8 +47,15 @@ class FileUrlCache {
   setDefaultTtl(ms) { this._defaultTtl = ms; }
 
   invalidate(ids) {
-    if (!ids) { this._cache.clear(); return; }
-    (Array.isArray(ids) ? ids : [ids]).forEach(id => this._cache.delete(id));
+    if (!ids) {
+      this._cache.clear();
+      if (this._ns) try { this._ns.clear(); } catch (_) {}
+      return;
+    }
+    (Array.isArray(ids) ? ids : [ids]).forEach(id => {
+      this._cache.delete(id);
+      if (this._ns) try { this._ns.delete(id); } catch (_) {}
+    });
   }
 
   async getTempUrl(id) {
@@ -122,7 +129,12 @@ class FileUrlCache {
       const rec = fetched[id];
       if (rec && rec.url) {
         const ttl = (typeof rec.maxAgeSec === 'number' ? rec.maxAgeSec * 1000 : this._defaultTtl);
-        this._cache.set(id, { url: rec.url, expireAt: nowTs + Math.max(10_000, ttl) });
+        const expireAt = nowTs + Math.max(10_000, ttl);
+        const entry = { url: rec.url, expireAt };
+        this._cache.set(id, entry);
+        if (this._ns) {
+          try { this._ns.set(id, entry, { ttlMs: Math.max(5_000, ttl) }); } catch (_) {}
+        }
       }
     });
 
@@ -212,5 +224,4 @@ class FileUrlCache {
 
 const singleton = new FileUrlCache();
 export default singleton;
-
 

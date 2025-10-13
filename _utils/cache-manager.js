@@ -23,10 +23,30 @@ class NamespaceHandle {
     this.mem = new Map(); // key -> { v, e: expireAt, la: lastAccess }
     this._useUni = hasUniStorage();
     this._ls = this._useUni ? null : tryLocalStorage();
+    this.stats = { hits: 0, misses: 0, evictions: 0, gets: 0, sets: 0 };
   }
 
   _k(key) { return `__cm__:${this.name}:${key}`; }
   _idxKey() { return `__cm__:${this.name}:__keys__`; }
+  _listPersistKeys() {
+    if (!this.persistent) return [];
+    try {
+      if (this._useUni) {
+        const raw = uni.getStorageSync(this._idxKey());
+        return raw ? JSON.parse(raw) : [];
+      } else if (this._ls) {
+        const raw = this._ls.getItem(this._idxKey());
+        return raw ? JSON.parse(raw) : [];
+      }
+    } catch (_) {}
+    return [];
+  }
+  keys() {
+    const memKeys = Array.from(this.mem.keys());
+    const idxKeys = this._listPersistKeys();
+    const set = new Set(memKeys.concat(idxKeys));
+    return Array.from(set);
+  }
 
   _readPersist(key) {
     if (!this.persistent) return null;
@@ -90,26 +110,29 @@ class NamespaceHandle {
     const need = this.mem.size - this.maxItems;
     for (let i = 0; i < need; i++) {
       const k = arr[i] && arr[i][0];
-      if (k) this.mem.delete(k);
+      if (k) { this.mem.delete(k); this.stats.evictions++; }
     }
   }
 
   get(key) {
     const nowTs = now();
+    this.stats.gets++;
     let rec = this.mem.get(key);
     if (!rec) {
       // 从持久层读
       rec = this._readPersist(key);
       if (rec) this.mem.set(key, rec);
     }
-    if (!rec) return undefined;
+    if (!rec) { this.stats.misses++; return undefined; }
     if (typeof rec.e === 'number' && rec.e > 0 && rec.e <= nowTs) {
       // 过期
       this.mem.delete(key);
       this._removePersist(key);
+      this.stats.misses++;
       return undefined;
     }
     rec.la = nowTs;
+    this.stats.hits++;
     return rec.v;
   }
 
@@ -120,6 +143,27 @@ class NamespaceHandle {
     this.mem.set(key, rec);
     this._trimLRU();
     this._writePersist(key, rec);
+    this.stats.sets++;
+  }
+
+  update(key, updater) {
+    try {
+      const nowTs = now();
+      let rec = this.mem.get(key);
+      if (!rec && this.persistent) {
+        rec = this._readPersist(key);
+        if (rec) this.mem.set(key, rec);
+      }
+      if (!rec) return false;
+      const ttlRemaining = rec.e > 0 ? Math.max(0, rec.e - nowTs) : 0;
+      const cur = rec.v;
+      const next = typeof updater === 'function' ? updater(cur) : cur;
+      if (next !== undefined) {
+        this.set(key, next, { ttlMs: ttlRemaining });
+        return true;
+      }
+      return false;
+    } catch (_) { return false; }
   }
 
   delete(key) {
@@ -180,11 +224,21 @@ class NamespaceHandle {
 }
 
 class CacheManager {
-  constructor() { this._nss = new Map(); }
+  constructor() { this._nss = new Map(); this._debug = false; }
   namespace(name, opts) {
     if (!this._nss.has(name)) this._nss.set(name, new NamespaceHandle(name, opts || {}));
     return this._nss.get(name);
   }
+  setDebug(enabled) { this._debug = !!enabled; }
+  getStats() {
+    const out = {};
+    this._nss.forEach((ns, name) => {
+      out[name] = { ...ns.stats, size: ns.mem.size, persistent: ns.persistent, maxItems: ns.maxItems };
+    });
+    return out;
+  }
+  keys(name) { const ns = this.namespace(name); return ns && ns.keys ? ns.keys() : []; }
+  update(name, key, updater) { const ns = this.namespace(name); return ns && ns.update ? ns.update(key, updater) : false; }
 }
 
 const singleton = new CacheManager();
