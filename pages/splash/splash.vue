@@ -241,31 +241,98 @@ export default {
         },
 
         /**
+         * 等待登录流程完成，确保获取到 openid
+         */
+        async waitForOpenId(maxWait = 6000) {
+            const start = Date.now();
+
+            const readOpenId = () => {
+                let appInstance = null;
+                if (typeof getApp === 'function') {
+                    try {
+                        appInstance = getApp();
+                    } catch (error) {
+                        console.warn('获取全局 App 实例失败:', error);
+                    }
+                }
+
+                if (appInstance) {
+                    appInstance.globalData = appInstance.globalData || {};
+                }
+
+                let currentOpenId = appInstance && appInstance.globalData && appInstance.globalData.openid;
+                if (!currentOpenId && typeof uni !== 'undefined' && typeof uni.getStorageSync === 'function') {
+                    try {
+                        currentOpenId = uni.getStorageSync('userOpenId') || uni.getStorageSync('openid');
+                        if (currentOpenId && appInstance) {
+                            appInstance.globalData.openid = currentOpenId;
+                        }
+                    } catch (error) {
+                        console.warn('读取本地 openid 失败:', error);
+                    }
+                }
+                return {
+                    appInstance,
+                    currentOpenId
+                };
+            };
+
+            let { appInstance, currentOpenId } = readOpenId();
+
+            while (!currentOpenId && Date.now() - start < maxWait) {
+                await new Promise((resolve) => setTimeout(resolve, 200));
+                ({ appInstance, currentOpenId } = readOpenId());
+            }
+
+            if (!currentOpenId) {
+                console.warn('等待 openid 超时，预加载将退化为普通加载');
+            }
+
+            return {
+                app: appInstance,
+                openid: currentOpenId
+            };
+        },
+
+        /**
          * 函数：执行原有的其它预加载任务
          */
         async executeOriginalPreloadTasks() {
-            const app = getApp();
+            const { app, openid } = await this.waitForOpenId();
 
-            // 创建一个数组来存放所有的预加载任务 (Promise)
-            const preloadTasks = [];
-            if (app.globalData.userInfo && app.globalData.openid) {
-                // 任务1：预加载 Tab 图标
-                preloadTasks.push(this.preloadTabIcons());
-                // 任务2：预加载诗歌数据和相关图片
-                preloadTasks.push(this.preloadPoemData());
-                // 任务3：预加载山页面数据和相关图片
-                preloadTasks.push(this.preloadMountainData());
+            if (!openid) {
+                this.setData({
+                    preloadCompleted: true
+                });
+                return;
             }
 
-            // 等待所有预加载任务完成
-            await Promise.all(preloadTasks);
+            if (app) {
+                app.globalData = app.globalData || {};
+                if (!app.globalData.openid) {
+                    app.globalData.openid = openid;
+                }
+            }
 
-            // 预加载完成后，设置标志位，但不自动跳转
-            // 跳转将由用户点击"进入"按钮触发
-            this.setData({
-                preloadCompleted: true
-            });
-            console.log('预加载任务完成，等待用户点击进入按钮');
+            // 创建一个数组来存放所有的预加载任务 (Promise)
+            const preloadTasks = [
+                this.preloadTabIcons(),
+                this.preloadPoemData(),
+                this.preloadMountainData()
+            ];
+
+            try {
+                await Promise.all(preloadTasks);
+            } catch (error) {
+                console.error('预加载任务执行过程中出现错误:', error);
+            } finally {
+                // 预加载完成后，设置标志位，但不自动跳转
+                // 跳转将由用户点击"进入"按钮触发
+                this.setData({
+                    preloadCompleted: true
+                });
+                console.log('预加载任务完成，等待用户点击进入按钮');
+            }
         },
 
         // 使用 async/await 语法来更清晰地处理异步流程
@@ -358,10 +425,18 @@ export default {
             if (bgImageUrl) {
                 imageDownloadTasks.push(
                     new Promise((resolve) => {
-                        // H5环境特殊处理
                         const isH5 = typeof window !== 'undefined';
-                        if (isH5 && (bgImageUrl.includes('tcb.qcloud.la') || bgImageUrl.includes('cloudbase'))) {
-                            console.log('🔍 [H5] 山页面首张背景图检测到腾讯云存储URL，直接使用:', bgImageUrl);
+                        const isCloudFile = typeof bgImageUrl === 'string' && bgImageUrl.indexOf('cloud://') === 0;
+                        let shouldSkipDownload = false;
+                        if (isH5) {
+                            if (isCloudFile) {
+                                shouldSkipDownload = true;
+                            } else if (/^https?:\/\//.test(bgImageUrl)) {
+                                shouldSkipDownload = !bgImageUrl.startsWith(window.location.origin);
+                            }
+                        }
+                        if (shouldSkipDownload) {
+                            console.log('🔍 [H5] 山页面首张背景图跳过下载，直接使用原URL:', bgImageUrl);
                             app.globalData.preloadedImages[bgImageUrl] = bgImageUrl;
                             resolve();
                             return;
@@ -377,8 +452,7 @@ export default {
                             },
                             fail: (err) => {
                                 console.error('山页面背景图预加载失败:', bgImageUrl, err);
-                                // H5环境下失败时，直接使用原URL
-                                if (isH5) {
+                                if (isH5 || isCloudFile) {
                                     console.log('🔍 [H5] 山页面背景图预加载失败，使用原URL:', bgImageUrl);
                                     app.globalData.preloadedImages[bgImageUrl] = bgImageUrl;
                                 }
@@ -395,6 +469,22 @@ export default {
             if (post.authorAvatar) {
                 imageDownloadTasks.push(
                     new Promise((resolve) => {
+                        const isH5 = typeof window !== 'undefined';
+                        const isCloudFile = typeof post.authorAvatar === 'string' && post.authorAvatar.indexOf('cloud://') === 0;
+                        let shouldSkipDownload = false;
+                        if (isH5) {
+                            if (isCloudFile) {
+                                shouldSkipDownload = true;
+                            } else if (/^https?:\/\//.test(post.authorAvatar)) {
+                                shouldSkipDownload = !post.authorAvatar.startsWith(window.location.origin);
+                            }
+                        }
+                        if (shouldSkipDownload) {
+                            console.log('🔍 [H5] 山页面作者头像预加载跳过下载，直接使用原URL');
+                            app.globalData.preloadedImages[post.authorAvatar] = post.authorAvatar;
+                            resolve();
+                            return;
+                        }
                         uni.downloadFile({
                             url: post.authorAvatar,
                             success: (res) => {
@@ -405,6 +495,9 @@ export default {
                             },
                             fail: (err) => {
                                 console.error('山页面作者头像预加载失败:', post.authorAvatar, err);
+                                if (isH5 || isCloudFile) {
+                                    app.globalData.preloadedImages[post.authorAvatar] = post.authorAvatar;
+                                }
                             },
                             complete: () => {
                                 resolve();
@@ -464,10 +557,18 @@ export default {
                 // 为每个下载任务创建一个 Promise
                 imageDownloadTasks.push(
                     new Promise((resolve) => {
-                        // H5环境特殊处理
                         const isH5 = typeof window !== 'undefined';
-                        if (isH5 && (bgImageUrl.includes('tcb.qcloud.la') || bgImageUrl.includes('cloudbase'))) {
-                            console.log('🔍 [H5] 首张背景图检测到腾讯云存储URL，直接使用:', bgImageUrl);
+                        const isCloudFile = typeof bgImageUrl === 'string' && bgImageUrl.indexOf('cloud://') === 0;
+                        let shouldSkipDownload = false;
+                        if (isH5) {
+                            if (isCloudFile) {
+                                shouldSkipDownload = true;
+                            } else if (/^https?:\/\//.test(bgImageUrl)) {
+                                shouldSkipDownload = !bgImageUrl.startsWith(window.location.origin);
+                            }
+                        }
+                        if (shouldSkipDownload) {
+                            console.log('🔍 [H5] 首张背景图预加载跳过下载，直接使用原URL:', bgImageUrl);
                             app.globalData.preloadedImages[bgImageUrl] = bgImageUrl;
                             resolve();
                             return;
@@ -483,8 +584,7 @@ export default {
                             },
                             fail: (err) => {
                                 console.error('首张背景图预加载失败:', bgImageUrl, err);
-                                // H5环境下失败时，直接使用原URL
-                                if (isH5) {
+                                if (isH5 || isCloudFile) {
                                     console.log('🔍 [H5] 首张背景图预加载失败，使用原URL:', bgImageUrl);
                                     app.globalData.preloadedImages[bgImageUrl] = bgImageUrl;
                                 }
@@ -501,12 +601,34 @@ export default {
             if (post.authorAvatar) {
                 imageDownloadTasks.push(
                     new Promise((resolve) => {
+                        const isH5 = typeof window !== 'undefined';
+                        const isCloudFile = typeof post.authorAvatar === 'string' && post.authorAvatar.indexOf('cloud://') === 0;
+                        let shouldSkipDownload = false;
+                        if (isH5) {
+                            if (isCloudFile) {
+                                shouldSkipDownload = true;
+                            } else if (/^https?:\/\//.test(post.authorAvatar)) {
+                                shouldSkipDownload = !post.authorAvatar.startsWith(window.location.origin);
+                            }
+                        }
+                        if (shouldSkipDownload) {
+                            console.log('🔍 [H5] 作者头像预加载跳过下载，直接使用原URL');
+                            app.globalData.preloadedImages[post.authorAvatar] = post.authorAvatar;
+                            resolve();
+                            return;
+                        }
                         uni.downloadFile({
                             url: post.authorAvatar,
                             success: (res) => {
                                 if (res.statusCode === 200) {
                                     console.log('作者头像预加载成功');
                                     app.globalData.preloadedImages[post.authorAvatar] = res.tempFilePath;
+                                }
+                            },
+                            fail: (err) => {
+                                if (isH5 || isCloudFile) {
+                                    console.error('作者头像预加载失败(已使用原URL):', err);
+                                    app.globalData.preloadedImages[post.authorAvatar] = post.authorAvatar;
                                 }
                             },
                             complete: () => {

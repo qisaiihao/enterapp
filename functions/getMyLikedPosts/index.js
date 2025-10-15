@@ -42,18 +42,6 @@ exports.main = async (event, context) => {
     const postsRes = await db.collection('posts').aggregate()
       .match({ _id: _.in(pagedPostIds) })
       .lookup({
-        from: 'users',
-        localField: '_openid',
-        foreignField: '_openid',
-        as: 'authorInfo',
-      })
-      .lookup({
-        from: 'comments',
-        localField: '_id',
-        foreignField: 'postId',
-        as: 'comments',
-      })
-      .lookup({
         from: 'votes_log',
         let: { post_id: '$_id' },
         pipeline: [
@@ -63,9 +51,15 @@ exports.main = async (event, context) => {
       })
       .project({
         _id: 1, _openid: 1, title: 1, content: 1, createTime: 1, imageUrl: 1, imageUrls: 1, originalImageUrl: 1, originalImageUrls: 1, votes: 1,
-        authorName: $.ifNull([$.arrayElemAt(['$authorInfo.nickName', 0]), '匿名用户']),
-        authorAvatar: $.ifNull([$.arrayElemAt(['$authorInfo.avatarUrl', 0]), '']),
-        commentCount: $.size('$comments'),
+        authorName: $.ifNull([
+          '$authorName',
+          $.ifNull(['$authorNameSnapshot', '匿名用户'])
+        ]),
+        authorAvatar: $.ifNull([
+          '$authorAvatar',
+          $.ifNull(['$authorAvatarSnapshot', ''])
+        ]),
+        commentCount: $.ifNull(['$commentCount', 0]),
         isVoted: $.gt([$.size('$userVote'), 0]),
       })
       .end();

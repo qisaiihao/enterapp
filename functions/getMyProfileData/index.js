@@ -102,22 +102,13 @@ exports.main = async (event, context) => {
     let posts = result.posts || []; // 这里已经是分页后的 posts
     console.log('【profile云函数】聚合后 posts 数量:', posts.length);
 
-    // Step 2: Aggregate to get comment counts for the posts
+    // Step 2: Normalize冗余字段并保证排序
     if (posts.length > 0) {
-      const postIds = posts.map(p => p._id);
-      const commentsCountRes = await db.collection('comments').aggregate()
-        .match({ postId: db.command.in(postIds) })
-        .group({ _id: '$postId', count: $.sum(1) })
-        .end();
-
-      const commentsCountMap = new Map();
-      commentsCountRes.list.forEach(item => {
-        commentsCountMap.set(item._id, item.count);
-      });
-
       posts = posts.map(post => ({
         ...post,
-        commentCount: commentsCountMap.get(post._id) || 0
+        authorName: post.authorName || post.authorNameSnapshot || '匿名用户',
+        authorAvatar: post.authorAvatar || post.authorAvatarSnapshot || '',
+        commentCount: post.commentCount === undefined || post.commentCount === null ? 0 : post.commentCount
       }));
       posts.sort((a, b) => b.createTime - a.createTime);
     }
@@ -422,7 +413,7 @@ async function getFavoritesByFolder(openid, folderId, skip, limit) {
       if (!post) return null;
       
       const user = usersMap.get(post._openid);
-      
+
       // 确保图片URLs是数组 - 与getPostList保持一致，处理imageUrl和imageUrls字段
       if (!Array.isArray(post.imageUrls)) {
         post.imageUrls = post.imageUrls ? [post.imageUrls] : (post.imageUrl ? [post.imageUrl] : []);
@@ -440,8 +431,8 @@ async function getFavoritesByFolder(openid, folderId, skip, limit) {
         postImageUrls: post.imageUrls,
         postOriginalImageUrls: post.originalImageUrls,
         postCreateTime: post.createTime,
-        postAuthorName: user ? user.nickName : '未知用户',
-        postAuthorAvatar: user ? user.avatarUrl : '',
+        postAuthorName: (user && user.nickName) || post.authorName || post.authorNameSnapshot || '未知用户',
+        postAuthorAvatar: (user && user.avatarUrl) || post.authorAvatar || post.authorAvatarSnapshot || '',
         postAuthorOpenid: post._openid,
         postTags: post.tags || [],
         postIsPoem: post.isPoem || false,
@@ -455,13 +446,14 @@ async function getFavoritesByFolder(openid, folderId, skip, limit) {
         originalImageUrls: post.originalImageUrls,
         createTime: post.createTime,
         votes: post.votes || 0,
-        authorName: user ? user.nickName : '未知用户',
-        authorAvatar: user ? user.avatarUrl : '',
+        authorName: (user && user.nickName) || post.authorName || post.authorNameSnapshot || '未知用户',
+        authorAvatar: (user && user.avatarUrl) || post.authorAvatar || post.authorAvatarSnapshot || '',
         _openid: post._openid,
         tags: post.tags || [],
         isPoem: post.isPoem || false,
         author: post.author || '',
         isOriginal: post.isOriginal || false,
+        commentCount: post.commentCount === undefined || post.commentCount === null ? 0 : post.commentCount,
         favoriteTime: favorite.createTime,
         favoriteId: favorite._id
       };
@@ -651,24 +643,14 @@ async function getAllFavorites(openid, skip, limit) {
     });
 
     // 获取评论数量
-    const commentsCountResult = await db.collection('comments').aggregate()
-      .match({ postId: db.command.in(postIds) })
-      .group({ _id: '$postId', count: $.sum(1) })
-      .end();
-
-    const commentsCountMap = new Map();
-    commentsCountResult.list.forEach(item => {
-      commentsCountMap.set(item._id, item.count);
-    });
-
     // 构建完整的收藏数据
     const completeFavorites = favorites.map(favorite => {
       const post = postsMap.get(favorite.postId);
       if (!post) return null;
       
       const user = usersMap.get(post._openid);
-      const commentCount = commentsCountMap.get(post._id) || 0;
-      
+      const commentCount = post.commentCount === undefined || post.commentCount === null ? 0 : post.commentCount;
+
       // 确保图片URLs是数组
       if (!Array.isArray(post.imageUrls)) {
         post.imageUrls = post.imageUrls ? [post.imageUrls] : [];
@@ -687,8 +669,8 @@ async function getAllFavorites(openid, skip, limit) {
         createTime: post.createTime,
         votes: post.votes || 0,
         commentCount: commentCount,
-        authorName: user ? user.nickName : '未知用户',
-        authorAvatar: user ? user.avatarUrl : '',
+        authorName: (user && user.nickName) || post.authorName || post.authorNameSnapshot || '未知用户',
+        authorAvatar: (user && user.avatarUrl) || post.authorAvatar || post.authorAvatarSnapshot || '',
         favoriteTime: favorite.createTime,
         favoriteId: favorite._id
       };

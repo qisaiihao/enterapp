@@ -214,50 +214,58 @@ exports.main = async (event, context) => {
       tags: p.tags 
     })));
 
-    // 为每个帖子获取作者信息和评论数量
-    const enrichedPosts = await Promise.all(posts.map(async (post) => {
+    // 批量计算点赞与评论信息，使用帖子中缓存的作者快照
+    const postIds = posts.map(post => post._id);
+    let voterMap = new Set();
+    if (postIds.length > 0) {
       try {
-        // 获取作者信息
-        const userRes = await db.collection('users').where({
-          _openid: post._openid
-        }).get();
-        const author = userRes.data[0] || { 
-          nickName: '匿名用户', 
-          avatarUrl: '' 
-        };
-
-        // 获取评论数量
-        const commentRes = await db.collection('comments').where({
-          postId: post._id
-        }).count();
-
-        // 获取当前用户的点赞记录
-        const voteRes = await db.collection('votes_log').where({
-          _openid: openid,
-          postId: post._id,
-          type: 'post'
-        }).get();
-
-        return {
-          ...post,
-          authorName: author.nickName,
-          authorAvatar: author.avatarUrl,
-          commentCount: commentRes.total,
-          isVoted: voteRes.data.length > 0,
-          tags: post.tags || []
-        };
-      } catch (error) {
-        console.error('获取帖子详情失败:', error);
-        return {
-          ...post,
-          authorName: '匿名用户',
-          authorAvatar: '',
-          commentCount: 0,
-          isVoted: false,
-          tags: post.tags || []
-        };
+        const voteRes = await db.collection('votes_log')
+          .where({
+            _openid: openid,
+            type: 'post',
+            postId: _.in(postIds)
+          })
+          .field({ postId: true })
+          .get();
+        voterMap = new Set(voteRes.data.map(item => item.postId));
+      } catch (voteError) {
+        console.error('批量查询点赞记录失败:', voteError);
       }
-    }));
+    }
+
+    const missingCommentIds = posts
+      .filter(post => post.commentCount === undefined || post.commentCount === null)
+      .map(post => post._id);
+    const commentCountMap = new Map();
+    if (missingCommentIds.length > 0) {
+      try {
+        const commentAgg = await db.collection('comments').aggregate()
+          .match({ postId: _.in(missingCommentIds) })
+          .group({ _id: '$postId', count: $.sum(1) })
+          .end();
+        commentAgg.list.forEach(item => commentCountMap.set(item._id, item.count));
+      } catch (commentError) {
+        console.error('批量统计评论数失败:', commentError);
+      }
+    }
+
+    const enrichedPosts = posts.map((post) => {
+      const authorName = post.authorName || post.authorNameSnapshot || '匿名用户';
+      const authorAvatar = post.authorAvatar || post.authorAvatarSnapshot || '';
+      const commentCount = post.commentCount !== undefined && post.commentCount !== null
+        ? post.commentCount
+        : (commentCountMap.get(post._id) || 0);
+      const isVoted = voterMap.has(post._id);
+
+      return {
+        ...post,
+        authorName,
+        authorAvatar,
+        commentCount,
+        isVoted,
+        tags: Array.isArray(post.tags) ? post.tags : []
+      };
+    });
 
     // 处理图片URL转换
     const fileIDs = new Set();

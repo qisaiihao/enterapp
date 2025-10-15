@@ -1,0 +1,9 @@
+{
+  "name": "backfillPostMetadata",
+  "version": "1.0.0",
+  "description": "Batch update posts with author snapshots and comment counts.",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}

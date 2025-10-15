@@ -8,9 +8,10 @@ const $ = _.aggregate;
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
   const openid = wxContext.OPENID || event.openid;
-  const { 
-    personalizedLimit = 3, 
-    hotLimit = 2, 
+  const {
+    personalizedLimit = 3,
+    hotLimit = 2,
+    limit: userLimit,
     skip = 0,
     excludePostIds = [] // 排除已显示的帖子ID
   } = event;
@@ -25,11 +26,12 @@ exports.main = async (event, context) => {
   }
 
   try {
-    const totalLimit = personalizedLimit + hotLimit;
+    const baseLimit = typeof userLimit === 'number' && userLimit > 0 ? userLimit : personalizedLimit + hotLimit;
+    const targetCount = Math.max(baseLimit + skip, 0);
     const allPosts = [];
     const usedPostIds = new Set(excludePostIds);
 
-    console.log(`推荐算法开始执行，用户: ${openId}, 总限制: ${totalLimit}, 个性化: ${personalizedLimit}, 热门: ${hotLimit}, 排除ID: ${excludePostIds.length}个`);
+    console.log(`推荐算法开始执行，用户: ${openId}, 目标数量: ${targetCount}, 页面限制: ${baseLimit}, 个性化: ${personalizedLimit}, 热门: ${hotLimit}, 排除ID: ${excludePostIds.length}个`);
 
     // 先检查数据库中是否有帖子数据
     const totalPostsCount = await db.collection('posts').count();
@@ -37,21 +39,25 @@ exports.main = async (event, context) => {
 
     // 1. 获取个性化推荐（基于用户互动记录）
     console.log('开始获取个性化推荐...');
-    const personalizedPosts = await getPersonalizedPosts(openId, personalizedLimit, usedPostIds);
-    
-    if (personalizedPosts.length > 0) {
-      personalizedPosts.forEach(post => {
-        post.recommendationType = 'personalized';
-        post.recommendationReason = '基于你的兴趣推荐';
-        usedPostIds.add(post._id);
-      });
-      allPosts.push(...personalizedPosts);
-      console.log(`个性化推荐获取到${personalizedPosts.length}个帖子`);
-    } else {
-      console.log('个性化推荐为空，尝试按标签推荐');
-      
-      // 如果个性化推荐为空，尝试按标签推荐
-      const tagBasedPosts = await getTagBasedPosts(openId, personalizedLimit, usedPostIds);
+    let remaining = targetCount - allPosts.length;
+    if (remaining > 0) {
+      const personalizedPosts = await getPersonalizedPosts(openId, Math.min(personalizedLimit, remaining), usedPostIds);
+      if (personalizedPosts.length > 0) {
+        personalizedPosts.forEach(post => {
+          post.recommendationType = 'personalized';
+          post.recommendationReason = '基于你的兴趣推荐';
+          usedPostIds.add(post._id);
+        });
+        allPosts.push(...personalizedPosts);
+        console.log(`个性化推荐获取到${personalizedPosts.length}个帖子`);
+      } else {
+        console.log('个性化推荐为空');
+      }
+    }
+
+    remaining = targetCount - allPosts.length;
+    if (remaining > 0) {
+      const tagBasedPosts = await getTagBasedPosts(openId, Math.min(personalizedLimit, remaining), usedPostIds);
       if (tagBasedPosts.length > 0) {
         tagBasedPosts.forEach(post => {
           post.recommendationType = 'tag_based';
@@ -61,33 +67,30 @@ exports.main = async (event, context) => {
         allPosts.push(...tagBasedPosts);
         console.log(`按标签推荐获取到${tagBasedPosts.length}个帖子`);
       } else {
-        console.log('按标签推荐也为空，将用热门帖子填充');
+        console.log('按标签推荐为空');
       }
     }
 
-    // 2. 获取热门推荐（如果个性化推荐和按标签推荐都为空，增加热门推荐数量）
-    const actualHotLimit = allPosts.length === 0 ? hotLimit + personalizedLimit : hotLimit;
-    console.log(`开始获取热门推荐，限制: ${actualHotLimit} (原始: ${hotLimit}, 已有推荐: ${allPosts.length})`);
-    const hotPosts = await getHotPosts(actualHotLimit, Array.from(usedPostIds), openId);
-    
-    if (hotPosts.length > 0) {
-      hotPosts.forEach(post => {
-        post.recommendationType = 'hot';
-        post.recommendationReason = '热门内容';
-        usedPostIds.add(post._id);
-      });
-      allPosts.push(...hotPosts);
-      console.log(`热门推荐获取到${hotPosts.length}个帖子`);
+    remaining = targetCount - allPosts.length;
+    if (remaining > 0) {
+      const hotPosts = await getHotPosts(Math.min(hotLimit, remaining), Array.from(usedPostIds), openId);
+      if (hotPosts.length > 0) {
+        hotPosts.forEach(post => {
+          post.recommendationType = 'hot';
+          post.recommendationReason = '热门内容';
+          usedPostIds.add(post._id);
+        });
+        allPosts.push(...hotPosts);
+        console.log(`热门推荐获取到${hotPosts.length}个帖子`);
+      } else {
+        console.log('热门推荐为空');
+      }
     }
 
-    // 3. 如果推荐不足，优先用热门帖子补充，再用最新帖子补充
-    if (allPosts.length < totalLimit) {
-      const needMore = totalLimit - allPosts.length;
-      console.log(`推荐不足，需要补充${needMore}个帖子`);
-      
-      // 优先用热门帖子补充
-      const additionalHotPosts = await getHotPosts(needMore, Array.from(usedPostIds), openId);
-      
+    remaining = targetCount - allPosts.length;
+    if (remaining > 0) {
+      console.log(`推荐不足，需要再补充${remaining}个帖子（热门/最新）`);
+      const additionalHotPosts = await getHotPosts(remaining, Array.from(usedPostIds), openId);
       if (additionalHotPosts.length > 0) {
         additionalHotPosts.forEach(post => {
           post.recommendationType = 'hot';
@@ -95,30 +98,42 @@ exports.main = async (event, context) => {
           usedPostIds.add(post._id);
         });
         allPosts.push(...additionalHotPosts);
-        console.log(`用热门帖子补充了${additionalHotPosts.length}个`);
-      }
-      
-      // 如果还不够，用最新帖子补充
-      if (allPosts.length < totalLimit) {
-        const stillNeedMore = totalLimit - allPosts.length;
-        console.log(`热门帖子补充后仍不足，用最新帖子补充${stillNeedMore}个`);
-        
-        const latestPosts = await getLatestPosts(stillNeedMore, Array.from(usedPostIds), openId);
-        
-        if (latestPosts.length > 0) {
-          latestPosts.forEach(post => {
-            post.recommendationType = 'latest';
-            post.recommendationReason = '最新内容';
-          });
-          allPosts.push(...latestPosts);
-          console.log(`用最新帖子补充了${latestPosts.length}个`);
-        }
+        remaining = targetCount - allPosts.length;
+        console.log(`额外热门补充${additionalHotPosts.length}个，剩余需求: ${remaining}`);
       }
     }
 
-    // 4. 随机打乱推荐顺序
-    const shuffledPosts = shuffleArray(allPosts);
-    const finalPosts = shuffledPosts.slice(0, totalLimit);
+    remaining = targetCount - allPosts.length;
+    if (remaining > 0) {
+      console.log(`热门补充后仍不足，使用最新帖子填充 ${remaining} 个`);
+      const latestPosts = await getLatestPosts(remaining, Array.from(usedPostIds), openId);
+      if (latestPosts.length > 0) {
+        latestPosts.forEach(post => {
+          post.recommendationType = 'latest';
+          post.recommendationReason = '最新内容';
+          usedPostIds.add(post._id);
+        });
+        allPosts.push(...latestPosts);
+        console.log(`用最新帖子补充了${latestPosts.length}个`);
+      }
+    }
+
+    // 4. 按时间排序并分页
+    const uniqueMap = new Map();
+    allPosts.forEach((post) => {
+      if (post && post._id && !uniqueMap.has(post._id)) {
+        uniqueMap.set(post._id, post);
+      }
+    });
+
+    const sortedPosts = Array.from(uniqueMap.values()).sort((a, b) => {
+      const timeA = a && a.createTime ? new Date(a.createTime).getTime() : 0;
+      const timeB = b && b.createTime ? new Date(b.createTime).getTime() : 0;
+      return timeB - timeA;
+    });
+
+    const finalPosts = sortedPosts.slice(skip, skip + baseLimit);
+    const hasMore = sortedPosts.length > skip + baseLimit;
 
     console.log(`最终推荐${finalPosts.length}个帖子:`, finalPosts.map(p => ({
       id: p._id,
@@ -131,6 +146,7 @@ exports.main = async (event, context) => {
       success: true,
       posts: finalPosts,
       total: finalPosts.length,
+      hasMore,
       personalizedCount: finalPosts.filter(p => p.recommendationType === 'personalized').length,
       tagBasedCount: finalPosts.filter(p => p.recommendationType === 'tag_based').length,
       hotCount: finalPosts.filter(p => p.recommendationType === 'hot').length,
@@ -185,10 +201,6 @@ async function getPersonalizedPosts(openId, limit, usedPostIds) {
       console.log('调试信息 - 用户OpenID:', openId);
       console.log('调试信息 - votes_log查询条件:', { _openid: openId, type: 'post' });
       console.log('调试信息 - view_log查询条件:', { _openid: openId, type: 'view' });
-      
-      // 为新用户创建一些模拟互动记录，用于测试推荐算法
-      console.log('为新用户创建模拟互动记录...');
-      await createMockInteractions(openId);
       return [];
     }
 
@@ -257,18 +269,6 @@ async function getPersonalizedPosts(openId, limit, usedPostIds) {
       .sort({ createTime: -1 })
       .limit(limit)
       .lookup({
-        from: 'users',
-        localField: '_openid',
-        foreignField: '_openid',
-        as: 'authorInfo',
-      })
-      .lookup({
-        from: 'comments',
-        localField: '_id',
-        foreignField: 'postId',
-        as: 'comments',
-      })
-      .lookup({
         from: 'votes_log',
         let: { post_id: '$_id' },
         pipeline: [
@@ -301,9 +301,15 @@ async function getPersonalizedPosts(openId, limit, usedPostIds) {
         isOriginal: '$isOriginal',
         poemBgImage: '$poemBgImage',
         tags: '$tags',
-        authorName: $.ifNull([$.arrayElemAt(['$authorInfo.nickName', 0]), '匿名用户']),
-        authorAvatar: $.ifNull([$.arrayElemAt(['$authorInfo.avatarUrl', 0]), '']),
-        commentCount: $.size('$comments'),
+        authorName: $.ifNull([
+          '$authorName',
+          $.ifNull(['$authorNameSnapshot', '匿名用户'])
+        ]),
+        authorAvatar: $.ifNull([
+          '$authorAvatar',
+          $.ifNull(['$authorAvatarSnapshot', ''])
+        ]),
+        commentCount: $.ifNull(['$commentCount', 0]),
         isVoted: $.gt([$.size('$userVote'), 0]),
       })
       .end();
@@ -354,18 +360,6 @@ async function getHotPosts(limit, excludePostIds, openId) {
       .sort({ hotScore: -1, createTime: -1 })
       .limit(limit)
       .lookup({
-        from: 'users',
-        localField: '_openid',
-        foreignField: '_openid',
-        as: 'authorInfo',
-      })
-      .lookup({
-        from: 'comments',
-        localField: '_id',
-        foreignField: 'postId',
-        as: 'comments',
-      })
-      .lookup({
         from: 'votes_log',
         let: { post_id: '$_id' },
         pipeline: [
@@ -399,9 +393,15 @@ async function getHotPosts(limit, excludePostIds, openId) {
         poemBgImage: '$poemBgImage',
         tags: '$tags',
         hotScore: '$hotScore',
-        authorName: $.ifNull([$.arrayElemAt(['$authorInfo.nickName', 0]), '匿名用户']),
-        authorAvatar: $.ifNull([$.arrayElemAt(['$authorInfo.avatarUrl', 0]), '']),
-        commentCount: $.size('$comments'),
+        authorName: $.ifNull([
+          '$authorName',
+          $.ifNull(['$authorNameSnapshot', '匿名用户'])
+        ]),
+        authorAvatar: $.ifNull([
+          '$authorAvatar',
+          $.ifNull(['$authorAvatarSnapshot', ''])
+        ]),
+        commentCount: $.ifNull(['$commentCount', 0]),
         isVoted: $.gt([$.size('$userVote'), 0]),
       })
       .end();
@@ -446,15 +446,6 @@ async function getLatestPosts(limit, excludePostIds, openId) {
 }
 
 // 数组随机打乱函数
-function shuffleArray(array) {
-  const shuffled = [...array];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-}
-
 // 处理帖子数据的通用方法
 async function processPostsData(posts, openId) {
   if (!posts || posts.length === 0) return [];
@@ -512,67 +503,6 @@ async function processPostsData(posts, openId) {
   return posts;
 }
 
-// 为新用户创建模拟互动记录
-async function createMockInteractions(openId) {
-  try {
-    console.log('开始为新用户创建模拟互动记录...');
-    
-    // 获取一些随机的帖子（包括原创和非原创）
-    const postsResult = await db.collection('posts')
-      .limit(5)
-      .get();
-    
-    if (postsResult.data.length === 0) {
-      console.log('没有找到帖子，无法创建模拟互动记录');
-      return;
-    }
-    
-    console.log(`找到${postsResult.data.length}个帖子，创建模拟互动记录`);
-    
-    // 为每个帖子创建模拟的点赞和浏览记录
-    for (let i = 0; i < Math.min(3, postsResult.data.length); i++) {
-      const post = postsResult.data[i];
-      
-      // 创建模拟点赞记录
-      try {
-        await db.collection('votes_log').add({
-          data: {
-            _openid: openId,
-            postId: post._id,
-            type: 'post',
-            createTime: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000) // 随机时间，最近7天内
-          }
-        });
-        console.log(`创建模拟点赞记录: ${post._id}`);
-      } catch (voteError) {
-        console.error('创建模拟点赞记录失败:', voteError);
-      }
-      
-      // 创建模拟浏览记录
-      try {
-        await db.collection('view_log').add({
-          data: {
-            _openid: openId,
-            postId: post._id,
-            viewDuration: Math.floor(Math.random() * 60) + 10, // 10-70秒随机浏览时长
-            createTime: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
-            lastViewTime: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
-            type: 'view'
-          }
-        });
-        console.log(`创建模拟浏览记录: ${post._id}`);
-      } catch (viewError) {
-        console.error('创建模拟浏览记录失败:', viewError);
-      }
-    }
-    
-    console.log('模拟互动记录创建完成');
-    
-  } catch (error) {
-    console.error('创建模拟互动记录失败:', error);
-  }
-}
-
 // 获取按标签推荐的帖子
 async function getTagBasedPosts(openId, limit, usedPostIds) {
   try {
@@ -624,18 +554,6 @@ async function getTagBasedPosts(openId, limit, usedPostIds) {
       .sort({ tagScore: -1, createTime: -1 })
       .limit(limit)
       .lookup({
-        from: 'users',
-        localField: '_openid',
-        foreignField: '_openid',
-        as: 'authorInfo',
-      })
-      .lookup({
-        from: 'comments',
-        localField: '_id',
-        foreignField: 'postId',
-        as: 'comments',
-      })
-      .lookup({
         from: 'votes_log',
         let: { post_id: '$_id' },
         pipeline: [
@@ -669,9 +587,15 @@ async function getTagBasedPosts(openId, limit, usedPostIds) {
         poemBgImage: '$poemBgImage',
         tags: '$tags',
         tagScore: '$tagScore',
-        authorName: $.ifNull([$.arrayElemAt(['$authorInfo.nickName', 0]), '匿名用户']),
-        authorAvatar: $.ifNull([$.arrayElemAt(['$authorInfo.avatarUrl', 0]), '']),
-        commentCount: $.size('$comments'),
+        authorName: $.ifNull([
+          '$authorName',
+          $.ifNull(['$authorNameSnapshot', '匿名用户'])
+        ]),
+        authorAvatar: $.ifNull([
+          '$authorAvatar',
+          $.ifNull(['$authorAvatarSnapshot', ''])
+        ]),
+        commentCount: $.ifNull(['$commentCount', 0]),
         isVoted: $.gt([$.size('$userVote'), 0]),
       })
       .end();

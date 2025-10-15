@@ -20,34 +20,32 @@ function makeExcludeKey(arr) {
   }
 }
 
-export async function getDiscoverFeed({ excludePostIds = [], context } = {}) {
-  const key = `page:0:${makeExcludeKey(excludePostIds)}`;
+export async function getDiscoverFeed({ excludePostIds = [], page = 0, pageSize = 5, context } = {}) {
+  const key = `page:${page}:${makeExcludeKey(excludePostIds)}`;
   return ns.getOrFetch(
     key,
     async () => {
-      const res = await cloudCall(
-        'getRecommendationFeed',
-        {
-          personalizedLimit: 3,
-          hotLimit: 2,
-          skip: 0,
-          excludePostIds: excludePostIds || [],
-        },
-        { pageTag: 'discover', context }
-      );
+      const res = await cloudCall('getRecommendationFeed', {
+        limit: pageSize,
+        personalizedLimit: 3,
+        hotLimit: 2,
+        skip: 0,
+        excludePostIds: excludePostIds || []
+      }, { pageTag: 'discover', context });
       if (res && res.result && res.result.success) {
-        return res.result.posts || [];
+        return {
+          posts: res.result.posts || [],
+          hasMore: !!res.result.hasMore
+        };
       }
-      return [];
+      return { posts: [], hasMore: false };
     },
     { ttlMs: TTL_MS, swrMs: SWR_MS }
   );
 }
 
-export function invalidateDiscover(options = {}) {
-  const { excludePostIds = [] } = options || {};
-  const key = `page:0:${makeExcludeKey(excludePostIds)}`;
-  ns.delete(key);
+export function invalidateDiscover() {
+  ns.clear();
 }
 
 export function clearDiscoverCache() {

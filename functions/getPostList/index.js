@@ -86,18 +86,6 @@ exports.main = async (event, context) => {
     console.log('🔍 [getPostList] 查询参数 - skip:', skip, 'limit:', limit);
     
     const postsRes = await query
-      .lookup({
-        from: 'users',
-        localField: '_openid',
-        foreignField: '_openid',
-        as: 'authorInfo',
-      })
-      .lookup({
-        from: 'comments',
-        localField: '_id',
-        foreignField: 'postId',
-        as: 'comments',
-      })
       // 关联当前用户的点赞记录 (兼容旧版SDK的写法)
       .lookup({
         from: 'votes_log',
@@ -136,9 +124,15 @@ exports.main = async (event, context) => {
         poemBgImage: '$poemBgImage',
         tags: '$tags', // 新增标签字段
         author: '$author', // 新增作者字段
-        authorName: $.ifNull([$.arrayElemAt(['$authorInfo.nickName', 0]), '匿名用户']),
-        authorAvatar: $.ifNull([$.arrayElemAt(['$authorInfo.avatarUrl', 0]), '']),
-        commentCount: $.size('$comments'),
+        authorName: $.ifNull([
+          '$authorName',
+          $.ifNull(['$authorNameSnapshot', '匿名用户'])
+        ]),
+        authorAvatar: $.ifNull([
+          '$authorAvatar',
+          $.ifNull(['$authorAvatarSnapshot', ''])
+        ]),
+        commentCount: $.ifNull(['$commentCount', 0]),
         isVoted: $.gt([$.size('$userVote'), 0]),
       })
       .end();

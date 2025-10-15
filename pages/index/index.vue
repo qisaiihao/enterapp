@@ -127,7 +127,13 @@
                                         <text class="action-emoji">💬</text>
                                         <text class="action-text">{{ item.commentCount || 0 }}</text>
                                     </view>
-                                    <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="item._id" :data-index="index">
+                                    <view
+                                        class="like-icon-container"
+                                        @tap.stop.prevent="onVote"
+                                        :data-postid="item._id"
+                                        :data-index="index"
+                                        data-list-type="home"
+                                    >
                                         <image class="like-icon" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError"></image>
                                     </view>
                                     <view :class="'vote-count ' + (item.isVoted ? 'voted' : '')">
@@ -235,7 +241,13 @@
                                         <text class="action-emoji">💬</text>
                                         <text class="action-text">{{ item.commentCount || 0 }}</text>
                                     </view>
-                                    <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="item._id" :data-index="index">
+                                    <view
+                                        class="like-icon-container"
+                                        @tap.stop.prevent="onVote"
+                                        :data-postid="item._id"
+                                        :data-index="index"
+                                        data-list-type="discover"
+                                    >
                                         <image class="like-icon" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError"></image>
                                     </view>
                                     <view :class="'vote-count ' + (item.isVoted ? 'voted' : '')">
@@ -280,14 +292,16 @@
 import skeleton from '@/components/skeleton/skeleton';
 // index.js
 // 修复：移除全局数据库实例，改为在方法中动态获取
-const PAGE_SIZE = 5;
+  const PAGE_SIZE = 5;
+  const DISCOVER_PAGE_SIZE = 5;
+  const MAX_DISCOVER_EXCLUDE_IDS = 200;
 const imageOptimizer = require('../../utils/imageOptimizer');
 const likeIcon = require('../../utils/likeIcon');
 const { togglePostLike } = require('../../utils/likeService.js');
 const avatarCache = require('../../utils/avatarCache');
 const followCache = require('../../utils/followCache');
 import { getUnreadCount } from '@/api-cache/unread.js';
-import { getDiscoverFeed } from '@/api-cache/discover.js';
+import { getDiscoverFeed, invalidateDiscover } from '@/api-cache/discover.js';
 import { getHomePosts } from '@/api-cache/home-posts.js';
 import { hydrateTempUrls, warmTempUrlsFromPosts } from '@/_utils/hydrate-temp-urls';
 const { previewImage } = require('../../utils/imagePreview.js');
@@ -353,6 +367,10 @@ export default {
 
             // 发现页已显示的帖子ID，用于防重复
             discoverRefreshTime: 0,
+
+            // 发现页加载状态
+            discoverIsLoading: false,
+            discoverIsLoadingMore: false,
 
             // 发现页刷新时间戳
             touchStartX: 0,
@@ -453,17 +471,22 @@ onReachBottom: function () {
             clearTimeout(this.scrollTimer);
         }
         this.scrollTimer = setTimeout(() => {
-            // 只在首页时处理预加载逻辑，发现页不需要预加载
-            if (this.currentPage !== 'home') {
+            const isHome = this.currentPage === 'home';
+            const isDiscover = this.currentPage === 'discover';
+            if (!isHome && !isDiscover) {
                 return;
             }
 
-            // 只有在非加载中且还有更多数据时才进行后续判断
-            if (!this.hasMore || this.isLoading || this.isLoadingMore) {
+            const hasMore = isHome ? this.hasMore : this.discoverHasMore;
+            const loadingFlag = isHome
+                ? this.isLoading || this.isLoadingMore
+                : this.discoverIsLoading || this.discoverIsLoadingMore;
+
+            if (!hasMore || loadingFlag) {
                 console.log('【首页】滚动检测被阻止:', {
-                    hasMore: this.hasMore,
-                    isLoading: this.isLoading,
-                    isLoadingMore: this.isLoadingMore
+                    page: this.currentPage,
+                    hasMore,
+                    loadingFlag
                 });
                 return;
             }
@@ -471,7 +494,7 @@ onReachBottom: function () {
             const windowInfo = uni.getWindowInfo();
             const windowHeight = windowInfo.windowHeight;
 
-            console.log('【首页】滚动检测 - scrollTop:', e.scrollTop, 'windowHeight:', windowHeight);
+            console.log('【首页】滚动检测 - page:', this.currentPage, 'scrollTop:', e.scrollTop, 'windowHeight:', windowHeight);
 
             // 使用 wx.createSelectorQuery() 获取页面总高度和最后一个元素的位置
             uni.createSelectorQuery()
@@ -493,8 +516,12 @@ onReachBottom: function () {
                         });
 
                         if (distanceToBottom < preloadThreshold) {
-                            console.log('【首页】触发预加载');
-                            this.getPostList();
+                            console.log('【首页】触发预加载，页面:', this.currentPage);
+                            if (isHome) {
+                                this.getPostList();
+                            } else if (isDiscover) {
+                                this.loadRecommendationPosts();
+                            }
                         }
                     } else {
                         console.log('【首页】容器高度获取失败');
@@ -595,6 +622,18 @@ onReachBottom: function () {
             console.log('【点赞】onVote事件触发', event.currentTarget.dataset);
             const postId = event.currentTarget.dataset.postid;
             const index = event.currentTarget.dataset.index;
+            const listType = event.currentTarget.dataset.listType || (this.currentPage === 'discover' ? 'discover' : 'home');
+            const listKey = listType === 'discover' ? 'discoverPostList' : 'postList';
+            const pageTag = listType === 'discover' ? 'discover' : 'index';
+            let list = this[listKey] || [];
+            let targetIndex = index;
+            if (!list[targetIndex] || list[targetIndex]._id !== postId) {
+                targetIndex = list.findIndex((p) => p._id === postId);
+            }
+            if (targetIndex < 0) {
+                console.warn('【点赞】未找到对应的帖子，postId:', postId, 'listType:', listType);
+                return;
+            }
             console.log('【点赞】postId:', postId, 'index:', index);
             if (this.votingInProgress[postId]) {
                 console.log('【点赞】正在投票中，跳过');
@@ -603,23 +642,27 @@ onReachBottom: function () {
             this.setData({
                 [`votingInProgress.${postId}`]: true
             });
-            let postList = this.postList;
-            const originalVotes = postList[index].votes;
-            const originalIsVoted = postList[index].isVoted;
+            const originalItem = list[targetIndex] || {};
+            const originalVotes = Number(originalItem.votes) || 0;
+            const originalIsVoted = !!originalItem.isVoted;
             console.log('【点赞】原始状态 - votes:', originalVotes, 'isVoted:', originalIsVoted);
 
             // 立即更新UI，提供即时反馈
-            postList[index].votes = originalIsVoted ? originalVotes - 1 : originalVotes + 1;
-            postList[index].isVoted = !originalIsVoted;
-            postList[index].likeIcon = likeIcon.getLikeIcon(postList[index].votes, postList[index].isVoted);
-            console.log('【点赞】更新后状态 - votes:', postList[index].votes, 'isVoted:', postList[index].isVoted);
-            console.log('【点赞】新的likeIcon:', postList[index].likeIcon);
+            const optimisticVotes = originalIsVoted ? Math.max(0, originalVotes - 1) : originalVotes + 1;
+            const optimisticItem = {
+                ...originalItem,
+                votes: optimisticVotes,
+                isVoted: !originalIsVoted,
+                likeIcon: likeIcon.getLikeIcon(optimisticVotes, !originalIsVoted)
+            };
+            const optimisticList = list.slice();
+            optimisticList[targetIndex] = optimisticItem;
             this.setData({
-                postList: postList
+                [listKey]: optimisticList
             });
 
             togglePostLike(postId, {
-                pageTag: 'index',
+                pageTag,
                 context: this,
                 currentVotes: originalVotes,
                 currentIsLiked: originalIsVoted,
@@ -627,12 +670,21 @@ onReachBottom: function () {
             }).then((result) => {
                 console.log('【点赞】服务返回结果:', result);
                 if (result.success) {
-                    postList[index].votes = result.votes;
-                    postList[index].isVoted = result.isLiked;
-                    postList[index].likeIcon = result.likeIcon;
-                    this.setData({
-                        postList: postList
-                    });
+                    const currentList = this[listKey] || [];
+                    const currentIndex = currentList.findIndex((p) => p._id === postId);
+                    if (currentIndex > -1) {
+                        const updatedItem = {
+                            ...currentList[currentIndex],
+                            votes: result.votes,
+                            isVoted: result.isLiked,
+                            likeIcon: result.likeIcon
+                        };
+                        const newList = currentList.slice();
+                        newList[currentIndex] = updatedItem;
+                        this.setData({
+                            [listKey]: newList
+                        });
+                    }
                     console.log('【点赞】服务调用成功，数据已同步');
                     return;
                 }
@@ -643,20 +695,38 @@ onReachBottom: function () {
                     likeIcon: likeIcon.getLikeIcon(originalVotes, originalIsVoted)
                 };
                 console.warn('【点赞】服务返回失败，回滚UI');
-                postList[index].votes = rollback.votes;
-                postList[index].isVoted = rollback.isLiked;
-                postList[index].likeIcon = rollback.likeIcon;
-                this.setData({
-                    postList: postList
-                });
+                const currentList = this[listKey] || [];
+                const currentIndex = currentList.findIndex((p) => p._id === postId);
+                if (currentIndex > -1) {
+                    const rollbackItem = {
+                        ...currentList[currentIndex],
+                        votes: rollback.votes,
+                        isVoted: rollback.isLiked,
+                        likeIcon: rollback.likeIcon
+                    };
+                    const newList = currentList.slice();
+                    newList[currentIndex] = rollbackItem;
+                    this.setData({
+                        [listKey]: newList
+                    });
+                }
             }).catch((err) => {
                 console.error('【点赞】调用 likeService 失败:', err);
-                postList[index].votes = originalVotes;
-                postList[index].isVoted = originalIsVoted;
-                postList[index].likeIcon = likeIcon.getLikeIcon(originalVotes, originalIsVoted);
-                this.setData({
-                    postList: postList
-                });
+                const currentList = this[listKey] || [];
+                const currentIndex = currentList.findIndex((p) => p._id === postId);
+                if (currentIndex > -1) {
+                    const fallbackItem = {
+                        ...currentList[currentIndex],
+                        votes: originalVotes,
+                        isVoted: originalIsVoted,
+                        likeIcon: likeIcon.getLikeIcon(originalVotes, originalIsVoted)
+                    };
+                    const newList = currentList.slice();
+                    newList[currentIndex] = fallbackItem;
+                    this.setData({
+                        [listKey]: newList
+                    });
+                }
             }).finally(() => {
                 console.log('【点赞】服务调用完成');
                 this.setData({
@@ -1071,37 +1141,103 @@ onReachBottom: function () {
 
         // 加载推荐帖子（首次加载，走缓存封装）
         loadRecommendationPosts: async function () {
-            console.log('使用推荐算法加载发现页数据（带缓存）');
-            try {
-                const posts = await getDiscoverFeed({ excludePostIds: this.discoverShownPostIds, context: this });
-                console.log('获取推荐数据结果（缓存封装）: 条数=', Array.isArray(posts) ? posts.length : 0);
+            if (this.discoverIsLoading || this.discoverIsLoadingMore) {
+                console.log('发现页正在加载中，跳过重复请求');
+                return;
+            }
 
-                let normalizedPosts = normalizePostList(posts || []).map((post) => ({
+            if (!this.discoverHasMore && this.discoverPage > 0) {
+                console.log('发现页已无更多推荐，跳过加载');
+                return;
+            }
+
+            const isInitialLoad = this.discoverPage === 0 && this.discoverPostList.length === 0;
+            this.setData({
+                discoverIsLoading: isInitialLoad,
+                discoverIsLoadingMore: !isInitialLoad
+            });
+
+            try {
+                const currentExcludeIds = Array.from(new Set(Array.isArray(this.discoverShownPostIds) ? this.discoverShownPostIds : []));
+                const excludeSet = new Set(currentExcludeIds);
+                const page = this.discoverPage;
+
+                const result = await getDiscoverFeed({
+                    excludePostIds: currentExcludeIds,
+                    page,
+                    pageSize: DISCOVER_PAGE_SIZE,
+                    context: this
+                });
+
+                const rawPosts = Array.isArray(result?.posts) ? result.posts : [];
+                console.log('获取推荐数据结果（分页）: page=', page, '条数=', rawPosts.length, 'hasMore=', result?.hasMore);
+
+                let normalizedPosts = normalizePostList(rawPosts).map((post) => ({
                     ...post,
                     likeIcon: likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false)
                 }));
+
+                // 双重保险去重
+                normalizedPosts = normalizedPosts.filter((post) => post && post._id && !excludeSet.has(post._id));
 
                 // 将 cloud:// 映射为可访问 URL，并预热
                 normalizedPosts = await hydrateTempUrls(normalizedPosts);
                 warmTempUrlsFromPosts(normalizedPosts);
 
-                // 记录已显示的帖子ID
-                const newShownIds = normalizedPosts.map((post) => post._id);
-                const updatedShownIds = [...this.discoverShownPostIds, ...newShownIds];
+                if (!normalizedPosts.length) {
+                    console.log('暂无新的推荐内容');
+                    const hasMoreFromServer = !!(result && result.hasMore);
+                    this.setData({
+                        discoverPostList: page === 0 ? [] : this.discoverPostList,
+                        discoverHasMore: hasMoreFromServer,
+                        discoverRefreshTime: Date.now(),
+                        discoverIsLoading: false,
+                        discoverIsLoadingMore: false,
+                        discoverPage: hasMoreFromServer ? page + 1 : page
+                    });
+                    if (hasMoreFromServer) {
+                        console.log('服务器提示仍有更多，继续尝试获取下一页');
+                        this.loadRecommendationPosts();
+                    } else {
+                        const toastTitle = isInitialLoad ? '暂时没有新的推荐' : '没有更多推荐了';
+                        uni.showToast({
+                            title: toastTitle,
+                            icon: 'none'
+                        });
+                    }
+                    return;
+                }
+
+                const currentList = Array.isArray(this.discoverPostList) ? this.discoverPostList.slice() : [];
+                const combined = page === 0 ? normalizedPosts : currentList.concat(normalizedPosts);
+
+                // 记录已显示的帖子ID，并控制上限
+                const newShownIds = normalizedPosts.map((post) => post._id).filter(Boolean);
+                const mergedSet = new Set(currentExcludeIds);
+                newShownIds.forEach((id) => mergedSet.add(id));
+                const updatedShownIds = Array.from(mergedSet).slice(-MAX_DISCOVER_EXCLUDE_IDS);
+
+                const hasMoreFromServer = !!(result && result.hasMore);
+                const hasMore = (normalizedPosts.length >= DISCOVER_PAGE_SIZE) || hasMoreFromServer;
+
                 this.setData({
-                    discoverPostList: normalizedPosts,
-                    discoverPage: 1,
-                    discoverHasMore: false,
-                    // 推荐算法只显示5个，没有更多
+                    discoverPostList: combined,
+                    discoverPage: page + 1,
+                    discoverHasMore: (normalizedPosts.length >= DISCOVER_PAGE_SIZE) || hasMore,
                     discoverShownPostIds: updatedShownIds,
                     discoverRefreshTime: Date.now()
                 });
-                console.log('发现页推荐数据设置完成，帖子数量:', normalizedPosts.length);
+                console.log('发现页推荐数据设置完成，帖子数量:', normalizedPosts.length, '累计:', combined.length, 'hasMore:', hasMore);
             } catch (err) {
-                console.error('推荐数据请求失败（缓存封装）:', err);
+                console.error('推荐数据请求失败（分页）:', err);
                 uni.showToast({
                     title: '推荐加载失败',
                     icon: 'none'
+                });
+            } finally {
+                this.setData({
+                    discoverIsLoading: false,
+                    discoverIsLoadingMore: false
                 });
             }
         },
@@ -1110,13 +1246,21 @@ onReachBottom: function () {
         refreshDiscoverPosts: function () {
             console.log('刷新发现页推荐');
 
-            // 重置状态
+            // 清理缓存，避免返回旧数据
+            try {
+                invalidateDiscover();
+            } catch (e) {
+                console.warn('清理发现页缓存失败:', e);
+            }
+
+            // 重置状态，但保留已展示过的ID，避免重复推荐
             this.setData({
                 discoverPostList: [],
                 discoverPage: 0,
                 discoverHasMore: true,
-                discoverShownPostIds: [],
-                discoverRefreshTime: 0
+                discoverRefreshTime: Date.now(),
+                discoverIsLoading: false,
+                discoverIsLoadingMore: false
             });
 
             // 重新加载推荐

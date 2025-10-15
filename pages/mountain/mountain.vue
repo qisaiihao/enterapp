@@ -141,6 +141,7 @@ export default {
     },
     onLoad: function () {
         console.log('Mountain 页面 onLoad');
+        this._isFetchingMountain = false;
         const app = getApp();
         // 检查预加载数据
         if (app.globalData.preloadedMountainData && app.globalData.preloadedMountainData.length > 0) {
@@ -156,6 +157,7 @@ export default {
             // 使用我们之前写的 updatePostDisplay 来统一更新界面
             this.updatePostDisplay(0);
             app.globalData.preloadedMountainData = null; // 用完即焚
+            this._hasFirstLoad = true; // 标记已首次加载
         } else {
             // 【情况B】无预加载：显示骨架屏，并异步请求数据
             console.log('Mountain: 无预加载数据，开始请求');
@@ -185,7 +187,10 @@ export default {
         // 首次进入时刷新数据，之后保持之前的内容
         if (!this._hasFirstLoad) {
             console.log('【mountain】首次进入，刷新数据');
-            this.refreshMountainData();
+            this._hasFirstLoad = true; // 标记已首次加载
+            if (this.postList.length === 0 && !this._isFetchingMountain) {
+                this.refreshMountainData();
+            }
         } else {
             console.log('【mountain】再次进入，保持之前内容');
         }
@@ -194,6 +199,7 @@ export default {
         // 新增：刷新mountain数据的方法
         refreshMountainData: function () {
             console.log('【mountain】开始刷新mountain数据');
+            this._isFetchingMountain = false;
             this.setData({
                 postList: [],
                 currentPostIndex: 0,
@@ -215,6 +221,11 @@ export default {
         },
 
         getMountainData: function () {
+            if (this._isFetchingMountain) {
+                console.log('Mountain数据获取中，跳过重复请求');
+                return;
+            }
+            this._isFetchingMountain = true;
             // 使用TCB调用云函数
             if (this.$tcb && this.$tcb.callFunction) {
                 this.$tcb.callFunction({
@@ -233,19 +244,24 @@ export default {
                         // 关键：数据返回，关闭骨架屏
                         hasFirstLoad_var: true // 标记首次加载完成
                     });
+                    this._hasFirstLoad = true;
                     // 设置当前帖子
                     if (this.postList.length > 0) {
                         this.setData({
                             currentPost: this.postList[0]
                         });
-                        this.updatePostDisplay();
+                        this.updatePostDisplay(0);
                     }
                 }).catch((err) => {
                     console.error('Mountain数据获取失败:', err);
                     this.setData({
                         isLoading: false
                     }); // 关键：请求失败也要关闭骨架屏
+                }).finally(() => {
+                    this._isFetchingMountain = false;
                 });
+            } else {
+                this._isFetchingMountain = false;
             }
         },
 

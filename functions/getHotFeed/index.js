@@ -47,18 +47,6 @@ exports.main = async (event, context) => {
       .skip(skip)
       .limit(limit)
       .lookup({
-        from: 'users',
-        localField: '_openid',
-        foreignField: '_openid',
-        as: 'authorInfo',
-      })
-      .lookup({
-        from: 'comments',
-        localField: '_id',
-        foreignField: 'postId',
-        as: 'comments',
-      })
-      .lookup({
         from: 'votes_log',
         let: { post_id: '$_id' },
         pipeline: [
@@ -92,9 +80,15 @@ exports.main = async (event, context) => {
         poemBgImage: '$poemBgImage',
         tags: '$tags',
         hotScore: '$hotScore',
-        authorName: $.ifNull([$.arrayElemAt(['$authorInfo.nickName', 0]), '匿名用户']),
-        authorAvatar: $.ifNull([$.arrayElemAt(['$authorInfo.avatarUrl', 0]), '']),
-        commentCount: $.size('$comments'),
+        authorName: $.ifNull([
+          '$authorName',
+          $.ifNull(['$authorNameSnapshot', '匿名用户'])
+        ]),
+        authorAvatar: $.ifNull([
+          '$authorAvatar',
+          $.ifNull(['$authorAvatarSnapshot', ''])
+        ]),
+        commentCount: $.ifNull(['$commentCount', 0]),
         isVoted: $.gt([$.size('$userVote'), 0]),
       })
       .end();

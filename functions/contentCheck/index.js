@@ -201,6 +201,7 @@ exports.main = async (event, context) => {
       _openid: currentOpenid
     }).get();
     const userNickName = userInfo.data.length > 0 ? userInfo.data[0].nickName : '匿名用户';
+    const userAvatar = userInfo.data.length > 0 ? (userInfo.data[0].avatarUrl || '') : '';
     console.log('用户昵称:', userNickName);
     
     // 确定作者信息
@@ -230,6 +231,10 @@ exports.main = async (event, context) => {
       isOriginal: isOriginal || false,
       // 新增作者字段
       author: authorName,
+      authorName: userNickName,
+      authorAvatar: userAvatar,
+      authorNameSnapshot: userNickName,
+      authorAvatarSnapshot: userAvatar,
       // 新增标签字段
       tags: tags || [],
       // 审核状态

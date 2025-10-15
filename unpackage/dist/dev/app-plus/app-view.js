@@ -487,7 +487,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../../HBuilderX.4.76.2025082103/HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\nbody {\n    margin: 0;\n    padding: 0;\n    height: 100vh;\n    overflow: hidden;\n}\n.container {\n    width: 100vw;\n    height: 100vh;\n    background-color: #fff;\n    color: #000;\n    display: flex;\n    justify-content: center;\n    align-items: center;\n}\n\n/* ---- 阶段一：打字机 ---- */\n.typing-phase-container {\n    position: relative;\n    width: 100%;\n    height: 100vh;\n}\n\n/* ---- 文字层：固定高度，预留光标空间 ---- */\n.text-layer {\n    position: absolute;\n    top: 50%;\n    left: 50%;\n    -webkit-transform: translate(-50%, -50%);\n            transform: translate(-50%, -50%);\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    min-height: 120rpx; /* 预留足够空间给光标 */\n}\n.typewriter-effect {\n    font-family: monospace;\n    font-size: 48rpx;\n    display: flex;\n    align-items: center;\n}\n.blinking-cursor {\n    width: 4rpx;\n    height: 48rpx;\n    background-color: #000;\n    margin-left: 10rpx;\n    -webkit-animation: blink 1s steps(1) infinite;\n            animation: blink 1s steps(1) infinite;\n}\n.blinking-cursor.hidden {\n    opacity: 0 !important;\n    -webkit-animation: none !important;\n            animation: none !important;\n}\n@-webkit-keyframes blink {\n50% {\n        opacity: 0;\n}\n}\n@keyframes blink {\n50% {\n        opacity: 0;\n}\n}\n\n/* ---- 按钮层：独立定位 ---- */\n.enter-btn {\n    position: absolute;\n    bottom: 200rpx;\n    left: 50%;\n    -webkit-transform: translateX(-50%);\n            transform: translateX(-50%);\n    background-color: #f5f5f5;\n    color: #333;\n    border: 3rpx solid #ccc;\n    border-radius: 12rpx;\n    padding: 24rpx 48rpx;\n    font-size: 28rpx;\n    font-weight: 500;\n    font-family: 'Courier New', monospace;\n    letter-spacing: 2rpx;\n    text-transform: uppercase;\n    box-shadow: 0 4rpx 8rpx rgba(0, 0, 0, 0.1);\n    transition: all 0.3s ease;\n    -webkit-animation: slideInUp 0.8s ease-out;\n            animation: slideInUp 0.8s ease-out;\n    overflow: hidden;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n.enter-btn:active {\n    background-color: #e8e8e8;\n    border-color: #999;\n    box-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.15);\n    -webkit-transform: translateY(2rpx);\n            transform: translateY(2rpx);\n}\n.enter-btn.loading {\n    opacity: 0.6;\n    cursor: not-allowed;\n}\n.enter-btn.loading:active {\n    -webkit-transform: none;\n            transform: none;\n}\n.enter-key-icon {\n    font-size: 32rpx;\n    margin-right: 12rpx;\n    font-weight: bold;\n    color: #666;\n}\n.enter-text {\n    font-size: 28rpx;\n    font-weight: 500;\n    font-family: 'Courier New', monospace;\n    letter-spacing: 2rpx;\n    text-transform: uppercase;\n}\n\n/* ---- 换行后的光标 ---- */\n.new-line-cursor-container {\n    display: flex;\n    justify-content: center;\n    align-items: center;\n    margin-top: 20rpx;\n}\n.new-line-cursor {\n    width: 4rpx;\n    height: 48rpx;\n    background-color: #000;\n    -webkit-animation: blink 1s steps(1) infinite;\n            animation: blink 1s steps(1) infinite;\n}\n@-webkit-keyframes slideInUp {\nfrom {\n        opacity: 0;\n        -webkit-transform: translateX(-50%) translateY(60rpx);\n                transform: translateX(-50%) translateY(60rpx);\n}\nto {\n        opacity: 1;\n        -webkit-transform: translateX(-50%) translateY(0);\n                transform: translateX(-50%) translateY(0);\n}\n}\n@keyframes slideInUp {\nfrom {\n        opacity: 0;\n        -webkit-transform: translateX(-50%) translateY(60rpx);\n                transform: translateX(-50%) translateY(60rpx);\n}\nto {\n        opacity: 1;\n        -webkit-transform: translateX(-50%) translateY(0);\n                transform: translateX(-50%) translateY(0);\n}\n}\n\n/* ---- 阶段二：开屏图 ---- */\n.image-phase-container {\n    width: 100%;\n    height: 100%;\n    -webkit-animation: fadeIn 0.8s ease-in-out;\n            animation: fadeIn 0.8s ease-in-out;\n}\n.splash-image {\n    width: 100%;\n    height: 100%;\n    object-fit: cover;\n}\n@-webkit-keyframes fadeIn {\nfrom {\n        opacity: 0;\n}\nto {\n        opacity: 1;\n}\n}\n@keyframes fadeIn {\nfrom {\n        opacity: 0;\n}\nto {\n        opacity: 1;\n}\n}\n\n/* ---- 原有的样式（保留作为备用） ---- */\n.splash-container {\n    position: fixed;\n    top: 0;\n    left: 0;\n    right: 0;\n    bottom: 0;\n    width: 100vw;\n    height: 100vh;\n    margin: 0;\n    padding: 0;\n    overflow: hidden;\n    background-color: #000;\n    opacity: 1;\n    transition: opacity 0.8s ease-in-out;\n}\n.splash-container.fade-out {\n    opacity: 0;\n}\n.splash-image.zoom-out {\n    -webkit-transform: scale(1.1);\n            transform: scale(1.1);\n}\n.loading-indicator {\n    position: absolute;\n    bottom: 100rpx;\n    left: 50%;\n    -webkit-transform: translateX(-50%);\n            transform: translateX(-50%);\n    color: rgba(255, 255, 255, 0.8);\n    font-size: 28rpx;\n    z-index: 10;\n}\n", ""]);
+exports.push([module.i, "\nbody {\r\n    margin: 0;\r\n    padding: 0;\r\n    height: 100vh;\r\n    overflow: hidden;\n}\n.container {\r\n    width: 100vw;\r\n    height: 100vh;\r\n    background-color: #fff;\r\n    color: #000;\r\n    display: flex;\r\n    justify-content: center;\r\n    align-items: center;\n}\r\n\r\n/* ---- 阶段一：打字机 ---- */\n.typing-phase-container {\r\n    position: relative;\r\n    width: 100%;\r\n    height: 100vh;\n}\r\n\r\n/* ---- 文字层：固定高度，预留光标空间 ---- */\n.text-layer {\r\n    position: absolute;\r\n    top: 50%;\r\n    left: 50%;\r\n    -webkit-transform: translate(-50%, -50%);\r\n            transform: translate(-50%, -50%);\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    min-height: 120rpx; /* 预留足够空间给光标 */\n}\n.typewriter-effect {\r\n    font-family: monospace;\r\n    font-size: 48rpx;\r\n    display: flex;\r\n    align-items: center;\n}\n.blinking-cursor {\r\n    width: 4rpx;\r\n    height: 48rpx;\r\n    background-color: #000;\r\n    margin-left: 10rpx;\r\n    -webkit-animation: blink 1s steps(1) infinite;\r\n            animation: blink 1s steps(1) infinite;\n}\n.blinking-cursor.hidden {\r\n    opacity: 0 !important;\r\n    -webkit-animation: none !important;\r\n            animation: none !important;\n}\n@-webkit-keyframes blink {\n50% {\r\n        opacity: 0;\n}\n}\n@keyframes blink {\n50% {\r\n        opacity: 0;\n}\n}\r\n\r\n/* ---- 按钮层：独立定位 ---- */\n.enter-btn {\r\n    position: absolute;\r\n    bottom: 200rpx;\r\n    left: 50%;\r\n    -webkit-transform: translateX(-50%);\r\n            transform: translateX(-50%);\r\n    background-color: #f5f5f5;\r\n    color: #333;\r\n    border: 3rpx solid #ccc;\r\n    border-radius: 12rpx;\r\n    padding: 24rpx 48rpx;\r\n    font-size: 28rpx;\r\n    font-weight: 500;\r\n    font-family: 'Courier New', monospace;\r\n    letter-spacing: 2rpx;\r\n    text-transform: uppercase;\r\n    box-shadow: 0 4rpx 8rpx rgba(0, 0, 0, 0.1);\r\n    transition: all 0.3s ease;\r\n    -webkit-animation: slideInUp 0.8s ease-out;\r\n            animation: slideInUp 0.8s ease-out;\r\n    overflow: hidden;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\n}\n.enter-btn:active {\r\n    background-color: #e8e8e8;\r\n    border-color: #999;\r\n    box-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.15);\r\n    -webkit-transform: translateY(2rpx);\r\n            transform: translateY(2rpx);\n}\n.enter-btn.loading {\r\n    opacity: 0.6;\r\n    cursor: not-allowed;\n}\n.enter-btn.loading:active {\r\n    -webkit-transform: none;\r\n            transform: none;\n}\n.enter-key-icon {\r\n    font-size: 32rpx;\r\n    margin-right: 12rpx;\r\n    font-weight: bold;\r\n    color: #666;\n}\n.enter-text {\r\n    font-size: 28rpx;\r\n    font-weight: 500;\r\n    font-family: 'Courier New', monospace;\r\n    letter-spacing: 2rpx;\r\n    text-transform: uppercase;\n}\r\n\r\n/* ---- 换行后的光标 ---- */\n.new-line-cursor-container {\r\n    display: flex;\r\n    justify-content: center;\r\n    align-items: center;\r\n    margin-top: 20rpx;\n}\n.new-line-cursor {\r\n    width: 4rpx;\r\n    height: 48rpx;\r\n    background-color: #000;\r\n    -webkit-animation: blink 1s steps(1) infinite;\r\n            animation: blink 1s steps(1) infinite;\n}\n@-webkit-keyframes slideInUp {\nfrom {\r\n        opacity: 0;\r\n        -webkit-transform: translateX(-50%) translateY(60rpx);\r\n                transform: translateX(-50%) translateY(60rpx);\n}\nto {\r\n        opacity: 1;\r\n        -webkit-transform: translateX(-50%) translateY(0);\r\n                transform: translateX(-50%) translateY(0);\n}\n}\n@keyframes slideInUp {\nfrom {\r\n        opacity: 0;\r\n        -webkit-transform: translateX(-50%) translateY(60rpx);\r\n                transform: translateX(-50%) translateY(60rpx);\n}\nto {\r\n        opacity: 1;\r\n        -webkit-transform: translateX(-50%) translateY(0);\r\n                transform: translateX(-50%) translateY(0);\n}\n}\r\n\r\n/* ---- 阶段二：开屏图 ---- */\n.image-phase-container {\r\n    width: 100%;\r\n    height: 100%;\r\n    -webkit-animation: fadeIn 0.8s ease-in-out;\r\n            animation: fadeIn 0.8s ease-in-out;\n}\n.splash-image {\r\n    width: 100%;\r\n    height: 100%;\r\n    object-fit: cover;\n}\n@-webkit-keyframes fadeIn {\nfrom {\r\n        opacity: 0;\n}\nto {\r\n        opacity: 1;\n}\n}\n@keyframes fadeIn {\nfrom {\r\n        opacity: 0;\n}\nto {\r\n        opacity: 1;\n}\n}\r\n\r\n/* ---- 原有的样式（保留作为备用） ---- */\n.splash-container {\r\n    position: fixed;\r\n    top: 0;\r\n    left: 0;\r\n    right: 0;\r\n    bottom: 0;\r\n    width: 100vw;\r\n    height: 100vh;\r\n    margin: 0;\r\n    padding: 0;\r\n    overflow: hidden;\r\n    background-color: #000;\r\n    opacity: 1;\r\n    transition: opacity 0.8s ease-in-out;\n}\n.splash-container.fade-out {\r\n    opacity: 0;\n}\n.splash-image.zoom-out {\r\n    -webkit-transform: scale(1.1);\r\n            transform: scale(1.1);\n}\n.loading-indicator {\r\n    position: absolute;\r\n    bottom: 100rpx;\r\n    left: 50%;\r\n    -webkit-transform: translateX(-50%);\r\n            transform: translateX(-50%);\r\n    color: rgba(255, 255, 255, 0.8);\r\n    font-size: 28rpx;\r\n    z-index: 10;\n}\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -1336,7 +1336,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../../HBuilderX.4.76.2025082103/HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n/* 新的登录页面样式 */\n.container {\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    padding: 120rpx 60rpx 60rpx;\n    height: 100vh;\n    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);\n}\n.title {\n    font-size: 56rpx;\n    font-weight: bold;\n    margin-bottom: 20rpx;\n    color: #333;\n    text-align: center;\n}\n.subtitle {\n    font-size: 28rpx;\n    color: #666;\n    margin-bottom: 100rpx;\n    text-align: center;\n}\n.form-wrapper {\n    width: 100%;\n    max-width: 600rpx;\n}\n.input-wrapper {\n    margin-bottom: 40rpx;\n    background: white;\n    border-radius: 16rpx;\n    padding: 30rpx;\n    box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);\n}\n.input-label {\n    display: block;\n    font-size: 28rpx;\n    color: #333;\n    margin-bottom: 20rpx;\n    font-weight: 500;\n}\n.input-field {\n    width: 100%;\n    font-size: 32rpx;\n    color: #333;\n    border: none;\n    outline: none;\n    background: transparent;\n}\n.input-field::-webkit-input-placeholder {\n    color: #999;\n}\n.input-field::placeholder {\n    color: #999;\n}\n.login-button {\n    width: 100%;\n    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n    color: white;\n    font-size: 32rpx;\n    font-weight: 500;\n    border-radius: 16rpx;\n    padding: 30rpx;\n    margin: 60rpx 0 40rpx;\n    border: none;\n    box-shadow: 0 8rpx 25rpx rgba(102, 126, 234, 0.3);\n    transition: all 0.3s ease;\n}\n.login-button:active {\n    -webkit-transform: translateY(2rpx);\n            transform: translateY(2rpx);\n    box-shadow: 0 4rpx 15rpx rgba(102, 126, 234, 0.3);\n}\n.login-button:disabled {\n    background: #ccc;\n    box-shadow: none;\n    -webkit-transform: none;\n            transform: none;\n}\n.login-button.loading {\n    background: #ccc;\n    box-shadow: none;\n}\n.register-link-wrapper {\n    display: flex;\n    justify-content: center;\n    align-items: center;\n    margin-top: 40rpx;\n}\n.register-text {\n    font-size: 28rpx;\n    color: #666;\n    margin-right: 10rpx;\n}\n.register-link {\n    font-size: 28rpx;\n    color: #667eea;\n    font-weight: 500;\n    text-decoration: underline;\n}\n", ""]);
+exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* 新的登录页面样式 */\n.container {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    padding: 120rpx 60rpx 60rpx;\r\n    height: 100vh;\r\n    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);\n}\n.title {\r\n    font-size: 56rpx;\r\n    font-weight: bold;\r\n    margin-bottom: 20rpx;\r\n    color: #333;\r\n    text-align: center;\n}\n.subtitle {\r\n    font-size: 28rpx;\r\n    color: #666;\r\n    margin-bottom: 100rpx;\r\n    text-align: center;\n}\n.form-wrapper {\r\n    width: 100%;\r\n    max-width: 600rpx;\n}\n.input-wrapper {\r\n    margin-bottom: 40rpx;\r\n    background: white;\r\n    border-radius: 16rpx;\r\n    padding: 30rpx;\r\n    box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);\n}\n.input-label {\r\n    display: block;\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    margin-bottom: 20rpx;\r\n    font-weight: 500;\n}\n.input-field {\r\n    width: 100%;\r\n    font-size: 32rpx;\r\n    color: #333;\r\n    border: none;\r\n    outline: none;\r\n    background: transparent;\n}\n.input-field::-webkit-input-placeholder {\r\n    color: #999;\n}\n.input-field::placeholder {\r\n    color: #999;\n}\n.login-button {\r\n    width: 100%;\r\n    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\r\n    color: white;\r\n    font-size: 32rpx;\r\n    font-weight: 500;\r\n    border-radius: 16rpx;\r\n    padding: 30rpx;\r\n    margin: 60rpx 0 40rpx;\r\n    border: none;\r\n    box-shadow: 0 8rpx 25rpx rgba(102, 126, 234, 0.3);\r\n    transition: all 0.3s ease;\n}\n.login-button:active {\r\n    -webkit-transform: translateY(2rpx);\r\n            transform: translateY(2rpx);\r\n    box-shadow: 0 4rpx 15rpx rgba(102, 126, 234, 0.3);\n}\n.login-button:disabled {\r\n    background: #ccc;\r\n    box-shadow: none;\r\n    -webkit-transform: none;\r\n            transform: none;\n}\n.login-button.loading {\r\n    background: #ccc;\r\n    box-shadow: none;\n}\n.register-link-wrapper {\r\n    display: flex;\r\n    justify-content: center;\r\n    align-items: center;\r\n    margin-top: 40rpx;\n}\n.register-text {\r\n    font-size: 28rpx;\r\n    color: #666;\r\n    margin-right: 10rpx;\n}\n.register-link {\r\n    font-size: 28rpx;\r\n    color: #667eea;\r\n    font-weight: 500;\r\n    text-decoration: underline;\n}\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -3062,6 +3062,7 @@ var render = function () {
                                                     "45-" + $30,
                                                     "a-data-index"
                                                   ),
+                                                  "data-list-type": "home",
                                                   _i: "45-" + $30,
                                                 },
                                                 on: {
@@ -3775,6 +3776,8 @@ var render = function () {
                                                       "79-" + $33,
                                                       "a-data-index"
                                                     ),
+                                                    "data-list-type":
+                                                      "discover",
                                                     _i: "79-" + $33,
                                                   },
                                                   on: {
@@ -4387,7 +4390,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../../HBuilderX.4.76.2025082103/HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n/* index.wxss */\n.page-indicator {\n    position: fixed;\n    top: 100rpx;\n    left: 50%;\n    -webkit-transform: translateX(-50%);\n            transform: translateX(-50%);\n    background: rgba(0, 0, 0, 0.7);\n    color: white;\n    padding: 20rpx 40rpx;\n    border-radius: 50rpx;\n    font-size: 28rpx;\n    z-index: 9999;\n    -webkit-animation: pageIndicatorFadeIn 0.3s ease-in-out;\n            animation: pageIndicatorFadeIn 0.3s ease-in-out;\n}\n.page-indicator-text {\n    text-align: center;\n    font-weight: 500;\n}\n@-webkit-keyframes pageIndicatorFadeIn {\n0% {\n        opacity: 0;\n        -webkit-transform: translateX(-50%) translateY(-20rpx);\n                transform: translateX(-50%) translateY(-20rpx);\n}\n100% {\n        opacity: 1;\n        -webkit-transform: translateX(-50%) translateY(0);\n                transform: translateX(-50%) translateY(0);\n}\n}\n@keyframes pageIndicatorFadeIn {\n0% {\n        opacity: 0;\n        -webkit-transform: translateX(-50%) translateY(-20rpx);\n                transform: translateX(-50%) translateY(-20rpx);\n}\n100% {\n        opacity: 1;\n        -webkit-transform: translateX(-50%) translateY(0);\n                transform: translateX(-50%) translateY(0);\n}\n}\n.container {\n    padding: 20rpx;\n    background-color: #f7f8fa;\n    min-height: 100vh;\n    padding-bottom: 100rpx; /* 为底部tabBar留出空间 */\n    position: relative; /* 为消息图标定位做准备 */\n}\n/* 消息图标容器 */\n.message-icon-container {\n    position: fixed;\n    right: 40rpx;\n    bottom: 280rpx; /* 移到发布按钮上面 */\n    width: 80rpx;\n    height: 80rpx;\n    background: rgba(255, 255, 255, 0.9);\n    backdrop-filter: blur(20rpx);\n    -webkit-backdrop-filter: blur(20rpx);\n    border-radius: 50%;\n    display: flex;\n    justify-content: center;\n    align-items: center;\n    box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.1);\n    border: 1rpx solid rgba(255, 255, 255, 0.3);\n    z-index: 1000;\n    transition: all 0.2s ease;\n}\n.message-icon-container:active {\n    -webkit-transform: scale(0.95);\n            transform: scale(0.95);\n    background: rgba(255, 255, 255, 0.8);\n}\n.message-icon {\n    font-size: 36rpx;\n    color: #333;\n}\n/* 未读消息红点 */\n.unread-dot {\n    position: absolute;\n    top: 8rpx;\n    right: 8rpx;\n    width: 16rpx;\n    height: 16rpx;\n    background-color: #ff4757;\n    border-radius: 50%;\n    border: 2rpx solid #fff;\n    -webkit-animation: pulse 2s infinite;\n            animation: pulse 2s infinite;\n}\n/* 红点脉冲动画 */\n@-webkit-keyframes pulse {\n0% {\n        -webkit-transform: scale(1);\n                transform: scale(1);\n        opacity: 1;\n}\n50% {\n        -webkit-transform: scale(1.2);\n                transform: scale(1.2);\n        opacity: 0.8;\n}\n100% {\n        -webkit-transform: scale(1);\n                transform: scale(1);\n        opacity: 1;\n}\n}\n@keyframes pulse {\n0% {\n        -webkit-transform: scale(1);\n                transform: scale(1);\n        opacity: 1;\n}\n50% {\n        -webkit-transform: scale(1.2);\n                transform: scale(1.2);\n        opacity: 0.8;\n}\n100% {\n        -webkit-transform: scale(1);\n                transform: scale(1);\n        opacity: 1;\n}\n}\n/* 搜索框容器 */\n.search-box-container {\n    margin-bottom: 20rpx;\n}\n/* 搜索框样式 */\n.search-box {\n    background-color: #fff;\n    border-radius: 16rpx;\n    padding: 24rpx 30rpx;\n    display: flex;\n    align-items: center;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n    border: 1rpx solid rgba(0, 0, 0, 0.05);\n    transition: all 0.2s ease;\n}\n.search-box:active {\n    -webkit-transform: scale(0.98);\n            transform: scale(0.98);\n    background-color: #f8f9fa;\n}\n.search-icon {\n    font-size: 32rpx;\n    margin-right: 20rpx;\n    color: #999;\n}\n.search-placeholder {\n    font-size: 28rpx;\n    color: #999;\n    flex: 1;\n}\n/* 读诗模式容器 */\n.poem-mode-container {\n    position: fixed;\n    top: 0;\n    left: 0;\n    width: 100vw;\n    height: 100vh;\n    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n    z-index: 100;\n    overflow: hidden;\n}\n/* 滑动指示器 */\n.swipe-indicator {\n    position: absolute;\n    top: 50%;\n    -webkit-transform: translateY(-50%);\n            transform: translateY(-50%);\n    color: rgba(255, 255, 255, 0.8);\n    font-size: 28rpx;\n    padding: 20rpx 30rpx;\n    background: rgba(0, 0, 0, 0.3);\n    border-radius: 50rpx;\n    -webkit-backdrop-filter: blur(10rpx);\n            backdrop-filter: blur(10rpx);\n}\n.swipe-indicator.left {\n    left: 30rpx;\n}\n.swipe-indicator.right {\n    right: 30rpx;\n}\n/* 帖子索引指示器 */\n.post-indicator {\n    position: absolute;\n    bottom: 60rpx;\n    left: 50%;\n    -webkit-transform: translateX(-50%);\n            transform: translateX(-50%);\n    color: rgba(255, 255, 255, 0.9);\n    font-size: 24rpx;\n    padding: 12rpx 24rpx;\n    background: rgba(0, 0, 0, 0.4);\n    border-radius: 30rpx;\n    -webkit-backdrop-filter: blur(10rpx);\n            backdrop-filter: blur(10rpx);\n}\n/* 列表模式容器 */\n.list-mode-container,\n.list-content {\n    display: block;\n}\n/* 广场模式容器 */\n.square-mode-container {\n    display: block;\n}\n/* 新增：帖子项包装器样式 */\n.post-item-wrapper {\n    background: #fff;\n    border-radius: 16rpx;\n    margin-bottom: 20rpx;\n    padding: 30rpx;\n    box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);\n}\n/* 原创帖子特殊样式 */\n.post-item-wrapper.original-post {\n    border: 3rpx solid #ebc88d;\n    box-shadow: 0 4rpx 20rpx rgba(235, 200, 141, 0.3), 0 2rpx 12rpx rgba(0, 0, 0, 0.06);\n    position: relative;\n}\n/* 原创帖子光影效果 */\n.post-item-wrapper.original-post::before {\n    content: '';\n    position: absolute;\n    top: -2rpx;\n    left: -2rpx;\n    right: -2rpx;\n    bottom: -2rpx;\n    background: linear-gradient(45deg, #ebc88d, #f4d03f, #ebc88d);\n    border-radius: 18rpx;\n    z-index: -1;\n    opacity: 0.6;\n    -webkit-filter: blur(8rpx);\n            filter: blur(8rpx);\n}\n/* 新增：内容导航器样式 */\n.post-content-navigator {\n    display: block;\n    background: transparent;\n}\n/* 新增：导航器点击效果 */\n.navigator-hover {\n    background-color: rgba(0, 0, 0, 0.02);\n}\n/* 新增：点赞按钮容器样式 */\n.like-icon-container {\n    padding: 10rpx;\n    border-radius: 50%;\n    transition: all 0.2s ease;\n}\n/* 新增：点赞按钮点击效果 */\n.like-icon-container:active {\n    -webkit-transform: scale(0.9);\n            transform: scale(0.9);\n    background-color: rgba(255, 107, 107, 0.1);\n}\n/* 新增：点赞图标样式 */\n.like-icon {\n    width: 40rpx;\n    height: 40rpx;\n    transition: all 0.2s ease;\n}\n.author-info {\n    display: flex;\n    align-items: center;\n    margin-bottom: 15rpx;\n}\n.author-avatar {\n    width: 60rpx;\n    height: 60rpx;\n    border-radius: 50%;\n    margin-right: 15rpx;\n    background-color: #f5f5f5;\n}\n.author-name {\n    font-size: 28rpx;\n    color: #333;\n    font-weight: 500;\n}\n/* 新增：图片容器占位样式 */\n.image-container-wrapper {\n    position: relative;\n    width: 100%;\n    background-color: #f0f0f0; /* 占位时的背景色，很重要 */\n    overflow: hidden;\n    border-radius: 8px; /* 可以加个圆角，让占位块更好看 */\n    margin: 20rpx 0; /* 图片和下方内容的间距 */\n}\n/* 新增：让图片或Swiper填充整个占位容器 */\n.image-container-wrapper .post-image,\n.image-container-wrapper .image-swiper {\n    position: absolute;\n    top: 0;\n    left: 0;\n    width: 100%;\n    height: 100%;\n}\n/* 多图容器 */\n.multi-image-container {\n    width: 100%;\n    position: relative;\n}\n/* 单图容器 */\n.single-image-container {\n    width: 100%;\n    position: relative;\n}\n/* 多张图片的swiper样式 */\n.image-swiper {\n    width: 100%;\n    background-color: #fff;\n    /* 高度由 style 绑定动态设置 */\n}\n.swiper-item {\n    width: 100%;\n    height: 100%;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n.post-image {\n    width: 100%;\n    height: 100%;\n    display: block;\n    object-fit: contain;\n}\n.post-image:active {\n    -webkit-transform: scale(1.05);\n            transform: scale(1.05);\n}\n.post-image.single-image {\n    width: 100%;\n    height: auto;\n    display: block;\n    background-color: #f5f5f5;\n}\n/* 图片数量指示器 */\n.image-count-indicator {\n    position: absolute;\n    top: 20rpx;\n    right: 20rpx;\n    background-color: rgba(0, 0, 0, 0.6);\n    color: white;\n    padding: 8rpx 16rpx;\n    border-radius: 20rpx;\n    font-size: 24rpx;\n    z-index: 10;\n    -webkit-backdrop-filter: blur(10rpx);\n            backdrop-filter: blur(10rpx);\n}\n/* 卡片项样式 */\n.post-item-wrapper {\n    margin-bottom: 20rpx;\n}\n/* 外部作者信息样式 */\n.author-info-outside {\n    display: flex;\n    align-items: center;\n    padding: 20rpx 30rpx 10rpx 30rpx;\n    background: #fff;\n    border-radius: 16rpx 16rpx 0 0;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.author-info-outside .author-avatar {\n    width: 60rpx;\n    height: 60rpx;\n    border-radius: 50%;\n    margin-right: 15rpx;\n    background-color: #f5f5f5;\n    cursor: pointer;\n}\n.author-info-outside .author-name {\n    font-size: 28rpx;\n    color: #333;\n    font-weight: 500;\n}\n.post-item {\n    width: 100%;\n    background: #fff;\n    border-radius: 0 0 16rpx 16rpx;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n    box-sizing: border-box;\n    padding: 20rpx 30rpx 30rpx 30rpx;\n}\n/* 定义点击时的样式 - 整个卡片缩小 */\n.post-card-active {\n    -webkit-transform: scale(0.98);\n            transform: scale(0.98);\n}\n.post-title {\n    font-size: 36rpx;\n    font-weight: bold;\n    color: #333333;\n    margin-bottom: 15rpx;\n    line-height: 1.4;\n    word-break: break-word;\n    overflow: hidden;\n    text-overflow: ellipsis;\n    display: -webkit-box;\n    -webkit-line-clamp: 2;\n    line-clamp: 2;\n    -webkit-box-orient: vertical;\n}\n/* 诗歌作者样式 */\n.poem-author {\n    font-size: 32rpx;\n    color: #000;\n    text-align: center;\n    margin: 5rpx 0 15rpx 0;\n    letter-spacing: 2rpx;\n}\n.post-content {\n    font-size: 28rpx;\n    color: #666666;\n    line-height: 1.6;\n    margin-top: 15rpx;\n    word-break: break-word;\n    overflow: hidden;\n    text-overflow: ellipsis;\n    display: -webkit-box;\n    -webkit-line-clamp: 3;\n    line-clamp: 3;\n    -webkit-box-orient: vertical;\n}\n.add-button {\n    position: fixed;\n    right: 40rpx;\n    bottom: 160rpx;\n    width: 80rpx; /* 从100rpx调整为80rpx */\n    height: 80rpx; /* 从100rpx调整为80rpx */\n    background: rgba(135, 206, 235, 0.8); /* 改为淡蓝色 */\n    backdrop-filter: blur(20rpx);\n    -webkit-backdrop-filter: blur(20rpx);\n    border-radius: 50%;\n    display: flex;\n    justify-content: center;\n    align-items: center;\n    color: white;\n    font-size: 48rpx; /* 相应调整字体大小 */\n    box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.1);\n    border: 1rpx solid rgba(255, 255, 255, 0.2);\n    z-index: 100;\n    transition: -webkit-transform 0.2s ease;\n    transition: transform 0.2s ease;\n    transition: transform 0.2s ease, -webkit-transform 0.2s ease;\n}\n.add-button:active {\n    -webkit-transform: scale(0.9);\n            transform: scale(0.9);\n}\n.vote-section {\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n    margin-top: 20rpx;\n    padding-top: 20rpx;\n    border-top: 1rpx solid #f0f0f0;\n}\n.vote-count,\n.comment-count {\n    display: flex;\n    align-items: center;\n    font-size: 28rpx;\n    color: #999;\n    margin-left: 10rpx;\n    transition: color 0.2s ease;\n}\n.vote-count {\n    margin-left: 10rpx;\n}\n.vote-count.voted {\n    color: #ff4757;\n}\n.actions-left {\n    display: flex;\n    align-items: center;\n}\n.action-emoji {\n    font-size: 28rpx;\n    margin-right: 8rpx;\n}\n.action-text {\n    font-size: 28rpx;\n    color: inherit;\n}\n.button-group {\n    display: flex;\n    align-items: center;\n}\n.like-icon-container {\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    padding: 8rpx;\n    border-radius: 8rpx;\n    margin-left: 20rpx;\n    transition: all 0.2s ease;\n}\n.like-icon-container:active {\n    -webkit-transform: scale(0.95);\n            transform: scale(0.95);\n}\n.like-icon {\n    width: 48rpx;\n    height: 48rpx;\n}\n/* 空状态样式 */\n.empty-state {\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    justify-content: center;\n    padding: 100rpx 40rpx;\n    text-align: center;\n}\n.empty-icon {\n    font-size: 120rpx;\n    margin-bottom: 30rpx;\n    opacity: 0.6;\n}\n.empty-text {\n    font-size: 32rpx;\n    color: #666;\n    margin-bottom: 15rpx;\n}\n.empty-subtext {\n    font-size: 28rpx;\n    color: #999;\n}\n/* 加载更多样式 */\n.loading-more {\n    display: flex;\n    justify-content: center;\n    align-items: center;\n    padding: 40rpx;\n}\n.loading-text {\n    font-size: 28rpx;\n    color: #999;\n}\n/* 底部加载状态样式 */\n.loading-footer {\n    text-align: center;\n    padding: 20rpx 0;\n    color: #999;\n    font-size: 14px;\n}\n/* 标签样式 */\n.post-tags {\n    margin-top: 30rpx;\n    margin-bottom: 10rpx;\n    line-height: 1.5;\n}\n.post-tag {\n    color: #24375f;\n    font-size: 26rpx;\n    margin-right: 10rpx;\n    transition: all 0.2s ease;\n    cursor: pointer;\n}\n.post-tag:active {\n    color: #1a2a4a;\n    opacity: 0.8;\n}\n/* 发现页推荐相关样式 */\n.discover-end-tip {\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    padding: 40rpx 20rpx;\n    color: #999;\n}\n.end-text {\n    font-size: 28rpx;\n    margin-bottom: 20rpx;\n}\n.refresh-tip {\n    background: rgba(255, 193, 7, 0.1);\n    border: 2rpx solid rgba(255, 193, 7, 0.3);\n    border-radius: 20rpx;\n    padding: 16rpx 24rpx;\n}\n.refresh-text {\n    font-size: 24rpx;\n    color: #ffc107;\n    font-weight: 500;\n}\n", ""]);
+exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* index.wxss */\n.page-indicator {\r\n    position: fixed;\r\n    top: 100rpx;\r\n    left: 50%;\r\n    -webkit-transform: translateX(-50%);\r\n            transform: translateX(-50%);\r\n    background: rgba(0, 0, 0, 0.7);\r\n    color: white;\r\n    padding: 20rpx 40rpx;\r\n    border-radius: 50rpx;\r\n    font-size: 28rpx;\r\n    z-index: 9999;\r\n    -webkit-animation: pageIndicatorFadeIn 0.3s ease-in-out;\r\n            animation: pageIndicatorFadeIn 0.3s ease-in-out;\n}\n.page-indicator-text {\r\n    text-align: center;\r\n    font-weight: 500;\n}\n@-webkit-keyframes pageIndicatorFadeIn {\n0% {\r\n        opacity: 0;\r\n        -webkit-transform: translateX(-50%) translateY(-20rpx);\r\n                transform: translateX(-50%) translateY(-20rpx);\n}\n100% {\r\n        opacity: 1;\r\n        -webkit-transform: translateX(-50%) translateY(0);\r\n                transform: translateX(-50%) translateY(0);\n}\n}\n@keyframes pageIndicatorFadeIn {\n0% {\r\n        opacity: 0;\r\n        -webkit-transform: translateX(-50%) translateY(-20rpx);\r\n                transform: translateX(-50%) translateY(-20rpx);\n}\n100% {\r\n        opacity: 1;\r\n        -webkit-transform: translateX(-50%) translateY(0);\r\n                transform: translateX(-50%) translateY(0);\n}\n}\n.container {\r\n    padding: 20rpx;\r\n    background-color: #f7f8fa;\r\n    min-height: 100vh;\r\n    padding-bottom: 100rpx; /* 为底部tabBar留出空间 */\r\n    position: relative; /* 为消息图标定位做准备 */\n}\r\n/* 消息图标容器 */\n.message-icon-container {\r\n    position: fixed;\r\n    right: 40rpx;\r\n    bottom: 280rpx; /* 移到发布按钮上面 */\r\n    width: 80rpx;\r\n    height: 80rpx;\r\n    background: rgba(255, 255, 255, 0.9);\r\n    backdrop-filter: blur(20rpx);\r\n    -webkit-backdrop-filter: blur(20rpx);\r\n    border-radius: 50%;\r\n    display: flex;\r\n    justify-content: center;\r\n    align-items: center;\r\n    box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.1);\r\n    border: 1rpx solid rgba(255, 255, 255, 0.3);\r\n    z-index: 1000;\r\n    transition: all 0.2s ease;\n}\n.message-icon-container:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\r\n    background: rgba(255, 255, 255, 0.8);\n}\n.message-icon {\r\n    font-size: 36rpx;\r\n    color: #333;\n}\r\n/* 未读消息红点 */\n.unread-dot {\r\n    position: absolute;\r\n    top: 8rpx;\r\n    right: 8rpx;\r\n    width: 16rpx;\r\n    height: 16rpx;\r\n    background-color: #ff4757;\r\n    border-radius: 50%;\r\n    border: 2rpx solid #fff;\r\n    -webkit-animation: pulse 2s infinite;\r\n            animation: pulse 2s infinite;\n}\r\n/* 红点脉冲动画 */\n@-webkit-keyframes pulse {\n0% {\r\n        -webkit-transform: scale(1);\r\n                transform: scale(1);\r\n        opacity: 1;\n}\n50% {\r\n        -webkit-transform: scale(1.2);\r\n                transform: scale(1.2);\r\n        opacity: 0.8;\n}\n100% {\r\n        -webkit-transform: scale(1);\r\n                transform: scale(1);\r\n        opacity: 1;\n}\n}\n@keyframes pulse {\n0% {\r\n        -webkit-transform: scale(1);\r\n                transform: scale(1);\r\n        opacity: 1;\n}\n50% {\r\n        -webkit-transform: scale(1.2);\r\n                transform: scale(1.2);\r\n        opacity: 0.8;\n}\n100% {\r\n        -webkit-transform: scale(1);\r\n                transform: scale(1);\r\n        opacity: 1;\n}\n}\r\n/* 搜索框容器 */\n.search-box-container {\r\n    margin-bottom: 20rpx;\n}\r\n/* 搜索框样式 */\n.search-box {\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    padding: 24rpx 30rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\r\n    border: 1rpx solid rgba(0, 0, 0, 0.05);\r\n    transition: all 0.2s ease;\n}\n.search-box:active {\r\n    -webkit-transform: scale(0.98);\r\n            transform: scale(0.98);\r\n    background-color: #f8f9fa;\n}\n.search-icon {\r\n    font-size: 32rpx;\r\n    margin-right: 20rpx;\r\n    color: #999;\n}\n.search-placeholder {\r\n    font-size: 28rpx;\r\n    color: #999;\r\n    flex: 1;\n}\r\n/* 读诗模式容器 */\n.poem-mode-container {\r\n    position: fixed;\r\n    top: 0;\r\n    left: 0;\r\n    width: 100vw;\r\n    height: 100vh;\r\n    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\r\n    z-index: 100;\r\n    overflow: hidden;\n}\r\n/* 滑动指示器 */\n.swipe-indicator {\r\n    position: absolute;\r\n    top: 50%;\r\n    -webkit-transform: translateY(-50%);\r\n            transform: translateY(-50%);\r\n    color: rgba(255, 255, 255, 0.8);\r\n    font-size: 28rpx;\r\n    padding: 20rpx 30rpx;\r\n    background: rgba(0, 0, 0, 0.3);\r\n    border-radius: 50rpx;\r\n    -webkit-backdrop-filter: blur(10rpx);\r\n            backdrop-filter: blur(10rpx);\n}\n.swipe-indicator.left {\r\n    left: 30rpx;\n}\n.swipe-indicator.right {\r\n    right: 30rpx;\n}\r\n/* 帖子索引指示器 */\n.post-indicator {\r\n    position: absolute;\r\n    bottom: 60rpx;\r\n    left: 50%;\r\n    -webkit-transform: translateX(-50%);\r\n            transform: translateX(-50%);\r\n    color: rgba(255, 255, 255, 0.9);\r\n    font-size: 24rpx;\r\n    padding: 12rpx 24rpx;\r\n    background: rgba(0, 0, 0, 0.4);\r\n    border-radius: 30rpx;\r\n    -webkit-backdrop-filter: blur(10rpx);\r\n            backdrop-filter: blur(10rpx);\n}\r\n/* 列表模式容器 */\n.list-mode-container,\r\n.list-content {\r\n    display: block;\n}\r\n/* 广场模式容器 */\n.square-mode-container {\r\n    display: block;\n}\r\n/* 新增：帖子项包装器样式 */\n.post-item-wrapper {\r\n    background: #fff;\r\n    border-radius: 16rpx;\r\n    margin-bottom: 20rpx;\r\n    padding: 30rpx;\r\n    box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);\n}\r\n/* 原创帖子特殊样式 */\n.post-item-wrapper.original-post {\r\n    border: 3rpx solid #ebc88d;\r\n    box-shadow: 0 4rpx 20rpx rgba(235, 200, 141, 0.3), 0 2rpx 12rpx rgba(0, 0, 0, 0.06);\r\n    position: relative;\n}\r\n/* 原创帖子光影效果 */\n.post-item-wrapper.original-post::before {\r\n    content: '';\r\n    position: absolute;\r\n    top: -2rpx;\r\n    left: -2rpx;\r\n    right: -2rpx;\r\n    bottom: -2rpx;\r\n    background: linear-gradient(45deg, #ebc88d, #f4d03f, #ebc88d);\r\n    border-radius: 18rpx;\r\n    z-index: -1;\r\n    opacity: 0.6;\r\n    -webkit-filter: blur(8rpx);\r\n            filter: blur(8rpx);\n}\r\n/* 新增：内容导航器样式 */\n.post-content-navigator {\r\n    display: block;\r\n    background: transparent;\n}\r\n/* 新增：导航器点击效果 */\n.navigator-hover {\r\n    background-color: rgba(0, 0, 0, 0.02);\n}\r\n/* 新增：点赞按钮容器样式 */\n.like-icon-container {\r\n    padding: 10rpx;\r\n    border-radius: 50%;\r\n    transition: all 0.2s ease;\n}\r\n/* 新增：点赞按钮点击效果 */\n.like-icon-container:active {\r\n    -webkit-transform: scale(0.9);\r\n            transform: scale(0.9);\r\n    background-color: rgba(255, 107, 107, 0.1);\n}\r\n/* 新增：点赞图标样式 */\n.like-icon {\r\n    width: 40rpx;\r\n    height: 40rpx;\r\n    transition: all 0.2s ease;\n}\n.author-info {\r\n    display: flex;\r\n    align-items: center;\r\n    margin-bottom: 15rpx;\n}\n.author-avatar {\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    border-radius: 50%;\r\n    margin-right: 15rpx;\r\n    background-color: #f5f5f5;\n}\n.author-name {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    font-weight: 500;\n}\r\n/* 新增：图片容器占位样式 */\n.image-container-wrapper {\r\n    position: relative;\r\n    width: 100%;\r\n    background-color: #f0f0f0; /* 占位时的背景色，很重要 */\r\n    overflow: hidden;\r\n    border-radius: 8px; /* 可以加个圆角，让占位块更好看 */\r\n    margin: 20rpx 0; /* 图片和下方内容的间距 */\n}\r\n/* 新增：让图片或Swiper填充整个占位容器 */\n.image-container-wrapper .post-image,\r\n.image-container-wrapper .image-swiper {\r\n    position: absolute;\r\n    top: 0;\r\n    left: 0;\r\n    width: 100%;\r\n    height: 100%;\n}\r\n/* 多图容器 */\n.multi-image-container {\r\n    width: 100%;\r\n    position: relative;\n}\r\n/* 单图容器 */\n.single-image-container {\r\n    width: 100%;\r\n    position: relative;\n}\r\n/* 多张图片的swiper样式 */\n.image-swiper {\r\n    width: 100%;\r\n    background-color: #fff;\r\n    /* 高度由 style 绑定动态设置 */\n}\n.swiper-item {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\n}\n.post-image {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: block;\r\n    object-fit: contain;\n}\n.post-image:active {\r\n    -webkit-transform: scale(1.05);\r\n            transform: scale(1.05);\n}\n.post-image.single-image {\r\n    width: 100%;\r\n    height: auto;\r\n    display: block;\r\n    background-color: #f5f5f5;\n}\r\n/* 图片数量指示器 */\n.image-count-indicator {\r\n    position: absolute;\r\n    top: 20rpx;\r\n    right: 20rpx;\r\n    background-color: rgba(0, 0, 0, 0.6);\r\n    color: white;\r\n    padding: 8rpx 16rpx;\r\n    border-radius: 20rpx;\r\n    font-size: 24rpx;\r\n    z-index: 10;\r\n    -webkit-backdrop-filter: blur(10rpx);\r\n            backdrop-filter: blur(10rpx);\n}\r\n/* 卡片项样式 */\n.post-item-wrapper {\r\n    margin-bottom: 20rpx;\n}\r\n/* 外部作者信息样式 */\n.author-info-outside {\r\n    display: flex;\r\n    align-items: center;\r\n    padding: 20rpx 30rpx 10rpx 30rpx;\r\n    background: #fff;\r\n    border-radius: 16rpx 16rpx 0 0;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.author-info-outside .author-avatar {\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    border-radius: 50%;\r\n    margin-right: 15rpx;\r\n    background-color: #f5f5f5;\r\n    cursor: pointer;\n}\n.author-info-outside .author-name {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    font-weight: 500;\n}\n.post-item {\r\n    width: 100%;\r\n    background: #fff;\r\n    border-radius: 0 0 16rpx 16rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\r\n    box-sizing: border-box;\r\n    padding: 20rpx 30rpx 30rpx 30rpx;\n}\r\n/* 定义点击时的样式 - 整个卡片缩小 */\n.post-card-active {\r\n    -webkit-transform: scale(0.98);\r\n            transform: scale(0.98);\n}\n.post-title {\r\n    font-size: 36rpx;\r\n    font-weight: bold;\r\n    color: #333333;\r\n    margin-bottom: 15rpx;\r\n    line-height: 1.4;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 2;\r\n    line-clamp: 2;\r\n    -webkit-box-orient: vertical;\n}\r\n/* 诗歌作者样式 */\n.poem-author {\r\n    font-size: 32rpx;\r\n    color: #000;\r\n    text-align: center;\r\n    margin: 5rpx 0 15rpx 0;\r\n    letter-spacing: 2rpx;\n}\n.post-content {\r\n    font-size: 28rpx;\r\n    color: #666666;\r\n    line-height: 1.6;\r\n    margin-top: 15rpx;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 3;\r\n    line-clamp: 3;\r\n    -webkit-box-orient: vertical;\n}\n.add-button {\r\n    position: fixed;\r\n    right: 40rpx;\r\n    bottom: 160rpx;\r\n    width: 80rpx; /* 从100rpx调整为80rpx */\r\n    height: 80rpx; /* 从100rpx调整为80rpx */\r\n    background: rgba(135, 206, 235, 0.8); /* 改为淡蓝色 */\r\n    backdrop-filter: blur(20rpx);\r\n    -webkit-backdrop-filter: blur(20rpx);\r\n    border-radius: 50%;\r\n    display: flex;\r\n    justify-content: center;\r\n    align-items: center;\r\n    color: white;\r\n    font-size: 48rpx; /* 相应调整字体大小 */\r\n    box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.1);\r\n    border: 1rpx solid rgba(255, 255, 255, 0.2);\r\n    z-index: 100;\r\n    transition: -webkit-transform 0.2s ease;\r\n    transition: transform 0.2s ease;\r\n    transition: transform 0.2s ease, -webkit-transform 0.2s ease;\n}\n.add-button:active {\r\n    -webkit-transform: scale(0.9);\r\n            transform: scale(0.9);\n}\n.vote-section {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    margin-top: 20rpx;\r\n    padding-top: 20rpx;\r\n    border-top: 1rpx solid #f0f0f0;\n}\n.vote-count,\r\n.comment-count {\r\n    display: flex;\r\n    align-items: center;\r\n    font-size: 28rpx;\r\n    color: #999;\r\n    margin-left: 10rpx;\r\n    transition: color 0.2s ease;\n}\n.vote-count {\r\n    margin-left: 10rpx;\n}\n.vote-count.voted {\r\n    color: #ff4757;\n}\n.actions-left {\r\n    display: flex;\r\n    align-items: center;\n}\n.action-emoji {\r\n    font-size: 28rpx;\r\n    margin-right: 8rpx;\n}\n.action-text {\r\n    font-size: 28rpx;\r\n    color: inherit;\n}\n.button-group {\r\n    display: flex;\r\n    align-items: center;\n}\n.like-icon-container {\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 8rpx;\r\n    border-radius: 8rpx;\r\n    margin-left: 20rpx;\r\n    transition: all 0.2s ease;\n}\n.like-icon-container:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.like-icon {\r\n    width: 48rpx;\r\n    height: 48rpx;\n}\r\n/* 空状态样式 */\n.empty-state {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 100rpx 40rpx;\r\n    text-align: center;\n}\n.empty-icon {\r\n    font-size: 120rpx;\r\n    margin-bottom: 30rpx;\r\n    opacity: 0.6;\n}\n.empty-text {\r\n    font-size: 32rpx;\r\n    color: #666;\r\n    margin-bottom: 15rpx;\n}\n.empty-subtext {\r\n    font-size: 28rpx;\r\n    color: #999;\n}\r\n/* 加载更多样式 */\n.loading-more {\r\n    display: flex;\r\n    justify-content: center;\r\n    align-items: center;\r\n    padding: 40rpx;\n}\n.loading-text {\r\n    font-size: 28rpx;\r\n    color: #999;\n}\r\n/* 底部加载状态样式 */\n.loading-footer {\r\n    text-align: center;\r\n    padding: 20rpx 0;\r\n    color: #999;\r\n    font-size: 14px;\n}\r\n/* 标签样式 */\n.post-tags {\r\n    margin-top: 30rpx;\r\n    margin-bottom: 10rpx;\r\n    line-height: 1.5;\n}\n.post-tag {\r\n    color: #24375f;\r\n    font-size: 26rpx;\r\n    margin-right: 10rpx;\r\n    transition: all 0.2s ease;\r\n    cursor: pointer;\n}\n.post-tag:active {\r\n    color: #1a2a4a;\r\n    opacity: 0.8;\n}\r\n/* 发现页推荐相关样式 */\n.discover-end-tip {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    padding: 40rpx 20rpx;\r\n    color: #999;\n}\n.end-text {\r\n    font-size: 28rpx;\r\n    margin-bottom: 20rpx;\n}\n.refresh-tip {\r\n    background: rgba(255, 193, 7, 0.1);\r\n    border: 2rpx solid rgba(255, 193, 7, 0.3);\r\n    border-radius: 20rpx;\r\n    padding: 16rpx 24rpx;\n}\n.refresh-text {\r\n    font-size: 24rpx;\r\n    color: #ffc107;\r\n    font-weight: 500;\n}\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -5296,7 +5299,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../../HBuilderX.4.76.2025082103/HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* components/folder-selector/folder-selector.wxss */\n.modal-overlay[data-v-06fd507c] {\r\n    position: fixed;\r\n    top: 0;\r\n    left: 0;\r\n    right: 0;\r\n    bottom: 0;\r\n    background: rgba(0, 0, 0, 0.5);\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    z-index: 1000;\n}\n.modal-content[data-v-06fd507c] {\r\n    background: white;\r\n    border-radius: 16rpx;\r\n    margin: 40rpx;\r\n    width: calc(100% - 80rpx);\r\n    max-width: 600rpx;\r\n    max-height: 80vh;\r\n    display: flex;\r\n    flex-direction: column;\n}\n.modal-header[data-v-06fd507c] {\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: space-between;\r\n    padding: 30rpx 40rpx;\r\n    border-bottom: 1rpx solid #f0f0f0;\n}\n.modal-title[data-v-06fd507c] {\r\n    font-size: 36rpx;\r\n    font-weight: 500;\r\n    color: #333;\n}\n.close-btn[data-v-06fd507c] {\r\n    font-size: 48rpx;\r\n    color: #999;\r\n    line-height: 1;\r\n    position: relative;\r\n    z-index: 1001;\n}\n.modal-body[data-v-06fd507c] {\r\n    flex: 1;\r\n    padding: 20rpx 0;\r\n    max-height: 60vh;\r\n    overflow-y: auto;\n}\n.loading-container[data-v-06fd507c] {\r\n    display: flex;\r\n    justify-content: center;\r\n    align-items: center;\r\n    height: 200rpx;\n}\n.loading-text[data-v-06fd507c] {\r\n    color: #999;\r\n    font-size: 28rpx;\n}\n.folders-list[data-v-06fd507c] {\r\n    padding: 0 40rpx;\n}\n.folder-item[data-v-06fd507c] {\r\n    display: flex;\r\n    align-items: center;\r\n    padding: 24rpx 0;\r\n    border-bottom: 1rpx solid #f8f8f8;\n}\n.folder-item[data-v-06fd507c]:last-child {\r\n    border-bottom: none;\n}\n.folder-item.selected[data-v-06fd507c] {\r\n    background: rgba(7, 193, 96, 0.1);\r\n    border-radius: 8rpx;\r\n    padding: 24rpx 20rpx;\r\n    margin: 0 -20rpx;\n}\n.folder-icon[data-v-06fd507c] {\r\n    font-size: 40rpx;\r\n    margin-right: 20rpx;\n}\n.folder-info[data-v-06fd507c] {\r\n    flex: 1;\n}\n.folder-name[data-v-06fd507c] {\r\n    font-size: 30rpx;\r\n    color: #333;\r\n    font-weight: 500;\r\n    margin-bottom: 4rpx;\n}\n.folder-count[data-v-06fd507c] {\r\n    font-size: 24rpx;\r\n    color: #999;\n}\n.selected-icon[data-v-06fd507c] {\r\n    font-size: 32rpx;\r\n    color: #9ed7ee;\r\n    font-weight: bold;\n}\n.empty-state[data-v-06fd507c] {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    justify-content: center;\r\n    height: 200rpx;\r\n    padding: 40rpx;\n}\n.empty-icon[data-v-06fd507c] {\r\n    font-size: 60rpx;\r\n    margin-bottom: 16rpx;\r\n    opacity: 0.5;\n}\n.empty-text[data-v-06fd507c] {\r\n    font-size: 28rpx;\r\n    color: #666;\r\n    margin-bottom: 8rpx;\n}\n.empty-subtext[data-v-06fd507c] {\r\n    font-size: 24rpx;\r\n    color: #999;\n}\n.modal-footer[data-v-06fd507c] {\r\n    display: flex;\r\n    gap: 20rpx;\r\n    padding: 30rpx 40rpx;\r\n    border-top: 1rpx solid #f0f0f0;\n}\n.modal-btn[data-v-06fd507c] {\r\n    flex: 1;\r\n    height: 80rpx;\r\n    border-radius: 8rpx;\r\n    font-size: 28rpx;\r\n    border: none;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    position: relative;\r\n    z-index: 1001;\n}\n.secondary-btn[data-v-06fd507c] {\r\n    background: #f5f5f5;\r\n    color: #666;\n}\n.primary-btn[data-v-06fd507c] {\r\n    background: #9ed7ee;\r\n    color: white;\n}\n.primary-btn[data-v-06fd507c]:disabled {\r\n    background: #ccc;\r\n    color: #999;\n}\r\n/* 创建收藏夹弹窗样式 */\n.create-modal .modal-body[data-v-06fd507c] {\r\n    padding: 40rpx;\n}\n.folder-name-input[data-v-06fd507c] {\r\n    width: 100%;\r\n    height: 80rpx;\r\n    padding: 0 20rpx;\r\n    border: 2rpx solid #e0e0e0;\r\n    border-radius: 8rpx;\r\n    font-size: 30rpx;\r\n    box-sizing: border-box;\n}\n.folder-name-input[data-v-06fd507c]:focus {\r\n    border-color: #9ed7ee;\n}\r\n", ""]);
+exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* components/folder-selector/folder-selector.wxss */\n.modal-overlay[data-v-06fd507c] {\r\n    position: fixed;\r\n    top: 0;\r\n    left: 0;\r\n    right: 0;\r\n    bottom: 0;\r\n    background: rgba(0, 0, 0, 0.5);\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    z-index: 1000;\n}\n.modal-content[data-v-06fd507c] {\r\n    background: white;\r\n    border-radius: 16rpx;\r\n    margin: 40rpx;\r\n    width: calc(100% - 80rpx);\r\n    max-width: 600rpx;\r\n    max-height: 80vh;\r\n    display: flex;\r\n    flex-direction: column;\n}\n.modal-header[data-v-06fd507c] {\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: space-between;\r\n    padding: 30rpx 40rpx;\r\n    border-bottom: 1rpx solid #f0f0f0;\n}\n.modal-title[data-v-06fd507c] {\r\n    font-size: 36rpx;\r\n    font-weight: 500;\r\n    color: #333;\n}\n.close-btn[data-v-06fd507c] {\r\n    font-size: 48rpx;\r\n    color: #999;\r\n    line-height: 1;\r\n    position: relative;\r\n    z-index: 1001;\n}\n.modal-body[data-v-06fd507c] {\r\n    flex: 1;\r\n    padding: 20rpx 0;\r\n    max-height: 60vh;\r\n    overflow-y: auto;\n}\n.loading-container[data-v-06fd507c] {\r\n    display: flex;\r\n    justify-content: center;\r\n    align-items: center;\r\n    height: 200rpx;\n}\n.loading-text[data-v-06fd507c] {\r\n    color: #999;\r\n    font-size: 28rpx;\n}\n.folders-list[data-v-06fd507c] {\r\n    padding: 0 40rpx;\n}\n.folder-item[data-v-06fd507c] {\r\n    display: flex;\r\n    align-items: center;\r\n    padding: 24rpx 0;\r\n    border-bottom: 1rpx solid #f8f8f8;\n}\n.folder-item[data-v-06fd507c]:last-child {\r\n    border-bottom: none;\n}\n.folder-item.selected[data-v-06fd507c] {\r\n    background: rgba(7, 193, 96, 0.1);\r\n    border-radius: 8rpx;\r\n    padding: 24rpx 20rpx;\r\n    margin: 0 -20rpx;\n}\n.folder-icon[data-v-06fd507c] {\r\n    font-size: 40rpx;\r\n    margin-right: 20rpx;\n}\n.folder-info[data-v-06fd507c] {\r\n    flex: 1;\n}\n.folder-name[data-v-06fd507c] {\r\n    font-size: 30rpx;\r\n    color: #333;\r\n    font-weight: 500;\r\n    margin-bottom: 4rpx;\n}\n.folder-count[data-v-06fd507c] {\r\n    font-size: 24rpx;\r\n    color: #999;\n}\n.selected-icon[data-v-06fd507c] {\r\n    font-size: 32rpx;\r\n    color: #9ed7ee;\r\n    font-weight: bold;\n}\n.empty-state[data-v-06fd507c] {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    justify-content: center;\r\n    height: 200rpx;\r\n    padding: 40rpx;\n}\n.empty-icon[data-v-06fd507c] {\r\n    font-size: 60rpx;\r\n    margin-bottom: 16rpx;\r\n    opacity: 0.5;\n}\n.empty-text[data-v-06fd507c] {\r\n    font-size: 28rpx;\r\n    color: #666;\r\n    margin-bottom: 8rpx;\n}\n.empty-subtext[data-v-06fd507c] {\r\n    font-size: 24rpx;\r\n    color: #999;\n}\n.modal-footer[data-v-06fd507c] {\r\n    display: flex;\r\n    gap: 20rpx;\r\n    padding: 30rpx 40rpx;\r\n    border-top: 1rpx solid #f0f0f0;\n}\n.modal-btn[data-v-06fd507c] {\r\n    flex: 1;\r\n    height: 80rpx;\r\n    border-radius: 8rpx;\r\n    font-size: 28rpx;\r\n    border: none;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    position: relative;\r\n    z-index: 1001;\n}\n.secondary-btn[data-v-06fd507c] {\r\n    background: #f5f5f5;\r\n    color: #666;\n}\n.primary-btn[data-v-06fd507c] {\r\n    background: #9ed7ee;\r\n    color: white;\n}\n.primary-btn[data-v-06fd507c]:disabled {\r\n    background: #ccc;\r\n    color: #999;\n}\r\n/* 创建收藏夹弹窗样式 */\n.create-modal .modal-body[data-v-06fd507c] {\r\n    padding: 40rpx;\n}\n.folder-name-input[data-v-06fd507c] {\r\n    width: 100%;\r\n    height: 80rpx;\r\n    padding: 0 20rpx;\r\n    border: 2rpx solid #e0e0e0;\r\n    border-radius: 8rpx;\r\n    font-size: 30rpx;\r\n    box-sizing: border-box;\n}\n.folder-name-input[data-v-06fd507c]:focus {\r\n    border-color: #9ed7ee;\n}\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -5773,7 +5776,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../../HBuilderX.4.76.2025082103/HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n/* mountain.wxss */\nbody {\n    background: transparent;\n    padding: 0;\n}\n.container {\n    /* 移除 background-image, background-size 等都删掉 */\n    position: relative;\n    overflow: hidden;\n    min-height: 100vh;\n}\n/* 山模式容器 */\n.poem-mode-container {\n    position: fixed;\n    top: 0;\n    left: 0;\n    width: 100vw;\n    height: 100vh;\n    z-index: 1;\n    overflow: hidden;\n}\n/* 新增：背景图的容器和样式 */\n.background-wrapper,\n.blur-background-wrapper {\n    position: fixed;\n    top: 0;\n    left: 0;\n    width: 100%;\n    height: 100%;\n    z-index: -2; /* 确保在最底层 */\n}\n.bg-image {\n    position: absolute;\n    top: 0;\n    left: 0;\n    width: 100%;\n    height: 100%;\n    opacity: 0; /* 默认隐藏 */\n    transition: opacity 0.5s ease-in-out; /* 关键：平滑的透明度过渡 */\n}\n.bg-image.visible {\n    opacity: 1; /* 显示 */\n}\n/* 新增：模糊背景的容器和样式 */\n.blur-background-wrapper {\n    z-index: -1;\n    -webkit-filter: blur(30px) brightness(0.7);\n            filter: blur(30px) brightness(0.7);\n    -webkit-transform: scale(1.1);\n            transform: scale(1.1);\n}\n/* 收藏按钮 */\n.favorite-btn {\n    position: absolute;\n    top: 60rpx;\n    right: 60rpx;\n    width: 80rpx;\n    height: 80rpx;\n    background: rgba(255, 255, 255, 0.9);\n    border-radius: 50%;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.15);\n    z-index: 999;\n    transition: all 0.3s ease;\n}\n.favorite-btn:active {\n    -webkit-transform: scale(0.95);\n            transform: scale(0.95);\n}\n.favorite-icon {\n    font-size: 36rpx;\n}\n/* 单帖内容区域 */\n.single-post-content {\n    width: calc(100% - 40rpx);\n    height: calc(100% - 80rpx);\n    display: flex;\n    flex-direction: column;\n    padding: 40rpx 20rpx;\n    box-sizing: border-box;\n    background: rgba(255, 255, 255, 0.8); /* 统一使用白色背景，与路页面一致 */\n    margin: 40rpx 20rpx;\n    border-radius: 24rpx;\n    box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.15);\n    position: relative;\n    transition: -webkit-transform 0.3s ease-in-out;\n    transition: transform 0.3s ease-in-out;\n    transition: transform 0.3s ease-in-out, -webkit-transform 0.3s ease-in-out;\n    -webkit-transform: translateX(0);\n            transform: translateX(0);\n}\n/* 切换动画状态 */\n.single-post-content.is-transitioning {\n    /* 可以尝试只改变透明度，而不是位移 */\n    opacity: 0.95;\n    -webkit-transform: scale(0.99);\n            transform: scale(0.99);\n}\n/* 山诗歌特殊样式 */\n.mountain-poem {\n    background: rgba(232, 224, 208, 0.95); /* 山主题：大地色系 */\n    border: 2rpx solid #8b7355;\n}\n/* 山标识 */\n.mountain-badge {\n    position: absolute;\n    top: 20rpx;\n    right: 20rpx;\n    background: #8b7355;\n    color: white;\n    padding: 8rpx 16rpx;\n    border-radius: 20rpx;\n    font-size: 24rpx;\n    font-weight: bold;\n    box-shadow: 0 2rpx 8rpx rgba(139, 115, 85, 0.3);\n    z-index: 10;\n}\n/* 作者信息 */\n.single-author-info {\n    display: flex;\n    align-items: center;\n    margin-bottom: 15rpx;\n    padding-bottom: 10rpx;\n    border-bottom: 1rpx solid rgba(139, 115, 85, 0.3);\n}\n.single-author-avatar {\n    width: 80rpx;\n    height: 80rpx;\n    border-radius: 50%;\n    margin-right: 20rpx;\n    background-color: #f5f5f5;\n    border: 4rpx solid white;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);\n}\n.single-author-name {\n    font-size: 32rpx;\n    color: #000;\n    font-weight: 600;\n    text-shadow: 0 1rpx 2rpx rgba(255, 255, 255, 0.8);\n}\n/* 标题 */\n.single-post-title {\n    font-size: 36rpx;\n    font-weight: bold;\n    color: #000;\n    margin-bottom: 10rpx;\n    line-height: 1.4;\n    text-align: center;\n    text-shadow: 0 1rpx 2rpx rgba(255, 255, 255, 0.8);\n}\n/* 诗歌作者样式 */\n.single-poem-author {\n    font-size: 32rpx;\n    color: #000;\n    text-align: center;\n    margin: 5rpx 0 15rpx 0;\n    text-shadow: 0 1rpx 2rpx rgba(255, 255, 255, 0.8);\n    letter-spacing: 2rpx;\n}\n/* 内容文字 */\n.single-post-content-text {\n    font-size: 32rpx;\n    color: #000;\n    line-height: 1.8;\n    margin-top: 20rpx;\n    padding: 30rpx 40rpx;\n    background: transparent;\n    border-radius: 0;\n    max-height: 62vh;\n    overflow-y: auto;\n    font-family: -apple-system-font, 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;\n    letter-spacing: 1rpx;\n    text-shadow: 0 1rpx 2rpx rgba(255, 255, 255, 0.8);\n}\n/* 骨架屏容器 */\n.skeleton-container {\n    position: absolute;\n    top: 0;\n    left: 0;\n    width: 100%;\n    height: 100%;\n    background: rgba(255, 255, 255, 0.95); /* 统一使用白色背景 */\n    z-index: 999;\n}\n/* 空状态 */\n.empty-state {\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    justify-content: center;\n    padding: 100rpx 40rpx;\n    text-align: center;\n}\n.empty-icon {\n    font-size: 80rpx;\n    margin-bottom: 20rpx;\n    opacity: 0.7;\n}\n.empty-text {\n    font-size: 32rpx;\n    color: #666;\n    margin-bottom: 10rpx;\n}\n.empty-subtext {\n    font-size: 28rpx;\n    color: #999;\n}\n/* 悬浮发布按钮 */\n.add-button {\n    position: fixed;\n    bottom: 120rpx;\n    right: 30rpx;\n    width: 100rpx;\n    height: 100rpx;\n    background-color: #8b7355;\n    border-radius: 50%;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    color: white;\n    font-size: 48rpx;\n    box-shadow: 0 4rpx 16rpx rgba(139, 115, 85, 0.3);\n    z-index: 1000;\n}\n\n", ""]);
+exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* mountain.wxss */\nbody {\r\n    background: transparent;\r\n    padding: 0;\n}\n.container {\r\n    /* 移除 background-image, background-size 等都删掉 */\r\n    position: relative;\r\n    overflow: hidden;\r\n    min-height: 100vh;\n}\r\n/* 山模式容器 */\n.poem-mode-container {\r\n    position: fixed;\r\n    top: 0;\r\n    left: 0;\r\n    width: 100vw;\r\n    height: 100vh;\r\n    z-index: 1;\r\n    overflow: hidden;\n}\r\n/* 新增：背景图的容器和样式 */\n.background-wrapper,\r\n.blur-background-wrapper {\r\n    position: fixed;\r\n    top: 0;\r\n    left: 0;\r\n    width: 100%;\r\n    height: 100%;\r\n    z-index: -2; /* 确保在最底层 */\n}\n.bg-image {\r\n    position: absolute;\r\n    top: 0;\r\n    left: 0;\r\n    width: 100%;\r\n    height: 100%;\r\n    opacity: 0; /* 默认隐藏 */\r\n    transition: opacity 0.5s ease-in-out; /* 关键：平滑的透明度过渡 */\n}\n.bg-image.visible {\r\n    opacity: 1; /* 显示 */\n}\r\n/* 新增：模糊背景的容器和样式 */\n.blur-background-wrapper {\r\n    z-index: -1;\r\n    -webkit-filter: blur(30px) brightness(0.7);\r\n            filter: blur(30px) brightness(0.7);\r\n    -webkit-transform: scale(1.1);\r\n            transform: scale(1.1);\n}\r\n/* 收藏按钮 */\n.favorite-btn {\r\n    position: absolute;\r\n    top: 60rpx;\r\n    right: 60rpx;\r\n    width: 80rpx;\r\n    height: 80rpx;\r\n    background: rgba(255, 255, 255, 0.9);\r\n    border-radius: 50%;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.15);\r\n    z-index: 999;\r\n    transition: all 0.3s ease;\n}\n.favorite-btn:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.favorite-icon {\r\n    font-size: 36rpx;\n}\r\n/* 单帖内容区域 */\n.single-post-content {\r\n    width: calc(100% - 40rpx);\r\n    height: calc(100% - 80rpx);\r\n    display: flex;\r\n    flex-direction: column;\r\n    padding: 40rpx 20rpx;\r\n    box-sizing: border-box;\r\n    background: rgba(255, 255, 255, 0.8); /* 统一使用白色背景，与路页面一致 */\r\n    margin: 40rpx 20rpx;\r\n    border-radius: 24rpx;\r\n    box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.15);\r\n    position: relative;\r\n    transition: -webkit-transform 0.3s ease-in-out;\r\n    transition: transform 0.3s ease-in-out;\r\n    transition: transform 0.3s ease-in-out, -webkit-transform 0.3s ease-in-out;\r\n    -webkit-transform: translateX(0);\r\n            transform: translateX(0);\n}\r\n/* 切换动画状态 */\n.single-post-content.is-transitioning {\r\n    /* 可以尝试只改变透明度，而不是位移 */\r\n    opacity: 0.95;\r\n    -webkit-transform: scale(0.99);\r\n            transform: scale(0.99);\n}\r\n/* 山诗歌特殊样式 */\n.mountain-poem {\r\n    background: rgba(232, 224, 208, 0.95); /* 山主题：大地色系 */\r\n    border: 2rpx solid #8b7355;\n}\r\n/* 山标识 */\n.mountain-badge {\r\n    position: absolute;\r\n    top: 20rpx;\r\n    right: 20rpx;\r\n    background: #8b7355;\r\n    color: white;\r\n    padding: 8rpx 16rpx;\r\n    border-radius: 20rpx;\r\n    font-size: 24rpx;\r\n    font-weight: bold;\r\n    box-shadow: 0 2rpx 8rpx rgba(139, 115, 85, 0.3);\r\n    z-index: 10;\n}\r\n/* 作者信息 */\n.single-author-info {\r\n    display: flex;\r\n    align-items: center;\r\n    margin-bottom: 15rpx;\r\n    padding-bottom: 10rpx;\r\n    border-bottom: 1rpx solid rgba(139, 115, 85, 0.3);\n}\n.single-author-avatar {\r\n    width: 80rpx;\r\n    height: 80rpx;\r\n    border-radius: 50%;\r\n    margin-right: 20rpx;\r\n    background-color: #f5f5f5;\r\n    border: 4rpx solid white;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);\n}\n.single-author-name {\r\n    font-size: 32rpx;\r\n    color: #000;\r\n    font-weight: 600;\r\n    text-shadow: 0 1rpx 2rpx rgba(255, 255, 255, 0.8);\n}\r\n/* 标题 */\n.single-post-title {\r\n    font-size: 36rpx;\r\n    font-weight: bold;\r\n    color: #000;\r\n    margin-bottom: 10rpx;\r\n    line-height: 1.4;\r\n    text-align: center;\r\n    text-shadow: 0 1rpx 2rpx rgba(255, 255, 255, 0.8);\n}\r\n/* 诗歌作者样式 */\n.single-poem-author {\r\n    font-size: 32rpx;\r\n    color: #000;\r\n    text-align: center;\r\n    margin: 5rpx 0 15rpx 0;\r\n    text-shadow: 0 1rpx 2rpx rgba(255, 255, 255, 0.8);\r\n    letter-spacing: 2rpx;\n}\r\n/* 内容文字 */\n.single-post-content-text {\r\n    font-size: 32rpx;\r\n    color: #000;\r\n    line-height: 1.8;\r\n    margin-top: 20rpx;\r\n    padding: 30rpx 40rpx;\r\n    background: transparent;\r\n    border-radius: 0;\r\n    max-height: 62vh;\r\n    overflow-y: auto;\r\n    font-family: -apple-system-font, 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;\r\n    letter-spacing: 1rpx;\r\n    text-shadow: 0 1rpx 2rpx rgba(255, 255, 255, 0.8);\n}\r\n/* 骨架屏容器 */\n.skeleton-container {\r\n    position: absolute;\r\n    top: 0;\r\n    left: 0;\r\n    width: 100%;\r\n    height: 100%;\r\n    background: rgba(255, 255, 255, 0.95); /* 统一使用白色背景 */\r\n    z-index: 999;\n}\r\n/* 空状态 */\n.empty-state {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 100rpx 40rpx;\r\n    text-align: center;\n}\n.empty-icon {\r\n    font-size: 80rpx;\r\n    margin-bottom: 20rpx;\r\n    opacity: 0.7;\n}\n.empty-text {\r\n    font-size: 32rpx;\r\n    color: #666;\r\n    margin-bottom: 10rpx;\n}\n.empty-subtext {\r\n    font-size: 28rpx;\r\n    color: #999;\n}\r\n/* 悬浮发布按钮 */\n.add-button {\r\n    position: fixed;\r\n    bottom: 120rpx;\r\n    right: 30rpx;\r\n    width: 100rpx;\r\n    height: 100rpx;\r\n    background-color: #8b7355;\r\n    border-radius: 50%;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    color: white;\r\n    font-size: 48rpx;\r\n    box-shadow: 0 4rpx 16rpx rgba(139, 115, 85, 0.3);\r\n    z-index: 1000;\n}\r\n\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -7832,7 +7835,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../../HBuilderX.4.76.2025082103/HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n/* pages/profile/profile.wxss */\n.container {\n    width: 100%;\n    height: 100vh;\n    background-color: #f7f8fa;\n}\n.scroll-container {\n    width: 100%;\n    height: 100%;\n}\n.sidebar-mask {\n    position: fixed;\n    top: 0;\n    left: 0;\n    width: 100%;\n    height: 100%;\n    background-color: rgba(0, 0, 0, 0.5);\n    z-index: 999;\n}\n.sidebar {\n    position: fixed;\n    top: 0;\n    left: -70%; /* Start off-screen */\n    width: 70%;\n    height: 100%;\n    background-color: #ffffff;\n    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);\n    transition: left 0.3s ease;\n    z-index: 1000;\n    display: flex;\n    flex-direction: column;\n    overflow-y: auto;\n}\n.sidebar.open {\n    left: 0; /* Slide in */\n}\n.sidebar-header {\n    padding: 40rpx 30rpx;\n    border-bottom: 1rpx solid #eee;\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    margin-top: 80rpx;\n}\n.sidebar-avatar {\n    width: 120rpx;\n    height: 120rpx;\n    border-radius: 50%;\n    margin-bottom: 20rpx;\n}\n.sidebar-nickname {\n    font-size: 32rpx;\n    font-weight: bold;\n}\n.sidebar-menu {\n    margin-top: 40rpx;\n}\n.sidebar-item {\n    padding: 30rpx;\n    border-bottom: 1rpx solid #f0f0f0;\n    font-size: 32rpx;\n    color: #333;\n    position: relative;\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n}\n.sidebar-item:active {\n    background-color: #f5f5f5;\n}\n/* 未读消息标记 */\n.unread-badge {\n    background-color: #ff6b6b;\n    color: #fff;\n    font-size: 20rpx;\n    padding: 4rpx 10rpx;\n    border-radius: 20rpx;\n    min-width: 32rpx;\n    text-align: center;\n    font-weight: bold;\n}\n/* 退出登录按钮特殊样式 */\n.logout-item {\n    border-top: 2rpx solid #f0f0f0;\n    margin-top: 20rpx;\n    color: #ff6b6b !important;\n    font-weight: 500;\n}\n.logout-item:active {\n    background-color: #fff5f5 !important;\n}\n.main-content {\n    width: 100%;\n    /* height: 100vh; */\n    background-color: #f7f8fa;\n    /* overflow-y: auto; */\n    padding-bottom: 100rpx; /* 为底部TabBar留出空间 */\n}\n.header {\n    display: flex;\n    align-items: center;\n    padding: 20rpx 30rpx;\n    background-color: #fff;\n    border-bottom: 1rpx solid #eee;\n    padding-top: calc(20rpx + var(--status-bar-height, 0px));\n}\n.menu-btn {\n    width: 48rpx;\n    height: 48rpx;\n    padding: 10rpx;\n    transition: opacity 0.2s ease;\n}\n.menu-btn:active {\n    opacity: 0.7;\n}\n.header-title {\n    flex: 1;\n    text-align: center;\n    font-size: 34rpx;\n    font-weight: 500;\n    margin-right: 68rpx; /* to balance the menu button */\n}\n/* Loading State */\n.loading-container {\n    display: flex;\n    justify-content: center;\n    align-items: center;\n    height: 400rpx;\n    background-color: #fff;\n    border-radius: 16rpx;\n    margin: 30rpx;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.loading-text {\n    font-size: 28rpx;\n    color: #999;\n}\n/* User Profile Card */\n.profile-card {\n    margin: 30rpx;\n    padding: 40rpx;\n    background-color: #fff;\n    border-radius: 16rpx;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n    display: flex;\n    align-items: flex-start;\n    transition: box-shadow 0.2s ease;\n}\n.profile-card:active {\n    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);\n}\n.profile-avatar {\n    margin-right: 30rpx;\n}\n.profile-avatar uni-image {\n    width: 120rpx;\n    height: 120rpx;\n    border-radius: 50%;\n}\n.profile-info {\n    flex: 1;\n    display: flex;\n    flex-direction: column;\n    min-width: 0; /* 防止flex子元素溢出 */\n}\n.profile-name {\n    font-size: 36rpx;\n    font-weight: bold;\n    color: #333;\n    margin-bottom: 10rpx;\n    word-break: break-word;\n    overflow: hidden;\n    text-overflow: ellipsis;\n    white-space: nowrap;\n}\n.profile-bio {\n    font-size: 28rpx;\n    color: #999;\n    margin-bottom: 20rpx;\n    line-height: 1.4;\n    word-break: break-word;\n    overflow: hidden;\n    text-overflow: ellipsis;\n    display: -webkit-box;\n    -webkit-line-clamp: 2;\n    line-clamp: 2;\n    -webkit-box-orient: vertical;\n}\n.profile-details {\n    display: flex;\n    flex-direction: column;\n    gap: 8rpx;\n}\n.detail-item {\n    font-size: 26rpx;\n    color: #666;\n    word-break: break-word;\n    overflow: hidden;\n    text-overflow: ellipsis;\n    white-space: nowrap;\n}\n/* Tab Navigation */\n.tab-navigation {\n    margin: 0 30rpx 20rpx 30rpx;\n    display: flex;\n    background: #fff;\n    border-radius: 16rpx;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n    overflow: hidden;\n}\n.tab-item {\n    flex: 1;\n    padding: 30rpx 20rpx;\n    text-align: center;\n    font-size: 28rpx;\n    color: #666;\n    background: #fff;\n    transition: all 0.3s ease;\n    position: relative;\n}\n.tab-item.active {\n    color: #9ed7ee;\n    font-weight: 500;\n    background: #f8fffe;\n}\n.tab-item.active::after {\n    content: '';\n    position: absolute;\n    bottom: 0;\n    left: 20%;\n    right: 20%;\n    height: 4rpx;\n    background: #9ed7ee;\n    border-radius: 2rpx;\n}\n.tab-item:active {\n    background: #f5f5f5;\n}\n/* My Posts Section */\n.my-posts-section {\n    margin: 0 30rpx 30rpx 30rpx;\n}\n/* Favorites Section */\n.favorites-section {\n    margin: 0 30rpx 30rpx 30rpx;\n}\n.section-title {\n    font-size: 32rpx;\n    font-weight: bold;\n    color: #333;\n    margin-bottom: 20rpx;\n    padding: 0 10rpx;\n}\n/* 新增：帖子项包装器样式 */\n.post-item-wrapper {\n    background: #fff;\n    border-radius: 16rpx;\n    margin-bottom: 20rpx;\n    padding: 30rpx;\n    box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);\n}\n/* 原创帖子特殊样式 */\n.post-item-wrapper.original-post {\n    border: 3rpx solid #ebc88d;\n    box-shadow: 0 4rpx 20rpx rgba(235, 200, 141, 0.3), 0 2rpx 12rpx rgba(0, 0, 0, 0.06);\n    position: relative;\n}\n/* 原创帖子光影效果 */\n.post-item-wrapper.original-post::before {\n    content: '';\n    position: absolute;\n    top: -2rpx;\n    left: -2rpx;\n    right: -2rpx;\n    bottom: -2rpx;\n    background: linear-gradient(45deg, #ebc88d, #f4d03f, #ebc88d);\n    border-radius: 18rpx;\n    z-index: -1;\n    opacity: 0.6;\n    -webkit-filter: blur(8rpx);\n            filter: blur(8rpx);\n}\n/* 新增：内容导航器样式 */\n.post-content-navigator {\n    display: block;\n    background: transparent;\n}\n/* 新增：导航器点击效果 */\n.navigator-hover {\n    background-color: rgba(0, 0, 0, 0.02);\n}\n/* 外部作者信息样式 */\n.author-info-outside {\n    display: flex;\n    align-items: center;\n    padding: 20rpx 30rpx 10rpx 30rpx;\n    background: #fff;\n    border-radius: 16rpx 16rpx 0 0;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.author-info-outside .author-avatar {\n    width: 60rpx;\n    height: 60rpx;\n    border-radius: 50%;\n    margin-right: 15rpx;\n    background-color: #f5f5f5;\n    cursor: pointer;\n}\n.author-info-outside .author-name {\n    font-size: 28rpx;\n    color: #333;\n    font-weight: 500;\n}\n.post-item {\n    width: 100%;\n    background: #fff;\n    border-radius: 0 0 16rpx 16rpx;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n    box-sizing: border-box;\n    padding: 20rpx 30rpx 30rpx 30rpx;\n}\n.post-title {\n    font-size: 36rpx;\n    font-weight: bold;\n    color: #333333;\n    margin-bottom: 15rpx;\n    line-height: 1.4;\n    word-break: break-word;\n    overflow: hidden;\n    text-overflow: ellipsis;\n    display: -webkit-box;\n    -webkit-line-clamp: 2;\n    line-clamp: 2;\n    -webkit-box-orient: vertical;\n}\n/* 诗歌作者样式 */\n.poem-author {\n    font-size: 32rpx;\n    color: #000;\n    text-align: center;\n    margin: 5rpx 0 15rpx 0;\n    letter-spacing: 2rpx;\n}\n/* 新增：图片容器占位样式 */\n.image-container-wrapper {\n    position: relative;\n    width: 100%;\n    background-color: #f0f0f0; /* 占位时的背景色，很重要 */\n    overflow: hidden;\n    border-radius: 8px; /* 可以加个圆角，让占位块更好看 */\n    margin: 20rpx 0; /* 图片和下方内容的间距 */\n}\n/* 新增：让图片或swiper填充整个占位容器 */\n.image-container-wrapper .post-image,\n.image-container-wrapper .image-swiper {\n    position: absolute;\n    top: 0;\n    left: 0;\n    width: 100%;\n    height: 100%;\n}\n/* 多张图片的swiper样式 */\n.image-swiper {\n    width: 100%;\n    background-color: #fff;\n    /* 高度由 style 绑定动态设置 */\n}\n.swiper-item {\n    width: 100%;\n    height: 100%;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n.post-image {\n    width: 100%;\n    height: 100%;\n    display: block;\n    object-fit: contain;\n}\n.post-image:active {\n    -webkit-transform: scale(1.05);\n            transform: scale(1.05);\n}\n.post-content {\n    font-size: 28rpx;\n    color: #666666;\n    line-height: 1.6;\n    margin-top: 15rpx;\n    word-break: break-word;\n    overflow: hidden;\n    text-overflow: ellipsis;\n    display: -webkit-box;\n    -webkit-line-clamp: 3;\n    line-clamp: 3;\n    -webkit-box-orient: vertical;\n}\n/* 删除按钮区域样式 */\n.delete-section {\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n    margin-top: 20rpx;\n    padding-top: 20rpx;\n    border-top: 1rpx solid #f0f0f0;\n}\n/* 左侧时间区域，保持原有样式 */\n.button-group {\n    display: flex;\n    align-items: center;\n}\n.favorite-time,\n.post-time {\n    font-size: 24rpx;\n    color: #999;\n}\n/* 标签样式 */\n.post-tags {\n    margin-top: 30rpx;\n    margin-bottom: 10rpx;\n    line-height: 1.5;\n}\n.post-tag {\n    color: #24375f;\n    font-size: 26rpx;\n    margin-right: 10rpx;\n    transition: all 0.2s ease;\n    cursor: pointer;\n}\n.post-tag:active {\n    color: #1a2a4a;\n    opacity: 0.8;\n}\n.delete-btn {\n    background-color: #ff4757;\n    color: #fff;\n    border: none;\n    border-radius: 8rpx;\n    font-size: 24rpx;\n    padding: 8rpx 16rpx;\n    line-height: 1.2;\n    min-width: 80rpx;\n    transition: background-color 0.2s ease;\n}\n.delete-btn:active {\n    background-color: #e63946;\n}\n.delete-btn::after {\n    border: none;\n}\n.remove-favorite-btn {\n    background-color: #f39c12;\n    color: #fff;\n    border: none;\n    border-radius: 8rpx;\n    font-size: 24rpx;\n    padding: 8rpx 16rpx;\n    line-height: 1.2;\n    min-width: 100rpx;\n    transition: background-color 0.2s ease;\n}\n.remove-favorite-btn:active {\n    background-color: #e67e22;\n}\n.remove-favorite-btn::after {\n    border: none;\n}\n.empty-tip {\n    text-align: center;\n    color: #bbb;\n    font-size: 28rpx;\n    margin: 40rpx 0;\n    padding: 60rpx 0;\n    background-color: #fff;\n    border-radius: 16rpx;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.author-info {\n    display: flex;\n    align-items: center;\n    /* margin-bottom: 15rpx;  // 移除多余的间距 */\n}\n.author-avatar {\n    width: 60rpx;\n    height: 60rpx;\n    border-radius: 50%;\n    margin-right: 15rpx;\n    background-color: #f5f5f5;\n}\n.author-name {\n    font-size: 28rpx;\n    color: #333;\n    font-weight: 500;\n}\n.profile-card-center {\n    position: relative;\n    margin: 30rpx;\n    padding: 60rpx 40rpx 40rpx 40rpx;\n    background-color: #fff;\n    border-radius: 16rpx;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    overflow: visible;\n}\n.menu-btn-large {\n    position: absolute;\n    top: 24rpx;\n    left: 24rpx;\n    width: 56rpx;\n    height: 56rpx;\n    z-index: 100;\n    background: none;\n    -webkit-filter: grayscale(1) brightness(0.5);\n            filter: grayscale(1) brightness(0.5);\n    opacity: 0.7;\n}\n.back-btn {\n    position: absolute;\n    top: 24rpx;\n    left: 24rpx;\n    width: 56rpx;\n    height: 56rpx;\n    z-index: 100;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    background: rgba(0, 0, 0, 0.1);\n    border-radius: 50%;\n    font-size: 36rpx;\n    color: #333;\n    transition: background-color 0.2s ease;\n}\n.back-btn:active {\n    background: rgba(0, 0, 0, 0.2);\n}\n.profile-avatar-large uni-image {\n    width: 150rpx;\n    height: 150rpx;\n    border-radius: 50%;\n    display: block;\n    margin: 0 auto;\n}\n.profile-info-center {\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    margin-top: 20rpx;\n}\n.profile-name-center {\n    font-size: 40rpx;\n    font-weight: bold;\n    color: #333;\n    margin-bottom: 10rpx;\n    text-align: center;\n}\n.profile-bio-center {\n    font-size: 28rpx;\n    color: #999;\n    text-align: center;\n    margin-bottom: 0;\n}\n.profile-detail-card {\n    margin: 0 30rpx 30rpx 30rpx;\n    padding: 30rpx 40rpx;\n    background-color: #fff;\n    border-radius: 16rpx;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n    display: flex;\n    flex-direction: row;\n    align-items: center;\n    justify-content: center;\n    gap: 40rpx;\n}\n.detail-item-inline {\n    font-size: 28rpx;\n    color: #666;\n    margin-right: 20rpx;\n    white-space: nowrap;\n}\n/* 底部加载状态样式 */\n.loading-footer {\n    text-align: center;\n    padding: 20rpx 0;\n    color: #999;\n    font-size: 14px;\n}\n.unread-dot {\n    width: 16rpx;\n    height: 16rpx;\n    background-color: #ff6b6b;\n    border-radius: 50%;\n    margin-left: 12rpx;\n}\n", ""]);
+exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* pages/profile/profile.wxss */\n.container {\r\n    width: 100%;\r\n    height: 100vh;\r\n    background-color: #f7f8fa;\n}\n.scroll-container {\r\n    width: 100%;\r\n    height: 100%;\n}\n.sidebar-mask {\r\n    position: fixed;\r\n    top: 0;\r\n    left: 0;\r\n    width: 100%;\r\n    height: 100%;\r\n    background-color: rgba(0, 0, 0, 0.5);\r\n    z-index: 999;\n}\n.sidebar {\r\n    position: fixed;\r\n    top: 0;\r\n    left: -70%; /* Start off-screen */\r\n    width: 70%;\r\n    height: 100%;\r\n    background-color: #ffffff;\r\n    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);\r\n    transition: left 0.3s ease;\r\n    z-index: 1000;\r\n    display: flex;\r\n    flex-direction: column;\r\n    overflow-y: auto;\n}\n.sidebar.open {\r\n    left: 0; /* Slide in */\n}\n.sidebar-header {\r\n    padding: 40rpx 30rpx;\r\n    border-bottom: 1rpx solid #eee;\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    margin-top: 80rpx;\n}\n.sidebar-avatar {\r\n    width: 120rpx;\r\n    height: 120rpx;\r\n    border-radius: 50%;\r\n    margin-bottom: 20rpx;\n}\n.sidebar-nickname {\r\n    font-size: 32rpx;\r\n    font-weight: bold;\n}\n.sidebar-menu {\r\n    margin-top: 40rpx;\n}\n.sidebar-item {\r\n    padding: 30rpx;\r\n    border-bottom: 1rpx solid #f0f0f0;\r\n    font-size: 32rpx;\r\n    color: #333;\r\n    position: relative;\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\n}\n.sidebar-item:active {\r\n    background-color: #f5f5f5;\n}\r\n/* 未读消息标记 */\n.unread-badge {\r\n    background-color: #ff6b6b;\r\n    color: #fff;\r\n    font-size: 20rpx;\r\n    padding: 4rpx 10rpx;\r\n    border-radius: 20rpx;\r\n    min-width: 32rpx;\r\n    text-align: center;\r\n    font-weight: bold;\n}\r\n/* 退出登录按钮特殊样式 */\n.logout-item {\r\n    border-top: 2rpx solid #f0f0f0;\r\n    margin-top: 20rpx;\r\n    color: #ff6b6b !important;\r\n    font-weight: 500;\n}\n.logout-item:active {\r\n    background-color: #fff5f5 !important;\n}\n.main-content {\r\n    width: 100%;\r\n    /* height: 100vh; */\r\n    background-color: #f7f8fa;\r\n    /* overflow-y: auto; */\r\n    padding-bottom: 100rpx; /* 为底部TabBar留出空间 */\n}\n.header {\r\n    display: flex;\r\n    align-items: center;\r\n    padding: 20rpx 30rpx;\r\n    background-color: #fff;\r\n    border-bottom: 1rpx solid #eee;\r\n    padding-top: calc(20rpx + var(--status-bar-height, 0px));\n}\n.menu-btn {\r\n    width: 48rpx;\r\n    height: 48rpx;\r\n    padding: 10rpx;\r\n    transition: opacity 0.2s ease;\n}\n.menu-btn:active {\r\n    opacity: 0.7;\n}\n.header-title {\r\n    flex: 1;\r\n    text-align: center;\r\n    font-size: 34rpx;\r\n    font-weight: 500;\r\n    margin-right: 68rpx; /* to balance the menu button */\n}\r\n/* Loading State */\n.loading-container {\r\n    display: flex;\r\n    justify-content: center;\r\n    align-items: center;\r\n    height: 400rpx;\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    margin: 30rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.loading-text {\r\n    font-size: 28rpx;\r\n    color: #999;\n}\r\n/* User Profile Card */\n.profile-card {\r\n    margin: 30rpx;\r\n    padding: 40rpx;\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\r\n    display: flex;\r\n    align-items: flex-start;\r\n    transition: box-shadow 0.2s ease;\n}\n.profile-card:active {\r\n    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);\n}\n.profile-avatar {\r\n    margin-right: 30rpx;\n}\n.profile-avatar uni-image {\r\n    width: 120rpx;\r\n    height: 120rpx;\r\n    border-radius: 50%;\n}\n.profile-info {\r\n    flex: 1;\r\n    display: flex;\r\n    flex-direction: column;\r\n    min-width: 0; /* 防止flex子元素溢出 */\n}\n.profile-name {\r\n    font-size: 36rpx;\r\n    font-weight: bold;\r\n    color: #333;\r\n    margin-bottom: 10rpx;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    white-space: nowrap;\n}\n.profile-bio {\r\n    font-size: 28rpx;\r\n    color: #999;\r\n    margin-bottom: 20rpx;\r\n    line-height: 1.4;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 2;\r\n    line-clamp: 2;\r\n    -webkit-box-orient: vertical;\n}\n.profile-details {\r\n    display: flex;\r\n    flex-direction: column;\r\n    gap: 8rpx;\n}\n.detail-item {\r\n    font-size: 26rpx;\r\n    color: #666;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    white-space: nowrap;\n}\r\n/* Tab Navigation */\n.tab-navigation {\r\n    margin: 0 30rpx 20rpx 30rpx;\r\n    display: flex;\r\n    background: #fff;\r\n    border-radius: 16rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\r\n    overflow: hidden;\n}\n.tab-item {\r\n    flex: 1;\r\n    padding: 30rpx 20rpx;\r\n    text-align: center;\r\n    font-size: 28rpx;\r\n    color: #666;\r\n    background: #fff;\r\n    transition: all 0.3s ease;\r\n    position: relative;\n}\n.tab-item.active {\r\n    color: #9ed7ee;\r\n    font-weight: 500;\r\n    background: #f8fffe;\n}\n.tab-item.active::after {\r\n    content: '';\r\n    position: absolute;\r\n    bottom: 0;\r\n    left: 20%;\r\n    right: 20%;\r\n    height: 4rpx;\r\n    background: #9ed7ee;\r\n    border-radius: 2rpx;\n}\n.tab-item:active {\r\n    background: #f5f5f5;\n}\r\n/* My Posts Section */\n.my-posts-section {\r\n    margin: 0 30rpx 30rpx 30rpx;\n}\r\n/* Favorites Section */\n.favorites-section {\r\n    margin: 0 30rpx 30rpx 30rpx;\n}\n.section-title {\r\n    font-size: 32rpx;\r\n    font-weight: bold;\r\n    color: #333;\r\n    margin-bottom: 20rpx;\r\n    padding: 0 10rpx;\n}\r\n/* 新增：帖子项包装器样式 */\n.post-item-wrapper {\r\n    background: #fff;\r\n    border-radius: 16rpx;\r\n    margin-bottom: 20rpx;\r\n    padding: 30rpx;\r\n    box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);\n}\r\n/* 原创帖子特殊样式 */\n.post-item-wrapper.original-post {\r\n    border: 3rpx solid #ebc88d;\r\n    box-shadow: 0 4rpx 20rpx rgba(235, 200, 141, 0.3), 0 2rpx 12rpx rgba(0, 0, 0, 0.06);\r\n    position: relative;\n}\r\n/* 原创帖子光影效果 */\n.post-item-wrapper.original-post::before {\r\n    content: '';\r\n    position: absolute;\r\n    top: -2rpx;\r\n    left: -2rpx;\r\n    right: -2rpx;\r\n    bottom: -2rpx;\r\n    background: linear-gradient(45deg, #ebc88d, #f4d03f, #ebc88d);\r\n    border-radius: 18rpx;\r\n    z-index: -1;\r\n    opacity: 0.6;\r\n    -webkit-filter: blur(8rpx);\r\n            filter: blur(8rpx);\n}\r\n/* 新增：内容导航器样式 */\n.post-content-navigator {\r\n    display: block;\r\n    background: transparent;\n}\r\n/* 新增：导航器点击效果 */\n.navigator-hover {\r\n    background-color: rgba(0, 0, 0, 0.02);\n}\r\n/* 外部作者信息样式 */\n.author-info-outside {\r\n    display: flex;\r\n    align-items: center;\r\n    padding: 20rpx 30rpx 10rpx 30rpx;\r\n    background: #fff;\r\n    border-radius: 16rpx 16rpx 0 0;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.author-info-outside .author-avatar {\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    border-radius: 50%;\r\n    margin-right: 15rpx;\r\n    background-color: #f5f5f5;\r\n    cursor: pointer;\n}\n.author-info-outside .author-name {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    font-weight: 500;\n}\n.post-item {\r\n    width: 100%;\r\n    background: #fff;\r\n    border-radius: 0 0 16rpx 16rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\r\n    box-sizing: border-box;\r\n    padding: 20rpx 30rpx 30rpx 30rpx;\n}\n.post-title {\r\n    font-size: 36rpx;\r\n    font-weight: bold;\r\n    color: #333333;\r\n    margin-bottom: 15rpx;\r\n    line-height: 1.4;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 2;\r\n    line-clamp: 2;\r\n    -webkit-box-orient: vertical;\n}\r\n/* 诗歌作者样式 */\n.poem-author {\r\n    font-size: 32rpx;\r\n    color: #000;\r\n    text-align: center;\r\n    margin: 5rpx 0 15rpx 0;\r\n    letter-spacing: 2rpx;\n}\r\n/* 新增：图片容器占位样式 */\n.image-container-wrapper {\r\n    position: relative;\r\n    width: 100%;\r\n    background-color: #f0f0f0; /* 占位时的背景色，很重要 */\r\n    overflow: hidden;\r\n    border-radius: 8px; /* 可以加个圆角，让占位块更好看 */\r\n    margin: 20rpx 0; /* 图片和下方内容的间距 */\n}\r\n/* 新增：让图片或swiper填充整个占位容器 */\n.image-container-wrapper .post-image,\r\n.image-container-wrapper .image-swiper {\r\n    position: absolute;\r\n    top: 0;\r\n    left: 0;\r\n    width: 100%;\r\n    height: 100%;\n}\r\n/* 多张图片的swiper样式 */\n.image-swiper {\r\n    width: 100%;\r\n    background-color: #fff;\r\n    /* 高度由 style 绑定动态设置 */\n}\n.swiper-item {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\n}\n.post-image {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: block;\r\n    object-fit: contain;\n}\n.post-image:active {\r\n    -webkit-transform: scale(1.05);\r\n            transform: scale(1.05);\n}\n.post-content {\r\n    font-size: 28rpx;\r\n    color: #666666;\r\n    line-height: 1.6;\r\n    margin-top: 15rpx;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 3;\r\n    line-clamp: 3;\r\n    -webkit-box-orient: vertical;\n}\r\n/* 删除按钮区域样式 */\n.delete-section {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    margin-top: 20rpx;\r\n    padding-top: 20rpx;\r\n    border-top: 1rpx solid #f0f0f0;\n}\r\n/* 左侧时间区域，保持原有样式 */\n.button-group {\r\n    display: flex;\r\n    align-items: center;\n}\n.favorite-time,\r\n.post-time {\r\n    font-size: 24rpx;\r\n    color: #999;\n}\r\n/* 标签样式 */\n.post-tags {\r\n    margin-top: 30rpx;\r\n    margin-bottom: 10rpx;\r\n    line-height: 1.5;\n}\n.post-tag {\r\n    color: #24375f;\r\n    font-size: 26rpx;\r\n    margin-right: 10rpx;\r\n    transition: all 0.2s ease;\r\n    cursor: pointer;\n}\n.post-tag:active {\r\n    color: #1a2a4a;\r\n    opacity: 0.8;\n}\n.delete-btn {\r\n    background-color: #ff4757;\r\n    color: #fff;\r\n    border: none;\r\n    border-radius: 8rpx;\r\n    font-size: 24rpx;\r\n    padding: 8rpx 16rpx;\r\n    line-height: 1.2;\r\n    min-width: 80rpx;\r\n    transition: background-color 0.2s ease;\n}\n.delete-btn:active {\r\n    background-color: #e63946;\n}\n.delete-btn::after {\r\n    border: none;\n}\n.remove-favorite-btn {\r\n    background-color: #f39c12;\r\n    color: #fff;\r\n    border: none;\r\n    border-radius: 8rpx;\r\n    font-size: 24rpx;\r\n    padding: 8rpx 16rpx;\r\n    line-height: 1.2;\r\n    min-width: 100rpx;\r\n    transition: background-color 0.2s ease;\n}\n.remove-favorite-btn:active {\r\n    background-color: #e67e22;\n}\n.remove-favorite-btn::after {\r\n    border: none;\n}\n.empty-tip {\r\n    text-align: center;\r\n    color: #bbb;\r\n    font-size: 28rpx;\r\n    margin: 40rpx 0;\r\n    padding: 60rpx 0;\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.author-info {\r\n    display: flex;\r\n    align-items: center;\r\n    /* margin-bottom: 15rpx;  // 移除多余的间距 */\n}\n.author-avatar {\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    border-radius: 50%;\r\n    margin-right: 15rpx;\r\n    background-color: #f5f5f5;\n}\n.author-name {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    font-weight: 500;\n}\n.profile-card-center {\r\n    position: relative;\r\n    margin: 30rpx;\r\n    padding: 60rpx 40rpx 40rpx 40rpx;\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    overflow: visible;\n}\n.menu-btn-large {\r\n    position: absolute;\r\n    top: 24rpx;\r\n    left: 24rpx;\r\n    width: 56rpx;\r\n    height: 56rpx;\r\n    z-index: 100;\r\n    background: none;\r\n    -webkit-filter: grayscale(1) brightness(0.5);\r\n            filter: grayscale(1) brightness(0.5);\r\n    opacity: 0.7;\n}\n.back-btn {\r\n    position: absolute;\r\n    top: 24rpx;\r\n    left: 24rpx;\r\n    width: 56rpx;\r\n    height: 56rpx;\r\n    z-index: 100;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    background: rgba(0, 0, 0, 0.1);\r\n    border-radius: 50%;\r\n    font-size: 36rpx;\r\n    color: #333;\r\n    transition: background-color 0.2s ease;\n}\n.back-btn:active {\r\n    background: rgba(0, 0, 0, 0.2);\n}\n.profile-avatar-large uni-image {\r\n    width: 150rpx;\r\n    height: 150rpx;\r\n    border-radius: 50%;\r\n    display: block;\r\n    margin: 0 auto;\n}\n.profile-info-center {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    margin-top: 20rpx;\n}\n.profile-name-center {\r\n    font-size: 40rpx;\r\n    font-weight: bold;\r\n    color: #333;\r\n    margin-bottom: 10rpx;\r\n    text-align: center;\n}\n.profile-bio-center {\r\n    font-size: 28rpx;\r\n    color: #999;\r\n    text-align: center;\r\n    margin-bottom: 0;\n}\n.profile-detail-card {\r\n    margin: 0 30rpx 30rpx 30rpx;\r\n    padding: 30rpx 40rpx;\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\r\n    display: flex;\r\n    flex-direction: row;\r\n    align-items: center;\r\n    justify-content: center;\r\n    gap: 40rpx;\n}\n.detail-item-inline {\r\n    font-size: 28rpx;\r\n    color: #666;\r\n    margin-right: 20rpx;\r\n    white-space: nowrap;\n}\r\n/* 底部加载状态样式 */\n.loading-footer {\r\n    text-align: center;\r\n    padding: 20rpx 0;\r\n    color: #999;\r\n    font-size: 14px;\n}\n.unread-dot {\r\n    width: 16rpx;\r\n    height: 16rpx;\r\n    background-color: #ff6b6b;\r\n    border-radius: 50%;\r\n    margin-left: 12rpx;\n}\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -8512,7 +8515,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../../HBuilderX.4.76.2025082103/HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\n.container {\n    padding: 32rpx;\n    background-color: #f7f8fa;\n    min-height: 100vh;\n}\n.list {\n    display: flex;\n    flex-direction: column;\n    gap: 24rpx;\n}\n.fan-item {\n    display: flex;\n    align-items: center;\n    justify-content: space-between;\n    background-color: #ffffff;\n    border-radius: 16rpx;\n    padding: 24rpx 28rpx;\n    box-shadow: 0 6rpx 18rpx rgba(0, 0, 0, 0.05);\n}\n.user-info {\n    display: flex;\n    align-items: center;\n    flex: 1;\n    gap: 20rpx;\n    overflow: hidden;\n}\n.avatar {\n    width: 88rpx;\n    height: 88rpx;\n    border-radius: 50%;\n    background-color: #f0f0f0;\n}\n.info-text {\n    display: flex;\n    flex-direction: column;\n    gap: 8rpx;\n    overflow: hidden;\n}\n.name {\n    font-size: 30rpx;\n    color: #333333;\n    font-weight: 600;\n}\n.bio {\n    font-size: 24rpx;\n    color: #888888;\n    line-height: 1.4;\n    white-space: nowrap;\n    overflow: hidden;\n    text-overflow: ellipsis;\n    max-width: 420rpx;\n}\n.follow-time {\n    font-size: 22rpx;\n    color: #b0b0b0;\n}\n.mutual-label {\n    display: inline-block;\n    margin-top: 4rpx;\n    padding: 4rpx 16rpx;\n    border-radius: 999rpx;\n    font-size: 24rpx;\n    background-color: #e6f4ff;\n    color: #1f6fd2;\n}\n.follow-btn {\n    margin-left: 24rpx;\n    border: none;\n    background-color: #9ed7ee;\n    color: #ffffff;\n    border-radius: 999rpx;\n    padding: 0 28rpx;\n    height: 64rpx !important;\n    line-height: 64rpx !important;\n}\n.follow-btn.following {\n    background-color: #f0f0f0;\n    color: #666666;\n}\n.follow-btn::after {\n    border: none;\n}\n.follow-btn[disabled] {\n    opacity: 0.6;\n}\n.loading,\n.loading-more {\n    margin-top: 32rpx;\n    text-align: center;\n    color: #999999;\n    font-size: 26rpx;\n}\n.empty {\n    margin-top: 120rpx;\n    text-align: center;\n    color: #999999;\n    font-size: 28rpx;\n}\n.footer-hint {\n    margin-top: 24rpx;\n}\n", ""]);
+exports.push([module.i, "\n.container {\r\n    padding: 32rpx;\r\n    background-color: #f7f8fa;\r\n    min-height: 100vh;\n}\n.list {\r\n    display: flex;\r\n    flex-direction: column;\r\n    gap: 24rpx;\n}\n.fan-item {\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: space-between;\r\n    background-color: #ffffff;\r\n    border-radius: 16rpx;\r\n    padding: 24rpx 28rpx;\r\n    box-shadow: 0 6rpx 18rpx rgba(0, 0, 0, 0.05);\n}\n.user-info {\r\n    display: flex;\r\n    align-items: center;\r\n    flex: 1;\r\n    gap: 20rpx;\r\n    overflow: hidden;\n}\n.avatar {\r\n    width: 88rpx;\r\n    height: 88rpx;\r\n    border-radius: 50%;\r\n    background-color: #f0f0f0;\n}\n.info-text {\r\n    display: flex;\r\n    flex-direction: column;\r\n    gap: 8rpx;\r\n    overflow: hidden;\n}\n.name {\r\n    font-size: 30rpx;\r\n    color: #333333;\r\n    font-weight: 600;\n}\n.bio {\r\n    font-size: 24rpx;\r\n    color: #888888;\r\n    line-height: 1.4;\r\n    white-space: nowrap;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    max-width: 420rpx;\n}\n.follow-time {\r\n    font-size: 22rpx;\r\n    color: #b0b0b0;\n}\n.mutual-label {\r\n    display: inline-block;\r\n    margin-top: 4rpx;\r\n    padding: 4rpx 16rpx;\r\n    border-radius: 999rpx;\r\n    font-size: 24rpx;\r\n    background-color: #e6f4ff;\r\n    color: #1f6fd2;\n}\n.follow-btn {\r\n    margin-left: 24rpx;\r\n    border: none;\r\n    background-color: #9ed7ee;\r\n    color: #ffffff;\r\n    border-radius: 999rpx;\r\n    padding: 0 28rpx;\r\n    height: 64rpx !important;\r\n    line-height: 64rpx !important;\n}\n.follow-btn.following {\r\n    background-color: #f0f0f0;\r\n    color: #666666;\n}\n.follow-btn::after {\r\n    border: none;\n}\n.follow-btn[disabled] {\r\n    opacity: 0.6;\n}\n.loading,\r\n.loading-more {\r\n    margin-top: 32rpx;\r\n    text-align: center;\r\n    color: #999999;\r\n    font-size: 26rpx;\n}\n.empty {\r\n    margin-top: 120rpx;\r\n    text-align: center;\r\n    color: #999999;\r\n    font-size: 28rpx;\n}\n.footer-hint {\r\n    margin-top: 24rpx;\n}\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -9198,7 +9201,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../../HBuilderX.4.76.2025082103/HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n/* pages/user-profile/user-profile.wxss */\n.container {\n    min-height: 100vh;\n    background-color: #f7f8fa;\n    padding-bottom: 100rpx;\n}\n/* 加载状态 */\n.loading-container {\n    display: flex;\n    justify-content: center;\n    align-items: center;\n    height: 400rpx;\n    background-color: #fff;\n    border-radius: 16rpx;\n    margin: 30rpx;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.loading-text {\n    font-size: 28rpx;\n    color: #999;\n}\n/* 用户信息卡片 */\n.profile-card {\n    margin: 30rpx;\n    padding: 40rpx;\n    background-color: #fff;\n    border-radius: 16rpx;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    text-align: center;\n}\n.profile-avatar {\n    margin-bottom: 20rpx;\n}\n.profile-avatar uni-image {\n    width: 150rpx;\n    height: 150rpx;\n    border-radius: 50%;\n}\n.profile-info {\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n}\n.profile-name {\n    font-size: 36rpx;\n    font-weight: bold;\n    color: #333;\n    margin-bottom: 10rpx;\n}\n.profile-bio {\n    font-size: 28rpx;\n    color: #999;\n    line-height: 1.4;\n    text-align: center;\n}\n/* 帖子部分 */\n.posts-section {\n    margin: 0 30rpx 30rpx 30rpx;\n}\n.section-title {\n    font-size: 32rpx;\n    font-weight: bold;\n    color: #333;\n    margin-bottom: 20rpx;\n    padding: 0 10rpx;\n}\n.post-card {\n    background: #fff;\n    border-radius: 16rpx;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n    margin-bottom: 20rpx;\n    box-sizing: border-box;\n    padding: 30rpx;\n    transition: -webkit-transform 0.2s ease;\n    transition: transform 0.2s ease;\n    transition: transform 0.2s ease, -webkit-transform 0.2s ease;\n}\n.post-card:active {\n    -webkit-transform: translateY(2rpx);\n            transform: translateY(2rpx);\n    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);\n}\n.post-header {\n    margin-bottom: 15rpx;\n}\n.post-title {\n    font-size: 32rpx;\n    font-weight: bold;\n    color: #333;\n    line-height: 1.4;\n    word-break: break-word;\n    overflow: hidden;\n    text-overflow: ellipsis;\n    display: -webkit-box;\n    -webkit-line-clamp: 2;\n    line-clamp: 2;\n    -webkit-box-orient: vertical;\n}\n/* 图片容器 */\n.image-container {\n    width: 100%;\n    margin: 15rpx 0;\n}\n.image-swiper {\n    width: 100%;\n    background-color: #fff;\n    border-radius: 12rpx;\n    overflow: hidden;\n}\n.post-image {\n    width: 100%;\n    height: 100%;\n    display: block;\n    object-fit: contain;\n    border-radius: 12rpx;\n}\n.post-content {\n    font-size: 28rpx;\n    color: #666;\n    line-height: 1.5;\n    margin: 15rpx 0;\n    word-break: break-word;\n    overflow: hidden;\n    text-overflow: ellipsis;\n    display: -webkit-box;\n    -webkit-line-clamp: 3;\n    line-clamp: 3;\n    -webkit-box-orient: vertical;\n}\n.post-footer {\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n    margin-top: 20rpx;\n    padding-top: 20rpx;\n    border-top: 1rpx solid #f0f0f0;\n}\n.post-stats {\n    display: flex;\n    align-items: center;\n    gap: 20rpx;\n}\n.stat-item {\n    font-size: 26rpx;\n    color: #999;\n}\n.post-time {\n    font-size: 24rpx;\n    color: #ccc;\n}\n.empty-tip {\n    text-align: center;\n    color: #bbb;\n    font-size: 28rpx;\n    margin: 40rpx 0;\n    padding: 60rpx 0;\n    background-color: #fff;\n    border-radius: 16rpx;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.profile-follow-btn {\n    margin-top: 24rpx;\n    padding: 0 48rpx;\n    height: 64rpx;\n    line-height: 64rpx;\n    background-color: #9ed7ee;\n    color: #ffffff;\n    border: none;\n    border-radius: 999rpx;\n    font-size: 28rpx;\n}\n.profile-follow-btn.following {\n    background-color: #f0f0f0;\n    color: #666666;\n}\n.profile-follow-btn::after {\n    border: none;\n}\n.profile-follow-btn[disabled] {\n    opacity: 0.7;\n}\n.mutual-pill,\n.followed-pill {\n    margin-top: 16rpx;\n    padding: 6rpx 24rpx;\n    border-radius: 999rpx;\n    font-size: 26rpx;\n    display: inline-block;\n}\n.mutual-pill {\n    background-color: #e6f4ff;\n    color: #1f6fd2;\n}\n.followed-pill {\n    background-color: #f4ebff;\n    color: #7c55c7;\n}\n", ""]);
+exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* pages/user-profile/user-profile.wxss */\n.container {\r\n    min-height: 100vh;\r\n    background-color: #f7f8fa;\r\n    padding-bottom: 100rpx;\n}\r\n/* 加载状态 */\n.loading-container {\r\n    display: flex;\r\n    justify-content: center;\r\n    align-items: center;\r\n    height: 400rpx;\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    margin: 30rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.loading-text {\r\n    font-size: 28rpx;\r\n    color: #999;\n}\r\n/* 用户信息卡片 */\n.profile-card {\r\n    margin: 30rpx;\r\n    padding: 40rpx;\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    text-align: center;\n}\n.profile-avatar {\r\n    margin-bottom: 20rpx;\n}\n.profile-avatar uni-image {\r\n    width: 150rpx;\r\n    height: 150rpx;\r\n    border-radius: 50%;\n}\n.profile-info {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\n}\n.profile-name {\r\n    font-size: 36rpx;\r\n    font-weight: bold;\r\n    color: #333;\r\n    margin-bottom: 10rpx;\n}\n.profile-bio {\r\n    font-size: 28rpx;\r\n    color: #999;\r\n    line-height: 1.4;\r\n    text-align: center;\n}\r\n/* 帖子部分 */\n.posts-section {\r\n    margin: 0 30rpx 30rpx 30rpx;\n}\n.section-title {\r\n    font-size: 32rpx;\r\n    font-weight: bold;\r\n    color: #333;\r\n    margin-bottom: 20rpx;\r\n    padding: 0 10rpx;\n}\n.post-card {\r\n    background: #fff;\r\n    border-radius: 16rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\r\n    margin-bottom: 20rpx;\r\n    box-sizing: border-box;\r\n    padding: 30rpx;\r\n    transition: -webkit-transform 0.2s ease;\r\n    transition: transform 0.2s ease;\r\n    transition: transform 0.2s ease, -webkit-transform 0.2s ease;\n}\n.post-card:active {\r\n    -webkit-transform: translateY(2rpx);\r\n            transform: translateY(2rpx);\r\n    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);\n}\n.post-header {\r\n    margin-bottom: 15rpx;\n}\n.post-title {\r\n    font-size: 32rpx;\r\n    font-weight: bold;\r\n    color: #333;\r\n    line-height: 1.4;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 2;\r\n    line-clamp: 2;\r\n    -webkit-box-orient: vertical;\n}\r\n/* 图片容器 */\n.image-container {\r\n    width: 100%;\r\n    margin: 15rpx 0;\n}\n.image-swiper {\r\n    width: 100%;\r\n    background-color: #fff;\r\n    border-radius: 12rpx;\r\n    overflow: hidden;\n}\n.post-image {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: block;\r\n    object-fit: contain;\r\n    border-radius: 12rpx;\n}\n.post-content {\r\n    font-size: 28rpx;\r\n    color: #666;\r\n    line-height: 1.5;\r\n    margin: 15rpx 0;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 3;\r\n    line-clamp: 3;\r\n    -webkit-box-orient: vertical;\n}\n.post-footer {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    margin-top: 20rpx;\r\n    padding-top: 20rpx;\r\n    border-top: 1rpx solid #f0f0f0;\n}\n.post-stats {\r\n    display: flex;\r\n    align-items: center;\r\n    gap: 20rpx;\n}\n.stat-item {\r\n    font-size: 26rpx;\r\n    color: #999;\n}\n.post-time {\r\n    font-size: 24rpx;\r\n    color: #ccc;\n}\n.empty-tip {\r\n    text-align: center;\r\n    color: #bbb;\r\n    font-size: 28rpx;\r\n    margin: 40rpx 0;\r\n    padding: 60rpx 0;\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.profile-follow-btn {\r\n    margin-top: 24rpx;\r\n    padding: 0 48rpx;\r\n    height: 64rpx;\r\n    line-height: 64rpx;\r\n    background-color: #9ed7ee;\r\n    color: #ffffff;\r\n    border: none;\r\n    border-radius: 999rpx;\r\n    font-size: 28rpx;\n}\n.profile-follow-btn.following {\r\n    background-color: #f0f0f0;\r\n    color: #666666;\n}\n.profile-follow-btn::after {\r\n    border: none;\n}\n.profile-follow-btn[disabled] {\r\n    opacity: 0.7;\n}\n.mutual-pill,\r\n.followed-pill {\r\n    margin-top: 16rpx;\r\n    padding: 6rpx 24rpx;\r\n    border-radius: 999rpx;\r\n    font-size: 26rpx;\r\n    display: inline-block;\n}\n.mutual-pill {\r\n    background-color: #e6f4ff;\r\n    color: #1f6fd2;\n}\n.followed-pill {\r\n    background-color: #f4ebff;\r\n    color: #7c55c7;\n}\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -9618,7 +9621,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../../HBuilderX.4.76.2025082103/HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n/* pages/profile-edit/profile-edit.wxss */\n.container {\n    padding: 30rpx;\n}\n.form-group,\n.form-group-column {\n    display: flex;\n    align-items: center;\n    padding: 20rpx 0;\n    border-bottom: 1px solid #f0f0f0;\n}\n.form-group-column {\n    flex-direction: column;\n    align-items: flex-start;\n}\n.label {\n    width: 180rpx;\n    font-size: 32rpx;\n    color: #333;\n    flex-shrink: 0;\n    margin-bottom: 10rpx; /* For column layout */\n}\n.avatar-wrapper {\n    padding: 0;\n    margin: 0;\n    background: none;\n    border: none;\n    line-height: normal;\n    width: 120rpx;\n    height: 120rpx;\n}\n.avatar-wrapper::after {\n    border: none;\n}\n.avatar-preview {\n    width: 120rpx;\n    height: 120rpx;\n    border-radius: 50%;\n}\n.avatar-placeholder {\n    position: absolute;\n    top: 0;\n    left: 0;\n    width: 120rpx;\n    height: 120rpx;\n    border-radius: 50%;\n    background-color: #f0f0f0;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    border: 2rpx dashed #ccc;\n}\n.avatar-placeholder-text {\n    font-size: 20rpx;\n    color: #999;\n    text-align: center;\n}\n.input,\n.picker-display,\n.textarea {\n    flex-grow: 1;\n    font-size: 32rpx;\n    color: #555;\n}\n.picker-display {\n    text-align: right;\n}\n.textarea {\n    width: 100%;\n    height: 150rpx;\n    padding: 10rpx;\n    background-color: #f7f7f7;\n    border-radius: 10rpx;\n    margin-top: 10rpx;\n}\n.save-button {\n    margin-top: 60rpx;\n    background-color: #9ed7ee;\n    color: white;\n}\n.signature-section {\n    width: 100%;\n}\n.signature-actions {\n    display: flex;\n    align-items: center;\n    gap: 20rpx;\n    width: 100%;\n}\n.signature-upload-btn {\n    background-color: #1c9bd6;\n    color: #fff;\n    border-radius: 8rpx;\n    padding: 0 30rpx;\n    height: 72rpx;\n    line-height: 72rpx;\n}\n.signature-upload-btn::after {\n    border: none;\n}\n.signature-tip {\n    margin-top: 12rpx;\n    font-size: 24rpx;\n    color: #888;\n}\n.signature-preview {\n    width: 100%;\n    max-height: 260rpx;\n    margin-top: 24rpx;\n    background: #f7f7f7;\n    border-radius: 12rpx;\n    padding: 20rpx;\n    box-sizing: border-box;\n}\n", ""]);
+exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* pages/profile-edit/profile-edit.wxss */\n.container {\r\n    padding: 30rpx;\n}\n.form-group,\r\n.form-group-column {\r\n    display: flex;\r\n    align-items: center;\r\n    padding: 20rpx 0;\r\n    border-bottom: 1px solid #f0f0f0;\n}\n.form-group-column {\r\n    flex-direction: column;\r\n    align-items: flex-start;\n}\n.label {\r\n    width: 180rpx;\r\n    font-size: 32rpx;\r\n    color: #333;\r\n    flex-shrink: 0;\r\n    margin-bottom: 10rpx; /* For column layout */\n}\n.avatar-wrapper {\r\n    padding: 0;\r\n    margin: 0;\r\n    background: none;\r\n    border: none;\r\n    line-height: normal;\r\n    width: 120rpx;\r\n    height: 120rpx;\n}\n.avatar-wrapper::after {\r\n    border: none;\n}\n.avatar-preview {\r\n    width: 120rpx;\r\n    height: 120rpx;\r\n    border-radius: 50%;\n}\n.avatar-placeholder {\r\n    position: absolute;\r\n    top: 0;\r\n    left: 0;\r\n    width: 120rpx;\r\n    height: 120rpx;\r\n    border-radius: 50%;\r\n    background-color: #f0f0f0;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    border: 2rpx dashed #ccc;\n}\n.avatar-placeholder-text {\r\n    font-size: 20rpx;\r\n    color: #999;\r\n    text-align: center;\n}\n.input,\r\n.picker-display,\r\n.textarea {\r\n    flex-grow: 1;\r\n    font-size: 32rpx;\r\n    color: #555;\n}\n.picker-display {\r\n    text-align: right;\n}\n.textarea {\r\n    width: 100%;\r\n    height: 150rpx;\r\n    padding: 10rpx;\r\n    background-color: #f7f7f7;\r\n    border-radius: 10rpx;\r\n    margin-top: 10rpx;\n}\n.save-button {\r\n    margin-top: 60rpx;\r\n    background-color: #9ed7ee;\r\n    color: white;\n}\n.signature-section {\r\n    width: 100%;\n}\n.signature-actions {\r\n    display: flex;\r\n    align-items: center;\r\n    gap: 20rpx;\r\n    width: 100%;\n}\n.signature-upload-btn {\r\n    background-color: #1c9bd6;\r\n    color: #fff;\r\n    border-radius: 8rpx;\r\n    padding: 0 30rpx;\r\n    height: 72rpx;\r\n    line-height: 72rpx;\n}\n.signature-upload-btn::after {\r\n    border: none;\n}\n.signature-tip {\r\n    margin-top: 12rpx;\r\n    font-size: 24rpx;\r\n    color: #888;\n}\n.signature-preview {\r\n    width: 100%;\r\n    max-height: 260rpx;\r\n    margin-top: 24rpx;\r\n    background: #f7f7f7;\r\n    border-radius: 12rpx;\r\n    padding: 20rpx;\r\n    box-sizing: border-box;\n}\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -9742,37 +9745,136 @@ var render = function () {
                     _c(
                       "uni-view",
                       { staticClass: _vm._$g(4, "sc"), attrs: { _i: 4 } },
-                      [_vm._v("加载中...")]
+                      [
+                        _c(
+                          "uni-view",
+                          { staticClass: _vm._$g(5, "sc"), attrs: { _i: 5 } },
+                          [
+                            _c("uni-view", {
+                              staticClass: _vm._$g(6, "sc"),
+                              attrs: { _i: 6 },
+                            }),
+                            _c(
+                              "uni-view",
+                              {
+                                staticClass: _vm._$g(7, "sc"),
+                                attrs: { _i: 7 },
+                              },
+                              [
+                                _c("uni-view", {
+                                  staticClass: _vm._$g(8, "sc"),
+                                  attrs: { _i: 8 },
+                                }),
+                                _c("uni-view", {
+                                  staticClass: _vm._$g(9, "sc"),
+                                  attrs: { _i: 9 },
+                                }),
+                              ],
+                              1
+                            ),
+                          ],
+                          1
+                        ),
+                        _c("uni-view", {
+                          staticClass: _vm._$g(10, "sc"),
+                          attrs: { _i: 10 },
+                        }),
+                        _c("uni-view", {
+                          staticClass: _vm._$g(11, "sc"),
+                          attrs: { _i: 11 },
+                        }),
+                        _c("uni-view", {
+                          staticClass: _vm._$g(12, "sc"),
+                          attrs: { _i: 12 },
+                        }),
+                        _c("uni-view", {
+                          staticClass: _vm._$g(13, "sc"),
+                          attrs: { _i: 13 },
+                        }),
+                        _c("uni-view", {
+                          staticClass: _vm._$g(14, "sc"),
+                          attrs: { _i: 14 },
+                        }),
+                        _c("uni-view", {
+                          staticClass: _vm._$g(15, "sc"),
+                          attrs: { _i: 15 },
+                        }),
+                      ],
+                      1
+                    ),
+                    _c("uni-view", {
+                      staticClass: _vm._$g(16, "sc"),
+                      attrs: { _i: 16 },
+                    }),
+                    _c(
+                      "uni-view",
+                      { staticClass: _vm._$g(17, "sc"), attrs: { _i: 17 } },
+                      _vm._l(_vm._$g(18, "f"), function (n, $10, $20, $30) {
+                        return _c(
+                          "uni-view",
+                          {
+                            key: n,
+                            staticClass: _vm._$g("18-" + $30, "sc"),
+                            attrs: { _i: "18-" + $30 },
+                          },
+                          [
+                            _c("uni-view", {
+                              staticClass: _vm._$g("19-" + $30, "sc"),
+                              attrs: { _i: "19-" + $30 },
+                            }),
+                            _c(
+                              "uni-view",
+                              {
+                                staticClass: _vm._$g("20-" + $30, "sc"),
+                                attrs: { _i: "20-" + $30 },
+                              },
+                              [
+                                _c("uni-view", {
+                                  staticClass: _vm._$g("21-" + $30, "sc"),
+                                  attrs: { _i: "21-" + $30 },
+                                }),
+                                _c("uni-view", {
+                                  staticClass: _vm._$g("22-" + $30, "sc"),
+                                  attrs: { _i: "22-" + $30 },
+                                }),
+                              ],
+                              1
+                            ),
+                          ],
+                          1
+                        )
+                      }),
+                      1
                     ),
                   ],
                   1
                 ),
               ]
-            : _vm._$g(5, "e")
+            : _vm._$g(23, "e")
             ? [
                 _c(
                   "uni-view",
-                  { class: _vm._$g(6, "c"), attrs: { _i: 6 } },
+                  { class: _vm._$g(24, "c"), attrs: { _i: 24 } },
                   [
                     _c(
                       "uni-view",
-                      { staticClass: _vm._$g(7, "sc"), attrs: { _i: 7 } },
+                      { staticClass: _vm._$g(25, "sc"), attrs: { _i: 25 } },
                       [
                         _c(
                           "uni-view",
-                          { staticClass: _vm._$g(8, "sc"), attrs: { _i: 8 } },
+                          { staticClass: _vm._$g(26, "sc"), attrs: { _i: 26 } },
                           [
-                            _vm._$g(9, "i")
+                            _vm._$g(27, "i")
                               ? _c("v-uni-image", {
-                                  staticClass: _vm._$g(9, "sc"),
+                                  staticClass: _vm._$g(27, "sc"),
                                   attrs: {
-                                    src: _vm._$g(9, "a-src"),
+                                    src: _vm._$g(27, "a-src"),
                                     mode: "aspectFill",
                                     "data-user-id": _vm._$g(
-                                      9,
+                                      27,
                                       "a-data-user-id"
                                     ),
-                                    _i: 9,
+                                    _i: 27,
                                   },
                                   on: {
                                     error: function ($event) {
@@ -9787,26 +9889,26 @@ var render = function () {
                             _c(
                               "v-uni-text",
                               {
-                                staticClass: _vm._$g(10, "sc"),
-                                attrs: { _i: 10 },
+                                staticClass: _vm._$g(28, "sc"),
+                                attrs: { _i: 28 },
                               },
-                              [_vm._v(_vm._$g(10, "t0-0"))]
+                              [_vm._v(_vm._$g(28, "t0-0"))]
                             ),
-                            _vm._$g(11, "i")
+                            _vm._$g(29, "i")
                               ? _c(
                                   "uni-view",
                                   {
-                                    staticClass: _vm._$g(11, "sc"),
-                                    attrs: { _i: 11 },
+                                    staticClass: _vm._$g(29, "sc"),
+                                    attrs: { _i: 29 },
                                   },
                                   [_vm._v("互相关注")]
                                 )
-                              : _vm._$g(12, "e")
+                              : _vm._$g(30, "e")
                               ? _c(
                                   "uni-view",
                                   {
-                                    staticClass: _vm._$g(12, "sc"),
-                                    attrs: { _i: 12 },
+                                    staticClass: _vm._$g(30, "sc"),
+                                    attrs: { _i: 30 },
                                   },
                                   [_vm._v("TA关注了你")]
                                 )
@@ -9814,15 +9916,15 @@ var render = function () {
                           ],
                           1
                         ),
-                        _vm._$g(13, "i")
+                        _vm._$g(31, "i")
                           ? _c(
                               "v-uni-button",
                               {
-                                class: _vm._$g(13, "c"),
+                                class: _vm._$g(31, "c"),
                                 attrs: {
-                                  loading: _vm._$g(13, "a-loading"),
-                                  disabled: _vm._$g(13, "a-disabled"),
-                                  _i: 13,
+                                  loading: _vm._$g(31, "a-loading"),
+                                  disabled: _vm._$g(31, "a-disabled"),
+                                  _i: 31,
                                 },
                                 on: {
                                   click: function ($event) {
@@ -9830,7 +9932,7 @@ var render = function () {
                                   },
                                 },
                               },
-                              [_vm._v(_vm._$g(13, "t0-0"))]
+                              [_vm._v(_vm._$g(31, "t0-0"))]
                             )
                           : _vm._e(),
                       ],
@@ -9838,41 +9940,41 @@ var render = function () {
                     ),
                     _c(
                       "uni-view",
-                      { staticClass: _vm._$g(14, "sc"), attrs: { _i: 14 } },
-                      [_vm._v(_vm._$g(14, "t0-0"))]
+                      { staticClass: _vm._$g(32, "sc"), attrs: { _i: 32 } },
+                      [_vm._v(_vm._$g(32, "t0-0"))]
                     ),
-                    _vm._$g(15, "i")
+                    _vm._$g(33, "i")
                       ? _c(
                           "uni-view",
-                          { staticClass: _vm._$g(15, "sc"), attrs: { _i: 15 } },
-                          [_vm._v(_vm._$g(15, "t0-0"))]
+                          { staticClass: _vm._$g(33, "sc"), attrs: { _i: 33 } },
+                          [_vm._v(_vm._$g(33, "t0-0"))]
                         )
                       : _vm._e(),
-                    _vm._$g(16, "i")
+                    _vm._$g(34, "i")
                       ? _c(
                           "uni-view",
-                          { staticClass: _vm._$g(16, "sc"), attrs: { _i: 16 } },
-                          [_vm._v(_vm._$g(16, "t0-0"))]
+                          { staticClass: _vm._$g(34, "sc"), attrs: { _i: 34 } },
+                          [_vm._v(_vm._$g(34, "t0-0"))]
                         )
                       : _vm._e(),
-                    _vm._$g(17, "i")
+                    _vm._$g(35, "i")
                       ? _c(
                           "uni-view",
-                          { staticClass: _vm._$g(17, "sc"), attrs: { _i: 17 } },
+                          { staticClass: _vm._$g(35, "sc"), attrs: { _i: 35 } },
                           _vm._l(
-                            _vm._$g(18, "f"),
-                            function (item, index, $20, $30) {
+                            _vm._$g(36, "f"),
+                            function (item, index, $21, $31) {
                               return _c(
                                 "v-uni-text",
                                 {
                                   key: item,
-                                  staticClass: _vm._$g("18-" + $30, "sc"),
+                                  staticClass: _vm._$g("36-" + $31, "sc"),
                                   attrs: {
                                     "data-tag": _vm._$g(
-                                      "18-" + $30,
+                                      "36-" + $31,
                                       "a-data-tag"
                                     ),
-                                    _i: "18-" + $30,
+                                    _i: "36-" + $31,
                                   },
                                   on: {
                                     click: function ($event) {
@@ -9883,41 +9985,41 @@ var render = function () {
                                     },
                                   },
                                 },
-                                [_vm._v("#" + _vm._$g("18-" + $30, "t0-0"))]
+                                [_vm._v("#" + _vm._$g("36-" + $31, "t0-0"))]
                               )
                             }
                           ),
                           1
                         )
                       : _vm._e(),
-                    _vm._$g(19, "i")
+                    _vm._$g(37, "i")
                       ? _c(
                           "uni-view",
                           {
-                            staticClass: _vm._$g(19, "sc"),
-                            attrs: { id: "detail-image-container", _i: 19 },
+                            staticClass: _vm._$g(37, "sc"),
+                            attrs: { id: "detail-image-container", _i: 37 },
                           },
                           [
-                            _vm._$g(20, "i")
+                            _vm._$g(38, "i")
                               ? [
                                   _c("v-uni-image", {
-                                    style: _vm._$g(21, "s"),
+                                    style: _vm._$g(39, "s"),
                                     attrs: {
-                                      id: _vm._$g(21, "a-id"),
-                                      src: _vm._$g(21, "a-src"),
-                                      mode: _vm._$g(21, "a-mode"),
+                                      id: _vm._$g(39, "a-id"),
+                                      src: _vm._$g(39, "a-src"),
+                                      mode: _vm._$g(39, "a-mode"),
                                       "data-postid": _vm._$g(
-                                        21,
+                                        39,
                                         "a-data-postid"
                                       ),
                                       "data-type": "single",
-                                      "data-src": _vm._$g(21, "a-data-src"),
+                                      "data-src": _vm._$g(39, "a-data-src"),
                                       "data-original-image-urls": _vm._$g(
-                                        21,
+                                        39,
                                         "a-data-original-image-urls"
                                       ),
                                       "lazy-load": true,
-                                      _i: 21,
+                                      _i: 39,
                                     },
                                     on: {
                                       load: function ($event) {
@@ -9935,30 +10037,30 @@ var render = function () {
                                     },
                                   }),
                                 ]
-                              : _vm._$g(22, "e")
+                              : _vm._$g(40, "e")
                               ? [
                                   _c(
                                     "v-uni-swiper",
                                     {
-                                      staticClass: _vm._$g(23, "sc"),
-                                      style: _vm._$g(23, "s"),
+                                      staticClass: _vm._$g(41, "sc"),
+                                      style: _vm._$g(41, "s"),
                                       attrs: {
-                                        id: _vm._$g(23, "a-id"),
+                                        id: _vm._$g(41, "a-id"),
                                         "indicator-dots": true,
                                         circular: true,
-                                        _i: 23,
+                                        _i: 41,
                                       },
                                     },
                                     [
                                       _vm._l(
-                                        _vm._$g(24, "f"),
-                                        function (img, imgindex, $21, $31) {
+                                        _vm._$g(42, "f"),
+                                        function (img, imgindex, $22, $32) {
                                           return [
                                             _c(
                                               "v-uni-swiper-item",
                                               {
                                                 key: img["k0"],
-                                                attrs: { _i: "25-" + $31 },
+                                                attrs: { _i: "43-" + $32 },
                                               },
                                               [
                                                 _c("v-uni-image", {
@@ -9971,31 +10073,31 @@ var render = function () {
                                                   },
                                                   attrs: {
                                                     src: _vm._$g(
-                                                      "26-" + $31,
+                                                      "44-" + $32,
                                                       "a-src"
                                                     ),
                                                     mode: "aspectFill",
                                                     "data-postid": _vm._$g(
-                                                      "26-" + $31,
+                                                      "44-" + $32,
                                                       "a-data-postid"
                                                     ),
                                                     "data-postindex": "0",
                                                     "data-imgindex": _vm._$g(
-                                                      "26-" + $31,
+                                                      "44-" + $32,
                                                       "a-data-imgindex"
                                                     ),
                                                     "data-type": "multi",
                                                     "data-src": _vm._$g(
-                                                      "26-" + $31,
+                                                      "44-" + $32,
                                                       "a-data-src"
                                                     ),
                                                     "data-original-image-urls":
                                                       _vm._$g(
-                                                        "26-" + $31,
+                                                        "44-" + $32,
                                                         "a-data-original-image-urls"
                                                       ),
                                                     "lazy-load": true,
-                                                    _i: "26-" + $31,
+                                                    _i: "44-" + $32,
                                                   },
                                                   on: {
                                                     load: function ($event) {
@@ -10036,12 +10138,12 @@ var render = function () {
                       : _vm._e(),
                     _c(
                       "uni-view",
-                      { staticClass: _vm._$g(27, "sc"), attrs: { _i: 27 } },
+                      { staticClass: _vm._$g(45, "sc"), attrs: { _i: 45 } },
                       [
                         _c(
                           "v-uni-text",
-                          { staticClass: _vm._$g(28, "sc"), attrs: { _i: 28 } },
-                          [_vm._v(_vm._$g(28, "t0-0"))]
+                          { staticClass: _vm._$g(46, "sc"), attrs: { _i: 46 } },
+                          [_vm._v(_vm._$g(46, "t0-0"))]
                         ),
                       ],
                       1
@@ -10049,8 +10151,8 @@ var render = function () {
                     _c(
                       "uni-view",
                       {
-                        staticClass: _vm._$g(29, "sc"),
-                        attrs: { _i: 29 },
+                        staticClass: _vm._$g(47, "sc"),
+                        attrs: { _i: 47 },
                         on: {
                           click: function ($event) {
                             return _vm.$handleViewEvent($event, {
@@ -10063,13 +10165,13 @@ var render = function () {
                       [
                         _c(
                           "uni-view",
-                          { staticClass: _vm._$g(30, "sc"), attrs: { _i: 30 } },
+                          { staticClass: _vm._$g(48, "sc"), attrs: { _i: 48 } },
                           [
                             _c(
                               "v-uni-button",
                               {
-                                class: _vm._$g(31, "c"),
-                                attrs: { size: "mini", _i: 31 },
+                                class: _vm._$g(49, "c"),
+                                attrs: { size: "mini", _i: 49 },
                                 on: {
                                   click: function ($event) {
                                     return _vm.$handleViewEvent($event, {
@@ -10079,37 +10181,37 @@ var render = function () {
                                   },
                                 },
                               },
-                              [_vm._v(_vm._$g(31, "t0-0"))]
+                              [_vm._v(_vm._$g(49, "t0-0"))]
                             ),
                           ],
                           1
                         ),
                         _c(
                           "uni-view",
-                          { staticClass: _vm._$g(32, "sc"), attrs: { _i: 32 } },
+                          { staticClass: _vm._$g(50, "sc"), attrs: { _i: 50 } },
                           [
                             _c(
                               "uni-view",
                               {
-                                staticClass: _vm._$g(33, "sc"),
-                                attrs: { _i: 33 },
+                                staticClass: _vm._$g(51, "sc"),
+                                attrs: { _i: 51 },
                               },
                               [
                                 _c(
                                   "v-uni-text",
                                   {
-                                    staticClass: _vm._$g(34, "sc"),
-                                    attrs: { _i: 34 },
+                                    staticClass: _vm._$g(52, "sc"),
+                                    attrs: { _i: 52 },
                                   },
                                   [_vm._v("💬")]
                                 ),
                                 _c(
                                   "v-uni-text",
                                   {
-                                    staticClass: _vm._$g(35, "sc"),
-                                    attrs: { _i: 35 },
+                                    staticClass: _vm._$g(53, "sc"),
+                                    attrs: { _i: 53 },
                                   },
-                                  [_vm._v(_vm._$g(35, "t0-0"))]
+                                  [_vm._v(_vm._$g(53, "t0-0"))]
                                 ),
                               ],
                               1
@@ -10117,10 +10219,10 @@ var render = function () {
                             _c(
                               "uni-view",
                               {
-                                staticClass: _vm._$g(36, "sc"),
+                                staticClass: _vm._$g(54, "sc"),
                                 attrs: {
-                                  "data-postid": _vm._$g(36, "a-data-postid"),
-                                  _i: 36,
+                                  "data-postid": _vm._$g(54, "a-data-postid"),
+                                  _i: 54,
                                 },
                                 on: {
                                   click: function ($event) {
@@ -10133,11 +10235,11 @@ var render = function () {
                               },
                               [
                                 _c("v-uni-image", {
-                                  staticClass: _vm._$g(37, "sc"),
+                                  staticClass: _vm._$g(55, "sc"),
                                   attrs: {
-                                    src: _vm._$g(37, "a-src"),
+                                    src: _vm._$g(55, "a-src"),
                                     mode: "aspectFit",
-                                    _i: 37,
+                                    _i: 55,
                                   },
                                 }),
                               ],
@@ -10145,15 +10247,15 @@ var render = function () {
                             ),
                             _c(
                               "uni-view",
-                              { class: _vm._$g(38, "c"), attrs: { _i: 38 } },
+                              { class: _vm._$g(56, "c"), attrs: { _i: 56 } },
                               [
                                 _c(
                                   "v-uni-text",
                                   {
-                                    staticClass: _vm._$g(39, "sc"),
-                                    attrs: { _i: 39 },
+                                    staticClass: _vm._$g(57, "sc"),
+                                    attrs: { _i: 57 },
                                   },
-                                  [_vm._v(_vm._$g(39, "t0-0"))]
+                                  [_vm._v(_vm._$g(57, "t0-0"))]
                                 ),
                               ],
                               1
@@ -10169,163 +10271,119 @@ var render = function () {
                 ),
                 _c(
                   "uni-view",
-                  { staticClass: _vm._$g(40, "sc"), attrs: { _i: 40 } },
+                  { staticClass: _vm._$g(58, "sc"), attrs: { _i: 58 } },
                   [
                     _c(
                       "uni-view",
-                      { staticClass: _vm._$g(41, "sc"), attrs: { _i: 41 } },
-                      [_vm._v("共" + _vm._$g(41, "t0-0") + " 条评论")]
+                      { staticClass: _vm._$g(59, "sc"), attrs: { _i: 59 } },
+                      [_vm._v("共" + _vm._$g(59, "t0-0") + " 条评论")]
                     ),
-                    _c(
-                      "uni-view",
-                      { staticClass: _vm._$g(42, "sc"), attrs: { _i: 42 } },
-                      [
-                        _vm._$g(43, "i")
-                          ? _vm._l(
-                              _vm._$g(44, "f"),
-                              function (item, commentIndex, $22, $32) {
-                                return _c(
+                    _vm._$g(60, "i")
+                      ? _c(
+                          "uni-view",
+                          { staticClass: _vm._$g(60, "sc"), attrs: { _i: 60 } },
+                          _vm._l(_vm._$g(61, "f"), function (n, $13, $23, $33) {
+                            return _c(
+                              "uni-view",
+                              {
+                                key: n,
+                                staticClass: _vm._$g("61-" + $33, "sc"),
+                                attrs: { _i: "61-" + $33 },
+                              },
+                              [
+                                _c("uni-view", {
+                                  staticClass: _vm._$g("62-" + $33, "sc"),
+                                  attrs: { _i: "62-" + $33 },
+                                }),
+                                _c(
                                   "uni-view",
                                   {
-                                    key: item,
-                                    staticClass: _vm._$g("44-" + $32, "sc"),
-                                    attrs: { _i: "44-" + $32 },
+                                    staticClass: _vm._$g("63-" + $33, "sc"),
+                                    attrs: { _i: "63-" + $33 },
                                   },
                                   [
-                                    _c("v-uni-image", {
-                                      staticClass: _vm._$g("45-" + $32, "sc"),
-                                      attrs: {
-                                        src: _vm._$g("45-" + $32, "a-src"),
-                                        mode: "aspectFill",
-                                        "data-user-id": _vm._$g(
-                                          "45-" + $32,
-                                          "a-data-user-id"
-                                        ),
-                                        _i: "45-" + $32,
-                                      },
-                                      on: {
-                                        error: function ($event) {
-                                          return _vm.$handleViewEvent($event)
-                                        },
-                                        click: function ($event) {
-                                          return _vm.$handleViewEvent($event)
-                                        },
-                                      },
+                                    _c("uni-view", {
+                                      staticClass: _vm._$g("64-" + $33, "sc"),
+                                      attrs: { _i: "64-" + $33 },
                                     }),
-                                    _c(
+                                    _c("uni-view", {
+                                      staticClass: _vm._$g("65-" + $33, "sc"),
+                                      attrs: { _i: "65-" + $33 },
+                                    }),
+                                  ],
+                                  1
+                                ),
+                              ],
+                              1
+                            )
+                          }),
+                          1
+                        )
+                      : _c(
+                          "uni-view",
+                          { staticClass: _vm._$g(66, "sc"), attrs: { _i: 66 } },
+                          [
+                            _vm._$g(67, "i")
+                              ? _vm._l(
+                                  _vm._$g(68, "f"),
+                                  function (item, commentIndex, $24, $34) {
+                                    return _c(
                                       "uni-view",
                                       {
-                                        staticClass: _vm._$g("46-" + $32, "sc"),
-                                        attrs: { _i: "46-" + $32 },
+                                        key: item,
+                                        staticClass: _vm._$g("68-" + $34, "sc"),
+                                        attrs: { _i: "68-" + $34 },
                                       },
                                       [
-                                        _c(
-                                          "uni-view",
-                                          {
-                                            staticClass: _vm._$g(
-                                              "47-" + $32,
-                                              "sc"
+                                        _c("v-uni-image", {
+                                          staticClass: _vm._$g(
+                                            "69-" + $34,
+                                            "sc"
+                                          ),
+                                          attrs: {
+                                            src: _vm._$g("69-" + $34, "a-src"),
+                                            mode: "aspectFill",
+                                            "data-user-id": _vm._$g(
+                                              "69-" + $34,
+                                              "a-data-user-id"
                                             ),
-                                            attrs: { _i: "47-" + $32 },
+                                            _i: "69-" + $34,
                                           },
-                                          [_vm._v(_vm._$g("47-" + $32, "t0-0"))]
-                                        ),
-                                        _c(
-                                          "uni-view",
-                                          {
-                                            staticClass: _vm._$g(
-                                              "48-" + $32,
-                                              "sc"
-                                            ),
-                                            attrs: { _i: "48-" + $32 },
+                                          on: {
+                                            error: function ($event) {
+                                              return _vm.$handleViewEvent(
+                                                $event
+                                              )
+                                            },
+                                            click: function ($event) {
+                                              return _vm.$handleViewEvent(
+                                                $event
+                                              )
+                                            },
                                           },
-                                          [_vm._v(_vm._$g("48-" + $32, "t0-0"))]
-                                        ),
-                                        _vm._$g("49-" + $32, "i")
-                                          ? _c(
-                                              "uni-view",
-                                              {
-                                                staticClass: _vm._$g(
-                                                  "49-" + $32,
-                                                  "sc"
-                                                ),
-                                                attrs: { _i: "49-" + $32 },
-                                              },
-                                              _vm._l(
-                                                _vm._$g(50 + "-" + $32, "f"),
-                                                function (
-                                                  commentImage,
-                                                  imageIndex,
-                                                  $23,
-                                                  $33
-                                                ) {
-                                                  return _c("v-uni-image", {
-                                                    key: commentImage,
-                                                    staticClass: _vm._$g(
-                                                      "50-" + $32 + "-" + $33,
-                                                      "sc"
-                                                    ),
-                                                    attrs: {
-                                                      src: _vm._$g(
-                                                        "50-" + $32 + "-" + $33,
-                                                        "a-src"
-                                                      ),
-                                                      mode: "aspectFill",
-                                                      "data-comment-index":
-                                                        _vm._$g(
-                                                          "50-" +
-                                                            $32 +
-                                                            "-" +
-                                                            $33,
-                                                          "a-data-comment-index"
-                                                        ),
-                                                      "data-image-index":
-                                                        _vm._$g(
-                                                          "50-" +
-                                                            $32 +
-                                                            "-" +
-                                                            $33,
-                                                          "a-data-image-index"
-                                                        ),
-                                                      "data-is-reply": false,
-                                                      _i:
-                                                        "50-" + $32 + "-" + $33,
-                                                    },
-                                                    on: {
-                                                      click: function ($event) {
-                                                        return _vm.$handleViewEvent(
-                                                          $event
-                                                        )
-                                                      },
-                                                    },
-                                                  })
-                                                }
-                                              ),
-                                              1
-                                            )
-                                          : _vm._e(),
+                                        }),
                                         _c(
                                           "uni-view",
                                           {
                                             staticClass: _vm._$g(
-                                              "51-" + $32,
+                                              "70-" + $34,
                                               "sc"
                                             ),
-                                            attrs: { _i: "51-" + $32 },
+                                            attrs: { _i: "70-" + $34 },
                                           },
                                           [
                                             _c(
                                               "uni-view",
                                               {
                                                 staticClass: _vm._$g(
-                                                  "52-" + $32,
+                                                  "71-" + $34,
                                                   "sc"
                                                 ),
-                                                attrs: { _i: "52-" + $32 },
+                                                attrs: { _i: "71-" + $34 },
                                               },
                                               [
                                                 _vm._v(
-                                                  _vm._$g("52-" + $32, "t0-0")
+                                                  _vm._$g("71-" + $34, "t0-0")
                                                 ),
                                               ]
                                             ),
@@ -10333,91 +10391,265 @@ var render = function () {
                                               "uni-view",
                                               {
                                                 staticClass: _vm._$g(
-                                                  "53-" + $32,
+                                                  "72-" + $34,
                                                   "sc"
                                                 ),
-                                                attrs: { _i: "53-" + $32 },
+                                                attrs: { _i: "72-" + $34 },
+                                              },
+                                              [
+                                                _vm._v(
+                                                  _vm._$g("72-" + $34, "t0-0")
+                                                ),
+                                              ]
+                                            ),
+                                            _vm._$g("73-" + $34, "i")
+                                              ? _c(
+                                                  "uni-view",
+                                                  {
+                                                    staticClass: _vm._$g(
+                                                      "73-" + $34,
+                                                      "sc"
+                                                    ),
+                                                    attrs: { _i: "73-" + $34 },
+                                                  },
+                                                  _vm._l(
+                                                    _vm._$g(
+                                                      74 + "-" + $34,
+                                                      "f"
+                                                    ),
+                                                    function (
+                                                      commentImage,
+                                                      imageIndex,
+                                                      $25,
+                                                      $35
+                                                    ) {
+                                                      return _c("v-uni-image", {
+                                                        key: commentImage,
+                                                        staticClass: _vm._$g(
+                                                          "74-" +
+                                                            $34 +
+                                                            "-" +
+                                                            $35,
+                                                          "sc"
+                                                        ),
+                                                        attrs: {
+                                                          src: _vm._$g(
+                                                            "74-" +
+                                                              $34 +
+                                                              "-" +
+                                                              $35,
+                                                            "a-src"
+                                                          ),
+                                                          mode: "aspectFill",
+                                                          "data-comment-index":
+                                                            _vm._$g(
+                                                              "74-" +
+                                                                $34 +
+                                                                "-" +
+                                                                $35,
+                                                              "a-data-comment-index"
+                                                            ),
+                                                          "data-image-index":
+                                                            _vm._$g(
+                                                              "74-" +
+                                                                $34 +
+                                                                "-" +
+                                                                $35,
+                                                              "a-data-image-index"
+                                                            ),
+                                                          "data-is-reply": false,
+                                                          _i:
+                                                            "74-" +
+                                                            $34 +
+                                                            "-" +
+                                                            $35,
+                                                        },
+                                                        on: {
+                                                          click: function (
+                                                            $event
+                                                          ) {
+                                                            return _vm.$handleViewEvent(
+                                                              $event
+                                                            )
+                                                          },
+                                                        },
+                                                      })
+                                                    }
+                                                  ),
+                                                  1
+                                                )
+                                              : _vm._e(),
+                                            _c(
+                                              "uni-view",
+                                              {
+                                                staticClass: _vm._$g(
+                                                  "75-" + $34,
+                                                  "sc"
+                                                ),
+                                                attrs: { _i: "75-" + $34 },
                                               },
                                               [
                                                 _c(
                                                   "uni-view",
                                                   {
                                                     staticClass: _vm._$g(
-                                                      "54-" + $32,
+                                                      "76-" + $34,
                                                       "sc"
                                                     ),
-                                                    attrs: {
-                                                      "data-comment-id":
-                                                        _vm._$g(
-                                                          "54-" + $32,
-                                                          "a-data-comment-id"
-                                                        ),
-                                                      "data-liked": _vm._$g(
-                                                        "54-" + $32,
-                                                        "a-data-liked"
-                                                      ),
-                                                      _i: "54-" + $32,
-                                                    },
-                                                    on: {
-                                                      click: function ($event) {
-                                                        return _vm.$handleViewEvent(
-                                                          $event
-                                                        )
-                                                      },
-                                                    },
+                                                    attrs: { _i: "76-" + $34 },
                                                   },
                                                   [
-                                                    _c("v-uni-image", {
-                                                      staticClass: _vm._$g(
-                                                        "55-" + $32,
-                                                        "sc"
-                                                      ),
-                                                      attrs: {
-                                                        src: _vm._$g(
-                                                          "55-" + $32,
-                                                          "a-src"
-                                                        ),
-                                                        _i: "55-" + $32,
-                                                      },
-                                                    }),
-                                                    _c(
-                                                      "v-uni-text",
-                                                      {
-                                                        staticClass: _vm._$g(
-                                                          "56-" + $32,
-                                                          "sc"
-                                                        ),
-                                                        attrs: {
-                                                          _i: "56-" + $32,
-                                                        },
-                                                      },
-                                                      [
-                                                        _vm._v(
-                                                          _vm._$g(
-                                                            "56-" + $32,
-                                                            "t0-0"
-                                                          )
-                                                        ),
-                                                      ]
+                                                    _vm._v(
+                                                      _vm._$g(
+                                                        "76-" + $34,
+                                                        "t0-0"
+                                                      )
                                                     ),
-                                                  ],
-                                                  1
+                                                  ]
                                                 ),
-                                                _vm._$g("57-" + $32, "i")
-                                                  ? _c(
+                                                _c(
+                                                  "uni-view",
+                                                  {
+                                                    staticClass: _vm._$g(
+                                                      "77-" + $34,
+                                                      "sc"
+                                                    ),
+                                                    attrs: { _i: "77-" + $34 },
+                                                  },
+                                                  [
+                                                    _c(
                                                       "uni-view",
                                                       {
                                                         staticClass: _vm._$g(
-                                                          "57-" + $32,
+                                                          "78-" + $34,
                                                           "sc"
                                                         ),
                                                         attrs: {
                                                           "data-comment-id":
                                                             _vm._$g(
-                                                              "57-" + $32,
+                                                              "78-" + $34,
                                                               "a-data-comment-id"
                                                             ),
-                                                          _i: "57-" + $32,
+                                                          "data-liked": _vm._$g(
+                                                            "78-" + $34,
+                                                            "a-data-liked"
+                                                          ),
+                                                          _i: "78-" + $34,
+                                                        },
+                                                        on: {
+                                                          click: function (
+                                                            $event
+                                                          ) {
+                                                            return _vm.$handleViewEvent(
+                                                              $event
+                                                            )
+                                                          },
+                                                        },
+                                                      },
+                                                      [
+                                                        _c("v-uni-image", {
+                                                          staticClass: _vm._$g(
+                                                            "79-" + $34,
+                                                            "sc"
+                                                          ),
+                                                          attrs: {
+                                                            src: _vm._$g(
+                                                              "79-" + $34,
+                                                              "a-src"
+                                                            ),
+                                                            _i: "79-" + $34,
+                                                          },
+                                                        }),
+                                                        _c(
+                                                          "v-uni-text",
+                                                          {
+                                                            staticClass:
+                                                              _vm._$g(
+                                                                "80-" + $34,
+                                                                "sc"
+                                                              ),
+                                                            attrs: {
+                                                              _i: "80-" + $34,
+                                                            },
+                                                          },
+                                                          [
+                                                            _vm._v(
+                                                              _vm._$g(
+                                                                "80-" + $34,
+                                                                "t0-0"
+                                                              )
+                                                            ),
+                                                          ]
+                                                        ),
+                                                      ],
+                                                      1
+                                                    ),
+                                                    _vm._$g("81-" + $34, "i")
+                                                      ? _c(
+                                                          "uni-view",
+                                                          {
+                                                            staticClass:
+                                                              _vm._$g(
+                                                                "81-" + $34,
+                                                                "sc"
+                                                              ),
+                                                            attrs: {
+                                                              "data-comment-id":
+                                                                _vm._$g(
+                                                                  "81-" + $34,
+                                                                  "a-data-comment-id"
+                                                                ),
+                                                              _i: "81-" + $34,
+                                                            },
+                                                            on: {
+                                                              click: function (
+                                                                $event
+                                                              ) {
+                                                                return _vm.$handleViewEvent(
+                                                                  $event
+                                                                )
+                                                              },
+                                                            },
+                                                          },
+                                                          [
+                                                            _c(
+                                                              "v-uni-text",
+                                                              {
+                                                                staticClass:
+                                                                  _vm._$g(
+                                                                    "82-" + $34,
+                                                                    "sc"
+                                                                  ),
+                                                                attrs: {
+                                                                  _i:
+                                                                    "82-" + $34,
+                                                                },
+                                                              },
+                                                              [_vm._v("删除")]
+                                                            ),
+                                                          ],
+                                                          1
+                                                        )
+                                                      : _vm._e(),
+                                                    _c(
+                                                      "uni-view",
+                                                      {
+                                                        staticClass: _vm._$g(
+                                                          "83-" + $34,
+                                                          "sc"
+                                                        ),
+                                                        attrs: {
+                                                          "data-comment-id":
+                                                            _vm._$g(
+                                                              "83-" + $34,
+                                                              "a-data-comment-id"
+                                                            ),
+                                                          "data-author-name":
+                                                            _vm._$g(
+                                                              "83-" + $34,
+                                                              "a-data-author-name"
+                                                            ),
+                                                          _i: "83-" + $34,
                                                         },
                                                         on: {
                                                           click: function (
@@ -10435,60 +10667,17 @@ var render = function () {
                                                           {
                                                             staticClass:
                                                               _vm._$g(
-                                                                "58-" + $32,
+                                                                "84-" + $34,
                                                                 "sc"
                                                               ),
                                                             attrs: {
-                                                              _i: "58-" + $32,
+                                                              _i: "84-" + $34,
                                                             },
                                                           },
-                                                          [_vm._v("删除")]
+                                                          [_vm._v("回复")]
                                                         ),
                                                       ],
                                                       1
-                                                    )
-                                                  : _vm._e(),
-                                                _c(
-                                                  "uni-view",
-                                                  {
-                                                    staticClass: _vm._$g(
-                                                      "59-" + $32,
-                                                      "sc"
-                                                    ),
-                                                    attrs: {
-                                                      "data-comment-id":
-                                                        _vm._$g(
-                                                          "59-" + $32,
-                                                          "a-data-comment-id"
-                                                        ),
-                                                      "data-author-name":
-                                                        _vm._$g(
-                                                          "59-" + $32,
-                                                          "a-data-author-name"
-                                                        ),
-                                                      _i: "59-" + $32,
-                                                    },
-                                                    on: {
-                                                      click: function ($event) {
-                                                        return _vm.$handleViewEvent(
-                                                          $event
-                                                        )
-                                                      },
-                                                    },
-                                                  },
-                                                  [
-                                                    _c(
-                                                      "v-uni-text",
-                                                      {
-                                                        staticClass: _vm._$g(
-                                                          "60-" + $32,
-                                                          "sc"
-                                                        ),
-                                                        attrs: {
-                                                          _i: "60-" + $32,
-                                                        },
-                                                      },
-                                                      [_vm._v("回复")]
                                                     ),
                                                   ],
                                                   1
@@ -10496,374 +10685,127 @@ var render = function () {
                                               ],
                                               1
                                             ),
-                                          ],
-                                          1
-                                        ),
-                                        _vm._$g("61-" + $32, "i")
-                                          ? _c(
-                                              "uni-view",
-                                              {
-                                                staticClass: _vm._$g(
-                                                  "61-" + $32,
-                                                  "sc"
-                                                ),
-                                                attrs: { _i: "61-" + $32 },
-                                              },
-                                              [
-                                                _vm._l(
-                                                  _vm._$g(62 + "-" + $32, "f"),
-                                                  function (
-                                                    reply,
-                                                    replyIndex,
-                                                    $24,
-                                                    $34
-                                                  ) {
-                                                    return _vm._$g(
-                                                      "62-" + $32 + "-" + $34,
-                                                      "i"
-                                                    )
-                                                      ? _c(
-                                                          "uni-view",
-                                                          {
-                                                            key: reply,
-                                                            staticClass:
-                                                              _vm._$g(
-                                                                "62-" +
-                                                                  $32 +
-                                                                  "-" +
-                                                                  $34,
-                                                                "sc"
-                                                              ),
-                                                            attrs: {
-                                                              _i:
-                                                                "62-" +
-                                                                $32 +
-                                                                "-" +
-                                                                $34,
-                                                            },
-                                                          },
-                                                          [
-                                                            _c("v-uni-image", {
-                                                              staticClass:
-                                                                _vm._$g(
-                                                                  "63-" +
-                                                                    $32 +
-                                                                    "-" +
-                                                                    $34,
-                                                                  "sc"
-                                                                ),
-                                                              attrs: {
-                                                                src: _vm._$g(
-                                                                  "63-" +
-                                                                    $32 +
-                                                                    "-" +
-                                                                    $34,
-                                                                  "a-src"
-                                                                ),
-                                                                mode: "aspectFill",
-                                                                "data-user-id":
-                                                                  _vm._$g(
-                                                                    "63-" +
-                                                                      $32 +
-                                                                      "-" +
-                                                                      $34,
-                                                                    "a-data-user-id"
-                                                                  ),
-                                                                _i:
-                                                                  "63-" +
-                                                                  $32 +
-                                                                  "-" +
-                                                                  $34,
-                                                              },
-                                                              on: {
-                                                                error:
-                                                                  function (
-                                                                    $event
-                                                                  ) {
-                                                                    return _vm.$handleViewEvent(
-                                                                      $event
-                                                                    )
-                                                                  },
-                                                                click:
-                                                                  function (
-                                                                    $event
-                                                                  ) {
-                                                                    return _vm.$handleViewEvent(
-                                                                      $event
-                                                                    )
-                                                                  },
-                                                              },
-                                                            }),
-                                                            _c(
+                                            _vm._$g("85-" + $34, "i")
+                                              ? _c(
+                                                  "uni-view",
+                                                  {
+                                                    staticClass: _vm._$g(
+                                                      "85-" + $34,
+                                                      "sc"
+                                                    ),
+                                                    attrs: { _i: "85-" + $34 },
+                                                  },
+                                                  [
+                                                    _vm._l(
+                                                      _vm._$g(
+                                                        86 + "-" + $34,
+                                                        "f"
+                                                      ),
+                                                      function (
+                                                        reply,
+                                                        replyIndex,
+                                                        $26,
+                                                        $36
+                                                      ) {
+                                                        return _vm._$g(
+                                                          "86-" +
+                                                            $34 +
+                                                            "-" +
+                                                            $36,
+                                                          "i"
+                                                        )
+                                                          ? _c(
                                                               "uni-view",
                                                               {
+                                                                key: reply,
                                                                 staticClass:
                                                                   _vm._$g(
-                                                                    "64-" +
-                                                                      $32 +
+                                                                    "86-" +
+                                                                      $34 +
                                                                       "-" +
-                                                                      $34,
+                                                                      $36,
                                                                     "sc"
                                                                   ),
                                                                 attrs: {
                                                                   _i:
-                                                                    "64-" +
-                                                                    $32 +
+                                                                    "86-" +
+                                                                    $34 +
                                                                     "-" +
-                                                                    $34,
+                                                                    $36,
                                                                 },
                                                               },
                                                               [
                                                                 _c(
-                                                                  "uni-view",
+                                                                  "v-uni-image",
                                                                   {
                                                                     staticClass:
                                                                       _vm._$g(
-                                                                        "65-" +
-                                                                          $32 +
+                                                                        "87-" +
+                                                                          $34 +
                                                                           "-" +
-                                                                          $34,
+                                                                          $36,
                                                                         "sc"
                                                                       ),
                                                                     attrs: {
-                                                                      _i:
-                                                                        "65-" +
-                                                                        $32 +
-                                                                        "-" +
-                                                                        $34,
-                                                                    },
-                                                                  },
-                                                                  [
-                                                                    _vm._v(
-                                                                      _vm._$g(
-                                                                        "65-" +
-                                                                          $32 +
+                                                                      src: _vm._$g(
+                                                                        "87-" +
+                                                                          $34 +
                                                                           "-" +
-                                                                          $34,
-                                                                        "t0-0"
-                                                                      )
-                                                                    ),
-                                                                  ]
-                                                                ),
-                                                                _c(
-                                                                  "uni-view",
-                                                                  {
-                                                                    staticClass:
-                                                                      _vm._$g(
-                                                                        "66-" +
-                                                                          $32 +
-                                                                          "-" +
-                                                                          $34,
-                                                                        "sc"
+                                                                          $36,
+                                                                        "a-src"
                                                                       ),
-                                                                    attrs: {
-                                                                      _i:
-                                                                        "66-" +
-                                                                        $32 +
-                                                                        "-" +
-                                                                        $34,
-                                                                    },
-                                                                  },
-                                                                  [
-                                                                    _c(
-                                                                      "v-uni-text",
-                                                                      {
-                                                                        staticClass:
-                                                                          _vm._$g(
-                                                                            "67-" +
-                                                                              $32 +
-                                                                              "-" +
-                                                                              $34,
-                                                                            "sc"
-                                                                          ),
-                                                                        attrs: {
-                                                                          _i:
-                                                                            "67-" +
-                                                                            $32 +
-                                                                            "-" +
-                                                                            $34,
-                                                                        },
-                                                                      },
-                                                                      [
-                                                                        _vm._v(
-                                                                          "回复@" +
-                                                                            _vm._$g(
-                                                                              "67-" +
-                                                                                $32 +
-                                                                                "-" +
-                                                                                $34,
-                                                                              "t0-0"
-                                                                            ) +
-                                                                            "："
-                                                                        ),
-                                                                      ]
-                                                                    ),
-                                                                    _c(
-                                                                      "v-uni-text",
-                                                                      {
-                                                                        attrs: {
-                                                                          _i:
-                                                                            "68-" +
-                                                                            $32 +
-                                                                            "-" +
-                                                                            $34,
-                                                                        },
-                                                                      },
-                                                                      [
-                                                                        _vm._v(
-                                                                          _vm._$g(
-                                                                            "68-" +
-                                                                              $32 +
-                                                                              "-" +
-                                                                              $34,
-                                                                            "t0-0"
-                                                                          )
-                                                                        ),
-                                                                      ]
-                                                                    ),
-                                                                  ],
-                                                                  1
-                                                                ),
-                                                                _vm._$g(
-                                                                  "69-" +
-                                                                    $32 +
-                                                                    "-" +
-                                                                    $34,
-                                                                  "i"
-                                                                )
-                                                                  ? _c(
-                                                                      "uni-view",
-                                                                      {
-                                                                        staticClass:
-                                                                          _vm._$g(
-                                                                            "69-" +
-                                                                              $32 +
-                                                                              "-" +
-                                                                              $34,
-                                                                            "sc"
-                                                                          ),
-                                                                        attrs: {
-                                                                          _i:
-                                                                            "69-" +
-                                                                            $32 +
-                                                                            "-" +
-                                                                            $34,
-                                                                        },
-                                                                      },
-                                                                      _vm._l(
+                                                                      mode: "aspectFill",
+                                                                      "data-user-id":
                                                                         _vm._$g(
-                                                                          70 +
+                                                                          "87-" +
+                                                                            $34 +
                                                                             "-" +
-                                                                            $32 +
-                                                                            "-" +
-                                                                            $34,
-                                                                          "f"
+                                                                            $36,
+                                                                          "a-data-user-id"
                                                                         ),
+                                                                      _i:
+                                                                        "87-" +
+                                                                        $34 +
+                                                                        "-" +
+                                                                        $36,
+                                                                    },
+                                                                    on: {
+                                                                      error:
                                                                         function (
-                                                                          replyImage,
-                                                                          replyImageIndex,
-                                                                          $25,
-                                                                          $35
+                                                                          $event
                                                                         ) {
-                                                                          return _c(
-                                                                            "v-uni-image",
-                                                                            {
-                                                                              key: replyImage,
-                                                                              staticClass:
-                                                                                _vm._$g(
-                                                                                  "70-" +
-                                                                                    $32 +
-                                                                                    "-" +
-                                                                                    $34 +
-                                                                                    "-" +
-                                                                                    $35,
-                                                                                  "sc"
-                                                                                ),
-                                                                              attrs:
-                                                                                {
-                                                                                  src: _vm._$g(
-                                                                                    "70-" +
-                                                                                      $32 +
-                                                                                      "-" +
-                                                                                      $34 +
-                                                                                      "-" +
-                                                                                      $35,
-                                                                                    "a-src"
-                                                                                  ),
-                                                                                  mode: "aspectFill",
-                                                                                  "data-comment-index":
-                                                                                    _vm._$g(
-                                                                                      "70-" +
-                                                                                        $32 +
-                                                                                        "-" +
-                                                                                        $34 +
-                                                                                        "-" +
-                                                                                        $35,
-                                                                                      "a-data-comment-index"
-                                                                                    ),
-                                                                                  "data-reply-index":
-                                                                                    _vm._$g(
-                                                                                      "70-" +
-                                                                                        $32 +
-                                                                                        "-" +
-                                                                                        $34 +
-                                                                                        "-" +
-                                                                                        $35,
-                                                                                      "a-data-reply-index"
-                                                                                    ),
-                                                                                  "data-image-index":
-                                                                                    _vm._$g(
-                                                                                      "70-" +
-                                                                                        $32 +
-                                                                                        "-" +
-                                                                                        $34 +
-                                                                                        "-" +
-                                                                                        $35,
-                                                                                      "a-data-image-index"
-                                                                                    ),
-                                                                                  "data-is-reply": true,
-                                                                                  _i:
-                                                                                    "70-" +
-                                                                                    $32 +
-                                                                                    "-" +
-                                                                                    $34 +
-                                                                                    "-" +
-                                                                                    $35,
-                                                                                },
-                                                                              on: {
-                                                                                click:
-                                                                                  function (
-                                                                                    $event
-                                                                                  ) {
-                                                                                    return _vm.$handleViewEvent(
-                                                                                      $event
-                                                                                    )
-                                                                                  },
-                                                                              },
-                                                                            }
+                                                                          return _vm.$handleViewEvent(
+                                                                            $event
                                                                           )
-                                                                        }
-                                                                      ),
-                                                                      1
-                                                                    )
-                                                                  : _vm._e(),
+                                                                        },
+                                                                      click:
+                                                                        function (
+                                                                          $event
+                                                                        ) {
+                                                                          return _vm.$handleViewEvent(
+                                                                            $event
+                                                                          )
+                                                                        },
+                                                                    },
+                                                                  }
+                                                                ),
                                                                 _c(
                                                                   "uni-view",
                                                                   {
                                                                     staticClass:
                                                                       _vm._$g(
-                                                                        "71-" +
-                                                                          $32 +
+                                                                        "88-" +
+                                                                          $34 +
                                                                           "-" +
-                                                                          $34,
+                                                                          $36,
                                                                         "sc"
                                                                       ),
                                                                     attrs: {
                                                                       _i:
-                                                                        "71-" +
-                                                                        $32 +
+                                                                        "88-" +
+                                                                        $34 +
                                                                         "-" +
-                                                                        $34,
+                                                                        $36,
                                                                     },
                                                                   },
                                                                   [
@@ -10872,27 +10814,27 @@ var render = function () {
                                                                       {
                                                                         staticClass:
                                                                           _vm._$g(
-                                                                            "72-" +
-                                                                              $32 +
+                                                                            "89-" +
+                                                                              $34 +
                                                                               "-" +
-                                                                              $34,
+                                                                              $36,
                                                                             "sc"
                                                                           ),
                                                                         attrs: {
                                                                           _i:
-                                                                            "72-" +
-                                                                            $32 +
+                                                                            "89-" +
+                                                                            $34 +
                                                                             "-" +
-                                                                            $34,
+                                                                            $36,
                                                                         },
                                                                       },
                                                                       [
                                                                         _vm._v(
                                                                           _vm._$g(
-                                                                            "72-" +
-                                                                              $32 +
+                                                                            "89-" +
+                                                                              $34 +
                                                                               "-" +
-                                                                              $34,
+                                                                              $36,
                                                                             "t0-0"
                                                                           )
                                                                         ),
@@ -10903,18 +10845,223 @@ var render = function () {
                                                                       {
                                                                         staticClass:
                                                                           _vm._$g(
-                                                                            "73-" +
-                                                                              $32 +
+                                                                            "90-" +
+                                                                              $34 +
                                                                               "-" +
-                                                                              $34,
+                                                                              $36,
                                                                             "sc"
                                                                           ),
                                                                         attrs: {
                                                                           _i:
-                                                                            "73-" +
-                                                                            $32 +
+                                                                            "90-" +
+                                                                            $34 +
                                                                             "-" +
-                                                                            $34,
+                                                                            $36,
+                                                                        },
+                                                                      },
+                                                                      [
+                                                                        _c(
+                                                                          "v-uni-text",
+                                                                          {
+                                                                            staticClass:
+                                                                              _vm._$g(
+                                                                                "91-" +
+                                                                                  $34 +
+                                                                                  "-" +
+                                                                                  $36,
+                                                                                "sc"
+                                                                              ),
+                                                                            attrs:
+                                                                              {
+                                                                                _i:
+                                                                                  "91-" +
+                                                                                  $34 +
+                                                                                  "-" +
+                                                                                  $36,
+                                                                              },
+                                                                          },
+                                                                          [
+                                                                            _vm._v(
+                                                                              "回复@" +
+                                                                                _vm._$g(
+                                                                                  "91-" +
+                                                                                    $34 +
+                                                                                    "-" +
+                                                                                    $36,
+                                                                                  "t0-0"
+                                                                                ) +
+                                                                                "："
+                                                                            ),
+                                                                          ]
+                                                                        ),
+                                                                        _c(
+                                                                          "v-uni-text",
+                                                                          {
+                                                                            attrs:
+                                                                              {
+                                                                                _i:
+                                                                                  "92-" +
+                                                                                  $34 +
+                                                                                  "-" +
+                                                                                  $36,
+                                                                              },
+                                                                          },
+                                                                          [
+                                                                            _vm._v(
+                                                                              _vm._$g(
+                                                                                "92-" +
+                                                                                  $34 +
+                                                                                  "-" +
+                                                                                  $36,
+                                                                                "t0-0"
+                                                                              )
+                                                                            ),
+                                                                          ]
+                                                                        ),
+                                                                      ],
+                                                                      1
+                                                                    ),
+                                                                    _vm._$g(
+                                                                      "93-" +
+                                                                        $34 +
+                                                                        "-" +
+                                                                        $36,
+                                                                      "i"
+                                                                    )
+                                                                      ? _c(
+                                                                          "uni-view",
+                                                                          {
+                                                                            staticClass:
+                                                                              _vm._$g(
+                                                                                "93-" +
+                                                                                  $34 +
+                                                                                  "-" +
+                                                                                  $36,
+                                                                                "sc"
+                                                                              ),
+                                                                            attrs:
+                                                                              {
+                                                                                _i:
+                                                                                  "93-" +
+                                                                                  $34 +
+                                                                                  "-" +
+                                                                                  $36,
+                                                                              },
+                                                                          },
+                                                                          _vm._l(
+                                                                            _vm._$g(
+                                                                              94 +
+                                                                                "-" +
+                                                                                $34 +
+                                                                                "-" +
+                                                                                $36,
+                                                                              "f"
+                                                                            ),
+                                                                            function (
+                                                                              replyImage,
+                                                                              replyImageIndex,
+                                                                              $27,
+                                                                              $37
+                                                                            ) {
+                                                                              return _c(
+                                                                                "v-uni-image",
+                                                                                {
+                                                                                  key: replyImage,
+                                                                                  staticClass:
+                                                                                    _vm._$g(
+                                                                                      "94-" +
+                                                                                        $34 +
+                                                                                        "-" +
+                                                                                        $36 +
+                                                                                        "-" +
+                                                                                        $37,
+                                                                                      "sc"
+                                                                                    ),
+                                                                                  attrs:
+                                                                                    {
+                                                                                      src: _vm._$g(
+                                                                                        "94-" +
+                                                                                          $34 +
+                                                                                          "-" +
+                                                                                          $36 +
+                                                                                          "-" +
+                                                                                          $37,
+                                                                                        "a-src"
+                                                                                      ),
+                                                                                      mode: "aspectFill",
+                                                                                      "data-comment-index":
+                                                                                        _vm._$g(
+                                                                                          "94-" +
+                                                                                            $34 +
+                                                                                            "-" +
+                                                                                            $36 +
+                                                                                            "-" +
+                                                                                            $37,
+                                                                                          "a-data-comment-index"
+                                                                                        ),
+                                                                                      "data-reply-index":
+                                                                                        _vm._$g(
+                                                                                          "94-" +
+                                                                                            $34 +
+                                                                                            "-" +
+                                                                                            $36 +
+                                                                                            "-" +
+                                                                                            $37,
+                                                                                          "a-data-reply-index"
+                                                                                        ),
+                                                                                      "data-image-index":
+                                                                                        _vm._$g(
+                                                                                          "94-" +
+                                                                                            $34 +
+                                                                                            "-" +
+                                                                                            $36 +
+                                                                                            "-" +
+                                                                                            $37,
+                                                                                          "a-data-image-index"
+                                                                                        ),
+                                                                                      "data-is-reply": true,
+                                                                                      _i:
+                                                                                        "94-" +
+                                                                                        $34 +
+                                                                                        "-" +
+                                                                                        $36 +
+                                                                                        "-" +
+                                                                                        $37,
+                                                                                    },
+                                                                                  on: {
+                                                                                    click:
+                                                                                      function (
+                                                                                        $event
+                                                                                      ) {
+                                                                                        return _vm.$handleViewEvent(
+                                                                                          $event
+                                                                                        )
+                                                                                      },
+                                                                                  },
+                                                                                }
+                                                                              )
+                                                                            }
+                                                                          ),
+                                                                          1
+                                                                        )
+                                                                      : _vm._e(),
+                                                                    _c(
+                                                                      "uni-view",
+                                                                      {
+                                                                        staticClass:
+                                                                          _vm._$g(
+                                                                            "95-" +
+                                                                              $34 +
+                                                                              "-" +
+                                                                              $36,
+                                                                            "sc"
+                                                                          ),
+                                                                        attrs: {
+                                                                          _i:
+                                                                            "95-" +
+                                                                            $34 +
+                                                                            "-" +
+                                                                            $36,
                                                                         },
                                                                       },
                                                                       [
@@ -10923,152 +11070,282 @@ var render = function () {
                                                                           {
                                                                             staticClass:
                                                                               _vm._$g(
-                                                                                "74-" +
-                                                                                  $32 +
+                                                                                "96-" +
+                                                                                  $34 +
                                                                                   "-" +
-                                                                                  $34,
+                                                                                  $36,
                                                                                 "sc"
                                                                               ),
                                                                             attrs:
                                                                               {
-                                                                                "data-comment-id":
-                                                                                  _vm._$g(
-                                                                                    "74-" +
-                                                                                      $32 +
-                                                                                      "-" +
-                                                                                      $34,
-                                                                                    "a-data-comment-id"
-                                                                                  ),
-                                                                                "data-liked":
-                                                                                  _vm._$g(
-                                                                                    "74-" +
-                                                                                      $32 +
-                                                                                      "-" +
-                                                                                      $34,
-                                                                                    "a-data-liked"
-                                                                                  ),
                                                                                 _i:
-                                                                                  "74-" +
-                                                                                  $32 +
+                                                                                  "96-" +
+                                                                                  $34 +
                                                                                   "-" +
-                                                                                  $34,
+                                                                                  $36,
                                                                               },
-                                                                            on: {
-                                                                              click:
-                                                                                function (
-                                                                                  $event
-                                                                                ) {
-                                                                                  return _vm.$handleViewEvent(
-                                                                                    $event
-                                                                                  )
-                                                                                },
-                                                                            },
+                                                                          },
+                                                                          [
+                                                                            _vm._v(
+                                                                              _vm._$g(
+                                                                                "96-" +
+                                                                                  $34 +
+                                                                                  "-" +
+                                                                                  $36,
+                                                                                "t0-0"
+                                                                              )
+                                                                            ),
+                                                                          ]
+                                                                        ),
+                                                                        _c(
+                                                                          "uni-view",
+                                                                          {
+                                                                            staticClass:
+                                                                              _vm._$g(
+                                                                                "97-" +
+                                                                                  $34 +
+                                                                                  "-" +
+                                                                                  $36,
+                                                                                "sc"
+                                                                              ),
+                                                                            attrs:
+                                                                              {
+                                                                                _i:
+                                                                                  "97-" +
+                                                                                  $34 +
+                                                                                  "-" +
+                                                                                  $36,
+                                                                              },
                                                                           },
                                                                           [
                                                                             _c(
-                                                                              "v-uni-image",
-                                                                              {
-                                                                                staticClass:
-                                                                                  _vm._$g(
-                                                                                    "75-" +
-                                                                                      $32 +
-                                                                                      "-" +
-                                                                                      $34,
-                                                                                    "sc"
-                                                                                  ),
-                                                                                attrs:
-                                                                                  {
-                                                                                    src: _vm._$g(
-                                                                                      "75-" +
-                                                                                        $32 +
-                                                                                        "-" +
-                                                                                        $34,
-                                                                                      "a-src"
-                                                                                    ),
-                                                                                    _i:
-                                                                                      "75-" +
-                                                                                      $32 +
-                                                                                      "-" +
-                                                                                      $34,
-                                                                                  },
-                                                                              }
-                                                                            ),
-                                                                            _c(
-                                                                              "v-uni-text",
-                                                                              {
-                                                                                staticClass:
-                                                                                  _vm._$g(
-                                                                                    "76-" +
-                                                                                      $32 +
-                                                                                      "-" +
-                                                                                      $34,
-                                                                                    "sc"
-                                                                                  ),
-                                                                                attrs:
-                                                                                  {
-                                                                                    _i:
-                                                                                      "76-" +
-                                                                                      $32 +
-                                                                                      "-" +
-                                                                                      $34,
-                                                                                  },
-                                                                              },
-                                                                              [
-                                                                                _vm._v(
-                                                                                  _vm._$g(
-                                                                                    "76-" +
-                                                                                      $32 +
-                                                                                      "-" +
-                                                                                      $34,
-                                                                                    "t0-0"
-                                                                                  )
-                                                                                ),
-                                                                              ]
-                                                                            ),
-                                                                          ],
-                                                                          1
-                                                                        ),
-                                                                        _vm._$g(
-                                                                          "77-" +
-                                                                            $32 +
-                                                                            "-" +
-                                                                            $34,
-                                                                          "i"
-                                                                        )
-                                                                          ? _c(
                                                                               "uni-view",
                                                                               {
                                                                                 staticClass:
                                                                                   _vm._$g(
-                                                                                    "77-" +
-                                                                                      $32 +
+                                                                                    "98-" +
+                                                                                      $34 +
                                                                                       "-" +
-                                                                                      $34,
+                                                                                      $36,
                                                                                     "sc"
                                                                                   ),
                                                                                 attrs:
                                                                                   {
                                                                                     "data-comment-id":
                                                                                       _vm._$g(
-                                                                                        "77-" +
-                                                                                          $32 +
+                                                                                        "98-" +
+                                                                                          $34 +
                                                                                           "-" +
-                                                                                          $34,
+                                                                                          $36,
                                                                                         "a-data-comment-id"
                                                                                       ),
-                                                                                    "data-parent-id":
+                                                                                    "data-liked":
                                                                                       _vm._$g(
-                                                                                        "77-" +
-                                                                                          $32 +
+                                                                                        "98-" +
+                                                                                          $34 +
                                                                                           "-" +
-                                                                                          $34,
-                                                                                        "a-data-parent-id"
+                                                                                          $36,
+                                                                                        "a-data-liked"
                                                                                       ),
                                                                                     _i:
-                                                                                      "77-" +
-                                                                                      $32 +
+                                                                                      "98-" +
+                                                                                      $34 +
                                                                                       "-" +
-                                                                                      $34,
+                                                                                      $36,
+                                                                                  },
+                                                                                on: {
+                                                                                  click:
+                                                                                    function (
+                                                                                      $event
+                                                                                    ) {
+                                                                                      return _vm.$handleViewEvent(
+                                                                                        $event
+                                                                                      )
+                                                                                    },
+                                                                                },
+                                                                              },
+                                                                              [
+                                                                                _c(
+                                                                                  "v-uni-image",
+                                                                                  {
+                                                                                    staticClass:
+                                                                                      _vm._$g(
+                                                                                        "99-" +
+                                                                                          $34 +
+                                                                                          "-" +
+                                                                                          $36,
+                                                                                        "sc"
+                                                                                      ),
+                                                                                    attrs:
+                                                                                      {
+                                                                                        src: _vm._$g(
+                                                                                          "99-" +
+                                                                                            $34 +
+                                                                                            "-" +
+                                                                                            $36,
+                                                                                          "a-src"
+                                                                                        ),
+                                                                                        _i:
+                                                                                          "99-" +
+                                                                                          $34 +
+                                                                                          "-" +
+                                                                                          $36,
+                                                                                      },
+                                                                                  }
+                                                                                ),
+                                                                                _c(
+                                                                                  "v-uni-text",
+                                                                                  {
+                                                                                    staticClass:
+                                                                                      _vm._$g(
+                                                                                        "100-" +
+                                                                                          $34 +
+                                                                                          "-" +
+                                                                                          $36,
+                                                                                        "sc"
+                                                                                      ),
+                                                                                    attrs:
+                                                                                      {
+                                                                                        _i:
+                                                                                          "100-" +
+                                                                                          $34 +
+                                                                                          "-" +
+                                                                                          $36,
+                                                                                      },
+                                                                                  },
+                                                                                  [
+                                                                                    _vm._v(
+                                                                                      _vm._$g(
+                                                                                        "100-" +
+                                                                                          $34 +
+                                                                                          "-" +
+                                                                                          $36,
+                                                                                        "t0-0"
+                                                                                      )
+                                                                                    ),
+                                                                                  ]
+                                                                                ),
+                                                                              ],
+                                                                              1
+                                                                            ),
+                                                                            _vm._$g(
+                                                                              "101-" +
+                                                                                $34 +
+                                                                                "-" +
+                                                                                $36,
+                                                                              "i"
+                                                                            )
+                                                                              ? _c(
+                                                                                  "uni-view",
+                                                                                  {
+                                                                                    staticClass:
+                                                                                      _vm._$g(
+                                                                                        "101-" +
+                                                                                          $34 +
+                                                                                          "-" +
+                                                                                          $36,
+                                                                                        "sc"
+                                                                                      ),
+                                                                                    attrs:
+                                                                                      {
+                                                                                        "data-comment-id":
+                                                                                          _vm._$g(
+                                                                                            "101-" +
+                                                                                              $34 +
+                                                                                              "-" +
+                                                                                              $36,
+                                                                                            "a-data-comment-id"
+                                                                                          ),
+                                                                                        "data-parent-id":
+                                                                                          _vm._$g(
+                                                                                            "101-" +
+                                                                                              $34 +
+                                                                                              "-" +
+                                                                                              $36,
+                                                                                            "a-data-parent-id"
+                                                                                          ),
+                                                                                        _i:
+                                                                                          "101-" +
+                                                                                          $34 +
+                                                                                          "-" +
+                                                                                          $36,
+                                                                                      },
+                                                                                    on: {
+                                                                                      click:
+                                                                                        function (
+                                                                                          $event
+                                                                                        ) {
+                                                                                          return _vm.$handleViewEvent(
+                                                                                            $event
+                                                                                          )
+                                                                                        },
+                                                                                    },
+                                                                                  },
+                                                                                  [
+                                                                                    _c(
+                                                                                      "v-uni-text",
+                                                                                      {
+                                                                                        staticClass:
+                                                                                          _vm._$g(
+                                                                                            "102-" +
+                                                                                              $34 +
+                                                                                              "-" +
+                                                                                              $36,
+                                                                                            "sc"
+                                                                                          ),
+                                                                                        attrs:
+                                                                                          {
+                                                                                            _i:
+                                                                                              "102-" +
+                                                                                              $34 +
+                                                                                              "-" +
+                                                                                              $36,
+                                                                                          },
+                                                                                      },
+                                                                                      [
+                                                                                        _vm._v(
+                                                                                          "删除"
+                                                                                        ),
+                                                                                      ]
+                                                                                    ),
+                                                                                  ],
+                                                                                  1
+                                                                                )
+                                                                              : _vm._e(),
+                                                                            _c(
+                                                                              "uni-view",
+                                                                              {
+                                                                                staticClass:
+                                                                                  _vm._$g(
+                                                                                    "103-" +
+                                                                                      $34 +
+                                                                                      "-" +
+                                                                                      $36,
+                                                                                    "sc"
+                                                                                  ),
+                                                                                attrs:
+                                                                                  {
+                                                                                    "data-comment-id":
+                                                                                      _vm._$g(
+                                                                                        "103-" +
+                                                                                          $34 +
+                                                                                          "-" +
+                                                                                          $36,
+                                                                                        "a-data-comment-id"
+                                                                                      ),
+                                                                                    "data-author-name":
+                                                                                      _vm._$g(
+                                                                                        "103-" +
+                                                                                          $34 +
+                                                                                          "-" +
+                                                                                          $36,
+                                                                                        "a-data-author-name"
+                                                                                      ),
+                                                                                    _i:
+                                                                                      "103-" +
+                                                                                      $34 +
+                                                                                      "-" +
+                                                                                      $36,
                                                                                   },
                                                                                 on: {
                                                                                   click:
@@ -11087,103 +11364,29 @@ var render = function () {
                                                                                   {
                                                                                     staticClass:
                                                                                       _vm._$g(
-                                                                                        "78-" +
-                                                                                          $32 +
+                                                                                        "104-" +
+                                                                                          $34 +
                                                                                           "-" +
-                                                                                          $34,
+                                                                                          $36,
                                                                                         "sc"
                                                                                       ),
                                                                                     attrs:
                                                                                       {
                                                                                         _i:
-                                                                                          "78-" +
-                                                                                          $32 +
+                                                                                          "104-" +
+                                                                                          $34 +
                                                                                           "-" +
-                                                                                          $34,
+                                                                                          $36,
                                                                                       },
                                                                                   },
                                                                                   [
                                                                                     _vm._v(
-                                                                                      "删除"
+                                                                                      "回复"
                                                                                     ),
                                                                                   ]
                                                                                 ),
                                                                               ],
                                                                               1
-                                                                            )
-                                                                          : _vm._e(),
-                                                                        _c(
-                                                                          "uni-view",
-                                                                          {
-                                                                            staticClass:
-                                                                              _vm._$g(
-                                                                                "79-" +
-                                                                                  $32 +
-                                                                                  "-" +
-                                                                                  $34,
-                                                                                "sc"
-                                                                              ),
-                                                                            attrs:
-                                                                              {
-                                                                                "data-comment-id":
-                                                                                  _vm._$g(
-                                                                                    "79-" +
-                                                                                      $32 +
-                                                                                      "-" +
-                                                                                      $34,
-                                                                                    "a-data-comment-id"
-                                                                                  ),
-                                                                                "data-author-name":
-                                                                                  _vm._$g(
-                                                                                    "79-" +
-                                                                                      $32 +
-                                                                                      "-" +
-                                                                                      $34,
-                                                                                    "a-data-author-name"
-                                                                                  ),
-                                                                                _i:
-                                                                                  "79-" +
-                                                                                  $32 +
-                                                                                  "-" +
-                                                                                  $34,
-                                                                              },
-                                                                            on: {
-                                                                              click:
-                                                                                function (
-                                                                                  $event
-                                                                                ) {
-                                                                                  return _vm.$handleViewEvent(
-                                                                                    $event
-                                                                                  )
-                                                                                },
-                                                                            },
-                                                                          },
-                                                                          [
-                                                                            _c(
-                                                                              "v-uni-text",
-                                                                              {
-                                                                                staticClass:
-                                                                                  _vm._$g(
-                                                                                    "80-" +
-                                                                                      $32 +
-                                                                                      "-" +
-                                                                                      $34,
-                                                                                    "sc"
-                                                                                  ),
-                                                                                attrs:
-                                                                                  {
-                                                                                    _i:
-                                                                                      "80-" +
-                                                                                      $32 +
-                                                                                      "-" +
-                                                                                      $34,
-                                                                                  },
-                                                                              },
-                                                                              [
-                                                                                _vm._v(
-                                                                                  "回复"
-                                                                                ),
-                                                                              ]
                                                                             ),
                                                                           ],
                                                                           1
@@ -11196,155 +11399,165 @@ var render = function () {
                                                                 ),
                                                               ],
                                                               1
+                                                            )
+                                                          : _vm._e()
+                                                      }
+                                                    ),
+                                                    _vm._$g("105-" + $34, "i")
+                                                      ? _c(
+                                                          "uni-view",
+                                                          {
+                                                            staticClass:
+                                                              _vm._$g(
+                                                                "105-" + $34,
+                                                                "sc"
+                                                              ),
+                                                            attrs: {
+                                                              "data-comment-id":
+                                                                _vm._$g(
+                                                                  "105-" + $34,
+                                                                  "a-data-comment-id"
+                                                                ),
+                                                              _i: "105-" + $34,
+                                                            },
+                                                            on: {
+                                                              click: function (
+                                                                $event
+                                                              ) {
+                                                                return _vm.$handleViewEvent(
+                                                                  $event
+                                                                )
+                                                              },
+                                                            },
+                                                          },
+                                                          [
+                                                            _c(
+                                                              "v-uni-text",
+                                                              {
+                                                                staticClass:
+                                                                  _vm._$g(
+                                                                    "106-" +
+                                                                      $34,
+                                                                    "sc"
+                                                                  ),
+                                                                attrs: {
+                                                                  _i:
+                                                                    "106-" +
+                                                                    $34,
+                                                                },
+                                                              },
+                                                              [
+                                                                _vm._v(
+                                                                  "显示" +
+                                                                    _vm._$g(
+                                                                      "106-" +
+                                                                        $34,
+                                                                      "t0-0"
+                                                                    ) +
+                                                                    "条回复"
+                                                                ),
+                                                              ]
                                                             ),
                                                           ],
                                                           1
                                                         )
-                                                      : _vm._e()
-                                                  }
-                                                ),
-                                                _vm._$g("81-" + $32, "i")
-                                                  ? _c(
-                                                      "uni-view",
-                                                      {
-                                                        staticClass: _vm._$g(
-                                                          "81-" + $32,
-                                                          "sc"
-                                                        ),
-                                                        attrs: {
-                                                          "data-comment-id":
-                                                            _vm._$g(
-                                                              "81-" + $32,
-                                                              "a-data-comment-id"
-                                                            ),
-                                                          _i: "81-" + $32,
-                                                        },
-                                                        on: {
-                                                          click: function (
-                                                            $event
-                                                          ) {
-                                                            return _vm.$handleViewEvent(
-                                                              $event
-                                                            )
-                                                          },
-                                                        },
-                                                      },
-                                                      [
-                                                        _c(
-                                                          "v-uni-text",
+                                                      : _vm._e(),
+                                                    _vm._$g("107-" + $34, "i")
+                                                      ? _c(
+                                                          "uni-view",
                                                           {
                                                             staticClass:
                                                               _vm._$g(
-                                                                "82-" + $32,
+                                                                "107-" + $34,
                                                                 "sc"
                                                               ),
                                                             attrs: {
-                                                              _i: "82-" + $32,
+                                                              "data-comment-id":
+                                                                _vm._$g(
+                                                                  "107-" + $34,
+                                                                  "a-data-comment-id"
+                                                                ),
+                                                              _i: "107-" + $34,
+                                                            },
+                                                            on: {
+                                                              click: function (
+                                                                $event
+                                                              ) {
+                                                                return _vm.$handleViewEvent(
+                                                                  $event
+                                                                )
+                                                              },
                                                             },
                                                           },
                                                           [
-                                                            _vm._v(
-                                                              "显示" +
-                                                                _vm._$g(
-                                                                  "82-" + $32,
-                                                                  "t0-0"
-                                                                ) +
-                                                                "条回复"
+                                                            _c(
+                                                              "v-uni-text",
+                                                              {
+                                                                staticClass:
+                                                                  _vm._$g(
+                                                                    "108-" +
+                                                                      $34,
+                                                                    "sc"
+                                                                  ),
+                                                                attrs: {
+                                                                  _i:
+                                                                    "108-" +
+                                                                    $34,
+                                                                },
+                                                              },
+                                                              [
+                                                                _vm._v(
+                                                                  "收起回复"
+                                                                ),
+                                                              ]
                                                             ),
-                                                          ]
-                                                        ),
-                                                      ],
-                                                      1
-                                                    )
-                                                  : _vm._e(),
-                                                _vm._$g("83-" + $32, "i")
-                                                  ? _c(
-                                                      "uni-view",
-                                                      {
-                                                        staticClass: _vm._$g(
-                                                          "83-" + $32,
-                                                          "sc"
-                                                        ),
-                                                        attrs: {
-                                                          "data-comment-id":
-                                                            _vm._$g(
-                                                              "83-" + $32,
-                                                              "a-data-comment-id"
-                                                            ),
-                                                          _i: "83-" + $32,
-                                                        },
-                                                        on: {
-                                                          click: function (
-                                                            $event
-                                                          ) {
-                                                            return _vm.$handleViewEvent(
-                                                              $event
-                                                            )
-                                                          },
-                                                        },
-                                                      },
-                                                      [
-                                                        _c(
-                                                          "v-uni-text",
-                                                          {
-                                                            staticClass:
-                                                              _vm._$g(
-                                                                "84-" + $32,
-                                                                "sc"
-                                                              ),
-                                                            attrs: {
-                                                              _i: "84-" + $32,
-                                                            },
-                                                          },
-                                                          [_vm._v("收起回复")]
-                                                        ),
-                                                      ],
-                                                      1
-                                                    )
-                                                  : _vm._e(),
-                                              ],
-                                              2
-                                            )
-                                          : _vm._e(),
+                                                          ],
+                                                          1
+                                                        )
+                                                      : _vm._e(),
+                                                  ],
+                                                  2
+                                                )
+                                              : _vm._e(),
+                                          ],
+                                          1
+                                        ),
                                       ],
                                       1
-                                    ),
-                                  ],
-                                  1
+                                    )
+                                  }
                                 )
-                              }
-                            )
-                          : [
-                              _c(
-                                "uni-view",
-                                {
-                                  staticClass: _vm._$g(86, "sc"),
-                                  attrs: { _i: 86 },
-                                },
-                                [
+                              : [
                                   _c(
                                     "uni-view",
                                     {
-                                      staticClass: _vm._$g(87, "sc"),
-                                      attrs: { _i: 87 },
+                                      staticClass: _vm._$g(110, "sc"),
+                                      attrs: { _i: 110 },
                                     },
-                                    [_vm._v("💬")]
-                                  ),
-                                  _c(
-                                    "uni-view",
-                                    {
-                                      staticClass: _vm._$g(88, "sc"),
-                                      attrs: { _i: 88 },
-                                    },
-                                    [_vm._v("暂无评论，快来抢沙发吧！")]
+                                    [
+                                      _c(
+                                        "uni-view",
+                                        {
+                                          staticClass: _vm._$g(111, "sc"),
+                                          attrs: { _i: 111 },
+                                        },
+                                        [_vm._v("💬")]
+                                      ),
+                                      _c(
+                                        "uni-view",
+                                        {
+                                          staticClass: _vm._$g(112, "sc"),
+                                          attrs: { _i: 112 },
+                                        },
+                                        [_vm._v("暂无评论，快来抢沙发吧！")]
+                                      ),
+                                    ],
+                                    1
                                   ),
                                 ],
-                                1
-                              ),
-                            ],
-                      ],
-                      2
-                    ),
+                          ],
+                          2
+                        ),
                   ],
                   1
                 ),
@@ -11352,16 +11565,16 @@ var render = function () {
             : [
                 _c(
                   "uni-view",
-                  { staticClass: _vm._$g(90, "sc"), attrs: { _i: 90 } },
+                  { staticClass: _vm._$g(114, "sc"), attrs: { _i: 114 } },
                   [
                     _c(
                       "uni-view",
-                      { staticClass: _vm._$g(91, "sc"), attrs: { _i: 91 } },
+                      { staticClass: _vm._$g(115, "sc"), attrs: { _i: 115 } },
                       [_vm._v("❌")]
                     ),
                     _c(
                       "uni-view",
-                      { staticClass: _vm._$g(92, "sc"), attrs: { _i: 92 } },
+                      { staticClass: _vm._$g(116, "sc"), attrs: { _i: 116 } },
                       [_vm._v("帖子加载失败或不存在")]
                     ),
                   ],
@@ -11372,8 +11585,8 @@ var render = function () {
         2
       ),
       _c("uni-view", {
-        class: _vm._$g(93, "c"),
-        attrs: { _i: 93 },
+        class: _vm._$g(117, "c"),
+        attrs: { _i: 117 },
         on: {
           click: function ($event) {
             return _vm.$handleViewEvent($event)
@@ -11383,17 +11596,17 @@ var render = function () {
       _c(
         "uni-view",
         {
-          staticClass: _vm._$g(94, "sc"),
-          style: _vm._$g(94, "s"),
-          attrs: { _i: 94 },
+          staticClass: _vm._$g(118, "sc"),
+          style: _vm._$g(118, "s"),
+          attrs: { _i: 118 },
         },
         [
-          _vm._$g(95, "i")
+          _vm._$g(119, "i")
             ? _c(
                 "uni-view",
                 {
-                  staticClass: _vm._$g(95, "sc"),
-                  attrs: { _i: 95 },
+                  staticClass: _vm._$g(119, "sc"),
+                  attrs: { _i: 119 },
                   on: {
                     click: function ($event) {
                       return _vm.$handleViewEvent($event)
@@ -11403,36 +11616,36 @@ var render = function () {
                 [
                   _c(
                     "uni-view",
-                    { staticClass: _vm._$g(96, "sc"), attrs: { _i: 96 } },
+                    { staticClass: _vm._$g(120, "sc"), attrs: { _i: 120 } },
                     [_vm._v("留下你的精彩评论...")]
                   ),
                 ],
                 1
               )
             : _vm._e(),
-          _vm._$g(97, "i")
+          _vm._$g(121, "i")
             ? _c(
                 "uni-view",
-                { staticClass: _vm._$g(97, "sc"), attrs: { _i: 97 } },
+                { staticClass: _vm._$g(121, "sc"), attrs: { _i: 121 } },
                 [
-                  _vm._$g(98, "i")
+                  _vm._$g(122, "i")
                     ? _c(
                         "uni-view",
-                        { staticClass: _vm._$g(98, "sc"), attrs: { _i: 98 } },
+                        { staticClass: _vm._$g(122, "sc"), attrs: { _i: 122 } },
                         [
                           _c(
                             "v-uni-text",
                             {
-                              staticClass: _vm._$g(99, "sc"),
-                              attrs: { _i: 99 },
+                              staticClass: _vm._$g(123, "sc"),
+                              attrs: { _i: 123 },
                             },
-                            [_vm._v("回复 " + _vm._$g(99, "t0-0") + "：")]
+                            [_vm._v("回复 " + _vm._$g(123, "t0-0") + "：")]
                           ),
                           _c(
                             "uni-view",
                             {
-                              staticClass: _vm._$g(100, "sc"),
-                              attrs: { _i: 100 },
+                              staticClass: _vm._$g(124, "sc"),
+                              attrs: { _i: 124 },
                               on: {
                                 click: function ($event) {
                                   return _vm.$handleViewEvent($event)
@@ -11443,8 +11656,8 @@ var render = function () {
                               _c(
                                 "v-uni-text",
                                 {
-                                  staticClass: _vm._$g(101, "sc"),
-                                  attrs: { _i: 101 },
+                                  staticClass: _vm._$g(125, "sc"),
+                                  attrs: { _i: 125 },
                                 },
                                 [_vm._v("取消")]
                               ),
@@ -11456,16 +11669,16 @@ var render = function () {
                       )
                     : _vm._e(),
                   _c("v-uni-textarea", {
-                    staticClass: _vm._$g(102, "sc"),
+                    staticClass: _vm._$g(126, "sc"),
                     attrs: {
                       placeholder: "留下你的精彩评论...",
-                      value: _vm._$g(102, "a-value"),
-                      focus: _vm._$g(102, "a-focus"),
+                      value: _vm._$g(126, "a-value"),
+                      focus: _vm._$g(126, "a-focus"),
                       "auto-height": true,
                       maxlength: "500",
                       "show-confirm-bar": false,
                       "adjust-position": false,
-                      _i: 102,
+                      _i: 126,
                     },
                     on: {
                       input: function ($event) {
@@ -11479,37 +11692,37 @@ var render = function () {
                       },
                     },
                   }),
-                  _vm._$g(103, "i")
+                  _vm._$g(127, "i")
                     ? _c(
                         "uni-view",
-                        { staticClass: _vm._$g(103, "sc"), attrs: { _i: 103 } },
+                        { staticClass: _vm._$g(127, "sc"), attrs: { _i: 127 } },
                         _vm._l(
-                          _vm._$g(104, "f"),
-                          function (item, index, $26, $36) {
+                          _vm._$g(128, "f"),
+                          function (item, index, $28, $38) {
                             return _c(
                               "uni-view",
                               {
                                 key: item,
-                                staticClass: _vm._$g("104-" + $36, "sc"),
+                                staticClass: _vm._$g("128-" + $38, "sc"),
                                 attrs: {
                                   "data-index": _vm._$g(
-                                    "104-" + $36,
+                                    "128-" + $38,
                                     "a-data-index"
                                   ),
-                                  _i: "104-" + $36,
+                                  _i: "128-" + $38,
                                 },
                               },
                               [
                                 _c("v-uni-image", {
-                                  staticClass: _vm._$g("105-" + $36, "sc"),
+                                  staticClass: _vm._$g("129-" + $38, "sc"),
                                   attrs: {
-                                    src: _vm._$g("105-" + $36, "a-src"),
+                                    src: _vm._$g("129-" + $38, "a-src"),
                                     mode: "aspectFill",
                                     "data-index": _vm._$g(
-                                      "105-" + $36,
+                                      "129-" + $38,
                                       "a-data-index"
                                     ),
-                                    _i: "105-" + $36,
+                                    _i: "129-" + $38,
                                   },
                                   on: {
                                     click: function ($event) {
@@ -11520,13 +11733,13 @@ var render = function () {
                                 _c(
                                   "uni-view",
                                   {
-                                    staticClass: _vm._$g("106-" + $36, "sc"),
+                                    staticClass: _vm._$g("130-" + $38, "sc"),
                                     attrs: {
                                       "data-index": _vm._$g(
-                                        "106-" + $36,
+                                        "130-" + $38,
                                         "a-data-index"
                                       ),
-                                      _i: "106-" + $36,
+                                      _i: "130-" + $38,
                                     },
                                     on: {
                                       click: function ($event) {
@@ -11546,17 +11759,17 @@ var render = function () {
                     : _vm._e(),
                   _c(
                     "uni-view",
-                    { staticClass: _vm._$g(107, "sc"), attrs: { _i: 107 } },
+                    { staticClass: _vm._$g(131, "sc"), attrs: { _i: 131 } },
                     [
                       _c(
                         "uni-view",
-                        { staticClass: _vm._$g(108, "sc"), attrs: { _i: 108 } },
+                        { staticClass: _vm._$g(132, "sc"), attrs: { _i: 132 } },
                         [
                           _c(
                             "uni-view",
                             {
-                              staticClass: _vm._$g(109, "sc"),
-                              attrs: { _i: 109 },
+                              staticClass: _vm._$g(133, "sc"),
+                              attrs: { _i: 133 },
                               on: {
                                 click: function ($event) {
                                   return _vm.$handleViewEvent($event)
@@ -11567,8 +11780,8 @@ var render = function () {
                               _c(
                                 "v-uni-text",
                                 {
-                                  staticClass: _vm._$g(110, "sc"),
-                                  attrs: { _i: 110 },
+                                  staticClass: _vm._$g(134, "sc"),
+                                  attrs: { _i: 134 },
                                 },
                                 [_vm._v("🖼️")]
                               ),
@@ -11578,8 +11791,8 @@ var render = function () {
                           _c(
                             "uni-view",
                             {
-                              staticClass: _vm._$g(111, "sc"),
-                              attrs: { _i: 111 },
+                              staticClass: _vm._$g(135, "sc"),
+                              attrs: { _i: 135 },
                               on: {
                                 click: function ($event) {
                                   return _vm.$handleViewEvent($event)
@@ -11590,8 +11803,8 @@ var render = function () {
                               _c(
                                 "v-uni-text",
                                 {
-                                  staticClass: _vm._$g(112, "sc"),
-                                  attrs: { _i: 112 },
+                                  staticClass: _vm._$g(136, "sc"),
+                                  attrs: { _i: 136 },
                                 },
                                 [_vm._v("😊")]
                               ),
@@ -11604,10 +11817,10 @@ var render = function () {
                       _c(
                         "v-uni-button",
                         {
-                          staticClass: _vm._$g(113, "sc"),
+                          staticClass: _vm._$g(137, "sc"),
                           attrs: {
-                            disabled: _vm._$g(113, "a-disabled"),
-                            _i: 113,
+                            disabled: _vm._$g(137, "a-disabled"),
+                            _i: 137,
                           },
                           on: {
                             click: function ($event) {
@@ -11620,24 +11833,24 @@ var render = function () {
                     ],
                     1
                   ),
-                  _vm._$g(114, "i")
+                  _vm._$g(138, "i")
                     ? _c(
                         "uni-view",
-                        { staticClass: _vm._$g(114, "sc"), attrs: { _i: 114 } },
+                        { staticClass: _vm._$g(138, "sc"), attrs: { _i: 138 } },
                         _vm._l(
-                          _vm._$g(115, "f"),
-                          function (item, index, $27, $37) {
+                          _vm._$g(139, "f"),
+                          function (item, index, $29, $39) {
                             return _c(
                               "v-uni-text",
                               {
                                 key: item,
-                                staticClass: _vm._$g("115-" + $37, "sc"),
+                                staticClass: _vm._$g("139-" + $39, "sc"),
                                 attrs: {
                                   "data-emoji": _vm._$g(
-                                    "115-" + $37,
+                                    "139-" + $39,
                                     "a-data-emoji"
                                   ),
-                                  _i: "115-" + $37,
+                                  _i: "139-" + $39,
                                 },
                                 on: {
                                   click: function ($event) {
@@ -11645,7 +11858,7 @@ var render = function () {
                                   },
                                 },
                               },
-                              [_vm._v(_vm._$g("115-" + $37, "t0-0"))]
+                              [_vm._v(_vm._$g("139-" + $39, "t0-0"))]
                             )
                           }
                         ),
@@ -11659,9 +11872,9 @@ var render = function () {
         ],
         1
       ),
-      _c("cloud-tip-modal", { attrs: { _i: 116 } }),
+      _c("cloud-tip-modal", { attrs: { _i: 140 } }),
       _c("folder-selector", {
-        attrs: { _i: 117 },
+        attrs: { _i: 141 },
         on: {
           hide: function ($event) {
             return _vm.$handleViewEvent($event)
@@ -11996,7 +12209,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../../HBuilderX.4.76.2025082103/HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n/* pages/post-detail/post-detail.wxss */\n.container {\n    padding: 20rpx;\n    background-color: #f7f8fa;\n    min-height: 100vh;\n    padding-bottom: 140rpx;\n}\n.loading-container {\n    display: flex;\n    justify-content: center;\n    align-items: center;\n    height: 400rpx;\n    background-color: #fff;\n    border-radius: 16rpx;\n    margin: 30rpx;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.loading-text {\n    font-size: 28rpx;\n    color: #999;\n}\n.error-container {\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    justify-content: center;\n    padding: 100rpx 40rpx;\n    text-align: center;\n}\n.error-icon {\n    font-size: 120rpx;\n    margin-bottom: 30rpx;\n    opacity: 0.6;\n}\n.error-text {\n    font-size: 32rpx;\n    color: #666;\n}\n.post-detail-card {\n    position: relative;\n    background-color: #fff;\n    border-radius: 16rpx;\n    padding: 30rpx;\n    margin-bottom: 20rpx;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.post-detail-card.original-post {\n    border: 3rpx solid #ebc88d;\n    box-shadow: 0 6rpx 24rpx rgba(235, 200, 141, 0.4), 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n    position: relative;\n}\n.post-detail-card.original-post::before {\n    content: '';\n    position: absolute;\n    top: -2rpx;\n    left: -2rpx;\n    right: -2rpx;\n    bottom: -2rpx;\n    background: linear-gradient(45deg, #ebc88d, #f4d03f, #ebc88d);\n    border-radius: 18rpx;\n    z-index: -1;\n    opacity: 0.6;\n    -webkit-filter: blur(10rpx);\n            filter: blur(10rpx);\n}\n.author-info {\n    display: flex;\n    align-items: center;\n    justify-content: flex-start;\n    margin-bottom: 20rpx;\n    gap: 20rpx;\n}\n.author-basic {\n    display: flex;\n    align-items: center;\n    flex: 1;\n    min-width: 0;\n    gap: 12rpx;\n    flex-wrap: wrap;\n}\n.follow-btn {\n    padding: 0 28rpx;\n    height: 60rpx;\n    line-height: 60rpx;\n    background-color: #9ed7ee;\n    color: #ffffff;\n    border: none;\n    border-radius: 999rpx;\n    font-size: 26rpx;\n    flex-shrink: 0;\n    margin-left: auto;\n}\n.follow-btn.following {\n    background-color: #f0f0f0;\n    color: #666666;\n}\n.follow-btn::after {\n    border: none;\n}\n.follow-btn[disabled] {\n    opacity: 0.7;\n}\n.author-avatar {\n    width: 60rpx;\n    height: 60rpx;\n    border-radius: 50%;\n    margin-right: 15rpx;\n    background-color: #f5f5f5;\n}\n.author-name {\n    font-weight: bold;\n    font-size: 28rpx;\n    color: #333;\n}\n.post-title {\n    font-size: 36rpx;\n    font-weight: bold;\n    margin-bottom: 15rpx;\n    line-height: 1.4;\n    color: #333;\n    word-break: break-word;\n    overflow: hidden;\n    text-overflow: ellipsis;\n    display: -webkit-box;\n    -webkit-line-clamp: 2;\n    -webkit-box-orient: vertical;\n}\n.poem-author {\n    font-size: 28rpx;\n    color: #333;\n    text-align: left;\n    margin: 10rpx 0 15rpx 0;\n    font-weight: bold;\n    letter-spacing: 2rpx;\n}\n.post-content {\n    font-size: 28rpx;\n    line-height: 1.6;\n    margin-bottom: 20rpx;\n    white-space: pre-wrap;\n    color: #666;\n    word-break: break-word;\n}\n.image-container {\n    position: relative;\n    width: 100%;\n    margin: 20rpx 0;\n    background-color: #f5f5f5;\n}\n.post-image {\n    width: 100%;\n    height: auto;\n    display: block;\n    background-color: #f5f5f5;\n    transition: -webkit-transform 0.3s ease;\n    transition: transform 0.3s ease;\n    transition: transform 0.3s ease, -webkit-transform 0.3s ease;\n}\n.post-image:active {\n    -webkit-transform: scale(1.05);\n            transform: scale(1.05);\n}\n.post-image.single-image {\n    width: 100% !important;\n    height: auto !important;\n    display: block !important;\n    background-color: #f5f5f5;\n}\n.image-count-indicator {\n    position: absolute;\n    top: 20rpx;\n    right: 20rpx;\n    background-color: rgba(0, 0, 0, 0.6);\n    color: white;\n    padding: 8rpx 16rpx;\n    border-radius: 20rpx;\n    font-size: 24rpx;\n    z-index: 10;\n    -webkit-backdrop-filter: blur(10rpx);\n            backdrop-filter: blur(10rpx);\n}\n.post-meta {\n    margin-bottom: 15rpx;\n}\n.post-time {\n    font-size: 24rpx;\n    color: #999;\n    opacity: 0.8;\n}\n.vote-section {\n    display: flex;\n    justify-content: flex-start;\n    align-items: center;\n    padding-top: 20rpx;\n    margin-top: 20rpx;\n    border-top: 1rpx solid #f0f0f0;\n}\n.actions-left {\n    display: flex;\n    align-items: center;\n}\n.vote-count,\n.comment-count {\n    display: flex;\n    align-items: center;\n    font-size: 28rpx;\n    color: #999;\n    margin-left: 20rpx;\n    transition: color 0.2s ease;\n}\n.vote-count {\n    margin-left: 0rpx;\n}\n.action-emoji {\n    font-size: 28rpx;\n    margin-right: 8rpx;\n}\n.action-text {\n    font-size: 28rpx;\n    color: inherit;\n}\n.like-icon-container {\n    margin-left: 20rpx;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    padding: 8rpx;\n    border-radius: 8rpx;\n    transition: all 0.2s ease;\n}\n.like-icon-container:active {\n    -webkit-transform: scale(0.95);\n            transform: scale(0.95);\n}\n.vote-count.voted {\n    color: #ff4757;\n}\n.button-group {\n    display: flex;\n    align-items: center;\n}\n.favorite-button {\n    background-color: #ffc300;\n    color: white;\n    border: none;\n    border-radius: 8rpx;\n    font-size: 24rpx;\n    padding: 8rpx 16rpx;\n    line-height: 1.2;\n    transition: all 0.2s ease;\n}\n.favorite-button:active {\n    background-color: #e6b000;\n}\n.favorite-button::after {\n    border: none;\n}\n.favorite-button.favorited {\n    background-color: #999;\n    color: #fff;\n}\n.favorite-button.favorited:active {\n    background-color: #777;\n}\n.like-icon {\n    width: 48rpx;\n    height: 48rpx;\n}\n.comment-section {\n    background-color: #fff;\n    border-radius: 16rpx;\n    padding: 30rpx;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.section-title {\n    font-size: 32rpx;\n    font-weight: bold;\n    margin-bottom: 20rpx;\n    padding-bottom: 15rpx;\n    border-bottom: 1rpx solid #f0f0f0;\n    color: #333;\n}\n.comment-list {\n    margin-top: 20rpx;\n}\n.comment-item {\n    display: flex;\n    margin-bottom: 30rpx;\n    padding-bottom: 20rpx;\n    border-bottom: 1rpx solid #f5f5f5;\n}\n.comment-item:last-child {\n    border-bottom: none;\n    margin-bottom: 0;\n}\n.comment-avatar {\n    width: 60rpx;\n    height: 60rpx;\n    border-radius: 50%;\n    margin-right: 15rpx;\n    flex-shrink: 0;\n    background-color: #f5f5f5;\n}\n.comment-main {\n    display: flex;\n    flex-direction: column;\n    flex: 1;\n    min-width: 0;\n}\n.comment-author {\n    font-size: 28rpx;\n    color: #333;\n    font-weight: bold;\n    margin-bottom: 8rpx;\n}\n.comment-content {\n    font-size: 28rpx;\n    color: #666;\n    line-height: 1.5;\n    word-break: break-word;\n    margin-bottom: 10rpx;\n}\n.comment-image-grid {\n    display: flex;\n    flex-direction: column;\n    gap: 12rpx;\n    margin-bottom: 12rpx;\n}\n.comment-image {\n    width: 100%;\n    height: 400rpx;\n    border-radius: 12rpx;\n    background-color: #f2f2f2;\n    display: block;\n    object-fit: cover;\n}\n.reply-image-grid {\n    margin-top: 10rpx;\n}\n.comment-footer {\n    display: flex;\n    justify-content: flex-start;\n    align-items: center;\n    width: 100%;\n}\n.comment-time {\n    font-size: 24rpx;\n    color: #999;\n    opacity: 0.8;\n}\n.comment-actions {\n    display: flex;\n    align-items: center;\n}\n.like-section {\n    display: flex;\n    align-items: center;\n    padding: 8rpx 12rpx;\n    margin-right: 15rpx;\n    transition: all 0.2s ease;\n}\n.like-section:active {\n    -webkit-transform: scale(0.95);\n            transform: scale(0.95);\n}\n.like-section .like-icon {\n    width: 32rpx;\n    height: 32rpx;\n    margin-right: 8rpx;\n}\n.like-count {\n    font-size: 26rpx;\n    color: #666;\n}\n.delete-btn {\n    display: flex;\n    align-items: center;\n    padding: 8rpx 12rpx;\n    margin-right: 15rpx;\n    transition: opacity 0.2s ease;\n}\n.delete-btn:active {\n    opacity: 0.7;\n}\n.delete-text {\n    font-size: 26rpx;\n    color: #ff4d4f;\n}\n.reply-btn {\n    display: flex;\n    align-items: center;\n    padding: 8rpx 12rpx;\n    transition: opacity 0.2s ease;\n}\n.reply-btn:active {\n    opacity: 0.7;\n}\n.reply-text {\n    font-size: 26rpx;\n    color: #9ed7ee;\n}\n.replies-container {\n    margin-top: 15rpx;\n    padding-left: 20rpx;\n    border-left: 2rpx solid #f0f0f0;\n}\n.reply-item {\n    display: flex;\n    margin-bottom: 15rpx;\n}\n.reply-avatar {\n    width: 40rpx;\n    height: 40rpx;\n    border-radius: 50%;\n    margin-right: 10rpx;\n    flex-shrink: 0;\n    background-color: #f5f5f5;\n}\n.reply-main {\n    display: flex;\n    flex-direction: column;\n    flex: 1;\n    min-width: 0;\n}\n.reply-author {\n    font-size: 24rpx;\n    color: #333;\n    font-weight: bold;\n    margin-bottom: 4rpx;\n}\n.reply-content {\n    font-size: 26rpx;\n    color: #666;\n    line-height: 1.4;\n    word-break: break-word;\n}\n.reply-to {\n    color: #9ed7ee;\n    font-weight: bold;\n}\n.reply-footer {\n    display: flex;\n    justify-content: flex-start;\n    align-items: center;\n    margin-top: 8rpx;\n}\n.reply-time {\n    font-size: 22rpx;\n    color: #999;\n    opacity: 0.8;\n}\n.reply-actions {\n    display: flex;\n    align-items: center;\n}\n.show-more-replies {\n    padding: 10rpx 0;\n    transition: opacity 0.2s ease;\n}\n.show-more-replies:active {\n    opacity: 0.7;\n}\n.show-more-text {\n    font-size: 24rpx;\n    color: #9ed7ee;\n}\n.no-comment-tip {\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    justify-content: center;\n    padding: 60rpx 40rpx;\n    text-align: center;\n}\n.empty-icon {\n    font-size: 80rpx;\n    margin-bottom: 20rpx;\n    opacity: 0.6;\n}\n.empty-text {\n    font-size: 28rpx;\n    color: #999;\n}\n.input-overlay {\n    position: fixed;\n    top: 0;\n    left: 0;\n    width: 100%;\n    height: 100%;\n    background-color: rgba(0, 0, 0, 0.4);\n    z-index: 99;\n    opacity: 0;\n    pointer-events: none;\n    transition: opacity 0.3s ease;\n}\n.input-overlay.show {\n    opacity: 1;\n    pointer-events: auto;\n}\n.comment-input-area {\n    position: fixed;\n    left: 0;\n    right: 0;\n    bottom: 0;\n    background-color: #ffffff;\n    z-index: 100;\n    transition: bottom 0.2s ease-out;\n    padding-bottom: constant(safe-area-inset-bottom);\n    padding-bottom: env(safe-area-inset-bottom);\n}\n.collapsed-bar {\n    padding: 16rpx 30rpx;\n    display: flex;\n    align-items: center;\n    border-top: 1rpx solid #f0f0f0;\n}\n.collapsed-input-placeholder {\n    flex: 1;\n    height: 68rpx;\n    line-height: 68rpx;\n    padding: 0 24rpx;\n    background-color: #f7f8fa;\n    border-radius: 34rpx;\n    font-size: 28rpx;\n    color: #999;\n}\n.expanded-container {\n    padding: 20rpx 30rpx;\n    display: flex;\n    flex-direction: column;\n    border-top: 1rpx solid #f0f0f0;\n}\n.expanded-textarea {\n    width: 100%;\n    min-height: 180rpx;\n    max-height: 350rpx;\n    padding: 20rpx 24rpx;\n    background-color: #ffffff;\n    border-radius: 0;\n    font-size: 30rpx;\n    line-height: 1.6;\n    box-sizing: border-box;\n    border: none;\n    -webkit-appearance: none;\n    -webkit-box-sizing: border-box;\n    -webkit-user-select: text;\n    -webkit-touch-callout: default;\n    outline: none;\n}\n.expanded-actions {\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n    margin-top: 20rpx;\n    width: 100%;\n}\n.action-icons {\n    display: flex;\n    gap: 24rpx;\n}\n.action-icon {\n    width: 64rpx;\n    height: 64rpx;\n    border-radius: 50%;\n    background: #f3f5f7;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    transition: -webkit-transform 0.2s ease;\n    transition: transform 0.2s ease;\n    transition: transform 0.2s ease, -webkit-transform 0.2s ease;\n}\n.action-icon:active {\n    -webkit-transform: scale(0.92);\n            transform: scale(0.92);\n    background: #e6eef3;\n}\n.action-icon-text {\n    font-size: 36rpx;\n}\n.selected-comment-images {\n    display: flex;\n    flex-wrap: wrap;\n    gap: 12rpx;\n    margin-top: 16rpx;\n}\n.selected-image-item {\n    position: relative;\n    width: 150rpx;\n    height: 150rpx;\n    border-radius: 12rpx;\n    overflow: hidden;\n}\n.selected-image-thumb {\n    width: 100%;\n    height: 100%;\n    background-color: #f2f2f2;\n    display: block;\n}\n.remove-image-btn {\n    position: absolute;\n    top: 6rpx;\n    right: 6rpx;\n    width: 36rpx;\n    height: 36rpx;\n    border-radius: 50%;\n    background: rgba(0, 0, 0, 0.55);\n    color: #fff;\n    font-size: 24rpx;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n.emoji-panel {\n    margin-top: 16rpx;\n    padding: 20rpx 18rpx;\n    background: #f6f7f9;\n    border-radius: 16rpx;\n    display: flex;\n    flex-wrap: wrap;\n    gap: 18rpx;\n}\n.emoji-item {\n    font-size: 36rpx;\n    padding: 6rpx 10rpx;\n}\n.reply-prompt {\n    display: flex;\n    justify-content: flex-start;\n    align-items: center;\n    margin-bottom: 15rpx;\n    padding: 0 10rpx;\n}\n.reply-prompt-text {\n    font-size: 26rpx;\n    color: #666;\n}\n.cancel-reply .cancel-text {\n    font-size: 26rpx;\n    color: #9ed7ee;\n}\n.submit-button {\n    width: 120rpx !important;\n    height: 64rpx !important;\n    line-height: 64rpx !important;\n    background-color: #9ed7ee;\n    color: white;\n    border-radius: 32rpx;\n    font-size: 28rpx;\n    padding: 0 !important;\n    margin: 0 !important;\n    border: none !important;\n    box-sizing: border-box !important;\n    flex-shrink: 0;\n    transition: background-color 0.2s ease;\n}\n.submit-button[disabled] {\n    background-color: #b3e6c9;\n    color: #ffffff;\n}\n.submit-button::after {\n    border: none;\n}\n.swiper-wrapper {\n    position: relative;\n    width: 100%;\n}\n.image-swiper {\n    width: 100%;\n    background-color: #f0f0f0;\n    border-radius: 12rpx;\n    overflow: hidden;\n}\n.swiper-item {\n    width: 100%;\n    height: 100%;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n.post-image {\n    max-width: 100%;\n    max-height: 100%;\n}\n.image-count-indicator {\n    position: absolute;\n    bottom: 20rpx;\n    right: 20rpx;\n    background-color: rgba(0, 0, 0, 0.6);\n    color: white;\n    padding: 8rpx 16rpx;\n    border-radius: 20rpx;\n    font-size: 24rpx;\n    z-index: 10;\n    -webkit-backdrop-filter: blur(10rpx);\n            backdrop-filter: blur(10rpx);\n}\n.post-tags {\n    margin: 30rpx 0 10rpx 0;\n    line-height: 1.5;\n}\n.post-tag {\n    color: #24375f;\n    font-size: 26rpx;\n    margin-right: 10rpx;\n    transition: all 0.2s ease;\n    cursor: pointer;\n}\n.post-tag:active {\n    color: #1a2a4a;\n    opacity: 0.8;\n}\n.mutual-tag {\n    font-size: 24rpx;\n    padding: 4rpx 16rpx;\n    border-radius: 999rpx;\n    background-color: #e6f4ff;\n    color: #1f6fd2;\n    flex-shrink: 0;\n}\n.followed-tag {\n    font-size: 24rpx;\n    padding: 4rpx 16rpx;\n    border-radius: 999rpx;\n    background-color: #f4ebff;\n    color: #7c55c7;\n    flex-shrink: 0;\n}\n", ""]);
+exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* pages/post-detail/post-detail.wxss */\n.container {\r\n    padding: 20rpx;\r\n    background-color: #f7f8fa;\r\n    min-height: 100vh;\r\n    padding-bottom: 140rpx;\n}\n.post-detail-skeleton {\r\n    padding: 10rpx;\n}\n.skeleton-card {\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    padding: 30rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\r\n    margin-bottom: 40rpx;\n}\n.skeleton-header {\r\n    display: flex;\r\n    align-items: center;\r\n    margin-bottom: 24rpx;\n}\n.skeleton-avatar {\r\n    width: 88rpx;\r\n    height: 88rpx;\r\n    border-radius: 50%;\r\n    background-color: #e9edf3;\n}\n.skeleton-header-text {\r\n    flex: 1;\r\n    margin-left: 24rpx;\n}\n.skeleton-line {\r\n    height: 24rpx;\r\n    background-color: #e9edf3;\r\n    border-radius: 999rpx;\r\n    margin-bottom: 16rpx;\n}\n.skeleton-line:last-child {\r\n    margin-bottom: 0;\n}\n.skeleton-line.long {\r\n    width: 100%;\n}\n.skeleton-line.medium {\r\n    width: 70%;\n}\n.skeleton-line.short {\r\n    width: 45%;\n}\n.skeleton-line.xshort {\r\n    width: 30%;\n}\n.skeleton-image {\r\n    width: 100%;\r\n    height: 340rpx;\r\n    border-radius: 20rpx;\r\n    background-color: #e9edf3;\r\n    margin: 30rpx 0;\n}\n.skeleton-section-title {\r\n    width: 50%;\r\n    height: 28rpx;\r\n    border-radius: 999rpx;\r\n    background-color: #e9edf3;\r\n    margin: 10rpx 0 30rpx;\n}\n.comment-skeleton-list {\r\n    display: flex;\r\n    flex-direction: column;\r\n    gap: 24rpx;\n}\n.comment-skeleton-item {\r\n    display: flex;\r\n    align-items: flex-start;\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    padding: 24rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.comment-skeleton-body {\r\n    flex: 1;\r\n    margin-left: 24rpx;\n}\n.comment-skeleton-body .skeleton-line {\r\n    height: 20rpx;\n}\n.skeleton-animate {\r\n    position: relative;\r\n    overflow: hidden;\n}\n.skeleton-animate::after {\r\n    content: '';\r\n    position: absolute;\r\n    top: 0;\r\n    left: -150%;\r\n    width: 150%;\r\n    height: 100%;\r\n    background: linear-gradient(90deg, rgba(233, 237, 243, 0) 0%, rgba(255, 255, 255, 0.9) 50%, rgba(233, 237, 243, 0) 100%);\r\n    -webkit-animation: skeletonPulse 1.2s ease-in-out infinite;\r\n            animation: skeletonPulse 1.2s ease-in-out infinite;\n}\n@-webkit-keyframes skeletonPulse {\n0% {\r\n        left: -150%;\n}\n100% {\r\n        left: 100%;\n}\n}\n@keyframes skeletonPulse {\n0% {\r\n        left: -150%;\n}\n100% {\r\n        left: 100%;\n}\n}\n.error-container {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 100rpx 40rpx;\r\n    text-align: center;\n}\n.error-icon {\r\n    font-size: 120rpx;\r\n    margin-bottom: 30rpx;\r\n    opacity: 0.6;\n}\n.error-text {\r\n    font-size: 32rpx;\r\n    color: #666;\n}\n.post-detail-card {\r\n    position: relative;\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    padding: 30rpx;\r\n    margin-bottom: 20rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.post-detail-card.original-post {\r\n    border: 3rpx solid #ebc88d;\r\n    box-shadow: 0 6rpx 24rpx rgba(235, 200, 141, 0.4), 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\r\n    position: relative;\n}\n.post-detail-card.original-post::before {\r\n    content: '';\r\n    position: absolute;\r\n    top: -2rpx;\r\n    left: -2rpx;\r\n    right: -2rpx;\r\n    bottom: -2rpx;\r\n    background: linear-gradient(45deg, #ebc88d, #f4d03f, #ebc88d);\r\n    border-radius: 18rpx;\r\n    z-index: -1;\r\n    opacity: 0.6;\r\n    -webkit-filter: blur(10rpx);\r\n            filter: blur(10rpx);\n}\n.author-info {\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: flex-start;\r\n    margin-bottom: 20rpx;\r\n    gap: 20rpx;\n}\n.author-basic {\r\n    display: flex;\r\n    align-items: center;\r\n    flex: 1;\r\n    min-width: 0;\r\n    gap: 12rpx;\r\n    flex-wrap: wrap;\n}\n.follow-btn {\r\n    padding: 0 28rpx;\r\n    height: 60rpx;\r\n    line-height: 60rpx;\r\n    background-color: #9ed7ee;\r\n    color: #ffffff;\r\n    border: none;\r\n    border-radius: 999rpx;\r\n    font-size: 26rpx;\r\n    flex-shrink: 0;\r\n    margin-left: auto;\n}\n.follow-btn.following {\r\n    background-color: #f0f0f0;\r\n    color: #666666;\n}\n.follow-btn::after {\r\n    border: none;\n}\n.follow-btn[disabled] {\r\n    opacity: 0.7;\n}\n.author-avatar {\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    border-radius: 50%;\r\n    margin-right: 15rpx;\r\n    background-color: #f5f5f5;\n}\n.author-name {\r\n    font-weight: bold;\r\n    font-size: 28rpx;\r\n    color: #333;\n}\n.post-title {\r\n    font-size: 36rpx;\r\n    font-weight: bold;\r\n    margin-bottom: 15rpx;\r\n    line-height: 1.4;\r\n    color: #333;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 2;\r\n    -webkit-box-orient: vertical;\n}\n.poem-author {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    text-align: left;\r\n    margin: 10rpx 0 15rpx 0;\r\n    font-weight: bold;\r\n    letter-spacing: 2rpx;\n}\n.post-content {\r\n    font-size: 28rpx;\r\n    line-height: 1.6;\r\n    margin-bottom: 20rpx;\r\n    white-space: pre-wrap;\r\n    color: #666;\r\n    word-break: break-word;\n}\n.image-container {\r\n    position: relative;\r\n    width: 100%;\r\n    margin: 20rpx 0;\r\n    background-color: #f5f5f5;\n}\n.post-image {\r\n    width: 100%;\r\n    height: auto;\r\n    display: block;\r\n    background-color: #f5f5f5;\r\n    transition: -webkit-transform 0.3s ease;\r\n    transition: transform 0.3s ease;\r\n    transition: transform 0.3s ease, -webkit-transform 0.3s ease;\n}\n.post-image:active {\r\n    -webkit-transform: scale(1.05);\r\n            transform: scale(1.05);\n}\n.post-image.single-image {\r\n    width: 100% !important;\r\n    height: auto !important;\r\n    display: block !important;\r\n    background-color: #f5f5f5;\n}\n.image-count-indicator {\r\n    position: absolute;\r\n    top: 20rpx;\r\n    right: 20rpx;\r\n    background-color: rgba(0, 0, 0, 0.6);\r\n    color: white;\r\n    padding: 8rpx 16rpx;\r\n    border-radius: 20rpx;\r\n    font-size: 24rpx;\r\n    z-index: 10;\r\n    -webkit-backdrop-filter: blur(10rpx);\r\n            backdrop-filter: blur(10rpx);\n}\n.post-meta {\r\n    margin-bottom: 15rpx;\n}\n.post-time {\r\n    font-size: 24rpx;\r\n    color: #999;\r\n    opacity: 0.8;\n}\n.vote-section {\r\n    display: flex;\r\n    justify-content: flex-start;\r\n    align-items: center;\r\n    padding-top: 20rpx;\r\n    margin-top: 20rpx;\r\n    border-top: 1rpx solid #f0f0f0;\n}\n.actions-left {\r\n    display: flex;\r\n    align-items: center;\n}\n.vote-count,\r\n.comment-count {\r\n    display: flex;\r\n    align-items: center;\r\n    font-size: 28rpx;\r\n    color: #999;\r\n    margin-left: 20rpx;\r\n    transition: color 0.2s ease;\n}\n.vote-count {\r\n    margin-left: 0rpx;\n}\n.action-emoji {\r\n    font-size: 28rpx;\r\n    margin-right: 8rpx;\n}\n.action-text {\r\n    font-size: 28rpx;\r\n    color: inherit;\n}\n.like-icon-container {\r\n    margin-left: 20rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 8rpx;\r\n    border-radius: 8rpx;\r\n    transition: all 0.2s ease;\n}\n.like-icon-container:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.vote-count.voted {\r\n    color: #ff4757;\n}\n.button-group {\r\n    display: flex;\r\n    align-items: center;\n}\n.favorite-button {\r\n    background-color: #ffc300;\r\n    color: white;\r\n    border: none;\r\n    border-radius: 8rpx;\r\n    font-size: 24rpx;\r\n    padding: 8rpx 16rpx;\r\n    line-height: 1.2;\r\n    transition: all 0.2s ease;\n}\n.favorite-button:active {\r\n    background-color: #e6b000;\n}\n.favorite-button::after {\r\n    border: none;\n}\n.favorite-button.favorited {\r\n    background-color: #999;\r\n    color: #fff;\n}\n.favorite-button.favorited:active {\r\n    background-color: #777;\n}\n.like-icon {\r\n    width: 48rpx;\r\n    height: 48rpx;\n}\n.comment-section {\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    padding: 30rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.section-title {\r\n    font-size: 32rpx;\r\n    font-weight: bold;\r\n    margin-bottom: 20rpx;\r\n    padding-bottom: 15rpx;\r\n    border-bottom: 1rpx solid #f0f0f0;\r\n    color: #333;\n}\n.comment-list {\r\n    margin-top: 20rpx;\n}\n.comment-item {\r\n    display: flex;\r\n    margin-bottom: 30rpx;\r\n    padding-bottom: 20rpx;\r\n    border-bottom: 1rpx solid #f5f5f5;\n}\n.comment-item:last-child {\r\n    border-bottom: none;\r\n    margin-bottom: 0;\n}\n.comment-avatar {\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    border-radius: 50%;\r\n    margin-right: 15rpx;\r\n    flex-shrink: 0;\r\n    background-color: #f5f5f5;\n}\n.comment-main {\r\n    display: flex;\r\n    flex-direction: column;\r\n    flex: 1;\r\n    min-width: 0;\n}\n.comment-author {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    font-weight: bold;\r\n    margin-bottom: 8rpx;\n}\n.comment-content {\r\n    font-size: 28rpx;\r\n    color: #666;\r\n    line-height: 1.5;\r\n    word-break: break-word;\r\n    margin-bottom: 10rpx;\n}\n.comment-image-grid {\r\n    display: flex;\r\n    flex-direction: column;\r\n    gap: 12rpx;\r\n    margin-bottom: 12rpx;\n}\n.comment-image {\r\n    width: 100%;\r\n    height: 400rpx;\r\n    border-radius: 12rpx;\r\n    background-color: #f2f2f2;\r\n    display: block;\r\n    object-fit: cover;\n}\n.reply-image-grid {\r\n    margin-top: 10rpx;\n}\n.comment-footer {\r\n    display: flex;\r\n    justify-content: flex-start;\r\n    align-items: center;\r\n    width: 100%;\n}\n.comment-time {\r\n    font-size: 24rpx;\r\n    color: #999;\r\n    opacity: 0.8;\n}\n.comment-actions {\r\n    display: flex;\r\n    align-items: center;\n}\n.like-section {\r\n    display: flex;\r\n    align-items: center;\r\n    padding: 8rpx 12rpx;\r\n    margin-right: 15rpx;\r\n    transition: all 0.2s ease;\n}\n.like-section:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.like-section .like-icon {\r\n    width: 32rpx;\r\n    height: 32rpx;\r\n    margin-right: 8rpx;\n}\n.like-count {\r\n    font-size: 26rpx;\r\n    color: #666;\n}\n.delete-btn {\r\n    display: flex;\r\n    align-items: center;\r\n    padding: 8rpx 12rpx;\r\n    margin-right: 15rpx;\r\n    transition: opacity 0.2s ease;\n}\n.delete-btn:active {\r\n    opacity: 0.7;\n}\n.delete-text {\r\n    font-size: 26rpx;\r\n    color: #ff4d4f;\n}\n.reply-btn {\r\n    display: flex;\r\n    align-items: center;\r\n    padding: 8rpx 12rpx;\r\n    transition: opacity 0.2s ease;\n}\n.reply-btn:active {\r\n    opacity: 0.7;\n}\n.reply-text {\r\n    font-size: 26rpx;\r\n    color: #9ed7ee;\n}\n.replies-container {\r\n    margin-top: 15rpx;\r\n    padding-left: 20rpx;\r\n    border-left: 2rpx solid #f0f0f0;\n}\n.reply-item {\r\n    display: flex;\r\n    margin-bottom: 15rpx;\n}\n.reply-avatar {\r\n    width: 40rpx;\r\n    height: 40rpx;\r\n    border-radius: 50%;\r\n    margin-right: 10rpx;\r\n    flex-shrink: 0;\r\n    background-color: #f5f5f5;\n}\n.reply-main {\r\n    display: flex;\r\n    flex-direction: column;\r\n    flex: 1;\r\n    min-width: 0;\n}\n.reply-author {\r\n    font-size: 24rpx;\r\n    color: #333;\r\n    font-weight: bold;\r\n    margin-bottom: 4rpx;\n}\n.reply-content {\r\n    font-size: 26rpx;\r\n    color: #666;\r\n    line-height: 1.4;\r\n    word-break: break-word;\n}\n.reply-to {\r\n    color: #9ed7ee;\r\n    font-weight: bold;\n}\n.reply-footer {\r\n    display: flex;\r\n    justify-content: flex-start;\r\n    align-items: center;\r\n    margin-top: 8rpx;\n}\n.reply-time {\r\n    font-size: 22rpx;\r\n    color: #999;\r\n    opacity: 0.8;\n}\n.reply-actions {\r\n    display: flex;\r\n    align-items: center;\n}\n.show-more-replies {\r\n    padding: 10rpx 0;\r\n    transition: opacity 0.2s ease;\n}\n.show-more-replies:active {\r\n    opacity: 0.7;\n}\n.show-more-text {\r\n    font-size: 24rpx;\r\n    color: #9ed7ee;\n}\n.no-comment-tip {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 60rpx 40rpx;\r\n    text-align: center;\n}\n.empty-icon {\r\n    font-size: 80rpx;\r\n    margin-bottom: 20rpx;\r\n    opacity: 0.6;\n}\n.empty-text {\r\n    font-size: 28rpx;\r\n    color: #999;\n}\n.input-overlay {\r\n    position: fixed;\r\n    top: 0;\r\n    left: 0;\r\n    width: 100%;\r\n    height: 100%;\r\n    background-color: rgba(0, 0, 0, 0.4);\r\n    z-index: 99;\r\n    opacity: 0;\r\n    pointer-events: none;\r\n    transition: opacity 0.3s ease;\n}\n.input-overlay.show {\r\n    opacity: 1;\r\n    pointer-events: auto;\n}\n.comment-input-area {\r\n    position: fixed;\r\n    left: 0;\r\n    right: 0;\r\n    bottom: 0;\r\n    background-color: #ffffff;\r\n    z-index: 100;\r\n    transition: bottom 0.2s ease-out;\r\n    padding-bottom: constant(safe-area-inset-bottom);\r\n    padding-bottom: env(safe-area-inset-bottom);\n}\n.collapsed-bar {\r\n    padding: 16rpx 30rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    border-top: 1rpx solid #f0f0f0;\n}\n.collapsed-input-placeholder {\r\n    flex: 1;\r\n    height: 68rpx;\r\n    line-height: 68rpx;\r\n    padding: 0 24rpx;\r\n    background-color: #f7f8fa;\r\n    border-radius: 34rpx;\r\n    font-size: 28rpx;\r\n    color: #999;\n}\n.expanded-container {\r\n    padding: 20rpx 30rpx;\r\n    display: flex;\r\n    flex-direction: column;\r\n    border-top: 1rpx solid #f0f0f0;\n}\n.expanded-textarea {\r\n    width: 100%;\r\n    min-height: 180rpx;\r\n    max-height: 350rpx;\r\n    padding: 20rpx 24rpx;\r\n    background-color: #ffffff;\r\n    border-radius: 0;\r\n    font-size: 30rpx;\r\n    line-height: 1.6;\r\n    box-sizing: border-box;\r\n    border: none;\r\n    -webkit-appearance: none;\r\n    -webkit-box-sizing: border-box;\r\n    -webkit-user-select: text;\r\n    -webkit-touch-callout: default;\r\n    outline: none;\n}\n.expanded-actions {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    margin-top: 20rpx;\r\n    width: 100%;\n}\n.action-icons {\r\n    display: flex;\r\n    gap: 24rpx;\n}\n.action-icon {\r\n    width: 64rpx;\r\n    height: 64rpx;\r\n    border-radius: 50%;\r\n    background: #f3f5f7;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    transition: -webkit-transform 0.2s ease;\r\n    transition: transform 0.2s ease;\r\n    transition: transform 0.2s ease, -webkit-transform 0.2s ease;\n}\n.action-icon:active {\r\n    -webkit-transform: scale(0.92);\r\n            transform: scale(0.92);\r\n    background: #e6eef3;\n}\n.action-icon-text {\r\n    font-size: 36rpx;\n}\n.selected-comment-images {\r\n    display: flex;\r\n    flex-wrap: wrap;\r\n    gap: 12rpx;\r\n    margin-top: 16rpx;\n}\n.selected-image-item {\r\n    position: relative;\r\n    width: 150rpx;\r\n    height: 150rpx;\r\n    border-radius: 12rpx;\r\n    overflow: hidden;\n}\n.selected-image-thumb {\r\n    width: 100%;\r\n    height: 100%;\r\n    background-color: #f2f2f2;\r\n    display: block;\n}\n.remove-image-btn {\r\n    position: absolute;\r\n    top: 6rpx;\r\n    right: 6rpx;\r\n    width: 36rpx;\r\n    height: 36rpx;\r\n    border-radius: 50%;\r\n    background: rgba(0, 0, 0, 0.55);\r\n    color: #fff;\r\n    font-size: 24rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\n}\n.emoji-panel {\r\n    margin-top: 16rpx;\r\n    padding: 20rpx 18rpx;\r\n    background: #f6f7f9;\r\n    border-radius: 16rpx;\r\n    display: flex;\r\n    flex-wrap: wrap;\r\n    gap: 18rpx;\n}\n.emoji-item {\r\n    font-size: 36rpx;\r\n    padding: 6rpx 10rpx;\n}\n.reply-prompt {\r\n    display: flex;\r\n    justify-content: flex-start;\r\n    align-items: center;\r\n    margin-bottom: 15rpx;\r\n    padding: 0 10rpx;\n}\n.reply-prompt-text {\r\n    font-size: 26rpx;\r\n    color: #666;\n}\n.cancel-reply .cancel-text {\r\n    font-size: 26rpx;\r\n    color: #9ed7ee;\n}\n.submit-button {\r\n    width: 120rpx !important;\r\n    height: 64rpx !important;\r\n    line-height: 64rpx !important;\r\n    background-color: #9ed7ee;\r\n    color: white;\r\n    border-radius: 32rpx;\r\n    font-size: 28rpx;\r\n    padding: 0 !important;\r\n    margin: 0 !important;\r\n    border: none !important;\r\n    box-sizing: border-box !important;\r\n    flex-shrink: 0;\r\n    transition: background-color 0.2s ease;\n}\n.submit-button[disabled] {\r\n    background-color: #b3e6c9;\r\n    color: #ffffff;\n}\n.submit-button::after {\r\n    border: none;\n}\n.swiper-wrapper {\r\n    position: relative;\r\n    width: 100%;\n}\n.image-swiper {\r\n    width: 100%;\r\n    background-color: #f0f0f0;\r\n    border-radius: 12rpx;\r\n    overflow: hidden;\n}\n.swiper-item {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\n}\n.post-image {\r\n    max-width: 100%;\r\n    max-height: 100%;\n}\n.image-count-indicator {\r\n    position: absolute;\r\n    bottom: 20rpx;\r\n    right: 20rpx;\r\n    background-color: rgba(0, 0, 0, 0.6);\r\n    color: white;\r\n    padding: 8rpx 16rpx;\r\n    border-radius: 20rpx;\r\n    font-size: 24rpx;\r\n    z-index: 10;\r\n    -webkit-backdrop-filter: blur(10rpx);\r\n            backdrop-filter: blur(10rpx);\n}\n.post-tags {\r\n    margin: 30rpx 0 10rpx 0;\r\n    line-height: 1.5;\n}\n.post-tag {\r\n    color: #24375f;\r\n    font-size: 26rpx;\r\n    margin-right: 10rpx;\r\n    transition: all 0.2s ease;\r\n    cursor: pointer;\n}\n.post-tag:active {\r\n    color: #1a2a4a;\r\n    opacity: 0.8;\n}\n.mutual-tag {\r\n    font-size: 24rpx;\r\n    padding: 4rpx 16rpx;\r\n    border-radius: 999rpx;\r\n    background-color: #e6f4ff;\r\n    color: #1f6fd2;\r\n    flex-shrink: 0;\n}\n.followed-tag {\r\n    font-size: 24rpx;\r\n    padding: 4rpx 16rpx;\r\n    border-radius: 999rpx;\r\n    background-color: #f4ebff;\r\n    color: #7c55c7;\r\n    flex-shrink: 0;\n}\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -12811,7 +13024,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../../HBuilderX.4.76.2025082103/HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n/* pages/add/add.wxss */\nbody {\n    height: 100vh;\n    overflow: hidden; /* 页面级别禁止滚动 */\n}\n.container {\n    background: #fff;\n    height: 100vh; /* 改为固定高度，确保在iOS下正确计算 */\n    display: flex;\n    flex-direction: column;\n    padding-bottom: 120rpx; /* 为底部工具栏留出空间，避免内容被遮挡 */\n    box-sizing: border-box; /* 确保padding计算在内 */\n    overflow: hidden; /* 防止整个页面滚动 */\n    position: relative; /* 确保定位上下文 */\n    transition: padding-bottom 0.3s ease-out; /* 为 padding 变化添加过渡 */\n}\n/* 发布按钮样式 */\n.publish-btn {\n    background: #e0e0e0;\n    color: #999;\n    padding: 16rpx 32rpx;\n    border-radius: 50rpx;\n    font-size: 28rpx;\n    transition: all 0.3s ease;\n    margin-left: auto;\n}\n.publish-btn.active {\n    background: #9ed7ee;\n    color: #fff;\n}\n/* 图片预览区域 */\n.image-section {\n    padding: 30rpx;\n    background: #f8f9fa;\n}\n.image-preview-scroll {\n    width: 100%;\n    white-space: nowrap;\n}\n.image-preview-container {\n    display: flex;\n    gap: 20rpx;\n    padding: 0 10rpx;\n}\n.image-preview-item {\n    position: relative;\n    width: 200rpx;\n    height: 200rpx;\n    border-radius: 12rpx;\n    overflow: hidden;\n    flex-shrink: 0;\n}\n.preview-image {\n    width: 100%;\n    height: 100%;\n    border-radius: 12rpx;\n}\n.image-remove-btn {\n    position: absolute;\n    top: -8rpx;\n    right: -8rpx;\n    width: 40rpx;\n    height: 40rpx;\n    background: #ff4444;\n    color: white;\n    border-radius: 50%;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    font-size: 24rpx;\n    font-weight: bold;\n    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.2);\n}\n.add-image-btn {\n    width: 200rpx;\n    height: 200rpx;\n    border: 2rpx dashed #ddd;\n    border-radius: 12rpx;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    background: #fff;\n    transition: all 0.3s ease;\n    flex-shrink: 0;\n}\n.add-image-btn:active {\n    background: #f5f5f5;\n    border-color: #9ed7ee;\n}\n.add-icon {\n    font-size: 60rpx;\n    color: #999;\n}\n/* 内容输入区域 */\n.content-section {\n    padding: 30rpx;\n    padding-bottom: 30rpx; /* 进一步减少底部间距，让输入框更接近底部工具栏 */\n    background: #fff;\n    flex: 1;\n    display: flex;\n    flex-direction: column;\n    min-height: 0; /* 关键：允许flex子元素收缩 */\n    overflow: hidden; /* 防止内容溢出 */\n    position: relative; /* 确保定位上下文 */\n}\n.title-input-wrapper {\n    margin-bottom: 30rpx;\n}\n.title-input {\n    width: 100%;\n    height: 80rpx;\n    border: none;\n    border-bottom: 1rpx solid #f0f0f0;\n    font-size: 32rpx;\n    padding: 0;\n    background: transparent;\n}\n.title-input:focus {\n    border-bottom-color: rgb(40, 151, 173);\n}\n.content-input-wrapper {\n    position: relative;\n    flex: 1;\n    display: flex;\n    flex-direction: column;\n    margin-bottom: 0rpx; /* 最小化底部间距，让输入框更接近底边栏 */\n    min-height: 0; /* 关键：允许flex子元素收缩 */\n    overflow: hidden; /* 防止内容溢出 */\n}\n.content-textarea {\n    flex: 1;\n    width: 100%;\n    height: 100%; /* 固定高度，填充父容器 */\n    border: none;\n    font-size: 30rpx;\n    line-height: 1.6;\n    padding: 0;\n    background: transparent;\n    resize: none;\n    overflow-y: auto; /* 允许垂直滚动 */\n    overflow-x: hidden; /* 禁止水平滚动 */\n    -webkit-appearance: none;\n    appearance: none;\n    box-sizing: border-box;\n    /* 确保在iOS上正确显示 */\n    -webkit-user-select: text;\n    user-select: text;\n    -webkit-touch-callout: default;\n    /* 防止iOS上的默认样式干扰 */\n    border-radius: 0;\n    outline: none;\n    /* 确保滚动行为 */\n    -webkit-overflow-scrolling: touch; /* iOS平滑滚动 */\n    position: relative; /* 确保定位上下文 */\n}\n.char-count {\n    position: absolute;\n    bottom: 10rpx; /* 移到textarea外面，给文字留出空间 */\n    right: 0;\n    font-size: 24rpx;\n    color: #666;\n    background: #fdfdfd;\n    padding: 8rpx 12rpx;\n    border-radius: 6rpx;\n    box-shadow: none;\n    pointer-events: none; /* 防止遮挡textarea的点击 */\n}\n/* 作者输入区域样式 */\n.author-input-wrapper {\n    margin-bottom: 30rpx;\n}\n.author-input {\n    width: 100%;\n    height: 80rpx;\n    border: none;\n    border-bottom: 1rpx solid #f0f0f0;\n    font-size: 32rpx;\n    padding: 0;\n    background: transparent;\n}\n.author-input:focus {\n    border-bottom-color: #9ed7ee;\n}\n/* 写诗子菜单 */\n.poem-submenu {\n    position: fixed;\n    bottom: 120rpx;\n    left: 50%;\n    -webkit-transform: translateX(-50%);\n            transform: translateX(-50%);\n    background: #fff;\n    border-radius: 12rpx;\n    padding: 20rpx;\n    display: flex;\n    gap: 40rpx;\n    z-index: 99;\n    box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.1);\n    -webkit-animation: slideUp 0.3s ease;\n            animation: slideUp 0.3s ease;\n    border: 1rpx solid #f0f0f0;\n    margin-left: -98rpx; /* 向左偏移，对齐写诗按钮 */\n}\n.submenu-item {\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    padding: 10rpx;\n    transition: all 0.3s ease;\n}\n.submenu-item:active {\n    -webkit-transform: scale(0.95);\n            transform: scale(0.95);\n}\n.submenu-icon {\n    font-size: 40rpx;\n    margin-bottom: 8rpx;\n}\n.submenu-text {\n    font-size: 22rpx;\n    color: #666;\n}\n@-webkit-keyframes slideUp {\nfrom {\n        -webkit-transform: translateX(-50%) translateY(100%);\n                transform: translateX(-50%) translateY(100%);\n        opacity: 0;\n}\nto {\n        -webkit-transform: translateX(-50%) translateY(0);\n                transform: translateX(-50%) translateY(0);\n        opacity: 1;\n}\n}\n@keyframes slideUp {\nfrom {\n        -webkit-transform: translateX(-50%) translateY(100%);\n                transform: translateX(-50%) translateY(100%);\n        opacity: 0;\n}\nto {\n        -webkit-transform: translateX(-50%) translateY(0);\n                transform: translateX(-50%) translateY(0);\n        opacity: 1;\n}\n}\n/* 底部工具栏 */\n.toolbar {\n    position: fixed;\n    bottom: 0;\n    left: 0;\n    right: 0;\n    background: #fff;\n    border-top: 1rpx solid #f0f0f0;\n    padding: 20rpx 30rpx;\n    display: flex;\n    align-items: center;\n    gap: 40rpx;\n    z-index: 100;\n    transition: bottom 0.3s ease-out; /* 为位置变化添加过渡 */\n}\n.toolbar-item {\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    padding: 10rpx;\n    transition: all 0.3s ease;\n}\n.toolbar-item:active {\n    -webkit-transform: scale(0.95);\n            transform: scale(0.95);\n}\n.toolbar-icon {\n    font-size: 40rpx;\n    margin-bottom: 8rpx;\n}\n.toolbar-text {\n    font-size: 22rpx;\n    color: #666;\n}\n/* 标签选择区域样式 */\n.tag-section {\n    position: fixed; /* 确保标签选择器是基于窗口定位的 */\n    bottom: 120rpx; /* 初始位置在工具栏上方 */\n    left: 0;\n    right: 0;\n    background: #f8f9fa;\n    border-radius: 12rpx;\n    padding: 20rpx;\n    z-index: 90; /* z-index 比工具栏低，但比内容高 */\n    transition: bottom 0.3s ease-out; /* 为位置变化添加过渡 */\n}\n.tag-header {\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n    padding: 10rpx 0;\n    border-bottom: 1px solid #eee;\n    margin-bottom: 20rpx;\n}\n.tag-title {\n    font-size: 30rpx;\n    font-weight: bold;\n    color: #333;\n}\n.tag-count {\n    font-size: 24rpx;\n    color: #999;\n}\n.tag-toggle {\n    font-size: 26rpx;\n    color: #9ed7ee;\n}\n.selected-tags {\n    display: flex;\n    flex-wrap: wrap;\n    gap: 10rpx;\n    margin-bottom: 20rpx;\n}\n.selected-tag {\n    display: flex;\n    align-items: center;\n    background: #9ed7ee;\n    color: white;\n    padding: 8rpx 16rpx;\n    border-radius: 20rpx;\n    font-size: 24rpx;\n}\n.remove-tag {\n    margin-left: 8rpx;\n    font-size: 20rpx;\n    font-weight: bold;\n    cursor: pointer;\n}\n.tag-selector {\n    -webkit-animation: slideDown 0.3s ease;\n            animation: slideDown 0.3s ease;\n}\n/* 分类选择器样式 */\n.category-selector {\n    margin-bottom: 20rpx;\n    border-bottom: 1px solid #eee;\n    padding-bottom: 15rpx;\n}\n.category-scroll {\n    width: 100%;\n    white-space: nowrap;\n}\n.category-list {\n    display: flex;\n    gap: 15rpx;\n    padding: 0 10rpx;\n}\n.category-item {\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    padding: 10rpx 15rpx;\n    border-radius: 12rpx;\n    background: #f5f5f5;\n    transition: all 0.3s ease;\n    min-width: 80rpx;\n    flex-shrink: 0;\n}\n.category-item.active {\n    background: #9ed7ee;\n    color: white;\n}\n.category-icon {\n    font-size: 24rpx;\n    margin-bottom: 5rpx;\n}\n.category-name {\n    font-size: 20rpx;\n    text-align: center;\n    line-height: 1.2;\n}\n/* 当前分类标签样式 */\n.current-category-tags {\n    display: flex;\n    flex-wrap: wrap;\n    gap: 10rpx;\n    margin-bottom: 20rpx;\n}\n.preset-tag {\n    padding: 8rpx 16rpx;\n    background: white;\n    border: 1px solid #ddd;\n    border-radius: 20rpx;\n    font-size: 24rpx;\n    color: #666;\n    transition: all 0.3s ease;\n}\n.preset-tag.selected {\n    background: #9ed7ee;\n    color: white;\n    border-color: #9ed7ee;\n}\n.custom-tag-input {\n    display: flex;\n    align-items: center;\n    gap: 10rpx;\n}\n.custom-tag-input uni-input {\n    flex: 1;\n    height: 60rpx;\n    border: 1px solid #ddd;\n    border-radius: 8rpx;\n    padding: 0 15rpx;\n    font-size: 26rpx;\n}\n.custom-tag-input uni-button {\n    background: #9ed7ee;\n    color: white;\n    border: none;\n    border-radius: 8rpx;\n    padding: 0 20rpx;\n    height: 60rpx;\n    font-size: 24rpx;\n}\n/* 匹配标签推荐样式 */\n.matched-tags {\n    margin-top: 15rpx;\n    padding: 15rpx;\n    background: #f8f9fa;\n    border-radius: 8rpx;\n    border: 1px solid #e9ecef;\n}\n.matched-tags-title {\n    font-size: 24rpx;\n    color: #666;\n    margin-bottom: 10rpx;\n}\n.matched-tags-list {\n    display: flex;\n    flex-wrap: wrap;\n    gap: 8rpx;\n}\n.matched-tag {\n    background: #e3f2fd;\n    color: #1976d2;\n    padding: 6rpx 12rpx;\n    border-radius: 12rpx;\n    font-size: 22rpx;\n    border: 1px solid #bbdefb;\n    transition: all 0.2s ease;\n}\n.matched-tag:active {\n    background: #bbdefb;\n    -webkit-transform: scale(0.95);\n            transform: scale(0.95);\n}\n@-webkit-keyframes slideDown {\nfrom {\n        opacity: 0;\n        -webkit-transform: translateY(-10rpx);\n                transform: translateY(-10rpx);\n}\nto {\n        opacity: 1;\n        -webkit-transform: translateY(0);\n                transform: translateY(0);\n}\n}\n@keyframes slideDown {\nfrom {\n        opacity: 0;\n        -webkit-transform: translateY(-10rpx);\n                transform: translateY(-10rpx);\n}\nto {\n        opacity: 1;\n        -webkit-transform: translateY(0);\n                transform: translateY(0);\n}\n}\n", ""]);
+exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* pages/add/add.wxss */\nbody {\r\n    height: 100vh;\r\n    overflow: hidden; /* 页面级别禁止滚动 */\n}\n.container {\r\n    background: #fff;\r\n    height: 100vh; /* 改为固定高度，确保在iOS下正确计算 */\r\n    display: flex;\r\n    flex-direction: column;\r\n    padding-bottom: 120rpx; /* 为底部工具栏留出空间，避免内容被遮挡 */\r\n    box-sizing: border-box; /* 确保padding计算在内 */\r\n    overflow: hidden; /* 防止整个页面滚动 */\r\n    position: relative; /* 确保定位上下文 */\r\n    transition: padding-bottom 0.3s ease-out; /* 为 padding 变化添加过渡 */\n}\r\n/* 发布按钮样式 */\n.publish-btn {\r\n    background: #e0e0e0;\r\n    color: #999;\r\n    padding: 16rpx 32rpx;\r\n    border-radius: 50rpx;\r\n    font-size: 28rpx;\r\n    transition: all 0.3s ease;\r\n    margin-left: auto;\n}\n.publish-btn.active {\r\n    background: #9ed7ee;\r\n    color: #fff;\n}\r\n/* 图片预览区域 */\n.image-section {\r\n    padding: 30rpx;\r\n    background: #f8f9fa;\n}\n.image-preview-scroll {\r\n    width: 100%;\r\n    white-space: nowrap;\n}\n.image-preview-container {\r\n    display: flex;\r\n    gap: 20rpx;\r\n    padding: 0 10rpx;\n}\n.image-preview-item {\r\n    position: relative;\r\n    width: 200rpx;\r\n    height: 200rpx;\r\n    border-radius: 12rpx;\r\n    overflow: hidden;\r\n    flex-shrink: 0;\n}\n.preview-image {\r\n    width: 100%;\r\n    height: 100%;\r\n    border-radius: 12rpx;\n}\n.image-remove-btn {\r\n    position: absolute;\r\n    top: -8rpx;\r\n    right: -8rpx;\r\n    width: 40rpx;\r\n    height: 40rpx;\r\n    background: #ff4444;\r\n    color: white;\r\n    border-radius: 50%;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    font-size: 24rpx;\r\n    font-weight: bold;\r\n    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.2);\n}\n.add-image-btn {\r\n    width: 200rpx;\r\n    height: 200rpx;\r\n    border: 2rpx dashed #ddd;\r\n    border-radius: 12rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    background: #fff;\r\n    transition: all 0.3s ease;\r\n    flex-shrink: 0;\n}\n.add-image-btn:active {\r\n    background: #f5f5f5;\r\n    border-color: #9ed7ee;\n}\n.add-icon {\r\n    font-size: 60rpx;\r\n    color: #999;\n}\r\n/* 内容输入区域 */\n.content-section {\r\n    padding: 30rpx;\r\n    padding-bottom: 30rpx; /* 进一步减少底部间距，让输入框更接近底部工具栏 */\r\n    background: #fff;\r\n    flex: 1;\r\n    display: flex;\r\n    flex-direction: column;\r\n    min-height: 0; /* 关键：允许flex子元素收缩 */\r\n    overflow: hidden; /* 防止内容溢出 */\r\n    position: relative; /* 确保定位上下文 */\n}\n.title-input-wrapper {\r\n    margin-bottom: 30rpx;\n}\n.title-input {\r\n    width: 100%;\r\n    height: 80rpx;\r\n    border: none;\r\n    border-bottom: 1rpx solid #f0f0f0;\r\n    font-size: 32rpx;\r\n    padding: 0;\r\n    background: transparent;\n}\n.title-input:focus {\r\n    border-bottom-color: rgb(40, 151, 173);\n}\n.content-input-wrapper {\r\n    position: relative;\r\n    flex: 1;\r\n    display: flex;\r\n    flex-direction: column;\r\n    margin-bottom: 0rpx; /* 最小化底部间距，让输入框更接近底边栏 */\r\n    min-height: 0; /* 关键：允许flex子元素收缩 */\r\n    overflow: hidden; /* 防止内容溢出 */\n}\n.content-textarea {\r\n    flex: 1;\r\n    width: 100%;\r\n    height: 100%; /* 固定高度，填充父容器 */\r\n    border: none;\r\n    font-size: 30rpx;\r\n    line-height: 1.6;\r\n    padding: 0;\r\n    background: transparent;\r\n    resize: none;\r\n    overflow-y: auto; /* 允许垂直滚动 */\r\n    overflow-x: hidden; /* 禁止水平滚动 */\r\n    -webkit-appearance: none;\r\n    appearance: none;\r\n    box-sizing: border-box;\r\n    /* 确保在iOS上正确显示 */\r\n    -webkit-user-select: text;\r\n    user-select: text;\r\n    -webkit-touch-callout: default;\r\n    /* 防止iOS上的默认样式干扰 */\r\n    border-radius: 0;\r\n    outline: none;\r\n    /* 确保滚动行为 */\r\n    -webkit-overflow-scrolling: touch; /* iOS平滑滚动 */\r\n    position: relative; /* 确保定位上下文 */\n}\n.char-count {\r\n    position: absolute;\r\n    bottom: 10rpx; /* 移到textarea外面，给文字留出空间 */\r\n    right: 0;\r\n    font-size: 24rpx;\r\n    color: #666;\r\n    background: #fdfdfd;\r\n    padding: 8rpx 12rpx;\r\n    border-radius: 6rpx;\r\n    box-shadow: none;\r\n    pointer-events: none; /* 防止遮挡textarea的点击 */\n}\r\n/* 作者输入区域样式 */\n.author-input-wrapper {\r\n    margin-bottom: 30rpx;\n}\n.author-input {\r\n    width: 100%;\r\n    height: 80rpx;\r\n    border: none;\r\n    border-bottom: 1rpx solid #f0f0f0;\r\n    font-size: 32rpx;\r\n    padding: 0;\r\n    background: transparent;\n}\n.author-input:focus {\r\n    border-bottom-color: #9ed7ee;\n}\r\n/* 写诗子菜单 */\n.poem-submenu {\r\n    position: fixed;\r\n    bottom: 120rpx;\r\n    left: 50%;\r\n    -webkit-transform: translateX(-50%);\r\n            transform: translateX(-50%);\r\n    background: #fff;\r\n    border-radius: 12rpx;\r\n    padding: 20rpx;\r\n    display: flex;\r\n    gap: 40rpx;\r\n    z-index: 99;\r\n    box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.1);\r\n    -webkit-animation: slideUp 0.3s ease;\r\n            animation: slideUp 0.3s ease;\r\n    border: 1rpx solid #f0f0f0;\r\n    margin-left: -98rpx; /* 向左偏移，对齐写诗按钮 */\n}\n.submenu-item {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    padding: 10rpx;\r\n    transition: all 0.3s ease;\n}\n.submenu-item:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.submenu-icon {\r\n    font-size: 40rpx;\r\n    margin-bottom: 8rpx;\n}\n.submenu-text {\r\n    font-size: 22rpx;\r\n    color: #666;\n}\n@-webkit-keyframes slideUp {\nfrom {\r\n        -webkit-transform: translateX(-50%) translateY(100%);\r\n                transform: translateX(-50%) translateY(100%);\r\n        opacity: 0;\n}\nto {\r\n        -webkit-transform: translateX(-50%) translateY(0);\r\n                transform: translateX(-50%) translateY(0);\r\n        opacity: 1;\n}\n}\n@keyframes slideUp {\nfrom {\r\n        -webkit-transform: translateX(-50%) translateY(100%);\r\n                transform: translateX(-50%) translateY(100%);\r\n        opacity: 0;\n}\nto {\r\n        -webkit-transform: translateX(-50%) translateY(0);\r\n                transform: translateX(-50%) translateY(0);\r\n        opacity: 1;\n}\n}\r\n/* 底部工具栏 */\n.toolbar {\r\n    position: fixed;\r\n    bottom: 0;\r\n    left: 0;\r\n    right: 0;\r\n    background: #fff;\r\n    border-top: 1rpx solid #f0f0f0;\r\n    padding: 20rpx 30rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    gap: 40rpx;\r\n    z-index: 100;\r\n    transition: bottom 0.3s ease-out; /* 为位置变化添加过渡 */\n}\n.toolbar-item {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    padding: 10rpx;\r\n    transition: all 0.3s ease;\n}\n.toolbar-item:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.toolbar-icon {\r\n    font-size: 40rpx;\r\n    margin-bottom: 8rpx;\n}\n.toolbar-text {\r\n    font-size: 22rpx;\r\n    color: #666;\n}\r\n/* 标签选择区域样式 */\n.tag-section {\r\n    position: fixed; /* 确保标签选择器是基于窗口定位的 */\r\n    bottom: 120rpx; /* 初始位置在工具栏上方 */\r\n    left: 0;\r\n    right: 0;\r\n    background: #f8f9fa;\r\n    border-radius: 12rpx;\r\n    padding: 20rpx;\r\n    z-index: 90; /* z-index 比工具栏低，但比内容高 */\r\n    transition: bottom 0.3s ease-out; /* 为位置变化添加过渡 */\n}\n.tag-header {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    padding: 10rpx 0;\r\n    border-bottom: 1px solid #eee;\r\n    margin-bottom: 20rpx;\n}\n.tag-title {\r\n    font-size: 30rpx;\r\n    font-weight: bold;\r\n    color: #333;\n}\n.tag-count {\r\n    font-size: 24rpx;\r\n    color: #999;\n}\n.tag-toggle {\r\n    font-size: 26rpx;\r\n    color: #9ed7ee;\n}\n.selected-tags {\r\n    display: flex;\r\n    flex-wrap: wrap;\r\n    gap: 10rpx;\r\n    margin-bottom: 20rpx;\n}\n.selected-tag {\r\n    display: flex;\r\n    align-items: center;\r\n    background: #9ed7ee;\r\n    color: white;\r\n    padding: 8rpx 16rpx;\r\n    border-radius: 20rpx;\r\n    font-size: 24rpx;\n}\n.remove-tag {\r\n    margin-left: 8rpx;\r\n    font-size: 20rpx;\r\n    font-weight: bold;\r\n    cursor: pointer;\n}\n.tag-selector {\r\n    -webkit-animation: slideDown 0.3s ease;\r\n            animation: slideDown 0.3s ease;\n}\r\n/* 分类选择器样式 */\n.category-selector {\r\n    margin-bottom: 20rpx;\r\n    border-bottom: 1px solid #eee;\r\n    padding-bottom: 15rpx;\n}\n.category-scroll {\r\n    width: 100%;\r\n    white-space: nowrap;\n}\n.category-list {\r\n    display: flex;\r\n    gap: 15rpx;\r\n    padding: 0 10rpx;\n}\n.category-item {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    padding: 10rpx 15rpx;\r\n    border-radius: 12rpx;\r\n    background: #f5f5f5;\r\n    transition: all 0.3s ease;\r\n    min-width: 80rpx;\r\n    flex-shrink: 0;\n}\n.category-item.active {\r\n    background: #9ed7ee;\r\n    color: white;\n}\n.category-icon {\r\n    font-size: 24rpx;\r\n    margin-bottom: 5rpx;\n}\n.category-name {\r\n    font-size: 20rpx;\r\n    text-align: center;\r\n    line-height: 1.2;\n}\r\n/* 当前分类标签样式 */\n.current-category-tags {\r\n    display: flex;\r\n    flex-wrap: wrap;\r\n    gap: 10rpx;\r\n    margin-bottom: 20rpx;\n}\n.preset-tag {\r\n    padding: 8rpx 16rpx;\r\n    background: white;\r\n    border: 1px solid #ddd;\r\n    border-radius: 20rpx;\r\n    font-size: 24rpx;\r\n    color: #666;\r\n    transition: all 0.3s ease;\n}\n.preset-tag.selected {\r\n    background: #9ed7ee;\r\n    color: white;\r\n    border-color: #9ed7ee;\n}\n.custom-tag-input {\r\n    display: flex;\r\n    align-items: center;\r\n    gap: 10rpx;\n}\n.custom-tag-input uni-input {\r\n    flex: 1;\r\n    height: 60rpx;\r\n    border: 1px solid #ddd;\r\n    border-radius: 8rpx;\r\n    padding: 0 15rpx;\r\n    font-size: 26rpx;\n}\n.custom-tag-input uni-button {\r\n    background: #9ed7ee;\r\n    color: white;\r\n    border: none;\r\n    border-radius: 8rpx;\r\n    padding: 0 20rpx;\r\n    height: 60rpx;\r\n    font-size: 24rpx;\n}\r\n/* 匹配标签推荐样式 */\n.matched-tags {\r\n    margin-top: 15rpx;\r\n    padding: 15rpx;\r\n    background: #f8f9fa;\r\n    border-radius: 8rpx;\r\n    border: 1px solid #e9ecef;\n}\n.matched-tags-title {\r\n    font-size: 24rpx;\r\n    color: #666;\r\n    margin-bottom: 10rpx;\n}\n.matched-tags-list {\r\n    display: flex;\r\n    flex-wrap: wrap;\r\n    gap: 8rpx;\n}\n.matched-tag {\r\n    background: #e3f2fd;\r\n    color: #1976d2;\r\n    padding: 6rpx 12rpx;\r\n    border-radius: 12rpx;\r\n    font-size: 22rpx;\r\n    border: 1px solid #bbdefb;\r\n    transition: all 0.2s ease;\n}\n.matched-tag:active {\r\n    background: #bbdefb;\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n@-webkit-keyframes slideDown {\nfrom {\r\n        opacity: 0;\r\n        -webkit-transform: translateY(-10rpx);\r\n                transform: translateY(-10rpx);\n}\nto {\r\n        opacity: 1;\r\n        -webkit-transform: translateY(0);\r\n                transform: translateY(0);\n}\n}\n@keyframes slideDown {\nfrom {\r\n        opacity: 0;\r\n        -webkit-transform: translateY(-10rpx);\r\n                transform: translateY(-10rpx);\n}\nto {\r\n        opacity: 1;\r\n        -webkit-transform: translateY(0);\r\n                transform: translateY(0);\n}\n}\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -13296,7 +13509,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../../HBuilderX.4.76.2025082103/HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n/* pages/favorite-folders/favorite-folders.wxss */\n.container {\n    min-height: 100vh;\n    background-color: #f5f5f5;\n    padding: 20rpx;\n}\n.loading-container {\n    display: flex;\n    justify-content: center;\n    align-items: center;\n    height: 400rpx;\n}\n.loading-text {\n    color: #999;\n    font-size: 28rpx;\n}\n.folders-container {\n    padding-bottom: 120rpx;\n}\n.folder-item {\n    display: flex;\n    align-items: center;\n    background: white;\n    border-radius: 16rpx;\n    padding: 30rpx;\n    margin-bottom: 20rpx;\n    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);\n}\n.folder-icon {\n    font-size: 48rpx;\n    margin-right: 24rpx;\n}\n.folder-info {\n    flex: 1;\n}\n.folder-name {\n    font-size: 32rpx;\n    font-weight: 500;\n    color: #333;\n    margin-bottom: 8rpx;\n}\n.folder-meta {\n    display: flex;\n    align-items: center;\n    font-size: 24rpx;\n    color: #999;\n}\n.item-count {\n    margin-right: 20rpx;\n}\n.folder-arrow {\n    font-size: 32rpx;\n    color: #ccc;\n}\n.empty-container {\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    justify-content: center;\n    height: 400rpx;\n}\n.empty-icon {\n    font-size: 80rpx;\n    margin-bottom: 20rpx;\n    opacity: 0.5;\n}\n.empty-text {\n    font-size: 32rpx;\n    color: #666;\n    margin-bottom: 12rpx;\n}\n.empty-subtext {\n    font-size: 26rpx;\n    color: #999;\n}\n.create-button {\n    position: fixed;\n    bottom: 40rpx;\n    right: 40rpx;\n    display: flex;\n    align-items: center;\n    background: #9ed7ee;\n    color: white;\n    padding: 20rpx 30rpx;\n    border-radius: 50rpx;\n    box-shadow: 0 4rpx 12rpx rgba(7, 193, 96, 0.3);\n    font-size: 28rpx;\n}\n.create-icon {\n    font-size: 32rpx;\n    margin-right: 8rpx;\n}\n/* 弹窗样式 */\n.modal-overlay {\n    position: fixed;\n    top: 0;\n    left: 0;\n    right: 0;\n    bottom: 0;\n    background: rgba(0, 0, 0, 0.5);\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    z-index: 1000;\n}\n.modal-content {\n    background: white;\n    border-radius: 16rpx;\n    padding: 40rpx;\n    margin: 40rpx;\n    width: calc(100% - 80rpx);\n    max-width: 500rpx;\n    position: relative;\n    z-index: 1001;\n}\n.modal-title {\n    font-size: 36rpx;\n    font-weight: 500;\n    color: #333;\n    margin-bottom: 30rpx;\n    text-align: center;\n}\n.modal-input {\n    width: 100%;\n    height: 80rpx;\n    border: 2rpx solid #e0e0e0;\n    border-radius: 8rpx;\n    padding: 0 20rpx;\n    font-size: 28rpx;\n    margin-bottom: 30rpx;\n    box-sizing: border-box;\n}\n.modal-input:focus {\n    border-color: #9ed7ee;\n}\n.modal-buttons {\n    display: flex;\n    gap: 20rpx;\n}\n.modal-btn {\n    flex: 1;\n    height: 80rpx;\n    border-radius: 8rpx;\n    font-size: 28rpx;\n    border: none;\n    position: relative;\n    z-index: 1002;\n}\n.cancel-btn {\n    background: #f5f5f5;\n    color: #666;\n}\n.confirm-btn {\n    background: #9ed7ee;\n    color: white;\n}\n", ""]);
+exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* pages/favorite-folders/favorite-folders.wxss */\n.container {\r\n    min-height: 100vh;\r\n    background-color: #f5f5f5;\r\n    padding: 20rpx;\n}\n.loading-container {\r\n    display: flex;\r\n    justify-content: center;\r\n    align-items: center;\r\n    height: 400rpx;\n}\n.loading-text {\r\n    color: #999;\r\n    font-size: 28rpx;\n}\n.folders-container {\r\n    padding-bottom: 120rpx;\n}\n.folder-item {\r\n    display: flex;\r\n    align-items: center;\r\n    background: white;\r\n    border-radius: 16rpx;\r\n    padding: 30rpx;\r\n    margin-bottom: 20rpx;\r\n    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);\n}\n.folder-icon {\r\n    font-size: 48rpx;\r\n    margin-right: 24rpx;\n}\n.folder-info {\r\n    flex: 1;\n}\n.folder-name {\r\n    font-size: 32rpx;\r\n    font-weight: 500;\r\n    color: #333;\r\n    margin-bottom: 8rpx;\n}\n.folder-meta {\r\n    display: flex;\r\n    align-items: center;\r\n    font-size: 24rpx;\r\n    color: #999;\n}\n.item-count {\r\n    margin-right: 20rpx;\n}\n.folder-arrow {\r\n    font-size: 32rpx;\r\n    color: #ccc;\n}\n.empty-container {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    justify-content: center;\r\n    height: 400rpx;\n}\n.empty-icon {\r\n    font-size: 80rpx;\r\n    margin-bottom: 20rpx;\r\n    opacity: 0.5;\n}\n.empty-text {\r\n    font-size: 32rpx;\r\n    color: #666;\r\n    margin-bottom: 12rpx;\n}\n.empty-subtext {\r\n    font-size: 26rpx;\r\n    color: #999;\n}\n.create-button {\r\n    position: fixed;\r\n    bottom: 40rpx;\r\n    right: 40rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    background: #9ed7ee;\r\n    color: white;\r\n    padding: 20rpx 30rpx;\r\n    border-radius: 50rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(7, 193, 96, 0.3);\r\n    font-size: 28rpx;\n}\n.create-icon {\r\n    font-size: 32rpx;\r\n    margin-right: 8rpx;\n}\r\n/* 弹窗样式 */\n.modal-overlay {\r\n    position: fixed;\r\n    top: 0;\r\n    left: 0;\r\n    right: 0;\r\n    bottom: 0;\r\n    background: rgba(0, 0, 0, 0.5);\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    z-index: 1000;\n}\n.modal-content {\r\n    background: white;\r\n    border-radius: 16rpx;\r\n    padding: 40rpx;\r\n    margin: 40rpx;\r\n    width: calc(100% - 80rpx);\r\n    max-width: 500rpx;\r\n    position: relative;\r\n    z-index: 1001;\n}\n.modal-title {\r\n    font-size: 36rpx;\r\n    font-weight: 500;\r\n    color: #333;\r\n    margin-bottom: 30rpx;\r\n    text-align: center;\n}\n.modal-input {\r\n    width: 100%;\r\n    height: 80rpx;\r\n    border: 2rpx solid #e0e0e0;\r\n    border-radius: 8rpx;\r\n    padding: 0 20rpx;\r\n    font-size: 28rpx;\r\n    margin-bottom: 30rpx;\r\n    box-sizing: border-box;\n}\n.modal-input:focus {\r\n    border-color: #9ed7ee;\n}\n.modal-buttons {\r\n    display: flex;\r\n    gap: 20rpx;\n}\n.modal-btn {\r\n    flex: 1;\r\n    height: 80rpx;\r\n    border-radius: 8rpx;\r\n    font-size: 28rpx;\r\n    border: none;\r\n    position: relative;\r\n    z-index: 1002;\n}\n.cancel-btn {\r\n    background: #f5f5f5;\r\n    color: #666;\n}\n.confirm-btn {\r\n    background: #9ed7ee;\r\n    color: white;\n}\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -14008,7 +14221,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../../HBuilderX.4.76.2025082103/HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n/* pages/favorite-content/favorite-content.wxss */\n.container {\n    padding: 20rpx;\n    background-color: #f7f8fa;\n    min-height: 100vh;\n}\n.loading-container {\n    display: flex;\n    justify-content: center;\n    align-items: center;\n    height: 400rpx;\n    background-color: #fff;\n    border-radius: 16rpx;\n    margin: 30rpx;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.loading-text {\n    color: #999;\n    font-size: 28rpx;\n}\n.favorites-container {\n    margin: 0 30rpx 30rpx 30rpx;\n}\n/* 新增：帖子项包装器样式 */\n.post-item-wrapper {\n    background: #fff;\n    border-radius: 16rpx;\n    margin-bottom: 20rpx;\n    padding: 30rpx;\n    box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);\n}\n/* 原创帖子特殊样式 */\n.post-item-wrapper.original-post {\n    border: 3rpx solid #ebc88d;\n    box-shadow: 0 4rpx 20rpx rgba(235, 200, 141, 0.3), 0 2rpx 12rpx rgba(0, 0, 0, 0.06);\n    position: relative;\n}\n/* 原创帖子光影效果 */\n.post-item-wrapper.original-post::before {\n    content: '';\n    position: absolute;\n    top: -2rpx;\n    left: -2rpx;\n    right: -2rpx;\n    bottom: -2rpx;\n    background: linear-gradient(45deg, #ebc88d, #f4d03f, #ebc88d);\n    border-radius: 18rpx;\n    z-index: -1;\n    opacity: 0.6;\n    -webkit-filter: blur(8rpx);\n            filter: blur(8rpx);\n}\n/* 新增：内容导航器样式 */\n.post-content-navigator {\n    display: block;\n    background: transparent;\n}\n/* 新增：导航器点击效果 */\n.navigator-hover {\n    opacity: 0.8;\n}\n/* 作者信息样式 */\n.author-info-outside {\n    display: flex;\n    align-items: center;\n    margin-bottom: 20rpx;\n}\n.author-avatar {\n    width: 60rpx;\n    height: 60rpx;\n    border-radius: 50%;\n    margin-right: 15rpx;\n    background-color: #f5f5f5;\n}\n.author-name {\n    font-size: 28rpx;\n    color: #333;\n    font-weight: 500;\n}\n.post-title {\n    font-size: 32rpx;\n    font-weight: bold;\n    color: #333333;\n    margin-bottom: 10rpx;\n    line-height: 1.4;\n    word-break: break-word;\n    overflow: hidden;\n    text-overflow: ellipsis;\n    display: -webkit-box;\n    -webkit-line-clamp: 2;\n    -webkit-box-orient: vertical;\n}\n/* 诗歌作者信息 */\n.poem-author {\n    font-size: 26rpx;\n    color: #666;\n    font-style: italic;\n    margin-bottom: 10rpx;\n}\n.post-content {\n    font-size: 26rpx;\n    color: #666666;\n    line-height: 1.5;\n    margin-bottom: 15rpx;\n    word-break: break-word;\n    overflow: hidden;\n    text-overflow: ellipsis;\n    display: -webkit-box;\n    -webkit-line-clamp: 2;\n    -webkit-box-orient: vertical;\n    white-space: pre-wrap;\n}\n/* 图片容器样式 - 与首页保持一致 */\n.image-container-wrapper {\n    position: relative;\n    width: 100%;\n    background-color: #f0f0f0; /* 占位时的背景色，很重要 */\n    overflow: hidden;\n    border-radius: 8px; /* 可以加个圆角，让占位块更好看 */\n    margin: 20rpx 0; /* 图片和下方内容的间距 */\n}\n/* 让图片或Swiper填充整个占位容器 */\n.image-container-wrapper .post-image,\n.image-container-wrapper .image-swiper {\n    position: absolute;\n    top: 0;\n    left: 0;\n    width: 100%;\n    height: 100%;\n    object-fit: cover;\n}\n.post-image {\n    transition: -webkit-transform 0.3s ease;\n    transition: transform 0.3s ease;\n    transition: transform 0.3s ease, -webkit-transform 0.3s ease;\n}\n.post-image:active {\n    -webkit-transform: scale(1.05);\n            transform: scale(1.05);\n}\n.image-swiper {\n    width: 100%;\n    border-radius: 12rpx;\n    overflow: hidden;\n}\n/* 标签样式 - 与首页和详情页保持一致 */\n.post-tags {\n    margin-top: 30rpx;\n    margin-bottom: 10rpx;\n    line-height: 1.5;\n}\n.post-tag {\n    color: #24375f;\n    font-size: 26rpx;\n    margin-right: 10rpx;\n    transition: all 0.2s ease;\n    cursor: pointer;\n}\n.post-tag:active {\n    color: #1a2a4a;\n    opacity: 0.8;\n}\n/* 删除/操作按钮区域 */\n.delete-section {\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n    margin-top: 20rpx;\n    padding-top: 20rpx;\n    border-top: 1rpx solid #f0f0f0;\n}\n.time-left {\n    flex: 1;\n}\n.favorite-time {\n    font-size: 24rpx;\n    color: #999;\n}\n.button-group {\n    display: flex;\n    gap: 10rpx;\n}\n.remove-favorite-btn {\n    background: #ff4757;\n    color: white;\n    border: none;\n    border-radius: 8rpx;\n    font-size: 24rpx;\n    padding: 8rpx 16rpx;\n}\n.remove-favorite-btn:active {\n    background: #ff3742;\n}\n/* 加载更多样式 */\n.loading-more {\n    display: flex;\n    justify-content: center;\n    align-items: center;\n    padding: 30rpx;\n    color: #999;\n    font-size: 28rpx;\n}\n.no-more {\n    display: flex;\n    justify-content: center;\n    align-items: center;\n    padding: 30rpx;\n    color: #999;\n    font-size: 28rpx;\n}\n/* 空状态样式 */\n.empty-container {\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    justify-content: center;\n    padding: 100rpx 30rpx;\n    text-align: center;\n}\n.empty-icon {\n    font-size: 80rpx;\n    margin-bottom: 20rpx;\n    opacity: 0.5;\n}\n.empty-text {\n    font-size: 32rpx;\n    color: #666;\n    margin-bottom: 10rpx;\n}\n.empty-subtext {\n    font-size: 26rpx;\n    color: #999;\n}\n", ""]);
+exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* pages/favorite-content/favorite-content.wxss */\n.container {\r\n    padding: 20rpx;\r\n    background-color: #f7f8fa;\r\n    min-height: 100vh;\n}\n.loading-container {\r\n    display: flex;\r\n    justify-content: center;\r\n    align-items: center;\r\n    height: 400rpx;\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    margin: 30rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.loading-text {\r\n    color: #999;\r\n    font-size: 28rpx;\n}\n.favorites-container {\r\n    margin: 0 30rpx 30rpx 30rpx;\n}\r\n/* 新增：帖子项包装器样式 */\n.post-item-wrapper {\r\n    background: #fff;\r\n    border-radius: 16rpx;\r\n    margin-bottom: 20rpx;\r\n    padding: 30rpx;\r\n    box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);\n}\r\n/* 原创帖子特殊样式 */\n.post-item-wrapper.original-post {\r\n    border: 3rpx solid #ebc88d;\r\n    box-shadow: 0 4rpx 20rpx rgba(235, 200, 141, 0.3), 0 2rpx 12rpx rgba(0, 0, 0, 0.06);\r\n    position: relative;\n}\r\n/* 原创帖子光影效果 */\n.post-item-wrapper.original-post::before {\r\n    content: '';\r\n    position: absolute;\r\n    top: -2rpx;\r\n    left: -2rpx;\r\n    right: -2rpx;\r\n    bottom: -2rpx;\r\n    background: linear-gradient(45deg, #ebc88d, #f4d03f, #ebc88d);\r\n    border-radius: 18rpx;\r\n    z-index: -1;\r\n    opacity: 0.6;\r\n    -webkit-filter: blur(8rpx);\r\n            filter: blur(8rpx);\n}\r\n/* 新增：内容导航器样式 */\n.post-content-navigator {\r\n    display: block;\r\n    background: transparent;\n}\r\n/* 新增：导航器点击效果 */\n.navigator-hover {\r\n    opacity: 0.8;\n}\r\n/* 作者信息样式 */\n.author-info-outside {\r\n    display: flex;\r\n    align-items: center;\r\n    margin-bottom: 20rpx;\n}\n.author-avatar {\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    border-radius: 50%;\r\n    margin-right: 15rpx;\r\n    background-color: #f5f5f5;\n}\n.author-name {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    font-weight: 500;\n}\n.post-title {\r\n    font-size: 32rpx;\r\n    font-weight: bold;\r\n    color: #333333;\r\n    margin-bottom: 10rpx;\r\n    line-height: 1.4;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 2;\r\n    -webkit-box-orient: vertical;\n}\r\n/* 诗歌作者信息 */\n.poem-author {\r\n    font-size: 26rpx;\r\n    color: #666;\r\n    font-style: italic;\r\n    margin-bottom: 10rpx;\n}\n.post-content {\r\n    font-size: 26rpx;\r\n    color: #666666;\r\n    line-height: 1.5;\r\n    margin-bottom: 15rpx;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 2;\r\n    -webkit-box-orient: vertical;\r\n    white-space: pre-wrap;\n}\r\n/* 图片容器样式 - 与首页保持一致 */\n.image-container-wrapper {\r\n    position: relative;\r\n    width: 100%;\r\n    background-color: #f0f0f0; /* 占位时的背景色，很重要 */\r\n    overflow: hidden;\r\n    border-radius: 8px; /* 可以加个圆角，让占位块更好看 */\r\n    margin: 20rpx 0; /* 图片和下方内容的间距 */\n}\r\n/* 让图片或Swiper填充整个占位容器 */\n.image-container-wrapper .post-image,\r\n.image-container-wrapper .image-swiper {\r\n    position: absolute;\r\n    top: 0;\r\n    left: 0;\r\n    width: 100%;\r\n    height: 100%;\r\n    object-fit: cover;\n}\n.post-image {\r\n    transition: -webkit-transform 0.3s ease;\r\n    transition: transform 0.3s ease;\r\n    transition: transform 0.3s ease, -webkit-transform 0.3s ease;\n}\n.post-image:active {\r\n    -webkit-transform: scale(1.05);\r\n            transform: scale(1.05);\n}\n.image-swiper {\r\n    width: 100%;\r\n    border-radius: 12rpx;\r\n    overflow: hidden;\n}\r\n/* 标签样式 - 与首页和详情页保持一致 */\n.post-tags {\r\n    margin-top: 30rpx;\r\n    margin-bottom: 10rpx;\r\n    line-height: 1.5;\n}\n.post-tag {\r\n    color: #24375f;\r\n    font-size: 26rpx;\r\n    margin-right: 10rpx;\r\n    transition: all 0.2s ease;\r\n    cursor: pointer;\n}\n.post-tag:active {\r\n    color: #1a2a4a;\r\n    opacity: 0.8;\n}\r\n/* 删除/操作按钮区域 */\n.delete-section {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    margin-top: 20rpx;\r\n    padding-top: 20rpx;\r\n    border-top: 1rpx solid #f0f0f0;\n}\n.time-left {\r\n    flex: 1;\n}\n.favorite-time {\r\n    font-size: 24rpx;\r\n    color: #999;\n}\n.button-group {\r\n    display: flex;\r\n    gap: 10rpx;\n}\n.remove-favorite-btn {\r\n    background: #ff4757;\r\n    color: white;\r\n    border: none;\r\n    border-radius: 8rpx;\r\n    font-size: 24rpx;\r\n    padding: 8rpx 16rpx;\n}\n.remove-favorite-btn:active {\r\n    background: #ff3742;\n}\r\n/* 加载更多样式 */\n.loading-more {\r\n    display: flex;\r\n    justify-content: center;\r\n    align-items: center;\r\n    padding: 30rpx;\r\n    color: #999;\r\n    font-size: 28rpx;\n}\n.no-more {\r\n    display: flex;\r\n    justify-content: center;\r\n    align-items: center;\r\n    padding: 30rpx;\r\n    color: #999;\r\n    font-size: 28rpx;\n}\r\n/* 空状态样式 */\n.empty-container {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 100rpx 30rpx;\r\n    text-align: center;\n}\n.empty-icon {\r\n    font-size: 80rpx;\r\n    margin-bottom: 20rpx;\r\n    opacity: 0.5;\n}\n.empty-text {\r\n    font-size: 32rpx;\r\n    color: #666;\r\n    margin-bottom: 10rpx;\n}\n.empty-subtext {\r\n    font-size: 26rpx;\r\n    color: #999;\n}\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -14559,7 +14772,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../../HBuilderX.4.76.2025082103/HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n/* pages/messages/messages.wxss */\n.container {\n    min-height: 100vh;\n    background-color: #f8f9fa;\n}\n/* 页面标题 */\n.page-header {\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n    padding: 20rpx 30rpx;\n    background-color: #fff;\n    border-bottom: 1rpx solid #eee;\n}\n.page-title {\n    font-size: 36rpx;\n    font-weight: bold;\n    color: #333;\n}\n.header-actions {\n    display: flex;\n    align-items: center;\n    gap: 20rpx;\n}\n.unread-count {\n    font-size: 24rpx;\n    color: #ff6b6b;\n    background-color: #ffe0e0;\n    padding: 4rpx 12rpx;\n    border-radius: 20rpx;\n}\n.clear-btn {\n    font-size: 28rpx;\n    color: #666;\n    padding: 8rpx 16rpx;\n}\n/* 标签容器 */\n.tab-container {\n    display: flex;\n    background-color: #fff;\n    padding: 0 30rpx;\n    border-bottom: 1rpx solid #eee;\n}\n.tab-item {\n    flex: 1;\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    padding: 30rpx 0;\n    position: relative;\n}\n.tab-item uni-text {\n    font-size: 30rpx;\n    color: #666;\n    transition: color 0.3s;\n}\n.tab-item.active uni-text {\n    color: #9ed7ee;\n    font-weight: 500;\n}\n.tab-indicator {\n    position: absolute;\n    bottom: 0;\n    left: 50%;\n    -webkit-transform: translateX(-50%);\n            transform: translateX(-50%);\n    width: 60rpx;\n    height: 4rpx;\n    background-color: #9ed7ee;\n    border-radius: 2rpx;\n}\n/* 消息列表 */\n.message-list {\n    height: calc(100vh - 200rpx);\n    background-color: #f8f9fa;\n}\n/* 空状态 */\n.empty-container {\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    justify-content: center;\n    padding: 200rpx 0;\n}\n.empty-icon {\n    width: 200rpx;\n    height: 200rpx;\n    margin-bottom: 30rpx;\n    opacity: 0.5;\n}\n.empty-text {\n    font-size: 30rpx;\n    color: #999;\n}\n/* 消息项 */\n.message-item {\n    position: relative;\n    background-color: #fff;\n    margin: 20rpx 30rpx;\n    border-radius: 16rpx;\n    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);\n    overflow: hidden;\n}\n.message-item.unread {\n    background-color: #f0f9ff;\n    border-left: 6rpx solid #9ed7ee;\n}\n.message-content {\n    display: flex;\n    padding: 30rpx;\n    gap: 20rpx;\n}\n.user-avatar {\n    width: 80rpx;\n    height: 80rpx;\n    border-radius: 50%;\n    flex-shrink: 0;\n}\n.message-body {\n    flex: 1;\n    min-width: 0;\n}\n.message-header {\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n    margin-bottom: 10rpx;\n}\n.message-type {\n    display: flex;\n    align-items: center;\n    gap: 8rpx;\n}\n.type-icon {\n    font-size: 32rpx;\n}\n.type-text {\n    font-size: 28rpx;\n    color: #333;\n    font-weight: 500;\n}\n.message-time {\n    font-size: 24rpx;\n    color: #999;\n    flex-shrink: 0;\n}\n.message-text {\n    font-size: 28rpx;\n    color: #666;\n    line-height: 1.5;\n    margin-bottom: 16rpx;\n    display: -webkit-box;\n    -webkit-line-clamp: 2;\n    line-clamp: 2;\n    -webkit-box-orient: vertical;\n    overflow: hidden;\n}\n.post-preview {\n    background-color: #f8f9fa;\n    padding: 16rpx;\n    border-radius: 8rpx;\n    border-left: 4rpx solid #9ed7ee;\n}\n.post-title {\n    font-size: 26rpx;\n    color: #333;\n    display: -webkit-box;\n    -webkit-line-clamp: 1;\n    line-clamp: 1;\n    -webkit-box-orient: vertical;\n    overflow: hidden;\n}\n/* 时间信息样式 */\n.time-info {\n    margin: 12rpx 0;\n    padding: 8rpx 12rpx;\n    background-color: #f0f9ff;\n    border-radius: 8rpx;\n    border-left: 3rpx solid #9ed7ee;\n}\n.time-text {\n    font-size: 24rpx;\n    color: #9ed7ee;\n    font-weight: 500;\n}\n.delete-btn {\n    position: absolute;\n    top: 20rpx;\n    right: 20rpx;\n    padding: 8rpx 16rpx;\n    background-color: #f5f5f5;\n    border-radius: 8rpx;\n    font-size: 24rpx;\n    color: #999;\n}\n.unread-dot {\n    position: absolute;\n    top: 20rpx;\n    left: 20rpx;\n    width: 16rpx;\n    height: 16rpx;\n    background-color: #ff6b6b;\n    border-radius: 50%;\n}\n/* 加载更多 */\n.loading-more,\n.no-more {\n    text-align: center;\n    padding: 40rpx;\n    font-size: 28rpx;\n    color: #999;\n}\n/* 响应式设计 */\n@media (max-width: 375px) {\n.message-content {\n        padding: 24rpx;\n}\n.user-avatar {\n        width: 70rpx;\n        height: 70rpx;\n}\n.message-text {\n        font-size: 26rpx;\n}\n}\n", ""]);
+exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* pages/messages/messages.wxss */\n.container {\r\n    min-height: 100vh;\r\n    background-color: #f8f9fa;\n}\r\n/* 页面标题 */\n.page-header {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    padding: 20rpx 30rpx;\r\n    background-color: #fff;\r\n    border-bottom: 1rpx solid #eee;\n}\n.page-title {\r\n    font-size: 36rpx;\r\n    font-weight: bold;\r\n    color: #333;\n}\n.header-actions {\r\n    display: flex;\r\n    align-items: center;\r\n    gap: 20rpx;\n}\n.unread-count {\r\n    font-size: 24rpx;\r\n    color: #ff6b6b;\r\n    background-color: #ffe0e0;\r\n    padding: 4rpx 12rpx;\r\n    border-radius: 20rpx;\n}\n.clear-btn {\r\n    font-size: 28rpx;\r\n    color: #666;\r\n    padding: 8rpx 16rpx;\n}\r\n/* 标签容器 */\n.tab-container {\r\n    display: flex;\r\n    background-color: #fff;\r\n    padding: 0 30rpx;\r\n    border-bottom: 1rpx solid #eee;\n}\n.tab-item {\r\n    flex: 1;\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    padding: 30rpx 0;\r\n    position: relative;\n}\n.tab-item uni-text {\r\n    font-size: 30rpx;\r\n    color: #666;\r\n    transition: color 0.3s;\n}\n.tab-item.active uni-text {\r\n    color: #9ed7ee;\r\n    font-weight: 500;\n}\n.tab-indicator {\r\n    position: absolute;\r\n    bottom: 0;\r\n    left: 50%;\r\n    -webkit-transform: translateX(-50%);\r\n            transform: translateX(-50%);\r\n    width: 60rpx;\r\n    height: 4rpx;\r\n    background-color: #9ed7ee;\r\n    border-radius: 2rpx;\n}\r\n/* 消息列表 */\n.message-list {\r\n    height: calc(100vh - 200rpx);\r\n    background-color: #f8f9fa;\n}\r\n/* 空状态 */\n.empty-container {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 200rpx 0;\n}\n.empty-icon {\r\n    width: 200rpx;\r\n    height: 200rpx;\r\n    margin-bottom: 30rpx;\r\n    opacity: 0.5;\n}\n.empty-text {\r\n    font-size: 30rpx;\r\n    color: #999;\n}\r\n/* 消息项 */\n.message-item {\r\n    position: relative;\r\n    background-color: #fff;\r\n    margin: 20rpx 30rpx;\r\n    border-radius: 16rpx;\r\n    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);\r\n    overflow: hidden;\n}\n.message-item.unread {\r\n    background-color: #f0f9ff;\r\n    border-left: 6rpx solid #9ed7ee;\n}\n.message-content {\r\n    display: flex;\r\n    padding: 30rpx;\r\n    gap: 20rpx;\n}\n.user-avatar {\r\n    width: 80rpx;\r\n    height: 80rpx;\r\n    border-radius: 50%;\r\n    flex-shrink: 0;\n}\n.message-body {\r\n    flex: 1;\r\n    min-width: 0;\n}\n.message-header {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    margin-bottom: 10rpx;\n}\n.message-type {\r\n    display: flex;\r\n    align-items: center;\r\n    gap: 8rpx;\n}\n.type-icon {\r\n    font-size: 32rpx;\n}\n.type-text {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    font-weight: 500;\n}\n.message-time {\r\n    font-size: 24rpx;\r\n    color: #999;\r\n    flex-shrink: 0;\n}\n.message-text {\r\n    font-size: 28rpx;\r\n    color: #666;\r\n    line-height: 1.5;\r\n    margin-bottom: 16rpx;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 2;\r\n    line-clamp: 2;\r\n    -webkit-box-orient: vertical;\r\n    overflow: hidden;\n}\n.post-preview {\r\n    background-color: #f8f9fa;\r\n    padding: 16rpx;\r\n    border-radius: 8rpx;\r\n    border-left: 4rpx solid #9ed7ee;\n}\n.post-title {\r\n    font-size: 26rpx;\r\n    color: #333;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 1;\r\n    line-clamp: 1;\r\n    -webkit-box-orient: vertical;\r\n    overflow: hidden;\n}\r\n/* 时间信息样式 */\n.time-info {\r\n    margin: 12rpx 0;\r\n    padding: 8rpx 12rpx;\r\n    background-color: #f0f9ff;\r\n    border-radius: 8rpx;\r\n    border-left: 3rpx solid #9ed7ee;\n}\n.time-text {\r\n    font-size: 24rpx;\r\n    color: #9ed7ee;\r\n    font-weight: 500;\n}\n.delete-btn {\r\n    position: absolute;\r\n    top: 20rpx;\r\n    right: 20rpx;\r\n    padding: 8rpx 16rpx;\r\n    background-color: #f5f5f5;\r\n    border-radius: 8rpx;\r\n    font-size: 24rpx;\r\n    color: #999;\n}\n.unread-dot {\r\n    position: absolute;\r\n    top: 20rpx;\r\n    left: 20rpx;\r\n    width: 16rpx;\r\n    height: 16rpx;\r\n    background-color: #ff6b6b;\r\n    border-radius: 50%;\n}\r\n/* 加载更多 */\n.loading-more,\r\n.no-more {\r\n    text-align: center;\r\n    padding: 40rpx;\r\n    font-size: 28rpx;\r\n    color: #999;\n}\r\n/* 响应式设计 */\n@media (max-width: 375px) {\n.message-content {\r\n        padding: 24rpx;\n}\n.user-avatar {\r\n        width: 70rpx;\r\n        height: 70rpx;\n}\n.message-text {\r\n        font-size: 26rpx;\n}\n}\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -14993,7 +15206,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../../HBuilderX.4.76.2025082103/HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\n.container {\n    padding: 20rpx;\n    background-color: #f8f9fa;\n    min-height: 100vh;\n}\n.header {\n    text-align: center;\n    margin-bottom: 40rpx;\n    padding: 40rpx 0;\n}\n.title {\n    display: block;\n    font-size: 48rpx;\n    font-weight: bold;\n    color: #333;\n    margin-bottom: 10rpx;\n}\n.subtitle {\n    display: block;\n    font-size: 28rpx;\n    color: #666;\n}\n.section {\n    background: white;\n    border-radius: 16rpx;\n    padding: 30rpx;\n    margin-bottom: 20rpx;\n    box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.1);\n}\n.section-title {\n    font-size: 32rpx;\n    font-weight: bold;\n    color: #333;\n    margin-bottom: 20rpx;\n    display: block;\n}\n.upload-area {\n    border: 2rpx dashed #ddd;\n    border-radius: 12rpx;\n    padding: 60rpx 40rpx;\n    text-align: center;\n    background-color: #fafafa;\n    transition: all 0.3s ease;\n}\n.upload-area:active {\n    background-color: #f0f0f0;\n    border-color: #999;\n}\n.upload-content {\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n}\n.upload-icon {\n    font-size: 64rpx;\n    margin-bottom: 20rpx;\n    color: #999;\n}\n.upload-text {\n    font-size: 32rpx;\n    color: #333;\n    margin-bottom: 10rpx;\n    display: block;\n}\n.upload-hint {\n    font-size: 24rpx;\n    color: #999;\n    display: block;\n}\n.preview-area {\n    margin-top: 30rpx;\n    text-align: center;\n}\n.preview-title {\n    font-size: 28rpx;\n    color: #333;\n    margin-bottom: 20rpx;\n    display: block;\n}\n.preview-image {\n    width: 100%;\n    height: 400rpx;\n    border-radius: 12rpx;\n    margin-bottom: 30rpx;\n    background-color: #f5f5f5;\n}\n.button-group {\n    display: flex;\n    gap: 20rpx;\n    justify-content: center;\n}\n.btn {\n    padding: 20rpx 40rpx;\n    border-radius: 8rpx;\n    font-size: 28rpx;\n    border: none;\n    min-width: 160rpx;\n}\n.btn-primary {\n    background-color: #9ed7ee;\n    color: white;\n}\n.btn-secondary {\n    background-color: #f0f0f0;\n    color: #333;\n}\n.history-list {\n    max-height: 600rpx;\n    overflow-y: auto;\n}\n.history-item {\n    display: flex;\n    align-items: center;\n    padding: 20rpx 0;\n    border-bottom: 1rpx solid #f0f0f0;\n}\n.history-item:last-child {\n    border-bottom: none;\n}\n.history-thumb {\n    width: 80rpx;\n    height: 80rpx;\n    border-radius: 8rpx;\n    margin-right: 20rpx;\n    background-color: #f5f5f5;\n}\n.history-info {\n    flex: 1;\n    display: flex;\n    flex-direction: column;\n}\n.history-name {\n    font-size: 28rpx;\n    color: #333;\n    margin-bottom: 4rpx;\n}\n.history-time {\n    font-size: 24rpx;\n    color: #999;\n    margin-bottom: 4rpx;\n}\n.history-category {\n    font-size: 22rpx;\n    color: #666;\n    background-color: #f0f0f0;\n    padding: 2rpx 8rpx;\n    border-radius: 4rpx;\n    align-self: flex-start;\n}\n.history-actions {\n    display: flex;\n    flex-direction: column;\n    gap: 10rpx;\n}\n.btn-small {\n    font-size: 22rpx;\n    padding: 8rpx 16rpx;\n    margin: 0;\n}\n.tips {\n    background-color: #e8f5e8;\n    border-radius: 12rpx;\n    padding: 30rpx;\n    margin-top: 20rpx;\n}\n.tips-title {\n    font-size: 28rpx;\n    font-weight: bold;\n    color: #333;\n    margin-bottom: 20rpx;\n    display: block;\n}\n.tips-item {\n    font-size: 26rpx;\n    color: #666;\n    margin-bottom: 10rpx;\n    display: block;\n    line-height: 1.5;\n}\n", ""]);
+exports.push([module.i, "\n.container {\r\n    padding: 20rpx;\r\n    background-color: #f8f9fa;\r\n    min-height: 100vh;\n}\n.header {\r\n    text-align: center;\r\n    margin-bottom: 40rpx;\r\n    padding: 40rpx 0;\n}\n.title {\r\n    display: block;\r\n    font-size: 48rpx;\r\n    font-weight: bold;\r\n    color: #333;\r\n    margin-bottom: 10rpx;\n}\n.subtitle {\r\n    display: block;\r\n    font-size: 28rpx;\r\n    color: #666;\n}\n.section {\r\n    background: white;\r\n    border-radius: 16rpx;\r\n    padding: 30rpx;\r\n    margin-bottom: 20rpx;\r\n    box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.1);\n}\n.section-title {\r\n    font-size: 32rpx;\r\n    font-weight: bold;\r\n    color: #333;\r\n    margin-bottom: 20rpx;\r\n    display: block;\n}\n.upload-area {\r\n    border: 2rpx dashed #ddd;\r\n    border-radius: 12rpx;\r\n    padding: 60rpx 40rpx;\r\n    text-align: center;\r\n    background-color: #fafafa;\r\n    transition: all 0.3s ease;\n}\n.upload-area:active {\r\n    background-color: #f0f0f0;\r\n    border-color: #999;\n}\n.upload-content {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\n}\n.upload-icon {\r\n    font-size: 64rpx;\r\n    margin-bottom: 20rpx;\r\n    color: #999;\n}\n.upload-text {\r\n    font-size: 32rpx;\r\n    color: #333;\r\n    margin-bottom: 10rpx;\r\n    display: block;\n}\n.upload-hint {\r\n    font-size: 24rpx;\r\n    color: #999;\r\n    display: block;\n}\n.preview-area {\r\n    margin-top: 30rpx;\r\n    text-align: center;\n}\n.preview-title {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    margin-bottom: 20rpx;\r\n    display: block;\n}\n.preview-image {\r\n    width: 100%;\r\n    height: 400rpx;\r\n    border-radius: 12rpx;\r\n    margin-bottom: 30rpx;\r\n    background-color: #f5f5f5;\n}\n.button-group {\r\n    display: flex;\r\n    gap: 20rpx;\r\n    justify-content: center;\n}\n.btn {\r\n    padding: 20rpx 40rpx;\r\n    border-radius: 8rpx;\r\n    font-size: 28rpx;\r\n    border: none;\r\n    min-width: 160rpx;\n}\n.btn-primary {\r\n    background-color: #9ed7ee;\r\n    color: white;\n}\n.btn-secondary {\r\n    background-color: #f0f0f0;\r\n    color: #333;\n}\n.history-list {\r\n    max-height: 600rpx;\r\n    overflow-y: auto;\n}\n.history-item {\r\n    display: flex;\r\n    align-items: center;\r\n    padding: 20rpx 0;\r\n    border-bottom: 1rpx solid #f0f0f0;\n}\n.history-item:last-child {\r\n    border-bottom: none;\n}\n.history-thumb {\r\n    width: 80rpx;\r\n    height: 80rpx;\r\n    border-radius: 8rpx;\r\n    margin-right: 20rpx;\r\n    background-color: #f5f5f5;\n}\n.history-info {\r\n    flex: 1;\r\n    display: flex;\r\n    flex-direction: column;\n}\n.history-name {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    margin-bottom: 4rpx;\n}\n.history-time {\r\n    font-size: 24rpx;\r\n    color: #999;\r\n    margin-bottom: 4rpx;\n}\n.history-category {\r\n    font-size: 22rpx;\r\n    color: #666;\r\n    background-color: #f0f0f0;\r\n    padding: 2rpx 8rpx;\r\n    border-radius: 4rpx;\r\n    align-self: flex-start;\n}\n.history-actions {\r\n    display: flex;\r\n    flex-direction: column;\r\n    gap: 10rpx;\n}\n.btn-small {\r\n    font-size: 22rpx;\r\n    padding: 8rpx 16rpx;\r\n    margin: 0;\n}\n.tips {\r\n    background-color: #e8f5e8;\r\n    border-radius: 12rpx;\r\n    padding: 30rpx;\r\n    margin-top: 20rpx;\n}\n.tips-title {\r\n    font-size: 28rpx;\r\n    font-weight: bold;\r\n    color: #333;\r\n    margin-bottom: 20rpx;\r\n    display: block;\n}\n.tips-item {\r\n    font-size: 26rpx;\r\n    color: #666;\r\n    margin-bottom: 10rpx;\r\n    display: block;\r\n    line-height: 1.5;\n}\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -15707,7 +15920,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../../HBuilderX.4.76.2025082103/HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n/* pages/tag-filter/tag-filter.wxss */\n.container {\n    padding: 20rpx;\n    background-color: #f7f8fa;\n    min-height: 100vh;\n}\n/* 空状态样式 */\n.empty-state {\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    justify-content: center;\n    height: 400rpx;\n    background-color: #fff;\n    border-radius: 16rpx;\n    margin: 30rpx;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.empty-icon {\n    font-size: 80rpx;\n    margin-bottom: 20rpx;\n}\n.empty-text {\n    font-size: 32rpx;\n    color: #333;\n    margin-bottom: 10rpx;\n}\n.empty-subtext {\n    font-size: 28rpx;\n    color: #999;\n}\n/* 文章列表样式 */\n.post-list {\n    margin-bottom: 20rpx;\n}\n.post-item-wrapper {\n    background-color: #fff;\n    border-radius: 16rpx;\n    margin-bottom: 20rpx;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n    overflow: hidden;\n}\n/* 作者信息 */\n.author-info-outside {\n    display: flex;\n    align-items: center;\n    padding: 20rpx 20rpx 0 20rpx;\n    margin-bottom: 15rpx;\n}\n.author-avatar {\n    width: 60rpx;\n    height: 60rpx;\n    border-radius: 50%;\n    margin-right: 15rpx;\n}\n.author-name {\n    font-size: 28rpx;\n    color: #333;\n    font-weight: 500;\n}\n/* 帖子内容 */\n.post-item {\n    padding: 0 20rpx 20rpx 20rpx;\n}\n.post-title {\n    font-size: 32rpx;\n    font-weight: bold;\n    color: #333;\n    margin-bottom: 15rpx;\n    line-height: 1.4;\n}\n.post-content {\n    font-size: 28rpx;\n    color: #666;\n    line-height: 1.6;\n    margin-bottom: 15rpx;\n}\n/* 图片容器 */\n.image-container-wrapper {\n    position: relative;\n    width: 100%;\n    margin-bottom: 15rpx;\n    background-color: #f0f0f0; /* 占位时的背景色，很重要 */\n    overflow: hidden;\n    border-radius: 12rpx;\n}\n.image-container-wrapper .post-image,\n.image-container-wrapper .image-swiper {\n    position: absolute;\n    top: 0;\n    left: 0;\n    width: 100%;\n    height: 100%;\n    object-fit: cover;\n}\n.post-image {\n    width: 100%;\n    height: 100%;\n    display: block;\n    object-fit: cover;\n}\n.image-swiper {\n    width: 100%;\n    height: 100%;\n}\n/* 标签样式 */\n.post-tags {\n    margin: 20rpx 0 10rpx 0;\n    line-height: 1.5;\n}\n.post-tag {\n    color: #24375f;\n    font-size: 26rpx;\n    margin-right: 10rpx;\n    transition: all 0.2s ease;\n    cursor: pointer;\n}\n.post-tag:active {\n    color: #1a2a4a;\n    opacity: 0.8;\n}\n/* 互动区域 */\n.vote-section {\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n    padding: 15rpx 20rpx 20rpx 20rpx;\n    border-top: 1rpx solid #f0f0f0;\n}\n.actions-left {\n    flex: 1;\n}\n.actions-right {\n    display: flex;\n    gap: 30rpx;\n}\n.action-item {\n    display: flex;\n    align-items: center;\n    gap: 8rpx;\n}\n.action-emoji {\n    font-size: 24rpx;\n}\n.action-text {\n    font-size: 24rpx;\n    color: #999;\n}\n/* 加载更多 */\n.loading-more {\n    display: flex;\n    justify-content: center;\n    align-items: center;\n    padding: 40rpx;\n}\n.loading-text {\n    font-size: 28rpx;\n    color: #999;\n}\n", ""]);
+exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* pages/tag-filter/tag-filter.wxss */\n.container {\r\n    padding: 20rpx;\r\n    background-color: #f7f8fa;\r\n    min-height: 100vh;\n}\r\n/* 空状态样式 */\n.empty-state {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    justify-content: center;\r\n    height: 400rpx;\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    margin: 30rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.empty-icon {\r\n    font-size: 80rpx;\r\n    margin-bottom: 20rpx;\n}\n.empty-text {\r\n    font-size: 32rpx;\r\n    color: #333;\r\n    margin-bottom: 10rpx;\n}\n.empty-subtext {\r\n    font-size: 28rpx;\r\n    color: #999;\n}\r\n/* 文章列表样式 */\n.post-list {\r\n    margin-bottom: 20rpx;\n}\n.post-item-wrapper {\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    margin-bottom: 20rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\r\n    overflow: hidden;\n}\r\n/* 作者信息 */\n.author-info-outside {\r\n    display: flex;\r\n    align-items: center;\r\n    padding: 20rpx 20rpx 0 20rpx;\r\n    margin-bottom: 15rpx;\n}\n.author-avatar {\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    border-radius: 50%;\r\n    margin-right: 15rpx;\n}\n.author-name {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    font-weight: 500;\n}\r\n/* 帖子内容 */\n.post-item {\r\n    padding: 0 20rpx 20rpx 20rpx;\n}\n.post-title {\r\n    font-size: 32rpx;\r\n    font-weight: bold;\r\n    color: #333;\r\n    margin-bottom: 15rpx;\r\n    line-height: 1.4;\n}\n.post-content {\r\n    font-size: 28rpx;\r\n    color: #666;\r\n    line-height: 1.6;\r\n    margin-bottom: 15rpx;\n}\r\n/* 图片容器 */\n.image-container-wrapper {\r\n    position: relative;\r\n    width: 100%;\r\n    margin-bottom: 15rpx;\r\n    background-color: #f0f0f0; /* 占位时的背景色，很重要 */\r\n    overflow: hidden;\r\n    border-radius: 12rpx;\n}\n.image-container-wrapper .post-image,\r\n.image-container-wrapper .image-swiper {\r\n    position: absolute;\r\n    top: 0;\r\n    left: 0;\r\n    width: 100%;\r\n    height: 100%;\r\n    object-fit: cover;\n}\n.post-image {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: block;\r\n    object-fit: cover;\n}\n.image-swiper {\r\n    width: 100%;\r\n    height: 100%;\n}\r\n/* 标签样式 */\n.post-tags {\r\n    margin: 20rpx 0 10rpx 0;\r\n    line-height: 1.5;\n}\n.post-tag {\r\n    color: #24375f;\r\n    font-size: 26rpx;\r\n    margin-right: 10rpx;\r\n    transition: all 0.2s ease;\r\n    cursor: pointer;\n}\n.post-tag:active {\r\n    color: #1a2a4a;\r\n    opacity: 0.8;\n}\r\n/* 互动区域 */\n.vote-section {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    padding: 15rpx 20rpx 20rpx 20rpx;\r\n    border-top: 1rpx solid #f0f0f0;\n}\n.actions-left {\r\n    flex: 1;\n}\n.actions-right {\r\n    display: flex;\r\n    gap: 30rpx;\n}\n.action-item {\r\n    display: flex;\r\n    align-items: center;\r\n    gap: 8rpx;\n}\n.action-emoji {\r\n    font-size: 24rpx;\n}\n.action-text {\r\n    font-size: 24rpx;\r\n    color: #999;\n}\r\n/* 加载更多 */\n.loading-more {\r\n    display: flex;\r\n    justify-content: center;\r\n    align-items: center;\r\n    padding: 40rpx;\n}\n.loading-text {\r\n    font-size: 28rpx;\r\n    color: #999;\n}\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -16550,7 +16763,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../../HBuilderX.4.76.2025082103/HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n/* pages/search/search.wxss */\n.container {\n    padding: 20rpx;\n    background-color: #f7f8fa;\n    min-height: 100vh;\n}\n/* 搜索头部 */\n.search-header {\n    display: flex;\n    align-items: center;\n    margin-bottom: 30rpx;\n    gap: 20rpx;\n}\n.search-input-container {\n    flex: 1;\n    display: flex;\n    align-items: center;\n    background-color: #fff;\n    border-radius: 16rpx;\n    padding: 20rpx 30rpx;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n    border: 1rpx solid rgba(0, 0, 0, 0.05);\n}\n.search-icon {\n    font-size: 32rpx;\n    margin-right: 20rpx;\n    color: #999;\n}\n.search-input {\n    flex: 1;\n    font-size: 28rpx;\n    color: #333;\n}\n.clear-btn {\n    font-size: 40rpx;\n    color: #999;\n    margin-left: 20rpx;\n    padding: 10rpx;\n}\n.cancel-btn {\n    font-size: 28rpx;\n    color: #9ed7ee;\n    padding: 20rpx;\n}\n/* 搜索结果 */\n.search-results {\n    margin-bottom: 20rpx;\n}\n.results-header {\n    margin-bottom: 20rpx;\n}\n.results-count {\n    font-size: 24rpx;\n    color: #999;\n}\n/* 文章列表样式 */\n.post-list {\n    margin-bottom: 20rpx;\n}\n.post-item-wrapper {\n    background-color: #fff;\n    border-radius: 16rpx;\n    margin-bottom: 20rpx;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n    overflow: hidden;\n}\n/* 作者信息 */\n.author-info-outside {\n    display: flex;\n    align-items: center;\n    padding: 20rpx 20rpx 0 20rpx;\n    margin-bottom: 15rpx;\n}\n.author-avatar {\n    width: 60rpx;\n    height: 60rpx;\n    border-radius: 50%;\n    margin-right: 15rpx;\n}\n.author-name {\n    font-size: 28rpx;\n    color: #333;\n    font-weight: 500;\n}\n/* 帖子内容 */\n.post-item {\n    padding: 0 20rpx 20rpx 20rpx;\n}\n.post-title {\n    font-size: 32rpx;\n    font-weight: bold;\n    color: #333;\n    margin-bottom: 15rpx;\n    line-height: 1.4;\n}\n.post-content {\n    font-size: 28rpx;\n    color: #666;\n    line-height: 1.6;\n    margin-bottom: 15rpx;\n}\n/* 图片容器 */\n.image-container-wrapper {\n    position: relative;\n    width: 100%;\n    margin-bottom: 15rpx;\n    background-color: #f0f0f0;\n    overflow: hidden;\n    border-radius: 12rpx;\n}\n.image-container-wrapper .post-image,\n.image-container-wrapper .image-swiper {\n    position: absolute;\n    top: 0;\n    left: 0;\n    width: 100%;\n    height: 100%;\n    object-fit: cover;\n}\n.post-image {\n    width: 100%;\n    height: 100%;\n    display: block;\n    object-fit: cover;\n}\n.image-swiper {\n    width: 100%;\n    height: 100%;\n}\n/* 标签样式 */\n.post-tags {\n    margin: 20rpx 0 10rpx 0;\n    line-height: 1.5;\n}\n.post-tag {\n    color: #24375f;\n    font-size: 26rpx;\n    margin-right: 10rpx;\n    transition: all 0.2s ease;\n    cursor: pointer;\n}\n.post-tag:active {\n    color: #1a2a4a;\n    opacity: 0.8;\n}\n/* 互动区域 */\n.vote-section {\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n    padding: 15rpx 20rpx 20rpx 20rpx;\n    border-top: 1rpx solid #f0f0f0;\n}\n.actions-left {\n    flex: 1;\n}\n.actions-right {\n    display: flex;\n    gap: 30rpx;\n}\n.action-item {\n    display: flex;\n    align-items: center;\n    gap: 8rpx;\n}\n.action-emoji {\n    font-size: 24rpx;\n}\n.action-text {\n    font-size: 24rpx;\n    color: #999;\n}\n/* 空状态 */\n.empty-state {\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    justify-content: center;\n    height: 400rpx;\n    background-color: #fff;\n    border-radius: 16rpx;\n    margin: 30rpx;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.empty-icon {\n    font-size: 80rpx;\n    margin-bottom: 20rpx;\n}\n.empty-text {\n    font-size: 32rpx;\n    color: #333;\n    margin-bottom: 10rpx;\n}\n.empty-subtext {\n    font-size: 28rpx;\n    color: #999;\n}\n/* 搜索建议 */\n.search-suggestions {\n    background-color: #fff;\n    border-radius: 16rpx;\n    padding: 30rpx;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.suggestions-header {\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n    margin-bottom: 20rpx;\n}\n.suggestions-title {\n    font-size: 28rpx;\n    color: #333;\n    font-weight: 500;\n}\n.clear-history {\n    font-size: 24rpx;\n    color: #999;\n}\n.suggestions-list {\n    display: flex;\n    flex-wrap: wrap;\n    gap: 15rpx;\n}\n.suggestion-item {\n    background-color: #f5f5f5;\n    border-radius: 20rpx;\n    padding: 12rpx 20rpx;\n    transition: all 0.2s ease;\n}\n.suggestion-item:active {\n    background-color: #e8e8e8;\n    -webkit-transform: scale(0.95);\n            transform: scale(0.95);\n}\n.suggestion-text {\n    font-size: 26rpx;\n    color: #333;\n}\n/* 热门搜索 */\n.hot-searches {\n    background-color: #fff;\n    border-radius: 16rpx;\n    padding: 30rpx;\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.hot-header {\n    margin-bottom: 20rpx;\n}\n.hot-title {\n    font-size: 28rpx;\n    color: #333;\n    font-weight: 500;\n}\n.hot-list {\n    display: flex;\n    flex-wrap: wrap;\n    gap: 15rpx;\n}\n.hot-item {\n    background-color: #f0f8ff;\n    border-radius: 20rpx;\n    padding: 12rpx 20rpx;\n    transition: all 0.2s ease;\n}\n.hot-item:active {\n    background-color: #e0f0ff;\n    -webkit-transform: scale(0.95);\n            transform: scale(0.95);\n}\n.hot-text {\n    font-size: 26rpx;\n    color: #9ed7ee;\n}\n/* 加载状态 */\n.loading-state {\n    display: flex;\n    justify-content: center;\n    align-items: center;\n    padding: 40rpx;\n}\n.loading-text {\n    font-size: 28rpx;\n    color: #999;\n}\n", ""]);
+exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* pages/search/search.wxss */\n.container {\r\n    padding: 20rpx;\r\n    background-color: #f7f8fa;\r\n    min-height: 100vh;\n}\r\n/* 搜索头部 */\n.search-header {\r\n    display: flex;\r\n    align-items: center;\r\n    margin-bottom: 30rpx;\r\n    gap: 20rpx;\n}\n.search-input-container {\r\n    flex: 1;\r\n    display: flex;\r\n    align-items: center;\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    padding: 20rpx 30rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\r\n    border: 1rpx solid rgba(0, 0, 0, 0.05);\n}\n.search-icon {\r\n    font-size: 32rpx;\r\n    margin-right: 20rpx;\r\n    color: #999;\n}\n.search-input {\r\n    flex: 1;\r\n    font-size: 28rpx;\r\n    color: #333;\n}\n.clear-btn {\r\n    font-size: 40rpx;\r\n    color: #999;\r\n    margin-left: 20rpx;\r\n    padding: 10rpx;\n}\n.cancel-btn {\r\n    font-size: 28rpx;\r\n    color: #9ed7ee;\r\n    padding: 20rpx;\n}\r\n/* 搜索结果 */\n.search-results {\r\n    margin-bottom: 20rpx;\n}\n.results-header {\r\n    margin-bottom: 20rpx;\n}\n.results-count {\r\n    font-size: 24rpx;\r\n    color: #999;\n}\r\n/* 文章列表样式 */\n.post-list {\r\n    margin-bottom: 20rpx;\n}\n.post-item-wrapper {\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    margin-bottom: 20rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\r\n    overflow: hidden;\n}\r\n/* 作者信息 */\n.author-info-outside {\r\n    display: flex;\r\n    align-items: center;\r\n    padding: 20rpx 20rpx 0 20rpx;\r\n    margin-bottom: 15rpx;\n}\n.author-avatar {\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    border-radius: 50%;\r\n    margin-right: 15rpx;\n}\n.author-name {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    font-weight: 500;\n}\r\n/* 帖子内容 */\n.post-item {\r\n    padding: 0 20rpx 20rpx 20rpx;\n}\n.post-title {\r\n    font-size: 32rpx;\r\n    font-weight: bold;\r\n    color: #333;\r\n    margin-bottom: 15rpx;\r\n    line-height: 1.4;\n}\n.post-content {\r\n    font-size: 28rpx;\r\n    color: #666;\r\n    line-height: 1.6;\r\n    margin-bottom: 15rpx;\n}\r\n/* 图片容器 */\n.image-container-wrapper {\r\n    position: relative;\r\n    width: 100%;\r\n    margin-bottom: 15rpx;\r\n    background-color: #f0f0f0;\r\n    overflow: hidden;\r\n    border-radius: 12rpx;\n}\n.image-container-wrapper .post-image,\r\n.image-container-wrapper .image-swiper {\r\n    position: absolute;\r\n    top: 0;\r\n    left: 0;\r\n    width: 100%;\r\n    height: 100%;\r\n    object-fit: cover;\n}\n.post-image {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: block;\r\n    object-fit: cover;\n}\n.image-swiper {\r\n    width: 100%;\r\n    height: 100%;\n}\r\n/* 标签样式 */\n.post-tags {\r\n    margin: 20rpx 0 10rpx 0;\r\n    line-height: 1.5;\n}\n.post-tag {\r\n    color: #24375f;\r\n    font-size: 26rpx;\r\n    margin-right: 10rpx;\r\n    transition: all 0.2s ease;\r\n    cursor: pointer;\n}\n.post-tag:active {\r\n    color: #1a2a4a;\r\n    opacity: 0.8;\n}\r\n/* 互动区域 */\n.vote-section {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    padding: 15rpx 20rpx 20rpx 20rpx;\r\n    border-top: 1rpx solid #f0f0f0;\n}\n.actions-left {\r\n    flex: 1;\n}\n.actions-right {\r\n    display: flex;\r\n    gap: 30rpx;\n}\n.action-item {\r\n    display: flex;\r\n    align-items: center;\r\n    gap: 8rpx;\n}\n.action-emoji {\r\n    font-size: 24rpx;\n}\n.action-text {\r\n    font-size: 24rpx;\r\n    color: #999;\n}\r\n/* 空状态 */\n.empty-state {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    justify-content: center;\r\n    height: 400rpx;\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    margin: 30rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.empty-icon {\r\n    font-size: 80rpx;\r\n    margin-bottom: 20rpx;\n}\n.empty-text {\r\n    font-size: 32rpx;\r\n    color: #333;\r\n    margin-bottom: 10rpx;\n}\n.empty-subtext {\r\n    font-size: 28rpx;\r\n    color: #999;\n}\r\n/* 搜索建议 */\n.search-suggestions {\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    padding: 30rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.suggestions-header {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    margin-bottom: 20rpx;\n}\n.suggestions-title {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    font-weight: 500;\n}\n.clear-history {\r\n    font-size: 24rpx;\r\n    color: #999;\n}\n.suggestions-list {\r\n    display: flex;\r\n    flex-wrap: wrap;\r\n    gap: 15rpx;\n}\n.suggestion-item {\r\n    background-color: #f5f5f5;\r\n    border-radius: 20rpx;\r\n    padding: 12rpx 20rpx;\r\n    transition: all 0.2s ease;\n}\n.suggestion-item:active {\r\n    background-color: #e8e8e8;\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.suggestion-text {\r\n    font-size: 26rpx;\r\n    color: #333;\n}\r\n/* 热门搜索 */\n.hot-searches {\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    padding: 30rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.hot-header {\r\n    margin-bottom: 20rpx;\n}\n.hot-title {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    font-weight: 500;\n}\n.hot-list {\r\n    display: flex;\r\n    flex-wrap: wrap;\r\n    gap: 15rpx;\n}\n.hot-item {\r\n    background-color: #f0f8ff;\r\n    border-radius: 20rpx;\r\n    padding: 12rpx 20rpx;\r\n    transition: all 0.2s ease;\n}\n.hot-item:active {\r\n    background-color: #e0f0ff;\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.hot-text {\r\n    font-size: 26rpx;\r\n    color: #9ed7ee;\n}\r\n/* 加载状态 */\n.loading-state {\r\n    display: flex;\r\n    justify-content: center;\r\n    align-items: center;\r\n    padding: 40rpx;\n}\n.loading-text {\r\n    font-size: 28rpx;\r\n    color: #999;\n}\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -17791,7 +18004,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../../HBuilderX.4.76.2025082103/HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n/* 管理员反馈查看页面样式 */\n.container {\n    min-height: 100vh;\n    background-color: #f5f5f5;\n    padding-top: var(--status-bar-height);\n}\n/* 头部 */\n.header {\n    display: flex;\n    align-items: center;\n    justify-content: space-between;\n    padding: 20rpx 30rpx;\n    background-color: #fff;\n    border-bottom: 1rpx solid #eee;\n    position: -webkit-sticky;\n    position: sticky;\n    top: var(--status-bar-height);\n    z-index: 100;\n}\n.header-left,\n.header-right {\n    width: 60rpx;\n    height: 60rpx;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n.back-icon,\n.refresh-icon {\n    font-size: 36rpx;\n    color: #333;\n    font-weight: bold;\n}\n.header-title {\n    font-size: 32rpx;\n    font-weight: 600;\n    color: #333;\n}\n/* 反馈列表 */\n.feedback-list {\n    padding: 20rpx;\n}\n.feedback-item {\n    background-color: #fff;\n    border-radius: 16rpx;\n    padding: 30rpx;\n    margin-bottom: 20rpx;\n    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);\n}\n.feedback-item.processed {\n    opacity: 0.7;\n    background-color: #f8f8f8;\n}\n/* 反馈头部 */\n.feedback-header {\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n    margin-bottom: 20rpx;\n}\n.user-info {\n    display: flex;\n    flex-direction: column;\n}\n.user-name {\n    font-size: 28rpx;\n    font-weight: 600;\n    color: #333;\n    margin-bottom: 8rpx;\n}\n.feedback-time {\n    font-size: 24rpx;\n    color: #999;\n}\n.status-badge {\n    padding: 8rpx 16rpx;\n    border-radius: 20rpx;\n    font-size: 22rpx;\n    font-weight: 500;\n}\n.status-badge.pending {\n    background-color: #fff2e8;\n    color: #fa8c16;\n}\n.status-badge.processed {\n    background-color: #f6ffed;\n    color: #52c41a;\n}\n/* 反馈内容 */\n.feedback-content {\n    margin-bottom: 20rpx;\n}\n.content-text {\n    font-size: 28rpx;\n    color: #333;\n    line-height: 1.6;\n    white-space: pre-wrap;\n}\n/* 反馈图片 */\n.feedback-images {\n    margin-bottom: 20rpx;\n}\n.image-grid {\n    display: flex;\n    flex-wrap: wrap;\n    gap: 10rpx;\n}\n.feedback-image {\n    width: 120rpx;\n    height: 120rpx;\n    border-radius: 8rpx;\n    background-color: #f0f0f0;\n}\n/* 操作按钮 */\n.feedback-actions {\n    display: flex;\n    justify-content: flex-end;\n    gap: 20rpx;\n}\n.action-btn {\n    border-radius: 20rpx;\n    font-size: 24rpx;\n    padding: 0 20rpx;\n    height: 60rpx;\n    line-height: 60rpx;\n}\n.process-btn {\n    background-color: #52c41a;\n    color: #fff;\n    border: none;\n}\n.delete-btn {\n    background-color: #ff4d4f;\n    color: #fff;\n    border: none;\n}\n.action-btn::after {\n    border: none;\n}\n/* 空状态 */\n.empty-state {\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    justify-content: center;\n    padding: 100rpx 0;\n}\n.empty-icon {\n    font-size: 80rpx;\n    margin-bottom: 20rpx;\n}\n.empty-text {\n    font-size: 28rpx;\n    color: #999;\n}\n/* 加载状态 */\n.loading-more,\n.no-more {\n    text-align: center;\n    padding: 40rpx 0;\n    font-size: 24rpx;\n    color: #999;\n}\n", ""]);
+exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* 管理员反馈查看页面样式 */\n.container {\r\n    min-height: 100vh;\r\n    background-color: #f5f5f5;\r\n    padding-top: var(--status-bar-height);\n}\r\n/* 头部 */\n.header {\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: space-between;\r\n    padding: 20rpx 30rpx;\r\n    background-color: #fff;\r\n    border-bottom: 1rpx solid #eee;\r\n    position: -webkit-sticky;\r\n    position: sticky;\r\n    top: var(--status-bar-height);\r\n    z-index: 100;\n}\n.header-left,\r\n.header-right {\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\n}\n.back-icon,\r\n.refresh-icon {\r\n    font-size: 36rpx;\r\n    color: #333;\r\n    font-weight: bold;\n}\n.header-title {\r\n    font-size: 32rpx;\r\n    font-weight: 600;\r\n    color: #333;\n}\r\n/* 反馈列表 */\n.feedback-list {\r\n    padding: 20rpx;\n}\n.feedback-item {\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    padding: 30rpx;\r\n    margin-bottom: 20rpx;\r\n    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);\n}\n.feedback-item.processed {\r\n    opacity: 0.7;\r\n    background-color: #f8f8f8;\n}\r\n/* 反馈头部 */\n.feedback-header {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    margin-bottom: 20rpx;\n}\n.user-info {\r\n    display: flex;\r\n    flex-direction: column;\n}\n.user-name {\r\n    font-size: 28rpx;\r\n    font-weight: 600;\r\n    color: #333;\r\n    margin-bottom: 8rpx;\n}\n.feedback-time {\r\n    font-size: 24rpx;\r\n    color: #999;\n}\n.status-badge {\r\n    padding: 8rpx 16rpx;\r\n    border-radius: 20rpx;\r\n    font-size: 22rpx;\r\n    font-weight: 500;\n}\n.status-badge.pending {\r\n    background-color: #fff2e8;\r\n    color: #fa8c16;\n}\n.status-badge.processed {\r\n    background-color: #f6ffed;\r\n    color: #52c41a;\n}\r\n/* 反馈内容 */\n.feedback-content {\r\n    margin-bottom: 20rpx;\n}\n.content-text {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    line-height: 1.6;\r\n    white-space: pre-wrap;\n}\r\n/* 反馈图片 */\n.feedback-images {\r\n    margin-bottom: 20rpx;\n}\n.image-grid {\r\n    display: flex;\r\n    flex-wrap: wrap;\r\n    gap: 10rpx;\n}\n.feedback-image {\r\n    width: 120rpx;\r\n    height: 120rpx;\r\n    border-radius: 8rpx;\r\n    background-color: #f0f0f0;\n}\r\n/* 操作按钮 */\n.feedback-actions {\r\n    display: flex;\r\n    justify-content: flex-end;\r\n    gap: 20rpx;\n}\n.action-btn {\r\n    border-radius: 20rpx;\r\n    font-size: 24rpx;\r\n    padding: 0 20rpx;\r\n    height: 60rpx;\r\n    line-height: 60rpx;\n}\n.process-btn {\r\n    background-color: #52c41a;\r\n    color: #fff;\r\n    border: none;\n}\n.delete-btn {\r\n    background-color: #ff4d4f;\r\n    color: #fff;\r\n    border: none;\n}\n.action-btn::after {\r\n    border: none;\n}\r\n/* 空状态 */\n.empty-state {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 100rpx 0;\n}\n.empty-icon {\r\n    font-size: 80rpx;\r\n    margin-bottom: 20rpx;\n}\n.empty-text {\r\n    font-size: 28rpx;\r\n    color: #999;\n}\r\n/* 加载状态 */\n.loading-more,\r\n.no-more {\r\n    text-align: center;\r\n    padding: 40rpx 0;\r\n    font-size: 24rpx;\r\n    color: #999;\n}\r\n", ""]);
 // Exports
 module.exports = exports;
 

@@ -32,6 +32,12 @@
               "memory": 128
             },
             {
+              "name": "contentCheck",
+              "root": "./functions/contentCheck",
+              "timeout": 20,
+              "memory": 512
+            },
+            {
               "name": "createUser",
               "root": "./functions/createUser",
               "timeout": 5,
@@ -176,6 +182,12 @@
               "memory": 128
             },
             {
+              "name": "loginWithCredentials",
+              "root": "./functions/loginWithCredentials",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
               "name": "markMessagesAsRead",
               "root": "./functions/markMessagesAsRead",
               "timeout": 5,
@@ -184,6 +196,12 @@
             {
               "name": "recordView",
               "root": "./functions/recordView",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "registerUser",
+              "root": "./functions/registerUser",
               "timeout": 5,
               "memory": 128
             },
@@ -222,6 +240,12 @@
               "root": "./functions/vote",
               "timeout": 5,
               "memory": 128
+            },
+            {
+              "name": "backfillPostMetadata",
+              "root": "./functions/backfillPostMetadata",
+              "timeout": 60,
+              "memory": 256
             }
           ]
         }
