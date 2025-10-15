@@ -1,6 +1,6 @@
 <template>
     <!-- pages/add/add.wxml -->
-    <view class="container" :style="'padding-bottom: calc(120rpx + ' + keyboardHeight + 'px);'">
+    <view class="container">
         <!-- 图片预览区域 -->
         <view v-if="imageList.length > 0" class="image-section">
             <scroll-view class="image-preview-scroll" :scroll-x="true" :show-scrollbar="false">
@@ -17,26 +17,23 @@
             </scroll-view>
         </view>
 
+        <!-- 颜色选择弹层 -->
+        <view v-if="showColorPicker" class="color-picker-mask" @tap="showColorPicker=false">
+            <view class="color-picker" @tap.stop="noop">
+                <view class="color-grid">
+                    <view v-for="c in availableColors" :key="c" class="color-swatch" :style="{ backgroundColor: c }" @tap="chooseColor" :data-color="c">
+                        <text v-if="selectedBackgroundColor === c" class="color-check">✓</text>
+                    </view>
+                </view>
+                <view class="color-tip">仅影响“路”页卡片底色</view>
+            </view>
+        </view>
+
         <!-- 内容输入区域 -->
         <view class="content-section">
-            <!-- 标题输入框 -->
-            <view class="title-input-wrapper">
-                <input class="title-input" placeholder="标题" @input="onTitleInput" maxlength="50" :value="title" />
-            </view>
-
-            <!-- 作者输入区域（诗歌模式显示） -->
-            <view v-if="publishMode === 'poem'" class="author-input-wrapper">
-                <input
-                    class="author-input"
-                    :placeholder="isOriginal ? '作者（可选，不填默认使用您的昵称）' : '作者（必填）'"
-                    @input="onAuthorInput"
-                    maxlength="20"
-                    :value="author"
-                />
-            </view>
-
+  
             <!-- 正文输入区域 -->
-            <view class="content-input-wrapper">
+            <view class="content-input-wrapper" :data-highlight-mode="highlightModeEnabled">
                 <textarea
                     class="content-textarea"
                     placeholder="此刻你想要分享..."
@@ -48,42 +45,89 @@
                     :adjust-position="false"
                     @focus="onTextareaFocus"
                     @blur="onTextareaBlur"
+                    @scroll="onTextareaScroll"
                 ></textarea>
                 <view v-if="content.length > 1400" class="char-count">{{ content.length }}/1500</view>
+
+                <!-- 长按选择覆盖层 -->
+                <view v-if="content.trim() && highlightModeEnabled"
+                      class="highlight-select-overlay"
+                      @touchstart="onOverlayTouchStart"
+                      @touchend="onOverlayTouchEnd"
+                      @touchmove="onOverlayTouchMove"
+                      catchtouchmove="true">
+                    <scroll-view class="overlay-scroll" :scroll-y="true" :scroll-top="overlayScrollTop">
+                        <view class="overlay-content">
+                            <view v-for="(line, i) in splitContentLines"
+                                  :key="'overlay-line-' + i"
+                                  :class="'overlay-line ' + (highlightSelectedLineIndices.includes(i) ? 'highlighted' : '')"
+                                  :data-index="i"
+                                  @touchstart="onLineTouchStart"
+                                  @touchend="onLineTouchEnd">
+                                <view class="overlay-line-content">{{ line || ' ' }}</view>
+                            </view>
+                        </view>
+                    </scroll-view>
+                </view>
+
+                <!-- Right-side vertical toolbar (placeholders) -->
+                <view class="side-toolbar">
+                    <view class="side-tool-btn" @tap="handleChooseImage"><view class="side-tool-icon">IMG</view></view>
+                      <view class="side-tool-btn" @tap="toggleTagSelector"><view class="side-tool-icon">#</view></view>
+                    <view class="side-tool-btn" @tap="onSelectColor"><view class="side-tool-icon">色</view></view>
+                    <view class="side-tool-btn" @tap="toggleHighlightMode"><view class="side-tool-icon">高</view></view>
+                    <view class="side-tool-btn" @tap="switchMode"><view class="side-tool-icon">模</view></view>
+                    <view class="side-tool-btn" @tap="goToPreview"><view class="side-tool-icon">➔</view></view>
+                </view>
+
+                <!-- 高光选择提示 -->
+                <view v-if="showHighlightHint" class="highlight-hint">
+                    <text class="hint-text">长按文字即可选择高光行</text>
+                    <view class="hint-close" @tap="hideHighlightHint">×</view>
+                </view>
+
+                <!-- 旧的高光选择弹层（保留作为备用） -->
+                <view v-if="highlightSelecting" class="highlight-overlay" catchtouchmove="true" @tap="noop">
+                    <scroll-view class="highlight-scroll" :scroll-y="true">
+                        <view v-for="(line, i) in splitContentLines" :key="i"
+                              :class="'hl-line ' + (highlightSelectedLineIndices.includes(i) ? 'selected' : '')"
+                              @tap.stop.prevent="toggleHighlightLine" :data-index="i">
+                            <text class="hl-text">{{ line.length ? line : ' ' }}</text>
+                        </view>
+                    </scroll-view>
+                    <view class="hl-actions">
+                        <button class="hl-done" size="mini" @tap.stop.prevent="finishHighlight">完成</button>
+                        <button class="hl-clear" size="mini" @tap.stop.prevent="clearHighlight">清除</button>
+                    </view>
+                </view>
             </view>
         </view>
 
-        <!-- 写诗子菜单 -->
-        <view v-if="showPoemSubmenu" class="poem-submenu">
-            <view class="submenu-item" @tap="selectPoemMode" :data-original="true">
-                <view class="submenu-icon">✨</view>
-                <view class="submenu-text">原创</view>
+        <!-- 模式选择器 -->
+        <view v-if="showModeSelector" class="mode-selector">
+            <view class="mode-title">选择发布模式</view>
+            <view class="mode-grid">
+                <view class="mode-item" @tap="selectPublishMode" :data-mode="'poem'" :data-original="true">
+                    <view class="mode-icon">✨</view>
+                    <view class="mode-text">原创诗歌</view>
+                </view>
+                <view class="mode-item" @tap="selectPublishMode" :data-mode="'poem'" :data-original="false">
+                    <view class="mode-icon">📖</view>
+                    <view class="mode-text">非原创诗歌</view>
+                </view>
+                <view class="mode-item" @tap="selectPublishMode" :data-mode="'normal'" :data-original="null">
+                    <view class="mode-icon">📝</view>
+                    <view class="mode-text">普通帖子</view>
+                </view>
+                <view class="mode-item" @tap="selectPublishMode" :data-mode="'discussion'" :data-original="null">
+                    <view class="mode-icon">💬</view>
+                    <view class="mode-text">讨论帖子</view>
+                </view>
             </view>
-            <view class="submenu-item" @tap="selectPoemMode" :data-original="false">
-                <view class="submenu-icon">📖</view>
-                <view class="submenu-text">非原创</view>
-            </view>
-        </view>
-
-        <!-- 底部工具栏 -->
-        <view class="toolbar" :style="'bottom: ' + keyboardHeight + 'px;'">
-            <view class="toolbar-item" @tap="handleChooseImage">
-                <view class="toolbar-icon">📷</view>
-                <view class="toolbar-text">图片</view>
-            </view>
-            <view class="toolbar-item" @tap="toggleTagSelector">
-                <view class="toolbar-icon">#</view>
-                <view class="toolbar-text">标签</view>
-            </view>
-            <view class="toolbar-item" @tap="switchMode">
-                <view class="toolbar-icon">{{ publishMode === 'normal' ? '📝' : '🎭' }}</view>
-                <view class="toolbar-text">{{ publishMode === 'normal' ? '写诗' : '普通' }}</view>
-            </view>
-            <view :class="'publish-btn ' + (canPublish ? 'active' : '')" @tap="submitPost">发布</view>
         </view>
 
         <!-- 标签选择区域 -->
-        <view v-if="showTagSelector" class="tag-section" :style="'bottom: calc(120rpx + ' + keyboardHeight + 'px);'">
+        <view v-if="showTagSelector" class="tag-section" :style="'bottom: 120rpx;'">
             <view class="tag-header">
                 <text class="tag-title">添加标签</text>
                 <text class="tag-count">{{ selectedTags.length }}/5</text>
@@ -161,8 +205,26 @@ const { cloudCall } = require('../../utils/cloudCall.js');
 export default {
     data() {
         return {
-            title: '',
             content: '',
+            // 选择颜色
+            selectedBackgroundColor: '#a4c4bd',
+            availableColors: ['#a4c4bd','#c9cfcf','#906161','#909388'],
+            showColorPicker: false,
+
+            // 高光选择
+            highlightSelecting: false,
+            highlightSelectedLineIndices: [],
+            highlightLines: [],
+            // 高光句（兼容旧字段）
+            highlightSentence: '',
+
+            // 新的覆盖层相关状态
+            overlayScrollTop: 0,
+            textareaScrollTop: 0,
+            showHighlightHint: false,
+            highlightModeEnabled: false,
+            longPressTimer: null,
+            touchStartLine: null,
             imageList: [],
 
             // 图片列表，包含原图和压缩图信息
@@ -171,13 +233,18 @@ export default {
             // 最大图片数量
             publishMode: 'normal',
 
-            // 'normal' | 'poem' 普通模式 | 诗歌模式
+            // 'normal' | 'poem' | 'discussion' 普通模式 | 诗歌模式 | 讨论模式
             isOriginal: false,
 
             // 是否原创
-            showPoemSubmenu: false,
+            showModeSelector: false,
 
-            // 是否显示写诗子菜单
+            // 是否显示模式选择器
+
+            // 讨论模式相关
+            isDiscussion: false,
+            parentPostId: '',
+            parentPostInfo: null,
             canPublish: false,
 
             // 是否可以发布
@@ -414,7 +481,20 @@ export default {
             tags: []
         };
     },
+    computed: {
+        splitContentLines() {
+            const raw = this.content || '';
+            return raw.split(/\r?\n/);
+        }
+    },
     onLoad: function (options) {
+        // 初始化颜色/高光编辑相关状态（向后兼容）
+        this.setData({
+            selectedBackgroundColor: this.selectedBackgroundColor || '#a4c4bd',
+            availableColors: this.availableColors || ['#a4c4bd','#c9cfcf','#906161','#909388'],
+            showColorPicker: false,
+            highlightSentence: this.highlightSentence || ''
+        });
         // 页面加载时获取所有已有标签
         this.loadAllExistingTags();
 
@@ -434,20 +514,22 @@ export default {
         this.preventPageScroll();
     },
     onUnload: function () {
-        // 页面卸载时检查是否需要保存草稿（如果已发布成功则不检查）
-        if (!this.isPublished) {
-            this.checkAndSaveDraft();
+        // 只有真正退出发布页时提示保存草稿（已发布的不提示）
+        if ( !this.isPublished) {
+            this.exitWithOptionalSave();
         }
     },
     onHide: function () {
-        // 页面隐藏时检查是否需要保存草稿（如果已发布成功或临时隐藏则不检查）
-        if (!this.isPublished && !this.isTemporaryHide) {
-            this.checkAndSaveDraft();
+        // 其它情况不再提示，仅重置临时隐藏标志
+        this.setData({ isTemporaryHide: false });
+    },
+    // App/H5：拦截物理返回，优先弹出草稿提示
+    onBackPress: function () {
+        if (!this.isPublished && this.hasContent()) {
+
+            this.exitWithOptionalSave();
         }
-        // 重置临时隐藏标志
-        this.setData({
-            isTemporaryHide: false
-        });
+        return false;
     },
     methods: {
         // 统一云函数调用方法
@@ -455,6 +537,44 @@ export default {
             return cloudCall(name, data, Object.assign({ pageTag: 'add', context: this, requireAuth: true }, extraOptions));
         },
 
+        // 加载所有已有标签
+        loadAllExistingTags() {
+            this.callCloudFunction('getAllTags')
+                .then(res => {
+                    if (res.result && res.result.success) {
+                        this.allExistingTags = res.result.tags;
+                    }
+                })
+                .catch(err => {
+                    console.error('Failed to load all existing tags:', err);
+                });
+        },
+
+        // 退出前提示是否保存草稿并自动返回
+        exitWithOptionalSave: function () {
+            if ( !this.hasContent()) { try { uni.navigateBack(); } catch (e) {} return; } 
+            uni.showModal({
+                title: '保存草稿',
+                content: '检测到你有未完成的内容，是否保存为草稿？',
+                confirmText: '保存',
+                cancelText: '不保存',
+                success: (res) => {
+                    if (res.confirm) {
+                        try {
+                            const p = this.saveDraft && this.saveDraft();
+                            if (p && typeof p.finally === 'function') {
+                                p.finally(() => { try { uni.navigateBack(); } catch (e) {} });
+                            } else {
+                                setTimeout(() => { try { uni.navigateBack(); } catch (e) {} }, 500);
+                            }
+                        } catch (_) { try { uni.navigateBack(); } catch (e) {} }
+                    } else {
+                        try { this.clearDraft && this.clearDraft(); } catch (_) {}
+                        try { uni.navigateBack(); } catch (e) {}
+                    }
+                }
+            });
+        },
         // 兼容性文件上传方法
         uploadFile(cloudPath, filePath) {
             return new Promise((resolve, reject) => {
@@ -616,13 +736,7 @@ export default {
             }
         },
 
-        onTitleInput: function (event) {
-            this.setData({
-                title: event.detail.value
-            });
-            this.checkCanPublish();
-        },
-
+  
         onContentInput: function (event) {
             const { value, cursor } = event.detail;
             this.setData({
@@ -672,19 +786,12 @@ export default {
             });
         },
 
-        onAuthorInput: function (event) {
-            this.setData({
-                author: event.detail.value
-            });
-            this.checkCanPublish();
-        },
-
+  
         // 检查是否可以发布
         checkCanPublish: function () {
             const hasImages = this.imageList.length > 0;
-            const hasTitle = this.title && this.title.trim();
             const hasContent = this.content && this.content.trim();
-            let canPublish = hasImages || (hasTitle && hasContent);
+            let canPublish = hasImages || hasContent;
 
             // 如果是非原创诗歌，必须填写作者
             if (this.publishMode === 'poem' && !this.isOriginal) {
@@ -698,43 +805,37 @@ export default {
 
         // 切换发布模式
         switchMode: function () {
-            if (this.publishMode === 'normal') {
-                if (this.showPoemSubmenu) {
-                    // 如果子菜单已显示，再次点击写诗按钮则收起子菜单
-                    this.setData({
-                        showPoemSubmenu: false
-                    });
-                } else {
-                    // 从普通模式切换到写诗模式，显示子菜单
-                    this.setData({
-                        showPoemSubmenu: true,
-                        showTagSelector: false // 隐藏标签选择器
-                    });
-                }
-            } else {
-                // 从写诗模式切换回普通模式
-                this.setData({
-                    publishMode: 'normal',
-                    isOriginal: false,
-                    showPoemSubmenu: false,
-                    // 切换到普通模式时重置图片限制
-                    maxImageCount: 9
-                });
-                this.checkCanPublish();
-            }
+            this.setData({
+                showModeSelector: !this.showModeSelector,
+                showTagSelector: false // 隐藏标签选择器
+            });
         },
 
-        // 选择写诗模式（原创/非原创）
-        selectPoemMode: function (e) {
-            const isOriginal = e.currentTarget.dataset.original === 'true';
+        // 选择发布模式
+        selectPublishMode: function (e) {
+            const mode = e.currentTarget.dataset.mode;
+            const isOriginal = e.currentTarget.dataset.original;
+
             this.setData({
-                publishMode: 'poem',
-                isOriginal: isOriginal,
-                showPoemSubmenu: false,
-                // 切换到诗歌模式时重置图片
-                imageList: this.imageList.length > 1 ? [] : this.imageList,
-                maxImageCount: 1
+                publishMode: mode,
+                isOriginal: isOriginal === null ? false : isOriginal,
+                showModeSelector: false
             });
+
+            // 根据模式设置图片限制
+            if (mode === 'poem') {
+                // 诗歌模式：最多1张图片
+                this.setData({
+                    maxImageCount: 1,
+                    imageList: this.imageList.length > 1 ? [this.imageList[0]] : this.imageList
+                });
+            } else {
+                // 普通帖子和讨论帖子：最多9张图片
+                this.setData({
+                    maxImageCount: 9
+                });
+            }
+
             this.checkCanPublish();
         },
 
@@ -949,55 +1050,10 @@ export default {
             this.checkCanPublish();
         },
 
+        // 发布功能已移至预览页面
         submitPost: function () {
-            if (!this.canPublish) {
-                uni.showToast({
-                    title: '请至少上传图片或输入内容',
-                    icon: 'none'
-                });
-                return;
-            }
-            const hasTitle = this.title && this.title.trim();
-            const hasContent = this.content && this.content.trim();
-            if (hasTitle && !hasContent) {
-                uni.showToast({
-                    title: '请输入正文内容',
-                    icon: 'none'
-                });
-                return;
-            }
-
-            // 如果是非原创诗歌，必须填写作者
-            if (this.publishMode === 'poem' && !this.isOriginal) {
-                const hasAuthor = this.author && this.author.trim();
-                if (!hasAuthor) {
-                    uni.showToast({
-                        title: '非原创诗歌必须填写作者',
-                        icon: 'none'
-                    });
-                    return;
-                }
-            }
-            console.log('提交帖子:', {
-                imageList: this.imageList,
-                title: this.title,
-                content: this.content
-            });
-
-            // 如果是非原创诗歌，先检查重复
-            if (this.publishMode === 'poem' && !this.isOriginal) {
-                this.checkDuplicatePoem();
-            } else {
-                // 直接发布
-                uni.showLoading({
-                    title: '发布中...'
-                });
-                if (this.imageList.length > 0) {
-                    this.uploadImagesAndSubmit();
-                } else {
-                    this.submitTextOnly();
-                }
-            }
+            // 直接跳转到预览页面进行发布
+            this.goToPreview();
         },
 
         // 检查重复诗歌
@@ -1165,7 +1221,9 @@ export default {
                 // 新增作者字段
                 author: authorName,
                 // 新增标签字段
-                tags: this.selectedTags || []
+                tags: this.selectedTags || [],
+                backgroundColor: this.selectedBackgroundColor || '',
+                highlightSentence: this.highlightSentence || ''
             };
             
             if (imageUrls.length > 0) {
@@ -1199,7 +1257,9 @@ export default {
                 publishMode: this.publishMode,
                 isOriginal: this.isOriginal,
                 author: this.author,
-                tags: this.selectedTags || []
+                tags: this.selectedTags || [],
+                isDiscussion: this.isDiscussion || false,
+                parentPostId: this.parentPostId || '',
             };
             
             return this.callCloudFunction('contentCheck', auditParams).then((res) => {
@@ -1350,6 +1410,217 @@ export default {
             });
         },
 
+        // 去预览：把当前编辑内容带到预览页，仅展示不提交
+        goToPreview: function () {
+            const previewPost = {
+                _id: 'preview-temp-id',
+                content: this.content || '',
+                title: '', // 标题将在预览页面输入
+                textColor: '#000000',
+                backgroundColor: this.selectedBackgroundColor || '#ffffff',
+                isExpanded: true,
+                likeIcon: '/static/images/seed.png',
+                imageUrls: (this.imageList || []).map(i => i.previewUrl),
+                highlightLines: this.highlightLines || [],
+                // 传递当前编辑的数据供预览页面使用
+                editData: {
+                    selectedBackgroundColor: this.selectedBackgroundColor,
+                    imageList: this.imageList,
+                    publishMode: this.publishMode,
+                    isOriginal: this.isOriginal,
+                    selectedTags: this.selectedTags,
+                    author: this.author,
+                    highlightLines: this.highlightLines,
+                    highlightSelectedLineIndices: this.highlightSelectedLineIndices
+                }
+            };
+
+            // 调试：输出预览数据
+            console.log('【Add】准备跳转到预览，数据:', previewPost);
+            console.log('【Add】publishMode:', this.publishMode);
+            console.log('【Add】editData.publishMode:', previewPost.editData.publishMode);
+
+            try { uni.setStorageSync('preview_post', previewPost); } catch (e) {}
+
+            uni.navigateTo({
+                url: '/pages/preview/preview',
+                success: (res) => {
+                    try { res.eventChannel.emit('preview-data', { post: previewPost }); } catch (e) {}
+                }
+            });
+        },
+
+        // 占位：选择颜色
+        onSelectColor: function () {
+            this.setData({ showColorPicker: !this.showColorPicker });
+        },
+
+        // 占位：高光开关（保留原来的弹窗模式作为备用）
+        onToggleHighlight: function () {
+            this.setData({ highlightSelecting: !this.highlightSelecting });
+            if (this.highlightSelecting) {
+                uni.showToast({ title: '点击要高亮的行', icon: 'none' });
+            }
+        },
+
+        // 新的覆盖层相关方法
+        toggleHighlightMode: function () {
+            this.setData({
+                highlightModeEnabled: !this.highlightModeEnabled,
+                showHighlightHint: !this.highlightModeEnabled
+            });
+            if (this.highlightModeEnabled) {
+                // 显示提示3秒后自动隐藏
+                setTimeout(() => {
+                    this.setData({ showHighlightHint: false });
+                }, 3000);
+            }
+        },
+
+        hideHighlightHint: function () {
+            this.setData({ showHighlightHint: false });
+        },
+
+        // textarea滚动事件
+        onTextareaScroll: function (e) {
+            this.setData({
+                textareaScrollTop: e.detail.scrollTop,
+                overlayScrollTop: e.detail.scrollTop
+            });
+        },
+
+        // 覆盖层触摸事件
+        onOverlayTouchStart: function (e) {
+            // 阻止事件冒泡，避免触发textarea的焦点
+            e.preventDefault();
+        },
+
+        onOverlayTouchEnd: function (e) {
+            e.preventDefault();
+        },
+
+        onOverlayTouchMove: function (e) {
+            e.preventDefault();
+        },
+
+        // 行触摸事件
+        onLineTouchStart: function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const index = Number(e.currentTarget.dataset.index);
+            this.touchStartLine = index;
+
+            // 清除之前的定时器
+            if (this.longPressTimer) {
+                clearTimeout(this.longPressTimer);
+            }
+
+            // 设置长按定时器（500ms）
+            this.longPressTimer = setTimeout(() => {
+                this.toggleLineHighlight(index);
+                // 触觉反馈（如果支持）
+                try {
+                    uni.vibrateShort();
+                } catch (e) {}
+            }, 500);
+        },
+
+        onLineTouchEnd: function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // 清除长按定时器
+            if (this.longPressTimer) {
+                clearTimeout(this.longPressTimer);
+                this.longPressTimer = null;
+            }
+
+            this.touchStartLine = null;
+        },
+
+        // 切换行高亮
+        toggleLineHighlight: function (lineIndex) {
+            const arr = this.highlightSelectedLineIndices.slice();
+            const pos = arr.indexOf(lineIndex);
+
+            if (pos >= 0) {
+                // 取消选中
+                arr.splice(pos, 1);
+            } else {
+                // 检查是否超过限制
+                if (arr.length >= 3) {
+                    uni.showToast({
+                        title: '最多只能选择三行高光',
+                        icon: 'none'
+                    });
+                    return;
+                }
+                // 添加选中
+                arr.push(lineIndex);
+            }
+
+            arr.sort((a, b) => a - b);
+            this.setData({ highlightSelectedLineIndices: arr });
+
+            // 更新高光行数据
+            this.updateHighlightLines();
+        },
+
+        // 更新高光行数据
+        updateHighlightLines: function () {
+            const lines = (this.content || '').split(/\r?\n/);
+            const picked = this.highlightSelectedLineIndices.map(i => lines[i] || '').filter(Boolean);
+            this.setData({
+                highlightLines: picked,
+                highlightSentence: picked[0] || ''
+            });
+        },
+
+        // 切换单行高亮（旧的方法，保留用于弹窗模式）
+        toggleHighlightLine: function (e) {
+            const idx = Number(e.currentTarget.dataset.index);
+            const arr = this.highlightSelectedLineIndices.slice();
+            const pos = arr.indexOf(idx);
+            if (pos >= 0) {
+                arr.splice(pos, 1);
+            } else {
+                // 限制最多选择三行
+                if (arr.length >= 3) {
+                    uni.showToast({
+                        title: '最多只能选择三行高光',
+                        icon: 'none'
+                    });
+                    return;
+                }
+                arr.push(idx);
+            }
+            arr.sort((a,b) => a - b);
+            this.setData({ highlightSelectedLineIndices: arr });
+        },
+
+        // 完成选择，生成高光行数组
+        finishHighlight: function () {
+            const lines = (this.content || '').split(/\r?\n/);
+            const picked = this.highlightSelectedLineIndices.map(i => lines[i] || '').filter(Boolean);
+            this.setData({ highlightLines: picked, highlightSentence: picked[0] || '', highlightSelecting: false });
+            uni.showToast({ title: '已设置高光', icon: 'success' });
+        },
+
+        // 清除选择
+        clearHighlight: function () {
+            this.setData({ highlightSelectedLineIndices: [], highlightLines: [], highlightSentence: '' });
+        },
+
+        // 选择颜色
+        chooseColor: function (e) {
+            const color = e.currentTarget.dataset.color;
+            this.setData({ selectedBackgroundColor: color, showColorPicker: false });
+            uni.showToast({ title: '已设置颜色', icon: 'success' });
+        },
+
+        noop() {},
+
         selectTag: function (e) {
             const tag = e.currentTarget.dataset.tag;
             const selectedTags = this.selectedTags;
@@ -1377,130 +1648,20 @@ export default {
         onCustomTagInput: function (e) {
             const inputValue = e.detail.value;
             console.log('【标签输入】用户输入:', inputValue);
-            this.setData({
-                customTag: inputValue
-            });
-
-            // 防抖处理，避免频繁搜索
-            if (this.searchTimer) {
-                clearTimeout(this.searchTimer);
-            }
-            this.searchTimer = setTimeout(() => {
-                console.log('【标签搜索】开始搜索匹配标签:', inputValue);
-                this.searchMatchingTags(inputValue);
-            }, 300); // 300ms防抖
+            this.setData({ customTag: inputValue });
+            // 实时搜索匹配标签
+            this.searchMatchingTags(inputValue);
         },
 
         addCustomTag: function () {
-            const customTag = this.customTag.trim();
-            if (!customTag) {
+            const tag = this.customTag && this.customTag.trim();
+            if (!tag) {
                 uni.showToast({
-                    title: '请输入标签',
+                    title: '请输入标签内容',
                     icon: 'none'
                 });
                 return;
             }
-            if (this.selectedTags.includes(customTag)) {
-                uni.showToast({
-                    title: '标签已存在',
-                    icon: 'none'
-                });
-                return;
-            }
-            if (this.selectedTags.length >= 5) {
-                uni.showToast({
-                    title: '最多选择5个标签',
-                    icon: 'none'
-                });
-                return;
-            }
-            const selectedTags = [...this.selectedTags, customTag];
-            this.setData({
-                selectedTags: selectedTags,
-                customTag: ''
-            });
-        },
-
-        removeTag: function (e) {
-            const tag = e.currentTarget.dataset.tag;
-            const selectedTags = this.selectedTags.filter((t) => t !== tag);
-            this.setData({
-                selectedTags: selectedTags
-            });
-        },
-
-        // 分类切换功能
-        switchCategory: function (e) {
-            const index = e.currentTarget.dataset.index;
-            this.setData({
-                currentCategoryIndex: index
-            });
-        },
-
-        // 获取当前分类的标签
-        getCurrentCategoryTags: function () {
-            return this.tagCategories[this.currentCategoryIndex].tags;
-        },
-
-        // 加载所有已有标签
-        loadAllExistingTags: function () {
-            console.log('【标签加载】开始加载所有已有标签...');
-            this.callCloudFunction('getAllTags', {}).then((res) => {
-                    console.log('【标签加载】云函数返回结果:', res);
-                    if (res.result && res.result.success) {
-                        this.setData({
-                            allExistingTags: res.result.tags
-                        });
-                        console.log('【标签加载】已加载所有标签:', res.result.tags.length, '个标签:', res.result.tags);
-                    } else {
-                        console.error('【标签加载】云函数返回失败:', res.result);
-                    }
-                }).catch((err) => {
-                    console.error('【标签加载】获取标签失败:', err);
-                });
-        },
-
-        // 搜索匹配的标签
-        searchMatchingTags: function (inputValue) {
-            console.log('【标签搜索】搜索参数:', {
-                inputValue: inputValue,
-                inputLength: inputValue ? inputValue.length : 0,
-                allExistingTags: this.allExistingTags,
-                selectedTags: this.selectedTags
-            });
-            if (!inputValue || inputValue.length < 2) {
-                console.log('【标签搜索】输入长度不足，清空匹配结果');
-                this.setData({
-                    matchedTags: [],
-                    showMatchedTags: false
-                });
-                return;
-            }
-            const allTags = this.allExistingTags;
-            console.log('【标签搜索】开始匹配，总标签数:', allTags.length);
-            const matched = allTags
-                .filter((tag) => {
-                    const isMatch = tag.toLowerCase().includes(inputValue.toLowerCase());
-                    const notSelected = !this.selectedTags.includes(tag);
-                    console.log(`【标签搜索】检查标签"${tag}": 匹配=${isMatch}, 未选中=${notSelected}`);
-                    return isMatch && notSelected;
-                })
-                .slice(0, 5); // 最多显示5个匹配结果
-
-            console.log('【标签搜索】匹配结果:', matched);
-            this.setData({
-                matchedTags: matched,
-                showMatchedTags: matched.length > 0
-            });
-            console.log('【标签搜索】设置状态:', {
-                matchedTags: matched,
-                showMatchedTags: matched.length > 0
-            });
-        },
-
-        // 选择匹配的标签
-        selectMatchedTag: function (e) {
-            const tag = e.currentTarget.dataset.tag;
             if (this.selectedTags.includes(tag)) {
                 uni.showToast({
                     title: '标签已存在',
@@ -1515,86 +1676,59 @@ export default {
                 });
                 return;
             }
-            const selectedTags = [...this.selectedTags, tag];
+            this.selectedTags.push(tag);
             this.setData({
-                selectedTags: selectedTags,
+                selectedTags: this.selectedTags,
                 customTag: '',
                 showMatchedTags: false,
                 matchedTags: []
             });
         },
 
-        // 检查是否有内容需要保存草稿
-        hasContent: function () {
-            const hasTitle = this.title && this.title.trim();
-            const hasContent = this.content && this.content.trim();
-            const hasImages = this.imageList.length > 0;
-            const hasTags = this.selectedTags.length > 0;
-            return hasTitle || hasContent || hasImages || hasTags;
-        },
-
-        // 检查并保存草稿
-        checkAndSaveDraft: function () {
-            if (this.hasContent()) {
-                uni.showModal({
-                    title: '保存草稿',
-                    content: '检测到您有未完成的内容，是否保存为草稿？',
-                    confirmText: '保存',
-                    cancelText: '不保存',
-                    success: (res) => {
-                        if (res.confirm) {
-                            this.saveDraft();
-                        } else {
-                            this.clearDraft();
-                        }
-                    }
-                });
-            }
-        },
-
         // 保存草稿
         saveDraft: function () {
-            const draftData = {
-                title: this.title,
-                content: this.content,
-                imageList: this.imageList,
-                publishMode: this.publishMode,
-                isOriginal: this.isOriginal,
-                selectedTags: this.selectedTags,
-                customTag: this.customTag,
-                author: this.author,
-                saveTime: new Date()
-            };
-            uni.showLoading({
-                title: '保存中...'
-            });
-            this.callCloudFunction('getMyProfileData', {
-                    action: 'saveDraft',
+            return new Promise((resolve) => {
+                const draftData = {
+                    title: this.title,
+                    content: this.content,
+                    imageList: this.imageList,
+                    publishMode: this.publishMode,
+                    isOriginal: this.isOriginal,
+                    selectedTags: this.selectedTags,
+                    customTag: this.customTag,
+                    author: this.author,
+                    saveTime: new Date()
+                };
+                uni.showLoading({ title: "保存中..." });
+                this.callCloudFunction("getMyProfileData", {
+                    action: "saveDraft",
                     draftData: draftData
                 }).then((res) => {
                     uni.hideLoading();
                     if (res.result && res.result.success) {
-                        uni.showToast({
-                            title: '草稿已保存',
-                            icon: 'success'
-                        });
-                        // 清除本地草稿
+                        uni.showToast({ title: "草稿已保存", icon: "success" });
                         this.clearDraft();
+                        resolve(true);
                     } else {
-                        console.error('保存草稿失败:', res.result);
-                        uni.showToast({
-                            title: res.result?.message || '保存草稿失败',
-                            icon: 'none'
-                        });
+                        console.error("保存草稿失败:", res.result);
+                        uni.showToast({ title: (res.result && res.result.message) ? res.result.message : "保存草稿失败", icon: "none" });
+                        resolve(false);
                     }
                 }).catch((err) => {
                     uni.hideLoading();
-                    console.error('保存草稿失败:', err);
-                    uni.showToast({
-                        title: '网络错误，保存失败',
-                        icon: 'none'
-                    });
+                    console.error("保存草稿失败:", err);
+                    uni.showToast({ title: "网络错误，保存失败", icon: "none" });
+                    resolve(false);
                 });
+            });
+        },
+
+        removeTag: function (e) {
+            const tag = e.currentTarget.dataset.tag;
+            const selectedTags = this.selectedTags.filter((t) => t !== tag);
+            this.setData({
+                selectedTags: selectedTags
+            });
         },
 
         // 加载草稿
@@ -1707,28 +1841,12 @@ page {
     height: 100vh; /* 改为固定高度，确保在iOS下正确计算 */
     display: flex;
     flex-direction: column;
-    padding-bottom: 120rpx; /* 为底部工具栏留出空间，避免内容被遮挡 */
+    padding-right: 100rpx; /* reserve space for side toolbar */
     box-sizing: border-box; /* 确保padding计算在内 */
     overflow: hidden; /* 防止整个页面滚动 */
     position: relative; /* 确保定位上下文 */
-    transition: padding-bottom 0.3s ease-out; /* 为 padding 变化添加过渡 */
 }
 
-/* 发布按钮样式 */
-.publish-btn {
-    background: #e0e0e0;
-    color: #999;
-    padding: 16rpx 32rpx;
-    border-radius: 50rpx;
-    font-size: 28rpx;
-    transition: all 0.3s ease;
-    margin-left: auto;
-}
-
-.publish-btn.active {
-    background: #9ed7ee;
-    color: #fff;
-}
 
 /* 图片预览区域 */
 .image-section {
@@ -1815,24 +1933,6 @@ page {
     position: relative; /* 确保定位上下文 */
 }
 
-.title-input-wrapper {
-    margin-bottom: 30rpx;
-}
-
-.title-input {
-    width: 100%;
-    height: 80rpx;
-    border: none;
-    border-bottom: 1rpx solid #f0f0f0;
-    font-size: 32rpx;
-    padding: 0;
-    background: transparent;
-}
-
-.title-input:focus {
-    border-bottom-color: rgb(40, 151, 173);
-}
-
 .content-input-wrapper {
     position: relative;
     flex: 1;
@@ -1850,8 +1950,8 @@ page {
     border: none;
     font-size: 30rpx;
     line-height: 1.6;
-    padding: 0;
-    background: transparent;
+    padding: 24rpx;
+    background: #f8f9fa;
     resize: none;
     overflow-y: auto; /* 允许垂直滚动 */
     overflow-x: hidden; /* 禁止水平滚动 */
@@ -1864,17 +1964,22 @@ page {
     user-select: text;
     -webkit-touch-callout: default;
     /* 防止iOS上的默认样式干扰 */
-    border-radius: 0;
+    border-radius: 12rpx;
     outline: none;
     /* 确保滚动行为 */
     -webkit-overflow-scrolling: touch; /* iOS平滑滚动 */
     position: relative; /* 确保定位上下文 */
 }
 
+/* 当高光模式启用时，隐藏textarea的文字内容 */
+.content-input-wrapper[data-highlight-mode="true"] .content-textarea {
+    color: transparent;
+}
+
 .char-count {
     position: absolute;
     bottom: 10rpx; /* 移到textarea外面，给文字留出空间 */
-    right: 0;
+    right: 110rpx; /* leave space for side toolbar */
     font-size: 24rpx;
     color: #666;
     background: #fdfdfd;
@@ -1884,63 +1989,71 @@ page {
     pointer-events: none; /* 防止遮挡textarea的点击 */
 }
 
-/* 作者输入区域样式 */
-.author-input-wrapper {
-    margin-bottom: 30rpx;
-}
 
-.author-input {
-    width: 100%;
-    height: 80rpx;
-    border: none;
-    border-bottom: 1rpx solid #f0f0f0;
-    font-size: 32rpx;
-    padding: 0;
-    background: transparent;
-}
-
-.author-input:focus {
-    border-bottom-color: #9ed7ee;
-}
-
-/* 写诗子菜单 */
-.poem-submenu {
+/* 模式选择器 */
+.mode-selector {
     position: fixed;
     bottom: 120rpx;
     left: 50%;
     transform: translateX(-50%);
     background: #fff;
-    border-radius: 12rpx;
-    padding: 20rpx;
-    display: flex;
-    gap: 40rpx;
+    border-radius: 16rpx;
+    padding: 24rpx;
     z-index: 99;
-    box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.1);
+    box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.15);
     animation: slideUp 0.3s ease;
     border: 1rpx solid #f0f0f0;
-    margin-left: -98rpx; /* 向左偏移，对齐写诗按钮 */
+    margin-left: -98rpx; /* 向左偏移，对齐模按钮 */
+    min-width: 320rpx;
 }
 
-.submenu-item {
+.mode-title {
+    text-align: center;
+    font-size: 28rpx;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 20rpx;
+    padding-bottom: 16rpx;
+    border-bottom: 1rpx solid #f0f0f0;
+}
+
+.mode-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16rpx;
+}
+
+.mode-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 10rpx;
+    padding: 20rpx 16rpx;
+    border-radius: 12rpx;
+    background: #f8f9fa;
     transition: all 0.3s ease;
+    border: 1rpx solid transparent;
 }
 
-.submenu-item:active {
+.mode-item:active {
     transform: scale(0.95);
+    background: #e9ecef;
 }
 
-.submenu-icon {
-    font-size: 40rpx;
+.mode-item:hover {
+    border-color: #9ed7ee;
+    background: #f0f8ff;
+}
+
+.mode-icon {
+    font-size: 36rpx;
     margin-bottom: 8rpx;
 }
 
-.submenu-text {
-    font-size: 22rpx;
+.mode-text {
+    font-size: 24rpx;
     color: #666;
+    text-align: center;
+    line-height: 1.2;
 }
 
 @keyframes slideUp {
@@ -1954,50 +2067,13 @@ page {
     }
 }
 
-/* 底部工具栏 */
-.toolbar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: #fff;
-    border-top: 1rpx solid #f0f0f0;
-    padding: 20rpx 30rpx;
-    display: flex;
-    align-items: center;
-    gap: 40rpx;
-    z-index: 100;
-    transition: bottom 0.3s ease-out; /* 为位置变化添加过渡 */
-}
-
-.toolbar-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 10rpx;
-    transition: all 0.3s ease;
-}
-
-.toolbar-item:active {
-    transform: scale(0.95);
-}
-
-.toolbar-icon {
-    font-size: 40rpx;
-    margin-bottom: 8rpx;
-}
-
-.toolbar-text {
-    font-size: 22rpx;
-    color: #666;
-}
 
 /* 标签选择区域样式 */
 .tag-section {
     position: fixed; /* 确保标签选择器是基于窗口定位的 */
     bottom: 120rpx; /* 初始位置在工具栏上方 */
     left: 0;
-    right: 0;
+    right: 100rpx; /* 为右侧工具栏预留空间 */
     background: #f8f9fa;
     border-radius: 12rpx;
     padding: 20rpx;
@@ -2199,5 +2275,167 @@ page {
         transform: translateY(0);
     }
 }
+
+/* ====== 新增：右侧工具栏样式 ====== */
+.side-toolbar {
+    position: fixed;
+    top: 120rpx;
+    right: 0;
+    bottom: 120rpx;
+    width: 100rpx;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22rpx;
+    z-index: 10;
+    padding: 40rpx 0 8rpx 0;
+    background: #fff;
+    border-left: 1rpx solid #f0f0f0;
+}
+
+.side-tool-btn {
+    width: 72rpx;
+    height: 72rpx;
+    border-radius: 12rpx;
+    border: 1rpx solid #e5e5e5;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2rpx 8rpx rgba(0,0,0,.04);
+}
+
+.side-tool-btn:active { transform: scale(0.96); }
+
+.side-tool-icon { font-size: 24rpx; color: #333; }
+
+/* 让正文为右侧工具栏预留空间及计数避让 */
+.content-input-wrapper { padding-right: 20rpx; }
+.char-count { right: 130rpx; }
+
+/* 颜色选择弹层 */
+.color-picker-mask { position: fixed; left: 0; right: 0; top: 0; bottom: 0; background: rgba(0,0,0,.35); z-index: 130; display: flex; align-items: flex-end; }
+.color-picker { width: 100%; background: #fff; border-top-left-radius: 24rpx; border-top-right-radius: 24rpx; padding: 24rpx 28rpx calc(24rpx + env(safe-area-inset-bottom)); }
+.color-grid { display: grid; grid-template-columns: repeat(4, 1fr); grid-gap: 24rpx; }
+.color-swatch { height: 88rpx; border-radius: 16rpx; position: relative; box-shadow: 0 4rpx 12rpx rgba(0,0,0,.08); }
+.color-check { position: absolute; right: 12rpx; top: 8rpx; color: #fff; font-size: 28rpx; text-shadow: 0 1rpx 2rpx rgba(0,0,0,.3); }
+.color-tip { margin-top: 14rpx; color: #999; font-size: 24rpx; text-align: center; }
+
+/* 高光选择 - 全屏覆盖样式 */
+.highlight-overlay { position: fixed; left: 0; right: 0; top: 0; bottom: 0; background: rgba(0,0,0,.6); z-index: 1000; display: flex; align-items: stretch; justify-content: stretch; }
+.hl-panel { background: #fff; width: 100%; height: 100%; display: flex; flex-direction: column; }
+.hl-header { display: flex; align-items: center; justify-content: space-between; padding: 20rpx 28rpx; border-bottom: 1rpx solid #eee; position: sticky; top: 0; background: #fff; z-index: 1; }
+.hl-title { font-size: 30rpx; color: #333; }
+.highlight-scroll { flex: 1; padding: 16rpx 24rpx 40rpx; }
+.hl-line { padding: 14rpx 18rpx; border-radius: 10rpx; margin: 8rpx 0; background: #f6f7f9; }
+.hl-line.selected { font-weight: 700; background: #e8f2ff; }
+.hl-text { white-space: pre-wrap; word-break: break-word; font-size: 30rpx; color: #333; }
+.hl-done { background: #1c9bd6; color: #fff; padding: 0 20rpx; }
+.hl-clear { background: #eee; color: #333; padding: 0 20rpx; }
+
+/* 高光选择覆盖层样式 */
+.highlight-overlay {
+    border: none;
+}
+
+.hl-done {
+    background: #9ed7ee;
+    color: #fff;
+}
+
+.hl-clear {
+    background: #666;
+    color: #fff;
+}
+
+/* 新的覆盖层样式 */
+.highlight-select-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    pointer-events: auto;
+}
+
+.overlay-scroll {
+    height: 100%;
+    width: 100%;
+}
+
+.overlay-content {
+    padding: 24rpx;
+    font-size: 30rpx;
+    line-height: 1.6;
+    color: transparent; /* 透明文字，只用于布局 */
+}
+
+.overlay-line {
+    min-height: 48rpx;
+    margin: 0;
+    position: relative;
+    transition: background-color 0.2s ease;
+}
+
+.overlay-line.highlighted {
+    background-color: rgba(158, 215, 238, 0.2);
+    border-radius: 8rpx;
+}
+
+.overlay-line-content {
+    color: #666; /* 半透明颜色，让用户能看到下面的文字 */
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: inherit;
+}
+
+/* 高光选择提示 */
+.highlight-hint {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 20rpx 30rpx;
+    border-radius: 12rpx;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 20rpx;
+}
+
+.hint-text {
+    font-size: 28rpx;
+}
+
+.hint-close {
+    width: 40rpx;
+    height: 40rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32rpx;
+    opacity: 0.7;
+    touch-action: none;
+}
+
+/* 调整textarea的z-index，确保在覆盖层下方 */
+.content-textarea {
+    z-index: 0;
+}
+
+/* 当高光模式启用时，textarea的样式调整 */
+.content-input-wrapper {
+    position: relative;
+}
+
 </style>
+
+
+
+
+
+
 

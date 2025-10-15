@@ -23,7 +23,7 @@ export default {
                     selectedIconPath: '/static/images/marketplus.png'
                 },
                 {
-                    pagePath: 'pages/poem/poem',
+                    pagePath: 'pages/poem-square/poem-square',
                     text: '路',
                     iconPath: '/static/images/road.png',
                     selectedIconPath: '/static/images/roadplus.png'

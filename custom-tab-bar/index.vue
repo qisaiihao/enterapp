@@ -1,9 +1,12 @@
 <template>
     <view class="tab-bar">
-        <view class="tab-bar-item" :data-index="index" :data-path="item.pagePath" @tap="switchTab" v-for="(item, index) in list" :key="index">
-            <image class="tab-bar-icon" :src="selected === index ? item.selectedIconPath : item.iconPath"></image>
-
-            <text class="tab-bar-text" :style="'color: ' + (selected === index ? selectedColor : color)">{{ item.text }}</text>
+        <view class="tab-bar-item" v-for="(item, index) in list" :key="index" :data-index="index" :data-path="item.pagePath" @tap="switchTab">
+            <view :class="['icon-wrap', selected === index ? 'pressed' : '']">
+                <view :class="['icon-inner', selected === index ? 'active' : '']">
+                    <image class="icon-img" :src="selected === index ? (item.selectedIconPath || item.iconPath) : item.iconPath" mode="aspectFill" />
+                </view>
+            </view>
+            <text class="tab-bar-text">{{ item.text }}</text>
         </view>
     </view>
 </template>
@@ -15,11 +18,9 @@ export default {
             selected: 0,
             color: '#999999',
             selectedColor: '#9ed7ee',
-            // 双击检测相关数据
             lastTapTime: 0,
             lastTapIndex: -1,
             doubleTapThreshold: 300,
-            // 双击间隔阈值（毫秒）
             list: [
                 {
                     pagePath: 'pages/index/index',
@@ -28,8 +29,8 @@ export default {
                     selectedIconPath: '/static/images/marketplus.png'
                 },
                 {
-                    pagePath: 'pages/poem/poem',
-                    text: '路',
+                    pagePath: 'pages/poem-square/poem-square',
+                    text: '·',
                     iconPath: '/static/images/road.png',
                     selectedIconPath: '/static/images/roadplus.png'
                 },
@@ -41,79 +42,54 @@ export default {
                 },
                 {
                     pagePath: 'pages/profile/profile',
-                    text: '湖',
+                    text: '池',
                     iconPath: '/static/images/pools.png',
                     selectedIconPath: '/static/images/poolsplus.png'
                 }
             ]
         };
     },
+    created() {
+        this.syncSelected();
+    },
     methods: {
+        syncSelected() {
+            try {
+                const pages = getCurrentPages();
+                const current = pages && pages.length ? pages[pages.length - 1] : null;
+                const route = current && (current.route || (current.$page && current.$page.fullPath) || '');
+                if (!route) return;
+                const idx = this.list.findIndex(i => route.indexOf(i.pagePath.replace(/^\//,'')) >= 0);
+                if (idx >= 0) this.setData({ selected: idx });
+            } catch (_) {}
+        },
         switchTab(e) {
             const data = e.currentTarget.dataset;
             const url = data.path;
             const index = data.index;
             const currentTime = Date.now();
-            console.log('=== tabBar点击事件 ===');
-            console.log('点击的tab索引:', index);
-            console.log('目标页面路径:', url);
-            console.log('当前tabBar selected状态:', this.selected);
 
-            // 检查是否为双击
-            const isDoubleTap = currentTime - this.lastTapTime < this.doubleTapThreshold && this.lastTapIndex === index && this.selected === index; // 只有点击当前选中的tab才算双击
-            console.log('双击检测:', {
-                isDoubleTap,
-                currentTime,
-                lastTapTime: this.lastTapTime,
-                timeDiff: currentTime - this.lastTapTime,
-                lastTapIndex: this.lastTapIndex,
-                currentIndex: index,
-                isCurrentTab: this.selected === index
-            });
+            const isDoubleTap = currentTime - this.lastTapTime < this.doubleTapThreshold && this.lastTapIndex === index && this.selected === index;
 
-            // 更新点击记录
-            this.setData({
-                lastTapTime: currentTime,
-                lastTapIndex: index
-            });
+            this.setData({ lastTapTime: currentTime, lastTapIndex: index });
             if (isDoubleTap) {
-                // 双击当前tab，触发刷新
-                console.log('检测到双击，触发页面刷新');
                 this.refreshCurrentPage();
                 return;
             }
 
-            // 单次点击，正常切换页面
             const targetUrl = url.startsWith('/') ? url : `/${url}`;
-            uni.switchTab({
-                url: targetUrl,
-                success: () => {
-                    console.log('tabBar切换成功:', targetUrl);
-                },
-                fail: (err) => {
-                    console.error('tabBar切换失败:', err);
-                }
-            });
+            uni.switchTab({ url: targetUrl });
         },
-        // 刷新当前页面
         refreshCurrentPage() {
             const currentPage = this.list[this.selected];
-            console.log('刷新页面:', currentPage.pagePath);
-
-            // 获取当前页面实例
             const pages = getCurrentPages();
             const currentPageInstance = pages[pages.length - 1];
-            if (!currentPageInstance) {
-                console.error('无法获取当前页面实例');
-                return;
-            }
-
-            // 根据页面路径执行相应的刷新逻辑
+            if (!currentPageInstance) return;
             switch (currentPage.pagePath) {
                 case 'pages/index/index':
                     this.refreshIndexPage(currentPageInstance);
                     break;
-                case 'pages/poem/poem':
+                case 'pages/poem-square/poem-square':
                     this.refreshPoemPage(currentPageInstance);
                     break;
                 case 'pages/mountain/mountain':
@@ -123,110 +99,79 @@ export default {
                     this.refreshProfilePage(currentPageInstance);
                     break;
                 default:
-                    console.log('未知页面，执行通用刷新');
                     this.refreshGenericPage(currentPageInstance);
             }
         },
-        // 刷新广场页面
-        refreshIndexPage(pageInstance) {
-            console.log('刷新广场页面');
-            if (pageInstance.refreshData) {
-                pageInstance.refreshData();
-            } else if (pageInstance.onPullDownRefresh) {
-                null;
-            } else {
-                // 通用刷新方法
-                uni.startPullDownRefresh();
-            }
-        },
-        // 刷新路页面
-        refreshPoemPage(pageInstance) {
-            console.log('刷新路页面');
-            if (pageInstance.refreshPoemData) {
-                pageInstance.refreshPoemData();
-            } else if (pageInstance.onPullDownRefresh) {
-                null;
-            } else {
-                uni.startPullDownRefresh();
-            }
-        },
-        // 刷新山页面
-        refreshMountainPage(pageInstance) {
-            console.log('刷新山页面');
-            if (pageInstance.refreshMountainData) {
-                pageInstance.refreshMountainData();
-            } else if (pageInstance.onPullDownRefresh) {
-                null;
-            } else {
-                uni.startPullDownRefresh();
-            }
-        },
-        // 刷新湖页面
-        refreshProfilePage(pageInstance) {
-            console.log('刷新湖页面');
-            if (pageInstance.onPullDownRefresh) {
-                null;
-            } else {
-                uni.startPullDownRefresh();
-            }
-        },
-        // 通用刷新方法
-        refreshGenericPage(pageInstance) {
-            console.log('执行通用刷新');
-            if (pageInstance.onPullDownRefresh) {
-                null;
-            } else {
-                uni.startPullDownRefresh();
-            }
-        }
-    },
-    created: function () {}
+        refreshIndexPage(pageInstance) { if (pageInstance.refreshData) pageInstance.refreshData(); else if (pageInstance.onPullDownRefresh) { /* noop */ } else { uni.startPullDownRefresh(); } },
+        refreshPoemPage(pageInstance) { if (pageInstance.refreshPoemData) pageInstance.refreshPoemData(); else if (pageInstance.onPullDownRefresh) { /* noop */ } else { uni.startPullDownRefresh(); } },
+        refreshMountainPage(pageInstance) { if (pageInstance.refreshMountainData) pageInstance.refreshMountainData(); else if (pageInstance.onPullDownRefresh) { /* noop */ } else { uni.startPullDownRefresh(); } },
+        refreshProfilePage(pageInstance) { if (pageInstance.onPullDownRefresh) { /* noop */ } else { uni.startPullDownRefresh(); } },
+        refreshGenericPage(pageInstance) { if (pageInstance.onPullDownRefresh) { /* noop */ } else { uni.startPullDownRefresh(); } }
+    }
 };
 </script>
+
 <style>
 .tab-bar {
-    position: fixed;
-    bottom: 20rpx;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 90%;
-    height: 100rpx;
-    background: rgba(255, 255, 255, 0.5);
-    backdrop-filter: blur(20rpx);
-    -webkit-backdrop-filter: blur(20rpx);
-    border-radius: 50rpx;
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-    box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.1);
-    border: 1rpx solid rgba(255, 255, 255, 0.3);
-    z-index: 1000;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 120rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  z-index: 1000;
+  background: #ffffff;
 }
 
 .tab-bar-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    height: 100%;
-    transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  height: 100%;
 }
 
-.tab-bar-item:active {
-    transform: scale(0.95);
+.icon-wrap {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 24rpx;
+  background: #f8f8f8;
+  overflow: hidden;
+  box-shadow: 0 18rpx 32rpx rgba(0, 0, 0, 0.16);
+  transition: box-shadow 0.22s ease;
 }
 
-.tab-bar-icon {
-    width: 48rpx;
-    height: 48rpx;
-    margin-bottom: 8rpx;
-    transition: all 0.3s ease;
+.icon-wrap.pressed {
+  box-shadow: 0 6rpx 12rpx rgba(0, 0, 0, 0.08);
+}
+
+.icon-inner {
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+  box-shadow: none;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.icon-inner.active {
+  box-shadow: inset 0 10rpx 20rpx rgba(0, 0, 0, 0.22);
+  transform: translateY(3rpx) scale(0.97);
+}
+
+.icon-img {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .tab-bar-text {
-    font-size: 24rpx;
-    font-weight: 500;
-    transition: all 0.3s ease;
+  font-size: 22rpx;
+  color: transparent;
+  height: 0;
+  overflow: hidden;
 }
 </style>
+

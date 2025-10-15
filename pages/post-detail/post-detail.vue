@@ -5,7 +5,7 @@
         <view class="container">
             <block v-if="isLoading">
                 <view class="post-detail-skeleton">
-                    <view class="skeleton-card">
+                    <view class="skeleton-wrapper">
                         <view class="skeleton-header">
                             <view class="skeleton-avatar skeleton-animate"></view>
                             <view class="skeleton-header-text">
@@ -33,8 +33,8 @@
                 </view>
             </block>
             <block v-else-if="post && post._id">
-                <!-- Post Card -->
-                <view :class="'post-detail-card ' + (post.isOriginal ? 'original-post' : '')">
+                <!-- Post Content -->
+                <view :class="'post-detail-wrapper ' + (post.isOriginal ? 'original-post' : '')">
                     <view class="author-info">
                         <view class="author-basic">
                             <image
@@ -314,47 +314,79 @@
 
             <!-- 展开状态：真正的输入区域 -->
             <view v-if="isInputExpanded" class="expanded-container">
+                <!-- 模式切换 -->
+                <view class="mode-switcher">
+                    <view :class="'mode-item ' + (!isDiscussionMode ? 'active' : '')" @tap="switchToComment">
+                        <text class="mode-text">💬 评论</text>
+                    </view>
+                    <view :class="'mode-item ' + (isDiscussionMode ? 'active' : '')" @tap="switchToDiscussion">
+                        <text class="mode-text">💭 讨论</text>
+                    </view>
+                </view>
+
                 <!-- 如果是回复，显示提示 -->
-                <view v-if="replyToComment" class="reply-prompt">
+                <view v-if="replyToComment && !isDiscussionMode" class="reply-prompt">
                     <text class="reply-prompt-text">回复 {{ replyToAuthor }}：</text>
                     <view class="cancel-reply" @tap="cancelReply">
                         <text class="cancel-text">取消</text>
                     </view>
                 </view>
 
+                <!-- 讨论模式的标题输入 -->
+                <view v-if="isDiscussionMode" class="discussion-title-wrapper">
+                    <input
+                        class="discussion-title-input"
+                        placeholder="讨论标题（可选）"
+                        :value="discussionTitle"
+                        @input="onDiscussionTitleInput"
+                        maxlength="50"
+                    />
+                </view>
+
                 <!-- 多行文本输入框 -->
                 <textarea
                     class="expanded-textarea"
-                    placeholder="留下你的精彩评论..."
-                    :value="newComment"
-                    @input="onCommentInput"
+                    :placeholder="isDiscussionMode ? '分享你的深入讨论...' : '留下你的精彩评论...'"
+                    :value="isDiscussionMode ? discussionContent : newComment"
+                    @input="isDiscussionMode ? onDiscussionContentInput : onCommentInput"
                     @focus="onInputFocus"
                     @blur="onInputBlur"
                     :focus="isFocus"
                     auto-height
-                    maxlength="500"
+                    maxlength="isDiscussionMode ? 1500 : 500"
                     :show-confirm-bar="false"
                     :adjust-position="false"
                 ></textarea>
-                <view v-if="commentImages.length" class="selected-comment-images">
+
+                <!-- 评论图片显示 -->
+                <view v-if="!isDiscussionMode && commentImages.length" class="selected-comment-images">
                     <view class="selected-image-item" :data-index="index" v-for="(item, index) in commentImages" :key="index">
                         <image class="selected-image-thumb" :src="item.previewUrl" mode="aspectFill" @tap="previewSelectedCommentImage" :data-index="index"></image>
-
                         <view class="remove-image-btn" @tap="removeCommentImage" :data-index="index">✕</view>
+                    </view>
+                </view>
+
+                <!-- 讨论图片显示 -->
+                <view v-if="isDiscussionMode && discussionImages.length" class="selected-comment-images">
+                    <view class="selected-image-item" :data-index="index" v-for="(item, index) in discussionImages" :key="index">
+                        <image class="selected-image-thumb" :src="item.previewUrl" mode="aspectFill" @tap="previewSelectedDiscussionImage" :data-index="index"></image>
+                        <view class="remove-image-btn" @tap="removeDiscussionImage" :data-index="index">✕</view>
                     </view>
                 </view>
 
                 <!-- 底部操作栏，包含发送按钮 -->
                 <view class="expanded-actions">
                     <view class="action-icons">
-                        <view class="action-icon" @tap="chooseCommentImages">
+                        <view class="action-icon" @tap="chooseImages">
                             <text class="action-icon-text">🖼️</text>
                         </view>
                         <view class="action-icon" @tap="toggleEmojiPanel">
                             <text class="action-icon-text">😊</text>
                         </view>
                     </view>
-                    <button class="submit-button" @tap="onSubmitComment" :disabled="isSubmitDisabled">发送</button>
+                    <button class="submit-button" @tap="isDiscussionMode ? onSubmitDiscussion : onSubmitComment" :disabled="isSubmitDisabled">
+                        {{ isDiscussionMode ? '发布讨论' : '发送' }}
+                    </button>
                 </view>
                 <view v-if="showEmojiPanel" class="emoji-panel">
                     <text class="emoji-item" :data-emoji="item" @tap="insertEmoji" v-for="(item, index) in emojiList" :key="index">{{ item }}</text>
@@ -449,7 +481,14 @@ export default {
             },
 
             replyImage: '',
-            replyImageIndex: 0
+            replyImageIndex: 0,
+
+            // 讨论功能相关
+            isDiscussionMode: false,
+            discussionTitle: '',
+            discussionContent: '',
+            discussionImages: [],
+            maxDiscussionImages: 9
         };
     },
     onLoad: function (options) {
@@ -748,14 +787,248 @@ export default {
         },
 
         updateSubmitState: function () {
-            const hasText = (this.newComment || '').trim().length > 0;
-            const hasImages = Array.isArray(this.commentImages) && this.commentImages.length > 0;
-            const disabled = (!hasText && !hasImages) || this.isSubmittingComment;
-            if (this.isSubmitDisabled !== disabled) {
-                this.setData({
-                    isSubmitDisabled: disabled
-                });
+            if (this.isDiscussionMode) {
+                const hasTitle = (this.discussionTitle || '').trim().length > 0;
+                const hasContent = (this.discussionContent || '').trim().length > 0;
+                const hasImages = Array.isArray(this.discussionImages) && this.discussionImages.length > 0;
+                const disabled = (!hasContent && !hasImages) || this.isSubmittingComment;
+                if (this.isSubmitDisabled !== disabled) {
+                    this.setData({
+                        isSubmitDisabled: disabled
+                    });
+                }
+            } else {
+                const hasText = (this.newComment || '').trim().length > 0;
+                const hasImages = Array.isArray(this.commentImages) && this.commentImages.length > 0;
+                const disabled = (!hasText && !hasImages) || this.isSubmittingComment;
+                if (this.isSubmitDisabled !== disabled) {
+                    this.setData({
+                        isSubmitDisabled: disabled
+                    });
+                }
             }
+        },
+
+        // 讨论模式切换
+        switchToComment: function() {
+            if (this.isDiscussionMode) {
+                this.setData({
+                    isDiscussionMode: false,
+                    replyToComment: null,
+                    replyToAuthor: ''
+                });
+                this.updateSubmitState();
+            }
+        },
+
+        switchToDiscussion: function() {
+            if (!this.isDiscussionMode) {
+                this.setData({
+                    isDiscussionMode: true,
+                    replyToComment: null,
+                    replyToAuthor: ''
+                });
+                this.updateSubmitState();
+            }
+        },
+
+        onDiscussionTitleInput: function(e) {
+            this.setData({
+                discussionTitle: e.detail.value
+            });
+            this.updateSubmitState();
+        },
+
+        onDiscussionContentInput: function(e) {
+            this.setData({
+                discussionContent: e.detail.value
+            });
+            this.updateSubmitState();
+        },
+
+        previewSelectedDiscussionImage: function(e) {
+            const index = e.currentTarget.dataset.index || 0;
+            const images = this.discussionImages || [];
+            if (!images.length) {
+                return;
+            }
+            const urls = images.map((item) => item.previewUrl).filter(Boolean);
+            if (!urls.length) {
+                return;
+            }
+            const current = urls[index] || urls[0];
+            return previewImage({ current, urls }, { fallbackToast: false });
+        },
+
+        removeDiscussionImage: function(e) {
+            const index = e.currentTarget.dataset.index;
+            if (index === undefined) {
+                return;
+            }
+            const images = (this.discussionImages || []).slice();
+            images.splice(index, 1);
+            this.setData(
+                {
+                    discussionImages: images
+                },
+                () => {
+                    this.updateSubmitState();
+                }
+            );
+        },
+
+        onSubmitDiscussion: async function() {
+            if (this.isSubmitDisabled || this.isSubmittingComment) {
+                return;
+            }
+
+            const trimmedTitle = (this.discussionTitle || '').trim();
+            const trimmedContent = (this.discussionContent || '').trim();
+            const hasContent = trimmedContent.length > 0;
+            const hasImages = Array.isArray(this.discussionImages) && this.discussionImages.length > 0;
+
+            if (!hasContent && !hasImages) {
+                uni.showToast({
+                    title: '请输入内容或添加图片',
+                    icon: 'none'
+                });
+                return;
+            }
+
+            const parentPostId = this.post && this.post._id ? this.post._id : '';
+            if (!parentPostId) {
+                uni.showToast({
+                    title: '帖子信息缺失',
+                    icon: 'none'
+                });
+                return;
+            }
+
+            this.setData({
+                isSubmittingComment: true
+            });
+            this.updateSubmitState();
+
+            uni.showLoading({
+                title: '发布中...'
+            });
+
+            try {
+                // 上传讨论图片
+                let imageUrls = [];
+                let originalImageUrls = [];
+
+                if (this.discussionImages.length > 0) {
+                    const imageUploadResults = await this.uploadDiscussionImages();
+                    imageUrls = imageUploadResults.map((item) => item.compressedUrl);
+                    originalImageUrls = imageUploadResults.map((item) => item.originalUrl);
+                }
+
+                // 调用内容审核云函数创建讨论帖子
+                const res = await this.callCloudFunction(
+                    'contentCheck',
+                    {
+                        title: trimmedTitle,
+                        content: trimmedContent,
+                        fileIDs: imageUrls,
+                        originalFileIDs: originalImageUrls,
+                        isDiscussion: true,
+                        parentPostId: parentPostId,
+                        publishMode: 'discussion'
+                    },
+                    { requireAuth: true }
+                );
+
+                uni.hideLoading();
+
+                if (res.result && res.result.code === 0) {
+                    uni.showToast({
+                        title: '讨论发布成功',
+                        icon: 'success'
+                    });
+
+                    // 清空讨论内容
+                    this.setData({
+                        discussionTitle: '',
+                        discussionContent: '',
+                        discussionImages: [],
+                        showEmojiPanel: false,
+                        isDiscussionMode: false
+                    });
+
+                    this.updateSubmitState();
+                    this.collapseInput();
+
+                    // 刷新评论列表，显示新创建的讨论
+                    this.getComments(parentPostId);
+
+                    // 更新评论计数
+                    const newCommentCount = this.commentCount + 1;
+                    this.setData({
+                        commentCount: newCommentCount
+                    });
+
+                    // 更新上一页面的评论计数
+                    const pages = getCurrentPages();
+                    if (pages.length > 1) {
+                        const prePage = pages[pages.length - 2];
+                        if ((prePage.route === 'pages/index/index' || prePage.route === 'pages/profile/profile') && typeof prePage.updatePostCommentCount === 'function') {
+                            prePage.updatePostCommentCount(parentPostId, newCommentCount);
+                        }
+                    }
+                } else {
+                    uni.showToast({
+                        title: (res.result && res.result.msg) || '讨论发布失败',
+                        icon: 'none'
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to submit discussion:', error);
+                uni.hideLoading();
+                uni.showToast({
+                    title: '讨论发布失败',
+                    icon: 'none'
+                });
+            } finally {
+                this.setData({
+                    isSubmittingComment: false
+                });
+                this.updateSubmitState();
+            }
+        },
+
+        uploadDiscussionImages: function() {
+            const images = this.discussionImages || [];
+            if (!images.length) {
+                return Promise.resolve([]);
+            }
+            const openid = this.getCurrentUserId() || 'guest';
+            const timestamp = Date.now();
+
+            // 使用兼容性的文件上传方法
+            return Promise.all(
+                images.map((image, index) => {
+                    const uniqueKey = (openid || 'guest') + '_' + timestamp + '_discussion_' + index;
+                    const compressedCloudPath = 'discussion_images/' + uniqueKey + '_compressed.jpg';
+
+                    // 使用兼容性的文件上传方法
+                    return this.uploadFile(compressedCloudPath, image.compressedPath || image.previewUrl || image.originalPath)
+                        .then((compressedRes) => {
+                            if (image.needCompression) {
+                                const originalCloudPath = 'discussion_images/' + uniqueKey + '_original.jpg';
+                                return this.uploadFile(originalCloudPath, image.originalPath)
+                                    .then((originalRes) => ({
+                                        compressedUrl: compressedRes.fileID,
+                                        originalUrl: originalRes.fileID
+                                    }));
+                            }
+                            return {
+                                compressedUrl: compressedRes.fileID,
+                                originalUrl: compressedRes.fileID
+                            };
+                        });
+                })
+            );
         },
 
         onCommentInput: function (e) {
@@ -787,15 +1060,28 @@ export default {
             if (!emoji) {
                 return;
             }
-            const newComment = (this.newComment || '') + emoji;
-            this.setData(
-                {
-                    newComment: newComment
-                },
-                () => {
-                    this.updateSubmitState();
-                }
-            );
+
+            if (this.isDiscussionMode) {
+                const newDiscussionContent = (this.discussionContent || '') + emoji;
+                this.setData(
+                    {
+                        discussionContent: newDiscussionContent
+                    },
+                    () => {
+                        this.updateSubmitState();
+                    }
+                );
+            } else {
+                const newComment = (this.newComment || '') + emoji;
+                this.setData(
+                    {
+                        newComment: newComment
+                    },
+                    () => {
+                        this.updateSubmitState();
+                    }
+                );
+            }
         },
 
         closeEmojiPanel: function () {
@@ -806,13 +1092,19 @@ export default {
             }
         },
 
-        chooseCommentImages: function () {
+        chooseImages: function () {
             this.closeEmojiPanel();
-            const existing = this.commentImages ? this.commentImages.length : 0;
-            const remaining = this.maxCommentImages - existing;
+
+            const isDiscussionMode = this.isDiscussionMode;
+            const existingImages = isDiscussionMode ?
+                (this.discussionImages ? this.discussionImages.length : 0) :
+                (this.commentImages ? this.commentImages.length : 0);
+            const maxImages = isDiscussionMode ? this.maxDiscussionImages : this.maxCommentImages;
+            const remaining = maxImages - existingImages;
+
             if (remaining <= 0) {
                 uni.showToast({
-                    title: '最多选择3张图片',
+                    title: isDiscussionMode ? '最多选择9张图片' : '最多选择3张图片',
                     icon: 'none'
                 });
                 return;
@@ -822,6 +1114,7 @@ export default {
             if (!this.isInputExpanded) {
                 this.expandInput();
             }
+
             uni.chooseImage({
                 count: remaining,
                 sizeType: ['original', 'compressed'],
@@ -833,30 +1126,49 @@ export default {
                             tempFilePath: path,
                             size: 0
                         }));
-                    const tasks = tempFiles.map((file) => this.prepareCommentImage(file));
+
+                    const prepareMethod = isDiscussionMode ? 'prepareDiscussionImage' : 'prepareCommentImage';
+                    const tasks = tempFiles.map((file) => this[prepareMethod](file));
+
                     Promise.all(tasks)
                         .then((processedImages) => {
                             const validImages = processedImages.filter((item) => !!item);
                             if (validImages.length === 0) {
                                 return;
                             }
-                            const updatedImages = (this.commentImages || []).concat(validImages);
-                            this.setData(
-                                {
-                                    commentImages: updatedImages.slice(0, this.maxCommentImages)
-                                },
-                                () => {
-                                    this.updateSubmitState();
-                                    // 选择图片后保持输入框展开状态
-                                    this.setData({
-                                        isInputExpanded: true,
-                                        isFocus: false // 不自动聚焦，避免键盘弹出
-                                    });
-                                }
-                            );
+
+                            if (isDiscussionMode) {
+                                const updatedImages = (this.discussionImages || []).concat(validImages);
+                                this.setData(
+                                    {
+                                        discussionImages: updatedImages.slice(0, this.maxDiscussionImages)
+                                    },
+                                    () => {
+                                        this.updateSubmitState();
+                                        this.setData({
+                                            isInputExpanded: true,
+                                            isFocus: false
+                                        });
+                                    }
+                                );
+                            } else {
+                                const updatedImages = (this.commentImages || []).concat(validImages);
+                                this.setData(
+                                    {
+                                        commentImages: updatedImages.slice(0, this.maxCommentImages)
+                                    },
+                                    () => {
+                                        this.updateSubmitState();
+                                        this.setData({
+                                            isInputExpanded: true,
+                                            isFocus: false
+                                        });
+                                    }
+                                );
+                            }
                         })
                         .catch((err) => {
-                            console.error('评论图片处理失败:', err);
+                            console.error((isDiscussionMode ? '讨论' : '评论') + '图片处理失败:', err);
                             uni.showToast({
                                 title: '图片处理失败',
                                 icon: 'none'
@@ -865,7 +1177,7 @@ export default {
                 },
                 fail: (err) => {
                     if (err && err.errMsg && err.errMsg.indexOf('cancel') === -1) {
-                        console.error('选择评论图片失败:', err);
+                        console.error('选择图片失败:', err);
                         uni.showToast({
                             title: '无法选择图片',
                             icon: 'none'
@@ -873,6 +1185,10 @@ export default {
                     }
                 }
             });
+        },
+
+        chooseCommentImages: function () {
+            this.chooseImages();
         },
 
         prepareCommentImage: function (file) {
@@ -964,6 +1280,98 @@ export default {
 
                 // 从60%质量开始压缩，逐步降低直到文件大小符合要求
                 compressWithQuality(60);
+            });
+        },
+
+        prepareDiscussionImage: function (file) {
+            return new Promise((resolve) => {
+                const tempPath = file.tempFilePath || file.path || (Array.isArray(file.tempFilePaths) ? file.tempFilePaths[0] : '');
+                if (!tempPath) {
+                    resolve(null);
+                    return;
+                }
+                const sizeInBytes = file.size || 0;
+                // 讨论图片可以稍微大一些，阈值设为300KB
+                const needCompression = sizeInBytes > 307200;
+                const imageInfo = {
+                    id: 'discussion_' + Date.now() + '_' + Math.floor(Math.random() * 100000),
+                    originalPath: tempPath,
+                    previewUrl: tempPath,
+                    compressedPath: tempPath,
+                    size: sizeInBytes,
+                    needCompression: needCompression
+                };
+                if (!needCompression) {
+                    resolve(imageInfo);
+                    return;
+                }
+                this.compressDiscussionImage(imageInfo)
+                    .then((resolvedInfo) => {
+                        resolve(resolvedInfo);
+                    })
+                    .catch((err) => {
+                        console.warn('讨论图片压缩异常:', err);
+                        imageInfo.compressedPath = imageInfo.originalPath;
+                        imageInfo.previewUrl = imageInfo.originalPath;
+                        imageInfo.needCompression = false;
+                        resolve(imageInfo);
+                    });
+            });
+        },
+
+        compressDiscussionImage: function (imageInfo) {
+            return new Promise((resolve) => {
+                // 讨论图片压缩，允许稍大的文件大小，阈值300KB
+                const compressWithQuality = (quality) => {
+                    uni.compressImage({
+                        src: imageInfo.originalPath,
+                        quality: quality,
+                        success: (res) => {
+                            // 检查压缩后的文件大小
+                            uni.getFileInfo({
+                                filePath: res.tempFilePath,
+                                success: (fileInfo) => {
+                                    const compressedSize = fileInfo.size;
+                                    console.log(`讨论图片压缩质量${quality}%，文件大小: ${(compressedSize / 1024).toFixed(2)}KB`);
+
+                                    // 如果文件大小超过300KB且质量还可以继续降低，则继续压缩
+                                    if (compressedSize > 307200 && quality > 30) {
+                                        console.log(`讨论图片大小${(compressedSize / 1024).toFixed(2)}KB超过300KB，继续压缩...`);
+                                        compressWithQuality(quality - 10);
+                                    } else {
+                                        imageInfo.compressedPath = res.tempFilePath;
+                                        imageInfo.previewUrl = res.tempFilePath;
+                                        imageInfo.compressedSize = compressedSize;
+                                        console.log(`讨论图片最终压缩质量${quality}%，文件大小: ${(compressedSize / 1024).toFixed(2)}KB`);
+                                        resolve(imageInfo);
+                                    }
+                                },
+                                fail: () => {
+                                    // 如果无法获取文件信息，直接使用压缩结果
+                                    imageInfo.compressedPath = res.tempFilePath;
+                                    imageInfo.previewUrl = res.tempFilePath;
+                                    resolve(imageInfo);
+                                }
+                            });
+                        },
+                        fail: (err) => {
+                            console.warn(`讨论图片压缩质量${quality}%失败:`, err);
+                            if (quality > 30) {
+                                // 如果压缩失败且质量还可以降低，尝试更低的质量
+                                compressWithQuality(quality - 10);
+                            } else {
+                                // 如果所有压缩都失败，使用原图
+                                imageInfo.compressedPath = imageInfo.originalPath;
+                                imageInfo.previewUrl = imageInfo.originalPath;
+                                imageInfo.needCompression = false;
+                                resolve(imageInfo);
+                            }
+                        }
+                    });
+                };
+
+                // 从70%质量开始压缩，讨论图片可以用更高质量
+                compressWithQuality(70);
             });
         },
 
@@ -1655,22 +2063,28 @@ export default {
 <style>
 /* pages/post-detail/post-detail.wxss */
 .container {
-    padding: 20rpx;
-    background-color: #f7f8fa;
+    background-color: #ffffff;
     min-height: 100vh;
     padding-bottom: 140rpx;
 }
 
 .post-detail-skeleton {
-    padding: 10rpx;
+    padding: 0;
 }
 
-.skeleton-card {
+.skeleton-wrapper {
+    background: #fff;
+    padding: 40rpx 40rpx 20rpx 40rpx;
+    border-bottom: 1rpx solid #f0f0f0;
+    margin-bottom: 0;
+}
+
+.comment-skeleton-item {
+    display: flex;
+    align-items: flex-start;
     background-color: #fff;
-    border-radius: 16rpx;
-    padding: 30rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
-    margin-bottom: 40rpx;
+    padding: 20rpx 40rpx;
+    border-bottom: 1rpx solid #f5f5f5;
 }
 
 .skeleton-header {
@@ -1803,33 +2217,17 @@ export default {
     color: #666;
 }
 
-.post-detail-card {
-    position: relative;
-    background-color: #fff;
-    border-radius: 16rpx;
-    padding: 30rpx;
-    margin-bottom: 20rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+.post-detail-wrapper {
+    background: #fff;
+    padding: 40rpx 40rpx 20rpx 40rpx;
+    border-bottom: 1rpx solid #f0f0f0;
+    margin-bottom: 0;
 }
 
-.post-detail-card.original-post {
-    border: 3rpx solid #ebc88d;
-    box-shadow: 0 6rpx 24rpx rgba(235, 200, 141, 0.4), 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+.post-detail-wrapper.original-post {
+    background: linear-gradient(90deg, rgba(235, 200, 141, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
+    border-left: 3rpx solid #ebc88d;
     position: relative;
-}
-
-.post-detail-card.original-post::before {
-    content: '';
-    position: absolute;
-    top: -2rpx;
-    left: -2rpx;
-    right: -2rpx;
-    bottom: -2rpx;
-    background: linear-gradient(45deg, #ebc88d, #f4d03f, #ebc88d);
-    border-radius: 18rpx;
-    z-index: -1;
-    opacity: 0.6;
-    filter: blur(10rpx);
 }
 
 .author-info {
@@ -1972,11 +2370,10 @@ export default {
 
 .vote-section {
     display: flex;
-    justify-content: flex-start;
+    justify-content: space-between;
     align-items: center;
-    padding-top: 20rpx;
-    margin-top: 20rpx;
-    border-top: 1rpx solid #f0f0f0;
+    margin-top: 10rpx;
+    padding: 10rpx 60rpx 0 60rpx;
 }
 
 .actions-left {
@@ -1990,12 +2387,8 @@ export default {
     align-items: center;
     font-size: 28rpx;
     color: #999;
-    margin-left: 20rpx;
+    margin-left: 10rpx;
     transition: color 0.2s ease;
-}
-
-.vote-count {
-    margin-left: 0rpx;
 }
 
 .action-emoji {
@@ -2065,10 +2458,9 @@ export default {
 }
 
 .comment-section {
-    background-color: #fff;
-    border-radius: 16rpx;
-    padding: 30rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    background: #fff;
+    padding: 30rpx 40rpx;
+    border-bottom: 1rpx solid #f0f0f0;
 }
 
 .section-title {
@@ -2086,9 +2478,9 @@ export default {
 
 .comment-item {
     display: flex;
-    margin-bottom: 30rpx;
-    padding-bottom: 20rpx;
-    border-bottom: 1rpx solid #f5f5f5;
+    margin-bottom: 0;
+    padding: 20rpx 0;
+    border-bottom: 1rpx solid #f0f0f0;
 }
 
 .comment-item:last-child {
@@ -2103,6 +2495,7 @@ export default {
     margin-right: 15rpx;
     flex-shrink: 0;
     background-color: #f5f5f5;
+    margin-left: 40rpx;
 }
 
 .comment-main {
@@ -2148,9 +2541,10 @@ export default {
 
 .comment-footer {
     display: flex;
-    justify-content: flex-start;
+    justify-content: space-between;
     align-items: center;
     width: 100%;
+    margin-right: 40rpx;
 }
 
 .comment-time {
@@ -2222,6 +2616,7 @@ export default {
 
 .replies-container {
     margin-top: 15rpx;
+    margin-left: 20rpx;
     padding-left: 20rpx;
     border-left: 2rpx solid #f0f0f0;
 }
@@ -2268,7 +2663,7 @@ export default {
 
 .reply-footer {
     display: flex;
-    justify-content: flex-start;
+    justify-content: space-between;
     align-items: center;
     margin-top: 8rpx;
 }
@@ -2348,7 +2743,7 @@ export default {
 }
 
 .collapsed-bar {
-    padding: 16rpx 30rpx;
+    padding: 16rpx 40rpx;
     display: flex;
     align-items: center;
     border-top: 1rpx solid #f0f0f0;
@@ -2365,7 +2760,7 @@ export default {
 }
 
 .expanded-container {
-    padding: 20rpx 30rpx;
+    padding: 20rpx 40rpx;
     display: flex;
     flex-direction: column;
     border-top: 1rpx solid #f0f0f0;
@@ -2584,5 +2979,65 @@ export default {
     background-color: #f4ebff;
     color: #7c55c7;
     flex-shrink: 0;
+}
+
+/* 模式切换样式 */
+.mode-switcher {
+    display: flex;
+    background: #f7f8fa;
+    border-radius: 25rpx;
+    padding: 6rpx;
+    margin-bottom: 20rpx;
+    border: 2rpx solid #e9ecef;
+}
+
+.mode-item {
+    flex: 1;
+    text-align: center;
+    padding: 16rpx 24rpx;
+    border-radius: 20rpx;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.mode-item.active {
+    background: #9ed7ee;
+    box-shadow: 0 2rpx 8rpx rgba(158, 215, 238, 0.3);
+}
+
+.mode-text {
+    font-size: 28rpx;
+    font-weight: 500;
+    color: #666;
+    transition: color 0.3s ease;
+}
+
+.mode-item.active .mode-text {
+    color: #fff;
+    font-weight: 600;
+}
+
+/* 讨论标题输入样式 */
+.discussion-title-wrapper {
+    margin-bottom: 15rpx;
+    border-bottom: 1rpx solid #f0f0f0;
+    padding-bottom: 15rpx;
+}
+
+.discussion-title-input {
+    width: 100%;
+    height: 80rpx;
+    line-height: 80rpx;
+    padding: 0 24rpx;
+    background-color: #ffffff;
+    border: 1rpx solid #e9ecef;
+    border-radius: 12rpx;
+    font-size: 30rpx;
+    color: #333;
+    box-sizing: border-box;
+}
+
+.discussion-title-input::placeholder {
+    color: #999;
 }
 </style>

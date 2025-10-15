@@ -1,7 +1,9 @@
-<template>
+﻿<template>
     <view>
         <!-- poem.wxml - 原创诗歌页面（路） -->
         <view class="container">
+            <!-- 顶部栏 -->
+            <top-bar ref="topBar"></top-bar>
             <!-- 双图层清晰背景 -->
             <view class="background-wrapper">
                 <image
@@ -69,13 +71,14 @@
             </view>
 
         </view>
-
+        <view class="poem-square-entry" @tap="toPoemSquare">🔳</view>
     </view>
 </template>
 
 <script>
 import skeleton from '@/components/skeleton/skeleton';
 import folderSelector from '@/components/folder-selector/folder-selector';
+import topBar from '@/components/top-bar/top-bar';
 // poem.js
 // 兼容H5环境，使用CloudBase SDK
 // const db = wx.cloud.database(); // 小程序环境
@@ -86,7 +89,8 @@ const postGalleryMixin = require('../../mixins/postGallery.js');
 export default {
     components: {
         skeleton,
-        folderSelector
+        folderSelector,
+        topBar
     },
     mixins: [postGalleryMixin],
     data() {
@@ -206,7 +210,7 @@ export default {
             console.log('【poem】再次进入，保持之前内容');
         }
     },
-    methods: {
+    methods: { toPoemSquare(){ uni.navigateTo({ url: "/pages/poem-square/poem-square" }); },
         // 统一云函数调用方法
         callCloudFunction(name, data = {}, extraOptions = {}) {
             return cloudCall(name, data, Object.assign({ pageTag: 'poem', context: this }, extraOptions));
@@ -871,6 +875,7 @@ page {
     position: relative;
     overflow: hidden;
     min-height: 100vh;
+    padding-top: 88rpx; /* 为顶部栏留出空间 */
 }
 
 /* 读诗模式容器 */
@@ -1145,4 +1150,4 @@ page {
     z-index: 1000;
 }
 
-</style>
+.poem-square-entry{ position:fixed; right:24rpx; bottom:180rpx; width:96rpx; height:96rpx; border-radius:24rpx; background:#0bb07b; color:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 10rpx 26rpx rgba(0,0,0,.18); z-index:999; } .poem-square-entry::after{ border:none } </style>

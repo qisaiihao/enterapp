@@ -1,0 +1,77 @@
+<template>
+    <view>
+        <!-- 注册页面 -->
+        <view class="container">
+            <view class="title">创建新账号</view>
+            <view class="subtitle">设置你的账号信息</view>
+
+            <view class="form-wrapper">
+                <!-- 头像上传入口（走云函数，不直连COS） -->
+                <view class="avatar-uploader">
+                    <view class="avatar-preview" @tap="onChooseAvatar">
+                        <image :src="localAvatarTempPath || '/static/images/avatar.png'" mode="aspectFill"></image>
+                        <text class="avatar-tip">点击上传头像</text>
+                    </view>
+                    <button class="avatar-upload-btn" @tap="onChooseAvatar" :loading="isUploadingAvatar" :disabled="isUploadingAvatar">上传头像</button>
+                </view>
+                <view class="input-wrapper">
+                    <text class="input-label">Poem ID</text>
+                    <input 
+                        class="input-field" 
+                        type="text" 
+                        placeholder="请输入Poem ID" 
+                        v-model="poemId"
+                        @input="onPoemIdInput" 
+                    />
+                </view>
+
+                <view class="input-wrapper">
+                    <text class="input-label">密码</text>
+                    <input 
+                        class="input-field" 
+                        type="password" 
+                        placeholder="请输入密码" 
+                        v-model="password"
+                        @input="onPasswordInput" 
+                    />
+                </view>
+
+                <view class="input-wrapper">
+                    <text class="input-label">确认密码</text>
+                    <input 
+                        class="input-field" 
+                        type="password" 
+                        placeholder="请再次输入密码" 
+                        v-model="confirmPassword"
+                        @input="onConfirmPasswordInput" 
+                    />
+                </view>
+
+                <view class="input-wrapper">
+                    <text class="input-label">昵称</text>
+                    <input 
+                        class="input-field" 
+                        type="text" 
+                        placeholder="请输入昵称" 
+                        v-model="nickName"
+                        @input="onNickNameInput" 
+                    />
+                </view>
+
+                <button 
+                    class="register-button" 
+                    @tap="onRegister" 
+                    :disabled="!canRegister || isRegistering"
+                    :class="{ 'loading': isRegistering }"
+                >
+                    {{ isRegistering ? '注册中...' : '注册' }}
+                </button>
+
+                <view class="login-link-wrapper">
+                    <text class="login-text">已有账号？</text>
+                    <text class="login-link" @tap="goToLogin">立即登录</text>
+                </view>
+            </view>
+        </view>
+    </view>
+</template>

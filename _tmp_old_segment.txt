@@ -1,0 +1,57 @@
+            return cloudCall(name, data, Object.assign({ pageTag: 'profile-edit', context: this, requireAuth: true }, extraOptions));
+        },
+
+        // 兼容性文件上传方法
+        uploadFile(cloudPath, filePath) {
+            console.log(`🔍 [ProfileEdit] 上传文件: ${cloudPath}`, filePath);
+            
+            return new Promise((resolve, reject) => {
+                // 使用新的平台检测工具
+                const { getCurrentPlatform, getCloudFunctionMethod } = require('../../utils/platformDetector.js');
+                
+                const platform = getCurrentPlatform();
+                const method = getCloudFunctionMethod();
+                
+                console.log(`🔍 [ProfileEdit] 运行环境: ${platform}, 调用方式: ${method}`);
+                
+                if (method === 'tcb') {
+                    // H5和App环境使用TCB
+                    const app = getApp();
+                    if (app && app.$tcb && app.$tcb.uploadFile) {
+                        console.log(`🔍 [ProfileEdit] ${platform}环境使用TCB上传文件: ${cloudPath}`);
+                        app.$tcb.uploadFile({
+                            cloudPath: cloudPath,
+                            filePath: filePath
+                        }).then(resolve).catch(reject);
+                    } else {
+                        console.error(`❌ [ProfileEdit] ${platform}环境TCB不可用`);
+                        console.error(`❌ [ProfileEdit] app:`, app);
+                        console.error(`❌ [ProfileEdit] app.$tcb:`, app && app.$tcb);
+                        reject(new Error('TCB实例不可用'));
+                    }
+                } else if (method === 'wx-cloud') {
+                    // 小程序环境使用微信云开发
+                    if (wx.cloud && wx.cloud.uploadFile) {
+                        console.log(`🔍 [ProfileEdit] 小程序环境使用微信云开发上传文件: ${cloudPath}`);
+                        wx.cloud.uploadFile({
+                            cloudPath: cloudPath,
+                            filePath: filePath,
+                            success: (res) => {
+                                console.log(`✅ [ProfileEdit] 文件上传成功: ${cloudPath}`, res);
+                                resolve(res);
+                            },
+                            fail: (err) => {
+                                console.error(`❌ [ProfileEdit] 文件上传失败: ${cloudPath}`, err);
+                                reject(err);
+                            }
+                        });
+                    } else {
+                        console.error(`❌ [ProfileEdit] 小程序环境微信云开发不可用`);
+                        reject(new Error('微信云开发不可用'));
+                    }
+                } else {
+                    console.error(`❌ [ProfileEdit] 不支持的云函数调用方式: ${method}`);
+                    reject(new Error(`不支持的云函数调用方式: ${method}`));
+                }
+            });
+        },

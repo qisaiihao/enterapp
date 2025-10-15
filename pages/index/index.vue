@@ -7,19 +7,8 @@
                 <view class="page-indicator-text">{{ pageIndicatorText }}</view>
             </view>
 
-            <!-- 消息图标按钮 -->
-            <view class="message-icon-container" @tap="navigateToMessages">
-                <view class="message-icon">✉️</view>
-                <view v-if="unreadMessageCount > 0" class="unread-dot"></view>
-            </view>
-
-            <!-- 搜索框组件 -->
-            <view class="search-box-container">
-                <view class="search-box" @tap="navigateToSearch">
-                    <view class="search-icon">🔍</view>
-                    <view class="search-placeholder">搜索帖子...</view>
-                </view>
-            </view>
+            <!-- 页面切换栏 -->
+        <page-tabs ref="pageTabs" :current-tab="currentTab" @tab-change="onTabChange"></page-tabs>
 
             <!-- 骨架屏：当 isLoading 为 true 时显示 -->
             <view v-if="isLoading">
@@ -257,6 +246,120 @@
                             </view>
                         </view>
                     </view>
+
+                    <!-- 讨论页帖子列表 -->
+                    <view v-else-if="currentPage === 'discussion'">
+                        <view v-if="discussionPostList.length === 0 && !discussionIsLoading" class="empty-state">
+                            <view class="empty-icon">💬</view>
+                            <view class="empty-text">讨论区暂无内容</view>
+                            <view class="empty-subtext">快来发起第一个话题吧！</view>
+                        </view>
+                        <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" v-for="(item, index) in discussionPostList" :key="index">
+                            <!-- 作者信息 -->
+
+                            <view class="author-info-outside">
+                                <image
+                                    v-if="item.authorAvatar"
+                                    class="author-avatar"
+                                    :src="item.authorAvatar"
+                                    mode="aspectFill"
+                                    @error="onAvatarError"
+                                    @load="onAvatarLoad"
+                                    :data-postindex="index"
+                                    @tap.stop.prevent="navigateToUserProfile"
+                                    :data-user-id="item._openid"
+                                ></image>
+                                <text class="author-name">{{ item.authorName }}</text>
+                            </view>
+
+                            <!-- 可点击的内容区域 - 跳转到详情页 -->
+
+                            <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item._id" hover-class="navigator-hover">
+                                <view class="post-item">
+                                    <view class="post-title">{{ item.title }}</view>
+                                    <!-- 诗歌作者信息 -->
+                                    <view v-if="item.isPoem && item.author" class="poem-author">{{ item.author }}</view>
+
+                                    <!-- 图片显示逻辑 (已优化，使用 imageStyle 占位) -->
+                                    <view
+                                        v-if="item.imageUrls && item.imageUrls.length > 0"
+                                        class="image-container-wrapper"
+                                        :style="item.imageStyle"
+                                        @tap.stop.prevent="handlePreview"
+                                        :data-src="item.imageUrls[0]"
+                                        :data-original-image-urls="item.originalImageUrls || item.imageUrls"
+                                    >
+                                        <!-- 单张图片 -->
+                                        <block v-if="item.imageUrls.length === 1">
+                                            <image
+                                                class="post-image"
+                                                :src="item.imageUrls[0]"
+                                                mode="aspectFill"
+                                                :lazy-load="true"
+                                                @error="onImageError"
+                                                @tap.stop.prevent="handlePreview"
+                                                :data-src="item.imageUrls[0]"
+                                                :data-original-image-urls="item.originalImageUrls || item.imageUrls"
+                                            />
+                                        </block>
+
+                                        <!-- 多张图片 -->
+                                        <block v-else-if="item.imageUrls.length > 1">
+                                            <swiper class="image-swiper" :indicator-dots="true" :circular="true">
+                                                <block v-for="(img, index1) in item.imageUrls" :key="index1">
+                                                    <swiper-item>
+                                                        <image
+                                                            class="post-image"
+                                                            :src="img"
+                                                            mode="aspectFill"
+                                                            :lazy-load="true"
+                                                            @error="onImageError"
+                                                            @tap.stop.prevent="handlePreview"
+                                                            :data-src="img"
+                                                            :data-original-image-urls="item.originalImageUrls || item.imageUrls"
+                                                        />
+                                                    </swiper-item>
+                                                </block>
+                                            </swiper>
+                                        </block>
+                                    </view>
+
+                                    <view class="post-content" v-if="item.content" style="white-space: pre-wrap">{{ item.content }}</view>
+
+                                    <!-- 标签显示 -->
+                                    <view v-if="item.tags && item.tags.length > 0" class="post-tags">
+                                        <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="item" v-for="(item, index1) in item.tags" :key="index1">#{{ item }}</text>
+                                    </view>
+                                </view>
+                            </navigator>
+
+                            <!-- 独立的互动区域 - 不触发详情页跳转 -->
+
+                            <view class="vote-section">
+                                <view class="actions-left">
+                                    <!-- 左侧留空，保持布局平衡 -->
+                                </view>
+                                <view class="button-group">
+                                    <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
+                                        <text class="action-emoji">💬</text>
+                                        <text class="action-text">{{ item.commentCount || 0 }}</text>
+                                    </view>
+                                    <view
+                                        class="like-icon-container"
+                                        @tap.stop.prevent="onVote"
+                                        :data-postid="item._id"
+                                        :data-index="index"
+                                        data-list-type="discussion"
+                                    >
+                                        <image class="like-icon" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError"></image>
+                                    </view>
+                                    <view :class="'vote-count ' + (item.isVoted ? 'voted' : '')">
+                                        <text class="action-text">{{ item.votes || 0 }}</text>
+                                    </view>
+                                </view>
+                            </view>
+                        </view>
+                    </view>
                 </view>
 
                 <!-- 在容器外部，页面的最底部添加加载提示 -->
@@ -275,21 +378,28 @@
                             </view>
                         </view>
                     </block>
+                    <block v-else-if="currentPage === 'discussion' && !discussionHasMore && discussionPostList.length > 0">
+                        <text>--- 没有更多讨论了 ---</text>
+                    </block>
                 </view>
             </view>
 
-            <!-- 悬浮的发布按钮 -->
-            <navigator url="/pages/add/add" class="add-button">
-                <view>+</view>
-            </navigator>
-
+  
         </view>
+
+        <!-- #ifndef MP-WEIXIN -->
+        <app-tab-bar ref="customTabBar" />
+        <!-- #endif -->
 
     </view>
 </template>
 
 <script>
 import skeleton from '@/components/skeleton/skeleton';
+import pageTabs from '@/components/page-tabs/page-tabs';
+// #ifndef MP-WEIXIN
+import AppTabBar from '@/custom-tab-bar/index.vue';
+// #endif
 // index.js
 // 修复：移除全局数据库实例，改为在方法中动态获取
   const PAGE_SIZE = 5;
@@ -310,7 +420,11 @@ const { cloudCall } = require('../../utils/cloudCall.js');
 const postGalleryMixin = require('../../mixins/postGallery.js');
 export default {
     components: {
-        skeleton
+        skeleton,
+        pageTabs,
+        // #ifndef MP-WEIXIN
+        AppTabBar
+        // #endif
     },
     mixins: [postGalleryMixin],
     data() {
@@ -340,11 +454,9 @@ export default {
             visiblePosts: new Set(),
 
             // 可见的帖子ID集合
-            unreadMessageCount: 0,
-
-            // 未读消息数量
-
+  
             // --- 页面切换相关 ---
+            currentTab: 'square', // 'square', 'discover', 'discussion'
             currentPage: 'home',
 
             // 'home' 或 'discover'
@@ -373,6 +485,13 @@ export default {
             discoverIsLoadingMore: false,
 
             // 发现页刷新时间戳
+
+            // 讨论页相关数据
+            discussionPostList: [],
+            discussionPage: 0,
+            discussionHasMore: true,
+            discussionIsLoading: false,
+            discussionIsLoadingMore: false,
             touchStartX: 0,
 
             // 触摸开始X坐标
@@ -403,6 +522,10 @@ export default {
         this.waitForLoginThenInit();
     },
     onShow: function () {
+        // #ifndef MP-WEIXIN
+        try { uni.hideTabBar({ animation: false }); } catch (e) {}
+        try { this.$refs.customTabBar && this.$refs.customTabBar.syncSelected && this.$refs.customTabBar.syncSelected(); } catch (e) {}
+        // #endif
         // TabBar 状态更新，使用兼容性处理
         const { updateTabBarStatus } = require('../../utils/tabBarCompatibility.js');
         updateTabBarStatus(this, 0);
@@ -424,9 +547,7 @@ export default {
         // 同步点赞状态：从缓存中获取最新的点赞状态
         this.syncLikeStatusFromCache();
 
-        // 检查未读消息数量
-        this.checkUnreadMessageCount();
-    },
+            },
     onPullDownRefresh: function () {
         console.log('🔍 [首页] 下拉刷新触发，当前页面:', this.currentPage);
         if (this.currentPage === 'home') {
@@ -452,6 +573,11 @@ export default {
             console.log('🔍 [首页] 执行发现页刷新');
             this.refreshDiscoverPosts();
             uni.stopPullDownRefresh();
+        } else if (this.currentPage === 'discussion') {
+            // 讨论页刷新
+            console.log('🔍 [首页] 执行讨论页刷新');
+            this.refreshDiscussionPosts();
+            uni.stopPullDownRefresh();
         }
     },
     // 移除或禁用 onReachBottom，避免与 onPageScroll 冲突
@@ -473,14 +599,22 @@ onReachBottom: function () {
         this.scrollTimer = setTimeout(() => {
             const isHome = this.currentPage === 'home';
             const isDiscover = this.currentPage === 'discover';
-            if (!isHome && !isDiscover) {
+            const isDiscussion = this.currentPage === 'discussion';
+            if (!isHome && !isDiscover && !isDiscussion) {
                 return;
             }
 
-            const hasMore = isHome ? this.hasMore : this.discoverHasMore;
-            const loadingFlag = isHome
-                ? this.isLoading || this.isLoadingMore
-                : this.discoverIsLoading || this.discoverIsLoadingMore;
+            let hasMore, loadingFlag;
+            if (isHome) {
+                hasMore = this.hasMore;
+                loadingFlag = this.isLoading || this.isLoadingMore;
+            } else if (isDiscover) {
+                hasMore = this.discoverHasMore;
+                loadingFlag = this.discoverIsLoading || this.discoverIsLoadingMore;
+            } else if (isDiscussion) {
+                hasMore = this.discussionHasMore;
+                loadingFlag = this.discussionIsLoading || this.discussionIsLoadingMore;
+            }
 
             if (!hasMore || loadingFlag) {
                 console.log('【首页】滚动检测被阻止:', {
@@ -521,6 +655,8 @@ onReachBottom: function () {
                                 this.getPostList();
                             } else if (isDiscover) {
                                 this.loadRecommendationPosts();
+                            } else if (isDiscussion) {
+                                this.loadDiscussionPosts();
                             }
                         }
                     } else {
@@ -531,6 +667,52 @@ onReachBottom: function () {
         }, 100); // 100ms 防抖
     },
     methods: {
+        // 标签切换处理
+        onTabChange(tabValue) {
+            console.log('切换标签页:', tabValue);
+            this.setData({
+                currentTab: tabValue,
+                showPageIndicator: true
+            });
+
+            // 根据标签页映射到内部页面
+            switch(tabValue) {
+                case 'square':
+                    this.setData({
+                        currentPage: 'home',
+                        pageIndicatorText: '广场'
+                    });
+                    break;
+                case 'discover':
+                    this.setData({
+                        currentPage: 'discover',
+                        pageIndicatorText: '发现'
+                    });
+                    // 如果发现页还没有数据，加载发现页数据
+                    if (this.discoverPostList.length === 0) {
+                        this.loadDiscoverPosts();
+                    }
+                    break;
+                case 'discussion':
+                    this.setData({
+                        currentPage: 'discussion',
+                        pageIndicatorText: '讨论'
+                    });
+                    // 如果讨论页还没有数据，加载讨论页数据
+                    if (this.discussionPostList.length === 0) {
+                        this.loadDiscussionPosts();
+                    }
+                    break;
+            }
+
+            // 3秒后隐藏提示
+            setTimeout(() => {
+                this.setData({
+                    showPageIndicator: false
+                });
+            }, 3000);
+        },
+
         // 等待登录完成再初始化首页数据，避免 isVoted 计算出错
         waitForLoginThenInit: function () {
             const MAX_WAIT_MS = 5000; // 最多等待 5s
@@ -622,9 +804,21 @@ onReachBottom: function () {
             console.log('【点赞】onVote事件触发', event.currentTarget.dataset);
             const postId = event.currentTarget.dataset.postid;
             const index = event.currentTarget.dataset.index;
-            const listType = event.currentTarget.dataset.listType || (this.currentPage === 'discover' ? 'discover' : 'home');
-            const listKey = listType === 'discover' ? 'discoverPostList' : 'postList';
-            const pageTag = listType === 'discover' ? 'discover' : 'index';
+            let listType = event.currentTarget.dataset.listType;
+          if (!listType) {
+              if (this.currentPage === 'discover') {
+                  listType = 'discover';
+              } else if (this.currentPage === 'discussion') {
+                  listType = 'discussion';
+              } else {
+                  listType = 'home';
+              }
+          }
+
+          const listKey = listType === 'discover' ? 'discoverPostList' :
+                         listType === 'discussion' ? 'discussionPostList' : 'postList';
+          const pageTag = listType === 'discover' ? 'discover' :
+                         listType === 'discussion' ? 'discussion' : 'index';
             let list = this[listKey] || [];
             let targetIndex = index;
             if (!list[targetIndex] || list[targetIndex]._id !== postId) {
@@ -957,34 +1151,10 @@ onReachBottom: function () {
 
         // 模式切换现在通过底部tabBar实现，不再需要手动切换
 
-        // 检查未读消息数量
-        checkUnreadMessageCount: function () {
-            getUnreadCount(this).then((n) => {
-                this.setData({ unreadMessageCount: n || 0 });
-            }).catch(() => {});
-        },
-
         // 同步点赞状态：从缓存中获取最新的点赞状态
         syncLikeStatusFromCache: function () {
             // 已由 CacheManager 接管首页分页，跳过 dataCache 同步
             console.log('【首页】同步点赞状态：CacheManager 接管，跳过 dataCache 同步');
-        },
-
-        // 跳转到消息页面
-        navigateToMessages: function () {
-            uni.navigateTo({
-                url: '/pages/messages/messages',
-                success: () => {
-                    console.log('跳转到消息页面成功');
-                },
-                fail: (err) => {
-                    console.error('跳转到消息页面失败:', err);
-                    uni.showToast({
-                        title: '跳转失败',
-                        icon: 'none'
-                    });
-                }
-            });
         },
 
         // 标签点击处理
@@ -1019,24 +1189,6 @@ onReachBottom: function () {
                 },
                 fail: (err) => {
                     console.error('跳转到详情页失败:', err);
-                    uni.showToast({
-                        title: '跳转失败',
-                        icon: 'none'
-                    });
-                }
-            });
-        },
-
-        // 搜索框点击处理
-        navigateToSearch: function () {
-            console.log('点击搜索框，跳转到搜索页面');
-            uni.navigateTo({
-                url: '/pages/search/search',
-                success: () => {
-                    console.log('跳转到搜索页面成功');
-                },
-                fail: (err) => {
-                    console.error('跳转到搜索页面失败:', err);
                     uni.showToast({
                         title: '跳转失败',
                         icon: 'none'
@@ -1267,6 +1419,150 @@ onReachBottom: function () {
             this.loadRecommendationPosts();
         },
 
+        // 加载讨论页数据
+        loadDiscussionPosts: function () {
+            console.log('开始加载讨论页数据');
+
+            if (this.discussionIsLoading || this.discussionIsLoadingMore) {
+                console.log('讨论页正在加载中，跳过重复请求');
+                return;
+            }
+
+            if (!this.discussionHasMore && this.discussionPage > 0) {
+                console.log('讨论页已无更多数据，跳过加载');
+                return;
+            }
+
+            const isInitialLoad = this.discussionPage === 0 && this.discussionPostList.length === 0;
+            this.setData({
+                discussionIsLoading: isInitialLoad,
+                discussionIsLoadingMore: !isInitialLoad
+            });
+
+            const skip = this.discussionPage * PAGE_SIZE;
+
+            this.callCloudFunction('getDiscussionPosts', {
+                skip: skip,
+                limit: PAGE_SIZE
+            }, { requireAuth: false }).then(async (res) => {
+                if (res.result && res.result.success && res.result.posts) {
+                    let posts = res.result.posts.map((post) => ({
+                        ...post,
+                        likeIcon: likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false)
+                    }));
+
+                    // 将 cloud:// 映射为可访问 URL，并预热
+                    posts = await hydrateTempUrls(posts);
+                    warmTempUrlsFromPosts(posts);
+
+                    const currentList = this.discussionPage === 0 ? [] : this.discussionPostList;
+                    const newList = currentList.concat(posts);
+
+                    this.setData({
+                        discussionPostList: newList,
+                        discussionPage: this.discussionPage + 1,
+                        discussionHasMore: posts.length === PAGE_SIZE,
+                        discussionIsLoading: false,
+                        discussionIsLoadingMore: false
+                    });
+
+                    console.log('讨论页数据加载完成，帖子数量:', posts.length, '累计:', newList.length);
+
+                    // 预加载用户数据
+                    if (isInitialLoad) {
+                        setTimeout(() => {
+                            if (this.preloadUserData && typeof this.preloadUserData === 'function') {
+                                this.preloadUserData(posts);
+                            }
+                        }, 500);
+                    }
+                } else {
+                    this.setData({
+                        discussionIsLoading: false,
+                        discussionIsLoadingMore: false,
+                        discussionHasMore: false
+                    });
+                    if (isInitialLoad) {
+                        uni.showToast({
+                            title: '暂无讨论内容',
+                            icon: 'none'
+                        });
+                    }
+                }
+            }).catch((err) => {
+                console.error('加载讨论页数据失败:', err);
+                this.setData({
+                    discussionIsLoading: false,
+                    discussionIsLoadingMore: false
+                });
+                uni.showToast({
+                    title: '加载失败',
+                    icon: 'none'
+                });
+            });
+        },
+
+        // 模拟讨论页数据
+        getMockDiscussionPosts: function () {
+            return [
+                {
+                    _id: 'discussion_1',
+                    _openid: 'user_1',
+                    title: '大家觉得现代诗歌应该如何发展？',
+                    content: '最近看到很多现代诗作品，感觉风格各异。想听听大家对现代诗歌未来发展的看法。',
+                    authorName: '诗友小王',
+                    authorAvatar: '/static/images/avatar.png',
+                    votes: 15,
+                    commentCount: 8,
+                    isVoted: false,
+                    tags: ['诗歌讨论', '现代诗'],
+                    imageUrls: [],
+                    createdAt: new Date().toISOString()
+                },
+                {
+                    _id: 'discussion_2',
+                    _openid: 'user_2',
+                    title: '分享一首最喜欢的古诗',
+                    content: '最近重读了李白的《将进酒》，每次读都有新的感悟。大家最喜欢哪首古诗呢？',
+                    authorName: '古风爱好者',
+                    authorAvatar: '/static/images/avatar.png',
+                    votes: 23,
+                    commentCount: 12,
+                    isVoted: true,
+                    tags: ['古诗', '李白', '经典'],
+                    imageUrls: [],
+                    createdAt: new Date().toISOString()
+                },
+                {
+                    _id: 'discussion_3',
+                    _openid: 'user_3',
+                    title: '写作灵感枯竭怎么办？',
+                    content: '最近一段时间总是感觉写不出东西，灵感好像枯竭了。大家有什么好的建议吗？',
+                    authorName: '写作新手',
+                    authorAvatar: '/static/images/avatar.png',
+                    votes: 8,
+                    commentCount: 6,
+                    isVoted: false,
+                    tags: ['写作', '灵感', '求助'],
+                    imageUrls: [],
+                    createdAt: new Date().toISOString()
+                }
+            ];
+        },
+
+        // 刷新讨论页数据
+        refreshDiscussionPosts: function () {
+            console.log('刷新讨论页数据');
+            this.setData({
+                discussionPostList: [],
+                discussionPage: 0,
+                discussionHasMore: true,
+                discussionIsLoading: false,
+                discussionIsLoadingMore: false
+            });
+            this.loadDiscussionPosts();
+        },
+
         // 刷新广场页数据（发布帖子后调用）
         refreshIndexData: function () {
             console.log('【index】开始刷新广场页数据');
@@ -1326,105 +1622,13 @@ onReachBottom: function () {
 }
 
 .container {
-    padding: 20rpx;
-    background-color: #f7f8fa;
+    padding: 120rpx 0 100rpx 0; /* 顶部减少到120rpx */
+    background-color: #ffffff;
     min-height: 100vh;
     padding-bottom: 100rpx; /* 为底部tabBar留出空间 */
-    position: relative; /* 为消息图标定位做准备 */
+    position: relative;
 }
 
-/* 消息图标容器 */
-.message-icon-container {
-    position: fixed;
-    right: 40rpx;
-    bottom: 280rpx; /* 移到发布按钮上面 */
-    width: 80rpx;
-    height: 80rpx;
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(20rpx);
-    -webkit-backdrop-filter: blur(20rpx);
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.1);
-    border: 1rpx solid rgba(255, 255, 255, 0.3);
-    z-index: 1000;
-    transition: all 0.2s ease;
-}
-
-.message-icon-container:active {
-    transform: scale(0.95);
-    background: rgba(255, 255, 255, 0.8);
-}
-
-.message-icon {
-    font-size: 36rpx;
-    color: #333;
-}
-
-/* 未读消息红点 */
-.unread-dot {
-    position: absolute;
-    top: 8rpx;
-    right: 8rpx;
-    width: 16rpx;
-    height: 16rpx;
-    background-color: #ff4757;
-    border-radius: 50%;
-    border: 2rpx solid #fff;
-    animation: pulse 2s infinite;
-}
-
-/* 红点脉冲动画 */
-@keyframes pulse {
-    0% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    50% {
-        transform: scale(1.2);
-        opacity: 0.8;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-/* 搜索框容器 */
-.search-box-container {
-    margin-bottom: 20rpx;
-}
-
-/* 搜索框样式 */
-.search-box {
-    background-color: #fff;
-    border-radius: 16rpx;
-    padding: 24rpx 30rpx;
-    display: flex;
-    align-items: center;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
-    border: 1rpx solid rgba(0, 0, 0, 0.05);
-    transition: all 0.2s ease;
-}
-
-.search-box:active {
-    transform: scale(0.98);
-    background-color: #f8f9fa;
-}
-
-.search-icon {
-    font-size: 32rpx;
-    margin-right: 20rpx;
-    color: #999;
-}
-
-.search-placeholder {
-    font-size: 28rpx;
-    color: #999;
-    flex: 1;
-}
 
 /* 读诗模式容器 */
 .poem-mode-container {
@@ -1487,33 +1691,21 @@ onReachBottom: function () {
 /* 新增：帖子项包装器样式 */
 .post-item-wrapper {
     background: #fff;
-    border-radius: 16rpx;
     margin-bottom: 20rpx;
-    padding: 30rpx;
-    box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+    padding: 0;
+    box-shadow: none;
+    border-radius: 0;
+    border-bottom: 1rpx solid #f0f0f0;
 }
 
 /* 原创帖子特殊样式 */
 .post-item-wrapper.original-post {
-    border: 3rpx solid #ebc88d;
-    box-shadow: 0 4rpx 20rpx rgba(235, 200, 141, 0.3), 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+    background: linear-gradient(90deg, rgba(235, 200, 141, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
+    border-left: 3rpx solid #ebc88d;
     position: relative;
 }
 
-/* 原创帖子光影效果 */
-.post-item-wrapper.original-post::before {
-    content: '';
-    position: absolute;
-    top: -2rpx;
-    left: -2rpx;
-    right: -2rpx;
-    bottom: -2rpx;
-    background: linear-gradient(45deg, #ebc88d, #f4d03f, #ebc88d);
-    border-radius: 18rpx;
-    z-index: -1;
-    opacity: 0.6;
-    filter: blur(8rpx);
-}
+/* 原创帖子光影效果已移除 */
 
 /* 新增：内容导航器样式 */
 .post-content-navigator {
@@ -1654,10 +1846,8 @@ onReachBottom: function () {
 .author-info-outside {
     display: flex;
     align-items: center;
-    padding: 20rpx 30rpx 10rpx 30rpx;
+    padding: 20rpx 40rpx 10rpx 40rpx;
     background: #fff;
-    border-radius: 16rpx 16rpx 0 0;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
 }
 
 .author-info-outside .author-avatar {
@@ -1678,10 +1868,9 @@ onReachBottom: function () {
 .post-item {
     width: 100%;
     background: #fff;
-    border-radius: 0 0 16rpx 16rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    box-shadow: none;
     box-sizing: border-box;
-    padding: 20rpx 30rpx 30rpx 30rpx;
+    padding: 20rpx 40rpx 30rpx 40rpx;
 }
 
 /* 定义点击时的样式 - 整个卡片缩小 */
@@ -1727,38 +1916,14 @@ onReachBottom: function () {
     -webkit-box-orient: vertical;
 }
 
-.add-button {
-    position: fixed;
-    right: 40rpx;
-    bottom: 160rpx;
-    width: 80rpx; /* 从100rpx调整为80rpx */
-    height: 80rpx; /* 从100rpx调整为80rpx */
-    background: rgba(135, 206, 235, 0.8); /* 改为淡蓝色 */
-    backdrop-filter: blur(20rpx);
-    -webkit-backdrop-filter: blur(20rpx);
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: white;
-    font-size: 48rpx; /* 相应调整字体大小 */
-    box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.1);
-    border: 1rpx solid rgba(255, 255, 255, 0.2);
-    z-index: 100;
-    transition: transform 0.2s ease;
-}
-
-.add-button:active {
-    transform: scale(0.9);
-}
 
 .vote-section {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 20rpx;
-    padding-top: 20rpx;
-    border-top: 1rpx solid #f0f0f0;
+    /* 上移一点：收紧与内容的垂直间距 */
+    margin-top: -8rpx;
+    padding: 0 60rpx 0 60rpx;
 }
 
 .vote-count,
@@ -1914,4 +2079,3 @@ onReachBottom: function () {
     font-weight: 500;
 }
 </style>
-

@@ -246,6 +246,48 @@
               "root": "./functions/backfillPostMetadata",
               "timeout": 60,
               "memory": 256
+            },
+            {
+              "name": "migrate_user_id",
+              "root": "./functions/migrate_user_id",
+              "timeout": 60,
+              "memory": 256
+            },
+            {
+              "name": "getPortfolioFolders",
+              "root": "./functions/getPortfolioFolders",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "createPortfolioFolder",
+              "root": "./functions/createPortfolioFolder",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "addToPortfolio",
+              "root": "./functions/addToPortfolio",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "getPortfolioItems",
+              "root": "./functions/getPortfolioItems",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "removeFromPortfolio",
+              "root": "./functions/removeFromPortfolio",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "getDiscussionPosts",
+              "root": "./functions/getDiscussionPosts",
+              "timeout": 10,
+              "memory": 256
             }
           ]
         }

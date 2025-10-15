@@ -43,6 +43,9 @@
                         <view class="sidebar-item" @tap="navigateToFavoriteFolders">
                             <text>我的收藏夹</text>
                         </view>
+                        <view class="sidebar-item" @tap="navigateToPortfolio">
+                            <text>作品集</text>
+                        </view>
                         <view class="sidebar-item" @tap="navigateToDraftBox">
                             <text>草稿箱</text>
                         </view>
@@ -54,6 +57,18 @@
                         </view>
                         <view class="sidebar-item logout-item" @tap="showLogoutConfirm">
                             <text>退出登录</text>
+                        </view>
+                        <!-- 关注/被关注统计（放在资料卡内，签名下方） -->
+                        <view class="follow-stats">
+                            <view class="stat-item" @tap="navigateToFollowing">
+                                <text class="stat-number">{{ followingCount }}</text>
+                                <text class="stat-label">关注</text>
+                            </view>
+                            <view class="stat-divider"></view>
+                            <view class="stat-item" @tap="navigateToFans">
+                                <text class="stat-number">{{ followerCount }}</text>
+                                <text class="stat-label">被关注</text>
+                            </view>
                         </view>
                     </view>
                 </view>
@@ -70,6 +85,9 @@
                         <view class="profile-info-center">
                             <text class="profile-name-center">{{ userInfo.nickName || '微信用户' }}</text>
                             <text class="profile-bio-center">{{ userInfo.bio || '这个用户很懒,什么都没留下...' }}</text>
+                            <text class="profile-meta-center" v-if="userInfo.occupation || userInfo.region">
+                                {{ (userInfo.occupation || '') + (userInfo.occupation && userInfo.region ? ' · ' : '') + (userInfo.region || '') }}
+                            </text>
                         </view>
                     </view>
                     <!-- 年龄和生日卡片 -->
@@ -344,11 +362,19 @@
         </view>
         <!-- 这是一个<view class="container"> 添加的结束标签 -->
 
+        <!-- #ifndef MP-WEIXIN -->
+        <app-tab-bar ref="customTabBar" />
+        <!-- #endif -->
     </view>
+
 </template>
 
 <script>
+// #ifndef MP-WEIXIN
+import AppTabBar from '@/custom-tab-bar/index.vue';
+// #endif
 import { getMyPosts, getMyFavorites, invalidateMyFavorites, invalidateMyPosts, invalidateMyInfo, getMyInfo } from '@/api-cache/my.js';
+import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
 const app = getApp();
 const { formatRelativeTime } = require('../../utils/time.js');
 const { previewImage } = require('../../utils/imagePreview.js');
@@ -357,6 +383,9 @@ const postGalleryMixin = require('../../mixins/postGallery.js');
 const PAGE_SIZE = 5;
 export default {
     components: {
+        // #ifndef MP-WEIXIN
+        AppTabBar
+        // #endif
     },
     mixins: [postGalleryMixin],
     data() {
@@ -420,7 +449,10 @@ export default {
             isLoadingMore: false,
             isViewingSelf: false,
             imgindex: 0,
-            img: ''
+            img: '',
+            // 关注统计
+            followingCount: 0,
+            followerCount: 0
         };
     },
     onLoad: function (options) {
@@ -435,6 +467,10 @@ export default {
         this.getProfileData();
     },
     onShow: function () {
+        // #ifndef MP-WEIXIN
+        try { uni.hideTabBar({ animation: false }); } catch (e) {}
+        try { this.$refs.customTabBar && this.$refs.customTabBar.syncSelected && this.$refs.customTabBar.syncSelected(); } catch (e) {}
+        // #endif
         // TabBar 状态更新，使用兼容性处理
         const { updateTabBarStatus } = require('../../utils/tabBarCompatibility.js');
         updateTabBarStatus(this, 3);
@@ -514,6 +550,7 @@ export default {
             // 刷新用户信息（只在有用户信息时刷新，避免重复调用）
             if (this.userInfo && this.userInfo._openid) {
                 this.fetchUserProfileFast();
+                this.fetchFollowCounts();
             }
 
             // 使用与下拉刷新完全相同的逻辑
@@ -543,6 +580,7 @@ export default {
 
             // 检查未读消息数量
             this.checkUnreadMessages();
+            try { this.fetchFollowCounts && this.fetchFollowCounts(); } catch (_) {}
         },
 
         // 强制刷新数据
@@ -1052,6 +1090,13 @@ export default {
             });
         },
 
+        // 跳转到作品集页面
+        navigateToPortfolio: function () {
+            uni.navigateTo({
+                url: '/pages/portfolio/portfolio'
+            });
+        },
+
         // 跳转到草稿箱页面
         navigateToDraftBox: function () {
             uni.navigateTo({
@@ -1094,6 +1139,23 @@ export default {
             }).catch((err) => {
                 console.error('获取新粉丝数量失败:', err);
             });
+        },
+
+        // fetch follow/fan counters for current user
+        fetchFollowCounts: function () {
+            try {
+                const p1 = this.$tcb.callFunction({ name: 'follow', data: { action: 'getFollowingList', skip: 0, limit: 1 } });
+                const p2 = this.$tcb.callFunction({ name: 'follow', data: { action: 'getFollowerList', skip: 0, limit: 1 } });
+                Promise.all([p1, p2])
+                    .then(([res1, res2]) => {
+                        const followingTotal = (res1 && res1.result && res1.result.total) || 0;
+                        const followerTotal = (res2 && res2.result && res2.result.total) || 0;
+                        this.setData({ followingCount: followingTotal, followerCount: followerTotal });
+                    })
+                    .catch((err) => { console.error('fetch follow stats failed:', err); });
+            } catch (e) {
+                console.error('fetchFollowCounts error:', e);
+            }
         },
 
         // 新增：标签切换方法
@@ -1334,10 +1396,12 @@ export default {
         },
 
         // 执行退出登录
-        performLogout: function () {
+        performLogout: async function () {
             console.log('🔍 [退出登录] 开始执行退出登录流程');
             
             try {
+                // 先清空所有缓存（包含 me:favorites 等命名空间与 fileUrlCache）
+                try { await resetAllCachesOnAccountChange({}); } catch (e) { console.warn('cache reset on logout failed', e); }
                 // 清除本地存储的用户信息
                 uni.removeStorageSync('userInfo');
                 uni.removeStorageSync('userOpenId');
@@ -1478,7 +1542,7 @@ export default {
 .container {
     width: 100%;
     height: 100vh;
-    background-color: #f7f8fa;
+    background-color: #ffffff;
 }
 
 .scroll-container {
@@ -1582,7 +1646,7 @@ export default {
 .main-content {
     width: 100%;
     /* height: 100vh; */
-    background-color: #f7f8fa;
+    background-color: #ffffff;
     /* overflow-y: auto; */
     padding-bottom: 100rpx; /* 为底部TabBar留出空间 */
 }
@@ -2103,12 +2167,18 @@ export default {
     margin-bottom: 10rpx;
     text-align: center;
 }
-.profile-bio-center {
-    font-size: 28rpx;
-    color: #999;
-    text-align: center;
-    margin-bottom: 0;
-}
+  .profile-bio-center {
+      font-size: 28rpx;
+      color: #999;
+      text-align: center;
+      margin-bottom: 0;
+  }
+  .profile-meta-center {
+      font-size: 26rpx;
+      color: #666;
+      margin-top: 8rpx;
+      text-align: center;
+  }
 .profile-detail-card {
     margin: 0 30rpx 30rpx 30rpx;
     padding: 30rpx 40rpx;
@@ -2142,5 +2212,34 @@ export default {
     background-color: #ff6b6b;
     border-radius: 50%;
     margin-left: 12rpx;
+}
+
+/* Follow stats under bio */
+.follow-stats {
+    margin-top: 16rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 40rpx;
+}
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.stat-number {
+    font-size: 36rpx;
+    font-weight: 600;
+    color: #333;
+}
+.stat-label {
+    margin-top: 4rpx;
+    font-size: 24rpx;
+    color: #888;
+}
+.stat-divider {
+    width: 1rpx;
+    height: 36rpx;
+    background-color: #eee;
 }
 </style>

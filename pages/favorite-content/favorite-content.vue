@@ -470,7 +470,7 @@ export default {
             if (postindex !== undefined) {
                 const favorites = this.favorites;
                 if (favorites[postindex]) {
-                    favorites[postindex].postAuthorAvatar = '/static/images/avatar.png'; // 使用默认头像
+                    favorites[postindex].postAuthorAvatar = '/images/avatar.png'; // 使用默认头像
                     this.setData({
                         favorites: favorites
                     });

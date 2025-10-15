@@ -82,7 +82,11 @@ exports.main = async (event, context) => {
         avatarUrl: 1, // This is a fileID
         birthday: 1, // 新增：获取生日
         bio: 1,      // 新增：获取个性签名
+        occupation: 1,
+        region: 1,
         signatureUrl: 1,
+        poemId: 1,    // 新增：获取poemId
+        password: 1,  // 新增：获取password（谨慎使用）
         posts: '$userPosts'
       })
       .end();
@@ -92,12 +96,16 @@ exports.main = async (event, context) => {
     }
 
     const result = profileData.list[0];
-    let userInfo = { 
-      nickName: result.nickName, 
+    let userInfo = {
+      nickName: result.nickName,
       avatarUrl: result.avatarUrl, // fileID
       birthday: result.birthday,
       bio: result.bio,
+      occupation: result.occupation,
+      region: result.region,
       signatureUrl: result.signatureUrl,
+      poemId: result.poemId,     // 新增：poemId字段
+      password: result.password   // 新增：password字段（谨慎使用）
     };
     let posts = result.posts || []; // 这里已经是分页后的 posts
     console.log('【profile云函数】聚合后 posts 数量:', posts.length);

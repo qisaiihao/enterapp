@@ -16,10 +16,20 @@
             </view>
 
             <!-- 按钮层：独立定位，不影响文字 -->
-            <button v-if="showEnterButton" :class="'enter-btn ' + (preloadCompleted ? '' : 'loading')" @tap="handleEnterButtonClick">
-                <view class="enter-key-icon">↵</view>
-                <text class="enter-text">{{ preloadCompleted ? 'enter' : 'loading...' }}</text>
-            </button>
+            <!--
+            <view v-if="showEnterButton" :class="'enter-key-container ' + (preloadCompleted ? '' : 'loading')" @tap="handleEnterButtonClick">
+                <view class=\"enter-key-l-shape\">
+    <view class=\"ek-layer ek-border\"></view>
+    <view class=\"ek-layer ek-fill\">
+        <text class=\"ek-label\">{{ preloadCompleted ? 'Enter' : 'Loading' }}</text>
+        <text class=\"ek-arrow\">{{ preloadCompleted ? '↵' : '⏳' }}</text>
+    </view>
+</view>
+            </view>
+            -->
+            <view v-if="showEnterButton" :class="'enter-key-container ' + (preloadCompleted ? '' : 'loading')" @tap="handleEnterButtonClick">
+                <image class="enter-key-image" :src="preloadCompleted ? '/static/images/回车键.png' : '/static/images/回车键.png'" mode="aspectFit"></image>
+            </view>
         </view>
 
         <!-- 阶段二：显示开屏图（暂时注释掉） -->
@@ -193,14 +203,18 @@ export default {
          * 换行光标闪烁两下后跳转
          */
         blinkNewLineCursorAndNavigate: function () {
+            console.log('开始换行光标闪烁动画');
             let blinkCount = 0;
             const maxBlinks = 2;
             const blinkInterval = setInterval(() => {
                 blinkCount++;
+                console.log(`光标闪烁第${blinkCount}次`);
                 if (blinkCount >= maxBlinks) {
                     clearInterval(blinkInterval);
+                    console.log('光标闪烁完成，准备跳转');
                     // 闪烁完成后跳转
                     setTimeout(() => {
+                        console.log('调用navigateToTarget方法');
                         this.navigateToTarget();
                     }, 500); // 延迟0.5秒后跳转
                 }
@@ -660,19 +674,28 @@ export default {
         },
 
         navigateToTarget: function () {
+            console.log('navigateToTarget方法被调用');
             // 开始淡出动画
             this.startFadeOut();
 
             // 延迟跳转，让动画完成
             setTimeout(() => {
+                console.log('开始检查用户登录状态');
                 // 检查用户是否已登录
                 const app = getApp();
+                console.log('用户登录状态检查:', {
+                    userInfo: !!app.globalData.userInfo,
+                    openid: !!app.globalData.openid
+                });
+
                 if (app.globalData.userInfo && app.globalData.openid) {
+                    console.log('用户已登录，跳转到poem页面');
                     // 用户已登录，跳转到主页面
                     uni.switchTab({
-                        url: '/pages/poem/poem'
+                        url: '/pages/poem-square/poem-square'
                     });
                 } else {
+                    console.log('用户未登录，跳转到登录页面');
                     // 用户未登录，跳转到新的登录页面（支持poemid和password登录）
                     uni.redirectTo({
                         url: '/pages/login/login'
@@ -755,60 +778,123 @@ page {
 }
 
 /* ---- 按钮层：独立定位 ---- */
-.enter-btn {
+.enter-key-container {
     position: absolute;
-    bottom: 200rpx;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #f5f5f5;
-    color: #333;
-    border: 3rpx solid #ccc;
-    border-radius: 12rpx;
-    padding: 24rpx 48rpx;
-    font-size: 28rpx;
-    font-weight: 500;
-    font-family: 'Courier New', monospace;
-    letter-spacing: 2rpx;
-    text-transform: uppercase;
-    box-shadow: 0 4rpx 8rpx rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
+    bottom: 50rpx;
+    right: 20rpx;
+    cursor: pointer;
     animation: slideInUp 0.8s ease-out;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    transition: all 0.2s ease;
+    width: 640rpx;
+    height: 400rpx;
+    padding: 20rpx;
+    box-sizing: border-box;
 }
 
-.enter-btn:active {
-    background-color: #e8e8e8;
-    border-color: #999;
-    box-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.15);
-    transform: translateY(2rpx);
+.enter-key-container:active {
+    transform: scale(0.95);
 }
 
-.enter-btn.loading {
+.enter-key-container.loading {
     opacity: 0.6;
     cursor: not-allowed;
 }
 
-.enter-btn.loading:active {
-    transform: none;
+.enter-key-container.loading:active {
+    transform: scale(1);
 }
 
-.enter-key-icon {
-    font-size: 32rpx;
-    margin-right: 12rpx;
-    font-weight: bold;
-    color: #666;
+.enter-key-image {
+    width: 100%;
+    height: 100%;
+    display: block;
 }
 
-.enter-text {
+/* L形回车键主体 */
+.enter-key-l-shape {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+/* 横向部分 - 较长 */
+.enter-key-horizontal {
+    position: absolute;
+    top: 0;
+    left: 50rpx;
+    right: 0;
+    height: 50rpx;
+    background-color: #f5f5f5;
+    border: 2rpx solid #ddd;
+    border-radius: 6rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 12rpx;
+    z-index: 2;
+    box-sizing: border-box;
+}
+
+/* 纵向部分 - 较短 */
+.enter-key-vertical {
+    position: absolute;
+    top: 48rpx;  /* 与横向部分底部对齐（50rpx - 2rpx边框） */
+    left: 0;
+    width: 52rpx;  /* 与横向部分左侧对齐（50rpx + 2rpx边框） */
+    height: 52rpx;  /* 总高度100rpx - 横向高度50rpx + 边框调整 */
+    background-color: #f5f5f5;
+    border: 2rpx solid #ddd;
+    border-radius: 6rpx;
+    z-index: 1;
+    box-sizing: border-box;
+}
+
+/* 确保连接处没有重叠或间隙 */
+.enter-key-horizontal {
+    border-left: none;  /* 移除横向部分的左边框，让两部分无缝连接 */
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.enter-key-vertical {
+    border-top: none;  /* 移除纵向部分的上边框，让两部分无缝连接 */
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+.enter-key-arrow {
     font-size: 28rpx;
-    font-weight: 500;
-    font-family: 'Courier New', monospace;
-    letter-spacing: 2rpx;
-    text-transform: uppercase;
+    font-weight: bold;
+    color: #333;
+    margin-right: 6rpx;
 }
+
+.enter-key-label {
+    font-size: 20rpx;
+    font-weight: 500;
+    color: #333;
+    text-transform: lowercase;
+    letter-spacing: 1rpx;
+}
+
+/* 悬浮和点击效果 */
+.enter-key-container:hover .enter-key-horizontal,
+.enter-key-container:hover .enter-key-vertical {
+    background-color: #e8e8e8;
+    border-color: #ccc;
+}
+
+.enter-key-container:active .enter-key-horizontal,
+.enter-key-container:active .enter-key-vertical {
+    background-color: #d0d0d0;
+    border-color: #bbb;
+}
+
+/* ——— Override: hide legacy pieces to avoid ghosts ——— */
+
+
+/* New L-key layers */
+.ek-layer { display: none !important; }
 
 /* ---- 换行后的光标 ---- */
 .new-line-cursor-container {
@@ -828,11 +914,11 @@ page {
 @keyframes slideInUp {
     from {
         opacity: 0;
-        transform: translateX(-50%) translateY(60rpx);
+        transform: translateX(60rpx) translateY(60rpx);
     }
     to {
         opacity: 1;
-        transform: translateX(-50%) translateY(0);
+        transform: translateX(0) translateY(0);
     }
 }
 
@@ -892,4 +978,14 @@ page {
     font-size: 28rpx;
     z-index: 10;
 }
+
+.ek-layer { display: none !important; }
+
+/* 平面风回车键统一描边 */
+.enter-key-l-shape { position: relative; width: 100%; height: 100%; }
+.enter-key-horizontal { position: absolute; top: 0; left: 64rpx; right: 0; height: 96rpx; background: #fff; border: 4rpx solid #333; border-left: none; border-top-left-radius: 0; border-bottom-left-radius: 0; border-top-right-radius: 22rpx; border-bottom-right-radius: 22rpx; box-sizing: border-box; }
+.enter-key-vertical { position: absolute; top: 92rpx; left: 0; width: 64rpx; height: 68rpx; background: #fff; border: 4rpx solid #333; border-top: none; border-top-left-radius: 0; border-top-right-radius: 0; border-bottom-left-radius: 22rpx; border-bottom-right-radius: 22rpx; box-sizing: border-box; }
+.enter-key-label { position: absolute; left: 22rpx; bottom: 18rpx; font-size: 24rpx; color: #333; font-weight: 500; }
+.enter-key-arrow { position: absolute; right: 22rpx; bottom: 18rpx; font-size: 26rpx; color: #333; font-weight: 700; }
 </style>
+

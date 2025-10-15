@@ -1,71 +1,49 @@
-<template>
-    <view>
-        <!-- 注册页面 -->
-        <view class="container">
-            <view class="title">创建新账号</view>
-            <view class="subtitle">设置你的账号信息</view>
-
-            <view class="form-wrapper">
-                <view class="input-wrapper">
-                    <text class="input-label">Poem ID</text>
-                    <input 
-                        class="input-field" 
-                        type="text" 
-                        placeholder="请输入Poem ID" 
-                        v-model="poemId"
-                        @input="onPoemIdInput" 
-                    />
-                </view>
-
-                <view class="input-wrapper">
-                    <text class="input-label">密码</text>
-                    <input 
-                        class="input-field" 
-                        type="password" 
-                        placeholder="请输入密码" 
-                        v-model="password"
-                        @input="onPasswordInput" 
-                    />
-                </view>
-
-                <view class="input-wrapper">
-                    <text class="input-label">确认密码</text>
-                    <input 
-                        class="input-field" 
-                        type="password" 
-                        placeholder="请再次输入密码" 
-                        v-model="confirmPassword"
-                        @input="onConfirmPasswordInput" 
-                    />
-                </view>
-
-                <view class="input-wrapper">
-                    <text class="input-label">昵称</text>
-                    <input 
-                        class="input-field" 
-                        type="text" 
-                        placeholder="请输入昵称" 
-                        v-model="nickName"
-                        @input="onNickNameInput" 
-                    />
-                </view>
-
-                <button 
-                    class="register-button" 
-                    @tap="onRegister" 
-                    :disabled="!canRegister || isRegistering"
-                    :class="{ 'loading': isRegistering }"
-                >
-                    {{ isRegistering ? '注册中...' : '注册' }}
-                </button>
-
-                <view class="login-link-wrapper">
-                    <text class="login-text">已有账号？</text>
-                    <text class="login-link" @tap="goToLogin">立即登录</text>
-                </view>
-            </view>
+﻿<template>
+  <view class="white-page">
+    <view class="container">
+      <view class="avatar-top">
+        <view class="avatar-preview" @tap="onChooseAvatar">
+          <image :src="localAvatarTempPath || '/static/images/avatar.png'" mode="aspectFill"></image>
         </view>
+        <text class="avatar-cta">点击更换头像</text>
+      </view>
+
+      <view class="form-wrapper compact">
+        <view class="input-wrapper">
+          <text class="input-label">Poem ID</text>
+          <input class="input-field" type="text" placeholder="请输入 Poem ID" v-model="poemId" @input="onPoemIdInput" />
+        </view>
+
+        <view class="input-wrapper">
+          <text class="input-label">密码</text>
+          <input class="input-field" type="password" placeholder="请输入密码" v-model="password" @input="onPasswordInput" />
+        </view>
+
+        <view class="input-wrapper">
+          <text class="input-label">确认密码</text>
+          <input class="input-field" type="password" placeholder="请再次输入密码" v-model="confirmPassword" @input="onConfirmPasswordInput" />
+        </view>
+
+        <view class="input-wrapper">
+          <text class="input-label">昵称</text>
+          <input class="input-field" type="text" placeholder="请输入昵称" v-model="nickName" @input="onNickNameInput" />
+        </view>
+
+        <view class="login-link-wrapper subtle">
+          <text class="login-text">已有账号？</text>
+          <text class="login-link" @tap="goToLogin">去登录</text>
+        </view>
+      </view>
     </view>
+
+    <!-- 右下角"回车键"形状按钮：点击注册 -->
+    <view class="enter-key-btn" @tap="onRegister" :class="{ disabled: !canRegister || isRegistering }">
+      <view class="ek-layer ek-border"></view>
+      <view class="ek-layer ek-fill">
+        <text class="ek-text">Enter ↵</text>
+      </view>
+    </view>
+  </view>
 </template>
 
 <script>
@@ -80,7 +58,11 @@ export default {
             password: '',
             confirmPassword: '',
             nickName: '',
-            isRegistering: false
+            isRegistering: false,
+            // 新增：头像直观状态
+            localAvatarTempPath: '',
+            avatarFileID: '',
+            isUploadingAvatar: false
         };
     },
     
@@ -101,6 +83,89 @@ export default {
         // 统一云函数调用方法
         callCloudFunction(name, data = {}, extraOptions = {}) {
             return cloudCall(name, data, Object.assign({ pageTag: 'register', context: this }, extraOptions));
+        },
+
+        // 通过云函数上传（H5: fetch -> blob -> base64；小程序/App：FileSystemManager 读为 base64）
+        uploadAvatarViaCloudFunction(filePath) {
+            return new Promise((resolve, reject) => {
+                // H5: 使用 fetch + FileReader
+                if (typeof window !== 'undefined' && typeof FileReader !== 'undefined') {
+                    fetch(filePath)
+                        .then((resp) => {
+                            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                            return resp.blob();
+                        })
+                        .then((blob) => {
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                                const result = reader.result;
+                                if (!result || typeof result !== 'string') return reject(new Error('读取失败'));
+                                const base64 = result.split(',')[1];
+                                this.callCloudFunction('upload', {
+                                    cloudPath: `user_avatars/${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`,
+                                    fileContent: base64
+                                }).then((res) => {
+                                    if (res && res.result && res.result.success) resolve(res.result.fileID); else reject(new Error('上传失败'));
+                                }).catch(reject);
+                            };
+                            reader.onerror = () => reject(new Error('读取失败'));
+                            reader.readAsDataURL(blob);
+                        })
+                        .catch(reject);
+                    return;
+                }
+                // 小程序/App: FileSystemManager 读取为 base64
+                try {
+                    const fsm = uni.getFileSystemManager && uni.getFileSystemManager();
+                    if (!fsm) return reject(new Error('不支持的环境'));
+                    fsm.readFile({
+                        filePath,
+                        encoding: 'base64',
+                        success: (r) => {
+                            const base64 = r.data;
+                            this.callCloudFunction('upload', {
+                                cloudPath: `user_avatars/${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`,
+                                fileContent: base64
+                            }).then((res) => {
+                                if (res && res.result && res.result.success) resolve(res.result.fileID); else reject(new Error('上传失败'));
+                            }).catch(reject);
+                        },
+                        fail: (err) => reject(err)
+                    });
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        },
+
+        onChooseAvatar() {
+            if (this.isUploadingAvatar) return;
+            const handle = (p) => {
+                if (!p) return;
+                this.isUploadingAvatar = true;
+                this.localAvatarTempPath = p; // 先本地预览
+                this.uploadAvatarViaCloudFunction(p)
+                    .then((fid) => {
+                        this.avatarFileID = fid;
+                        uni.showToast({ title: '头像上传成功', icon: 'success' });
+                    })
+                    .catch((err) => {
+                        console.error('上传头像失败:', err);
+                        this.avatarFileID = '';
+                        uni.showToast({ title: '头像上传失败', icon: 'none' });
+                    })
+                    .finally(() => { this.isUploadingAvatar = false; });
+            };
+            if (uni.chooseMedia) {
+                uni.chooseMedia({ count: 1, mediaType: ['image'], sourceType: ['album', 'camera'], success: (res) => {
+                    const f = res.tempFiles && res.tempFiles[0];
+                    handle(f && (f.tempFilePath || f.filePath));
+                }, fail: (e) => { if (!(e && e.errMsg && e.errMsg.includes('cancel'))) uni.showToast({ title: '选择失败', icon: 'none' }); } });
+            } else {
+                uni.chooseImage({ count: 1, sizeType: ['compressed','original'], sourceType: ['album','camera'], success: (res) => {
+                    handle(res.tempFilePaths && res.tempFilePaths[0]);
+                }, fail: (e) => { if (!(e && e.errMsg && e.errMsg.includes('cancel'))) uni.showToast({ title: '选择失败', icon: 'none' }); } });
+            }
         },
 
         // 兼容性认证方法
@@ -196,7 +261,9 @@ export default {
                 const registerRes = await this.callCloudFunction('registerUser', {
                     poemId: this.poemId.trim(),
                     password: this.password.trim(),
-                    nickName: this.nickName.trim()
+                    nickName: this.nickName.trim(),
+                    // 头像使用云函数上传返回的 fileID（不能直连COS）
+                    avatarFileID: this.avatarFileID || ''
                 });
 
                 console.log('🔍 [注册] 云函数返回结果:', registerRes);
@@ -225,7 +292,7 @@ export default {
                     // 跳转到主页面
                     setTimeout(() => {
                         uni.switchTab({
-                            url: '/pages/poem/poem'
+                            url: '/pages/poem-square/poem-square'
                         });
                     }, 1000);
                     
@@ -290,6 +357,28 @@ export default {
     width: 100%;
     max-width: 600rpx;
 }
+
+/* 头像上传区域 */
+.avatar-uploader {
+    display: flex;
+    align-items: center;
+    gap: 20rpx;
+    margin-bottom: 30rpx;
+}
+.avatar-preview {
+    width: 120rpx;
+    height: 120rpx;
+    border-radius: 50%;
+    overflow: hidden;
+    position: relative;
+    background: #f2f2f2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.avatar-preview image { width: 100%; height: 100%; }
+.avatar-tip { position: absolute; bottom: 6rpx; font-size: 20rpx; color: #666; background: rgba(255,255,255,.7); padding: 2rpx 6rpx; border-radius: 6rpx; }
+.avatar-upload-btn { background-color: #1c9bd6; color: #fff; border-radius: 8rpx; height: 72rpx; line-height: 72rpx; padding: 0 30rpx; }
 
 .input-wrapper {
     margin-bottom: 30rpx;
@@ -369,4 +458,34 @@ export default {
     font-weight: 500;
     text-decoration: underline;
 }
+/* 白色背景 + 顶部头像 + 底部悬浮按钮 */
+.white-page { background: #fff; min-height: 100vh; position: relative; }
+.container { display: flex; flex-direction: column; align-items: center; padding: 60rpx 40rpx 140rpx; background: #fff; }
+.avatar-top { display: flex; flex-direction: column; align-items: center; margin: 20rpx 0 40rpx; }
+.avatar-preview { width: 160rpx; height: 160rpx; border-radius: 50%; overflow: hidden; background: #f2f2f2; border: 6rpx solid #f1f1f1; box-shadow: 0 6rpx 16rpx rgba(0,0,0,.06); }
+.avatar-preview image { width: 100%; height: 100%; display: block; }
+.avatar-cta { margin-top: 12rpx; font-size: 24rpx; color: #999; }
+.form-wrapper { width: 100%; max-width: 640rpx; }
+.form-wrapper.compact { }
+.input-wrapper { margin-bottom: 24rpx; background: transparent; border-radius: 0; padding: 0; border: none; box-shadow: none; }
+.input-label { display: block; font-size: 26rpx; color: #888; margin-bottom: 12rpx; }
+.input-field { width: 100%; height: 88rpx; border: none; outline: none; background: #f5f6f7; border-radius: 9999rpx; padding: 0 26rpx; font-size: 30rpx; color: #333; }
+/* 回车键形状按钮 */
+.enter-key-btn {
+  position: fixed;
+  right: 40rpx;
+  bottom: 40rpx;
+  width: 220rpx;
+  height: 180rpx;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.enter-key-btn:active { transform: scale(0.95); }
+.enter-key-btn.disabled { opacity: .5; pointer-events: none; }
+.enter-key-btn .ek-layer { position: absolute; inset: 0; }
+/* L 形剪裁：右侧竖条 + 底部横条 */
+.enter-key-btn .ek-border { background: #333; filter: drop-shadow(0 6rpx 12rpx rgba(0,0,0,.18)); clip-path: polygon(55% 0,100% 0,100% 100%,0 100%,0 60%,55% 60%,55% 0); border-radius: 24rpx; }
+.enter-key-btn .ek-fill { background: #fff; clip-path: polygon(57% 2%,100% 2%,100% 100%,2% 100%,2% 62%,57% 62%,57% 2%); border-radius: 22rpx; }
+.enter-key-btn .ek-text { position: absolute; bottom: 24rpx; left: 24rpx; font-size: 28rpx; color: #333; font-weight: 500; }
+.login-link-wrapper.subtle { color: #999; }
 </style>

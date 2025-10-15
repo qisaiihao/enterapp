@@ -1,55 +1,39 @@
-<template>
-    <view>
-        <!-- 新的登录页面 -->
-        <view class="container">
-            <view class="title">欢迎回到回车键</view>
-            <view class="subtitle">请输入你的账号信息登录</view>
+﻿<template>
+  <view class="white-page">
+    <view class="container">
+      <text class="brand">poementer</text>
+      <view class="center-wrap">
+      <view class="form-wrapper compact">
+        <view class="input-wrapper">
+          <input class="input-field" type="text" placeholder="请输入 Poem ID" v-model="poemId" @input="onPoemIdInput" />
+        </view>
+        <view class="input-wrapper">
+          <input class="input-field" type="password" placeholder="请输入密码" v-model="password" @input="onPasswordInput" />
+        </view>
 
-            <view class="form-wrapper">
-                <view class="input-wrapper">
-                    <text class="input-label">Poem ID</text>
-                    <input 
-                        class="input-field" 
-                        type="text" 
-                        placeholder="请输入你的Poem ID" 
-                        v-model="poemId"
-                        @input="onPoemIdInput" 
-                    />
-                </view>
-
-                <view class="input-wrapper">
-                    <text class="input-label">密码</text>
-                    <input 
-                        class="input-field" 
-                        type="password" 
-                        placeholder="请输入密码" 
-                        v-model="password"
-                        @input="onPasswordInput" 
-                    />
-                </view>
-
-                <button 
-                    class="login-button" 
-                    @tap="onLogin" 
-                    :disabled="!canLogin || isLogging"
-                    :class="{ 'loading': isLogging }"
-                >
-                    {{ isLogging ? '登录中...' : '登录' }}
-                </button>
-
-                <view class="register-link-wrapper">
-                    <text class="register-text">还没有账号？</text>
-                    <text class="register-link" @tap="goToRegister">立即注册</text>
-                </view>
-            </view>
+        <!-- 注册入口 -->
+        <view class="register-link" @tap="goToRegister">
+          <text class="register-text">注册</text>
         </view>
     </view>
+      </view>
+    </view>
+
+    <!-- 右下角"回车键"形状按钮：点击登录 -->
+    <view class="enter-key-btn" @tap="onLogin" :class="{ disabled: !canLogin || isLogging }">
+      <view class="ek-layer ek-border"></view>
+      <view class="ek-layer ek-fill">
+        <text class="ek-text">Enter ↵</text>
+      </view>
+    </view>
+  </view>
 </template>
 
 <script>
 // pages/login/login.js
 const app = getApp();
 const { cloudCall } = require('../../utils/cloudCall.js');
+import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
 
 export default {
     data() {
@@ -87,7 +71,7 @@ export default {
                     app.globalData.openid = cachedUserInfo._openid || cachedOpenId;
                     app.globalData._loginProcessCompleted = true;
                     console.log('✅ [登录页面] 检测到已登录用户，自动跳转');
-                    uni.switchTab({ url: '/pages/poem/poem' });
+                    uni.switchTab({ url: '/pages/poem-square/poem-square' });
                 }
             } catch (e) {
                 console.log('⚠️ [登录页面] 自动跳转检查失败(忽略)：', e);
@@ -202,6 +186,9 @@ export default {
                     uni.setStorageSync('userInfo', userInfoWithOpenId);
                     uni.setStorageSync('userOpenId', openid);
                     
+                    // 账号切换/新登录后，清理所有与旧账号相关的缓存，并预热当前账号数据
+                    try { await resetAllCachesOnAccountChange({ newOpenId: openid }); } catch (e) { console.warn('cache reset failed', e); }
+                    
                     uni.showToast({
                         title: '登录成功',
                         icon: 'success'
@@ -210,7 +197,7 @@ export default {
                     // 跳转到主页面
                     setTimeout(() => {
                         uni.switchTab({
-                            url: '/pages/poem/poem'
+                            url: '/pages/poem-square/poem-square'
                         });
                     }, 1000);
                     
@@ -247,112 +234,45 @@ export default {
 };
 </script>
 <style>
-/* 新的登录页面样式 */
-.container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 120rpx 60rpx 60rpx;
-    height: 100vh;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-}
+.white-page { background: #fff; min-height: 100vh; position: relative; }
+.container { position: relative; min-height: 100vh; padding: 0 0 140rpx; }
+.center-wrap { position: absolute; top: 30%; left: 0; right: 0; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; padding: 0 40rpx; }
+.brand { display: block; width: 100%; margin: 20vh 0 48rpx; font-size: 44rpx; font-weight: 600; color: #333; text-align: center; }
+.form-wrapper { width: 100%; max-width: 560rpx; display: flex; flex-direction: column; align-items: center; }
+.input-wrapper { width: 100%; margin-bottom: 36rpx; background: transparent; padding: 0; border: none; box-shadow: none; }
+.input-field { width: 100%; height: 88rpx; border: none; outline: none; background: #f5f6f7; border-radius: 9999rpx; padding: 0 26rpx; font-size: 30rpx; color: #333; }
 
-.title {
-    font-size: 56rpx;
-    font-weight: bold;
-    margin-bottom: 20rpx;
-    color: #333;
-    text-align: center;
-}
-
-.subtitle {
-    font-size: 28rpx;
-    color: #666;
-    margin-bottom: 100rpx;
-    text-align: center;
-}
-
-.form-wrapper {
-    width: 100%;
-    max-width: 600rpx;
-}
-
-.input-wrapper {
-    margin-bottom: 40rpx;
-    background: white;
-    border-radius: 16rpx;
-    padding: 30rpx;
-    box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
-}
-
-.input-label {
-    display: block;
-    font-size: 28rpx;
-    color: #333;
-    margin-bottom: 20rpx;
-    font-weight: 500;
-}
-
-.input-field {
-    width: 100%;
-    font-size: 32rpx;
-    color: #333;
-    border: none;
-    outline: none;
-    background: transparent;
-}
-
-.input-field::placeholder {
-    color: #999;
-}
-
-.login-button {
-    width: 100%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    font-size: 32rpx;
-    font-weight: 500;
-    border-radius: 16rpx;
-    padding: 30rpx;
-    margin: 60rpx 0 40rpx;
-    border: none;
-    box-shadow: 0 8rpx 25rpx rgba(102, 126, 234, 0.3);
-    transition: all 0.3s ease;
-}
-
-.login-button:active {
-    transform: translateY(2rpx);
-    box-shadow: 0 4rpx 15rpx rgba(102, 126, 234, 0.3);
-}
-
-.login-button:disabled {
-    background: #ccc;
-    box-shadow: none;
-    transform: none;
-}
-
-.login-button.loading {
-    background: #ccc;
-    box-shadow: none;
-}
-
-.register-link-wrapper {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-top: 40rpx;
-}
-
-.register-text {
-    font-size: 28rpx;
-    color: #666;
-    margin-right: 10rpx;
-}
-
+/* 注册入口 */
 .register-link {
-    font-size: 28rpx;
-    color: #667eea;
-    font-weight: 500;
-    text-decoration: underline;
+  margin-top: 20rpx;
+  text-align: right;
+  width: 100%;
 }
+.register-text {
+  font-size: 28rpx;
+  color: #999;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.register-text:active {
+  color: #666;
+}
+/* 回车键形状按钮 */
+.enter-key-btn {
+  position: fixed;
+  right: 40rpx;
+  bottom: 40rpx;
+  width: 220rpx;
+  height: 180rpx;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.enter-key-btn:active { transform: scale(0.95); }
+.enter-key-btn.disabled { opacity: .5; pointer-events: none; }
+.enter-key-btn .ek-layer { position: absolute; inset: 0; }
+/* L 形剪裁：右侧竖条 + 底部横条 */
+.enter-key-btn .ek-border { background: #333; filter: drop-shadow(0 6rpx 12rpx rgba(0,0,0,.18)); clip-path: polygon(55% 0,100% 0,100% 100%,0 100%,0 60%,55% 60%,55% 0); border-radius: 24rpx; }
+.enter-key-btn .ek-fill { background: #fff; clip-path: polygon(57% 2%,100% 2%,100% 100%,2% 100%,2% 62%,57% 62%,57% 2%); border-radius: 22rpx; }
+.enter-key-btn .ek-text { position: absolute; bottom: 24rpx; left: 24rpx; font-size: 28rpx; color: #333; font-weight: 500; }
 </style>

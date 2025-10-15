@@ -56,7 +56,7 @@ export default {
             page: 0,
             PAGE_SIZE: 20,
             pendingOpenid: null,
-            defaultAvatar: '/static/images/avatar.png',
+            defaultAvatar: '/images/avatar.png',
             total: ''
         };
     },

@@ -1,0 +1,161 @@
+0070:             isProcessingSignature: false
+0071:         };
+0072:     },
+0073:     onLoad: function (options) {
+0074:         this.fetchUserProfile();
+0075:         const today = new Date();
+0076:         const formattedDate = today.getFullYear() + '-' + (today.getMonth() + 1).toString().padStart(2, '0') + '-' + today.getDate().toString().padStart(2, '0');
+0077:         this.setData({
+0078:             endDate: formattedDate
+0079:         });
+0080:     },
+0081:     methods: {
+0082:         // 统一云函数调用方法
+0083:         callCloudFunction(name, data = {}, extraOptions = {}) {
+0084:             return cloudCall(name, data, Object.assign({ pageTag: 'profile-edit', context: this, requireAuth: true }, extraOptions));
+0085:         },
+0086: 
+0087:         // 兼容性文件上传方法
+0088:         async uploadFile(cloudPath, filePath) {
+0089:             console.log(`🔍 [ProfileEdit] 上传文件: ${cloudPath}`, filePath);
+0090:             
+0091:             return new Promise((resolve, reject) => {
+0092:                 // 使用新的平台检测工具
+0093:                 const { getCurrentPlatform, getCloudFunctionMethod } = require('../../utils/platformDetector.js');
+0094:                 
+0095:                 const platform = getCurrentPlatform();
+0096:                 const method = getCloudFunctionMethod();
+0097:                 // New upload path to avoid COS MalformedPOSTRequest on H5/App
+0098:                 if (method === 'tcb') {
+0099:                     const app = getApp();
+0100:                     if (!(app && app.$tcb && typeof app.$tcb.uploadFile === 'function')) {
+0101:                         throw new Error('TCB instance unavailable');
+0102:                     }
+0103:                     let file = filePath;
+0104:                     try {
+0105:                         if (typeof filePath === 'string' && typeof fetch === 'function' && typeof Blob !== 'undefined') {
+0106:                             const resp = await fetch(filePath);
+0107:                             file = await resp.blob();
+0108:                         } else if (filePath && filePath.tempFilePath && typeof fetch === 'function') {
+0109:                             const resp = await fetch(filePath.tempFilePath);
+0110:                             file = await resp.blob();
+0111:                         }
+0112:                     } catch (e) {
+0113:                         console.warn('[ProfileEdit] toBlob failed, uploading original path', e);
+0114:                     }
+0115:                     const res = await app.$tcb.uploadFile({ cloudPath, file });
+0116:                     const fid = res && (res.fileID || res.fileId || (res.data && res.data.fileID));
+0117:                     return fid || res;
+0118:                 } else if (method === 'wx-cloud') {
+0119:                     if (!(wx && wx.cloud && typeof wx.cloud.uploadFile === 'function')) {
+0120:                         throw new Error('WX cloud unavailable');
+0121:                     }
+0122:                     const res = await wx.cloud.uploadFile({ cloudPath, filePath });
+0123:                     return (res && res.fileID) ? res.fileID : res;
+0124:                 }
+0125:                 throw new Error('unsupported cloud method: ' + method);
+0126:                 
+0127:                 console.log(`🔍 [ProfileEdit] 运行环境: ${platform}, 调用方式: ${method}`);
+0128:                 
+0129:                 if (method === 'tcb') {
+0130:                     // H5和App环境使用TCB
+0131:                     const app = getApp();
+0132:                     if (app && app.$tcb && app.$tcb.uploadFile) {
+0133:                         console.log(`🔍 [ProfileEdit] ${platform}环境使用TCB上传文件: ${cloudPath}`);
+0134:                         app.$tcb.uploadFile({
+0135:                             cloudPath: cloudPath,
+0136:                             filePath: filePath
+0137:                         }).then(resolve).catch(reject);
+0138:                     } else {
+0139:                         console.error(`❌ [ProfileEdit] ${platform}环境TCB不可用`);
+0140:                         console.error(`❌ [ProfileEdit] app:`, app);
+0141:                         console.error(`❌ [ProfileEdit] app.$tcb:`, app && app.$tcb);
+0142:                         reject(new Error('TCB实例不可用'));
+0143:                     }
+0144:                 } else if (method === 'wx-cloud') {
+0145:                     // 小程序环境使用微信云开发
+0146:                     if (wx.cloud && wx.cloud.uploadFile) {
+0147:                         console.log(`🔍 [ProfileEdit] 小程序环境使用微信云开发上传文件: ${cloudPath}`);
+0148:                         wx.cloud.uploadFile({
+0149:                             cloudPath: cloudPath,
+0150:                             filePath: filePath,
+0151:                             success: (res) => {
+0152:                                 console.log(`✅ [ProfileEdit] 文件上传成功: ${cloudPath}`, res);
+0153:                                 resolve(res);
+0154:                             },
+0155:                             fail: (err) => {
+0156:                                 console.error(`❌ [ProfileEdit] 文件上传失败: ${cloudPath}`, err);
+0157:                                 reject(err);
+0158:                             }
+0159:                         });
+0160:                     } else {
+0161:                         console.error(`❌ [ProfileEdit] 小程序环境微信云开发不可用`);
+0162:                         reject(new Error('微信云开发不可用'));
+0163:                     }
+0164:                 } else {
+0165:                     console.error(`❌ [ProfileEdit] 不支持的云函数调用方式: ${method}`);
+0166:                     reject(new Error(`不支持的云函数调用方式: ${method}`));
+0167:                 }
+0168:             });
+0169:         },
+0170: 
+0171:         fetchUserProfile: function () {
+0172:             this.callCloudFunction('getMyProfileData', {}).then((res) => {
+0173:                     if (res.result && res.result.success && res.result.userInfo) {
+0174:                         const user = res.result.userInfo;
+0175:                         this.setData({
+0176:                             avatarUrl: user.avatarUrl || '',
+0177:                             nickName: user.nickName || '',
+0178:                             birthday: user.birthday || '',
+0179:                             bio: user.bio || '',
+0180:                             signatureUrl: user.signatureUrl || '',
+0181:                             signaturePreview: user.signatureUrl || '',
+0182:                             signatureTempPath: null
+0183:                         });
+0184:                     } else {
+0185:                         uni.showToast({
+0186:                             title: '加载失败',
+0187:                             icon: 'none'
+0188:                         });
+0189:                     }
+0190:                 }).catch((err) => {
+0191:                     console.error('获取用户资料失败:', err);
+0192:                     uni.showToast({
+0193:                         title: '加载失败',
+0194:                         icon: 'none'
+0195:                     });
+0196:                 });
+0197:         },
+0198: 
+0199:         onChooseAvatar(e) {
+0200:             console.log('🔍 [ProfileEdit] 开始选择头像...');
+0201:             
+0202:             // 检查运行环境
+0203:             const { getCurrentPlatform } = require('../../utils/platformDetector.js');
+0204:             const platform = getCurrentPlatform();
+0205:             
+0206:             console.log(`🔍 [ProfileEdit] 当前平台: ${platform}`);
+0207:             
+0208:             if (platform === 'mp-weixin' && e.detail && e.detail.avatarUrl) {
+0209:                 // 微信小程序环境，使用 chooseAvatar API
+0210:                 const originalPath = e.detail.avatarUrl;
+0211:                 console.log('🔍 [ProfileEdit] 微信小程序选择头像，原始路径:', originalPath);
+0212:                 this.processAvatar(originalPath);
+0213:             } else {
+0214:                 // H5和App环境，使用 uni.chooseImage
+0215:                 console.log('🔍 [ProfileEdit] H5/App环境，使用uni.chooseImage选择头像');
+0216:                 uni.chooseImage({
+0217:                     count: 1,
+0218:                     sizeType: ['compressed'],
+0219:                     sourceType: ['album', 'camera'],
+0220:                     success: (res) => {
+0221:                         const originalPath = res.tempFilePaths[0];
+0222:                         console.log('🔍 [ProfileEdit] 选择头像成功，原始路径:', originalPath);
+0223:                         this.processAvatar(originalPath);
+0224:                     },
+0225:                     fail: (err) => {
+0226:                         console.error('🔍 [ProfileEdit] 选择头像失败:', err);
+0227:                         uni.showToast({
+0228:                             title: '选择头像失败',
+0229:                             icon: 'none'
+0230:                         });

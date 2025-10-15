@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <view>
         <!-- pages/profile-edit/profile-edit.wxml -->
         <view class="container">
@@ -35,6 +35,24 @@
                 </picker>
             </view>
 
+            <!-- 新增：职业 -->
+            <view class="form-group">
+                <label class="label" for="occupation">职业</label>
+                <input id="occupation" class="input" type="text" placeholder="如：产品经理 / 学生" :value="occupation" @input="onOccupationInput" />
+            </view>
+
+            <!-- 新增：地区（统一用文本输入，兼容多端） -->
+            <view class="form-group">
+                <label class="label" for="region">地区</label>
+                <input id="region" class="input" type="text" placeholder="如：北京 / 上海 / 广东深圳" :value="region" @input="onRegionInput" />
+            </view>
+
+            <!-- 新增：Poem ID -->
+            <view class="form-group">
+                <label class="label" for="poemId">Poem ID</label>
+                <input id="poemId" class="input" type="text" placeholder="请输入您的Poem ID" :value="poemId" @input="onPoemIdInput" />
+            </view>
+
             <view class="form-group-column">
                 <label class="label">个性签名</label>
                 <textarea class="textarea" placeholder="介绍一下自己吧..." :value="bio" @input="onBioInput" maxlength="100"></textarea>
@@ -62,6 +80,9 @@ export default {
             nickName: '',
             birthday: '',
             bio: '',
+            occupation: '',
+            region: '',
+            poemId: '',        // 新增：poemId字段
             endDate: '',
             isSaving: false,
             tempAvatarPath: null,
@@ -86,60 +107,89 @@ export default {
         },
 
         // 兼容性文件上传方法
-        uploadFile(cloudPath, filePath) {
-            console.log(`🔍 [ProfileEdit] 上传文件: ${cloudPath}`, filePath);
-            
+        // 通用文件上传（重构：H5/App 使用 Blob 直传或回退云函数；小程序直传）
+        async uploadFile(cloudPath, filePath) {
+            const { getCloudFunctionMethod } = require('../../utils/platformDetector.js');
+            const method = getCloudFunctionMethod();
+            if (method === 'tcb') {
+                const app = getApp();
+                if (!(app && app.$tcb && typeof app.$tcb.uploadFile === 'function')) {
+                    throw new Error('TCB实例不可用');
+                }
+                let file = filePath;
+                try {
+                    if (typeof filePath === "string" && typeof fetch === "function" && typeof Blob !== "undefined") {
+                        const resp = await fetch(filePath);
+                        file = await resp.blob();
+                    } else if (filePath && filePath.tempFilePath && typeof fetch === "function") {
+                        const resp = await fetch(filePath.tempFilePath);
+                        file = await resp.blob();
+                    }
+                } catch (e) {
+                    console.warn('[ProfileEdit] toBlob失败，改走云函数上传', e);
+                    return await this.uploadFileViaCloudFunction(cloudPath, filePath);
+                }
+                try {
+                    const res = await app.$tcb.uploadFile({ cloudPath, file });
+                    return (res && (res.fileID || res.fileId)) || (res && res.data && res.data.fileID) || res;
+                } catch (e) {
+                    console.warn('[ProfileEdit] TCB直传失败，fallback 到云函数', e);
+                    return await this.uploadFileViaCloudFunction(cloudPath, filePath);
+                }
+            } else if (method === "wx-cloud") {
+                const res = await wx.cloud.uploadFile({ cloudPath, filePath });
+                return (res && res.fileID) ? res.fileID : res;
+            }
+            throw new Error('不支持的云函数调用方式: ' + method);
+        },
+
+
+        // 通过云函数上传（参考发布页逻辑）：H5 将文件转 base64 后上传
+        uploadFileViaCloudFunction(cloudPath, filePath, retryCount = 0) {
             return new Promise((resolve, reject) => {
-                // 使用新的平台检测工具
-                const { getCurrentPlatform, getCloudFunctionMethod } = require('../../utils/platformDetector.js');
-                
-                const platform = getCurrentPlatform();
-                const method = getCloudFunctionMethod();
-                
-                console.log(`🔍 [ProfileEdit] 运行环境: ${platform}, 调用方式: ${method}`);
-                
-                if (method === 'tcb') {
-                    // H5和App环境使用TCB
-                    const app = getApp();
-                    if (app && app.$tcb && app.$tcb.uploadFile) {
-                        console.log(`🔍 [ProfileEdit] ${platform}环境使用TCB上传文件: ${cloudPath}`);
-                        app.$tcb.uploadFile({
-                            cloudPath: cloudPath,
-                            filePath: filePath
-                        }).then(resolve).catch(reject);
-                    } else {
-                        console.error(`❌ [ProfileEdit] ${platform}环境TCB不可用`);
-                        console.error(`❌ [ProfileEdit] app:`, app);
-                        console.error(`❌ [ProfileEdit] app.$tcb:`, app && app.$tcb);
-                        reject(new Error('TCB实例不可用'));
-                    }
-                } else if (method === 'wx-cloud') {
-                    // 小程序环境使用微信云开发
-                    if (wx.cloud && wx.cloud.uploadFile) {
-                        console.log(`🔍 [ProfileEdit] 小程序环境使用微信云开发上传文件: ${cloudPath}`);
-                        wx.cloud.uploadFile({
-                            cloudPath: cloudPath,
-                            filePath: filePath,
-                            success: (res) => {
-                                console.log(`✅ [ProfileEdit] 文件上传成功: ${cloudPath}`, res);
-                                resolve(res);
-                            },
-                            fail: (err) => {
-                                console.error(`❌ [ProfileEdit] 文件上传失败: ${cloudPath}`, err);
-                                reject(err);
-                            }
-                        });
-                    } else {
-                        console.error(`❌ [ProfileEdit] 小程序环境微信云开发不可用`);
-                        reject(new Error('微信云开发不可用'));
-                    }
+                if (typeof window !== "undefined" && typeof FileReader !== "undefined") {
+                    fetch(filePath)
+                        .then(response => {
+                            if (!response.ok) throw new Error("HTTP " + response.status);
+                            return response.blob();
+                        })
+                        .then(blob => {
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                                const result = reader.result;
+                                if (!result || typeof result !== "string") {
+                                    reject(new Error("文件读取失败"));
+                                    return;
+                                }
+                                const base64 = result.split(",")[1];
+                                this.callCloudFunction("upload", { cloudPath, fileContent: base64 })
+                                    .then((uploadRes) => {
+                                        if (uploadRes && uploadRes.result && uploadRes.result.success) {
+                                            resolve(uploadRes.result.fileID);
+                                        } else {
+                                            reject(new Error("云函数返回异常"));
+                                        }
+                                    })
+                                    .catch((err) => {
+                                        if (retryCount < 2) {
+                                            setTimeout(() => {
+                                                this.uploadFileViaCloudFunction(cloudPath, filePath, retryCount + 1)
+                                                    .then(resolve).catch(reject);
+                                            }, 1000 * (retryCount + 1));
+                                        } else {
+                                            reject(err);
+                                        }
+                                    });
+                            };
+                            reader.onerror = () => reject(new Error("文件读取失败"));
+                            reader.readAsDataURL(blob);
+                        })
+                        .catch(err => reject(err));
                 } else {
-                    console.error(`❌ [ProfileEdit] 不支持的云函数调用方式: ${method}`);
-                    reject(new Error(`不支持的云函数调用方式: ${method}`));
+                    reject(new Error("非H5环境不支持此上传方式"));
                 }
             });
         },
-
         fetchUserProfile: function () {
             this.callCloudFunction('getMyProfileData', {}).then((res) => {
                     if (res.result && res.result.success && res.result.userInfo) {
@@ -149,6 +199,9 @@ export default {
                             nickName: user.nickName || '',
                             birthday: user.birthday || '',
                             bio: user.bio || '',
+                            occupation: user.occupation || '',
+                            region: user.region || '',
+                            poemId: user.poemId || '',          // 新增：设置poemId
                             signatureUrl: user.signatureUrl || '',
                             signaturePreview: user.signatureUrl || '',
                             signatureTempPath: null
@@ -436,6 +489,24 @@ export default {
             });
         },
 
+        onOccupationInput(e) {
+            this.setData({
+                occupation: e.detail.value
+            });
+        },
+
+        onRegionInput(e) {
+            this.setData({
+                region: e.detail.value
+            });
+        },
+
+        onPoemIdInput(e) {
+            this.setData({
+                poemId: e.detail.value
+            });
+        },
+
         onSaveChanges: function () {
             if (this.isSaving || this.isProcessingSignature) {
                 return;
@@ -448,7 +519,7 @@ export default {
                 mask: true
             });
             const avatarUpload = this.tempAvatarPath
-                ? this.uploadFile(`user_avatars/${Date.now()}_${Math.floor(Math.random() * 1000)}`, this.tempAvatarPath)
+                ? this.uploadFile(`user_avatars/${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`, this.tempAvatarPath)
                 : Promise.resolve(null);
             const signatureUpload = this.signatureTempPath
                 ? this.uploadFile(`user_signatures/${Date.now()}_${Math.floor(Math.random() * 1000)}.png`, this.signatureTempPath)
@@ -456,11 +527,14 @@ export default {
             Promise.all([avatarUpload, signatureUpload])
                 .then(([avatarFileID, signatureFileID]) => {
                     return this.callCloudFunction('updateUserProfile', {
-                            avatarUrl: avatarFileID,
+                            avatarUrl: (typeof avatarFileID === 'object' && avatarFileID) ? (avatarFileID.fileID || avatarFileID.fileId || '') : (avatarFileID || ''),
                             nickName: this.nickName,
                             birthday: this.birthday,
                             bio: this.bio,
-                            signatureUrl: signatureFileID
+                            occupation: this.occupation,
+                            region: this.region,
+                            poemId: this.poemId,  // 新增：保存poemId
+                            signatureUrl: (typeof signatureFileID === 'object' && signatureFileID) ? (signatureFileID.fileID || signatureFileID.fileId || '') : (signatureFileID || '')
                         });
                 })
                 .then((res) => {
@@ -638,4 +712,5 @@ export default {
     box-sizing: border-box;
 }
 </style>
+
 

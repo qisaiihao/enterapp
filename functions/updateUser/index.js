@@ -7,34 +7,71 @@ cloud.init({
 
 const db = cloud.database();
 
+// 平台检测和兼容性处理
+function getDatabaseAndContext() {
+  // 检查是否是TCB调用（H5/APP环境）
+  if (global.tcb) {
+    return {
+      db: global.tcb.database(),
+      isTCB: true
+    };
+  }
+
+  // 微信小程序环境
+  return {
+    db: db,
+    isTCB: false
+  };
+}
+
+// 获取用户ID的兼容函数
+function getUserId(wxContext, event, context) {
+  // 优先级：event.openid > context.OPENID > wxContext.OPENID > wxContext.claims.openid
+  let openid = event.openid || context.OPENID || wxContext.OPENID || (wxContext.claims && wxContext.claims.openid);
+
+  console.log('🔍 [updateUser] 用户ID获取详情:', {
+    eventOpenid: event.openid,
+    contextOpenid: context.OPENID,
+    wxContextOpenid: wxContext.OPENID,
+    wxClaimsOpenid: wxContext.claims && wxContext.claims.openid,
+    finalOpenid: openid,
+    platform: global.tcb ? 'TCB' : 'WeApp'
+  });
+
+  return openid;
+}
+
 // 云函数入口函数
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
   const { nickName, avatarUrl, poemId, password } = event;
 
-  // 获取用户标识，与login云函数保持一致
-  const openid = wxContext.OPENID || event.openid;
-  console.log('🔍 [updateUser] 获取到的openid:', openid);
-  console.log('🔍 [updateUser] wxContext:', wxContext);
-  console.log('🔍 [updateUser] event:', event);
-  console.log('🔍 [updateUser] context:', context);
+  // 获取兼容的数据库实例和上下文
+  const { db: database, isTCB } = getDatabaseAndContext();
+
+  // 获取用户标识
+  const openid = getUserId(wxContext, event, context);
+
+  console.log('🔍 [updateUser] 最终使用的openid:', openid);
+  console.log('🔍 [updateUser] 运行平台:', isTCB ? 'TCB' : 'WeApp');
+  console.log('🔍 [updateUser] 收到的参数:', { nickName, avatarUrl, poemId, password: password ? '***' : 'undefined' });
 
   if (!openid) {
     return {
       success: false,
-      message: '无法获取用户 openid，请重新登录',
+      message: '无法获取用户身份信息，请重新登录',
       code: 'NO_OPENID'
     };
   }
 
   try {
     console.log('🔍 [updateUser] 开始查询用户，openid:', openid);
-    
+
     // 使用统一的_openid字段，与项目其他云函数保持一致
-    const userRecord = await db.collection('users').where({
+    const userRecord = await database.collection('users').where({
       _openid: openid
     }).get();
-    
+
     console.log('🔍 [updateUser] 查询结果:', userRecord);
     console.log('🔍 [updateUser] 查询到的用户数量:', userRecord.data.length);
 
@@ -46,16 +83,26 @@ exports.main = async (event, context) => {
         avatarUrl,
         updatedAt: new Date()
       };
-      
+
       // 如果提供了poemId和password，则更新这些字段
-      if (poemId) updateData.poemId = poemId;
-      if (password) updateData.password = password;
-      
-      await db.collection('users').where({
+      if (poemId) {
+        updateData.poemId = poemId;
+        console.log('🔍 [updateUser] 将更新poemId:', poemId);
+      }
+      if (password) {
+        updateData.password = password;
+        console.log('🔍 [updateUser] 将更新password');
+      }
+
+      console.log('🔍 [updateUser] 准备更新的数据:', updateData);
+
+      const updateResult = await database.collection('users').where({
         _openid: openid
       }).update({
         data: updateData
       });
+
+      console.log('🔍 [updateUser] 更新结果:', updateResult);
     } else {
       // User does not exist, add it
       console.log('🔍 [updateUser] 用户不存在，执行创建');
@@ -65,20 +112,31 @@ exports.main = async (event, context) => {
         avatarUrl,
         createdAt: new Date()
       };
-      
+
       // 如果提供了poemId和password，则添加到创建数据中
-      if (poemId) createData.poemId = poemId;
-      if (password) createData.password = password;
-      
-      await db.collection('users').add({
+      if (poemId) {
+        createData.poemId = poemId;
+        console.log('🔍 [updateUser] 将创建poemId:', poemId);
+      }
+      if (password) {
+        createData.password = password;
+        console.log('🔍 [updateUser] 将创建password');
+      }
+
+      console.log('🔍 [updateUser] 准备创建的数据:', createData);
+
+      const createResult = await database.collection('users').add({
         data: createData
       });
+
+      console.log('🔍 [updateUser] 创建结果:', createResult);
     }
 
     // On success, explicitly return a success object that the client expects
     return {
       success: true,
-      message: 'User updated successfully.'
+      message: '用户信息更新成功',
+      platform: isTCB ? 'TCB' : 'WeApp'
     };
 
   } catch (e) {
@@ -87,12 +145,13 @@ exports.main = async (event, context) => {
     console.error('❌ [updateUser] 错误类型:', typeof e);
     console.error('❌ [updateUser] 错误消息:', e.message);
     console.error('❌ [updateUser] 错误堆栈:', e.stack);
-    
+
     // On failure, explicitly return a failure object
     return {
       success: false,
       message: '数据库操作失败: ' + (e.message || '未知错误'),
-      error: e.message || e.toString()
+      error: e.message || e.toString(),
+      platform: isTCB ? 'TCB' : 'WeApp'
     };
   }
 };

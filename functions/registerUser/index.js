@@ -10,7 +10,7 @@ const db = cloud.database();
 // 云函数入口函数
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
-  const { poemId, password, nickName } = event;
+  const { poemId, password, nickName, avatarFileID } = event;
 
   console.log('🔍 [registerUser] 收到注册请求:', { poemId, nickName, password: password ? '***' : 'undefined' });
 
@@ -63,6 +63,8 @@ exports.main = async (event, context) => {
           poemId: poemId,
           password: password,
           nickName: nickName,
+          // 可选：注册时一并设置头像
+          ...(avatarFileID ? { avatarUrl: avatarFileID } : {}),
           updateTime: new Date()
         }
       });
@@ -90,6 +92,7 @@ exports.main = async (event, context) => {
           poemId: poemId,
           password: password,
           nickName: nickName,
+          ...(avatarFileID ? { avatarUrl: avatarFileID } : {}),
           createTime: new Date()
         }
       });

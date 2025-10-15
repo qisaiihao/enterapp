@@ -35,7 +35,7 @@ exports.main = async (event, context) => {
   }
 
   // 从 event 中获取要审查的文本和图片fileID
-  const { text, fileIDs, originalFileIDs, title, content, publishMode, isOriginal, author, tags } = event;
+  const { text, fileIDs, originalFileIDs, title, content, publishMode, isOriginal, author, tags, backgroundColor, highlightSentence, highlightLines, isDiscussion, parentPostId } = event;
   
   console.log('接收到的fileIDs:', fileIDs);
   console.log('接收到的originalFileIDs:', originalFileIDs);
@@ -229,6 +229,9 @@ exports.main = async (event, context) => {
       // 新增诗歌相关字段
       isPoem: publishMode === 'poem',
       isOriginal: isOriginal || false,
+      // 新增讨论相关字段
+      isDiscussion: isDiscussion || false,
+      parentPostId: parentPostId || '',
       // 新增作者字段
       author: authorName,
       authorName: userNickName,
@@ -238,6 +241,9 @@ exports.main = async (event, context) => {
       // 新增标签字段
       tags: tags || [],
       // 审核状态
+      // UI 定制：背景色 + 高光句（可选）
+      backgroundColor: backgroundColor || \\u0027\\u0027,
+      highlightSentence: highlightSentence || \\u0027\\u0027,
       auditStatus: 'approved', // 审核通过
       auditTime: new Date()
     };
@@ -307,6 +313,28 @@ exports.main = async (event, context) => {
       data: postData
     });
 
+    // 追加写入：颜色/高光句（与现有字段解耦，避免旧版本对象结构影响）
+    try {
+      await db.collection('posts').doc(result._id).update({
+        data: {
+          backgroundColor: backgroundColor || postData.backgroundColor || '',
+          highlightSentence: highlightSentence || postData.highlightSentence || ''
+        }
+      });
+    // 兼容写入：高光行数组
+    try {
+      await db.collection('posts').doc(result._id).update({
+        data: {
+          highlightLines: Array.isArray(highlightLines) ? highlightLines : []
+        }
+      });
+    } catch (e) {
+      console.warn('[contentCheck] 写入 highlightLines 失败（忽略）:', e);
+    }
+    } catch (e) {
+      console.warn('[contentCheck] 追加写入颜色/高光句失败，不影响发帖:', e);
+    }
+
     console.log('数据库写入成功，返回结果:', {
       postId: result._id,
       insertedCount: result.stats?.inserted || 1
@@ -333,3 +361,5 @@ exports.main = async (event, context) => {
     };
   }
 };
+
+

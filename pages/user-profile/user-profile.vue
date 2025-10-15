@@ -12,11 +12,12 @@
             <!-- 用户信息卡片 -->
             <view class="profile-card">
                 <view class="profile-avatar">
-                    <image :src="userInfo.avatarUrl || '/static/images/avatar.png'" mode="aspectFill" @error="onAvatarError"></image>
+                    <image :src="userInfo.avatarUrl || '/images/avatar.png'" mode="aspectFill" @error="onAvatarError"></image>
                 </view>
                 <view class="profile-info">
                     <text class="profile-name">{{ userInfo.nickName || '微信用户' }}</text>
                     <text class="profile-bio">{{ userInfo.bio || '这个用户很懒，什么都没留下...' }}</text>
+                    <text class="profile-meta">{{ (userInfo.occupation || '未设置') + ' · ' + (userInfo.region || '未设置') }}</text>
                 </view>
                 <button
                     v-if="showFollowButton"
@@ -32,6 +33,11 @@
             </view>
 
             <!-- 帖子列表 -->
+            <!-- <view class="profile-detail-card"> -->
+                <!-- <text class="detail-item-inline">职业:{{ userInfo.occupation ? userInfo.occupation : '未设置' }}</text> -->
+                <!-- <text class="detail-item-inline">地区:{{ userInfo.region ? userInfo.region : '未设置' }}</text> -->
+            <!-- </view> -->
+
             <view class="posts-section">
                 <view class="section-title">TA的帖子</view>
                 <block v-if="userPosts.length > 0">
@@ -509,12 +515,18 @@ export default {
     margin-bottom: 10rpx;
 }
 
-.profile-bio {
-    font-size: 28rpx;
-    color: #999;
-    line-height: 1.4;
-    text-align: center;
-}
+  .profile-bio {
+      font-size: 28rpx;
+      color: #999;
+      line-height: 1.4;
+      text-align: center;
+  }
+  .profile-meta {
+      font-size: 26rpx;
+      color: #666;
+      margin-top: 8rpx;
+      text-align: center;
+  }
 
 /* 帖子部分 */
 .posts-section {
@@ -675,6 +687,23 @@ export default {
 .followed-pill {
     background-color: #f4ebff;
     color: #7c55c7;
+}
+
+/* 资料详情（与我的主页风格一致） */
+.profile-detail-card {
+    margin: 0 30rpx 20rpx 30rpx;
+    padding: 20rpx 24rpx;
+    background: #fff;
+    border-radius: 16rpx;
+    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16rpx 24rpx;
+}
+.detail-item-inline {
+    color: #666;
+    font-size: 28rpx;
+    margin-right: 24rpx;
 }
 </style>
 

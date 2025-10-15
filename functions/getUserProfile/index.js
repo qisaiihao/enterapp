@@ -50,6 +50,8 @@ exports.main = async (event, context) => {
         nickName: 1,
         avatarUrl: 1,
         bio: 1,
+        occupation: 1,
+        region: 1,
         signatureUrl: 1, // 添加签名URL字段
         // 不返回私人信息如生日、年龄等
         posts: 1
@@ -186,6 +188,8 @@ exports.main = async (event, context) => {
         _openid: userInfo._openid,
         nickName: userInfo.nickName || '微信用户',
         avatarUrl: userInfo.avatarUrl || '',
+        occupation: userInfo.occupation || '',
+        region: userInfo.region || '',
         bio: userInfo.bio || '这个用户很懒，什么都还没留下...',
         signatureUrl: userInfo.signatureUrl || '' // 添加签名URL字段
       },
