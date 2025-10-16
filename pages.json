@@ -233,25 +233,25 @@
         "pagePath": "pages/index/index",
         "text": "广场",
         "iconPath": "static/images/market.png",
-        "selectedIconPath": "static/images/marketplus.png"
+        "selectedIconPath": "static/images/market.png"
       },
       {
         "pagePath": "pages/poem-square/poem-square",
         "text": "路",
         "iconPath": "static/images/road.png",
-        "selectedIconPath": "static/images/roadplus.png"
+        "selectedIconPath": "static/images/road.png"
       },
       {
         "pagePath": "pages/mountain/mountain",
         "text": "山",
         "iconPath": "static/images/mountain.png",
-        "selectedIconPath": "static/images/mountainplus.png"
+        "selectedIconPath": "static/images/mountain.png"
       },
       {
         "pagePath": "pages/profile/profile",
         "text": "湖",
         "iconPath": "static/images/pools.png",
-        "selectedIconPath": "static/images/poolsplus.png"
+        "selectedIconPath": "static/images/pools.png"
       }
     ]
   },

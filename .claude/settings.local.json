@@ -3,7 +3,12 @@
     "allow": [
       "Read(//c/Users/qisaihao/给ai的图片/**)",
       "Bash(cat:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(git clone:*)",
+      "Bash(git checkout:*)",
+      "Bash(cp:*)",
+      "Bash(rm:*)",
+      "Read(//c/Users/86199/给ai的图片/**)"
     ],
     "deny": [],
     "ask": []

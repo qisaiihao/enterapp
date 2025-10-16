@@ -17,7 +17,7 @@
       </view>
 
       <view id="post-list-container">
-        <view v-for="(item, index) in postList" :key="item._id || index" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
+        <view v-for="(item, index) in postList" :key="item._id || index" :class="'post-item-wrapper color-' + ((index % 4) + 1)" :style="{ backgroundColor: item.backgroundColor }">
           <view class="post-content-navigator" @tap="togglePostExpansion" :data-index="index">
             <view class="post-item">
               <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed')" v-if="item.content" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
@@ -285,16 +285,64 @@ export default {
 
 <style>
 .white-bg { background: #fff; min-height: 100vh; }
-.square-mode-container { padding: 40rpx; margin-bottom: 200rpx; padding-top: 80rpx; /* 减少上边距 */ }
+.square-mode-container {
+  padding: 40rpx;
+  margin-bottom: 200rpx;
+  padding-top: 80rpx; /* 减少上边距 */
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* 居中卡片 */
+}
 .empty-state { text-align: center; padding: 100rpx 0; color: #999; }
 .empty-icon { font-size: 80rpx; margin-bottom: 20rpx; }
 .empty-text { font-size: 32rpx; margin-bottom: 10rpx; color: #666; }
 .empty-subtext { font-size: 24rpx; color: #999; }
-.post-item-wrapper { border-radius: 40rpx; margin-bottom: 60rpx; overflow: hidden; border: 1rpx solid #e9ecef; box-shadow: 0 12rpx 15rpx rgba(0,0,0,0.20); transition: transform .3s ease; }
+
+/* poem.css inspired card styles */
+.post-item-wrapper {
+  width: 628rpx; /* 314px * 2 */
+  border-radius: 30rpx; /* 15px * 2 */
+  margin-bottom: 40rpx; /* 减少间距，让卡片更紧凑 */
+  overflow: hidden;
+  box-shadow: 0 8rpx 8rpx rgba(0, 0, 0, 0.25); /* 0px 4px 4px * 2 */
+  transition: transform .3s ease;
+  border: none;
+}
+
+/* Color variants inspired by poem.css */
+.post-item-wrapper.color-1 {
+  background: rgba(125, 47, 47, 0.7);
+}
+.post-item-wrapper.color-2 {
+  background: rgba(114, 118, 101, 0.7);
+}
+.post-item-wrapper.color-3 {
+  background: rgba(211, 223, 221, 0.7);
+}
+.post-item-wrapper.color-4 {
+  background: rgba(157, 210, 199, 0.7);
+}
+
 .post-item-wrapper:active { transform: scale(0.98); }
 .post-content-navigator { display: block; }
-.post-item { padding: 40rpx 50rpx; position: relative; }
-.post-content { font-size: 32rpx; line-height: 1.6; margin: 30rpx 0; width: 100%; }
+.post-item { padding: 80rpx 100rpx; position: relative; } /* 40px 50px * 2 */
+
+/* Typography inspired by poem.css */
+.post-content {
+  font-family: 'Inter', sans-serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 28rpx; /* 14px * 2 */
+  line-height: 34rpx; /* 17px * 2 */
+  margin: 30rpx 0;
+  width: 100%;
+  color: #FFFFFF;
+}
+
+/* Text colors for different backgrounds */
+.color-3 .post-content {
+  color: #000000; /* For lighter background rgba(211, 223, 221, 0.7) */
+}
 /* 折叠态：多端兼容的三行裁切（参考原始小程序实现） */
 .post-content.collapsed {
   display: -webkit-box;

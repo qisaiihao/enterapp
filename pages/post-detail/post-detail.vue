@@ -2470,6 +2470,7 @@ export default {
     padding-bottom: 15rpx;
     border-bottom: 1rpx solid #f0f0f0;
     color: #333;
+    margin-left: 0;
 }
 
 .comment-list {
@@ -2495,7 +2496,7 @@ export default {
     margin-right: 15rpx;
     flex-shrink: 0;
     background-color: #f5f5f5;
-    margin-left: 40rpx;
+    margin-left: 0;
 }
 
 .comment-main {
@@ -2616,8 +2617,8 @@ export default {
 
 .replies-container {
     margin-top: 15rpx;
-    margin-left: 20rpx;
-    padding-left: 20rpx;
+    margin-left: 10rpx;
+    padding-left: 10rpx;
     border-left: 2rpx solid #f0f0f0;
 }
 

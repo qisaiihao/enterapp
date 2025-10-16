@@ -9,27 +9,58 @@
 
         <!-- 主要内容 -->
         <view v-else>
-            <!-- 用户信息卡片 -->
-            <view class="profile-card">
-                <view class="profile-avatar">
-                    <image :src="userInfo.avatarUrl || '/images/avatar.png'" mode="aspectFill" @error="onAvatarError"></image>
+            <!-- 用户信息头部 -->
+            <view class="profile-header">
+                <!-- 顶部操作栏 -->
+                <view class="header-actions">
+                    <view class="action-btn"></view>
+                    <view class="action-btn"></view>
                 </view>
-                <view class="profile-info">
-                    <text class="profile-name">{{ userInfo.nickName || '微信用户' }}</text>
-                    <text class="profile-bio">{{ userInfo.bio || '这个用户很懒，什么都没留下...' }}</text>
-                    <text class="profile-meta">{{ (userInfo.occupation || '未设置') + ' · ' + (userInfo.region || '未设置') }}</text>
+
+                <!-- 用户头像 -->
+                <view class="avatar-section">
+                    <view class="avatar-wrapper">
+                        <image
+                            class="user-avatar"
+                            :src="userInfo.avatarUrl || '/images/avatar.png'"
+                            mode="aspectFill"
+                            @error="onAvatarError"
+                        ></image>
+                    </view>
                 </view>
-                <button
-                    v-if="showFollowButton"
-                    :class="'profile-follow-btn ' + (isFollowing ? 'following' : '')"
-                    @tap="onFollowTap"
-                    :loading="followPending"
-                    :disabled="followPending"
-                >
-                    {{ isFollowing ? '已关注' : '关注' }}
-                </button>
-                <view v-if="isMutualFollow" class="mutual-pill">互相关注</view>
-                <view v-else-if="isFollowedByTarget" class="followed-pill">TA关注了你</view>
+
+                <!-- 用户信息 -->
+                <view class="user-info">
+                    <view class="username">{{ userInfo.nickName || '微信用户' }}</view>
+                    <view class="user-bio">{{ userInfo.bio || '这个用户很懒，什么都没留下...' }}</view>
+
+                    <!-- 关注统计 -->
+                    <view class="follow-stats">
+                        <view class="stat-item">
+                            <view class="stat-number">{{ userInfo.followingCount || 0 }}</view>
+                            <view class="stat-label">关注</view>
+                        </view>
+                        <view class="stat-item">
+                            <view class="stat-number">{{ userInfo.followersCount || 0 }}</view>
+                            <view class="stat-label">被关注</view>
+                        </view>
+                    </view>
+
+                    <!-- 关注按钮 -->
+                    <view class="follow-section">
+                        <button
+                            v-if="showFollowButton"
+                            :class="'follow-btn ' + (isFollowing ? 'following' : '')"
+                            @tap="onFollowTap"
+                            :loading="followPending"
+                            :disabled="followPending"
+                        >
+                            {{ isFollowing ? '已关注' : '关注' }}
+                        </button>
+                        <view v-if="isMutualFollow" class="mutual-indicator">互相关注</view>
+                        <view v-else-if="isFollowedByTarget" class="followed-indicator">TA关注了你</view>
+                    </view>
+                </view>
             </view>
 
             <!-- 帖子列表 -->
@@ -128,7 +159,7 @@
                     </view>
 
                     <!-- 占位空白，便于触发 onReachBottom -->
-                    <view style="height: 200rpx"></view>
+                    <view style="height: 100rpx"></view>
                 </block>
 
                 <view v-else class="empty-tip">
@@ -459,7 +490,6 @@ export default {
 .container {
     min-height: 100vh;
     background-color: #f7f8fa;
-    padding-bottom: 100rpx;
 }
 
 /* 加载状态 */
@@ -479,58 +509,131 @@ export default {
     color: #999;
 }
 
-/* 用户信息卡片 */
-.profile-card {
-    margin: 30rpx;
-    padding: 40rpx;
-    background-color: #fff;
-    border-radius: 16rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+/* 用户信息头部 */
+.profile-header {
+    background-color: #ffffff;
+    padding: 0 30rpx 40rpx 30rpx;
+    position: relative;
+}
+
+.header-actions {
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
     align-items: center;
+    padding: 20rpx 0;
+    height: 80rpx;
+}
+
+.action-btn {
+    width: 40rpx;
+    height: 40rpx;
+    background-color: #f5f5f5;
+    border-radius: 20rpx;
+}
+
+.avatar-section {
+    display: flex;
+    justify-content: center;
+    margin: 20rpx 0 30rpx 0;
+}
+
+.avatar-wrapper {
+    position: relative;
+}
+
+.user-avatar {
+    width: 120rpx;
+    height: 120rpx;
+    border-radius: 60rpx;
+    background-color: #f0f0f0;
+}
+
+.user-info {
     text-align: center;
 }
 
-.profile-avatar {
-    margin-bottom: 20rpx;
+.username {
+    font-size: 32rpx;
+    font-weight: 600;
+    color: #000000;
+    margin-bottom: 12rpx;
 }
 
-.profile-avatar image {
-    width: 150rpx;
-    height: 150rpx;
-    border-radius: 50%;
+.user-bio {
+    font-size: 24rpx;
+    color: #666666;
+    line-height: 1.4;
+    margin-bottom: 30rpx;
+    padding: 0 40rpx;
 }
 
-.profile-info {
+.follow-stats {
     display: flex;
-    flex-direction: column;
+    justify-content: center;
+    gap: 80rpx;
+    margin-bottom: 30rpx;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 28rpx;
+    font-weight: 600;
+    color: #000000;
+    margin-bottom: 4rpx;
+}
+
+.stat-label {
+    font-size: 22rpx;
+    color: #999999;
+}
+
+.follow-section {
+    display: flex;
+    justify-content: center;
     align-items: center;
+    gap: 20rpx;
 }
 
-.profile-name {
-    font-size: 36rpx;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 10rpx;
+.follow-btn {
+    padding: 0 40rpx;
+    height: 56rpx;
+    line-height: 56rpx;
+    background-color: #007aff;
+    color: #ffffff;
+    border: none;
+    border-radius: 28rpx;
+    font-size: 26rpx;
+    font-weight: 500;
 }
 
-  .profile-bio {
-      font-size: 28rpx;
-      color: #999;
-      line-height: 1.4;
-      text-align: center;
-  }
-  .profile-meta {
-      font-size: 26rpx;
-      color: #666;
-      margin-top: 8rpx;
-      text-align: center;
-  }
+.follow-btn.following {
+    background-color: #f0f0f0;
+    color: #666666;
+}
+
+.follow-btn::after {
+    border: none;
+}
+
+.follow-btn[disabled] {
+    opacity: 0.7;
+}
+
+.mutual-indicator,
+.followed-indicator {
+    padding: 8rpx 20rpx;
+    border-radius: 20rpx;
+    font-size: 22rpx;
+    background-color: #f0f8ff;
+    color: #007aff;
+}
 
 /* 帖子部分 */
 .posts-section {
-    margin: 0 30rpx 30rpx 30rpx;
+    margin: 20rpx 30rpx 30rpx 30rpx;
 }
 
 .section-title {
@@ -645,49 +748,6 @@ export default {
     box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
 }
 
-.profile-follow-btn {
-    margin-top: 24rpx;
-    padding: 0 48rpx;
-    height: 64rpx;
-    line-height: 64rpx;
-    background-color: #9ed7ee;
-    color: #ffffff;
-    border: none;
-    border-radius: 999rpx;
-    font-size: 28rpx;
-}
-
-.profile-follow-btn.following {
-    background-color: #f0f0f0;
-    color: #666666;
-}
-
-.profile-follow-btn::after {
-    border: none;
-}
-
-.profile-follow-btn[disabled] {
-    opacity: 0.7;
-}
-
-.mutual-pill,
-.followed-pill {
-    margin-top: 16rpx;
-    padding: 6rpx 24rpx;
-    border-radius: 999rpx;
-    font-size: 26rpx;
-    display: inline-block;
-}
-
-.mutual-pill {
-    background-color: #e6f4ff;
-    color: #1f6fd2;
-}
-
-.followed-pill {
-    background-color: #f4ebff;
-    color: #7c55c7;
-}
 
 /* 资料详情（与我的主页风格一致） */
 .profile-detail-card {
