@@ -7,7 +7,7 @@
       </view>
       <text class="header-title">作品集</text>
       <view class="header-right">
-        <text class="create-btn" @tap="showCreateModal">+ 新建</text>
+        <text class="create-btn" @tap="openCreateModal">+ 新建</text>
       </view>
     </view>
 
@@ -46,7 +46,6 @@
             <text class="folder-count">{{ folder.itemCount }} 个作品</text>
           </view>
           <view class="folder-actions">
-            <text class="action-btn" @tap.stop="editFolder(folder)">编辑</text>
             <text class="action-btn delete" @tap.stop="deleteFolder(folder)">删除</text>
           </view>
         </view>
@@ -138,14 +137,18 @@ export default {
       // 暂时不实现分页，因为作品集通常不会很多
     },
 
-    showCreateModal() {
-      this.showCreateModal = true;
-      this.newFolderName = '';
+    openCreateModal() {
+      this.setData({
+        showCreateModal: true,
+        newFolderName: ''
+      });
     },
 
     hideCreateModal() {
-      this.showCreateModal = false;
-      this.newFolderName = '';
+      this.setData({
+        showCreateModal: false,
+        newFolderName: ''
+      });
     },
 
     async createFolder() {
@@ -193,13 +196,6 @@ export default {
       });
     },
 
-    editFolder(folder) {
-      // TODO: 实现编辑作品集功能
-      uni.showToast({
-        title: '编辑功能开发中',
-        icon: 'none'
-      });
-    },
 
     async deleteFolder(folder) {
       if (folder.isDefault) {

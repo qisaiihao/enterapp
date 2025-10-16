@@ -7,7 +7,7 @@
       </view>
       <text class="header-title">{{ folderName }}</text>
       <view class="header-right">
-        <text class="add-btn" @tap="showAddModal">+ 添加</text>
+        <text class="add-btn" @tap="openAddModal">+ 添加</text>
       </view>
     </view>
 
@@ -23,32 +23,44 @@
         <text class="empty-subtext">点击右上角添加您的作品</text>
       </view>
 
-      <view v-else class="items-grid">
-        <view
-          v-for="item in portfolioItems"
-          :key="item._id"
-          class="item-card"
-          @tap="viewPost(item)"
-        >
-          <view class="item-cover">
-            <image
-              v-if="item.imageUrls && item.imageUrls.length > 0"
-              :src="item.imageUrls[0]"
-              mode="aspectFill"
-              class="cover-image"
-            ></image>
-            <view v-else class="default-cover">
-              <text class="content-preview">{{ item.content || item.title }}</text>
+      <view v-else id="post-list-container">
+        <view v-for="(item, index) in portfolioItems" :key="'portfolio-' + index + '-' + (item._id || item.postId)" :class="'post-item-wrapper color-' + ((index % 4) + 1)" :style="{ backgroundColor: item.backgroundColor || '#FFE5E5' }">
+          <view class="post-content-navigator" @tap="togglePostExpansion" :data-index="index">
+            <view class="post-item">
+              <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed')" v-if="item.content" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
+                <block v-if="item.isExpanded">
+                  {{ item.content }}
+                </block>
+                <block v-else>
+                  <!-- 折叠状态下只显示高光行 -->
+                  <block v-if="item.highlightLines && item.highlightLines.length > 0">
+                    <text v-for="(highlightLine, index) in item.highlightLines" :key="'line-' + index" style="font-weight: 700; display: block;">{{ highlightLine }}</text>
+                  </block>
+                  <block v-else>
+                    {{ item.content }}
+                  </block>
+                </block>
+              </view>
+
+              <!-- 作者签名 - 只在展开时显示 -->
+              <view v-if="item.isExpanded && item.authorSignature" class="user-signature">
+                <image class="signature-image" :src="item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
+              </view>
             </view>
           </view>
-          <view class="item-info">
-            <text class="item-title">{{ item.title || '无标题' }}</text>
-            <text class="item-content">{{ item.content || '无内容' }}</text>
-            <view class="item-meta">
-              <text class="item-date">{{ formatDate(item.createTime) }}</text>
-              <text class="item-actions">
-                <text class="remove-btn" @tap.stop="removeItem(item)">移除</text>
-              </text>
+
+          <!-- 交互区（展开时显示） -->
+          <view class="vote-section" v-if="item.isExpanded" :style="{ backgroundColor: item.backgroundColor }">
+            <view class="actions-left">
+              <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="item._id" :data-index="index">
+                <image class="like-icon" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError" />
+              </view>
+              <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
+                <text class="comment-emoji">💬</text>
+              </view>
+            </view>
+            <view class="button-group">
+              <text class="remove-btn" @tap.stop="removeItem(item)">移除</text>
             </view>
           </view>
         </view>
@@ -67,23 +79,23 @@
           <text class="close-btn" @tap="hideAddModal">×</text>
         </view>
         <view class="modal-body">
-          <text class="tip-text">从您的帖子中选择要添加到作品集的内容</text>
+          <text class="tip-text">从您的原创诗歌中选择要添加到作品集的内容</text>
           <view class="my-posts-section">
-            <text class="section-title">我的帖子</text>
+            <text class="section-title">我的原创诗歌</text>
             <scroll-view class="posts-list" scroll-y="true">
               <view v-if="myPostsLoading" class="loading-small">
                 <text>加载中...</text>
               </view>
               <view v-else-if="myPosts.length === 0" class="empty-small">
-                <text>暂无帖子</text>
+                <text>暂无原创诗歌</text>
               </view>
               <view v-else class="posts-grid">
                 <view
                   v-for="post in myPosts"
                   :key="post._id"
                   class="post-item"
-                  :class="{ selected: selectedPostId === post._id }"
-                  @tap="selectPost(post)"
+                  :class="{ selected: selectedPostIds.includes(post._id) }"
+                  @tap="toggleSelectPost(post)"
                 >
                   <view class="post-cover">
                     <image
@@ -97,7 +109,7 @@
                     </view>
                   </view>
                   <text class="post-title">{{ post.title || '无标题' }}</text>
-                  <view v-if="selectedPostId === post._id" class="selected-check">
+                  <view v-if="selectedPostIds.includes(post._id)" class="selected-check">
                     <text>✓</text>
                   </view>
                 </view>
@@ -107,7 +119,7 @@
         </view>
         <view class="modal-footer">
           <button class="modal-btn cancel" @tap="hideAddModal">取消</button>
-          <button class="modal-btn confirm" @tap="addToPortfolio" :disabled="!selectedPostId">添加</button>
+          <button class="modal-btn confirm" @tap="addToPortfolio" :disabled="selectedPostIds.length === 0">添加</button>
         </view>
       </view>
     </view>
@@ -128,9 +140,14 @@ export default {
       showAddModal: false,
       myPosts: [],
       myPostsLoading: false,
-      selectedPostId: '',
+      selectedPostIds: [],
       skip: 0,
-      limit: 10
+      limit: 10,
+      // 添加展开/折叠相关数据
+      backgroundColors: [
+        '#FFE5E5', '#E5F3FF', '#E5FFE5', '#FFF5E5'
+      ],
+      lastUsedColorIndex: -1
     };
   },
 
@@ -163,12 +180,23 @@ export default {
         });
 
         if (res.result && res.result.success) {
+          const items = res.result.portfolioItems || [];
+          // 为每个作品添加展开/折叠相关属性
+          items.forEach((item, index) => {
+            item.backgroundColor = this.generateRandomBackgroundColor();
+            item.textColor = '#333';
+            item.isExpanded = false;
+            item.authorSignature = '';
+            item.likeIcon = this.getLikeIcon(item.votes || 0, !!item.isVoted);
+            console.log(`【作品集】项目${index}背景色:`, item.backgroundColor);
+          });
+          
           if (this.skip === 0) {
-            this.portfolioItems = res.result.portfolioItems || [];
+            this.portfolioItems = items;
           } else {
-            this.portfolioItems = [...this.portfolioItems, ...(res.result.portfolioItems || [])];
+            this.portfolioItems = [...this.portfolioItems, ...items];
           }
-          this.hasMore = (res.result.portfolioItems || []).length >= this.limit;
+          this.hasMore = items.length >= this.limit;
         } else {
           uni.showToast({
             title: '获取作品失败',
@@ -195,42 +223,78 @@ export default {
     async loadMyPosts() {
       this.myPostsLoading = true;
       try {
+        // 使用和profile页面相同的云函数调用方式
         const res = await this.callCloudFunction('getMyProfileData', {
           skip: 0,
-          limit: 50 // 获取更多帖子供选择
+          limit: 50
         });
 
         if (res.result && res.result.success && res.result.posts) {
+          console.log('【作品集】获取到的我的帖子:', res.result.posts.length);
+          console.log('【作品集】帖子详情:', res.result.posts.map(p => ({
+            id: p._id,
+            title: p.title,
+            isOriginal: p.isOriginal,
+            isPoem: p.isPoem,
+            content: p.content?.substring(0, 20) + '...'
+          })));
+          
           // 过滤掉已经在作品集中的帖子
           const existingPostIds = this.portfolioItems.map(item => item.postId);
-          this.myPosts = res.result.posts.filter(post => !existingPostIds.includes(post._id));
+          console.log('【作品集】已存在的帖子ID:', existingPostIds);
+          
+          // 只显示原创诗歌，使用isOriginal和isPoem字段
+          this.myPosts = res.result.posts.filter(post => {
+            const isOriginalPoem = post.isOriginal === true && post.isPoem === true;
+            const notInPortfolio = !existingPostIds.includes(post._id);
+            
+            console.log(`【作品集】帖子 ${post._id}: isOriginal=${post.isOriginal}, isPoem=${post.isPoem}, isOriginalPoem=${isOriginalPoem}, notInPortfolio=${notInPortfolio}`);
+            
+            return isOriginalPoem && notInPortfolio;
+          });
+          
+          console.log('【作品集】过滤后的我的原创诗歌数量:', this.myPosts.length);
         }
       } catch (error) {
-        console.error('加载我的帖子失败:', error);
+        console.error('加载我的原创诗歌失败:', error);
       } finally {
         this.myPostsLoading = false;
       }
     },
 
-    showAddModal() {
-      this.showAddModal = true;
-      this.selectedPostId = '';
+    openAddModal() {
+      this.setData({
+        showAddModal: true,
+        selectedPostIds: []
+      });
       this.loadMyPosts();
     },
 
     hideAddModal() {
-      this.showAddModal = false;
-      this.selectedPostId = '';
+      this.setData({
+        showAddModal: false,
+        selectedPostIds: []
+      });
     },
 
-    selectPost(post) {
-      this.selectedPostId = this.selectedPostId === post._id ? '' : post._id;
+    toggleSelectPost(post) {
+      const index = this.selectedPostIds.indexOf(post._id);
+      if (index > -1) {
+        // 如果已选中，则取消选中
+        this.selectedPostIds.splice(index, 1);
+      } else {
+        // 如果未选中，则添加到选中列表
+        this.selectedPostIds.push(post._id);
+      }
+      this.setData({
+        selectedPostIds: this.selectedPostIds
+      });
     },
 
     async addToPortfolio() {
-      if (!this.selectedPostId) {
+      if (this.selectedPostIds.length === 0) {
         uni.showToast({
-          title: '请选择要添加的帖子',
+          title: '请选择要添加的诗歌',
           icon: 'none'
         });
         return;
@@ -238,14 +302,21 @@ export default {
 
       try {
         uni.showLoading({ title: '添加中...' });
-        const res = await this.callCloudFunction('addToPortfolio', {
-          postId: this.selectedPostId,
-          folderId: this.folderId
-        });
-
-        if (res.result && res.result.success) {
+        
+        // 批量添加选中的诗歌
+        const promises = this.selectedPostIds.map(postId => 
+          this.callCloudFunction('addToPortfolio', {
+            folderId: this.folderId,
+            postId: postId
+          })
+        );
+        
+        const results = await Promise.all(promises);
+        const successCount = results.filter(res => res.result && res.result.success).length;
+        
+        if (successCount > 0) {
           uni.showToast({
-            title: '添加成功',
+            title: `成功添加 ${successCount} 首诗歌`,
             icon: 'success'
           });
           this.hideAddModal();
@@ -253,7 +324,7 @@ export default {
           this.loadPortfolioItems();
         } else {
           uni.showToast({
-            title: res.result?.message || '添加失败',
+            title: '添加失败',
             icon: 'none'
           });
         }
@@ -311,6 +382,69 @@ export default {
       uni.navigateTo({
         url: `/pages/post-detail/post-detail?id=${item.postId}`
       });
+    },
+
+    // 生成随机背景颜色
+    generateRandomBackgroundColor() {
+      const colors = this.backgroundColors;
+      const last = this.lastUsedColorIndex;
+      if (last === -1) {
+        const idx = Math.floor(Math.random() * colors.length);
+        this.lastUsedColorIndex = idx;
+        return colors[idx];
+      }
+      const avail = colors.filter((_, i) => i !== last);
+      const pick = avail[Math.floor(Math.random() * avail.length)];
+      this.lastUsedColorIndex = colors.indexOf(pick);
+      return pick;
+    },
+
+    // 获取点赞图标
+    getLikeIcon(votes, isVoted) {
+      // 简单的点赞图标逻辑，可以根据需要调整
+      if (votes >= 10) return '/static/images/seedplus.png';
+      if (votes >= 5) return '/static/images/seed.png';
+      return '/static/images/seed.png';
+    },
+
+    // 切换展开/折叠
+    togglePostExpansion(e) {
+      const index = e.currentTarget.dataset.index;
+      const items = [...this.portfolioItems];
+      items[index].isExpanded = !items[index].isExpanded;
+      this.setData({
+        portfolioItems: items
+      });
+    },
+
+    // 点赞处理
+    onVote(e) {
+      const postId = e.currentTarget.dataset.postid;
+      const index = e.currentTarget.dataset.index;
+      console.log('点赞作品:', postId);
+      // 这里可以添加点赞逻辑
+    },
+
+    // 评论点击
+    onCommentClick(e) {
+      const postId = e.currentTarget.dataset.postid;
+      console.log('查看评论:', postId);
+      // 这里可以添加跳转到评论页面的逻辑
+    },
+
+    // 签名图片错误处理
+    onSignatureError() {
+      console.log('签名图片加载失败');
+    },
+
+    // 签名图片加载成功
+    onSignatureLoad() {
+      console.log('签名图片加载成功');
+    },
+
+    // 点赞图标错误处理
+    onLikeIconError() {
+      console.log('点赞图标加载失败');
     },
 
     formatDate(dateString) {
@@ -714,6 +848,137 @@ export default {
 .modal-btn.confirm[disabled] {
   background: #ccc;
   color: #999;
+}
+
+/* 作品集内容样式 - 参考poem-square */
+#post-list-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 40rpx;
+  width: 100%;
+}
+
+.post-item-wrapper {
+  width: 100%;
+  max-width: 600rpx;
+  border-radius: 30rpx;
+  margin-bottom: 40rpx;
+  overflow: hidden;
+  box-shadow: 0 8rpx 8rpx rgba(0, 0, 0, 0.25);
+  transition: transform .3s ease;
+  border: none;
+  position: relative;
+}
+
+.post-item-wrapper.color-1 {
+  background: #FFE5E5;
+}
+.post-item-wrapper.color-2 {
+  background: #E5F3FF;
+}
+.post-item-wrapper.color-3 {
+  background: #E5FFE5;
+}
+.post-item-wrapper.color-4 {
+  background: #FFF5E5;
+}
+
+.post-item-wrapper:active { 
+  transform: scale(0.98); 
+}
+
+.post-content-navigator { 
+  display: block; 
+}
+
+.post-item { 
+  padding: 30rpx 60rpx 30rpx 80rpx; 
+  position: relative; 
+}
+
+.post-content {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 28rpx;
+  line-height: 38rpx;
+  margin: 30rpx 0;
+  width: 100%;
+  color: #333333;
+}
+
+.post-content.collapsed {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.post-content.expanded { 
+  display: block; 
+  overflow: visible; 
+}
+
+.comment-emoji{ 
+  font-size: 40rpx; 
+}
+
+.vote-section { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  padding: 25rpx 50rpx; 
+}
+
+.actions-left { 
+  flex: 1; 
+  display: flex; 
+  align-items: center; 
+  gap: 20rpx; 
+}
+
+.button-group { 
+  display: flex; 
+  align-items: center; 
+  gap: 30rpx; 
+}
+
+.comment-count { 
+  display: flex; 
+  align-items: center; 
+  gap: 8rpx; 
+  padding: 10rpx 15rpx; 
+}
+
+.like-icon { 
+  width: 60rpx; 
+  height: 60rpx; 
+  margin-top: 5px; 
+}
+
+.user-signature {
+  position: absolute;
+  bottom: 20rpx;
+  right: 20rpx;
+  width: 100rpx;
+  height: 50rpx;
+}
+
+.signature-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.remove-btn {
+  color: #ff4757;
+  font-size: 24rpx;
+  padding: 10rpx 20rpx;
+  border-radius: 20rpx;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
 }
 
 /* 弹窗遮罩 */

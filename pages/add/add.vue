@@ -31,97 +31,128 @@
 
         <!-- 内容输入区域 -->
         <view class="content-section">
-  
-            <!-- 正文输入区域 -->
-            <view class="content-input-wrapper" :data-highlight-mode="highlightModeEnabled">
-                <textarea
-                    class="content-textarea"
-                    placeholder="此刻你想要分享..."
-                    @input="onContentInput"
-                    @tap="onTextareaTap"
-                    maxlength="1500"
-                    :value="content"
-                    :show-confirm-bar="false"
-                    :adjust-position="false"
-                    @focus="onTextareaFocus"
-                    @blur="onTextareaBlur"
-                    @scroll="onTextareaScroll"
-                ></textarea>
-                <view v-if="content.length > 1400" class="char-count">{{ content.length }}/1500</view>
+            <!-- 主输入区域 -->
+            <view class="main-input-area">
+                <!-- 正文输入区域 -->
+                <view class="content-input-wrapper" :data-highlight-mode="highlightModeEnabled">
+                    <textarea
+                        class="content-textarea"
+                        placeholder="此刻你想要分享..."
+                        @input="onContentInput"
+                        @tap="onTextareaTap"
+                        maxlength="1500"
+                        :value="content"
+                        :show-confirm-bar="false"
+                        :adjust-position="false"
+                        @focus="onTextareaFocus"
+                        @blur="onTextareaBlur"
+                        @scroll="onTextareaScroll"
+                    ></textarea>
+                    <view v-if="content.length > 1400" class="char-count">{{ content.length }}/1500</view>
 
-                <!-- 长按选择覆盖层 -->
-                <view v-if="content.trim() && highlightModeEnabled"
-                      class="highlight-select-overlay"
-                      @touchstart="onOverlayTouchStart"
-                      @touchend="onOverlayTouchEnd"
-                      @touchmove="onOverlayTouchMove"
-                      catchtouchmove="true">
-                    <scroll-view class="overlay-scroll" :scroll-y="true" :scroll-top="overlayScrollTop">
-                        <view class="overlay-content">
-                            <view v-for="(line, i) in splitContentLines"
-                                  :key="'overlay-line-' + i"
-                                  :class="'overlay-line ' + (highlightSelectedLineIndices.includes(i) ? 'highlighted' : '')"
-                                  :data-index="i"
-                                  @touchstart="onLineTouchStart"
-                                  @touchend="onLineTouchEnd">
-                                <view class="overlay-line-content">{{ line || ' ' }}</view>
+                    <!-- 长按选择覆盖层 -->
+                    <view v-if="content.trim() && highlightModeEnabled"
+                          class="highlight-select-overlay"
+                          @touchstart="onOverlayTouchStart"
+                          @touchend="onOverlayTouchEnd"
+                          @touchmove="onOverlayTouchMove"
+                          catchtouchmove="true">
+                        <scroll-view class="overlay-scroll" :scroll-y="true" :scroll-top="overlayScrollTop">
+                            <view class="overlay-content">
+                                <view v-for="(line, i) in splitContentLines"
+                                      :key="'overlay-line-' + i"
+                                      :class="'overlay-line ' + (highlightSelectedLineIndices.includes(i) ? 'highlighted' : '')"
+                                      :data-index="i"
+                                      @touchstart="onLineTouchStart"
+                                      @touchend="onLineTouchEnd">
+                                    <view class="overlay-line-content">{{ line || ' ' }}</view>
+                                </view>
                             </view>
+                        </scroll-view>
+                    </view>
+
+                    <!-- 高光选择提示 -->
+                    <view v-if="showHighlightHint" class="highlight-hint">
+                        <text class="hint-text">点击文字即可选择高光行</text>
+                    </view>
+
+                    <!-- 旧的高光选择弹层（保留作为备用） -->
+                    <view v-if="highlightSelecting" class="highlight-overlay" catchtouchmove="true" @tap="noop">
+                        <scroll-view class="highlight-scroll" :scroll-y="true">
+                            <view v-for="(line, i) in splitContentLines" :key="i"
+                                  :class="'hl-line ' + (highlightSelectedLineIndices.includes(i) ? 'selected' : '')"
+                                  @tap.stop.prevent="toggleHighlightLine" :data-index="i">
+                                <text class="hl-text">{{ line.length ? line : ' ' }}</text>
+                            </view>
+                        </scroll-view>
+                        <view class="hl-actions">
+                            <button class="hl-done" size="mini" @tap.stop.prevent="finishHighlight">完成</button>
+                            <button class="hl-clear" size="mini" @tap.stop.prevent="clearHighlight">清除</button>
                         </view>
-                    </scroll-view>
-                </view>
-
-                <!-- Right-side vertical toolbar (placeholders) -->
-                <view class="side-toolbar">
-                    <view class="side-tool-btn" @tap="handleChooseImage"><view class="side-tool-icon">IMG</view></view>
-                      <view class="side-tool-btn" @tap="toggleTagSelector"><view class="side-tool-icon">#</view></view>
-                    <view class="side-tool-btn" @tap="onSelectColor"><view class="side-tool-icon">色</view></view>
-                    <view class="side-tool-btn" @tap="toggleHighlightMode"><view class="side-tool-icon">高</view></view>
-                    <view class="side-tool-btn" @tap="switchMode"><view class="side-tool-icon">模</view></view>
-                    <view class="side-tool-btn" @tap="goToPreview"><view class="side-tool-icon">➔</view></view>
-                </view>
-
-                <!-- 高光选择提示 -->
-                <view v-if="showHighlightHint" class="highlight-hint">
-                    <text class="hint-text">长按文字即可选择高光行</text>
-                    <view class="hint-close" @tap="hideHighlightHint">×</view>
-                </view>
-
-                <!-- 旧的高光选择弹层（保留作为备用） -->
-                <view v-if="highlightSelecting" class="highlight-overlay" catchtouchmove="true" @tap="noop">
-                    <scroll-view class="highlight-scroll" :scroll-y="true">
-                        <view v-for="(line, i) in splitContentLines" :key="i"
-                              :class="'hl-line ' + (highlightSelectedLineIndices.includes(i) ? 'selected' : '')"
-                              @tap.stop.prevent="toggleHighlightLine" :data-index="i">
-                            <text class="hl-text">{{ line.length ? line : ' ' }}</text>
-                        </view>
-                    </scroll-view>
-                    <view class="hl-actions">
-                        <button class="hl-done" size="mini" @tap.stop.prevent="finishHighlight">完成</button>
-                        <button class="hl-clear" size="mini" @tap.stop.prevent="clearHighlight">清除</button>
                     </view>
                 </view>
+
+                <!-- 右侧工具栏 -->
+                <view class="side-toolbar">
+                    <!-- 加标签按钮 -->
+                    <view class="side-tool-btn" @tap="toggleTagSelector">
+                        <image class="side-tool-icon" src="/static/images/加标签.png" mode="aspectFit"></image>
+                    </view>
+                    
+                    <!-- 配图按钮 -->
+                    <view class="side-tool-btn" @tap="handleChooseImage">
+                        <image class="side-tool-icon" src="/static/images/配图.png" mode="aspectFit"></image>
+                    </view>
+                    
+                    <!-- 切换发布模式按钮 -->
+                    <view class="side-tool-btn" @tap="switchMode">
+                        <image class="side-tool-icon" src="/static/images/切换发布模式.png" mode="aspectFit"></image>
+                    </view>
+                    
+                    <!-- 选择高光句按钮 -->
+                    <view class="side-tool-btn" @tap="toggleHighlightMode">
+                        <image class="side-tool-icon" src="/static/images/选择高光句.png" mode="aspectFit"></image>
+                    </view>
+                    
+                    <!-- 选择颜色按钮 -->
+                    <view class="side-tool-btn" @tap="onSelectColor">
+                        <image class="side-tool-icon" src="/static/images/选择颜色.png" mode="aspectFit"></image>
+                    </view>
+                </view>
+            </view>
+
+            <!-- 左下角返回按钮 -->
+            <view class="back-btn" @tap="goBack">
+                <image class="back-icon" src="/static/images/返回编辑.png" mode="aspectFit"></image>
+            </view>
+
+            <!-- 右下角浮动操作按钮 -->
+            <view class="floating-action-btn" @tap="goToPreview">
+                <image class="fab-icon" src="/static/images/回车键.png" mode="aspectFit"></image>
             </view>
         </view>
 
         <!-- 模式选择器 -->
-        <view v-if="showModeSelector" class="mode-selector">
-            <view class="mode-title">选择发布模式</view>
-            <view class="mode-grid">
-                <view class="mode-item" @tap="selectPublishMode" :data-mode="'poem'" :data-original="true">
-                    <view class="mode-icon">✨</view>
-                    <view class="mode-text">原创诗歌</view>
-                </view>
-                <view class="mode-item" @tap="selectPublishMode" :data-mode="'poem'" :data-original="false">
-                    <view class="mode-icon">📖</view>
-                    <view class="mode-text">非原创诗歌</view>
-                </view>
-                <view class="mode-item" @tap="selectPublishMode" :data-mode="'normal'" :data-original="null">
-                    <view class="mode-icon">📝</view>
-                    <view class="mode-text">普通帖子</view>
-                </view>
-                <view class="mode-item" @tap="selectPublishMode" :data-mode="'discussion'" :data-original="null">
-                    <view class="mode-icon">💬</view>
-                    <view class="mode-text">讨论帖子</view>
+        <view v-if="showModeSelector" class="mode-selector-mask" @tap="showModeSelector=false">
+            <view class="mode-selector" @tap.stop="noop">
+                <view class="mode-title">选择发布模式</view>
+                <view class="mode-list">
+                    <view class="mode-option" @tap="selectPublishMode" :data-mode="'poem'" :data-original="true">
+                        <view class="mode-text">原创诗歌</view>
+                        <view v-if="publishMode === 'poem' && isOriginal" class="mode-check">✓</view>
+                    </view>
+                    <view class="mode-option" @tap="selectPublishMode" :data-mode="'poem'" :data-original="false">
+                        <view class="mode-text">非原创诗歌</view>
+                        <view v-if="publishMode === 'poem' && !isOriginal" class="mode-check">✓</view>
+                    </view>
+                    <view class="mode-option" @tap="selectPublishMode" :data-mode="'normal'" :data-original="null">
+                        <view class="mode-text">普通帖子</view>
+                        <view v-if="publishMode === 'normal'" class="mode-check">✓</view>
+                    </view>
+                    <view class="mode-option" @tap="selectPublishMode" :data-mode="'discussion'" :data-original="null">
+                        <view class="mode-text">讨论帖子</view>
+                        <view v-if="publishMode === 'discussion'" class="mode-check">✓</view>
+                    </view>
                 </view>
             </view>
         </view>
@@ -506,9 +537,13 @@ export default {
             this.loadDraft();
         }
 
+        // 检查来源页面并设置默认发布模式（在草稿加载后执行，优先级更高）
+        this.setDefaultPublishMode();
+
         // 确保页面不会滚动
         this.preventPageScroll();
     },
+    
     onShow: function () {
         // 每次显示页面时都确保页面不会滚动
         this.preventPageScroll();
@@ -532,6 +567,44 @@ export default {
         return false;
     },
     methods: {
+        // 根据来源页面设置默认发布模式
+        setDefaultPublishMode: function() {
+            const pages = getCurrentPages();
+            if (pages.length > 1) {
+                const prevPage = pages[pages.length - 2];
+                const prevRoute = prevPage.route;
+                
+                console.log('来源页面路由:', prevRoute);
+                
+                if (prevRoute === 'pages/poem-square/poem-square') {
+                    // 从poem-square进入，设置为原创诗歌模式
+                    this.setData({
+                        publishMode: 'poem',
+                        isOriginal: true,
+                        maxImageCount: 1,
+                        imageList: this.imageList.length > 1 ? [this.imageList[0]] : this.imageList // 限制图片数量
+                    });
+                    console.log('设置为原创诗歌模式');
+                } else if (prevRoute === 'pages/mountain/mountain') {
+                    // 从mountain进入，设置为非原创诗歌模式
+                    this.setData({
+                        publishMode: 'poem',
+                        isOriginal: false,
+                        maxImageCount: 1,
+                        imageList: this.imageList.length > 1 ? [this.imageList[0]] : this.imageList // 限制图片数量
+                    });
+                    console.log('设置为非原创诗歌模式');
+                }
+                // 从其他页面进入时，保持草稿中的设置或默认设置
+            }
+        },
+
+        onBackPress() {
+            // 处理物理返回键
+            this.goBack();
+            return true; // 阻止默认返回行为
+        },
+
         // 统一云函数调用方法
         callCloudFunction(name, data = {}, extraOptions = {}) {
             return cloudCall(name, data, Object.assign({ pageTag: 'add', context: this, requireAuth: true }, extraOptions));
@@ -816,9 +889,13 @@ export default {
             const mode = e.currentTarget.dataset.mode;
             const isOriginal = e.currentTarget.dataset.original;
 
+            // 设置讨论模式标志
+            const isDiscussion = mode === 'discussion';
+
             this.setData({
                 publishMode: mode,
                 isOriginal: isOriginal === null ? false : isOriginal,
+                isDiscussion: isDiscussion,
                 showModeSelector: false
             });
 
@@ -835,6 +912,12 @@ export default {
                     maxImageCount: 9
                 });
             }
+
+            console.log('【Add】选择发布模式:', {
+                mode: mode,
+                isOriginal: isOriginal,
+                isDiscussion: isDiscussion
+            });
 
             this.checkCanPublish();
         },
@@ -1410,6 +1493,32 @@ export default {
             });
         },
 
+        goBack: function () {
+            // 获取页面栈
+            const pages = getCurrentPages();
+            console.log('当前页面栈长度:', pages.length);
+            
+            if (pages.length > 1) {
+                // 有上一页，正常返回
+                uni.navigateBack({
+                    delta: 1,
+                    fail: () => {
+                        console.log('navigateBack失败，尝试switchTab');
+                        // 如果返回失败，尝试跳转到首页
+                        uni.switchTab({
+                            url: '/pages/index/index'
+                        });
+                    }
+                });
+            } else {
+                // 没有上一页，跳转到首页
+                console.log('没有上一页，跳转到首页');
+                uni.switchTab({
+                    url: '/pages/index/index'
+                });
+            }
+        },
+
         // 去预览：把当前编辑内容带到预览页，仅展示不提交
         goToPreview: function () {
             const previewPost = {
@@ -1510,30 +1619,20 @@ export default {
 
             const index = Number(e.currentTarget.dataset.index);
             this.touchStartLine = index;
-
-            // 清除之前的定时器
-            if (this.longPressTimer) {
-                clearTimeout(this.longPressTimer);
-            }
-
-            // 设置长按定时器（500ms）
-            this.longPressTimer = setTimeout(() => {
-                this.toggleLineHighlight(index);
-                // 触觉反馈（如果支持）
-                try {
-                    uni.vibrateShort();
-                } catch (e) {}
-            }, 500);
         },
 
         onLineTouchEnd: function (e) {
             e.preventDefault();
             e.stopPropagation();
 
-            // 清除长按定时器
-            if (this.longPressTimer) {
-                clearTimeout(this.longPressTimer);
-                this.longPressTimer = null;
+            const index = Number(e.currentTarget.dataset.index);
+            if (this.touchStartLine === index) {
+                // 单击直接选择
+                this.toggleLineHighlight(index);
+                // 触觉反馈（如果支持）
+                try {
+                    uni.vibrateShort();
+                } catch (e) {}
             }
 
             this.touchStartLine = null;
@@ -1841,11 +1940,13 @@ page {
     height: 100vh; /* 改为固定高度，确保在iOS下正确计算 */
     display: flex;
     flex-direction: column;
-    padding-right: 100rpx; /* reserve space for side toolbar */
+    padding: 100rpx 0 0 0; /* 与preview页面保持一致的顶部边距 */
+    padding-right: 0; /* 移除右边距，让工具栏紧贴右边缘 */
     box-sizing: border-box; /* 确保padding计算在内 */
     overflow: hidden; /* 防止整个页面滚动 */
     position: relative; /* 确保定位上下文 */
 }
+
 
 
 /* 图片预览区域 */
@@ -1923,14 +2024,24 @@ page {
 /* 内容输入区域 */
 .content-section {
     padding: 30rpx;
-    padding-bottom: 30rpx; /* 进一步减少底部间距，让输入框更接近底部工具栏 */
+    padding-bottom: 30rpx;
     background: #fff;
     flex: 1;
     display: flex;
     flex-direction: column;
-    min-height: 0; /* 关键：允许flex子元素收缩 */
-    overflow: hidden; /* 防止内容溢出 */
-    position: relative; /* 确保定位上下文 */
+    min-height: 0;
+    overflow: visible; /* 改为visible，允许浮动按钮显示 */
+    position: relative;
+}
+
+/* 主输入区域 - 响应式布局 */
+.main-input-area {
+    flex: 1;
+    display: flex;
+    position: relative;
+    min-height: 0;
+    overflow: visible; /* 改为visible，允许浮动按钮显示 */
+    padding: 0 30rpx 0 30rpx; /* 只保留左边距，右边距为0 */
 }
 
 .content-input-wrapper {
@@ -1938,37 +2049,41 @@ page {
     flex: 1;
     display: flex;
     flex-direction: column;
-    margin-bottom: 0rpx; /* 最小化底部间距，让输入框更接近底边栏 */
-    min-height: 0; /* 关键：允许flex子元素收缩 */
-    overflow: hidden; /* 防止内容溢出 */
+    margin-right: 70rpx; /* 移除右边距 */
+    min-height: 0;
+    overflow: hidden;
+    /* 移除固定宽度，让输入框自适应 */
 }
 
 .content-textarea {
     flex: 1;
     width: 100%;
-    height: 100%; /* 固定高度，填充父容器 */
+    height: 100%;
     border: none;
-    font-size: 30rpx;
-    line-height: 1.6;
-    padding: 24rpx;
-    background: #f8f9fa;
+    font-size: 32rpx; /* 对应16px */
+    line-height: 1.5; /* 对应19px行高 */
+    padding: 60rpx; /* 对应30px内边距 */
+    background: #E8E8E8;
     resize: none;
-    overflow-y: auto; /* 允许垂直滚动 */
-    overflow-x: hidden; /* 禁止水平滚动 */
+    overflow-y: auto;
+    overflow-x: hidden;
     -webkit-appearance: none;
     appearance: none;
     -webkit-box-sizing: border-box;
     box-sizing: border-box;
-    /* 确保在iOS上正确显示 */
     -webkit-user-select: text;
     user-select: text;
     -webkit-touch-callout: default;
-    /* 防止iOS上的默认样式干扰 */
-    border-radius: 12rpx;
+    border-radius: 20rpx; /* 对应10px圆角 */
     outline: none;
-    /* 确保滚动行为 */
-    -webkit-overflow-scrolling: touch; /* iOS平滑滚动 */
-    position: relative; /* 确保定位上下文 */
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+    color: #989090; /* 使用CSS中定义的文字颜色 */
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 300;
+    /* 精确尺寸：314px宽，383px高 */
+    min-height: 766rpx; /* 对应383px */
+    max-height: 766rpx;
 }
 
 /* 当高光模式启用时，隐藏textarea的文字内容 */
@@ -1991,81 +2106,70 @@ page {
 
 
 /* 模式选择器 */
-.mode-selector {
+/* 模式选择器遮罩 */
+.mode-selector-mask {
     position: fixed;
-    bottom: 120rpx;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background: rgba(0,0,0,.35);
+    z-index: 130;
+    display: flex;
+    align-items: flex-end;
+}
+
+.mode-selector {
+    width: 100%;
     background: #fff;
-    border-radius: 16rpx;
-    padding: 24rpx;
-    z-index: 99;
-    box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.15);
-    animation: slideUp 0.3s ease;
-    border: 1rpx solid #f0f0f0;
-    margin-left: -98rpx; /* 向左偏移，对齐模按钮 */
-    min-width: 320rpx;
+    border-top-left-radius: 24rpx;
+    border-top-right-radius: 24rpx;
+    padding: 24rpx 28rpx calc(24rpx + env(safe-area-inset-bottom));
 }
 
 .mode-title {
-    text-align: center;
-    font-size: 28rpx;
-    font-weight: 500;
+    font-size: 30rpx;
     color: #333;
-    margin-bottom: 20rpx;
-    padding-bottom: 16rpx;
-    border-bottom: 1rpx solid #f0f0f0;
+    text-align: center;
+    margin-bottom: 24rpx;
+    font-weight: 500;
 }
 
-.mode-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16rpx;
-}
-
-.mode-item {
+.mode-list {
     display: flex;
     flex-direction: column;
+    gap: 0;
+}
+
+.mode-option {
+    display: flex;
     align-items: center;
-    padding: 20rpx 16rpx;
-    border-radius: 12rpx;
+    justify-content: space-between;
+    padding: 24rpx 0;
+    border-bottom: 1rpx solid #f0f0f0;
+    transition: all 0.2s ease;
+}
+
+.mode-option:last-child {
+    border-bottom: none;
+}
+
+.mode-option:active {
     background: #f8f9fa;
-    transition: all 0.3s ease;
-    border: 1rpx solid transparent;
-}
-
-.mode-item:active {
-    transform: scale(0.95);
-    background: #e9ecef;
-}
-
-.mode-item:hover {
-    border-color: #9ed7ee;
-    background: #f0f8ff;
-}
-
-.mode-icon {
-    font-size: 36rpx;
-    margin-bottom: 8rpx;
 }
 
 .mode-text {
-    font-size: 24rpx;
-    color: #666;
-    text-align: center;
-    line-height: 1.2;
+    font-size: 28rpx;
+    color: #333;
+    flex: 1;
 }
 
-@keyframes slideUp {
-    from {
-        transform: translateX(-50%) translateY(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(-50%) translateY(0);
-        opacity: 1;
-    }
+.mode-check {
+    color: #1c9bd6;
+    font-size: 28rpx;
+    font-weight: bold;
 }
+
 
 
 /* 标签选择区域样式 */
@@ -2276,42 +2380,124 @@ page {
     }
 }
 
-/* ====== 新增：右侧工具栏样式 ====== */
+/* ====== 右侧工具栏样式 ====== */
 .side-toolbar {
-    position: fixed;
-    top: 120rpx;
+    position: absolute;
+    top: 0;
     right: 0;
-    bottom: 120rpx;
-    width: 100rpx;
+    bottom: 0;
+    width: 90rpx; /* 调整工具栏宽度与按钮宽度一致 */
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 22rpx;
+    justify-content: flex-start;
+    gap: 0; /* 移除间距，让图标紧密排列 */
     z-index: 10;
-    padding: 40rpx 0 8rpx 0;
-    background: #fff;
-    border-left: 1rpx solid #f0f0f0;
+    padding: 20rpx 0;
+    background: transparent;
 }
 
+
 .side-tool-btn {
-    width: 72rpx;
-    height: 72rpx;
-    border-radius: 12rpx;
-    border: 1rpx solid #e5e5e5;
-    background: #fff;
+    width: 90rpx; /* 调整按钮尺寸 */
+    height: 90rpx;
+    border: none; /* 移除边框 */
+    background: transparent; /* 移除背景 */
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2rpx 8rpx rgba(0,0,0,.04);
+    box-shadow: none; /* 移除阴影 */
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    margin-bottom: 20rpx; /* 调整间距 */
+    margin-right: 0rpx; /* 向右移动 */
 }
 
-.side-tool-btn:active { transform: scale(0.96); }
+.side-tool-btn:active { 
+    transform: scale(0.95);
+}
 
-.side-tool-icon { font-size: 24rpx; color: #333; }
+.side-tool-icon { 
+    width: 75rpx; /* 调整图标尺寸到75rpx */
+    height: 75rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30rpx;
+    color: #333;
+}
+
+/* 左下角返回按钮 */
+.back-btn {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 80px;
+    height: 80px;
+    background: transparent;
+    border: none;
+    display: block;
+    z-index: 10;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.back-btn:active {
+    transform: scale(0.95);
+}
+
+.back-icon {
+    width: 80px;
+    height: 80px;
+    display: block;
+    object-fit: contain;
+}
+
+/* 浮动操作按钮 */
+.floating-action-btn {
+    position: fixed; /* 改为fixed定位，确保在最顶层 */
+    bottom: 20px; /* 调整位置，确保可见 */
+    right: 20px; /* 调整位置，确保可见 */
+    width: 150px !important; /* 强制设置尺寸 */
+    height: 150px !important;
+    min-width: 150px;
+    min-height: 150px;
+    max-width: 150px;
+    max-height: 150px;
+    background: transparent; /* 移除测试背景 */
+    border: none; /* 移除测试边框 */
+    display: block;
+    z-index: 10; /* 降低z-index，让弹窗在按钮上方 */
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.floating-action-btn:active {
+    transform: scale(0.95);
+}
+
+.fab-icon {
+    width: 150px !important; /* 恢复完整尺寸 */
+    height: 150px !important;
+    min-width: 150px;
+    min-height: 150px;
+    max-width: 150px;
+    max-height: 150px;
+    display: block;
+    object-fit: fill;
+    object-position: center;
+    border: none; /* 移除测试边框 */
+    box-sizing: border-box;
+}
 
 /* 让正文为右侧工具栏预留空间及计数避让 */
-.content-input-wrapper { padding-right: 20rpx; }
-.char-count { right: 130rpx; }
+.content-input-wrapper { 
+    padding-right: 0rpx; /* 减少右边距，让输入框更宽 */
+}
+
+.char-count { 
+    right: 130rpx; /* 调整字符计数位置 */
+}
 
 /* 颜色选择弹层 */
 .color-picker-mask { position: fixed; left: 0; right: 0; top: 0; bottom: 0; background: rgba(0,0,0,.35); z-index: 130; display: flex; align-items: flex-end; }
@@ -2357,25 +2543,35 @@ page {
     bottom: 0;
     z-index: 1;
     pointer-events: auto;
+    overflow: hidden;
 }
 
 .overlay-scroll {
     height: 100%;
     width: 100%;
+    overflow-y: auto;
 }
 
 .overlay-content {
-    padding: 24rpx;
-    font-size: 30rpx;
-    line-height: 1.6;
+    padding: 20rpx;
+    font-size: 32rpx;
+    line-height: 1.5;
     color: transparent; /* 透明文字，只用于布局 */
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 300;
+    box-sizing: border-box;
+    border-radius: 20rpx;
 }
 
 .overlay-line {
-    min-height: 48rpx;
     margin: 0;
     position: relative;
     transition: background-color 0.2s ease;
+    padding: 0;
+    line-height: 1.5;
+    font-size: 32rpx;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 300;
 }
 
 .overlay-line.highlighted {
@@ -2387,39 +2583,35 @@ page {
     color: #666; /* 半透明颜色，让用户能看到下面的文字 */
     white-space: pre-wrap;
     word-break: break-word;
-    font-family: inherit;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 300;
+    font-size: 29rpx !important;
+    line-height: 1.5 !important;
+    margin: 0;
+    padding: 0;
+    display: block;
 }
 
 /* 高光选择提示 */
 .highlight-hint {
-    position: absolute;
-    top: 50%;
+    position: fixed;
+    bottom: 100rpx;
     left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(0, 0, 0, 0.8);
+    transform: translateX(-50%);
+    background: rgba(128, 128, 128, 0.6);
     color: white;
-    padding: 20rpx 30rpx;
-    border-radius: 12rpx;
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    gap: 20rpx;
+    padding: 12rpx 24rpx;
+    border-radius: 20rpx;
+    z-index: 1000;
+    text-align: center;
+    white-space: nowrap;
 }
 
 .hint-text {
-    font-size: 28rpx;
+    font-size: 24rpx;
+    line-height: 1.2;
 }
 
-.hint-close {
-    width: 40rpx;
-    height: 40rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 32rpx;
-    opacity: 0.7;
-    touch-action: none;
-}
 
 /* 调整textarea的z-index，确保在覆盖层下方 */
 .content-textarea {
@@ -2429,6 +2621,102 @@ page {
 /* 当高光模式启用时，textarea的样式调整 */
 .content-input-wrapper {
     position: relative;
+}
+
+/* 响应式设计 - 小屏幕适配 */
+@media screen and (max-width: 750rpx) {
+    .content-textarea {
+        font-size: 28rpx;
+        padding: 20rpx;
+        min-height: 180rpx;
+    }
+    
+    .side-toolbar {
+        width: 70rpx;
+        gap: 15rpx;
+    }
+    
+    .side-tool-btn {
+        width: 50rpx;
+        height: 50rpx;
+    }
+    
+    .side-tool-icon {
+        font-size: 18rpx;
+    }
+    
+    .floating-action-btn {
+        width: 70rpx;
+        height: 70rpx;
+        bottom: 20rpx;
+        right: 20rpx;
+    }
+    
+    .fab-icon {
+        font-size: 20rpx;
+    }
+}
+
+/* 响应式设计 - 大屏幕适配 */
+@media screen and (min-width: 1200rpx) {
+    .content-textarea {
+        font-size: 32rpx;
+        padding: 30rpx;
+        min-height: 250rpx;
+    }
+    
+    .side-toolbar {
+        width: 90rpx;
+        gap: 25rpx;
+    }
+    
+    .side-tool-btn {
+        width: 70rpx;
+        height: 70rpx;
+    }
+    
+    .side-tool-icon {
+        font-size: 22rpx;
+    }
+    
+    .floating-action-btn {
+        width: 90rpx;
+        height: 90rpx;
+    }
+    
+    .fab-icon {
+        font-size: 26rpx;
+    }
+}
+
+/* 响应式设计 - 超小屏幕适配 */
+@media screen and (max-width: 600rpx) {
+    .main-input-area {
+        flex-direction: column;
+    }
+    
+    .side-toolbar {
+        position: relative;
+        width: 100%;
+        height: auto;
+        flex-direction: row;
+        justify-content: space-around;
+        padding: 20rpx 0;
+        gap: 10rpx;
+    }
+    
+    .content-input-wrapper {
+        margin-right: 0;
+        margin-bottom: 20rpx;
+    }
+    
+    .floating-action-btn {
+        position: fixed;
+        bottom: 20rpx;
+        right: 20rpx;
+        width: 60rpx;
+        height: 60rpx;
+    }
 }
 
 </style>

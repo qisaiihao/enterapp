@@ -1,24 +1,18 @@
 <template>
   <view class="top-bar-container">
-    <!-- 左侧搜索按钮 -->
-    <view class="top-bar-left">
-      <view class="search-box" @tap="navigateToSearch">
-        <view class="search-icon">🔍</view>
-        <view class="search-placeholder">搜索帖子...</view>
+    <!-- 自定义顶部栏 -->
+    <view class="custom-top-bar">
+      <view class="top-left" @tap="navigateToAdd">
+        <image class="top-icon" src="/static/images/写诗.png" mode="aspectFit"></image>
       </view>
-    </view>
-
-    <!-- 右侧功能按钮组 -->
-    <view class="top-bar-right">
-      <!-- 发帖按钮 -->
-      <navigator url="/pages/add/add" class="add-button">
-        <view>+</view>
-      </navigator>
-
-      <!-- 消息按钮 -->
-      <view class="message-icon-container" @tap="navigateToMessages">
-        <view class="message-icon">✉️</view>
-        <view v-if="unreadMessageCount > 0" class="unread-dot"></view>
+      <view class="top-right">
+        <view class="top-item" @tap="navigateToSearch">
+          <image class="top-icon" src="/static/images/搜索.png" mode="aspectFit"></image>
+        </view>
+        <view class="top-item" @tap="navigateToMessages">
+          <image class="top-icon" src="/static/images/消息.png" mode="aspectFit"></image>
+          <view v-if="unreadMessageCount > 0" class="unread-dot"></view>
+        </view>
       </view>
     </view>
   </view>
@@ -38,6 +32,24 @@ export default {
     this.checkUnreadMessageCount();
   },
   methods: {
+    // 跳转到写诗页面
+    navigateToAdd() {
+      console.log('点击写诗按钮，跳转到add页面');
+      uni.navigateTo({
+        url: '/pages/add/add',
+        success: () => {
+          console.log('跳转到add页面成功');
+        },
+        fail: (err) => {
+          console.error('跳转到add页面失败:', err);
+          uni.showToast({
+            title: '跳转失败',
+            icon: 'none'
+          });
+        }
+      });
+    },
+
     // 跳转到搜索页面
     navigateToSearch() {
       console.log('点击搜索框，跳转到搜索页面');
@@ -89,104 +101,60 @@ export default {
   top: 0;
   left: 0;
   right: 0;
-  height: 88rpx;
+  height: 100rpx;
   background: #ffffff;
+  z-index: 1000;
+  border-bottom: none;
+  box-shadow: none;
+}
+
+.custom-top-bar {
+  height: 100rpx;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 24rpx;
-  z-index: 1000;
+  padding: 20rpx 40rpx 0 40rpx;
+  background: #fff;
+  border-bottom: none;
+  box-shadow: none;
 }
 
-.top-bar-left {
-  flex: 1;
+.top-left {
   display: flex;
   align-items: center;
-}
-
-.top-bar-right {
-  display: flex;
-  align-items: center;
-  gap: 24rpx;
-}
-
-/* 搜索框样式 */
-.search-box {
-  background: rgba(245, 245, 245, 0.9);
-  border-radius: 20rpx;
-  padding: 16rpx 20rpx;
-  display: flex;
-  align-items: center;
-  border: 1rpx solid rgba(0, 0, 0, 0.03);
+  cursor: pointer;
   transition: all 0.2s ease;
-  max-width: 400rpx;
-  width: 100%;
+  padding: 10rpx;
 }
 
-.search-box:active {
-  transform: scale(0.98);
-  background: rgba(240, 240, 240, 0.9);
+.top-left:active {
+  transform: scale(0.95);
 }
 
-.search-icon {
-  font-size: 28rpx;
-  margin-right: 16rpx;
-  color: #999;
-}
-
-.search-placeholder {
-  font-size: 26rpx;
-  color: #999;
-  flex: 1;
-}
-
-/* 发帖按钮 */
-.add-button {
-  width: 60rpx;
-  height: 60rpx;
-  background: rgba(135, 206, 235, 0.9);
-  backdrop-filter: blur(20rpx);
-  -webkit-backdrop-filter: blur(20rpx);
-  border-radius: 50%;
+.top-right {
   display: flex;
+  align-items: center;
+  gap: 40rpx;
+}
+
+.top-item {
+  display: flex;
+  align-items: center;
   justify-content: center;
-  align-items: center;
-  color: white;
-  font-size: 32rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.1);
-  border: 1rpx solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
   transition: all 0.2s ease;
-}
-
-.add-button:active {
-  transform: scale(0.9);
-}
-
-/* 消息图标容器 */
-.message-icon-container {
-  width: 60rpx;
-  height: 60rpx;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(20rpx);
-  -webkit-backdrop-filter: blur(20rpx);
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
-  border: 1rpx solid rgba(255, 255, 255, 0.3);
-  transition: all 0.2s ease;
+  padding: 10rpx;
   position: relative;
 }
 
-.message-icon-container:active {
+.top-item:active {
   transform: scale(0.95);
-  background: rgba(255, 255, 255, 0.8);
 }
 
-.message-icon {
-  font-size: 28rpx;
-  color: #333;
+.top-icon {
+  width: 80rpx;
+  height: 80rpx;
+  filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1));
 }
 
 /* 未读消息红点 */

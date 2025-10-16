@@ -1,26 +1,16 @@
 <template>
   <view class="page-tabs-container">
-    <!-- 顶部搜索栏 -->
-    <view class="top-bar">
-      <!-- 左侧搜索按钮 -->
-      <view class="top-bar-left">
-        <view class="search-box" @tap="navigateToSearch">
-          <view class="search-icon">🔍</view>
-          <view class="search-placeholder">搜索帖子...</view>
-        </view>
+    <!-- 自定义顶部栏 -->
+    <view class="custom-top-bar">
+      <view class="top-left" @tap="navigateToAdd">
+        <image class="top-icon" src="/static/images/发帖.png" mode="aspectFit"></image>
       </view>
-
-      <!-- 右侧功能按钮组 -->
-      <view class="top-bar-right">
-        <!-- 发帖按钮 -->
-        <navigator url="/pages/add/add" class="add-button">
-          <view>+</view>
-        </navigator>
-
-        <!-- 消息按钮 -->
-        <view class="message-icon-container" @tap="navigateToMessages">
-          <view class="message-icon">✉️</view>
-          <view v-if="unreadMessageCount > 0" class="unread-dot"></view>
+      <view class="top-right">
+        <view class="top-item" @tap="navigateToSearch">
+          <image class="top-icon" src="/static/images/搜索.png" mode="aspectFit"></image>
+        </view>
+        <view class="top-item" @tap="navigateToMessages">
+          <image class="top-icon" src="/static/images/消息.png" mode="aspectFit"></image>
         </view>
       </view>
     </view>
@@ -73,6 +63,24 @@ export default {
       if (tabValue !== this.currentTab) {
         this.$emit('tab-change', tabValue);
       }
+    },
+
+    // 跳转到写诗页面
+    navigateToAdd() {
+      console.log('点击写诗按钮，跳转到add页面');
+      uni.navigateTo({
+        url: '/pages/add/add',
+        success: () => {
+          console.log('跳转到add页面成功');
+        },
+        fail: (err) => {
+          console.error('跳转到add页面失败:', err);
+          uni.showToast({
+            title: '跳转失败',
+            icon: 'none'
+          });
+        }
+      });
     },
 
     // 跳转到搜索页面
@@ -131,139 +139,56 @@ export default {
   box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
 }
 
-/* 顶部搜索栏样式 */
-.top-bar {
-  height: 88rpx;
+/* 自定义顶部栏样式 */
+.custom-top-bar {
+  height: 100rpx;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 24rpx;
+  padding: 20rpx 40rpx 0 40rpx;
+  background: #fff;
 }
 
-.top-bar-left {
-  flex: 1;
+.top-left {
   display: flex;
   align-items: center;
-}
-
-.top-bar-right {
-  display: flex;
-  align-items: center;
-  gap: 24rpx;
-}
-
-/* 搜索框样式 */
-.search-box {
-  background: rgba(245, 245, 245, 0.9);
-  border-radius: 20rpx;
-  padding: 16rpx 20rpx;
-  display: flex;
-  align-items: center;
-  border: 1rpx solid rgba(0, 0, 0, 0.03);
+  cursor: pointer;
   transition: all 0.2s ease;
-  max-width: 400rpx;
-  width: 100%;
+  padding: 10rpx;
 }
 
-.search-box:active {
-  transform: scale(0.98);
-  background: rgba(240, 240, 240, 0.9);
-}
-
-.search-icon {
-  font-size: 28rpx;
-  margin-right: 16rpx;
-  color: #999;
-}
-
-.search-placeholder {
-  font-size: 26rpx;
-  color: #999;
-  flex: 1;
-}
-
-/* 发帖按钮 */
-.add-button {
-  width: 60rpx;
-  height: 60rpx;
-  background: rgba(135, 206, 235, 0.9);
-  backdrop-filter: blur(20rpx);
-  -webkit-backdrop-filter: blur(20rpx);
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: white;
-  font-size: 32rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.1);
-  border: 1rpx solid rgba(255, 255, 255, 0.2);
-  transition: all 0.2s ease;
-}
-
-.add-button:active {
-  transform: scale(0.9);
-}
-
-/* 消息图标容器 */
-.message-icon-container {
-  width: 60rpx;
-  height: 60rpx;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(20rpx);
-  -webkit-backdrop-filter: blur(20rpx);
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
-  border: 1rpx solid rgba(255, 255, 255, 0.3);
-  transition: all 0.2s ease;
-  position: relative;
-}
-
-.message-icon-container:active {
+.top-left:active {
   transform: scale(0.95);
-  background: rgba(255, 255, 255, 0.8);
 }
 
-.message-icon {
-  font-size: 28rpx;
-  color: #333;
+.top-right {
+  display: flex;
+  align-items: center;
+  gap: 40rpx;
 }
 
-/* 未读消息红点 */
-.unread-dot {
-  position: absolute;
-  top: 4rpx;
-  right: 4rpx;
-  width: 16rpx;
-  height: 16rpx;
-  background-color: #ff4757;
-  border-radius: 50%;
-  border: 2rpx solid #fff;
-  animation: pulse 2s infinite;
+.top-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 10rpx;
 }
 
-/* 红点脉冲动画 */
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.2);
-    opacity: 0.8;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+.top-item:active {
+  transform: scale(0.95);
+}
+
+.top-icon {
+  width: 80rpx;
+  height: 80rpx;
+  filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1));
 }
 
 /* 标签栏样式 */
 .tabs-container {
   height: 88rpx;
-  border-top: 1rpx solid #f0f0f0;
 }
 
 .tabs-list {
@@ -310,4 +235,5 @@ export default {
   border-radius: 3rpx;
   transition: all 0.3s ease;
 }
+</style>
 </style>

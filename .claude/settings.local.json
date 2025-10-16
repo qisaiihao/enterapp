@@ -8,7 +8,13 @@
       "Bash(git checkout:*)",
       "Bash(cp:*)",
       "Bash(rm:*)",
-      "Read(//c/Users/86199/给ai的图片/**)"
+      "Read(//c/Users/86199/给ai的图片/**)",
+      "Bash(node:*)",
+      "Bash(npx @cloudbase/cli functions:deploy:*)",
+      "Bash(tcb functions:deploy:*)",
+      "Bash(tcb:*)",
+      "Bash(dir:*)",
+      "Bash(awk:*)"
     ],
     "deny": [],
     "ask": []

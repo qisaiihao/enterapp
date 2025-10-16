@@ -242,8 +242,8 @@ exports.main = async (event, context) => {
       tags: tags || [],
       // 审核状态
       // UI 定制：背景色 + 高光句（可选）
-      backgroundColor: backgroundColor || \\u0027\\u0027,
-      highlightSentence: highlightSentence || \\u0027\\u0027,
+      backgroundColor: backgroundColor || '',
+      highlightSentence: highlightSentence || '',
       auditStatus: 'approved', // 审核通过
       auditTime: new Date()
     };
@@ -321,16 +321,17 @@ exports.main = async (event, context) => {
           highlightSentence: highlightSentence || postData.highlightSentence || ''
         }
       });
-    // 兼容写入：高光行数组
-    try {
-      await db.collection('posts').doc(result._id).update({
-        data: {
-          highlightLines: Array.isArray(highlightLines) ? highlightLines : []
-        }
-      });
-    } catch (e) {
-      console.warn('[contentCheck] 写入 highlightLines 失败（忽略）:', e);
-    }
+
+      // 兼容写入：高光行数组
+      try {
+        await db.collection('posts').doc(result._id).update({
+          data: {
+            highlightLines: Array.isArray(highlightLines) ? highlightLines : []
+          }
+        });
+      } catch (e) {
+        console.warn('[contentCheck] 写入 highlightLines 失败（忽略）:', e);
+      }
     } catch (e) {
       console.warn('[contentCheck] 追加写入颜色/高光句失败，不影响发帖:', e);
     }

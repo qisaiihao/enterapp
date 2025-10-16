@@ -18,7 +18,7 @@ exports.main = async (event, context) => {
   const wxCtxOpenid = wxContext.OPENID;
   const eventOpenid = event.openid;
   const openid = eventOpenid || wxCtxOpenid;
-  const { skip = 0, limit = 10, isPoem, isOriginal, tag = '' } = event; // 添加isPoem、isOriginal和tag参数
+  const { skip = 0, limit = 10, isPoem, isOriginal, isDiscussion, tag = '' } = event; // 添加isPoem、isOriginal、isDiscussion和tag参数
 
   console.log('🔍 [getPostList] 解析参数:', {
     eventOpenid: eventOpenid ? '提供' : '未提供',
@@ -29,6 +29,7 @@ exports.main = async (event, context) => {
     limit,
     isPoem,
     isOriginal,
+    isDiscussion,
     tag
   });
 
@@ -66,6 +67,12 @@ exports.main = async (event, context) => {
       matchConditions.tags = tag;  // 匹配包含该标签的文档
       matchConditions['tags.0'] = { $exists: true };  // 确保tags数组至少有一个元素
       console.log('🔍 [getPostList] 添加tag筛选条件:', tag);
+    }
+
+    // 如果指定了isDiscussion参数，添加讨论筛选条件
+    if (isDiscussion !== undefined) {
+      matchConditions.isDiscussion = isDiscussion;
+      console.log('🔍 [getPostList] 添加isDiscussion筛选条件:', isDiscussion);
     }
 
     console.log('🔍 [getPostList] 最终筛选条件:', matchConditions);
@@ -134,6 +141,16 @@ exports.main = async (event, context) => {
         ]),
         commentCount: $.ifNull(['$commentCount', 0]),
         isVoted: $.gt([$.size('$userVote'), 0]),
+        // 讨论帖子专用字段
+        isDiscussion: '$isDiscussion',
+        quotedPostId: '$quotedPostId',
+        quotedPostTitle: '$quotedPostTitle',
+        quotedPostAuthor: '$quotedPostAuthor',
+        quotedPostAuthorId: '$quotedPostAuthorId',
+        sentenceGroups: '$sentenceGroups',
+        discussionSentences: '$discussionSentences',
+        highlightLines: '$highlightLines',
+        highlightSentence: '$highlightSentence',
       })
       .end();
 

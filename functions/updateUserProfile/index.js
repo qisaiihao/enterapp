@@ -65,6 +65,8 @@ exports.main = async (event, context) => {
     avatarUrl,
     birthday,
     bio,
+    occupation,
+    region,
     poemId,
     password: password ? '***' : 'undefined',
     platform: isTCB ? 'TCB' : 'WeApp'

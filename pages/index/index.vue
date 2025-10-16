@@ -1686,6 +1686,7 @@ onReachBottom: function () {
 /* 广场模式容器 */
 .square-mode-container {
     display: block;
+    padding-top: 40rpx; /* 增加与顶部栏的距离 */
 }
 
 /* 新增：帖子项包装器样式 */

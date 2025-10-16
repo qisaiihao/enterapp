@@ -125,7 +125,7 @@
           <view class="title-input-wrapper">
             <input
               class="title-input"
-              placeholder="输入标题..."
+              placeholder="想个标题..."
               @input="onTitleInput"
               maxlength="50"
               :value="post.title"
@@ -138,7 +138,7 @@
           <view class="author-input-wrapper">
             <input
               class="author-input"
-              :placeholder="post.editData.isOriginal ? '作者（可选，不填默认使用您的昵称）' : '作者（必填）'"
+              :placeholder="post.editData.isOriginal ? '作者（默认使用昵称）' : '作者（必填）'"
               @input="onAuthorInput"
               maxlength="20"
               :value="post.author"
@@ -148,13 +148,19 @@
       </view>
     </view>
 
-    <!-- 悬浮按钮组 -->
-    <view class="floating-buttons">
-      <view class="floating-btn primary" @tap="goToPublish">
-        <text class="btn-text">发布</text>
+    <!-- 底部按钮组 -->
+    <view class="bottom-buttons">
+      <view class="button-item" @tap="goBack">
+        <image class="button-icon" src="/static/images/返回编辑.png" mode="aspectFit"></image>
       </view>
-      <view class="floating-btn secondary" @tap="goBack">
-        <text class="btn-text">返回</text>
+      <view class="button-item" @tap="deletePost">
+        <image class="button-icon" src="/static/images/删除.png" mode="aspectFit"></image>
+      </view>
+      <view class="button-item" @tap="saveDraft">
+        <image class="button-icon" src="/static/images/存草稿.png" mode="aspectFit"></image>
+      </view>
+      <view class="button-item" @tap="goToPublish">
+        <image class="button-icon" src="/static/images/发布.png" mode="aspectFit"></image>
       </view>
     </view>
   </view>
@@ -279,6 +285,94 @@ export default {
     goBack() {
       // 返回编辑页面
       uni.navigateBack();
+    },
+    
+    // 删除帖子
+    deletePost() {
+      uni.showModal({
+        title: '确认删除',
+        content: '确定要删除这个帖子吗？',
+        confirmText: '删除',
+        cancelText: '取消',
+        confirmColor: '#ff4757',
+        success: (res) => {
+          if (res.confirm) {
+            // 清除预览数据
+            try {
+              uni.removeStorageSync('preview_post');
+            } catch (e) {
+              console.error('清除预览数据失败:', e);
+            }
+            
+            // 返回编辑页面
+            uni.navigateBack();
+            
+            uni.showToast({
+              title: '已删除',
+              icon: 'success'
+            });
+          }
+        }
+      });
+    },
+    
+    // 存草稿
+    saveDraft() {
+      if (!this.post) {
+        uni.showToast({
+          title: '没有内容可保存',
+          icon: 'none'
+        });
+        return;
+      }
+      
+      try {
+        // 保存草稿到本地存储
+        const draftData = {
+          ...this.post,
+          saveTime: new Date().getTime(),
+          isDraft: true
+        };
+        
+        // 获取现有草稿列表
+        let drafts = [];
+        try {
+          const existingDrafts = uni.getStorageSync('drafts');
+          if (existingDrafts && Array.isArray(existingDrafts)) {
+            drafts = existingDrafts;
+          }
+        } catch (e) {
+          console.log('获取草稿列表失败，创建新列表');
+        }
+        
+        // 添加新草稿
+        drafts.unshift(draftData);
+        
+        // 限制草稿数量（最多保存10个）
+        if (drafts.length > 10) {
+          drafts = drafts.slice(0, 10);
+        }
+        
+        // 保存草稿列表
+        uni.setStorageSync('drafts', drafts);
+        
+        uni.showToast({
+          title: '草稿已保存',
+          icon: 'success'
+        });
+        
+        // 返回编辑页面
+        setTimeout(() => {
+          uni.navigateBack();
+        }, 1500);
+        
+      } catch (e) {
+        console.error('保存草稿失败:', e);
+        uni.showToast({
+          title: '保存失败',
+          icon: 'none'
+        });
+      }
     },
     // 从发布页面获取数据并发布
     publishFromAddPage() {
@@ -509,6 +603,7 @@ export default {
         originalFileIDs: uploadResults.map(r => r.originalUrl).filter(url => url),
         publishMode: addData.publishMode,
         isOriginal: addData.isOriginal,
+        isDiscussion: addData.isDiscussion || false,
         author: addData.author,
         tags: addData.selectedTags || []
       }, { pageTag: 'preview', context: this, requireAuth: true }).then((res) => {
@@ -532,7 +627,16 @@ export default {
         title: '发布成功！'
       });
 
-      // 设置各页面需要刷新标记
+      // 触发全局事件，通知所有页面刷新缓存
+      try {
+        const { emitPostCreated } = require('../../utils/events.js');
+        emitPostCreated(); // 触发新帖子创建事件，刷新所有相关缓存
+        console.log('【Preview】已触发 POST_CREATED 事件');
+      } catch (e) {
+        console.error('触发POST_CREATED事件失败:', e);
+      }
+
+      // 设置各页面需要刷新标记（备用机制）
       try {
         uni.setStorageSync('shouldRefreshIndex', true);
         uni.setStorageSync('shouldRefreshProfile', true);
@@ -591,62 +695,41 @@ export default {
 
 .square-mode-container {
   padding: 40rpx;
-  margin-bottom: 200rpx; /* 与poem-square一致 */
-  padding-top: 128rpx; /* 88rpx top-bar + 40rpx original padding - 与poem-square一致 */
+  margin-bottom: 160rpx; /* 为底部按钮留出空间 */
+  padding-top: 100rpx; /* 增加顶部边距，与屏幕顶部保持距离 */
 }
 
-/* 悬浮按钮组 */
-.floating-buttons {
+/* 底部按钮组 */
+.bottom-buttons {
   position: fixed;
-  bottom: 40rpx;
-  right: 40rpx;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  padding: 30rpx 40rpx 60rpx 40rpx;
   display: flex;
-  flex-direction: column;
-  gap: 20rpx;
+  justify-content: space-around;
+  align-items: center;
   z-index: 1000;
 }
 
-.floating-btn {
-  min-width: 120rpx;
-  height: 88rpx;
-  border-radius: 44rpx;
+.button-item {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.15);
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10rpx);
-  border: 1rpx solid rgba(255, 255, 255, 0.2);
+  padding: 20rpx;
+  min-width: 120rpx;
+  transition: all 0.2s ease;
 }
 
-.floating-btn:active {
-  transform: scale(0.95);
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.2);
+.button-item:active {
+  transform: scale(0.9);
+  opacity: 0.8;
 }
 
-.floating-btn.primary {
-  background: linear-gradient(135deg, #9ed7ee 0%, #7bc5e0 100%);
-  color: white;
-}
-
-.floating-btn.primary:active {
-  background: linear-gradient(135deg, #7bc5e0 0%, #5fb3d0 100%);
-}
-
-.floating-btn.secondary {
-  background: rgba(255, 255, 255, 0.9);
-  color: #666;
-  border: 1rpx solid rgba(0, 0, 0, 0.1);
-}
-
-.floating-btn.secondary:active {
-  background: rgba(245, 245, 245, 0.95);
-}
-
-.btn-text {
-  font-size: 30rpx;
-  font-weight: 500;
-  letter-spacing: 2rpx;
+.button-icon {
+  width: 80rpx;
+  height: 80rpx;
 }
 .empty-state { text-align: center; padding: 100rpx 0; color: #999; }
 .empty-icon { font-size: 80rpx; margin-bottom: 20rpx; }
@@ -671,51 +754,61 @@ export default {
 /* 标题输入区域样式 */
 .title-input-section {
   margin-top: 30rpx;
-  padding: 0 40rpx;
+  padding: 0 20rpx;
 }
 
 .title-input-wrapper {
-  background: #f8f9fa;
-  border-radius: 12rpx;
-  padding: 0 24rpx;
+  background: #fff;
+  border-bottom: 2rpx solid #333;
+  padding: 0 0 0rpx 0;
+  position: relative;
+  width: 80%;
+  margin-right: auto;
 }
 
 .title-input {
   width: 100%;
-  height: 80rpx;
+  height: 60rpx;
   border: none;
-  font-size: 32rpx;
+  font-size: 28rpx;
   background: transparent;
   outline: none;
+  color: #333;
+  line-height: 1;
 }
 
 .title-input:focus {
-  border-bottom: 2rpx solid #9ed7ee;
+  border-bottom: none;
 }
 
 /* 作者输入区域样式 */
 .author-input-section {
-  margin-top: 20rpx;
-  padding: 0 40rpx;
+  margin-top: 40rpx;
+  padding: 0 20rpx;
 }
 
 .author-input-wrapper {
-  background: #f8f9fa;
-  border-radius: 12rpx;
-  padding: 0 24rpx;
+  background: #fff;
+  border-bottom: 2rpx solid #333;
+  padding: 0 0 8rpx 0;
+  position: relative;
+  width: 80%;
+  margin-right: auto;
 }
 
 .author-input {
   width: 100%;
-  height: 80rpx;
+  height: 60rpx;
   border: none;
-  font-size: 32rpx;
+  font-size: 28rpx;
   background: transparent;
   outline: none;
+  color: #333;
+  line-height: 1;
 }
 
 .author-input:focus {
-  border-bottom: 2rpx solid #9ed7ee;
+  border-bottom: none;
 }
 
 /* 适配从发布页浮动按钮的层级 */
@@ -966,4 +1059,5 @@ export default {
   color: #1a2a4a;
   opacity: 0.8;
 }
+
 </style>

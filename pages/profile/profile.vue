@@ -77,17 +77,22 @@
                 <view class="main-content">
                     <!-- User Profile Card -->
                     <view class="profile-card profile-card-center">
-                        <!-- 菜单按钮 -->
-                        <image src="/static/images/icons/menu-icon.svg" class="menu-btn-large" @tap="toggleSidebar" style="z-index: 101"></image>
                         <view class="profile-avatar-large">
                             <image :src="userInfo.avatarUrl || '/static/images/avatar.png'" mode="aspectFill" @error="onAvatarError"></image>
                         </view>
                         <view class="profile-info-center">
                             <text class="profile-name-center">{{ userInfo.nickName || '微信用户' }}</text>
+                            <text class="profile-poemid">poemid：{{ userInfo._openid || '未知' }}</text>
                             <text class="profile-bio-center">{{ userInfo.bio || '这个用户很懒,什么都没留下...' }}</text>
-                            <text class="profile-meta-center" v-if="userInfo.occupation || userInfo.region">
-                                {{ (userInfo.occupation || '') + (userInfo.occupation && userInfo.region ? ' · ' : '') + (userInfo.region || '') }}
-                            </text>
+                            <view class="profile-bottom-row">
+                                <text class="profile-followers">被关注数：{{ userInfo.followersCount || 0 }}</text>
+                                <view class="profile-buttons">
+                                    <view class="edit-profile-btn" @tap="navigateToEditProfile">
+                                        <text>编辑主页</text>
+                                    </view>
+                                    <image src="/static/images/icons/menu-icon.svg" class="menu-btn-small" @tap="toggleSidebar"></image>
+                                </view>
+                            </view>
                         </view>
                     </view>
                     <!-- 年龄和生日卡片 -->
@@ -98,10 +103,13 @@
                     <!-- Tab Navigation -->
                     <view class="tab-navigation">
                         <view :class="'tab-item ' + (currentTab === 'posts' ? 'active' : '')" data-tab="posts" @tap="switchTab">
-                            <text>我发布的帖子</text>
+                            <image class="tab-icon" src="/static/images/我的帖子.png" mode="aspectFit"></image>
+                        </view>
+                        <view :class="'tab-item ' + (currentTab === 'portfolio' ? 'active' : '')" data-tab="portfolio" @tap="switchTab">
+                            <image class="tab-icon" src="/static/images/作品集.png" mode="aspectFit"></image>
                         </view>
                         <view :class="'tab-item ' + (currentTab === 'favorites' ? 'active' : '')" data-tab="favorites" @tap="switchTab">
-                            <text>收藏</text>
+                            <image class="tab-icon" src="/static/images/我收藏的.png" mode="aspectFit"></image>
                         </view>
                     </view>
 
@@ -211,7 +219,9 @@
                                         <text class="post-time">发布于{{ item.formattedCreateTime || '未知时间' }}</text>
                                     </view>
                                     <view class="button-group">
-                                        <button class="delete-btn" size="mini" @tap.stop.prevent="onDelete" :data-postid="item._id" :data-index="index">删除</button>
+                                        <view class="delete-btn" @tap.stop.prevent="onDelete" :data-postid="item._id" :data-index="index">
+                                            <image class="delete-icon" src="/static/images/删除.png" mode="aspectFit"></image>
+                                        </view>
                                     </view>
                                 </view>
                             </view>
@@ -357,6 +367,13 @@
                             <text>你还没有收藏过内容哦～</text>
                         </view>
                     </view>
+
+                    <!-- Portfolio Section -->
+                    <view class="portfolio-section" v-if="currentTab === 'portfolio'">
+                        <view class="empty-tip">
+                            <text>作品集页面还没建好，先留空</text>
+                        </view>
+                    </view>
                 </view>
             </scroll-view>
         </view>
@@ -487,8 +504,13 @@ export default {
         }
     },
     onPullDownRefresh: function () {
-        console.log('【profile】下拉刷新触发，当前标签:', this.currentTab);
+        console.log('【profile】⬇️ ⬇️ ⬇️ 下拉刷新触发！');
+        console.log('【profile】📊 当前标签:', this.currentTab);
+        console.log('【profile】📋 刷新前myPosts长度:', this.myPosts.length);
+        console.log('【profile】📋 刷新前favoriteList长度:', this.favoriteList.length);
+
         if (this.currentTab === 'posts') {
+            console.log('【profile】🔄 重置帖子数据状态');
             this.setData({
                 myPosts: [],
                 page: 0,
@@ -496,11 +518,15 @@ export default {
                 swiperHeights: {},
                 imageClampHeights: {}
             });
+
+            console.log('【profile】🔄 开始加载帖子数据（强制云端）');
             this.loadMyPosts(() => {
+                console.log('【profile】✅ 下拉刷新完成，停止刷新动画');
+                console.log('【profile】📊 刷新后myPosts长度:', this.myPosts.length);
                 uni.stopPullDownRefresh();
-                console.log('【profile】下拉刷新结束');
-            });
+            }, true); // 强制从云端获取
         } else if (this.currentTab === 'favorites') {
+            console.log('【profile】🔄 重置收藏数据状态');
             this.setData({
                 favoriteList: [],
                 favoritePage: 0,
@@ -508,9 +534,12 @@ export default {
                 swiperHeights: {},
                 imageClampHeights: {}
             });
+
+            console.log('【profile】🔄 开始加载收藏数据');
             this.loadFavorites(() => {
+                console.log('【profile】✅ 收藏下拉刷新完成，停止刷新动画');
+                console.log('【profile】📊 刷新后favoriteList长度:', this.favoriteList.length);
                 uni.stopPullDownRefresh();
-                console.log('【profile】收藏下拉刷新结束');
             });
         }
     },
@@ -536,15 +565,66 @@ export default {
             this.checkLoginAndFetchData();
         },
 
+        // 新增：清除个人主页缓存并重新加载
+        invalidateProfileCacheAndReload: function () {
+            console.log('【profile】🧹 开始清除个人主页缓存');
+            console.log('【profile】📊 当前标签页:', this.currentTab);
+            console.log('【profile】📋 当前myPosts长度:', this.myPosts.length);
+
+            try {
+                // 清除个人主页相关缓存
+                console.log('【profile】🗑️ 调用invalidateMyPosts()');
+                invalidateMyPosts();
+                console.log('【profile】🗑️ 调用invalidateMyInfo()');
+                invalidateMyInfo();
+
+                // 如果当前在收藏标签页，也清除收藏缓存
+                if (this.currentTab === 'favorites') {
+                    console.log('【profile】🗑️ 调用invalidateMyFavorites()');
+                    invalidateMyFavorites();
+                }
+
+                console.log('【profile】✅ 个人主页缓存清除完成');
+
+                // 验证缓存是否真的被清除了
+                console.log('【profile】🔍 缓存清除后myPosts长度:', this.myPosts.length);
+            } catch (e) {
+                console.warn('【profile】❌ 清除缓存失败:', e);
+            }
+        },
+
         // 新增：刷新个人资料数据的方法（使用与下拉刷新相同的逻辑）
         refreshProfileData: function () {
-            console.log('【profile】开始刷新个人资料数据，当前标签:', this.currentTab);
+            console.log('【profile】🔄 开始刷新个人资料数据，当前标签:', this.currentTab);
 
-            // 检查是否需要刷新首页数据
+            // 检查是否需要刷新数据（检查多个可能的标记）
             const shouldRefreshIndex = uni.getStorageSync('shouldRefreshIndex');
-            if (shouldRefreshIndex) {
-                console.log('【profile】检测到首页需要刷新标记，清除缓存');
+            const shouldRefreshProfile = uni.getStorageSync('shouldRefreshProfile');
+            const shouldRefreshPoem = uni.getStorageSync('shouldRefreshPoem');
+            const shouldRefreshMountain = uni.getStorageSync('shouldRefreshMountain');
+
+            console.log('【profile】🔍 检查刷新标记:', {
+                shouldRefreshIndex,
+                shouldRefreshProfile,
+                shouldRefreshPoem,
+                shouldRefreshMountain
+            });
+
+            if (shouldRefreshIndex || shouldRefreshProfile || shouldRefreshPoem || shouldRefreshMountain) {
+                console.log('【profile】✅ 检测到需要刷新标记，开始刷新个人主页数据');
+
+                // 清除所有刷新标记
                 uni.removeStorageSync('shouldRefreshIndex');
+                uni.removeStorageSync('shouldRefreshProfile');
+                uni.removeStorageSync('shouldRefreshPoem');
+                uni.removeStorageSync('shouldRefreshMountain');
+
+                console.log('【profile】🗑️ 已清除所有刷新标记');
+
+                // 清除个人主页缓存并重新加载
+                this.invalidateProfileCacheAndReload();
+            } else {
+                console.log('【profile】⏭️ 无刷新标记，跳过缓存清理');
             }
 
             // 刷新用户信息（只在有用户信息时刷新，避免重复调用）
@@ -553,7 +633,7 @@ export default {
                 this.fetchFollowCounts();
             }
 
-            // 使用与下拉刷新完全相同的逻辑
+            // 使用与下拉刷新完全相同的逻辑，并强制从云端获取
             if (this.currentTab === 'posts') {
                 this.setData({
                     myPosts: [],
@@ -563,8 +643,8 @@ export default {
                     imageClampHeights: {}
                 });
                 this.loadMyPosts(() => {
-                    console.log('【profile】onShow刷新帖子数据完成');
-                });
+                    console.log('【profile】🔄 onShow刷新帖子数据完成（强制云端）');
+                }, true); // 强制从云端获取
             } else if (this.currentTab === 'favorites') {
                 this.setData({
                     favoriteList: [],
@@ -574,7 +654,7 @@ export default {
                     imageClampHeights: {}
                 });
                 this.loadFavorites(() => {
-                    console.log('【profile】onShow刷新收藏数据完成');
+                    console.log('【profile】🔄 onShow刷新收藏数据完成');
                 });
             }
 
@@ -703,57 +783,121 @@ export default {
                 });
         },
 
-        loadMyPosts: function (cb) {
+        loadMyPosts: function (cb, forceRefresh = false) {
             const { page, PAGE_SIZE } = this;
-            console.log('【profile】请求分页参数:', {
+            console.log('【profile】🔍 开始loadMyPosts, 页面信息:', {
                 page,
                 PAGE_SIZE,
                 skip: page * PAGE_SIZE,
-                limit: PAGE_SIZE
+                limit: PAGE_SIZE,
+                isPullDownRefresh: page === 0,
+                forceRefresh: forceRefresh,
+                currentMyPostsLength: this.myPosts.length
             });
 
             // 只有在首次加载时才显示骨架屏
             if (page === 0) {
+                console.log('【profile】📱 重置数据状态', forceRefresh ? '(强制刷新模式)' : '(正常模式)');
                 this.setData({
                     isLoading: true
                 });
             }
-            // 使用统一缓存封装（仅事件触发时失效）
+
+            // 获取当前用户openid用于调试
+            const app = getApp();
+            const currentOpenid = app && app.globalData && app.globalData.openid;
+            console.log('【profile】👤 当前用户openid:', currentOpenid);
+
+            // 如果是下拉刷新（page === 0）或强制刷新，直接从云端获取数据
+            if (page === 0 || forceRefresh) {
+                console.log('【profile】🔥 下拉刷新/强制刷新，直接从云端获取最新数据');
+                return this.loadMyPostsDirectly(page, PAGE_SIZE, currentOpenid, cb);
+            }
+
+            // 否则使用缓存API
+            console.log('【profile】🚀 使用缓存API获取帖子（分页加载）');
             try {
                 return getMyPosts({ page, pageSize: PAGE_SIZE, context: this })
                     .then((posts) => {
-                        posts.forEach((post) => {
+                        console.log('【profile】✅ 缓存API成功返回帖子数量:', posts.length);
+                        console.log('【profile】📋 缓存API返回的帖子ID列表:', posts.map(p => p._id));
+
+                        // 格式化帖子数据
+                        posts.forEach((post, index) => {
                             if (post.createTime) post.formattedCreateTime = this.formatTime(post.createTime);
                             if (post.imageUrls && post.imageUrls.length > 0) post.imageStyle = `height: 0; padding-bottom: 75%;`;
+                            console.log(`【profile】📝 缓存帖子${index + 1}:`, {
+                                id: post._id,
+                                title: post.title,
+                                createTime: post.createTime,
+                                formattedTime: post.formattedCreateTime
+                            });
                         });
+
                         const newMyPosts = page === 0 ? posts : this.myPosts.concat(posts);
-                        this.setData({ myPosts: newMyPosts, page: page + 1, hasMore: posts.length === PAGE_SIZE });
+                        console.log('【profile】📊 缓存API更新myPosts数据:', {
+                            beforeLength: this.myPosts.length,
+                            afterLength: newMyPosts.length,
+                            page: page + 1,
+                            hasMore: posts.length === PAGE_SIZE
+                        });
+
+                        this.setData({
+                            myPosts: newMyPosts,
+                            page: page + 1,
+                            hasMore: posts.length === PAGE_SIZE
+                        });
+
+                        console.log('【profile】✅ 缓存API加载完成');
+                        return posts;
                     })
                     .catch((err) => {
-                        console.error('profile 获取帖子失败:', err);
-                        uni.showToast({ title: '网络异常', icon: 'none' });
+                        console.error('【profile】❌ 缓存API获取帖子失败，回退到云函数:', err);
+                        // 回退到云函数
+                        return this.loadMyPostsDirectly(page, PAGE_SIZE, currentOpenid, cb);
                     })
                     .finally(() => {
                         this.setData({ isLoading: false });
-                        if (typeof cb === 'function') cb();
+                        if (typeof cb === 'function') {
+                            console.log('【profile】🎯 缓存API loadMyPosts完成，调用回调');
+                            cb();
+                        }
                     });
-            } catch (e) {}
-            // 传递当前用户的openid给云函数
-            const app = getApp();
-            const currentOpenid = app && app.globalData && app.globalData.openid;
-            
+            } catch (e) {
+                console.error('【profile】❌ 缓存API调用异常，回退到云函数:', e);
+                return this.loadMyPostsDirectly(page, PAGE_SIZE, currentOpenid, cb);
+            }
+        },
+
+        // 新增：直接使用云函数加载帖子的方法
+        loadMyPostsDirectly: function (page, pageSize, openid, cb) {
+            console.log('【profile】🔥 直接调用云函数getMyProfileData');
+            console.log('【profile】📤 云函数参数:', {
+                name: 'getMyProfileData',
+                data: {
+                    skip: page * pageSize,
+                    limit: pageSize,
+                    openid: openid
+                }
+            });
+
             this.$tcb.callFunction({
                 name: 'getMyProfileData',
                 data: {
-                    skip: page * PAGE_SIZE,
-                    limit: PAGE_SIZE,
-                    openid: currentOpenid
+                    skip: page * pageSize,
+                    limit: pageSize,
+                    openid: openid
                 }
             }).then((res) => {
+                console.log('【profile】📥 云函数返回完整响应:', res);
+
                 if (res.result && res.result.success) {
                     const posts = res.result.posts || [];
-                    console.log('【profile】本次返回帖子数量:', posts.length);
-                    posts.forEach((post) => {
+                    console.log('【profile】✅ 云函数成功返回帖子数量:', posts.length);
+                    console.log('【profile】📋 云函数返回的帖子ID列表:', posts.map(p => p._id));
+
+                    // 格式化帖子数据
+                    posts.forEach((post, index) => {
                         if (post.createTime) {
                             post.formattedCreateTime = this.formatTime(post.createTime);
                         }
@@ -761,18 +905,36 @@ export default {
                         if (post.imageUrls && post.imageUrls.length > 0) {
                             post.imageStyle = `height: 0; padding-bottom: 75%;`; // 4:3 宽高比占位
                         }
+                        console.log(`【profile】📝 云函数帖子${index + 1}:`, {
+                            id: post._id,
+                            title: post.title,
+                            createTime: post.createTime,
+                            formattedTime: post.formattedCreateTime
+                        });
                     });
 
                     const newMyPosts = page === 0 ? posts : this.myPosts.concat(posts);
-                    console.log('【profile】更新后 myPosts 长度:', newMyPosts.length, 'hasMore:', posts.length === PAGE_SIZE, 'page:', page + 1);
+                    console.log('【profile】📊 云函数更新myPosts数据:', {
+                        beforeLength: this.myPosts.length,
+                        afterLength: newMyPosts.length,
+                        page: page + 1,
+                        hasMore: posts.length === pageSize
+                    });
+
                     this.setData({
                         myPosts: newMyPosts,
                         page: page + 1,
-                        hasMore: posts.length === PAGE_SIZE
+                        hasMore: posts.length === pageSize
+                    });
+                } else {
+                    console.error('【profile】❌ 云函数返回失败:', res.result);
+                    uni.showToast({
+                        title: res.result?.message || '获取数据失败',
+                        icon: 'none'
                     });
                 }
             }).catch((err) => {
-                console.error('【profile】获取帖子失败:', err);
+                console.error('【profile】❌ 云函数调用失败:', err);
                 uni.showToast({
                     title: '网络错误',
                     icon: 'none'
@@ -782,6 +944,7 @@ export default {
                     isLoading: false
                 });
                 if (typeof cb === 'function') {
+                    console.log('【profile】🎯 云函数loadMyPosts完成，调用回调');
                     cb();
                 }
             });
@@ -1774,51 +1937,64 @@ export default {
     margin: 0 30rpx 20rpx 30rpx;
     display: flex;
     background: #fff;
+    border: 1rpx solid #fff;
     border-radius: 16rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
     overflow: hidden;
 }
 
 .tab-item {
     flex: 1;
-    padding: 30rpx 20rpx;
+    padding: 20rpx 10rpx;
     text-align: center;
-    font-size: 28rpx;
-    color: #666;
     background: #fff;
     transition: all 0.3s ease;
     position: relative;
-}
-
-.tab-item.active {
-    color: #9ed7ee;
-    font-weight: 500;
-    background: #f8fffe;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .tab-item.active::after {
     content: '';
     position: absolute;
-    bottom: 0;
-    left: 20%;
-    right: 20%;
-    height: 4rpx;
-    background: #9ed7ee;
-    border-radius: 2rpx;
+    bottom: 8rpx;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200rpx;
+    height: 6rpx;
+    background: #333;
+    border-radius: 3rpx;
 }
 
 .tab-item:active {
     background: #f5f5f5;
 }
 
+.tab-icon {
+    width: 110rpx;
+    height: 110rpx;
+    filter: grayscale(1) brightness(0.5);
+    opacity: 0.7;
+}
+
+.tab-item.active .tab-icon {
+    filter: grayscale(0) brightness(1);
+    opacity: 1;
+}
+
 /* My Posts Section */
 .my-posts-section {
-    margin: 0 30rpx 30rpx 30rpx;
+    margin: 0 0 30rpx 0;
+}
+
+/* Portfolio Section */
+.portfolio-section {
+    margin: 0 0 30rpx 0;
 }
 
 /* Favorites Section */
 .favorites-section {
-    margin: 0 30rpx 30rpx 30rpx;
+    margin: 0 0 30rpx 0;
 }
 
 .section-title {
@@ -1832,32 +2008,18 @@ export default {
 /* 新增：帖子项包装器样式 */
 .post-item-wrapper {
     background: #fff;
-    border-radius: 16rpx;
     margin-bottom: 20rpx;
-    padding: 30rpx;
-    box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+    padding: 0;
+    box-shadow: none;
+    border-radius: 0;
+    border-bottom: 1rpx solid #f0f0f0;
 }
 
 /* 原创帖子特殊样式 */
 .post-item-wrapper.original-post {
-    border: 3rpx solid #ebc88d;
-    box-shadow: 0 4rpx 20rpx rgba(235, 200, 141, 0.3), 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+    background: linear-gradient(90deg, rgba(235, 200, 141, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
+    border-left: 3rpx solid #ebc88d;
     position: relative;
-}
-
-/* 原创帖子光影效果 */
-.post-item-wrapper.original-post::before {
-    content: '';
-    position: absolute;
-    top: -2rpx;
-    left: -2rpx;
-    right: -2rpx;
-    bottom: -2rpx;
-    background: linear-gradient(45deg, #ebc88d, #f4d03f, #ebc88d);
-    border-radius: 18rpx;
-    z-index: -1;
-    opacity: 0.6;
-    filter: blur(8rpx);
 }
 
 /* 新增：内容导航器样式 */
@@ -1871,14 +2033,52 @@ export default {
     background-color: rgba(0, 0, 0, 0.02);
 }
 
+/* 新增：点赞按钮容器样式 */
+.like-btn-container {
+    position: absolute;
+    top: 20rpx;
+    right: 20rpx;
+    z-index: 10;
+}
+
+.like-btn {
+    width: 60rpx;
+    height: 60rpx;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.like-btn:active {
+    transform: scale(0.9);
+}
+
+.like-icon {
+    font-size: 24rpx;
+    color: #666;
+}
+
+.like-icon.liked {
+    color: #ff4757;
+}
+
+/* 定义点击时的样式 - 整个卡片缩小 */
+.post-card-active {
+    transform: scale(0.98);
+}
+
 /* 外部作者信息样式 */
 .author-info-outside {
     display: flex;
     align-items: center;
-    padding: 20rpx 30rpx 10rpx 30rpx;
+    padding: 20rpx 40rpx 10rpx 40rpx;
     background: #fff;
-    border-radius: 16rpx 16rpx 0 0;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    border-radius: 0;
+    box-shadow: none;
 }
 
 .author-info-outside .author-avatar {
@@ -1899,10 +2099,10 @@ export default {
 .post-item {
     width: 100%;
     background: #fff;
-    border-radius: 0 0 16rpx 16rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    border-radius: 0;
+    box-shadow: none;
     box-sizing: border-box;
-    padding: 20rpx 30rpx 30rpx 30rpx;
+    padding: 20rpx 40rpx 30rpx 40rpx;
 }
 
 .post-title {
@@ -1975,6 +2175,26 @@ export default {
     transform: scale(1.05);
 }
 
+.post-image.single-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+}
+
+/* 图片数量指示器 */
+.image-count-indicator {
+    position: absolute;
+    top: 20rpx;
+    right: 20rpx;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    padding: 8rpx 12rpx;
+    border-radius: 20rpx;
+    font-size: 24rpx;
+    z-index: 5;
+}
+
 .post-content {
     font-size: 28rpx;
     color: #666666;
@@ -1995,11 +2215,13 @@ export default {
     justify-content: space-between;
     align-items: center;
     margin-top: 20rpx;
-    padding-top: 20rpx;
-    border-top: 1rpx solid #f0f0f0;
+    padding: 0 40rpx 0 40rpx;
 }
 
 /* 左侧时间区域，保持原有样式 */
+.time-left {
+    flex: 1;
+}
 
 .button-group {
     display: flex;
@@ -2033,23 +2255,21 @@ export default {
 }
 
 .delete-btn {
-    background-color: #ff4757;
-    color: #fff;
-    border: none;
-    border-radius: 8rpx;
-    font-size: 24rpx;
-    padding: 8rpx 16rpx;
-    line-height: 1.2;
-    min-width: 80rpx;
-    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    padding: 10rpx;
 }
 
 .delete-btn:active {
-    background-color: #e63946;
+    transform: scale(0.9);
 }
 
-.delete-btn::after {
-    border: none;
+.delete-icon {
+    width: 100rpx;
+    height: 100rpx;
 }
 
 .remove-favorite-btn {
@@ -2105,26 +2325,27 @@ export default {
 
 .profile-card-center {
     position: relative;
-    margin: 30rpx;
-    padding: 60rpx 40rpx 40rpx 40rpx;
-    background-color: #fff;
-    border-radius: 16rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    margin: 0;
+    padding: 40rpx 40rpx 20rpx 40rpx;
+    background-color: transparent;
+    border-radius: 0;
+    box-shadow: none;
     display: flex;
     flex-direction: column;
     align-items: center;
     overflow: visible;
 }
-.menu-btn-large {
-    position: absolute;
-    top: 24rpx;
-    left: 24rpx;
-    width: 56rpx;
-    height: 56rpx;
-    z-index: 100;
-    background: none;
+.menu-btn-small {
+    width: 40rpx;
+    height: 40rpx;
+    cursor: pointer;
+    transition: transform 0.2s ease;
     filter: grayscale(1) brightness(0.5);
     opacity: 0.7;
+}
+
+.menu-btn-small:active {
+    transform: scale(0.9);
 }
 
 .back-btn {
@@ -2147,31 +2368,100 @@ export default {
 .back-btn:active {
     background: rgba(0, 0, 0, 0.2);
 }
+.profile-avatar-large {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 70rpx 0 40rpx 0;
+}
+
 .profile-avatar-large image {
-    width: 150rpx;
-    height: 150rpx;
+    width: 175rpx;
+    height: 175rpx;
     border-radius: 50%;
     display: block;
-    margin: 0 auto;
 }
 .profile-info-center {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     margin-top: 20rpx;
+    width: 100%;
 }
 .profile-name-center {
-    font-size: 40rpx;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 10rpx;
-    text-align: center;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 30rpx;
+    line-height: 36rpx;
+    color: #000000;
+    margin-bottom: 20rpx;
+    text-align: left;
+}
+
+.profile-poemid {
+    font-family: 'Inter', sans-serif;
+    font-weight: 300;
+    font-size: 20rpx;
+    line-height: 24rpx;
+    color: #989090;
+    margin-bottom: 20rpx;
 }
   .profile-bio-center {
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 24rpx;
+      line-height: 30rpx;
+      color: #000000;
+      text-align: left;
+      margin-bottom: 20rpx;
+  }
+
+  .profile-bottom-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      margin-bottom: 10rpx;
+  }
+
+  .profile-buttons {
+      display: flex;
+      align-items: center;
+      gap: 20rpx;
+  }
+
+  .profile-followers {
+      font-family: 'Inter', sans-serif;
+      font-weight: 300;
+      font-size: 24rpx;
+      line-height: 30rpx;
+      color: #989090;
+      margin: 0;
+  }
+
+  .edit-profile-btn {
+      position: relative;
+      width: 246rpx;
+      height: 54rpx;
+      background: #D9D9D9;
+      border-radius: 10rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+  }
+
+  .edit-profile-btn:active {
+      background-color: #C0C0C0;
+  }
+
+  .edit-profile-btn text {
+      font-family: 'Inter', sans-serif;
+      font-weight: 800;
       font-size: 28rpx;
-      color: #999;
-      text-align: center;
-      margin-bottom: 0;
+      line-height: 34rpx;
+      color: #FFFFFF;
   }
   .profile-meta-center {
       font-size: 26rpx;

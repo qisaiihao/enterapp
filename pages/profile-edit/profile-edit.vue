@@ -192,8 +192,12 @@ export default {
         },
         fetchUserProfile: function () {
             this.callCloudFunction('getMyProfileData', {}).then((res) => {
+                    console.log('【profile-edit】📝 获取用户资料响应:', res);
                     if (res.result && res.result.success && res.result.userInfo) {
                         const user = res.result.userInfo;
+                        console.log('【profile-edit】👤 用户数据:', user);
+                        console.log('【profile-edit】💼 职业:', user.occupation);
+                        console.log('【profile-edit】📍 地区:', user.region);
                         this.setData({
                             avatarUrl: user.avatarUrl || '',
                             nickName: user.nickName || '',
@@ -206,14 +210,19 @@ export default {
                             signaturePreview: user.signatureUrl || '',
                             signatureTempPath: null
                         });
+                        console.log('【profile-edit】✅ 设置后的数据:', {
+                            occupation: this.occupation,
+                            region: this.region
+                        });
                     } else {
+                        console.error('【profile-edit】❌ 获取用户资料失败:', res);
                         uni.showToast({
                             title: '加载失败',
                             icon: 'none'
                         });
                     }
                 }).catch((err) => {
-                    console.error('获取用户资料失败:', err);
+                    console.error('【profile-edit】❌ 获取用户资料异常:', err);
                     uni.showToast({
                         title: '加载失败',
                         icon: 'none'
@@ -518,6 +527,16 @@ export default {
                 title: '保存中...',
                 mask: true
             });
+
+            console.log('【profile-edit】💾 开始保存资料，当前数据:', {
+                nickName: this.nickName,
+                birthday: this.birthday,
+                bio: this.bio,
+                occupation: this.occupation,
+                region: this.region,
+                poemId: this.poemId
+            });
+
             const avatarUpload = this.tempAvatarPath
                 ? this.uploadFile(`user_avatars/${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`, this.tempAvatarPath)
                 : Promise.resolve(null);
@@ -526,16 +545,18 @@ export default {
                 : Promise.resolve(null);
             Promise.all([avatarUpload, signatureUpload])
                 .then(([avatarFileID, signatureFileID]) => {
-                    return this.callCloudFunction('updateUserProfile', {
-                            avatarUrl: (typeof avatarFileID === 'object' && avatarFileID) ? (avatarFileID.fileID || avatarFileID.fileId || '') : (avatarFileID || ''),
-                            nickName: this.nickName,
-                            birthday: this.birthday,
-                            bio: this.bio,
-                            occupation: this.occupation,
-                            region: this.region,
-                            poemId: this.poemId,  // 新增：保存poemId
-                            signatureUrl: (typeof signatureFileID === 'object' && signatureFileID) ? (signatureFileID.fileID || signatureFileID.fileId || '') : (signatureFileID || '')
-                        });
+                    const updateData = {
+                        avatarUrl: (typeof avatarFileID === 'object' && avatarFileID) ? (avatarFileID.fileID || avatarFileID.fileId || '') : (avatarFileID || ''),
+                        nickName: this.nickName,
+                        birthday: this.birthday,
+                        bio: this.bio,
+                        occupation: this.occupation,
+                        region: this.region,
+                        poemId: this.poemId,  // 新增：保存poemId
+                        signatureUrl: (typeof signatureFileID === 'object' && signatureFileID) ? (signatureFileID.fileID || signatureFileID.fileId || '') : (signatureFileID || '')
+                    };
+                    console.log('【profile-edit】📤 发送到云函数的数据:', updateData);
+                    return this.callCloudFunction('updateUserProfile', updateData);
                 })
                 .then((res) => {
                     if (res.result.success) {

@@ -35,9 +35,14 @@
                 </block>
               </view>
 
-              <!-- 作者签名 - 只在展开时显示 -->
+              <!-- 作者签名 - 展开时显示大签名 -->
               <view v-if="item.isExpanded && item.authorSignature" class="user-signature">
                 <image class="signature-image" :src="item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
+              </view>
+
+              <!-- 作者签名 - 折叠时显示小签名 -->
+              <view v-if="!item.isExpanded && item.authorSignature" class="user-signature-small">
+                <image class="signature-image-small" :src="item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
               </view>
             </view>
           </view>
@@ -117,6 +122,12 @@ export default {
   onLoad() {
     this.getIndexData();
   },
+  onPullDownRefresh() {
+    console.log('【poem-square】📱 下拉刷新，重新获取数据');
+    this.getIndexData(() => {
+      uni.stopPullDownRefresh();
+    });
+  },
   onPageScroll(e) {
     if (this._scrollTimer) clearTimeout(this._scrollTimer);
     this._scrollTimer = setTimeout(() => {
@@ -180,6 +191,13 @@ export default {
         this.postList = this.page === 0 ? list : this.postList.concat(list);
         this.page += 1;
         this.hasMore = list.length === PAGE_SIZE;
+        
+        // 自动获取所有帖子的签名
+        this.postList.forEach((post, index) => {
+          if (post._openid && !post.authorSignature) {
+            this.fetchAuthorSignature(post._openid, index);
+          }
+        });
       } catch (e) {
         uni.showToast({ title: '加载失败', icon: 'none' });
       } finally {
@@ -194,8 +212,8 @@ export default {
 
       this.setData({ [`postList[${index}].isExpanded`]: next });
 
-      // 如果展开且还没有签名，则获取签名
-      if (next && post._openid && !post.authorSignature) {
+      // 如果还没有签名，则获取签名（无论展开还是折叠）
+      if (post._openid && !post.authorSignature) {
         this.fetchAuthorSignature(post._openid, index);
       }
     },
@@ -300,7 +318,9 @@ export default {
 
 /* poem.css inspired card styles */
 .post-item-wrapper {
-  width: 628rpx; /* 314px * 2 */
+  width: calc(100% - 80rpx); /* 响应式宽度：屏幕宽度减去左右各40rpx边距 */
+  margin-left: 40rpx; /* 左边距 */
+  margin-right: 40rpx; /* 右边距 */
   border-radius: 30rpx; /* 15px * 2 */
   margin-bottom: 40rpx; /* 减少间距，让卡片更紧凑 */
   overflow: hidden;
@@ -325,15 +345,15 @@ export default {
 
 .post-item-wrapper:active { transform: scale(0.98); }
 .post-content-navigator { display: block; }
-.post-item { padding: 80rpx 100rpx; position: relative; } /* 40px 50px * 2 */
+.post-item { padding: 30rpx 60rpx 30rpx 80rpx; position: relative; } /* 进一步减少上下padding，文字往左移动 */
 
 /* Typography inspired by poem.css */
 .post-content {
   font-family: 'Inter', sans-serif;
-  font-style: italic;
-  font-weight: 600;
-  font-size: 28rpx; /* 14px * 2 */
-  line-height: 34rpx; /* 17px * 2 */
+  font-style: normal;
+  font-weight: 500;
+  font-size: 28rpx; /* 调小字体：14px * 2 */
+  line-height: 38rpx; /* 调整行距：19px * 2 */
   margin: 30rpx 0;
   width: 100%;
   color: #FFFFFF;
@@ -375,6 +395,24 @@ export default {
   height: 90rpx;
   opacity: 0.8; /* 稍微透明，不抢夺主要内容的注意力 */
   filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1)); /* 添加轻微阴影 */
+  display: block; /* 确保图片正确显示 */
+  background: transparent; /* 确保背景透明 */
+}
+
+/* 小签名样式 - 折叠状态下显示 */
+.user-signature-small {
+  position: absolute;
+  bottom: 30rpx;
+  right: 60rpx;
+  z-index: 10;
+  pointer-events: none; /* 防止签名影响点击事件 */
+}
+
+.signature-image-small {
+  width: 100rpx;
+  height: 50rpx;
+  opacity: 0.6; /* 更透明，不抢夺主要内容的注意力 */
+  filter: drop-shadow(0 1rpx 2rpx rgba(0, 0, 0, 0.1)); /* 添加轻微阴影 */
   display: block; /* 确保图片正确显示 */
   background: transparent; /* 确保背景透明 */
 }

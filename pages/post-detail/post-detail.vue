@@ -62,7 +62,28 @@
                     </view>
                     <view class="post-title">{{ post.title }}</view>
                     <view v-if="post.isPoem && post.author" class="poem-author">{{ post.author }}</view>
-                    <view class="post-content" v-if="post.content">{{ post.content }}</view>
+                    
+                    <!-- 讨论类型帖子特殊渲染 -->
+                    <view v-if="post.isDiscussion && post.sentenceGroups" class="discussion-content">
+                        <view v-for="(sentenceGroup, groupIndex) in post.sentenceGroups" :key="'discussion-group-' + groupIndex" class="discussion-sentence-group">
+                            <!-- 句子卡片 -->
+                            <view class="discussion-sentence-card">
+                                <view class="discussion-sentence-content">
+                                    <text v-for="(line, lineIndex) in sentenceGroup.sentences" :key="'discussion-sentence-' + lineIndex" class="discussion-sentence-line">
+                                        {{ line }}
+                                    </text>
+                                </view>
+                            </view>
+                            
+                            <!-- 评论内容 -->
+                            <view v-if="sentenceGroup.comment" class="discussion-comment">
+                                {{ sentenceGroup.comment }}
+                            </view>
+                        </view>
+                    </view>
+                    
+                    <!-- 普通帖子内容 -->
+                    <view class="post-content" v-else-if="post.content">{{ post.content }}</view>
 
                     <view v-if="post.tags && post.tags.length > 0" class="post-tags">
                         <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="item" v-for="(item, index) in post.tags" :key="index">#{{ item }}</text>
@@ -128,9 +149,7 @@
                     </view>
                     <view class="vote-section" @tap.stop.prevent="preventBubble">
                         <view class="actions-left">
-                            <button :class="favoriteButtonClass" size="mini" @tap.stop.prevent="onFavorite">
-                                {{ favoriteButtonText }}
-                            </button>
+                            <!-- 左侧按钮区域保留为空，或者可以放其他按钮 -->
                         </view>
                         <view class="button-group">
                             <view class="comment-count">
@@ -142,6 +161,22 @@
                             </view>
                             <view :class="'vote-count ' + (post.isVoted ? 'voted' : '')">
                                 <text class="action-text">{{ post.votes || 0 }}</text>
+                            </view>
+                            <!-- 收藏按钮 - 只有非自己的帖子才显示 -->
+                            <view v-if="!isOwnPost" :class="'favorite-icon-container ' + (isFavorited ? 'favorited' : '')" @tap.stop.prevent="onFavorite">
+                                <image class="favorite-icon" src="/static/images/我收藏的.png" mode="aspectFit"></image>
+                        </view>
+                            <!-- 作品集按钮 - 只有自己的帖子才显示 -->
+                            <view v-else class="portfolio-icon-container" @tap.stop.prevent="onAddToPortfolio">
+                                <image class="portfolio-icon" src="/static/images/作品集.png" mode="aspectFit"></image>
+                            </view>
+                            <!-- 讨论按钮 - 只有诗歌类型才显示 -->
+                            <view v-if="post.isPoem" class="discussion-icon-container" @tap.stop.prevent="onCreateDiscussion">
+                                <image class="discussion-icon" src="/static/images/写诗.png" mode="aspectFit"></image>
+                            </view>
+                            <!-- 写评论按钮 -->
+                            <view class="comment-icon-container" @tap.stop.prevent="expandInput">
+                                <image class="comment-icon" src="/static/images/写评论.png" mode="aspectFit"></image>
                             </view>
                         </view>
                     </view>
@@ -305,72 +340,41 @@
         <!-- 遮罩层：当输入框展开时显示 -->
         <view :class="'input-overlay ' + (isInputExpanded ? 'show' : '')" @tap="collapseInput"></view>
 
-        <!-- 输入框容器：整体会根据键盘高度上移 -->
-        <view class="comment-input-area" :style="'bottom: ' + keyboardHeight + 'px;'">
-            <!-- 收起状态：一个假的输入框，点击后展开 -->
-            <view v-if="!isInputExpanded" class="collapsed-bar" @tap="expandInput">
-                <view class="collapsed-input-placeholder">留下你的精彩评论...</view>
-            </view>
+        <!-- 输入框容器：整体会根据键盘高度上移，默认隐藏 -->
+        <view v-if="isInputExpanded" class="comment-input-area" :style="'bottom: ' + keyboardHeight + 'px;'">
 
             <!-- 展开状态：真正的输入区域 -->
             <view v-if="isInputExpanded" class="expanded-container">
-                <!-- 模式切换 -->
-                <view class="mode-switcher">
-                    <view :class="'mode-item ' + (!isDiscussionMode ? 'active' : '')" @tap="switchToComment">
-                        <text class="mode-text">💬 评论</text>
-                    </view>
-                    <view :class="'mode-item ' + (isDiscussionMode ? 'active' : '')" @tap="switchToDiscussion">
-                        <text class="mode-text">💭 讨论</text>
-                    </view>
-                </view>
 
                 <!-- 如果是回复，显示提示 -->
-                <view v-if="replyToComment && !isDiscussionMode" class="reply-prompt">
+                <view v-if="replyToComment" class="reply-prompt">
                     <text class="reply-prompt-text">回复 {{ replyToAuthor }}：</text>
                     <view class="cancel-reply" @tap="cancelReply">
                         <text class="cancel-text">取消</text>
                     </view>
                 </view>
 
-                <!-- 讨论模式的标题输入 -->
-                <view v-if="isDiscussionMode" class="discussion-title-wrapper">
-                    <input
-                        class="discussion-title-input"
-                        placeholder="讨论标题（可选）"
-                        :value="discussionTitle"
-                        @input="onDiscussionTitleInput"
-                        maxlength="50"
-                    />
-                </view>
 
                 <!-- 多行文本输入框 -->
                 <textarea
                     class="expanded-textarea"
-                    :placeholder="isDiscussionMode ? '分享你的深入讨论...' : '留下你的精彩评论...'"
-                    :value="isDiscussionMode ? discussionContent : newComment"
-                    @input="isDiscussionMode ? onDiscussionContentInput : onCommentInput"
+                    placeholder="留下你的精彩评论..."
+                    :value="newComment"
+                    @input="onCommentInput"
                     @focus="onInputFocus"
                     @blur="onInputBlur"
                     :focus="isFocus"
                     auto-height
-                    maxlength="isDiscussionMode ? 1500 : 500"
+                    maxlength="500"
                     :show-confirm-bar="false"
                     :adjust-position="false"
                 ></textarea>
 
                 <!-- 评论图片显示 -->
-                <view v-if="!isDiscussionMode && commentImages.length" class="selected-comment-images">
+                <view v-if="commentImages.length" class="selected-comment-images">
                     <view class="selected-image-item" :data-index="index" v-for="(item, index) in commentImages" :key="index">
                         <image class="selected-image-thumb" :src="item.previewUrl" mode="aspectFill" @tap="previewSelectedCommentImage" :data-index="index"></image>
                         <view class="remove-image-btn" @tap="removeCommentImage" :data-index="index">✕</view>
-                    </view>
-                </view>
-
-                <!-- 讨论图片显示 -->
-                <view v-if="isDiscussionMode && discussionImages.length" class="selected-comment-images">
-                    <view class="selected-image-item" :data-index="index" v-for="(item, index) in discussionImages" :key="index">
-                        <image class="selected-image-thumb" :src="item.previewUrl" mode="aspectFill" @tap="previewSelectedDiscussionImage" :data-index="index"></image>
-                        <view class="remove-image-btn" @tap="removeDiscussionImage" :data-index="index">✕</view>
                     </view>
                 </view>
 
@@ -378,18 +382,12 @@
                 <view class="expanded-actions">
                     <view class="action-icons">
                         <view class="action-icon" @tap="chooseImages">
-                            <text class="action-icon-text">🖼️</text>
+                            <image class="action-icon-image" src="/static/images/配图.png" mode="aspectFit"></image>
                         </view>
-                        <view class="action-icon" @tap="toggleEmojiPanel">
-                            <text class="action-icon-text">😊</text>
                         </view>
-                    </view>
-                    <button class="submit-button" @tap="isDiscussionMode ? onSubmitDiscussion : onSubmitComment" :disabled="isSubmitDisabled">
-                        {{ isDiscussionMode ? '发布讨论' : '发送' }}
+                    <button class="submit-button" @tap="onSubmitComment" :disabled="isSubmitDisabled">
+                        发送
                     </button>
-                </view>
-                <view v-if="showEmojiPanel" class="emoji-panel">
-                    <text class="emoji-item" :data-emoji="item" @tap="insertEmoji" v-for="(item, index) in emojiList" :key="index">{{ item }}</text>
                 </view>
             </view>
         </view>
@@ -399,12 +397,16 @@
 
         <!-- 收藏夹选择器 -->
         <folder-selector :show="showFavoriteModal" :post-id="post && post._id ? post._id : ''" @hide="hideFavoriteModal" @favoriteSuccess="onFavoriteSuccess" />
+
+        <!-- 作品集选择器 -->
+        <portfolio-selector :show="showPortfolioModal" :post-id="post && post._id ? post._id : ''" @hide="hidePortfolioModal" @portfolioSuccess="onPortfolioSuccess" />
     </view>
 </template>
 
 <script>
 import cloudTipModal from '@/components/cloudTipModal/index';
 import folderSelector from '@/components/folder-selector/folder-selector';
+import portfolioSelector from '@/components/portfolio-selector/portfolio-selector';
 // pages/post-detail/post-detail.js
 const app = getApp();
 const likeIcon = require('../../utils/likeIcon');
@@ -420,7 +422,8 @@ import fileUrlCache from '@/_utils/file-url-cache';
 export default {
     components: {
         cloudTipModal,
-        folderSelector
+        folderSelector,
+        portfolioSelector
     },
     mixins: [postGalleryMixin],
     data() {
@@ -441,6 +444,7 @@ export default {
             swiperHeights: {},
             imageClampHeights: {},
             showFavoriteModal: false,
+            showPortfolioModal: false,
             isInputExpanded: false,
             keyboardHeight: 0,
             isFocus: false,
@@ -454,10 +458,9 @@ export default {
             followPending: false,
             isFollowedByAuthor: false,
             isMutualFollow: false,
+            isOwnPost: false,
             commentImages: [],
             maxCommentImages: 3,
-            showEmojiPanel: false,
-            emojiList: ['😀', '😁', '😂', '🤣', '😊', '😍', '😎', '🤔', '😢', '🙏', '👍', '👎'],
             isSubmittingComment: false,
             imgindex: 0,
             img: '',
@@ -483,12 +486,6 @@ export default {
             replyImage: '',
             replyImageIndex: 0,
 
-            // 讨论功能相关
-            isDiscussionMode: false,
-            discussionTitle: '',
-            discussionContent: '',
-            discussionImages: [],
-            maxDiscussionImages: 9
         };
     },
     onLoad: function (options) {
@@ -740,6 +737,28 @@ export default {
             });
         },
 
+        onAddToPortfolio: function () {
+            console.log('【post-detail】点击作品集按钮');
+            if (!this.post || !this.post._id) {
+                uni.showToast({
+                    title: '帖子信息无效',
+                    icon: 'none'
+                });
+                return;
+            }
+
+            // 显示作品集选择器
+            console.log('【post-detail】显示作品集选择器，postId:', this.post._id);
+            this.setData({
+                showPortfolioModal: true
+            });
+
+            // 延迟一下确保数据已设置
+            setTimeout(() => {
+                console.log('【post-detail】延迟检查showPortfolioModal:', this.showPortfolioModal);
+            }, 100);
+        },
+
         hideFavoriteModal: function () {
             this.setData({
                 showFavoriteModal: false
@@ -767,6 +786,45 @@ export default {
             } catch (e) {}
         },
 
+        hidePortfolioModal: function () {
+            this.setData({
+                showPortfolioModal: false
+            });
+        },
+
+        onPortfolioSuccess: function () {
+            this.hidePortfolioModal();
+            uni.showToast({
+                title: '添加成功',
+                icon: 'success'
+            });
+        },
+
+        onCreateDiscussion: function () {
+            if (!this.post || !this.post._id) {
+                uni.showToast({
+                    title: '帖子信息无效',
+                    icon: 'none'
+                });
+                return;
+            }
+
+            console.log('【post-detail】跳转到创建讨论页面，postId:', this.post._id);
+            uni.navigateTo({
+                url: `/pages/create-discussion/create-discussion?postId=${this.post._id}`,
+                success: () => {
+                    console.log('【post-detail】跳转到创建讨论页面成功');
+                },
+                fail: (err) => {
+                    console.error('【post-detail】跳转到创建讨论页面失败:', err);
+                    uni.showToast({
+                        title: '跳转失败',
+                        icon: 'none'
+                    });
+                }
+            });
+        },
+
         handlePreview: function (event) {
             const result = previewImage(event, { fallbackToast: false });
             if (!result) {
@@ -787,17 +845,6 @@ export default {
         },
 
         updateSubmitState: function () {
-            if (this.isDiscussionMode) {
-                const hasTitle = (this.discussionTitle || '').trim().length > 0;
-                const hasContent = (this.discussionContent || '').trim().length > 0;
-                const hasImages = Array.isArray(this.discussionImages) && this.discussionImages.length > 0;
-                const disabled = (!hasContent && !hasImages) || this.isSubmittingComment;
-                if (this.isSubmitDisabled !== disabled) {
-                    this.setData({
-                        isSubmitDisabled: disabled
-                    });
-                }
-            } else {
                 const hasText = (this.newComment || '').trim().length > 0;
                 const hasImages = Array.isArray(this.commentImages) && this.commentImages.length > 0;
                 const disabled = (!hasText && !hasImages) || this.isSubmittingComment;
@@ -805,231 +852,13 @@ export default {
                     this.setData({
                         isSubmitDisabled: disabled
                     });
-                }
             }
         },
 
-        // 讨论模式切换
-        switchToComment: function() {
-            if (this.isDiscussionMode) {
-                this.setData({
-                    isDiscussionMode: false,
-                    replyToComment: null,
-                    replyToAuthor: ''
-                });
-                this.updateSubmitState();
-            }
-        },
 
-        switchToDiscussion: function() {
-            if (!this.isDiscussionMode) {
-                this.setData({
-                    isDiscussionMode: true,
-                    replyToComment: null,
-                    replyToAuthor: ''
-                });
-                this.updateSubmitState();
-            }
-        },
 
-        onDiscussionTitleInput: function(e) {
-            this.setData({
-                discussionTitle: e.detail.value
-            });
-            this.updateSubmitState();
-        },
 
-        onDiscussionContentInput: function(e) {
-            this.setData({
-                discussionContent: e.detail.value
-            });
-            this.updateSubmitState();
-        },
 
-        previewSelectedDiscussionImage: function(e) {
-            const index = e.currentTarget.dataset.index || 0;
-            const images = this.discussionImages || [];
-            if (!images.length) {
-                return;
-            }
-            const urls = images.map((item) => item.previewUrl).filter(Boolean);
-            if (!urls.length) {
-                return;
-            }
-            const current = urls[index] || urls[0];
-            return previewImage({ current, urls }, { fallbackToast: false });
-        },
-
-        removeDiscussionImage: function(e) {
-            const index = e.currentTarget.dataset.index;
-            if (index === undefined) {
-                return;
-            }
-            const images = (this.discussionImages || []).slice();
-            images.splice(index, 1);
-            this.setData(
-                {
-                    discussionImages: images
-                },
-                () => {
-                    this.updateSubmitState();
-                }
-            );
-        },
-
-        onSubmitDiscussion: async function() {
-            if (this.isSubmitDisabled || this.isSubmittingComment) {
-                return;
-            }
-
-            const trimmedTitle = (this.discussionTitle || '').trim();
-            const trimmedContent = (this.discussionContent || '').trim();
-            const hasContent = trimmedContent.length > 0;
-            const hasImages = Array.isArray(this.discussionImages) && this.discussionImages.length > 0;
-
-            if (!hasContent && !hasImages) {
-                uni.showToast({
-                    title: '请输入内容或添加图片',
-                    icon: 'none'
-                });
-                return;
-            }
-
-            const parentPostId = this.post && this.post._id ? this.post._id : '';
-            if (!parentPostId) {
-                uni.showToast({
-                    title: '帖子信息缺失',
-                    icon: 'none'
-                });
-                return;
-            }
-
-            this.setData({
-                isSubmittingComment: true
-            });
-            this.updateSubmitState();
-
-            uni.showLoading({
-                title: '发布中...'
-            });
-
-            try {
-                // 上传讨论图片
-                let imageUrls = [];
-                let originalImageUrls = [];
-
-                if (this.discussionImages.length > 0) {
-                    const imageUploadResults = await this.uploadDiscussionImages();
-                    imageUrls = imageUploadResults.map((item) => item.compressedUrl);
-                    originalImageUrls = imageUploadResults.map((item) => item.originalUrl);
-                }
-
-                // 调用内容审核云函数创建讨论帖子
-                const res = await this.callCloudFunction(
-                    'contentCheck',
-                    {
-                        title: trimmedTitle,
-                        content: trimmedContent,
-                        fileIDs: imageUrls,
-                        originalFileIDs: originalImageUrls,
-                        isDiscussion: true,
-                        parentPostId: parentPostId,
-                        publishMode: 'discussion'
-                    },
-                    { requireAuth: true }
-                );
-
-                uni.hideLoading();
-
-                if (res.result && res.result.code === 0) {
-                    uni.showToast({
-                        title: '讨论发布成功',
-                        icon: 'success'
-                    });
-
-                    // 清空讨论内容
-                    this.setData({
-                        discussionTitle: '',
-                        discussionContent: '',
-                        discussionImages: [],
-                        showEmojiPanel: false,
-                        isDiscussionMode: false
-                    });
-
-                    this.updateSubmitState();
-                    this.collapseInput();
-
-                    // 刷新评论列表，显示新创建的讨论
-                    this.getComments(parentPostId);
-
-                    // 更新评论计数
-                    const newCommentCount = this.commentCount + 1;
-                    this.setData({
-                        commentCount: newCommentCount
-                    });
-
-                    // 更新上一页面的评论计数
-                    const pages = getCurrentPages();
-                    if (pages.length > 1) {
-                        const prePage = pages[pages.length - 2];
-                        if ((prePage.route === 'pages/index/index' || prePage.route === 'pages/profile/profile') && typeof prePage.updatePostCommentCount === 'function') {
-                            prePage.updatePostCommentCount(parentPostId, newCommentCount);
-                        }
-                    }
-                } else {
-                    uni.showToast({
-                        title: (res.result && res.result.msg) || '讨论发布失败',
-                        icon: 'none'
-                    });
-                }
-            } catch (error) {
-                console.error('Failed to submit discussion:', error);
-                uni.hideLoading();
-                uni.showToast({
-                    title: '讨论发布失败',
-                    icon: 'none'
-                });
-            } finally {
-                this.setData({
-                    isSubmittingComment: false
-                });
-                this.updateSubmitState();
-            }
-        },
-
-        uploadDiscussionImages: function() {
-            const images = this.discussionImages || [];
-            if (!images.length) {
-                return Promise.resolve([]);
-            }
-            const openid = this.getCurrentUserId() || 'guest';
-            const timestamp = Date.now();
-
-            // 使用兼容性的文件上传方法
-            return Promise.all(
-                images.map((image, index) => {
-                    const uniqueKey = (openid || 'guest') + '_' + timestamp + '_discussion_' + index;
-                    const compressedCloudPath = 'discussion_images/' + uniqueKey + '_compressed.jpg';
-
-                    // 使用兼容性的文件上传方法
-                    return this.uploadFile(compressedCloudPath, image.compressedPath || image.previewUrl || image.originalPath)
-                        .then((compressedRes) => {
-                            if (image.needCompression) {
-                                const originalCloudPath = 'discussion_images/' + uniqueKey + '_original.jpg';
-                                return this.uploadFile(originalCloudPath, image.originalPath)
-                                    .then((originalRes) => ({
-                                        compressedUrl: compressedRes.fileID,
-                                        originalUrl: originalRes.fileID
-                                    }));
-                            }
-                            return {
-                                compressedUrl: compressedRes.fileID,
-                                originalUrl: compressedRes.fileID
-                            };
-                        });
-                })
-            );
-        },
 
         onCommentInput: function (e) {
             this.setData(
@@ -1042,69 +871,15 @@ export default {
             );
         },
 
-        toggleEmojiPanel: function () {
-            const shouldShow = !this.showEmojiPanel;
-            const updateData = {
-                showEmojiPanel: shouldShow,
-                isFocus: !shouldShow
-            };
-            if (shouldShow) {
-                updateData.keyboardHeight = 0;
-                uni.hideKeyboard();
-            }
-            this.setData(updateData);
-        },
-
-        insertEmoji: function (e) {
-            const emoji = e.currentTarget.dataset.emoji;
-            if (!emoji) {
-                return;
-            }
-
-            if (this.isDiscussionMode) {
-                const newDiscussionContent = (this.discussionContent || '') + emoji;
-                this.setData(
-                    {
-                        discussionContent: newDiscussionContent
-                    },
-                    () => {
-                        this.updateSubmitState();
-                    }
-                );
-            } else {
-                const newComment = (this.newComment || '') + emoji;
-                this.setData(
-                    {
-                        newComment: newComment
-                    },
-                    () => {
-                        this.updateSubmitState();
-                    }
-                );
-            }
-        },
-
-        closeEmojiPanel: function () {
-            if (this.showEmojiPanel) {
-                this.setData({
-                    showEmojiPanel: false
-                });
-            }
-        },
 
         chooseImages: function () {
-            this.closeEmojiPanel();
-
-            const isDiscussionMode = this.isDiscussionMode;
-            const existingImages = isDiscussionMode ?
-                (this.discussionImages ? this.discussionImages.length : 0) :
-                (this.commentImages ? this.commentImages.length : 0);
-            const maxImages = isDiscussionMode ? this.maxDiscussionImages : this.maxCommentImages;
+            const existingImages = this.commentImages ? this.commentImages.length : 0;
+            const maxImages = this.maxCommentImages;
             const remaining = maxImages - existingImages;
 
             if (remaining <= 0) {
                 uni.showToast({
-                    title: isDiscussionMode ? '最多选择9张图片' : '最多选择3张图片',
+                    title: '最多选择3张图片',
                     icon: 'none'
                 });
                 return;
@@ -1127,8 +902,7 @@ export default {
                             size: 0
                         }));
 
-                    const prepareMethod = isDiscussionMode ? 'prepareDiscussionImage' : 'prepareCommentImage';
-                    const tasks = tempFiles.map((file) => this[prepareMethod](file));
+                    const tasks = tempFiles.map((file) => this.prepareCommentImage(file));
 
                     Promise.all(tasks)
                         .then((processedImages) => {
@@ -1137,21 +911,6 @@ export default {
                                 return;
                             }
 
-                            if (isDiscussionMode) {
-                                const updatedImages = (this.discussionImages || []).concat(validImages);
-                                this.setData(
-                                    {
-                                        discussionImages: updatedImages.slice(0, this.maxDiscussionImages)
-                                    },
-                                    () => {
-                                        this.updateSubmitState();
-                                        this.setData({
-                                            isInputExpanded: true,
-                                            isFocus: false
-                                        });
-                                    }
-                                );
-                            } else {
                                 const updatedImages = (this.commentImages || []).concat(validImages);
                                 this.setData(
                                     {
@@ -1165,10 +924,9 @@ export default {
                                         });
                                     }
                                 );
-                            }
                         })
                         .catch((err) => {
-                            console.error((isDiscussionMode ? '讨论' : '评论') + '图片处理失败:', err);
+                            console.error('评论图片处理失败:', err);
                             uni.showToast({
                                 title: '图片处理失败',
                                 icon: 'none'
@@ -1283,97 +1041,6 @@ export default {
             });
         },
 
-        prepareDiscussionImage: function (file) {
-            return new Promise((resolve) => {
-                const tempPath = file.tempFilePath || file.path || (Array.isArray(file.tempFilePaths) ? file.tempFilePaths[0] : '');
-                if (!tempPath) {
-                    resolve(null);
-                    return;
-                }
-                const sizeInBytes = file.size || 0;
-                // 讨论图片可以稍微大一些，阈值设为300KB
-                const needCompression = sizeInBytes > 307200;
-                const imageInfo = {
-                    id: 'discussion_' + Date.now() + '_' + Math.floor(Math.random() * 100000),
-                    originalPath: tempPath,
-                    previewUrl: tempPath,
-                    compressedPath: tempPath,
-                    size: sizeInBytes,
-                    needCompression: needCompression
-                };
-                if (!needCompression) {
-                    resolve(imageInfo);
-                    return;
-                }
-                this.compressDiscussionImage(imageInfo)
-                    .then((resolvedInfo) => {
-                        resolve(resolvedInfo);
-                    })
-                    .catch((err) => {
-                        console.warn('讨论图片压缩异常:', err);
-                        imageInfo.compressedPath = imageInfo.originalPath;
-                        imageInfo.previewUrl = imageInfo.originalPath;
-                        imageInfo.needCompression = false;
-                        resolve(imageInfo);
-                    });
-            });
-        },
-
-        compressDiscussionImage: function (imageInfo) {
-            return new Promise((resolve) => {
-                // 讨论图片压缩，允许稍大的文件大小，阈值300KB
-                const compressWithQuality = (quality) => {
-                    uni.compressImage({
-                        src: imageInfo.originalPath,
-                        quality: quality,
-                        success: (res) => {
-                            // 检查压缩后的文件大小
-                            uni.getFileInfo({
-                                filePath: res.tempFilePath,
-                                success: (fileInfo) => {
-                                    const compressedSize = fileInfo.size;
-                                    console.log(`讨论图片压缩质量${quality}%，文件大小: ${(compressedSize / 1024).toFixed(2)}KB`);
-
-                                    // 如果文件大小超过300KB且质量还可以继续降低，则继续压缩
-                                    if (compressedSize > 307200 && quality > 30) {
-                                        console.log(`讨论图片大小${(compressedSize / 1024).toFixed(2)}KB超过300KB，继续压缩...`);
-                                        compressWithQuality(quality - 10);
-                                    } else {
-                                        imageInfo.compressedPath = res.tempFilePath;
-                                        imageInfo.previewUrl = res.tempFilePath;
-                                        imageInfo.compressedSize = compressedSize;
-                                        console.log(`讨论图片最终压缩质量${quality}%，文件大小: ${(compressedSize / 1024).toFixed(2)}KB`);
-                                        resolve(imageInfo);
-                                    }
-                                },
-                                fail: () => {
-                                    // 如果无法获取文件信息，直接使用压缩结果
-                                    imageInfo.compressedPath = res.tempFilePath;
-                                    imageInfo.previewUrl = res.tempFilePath;
-                                    resolve(imageInfo);
-                                }
-                            });
-                        },
-                        fail: (err) => {
-                            console.warn(`讨论图片压缩质量${quality}%失败:`, err);
-                            if (quality > 30) {
-                                // 如果压缩失败且质量还可以降低，尝试更低的质量
-                                compressWithQuality(quality - 10);
-                            } else {
-                                // 如果所有压缩都失败，使用原图
-                                imageInfo.compressedPath = imageInfo.originalPath;
-                                imageInfo.previewUrl = imageInfo.originalPath;
-                                imageInfo.needCompression = false;
-                                resolve(imageInfo);
-                            }
-                        }
-                    });
-                };
-
-                // 从70%质量开始压缩，讨论图片可以用更高质量
-                compressWithQuality(70);
-            });
-        },
 
         removeCommentImage: function (e) {
             const index = e.currentTarget.dataset.index;
@@ -1536,7 +1203,6 @@ export default {
                     this.setData({
                         newComment: '',
                         commentImages: [],
-                        showEmojiPanel: false,
                         commentCount: newCommentCount
                     });
                     this.updateSubmitState();
@@ -1771,12 +1437,19 @@ export default {
 
         prepareFollowState: function (authorOpenid) {
             const currentUserId = this.getCurrentUserId();
+            const isSameUser = authorOpenid === currentUserId;
             console.log('【关注状态】prepareFollowState调用:', {
                 authorOpenid,
                 currentUserId,
-                isSameUser: authorOpenid === currentUserId
+                isSameUser: isSameUser
             });
-            if (!authorOpenid || !currentUserId || authorOpenid === currentUserId) {
+
+            // 设置是否是自己的帖子
+            this.setData({
+                isOwnPost: isSameUser
+            });
+
+            if (!authorOpenid || !currentUserId || isSameUser) {
                 console.log('【关注状态】不显示关注按钮 - 自己或无效用户');
                 this.setData({
                     showFollowButton: false,
@@ -1938,7 +1611,6 @@ export default {
             this.setData({
                 isInputExpanded: true,
                 isFocus: true,
-                showEmojiPanel: false
             });
         },
 
@@ -1946,7 +1618,6 @@ export default {
             console.log('键盘弹起，高度为:', e.detail.height);
             this.setData({
                 keyboardHeight: e.detail.height,
-                showEmojiPanel: false
             });
         },
 
@@ -1966,7 +1637,6 @@ export default {
                 keyboardHeight: 0,
                 replyToComment: null,
                 replyToAuthor: '',
-                showEmojiPanel: false
             });
         },
 
@@ -2424,32 +2094,93 @@ export default {
     align-items: center;
 }
 
-.favorite-button {
-    background-color: #ffc300;
-    color: white;
-    border: none;
-    border-radius: 8rpx;
-    font-size: 24rpx;
-    padding: 8rpx 16rpx;
-    line-height: 1.2;
+.favorite-icon-container {
+    margin-left: 15rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12rpx;
+    border-radius: 12rpx;
     transition: all 0.2s ease;
+    width: 60rpx;
+    height: 60rpx;
 }
 
-.favorite-button:active {
-    background-color: #e6b000;
+.favorite-icon-container:active {
+    transform: scale(0.95);
 }
 
-.favorite-button::after {
-    border: none;
+.favorite-icon {
+    width: 56rpx;
+    height: 56rpx;
+    opacity: 1;
 }
 
-.favorite-button.favorited {
-    background-color: #999;
-    color: #fff;
+.favorite-icon-container.favorited .favorite-icon {
+    opacity: 0.6;
 }
 
-.favorite-button.favorited:active {
-    background-color: #777;
+.portfolio-icon-container {
+    margin-left: 15rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12rpx;
+    border-radius: 12rpx;
+    transition: all 0.2s ease;
+    width: 60rpx;
+    height: 60rpx;
+}
+
+.portfolio-icon-container:active {
+    transform: scale(0.95);
+}
+
+.portfolio-icon {
+    width: 56rpx;
+    height: 56rpx;
+}
+
+.discussion-icon-container {
+    margin-left: 15rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12rpx;
+    border-radius: 12rpx;
+    transition: all 0.2s ease;
+    width: 60rpx;
+    height: 60rpx;
+}
+
+.discussion-icon-container:active {
+    transform: scale(0.95);
+}
+
+.discussion-icon {
+    width: 56rpx;
+    height: 56rpx;
+}
+
+.comment-icon-container {
+    margin-left: 15rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12rpx;
+    border-radius: 12rpx;
+    transition: all 0.2s ease;
+    width: 60rpx;
+    height: 60rpx;
+}
+
+.comment-icon-container:active {
+    transform: scale(0.95);
+}
+
+.comment-icon {
+    width: 56rpx;
+    height: 56rpx;
 }
 
 .like-icon {
@@ -2798,10 +2529,10 @@ export default {
 }
 
 .action-icon {
-    width: 64rpx;
-    height: 64rpx;
-    border-radius: 50%;
-    background: #f3f5f7;
+    width: 100rpx;
+    height: 100rpx;
+    border-radius: 0;
+    background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2810,11 +2541,16 @@ export default {
 
 .action-icon:active {
     transform: scale(0.92);
-    background: #e6eef3;
+    background: transparent;
 }
 
 .action-icon-text {
     font-size: 36rpx;
+}
+
+.action-icon-image {
+    width: 80rpx;
+    height: 80rpx;
 }
 
 .selected-comment-images {
@@ -3040,5 +2776,76 @@ export default {
 
 .discussion-title-input::placeholder {
     color: #999;
+}
+
+/* 讨论类型帖子样式 */
+.discussion-content {
+    margin: 20rpx 0;
+}
+
+.discussion-sentence-group {
+    margin-bottom: 30rpx;
+}
+
+.discussion-sentence-card {
+    background: transparent;
+    border-radius: 0;
+    padding: 30rpx;
+    margin-bottom: 20rpx;
+    width: 100%;
+    min-height: 120rpx;
+    position: relative;
+    box-sizing: border-box;
+    max-width: 100%;
+}
+
+.discussion-sentence-content {
+    position: relative;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    box-sizing: border-box;
+    max-width: 100%;
+}
+
+.discussion-sentence-line {
+    font-family: 'Inter', sans-serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 40rpx;
+    line-height: 48rpx;
+    color: #989090;
+    display: block;
+    margin-bottom: 8rpx;
+    word-wrap: break-word;
+    word-break: break-all;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-wrap: break-word;
+}
+
+.discussion-sentence-line:last-child {
+    margin-bottom: 0;
+}
+
+.discussion-comment {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 32rpx;
+    line-height: 38rpx;
+    color: #000000;
+    margin-top: 20rpx;
+    padding: 20rpx;
+    background: #f9f9f9;
+    border-radius: 12rpx;
+    word-wrap: break-word;
+    word-break: break-all;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-wrap: break-word;
 }
 </style>

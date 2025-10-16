@@ -35,9 +35,14 @@
                 </block>
               </view>
 
-              <!-- 作者签名 - 只在展开时显示 -->
+              <!-- 作者签名 - 展开时显示大签名 -->
               <view v-if="item.isExpanded && item.authorSignature" class="user-signature">
                 <image class="signature-image" :src="item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
+              </view>
+
+              <!-- 作者签名 - 折叠时显示小签名 -->
+              <view v-if="!item.isExpanded && item.authorSignature" class="user-signature-small">
+                <image class="signature-image-small" :src="item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
               </view>
             </view>
           </view>
@@ -89,8 +94,32 @@ export default {
   onShow() {
     // #ifndef MP-WEIXIN
     try { uni.hideTabBar({ animation: false }); } catch (e) {}
-    try { this. $refs.customTabBar && this.$refs.customTabBar.syncSelected && this.$refs.customTabBar.syncSelected(); } catch (e) {} 
+    try { this. $refs.customTabBar && this.$refs.customTabBar.syncSelected && this.$refs.customTabBar.syncSelected(); } catch (e) {}
     // #endif
+
+    // 检查是否需要刷新数据
+    const shouldRefreshIndex = uni.getStorageSync('shouldRefreshIndex');
+    const shouldRefreshProfile = uni.getStorageSync('shouldRefreshProfile');
+    const shouldRefreshPoem = uni.getStorageSync('shouldRefreshPoem');
+    const shouldRefreshMountain = uni.getStorageSync('shouldRefreshMountain');
+
+    if (shouldRefreshIndex || shouldRefreshProfile || shouldRefreshPoem || shouldRefreshMountain) {
+      console.log('【mountain】检测到需要刷新标记，开始刷新山页面数据:', {
+        shouldRefreshIndex,
+        shouldRefreshProfile,
+        shouldRefreshPoem,
+        shouldRefreshMountain
+      });
+
+      // 清除所有刷新标记
+      uni.removeStorageSync('shouldRefreshIndex');
+      uni.removeStorageSync('shouldRefreshProfile');
+      uni.removeStorageSync('shouldRefreshPoem');
+      uni.removeStorageSync('shouldRefreshMountain');
+
+      // 刷新山页面数据
+      this.getIndexData();
+    }
   },
   components: {
     skeleton,
@@ -116,6 +145,12 @@ export default {
   },
   onLoad() {
     this.getIndexData();
+  },
+  onPullDownRefresh() {
+    console.log('【mountain】📱 下拉刷新，重新获取数据');
+    this.getIndexData(() => {
+      uni.stopPullDownRefresh();
+    });
   },
   onPageScroll(e) {
     if (this._scrollTimer) clearTimeout(this._scrollTimer);
@@ -180,6 +215,13 @@ export default {
         this.postList = this.page === 0 ? list : this.postList.concat(list);
         this.page += 1;
         this.hasMore = list.length === PAGE_SIZE;
+        
+        // 自动获取所有帖子的签名
+        this.postList.forEach((post, index) => {
+          if (post._openid && !post.authorSignature) {
+            this.fetchAuthorSignature(post._openid, index);
+          }
+        });
       } catch (e) {
         uni.showToast({ title: '加载失败', icon: 'none' });
       } finally {
@@ -194,8 +236,8 @@ export default {
 
       this.setData({ [`postList[${index}].isExpanded`]: next });
 
-      // 如果展开且还没有签名，则获取签名
-      if (next && post._openid && !post.authorSignature) {
+      // 如果还没有签名，则获取签名（无论展开还是折叠）
+      if (post._openid && !post.authorSignature) {
         this.fetchAuthorSignature(post._openid, index);
       }
     },
@@ -327,6 +369,24 @@ export default {
   height: 90rpx;
   opacity: 0.8; /* 稍微透明，不抢夺主要内容的注意力 */
   filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1)); /* 添加轻微阴影 */
+  display: block; /* 确保图片正确显示 */
+  background: transparent; /* 确保背景透明 */
+}
+
+/* 小签名样式 - 折叠状态下显示 */
+.user-signature-small {
+  position: absolute;
+  bottom: 30rpx;
+  right: 60rpx;
+  z-index: 10;
+  pointer-events: none; /* 防止签名影响点击事件 */
+}
+
+.signature-image-small {
+  width: 100rpx;
+  height: 50rpx;
+  opacity: 0.6; /* 更透明，不抢夺主要内容的注意力 */
+  filter: drop-shadow(0 1rpx 2rpx rgba(0, 0, 0, 0.1)); /* 添加轻微阴影 */
   display: block; /* 确保图片正确显示 */
   background: transparent; /* 确保背景透明 */
 }
