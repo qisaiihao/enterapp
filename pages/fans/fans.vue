@@ -2,7 +2,7 @@
     ﻿
     <view class="container">
 
-        <block v-else-if="fans.length > 0">
+        <block v-if="fans.length > 0">
             <view class="list">
                 <view class="fan-item" v-for="(item, index) in fans" :key="index">
                     <view class="user-info" :data-openid="item._openid" @tap="openUserProfile">

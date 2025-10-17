@@ -431,7 +431,9 @@ export default {
         publishMode: addData.publishMode,
         isOriginal: addData.isOriginal,
         selectedTags: addData.selectedTags,
-        author: addData.author
+        author: addData.author,
+        highlightLines: addData.highlightLines,
+        highlightSelectedLineIndices: addData.highlightSelectedLineIndices
       });
 
       const hasTitle = this.post && this.post.title && this.post.title.trim();
@@ -632,6 +634,8 @@ export default {
         // 添加颜色信息
         backgroundColor: addData.selectedBackgroundColor || '',
         textColor: addData.selectedTextColor || '#000000',
+        // 添加高光行信息
+        highlightLines: addData.highlightLines || []
       }, { pageTag: 'preview', context: this, requireAuth: true }).then((res) => {
         if (res && res.result && res.result.code === 0) {
           this.publishSuccess({

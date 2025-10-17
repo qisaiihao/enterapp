@@ -20,7 +20,7 @@
         <view v-for="(item, index) in postList" :key="item._id || index" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
           <view class="post-content-navigator" @tap="togglePostExpansion" :data-index="index">
             <view class="post-item">
-              <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed')" v-if="item.content" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
+              <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.highlightLines || item.highlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.content" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
                 <block v-if="item.isExpanded">
                   {{ item.content }}
                 </block>
@@ -434,13 +434,17 @@ export default {
 }
 
 /* 文字颜色现在通过内联样式动态设置 */
-/* 折叠态：多端兼容的三行裁切（参考原始小程序实现） */
+/* 折叠态：当没有高光行时显示前三行，有高光行时显示高光行 */
 .post-content.collapsed {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 当没有高光行时，使用三行裁切 */
+.post-content.collapsed.no-highlight {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .post-content.expanded { display: block; overflow: visible; }
 .comment-emoji{ font-size: 40rpx; }

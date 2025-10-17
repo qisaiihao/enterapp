@@ -107,6 +107,7 @@
                                 <view v-for="(line, i) in splitContentLines"
                                       :key="'overlay-line-' + i"
                                       :class="'overlay-line ' + (highlightSelectedLineIndices.includes(i) ? 'highlighted' : '')"
+                                      :style="'top: ' + (i * 48) + 'rpx;'"
                                       :data-index="i"
                                       @touchstart="onLineTouchStart"
                                       @touchend="onLineTouchEnd">
@@ -3036,28 +3037,34 @@ page {
     height: 100%;
     width: 100%;
     overflow-y: auto;
+    /* 匹配textarea的滚动行为 */
 }
 
 .overlay-content {
-    padding: 20rpx;
-    font-size: 32rpx;
-    line-height: 1.5;
-    color: transparent; /* 透明文字，只用于布局 */
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-weight: 300;
+    height: 100%;
+    width: 100%;
+    /* 移除所有可能导致额外空间的样式 */
+    font-size: 0; /* 隐藏字体，不占用空间 */
+    line-height: 0;
+    color: transparent;
     box-sizing: border-box;
     border-radius: 20rpx;
 }
 
 .overlay-line {
     margin: 0;
-    position: relative;
+    position: absolute; /* 绝对定位，通过style属性设置top */
+    left: 0;
+    right: 0;
+    height: 48rpx; /* 固定行高：32rpx字体 + 1.5行高 */
     transition: background-color 0.2s ease;
-    padding: 0;
+    padding: 60rpx;
     line-height: 1.5;
-    font-size: 32rpx;
+    font-size: 32rpx; /* 与输入框保持相同的字体大小 */
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     font-weight: 300;
+    box-sizing: border-box;
+    pointer-events: none; /* 防止干扰滚动 */
 }
 
 .overlay-line.highlighted {
@@ -3071,8 +3078,8 @@ page {
     word-break: break-word;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     font-weight: 300;
-    font-size: 29rpx !important;
-    line-height: 1.5 !important;
+    font-size: 32rpx; /* 与输入框保持相同的字体大小 */
+    line-height: 1.5;
     margin: 0;
     padding: 0;
     display: block;

@@ -20,7 +20,7 @@
         <view v-for="(item, index) in postList" :key="item._id || index" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
           <view class="post-content-navigator" @tap="togglePostExpansion" :data-index="index">
             <view class="post-item">
-              <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed')" v-if="item.content" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
+              <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.highlightLines || item.highlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.content" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
                 <block v-if="item.isExpanded">
                   {{ item.content }}
                 </block>
@@ -35,14 +35,6 @@
                 </block>
               </view>
 
-              <!-- 作者签名 - 已隐藏 -->
-              <!-- <view v-if="item.isExpanded && item.authorSignature" class="user-signature">
-                <image class="signature-image" :src="item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
-              </view>
-
-              <view v-if="!item.isExpanded && item.authorSignature" class="user-signature-small">
-                <image class="signature-image-small" :src="item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
-              </view> -->
             </view>
           </view>
 
@@ -137,8 +129,6 @@ export default {
       backgroundColors: ['#a4c4bd', '#c9cfcf', '#906161', '#909388'],
       showPageIndicator: false,
       votingInProgress: {},
-      // 用户签名相关
-      fetchingSignatures: {}, // 防止重复获取签名的状态管理
       // 安全区域高度
       safeAreaTop: 0
     };
@@ -270,7 +260,6 @@ export default {
           p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
           p.textColor = p.textColor || '#222';
           p.isExpanded = false;
-          p.authorSignature = ''; // 添加作者签名属性
           p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
         });
         
@@ -281,12 +270,6 @@ export default {
           hasMore: list.length === PAGE_SIZE
         });
         
-        // 不再获取作者签名
-        // newPostList.forEach((post, index) => {
-        //   if (post._openid && !post.authorSignature) {
-        //     this.fetchAuthorSignature(post._openid, index);
-        //   }
-        // });
         console.log('【mountain】数据处理完成');
       } catch (e) {
         console.error('【mountain】获取帖子列表失败:', e);
@@ -307,10 +290,6 @@ export default {
 
       this.setData({ [`postList[${index}].isExpanded`]: next });
 
-      // 不再获取作者签名
-      // if (post._openid && !post.authorSignature) {
-      //   this.fetchAuthorSignature(post._openid, index);
-      // }
     },
     onCommentClick(e) {
       const postId = e.currentTarget.dataset.postid;
@@ -318,51 +297,6 @@ export default {
     },
     onLikeIconError() {},
 
-    // 获取作者签名
-    async fetchAuthorSignature(authorOpenid, postIndex) {
-      if (!authorOpenid || this.fetchingSignatures[authorOpenid]) {
-        return;
-      }
-
-      // 防重复调用
-      this.fetchingSignatures[authorOpenid] = true;
-
-      try {
-        const res = await this.callCloudFunction('getUserProfile', { userId: authorOpenid });
-
-        if (res.result && res.result.success && res.result.userInfo && res.result.userInfo.signatureUrl) {
-          const signatureUrl = res.result.userInfo.signatureUrl;
-          console.log('【mountain】获取到作者签名:', signatureUrl);
-
-          this.setData({
-            [`postList[${postIndex}].authorSignature`]: signatureUrl
-          });
-        } else {
-          console.log('【mountain】作者未设置签名');
-          this.setData({
-            [`postList[${postIndex}].authorSignature`]: ''
-          });
-        }
-      } catch (err) {
-        console.error('【mountain】获取作者签名失败:', err);
-        this.setData({
-          [`postList[${postIndex}].authorSignature`]: ''
-        });
-      } finally {
-        // 清除获取状态
-        delete this.fetchingSignatures[authorOpenid];
-      }
-    },
-
-    // 签名图片加载成功
-    onSignatureLoad(e) {
-      console.log('【mountain】签名图片加载成功:', e);
-    },
-
-    // 签名图片加载失败
-    onSignatureError(e) {
-      console.error('【mountain】签名图片加载失败:', e);
-    },
     async onVote(e) {
       const postId = e.currentTarget.dataset.postid;
       const index = e.currentTarget.dataset.index;
@@ -454,13 +388,17 @@ export default {
 }
 
 /* 文字颜色现在通过内联样式动态设置 */
-/* 折叠态：多端兼容的三行裁切（参考原始小程序实现） */
+/* 折叠态：当没有高光行时显示前三行，有高光行时显示高光行 */
 .post-content.collapsed {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 当没有高光行时，使用三行裁切 */
+.post-content.collapsed.no-highlight {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .post-content.expanded { display: block; overflow: visible; }
 .comment-emoji{ font-size: 40rpx; }
@@ -472,41 +410,6 @@ export default {
 .comment-icon { width: 80rpx; height: 80rpx; }
 .like-icon { width: 60rpx; height: 60rpx; margin-top: 5px; }
 
-/* 用户签名样式 */
-.user-signature {
-  position: absolute;
-  bottom: -25rpx; /* 从15rpx往下移动40rpx */
-  right: 60rpx;
-  z-index: 10;
-  pointer-events: none; /* 防止签名影响点击事件 */
-}
-
-.signature-image {
-  width: 180rpx;
-  height: 90rpx;
-  opacity: 0.8; /* 稍微透明，不抢夺主要内容的注意力 */
-  filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1)); /* 添加轻微阴影 */
-  display: block; /* 确保图片正确显示 */
-  background: transparent; /* 确保背景透明 */
-}
-
-/* 小签名样式 - 折叠状态下显示 */
-.user-signature-small {
-  position: absolute;
-  bottom: 30rpx;
-  right: 60rpx;
-  z-index: 10;
-  pointer-events: none; /* 防止签名影响点击事件 */
-}
-
-.signature-image-small {
-  width: 100rpx;
-  height: 50rpx;
-  opacity: 0.6; /* 更透明，不抢夺主要内容的注意力 */
-  filter: drop-shadow(0 1rpx 2rpx rgba(0, 0, 0, 0.1)); /* 添加轻微阴影 */
-  display: block; /* 确保图片正确显示 */
-  background: transparent; /* 确保背景透明 */
-}
 
 .loading-footer { text-align: center; color: #666; padding: 30rpx 0 120rpx; }
 .page-indicator { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,.7); color: #fff; padding: 20rpx 40rpx; border-radius: 40rpx; z-index: 1000; font-size: 28rpx; }

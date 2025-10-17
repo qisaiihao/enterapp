@@ -2,7 +2,7 @@
     ﻿
     <view class="container">
 
-        <block v-else-if="followings.length > 0">
+        <block v-if="followings.length > 0">
             <view class="list">
                 <view class="following-item" v-for="(item, index) in followings" :key="index">
                     <view class="user-info" :data-openid="item._openid" @tap="openUserProfile">

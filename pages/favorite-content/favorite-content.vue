@@ -3,7 +3,7 @@
     <view class="container">
 
         <!-- 收藏内容列表 -->
-        <view v-else-if="favorites.length > 0" class="favorites-container">
+        <view v-if="favorites.length > 0" class="favorites-container">
             <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" v-for="(item, index) in favorites" :key="index">
                 <!-- 作者信息 -->
 

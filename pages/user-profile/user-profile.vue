@@ -4,7 +4,7 @@
     <view class="container">
 
         <!-- 主要内容 -->
-        <view v-else>
+        <view>
             <!-- 用户信息头部 -->
             <view class="profile-header">
                 <!-- 顶部操作栏 -->

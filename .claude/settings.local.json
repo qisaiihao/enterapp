@@ -14,7 +14,9 @@
       "Bash(tcb functions:deploy:*)",
       "Bash(tcb:*)",
       "Bash(dir:*)",
-      "Bash(awk:*)"
+      "Bash(awk:*)",
+      "Bash(npm run)",
+      "Bash(npx @dcloudio/uvm)"
     ],
     "deny": [],
     "ask": []

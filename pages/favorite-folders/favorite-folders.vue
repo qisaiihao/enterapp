@@ -3,7 +3,7 @@
     <view class="container">
 
         <!-- 收藏夹列表 -->
-        <view v-else-if="folders.length > 0" class="folders-container">
+        <view v-if="folders.length > 0" class="folders-container">
             <view
                 class="folder-item"
                 :data-folder-id="item._id"

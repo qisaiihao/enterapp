@@ -7,7 +7,7 @@
 
 
         <!-- 主内容始终渲染 -->
-        <view v-else>
+        <view>
             <view v-if="likedPosts.length > 0" class="post-list">
                 <view class="post-item" @tap="navigateToPost" :data-id="item._id" v-for="(item, index) in likedPosts" :key="index">
                     <!-- Author Info -->

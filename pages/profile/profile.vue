@@ -625,6 +625,9 @@ export default {
             if (this.userInfo && this.userInfo._openid) {
                 this.fetchUserProfileFast();
                 this.fetchFollowCounts();
+            } else {
+                // 如果没有用户信息，也要尝试获取关注数
+                this.fetchFollowCounts();
             }
 
             // 使用与下拉刷新完全相同的逻辑，并强制从云端获取
@@ -654,7 +657,6 @@ export default {
 
             // 检查未读消息数量
             this.checkUnreadMessages();
-            try { this.fetchFollowCounts && this.fetchFollowCounts(); } catch (_) {}
         },
 
         // 强制刷新数据
@@ -720,6 +722,7 @@ export default {
             
             if (userInfo && userInfo._openid) {
                 this.fetchUserProfileFast();
+                this.fetchFollowCounts(); // 首次加载时也要获取关注数
                 // 首次加载时也要加载帖子数据
                 this.loadMyPosts();
             } else if (loginProcessCompleted) {
@@ -1300,18 +1303,24 @@ export default {
 
         // fetch follow/fan counters for current user
         fetchFollowCounts: function () {
+            console.log('【profile】开始获取关注数统计');
             try {
                 const p1 = this.$tcb.callFunction({ name: 'follow', data: { action: 'getFollowingList', skip: 0, limit: 1 } });
                 const p2 = this.$tcb.callFunction({ name: 'follow', data: { action: 'getFollowerList', skip: 0, limit: 1 } });
                 Promise.all([p1, p2])
                     .then(([res1, res2]) => {
+                        console.log('【profile】关注数API返回结果:', { res1, res2 });
                         const followingTotal = (res1 && res1.result && res1.result.total) || 0;
                         const followerTotal = (res2 && res2.result && res2.result.total) || 0;
+                        console.log('【profile】解析后的关注数:', { followingTotal, followerTotal });
                         this.setData({ followingCount: followingTotal, followerCount: followerTotal });
+                        console.log('【profile】关注数更新完成');
                     })
-                    .catch((err) => { console.error('fetch follow stats failed:', err); });
+                    .catch((err) => { 
+                        console.error('【profile】获取关注数失败:', err); 
+                    });
             } catch (e) {
-                console.error('fetchFollowCounts error:', e);
+                console.error('【profile】fetchFollowCounts error:', e);
             }
         },
 
