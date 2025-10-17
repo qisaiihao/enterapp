@@ -17,7 +17,7 @@
       </view>
 
       <view id="post-list-container">
-        <view v-for="(item, index) in postList" :key="item._id || index" :class="'post-item-wrapper color-' + ((index % 4) + 1)" :style="{ backgroundColor: item.backgroundColor }">
+        <view v-for="(item, index) in postList" :key="item._id || index" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
           <view class="post-content-navigator" @tap="togglePostExpansion" :data-index="index">
             <view class="post-item">
               <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed')" v-if="item.content" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
@@ -125,6 +125,7 @@ export default {
   onPullDownRefresh() {
     console.log('【poem-square】📱 下拉刷新，重新获取数据');
     this.getIndexData(() => {
+      console.log('【poem-square】✅ 下拉刷新完成，停止刷新动画');
       uni.stopPullDownRefresh();
     });
   },
@@ -151,11 +152,22 @@ export default {
     callCloudFunction(name, data = {}, extraOptions = {}) {
       return cloudCall(name, data, Object.assign({ pageTag: 'poem-square', context: this, requireAuth: false }, extraOptions));
     },
-    getIndexData() {
-      this.isLoading = true;
-      this.page = 0;
-      this.postList = [];
-      this.getPostList(() => { this.isLoading = false; });
+    getIndexData(callback) {
+      console.log('【poem-square】开始获取数据，callback:', typeof callback);
+      this.setData({ 
+        isLoading: true, 
+        postList: [], 
+        page: 0, 
+        hasMore: true 
+      });
+      this.getPostList(() => { 
+        console.log('【poem-square】getPostList 完成，设置 isLoading: false');
+        this.setData({ isLoading: false });
+        if (typeof callback === 'function') {
+          console.log('【poem-square】执行回调函数');
+          callback();
+        }
+      });
     },
     generateRandomBackgroundColor() {
       const colors = this.backgroundColors;
@@ -171,8 +183,13 @@ export default {
       return pick;
     },
     async getPostList(cb) {
-      if (this.isLoadingMore) return;
-      this.isLoadingMore = true;
+      console.log('【poem-square】getPostList 开始，isLoadingMore:', this.isLoadingMore, 'callback:', typeof cb);
+      if (this.isLoadingMore) {
+        console.log('【poem-square】正在加载更多，跳过请求');
+        if (typeof cb === 'function') cb();
+        return;
+      }
+      this.setData({ isLoadingMore: true });
       try {
         const res = await this.callCloudFunction('getPostList', {
           skip: this.page * PAGE_SIZE,
@@ -181,28 +198,41 @@ export default {
           isOriginal: true     // 只获取原创内容
         });
         const list = (res && res.result && res.result.posts) ? res.result.posts : [];
+        console.log('【poem-square】获取到帖子数量:', list.length);
+        
         list.forEach((p) => {
-          p.backgroundColor = this.generateRandomBackgroundColor();
-          p.textColor = '#222';
+          // 优先使用数据库中保存的背景颜色，如果没有则随机生成
+          p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
+          p.textColor = p.textColor || '#222';
           p.isExpanded = false;
           p.authorSignature = ''; // 添加作者签名属性
           p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
         });
-        this.postList = this.page === 0 ? list : this.postList.concat(list);
-        this.page += 1;
-        this.hasMore = list.length === PAGE_SIZE;
+        
+        const newPostList = this.page === 0 ? list : this.postList.concat(list);
+        this.setData({
+          postList: newPostList,
+          page: this.page + 1,
+          hasMore: list.length === PAGE_SIZE
+        });
         
         // 自动获取所有帖子的签名
-        this.postList.forEach((post, index) => {
+        newPostList.forEach((post, index) => {
           if (post._openid && !post.authorSignature) {
             this.fetchAuthorSignature(post._openid, index);
           }
         });
+        console.log('【poem-square】数据处理完成');
       } catch (e) {
+        console.error('【poem-square】获取帖子列表失败:', e);
         uni.showToast({ title: '加载失败', icon: 'none' });
       } finally {
-        this.isLoadingMore = false;
-        if (typeof cb === 'function') cb();
+        console.log('【poem-square】设置 isLoadingMore: false，执行回调');
+        this.setData({ isLoadingMore: false });
+        if (typeof cb === 'function') {
+          console.log('【poem-square】执行回调函数');
+          cb();
+        }
       }
     },
     togglePostExpansion(e) {
@@ -302,6 +332,22 @@ export default {
 </script>
 
 <style>
+/* 定义 Huiwen-mincho 字体 */
+@font-face {
+  font-family: 'Huiwen-mincho';
+  src: url('/static/fonts/Huiwen-mincho.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* 定义传奇南安体字体 */
+@font-face {
+  font-family: '传奇南安体';
+  src: url('/传奇南安体.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 .white-bg { background: #fff; min-height: 100vh; }
 .square-mode-container {
   padding: 40rpx;
@@ -329,19 +375,7 @@ export default {
   border: none;
 }
 
-/* Color variants inspired by poem.css */
-.post-item-wrapper.color-1 {
-  background: rgba(125, 47, 47, 0.7);
-}
-.post-item-wrapper.color-2 {
-  background: rgba(114, 118, 101, 0.7);
-}
-.post-item-wrapper.color-3 {
-  background: rgba(211, 223, 221, 0.7);
-}
-.post-item-wrapper.color-4 {
-  background: rgba(157, 210, 199, 0.7);
-}
+/* 背景颜色现在通过内联样式动态设置，不再使用固定的CSS类 */
 
 .post-item-wrapper:active { transform: scale(0.98); }
 .post-content-navigator { display: block; }
@@ -349,7 +383,7 @@ export default {
 
 /* Typography inspired by poem.css */
 .post-content {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Huiwen-mincho', sans-serif;
   font-style: normal;
   font-weight: 500;
   font-size: 28rpx; /* 调小字体：14px * 2 */
@@ -359,10 +393,7 @@ export default {
   color: #FFFFFF;
 }
 
-/* Text colors for different backgrounds */
-.color-3 .post-content {
-  color: #000000; /* For lighter background rgba(211, 223, 221, 0.7) */
-}
+/* 文字颜色现在通过内联样式动态设置 */
 /* 折叠态：多端兼容的三行裁切（参考原始小程序实现） */
 .post-content.collapsed {
   display: -webkit-box;

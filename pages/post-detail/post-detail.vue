@@ -2,6 +2,11 @@
     <view>
         
         <!-- pages/post-detail/post-detail.wxml -->
+        <!-- 自定义返回按钮 -->
+        <view class="custom-back-btn" @tap="goBack">
+            <image class="back-icon" src="/static/images/返回编辑.png" mode="aspectFit"></image>
+        </view>
+        
         <view class="container">
             <block v-if="isLoading">
                 <view class="post-detail-skeleton">
@@ -152,15 +157,8 @@
                             <!-- 左侧按钮区域保留为空，或者可以放其他按钮 -->
                         </view>
                         <view class="button-group">
-                            <view class="comment-count">
-                                <text class="action-emoji">💬</text>
-                                <text class="action-text">{{ commentCount }}</text>
-                            </view>
                             <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="post && post._id ? post._id : ''">
                                 <image class="like-icon" :src="post.likeIcon" mode="aspectFit"></image>
-                            </view>
-                            <view :class="'vote-count ' + (post.isVoted ? 'voted' : '')">
-                                <text class="action-text">{{ post.votes || 0 }}</text>
                             </view>
                             <!-- 收藏按钮 - 只有非自己的帖子才显示 -->
                             <view v-if="!isOwnPost" :class="'favorite-icon-container ' + (isFavorited ? 'favorited' : '')" @tap.stop.prevent="onFavorite">
@@ -1676,6 +1674,33 @@ export default {
             });
         },
 
+        // 返回按钮方法
+        goBack: function () {
+            // 获取页面栈
+            const pages = getCurrentPages();
+            console.log('当前页面栈长度:', pages.length);
+            
+            if (pages.length > 1) {
+                // 有上一页，正常返回
+                uni.navigateBack({
+                    delta: 1,
+                    fail: () => {
+                        console.log('navigateBack失败，尝试switchTab');
+                        // 如果返回失败，尝试跳转到首页
+                        uni.switchTab({
+                            url: '/pages/index/index'
+                        });
+                    }
+                });
+            } else {
+                // 没有上一页，跳转到首页
+                console.log('没有上一页，跳转到首页');
+                uni.switchTab({
+                    url: '/pages/index/index'
+                });
+            }
+        },
+
         // 兼容性文件上传方法
         uploadFile(cloudPath, filePath) {
             console.log(`🔍 [帖子详情页] 上传文件: ${cloudPath}`, filePath);
@@ -1732,10 +1757,39 @@ export default {
 </script>
 <style>
 /* pages/post-detail/post-detail.wxss */
+
+/* 自定义返回按钮 */
+.custom-back-btn {
+    position: absolute;
+    top: 50rpx;
+    left: 40rpx;
+    width: 100rpx;
+    height: 100rpx;
+    background: transparent;
+    border: none;
+    display: block;
+    z-index: 100;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.custom-back-btn:active {
+    transform: scale(0.95);
+}
+
+.custom-back-btn .back-icon {
+    width: 100rpx;
+    height: 100rpx;
+    display: block;
+    object-fit: contain;
+}
+
 .container {
     background-color: #ffffff;
     min-height: 100vh;
     padding-bottom: 140rpx;
+    padding-top: 120rpx; /* 减少顶部间距，因为返回按钮现在是绝对定位 */
+    position: relative; /* 为返回按钮提供定位上下文 */
 }
 
 .post-detail-skeleton {
@@ -2040,10 +2094,10 @@ export default {
 
 .vote-section {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
     margin-top: 10rpx;
-    padding: 10rpx 60rpx 0 60rpx;
+    padding: 10rpx 40rpx 0 40rpx;
 }
 
 .actions-left {
@@ -2072,13 +2126,15 @@ export default {
 }
 
 .like-icon-container {
-    margin-left: 20rpx;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 8rpx;
-    border-radius: 8rpx;
+    padding: 12rpx;
+    border-radius: 12rpx;
     transition: all 0.2s ease;
+    width: 60rpx;
+    height: 60rpx;
+    margin-right: 12rpx;
 }
 
 .like-icon-container:active {
@@ -2095,7 +2151,7 @@ export default {
 }
 
 .favorite-icon-container {
-    margin-left: 15rpx;
+    margin-right: 12rpx;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2121,7 +2177,7 @@ export default {
 }
 
 .portfolio-icon-container {
-    margin-left: 15rpx;
+    margin-right: 12rpx;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2142,7 +2198,7 @@ export default {
 }
 
 .discussion-icon-container {
-    margin-left: 15rpx;
+    margin-right: 12rpx;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2163,7 +2219,7 @@ export default {
 }
 
 .comment-icon-container {
-    margin-left: 15rpx;
+    margin-right: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2184,8 +2240,8 @@ export default {
 }
 
 .like-icon {
-    width: 48rpx;
-    height: 48rpx;
+    width: 56rpx;
+    height: 56rpx;
 }
 
 .comment-section {
@@ -2788,8 +2844,8 @@ export default {
 }
 
 .discussion-sentence-card {
-    background: transparent;
-    border-radius: 0;
+    background: #f5f5f5; /* 添加灰色背景 */
+    border-radius: 12rpx; /* 添加圆角 */
     padding: 30rpx;
     margin-bottom: 20rpx;
     width: 100%;
@@ -2838,9 +2894,9 @@ export default {
     line-height: 38rpx;
     color: #000000;
     margin-top: 20rpx;
-    padding: 20rpx;
-    background: #f9f9f9;
-    border-radius: 12rpx;
+    padding: 20rpx 0; /* 移除左右padding，只保留上下padding */
+    background: transparent; /* 移除灰色背景 */
+    border-radius: 0; /* 移除圆角 */
     word-wrap: break-word;
     word-break: break-all;
     width: 100%;

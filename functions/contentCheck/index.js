@@ -35,7 +35,7 @@ exports.main = async (event, context) => {
   }
 
   // 从 event 中获取要审查的文本和图片fileID
-  const { text, fileIDs, originalFileIDs, title, content, publishMode, isOriginal, author, tags, backgroundColor, highlightSentence, highlightLines, isDiscussion, parentPostId } = event;
+  const { text, fileIDs, originalFileIDs, title, content, publishMode, isOriginal, author, tags, backgroundColor, textColor, highlightSentence, highlightLines, isDiscussion, parentPostId } = event;
   
   console.log('接收到的fileIDs:', fileIDs);
   console.log('接收到的originalFileIDs:', originalFileIDs);
@@ -243,6 +243,7 @@ exports.main = async (event, context) => {
       // 审核状态
       // UI 定制：背景色 + 高光句（可选）
       backgroundColor: backgroundColor || '',
+      textColor: textColor || '#000000',
       highlightSentence: highlightSentence || '',
       auditStatus: 'approved', // 审核通过
       auditTime: new Date()
@@ -318,6 +319,7 @@ exports.main = async (event, context) => {
       await db.collection('posts').doc(result._id).update({
         data: {
           backgroundColor: backgroundColor || postData.backgroundColor || '',
+          textColor: textColor || postData.textColor || '#000000',
           highlightSentence: highlightSentence || postData.highlightSentence || ''
         }
       });

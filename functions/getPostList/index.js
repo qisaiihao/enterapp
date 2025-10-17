@@ -131,6 +131,8 @@ exports.main = async (event, context) => {
         poemBgImage: '$poemBgImage',
         tags: '$tags', // 新增标签字段
         author: '$author', // 新增作者字段
+        backgroundColor: '$backgroundColor', // 新增背景颜色字段
+        textColor: '$textColor', // 新增文字颜色字段
         authorName: $.ifNull([
           '$authorName',
           $.ifNull(['$authorNameSnapshot', '匿名用户'])

@@ -124,6 +124,7 @@
 // pages/messages/messages.js
 const app = getApp();
 const { formatTimeAgo } = require('../../utils/time');
+const { cloudCall } = require('../../utils/cloudCall.js');
 export default {
     data() {
         return {

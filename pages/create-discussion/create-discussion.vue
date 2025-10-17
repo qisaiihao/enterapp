@@ -1,17 +1,18 @@
 <template>
-    <view class="create-discussion-container">
+    <view class="create-discussion-container" @tap="onPageTap">
         <!-- 返回按钮 -->
-        <view class="back-button" @tap="goBack">
+        <view class="back-button" @tap.stop="goBack">
             <image class="back-icon" src="/static/images/返回编辑.png" mode="aspectFit"></image>
         </view>
 
         <!-- 标题输入框 -->
-        <view class="title-input-wrapper">
+        <view class="title-input-wrapper" @tap.stop="noop">
             <input 
                 class="title-input" 
                 placeholder="输入标题" 
                 :value="discussionTitle"
                 @input="onTitleInput"
+                @tap.stop="noop"
                 maxlength="50"
             />
         </view>
@@ -24,7 +25,7 @@
                     <text class="content-line" v-for="(line, index) in splitContentLines"
                           :key="'content-line-' + index"
                           :class="{ 'selected-line': highlightSelectedLineIndices.includes(index) }"
-                          @tap="toggleLineSelection"
+                          @tap.stop="toggleLineSelection"
                           :data-index="index">
                         {{ line || '\u00A0' }}
                     </text>
@@ -38,7 +39,7 @@
 
             <!-- 完成选择按钮 -->
             <view class="selection-actions">
-                <view class="select-done-btn" @tap="finishSelection" :class="{ 'disabled': highlightSelectedLineIndices.length === 0 }">
+                <view class="select-done-btn" @tap.stop="finishSelection" :class="{ 'disabled': highlightSelectedLineIndices.length === 0 }">
                     <image class="select-done-icon" src="/static/images/确认选择.png" mode="aspectFit"></image>
                 </view>
             </view>
@@ -57,12 +58,13 @@
                 </view>
 
                 <!-- 评论输入框 -->
-                <view class="comment-input-wrapper">
+                <view class="comment-input-wrapper" @tap.stop="noop">
                     <textarea
                         class="comment-input"
                         :placeholder="groupIndex === 0 ? '分享你对这句子的看法...' : '继续分享你的看法...'"
                         :value="sentenceGroup.comment"
                         @input="onCommentInput"
+                        @tap.stop="noop"
                         :data-group-index="groupIndex"
                         auto-height
                         maxlength="500"
@@ -80,19 +82,19 @@
 
         <!-- 底部按钮组 - 只在已选择句子时显示 -->
         <view v-if="hasSelectedSentences" class="bottom-buttons">
-            <view class="button-item" @tap="addMoreSentences">
+            <view class="button-item" @tap.stop="addMoreSentences">
                 <image class="button-icon" src="/static/images/加标签.png" mode="aspectFit"></image>
             </view>
 
-            <view class="button-item" @tap="saveDraft">
+            <view class="button-item" @tap.stop="saveDraft">
                 <image class="button-icon" src="/static/images/存草稿.png" mode="aspectFit"></image>
             </view>
 
-            <view class="button-item" @tap="deleteContent">
+            <view class="button-item" @tap.stop="deleteContent">
                 <image class="button-icon" src="/static/images/删除.png" mode="aspectFit"></image>
             </view>
 
-            <view class="button-item" @tap="publishDiscussion">
+            <view class="button-item" @tap.stop="publishDiscussion">
                 <image class="button-icon" src="/static/images/发布.png" mode="aspectFit"></image>
             </view>
         </view>
@@ -155,6 +157,14 @@ export default {
     },
 
     methods: {
+        // 页面点击事件 - 点击外部区域退出键盘
+        onPageTap() {
+            uni.hideKeyboard();
+        },
+
+        // 空函数，用于阻止事件冒泡
+        noop() {},
+
         // 统一云函数调用方法
         callCloudFunction(name, data = {}, extraOptions = {}) {
             return cloudCall(name, data, Object.assign({ pageTag: 'create-discussion', context: this, requireAuth: true }, extraOptions));
@@ -502,7 +512,7 @@ export default {
     background: #ffffff;
     min-height: 100vh;
     padding-top: env(safe-area-inset-top);
-    padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
+    padding-bottom: 0; /* 移除底部padding，让固定按钮真正固定 */
     position: relative;
 }
 
@@ -850,12 +860,13 @@ export default {
     left: 0;
     right: 0;
     background: #fff;
-    padding: 30rpx 40rpx 60rpx 40rpx;
+    padding: 30rpx 40rpx calc(60rpx + env(safe-area-inset-bottom)) 40rpx;
     display: flex;
     justify-content: space-around;
     align-items: center;
-    z-index: 1000;
+    z-index: 9999; /* 提高z-index确保在所有元素之上 */
     border-top: 1rpx solid #f0f0f0;
+    box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.1); /* 添加阴影效果 */
 }
 
 .button-item {
@@ -896,7 +907,7 @@ export default {
 .selected-sentences-area {
     margin: 20rpx 30rpx 20rpx 30rpx; /* 调整上边距，因为标题输入框已经处理了间距 */
     margin-bottom: 200rpx; /* 为底部按钮留出空间 */
-    padding-bottom: 120rpx; /* 额外为下边栏留出空间 */
+    padding-bottom: 160rpx; /* 增加底部padding，为固定按钮留出足够空间 */
     box-sizing: border-box;
     max-width: calc(100vw - 60rpx); /* 确保不超出屏幕，减去左右边距 */
 }

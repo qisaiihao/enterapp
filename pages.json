@@ -53,7 +53,8 @@
           "skeleton": "/components/skeleton/skeleton",
           "folder-selector": "/components/folder-selector/folder-selector"
         },
-        "navigationBarTitleText": "山"
+        "navigationBarTitleText": "山",
+        "enablePullDownRefresh": true
       }
     },
     {
@@ -100,7 +101,7 @@
     {
       "path": "pages/post-detail/post-detail",
       "style": {
-        "navigationBarTitleText": "帖子详情",
+        "navigationStyle": "custom",
         "usingComponents": {
           "cloud-tip-modal": "/components/cloudTipModal/index",
           "folder-selector": "/components/folder-selector/folder-selector"
@@ -214,7 +215,7 @@
       "path": "pages/poem-square/poem-square",
       "style": {
         "navigationBarTitleText": "方块流",
-        "enablePullDownRefresh": false,
+        "enablePullDownRefresh": true,
         "usingComponents": {
           "skeleton": "/components/skeleton/skeleton"
         }

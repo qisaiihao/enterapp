@@ -1,5 +1,5 @@
 <template>
-  <view class="preview-page white-bg">
+  <view class="preview-page white-bg" @tap="onPageTap">
     <view class="square-mode-container">
       <view v-if="!post" class="empty-state">
         <view class="empty-icon">🕐</view>
@@ -121,12 +121,13 @@
         </view>
 
         <!-- 标题输入区域 -->
-        <view class="title-input-section">
+        <view class="title-input-section" @tap.stop="noop">
           <view class="title-input-wrapper">
             <input
               class="title-input"
               placeholder="想个标题..."
               @input="onTitleInput"
+              @tap.stop="noop"
               maxlength="50"
               :value="post.title"
             />
@@ -134,12 +135,13 @@
         </view>
 
         <!-- 作者输入区域（诗歌模式显示） -->
-        <view v-if="post.editData && post.editData.publishMode === 'poem'" class="author-input-section">
+        <view v-if="post.editData && post.editData.publishMode === 'poem'" class="author-input-section" @tap.stop="noop">
           <view class="author-input-wrapper">
             <input
               class="author-input"
               :placeholder="post.editData.isOriginal ? '作者（默认使用昵称）' : '作者（必填）'"
               @input="onAuthorInput"
+              @tap.stop="noop"
               maxlength="20"
               :value="post.author"
             />
@@ -149,17 +151,17 @@
     </view>
 
     <!-- 底部按钮组 -->
-    <view class="bottom-buttons">
-      <view class="button-item" @tap="goBack">
+    <view class="bottom-buttons" style="border-top: none !important;">
+      <view class="button-item" @tap.stop="goBack">
         <image class="button-icon" src="/static/images/返回编辑.png" mode="aspectFit"></image>
       </view>
-      <view class="button-item" @tap="deletePost">
+      <view class="button-item" @tap.stop="deletePost">
         <image class="button-icon" src="/static/images/删除.png" mode="aspectFit"></image>
       </view>
-      <view class="button-item" @tap="saveDraft">
+      <view class="button-item" @tap.stop="saveDraft">
         <image class="button-icon" src="/static/images/存草稿.png" mode="aspectFit"></image>
       </view>
-      <view class="button-item" @tap="goToPublish">
+      <view class="button-item" @tap.stop="goToPublish">
         <image class="button-icon" src="/static/images/发布.png" mode="aspectFit"></image>
       </view>
     </view>
@@ -186,16 +188,22 @@ export default {
 
           // 为诗歌模式设置背景色
           if (post.editData && post.editData.publishMode === 'poem') {
-            if (post.editData.selectedBackgroundColor) {
-              // 使用add页面选择的背景色
+            // 使用add页面选择的背景色和文字颜色搭配
+            if (post.editData.selectedColorCombination) {
+              post.backgroundColor = post.editData.selectedColorCombination.backgroundColor;
+              post.textColor = post.editData.selectedColorCombination.textColor;
+              console.log('【Preview】使用选择的颜色搭配:', post.editData.selectedColorCombination);
+            } else if (post.editData.selectedBackgroundColor) {
+              // 兼容旧版本数据
               post.backgroundColor = post.editData.selectedBackgroundColor;
-              console.log('【Preview】使用选择的背景色:', post.backgroundColor);
+              post.textColor = post.editData.selectedTextColor || '#333333';
+              console.log('【Preview】使用兼容模式背景色:', post.backgroundColor);
             } else {
               // 如果没有选择，使用默认色
               post.backgroundColor = '#a4c4bd';
-              console.log('【Preview】使用默认背景色');
+              post.textColor = '#333333';
+              console.log('【Preview】使用默认颜色');
             }
-            post.textColor = '#222';
           }
 
           // 初始化折叠状态为false（默认折叠）
@@ -213,14 +221,21 @@ export default {
 
           // 为诗歌模式设置背景色
           if (cached.editData && cached.editData.publishMode === 'poem') {
-            if (cached.editData.selectedBackgroundColor) {
+            // 使用add页面选择的背景色和文字颜色搭配
+            if (cached.editData.selectedColorCombination) {
+              this.post.backgroundColor = cached.editData.selectedColorCombination.backgroundColor;
+              this.post.textColor = cached.editData.selectedColorCombination.textColor;
+              console.log('【Preview】缓存使用选择的颜色搭配:', cached.editData.selectedColorCombination);
+            } else if (cached.editData.selectedBackgroundColor) {
+              // 兼容旧版本数据
               this.post.backgroundColor = cached.editData.selectedBackgroundColor;
-              console.log('【Preview】缓存使用选择的背景色:', this.post.backgroundColor);
+              this.post.textColor = cached.editData.selectedTextColor || '#333333';
+              console.log('【Preview】缓存使用兼容模式背景色:', this.post.backgroundColor);
             } else {
               this.post.backgroundColor = '#a4c4bd';
-              console.log('【Preview】缓存使用默认背景色');
+              this.post.textColor = '#333333';
+              console.log('【Preview】缓存使用默认颜色');
             }
-            this.post.textColor = '#222';
           }
         }
       } catch (_) {}
@@ -248,6 +263,14 @@ export default {
     }
   },
   methods: {
+    // 页面点击事件 - 点击外部区域退出键盘
+    onPageTap() {
+      uni.hideKeyboard();
+    },
+
+    // 空函数，用于阻止事件冒泡
+    noop() {},
+
     // 切换文章展开/折叠状态
     togglePostExpansion() {
       if (this.post) {
@@ -605,7 +628,10 @@ export default {
         isOriginal: addData.isOriginal,
         isDiscussion: addData.isDiscussion || false,
         author: addData.author,
-        tags: addData.selectedTags || []
+        tags: addData.selectedTags || [],
+        // 添加颜色信息
+        backgroundColor: addData.selectedBackgroundColor || '',
+        textColor: addData.selectedTextColor || '#000000',
       }, { pageTag: 'preview', context: this, requireAuth: true }).then((res) => {
         if (res && res.result && res.result.code === 0) {
           this.publishSuccess({
@@ -691,26 +717,45 @@ export default {
   background: #fff;
   min-height: 100vh;
   position: relative;
+  padding-bottom: 0; /* 确保没有底部padding影响固定按钮 */
 }
 
 .square-mode-container {
   padding: 40rpx;
-  margin-bottom: 160rpx; /* 为底部按钮留出空间 */
+  margin-bottom: 0; /* 移除margin-bottom，让固定按钮真正固定 */
   padding-top: 100rpx; /* 增加顶部边距，与屏幕顶部保持距离 */
+  padding-bottom: 200rpx; /* 增加底部padding，为固定按钮留出足够空间 */
 }
 
 /* 底部按钮组 */
+.preview-page .bottom-buttons {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  background: #fff !important;
+  padding: 30rpx 40rpx calc(60rpx + env(safe-area-inset-bottom)) 40rpx !important;
+  display: flex !important;
+  justify-content: space-around !important;
+  align-items: center !important;
+  z-index: 9999 !important; /* 提高z-index确保在所有元素之上 */
+  border-top: none !important; /* 强制移除上边框 */
+  box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.1) !important; /* 添加阴影效果 */
+}
+
 .bottom-buttons {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   background: #fff;
-  padding: 30rpx 40rpx 60rpx 40rpx;
+  padding: 30rpx 40rpx calc(60rpx + env(safe-area-inset-bottom)) 40rpx;
   display: flex;
   justify-content: space-around;
   align-items: center;
-  z-index: 1000;
+  z-index: 9999; /* 提高z-index确保在所有元素之上 */
+  border-top: none !important; /* 强制移除上边框 */
+  box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.1); /* 添加阴影效果 */
 }
 
 .button-item {
@@ -727,9 +772,14 @@ export default {
   opacity: 0.8;
 }
 
-.button-icon {
-  width: 80rpx;
-  height: 80rpx;
+.preview-page .bottom-buttons .button-item .button-icon {
+  width: 100rpx !important;
+  height: 100rpx !important;
+}
+
+.bottom-buttons .button-icon {
+  width: 100rpx !important;
+  height: 100rpx !important;
 }
 .empty-state { text-align: center; padding: 100rpx 0; color: #999; }
 .empty-icon { font-size: 80rpx; margin-bottom: 20rpx; }

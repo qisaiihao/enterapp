@@ -149,6 +149,7 @@ export default {
   onPullDownRefresh() {
     console.log('【mountain】📱 下拉刷新，重新获取数据');
     this.getIndexData(() => {
+      console.log('【mountain】✅ 下拉刷新完成，停止刷新动画');
       uni.stopPullDownRefresh();
     });
   },
@@ -175,11 +176,22 @@ export default {
     callCloudFunction(name, data = {}, extraOptions = {}) {
       return cloudCall(name, data, Object.assign({ pageTag: 'mountain', context: this, requireAuth: false }, extraOptions));
     },
-    getIndexData() {
-      this.isLoading = true;
-      this.page = 0;
-      this.postList = [];
-      this.getPostList(() => { this.isLoading = false; });
+    getIndexData(callback) {
+      console.log('【mountain】开始获取数据，callback:', typeof callback);
+      this.setData({ 
+        isLoading: true, 
+        postList: [], 
+        page: 0, 
+        hasMore: true 
+      });
+      this.getPostList(() => { 
+        console.log('【mountain】getPostList 完成，设置 isLoading: false');
+        this.setData({ isLoading: false });
+        if (typeof callback === 'function') {
+          console.log('【mountain】执行回调函数');
+          callback();
+        }
+      });
     },
     generateRandomBackgroundColor() {
       const colors = this.backgroundColors;
@@ -195,8 +207,13 @@ export default {
       return pick;
     },
     async getPostList(cb) {
-      if (this.isLoadingMore) return;
-      this.isLoadingMore = true;
+      console.log('【mountain】getPostList 开始，isLoadingMore:', this.isLoadingMore, 'callback:', typeof cb);
+      if (this.isLoadingMore) {
+        console.log('【mountain】正在加载更多，跳过请求');
+        if (typeof cb === 'function') cb();
+        return;
+      }
+      this.setData({ isLoadingMore: true });
       try {
         const res = await this.callCloudFunction('getPostList', {
           skip: this.page * PAGE_SIZE,
@@ -205,28 +222,41 @@ export default {
           isOriginal: false   // 只获取非原创内容（山诗）
         });
         const list = (res && res.result && res.result.posts) ? res.result.posts : [];
+        console.log('【mountain】获取到帖子数量:', list.length);
+        
         list.forEach((p) => {
-          p.backgroundColor = this.generateRandomBackgroundColor();
-          p.textColor = '#222';
+          // 优先使用数据库中保存的背景颜色，如果没有则随机生成
+          p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
+          p.textColor = p.textColor || '#222';
           p.isExpanded = false;
           p.authorSignature = ''; // 添加作者签名属性
           p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
         });
-        this.postList = this.page === 0 ? list : this.postList.concat(list);
-        this.page += 1;
-        this.hasMore = list.length === PAGE_SIZE;
+        
+        const newPostList = this.page === 0 ? list : this.postList.concat(list);
+        this.setData({
+          postList: newPostList,
+          page: this.page + 1,
+          hasMore: list.length === PAGE_SIZE
+        });
         
         // 自动获取所有帖子的签名
-        this.postList.forEach((post, index) => {
+        newPostList.forEach((post, index) => {
           if (post._openid && !post.authorSignature) {
             this.fetchAuthorSignature(post._openid, index);
           }
         });
+        console.log('【mountain】数据处理完成');
       } catch (e) {
+        console.error('【mountain】获取帖子列表失败:', e);
         uni.showToast({ title: '加载失败', icon: 'none' });
       } finally {
-        this.isLoadingMore = false;
-        if (typeof cb === 'function') cb();
+        console.log('【mountain】设置 isLoadingMore: false，执行回调');
+        this.setData({ isLoadingMore: false });
+        if (typeof cb === 'function') {
+          console.log('【mountain】执行回调函数');
+          cb();
+        }
       }
     },
     togglePostExpansion(e) {
@@ -326,17 +356,65 @@ export default {
 </script>
 
 <style>
+/* 定义 Huiwen-mincho 字体 */
+@font-face {
+  font-family: 'Huiwen-mincho';
+  src: url('/static/fonts/Huiwen-mincho.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* 定义传奇南安体字体 */
+@font-face {
+  font-family: '传奇南安体';
+  src: url('/传奇南安体.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 .white-bg { background: #fff; min-height: 100vh; }
-.square-mode-container { padding: 40rpx; margin-bottom: 200rpx; padding-top: 80rpx; /* 减少上边距 */ }
+.square-mode-container {
+  padding: 40rpx;
+  margin-bottom: 200rpx;
+  padding-top: 80rpx; /* 减少上边距 */
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* 居中卡片 */
+}
 .empty-state { text-align: center; padding: 100rpx 0; color: #999; }
 .empty-icon { font-size: 80rpx; margin-bottom: 20rpx; }
 .empty-text { font-size: 32rpx; margin-bottom: 10rpx; color: #666; }
 .empty-subtext { font-size: 24rpx; color: #999; }
-.post-item-wrapper { border-radius: 40rpx; margin-bottom: 60rpx; overflow: hidden; border: 1rpx solid #e9ecef; box-shadow: 0 12rpx 15rpx rgba(0,0,0,0.20); transition: transform .3s ease; }
+/* poem.css inspired card styles */
+.post-item-wrapper {
+  width: calc(100% - 80rpx); /* 响应式宽度：屏幕宽度减去左右各40rpx边距 */
+  margin-left: 40rpx; /* 左边距 */
+  margin-right: 40rpx; /* 右边距 */
+  border-radius: 30rpx; /* 15px * 2 */
+  margin-bottom: 40rpx; /* 减少间距，让卡片更紧凑 */
+  overflow: hidden;
+  box-shadow: 0 8rpx 8rpx rgba(0, 0, 0, 0.25); /* 0px 4px 4px * 2 */
+  transition: transform .3s ease;
+  border: none;
+}
+
+/* 背景颜色现在通过内联样式动态设置，不再使用固定的CSS类 */
 .post-item-wrapper:active { transform: scale(0.98); }
 .post-content-navigator { display: block; }
-.post-item { padding: 40rpx 50rpx; position: relative; }
-.post-content { font-size: 32rpx; line-height: 1.6; margin: 30rpx 0; width: 100%; }
+.post-item { padding: 30rpx 60rpx 30rpx 80rpx; position: relative; } /* 进一步减少上下padding，文字往左移动 */
+/* Typography inspired by poem.css */
+.post-content {
+  font-family: 'Huiwen-mincho', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 28rpx; /* 调小字体：14px * 2 */
+  line-height: 38rpx; /* 调整行距：19px * 2 */
+  margin: 30rpx 0;
+  width: 100%;
+  color: #FFFFFF;
+}
+
+/* 文字颜色现在通过内联样式动态设置 */
 /* 折叠态：多端兼容的三行裁切（参考原始小程序实现） */
 .post-content.collapsed {
   display: -webkit-box;
