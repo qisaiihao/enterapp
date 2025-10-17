@@ -35,15 +35,14 @@
                 </block>
               </view>
 
-              <!-- 作者签名 - 展开时显示大签名 -->
-              <view v-if="item.isExpanded && item.authorSignature" class="user-signature">
+              <!-- 作者签名 - 已隐藏 -->
+              <!-- <view v-if="item.isExpanded && item.authorSignature" class="user-signature">
                 <image class="signature-image" :src="item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
               </view>
 
-              <!-- 作者签名 - 折叠时显示小签名 -->
               <view v-if="!item.isExpanded && item.authorSignature" class="user-signature-small">
                 <image class="signature-image-small" :src="item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
-              </view>
+              </view> -->
             </view>
           </view>
 
@@ -282,12 +281,12 @@ export default {
           hasMore: list.length === PAGE_SIZE
         });
         
-        // 自动获取所有帖子的签名
-        newPostList.forEach((post, index) => {
-          if (post._openid && !post.authorSignature) {
-            this.fetchAuthorSignature(post._openid, index);
-          }
-        });
+        // 不再获取作者签名
+        // newPostList.forEach((post, index) => {
+        //   if (post._openid && !post.authorSignature) {
+        //     this.fetchAuthorSignature(post._openid, index);
+        //   }
+        // });
         console.log('【mountain】数据处理完成');
       } catch (e) {
         console.error('【mountain】获取帖子列表失败:', e);
@@ -308,10 +307,10 @@ export default {
 
       this.setData({ [`postList[${index}].isExpanded`]: next });
 
-      // 如果还没有签名，则获取签名（无论展开还是折叠）
-      if (post._openid && !post.authorSignature) {
-        this.fetchAuthorSignature(post._openid, index);
-      }
+      // 不再获取作者签名
+      // if (post._openid && !post.authorSignature) {
+      //   this.fetchAuthorSignature(post._openid, index);
+      // }
     },
     onCommentClick(e) {
       const postId = e.currentTarget.dataset.postid;
