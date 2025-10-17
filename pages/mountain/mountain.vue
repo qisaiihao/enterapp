@@ -64,13 +64,12 @@
 
       <!-- 底部加载/结束提示 -->
       <view class="loading-footer">
-        <block v-if="isLoadingMore"><text>加载中...</text></block>
-        <block v-else-if="!hasMore && postList.length > 0"><text>—— 到底啦 ——</text></block>
+        <block v-if="!hasMore && postList.length > 0"><text>—— 到底啦 ——</text></block>
       </view>
     </view>
 
     <!-- 顶部提示（用于调试滑动预加载阈值） -->
-    <view v-if="showPageIndicator" class="page-indicator"><view class="page-indicator-text">加载更多...</view></view>
+    <view v-if="showPageIndicator" class="page-indicator"></view>
 
     <!-- #ifndef MP-WEIXIN -->
     <app-tab-bar ref="customTabBar" />
@@ -140,10 +139,14 @@ export default {
       showPageIndicator: false,
       votingInProgress: {},
       // 用户签名相关
-      fetchingSignatures: {} // 防止重复获取签名的状态管理
+      fetchingSignatures: {}, // 防止重复获取签名的状态管理
+      // 安全区域高度
+      safeAreaTop: 0
     };
   },
   onLoad() {
+    // 调试：检查安全区域高度
+    this.debugSafeArea();
     this.getIndexData();
   },
   onPullDownRefresh() {
@@ -173,6 +176,45 @@ export default {
     }, 100);
   },
   methods: {
+    // 调试安全区域
+    debugSafeArea() {
+      try {
+        // 获取系统信息
+        const systemInfo = uni.getSystemInfoSync();
+        console.log('【mountain】系统信息:', {
+          statusBarHeight: systemInfo.statusBarHeight,
+          safeAreaInsets: systemInfo.safeAreaInsets,
+          safeArea: systemInfo.safeArea,
+          windowHeight: systemInfo.windowHeight,
+          screenHeight: systemInfo.screenHeight,
+          platform: systemInfo.platform
+        });
+
+        // 动态设置安全区域 - 使用uni-app兼容方式
+        if (systemInfo.statusBarHeight) {
+          const safeAreaTop = systemInfo.statusBarHeight;
+          console.log('【mountain】使用状态栏高度作为安全区域:', safeAreaTop);
+          
+          // 在uni-app中，我们可以通过设置页面数据来动态调整样式
+          this.setData({
+            safeAreaTop: safeAreaTop
+          });
+          
+          // 尝试设置CSS变量（仅在支持的环境中）
+          try {
+            if (typeof document !== 'undefined' && document.documentElement) {
+              document.documentElement.style.setProperty('--safe-area-inset-top', safeAreaTop + 'px');
+              console.log('【mountain】CSS变量设置成功');
+            }
+          } catch (cssError) {
+            console.log('【mountain】CSS变量设置失败，使用数据绑定方式:', cssError);
+          }
+        }
+      } catch (error) {
+        console.error('【mountain】安全区域调试失败:', error);
+      }
+    },
+
     callCloudFunction(name, data = {}, extraOptions = {}) {
       return cloudCall(name, data, Object.assign({ pageTag: 'mountain', context: this, requireAuth: false }, extraOptions));
     },
@@ -364,19 +406,17 @@ export default {
   font-style: normal;
 }
 
-/* 定义传奇南安体字体 */
-@font-face {
-  font-family: '传奇南安体';
-  src: url('/传奇南安体.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-}
 
-.white-bg { background: #fff; min-height: 100vh; }
+
+.white-bg { 
+  background: #fff; 
+  min-height: 100vh; 
+  padding-top: env(safe-area-inset-top, var(--safe-area-inset-top, 44px)); /* 添加状态栏安全区域，备选方案 */
+}
 .square-mode-container {
   padding: 40rpx;
   margin-bottom: 200rpx;
-  padding-top: 80rpx; /* 减少上边距 */
+  padding-top: 250rpx; /* 增加上边距：100rpx(top-bar高度) + 150rpx(额外间距) */
   display: flex;
   flex-direction: column;
   align-items: center; /* 居中卡片 */

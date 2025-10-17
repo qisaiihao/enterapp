@@ -4,7 +4,7 @@
         <!-- pages/post-detail/post-detail.wxml -->
         <!-- 自定义返回按钮 -->
         <view class="custom-back-btn" @tap="goBack">
-            <image class="back-icon" src="/static/images/返回编辑.png" mode="aspectFit"></image>
+            <image class="back-icon" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
         </view>
         
         <view class="container">
@@ -162,19 +162,19 @@
                             </view>
                             <!-- 收藏按钮 - 只有非自己的帖子才显示 -->
                             <view v-if="!isOwnPost" :class="'favorite-icon-container ' + (isFavorited ? 'favorited' : '')" @tap.stop.prevent="onFavorite">
-                                <image class="favorite-icon" src="/static/images/我收藏的.png" mode="aspectFit"></image>
+                                <image class="favorite-icon" src="/static/images/my_favorites.png" mode="aspectFit"></image>
                         </view>
                             <!-- 作品集按钮 - 只有自己的帖子才显示 -->
                             <view v-else class="portfolio-icon-container" @tap.stop.prevent="onAddToPortfolio">
-                                <image class="portfolio-icon" src="/static/images/作品集.png" mode="aspectFit"></image>
+                                <image class="portfolio-icon" src="/static/images/portfolio.png" mode="aspectFit"></image>
                             </view>
                             <!-- 讨论按钮 - 只有诗歌类型才显示 -->
                             <view v-if="post.isPoem" class="discussion-icon-container" @tap.stop.prevent="onCreateDiscussion">
-                                <image class="discussion-icon" src="/static/images/写诗.png" mode="aspectFit"></image>
+                                <image class="discussion-icon" src="/static/images/write_poetry.png" mode="aspectFit"></image>
                             </view>
                             <!-- 写评论按钮 -->
                             <view class="comment-icon-container" @tap.stop.prevent="expandInput">
-                                <image class="comment-icon" src="/static/images/写评论.png" mode="aspectFit"></image>
+                                <image class="comment-icon" src="/static/images/write_comment.png" mode="aspectFit"></image>
                             </view>
                         </view>
                     </view>
@@ -380,7 +380,7 @@
                 <view class="expanded-actions">
                     <view class="action-icons">
                         <view class="action-icon" @tap="chooseImages">
-                            <image class="action-icon-image" src="/static/images/配图.png" mode="aspectFit"></image>
+                            <image class="action-icon-image" src="/static/images/add_image.png" mode="aspectFit"></image>
                         </view>
                         </view>
                     <button class="submit-button" @tap="onSubmitComment" :disabled="isSubmitDisabled">
@@ -1761,7 +1761,7 @@ export default {
 /* 自定义返回按钮 */
 .custom-back-btn {
     position: absolute;
-    top: 50rpx;
+    top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px))); /* 添加安全区域偏移 */
     left: 40rpx;
     width: 100rpx;
     height: 100rpx;
@@ -1788,7 +1788,7 @@ export default {
     background-color: #ffffff;
     min-height: 100vh;
     padding-bottom: 140rpx;
-    padding-top: 120rpx; /* 减少顶部间距，因为返回按钮现在是绝对定位 */
+    padding-top: calc(160rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px))); /* 添加安全区域上边距 */
     position: relative; /* 为返回按钮提供定位上下文 */
 }
 
@@ -2251,13 +2251,14 @@ export default {
 }
 
 .section-title {
-    font-size: 32rpx;
-    font-weight: bold;
+    font-size: 26rpx;
+    font-weight: normal;
     margin-bottom: 20rpx;
     padding-bottom: 15rpx;
     border-bottom: 1rpx solid #f0f0f0;
-    color: #333;
+    color: #999;
     margin-left: 0;
+    text-align: left;
 }
 
 .comment-list {

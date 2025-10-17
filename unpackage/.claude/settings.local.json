@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ren:*)",
+      "Bash(mv:*)",
+      "Read(//c/Users/qisaihao/回车键_uni/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

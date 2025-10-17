@@ -187,4 +187,86 @@ export default {
 
     }
 };
+
 </script>
+
+<style>
+/* 全局样式：修改下拉刷新的loading转圈圈颜色为黑色 */
+/* 针对微信小程序 */
+/* #ifdef MP-WEIXIN */
+.wx-pull-refresh {
+    color: #000000 !important;
+}
+
+.wx-pull-refresh .wx-pull-refresh-spinner {
+    color: #000000 !important;
+}
+
+.wx-pull-refresh .wx-pull-refresh-spinner::before {
+    color: #000000 !important;
+}
+/* #endif */
+
+/* 针对H5 */
+/* #ifdef H5 */
+.uni-pull-refresh {
+    color: #000000 !important;
+}
+
+.uni-pull-refresh .uni-pull-refresh-spinner {
+    color: #000000 !important;
+}
+
+.uni-pull-refresh .uni-pull-refresh-spinner::before {
+    color: #000000 !important;
+}
+/* #endif */
+
+/* 针对App */
+/* #ifdef APP-PLUS */
+.uni-pull-refresh {
+    color: #000000 !important;
+}
+
+.uni-pull-refresh .uni-pull-refresh-spinner {
+    color: #000000 !important;
+}
+
+.uni-pull-refresh .uni-pull-refresh-spinner::before {
+    color: #000000 !important;
+}
+/* #endif */
+
+/* 通用样式：修改所有下拉刷新的loading颜色 */
+.uni-pull-refresh,
+.wx-pull-refresh,
+.pull-refresh {
+    color: #000000 !important;
+}
+
+.uni-pull-refresh .uni-pull-refresh-spinner,
+.wx-pull-refresh .wx-pull-refresh-spinner,
+.pull-refresh .pull-refresh-spinner {
+    color: #000000 !important;
+    border-color: #000000 !important;
+}
+
+.uni-pull-refresh .uni-pull-refresh-spinner::before,
+.wx-pull-refresh .wx-pull-refresh-spinner::before,
+.pull-refresh .pull-refresh-spinner::before {
+    color: #000000 !important;
+    border-color: #000000 !important;
+}
+
+/* 修改下拉刷新指示器的颜色 */
+.uni-pull-refresh-indicator,
+.wx-pull-refresh-indicator {
+    color: #000000 !important;
+}
+
+.uni-pull-refresh-indicator .uni-pull-refresh-spinner,
+.wx-pull-refresh-indicator .wx-pull-refresh-spinner {
+    color: #000000 !important;
+    border-color: #000000 !important;
+}
+</style>

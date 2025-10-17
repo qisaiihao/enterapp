@@ -13,11 +13,8 @@
 
     <!-- 作品集列表 -->
     <scroll-view class="portfolio-list" scroll-y="true" @scrolltolower="loadMore">
-      <view v-if="loading" class="loading">
-        <text>加载中...</text>
-      </view>
 
-      <view v-else-if="folders.length === 0" class="empty-state">
+      <view v-if="folders.length === 0" class="empty-state">
         <text class="empty-icon">📁</text>
         <text class="empty-text">暂无作品集</text>
         <text class="empty-subtext">创建您的第一个作品集吧</text>
@@ -51,9 +48,6 @@
         </view>
       </view>
 
-      <view v-if="hasMore && !loading" class="load-more">
-        <text>加载更多...</text>
-      </view>
     </scroll-view>
 
     <!-- 创建作品集弹窗 -->

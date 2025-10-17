@@ -153,16 +153,16 @@
     <!-- 底部按钮组 -->
     <view class="bottom-buttons" style="border-top: none !important;">
       <view class="button-item" @tap.stop="goBack">
-        <image class="button-icon" src="/static/images/返回编辑.png" mode="aspectFit"></image>
+        <image class="button-icon" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
       </view>
       <view class="button-item" @tap.stop="deletePost">
-        <image class="button-icon" src="/static/images/删除.png" mode="aspectFit"></image>
+        <image class="button-icon" src="/static/images/delete.png" mode="aspectFit"></image>
       </view>
       <view class="button-item" @tap.stop="saveDraft">
-        <image class="button-icon" src="/static/images/存草稿.png" mode="aspectFit"></image>
+        <image class="button-icon" src="/static/images/save_draft.png" mode="aspectFit"></image>
       </view>
       <view class="button-item" @tap.stop="goToPublish">
-        <image class="button-icon" src="/static/images/发布.png" mode="aspectFit"></image>
+        <image class="button-icon" src="/static/images/publish.png" mode="aspectFit"></image>
       </view>
     </view>
   </view>

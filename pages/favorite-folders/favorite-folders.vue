@@ -1,10 +1,6 @@
 <template>
     <!-- pages/favorite-folders/favorite-folders.wxml -->
     <view class="container">
-        <!-- 加载状态 -->
-        <view v-if="isLoading" class="loading-container">
-            <view class="loading-text">加载中...</view>
-        </view>
 
         <!-- 收藏夹列表 -->
         <view v-else-if="folders.length > 0" class="folders-container">

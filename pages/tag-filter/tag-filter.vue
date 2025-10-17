@@ -109,10 +109,6 @@
                 </view>
             </view>
 
-            <!-- 加载更多 -->
-            <view v-if="isLoadingMore" class="loading-more">
-                <text class="loading-text">加载中...</text>
-            </view>
 
             <view v-if="!hasMore && postList.length > 0" class="loading-more">
                 <text class="loading-text">没有更多了</text>

@@ -2,10 +2,6 @@
     ﻿
     <!-- pages/user-profile/user-profile.wxml -->
     <view class="container">
-        <!-- 加载状态 -->
-        <view v-if="isLoading && userPosts.length === 0" class="loading-container">
-            <view class="loading-text">加载中...</view>
-        </view>
 
         <!-- 主要内容 -->
         <view v-else>
@@ -153,10 +149,6 @@
                         </view>
                     </view>
 
-                    <!-- 加载更多提示 -->
-                    <view v-if="isLoading && userPosts.length > 0" class="loading-container">
-                        <view class="loading-text">加载中...</view>
-                    </view>
 
                     <!-- 占位空白，便于触发 onReachBottom -->
                     <view style="height: 100rpx"></view>

@@ -103,13 +103,13 @@
                     <!-- Tab Navigation -->
                     <view class="tab-navigation">
                         <view :class="'tab-item ' + (currentTab === 'posts' ? 'active' : '')" data-tab="posts" @tap="switchTab">
-                            <image class="tab-icon" src="/static/images/我的帖子.png" mode="aspectFit"></image>
+                            <image class="tab-icon" src="/static/images/my_posts.png" mode="aspectFit"></image>
                         </view>
                         <view :class="'tab-item ' + (currentTab === 'portfolio' ? 'active' : '')" data-tab="portfolio" @tap="switchTab">
-                            <image class="tab-icon" src="/static/images/作品集.png" mode="aspectFit"></image>
+                            <image class="tab-icon" src="/static/images/portfolio.png" mode="aspectFit"></image>
                         </view>
                         <view :class="'tab-item ' + (currentTab === 'favorites' ? 'active' : '')" data-tab="favorites" @tap="switchTab">
-                            <image class="tab-icon" src="/static/images/我收藏的.png" mode="aspectFit"></image>
+                            <image class="tab-icon" src="/static/images/my_favorites.png" mode="aspectFit"></image>
                         </view>
                     </view>
 
@@ -220,17 +220,14 @@
                                     </view>
                                     <view class="button-group">
                                         <view class="delete-btn" @tap.stop.prevent="onDelete" :data-postid="item._id" :data-index="index">
-                                            <image class="delete-icon" src="/static/images/删除.png" mode="aspectFit"></image>
+                                            <image class="delete-icon" src="/static/images/delete.png" mode="aspectFit"></image>
                                         </view>
                                     </view>
                                 </view>
                             </view>
                             <!-- 加载更多提示 -->
                             <view class="loading-footer">
-                                <block v-if="isLoadingMore">
-                                    <text>正在加载...</text>
-                                </block>
-                                <block v-else-if="!hasMore && myPosts.length > 0">
+                                <block v-if="!hasMore && myPosts.length > 0">
                                     <text>--- 我是有底线的 ---</text>
                                 </block>
                             </view>
@@ -354,10 +351,7 @@
                             </view>
                             <!-- 加载更多提示 -->
                             <view class="loading-footer">
-                                <block v-if="favoriteLoading">
-                                    <text>正在加载...</text>
-                                </block>
-                                <block v-else-if="!favoriteHasMore && favoriteList.length > 0">
+                                <block v-if="!favoriteHasMore && favoriteList.length > 0">
                                     <text>--- 我是有底线的 ---</text>
                                 </block>
                             </view>

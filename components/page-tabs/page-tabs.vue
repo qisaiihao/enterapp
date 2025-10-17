@@ -1,16 +1,16 @@
 <template>
-  <view class="page-tabs-container">
+  <view class="page-tabs-container" :style="{ top: safeAreaTop + 'px' }">
     <!-- 自定义顶部栏 -->
     <view class="custom-top-bar">
       <view class="top-left" @tap="navigateToAdd">
-        <image class="top-icon" src="/static/images/发帖.png" mode="aspectFit"></image>
+        <image class="top-icon" src="/static/images/create_post.png" mode="aspectFit"></image>
       </view>
       <view class="top-right">
         <view class="top-item" @tap="navigateToSearch">
-          <image class="top-icon" src="/static/images/搜索.png" mode="aspectFit"></image>
+          <image class="top-icon" src="/static/images/search.png" mode="aspectFit"></image>
         </view>
         <view class="top-item" @tap="navigateToMessages">
-          <image class="top-icon" src="/static/images/消息.png" mode="aspectFit"></image>
+          <image class="top-icon" src="/static/images/messages.png" mode="aspectFit"></image>
         </view>
       </view>
     </view>
@@ -46,6 +46,7 @@ export default {
   data() {
     return {
       unreadMessageCount: 0,
+      safeAreaTop: 0,
       tabs: [
         { label: '广场', value: 'square' },
         { label: '发现', value: 'discover' },
@@ -56,8 +57,31 @@ export default {
   mounted() {
     // 检查未读消息数量
     this.checkUnreadMessageCount();
+    // 获取安全区域高度
+    this.getSafeAreaTop();
   },
   methods: {
+    // 获取安全区域高度
+    getSafeAreaTop() {
+      try {
+        const systemInfo = uni.getSystemInfoSync();
+        console.log('【page-tabs】获取系统信息:', {
+          statusBarHeight: systemInfo.statusBarHeight,
+          platform: systemInfo.platform
+        });
+        
+        // 使用状态栏高度作为安全区域
+        const safeAreaTop = systemInfo.statusBarHeight || 0;
+        console.log('【page-tabs】设置安全区域高度:', safeAreaTop);
+        
+        this.safeAreaTop = safeAreaTop;
+      } catch (error) {
+        console.error('【page-tabs】获取安全区域失败:', error);
+        // 使用默认值
+        this.safeAreaTop = 44; // iOS 默认状态栏高度
+      }
+    },
+
     // 切换标签页
     switchTab(tabValue) {
       if (tabValue !== this.currentTab) {
@@ -131,12 +155,24 @@ export default {
 <style>
 .page-tabs-container {
   position: fixed;
-  top: 0;
   left: 0;
   right: 0;
   background: #ffffff;
   z-index: 1000;
   box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+  /* top 值通过 JavaScript 动态设置 */
+  /* 添加伪元素作为状态栏区域的白色背景 */
+}
+
+.page-tabs-container::before {
+  content: '';
+  position: absolute;
+  top: -100vh; /* 向上延伸覆盖状态栏区域 */
+  left: 0;
+  right: 0;
+  height: 100vh;
+  background: #ffffff;
+  z-index: -1;
 }
 
 /* 自定义顶部栏样式 */

@@ -151,10 +151,6 @@
             </view>
         </view>
 
-        <!-- 加载状态 -->
-        <view v-if="isSearching" class="loading-state">
-            <view class="loading-text">搜索中...</view>
-        </view>
     </view>
 </template>
 

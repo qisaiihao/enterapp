@@ -68,10 +68,6 @@
                 <text class="empty-text">暂无反馈</text>
             </view>
 
-            <!-- 加载更多 -->
-            <view v-if="loading" class="loading-more">
-                <text>加载中...</text>
-            </view>
 
             <view v-else-if="!hasMore && feedbackList.length > 0" class="no-more">
                 <text>--- 没有更多了 ---</text>

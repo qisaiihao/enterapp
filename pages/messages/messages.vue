@@ -107,10 +107,6 @@
                 <view v-if="!item.isRead" class="unread-dot"></view>
             </view>
 
-            <!-- 加载更多 -->
-            <view v-if="isLoading && messages.length > 0" class="loading-more">
-                <text>加载中...</text>
-            </view>
 
             <!-- 没有更多 -->
             <view v-if="!hasMore && messages.length > 0" class="no-more">

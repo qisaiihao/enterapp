@@ -5,10 +5,6 @@
             <text class="header-title">我的点赞</text>
         </view>
 
-        <!-- 骨架屏/加载中 -->
-        <view v-if="isLoading && likedPosts.length === 0" class="loading-indicator">
-            <text>加载中...</text>
-        </view>
 
         <!-- 主内容始终渲染 -->
         <view v-else>
@@ -88,10 +84,6 @@
                     <view class="post-meta">
                         <text class="post-time">{{ item.formattedCreateTime }}</text>
                     </view>
-                </view>
-                <!-- 加载更多提示 -->
-                <view v-if="isLoading && likedPosts.length > 0" class="loading-indicator">
-                    <text>加载中...</text>
                 </view>
             </view>
             <view v-else class="empty-tip">

@@ -1,9 +1,6 @@
 <template>
     ﻿
     <view class="container">
-        <view v-if="isLoading && fans.length === 0" class="loading">
-            <text>加载中...</text>
-        </view>
 
         <block v-else-if="fans.length > 0">
             <view class="list">
@@ -38,8 +35,7 @@
         </view>
 
         <view v-if="fans.length > 0" class="footer-hint">
-            <view v-if="isLoading" class="loading-more">加载中...</view>
-            <view v-else-if="!hasMore" class="loading-more">已经到底啦</view>
+            <view v-if="!hasMore" class="loading-more">已经到底啦</view>
         </view>
     </view>
 </template>

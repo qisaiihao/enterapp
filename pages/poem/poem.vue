@@ -32,7 +32,6 @@
             <!-- 骨架屏 -->
             <view v-if="isLoading && postList.length === 0" class="skeleton-container">
                 <skeleton />
-                <view class="loading-text">正在加载诗歌...</view>
             </view>
 
             <!-- 路模式（原创诗歌） -->

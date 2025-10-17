@@ -1,16 +1,16 @@
 <template>
-  <view class="top-bar-container">
+  <view class="top-bar-container" :style="{ top: safeAreaTop + 'px' }">
     <!-- 自定义顶部栏 -->
     <view class="custom-top-bar">
       <view class="top-left" @tap="navigateToAdd">
-        <image class="top-icon" src="/static/images/写诗.png" mode="aspectFit"></image>
+        <image class="top-icon" src="/static/images/write_poetry.png" mode="aspectFit"></image>
       </view>
       <view class="top-right">
         <view class="top-item" @tap="navigateToSearch">
-          <image class="top-icon" src="/static/images/搜索.png" mode="aspectFit"></image>
+          <image class="top-icon" src="/static/images/search.png" mode="aspectFit"></image>
         </view>
         <view class="top-item" @tap="navigateToMessages">
-          <image class="top-icon" src="/static/images/消息.png" mode="aspectFit"></image>
+          <image class="top-icon" src="/static/images/messages.png" mode="aspectFit"></image>
           <view v-if="unreadMessageCount > 0" class="unread-dot"></view>
         </view>
       </view>
@@ -24,14 +24,38 @@ import { getUnreadCount } from '@/api-cache/unread.js';
 export default {
   data() {
     return {
-      unreadMessageCount: 0
+      unreadMessageCount: 0,
+      safeAreaTop: 0
     };
   },
   mounted() {
     // 检查未读消息数量
     this.checkUnreadMessageCount();
+    // 获取安全区域高度
+    this.getSafeAreaTop();
   },
   methods: {
+    // 获取安全区域高度
+    getSafeAreaTop() {
+      try {
+        const systemInfo = uni.getSystemInfoSync();
+        console.log('【top-bar】获取系统信息:', {
+          statusBarHeight: systemInfo.statusBarHeight,
+          platform: systemInfo.platform
+        });
+        
+        // 使用状态栏高度作为安全区域
+        const safeAreaTop = systemInfo.statusBarHeight || 0;
+        console.log('【top-bar】设置安全区域高度:', safeAreaTop);
+        
+        this.safeAreaTop = safeAreaTop;
+      } catch (error) {
+        console.error('【top-bar】获取安全区域失败:', error);
+        // 使用默认值
+        this.safeAreaTop = 44; // iOS 默认状态栏高度
+      }
+    },
+
     // 跳转到写诗页面
     navigateToAdd() {
       console.log('点击写诗按钮，跳转到add页面');
@@ -98,14 +122,25 @@ export default {
 <style>
 .top-bar-container {
   position: fixed;
-  top: 0;
   left: 0;
   right: 0;
-  height: 100rpx;
   background: #ffffff;
   z-index: 1000;
   border-bottom: none;
   box-shadow: none;
+  /* top 值通过 JavaScript 动态设置 */
+  /* 添加伪元素作为状态栏区域的白色背景 */
+}
+
+.top-bar-container::before {
+  content: '';
+  position: absolute;
+  top: -100vh; /* 向上延伸覆盖状态栏区域 */
+  left: 0;
+  right: 0;
+  height: 100vh;
+  background: #ffffff;
+  z-index: -1;
 }
 
 .custom-top-bar {

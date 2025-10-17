@@ -46,13 +46,12 @@
 
       <!-- 底部加载/结束提示 -->
       <view class="loading-footer">
-        <block v-if="isLoadingMore"><text>加载中...</text></block>
-        <block v-else-if="!hasMore && postList.length > 0"><text>—— 到底啦 ——</text></block>
+        <block v-if="!hasMore && postList.length > 0"><text>—— 到底啦 ——</text></block>
       </view>
     </view>
 
     <!-- 顶部提示（用于调试滑动预加载阈值） -->
-    <view v-if="showPageIndicator" class="page-indicator"><view class="page-indicator-text">加载更多...</view></view>
+    <view v-if="showPageIndicator" class="page-indicator"></view>
   </view>
 </template>
 

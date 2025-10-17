@@ -52,7 +52,7 @@
                     <view class="color-picker-header">
                         <view class="color-picker-title">{{ selectedPalette.name }}</view>
                         <view class="color-picker-back-btn" @tap="goBackToPalette">
-                            <image class="color-picker-back-icon" src="/static/images/返回编辑.png" mode="aspectFit"></image>
+                            <image class="color-picker-back-icon" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
                         </view>
                     </view>
                     <scroll-view class="colors-scroll" :scroll-y="true">
@@ -141,39 +141,39 @@
                 <view class="side-toolbar">
                     <!-- 加标签按钮 -->
                     <view class="side-tool-btn" @tap.stop="toggleTagSelector">
-                        <image class="side-tool-icon" src="/static/images/加标签.png" mode="aspectFit"></image>
+                        <image class="side-tool-icon" src="/static/images/add_tag.png" mode="aspectFit"></image>
                     </view>
                     
                     <!-- 配图按钮 -->
                     <view class="side-tool-btn" @tap.stop="handleChooseImage">
-                        <image class="side-tool-icon" src="/static/images/配图.png" mode="aspectFit"></image>
+                        <image class="side-tool-icon" src="/static/images/add_image.png" mode="aspectFit"></image>
                     </view>
                     
                     <!-- 切换发布模式按钮 -->
                     <view class="side-tool-btn" @tap.stop="switchMode">
-                        <image class="side-tool-icon" src="/static/images/切换发布模式.png" mode="aspectFit"></image>
+                        <image class="side-tool-icon" src="/static/images/switch_publish_mode.png" mode="aspectFit"></image>
                     </view>
                     
                     <!-- 选择高光句按钮 -->
                     <view class="side-tool-btn" @tap.stop="toggleHighlightMode">
-                        <image class="side-tool-icon" src="/static/images/选择高光句.png" mode="aspectFit"></image>
+                        <image class="side-tool-icon" src="/static/images/select_highlight.png" mode="aspectFit"></image>
                     </view>
                     
                     <!-- 选择颜色按钮 -->
                     <view class="side-tool-btn" @tap.stop="onSelectColor">
-                        <image class="side-tool-icon" src="/static/images/选择颜色.png" mode="aspectFit"></image>
+                        <image class="side-tool-icon" src="/static/images/select_color.png" mode="aspectFit"></image>
                     </view>
                 </view>
             </view>
 
             <!-- 左下角返回按钮 -->
             <view class="back-btn" @tap.stop="goBack">
-                <image class="back-icon" src="/static/images/返回编辑.png" mode="aspectFit"></image>
+                <image class="back-icon" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
             </view>
 
             <!-- 右下角浮动操作按钮 -->
             <view class="floating-action-btn" @tap.stop="goToPreview">
-                <image class="fab-icon" src="/static/images/回车键.png" mode="aspectFit"></image>
+                <image class="fab-icon" src="/static/images/enter_key.png" mode="aspectFit"></image>
             </view>
         </view>
 

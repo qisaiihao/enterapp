@@ -1,10 +1,6 @@
 <template>
     <!-- pages/favorite-content/favorite-content.wxml -->
     <view class="container">
-        <!-- 初始加载状态 -->
-        <view v-if="isLoading && favorites.length === 0" class="loading-container">
-            <view class="loading-text">加载中...</view>
-        </view>
 
         <!-- 收藏内容列表 -->
         <view v-else-if="favorites.length > 0" class="favorites-container">
@@ -122,10 +118,6 @@
             <button @tap="manualLoad" style="margin-top: 20rpx; padding: 15rpx 30rpx; background: #9ed7ee; color: white; border-radius: 8rpx; font-size: 26rpx">刷新</button>
         </view>
 
-        <!-- 加载更多 -->
-        <view v-if="favorites.length > 0 && isLoading" class="loading-more">
-            <view class="loading-text">加载中...</view>
-        </view>
 
         <!-- 没有更多 -->
         <view v-if="favorites.length > 0 && !hasMore && !isLoading" class="no-more">

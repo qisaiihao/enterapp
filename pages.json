@@ -39,7 +39,7 @@
     {
       "path": "pages/index/index",
       "style": {
-        "navigationBarTitleText": "回车键",
+        "navigationStyle": "custom",
         "enablePullDownRefresh": true,
         "usingComponents": {
           "skeleton": "/components/skeleton/skeleton"
@@ -49,11 +49,11 @@
     {
       "path": "pages/mountain/mountain",
       "style": {
+        "navigationStyle": "custom",
         "usingComponents": {
           "skeleton": "/components/skeleton/skeleton",
           "folder-selector": "/components/folder-selector/folder-selector"
         },
-        "navigationBarTitleText": "山",
         "enablePullDownRefresh": true
       }
     },
@@ -214,7 +214,7 @@
     {
       "path": "pages/poem-square/poem-square",
       "style": {
-        "navigationBarTitleText": "方块流",
+        "navigationStyle": "custom",
         "enablePullDownRefresh": true,
         "usingComponents": {
           "skeleton": "/components/skeleton/skeleton"

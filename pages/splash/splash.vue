@@ -28,7 +28,7 @@
             </view>
             -->
             <view v-if="showEnterButton" :class="'enter-key-container ' + (preloadCompleted ? '' : 'loading')" @tap="handleEnterButtonClick">
-                <image class="enter-key-image" :src="preloadCompleted ? '/static/images/回车键.png' : '/static/images/回车键.png'" mode="aspectFit"></image>
+                <image class="enter-key-image" :src="preloadCompleted ? '/static/images/enter_key.png' : '/static/images/enter_key.png'" mode="aspectFit"></image>
             </view>
         </view>
 

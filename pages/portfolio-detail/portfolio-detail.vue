@@ -13,11 +13,8 @@
 
     <!-- 作品列表 -->
     <scroll-view class="content-list" scroll-y="true" @scrolltolower="loadMore">
-      <view v-if="loading" class="loading">
-        <text>加载中...</text>
-      </view>
 
-      <view v-else-if="portfolioItems.length === 0" class="empty-state">
+      <view v-if="portfolioItems.length === 0" class="empty-state">
         <text class="empty-icon">📝</text>
         <text class="empty-text">暂无作品</text>
         <text class="empty-subtext">点击右上角添加您的作品</text>
@@ -66,9 +63,6 @@
         </view>
       </view>
 
-      <view v-if="hasMore && !loading" class="load-more">
-        <text>加载更多...</text>
-      </view>
     </scroll-view>
 
     <!-- 添加作品弹窗 -->
@@ -83,10 +77,7 @@
           <view class="my-posts-section">
             <text class="section-title">我的原创诗歌</text>
             <scroll-view class="posts-list" scroll-y="true">
-              <view v-if="myPostsLoading" class="loading-small">
-                <text>加载中...</text>
-              </view>
-              <view v-else-if="myPosts.length === 0" class="empty-small">
+              <view v-if="myPosts.length === 0" class="empty-small">
                 <text>暂无原创诗歌</text>
               </view>
               <view v-else class="posts-grid">

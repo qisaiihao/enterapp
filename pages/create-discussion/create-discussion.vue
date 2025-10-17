@@ -2,7 +2,7 @@
     <view class="create-discussion-container" @tap="onPageTap">
         <!-- 返回按钮 -->
         <view class="back-button" @tap.stop="goBack">
-            <image class="back-icon" src="/static/images/返回编辑.png" mode="aspectFit"></image>
+            <image class="back-icon" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
         </view>
 
         <!-- 标题输入框 -->
@@ -40,7 +40,7 @@
             <!-- 完成选择按钮 -->
             <view class="selection-actions">
                 <view class="select-done-btn" @tap.stop="finishSelection" :class="{ 'disabled': highlightSelectedLineIndices.length === 0 }">
-                    <image class="select-done-icon" src="/static/images/确认选择.png" mode="aspectFit"></image>
+                    <image class="select-done-icon" src="/static/images/confirm_selection.png" mode="aspectFit"></image>
                 </view>
             </view>
         </view>
@@ -83,19 +83,19 @@
         <!-- 底部按钮组 - 只在已选择句子时显示 -->
         <view v-if="hasSelectedSentences" class="bottom-buttons">
             <view class="button-item" @tap.stop="addMoreSentences">
-                <image class="button-icon" src="/static/images/加标签.png" mode="aspectFit"></image>
+                <image class="button-icon" src="/static/images/add_tag.png" mode="aspectFit"></image>
             </view>
 
             <view class="button-item" @tap.stop="saveDraft">
-                <image class="button-icon" src="/static/images/存草稿.png" mode="aspectFit"></image>
+                <image class="button-icon" src="/static/images/save_draft.png" mode="aspectFit"></image>
             </view>
 
             <view class="button-item" @tap.stop="deleteContent">
-                <image class="button-icon" src="/static/images/删除.png" mode="aspectFit"></image>
+                <image class="button-icon" src="/static/images/delete.png" mode="aspectFit"></image>
             </view>
 
             <view class="button-item" @tap.stop="publishDiscussion">
-                <image class="button-icon" src="/static/images/发布.png" mode="aspectFit"></image>
+                <image class="button-icon" src="/static/images/publish.png" mode="aspectFit"></image>
             </view>
         </view>
 

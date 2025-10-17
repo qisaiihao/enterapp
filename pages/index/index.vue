@@ -364,10 +364,7 @@
 
                 <!-- 在容器外部，页面的最底部添加加载提示 -->
                 <view class="loading-footer">
-                    <block v-if="isLoadingMore">
-                        <text>正在加载...</text>
-                    </block>
-                    <block v-else-if="currentPage === 'home' && !hasMore && postList.length > 0">
+                    <block v-if="currentPage === 'home' && !hasMore && postList.length > 0">
                         <text>--- 我是有底线的 ---</text>
                     </block>
                     <block v-else-if="currentPage === 'discover' && !discoverHasMore && discoverPostList.length > 0">
@@ -505,10 +502,15 @@ export default {
             touchEndY: 0,
 
             selected: 0,
-            img: ''
+            img: '',
+            // 安全区域高度
+            safeAreaTop: 0
         };
     },
     onLoad: function (options) {
+        // 调试：检查安全区域高度
+        this.debugSafeArea();
+        
         // 首页只负责广场模式
         this.setData({
             displayMode: 'square'
@@ -667,6 +669,45 @@ onReachBottom: function () {
         }, 100); // 100ms 防抖
     },
     methods: {
+        // 调试安全区域
+        debugSafeArea() {
+            try {
+                // 获取系统信息
+                const systemInfo = uni.getSystemInfoSync();
+                console.log('【index】系统信息:', {
+                    statusBarHeight: systemInfo.statusBarHeight,
+                    safeAreaInsets: systemInfo.safeAreaInsets,
+                    safeArea: systemInfo.safeArea,
+                    windowHeight: systemInfo.windowHeight,
+                    screenHeight: systemInfo.screenHeight,
+                    platform: systemInfo.platform
+                });
+
+                // 动态设置安全区域 - 使用uni-app兼容方式
+                if (systemInfo.statusBarHeight) {
+                    const safeAreaTop = systemInfo.statusBarHeight;
+                    console.log('【index】使用状态栏高度作为安全区域:', safeAreaTop);
+                    
+                    // 在uni-app中，我们可以通过设置页面数据来动态调整样式
+                    this.setData({
+                        safeAreaTop: safeAreaTop
+                    });
+                    
+                    // 尝试设置CSS变量（仅在支持的环境中）
+                    try {
+                        if (typeof document !== 'undefined' && document.documentElement) {
+                            document.documentElement.style.setProperty('--safe-area-inset-top', safeAreaTop + 'px');
+                            console.log('【index】CSS变量设置成功');
+                        }
+                    } catch (cssError) {
+                        console.log('【index】CSS变量设置失败，使用数据绑定方式:', cssError);
+                    }
+                }
+            } catch (error) {
+                console.error('【index】安全区域调试失败:', error);
+            }
+        },
+
         // 标签切换处理
         onTabChange(tabValue) {
             console.log('切换标签页:', tabValue);
@@ -1622,7 +1663,7 @@ onReachBottom: function () {
 }
 
 .container {
-    padding: 120rpx 0 100rpx 0; /* 顶部减少到120rpx */
+    padding: 255rpx 0 100rpx 0; /* 为page-tabs留出空间：188rpx(page-tabs总高度) + 62rpx(额外间距) */
     background-color: #ffffff;
     min-height: 100vh;
     padding-bottom: 100rpx; /* 为底部tabBar留出空间 */
