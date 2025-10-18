@@ -17,7 +17,7 @@
                 <view class="signature-actions">
                     <button class="signature-upload-btn" @tap="onChooseSignature" :loading="isProcessingSignature" :disabled="isProcessingSignature">上传签名图片</button>
                 </view>
-                <view class="signature-tip">请上传白底黑字签名，系统会自动去除白色背景并生成透明PNG。</view>
+                <view class="signature-tip">请上传透明底的PNG格式签名图片，图片处理功能还没调试好。</view>
                 <image v-if="signaturePreview" class="signature-preview" :src="signaturePreview" mode="aspectFit"></image>
             </view>
 
@@ -61,8 +61,11 @@
             <button class="save-button" @tap="onSaveChanges" :loading="isSaving">保存</button>
         </view>
 
-        <!-- 隐藏的canvas用于头像压缩 -->
+        <!-- 隐藏的canvas用于签名处理 -->
         <canvas type="2d" id="signatureCanvas" style="position: fixed; top: -9999px; left: -9999px; width: 400px; height: 200px"></canvas>
+        
+        <!-- 备用canvas用于兼容性 -->
+        <canvas canvas-id="signatureCanvasFallback" style="position: fixed; top: -9999px; left: -9999px; width: 400px; height: 200px"></canvas>
 
         <canvas canvas-id="avatarCompressCanvas" style="position: fixed; top: -9999px; left: -9999px; width: 200px; height: 200px"></canvas>
     </view>
@@ -144,10 +147,13 @@ export default {
         },
 
 
-        // 通过云函数上传（参考发布页逻辑）：H5 将文件转 base64 后上传
+        // 通过云函数上传（参考发布页逻辑）：H5 将文件转 base64 后上传，App 使用 uni.getFileSystemManager
         uploadFileViaCloudFunction(cloudPath, filePath, retryCount = 0) {
             return new Promise((resolve, reject) => {
+                // 检查环境并使用相应的文件读取方式
                 if (typeof window !== "undefined" && typeof FileReader !== "undefined") {
+                    // H5环境：使用fetch获取blob，然后转换为base64
+                    console.log('🔍 [ProfileEdit] H5环境使用fetch读取文件');
                     fetch(filePath)
                         .then(response => {
                             if (!response.ok) throw new Error("HTTP " + response.status);
@@ -162,8 +168,10 @@ export default {
                                     return;
                                 }
                                 const base64 = result.split(",")[1];
+                                console.log(`🔍 [ProfileEdit] H5环境文件读取完成，base64长度: ${base64.length}`);
                                 this.callCloudFunction("upload", { cloudPath, fileContent: base64 })
                                     .then((uploadRes) => {
+                                        console.log('H5环境上传云函数返回结果:', uploadRes);
                                         if (uploadRes && uploadRes.result && uploadRes.result.success) {
                                             resolve(uploadRes.result.fileID);
                                         } else {
@@ -186,7 +194,42 @@ export default {
                         })
                         .catch(err => reject(err));
                 } else {
-                    reject(new Error("非H5环境不支持此上传方式"));
+                    // App环境使用uni-app API
+                    console.log('🔍 [ProfileEdit] App环境使用uni-app API读取文件');
+                    try {
+                        const fs = uni.getFileSystemManager();
+                        if (fs && fs.readFile) {
+                            fs.readFile({
+                                filePath: filePath,
+                                encoding: 'base64',
+                                success: (readRes) => {
+                                    const base64 = readRes.data;
+                                    console.log(`🔍 [ProfileEdit] App环境文件读取完成，base64长度: ${base64.length}`);
+                                    this.callCloudFunction('upload', {
+                                        cloudPath: cloudPath,
+                                        fileContent: base64
+                                    }).then((uploadRes) => {
+                                        console.log('App环境上传云函数返回结果:', uploadRes);
+                                        // 检查云函数返回格式并提取fileID
+                                        if (uploadRes && uploadRes.result && uploadRes.result.success) {
+                                            resolve(uploadRes.result.fileID);
+                                        } else {
+                                            reject(new Error('上传云函数返回格式错误'));
+                                        }
+                                    }).catch(reject);
+                                },
+                                fail: (readErr) => {
+                                    console.error('❌ [ProfileEdit] App环境文件读取失败:', readErr);
+                                    reject(new Error('文件读取失败: ' + readErr.errMsg));
+                                }
+                            });
+                        } else {
+                            reject(new Error('文件系统管理器不可用'));
+                        }
+                    } catch (error) {
+                        console.error('❌ [ProfileEdit] App环境文件读取异常:', error);
+                        reject(new Error('文件读取异常: ' + error.message));
+                    }
                 }
             });
         },
@@ -360,23 +403,176 @@ export default {
         },
 
         processSignatureImage(filePath) {
+            // 暂时注释掉所有canvas处理逻辑，直接使用原图
+            console.log('签名处理：直接使用原图，跳过canvas处理');
+            
             uni.showLoading({
                 title: '处理中...',
                 mask: true
             });
+            
             this.setData({
                 isProcessingSignature: true
             });
-            uni.createSelectorQuery()
-                .in(uni)
-                .select('#signatureCanvas')
-                .node()
-                .exec((res) => {
-                    const canvasNode = res && res[0] && res[0].node;
-                    if (!canvasNode) {
+            
+            // 直接使用原图，不进行任何处理
+            setTimeout(() => {
+                uni.hideLoading();
+                uni.showToast({
+                    title: '签名已保存',
+                    icon: 'success',
+                    duration: 1500
+                });
+                
+                this.setData({
+                    signaturePreview: filePath,
+                    signatureTempPath: filePath,
+                    signatureUrl: '',
+                    isProcessingSignature: false
+                });
+            }, 500); // 模拟处理时间
+            
+            /* 
+            // 注释掉的canvas处理逻辑
+            // 检查平台兼容性
+            const { getCurrentPlatform } = require('../../utils/platformDetector.js');
+            const platform = getCurrentPlatform();
+            
+            // 尝试使用node()方法（H5和部分App支持）
+            const tryNodeMethod = () => {
+                return new Promise((resolve, reject) => {
+                    try {
+                        uni.createSelectorQuery()
+                            .in(uni)
+                            .select('#signatureCanvas')
+                            .node()
+                            .exec((res) => {
+                                const canvasNode = res && res[0] && res[0].node;
+                                if (canvasNode) {
+                                    resolve(canvasNode);
+                                } else {
+                                    reject(new Error('无法获取canvas节点'));
+                                }
+                            });
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+            };
+            
+            // 降级方案：使用传统canvas API
+            const fallbackMethod = () => {
+                return new Promise((resolve, reject) => {
+                    try {
+                        // 尝试使用备用canvas（canvas-id方式）
+                        const query = uni.createSelectorQuery();
+                        query.select('#signatureCanvasFallback').fields({
+                            node: true,
+                            size: true
+                        }).exec((res) => {
+                            if (res && res[0] && res[0].node) {
+                                resolve(res[0].node);
+                            } else {
+                                // 如果备用canvas也失败，尝试直接获取DOM元素（仅H5环境）
+                                if (typeof document !== 'undefined') {
+                                    const canvasElement = document.getElementById('signatureCanvas') || 
+                                                        document.getElementById('signatureCanvasFallback');
+                                    if (canvasElement) {
+                                        resolve(canvasElement);
+                                    } else {
+                                        reject(new Error('降级方案也无法获取canvas节点'));
+                                    }
+                                } else {
+                                    reject(new Error('非H5环境无法使用DOM API'));
+                                }
+                            }
+                        });
+                    } catch (error) {
+                        // 如果uni API失败，尝试直接获取DOM元素（仅H5环境）
+                        try {
+                            if (typeof document !== 'undefined') {
+                                const canvasElement = document.getElementById('signatureCanvas') || 
+                                                    document.getElementById('signatureCanvasFallback');
+                                if (canvasElement) {
+                                    resolve(canvasElement);
+                                } else {
+                                    reject(new Error('无法获取canvas元素'));
+                                }
+                            } else {
+                                reject(new Error('非H5环境无法使用DOM API: ' + error.message));
+                            }
+                        } catch (domError) {
+                            reject(new Error('所有方案都失败了: ' + error.message));
+                        }
+                    }
+                });
+            };
+            
+            // 根据平台选择合适的方法
+            let canvasPromise;
+            if (platform === 'h5') {
+                // H5环境优先尝试node()方法，失败后使用DOM降级
+                canvasPromise = tryNodeMethod().catch(() => fallbackMethod());
+            } else if (platform === 'app') {
+                // App环境直接使用原图，跳过canvas处理
+                console.log('App环境跳过canvas处理，直接使用原图');
+                canvasPromise = Promise.reject(new Error('App环境跳过canvas处理，直接使用原图'));
+            } else {
+                // 小程序环境直接使用降级方案
+                canvasPromise = fallbackMethod();
+            }
+            
+            canvasPromise.then((canvasNode) => {
+                if (!canvasNode) {
+                    uni.hideLoading();
+                    uni.showToast({
+                        title: '获取画布失败',
+                        icon: 'none'
+                    });
+                    this.setData({
+                        isProcessingSignature: false
+                    });
+                    return;
+                }
+                
+                const canvas = canvasNode;
+                const ctx = canvas.getContext('2d');
+                const img = canvas.createImage();
+                img.src = filePath;
+                img.onload = () => {
+                    const originalWidth = img.width;
+                    const originalHeight = img.height;
+                    const maxSide = 800;
+                    const scale = Math.min(1, maxSide / Math.max(originalWidth, originalHeight));
+                    const width = Math.max(1, Math.round(originalWidth * scale));
+                    const height = Math.max(1, Math.round(originalHeight * scale));
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.clearRect(0, 0, width, height);
+                    ctx.drawImage(img, 0, 0, width, height);
+                    try {
+                        const imageData = ctx.getImageData(0, 0, width, height);
+                        const data = imageData.data;
+                        for (let i = 0; i < data.length; i += 4) {
+                            const r = data[i];
+                            const g = data[i + 1];
+                            const b = data[i + 2];
+                            const avg = (r + g + b) / 3;
+                            const diff = Math.max(Math.abs(r - g), Math.abs(r - b), Math.abs(g - b));
+                            if (avg > 235 && diff < 25) {
+                                data[i + 3] = 0;
+                            } else if (avg > 220 && diff < 30) {
+                                data[i + 3] = Math.min(data[i + 3], 120);
+                            }
+                        }
+                        ctx.putImageData(imageData, 0, 0);
+                    } catch (error) {
+                        console.log('CatchClause', error);
+                        console.log('CatchClause', error);
+                        console.error('签名像素处理失败:', error);
                         uni.hideLoading();
                         uni.showToast({
-                            title: '获取画布失败',
+                            title: '处理失败',
                             icon: 'none'
                         });
                         this.setData({
@@ -384,100 +580,81 @@ export default {
                         });
                         return;
                     }
-                    const canvas = canvasNode;
-                    const ctx = canvas.getContext('2d');
-                    const img = canvas.createImage();
-                    img.src = filePath;
-                    img.onload = () => {
-                        const originalWidth = img.width;
-                        const originalHeight = img.height;
-                        const maxSide = 800;
-                        const scale = Math.min(1, maxSide / Math.max(originalWidth, originalHeight));
-                        const width = Math.max(1, Math.round(originalWidth * scale));
-                        const height = Math.max(1, Math.round(originalHeight * scale));
-                        canvas.width = width;
-                        canvas.height = height;
-                        ctx.clearRect(0, 0, width, height);
-                        ctx.drawImage(img, 0, 0, width, height);
-                        try {
-                            const imageData = ctx.getImageData(0, 0, width, height);
-                            const data = imageData.data;
-                            for (let i = 0; i < data.length; i += 4) {
-                                const r = data[i];
-                                const g = data[i + 1];
-                                const b = data[i + 2];
-                                const avg = (r + g + b) / 3;
-                                const diff = Math.max(Math.abs(r - g), Math.abs(r - b), Math.abs(g - b));
-                                if (avg > 235 && diff < 25) {
-                                    data[i + 3] = 0;
-                                } else if (avg > 220 && diff < 30) {
-                                    data[i + 3] = Math.min(data[i + 3], 120);
-                                }
-                            }
-                            ctx.putImageData(imageData, 0, 0);
-                        } catch (error) {
-                            console.log('CatchClause', error);
-                            console.log('CatchClause', error);
-                            console.error('签名像素处理失败:', error);
+                    uni.canvasToTempFilePath({
+                        canvas,
+                        x: 0,
+                        y: 0,
+                        width,
+                        height,
+                        destWidth: width,
+                        destHeight: height,
+                        fileType: 'png',
+                        success: (result) => {
                             uni.hideLoading();
                             uni.showToast({
-                                title: '处理失败',
+                                title: '签名已优化',
+                                icon: 'success',
+                                duration: 1500
+                            });
+                            this.setData({
+                                signaturePreview: result.tempFilePath,
+                                signatureTempPath: result.tempFilePath,
+                                signatureUrl: ''
+                            });
+                        },
+                        fail: (err) => {
+                            console.error('导出签名失败:', err);
+                            uni.hideLoading();
+                            uni.showToast({
+                                title: '导出失败',
                                 icon: 'none'
                             });
+                        },
+                        complete: () => {
                             this.setData({
                                 isProcessingSignature: false
                             });
-                            return;
                         }
-                        uni.canvasToTempFilePath({
-                            canvas,
-                            x: 0,
-                            y: 0,
-                            width,
-                            height,
-                            destWidth: width,
-                            destHeight: height,
-                            fileType: 'png',
-                            success: (result) => {
-                                uni.hideLoading();
-                                uni.showToast({
-                                    title: '签名已优化',
-                                    icon: 'success',
-                                    duration: 1500
-                                });
-                                this.setData({
-                                    signaturePreview: result.tempFilePath,
-                                    signatureTempPath: result.tempFilePath,
-                                    signatureUrl: ''
-                                });
-                            },
-                            fail: (err) => {
-                                console.error('导出签名失败:', err);
-                                uni.hideLoading();
-                                uni.showToast({
-                                    title: '导出失败',
-                                    icon: 'none'
-                                });
-                            },
-                            complete: () => {
-                                this.setData({
-                                    isProcessingSignature: false
-                                });
-                            }
-                        });
-                    };
-                    img.onerror = (error) => {
-                        console.error('签名图片加载失败:', error);
-                        uni.hideLoading();
-                        uni.showToast({
-                            title: '图片加载失败',
-                            icon: 'none'
-                        });
-                        this.setData({
-                            isProcessingSignature: false
-                        });
-                    };
+                    });
+                };
+                img.onerror = (error) => {
+                    console.error('签名图片加载失败:', error);
+                    uni.hideLoading();
+                    uni.showToast({
+                        title: '图片加载失败',
+                        icon: 'none'
+                    });
+                    this.setData({
+                        isProcessingSignature: false
+                    });
+                };
+            }).catch((error) => {
+                console.error('获取canvas节点失败:', error);
+                uni.hideLoading();
+                
+                // 根据平台提供不同的提示信息
+                let toastMessage = '使用原图（背景处理不可用）';
+                if (platform === 'app') {
+                    toastMessage = 'App环境使用原图（背景处理功能暂不可用）';
+                } else if (platform === 'mp-weixin') {
+                    toastMessage = '小程序环境使用原图（背景处理功能暂不可用）';
+                }
+                
+                console.log('使用最终降级方案：直接使用原图');
+                uni.showToast({
+                    title: toastMessage,
+                    icon: 'none',
+                    duration: 2000
                 });
+                
+                this.setData({
+                    signaturePreview: filePath,
+                    signatureTempPath: filePath,
+                    signatureUrl: '',
+                    isProcessingSignature: false
+                });
+            });
+            */
         },
 
         onNicknameInput(e) {

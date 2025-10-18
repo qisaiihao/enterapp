@@ -2762,9 +2762,9 @@ page {
 
 /* 左下角返回按钮 */
 .back-btn {
-    position: fixed;
-    bottom: 120rpx;
-    left: 100rpx;
+    position: absolute;
+    bottom: 100rpx;
+    left: 30rpx;
     width: 100rpx;
     height: 100rpx;
     background: transparent;
@@ -2788,19 +2788,15 @@ page {
 
 /* 浮动操作按钮 */
 .floating-action-btn {
-    position: fixed; /* 改为fixed定位，确保在最顶层 */
-    bottom: 20px; /* 调整位置，确保可见 */
-    right: 20px; /* 调整位置，确保可见 */
-    width: 150px !important; /* 强制设置尺寸 */
-    height: 150px !important;
-    min-width: 150px;
-    min-height: 150px;
-    max-width: 150px;
-    max-height: 150px;
-    background: transparent; /* 移除测试背景 */
-    border: none; /* 移除测试边框 */
+    position: absolute; /* 改为absolute定位，与输入框同层 */
+    bottom: 30rpx; /* 调整位置 */
+    right: 50rpx; /* 调整位置 */
+    width: 200rpx;
+    height: 200rpx;
+    background: transparent;
+    border: none;
     display: block;
-    z-index: 10; /* 降低z-index，让弹窗在按钮上方 */
+    z-index: 10;
     transition: all 0.2s ease;
     box-sizing: border-box;
 }
@@ -2810,16 +2806,12 @@ page {
 }
 
 .fab-icon {
-    width: 150px !important; /* 恢复完整尺寸 */
-    height: 150px !important;
-    min-width: 150px;
-    min-height: 150px;
-    max-width: 150px;
-    max-height: 150px;
+    width: 200rpx;
+    height: 200rpx;
     display: block;
-    object-fit: fill;
+    object-fit: contain;
     object-position: center;
-    border: none; /* 移除测试边框 */
+    border: none;
     box-sizing: border-box;
 }
 
@@ -3031,6 +3023,10 @@ page {
     z-index: 1;
     pointer-events: auto;
     overflow: hidden;
+    /* 确保不超出输入框边界 */
+    max-width: 100%;
+    max-height: 100%;
+    box-sizing: border-box;
 }
 
 .overlay-scroll {
@@ -3049,6 +3045,11 @@ page {
     color: transparent;
     box-sizing: border-box;
     border-radius: 20rpx;
+    /* 确保不超出父容器 */
+    max-width: 100%;
+    max-height: 100%;
+    overflow: hidden;
+    position: relative; /* 为绝对定位的子元素提供定位上下文 */
 }
 
 .overlay-line {
@@ -3058,13 +3059,16 @@ page {
     right: 0;
     height: 48rpx; /* 固定行高：32rpx字体 + 1.5行高 */
     transition: background-color 0.2s ease;
-    padding: 60rpx;
+    padding: 20rpx; /* 减少padding，避免超出边界 */
     line-height: 1.5;
     font-size: 32rpx; /* 与输入框保持相同的字体大小 */
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     font-weight: 300;
     box-sizing: border-box;
     pointer-events: none; /* 防止干扰滚动 */
+    /* 确保不超出父容器 */
+    max-width: 100%;
+    overflow: hidden;
 }
 
 .overlay-line.highlighted {
@@ -3083,6 +3087,10 @@ page {
     margin: 0;
     padding: 0;
     display: block;
+    /* 确保文字不超出边界 */
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* 高光选择提示 */

@@ -35,15 +35,15 @@
 
           <!-- 交互区（展开时显示） -->
           <view class="vote-section" v-if="post.isExpanded" :style="{ backgroundColor: post.backgroundColor }">
-            <view class="actions-left">
+            <view class="actions-left"><!-- 预留左侧空间 --></view>
+            <view class="button-group">
               <view class="like-icon-container" @tap.stop.prevent="onVote">
                 <image class="like-icon" :src="post.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError" />
               </view>
               <view class="comment-count" @tap.stop.prevent="onCommentClick">
-                <text class="comment-emoji">💬</text>
+                <image class="comment-icon" src="/static/images/comment.png" mode="aspectFit" />
               </view>
             </view>
-            <view class="button-group"><!-- 预留 --></view>
           </view>
         </view>
 
@@ -107,7 +107,7 @@
             </view>
             <view class="button-group">
               <view class="comment-count">
-                <text class="action-emoji">💬</text>
+                <image class="comment-icon" src="/static/images/comment.png" mode="aspectFit" />
                 <text class="action-text">0</text>
               </view>
               <view class="like-icon-container">
@@ -891,12 +891,13 @@ export default {
 }
 .post-content.expanded { display: block; overflow: visible; }
 .comment-emoji{ font-size: 40rpx; }
+.comment-icon { width: 60rpx; height: 60rpx; }
 .vote-section { display: flex; justify-content: space-between; align-items: center; padding: 25rpx 50rpx; }
 .actions-left { flex: 1; display: flex; align-items: center; gap: 20rpx; }
 .button-group { display: flex; align-items: center; gap: 30rpx; }
 .comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; }
 .vote-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; border-radius: 20rpx; background: rgba(255,255,255,.9); box-shadow: 0 2rpx 8rpx rgba(0,0,0,.1); }
-.comment-icon { width: 80rpx; height: 80rpx; }
+.comment-icon { width: 60rpx; height: 60rpx; }
 .like-icon { width: 60rpx; height: 60rpx; margin-top: 5px; }
 
 /* 用户签名样式 */

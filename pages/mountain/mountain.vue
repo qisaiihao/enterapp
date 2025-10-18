@@ -40,15 +40,15 @@
 
           <!-- 交互区（展开时显示） -->
           <view class="vote-section" v-if="item.isExpanded" :style="{ backgroundColor: item.backgroundColor }">
-            <view class="actions-left">
+            <view class="actions-left"><!-- 预留左侧空间 --></view>
+            <view class="button-group">
               <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="item._id" :data-index="index">
                 <image class="like-icon" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError" />
               </view>
               <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
-                <text class="comment-emoji">💬</text>
+                <image class="comment-icon" src="/static/images/comment.png" mode="aspectFit" />
               </view>
             </view>
-            <view class="button-group"><!-- 预留 --></view>
           </view>
         </view>
       </view>
@@ -402,6 +402,7 @@ export default {
 }
 .post-content.expanded { display: block; overflow: visible; }
 .comment-emoji{ font-size: 40rpx; }
+.comment-icon { width: 60rpx; height: 60rpx; }
 .vote-section { display: flex; justify-content: space-between; align-items: center; padding: 25rpx 50rpx; }
 .actions-left { flex: 1; display: flex; align-items: center; gap: 20rpx; }
 .button-group { display: flex; align-items: center; gap: 30rpx; }
