@@ -206,6 +206,23 @@
         <!-- 标签选择器 -->
         <view v-if="showTagSelector" class="tag-selector-mask" @tap="showTagSelector=false">
                 <view class="tag-selector" @tap.stop="noop">
+                <!-- 已选标签显示区域 -->
+                <view v-if="selectedTags.length > 0" class="selected-tags-section">
+                    <view class="selected-tags-title">已选标签：</view>
+                    <view class="selected-tags-list">
+                        <view 
+                            class="selected-tag" 
+                            v-for="(tag, index) in selectedTags" 
+                            :key="index"
+                            @tap.stop="removeTag"
+                            :data-tag="tag"
+                        >
+                            {{ tag }}
+                            <text class="remove-icon">×</text>
+                        </view>
+                    </view>
+                </view>
+
                 <!-- 分类选择器 -->
                 <view class="category-selector">
                     <scroll-view class="category-scroll" :scroll-x="true" :show-scrollbar="false">
@@ -2635,6 +2652,10 @@ page {
     z-index: 130;
     display: flex;
     align-items: flex-end;
+    /* 确保遮罩层覆盖整个屏幕 */
+    width: 100vw;
+    height: 100vh;
+    box-sizing: border-box;
 }
 
 .tag-selector {
@@ -2642,12 +2663,61 @@ page {
     background: #fff;
     border-top-left-radius: 24rpx;
     border-top-right-radius: 24rpx;
-    padding: 40rpx 28rpx calc(40rpx + env(safe-area-inset-bottom));
+    padding: 40rpx 20rpx calc(40rpx + env(safe-area-inset-bottom)); /* 减少左右padding，给更多显示空间 */
     min-height: 20vh;
-    max-height: 70vh;
+    max-height: 85vh; /* 增加最大高度，给更多显示空间 */
     display: flex;
     flex-direction: column;
     animation: slideUp 0.3s ease;
+    /* 确保内容可以滚动 */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    /* 确保弹窗不会被截断 */
+    box-sizing: border-box;
+}
+
+/* 已选标签显示区域样式 */
+.selected-tags-section {
+    margin-bottom: 20rpx;
+    padding-bottom: 15rpx;
+    border-bottom: 1px solid #eee;
+}
+
+.selected-tags-title {
+    font-size: 26rpx;
+    color: #666;
+    margin-bottom: 10rpx;
+    font-weight: 500;
+}
+
+.selected-tags-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8rpx;
+}
+
+.selected-tag {
+    display: flex;
+    align-items: center;
+    background: #9ed7ee;
+    color: white;
+    padding: 6rpx 12rpx;
+    border-radius: 16rpx;
+    font-size: 22rpx;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.selected-tag:active {
+    background: #7bc4d4;
+    transform: scale(0.95);
+}
+
+.remove-icon {
+    margin-left: 6rpx;
+    font-size: 20rpx;
+    font-weight: bold;
+    opacity: 0.8;
 }
 
 /* 分类选择器样式 */
@@ -2660,12 +2730,17 @@ page {
 .category-scroll {
     width: 100%;
     white-space: nowrap;
+    /* 确保滚动区域能正常显示 */
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .category-list {
     display: flex;
     gap: 15rpx;
-    padding: 10rpx 10rpx;
+    padding: 10rpx 5rpx; /* 减少左右padding，给更多显示空间 */
+    /* 确保列表能正常滚动 */
+    min-width: max-content;
 }
 
 .category-item {
@@ -2676,8 +2751,8 @@ page {
     border-radius: 12rpx;
     background: #f5f5f5;
     transition: all 0.3s ease;
-    min-width: 80rpx;
     flex-shrink: 0;
+    /* 移除min-width限制，让内容自然适应 */
 }
 
 .category-item.active {
@@ -2702,6 +2777,13 @@ page {
     flex-wrap: wrap;
     gap: 10rpx;
     margin-bottom: 20rpx;
+    /* 确保标签区域可以正常显示 */
+    max-height: 300rpx;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    /* 减少左右边距，给更多显示空间 */
+    margin-left: -5rpx;
+    margin-right: -5rpx;
 }
 
 .preset-tag {
@@ -2743,8 +2825,8 @@ page {
     padding: 0 20rpx;
     height: 60rpx;
     font-size: 24rpx;
-    min-width: 80rpx;
     flex-shrink: 0;
+    /* 移除min-width限制，让按钮根据内容自适应 */
 }
 
 /* 匹配标签推荐样式 */
@@ -2766,6 +2848,10 @@ page {
     display: flex;
     flex-wrap: wrap;
     gap: 8rpx;
+    /* 确保推荐标签区域可以正常显示 */
+    max-height: 200rpx;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .matched-tag {
