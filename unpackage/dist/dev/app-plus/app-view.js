@@ -12787,7 +12787,7 @@ var render = function () {
                     _c(
                       "uni-view",
                       { staticClass: _vm._$g(69, "sc"), attrs: { _i: 69 } },
-                      [_vm._v("共" + _vm._$g(69, "t0-0") + " 条评论")]
+                      [_vm._v("共 " + _vm._$g(69, "t0-0") + " 条评论")]
                     ),
                     _vm._$g(70, "i")
                       ? _c(

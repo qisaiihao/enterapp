@@ -203,25 +203,9 @@
             </view>
         </view>
 
-        <!-- 标签选择区域 -->
-        <view v-if="showTagSelector" class="tag-section" :style="'bottom: 120rpx;'">
-            <view class="tag-header">
-                <text class="tag-title">添加标签</text>
-                <text class="tag-count">{{ selectedTags.length }}/5</text>
-                <text class="tag-toggle" @tap.stop="toggleTagSelector">收起</text>
-            </view>
-
-            <!-- 已选标签显示 -->
-            <view v-if="selectedTags.length > 0" class="selected-tags">
-                    <view class="selected-tag" v-for="(item, index) in selectedTags" :key="index">
-                        <text>{{ item }}</text>
-
-                        <text class="remove-tag" @tap.stop="removeTag" :data-tag="item">×</text>
-                    </view>
-            </view>
-
-            <!-- 标签选择器 -->
-            <view v-if="showTagSelector" class="tag-selector">
+        <!-- 标签选择器 -->
+        <view v-if="showTagSelector" class="tag-selector-mask" @tap="showTagSelector=false">
+                <view class="tag-selector" @tap.stop="noop">
                 <!-- 分类选择器 -->
                 <view class="category-selector">
                     <scroll-view class="category-scroll" :scroll-x="true" :show-scrollbar="false">
@@ -268,6 +252,7 @@
                             {{ item }}
                         </view>
                     </view>
+                </view>
                 </view>
             </view>
         </view>
@@ -2044,6 +2029,14 @@ export default {
 
         noop() {},
 
+        // 分类切换功能
+        switchCategory: function (e) {
+            const index = e.currentTarget.dataset.index;
+            this.setData({
+                currentCategoryIndex: index
+            });
+        },
+
         selectTag: function (e) {
             const tag = e.currentTarget.dataset.tag;
             const selectedTags = this.selectedTags;
@@ -2074,6 +2067,70 @@ export default {
             this.setData({ customTag: inputValue });
             // 实时搜索匹配标签
             this.searchMatchingTags(inputValue);
+        },
+
+        // 搜索匹配的标签
+        searchMatchingTags: function (inputValue) {
+            console.log('【标签搜索】搜索参数:', {
+                inputValue: inputValue,
+                inputLength: inputValue ? inputValue.length : 0,
+                allExistingTags: this.allExistingTags,
+                selectedTags: this.selectedTags
+            });
+            if (!inputValue || inputValue.length < 2) {
+                console.log('【标签搜索】输入长度不足，清空匹配结果');
+                this.setData({
+                    matchedTags: [],
+                    showMatchedTags: false
+                });
+                return;
+            }
+            const allTags = this.allExistingTags;
+            console.log('【标签搜索】开始匹配，总标签数:', allTags.length);
+            const matched = allTags
+                .filter((tag) => {
+                    const isMatch = tag.toLowerCase().includes(inputValue.toLowerCase());
+                    const notSelected = !this.selectedTags.includes(tag);
+                    console.log(`【标签搜索】检查标签"${tag}": 匹配=${isMatch}, 未选中=${notSelected}`);
+                    return isMatch && notSelected;
+                })
+                .slice(0, 5); // 最多显示5个匹配结果
+
+            console.log('【标签搜索】匹配结果:', matched);
+            this.setData({
+                matchedTags: matched,
+                showMatchedTags: matched.length > 0
+            });
+            console.log('【标签搜索】设置状态:', {
+                matchedTags: matched,
+                showMatchedTags: matched.length > 0
+            });
+        },
+
+        // 选择匹配的标签
+        selectMatchedTag: function (e) {
+            const tag = e.currentTarget.dataset.tag;
+            if (this.selectedTags.includes(tag)) {
+                uni.showToast({
+                    title: '标签已存在',
+                    icon: 'none'
+                });
+                return;
+            }
+            if (this.selectedTags.length >= 5) {
+                uni.showToast({
+                    title: '最多选择5个标签',
+                    icon: 'none'
+                });
+                return;
+            }
+            const selectedTags = [...this.selectedTags, tag];
+            this.setData({
+                selectedTags: selectedTags,
+                customTag: '',
+                showMatchedTags: false,
+                matchedTags: []
+            });
         },
 
         addCustomTag: function () {
@@ -2522,7 +2579,7 @@ page {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10rpx 0;
+    padding: 10rpx 0rpx;
     border-bottom: 1px solid #eee;
     margin-bottom: 20rpx;
 }
@@ -2567,8 +2624,30 @@ page {
     cursor: pointer;
 }
 
+/* 标签选择弹层 */
+.tag-selector-mask {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background: rgba(0,0,0,.35);
+    z-index: 130;
+    display: flex;
+    align-items: flex-end;
+}
+
 .tag-selector {
-    animation: slideDown 0.3s ease;
+    width: 100%;
+    background: #fff;
+    border-top-left-radius: 24rpx;
+    border-top-right-radius: 24rpx;
+    padding: 40rpx 28rpx calc(40rpx + env(safe-area-inset-bottom));
+    min-height: 20vh;
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.3s ease;
 }
 
 /* 分类选择器样式 */
@@ -2586,14 +2665,14 @@ page {
 .category-list {
     display: flex;
     gap: 15rpx;
-    padding: 0 10rpx;
+    padding: 10rpx 10rpx;
 }
 
 .category-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 10rpx 15rpx;
+    padding: 15rpx 12rpx;
     border-radius: 12rpx;
     background: #f5f5f5;
     transition: all 0.3s ease;
@@ -2664,6 +2743,8 @@ page {
     padding: 0 20rpx;
     height: 60rpx;
     font-size: 24rpx;
+    min-width: 80rpx;
+    flex-shrink: 0;
 }
 
 /* 匹配标签推荐样式 */
@@ -2706,6 +2787,17 @@ page {
     from {
         opacity: 0;
         transform: translateY(-10rpx);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(100%);
     }
     to {
         opacity: 1;
@@ -2762,7 +2854,7 @@ page {
 
 /* 左下角返回按钮 */
 .back-btn {
-    position: absolute;
+    position: fixed;
     bottom: 100rpx;
     left: 30rpx;
     width: 100rpx;
@@ -2788,7 +2880,7 @@ page {
 
 /* 浮动操作按钮 */
 .floating-action-btn {
-    position: absolute; /* 改为absolute定位，与输入框同层 */
+    position: fixed; /* 改为fixed定位，相对于视口定位 */
     bottom: 30rpx; /* 调整位置 */
     right: 50rpx; /* 调整位置 */
     width: 200rpx;
@@ -2837,16 +2929,17 @@ page {
     align-items: flex-end; 
 }
 
-.color-picker { 
-    width: 100%; 
-    background: #fff; 
-    border-top-left-radius: 24rpx; 
-    border-top-right-radius: 24rpx; 
-    padding: 24rpx 28rpx calc(24rpx + env(safe-area-inset-bottom)); 
+.color-picker {
+    width: 100%;
+    background: #fff;
+    border-top-left-radius: 24rpx;
+    border-top-right-radius: 24rpx;
+    padding: 24rpx 28rpx calc(24rpx + env(safe-area-inset-bottom));
     min-height: 50vh; /* 最小高度设为半屏 */
     max-height: 70vh; /* 限制最大高度为70%屏幕高度 */
     display: flex;
     flex-direction: column;
+    animation: slideUp 0.3s ease;
 }
 
 .color-picker-title {
@@ -3147,10 +3240,10 @@ page {
     }
     
     .floating-action-btn {
-        width: 70rpx;
-        height: 70rpx;
-        bottom: 20rpx;
-        right: 20rpx;
+        width: 200rpx;
+        height: 200rpx;
+        bottom: 30rpx;
+        right: 50rpx;
     }
     
     .fab-icon {
@@ -3181,8 +3274,8 @@ page {
     }
     
     .floating-action-btn {
-        width: 90rpx;
-        height: 90rpx;
+        width: 200rpx;
+        height: 200rpx;
     }
     
     .fab-icon {
@@ -3213,10 +3306,10 @@ page {
     
     .floating-action-btn {
         position: fixed;
-        bottom: 20rpx;
-        right: 20rpx;
-        width: 60rpx;
-        height: 60rpx;
+        bottom: 30rpx;
+        right: 50rpx;
+        width: 200rpx;
+        height: 200rpx;
     }
 }
 

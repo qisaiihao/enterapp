@@ -113,7 +113,7 @@
                                 </view>
                                 <view class="button-group">
                                     <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
-                                        <text class="action-emoji">💬</text>
+                                        <image class="comment-icon" src="/static/images/comment.png" mode="aspectFit" />
                                         <text class="action-text">{{ item.commentCount || 0 }}</text>
                                     </view>
                                     <view
@@ -227,7 +227,7 @@
                                 </view>
                                 <view class="button-group">
                                     <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
-                                        <text class="action-emoji">💬</text>
+                                        <image class="comment-icon" src="/static/images/comment.png" mode="aspectFit" />
                                         <text class="action-text">{{ item.commentCount || 0 }}</text>
                                     </view>
                                     <view
@@ -341,7 +341,7 @@
                                 </view>
                                 <view class="button-group">
                                     <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
-                                        <text class="action-emoji">💬</text>
+                                        <image class="comment-icon" src="/static/images/comment.png" mode="aspectFit" />
                                         <text class="action-text">{{ item.commentCount || 0 }}</text>
                                     </view>
                                     <view
@@ -1742,7 +1742,7 @@ onReachBottom: function () {
 
 /* 原创帖子特殊样式 */
 .post-item-wrapper.original-post {
-    background: linear-gradient(90deg, rgba(235, 200, 141, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 90%, rgba(235, 200, 141, 0.05) 95%, rgba(235, 200, 141, 0.08) 100%);
     border-left: 3rpx solid #ebc88d;
     position: relative;
 }
@@ -1965,7 +1965,7 @@ onReachBottom: function () {
     align-items: center;
     /* 上移一点：收紧与内容的垂直间距 */
     margin-top: -8rpx;
-    padding: 0 60rpx 0 60rpx;
+    padding: 10rpx 60rpx 15rpx 60rpx;
 }
 
 .vote-count,
@@ -1976,6 +1976,12 @@ onReachBottom: function () {
     color: #999;
     margin-left: 10rpx;
     transition: color 0.2s ease;
+}
+
+.comment-icon {
+    width: 40rpx;
+    height: 40rpx;
+    margin-right: 8rpx;
 }
 
 .vote-count {

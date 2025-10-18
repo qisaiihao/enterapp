@@ -39,7 +39,7 @@
             </block>
             <block v-else-if="post && post._id">
                 <!-- Post Content -->
-                <view :class="'post-detail-wrapper ' + (post.isOriginal ? 'original-post' : '')">
+                <view :class="'post-detail-wrapper ' + (post.isOriginal ? 'original-post' : '') + (post.isPoem ? ' poem-post' : '')">
                     <view class="author-info">
                         <view class="author-basic">
                             <image
@@ -1949,9 +1949,13 @@ export default {
 }
 
 .post-detail-wrapper.original-post {
-    background: linear-gradient(90deg, rgba(235, 200, 141, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 90%, rgba(235, 200, 141, 0.05) 95%, rgba(235, 200, 141, 0.08) 100%);
     border-left: 3rpx solid #ebc88d;
     position: relative;
+}
+
+.post-detail-wrapper.poem-post {
+    background: #ffffff !important;
 }
 
 .author-info {

@@ -18,7 +18,7 @@
 
       <view id="post-list-container">
         <view v-for="(item, index) in postList" :key="item._id || index" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
-          <view class="post-content-navigator" @tap="togglePostExpansion" :data-index="index">
+          <view class="post-content-navigator" @tap="togglePostExpansion" @longpress="onLongPressCard" :data-index="index" :data-postid="item._id">
             <view class="post-item">
               <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.highlightLines || item.highlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.content" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
                 <block v-if="item.isExpanded">
@@ -367,6 +367,12 @@ export default {
         this.setData({ [`votingInProgress.${postId}`]: false });
       }
     },
+    onLongPressCard(e) {
+      const postId = e.currentTarget.dataset.postid;
+      if (postId) {
+        uni.navigateTo({ url: `/pages/post-detail/post-detail?id=${postId}` });
+      }
+    },
     touchStart() {},
     touchEnd() {}
   }
@@ -416,18 +422,7 @@ export default {
   position: relative; /* 为卷边效果添加定位 */
 }
 
-/* 添加柔和的右下角阴影效果 */
-.post-item-wrapper::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 80rpx;
-  height: 80rpx;
-  background: radial-gradient(ellipse at 100% 100%, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.08) 30%, transparent 70%);
-  pointer-events: none;
-  z-index: 1;
-}
+
 
 /* 背景颜色现在通过内联样式动态设置，不再使用固定的CSS类 */
 
@@ -463,12 +458,12 @@ export default {
 .post-content.expanded { display: block; overflow: visible; }
 .comment-emoji{ font-size: 40rpx; }
 .comment-icon { width: 60rpx; height: 60rpx; }
-.vote-section { display: flex; justify-content: space-between; align-items: center; padding: 25rpx 50rpx; }
+.vote-section { display: flex; justify-content: space-between; align-items: center; padding: 35rpx 50rpx; }
 .actions-left { flex: 1; display: flex; align-items: center; gap: 20rpx; }
 .button-group { display: flex; align-items: center; gap: 30rpx; }
 .comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; }
 .vote-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; border-radius: 20rpx; background: rgba(255,255,255,.9); box-shadow: 0 2rpx 8rpx rgba(0,0,0,.1); }
-.comment-icon { width: 80rpx; height: 80rpx; }
+.comment-icon { width: 60rpx; height: 60rpx; }
 .like-icon { width: 60rpx; height: 60rpx; margin-top: 5px; }
 
 /* 用户签名样式 */
