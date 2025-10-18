@@ -413,6 +413,20 @@ export default {
   box-shadow: 0 8rpx 8rpx rgba(0, 0, 0, 0.25); /* 0px 4px 4px * 2 */
   transition: transform .3s ease;
   border: none;
+  position: relative; /* 为卷边效果添加定位 */
+}
+
+/* 添加柔和的右下角阴影效果 */
+.post-item-wrapper::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 80rpx;
+  height: 80rpx;
+  background: radial-gradient(ellipse at 100% 100%, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.08) 30%, transparent 70%);
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* 背景颜色现在通过内联样式动态设置，不再使用固定的CSS类 */
