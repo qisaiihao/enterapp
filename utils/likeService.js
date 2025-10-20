@@ -2,6 +2,7 @@
 const { cloudCall } = require('./cloudCall.js');
 const likeIcon = require('./likeIcon.js');
 const cacheManager = require('../_utils/cache-manager').default;
+const { updateLikeStatus } = require('./likeStatusSync');
 
 const DEFAULT_ERROR_MESSAGE = '操作失败，请稍后重试';
 
@@ -193,6 +194,8 @@ async function togglePostLike(postId, options = {}) {
 
     if (updateCache) {
         updatePostInCaches(postId, finalVotes, finalIsLiked, finalIcon);
+        // 更新到专门的点赞状态缓存，供其他页面同步使用
+        updateLikeStatus(postId, finalVotes, finalIsLiked);
     }
 
     return {

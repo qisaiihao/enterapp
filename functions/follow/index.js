@@ -29,6 +29,8 @@ exports.main = async (event, context) => {
         return await getFollowingList(openid, event.skip || 0, event.limit || 20);
       case 'getFollowerList':
         return await getFollowerList(openid, event.skip || 0, event.limit || 20);
+      case 'getFollowCounts':
+        return await getFollowCounts(openid, event.targetOpenid);
       case 'checkFollow':
         return await checkFollow(openid, event.targetOpenid);
       case 'getNewFollowerCount':
@@ -357,6 +359,25 @@ async function enrichAvatarUrls(list) {
   } catch (error) {
     console.error('follow 头像URL转换失败:', error);
   }
+}
+
+// 获取关注/被关注数量
+async function getFollowCounts(requesterOpenid, targetOpenid) {
+  // 如果未指定目标用户，则统计当前用户
+  const userId = targetOpenid || requesterOpenid;
+
+  const followsCollection = db.collection('follows');
+
+  const [followingRes, followerRes] = await Promise.all([
+    followsCollection.where({ followerId: userId }).count(),
+    followsCollection.where({ followedId: userId }).count()
+  ]);
+
+  return {
+    success: true,
+    followingCount: (followingRes && followingRes.total) || 0,
+    followerCount: (followerRes && followerRes.total) || 0
+  };
 }
 
 

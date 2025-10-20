@@ -508,6 +508,9 @@ export default {
         this.setData({
             viewStartTime: Date.now()
         });
+
+        // 同步当前帖子的点赞状态
+        this.syncCurrentPostLikeStatus();
     },
     onUnload: function () {
         this.recordViewBehavior();
@@ -519,6 +522,50 @@ export default {
         this.recordViewBehavior();
     },
     methods: {
+        // 同步当前帖子的点赞状态
+        syncCurrentPostLikeStatus: function () {
+            try {
+                if (!this.post || !this.post._id) {
+                    console.log('【帖子详情】没有当前帖子信息，跳过点赞状态同步');
+                    return;
+                }
+
+                const postId = this.post._id;
+                console.log(`【帖子详情】同步帖子 ${postId} 的点赞状态`);
+
+                // 使用同步工具同步当前帖子的点赞状态
+                const { syncLikeStatusForPosts } = require('../../utils/likeStatusSync.js');
+                const syncResult = syncLikeStatusForPosts([postId]);
+
+                if (syncResult.success && syncResult.updated > 0) {
+                    console.log(`【帖子详情】帖子 ${postId} 点赞状态已更新`);
+
+                    // 更新当前帖子的显示状态
+                    const { getLatestLikeStatus } = require('../../utils/likeStatusSync.js');
+                    const latestStatus = getLatestLikeStatus(postId);
+
+                    if (latestStatus) {
+                        const likeIcon = require('../../utils/likeIcon');
+                        const newLikeIcon = likeIcon.getLikeIcon(latestStatus.votes, latestStatus.isVoted);
+
+                        this.setData({
+                            'post.votes': latestStatus.votes,
+                            'post.isVoted': latestStatus.isVoted,
+                            'post.likeIcon': newLikeIcon
+                        });
+
+                        console.log(`【帖子详情】更新点赞显示: ${latestStatus.votes}, ${latestStatus.isVoted}`);
+                    }
+                } else if (syncResult.errors.length > 0) {
+                    console.warn('【帖子详情】点赞状态同步出现错误:', syncResult.errors);
+                } else {
+                    console.log(`【帖子详情】帖子 ${postId} 点赞状态无变化`);
+                }
+            } catch (err) {
+                console.error('【帖子详情】同步当前帖子点赞状态失败:', err);
+            }
+        },
+
         // 统一云函数调用方法
         callCloudFunction(name, data = {}, extraOptions = {}) {
             return cloudCall(name, data, Object.assign({ pageTag: 'post-detail', context: this }, extraOptions));

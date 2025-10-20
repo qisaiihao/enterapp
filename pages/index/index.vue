@@ -1197,8 +1197,62 @@ onReachBottom: function () {
 
         // 同步点赞状态：从缓存中获取最新的点赞状态
         syncLikeStatusFromCache: function () {
-            // 已由 CacheManager 接管首页分页，跳过 dataCache 同步
-            console.log('【首页】同步点赞状态：CacheManager 接管，跳过 dataCache 同步');
+            try {
+                // 收集当前页面显示的所有帖子ID
+                const allPostIds = [];
+
+                // 从主页帖子列表收集
+                if (Array.isArray(this.postList)) {
+                    this.postList.forEach(post => {
+                        if (post && post._id) {
+                            allPostIds.push(post._id);
+                        }
+                    });
+                }
+
+                // 从发现页帖子列表收集
+                if (Array.isArray(this.discoverPostList)) {
+                    this.discoverPostList.forEach(post => {
+                        if (post && post._id) {
+                            allPostIds.push(post._id);
+                        }
+                    });
+                }
+
+                // 从讨论页帖子列表收集
+                if (Array.isArray(this.discussionPostList)) {
+                    this.discussionPostList.forEach(post => {
+                        if (post && post._id) {
+                            allPostIds.push(post._id);
+                        }
+                    });
+                }
+
+                if (allPostIds.length > 0) {
+                    console.log(`【首页】同步点赞状态：准备同步 ${allPostIds.length} 个帖子的点赞状态`);
+
+                    // 使用新的同步工具
+                    const { syncLikeStatusForPosts } = require('../../utils/likeStatusSync.js');
+                    const syncResult = syncLikeStatusForPosts(allPostIds);
+
+                    if (syncResult.success && syncResult.updated > 0) {
+                        console.log(`【首页】点赞状态同步完成，更新了 ${syncResult.updated} 个帖子`);
+
+                        // 强制更新页面显示
+                        this.setData({
+                            postList: [...this.postList],
+                            discoverPostList: [...this.discoverPostList],
+                            discussionPostList: [...this.discussionPostList]
+                        });
+                    } else if (syncResult.errors.length > 0) {
+                        console.warn('【首页】点赞状态同步出现错误:', syncResult.errors);
+                    }
+                } else {
+                    console.log('【首页】同步点赞状态：没有需要同步的帖子');
+                }
+            } catch (err) {
+                console.error('【首页】同步点赞状态失败:', err);
+            }
         },
 
         // 标签点击处理
