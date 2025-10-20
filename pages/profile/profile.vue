@@ -82,10 +82,10 @@
                         </view>
                         <view class="profile-info-center">
                             <text class="profile-name-center">{{ userInfo.nickName || '微信用户' }}</text>
-                            <text class="profile-poemid">poemid：{{ userInfo._openid || '未知' }}</text>
+                            <text class="profile-poemid">poemid：{{ userInfo.poemId || '未知' }}</text>
                             <text class="profile-bio-center">{{ userInfo.bio || '这个用户很懒,什么都没留下...' }}</text>
                             <view class="profile-bottom-row">
-                                <text class="profile-followers">被关注数：{{ userInfo.followersCount || 0 }}</text>
+                                <text class="profile-followers">被关注数：{{ followerCount }}</text>
                                 <view class="profile-buttons">
                                     <view class="edit-profile-btn" @tap="navigateToEditProfile">
                                         <text>编辑主页</text>
@@ -364,8 +364,39 @@
 
                     <!-- Portfolio Section -->
                     <view class="portfolio-section" v-if="currentTab === 'portfolio'">
-                        <view class="empty-tip">
-                            <text>作品集页面还没建好，先留空</text>
+                        <!-- 书籍样式的作品集展示 -->
+                        <view class="books-container">
+                            <view class="books-shelf">
+                                <!-- 动态显示作品集书籍 -->
+                                <view 
+                                    v-for="(portfolio, index) in portfolioList" 
+                                    :key="portfolio._id"
+                                    :class="'book book-' + (index + 1)" 
+                                    @tap="openPortfolio(portfolio)"
+                                >
+                                    <view class="book-spine">
+                                        <view class="spine-content">
+                                            <text 
+                                                v-for="(char, charIndex) in portfolio.name.split('')" 
+                                                :key="charIndex"
+                                                class="spine-text"
+                                            >{{ char }}</text>
+                                        </view>
+                                    </view>
+                                </view>
+                                
+                                <!-- 动态黑色横线 -->
+                                <view 
+                                    v-if="portfolioList.length > 0"
+                                    class="shelf-line"
+                                    :style="{ width: (portfolioList.length * 72 + 20) + 'rpx' }"
+                                ></view>
+                                
+                                <!-- 如果没有作品集，显示空状态 -->
+                                <view v-if="portfolioList.length === 0" class="empty-portfolio">
+                                    <text class="empty-text">暂无作品集</text>
+                                </view>
+                            </view>
                         </view>
                     </view>
                 </view>
@@ -463,7 +494,10 @@ export default {
             img: '',
             // 关注统计
             followingCount: 0,
-            followerCount: 0
+            followerCount: 0,
+            
+            // 作品集数据
+            portfolioList: []
         };
     },
     onLoad: function (options) {
@@ -502,6 +536,7 @@ export default {
         console.log('【profile】📊 当前标签:', this.currentTab);
         console.log('【profile】📋 刷新前myPosts长度:', this.myPosts.length);
         console.log('【profile】📋 刷新前favoriteList长度:', this.favoriteList.length);
+        console.log('【profile】📋 刷新前portfolioList长度:', this.portfolioList.length);
 
         if (this.currentTab === 'posts') {
             console.log('【profile】🔄 重置帖子数据状态');
@@ -533,6 +568,18 @@ export default {
             this.loadFavorites(() => {
                 console.log('【profile】✅ 收藏下拉刷新完成，停止刷新动画');
                 console.log('【profile】📊 刷新后favoriteList长度:', this.favoriteList.length);
+                uni.stopPullDownRefresh();
+            });
+        } else if (this.currentTab === 'portfolio') {
+            console.log('【profile】🔄 重置作品集数据状态');
+            this.setData({
+                portfolioList: []
+            });
+
+            console.log('【profile】🔄 开始加载作品集数据');
+            this.loadPortfolios(() => {
+                console.log('【profile】✅ 作品集下拉刷新完成，停止刷新动画');
+                console.log('【profile】📊 刷新后portfolioList长度:', this.portfolioList.length);
                 uni.stopPullDownRefresh();
             });
         }
@@ -657,6 +704,14 @@ export default {
 
             // 检查未读消息数量
             this.checkUnreadMessages();
+
+            // 如果当前是作品集标签页，加载作品集数据
+            if (this.currentTab === 'portfolio') {
+                this.setData({
+                    portfolioList: []
+                });
+                this.loadPortfolios();
+            }
         },
 
         // 强制刷新数据
@@ -1338,6 +1393,9 @@ export default {
             if (tab === 'favorites' && this.favoriteList.length === 0) {
                 // 首次加载收藏数据
                 this.loadFavorites();
+            } else if (tab === 'portfolio') {
+                // 切换到作品集标签页时加载作品集数据
+                this.loadPortfolios();
             }
         },
 
@@ -1699,7 +1757,52 @@ export default {
         // 统一云函数调用方法
         callCloudFunction(name, data = {}, extraOptions = {}) {
             return cloudCall(name, data, Object.assign({ pageTag: 'profile', context: this, requireAuth: true }, extraOptions));
-        }
+        },
+
+        // 打开作品集
+        openPortfolio(portfolio) {
+            console.log('打开作品集:', portfolio);
+            // 跳转到作品集详情页面
+            uni.navigateTo({
+                url: `/pages/portfolio-detail/portfolio-detail?folderId=${portfolio._id}&folderName=${encodeURIComponent(portfolio.name)}`
+            });
+        },
+        
+        // 加载作品集列表
+        async loadPortfolios(cb) {
+            try {
+                // 首先确保用户有默认作品集 - 暂时关闭
+                // await this.ensureDefaultPortfolio();
+
+                const res = await this.callCloudFunction('getPortfolioFolders', {});
+                if (res.result && res.result.success) {
+                    this.setData({
+                        portfolioList: res.result.folders || []
+                    });
+                } else {
+                    console.error('获取作品集失败:', res.result);
+                }
+            } catch (error) {
+                console.error('加载作品集失败:', error);
+            } finally {
+                // 执行回调函数（如果存在）
+                if (typeof cb === 'function') {
+                    cb();
+                }
+            }
+        },
+
+        // 确保用户有默认作品集 - 暂时关闭
+        // async ensureDefaultPortfolio() {
+        //     try {
+        //         const res = await this.callCloudFunction('ensureDefaultPortfolio', {});
+        //         if (res.result && res.result.success) {
+        //             console.log('✅ [profile] 默认作品集检查完成:', res.result.message);
+        //         }
+        //     } catch (error) {
+        //         console.error('❌ [profile] 确保默认作品集失败:', error);
+        //     }
+        // }
     }
 };
 </script>
@@ -2535,4 +2638,149 @@ export default {
     height: 36rpx;
     background-color: #eee;
 }
+
+/* 书籍样式作品集 */
+.books-container {
+    padding: 40rpx 30rpx 0 30rpx;
+    background: #fff;
+    margin: 0 30rpx 30rpx 30rpx;
+    border-radius: 16rpx;
+    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+}
+
+.books-shelf {
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-end;
+    gap: 0;
+    position: relative;
+    padding-bottom: 18rpx;
+}
+
+.shelf-line {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    height: 18rpx;
+    background: #000;
+    border-radius: 4rpx;
+    z-index: 1;
+}
+
+.book {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    position: relative;
+    margin-bottom: 0;
+}
+
+.book:active {
+    transform: scale(0.95);
+}
+
+.book-spine {
+    width: 72rpx;
+    height: 224rpx;
+    border-radius: 20rpx 20rpx 0 0;
+    position: relative;
+    box-shadow: 2rpx 2rpx 8rpx rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.book-1 .book-spine {
+    background: #809076;
+}
+
+.book-2 .book-spine {
+    background: #f9d794;
+}
+
+.book-2 .spine-text {
+    color: #333;
+}
+
+.book-3 .book-spine {
+    background: #2b4139;
+}
+
+.book-4 .book-spine {
+    background: #d4a574;
+}
+
+.book-5 .book-spine {
+    background: #8b7d6b;
+}
+
+.book-6 .book-spine {
+    background: #a4c4bd;
+}
+
+.book-7 .book-spine {
+    background: #c9cfcf;
+}
+
+.book-8 .book-spine {
+    background: #906161;
+}
+
+.book-9 .book-spine {
+    background: #909388;
+}
+
+.book-10 .book-spine {
+    background: #b8a082;
+}
+
+.book-11 .book-spine {
+    background: #7a8471;
+}
+
+.book-12 .book-spine {
+    background: #9b8b7a;
+}
+
+/* 为浅色背景的书脊设置深色文字 */
+.book-2 .spine-text,
+.book-4 .spine-text,
+.book-6 .spine-text,
+.book-7 .spine-text,
+.book-9 .spine-text,
+.book-10 .spine-text,
+.book-11 .spine-text,
+.book-12 .spine-text {
+    color: #333;
+}
+
+.spine-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8rpx;
+}
+
+.spine-text {
+    font-size: 28rpx;
+    font-weight: 300;
+    color: #fff;
+    text-shadow: 0 1rpx 2rpx rgba(0, 0, 0, 0.3);
+    line-height: 1.2;
+}
+
+.empty-portfolio {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200rpx;
+}
+
+.empty-text {
+    font-size: 28rpx;
+    color: #999;
+}
+
 </style>

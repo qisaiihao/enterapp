@@ -97,6 +97,30 @@ exports.main = async (event, context) => {
         }
       });
 
+      // 为新用户创建默认作品集
+      console.log('🔍 [registerUser] 为新用户创建默认作品集');
+      try {
+        await db.collection('portfolios').add({
+          data: {
+            _openid: openid,
+            name: '我的作品集',
+            description: '这是我的默认作品集',
+            itemCount: 0,
+            items: [],
+            createTime: new Date(),
+            updateTime: new Date(),
+            isPublic: false,
+            coverImage: '',
+            tags: [],
+            isDefault: true // 标记为默认作品集
+          }
+        });
+        console.log('✅ [registerUser] 默认作品集创建成功');
+      } catch (portfolioError) {
+        console.error('❌ [registerUser] 创建默认作品集失败:', portfolioError);
+        // 即使创建默认作品集失败，也不影响用户注册流程
+      }
+
       // 获取创建的用户信息
       const newUserRes = await db.collection('users').where({
         _openid: openid

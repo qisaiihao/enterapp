@@ -298,6 +298,12 @@
               "memory": 128
             },
             {
+              "name": "deletePortfolio",
+              "root": "./functions/deletePortfolio",
+              "timeout": 10,
+              "memory": 256
+            },
+            {
               "name": "createDiscussionPost",
               "root": "./functions/createDiscussionPost",
               "timeout": 15,
@@ -306,6 +312,18 @@
             {
               "name": "getDiscussionPosts",
               "root": "./functions/getDiscussionPosts",
+              "timeout": 10,
+              "memory": 256
+            },
+            {
+              "name": "ensureDefaultPortfolio",
+              "root": "./functions/ensureDefaultPortfolio",
+              "timeout": 10,
+              "memory": 256
+            },
+            {
+              "name": "updatePortfolio",
+              "root": "./functions/updatePortfolio",
               "timeout": 10,
               "memory": 256
             }

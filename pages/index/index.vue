@@ -49,8 +49,6 @@
                             <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item._id" hover-class="navigator-hover">
                                 <view class="post-item">
                                     <view class="post-title">{{ item.title }}</view>
-                                    <!-- 诗歌作者信息 -->
-                                    <view v-if="item.isPoem && item.author" class="poem-author">{{ item.author }}</view>
 
                                     <!-- 图片显示逻辑 (已优化，使用 imageStyle 占位) -->
                                     <view
@@ -163,8 +161,6 @@
                             <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item._id" hover-class="navigator-hover">
                                 <view class="post-item">
                                     <view class="post-title">{{ item.title }}</view>
-                                    <!-- 诗歌作者信息 -->
-                                    <view v-if="item.isPoem && item.author" class="poem-author">{{ item.author }}</view>
 
                                     <!-- 图片显示逻辑 (已优化，使用 imageStyle 占位) -->
                                     <view
@@ -277,8 +273,6 @@
                             <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item._id" hover-class="navigator-hover">
                                 <view class="post-item">
                                     <view class="post-title">{{ item.title }}</view>
-                                    <!-- 诗歌作者信息 -->
-                                    <view v-if="item.isPoem && item.author" class="poem-author">{{ item.author }}</view>
 
                                     <!-- 图片显示逻辑 (已优化，使用 imageStyle 占位) -->
                                     <view
@@ -409,7 +403,7 @@ const avatarCache = require('../../utils/avatarCache');
 const followCache = require('../../utils/followCache');
 import { getUnreadCount } from '@/api-cache/unread.js';
 import { getDiscoverFeed, invalidateDiscover } from '@/api-cache/discover.js';
-import { getHomePosts } from '@/api-cache/home-posts.js';
+import { getHomePosts, invalidateHomePosts } from '@/api-cache/home-posts.js';
 import { hydrateTempUrls, warmTempUrlsFromPosts } from '@/_utils/hydrate-temp-urls';
 const { previewImage } = require('../../utils/imagePreview.js');
 const { normalizePostList } = require('../../utils/postNormalizer.js');
@@ -553,8 +547,17 @@ export default {
     onPullDownRefresh: function () {
         console.log('🔍 [首页] 下拉刷新触发，当前页面:', this.currentPage);
         if (this.currentPage === 'home') {
-            // 主页刷新
-            console.log('🔍 [首页] 执行主页刷新');
+            // 主页刷新 - 清除缓存并强制调用云函数
+            console.log('🔍 [首页] 执行主页刷新，清除缓存');
+            
+            // 清除首页缓存
+            try {
+                invalidateHomePosts({});
+                console.log('✅ [首页] 已清除首页缓存');
+            } catch (e) {
+                console.error('❌ [首页] 清除首页缓存失败:', e);
+            }
+            
             this.setData(
                 {
                     postList: [],
@@ -1262,14 +1265,29 @@ onReachBottom: function () {
 
             // 只有当水平滑动距离足够大，且滑动角度接近水平（小于45度）时才翻页
             if (distance > 80 && Math.abs(diffX) > 50 && angle < 45) {
-                if (diffX > 0) {
-                    // 左滑：切换回主页
-                    console.log('左滑切换回主页');
-                    this.switchToHome();
-                } else {
-                    // 右滑：切换到发现页
-                    console.log('右滑切换到发现页');
-                    this.switchToDiscover();
+                const currentPage = this.currentPage;
+                
+                if (currentPage === 'home') {
+                    // 主页：右滑进入发现页
+                    if (diffX < 0) {
+                        console.log('主页右滑切换到发现页');
+                        this.switchToDiscover();
+                    }
+                } else if (currentPage === 'discover') {
+                    // 发现页：左滑进入广场，右滑进入讨论
+                    if (diffX > 0) {
+                        console.log('发现页左滑切换到广场');
+                        this.switchToHome();
+                    } else if (diffX < 0) {
+                        console.log('发现页右滑切换到讨论');
+                        this.switchToDiscussion();
+                    }
+                } else if (currentPage === 'discussion') {
+                    // 讨论页：左滑进入发现
+                    if (diffX > 0) {
+                        console.log('讨论页左滑切换到发现页');
+                        this.switchToDiscover();
+                    }
                 }
             }
         },
@@ -1283,8 +1301,9 @@ onReachBottom: function () {
             console.log('切换到发现页');
             this.setData({
                 currentPage: 'discover',
+                currentTab: 'discover',
                 showPageIndicator: true,
-                pageIndicatorText: '发现页'
+                pageIndicatorText: '发现'
             });
 
             // 加载发现页数据（如果还没有）
@@ -1312,9 +1331,40 @@ onReachBottom: function () {
             console.log('切换回主页');
             this.setData({
                 currentPage: 'home',
+                currentTab: 'square',
                 showPageIndicator: true,
-                pageIndicatorText: '主页'
+                pageIndicatorText: '广场'
             });
+
+            // 3秒后隐藏提示
+            setTimeout(() => {
+                this.setData({
+                    showPageIndicator: false
+                });
+            }, 3000);
+        },
+
+        // 切换到讨论页
+        switchToDiscussion: function () {
+            if (this.currentPage === 'discussion') {
+                console.log('已经在讨论页，无需切换');
+                return;
+            }
+            console.log('切换到讨论页');
+            this.setData({
+                currentPage: 'discussion',
+                currentTab: 'discussion',
+                showPageIndicator: true,
+                pageIndicatorText: '讨论'
+            });
+
+            // 如果讨论页还没有数据，加载讨论页数据
+            if (this.discussionPostList.length === 0) {
+                console.log('开始加载讨论页数据');
+                this.loadDiscussionPosts();
+            } else {
+                console.log('讨论页已有数据，直接切换');
+            }
 
             // 3秒后隐藏提示
             setTimeout(() => {
@@ -1608,7 +1658,13 @@ onReachBottom: function () {
         refreshIndexData: function () {
             console.log('【index】开始刷新广场页数据');
 
-            // 清除缓存：现由 CacheManager 接管，无需手动 dataCache 清理
+            // 清除首页缓存
+            try {
+                invalidateHomePosts({});
+                console.log('✅ [index] 已清除首页缓存');
+            } catch (e) {
+                console.error('❌ [index] 清除首页缓存失败:', e);
+            }
 
             // 重置状态
             this.setData({

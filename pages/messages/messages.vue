@@ -121,6 +121,7 @@
 const app = getApp();
 const { formatTimeAgo } = require('../../utils/time');
 const { cloudCall } = require('../../utils/cloudCall.js');
+const { invalidateUnread } = require('../../api-cache/unread.js');
 export default {
     data() {
         return {
@@ -144,6 +145,9 @@ export default {
         } else {
             this.checkUnreadCount();
         }
+        
+        // 清除未读消息缓存，确保其他页面的小红点能及时更新
+        invalidateUnread();
     },
     onPullDownRefresh: function () {
         this.setData({
@@ -294,6 +298,10 @@ export default {
                             messages: updatedMessages,
                             unreadCount: Math.max(0, this.unreadCount - messageIds.length)
                         });
+                        
+                        // 清除未读消息缓存，让其他页面的小红点消失
+                        invalidateUnread();
+                        console.log('【messages】已清除未读消息缓存');
                     }
                 }).catch((err) => {
                     console.error('标记消息为已读失败:', err);
@@ -359,6 +367,11 @@ export default {
                                         hasMore: false,
                                         unreadCount: 0
                                     });
+                                    
+                                    // 清除未读消息缓存，让其他页面的小红点消失
+                                    invalidateUnread();
+                                    console.log('【messages】清空消息后已清除未读消息缓存');
+                                    
                                     uni.showToast({
                                         title: '已清空',
                                         icon: 'success'

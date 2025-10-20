@@ -53,6 +53,7 @@ exports.main = async (event, context) => {
         occupation: 1,
         region: 1,
         signatureUrl: 1, // 添加签名URL字段
+        poemId: 1, // 添加poemId字段
         // 不返回私人信息如生日、年龄等
         posts: 1
       })
@@ -191,7 +192,8 @@ exports.main = async (event, context) => {
         occupation: userInfo.occupation || '',
         region: userInfo.region || '',
         bio: userInfo.bio || '这个用户很懒，什么都还没留下...',
-        signatureUrl: userInfo.signatureUrl || '' // 添加签名URL字段
+        signatureUrl: userInfo.signatureUrl || '', // 添加签名URL字段
+        poemId: userInfo.poemId || '' // 添加poemId字段
       },
       posts: posts
     };

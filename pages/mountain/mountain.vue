@@ -18,7 +18,7 @@
 
       <view id="post-list-container">
         <view v-for="(item, index) in postList" :key="item._id || index" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
-          <view class="post-content-navigator" @tap="togglePostExpansion" :data-index="index">
+          <view class="post-content-navigator" @tap="togglePostExpansion" @longpress="onLongPressCard" :data-index="index" :data-postid="item._id">
             <view class="post-item">
               <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.highlightLines || item.highlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.content" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
                 <block v-if="item.isExpanded">
@@ -322,6 +322,12 @@ export default {
         uni.showToast({ title: '操作失败', icon: 'none' });
       } finally {
         this.setData({ [`votingInProgress.${postId}`]: false });
+      }
+    },
+    onLongPressCard(e) {
+      const postId = e.currentTarget.dataset.postid;
+      if (postId) {
+        uni.navigateTo({ url: `/pages/post-detail/post-detail?id=${postId}` });
       }
     },
     touchStart() {},

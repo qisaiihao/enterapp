@@ -54,6 +54,31 @@ exports.main = async (event, context) => {
       await db.collection('users').add({
         data: createData
       })
+
+      // 为新用户创建默认作品集
+      console.log('🔍 [createUser] 为新用户创建默认作品集');
+      try {
+        await db.collection('portfolios').add({
+          data: {
+            _openid: openid,
+            name: '我的作品集',
+            description: '这是我的默认作品集',
+            itemCount: 0,
+            items: [],
+            createTime: new Date(),
+            updateTime: new Date(),
+            isPublic: false,
+            coverImage: '',
+            tags: [],
+            isDefault: true // 标记为默认作品集
+          }
+        });
+        console.log('✅ [createUser] 默认作品集创建成功');
+      } catch (portfolioError) {
+        console.error('❌ [createUser] 创建默认作品集失败:', portfolioError);
+        // 即使创建默认作品集失败，也不影响用户创建流程
+      }
+
       return { success: true, message: '用户创建成功' }
     }
   } catch (e) {

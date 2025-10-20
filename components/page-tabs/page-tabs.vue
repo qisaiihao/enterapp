@@ -11,6 +11,7 @@
         </view>
         <view class="top-item" @tap="navigateToMessages">
           <image class="top-icon" src="/static/images/messages.png" mode="aspectFit"></image>
+          <view v-if="unreadMessageCount > 0" class="unread-dot"></view>
         </view>
       </view>
     </view>
@@ -271,5 +272,17 @@ export default {
   border-radius: 3rpx;
   transition: all 0.3s ease;
 }
-</style>
+
+/* 未读消息小红点 */
+.unread-dot {
+  position: absolute;
+  top: 8rpx;
+  right: 8rpx;
+  width: 16rpx;
+  height: 16rpx;
+  background-color: #ff6b6b;
+  border-radius: 50%;
+  border: 2rpx solid #ffffff;
+  z-index: 10;
+}
 </style>

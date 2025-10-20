@@ -173,7 +173,7 @@
       "path": "pages/portfolio/portfolio",
       "style": {
         "usingComponents": {},
-        "navigationBarTitleText": "作品集",
+        "navigationStyle": "custom",
         "enablePullDownRefresh": true
       }
     },
@@ -181,7 +181,7 @@
       "path": "pages/portfolio-detail/portfolio-detail",
       "style": {
         "usingComponents": {},
-        "navigationBarTitleText": "作品集详情",
+        "navigationStyle": "custom",
         "enablePullDownRefresh": true
       }
     },

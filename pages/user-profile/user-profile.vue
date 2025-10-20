@@ -4,57 +4,31 @@
     <view class="container">
 
         <!-- 主要内容 -->
-        <view>
-            <!-- 用户信息头部 -->
-            <view class="profile-header">
-                <!-- 顶部操作栏 -->
-                <view class="header-actions">
-                    <view class="action-btn"></view>
-                    <view class="action-btn"></view>
+        <view class="main-content">
+            <!-- User Profile Card -->
+            <view class="profile-card profile-card-center">
+                <view class="profile-avatar-large">
+                    <image :src="userInfo.avatarUrl || '/static/images/avatar.png'" mode="aspectFill" @error="onAvatarError"></image>
                 </view>
-
-                <!-- 用户头像 -->
-                <view class="avatar-section">
-                    <view class="avatar-wrapper">
-                        <image
-                            class="user-avatar"
-                            :src="userInfo.avatarUrl || '/images/avatar.png'"
-                            mode="aspectFill"
-                            @error="onAvatarError"
-                        ></image>
-                    </view>
-                </view>
-
-                <!-- 用户信息 -->
-                <view class="user-info">
-                    <view class="username">{{ userInfo.nickName || '微信用户' }}</view>
-                    <view class="user-bio">{{ userInfo.bio || '这个用户很懒，什么都没留下...' }}</view>
-
-                    <!-- 关注统计 -->
-                    <view class="follow-stats">
-                        <view class="stat-item">
-                            <view class="stat-number">{{ userInfo.followingCount || 0 }}</view>
-                            <view class="stat-label">关注</view>
+                <view class="profile-info-center">
+                    <text class="profile-name-center">{{ userInfo.nickName || '微信用户' }}</text>
+                    <text class="profile-poemid">poemid：{{ userInfo.poemId || '未知' }}</text>
+                    <text class="profile-bio-center">{{ userInfo.bio || '这个用户很懒,什么都没留下...' }}</text>
+                    <view class="profile-bottom-row">
+                        <text class="profile-followers">被关注数：{{ followerCount }}</text>
+                        <view class="profile-buttons">
+                            <button
+                                v-if="showFollowButton"
+                                :class="'follow-btn ' + (isFollowing ? 'following' : '')"
+                                @tap="onFollowTap"
+                                :loading="followPending"
+                                :disabled="followPending"
+                            >
+                                {{ isFollowing ? '已关注' : '关注' }}
+                            </button>
+                            <view v-if="isMutualFollow" class="mutual-indicator">互相关注</view>
+                            <view v-else-if="isFollowedByTarget" class="followed-indicator">TA关注了你</view>
                         </view>
-                        <view class="stat-item">
-                            <view class="stat-number">{{ userInfo.followersCount || 0 }}</view>
-                            <view class="stat-label">被关注</view>
-                        </view>
-                    </view>
-
-                    <!-- 关注按钮 -->
-                    <view class="follow-section">
-                        <button
-                            v-if="showFollowButton"
-                            :class="'follow-btn ' + (isFollowing ? 'following' : '')"
-                            @tap="onFollowTap"
-                            :loading="followPending"
-                            :disabled="followPending"
-                        >
-                            {{ isFollowing ? '已关注' : '关注' }}
-                        </button>
-                        <view v-if="isMutualFollow" class="mutual-indicator">互相关注</view>
-                        <view v-else-if="isFollowedByTarget" class="followed-indicator">TA关注了你</view>
                     </view>
                 </view>
             </view>
@@ -198,7 +172,11 @@ export default {
             isMutualFollow: false,
             followPending: false,
             imgindex: 0,
-            imageUrl: ''
+            imageUrl: '',
+
+            // 关注数统计
+            followingCount: 0,
+            followerCount: 0
         };
     },
     onLoad: function (options) {
@@ -241,6 +219,13 @@ export default {
         } catch (err) {}
     },
     onPullDownRefresh: function () {
+        console.log('【用户主页】下拉刷新触发');
+        
+        // 清除用户信息缓存
+        invalidateUserInfo(this.targetUserId);
+        // 清除用户帖子缓存
+        invalidateUserPosts(this.targetUserId);
+        
         this.setData({
             userPosts: [],
             page: 0,
@@ -279,6 +264,7 @@ export default {
                 });
                 avatarCache.updateUserAvatar(this.targetUserId, userInfo);
                 this.prepareFollowStateWithCache();
+                this.fetchFollowCounts();
                 uni.setNavigationBarTitle({ title: userInfo.nickName || '用户主页' });
             }).catch((err) => {
                 console.error('【用户主页】缓存加载失败', err);
@@ -473,6 +459,37 @@ export default {
 
         onAvatarError: function (e) {
             console.error('头像加载失败:', e.detail);
+        },
+
+        // 获取关注数统计
+        fetchFollowCounts: function () {
+            if (!this.targetUserId) {
+                return;
+            }
+            
+            this.callCloudFunction('follow', {
+                action: 'getFollowCounts',
+                targetOpenid: this.targetUserId
+            }).then((res) => {
+                if (res.result && res.result.success) {
+                    this.setData({
+                        followingCount: res.result.followingCount || 0,
+                        followerCount: res.result.followerCount || 0
+                    });
+                } else {
+                    console.warn('获取关注数失败', res.result);
+                    this.setData({
+                        followingCount: 0,
+                        followerCount: 0
+                    });
+                }
+            }).catch((err) => {
+                console.error('获取关注数调用失败:', err);
+                this.setData({
+                    followingCount: 0,
+                    followerCount: 0
+                });
+            });
         }
     }
 };
@@ -484,121 +501,124 @@ export default {
     background-color: #f7f8fa;
 }
 
-/* 加载状态 */
-.loading-container {
+/* Main Content */
+.main-content {
+    width: 100%;
+    min-height: 100vh;
+    background-color: #f7f8fa;
+}
+
+/* User Profile Card */
+.profile-card {
+    margin: 30rpx;
+    padding: 40rpx;
+    background-color: #fff;
+    border-radius: 16rpx;
+    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: flex-start;
+    transition: box-shadow 0.2s ease;
+}
+
+.profile-card:active {
+    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+}
+
+.profile-card-center {
+    position: relative;
+    margin: 0;
+    padding: 40rpx 40rpx 20rpx 40rpx;
+    background-color: transparent;
+    border-radius: 0;
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: visible;
+}
+
+.profile-avatar-large {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 400rpx;
-    background-color: #fff;
-    border-radius: 16rpx;
-    margin: 30rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    margin: 70rpx 0 40rpx 0;
 }
 
-.loading-text {
-    font-size: 28rpx;
-    color: #999;
+.profile-avatar-large image {
+    width: 175rpx;
+    height: 175rpx;
+    border-radius: 50%;
+    display: block;
 }
 
-/* 用户信息头部 */
-.profile-header {
-    background-color: #ffffff;
-    padding: 0 30rpx 40rpx 30rpx;
-    position: relative;
+.profile-info-center {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-top: 20rpx;
+    width: 100%;
 }
 
-.header-actions {
+.profile-name-center {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 30rpx;
+    line-height: 36rpx;
+    color: #000000;
+    margin-bottom: 20rpx;
+    text-align: left;
+}
+
+.profile-poemid {
+    font-family: 'Inter', sans-serif;
+    font-weight: 300;
+    font-size: 20rpx;
+    line-height: 24rpx;
+    color: #989090;
+    margin-bottom: 20rpx;
+}
+
+.profile-bio-center {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 24rpx;
+    line-height: 30rpx;
+    color: #000000;
+    text-align: left;
+    margin-bottom: 20rpx;
+}
+
+.profile-bottom-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20rpx 0;
-    height: 80rpx;
+    width: 100%;
+    margin-bottom: 10rpx;
 }
 
-.action-btn {
-    width: 40rpx;
-    height: 40rpx;
-    background-color: #f5f5f5;
-    border-radius: 20rpx;
-}
-
-.avatar-section {
+.profile-buttons {
     display: flex;
-    justify-content: center;
-    margin: 20rpx 0 30rpx 0;
-}
-
-.avatar-wrapper {
-    position: relative;
-}
-
-.user-avatar {
-    width: 120rpx;
-    height: 120rpx;
-    border-radius: 60rpx;
-    background-color: #f0f0f0;
-}
-
-.user-info {
-    text-align: center;
-}
-
-.username {
-    font-size: 32rpx;
-    font-weight: 600;
-    color: #000000;
-    margin-bottom: 12rpx;
-}
-
-.user-bio {
-    font-size: 24rpx;
-    color: #666666;
-    line-height: 1.4;
-    margin-bottom: 30rpx;
-    padding: 0 40rpx;
-}
-
-.follow-stats {
-    display: flex;
-    justify-content: center;
-    gap: 80rpx;
-    margin-bottom: 30rpx;
-}
-
-.stat-item {
-    text-align: center;
-}
-
-.stat-number {
-    font-size: 28rpx;
-    font-weight: 600;
-    color: #000000;
-    margin-bottom: 4rpx;
-}
-
-.stat-label {
-    font-size: 22rpx;
-    color: #999999;
-}
-
-.follow-section {
-    display: flex;
-    justify-content: center;
     align-items: center;
-    gap: 20rpx;
+    gap: 10rpx;
+}
+
+.profile-followers {
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    font-size: 24rpx;
+    line-height: 30rpx;
+    color: #666666;
 }
 
 .follow-btn {
-    padding: 0 40rpx;
-    height: 56rpx;
-    line-height: 56rpx;
+    padding: 8rpx 24rpx;
     background-color: #007aff;
     color: #ffffff;
     border: none;
-    border-radius: 28rpx;
-    font-size: 26rpx;
+    border-radius: 20rpx;
+    font-size: 24rpx;
     font-weight: 500;
+    min-width: 80rpx;
 }
 
 .follow-btn.following {

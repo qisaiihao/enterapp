@@ -24,25 +24,15 @@
         <view
           v-for="folder in folders"
           :key="folder._id"
-          class="folder-item"
+          class="folder-item-simple"
           @tap="openFolder(folder)"
         >
-          <view class="folder-cover">
-            <image
-              v-if="folder.coverUrl"
-              :src="folder.coverUrl"
-              mode="aspectFill"
-              class="cover-image"
-            ></image>
-            <view v-else class="default-cover">
-              <text class="folder-icon">📚</text>
-            </view>
-          </view>
-          <view class="folder-info">
+          <view class="folder-content">
             <text class="folder-name">{{ folder.name }}</text>
             <text class="folder-count">{{ folder.itemCount }} 个作品</text>
           </view>
           <view class="folder-actions">
+            <text class="action-btn edit" @tap.stop="editFolderName(folder)">编辑</text>
             <text class="action-btn delete" @tap.stop="deleteFolder(folder)">删除</text>
           </view>
         </view>
@@ -71,6 +61,28 @@
         </view>
       </view>
     </view>
+
+    <!-- 编辑作品集弹窗 -->
+    <view v-if="showEditModal" class="modal-overlay" @tap="hideEditModal">
+      <view class="modal-content" @tap.stop>
+        <view class="modal-header">
+          <text class="modal-title">修改作品集名字</text>
+          <text class="close-btn" @tap="hideEditModal">×</text>
+        </view>
+        <view class="modal-body">
+          <input
+            class="folder-name-input"
+            v-model="editingFolderName"
+            placeholder="请输入作品集名称"
+            maxlength="20"
+          />
+        </view>
+        <view class="modal-footer">
+          <button class="modal-btn cancel" @tap="hideEditModal">取消</button>
+          <button class="modal-btn confirm" @tap="saveFolderName" :disabled="!editingFolderName.trim()">保存</button>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -84,12 +96,24 @@ export default {
       loading: false,
       hasMore: false,
       showCreateModal: false,
-      newFolderName: ''
+      newFolderName: '',
+      // 编辑相关
+      showEditModal: false,
+      editingFolder: null,
+      editingFolderName: ''
     };
   },
 
   onLoad() {
     this.loadFolders();
+  },
+
+  onPullDownRefresh() {
+    console.log('【portfolio】下拉刷新开始');
+    this.loadFolders(() => {
+      console.log('【portfolio】下拉刷新完成，停止刷新动画');
+      uni.stopPullDownRefresh();
+    });
   },
 
   methods: {
@@ -102,14 +126,18 @@ export default {
       uni.navigateBack();
     },
 
-    async loadFolders() {
-      if (this.loading) return;
+    async loadFolders(callback) {
+      if (this.loading) {
+        if (typeof callback === 'function') callback();
+        return;
+      }
 
       this.loading = true;
       try {
         const res = await this.callCloudFunction('getPortfolioFolders', {});
         if (res.result && res.result.success) {
           this.folders = res.result.folders || [];
+          console.log('【portfolio】作品集加载成功，数量:', this.folders.length);
         } else {
           uni.showToast({
             title: '获取作品集失败',
@@ -124,6 +152,10 @@ export default {
         });
       } finally {
         this.loading = false;
+        // 执行回调函数（用于下拉刷新完成后停止动画）
+        if (typeof callback === 'function') {
+          callback();
+        }
       }
     },
 
@@ -191,6 +223,79 @@ export default {
     },
 
 
+    // 编辑作品集名字
+    editFolderName(folder) {
+      console.log('编辑作品集:', folder);
+      this.setData({
+        showEditModal: true,
+        editingFolder: folder,
+        editingFolderName: folder.name
+      });
+    },
+
+    // 隐藏编辑弹窗
+    hideEditModal() {
+      this.setData({
+        showEditModal: false,
+        editingFolder: null,
+        editingFolderName: ''
+      });
+    },
+
+    // 保存作品集名字
+    async saveFolderName() {
+      if (!this.editingFolderName.trim()) {
+        uni.showToast({
+          title: '请输入作品集名称',
+          icon: 'none'
+        });
+        return;
+      }
+
+      try {
+        uni.showLoading({ title: '保存中...' });
+        
+        const res = await this.callCloudFunction('updatePortfolio', {
+          portfolioId: this.editingFolder._id,
+          name: this.editingFolderName.trim()
+        });
+
+        if (res.result && res.result.success) {
+          uni.showToast({
+            title: '修改成功',
+            icon: 'success'
+          });
+          
+          // 更新本地作品集列表
+          const updatedList = this.folders.map(folder => {
+            if (folder._id === this.editingFolder._id) {
+              return { ...folder, name: this.editingFolderName.trim() };
+            }
+            return folder;
+          });
+          
+          this.setData({
+            folders: updatedList
+          });
+          
+          this.hideEditModal();
+        } else {
+          uni.showToast({
+            title: res.result.message || '修改失败',
+            icon: 'none'
+          });
+        }
+      } catch (error) {
+        console.error('修改作品集名字失败:', error);
+        uni.showToast({
+          title: '修改失败',
+          icon: 'none'
+        });
+      } finally {
+        uni.hideLoading();
+      }
+    },
+
     async deleteFolder(folder) {
       if (folder.isDefault) {
         uni.showToast({
@@ -207,11 +312,23 @@ export default {
           if (res.confirm) {
             try {
               uni.showLoading({ title: '删除中...' });
-              // TODO: 实现删除作品集的云函数
-              uni.showToast({
-                title: '删除功能开发中',
-                icon: 'none'
+              const result = await this.callCloudFunction('deletePortfolio', {
+                portfolioId: folder._id
               });
+
+              if (result.result && result.result.success) {
+                uni.showToast({
+                  title: '删除成功',
+                  icon: 'success'
+                });
+                // 重新加载作品集列表
+                this.loadFolders();
+              } else {
+                uni.showToast({
+                  title: result.result?.message || '删除失败',
+                  icon: 'none'
+                });
+              }
             } catch (error) {
               console.error('删除作品集失败:', error);
               uni.showToast({
@@ -231,7 +348,7 @@ export default {
 
 <style>
 .portfolio-page {
-  height: 100vh;
+  min-height: 100vh;
   background: #f8f9fa;
   display: flex;
   flex-direction: column;
@@ -280,7 +397,9 @@ export default {
 
 .portfolio-list {
   flex: 1;
-  padding: 30rpx;
+  padding: 30rpx 30rpx 30rpx 15rpx;
+  height: 0;
+  overflow: hidden;
 }
 
 .loading {
@@ -317,51 +436,25 @@ export default {
 .folder-grid {
   display: flex;
   flex-direction: column;
-  gap: 30rpx;
 }
 
-.folder-item {
-  background: #fff;
-  border-radius: 20rpx;
-  padding: 30rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
+.folder-item-simple {
+  padding: 30rpx 0;
   display: flex;
   align-items: center;
-  gap: 30rpx;
-}
-
-.folder-cover {
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 16rpx;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.cover-image {
+  justify-content: space-between;
+  border-bottom: 1rpx solid #f0f0f0;
   width: 100%;
-  height: 100%;
+  box-sizing: border-box;
+  margin-right: 0;
+  padding-right: 0;
 }
 
-.default-cover {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.folder-icon {
-  font-size: 60rpx;
-  color: #fff;
-}
-
-.folder-info {
+.folder-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 10rpx;
+  gap: 8rpx;
 }
 
 .folder-name {
@@ -377,14 +470,27 @@ export default {
 
 .folder-actions {
   display: flex;
-  gap: 20rpx;
+  gap: 8rpx;
+  flex-shrink: 0;
+  margin-right: -10rpx;
+  padding-right: 10rpx;
+  position: relative;
+  right: 0;
 }
 
 .action-btn {
-  font-size: 26rpx;
+  font-size: 20rpx;
   color: #9ed7ee;
-  padding: 10rpx 20rpx;
-  border-radius: 12rpx;
+  padding: 8rpx 12rpx;
+  border-radius: 6rpx;
+  background: rgba(158, 215, 238, 0.1);
+  white-space: nowrap;
+  min-width: 60rpx;
+  text-align: center;
+}
+
+.action-btn.edit {
+  color: #9ed7ee;
   background: rgba(158, 215, 238, 0.1);
 }
 
