@@ -256,6 +256,7 @@ export default {
         const res = await this.callCloudFunction('getPostList', {
           skip: this.page * PAGE_SIZE,
           limit: PAGE_SIZE,
+          excludeAnonymous: true,
           isPoem: true,       // 山页面：只获取诗歌类型的内容
           isOriginal: false   // 只获取非原创内容（山诗）
         });
