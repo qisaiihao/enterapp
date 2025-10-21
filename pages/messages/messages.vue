@@ -169,6 +169,12 @@ export default {
         // 滚动到顶部时的处理，可以用于刷新
         console.log('滚动到顶部');
     },
+    watch: {
+        // 本页未读数更新时，广播给全局（驱动小红点即时消失）
+        unreadCount(n) {
+            try { const { emitUnreadChanged } = require('../../utils/events.js'); emitUnreadChanged({ count: typeof n === 'number' ? n : 0 }); } catch (_) {}
+        }
+    },
     methods: {
         // 统一云函数调用方法
         callCloudFunction(name, data = {}, extraOptions = {}) {
@@ -652,4 +658,3 @@ export default {
     }
 }
 </style>
-

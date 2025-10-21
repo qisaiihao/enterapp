@@ -20,6 +20,7 @@
 
 <script>
 import { getUnreadCount } from '@/api-cache/unread.js';
+import { EVENTS } from '@/utils/events.js';
 
 export default {
   data() {
@@ -33,6 +34,21 @@ export default {
     this.checkUnreadMessageCount();
     // 获取安全区域高度
     this.getSafeAreaTop();
+    // 订阅未读变化，跨页面保持一致
+    try {
+      if (typeof uni !== 'undefined' && uni.$on) {
+        this.__onUnreadChanged = ({ count, delta } = {}) => {
+          let next = this.unreadMessageCount || 0;
+          if (typeof count === 'number') next = count;
+          if (typeof delta === 'number') next = Math.max(0, next + delta);
+          this.unreadMessageCount = next;
+        };
+        uni.$on(EVENTS.UNREAD_CHANGED, this.__onUnreadChanged);
+      }
+    } catch (_) {}
+  },
+  beforeDestroy() {
+    try { if (this.__onUnreadChanged && uni && uni.$off) uni.$off(EVENTS.UNREAD_CHANGED, this.__onUnreadChanged); } catch (_) {}
   },
   methods: {
     // 获取安全区域高度
@@ -199,9 +215,10 @@ export default {
   right: 4rpx;
   width: 16rpx;
   height: 16rpx;
-  background-color: #ff4757;
+  background-color: #ff6b6b;
   border-radius: 50%;
-  border: 2rpx solid #fff;
+  border: 2rpx solid #ffffff;
+  z-index: 10;
   animation: pulse 2s infinite;
 }
 

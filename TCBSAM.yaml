@@ -1,0 +1,911 @@
+TCBSAMFormatVersion: '2020-06-15'
+License: MIT
+Description: 基于 CloudBase Framework 构建
+Category: CloudApp
+Tags: []
+SourceUrl: 'https://github.com/Tencent/cloudbase-framework'
+ReleaseNotesUrl: 'https://github.com/Tencent/cloudbase-framework/releases'
+IconUrl: >-
+  https://main.qcloudimg.com/raw/f87b49914efe502722f9aa128f5d8865/hello_world.svg
+IntroUrl: 'https://cloud.tencent.com/document/product/876/44547'
+ChangeLog:
+  - Title: 1.0.0
+    Content:
+      - 初次发布
+Author:
+  AuthorName: Tencent CloudBase
+  Email: cloudbase@tencent.com
+  Url: 'https://github.com/Tencent/cloudbase-framework'
+Contributors:
+  - AuthorName: Tencent CloudBase
+    Email: cloudbase@tencent.com
+    Url: 'https://github.com/Tencent/cloudbase-framework'
+Name: uni-app
+Version: 1.0.0
+DisplayName: uni-app
+Globals:
+  Environment:
+    Variables: {}
+SourceDir: .
+EntryPoint: []
+Resources:
+  Addcomment:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: addComment
+      MemorySize: 256
+      Timeout: 10
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://2e1b2e49054942a8a032114f5d346550.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Checkduplicatepoem:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: checkDuplicatePoem
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://fe924e02543c434caee68c41ea2b7d49.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Clearallmessages:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: clearAllMessages
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://868f0940b9f040938ef1ecee524094f6.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Clearcollection:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: clearCollection
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://010f39143962441680b3ec3948531c8b.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Contentcheck:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: contentCheck
+      MemorySize: 512
+      Timeout: 20
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://6a651445db9545f4ac773fcbd4f39439.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Createuser:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: createUser
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://f584973425184aabb160f3af61d1eebd.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Deletecomment:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: deleteComment
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://ec7167de2c14425a89f53e27b3354b99.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Deletemessage:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: deleteMessage
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://c154cc9b6ba2411b9915a21120d87363.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Deletepost:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: deletePost
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://846c325d7301462ea6b26a95aa01fe14.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Feedbackmanager:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: feedbackManager
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://d6087ec009644785b4385d129e45e8cc.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Follow:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: follow
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://4586e7104da44635b5c7fa11589b2262.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Getalltags:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: getAllTags
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://1f1aff245ac64c9a9feae65857267ef4.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Getbatchfollowstatus:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: getBatchFollowStatus
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://5cb9e4a2ccc6410aac006b7dc996c7c2.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Getbatchuserprofiles:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: getBatchUserProfiles
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://a32c31063b6d4c9ba1ceab582eef062f.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Getcomments:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: getComments
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://221abebcccd84e54b998d13272f624f2.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Gethotfeed:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: getHotFeed
+      MemorySize: 512
+      Timeout: 15
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://cba158efcc9f468b954d8480bff90d0b.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Getmessages:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: getMessages
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://7d6c470f483e4428aaef24874ac91463.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Getmylikedposts:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: getMyLikedPosts
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://0b790c5dbf2f43f4bcf03b301010f71d.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Getmyprofiledata:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: getMyProfileData
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://5ac66948e7bb4e50b6a02556bae1ff37.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Getopenid:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: getOpenId
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://6aaa088734fc45289fa025abd13f6a00.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Getpersonalizedfeed:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: getPersonalizedFeed
+      MemorySize: 512
+      Timeout: 15
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://da1828ab64144972b780c223443ac098.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Getpostdetail:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: getPostDetail
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://76e2cdff194949fcb708206f588873b9.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Getpostlist:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: getPostList
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://785594952eb84835b3d69f3b8ca75997.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Getrecommendationfeed:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: getRecommendationFeed
+      MemorySize: 512
+      Timeout: 15
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://13ccb8cc697e402c884222e4e5077850.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Getunreadmessagecount:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: getUnreadMessageCount
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://de4735edf2a54813889a720625aa4fc6.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Getuserprofile:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: getUserProfile
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://29f4e21c1a2644ec985a4f35cd0032ff.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Imagemanager:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: imageManager
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://9bcd7507a521496bb88c1b0e9915e44a.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Likecomment:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: likeComment
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://825b54faa7ba47dca79f1b341f671885.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Login:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: login
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://48610ce0f1e544329a1c93144a4bbe29.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Loginwithcredentials:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: loginWithCredentials
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://35fde56ce86e4a61a00d8890e3dc5cee.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Markmessagesasread:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: markMessagesAsRead
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://9180155c2bf14c10b88cc814219eb8c7.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Recordview:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: recordView
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://a7f3e2edea604781b0e57c6f50a0e943.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Registeruser:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: registerUser
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://6a11e3c1a3dd476996d893bf346008cb.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Searchposts:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: searchPosts
+      MemorySize: 256
+      Timeout: 10
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://9ca68168a12846b1ba160cc83f331a17.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Updateuser:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: updateUser
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://04f609ac54a94c00b041a51e63238a2a.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Updateuserprofile:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: updateUserProfile
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://63482775e18442a68b8ffec70420fde0.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Upload:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: upload
+      MemorySize: 512
+      Timeout: 30
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://7af3c10f4de3498e8238b4e964915d52.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Uploadavatar:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: uploadAvatar
+      MemorySize: 512
+      Timeout: 30
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://9025ec4667dd4c5783b5d023d4bbf97b.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Vote:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: vote
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://d96d7baa50334707be27421b055fd14f.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Backfillpostmetadata:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: backfillPostMetadata
+      MemorySize: 256
+      Timeout: 60
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://7816645ba86842cc90731e31062dc7e2.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  MigrateUserId:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: migrate_user_id
+      MemorySize: 256
+      Timeout: 60
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://1009d0a08745400090b44c932a5c5c04.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Getportfoliofolders:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: getPortfolioFolders
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://f8dd9446131940af9f6370e2e7be1530.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Createportfolio:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: createPortfolio
+      MemorySize: 256
+      Timeout: 10
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: false
+      CodeUri: 'extension://a333513dbca843ba807797e317bcddfa.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Createportfoliofolder:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: createPortfolioFolder
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://7b2fed9fc5d94dfc96fd70d721fb5c49.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Addtoportfolio:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: addToPortfolio
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://1f08d359fe0b4059a96f411e09546f3f.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Getportfolioitems:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: getPortfolioItems
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://b716a4c3ff394990a57df3d3f1ccf8a5.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Getportfolios:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: getPortfolios
+      MemorySize: 256
+      Timeout: 10
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: false
+      CodeUri: 'extension://ab581f78026f4962be4b77c8e43f1d33.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Removefromportfolio:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: removeFromPortfolio
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://dc8d6756f9f1447ea42a204d05e715b9.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Deleteportfolio:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: deletePortfolio
+      MemorySize: 256
+      Timeout: 10
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://79b400b33c5e41e9be5b5c758a33f4cb.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Creatediscussionpost:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: createDiscussionPost
+      MemorySize: 256
+      Timeout: 15
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://3468a7e9cf254410be9725551ac7038d.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Getdiscussionposts:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: getDiscussionPosts
+      MemorySize: 256
+      Timeout: 10
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://5a1732fc97934d5597aa87ac6174d8e9.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Ensuredefaultportfolio:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: ensureDefaultPortfolio
+      MemorySize: 256
+      Timeout: 10
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://2a2b87f662e84957a211e00e0737dc6f.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Updateportfolio:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: updatePortfolio
+      MemorySize: 256
+      Timeout: 10
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://6604f32a711b41068a16ebe746bfb7b5.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Updatepostvisibility:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: updatePostVisibility
+      MemorySize: 128
+      Timeout: 5
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://55ce1ef3062647c39ff7d57ffe886771.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole
+  Initdatabase:
+    Type: 'CloudBase::Function'
+    Properties:
+      Handler: index.main
+      Description: 无服务器执行环境，帮助您在无需购买和管理服务器的情况下运行代码
+      Runtime: Nodejs10.15
+      FunctionName: initDatabase
+      MemorySize: 128
+      Timeout: 10
+      Environment:
+        Variables: {}
+      VpcConfig: {}
+      InstallDependency: true
+      CodeUri: 'extension://54dc03d45ba94534b9e34529cd68a6dd.zip'
+      CodeSecret: false
+      Role: TCB_QcsRole

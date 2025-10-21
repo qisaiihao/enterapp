@@ -35,6 +35,7 @@
 
 <script>
 import { getUnreadCount } from '@/api-cache/unread.js';
+import { EVENTS } from '@/utils/events.js';
 
 export default {
   name: 'PageTabs',
@@ -60,6 +61,21 @@ export default {
     this.checkUnreadMessageCount();
     // 获取安全区域高度
     this.getSafeAreaTop();
+    // 订阅未读变化，跨页面保持一致
+    try {
+      if (typeof uni !== 'undefined' && uni.$on) {
+        this.__onUnreadChanged = ({ count, delta } = {}) => {
+          let next = this.unreadMessageCount || 0;
+          if (typeof count === 'number') next = count;
+          if (typeof delta === 'number') next = Math.max(0, next + delta);
+          this.unreadMessageCount = next;
+        };
+        uni.$on(EVENTS.UNREAD_CHANGED, this.__onUnreadChanged);
+      }
+    } catch (_) {}
+  },
+  beforeDestroy() {
+    try { if (this.__onUnreadChanged && uni && uni.$off) uni.$off(EVENTS.UNREAD_CHANGED, this.__onUnreadChanged); } catch (_) {}
   },
   methods: {
     // 获取安全区域高度
@@ -211,6 +227,7 @@ export default {
   cursor: pointer;
   transition: all 0.2s ease;
   padding: 10rpx;
+  position: relative;
 }
 
 .top-item:active {
@@ -276,13 +293,30 @@ export default {
 /* 未读消息小红点 */
 .unread-dot {
   position: absolute;
-  top: 8rpx;
-  right: 8rpx;
+  top: 4rpx;
+  right: 4rpx;
   width: 16rpx;
   height: 16rpx;
   background-color: #ff6b6b;
   border-radius: 50%;
   border: 2rpx solid #ffffff;
   z-index: 10;
+  animation: pulse 2s infinite;
+}
+
+/* 红点脉冲动画 */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 </style>

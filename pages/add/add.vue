@@ -82,7 +82,7 @@
                     <view class="content-input-wrapper" :data-highlight-mode="highlightModeEnabled">
                         <textarea
                             class="content-textarea"
-                            placeholder="此刻你想要分享..."
+                            :placeholder="currentPlaceholder"
                             @input="onContentInput"
                             @tap.stop="onTextareaTap"
                             maxlength="1500"
@@ -168,16 +168,16 @@
                     
                     <!-- 切换发布模式按钮 -->
                     <view class="side-tool-btn" @tap.stop="switchMode">
-                        <image class="side-tool-icon" src="/static/images/switch_publish_mode.png" mode="aspectFit"></image>
+                        <image class="side-tool-icon" src="/static/images/change.png" mode="aspectFit"></image>
                     </view>
                     
-                    <!-- 选择高光句按钮 -->
-                    <view class="side-tool-btn" @tap.stop="toggleHighlightMode">
+                    <!-- 选择高光句按钮 - 只在诗歌模式下显示 -->
+                    <view v-if="publishMode === 'poem'" class="side-tool-btn" @tap.stop="toggleHighlightMode">
                         <image class="side-tool-icon" src="/static/images/select_highlight.png" mode="aspectFit"></image>
                     </view>
                     
-                    <!-- 选择颜色按钮 -->
-                    <view class="side-tool-btn" @tap.stop="onSelectColor">
+                    <!-- 选择颜色按钮 - 只在诗歌模式下显示 -->
+                    <view v-if="publishMode === 'poem'" class="side-tool-btn" @tap.stop="onSelectColor">
                         <image class="side-tool-icon" src="/static/images/select_color.png" mode="aspectFit"></image>
                     </view>
                 </view>
@@ -599,6 +599,9 @@ export default {
 
             // 'normal' | 'poem' | 'discussion' 普通模式 | 诗歌模式 | 讨论模式
             isOriginal: false,
+            
+            // 当前placeholder文字
+            currentPlaceholder: '此刻你想要分享...\n分享诗歌请在右边切换发布模式',
 
             // 是否原创
             showModeSelector: false,
@@ -852,6 +855,39 @@ export default {
         splitContentLines() {
             const raw = this.content || '';
             return raw.split(/\r?\n/);
+        },
+        placeholderText() {
+            console.log('【Add】计算placeholderText:', {
+                publishMode: this.publishMode,
+                isOriginal: this.isOriginal
+            });
+            
+            if (this.publishMode === 'normal') {
+                return '此刻你想要分享...\n分享诗歌请在右边切换发布模式';
+            } else if (this.publishMode === 'poem' && this.isOriginal) {
+                return '在这里写下你的原创诗歌~';
+            } else if (this.publishMode === 'poem' && !this.isOriginal) {
+                return '在这里分享你喜欢的诗歌~';
+            } else if (this.publishMode === 'discussion') {
+                return '在这里说说你想要讨论的吧~';
+            }
+            return '此刻你想要分享...';
+        }
+    },
+    watch: {
+        publishMode: {
+            handler(newVal, oldVal) {
+                console.log('【Add】publishMode变化:', { oldVal, newVal, isOriginal: this.isOriginal });
+                this.updatePlaceholder();
+            },
+            immediate: true
+        },
+        isOriginal: {
+            handler(newVal, oldVal) {
+                console.log('【Add】isOriginal变化:', { oldVal, newVal, publishMode: this.publishMode });
+                this.updatePlaceholder();
+            },
+            immediate: true
         }
     },
     onLoad: function (options) {
@@ -915,6 +951,33 @@ export default {
         return false; // 允许默认返回行为
     },
     methods: {
+        // 更新placeholder文字
+        updatePlaceholder() {
+            console.log('【Add】更新placeholder:', {
+                publishMode: this.publishMode,
+                isOriginal: this.isOriginal
+            });
+            
+            let newPlaceholder = '';
+            if (this.publishMode === 'normal') {
+                newPlaceholder = '此刻你想要分享...\n分享诗歌请在右边切换发布模式';
+            } else if (this.publishMode === 'poem' && this.isOriginal) {
+                newPlaceholder = '在这里写下你的原创诗歌~';
+            } else if (this.publishMode === 'poem' && !this.isOriginal) {
+                newPlaceholder = '在这里分享你喜欢的诗歌~';
+            } else if (this.publishMode === 'discussion') {
+                newPlaceholder = '在这里说说你想要讨论的吧~';
+            } else {
+                newPlaceholder = '此刻你想要分享...';
+            }
+            
+            this.setData({
+                currentPlaceholder: newPlaceholder
+            });
+            
+            console.log('【Add】placeholder已更新为:', newPlaceholder);
+        },
+
         // 页面点击事件 - 点击外部区域退出键盘
         onPageTap() {
             uni.hideKeyboard();

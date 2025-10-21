@@ -13,31 +13,31 @@
 
     <!-- 作品集列表 -->
     <scroll-view class="portfolio-list" scroll-y="true" @scrolltolower="loadMore">
+      <view class="portfolio-content">
+        <view v-if="folders.length === 0" class="empty-state">
+          <text class="empty-icon">📁</text>
+          <text class="empty-text">暂无作品集</text>
+          <text class="empty-subtext">创建您的第一个作品集吧</text>
+        </view>
 
-      <view v-if="folders.length === 0" class="empty-state">
-        <text class="empty-icon">📁</text>
-        <text class="empty-text">暂无作品集</text>
-        <text class="empty-subtext">创建您的第一个作品集吧</text>
-      </view>
-
-      <view v-else class="folder-grid">
-        <view
-          v-for="folder in folders"
-          :key="folder._id"
-          class="folder-item-simple"
-          @tap="openFolder(folder)"
-        >
-          <view class="folder-content">
-            <text class="folder-name">{{ folder.name }}</text>
-            <text class="folder-count">{{ folder.itemCount }} 个作品</text>
-          </view>
-          <view class="folder-actions">
-            <text class="action-btn edit" @tap.stop="editFolderName(folder)">编辑</text>
-            <text class="action-btn delete" @tap.stop="deleteFolder(folder)">删除</text>
+        <view v-else class="folder-grid">
+          <view
+            v-for="folder in folders"
+            :key="folder._id"
+            class="folder-item-simple"
+            @tap="openFolder(folder)"
+          >
+            <view class="folder-content">
+              <text class="folder-name">{{ folder.name }}</text>
+              <text class="folder-count">{{ folder.itemCount }} 个作品</text>
+            </view>
+            <view class="folder-actions">
+              <text class="action-btn edit" @tap.stop="editFolderName(folder)">编辑</text>
+              <text class="action-btn delete" @tap.stop="deleteFolder(folder)">删除</text>
+            </view>
           </view>
         </view>
       </view>
-
     </scroll-view>
 
     <!-- 创建作品集弹窗 -->
@@ -349,21 +349,27 @@ export default {
 <style>
 .portfolio-page {
   min-height: 100vh;
-  background: #f8f9fa;
+  background: #fff;
   display: flex;
   flex-direction: column;
+  /* #ifdef APP-PLUS */
+  padding-top: var(--status-bar-height);
+  /* #endif */
 }
 
 .header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  position: relative;
   padding: 20rpx 30rpx;
   background: #fff;
   border-bottom: 1rpx solid #e9ecef;
 }
 
 .header-left {
+  position: absolute;
+  left: 30rpx;
   width: 60rpx;
   height: 60rpx;
   display: flex;
@@ -384,6 +390,8 @@ export default {
 }
 
 .header-right {
+  position: absolute;
+  right: 30rpx;
   width: 100rpx;
   display: flex;
   justify-content: flex-end;
@@ -397,9 +405,12 @@ export default {
 
 .portfolio-list {
   flex: 1;
-  padding: 30rpx 30rpx 30rpx 15rpx;
   height: 0;
   overflow: hidden;
+}
+
+.portfolio-content {
+  padding: 30rpx;
 }
 
 .loading {

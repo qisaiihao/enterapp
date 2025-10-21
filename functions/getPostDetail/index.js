@@ -40,6 +40,14 @@ exports.main = async (event, context) => {
     // 1. 根据 postId 获取帖子详情
     const postRes = await db.collection('posts').doc(postId).get();
     const post = postRes.data;
+    // 如果帖子被隐藏且当前用户不是作者，禁止访问
+    if (post && post.isHidden === true && post._openid !== openid) {
+      return {
+        success: false,
+        code: 'POST_HIDDEN',
+        message: '该内容已隐藏'
+      };
+    }
 
     if (!post) {
       return {

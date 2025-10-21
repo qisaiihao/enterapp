@@ -161,6 +161,9 @@
       <view class="button-item" @tap.stop="saveDraft">
         <image class="button-icon" src="/static/images/save_draft.png" mode="aspectFit"></image>
       </view>
+      <view class="button-item" @tap.stop="publishAnonymously">
+        <image class="button-icon" src="/static/images/niming.png" mode="aspectFit"></image>
+      </view>
       <view class="button-item" @tap.stop="goToPublish">
         <image class="button-icon" src="/static/images/publish.png" mode="aspectFit"></image>
       </view>
@@ -607,7 +610,11 @@ export default {
         isPoem: addData.publishMode === 'poem',
         isOriginal: addData.isOriginal,
         author: authorName,
-        tags: addData.selectedTags || []
+        tags: addData.selectedTags || [],
+        // 匿名发帖相关字段
+        isAnonymous: this.post.isAnonymous || false,
+        anonymousAuthorName: this.post.anonymousAuthorName || '匿名用户',
+        realAuthorOpenid: this.post.isAnonymous ? (uni.getStorageSync('openid') || uni.getStorageSync('userOpenId')) : null
       };
 
       if (uploadResults.length > 0) {
@@ -635,7 +642,11 @@ export default {
         backgroundColor: addData.selectedBackgroundColor || '',
         textColor: addData.selectedTextColor || '#000000',
         // 添加高光行信息
-        highlightLines: addData.highlightLines || []
+        highlightLines: addData.highlightLines || [],
+        // 添加匿名发帖相关参数
+        isAnonymous: this.post.isAnonymous || false,
+        anonymousAuthorName: this.post.anonymousAuthorName || '匿名用户',
+        realAuthorOpenid: this.post.isAnonymous ? (uni.getStorageSync('openid') || uni.getStorageSync('userOpenId')) : null
       }, { pageTag: 'preview', context: this, requireAuth: true }).then((res) => {
         if (res && res.result && res.result.code === 0) {
           this.publishSuccess({
@@ -711,6 +722,27 @@ export default {
         showCancel: false,
         confirmText: '确定'
       });
+    },
+
+    // 匿名发布
+    publishAnonymously() {
+      uni.showModal({
+        title: '匿名发布',
+        content: '确定要匿名发布这个帖子吗？匿名帖子将不会显示您的真实身份。',
+        confirmText: '匿名发布',
+        cancelText: '取消',
+        confirmColor: '#ff6b6b',
+        success: (res) => {
+          if (res.confirm) {
+            // 设置匿名标记
+            this.post.isAnonymous = true;
+            this.post.anonymousAuthorName = '匿名用户';
+            
+            // 执行发布逻辑
+            this.publishFromAddPage();
+          }
+        }
+      });
     }
   }
 };
@@ -738,9 +770,9 @@ export default {
   left: 0 !important;
   right: 0 !important;
   background: #fff !important;
-  padding: 30rpx 40rpx calc(60rpx + env(safe-area-inset-bottom)) 40rpx !important;
+  padding: 30rpx 20rpx calc(60rpx + env(safe-area-inset-bottom)) 20rpx !important;
   display: flex !important;
-  justify-content: space-around !important;
+  justify-content: space-between !important;
   align-items: center !important;
   z-index: 9999 !important; /* 提高z-index确保在所有元素之上 */
   border-top: none !important; /* 强制移除上边框 */
@@ -753,9 +785,9 @@ export default {
   left: 0;
   right: 0;
   background: #fff;
-  padding: 30rpx 40rpx calc(60rpx + env(safe-area-inset-bottom)) 40rpx;
+  padding: 30rpx 20rpx calc(60rpx + env(safe-area-inset-bottom)) 20rpx;
   display: flex;
-  justify-content: space-around;
+  justify-content: space-between;
   align-items: center;
   z-index: 9999; /* 提高z-index确保在所有元素之上 */
   border-top: none !important; /* 强制移除上边框 */
@@ -766,8 +798,8 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20rpx;
-  min-width: 120rpx;
+  padding: 15rpx;
+  flex: 1;
   transition: all 0.2s ease;
 }
 
@@ -777,13 +809,13 @@ export default {
 }
 
 .preview-page .bottom-buttons .button-item .button-icon {
-  width: 100rpx !important;
-  height: 100rpx !important;
+  width: 80rpx !important;
+  height: 80rpx !important;
 }
 
 .bottom-buttons .button-icon {
-  width: 100rpx !important;
-  height: 100rpx !important;
+  width: 80rpx !important;
+  height: 80rpx !important;
 }
 .empty-state { text-align: center; padding: 100rpx 0; color: #999; }
 .empty-icon { font-size: 80rpx; margin-bottom: 20rpx; }

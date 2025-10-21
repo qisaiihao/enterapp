@@ -16,7 +16,8 @@
       "Bash(dir:*)",
       "Bash(awk:*)",
       "Bash(npm run)",
-      "Bash(npx @dcloudio/uvm)"
+      "Bash(npx @dcloudio/uvm)",
+      "Bash(npm run dev:app-plus:*)"
     ],
     "deny": [],
     "ask": []

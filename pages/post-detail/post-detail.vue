@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <view>
         
         <!-- pages/post-detail/post-detail.wxml -->
@@ -45,18 +45,18 @@
                             <image
                                 v-if="post.authorAvatar"
                                 class="author-avatar"
-                                :src="post.authorAvatar"
+                                :src="post.isAnonymous ? '/static/images/avatar.png' : post.authorAvatar"
                                 mode="aspectFill"
                                 @error="onAvatarError"
-                                @tap="navigateToUserProfile"
-                                :data-user-id="post._openid"
+                                @tap="post.isAnonymous ? noop : navigateToUserProfile"
+                                :data-user-id="post.isAnonymous ? null : post._openid"
                             ></image>
-                            <text class="author-name">{{ post.authorName }}</text>
-                            <view v-if="isMutualFollow" class="mutual-tag">互相关注</view>
-                            <view v-else-if="isFollowedByAuthor" class="followed-tag">TA关注了你</view>
+                            <text class="author-name">{{ post.isAnonymous ? '匿名用户' : post.authorName }}</text>
+                            <view v-if="!post.isAnonymous && isMutualFollow" class="mutual-tag">互相关注</view>
+                            <view v-else-if="!post.isAnonymous && isFollowedByAuthor" class="followed-tag">TA关注了你</view>
                         </view>
                         <button
-                            v-if="showFollowButton"
+                            v-if="showFollowButton && !post.isAnonymous"
                             :class="'follow-btn ' + (isFollowing ? 'following' : '')"
                             @tap="onFollowTap"
                             :loading="followPending"
@@ -164,13 +164,17 @@
                             <view v-if="!isOwnPost" :class="'favorite-icon-container ' + (isFavorited ? 'favorited' : '')" @tap.stop.prevent="onFavorite">
                                 <image class="favorite-icon" src="/static/images/my_favorites.png" mode="aspectFit"></image>
                         </view>
-                            <!-- 作品集按钮 - 只有自己的帖子才显示 -->
-                            <view v-else class="portfolio-icon-container" @tap.stop.prevent="onAddToPortfolio">
+                            <!-- 作品集按钮 - 只有原创诗且是自己的帖子才显示 -->
+                            <view v-else-if="post.isoriginal" class="portfolio-icon-container" @tap.stop.prevent="onAddToPortfolio">
                                 <image class="portfolio-icon" src="/static/images/portfolio.png" mode="aspectFit"></image>
                             </view>
                             <!-- 讨论按钮 - 只有诗歌类型才显示 -->
                             <view v-if="post.isPoem" class="discussion-icon-container" @tap.stop.prevent="onCreateDiscussion">
                                 <image class="discussion-icon" src="/static/images/write_poetry.png" mode="aspectFit"></image>
+                            </view>
+                            <!-- 分享按钮 - 只有诗歌类型才显示 -->
+                            <view v-if="post.isPoem" class="share-icon-container" @tap.stop.prevent="onShare">
+                                <image class="share-icon" src="/static/images/share.png" mode="aspectFit"></image>
                             </view>
                             <!-- 写评论按钮 -->
                             <view class="comment-icon-container" @tap.stop.prevent="expandInput">
@@ -197,15 +201,15 @@
                             <view class="comment-item" v-for="(item, commentIndex) in comments" :key="commentIndex">
                                 <image
                                     class="comment-avatar"
-                                    :src="item.authorAvatar"
+                                    :src="item.isAnonymous ? '/static/images/avatar.png' : item.authorAvatar"
                                     mode="aspectFill"
                                     @error="onAvatarError"
-                                    @tap="navigateToUserProfile"
-                                    :data-user-id="item._openid"
+                                    @tap="item.isAnonymous ? noop : navigateToUserProfile"
+                                    :data-user-id="item.isAnonymous ? null : item._openid"
                                 ></image>
 
                                 <view class="comment-main">
-                                    <view class="comment-author">{{ item.authorName }}</view>
+                                    <view class="comment-author">{{ item.isAnonymous ? '匿名用户' : item.authorName }}</view>
                                     <view class="comment-content">{{ item.content }}</view>
                                     <view v-if="item.imageUrls && item.imageUrls.length" class="comment-image-grid">
                                         <image
@@ -246,15 +250,15 @@
                                         >
                                             <image
                                                 class="reply-avatar"
-                                                :src="reply.authorAvatar"
+                                                :src="reply.isAnonymous ? '/static/images/avatar.png' : reply.authorAvatar"
                                                 mode="aspectFill"
                                                 @error="onAvatarError"
-                                                @tap="navigateToUserProfile"
-                                                :data-user-id="reply._openid"
+                                                @tap="reply.isAnonymous ? noop : navigateToUserProfile"
+                                                :data-user-id="reply.isAnonymous ? null : reply._openid"
                                             ></image>
 
                                             <view class="reply-main">
-                                                <view class="reply-author">{{ reply.authorName }}</view>
+                                                <view class="reply-author">{{ reply.isAnonymous ? '匿名用户' : reply.authorName }}</view>
                                                 <view class="reply-content">
                                                     <text class="reply-to">回复@{{ item.authorName }}：</text>
                                                     <text>{{ reply.content }}</text>
@@ -398,6 +402,19 @@
 
         <!-- 作品集选择器 -->
         <portfolio-selector :show="showPortfolioModal" :post-id="post && post._id ? post._id : ''" @hide="hidePortfolioModal" @portfolioSuccess="onPortfolioSuccess" />
+
+        <!-- 分享弹窗 -->
+        <view v-if="showShareModal" class="share-modal-overlay" @tap="hideShareModal">
+            <view class="share-modal" @tap.stop>
+                <view v-if="!shareImageUrl" class="share-loading">
+                    <text>正在生成图片...</text>
+                </view>
+                <image v-else ref="shareImage" class="share-generated-image" :src="shareImageUrl" mode="widthFix" @longpress="onImageLongPress" @load="onShareImageLoad" @error="onShareImageError" :show-menu-by-longpress="false"></image>
+            </view>
+        </view>
+
+        <!-- 隐藏的canvas用于生成分享图片（增加 id 便于 H5 兜底导出） -->
+        <canvas id="shareCanvas" canvas-id="shareCanvas" style="position: fixed; top: -9999px; left: -9999px; width: 750px; border-radius: 15px; overflow: hidden;" :style="{ height: shareCanvasHeight + 'px' }"></canvas>
     </view>
 </template>
 
@@ -443,6 +460,10 @@ export default {
             imageClampHeights: {},
             showFavoriteModal: false,
             showPortfolioModal: false,
+            showShareModal: false,
+            shareImageUrl: '',
+            shareCanvasHeight: 1000,
+            shareImageRetryCount: 0,
             isInputExpanded: false,
             keyboardHeight: 0,
             isFocus: false,
@@ -528,6 +549,9 @@ export default {
         this.recordViewBehavior();
     },
     methods: {
+        // 空函数，用于阻止匿名帖子的头像点击事件
+        noop() {},
+
         // 跨页同步：监听 like-changed 的处理
         onGlobalLikeChanged: function (e = {}) {
             try {
@@ -875,6 +899,940 @@ export default {
             this.setData({
                 showPortfolioModal: false
             });
+        },
+
+        // 分享相关方法
+        onShare: function () {
+            console.log('【post-detail】点击分享按钮');
+            if (!this.post || !this.post._id) {
+                uni.showToast({
+                    title: '帖子信息无效',
+                    icon: 'none'
+                });
+                return;
+            }
+
+            // 显示分享弹窗，重置图片URL，并立即开始生成图片
+            this.setData({
+                showShareModal: true,
+                shareImageUrl: '',
+                shareImageRetryCount: 0,
+                shareCanvasHeight: 4000
+            });
+            
+            // 立即开始生成图片
+            this.generateShareImage();
+        },
+
+        hideShareModal: function () {
+            this.setData({
+                showShareModal: false
+            });
+        },
+
+        generateShareImage: function () {
+            console.log('【post-detail】开始生成分享图片');
+            
+            // 先加载字体，然后绘制Canvas
+            this.loadFontAndDraw();
+        },
+
+        loadFontAndDraw: function () {
+            console.log('【post-detail】开始加载字体');
+            
+            uni.loadFontFace({
+                family: 'Huiwen-mincho',
+                source: 'url("/static/fonts/Huiwen-mincho.otf")',
+                success: () => {
+                    console.log('【post-detail】字体加载成功');
+                    // 延迟一下确保DOM已渲染
+                    setTimeout(() => {
+                        this.drawCanvas();
+                    }, 100);
+                },
+                fail: (err) => {
+                    console.error('【post-detail】字体加载失败:', err);
+                    // 即使字体加载失败，也继续绘制（使用默认字体）
+                    setTimeout(() => {
+                        this.drawCanvas();
+                    }, 100);
+                }
+            });
+        },
+
+        /**
+         * 异步绘制网络图片到 Canvas，固定宽度，高度自适应
+         * @param {Object} ctx - Canvas 的绘图上下文
+         * @param {string} url - 网络图片的 URL
+         * @param {number} x - 绘制位置的 x 坐标
+         * @param {number} y - 绘制位置的 y 坐标
+         * @param {number} fixedWidth - 固定宽度
+         * @returns {Promise<void>} - 操作完成时 resolve
+         */
+        drawImageAsync: function(ctx, url, x, y, fixedWidth) {
+            return new Promise((resolve, reject) => {
+                // 检查URL是否有效
+                if (!url || typeof url !== 'string') {
+                    console.error('【Canvas】无效的图片URL:', url);
+                    reject(new Error('无效的图片URL'));
+                    return;
+                }
+                
+                // 统一使用uni.getImageInfo，但添加错误处理
+                uni.getImageInfo({
+                    src: url,
+                    success: (res) => {
+                        console.log(`【Canvas】图片下载成功: ${res.path}`);
+                        console.log(`【Canvas】图片原始尺寸: ${res.width}x${res.height}`);
+                        
+                        try {
+                            // 固定宽度，高度按比例自适应
+                            const scale = fixedWidth / res.width;
+                            const drawWidth = fixedWidth;
+                            const drawHeight = res.height * scale;
+                            
+                            console.log(`【Canvas】固定宽度: ${fixedWidth}, 自适应高度: ${drawHeight}`);
+                            
+                            ctx.drawImage(res.path, x, y, drawWidth, drawHeight);
+                            resolve(); // 绘制指令已发出，Promise 完成
+                        } catch (e) {
+                            console.error('【Canvas】drawImage 异常:', e);
+                            reject(e);
+                        }
+                    },
+                    fail: (err) => {
+                        console.error(`【Canvas】图片下载失败: ${url}`, err);
+                        // 如果是XMLHttpRequest相关的错误，尝试使用备用方案
+                        if (err && err.errMsg && err.errMsg.includes('responseText')) {
+                            console.log('【Canvas】检测到XMLHttpRequest错误，使用备用方案');
+                            // 在H5环境下，可以尝试直接使用图片URL
+                            try {
+                                ctx.drawImage(url, x, y, fixedWidth, fixedWidth);
+                                resolve();
+                            } catch (e) {
+                                console.error('【Canvas】备用方案也失败:', e);
+                                reject(err);
+                            }
+                        } else {
+                            reject(err); // 下载失败
+                        }
+                    }
+                });
+            });
+        },
+
+
+        // 获取作者签名
+        async fetchAuthorSignature(authorOpenid) {
+            if (!authorOpenid) {
+                console.log('【post-detail】没有作者openid，跳过签名获取');
+                return null;
+            }
+            
+            // 如果是匿名帖子，不获取签名
+            if (this.post && this.post.isAnonymous) {
+                console.log('【post-detail】匿名帖子，跳过签名获取');
+                return null;
+            }
+
+            try {
+                console.log('【post-detail】开始获取作者签名，openid:', authorOpenid);
+                const res = await this.callCloudFunction('getUserProfile', { userId: authorOpenid });
+
+                if (res.result && res.result.success && res.result.userInfo && res.result.userInfo.signatureUrl) {
+                    const signatureUrl = res.result.userInfo.signatureUrl;
+                    console.log('【post-detail】获取到作者签名:', signatureUrl);
+                    return signatureUrl;
+                } else {
+                    console.log('【post-detail】作者未设置签名');
+                    return null;
+                }
+            } catch (err) {
+                console.error('【post-detail】获取作者签名失败:', err);
+                return null;
+            }
+        },
+
+        /**
+         * 精确计算文字在Canvas中的实际渲染行数
+         * @param {Object} ctx - Canvas上下文
+         * @param {string} text - 要计算的文本
+         * @param {number} maxWidth - 最大宽度
+         * @param {number} fontSize - 字体大小
+         * @returns {number} 实际需要的行数
+         */
+        calculateActualLines: function(ctx, text, maxWidth, fontSize) {
+            // 设置字体
+            ctx.font = fontSize + 'px Huiwen-mincho, sans-serif';
+
+            const lines = text.split('\n');
+            let actualLineCount = 0;
+
+            lines.forEach(line => {
+                if (!line.trim()) {
+                    actualLineCount += 0.5; // 空行占一半高度
+                    return;
+                }
+
+                // 测量文字宽度
+                const textWidth = ctx.measureText ? ctx.measureText(line).width : line.length * fontSize * 0.6;
+
+                // 计算需要多少行
+                if (textWidth <= maxWidth) {
+                    actualLineCount += 1;
+                } else {
+                    // 长文本需要换行，精确计算需要的行数
+                    const estimatedLines = Math.ceil(textWidth / maxWidth);
+                    actualLineCount += estimatedLines;
+                    console.log(`【文字测量】长行需要拆分为${estimatedLines}行，宽度: ${textWidth}, 最大宽度: ${maxWidth}`);
+                }
+            });
+
+            console.log(`【文字测量】总计需要${actualLineCount}行，原行数: ${lines.length}`);
+            return actualLineCount;
+        },
+
+        /**
+         * 智能处理文字换行，将长文本按宽度分割成适合的行
+         * @param {Object} ctx - Canvas上下文
+         * @param {string} text - 原始文本
+         * @param {number} maxWidth - 最大宽度
+         * @param {number} fontSize - 字体大小
+         * @returns {Array} 处理后的行数组
+         */
+        wrapTextForCanvas: function(ctx, text, maxWidth, fontSize) {
+            ctx.font = fontSize + 'px Huiwen-mincho, sans-serif';
+
+            const originalLines = text.split('\n');
+            const wrappedLines = [];
+
+            originalLines.forEach(line => {
+                if (!line.trim()) {
+                    // 保留空行
+                    wrappedLines.push('');
+                    return;
+                }
+
+                // 测量当前行宽度
+                const textWidth = ctx.measureText ? ctx.measureText(line).width : line.length * fontSize * 0.6;
+
+                if (textWidth <= maxWidth) {
+                    // 不需要换行
+                    wrappedLines.push(line);
+                } else {
+                    // 需要换行，按字符逐步分割
+                    let currentLine = '';
+                    for (let i = 0; i < line.length; i++) {
+                        const testLine = currentLine + line[i];
+                        const testWidth = ctx.measureText ? ctx.measureText(testLine).width : testLine.length * fontSize * 0.6;
+
+                        if (testWidth <= maxWidth) {
+                            currentLine = testLine;
+                        } else {
+                            // 当前行已满，开始新行
+                            if (currentLine) {
+                                wrappedLines.push(currentLine);
+                            }
+                            currentLine = line[i];
+                        }
+                    }
+
+                    // 添加最后一行
+                    if (currentLine) {
+                        wrappedLines.push(currentLine);
+                    }
+                }
+            });
+
+            console.log(`【文字换行】原行数: ${originalLines.length}, 处理后行数: ${wrappedLines.length}`);
+            return wrappedLines;
+        },
+
+        drawCanvas: async function () {
+            try {
+                console.log('【post-detail】开始绘制Canvas');
+                
+                // 先获取作者签名（匿名帖子不获取签名）
+                let authorSignature = null;
+                if (this.post && this.post._openid && !this.post.isAnonymous) {
+                    authorSignature = await this.fetchAuthorSignature(this.post._openid);
+                    if (authorSignature) {
+                        // 将签名URL保存到post对象中
+                        this.post.authorSignature = authorSignature;
+                        console.log('【post-detail】作者签名已获取并保存');
+                    }
+                } else if (this.post && this.post.isAnonymous) {
+                    console.log('【post-detail】匿名帖子，跳过签名获取');
+                }
+                
+                // 使用canvas生成图片
+                const ctx = uni.createCanvasContext('shareCanvas', this);
+                
+                if (!ctx) {
+                    console.error('【post-detail】Canvas上下文创建失败');
+                    uni.showToast({
+                        title: 'Canvas创建失败',
+                        icon: 'none'
+                    });
+                    return;
+                }
+                
+                console.log('【post-detail】Canvas上下文创建成功');
+                
+                // 计算内容尺寸 - 模拟poem-square的样式
+                const content = this.post.content || '';
+                const lines = content.split('\n');
+                
+                // 字体设置 - 完全按照poem-square的样式
+                const fontSize = 38; // 进一步增大字号到38px
+                const lineHeight = 48; // 相应调整行高
+                const fontFamily = 'Huiwen-mincho, sans-serif';
+                
+                // 设置字体 - 使用加载的自定义字体
+                ctx.font = fontSize + 'px Huiwen-mincho, sans-serif';
+
+                // 计算文字区域尺寸
+                const textPadding = 80; // 增大左右padding
+                const textTopPadding = 80; // 增大上padding
+                const textBottomPadding = 60; // 进一步增大下padding
+
+                // 标题字体设置
+                const titleFontSize = 46; // 标题字号比正文大
+                const titleLineHeight = 56; // 相应调整标题行高
+                const titleBottomSpacing = 32; // 标题与正文的间距
+
+                // 计算画布尺寸 - 固定宽度，高度自适应
+                // 使用与poem-square页面一致的尺寸比例
+                const canvasWidth = 750; // 增大卡片宽度到750px
+                const textAreaWidth = canvasWidth - 160; // 减去左右padding (80*2)
+
+                // 【新增】使用精确的文字测量函数计算实际行数
+                const actualLines = this.calculateActualLines(ctx, content, textAreaWidth, fontSize);
+
+                // 【新增】使用智能换行函数处理长文本
+                const processedLines = this.wrapTextForCanvas(ctx, content, textAreaWidth, fontSize);
+                const wrappedContentHeight = processedLines.reduce((h, line) => h + (line && line.trim() ? lineHeight : lineHeight * 0.5), 0);
+
+                // 更准确的内容高度计算 - 基于实际测量
+                const contentHeight = Math.max(wrappedContentHeight, 200); // 使用 wrap 后的精确高度，最小 200px
+                const titleHeight = titleLineHeight + 20; // 标题高度 + 间距
+                
+                // 计算基础高度
+                const baseHeight = textTopPadding + titleHeight + titleBottomSpacing + contentHeight + textBottomPadding;
+                
+                // 为签名预留足够空间
+                // 动态签名参数：放在正文下方，并按固定宽度等比缩放高度
+                const signatureTopGap = 40;
+                const fixedSignatureWidth = 120;
+                const signatureTextFontSize = 28; // 无签名图片时用文字署名字号
+                let signatureDrawHeight = 0;
+                if (this.post.authorSignature && !this.post.isAnonymous) {
+                    try {
+                        const __sigInfo = await new Promise((resolve)=>{
+                            uni.getImageInfo({ src: this.post.authorSignature, success: (res)=>resolve(res), fail: ()=>resolve(null) });
+                        });
+                        if (__sigInfo && __sigInfo.width > 0) {
+                            const __scale = fixedSignatureWidth / __sigInfo.width;
+                            signatureDrawHeight = Math.max(1, Math.round(__sigInfo.height * __scale));
+                        }
+                    } catch(_) {}
+                }
+
+                // 【优化】动态调整Canvas高度，确保有足够空间（匿名帖子不计算签名高度）
+                let finalCanvasHeight = textTopPadding + titleHeight + titleBottomSpacing + contentHeight
+                    + (this.post.authorSignature && !this.post.isAnonymous
+                        ? (signatureTopGap + signatureDrawHeight)
+                        : ((!this.post.isAnonymous && ((this.post.authorName && this.post.authorName.trim()) || (this.post.author && this.post.author.trim())))
+                            ? (signatureTopGap + signatureTextFontSize)
+                            : 0))
+                    + textBottomPadding + 10;
+
+                // 【优化】更智能的高度调整策略
+                if (false && actualLines > 8) {
+                    // 超过8行就增加缓冲，避免计算误差
+                    const extraHeight = (actualLines - 8) * lineHeight * 1.2; // 1.2倍缓冲
+                    finalCanvasHeight += extraHeight;
+                    console.log('【post-detail】内容较多，增加额外缓冲高度:', extraHeight);
+                }
+
+                // 【优化】增加额外的安全边距，确保底部有足够空间
+                const safetyMargin = 0;
+                finalCanvasHeight += safetyMargin;
+                console.log('【post-detail】增加安全边距:', safetyMargin);
+                
+                const canvasHeight = Math.ceil(finalCanvasHeight);
+                try { this.setData && this.setData({ shareCanvasHeight: canvasHeight }); } catch(_) { this.shareCanvasHeight = canvasHeight; }
+                if (this.$nextTick) { await new Promise(r => this.$nextTick(r)); }
+                
+                console.log('【post-detail】高度计算详情:', {
+                    actualLines,
+                    contentHeight,
+                    titleHeight,
+                    baseHeight,
+                    
+                    canvasHeight
+                });
+                
+                console.log('【post-detail】画布尺寸:', canvasWidth, 'x', canvasHeight);
+                console.log('【post-detail】内容行数:', actualLines);
+                console.log('【post-detail】内容高度:', contentHeight);
+                
+                // 绘制圆角背景 - 模拟poem-square的卡片样式
+                const bgColor = this.post.backgroundColor || '#FFFFFF';
+                console.log('【post-detail】背景色:', bgColor);
+                
+                // 绘制圆角背景 - 模拟poem-square的卡片样式
+                ctx.setFillStyle(bgColor);
+                this.drawRoundedRect(ctx, 0, 0, canvasWidth, canvasHeight, 15);
+                ctx.fill();
+                
+                // 绘制文字内容
+                const textColor = this.post.textColor || '#000000';
+                console.log('【post-detail】文字颜色:', textColor);
+                ctx.setFillStyle(textColor);
+                ctx.setTextAlign('left');
+                
+                // 绘制标题
+                const title = this.post.title || '';
+                if (title) {
+                    console.log('【post-detail】绘制标题:', title);
+                    // 设置标题字体
+                    ctx.font = titleFontSize + 'px Huiwen-mincho, sans-serif';
+                    ctx.setFillStyle(textColor);
+                    ctx.setTextAlign('left');
+                    
+                    // 绘制标题
+                    const titleY = textTopPadding + titleFontSize;
+                    const titleX = textPadding;
+                    ctx.fillText(title, titleX, titleY);
+                    
+                    // 恢复正文字体
+                    ctx.font = fontSize + 'px Huiwen-mincho, sans-serif';
+                }
+                
+                // 【修改】使用处理后的行数组进行绘制，确保长文本正确换行
+                let y = textTopPadding + titleHeight + titleBottomSpacing + fontSize; // 标题下方开始绘制正文，增加间距
+                const x = textPadding;
+
+                // 【优化】更保守的边界检查，为签名和底部留出充足空间
+                const maxY = Number.POSITIVE_INFINITY; // 不再限制正文绘制高度，由最终导出高度裁切
+
+                processedLines.forEach((line, index) => {
+                    if (line.trim()) {
+                        // 检查是否超出边界
+                        if (y > maxY) {
+                            console.log('【post-detail】文字超出边界，停止绘制');
+                            return;
+                        }
+
+                        console.log('【post-detail】绘制第', index, '行:', line, '位置:', x, y);
+                        ctx.fillText(line, x, y);
+                        y += lineHeight;
+                    } else {
+                        y += lineHeight * 0.5; // 空行间距
+                    }
+                });
+                
+                console.log('【post-detail】最终绘制位置:', y);
+                console.log('【post-detail】Canvas高度:', canvasHeight);
+                
+                // 绘制签名 - 模拟poem-square的签名位置（匿名帖子不绘制签名）
+                if (this.post.authorSignature && !this.post.isAnonymous) {
+                    console.log('【post-detail】准备绘制签名图片...');
+                    // 缩小签名尺寸
+                    const fixedSignatureWidth = 120; // 缩小签名宽度到120px
+                    const __wmMargin = 36, __wmW = 220, __wmH = 180, __sigPad = 12;
+                    const signatureX = canvasWidth - __wmW - __wmMargin + __sigPad; // 调整右边距到60px
+                    const signatureY = y + signatureTopGap; // 增大签名下边距，从底部向上160px开始绘制
+
+                    // 让签名位于右下角水印区域内
+                    const __wmMargin2 = 24, __wmW2 = 220, __wmH2 = 180, __sigPad2 = 12;
+                    const sigX = canvasWidth - __wmW2 - __wmMargin2 + __sigPad2;
+                    const sigY = (canvasHeight - __wmH2 - __wmMargin2) + (__wmH2 - signatureDrawHeight - __sigPad2);
+                    console.log('【post-detail】签名绘制参数:', {
+                        x: sigX,
+                        y: sigY,
+                        fixedWidth: fixedSignatureWidth
+                    });
+
+                    // 使用 await 等待异步绘制函数完成，固定宽度，高度自适应
+                    await this.drawImageAsync(
+                        ctx,
+                        this.post.authorSignature,
+                        sigX,
+                        sigY,
+                        fixedSignatureWidth
+                    );
+                    console.log('【post-detail】签名图片绘制指令已完成');
+                }
+                else if ( !this.post.isAnonymous) { 
+                    const authorName = ((this.post.authorName || this.post.author || '') + '').trim();
+                    if (authorName) {
+                        console.log('【post-detail】绘制文字署名:', authorName);
+                        ctx.setTextAlign('right');
+                        ctx.setFillStyle(textColor);
+                        ctx.font = signatureTextFontSize + 'px Huiwen-mincho, sans-serif';
+                        const __wmMargin3 = 24, __sigInset3 = 24;
+                        const sigTextX = canvasWidth - __wmMargin3 - __sigInset3;
+                        const sigTextY = canvasHeight - __wmMargin3 - __sigInset3;
+                        ctx.fillText(authorName, sigTextX, sigTextY);
+                        ctx.setTextAlign('left');
+                    }
+                }
+                
+                console.log('【post-detail】开始执行draw');
+                // 右下角水印（细线阶梯形）
+                try { this.drawCornerWatermark(ctx, canvasWidth, canvasHeight); } catch (e) { console.warn('draw watermark failed', e); }
+
+
+                ctx.draw(false, () => {
+                    console.log('【post-detail】Canvas绘制完成，开始导出图片');
+                    
+                    // 再次延迟确保绘制完成
+                    setTimeout(() => {
+                        this.exportCanvas(canvasWidth, canvasHeight);
+                    }, 150); // 增加一个微小延迟，应对低性能设备
+                });
+
+            } catch (error) {
+                console.error('【post-detail】绘制过程中出现严重错误:', error);
+                uni.showToast({ title: '图片生成失败，请重试', icon: 'none' });
+            }
+        },
+
+        // 右下角水印（参考 login 页 Enter 键造型）
+                // 右下角水印（参考 login 页 Enter 键造型）
+        // 需求：右、下两条边不可见；并在键帽内写小字 poementer
+        drawCornerWatermark(ctx, canvasWidth, canvasHeight) {
+            const margin = 24; // 更靠近右下角
+            const w = 220;     // 水印宽度
+            const h = 180;     // 水印高度
+            const stepX = 0.55; // 折点（横向比例）
+            const stepY = 0.60; // 折点（纵向比例）
+            const x0 = canvasWidth - w - margin;
+            const y0 = canvasHeight - h - margin;
+            const lineWidth = 1.5;                 // 更细的线
+            const strokeColor = 'rgba(0,0,0,0.16)'; // 略淡
+            const textColor = 'rgba(0,0,0,0.22)';   // 文字稍重一点
+            const sx = x0 + w * stepX;
+            const sy = y0 + h * stepY;
+            // 只画：顶边(左段)+左边(下段)+内横线+内竖线；不画右边和底边
+            ctx.save();
+            try {
+                if (ctx.setLineWidth) ctx.setLineWidth(lineWidth); else ctx.lineWidth = lineWidth;
+                if (ctx.setStrokeStyle) ctx.setStrokeStyle(strokeColor); else ctx.strokeStyle = strokeColor;
+                // 顶边（从折点到右上）——保持右/下两边不可见
+                ctx.beginPath();
+                ctx.moveTo(sx, y0);
+                ctx.lineTo(x0 + w, y0);
+                ctx.stroke();
+                // 左边（从折点高度到左下角）
+                ctx.beginPath();
+                ctx.moveTo(x0, sy);
+                ctx.lineTo(x0, y0 + h);
+                ctx.stroke();
+                // 内横线（折点高度）
+                ctx.beginPath();
+                ctx.moveTo(x0, sy);
+                ctx.lineTo(sx, sy);
+                ctx.stroke();
+                // 内竖线（折点宽度）
+                ctx.beginPath();
+                ctx.moveTo(sx, y0);
+                ctx.lineTo(sx, sy);
+                ctx.stroke();
+                // 小字“poementer”
+                try {
+                    const inset = 12; // 内边距
+                    if (ctx.setFillStyle) ctx.setFillStyle(textColor); else ctx.fillStyle = textColor;
+                    const fontPx = 18;
+                    try { ctx.font = fontPx + 'px Huiwen-mincho, sans-serif'; } catch (_) {}
+                    if (ctx.setFontSize) ctx.setFontSize(fontPx);
+                    if (ctx.setTextAlign) ctx.setTextAlign('left'); else ctx.textAlign = 'left';
+                    const textX = x0 + inset;
+                    const textY = y0 + h - inset;
+                    ctx.fillText('poementer', textX, textY);
+                } catch (_) {}
+            } finally { ctx.restore(); }
+        },
+
+        // 独立的导出函数
+        exportCanvas: function(canvasWidth, canvasHeight) {
+            console.log('【Canvas】开始导出Canvas，尺寸:', { canvasWidth, canvasHeight });
+            
+            uni.canvasToTempFilePath({
+                canvasId: 'shareCanvas',
+                x: 0,
+                y: 0,
+                width: canvasWidth,
+                height: canvasHeight,
+                destWidth: canvasWidth * 2, // 提高分辨率
+                destHeight: canvasHeight * 2, // 提高分辨率
+                success: (res) => {
+                    console.log('【Canvas】图片生成成功:', res.tempFilePath);
+                    console.log('【Canvas】导出参数:', {
+                        canvasWidth,
+                        canvasHeight,
+                        destWidth: canvasWidth * 2,
+                        destHeight: canvasHeight * 2
+                    });
+                    
+                    // 确保隐藏loading
+                    uni.hideLoading();
+                    console.log('【Canvas】Loading已隐藏');
+                    
+                    // 直接显示图片，不保存
+                    const generateImageUrl = function(){
+                        try{
+                            var raw=(res && (res.tempFilePath||res.apFilePath||res.filePath))||'';
+                            var b=Date.now();
+                            // 确保URL格式正确，避免base64 URI问题
+                            if (raw && raw.startsWith('data:')) {
+                                            // 如果是base64 URI，直接返回
+                                            return raw;
+                                        } else {
+                                            // 如果是文件路径，添加时间戳防止缓存
+                                            return (raw? raw+((raw.indexOf('?')>-1?'&':'?')+'_'+b) : raw);
+                                        }
+                                    }catch(e){
+                                        return res.tempFilePath;
+                                    }
+                                };
+
+                                const imageUrl = generateImageUrl();
+                                
+                                // 如果是base64 URI，根据平台使用不同的处理方式
+                                if (imageUrl && imageUrl.startsWith('data:')) {
+                                    console.log('【post-detail】检测到base64 URI，使用跨平台处理');
+                                    
+                                    // #ifdef H5
+                                    // H5平台：直接使用base64 Data URI
+                                    console.log('【post-detail】H5平台直接使用base64 URI');
+                                    this.setData({
+                                        shareImageUrl: imageUrl
+                                    });
+                                    // #endif
+                                    
+                                    // #ifndef H5
+                                    // 非H5平台：使用uni.base64ToTempFilePath()转换
+                                    console.log('【post-detail】非H5平台使用uni.base64ToTempFilePath()转换');
+                                    uni.base64ToTempFilePath({
+                                        base64Data: imageUrl,
+                                        success: (res) => {
+                                            console.log('【post-detail】base64转换成功，临时文件路径:', res.filePath);
+                                            this.setData({
+                                                shareImageUrl: res.filePath
+                                            });
+                                        },
+                                        fail: (err) => {
+                                            console.error('【post-detail】base64转换失败:', err);
+                                            // 如果转换失败，直接使用原URL
+                                            this.setData({
+                                                shareImageUrl: imageUrl
+                                            });
+                                        }
+                                    });
+                                    // #endif
+                                } else {
+                                    // 如果不是base64，直接使用
+                                    this.setData({
+                                        shareImageUrl: imageUrl
+                                    });
+                                }
+                                
+                                // 验证设置是否成功
+                                setTimeout(() => {
+                                    console.log('【post-detail】当前shareImageUrl:', this.shareImageUrl);
+                                }, 100);
+                            },
+                            fail: (err) => {
+                                console.error('【Canvas】生成图片失败:', err);
+                                console.error('【Canvas】失败详情:', {
+                                    canvasWidth,
+                                    canvasHeight,
+                                    destWidth: canvasWidth * 2,
+                                    destHeight: canvasHeight * 2,
+                                    error: err
+                                });
+                                
+                                // 确保隐藏loading
+                                uni.hideLoading();
+                                console.log('【Canvas】Loading已隐藏 (失败情况)');
+                                
+                                uni.showToast({ title: '图片导出失败', icon: 'none' });
+                            }
+                        }, this);
+        },
+
+        // 绘制圆角矩形
+        drawRoundedRect: function (ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        },
+
+
+        onImageLongPress: function () {
+            console.log('【post-detail】用户长按图片');
+            uni.showToast({
+                title: '长按保存',
+                icon: 'none'
+            });
+        },
+
+        onShareImageLoad: function () {
+            console.log('【post-detail】分享图片加载成功');
+            
+            // 延迟检查，确保图片完全渲染
+            setTimeout(() => {
+                this.checkImageDOMState();
+            }, 100);
+        },
+        
+        // 检查图片DOM状态
+        checkImageDOMState: function () {
+            if (this.$refs.shareImage) {
+                const img = this.$refs.shareImage;
+                
+                // 检查DOM元素是否有效
+                if (!img || typeof img !== 'object') {
+                    console.log('【post-detail】图片元素无效');
+                    return;
+                }
+                
+                console.log('【post-detail】图片DOM状态检查:', {
+                    src: img.src ? img.src.substring(0, 50) + '...' : 'N/A',
+                    width: img.width,
+                    height: img.height,
+                    offsetWidth: img.offsetWidth,
+                    offsetHeight: img.offsetHeight,
+                    style: img.style.cssText,
+                    complete: img.complete,
+                    naturalWidth: img.naturalWidth,
+                    naturalHeight: img.naturalHeight
+                });
+                
+                // 如果尺寸都是undefined，尝试多种解决方案
+                if (!img.offsetWidth || !img.offsetHeight) {
+                    console.log('【post-detail】检测到图片尺寸为undefined，尝试多种解决方案');
+                    
+                    // 方案1：通过CSS类强制设置图片样式，避免直接修改DOM
+                    if (img.classList && typeof img.classList.add === 'function') {
+                        img.classList.add('force-image-display');
+                        console.log('【post-detail】添加force-image-display类');
+                    } else {
+                        // 如果classList不可用，安全地设置样式
+                        console.log('【post-detail】classList不可用，安全设置样式');
+                        try {
+                            if (img.style) {
+                                img.style.width = '100%';
+                                img.style.height = 'auto';
+                                img.style.minHeight = '200px';
+                                img.style.maxHeight = '80vh';
+                                img.style.display = 'block';
+                                img.style.visibility = 'visible';
+                                img.style.opacity = '1';
+                                img.style.backgroundColor = '#f0f0f0';
+                                img.style.border = '2px solid #007aff';
+                                console.log('【post-detail】样式设置成功');
+                            } else {
+                                console.log('【post-detail】img.style不可用，跳过样式设置');
+                            }
+                        } catch (error) {
+                            console.error('【post-detail】设置样式时出错:', error);
+                        }
+                    }
+                    
+                    // 方案2：检查base64数据是否有效
+                    if (img.src && img.src.startsWith('data:image/')) {
+                        console.log('【post-detail】base64数据长度:', img.src.length);
+                        console.log('【post-detail】base64数据前缀:', img.src.substring(0, 100));
+                        
+                        // 方案3：不直接修改img.src，而是通过Vue的响应式系统
+                        console.log('【post-detail】检测到base64数据，准备重新设置shareImageUrl');
+                        const originalSrc = this.shareImageUrl;
+                        this.setData({
+                            shareImageUrl: ''
+                        });
+                        setTimeout(() => {
+                            this.setData({
+                                shareImageUrl: originalSrc
+                            });
+                            console.log('【post-detail】通过Vue重新设置shareImageUrl后检查尺寸');
+                        }, 100);
+                    }
+                    
+                    // 方案4：如果还是不行，尝试使用临时文件路径
+                    setTimeout(() => {
+                        if (!img.offsetWidth || !img.offsetHeight) {
+                            console.log('【post-detail】强制设置后尺寸仍为undefined，尝试转换为临时文件');
+                            this.tryConvertToTempFile();
+                        }
+                    }, 200);
+                }
+                
+                // 兼容性检查：只在支持closest方法的环境中使用
+                try {
+                    if (typeof img.closest === 'function') {
+                        const modal = img.closest('.share-modal');
+                        const overlay = img.closest('.share-modal-overlay');
+                        
+                        console.log('【post-detail】容器尺寸检查:', {
+                            modalWidth: modal ? modal.offsetWidth : 'N/A',
+                            modalHeight: modal ? modal.offsetHeight : 'N/A',
+                            overlayWidth: overlay ? overlay.offsetWidth : 'N/A',
+                            overlayHeight: overlay ? overlay.offsetHeight : 'N/A'
+                        });
+                    } else {
+                        console.log('【post-detail】当前环境不支持closest方法，跳过容器尺寸检查');
+                    }
+                } catch (error) {
+                    console.log('【post-detail】容器尺寸检查失败:', error.message);
+                }
+            }
+        },
+
+        onShareImageError: function (e) {
+            console.error('【post-detail】分享图片加载失败:', e);
+            console.log('【post-detail】当前shareImageUrl:', this.shareImageUrl);
+            console.log('【post-detail】图片URL类型:', typeof this.shareImageUrl);
+            console.log('【post-detail】图片URL长度:', this.shareImageUrl ? this.shareImageUrl.length : 0);
+            
+            // 如果是base64 URI，检查格式
+            if (this.shareImageUrl && this.shareImageUrl.startsWith('data:')) {
+                console.log('【post-detail】检测到base64 URI，检查格式...');
+                const isValidBase64 = this.shareImageUrl.match(/^data:image\/[a-zA-Z]*;base64,/);
+                if (!isValidBase64) {
+                    console.error('【post-detail】base64 URI格式无效');
+                } else {
+                    console.log('【post-detail】base64 URI格式正确');
+                }
+            }
+            
+            // 检查是否可以重试
+            if (this.shareImageRetryCount < 2) {
+                console.log('【post-detail】尝试重新生成图片，重试次数:', this.shareImageRetryCount + 1);
+                this.setData({
+                    shareImageRetryCount: this.shareImageRetryCount + 1
+                });
+                
+                // 延迟重试
+                setTimeout(() => {
+                    this.generateShareImage();
+                }, 1000);
+            } else {
+                // 如果重试失败，尝试使用不同的显示方式
+                console.log('【post-detail】重试失败，尝试使用备用方案');
+                this.tryAlternativeDisplay();
+            }
+        },
+
+        // 备用显示方案
+        tryAlternativeDisplay: function () {
+            console.log('【post-detail】尝试备用显示方案');
+            
+            // 如果当前是base64 URI，根据平台使用不同的处理方式
+            if (this.shareImageUrl && this.shareImageUrl.startsWith('data:')) {
+                console.log('【post-detail】检测到base64 URI，使用跨平台备用方案');
+                
+                // #ifdef H5
+                // H5平台：直接使用base64 URI
+                console.log('【post-detail】H5备用方案：直接使用base64 URI');
+                // 在H5平台，base64 URI应该能直接显示，如果还是失败，说明有其他问题
+                uni.showToast({
+                    title: '图片显示失败，请重试',
+                    icon: 'none'
+                });
+                // #endif
+                
+                // #ifndef H5
+                // 非H5平台：使用uni.base64ToTempFilePath()转换
+                console.log('【post-detail】非H5备用方案：使用uni.base64ToTempFilePath()转换');
+                uni.base64ToTempFilePath({
+                    base64Data: this.shareImageUrl,
+                    success: (res) => {
+                        console.log('【post-detail】备用方案base64转换成功:', res.filePath);
+                        this.setData({
+                            shareImageUrl: res.filePath
+                        });
+                    },
+                    fail: (err) => {
+                        console.error('【post-detail】备用方案base64转换失败:', err);
+                        uni.showToast({
+                            title: '图片显示失败，请重试',
+                            icon: 'none'
+                        });
+                    }
+                });
+                // #endif
+            } else {
+                // 如果不是base64，显示错误信息
+                uni.showToast({
+                    title: '图片显示失败，请重试',
+                    icon: 'none'
+                });
+            }
+        },
+
+        // 尝试将base64转换为临时文件
+        tryConvertToTempFile: function () {
+            if (this.shareImageUrl && this.shareImageUrl.startsWith('data:')) {
+                console.log('【post-detail】尝试将base64转换为临时文件');
+                
+                // #ifndef H5
+                // 非H5平台：使用uni.base64ToTempFilePath()转换
+                uni.base64ToTempFilePath({
+                    base64Data: this.shareImageUrl,
+                    success: (res) => {
+                        console.log('【post-detail】base64转临时文件成功:', res.filePath);
+                        this.setData({
+                            shareImageUrl: res.filePath
+                        });
+                    },
+                    fail: (err) => {
+                        console.error('【post-detail】base64转临时文件失败:', err);
+                        // 如果转换失败，显示错误信息
+                        uni.showToast({
+                            title: '图片显示失败，请重试',
+                            icon: 'none'
+                        });
+                    }
+                });
+                // #endif
+                
+                // #ifdef H5
+                // H5平台：尝试使用blob URL
+                try {
+                    const base64Data = this.shareImageUrl.split(',')[1];
+                    const binaryString = atob(base64Data);
+                    const bytes = new Uint8Array(binaryString.length);
+                    for (let i = 0; i < binaryString.length; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
+                    }
+                    const blob = new Blob([bytes], { type: 'image/png' });
+                    const blobUrl = URL.createObjectURL(blob);
+                    
+                    console.log('【post-detail】H5环境blob URL生成成功:', blobUrl);
+                    this.setData({
+                        shareImageUrl: blobUrl
+                    });
+                } catch (error) {
+                    console.error('【post-detail】H5环境blob URL生成失败:', error);
+                    uni.showToast({
+                        title: '图片显示失败，请重试',
+                        icon: 'none'
+                    });
+                }
+                // #endif
+            }
         },
 
         onPortfolioSuccess: function () {
@@ -1275,7 +2233,8 @@ export default {
                         parentId: parentId,
                         replyToAuthorName: replyToAuthor,
                         imageUrls: imageUrls,
-                        originalImageUrls: originalImageUrls
+                        originalImageUrls: originalImageUrls,
+                        isAnonymous: this.post.isAnonymous || false
                     },
                     { requireAuth: true }
                 );
@@ -2290,6 +3249,27 @@ export default {
     height: 56rpx;
 }
 
+.share-icon-container {
+    margin-right: 12rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12rpx;
+    border-radius: 12rpx;
+    transition: all 0.2s ease;
+    width: 60rpx;
+    height: 60rpx;
+}
+
+.share-icon-container:active {
+    transform: scale(0.95);
+}
+
+.share-icon {
+    width: 56rpx;
+    height: 56rpx;
+}
+
 .discussion-icon-container {
     margin-right: 12rpx;
     display: flex;
@@ -2998,7 +3978,134 @@ export default {
     box-sizing: border-box;
     overflow-wrap: break-word;
 }
+
+/* 分享弹窗样式 */
+.share-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.share-modal {
+    /* 去掉白色背景 */
+    background: transparent;
+    width: 80vw;
+    max-width: 500px; /* 限制一个最大宽度，防止在大屏幕上过宽 */
+    display: flex; /* 使用flex布局让内部元素更容易对齐 */
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    border-radius: 20rpx;
+    padding: 20rpx;
+    box-sizing: border-box; /* 加上这个，padding就不会撑大容器 */
+    /* 去掉阴影 */
+}
+
+
+
+.share-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 400rpx;
+    font-size: 28rpx;
+    color: #666;
+}
+
+
+.share-generated-image {
+    /* mode="widthFix" 会自动处理宽高比，我们只需要告诉它宽度即可 */
+    width: 100%; 
+    
+    /* display: block 是好习惯，可以避免一些潜在的布局问题 */
+    display: block; 
+    
+    /* 其他美化样式 - 与Canvas绘制的圆角保持一致 */
+    border-radius: 15px; /* 与Canvas绘制的圆角半径15px保持一致 */
+    background-color: #f0f0f0; /* 图片加载时的底色 */
+    box-shadow: 0 8rpx 8rpx rgba(0, 0, 0, 0.25);
+    overflow: hidden; /* 确保圆角效果正确显示 */
+}
+
+/* 强制显示图片的CSS类 */
+.force-image-display {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 200px !important;
+    max-height: 80vh !important;
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    background-color: #f0f0f0 !important;
+    border: 2px solid #007aff !important;
+}
+
+.share-preview-card {
+    border-radius: 16rpx;
+    padding: 40rpx;
+    position: relative;
+    min-height: 200rpx;
+    box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+}
+
+.share-preview-content {
+    font-family: 'Huiwen-mincho', sans-serif;
+    font-size: 28rpx;
+    line-height: 38rpx;
+    white-space: pre-wrap;
+    margin-bottom: 20rpx;
+}
+
+.share-preview-signature {
+    position: absolute;
+    bottom: 20rpx;
+    right: 20rpx;
+}
+
+.share-signature-image {
+    width: 180rpx;
+    height: 90rpx;
+    opacity: 0.8;
+}
+
+.share-actions {
+    display: flex;
+    justify-content: center;
+}
+
+.share-download-btn {
+    background: #007AFF;
+    color: white;
+    border: none;
+    border-radius: 12rpx;
+    padding: 24rpx 60rpx;
+    font-size: 30rpx;
+    font-weight: 600;
+}
+
+.share-download-btn:active {
+    background: #0056CC;
+}
+
+/* 定义 Huiwen-mincho 字体 */
+@font-face {
+  font-family: 'Huiwen-mincho';
+  src: url('/static/fonts/Huiwen-mincho.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
 </style>
+
+
+
+
 
 
 

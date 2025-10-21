@@ -92,8 +92,55 @@ export function setupCacheEventBridges() {
       } catch (_) {}
     });
 
+    // 未读消息数变化：同步到 unread 缓存，驱动组件即时更新
+    uni.$on(EVENTS.UNREAD_CHANGED, (payload = {}) => {
+      try {
+        const { updateUnreadCache } = require('@/api-cache/unread.js');
+        if (typeof payload.count === 'number') {
+          updateUnreadCache(payload.count);
+        } else if (typeof payload.delta === 'number') {
+          updateUnreadCache((prev) => Math.max(0, (prev || 0) + (payload.delta || 0)));
+        }
+      } catch (_) {}
+    });
+    // 帖子可见性变化：隐藏时从公共列表的缓存中移除，取消隐藏时清理公共缓存
+    uni.$on(EVENTS.POST_VISIBILITY_CHANGED, (payload = {}) => {
+      try {
+        const postId = payload && payload.postId;
+        const isHidden = !!(payload && payload.isHidden);
+        if (!postId) return;
+        const cacheManager = require('@/_utils/cache-manager').default;
+        const nsStats = cacheManager.getStats ? cacheManager.getStats() : {};
+        const nsNames = Object.keys(nsStats);
+        const targets = nsNames.filter((n) => (
+          n === 'posts:home' || n === 'posts:discover' || n.startsWith('posts:tag:') || n.startsWith('userPosts:')
+        ));
+        if (isHidden) {
+          targets.forEach((nsName) => {
+            try {
+              const ns = cacheManager.namespace(nsName);
+              const keys = (ns.keys && ns.keys()) || [];
+              keys.forEach((key) => {
+                try {
+                  ns.update(key, (list) => {
+                    if (!Array.isArray(list)) return list;
+                    return list.filter((p) => !(p && (p._id === postId || p.id === postId)));
+                  });
+                } catch (_) {}
+              });
+            } catch (_) {}
+          });
+        } else {
+          try { invalidateHomePosts({}); } catch (_) {}
+          try { clearDiscoverCache(); } catch (_) {}
+        }
+      } catch (_) {}
+    });
+
     g.__CACHE_EVENTS_BRIDGED__ = true;
   } catch (_) {}
 }
 
 export default { setupCacheEventBridges };
+
+

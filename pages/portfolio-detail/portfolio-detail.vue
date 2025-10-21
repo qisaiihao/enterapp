@@ -143,9 +143,7 @@ export default {
   components: {
     skeleton
   },
-  onLoad() {
-    try { uni.$on && uni.$on('like-changed', this.onGlobalLikeChanged); } catch (_) {}
-  },
+  
   onUnload() {
     try { uni.$off && this.onGlobalLikeChanged && uni.$off('like-changed', this.onGlobalLikeChanged); } catch (_) {}
   },
@@ -175,6 +173,8 @@ export default {
     };
   },
   onLoad(options) {
+    // 注册全局点赞事件
+    try { uni.$on && uni.$on('like-changed', this.onGlobalLikeChanged); } catch (_) {}
     // 获取传入的文件夹ID和名称
     this.folderId = options.folderId || '';
     this.folderName = decodeURIComponent(options.folderName || '作品集');
@@ -653,6 +653,9 @@ export default {
   height: 100vh;
   display: flex;
   flex-direction: column;
+  /* #ifdef APP-PLUS */
+  padding-top: var(--status-bar-height);
+  /* #endif */
 }
 
 .content-scroll {
@@ -778,7 +781,8 @@ export default {
 .header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  position: relative;
   padding: 20rpx 30rpx;
   background: #fff;
   border-bottom: 1rpx solid #e9ecef;
@@ -788,6 +792,8 @@ export default {
 }
 
 .header-left {
+  position: absolute;
+  left: 30rpx;
   width: 60rpx;
   height: 60rpx;
   display: flex;
@@ -808,6 +814,8 @@ export default {
 }
 
 .header-right {
+  position: absolute;
+  right: 30rpx;
   width: 100rpx;
   display: flex;
   justify-content: flex-end;

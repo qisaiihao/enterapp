@@ -35,13 +35,13 @@
                 </block>
               </view>
 
-              <!-- 作者签名 - 展开时显示大签名 -->
-              <view v-if="item.isExpanded && item.authorSignature" class="user-signature">
+              <!-- 作者签名 - 展开时显示大签名（匿名帖子不显示签名） -->
+              <view v-if="item.isExpanded && item.authorSignature && !item.isAnonymous" class="user-signature">
                 <image class="signature-image" :src="item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
               </view>
 
-              <!-- 作者签名 - 折叠时显示小签名 -->
-              <view v-if="!item.isExpanded && item.authorSignature" class="user-signature-small">
+              <!-- 作者签名 - 折叠时显示小签名（匿名帖子不显示签名） -->
+              <view v-if="!item.isExpanded && item.authorSignature && !item.isAnonymous" class="user-signature-small">
                 <image class="signature-image-small" :src="item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
               </view>
             </view>
@@ -94,14 +94,10 @@ export default {
   onShow() {
     // #ifndef MP-WEIXIN
     try { uni.hideTabBar({ animation: false }); } catch (e) {}
-    try { this. $refs.customTabBar && this.$refs.customTabBar.syncSelected && this.$refs.customTabBar.syncSelected(); } catch (e) {} 
+    try { this.$refs.customTabBar && this.$refs.customTabBar.syncSelected && this.$refs.customTabBar.syncSelected(); } catch (e) {}
     // #endif
-  },
-  onLoad() {
-    try { uni.$on && uni.$on('like-changed', this.onGlobalLikeChanged); } catch (_) {}
-  },
-  onUnload() {
-    try { uni.$off && this.onGlobalLikeChanged && uni.$off('like-changed', this.onGlobalLikeChanged); } catch (_) {}
+    // 回到页面时，用缓存对齐当前可见帖子的点赞状态
+    try { this.syncLikeStatusFromCache && this.syncLikeStatusFromCache(); } catch (_) {}
   },
   components: {
     skeleton,
@@ -127,9 +123,13 @@ export default {
       safeAreaTop: 0
     };
   },
-  onLoad() {
-    // 调试：检查安全区域高度
+    onLoad() {
+    // 注册全局点赞变更事件（跨页实时更新）
+    // replaced invalid registration
+    try { uni.$on && uni.$on('like-changed', this.onGlobalLikeChanged); } catch (_) {}
+    // 设备安全区初始化
     this.debugSafeArea();
+    // 首次加载数据
     this.getIndexData();
   },
   onPullDownRefresh() {
@@ -249,7 +249,9 @@ export default {
         const list = (res && res.result && res.result.posts) ? res.result.posts : [];
         console.log('【poem-square】获取到帖子数量:', list.length);
         
-        list.forEach((p) => {
+        const visibleList = list.filter(p => !(p && (p.isAnonymous === true || p.isAnonymous === 1 || p.isAnonymous === '1' || p.isAnonymous === 'true' || p.anonymous === true)));
+        
+        visibleList.forEach((p) => {
           // 优先使用数据库中保存的背景颜色，如果没有则随机生成
           p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
           p.textColor = p.textColor || '#222';
@@ -258,16 +260,16 @@ export default {
           p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
         });
         
-        const newPostList = this.page === 0 ? list : this.postList.concat(list);
+        const newPostList = this.page === 0 ? visibleList : this.postList.concat(visibleList);
         this.setData({
           postList: newPostList,
           page: this.page + 1,
           hasMore: list.length === PAGE_SIZE
         });
         
-        // 自动获取所有帖子的签名
+        // 自动获取所有帖子的签名（匿名帖子不获取签名）
         newPostList.forEach((post, index) => {
-          if (post._openid && !post.authorSignature) {
+          if (post._openid && !post.authorSignature && !post.isAnonymous) {
             this.fetchAuthorSignature(post._openid, index);
           }
         });
@@ -291,8 +293,8 @@ export default {
 
       this.setData({ [`postList[${index}].isExpanded`]: next });
 
-      // 如果还没有签名，则获取签名（无论展开还是折叠）
-      if (post._openid && !post.authorSignature) {
+      // 如果还没有签名，则获取签名（无论展开还是折叠，但匿名帖子不获取签名）
+      if (post._openid && !post.authorSignature && !post.isAnonymous) {
         this.fetchAuthorSignature(post._openid, index);
       }
     },
@@ -554,3 +556,30 @@ export default {
 .page-indicator { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,.7); color: #fff; padding: 20rpx 40rpx; border-radius: 40rpx; z-index: 1000; font-size: 28rpx; }
 .page-indicator-text { text-align: center; }
 </style>
+    // 从 like:status 缓存对齐当前列表的点赞状态（兜底：跨页返回时也能更新）
+    syncLikeStatusFromCache() {
+      try {
+        const list = Array.isArray(this.postList) ? this.postList : [];
+        const ids = list.map(p => p && p._id).filter(Boolean);
+        if (!ids.length) return;
+        try { const { syncLikeStatusForPosts } = require('../../utils/likeStatusSync.js'); syncLikeStatusForPosts(ids); } catch (_) {}
+        const { getLatestLikeStatus } = require('../../utils/likeStatusSync.js');
+        let changed = false;
+        const next = list.slice();
+        for (let i = 0; i < next.length; i += 1) {
+          const p = next[i]; if (!p || !p._id) continue;
+          const s = getLatestLikeStatus(p._id);
+          if (s && ((p.votes || 0) !== s.votes || !!p.isVoted !== !!s.isVoted)) {
+            p.votes = s.votes; p.isVoted = s.isVoted; p.likeIcon = likeIcon.getLikeIcon(s.votes, s.isVoted);
+            changed = true;
+          }
+        }
+        if (changed) this.setData({ postList: next });
+      } catch (err) { console.warn('[poem-square] syncLikeStatusFromCache failed', err); }
+    },
+
+
+
+
+
+

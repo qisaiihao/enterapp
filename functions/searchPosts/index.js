@@ -169,7 +169,7 @@ exports.main = async (event, context) => {
         index === self.findIndex(p => p._id === post._id)
       );
       
-      posts = uniquePosts;
+      posts = uniquePosts;\n      posts = posts.filter(p => !p || p.isHidden !== true);
       console.log('合并后结果数量:', posts.length);
       
     } else {
@@ -196,7 +196,7 @@ exports.main = async (event, context) => {
         index === self.findIndex(p => p._id === post._id)
       );
       
-      posts = uniquePosts;
+      posts = uniquePosts;\n      posts = posts.filter(p => !p || p.isHidden !== true);
       console.log('合并后结果数量:', posts.length);
     }
     
@@ -204,7 +204,7 @@ exports.main = async (event, context) => {
     posts.sort((a, b) => new Date(b.createTime) - new Date(a.createTime));
     
     // 限制结果数量
-    posts = posts.slice(0, limit);
+    posts = posts.slice(0, limit);\n    posts = posts.filter(p => !p || p.isHidden !== true);
     
     console.log('最终结果数量:', posts.length);
     console.log('搜索结果详情:', posts.map(p => ({ 
@@ -337,3 +337,4 @@ exports.main = async (event, context) => {
     };
   }
 };
+

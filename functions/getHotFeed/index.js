@@ -24,6 +24,8 @@ exports.main = async (event, context) => {
     let matchConditions = {
       isOriginal: true // 只推荐原创内容
     };
+    matchConditions.isHidden = _.neq(true);
+
 
     // 排除指定的帖子ID（避免重复推荐）
     if (excludePostIds && excludePostIds.length > 0) {
@@ -160,3 +162,9 @@ exports.main = async (event, context) => {
     };
   }
 };
+
+
+
+
+
+

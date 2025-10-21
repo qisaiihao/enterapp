@@ -65,6 +65,13 @@ exports.main = async (event, context) => {
 
     const userInfo = profileData.list[0];
     let posts = userInfo.posts || [];
+    // 非本人访问时，过滤掉隐藏帖
+    try {
+      const isOwner = String(currentOpenid) === String(userId);
+      if (!isOwner && Array.isArray(posts)) {
+        posts = posts.filter((p) => !p || p.isHidden !== true);
+      }
+    } catch (_) {}
 
     // 处理图片URL
     posts.forEach(post => {

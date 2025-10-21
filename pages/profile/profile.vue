@@ -147,13 +147,14 @@
                                         :data-user-id="item._openid"
                                     ></image>
                                     <text class="author-name">{{ item.authorName }}</text>
+                                    <view v-if="item.isAnonymous" class="anonymous-tag">匿名</view>
                                 </view>
 
                                 <!-- 可点击的内容区域 - 跳转到详情页 -->
 
                                 <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item._id" hover-class="navigator-hover">
                                     <view class="post-item">
-                                        <view class="post-title">{{ item.title }}</view>
+                                        <view class="post-title">{{ item.title }} <text v-if="item.isHidden" class="hidden-tag">已隐藏</text></view>
                                         <!-- 诗歌作者信息 -->
                                         <view v-if="item.isPoem && item.author" class="poem-author">{{ item.author }}</view>
 
@@ -233,6 +234,9 @@
                                         <text class="post-time">发布于{{ item.formattedCreateTime || '未知时间' }}</text>
                                     </view>
                                     <view class="button-group">
+<view class="visibility-btn" @tap.stop.prevent="onToggleVisibility" :data-postid="item._id" :data-index="index" :data-hidden="item.isHidden === true">
+                                            <image class="visibility-icon" src="/static/images/hide.png" mode="aspectFit"></image>
+                                        </view>
                                         <view class="delete-btn" @tap.stop.prevent="onDelete" :data-postid="item._id" :data-index="index">
                                             <image class="delete-icon" src="/static/images/delete.png" mode="aspectFit"></image>
                                         </view>
@@ -277,7 +281,7 @@
 
                                 <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item._id" hover-class="navigator-hover">
                                     <view class="post-item">
-                                        <view class="post-title">{{ item.title }}</view>
+                                        <view class="post-title">{{ item.title }} <text v-if="item.isHidden" class="hidden-tag">已隐藏</text></view>
                                         <!-- 诗歌作者信息 -->
                                         <view v-if="item.isPoem && item.author" class="poem-author">{{ item.author }}</view>
 
@@ -357,6 +361,9 @@
                                         <text class="favorite-time">收藏于{{ item.formattedFavoriteTime || '未知时间' }}</text>
                                     </view>
                                     <view class="button-group">
+<view class="visibility-btn" @tap.stop.prevent="onToggleVisibility" :data-postid="item._id" :data-index="index" :data-hidden="item.isHidden === true">
+                                            <image class="visibility-icon" src="/static/images/hide.png" mode="aspectFit"></image>
+                                        </view>
                                         <button class="remove-favorite-btn" size="mini" @tap.stop.prevent="removeFavorite" :data-favorite-id="item.favoriteId" :data-index="index">
                                             取消收藏
                                         </button>
@@ -624,7 +631,29 @@ export default {
     onUnload: function () {
         try { uni.$off && uni.$off('comment-count-changed'); } catch (_) {}
     },
-    methods: {
+    methods: {        // 隐藏/取消隐藏帖子
+        onToggleVisibility: function (e) {
+            const postId = e.currentTarget.dataset.postid;
+            const index = e.currentTarget.dataset.index;
+            const currentlyHidden = !!e.currentTarget.dataset.hidden;
+            if (!postId || typeof index === 'undefined') return;
+            const targetHidden = !currentlyHidden;
+            this.callCloudFunction('updatePostVisibility', { postId, hidden: targetHidden }).then((res) => {
+                if (res && res.result && res.result.success) {
+                    const path = `myPosts[${index}].isHidden`;
+                    const updates = {};
+                    updates[path] = targetHidden;
+                    this.setData(updates);
+                    try { const { emitPostVisibilityChanged } = require('../../utils/events.js'); emitPostVisibilityChanged({ postId, isHidden: targetHidden }); } catch (_) {}
+                    uni.showToast({ title: targetHidden ? '已隐藏' : '已取消隐藏', icon: 'success' });
+                } else {
+                    uni.showToast({ title: res?.result?.message || '操作失败', icon: 'none' });
+                }
+            }).catch((err) => {
+                console.error('updatePostVisibility failed', err);
+                uni.showToast({ title: '操作失败', icon: 'none' });
+            });
+        },
         getProfileData: function () {
             // 获取用户信息和帖子数据
             this.checkLoginAndFetchData();
@@ -2195,6 +2224,17 @@ export default {
     z-index: 10;
 }
 
+/* 匿名标签样式 */
+.anonymous-tag {
+    background: #ff6b6b;
+    color: white;
+    font-size: 20rpx;
+    padding: 4rpx 8rpx;
+    border-radius: 10rpx;
+    margin-left: 10rpx;
+    font-weight: 500;
+}
+
 .like-btn {
     width: 60rpx;
     height: 60rpx;
@@ -2858,6 +2898,33 @@ export default {
     color: #333;
 }
 
-</style>
+.visibility-btn {
+    margin-right: 20rpx;
+    padding: 10rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
 
+.visibility-btn:active { 
+    transform: scale(0.9);
+}
+
+.visibility-icon {
+    width: 60rpx;
+    height: 60rpx;
+}
+
+.hidden-tag { 
+    font-size: 22rpx; 
+    color: #ff6b6b; 
+    margin-left: 8rpx; 
+    padding: 2rpx 8rpx; 
+    border: 1rpx solid #ffadb0; 
+    border-radius: 6rpx; 
+}
+
+</style>
 

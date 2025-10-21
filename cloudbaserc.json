@@ -326,6 +326,18 @@
               "root": "./functions/updatePortfolio",
               "timeout": 10,
               "memory": 256
+            },
+            {
+              "name": "updatePostVisibility",
+              "root": "./functions/updatePostVisibility",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "initDatabase",
+              "root": "./functions/initDatabase",
+              "timeout": 10,
+              "memory": 128
             }
           ]
         }

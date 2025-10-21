@@ -35,13 +35,14 @@ exports.main = async (event, context) => {
   }
 
   // 从 event 中获取要审查的文本和图片fileID
-  const { text, fileIDs, originalFileIDs, title, content, publishMode, isOriginal, author, tags, backgroundColor, textColor, highlightSentence, highlightLines, isDiscussion, parentPostId } = event;
+  const { text, fileIDs, originalFileIDs, title, content, publishMode, isOriginal, author, tags, backgroundColor, textColor, highlightSentence, highlightLines, isDiscussion, parentPostId, isAnonymous, anonymousAuthorName, realAuthorOpenid } = event;
   
   console.log('接收到的fileIDs:', fileIDs);
   console.log('接收到的originalFileIDs:', originalFileIDs);
   console.log('fileIDs类型:', typeof fileIDs);
   console.log('fileIDs长度:', fileIDs ? fileIDs.length : 'undefined');
   console.log('originalFileIDs长度:', originalFileIDs ? originalFileIDs.length : 'undefined');
+  console.log('匿名发帖参数:', { isAnonymous, anonymousAuthorName, realAuthorOpenid });
   
   /* 
   // 以下是原来的内容审核逻辑，暂时注释掉，未来续费后可以重新启用
@@ -206,17 +207,32 @@ exports.main = async (event, context) => {
     
     // 确定作者信息
     let authorName = '';
-    if (publishMode === 'poem') {
-      if (isOriginal) {
-        // 原创诗歌：如果填写了作者就用填写的，否则使用用户昵称
-        authorName = author && author.trim() ? author.trim() : userNickName;
-      } else {
-        // 非原创诗歌：必须使用填写的作者
-        authorName = author && author.trim() ? author.trim() : '';
-      }
+    let displayAuthorName = '';
+    let displayAuthorAvatar = '';
+    
+    if (isAnonymous) {
+      // 匿名发帖：显示匿名信息
+      console.log('执行匿名发帖逻辑');
+      authorName = anonymousAuthorName || '匿名用户';
+      displayAuthorName = anonymousAuthorName || '匿名用户';
+      displayAuthorAvatar = '/static/images/avatar.png'; // 使用默认头像
+      console.log('匿名发帖设置:', { authorName, displayAuthorName, displayAuthorAvatar });
     } else {
-      // 普通帖子：使用用户昵称
-      authorName = userNickName;
+      // 正常发帖
+      if (publishMode === 'poem') {
+        if (isOriginal) {
+          // 原创诗歌：如果填写了作者就用填写的，否则使用用户昵称
+          authorName = author && author.trim() ? author.trim() : userNickName;
+        } else {
+          // 非原创诗歌：必须使用填写的作者
+          authorName = author && author.trim() ? author.trim() : '';
+        }
+      } else {
+        // 普通帖子：使用用户昵称
+        authorName = userNickName;
+      }
+      displayAuthorName = userNickName;
+      displayAuthorAvatar = userAvatar;
     }
 
     const postData = {
@@ -234,10 +250,14 @@ exports.main = async (event, context) => {
       parentPostId: parentPostId || '',
       // 新增作者字段
       author: authorName,
-      authorName: userNickName,
-      authorAvatar: userAvatar,
-      authorNameSnapshot: userNickName,
-      authorAvatarSnapshot: userAvatar,
+      authorName: displayAuthorName,
+      authorAvatar: displayAuthorAvatar,
+      authorNameSnapshot: displayAuthorName,
+      authorAvatarSnapshot: displayAuthorAvatar,
+      // 匿名发帖相关字段
+      isAnonymous: isAnonymous || false,
+      anonymousAuthorName: anonymousAuthorName || '匿名用户',
+      realAuthorOpenid: realAuthorOpenid || null,
       // 新增标签字段
       tags: tags || [],
       // 审核状态
@@ -299,6 +319,12 @@ exports.main = async (event, context) => {
     }
     
     console.log('准备写入数据库的帖子数据:', JSON.stringify(postData, null, 2));
+    console.log('最终作者信息:', { 
+      author: postData.author, 
+      authorName: postData.authorName, 
+      authorAvatar: postData.authorAvatar,
+      isAnonymous: postData.isAnonymous 
+    });
     
     // 测试数据库连接
     try {

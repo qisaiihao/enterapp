@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <view>
         <!-- index.wxml -->
         <view class="container" @touchstart="touchStart" @touchend="touchEnd">
@@ -38,10 +38,10 @@
                                     @error="onAvatarError"
                                     @load="onAvatarLoad"
                                     :data-postindex="index"
-                                    @tap.stop.prevent="navigateToUserProfile"
-                                    :data-user-id="item._openid"
+                                    @tap.stop.prevent="item.isAnonymous ? noop : navigateToUserProfile"
+                                    :data-user-id="item.isAnonymous ? null : item._openid"
                                 ></image>
-                                <text class="author-name">{{ item.authorName }}</text>
+                                <text class="author-name">{{ item.isAnonymous ? '匿名用户' : item.authorName }}</text>
                             </view>
 
                             <!-- 可点击的内容区域 - 跳转到详情页 -->
@@ -150,10 +150,10 @@
                                     @error="onAvatarError"
                                     @load="onAvatarLoad"
                                     :data-postindex="index"
-                                    @tap.stop.prevent="navigateToUserProfile"
-                                    :data-user-id="item._openid"
+                                    @tap.stop.prevent="item.isAnonymous ? noop : navigateToUserProfile"
+                                    :data-user-id="item.isAnonymous ? null : item._openid"
                                 ></image>
-                                <text class="author-name">{{ item.authorName }}</text>
+                                <text class="author-name">{{ item.isAnonymous ? '匿名用户' : item.authorName }}</text>
                             </view>
 
                             <!-- 可点击的内容区域 - 跳转到详情页 -->
@@ -262,10 +262,10 @@
                                     @error="onAvatarError"
                                     @load="onAvatarLoad"
                                     :data-postindex="index"
-                                    @tap.stop.prevent="navigateToUserProfile"
-                                    :data-user-id="item._openid"
+                                    @tap.stop.prevent="item.isAnonymous ? noop : navigateToUserProfile"
+                                    :data-user-id="item.isAnonymous ? null : item._openid"
                                 ></image>
-                                <text class="author-name">{{ item.authorName }}</text>
+                                <text class="author-name">{{ item.isAnonymous ? '匿名用户' : item.authorName }}</text>
                             </view>
 
                             <!-- 可点击的内容区域 - 跳转到详情页 -->
@@ -1205,62 +1205,54 @@ onReachBottom: function () {
         // 模式切换现在通过底部tabBar实现，不再需要手动切换
 
         // 同步点赞状态：从缓存中获取最新的点赞状态
+                // ͬ������״̬���ӻ����л�ȡ���µĵ���״̬ + ���µ�ǰ�б�UI
         syncLikeStatusFromCache: function () {
             try {
-                // 收集当前页面显示的所有帖子ID
                 const allPostIds = [];
+                const collectIds = (list) => {
+                    if (!Array.isArray(list)) return;
+                    list.forEach((p) => { if (p && p._id) allPostIds.push(p._id); });
+                };
+                collectIds(this.postList);
+                collectIds(this.discoverPostList);
+                collectIds(this.discussionPostList);
 
-                // 从主页帖子列表收集
-                if (Array.isArray(this.postList)) {
-                    this.postList.forEach(post => {
-                        if (post && post._id) {
-                            allPostIds.push(post._id);
+                if (allPostIds.length === 0) return;
+
+                const likeSync = require('../../utils/likeStatusSync.js');
+                try { likeSync.syncLikeStatusForPosts(allPostIds); } catch (_) {}
+                const getLatestLikeStatus = likeSync.getLatestLikeStatus;
+                const updates = {};
+
+                const patchList = (key) => {
+                    const list = this[key];
+                    if (!Array.isArray(list) || list.length === 0) return;
+                    let changed = false;
+                    const next = list.slice();
+                    for (let i = 0; i < next.length; i += 1) {
+                        const p = next[i];
+                        if (!p || !p._id) continue;
+                        const s = getLatestLikeStatus(p._id);
+                        if (s && (((Number(p.votes) || 0) !== s.votes) || (!!p.isVoted !== !!s.isVoted))) {
+                            p.votes = s.votes;
+                            p.isVoted = s.isVoted;
+                            const likeIcon = require('../../utils/likeIcon');
+                            p.likeIcon = likeIcon.getLikeIcon(s.votes, s.isVoted);
+                            changed = true;
                         }
-                    });
-                }
-
-                // 从发现页帖子列表收集
-                if (Array.isArray(this.discoverPostList)) {
-                    this.discoverPostList.forEach(post => {
-                        if (post && post._id) {
-                            allPostIds.push(post._id);
-                        }
-                    });
-                }
-
-                // 从讨论页帖子列表收集
-                if (Array.isArray(this.discussionPostList)) {
-                    this.discussionPostList.forEach(post => {
-                        if (post && post._id) {
-                            allPostIds.push(post._id);
-                        }
-                    });
-                }
-
-                if (allPostIds.length > 0) {
-                    console.log(`【首页】同步点赞状态：准备同步 ${allPostIds.length} 个帖子的点赞状态`);
-
-                    // 使用新的同步工具
-                    const { syncLikeStatusForPosts } = require('../../utils/likeStatusSync.js');
-                    const syncResult = syncLikeStatusForPosts(allPostIds);
-
-                    if (syncResult.success && syncResult.updated > 0) {
-                        console.log(`【首页】点赞状态同步完成，更新了 ${syncResult.updated} 个帖子`);
-
-                        // 强制更新页面显示
-                        this.setData({
-                            postList: [...this.postList],
-                            discoverPostList: [...this.discoverPostList],
-                            discussionPostList: [...this.discussionPostList]
-                        });
-                    } else if (syncResult.errors.length > 0) {
-                        console.warn('【首页】点赞状态同步出现错误:', syncResult.errors);
                     }
-                } else {
-                    console.log('【首页】同步点赞状态：没有需要同步的帖子');
+                    if (changed) updates[key] = next;
+                };
+
+                patchList('postList');
+                patchList('discoverPostList');
+                patchList('discussionPostList');
+
+                if (Object.keys(updates).length > 0) {
+                    this.setData(updates);
                 }
             } catch (err) {
-                console.error('【首页】同步点赞状态失败:', err);
+                console.error('����ҳ��ͬ������״̬ʧ��:', err);
             }
         },
 
@@ -1744,7 +1736,10 @@ onReachBottom: function () {
         // 统一云函数调用方法
         callCloudFunction(name, data = {}, extraOptions = {}) {
             return cloudCall(name, data, Object.assign({ pageTag: 'index', context: this }, extraOptions));
-        }
+        },
+
+        // 空函数，用于阻止匿名帖子的头像点击事件
+        noop() {}
 
     }
 };

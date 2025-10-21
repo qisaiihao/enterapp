@@ -48,7 +48,7 @@ exports.main = async (event, context) => {
     let query = db.collection('posts').aggregate();
 
     // 构建筛选条件
-    const matchConditions = {};
+    const matchConditions = { isHidden: _.neq(true) };
 
     // 如果指定了isPoem参数，添加诗歌筛选条件
     if (isPoem !== undefined) {
@@ -256,3 +256,4 @@ exports.main = async (event, context) => {
     };
   }
 };
+

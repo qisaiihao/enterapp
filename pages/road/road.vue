@@ -88,6 +88,10 @@ export default {
     this.getIndexData();
     try { uni.$on && uni.$on('like-changed', this.onGlobalLikeChanged); } catch (_) {}
   },
+  onShow() {
+    // 回到页面时，用缓存对齐当前可见帖子的点赞状态
+    try { this.syncLikeStatusFromCache && this.syncLikeStatusFromCache(); } catch (_) {}
+  },
   onUnload() {
     try { uni.$off && this.onGlobalLikeChanged && uni.$off('like-changed', this.onGlobalLikeChanged); } catch (_) {}
   },
@@ -350,3 +354,24 @@ export default {
 .page-indicator { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,.7); color: #fff; padding: 20rpx 40rpx; border-radius: 40rpx; z-index: 1000; font-size: 28rpx; }
 .page-indicator-text { text-align: center; }
 </style>
+    // 从 like:status 缓存对齐当前列表的点赞状态（兜底：跨页返回时也能更新）
+    syncLikeStatusFromCache() {
+      try {
+        const list = Array.isArray(this.postList) ? this.postList : [];
+        const ids = list.map(p => p && p._id).filter(Boolean);
+        if (!ids.length) return;
+        try { const { syncLikeStatusForPosts } = require('../../utils/likeStatusSync.js'); syncLikeStatusForPosts(ids); } catch (_) {}
+        const { getLatestLikeStatus } = require('../../utils/likeStatusSync.js');
+        let changed = false;
+        const next = list.slice();
+        for (let i = 0; i < next.length; i += 1) {
+          const p = next[i]; if (!p || !p._id) continue;
+          const s = getLatestLikeStatus(p._id);
+          if (s && ((p.votes || 0) !== s.votes || !!p.isVoted !== !!s.isVoted)) {
+            p.votes = s.votes; p.isVoted = s.isVoted; p.likeIcon = likeIcon.getLikeIcon(s.votes, s.isVoted);
+            changed = true;
+          }
+        }
+        if (changed) this.setData({ postList: next });
+      } catch (err) { console.warn('[road] syncLikeStatusFromCache failed', err); }
+    },

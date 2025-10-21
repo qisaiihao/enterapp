@@ -28,7 +28,8 @@ exports.main = async (event, context) => {
     parentId,
     replyToAuthorName,
     imageUrls = [],
-    originalImageUrls = []
+    originalImageUrls = [],
+    isAnonymous = false
   } = event;
 
   const trimmedContent = (content || '').trim();
@@ -51,6 +52,12 @@ exports.main = async (event, context) => {
   }
 
   try {
+    // 获取用户信息
+    const userResult = await db.collection('users').where({
+      _openid: openid
+    }).limit(1).get();
+    const user = userResult.data[0];
+    
     // 准备要存入数据库的数据
     const commentData = {
       _openid: openid,
@@ -60,7 +67,12 @@ exports.main = async (event, context) => {
       createTime: new Date(),
       imageUrls: sanitizedImageUrls,
       originalImageUrls: sanitizedOriginalImageUrls,
-      hasImages: hasImages
+      hasImages: hasImages,
+      // 匿名评论相关字段
+      isAnonymous: isAnonymous,
+      authorName: isAnonymous ? '匿名用户' : (user ? user.nickName : '微信用户'),
+      authorAvatar: isAnonymous ? '/static/images/avatar.png' : (user ? user.avatarUrl : ''),
+      realAuthorOpenid: isAnonymous ? openid : null
     };
 
     // 如果 parentId 存在，说明这是一条回复
@@ -90,15 +102,9 @@ exports.main = async (event, context) => {
       const postResult = await db.collection('posts').doc(postId).get()
       const post = postResult.data
       
-      // 获取评论者信息
-      const userResult = await db.collection('users').where({
-        _openid: openid
-      }).limit(1).get()
-      const user = userResult.data[0]
-      
-      // 如果给自己评论，不发送通知
-      if (post._openid === openid) {
-        console.log('用户给自己评论，不发送通知')
+      // 如果给自己评论或匿名评论，不发送通知
+      if (post._openid === openid || isAnonymous) {
+        console.log('用户给自己评论或匿名评论，不发送通知')
       } else {
         // 创建消息记录
         const messageContent = parentId ? 
