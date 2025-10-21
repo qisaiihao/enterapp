@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <view>
         ﻿
         <!-- pages/profile/profile.wxml -->
@@ -76,7 +76,21 @@
                 <!-- Main Content -->
                 <view class="main-content">
                     <!-- User Profile Card -->
-                    <view class="profile-card profile-card-center">
+                        <view class="profile-card profile-card-center">
+                            <view class="profile-growth-stats">
+                                <view class="growth-item">
+                                <image class="growth-icon" src="/static/images/seedplus.png" mode="aspectFit"></image>
+                                <text class="growth-count">{{ growthStats.seed }}</text>
+                            </view>
+                            <view class="growth-item">
+                                <image class="growth-icon" src="/static/images/leafplus.png" mode="aspectFit"></image>
+                                <text class="growth-count">{{ growthStats.leaf }}</text>
+                            </view>
+                            <view class="growth-item">
+                                <image class="growth-icon" src="/static/images/flowerplus.png" mode="aspectFit"></image>
+                                <text class="growth-count">{{ growthStats.flower }}</text>
+                            </view>
+                        </view>
                         <view class="profile-avatar-large">
                             <image :src="userInfo.avatarUrl || '/static/images/avatar.png'" mode="aspectFill" @error="onAvatarError"></image>
                         </view>
@@ -495,9 +509,14 @@ export default {
             // 关注统计
             followingCount: 0,
             followerCount: 0,
-            
             // 作品集数据
-            portfolioList: []
+            portfolioList: [],
+            // 花草成长统计
+            growthStats: {
+                seed: 0,
+                leaf: 0,
+                flower: 0
+            }
         };
     },
     onLoad: function (options) {
@@ -548,6 +567,7 @@ export default {
                 swiperHeights: {},
                 imageClampHeights: {}
             });
+            this.updateGrowthStats([]);
 
             console.log('【profile】🔄 开始加载帖子数据（强制云端）');
             this.loadMyPosts(() => {
@@ -729,6 +749,7 @@ export default {
                 swiperHeights: {},
                 imageClampHeights: {}
             });
+            this.updateGrowthStats([]);
             // 重新获取数据
             this.checkLoginAndFetchData();
         },
@@ -752,6 +773,7 @@ export default {
                         if (e && e.userId === oid) {
                             invalidateMyPosts();
                             this.setData({ myPosts: [], page: 0, hasMore: true });
+                            this.updateGrowthStats([]);
                             this.loadMyPosts();
                         }
                     });
@@ -903,6 +925,7 @@ export default {
                             page: page + 1,
                             hasMore: posts.length === PAGE_SIZE
                         });
+                        this.updateGrowthStats(newMyPosts);
 
                         console.log('【profile】✅ 缓存API加载完成');
                         return posts;
@@ -982,6 +1005,7 @@ export default {
                         page: page + 1,
                         hasMore: posts.length === pageSize
                     });
+                    this.updateGrowthStats(newMyPosts);
                 } else {
                     console.error('【profile】❌ 云函数返回失败:', res.result);
                     uni.showToast({
@@ -1004,6 +1028,26 @@ export default {
                     cb();
                 }
             });
+        },
+
+        updateGrowthStats(postList = this.myPosts) {
+            try {
+                const stats = { seed: 0, leaf: 0, flower: 0 };
+                (postList || []).forEach((post) => {
+                    const votes = Number(post && post.votes) || 0;
+                    if (votes <= 3) {
+                        stats.seed += 1;
+                    } else if (votes <= 7) {
+                        stats.leaf += 1;
+                    } else {
+                        stats.flower += 1;
+                    }
+                });
+                this.setData({ growthStats: stats });
+            } catch (e) {
+                console.error('【profile】计算成长统计失败:', e);
+                this.setData({ growthStats: { seed: 0, leaf: 0, flower: 0 } });
+            }
         },
 
         // 根据生日计算年龄
@@ -2785,6 +2829,33 @@ export default {
 .empty-text {
     font-size: 28rpx;
     color: #999;
+}
+
+.profile-growth-stats {
+    position: absolute;
+    top: 120rpx;
+    right: 40rpx;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 18rpx;
+}
+
+.growth-item {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+}
+
+.growth-icon {
+    width: 48rpx;
+    height: 48rpx;
+}
+
+.growth-count {
+    font-size: 30rpx;
+    font-weight: 600;
+    color: #333;
 }
 
 </style>
