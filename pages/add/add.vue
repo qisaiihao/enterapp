@@ -122,18 +122,34 @@
                         <text class="hint-text">点击文字即可选择高光行</text>
                     </view>
 
-                    <!-- 旧的高光选择弹层（保留作为备用） -->
-                    <view v-if="highlightSelecting" class="highlight-overlay" catchtouchmove="true" @tap="noop">
-                        <scroll-view class="highlight-scroll" :scroll-y="true">
-                            <view v-for="(line, i) in splitContentLines" :key="i"
-                                  :class="'hl-line ' + (highlightSelectedLineIndices.includes(i) ? 'selected' : '')"
-                                  @tap.stop.prevent="toggleHighlightLine" :data-index="i">
-                                <text class="hl-text">{{ line.length ? line : ' ' }}</text>
+                    <!-- 高光选择全屏弹窗 -->
+                    <view v-if="highlightSelecting" class="highlight-selection-modal" @tap="closeHighlightModal">
+                        <view class="highlight-modal-content" @tap.stop="noop">
+                            <!-- 标题栏 -->
+                            <view class="highlight-modal-header">
+                                <text class="highlight-modal-title">选择高光句</text>
+                                <view class="highlight-modal-close" @tap="closeHighlightModal">×</view>
                             </view>
-                        </scroll-view>
-                        <view class="hl-actions">
-                            <button class="hl-done" size="mini" @tap.stop.prevent="finishHighlight">完成</button>
-                            <button class="hl-clear" size="mini" @tap.stop.prevent="clearHighlight">清除</button>
+                            
+                            <!-- 内容选择区域 -->
+                            <view class="highlight-content-wrapper">
+                                <view class="highlight-content-display">
+                                    <text class="highlight-content-line" v-for="(line, index) in splitContentLines"
+                                          :key="'highlight-line-' + index"
+                                          :class="{ 'selected-line': highlightSelectedLineIndices.includes(index) }"
+                                          @tap.stop="toggleHighlightLine"
+                                          :data-index="index">
+                                        {{ line || '\u00A0' }}
+                                    </text>
+                                </view>
+                            </view>
+                            
+                            <!-- 底部操作栏 -->
+                            <view class="highlight-modal-actions">
+                                <view class="highlight-action-btn primary" @tap.stop="finishHighlight" :class="{ 'disabled': highlightSelectedLineIndices.length === 0 }">
+                                    <image class="highlight-action-icon" src="/static/images/confirm_selection.png" mode="aspectFill"></image>
+                                </view>
+                            </view>
                         </view>
                     </view>
                 </view>
@@ -1945,7 +1961,33 @@ export default {
 
         // 获取诗歌句子
         getPoemLine: function(index) {
-            return this.poemLines[index] || '示例文字';
+            // 使用全局文案索引，确保每个颜色组内的不同颜色显示不同文案
+            const globalIndex = this.getGlobalTextIndex(index);
+            return this.poemLines[globalIndex] || '示例文字';
+        },
+
+        // 获取全局文案索引
+        getGlobalTextIndex: function(localIndex) {
+            // 计算当前颜色组在全局色卡中的起始位置
+            const currentPaletteIndex = this.getCurrentPaletteIndex();
+            const colorsBeforeCurrent = this.getColorsCountBeforeCurrent();
+            return (colorsBeforeCurrent + localIndex) % this.poemLines.length;
+        },
+
+        // 获取当前色卡在色卡数组中的索引
+        getCurrentPaletteIndex: function() {
+            if (!this.selectedPalette) return 0;
+            return this.colorPalettes.findIndex(palette => palette.name === this.selectedPalette.name);
+        },
+
+        // 获取当前色卡之前所有色卡的颜色总数
+        getColorsCountBeforeCurrent: function() {
+            const currentIndex = this.getCurrentPaletteIndex();
+            let count = 0;
+            for (let i = 0; i < currentIndex; i++) {
+                count += this.colorPalettes[i].colors.length;
+            }
+            return count;
         },
 
         // 检查颜色是否被选中
@@ -1966,15 +2008,15 @@ export default {
         // 新的覆盖层相关方法
         toggleHighlightMode: function () {
             this.setData({
-                highlightModeEnabled: !this.highlightModeEnabled,
-                showHighlightHint: !this.highlightModeEnabled
+                highlightSelecting: !this.highlightSelecting
             });
-            if (this.highlightModeEnabled) {
-                // 显示提示3秒后自动隐藏
-                setTimeout(() => {
-                    this.setData({ showHighlightHint: false });
-                }, 3000);
-            }
+        },
+
+        // 关闭高光选择弹窗
+        closeHighlightModal: function () {
+            this.setData({
+                highlightSelecting: false
+            });
         },
 
         hideHighlightHint: function () {
@@ -3236,17 +3278,122 @@ page {
     text-shadow: 0 1rpx 2rpx rgba(0,0,0,.3); 
 }
 
-/* 高光选择 - 全屏覆盖样式 */
-.highlight-overlay { position: fixed; left: 0; right: 0; top: 0; bottom: 0; background: rgba(0,0,0,.6); z-index: 1000; display: flex; align-items: stretch; justify-content: stretch; }
-.hl-panel { background: #fff; width: 100%; height: 100%; display: flex; flex-direction: column; }
-.hl-header { display: flex; align-items: center; justify-content: space-between; padding: 20rpx 28rpx; border-bottom: 1rpx solid #eee; position: sticky; top: 0; background: #fff; z-index: 1; }
-.hl-title { font-size: 30rpx; color: #333; }
-.highlight-scroll { flex: 1; padding: 16rpx 24rpx 40rpx; }
-.hl-line { padding: 14rpx 18rpx; border-radius: 10rpx; margin: 8rpx 0; background: #f6f7f9; }
-.hl-line.selected { font-weight: 700; background: #e8f2ff; }
-.hl-text { white-space: pre-wrap; word-break: break-word; font-size: 30rpx; color: #333; }
-.hl-done { background: #1c9bd6; color: #fff; padding: 0 20rpx; }
-.hl-clear { background: #eee; color: #333; padding: 0 20rpx; }
+/* 高光选择全屏弹窗样式 */
+.highlight-selection-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #fff;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+}
+
+.highlight-modal-content {
+    width: 100%;
+    height: 100%;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.highlight-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 30rpx 40rpx;
+    border-bottom: 1rpx solid #f0f0f0;
+    background: #fff;
+}
+
+.highlight-modal-title {
+    font-size: 32rpx;
+    font-weight: 600;
+    color: #333;
+}
+
+.highlight-modal-close {
+    width: 60rpx;
+    height: 60rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40rpx;
+    color: #999;
+    border-radius: 50%;
+    background: #f5f5f5;
+}
+
+.highlight-content-wrapper {
+    flex: 1;
+    padding: 40rpx;
+    overflow-y: auto;
+    background: #fff;
+}
+
+.highlight-content-display {
+    display: flex;
+    flex-direction: column;
+}
+
+.highlight-content-line {
+    display: block;
+    margin-bottom: 16rpx;
+    padding: 12rpx 16rpx;
+    border-radius: 8rpx;
+    line-height: 1.8;
+    font-size: 36rpx;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: #999;
+    transition: all 0.2s ease;
+}
+
+.highlight-content-line.selected-line {
+    color: #000;
+    font-weight: 500;
+}
+
+.highlight-modal-actions {
+    position: fixed;
+    bottom: 60rpx;
+    right: 30rpx;
+    z-index: 1001;
+}
+
+.highlight-action-btn {
+    width: 140rpx;
+    height: 140rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.highlight-action-btn.primary {
+    background: transparent;
+}
+
+.highlight-action-btn.primary.disabled {
+    opacity: 0.5;
+}
+
+.highlight-action-btn:active {
+    transform: scale(0.95);
+}
+
+.highlight-action-text {
+    font-size: 28rpx;
+    font-weight: 500;
+}
+
+.highlight-action-icon {
+    width: 120rpx;
+    height: 120rpx;
+}
 
 /* 高光选择覆盖层样式 */
 .highlight-overlay {

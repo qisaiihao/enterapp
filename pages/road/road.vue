@@ -60,6 +60,7 @@ import skeleton from '@/components/skeleton/skeleton';
 import topBar from '@/components/top-bar/top-bar.vue';
 const { cloudCall } = require('@/utils/cloudCall.js');
 const likeIcon = require('@/utils/likeIcon.js');
+const { togglePostLike } = require('../../utils/likeService.js');
 
 const PAGE_SIZE = 10;
 
@@ -85,6 +86,10 @@ export default {
   },
   onLoad() {
     this.getIndexData();
+    try { uni.$on && uni.$on('like-changed', this.onGlobalLikeChanged); } catch (_) {}
+  },
+  onUnload() {
+    try { uni.$off && this.onGlobalLikeChanged && uni.$off('like-changed', this.onGlobalLikeChanged); } catch (_) {}
   },
   onPageScroll(e) {
     if (this._scrollTimer) clearTimeout(this._scrollTimer);
@@ -225,26 +230,67 @@ export default {
       if (this.votingInProgress[postId]) return;
       this.setData({ [`votingInProgress.${postId}`]: true });
       const list = this.postList;
-      const originalVotes = list[index].votes || 0;
+      const originalVotes = Number(list[index].votes) || 0;
       const wasVoted = !!list[index].isVoted;
-      list[index].votes = wasVoted ? originalVotes - 1 : originalVotes + 1;
+
+      // 乐观更新
+      const optimisticVotes = wasVoted ? Math.max(0, originalVotes - 1) : originalVotes + 1;
+      list[index].votes = optimisticVotes;
       list[index].isVoted = !wasVoted;
       list[index].likeIcon = likeIcon.getLikeIcon(list[index].votes, list[index].isVoted);
       this.setData({ postList: list });
+
       try {
-        const res = await this.callCloudFunction('vote', { postId });
-        if (!res || !res.result || !res.result.success) throw new Error('vote failed');
-        if (typeof res.result.votes === 'number' && res.result.votes !== list[index].votes) {
-          this.setData({ [`postList[${index}].votes`]: res.result.votes });
+        const result = await togglePostLike(postId, {
+          pageTag: 'road',
+          context: this,
+          currentVotes: originalVotes,
+          currentIsLiked: wasVoted,
+          requireAuth: true
+        });
+        if (result && result.success) {
+          const updates = {};
+          updates[`postList[${index}].votes`] = result.votes;
+          updates[`postList[${index}].isVoted`] = result.isLiked;
+          updates[`postList[${index}].likeIcon`] = result.likeIcon;
+          this.setData(updates);
+        } else {
+          // 回滚
+          const updates = {};
+          updates[`postList[${index}].votes`] = originalVotes;
+          updates[`postList[${index}].isVoted`] = wasVoted;
+          updates[`postList[${index}].likeIcon`] = likeIcon.getLikeIcon(originalVotes, wasVoted);
+          this.setData(updates);
         }
       } catch (err) {
-        list[index].votes = originalVotes; list[index].isVoted = wasVoted;
-        list[index].likeIcon = likeIcon.getLikeIcon(originalVotes, wasVoted);
-        this.setData({ postList: list });
+        const updates = {};
+        updates[`postList[${index}].votes`] = originalVotes;
+        updates[`postList[${index}].isVoted`] = wasVoted;
+        updates[`postList[${index}].likeIcon`] = likeIcon.getLikeIcon(originalVotes, wasVoted);
+        this.setData(updates);
         uni.showToast({ title: '操作失败', icon: 'none' });
       } finally {
         this.setData({ [`votingInProgress.${postId}`]: false });
       }
+    },
+
+    // 监听全局点赞变更，跨页同步本页显示
+    onGlobalLikeChanged(e = {}) {
+      try {
+        const postId = e.postId;
+        if (!postId) return;
+        const list = this.postList || [];
+        const idx = list.findIndex(p => p && (p._id === postId || p.id === postId));
+        if (idx > -1) {
+          const votes = typeof e.votes === 'number' ? e.votes : (list[idx].votes || 0);
+          const isLiked = typeof e.isLiked === 'boolean' ? e.isLiked : !!list[idx].isVoted;
+          const updates = {};
+          updates[`postList[${idx}].votes`] = votes;
+          updates[`postList[${idx}].isVoted`] = isLiked;
+          updates[`postList[${idx}].likeIcon`] = likeIcon.getLikeIcon(votes, isLiked);
+          this.setData(updates);
+        }
+      } catch (_) {}
     },
     touchStart() {},
     touchEnd() {}

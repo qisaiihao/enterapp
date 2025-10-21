@@ -11,6 +11,7 @@ const _ = db.command; // 获取数据库查询指令
 // 云函数入口函数
 exports.main = async (event, context) => {
   const { postId } = event;
+  console.log('🔍 [云函数DEBUG] getComments被调用，参数:', { postId, event, context });
 
   if (!postId) {
     return { success: false, message: 'Post ID is required.' };
@@ -18,6 +19,7 @@ exports.main = async (event, context) => {
 
   const wxContext = cloud.getWXContext();
   const openid = wxContext.OPENID || event.openid;
+  console.log('🔍 [云函数DEBUG] 获取到的openid:', openid);
 
   if (!openid) {
     return {
@@ -113,11 +115,19 @@ exports.main = async (event, context) => {
     // 创建一个 Set，存放用户点赞过的所有评论ID，方便快速查询
     const userLikedCommentIds = new Set(likesRes.data.map(like => like.commentId));
 
-    // 9. 递归函数：将点赞状态和点赞数附加到每条评论上
+    // 9. 递归函数：将点赞状态、点赞数和删除权限附加到每条评论上
     const addLikeStatus = (comments) => {
+      console.log('🔍 [云函数DEBUG] 开始处理评论权限，当前用户openid:', openid);
       comments.forEach(comment => {
         comment.liked = userLikedCommentIds.has(comment._id);
         comment.likes = comment.likes || 0; // 如果没有 likes 字段，默认为 0
+        comment.canDelete = comment._openid === openid; // 只有评论作者可以删除
+        console.log('🔍 [云函数DEBUG] 评论权限设置:', {
+          commentId: comment._id,
+          commentOpenid: comment._openid,
+          currentOpenid: openid,
+          canDelete: comment.canDelete
+        });
         // 如果有子评论，也对子评论进行同样的操作
         if (comment.replies && comment.replies.length > 0) {
           addLikeStatus(comment.replies);

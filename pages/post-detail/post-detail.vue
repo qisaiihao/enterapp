@@ -174,7 +174,7 @@
                             </view>
                             <!-- 写评论按钮 -->
                             <view class="comment-icon-container" @tap.stop.prevent="expandInput">
-                                <image class="comment-icon" src="/static/images/write_comment.png" mode="aspectFit"></image>
+                                <image class="comment-icon" src="/static/images/comment.png" mode="aspectFit"></image>
                             </view>
                         </view>
                     </view>
@@ -493,6 +493,12 @@ export default {
                 currentPostId: postId
             });
             this.loadPostDetail(postId);
+            // 监听全局点赞变更，实时同步当前帖子的点赞状态
+            try { uni. && uni.('like-changed', this.onGlobalLikeChanged); } catch (_) {}
+            // 监听评论点赞变更
+            try { uni.$on && uni.$on('comment-like-changed', this.onGlobalCommentLikeChanged); } catch (_) {}
+            // 监听全局点赞变更，实时同步当前帖子的点赞状态
+            try { uni. && uni.('like-changed', this.onGlobalLikeChanged); } catch (_) {}
         } else {
             this.setData({
                 isLoading: false,
@@ -514,6 +520,8 @@ export default {
     },
     onUnload: function () {
         this.recordViewBehavior();
+        try { uni.$off && this.onGlobalLikeChanged && uni.$off('like-changed', this.onGlobalLikeChanged); } catch (_) {}
+        try { uni.$off && this.onGlobalCommentLikeChanged && uni.$off('comment-like-changed', this.onGlobalCommentLikeChanged); } catch (_) {}
     },
     onHide: function () {
         if (this.isInputExpanded) {
@@ -522,6 +530,37 @@ export default {
         this.recordViewBehavior();
     },
     methods: {
+        // 跨页同步：监听 like-changed 的处理
+        onGlobalLikeChanged: function (e = {}) {
+            try {
+                const postId = e.postId;
+                if (!postId || !this.post || !this.post._id) return;
+                if (postId !== this.post._id) return;
+                const votes = typeof e.votes === 'number' ? e.votes : (this.post.votes || 0);
+                const isLiked = typeof e.isLiked === 'boolean' ? e.isLiked : !!this.post.isVoted;
+                const likeIcon = require('../../utils/likeIcon');
+                this.setData({
+                    'post.votes': votes,
+                    'post.isVoted': isLiked,
+                    'post.likeIcon': likeIcon.getLikeIcon(votes, isLiked)
+                });
+            } catch (_) {}
+        },
+        // 接收外部评论点赞事件进行本页同步
+        onGlobalCommentLikeChanged: function (e = {}) {
+            try {
+                const { commentId, likes, liked } = e || {};
+                if (!commentId) return;
+                const comments = this.comments || [];
+                const { comment } = this.findComment(comments, commentId);
+                if (!comment) return;
+                const likeIconUtil = require('../../utils/likeIcon');
+                comment.likes = typeof likes === 'number' ? likes : (comment.likes || 0);
+                comment.liked = typeof liked === 'boolean' ? liked : !!comment.liked;
+                comment.likeIcon = likeIconUtil.getLikeIcon(comment.likes, comment.liked);
+                this.setData({ comments });
+            } catch (_) {}
+        },
         // 同步当前帖子的点赞状态
         syncCurrentPostLikeStatus: function () {
             try {
@@ -637,29 +676,32 @@ export default {
                     postId: postId
                 },
                 {
-                    injectOpenId: false
+                    injectOpenId: true
                 }
             ).then(async (res) => {
                 if (res.result && res.result.comments) {
-                    const currentUserOpenid = this.openid || uni.getStorageSync('openid');
+                    console.log('🔍 [DEBUG] 开始处理评论数据:', res.result.comments);
+                    const currentUserOpenid = this.getCurrentUserId();
+                    console.log('🔍 [DEBUG] 当前用户openid:', currentUserOpenid);
                     const comments = res.result.comments.map((comment) => {
+                        console.log('🔍 [DEBUG] 处理评论:', comment._id, 'canDelete:', comment.canDelete, 'openid:', comment._openid);
                         const processedComment = {
                             ...comment,
                             formattedCreateTime: this.formatTime(comment.createTime),
                             likeIcon: likeIcon.getLikeIcon(comment.likes || 0, comment.liked || false),
-                            canDelete: comment._openid === currentUserOpenid,
                             imageUrls: comment.imageUrls || [],
                             originalImageUrls: comment.originalImageUrls || []
                         };
                         if (comment.replies) {
-                            processedComment.replies = comment.replies.map((reply) => ({
-                                ...reply,
-                                formattedCreateTime: this.formatTime(reply.createTime),
-                                likeIcon: likeIcon.getLikeIcon(reply.likes || 0, reply.liked || false),
-                                canDelete: reply._openid === currentUserOpenid,
-                                imageUrls: reply.imageUrls || [],
-                                originalImageUrls: reply.originalImageUrls || []
-                            }));
+                            processedComment.replies = comment.replies.map((reply) => {
+                                return {
+                                    ...reply,
+                                    formattedCreateTime: this.formatTime(reply.createTime),
+                                    likeIcon: likeIcon.getLikeIcon(reply.likes || 0, reply.liked || false),
+                                    imageUrls: reply.imageUrls || [],
+                                    originalImageUrls: reply.originalImageUrls || []
+                                };
+                            });
                         }
                         return processedComment;
                     });
@@ -2957,3 +2999,13 @@ export default {
     overflow-wrap: break-word;
 }
 </style>
+
+
+
+
+
+
+
+
+
+

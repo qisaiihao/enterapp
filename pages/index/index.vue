@@ -516,6 +516,9 @@ export default {
 
         // 等待登录完成（openid 覆盖匿名后）再拉取首屏数据
         this.waitForLoginThenInit();
+
+        // 监听全局点赞变更，触发本页的缓存同步
+        try { uni.$on && uni.$on('like-changed', this.syncLikeStatusFromCache); } catch (_) {}
     },
     onShow: function () {
         // #ifndef MP-WEIXIN
@@ -544,6 +547,9 @@ export default {
         this.syncLikeStatusFromCache();
 
             },
+    onUnload: function () {
+        try { uni.$off && this.syncLikeStatusFromCache && uni.$off('like-changed', this.syncLikeStatusFromCache); } catch (_) {}
+    },
     onPullDownRefresh: function () {
         console.log('🔍 [首页] 下拉刷新触发，当前页面:', this.currentPage);
         if (this.currentPage === 'home') {

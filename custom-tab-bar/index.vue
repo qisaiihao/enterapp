@@ -120,7 +120,9 @@ export default {
   height: 120rpx;
   display: flex;
   align-items: center;
-  justify-content: space-around;
+  justify-content: center;
+  gap: 50rpx;
+  padding: 0 0rpx;
   z-index: 1000;
   background: #ffffff;
 }
@@ -130,7 +132,6 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex: 1;
   height: 100%;
 }
 

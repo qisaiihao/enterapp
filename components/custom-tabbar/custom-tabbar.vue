@@ -83,7 +83,8 @@ export default {
     border-radius: 50rpx;
     display: flex;
     align-items: center;
-    justify-content: space-around;
+    justify-content: space-between;
+    padding: 0 40rpx;
     box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.1);
     border: 1rpx solid rgba(255, 255, 255, 0.2);
     z-index: 1000;

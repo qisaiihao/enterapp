@@ -40,7 +40,7 @@
             <!-- 完成选择按钮 -->
             <view class="selection-actions">
                 <view class="select-done-btn" @tap.stop="finishSelection" :class="{ 'disabled': highlightSelectedLineIndices.length === 0 }">
-                    <image class="select-done-icon" src="/static/images/confirm_selection.png" mode="aspectFit"></image>
+                    <image class="select-done-icon" src="/static/images/confirm_selection.png" mode="aspectFill"></image>
                 </view>
             </view>
         </view>
@@ -690,15 +690,11 @@ export default {
     white-space: pre-wrap;
     word-break: break-word;
     color: #999;
-    background-color: rgba(0, 0, 0, 0.05);
 }
 
 .content-line.selected-line {
-    color: #333;
-    background-color: rgba(158, 215, 238, 0.2);
+    color: #000;
     font-weight: 500;
-    border-left: 4rpx solid #9ed7ee;
-    padding-left: 20rpx;
 }
 
 /* 高光选择提示 */
@@ -729,14 +725,11 @@ export default {
 }
 
 .select-done-btn {
-    width: 100rpx;
-    height: 100rpx;
-    background: #9ed7ee;
-    border-radius: 50%;
+    width: 140rpx;
+    height: 140rpx;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.15);
     transition: all 0.3s ease;
 }
 
@@ -745,13 +738,12 @@ export default {
 }
 
 .select-done-btn.disabled {
-    background: #ccc;
     opacity: 0.5;
 }
 
 .select-done-icon {
-    width: 60rpx;
-    height: 60rpx;
+    width: 120rpx;
+    height: 120rpx;
 }
 
 .sentence-group {
