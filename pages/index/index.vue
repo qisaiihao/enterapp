@@ -519,6 +519,8 @@ export default {
 
         // 监听全局点赞变更，触发本页的缓存同步
         try { uni.$on && uni.$on('like-changed', this.syncLikeStatusFromCache); } catch (_) {}
+        // 监听评论数变更，精确更新对应卡片的评论计数
+        try { uni.$on && uni.$on('comment-count-changed', (e) => { try { this.updatePostCommentCount(e.postId, e.commentCount); } catch (_) {} }); } catch (_) {}
     },
     onShow: function () {
         // #ifndef MP-WEIXIN
@@ -549,6 +551,7 @@ export default {
             },
     onUnload: function () {
         try { uni.$off && this.syncLikeStatusFromCache && uni.$off('like-changed', this.syncLikeStatusFromCache); } catch (_) {}
+        try { uni.$off && uni.$off('comment-count-changed'); } catch (_) {}
     },
     onPullDownRefresh: function () {
         console.log('🔍 [首页] 下拉刷新触发，当前页面:', this.currentPage);

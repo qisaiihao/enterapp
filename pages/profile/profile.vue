@@ -510,6 +510,7 @@ export default {
 
         // onLoad 只负责触发异步请求，然后立即结束
         this.getProfileData();
+        try { uni.$on && uni.$on('comment-count-changed', (e) => { try { this.updatePostCommentCount(e.postId, e.commentCount); } catch (_) {} }); } catch (_) {}
     },
     onShow: function () {
         // #ifndef MP-WEIXIN
@@ -599,6 +600,9 @@ export default {
             }
             this.loadFavorites();
         }
+    },
+    onUnload: function () {
+        try { uni.$off && uni.$off('comment-count-changed'); } catch (_) {}
     },
     methods: {
         getProfileData: function () {
@@ -2784,3 +2788,5 @@ export default {
 }
 
 </style>
+
+

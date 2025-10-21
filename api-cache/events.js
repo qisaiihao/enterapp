@@ -53,6 +53,45 @@ export function setupCacheEventBridges() {
       } catch (_) {}
     });
 
+    // 评论数变更：更新各列表缓存中对应 post 的 commentCount
+    uni.$on(EVENTS.COMMENT_COUNT_CHANGED, (payload = {}) => {
+      try {
+        const postId = payload && payload.postId;
+        const commentCount = (payload && typeof payload.commentCount === 'number') ? payload.commentCount : undefined;
+        if (!postId || typeof commentCount !== 'number') return;
+        try {
+          const cacheManager = require('@/_utils/cache-manager').default;
+          const nsStats = cacheManager.getStats ? cacheManager.getStats() : {};
+          const nsNames = Object.keys(nsStats);
+          const targets = nsNames.filter((n) => (
+            n === 'posts:home' || n === 'posts:discover' || n.startsWith('posts:tag:') || n.startsWith('me:posts') || n.startsWith('userPosts:')
+          ));
+          targets.forEach((nsName) => {
+            try {
+              const ns = cacheManager.namespace(nsName);
+              const keys = (ns.keys && ns.keys()) || [];
+              keys.forEach((key) => {
+                try {
+                  ns.update(key, (list) => {
+                    if (!Array.isArray(list)) return list;
+                    let changed = false;
+                    for (let i = 0; i < list.length; i += 1) {
+                      const p = list[i];
+                      if (p && (p._id === postId || p.id === postId)) {
+                        p.commentCount = commentCount;
+                        changed = true;
+                      }
+                    }
+                    return changed ? list : list;
+                  });
+                } catch (_) {}
+              });
+            } catch (_) {}
+          });
+        } catch (_) {}
+      } catch (_) {}
+    });
+
     g.__CACHE_EVENTS_BRIDGED__ = true;
   } catch (_) {}
 }

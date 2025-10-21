@@ -4,6 +4,7 @@ export const EVENTS = {
   FAVORITE_CHANGED: 'favorite-changed', // { userId, postId?, favored }
   LIKE_CHANGED: 'like-changed', // { postId, votes, isLiked, pageTag? }
   COMMENT_LIKE_CHANGED: 'comment-like-changed', // { postId, commentId, likes, liked }
+  COMMENT_COUNT_CHANGED: 'comment-count-changed', // { postId, commentCount }
 };
 
 export function emitAvatarUpdated(userId) {
@@ -34,6 +35,15 @@ export function emitCommentLikeChanged({ postId, commentId, likes, liked }) {
   } catch (_) {}
 }
 
+export function emitCommentCountChanged({ postId, commentCount }) {
+  try {
+    if (postId && typeof uni !== 'undefined' && uni.$emit) {
+      const count = typeof commentCount === 'number' ? commentCount : 0;
+      uni.$emit(EVENTS.COMMENT_COUNT_CHANGED, { postId, commentCount: count });
+    }
+  } catch (_) {}
+}
+
 export default {
   EVENTS,
   emitAvatarUpdated,
@@ -41,4 +51,5 @@ export default {
   emitFavoriteChanged,
   emitLikeChanged,
   emitCommentLikeChanged,
+  emitCommentCountChanged,
 };

@@ -494,11 +494,10 @@ export default {
             });
             this.loadPostDetail(postId);
             // 监听全局点赞变更，实时同步当前帖子的点赞状态
-            try { uni. && uni.('like-changed', this.onGlobalLikeChanged); } catch (_) {}
+            try { uni.$on && uni.$on('like-changed', this.onGlobalLikeChanged); } catch (_) {}
             // 监听评论点赞变更
             try { uni.$on && uni.$on('comment-like-changed', this.onGlobalCommentLikeChanged); } catch (_) {}
             // 监听全局点赞变更，实时同步当前帖子的点赞状态
-            try { uni. && uni.('like-changed', this.onGlobalLikeChanged); } catch (_) {}
         } else {
             this.setData({
                 isLoading: false,
@@ -520,7 +519,6 @@ export default {
     },
     onUnload: function () {
         this.recordViewBehavior();
-        try { uni.$off && this.onGlobalLikeChanged && uni.$off('like-changed', this.onGlobalLikeChanged); } catch (_) {}
         try { uni.$off && this.onGlobalCommentLikeChanged && uni.$off('comment-like-changed', this.onGlobalCommentLikeChanged); } catch (_) {}
     },
     onHide: function () {
@@ -1287,6 +1285,7 @@ export default {
                         title: '评论成功'
                     });
                     const newCommentCount = this.commentCount + 1;
+                    try { const { emitCommentCountChanged } = require('../../utils/events.js'); emitCommentCountChanged({ postId, commentCount: newCommentCount }); } catch (_) {}
                     this.setData({
                         newComment: '',
                         commentImages: [],
@@ -1389,6 +1388,7 @@ export default {
                                     updatedComments = this.comments.filter((comment) => comment._id !== commentId);
                                 }
                                 const newCommentCount = Math.max(0, this.commentCount - deletedCount);
+                                try { const { emitCommentCountChanged } = require('../../utils/events.js'); emitCommentCountChanged({ postId: this.post && this.post._id ? this.post._id : '', commentCount: newCommentCount }); } catch (_) {}
                                 this.setData({
                                     comments: updatedComments,
                                     commentCount: newCommentCount
@@ -2999,6 +2999,10 @@ export default {
     overflow-wrap: break-word;
 }
 </style>
+
+
+
+
 
 
 
