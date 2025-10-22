@@ -20,28 +20,8 @@
                         <text class="sidebar-nickname">{{ userInfo.nickName || '微信用户' }}</text>
                     </view>
                     <view class="sidebar-menu">
-                        <view class="sidebar-item" @tap="navigateToEditProfile">
-                            <text>修改资料</text>
-                        </view>
-                        <view class="sidebar-item" v-if="isAdmin" @tap="navigateToImageManager">
-                            <text>图片管理</text>
-                        </view>
-                        <view class="sidebar-item" @tap="navigateToMessages">
-                            <text>消息通知</text>
-                            <view v-if="unreadCount > 0" class="unread-badge">{{ unreadCount }}</view>
-                        </view>
                         <view class="sidebar-item" @tap="navigateToMyLikes">
                             <text>我的点赞</text>
-                        </view>
-                        <view class="sidebar-item" @tap="navigateToFollowing">
-                            <text>我关注的</text>
-                        </view>
-                        <view class="sidebar-item" @tap="navigateToFans">
-                            <text>我的粉丝</text>
-                            <view v-if="newFollowerCount > 0" class="unread-dot"></view>
-                        </view>
-                        <view class="sidebar-item" @tap="navigateToFavoriteFolders">
-                            <text>我的收藏夹</text>
                         </view>
                         <view class="sidebar-item" @tap="navigateToPortfolio">
                             <text>作品集</text>
@@ -52,23 +32,8 @@
                         <view class="sidebar-item" @tap="navigateToFeedback">
                             <text>意见反馈</text>
                         </view>
-                        <view class="sidebar-item" v-if="isAdmin" @tap="navigateToFeedbackAdmin">
-                            <text>反馈管理</text>
-                        </view>
                         <view class="sidebar-item logout-item" @tap="showLogoutConfirm">
                             <text>退出登录</text>
-                        </view>
-                        <!-- 关注/被关注统计（放在资料卡内，签名下方） -->
-                        <view class="follow-stats">
-                            <view class="stat-item" @tap="navigateToFollowing">
-                                <text class="stat-number">{{ followingCount }}</text>
-                                <text class="stat-label">关注</text>
-                            </view>
-                            <view class="stat-divider"></view>
-                            <view class="stat-item" @tap="navigateToFans">
-                                <text class="stat-number">{{ followerCount }}</text>
-                                <text class="stat-label">被关注</text>
-                            </view>
                         </view>
                     </view>
                 </view>
@@ -477,44 +442,27 @@ export default {
             // 单图限制高度
             hasFirstShow_var: false,
 
-            // 新增：标记是否首次进入
-            unreadCount: 0,
-
-            // 未读消息数量
-
-            // 新增：标签切换相关
             currentTab: 'posts',
 
             // 'posts' | 'favorites'
             favoriteList: [],
-
-            // 收藏列表
             favoritePage: 0,
-
-            // 收藏分页
             favoriteHasMore: true,
-
-            // 收藏是否有更多
             favoriteLoading: false,
 
-            // 收藏加载状态
-
-            // 新增：权限控制
             currentUserOpenid: '',
-
-            // 当前用户openid
-            // 是否为管理员（只有你能看到图片管理入口）
-            isAdmin: false,
 
             swiperFixedHeight: '',
             selected: 0,
-            newFollowerCount: '',
             isLoadingMore: false,
             isViewingSelf: false,
             imgindex: 0,
             img: '',
+
+            followerCount: 0,
+            portfolioList: [],
+            img: '',
             // 关注统计
-            followingCount: 0,
             followerCount: 0,
             // 作品集数据
             portfolioList: [],
@@ -756,7 +704,6 @@ export default {
             }
 
             // 检查未读消息数量
-            this.checkUnreadMessages();
 
             // 如果当前是作品集标签页，加载作品集数据
             if (this.currentTab === 'portfolio') {
@@ -1404,56 +1351,17 @@ export default {
         },
 
         // 检查未读消息数量
-        checkUnreadMessages: function () {
-            this.$tcb.callFunction({
-                name: 'getUnreadMessageCount'
-            }).then((res) => {
-                if (res.result && res.result.success) {
-                    this.setData({
-                        unreadCount: res.result.count || 0
-                    });
-                }
-            }).catch((err) => {
-                console.error('获取未读消息失败:', err);
-            });
-            
-            this.$tcb.callFunction({
-                name: 'follow',
-                data: {
-                    action: 'getNewFollowerCount'
-                }
-            }).then((res) => {
-                if (res.result && res.result.success) {
-                    this.setData({
-                        newFollowerCount: res.result.count || 0
-                    });
-                }
-            }).catch((err) => {
-                console.error('获取新粉丝数量失败:', err);
-            });
-        },
 
         // fetch follow/fan counters for current user
         fetchFollowCounts: function () {
-            console.log('【profile】开始获取关注数统计');
             try {
-                const p1 = this.$tcb.callFunction({ name: 'follow', data: { action: 'getFollowingList', skip: 0, limit: 1 } });
-                const p2 = this.$tcb.callFunction({ name: 'follow', data: { action: 'getFollowerList', skip: 0, limit: 1 } });
-                Promise.all([p1, p2])
-                    .then(([res1, res2]) => {
-                        console.log('【profile】关注数API返回结果:', { res1, res2 });
-                        const followingTotal = (res1 && res1.result && res1.result.total) || 0;
-                        const followerTotal = (res2 && res2.result && res2.result.total) || 0;
-                        console.log('【profile】解析后的关注数:', { followingTotal, followerTotal });
-                        this.setData({ followingCount: followingTotal, followerCount: followerTotal });
-                        console.log('【profile】关注数更新完成');
+                this.$tcb.callFunction({ name: 'follow', data: { action: 'getFollowerList', skip: 0, limit: 1 } })
+                    .then((res) => {
+                        const followerTotal = (res && res.result && res.result.total) || 0;
+                        this.setData({ followerCount: followerTotal });
                     })
-                    .catch((err) => { 
-                        console.error('【profile】获取关注数失败:', err); 
-                    });
-            } catch (e) {
-                console.error('【profile】fetchFollowCounts error:', e);
-            }
+                    .catch(() => {});
+            } catch (e) {}
         },
 
         // 新增：标签切换方法
@@ -1966,16 +1874,7 @@ export default {
 }
 
 /* 未读消息标记 */
-.unread-badge {
-    background-color: #ff6b6b;
-    color: #fff;
-    font-size: 20rpx;
-    padding: 4rpx 10rpx;
-    border-radius: 20rpx;
-    min-width: 32rpx;
-    text-align: center;
-    font-weight: bold;
-}
+
 
 /* 退出登录按钮特殊样式 */
 .logout-item {
@@ -2690,37 +2589,10 @@ export default {
     font-size: 14px;
 }
 
-.unread-dot {
-    width: 16rpx;
-    height: 16rpx;
-    background-color: #ff6b6b;
-    border-radius: 50%;
-    margin-left: 12rpx;
-}
+
 
 /* Follow stats under bio */
-.follow-stats {
-    margin-top: 16rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 40rpx;
-}
-.stat-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-.stat-number {
-    font-size: 36rpx;
-    font-weight: 600;
-    color: #333;
-}
-.stat-label {
-    margin-top: 4rpx;
-    font-size: 24rpx;
-    color: #888;
-}
+
 .stat-divider {
     width: 1rpx;
     height: 36rpx;

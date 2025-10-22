@@ -167,8 +167,8 @@
                     </view>
                     
                     <!-- 切换发布模式按钮 -->
-                    <view class="side-tool-btn" @tap.stop="switchMode">
-                        <image class="side-tool-icon" src="/static/images/change.png" mode="aspectFit"></image>
+                    <view class="side-tool-btn mode-switch-btn" @tap.stop="switchMode">
+                        <image class="side-tool-icon mode-switch-icon" src="/static/images/change.png" mode="aspectFit" alt="切换发布模式"></image>
                     </view>
                     
                     <!-- 选择高光句按钮 - 只在诗歌模式下显示 -->
@@ -197,6 +197,7 @@
         <!-- 模式选择器 -->
         <view v-if="showModeSelector" class="mode-selector-mask" @tap="showModeSelector=false">
             <view class="mode-selector" @tap.stop="noop">
+                <image class="mode-switch-modal-icon" src="/static/images/change.png" mode="aspectFit" alt="切换发布模式"></image>
                 <view class="mode-title">选择发布模式</view>
                 <view class="mode-list">
                     <view class="mode-option" @tap="selectPublishMode" :data-mode="'poem'" :data-original="true">
@@ -3102,6 +3103,25 @@ page {
 
 .side-tool-btn:active { 
     transform: scale(0.95);
+}
+
+
+.mode-switch-btn {
+    position: relative;
+}
+
+.mode-switch-icon {
+    padding: 12rpx;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 6rpx 16rpx rgba(0, 0, 0, 0.12);
+}
+
+.mode-switch-modal-icon {
+    width: 72rpx;
+    height: 72rpx;
+    margin: 0 auto 20rpx;
+    display: block;
 }
 
 .side-tool-icon { 
