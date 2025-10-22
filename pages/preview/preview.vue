@@ -11,7 +11,7 @@
         <view v-if="post.editData && post.editData.publishMode === 'poem'" class="post-item-wrapper" :style="{ backgroundColor: post.backgroundColor }">
           <view class="post-content-navigator" @tap="togglePostExpansion">
             <view class="post-item" :style="{ backgroundColor: post.backgroundColor }">
-              <view :class="'post-content ' + (post.isExpanded ? 'expanded' : 'collapsed')" :style="{ color: post.textColor || '#222', whiteSpace: 'pre-wrap' }">
+              <view :class="'post-content ' + (post.isExpanded ? 'expanded' : 'collapsed') + (!post.isExpanded && (!post.highlightLines || post.highlightLines.length === 0) ? ' no-highlight' : '')" :style="{ color: post.textColor || '#222', whiteSpace: 'pre-wrap' }">
                 <block v-if="post.isExpanded">
                   {{ post.content }}
                 </block>
@@ -749,6 +749,14 @@ export default {
 </script>
 
 <style>
+/* 定义 Huiwen-mincho 字体 */
+@font-face {
+  font-family: 'Huiwen-mincho';
+  src: url('/static/fonts/Huiwen-mincho.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 .white-bg {
   background: #fff;
   min-height: 100vh;
@@ -902,24 +910,45 @@ export default {
 
 /* 诗歌帖子的样式（与poem-square完全一致） */
 .post-item-wrapper {
-  border-radius: 40rpx;
-  margin-bottom: 60rpx;
+  width: calc(100% - 80rpx); /* 响应式宽度：屏幕宽度减去左右各40rpx边距 */
+  margin-left: 40rpx; /* 左边距 */
+  margin-right: 40rpx; /* 右边距 */
+  border-radius: 30rpx; /* 15px * 2 */
+  margin-bottom: 40rpx; /* 减少间距，让卡片更紧凑 */
   overflow: hidden;
-  border: 1rpx solid #e9ecef;
-  box-shadow: 0 12rpx 15rpx rgba(0,0,0,0.20);
+  box-shadow: 0 8rpx 8rpx rgba(0, 0, 0, 0.25); /* 0px 4px 4px * 2 */
   transition: transform .3s ease;
+  border: none;
+  position: relative; /* 为卷边效果添加定位 */
 }
 .post-item-wrapper:active { transform: scale(0.98); }
 .post-content-navigator { display: block; }
-.post-item { padding: 40rpx 50rpx; position: relative; }
-.post-content { font-size: 32rpx; line-height: 1.6; margin: 30rpx 0; width: 100%; }
-/* 折叠态：多端兼容的三行裁切 */
+.post-item { padding: 30rpx 60rpx 30rpx 80rpx; position: relative; } /* 进一步减少上下padding，文字往左移动 */
+
+/* Typography inspired by poem.css */
+.post-content {
+  font-family: 'Huiwen-mincho', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 28rpx; /* 调小字体：14px * 2 */
+  line-height: 38rpx; /* 调整行距：19px * 2 */
+  margin: 30rpx 0;
+  width: 100%;
+  color: #FFFFFF;
+}
+
+/* 文字颜色现在通过内联样式动态设置 */
+/* 折叠态：当没有高光行时显示前三行，有高光行时显示高光行 */
 .post-content.collapsed {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 当没有高光行时，使用三行裁切 */
+.post-content.collapsed.no-highlight {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .post-content.expanded { display: block; overflow: visible; }
 .comment-emoji{ font-size: 40rpx; }
