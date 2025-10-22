@@ -300,10 +300,16 @@ export default {
                             }
                             return msg;
                         });
+                        const nextUnread = Math.max(0, this.unreadCount - messageIds.length);
                         this.setData({
                             messages: updatedMessages,
-                            unreadCount: Math.max(0, this.unreadCount - messageIds.length)
+                            unreadCount: nextUnread
                         });
+                        // 立即广播未读变化，确保顶部小红点立刻消失
+                        try {
+                            const { emitUnreadChanged } = require('../../utils/events.js');
+                            emitUnreadChanged({ count: nextUnread });
+                        } catch (_) {}
                         
                         // 清除未读消息缓存，让其他页面的小红点消失
                         invalidateUnread();
@@ -367,12 +373,12 @@ export default {
                     if (res.confirm) {
                         this.callCloudFunction('clearAllMessages', {}).then((res) => {
                                 if (res.result && res.result.success) {
-                                    this.setData({
-                                        messages: [],
-                                        page: 0,
-                                        hasMore: false,
-                                        unreadCount: 0
-                                    });
+                                    this.setData({ messages: [], page: 0, hasMore: false, unreadCount: 0 });
+                                    // 立即广播 0，确保顶部小红点立刻消失
+                                    try {
+                                        const { emitUnreadChanged } = require('../../utils/events.js');
+                                        emitUnreadChanged({ count: 0 });
+                                    } catch (_) {}
                                     
                                     // 清除未读消息缓存，让其他页面的小红点消失
                                     invalidateUnread();

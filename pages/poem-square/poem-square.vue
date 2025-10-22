@@ -12,12 +12,12 @@
     <view v-else class="square-mode-container">
       <view v-if="postList.length === 0" class="empty-state">
         <view class="empty-icon">😶</view>
-        <view class="empty-text">这里还没有内容</view>
-        <view class="empty-subtext">去广场发布一条吧～</view>
+        <view class="empty-text">还没刷出来，再等等~</view>
+        <view class="empty-subtext">去广场看看吧～</view>
       </view>
 
       <view id="post-list-container">
-        <view v-for="(item, index) in postList" :key="item._id || index" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
+        <view v-for="(item, index) in postList" v-if="item" :key="item._id || index" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
           <view class="post-content-navigator" @tap="togglePostExpansion" @longpress="onLongPressCard" :data-index="index" :data-postid="item._id">
             <view class="post-item">
               <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.highlightLines || item.highlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.content" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
@@ -250,9 +250,10 @@ export default {
         const list = (res && res.result && res.result.posts) ? res.result.posts : [];
         console.log('【poem-square】获取到帖子数量:', list.length);
         
-        const visibleList = list.filter(p => !(p && (p.isAnonymous === true || p.isAnonymous === 1 || p.isAnonymous === '1' || p.isAnonymous === 'true' || p.anonymous === true)));
+        const visibleList = list.filter(p => p && !(p.isAnonymous === true || p.isAnonymous === 1 || p.isAnonymous === '1' || p.isAnonymous === 'true' || p.anonymous === true));
         
         visibleList.forEach((p) => {
+          if (!p) return; // 防止处理undefined项目
           // 优先使用数据库中保存的背景颜色，如果没有则随机生成
           p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
           p.textColor = p.textColor || '#222';
@@ -321,9 +322,13 @@ export default {
           const signatureUrl = res.result.userInfo.signatureUrl;
           console.log('【poem-square】获取到作者签名:', signatureUrl);
 
-          this.setData({
-            [`postList[${postIndex}].authorSignature`]: signatureUrl
-          });
+          const __cur = this.postList && this.postList[postIndex];
+          const __anon = __cur && (__cur.isAnonymous === true || __cur.isAnonymous === 1 || __cur.isAnonymous === '1' || __cur.isAnonymous === 'true' || __cur.anonymous === true);
+          if (__anon) {
+            this.setData({ [`postList[${postIndex}].authorSignature`]: '' });
+          } else {
+            this.setData({ [`postList[${postIndex}].authorSignature`]: signatureUrl });
+          }
         } else {
           console.log('【poem-square】作者未设置签名');
           this.setData({

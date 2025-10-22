@@ -19,7 +19,7 @@ function getLikeIcon(votes, isVoted) {
         iconName = isVoted ? 'leafplus.png' : 'leaf.png';
     } else if (votes <= 15) {
         // 8-15：花
-        iconName = isVoted ? 'flowerplus .png' : 'flower.png';
+        iconName = isVoted ? 'flowerplus.png' : 'flower.png';
     } else {
         // 15以上：果实
         iconName = isVoted ? 'peachplus.png' : 'peach.png';

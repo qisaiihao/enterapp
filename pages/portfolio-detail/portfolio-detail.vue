@@ -22,7 +22,7 @@
         <view v-if="postList.length === 0" class="empty-state">
           <view class="empty-icon">😶</view>
           <view class="empty-text">这里还没有内容</view>
-          <view class="empty-subtext">去广场发布一条吧～</view>
+          <view class="empty-subtext">添加你的诗歌吧～</view>
         </view>
 
         <view v-else id="post-list-container">

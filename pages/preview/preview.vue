@@ -26,8 +26,8 @@
                 </block>
               </view>
 
-              <!-- 作者签名 - 只在展开时显示 -->
-              <view v-if="post.isExpanded && post.authorSignature" class="user-signature">
+              <!-- 作者签名 - 匿名不显示 -->
+              <view v-if="post.isExpanded && post.authorSignature && !post.isAnonymous" class="user-signature">
                 <image class="signature-image" :src="post.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
               </view>
             </view>

@@ -409,7 +409,24 @@
                 <view v-if="!shareImageUrl" class="share-loading">
                     <text>正在生成图片...</text>
                 </view>
-                <image v-else ref="shareImage" class="share-generated-image" :src="shareImageUrl" mode="widthFix" @longpress="onImageLongPress" @load="onShareImageLoad" @error="onShareImageError" :show-menu-by-longpress="false"></image>
+                <image
+                    v-else
+                    ref="shareImage"
+                    class="share-generated-image"
+                    :src="shareImageUrl"
+                    mode="widthFix"
+                    @longpress="onImageLongPress"
+                    @load="onShareImageLoad"
+                    @error="onShareImageError"
+                    :show-menu-by-longpress="shareLongpressMenuEnabled"
+                ></image>
+
+                <!-- 显式的保存按钮：使用图片，居中放在下方（H5/APP 显示） -->
+                <!-- #ifdef H5 || APP-PLUS -->
+                <view class="share-actions">
+                    <image class="share-download-image" src="/static/images/download.png" mode="widthFix" @tap.stop="saveShareImage"></image>
+                </view>
+                <!-- #endif -->
             </view>
         </view>
 
@@ -505,6 +522,9 @@ export default {
             replyImage: '',
             replyImageIndex: 0,
 
+            // 是否启用原生长按菜单（仅小程序有效）
+            shareLongpressMenuEnabled: false,
+
         };
     },
     onLoad: function (options) {
@@ -529,6 +549,13 @@ export default {
                 icon: 'none'
             });
         }
+
+        // 平台开关：仅小程序启用系统长按菜单
+        try {
+            // #ifdef MP-WEIXIN
+            this.shareLongpressMenuEnabled = true;
+            // #endif
+        } catch (e) {}
     },
     onShow: function () {
         this.setData({
@@ -1582,10 +1609,13 @@ export default {
 
         onImageLongPress: function () {
             console.log('【post-detail】用户长按图片');
-            uni.showToast({
-                title: '长按保存',
-                icon: 'none'
-            });
+            // App 端没有系统长按菜单，这里直接触发保存
+            // #ifdef APP-PLUS
+            this.saveShareImage();
+            // #endif
+            // #ifndef APP-PLUS
+            uni.showToast({ title: '长按可保存', icon: 'none' });
+            // #endif
         },
 
         onShareImageLoad: function () {
@@ -1697,6 +1727,137 @@ export default {
                 } catch (error) {
                     console.log('【post-detail】容器尺寸检查失败:', error.message);
                 }
+            }
+        },
+
+        // 跨端保存分享图片
+        saveShareImage: function () {
+            const url = this.shareImageUrl;
+            if (!url) {
+                uni.showToast({ title: '图片生成中…', icon: 'none' });
+                return;
+            }
+
+            const toastOK = (msg) => uni.showToast({ title: msg || '已保存', icon: 'success' });
+            const toastFail = (msg) => uni.showToast({ title: msg || '保存失败', icon: 'none' });
+
+            // 权限引导（小程序/APP）
+            const handlePermissionFail = () => {
+                uni.showModal({
+                    title: '需要相册权限',
+                    content: '请在设置中开启保存到相册权限后重试。',
+                    confirmText: '去设置',
+                    success: (r) => {
+                        if (r.confirm && uni.openSetting) {
+                            uni.openSetting({});
+                        }
+                    }
+                });
+            };
+
+            // 真正执行保存（小程序/APP）
+            const saveFromPath = (filePath) => {
+                // #ifdef MP-WEIXIN || APP-PLUS
+                uni.saveImageToPhotosAlbum({
+                    filePath,
+                    success: () => toastOK('已保存到相册'),
+                    fail: (err) => {
+                        console.error('saveImageToPhotosAlbum 失败:', err);
+                        const msg = (err && err.errMsg) || '';
+                        if (/auth|authorize|denied|permission/i.test(msg)) {
+                            handlePermissionFail();
+                        } else {
+                            toastFail('保存失败');
+                        }
+                    }
+                });
+                // #endif
+            };
+
+            // H5：下载到本地
+            const saveOnH5 = (finalUrl) => {
+                // #ifdef H5
+                try {
+                    if (finalUrl.startsWith('data:')) {
+                        // dataURL → blob → a[download]
+                        const arr = finalUrl.split(',');
+                        const mime = arr[0].match(/:(.*?);/)[1] || 'image/png';
+                        const bstr = atob(arr[1]);
+                        let n = bstr.length;
+                        const u8arr = new Uint8Array(n);
+                        while (n--) u8arr[n] = bstr.charCodeAt(n);
+                        const blob = new Blob([u8arr], { type: mime });
+                        const urlObj = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = urlObj;
+                        a.download = 'poementer.png';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(urlObj);
+                        toastOK('已开始下载');
+                    } else {
+                        const a = document.createElement('a');
+                        a.href = finalUrl;
+                        a.download = 'poementer.png';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        toastOK('已开始下载');
+                    }
+                } catch (e) {
+                    console.error('H5 保存失败，尝试打开新窗口:', e);
+                    window.open(finalUrl, '_blank');
+                }
+                // #endif
+            };
+
+            // 统一入口：根据 URL 形态分支
+            if (url.startsWith('data:')) {
+                // base64 → 临时文件
+                // #ifdef MP-WEIXIN || APP-PLUS
+                uni.base64ToTempFilePath({
+                    base64Data: url,
+                    success: (res) => saveFromPath(res.filePath),
+                    fail: (err) => {
+                        console.error('base64ToTempFilePath 失败:', err);
+                        toastFail('图片转换失败');
+                    }
+                });
+                // #endif
+                // #ifdef H5
+                saveOnH5(url);
+                // #endif
+            } else if (/^https?:\/\//i.test(url)) {
+                // 远程 URL 先下载
+                // #ifdef MP-WEIXIN || APP-PLUS
+                uni.downloadFile({
+                    url,
+                    success: (res) => {
+                        if (res.statusCode === 200) {
+                            saveFromPath(res.tempFilePath || res.filePath);
+                        } else {
+                            console.error('downloadFile 非200:', res.statusCode);
+                            toastFail('下载失败');
+                        }
+                    },
+                    fail: (err) => {
+                        console.error('downloadFile 失败:', err);
+                        toastFail('下载失败');
+                    }
+                });
+                // #endif
+                // #ifdef H5
+                saveOnH5(url);
+                // #endif
+            } else {
+                // 认为是本地临时路径
+                // #ifdef MP-WEIXIN || APP-PLUS
+                saveFromPath(url);
+                // #endif
+                // #ifdef H5
+                saveOnH5(url);
+                // #endif
             }
         },
 
@@ -3999,6 +4160,7 @@ export default {
     width: 80vw;
     max-width: 500px; /* 限制一个最大宽度，防止在大屏幕上过宽 */
     display: flex; /* 使用flex布局让内部元素更容易对齐 */
+    flex-direction: column; /* 垂直排列：图片在上，按钮在下 */
     align-items: center;
     justify-content: center;
     z-index: 999;
@@ -4092,6 +4254,14 @@ export default {
 
 .share-download-btn:active {
     background: #0056CC;
+}
+
+/* 图片下载按钮样式（替代文本按钮） */
+.share-download-image {
+    width: 140rpx;
+    height: auto;
+    display: block;
+    margin: 24rpx auto 0 auto; /* 居中并与图片留白 */
 }
 
 /* 定义 Huiwen-mincho 字体 */

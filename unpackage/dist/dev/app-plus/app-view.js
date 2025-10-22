@@ -1831,9 +1831,32 @@ var render = function () {
               _c("v-uni-image", {
                 staticClass: _vm._$g(66, "sc"),
                 attrs: {
-                  src: "/static/images/publish.png",
+                  src: "/static/images/niming.png",
                   mode: "aspectFit",
                   _i: 66,
+                },
+              }),
+            ],
+            1
+          ),
+          _c(
+            "uni-view",
+            {
+              staticClass: _vm._$g(67, "sc"),
+              attrs: { _i: 67 },
+              on: {
+                click: function ($event) {
+                  return _vm.$handleViewEvent($event, { stop: true })
+                },
+              },
+            },
+            [
+              _c("v-uni-image", {
+                staticClass: _vm._$g(68, "sc"),
+                attrs: {
+                  src: "/static/images/publish.png",
+                  mode: "aspectFit",
+                  _i: 68,
                 },
               }),
             ],
@@ -1940,7 +1963,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\n.white-bg {\n  background: #fff;\n  min-height: 100vh;\n  position: relative;\n  padding-bottom: 0; /* 确保没有底部padding影响固定按钮 */\n}\n.square-mode-container {\n  padding: 40rpx;\n  margin-bottom: 0; /* 移除margin-bottom，让固定按钮真正固定 */\n  padding-top: 100rpx; /* 增加顶部边距，与屏幕顶部保持距离 */\n  padding-bottom: 200rpx; /* 增加底部padding，为固定按钮留出足够空间 */\n}\n\n/* 底部按钮组 */\n.preview-page .bottom-buttons {\n  position: fixed !important;\n  bottom: 0 !important;\n  left: 0 !important;\n  right: 0 !important;\n  background: #fff !important;\n  padding: 30rpx 40rpx calc(60rpx + env(safe-area-inset-bottom)) 40rpx !important;\n  display: flex !important;\n  justify-content: space-around !important;\n  align-items: center !important;\n  z-index: 9999 !important; /* 提高z-index确保在所有元素之上 */\n  border-top: none !important; /* 强制移除上边框 */\n  box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.1) !important; /* 添加阴影效果 */\n}\n.bottom-buttons {\n  position: fixed;\n  bottom: 0;\n  left: 0;\n  right: 0;\n  background: #fff;\n  padding: 30rpx 40rpx calc(60rpx + env(safe-area-inset-bottom)) 40rpx;\n  display: flex;\n  justify-content: space-around;\n  align-items: center;\n  z-index: 9999; /* 提高z-index确保在所有元素之上 */\n  border-top: none !important; /* 强制移除上边框 */\n  box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.1); /* 添加阴影效果 */\n}\n.button-item {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  padding: 20rpx;\n  min-width: 120rpx;\n  transition: all 0.2s ease;\n}\n.button-item:active {\n  -webkit-transform: scale(0.9);\n          transform: scale(0.9);\n  opacity: 0.8;\n}\n.preview-page .bottom-buttons .button-item .button-icon {\n  width: 100rpx !important;\n  height: 100rpx !important;\n}\n.bottom-buttons .button-icon {\n  width: 100rpx !important;\n  height: 100rpx !important;\n}\n.empty-state { text-align: center; padding: 100rpx 0; color: #999;\n}\n.empty-icon { font-size: 80rpx; margin-bottom: 20rpx;\n}\n.empty-text { font-size: 32rpx; color: #666;\n}\n.post-item-wrapper { border-radius: 40rpx; overflow: hidden; border: 1rpx solid #e9ecef; box-shadow: 0 12rpx 15rpx rgba(0,0,0,0.20); transition: -webkit-transform .3s ease; transition: transform .3s ease; transition: transform .3s ease, -webkit-transform .3s ease;\n}\n.post-item-wrapper:active { -webkit-transform: scale(0.98); transform: scale(0.98);\n}\n.post-content-navigator { display: block; cursor: pointer;\n}\n.post-item { padding: 40rpx 50rpx; position: relative;\n}\n.post-content { font-size: 32rpx; line-height: 1.6; margin: 30rpx 0; width: 100%;\n}\n\n/* 折叠态：多端兼容的三行裁切 */\n.post-content.collapsed {\n  display: -webkit-box;\n  -webkit-box-orient: vertical;\n  -webkit-line-clamp: 3;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n.post-content.expanded { display: block; overflow: visible;\n}\n.user-signature { position: absolute; bottom: -25rpx; right: 60rpx; z-index: 10; pointer-events: none;\n}\n.signature-image { width: 180rpx; height: 90rpx; opacity: 0.8; -webkit-filter: drop-shadow(0 2rpx 4rpx rgba(0,0,0,0.1)); filter: drop-shadow(0 2rpx 4rpx rgba(0,0,0,0.1)); display: block; background: transparent;\n}\n\n/* 标题输入区域样式 */\n.title-input-section {\n  margin-top: 30rpx;\n  padding: 0 20rpx;\n}\n.title-input-wrapper {\n  background: #fff;\n  border-bottom: 2rpx solid #333;\n  padding: 0 0 0rpx 0;\n  position: relative;\n  width: 80%;\n  margin-right: auto;\n}\n.title-input {\n  width: 100%;\n  height: 60rpx;\n  border: none;\n  font-size: 28rpx;\n  background: transparent;\n  outline: none;\n  color: #333;\n  line-height: 1;\n}\n.title-input:focus {\n  border-bottom: none;\n}\n\n/* 作者输入区域样式 */\n.author-input-section {\n  margin-top: 40rpx;\n  padding: 0 20rpx;\n}\n.author-input-wrapper {\n  background: #fff;\n  border-bottom: 2rpx solid #333;\n  padding: 0 0 8rpx 0;\n  position: relative;\n  width: 80%;\n  margin-right: auto;\n}\n.author-input {\n  width: 100%;\n  height: 60rpx;\n  border: none;\n  font-size: 28rpx;\n  background: transparent;\n  outline: none;\n  color: #333;\n  line-height: 1;\n}\n.author-input:focus {\n  border-bottom: none;\n}\n\n/* 适配从发布页浮动按钮的层级 */\n.preview-page { position: relative; z-index: 1;\n}\n\n/* 诗歌帖子的样式（与poem-square完全一致） */\n.post-item-wrapper {\n  border-radius: 40rpx;\n  margin-bottom: 60rpx;\n  overflow: hidden;\n  border: 1rpx solid #e9ecef;\n  box-shadow: 0 12rpx 15rpx rgba(0,0,0,0.20);\n  transition: -webkit-transform .3s ease;\n  transition: transform .3s ease;\n  transition: transform .3s ease, -webkit-transform .3s ease;\n}\n.post-item-wrapper:active { -webkit-transform: scale(0.98); transform: scale(0.98);\n}\n.post-content-navigator { display: block;\n}\n.post-item { padding: 40rpx 50rpx; position: relative;\n}\n.post-content { font-size: 32rpx; line-height: 1.6; margin: 30rpx 0; width: 100%;\n}\n\n/* 折叠态：多端兼容的三行裁切 */\n.post-content.collapsed {\n  display: -webkit-box;\n  -webkit-box-orient: vertical;\n  -webkit-line-clamp: 3;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n.post-content.expanded { display: block; overflow: visible;\n}\n.comment-emoji{ font-size: 40rpx;\n}\n.comment-icon { width: 60rpx; height: 60rpx;\n}\n.vote-section { display: flex; justify-content: space-between; align-items: center; padding: 25rpx 50rpx;\n}\n.actions-left { flex: 1; display: flex; align-items: center; gap: 20rpx;\n}\n.button-group { display: flex; align-items: center; gap: 30rpx;\n}\n.comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx;\n}\n.vote-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; border-radius: 20rpx; background: rgba(255,255,255,.9); box-shadow: 0 2rpx 8rpx rgba(0,0,0,.1);\n}\n.comment-icon { width: 60rpx; height: 60rpx;\n}\n.like-icon { width: 60rpx; height: 60rpx; margin-top: 5px;\n}\n\n/* 用户签名样式 */\n.user-signature {\n  position: absolute;\n  bottom: -25rpx; /* 从15rpx往下移动40rpx */\n  right: 60rpx;\n  z-index: 10;\n  pointer-events: none; /* 防止签名影响点击事件 */\n}\n.signature-image {\n  width: 180rpx;\n  height: 90rpx;\n  opacity: 0.8; /* 稍微透明，不抢夺主要内容的注意力 */\n  -webkit-filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1));\n          filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1)); /* 添加轻微阴影 */\n  display: block; /* 确保图片正确显示 */\n  background: transparent; /* 确保背景透明 */\n}\n\n/* 普通帖子和讨论帖子的样式（从index页面复制） */\n.post-item-wrapper.normal-mode {\n  background: #fff;\n  margin-bottom: 20rpx;\n  padding: 0;\n  box-shadow: none;\n  border-radius: 0;\n  border-bottom: 1rpx solid #f0f0f0;\n}\n.author-info-outside {\n  display: flex;\n  align-items: center;\n  padding: 20rpx 40rpx 10rpx 40rpx;\n  background: #fff;\n}\n.author-info-outside .author-avatar {\n  width: 60rpx;\n  height: 60rpx;\n  border-radius: 50%;\n  margin-right: 15rpx;\n  background-color: #f5f5f5;\n}\n.author-info-outside .author-name {\n  font-size: 28rpx;\n  color: #333;\n  font-weight: 500;\n}\n.post-item {\n  width: 100%;\n  background: #fff;\n  box-shadow: none;\n  box-sizing: border-box;\n  padding: 20rpx 40rpx 30rpx 40rpx;\n}\n.post-title {\n  font-size: 36rpx;\n  font-weight: bold;\n  color: #333333;\n  margin-bottom: 15rpx;\n  line-height: 1.4;\n  word-break: break-word;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  display: -webkit-box;\n  -webkit-line-clamp: 2;\n  line-clamp: 2;\n  -webkit-box-orient: vertical;\n}\n.poem-author {\n  font-size: 32rpx;\n  color: #000;\n  text-align: center;\n  margin: 5rpx 0 15rpx 0;\n  letter-spacing: 2rpx;\n}\n.post-content {\n  font-size: 28rpx;\n  color: #666666;\n  line-height: 1.6;\n  margin-top: 15rpx;\n  word-break: break-word;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  display: -webkit-box;\n  -webkit-line-clamp: 3;\n  line-clamp: 3;\n  -webkit-box-orient: vertical;\n}\n.vote-section {\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  margin-top: -8rpx;\n  padding: 0 60rpx 0 60rpx;\n}\n.actions-left {\n  display: flex;\n  align-items: center;\n}\n.button-group {\n  display: flex;\n  align-items: center;\n}\n.comment-count {\n  display: flex;\n  align-items: center;\n  font-size: 28rpx;\n  color: #999;\n  margin-left: 10rpx;\n  transition: color 0.2s ease;\n}\n.action-emoji {\n  font-size: 28rpx;\n  margin-right: 8rpx;\n}\n.action-text {\n  font-size: 28rpx;\n  color: inherit;\n}\n.like-icon-container {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  padding: 8rpx;\n  border-radius: 8rpx;\n  margin-left: 20rpx;\n  transition: all 0.2s ease;\n}\n.like-icon-container:active {\n  -webkit-transform: scale(0.95);\n          transform: scale(0.95);\n}\n.like-icon {\n  width: 48rpx;\n  height: 48rpx;\n}\n.vote-count {\n  display: flex;\n  align-items: center;\n  font-size: 28rpx;\n  color: #999;\n  margin-left: 10rpx;\n  transition: color 0.2s ease;\n}\n.image-container-wrapper {\n  position: relative;\n  width: 100%;\n  background-color: #f0f0f0;\n  overflow: hidden;\n  border-radius: 8px;\n  margin: 20rpx 0;\n}\n.image-container-wrapper .post-image,\n.image-container-wrapper .image-swiper {\n  position: absolute;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%;\n}\n.image-swiper {\n  width: 100%;\n  background-color: #fff;\n}\n.swiper-item {\n  width: 100%;\n  height: 100%;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n}\n.post-image {\n  width: 100%;\n  height: 100%;\n  display: block;\n  object-fit: contain;\n}\n.post-tags {\n  margin-top: 30rpx;\n  margin-bottom: 10rpx;\n  line-height: 1.5;\n}\n.post-tag {\n  color: #24375f;\n  font-size: 26rpx;\n  margin-right: 10rpx;\n  transition: all 0.2s ease;\n}\n.post-tag:active {\n  color: #1a2a4a;\n  opacity: 0.8;\n}\n\n", ""]);
+exports.push([module.i, "\n.white-bg {\r\n  background: #fff;\r\n  min-height: 100vh;\r\n  position: relative;\r\n  padding-bottom: 0; /* 确保没有底部padding影响固定按钮 */\n}\n.square-mode-container {\r\n  padding: 40rpx;\r\n  margin-bottom: 0; /* 移除margin-bottom，让固定按钮真正固定 */\r\n  padding-top: 100rpx; /* 增加顶部边距，与屏幕顶部保持距离 */\r\n  padding-bottom: 200rpx; /* 增加底部padding，为固定按钮留出足够空间 */\n}\r\n\r\n/* 底部按钮组 */\n.preview-page .bottom-buttons {\r\n  position: fixed !important;\r\n  bottom: 0 !important;\r\n  left: 0 !important;\r\n  right: 0 !important;\r\n  background: #fff !important;\r\n  padding: 30rpx 20rpx calc(60rpx + env(safe-area-inset-bottom)) 20rpx !important;\r\n  display: flex !important;\r\n  justify-content: space-between !important;\r\n  align-items: center !important;\r\n  z-index: 9999 !important; /* 提高z-index确保在所有元素之上 */\r\n  border-top: none !important; /* 强制移除上边框 */\r\n  box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.1) !important; /* 添加阴影效果 */\n}\n.bottom-buttons {\r\n  position: fixed;\r\n  bottom: 0;\r\n  left: 0;\r\n  right: 0;\r\n  background: #fff;\r\n  padding: 30rpx 20rpx calc(60rpx + env(safe-area-inset-bottom)) 20rpx;\r\n  display: flex;\r\n  justify-content: space-between;\r\n  align-items: center;\r\n  z-index: 9999; /* 提高z-index确保在所有元素之上 */\r\n  border-top: none !important; /* 强制移除上边框 */\r\n  box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.1); /* 添加阴影效果 */\n}\n.button-item {\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  padding: 15rpx;\r\n  flex: 1;\r\n  transition: all 0.2s ease;\n}\n.button-item:active {\r\n  -webkit-transform: scale(0.9);\r\n          transform: scale(0.9);\r\n  opacity: 0.8;\n}\n.preview-page .bottom-buttons .button-item .button-icon {\r\n  width: 80rpx !important;\r\n  height: 80rpx !important;\n}\n.bottom-buttons .button-icon {\r\n  width: 80rpx !important;\r\n  height: 80rpx !important;\n}\n.empty-state { text-align: center; padding: 100rpx 0; color: #999;\n}\n.empty-icon { font-size: 80rpx; margin-bottom: 20rpx;\n}\n.empty-text { font-size: 32rpx; color: #666;\n}\n.post-item-wrapper { border-radius: 40rpx; overflow: hidden; border: 1rpx solid #e9ecef; box-shadow: 0 12rpx 15rpx rgba(0,0,0,0.20); transition: -webkit-transform .3s ease; transition: transform .3s ease; transition: transform .3s ease, -webkit-transform .3s ease;\n}\n.post-item-wrapper:active { -webkit-transform: scale(0.98); transform: scale(0.98);\n}\n.post-content-navigator { display: block; cursor: pointer;\n}\n.post-item { padding: 40rpx 50rpx; position: relative;\n}\n.post-content { font-size: 32rpx; line-height: 1.6; margin: 30rpx 0; width: 100%;\n}\r\n\r\n/* 折叠态：多端兼容的三行裁切 */\n.post-content.collapsed {\r\n  display: -webkit-box;\r\n  -webkit-box-orient: vertical;\r\n  -webkit-line-clamp: 3;\r\n  overflow: hidden;\r\n  text-overflow: ellipsis;\n}\n.post-content.expanded { display: block; overflow: visible;\n}\n.user-signature { position: absolute; bottom: -25rpx; right: 60rpx; z-index: 10; pointer-events: none;\n}\n.signature-image { width: 180rpx; height: 90rpx; opacity: 0.8; -webkit-filter: drop-shadow(0 2rpx 4rpx rgba(0,0,0,0.1)); filter: drop-shadow(0 2rpx 4rpx rgba(0,0,0,0.1)); display: block; background: transparent;\n}\r\n\r\n/* 标题输入区域样式 */\n.title-input-section {\r\n  margin-top: 30rpx;\r\n  padding: 0 20rpx;\n}\n.title-input-wrapper {\r\n  background: #fff;\r\n  border-bottom: 2rpx solid #333;\r\n  padding: 0 0 0rpx 0;\r\n  position: relative;\r\n  width: 80%;\r\n  margin-right: auto;\n}\n.title-input {\r\n  width: 100%;\r\n  height: 60rpx;\r\n  border: none;\r\n  font-size: 28rpx;\r\n  background: transparent;\r\n  outline: none;\r\n  color: #333;\r\n  line-height: 1;\n}\n.title-input:focus {\r\n  border-bottom: none;\n}\r\n\r\n/* 作者输入区域样式 */\n.author-input-section {\r\n  margin-top: 40rpx;\r\n  padding: 0 20rpx;\n}\n.author-input-wrapper {\r\n  background: #fff;\r\n  border-bottom: 2rpx solid #333;\r\n  padding: 0 0 8rpx 0;\r\n  position: relative;\r\n  width: 80%;\r\n  margin-right: auto;\n}\n.author-input {\r\n  width: 100%;\r\n  height: 60rpx;\r\n  border: none;\r\n  font-size: 28rpx;\r\n  background: transparent;\r\n  outline: none;\r\n  color: #333;\r\n  line-height: 1;\n}\n.author-input:focus {\r\n  border-bottom: none;\n}\r\n\r\n/* 适配从发布页浮动按钮的层级 */\n.preview-page { position: relative; z-index: 1;\n}\r\n\r\n/* 诗歌帖子的样式（与poem-square完全一致） */\n.post-item-wrapper {\r\n  border-radius: 40rpx;\r\n  margin-bottom: 60rpx;\r\n  overflow: hidden;\r\n  border: 1rpx solid #e9ecef;\r\n  box-shadow: 0 12rpx 15rpx rgba(0,0,0,0.20);\r\n  transition: -webkit-transform .3s ease;\r\n  transition: transform .3s ease;\r\n  transition: transform .3s ease, -webkit-transform .3s ease;\n}\n.post-item-wrapper:active { -webkit-transform: scale(0.98); transform: scale(0.98);\n}\n.post-content-navigator { display: block;\n}\n.post-item { padding: 40rpx 50rpx; position: relative;\n}\n.post-content { font-size: 32rpx; line-height: 1.6; margin: 30rpx 0; width: 100%;\n}\r\n\r\n/* 折叠态：多端兼容的三行裁切 */\n.post-content.collapsed {\r\n  display: -webkit-box;\r\n  -webkit-box-orient: vertical;\r\n  -webkit-line-clamp: 3;\r\n  overflow: hidden;\r\n  text-overflow: ellipsis;\n}\n.post-content.expanded { display: block; overflow: visible;\n}\n.comment-emoji{ font-size: 40rpx;\n}\n.comment-icon { width: 60rpx; height: 60rpx;\n}\n.vote-section { display: flex; justify-content: space-between; align-items: center; padding: 25rpx 50rpx;\n}\n.actions-left { flex: 1; display: flex; align-items: center; gap: 20rpx;\n}\n.button-group { display: flex; align-items: center; gap: 30rpx;\n}\n.comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx;\n}\n.vote-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; border-radius: 20rpx; background: rgba(255,255,255,.9); box-shadow: 0 2rpx 8rpx rgba(0,0,0,.1);\n}\n.comment-icon { width: 60rpx; height: 60rpx;\n}\n.like-icon { width: 60rpx; height: 60rpx; margin-top: 5px;\n}\r\n\r\n/* 用户签名样式 */\n.user-signature {\r\n  position: absolute;\r\n  bottom: -25rpx; /* 从15rpx往下移动40rpx */\r\n  right: 60rpx;\r\n  z-index: 10;\r\n  pointer-events: none; /* 防止签名影响点击事件 */\n}\n.signature-image {\r\n  width: 180rpx;\r\n  height: 90rpx;\r\n  opacity: 0.8; /* 稍微透明，不抢夺主要内容的注意力 */\r\n  -webkit-filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1));\r\n          filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1)); /* 添加轻微阴影 */\r\n  display: block; /* 确保图片正确显示 */\r\n  background: transparent; /* 确保背景透明 */\n}\r\n\r\n/* 普通帖子和讨论帖子的样式（从index页面复制） */\n.post-item-wrapper.normal-mode {\r\n  background: #fff;\r\n  margin-bottom: 20rpx;\r\n  padding: 0;\r\n  box-shadow: none;\r\n  border-radius: 0;\r\n  border-bottom: 1rpx solid #f0f0f0;\n}\n.author-info-outside {\r\n  display: flex;\r\n  align-items: center;\r\n  padding: 20rpx 40rpx 10rpx 40rpx;\r\n  background: #fff;\n}\n.author-info-outside .author-avatar {\r\n  width: 60rpx;\r\n  height: 60rpx;\r\n  border-radius: 50%;\r\n  margin-right: 15rpx;\r\n  background-color: #f5f5f5;\n}\n.author-info-outside .author-name {\r\n  font-size: 28rpx;\r\n  color: #333;\r\n  font-weight: 500;\n}\n.post-item {\r\n  width: 100%;\r\n  background: #fff;\r\n  box-shadow: none;\r\n  box-sizing: border-box;\r\n  padding: 20rpx 40rpx 30rpx 40rpx;\n}\n.post-title {\r\n  font-size: 36rpx;\r\n  font-weight: bold;\r\n  color: #333333;\r\n  margin-bottom: 15rpx;\r\n  line-height: 1.4;\r\n  word-break: break-word;\r\n  overflow: hidden;\r\n  text-overflow: ellipsis;\r\n  display: -webkit-box;\r\n  -webkit-line-clamp: 2;\r\n  line-clamp: 2;\r\n  -webkit-box-orient: vertical;\n}\n.poem-author {\r\n  font-size: 32rpx;\r\n  color: #000;\r\n  text-align: center;\r\n  margin: 5rpx 0 15rpx 0;\r\n  letter-spacing: 2rpx;\n}\n.post-content {\r\n  font-size: 28rpx;\r\n  color: #666666;\r\n  line-height: 1.6;\r\n  margin-top: 15rpx;\r\n  word-break: break-word;\r\n  overflow: hidden;\r\n  text-overflow: ellipsis;\r\n  display: -webkit-box;\r\n  -webkit-line-clamp: 3;\r\n  line-clamp: 3;\r\n  -webkit-box-orient: vertical;\n}\n.vote-section {\r\n  display: flex;\r\n  justify-content: space-between;\r\n  align-items: center;\r\n  margin-top: -8rpx;\r\n  padding: 0 60rpx 0 60rpx;\n}\n.actions-left {\r\n  display: flex;\r\n  align-items: center;\n}\n.button-group {\r\n  display: flex;\r\n  align-items: center;\n}\n.comment-count {\r\n  display: flex;\r\n  align-items: center;\r\n  font-size: 28rpx;\r\n  color: #999;\r\n  margin-left: 10rpx;\r\n  transition: color 0.2s ease;\n}\n.action-emoji {\r\n  font-size: 28rpx;\r\n  margin-right: 8rpx;\n}\n.action-text {\r\n  font-size: 28rpx;\r\n  color: inherit;\n}\n.like-icon-container {\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  padding: 8rpx;\r\n  border-radius: 8rpx;\r\n  margin-left: 20rpx;\r\n  transition: all 0.2s ease;\n}\n.like-icon-container:active {\r\n  -webkit-transform: scale(0.95);\r\n          transform: scale(0.95);\n}\n.like-icon {\r\n  width: 48rpx;\r\n  height: 48rpx;\n}\n.vote-count {\r\n  display: flex;\r\n  align-items: center;\r\n  font-size: 28rpx;\r\n  color: #999;\r\n  margin-left: 10rpx;\r\n  transition: color 0.2s ease;\n}\n.image-container-wrapper {\r\n  position: relative;\r\n  width: 100%;\r\n  background-color: #f0f0f0;\r\n  overflow: hidden;\r\n  border-radius: 8px;\r\n  margin: 20rpx 0;\n}\n.image-container-wrapper .post-image,\r\n.image-container-wrapper .image-swiper {\r\n  position: absolute;\r\n  top: 0;\r\n  left: 0;\r\n  width: 100%;\r\n  height: 100%;\n}\n.image-swiper {\r\n  width: 100%;\r\n  background-color: #fff;\n}\n.swiper-item {\r\n  width: 100%;\r\n  height: 100%;\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\n}\n.post-image {\r\n  width: 100%;\r\n  height: 100%;\r\n  display: block;\r\n  object-fit: contain;\n}\n.post-tags {\r\n  margin-top: 30rpx;\r\n  margin-bottom: 10rpx;\r\n  line-height: 1.5;\n}\n.post-tag {\r\n  color: #24375f;\r\n  font-size: 26rpx;\r\n  margin-right: 10rpx;\r\n  transition: all 0.2s ease;\n}\n.post-tag:active {\r\n  color: #1a2a4a;\r\n  opacity: 0.8;\n}\r\n\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -5740,7 +5763,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\n.page-tabs-container[data-v-cad0fb84] {\n  position: fixed;\n  left: 0;\n  right: 0;\n  background: #ffffff;\n  z-index: 1000;\n  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);\n  /* top 值通过 JavaScript 动态设置 */\n  /* 添加伪元素作为状态栏区域的白色背景 */\n}\n.page-tabs-container[data-v-cad0fb84]::before {\n  content: '';\n  position: absolute;\n  top: -100vh; /* 向上延伸覆盖状态栏区域 */\n  left: 0;\n  right: 0;\n  height: 100vh;\n  background: #ffffff;\n  z-index: -1;\n}\n\n/* 自定义顶部栏样式 */\n.custom-top-bar[data-v-cad0fb84] {\n  height: 100rpx;\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  padding: 20rpx 40rpx 0 40rpx;\n  background: #fff;\n}\n.top-left[data-v-cad0fb84] {\n  display: flex;\n  align-items: center;\n  cursor: pointer;\n  transition: all 0.2s ease;\n  padding: 10rpx;\n}\n.top-left[data-v-cad0fb84]:active {\n  -webkit-transform: scale(0.95);\n          transform: scale(0.95);\n}\n.top-right[data-v-cad0fb84] {\n  display: flex;\n  align-items: center;\n  gap: 40rpx;\n}\n.top-item[data-v-cad0fb84] {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  cursor: pointer;\n  transition: all 0.2s ease;\n  padding: 10rpx;\n}\n.top-item[data-v-cad0fb84]:active {\n  -webkit-transform: scale(0.95);\n          transform: scale(0.95);\n}\n.top-icon[data-v-cad0fb84] {\n  width: 80rpx;\n  height: 80rpx;\n  -webkit-filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1));\n          filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1));\n}\n\n/* 标签栏样式 */\n.tabs-container[data-v-cad0fb84] {\n  height: 88rpx;\n}\n.tabs-list[data-v-cad0fb84] {\n  display: flex;\n  height: 100%;\n  align-items: center;\n}\n.tab-item[data-v-cad0fb84] {\n  flex: 1;\n  height: 100%;\n  display: flex;\n  flex-direction: column;\n  justify-content: center;\n  align-items: center;\n  position: relative;\n  transition: all 0.2s ease;\n}\n.tab-item[data-v-cad0fb84]:active {\n  background-color: rgba(0, 0, 0, 0.02);\n}\n.tab-text[data-v-cad0fb84] {\n  font-size: 30rpx;\n  color: #666;\n  font-weight: 500;\n  transition: color 0.2s ease;\n}\n.tab-item.active .tab-text[data-v-cad0fb84] {\n  color: #24375f;\n  font-weight: 600;\n}\n.tab-indicator[data-v-cad0fb84] {\n  position: absolute;\n  bottom: 0;\n  left: 50%;\n  -webkit-transform: translateX(-50%);\n          transform: translateX(-50%);\n  width: 60rpx;\n  height: 6rpx;\n  background: #24375f;\n  border-radius: 3rpx;\n  transition: all 0.3s ease;\n}\n\n/* 未读消息小红点 */\n.unread-dot[data-v-cad0fb84] {\n  position: absolute;\n  top: 8rpx;\n  right: 8rpx;\n  width: 16rpx;\n  height: 16rpx;\n  background-color: #ff6b6b;\n  border-radius: 50%;\n  border: 2rpx solid #ffffff;\n  z-index: 10;\n}\n", ""]);
+exports.push([module.i, "\n.page-tabs-container[data-v-cad0fb84] {\r\n  position: fixed;\r\n  left: 0;\r\n  right: 0;\r\n  background: #ffffff;\r\n  z-index: 1000;\r\n  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);\r\n  /* top 值通过 JavaScript 动态设置 */\r\n  /* 添加伪元素作为状态栏区域的白色背景 */\n}\n.page-tabs-container[data-v-cad0fb84]::before {\r\n  content: '';\r\n  position: absolute;\r\n  top: -100vh; /* 向上延伸覆盖状态栏区域 */\r\n  left: 0;\r\n  right: 0;\r\n  height: 100vh;\r\n  background: #ffffff;\r\n  z-index: -1;\n}\r\n\r\n/* 自定义顶部栏样式 */\n.custom-top-bar[data-v-cad0fb84] {\r\n  height: 100rpx;\r\n  display: flex;\r\n  justify-content: space-between;\r\n  align-items: center;\r\n  padding: 20rpx 40rpx 0 40rpx;\r\n  background: #fff;\n}\n.top-left[data-v-cad0fb84] {\r\n  display: flex;\r\n  align-items: center;\r\n  cursor: pointer;\r\n  transition: all 0.2s ease;\r\n  padding: 10rpx;\n}\n.top-left[data-v-cad0fb84]:active {\r\n  -webkit-transform: scale(0.95);\r\n          transform: scale(0.95);\n}\n.top-right[data-v-cad0fb84] {\r\n  display: flex;\r\n  align-items: center;\r\n  gap: 40rpx;\n}\n.top-item[data-v-cad0fb84] {\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  cursor: pointer;\r\n  transition: all 0.2s ease;\r\n  padding: 10rpx;\r\n  position: relative;\n}\n.top-item[data-v-cad0fb84]:active {\r\n  -webkit-transform: scale(0.95);\r\n          transform: scale(0.95);\n}\n.top-icon[data-v-cad0fb84] {\r\n  width: 80rpx;\r\n  height: 80rpx;\r\n  -webkit-filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1));\r\n          filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1));\n}\r\n\r\n/* 标签栏样式 */\n.tabs-container[data-v-cad0fb84] {\r\n  height: 88rpx;\n}\n.tabs-list[data-v-cad0fb84] {\r\n  display: flex;\r\n  height: 100%;\r\n  align-items: center;\n}\n.tab-item[data-v-cad0fb84] {\r\n  flex: 1;\r\n  height: 100%;\r\n  display: flex;\r\n  flex-direction: column;\r\n  justify-content: center;\r\n  align-items: center;\r\n  position: relative;\r\n  transition: all 0.2s ease;\n}\n.tab-item[data-v-cad0fb84]:active {\r\n  background-color: rgba(0, 0, 0, 0.02);\n}\n.tab-text[data-v-cad0fb84] {\r\n  font-size: 30rpx;\r\n  color: #666;\r\n  font-weight: 500;\r\n  transition: color 0.2s ease;\n}\n.tab-item.active .tab-text[data-v-cad0fb84] {\r\n  color: #24375f;\r\n  font-weight: 600;\n}\n.tab-indicator[data-v-cad0fb84] {\r\n  position: absolute;\r\n  bottom: 0;\r\n  left: 50%;\r\n  -webkit-transform: translateX(-50%);\r\n          transform: translateX(-50%);\r\n  width: 60rpx;\r\n  height: 6rpx;\r\n  background: #24375f;\r\n  border-radius: 3rpx;\r\n  transition: all 0.3s ease;\n}\r\n\r\n/* 未读消息小红点 */\n.unread-dot[data-v-cad0fb84] {\r\n  position: absolute;\r\n  top: 4rpx;\r\n  right: 4rpx;\r\n  width: 16rpx;\r\n  height: 16rpx;\r\n  background-color: #ff6b6b;\r\n  border-radius: 50%;\r\n  border: 2rpx solid #ffffff;\r\n  z-index: 10;\r\n  -webkit-animation: pulse-data-v-cad0fb84 2s infinite;\r\n          animation: pulse-data-v-cad0fb84 2s infinite;\n}\r\n\r\n/* 红点脉冲动画 */\n@-webkit-keyframes pulse-data-v-cad0fb84 {\n0% {\r\n    -webkit-transform: scale(1);\r\n            transform: scale(1);\r\n    opacity: 1;\n}\n50% {\r\n    -webkit-transform: scale(1.2);\r\n            transform: scale(1.2);\r\n    opacity: 0.8;\n}\n100% {\r\n    -webkit-transform: scale(1);\r\n            transform: scale(1);\r\n    opacity: 1;\n}\n}\n@keyframes pulse-data-v-cad0fb84 {\n0% {\r\n    -webkit-transform: scale(1);\r\n            transform: scale(1);\r\n    opacity: 1;\n}\n50% {\r\n    -webkit-transform: scale(1.2);\r\n            transform: scale(1.2);\r\n    opacity: 0.8;\n}\n100% {\r\n    -webkit-transform: scale(1);\r\n            transform: scale(1);\r\n    opacity: 1;\n}\n}\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -6423,7 +6446,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* index.wxss */\n.page-indicator {\r\n    position: fixed;\r\n    top: 100rpx;\r\n    left: 50%;\r\n    -webkit-transform: translateX(-50%);\r\n            transform: translateX(-50%);\r\n    background: rgba(0, 0, 0, 0.7);\r\n    color: white;\r\n    padding: 20rpx 40rpx;\r\n    border-radius: 50rpx;\r\n    font-size: 28rpx;\r\n    z-index: 9999;\r\n    -webkit-animation: pageIndicatorFadeIn 0.3s ease-in-out;\r\n            animation: pageIndicatorFadeIn 0.3s ease-in-out;\n}\n.page-indicator-text {\r\n    text-align: center;\r\n    font-weight: 500;\n}\n@-webkit-keyframes pageIndicatorFadeIn {\n0% {\r\n        opacity: 0;\r\n        -webkit-transform: translateX(-50%) translateY(-20rpx);\r\n                transform: translateX(-50%) translateY(-20rpx);\n}\n100% {\r\n        opacity: 1;\r\n        -webkit-transform: translateX(-50%) translateY(0);\r\n                transform: translateX(-50%) translateY(0);\n}\n}\n@keyframes pageIndicatorFadeIn {\n0% {\r\n        opacity: 0;\r\n        -webkit-transform: translateX(-50%) translateY(-20rpx);\r\n                transform: translateX(-50%) translateY(-20rpx);\n}\n100% {\r\n        opacity: 1;\r\n        -webkit-transform: translateX(-50%) translateY(0);\r\n                transform: translateX(-50%) translateY(0);\n}\n}\n.container {\r\n    padding: 255rpx 0 100rpx 0; /* 为page-tabs留出空间：188rpx(page-tabs总高度) + 62rpx(额外间距) */\r\n    background-color: #ffffff;\r\n    min-height: 100vh;\r\n    padding-bottom: 100rpx; /* 为底部tabBar留出空间 */\r\n    position: relative;\n}\r\n/* 读诗模式容器 */\n.poem-mode-container {\r\n    position: fixed;\r\n    top: 0;\r\n    left: 0;\r\n    width: 100vw;\r\n    height: 100vh;\r\n    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\r\n    z-index: 100;\r\n    overflow: hidden;\n}\r\n/* 滑动指示器 */\n.swipe-indicator {\r\n    position: absolute;\r\n    top: 50%;\r\n    -webkit-transform: translateY(-50%);\r\n            transform: translateY(-50%);\r\n    color: rgba(255, 255, 255, 0.8);\r\n    font-size: 28rpx;\r\n    padding: 20rpx 30rpx;\r\n    background: rgba(0, 0, 0, 0.3);\r\n    border-radius: 50rpx;\r\n    -webkit-backdrop-filter: blur(10rpx);\r\n            backdrop-filter: blur(10rpx);\n}\n.swipe-indicator.left {\r\n    left: 30rpx;\n}\n.swipe-indicator.right {\r\n    right: 30rpx;\n}\r\n/* 帖子索引指示器 */\n.post-indicator {\r\n    position: absolute;\r\n    bottom: 60rpx;\r\n    left: 50%;\r\n    -webkit-transform: translateX(-50%);\r\n            transform: translateX(-50%);\r\n    color: rgba(255, 255, 255, 0.9);\r\n    font-size: 24rpx;\r\n    padding: 12rpx 24rpx;\r\n    background: rgba(0, 0, 0, 0.4);\r\n    border-radius: 30rpx;\r\n    -webkit-backdrop-filter: blur(10rpx);\r\n            backdrop-filter: blur(10rpx);\n}\r\n/* 列表模式容器 */\n.list-mode-container,\r\n.list-content {\r\n    display: block;\n}\r\n/* 广场模式容器 */\n.square-mode-container {\r\n    display: block;\r\n    padding-top: 40rpx; /* 增加与顶部栏的距离 */\n}\r\n/* 新增：帖子项包装器样式 */\n.post-item-wrapper {\r\n    background: #fff;\r\n    margin-bottom: 20rpx;\r\n    padding: 0;\r\n    box-shadow: none;\r\n    border-radius: 0;\r\n    border-bottom: 1rpx solid #f0f0f0;\n}\r\n/* 原创帖子特殊样式 */\n.post-item-wrapper.original-post {\r\n    background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 90%, rgba(235, 200, 141, 0.05) 95%, rgba(235, 200, 141, 0.08) 100%);\r\n    border-left: 3rpx solid #ebc88d;\r\n    position: relative;\n}\r\n/* 原创帖子光影效果已移除 */\r\n/* 新增：内容导航器样式 */\n.post-content-navigator {\r\n    display: block;\r\n    background: transparent;\n}\r\n/* 新增：导航器点击效果 */\n.navigator-hover {\r\n    background-color: rgba(0, 0, 0, 0.02);\n}\r\n/* 新增：点赞按钮容器样式 */\n.like-icon-container {\r\n    padding: 10rpx;\r\n    border-radius: 50%;\r\n    transition: all 0.2s ease;\n}\r\n/* 新增：点赞按钮点击效果 */\n.like-icon-container:active {\r\n    -webkit-transform: scale(0.9);\r\n            transform: scale(0.9);\r\n    background-color: rgba(255, 107, 107, 0.1);\n}\r\n/* 新增：点赞图标样式 */\n.like-icon {\r\n    width: 40rpx;\r\n    height: 40rpx;\r\n    transition: all 0.2s ease;\n}\n.author-info {\r\n    display: flex;\r\n    align-items: center;\r\n    margin-bottom: 15rpx;\n}\n.author-avatar {\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    border-radius: 50%;\r\n    margin-right: 15rpx;\r\n    background-color: #f5f5f5;\n}\n.author-name {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    font-weight: 500;\n}\r\n/* 新增：图片容器占位样式 */\n.image-container-wrapper {\r\n    position: relative;\r\n    width: 100%;\r\n    background-color: #f0f0f0; /* 占位时的背景色，很重要 */\r\n    overflow: hidden;\r\n    border-radius: 8px; /* 可以加个圆角，让占位块更好看 */\r\n    margin: 20rpx 0; /* 图片和下方内容的间距 */\n}\r\n/* 新增：让图片或Swiper填充整个占位容器 */\n.image-container-wrapper .post-image,\r\n.image-container-wrapper .image-swiper {\r\n    position: absolute;\r\n    top: 0;\r\n    left: 0;\r\n    width: 100%;\r\n    height: 100%;\n}\r\n/* 多图容器 */\n.multi-image-container {\r\n    width: 100%;\r\n    position: relative;\n}\r\n/* 单图容器 */\n.single-image-container {\r\n    width: 100%;\r\n    position: relative;\n}\r\n/* 多张图片的swiper样式 */\n.image-swiper {\r\n    width: 100%;\r\n    background-color: #fff;\r\n    /* 高度由 style 绑定动态设置 */\n}\n.swiper-item {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\n}\n.post-image {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: block;\r\n    object-fit: contain;\n}\n.post-image:active {\r\n    -webkit-transform: scale(1.05);\r\n            transform: scale(1.05);\n}\n.post-image.single-image {\r\n    width: 100%;\r\n    height: auto;\r\n    display: block;\r\n    background-color: #f5f5f5;\n}\r\n/* 图片数量指示器 */\n.image-count-indicator {\r\n    position: absolute;\r\n    top: 20rpx;\r\n    right: 20rpx;\r\n    background-color: rgba(0, 0, 0, 0.6);\r\n    color: white;\r\n    padding: 8rpx 16rpx;\r\n    border-radius: 20rpx;\r\n    font-size: 24rpx;\r\n    z-index: 10;\r\n    -webkit-backdrop-filter: blur(10rpx);\r\n            backdrop-filter: blur(10rpx);\n}\r\n/* 卡片项样式 */\n.post-item-wrapper {\r\n    margin-bottom: 20rpx;\n}\r\n/* 外部作者信息样式 */\n.author-info-outside {\r\n    display: flex;\r\n    align-items: center;\r\n    padding: 20rpx 40rpx 10rpx 40rpx;\r\n    background: #fff;\n}\n.author-info-outside .author-avatar {\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    border-radius: 50%;\r\n    margin-right: 15rpx;\r\n    background-color: #f5f5f5;\r\n    cursor: pointer;\n}\n.author-info-outside .author-name {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    font-weight: 500;\n}\n.post-item {\r\n    width: 100%;\r\n    background: #fff;\r\n    box-shadow: none;\r\n    box-sizing: border-box;\r\n    padding: 20rpx 40rpx 30rpx 40rpx;\n}\r\n/* 定义点击时的样式 - 整个卡片缩小 */\n.post-card-active {\r\n    -webkit-transform: scale(0.98);\r\n            transform: scale(0.98);\n}\n.post-title {\r\n    font-size: 36rpx;\r\n    font-weight: bold;\r\n    color: #333333;\r\n    margin-bottom: 15rpx;\r\n    line-height: 1.4;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 2;\r\n    line-clamp: 2;\r\n    -webkit-box-orient: vertical;\n}\r\n/* 诗歌作者样式 */\n.poem-author {\r\n    font-size: 32rpx;\r\n    color: #000;\r\n    text-align: center;\r\n    margin: 5rpx 0 15rpx 0;\r\n    letter-spacing: 2rpx;\n}\n.post-content {\r\n    font-size: 28rpx;\r\n    color: #666666;\r\n    line-height: 1.6;\r\n    margin-top: 15rpx;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 3;\r\n    line-clamp: 3;\r\n    -webkit-box-orient: vertical;\n}\n.vote-section {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    /* 上移一点：收紧与内容的垂直间距 */\r\n    margin-top: -8rpx;\r\n    padding: 10rpx 60rpx 15rpx 60rpx;\n}\n.vote-count,\r\n.comment-count {\r\n    display: flex;\r\n    align-items: center;\r\n    font-size: 28rpx;\r\n    color: #999;\r\n    margin-left: 10rpx;\r\n    transition: color 0.2s ease;\n}\n.comment-icon {\r\n    width: 40rpx;\r\n    height: 40rpx;\r\n    margin-right: 8rpx;\n}\n.vote-count {\r\n    margin-left: 10rpx;\n}\n.vote-count.voted {\r\n    color: #ff4757;\n}\n.actions-left {\r\n    display: flex;\r\n    align-items: center;\n}\n.action-emoji {\r\n    font-size: 28rpx;\r\n    margin-right: 8rpx;\n}\n.action-text {\r\n    font-size: 28rpx;\r\n    color: inherit;\n}\n.button-group {\r\n    display: flex;\r\n    align-items: center;\n}\n.like-icon-container {\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 8rpx;\r\n    border-radius: 8rpx;\r\n    margin-left: 20rpx;\r\n    transition: all 0.2s ease;\n}\n.like-icon-container:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.like-icon {\r\n    width: 48rpx;\r\n    height: 48rpx;\n}\r\n/* 空状态样式 */\n.empty-state {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 100rpx 40rpx;\r\n    text-align: center;\n}\n.empty-icon {\r\n    font-size: 120rpx;\r\n    margin-bottom: 30rpx;\r\n    opacity: 0.6;\n}\n.empty-text {\r\n    font-size: 32rpx;\r\n    color: #666;\r\n    margin-bottom: 15rpx;\n}\n.empty-subtext {\r\n    font-size: 28rpx;\r\n    color: #999;\n}\r\n/* 加载更多样式 */\n.loading-more {\r\n    display: flex;\r\n    justify-content: center;\r\n    align-items: center;\r\n    padding: 40rpx;\n}\n.loading-text {\r\n    font-size: 28rpx;\r\n    color: #999;\n}\r\n/* 底部加载状态样式 */\n.loading-footer {\r\n    text-align: center;\r\n    padding: 20rpx 0;\r\n    color: #999;\r\n    font-size: 14px;\n}\r\n/* 标签样式 */\n.post-tags {\r\n    margin-top: 30rpx;\r\n    margin-bottom: 10rpx;\r\n    line-height: 1.5;\n}\n.post-tag {\r\n    color: #24375f;\r\n    font-size: 26rpx;\r\n    margin-right: 10rpx;\r\n    transition: all 0.2s ease;\r\n    cursor: pointer;\n}\n.post-tag:active {\r\n    color: #1a2a4a;\r\n    opacity: 0.8;\n}\r\n/* 发现页推荐相关样式 */\n.discover-end-tip {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    padding: 40rpx 20rpx;\r\n    color: #999;\n}\n.end-text {\r\n    font-size: 28rpx;\r\n    margin-bottom: 20rpx;\n}\n.refresh-tip {\r\n    background: rgba(255, 193, 7, 0.1);\r\n    border: 2rpx solid rgba(255, 193, 7, 0.3);\r\n    border-radius: 20rpx;\r\n    padding: 16rpx 24rpx;\n}\n.refresh-text {\r\n    font-size: 24rpx;\r\n    color: #ffc107;\r\n    font-weight: 500;\n}\r\n", ""]);
+exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* index.wxss */\n.page-indicator {\r\n    position: fixed;\r\n    top: 100rpx;\r\n    left: 50%;\r\n    -webkit-transform: translateX(-50%);\r\n            transform: translateX(-50%);\r\n    background: rgba(0, 0, 0, 0.7);\r\n    color: white;\r\n    padding: 20rpx 40rpx;\r\n    border-radius: 50rpx;\r\n    font-size: 28rpx;\r\n    z-index: 9999;\r\n    -webkit-animation: pageIndicatorFadeIn 0.3s ease-in-out;\r\n            animation: pageIndicatorFadeIn 0.3s ease-in-out;\n}\n.page-indicator-text {\r\n    text-align: center;\r\n    font-weight: 500;\n}\n@-webkit-keyframes pageIndicatorFadeIn {\n0% {\r\n        opacity: 0;\r\n        -webkit-transform: translateX(-50%) translateY(-20rpx);\r\n                transform: translateX(-50%) translateY(-20rpx);\n}\n100% {\r\n        opacity: 1;\r\n        -webkit-transform: translateX(-50%) translateY(0);\r\n                transform: translateX(-50%) translateY(0);\n}\n}\n@keyframes pageIndicatorFadeIn {\n0% {\r\n        opacity: 0;\r\n        -webkit-transform: translateX(-50%) translateY(-20rpx);\r\n                transform: translateX(-50%) translateY(-20rpx);\n}\n100% {\r\n        opacity: 1;\r\n        -webkit-transform: translateX(-50%) translateY(0);\r\n                transform: translateX(-50%) translateY(0);\n}\n}\n.container {\r\n    padding: 255rpx 0 100rpx 0; /* 为page-tabs留出空间：188rpx(page-tabs总高度) + 62rpx(额外间距) */\r\n    background-color: #ffffff;\r\n    min-height: 100vh;\r\n    padding-bottom: 100rpx; /* 为底部tabBar留出空间 */\r\n    position: relative;\n}\r\n/* 读诗模式容器 */\n.poem-mode-container {\r\n    position: fixed;\r\n    top: 0;\r\n    left: 0;\r\n    width: 100vw;\r\n    height: 100vh;\r\n    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\r\n    z-index: 100;\r\n    overflow: hidden;\n}\r\n/* 滑动指示器 */\n.swipe-indicator {\r\n    position: absolute;\r\n    top: 50%;\r\n    -webkit-transform: translateY(-50%);\r\n            transform: translateY(-50%);\r\n    color: rgba(255, 255, 255, 0.8);\r\n    font-size: 28rpx;\r\n    padding: 20rpx 30rpx;\r\n    background: rgba(0, 0, 0, 0.3);\r\n    border-radius: 50rpx;\r\n    -webkit-backdrop-filter: blur(10rpx);\r\n            backdrop-filter: blur(10rpx);\n}\n.swipe-indicator.left {\r\n    left: 30rpx;\n}\n.swipe-indicator.right {\r\n    right: 30rpx;\n}\r\n/* 帖子索引指示器 */\n.post-indicator {\r\n    position: absolute;\r\n    bottom: 60rpx;\r\n    left: 50%;\r\n    -webkit-transform: translateX(-50%);\r\n            transform: translateX(-50%);\r\n    color: rgba(255, 255, 255, 0.9);\r\n    font-size: 24rpx;\r\n    padding: 12rpx 24rpx;\r\n    background: rgba(0, 0, 0, 0.4);\r\n    border-radius: 30rpx;\r\n    -webkit-backdrop-filter: blur(10rpx);\r\n            backdrop-filter: blur(10rpx);\n}\r\n/* 列表模式容器 */\n.list-mode-container,\r\n.list-content {\r\n    display: block;\n}\r\n/* 广场模式容器 */\n.square-mode-container {\r\n    display: block;\r\n    padding-top: 40rpx; /* 增加与顶部栏的距离 */\n}\r\n/* 新增：帖子项包装器样式 */\n.post-item-wrapper {\r\n    background: #fff;\r\n    margin-bottom: 20rpx;\r\n    padding: 0;\r\n    box-shadow: none;\r\n    border-radius: 0;\r\n    border-bottom: 1rpx solid #f0f0f0;\n}\r\n/* 原创帖子特殊样式 */\n.post-item-wrapper.original-post {\r\n    background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 90%, rgba(235, 200, 141, 0.05) 95%, rgba(235, 200, 141, 0.08) 100%);\r\n    border-left: 3rpx solid #ebc88d;\r\n    position: relative;\n}\r\n/* 原创帖子光影效果已移除 */\r\n/* 新增：内容导航器样式 */\n.post-content-navigator {\r\n    display: block;\r\n    background: transparent;\n}\r\n/* 新增：导航器点击效果 */\n.navigator-hover {\r\n    background-color: rgba(0, 0, 0, 0.02);\n}\r\n/* 新增：点赞按钮容器样式 */\n.like-icon-container {\r\n    padding: 10rpx;\r\n    border-radius: 50%;\r\n    transition: all 0.2s ease;\n}\r\n/* 新增：点赞按钮点击效果 */\n.like-icon-container:active {\r\n    -webkit-transform: scale(0.9);\r\n            transform: scale(0.9);\r\n    background-color: rgba(255, 107, 107, 0.1);\n}\r\n/* 新增：点赞图标样式 */\n.like-icon {\r\n    width: 40rpx;\r\n    height: 40rpx;\r\n    transition: all 0.2s ease;\n}\n.author-info {\r\n    display: flex;\r\n    align-items: center;\r\n    margin-bottom: 15rpx;\n}\n.author-avatar {\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    border-radius: 50%;\r\n    margin-right: 15rpx;\r\n    background-color: #f5f5f5;\n}\n.author-name {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    font-weight: 500;\n}\r\n/* 新增：图片容器占位样式 */\n.image-container-wrapper {\r\n    position: relative;\r\n    width: 100%;\r\n    background-color: #f0f0f0; /* 占位时的背景色，很重要 */\r\n    overflow: hidden;\r\n    border-radius: 8px; /* 可以加个圆角，让占位块更好看 */\r\n    margin: 20rpx 0; /* 图片和下方内容的间距 */\n}\r\n/* 新增：让图片或Swiper填充整个占位容器 */\n.image-container-wrapper .post-image,\r\n.image-container-wrapper .image-swiper {\r\n    position: absolute;\r\n    top: 0;\r\n    left: 0;\r\n    width: 100%;\r\n    height: 100%;\n}\r\n/* 多图容器 */\n.multi-image-container {\r\n    width: 100%;\r\n    position: relative;\n}\r\n/* 单图容器 */\n.single-image-container {\r\n    width: 100%;\r\n    position: relative;\n}\r\n/* 多张图片的swiper样式 */\n.image-swiper {\r\n    width: 100%;\r\n    background-color: #fff;\r\n    /* 高度由 style 绑定动态设置 */\n}\n.swiper-item {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\n}\n.post-image {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: block;\r\n    object-fit: contain;\n}\n.post-image:active {\r\n    -webkit-transform: scale(1.05);\r\n            transform: scale(1.05);\n}\n.post-image.single-image {\r\n    width: 100%;\r\n    height: auto;\r\n    display: block;\r\n    background-color: #f5f5f5;\n}\r\n/* 图片数量指示器 */\n.image-count-indicator {\r\n    position: absolute;\r\n    top: 20rpx;\r\n    right: 20rpx;\r\n    background-color: rgba(0, 0, 0, 0.6);\r\n    color: white;\r\n    padding: 8rpx 16rpx;\r\n    border-radius: 20rpx;\r\n    font-size: 24rpx;\r\n    z-index: 10;\r\n    -webkit-backdrop-filter: blur(10rpx);\r\n            backdrop-filter: blur(10rpx);\n}\r\n/* 卡片项样式 */\n.post-item-wrapper {\r\n    margin-bottom: 20rpx;\n}\r\n/* 外部作者信息样式 */\n.author-info-outside {\r\n    display: flex;\r\n    align-items: center;\r\n    padding: 20rpx 40rpx 10rpx 40rpx;\r\n    background: #fff;\n}\n.author-info-outside .author-avatar {\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    border-radius: 50%;\r\n    margin-right: 15rpx;\r\n    background-color: #f5f5f5;\r\n    cursor: pointer;\n}\n.author-info-outside .author-name {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    font-weight: 500;\n}\n.post-item {\r\n    width: 100%;\r\n    background: #fff;\r\n    box-shadow: none;\r\n    box-sizing: border-box;\r\n    padding: 20rpx 40rpx 30rpx 40rpx;\n}\r\n/* 定义点击时的样式 - 整个卡片缩小 */\n.post-card-active {\r\n    -webkit-transform: scale(0.98);\r\n            transform: scale(0.98);\n}\n.post-title {\r\n    font-size: 36rpx;\r\n    font-weight: bold;\r\n    color: #333333;\r\n    margin-bottom: 15rpx;\r\n    line-height: 1.4;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 2;\r\n    line-clamp: 2;\r\n    -webkit-box-orient: vertical;\n}\r\n/* 诗歌作者样式 */\n.poem-author {\r\n    font-size: 32rpx;\r\n    color: #000;\r\n    text-align: center;\r\n    margin: 5rpx 0 15rpx 0;\r\n    letter-spacing: 2rpx;\n}\n.post-content {\r\n    font-size: 28rpx;\r\n    color: #666666;\r\n    line-height: 1.6;\r\n    margin-top: 15rpx;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 3;\r\n    line-clamp: 3;\r\n    -webkit-box-orient: vertical;\n}\n.vote-section {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    /* 上移一点：收紧与内容的垂直间距 */\r\n    margin-top: -8rpx;\r\n    padding: 10rpx 60rpx 15rpx 60rpx;\n}\n.vote-count,\r\n.comment-count {\r\n    display: flex;\r\n    align-items: center;\r\n    font-size: 28rpx;\r\n    color: #999;\r\n    margin-left: 10rpx;\r\n    transition: color 0.2s ease;\n}\n.comment-icon {\r\n    width: 40rpx;\r\n    height: 40rpx;\r\n    margin-right: 8rpx;\n}\n.vote-count {\r\n    margin-left: 10rpx;\n}\n.vote-count.voted {\r\n    color: #ff4757;\n}\n.actions-left {\r\n    display: flex;\r\n    align-items: center;\n}\n.action-emoji {\r\n    font-size: 28rpx;\r\n    margin-right: 8rpx;\n}\n.action-text {\r\n    font-size: 28rpx;\r\n    color: inherit;\n}\n.button-group {\r\n    display: flex;\r\n    align-items: center;\n}\n.like-icon-container {\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 8rpx;\r\n    border-radius: 8rpx;\r\n    margin-left: 20rpx;\r\n    transition: all 0.2s ease;\n}\n.like-icon-container:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.like-icon {\r\n    width: 48rpx;\r\n    height: 48rpx;\n}\r\n/* 空状态样式 */\n.empty-state {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 100rpx 40rpx;\r\n    text-align: center;\n}\n.empty-icon {\r\n    font-size: 120rpx;\r\n    margin-bottom: 30rpx;\r\n    opacity: 0.6;\n}\n.empty-text {\r\n    font-size: 32rpx;\r\n    color: #666;\r\n    margin-bottom: 15rpx;\n}\n.empty-subtext {\r\n    font-size: 28rpx;\r\n    color: #999;\n}\r\n/* 加载更多样式 */\n.loading-more {\r\n    display: flex;\r\n    justify-content: center;\r\n    align-items: center;\r\n    padding: 40rpx;\n}\n.loading-text {\r\n    font-size: 28rpx;\r\n    color: #999;\n}\r\n/* 底部加载状态样式 */\n.loading-footer {\r\n    text-align: center;\r\n    padding: 20rpx 0;\r\n    color: #999;\r\n    font-size: 14px;\n}\r\n/* 标签样式 */\n.post-tags {\r\n    margin-top: 30rpx;\r\n    margin-bottom: 10rpx;\r\n    line-height: 1.5;\n}\n.post-tag {\r\n    color: #24375f;\r\n    font-size: 26rpx;\r\n    margin-right: 10rpx;\r\n    transition: all 0.2s ease;\r\n    cursor: pointer;\n}\n.post-tag:active {\r\n    color: #1a2a4a;\r\n    opacity: 0.8;\n}\r\n/* 发现页推荐相关样式 */\n.discover-end-tip {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    padding: 40rpx 20rpx;\r\n    color: #999;\n}\n.end-text {\r\n    font-size: 28rpx;\r\n    margin-bottom: 20rpx;\n}\n.refresh-tip {\r\n    background: rgba(255, 193, 7, 0.1);\r\n    border: 2rpx solid rgba(255, 193, 7, 0.3);\r\n    border-radius: 20rpx;\r\n    padding: 16rpx 24rpx;\n}\n.refresh-text {\r\n    font-size: 24rpx;\r\n    color: #ffc107;\r\n    font-weight: 500;\n}\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -7098,7 +7121,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\n.top-bar-container[data-v-0ecf693c] {\r\n  position: fixed;\r\n  left: 0;\r\n  right: 0;\r\n  background: #ffffff;\r\n  z-index: 1000;\r\n  border-bottom: none;\r\n  box-shadow: none;\r\n  /* top 值通过 JavaScript 动态设置 */\r\n  /* 添加伪元素作为状态栏区域的白色背景 */\n}\n.top-bar-container[data-v-0ecf693c]::before {\r\n  content: '';\r\n  position: absolute;\r\n  top: -100vh; /* 向上延伸覆盖状态栏区域 */\r\n  left: 0;\r\n  right: 0;\r\n  height: 100vh;\r\n  background: #ffffff;\r\n  z-index: -1;\n}\n.custom-top-bar[data-v-0ecf693c] {\r\n  height: 100rpx;\r\n  display: flex;\r\n  justify-content: space-between;\r\n  align-items: center;\r\n  padding: 20rpx 40rpx 0 40rpx;\r\n  background: #fff;\r\n  border-bottom: none;\r\n  box-shadow: none;\n}\n.top-left[data-v-0ecf693c] {\r\n  display: flex;\r\n  align-items: center;\r\n  cursor: pointer;\r\n  transition: all 0.2s ease;\r\n  padding: 10rpx;\n}\n.top-left[data-v-0ecf693c]:active {\r\n  -webkit-transform: scale(0.95);\r\n          transform: scale(0.95);\n}\n.top-right[data-v-0ecf693c] {\r\n  display: flex;\r\n  align-items: center;\r\n  gap: 40rpx;\n}\n.top-item[data-v-0ecf693c] {\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  cursor: pointer;\r\n  transition: all 0.2s ease;\r\n  padding: 10rpx;\r\n  position: relative;\n}\n.top-item[data-v-0ecf693c]:active {\r\n  -webkit-transform: scale(0.95);\r\n          transform: scale(0.95);\n}\n.top-icon[data-v-0ecf693c] {\r\n  width: 80rpx;\r\n  height: 80rpx;\r\n  -webkit-filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1));\r\n          filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1));\n}\r\n\r\n/* 未读消息红点 */\n.unread-dot[data-v-0ecf693c] {\r\n  position: absolute;\r\n  top: 4rpx;\r\n  right: 4rpx;\r\n  width: 16rpx;\r\n  height: 16rpx;\r\n  background-color: #ff4757;\r\n  border-radius: 50%;\r\n  border: 2rpx solid #fff;\r\n  -webkit-animation: pulse-data-v-0ecf693c 2s infinite;\r\n          animation: pulse-data-v-0ecf693c 2s infinite;\n}\r\n\r\n/* 红点脉冲动画 */\n@-webkit-keyframes pulse-data-v-0ecf693c {\n0% {\r\n    -webkit-transform: scale(1);\r\n            transform: scale(1);\r\n    opacity: 1;\n}\n50% {\r\n    -webkit-transform: scale(1.2);\r\n            transform: scale(1.2);\r\n    opacity: 0.8;\n}\n100% {\r\n    -webkit-transform: scale(1);\r\n            transform: scale(1);\r\n    opacity: 1;\n}\n}\n@keyframes pulse-data-v-0ecf693c {\n0% {\r\n    -webkit-transform: scale(1);\r\n            transform: scale(1);\r\n    opacity: 1;\n}\n50% {\r\n    -webkit-transform: scale(1.2);\r\n            transform: scale(1.2);\r\n    opacity: 0.8;\n}\n100% {\r\n    -webkit-transform: scale(1);\r\n            transform: scale(1);\r\n    opacity: 1;\n}\n}\r\n", ""]);
+exports.push([module.i, "\n.top-bar-container[data-v-0ecf693c] {\r\n  position: fixed;\r\n  left: 0;\r\n  right: 0;\r\n  background: #ffffff;\r\n  z-index: 1000;\r\n  border-bottom: none;\r\n  box-shadow: none;\r\n  /* top 值通过 JavaScript 动态设置 */\r\n  /* 添加伪元素作为状态栏区域的白色背景 */\n}\n.top-bar-container[data-v-0ecf693c]::before {\r\n  content: '';\r\n  position: absolute;\r\n  top: -100vh; /* 向上延伸覆盖状态栏区域 */\r\n  left: 0;\r\n  right: 0;\r\n  height: 100vh;\r\n  background: #ffffff;\r\n  z-index: -1;\n}\n.custom-top-bar[data-v-0ecf693c] {\r\n  height: 100rpx;\r\n  display: flex;\r\n  justify-content: space-between;\r\n  align-items: center;\r\n  padding: 20rpx 40rpx 0 40rpx;\r\n  background: #fff;\r\n  border-bottom: none;\r\n  box-shadow: none;\n}\n.top-left[data-v-0ecf693c] {\r\n  display: flex;\r\n  align-items: center;\r\n  cursor: pointer;\r\n  transition: all 0.2s ease;\r\n  padding: 10rpx;\n}\n.top-left[data-v-0ecf693c]:active {\r\n  -webkit-transform: scale(0.95);\r\n          transform: scale(0.95);\n}\n.top-right[data-v-0ecf693c] {\r\n  display: flex;\r\n  align-items: center;\r\n  gap: 40rpx;\n}\n.top-item[data-v-0ecf693c] {\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  cursor: pointer;\r\n  transition: all 0.2s ease;\r\n  padding: 10rpx;\r\n  position: relative;\n}\n.top-item[data-v-0ecf693c]:active {\r\n  -webkit-transform: scale(0.95);\r\n          transform: scale(0.95);\n}\n.top-icon[data-v-0ecf693c] {\r\n  width: 80rpx;\r\n  height: 80rpx;\r\n  -webkit-filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1));\r\n          filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1));\n}\r\n\r\n/* 未读消息红点 */\n.unread-dot[data-v-0ecf693c] {\r\n  position: absolute;\r\n  top: 4rpx;\r\n  right: 4rpx;\r\n  width: 16rpx;\r\n  height: 16rpx;\r\n  background-color: #ff6b6b;\r\n  border-radius: 50%;\r\n  border: 2rpx solid #ffffff;\r\n  z-index: 10;\r\n  -webkit-animation: pulse-data-v-0ecf693c 2s infinite;\r\n          animation: pulse-data-v-0ecf693c 2s infinite;\n}\r\n\r\n/* 红点脉冲动画 */\n@-webkit-keyframes pulse-data-v-0ecf693c {\n0% {\r\n    -webkit-transform: scale(1);\r\n            transform: scale(1);\r\n    opacity: 1;\n}\n50% {\r\n    -webkit-transform: scale(1.2);\r\n            transform: scale(1.2);\r\n    opacity: 0.8;\n}\n100% {\r\n    -webkit-transform: scale(1);\r\n            transform: scale(1);\r\n    opacity: 1;\n}\n}\n@keyframes pulse-data-v-0ecf693c {\n0% {\r\n    -webkit-transform: scale(1);\r\n            transform: scale(1);\r\n    opacity: 1;\n}\n50% {\r\n    -webkit-transform: scale(1.2);\r\n            transform: scale(1.2);\r\n    opacity: 0.8;\n}\n100% {\r\n    -webkit-transform: scale(1);\r\n            transform: scale(1);\r\n    opacity: 1;\n}\n}\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -7725,7 +7748,7 @@ var ___CSS_LOADER_URL_IMPORT_0___ = __webpack_require__(/*! @/static/fonts/Huiwe
 exports = ___CSS_LOADER_API_IMPORT___(false);
 var ___CSS_LOADER_URL_REPLACEMENT_0___ = ___CSS_LOADER_GET_URL_IMPORT___(___CSS_LOADER_URL_IMPORT_0___);
 // Module
-exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* 定义 Huiwen-mincho 字体 */\n@font-face {\r\n  font-family: 'Huiwen-mincho';\r\n  src: url(" + ___CSS_LOADER_URL_REPLACEMENT_0___ + ") format('opentype');\r\n  font-weight: normal;\r\n  font-style: normal;\n}\n.white-bg { \r\n  background: #fff; \r\n  min-height: 100vh; \r\n  padding-top: env(safe-area-inset-top, var(--safe-area-inset-top, 44px)); /* 添加状态栏安全区域，备选方案 */\n}\n.square-mode-container {\r\n  padding: 40rpx;\r\n  margin-bottom: 200rpx;\r\n  padding-top: 250rpx; /* 增加上边距：100rpx(top-bar高度) + 150rpx(额外间距) */\r\n  display: flex;\r\n  flex-direction: column;\r\n  align-items: center; /* 居中卡片 */\n}\n.empty-state { text-align: center; padding: 100rpx 0; color: #999;\n}\n.empty-icon { font-size: 80rpx; margin-bottom: 20rpx;\n}\n.empty-text { font-size: 32rpx; margin-bottom: 10rpx; color: #666;\n}\n.empty-subtext { font-size: 24rpx; color: #999;\n}\r\n/* poem.css inspired card styles */\n.post-item-wrapper {\r\n  width: calc(100% - 80rpx); /* 响应式宽度：屏幕宽度减去左右各40rpx边距 */\r\n  margin-left: 40rpx; /* 左边距 */\r\n  margin-right: 40rpx; /* 右边距 */\r\n  border-radius: 30rpx; /* 15px * 2 */\r\n  margin-bottom: 40rpx; /* 减少间距，让卡片更紧凑 */\r\n  overflow: hidden;\r\n  box-shadow: 0 8rpx 8rpx rgba(0, 0, 0, 0.25); /* 0px 4px 4px * 2 */\r\n  transition: -webkit-transform .3s ease;\r\n  transition: transform .3s ease;\r\n  transition: transform .3s ease, -webkit-transform .3s ease;\r\n  border: none;\n}\r\n/* 背景颜色现在通过内联样式动态设置，不再使用固定的CSS类 */\n.post-item-wrapper:active { -webkit-transform: scale(0.98); transform: scale(0.98);\n}\n.post-content-navigator { display: block;\n}\n.post-item { padding: 30rpx 60rpx 30rpx 80rpx; position: relative;\n}\r\n/* 进一步减少上下padding，文字往左移动 */\r\n/* Typography inspired by poem.css */\n.post-content {\r\n  font-family: 'Huiwen-mincho', sans-serif;\r\n  font-style: normal;\r\n  font-weight: 500;\r\n  font-size: 28rpx; /* 调小字体：14px * 2 */\r\n  line-height: 38rpx; /* 调整行距：19px * 2 */\r\n  margin: 30rpx 0;\r\n  width: 100%;\r\n  color: #FFFFFF;\n}\r\n/* 文字颜色现在通过内联样式动态设置 */\r\n/* 折叠态：当没有高光行时显示前三行，有高光行时显示高光行 */\n.post-content.collapsed {\r\n  overflow: hidden;\r\n  text-overflow: ellipsis;\n}\r\n/* 当没有高光行时，使用三行裁切 */\n.post-content.collapsed.no-highlight {\r\n  display: -webkit-box;\r\n  -webkit-box-orient: vertical;\r\n  -webkit-line-clamp: 3;\n}\n.post-content.expanded { display: block; overflow: visible;\n}\n.comment-emoji{ font-size: 40rpx;\n}\n.comment-icon { width: 60rpx; height: 60rpx;\n}\n.vote-section { display: flex; justify-content: space-between; align-items: center; padding: 25rpx 50rpx;\n}\n.actions-left { flex: 1; display: flex; align-items: center; gap: 20rpx;\n}\n.button-group { display: flex; align-items: center; gap: 30rpx;\n}\n.comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx;\n}\n.vote-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; border-radius: 20rpx; background: rgba(255,255,255,.9); box-shadow: 0 2rpx 8rpx rgba(0,0,0,.1);\n}\n.comment-icon { width: 80rpx; height: 80rpx;\n}\n.like-icon { width: 60rpx; height: 60rpx; margin-top: 5px;\n}\n.loading-footer { text-align: center; color: #666; padding: 30rpx 0 120rpx;\n}\n.page-indicator { position: fixed; top: 50%; left: 50%; -webkit-transform: translate(-50%, -50%); transform: translate(-50%, -50%); background: rgba(0,0,0,.7); color: #fff; padding: 20rpx 40rpx; border-radius: 40rpx; z-index: 1000; font-size: 28rpx;\n}\n.page-indicator-text { text-align: center;\n}\r\n", ""]);
+exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* 定义 Huiwen-mincho 字体 */\n@font-face {\r\n  font-family: 'Huiwen-mincho';\r\n  src: url(" + ___CSS_LOADER_URL_REPLACEMENT_0___ + ") format('opentype');\r\n  font-weight: normal;\r\n  font-style: normal;\n}\n.white-bg { \r\n  background: #fff; \r\n  min-height: 100vh; \r\n  padding-top: env(safe-area-inset-top, var(--safe-area-inset-top, 44px)); /* 添加状态栏安全区域，备选方案 */\n}\n.square-mode-container {\r\n  padding: 40rpx;\r\n  margin-bottom: 200rpx;\r\n  padding-top: 250rpx; /* 增加上边距：100rpx(top-bar高度) + 150rpx(额外间距) */\r\n  display: flex;\r\n  flex-direction: column;\r\n  align-items: center; /* 居中卡片 */\n}\n.empty-state { text-align: center; padding: 100rpx 0; color: #999;\n}\n.empty-icon { font-size: 80rpx; margin-bottom: 20rpx;\n}\n.empty-text { font-size: 32rpx; margin-bottom: 10rpx; color: #666;\n}\n.empty-subtext { font-size: 24rpx; color: #999;\n}\r\n/* poem.css inspired card styles */\n.post-item-wrapper {\r\n  width: calc(100% - 80rpx); /* 响应式宽度：屏幕宽度减去左右各40rpx边距 */\r\n  margin-left: 40rpx; /* 左边距 */\r\n  margin-right: 40rpx; /* 右边距 */\r\n  border-radius: 30rpx; /* 15px * 2 */\r\n  margin-bottom: 40rpx; /* 减少间距，让卡片更紧凑 */\r\n  overflow: hidden;\r\n  box-shadow: 0 8rpx 8rpx rgba(0, 0, 0, 0.25); /* 0px 4px 4px * 2 */\r\n  transition: -webkit-transform .3s ease;\r\n  transition: transform .3s ease;\r\n  transition: transform .3s ease, -webkit-transform .3s ease;\r\n  border: none;\n}\r\n/* 背景颜色现在通过内联样式动态设置，不再使用固定的CSS类 */\n.post-item-wrapper:active { -webkit-transform: scale(0.98); transform: scale(0.98);\n}\n.post-content-navigator { display: block;\n}\n.post-item { padding: 30rpx 60rpx 30rpx 80rpx; position: relative;\n}\r\n/* 进一步减少上下padding，文字往左移动 */\r\n/* Typography inspired by poem.css */\n.post-content {\r\n  font-family: 'Huiwen-mincho', sans-serif;\r\n  font-style: normal;\r\n  font-weight: 500;\r\n  font-size: 28rpx; /* 调小字体：14px * 2 */\r\n  line-height: 38rpx; /* 调整行距：19px * 2 */\r\n  margin: 30rpx 0;\r\n  width: 100%;\r\n  color: #FFFFFF;\n}\r\n/* 文字颜色现在通过内联样式动态设置 */\r\n/* 折叠态：当没有高光行时显示前三行，有高光行时显示高光行 */\n.post-content.collapsed {\r\n  overflow: hidden;\r\n  text-overflow: ellipsis;\n}\r\n/* 当没有高光行时，使用三行裁切 */\n.post-content.collapsed.no-highlight {\r\n  display: -webkit-box;\r\n  -webkit-box-orient: vertical;\r\n  -webkit-line-clamp: 3;\n}\n.post-content.expanded { display: block; overflow: visible;\n}\n.comment-emoji{ font-size: 40rpx;\n}\n.comment-icon { width: 60rpx; height: 60rpx;\n}\n.vote-section { display: flex; justify-content: space-between; align-items: center; padding: 25rpx 50rpx;\n}\n.actions-left { flex: 1; display: flex; align-items: center; gap: 20rpx;\n}\n.button-group { display: flex; align-items: center; gap: 30rpx;\n}\n.comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx;\n}\n.vote-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; border-radius: 20rpx; background: rgba(255,255,255,.9); box-shadow: 0 2rpx 8rpx rgba(0,0,0,.1);\n}\n.comment-icon { width: 80rpx; height: 80rpx;\n}\n.like-icon { width: 60rpx; height: 60rpx; margin-top: 5px;\n}\n.loading-footer { text-align: center; color: #666; padding: 30rpx 0 120rpx;\n}\n.page-indicator { position: fixed; top: 50%; left: 50%; -webkit-transform: translate(-50%, -50%); transform: translate(-50%, -50%); background: rgba(0,0,0,.7); color: #fff; padding: 20rpx 40rpx; border-radius: 40rpx; z-index: 1000; font-size: 28rpx;\n}\n.page-indicator-text { text-align: center;\n}\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -8299,11 +8322,96 @@ var render = function () {
                         "uni-view",
                         { staticClass: _vm._$g(47, "sc"), attrs: { _i: 47 } },
                         [
+                          _c(
+                            "uni-view",
+                            {
+                              staticClass: _vm._$g(48, "sc"),
+                              attrs: { _i: 48 },
+                            },
+                            [
+                              _c("v-uni-image", {
+                                staticClass: _vm._$g(49, "sc"),
+                                attrs: {
+                                  src: "/static/images/seedplus.png",
+                                  mode: "aspectFit",
+                                  _i: 49,
+                                },
+                              }),
+                              _c(
+                                "v-uni-text",
+                                {
+                                  staticClass: _vm._$g(50, "sc"),
+                                  attrs: { _i: 50 },
+                                },
+                                [_vm._v(_vm._$g(50, "t0-0"))]
+                              ),
+                            ],
+                            1
+                          ),
+                          _c(
+                            "uni-view",
+                            {
+                              staticClass: _vm._$g(51, "sc"),
+                              attrs: { _i: 51 },
+                            },
+                            [
+                              _c("v-uni-image", {
+                                staticClass: _vm._$g(52, "sc"),
+                                attrs: {
+                                  src: "/static/images/leafplus.png",
+                                  mode: "aspectFit",
+                                  _i: 52,
+                                },
+                              }),
+                              _c(
+                                "v-uni-text",
+                                {
+                                  staticClass: _vm._$g(53, "sc"),
+                                  attrs: { _i: 53 },
+                                },
+                                [_vm._v(_vm._$g(53, "t0-0"))]
+                              ),
+                            ],
+                            1
+                          ),
+                          _c(
+                            "uni-view",
+                            {
+                              staticClass: _vm._$g(54, "sc"),
+                              attrs: { _i: 54 },
+                            },
+                            [
+                              _c("v-uni-image", {
+                                staticClass: _vm._$g(55, "sc"),
+                                attrs: {
+                                  src: "/static/images/flowerplus.png",
+                                  mode: "aspectFit",
+                                  _i: 55,
+                                },
+                              }),
+                              _c(
+                                "v-uni-text",
+                                {
+                                  staticClass: _vm._$g(56, "sc"),
+                                  attrs: { _i: 56 },
+                                },
+                                [_vm._v(_vm._$g(56, "t0-0"))]
+                              ),
+                            ],
+                            1
+                          ),
+                        ],
+                        1
+                      ),
+                      _c(
+                        "uni-view",
+                        { staticClass: _vm._$g(57, "sc"), attrs: { _i: 57 } },
+                        [
                           _c("v-uni-image", {
                             attrs: {
-                              src: _vm._$g(48, "a-src"),
+                              src: _vm._$g(58, "a-src"),
                               mode: "aspectFill",
-                              _i: 48,
+                              _i: 58,
                             },
                             on: {
                               error: function ($event) {
@@ -8316,59 +8424,59 @@ var render = function () {
                       ),
                       _c(
                         "uni-view",
-                        { staticClass: _vm._$g(49, "sc"), attrs: { _i: 49 } },
+                        { staticClass: _vm._$g(59, "sc"), attrs: { _i: 59 } },
                         [
                           _c(
                             "v-uni-text",
                             {
-                              staticClass: _vm._$g(50, "sc"),
-                              attrs: { _i: 50 },
+                              staticClass: _vm._$g(60, "sc"),
+                              attrs: { _i: 60 },
                             },
-                            [_vm._v(_vm._$g(50, "t0-0"))]
+                            [_vm._v(_vm._$g(60, "t0-0"))]
                           ),
                           _c(
                             "v-uni-text",
                             {
-                              staticClass: _vm._$g(51, "sc"),
-                              attrs: { _i: 51 },
+                              staticClass: _vm._$g(61, "sc"),
+                              attrs: { _i: 61 },
                             },
-                            [_vm._v("poemid：" + _vm._$g(51, "t0-0"))]
+                            [_vm._v("poemid：" + _vm._$g(61, "t0-0"))]
                           ),
                           _c(
                             "v-uni-text",
                             {
-                              staticClass: _vm._$g(52, "sc"),
-                              attrs: { _i: 52 },
+                              staticClass: _vm._$g(62, "sc"),
+                              attrs: { _i: 62 },
                             },
-                            [_vm._v(_vm._$g(52, "t0-0"))]
+                            [_vm._v(_vm._$g(62, "t0-0"))]
                           ),
                           _c(
                             "uni-view",
                             {
-                              staticClass: _vm._$g(53, "sc"),
-                              attrs: { _i: 53 },
+                              staticClass: _vm._$g(63, "sc"),
+                              attrs: { _i: 63 },
                             },
                             [
                               _c(
                                 "v-uni-text",
                                 {
-                                  staticClass: _vm._$g(54, "sc"),
-                                  attrs: { _i: 54 },
+                                  staticClass: _vm._$g(64, "sc"),
+                                  attrs: { _i: 64 },
                                 },
-                                [_vm._v("被关注数：" + _vm._$g(54, "t0-0"))]
+                                [_vm._v("被关注数：" + _vm._$g(64, "t0-0"))]
                               ),
                               _c(
                                 "uni-view",
                                 {
-                                  staticClass: _vm._$g(55, "sc"),
-                                  attrs: { _i: 55 },
+                                  staticClass: _vm._$g(65, "sc"),
+                                  attrs: { _i: 65 },
                                 },
                                 [
                                   _c(
                                     "uni-view",
                                     {
-                                      staticClass: _vm._$g(56, "sc"),
-                                      attrs: { _i: 56 },
+                                      staticClass: _vm._$g(66, "sc"),
+                                      attrs: { _i: 66 },
                                       on: {
                                         click: function ($event) {
                                           return _vm.$handleViewEvent($event)
@@ -8376,17 +8484,17 @@ var render = function () {
                                       },
                                     },
                                     [
-                                      _c("v-uni-text", { attrs: { _i: 57 } }, [
+                                      _c("v-uni-text", { attrs: { _i: 67 } }, [
                                         _vm._v("编辑主页"),
                                       ]),
                                     ],
                                     1
                                   ),
                                   _c("v-uni-image", {
-                                    staticClass: _vm._$g(58, "sc"),
+                                    staticClass: _vm._$g(68, "sc"),
                                     attrs: {
                                       src: "/static/images/icons/menu-icon.svg",
-                                      _i: 58,
+                                      _i: 68,
                                     },
                                     on: {
                                       click: function ($event) {
@@ -8406,26 +8514,26 @@ var render = function () {
                     ],
                     1
                   ),
-                  _vm._$g(59, "i")
+                  _vm._$g(69, "i")
                     ? _c(
                         "uni-view",
-                        { staticClass: _vm._$g(59, "sc"), attrs: { _i: 59 } },
+                        { staticClass: _vm._$g(69, "sc"), attrs: { _i: 69 } },
                         [
                           _c(
                             "v-uni-text",
                             {
-                              staticClass: _vm._$g(60, "sc"),
-                              attrs: { _i: 60 },
+                              staticClass: _vm._$g(70, "sc"),
+                              attrs: { _i: 70 },
                             },
-                            [_vm._v("生日:" + _vm._$g(60, "t0-0"))]
+                            [_vm._v("生日:" + _vm._$g(70, "t0-0"))]
                           ),
                           _c(
                             "v-uni-text",
                             {
-                              staticClass: _vm._$g(61, "sc"),
-                              attrs: { _i: 61 },
+                              staticClass: _vm._$g(71, "sc"),
+                              attrs: { _i: 71 },
                             },
-                            [_vm._v("年龄:" + _vm._$g(61, "t0-0"))]
+                            [_vm._v("年龄:" + _vm._$g(71, "t0-0"))]
                           ),
                         ],
                         1
@@ -8433,13 +8541,13 @@ var render = function () {
                     : _vm._e(),
                   _c(
                     "uni-view",
-                    { staticClass: _vm._$g(62, "sc"), attrs: { _i: 62 } },
+                    { staticClass: _vm._$g(72, "sc"), attrs: { _i: 72 } },
                     [
                       _c(
                         "uni-view",
                         {
-                          class: _vm._$g(63, "c"),
-                          attrs: { "data-tab": "posts", _i: 63 },
+                          class: _vm._$g(73, "c"),
+                          attrs: { "data-tab": "posts", _i: 73 },
                           on: {
                             click: function ($event) {
                               return _vm.$handleViewEvent($event)
@@ -8448,11 +8556,11 @@ var render = function () {
                         },
                         [
                           _c("v-uni-image", {
-                            staticClass: _vm._$g(64, "sc"),
+                            staticClass: _vm._$g(74, "sc"),
                             attrs: {
                               src: "/static/images/my_posts.png",
                               mode: "aspectFit",
-                              _i: 64,
+                              _i: 74,
                             },
                           }),
                         ],
@@ -8461,8 +8569,8 @@ var render = function () {
                       _c(
                         "uni-view",
                         {
-                          class: _vm._$g(65, "c"),
-                          attrs: { "data-tab": "portfolio", _i: 65 },
+                          class: _vm._$g(75, "c"),
+                          attrs: { "data-tab": "portfolio", _i: 75 },
                           on: {
                             click: function ($event) {
                               return _vm.$handleViewEvent($event)
@@ -8471,11 +8579,11 @@ var render = function () {
                         },
                         [
                           _c("v-uni-image", {
-                            staticClass: _vm._$g(66, "sc"),
+                            staticClass: _vm._$g(76, "sc"),
                             attrs: {
                               src: "/static/images/portfolio.png",
                               mode: "aspectFit",
-                              _i: 66,
+                              _i: 76,
                             },
                           }),
                         ],
@@ -8484,8 +8592,8 @@ var render = function () {
                       _c(
                         "uni-view",
                         {
-                          class: _vm._$g(67, "c"),
-                          attrs: { "data-tab": "favorites", _i: 67 },
+                          class: _vm._$g(77, "c"),
+                          attrs: { "data-tab": "favorites", _i: 77 },
                           on: {
                             click: function ($event) {
                               return _vm.$handleViewEvent($event)
@@ -8494,11 +8602,11 @@ var render = function () {
                         },
                         [
                           _c("v-uni-image", {
-                            staticClass: _vm._$g(68, "sc"),
+                            staticClass: _vm._$g(78, "sc"),
                             attrs: {
                               src: "/static/images/my_favorites.png",
                               mode: "aspectFit",
-                              _i: 68,
+                              _i: 78,
                             },
                           }),
                         ],
@@ -8507,55 +8615,55 @@ var render = function () {
                     ],
                     1
                   ),
-                  _vm._$g(69, "i")
+                  _vm._$g(79, "i")
                     ? _c(
                         "uni-view",
-                        { staticClass: _vm._$g(69, "sc"), attrs: { _i: 69 } },
+                        { staticClass: _vm._$g(79, "sc"), attrs: { _i: 79 } },
                         [
-                          _vm._$g(70, "i")
+                          _vm._$g(80, "i")
                             ? [
                                 _vm._l(
-                                  _vm._$g(71, "f"),
+                                  _vm._$g(81, "f"),
                                   function (item, index, $20, $30) {
                                     return _c(
                                       "uni-view",
                                       {
                                         key: item,
-                                        class: _vm._$g("71-" + $30, "c"),
-                                        attrs: { _i: "71-" + $30 },
+                                        class: _vm._$g("81-" + $30, "c"),
+                                        attrs: { _i: "81-" + $30 },
                                       },
                                       [
                                         _c(
                                           "uni-view",
                                           {
                                             staticClass: _vm._$g(
-                                              "72-" + $30,
+                                              "82-" + $30,
                                               "sc"
                                             ),
-                                            attrs: { _i: "72-" + $30 },
+                                            attrs: { _i: "82-" + $30 },
                                           },
                                           [
-                                            _vm._$g("73-" + $30, "i")
+                                            _vm._$g("83-" + $30, "i")
                                               ? _c("v-uni-image", {
                                                   staticClass: _vm._$g(
-                                                    "73-" + $30,
+                                                    "83-" + $30,
                                                     "sc"
                                                   ),
                                                   attrs: {
                                                     src: _vm._$g(
-                                                      "73-" + $30,
+                                                      "83-" + $30,
                                                       "a-src"
                                                     ),
                                                     mode: "aspectFill",
                                                     "data-postindex": _vm._$g(
-                                                      "73-" + $30,
+                                                      "83-" + $30,
                                                       "a-data-postindex"
                                                     ),
                                                     "data-user-id": _vm._$g(
-                                                      "73-" + $30,
+                                                      "83-" + $30,
                                                       "a-data-user-id"
                                                     ),
-                                                    _i: "73-" + $30,
+                                                    _i: "83-" + $30,
                                                   },
                                                   on: {
                                                     error: function ($event) {
@@ -8584,17 +8692,30 @@ var render = function () {
                                               "v-uni-text",
                                               {
                                                 staticClass: _vm._$g(
-                                                  "74-" + $30,
+                                                  "84-" + $30,
                                                   "sc"
                                                 ),
-                                                attrs: { _i: "74-" + $30 },
+                                                attrs: { _i: "84-" + $30 },
                                               },
                                               [
                                                 _vm._v(
-                                                  _vm._$g("74-" + $30, "t0-0")
+                                                  _vm._$g("84-" + $30, "t0-0")
                                                 ),
                                               ]
                                             ),
+                                            _vm._$g("85-" + $30, "i")
+                                              ? _c(
+                                                  "uni-view",
+                                                  {
+                                                    staticClass: _vm._$g(
+                                                      "85-" + $30,
+                                                      "sc"
+                                                    ),
+                                                    attrs: { _i: "85-" + $30 },
+                                                  },
+                                                  [_vm._v("匿名")]
+                                                )
+                                              : _vm._e(),
                                           ],
                                           1
                                         ),
@@ -8602,16 +8723,16 @@ var render = function () {
                                           "v-uni-navigator",
                                           {
                                             staticClass: _vm._$g(
-                                              "75-" + $30,
+                                              "86-" + $30,
                                               "sc"
                                             ),
                                             attrs: {
                                               url: _vm._$g(
-                                                "75-" + $30,
+                                                "86-" + $30,
                                                 "a-url"
                                               ),
                                               "hover-class": "navigator-hover",
-                                              _i: "75-" + $30,
+                                              _i: "86-" + $30,
                                             },
                                           },
                                           [
@@ -8619,75 +8740,92 @@ var render = function () {
                                               "uni-view",
                                               {
                                                 staticClass: _vm._$g(
-                                                  "76-" + $30,
+                                                  "87-" + $30,
                                                   "sc"
                                                 ),
-                                                attrs: { _i: "76-" + $30 },
+                                                attrs: { _i: "87-" + $30 },
                                               },
                                               [
                                                 _c(
                                                   "uni-view",
                                                   {
                                                     staticClass: _vm._$g(
-                                                      "77-" + $30,
+                                                      "88-" + $30,
                                                       "sc"
                                                     ),
-                                                    attrs: { _i: "77-" + $30 },
+                                                    attrs: { _i: "88-" + $30 },
                                                   },
                                                   [
                                                     _vm._v(
                                                       _vm._$g(
-                                                        "77-" + $30,
+                                                        "88-" + $30,
                                                         "t0-0"
                                                       )
                                                     ),
-                                                  ]
+                                                    _vm._$g("89-" + $30, "i")
+                                                      ? _c(
+                                                          "v-uni-text",
+                                                          {
+                                                            staticClass:
+                                                              _vm._$g(
+                                                                "89-" + $30,
+                                                                "sc"
+                                                              ),
+                                                            attrs: {
+                                                              _i: "89-" + $30,
+                                                            },
+                                                          },
+                                                          [_vm._v("已隐藏")]
+                                                        )
+                                                      : _vm._e(),
+                                                  ],
+                                                  1
                                                 ),
-                                                _vm._$g("78-" + $30, "i")
+                                                _vm._$g("90-" + $30, "i")
                                                   ? _c(
                                                       "uni-view",
                                                       {
                                                         staticClass: _vm._$g(
-                                                          "78-" + $30,
+                                                          "90-" + $30,
                                                           "sc"
                                                         ),
                                                         attrs: {
-                                                          _i: "78-" + $30,
+                                                          _i: "90-" + $30,
                                                         },
                                                       },
                                                       [
                                                         _vm._v(
                                                           _vm._$g(
-                                                            "78-" + $30,
+                                                            "90-" + $30,
                                                             "t0-0"
                                                           )
                                                         ),
                                                       ]
                                                     )
                                                   : _vm._e(),
-                                                _vm._$g("79-" + $30, "i")
+                                                _vm._$g("91-" + $30, "i")
                                                   ? _c(
                                                       "uni-view",
                                                       {
                                                         staticClass: _vm._$g(
-                                                          "79-" + $30,
+                                                          "91-" + $30,
                                                           "sc"
                                                         ),
                                                         style: _vm._$g(
-                                                          "79-" + $30,
+                                                          "91-" + $30,
                                                           "s"
                                                         ),
                                                         attrs: {
                                                           "data-src": _vm._$g(
-                                                            "79-" + $30,
+                                                            "91-" + $30,
                                                             "a-data-src"
                                                           ),
                                                           "data-original-image-urls":
                                                             _vm._$g(
-                                                              "79-" + $30,
+                                                              "91-" + $30,
                                                               "a-data-original-image-urls"
                                                             ),
-                                                          _i: "79-" + $30,
+                                                          _i: "91-" + $30,
                                                         },
                                                         on: {
                                                           click: function (
@@ -8705,7 +8843,7 @@ var render = function () {
                                                       },
                                                       [
                                                         _vm._$g(
-                                                          "80-" + $30,
+                                                          "92-" + $30,
                                                           "i"
                                                         )
                                                           ? [
@@ -8714,18 +8852,18 @@ var render = function () {
                                                                 {
                                                                   staticClass:
                                                                     _vm._$g(
-                                                                      "81-" +
+                                                                      "93-" +
                                                                         $30,
                                                                       "sc"
                                                                     ),
                                                                   attrs: {
                                                                     id: _vm._$g(
-                                                                      "81-" +
+                                                                      "93-" +
                                                                         $30,
                                                                       "a-id"
                                                                     ),
                                                                     src: _vm._$g(
-                                                                      "81-" +
+                                                                      "93-" +
                                                                         $30,
                                                                       "a-src"
                                                                     ),
@@ -8733,13 +8871,13 @@ var render = function () {
                                                                     "lazy-load": true,
                                                                     "data-postid":
                                                                       _vm._$g(
-                                                                        "81-" +
+                                                                        "93-" +
                                                                           $30,
                                                                         "a-data-postid"
                                                                       ),
                                                                     "data-postindex":
                                                                       _vm._$g(
-                                                                        "81-" +
+                                                                        "93-" +
                                                                           $30,
                                                                         "a-data-postindex"
                                                                       ),
@@ -8748,7 +8886,7 @@ var render = function () {
                                                                     "data-type":
                                                                       "single",
                                                                     _i:
-                                                                      "81-" +
+                                                                      "93-" +
                                                                       $30,
                                                                   },
                                                                   on: {
@@ -8772,7 +8910,7 @@ var render = function () {
                                                               ),
                                                             ]
                                                           : _vm._$g(
-                                                              "82-" + $30,
+                                                              "94-" + $30,
                                                               "e"
                                                             )
                                                           ? [
@@ -8781,33 +8919,33 @@ var render = function () {
                                                                 {
                                                                   staticClass:
                                                                     _vm._$g(
-                                                                      "83-" +
+                                                                      "95-" +
                                                                         $30,
                                                                       "sc"
                                                                     ),
                                                                   style:
                                                                     _vm._$g(
-                                                                      "83-" +
+                                                                      "95-" +
                                                                         $30,
                                                                       "s"
                                                                     ),
                                                                   attrs: {
                                                                     id: _vm._$g(
-                                                                      "83-" +
+                                                                      "95-" +
                                                                         $30,
                                                                       "a-id"
                                                                     ),
                                                                     "indicator-dots": true,
                                                                     circular: true,
                                                                     _i:
-                                                                      "83-" +
+                                                                      "95-" +
                                                                       $30,
                                                                   },
                                                                 },
                                                                 [
                                                                   _vm._l(
                                                                     _vm._$g(
-                                                                      84 +
+                                                                      96 +
                                                                         "-" +
                                                                         $30,
                                                                       "f"
@@ -8828,7 +8966,7 @@ var render = function () {
                                                                             attrs:
                                                                               {
                                                                                 _i:
-                                                                                  "85-" +
+                                                                                  "97-" +
                                                                                   $30 +
                                                                                   "-" +
                                                                                   $31,
@@ -8840,7 +8978,7 @@ var render = function () {
                                                                               {
                                                                                 staticClass:
                                                                                   _vm._$g(
-                                                                                    "86-" +
+                                                                                    "98-" +
                                                                                       $30 +
                                                                                       "-" +
                                                                                       $31,
@@ -8849,7 +8987,7 @@ var render = function () {
                                                                                 attrs:
                                                                                   {
                                                                                     src: _vm._$g(
-                                                                                      "86-" +
+                                                                                      "98-" +
                                                                                         $30 +
                                                                                         "-" +
                                                                                         $31,
@@ -8859,7 +8997,7 @@ var render = function () {
                                                                                     "lazy-load": true,
                                                                                     "data-src":
                                                                                       _vm._$g(
-                                                                                        "86-" +
+                                                                                        "98-" +
                                                                                           $30 +
                                                                                           "-" +
                                                                                           $31,
@@ -8867,7 +9005,7 @@ var render = function () {
                                                                                       ),
                                                                                     "data-original-image-urls":
                                                                                       _vm._$g(
-                                                                                        "86-" +
+                                                                                        "98-" +
                                                                                           $30 +
                                                                                           "-" +
                                                                                           $31,
@@ -8875,7 +9013,7 @@ var render = function () {
                                                                                       ),
                                                                                     "data-postid":
                                                                                       _vm._$g(
-                                                                                        "86-" +
+                                                                                        "98-" +
                                                                                           $30 +
                                                                                           "-" +
                                                                                           $31,
@@ -8883,7 +9021,7 @@ var render = function () {
                                                                                       ),
                                                                                     "data-postindex":
                                                                                       _vm._$g(
-                                                                                        "86-" +
+                                                                                        "98-" +
                                                                                           $30 +
                                                                                           "-" +
                                                                                           $31,
@@ -8891,7 +9029,7 @@ var render = function () {
                                                                                       ),
                                                                                     "data-imgindex":
                                                                                       _vm._$g(
-                                                                                        "86-" +
+                                                                                        "98-" +
                                                                                           $30 +
                                                                                           "-" +
                                                                                           $31,
@@ -8900,7 +9038,7 @@ var render = function () {
                                                                                     "data-type":
                                                                                       "multi",
                                                                                     _i:
-                                                                                      "86-" +
+                                                                                      "98-" +
                                                                                       $30 +
                                                                                       "-" +
                                                                                       $31,
@@ -8951,12 +9089,12 @@ var render = function () {
                                                       2
                                                     )
                                                   : _vm._e(),
-                                                _vm._$g("87-" + $30, "i")
+                                                _vm._$g("99-" + $30, "i")
                                                   ? _c(
                                                       "uni-view",
                                                       {
                                                         staticClass: _vm._$g(
-                                                          "87-" + $30,
+                                                          "99-" + $30,
                                                           "sc"
                                                         ),
                                                         staticStyle: {
@@ -8964,34 +9102,34 @@ var render = function () {
                                                             "pre-wrap",
                                                         },
                                                         attrs: {
-                                                          _i: "87-" + $30,
+                                                          _i: "99-" + $30,
                                                         },
                                                       },
                                                       [
                                                         _vm._v(
                                                           _vm._$g(
-                                                            "87-" + $30,
+                                                            "99-" + $30,
                                                             "t0-0"
                                                           )
                                                         ),
                                                       ]
                                                     )
                                                   : _vm._e(),
-                                                _vm._$g("88-" + $30, "i")
+                                                _vm._$g("100-" + $30, "i")
                                                   ? _c(
                                                       "uni-view",
                                                       {
                                                         staticClass: _vm._$g(
-                                                          "88-" + $30,
+                                                          "100-" + $30,
                                                           "sc"
                                                         ),
                                                         attrs: {
-                                                          _i: "88-" + $30,
+                                                          _i: "100-" + $30,
                                                         },
                                                       },
                                                       _vm._l(
                                                         _vm._$g(
-                                                          89 + "-" + $30,
+                                                          101 + "-" + $30,
                                                           "f"
                                                         ),
                                                         function (
@@ -9006,7 +9144,7 @@ var render = function () {
                                                               key: item,
                                                               staticClass:
                                                                 _vm._$g(
-                                                                  "89-" +
+                                                                  "101-" +
                                                                     $30 +
                                                                     "-" +
                                                                     $32,
@@ -9015,14 +9153,14 @@ var render = function () {
                                                               attrs: {
                                                                 "data-tag":
                                                                   _vm._$g(
-                                                                    "89-" +
+                                                                    "101-" +
                                                                       $30 +
                                                                       "-" +
                                                                       $32,
                                                                     "a-data-tag"
                                                                   ),
                                                                 _i:
-                                                                  "89-" +
+                                                                  "101-" +
                                                                   $30 +
                                                                   "-" +
                                                                   $32,
@@ -9046,7 +9184,7 @@ var render = function () {
                                                               _vm._v(
                                                                 "#" +
                                                                   _vm._$g(
-                                                                    "89-" +
+                                                                    "101-" +
                                                                       $30 +
                                                                       "-" +
                                                                       $32,
@@ -9070,36 +9208,36 @@ var render = function () {
                                           "uni-view",
                                           {
                                             staticClass: _vm._$g(
-                                              "90-" + $30,
+                                              "102-" + $30,
                                               "sc"
                                             ),
-                                            attrs: { _i: "90-" + $30 },
+                                            attrs: { _i: "102-" + $30 },
                                           },
                                           [
                                             _c(
                                               "uni-view",
                                               {
                                                 staticClass: _vm._$g(
-                                                  "91-" + $30,
+                                                  "103-" + $30,
                                                   "sc"
                                                 ),
-                                                attrs: { _i: "91-" + $30 },
+                                                attrs: { _i: "103-" + $30 },
                                               },
                                               [
                                                 _c(
                                                   "v-uni-text",
                                                   {
                                                     staticClass: _vm._$g(
-                                                      "92-" + $30,
+                                                      "104-" + $30,
                                                       "sc"
                                                     ),
-                                                    attrs: { _i: "92-" + $30 },
+                                                    attrs: { _i: "104-" + $30 },
                                                   },
                                                   [
                                                     _vm._v(
                                                       "发布于" +
                                                         _vm._$g(
-                                                          "92-" + $30,
+                                                          "104-" + $30,
                                                           "t0-0"
                                                         )
                                                     ),
@@ -9112,29 +9250,33 @@ var render = function () {
                                               "uni-view",
                                               {
                                                 staticClass: _vm._$g(
-                                                  "93-" + $30,
+                                                  "105-" + $30,
                                                   "sc"
                                                 ),
-                                                attrs: { _i: "93-" + $30 },
+                                                attrs: { _i: "105-" + $30 },
                                               },
                                               [
                                                 _c(
                                                   "uni-view",
                                                   {
                                                     staticClass: _vm._$g(
-                                                      "94-" + $30,
+                                                      "106-" + $30,
                                                       "sc"
                                                     ),
                                                     attrs: {
                                                       "data-postid": _vm._$g(
-                                                        "94-" + $30,
+                                                        "106-" + $30,
                                                         "a-data-postid"
                                                       ),
                                                       "data-index": _vm._$g(
-                                                        "94-" + $30,
+                                                        "106-" + $30,
                                                         "a-data-index"
                                                       ),
-                                                      _i: "94-" + $30,
+                                                      "data-hidden": _vm._$g(
+                                                        "106-" + $30,
+                                                        "a-data-hidden"
+                                                      ),
+                                                      _i: "106-" + $30,
                                                     },
                                                     on: {
                                                       click: function ($event) {
@@ -9151,13 +9293,58 @@ var render = function () {
                                                   [
                                                     _c("v-uni-image", {
                                                       staticClass: _vm._$g(
-                                                        "95-" + $30,
+                                                        "107-" + $30,
+                                                        "sc"
+                                                      ),
+                                                      attrs: {
+                                                        src: "/static/images/hide.png",
+                                                        mode: "aspectFit",
+                                                        _i: "107-" + $30,
+                                                      },
+                                                    }),
+                                                  ],
+                                                  1
+                                                ),
+                                                _c(
+                                                  "uni-view",
+                                                  {
+                                                    staticClass: _vm._$g(
+                                                      "108-" + $30,
+                                                      "sc"
+                                                    ),
+                                                    attrs: {
+                                                      "data-postid": _vm._$g(
+                                                        "108-" + $30,
+                                                        "a-data-postid"
+                                                      ),
+                                                      "data-index": _vm._$g(
+                                                        "108-" + $30,
+                                                        "a-data-index"
+                                                      ),
+                                                      _i: "108-" + $30,
+                                                    },
+                                                    on: {
+                                                      click: function ($event) {
+                                                        return _vm.$handleViewEvent(
+                                                          $event,
+                                                          {
+                                                            stop: true,
+                                                            prevent: true,
+                                                          }
+                                                        )
+                                                      },
+                                                    },
+                                                  },
+                                                  [
+                                                    _c("v-uni-image", {
+                                                      staticClass: _vm._$g(
+                                                        "109-" + $30,
                                                         "sc"
                                                       ),
                                                       attrs: {
                                                         src: "/static/images/delete.png",
                                                         mode: "aspectFit",
-                                                        _i: "95-" + $30,
+                                                        _i: "109-" + $30,
                                                       },
                                                     }),
                                                   ],
@@ -9177,15 +9364,15 @@ var render = function () {
                                 _c(
                                   "uni-view",
                                   {
-                                    staticClass: _vm._$g(96, "sc"),
-                                    attrs: { _i: 96 },
+                                    staticClass: _vm._$g(110, "sc"),
+                                    attrs: { _i: 110 },
                                   },
                                   [
-                                    _vm._$g(97, "i")
+                                    _vm._$g(111, "i")
                                       ? [
                                           _c(
                                             "v-uni-text",
-                                            { attrs: { _i: 98 } },
+                                            { attrs: { _i: 112 } },
                                             [_vm._v("--- 我是有底线的 ---")]
                                           ),
                                         ]
@@ -9195,17 +9382,17 @@ var render = function () {
                                 ),
                                 _c("uni-view", {
                                   staticStyle: { height: "200rpx" },
-                                  attrs: { _i: 99 },
+                                  attrs: { _i: 113 },
                                 }),
                               ]
                             : _c(
                                 "uni-view",
                                 {
-                                  staticClass: _vm._$g(100, "sc"),
-                                  attrs: { _i: 100 },
+                                  staticClass: _vm._$g(114, "sc"),
+                                  attrs: { _i: 114 },
                                 },
                                 [
-                                  _c("v-uni-text", { attrs: { _i: 101 } }, [
+                                  _c("v-uni-text", { attrs: { _i: 115 } }, [
                                     _vm._v("你还没有发布过帖子哦～"),
                                   ]),
                                 ],
@@ -9215,55 +9402,55 @@ var render = function () {
                         2
                       )
                     : _vm._e(),
-                  _vm._$g(102, "i")
+                  _vm._$g(116, "i")
                     ? _c(
                         "uni-view",
-                        { staticClass: _vm._$g(102, "sc"), attrs: { _i: 102 } },
+                        { staticClass: _vm._$g(116, "sc"), attrs: { _i: 116 } },
                         [
-                          _vm._$g(103, "i")
+                          _vm._$g(117, "i")
                             ? [
                                 _vm._l(
-                                  _vm._$g(104, "f"),
+                                  _vm._$g(118, "f"),
                                   function (item, index, $23, $33) {
                                     return _c(
                                       "uni-view",
                                       {
                                         key: item,
-                                        class: _vm._$g("104-" + $33, "c"),
-                                        attrs: { _i: "104-" + $33 },
+                                        class: _vm._$g("118-" + $33, "c"),
+                                        attrs: { _i: "118-" + $33 },
                                       },
                                       [
                                         _c(
                                           "uni-view",
                                           {
                                             staticClass: _vm._$g(
-                                              "105-" + $33,
+                                              "119-" + $33,
                                               "sc"
                                             ),
-                                            attrs: { _i: "105-" + $33 },
+                                            attrs: { _i: "119-" + $33 },
                                           },
                                           [
-                                            _vm._$g("106-" + $33, "i")
+                                            _vm._$g("120-" + $33, "i")
                                               ? _c("v-uni-image", {
                                                   staticClass: _vm._$g(
-                                                    "106-" + $33,
+                                                    "120-" + $33,
                                                     "sc"
                                                   ),
                                                   attrs: {
                                                     src: _vm._$g(
-                                                      "106-" + $33,
+                                                      "120-" + $33,
                                                       "a-src"
                                                     ),
                                                     mode: "aspectFill",
                                                     "data-postindex": _vm._$g(
-                                                      "106-" + $33,
+                                                      "120-" + $33,
                                                       "a-data-postindex"
                                                     ),
                                                     "data-user-id": _vm._$g(
-                                                      "106-" + $33,
+                                                      "120-" + $33,
                                                       "a-data-user-id"
                                                     ),
-                                                    _i: "106-" + $33,
+                                                    _i: "120-" + $33,
                                                   },
                                                   on: {
                                                     error: function ($event) {
@@ -9292,14 +9479,14 @@ var render = function () {
                                               "v-uni-text",
                                               {
                                                 staticClass: _vm._$g(
-                                                  "107-" + $33,
+                                                  "121-" + $33,
                                                   "sc"
                                                 ),
-                                                attrs: { _i: "107-" + $33 },
+                                                attrs: { _i: "121-" + $33 },
                                               },
                                               [
                                                 _vm._v(
-                                                  _vm._$g("107-" + $33, "t0-0")
+                                                  _vm._$g("121-" + $33, "t0-0")
                                                 ),
                                               ]
                                             ),
@@ -9310,16 +9497,16 @@ var render = function () {
                                           "v-uni-navigator",
                                           {
                                             staticClass: _vm._$g(
-                                              "108-" + $33,
+                                              "122-" + $33,
                                               "sc"
                                             ),
                                             attrs: {
                                               url: _vm._$g(
-                                                "108-" + $33,
+                                                "122-" + $33,
                                                 "a-url"
                                               ),
                                               "hover-class": "navigator-hover",
-                                              _i: "108-" + $33,
+                                              _i: "122-" + $33,
                                             },
                                           },
                                           [
@@ -9327,75 +9514,92 @@ var render = function () {
                                               "uni-view",
                                               {
                                                 staticClass: _vm._$g(
-                                                  "109-" + $33,
+                                                  "123-" + $33,
                                                   "sc"
                                                 ),
-                                                attrs: { _i: "109-" + $33 },
+                                                attrs: { _i: "123-" + $33 },
                                               },
                                               [
                                                 _c(
                                                   "uni-view",
                                                   {
                                                     staticClass: _vm._$g(
-                                                      "110-" + $33,
+                                                      "124-" + $33,
                                                       "sc"
                                                     ),
-                                                    attrs: { _i: "110-" + $33 },
+                                                    attrs: { _i: "124-" + $33 },
                                                   },
                                                   [
                                                     _vm._v(
                                                       _vm._$g(
-                                                        "110-" + $33,
+                                                        "124-" + $33,
                                                         "t0-0"
                                                       )
                                                     ),
-                                                  ]
+                                                    _vm._$g("125-" + $33, "i")
+                                                      ? _c(
+                                                          "v-uni-text",
+                                                          {
+                                                            staticClass:
+                                                              _vm._$g(
+                                                                "125-" + $33,
+                                                                "sc"
+                                                              ),
+                                                            attrs: {
+                                                              _i: "125-" + $33,
+                                                            },
+                                                          },
+                                                          [_vm._v("已隐藏")]
+                                                        )
+                                                      : _vm._e(),
+                                                  ],
+                                                  1
                                                 ),
-                                                _vm._$g("111-" + $33, "i")
+                                                _vm._$g("126-" + $33, "i")
                                                   ? _c(
                                                       "uni-view",
                                                       {
                                                         staticClass: _vm._$g(
-                                                          "111-" + $33,
+                                                          "126-" + $33,
                                                           "sc"
                                                         ),
                                                         attrs: {
-                                                          _i: "111-" + $33,
+                                                          _i: "126-" + $33,
                                                         },
                                                       },
                                                       [
                                                         _vm._v(
                                                           _vm._$g(
-                                                            "111-" + $33,
+                                                            "126-" + $33,
                                                             "t0-0"
                                                           )
                                                         ),
                                                       ]
                                                     )
                                                   : _vm._e(),
-                                                _vm._$g("112-" + $33, "i")
+                                                _vm._$g("127-" + $33, "i")
                                                   ? _c(
                                                       "uni-view",
                                                       {
                                                         staticClass: _vm._$g(
-                                                          "112-" + $33,
+                                                          "127-" + $33,
                                                           "sc"
                                                         ),
                                                         style: _vm._$g(
-                                                          "112-" + $33,
+                                                          "127-" + $33,
                                                           "s"
                                                         ),
                                                         attrs: {
                                                           "data-src": _vm._$g(
-                                                            "112-" + $33,
+                                                            "127-" + $33,
                                                             "a-data-src"
                                                           ),
                                                           "data-original-image-urls":
                                                             _vm._$g(
-                                                              "112-" + $33,
+                                                              "127-" + $33,
                                                               "a-data-original-image-urls"
                                                             ),
-                                                          _i: "112-" + $33,
+                                                          _i: "127-" + $33,
                                                         },
                                                         on: {
                                                           click: function (
@@ -9413,7 +9617,7 @@ var render = function () {
                                                       },
                                                       [
                                                         _vm._$g(
-                                                          "113-" + $33,
+                                                          "128-" + $33,
                                                           "i"
                                                         )
                                                           ? [
@@ -9422,18 +9626,18 @@ var render = function () {
                                                                 {
                                                                   staticClass:
                                                                     _vm._$g(
-                                                                      "114-" +
+                                                                      "129-" +
                                                                         $33,
                                                                       "sc"
                                                                     ),
                                                                   attrs: {
                                                                     id: _vm._$g(
-                                                                      "114-" +
+                                                                      "129-" +
                                                                         $33,
                                                                       "a-id"
                                                                     ),
                                                                     src: _vm._$g(
-                                                                      "114-" +
+                                                                      "129-" +
                                                                         $33,
                                                                       "a-src"
                                                                     ),
@@ -9441,13 +9645,13 @@ var render = function () {
                                                                     "lazy-load": true,
                                                                     "data-postid":
                                                                       _vm._$g(
-                                                                        "114-" +
+                                                                        "129-" +
                                                                           $33,
                                                                         "a-data-postid"
                                                                       ),
                                                                     "data-postindex":
                                                                       _vm._$g(
-                                                                        "114-" +
+                                                                        "129-" +
                                                                           $33,
                                                                         "a-data-postindex"
                                                                       ),
@@ -9456,7 +9660,7 @@ var render = function () {
                                                                     "data-type":
                                                                       "single",
                                                                     _i:
-                                                                      "114-" +
+                                                                      "129-" +
                                                                       $33,
                                                                   },
                                                                   on: {
@@ -9480,7 +9684,7 @@ var render = function () {
                                                               ),
                                                             ]
                                                           : _vm._$g(
-                                                              "115-" + $33,
+                                                              "130-" + $33,
                                                               "e"
                                                             )
                                                           ? [
@@ -9489,33 +9693,33 @@ var render = function () {
                                                                 {
                                                                   staticClass:
                                                                     _vm._$g(
-                                                                      "116-" +
+                                                                      "131-" +
                                                                         $33,
                                                                       "sc"
                                                                     ),
                                                                   style:
                                                                     _vm._$g(
-                                                                      "116-" +
+                                                                      "131-" +
                                                                         $33,
                                                                       "s"
                                                                     ),
                                                                   attrs: {
                                                                     id: _vm._$g(
-                                                                      "116-" +
+                                                                      "131-" +
                                                                         $33,
                                                                       "a-id"
                                                                     ),
                                                                     "indicator-dots": true,
                                                                     circular: true,
                                                                     _i:
-                                                                      "116-" +
+                                                                      "131-" +
                                                                       $33,
                                                                   },
                                                                 },
                                                                 [
                                                                   _vm._l(
                                                                     _vm._$g(
-                                                                      117 +
+                                                                      132 +
                                                                         "-" +
                                                                         $33,
                                                                       "f"
@@ -9536,7 +9740,7 @@ var render = function () {
                                                                             attrs:
                                                                               {
                                                                                 _i:
-                                                                                  "118-" +
+                                                                                  "133-" +
                                                                                   $33 +
                                                                                   "-" +
                                                                                   $34,
@@ -9548,7 +9752,7 @@ var render = function () {
                                                                               {
                                                                                 staticClass:
                                                                                   _vm._$g(
-                                                                                    "119-" +
+                                                                                    "134-" +
                                                                                       $33 +
                                                                                       "-" +
                                                                                       $34,
@@ -9557,7 +9761,7 @@ var render = function () {
                                                                                 attrs:
                                                                                   {
                                                                                     src: _vm._$g(
-                                                                                      "119-" +
+                                                                                      "134-" +
                                                                                         $33 +
                                                                                         "-" +
                                                                                         $34,
@@ -9567,7 +9771,7 @@ var render = function () {
                                                                                     "lazy-load": true,
                                                                                     "data-src":
                                                                                       _vm._$g(
-                                                                                        "119-" +
+                                                                                        "134-" +
                                                                                           $33 +
                                                                                           "-" +
                                                                                           $34,
@@ -9575,7 +9779,7 @@ var render = function () {
                                                                                       ),
                                                                                     "data-original-image-urls":
                                                                                       _vm._$g(
-                                                                                        "119-" +
+                                                                                        "134-" +
                                                                                           $33 +
                                                                                           "-" +
                                                                                           $34,
@@ -9583,7 +9787,7 @@ var render = function () {
                                                                                       ),
                                                                                     "data-postid":
                                                                                       _vm._$g(
-                                                                                        "119-" +
+                                                                                        "134-" +
                                                                                           $33 +
                                                                                           "-" +
                                                                                           $34,
@@ -9591,7 +9795,7 @@ var render = function () {
                                                                                       ),
                                                                                     "data-postindex":
                                                                                       _vm._$g(
-                                                                                        "119-" +
+                                                                                        "134-" +
                                                                                           $33 +
                                                                                           "-" +
                                                                                           $34,
@@ -9599,7 +9803,7 @@ var render = function () {
                                                                                       ),
                                                                                     "data-imgindex":
                                                                                       _vm._$g(
-                                                                                        "119-" +
+                                                                                        "134-" +
                                                                                           $33 +
                                                                                           "-" +
                                                                                           $34,
@@ -9608,7 +9812,7 @@ var render = function () {
                                                                                     "data-type":
                                                                                       "multi",
                                                                                     _i:
-                                                                                      "119-" +
+                                                                                      "134-" +
                                                                                       $33 +
                                                                                       "-" +
                                                                                       $34,
@@ -9659,12 +9863,12 @@ var render = function () {
                                                       2
                                                     )
                                                   : _vm._e(),
-                                                _vm._$g("120-" + $33, "i")
+                                                _vm._$g("135-" + $33, "i")
                                                   ? _c(
                                                       "uni-view",
                                                       {
                                                         staticClass: _vm._$g(
-                                                          "120-" + $33,
+                                                          "135-" + $33,
                                                           "sc"
                                                         ),
                                                         staticStyle: {
@@ -9672,34 +9876,34 @@ var render = function () {
                                                             "pre-wrap",
                                                         },
                                                         attrs: {
-                                                          _i: "120-" + $33,
+                                                          _i: "135-" + $33,
                                                         },
                                                       },
                                                       [
                                                         _vm._v(
                                                           _vm._$g(
-                                                            "120-" + $33,
+                                                            "135-" + $33,
                                                             "t0-0"
                                                           )
                                                         ),
                                                       ]
                                                     )
                                                   : _vm._e(),
-                                                _vm._$g("121-" + $33, "i")
+                                                _vm._$g("136-" + $33, "i")
                                                   ? _c(
                                                       "uni-view",
                                                       {
                                                         staticClass: _vm._$g(
-                                                          "121-" + $33,
+                                                          "136-" + $33,
                                                           "sc"
                                                         ),
                                                         attrs: {
-                                                          _i: "121-" + $33,
+                                                          _i: "136-" + $33,
                                                         },
                                                       },
                                                       _vm._l(
                                                         _vm._$g(
-                                                          122 + "-" + $33,
+                                                          137 + "-" + $33,
                                                           "f"
                                                         ),
                                                         function (
@@ -9714,7 +9918,7 @@ var render = function () {
                                                               key: item,
                                                               staticClass:
                                                                 _vm._$g(
-                                                                  "122-" +
+                                                                  "137-" +
                                                                     $33 +
                                                                     "-" +
                                                                     $35,
@@ -9723,14 +9927,14 @@ var render = function () {
                                                               attrs: {
                                                                 "data-tag":
                                                                   _vm._$g(
-                                                                    "122-" +
+                                                                    "137-" +
                                                                       $33 +
                                                                       "-" +
                                                                       $35,
                                                                     "a-data-tag"
                                                                   ),
                                                                 _i:
-                                                                  "122-" +
+                                                                  "137-" +
                                                                   $33 +
                                                                   "-" +
                                                                   $35,
@@ -9754,7 +9958,7 @@ var render = function () {
                                                               _vm._v(
                                                                 "#" +
                                                                   _vm._$g(
-                                                                    "122-" +
+                                                                    "137-" +
                                                                       $33 +
                                                                       "-" +
                                                                       $35,
@@ -9778,36 +9982,36 @@ var render = function () {
                                           "uni-view",
                                           {
                                             staticClass: _vm._$g(
-                                              "123-" + $33,
+                                              "138-" + $33,
                                               "sc"
                                             ),
-                                            attrs: { _i: "123-" + $33 },
+                                            attrs: { _i: "138-" + $33 },
                                           },
                                           [
                                             _c(
                                               "uni-view",
                                               {
                                                 staticClass: _vm._$g(
-                                                  "124-" + $33,
+                                                  "139-" + $33,
                                                   "sc"
                                                 ),
-                                                attrs: { _i: "124-" + $33 },
+                                                attrs: { _i: "139-" + $33 },
                                               },
                                               [
                                                 _c(
                                                   "v-uni-text",
                                                   {
                                                     staticClass: _vm._$g(
-                                                      "125-" + $33,
+                                                      "140-" + $33,
                                                       "sc"
                                                     ),
-                                                    attrs: { _i: "125-" + $33 },
+                                                    attrs: { _i: "140-" + $33 },
                                                   },
                                                   [
                                                     _vm._v(
                                                       "收藏于" +
                                                         _vm._$g(
-                                                          "125-" + $33,
+                                                          "140-" + $33,
                                                           "t0-0"
                                                         )
                                                     ),
@@ -9820,31 +10024,80 @@ var render = function () {
                                               "uni-view",
                                               {
                                                 staticClass: _vm._$g(
-                                                  "126-" + $33,
+                                                  "141-" + $33,
                                                   "sc"
                                                 ),
-                                                attrs: { _i: "126-" + $33 },
+                                                attrs: { _i: "141-" + $33 },
                                               },
                                               [
+                                                _c(
+                                                  "uni-view",
+                                                  {
+                                                    staticClass: _vm._$g(
+                                                      "142-" + $33,
+                                                      "sc"
+                                                    ),
+                                                    attrs: {
+                                                      "data-postid": _vm._$g(
+                                                        "142-" + $33,
+                                                        "a-data-postid"
+                                                      ),
+                                                      "data-index": _vm._$g(
+                                                        "142-" + $33,
+                                                        "a-data-index"
+                                                      ),
+                                                      "data-hidden": _vm._$g(
+                                                        "142-" + $33,
+                                                        "a-data-hidden"
+                                                      ),
+                                                      _i: "142-" + $33,
+                                                    },
+                                                    on: {
+                                                      click: function ($event) {
+                                                        return _vm.$handleViewEvent(
+                                                          $event,
+                                                          {
+                                                            stop: true,
+                                                            prevent: true,
+                                                          }
+                                                        )
+                                                      },
+                                                    },
+                                                  },
+                                                  [
+                                                    _c("v-uni-image", {
+                                                      staticClass: _vm._$g(
+                                                        "143-" + $33,
+                                                        "sc"
+                                                      ),
+                                                      attrs: {
+                                                        src: "/static/images/hide.png",
+                                                        mode: "aspectFit",
+                                                        _i: "143-" + $33,
+                                                      },
+                                                    }),
+                                                  ],
+                                                  1
+                                                ),
                                                 _c(
                                                   "v-uni-button",
                                                   {
                                                     staticClass: _vm._$g(
-                                                      "127-" + $33,
+                                                      "144-" + $33,
                                                       "sc"
                                                     ),
                                                     attrs: {
                                                       size: "mini",
                                                       "data-favorite-id":
                                                         _vm._$g(
-                                                          "127-" + $33,
+                                                          "144-" + $33,
                                                           "a-data-favorite-id"
                                                         ),
                                                       "data-index": _vm._$g(
-                                                        "127-" + $33,
+                                                        "144-" + $33,
                                                         "a-data-index"
                                                       ),
-                                                      _i: "127-" + $33,
+                                                      _i: "144-" + $33,
                                                     },
                                                     on: {
                                                       click: function ($event) {
@@ -9874,15 +10127,15 @@ var render = function () {
                                 _c(
                                   "uni-view",
                                   {
-                                    staticClass: _vm._$g(128, "sc"),
-                                    attrs: { _i: 128 },
+                                    staticClass: _vm._$g(145, "sc"),
+                                    attrs: { _i: 145 },
                                   },
                                   [
-                                    _vm._$g(129, "i")
+                                    _vm._$g(146, "i")
                                       ? [
                                           _c(
                                             "v-uni-text",
-                                            { attrs: { _i: 130 } },
+                                            { attrs: { _i: 147 } },
                                             [_vm._v("--- 我是有底线的 ---")]
                                           ),
                                         ]
@@ -9892,17 +10145,17 @@ var render = function () {
                                 ),
                                 _c("uni-view", {
                                   staticStyle: { height: "200rpx" },
-                                  attrs: { _i: 131 },
+                                  attrs: { _i: 148 },
                                 }),
                               ]
                             : _c(
                                 "uni-view",
                                 {
-                                  staticClass: _vm._$g(132, "sc"),
-                                  attrs: { _i: 132 },
+                                  staticClass: _vm._$g(149, "sc"),
+                                  attrs: { _i: 149 },
                                 },
                                 [
-                                  _c("v-uni-text", { attrs: { _i: 133 } }, [
+                                  _c("v-uni-text", { attrs: { _i: 150 } }, [
                                     _vm._v("你还没有收藏过内容哦～"),
                                   ]),
                                 ],
@@ -9912,34 +10165,34 @@ var render = function () {
                         2
                       )
                     : _vm._e(),
-                  _vm._$g(134, "i")
+                  _vm._$g(151, "i")
                     ? _c(
                         "uni-view",
-                        { staticClass: _vm._$g(134, "sc"), attrs: { _i: 134 } },
+                        { staticClass: _vm._$g(151, "sc"), attrs: { _i: 151 } },
                         [
                           _c(
                             "uni-view",
                             {
-                              staticClass: _vm._$g(135, "sc"),
-                              attrs: { _i: 135 },
+                              staticClass: _vm._$g(152, "sc"),
+                              attrs: { _i: 152 },
                             },
                             [
                               _c(
                                 "uni-view",
                                 {
-                                  staticClass: _vm._$g(136, "sc"),
-                                  attrs: { _i: 136 },
+                                  staticClass: _vm._$g(153, "sc"),
+                                  attrs: { _i: 153 },
                                 },
                                 [
                                   _vm._l(
-                                    _vm._$g(137, "f"),
+                                    _vm._$g(154, "f"),
                                     function (portfolio, index, $26, $36) {
                                       return _c(
                                         "uni-view",
                                         {
                                           key: portfolio,
-                                          class: _vm._$g("137-" + $36, "c"),
-                                          attrs: { _i: "137-" + $36 },
+                                          class: _vm._$g("154-" + $36, "c"),
+                                          attrs: { _i: "154-" + $36 },
                                           on: {
                                             click: function ($event) {
                                               return _vm.$handleViewEvent(
@@ -9953,23 +10206,23 @@ var render = function () {
                                             "uni-view",
                                             {
                                               staticClass: _vm._$g(
-                                                "138-" + $36,
+                                                "155-" + $36,
                                                 "sc"
                                               ),
-                                              attrs: { _i: "138-" + $36 },
+                                              attrs: { _i: "155-" + $36 },
                                             },
                                             [
                                               _c(
                                                 "uni-view",
                                                 {
                                                   staticClass: _vm._$g(
-                                                    "139-" + $36,
+                                                    "156-" + $36,
                                                     "sc"
                                                   ),
-                                                  attrs: { _i: "139-" + $36 },
+                                                  attrs: { _i: "156-" + $36 },
                                                 },
                                                 _vm._l(
-                                                  _vm._$g(140 + "-" + $36, "f"),
+                                                  _vm._$g(157 + "-" + $36, "f"),
                                                   function (
                                                     char,
                                                     charIndex,
@@ -9981,7 +10234,7 @@ var render = function () {
                                                       {
                                                         key: char,
                                                         staticClass: _vm._$g(
-                                                          "140-" +
+                                                          "157-" +
                                                             $36 +
                                                             "-" +
                                                             $37,
@@ -9989,7 +10242,7 @@ var render = function () {
                                                         ),
                                                         attrs: {
                                                           _i:
-                                                            "140-" +
+                                                            "157-" +
                                                             $36 +
                                                             "-" +
                                                             $37,
@@ -9998,7 +10251,7 @@ var render = function () {
                                                       [
                                                         _vm._v(
                                                           _vm._$g(
-                                                            "140-" +
+                                                            "157-" +
                                                               $36 +
                                                               "-" +
                                                               $37,
@@ -10019,26 +10272,26 @@ var render = function () {
                                       )
                                     }
                                   ),
-                                  _vm._$g(141, "i")
+                                  _vm._$g(158, "i")
                                     ? _c("uni-view", {
-                                        staticClass: _vm._$g(141, "sc"),
-                                        style: _vm._$g(141, "s"),
-                                        attrs: { _i: 141 },
+                                        staticClass: _vm._$g(158, "sc"),
+                                        style: _vm._$g(158, "s"),
+                                        attrs: { _i: 158 },
                                       })
                                     : _vm._e(),
-                                  _vm._$g(142, "i")
+                                  _vm._$g(159, "i")
                                     ? _c(
                                         "uni-view",
                                         {
-                                          staticClass: _vm._$g(142, "sc"),
-                                          attrs: { _i: 142 },
+                                          staticClass: _vm._$g(159, "sc"),
+                                          attrs: { _i: 159 },
                                         },
                                         [
                                           _c(
                                             "v-uni-text",
                                             {
-                                              staticClass: _vm._$g(143, "sc"),
-                                              attrs: { _i: 143 },
+                                              staticClass: _vm._$g(160, "sc"),
+                                              attrs: { _i: 160 },
                                             },
                                             [_vm._v("暂无作品集")]
                                           ),
@@ -10065,7 +10318,7 @@ var render = function () {
         ],
         1
       ),
-      _c("app-tab-bar", { ref: "customTabBar", attrs: { _i: 144 } }),
+      _c("app-tab-bar", { ref: "customTabBar", attrs: { _i: 161 } }),
     ],
     1
   )
@@ -10168,7 +10421,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* pages/profile/profile.wxss */\n.container {\r\n    width: 100%;\r\n    height: 100vh;\r\n    background-color: #ffffff;\n}\n.scroll-container {\r\n    width: 100%;\r\n    height: 100%;\n}\n.sidebar-mask {\r\n    position: fixed;\r\n    top: 0;\r\n    left: 0;\r\n    width: 100%;\r\n    height: 100%;\r\n    background-color: rgba(0, 0, 0, 0.5);\r\n    z-index: 999;\n}\n.sidebar {\r\n    position: fixed;\r\n    top: 0;\r\n    left: -70%; /* Start off-screen */\r\n    width: 70%;\r\n    height: 100%;\r\n    background-color: #ffffff;\r\n    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);\r\n    transition: left 0.3s ease;\r\n    z-index: 1000;\r\n    display: flex;\r\n    flex-direction: column;\r\n    overflow-y: auto;\n}\n.sidebar.open {\r\n    left: 0; /* Slide in */\n}\n.sidebar-header {\r\n    padding: 40rpx 30rpx;\r\n    border-bottom: 1rpx solid #eee;\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    margin-top: 80rpx;\n}\n.sidebar-avatar {\r\n    width: 120rpx;\r\n    height: 120rpx;\r\n    border-radius: 50%;\r\n    margin-bottom: 20rpx;\n}\n.sidebar-nickname {\r\n    font-size: 32rpx;\r\n    font-weight: bold;\n}\n.sidebar-menu {\r\n    margin-top: 40rpx;\n}\n.sidebar-item {\r\n    padding: 30rpx;\r\n    border-bottom: 1rpx solid #f0f0f0;\r\n    font-size: 32rpx;\r\n    color: #333;\r\n    position: relative;\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\n}\n.sidebar-item:active {\r\n    background-color: #f5f5f5;\n}\r\n/* 未读消息标记 */\n.unread-badge {\r\n    background-color: #ff6b6b;\r\n    color: #fff;\r\n    font-size: 20rpx;\r\n    padding: 4rpx 10rpx;\r\n    border-radius: 20rpx;\r\n    min-width: 32rpx;\r\n    text-align: center;\r\n    font-weight: bold;\n}\r\n/* 退出登录按钮特殊样式 */\n.logout-item {\r\n    border-top: 2rpx solid #f0f0f0;\r\n    margin-top: 20rpx;\r\n    color: #ff6b6b !important;\r\n    font-weight: 500;\n}\n.logout-item:active {\r\n    background-color: #fff5f5 !important;\n}\n.main-content {\r\n    width: 100%;\r\n    /* height: 100vh; */\r\n    background-color: #ffffff;\r\n    /* overflow-y: auto; */\r\n    padding-bottom: 100rpx; /* 为底部TabBar留出空间 */\n}\n.header {\r\n    display: flex;\r\n    align-items: center;\r\n    padding: 20rpx 30rpx;\r\n    background-color: #fff;\r\n    border-bottom: 1rpx solid #eee;\r\n    padding-top: calc(20rpx + var(--status-bar-height, 0px));\n}\n.menu-btn {\r\n    width: 48rpx;\r\n    height: 48rpx;\r\n    padding: 10rpx;\r\n    transition: opacity 0.2s ease;\n}\n.menu-btn:active {\r\n    opacity: 0.7;\n}\n.header-title {\r\n    flex: 1;\r\n    text-align: center;\r\n    font-size: 34rpx;\r\n    font-weight: 500;\r\n    margin-right: 68rpx; /* to balance the menu button */\n}\r\n/* Loading State */\n.loading-container {\r\n    display: flex;\r\n    justify-content: center;\r\n    align-items: center;\r\n    height: 400rpx;\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    margin: 30rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.loading-text {\r\n    font-size: 28rpx;\r\n    color: #999;\n}\r\n/* User Profile Card */\n.profile-card {\r\n    margin: 30rpx;\r\n    padding: 40rpx;\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\r\n    display: flex;\r\n    align-items: flex-start;\r\n    transition: box-shadow 0.2s ease;\n}\n.profile-card:active {\r\n    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);\n}\n.profile-avatar {\r\n    margin-right: 30rpx;\n}\n.profile-avatar uni-image {\r\n    width: 120rpx;\r\n    height: 120rpx;\r\n    border-radius: 50%;\n}\n.profile-info {\r\n    flex: 1;\r\n    display: flex;\r\n    flex-direction: column;\r\n    min-width: 0; /* 防止flex子元素溢出 */\n}\n.profile-name {\r\n    font-size: 36rpx;\r\n    font-weight: bold;\r\n    color: #333;\r\n    margin-bottom: 10rpx;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    white-space: nowrap;\n}\n.profile-bio {\r\n    font-size: 28rpx;\r\n    color: #999;\r\n    margin-bottom: 20rpx;\r\n    line-height: 1.4;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 2;\r\n    line-clamp: 2;\r\n    -webkit-box-orient: vertical;\n}\n.profile-details {\r\n    display: flex;\r\n    flex-direction: column;\r\n    gap: 8rpx;\n}\n.detail-item {\r\n    font-size: 26rpx;\r\n    color: #666;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    white-space: nowrap;\n}\r\n/* Tab Navigation */\n.tab-navigation {\r\n    margin: 0 30rpx 20rpx 30rpx;\r\n    display: flex;\r\n    background: #fff;\r\n    border: 1rpx solid #fff;\r\n    border-radius: 16rpx;\r\n    overflow: hidden;\n}\n.tab-item {\r\n    flex: 1;\r\n    padding: 20rpx 10rpx;\r\n    text-align: center;\r\n    background: #fff;\r\n    transition: all 0.3s ease;\r\n    position: relative;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\n}\n.tab-item.active::after {\r\n    content: '';\r\n    position: absolute;\r\n    bottom: 8rpx;\r\n    left: 50%;\r\n    -webkit-transform: translateX(-50%);\r\n            transform: translateX(-50%);\r\n    width: 200rpx;\r\n    height: 6rpx;\r\n    background: #333;\r\n    border-radius: 3rpx;\n}\n.tab-item:active {\r\n    background: #f5f5f5;\n}\n.tab-icon {\r\n    width: 110rpx;\r\n    height: 110rpx;\r\n    -webkit-filter: grayscale(1) brightness(0.5);\r\n            filter: grayscale(1) brightness(0.5);\r\n    opacity: 0.7;\n}\n.tab-item.active .tab-icon {\r\n    -webkit-filter: grayscale(0) brightness(1);\r\n            filter: grayscale(0) brightness(1);\r\n    opacity: 1;\n}\r\n/* My Posts Section */\n.my-posts-section {\r\n    margin: 0 0 30rpx 0;\n}\r\n/* Portfolio Section */\n.portfolio-section {\r\n    margin: 0 0 30rpx 0;\n}\r\n/* Favorites Section */\n.favorites-section {\r\n    margin: 0 0 30rpx 0;\n}\n.section-title {\r\n    font-size: 32rpx;\r\n    font-weight: bold;\r\n    color: #333;\r\n    margin-bottom: 20rpx;\r\n    padding: 0 10rpx;\n}\r\n/* 新增：帖子项包装器样式 */\n.post-item-wrapper {\r\n    background: #fff;\r\n    margin-bottom: 20rpx;\r\n    padding: 0;\r\n    box-shadow: none;\r\n    border-radius: 0;\r\n    border-bottom: 1rpx solid #f0f0f0;\n}\r\n/* 原创帖子特殊样式 */\n.post-item-wrapper.original-post {\r\n    background: linear-gradient(90deg, rgba(235, 200, 141, 0.05) 0%, rgba(255, 255, 255, 0) 100%);\r\n    border-left: 3rpx solid #ebc88d;\r\n    position: relative;\n}\r\n/* 新增：内容导航器样式 */\n.post-content-navigator {\r\n    display: block;\r\n    background: transparent;\n}\r\n/* 新增：导航器点击效果 */\n.navigator-hover {\r\n    background-color: rgba(0, 0, 0, 0.02);\n}\r\n/* 新增：点赞按钮容器样式 */\n.like-btn-container {\r\n    position: absolute;\r\n    top: 20rpx;\r\n    right: 20rpx;\r\n    z-index: 10;\n}\n.like-btn {\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    background: rgba(255, 255, 255, 0.9);\r\n    border-radius: 50%;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);\r\n    transition: all 0.2s ease;\n}\n.like-btn:active {\r\n    -webkit-transform: scale(0.9);\r\n            transform: scale(0.9);\n}\n.like-icon {\r\n    font-size: 24rpx;\r\n    color: #666;\n}\n.like-icon.liked {\r\n    color: #ff4757;\n}\r\n/* 定义点击时的样式 - 整个卡片缩小 */\n.post-card-active {\r\n    -webkit-transform: scale(0.98);\r\n            transform: scale(0.98);\n}\r\n/* 外部作者信息样式 */\n.author-info-outside {\r\n    display: flex;\r\n    align-items: center;\r\n    padding: 20rpx 40rpx 10rpx 40rpx;\r\n    background: #fff;\r\n    border-radius: 0;\r\n    box-shadow: none;\n}\n.author-info-outside .author-avatar {\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    border-radius: 50%;\r\n    margin-right: 15rpx;\r\n    background-color: #f5f5f5;\r\n    cursor: pointer;\n}\n.author-info-outside .author-name {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    font-weight: 500;\n}\n.post-item {\r\n    width: 100%;\r\n    background: #fff;\r\n    border-radius: 0;\r\n    box-shadow: none;\r\n    box-sizing: border-box;\r\n    padding: 20rpx 40rpx 30rpx 40rpx;\n}\n.post-title {\r\n    font-size: 36rpx;\r\n    font-weight: bold;\r\n    color: #333333;\r\n    margin-bottom: 15rpx;\r\n    line-height: 1.4;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 2;\r\n    line-clamp: 2;\r\n    -webkit-box-orient: vertical;\n}\r\n/* 诗歌作者样式 */\n.poem-author {\r\n    font-size: 32rpx;\r\n    color: #000;\r\n    text-align: center;\r\n    margin: 5rpx 0 15rpx 0;\r\n    letter-spacing: 2rpx;\n}\r\n/* 新增：图片容器占位样式 */\n.image-container-wrapper {\r\n    position: relative;\r\n    width: 100%;\r\n    background-color: #f0f0f0; /* 占位时的背景色，很重要 */\r\n    overflow: hidden;\r\n    border-radius: 8px; /* 可以加个圆角，让占位块更好看 */\r\n    margin: 20rpx 0; /* 图片和下方内容的间距 */\n}\r\n/* 新增：让图片或swiper填充整个占位容器 */\n.image-container-wrapper .post-image,\r\n.image-container-wrapper .image-swiper {\r\n    position: absolute;\r\n    top: 0;\r\n    left: 0;\r\n    width: 100%;\r\n    height: 100%;\n}\r\n/* 多张图片的swiper样式 */\n.image-swiper {\r\n    width: 100%;\r\n    background-color: #fff;\r\n    /* 高度由 style 绑定动态设置 */\n}\n.swiper-item {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\n}\n.post-image {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: block;\r\n    object-fit: contain;\n}\n.post-image:active {\r\n    -webkit-transform: scale(1.05);\r\n            transform: scale(1.05);\n}\n.post-image.single-image {\r\n    width: 100%;\r\n    height: auto;\r\n    display: block;\r\n    object-fit: cover;\n}\r\n/* 图片数量指示器 */\n.image-count-indicator {\r\n    position: absolute;\r\n    top: 20rpx;\r\n    right: 20rpx;\r\n    background: rgba(0, 0, 0, 0.6);\r\n    color: #fff;\r\n    padding: 8rpx 12rpx;\r\n    border-radius: 20rpx;\r\n    font-size: 24rpx;\r\n    z-index: 5;\n}\n.post-content {\r\n    font-size: 28rpx;\r\n    color: #666666;\r\n    line-height: 1.6;\r\n    margin-top: 15rpx;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 3;\r\n    line-clamp: 3;\r\n    -webkit-box-orient: vertical;\n}\r\n/* 删除按钮区域样式 */\n.delete-section {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    margin-top: 20rpx;\r\n    padding: 0 40rpx 0 40rpx;\n}\r\n/* 左侧时间区域，保持原有样式 */\n.time-left {\r\n    flex: 1;\n}\n.button-group {\r\n    display: flex;\r\n    align-items: center;\n}\n.favorite-time,\r\n.post-time {\r\n    font-size: 24rpx;\r\n    color: #999;\n}\r\n/* 标签样式 */\n.post-tags {\r\n    margin-top: 30rpx;\r\n    margin-bottom: 10rpx;\r\n    line-height: 1.5;\n}\n.post-tag {\r\n    color: #24375f;\r\n    font-size: 26rpx;\r\n    margin-right: 10rpx;\r\n    transition: all 0.2s ease;\r\n    cursor: pointer;\n}\n.post-tag:active {\r\n    color: #1a2a4a;\r\n    opacity: 0.8;\n}\n.delete-btn {\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    transition: all 0.2s ease;\r\n    cursor: pointer;\r\n    padding: 10rpx;\n}\n.delete-btn:active {\r\n    -webkit-transform: scale(0.9);\r\n            transform: scale(0.9);\n}\n.delete-icon {\r\n    width: 100rpx;\r\n    height: 100rpx;\n}\n.remove-favorite-btn {\r\n    background-color: #f39c12;\r\n    color: #fff;\r\n    border: none;\r\n    border-radius: 8rpx;\r\n    font-size: 24rpx;\r\n    padding: 8rpx 16rpx;\r\n    line-height: 1.2;\r\n    min-width: 100rpx;\r\n    transition: background-color 0.2s ease;\n}\n.remove-favorite-btn:active {\r\n    background-color: #e67e22;\n}\n.remove-favorite-btn::after {\r\n    border: none;\n}\n.empty-tip {\r\n    text-align: center;\r\n    color: #bbb;\r\n    font-size: 28rpx;\r\n    margin: 40rpx 0;\r\n    padding: 60rpx 0;\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.author-info {\r\n    display: flex;\r\n    align-items: center;\r\n    /* margin-bottom: 15rpx;  // 移除多余的间距 */\n}\n.author-avatar {\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    border-radius: 50%;\r\n    margin-right: 15rpx;\r\n    background-color: #f5f5f5;\n}\n.author-name {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    font-weight: 500;\n}\n.profile-card-center {\r\n    position: relative;\r\n    margin: 0;\r\n    padding: 40rpx 40rpx 20rpx 40rpx;\r\n    background-color: transparent;\r\n    border-radius: 0;\r\n    box-shadow: none;\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    overflow: visible;\n}\n.menu-btn-small {\r\n    width: 40rpx;\r\n    height: 40rpx;\r\n    cursor: pointer;\r\n    transition: -webkit-transform 0.2s ease;\r\n    transition: transform 0.2s ease;\r\n    transition: transform 0.2s ease, -webkit-transform 0.2s ease;\r\n    -webkit-filter: grayscale(1) brightness(0.5);\r\n            filter: grayscale(1) brightness(0.5);\r\n    opacity: 0.7;\n}\n.menu-btn-small:active {\r\n    -webkit-transform: scale(0.9);\r\n            transform: scale(0.9);\n}\n.back-btn {\r\n    position: absolute;\r\n    top: 24rpx;\r\n    left: 24rpx;\r\n    width: 56rpx;\r\n    height: 56rpx;\r\n    z-index: 100;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    background: rgba(0, 0, 0, 0.1);\r\n    border-radius: 50%;\r\n    font-size: 36rpx;\r\n    color: #333;\r\n    transition: background-color 0.2s ease;\n}\n.back-btn:active {\r\n    background: rgba(0, 0, 0, 0.2);\n}\n.profile-avatar-large {\r\n    display: flex;\r\n    justify-content: center;\r\n    align-items: center;\r\n    margin: 70rpx 0 40rpx 0;\n}\n.profile-avatar-large uni-image {\r\n    width: 175rpx;\r\n    height: 175rpx;\r\n    border-radius: 50%;\r\n    display: block;\n}\n.profile-info-center {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: flex-start;\r\n    margin-top: 20rpx;\r\n    width: 100%;\n}\n.profile-name-center {\r\n    font-family: 'Inter', sans-serif;\r\n    font-weight: 600;\r\n    font-size: 30rpx;\r\n    line-height: 36rpx;\r\n    color: #000000;\r\n    margin-bottom: 20rpx;\r\n    text-align: left;\n}\n.profile-poemid {\r\n    font-family: 'Inter', sans-serif;\r\n    font-weight: 300;\r\n    font-size: 20rpx;\r\n    line-height: 24rpx;\r\n    color: #989090;\r\n    margin-bottom: 20rpx;\n}\n.profile-bio-center {\r\n      font-family: 'Inter', sans-serif;\r\n      font-weight: 600;\r\n      font-size: 24rpx;\r\n      line-height: 30rpx;\r\n      color: #000000;\r\n      text-align: left;\r\n      margin-bottom: 20rpx;\n}\n.profile-bottom-row {\r\n      display: flex;\r\n      justify-content: space-between;\r\n      align-items: center;\r\n      width: 100%;\r\n      margin-bottom: 10rpx;\n}\n.profile-buttons {\r\n      display: flex;\r\n      align-items: center;\r\n      gap: 20rpx;\n}\n.profile-followers {\r\n      font-family: 'Inter', sans-serif;\r\n      font-weight: 300;\r\n      font-size: 24rpx;\r\n      line-height: 30rpx;\r\n      color: #989090;\r\n      margin: 0;\n}\n.edit-profile-btn {\r\n      position: relative;\r\n      width: 246rpx;\r\n      height: 54rpx;\r\n      background: #D9D9D9;\r\n      border-radius: 10rpx;\r\n      display: flex;\r\n      align-items: center;\r\n      justify-content: center;\r\n      cursor: pointer;\r\n      transition: background-color 0.2s ease;\n}\n.edit-profile-btn:active {\r\n      background-color: #C0C0C0;\n}\n.edit-profile-btn uni-text {\r\n      font-family: 'Inter', sans-serif;\r\n      font-weight: 800;\r\n      font-size: 28rpx;\r\n      line-height: 34rpx;\r\n      color: #FFFFFF;\n}\n.profile-meta-center {\r\n      font-size: 26rpx;\r\n      color: #666;\r\n      margin-top: 8rpx;\r\n      text-align: center;\n}\n.profile-detail-card {\r\n    margin: 0 30rpx 30rpx 30rpx;\r\n    padding: 30rpx 40rpx;\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\r\n    display: flex;\r\n    flex-direction: row;\r\n    align-items: center;\r\n    justify-content: center;\r\n    gap: 40rpx;\n}\n.detail-item-inline {\r\n    font-size: 28rpx;\r\n    color: #666;\r\n    margin-right: 20rpx;\r\n    white-space: nowrap;\n}\r\n/* 底部加载状态样式 */\n.loading-footer {\r\n    text-align: center;\r\n    padding: 20rpx 0;\r\n    color: #999;\r\n    font-size: 14px;\n}\n.unread-dot {\r\n    width: 16rpx;\r\n    height: 16rpx;\r\n    background-color: #ff6b6b;\r\n    border-radius: 50%;\r\n    margin-left: 12rpx;\n}\r\n/* Follow stats under bio */\n.follow-stats {\r\n    margin-top: 16rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    gap: 40rpx;\n}\n.stat-item {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\n}\n.stat-number {\r\n    font-size: 36rpx;\r\n    font-weight: 600;\r\n    color: #333;\n}\n.stat-label {\r\n    margin-top: 4rpx;\r\n    font-size: 24rpx;\r\n    color: #888;\n}\n.stat-divider {\r\n    width: 1rpx;\r\n    height: 36rpx;\r\n    background-color: #eee;\n}\r\n/* 书籍样式作品集 */\n.books-container {\r\n    padding: 40rpx 30rpx 0 30rpx;\r\n    background: #fff;\r\n    margin: 0 30rpx 30rpx 30rpx;\r\n    border-radius: 16rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.books-shelf {\r\n    display: flex;\r\n    justify-content: flex-end;\r\n    align-items: flex-end;\r\n    gap: 0;\r\n    position: relative;\r\n    padding-bottom: 18rpx;\n}\n.shelf-line {\r\n    position: absolute;\r\n    bottom: 0;\r\n    right: 0;\r\n    height: 18rpx;\r\n    background: #000;\r\n    border-radius: 4rpx;\r\n    z-index: 1;\n}\n.book {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    cursor: pointer;\r\n    transition: -webkit-transform 0.2s ease;\r\n    transition: transform 0.2s ease;\r\n    transition: transform 0.2s ease, -webkit-transform 0.2s ease;\r\n    position: relative;\r\n    margin-bottom: 0;\n}\n.book:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.book-spine {\r\n    width: 72rpx;\r\n    height: 224rpx;\r\n    border-radius: 20rpx 20rpx 0 0;\r\n    position: relative;\r\n    box-shadow: 2rpx 2rpx 8rpx rgba(0, 0, 0, 0.2);\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\n}\n.book-1 .book-spine {\r\n    background: #809076;\n}\n.book-2 .book-spine {\r\n    background: #f9d794;\n}\n.book-2 .spine-text {\r\n    color: #333;\n}\n.book-3 .book-spine {\r\n    background: #2b4139;\n}\n.book-4 .book-spine {\r\n    background: #d4a574;\n}\n.book-5 .book-spine {\r\n    background: #8b7d6b;\n}\n.book-6 .book-spine {\r\n    background: #a4c4bd;\n}\n.book-7 .book-spine {\r\n    background: #c9cfcf;\n}\n.book-8 .book-spine {\r\n    background: #906161;\n}\n.book-9 .book-spine {\r\n    background: #909388;\n}\n.book-10 .book-spine {\r\n    background: #b8a082;\n}\n.book-11 .book-spine {\r\n    background: #7a8471;\n}\n.book-12 .book-spine {\r\n    background: #9b8b7a;\n}\r\n/* 为浅色背景的书脊设置深色文字 */\n.book-2 .spine-text,\r\n.book-4 .spine-text,\r\n.book-6 .spine-text,\r\n.book-7 .spine-text,\r\n.book-9 .spine-text,\r\n.book-10 .spine-text,\r\n.book-11 .spine-text,\r\n.book-12 .spine-text {\r\n    color: #333;\n}\n.spine-content {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    gap: 8rpx;\n}\n.spine-text {\r\n    font-size: 28rpx;\r\n    font-weight: 300;\r\n    color: #fff;\r\n    text-shadow: 0 1rpx 2rpx rgba(0, 0, 0, 0.3);\r\n    line-height: 1.2;\n}\n.empty-portfolio {\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    height: 200rpx;\n}\n.empty-text {\r\n    font-size: 28rpx;\r\n    color: #999;\n}\r\n\r\n", ""]);
+exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* pages/profile/profile.wxss */\n.container {\r\n    width: 100%;\r\n    height: 100vh;\r\n    background-color: #ffffff;\n}\n.scroll-container {\r\n    width: 100%;\r\n    height: 100%;\n}\n.sidebar-mask {\r\n    position: fixed;\r\n    top: 0;\r\n    left: 0;\r\n    width: 100%;\r\n    height: 100%;\r\n    background-color: rgba(0, 0, 0, 0.5);\r\n    z-index: 999;\n}\n.sidebar {\r\n    position: fixed;\r\n    top: 0;\r\n    left: -70%; /* Start off-screen */\r\n    width: 70%;\r\n    height: 100%;\r\n    background-color: #ffffff;\r\n    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);\r\n    transition: left 0.3s ease;\r\n    z-index: 1000;\r\n    display: flex;\r\n    flex-direction: column;\r\n    overflow-y: auto;\n}\n.sidebar.open {\r\n    left: 0; /* Slide in */\n}\n.sidebar-header {\r\n    padding: 40rpx 30rpx;\r\n    border-bottom: 1rpx solid #eee;\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    margin-top: 80rpx;\n}\n.sidebar-avatar {\r\n    width: 120rpx;\r\n    height: 120rpx;\r\n    border-radius: 50%;\r\n    margin-bottom: 20rpx;\n}\n.sidebar-nickname {\r\n    font-size: 32rpx;\r\n    font-weight: bold;\n}\n.sidebar-menu {\r\n    margin-top: 40rpx;\n}\n.sidebar-item {\r\n    padding: 30rpx;\r\n    border-bottom: 1rpx solid #f0f0f0;\r\n    font-size: 32rpx;\r\n    color: #333;\r\n    position: relative;\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\n}\n.sidebar-item:active {\r\n    background-color: #f5f5f5;\n}\r\n/* 未读消息标记 */\n.unread-badge {\r\n    background-color: #ff6b6b;\r\n    color: #fff;\r\n    font-size: 20rpx;\r\n    padding: 4rpx 10rpx;\r\n    border-radius: 20rpx;\r\n    min-width: 32rpx;\r\n    text-align: center;\r\n    font-weight: bold;\n}\r\n/* 退出登录按钮特殊样式 */\n.logout-item {\r\n    border-top: 2rpx solid #f0f0f0;\r\n    margin-top: 20rpx;\r\n    color: #ff6b6b !important;\r\n    font-weight: 500;\n}\n.logout-item:active {\r\n    background-color: #fff5f5 !important;\n}\n.main-content {\r\n    width: 100%;\r\n    /* height: 100vh; */\r\n    background-color: #ffffff;\r\n    /* overflow-y: auto; */\r\n    padding-bottom: 100rpx; /* 为底部TabBar留出空间 */\n}\n.header {\r\n    display: flex;\r\n    align-items: center;\r\n    padding: 20rpx 30rpx;\r\n    background-color: #fff;\r\n    border-bottom: 1rpx solid #eee;\r\n    padding-top: calc(20rpx + var(--status-bar-height, 0px));\n}\n.menu-btn {\r\n    width: 48rpx;\r\n    height: 48rpx;\r\n    padding: 10rpx;\r\n    transition: opacity 0.2s ease;\n}\n.menu-btn:active {\r\n    opacity: 0.7;\n}\n.header-title {\r\n    flex: 1;\r\n    text-align: center;\r\n    font-size: 34rpx;\r\n    font-weight: 500;\r\n    margin-right: 68rpx; /* to balance the menu button */\n}\r\n/* Loading State */\n.loading-container {\r\n    display: flex;\r\n    justify-content: center;\r\n    align-items: center;\r\n    height: 400rpx;\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    margin: 30rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.loading-text {\r\n    font-size: 28rpx;\r\n    color: #999;\n}\r\n/* User Profile Card */\n.profile-card {\r\n    margin: 30rpx;\r\n    padding: 40rpx;\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\r\n    display: flex;\r\n    align-items: flex-start;\r\n    transition: box-shadow 0.2s ease;\n}\n.profile-card:active {\r\n    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);\n}\n.profile-avatar {\r\n    margin-right: 30rpx;\n}\n.profile-avatar uni-image {\r\n    width: 120rpx;\r\n    height: 120rpx;\r\n    border-radius: 50%;\n}\n.profile-info {\r\n    flex: 1;\r\n    display: flex;\r\n    flex-direction: column;\r\n    min-width: 0; /* 防止flex子元素溢出 */\n}\n.profile-name {\r\n    font-size: 36rpx;\r\n    font-weight: bold;\r\n    color: #333;\r\n    margin-bottom: 10rpx;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    white-space: nowrap;\n}\n.profile-bio {\r\n    font-size: 28rpx;\r\n    color: #999;\r\n    margin-bottom: 20rpx;\r\n    line-height: 1.4;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 2;\r\n    line-clamp: 2;\r\n    -webkit-box-orient: vertical;\n}\n.profile-details {\r\n    display: flex;\r\n    flex-direction: column;\r\n    gap: 8rpx;\n}\n.detail-item {\r\n    font-size: 26rpx;\r\n    color: #666;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    white-space: nowrap;\n}\r\n/* Tab Navigation */\n.tab-navigation {\r\n    margin: 0 30rpx 20rpx 30rpx;\r\n    display: flex;\r\n    background: #fff;\r\n    border: 1rpx solid #fff;\r\n    border-radius: 16rpx;\r\n    overflow: hidden;\n}\n.tab-item {\r\n    flex: 1;\r\n    padding: 20rpx 10rpx;\r\n    text-align: center;\r\n    background: #fff;\r\n    transition: all 0.3s ease;\r\n    position: relative;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\n}\n.tab-item.active::after {\r\n    content: '';\r\n    position: absolute;\r\n    bottom: 8rpx;\r\n    left: 50%;\r\n    -webkit-transform: translateX(-50%);\r\n            transform: translateX(-50%);\r\n    width: 200rpx;\r\n    height: 6rpx;\r\n    background: #333;\r\n    border-radius: 3rpx;\n}\n.tab-item:active {\r\n    background: #f5f5f5;\n}\n.tab-icon {\r\n    width: 110rpx;\r\n    height: 110rpx;\r\n    -webkit-filter: grayscale(1) brightness(0.5);\r\n            filter: grayscale(1) brightness(0.5);\r\n    opacity: 0.7;\n}\n.tab-item.active .tab-icon {\r\n    -webkit-filter: grayscale(0) brightness(1);\r\n            filter: grayscale(0) brightness(1);\r\n    opacity: 1;\n}\r\n/* My Posts Section */\n.my-posts-section {\r\n    margin: 0 0 30rpx 0;\n}\r\n/* Portfolio Section */\n.portfolio-section {\r\n    margin: 0 0 30rpx 0;\n}\r\n/* Favorites Section */\n.favorites-section {\r\n    margin: 0 0 30rpx 0;\n}\n.section-title {\r\n    font-size: 32rpx;\r\n    font-weight: bold;\r\n    color: #333;\r\n    margin-bottom: 20rpx;\r\n    padding: 0 10rpx;\n}\r\n/* 新增：帖子项包装器样式 */\n.post-item-wrapper {\r\n    background: #fff;\r\n    margin-bottom: 20rpx;\r\n    padding: 0;\r\n    box-shadow: none;\r\n    border-radius: 0;\r\n    border-bottom: 1rpx solid #f0f0f0;\n}\r\n/* 原创帖子特殊样式 */\n.post-item-wrapper.original-post {\r\n    background: linear-gradient(90deg, rgba(235, 200, 141, 0.05) 0%, rgba(255, 255, 255, 0) 100%);\r\n    border-left: 3rpx solid #ebc88d;\r\n    position: relative;\n}\r\n/* 新增：内容导航器样式 */\n.post-content-navigator {\r\n    display: block;\r\n    background: transparent;\n}\r\n/* 新增：导航器点击效果 */\n.navigator-hover {\r\n    background-color: rgba(0, 0, 0, 0.02);\n}\r\n/* 新增：点赞按钮容器样式 */\n.like-btn-container {\r\n    position: absolute;\r\n    top: 20rpx;\r\n    right: 20rpx;\r\n    z-index: 10;\n}\r\n/* 匿名标签样式 */\n.anonymous-tag {\r\n    background: #ff6b6b;\r\n    color: white;\r\n    font-size: 20rpx;\r\n    padding: 4rpx 8rpx;\r\n    border-radius: 10rpx;\r\n    margin-left: 10rpx;\r\n    font-weight: 500;\n}\n.like-btn {\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    background: rgba(255, 255, 255, 0.9);\r\n    border-radius: 50%;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);\r\n    transition: all 0.2s ease;\n}\n.like-btn:active {\r\n    -webkit-transform: scale(0.9);\r\n            transform: scale(0.9);\n}\n.like-icon {\r\n    font-size: 24rpx;\r\n    color: #666;\n}\n.like-icon.liked {\r\n    color: #ff4757;\n}\r\n/* 定义点击时的样式 - 整个卡片缩小 */\n.post-card-active {\r\n    -webkit-transform: scale(0.98);\r\n            transform: scale(0.98);\n}\r\n/* 外部作者信息样式 */\n.author-info-outside {\r\n    display: flex;\r\n    align-items: center;\r\n    padding: 20rpx 40rpx 10rpx 40rpx;\r\n    background: #fff;\r\n    border-radius: 0;\r\n    box-shadow: none;\n}\n.author-info-outside .author-avatar {\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    border-radius: 50%;\r\n    margin-right: 15rpx;\r\n    background-color: #f5f5f5;\r\n    cursor: pointer;\n}\n.author-info-outside .author-name {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    font-weight: 500;\n}\n.post-item {\r\n    width: 100%;\r\n    background: #fff;\r\n    border-radius: 0;\r\n    box-shadow: none;\r\n    box-sizing: border-box;\r\n    padding: 20rpx 40rpx 30rpx 40rpx;\n}\n.post-title {\r\n    font-size: 36rpx;\r\n    font-weight: bold;\r\n    color: #333333;\r\n    margin-bottom: 15rpx;\r\n    line-height: 1.4;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 2;\r\n    line-clamp: 2;\r\n    -webkit-box-orient: vertical;\n}\r\n/* 诗歌作者样式 */\n.poem-author {\r\n    font-size: 32rpx;\r\n    color: #000;\r\n    text-align: center;\r\n    margin: 5rpx 0 15rpx 0;\r\n    letter-spacing: 2rpx;\n}\r\n/* 新增：图片容器占位样式 */\n.image-container-wrapper {\r\n    position: relative;\r\n    width: 100%;\r\n    background-color: #f0f0f0; /* 占位时的背景色，很重要 */\r\n    overflow: hidden;\r\n    border-radius: 8px; /* 可以加个圆角，让占位块更好看 */\r\n    margin: 20rpx 0; /* 图片和下方内容的间距 */\n}\r\n/* 新增：让图片或swiper填充整个占位容器 */\n.image-container-wrapper .post-image,\r\n.image-container-wrapper .image-swiper {\r\n    position: absolute;\r\n    top: 0;\r\n    left: 0;\r\n    width: 100%;\r\n    height: 100%;\n}\r\n/* 多张图片的swiper样式 */\n.image-swiper {\r\n    width: 100%;\r\n    background-color: #fff;\r\n    /* 高度由 style 绑定动态设置 */\n}\n.swiper-item {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\n}\n.post-image {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: block;\r\n    object-fit: contain;\n}\n.post-image:active {\r\n    -webkit-transform: scale(1.05);\r\n            transform: scale(1.05);\n}\n.post-image.single-image {\r\n    width: 100%;\r\n    height: auto;\r\n    display: block;\r\n    object-fit: cover;\n}\r\n/* 图片数量指示器 */\n.image-count-indicator {\r\n    position: absolute;\r\n    top: 20rpx;\r\n    right: 20rpx;\r\n    background: rgba(0, 0, 0, 0.6);\r\n    color: #fff;\r\n    padding: 8rpx 12rpx;\r\n    border-radius: 20rpx;\r\n    font-size: 24rpx;\r\n    z-index: 5;\n}\n.post-content {\r\n    font-size: 28rpx;\r\n    color: #666666;\r\n    line-height: 1.6;\r\n    margin-top: 15rpx;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 3;\r\n    line-clamp: 3;\r\n    -webkit-box-orient: vertical;\n}\r\n/* 删除按钮区域样式 */\n.delete-section {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    margin-top: 20rpx;\r\n    padding: 0 40rpx 0 40rpx;\n}\r\n/* 左侧时间区域，保持原有样式 */\n.time-left {\r\n    flex: 1;\n}\n.button-group {\r\n    display: flex;\r\n    align-items: center;\n}\n.favorite-time,\r\n.post-time {\r\n    font-size: 24rpx;\r\n    color: #999;\n}\r\n/* 标签样式 */\n.post-tags {\r\n    margin-top: 30rpx;\r\n    margin-bottom: 10rpx;\r\n    line-height: 1.5;\n}\n.post-tag {\r\n    color: #24375f;\r\n    font-size: 26rpx;\r\n    margin-right: 10rpx;\r\n    transition: all 0.2s ease;\r\n    cursor: pointer;\n}\n.post-tag:active {\r\n    color: #1a2a4a;\r\n    opacity: 0.8;\n}\n.delete-btn {\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    transition: all 0.2s ease;\r\n    cursor: pointer;\r\n    padding: 10rpx;\n}\n.delete-btn:active {\r\n    -webkit-transform: scale(0.9);\r\n            transform: scale(0.9);\n}\n.delete-icon {\r\n    width: 100rpx;\r\n    height: 100rpx;\n}\n.remove-favorite-btn {\r\n    background-color: #f39c12;\r\n    color: #fff;\r\n    border: none;\r\n    border-radius: 8rpx;\r\n    font-size: 24rpx;\r\n    padding: 8rpx 16rpx;\r\n    line-height: 1.2;\r\n    min-width: 100rpx;\r\n    transition: background-color 0.2s ease;\n}\n.remove-favorite-btn:active {\r\n    background-color: #e67e22;\n}\n.remove-favorite-btn::after {\r\n    border: none;\n}\n.empty-tip {\r\n    text-align: center;\r\n    color: #bbb;\r\n    font-size: 28rpx;\r\n    margin: 40rpx 0;\r\n    padding: 60rpx 0;\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.author-info {\r\n    display: flex;\r\n    align-items: center;\r\n    /* margin-bottom: 15rpx;  // 移除多余的间距 */\n}\n.author-avatar {\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    border-radius: 50%;\r\n    margin-right: 15rpx;\r\n    background-color: #f5f5f5;\n}\n.author-name {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    font-weight: 500;\n}\n.profile-card-center {\r\n    position: relative;\r\n    margin: 0;\r\n    padding: 40rpx 40rpx 20rpx 40rpx;\r\n    background-color: transparent;\r\n    border-radius: 0;\r\n    box-shadow: none;\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    overflow: visible;\n}\n.menu-btn-small {\r\n    width: 40rpx;\r\n    height: 40rpx;\r\n    cursor: pointer;\r\n    transition: -webkit-transform 0.2s ease;\r\n    transition: transform 0.2s ease;\r\n    transition: transform 0.2s ease, -webkit-transform 0.2s ease;\r\n    -webkit-filter: grayscale(1) brightness(0.5);\r\n            filter: grayscale(1) brightness(0.5);\r\n    opacity: 0.7;\n}\n.menu-btn-small:active {\r\n    -webkit-transform: scale(0.9);\r\n            transform: scale(0.9);\n}\n.back-btn {\r\n    position: absolute;\r\n    top: 24rpx;\r\n    left: 24rpx;\r\n    width: 56rpx;\r\n    height: 56rpx;\r\n    z-index: 100;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    background: rgba(0, 0, 0, 0.1);\r\n    border-radius: 50%;\r\n    font-size: 36rpx;\r\n    color: #333;\r\n    transition: background-color 0.2s ease;\n}\n.back-btn:active {\r\n    background: rgba(0, 0, 0, 0.2);\n}\n.profile-avatar-large {\r\n    display: flex;\r\n    justify-content: center;\r\n    align-items: center;\r\n    margin: 70rpx 0 40rpx 0;\n}\n.profile-avatar-large uni-image {\r\n    width: 175rpx;\r\n    height: 175rpx;\r\n    border-radius: 50%;\r\n    display: block;\n}\n.profile-info-center {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: flex-start;\r\n    margin-top: 20rpx;\r\n    width: 100%;\n}\n.profile-name-center {\r\n    font-family: 'Inter', sans-serif;\r\n    font-weight: 600;\r\n    font-size: 30rpx;\r\n    line-height: 36rpx;\r\n    color: #000000;\r\n    margin-bottom: 20rpx;\r\n    text-align: left;\n}\n.profile-poemid {\r\n    font-family: 'Inter', sans-serif;\r\n    font-weight: 300;\r\n    font-size: 20rpx;\r\n    line-height: 24rpx;\r\n    color: #989090;\r\n    margin-bottom: 20rpx;\n}\n.profile-bio-center {\r\n      font-family: 'Inter', sans-serif;\r\n      font-weight: 600;\r\n      font-size: 24rpx;\r\n      line-height: 30rpx;\r\n      color: #000000;\r\n      text-align: left;\r\n      margin-bottom: 20rpx;\n}\n.profile-bottom-row {\r\n      display: flex;\r\n      justify-content: space-between;\r\n      align-items: center;\r\n      width: 100%;\r\n      margin-bottom: 10rpx;\n}\n.profile-buttons {\r\n      display: flex;\r\n      align-items: center;\r\n      gap: 20rpx;\n}\n.profile-followers {\r\n      font-family: 'Inter', sans-serif;\r\n      font-weight: 300;\r\n      font-size: 24rpx;\r\n      line-height: 30rpx;\r\n      color: #989090;\r\n      margin: 0;\n}\n.edit-profile-btn {\r\n      position: relative;\r\n      width: 246rpx;\r\n      height: 54rpx;\r\n      background: #D9D9D9;\r\n      border-radius: 10rpx;\r\n      display: flex;\r\n      align-items: center;\r\n      justify-content: center;\r\n      cursor: pointer;\r\n      transition: background-color 0.2s ease;\n}\n.edit-profile-btn:active {\r\n      background-color: #C0C0C0;\n}\n.edit-profile-btn uni-text {\r\n      font-family: 'Inter', sans-serif;\r\n      font-weight: 800;\r\n      font-size: 28rpx;\r\n      line-height: 34rpx;\r\n      color: #FFFFFF;\n}\n.profile-meta-center {\r\n      font-size: 26rpx;\r\n      color: #666;\r\n      margin-top: 8rpx;\r\n      text-align: center;\n}\n.profile-detail-card {\r\n    margin: 0 30rpx 30rpx 30rpx;\r\n    padding: 30rpx 40rpx;\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\r\n    display: flex;\r\n    flex-direction: row;\r\n    align-items: center;\r\n    justify-content: center;\r\n    gap: 40rpx;\n}\n.detail-item-inline {\r\n    font-size: 28rpx;\r\n    color: #666;\r\n    margin-right: 20rpx;\r\n    white-space: nowrap;\n}\r\n/* 底部加载状态样式 */\n.loading-footer {\r\n    text-align: center;\r\n    padding: 20rpx 0;\r\n    color: #999;\r\n    font-size: 14px;\n}\n.unread-dot {\r\n    width: 16rpx;\r\n    height: 16rpx;\r\n    background-color: #ff6b6b;\r\n    border-radius: 50%;\r\n    margin-left: 12rpx;\n}\r\n/* Follow stats under bio */\n.follow-stats {\r\n    margin-top: 16rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    gap: 40rpx;\n}\n.stat-item {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\n}\n.stat-number {\r\n    font-size: 36rpx;\r\n    font-weight: 600;\r\n    color: #333;\n}\n.stat-label {\r\n    margin-top: 4rpx;\r\n    font-size: 24rpx;\r\n    color: #888;\n}\n.stat-divider {\r\n    width: 1rpx;\r\n    height: 36rpx;\r\n    background-color: #eee;\n}\r\n/* 书籍样式作品集 */\n.books-container {\r\n    padding: 40rpx 30rpx 0 30rpx;\r\n    background: #fff;\r\n    margin: 0 30rpx 30rpx 30rpx;\r\n    border-radius: 16rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.books-shelf {\r\n    display: flex;\r\n    justify-content: flex-end;\r\n    align-items: flex-end;\r\n    gap: 0;\r\n    position: relative;\r\n    padding-bottom: 18rpx;\n}\n.shelf-line {\r\n    position: absolute;\r\n    bottom: 0;\r\n    right: 0;\r\n    height: 18rpx;\r\n    background: #000;\r\n    border-radius: 4rpx;\r\n    z-index: 1;\n}\n.book {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    cursor: pointer;\r\n    transition: -webkit-transform 0.2s ease;\r\n    transition: transform 0.2s ease;\r\n    transition: transform 0.2s ease, -webkit-transform 0.2s ease;\r\n    position: relative;\r\n    margin-bottom: 0;\n}\n.book:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.book-spine {\r\n    width: 72rpx;\r\n    height: 224rpx;\r\n    border-radius: 20rpx 20rpx 0 0;\r\n    position: relative;\r\n    box-shadow: 2rpx 2rpx 8rpx rgba(0, 0, 0, 0.2);\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\n}\n.book-1 .book-spine {\r\n    background: #809076;\n}\n.book-2 .book-spine {\r\n    background: #f9d794;\n}\n.book-2 .spine-text {\r\n    color: #333;\n}\n.book-3 .book-spine {\r\n    background: #2b4139;\n}\n.book-4 .book-spine {\r\n    background: #d4a574;\n}\n.book-5 .book-spine {\r\n    background: #8b7d6b;\n}\n.book-6 .book-spine {\r\n    background: #a4c4bd;\n}\n.book-7 .book-spine {\r\n    background: #c9cfcf;\n}\n.book-8 .book-spine {\r\n    background: #906161;\n}\n.book-9 .book-spine {\r\n    background: #909388;\n}\n.book-10 .book-spine {\r\n    background: #b8a082;\n}\n.book-11 .book-spine {\r\n    background: #7a8471;\n}\n.book-12 .book-spine {\r\n    background: #9b8b7a;\n}\r\n/* 为浅色背景的书脊设置深色文字 */\n.book-2 .spine-text,\r\n.book-4 .spine-text,\r\n.book-6 .spine-text,\r\n.book-7 .spine-text,\r\n.book-9 .spine-text,\r\n.book-10 .spine-text,\r\n.book-11 .spine-text,\r\n.book-12 .spine-text {\r\n    color: #333;\n}\n.spine-content {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    gap: 8rpx;\n}\n.spine-text {\r\n    font-size: 28rpx;\r\n    font-weight: 300;\r\n    color: #fff;\r\n    text-shadow: 0 1rpx 2rpx rgba(0, 0, 0, 0.3);\r\n    line-height: 1.2;\n}\n.empty-portfolio {\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    height: 200rpx;\n}\n.empty-text {\r\n    font-size: 28rpx;\r\n    color: #999;\n}\n.profile-growth-stats {\r\n    position: absolute;\r\n    top: 120rpx;\r\n    right: 40rpx;\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: flex-end;\r\n    gap: 18rpx;\n}\n.growth-item {\r\n    display: flex;\r\n    align-items: center;\r\n    gap: 12rpx;\n}\n.growth-icon {\r\n    width: 48rpx;\r\n    height: 48rpx;\n}\n.growth-count {\r\n    font-size: 30rpx;\r\n    font-weight: 600;\r\n    color: #333;\n}\n.visibility-btn {\r\n    margin-right: 20rpx;\r\n    padding: 10rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    transition: all 0.2s ease;\r\n    cursor: pointer;\n}\n.visibility-btn:active { \r\n    -webkit-transform: scale(0.9); \r\n            transform: scale(0.9);\n}\n.visibility-icon {\r\n    width: 60rpx;\r\n    height: 60rpx;\n}\n.hidden-tag { \r\n    font-size: 22rpx; \r\n    color: #ff6b6b; \r\n    margin-left: 8rpx; \r\n    padding: 2rpx 8rpx; \r\n    border: 1rpx solid #ffadb0; \r\n    border-radius: 6rpx;\n}\r\n\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -12825,7 +13078,7 @@ var render = function () {
                     _c(
                       "uni-view",
                       { staticClass: _vm._$g(71, "sc"), attrs: { _i: 71 } },
-                      [_vm._v("共" + _vm._$g(71, "t0-0") + " 条评论")]
+                      [_vm._v("共" + _vm._$g(71, "t0-0") + "条评论")]
                     ),
                     _vm._$g(72, "i")
                       ? _c(
@@ -14422,8 +14675,11 @@ var render = function () {
                         staticClass: _vm._$g(153, "sc"),
                         attrs: {
                           src: _vm._$g(153, "a-src"),
-                          mode: "aspectFit",
-                          "show-menu-by-longpress": false,
+                          mode: "widthFix",
+                          "show-menu-by-longpress": _vm._$g(
+                            153,
+                            "a-show-menu-by-longpress"
+                          ),
                           _i: 153,
                         },
                         on: {
@@ -14438,6 +14694,26 @@ var render = function () {
                           },
                         },
                       }),
+                  _c(
+                    "uni-view",
+                    { staticClass: _vm._$g(154, "sc"), attrs: { _i: 154 } },
+                    [
+                      _c("v-uni-image", {
+                        staticClass: _vm._$g(155, "sc"),
+                        attrs: {
+                          src: "/static/images/download.png",
+                          mode: "widthFix",
+                          _i: 155,
+                        },
+                        on: {
+                          click: function ($event) {
+                            return _vm.$handleViewEvent($event, { stop: true })
+                          },
+                        },
+                      }),
+                    ],
+                    1
+                  ),
                 ],
                 1
               ),
@@ -14450,10 +14726,12 @@ var render = function () {
           position: "fixed",
           top: "-9999px",
           left: "-9999px",
-          width: "600px",
-          height: "800px",
+          width: "750px",
+          "border-radius": "15px",
+          overflow: "hidden",
         },
-        attrs: { id: "shareCanvas", "canvas-id": "shareCanvas", _i: 154 },
+        style: _vm._$g(156, "s"),
+        attrs: { id: "shareCanvas", "canvas-id": "shareCanvas", _i: 156 },
       }),
     ],
     1
@@ -15329,7 +15607,7 @@ var ___CSS_LOADER_URL_IMPORT_0___ = __webpack_require__(/*! @/static/fonts/Huiwe
 exports = ___CSS_LOADER_API_IMPORT___(false);
 var ___CSS_LOADER_URL_REPLACEMENT_0___ = ___CSS_LOADER_GET_URL_IMPORT___(___CSS_LOADER_URL_IMPORT_0___);
 // Module
-exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* pages/post-detail/post-detail.wxss */\r\n\r\n/* 自定义返回按钮 */\n.custom-back-btn {\r\n    position: absolute;\r\n    top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px))); /* 添加安全区域偏移 */\r\n    left: 40rpx;\r\n    width: 100rpx;\r\n    height: 100rpx;\r\n    background: transparent;\r\n    border: none;\r\n    display: block;\r\n    z-index: 100;\r\n    transition: all 0.2s ease;\r\n    box-sizing: border-box;\n}\n.custom-back-btn:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.custom-back-btn .back-icon {\r\n    width: 100rpx;\r\n    height: 100rpx;\r\n    display: block;\r\n    object-fit: contain;\n}\n.container {\r\n    background-color: #ffffff;\r\n    min-height: 100vh;\r\n    padding-bottom: 140rpx;\r\n    padding-top: calc(160rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px))); /* 添加安全区域上边距 */\r\n    position: relative; /* 为返回按钮提供定位上下文 */\n}\n.post-detail-skeleton {\r\n    padding: 0;\n}\n.skeleton-wrapper {\r\n    background: #fff;\r\n    padding: 40rpx 40rpx 20rpx 40rpx;\r\n    border-bottom: 1rpx solid #f0f0f0;\r\n    margin-bottom: 0;\n}\n.comment-skeleton-item {\r\n    display: flex;\r\n    align-items: flex-start;\r\n    background-color: #fff;\r\n    padding: 20rpx 40rpx;\r\n    border-bottom: 1rpx solid #f5f5f5;\n}\n.skeleton-header {\r\n    display: flex;\r\n    align-items: center;\r\n    margin-bottom: 24rpx;\n}\n.skeleton-avatar {\r\n    width: 88rpx;\r\n    height: 88rpx;\r\n    border-radius: 50%;\r\n    background-color: #e9edf3;\n}\n.skeleton-header-text {\r\n    flex: 1;\r\n    margin-left: 24rpx;\n}\n.skeleton-line {\r\n    height: 24rpx;\r\n    background-color: #e9edf3;\r\n    border-radius: 999rpx;\r\n    margin-bottom: 16rpx;\n}\n.skeleton-line:last-child {\r\n    margin-bottom: 0;\n}\n.skeleton-line.long {\r\n    width: 100%;\n}\n.skeleton-line.medium {\r\n    width: 70%;\n}\n.skeleton-line.short {\r\n    width: 45%;\n}\n.skeleton-line.xshort {\r\n    width: 30%;\n}\n.skeleton-image {\r\n    width: 100%;\r\n    height: 340rpx;\r\n    border-radius: 20rpx;\r\n    background-color: #e9edf3;\r\n    margin: 30rpx 0;\n}\n.skeleton-section-title {\r\n    width: 50%;\r\n    height: 28rpx;\r\n    border-radius: 999rpx;\r\n    background-color: #e9edf3;\r\n    margin: 10rpx 0 30rpx;\n}\n.comment-skeleton-list {\r\n    display: flex;\r\n    flex-direction: column;\r\n    gap: 24rpx;\n}\n.comment-skeleton-item {\r\n    display: flex;\r\n    align-items: flex-start;\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    padding: 24rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.comment-skeleton-body {\r\n    flex: 1;\r\n    margin-left: 24rpx;\n}\n.comment-skeleton-body .skeleton-line {\r\n    height: 20rpx;\n}\n.skeleton-animate {\r\n    position: relative;\r\n    overflow: hidden;\n}\n.skeleton-animate::after {\r\n    content: '';\r\n    position: absolute;\r\n    top: 0;\r\n    left: -150%;\r\n    width: 150%;\r\n    height: 100%;\r\n    background: linear-gradient(90deg, rgba(233, 237, 243, 0) 0%, rgba(255, 255, 255, 0.9) 50%, rgba(233, 237, 243, 0) 100%);\r\n    -webkit-animation: skeletonPulse 1.2s ease-in-out infinite;\r\n            animation: skeletonPulse 1.2s ease-in-out infinite;\n}\n@-webkit-keyframes skeletonPulse {\n0% {\r\n        left: -150%;\n}\n100% {\r\n        left: 100%;\n}\n}\n@keyframes skeletonPulse {\n0% {\r\n        left: -150%;\n}\n100% {\r\n        left: 100%;\n}\n}\n.error-container {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 100rpx 40rpx;\r\n    text-align: center;\n}\n.error-icon {\r\n    font-size: 120rpx;\r\n    margin-bottom: 30rpx;\r\n    opacity: 0.6;\n}\n.error-text {\r\n    font-size: 32rpx;\r\n    color: #666;\n}\n.post-detail-wrapper {\r\n    background: #fff;\r\n    padding: 40rpx 40rpx 20rpx 40rpx;\r\n    border-bottom: 1rpx solid #f0f0f0;\r\n    margin-bottom: 0;\n}\n.post-detail-wrapper.original-post {\r\n    background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 90%, rgba(235, 200, 141, 0.05) 95%, rgba(235, 200, 141, 0.08) 100%);\r\n    border-left: 3rpx solid #ebc88d;\r\n    position: relative;\n}\n.post-detail-wrapper.poem-post {\r\n    background: #ffffff !important;\n}\n.author-info {\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: flex-start;\r\n    margin-bottom: 20rpx;\r\n    gap: 20rpx;\n}\n.author-basic {\r\n    display: flex;\r\n    align-items: center;\r\n    flex: 1;\r\n    min-width: 0;\r\n    gap: 12rpx;\r\n    flex-wrap: wrap;\n}\n.follow-btn {\r\n    padding: 0 28rpx;\r\n    height: 60rpx;\r\n    line-height: 60rpx;\r\n    background-color: #9ed7ee;\r\n    color: #ffffff;\r\n    border: none;\r\n    border-radius: 999rpx;\r\n    font-size: 26rpx;\r\n    flex-shrink: 0;\r\n    margin-left: auto;\n}\n.follow-btn.following {\r\n    background-color: #f0f0f0;\r\n    color: #666666;\n}\n.follow-btn::after {\r\n    border: none;\n}\n.follow-btn[disabled] {\r\n    opacity: 0.7;\n}\n.author-avatar {\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    border-radius: 50%;\r\n    margin-right: 15rpx;\r\n    background-color: #f5f5f5;\n}\n.author-name {\r\n    font-weight: bold;\r\n    font-size: 28rpx;\r\n    color: #333;\n}\n.post-title {\r\n    font-size: 36rpx;\r\n    font-weight: bold;\r\n    margin-bottom: 15rpx;\r\n    line-height: 1.4;\r\n    color: #333;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 2;\r\n    -webkit-box-orient: vertical;\n}\n.poem-author {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    text-align: left;\r\n    margin: 10rpx 0 15rpx 0;\r\n    font-weight: bold;\r\n    letter-spacing: 2rpx;\n}\n.post-content {\r\n    font-size: 28rpx;\r\n    line-height: 1.6;\r\n    margin-bottom: 20rpx;\r\n    white-space: pre-wrap;\r\n    color: #666;\r\n    word-break: break-word;\n}\n.image-container {\r\n    position: relative;\r\n    width: 100%;\r\n    margin: 20rpx 0;\r\n    background-color: #f5f5f5;\n}\n.post-image {\r\n    width: 100%;\r\n    height: auto;\r\n    display: block;\r\n    background-color: #f5f5f5;\r\n    transition: -webkit-transform 0.3s ease;\r\n    transition: transform 0.3s ease;\r\n    transition: transform 0.3s ease, -webkit-transform 0.3s ease;\n}\n.post-image:active {\r\n    -webkit-transform: scale(1.05);\r\n            transform: scale(1.05);\n}\n.post-image.single-image {\r\n    width: 100% !important;\r\n    height: auto !important;\r\n    display: block !important;\r\n    background-color: #f5f5f5;\n}\n.image-count-indicator {\r\n    position: absolute;\r\n    top: 20rpx;\r\n    right: 20rpx;\r\n    background-color: rgba(0, 0, 0, 0.6);\r\n    color: white;\r\n    padding: 8rpx 16rpx;\r\n    border-radius: 20rpx;\r\n    font-size: 24rpx;\r\n    z-index: 10;\r\n    -webkit-backdrop-filter: blur(10rpx);\r\n            backdrop-filter: blur(10rpx);\n}\n.post-meta {\r\n    margin-bottom: 15rpx;\n}\n.post-time {\r\n    font-size: 24rpx;\r\n    color: #999;\r\n    opacity: 0.8;\n}\n.vote-section {\r\n    display: flex;\r\n    justify-content: flex-end;\r\n    align-items: center;\r\n    margin-top: 10rpx;\r\n    padding: 10rpx 40rpx 0 40rpx;\n}\n.actions-left {\r\n    display: flex;\r\n    align-items: center;\n}\n.vote-count,\r\n.comment-count {\r\n    display: flex;\r\n    align-items: center;\r\n    font-size: 28rpx;\r\n    color: #999;\r\n    margin-left: 10rpx;\r\n    transition: color 0.2s ease;\n}\n.action-emoji {\r\n    font-size: 28rpx;\r\n    margin-right: 8rpx;\n}\n.action-text {\r\n    font-size: 28rpx;\r\n    color: inherit;\n}\n.like-icon-container {\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 12rpx;\r\n    border-radius: 12rpx;\r\n    transition: all 0.2s ease;\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    margin-right: 12rpx;\n}\n.like-icon-container:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.vote-count.voted {\r\n    color: #ff4757;\n}\n.button-group {\r\n    display: flex;\r\n    align-items: center;\n}\n.favorite-icon-container {\r\n    margin-right: 12rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 12rpx;\r\n    border-radius: 12rpx;\r\n    transition: all 0.2s ease;\r\n    width: 60rpx;\r\n    height: 60rpx;\n}\n.favorite-icon-container:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.favorite-icon {\r\n    width: 56rpx;\r\n    height: 56rpx;\r\n    opacity: 1;\n}\n.favorite-icon-container.favorited .favorite-icon {\r\n    opacity: 0.6;\n}\n.portfolio-icon-container {\r\n    margin-right: 12rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 12rpx;\r\n    border-radius: 12rpx;\r\n    transition: all 0.2s ease;\r\n    width: 60rpx;\r\n    height: 60rpx;\n}\n.portfolio-icon-container:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.portfolio-icon {\r\n    width: 56rpx;\r\n    height: 56rpx;\n}\n.share-icon-container {\r\n    margin-right: 12rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 12rpx;\r\n    border-radius: 12rpx;\r\n    transition: all 0.2s ease;\r\n    width: 60rpx;\r\n    height: 60rpx;\n}\n.share-icon-container:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.share-icon {\r\n    width: 56rpx;\r\n    height: 56rpx;\n}\n.discussion-icon-container {\r\n    margin-right: 12rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 12rpx;\r\n    border-radius: 12rpx;\r\n    transition: all 0.2s ease;\r\n    width: 60rpx;\r\n    height: 60rpx;\n}\n.discussion-icon-container:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.discussion-icon {\r\n    width: 56rpx;\r\n    height: 56rpx;\n}\n.comment-icon-container {\r\n    margin-right: 0;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 12rpx;\r\n    border-radius: 12rpx;\r\n    transition: all 0.2s ease;\r\n    width: 60rpx;\r\n    height: 60rpx;\n}\n.comment-icon-container:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.comment-icon {\r\n    width: 56rpx;\r\n    height: 56rpx;\n}\n.like-icon {\r\n    width: 56rpx;\r\n    height: 56rpx;\n}\n.comment-section {\r\n    background: #fff;\r\n    padding: 30rpx 40rpx;\r\n    border-bottom: 1rpx solid #f0f0f0;\n}\n.section-title {\r\n    font-size: 26rpx;\r\n    font-weight: normal;\r\n    margin-bottom: 20rpx;\r\n    padding-bottom: 15rpx;\r\n    border-bottom: 1rpx solid #f0f0f0;\r\n    color: #999;\r\n    margin-left: 0;\r\n    text-align: left;\n}\n.comment-list {\r\n    margin-top: 20rpx;\n}\n.comment-item {\r\n    display: flex;\r\n    margin-bottom: 0;\r\n    padding: 20rpx 0;\r\n    border-bottom: 1rpx solid #f0f0f0;\n}\n.comment-item:last-child {\r\n    border-bottom: none;\r\n    margin-bottom: 0;\n}\n.comment-avatar {\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    border-radius: 50%;\r\n    margin-right: 15rpx;\r\n    flex-shrink: 0;\r\n    background-color: #f5f5f5;\r\n    margin-left: 0;\n}\n.comment-main {\r\n    display: flex;\r\n    flex-direction: column;\r\n    flex: 1;\r\n    min-width: 0;\n}\n.comment-author {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    font-weight: bold;\r\n    margin-bottom: 8rpx;\n}\n.comment-content {\r\n    font-size: 28rpx;\r\n    color: #666;\r\n    line-height: 1.5;\r\n    word-break: break-word;\r\n    margin-bottom: 10rpx;\n}\n.comment-image-grid {\r\n    display: flex;\r\n    flex-direction: column;\r\n    gap: 12rpx;\r\n    margin-bottom: 12rpx;\n}\n.comment-image {\r\n    width: 100%;\r\n    height: 400rpx;\r\n    border-radius: 12rpx;\r\n    background-color: #f2f2f2;\r\n    display: block;\r\n    object-fit: cover;\n}\n.reply-image-grid {\r\n    margin-top: 10rpx;\n}\n.comment-footer {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    width: 100%;\r\n    margin-right: 40rpx;\n}\n.comment-time {\r\n    font-size: 24rpx;\r\n    color: #999;\r\n    opacity: 0.8;\n}\n.comment-actions {\r\n    display: flex;\r\n    align-items: center;\n}\n.like-section {\r\n    display: flex;\r\n    align-items: center;\r\n    padding: 8rpx 12rpx;\r\n    margin-right: 15rpx;\r\n    transition: all 0.2s ease;\n}\n.like-section:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.like-section .like-icon {\r\n    width: 32rpx;\r\n    height: 32rpx;\r\n    margin-right: 8rpx;\n}\n.like-count {\r\n    font-size: 26rpx;\r\n    color: #666;\n}\n.delete-btn {\r\n    display: flex;\r\n    align-items: center;\r\n    padding: 8rpx 12rpx;\r\n    margin-right: 15rpx;\r\n    transition: opacity 0.2s ease;\n}\n.delete-btn:active {\r\n    opacity: 0.7;\n}\n.delete-text {\r\n    font-size: 26rpx;\r\n    color: #ff4d4f;\n}\n.reply-btn {\r\n    display: flex;\r\n    align-items: center;\r\n    padding: 8rpx 12rpx;\r\n    transition: opacity 0.2s ease;\n}\n.reply-btn:active {\r\n    opacity: 0.7;\n}\n.reply-text {\r\n    font-size: 26rpx;\r\n    color: #9ed7ee;\n}\n.replies-container {\r\n    margin-top: 15rpx;\r\n    margin-left: 10rpx;\r\n    padding-left: 10rpx;\r\n    border-left: 2rpx solid #f0f0f0;\n}\n.reply-item {\r\n    display: flex;\r\n    margin-bottom: 15rpx;\n}\n.reply-avatar {\r\n    width: 40rpx;\r\n    height: 40rpx;\r\n    border-radius: 50%;\r\n    margin-right: 10rpx;\r\n    flex-shrink: 0;\r\n    background-color: #f5f5f5;\n}\n.reply-main {\r\n    display: flex;\r\n    flex-direction: column;\r\n    flex: 1;\r\n    min-width: 0;\n}\n.reply-author {\r\n    font-size: 24rpx;\r\n    color: #333;\r\n    font-weight: bold;\r\n    margin-bottom: 4rpx;\n}\n.reply-content {\r\n    font-size: 26rpx;\r\n    color: #666;\r\n    line-height: 1.4;\r\n    word-break: break-word;\n}\n.reply-to {\r\n    color: #9ed7ee;\r\n    font-weight: bold;\n}\n.reply-footer {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    margin-top: 8rpx;\n}\n.reply-time {\r\n    font-size: 22rpx;\r\n    color: #999;\r\n    opacity: 0.8;\n}\n.reply-actions {\r\n    display: flex;\r\n    align-items: center;\n}\n.show-more-replies {\r\n    padding: 10rpx 0;\r\n    transition: opacity 0.2s ease;\n}\n.show-more-replies:active {\r\n    opacity: 0.7;\n}\n.show-more-text {\r\n    font-size: 24rpx;\r\n    color: #9ed7ee;\n}\n.no-comment-tip {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 60rpx 40rpx;\r\n    text-align: center;\n}\n.empty-icon {\r\n    font-size: 80rpx;\r\n    margin-bottom: 20rpx;\r\n    opacity: 0.6;\n}\n.empty-text {\r\n    font-size: 28rpx;\r\n    color: #999;\n}\n.input-overlay {\r\n    position: fixed;\r\n    top: 0;\r\n    left: 0;\r\n    width: 100%;\r\n    height: 100%;\r\n    background-color: rgba(0, 0, 0, 0.4);\r\n    z-index: 99;\r\n    opacity: 0;\r\n    pointer-events: none;\r\n    transition: opacity 0.3s ease;\n}\n.input-overlay.show {\r\n    opacity: 1;\r\n    pointer-events: auto;\n}\n.comment-input-area {\r\n    position: fixed;\r\n    left: 0;\r\n    right: 0;\r\n    bottom: 0;\r\n    background-color: #ffffff;\r\n    z-index: 100;\r\n    transition: bottom 0.2s ease-out;\r\n    padding-bottom: constant(safe-area-inset-bottom);\r\n    padding-bottom: env(safe-area-inset-bottom);\n}\n.collapsed-bar {\r\n    padding: 16rpx 40rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    border-top: 1rpx solid #f0f0f0;\n}\n.collapsed-input-placeholder {\r\n    flex: 1;\r\n    height: 68rpx;\r\n    line-height: 68rpx;\r\n    padding: 0 24rpx;\r\n    background-color: #f7f8fa;\r\n    border-radius: 34rpx;\r\n    font-size: 28rpx;\r\n    color: #999;\n}\n.expanded-container {\r\n    padding: 20rpx 40rpx;\r\n    display: flex;\r\n    flex-direction: column;\r\n    border-top: 1rpx solid #f0f0f0;\n}\n.expanded-textarea {\r\n    width: 100%;\r\n    min-height: 180rpx;\r\n    max-height: 350rpx;\r\n    padding: 20rpx 24rpx;\r\n    background-color: #ffffff;\r\n    border-radius: 0;\r\n    font-size: 30rpx;\r\n    line-height: 1.6;\r\n    box-sizing: border-box;\r\n    border: none;\r\n    -webkit-appearance: none;\r\n    -webkit-box-sizing: border-box;\r\n    -webkit-user-select: text;\r\n    -webkit-touch-callout: default;\r\n    outline: none;\n}\n.expanded-actions {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    margin-top: 20rpx;\r\n    width: 100%;\n}\n.action-icons {\r\n    display: flex;\r\n    gap: 24rpx;\n}\n.action-icon {\r\n    width: 100rpx;\r\n    height: 100rpx;\r\n    border-radius: 0;\r\n    background: transparent;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    transition: -webkit-transform 0.2s ease;\r\n    transition: transform 0.2s ease;\r\n    transition: transform 0.2s ease, -webkit-transform 0.2s ease;\n}\n.action-icon:active {\r\n    -webkit-transform: scale(0.92);\r\n            transform: scale(0.92);\r\n    background: transparent;\n}\n.action-icon-text {\r\n    font-size: 36rpx;\n}\n.action-icon-image {\r\n    width: 80rpx;\r\n    height: 80rpx;\n}\n.selected-comment-images {\r\n    display: flex;\r\n    flex-wrap: wrap;\r\n    gap: 12rpx;\r\n    margin-top: 16rpx;\n}\n.selected-image-item {\r\n    position: relative;\r\n    width: 150rpx;\r\n    height: 150rpx;\r\n    border-radius: 12rpx;\r\n    overflow: hidden;\n}\n.selected-image-thumb {\r\n    width: 100%;\r\n    height: 100%;\r\n    background-color: #f2f2f2;\r\n    display: block;\n}\n.remove-image-btn {\r\n    position: absolute;\r\n    top: 6rpx;\r\n    right: 6rpx;\r\n    width: 36rpx;\r\n    height: 36rpx;\r\n    border-radius: 50%;\r\n    background: rgba(0, 0, 0, 0.55);\r\n    color: #fff;\r\n    font-size: 24rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\n}\n.emoji-panel {\r\n    margin-top: 16rpx;\r\n    padding: 20rpx 18rpx;\r\n    background: #f6f7f9;\r\n    border-radius: 16rpx;\r\n    display: flex;\r\n    flex-wrap: wrap;\r\n    gap: 18rpx;\n}\n.emoji-item {\r\n    font-size: 36rpx;\r\n    padding: 6rpx 10rpx;\n}\n.reply-prompt {\r\n    display: flex;\r\n    justify-content: flex-start;\r\n    align-items: center;\r\n    margin-bottom: 15rpx;\r\n    padding: 0 10rpx;\n}\n.reply-prompt-text {\r\n    font-size: 26rpx;\r\n    color: #666;\n}\n.cancel-reply .cancel-text {\r\n    font-size: 26rpx;\r\n    color: #9ed7ee;\n}\n.submit-button {\r\n    width: 120rpx !important;\r\n    height: 64rpx !important;\r\n    line-height: 64rpx !important;\r\n    background-color: #9ed7ee;\r\n    color: white;\r\n    border-radius: 32rpx;\r\n    font-size: 28rpx;\r\n    padding: 0 !important;\r\n    margin: 0 !important;\r\n    border: none !important;\r\n    box-sizing: border-box !important;\r\n    flex-shrink: 0;\r\n    transition: background-color 0.2s ease;\n}\n.submit-button[disabled] {\r\n    background-color: #b3e6c9;\r\n    color: #ffffff;\n}\n.submit-button::after {\r\n    border: none;\n}\n.swiper-wrapper {\r\n    position: relative;\r\n    width: 100%;\n}\n.image-swiper {\r\n    width: 100%;\r\n    background-color: #f0f0f0;\r\n    border-radius: 12rpx;\r\n    overflow: hidden;\n}\n.swiper-item {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\n}\n.post-image {\r\n    max-width: 100%;\r\n    max-height: 100%;\n}\n.image-count-indicator {\r\n    position: absolute;\r\n    bottom: 20rpx;\r\n    right: 20rpx;\r\n    background-color: rgba(0, 0, 0, 0.6);\r\n    color: white;\r\n    padding: 8rpx 16rpx;\r\n    border-radius: 20rpx;\r\n    font-size: 24rpx;\r\n    z-index: 10;\r\n    -webkit-backdrop-filter: blur(10rpx);\r\n            backdrop-filter: blur(10rpx);\n}\n.post-tags {\r\n    margin: 30rpx 0 10rpx 0;\r\n    line-height: 1.5;\n}\n.post-tag {\r\n    color: #24375f;\r\n    font-size: 26rpx;\r\n    margin-right: 10rpx;\r\n    transition: all 0.2s ease;\r\n    cursor: pointer;\n}\n.post-tag:active {\r\n    color: #1a2a4a;\r\n    opacity: 0.8;\n}\n.mutual-tag {\r\n    font-size: 24rpx;\r\n    padding: 4rpx 16rpx;\r\n    border-radius: 999rpx;\r\n    background-color: #e6f4ff;\r\n    color: #1f6fd2;\r\n    flex-shrink: 0;\n}\n.followed-tag {\r\n    font-size: 24rpx;\r\n    padding: 4rpx 16rpx;\r\n    border-radius: 999rpx;\r\n    background-color: #f4ebff;\r\n    color: #7c55c7;\r\n    flex-shrink: 0;\n}\r\n\r\n/* 模式切换样式 */\n.mode-switcher {\r\n    display: flex;\r\n    background: #f7f8fa;\r\n    border-radius: 25rpx;\r\n    padding: 6rpx;\r\n    margin-bottom: 20rpx;\r\n    border: 2rpx solid #e9ecef;\n}\n.mode-item {\r\n    flex: 1;\r\n    text-align: center;\r\n    padding: 16rpx 24rpx;\r\n    border-radius: 20rpx;\r\n    transition: all 0.3s ease;\r\n    position: relative;\n}\n.mode-item.active {\r\n    background: #9ed7ee;\r\n    box-shadow: 0 2rpx 8rpx rgba(158, 215, 238, 0.3);\n}\n.mode-text {\r\n    font-size: 28rpx;\r\n    font-weight: 500;\r\n    color: #666;\r\n    transition: color 0.3s ease;\n}\n.mode-item.active .mode-text {\r\n    color: #fff;\r\n    font-weight: 600;\n}\r\n\r\n/* 讨论标题输入样式 */\n.discussion-title-wrapper {\r\n    margin-bottom: 15rpx;\r\n    border-bottom: 1rpx solid #f0f0f0;\r\n    padding-bottom: 15rpx;\n}\n.discussion-title-input {\r\n    width: 100%;\r\n    height: 80rpx;\r\n    line-height: 80rpx;\r\n    padding: 0 24rpx;\r\n    background-color: #ffffff;\r\n    border: 1rpx solid #e9ecef;\r\n    border-radius: 12rpx;\r\n    font-size: 30rpx;\r\n    color: #333;\r\n    box-sizing: border-box;\n}\n.discussion-title-input::-webkit-input-placeholder {\r\n    color: #999;\n}\n.discussion-title-input::placeholder {\r\n    color: #999;\n}\r\n\r\n/* 讨论类型帖子样式 */\n.discussion-content {\r\n    margin: 20rpx 0;\n}\n.discussion-sentence-group {\r\n    margin-bottom: 30rpx;\n}\n.discussion-sentence-card {\r\n    background: #f5f5f5; /* 添加灰色背景 */\r\n    border-radius: 12rpx; /* 添加圆角 */\r\n    padding: 30rpx;\r\n    margin-bottom: 20rpx;\r\n    width: 100%;\r\n    min-height: 120rpx;\r\n    position: relative;\r\n    box-sizing: border-box;\r\n    max-width: 100%;\n}\n.discussion-sentence-content {\r\n    position: relative;\r\n    width: 100%;\r\n    display: flex;\r\n    flex-direction: column;\r\n    justify-content: center;\r\n    align-items: flex-start;\r\n    box-sizing: border-box;\r\n    max-width: 100%;\n}\n.discussion-sentence-line {\r\n    font-family: 'Inter', sans-serif;\r\n    font-style: italic;\r\n    font-weight: 600;\r\n    font-size: 40rpx;\r\n    line-height: 48rpx;\r\n    color: #989090;\r\n    display: block;\r\n    margin-bottom: 8rpx;\r\n    word-wrap: break-word;\r\n    word-break: break-all;\r\n    width: 100%;\r\n    max-width: 100%;\r\n    box-sizing: border-box;\r\n    overflow-wrap: break-word;\n}\n.discussion-sentence-line:last-child {\r\n    margin-bottom: 0;\n}\n.discussion-comment {\r\n    font-family: 'Inter', sans-serif;\r\n    font-weight: 600;\r\n    font-size: 32rpx;\r\n    line-height: 38rpx;\r\n    color: #000000;\r\n    margin-top: 20rpx;\r\n    padding: 20rpx 0; /* 移除左右padding，只保留上下padding */\r\n    background: transparent; /* 移除灰色背景 */\r\n    border-radius: 0; /* 移除圆角 */\r\n    word-wrap: break-word;\r\n    word-break: break-all;\r\n    width: 100%;\r\n    max-width: 100%;\r\n    box-sizing: border-box;\r\n    overflow-wrap: break-word;\n}\r\n\r\n/* 分享弹窗样式 */\n.share-modal-overlay {\r\n    position: fixed;\r\n    top: 0;\r\n    left: 0;\r\n    right: 0;\r\n    bottom: 0;\r\n    background: rgba(0, 0, 0, 0.5);\r\n    z-index: 998;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\n}\n.share-modal {\r\n    background: white;\r\n    width: 90%;\r\n    max-width: 500rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    z-index: 999;\r\n    border-radius: 20rpx;\r\n    padding: 20rpx;\r\n    box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.3);\n}\n.share-loading {\r\n    display: flex;\r\n    justify-content: center;\r\n    align-items: center;\r\n    height: 400rpx;\r\n    font-size: 28rpx;\r\n    color: #666;\n}\n.share-generated-image {\r\n    width: 100%;\r\n    max-width: 500rpx;\r\n    height: auto;\r\n    min-height: 200rpx;\r\n    border-radius: 30rpx;\r\n    box-shadow: 0 8rpx 8rpx rgba(0, 0, 0, 0.25);\r\n    display: block;\r\n    opacity: 1;\r\n    visibility: visible;\r\n    position: relative;\r\n    z-index: 1;\n}\n.share-preview-card {\r\n    border-radius: 16rpx;\r\n    padding: 40rpx;\r\n    position: relative;\r\n    min-height: 200rpx;\r\n    box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);\n}\n.share-preview-content {\r\n    font-family: 'Huiwen-mincho', sans-serif;\r\n    font-size: 28rpx;\r\n    line-height: 38rpx;\r\n    white-space: pre-wrap;\r\n    margin-bottom: 20rpx;\n}\n.share-preview-signature {\r\n    position: absolute;\r\n    bottom: 20rpx;\r\n    right: 20rpx;\n}\n.share-signature-image {\r\n    width: 180rpx;\r\n    height: 90rpx;\r\n    opacity: 0.8;\n}\n.share-actions {\r\n    display: flex;\r\n    justify-content: center;\n}\n.share-download-btn {\r\n    background: #007AFF;\r\n    color: white;\r\n    border: none;\r\n    border-radius: 12rpx;\r\n    padding: 24rpx 60rpx;\r\n    font-size: 30rpx;\r\n    font-weight: 600;\n}\n.share-download-btn:active {\r\n    background: #0056CC;\n}\r\n\r\n/* 定义 Huiwen-mincho 字体 */\n@font-face {\r\n  font-family: 'Huiwen-mincho';\r\n  src: url(" + ___CSS_LOADER_URL_REPLACEMENT_0___ + ") format('opentype');\r\n  font-weight: normal;\r\n  font-style: normal;\n}\r\n", ""]);
+exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* pages/post-detail/post-detail.wxss */\r\n\r\n/* 自定义返回按钮 */\n.custom-back-btn {\r\n    position: absolute;\r\n    top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px))); /* 添加安全区域偏移 */\r\n    left: 40rpx;\r\n    width: 100rpx;\r\n    height: 100rpx;\r\n    background: transparent;\r\n    border: none;\r\n    display: block;\r\n    z-index: 100;\r\n    transition: all 0.2s ease;\r\n    box-sizing: border-box;\n}\n.custom-back-btn:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.custom-back-btn .back-icon {\r\n    width: 100rpx;\r\n    height: 100rpx;\r\n    display: block;\r\n    object-fit: contain;\n}\n.container {\r\n    background-color: #ffffff;\r\n    min-height: 100vh;\r\n    padding-bottom: 140rpx;\r\n    padding-top: calc(160rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px))); /* 添加安全区域上边距 */\r\n    position: relative; /* 为返回按钮提供定位上下文 */\n}\n.post-detail-skeleton {\r\n    padding: 0;\n}\n.skeleton-wrapper {\r\n    background: #fff;\r\n    padding: 40rpx 40rpx 20rpx 40rpx;\r\n    border-bottom: 1rpx solid #f0f0f0;\r\n    margin-bottom: 0;\n}\n.comment-skeleton-item {\r\n    display: flex;\r\n    align-items: flex-start;\r\n    background-color: #fff;\r\n    padding: 20rpx 40rpx;\r\n    border-bottom: 1rpx solid #f5f5f5;\n}\n.skeleton-header {\r\n    display: flex;\r\n    align-items: center;\r\n    margin-bottom: 24rpx;\n}\n.skeleton-avatar {\r\n    width: 88rpx;\r\n    height: 88rpx;\r\n    border-radius: 50%;\r\n    background-color: #e9edf3;\n}\n.skeleton-header-text {\r\n    flex: 1;\r\n    margin-left: 24rpx;\n}\n.skeleton-line {\r\n    height: 24rpx;\r\n    background-color: #e9edf3;\r\n    border-radius: 999rpx;\r\n    margin-bottom: 16rpx;\n}\n.skeleton-line:last-child {\r\n    margin-bottom: 0;\n}\n.skeleton-line.long {\r\n    width: 100%;\n}\n.skeleton-line.medium {\r\n    width: 70%;\n}\n.skeleton-line.short {\r\n    width: 45%;\n}\n.skeleton-line.xshort {\r\n    width: 30%;\n}\n.skeleton-image {\r\n    width: 100%;\r\n    height: 340rpx;\r\n    border-radius: 20rpx;\r\n    background-color: #e9edf3;\r\n    margin: 30rpx 0;\n}\n.skeleton-section-title {\r\n    width: 50%;\r\n    height: 28rpx;\r\n    border-radius: 999rpx;\r\n    background-color: #e9edf3;\r\n    margin: 10rpx 0 30rpx;\n}\n.comment-skeleton-list {\r\n    display: flex;\r\n    flex-direction: column;\r\n    gap: 24rpx;\n}\n.comment-skeleton-item {\r\n    display: flex;\r\n    align-items: flex-start;\r\n    background-color: #fff;\r\n    border-radius: 16rpx;\r\n    padding: 24rpx;\r\n    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);\n}\n.comment-skeleton-body {\r\n    flex: 1;\r\n    margin-left: 24rpx;\n}\n.comment-skeleton-body .skeleton-line {\r\n    height: 20rpx;\n}\n.skeleton-animate {\r\n    position: relative;\r\n    overflow: hidden;\n}\n.skeleton-animate::after {\r\n    content: '';\r\n    position: absolute;\r\n    top: 0;\r\n    left: -150%;\r\n    width: 150%;\r\n    height: 100%;\r\n    background: linear-gradient(90deg, rgba(233, 237, 243, 0) 0%, rgba(255, 255, 255, 0.9) 50%, rgba(233, 237, 243, 0) 100%);\r\n    -webkit-animation: skeletonPulse 1.2s ease-in-out infinite;\r\n            animation: skeletonPulse 1.2s ease-in-out infinite;\n}\n@-webkit-keyframes skeletonPulse {\n0% {\r\n        left: -150%;\n}\n100% {\r\n        left: 100%;\n}\n}\n@keyframes skeletonPulse {\n0% {\r\n        left: -150%;\n}\n100% {\r\n        left: 100%;\n}\n}\n.error-container {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 100rpx 40rpx;\r\n    text-align: center;\n}\n.error-icon {\r\n    font-size: 120rpx;\r\n    margin-bottom: 30rpx;\r\n    opacity: 0.6;\n}\n.error-text {\r\n    font-size: 32rpx;\r\n    color: #666;\n}\n.post-detail-wrapper {\r\n    background: #fff;\r\n    padding: 40rpx 40rpx 20rpx 40rpx;\r\n    border-bottom: 1rpx solid #f0f0f0;\r\n    margin-bottom: 0;\n}\n.post-detail-wrapper.original-post {\r\n    background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 90%, rgba(235, 200, 141, 0.05) 95%, rgba(235, 200, 141, 0.08) 100%);\r\n    border-left: 3rpx solid #ebc88d;\r\n    position: relative;\n}\n.post-detail-wrapper.poem-post {\r\n    background: #ffffff !important;\n}\n.author-info {\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: flex-start;\r\n    margin-bottom: 20rpx;\r\n    gap: 20rpx;\n}\n.author-basic {\r\n    display: flex;\r\n    align-items: center;\r\n    flex: 1;\r\n    min-width: 0;\r\n    gap: 12rpx;\r\n    flex-wrap: wrap;\n}\n.follow-btn {\r\n    padding: 0 28rpx;\r\n    height: 60rpx;\r\n    line-height: 60rpx;\r\n    background-color: #9ed7ee;\r\n    color: #ffffff;\r\n    border: none;\r\n    border-radius: 999rpx;\r\n    font-size: 26rpx;\r\n    flex-shrink: 0;\r\n    margin-left: auto;\n}\n.follow-btn.following {\r\n    background-color: #f0f0f0;\r\n    color: #666666;\n}\n.follow-btn::after {\r\n    border: none;\n}\n.follow-btn[disabled] {\r\n    opacity: 0.7;\n}\n.author-avatar {\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    border-radius: 50%;\r\n    margin-right: 15rpx;\r\n    background-color: #f5f5f5;\n}\n.author-name {\r\n    font-weight: bold;\r\n    font-size: 28rpx;\r\n    color: #333;\n}\n.post-title {\r\n    font-size: 36rpx;\r\n    font-weight: bold;\r\n    margin-bottom: 15rpx;\r\n    line-height: 1.4;\r\n    color: #333;\r\n    word-break: break-word;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 2;\r\n    -webkit-box-orient: vertical;\n}\n.poem-author {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    text-align: left;\r\n    margin: 10rpx 0 15rpx 0;\r\n    font-weight: bold;\r\n    letter-spacing: 2rpx;\n}\n.post-content {\r\n    font-size: 28rpx;\r\n    line-height: 1.6;\r\n    margin-bottom: 20rpx;\r\n    white-space: pre-wrap;\r\n    color: #666;\r\n    word-break: break-word;\n}\n.image-container {\r\n    position: relative;\r\n    width: 100%;\r\n    margin: 20rpx 0;\r\n    background-color: #f5f5f5;\n}\n.post-image {\r\n    width: 100%;\r\n    height: auto;\r\n    display: block;\r\n    background-color: #f5f5f5;\r\n    transition: -webkit-transform 0.3s ease;\r\n    transition: transform 0.3s ease;\r\n    transition: transform 0.3s ease, -webkit-transform 0.3s ease;\n}\n.post-image:active {\r\n    -webkit-transform: scale(1.05);\r\n            transform: scale(1.05);\n}\n.post-image.single-image {\r\n    width: 100% !important;\r\n    height: auto !important;\r\n    display: block !important;\r\n    background-color: #f5f5f5;\n}\n.image-count-indicator {\r\n    position: absolute;\r\n    top: 20rpx;\r\n    right: 20rpx;\r\n    background-color: rgba(0, 0, 0, 0.6);\r\n    color: white;\r\n    padding: 8rpx 16rpx;\r\n    border-radius: 20rpx;\r\n    font-size: 24rpx;\r\n    z-index: 10;\r\n    -webkit-backdrop-filter: blur(10rpx);\r\n            backdrop-filter: blur(10rpx);\n}\n.post-meta {\r\n    margin-bottom: 15rpx;\n}\n.post-time {\r\n    font-size: 24rpx;\r\n    color: #999;\r\n    opacity: 0.8;\n}\n.vote-section {\r\n    display: flex;\r\n    justify-content: flex-end;\r\n    align-items: center;\r\n    margin-top: 10rpx;\r\n    padding: 10rpx 40rpx 0 40rpx;\n}\n.actions-left {\r\n    display: flex;\r\n    align-items: center;\n}\n.vote-count,\r\n.comment-count {\r\n    display: flex;\r\n    align-items: center;\r\n    font-size: 28rpx;\r\n    color: #999;\r\n    margin-left: 10rpx;\r\n    transition: color 0.2s ease;\n}\n.action-emoji {\r\n    font-size: 28rpx;\r\n    margin-right: 8rpx;\n}\n.action-text {\r\n    font-size: 28rpx;\r\n    color: inherit;\n}\n.like-icon-container {\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 12rpx;\r\n    border-radius: 12rpx;\r\n    transition: all 0.2s ease;\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    margin-right: 12rpx;\n}\n.like-icon-container:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.vote-count.voted {\r\n    color: #ff4757;\n}\n.button-group {\r\n    display: flex;\r\n    align-items: center;\n}\n.favorite-icon-container {\r\n    margin-right: 12rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 12rpx;\r\n    border-radius: 12rpx;\r\n    transition: all 0.2s ease;\r\n    width: 60rpx;\r\n    height: 60rpx;\n}\n.favorite-icon-container:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.favorite-icon {\r\n    width: 56rpx;\r\n    height: 56rpx;\r\n    opacity: 1;\n}\n.favorite-icon-container.favorited .favorite-icon {\r\n    opacity: 0.6;\n}\n.portfolio-icon-container {\r\n    margin-right: 12rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 12rpx;\r\n    border-radius: 12rpx;\r\n    transition: all 0.2s ease;\r\n    width: 60rpx;\r\n    height: 60rpx;\n}\n.portfolio-icon-container:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.portfolio-icon {\r\n    width: 56rpx;\r\n    height: 56rpx;\n}\n.share-icon-container {\r\n    margin-right: 12rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 12rpx;\r\n    border-radius: 12rpx;\r\n    transition: all 0.2s ease;\r\n    width: 60rpx;\r\n    height: 60rpx;\n}\n.share-icon-container:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.share-icon {\r\n    width: 56rpx;\r\n    height: 56rpx;\n}\n.discussion-icon-container {\r\n    margin-right: 12rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 12rpx;\r\n    border-radius: 12rpx;\r\n    transition: all 0.2s ease;\r\n    width: 60rpx;\r\n    height: 60rpx;\n}\n.discussion-icon-container:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.discussion-icon {\r\n    width: 56rpx;\r\n    height: 56rpx;\n}\n.comment-icon-container {\r\n    margin-right: 0;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 12rpx;\r\n    border-radius: 12rpx;\r\n    transition: all 0.2s ease;\r\n    width: 60rpx;\r\n    height: 60rpx;\n}\n.comment-icon-container:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.comment-icon {\r\n    width: 56rpx;\r\n    height: 56rpx;\n}\n.like-icon {\r\n    width: 56rpx;\r\n    height: 56rpx;\n}\n.comment-section {\r\n    background: #fff;\r\n    padding: 30rpx 40rpx;\r\n    border-bottom: 1rpx solid #f0f0f0;\n}\n.section-title {\r\n    font-size: 26rpx;\r\n    font-weight: normal;\r\n    margin-bottom: 20rpx;\r\n    padding-bottom: 15rpx;\r\n    border-bottom: 1rpx solid #f0f0f0;\r\n    color: #999;\r\n    margin-left: 0;\r\n    text-align: left;\n}\n.comment-list {\r\n    margin-top: 20rpx;\n}\n.comment-item {\r\n    display: flex;\r\n    margin-bottom: 0;\r\n    padding: 20rpx 0;\r\n    border-bottom: 1rpx solid #f0f0f0;\n}\n.comment-item:last-child {\r\n    border-bottom: none;\r\n    margin-bottom: 0;\n}\n.comment-avatar {\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    border-radius: 50%;\r\n    margin-right: 15rpx;\r\n    flex-shrink: 0;\r\n    background-color: #f5f5f5;\r\n    margin-left: 0;\n}\n.comment-main {\r\n    display: flex;\r\n    flex-direction: column;\r\n    flex: 1;\r\n    min-width: 0;\n}\n.comment-author {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    font-weight: bold;\r\n    margin-bottom: 8rpx;\n}\n.comment-content {\r\n    font-size: 28rpx;\r\n    color: #666;\r\n    line-height: 1.5;\r\n    word-break: break-word;\r\n    margin-bottom: 10rpx;\n}\n.comment-image-grid {\r\n    display: flex;\r\n    flex-direction: column;\r\n    gap: 12rpx;\r\n    margin-bottom: 12rpx;\n}\n.comment-image {\r\n    width: 100%;\r\n    height: 400rpx;\r\n    border-radius: 12rpx;\r\n    background-color: #f2f2f2;\r\n    display: block;\r\n    object-fit: cover;\n}\n.reply-image-grid {\r\n    margin-top: 10rpx;\n}\n.comment-footer {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    width: 100%;\r\n    margin-right: 40rpx;\n}\n.comment-time {\r\n    font-size: 24rpx;\r\n    color: #999;\r\n    opacity: 0.8;\n}\n.comment-actions {\r\n    display: flex;\r\n    align-items: center;\n}\n.like-section {\r\n    display: flex;\r\n    align-items: center;\r\n    padding: 8rpx 12rpx;\r\n    margin-right: 15rpx;\r\n    transition: all 0.2s ease;\n}\n.like-section:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.like-section .like-icon {\r\n    width: 32rpx;\r\n    height: 32rpx;\r\n    margin-right: 8rpx;\n}\n.like-count {\r\n    font-size: 26rpx;\r\n    color: #666;\n}\n.delete-btn {\r\n    display: flex;\r\n    align-items: center;\r\n    padding: 8rpx 12rpx;\r\n    margin-right: 15rpx;\r\n    transition: opacity 0.2s ease;\n}\n.delete-btn:active {\r\n    opacity: 0.7;\n}\n.delete-text {\r\n    font-size: 26rpx;\r\n    color: #ff4d4f;\n}\n.reply-btn {\r\n    display: flex;\r\n    align-items: center;\r\n    padding: 8rpx 12rpx;\r\n    transition: opacity 0.2s ease;\n}\n.reply-btn:active {\r\n    opacity: 0.7;\n}\n.reply-text {\r\n    font-size: 26rpx;\r\n    color: #9ed7ee;\n}\n.replies-container {\r\n    margin-top: 15rpx;\r\n    margin-left: 10rpx;\r\n    padding-left: 10rpx;\r\n    border-left: 2rpx solid #f0f0f0;\n}\n.reply-item {\r\n    display: flex;\r\n    margin-bottom: 15rpx;\n}\n.reply-avatar {\r\n    width: 40rpx;\r\n    height: 40rpx;\r\n    border-radius: 50%;\r\n    margin-right: 10rpx;\r\n    flex-shrink: 0;\r\n    background-color: #f5f5f5;\n}\n.reply-main {\r\n    display: flex;\r\n    flex-direction: column;\r\n    flex: 1;\r\n    min-width: 0;\n}\n.reply-author {\r\n    font-size: 24rpx;\r\n    color: #333;\r\n    font-weight: bold;\r\n    margin-bottom: 4rpx;\n}\n.reply-content {\r\n    font-size: 26rpx;\r\n    color: #666;\r\n    line-height: 1.4;\r\n    word-break: break-word;\n}\n.reply-to {\r\n    color: #9ed7ee;\r\n    font-weight: bold;\n}\n.reply-footer {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    margin-top: 8rpx;\n}\n.reply-time {\r\n    font-size: 22rpx;\r\n    color: #999;\r\n    opacity: 0.8;\n}\n.reply-actions {\r\n    display: flex;\r\n    align-items: center;\n}\n.show-more-replies {\r\n    padding: 10rpx 0;\r\n    transition: opacity 0.2s ease;\n}\n.show-more-replies:active {\r\n    opacity: 0.7;\n}\n.show-more-text {\r\n    font-size: 24rpx;\r\n    color: #9ed7ee;\n}\n.no-comment-tip {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 60rpx 40rpx;\r\n    text-align: center;\n}\n.empty-icon {\r\n    font-size: 80rpx;\r\n    margin-bottom: 20rpx;\r\n    opacity: 0.6;\n}\n.empty-text {\r\n    font-size: 28rpx;\r\n    color: #999;\n}\n.input-overlay {\r\n    position: fixed;\r\n    top: 0;\r\n    left: 0;\r\n    width: 100%;\r\n    height: 100%;\r\n    background-color: rgba(0, 0, 0, 0.4);\r\n    z-index: 99;\r\n    opacity: 0;\r\n    pointer-events: none;\r\n    transition: opacity 0.3s ease;\n}\n.input-overlay.show {\r\n    opacity: 1;\r\n    pointer-events: auto;\n}\n.comment-input-area {\r\n    position: fixed;\r\n    left: 0;\r\n    right: 0;\r\n    bottom: 0;\r\n    background-color: #ffffff;\r\n    z-index: 100;\r\n    transition: bottom 0.2s ease-out;\r\n    padding-bottom: constant(safe-area-inset-bottom);\r\n    padding-bottom: env(safe-area-inset-bottom);\n}\n.collapsed-bar {\r\n    padding: 16rpx 40rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    border-top: 1rpx solid #f0f0f0;\n}\n.collapsed-input-placeholder {\r\n    flex: 1;\r\n    height: 68rpx;\r\n    line-height: 68rpx;\r\n    padding: 0 24rpx;\r\n    background-color: #f7f8fa;\r\n    border-radius: 34rpx;\r\n    font-size: 28rpx;\r\n    color: #999;\n}\n.expanded-container {\r\n    padding: 20rpx 40rpx;\r\n    display: flex;\r\n    flex-direction: column;\r\n    border-top: 1rpx solid #f0f0f0;\n}\n.expanded-textarea {\r\n    width: 100%;\r\n    min-height: 180rpx;\r\n    max-height: 350rpx;\r\n    padding: 20rpx 24rpx;\r\n    background-color: #ffffff;\r\n    border-radius: 0;\r\n    font-size: 30rpx;\r\n    line-height: 1.6;\r\n    box-sizing: border-box;\r\n    border: none;\r\n    -webkit-appearance: none;\r\n    -webkit-box-sizing: border-box;\r\n    -webkit-user-select: text;\r\n    -webkit-touch-callout: default;\r\n    outline: none;\n}\n.expanded-actions {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    margin-top: 20rpx;\r\n    width: 100%;\n}\n.action-icons {\r\n    display: flex;\r\n    gap: 24rpx;\n}\n.action-icon {\r\n    width: 100rpx;\r\n    height: 100rpx;\r\n    border-radius: 0;\r\n    background: transparent;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    transition: -webkit-transform 0.2s ease;\r\n    transition: transform 0.2s ease;\r\n    transition: transform 0.2s ease, -webkit-transform 0.2s ease;\n}\n.action-icon:active {\r\n    -webkit-transform: scale(0.92);\r\n            transform: scale(0.92);\r\n    background: transparent;\n}\n.action-icon-text {\r\n    font-size: 36rpx;\n}\n.action-icon-image {\r\n    width: 80rpx;\r\n    height: 80rpx;\n}\n.selected-comment-images {\r\n    display: flex;\r\n    flex-wrap: wrap;\r\n    gap: 12rpx;\r\n    margin-top: 16rpx;\n}\n.selected-image-item {\r\n    position: relative;\r\n    width: 150rpx;\r\n    height: 150rpx;\r\n    border-radius: 12rpx;\r\n    overflow: hidden;\n}\n.selected-image-thumb {\r\n    width: 100%;\r\n    height: 100%;\r\n    background-color: #f2f2f2;\r\n    display: block;\n}\n.remove-image-btn {\r\n    position: absolute;\r\n    top: 6rpx;\r\n    right: 6rpx;\r\n    width: 36rpx;\r\n    height: 36rpx;\r\n    border-radius: 50%;\r\n    background: rgba(0, 0, 0, 0.55);\r\n    color: #fff;\r\n    font-size: 24rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\n}\n.emoji-panel {\r\n    margin-top: 16rpx;\r\n    padding: 20rpx 18rpx;\r\n    background: #f6f7f9;\r\n    border-radius: 16rpx;\r\n    display: flex;\r\n    flex-wrap: wrap;\r\n    gap: 18rpx;\n}\n.emoji-item {\r\n    font-size: 36rpx;\r\n    padding: 6rpx 10rpx;\n}\n.reply-prompt {\r\n    display: flex;\r\n    justify-content: flex-start;\r\n    align-items: center;\r\n    margin-bottom: 15rpx;\r\n    padding: 0 10rpx;\n}\n.reply-prompt-text {\r\n    font-size: 26rpx;\r\n    color: #666;\n}\n.cancel-reply .cancel-text {\r\n    font-size: 26rpx;\r\n    color: #9ed7ee;\n}\n.submit-button {\r\n    width: 120rpx !important;\r\n    height: 64rpx !important;\r\n    line-height: 64rpx !important;\r\n    background-color: #9ed7ee;\r\n    color: white;\r\n    border-radius: 32rpx;\r\n    font-size: 28rpx;\r\n    padding: 0 !important;\r\n    margin: 0 !important;\r\n    border: none !important;\r\n    box-sizing: border-box !important;\r\n    flex-shrink: 0;\r\n    transition: background-color 0.2s ease;\n}\n.submit-button[disabled] {\r\n    background-color: #b3e6c9;\r\n    color: #ffffff;\n}\n.submit-button::after {\r\n    border: none;\n}\n.swiper-wrapper {\r\n    position: relative;\r\n    width: 100%;\n}\n.image-swiper {\r\n    width: 100%;\r\n    background-color: #f0f0f0;\r\n    border-radius: 12rpx;\r\n    overflow: hidden;\n}\n.swiper-item {\r\n    width: 100%;\r\n    height: 100%;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\n}\n.post-image {\r\n    max-width: 100%;\r\n    max-height: 100%;\n}\n.image-count-indicator {\r\n    position: absolute;\r\n    bottom: 20rpx;\r\n    right: 20rpx;\r\n    background-color: rgba(0, 0, 0, 0.6);\r\n    color: white;\r\n    padding: 8rpx 16rpx;\r\n    border-radius: 20rpx;\r\n    font-size: 24rpx;\r\n    z-index: 10;\r\n    -webkit-backdrop-filter: blur(10rpx);\r\n            backdrop-filter: blur(10rpx);\n}\n.post-tags {\r\n    margin: 30rpx 0 10rpx 0;\r\n    line-height: 1.5;\n}\n.post-tag {\r\n    color: #24375f;\r\n    font-size: 26rpx;\r\n    margin-right: 10rpx;\r\n    transition: all 0.2s ease;\r\n    cursor: pointer;\n}\n.post-tag:active {\r\n    color: #1a2a4a;\r\n    opacity: 0.8;\n}\n.mutual-tag {\r\n    font-size: 24rpx;\r\n    padding: 4rpx 16rpx;\r\n    border-radius: 999rpx;\r\n    background-color: #e6f4ff;\r\n    color: #1f6fd2;\r\n    flex-shrink: 0;\n}\n.followed-tag {\r\n    font-size: 24rpx;\r\n    padding: 4rpx 16rpx;\r\n    border-radius: 999rpx;\r\n    background-color: #f4ebff;\r\n    color: #7c55c7;\r\n    flex-shrink: 0;\n}\r\n\r\n/* 模式切换样式 */\n.mode-switcher {\r\n    display: flex;\r\n    background: #f7f8fa;\r\n    border-radius: 25rpx;\r\n    padding: 6rpx;\r\n    margin-bottom: 20rpx;\r\n    border: 2rpx solid #e9ecef;\n}\n.mode-item {\r\n    flex: 1;\r\n    text-align: center;\r\n    padding: 16rpx 24rpx;\r\n    border-radius: 20rpx;\r\n    transition: all 0.3s ease;\r\n    position: relative;\n}\n.mode-item.active {\r\n    background: #9ed7ee;\r\n    box-shadow: 0 2rpx 8rpx rgba(158, 215, 238, 0.3);\n}\n.mode-text {\r\n    font-size: 28rpx;\r\n    font-weight: 500;\r\n    color: #666;\r\n    transition: color 0.3s ease;\n}\n.mode-item.active .mode-text {\r\n    color: #fff;\r\n    font-weight: 600;\n}\r\n\r\n/* 讨论标题输入样式 */\n.discussion-title-wrapper {\r\n    margin-bottom: 15rpx;\r\n    border-bottom: 1rpx solid #f0f0f0;\r\n    padding-bottom: 15rpx;\n}\n.discussion-title-input {\r\n    width: 100%;\r\n    height: 80rpx;\r\n    line-height: 80rpx;\r\n    padding: 0 24rpx;\r\n    background-color: #ffffff;\r\n    border: 1rpx solid #e9ecef;\r\n    border-radius: 12rpx;\r\n    font-size: 30rpx;\r\n    color: #333;\r\n    box-sizing: border-box;\n}\n.discussion-title-input::-webkit-input-placeholder {\r\n    color: #999;\n}\n.discussion-title-input::placeholder {\r\n    color: #999;\n}\r\n\r\n/* 讨论类型帖子样式 */\n.discussion-content {\r\n    margin: 20rpx 0;\n}\n.discussion-sentence-group {\r\n    margin-bottom: 30rpx;\n}\n.discussion-sentence-card {\r\n    background: #f5f5f5; /* 添加灰色背景 */\r\n    border-radius: 12rpx; /* 添加圆角 */\r\n    padding: 30rpx;\r\n    margin-bottom: 20rpx;\r\n    width: 100%;\r\n    min-height: 120rpx;\r\n    position: relative;\r\n    box-sizing: border-box;\r\n    max-width: 100%;\n}\n.discussion-sentence-content {\r\n    position: relative;\r\n    width: 100%;\r\n    display: flex;\r\n    flex-direction: column;\r\n    justify-content: center;\r\n    align-items: flex-start;\r\n    box-sizing: border-box;\r\n    max-width: 100%;\n}\n.discussion-sentence-line {\r\n    font-family: 'Inter', sans-serif;\r\n    font-style: italic;\r\n    font-weight: 600;\r\n    font-size: 40rpx;\r\n    line-height: 48rpx;\r\n    color: #989090;\r\n    display: block;\r\n    margin-bottom: 8rpx;\r\n    word-wrap: break-word;\r\n    word-break: break-all;\r\n    width: 100%;\r\n    max-width: 100%;\r\n    box-sizing: border-box;\r\n    overflow-wrap: break-word;\n}\n.discussion-sentence-line:last-child {\r\n    margin-bottom: 0;\n}\n.discussion-comment {\r\n    font-family: 'Inter', sans-serif;\r\n    font-weight: 600;\r\n    font-size: 32rpx;\r\n    line-height: 38rpx;\r\n    color: #000000;\r\n    margin-top: 20rpx;\r\n    padding: 20rpx 0; /* 移除左右padding，只保留上下padding */\r\n    background: transparent; /* 移除灰色背景 */\r\n    border-radius: 0; /* 移除圆角 */\r\n    word-wrap: break-word;\r\n    word-break: break-all;\r\n    width: 100%;\r\n    max-width: 100%;\r\n    box-sizing: border-box;\r\n    overflow-wrap: break-word;\n}\r\n\r\n/* 分享弹窗样式 */\n.share-modal-overlay {\r\n    position: fixed;\r\n    top: 0;\r\n    left: 0;\r\n    right: 0;\r\n    bottom: 0;\r\n    background: rgba(0, 0, 0, 0.5);\r\n    z-index: 998;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\n}\n.share-modal {\r\n    /* 去掉白色背景 */\r\n    background: transparent;\r\n    width: 80vw;\r\n    max-width: 500px; /* 限制一个最大宽度，防止在大屏幕上过宽 */\r\n    display: flex; /* 使用flex布局让内部元素更容易对齐 */\r\n    flex-direction: column; /* 垂直排列：图片在上，按钮在下 */\r\n    align-items: center;\r\n    justify-content: center;\r\n    z-index: 999;\r\n    border-radius: 20rpx;\r\n    padding: 20rpx;\r\n    box-sizing: border-box; /* 加上这个，padding就不会撑大容器 */\r\n    /* 去掉阴影 */\n}\n.share-loading {\r\n    display: flex;\r\n    justify-content: center;\r\n    align-items: center;\r\n    height: 400rpx;\r\n    font-size: 28rpx;\r\n    color: #666;\n}\n.share-generated-image {\r\n    /* mode=\"widthFix\" 会自动处理宽高比，我们只需要告诉它宽度即可 */\r\n    width: 100%; \r\n    \r\n    /* display: block 是好习惯，可以避免一些潜在的布局问题 */\r\n    display: block; \r\n    \r\n    /* 其他美化样式 - 与Canvas绘制的圆角保持一致 */\r\n    border-radius: 15px; /* 与Canvas绘制的圆角半径15px保持一致 */\r\n    background-color: #f0f0f0; /* 图片加载时的底色 */\r\n    box-shadow: 0 8rpx 8rpx rgba(0, 0, 0, 0.25);\r\n    overflow: hidden; /* 确保圆角效果正确显示 */\n}\r\n\r\n/* 强制显示图片的CSS类 */\n.force-image-display {\r\n    width: 100% !important;\r\n    height: auto !important;\r\n    min-height: 200px !important;\r\n    max-height: 80vh !important;\r\n    display: block !important;\r\n    opacity: 1 !important;\r\n    visibility: visible !important;\r\n    background-color: #f0f0f0 !important;\r\n    border: 2px solid #007aff !important;\n}\n.share-preview-card {\r\n    border-radius: 16rpx;\r\n    padding: 40rpx;\r\n    position: relative;\r\n    min-height: 200rpx;\r\n    box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);\n}\n.share-preview-content {\r\n    font-family: 'Huiwen-mincho', sans-serif;\r\n    font-size: 28rpx;\r\n    line-height: 38rpx;\r\n    white-space: pre-wrap;\r\n    margin-bottom: 20rpx;\n}\n.share-preview-signature {\r\n    position: absolute;\r\n    bottom: 20rpx;\r\n    right: 20rpx;\n}\n.share-signature-image {\r\n    width: 180rpx;\r\n    height: 90rpx;\r\n    opacity: 0.8;\n}\n.share-actions {\r\n    display: flex;\r\n    justify-content: center;\n}\n.share-download-btn {\r\n    background: #007AFF;\r\n    color: white;\r\n    border: none;\r\n    border-radius: 12rpx;\r\n    padding: 24rpx 60rpx;\r\n    font-size: 30rpx;\r\n    font-weight: 600;\n}\n.share-download-btn:active {\r\n    background: #0056CC;\n}\r\n\r\n/* 图片下载按钮样式（替代文本按钮） */\n.share-download-image {\r\n    width: 140rpx;\r\n    height: auto;\r\n    display: block;\r\n    margin: 24rpx auto 0 auto; /* 居中并与图片留白 */\n}\r\n\r\n/* 定义 Huiwen-mincho 字体 */\n@font-face {\r\n  font-family: 'Huiwen-mincho';\r\n  src: url(" + ___CSS_LOADER_URL_REPLACEMENT_0___ + ") format('opentype');\r\n  font-weight: normal;\r\n  font-style: normal;\n}\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -15813,7 +16091,7 @@ var render = function () {
                   _c("v-uni-textarea", {
                     staticClass: _vm._$g(32, "sc"),
                     attrs: {
-                      placeholder: "此刻你想要分享...",
+                      placeholder: _vm._$g(32, "a-placeholder"),
                       maxlength: "1500",
                       value: _vm._$g(32, "a-value"),
                       "show-confirm-bar": false,
@@ -16168,7 +16446,7 @@ var render = function () {
                       _c("v-uni-image", {
                         staticClass: _vm._$g(58, "sc"),
                         attrs: {
-                          src: "/static/images/switch_publish_mode.png",
+                          src: "/static/images/change.png",
                           mode: "aspectFit",
                           _i: 58,
                         },
@@ -16176,52 +16454,60 @@ var render = function () {
                     ],
                     1
                   ),
-                  _c(
-                    "uni-view",
-                    {
-                      staticClass: _vm._$g(59, "sc"),
-                      attrs: { _i: 59 },
-                      on: {
-                        click: function ($event) {
-                          return _vm.$handleViewEvent($event, { stop: true })
+                  _vm._$g(59, "i")
+                    ? _c(
+                        "uni-view",
+                        {
+                          staticClass: _vm._$g(59, "sc"),
+                          attrs: { _i: 59 },
+                          on: {
+                            click: function ($event) {
+                              return _vm.$handleViewEvent($event, {
+                                stop: true,
+                              })
+                            },
+                          },
                         },
-                      },
-                    },
-                    [
-                      _c("v-uni-image", {
-                        staticClass: _vm._$g(60, "sc"),
-                        attrs: {
-                          src: "/static/images/select_highlight.png",
-                          mode: "aspectFit",
-                          _i: 60,
+                        [
+                          _c("v-uni-image", {
+                            staticClass: _vm._$g(60, "sc"),
+                            attrs: {
+                              src: "/static/images/select_highlight.png",
+                              mode: "aspectFit",
+                              _i: 60,
+                            },
+                          }),
+                        ],
+                        1
+                      )
+                    : _vm._e(),
+                  _vm._$g(61, "i")
+                    ? _c(
+                        "uni-view",
+                        {
+                          staticClass: _vm._$g(61, "sc"),
+                          attrs: { _i: 61 },
+                          on: {
+                            click: function ($event) {
+                              return _vm.$handleViewEvent($event, {
+                                stop: true,
+                              })
+                            },
+                          },
                         },
-                      }),
-                    ],
-                    1
-                  ),
-                  _c(
-                    "uni-view",
-                    {
-                      staticClass: _vm._$g(61, "sc"),
-                      attrs: { _i: 61 },
-                      on: {
-                        click: function ($event) {
-                          return _vm.$handleViewEvent($event, { stop: true })
-                        },
-                      },
-                    },
-                    [
-                      _c("v-uni-image", {
-                        staticClass: _vm._$g(62, "sc"),
-                        attrs: {
-                          src: "/static/images/select_color.png",
-                          mode: "aspectFit",
-                          _i: 62,
-                        },
-                      }),
-                    ],
-                    1
-                  ),
+                        [
+                          _c("v-uni-image", {
+                            staticClass: _vm._$g(62, "sc"),
+                            attrs: {
+                              src: "/static/images/select_color.png",
+                              mode: "aspectFit",
+                              _i: 62,
+                            },
+                          }),
+                        ],
+                        1
+                      )
+                    : _vm._e(),
                 ],
                 1
               ),
@@ -16851,7 +17137,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n/* pages/add/add.wxss */\nbody {\n    height: 100vh;\n    overflow: hidden; /* 页面级别禁止滚动 */\n}\n.container {\n    background: #fff;\n    height: 100vh; /* 改为固定高度，确保在iOS下正确计算 */\n    display: flex;\n    flex-direction: column;\n    padding: 100rpx 0 0 0; /* 与preview页面保持一致的顶部边距 */\n    padding-right: 0; /* 移除右边距，让工具栏紧贴右边缘 */\n    box-sizing: border-box; /* 确保padding计算在内 */\n    overflow: hidden; /* 防止整个页面滚动 */\n    position: relative; /* 确保定位上下文 */\n}\n/* 图片预览区域 */\n.image-section {\n    padding: 30rpx;\n    background: #f8f9fa;\n}\n.image-preview-scroll {\n    width: 100%;\n    white-space: nowrap;\n}\n.image-preview-container {\n    display: flex;\n    gap: 20rpx;\n    padding: 0 10rpx;\n}\n.image-preview-item {\n    position: relative;\n    width: 200rpx;\n    height: 200rpx;\n    border-radius: 12rpx;\n    overflow: hidden;\n    flex-shrink: 0;\n}\n.preview-image {\n    width: 100%;\n    height: 100%;\n    border-radius: 12rpx;\n}\n.image-remove-btn {\n    position: absolute;\n    top: -8rpx;\n    right: -8rpx;\n    width: 40rpx;\n    height: 40rpx;\n    background: #ff4444;\n    color: white;\n    border-radius: 50%;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    font-size: 24rpx;\n    font-weight: bold;\n    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.2);\n}\n.add-image-btn {\n    width: 200rpx;\n    height: 200rpx;\n    border: 2rpx dashed #ddd;\n    border-radius: 12rpx;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    background: #fff;\n    transition: all 0.3s ease;\n    flex-shrink: 0;\n}\n.add-image-btn:active {\n    background: #f5f5f5;\n    border-color: #9ed7ee;\n}\n.add-icon {\n    font-size: 60rpx;\n    color: #999;\n}\n/* 内容输入区域 */\n.content-section {\n    padding: 30rpx;\n    padding-bottom: 30rpx;\n    background: #fff;\n    flex: 1;\n    display: flex;\n    flex-direction: column;\n    min-height: 0;\n    overflow: visible; /* 改为visible，允许浮动按钮显示 */\n    position: relative;\n}\n/* 主输入区域 - 响应式布局 */\n.main-input-area {\n    flex: 1;\n    display: flex;\n    position: relative;\n    min-height: 0;\n    overflow: visible; /* 改为visible，允许浮动按钮显示 */\n    padding: 0 30rpx 0 30rpx; /* 只保留左边距，右边距为0 */\n}\n.content-input-wrapper {\n    position: relative;\n    flex: 1;\n    display: flex;\n    flex-direction: column;\n    margin-right: 70rpx; /* 移除右边距 */\n    min-height: 0;\n    overflow: hidden;\n    /* 移除固定宽度，让输入框自适应 */\n}\n.content-textarea {\n    flex: 1;\n    width: 100%;\n    height: 100%;\n    border: none;\n    font-size: 32rpx; /* 对应16px */\n    line-height: 1.5; /* 对应19px行高 */\n    padding: 60rpx; /* 对应30px内边距 */\n    background: #E8E8E8;\n    resize: none;\n    overflow-y: auto;\n    overflow-x: hidden;\n    -webkit-appearance: none;\n    appearance: none;\n    box-sizing: border-box;\n    -webkit-user-select: text;\n    user-select: text;\n    -webkit-touch-callout: default;\n    border-radius: 20rpx; /* 对应10px圆角 */\n    outline: none;\n    -webkit-overflow-scrolling: touch;\n    position: relative;\n    color: #989090; /* 使用CSS中定义的文字颜色 */\n    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;\n    font-weight: 300;\n    /* 精确尺寸：314px宽，383px高 */\n    min-height: 766rpx; /* 对应383px */\n    max-height: 766rpx;\n}\n/* 当高光模式启用时，隐藏textarea的文字内容 */\n.content-input-wrapper[data-highlight-mode=\"true\"] .content-textarea {\n    color: transparent;\n}\n.char-count {\n    position: absolute;\n    bottom: 10rpx; /* 移到textarea外面，给文字留出空间 */\n    right: 110rpx; /* leave space for side toolbar */\n    font-size: 24rpx;\n    color: #666;\n    background: #fdfdfd;\n    padding: 8rpx 12rpx;\n    border-radius: 6rpx;\n    box-shadow: none;\n    pointer-events: none; /* 防止遮挡textarea的点击 */\n}\n/* 模式选择器 */\n/* 模式选择器遮罩 */\n.mode-selector-mask {\n    position: fixed;\n    left: 0;\n    right: 0;\n    top: 0;\n    bottom: 0;\n    background: rgba(0,0,0,.35);\n    z-index: 130;\n    display: flex;\n    align-items: flex-end;\n}\n.mode-selector {\n    width: 100%;\n    background: #fff;\n    border-top-left-radius: 24rpx;\n    border-top-right-radius: 24rpx;\n    padding: 24rpx 28rpx calc(24rpx + env(safe-area-inset-bottom));\n}\n.mode-title {\n    font-size: 30rpx;\n    color: #333;\n    text-align: center;\n    margin-bottom: 24rpx;\n    font-weight: 500;\n}\n.mode-list {\n    display: flex;\n    flex-direction: column;\n    gap: 0;\n}\n.mode-option {\n    display: flex;\n    align-items: center;\n    justify-content: space-between;\n    padding: 24rpx 0;\n    border-bottom: 1rpx solid #f0f0f0;\n    transition: all 0.2s ease;\n}\n.mode-option:last-child {\n    border-bottom: none;\n}\n.mode-option:active {\n    background: #f8f9fa;\n}\n.mode-text {\n    font-size: 28rpx;\n    color: #333;\n    flex: 1;\n}\n.mode-check {\n    color: #1c9bd6;\n    font-size: 28rpx;\n    font-weight: bold;\n}\n/* 标签选择区域样式 */\n.tag-section {\n    position: fixed; /* 确保标签选择器是基于窗口定位的 */\n    bottom: 120rpx; /* 初始位置在工具栏上方 */\n    left: 0;\n    right: 100rpx; /* 为右侧工具栏预留空间 */\n    background: #f8f9fa;\n    border-radius: 12rpx;\n    padding: 20rpx;\n    z-index: 90; /* z-index 比工具栏低，但比内容高 */\n    transition: bottom 0.3s ease-out; /* 为位置变化添加过渡 */\n}\n.tag-header {\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n    padding: 10rpx 0rpx;\n    border-bottom: 1px solid #eee;\n    margin-bottom: 20rpx;\n}\n.tag-title {\n    font-size: 30rpx;\n    font-weight: bold;\n    color: #333;\n}\n.tag-count {\n    font-size: 24rpx;\n    color: #999;\n}\n.tag-toggle {\n    font-size: 26rpx;\n    color: #9ed7ee;\n}\n.selected-tags {\n    display: flex;\n    flex-wrap: wrap;\n    gap: 10rpx;\n    margin-bottom: 20rpx;\n}\n.selected-tag {\n    display: flex;\n    align-items: center;\n    background: #9ed7ee;\n    color: white;\n    padding: 8rpx 16rpx;\n    border-radius: 20rpx;\n    font-size: 24rpx;\n}\n.remove-tag {\n    margin-left: 8rpx;\n    font-size: 20rpx;\n    font-weight: bold;\n    cursor: pointer;\n}\n/* 标签选择弹层 */\n.tag-selector-mask {\n    position: fixed;\n    left: 0;\n    right: 0;\n    top: 0;\n    bottom: 0;\n    background: rgba(0,0,0,.35);\n    z-index: 130;\n    display: flex;\n    align-items: flex-end;\n    /* 确保遮罩层覆盖整个屏幕 */\n    width: 100vw;\n    height: 100vh;\n    box-sizing: border-box;\n}\n.tag-selector {\n    width: 100%;\n    background: #fff;\n    border-top-left-radius: 24rpx;\n    border-top-right-radius: 24rpx;\n    padding: 40rpx 20rpx calc(40rpx + env(safe-area-inset-bottom)); /* 减少左右padding，给更多显示空间 */\n    min-height: 20vh;\n    max-height: 85vh; /* 增加最大高度，给更多显示空间 */\n    display: flex;\n    flex-direction: column;\n    -webkit-animation: slideUp 0.3s ease;\n            animation: slideUp 0.3s ease;\n    /* 确保内容可以滚动 */\n    overflow-y: auto;\n    -webkit-overflow-scrolling: touch;\n    /* 确保弹窗不会被截断 */\n    box-sizing: border-box;\n}\n/* 已选标签显示区域样式 */\n.selected-tags-section {\n    margin-bottom: 20rpx;\n    padding-bottom: 15rpx;\n    border-bottom: 1px solid #eee;\n}\n.selected-tags-title {\n    font-size: 26rpx;\n    color: #666;\n    margin-bottom: 10rpx;\n    font-weight: 500;\n}\n.selected-tags-list {\n    display: flex;\n    flex-wrap: wrap;\n    gap: 8rpx;\n}\n.selected-tag {\n    display: flex;\n    align-items: center;\n    background: #9ed7ee;\n    color: white;\n    padding: 6rpx 12rpx;\n    border-radius: 16rpx;\n    font-size: 22rpx;\n    position: relative;\n    transition: all 0.3s ease;\n}\n.selected-tag:active {\n    background: #7bc4d4;\n    -webkit-transform: scale(0.95);\n            transform: scale(0.95);\n}\n.remove-icon {\n    margin-left: 6rpx;\n    font-size: 20rpx;\n    font-weight: bold;\n    opacity: 0.8;\n}\n/* 分类选择器样式 */\n.category-selector {\n    margin-bottom: 20rpx;\n    border-bottom: 1px solid #eee;\n    padding-bottom: 15rpx;\n}\n.category-scroll {\n    width: 100%;\n    white-space: nowrap;\n    /* 确保滚动区域能正常显示 */\n    overflow-x: auto;\n    -webkit-overflow-scrolling: touch;\n}\n.category-list {\n    display: flex;\n    gap: 15rpx;\n    padding: 10rpx 5rpx; /* 减少左右padding，给更多显示空间 */\n    /* 确保列表能正常滚动 */\n    min-width: -webkit-max-content;\n    min-width: max-content;\n}\n.category-item {\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    padding: 15rpx 12rpx;\n    border-radius: 12rpx;\n    background: #f5f5f5;\n    transition: all 0.3s ease;\n    flex-shrink: 0;\n    /* 移除min-width限制，让内容自然适应 */\n}\n.category-item.active {\n    background: #9ed7ee;\n    color: white;\n}\n.category-icon {\n    font-size: 24rpx;\n    margin-bottom: 5rpx;\n}\n.category-name {\n    font-size: 20rpx;\n    text-align: center;\n    line-height: 1.2;\n}\n/* 当前分类标签样式 */\n.current-category-tags {\n    display: flex;\n    flex-wrap: wrap;\n    gap: 10rpx;\n    margin-bottom: 20rpx;\n    /* 确保标签区域可以正常显示 */\n    max-height: 300rpx;\n    overflow-y: auto;\n    -webkit-overflow-scrolling: touch;\n    /* 减少左右边距，给更多显示空间 */\n    margin-left: -5rpx;\n    margin-right: -5rpx;\n}\n.preset-tag {\n    padding: 8rpx 16rpx;\n    background: white;\n    border: 1px solid #ddd;\n    border-radius: 20rpx;\n    font-size: 24rpx;\n    color: #666;\n    transition: all 0.3s ease;\n}\n.preset-tag.selected {\n    background: #9ed7ee;\n    color: white;\n    border-color: #9ed7ee;\n}\n.custom-tag-input {\n    display: flex;\n    align-items: center;\n    gap: 10rpx;\n}\n.custom-tag-input uni-input {\n    flex: 1;\n    height: 60rpx;\n    border: 1px solid #ddd;\n    border-radius: 8rpx;\n    padding: 0 15rpx;\n    font-size: 26rpx;\n}\n.custom-tag-input uni-button {\n    background: #9ed7ee;\n    color: white;\n    border: none;\n    border-radius: 8rpx;\n    padding: 0 20rpx;\n    height: 60rpx;\n    font-size: 24rpx;\n    flex-shrink: 0;\n    /* 移除min-width限制，让按钮根据内容自适应 */\n}\n/* 匹配标签推荐样式 */\n.matched-tags {\n    margin-top: 15rpx;\n    padding: 15rpx;\n    background: #f8f9fa;\n    border-radius: 8rpx;\n    border: 1px solid #e9ecef;\n}\n.matched-tags-title {\n    font-size: 24rpx;\n    color: #666;\n    margin-bottom: 10rpx;\n}\n.matched-tags-list {\n    display: flex;\n    flex-wrap: wrap;\n    gap: 8rpx;\n    /* 确保推荐标签区域可以正常显示 */\n    max-height: 200rpx;\n    overflow-y: auto;\n    -webkit-overflow-scrolling: touch;\n}\n.matched-tag {\n    background: #e3f2fd;\n    color: #1976d2;\n    padding: 6rpx 12rpx;\n    border-radius: 12rpx;\n    font-size: 22rpx;\n    border: 1px solid #bbdefb;\n    transition: all 0.2s ease;\n}\n.matched-tag:active {\n    background: #bbdefb;\n    -webkit-transform: scale(0.95);\n            transform: scale(0.95);\n}\n@-webkit-keyframes slideDown {\nfrom {\n        opacity: 0;\n        -webkit-transform: translateY(-10rpx);\n                transform: translateY(-10rpx);\n}\nto {\n        opacity: 1;\n        -webkit-transform: translateY(0);\n                transform: translateY(0);\n}\n}\n@keyframes slideDown {\nfrom {\n        opacity: 0;\n        -webkit-transform: translateY(-10rpx);\n                transform: translateY(-10rpx);\n}\nto {\n        opacity: 1;\n        -webkit-transform: translateY(0);\n                transform: translateY(0);\n}\n}\n@-webkit-keyframes slideUp {\nfrom {\n        opacity: 0;\n        -webkit-transform: translateY(100%);\n                transform: translateY(100%);\n}\nto {\n        opacity: 1;\n        -webkit-transform: translateY(0);\n                transform: translateY(0);\n}\n}\n@keyframes slideUp {\nfrom {\n        opacity: 0;\n        -webkit-transform: translateY(100%);\n                transform: translateY(100%);\n}\nto {\n        opacity: 1;\n        -webkit-transform: translateY(0);\n                transform: translateY(0);\n}\n}\n/* ====== 右侧工具栏样式 ====== */\n.side-toolbar {\n    position: absolute;\n    top: 0;\n    right: 0;\n    bottom: 0;\n    width: 90rpx; /* 调整工具栏宽度与按钮宽度一致 */\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    justify-content: flex-start;\n    gap: 0; /* 移除间距，让图标紧密排列 */\n    z-index: 10;\n    padding: 20rpx 0;\n    background: transparent;\n}\n.side-tool-btn {\n    width: 90rpx; /* 调整按钮尺寸 */\n    height: 90rpx;\n    border: none; /* 移除边框 */\n    background: transparent; /* 移除背景 */\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    box-shadow: none; /* 移除阴影 */\n    transition: all 0.2s ease;\n    flex-shrink: 0;\n    margin-bottom: 20rpx; /* 调整间距 */\n    margin-right: 0rpx; /* 向右移动 */\n}\n.side-tool-btn:active { \n    -webkit-transform: scale(0.95); \n            transform: scale(0.95);\n}\n.side-tool-icon { \n    width: 75rpx; /* 调整图标尺寸到75rpx */\n    height: 75rpx;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    font-size: 30rpx;\n    color: #333;\n}\n/* 左下角返回按钮 */\n.back-btn {\n    position: fixed;\n    bottom: 100rpx;\n    left: 30rpx;\n    width: 100rpx;\n    height: 100rpx;\n    background: transparent;\n    border: none;\n    display: block;\n    z-index: 10;\n    transition: all 0.2s ease;\n    box-sizing: border-box;\n}\n.back-btn:active {\n    -webkit-transform: scale(0.95);\n            transform: scale(0.95);\n}\n.back-icon {\n    width: 100px;\n    height: 100px;\n    display: block;\n    object-fit: contain;\n}\n/* 浮动操作按钮 */\n.floating-action-btn {\n    position: fixed; /* 改为fixed定位，相对于视口定位 */\n    bottom: 30rpx; /* 调整位置 */\n    right: 50rpx; /* 调整位置 */\n    width: 200rpx;\n    height: 200rpx;\n    background: transparent;\n    border: none;\n    display: block;\n    z-index: 10;\n    transition: all 0.2s ease;\n    box-sizing: border-box;\n}\n.floating-action-btn:active {\n    -webkit-transform: scale(0.95);\n            transform: scale(0.95);\n}\n.fab-icon {\n    width: 200rpx;\n    height: 200rpx;\n    display: block;\n    object-fit: contain;\n    object-position: center;\n    border: none;\n    box-sizing: border-box;\n}\n/* 让正文为右侧工具栏预留空间及计数避让 */\n.content-input-wrapper { \n    padding-right: 0rpx; /* 减少右边距，让输入框更宽 */\n}\n.char-count { \n    right: 130rpx; /* 调整字符计数位置 */\n}\n/* 颜色选择弹层 */\n.color-picker-mask { \n    position: fixed; \n    left: 0; \n    right: 0; \n    top: 0; \n    bottom: 0; \n    background: rgba(0,0,0,.35); \n    z-index: 130; \n    display: flex; \n    align-items: flex-end;\n}\n.color-picker {\n    width: 100%;\n    background: #fff;\n    border-top-left-radius: 24rpx;\n    border-top-right-radius: 24rpx;\n    padding: 24rpx 28rpx calc(24rpx + env(safe-area-inset-bottom));\n    min-height: 50vh; /* 最小高度设为半屏 */\n    max-height: 70vh; /* 限制最大高度为70%屏幕高度 */\n    display: flex;\n    flex-direction: column;\n    -webkit-animation: slideUp 0.3s ease;\n            animation: slideUp 0.3s ease;\n}\n.color-picker-title {\n    font-size: 32rpx;\n    font-weight: 600;\n    color: #333;\n    flex: 1;\n    text-align: center;\n}\n.color-picker-header {\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    margin-bottom: 24rpx;\n    position: relative;\n}\n.color-picker-back-btn {\n    position: absolute;\n    top: 0;\n    right: 0;\n    width: 80rpx;\n    height: 80rpx;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    background: transparent;\n    border-radius: 50%;\n    z-index: 10;\n}\n.color-picker-back-icon {\n    width: 60rpx;\n    height: 60rpx;\n}\n/* 色卡选择界面 */\n.color-palette-step {\n    display: flex;\n    flex-direction: column;\n    height: 100%;\n}\n.color-palette-step .color-picker-title {\n    margin-bottom: 32rpx; /* 增加标题下方的间距 */\n}\n.palette-scroll {\n    flex: 1;\n    min-height: 800rpx;\n    max-height: 1000rpx;\n}\n.palette-grid {\n    display: grid;\n    grid-template-columns: repeat(2, 1fr);\n    grid-gap: 20rpx;\n    padding: 0 10rpx;\n}\n.palette-card {\n    height: 120rpx;\n    border-radius: 16rpx;\n    padding: 16rpx;\n    position: relative;\n    box-shadow: 0 4rpx 12rpx rgba(0,0,0,.1);\n    transition: -webkit-transform 0.2s ease;\n    transition: transform 0.2s ease;\n    transition: transform 0.2s ease, -webkit-transform 0.2s ease;\n}\n.palette-card:active {\n    -webkit-transform: scale(0.98);\n            transform: scale(0.98);\n}\n.palette-name {\n    font-size: 24rpx;\n    font-weight: 600;\n    margin-bottom: 8rpx;\n    text-shadow: 0 1rpx 2rpx rgba(0,0,0,0.3);\n}\n.palette-preview {\n    display: flex;\n    gap: 8rpx;\n}\n.mini-color {\n    width: 20rpx;\n    height: 20rpx;\n    border-radius: 50%;\n    border: 2rpx solid rgba(255,255,255,0.5);\n}\n/* 具体颜色选择界面 */\n.colors-scroll {\n    flex: 1;\n    min-height: 800rpx;\n    max-height: 1000rpx;\n}\n.colors-grid {\n    display: grid;\n    grid-template-columns: repeat(1, 1fr);\n    grid-gap: 16rpx;\n    padding: 0 10rpx;\n}\n.color-option {\n    height: 100rpx;\n    border-radius: 16rpx;\n    padding: 20rpx;\n    position: relative;\n    box-shadow: 0 4rpx 12rpx rgba(0,0,0,.1);\n    transition: -webkit-transform 0.2s ease;\n    transition: transform 0.2s ease;\n    transition: transform 0.2s ease, -webkit-transform 0.2s ease;\n    display: flex;\n    align-items: center;\n    justify-content: space-between;\n}\n.color-option:active {\n    -webkit-transform: scale(0.98);\n            transform: scale(0.98);\n}\n.color-text {\n    font-size: 28rpx;\n    font-weight: 500;\n}\n.color-check { \n    position: absolute; \n    right: 20rpx; \n    top: 50%;\n    -webkit-transform: translateY(-50%);\n            transform: translateY(-50%);\n    font-size: 32rpx; \n    font-weight: bold;\n    text-shadow: 0 1rpx 2rpx rgba(0,0,0,.3);\n}\n/* 高光选择全屏弹窗样式 */\n.highlight-selection-modal {\n    position: fixed;\n    top: 0;\n    left: 0;\n    right: 0;\n    bottom: 0;\n    background: #fff;\n    z-index: 1000;\n    display: flex;\n    flex-direction: column;\n}\n.highlight-modal-content {\n    width: 100%;\n    height: 100%;\n    background: #fff;\n    display: flex;\n    flex-direction: column;\n    overflow: hidden;\n}\n.highlight-modal-header {\n    display: flex;\n    align-items: center;\n    justify-content: space-between;\n    padding: 30rpx 40rpx;\n    border-bottom: 1rpx solid #f0f0f0;\n    background: #fff;\n}\n.highlight-modal-title {\n    font-size: 32rpx;\n    font-weight: 600;\n    color: #333;\n}\n.highlight-modal-close {\n    width: 60rpx;\n    height: 60rpx;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    font-size: 40rpx;\n    color: #999;\n    border-radius: 50%;\n    background: #f5f5f5;\n}\n.highlight-content-wrapper {\n    flex: 1;\n    padding: 40rpx;\n    overflow-y: auto;\n    background: #fff;\n}\n.highlight-content-display {\n    display: flex;\n    flex-direction: column;\n}\n.highlight-content-line {\n    display: block;\n    margin-bottom: 16rpx;\n    padding: 12rpx 16rpx;\n    border-radius: 8rpx;\n    line-height: 1.8;\n    font-size: 36rpx;\n    white-space: pre-wrap;\n    word-break: break-word;\n    color: #999;\n    transition: all 0.2s ease;\n}\n.highlight-content-line.selected-line {\n    color: #000;\n    font-weight: 500;\n}\n.highlight-modal-actions {\n    position: fixed;\n    bottom: 60rpx;\n    right: 30rpx;\n    z-index: 1001;\n}\n.highlight-action-btn {\n    width: 140rpx;\n    height: 140rpx;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    transition: all 0.3s ease;\n}\n.highlight-action-btn.primary {\n    background: transparent;\n}\n.highlight-action-btn.primary.disabled {\n    opacity: 0.5;\n}\n.highlight-action-btn:active {\n    -webkit-transform: scale(0.95);\n            transform: scale(0.95);\n}\n.highlight-action-text {\n    font-size: 28rpx;\n    font-weight: 500;\n}\n.highlight-action-icon {\n    width: 120rpx;\n    height: 120rpx;\n}\n/* 高光选择覆盖层样式 */\n.highlight-overlay {\n    border: none;\n}\n.hl-done {\n    background: #9ed7ee;\n    color: #fff;\n}\n.hl-clear {\n    background: #666;\n    color: #fff;\n}\n/* 新的覆盖层样式 */\n.highlight-select-overlay {\n    position: absolute;\n    top: 0;\n    left: 0;\n    right: 0;\n    bottom: 0;\n    z-index: 1;\n    pointer-events: auto;\n    overflow: hidden;\n    /* 确保不超出输入框边界 */\n    max-width: 100%;\n    max-height: 100%;\n    box-sizing: border-box;\n}\n.overlay-scroll {\n    height: 100%;\n    width: 100%;\n    overflow-y: auto;\n    /* 匹配textarea的滚动行为 */\n}\n.overlay-content {\n    height: 100%;\n    width: 100%;\n    /* 移除所有可能导致额外空间的样式 */\n    font-size: 0; /* 隐藏字体，不占用空间 */\n    line-height: 0;\n    color: transparent;\n    box-sizing: border-box;\n    border-radius: 20rpx;\n    /* 确保不超出父容器 */\n    max-width: 100%;\n    max-height: 100%;\n    overflow: hidden;\n    position: relative; /* 为绝对定位的子元素提供定位上下文 */\n}\n.overlay-line {\n    margin: 0;\n    position: absolute; /* 绝对定位，通过style属性设置top */\n    left: 0;\n    right: 0;\n    height: 48rpx; /* 固定行高：32rpx字体 + 1.5行高 */\n    transition: background-color 0.2s ease;\n    padding: 20rpx; /* 减少padding，避免超出边界 */\n    line-height: 1.5;\n    font-size: 32rpx; /* 与输入框保持相同的字体大小 */\n    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;\n    font-weight: 300;\n    box-sizing: border-box;\n    pointer-events: none; /* 防止干扰滚动 */\n    /* 确保不超出父容器 */\n    max-width: 100%;\n    overflow: hidden;\n}\n.overlay-line.highlighted {\n    background-color: rgba(158, 215, 238, 0.2);\n    border-radius: 8rpx;\n}\n.overlay-line-content {\n    color: #666; /* 半透明颜色，让用户能看到下面的文字 */\n    white-space: pre-wrap;\n    word-break: break-word;\n    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;\n    font-weight: 300;\n    font-size: 32rpx; /* 与输入框保持相同的字体大小 */\n    line-height: 1.5;\n    margin: 0;\n    padding: 0;\n    display: block;\n    /* 确保文字不超出边界 */\n    max-width: 100%;\n    overflow: hidden;\n    text-overflow: ellipsis;\n}\n/* 高光选择提示 */\n.highlight-hint {\n    position: fixed;\n    bottom: 100rpx;\n    left: 50%;\n    -webkit-transform: translateX(-50%);\n            transform: translateX(-50%);\n    background: rgba(128, 128, 128, 0.6);\n    color: white;\n    padding: 12rpx 24rpx;\n    border-radius: 20rpx;\n    z-index: 1000;\n    text-align: center;\n    white-space: nowrap;\n}\n.hint-text {\n    font-size: 24rpx;\n    line-height: 1.2;\n}\n/* 调整textarea的z-index，确保在覆盖层下方 */\n.content-textarea {\n    z-index: 0;\n}\n/* 当高光模式启用时，textarea的样式调整 */\n.content-input-wrapper {\n    position: relative;\n}\n/* 响应式设计 - 小屏幕适配 */\n@media screen and (max-width: 750rpx) {\n.content-textarea {\n        font-size: 28rpx;\n        padding: 20rpx;\n        min-height: 180rpx;\n}\n.side-toolbar {\n        width: 70rpx;\n        gap: 15rpx;\n}\n.side-tool-btn {\n        width: 50rpx;\n        height: 50rpx;\n}\n.side-tool-icon {\n        font-size: 18rpx;\n}\n.floating-action-btn {\n        width: 200rpx;\n        height: 200rpx;\n        bottom: 30rpx;\n        right: 50rpx;\n}\n.fab-icon {\n        font-size: 20rpx;\n}\n}\n/* 响应式设计 - 大屏幕适配 */\n@media screen and (min-width: 1200rpx) {\n.content-textarea {\n        font-size: 32rpx;\n        padding: 30rpx;\n        min-height: 250rpx;\n}\n.side-toolbar {\n        width: 90rpx;\n        gap: 25rpx;\n}\n.side-tool-btn {\n        width: 70rpx;\n        height: 70rpx;\n}\n.side-tool-icon {\n        font-size: 22rpx;\n}\n.floating-action-btn {\n        width: 200rpx;\n        height: 200rpx;\n}\n.fab-icon {\n        font-size: 26rpx;\n}\n}\n/* 响应式设计 - 超小屏幕适配 */\n@media screen and (max-width: 600rpx) {\n.main-input-area {\n        flex-direction: column;\n}\n.side-toolbar {\n        position: relative;\n        width: 100%;\n        height: auto;\n        flex-direction: row;\n        justify-content: space-around;\n        padding: 20rpx 0;\n        gap: 10rpx;\n}\n.content-input-wrapper {\n        margin-right: 0;\n        margin-bottom: 20rpx;\n}\n.floating-action-btn {\n        position: fixed;\n        bottom: 30rpx;\n        right: 50rpx;\n        width: 200rpx;\n        height: 200rpx;\n}\n}\n\n", ""]);
+exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* pages/add/add.wxss */\nbody {\r\n    height: 100vh;\r\n    overflow: hidden; /* 页面级别禁止滚动 */\n}\n.container {\r\n    background: #fff;\r\n    height: 100vh; /* 改为固定高度，确保在iOS下正确计算 */\r\n    display: flex;\r\n    flex-direction: column;\r\n    padding: 100rpx 0 0 0; /* 与preview页面保持一致的顶部边距 */\r\n    padding-right: 0; /* 移除右边距，让工具栏紧贴右边缘 */\r\n    box-sizing: border-box; /* 确保padding计算在内 */\r\n    overflow: hidden; /* 防止整个页面滚动 */\r\n    position: relative; /* 确保定位上下文 */\n}\r\n/* 图片预览区域 */\n.image-section {\r\n    padding: 30rpx;\r\n    background: #f8f9fa;\n}\n.image-preview-scroll {\r\n    width: 100%;\r\n    white-space: nowrap;\n}\n.image-preview-container {\r\n    display: flex;\r\n    gap: 20rpx;\r\n    padding: 0 10rpx;\n}\n.image-preview-item {\r\n    position: relative;\r\n    width: 200rpx;\r\n    height: 200rpx;\r\n    border-radius: 12rpx;\r\n    overflow: hidden;\r\n    flex-shrink: 0;\n}\n.preview-image {\r\n    width: 100%;\r\n    height: 100%;\r\n    border-radius: 12rpx;\n}\n.image-remove-btn {\r\n    position: absolute;\r\n    top: -8rpx;\r\n    right: -8rpx;\r\n    width: 40rpx;\r\n    height: 40rpx;\r\n    background: #ff4444;\r\n    color: white;\r\n    border-radius: 50%;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    font-size: 24rpx;\r\n    font-weight: bold;\r\n    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.2);\n}\n.add-image-btn {\r\n    width: 200rpx;\r\n    height: 200rpx;\r\n    border: 2rpx dashed #ddd;\r\n    border-radius: 12rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    background: #fff;\r\n    transition: all 0.3s ease;\r\n    flex-shrink: 0;\n}\n.add-image-btn:active {\r\n    background: #f5f5f5;\r\n    border-color: #9ed7ee;\n}\n.add-icon {\r\n    font-size: 60rpx;\r\n    color: #999;\n}\r\n/* 内容输入区域 */\n.content-section {\r\n    padding: 30rpx;\r\n    padding-bottom: 30rpx;\r\n    background: #fff;\r\n    flex: 1;\r\n    display: flex;\r\n    flex-direction: column;\r\n    min-height: 0;\r\n    overflow: visible; /* 改为visible，允许浮动按钮显示 */\r\n    position: relative;\n}\r\n/* 主输入区域 - 响应式布局 */\n.main-input-area {\r\n    flex: 1;\r\n    display: flex;\r\n    position: relative;\r\n    min-height: 0;\r\n    overflow: visible; /* 改为visible，允许浮动按钮显示 */\r\n    padding: 0 30rpx 0 30rpx; /* 只保留左边距，右边距为0 */\n}\n.content-input-wrapper {\r\n    position: relative;\r\n    flex: 1;\r\n    display: flex;\r\n    flex-direction: column;\r\n    margin-right: 70rpx; /* 移除右边距 */\r\n    min-height: 0;\r\n    overflow: hidden;\r\n    /* 移除固定宽度，让输入框自适应 */\n}\n.content-textarea {\r\n    flex: 1;\r\n    width: 100%;\r\n    height: 100%;\r\n    border: none;\r\n    font-size: 32rpx; /* 对应16px */\r\n    line-height: 1.5; /* 对应19px行高 */\r\n    padding: 60rpx; /* 对应30px内边距 */\r\n    background: #E8E8E8;\r\n    resize: none;\r\n    overflow-y: auto;\r\n    overflow-x: hidden;\r\n    -webkit-appearance: none;\r\n    appearance: none;\r\n    box-sizing: border-box;\r\n    -webkit-user-select: text;\r\n    user-select: text;\r\n    -webkit-touch-callout: default;\r\n    border-radius: 20rpx; /* 对应10px圆角 */\r\n    outline: none;\r\n    -webkit-overflow-scrolling: touch;\r\n    position: relative;\r\n    color: #989090; /* 使用CSS中定义的文字颜色 */\r\n    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;\r\n    font-weight: 300;\r\n    /* 精确尺寸：314px宽，383px高 */\r\n    min-height: 766rpx; /* 对应383px */\r\n    max-height: 766rpx;\n}\r\n/* 当高光模式启用时，隐藏textarea的文字内容 */\n.content-input-wrapper[data-highlight-mode=\"true\"] .content-textarea {\r\n    color: transparent;\n}\n.char-count {\r\n    position: absolute;\r\n    bottom: 10rpx; /* 移到textarea外面，给文字留出空间 */\r\n    right: 110rpx; /* leave space for side toolbar */\r\n    font-size: 24rpx;\r\n    color: #666;\r\n    background: #fdfdfd;\r\n    padding: 8rpx 12rpx;\r\n    border-radius: 6rpx;\r\n    box-shadow: none;\r\n    pointer-events: none; /* 防止遮挡textarea的点击 */\n}\r\n/* 模式选择器 */\r\n/* 模式选择器遮罩 */\n.mode-selector-mask {\r\n    position: fixed;\r\n    left: 0;\r\n    right: 0;\r\n    top: 0;\r\n    bottom: 0;\r\n    background: rgba(0,0,0,.35);\r\n    z-index: 130;\r\n    display: flex;\r\n    align-items: flex-end;\n}\n.mode-selector {\r\n    width: 100%;\r\n    background: #fff;\r\n    border-top-left-radius: 24rpx;\r\n    border-top-right-radius: 24rpx;\r\n    padding: 24rpx 28rpx calc(24rpx + env(safe-area-inset-bottom));\n}\n.mode-title {\r\n    font-size: 30rpx;\r\n    color: #333;\r\n    text-align: center;\r\n    margin-bottom: 24rpx;\r\n    font-weight: 500;\n}\n.mode-list {\r\n    display: flex;\r\n    flex-direction: column;\r\n    gap: 0;\n}\n.mode-option {\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: space-between;\r\n    padding: 24rpx 0;\r\n    border-bottom: 1rpx solid #f0f0f0;\r\n    transition: all 0.2s ease;\n}\n.mode-option:last-child {\r\n    border-bottom: none;\n}\n.mode-option:active {\r\n    background: #f8f9fa;\n}\n.mode-text {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    flex: 1;\n}\n.mode-check {\r\n    color: #1c9bd6;\r\n    font-size: 28rpx;\r\n    font-weight: bold;\n}\r\n/* 标签选择区域样式 */\n.tag-section {\r\n    position: fixed; /* 确保标签选择器是基于窗口定位的 */\r\n    bottom: 120rpx; /* 初始位置在工具栏上方 */\r\n    left: 0;\r\n    right: 100rpx; /* 为右侧工具栏预留空间 */\r\n    background: #f8f9fa;\r\n    border-radius: 12rpx;\r\n    padding: 20rpx;\r\n    z-index: 90; /* z-index 比工具栏低，但比内容高 */\r\n    transition: bottom 0.3s ease-out; /* 为位置变化添加过渡 */\n}\n.tag-header {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    padding: 10rpx 0rpx;\r\n    border-bottom: 1px solid #eee;\r\n    margin-bottom: 20rpx;\n}\n.tag-title {\r\n    font-size: 30rpx;\r\n    font-weight: bold;\r\n    color: #333;\n}\n.tag-count {\r\n    font-size: 24rpx;\r\n    color: #999;\n}\n.tag-toggle {\r\n    font-size: 26rpx;\r\n    color: #9ed7ee;\n}\n.selected-tags {\r\n    display: flex;\r\n    flex-wrap: wrap;\r\n    gap: 10rpx;\r\n    margin-bottom: 20rpx;\n}\n.selected-tag {\r\n    display: flex;\r\n    align-items: center;\r\n    background: #9ed7ee;\r\n    color: white;\r\n    padding: 8rpx 16rpx;\r\n    border-radius: 20rpx;\r\n    font-size: 24rpx;\n}\n.remove-tag {\r\n    margin-left: 8rpx;\r\n    font-size: 20rpx;\r\n    font-weight: bold;\r\n    cursor: pointer;\n}\r\n/* 标签选择弹层 */\n.tag-selector-mask {\r\n    position: fixed;\r\n    left: 0;\r\n    right: 0;\r\n    top: 0;\r\n    bottom: 0;\r\n    background: rgba(0,0,0,.35);\r\n    z-index: 130;\r\n    display: flex;\r\n    align-items: flex-end;\r\n    /* 确保遮罩层覆盖整个屏幕 */\r\n    width: 100vw;\r\n    height: 100vh;\r\n    box-sizing: border-box;\n}\n.tag-selector {\r\n    width: 100%;\r\n    background: #fff;\r\n    border-top-left-radius: 24rpx;\r\n    border-top-right-radius: 24rpx;\r\n    padding: 40rpx 20rpx calc(40rpx + env(safe-area-inset-bottom)); /* 减少左右padding，给更多显示空间 */\r\n    min-height: 20vh;\r\n    max-height: 85vh; /* 增加最大高度，给更多显示空间 */\r\n    display: flex;\r\n    flex-direction: column;\r\n    -webkit-animation: slideUp 0.3s ease;\r\n            animation: slideUp 0.3s ease;\r\n    /* 确保内容可以滚动 */\r\n    overflow-y: auto;\r\n    -webkit-overflow-scrolling: touch;\r\n    /* 确保弹窗不会被截断 */\r\n    box-sizing: border-box;\n}\r\n/* 已选标签显示区域样式 */\n.selected-tags-section {\r\n    margin-bottom: 20rpx;\r\n    padding-bottom: 15rpx;\r\n    border-bottom: 1px solid #eee;\n}\n.selected-tags-title {\r\n    font-size: 26rpx;\r\n    color: #666;\r\n    margin-bottom: 10rpx;\r\n    font-weight: 500;\n}\n.selected-tags-list {\r\n    display: flex;\r\n    flex-wrap: wrap;\r\n    gap: 8rpx;\n}\n.selected-tag {\r\n    display: flex;\r\n    align-items: center;\r\n    background: #9ed7ee;\r\n    color: white;\r\n    padding: 6rpx 12rpx;\r\n    border-radius: 16rpx;\r\n    font-size: 22rpx;\r\n    position: relative;\r\n    transition: all 0.3s ease;\n}\n.selected-tag:active {\r\n    background: #7bc4d4;\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.remove-icon {\r\n    margin-left: 6rpx;\r\n    font-size: 20rpx;\r\n    font-weight: bold;\r\n    opacity: 0.8;\n}\r\n/* 分类选择器样式 */\n.category-selector {\r\n    margin-bottom: 20rpx;\r\n    border-bottom: 1px solid #eee;\r\n    padding-bottom: 15rpx;\n}\n.category-scroll {\r\n    width: 100%;\r\n    white-space: nowrap;\r\n    /* 确保滚动区域能正常显示 */\r\n    overflow-x: auto;\r\n    -webkit-overflow-scrolling: touch;\n}\n.category-list {\r\n    display: flex;\r\n    gap: 15rpx;\r\n    padding: 10rpx 5rpx; /* 减少左右padding，给更多显示空间 */\r\n    /* 确保列表能正常滚动 */\r\n    min-width: -webkit-max-content;\r\n    min-width: max-content;\n}\n.category-item {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    padding: 15rpx 12rpx;\r\n    border-radius: 12rpx;\r\n    background: #f5f5f5;\r\n    transition: all 0.3s ease;\r\n    flex-shrink: 0;\r\n    /* 移除min-width限制，让内容自然适应 */\n}\n.category-item.active {\r\n    background: #9ed7ee;\r\n    color: white;\n}\n.category-icon {\r\n    font-size: 24rpx;\r\n    margin-bottom: 5rpx;\n}\n.category-name {\r\n    font-size: 20rpx;\r\n    text-align: center;\r\n    line-height: 1.2;\n}\r\n/* 当前分类标签样式 */\n.current-category-tags {\r\n    display: flex;\r\n    flex-wrap: wrap;\r\n    gap: 10rpx;\r\n    margin-bottom: 20rpx;\r\n    /* 确保标签区域可以正常显示 */\r\n    max-height: 300rpx;\r\n    overflow-y: auto;\r\n    -webkit-overflow-scrolling: touch;\r\n    /* 减少左右边距，给更多显示空间 */\r\n    margin-left: -5rpx;\r\n    margin-right: -5rpx;\n}\n.preset-tag {\r\n    padding: 8rpx 16rpx;\r\n    background: white;\r\n    border: 1px solid #ddd;\r\n    border-radius: 20rpx;\r\n    font-size: 24rpx;\r\n    color: #666;\r\n    transition: all 0.3s ease;\n}\n.preset-tag.selected {\r\n    background: #9ed7ee;\r\n    color: white;\r\n    border-color: #9ed7ee;\n}\n.custom-tag-input {\r\n    display: flex;\r\n    align-items: center;\r\n    gap: 10rpx;\n}\n.custom-tag-input uni-input {\r\n    flex: 1;\r\n    height: 60rpx;\r\n    border: 1px solid #ddd;\r\n    border-radius: 8rpx;\r\n    padding: 0 15rpx;\r\n    font-size: 26rpx;\n}\n.custom-tag-input uni-button {\r\n    background: #9ed7ee;\r\n    color: white;\r\n    border: none;\r\n    border-radius: 8rpx;\r\n    padding: 0 20rpx;\r\n    height: 60rpx;\r\n    font-size: 24rpx;\r\n    flex-shrink: 0;\r\n    /* 移除min-width限制，让按钮根据内容自适应 */\n}\r\n/* 匹配标签推荐样式 */\n.matched-tags {\r\n    margin-top: 15rpx;\r\n    padding: 15rpx;\r\n    background: #f8f9fa;\r\n    border-radius: 8rpx;\r\n    border: 1px solid #e9ecef;\n}\n.matched-tags-title {\r\n    font-size: 24rpx;\r\n    color: #666;\r\n    margin-bottom: 10rpx;\n}\n.matched-tags-list {\r\n    display: flex;\r\n    flex-wrap: wrap;\r\n    gap: 8rpx;\r\n    /* 确保推荐标签区域可以正常显示 */\r\n    max-height: 200rpx;\r\n    overflow-y: auto;\r\n    -webkit-overflow-scrolling: touch;\n}\n.matched-tag {\r\n    background: #e3f2fd;\r\n    color: #1976d2;\r\n    padding: 6rpx 12rpx;\r\n    border-radius: 12rpx;\r\n    font-size: 22rpx;\r\n    border: 1px solid #bbdefb;\r\n    transition: all 0.2s ease;\n}\n.matched-tag:active {\r\n    background: #bbdefb;\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n@-webkit-keyframes slideDown {\nfrom {\r\n        opacity: 0;\r\n        -webkit-transform: translateY(-10rpx);\r\n                transform: translateY(-10rpx);\n}\nto {\r\n        opacity: 1;\r\n        -webkit-transform: translateY(0);\r\n                transform: translateY(0);\n}\n}\n@keyframes slideDown {\nfrom {\r\n        opacity: 0;\r\n        -webkit-transform: translateY(-10rpx);\r\n                transform: translateY(-10rpx);\n}\nto {\r\n        opacity: 1;\r\n        -webkit-transform: translateY(0);\r\n                transform: translateY(0);\n}\n}\n@-webkit-keyframes slideUp {\nfrom {\r\n        opacity: 0;\r\n        -webkit-transform: translateY(100%);\r\n                transform: translateY(100%);\n}\nto {\r\n        opacity: 1;\r\n        -webkit-transform: translateY(0);\r\n                transform: translateY(0);\n}\n}\n@keyframes slideUp {\nfrom {\r\n        opacity: 0;\r\n        -webkit-transform: translateY(100%);\r\n                transform: translateY(100%);\n}\nto {\r\n        opacity: 1;\r\n        -webkit-transform: translateY(0);\r\n                transform: translateY(0);\n}\n}\r\n/* ====== 右侧工具栏样式 ====== */\n.side-toolbar {\r\n    position: absolute;\r\n    top: 0;\r\n    right: 0;\r\n    bottom: 0;\r\n    width: 90rpx; /* 调整工具栏宽度与按钮宽度一致 */\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    justify-content: flex-start;\r\n    gap: 0; /* 移除间距，让图标紧密排列 */\r\n    z-index: 10;\r\n    padding: 20rpx 0;\r\n    background: transparent;\n}\n.side-tool-btn {\r\n    width: 90rpx; /* 调整按钮尺寸 */\r\n    height: 90rpx;\r\n    border: none; /* 移除边框 */\r\n    background: transparent; /* 移除背景 */\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    box-shadow: none; /* 移除阴影 */\r\n    transition: all 0.2s ease;\r\n    flex-shrink: 0;\r\n    margin-bottom: 20rpx; /* 调整间距 */\r\n    margin-right: 0rpx; /* 向右移动 */\n}\n.side-tool-btn:active { \r\n    -webkit-transform: scale(0.95); \r\n            transform: scale(0.95);\n}\n.side-tool-icon { \r\n    width: 75rpx; /* 调整图标尺寸到75rpx */\r\n    height: 75rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    font-size: 30rpx;\r\n    color: #333;\n}\r\n/* 左下角返回按钮 */\n.back-btn {\r\n    position: fixed;\r\n    bottom: 100rpx;\r\n    left: 30rpx;\r\n    width: 100rpx;\r\n    height: 100rpx;\r\n    background: transparent;\r\n    border: none;\r\n    display: block;\r\n    z-index: 10;\r\n    transition: all 0.2s ease;\r\n    box-sizing: border-box;\n}\n.back-btn:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.back-icon {\r\n    width: 100px;\r\n    height: 100px;\r\n    display: block;\r\n    object-fit: contain;\n}\r\n/* 浮动操作按钮 */\n.floating-action-btn {\r\n    position: fixed; /* 改为fixed定位，相对于视口定位 */\r\n    bottom: 30rpx; /* 调整位置 */\r\n    right: 50rpx; /* 调整位置 */\r\n    width: 200rpx;\r\n    height: 200rpx;\r\n    background: transparent;\r\n    border: none;\r\n    display: block;\r\n    z-index: 10;\r\n    transition: all 0.2s ease;\r\n    box-sizing: border-box;\n}\n.floating-action-btn:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.fab-icon {\r\n    width: 200rpx;\r\n    height: 200rpx;\r\n    display: block;\r\n    object-fit: contain;\r\n    object-position: center;\r\n    border: none;\r\n    box-sizing: border-box;\n}\r\n/* 让正文为右侧工具栏预留空间及计数避让 */\n.content-input-wrapper { \r\n    padding-right: 0rpx; /* 减少右边距，让输入框更宽 */\n}\n.char-count { \r\n    right: 130rpx; /* 调整字符计数位置 */\n}\r\n/* 颜色选择弹层 */\n.color-picker-mask { \r\n    position: fixed; \r\n    left: 0; \r\n    right: 0; \r\n    top: 0; \r\n    bottom: 0; \r\n    background: rgba(0,0,0,.35); \r\n    z-index: 130; \r\n    display: flex; \r\n    align-items: flex-end;\n}\n.color-picker {\r\n    width: 100%;\r\n    background: #fff;\r\n    border-top-left-radius: 24rpx;\r\n    border-top-right-radius: 24rpx;\r\n    padding: 24rpx 28rpx calc(24rpx + env(safe-area-inset-bottom));\r\n    min-height: 50vh; /* 最小高度设为半屏 */\r\n    max-height: 70vh; /* 限制最大高度为70%屏幕高度 */\r\n    display: flex;\r\n    flex-direction: column;\r\n    -webkit-animation: slideUp 0.3s ease;\r\n            animation: slideUp 0.3s ease;\n}\n.color-picker-title {\r\n    font-size: 32rpx;\r\n    font-weight: 600;\r\n    color: #333;\r\n    flex: 1;\r\n    text-align: center;\n}\n.color-picker-header {\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    margin-bottom: 24rpx;\r\n    position: relative;\n}\n.color-picker-back-btn {\r\n    position: absolute;\r\n    top: 0;\r\n    right: 0;\r\n    width: 80rpx;\r\n    height: 80rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    background: transparent;\r\n    border-radius: 50%;\r\n    z-index: 10;\n}\n.color-picker-back-icon {\r\n    width: 60rpx;\r\n    height: 60rpx;\n}\r\n/* 色卡选择界面 */\n.color-palette-step {\r\n    display: flex;\r\n    flex-direction: column;\r\n    height: 100%;\n}\n.color-palette-step .color-picker-title {\r\n    margin-bottom: 32rpx; /* 增加标题下方的间距 */\n}\n.palette-scroll {\r\n    flex: 1;\r\n    min-height: 800rpx;\r\n    max-height: 1000rpx;\n}\n.palette-grid {\r\n    display: grid;\r\n    grid-template-columns: repeat(2, 1fr);\r\n    grid-gap: 20rpx;\r\n    padding: 0 10rpx;\n}\n.palette-card {\r\n    height: 120rpx;\r\n    border-radius: 16rpx;\r\n    padding: 16rpx;\r\n    position: relative;\r\n    box-shadow: 0 4rpx 12rpx rgba(0,0,0,.1);\r\n    transition: -webkit-transform 0.2s ease;\r\n    transition: transform 0.2s ease;\r\n    transition: transform 0.2s ease, -webkit-transform 0.2s ease;\n}\n.palette-card:active {\r\n    -webkit-transform: scale(0.98);\r\n            transform: scale(0.98);\n}\n.palette-name {\r\n    font-size: 24rpx;\r\n    font-weight: 600;\r\n    margin-bottom: 8rpx;\r\n    text-shadow: 0 1rpx 2rpx rgba(0,0,0,0.3);\n}\n.palette-preview {\r\n    display: flex;\r\n    gap: 8rpx;\n}\n.mini-color {\r\n    width: 20rpx;\r\n    height: 20rpx;\r\n    border-radius: 50%;\r\n    border: 2rpx solid rgba(255,255,255,0.5);\n}\r\n/* 具体颜色选择界面 */\n.colors-scroll {\r\n    flex: 1;\r\n    min-height: 800rpx;\r\n    max-height: 1000rpx;\n}\n.colors-grid {\r\n    display: grid;\r\n    grid-template-columns: repeat(1, 1fr);\r\n    grid-gap: 16rpx;\r\n    padding: 0 10rpx;\n}\n.color-option {\r\n    height: 100rpx;\r\n    border-radius: 16rpx;\r\n    padding: 20rpx;\r\n    position: relative;\r\n    box-shadow: 0 4rpx 12rpx rgba(0,0,0,.1);\r\n    transition: -webkit-transform 0.2s ease;\r\n    transition: transform 0.2s ease;\r\n    transition: transform 0.2s ease, -webkit-transform 0.2s ease;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: space-between;\n}\n.color-option:active {\r\n    -webkit-transform: scale(0.98);\r\n            transform: scale(0.98);\n}\n.color-text {\r\n    font-size: 28rpx;\r\n    font-weight: 500;\n}\n.color-check { \r\n    position: absolute; \r\n    right: 20rpx; \r\n    top: 50%;\r\n    -webkit-transform: translateY(-50%);\r\n            transform: translateY(-50%);\r\n    font-size: 32rpx; \r\n    font-weight: bold;\r\n    text-shadow: 0 1rpx 2rpx rgba(0,0,0,.3);\n}\r\n/* 高光选择全屏弹窗样式 */\n.highlight-selection-modal {\r\n    position: fixed;\r\n    top: 0;\r\n    left: 0;\r\n    right: 0;\r\n    bottom: 0;\r\n    background: #fff;\r\n    z-index: 1000;\r\n    display: flex;\r\n    flex-direction: column;\n}\n.highlight-modal-content {\r\n    width: 100%;\r\n    height: 100%;\r\n    background: #fff;\r\n    display: flex;\r\n    flex-direction: column;\r\n    overflow: hidden;\n}\n.highlight-modal-header {\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: space-between;\r\n    padding: 30rpx 40rpx;\r\n    border-bottom: 1rpx solid #f0f0f0;\r\n    background: #fff;\n}\n.highlight-modal-title {\r\n    font-size: 32rpx;\r\n    font-weight: 600;\r\n    color: #333;\n}\n.highlight-modal-close {\r\n    width: 60rpx;\r\n    height: 60rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    font-size: 40rpx;\r\n    color: #999;\r\n    border-radius: 50%;\r\n    background: #f5f5f5;\n}\n.highlight-content-wrapper {\r\n    flex: 1;\r\n    padding: 40rpx;\r\n    overflow-y: auto;\r\n    background: #fff;\n}\n.highlight-content-display {\r\n    display: flex;\r\n    flex-direction: column;\n}\n.highlight-content-line {\r\n    display: block;\r\n    margin-bottom: 16rpx;\r\n    padding: 12rpx 16rpx;\r\n    border-radius: 8rpx;\r\n    line-height: 1.8;\r\n    font-size: 36rpx;\r\n    white-space: pre-wrap;\r\n    word-break: break-word;\r\n    color: #999;\r\n    transition: all 0.2s ease;\n}\n.highlight-content-line.selected-line {\r\n    color: #000;\r\n    font-weight: 500;\n}\n.highlight-modal-actions {\r\n    position: fixed;\r\n    bottom: 60rpx;\r\n    right: 30rpx;\r\n    z-index: 1001;\n}\n.highlight-action-btn {\r\n    width: 140rpx;\r\n    height: 140rpx;\r\n    display: flex;\r\n    align-items: center;\r\n    justify-content: center;\r\n    transition: all 0.3s ease;\n}\n.highlight-action-btn.primary {\r\n    background: transparent;\n}\n.highlight-action-btn.primary.disabled {\r\n    opacity: 0.5;\n}\n.highlight-action-btn:active {\r\n    -webkit-transform: scale(0.95);\r\n            transform: scale(0.95);\n}\n.highlight-action-text {\r\n    font-size: 28rpx;\r\n    font-weight: 500;\n}\n.highlight-action-icon {\r\n    width: 120rpx;\r\n    height: 120rpx;\n}\r\n/* 高光选择覆盖层样式 */\n.highlight-overlay {\r\n    border: none;\n}\n.hl-done {\r\n    background: #9ed7ee;\r\n    color: #fff;\n}\n.hl-clear {\r\n    background: #666;\r\n    color: #fff;\n}\r\n/* 新的覆盖层样式 */\n.highlight-select-overlay {\r\n    position: absolute;\r\n    top: 0;\r\n    left: 0;\r\n    right: 0;\r\n    bottom: 0;\r\n    z-index: 1;\r\n    pointer-events: auto;\r\n    overflow: hidden;\r\n    /* 确保不超出输入框边界 */\r\n    max-width: 100%;\r\n    max-height: 100%;\r\n    box-sizing: border-box;\n}\n.overlay-scroll {\r\n    height: 100%;\r\n    width: 100%;\r\n    overflow-y: auto;\r\n    /* 匹配textarea的滚动行为 */\n}\n.overlay-content {\r\n    height: 100%;\r\n    width: 100%;\r\n    /* 移除所有可能导致额外空间的样式 */\r\n    font-size: 0; /* 隐藏字体，不占用空间 */\r\n    line-height: 0;\r\n    color: transparent;\r\n    box-sizing: border-box;\r\n    border-radius: 20rpx;\r\n    /* 确保不超出父容器 */\r\n    max-width: 100%;\r\n    max-height: 100%;\r\n    overflow: hidden;\r\n    position: relative; /* 为绝对定位的子元素提供定位上下文 */\n}\n.overlay-line {\r\n    margin: 0;\r\n    position: absolute; /* 绝对定位，通过style属性设置top */\r\n    left: 0;\r\n    right: 0;\r\n    height: 48rpx; /* 固定行高：32rpx字体 + 1.5行高 */\r\n    transition: background-color 0.2s ease;\r\n    padding: 20rpx; /* 减少padding，避免超出边界 */\r\n    line-height: 1.5;\r\n    font-size: 32rpx; /* 与输入框保持相同的字体大小 */\r\n    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;\r\n    font-weight: 300;\r\n    box-sizing: border-box;\r\n    pointer-events: none; /* 防止干扰滚动 */\r\n    /* 确保不超出父容器 */\r\n    max-width: 100%;\r\n    overflow: hidden;\n}\n.overlay-line.highlighted {\r\n    background-color: rgba(158, 215, 238, 0.2);\r\n    border-radius: 8rpx;\n}\n.overlay-line-content {\r\n    color: #666; /* 半透明颜色，让用户能看到下面的文字 */\r\n    white-space: pre-wrap;\r\n    word-break: break-word;\r\n    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;\r\n    font-weight: 300;\r\n    font-size: 32rpx; /* 与输入框保持相同的字体大小 */\r\n    line-height: 1.5;\r\n    margin: 0;\r\n    padding: 0;\r\n    display: block;\r\n    /* 确保文字不超出边界 */\r\n    max-width: 100%;\r\n    overflow: hidden;\r\n    text-overflow: ellipsis;\n}\r\n/* 高光选择提示 */\n.highlight-hint {\r\n    position: fixed;\r\n    bottom: 100rpx;\r\n    left: 50%;\r\n    -webkit-transform: translateX(-50%);\r\n            transform: translateX(-50%);\r\n    background: rgba(128, 128, 128, 0.6);\r\n    color: white;\r\n    padding: 12rpx 24rpx;\r\n    border-radius: 20rpx;\r\n    z-index: 1000;\r\n    text-align: center;\r\n    white-space: nowrap;\n}\n.hint-text {\r\n    font-size: 24rpx;\r\n    line-height: 1.2;\n}\r\n/* 调整textarea的z-index，确保在覆盖层下方 */\n.content-textarea {\r\n    z-index: 0;\n}\r\n/* 当高光模式启用时，textarea的样式调整 */\n.content-input-wrapper {\r\n    position: relative;\n}\r\n/* 响应式设计 - 小屏幕适配 */\n@media screen and (max-width: 750rpx) {\n.content-textarea {\r\n        font-size: 28rpx;\r\n        padding: 20rpx;\r\n        min-height: 180rpx;\n}\n.side-toolbar {\r\n        width: 70rpx;\r\n        gap: 15rpx;\n}\n.side-tool-btn {\r\n        width: 50rpx;\r\n        height: 50rpx;\n}\n.side-tool-icon {\r\n        font-size: 18rpx;\n}\n.floating-action-btn {\r\n        width: 200rpx;\r\n        height: 200rpx;\r\n        bottom: 30rpx;\r\n        right: 50rpx;\n}\n.fab-icon {\r\n        font-size: 20rpx;\n}\n}\r\n/* 响应式设计 - 大屏幕适配 */\n@media screen and (min-width: 1200rpx) {\n.content-textarea {\r\n        font-size: 32rpx;\r\n        padding: 30rpx;\r\n        min-height: 250rpx;\n}\n.side-toolbar {\r\n        width: 90rpx;\r\n        gap: 25rpx;\n}\n.side-tool-btn {\r\n        width: 70rpx;\r\n        height: 70rpx;\n}\n.side-tool-icon {\r\n        font-size: 22rpx;\n}\n.floating-action-btn {\r\n        width: 200rpx;\r\n        height: 200rpx;\n}\n.fab-icon {\r\n        font-size: 26rpx;\n}\n}\r\n/* 响应式设计 - 超小屏幕适配 */\n@media screen and (max-width: 600rpx) {\n.main-input-area {\r\n        flex-direction: column;\n}\n.side-toolbar {\r\n        position: relative;\r\n        width: 100%;\r\n        height: auto;\r\n        flex-direction: row;\r\n        justify-content: space-around;\r\n        padding: 20rpx 0;\r\n        gap: 10rpx;\n}\n.content-input-wrapper {\r\n        margin-right: 0;\r\n        margin-bottom: 20rpx;\n}\n.floating-action-btn {\r\n        position: fixed;\r\n        bottom: 30rpx;\r\n        right: 50rpx;\r\n        width: 200rpx;\r\n        height: 200rpx;\n}\n}\r\n\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -18547,7 +18833,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n/* pages/messages/messages.wxss */\n.container {\n    min-height: 100vh;\n    background-color: #f8f9fa;\n}\n/* 页面标题 */\n.page-header {\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n    padding: 20rpx 30rpx;\n    background-color: #fff;\n    border-bottom: 1rpx solid #eee;\n}\n.page-title {\n    font-size: 36rpx;\n    font-weight: bold;\n    color: #333;\n}\n.header-actions {\n    display: flex;\n    align-items: center;\n    gap: 20rpx;\n}\n.unread-count {\n    font-size: 24rpx;\n    color: #ff6b6b;\n    background-color: #ffe0e0;\n    padding: 4rpx 12rpx;\n    border-radius: 20rpx;\n}\n.clear-btn {\n    font-size: 28rpx;\n    color: #666;\n    padding: 8rpx 16rpx;\n}\n/* 标签容器 */\n.tab-container {\n    display: flex;\n    background-color: #fff;\n    padding: 0 30rpx;\n    border-bottom: 1rpx solid #eee;\n}\n.tab-item {\n    flex: 1;\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    padding: 30rpx 0;\n    position: relative;\n}\n.tab-item uni-text {\n    font-size: 30rpx;\n    color: #666;\n    transition: color 0.3s;\n}\n.tab-item.active uni-text {\n    color: #9ed7ee;\n    font-weight: 500;\n}\n.tab-indicator {\n    position: absolute;\n    bottom: 0;\n    left: 50%;\n    -webkit-transform: translateX(-50%);\n            transform: translateX(-50%);\n    width: 60rpx;\n    height: 4rpx;\n    background-color: #9ed7ee;\n    border-radius: 2rpx;\n}\n/* 消息列表 */\n.message-list {\n    height: calc(100vh - 200rpx);\n    background-color: #f8f9fa;\n}\n/* 空状态 */\n.empty-container {\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    justify-content: center;\n    padding: 200rpx 0;\n}\n.empty-icon {\n    width: 200rpx;\n    height: 200rpx;\n    margin-bottom: 30rpx;\n    opacity: 0.5;\n}\n.empty-text {\n    font-size: 30rpx;\n    color: #999;\n}\n/* 消息项 */\n.message-item {\n    position: relative;\n    background-color: #fff;\n    margin: 20rpx 30rpx;\n    border-radius: 16rpx;\n    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);\n    overflow: hidden;\n}\n.message-item.unread {\n    background-color: #f0f9ff;\n    border-left: 6rpx solid #9ed7ee;\n}\n.message-content {\n    display: flex;\n    padding: 30rpx;\n    gap: 20rpx;\n}\n.user-avatar {\n    width: 80rpx;\n    height: 80rpx;\n    border-radius: 50%;\n    flex-shrink: 0;\n}\n.message-body {\n    flex: 1;\n    min-width: 0;\n}\n.message-header {\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n    margin-bottom: 10rpx;\n}\n.message-type {\n    display: flex;\n    align-items: center;\n    gap: 8rpx;\n}\n.type-icon {\n    font-size: 32rpx;\n}\n.type-text {\n    font-size: 28rpx;\n    color: #333;\n    font-weight: 500;\n}\n.message-time {\n    font-size: 24rpx;\n    color: #999;\n    flex-shrink: 0;\n}\n.message-text {\n    font-size: 28rpx;\n    color: #666;\n    line-height: 1.5;\n    margin-bottom: 16rpx;\n    display: -webkit-box;\n    -webkit-line-clamp: 2;\n    line-clamp: 2;\n    -webkit-box-orient: vertical;\n    overflow: hidden;\n}\n.post-preview {\n    background-color: #f8f9fa;\n    padding: 16rpx;\n    border-radius: 8rpx;\n    border-left: 4rpx solid #9ed7ee;\n}\n.post-title {\n    font-size: 26rpx;\n    color: #333;\n    display: -webkit-box;\n    -webkit-line-clamp: 1;\n    line-clamp: 1;\n    -webkit-box-orient: vertical;\n    overflow: hidden;\n}\n/* 时间信息样式 */\n.time-info {\n    margin: 12rpx 0;\n    padding: 8rpx 12rpx;\n    background-color: #f0f9ff;\n    border-radius: 8rpx;\n    border-left: 3rpx solid #9ed7ee;\n}\n.time-text {\n    font-size: 24rpx;\n    color: #9ed7ee;\n    font-weight: 500;\n}\n.delete-btn {\n    position: absolute;\n    top: 20rpx;\n    right: 20rpx;\n    padding: 8rpx 16rpx;\n    background-color: #f5f5f5;\n    border-radius: 8rpx;\n    font-size: 24rpx;\n    color: #999;\n}\n.unread-dot {\n    position: absolute;\n    top: 20rpx;\n    left: 20rpx;\n    width: 16rpx;\n    height: 16rpx;\n    background-color: #ff6b6b;\n    border-radius: 50%;\n}\n/* 加载更多 */\n.loading-more,\n.no-more {\n    text-align: center;\n    padding: 40rpx;\n    font-size: 28rpx;\n    color: #999;\n}\n/* 响应式设计 */\n@media (max-width: 375px) {\n.message-content {\n        padding: 24rpx;\n}\n.user-avatar {\n        width: 70rpx;\n        height: 70rpx;\n}\n.message-text {\n        font-size: 26rpx;\n}\n}\n", ""]);
+exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* pages/messages/messages.wxss */\n.container {\r\n    min-height: 100vh;\r\n    background-color: #f8f9fa;\n}\r\n/* 页面标题 */\n.page-header {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    padding: 20rpx 30rpx;\r\n    background-color: #fff;\r\n    border-bottom: 1rpx solid #eee;\n}\n.page-title {\r\n    font-size: 36rpx;\r\n    font-weight: bold;\r\n    color: #333;\n}\n.header-actions {\r\n    display: flex;\r\n    align-items: center;\r\n    gap: 20rpx;\n}\n.unread-count {\r\n    font-size: 24rpx;\r\n    color: #ff6b6b;\r\n    background-color: #ffe0e0;\r\n    padding: 4rpx 12rpx;\r\n    border-radius: 20rpx;\n}\n.clear-btn {\r\n    font-size: 28rpx;\r\n    color: #666;\r\n    padding: 8rpx 16rpx;\n}\r\n/* 标签容器 */\n.tab-container {\r\n    display: flex;\r\n    background-color: #fff;\r\n    padding: 0 30rpx;\r\n    border-bottom: 1rpx solid #eee;\n}\n.tab-item {\r\n    flex: 1;\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    padding: 30rpx 0;\r\n    position: relative;\n}\n.tab-item uni-text {\r\n    font-size: 30rpx;\r\n    color: #666;\r\n    transition: color 0.3s;\n}\n.tab-item.active uni-text {\r\n    color: #9ed7ee;\r\n    font-weight: 500;\n}\n.tab-indicator {\r\n    position: absolute;\r\n    bottom: 0;\r\n    left: 50%;\r\n    -webkit-transform: translateX(-50%);\r\n            transform: translateX(-50%);\r\n    width: 60rpx;\r\n    height: 4rpx;\r\n    background-color: #9ed7ee;\r\n    border-radius: 2rpx;\n}\r\n/* 消息列表 */\n.message-list {\r\n    height: calc(100vh - 200rpx);\r\n    background-color: #f8f9fa;\n}\r\n/* 空状态 */\n.empty-container {\r\n    display: flex;\r\n    flex-direction: column;\r\n    align-items: center;\r\n    justify-content: center;\r\n    padding: 200rpx 0;\n}\n.empty-icon {\r\n    width: 200rpx;\r\n    height: 200rpx;\r\n    margin-bottom: 30rpx;\r\n    opacity: 0.5;\n}\n.empty-text {\r\n    font-size: 30rpx;\r\n    color: #999;\n}\r\n/* 消息项 */\n.message-item {\r\n    position: relative;\r\n    background-color: #fff;\r\n    margin: 20rpx 30rpx;\r\n    border-radius: 16rpx;\r\n    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);\r\n    overflow: hidden;\n}\n.message-item.unread {\r\n    background-color: #f0f9ff;\r\n    border-left: 6rpx solid #9ed7ee;\n}\n.message-content {\r\n    display: flex;\r\n    padding: 30rpx;\r\n    gap: 20rpx;\n}\n.user-avatar {\r\n    width: 80rpx;\r\n    height: 80rpx;\r\n    border-radius: 50%;\r\n    flex-shrink: 0;\n}\n.message-body {\r\n    flex: 1;\r\n    min-width: 0;\n}\n.message-header {\r\n    display: flex;\r\n    justify-content: space-between;\r\n    align-items: center;\r\n    margin-bottom: 10rpx;\n}\n.message-type {\r\n    display: flex;\r\n    align-items: center;\r\n    gap: 8rpx;\n}\n.type-icon {\r\n    font-size: 32rpx;\n}\n.type-text {\r\n    font-size: 28rpx;\r\n    color: #333;\r\n    font-weight: 500;\n}\n.message-time {\r\n    font-size: 24rpx;\r\n    color: #999;\r\n    flex-shrink: 0;\n}\n.message-text {\r\n    font-size: 28rpx;\r\n    color: #666;\r\n    line-height: 1.5;\r\n    margin-bottom: 16rpx;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 2;\r\n    line-clamp: 2;\r\n    -webkit-box-orient: vertical;\r\n    overflow: hidden;\n}\n.post-preview {\r\n    background-color: #f8f9fa;\r\n    padding: 16rpx;\r\n    border-radius: 8rpx;\r\n    border-left: 4rpx solid #9ed7ee;\n}\n.post-title {\r\n    font-size: 26rpx;\r\n    color: #333;\r\n    display: -webkit-box;\r\n    -webkit-line-clamp: 1;\r\n    line-clamp: 1;\r\n    -webkit-box-orient: vertical;\r\n    overflow: hidden;\n}\r\n/* 时间信息样式 */\n.time-info {\r\n    margin: 12rpx 0;\r\n    padding: 8rpx 12rpx;\r\n    background-color: #f0f9ff;\r\n    border-radius: 8rpx;\r\n    border-left: 3rpx solid #9ed7ee;\n}\n.time-text {\r\n    font-size: 24rpx;\r\n    color: #9ed7ee;\r\n    font-weight: 500;\n}\n.delete-btn {\r\n    position: absolute;\r\n    top: 20rpx;\r\n    right: 20rpx;\r\n    padding: 8rpx 16rpx;\r\n    background-color: #f5f5f5;\r\n    border-radius: 8rpx;\r\n    font-size: 24rpx;\r\n    color: #999;\n}\n.unread-dot {\r\n    position: absolute;\r\n    top: 20rpx;\r\n    left: 20rpx;\r\n    width: 16rpx;\r\n    height: 16rpx;\r\n    background-color: #ff6b6b;\r\n    border-radius: 50%;\n}\r\n/* 加载更多 */\n.loading-more,\r\n.no-more {\r\n    text-align: center;\r\n    padding: 40rpx;\r\n    font-size: 28rpx;\r\n    color: #999;\n}\r\n/* 响应式设计 */\n@media (max-width: 375px) {\n.message-content {\r\n        padding: 24rpx;\n}\n.user-avatar {\r\n        width: 70rpx;\r\n        height: 70rpx;\n}\n.message-text {\r\n        font-size: 26rpx;\n}\n}\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -21117,7 +21403,7 @@ if(false) {}
 var ___CSS_LOADER_API_IMPORT___ = __webpack_require__(/*! ../../../HBuilderX/plugins/uniapp-cli/node_modules/css-loader/dist/runtime/api.js */ 10);
 exports = ___CSS_LOADER_API_IMPORT___(false);
 // Module
-exports.push([module.i, "\n.portfolio-page {\n  min-height: 100vh;\n  background: #fff;\n  display: flex;\n  flex-direction: column;\n\n  padding-top: var(--status-bar-height);\n}\n.header {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  position: relative;\n  padding: 20rpx 30rpx;\n  background: #fff;\n  border-bottom: 1rpx solid #e9ecef;\n}\n.header-left {\n  position: absolute;\n  left: 30rpx;\n  width: 60rpx;\n  height: 60rpx;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n}\n.back-icon {\n  font-size: 36rpx;\n  color: #333;\n  font-weight: bold;\n}\n.header-title {\n  font-size: 36rpx;\n  font-weight: 600;\n  color: #333;\n}\n.header-right {\n  position: absolute;\n  right: 30rpx;\n  width: 100rpx;\n  display: flex;\n  justify-content: flex-end;\n}\n.create-btn {\n  font-size: 28rpx;\n  color: #9ed7ee;\n  font-weight: 500;\n}\n.portfolio-list {\n  flex: 1;\n  height: 0;\n  overflow: hidden;\n}\n.portfolio-content {\n  padding: 30rpx;\n}\n.loading {\n  text-align: center;\n  padding: 60rpx 0;\n  color: #666;\n  font-size: 28rpx;\n}\n.empty-state {\n  text-align: center;\n  padding: 120rpx 0;\n}\n.empty-icon {\n  font-size: 120rpx;\n  margin-bottom: 30rpx;\n  display: block;\n}\n.empty-text {\n  font-size: 32rpx;\n  color: #333;\n  margin-bottom: 20rpx;\n  display: block;\n}\n.empty-subtext {\n  font-size: 28rpx;\n  color: #666;\n  display: block;\n}\n.folder-grid {\n  display: flex;\n  flex-direction: column;\n}\n.folder-item-simple {\n  padding: 30rpx 0;\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  border-bottom: 1rpx solid #f0f0f0;\n  width: 100%;\n  box-sizing: border-box;\n  margin-right: 0;\n  padding-right: 0;\n}\n.folder-content {\n  flex: 1;\n  display: flex;\n  flex-direction: column;\n  gap: 8rpx;\n}\n.folder-name {\n  font-size: 32rpx;\n  font-weight: 600;\n  color: #333;\n}\n.folder-count {\n  font-size: 26rpx;\n  color: #666;\n}\n.folder-actions {\n  display: flex;\n  gap: 8rpx;\n  flex-shrink: 0;\n  margin-right: -10rpx;\n  padding-right: 10rpx;\n  position: relative;\n  right: 0;\n}\n.action-btn {\n  font-size: 20rpx;\n  color: #9ed7ee;\n  padding: 8rpx 12rpx;\n  border-radius: 6rpx;\n  background: rgba(158, 215, 238, 0.1);\n  white-space: nowrap;\n  min-width: 60rpx;\n  text-align: center;\n}\n.action-btn.edit {\n  color: #9ed7ee;\n  background: rgba(158, 215, 238, 0.1);\n}\n.action-btn.delete {\n  color: #ff6b6b;\n  background: rgba(255, 107, 107, 0.1);\n}\n.load-more {\n  text-align: center;\n  padding: 40rpx 0;\n  color: #666;\n  font-size: 28rpx;\n}\n\n/* 弹窗样式 */\n.modal-overlay {\n  position: fixed;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  background: rgba(0, 0, 0, 0.5);\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  z-index: 1000;\n}\n.modal-content {\n  background: #fff;\n  border-radius: 20rpx;\n  width: 600rpx;\n  padding: 0;\n}\n.modal-header {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: 40rpx 40rpx 30rpx;\n  border-bottom: 1rpx solid #f0f0f0;\n}\n.modal-title {\n  font-size: 32rpx;\n  font-weight: 600;\n  color: #333;\n}\n.close-btn {\n  font-size: 40rpx;\n  color: #999;\n  width: 60rpx;\n  height: 60rpx;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n}\n.modal-body {\n  padding: 40rpx;\n}\n.folder-name-input {\n  width: 100%;\n  height: 80rpx;\n  border: 2rpx solid #e9ecef;\n  border-radius: 12rpx;\n  padding: 0 20rpx;\n  font-size: 28rpx;\n  color: #333;\n  box-sizing: border-box;\n}\n.folder-name-input:focus {\n  border-color: #9ed7ee;\n}\n.modal-footer {\n  display: flex;\n  gap: 20rpx;\n  padding: 30rpx 40rpx 40rpx;\n}\n.modal-btn {\n  flex: 1;\n  height: 80rpx;\n  border-radius: 12rpx;\n  font-size: 28rpx;\n  font-weight: 500;\n  border: none;\n}\n.modal-btn.cancel {\n  background: #f8f9fa;\n  color: #666;\n}\n.modal-btn.confirm {\n  background: #9ed7ee;\n  color: #fff;\n}\n.modal-btn.confirm[disabled] {\n  background: #ccc;\n  color: #999;\n}\n", ""]);
+exports.push([module.i, "\n.portfolio-page {\r\n  min-height: 100vh;\r\n  background: #fff;\r\n  display: flex;\r\n  flex-direction: column;\r\n\r\n  padding-top: var(--status-bar-height);\n}\n.header {\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  position: relative;\r\n  padding: 20rpx 30rpx;\r\n  background: #fff;\r\n  border-bottom: 1rpx solid #e9ecef;\n}\n.header-left {\r\n  position: absolute;\r\n  left: 30rpx;\r\n  width: 60rpx;\r\n  height: 60rpx;\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\n}\n.back-icon {\r\n  font-size: 36rpx;\r\n  color: #333;\r\n  font-weight: bold;\n}\n.header-title {\r\n  font-size: 36rpx;\r\n  font-weight: 600;\r\n  color: #333;\n}\n.header-right {\r\n  position: absolute;\r\n  right: 30rpx;\r\n  width: 100rpx;\r\n  display: flex;\r\n  justify-content: flex-end;\n}\n.create-btn {\r\n  font-size: 28rpx;\r\n  color: #9ed7ee;\r\n  font-weight: 500;\n}\n.portfolio-list {\r\n  flex: 1;\r\n  height: 0;\r\n  overflow: hidden;\n}\n.portfolio-content {\r\n  padding: 30rpx;\n}\n.loading {\r\n  text-align: center;\r\n  padding: 60rpx 0;\r\n  color: #666;\r\n  font-size: 28rpx;\n}\n.empty-state {\r\n  text-align: center;\r\n  padding: 120rpx 0;\n}\n.empty-icon {\r\n  font-size: 120rpx;\r\n  margin-bottom: 30rpx;\r\n  display: block;\n}\n.empty-text {\r\n  font-size: 32rpx;\r\n  color: #333;\r\n  margin-bottom: 20rpx;\r\n  display: block;\n}\n.empty-subtext {\r\n  font-size: 28rpx;\r\n  color: #666;\r\n  display: block;\n}\n.folder-grid {\r\n  display: flex;\r\n  flex-direction: column;\n}\n.folder-item-simple {\r\n  padding: 30rpx 0;\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: space-between;\r\n  border-bottom: 1rpx solid #f0f0f0;\r\n  width: 100%;\r\n  box-sizing: border-box;\r\n  margin-right: 0;\r\n  padding-right: 0;\n}\n.folder-content {\r\n  flex: 1;\r\n  display: flex;\r\n  flex-direction: column;\r\n  gap: 8rpx;\n}\n.folder-name {\r\n  font-size: 32rpx;\r\n  font-weight: 600;\r\n  color: #333;\n}\n.folder-count {\r\n  font-size: 26rpx;\r\n  color: #666;\n}\n.folder-actions {\r\n  display: flex;\r\n  gap: 8rpx;\r\n  flex-shrink: 0;\r\n  margin-right: -10rpx;\r\n  padding-right: 10rpx;\r\n  position: relative;\r\n  right: 0;\n}\n.action-btn {\r\n  font-size: 20rpx;\r\n  color: #9ed7ee;\r\n  padding: 8rpx 12rpx;\r\n  border-radius: 6rpx;\r\n  background: rgba(158, 215, 238, 0.1);\r\n  white-space: nowrap;\r\n  min-width: 60rpx;\r\n  text-align: center;\n}\n.action-btn.edit {\r\n  color: #9ed7ee;\r\n  background: rgba(158, 215, 238, 0.1);\n}\n.action-btn.delete {\r\n  color: #ff6b6b;\r\n  background: rgba(255, 107, 107, 0.1);\n}\n.load-more {\r\n  text-align: center;\r\n  padding: 40rpx 0;\r\n  color: #666;\r\n  font-size: 28rpx;\n}\r\n\r\n/* 弹窗样式 */\n.modal-overlay {\r\n  position: fixed;\r\n  top: 0;\r\n  left: 0;\r\n  right: 0;\r\n  bottom: 0;\r\n  background: rgba(0, 0, 0, 0.5);\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\r\n  z-index: 1000;\n}\n.modal-content {\r\n  background: #fff;\r\n  border-radius: 20rpx;\r\n  width: 600rpx;\r\n  padding: 0;\n}\n.modal-header {\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: space-between;\r\n  padding: 40rpx 40rpx 30rpx;\r\n  border-bottom: 1rpx solid #f0f0f0;\n}\n.modal-title {\r\n  font-size: 32rpx;\r\n  font-weight: 600;\r\n  color: #333;\n}\n.close-btn {\r\n  font-size: 40rpx;\r\n  color: #999;\r\n  width: 60rpx;\r\n  height: 60rpx;\r\n  display: flex;\r\n  align-items: center;\r\n  justify-content: center;\n}\n.modal-body {\r\n  padding: 40rpx;\n}\n.folder-name-input {\r\n  width: 100%;\r\n  height: 80rpx;\r\n  border: 2rpx solid #e9ecef;\r\n  border-radius: 12rpx;\r\n  padding: 0 20rpx;\r\n  font-size: 28rpx;\r\n  color: #333;\r\n  box-sizing: border-box;\n}\n.folder-name-input:focus {\r\n  border-color: #9ed7ee;\n}\n.modal-footer {\r\n  display: flex;\r\n  gap: 20rpx;\r\n  padding: 30rpx 40rpx 40rpx;\n}\n.modal-btn {\r\n  flex: 1;\r\n  height: 80rpx;\r\n  border-radius: 12rpx;\r\n  font-size: 28rpx;\r\n  font-weight: 500;\r\n  border: none;\n}\n.modal-btn.cancel {\r\n  background: #f8f9fa;\r\n  color: #666;\n}\n.modal-btn.confirm {\r\n  background: #9ed7ee;\r\n  color: #fff;\n}\n.modal-btn.confirm[disabled] {\r\n  background: #ccc;\r\n  color: #999;\n}\r\n", ""]);
 // Exports
 module.exports = exports;
 
@@ -23472,270 +23758,329 @@ var render = function () {
                 "uni-view",
                 { attrs: { id: "post-list-container", _i: 9 } },
                 _vm._l(_vm._$g(10, "f"), function (item, index, $20, $30) {
-                  return _c(
-                    "uni-view",
-                    {
-                      key: item,
-                      staticClass: _vm._$g("10-" + $30, "sc"),
-                      style: _vm._$g("10-" + $30, "s"),
-                      attrs: { _i: "10-" + $30 },
-                    },
-                    [
-                      _c(
+                  return _vm._$g("10-" + $30, "i")
+                    ? _c(
                         "uni-view",
                         {
-                          staticClass: _vm._$g("11-" + $30, "sc"),
-                          attrs: {
-                            "data-index": _vm._$g("11-" + $30, "a-data-index"),
-                            "data-postid": _vm._$g(
-                              "11-" + $30,
-                              "a-data-postid"
-                            ),
-                            _i: "11-" + $30,
-                          },
-                          on: {
-                            longpress: function ($event) {
-                              return _vm.$handleViewEvent($event)
-                            },
-                            click: function ($event) {
-                              return _vm.$handleViewEvent($event)
-                            },
-                          },
+                          key: item,
+                          staticClass: _vm._$g("10-" + $30, "sc"),
+                          style: _vm._$g("10-" + $30, "s"),
+                          attrs: { _i: "10-" + $30 },
                         },
                         [
                           _c(
                             "uni-view",
                             {
-                              staticClass: _vm._$g("12-" + $30, "sc"),
-                              attrs: { _i: "12-" + $30 },
+                              staticClass: _vm._$g("11-" + $30, "sc"),
+                              attrs: {
+                                "data-index": _vm._$g(
+                                  "11-" + $30,
+                                  "a-data-index"
+                                ),
+                                "data-postid": _vm._$g(
+                                  "11-" + $30,
+                                  "a-data-postid"
+                                ),
+                                _i: "11-" + $30,
+                              },
+                              on: {
+                                longpress: function ($event) {
+                                  return _vm.$handleViewEvent($event)
+                                },
+                                click: function ($event) {
+                                  return _vm.$handleViewEvent($event)
+                                },
+                              },
                             },
                             [
-                              _vm._$g("13-" + $30, "i")
-                                ? _c(
-                                    "uni-view",
-                                    {
-                                      class: _vm._$g("13-" + $30, "c"),
-                                      style: _vm._$g("13-" + $30, "s"),
-                                      attrs: { _i: "13-" + $30 },
-                                    },
-                                    [
-                                      _vm._$g("14-" + $30, "i")
-                                        ? [_vm._v(_vm._$g("14-" + $30, "t0-0"))]
-                                        : [
-                                            _vm._$g("16-" + $30, "i")
-                                              ? _vm._l(
-                                                  _vm._$g(17 + "-" + $30, "f"),
-                                                  function (
-                                                    highlightLine,
-                                                    index,
-                                                    $21,
-                                                    $31
-                                                  ) {
-                                                    return _c(
-                                                      "v-uni-text",
-                                                      {
-                                                        key: highlightLine,
-                                                        staticStyle: {
-                                                          "font-weight": "700",
-                                                          display: "block",
-                                                        },
-                                                        attrs: {
-                                                          _i:
-                                                            "17-" +
-                                                            $30 +
-                                                            "-" +
-                                                            $31,
-                                                        },
-                                                      },
-                                                      [
-                                                        _vm._v(
-                                                          _vm._$g(
-                                                            "17-" +
-                                                              $30 +
-                                                              "-" +
-                                                              $31,
-                                                            "t0-0"
-                                                          )
-                                                        ),
-                                                      ]
-                                                    )
-                                                  }
-                                                )
-                                              : [
-                                                  _vm._v(
-                                                    _vm._$g("18-" + $30, "t0-0")
-                                                  ),
-                                                ],
-                                          ],
-                                    ],
-                                    2
-                                  )
-                                : _vm._e(),
-                              _vm._$g("19-" + $30, "i")
-                                ? _c(
-                                    "uni-view",
-                                    {
-                                      staticClass: _vm._$g("19-" + $30, "sc"),
-                                      attrs: { _i: "19-" + $30 },
-                                    },
-                                    [
-                                      _c("v-uni-image", {
-                                        staticClass: _vm._$g("20-" + $30, "sc"),
-                                        attrs: {
-                                          src: _vm._$g("20-" + $30, "a-src"),
-                                          mode: "aspectFit",
-                                          _i: "20-" + $30,
-                                        },
-                                        on: {
-                                          error: function ($event) {
-                                            return _vm.$handleViewEvent($event)
-                                          },
-                                          load: function ($event) {
-                                            return _vm.$handleViewEvent($event)
-                                          },
-                                        },
-                                      }),
-                                    ],
-                                    1
-                                  )
-                                : _vm._e(),
-                              _vm._$g("21-" + $30, "i")
-                                ? _c(
-                                    "uni-view",
-                                    {
-                                      staticClass: _vm._$g("21-" + $30, "sc"),
-                                      attrs: { _i: "21-" + $30 },
-                                    },
-                                    [
-                                      _c("v-uni-image", {
-                                        staticClass: _vm._$g("22-" + $30, "sc"),
-                                        attrs: {
-                                          src: _vm._$g("22-" + $30, "a-src"),
-                                          mode: "aspectFit",
-                                          _i: "22-" + $30,
-                                        },
-                                        on: {
-                                          error: function ($event) {
-                                            return _vm.$handleViewEvent($event)
-                                          },
-                                          load: function ($event) {
-                                            return _vm.$handleViewEvent($event)
-                                          },
-                                        },
-                                      }),
-                                    ],
-                                    1
-                                  )
-                                : _vm._e(),
-                            ],
-                            1
-                          ),
-                        ],
-                        1
-                      ),
-                      _vm._$g("23-" + $30, "i")
-                        ? _c(
-                            "uni-view",
-                            {
-                              staticClass: _vm._$g("23-" + $30, "sc"),
-                              style: _vm._$g("23-" + $30, "s"),
-                              attrs: { _i: "23-" + $30 },
-                            },
-                            [
-                              _c("uni-view", {
-                                staticClass: _vm._$g("24-" + $30, "sc"),
-                                attrs: { _i: "24-" + $30 },
-                              }),
                               _c(
                                 "uni-view",
                                 {
-                                  staticClass: _vm._$g("25-" + $30, "sc"),
-                                  attrs: { _i: "25-" + $30 },
+                                  staticClass: _vm._$g("12-" + $30, "sc"),
+                                  attrs: { _i: "12-" + $30 },
                                 },
                                 [
-                                  _c(
-                                    "uni-view",
-                                    {
-                                      staticClass: _vm._$g("26-" + $30, "sc"),
-                                      attrs: {
-                                        "data-postid": _vm._$g(
-                                          "26-" + $30,
-                                          "a-data-postid"
-                                        ),
-                                        "data-index": _vm._$g(
-                                          "26-" + $30,
-                                          "a-data-index"
-                                        ),
-                                        _i: "26-" + $30,
-                                      },
-                                      on: {
-                                        click: function ($event) {
-                                          return _vm.$handleViewEvent($event, {
-                                            stop: true,
-                                            prevent: true,
-                                          })
+                                  _vm._$g("13-" + $30, "i")
+                                    ? _c(
+                                        "uni-view",
+                                        {
+                                          class: _vm._$g("13-" + $30, "c"),
+                                          style: _vm._$g("13-" + $30, "s"),
+                                          attrs: { _i: "13-" + $30 },
                                         },
-                                      },
-                                    },
-                                    [
-                                      _c("v-uni-image", {
-                                        staticClass: _vm._$g("27-" + $30, "sc"),
-                                        attrs: {
-                                          src: _vm._$g("27-" + $30, "a-src"),
-                                          mode: "aspectFit",
-                                          _i: "27-" + $30,
+                                        [
+                                          _vm._$g("14-" + $30, "i")
+                                            ? [
+                                                _vm._v(
+                                                  _vm._$g("14-" + $30, "t0-0")
+                                                ),
+                                              ]
+                                            : [
+                                                _vm._$g("16-" + $30, "i")
+                                                  ? _vm._l(
+                                                      _vm._$g(
+                                                        17 + "-" + $30,
+                                                        "f"
+                                                      ),
+                                                      function (
+                                                        highlightLine,
+                                                        index,
+                                                        $21,
+                                                        $31
+                                                      ) {
+                                                        return _c(
+                                                          "v-uni-text",
+                                                          {
+                                                            key: highlightLine,
+                                                            staticStyle: {
+                                                              "font-weight":
+                                                                "700",
+                                                              display: "block",
+                                                            },
+                                                            attrs: {
+                                                              _i:
+                                                                "17-" +
+                                                                $30 +
+                                                                "-" +
+                                                                $31,
+                                                            },
+                                                          },
+                                                          [
+                                                            _vm._v(
+                                                              _vm._$g(
+                                                                "17-" +
+                                                                  $30 +
+                                                                  "-" +
+                                                                  $31,
+                                                                "t0-0"
+                                                              )
+                                                            ),
+                                                          ]
+                                                        )
+                                                      }
+                                                    )
+                                                  : [
+                                                      _vm._v(
+                                                        _vm._$g(
+                                                          "18-" + $30,
+                                                          "t0-0"
+                                                        )
+                                                      ),
+                                                    ],
+                                              ],
+                                        ],
+                                        2
+                                      )
+                                    : _vm._e(),
+                                  _vm._$g("19-" + $30, "i")
+                                    ? _c(
+                                        "uni-view",
+                                        {
+                                          staticClass: _vm._$g(
+                                            "19-" + $30,
+                                            "sc"
+                                          ),
+                                          attrs: { _i: "19-" + $30 },
                                         },
-                                        on: {
-                                          error: function ($event) {
-                                            return _vm.$handleViewEvent($event)
-                                          },
+                                        [
+                                          _c("v-uni-image", {
+                                            staticClass: _vm._$g(
+                                              "20-" + $30,
+                                              "sc"
+                                            ),
+                                            attrs: {
+                                              src: _vm._$g(
+                                                "20-" + $30,
+                                                "a-src"
+                                              ),
+                                              mode: "aspectFit",
+                                              _i: "20-" + $30,
+                                            },
+                                            on: {
+                                              error: function ($event) {
+                                                return _vm.$handleViewEvent(
+                                                  $event
+                                                )
+                                              },
+                                              load: function ($event) {
+                                                return _vm.$handleViewEvent(
+                                                  $event
+                                                )
+                                              },
+                                            },
+                                          }),
+                                        ],
+                                        1
+                                      )
+                                    : _vm._e(),
+                                  _vm._$g("21-" + $30, "i")
+                                    ? _c(
+                                        "uni-view",
+                                        {
+                                          staticClass: _vm._$g(
+                                            "21-" + $30,
+                                            "sc"
+                                          ),
+                                          attrs: { _i: "21-" + $30 },
                                         },
-                                      }),
-                                    ],
-                                    1
-                                  ),
-                                  _c(
-                                    "uni-view",
-                                    {
-                                      staticClass: _vm._$g("28-" + $30, "sc"),
-                                      attrs: {
-                                        "data-postid": _vm._$g(
-                                          "28-" + $30,
-                                          "a-data-postid"
-                                        ),
-                                        _i: "28-" + $30,
-                                      },
-                                      on: {
-                                        click: function ($event) {
-                                          return _vm.$handleViewEvent($event, {
-                                            stop: true,
-                                            prevent: true,
-                                          })
-                                        },
-                                      },
-                                    },
-                                    [
-                                      _c("v-uni-image", {
-                                        staticClass: _vm._$g("29-" + $30, "sc"),
-                                        attrs: {
-                                          src: "/static/images/comment.png",
-                                          mode: "aspectFit",
-                                          _i: "29-" + $30,
-                                        },
-                                      }),
-                                    ],
-                                    1
-                                  ),
+                                        [
+                                          _c("v-uni-image", {
+                                            staticClass: _vm._$g(
+                                              "22-" + $30,
+                                              "sc"
+                                            ),
+                                            attrs: {
+                                              src: _vm._$g(
+                                                "22-" + $30,
+                                                "a-src"
+                                              ),
+                                              mode: "aspectFit",
+                                              _i: "22-" + $30,
+                                            },
+                                            on: {
+                                              error: function ($event) {
+                                                return _vm.$handleViewEvent(
+                                                  $event
+                                                )
+                                              },
+                                              load: function ($event) {
+                                                return _vm.$handleViewEvent(
+                                                  $event
+                                                )
+                                              },
+                                            },
+                                          }),
+                                        ],
+                                        1
+                                      )
+                                    : _vm._e(),
                                 ],
                                 1
                               ),
                             ],
                             1
-                          )
-                        : _vm._e(),
-                    ],
-                    1
-                  )
+                          ),
+                          _vm._$g("23-" + $30, "i")
+                            ? _c(
+                                "uni-view",
+                                {
+                                  staticClass: _vm._$g("23-" + $30, "sc"),
+                                  style: _vm._$g("23-" + $30, "s"),
+                                  attrs: { _i: "23-" + $30 },
+                                },
+                                [
+                                  _c("uni-view", {
+                                    staticClass: _vm._$g("24-" + $30, "sc"),
+                                    attrs: { _i: "24-" + $30 },
+                                  }),
+                                  _c(
+                                    "uni-view",
+                                    {
+                                      staticClass: _vm._$g("25-" + $30, "sc"),
+                                      attrs: { _i: "25-" + $30 },
+                                    },
+                                    [
+                                      _c(
+                                        "uni-view",
+                                        {
+                                          staticClass: _vm._$g(
+                                            "26-" + $30,
+                                            "sc"
+                                          ),
+                                          attrs: {
+                                            "data-postid": _vm._$g(
+                                              "26-" + $30,
+                                              "a-data-postid"
+                                            ),
+                                            "data-index": _vm._$g(
+                                              "26-" + $30,
+                                              "a-data-index"
+                                            ),
+                                            _i: "26-" + $30,
+                                          },
+                                          on: {
+                                            click: function ($event) {
+                                              return _vm.$handleViewEvent(
+                                                $event,
+                                                { stop: true, prevent: true }
+                                              )
+                                            },
+                                          },
+                                        },
+                                        [
+                                          _c("v-uni-image", {
+                                            staticClass: _vm._$g(
+                                              "27-" + $30,
+                                              "sc"
+                                            ),
+                                            attrs: {
+                                              src: _vm._$g(
+                                                "27-" + $30,
+                                                "a-src"
+                                              ),
+                                              mode: "aspectFit",
+                                              _i: "27-" + $30,
+                                            },
+                                            on: {
+                                              error: function ($event) {
+                                                return _vm.$handleViewEvent(
+                                                  $event
+                                                )
+                                              },
+                                            },
+                                          }),
+                                        ],
+                                        1
+                                      ),
+                                      _c(
+                                        "uni-view",
+                                        {
+                                          staticClass: _vm._$g(
+                                            "28-" + $30,
+                                            "sc"
+                                          ),
+                                          attrs: {
+                                            "data-postid": _vm._$g(
+                                              "28-" + $30,
+                                              "a-data-postid"
+                                            ),
+                                            _i: "28-" + $30,
+                                          },
+                                          on: {
+                                            click: function ($event) {
+                                              return _vm.$handleViewEvent(
+                                                $event,
+                                                { stop: true, prevent: true }
+                                              )
+                                            },
+                                          },
+                                        },
+                                        [
+                                          _c("v-uni-image", {
+                                            staticClass: _vm._$g(
+                                              "29-" + $30,
+                                              "sc"
+                                            ),
+                                            attrs: {
+                                              src: "/static/images/comment.png",
+                                              mode: "aspectFit",
+                                              _i: "29-" + $30,
+                                            },
+                                          }),
+                                        ],
+                                        1
+                                      ),
+                                    ],
+                                    1
+                                  ),
+                                ],
+                                1
+                              )
+                            : _vm._e(),
+                        ],
+                        1
+                      )
+                    : _vm._e()
                 }),
                 1
               ),
@@ -23870,7 +24215,7 @@ var ___CSS_LOADER_URL_IMPORT_0___ = __webpack_require__(/*! @/static/fonts/Huiwe
 exports = ___CSS_LOADER_API_IMPORT___(false);
 var ___CSS_LOADER_URL_REPLACEMENT_0___ = ___CSS_LOADER_GET_URL_IMPORT___(___CSS_LOADER_URL_IMPORT_0___);
 // Module
-exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* 定义 Huiwen-mincho 字体 */\n@font-face {\r\n  font-family: 'Huiwen-mincho';\r\n  src: url(" + ___CSS_LOADER_URL_REPLACEMENT_0___ + ") format('opentype');\r\n  font-weight: normal;\r\n  font-style: normal;\n}\n.white-bg { \r\n  background: #fff; \r\n  min-height: 100vh; \r\n  padding-top: env(safe-area-inset-top, var(--safe-area-inset-top, 44px)); /* 添加状态栏安全区域，备选方案 */\n}\n.square-mode-container {\r\n  padding: 40rpx;\r\n  margin-bottom: 200rpx;\r\n  padding-top: 250rpx; /* 增加上边距：100rpx(top-bar高度) + 150rpx(额外间距) */\r\n  display: flex;\r\n  flex-direction: column;\r\n  align-items: center; /* 居中卡片 */\n}\n.empty-state { text-align: center; padding: 100rpx 0; color: #999;\n}\n.empty-icon { font-size: 80rpx; margin-bottom: 20rpx;\n}\n.empty-text { font-size: 32rpx; margin-bottom: 10rpx; color: #666;\n}\n.empty-subtext { font-size: 24rpx; color: #999;\n}\r\n/* poem.css inspired card styles */\n.post-item-wrapper {\r\n  width: calc(100% - 80rpx); /* 响应式宽度：屏幕宽度减去左右各40rpx边距 */\r\n  margin-left: 40rpx; /* 左边距 */\r\n  margin-right: 40rpx; /* 右边距 */\r\n  border-radius: 30rpx; /* 15px * 2 */\r\n  margin-bottom: 40rpx; /* 减少间距，让卡片更紧凑 */\r\n  overflow: hidden;\r\n  box-shadow: 0 8rpx 8rpx rgba(0, 0, 0, 0.25); /* 0px 4px 4px * 2 */\r\n  transition: -webkit-transform .3s ease;\r\n  transition: transform .3s ease;\r\n  transition: transform .3s ease, -webkit-transform .3s ease;\r\n  border: none;\r\n  position: relative; /* 为卷边效果添加定位 */\n}\r\n/* 背景颜色现在通过内联样式动态设置，不再使用固定的CSS类 */\n.post-item-wrapper:active { -webkit-transform: scale(0.98); transform: scale(0.98);\n}\n.post-content-navigator { display: block;\n}\n.post-item { padding: 30rpx 60rpx 30rpx 80rpx; position: relative;\n}\r\n/* 进一步减少上下padding，文字往左移动 */\r\n/* Typography inspired by poem.css */\n.post-content {\r\n  font-family: 'Huiwen-mincho', sans-serif;\r\n  font-style: normal;\r\n  font-weight: 500;\r\n  font-size: 28rpx; /* 调小字体：14px * 2 */\r\n  line-height: 38rpx; /* 调整行距：19px * 2 */\r\n  margin: 30rpx 0;\r\n  width: 100%;\r\n  color: #FFFFFF;\n}\r\n/* 文字颜色现在通过内联样式动态设置 */\r\n/* 折叠态：当没有高光行时显示前三行，有高光行时显示高光行 */\n.post-content.collapsed {\r\n  overflow: hidden;\r\n  text-overflow: ellipsis;\n}\r\n/* 当没有高光行时，使用三行裁切 */\n.post-content.collapsed.no-highlight {\r\n  display: -webkit-box;\r\n  -webkit-box-orient: vertical;\r\n  -webkit-line-clamp: 3;\n}\n.post-content.expanded { display: block; overflow: visible;\n}\n.comment-emoji{ font-size: 40rpx;\n}\n.comment-icon { width: 60rpx; height: 60rpx;\n}\n.vote-section { display: flex; justify-content: space-between; align-items: center; padding: 35rpx 50rpx;\n}\n.actions-left { flex: 1; display: flex; align-items: center; gap: 20rpx;\n}\n.button-group { display: flex; align-items: center; gap: 30rpx;\n}\n.comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx;\n}\n.vote-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; border-radius: 20rpx; background: rgba(255,255,255,.9); box-shadow: 0 2rpx 8rpx rgba(0,0,0,.1);\n}\n.comment-icon { width: 60rpx; height: 60rpx;\n}\n.like-icon { width: 60rpx; height: 60rpx; margin-top: 5px;\n}\r\n/* 用户签名样式 */\n.user-signature {\r\n  position: absolute;\r\n  bottom: -25rpx; /* 从15rpx往下移动40rpx */\r\n  right: 60rpx;\r\n  z-index: 10;\r\n  pointer-events: none; /* 防止签名影响点击事件 */\n}\n.signature-image {\r\n  width: 180rpx;\r\n  height: 90rpx;\r\n  opacity: 0.8; /* 稍微透明，不抢夺主要内容的注意力 */\r\n  -webkit-filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1));\r\n          filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1)); /* 添加轻微阴影 */\r\n  display: block; /* 确保图片正确显示 */\r\n  background: transparent; /* 确保背景透明 */\n}\r\n/* 小签名样式 - 折叠状态下显示 */\n.user-signature-small {\r\n  position: absolute;\r\n  bottom: 30rpx;\r\n  right: 60rpx;\r\n  z-index: 10;\r\n  pointer-events: none; /* 防止签名影响点击事件 */\n}\n.signature-image-small {\r\n  width: 100rpx;\r\n  height: 50rpx;\r\n  opacity: 0.6; /* 更透明，不抢夺主要内容的注意力 */\r\n  -webkit-filter: drop-shadow(0 1rpx 2rpx rgba(0, 0, 0, 0.1));\r\n          filter: drop-shadow(0 1rpx 2rpx rgba(0, 0, 0, 0.1)); /* 添加轻微阴影 */\r\n  display: block; /* 确保图片正确显示 */\r\n  background: transparent; /* 确保背景透明 */\n}\n.loading-footer { text-align: center; color: #666; padding: 30rpx 0 120rpx;\n}\n.page-indicator { position: fixed; top: 50%; left: 50%; -webkit-transform: translate(-50%, -50%); transform: translate(-50%, -50%); background: rgba(0,0,0,.7); color: #fff; padding: 20rpx 40rpx; border-radius: 40rpx; z-index: 1000; font-size: 28rpx;\n}\n.page-indicator-text { text-align: center;\n}\r\n", ""]);
+exports.push([module.i, "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n/* 定义 Huiwen-mincho 字体 */\n@font-face {\r\n  font-family: 'Huiwen-mincho';\r\n  src: url(" + ___CSS_LOADER_URL_REPLACEMENT_0___ + ") format('opentype');\r\n  font-weight: normal;\r\n  font-style: normal;\n}\n.white-bg { \r\n  background: #fff; \r\n  min-height: 100vh; \r\n  padding-top: env(safe-area-inset-top, var(--safe-area-inset-top, 44px)); /* 添加状态栏安全区域，备选方案 */\n}\n.square-mode-container {\r\n  padding: 40rpx;\r\n  margin-bottom: 200rpx;\r\n  padding-top: 250rpx; /* 增加上边距：100rpx(top-bar高度) + 150rpx(额外间距) */\r\n  display: flex;\r\n  flex-direction: column;\r\n  align-items: center; /* 居中卡片 */\n}\n.empty-state { text-align: center; padding: 100rpx 0; color: #999;\n}\n.empty-icon { font-size: 80rpx; margin-bottom: 20rpx;\n}\n.empty-text { font-size: 32rpx; margin-bottom: 10rpx; color: #666;\n}\n.empty-subtext { font-size: 24rpx; color: #999;\n}\r\n/* poem.css inspired card styles */\n.post-item-wrapper {\r\n  width: calc(100% - 80rpx); /* 响应式宽度：屏幕宽度减去左右各40rpx边距 */\r\n  margin-left: 40rpx; /* 左边距 */\r\n  margin-right: 40rpx; /* 右边距 */\r\n  border-radius: 30rpx; /* 15px * 2 */\r\n  margin-bottom: 40rpx; /* 减少间距，让卡片更紧凑 */\r\n  overflow: hidden;\r\n  box-shadow: 0 8rpx 8rpx rgba(0, 0, 0, 0.25); /* 0px 4px 4px * 2 */\r\n  transition: -webkit-transform .3s ease;\r\n  transition: transform .3s ease;\r\n  transition: transform .3s ease, -webkit-transform .3s ease;\r\n  border: none;\r\n  position: relative; /* 为卷边效果添加定位 */\n}\r\n/* 背景颜色现在通过内联样式动态设置，不再使用固定的CSS类 */\n.post-item-wrapper:active { -webkit-transform: scale(0.98); transform: scale(0.98);\n}\n.post-content-navigator { display: block;\n}\n.post-item { padding: 30rpx 60rpx 30rpx 80rpx; position: relative;\n}\r\n/* 进一步减少上下padding，文字往左移动 */\r\n/* Typography inspired by poem.css */\n.post-content {\r\n  font-family: 'Huiwen-mincho', sans-serif;\r\n  font-style: normal;\r\n  font-weight: 500;\r\n  font-size: 28rpx; /* 调小字体：14px * 2 */\r\n  line-height: 38rpx; /* 调整行距：19px * 2 */\r\n  margin: 30rpx 0;\r\n  width: 100%;\r\n  color: #FFFFFF;\n}\r\n/* 文字颜色现在通过内联样式动态设置 */\r\n/* 折叠态：当没有高光行时显示前三行，有高光行时显示高光行 */\n.post-content.collapsed {\r\n  overflow: hidden;\r\n  text-overflow: ellipsis;\n}\r\n/* 当没有高光行时，使用三行裁切 */\n.post-content.collapsed.no-highlight {\r\n  display: -webkit-box;\r\n  -webkit-box-orient: vertical;\r\n  -webkit-line-clamp: 3;\n}\n.post-content.expanded { display: block; overflow: visible;\n}\n.comment-emoji{ font-size: 40rpx;\n}\n.comment-icon { width: 60rpx; height: 60rpx;\n}\n.vote-section { display: flex; justify-content: space-between; align-items: center; padding: 35rpx 50rpx;\n}\n.actions-left { flex: 1; display: flex; align-items: center; gap: 20rpx;\n}\n.button-group { display: flex; align-items: center; gap: 30rpx;\n}\n.comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx;\n}\n.vote-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; border-radius: 20rpx; background: rgba(255,255,255,.9); box-shadow: 0 2rpx 8rpx rgba(0,0,0,.1);\n}\n.comment-icon { width: 60rpx; height: 60rpx;\n}\n.like-icon { width: 60rpx; height: 60rpx; margin-top: 5px;\n}\r\n/* 用户签名样式 */\n.user-signature {\r\n  position: absolute;\r\n  bottom: -25rpx; /* 从15rpx往下移动40rpx */\r\n  right: 60rpx;\r\n  z-index: 10;\r\n  pointer-events: none; /* 防止签名影响点击事件 */\n}\n.signature-image {\r\n  width: 180rpx;\r\n  height: 90rpx;\r\n  opacity: 0.8; /* 稍微透明，不抢夺主要内容的注意力 */\r\n  -webkit-filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1));\r\n          filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1)); /* 添加轻微阴影 */\r\n  display: block; /* 确保图片正确显示 */\r\n  background: transparent; /* 确保背景透明 */\n}\r\n/* 小签名样式 - 折叠状态下显示 */\n.user-signature-small {\r\n  position: absolute;\r\n  bottom: 30rpx;\r\n  right: 60rpx;\r\n  z-index: 10;\r\n  pointer-events: none; /* 防止签名影响点击事件 */\n}\n.signature-image-small {\r\n  width: 100rpx;\r\n  height: 50rpx;\r\n  opacity: 0.6; /* 更透明，不抢夺主要内容的注意力 */\r\n  -webkit-filter: drop-shadow(0 1rpx 2rpx rgba(0, 0, 0, 0.1));\r\n          filter: drop-shadow(0 1rpx 2rpx rgba(0, 0, 0, 0.1)); /* 添加轻微阴影 */\r\n  display: block; /* 确保图片正确显示 */\r\n  background: transparent; /* 确保背景透明 */\n}\n.loading-footer { text-align: center; color: #666; padding: 30rpx 0 120rpx;\n}\n.page-indicator { position: fixed; top: 50%; left: 50%; -webkit-transform: translate(-50%, -50%); transform: translate(-50%, -50%); background: rgba(0,0,0,.7); color: #fff; padding: 20rpx 40rpx; border-radius: 40rpx; z-index: 1000; font-size: 28rpx;\n}\n.page-indicator-text { text-align: center;\n}\r\n", ""]);
 // Exports
 module.exports = exports;
 

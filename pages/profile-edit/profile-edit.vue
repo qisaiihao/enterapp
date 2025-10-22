@@ -151,7 +151,9 @@ export default {
         uploadFileViaCloudFunction(cloudPath, filePath, retryCount = 0) {
             return new Promise((resolve, reject) => {
                 // 检查环境并使用相应的文件读取方式
-                if (typeof window !== "undefined" && typeof FileReader !== "undefined") {
+                const { getCurrentPlatform } = require('../../utils/platformDetector.js');
+                const platform = getCurrentPlatform();
+                if (platform === 'h5') {
                     // H5环境：使用fetch获取blob，然后转换为base64
                     console.log('🔍 [ProfileEdit] H5环境使用fetch读取文件');
                     fetch(filePath)
@@ -197,6 +199,39 @@ export default {
                     // App环境使用uni-app API
                     console.log('🔍 [ProfileEdit] App环境使用uni-app API读取文件');
                     try {
+                        // App 端优先使用 plus.io 读取为 base64，避免使用 getFileSystemManager（App 不支持）
+                        if (typeof platform !== 'undefined' && platform === 'app') {
+                            if (typeof plus === 'undefined' || !plus.io) {
+                                reject(new Error('App端运行环境不可用')); return;
+                            }
+                            plus.io.resolveLocalFileSystemURL(filePath, (entry) => {
+                                entry.file((file) => {
+                                    const reader = new plus.io.FileReader();
+                                    reader.onload = (e) => {
+                                        try {
+                                            const dataUrl = e.target.result || '';
+                                            const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
+                                            if (!base64) { reject(new Error('文件读取失败')); return; }
+                                            this.callCloudFunction('upload', { cloudPath, fileContent: base64 })
+                                                .then((uploadRes) => {
+                                                    console.log('App端上传云函数返回结果:', uploadRes);
+                                                    if (uploadRes && uploadRes.result && uploadRes.result.success) {
+                                                        resolve(uploadRes.result.fileID);
+                                                    } else {
+                                                        reject(new Error('云函数返回异常'));
+                                                    }
+                                                })
+                                                .catch(reject);
+                                        } catch (ex) {
+                                            reject(new Error('读取转换失败: ' + ex.message));
+                                        }
+                                    };
+                                    reader.onerror = (err) => reject(new Error('文件读取失败: ' + (err && err.message || 'unknown')));
+                                    reader.readAsDataURL(file);
+                                }, (e) => reject(new Error('获取文件失败: ' + (e && e.message || 'unknown'))));
+                            }, (e) => reject(new Error('路径解析失败: ' + (e && e.message || 'unknown'))));
+                            return;
+                        }
                         const fs = uni.getFileSystemManager();
                         if (fs && fs.readFile) {
                             fs.readFile({
