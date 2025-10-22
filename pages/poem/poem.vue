@@ -3,7 +3,7 @@
         <!-- poem.wxml - 原创诗歌页面（路） -->
         <view class="container">
             <!-- 顶部栏 -->
-            <top-bar ref="topBar"></top-bar>
+            <top-bar ref="topBar" @safe-area-ready="onTopBarSafeAreaReady"></top-bar>
             <!-- 双图层清晰背景 -->
             <view class="background-wrapper">
                 <image
@@ -35,7 +35,7 @@
             </view>
 
             <!-- 路模式（原创诗歌） -->
-            <view v-if="postList.length > 0" class="poem-mode-container" @touchstart="touchStart" @touchend="touchEnd">
+            <view v-if="postList.length > 0" class="poem-mode-container" :style="poemModeStyle" @touchstart="touchStart" @touchend="touchEnd">
                 <!-- 
       核心改动：
       不再使用 postList[currentPostIndex]，而是使用独立的 currentPost 对象。
@@ -99,6 +99,9 @@ export default {
             // 默认显示骨架屏
             postList: [],
 
+            topOffsetPx: 180,
+            poemModeStyle: 'top:180px;height:calc(100vh - 180px);',
+
             currentPostIndex: 0,
             touchStartX: 0,
             touchEndX: 0,
@@ -154,6 +157,10 @@ export default {
         };
     },
     onLoad: function () {
+
+        this.computeTopOffset();
+        this._isDestroyed = false;
+        this.__topBarOffsetTimer = null;
         console.log('Poem 页面 onLoad');
         const app = getApp();
         // 检查预加载数据
@@ -209,7 +216,101 @@ export default {
             console.log('【poem】再次进入，保持之前内容');
         }
     },
-    methods: { toPoemSquare(){ uni.navigateTo({ url: "/pages/poem-square/poem-square" }); },
+    onUnload() {
+        this._isDestroyed = true;
+        if (this.__topBarOffsetTimer) {
+            clearTimeout(this.__topBarOffsetTimer);
+            this.__topBarOffsetTimer = null;
+        }
+    },
+    methods: {
+        computeTopOffset() {
+            const applyOffset = (offset) => {
+                const rounded = Math.round(Number(offset));
+                if (!Number.isFinite(rounded) || rounded <= 0) {
+                    return;
+                }
+                const nextStyle = `top:${rounded}px;height:calc(100vh - ${rounded}px);`;
+                if (this.topOffsetPx === rounded && this.poemModeStyle === nextStyle) {
+                    return;
+                }
+                this.setData({
+                    topOffsetPx: rounded,
+                    poemModeStyle: nextStyle
+                });
+            };
+
+            const fallbackOffset = 180;
+            applyOffset(fallbackOffset);
+
+            const measureOffset = (attempt = 0) => {
+                if (attempt >= 5 || this._isDestroyed) {
+                    return;
+                }
+                if (typeof uni === 'undefined') {
+                    return;
+                }
+
+                let statusBarHeight = 0;
+                try {
+                    if (typeof uni.getSystemInfoSync === 'function') {
+                        const info = uni.getSystemInfoSync();
+                        statusBarHeight = info && info.statusBarHeight ? info.statusBarHeight : 0;
+                    }
+                } catch (_) {}
+
+                if (typeof uni.createSelectorQuery !== 'function') {
+                    if (attempt < 4) {
+                        setTimeout(() => measureOffset(attempt + 1), 120);
+                    }
+                    return;
+                }
+
+                uni.createSelectorQuery()
+                    .in(this)
+                    .select('.top-bar-container')
+                    .boundingClientRect((rect) => {
+                        let offset = 0;
+                        if (rect && rect.bottom) {
+                            offset = rect.bottom;
+                        } else if (rect && rect.height) {
+                            offset = statusBarHeight + rect.height;
+                        }
+
+                        if (offset > 0) {
+                            applyOffset(offset);
+                        }
+
+                        if (attempt < 4) {
+                            setTimeout(() => measureOffset(attempt + 1), 120);
+                        }
+                    })
+                    .exec();
+            };
+
+            try {
+                this.$nextTick(() => {
+                    measureOffset();
+                });
+            } catch (error) {
+                console.error('【poem】safe area计算异常:', error);
+            }
+        },
+        onTopBarSafeAreaReady() {
+            if (this._isDestroyed) {
+                return;
+            }
+            if (this.__topBarOffsetTimer) {
+                clearTimeout(this.__topBarOffsetTimer);
+            }
+            this.__topBarOffsetTimer = setTimeout(() => {
+                if (!this._isDestroyed) {
+                    this.computeTopOffset();
+                }
+                this.__topBarOffsetTimer = null;
+            }, 30);
+        },
+        toPoemSquare(){ uni.navigateTo({ url: "/pages/poem-square/poem-square" }); },
         // 统一云函数调用方法
         callCloudFunction(name, data = {}, extraOptions = {}) {
             return cloudCall(name, data, Object.assign({ pageTag: 'poem', context: this }, extraOptions));
@@ -670,7 +771,28 @@ export default {
             });
 
             // 2. 获取当前帖子作者的签名
-            this.fetchAuthorSignature(post._openid);
+            const isAnonymousPost = post && (
+                post.isAnonymous === true ||
+                post.isAnonymous === 1 ||
+                post.isAnonymous === '1' ||
+                post.isAnonymous === 'true' ||
+                post.anonymous === true
+            );
+            if (isAnonymousPost) {
+                this.setData({
+                    currentAuthorSignature: '',
+                    currentAuthorOpenid: '',
+                    isFetchingSignature: false
+                });
+            } else if (post && post._openid) {
+                this.fetchAuthorSignature(post._openid);
+            } else {
+                this.setData({
+                    currentAuthorSignature: '',
+                    currentAuthorOpenid: '',
+                    isFetchingSignature: false
+                });
+            }
 
             // 2. 延迟切换背景图，让文字先显示
             const imageUrl = post.poemBgImage || (post.imageUrls && post.imageUrls[0]) || '';

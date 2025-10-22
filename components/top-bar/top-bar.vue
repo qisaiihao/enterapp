@@ -65,10 +65,20 @@ export default {
         console.log('【top-bar】设置安全区域高度:', safeAreaTop);
         
         this.safeAreaTop = safeAreaTop;
+        try {
+          if (this.$emit) {
+            this.$emit('safe-area-ready', safeAreaTop);
+          }
+        } catch (_) {}
       } catch (error) {
         console.error('【top-bar】获取安全区域失败:', error);
         // 使用默认值
         this.safeAreaTop = 44; // iOS 默认状态栏高度
+        try {
+          if (this.$emit) {
+            this.$emit('safe-area-ready', this.safeAreaTop);
+          }
+        } catch (_) {}
       }
     },
 
