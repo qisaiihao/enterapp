@@ -250,7 +250,10 @@ export default {
         const list = (res && res.result && res.result.posts) ? res.result.posts : [];
         console.log('【poem-square】获取到帖子数量:', list.length);
         
-        const visibleList = list.filter(p => p && !(p.isAnonymous === true || p.isAnonymous === 1 || p.isAnonymous === '1' || p.isAnonymous === 'true' || p.anonymous === true));
+        // 不再前端过滤帖子，因为是否获取签名是在后面控制的
+        // 并且云函数调用已经包含了 excludeAnonymous: true，理论上后端已经过滤了
+        // 如果后端过滤不可靠，我们保留一个更简单的过滤逻辑
+        const visibleList = list.filter(p => p && !p.isAnonymous);
         
         visibleList.forEach((p) => {
           if (!p) return; // 防止处理undefined项目
@@ -308,6 +311,14 @@ export default {
 
     // 获取作者签名
     async fetchAuthorSignature(authorOpenid, postIndex) {
+      // 在函数入口处增加对帖子匿名状态的最终检查
+      const post = this.postList[postIndex];
+      // 如果帖子不存在，或者帖子是匿名的，则直接终止函数
+      if (!post || post.isAnonymous) {
+        console.log(`【poem-square】帖子索引 ${postIndex} 是匿名的，跳过签名获取。`);
+        return;
+      }
+
       if (!authorOpenid || this.fetchingSignatures[authorOpenid]) {
         return;
       }
@@ -322,23 +333,19 @@ export default {
           const signatureUrl = res.result.userInfo.signatureUrl;
           console.log('【poem-square】获取到作者签名:', signatureUrl);
 
-          const __cur = this.postList && this.postList[postIndex];
-          const __anon = __cur && (__cur.isAnonymous === true || __cur.isAnonymous === 1 || __cur.isAnonymous === '1' || __cur.isAnonymous === 'true' || __cur.anonymous === true);
-          if (__anon) {
-            this.setData({ [`postList[${postIndex}].authorSignature`]: '' });
-          } else {
-            this.setData({ [`postList[${postIndex}].authorSignature`]: signatureUrl });
-          }
+          // 因为我们在函数入口已经判断过匿名状态，这里可以直接设置签名
+          this.setData({ [`postList[${postIndex}].authorSignature`]: signatureUrl });
+
         } else {
           console.log('【poem-square】作者未设置签名');
           this.setData({
-            [`postList[${postIndex}].authorSignature`]: ''
+            [`postList[${postIndex}].authorSignature`]: '' // 确保没有签名时为空
           });
         }
       } catch (err) {
         console.error('【poem-square】获取作者签名失败:', err);
         this.setData({
-          [`postList[${postIndex}].authorSignature`]: ''
+          [`postList[${postIndex}].authorSignature`]: '' // 出错时也确保为空
         });
       } finally {
         // 清除获取状态

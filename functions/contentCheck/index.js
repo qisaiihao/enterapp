@@ -24,7 +24,8 @@ exports.main = async (event, context) => {
   console.log('⚠️ 跳过内容审核，直接创建帖子');
 
   const wxContext = cloud.getWXContext();
-  const openid = wxContext.OPENID || event.openid;
+  // Prefer event.openid so callers can override (e.g., anonymous posts)
+  const openid = (event && event.openid) || wxContext.OPENID;
 
   if (!openid) {
     return {
@@ -195,7 +196,8 @@ exports.main = async (event, context) => {
   // ------------------- 3. 审核全部通过，写入数据库 -------------------
   try {
     // 获取当前用户信息
-    const currentOpenid = cloud.getWXContext().OPENID || openid;
+    // Use resolved openid above (event.openid preferred), fallback to context if missing
+    const currentOpenid = openid || cloud.getWXContext().OPENID;
     console.log('当前用户openid:', currentOpenid);
     
     const userInfo = await db.collection('users').where({
@@ -235,6 +237,7 @@ exports.main = async (event, context) => {
       displayAuthorAvatar = userAvatar;
     }
 
+    const ownerOpenid = isAnonymous ? '123456' : currentOpenid;
     const postData = {
       _openid: currentOpenid, // 添加openid字段
       title: title || '',
@@ -265,6 +268,7 @@ exports.main = async (event, context) => {
       backgroundColor: backgroundColor || '',
       textColor: textColor || '#000000',
       highlightSentence: highlightSentence || '',
+      _openid: ownerOpenid,
       auditStatus: 'approved', // 审核通过
       auditTime: new Date()
     };

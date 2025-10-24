@@ -477,7 +477,10 @@ export default {
         title: this.post.title || '',
         author: this.post.author || '',
         content: addData.content || '', // 确保content字段存在
-        imageList: addData.imageList || [] // 确保imageList字段存在
+        imageList: addData.imageList || [], // 确保imageList字段存在
+        // 添加匿名相关字段
+        isAnonymous: this.post.isAnonymous || false,
+        anonymousAuthorName: this.post.anonymousAuthorName || '匿名用户'
       };
 
       // 执行发布逻辑
@@ -646,7 +649,9 @@ export default {
         // 添加匿名发帖相关参数
         isAnonymous: this.post.isAnonymous || false,
         anonymousAuthorName: this.post.anonymousAuthorName || '匿名用户',
-        realAuthorOpenid: this.post.isAnonymous ? (uni.getStorageSync('openid') || uni.getStorageSync('userOpenId')) : null
+        realAuthorOpenid: this.post.isAnonymous ? (uni.getStorageSync('openid') || uni.getStorageSync('userOpenId')) : null,
+        // 匿名帖子使用固定openid，指向专用匿名账户
+        openid: this.post.isAnonymous ? '123456' : null
       }, { pageTag: 'preview', context: this, requireAuth: true }).then((res) => {
         if (res && res.result && res.result.code === 0) {
           this.publishSuccess({
