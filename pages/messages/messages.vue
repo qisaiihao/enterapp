@@ -83,7 +83,8 @@
                 
                 <!-- 消息内容 -->
                 <view :class="'message-item ' + (!item.isRead ? 'unread' : '') + (item.isSwipeOpen ? ' swipe-open' : '')" 
-                      @tap="selectMessage" 
+                      @tap="handleMessageTap" 
+                      @longpress="onMessageLongPress"
                       @touchstart="onTouchStart" 
                       @touchmove="onTouchMove" 
                       @touchend="onTouchEnd"
@@ -174,6 +175,8 @@ export default {
             touchCurrentX: 0,
             touchCurrentY: 0,
             isSwipeMode: false,
+            justLongPressed: false,
+            longPressGuardTimer: null,
         };
     },
     onLoad: function (options) {
@@ -189,6 +192,13 @@ export default {
         
         // 清除未读消息缓存，确保其他页面的小红点能及时更新
         invalidateUnread();
+    },
+    onUnload: function () {
+        if (this.longPressGuardTimer) {
+            clearTimeout(this.longPressGuardTimer);
+            this.longPressGuardTimer = null;
+        }
+        this.justLongPressed = false;
     },
     onPullDownRefresh: function () {
         this.setData({
@@ -290,6 +300,68 @@ export default {
             }));
             this.messages = updatedMessages;
             console.log('关闭所有滑动操作');
+        },
+
+        onMessageLongPress: function (e) {
+            if (this.longPressGuardTimer) {
+                clearTimeout(this.longPressGuardTimer);
+                this.longPressGuardTimer = null;
+            }
+
+            this.justLongPressed = true;
+            this.longPressGuardTimer = setTimeout(() => {
+                this.justLongPressed = false;
+                this.longPressGuardTimer = null;
+            }, 200);
+
+            this.selectMessage(e);
+        },
+
+        handleMessageTap: function (e) {
+            if (this.justLongPressed) {
+                return;
+            }
+            const rawIndex = e && e.currentTarget && e.currentTarget.dataset ? e.currentTarget.dataset.index : undefined;
+            const index = typeof rawIndex === 'number' ? rawIndex : parseInt(rawIndex, 10);
+            if (Number.isNaN(index)) {
+                return;
+            }
+
+            if (this.isSwipeMode) {
+                this.isSwipeMode = false;
+                return;
+            }
+
+            if (this.selectedMessages.length > 0) {
+                this.selectMessage(index);
+                return;
+            }
+
+            this.closeAllSwipeActions();
+
+            const message = this.messages[index];
+            if (!message) {
+                return;
+            }
+
+            if (message._id && !message.isRead) {
+                this.markMessagesAsRead([message._id]);
+            }
+
+            if (message.postId) {
+                this.navigateToPost(message.postId);
+                return;
+            }
+
+            if (message.type === 'follow' && message.fromUserId) {
+                this.navigateToUserProfile(message.fromUserId);
+                return;
+            }
+
+            uni.showToast({
+                title: '暂未找到可跳转的内容',
+                icon: 'none'
+            });
         },
 
         // 标记消息为已读
@@ -595,19 +667,44 @@ export default {
         },
 
         // 跳转到相关帖子
-        navigateToPost: function (e) {
-            const postId = e.currentTarget.dataset.postid;
-            if (postId) {
-                uni.navigateTo({
-                    url: `/pages/post-detail/post-detail?id=${postId}`
-                });
+        navigateToPost: function (payload) {
+            let postId = '';
+            if (typeof payload === 'string') {
+                postId = payload;
+            } else if (payload && typeof payload === 'object') {
+                if (payload.postId) {
+                    postId = payload.postId;
+                } else if (payload.currentTarget && payload.currentTarget.dataset) {
+                    const dataset = payload.currentTarget.dataset;
+                    postId = dataset.postId || dataset.postid;
+                }
             }
+
+            if (!postId) {
+                console.warn('[messages] navigateToPost called without valid postId', payload);
+                return;
+            }
+
+            uni.navigateTo({
+                url: `/pages/post-detail/post-detail?id=${postId}`
+            });
         },
 
         // 跳转到发送者的个人主页
-        navigateToUserProfile: function (e) {
+        navigateToUserProfile: function (payload) {
             try {
-                const userId = e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.userId;
+                let userId = '';
+                if (typeof payload === 'string') {
+                    userId = payload;
+                } else if (payload && typeof payload === 'object') {
+                    if (payload.userId) {
+                        userId = payload.userId;
+                    } else if (payload.currentTarget && payload.currentTarget.dataset) {
+                        const dataset = payload.currentTarget.dataset;
+                        userId = dataset.userId || dataset.userid;
+                    }
+                }
+
                 if (!userId) {
                     uni.showToast({ title: '用户ID缺失', icon: 'none' });
                     return;
@@ -746,25 +843,32 @@ export default {
             return actionMap[type] || '通知了你';
         },
 
-        // 选择消息
-        selectMessage: function (e) {
-            // 关闭所有滑动操作
+        // 选择消息（长按进入选择模式）
+        selectMessage: function (payload) {
             this.closeAllSwipeActions();
-            
-            const index = e.currentTarget.dataset.index;
-            const message = this.messages[index];
-            const selectedIndex = this.selectedMessages.indexOf(index);
-            
-            if (selectedIndex > -1) {
-                // 取消选择
-                this.selectedMessages.splice(selectedIndex, 1);
-            } else {
-                // 添加选择
-                this.selectedMessages.push(index);
+
+            const rawIndex = typeof payload === 'number'
+                ? payload
+                : (payload && payload.currentTarget && payload.currentTarget.dataset
+                    ? payload.currentTarget.dataset.index
+                    : undefined);
+            const index = typeof rawIndex === 'number' ? rawIndex : parseInt(rawIndex, 10);
+            if (Number.isNaN(index)) {
+                return;
             }
-            
+
+            const updatedSelections = [...this.selectedMessages];
+            const existingIndex = updatedSelections.indexOf(index);
+
+            if (existingIndex > -1) {
+                updatedSelections.splice(existingIndex, 1);
+            } else {
+                updatedSelections.push(index);
+            }
+
+            this.selectedMessages = updatedSelections;
             this.setData({
-                selectedMessages: this.selectedMessages
+                selectedMessages: updatedSelections
             });
         },
 
