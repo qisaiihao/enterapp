@@ -19,7 +19,7 @@ exports.main = async (event, context) => {
     };
   }
 
-  const { skip = 0, limit = 10, type = null } = event;
+  const { skip = 0, limit = 10, type = null, contentFilter = null } = event;
 
   try {
     // 构建查询条件
@@ -28,8 +28,25 @@ exports.main = async (event, context) => {
     };
     
     // 如果指定了消息类型，添加类型过滤
-    if (type && ['like', 'comment', 'favorite', 'feedback', 'feedback_processed'].includes(type)) {
+    if (type && ['like', 'comment', 'favorite', 'follow', 'feedback', 'feedback_processed'].includes(type)) {
       whereCondition.type = type;
+    }
+    
+    // 如果指定了内容筛选，添加内容类型过滤
+    if (contentFilter && contentFilter !== 'all') {
+      if (contentFilter === 'post') {
+        // 只看帖子 - 排除讨论类型的消息
+        whereCondition.contentType = { $ne: 'discussion' };
+      } else if (contentFilter === 'original') {
+        // 原创诗歌
+        whereCondition.contentType = 'original';
+      } else if (contentFilter === 'non-original') {
+        // 非原创
+        whereCondition.contentType = 'non-original';
+      } else if (contentFilter === 'discussion') {
+        // 讨论
+        whereCondition.contentType = 'discussion';
+      }
     }
     
     // 查询消息列表

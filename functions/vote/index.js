@@ -91,6 +91,18 @@ exports.main = async (event, context) => {
           console.log('用户给自己点赞，不发送通知')
         } else {
           // 创建消息记录
+          const contentType = post.contentType || 'post'; // 获取内容类型
+          let contentTypeText = '';
+          if (contentType === 'original') {
+            contentTypeText = '原创诗歌';
+          } else if (contentType === 'non-original') {
+            contentTypeText = '转载诗歌';
+          } else if (contentType === 'discussion') {
+            contentTypeText = '讨论';
+          } else {
+            contentTypeText = '帖子';
+          }
+          
           await db.collection('messages').add({
             data: {
               fromUserId: openid,
@@ -100,7 +112,8 @@ exports.main = async (event, context) => {
               type: 'like',
               postId: postId,
               postTitle: post.title || '无标题',
-              content: `${user ? user.nickName : '微信用户'} 点赞了你的帖子`,
+              contentType: contentType,
+              content: `${user ? user.nickName : '微信用户'} 点赞了你的${contentTypeText}`,
               isRead: false,
               createTime: new Date()
             }

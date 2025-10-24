@@ -45,3 +45,47 @@ export function invalidateUserPosts(userId, page, pageSize = 10) {
   }
 }
 
+// 用户作品集缓存（仅在事件触发后失效，不设 TTL）
+const nsPortfolio = cacheManager.namespace('portfolio:user', { persistent: true, maxItems: 200 });
+
+export async function getUserPortfolios(userId, context) {
+  const key = `${userId}`;
+  return nsPortfolio.getOrFetch(key, async () => {
+    const res = await cloudCall('getUserPortfolio', { userId }, { pageTag: 'user-profile:portfolio', context, injectOpenId: true });
+    if (res && res.result && res.result.success) {
+      return res.result.folders || [];
+    }
+    return [];
+  }, { ttlMs: 0, swrMs: 0 });
+}
+
+export function invalidateUserPortfolios(userId) {
+  nsPortfolio.delete(`${userId}`);
+}
+
+// 用户收藏分页缓存（仅事件触发时失效，不设 TTL）
+function favoritesNs(userId) {
+  return cacheManager.namespace(`userFavorites:${userId}`, { persistent: true, maxItems: 200 });
+}
+
+export async function getUserFavorites({ userId, page = 0, pageSize = 10, context }) {
+  const ns = favoritesNs(userId);
+  const key = `page:${page}:size:${pageSize}`;
+  return ns.getOrFetch(key, async () => {
+    const res = await cloudCall('getUserFavorites', { userId, skip: page * pageSize, limit: pageSize }, { pageTag: 'user-profile:favorites', context, injectOpenId: true });
+    if (res && res.result && res.result.success) {
+      return res.result.favorites || [];
+    }
+    return [];
+  }, { ttlMs: 0, swrMs: 0 });
+}
+
+export function invalidateUserFavorites(userId, page, pageSize = 10) {
+  const ns = favoritesNs(userId);
+  if (typeof page === 'number') {
+    ns.delete(`page:${page}:size:${pageSize}`);
+  } else {
+    ns.clear();
+  }
+}
+

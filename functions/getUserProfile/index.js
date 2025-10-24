@@ -143,9 +143,16 @@ exports.main = async (event, context) => {
         // 转换用户头像URL和签名URL
         if (userInfo.avatarUrl && urlMap.has(userInfo.avatarUrl)) {
           userInfo.avatarUrl = urlMap.get(userInfo.avatarUrl);
+          console.log('✅ 头像URL转换成功:', userInfo.avatarUrl);
+        } else if (userInfo.avatarUrl && userInfo.avatarUrl.startsWith('cloud://')) {
+          console.warn('⚠️ 头像URL转换失败，使用默认头像:', userInfo.avatarUrl);
+          userInfo.avatarUrl = '/static/images/avatar.png';
         }
         if (userInfo.signatureUrl && urlMap.has(userInfo.signatureUrl)) {
           userInfo.signatureUrl = urlMap.get(userInfo.signatureUrl);
+        } else if (userInfo.signatureUrl && userInfo.signatureUrl.startsWith('cloud://')) {
+          console.warn('⚠️ 签名URL转换失败:', userInfo.signatureUrl);
+          userInfo.signatureUrl = null;
         }
       } catch (fileError) {
         console.error('文件URL转换失败:', fileError);

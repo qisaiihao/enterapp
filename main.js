@@ -38,11 +38,24 @@ Vue.prototype.$tcb = {
 };
 // #endif
 
-// 注入临时 URL 解析器（H5/App 首选）
+// 注入临时 URL 解析器（全平台支持）
 try {
   fileUrlCache.setResolver(async (ids) => {
     if (!Array.isArray(ids) || ids.length === 0) return {};
-    const res = await tcbApp.getTempFileURL({ fileList: ids });
+
+    let res;
+    // #ifdef H5 || APP-PLUS
+    if (typeof tcbApp !== 'undefined' && tcbApp.getTempFileURL) {
+      res = await tcbApp.getTempFileURL({ fileList: ids });
+    }
+    // #endif
+
+    // #ifdef MP-WEIXIN
+    if (typeof wx !== 'undefined' && wx.cloud && wx.cloud.getTempFileURL) {
+      res = await wx.cloud.getTempFileURL({ fileList: ids });
+    }
+    // #endif
+
     const map = {};
     if (res && Array.isArray(res.fileList)) {
       res.fileList.forEach((it) => {
@@ -53,7 +66,9 @@ try {
     }
     return map;
   });
-} catch (e) {}
+} catch (e) {
+  console.warn('fileUrlCache resolver setup failed:', e);
+}
 
 // 4. 添加调试信息，确保TCB正确初始化
 console.log('🔧 [TCB初始化] TCB实例已创建:', tcbApp);
@@ -248,6 +263,35 @@ export function createApp() {
       callFunction(options = {}) { return wx.cloud.callFunction(options); },
       getTempFileURL(args = {}) { return wx.cloud.getTempFileURL(args); }
     };
+
+    // 注入临时 URL 解析器（VUE3环境）
+    try {
+      fileUrlCache.setResolver(async (ids) => {
+        if (!Array.isArray(ids) || ids.length === 0) return {};
+        let res;
+        // #ifdef H5 || APP-PLUS
+        if (typeof tcbApp !== 'undefined' && tcbApp.getTempFileURL) {
+          res = await tcbApp.getTempFileURL({ fileList: ids });
+        }
+        // #endif
+        // #ifdef MP-WEIXIN
+        if (typeof wx !== 'undefined' && wx.cloud && wx.cloud.getTempFileURL) {
+          res = await wx.cloud.getTempFileURL({ fileList: ids });
+        }
+        // #endif
+        const map = {};
+        if (res && Array.isArray(res.fileList)) {
+          res.fileList.forEach((it) => {
+            if (it && it.tempFileURL) {
+              map[it.fileID] = { url: it.tempFileURL, maxAgeSec: it.maxAge || 3600 };
+            }
+          });
+        }
+        return map;
+      });
+    } catch (e) {
+      console.warn('fileUrlCache resolver setup failed (VUE3):', e);
+    }
     // #endif
     app.config.globalProperties.$requireOpenid = function () {
       const appInstance = getApp();

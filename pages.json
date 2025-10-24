@@ -94,8 +94,9 @@
     {
       "path": "pages/profile-edit/profile-edit",
       "style": {
-        "navigationBarTitleText": "编辑个人资料",
-        "usingComponents": {}
+        "navigationStyle": "custom",
+        "usingComponents": {},
+        "disableScroll": true
       }
     },
     {
@@ -133,7 +134,7 @@
     {
       "path": "pages/messages/messages",
       "style": {
-        "navigationBarTitleText": "消息通知",
+        "navigationStyle": "custom",
         "enablePullDownRefresh": true,
         "backgroundColor": "#f8f9fa",
         "backgroundTextStyle": "dark",

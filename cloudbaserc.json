@@ -338,6 +338,18 @@
               "root": "./functions/initDatabase",
               "timeout": 10,
               "memory": 128
+            },
+            {
+              "name": "getUserFavorites",
+              "root": "./functions/getUserFavorites",
+              "timeout": 10,
+              "memory": 256
+            },
+            {
+              "name": "getUserPortfolio",
+              "root": "./functions/getUserPortfolio",
+              "timeout": 10,
+              "memory": 256
             }
           ]
         }
