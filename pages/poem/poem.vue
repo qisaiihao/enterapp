@@ -44,7 +44,14 @@
                 <view :class="'single-post-content ' + (isTransitioning ? 'is-transitioning' : '')" @tap.stop.prevent="onSinglePostTap" :data-postid="currentPost._id">
                     <!-- 作者信息 -->
                     <view class="single-author-info">
-                        <image v-if="currentPost.authorAvatar" class="single-author-avatar" :src="currentPost.authorAvatar" mode="aspectFill" />
+                        <image
+                            v-if="currentPost.authorAvatar"
+                            class="single-author-avatar"
+                            :src="currentPost.authorAvatar"
+                            mode="aspectFill"
+                            @tap.stop.prevent="navigateToUserProfile"
+                            :data-user-id="currentAuthorOpenid || (currentPost && (currentPost._openid || currentPost.authorOpenId || currentPost.authorOpenid || currentPost.authorId || currentPost.userId))"
+                        />
                         <text class="single-author-name">{{ currentPost.authorName }}</text>
                     </view>
 
@@ -311,6 +318,37 @@ export default {
             }, 30);
         },
         toPoemSquare(){ uni.navigateTo({ url: "/pages/poem-square/poem-square" }); },
+        navigateToUserProfile(payload) {
+            try {
+                let userId = '';
+                if (typeof payload === 'string') {
+                    userId = payload;
+                } else if (payload && typeof payload === 'object') {
+                    const target = payload.currentTarget || payload.target || {};
+                    const dataset = target.dataset || {};
+                    userId =
+                        (dataset.userId || dataset.userid || dataset.user || dataset.openId || dataset.openid || dataset._openid || '') ||
+                        this.currentAuthorOpenid ||
+                        (this.currentPost && (this.currentPost._openid || this.currentPost.authorOpenId || this.currentPost.authorOpenid || this.currentPost.userId || this.currentPost.authorId)) ||
+                        '';
+                } else {
+                    userId = this.currentAuthorOpenid || (this.currentPost && this.currentPost._openid) || '';
+                }
+
+                if (!userId || !String(userId).trim()) {
+                    uni.showToast({ title: '作者信息缺失', icon: 'none' });
+                    return;
+                }
+
+                const normalizedUserId = encodeURIComponent(String(userId).trim());
+                uni.navigateTo({
+                    url: `/pages/user-profile/user-profile?userId=${normalizedUserId}`
+                });
+            } catch (err) {
+                console.error('【poem】navigateToUserProfile error:', err);
+                uni.showToast({ title: '跳转失败', icon: 'none' });
+            }
+        },
         // 统一云函数调用方法
         callCloudFunction(name, data = {}, extraOptions = {}) {
             return cloudCall(name, data, Object.assign({ pageTag: 'poem', context: this }, extraOptions));
@@ -764,13 +802,32 @@ export default {
                 return;
             }
 
-            // 1. 立即更新卡片内容（文字先切换）
-            this.setData({
-                currentPost: post,
-                currentPostIndex: index
-            });
+            const previousAuthorOpenid = this.currentAuthorOpenid;
+            const previousSignature = this.currentAuthorSignature;
+            const pickAuthorOpenid = () => {
+                const candidates = [
+                    post && post._openid,
+                    post && post.authorOpenid,
+                    post && post.authorOpenId,
+                    post && post.authorId,
+                    post && post.userId
+                ];
+                for (let i = 0; i < candidates.length; i += 1) {
+                    const value = candidates[i];
+                    if (typeof value === 'string' && value && value.trim()) {
+                        return value.trim();
+                    }
+                    if (typeof value === 'number') {
+                        const str = String(value);
+                        if (str && str.trim()) {
+                            return str.trim();
+                        }
+                    }
+                }
+                return '';
+            };
 
-            // 2. 获取当前帖子作者的签名
+            // 1. �������¿�Ƭ���ݣ��������л���
             const isAnonymousPost = post && (
                 post.isAnonymous === true ||
                 post.isAnonymous === 1 ||
@@ -778,18 +835,31 @@ export default {
                 post.isAnonymous === 'true' ||
                 post.anonymous === true
             );
+            const nextAuthorOpenid = isAnonymousPost ? '' : pickAuthorOpenid();
+
+            this.setData({
+                currentPost: post,
+                currentPostIndex: index,
+                currentAuthorOpenid: nextAuthorOpenid || ''
+            });
+
             if (isAnonymousPost) {
                 this.setData({
                     currentAuthorSignature: '',
-                    currentAuthorOpenid: '',
                     isFetchingSignature: false
                 });
-            } else if (post && post._openid) {
-                this.fetchAuthorSignature(post._openid);
+            } else if (nextAuthorOpenid) {
+                const shouldFetchSignature = previousAuthorOpenid !== nextAuthorOpenid || !previousSignature;
+                if (shouldFetchSignature) {
+                    this.setData({
+                        currentAuthorSignature: '',
+                        isFetchingSignature: false
+                    });
+                    this.fetchAuthorSignature(nextAuthorOpenid);
+                }
             } else {
                 this.setData({
                     currentAuthorSignature: '',
-                    currentAuthorOpenid: '',
                     isFetchingSignature: false
                 });
             }

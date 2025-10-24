@@ -7,6 +7,20 @@
         <view class="main-content">
             <!-- User Profile Card -->
             <view class="profile-card profile-card-center">
+                <view class="profile-growth-stats">
+                    <view class="growth-item">
+                        <image class="growth-icon" src="/static/images/seedplus.png" mode="aspectFit"></image>
+                        <text class="growth-count">{{ growthStats.seed }}</text>
+                    </view>
+                    <view class="growth-item">
+                        <image class="growth-icon" src="/static/images/leafplus.png" mode="aspectFit"></image>
+                        <text class="growth-count">{{ growthStats.leaf }}</text>
+                    </view>
+                    <view class="growth-item">
+                        <image class="growth-icon" src="/static/images/flowerplus.png" mode="aspectFit"></image>
+                        <text class="growth-count">{{ growthStats.flower }}</text>
+                    </view>
+                </view>
                 <view class="profile-avatar-large">
                     <image :src="userInfo.avatarUrl || '/static/images/avatar.png'" mode="aspectFill" @error="onAvatarError"></image>
                 </view>
@@ -19,15 +33,15 @@
                         <view class="profile-buttons">
                             <button
                                 v-if="showFollowButton"
-                                :class="'follow-btn ' + (isFollowing ? 'following' : '')"
+                                :class="['follow-btn', isMutualFollow ? 'mutual' : (isFollowing ? 'following' : '')]"
                                 @tap="onFollowTap"
                                 :loading="followPending"
                                 :disabled="followPending"
                             >
-                                {{ isFollowing ? '已关注' : '关注' }}
+                                {{ isMutualFollow ? '互相关注' : (isFollowing ? '已关注' : '关注') }}
                             </button>
-                            <view v-if="isMutualFollow" class="mutual-indicator">互相关注</view>
-                            <view v-else-if="isFollowedByTarget" class="followed-indicator">TA关注了你</view>
+                            <view v-if="!showFollowButton && isMutualFollow" class="mutual-indicator">互相关注</view>
+                            <view v-else-if="!showFollowButton && isFollowedByTarget" class="followed-indicator">TA关注了你</view>
                         </view>
                     </view>
                 </view>
@@ -151,29 +165,45 @@
             <!-- 他人作品集 -->
             <view class="portfolio-section" v-if="currentTab === 'portfolio'">
                 <block v-if="portfolioList.length > 0">
-                    <view class="portfolio-grid">
-                        <view class="portfolio-item" v-for="(portfolio, index) in portfolioList" :key="index" @tap="openPortfolio" :data-portfolio="portfolio">
-                            <view class="portfolio-cover">
-                                <image
-                                    v-if="portfolio.coverImage"
-                                    :src="portfolio.coverImage"
-                                    mode="aspectFill"
-                                    @error="onImageError"
-                                ></image>
-                                <view v-else class="portfolio-placeholder">
-                                    <text class="portfolio-icon">📁</text>
+                    <view class="books-container">
+                        <view class="books-shelf">
+                            <view
+                                v-for="(portfolio, index) in portfolioList"
+                                :key="portfolio._id || index"
+                                :class="'book book-' + ((index % 5) + 1)"
+                                @tap.stop="openPortfolio"
+                                :data-portfolio="portfolio"
+                            >
+                                <view class="book-spine">
+                                    <view class="spine-content">
+                                        <block v-if="portfolio.name">
+                                            <text
+                                                class="spine-text"
+                                                v-for="(char, charIndex) in portfolio.name.split('')"
+                                                :key="charIndex"
+                                            >
+                                                {{ char }}
+                                            </text>
+                                        </block>
+                                        <block v-else>
+                                            <text class="spine-text">N</text>
+                                            <text class="spine-text">A</text>
+                                            <text class="spine-text">M</text>
+                                            <text class="spine-text">E</text>
+                                        </block>
+                                    </view>
                                 </view>
                             </view>
-                            <view class="portfolio-info">
-                                <text class="portfolio-name">{{ portfolio.name || '未命名作品集' }}</text>
-                                <text class="portfolio-count">{{ portfolio.postCount || 0 }} 个作品</text>
-                            </view>
+                            <view
+                                v-if="portfolioList.length > 0"
+                                class="shelf-line"
+                                :style="{ width: (Math.max(portfolioList.length, 1) * 72 + 20) + 'rpx' }"
+                            ></view>
                         </view>
                     </view>
-                    <view style="height: 200rpx"></view>
                 </block>
-                <view v-else-if="!portfolioLoading" class="empty-tip">
-                    <text>TA还没有创建作品集</text>
+                <view v-else-if="!portfolioLoading" class="empty-portfolio">
+                    <text class="empty-text">TA还没有创建作品集</text>
                 </view>
                 <view v-if="portfolioLoading" class="loading-tip">
                     <text>加载中...</text>
@@ -378,6 +408,7 @@ const followCache = require('../../utils/followCache');
 const { previewImage } = require('../../utils/imagePreview.js');
 const { cloudCall } = require('../../utils/cloudCall.js');
 const postGalleryMixin = require('../../mixins/postGallery.js');
+const fileUrlCache = require('../../_utils/file-url-cache.js').default;
 export default {
     mixins: [postGalleryMixin],
     data() {
@@ -420,7 +451,14 @@ export default {
             portfolioLoading: false,
             favoriteLoading: false,
             favoritePage: 0,
-            favoriteHasMore: true
+            favoriteHasMore: true,
+
+            // 成长统计
+            growthStats: {
+                seed: 0,
+                leaf: 0,
+                flower: 0
+            }
         };
     },
     onLoad: function (options) {
@@ -449,14 +487,26 @@ export default {
             uni.$on && uni.$on('post-created', (e) => {
                 if (e && e.userId === this.targetUserId) {
                     invalidateUserPosts(this.targetUserId);
-                    this.setData({ userPosts: [], page: 0, hasMore: true });
+                    invalidateUserPortfolios(this.targetUserId);
+                    this.setData({
+                        userPosts: [],
+                        page: 0,
+                        hasMore: true,
+                        growthStats: { seed: 0, leaf: 0, flower: 0 }
+                    });
                     this.loadUserProfile();
                 }
             });
             uni.$on && uni.$on('favorite-changed', (e) => {
                 if (e && e.userId === this.targetUserId) {
                     invalidateUserPosts(this.targetUserId);
-                    this.setData({ userPosts: [], page: 0, hasMore: true });
+                    invalidateUserPortfolios(this.targetUserId);
+                    this.setData({
+                        userPosts: [],
+                        page: 0,
+                        hasMore: true,
+                        growthStats: { seed: 0, leaf: 0, flower: 0 }
+                    });
                     this.loadUserProfile();
                 }
             });
@@ -483,7 +533,12 @@ export default {
             portfolioList: [],
             favoriteList: [],
             favoritePage: 0,
-            favoriteHasMore: true
+            favoriteHasMore: true,
+            growthStats: {
+                seed: 0,
+                leaf: 0,
+                flower: 0
+            }
         });
         this.loadUserProfile(() => {
             uni.stopPullDownRefresh();
@@ -511,8 +566,7 @@ export default {
             // 根据切换的标签加载相应数据
             switch (tab) {
                 case 'portfolio':
-                    if (this.portfolioList.length === 0 && !this.portfolioLoading) {
-                        try { invalidateUserPortfolios && invalidateUserPortfolios(this.targetUserId); } catch (_) {}
+                    if (!this.portfolioLoading) {
                         this.loadUserPortfolios();
                     }
                     break;
@@ -531,32 +585,40 @@ export default {
         },
         // 加载用户信息和帖子
         loadUserProfile: function (cb) {
-            this.setData({ isLoading: true });
-            Promise.all([
-                getUserInfo(this.targetUserId, this),
-                getUserPosts({ userId: this.targetUserId, page: 0, pageSize: this.PAGE_SIZE, context: this })
-            ]).then(async ([userInfo, posts]) => {
+            this.setData({ isLoading: true, portfolioLoading: true });
+            const infoPromise = getUserInfo(this.targetUserId, this);
+            const postsPromise = getUserPosts({ userId: this.targetUserId, page: 0, pageSize: this.PAGE_SIZE, context: this });
+            const portfolioPromise = getUserPortfolios(this.targetUserId, this).catch((error) => {
+                console.error('【用户主页】获取作品集失败:', error);
+                return [];
+            });
+            Promise.all([infoPromise, postsPromise, portfolioPromise]).then(async ([userInfo, posts, portfolios]) => {
                 posts.forEach((post) => { if (post.createTime) post.formattedCreateTime = this.formatTime(post.createTime); });
-                
+
                 // 处理cloud://协议的URL转换
                 posts = await hydrateTempUrls(posts);
                 warmTempUrlsFromPosts(posts);
-                
+
+                const growthStats = this.computeGrowthStats(posts);
+                const normalizedPortfolios = await this.transformPortfolioList(portfolios);
                 this.setData({
                     userInfo,
                     userPosts: posts,
                     page: 1,
-                    hasMore: posts.length === this.PAGE_SIZE
+                    hasMore: posts.length === this.PAGE_SIZE,
+                    growthStats,
+                    portfolioList: normalizedPortfolios,
+                    portfolioLoading: false
                 });
                 avatarCache.updateUserAvatar(this.targetUserId, userInfo);
                 this.prepareFollowStateWithCache();
                 this.fetchFollowCounts();
                 uni.setNavigationBarTitle({ title: userInfo.nickName || '用户主页' });
             }).catch((err) => {
-                console.error('【用户主页】缓存加载失败', err);
+                console.error('【用户主页】缓存加载失败:', err);
                 uni.showToast({ title: '网络异常，请稍后重试', icon: 'none' });
             }).finally(() => {
-                this.setData({ isLoading: false });
+                this.setData({ isLoading: false, portfolioLoading: false });
                 if (typeof cb === 'function') cb();
             });
         },
@@ -575,13 +637,33 @@ export default {
                     warmTempUrlsFromPosts(posts);
                     
                     const newPosts = this.userPosts.concat(posts);
-                    this.setData({ userPosts: newPosts, page: page + 1, hasMore: posts.length === PAGE_SIZE });
+                    this.setData({ userPosts: newPosts, page: page + 1, hasMore: posts.length === PAGE_SIZE, growthStats: this.computeGrowthStats(newPosts) });
                 })
                 .catch((err) => { console.error('【用户主页】加载更多帖子失败', err); })
                 .finally(() => { this.setData({ isLoading: false }); });
         },
 
         // 准备关注状态
+        computeGrowthStats(postList = []) {
+            try {
+                const stats = { seed: 0, leaf: 0, flower: 0 };
+                (postList || []).forEach((post) => {
+                    const votes = Number(post && post.votes) || 0;
+                    if (votes <= 3) {
+                        stats.seed += 1;
+                    } else if (votes <= 7) {
+                        stats.leaf += 1;
+                    } else {
+                        stats.flower += 1;
+                    }
+                });
+                return stats;
+            } catch (err) {
+                console.error('【用户主页】计算成长统计失败:', err);
+                return { seed: 0, leaf: 0, flower: 0 };
+            }
+        },
+
         prepareFollowState: function () {
             const targetUserId = this.targetUserId;
             const currentUserId = this.getCurrentUserId();
@@ -778,13 +860,7 @@ export default {
             try {
                 this.setData({ portfolioLoading: true });
                 let portfolios = await getUserPortfolios(this.targetUserId, this);
-                try { console.log('[user-profile] getUserPortfolios ->', (portfolios || []).length); } catch (_) {}
-                // 兼容服务端命名差异：postsCount vs postCount
-                portfolios = (portfolios || []).map((p) => {
-                    if (typeof p.postCount === 'number') return p;
-                    const postCount = typeof p.postsCount === 'number' ? p.postsCount : 0;
-                    return Object.assign({}, p, { postCount });
-                });
+                portfolios = await this.transformPortfolioList(portfolios);
                 this.setData({ portfolioList: portfolios });
                 try { console.log('[user-profile] portfolioList set ->', this.portfolioList.length); } catch (_) {}
             } catch (error) {
@@ -792,6 +868,41 @@ export default {
             } finally {
                 this.setData({ portfolioLoading: false });
                 if (typeof cb === 'function') cb();
+            }
+        },
+
+        async transformPortfolioList(portfolios = []) {
+            try {
+                const list = Array.isArray(portfolios) ? portfolios : [];
+                const normalized = list.map((item) => {
+                    const copy = { ...item };
+                    if (typeof copy.postCount !== 'number') {
+                        copy.postCount = typeof copy.postsCount === 'number' ? copy.postsCount : 0;
+                    }
+                    if (!copy.coverImage && typeof copy.cover === 'string') {
+                        copy.coverImage = copy.cover;
+                    }
+                    return copy;
+                });
+                const cloudIds = normalized
+                    .map((item) => item.coverImage)
+                    .filter((src) => typeof src === 'string' && src.startsWith('cloud://'));
+                if (cloudIds.length > 0) {
+                    try {
+                        const map = await fileUrlCache.getTempUrls(cloudIds);
+                        normalized.forEach((item) => {
+                            if (typeof item.coverImage === 'string' && map[item.coverImage]) {
+                                item.coverImage = map[item.coverImage];
+                            }
+                        });
+                    } catch (err) {
+                        console.error('【用户主页】转换作品集封面失败:', err);
+                    }
+                }
+                return normalized;
+            } catch (err) {
+                console.error('【用户主页】处理作品集数据失败:', err);
+                return [];
             }
         },
 
@@ -950,6 +1061,33 @@ export default {
     overflow: visible;
 }
 
+.profile-growth-stats {
+    position: absolute;
+    top: 120rpx;
+    right: 40rpx;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 18rpx;
+}
+
+.growth-item {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+}
+
+.growth-icon {
+    width: 48rpx;
+    height: 48rpx;
+}
+
+.growth-count {
+    font-size: 30rpx;
+    font-weight: 600;
+    color: #333333;
+}
+
 .profile-avatar-large {
     display: flex;
     justify-content: center;
@@ -1027,7 +1165,7 @@ export default {
     padding: 8rpx 24rpx;
     background-color: #007aff;
     color: #ffffff;
-    border: none;
+    border: 1rpx solid transparent;
     border-radius: 20rpx;
     font-size: 24rpx;
     font-weight: 500;
@@ -1037,6 +1175,13 @@ export default {
 .follow-btn.following {
     background-color: #f0f0f0;
     color: #666666;
+    border-color: transparent;
+}
+
+.follow-btn.mutual {
+    background-color: #f0f0f0;
+    color: #666666;
+    border: 1rpx solid #d9d9d9;
 }
 
 .follow-btn::after {
@@ -1047,7 +1192,93 @@ export default {
     opacity: 0.7;
 }
 
-.mutual-indicator,
+.books-container {
+    padding: 40rpx 0;
+}
+
+.books-shelf {
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-end;
+    gap: 0;
+    position: relative;
+    padding-bottom: 18rpx;
+}
+
+.shelf-line {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    height: 18rpx;
+    background: #000;
+    border-radius: 4rpx;
+    z-index: 1;
+}
+
+.book {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    position: relative;
+    margin-bottom: 0;
+}
+
+.book:active {
+    transform: scale(0.95);
+}
+
+.book-spine {
+    width: 72rpx;
+    height: 224rpx;
+    border-radius: 20rpx 20rpx 0 0;
+    position: relative;
+    box-shadow: 2rpx 2rpx 8rpx rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.book-1 .book-spine { background: #809076; }
+.book-2 .book-spine { background: #f9d794; }
+.book-2 .spine-text { color: #333; }
+.book-3 .book-spine { background: #2b4139; }
+.book-4 .book-spine { background: #ccb8a3; }
+.book-5 .book-spine { background: #8a6f4d; }
+
+.spine-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6rpx;
+}
+
+.spine-text {
+    font-size: 22rpx;
+    color: #fff;
+    writing-mode: vertical-rl;
+}
+
+.empty-portfolio {
+    padding: 120rpx 0;
+    text-align: center;
+    color: #999;
+}
+
+.empty-portfolio .empty-text {
+    font-size: 28rpx;
+    color: #999;
+}
+
+.mutual-indicator {
+    padding: 8rpx 20rpx;
+    border-radius: 20rpx;
+    font-size: 22rpx;
+    background-color: #f0f0f0;
+    color: #666666;
+}
+
 .followed-indicator {
     padding: 8rpx 20rpx;
     border-radius: 20rpx;
@@ -1236,73 +1467,6 @@ export default {
 .loading-footer { text-align: center; padding: 20rpx 0; color: #999; font-size: 14px; }
 
 /* 作品集样式 */
-.portfolio-grid {
-    padding: 20rpx 30rpx;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20rpx;
-}
-
-.portfolio-item {
-    background: #fff;
-    border-radius: 16rpx;
-    overflow: hidden;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
-    transition: transform 0.2s ease;
-}
-
-.portfolio-item:active {
-    transform: translateY(2rpx);
-}
-
-.portfolio-cover {
-    width: 100%;
-    height: 200rpx;
-    background: #f0f0f0;
-    position: relative;
-}
-
-.portfolio-cover image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.portfolio-placeholder {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #f8f9fa;
-}
-
-.portfolio-icon {
-    font-size: 60rpx;
-    opacity: 0.5;
-}
-
-.portfolio-info {
-    padding: 20rpx;
-}
-
-.portfolio-name {
-    font-size: 28rpx;
-    font-weight: 600;
-    color: #333;
-    display: block;
-    margin-bottom: 8rpx;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.portfolio-count {
-    font-size: 24rpx;
-    color: #999;
-    display: block;
-}
-
 .loading-tip {
     text-align: center;
     color: #999;
