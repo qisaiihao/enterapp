@@ -64,7 +64,7 @@
                             <text class="profile-poemid">poemid：{{ userInfo.poemId || '未知' }}</text>
                             <text class="profile-bio-center">{{ userInfo.bio || '这个用户很懒,什么都没留下...' }}</text>
                             <view class="profile-bottom-row">
-                                <text class="profile-followers">被关注数：{{ followerCount }}</text>
+                                <text class="profile-followers" @tap="navigateToFans">被关注数：{{ followerCount }}</text>
                                 <view class="profile-buttons">
                                     <view class="edit-profile-btn" @tap="navigateToEditProfile">
                                         <text>编辑主页</text>
@@ -199,7 +199,8 @@
                                         <text class="post-time">发布于{{ item.formattedCreateTime || '未知时间' }}</text>
                                     </view>
                                     <view class="button-group">
-<view class="visibility-btn" @tap.stop.prevent="onToggleVisibility" :data-postid="item._id" :data-index="index" :data-hidden="item.isHidden === true">
+                                        <!-- 个人帖子显示隐藏按钮 -->
+                                        <view class="visibility-btn" @tap.stop.prevent="onToggleVisibility" :data-postid="item._id" :data-index="index" :data-hidden="item.isHidden === true">
                                             <image class="visibility-icon" src="/static/images/hide.png" mode="aspectFit"></image>
                                         </view>
                                         <view class="delete-btn" @tap.stop.prevent="onDelete" :data-postid="item._id" :data-index="index">
@@ -326,9 +327,7 @@
                                         <text class="favorite-time">收藏于{{ item.formattedFavoriteTime || '未知时间' }}</text>
                                     </view>
                                     <view class="button-group">
-<view class="visibility-btn" @tap.stop.prevent="onToggleVisibility" :data-postid="item._id" :data-index="index" :data-hidden="item.isHidden === true">
-                                            <image class="visibility-icon" src="/static/images/hide.png" mode="aspectFit"></image>
-                                        </view>
+                                        <!-- 收藏帖子不显示隐藏按钮，只显示取消收藏按钮 -->
                                         <button class="remove-favorite-btn" size="mini" @tap.stop.prevent="removeFavorite" :data-favorite-id="item.favoriteId" :data-index="index">
                                             取消收藏
                                         </button>
@@ -351,14 +350,14 @@
                     <!-- Portfolio Section -->
                     <view class="portfolio-section" v-if="currentTab === 'portfolio'">
                         <!-- 书籍样式的作品集展示 -->
-                        <view class="books-container">
+                        <view class="books-container" @tap="navigateToPortfolio">
                             <view class="books-shelf">
                                 <!-- 动态显示作品集书籍 -->
                                 <view 
                                     v-for="(portfolio, index) in portfolioList" 
                                     :key="portfolio._id"
                                     :class="'book book-' + (index + 1)" 
-                                    @tap="openPortfolio(portfolio)"
+                                    @tap.stop="openPortfolio(portfolio)"
                                 >
                                     <view class="book-spine">
                                         <view class="spine-content">
@@ -1368,6 +1367,21 @@ export default {
         switchTab: function (e) {
             const tab = e.currentTarget.dataset.tab;
             console.log('【profile】切换到标签:', tab);
+            
+            // 如果点击的是收藏页且当前已经在收藏页，则跳转到收藏夹页面
+            if (tab === 'favorites' && this.currentTab === 'favorites') {
+                console.log('【profile】已在收藏页，跳转到收藏夹页面');
+                this.navigateToFavoriteFolders();
+                return;
+            }
+            
+            // 如果点击的是作品集页且当前已经在作品集页，则跳转到作品集管理页面
+            if (tab === 'portfolio' && this.currentTab === 'portfolio') {
+                console.log('【profile】已在作品集页，跳转到作品集管理页面');
+                this.navigateToPortfolio();
+                return;
+            }
+            
             if (tab === this.currentTab) {
                 return;
             } // 如果是当前标签，不做任何操作
@@ -1731,8 +1745,20 @@ export default {
             console.log('占位：函数 onAvatarLoad 未声明');
         },
 
-        navigateToUserProfile() {
-            console.log('占位：函数 navigateToUserProfile 未声明');
+        navigateToUserProfile(e) {
+            try {
+                const dataset = (e && e.currentTarget && e.currentTarget.dataset) || {};
+                const userId = dataset.userId || dataset.userid || dataset.user || '';
+                if (!userId) {
+                    uni.showToast({ title: '用户ID缺失', icon: 'none' });
+                    return;
+                }
+                const url = `/pages/user-profile/user-profile?userId=${userId}`;
+                uni.navigateTo({ url });
+            } catch (err) {
+                console.error('[navigateToUserProfile] failed:', err);
+                uni.showToast({ title: '跳转失败', icon: 'none' });
+            }
         },
 
         onTagClick() {
@@ -1856,6 +1882,20 @@ export default {
 
 .sidebar-menu {
     margin-top: 40rpx;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.sidebar-main-menu {
+    flex: 1;
+}
+
+.sidebar-bottom {
+    margin-top: auto;
+    padding-top: 40rpx;
+    padding-bottom: 120rpx; /* 为底部tab栏留出空间 */
+    border-top: 1rpx solid #f0f0f0;
 }
 
 .sidebar-item {

@@ -107,9 +107,21 @@ exports.main = async (event, context) => {
         console.log('用户给自己评论或匿名评论，不发送通知')
       } else {
         // 创建消息记录
+        const contentType = post.contentType || 'post';
+        let contentTypeText = '';
+        if (contentType === 'original') {
+          contentTypeText = '原创诗歌';
+        } else if (contentType === 'non-original') {
+          contentTypeText = '转载诗歌';
+        } else if (contentType === 'discussion') {
+          contentTypeText = '讨论';
+        } else {
+          contentTypeText = '帖子';
+        }
+        
         const messageContent = parentId ? 
           `${user ? user.nickName : '微信用户'} 回复了你的评论` :
-          `${user ? user.nickName : '微信用户'} 评论了你的帖子`
+          `${user ? user.nickName : '微信用户'} 评论了你的${contentTypeText}`
           
         await db.collection('messages').add({
           data: {
@@ -120,6 +132,7 @@ exports.main = async (event, context) => {
             type: 'comment',
             postId: postId,
             postTitle: post.title || '无标题',
+            contentType: contentType,
             content: messageContent,
             commentId: result._id,
             isRead: false,

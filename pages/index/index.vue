@@ -38,8 +38,10 @@
                                     @error="onAvatarError"
                                     @load="onAvatarLoad"
                                     :data-postindex="index"
-                                    @tap.stop.prevent="item.isAnonymous ? noop : navigateToUserProfile"
-                                    :data-user-id="item.isAnonymous ? null : item._openid"
+                                    @tap.stop.prevent="navigateToUserProfile"
+                                    :data-user-id="item._openid"
+                                    :data-author-name="item.authorName"
+                                    :data-is-anonymous="item.isAnonymous"
                                 ></image>
                                 <text class="author-name">{{ item.isAnonymous ? '匿名用户' : item.authorName }}</text>
                             </view>
@@ -150,8 +152,10 @@
                                     @error="onAvatarError"
                                     @load="onAvatarLoad"
                                     :data-postindex="index"
-                                    @tap.stop.prevent="item.isAnonymous ? noop : navigateToUserProfile"
-                                    :data-user-id="item.isAnonymous ? null : item._openid"
+                                    @tap.stop.prevent="navigateToUserProfile"
+                                    :data-user-id="item._openid"
+                                    :data-author-name="item.authorName"
+                                    :data-is-anonymous="item.isAnonymous"
                                 ></image>
                                 <text class="author-name">{{ item.isAnonymous ? '匿名用户' : item.authorName }}</text>
                             </view>
@@ -262,8 +266,10 @@
                                     @error="onAvatarError"
                                     @load="onAvatarLoad"
                                     :data-postindex="index"
-                                    @tap.stop.prevent="item.isAnonymous ? noop : navigateToUserProfile"
-                                    :data-user-id="item.isAnonymous ? null : item._openid"
+                                    @tap.stop.prevent="navigateToUserProfile"
+                                    :data-user-id="item._openid"
+                                    :data-author-name="item.authorName"
+                                    :data-is-anonymous="item.isAnonymous"
                                 ></image>
                                 <text class="author-name">{{ item.isAnonymous ? '匿名用户' : item.authorName }}</text>
                             </view>
@@ -1064,23 +1070,59 @@ onReachBottom: function () {
 
         // 新增：跳转到用户个人主页
         navigateToUserProfile: function (e) {
-            console.log('【头像点击】事件触发', e);
-            console.log('【头像点击】dataset:', e.currentTarget.dataset);
-            const userId = e.currentTarget.dataset.userId;
-            console.log('【头像点击】提取的userId:', userId);
-            if (userId) {
-                const currentUserOpenid = this.openid;
+            try {
+                console.log('【头像点击】事件触发', e);
+
+                // 更安全的dataset获取方式
+                const currentTarget = e.currentTarget || e.target || {};
+                const dataset = currentTarget.dataset || {};
+                console.log('【头像点击】dataset:', dataset);
+
+                const userId = dataset.userId || dataset.userid || dataset.user || '';
+                const authorName = dataset.authorName || '未知用户';
+                const isAnonymous = dataset.isAnonymous || false;
+
+                console.log('【头像点击】提取的信息:', { userId, authorName, isAnonymous });
+
+                // 检查是否为匿名帖子
+                if (isAnonymous) {
+                    console.log('【头像点击】匿名帖子，不跳转');
+                    uni.showToast({
+                        title: '匿名用户无法查看主页',
+                        icon: 'none'
+                    });
+                    return;
+                }
+
+                if (!userId) {
+                    console.error('【头像点击】userId为空，dataset详情:', dataset);
+                    uni.showToast({
+                        title: '用户信息获取失败',
+                        icon: 'none'
+                    });
+                    return;
+                }
+
+                const currentUserOpenid = this.openid || this.getCurrentUserId();
+                console.log('【头像点击】当前用户ID:', currentUserOpenid);
 
                 // 检查是否点击的是自己的头像
                 if (userId === currentUserOpenid) {
                     console.log('【头像点击】点击的是自己头像，切换到我的页面');
                     uni.switchTab({
-                        url: '/pages/profile/profile'
+                        url: '/pages/profile/profile',
+                        fail: function (err) {
+                            console.error('【头像点击】切换到我的页面失败:', err);
+                            uni.showToast({
+                                title: '页面跳转失败',
+                                icon: 'none'
+                            });
+                        }
                     });
                 } else {
                     console.log('【头像点击】点击的是他人头像，跳转到用户主页');
                     uni.navigateTo({
-                        url: `/pages/user-profile/user-profile?userId=${userId}`,
+                        url: `/pages/user-profile/user-profile?userId=${encodeURIComponent(userId)}`,
                         success: function () {
                             console.log('【头像点击】跳转成功');
                         },
@@ -1093,10 +1135,10 @@ onReachBottom: function () {
                         }
                     });
                 }
-            } else {
-                console.error('【头像点击】userId为空，无法跳转');
+            } catch (err) {
+                console.error('【头像点击】函数执行出错:', err);
                 uni.showToast({
-                    title: '用户信息获取失败',
+                    title: '跳转异常',
                     icon: 'none'
                 });
             }

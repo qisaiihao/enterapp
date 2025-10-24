@@ -1,0 +1,136 @@
+                })
+                .then((res) => {
+                    if (res.result.success) {
+                        uni.hideLoading();
+                        uni.showToast({
+                            title: '保存成功'
+                        });
+                        try {
+                            const appInstance = getApp();
+                            const userId = appInstance && appInstance.globalData && appInstance.globalData.openid;
+                            const { emitAvatarUpdated } = require('@/utils/events.js');
+                            emitAvatarUpdated(userId);
+                        } catch (e) {}
+                        const pages = getCurrentPages();
+                        if (pages.length > 1) {
+                            const prePage = pages[pages.length - 2];
+                            if (prePage && typeof prePage.fetchUserProfile === 'function') {
+                                prePage.fetchUserProfile();
+                            }
+                        }
+                        setTimeout(() => uni.navigateBack(), 1000);
+                    } else {
+                        throw new Error(res.result.message || '云函数保存失败');
+                    }
+                })
+                .catch((err) => {
+                    console.error('保存资料失败:', err);
+                    uni.hideLoading();
+                    uni.showToast({
+                        title: err.message || '操作失败',
+                        icon: 'none'
+                    });
+                })
+                .finally(() => {
+                    this.setData({
+                        isSaving: false
+                    });
+                });
+        },
+
+        // H5端手动实现触摸滑动
+        initTouchDebug() {
+            // #ifdef H5
+            console.log('【profile-edit】initTouchDebug 开始 - 手动实现滑动');
+
+            let touchStartY = 0;
+            let currentScrollTop = 0;
+            let isScrolling = false;
+
+            // 获取滚动容器
+            const scrollTarget = window; // 尝试使用window作为滚动目标
+
+            // 触摸开始
+            document.addEventListener('touchstart', (e) => {
+                touchStartY = e.touches[0].clientY;
+                currentScrollTop = scrollTarget.pageYOffset || document.documentElement.scrollTop;
+                isScrolling = false;
+                console.log('【profile-edit】触摸开始:', {
+                    startY: touchStartY,
+                    currentScroll: currentScrollTop
+                });
+            }, { passive: true });
+
+            // 触摸移动 - 手动实现滚动
+            document.addEventListener('touchmove', (e) => {
+                const touchY = e.touches[0].clientY;
+                const deltaY = touchStartY - touchY;
+
+                console.log('【profile-edit】触摸移动:', {
+                    touchY: touchY,
+                    deltaY: deltaY,
+                    currentScroll: currentScrollTop
+                });
+
+                // 如果有明显的垂直滑动，手动触发滚动
+                if (Math.abs(deltaY) > 10) {
+                    e.preventDefault(); // 阻止默认行为
+
+                    const newScrollTop = currentScrollTop + deltaY;
+                    console.log('【profile-edit】手动滚动:', {
+                        from: currentScrollTop,
+                        to: newScrollTop,
+                        deltaY: deltaY
+                    });
+
+                    // 手动设置滚动位置
+                    if (scrollTarget.scrollTo) {
+                        scrollTarget.scrollTo({
+                            top: newScrollTop,
+                            behavior: 'smooth'
+                        });
+                    } else {
+                        document.documentElement.scrollTop = newScrollTop;
+                        document.body.scrollTop = newScrollTop;
+                    }
+
+                    isScrolling = true;
+                }
+            }, { passive: false });
+
+            // 触摸结束
+            document.addEventListener('touchend', (e) => {
+                console.log('【profile-edit】触摸结束，是否触发滚动:', isScrolling);
+                isScrolling = false;
+            });
+
+            // 检测页面滚动
+            scrollTarget.addEventListener('scroll', () => {
+                const scrollPos = scrollTarget.pageYOffset || document.documentElement.scrollTop;
+                console.log('【profile-edit】页面滚动事件，当前滚动位置:', scrollPos);
+            });
+
+            // 5秒后输出一次当前状态
+            setTimeout(() => {
+                const container = document.querySelector('.container');
+                console.log('【profile-edit】5秒后页面状态:', {
+                    scrollY: scrollTarget.pageYOffset || document.documentElement.scrollTop,
+                    documentHeight: document.documentElement.scrollHeight,
+                    innerHeight: window.innerHeight,
+                    isScrollable: document.documentElement.scrollHeight > window.innerHeight,
+                    containerInfo: container ? {
+                        height: container.scrollHeight,
+                        clientHeight: container.clientHeight,
+                        offsetHeight: container.offsetHeight,
+                        computedHeight: window.getComputedStyle(container).height
+                    } : 'container not found'
+                });
+            }, 5000);
+            // #endif
+        }
+    }
+};
+</script>
+<style>
+/* pages/profile-edit/profile-edit.wxss */
+.custom-back-btn {
