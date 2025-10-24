@@ -64,7 +64,7 @@
         </view>
 
         <!-- 消息列表 -->
-        <scroll-view :scroll-y="true" class="message-list" @scrolltolower="onReachBottom" @scrolltoupper="onScrollToUpper">
+        <scroll-view :scroll-y="true" class="message-list" @scrolltolower="handleScrollToLower" @scrolltoupper="onScrollToUpper">
             <view v-if="messages.length === 0 && !isLoading" class="empty-container">
                 <image class="empty-icon" src="/static/images/icons/empty-message.svg" mode="aspectFit"></image>
                 <text class="empty-text">暂无消息通知</text>
@@ -219,9 +219,22 @@ export default {
     methods: {
         // 返回上一页
         goBack() {
-            uni.navigateBack({
-                delta: 1
-            });
+            try {
+                const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : [];
+
+                if (pages && pages.length > 1) {
+                    uni.navigateBack({
+                        delta: 1,
+                        fail: () => {
+                            uni.switchTab({ url: '/pages/index/index' });
+                        }
+                    });
+                } else {
+                    uni.switchTab({ url: '/pages/index/index' });
+                }
+            } catch (err) {
+                uni.switchTab({ url: '/pages/index/index' });
+            }
         },
 
         // 统一云函数调用方法
@@ -406,7 +419,7 @@ export default {
         },
 
         // 滚动到底部加载更多
-        onReachBottom() {
+        handleScrollToLower() {
             console.log('🔍 [消息页] 滚动到底部，加载更多消息');
             if (this.hasMore && !this.isLoading) {
                 this.loadMessages();
