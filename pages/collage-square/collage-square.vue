@@ -89,6 +89,9 @@
 </template>
 
 <script>
+// 引入云函数调用工具
+const { cloudCall } = require('../../utils/cloudCall.js');
+
 export default {
   data() {
     return {
@@ -130,19 +133,22 @@ export default {
     async loadCollageList() {
       if (this.isLoading) return
 
+      console.log('🔍 [拼贴诗广场] 开始加载拼贴诗列表，page:', this.page)
       this.isLoading = true
 
       try {
-        const result = await uni.cloud.callFunction({
-          name: 'getCollagePoetry',
-          data: {
-            page: this.page,
-            pageSize: 10
-          }
-        })
+        const result = await cloudCall('getCollagePoetry', {
+          page: this.page,
+          pageSize: 10
+        }, { pageTag: 'collage-square', context: this, requireAuth: true })
         
-        if (result.result && result.result.success) {
+        console.log('🔍 [拼贴诗广场] 云函数调用结果:', result)
+        console.log('🔍 [拼贴诗广场] result.result:', result.result)
+        
+        if (result && result.result && result.result.success) {
           const newCollages = result.result.data || []
+          console.log('✅ [拼贴诗广场] 获取到拼贴诗数量:', newCollages.length)
+          console.log('✅ [拼贴诗广场] 拼贴诗数据:', newCollages)
           
           if (this.page === 0) {
             this.collageList = newCollages
@@ -158,9 +164,17 @@ export default {
             this.currentCollage = this.collageList[0]
             this.updateBackgroundImage(0)
           }
+        } else {
+          console.error('❌ [拼贴诗广场] 云函数调用失败:', result)
+          console.error('❌ [拼贴诗广场] 失败原因分析:', {
+            hasResult: !!result,
+            hasResultResult: !!(result && result.result),
+            hasSuccess: !!(result && result.result && result.result.success),
+            resultStructure: result
+          })
         }
       } catch (error) {
-        console.error('加载拼贴诗失败:', error)
+        console.error('❌ [拼贴诗广场] 加载拼贴诗失败:', error)
         uni.showToast({
           title: '加载失败',
           icon: 'none'
@@ -476,13 +490,13 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 140rpx 40rpx 40rpx 40rpx;
+  padding: 140rpx 20rpx 40rpx 20rpx;
   box-sizing: border-box;
 }
 
 .single-collage-content {
   width: 100%;
-  max-width: 600rpx;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -514,11 +528,11 @@ export default {
   font-weight: 500;
 }
 
-/* 拼贴诗图片容器 */
+/* 拼贴诗图片容器 - 放大显示 */
 .collage-image-container {
   width: 100%;
-  max-width: 500rpx;
-  height: 500rpx;
+  max-width: 90%;
+  height: 1000rpx;
   border-radius: 20rpx;
   overflow: hidden;
   box-shadow: 0 8rpx 40rpx rgba(0, 0, 0, 0.2);
@@ -530,13 +544,14 @@ export default {
 .collage-main-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 /* 互动区域 */
 .collage-actions {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 60rpx;
   padding: 20rpx 40rpx;
   background: rgba(255, 255, 255, 0.9);

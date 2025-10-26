@@ -128,6 +128,7 @@ exports.main = async (event, context) => {
         votes: '$votes',
         isPoem: '$isPoem',
         isOriginal: '$isOriginal',
+        isFoundPoetry: '$isFoundPoetry', // 新增拼贴诗字段
         poemBgImage: '$poemBgImage',
         tags: '$tags', // 新增标签字段
         author: '$author', // 新增作者字段
@@ -167,6 +168,7 @@ exports.main = async (event, context) => {
           title: post.title,
           isPoem: post.isPoem,
           isOriginal: post.isOriginal,
+          isFoundPoetry: post.isFoundPoetry,
           authorName: post.authorName,
           createTime: post.createTime
         });
