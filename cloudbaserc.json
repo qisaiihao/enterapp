@@ -350,6 +350,24 @@
               "root": "./functions/getUserPortfolio",
               "timeout": 10,
               "memory": 256
+            },
+            {
+              "name": "backfillGrowthCounts",
+              "root": "./functions/backfillGrowthCounts",
+              "timeout": 120,
+              "memory": 256
+            },
+            {
+              "name": "getCollagePoetry",
+              "root": "./functions/getCollagePoetry",
+              "timeout": 10,
+              "memory": 256
+            },
+            {
+              "name": "uploadCollagePoetry",
+              "root": "./functions/uploadCollagePoetry",
+              "timeout": 30,
+              "memory": 512
             }
           ]
         }

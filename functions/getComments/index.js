@@ -69,18 +69,81 @@ exports.main = async (event, context) => {
       });
     });
 
-    // 5. 定义一个函数，用于将用户信息合并到评论中
+    // 5. 获取帖子信息，判断是否为匿名帖子
+    const postRes = await db.collection('posts').doc(postId).get();
+    const post = postRes.data;
+    const isPostAnonymous = post && post.isAnonymous;
+    console.log('【getComments】判断帖子匿名性:', {
+        postId: postId,
+        isAnonymous: post && post.isAnonymous,
+        isPostAnonymous: isPostAnonymous,
+        anonymousType: typeof (post && post.isAnonymous)
+    });
+
+    // 6. 定义一个函数，用于将用户信息合并到评论中
     const processComments = (comments) => {
       return comments.map(comment => {
+        console.log('【getComments】处理评论:', {
+          commentId: comment._id,
+          commentOpenid: comment._openid,
+          commentIsAnonymous: comment.isAnonymous,
+          isPostAnonymous: isPostAnonymous,
+          replyToAuthorName: comment.replyToAuthorName
+        });
+        
+        // 如果帖子是匿名的，所有评论都显示为匿名
+        if (isPostAnonymous) {
+          const processed = {
+            ...comment,
+            authorName: '匿名用户',
+            authorAvatar: '/static/images/avatar.png',
+            isAnonymous: true, // 标记为匿名，用于前端判断
+            _openid: comment._openid || '', // 保留原始_openid用于头像点击
+            replyToAuthorName: '匿名用户' // 匿名帖子中的回复目标也显示为匿名
+          };
+          console.log('【getComments】帖子匿名，评论处理为匿名:', {
+            commentId: processed._id,
+            hasOpenid: !!processed._openid,
+            replyToAuthorName: processed.replyToAuthorName
+          });
+          return processed;
+        }
+        
+        // 如果评论本身是匿名的，使用匿名信息
+        if (comment.isAnonymous) {
+          const processed = {
+            ...comment,
+            authorName: '匿名用户',
+            authorAvatar: '/static/images/avatar.png',
+            _openid: comment._openid || '', // 保留原始_openid
+            replyToAuthorName: '匿名用户' // 匿名评论的回复目标也显示为匿名
+          };
+          console.log('【getComments】评论本身匿名:', {
+            commentId: processed._id,
+            hasOpenid: !!processed._openid,
+            replyToAuthorName: processed.replyToAuthorName
+          });
+          return processed;
+        }
+        
+        // 非匿名评论，使用真实用户信息
         const author = usersMap.get(comment._openid) || { 
           nickName: '匿名用户', 
           avatarUrl: '' // 如果找不到用户信息，提供默认值
         };
-        return {
+        const processed = {
           ...comment,
           authorName: author.nickName,
-          authorAvatar: author.avatarUrl
+          authorAvatar: author.avatarUrl,
+          _openid: comment._openid || '' // 保留原始_openid
         };
+        console.log('【getComments】非匿名评论:', {
+          commentId: processed._id,
+          authorName: processed.authorName,
+          hasOpenid: !!processed._openid,
+          replyToAuthorName: processed.replyToAuthorName
+        });
+        return processed;
       });
     };
 
@@ -213,6 +276,15 @@ exports.main = async (event, context) => {
       commentsCount: resultComments.length,
       allCommentsLength: allComments.length,
       commentCount: allComments.length
+    });
+    console.log('【getComments】最终返回的评论数据_openid检查:');
+    resultComments.forEach((comment, index) => {
+      console.log(`评论${index}: _openid=${comment._openid}, isAnonymous=${comment.isAnonymous}, authorName=${comment.authorName}`);
+      if (comment.replies) {
+        comment.replies.forEach((reply, replyIndex) => {
+          console.log(`  回复${replyIndex}: _openid=${reply._openid}, isAnonymous=${reply.isAnonymous}, authorName=${reply.authorName}`);
+        });
+      }
     });
     
     return {

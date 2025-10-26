@@ -49,14 +49,15 @@ export function invalidateUserPosts(userId, page, pageSize = 10) {
 const nsPortfolio = cacheManager.namespace('portfolio:user', { persistent: true, maxItems: 200 });
 
 export async function getUserPortfolios(userId, context) {
-  const key = `${userId}`;
-  return nsPortfolio.getOrFetch(key, async () => {
-    const res = await cloudCall('getUserPortfolio', { userId }, { pageTag: 'user-profile:portfolio', context, injectOpenId: true });
-    if (res && res.result && res.result.success) {
-      return res.result.folders || [];
-    }
-    return [];
-  }, { ttlMs: 0, swrMs: 0 });
+  console.log('【getUserPortfolios API缓存】禁用缓存，直接调用云函数，userId:', userId);
+  const res = await cloudCall('getUserPortfolio', { userId }, { pageTag: 'user-profile:portfolio', context, injectOpenId: true });
+  console.log('【getUserPortfolios API缓存】云函数返回结果:', res);
+  if (res && res.result && res.result.success) {
+    console.log('【getUserPortfolios API缓存】调用成功，返回文件夹数量:', res.result.folders?.length || 0);
+    return res.result.folders || [];
+  }
+  console.log('【getUserPortfolios API缓存】调用失败，返回空数组');
+  return [];
 }
 
 export function invalidateUserPortfolios(userId) {

@@ -3,8 +3,13 @@
     <!-- pages/user-profile/user-profile.wxml -->
     <view class="container">
 
+        <!-- 骨架屏：当 isLoading 为 true 时显示 -->
+        <view v-if="isLoading">
+            <skeleton pageType="user-profile" />
+        </view>
+
         <!-- 主要内容 -->
-        <view class="main-content">
+        <view v-else class="main-content">
             <!-- User Profile Card -->
             <view class="profile-card profile-card-center">
                 <view class="profile-growth-stats">
@@ -19,6 +24,10 @@
                     <view class="growth-item">
                         <image class="growth-icon" src="/static/images/flowerplus.png" mode="aspectFit"></image>
                         <text class="growth-count">{{ growthStats.flower }}</text>
+                    </view>
+                    <view class="growth-item">
+                        <image class="growth-icon" src="/static/images/peachplus.png" mode="aspectFit"></image>
+                        <text class="growth-count">{{ growthStats.peach }}</text>
                     </view>
                 </view>
                 <view class="profile-avatar-large">
@@ -401,6 +410,7 @@
 <script>
 import { getUserInfo, getUserPosts, getUserPortfolios, getUserFavorites, invalidateUserInfo, invalidateUserPosts, invalidateUserPortfolios, invalidateUserFavorites } from '@/api-cache/user-profile.js';
 import { hydrateTempUrls, warmTempUrlsFromPosts } from '../../_utils/hydrate-temp-urls';
+import skeleton from '@/components/skeleton/skeleton';
 const PAGE_SIZE = 5;
 const { formatRelativeTime } = require('../../utils/time.js');
 const avatarCache = require('../../utils/avatarCache');
@@ -410,6 +420,9 @@ const { cloudCall } = require('../../utils/cloudCall.js');
 const postGalleryMixin = require('../../mixins/postGallery.js');
 const fileUrlCache = require('../../_utils/file-url-cache.js').default;
 export default {
+    components: {
+        skeleton
+    },
     mixins: [postGalleryMixin],
     data() {
         return {
@@ -560,21 +573,30 @@ export default {
         // 标签切换（他人主页）
         switchTab: function (e) {
             const tab = e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.tab;
+            console.log('【用户主页】switchTab 被调用，当前tab:', this.currentTab, '切换到tab:', tab);
             if (!tab || tab === this.currentTab) return;
             this.setData({ currentTab: tab });
 
             // 根据切换的标签加载相应数据
             switch (tab) {
                 case 'portfolio':
+                    console.log('【用户主页】切换到作品集标签，portfolioLoading:', this.portfolioLoading);
                     if (!this.portfolioLoading) {
+                        console.log('【用户主页】开始调用 loadUserPortfolios');
                         this.loadUserPortfolios();
+                    } else {
+                        console.log('【用户主页】portfolioLoading为true，跳过调用');
                     }
                     break;
                 case 'favorites':
+                    console.log('【用户主页】切换到收藏标签，favoriteList.length:', this.favoriteList.length, 'favoriteLoading:', this.favoriteLoading);
                     if (this.favoriteList.length === 0 && !this.favoriteLoading) {
                         this.setData({ favoritePage: 0 });
                         try { invalidateUserFavorites && invalidateUserFavorites(this.targetUserId); } catch (_) {}
+                        console.log('【用户主页】开始调用 loadUserFavorites');
                         this.loadUserFavorites();
+                    } else {
+                        console.log('【用户主页】已有收藏数据或正在加载，跳过调用');
                     }
                     break;
             }
@@ -599,7 +621,13 @@ export default {
                 posts = await hydrateTempUrls(posts);
                 warmTempUrlsFromPosts(posts);
 
-                const growthStats = this.computeGrowthStats(posts);
+                const growthStats = (userInfo && userInfo.growthCounts)
+                    ? {
+                        seed: Number(userInfo.growthCounts.seed) || 0,
+                        leaf: Number(userInfo.growthCounts.leaf) || 0,
+                        flower: Number(userInfo.growthCounts.flower) || 0,
+                      }
+                    : this.computeGrowthStats(posts);
                 const normalizedPortfolios = await this.transformPortfolioList(portfolios);
                 this.setData({
                     userInfo,
@@ -637,7 +665,14 @@ export default {
                     warmTempUrlsFromPosts(posts);
                     
                     const newPosts = this.userPosts.concat(posts);
-                    this.setData({ userPosts: newPosts, page: page + 1, hasMore: posts.length === PAGE_SIZE, growthStats: this.computeGrowthStats(newPosts) });
+                    this.setData({
+                        userPosts: newPosts,
+                        page: page + 1,
+                        hasMore: posts.length === PAGE_SIZE,
+                        growthStats: (this.userInfo && this.userInfo.growthCounts)
+                            ? this.growthStats
+                            : this.computeGrowthStats(newPosts)
+                    });
                 })
                 .catch((err) => { console.error('【用户主页】加载更多帖子失败', err); })
                 .finally(() => { this.setData({ isLoading: false }); });
@@ -646,21 +681,23 @@ export default {
         // 准备关注状态
         computeGrowthStats(postList = []) {
             try {
-                const stats = { seed: 0, leaf: 0, flower: 0 };
+                const stats = { seed: 0, leaf: 0, flower: 0, peach: 0 };
                 (postList || []).forEach((post) => {
                     const votes = Number(post && post.votes) || 0;
                     if (votes <= 3) {
                         stats.seed += 1;
                     } else if (votes <= 7) {
                         stats.leaf += 1;
-                    } else {
+                    } else if (votes <= 15) {
                         stats.flower += 1;
+                    } else {
+                        stats.peach += 1;
                     }
                 });
                 return stats;
             } catch (err) {
                 console.error('【用户主页】计算成长统计失败:', err);
-                return { seed: 0, leaf: 0, flower: 0 };
+                return { seed: 0, leaf: 0, flower: 0, peach: 0 };
             }
         },
 
@@ -859,12 +896,15 @@ export default {
         async loadUserPortfolios(cb) {
             try {
                 this.setData({ portfolioLoading: true });
+                console.log('【用户主页】loadUserPortfolios调用getUserPortfolios，userId:', this.targetUserId);
                 let portfolios = await getUserPortfolios(this.targetUserId, this);
+                console.log('【用户主页】getUserPortfolios返回结果:', portfolios);
                 portfolios = await this.transformPortfolioList(portfolios);
+                console.log('【用户主页】transformPortfolioList处理后的结果:', portfolios);
                 this.setData({ portfolioList: portfolios });
                 try { console.log('[user-profile] portfolioList set ->', this.portfolioList.length); } catch (_) {}
             } catch (error) {
-                console.error('加载用户作品集失败:', error);
+                console.error('【用户主页】加载用户作品集失败:', error);
             } finally {
                 this.setData({ portfolioLoading: false });
                 if (typeof cb === 'function') cb();
@@ -916,9 +956,10 @@ export default {
                     return;
                 }
                 console.log('打开他人作品集:', portfolio);
-                // 跳转到作品集详情页面
+                // 跳转到他人作品集页面：优先携带该作品集真实 owner 的 openid，避免 userId 来源不一致
+                const ownerId = portfolio._openid || this.targetUserId;
                 uni.navigateTo({
-                    url: `/pages/portfolio-detail/portfolio-detail?folderId=${portfolio._id}&folderName=${encodeURIComponent(portfolio.name || '未命名作品集')}`
+                    url: `/pages/other-portfolio/other-portfolio?folderId=${portfolio._id}&folderName=${encodeURIComponent(portfolio.name || '未命名作品集')}&userId=${ownerId}`
                 });
             } catch (err) {
                 console.error('[openPortfolio] failed:', err);

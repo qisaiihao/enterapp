@@ -5,7 +5,7 @@
 
     <!-- 加载中骨架 -->
     <view v-if="isLoading">
-      <skeleton />
+      <skeleton pageType="poem" />
     </view>
 
     <!-- 内容列表 -->

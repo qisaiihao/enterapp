@@ -1289,6 +1289,7 @@ export default {
     gap: 30rpx;
     z-index: 2;
     transition: transform 0.3s ease;
+    margin-bottom: 20rpx;
 }
 
 .message-item.swipe-open {

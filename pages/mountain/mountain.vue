@@ -5,15 +5,15 @@
 
     <!-- 加载中骨架 -->
     <view v-if="isLoading">
-      <skeleton />
+      <skeleton pageType="mountain" />
     </view>
 
     <!-- 内容列表 -->
     <view v-else class="square-mode-container">
       <view v-if="postList.length === 0" class="empty-state">
         <view class="empty-icon">⛰️</view>
-        <view class="empty-text">这里还没有山诗</view>
-        <view class="empty-subtext">去广场发现好诗吧～</view>
+        <view class="empty-text">还没刷出来，等一下~</view>
+        <view class="empty-subtext">去广场看看先吧</view>
       </view>
 
       <view id="post-list-container">
@@ -262,8 +262,13 @@ export default {
         });
         const list = (res && res.result && res.result.posts) ? res.result.posts : [];
         console.log('【mountain】获取到帖子数量:', list.length);
+        console.log('【mountain】帖子匿名性判断:', list.map(p => ({
+            postId: p._id,
+            isAnonymous: p.isAnonymous,
+            anonymousType: typeof p.isAnonymous
+        })));
         
-        const visibleList = list.filter(p => !(p && (p.isAnonymous === true || p.isAnonymous === 1 || p.isAnonymous === '1' || p.isAnonymous === 'true' || p.anonymous === true)));
+        const visibleList = list.filter(p => !p.isAnonymous);
         
         visibleList.forEach((p) => {
           // 优先使用数据库中保存的背景颜色，如果没有则随机生成

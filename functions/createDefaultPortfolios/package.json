@@ -1,0 +1,9 @@
+{
+  "name": "createDefaultPortfolios",
+  "version": "1.0.0",
+  "description": "为所有没有作品集的用户创建默认作品集",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

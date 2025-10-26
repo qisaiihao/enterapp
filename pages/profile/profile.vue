@@ -1,11 +1,11 @@
 ﻿<template>
     <view>
-        ﻿
+
         <!-- pages/profile/profile.wxml -->
         <view class="container">
             <!-- 骨架屏：当 isLoading 为 true 时，显示骨架屏，其他所有内容都不渲染 -->
             <view v-if="isLoading">
-                <skeleton />
+                <skeleton pageType="profile" />
             </view>
 
             <!-- 真实内容：当 isLoading 为 false 时，显示真实页面 -->
@@ -32,6 +32,9 @@
                         <view class="sidebar-item" @tap="navigateToFeedback">
                             <text>意见反馈</text>
                         </view>
+                        <view class="sidebar-item" @tap="navigateToCollage">
+                            <text>拼贴诗</text>
+                        </view>
                         <view class="sidebar-item logout-item" @tap="showLogoutConfirm">
                             <text>退出登录</text>
                         </view>
@@ -42,20 +45,24 @@
                 <view class="main-content">
                     <!-- User Profile Card -->
                         <view class="profile-card profile-card-center">
-                            <view class="profile-growth-stats">
-                                <view class="growth-item">
-                                <image class="growth-icon" src="/static/images/seedplus.png" mode="aspectFit"></image>
-                                <text class="growth-count">{{ growthStats.seed }}</text>
-                            </view>
+                        <view class="profile-growth-stats">
                             <view class="growth-item">
-                                <image class="growth-icon" src="/static/images/leafplus.png" mode="aspectFit"></image>
-                                <text class="growth-count">{{ growthStats.leaf }}</text>
-                            </view>
-                            <view class="growth-item">
-                                <image class="growth-icon" src="/static/images/flowerplus.png" mode="aspectFit"></image>
-                                <text class="growth-count">{{ growthStats.flower }}</text>
-                            </view>
+                            <image class="growth-icon" src="/static/images/seedplus.png" mode="aspectFit"></image>
+                            <text class="growth-count">{{ growthStats.seed }}</text>
                         </view>
+                        <view class="growth-item">
+                            <image class="growth-icon" src="/static/images/leafplus.png" mode="aspectFit"></image>
+                            <text class="growth-count">{{ growthStats.leaf }}</text>
+                        </view>
+                        <view class="growth-item">
+                            <image class="growth-icon" src="/static/images/flowerplus.png" mode="aspectFit"></image>
+                            <text class="growth-count">{{ growthStats.flower }}</text>
+                        </view>
+                        <view class="growth-item">
+                            <image class="growth-icon" src="/static/images/peachplus.png" mode="aspectFit"></image>
+                            <text class="growth-count">{{ growthStats.peach }}</text>
+                        </view>
+                    </view>
                         <view class="profile-avatar-large">
                             <image :src="userInfo.avatarUrl || '/static/images/avatar.png'" mode="aspectFill" @error="onAvatarError"></image>
                         </view>
@@ -512,6 +519,17 @@ export default {
         console.log('【profile】📋 刷新前favoriteList长度:', this.favoriteList.length);
         console.log('【profile】📋 刷新前portfolioList长度:', this.portfolioList.length);
 
+        // 清除缓存
+        try {
+            const { invalidateMyInfo } = require('../../api-cache/my.js');
+            const { invalidateMyProfile } = require('../../api-cache/profile.js');
+            invalidateMyInfo();
+            invalidateMyProfile();
+            console.log('【profile】✅ 缓存已清除');
+        } catch (e) {
+            console.error('【profile】清除缓存失败:', e);
+        }
+
         if (this.currentTab === 'posts') {
             console.log('【profile】🔄 重置帖子数据状态');
             this.setData({
@@ -820,8 +838,12 @@ export default {
         fetchUserProfileFast: function () {
             getMyInfo(this)
                 .then((user) => {
+                    console.log('【profile】获取到的用户数据:', user);
+                    console.log('【profile】growthCounts数据:', user?.growthCounts);
                     if (user && user.birthday) user.age = this.calculateAge(user.birthday); else if (user) user.age = '';
                     this.setData({ userInfo: user || {}, isLoading: false });
+                    // 立即更新成长统计
+                    this.updateGrowthStats();
                 })
                 .catch((err) => {
                     console.error('获取用户资料失败（缓存封装）:', err);
@@ -835,6 +857,7 @@ export default {
                     }
                 });
         },
+
 
         loadMyPosts: function (cb, forceRefresh = false) {
             const { page, PAGE_SIZE } = this;
@@ -1007,21 +1030,36 @@ export default {
 
         updateGrowthStats(postList = this.myPosts) {
             try {
-                const stats = { seed: 0, leaf: 0, flower: 0 };
+                // 如果后端已提供聚合后的分段计数，直接使用
+                if (this.userInfo && this.userInfo.growthCounts) {
+                    const gc = this.userInfo.growthCounts || {};
+                    console.log('【profile】使用后端growthCounts数据:', gc);
+                    this.setData({ growthStats: {
+                        seed: Number(gc.seed) || 0,
+                        leaf: Number(gc.leaf) || 0,
+                        flower: Number(gc.flower) || 0,
+                        peach: Number(gc.peach) || 0,
+                    }});
+                    return;
+                }
+                console.log('【profile】后端未提供growthCounts，使用前端计算');
+                const stats = { seed: 0, leaf: 0, flower: 0, peach: 0 };
                 (postList || []).forEach((post) => {
                     const votes = Number(post && post.votes) || 0;
                     if (votes <= 3) {
                         stats.seed += 1;
                     } else if (votes <= 7) {
                         stats.leaf += 1;
-                    } else {
+                    } else if (votes <= 15) {
                         stats.flower += 1;
+                    } else {
+                        stats.peach += 1;
                     }
                 });
                 this.setData({ growthStats: stats });
             } catch (e) {
                 console.error('【profile】计算成长统计失败:', e);
-                this.setData({ growthStats: { seed: 0, leaf: 0, flower: 0 } });
+                this.setData({ growthStats: { seed: 0, leaf: 0, flower: 0, peach: 0 } });
             }
         },
 
@@ -1584,6 +1622,12 @@ export default {
         navigateToFeedback: function () {
             uni.navigateTo({
                 url: '/pages/feedback/feedback'
+            });
+        },
+
+        navigateToCollage: function () {
+            uni.navigateTo({
+                url: '/pages/collage-main/collage-main'
             });
         },
 

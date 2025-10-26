@@ -87,6 +87,7 @@ exports.main = async (event, context) => {
         signatureUrl: 1,
         poemId: 1,    // 新增：获取poemId
         password: 1,  // 新增：获取password（谨慎使用）
+        growthCounts: 1,
         posts: '$userPosts'
       })
       .end();
@@ -105,7 +106,8 @@ exports.main = async (event, context) => {
       region: result.region,
       signatureUrl: result.signatureUrl,
       poemId: result.poemId,     // 新增：poemId字段
-      password: result.password   // 新增：password字段（谨慎使用）
+      password: result.password,  // 新增：password字段（谨慎使用）
+      growthCounts: (result.growthCounts) || { seed: 0, leaf: 0, flower: 0, peach: 0 }
     };
     let posts = result.posts || []; // 这里已经是分页后的 posts
     console.log('【profile云函数】聚合后 posts 数量:', posts.length);

@@ -1,23 +1,23 @@
 <template>
   <view class="portfolio-detail-page" @touchstart="touchStart" @touchend="touchEnd">
-    <!-- 顶部导航栏 -->
-    <view class="header">
-      <view class="header-left" @tap="goBack">
-        <text class="back-icon">←</text>
-      </view>
-      <text class="header-title">{{ folderName }}</text>
-      <view class="header-right">
-        <text class="add-btn" @tap="openAddModal">+ 添加</text>
-      </view>
+    <!-- 自定义返回按钮 -->
+    <view class="custom-back-btn" @tap="goBack">
+      <image class="back-icon" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
     </view>
+    
+    <view class="container">
+      <!-- 右上角更多按钮 -->
+      <view class="custom-more-btn" @tap="openAddModal">
+        <image class="more-icon" src="/static/images/select_more.png" mode="aspectFit"></image>
+      </view>
 
-    <!-- 加载中骨架 -->
-    <view v-if="isLoading">
-      <skeleton />
-    </view>
+      <!-- 加载中骨架 -->
+      <view v-if="isLoading">
+        <skeleton />
+      </view>
 
-    <!-- 内容列表 -->
-    <scroll-view v-else class="content-scroll" scroll-y="true" @scrolltolower="loadMore">
+      <!-- 内容列表 -->
+      <scroll-view v-else class="content-scroll" scroll-y="true" @scrolltolower="loadMore">
       <view class="content-container">
         <view v-if="postList.length === 0" class="empty-state">
           <view class="empty-icon">😶</view>
@@ -77,6 +77,7 @@
         </view>
       </view>
     </scroll-view>
+    </view>
 
     <!-- 顶部提示（用于调试滑动预加载阈值） -->
     <view v-if="showPageIndicator" class="page-indicator"></view>
@@ -179,10 +180,6 @@ export default {
     this.folderId = options.folderId || '';
     this.folderName = decodeURIComponent(options.folderName || '作品集');
     
-    // 设置系统导航栏标题
-    uni.setNavigationBarTitle({
-      title: this.folderName
-    });
     
     // 调试：检查安全区域高度
     this.debugSafeArea();
@@ -658,6 +655,62 @@ export default {
   /* #endif */
 }
 
+.custom-back-btn {
+  position: absolute;
+  top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px))); /* 添加安全区域偏移 */
+  left: 40rpx;
+  width: 100rpx;
+  height: 100rpx;
+  background: transparent;
+  border: none;
+  display: block;
+  z-index: 100;
+  transition: all 0.2s ease;
+}
+
+.custom-back-btn:active {
+  transform: scale(0.95);
+}
+
+.custom-back-btn .back-icon {
+  width: 100rpx;
+  height: 100rpx;
+  display: block;
+  object-fit: contain;
+}
+
+.container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 右上角更多按钮 */
+.custom-more-btn {
+  position: absolute;
+  top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px))); /* 添加安全区域偏移 */
+  right: 40rpx;
+  width: 100rpx;
+  height: 100rpx;
+  background: transparent;
+  border: none;
+  display: block;
+  z-index: 100;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.custom-more-btn:active {
+  transform: scale(0.95);
+}
+
+.custom-more-btn .more-icon {
+  width: 100rpx;
+  height: 100rpx;
+  display: block;
+  object-fit: contain;
+}
+
 .content-scroll {
   flex: 1;
   height: 0;
@@ -665,6 +718,7 @@ export default {
 
 .content-container {
   padding: 40rpx;
+  padding-top: 160rpx; /* 增加顶部内边距，避免与按钮重叠 */
   display: flex;
   flex-direction: column;
   align-items: center; /* 居中卡片 */
@@ -777,55 +831,6 @@ export default {
 .page-indicator { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,.7); color: #fff; padding: 20rpx 40rpx; border-radius: 40rpx; z-index: 1000; font-size: 28rpx; }
 .page-indicator-text { text-align: center; }
 
-/* 顶部导航栏样式 */
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  padding: 20rpx 30rpx;
-  background: #fff;
-  border-bottom: 1rpx solid #e9ecef;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.header-left {
-  position: absolute;
-  left: 30rpx;
-  width: 60rpx;
-  height: 60rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.back-icon {
-  font-size: 36rpx;
-  color: #333;
-  font-weight: bold;
-}
-
-.header-title {
-  font-size: 36rpx;
-  font-weight: 600;
-  color: #333;
-}
-
-.header-right {
-  position: absolute;
-  right: 30rpx;
-  width: 100rpx;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.add-btn {
-  font-size: 28rpx;
-  color: #9ed7ee;
-  font-weight: 500;
-}
 
 /* 批量添加弹窗样式 */
 .modal-overlay {

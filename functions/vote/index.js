@@ -4,6 +4,53 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 const _ = db.command
 
+// buckets for growth stats on user profile
+// 统一阈值：与前端显示一致 (1-3/4-7/8-15/16+)
+const BUCKETS = [
+  { key: 'seed', min: 1, max: 3 },
+  { key: 'leaf', min: 4, max: 7 },
+  { key: 'flower', min: 8, max: 15 },
+  { key: 'peach', min: 16, max: Infinity },
+]
+const bucketOf = (v) => {
+  v = typeof v === 'number' ? v : 0
+  if (v < 1) return null
+  for (const b of BUCKETS) {
+    if (v >= b.min && v <= b.max) return b.key
+  }
+  return null
+}
+
+async function updateAuthorGrowthCounts(authorOpenid, oldVotes, newVotes) {
+  const from = bucketOf(oldVotes)
+  const to = bucketOf(newVotes)
+  if (from === to) return
+  const data = { growthUpdatedAt: db.serverDate() }
+  if (from) data[`growthCounts.${from}`] = _.inc(-1)
+  if (to) data[`growthCounts.${to}`] = _.inc(1)
+  const upd = await db.collection('users').where({ _openid: authorOpenid }).update({ data })
+  if (!upd.stats || upd.stats.updated === 0) {
+    try {
+      await db.collection('users').add({
+        data: {
+          _openid: authorOpenid,
+          growthCounts: {
+            seed: to === 'seed' ? 1 : 0,
+            leaf: to === 'leaf' ? 1 : 0,
+            flower: to === 'flower' ? 1 : 0,
+            peach: to === 'peach' ? 1 : 0,
+          },
+          growthUpdatedAt: db.serverDate(),
+          createTime: new Date(),
+          updateTime: new Date(),
+        },
+      })
+    } catch (e) {
+      // ignore race
+    }
+  }
+}
+
 // 云函数入口函数
 exports.main = async (event, context) => {
   
@@ -13,6 +60,15 @@ exports.main = async (event, context) => {
     const wxCtxOpenid = wxContext.OPENID
     const eventOpenid = event.openid
     const openid = eventOpenid || wxCtxOpenid
+
+    // 读取帖子，拿作者与当前票数（用于分段迁移）
+    const postSnapBefore = await db.collection('posts').doc(postId).get()
+    const postBefore = postSnapBefore.data
+    if (!postBefore) {
+      return { success: false, message: 'POST_NOT_FOUND' }
+    }
+    const authorOpenid = postBefore._openid
+    const oldVotes = postBefore.votes || 0
 
     console.log('🔍 [vote] 解析参数:', {
       postId,
@@ -48,11 +104,10 @@ exports.main = async (event, context) => {
       // 2. 如果找到了记录，说明是"取消点赞"
       console.log('🔍 [vote] 执行取消点赞操作');
       await db.collection('votes_log').doc(log.data[0]._id).remove()
-      await db.collection('posts').doc(postId).update({
-        data: {
-          votes: _.inc(-1)
-        }
-      })
+      await db.collection('posts').doc(postId).update({ data: { votes: _.inc(-1) } })
+      const postSnapAfter = await db.collection('posts').doc(postId).get()
+      const newVotes = (postSnapAfter.data && postSnapAfter.data.votes) || (oldVotes - 1)
+      await updateAuthorGrowthCounts(authorOpenid, oldVotes, newVotes)
       isLiked = false
       console.log('✅ [vote] 取消点赞完成');
     } else {
@@ -66,11 +121,10 @@ exports.main = async (event, context) => {
           createTime: new Date()
         }
       })
-      await db.collection('posts').doc(postId).update({
-        data: {
-          votes: _.inc(1)
-        }
-      })
+      await db.collection('posts').doc(postId).update({ data: { votes: _.inc(1) } })
+      const postSnapAfter = await db.collection('posts').doc(postId).get()
+      const newVotes = (postSnapAfter.data && postSnapAfter.data.votes) || (oldVotes + 1)
+      await updateAuthorGrowthCounts(authorOpenid, oldVotes, newVotes)
       isLiked = true
       console.log('✅ [vote] 点赞完成');
 

@@ -45,11 +45,13 @@
                             <image
                                 v-if="post.authorAvatar"
                                 class="author-avatar"
-                                :src="post.isAnonymous ? '/static/images/avatar.png' : post.authorAvatar"
+                                :src="post.authorAvatar"
                                 mode="aspectFill"
                                 @error="onAvatarError"
-                                @tap="post.isAnonymous ? noop : navigateToUserProfile"
-                                :data-user-id="post.isAnonymous ? null : post._openid"
+                                @click="navigateToUserProfile"
+                                :data-user-id="post._openid"
+                                :data-author-name="post.authorName"
+                                style="pointer-events: auto; cursor: pointer;"
                             ></image>
                             <text class="author-name">{{ post.isAnonymous ? '匿名用户' : post.authorName }}</text>
                             <view v-if="!post.isAnonymous && isMutualFollow" class="mutual-tag">互相关注</view>
@@ -204,8 +206,11 @@
                                     :src="item.isAnonymous ? '/static/images/avatar.png' : item.authorAvatar"
                                     mode="aspectFill"
                                     @error="onAvatarError"
-                                    @tap="item.isAnonymous ? noop : navigateToUserProfile"
-                                    :data-user-id="item.isAnonymous ? null : item._openid"
+                                    @click="navigateToUserProfile"
+                                    :data-user-id="item._openid"
+                                    :data-author-name="item.authorName"
+                                    :data-is-anonymous="item.isAnonymous"
+                                    style="pointer-events: auto; cursor: pointer;"
                                 ></image>
 
                                 <view class="comment-main">
@@ -234,7 +239,7 @@
                                             <view v-if="item.canDelete" class="delete-btn" @tap="onDeleteComment" :data-comment-id="item._id">
                                                 <text class="delete-text">删除</text>
                                             </view>
-                                            <view class="reply-btn" @tap="showReplyInput" :data-comment-id="item._id" :data-author-name="item.authorName">
+                                            <view class="reply-btn" @tap="showReplyInput" :data-comment-id="item._id" :data-author-name="item.isAnonymous ? '匿名用户' : item.authorName">
                                                 <text class="reply-text">回复</text>
                                             </view>
                                         </view>
@@ -253,14 +258,17 @@
                                                 :src="reply.isAnonymous ? '/static/images/avatar.png' : reply.authorAvatar"
                                                 mode="aspectFill"
                                                 @error="onAvatarError"
-                                                @tap="reply.isAnonymous ? noop : navigateToUserProfile"
-                                                :data-user-id="reply.isAnonymous ? null : reply._openid"
+                                                @click="navigateToUserProfile"
+                                                :data-user-id="reply._openid"
+                                                :data-author-name="reply.authorName"
+                                                :data-is-anonymous="reply.isAnonymous"
+                                                style="pointer-events: auto; cursor: pointer;"
                                             ></image>
 
                                             <view class="reply-main">
                                                 <view class="reply-author">{{ reply.isAnonymous ? '匿名用户' : reply.authorName }}</view>
                                                 <view class="reply-content">
-                                                    <text class="reply-to">回复@{{ item.authorName }}：</text>
+                                                    <text v-if="reply.replyToAuthorName" class="reply-to">回复@{{ reply.replyToAuthorName }}：</text>
                                                     <text>{{ reply.content }}</text>
                                                 </view>
                                                 <view v-if="reply.imageUrls && reply.imageUrls.length" class="comment-image-grid reply-image-grid">
@@ -293,7 +301,7 @@
                                                         >
                                                             <text class="delete-text">删除</text>
                                                         </view>
-                                                        <view class="reply-btn" @tap="showReplyInput" :data-comment-id="item._id" :data-author-name="reply.authorName">
+                                                        <view class="reply-btn" @tap="showReplyInput" :data-comment-id="item._id" :data-author-name="reply.isAnonymous ? '匿名用户' : reply.authorName">
                                                             <text class="reply-text">回复</text>
                                                         </view>
                                                     </view>
@@ -576,9 +584,37 @@ export default {
         this.recordViewBehavior();
     },
     methods: {
-        // 空函数，用于阻止匿名帖子的头像点击事件
-        noop() {},
+        // 处理匿名头像点击事件的函数
+        handleAnonymousAvatarClick(e) {
+            console.log('【详情页】匿名头像被点击，阻止跳转');
+            if (e && e.preventDefault) {
+                e.preventDefault();
+            }
+            if (e && e.stopPropagation) {
+                e.stopPropagation();
+            }
+            // 不执行任何跳转操作
+        },
 
+        // 空函数，用于阻止匿名帖子的头像点击事件
+        noop(e) {
+            console.log('【详情页】noop函数被调用');
+            console.log('【详情页】noop - event:', e);
+            if (e && e.currentTarget) {
+                console.log('【详情页】noop - currentTarget:', e.currentTarget);
+                console.log('【详情页】noop - dataset:', e.currentTarget.dataset);
+            }
+        },
+
+        // 测试函数 - 用于调试头像点击
+        testAvatarClick: function(e) {
+            console.log('【测试】头像点击测试函数被调用');
+            console.log('【测试】事件对象:', e);
+            console.log('【测试】currentTarget:', e.currentTarget);
+            console.log('【测试】dataset:', e.currentTarget ? e.currentTarget.dataset : 'no currentTarget');
+        },
+
+        
         // 跨页同步：监听 like-changed 的处理
         onGlobalLikeChanged: function (e = {}) {
             try {
@@ -673,6 +709,12 @@ export default {
             ).then(async (res) => {
                 if (res.result && res.result.post) {
                     let post = res.result.post;
+                    console.log('【post-detail】判断帖子匿名性:', {
+                        postId: post._id,
+                        isAnonymous: post.isAnonymous,
+                        anonymousType: typeof post.isAnonymous,
+                        anonymousValue: post.isAnonymous
+                    });
                     post.formattedCreateTime = this.formatTime(post.createTime);
                     post.likeIcon = likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false);
                     // 将 cloud:// 映射为可访问 URL，并预热
@@ -733,23 +775,29 @@ export default {
                     const currentUserOpenid = this.getCurrentUserId();
                     console.log('🔍 [DEBUG] 当前用户openid:', currentUserOpenid);
                     const comments = res.result.comments.map((comment) => {
-                        console.log('🔍 [DEBUG] 处理评论:', comment._id, 'canDelete:', comment.canDelete, 'openid:', comment._openid);
+                        console.log('🔍 [DEBUG] 处理评论:', comment._id, 'canDelete:', comment.canDelete, 'openid:', comment._openid, 'isAnonymous:', comment.isAnonymous);
                         const processedComment = {
                             ...comment,
                             formattedCreateTime: this.formatTime(comment.createTime),
                             likeIcon: likeIcon.getLikeIcon(comment.likes || 0, comment.liked || false),
                             imageUrls: comment.imageUrls || [],
-                            originalImageUrls: comment.originalImageUrls || []
+                            originalImageUrls: comment.originalImageUrls || [],
+                            _openid: comment._openid || '' // 确保_openid被保留
                         };
+                        console.log('🔍 [DEBUG] 处理后的评论_openid:', processedComment._openid, 'isAnonymous:', processedComment.isAnonymous);
                         if (comment.replies) {
                             processedComment.replies = comment.replies.map((reply) => {
-                                return {
+                                console.log('🔍 [DEBUG] 处理回复:', reply._id, 'openid:', reply._openid, 'isAnonymous:', reply.isAnonymous);
+                                const processedReply = {
                                     ...reply,
                                     formattedCreateTime: this.formatTime(reply.createTime),
                                     likeIcon: likeIcon.getLikeIcon(reply.likes || 0, reply.liked || false),
                                     imageUrls: reply.imageUrls || [],
-                                    originalImageUrls: reply.originalImageUrls || []
+                                    originalImageUrls: reply.originalImageUrls || [],
+                                    _openid: reply._openid || '' // 确保_openid被保留
                                 };
+                                console.log('🔍 [DEBUG] 处理后的回复_openid:', processedReply._openid, 'isAnonymous:', processedReply.isAnonymous);
+                                return processedReply;
                             });
                         }
                         return processedComment;
@@ -2793,20 +2841,50 @@ export default {
         },
 
         navigateToUserProfile: function (e) {
-            const userId = e.currentTarget.dataset.userId;
-            if (userId) {
-                const currentUserOpenid = this.openid;
+            try {
+                console.log('【详情页头像点击】函数被调用，事件对象:', e);
+                const currentTarget = e.currentTarget || e.target || {};
+                const dataset = currentTarget.dataset || {};
+                const isAnonymous = dataset.isAnonymous === 'true' || dataset.isAnonymous === true;
+                const userId = dataset.userId || dataset.userid || dataset.user || '';
+
+                console.log('【详情页头像点击】完整dataset:', dataset);
+                console.log('【详情页头像点击】isAnonymous:', isAnonymous);
+                console.log('【详情页头像点击】userId:', userId);
+                console.log('【详情页头像点击】currentTarget:', currentTarget);
+
+                // 如果是匿名评论，不跳转
+                if (isAnonymous) {
+                    console.log('【详情页头像点击】匿名评论，不跳转');
+                    return;
+                }
+
+                if (!userId) {
+                    console.error('【头像点击】userId为空，dataset:', dataset);
+                    return;
+                }
+
+                const currentUserOpenid = this.openid || this.getCurrentUserId();
+                console.log('【详情页头像点击】当前用户:', currentUserOpenid);
+
+                // 检查是否点击的是自己的头像
                 if (userId === currentUserOpenid) {
-                    console.log('【帖子详情】点击的是自己头像，切换到我的页面');
+                    console.log('【详情页头像点击】跳转到我的页面');
                     uni.switchTab({
                         url: '/pages/profile/profile'
                     });
                 } else {
-                    console.log('【帖子详情】点击的是他人头像，跳转到用户主页');
+                    console.log('【详情页头像点击】跳转到用户主页:', userId);
                     uni.navigateTo({
-                        url: `/pages/user-profile/user-profile?userId=${userId}`
+                        url: `/pages/user-profile/user-profile?userId=${encodeURIComponent(userId)}`
                     });
                 }
+            } catch (err) {
+                console.error('【头像点击】函数执行出错:', err);
+                uni.showToast({
+                    title: '跳转异常',
+                    icon: 'none'
+                });
             }
         },
 
@@ -3216,6 +3294,10 @@ export default {
     border-radius: 50%;
     margin-right: 15rpx;
     background-color: #f5f5f5;
+    pointer-events: auto;
+    cursor: pointer;
+    z-index: 10;
+    position: relative;
 }
 
 .author-name {
@@ -3519,6 +3601,10 @@ export default {
     flex-shrink: 0;
     background-color: #f5f5f5;
     margin-left: 0;
+    pointer-events: auto;
+    cursor: pointer;
+    z-index: 10;
+    position: relative;
 }
 
 .comment-main {
@@ -3656,6 +3742,10 @@ export default {
     margin-right: 10rpx;
     flex-shrink: 0;
     background-color: #f5f5f5;
+    pointer-events: auto;
+    cursor: pointer;
+    z-index: 10;
+    position: relative;
 }
 
 .reply-main {

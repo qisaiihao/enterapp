@@ -113,18 +113,18 @@ export default {
 
 <style>
 .tab-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 120rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 50rpx;
-  padding: 0 0rpx;
-  z-index: 1000;
-  background: #ffffff;
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 60rpx !important;
+  right: 60rpx !important;
+  width: calc(100% - 120rpx) !important;
+  height: 120rpx !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 1000 !important;
+  background: #ffffff !important;
+  box-sizing: border-box !important;
 }
 
 .tab-bar-item {
@@ -133,6 +133,8 @@ export default {
   align-items: center;
   justify-content: center;
   height: 100%;
+  flex: 1;
+  max-width: 88rpx;
 }
 
 .icon-wrap {
@@ -173,6 +175,55 @@ export default {
   color: transparent;
   height: 0;
   overflow: hidden;
+}
+
+/* 响应式间距调整 */
+/* 超窄屏幕：减少边距，保持最小按钮间距 */
+@media screen and (max-width: 320px) {
+  .tab-bar {
+    left: 20rpx !important;
+    right: 20rpx !important;
+    width: calc(100% - 40rpx) !important;
+  }
+  .tab-bar-item {
+    margin: 0 15rpx;
+  }
+}
+
+/* 窄屏幕：适中的边距和按钮间距 */
+@media screen and (min-width: 321px) and (max-width: 375px) {
+  .tab-bar {
+    left: 40rpx !important;
+    right: 40rpx !important;
+    width: calc(100% - 80rpx) !important;
+  }
+  .tab-bar-item {
+    margin: 0 30rpx;
+  }
+}
+
+/* 中等屏幕：标准间距 */
+@media screen and (min-width: 376px) and (max-width: 414px) {
+  .tab-bar {
+    left: 50rpx !important;
+    right: 50rpx !important;
+    width: calc(100% - 100rpx) !important;
+  }
+  .tab-bar-item {
+    margin: 0 35rpx;
+  }
+}
+
+/* 宽屏幕：更大的边距 */
+@media screen and (min-width: 415px) {
+  .tab-bar {
+    left: 60rpx !important;
+    right: 60rpx !important;
+    width: calc(100% - 120rpx) !important;
+  }
+  .tab-bar-item {
+    margin: 0 40rpx;
+  }
 }
 </style>
 

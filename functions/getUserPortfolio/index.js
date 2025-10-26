@@ -12,42 +12,26 @@ exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
   const currentOpenid = wxContext.OPENID || event.openid;
 
-  if (!currentOpenid) {
-    return {
-      success: false,
-      message: '无法获取用户 openid，请重新登录',
-      code: 'NO_OPENID'
-    };
-  }
-
   const { userId } = event;
-  console.log('【getUserPortfolio云函数】收到参数:', { userId });
+  console.log('【getUserPortfolio云函数】收到完整event参数:', event);
+  console.log('【getUserPortfolio云函数】wxContext:', wxContext);
+  console.log('【getUserPortfolio云函数】查询userId:', userId);
 
   if (!userId) {
     return { success: false, message: '用户ID不能为空' };
   }
 
   try {
-    // 查询用户的作品集/文件夹 - 同时查询两个集合
-    const [foldersResult, portfolioFoldersResult] = await Promise.all([
-      db.collection('folders')
-        .where({
-          _openid: userId,
-          isDeleted: db.command.neq(true) // 排除已删除的文件夹
-        })
-        .orderBy('createTime', 'desc')
-        .get(),
-      db.collection('portfolio_folders')
-        .where({
-          _openid: userId,
-          isDeleted: db.command.neq(true) // 排除已删除的文件夹
-        })
-        .orderBy('createTime', 'desc')
-        .get()
-    ]);
+    // 查询用户的作品集/文件夹 - 只查询 portfolio_folders 集合
+    const portfolioFoldersResult = await db.collection('portfolio_folders')
+      .where({
+        _openid: userId,
+        isDeleted: db.command.neq(true) // 排除已删除的文件夹
+      })
+      .orderBy('createTime', 'desc')
+      .get();
 
-    // 合并两个集合的结果
-    let folders = [...(foldersResult.data || []), ...(portfolioFoldersResult.data || [])];
+    let folders = portfolioFoldersResult.data || [];
     
     // 按创建时间排序
     folders.sort((a, b) => new Date(b.createTime) - new Date(a.createTime));
@@ -69,7 +53,8 @@ exports.main = async (event, context) => {
           })
           .count();
 
-        folder.postsCount = postsCount.total;
+              // 使用数据库中的itemCount字段，如果没有则查询计算
+        folder.postsCount = typeof folder.itemCount === 'number' ? folder.itemCount : postsCount.total;
 
         // 如果文件夹有封面图片且是云存储路径，转换为临时URL
         if (folder.coverImage && folder.coverImage.startsWith('cloud://')) {

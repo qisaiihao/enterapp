@@ -329,7 +329,7 @@ export default {
                     userId =
                         (dataset.userId || dataset.userid || dataset.user || dataset.openId || dataset.openid || dataset._openid || '') ||
                         this.currentAuthorOpenid ||
-                        (this.currentPost && (this.currentPost._openid || this.currentPost.authorOpenId || this.currentPost.authorOpenid || this.currentPost.userId || this.currentPost.authorId)) ||
+                        (this.currentPost && (this.currentPost._openid || this.currentPost.authorOpenId || this.currentPost.authorOpenid || this.currentPost.authorId || this.currentPost.userId)) ||
                         '';
                 } else {
                     userId = this.currentAuthorOpenid || (this.currentPost && this.currentPost._openid) || '';
@@ -827,14 +827,14 @@ export default {
                 return '';
             };
 
-            // 1. �������¿�Ƭ���ݣ��������л���
-            const isAnonymousPost = post && (
-                post.isAnonymous === true ||
-                post.isAnonymous === 1 ||
-                post.isAnonymous === '1' ||
-                post.isAnonymous === 'true' ||
-                post.anonymous === true
-            );
+            // 1.¿Ƭݣл
+            const isAnonymousPost = post && post.isAnonymous;
+            console.log('【poem】判断帖子匿名性:', {
+                postId: post._id,
+                isAnonymous: post.isAnonymous,
+                isAnonymousPost: isAnonymousPost,
+                anonymousType: typeof post.isAnonymous
+            });
             const nextAuthorOpenid = isAnonymousPost ? '' : pickAuthorOpenid();
 
             this.setData({

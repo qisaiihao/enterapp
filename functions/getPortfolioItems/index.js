@@ -11,10 +11,10 @@ const db = cloud.database();
 // 云函数入口函数
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
-  const openid = wxContext.OPENID || event.openid;
-  const { folderId, skip = 0, limit = 10 } = event;
+  const callerOpenid = wxContext.OPENID || event.openid;
+  const { folderId, userId, skip = 0, limit = 10 } = event;
 
-  if (!openid) {
+  if (!callerOpenid) {
     return {
       success: false,
       message: '无法获取用户 openid，请重新登录',
@@ -30,9 +30,28 @@ exports.main = async (event, context) => {
       };
     }
 
+    // 先根据 folderId 确认作品集归属，避免 userId 传错导致查不到数据
+    let ownerOpenid = null;
+    try {
+      const folderDoc = await db.collection('portfolio_folders').doc(folderId).get();
+      if (folderDoc && folderDoc.data && folderDoc.data._openid) {
+        ownerOpenid = folderDoc.data._openid;
+      }
+    } catch (_) {}
+
+    // 回退策略：若无法通过 folder 获取到 owner，则使用传入 userId 或调用者 openid
+    const resolvedOpenid = ownerOpenid || (typeof userId === 'string' && userId.trim() ? userId : callerOpenid);
+    console.log('【getPortfolioItems】定位查询主体 openid:', {
+      folderId,
+      ownerOpenid,
+      userIdFromEvent: userId,
+      callerOpenid,
+      resolvedOpenid
+    });
+
     // 获取作品集中的项目
     const portfolioResult = await db.collection('portfolio_items').where({
-      _openid: openid,
+      _openid: resolvedOpenid,
       folderId: folderId
     }).orderBy('createTime', 'desc').skip(skip).limit(limit).get();
 
@@ -63,7 +82,7 @@ exports.main = async (event, context) => {
 
     // 获取用户信息（主要是自己的信息）
     const usersResult = await db.collection('users').where({
-      _openid: openid
+      _openid: resolvedOpenid
     }).get();
 
     const user = usersResult.data.length > 0 ? usersResult.data[0] : null;
@@ -200,9 +219,17 @@ exports.main = async (event, context) => {
       }
     }
 
+    // 返回作者信息用于他人作品集页面展示
+    const authorInfo = user ? {
+      avatarUrl: user.avatarUrl || '',
+      nickName: user.nickName || user.nick_name || '',
+      bio: user.bio || ''
+    } : {};
+
     return {
       success: true,
-      portfolioItems: completePortfolioItems
+      portfolioItems: completePortfolioItems,
+      authorInfo
     };
   } catch (error) {
     console.error('获取作品集内容失败:', error);

@@ -44,7 +44,7 @@ exports.main = async (event, context) => {
         ],
         as: 'posts'
       })
-      .project({
+            .project({
         _id: 1,
         _openid: 1,
         nickName: 1,
@@ -52,9 +52,10 @@ exports.main = async (event, context) => {
         bio: 1,
         occupation: 1,
         region: 1,
-        signatureUrl: 1, // 添加签名URL字段
-        poemId: 1, // 添加poemId字段
-        // 不返回私人信息如生日、年龄等
+        signatureUrl: 1,
+        poemId: 1,
+        growthCounts: 1,
+        // 不返回隐私信息（生日、年龄等）
         posts: 1
       })
       .end();
@@ -199,15 +200,16 @@ exports.main = async (event, context) => {
 
     return {
       success: true,
-      userInfo: {
+            userInfo: {
         _openid: userInfo._openid,
         nickName: userInfo.nickName || '微信用户',
         avatarUrl: userInfo.avatarUrl || '',
         occupation: userInfo.occupation || '',
         region: userInfo.region || '',
-        bio: userInfo.bio || '这个用户很懒，什么都还没留下...',
-        signatureUrl: userInfo.signatureUrl || '', // 添加签名URL字段
-        poemId: userInfo.poemId || '' // 添加poemId字段
+        bio: userInfo.bio || '这个人很懒，什么都没有写...',
+        signatureUrl: userInfo.signatureUrl || '',
+        poemId: userInfo.poemId || '',
+        growthCounts: userInfo.growthCounts || { seed: 0, leaf: 0, flower: 0 }
       },
       posts: posts
     };
@@ -220,3 +222,6 @@ exports.main = async (event, context) => {
     };
   }
 };
+
+
+

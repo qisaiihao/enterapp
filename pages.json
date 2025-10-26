@@ -187,6 +187,16 @@
       }
     },
     {
+      "path": "pages/other-portfolio/other-portfolio",
+      "style": {
+        "usingComponents": {
+          "skeleton": "/components/skeleton/skeleton"
+        },
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
       "path": "pages/draft-box/draft-box",
       "style": {
         "usingComponents": {},
@@ -227,6 +237,27 @@
       "style": {
         "navigationStyle": "custom",
         "backgroundColor": "#f5f5f5",
+        "usingComponents": {}
+      }
+    },
+    {
+      "path": "pages/collage-main/collage-main",
+      "style": {
+        "navigationStyle": "custom",
+        "usingComponents": {}
+      }
+    },
+    {
+      "path": "pages/collage-square/collage-square",
+      "style": {
+        "navigationStyle": "custom",
+        "usingComponents": {}
+      }
+    },
+    {
+      "path": "pages/collage-upload/collage-upload",
+      "style": {
+        "navigationStyle": "custom",
         "usingComponents": {}
       }
     }

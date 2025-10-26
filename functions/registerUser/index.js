@@ -93,6 +93,8 @@ exports.main = async (event, context) => {
           password: password,
           nickName: nickName,
           ...(avatarFileID ? { avatarUrl: avatarFileID } : {}),
+          growthCounts: { seed: 0, leaf: 0, flower: 0 },
+          growthUpdatedAt: db.serverDate(),
           createTime: new Date()
         }
       });

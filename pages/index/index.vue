@@ -12,7 +12,7 @@
 
             <!-- 骨架屏：当 isLoading 为 true 时显示 -->
             <view v-if="isLoading">
-                <skeleton />
+                <skeleton pageType="index" />
             </view>
 
             <!-- 真实内容：当 isLoading 为 false 时显示 -->
