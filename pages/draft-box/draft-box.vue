@@ -2,21 +2,30 @@
     <!-- pages/draft-box/draft-box.wxml -->
     <view class="container">
         <!-- 草稿列表 -->
-        <view v-if="drafts.length > 0" class="draft-list">
-            <view class="draft-item" @tap="editDraft" :data-draft="item" v-for="(item, index) in drafts" :key="index">
-                <view class="draft-content">
-                    <view class="draft-title">{{ item.title || '无标题' }}</view>
-                    <view class="draft-preview">{{ item.content || '无内容' }}</view>
-                    <view class="draft-meta">
-                        <text class="draft-time">{{ item.formattedSaveTime }}</text>
-                        <text class="draft-mode">{{ item.publishMode === 'poem' ? '诗歌' : '普通' }}</text>
-                        <text v-if="item.isOriginal" class="draft-original">原创</text>
+        <view v-if="drafts.length > 0" class="draft-list" @tap="closeAllDeleteActions">
+            <view class="draft-item-wrapper" v-for="(item, index) in drafts" :key="index">
+                <view class="draft-item" 
+                      @tap.stop="editDraft" 
+                      @touchstart="onTouchStart" 
+                      @touchmove="onTouchMove" 
+                      @touchend="onTouchEnd"
+                      :data-draft="item" 
+                      :data-index="index"
+                      :style="{ transform: `translateX(${item.translateX || 0}px)` }">
+                    <view class="draft-content">
+                        <view class="draft-title">{{ item.title || '无标题草稿' }}</view>
+                        <view class="draft-preview">{{ item.content || '正文内容' }}</view>
+                        <view class="draft-meta">
+                            <view class="draft-tag">{{ getDraftTag(item) }}</view>
+                            <text class="draft-time">编辑于{{ formatEditTime(item.saveTime) }}</text>
+                        </view>
                     </view>
                 </view>
-
-                <view class="draft-actions">
-                    <button class="action-btn edit-btn" size="mini" @tap.stop.prevent="editDraft" :data-draft="item">编辑</button>
-                    <button class="action-btn delete-btn" size="mini" @tap.stop.prevent="deleteDraft" :data-draft-id="item._id">删除</button>
+                <view class="delete-action" 
+                      @tap.stop="deleteDraft" 
+                      :data-draft-id="item._id"
+                      :style="{ opacity: item.showDelete ? 1 : 0 }">
+                    <text class="delete-text">删除</text>
                 </view>
             </view>
         </view>
@@ -40,7 +49,10 @@ export default {
     data() {
         return {
             drafts: [],
-            isLoading: true
+            isLoading: true,
+            touchStartX: 0,
+            touchStartY: 0,
+            currentSwipeIndex: -1
         };
     },
     onLoad: function () {
@@ -191,6 +203,99 @@ export default {
         // 兼容旧调用签名
         formatTime: function (timestamp) {
             return formatRelativeTime(timestamp) || formatDate(timestamp, 'yyyy-MM-dd HH:mm');
+        },
+
+        // 获取草稿标签
+        getDraftTag: function(draft) {
+            if (draft.publishMode === 'poem') {
+                return draft.isOriginal ? '原创诗歌' : '诗歌分享';
+            }
+            return '帖子';
+        },
+
+        // 格式化编辑时间
+        formatEditTime: function(timestamp) {
+            const date = new Date(timestamp);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        },
+
+        // 触摸开始
+        onTouchStart: function(e) {
+            this.touchStartX = e.touches[0].clientX;
+            this.touchStartY = e.touches[0].clientY;
+        },
+
+        // 触摸移动
+        onTouchMove: function(e) {
+            const currentX = e.touches[0].clientX;
+            const currentY = e.touches[0].clientY;
+            const deltaX = currentX - this.touchStartX;
+            const deltaY = currentY - this.touchStartY;
+            
+            // 如果是垂直滑动，不处理
+            if (Math.abs(deltaY) > Math.abs(deltaX)) {
+                return;
+            }
+            
+            const index = parseInt(e.currentTarget.dataset.index);
+            const draft = this.drafts[index];
+            
+            if (deltaX < 0) { // 左滑
+                const translateX = Math.max(deltaX, -160); // 限制最大滑动距离
+                this.$set(this.drafts, index, {
+                    ...draft,
+                    translateX: translateX,
+                    showDelete: translateX < -80
+                });
+            } else { // 右滑
+                const translateX = Math.min(deltaX, 0);
+                this.$set(this.drafts, index, {
+                    ...draft,
+                    translateX: translateX,
+                    showDelete: false
+                });
+            }
+        },
+
+        // 触摸结束
+        onTouchEnd: function(e) {
+            const index = parseInt(e.currentTarget.dataset.index);
+            const draft = this.drafts[index];
+            
+            if (draft.translateX < -80) {
+                // 显示删除按钮
+                this.$set(this.drafts, index, {
+                    ...draft,
+                    translateX: -160,
+                    showDelete: true
+                });
+                this.currentSwipeIndex = index;
+            } else {
+                // 隐藏删除按钮
+                this.$set(this.drafts, index, {
+                    ...draft,
+                    translateX: 0,
+                    showDelete: false
+                });
+                this.currentSwipeIndex = -1;
+            }
+        },
+
+        // 关闭所有删除按钮
+        closeAllDeleteActions: function() {
+            this.drafts.forEach((draft, index) => {
+                if (draft.showDelete) {
+                    this.$set(this.drafts, index, {
+                        ...draft,
+                        translateX: 0,
+                        showDelete: false
+                    });
+                }
+            });
+            this.currentSwipeIndex = -1;
         }
     }
 };
@@ -198,43 +303,37 @@ export default {
 <style>
 /* pages/draft-box/draft-box.wxss */
 .container {
-    padding: 20rpx;
-    background-color: #f7f8fa;
+    background-color: #fff;
     min-height: 100vh;
 }
 
 .draft-list {
     display: flex;
     flex-direction: column;
-    gap: 20rpx;
+}
+
+.draft-item-wrapper {
+    position: relative;
+    border-bottom: 1rpx solid #f0f0f0;
 }
 
 .draft-item {
     background: #fff;
-    border-radius: 16rpx;
     padding: 30rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    transition: all 0.2s ease;
-}
-
-.draft-item:active {
-    transform: scale(0.98);
-    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+    position: relative;
+    z-index: 2;
 }
 
 .draft-content {
-    flex: 1;
-    margin-right: 20rpx;
+    width: 100%;
 }
 
 .draft-title {
     font-size: 32rpx;
     font-weight: 600;
     color: #333;
-    margin-bottom: 10rpx;
+    margin-bottom: 15rpx;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -243,8 +342,8 @@ export default {
 .draft-preview {
     font-size: 28rpx;
     color: #666;
-    line-height: 1.5;
-    margin-bottom: 15rpx;
+    line-height: 1.6;
+    margin-bottom: 20rpx;
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
@@ -256,64 +355,41 @@ export default {
 .draft-meta {
     display: flex;
     align-items: center;
-    gap: 20rpx;
+    justify-content: space-between;
+}
+
+.draft-tag {
+    background: #f5f5f5;
+    color: #666;
+    padding: 6rpx 16rpx;
+    border-radius: 20rpx;
+    font-size: 24rpx;
+    font-weight: 400;
+}
+
+.draft-time {
     font-size: 24rpx;
     color: #999;
 }
 
-.draft-time {
-    flex-shrink: 0;
-}
-
-.draft-mode {
-    background: #e3f2fd;
-    color: #1976d2;
-    padding: 4rpx 12rpx;
-    border-radius: 12rpx;
-    font-size: 22rpx;
-}
-
-.draft-original {
-    background: #e8f5e8;
-    color: #4caf50;
-    padding: 4rpx 12rpx;
-    border-radius: 12rpx;
-    font-size: 22rpx;
-}
-
-.draft-actions {
+.delete-action {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 160rpx;
+    background: #CC9090;
     display: flex;
-    flex-direction: column;
-    gap: 10rpx;
-    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    transition: opacity 0.3s ease;
 }
 
-.action-btn {
-    min-width: 120rpx;
-    height: 60rpx;
-    line-height: 60rpx;
-    border-radius: 8rpx;
-    font-size: 24rpx;
-    border: none;
-    transition: all 0.2s ease;
-}
-
-.edit-btn {
-    background: #9ed7ee;
-    color: white;
-}
-
-.edit-btn:active {
-    background: #06ad56;
-}
-
-.delete-btn {
-    background: #ff4d4f;
-    color: white;
-}
-
-.delete-btn:active {
-    background: #d9363e;
+.delete-text {
+    color: #fff;
+    font-size: 32rpx;
+    font-weight: 500;
 }
 
 /* 空状态样式 */
