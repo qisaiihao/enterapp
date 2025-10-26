@@ -15,7 +15,7 @@ exports.main = async (event, context) => {
   const wxCtxOpenid = wxContext.OPENID;
   const eventOpenid = event.openid;
   const openid = eventOpenid || wxCtxOpenid;
-  const { keyword = '', limit = 20 } = event;
+  const { keyword = '', limit = 20, filter = 'all', sort = 'relevance', page = 1 } = event;
 
   if (!openid) {
     return {
@@ -130,81 +130,245 @@ exports.main = async (event, context) => {
       }
     }
 
-    // 使用最简单的查询方式，避免聚合查询的复杂性
-    console.log('开始搜索，关键词:', keyword, '字符码:', keyword.charCodeAt(0));
+    // 优化的搜索算法，支持模糊搜索和分词搜索
+    console.log('开始搜索，关键词:', keyword);
     
     let posts = [];
     
-    if (keyword.length === 1) {
-      console.log('使用单字符增强查询策略');
-      
-      // 尝试多种查询方式
-      const queries = [
-        // 1. 精确匹配
-        db.collection('posts').where({ title: keyword }).get(),
-        db.collection('posts').where({ content: keyword }).get(),
-        db.collection('posts').where({ tags: keyword }).get(),
-        // 2. 正则表达式匹配
-        db.collection('posts').where({ title: new RegExp(keyword, 'i') }).get(),
-        db.collection('posts').where({ content: new RegExp(keyword, 'i') }).get(),
-        db.collection('posts').where({ tags: new RegExp(keyword, 'i') }).get(),
-        // 3. 数组包含匹配
-        db.collection('posts').where({ tags: _.in([keyword]) }).get()
-      ];
-      
-      const results = await Promise.all(queries);
-      console.log('各字段查询结果:', {
-        title_exact: results[0].data.length,
-        content_exact: results[1].data.length,
-        tags_exact: results[2].data.length,
-        title_regex: results[3].data.length,
-        content_regex: results[4].data.length,
-        tags_regex: results[5].data.length,
-        tags_in: results[6].data.length
-      });
-      
-      // 合并结果并去重
-      const allPosts = results.flatMap(result => result.data);
-      const uniquePosts = allPosts.filter((post, index, self) => 
-        index === self.findIndex(p => p._id === post._id)
-      );
-      
-      posts = uniquePosts;\n      posts = posts.filter(p => !p || p.isHidden !== true);
-      console.log('合并后结果数量:', posts.length);
-      
-    } else {
-      console.log('使用多字符正则查询策略');
+    console.log('搜索参数:', { keyword, filter, sort, page, limit });
+    
+    // 分词处理 - 将关键词按空格分割
+    const keywords = keyword.trim().split(/\s+/).filter(k => k.length > 0);
+    console.log('分词结果:', keywords);
+    
+    if (keywords.length === 0 && filter === 'all') {
+      return {
+        success: true,
+        posts: [],
+        total: 0,
+        message: '搜索关键词不能为空'
+      };
+    }
+    
+    // 构建搜索条件
+    const searchConditions = [];
+    
+    // 为每个关键词构建搜索条件
+    keywords.forEach(keyword => {
       const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const searchRegex = new RegExp(escapedKeyword, 'i');
       
-      const queries = [
-        db.collection('posts').where({ title: searchRegex }).get(),
-        db.collection('posts').where({ content: searchRegex }).get(),
-        db.collection('posts').where({ tags: searchRegex }).get()
-      ];
-      
-      const results = await Promise.all(queries);
-      console.log('各字段查询结果:', {
-        title: results[0].data.length,
-        content: results[1].data.length,
-        tags: results[2].data.length
+      // 标题匹配（权重最高）
+      searchConditions.push({
+        title: searchRegex
       });
       
-      // 合并结果并去重
-      const allPosts = [...results[0].data, ...results[1].data, ...results[2].data];
-      const uniquePosts = allPosts.filter((post, index, self) => 
-        index === self.findIndex(p => p._id === post._id)
-      );
+      // 内容匹配
+      searchConditions.push({
+        content: searchRegex
+      });
       
-      posts = uniquePosts;\n      posts = posts.filter(p => !p || p.isHidden !== true);
-      console.log('合并后结果数量:', posts.length);
+      // 标签匹配
+      searchConditions.push({
+        tags: searchRegex
+      });
+      
+      // 作者名称匹配
+      searchConditions.push({
+        authorName: searchRegex
+      });
+      
+      // 标签数组包含匹配
+      searchConditions.push({
+        tags: _.in([keyword])
+      });
+    });
+    
+    // 添加过滤条件
+    let filterConditions = {};
+    
+    if (filter === 'recent') {
+      // 最近7天
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      filterConditions.createTime = _.gte(sevenDaysAgo);
+      console.log('应用最近过滤条件:', sevenDaysAgo);
+    } else if (filter === 'popular') {
+      // 热门帖子（点赞数大于5）
+      filterConditions.votes = _.gt(5);
+      console.log('应用热门过滤条件: votes > 5');
+    } else if (filter === 'poetry') {
+      // 诗歌类型
+      filterConditions.tags = _.in(['诗歌', '诗', 'poetry']);
+      console.log('应用诗歌过滤条件:', ['诗歌', '诗', 'poetry']);
     }
     
-    // 按创建时间排序
-    posts.sort((a, b) => new Date(b.createTime) - new Date(a.createTime));
+    // 构建最终查询条件
+    let finalConditions = {};
     
-    // 限制结果数量
-    posts = posts.slice(0, limit);\n    posts = posts.filter(p => !p || p.isHidden !== true);
+    console.log('搜索条件数量:', searchConditions.length);
+    console.log('过滤条件:', filterConditions);
+    
+    if (searchConditions.length > 0 && Object.keys(filterConditions).length > 0) {
+      // 有搜索关键词且有过滤条件：搜索条件 OR 过滤条件
+      finalConditions = _.and([
+        _.or(searchConditions),
+        filterConditions
+      ]);
+      console.log('使用组合条件: 搜索 + 过滤');
+    } else if (searchConditions.length > 0) {
+      // 只有搜索关键词
+      finalConditions = _.or(searchConditions);
+      console.log('使用搜索条件');
+    } else if (Object.keys(filterConditions).length > 0) {
+      // 只有过滤条件
+      finalConditions = filterConditions;
+      console.log('使用过滤条件');
+    } else {
+      // 都没有，返回空结果
+      console.log('没有搜索和过滤条件，返回空结果');
+      return {
+        success: true,
+        posts: [],
+        total: 0
+      };
+    }
+    
+    console.log('最终查询条件:', finalConditions);
+    
+    // 执行搜索查询
+    console.log('执行搜索查询，条件数量:', searchConditions.length);
+    
+    try {
+      // 使用合并后的条件进行搜索
+      const searchResult = await db.collection('posts')
+        .where(finalConditions)
+        .orderBy('createTime', 'desc')
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .get();
+      
+      posts = searchResult.data;
+      console.log('搜索结果数量:', posts.length);
+      
+      // 过滤隐藏的帖子
+      posts = posts.filter(p => !p || p.isHidden !== true);
+      
+      // 计算相关性分数并排序
+      posts = posts.map(post => {
+        let score = 0;
+        const title = (post.title || '').toLowerCase();
+        const content = (post.content || '').toLowerCase();
+        const tags = (post.tags || []).join(' ').toLowerCase();
+        const authorName = (post.authorName || '').toLowerCase();
+        
+        keywords.forEach(keyword => {
+          const lowerKeyword = keyword.toLowerCase();
+          
+          // 标题完全匹配（最高分）
+          if (title === lowerKeyword) {
+            score += 100;
+          }
+          // 标题包含关键词
+          else if (title.includes(lowerKeyword)) {
+            score += 50;
+          }
+          
+          // 内容包含关键词
+          if (content.includes(lowerKeyword)) {
+            score += 20;
+          }
+          
+          // 标签匹配
+          if (tags.includes(lowerKeyword)) {
+            score += 30;
+          }
+          
+          // 作者名称匹配
+          if (authorName.includes(lowerKeyword)) {
+            score += 10;
+          }
+        });
+        
+        return {
+          ...post,
+          relevanceScore: score
+        };
+      });
+      
+      // 按相关性分数和时间排序
+      posts.sort((a, b) => {
+        if (b.relevanceScore !== a.relevanceScore) {
+          return b.relevanceScore - a.relevanceScore;
+        }
+        return new Date(b.createTime) - new Date(a.createTime);
+      });
+      
+      // 限制结果数量
+      posts = posts.slice(0, limit);
+      
+    } catch (searchError) {
+      console.error('搜索查询失败:', searchError);
+      
+      // 降级到简单搜索
+      console.log('降级到简单搜索模式');
+      
+      if (searchConditions.length > 0) {
+        const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const searchRegex = new RegExp(escapedKeyword, 'i');
+        
+        const queries = [
+          db.collection('posts').where({ title: searchRegex }).get(),
+          db.collection('posts').where({ content: searchRegex }).get(),
+          db.collection('posts').where({ tags: searchRegex }).get()
+        ];
+        
+        const results = await Promise.all(queries);
+        
+        // 合并结果并去重
+        const allPosts = [...results[0].data, ...results[1].data, ...results[2].data];
+        const uniquePosts = allPosts.filter((post, index, self) => 
+          index === self.findIndex(p => p._id === post._id)
+        );
+        
+        posts = uniquePosts.filter(p => !p || p.isHidden !== true);
+        
+        // 应用过滤条件
+        if (Object.keys(filterConditions).length > 0) {
+          posts = posts.filter(post => {
+            if (filter === 'recent') {
+              const sevenDaysAgo = new Date();
+              sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+              return new Date(post.createTime) >= sevenDaysAgo;
+            } else if (filter === 'popular') {
+              return (post.votes || 0) > 5;
+            } else if (filter === 'poetry') {
+              return post.tags && post.tags.some(tag => 
+                ['诗歌', '诗', 'poetry'].includes(tag)
+              );
+            }
+            return true;
+          });
+        }
+        
+        // 按时间排序
+        posts.sort((a, b) => new Date(b.createTime) - new Date(a.createTime));
+        posts = posts.slice(0, limit);
+      } else if (Object.keys(filterConditions).length > 0) {
+        // 只有过滤条件，没有搜索关键词
+        console.log('执行纯过滤查询');
+        const filterResult = await db.collection('posts')
+          .where(filterConditions)
+          .orderBy('createTime', 'desc')
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .get();
+        
+        posts = filterResult.data.filter(p => !p || p.isHidden !== true);
+      } else {
+        posts = [];
+      }
+    }
     
     console.log('最终结果数量:', posts.length);
     console.log('搜索结果详情:', posts.map(p => ({ 
@@ -283,7 +447,7 @@ exports.main = async (event, context) => {
         post.originalImageUrl,
         post.authorAvatar,
         post.poemBgImage
-      ].filter(url => url && url.startsWith('cloud://'));
+      ].filter(url => url && typeof url === 'string' && url.startsWith('cloud://'));
       
       urlsToCheck.forEach(url => fileIDs.add(url));
     });

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "openapi": [
+      "database.query",
+      "database.get",
+      "database.add",
+      "database.update"
+    ]
+  },
+  "timeout": 20
+}

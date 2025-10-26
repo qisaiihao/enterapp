@@ -19,10 +19,30 @@
             <view class="cancel-btn" @tap="goBack">取消</view>
         </view>
 
+        <!-- 搜索过滤 -->
+        <view v-if="searchKeyword && !isSearching" class="search-filters">
+            <view class="filter-item" :class="{ active: currentFilter === 'all' }" @tap="setFilter" data-filter="all">
+                <text class="filter-text">全部</text>
+            </view>
+            <view class="filter-item" :class="{ active: currentFilter === 'recent' }" @tap="setFilter" data-filter="recent">
+                <text class="filter-text">最近</text>
+            </view>
+            <view class="filter-item" :class="{ active: currentFilter === 'popular' }" @tap="setFilter" data-filter="popular">
+                <text class="filter-text">热门</text>
+            </view>
+            <view class="filter-item" :class="{ active: currentFilter === 'poetry' }" @tap="setFilter" data-filter="poetry">
+                <text class="filter-text">诗歌</text>
+            </view>
+        </view>
+
         <!-- 搜索结果 -->
         <view v-if="searchKeyword && !isSearching && searchResults.length > 0" class="search-results">
             <view class="results-header">
                 <text class="results-count">找到 {{ searchResults.length }} 个结果</text>
+                <view class="sort-options">
+                    <text class="sort-item" :class="{ active: currentSort === 'relevance' }" @tap="setSort" data-sort="relevance">相关度</text>
+                    <text class="sort-item" :class="{ active: currentSort === 'time' }" @tap="setSort" data-sort="time">时间</text>
+                </view>
             </view>
 
             <view class="post-list">
@@ -45,7 +65,7 @@
                     <!-- 帖子内容 -->
 
                     <view class="post-item" @tap="onPostTap" :data-postid="item._id">
-                        <view class="post-title">{{ item.title }}</view>
+                        <view class="post-title" v-html="item.highlightedTitle || item.title"></view>
 
                         <!-- 图片显示 -->
                         <view
@@ -91,11 +111,11 @@
                             </block>
                         </view>
 
-                        <view class="post-content" v-if="item.content" style="white-space: pre-wrap">{{ item.content }}</view>
+                        <view class="post-content" v-if="item.content" style="white-space: pre-wrap" v-html="item.highlightedContent || item.content"></view>
 
                         <!-- 标签显示 -->
                         <view v-if="item.tags && item.tags.length > 0" class="post-tags">
-                            <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="item" v-for="(item, index1) in item.tags" :key="index1">#{{ item }}</text>
+                            <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="tag" v-for="(tag, index1) in (item.highlightedTags || item.tags)" :key="index1" v-html="'#' + tag"></text>
                         </view>
                     </view>
 
@@ -117,6 +137,12 @@
                     </view>
                 </view>
             </view>
+
+            <!-- 加载更多 -->
+            <view v-if="hasMore && searchResults.length > 0" class="load-more" @tap="loadMore">
+                <text v-if="!isLoadingMore" class="load-more-text">加载更多</text>
+                <text v-else class="load-more-text">加载中...</text>
+            </view>
         </view>
 
         <!-- 空状态 -->
@@ -127,14 +153,26 @@
         </view>
 
         <!-- 搜索建议 -->
-        <view v-if="!searchKeyword && !isSearching && searchHistory.length > 0" class="search-suggestions">
+        <view v-if="searchKeyword && !isSearching && searchSuggestions.length > 0" class="search-suggestions">
             <view class="suggestions-header">
-                <text class="suggestions-title">搜索历史</text>
-                <text class="clear-history" @tap="clearHistory">清空</text>
+                <text class="suggestions-title">搜索建议</text>
             </view>
             <view class="suggestions-list">
-                <view class="suggestion-item" @tap="selectHistoryKeyword" :data-keyword="item" v-for="(item, index) in searchHistory" :key="index">
+                <view class="suggestion-item" @tap="selectSuggestion" :data-keyword="item" v-for="(item, index) in searchSuggestions" :key="index">
                     <text class="suggestion-text">{{ item }}</text>
+                </view>
+            </view>
+        </view>
+
+        <!-- 搜索历史 -->
+        <view v-if="!searchKeyword && !isSearching && searchHistory.length > 0" class="search-history">
+            <view class="history-header">
+                <text class="history-title">搜索历史</text>
+                <text class="clear-history" @tap="clearHistory">清空</text>
+            </view>
+            <view class="history-list">
+                <view class="history-item" @tap="selectHistoryKeyword" :data-keyword="item" v-for="(item, index) in searchHistory" :key="index">
+                    <text class="history-text">{{ item }}</text>
                 </view>
             </view>
         </view>
@@ -161,6 +199,8 @@ import skeleton from '@/components/skeleton/skeleton';
 const { previewImage } = require('../../utils/imagePreview.js');
 const { normalizePostList } = require('../../utils/postNormalizer.js');
 const { cloudCall } = require('../../utils/cloudCall.js');
+const { searchCache } = require('../../utils/searchCache.js');
+const SearchHighlighter = require('../../utils/searchHighlighter.js');
 export default {
     components: {
         skeleton
@@ -171,10 +211,21 @@ export default {
             searchResults: [],
             isSearching: false,
             searchHistory: [],
+            searchSuggestions: [],
             hotSearches: ['诗歌', '原创', '生活', '感悟', '旅行', '美食', '摄影', '读书'],
+
+            // 过滤和排序
+            currentFilter: 'all',
+            currentSort: 'relevance',
+
+            // 分页
+            currentPage: 1,
+            hasMore: true,
+            isLoadingMore: false,
 
             // 防抖定时器
             searchTimer: null,
+            suggestionTimer: null,
 
             img: ''
         };
@@ -182,6 +233,8 @@ export default {
     onLoad: function (options) {
         // 加载搜索历史
         this.loadSearchHistory();
+        // 获取热门搜索词
+        this.getHotSearches();
     },
     methods: {
         // 统一云函数调用方法
@@ -199,20 +252,32 @@ export default {
             if (this.searchTimer) {
                 clearTimeout(this.searchTimer);
             }
+            if (this.suggestionTimer) {
+                clearTimeout(this.suggestionTimer);
+            }
 
-            // 如果输入为空，立即清空结果
+            // 如果输入为空，立即清空结果和建议
             if (!keyword.trim()) {
                 this.setData({
                     searchResults: [],
+                    searchSuggestions: [],
                     isSearching: false
                 });
                 return;
             }
 
-            // 设置防抖定时器，500ms后自动搜索
+            // 设置搜索建议定时器，300ms后获取建议
+            const suggestionTimer = setTimeout(() => {
+                this.getSearchSuggestions(keyword);
+            }, 300);
+            this.setData({
+                suggestionTimer: suggestionTimer
+            });
+
+            // 设置防抖定时器，800ms后自动搜索
             const timer = setTimeout(() => {
                 this.performSearch(keyword);
-            }, 500);
+            }, 800);
             this.setData({
                 searchTimer: timer
             });
@@ -236,49 +301,153 @@ export default {
             }
         },
 
+        // 获取搜索建议
+        getSearchSuggestions: function (keyword) {
+            if (!keyword.trim()) {
+                return;
+            }
+
+            this.callCloudFunction('getSearchSuggestions', {
+                keyword: keyword,
+                limit: 8
+            }).then((res) => {
+                if (res.result && res.result.success) {
+                    this.setData({
+                        searchSuggestions: res.result.suggestions || []
+                    });
+                }
+            }).catch((err) => {
+                console.error('获取搜索建议失败:', err);
+            });
+        },
+
+        // 选择搜索建议
+        selectSuggestion: function (e) {
+            const keyword = e.currentTarget.dataset.keyword;
+            this.setData({
+                searchKeyword: keyword,
+                searchSuggestions: []
+            });
+            this.performSearch(keyword);
+        },
+
         // 清空搜索
         clearSearch: function () {
             // 清除防抖定时器
             if (this.searchTimer) {
                 clearTimeout(this.searchTimer);
             }
+            if (this.suggestionTimer) {
+                clearTimeout(this.suggestionTimer);
+            }
             this.setData({
                 searchKeyword: '',
                 searchResults: [],
+                searchSuggestions: [],
                 isSearching: false,
-                searchTimer: null
+                searchTimer: null,
+                suggestionTimer: null
             });
         },
 
         // 执行搜索
-        performSearch: function (keyword) {
+        performSearch: function (keyword, isLoadMore = false) {
             const searchKeyword = keyword || this.searchKeyword;
             console.log('执行搜索，关键词:', searchKeyword, '传入参数:', keyword, '当前数据:', this.searchKeyword);
-            if (!searchKeyword.trim()) {
+            
+            // 如果没有搜索关键词且没有过滤条件，则不执行搜索
+            if (!searchKeyword.trim() && this.currentFilter === 'all') {
+                // 清空结果但不显示错误
+                this.setData({
+                    searchResults: [],
+                    searchSuggestions: [],
+                    isSearching: false
+                });
                 return;
             }
 
-            // 立即清空之前的结果，确保界面立即更新
-            this.setData({
-                searchResults: [],
-                isSearching: true,
-                searchKeyword: searchKeyword
-            });
+            // 如果不是加载更多，重置分页状态
+            if (!isLoadMore) {
+                this.setData({
+                    currentPage: 1,
+                    hasMore: true,
+                    isLoadingMore: false
+                });
+            }
+
+            // 检查缓存
+            const cacheKey = searchCache.get(searchKeyword, this.currentFilter, this.currentSort, this.currentPage);
+            if (cacheKey && !isLoadMore) {
+                console.log('使用缓存结果');
+                this.setData({
+                    searchResults: cacheKey.posts || [],
+                    searchSuggestions: [],
+                    isSearching: false,
+                    searchKeyword: searchKeyword,
+                    hasMore: cacheKey.hasMore || false
+                });
+                return;
+            }
+
+            // 立即清空之前的结果和建议，确保界面立即更新
+            if (!isLoadMore) {
+                this.setData({
+                    searchResults: [],
+                    searchSuggestions: [],
+                    isSearching: true,
+                    searchKeyword: searchKeyword
+                });
+            } else {
+                this.setData({
+                    isLoadingMore: true
+                });
+            }
 
             // 保存搜索历史
-            this.saveSearchHistory(searchKeyword);
+            if (!isLoadMore) {
+                this.saveSearchHistory(searchKeyword);
+                // 记录搜索统计
+                this.recordSearchStats(searchKeyword);
+            }
 
             // 调用云函数搜索
             this.callCloudFunction('searchPosts', {
                     keyword: searchKeyword,
-                    limit: 20
+                    limit: 20,
+                    filter: this.currentFilter,
+                    sort: this.currentSort,
+                    page: this.currentPage
                 }).then((res) => {
                     console.log('搜索结果:', res);
                     if (res.result && res.result.success) {
                         const posts = normalizePostList(res.result.posts || []);
                         console.log('设置搜索结果:', posts.length, '条结果，关键词:', searchKeyword);
+                        
+                        // 添加搜索高亮
+                        const keywords = SearchHighlighter.extractKeywords(searchKeyword);
+                        const highlightedPosts = posts.map(post => ({
+                            ...post,
+                            highlightedTitle: SearchHighlighter.highlightTitle(post.title, keywords),
+                            highlightedContent: SearchHighlighter.highlightText(post.content, keywords),
+                            highlightedTags: SearchHighlighter.highlightTags(post.tags, keywords)
+                        }));
+                        
+                        let newResults = [];
+                        if (isLoadMore) {
+                            newResults = [...this.searchResults, ...highlightedPosts];
+                        } else {
+                            newResults = highlightedPosts;
+                        }
+                        
                         this.setData({
-                            searchResults: posts
+                            searchResults: newResults,
+                            hasMore: posts.length >= 20
+                        });
+
+                        // 缓存结果
+                        searchCache.set(searchKeyword, this.currentFilter, this.currentSort, this.currentPage, {
+                            posts: newResults,
+                            hasMore: posts.length >= 20
                         });
                     } else {
                         uni.showToast({
@@ -294,7 +463,8 @@ export default {
                     });
                 }).finally(() => {
                     this.setData({
-                        isSearching: false
+                        isSearching: false,
+                        isLoadingMore: false
                     });
                 });
         },
@@ -429,6 +599,102 @@ export default {
             uni.navigateTo({
                 url: `/pages/user-profile/user-profile?userId=${userId}`
             });
+        },
+
+        // 设置过滤条件
+        setFilter: function (e) {
+            const filter = e.currentTarget.dataset.filter;
+            this.setData({
+                currentFilter: filter
+            });
+            this.performSearch();
+        },
+
+        // 设置排序方式
+        setSort: function (e) {
+            const sort = e.currentTarget.dataset.sort;
+            this.setData({
+                currentSort: sort
+            });
+            this.sortResults();
+        },
+
+        // 排序搜索结果
+        sortResults: function () {
+            let sortedResults = [...this.searchResults];
+            
+            if (this.currentSort === 'relevance') {
+                // 按相关性分数排序
+                sortedResults.sort((a, b) => {
+                    const scoreA = a.relevanceScore || 0;
+                    const scoreB = b.relevanceScore || 0;
+                    if (scoreB !== scoreA) {
+                        return scoreB - scoreA;
+                    }
+                    return new Date(b.createTime) - new Date(a.createTime);
+                });
+            } else if (this.currentSort === 'time') {
+                // 按时间排序
+                sortedResults.sort((a, b) => new Date(b.createTime) - new Date(a.createTime));
+            }
+            
+            this.setData({
+                searchResults: sortedResults
+            });
+        },
+
+        // 加载更多搜索结果
+        loadMore: function () {
+            if (this.isLoadingMore || !this.hasMore) {
+                return;
+            }
+
+            this.setData({
+                currentPage: this.currentPage + 1
+            });
+
+            this.performSearch(null, true);
+        },
+
+        // 页面滚动到底部时触发
+        onReachBottom: function () {
+            if (this.searchKeyword && this.hasMore && !this.isLoadingMore) {
+                this.loadMore();
+            }
+        },
+
+        // 记录搜索统计
+        recordSearchStats: function (keyword) {
+            if (!keyword.trim()) {
+                return;
+            }
+
+            this.callCloudFunction('searchStats', {
+                keyword: keyword,
+                action: 'record'
+            }).then((res) => {
+                if (res.result && res.result.success) {
+                    console.log('搜索统计记录成功');
+                }
+            }).catch((err) => {
+                console.error('搜索统计记录失败:', err);
+            });
+        },
+
+        // 获取热门搜索词
+        getHotSearches: function () {
+            this.callCloudFunction('searchStats', {
+                action: 'getHotSearches'
+            }).then((res) => {
+                if (res.result && res.result.success) {
+                    const hotSearches = res.result.hotSearches.map(item => item.keyword);
+                    this.setData({
+                        hotSearches: hotSearches.length > 0 ? hotSearches : this.hotSearches
+                    });
+                }
+            }).catch((err) => {
+                console.error('获取热门搜索词失败:', err);
+            });
         }
     }
 };
@@ -485,18 +751,68 @@ export default {
     padding: 20rpx;
 }
 
+/* 搜索过滤 */
+.search-filters {
+    display: flex;
+    gap: 15rpx;
+    margin-bottom: 20rpx;
+    padding: 0 10rpx;
+}
+
+.filter-item {
+    background-color: #f5f5f5;
+    border-radius: 20rpx;
+    padding: 12rpx 20rpx;
+    transition: all 0.2s ease;
+}
+
+.filter-item.active {
+    background-color: #9ed7ee;
+    color: #fff;
+}
+
+.filter-text {
+    font-size: 26rpx;
+    color: #333;
+}
+
+.filter-item.active .filter-text {
+    color: #fff;
+}
+
 /* 搜索结果 */
 .search-results {
     margin-bottom: 20rpx;
 }
 
 .results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 20rpx;
 }
 
 .results-count {
     font-size: 24rpx;
     color: #999;
+}
+
+.sort-options {
+    display: flex;
+    gap: 20rpx;
+}
+
+.sort-item {
+    font-size: 24rpx;
+    color: #999;
+    padding: 8rpx 16rpx;
+    border-radius: 12rpx;
+    transition: all 0.2s ease;
+}
+
+.sort-item.active {
+    background-color: #9ed7ee;
+    color: #fff;
 }
 
 /* 文章列表样式 */
@@ -672,16 +988,59 @@ export default {
     border-radius: 16rpx;
     padding: 30rpx;
     box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    margin-bottom: 20rpx;
 }
 
 .suggestions-header {
+    margin-bottom: 20rpx;
+}
+
+.suggestions-title {
+    font-size: 28rpx;
+    color: #333;
+    font-weight: 500;
+}
+
+.suggestions-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15rpx;
+}
+
+.suggestion-item {
+    background-color: #f0f8ff;
+    border-radius: 20rpx;
+    padding: 12rpx 20rpx;
+    transition: all 0.2s ease;
+}
+
+.suggestion-item:active {
+    background-color: #e0f0ff;
+    transform: scale(0.95);
+}
+
+.suggestion-text {
+    font-size: 26rpx;
+    color: #9ed7ee;
+}
+
+/* 搜索历史 */
+.search-history {
+    background-color: #fff;
+    border-radius: 16rpx;
+    padding: 30rpx;
+    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    margin-bottom: 20rpx;
+}
+
+.history-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20rpx;
 }
 
-.suggestions-title {
+.history-title {
     font-size: 28rpx;
     color: #333;
     font-weight: 500;
@@ -692,25 +1051,25 @@ export default {
     color: #999;
 }
 
-.suggestions-list {
+.history-list {
     display: flex;
     flex-wrap: wrap;
     gap: 15rpx;
 }
 
-.suggestion-item {
+.history-item {
     background-color: #f5f5f5;
     border-radius: 20rpx;
     padding: 12rpx 20rpx;
     transition: all 0.2s ease;
 }
 
-.suggestion-item:active {
+.history-item:active {
     background-color: #e8e8e8;
     transform: scale(0.95);
 }
 
-.suggestion-text {
+.history-text {
     font-size: 26rpx;
     color: #333;
 }
@@ -753,6 +1112,38 @@ export default {
 
 .hot-text {
     font-size: 26rpx;
+    color: #9ed7ee;
+}
+
+/* 搜索高亮 */
+.search-highlight {
+    background-color: #ffeb3b;
+    color: #333;
+    padding: 2rpx 4rpx;
+    border-radius: 4rpx;
+    font-weight: bold;
+}
+
+/* 加载更多 */
+.load-more {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 30rpx;
+    margin: 20rpx 0;
+    background-color: #fff;
+    border-radius: 16rpx;
+    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+}
+
+.load-more:active {
+    background-color: #f5f5f5;
+    transform: scale(0.98);
+}
+
+.load-more-text {
+    font-size: 28rpx;
     color: #9ed7ee;
 }
 
