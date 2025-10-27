@@ -117,6 +117,8 @@ composer.lock
 # 3. 编译产物和打包文件
 # ---------------------------
 
+# 忽略 unpackage 文件夹
+unpackage/
 # 通用
 /build/
 /dist/
