@@ -45,12 +45,12 @@
                     <!-- 作者信息 -->
                     <view class="single-author-info">
                         <image
-                            v-if="currentPost.authorAvatar"
                             class="single-author-avatar"
-                            :src="currentPost.authorAvatar"
+                            :src="currentPost.isAnonymous ? '/static/images/avatar.png' : (currentPost.authorAvatar || '/static/images/avatar.png')"
                             mode="aspectFill"
                             @tap.stop.prevent="navigateToUserProfile"
                             :data-user-id="currentAuthorOpenid || (currentPost && (currentPost._openid || currentPost.authorOpenId || currentPost.authorOpenid || currentPost.authorId || currentPost.userId))"
+                            :data-is-anonymous="currentPost.isAnonymous"
                         />
                         <text class="single-author-name">{{ currentPost.authorName }}</text>
                     </view>
@@ -231,6 +231,22 @@ export default {
         }
     },
     methods: {
+        // 处理匿名头像点击事件的函数
+        handleAnonymousAvatarClick(e) {
+            console.log('【诗歌页】匿名头像被点击，阻止跳转');
+            if (e && e.preventDefault) {
+                e.preventDefault();
+            }
+            if (e && e.stopPropagation) {
+                e.stopPropagation();
+            }
+            // 显示提示信息
+            uni.showToast({
+                title: '匿名用户无法查看主页',
+                icon: 'none'
+            });
+        },
+
         computeTopOffset() {
             const applyOffset = (offset) => {
                 const rounded = Math.round(Number(offset));
@@ -321,6 +337,8 @@ export default {
         navigateToUserProfile(payload) {
             try {
                 let userId = '';
+                let isAnonymous = false;
+                
                 if (typeof payload === 'string') {
                     userId = payload;
                 } else if (payload && typeof payload === 'object') {
@@ -331,8 +349,20 @@ export default {
                         this.currentAuthorOpenid ||
                         (this.currentPost && (this.currentPost._openid || this.currentPost.authorOpenId || this.currentPost.authorOpenid || this.currentPost.authorId || this.currentPost.userId)) ||
                         '';
+                    isAnonymous = dataset.isAnonymous === 'true' || dataset.isAnonymous === true || this.currentPost.isAnonymous;
                 } else {
                     userId = this.currentAuthorOpenid || (this.currentPost && this.currentPost._openid) || '';
+                    isAnonymous = this.currentPost.isAnonymous;
+                }
+
+                // 检查是否为匿名用户
+                if (isAnonymous || (this.currentPost && this.currentPost.authorName === '匿名用户' && userId.includes('anonymous'))) {
+                    console.log('【诗歌页】匿名用户，不跳转');
+                    uni.showToast({
+                        title: '匿名用户无法查看主页',
+                        icon: 'none'
+                    });
+                    return;
                 }
 
                 if (!userId || !String(userId).trim()) {

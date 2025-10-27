@@ -108,15 +108,15 @@
 
                                 <view class="author-info-outside">
                                     <image
-                                        v-if="item.authorAvatar"
                                         class="author-avatar"
-                                        :src="item.authorAvatar"
+                                        :src="item.isAnonymous ? '/static/images/avatar.png' : (item.authorAvatar || '/static/images/avatar.png')"
                                         mode="aspectFill"
                                         @error="onAvatarError"
                                         @load="onAvatarLoad"
                                         :data-postindex="index"
                                         @tap.stop.prevent="navigateToUserProfile"
                                         :data-user-id="item._openid"
+                                        :data-is-anonymous="item.isAnonymous"
                                     ></image>
                                     <text class="author-name">{{ item.authorName }}</text>
                                     <view v-if="item.isAnonymous" class="anonymous-tag">匿名</view>
@@ -237,15 +237,15 @@
 
                                 <view class="author-info-outside">
                                     <image
-                                        v-if="item.authorAvatar"
                                         class="author-avatar"
-                                        :src="item.authorAvatar"
+                                        :src="item.isAnonymous ? '/static/images/avatar.png' : (item.authorAvatar || '/static/images/avatar.png')"
                                         mode="aspectFill"
                                         @error="onAvatarError"
                                         @load="onAvatarLoad"
                                         :data-postindex="index"
                                         @tap.stop.prevent="navigateToUserProfile"
                                         :data-user-id="item._openid"
+                                        :data-is-anonymous="item.isAnonymous"
                                     ></image>
                                     <text class="author-name">{{ item.authorName }}</text>
                                 </view>
@@ -596,7 +596,24 @@ export default {
     onUnload: function () {
         try { uni.$off && uni.$off('comment-count-changed'); } catch (_) {}
     },
-    methods: {        // 隐藏/取消隐藏帖子
+    methods: {
+        // 处理匿名头像点击事件的函数
+        handleAnonymousAvatarClick(e) {
+            console.log('【个人主页】匿名头像被点击，阻止跳转');
+            if (e && e.preventDefault) {
+                e.preventDefault();
+            }
+            if (e && e.stopPropagation) {
+                e.stopPropagation();
+            }
+            // 显示提示信息
+            uni.showToast({
+                title: '匿名用户无法查看主页',
+                icon: 'none'
+            });
+        },
+
+        // 隐藏/取消隐藏帖子
         onToggleVisibility: function (e) {
             const postId = e.currentTarget.dataset.postid;
             const index = e.currentTarget.dataset.index;
@@ -1793,6 +1810,18 @@ export default {
             try {
                 const dataset = (e && e.currentTarget && e.currentTarget.dataset) || {};
                 const userId = dataset.userId || dataset.userid || dataset.user || '';
+                const isAnonymous = dataset.isAnonymous === 'true' || dataset.isAnonymous === true;
+                
+                // 检查是否为匿名用户
+                if (isAnonymous || (dataset.authorName === '匿名用户' && userId.includes('anonymous'))) {
+                    console.log('【个人主页】匿名用户，不跳转');
+                    uni.showToast({
+                        title: '匿名用户无法查看主页',
+                        icon: 'none'
+                    });
+                    return;
+                }
+                
                 if (!userId) {
                     uni.showToast({ title: '用户ID缺失', icon: 'none' });
                     return;

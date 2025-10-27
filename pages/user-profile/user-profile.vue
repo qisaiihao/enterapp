@@ -81,9 +81,8 @@
                     <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" v-for="(item, index) in userPosts" :key="index">
                         <view class="author-info-outside">
                             <image
-                                v-if="item.authorAvatar"
                                 class="author-avatar"
-                                :src="item.authorAvatar"
+                                :src="item.authorAvatar || '/static/images/avatar.png'"
                                 mode="aspectFill"
                                 @error="onAvatarError"
                                 :data-postindex="index"
@@ -225,9 +224,8 @@
                     <view :class="'post-item-wrapper'" v-for="(item, index) in favoriteList" :key="index">
                         <view class="author-info-outside">
                             <image
-                                v-if="item.authorAvatar"
                                 class="author-avatar"
-                                :src="item.authorAvatar"
+                                :src="item.authorAvatar || '/static/images/avatar.png'"
                                 mode="aspectFill"
                                 @error="onAvatarError"
                                 :data-postindex="index"

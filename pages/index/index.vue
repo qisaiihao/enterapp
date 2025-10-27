@@ -31,9 +31,8 @@
 
                             <view class="author-info-outside">
                                 <image
-                                    v-if="item.authorAvatar"
                                     class="author-avatar"
-                                    :src="item.authorAvatar"
+                                    :src="item.isAnonymous ? '/static/images/avatar.png' : (item.authorAvatar || '/static/images/avatar.png')"
                                     mode="aspectFill"
                                     @error="onAvatarError"
                                     @load="onAvatarLoad"
@@ -145,9 +144,8 @@
 
                             <view class="author-info-outside">
                                 <image
-                                    v-if="item.authorAvatar"
                                     class="author-avatar"
-                                    :src="item.authorAvatar"
+                                    :src="item.isAnonymous ? '/static/images/avatar.png' : (item.authorAvatar || '/static/images/avatar.png')"
                                     mode="aspectFill"
                                     @error="onAvatarError"
                                     @load="onAvatarLoad"
@@ -259,9 +257,8 @@
 
                             <view class="author-info-outside">
                                 <image
-                                    v-if="item.authorAvatar"
                                     class="author-avatar"
-                                    :src="item.authorAvatar"
+                                    :src="item.isAnonymous ? '/static/images/avatar.png' : (item.authorAvatar || '/static/images/avatar.png')"
                                     mode="aspectFill"
                                     @error="onAvatarError"
                                     @load="onAvatarLoad"
@@ -687,6 +684,22 @@ onReachBottom: function () {
         }, 100); // 100ms 防抖
     },
     methods: {
+        // 处理匿名头像点击事件的函数
+        handleAnonymousAvatarClick(e) {
+            console.log('【首页】匿名头像被点击，阻止跳转');
+            if (e && e.preventDefault) {
+                e.preventDefault();
+            }
+            if (e && e.stopPropagation) {
+                e.stopPropagation();
+            }
+            // 显示提示信息
+            uni.showToast({
+                title: '匿名用户无法查看主页',
+                icon: 'none'
+            });
+        },
+
         // 调试安全区域
         debugSafeArea() {
             try {
@@ -1085,7 +1098,7 @@ onReachBottom: function () {
                 console.log('【头像点击】提取的信息:', { userId, authorName, isAnonymous });
 
                 // 检查是否为匿名帖子
-                if (isAnonymous) {
+                if (isAnonymous || (authorName === '匿名用户' && userId.includes('anonymous'))) {
                     console.log('【头像点击】匿名帖子，不跳转');
                     uni.showToast({
                         title: '匿名用户无法查看主页',

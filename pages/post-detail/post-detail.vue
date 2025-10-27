@@ -43,22 +43,22 @@
                     <view class="author-info">
                         <view class="author-basic">
                             <image
-                                v-if="post.authorAvatar"
                                 class="author-avatar"
-                                :src="post.authorAvatar"
+                                :src="post.isAnonymous ? '/static/images/avatar.png' : (post.authorAvatar || '/static/images/avatar.png')"
                                 mode="aspectFill"
                                 @error="onAvatarError"
                                 @click="navigateToUserProfile"
                                 :data-user-id="post._openid"
                                 :data-author-name="post.authorName"
+                                :data-is-anonymous="post.isAnonymous"
                                 style="pointer-events: auto; cursor: pointer;"
                             ></image>
                             <text class="author-name">{{ post.isAnonymous ? '匿名用户' : post.authorName }}</text>
                             <view v-if="!post.isAnonymous && isMutualFollow" class="mutual-tag">互相关注</view>
-                            <view v-else-if="!post.isAnonymous && isFollowedByAuthor" class="followed-tag">TA关注了你</view>
+                            <view v-else-if="!post.isAnonymous && isFollowedByAuthor && !isMutualFollow" class="followed-tag">TA关注了你</view>
                         </view>
                         <button
-                            v-if="showFollowButton && !post.isAnonymous"
+                            v-if="showFollowButton && !post.isAnonymous && !isMutualFollow"
                             :class="'follow-btn ' + (isFollowing ? 'following' : '')"
                             @tap="onFollowTap"
                             :loading="followPending"
@@ -200,10 +200,10 @@
                     </view>
                     <view v-else class="comment-list">
                         <block v-if="comments.length > 0">
-                            <view class="comment-item" v-for="(item, commentIndex) in comments" :key="commentIndex">
+                            <view class="comment-item" v-for="(item, commentIndex) in comments" :key="item._id || commentIndex">
                                 <image
                                     class="comment-avatar"
-                                    :src="item.isAnonymous ? '/static/images/avatar.png' : item.authorAvatar"
+                                    :src="item.isAnonymous ? '/static/images/avatar.png' : (item.authorAvatar || '/static/images/avatar.png')"
                                     mode="aspectFill"
                                     @error="onAvatarError"
                                     @click="navigateToUserProfile"
@@ -217,17 +217,20 @@
                                     <view class="comment-author">{{ item.isAnonymous ? '匿名用户' : item.authorName }}</view>
                                     <view class="comment-content">{{ item.content }}</view>
                                     <view v-if="item.imageUrls && item.imageUrls.length" class="comment-image-grid">
-                                        <image
-                                            class="comment-image"
-                                            :src="commentImage"
-                                            mode="aspectFill"
-                                            @tap="previewCommentImageFromList"
-                                            :data-comment-index="commentIndex"
-                                            :data-image-index="imageIndex"
-                                            :data-is-reply="false"
-                                            v-for="(commentImage, imageIndex) in item.imageUrls"
-                                            :key="imageIndex"
-                                        ></image>
+                                        <block v-for="(imageUrl, imageIndex) in item.imageUrls" :key="'comment-' + commentIndex + '-image-' + imageIndex">
+                                            <image
+                                                v-if="imageUrl"
+                                                class="comment-image"
+                                                :src="imageUrl"
+                                                mode="widthFix"
+                                                @tap="previewCommentImageFromList"
+                                                :data-comment-index="commentIndex"
+                                                :data-image-index="imageIndex"
+                                                :data-is-reply="false"
+                                                @error="onImageError"
+                                                @load="onImageLoad"
+                                            ></image>
+                                        </block>
                                     </view>
                                     <view class="comment-footer">
                                         <view class="comment-time">{{ item.formattedCreateTime }}</view>
@@ -251,7 +254,7 @@
                                             class="reply-item"
                                             v-if="replyIndex < (item.showAllReplies ? item.replies.length : 3)"
                                             v-for="(reply, replyIndex) in item.replies"
-                                            :key="replyIndex"
+                                            :key="reply._id || replyIndex"
                                         >
                                             <image
                                                 class="reply-avatar"
@@ -274,14 +277,14 @@
                                                 <view v-if="reply.imageUrls && reply.imageUrls.length" class="comment-image-grid reply-image-grid">
                                                     <image
                                                         class="comment-image"
-                                                        :src="replyImage"
+                                                        :src="replyImageUrl"
                                                         mode="aspectFill"
                                                         @tap="previewCommentImageFromList"
                                                         :data-comment-index="commentIndex"
                                                         :data-reply-index="replyIndex"
                                                         :data-image-index="replyImageIndex"
                                                         :data-is-reply="true"
-                                                        v-for="(replyImage, replyImageIndex) in reply.imageUrls"
+                                                        v-for="(replyImageUrl, replyImageIndex) in reply.imageUrls"
                                                         :key="replyImageIndex"
                                                     ></image>
                                                 </view>
@@ -593,7 +596,11 @@ export default {
             if (e && e.stopPropagation) {
                 e.stopPropagation();
             }
-            // 不执行任何跳转操作
+            // 显示提示信息
+            uni.showToast({
+                title: '匿名用户无法查看主页',
+                icon: 'none'
+            });
         },
 
         // 空函数，用于阻止匿名帖子的头像点击事件
@@ -780,10 +787,17 @@ export default {
                             ...comment,
                             formattedCreateTime: this.formatTime(comment.createTime),
                             likeIcon: likeIcon.getLikeIcon(comment.likes || 0, comment.liked || false),
-                            imageUrls: comment.imageUrls || [],
-                            originalImageUrls: comment.originalImageUrls || [],
+                            imageUrls: Array.isArray(comment.imageUrls) ? comment.imageUrls : [],
+                            originalImageUrls: Array.isArray(comment.originalImageUrls) ? comment.originalImageUrls : [],
                             _openid: comment._openid || '' // 确保_openid被保留
                         };
+                        
+                        console.log('🔍 [DEBUG] 处理评论图片数据:', {
+                            commentId: processedComment._id,
+                            originalImageUrls: comment.imageUrls,
+                            processedImageUrls: processedComment.imageUrls,
+                            imageUrlsLength: processedComment.imageUrls.length
+                        });
                         console.log('🔍 [DEBUG] 处理后的评论_openid:', processedComment._openid, 'isAnonymous:', processedComment.isAnonymous);
                         if (comment.replies) {
                             processedComment.replies = comment.replies.map((reply) => {
@@ -792,43 +806,79 @@ export default {
                                     ...reply,
                                     formattedCreateTime: this.formatTime(reply.createTime),
                                     likeIcon: likeIcon.getLikeIcon(reply.likes || 0, reply.liked || false),
-                                    imageUrls: reply.imageUrls || [],
-                                    originalImageUrls: reply.originalImageUrls || [],
+                                    imageUrls: Array.isArray(reply.imageUrls) ? reply.imageUrls : [],
+                                    originalImageUrls: Array.isArray(reply.originalImageUrls) ? reply.originalImageUrls : [],
                                     _openid: reply._openid || '' // 确保_openid被保留
                                 };
+                                
+                                console.log('🔍 [DEBUG] 处理回复图片数据:', {
+                                    replyId: processedReply._id,
+                                    originalImageUrls: reply.imageUrls,
+                                    processedImageUrls: processedReply.imageUrls,
+                                    imageUrlsLength: processedReply.imageUrls.length
+                                });
                                 console.log('🔍 [DEBUG] 处理后的回复_openid:', processedReply._openid, 'isAnonymous:', processedReply.isAnonymous);
                                 return processedReply;
                             });
                         }
                         return processedComment;
                     });
-                    // 将评论与回复中的 cloud:// 图片映射为可访问 URL
-                    try {
-                        const ids = new Set();
-                        comments.forEach(c => {
-                            (Array.isArray(c.imageUrls) ? c.imageUrls : []).forEach(u => { if (typeof u === 'string' && u.startsWith('cloud://')) ids.add(u); });
-                            (Array.isArray(c.replies) ? c.replies : []).forEach(r => (Array.isArray(r.imageUrls) ? r.imageUrls : []).forEach(u => { if (typeof u === 'string' && u.startsWith('cloud://')) ids.add(u); }));
-                        });
-                        if (ids.size > 0) {
-                            const map = await fileUrlCache.getTempUrls(Array.from(ids));
-                            comments.forEach(c => {
-                                if (Array.isArray(c.imageUrls)) c.imageUrls = c.imageUrls.map(u => map[u] || u);
-                                if (Array.isArray(c.replies)) c.replies = c.replies.map(r => ({
-                                    ...r,
-                                    imageUrls: Array.isArray(r.imageUrls) ? r.imageUrls.map(u => map[u] || u) : r.imageUrls
-                                }));
-                            });
-                        }
-                    } catch (_) {}
+                    // 注释掉重复的URL转换，因为云函数已经处理过了
+                    // try {
+                    //     const ids = new Set();
+                    //     comments.forEach(c => {
+                    //         (Array.isArray(c.imageUrls) ? c.imageUrls : []).forEach(u => { if (typeof u === 'string' && u.startsWith('cloud://')) ids.add(u); });
+                    //         (Array.isArray(c.replies) ? c.replies : []).forEach(r => (Array.isArray(r.imageUrls) ? r.imageUrls : []).forEach(u => { if (typeof u === 'string' && u.startsWith('cloud://')) ids.add(u); }));
+                    //     });
+                    //     console.log('🔍 [DEBUG] 需要转换的图片URLs:', Array.from(ids));
+                    //     if (ids.size > 0) {
+                    //         const map = await fileUrlCache.getTempUrls(Array.from(ids));
+                    //         console.log('🔍 [DEBUG] URL转换结果:', map);
+                    //         comments.forEach(c => {
+                    //             if (Array.isArray(c.imageUrls)) c.imageUrls = c.imageUrls.map(u => map[u] || u);
+                    //             if (Array.isArray(c.replies)) c.replies = c.replies.map(r => ({
+                    //                 ...r,
+                    //                 imageUrls: Array.isArray(r.imageUrls) ? r.imageUrls.map(u => map[u] || u) : r.imageUrls
+                    //             }));
+                    //         });
+                    //     }
+                    // } catch (e) {
+                    //     console.error('🔍 [DEBUG] 图片URL转换失败:', e);
+                    // }
                     console.log('getComments返回的commentCount:', res.result.commentCount);
                     console.log('comments数组长度:', comments.length);
                     console.log('当前页面的commentCount:', this.commentCount);
+                    
+                    // 调试：检查评论中的图片数据
+                    comments.forEach((comment, index) => {
+                        console.log(`🔍 [DEBUG] 评论${index}:`, {
+                            id: comment._id,
+                            content: comment.content,
+                            imageUrls: comment.imageUrls,
+                            imageUrlsLength: comment.imageUrls ? comment.imageUrls.length : 0,
+                            hasImages: comment.imageUrls && comment.imageUrls.length > 0
+                        });
+                        if (comment.replies) {
+                            comment.replies.forEach((reply, replyIndex) => {
+                                console.log(`🔍 [DEBUG] 回复${replyIndex}:`, {
+                                    id: reply._id,
+                                    content: reply.content,
+                                    imageUrls: reply.imageUrls,
+                                    imageUrlsLength: reply.imageUrls ? reply.imageUrls.length : 0,
+                                    hasImages: reply.imageUrls && reply.imageUrls.length > 0
+                                });
+                            });
+                        }
+                    });
                     const newCommentCount = res.result.commentCount || comments.length;
                     const shouldUpdateCount = newCommentCount > this.commentCount;
+                    
+                    // 使用setData确保响应式更新
                     this.setData({
                         comments: comments,
                         commentCount: shouldUpdateCount ? newCommentCount : this.commentCount
                     });
+                    
                     console.log('更新后的commentCount:', this.commentCount);
                 } else {
                     uni.showToast({
@@ -2088,9 +2138,6 @@ export default {
             return result;
         },
 
-        onImageError: function (e) {
-            console.error('图片加载失败', e);
-        },
 
         onAvatarError: function (e) {
             console.error('头像加载失败', e);
@@ -2327,11 +2374,23 @@ export default {
 
         uploadCommentImages: function () {
             const images = this.commentImages || [];
+            console.log('🔍 [DEBUG] uploadCommentImages 开始:', {
+                imagesCount: images.length,
+                images: images
+            });
+            
             if (!images.length) {
+                console.log('🔍 [DEBUG] 没有图片需要上传');
                 return Promise.resolve([]);
             }
             const openid = this.getCurrentUserId() || 'guest';
             const timestamp = Date.now();
+            
+            console.log('🔍 [DEBUG] 开始上传图片:', {
+                openid: openid,
+                timestamp: timestamp,
+                imagesCount: images.length
+            });
             
             // 使用兼容性的文件上传方法
             return Promise.all(
@@ -2342,13 +2401,26 @@ export default {
                     // 使用兼容性的文件上传方法
                     return this.uploadFile(compressedCloudPath, image.compressedPath || image.previewUrl || image.originalPath)
                         .then((compressedRes) => {
+                            console.log('🔍 [DEBUG] 图片上传成功:', {
+                                index: index,
+                                compressedRes: compressedRes,
+                                fileID: compressedRes.fileID
+                            });
+                            
                             if (image.needCompression) {
                                 const originalCloudPath = 'comment_images/' + uniqueKey + '_original.jpg';
                                 return this.uploadFile(originalCloudPath, image.originalPath)
-                                    .then((originalRes) => ({
+                                    .then((originalRes) => {
+                                        console.log('🔍 [DEBUG] 原图上传成功:', {
+                                            index: index,
+                                            originalRes: originalRes,
+                                            fileID: originalRes.fileID
+                                        });
+                                        return {
                                         compressedUrl: compressedRes.fileID,
                                         originalUrl: originalRes.fileID
-                                    }));
+                                        };
+                                    });
                             }
                             return {
                                 compressedUrl: compressedRes.fileID,
@@ -2434,6 +2506,13 @@ export default {
                 const imageUploadResults = await this.uploadCommentImages();
                 const imageUrls = imageUploadResults.map((item) => item.compressedUrl);
                 const originalImageUrls = imageUploadResults.map((item) => item.originalUrl);
+                
+                console.log('🔍 [DEBUG] 评论图片上传结果:', {
+                    imageUploadResults: imageUploadResults,
+                    imageUrls: imageUrls,
+                    originalImageUrls: originalImageUrls,
+                    imageCount: imageUrls.length
+                });
                 const res = await this.callCloudFunction(
                     'addComment',
                     {
@@ -2854,8 +2933,12 @@ export default {
                 console.log('【详情页头像点击】currentTarget:', currentTarget);
 
                 // 如果是匿名评论，不跳转
-                if (isAnonymous) {
+                if (isAnonymous || (authorName === '匿名用户' && userId.includes('anonymous'))) {
                     console.log('【详情页头像点击】匿名评论，不跳转');
+                    uni.showToast({
+                        title: '匿名用户无法查看主页',
+                        icon: 'none'
+                    });
                     return;
                 }
 
@@ -3002,17 +3085,8 @@ export default {
                 console.log(`🔍 [帖子详情页] 运行环境检测 - 平台: ${platform}, 方法: ${method}`);
                 
                 if (method === 'tcb') {
-                    // 使用TCB上传文件（H5和App环境）
-                    if (this.$tcb && this.$tcb.uploadFile) {
-                        console.log(`🔍 [帖子详情页] TCB环境上传文件: ${cloudPath}`);
-                        this.$tcb.uploadFile({
-                            cloudPath: cloudPath,
-                            filePath: filePath
-                        }).then(resolve).catch(reject);
-                    } else {
-                        console.error(`❌ [帖子详情页] TCB实例不可用`);
-                        reject(new Error('TCB实例不可用'));
-                    }
+                    // H5和App环境：使用云函数上传，避免multipart/form-data格式问题
+                    this.uploadFileViaCloudFunction(cloudPath, filePath).then(resolve).catch(reject);
                 } else if (method === 'wx-cloud') {
                     // 使用微信云开发上传文件（小程序环境）
                     if (wx.cloud && wx.cloud.uploadFile) {
@@ -3036,6 +3110,139 @@ export default {
                 } else {
                     console.error(`❌ [帖子详情页] 不支持的文件上传方式: ${method}`);
                     reject(new Error(`不支持的文件上传方式: ${method}`));
+                }
+            });
+        },
+
+        // 图片加载事件处理
+        onImageLoad: function(e) {
+            console.log('🔍 [DEBUG] 图片加载成功:', e.target.src);
+        },
+
+        onImageError: function(e) {
+            console.log('🔍 [DEBUG] 图片加载失败:', e.target.src);
+            console.log('🔍 [DEBUG] 错误详情:', e);
+            // 显示错误信息
+            uni.showToast({
+                title: '图片加载失败',
+                icon: 'none',
+                duration: 2000
+            });
+        },
+
+        // 通过云函数上传文件（解决H5环境multipart/form-data问题）
+        uploadFileViaCloudFunction(cloudPath, filePath, retryCount = 0) {
+            return new Promise((resolve, reject) => {
+                // 检查环境并使用相应的文件读取方式
+                if (typeof window !== 'undefined' && typeof FileReader !== 'undefined') {
+                    // H5环境：使用fetch获取blob，然后转换为base64
+                    
+                    fetch(filePath)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+                            return response.blob();
+                        })
+                        .then(blob => {
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                                const result = reader.result;
+                                if (!result || typeof result !== 'string') {
+                                    console.error('❌ [帖子详情页] FileReader结果无效:', result);
+                                    reject(new Error('文件读取失败'));
+                                    return;
+                                }
+                                const base64 = result.split(',')[1];
+                                console.log(`🔍 [帖子详情页] 文件转换为base64完成，长度: ${base64.length}`);
+                                
+                                this.callCloudFunction('upload', {
+                                    cloudPath: cloudPath,
+                                    fileContent: base64
+                                }).then((uploadRes) => {
+                                    console.log('上传云函数返回结果:', uploadRes);
+                                    // 检查云函数返回格式并提取fileID
+                                    if (uploadRes && uploadRes.result && uploadRes.result.success) {
+                                        resolve({
+                                            fileID: uploadRes.result.fileID,
+                                            cloudPath: uploadRes.result.cloudPath
+                                        });
+                                    } else {
+                                        reject(new Error('上传云函数返回格式错误'));
+                                    }
+                                }).catch((err) => {
+                                    // 如果是网络错误且重试次数小于2，则重试
+                                    if (retryCount < 2 && (err.errMsg === 'request:fail' || err.message?.includes('fail'))) {
+                                        console.log(`🔄 [帖子详情页] 上传失败，准备重试 (${retryCount + 1}/2)`);
+                                        setTimeout(() => {
+                                            this.uploadFileViaCloudFunction(cloudPath, filePath, retryCount + 1)
+                                                .then(resolve).catch(reject);
+                                        }, 1000 * (retryCount + 1)); // 递增延迟
+                                    } else {
+                                        reject(err);
+                                    }
+                                });
+                            };
+                            reader.onerror = () => {
+                                console.error('❌ [帖子详情页] FileReader读取失败');
+                                reject(new Error('文件读取失败'));
+                            };
+                            reader.readAsDataURL(blob);
+                        })
+                        .catch(err => {
+                            console.error('❌ [帖子详情页] 获取文件blob失败:', err);
+                            reject(new Error('获取文件失败: ' + err.message));
+                        });
+                } else {
+                    // App环境使用uni-app API
+                    console.log('🔍 [帖子详情页] App环境使用uni-app API读取文件');
+                    try {
+                        const fs = uni.getFileSystemManager();
+                        if (fs && fs.readFile) {
+                            fs.readFile({
+                                filePath: filePath,
+                                encoding: 'base64',
+                                success: (readRes) => {
+                                    const base64 = readRes.data;
+                                    console.log(`🔍 [帖子详情页] 文件读取完成，base64长度: ${base64.length}`);
+                                    this.callCloudFunction('upload', {
+                                        cloudPath: cloudPath,
+                                        fileContent: base64
+                                    }).then((uploadRes) => {
+                                        console.log('上传云函数返回结果:', uploadRes);
+                                        if (uploadRes && uploadRes.result && uploadRes.result.success) {
+                                            resolve({
+                                                fileID: uploadRes.result.fileID,
+                                                cloudPath: uploadRes.result.cloudPath
+                                            });
+                                        } else {
+                                            reject(new Error('上传云函数返回格式错误'));
+                                        }
+                                    }).catch((err) => {
+                                        if (retryCount < 2 && (err.errMsg === 'request:fail' || err.message?.includes('fail'))) {
+                                            console.log(`🔄 [帖子详情页] 上传失败，准备重试 (${retryCount + 1}/2)`);
+                                            setTimeout(() => {
+                                                this.uploadFileViaCloudFunction(cloudPath, filePath, retryCount + 1)
+                                                    .then(resolve).catch(reject);
+                                            }, 1000 * (retryCount + 1));
+                                        } else {
+                                            reject(err);
+                                        }
+                                    });
+                                },
+                                fail: (err) => {
+                                    console.error('❌ [帖子详情页] 文件读取失败:', err);
+                                    reject(new Error('文件读取失败: ' + err.errMsg));
+                                }
+                            });
+                        } else {
+                            console.error('❌ [帖子详情页] uni.getFileSystemManager不可用');
+                            reject(new Error('文件系统管理器不可用'));
+                        }
+                    } catch (error) {
+                        console.error('❌ [帖子详情页] 文件读取异常:', error);
+                        reject(new Error('文件读取异常: ' + error.message));
+                    }
                 }
             });
         }
@@ -3633,15 +3840,20 @@ export default {
     flex-direction: column;
     gap: 12rpx;
     margin-bottom: 12rpx;
+    width: 100%;
 }
 
 .comment-image {
     width: 100%;
-    height: 400rpx;
+    max-width: 100%;
+    height: auto;
+    min-height: 200rpx;
+    max-height: 800rpx;
     border-radius: 12rpx;
     background-color: #f2f2f2;
     display: block;
-    object-fit: cover;
+    object-fit: contain;
+    border: 1px solid #e0e0e0;
 }
 
 .reply-image-grid {
@@ -4085,8 +4297,8 @@ export default {
     font-size: 24rpx;
     padding: 4rpx 16rpx;
     border-radius: 999rpx;
-    background-color: #e6f4ff;
-    color: #1f6fd2;
+    background-color: #f0f0f0;
+    color: #ffffff;
     flex-shrink: 0;
 }
 
