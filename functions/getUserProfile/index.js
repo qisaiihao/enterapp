@@ -209,7 +209,7 @@ exports.main = async (event, context) => {
         bio: userInfo.bio || '这个人很懒，什么都没有写...',
         signatureUrl: userInfo.signatureUrl || '',
         poemId: userInfo.poemId || '',
-        growthCounts: userInfo.growthCounts || { seed: 0, leaf: 0, flower: 0 }
+        growthCounts: userInfo.growthCounts || { seed: 0, leaf: 0, flower: 0, peach: 0 }
       },
       posts: posts
     };
