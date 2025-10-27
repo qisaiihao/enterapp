@@ -74,7 +74,7 @@ exports.main = async (event, context) => {
           { $skip: skip },
           { $limit: limit }
         ],
-        as: 'userPosts',
+        as: 'userPosts'
       })
       .project({
         _id: 1,
@@ -112,7 +112,7 @@ exports.main = async (event, context) => {
     let posts = result.posts || []; // 这里已经是分页后的 posts
     console.log('【profile云函数】聚合后 posts 数量:', posts.length);
 
-    // Step 2: Normalize冗余字段并保证排序
+    // Step 2: Normalize冗余字段（移除重复排序，因为聚合管道已经排序）
     if (posts.length > 0) {
       posts = posts.map(post => ({
         ...post,
@@ -120,7 +120,8 @@ exports.main = async (event, context) => {
         authorAvatar: post.authorAvatar || post.authorAvatarSnapshot || '',
         commentCount: post.commentCount === undefined || post.commentCount === null ? 0 : post.commentCount
       }));
-      posts.sort((a, b) => b.createTime - a.createTime);
+      // 移除重复排序，聚合管道已经按 createTime: -1 排序
+      // posts.sort((a, b) => b.createTime - a.createTime);
     }
 
     // 图片URL转换逻辑（简化版）

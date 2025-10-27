@@ -656,7 +656,10 @@ export default {
         loadUserPosts: function () {
             if (this.isLoading) return;
             const { page, PAGE_SIZE } = this;
-            this.setData({ isLoading: true });
+            // 只在首次加载时显示全屏加载状态，触底加载时不显示
+            if (page === 0) {
+                this.setData({ isLoading: true });
+            }
             getUserPosts({ userId: this.targetUserId, page, pageSize: PAGE_SIZE, context: this })
                 .then(async (posts) => {
                     posts.forEach((post) => { if (post.createTime) post.formattedCreateTime = this.formatTime(post.createTime); });
@@ -676,7 +679,12 @@ export default {
                     });
                 })
                 .catch((err) => { console.error('【用户主页】加载更多帖子失败', err); })
-                .finally(() => { this.setData({ isLoading: false }); });
+                .finally(() => { 
+                    // 只在首次加载时隐藏全屏加载状态
+                    if (page === 0) {
+                        this.setData({ isLoading: false }); 
+                    }
+                });
         },
 
         // 准备关注状态

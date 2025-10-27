@@ -32,14 +32,12 @@ export function invalidateMyInfo() { nsMyInfo.delete('me'); }
 
 // 我的帖子分页
 function nsMyPosts() { return cacheManager.namespace('me:posts', { persistent: true, maxItems: 200 }); }
-export async function getMyPosts({ page = 0, pageSize = 10, context }) {
-  const ns = nsMyPosts();
-  const key = `page:${page}:size:${pageSize}`;
-  return ns.getOrFetch(key, async () => {
-    const res = await cloudCall('getMyProfileData', { skip: page * pageSize, limit: pageSize }, { pageTag: 'me:posts', context, injectOpenId: true });
-    if (res && res.result && res.result.success) return res.result.posts || [];
-    return [];
-  }, { ttlMs: 0, swrMs: 0 });
+export async function getMyPosts({ page = 0, pageSize = 10, context, forceRefresh = false }) {
+  // 暂时关闭缓存，直接调用云函数
+  console.log('【getMyPosts】缓存已关闭，直接调用云函数');
+  const res = await cloudCall('getMyProfileData', { skip: page * pageSize, limit: pageSize }, { pageTag: 'me:posts', context, injectOpenId: true });
+  if (res && res.result && res.result.success) return res.result.posts || [];
+  return [];
 }
 export function invalidateMyPosts(page, pageSize = 10) {
   const ns = nsMyPosts();

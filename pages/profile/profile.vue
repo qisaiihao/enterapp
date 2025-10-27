@@ -9,7 +9,7 @@
             </view>
 
             <!-- 真实内容：当 isLoading 为 false 时，显示真实页面 -->
-            <scroll-view wx:else class="scroll-container" :scroll-y="true" @scrolltolower="onScrollToLower" lower-threshold="100" :enhanced="true" :show-scrollbar="false">
+            <view class="scroll-container">
                 <!-- Sidebar Mask -->
                 <view class="sidebar-mask" v-if="isSidebarOpen" @tap="toggleSidebar"></view>
 
@@ -392,13 +392,33 @@
                         </view>
                     </view>
                 </view>
-            </scroll-view>
+            </view>
         </view>
         <!-- 这是一个<view class="container"> 添加的结束标签 -->
 
         <!-- #ifndef MP-WEIXIN -->
         <app-tab-bar ref="customTabBar" />
         <!-- #endif -->
+        
+        <!-- 删除帖子弹窗 -->
+        <view v-if="showDeleteModal" class="modal-overlay" @tap="hideDeleteModal">
+            <view class="modal-content" @tap.stop>
+                <view class="modal-header">
+                    <view class="modal-title">删除帖子</view>
+                    <view class="close-btn" @tap="hideDeleteModal">×</view>
+                </view>
+                
+                <view class="modal-body">
+                    <view class="modal-text">您确定要删除这条帖子吗？</view>
+                </view>
+                
+                <view class="modal-footer">
+                    <button class="modal-btn cancel-btn" @tap="hideDeleteModal">取消</button>
+                    <button class="modal-btn draft-btn" @tap="saveToDraft">保存草稿</button>
+                    <button class="modal-btn modal-delete-btn" @tap="confirmDelete">删除</button>
+                </view>
+            </view>
+        </view>
     </view>
 
 </template>
@@ -472,6 +492,11 @@ export default {
             followerCount: 0,
             // 作品集数据
             portfolioList: [],
+            
+            // 删除弹窗相关状态
+            showDeleteModal: false,
+            deletePostId: '',
+            deletePostIndex: -1,
             // 花草成长统计
             growthStats: {
                 seed: 0,
@@ -910,7 +935,7 @@ export default {
             // 否则使用缓存API
             console.log('【profile】🚀 使用缓存API获取帖子（分页加载）');
             try {
-                return getMyPosts({ page, pageSize: PAGE_SIZE, context: this })
+                return getMyPosts({ page, pageSize: PAGE_SIZE, context: this, forceRefresh: forceRefresh })
                     .then((posts) => {
                         console.log('【profile】✅ 缓存API成功返回帖子数量:', posts.length);
                         console.log('【profile】📋 缓存API返回的帖子ID列表:', posts.map(p => p._id));
@@ -1122,23 +1147,36 @@ export default {
         onDelete: function (event) {
             const postId = event.currentTarget.dataset.postid;
             const index = event.currentTarget.dataset.index;
-            const that = this;
-            uni.showModal({
-                title: '删除帖子',
-                content: '您确定要删除这条帖子吗？',
-                confirmText: '删除',
-                cancelText: '保存草稿',
-                confirmColor: '#ff4d4f',
-                success: function (res) {
-                    if (res.confirm) {
-                        // 直接删除
-                        that.deletePost(postId, index);
-                    } else {
-                        // 保存草稿
-                        that.saveToDraftBox(postId, index);
-                    }
-                }
+            this.setData({
+                showDeleteModal: true,
+                deletePostId: postId,
+                deletePostIndex: index
             });
+        },
+
+        // 隐藏删除弹窗
+        hideDeleteModal: function () {
+            this.setData({
+                showDeleteModal: false,
+                deletePostId: '',
+                deletePostIndex: -1
+            });
+        },
+
+        // 确认删除帖子
+        confirmDelete: function () {
+            const postId = this.data.deletePostId;
+            const index = this.data.deletePostIndex;
+            this.hideDeleteModal();
+            this.deletePost(postId, index);
+        },
+
+        // 保存到草稿箱
+        saveToDraft: function () {
+            const postId = this.data.deletePostId;
+            const index = this.data.deletePostIndex;
+            this.hideDeleteModal();
+            this.saveToDraftBox(postId, index);
         },
 
         // 直接删除帖子
@@ -1772,34 +1810,6 @@ export default {
                 console.error('❌ [退出登录] 匿名openid初始化失败:', error);
                 // 即使失败也不影响退出登录流程
             });
-        },
-
-        // 滚动到底部触发加载更多
-        onScrollToLower: function () {
-            console.log('【profile】滚动到底部，当前标签:', this.currentTab);
-            if (this.currentTab === 'posts') {
-                // 我的帖子标签页
-                if (this.hasMore && !this.isLoadingMore && !this.isLoading) {
-                    console.log('【profile】开始加载更多帖子');
-                    this.setData({
-                        isLoadingMore: true
-                    });
-                    this.loadMyPosts(() => {
-                        this.setData({
-                            isLoadingMore: false
-                        });
-                        console.log('【profile】加载更多帖子完成');
-                    });
-                }
-            } else if (this.currentTab === 'favorites') {
-                // 收藏标签页
-                if (this.favoriteHasMore && !this.favoriteLoading) {
-                    console.log('【profile】开始加载更多收藏');
-                    this.loadFavorites(() => {
-                        console.log('【profile】加载更多收藏完成');
-                    });
-                }
-            }
         },
 
         onAvatarLoad() {
@@ -2911,5 +2921,109 @@ export default {
     border-radius: 6rpx; 
 }
 
+/* 删除弹窗样式 */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 16rpx;
+    margin: 40rpx;
+    width: calc(100% - 80rpx);
+    max-width: 600rpx;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 30rpx 40rpx;
+    border-bottom: 1rpx solid #f0f0f0;
+}
+
+.modal-title {
+    font-size: 36rpx;
+    font-weight: 500;
+    color: #333;
+}
+
+.close-btn {
+    font-size: 48rpx;
+    color: #999;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.modal-body {
+    padding: 40rpx;
+}
+
+.modal-text {
+    font-size: 32rpx;
+    color: #666;
+    text-align: center;
+    line-height: 1.5;
+}
+
+.modal-footer {
+    display: flex;
+    padding: 0 40rpx 40rpx;
+    gap: 20rpx;
+}
+
+.modal-btn {
+    flex: 1;
+    height: 80rpx;
+    border-radius: 12rpx;
+    font-size: 28rpx;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.modal-btn:active {
+    transform: scale(0.95);
+}
+
+.cancel-btn {
+    background-color: #f5f5f5;
+    color: #666;
+}
+
+.draft-btn {
+    background-color: #f5f5f5;
+    color: #666;
+}
+
+/* 个人主页中的删除图标按钮 */
+.delete-btn {
+    background-color: transparent;
+    color: #666;
+}
+
+/* 弹窗中的删除按钮 */
+.modal-delete-btn {
+    background-color: #cc9090;
+    color: white;
+}
 </style>
 
