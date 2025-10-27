@@ -1,39 +1,92 @@
 <template>
-    ﻿
-    <view class="container">
-
-        <block v-if="followings.length > 0">
-            <view class="list">
-                <view class="following-item" v-for="(item, index) in followings" :key="index">
-                    <view class="user-info" :data-openid="item._openid" @tap="openUserProfile">
-                        <image class="avatar" :src="item.avatarUrl || defaultAvatar" mode="aspectFill" @error="onAvatarError" :data-index="index"></image>
-                        <view class="info-text">
-                            <text class="name">{{ item.nickName || '微信用户' }}</text>
-                            <text class="bio">{{ item.bio || '这个用户还没有留下简介~' }}</text>
-                        </view>
-                    </view>
-
-                    <button
-                        class="unfollow-btn"
-                        size="mini"
-                        @tap.stop.prevent="onToggleFollow"
-                        :data-openid="item._openid"
-                        :data-index="index"
-                        :loading="pendingOpenid === item._openid"
-                        :disabled="pendingOpenid === item._openid"
-                    >
-                        取消关注
-                    </button>
+    <view>
+        <!-- 自定义返回按钮 -->
+        <view class="custom-back-btn" @tap="goBack">
+            <image class="back-icon" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
+        </view>
+        
+        <view class="container">
+            <!-- 分段控制器 -->
+            <view class="segmented-control">
+                <view class="segment-item" 
+                      :class="{ active: currentTab === 'following' }" 
+                      @tap="switchTab('following')">
+                    <text class="segment-text">关注</text>
+                </view>
+                <view class="segment-item" 
+                      :class="{ active: currentTab === 'followers' }" 
+                      @tap="switchTab('followers')">
+                    <text class="segment-text">被关注</text>
                 </view>
             </view>
-        </block>
 
-        <view v-else class="empty">
-            <text>还没有关注任何人，去广场看看吧～</text>
+        <!-- 关注列表 -->
+        <view v-if="currentTab === 'following'">
+            <block v-if="followings.length > 0">
+                <view class="list">
+                    <view class="user-item" v-for="(item, index) in followings" :key="index">
+                        <view class="user-info" :data-openid="item._openid" @tap="openUserProfile">
+                            <image class="avatar" :src="item.avatarUrl || defaultAvatar" mode="aspectFill" @error="onAvatarError" :data-index="index"></image>
+                            <view class="info-text">
+                                <text class="name">{{ item.nickName || '微信用户' }}</text>
+                                <text class="bio">{{ item.bio || '这个用户还没有留下简介~' }}</text>
+                            </view>
+                        </view>
+                        <button
+                            class="action-btn unfollow-btn"
+                            size="mini"
+                            @tap.stop.prevent="onToggleFollow"
+                            :data-openid="item._openid"
+                            :data-index="index"
+                            :loading="pendingOpenid === item._openid"
+                            :disabled="pendingOpenid === item._openid"
+                        >
+                            取消关注
+                        </button>
+                    </view>
+                </view>
+            </block>
+            <view v-else class="empty">
+                <text>还没有关注任何人，去广场看看吧～</text>
+            </view>
         </view>
 
-        <view v-if="followings.length > 0" class="footer-hint">
-            <view v-if="!hasMore" class="loading-more">已经到底了</view>
+        <!-- 粉丝列表 -->
+        <view v-if="currentTab === 'followers'">
+            <block v-if="followers.length > 0">
+                <view class="list">
+                    <view class="user-item" v-for="(item, index) in followers" :key="index">
+                        <view class="user-info" :data-openid="item._openid" @tap="openUserProfile">
+                            <image class="avatar" :src="item.avatarUrl || defaultAvatar" mode="aspectFill" @error="onAvatarError" :data-index="index"></image>
+                            <view class="info-text">
+                                <text class="name">{{ item.nickName || '微信用户' }}</text>
+                                <text class="bio">{{ item.bio || '这个人很懒，什么都没留下~' }}</text>
+                            </view>
+                        </view>
+                        <button
+                            class="action-btn"
+                            :class="item.isMutual ? 'unfollow-btn' : 'follow-btn'"
+                            size="mini"
+                            @tap.stop.prevent="onToggleFollow"
+                            :data-openid="item._openid"
+                            :data-index="index"
+                            :loading="pendingOpenid === item._openid"
+                            :disabled="pendingOpenid === item._openid"
+                        >
+                            {{ getButtonText(item) }}
+                        </button>
+                    </view>
+                </view>
+            </block>
+            <view v-else class="empty">
+                <text>还没有粉丝，快去多发点内容吧~</text>
+            </view>
+        </view>
+
+            <!-- 底部提示 -->
+            <view v-if="getCurrentList().length > 0" class="footer-hint">
+                <view v-if="!hasMore" class="loading-more">已经到底了</view>
+            </view>
         </view>
     </view>
 </template>
@@ -43,7 +96,9 @@ const { cloudCall } = require('../../utils/cloudCall.js');
 export default {
     data() {
         return {
+            currentTab: 'following', // 当前选中的标签页
             followings: [],
+            followers: [],
             isLoading: false,
             hasMore: true,
             page: 0,
@@ -58,13 +113,21 @@ export default {
         this.loadFollowings(true);
     },
     onPullDownRefresh() {
-        this.loadFollowings(true);
+        if (this.currentTab === 'following') {
+            this.loadFollowings(true);
+        } else {
+            this.loadFollowers(true);
+        }
     },
     onReachBottom() {
         if (!this.hasMore || this.isLoading) {
             return;
         }
-        this.loadFollowings();
+        if (this.currentTab === 'following') {
+            this.loadFollowings();
+        } else {
+            this.loadFollowers();
+        }
     },
     methods: {
         // 统一云函数调用方法
@@ -216,31 +279,192 @@ export default {
             uni.navigateTo({
                 url: `/pages/user-profile/user-profile?userId=${openid}`
             });
+        },
+
+        // 切换标签页
+        switchTab(tab) {
+            if (this.currentTab === tab) {
+                return;
+            }
+            this.setData({
+                currentTab: tab,
+                page: 0,
+                hasMore: true
+            });
+            
+            if (tab === 'following') {
+                this.loadFollowings(true);
+            } else {
+                this.loadFollowers(true);
+            }
+        },
+
+        // 加载粉丝列表
+        loadFollowers(reset = false) {
+            if (this.isLoading) {
+                return;
+            }
+            if (reset) {
+                this.setData({
+                    page: 0,
+                    hasMore: true
+                });
+            }
+            const page = reset ? 0 : this.page;
+            this.setData({
+                isLoading: true
+            });
+            
+            this.callCloudFunction('follow', {
+                    action: 'getFollowerList',
+                    skip: page * this.PAGE_SIZE,
+                    limit: this.PAGE_SIZE
+                }).then((res) => {
+                    if (res.result && res.result.success) {
+                        const list = res.result.list || [];
+                        const newList = reset ? list : this.followers.concat(list);
+                        this.setData({
+                            followers: newList,
+                            page: page + 1,
+                            hasMore: !!res.result.hasMore,
+                            total: res.result.total || newList.length
+                        });
+                    } else {
+                        uni.showToast({
+                            title: res.result && res.result.message ? res.result.message : '加载失败',
+                            icon: 'none'
+                        });
+                    }
+                }).catch((err) => {
+                    console.error('获取粉丝列表失败:', err);
+                    uni.showToast({
+                        title: '网络错误',
+                        icon: 'none'
+                    });
+                }).finally(() => {
+                    this.setData({
+                        isLoading: false
+                    });
+                    if (reset) {
+                        uni.stopPullDownRefresh();
+                    }
+                });
+        },
+
+        // 获取按钮文字
+        getButtonText(item) {
+            if (item.isMutual) {
+                return '互相关注';
+            } else {
+                return '回关';
+            }
+        },
+
+        // 获取当前列表
+        getCurrentList() {
+            return this.currentTab === 'following' ? this.followings : this.followers;
+        },
+
+        // 返回上一页
+        goBack() {
+            const pages = getCurrentPages();
+            if (pages.length > 1) {
+                uni.navigateBack({
+                    delta: 1,
+                    fail: () => {
+                        uni.switchTab({
+                            url: '/pages/index/index'
+                        });
+                    }
+                });
+            } else {
+                uni.switchTab({
+                    url: '/pages/index/index'
+                });
+            }
         }
     }
 };
 </script>
 <style>
-.container {
-    padding: 32rpx;
-    background-color: #f7f8fa;
-    min-height: 100vh;
+/* 自定义返回按钮 */
+.custom-back-btn {
+    position: absolute;
+    top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px)));
+    left: 40rpx;
+    width: 100rpx;
+    height: 100rpx;
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
 }
 
+.custom-back-btn:active {
+    transform: scale(0.95);
+}
+
+.custom-back-btn .back-icon {
+    width: 100rpx;
+    height: 100rpx;
+    display: block;
+    object-fit: contain;
+}
+
+.container {
+    background-color: #fff;
+    min-height: 100vh;
+    padding-top: calc(120rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px)));
+}
+
+/* 分段控制器 */
+.segmented-control {
+    display: flex;
+    background-color: #fff;
+    border-bottom: 1rpx solid #f0f0f0;
+    padding: 0 40rpx;
+}
+
+.segment-item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30rpx 0;
+    position: relative;
+}
+
+.segment-item.active .segment-text {
+    color: #333;
+    font-weight: 600;
+}
+
+.segment-item:not(.active) .segment-text {
+    color: #999;
+    font-weight: 400;
+}
+
+.segment-text {
+    font-size: 32rpx;
+    transition: all 0.3s ease;
+}
+
+/* 用户列表 */
 .list {
     display: flex;
     flex-direction: column;
-    gap: 24rpx;
 }
 
-.following-item {
+.user-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background-color: #ffffff;
-    border-radius: 16rpx;
-    padding: 24rpx 28rpx;
-    box-shadow: 0 6rpx 18rpx rgba(0, 0, 0, 0.05);
+    padding: 40rpx 30rpx;
+    border-bottom: 1rpx solid #f0f0f0;
 }
 
 .user-info {
@@ -251,8 +475,8 @@ export default {
 }
 
 .avatar {
-    width: 88rpx;
-    height: 88rpx;
+    width: 80rpx;
+    height: 80rpx;
     border-radius: 50%;
     margin-right: 20rpx;
     background-color: #f0f0f0;
@@ -267,65 +491,68 @@ export default {
 
 .name {
     font-size: 30rpx;
-    color: #333333;
+    color: #333;
     font-weight: 600;
 }
 
 .bio {
-    font-size: 24rpx;
-    color: #888888;
+    font-size: 26rpx;
+    color: #999;
     line-height: 1.4;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 420rpx;
+    max-width: 400rpx;
 }
 
-.unfollow-btn {
-    margin-left: 24rpx;
-    border: 2rpx solid #ff8f8f;
-    color: #ff6b6b;
-    background-color: #ffffff;
-    border-radius: 999rpx;
-    padding: 0 28rpx;
-    height: 64rpx !important;
-    line-height: 64rpx !important;
+/* 按钮样式 */
+.action-btn {
+    margin-left: 20rpx;
+    border: none;
+    border-radius: 8rpx;
+    padding: 0 24rpx;
+    height: 60rpx !important;
+    line-height: 60rpx !important;
+    font-size: 26rpx;
+    transition: all 0.3s ease;
 }
 
-.unfollow-btn::after {
+.action-btn::after {
     border: none;
 }
 
-.unfollow-btn[disabled] {
+.action-btn[disabled] {
     opacity: 0.6;
 }
 
-.loading,
-.loading-more {
-    margin-top: 32rpx;
-    text-align: center;
-    color: #999999;
-    font-size: 26rpx;
+.follow-btn {
+    background-color: #f5f5f5;
+    color: #333;
 }
 
+.unfollow-btn {
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+/* 空状态 */
 .empty {
-    margin-top: 120rpx;
+    margin-top: 200rpx;
     text-align: center;
-    color: #999999;
+    color: #999;
     font-size: 28rpx;
 }
 
+/* 底部提示 */
 .footer-hint {
-    margin-top: 24rpx;
+    margin-top: 40rpx;
+    padding: 0 30rpx;
 }
 
-.mutual-label {
-    margin-top: 8rpx;
-    display: inline-block;
-    padding: 4rpx 16rpx;
-    background-color: #e6f4ff;
-    color: #1f6fd2;
-    border-radius: 999rpx;
-    font-size: 24rpx;
+.loading-more {
+    text-align: center;
+    color: #999;
+    font-size: 26rpx;
+    padding: 20rpx 0;
 }
 </style>

@@ -92,77 +92,52 @@ exports.main = async (event, context) => {
       
     console.log('🔍 [getPostList] 查询参数 - skip:', skip, 'limit:', limit);
     
-    const postsRes = await query
-      // 关联当前用户的点赞记录 (兼容旧版SDK的写法)
-      .lookup({
-        from: 'votes_log',
-        let: {
-          post_id: '$_id'
-        },
-        // 使用JSON对象替代.pipeline().build()
-        pipeline: [
-          {
-            $match: {
-              $expr: {
-                $and: [
-                  { $eq: ['$postId', '$$post_id'] },
-                  { $eq: ['$_openid', openid] },
-                  { $eq: ['$type', 'post'] }
-                ]
-              }
-            }
-          }
-        ],
-        as: 'userVote',
-      })
-      .project({
-        _id: '$_id',
-        _openid: '$_openid',
-        title: '$title',
-        content: '$content',
-        createTime: '$createTime',
-        imageUrl: '$imageUrl',
-        imageUrls: '$imageUrls',
-        originalImageUrl: '$originalImageUrl',
-        originalImageUrls: '$originalImageUrls',
-        votes: '$votes',
-        isPoem: '$isPoem',
-        isOriginal: '$isOriginal',
-        isFoundPoetry: '$isFoundPoetry', // 新增拼贴诗字段
-        poemBgImage: '$poemBgImage',
-        tags: '$tags', // 新增标签字段
-        author: '$author', // 新增作者字段
-        backgroundColor: '$backgroundColor', // 新增背景颜色字段
-        textColor: '$textColor', // 新增文字颜色字段
-        authorName: $.ifNull([
-          '$authorName',
-          $.ifNull(['$authorNameSnapshot', '匿名用户'])
-        ]),
-        authorAvatar: $.ifNull([
-          '$authorAvatar',
-          $.ifNull(['$authorAvatarSnapshot', ''])
-        ]),
-        commentCount: $.ifNull(['$commentCount', 0]),
-        isVoted: $.gt([$.size('$userVote'), 0]),
-        // 讨论帖子专用字段
-        isDiscussion: '$isDiscussion',
-        quotedPostId: '$quotedPostId',
-        quotedPostTitle: '$quotedPostTitle',
-        quotedPostAuthor: '$quotedPostAuthor',
-        quotedPostAuthorId: '$quotedPostAuthorId',
-        sentenceGroups: '$sentenceGroups',
-        discussionSentences: '$discussionSentences',
-        highlightLines: '$highlightLines',
-        highlightSentence: '$highlightSentence',
-      })
-      .end();
+    // 优化：先执行基础查询，避免复杂的聚合操作
+    const postsRes = await query.end();
 
     const posts = postsRes.list;
     console.log('✅ [getPostList] 查询成功，获取到帖子数量:', posts.length);
     
+    // 批量查询点赞状态
+    let voterMap = new Set();
     if (posts.length > 0) {
+      try {
+        const postIds = posts.map(post => post._id);
+        const voteRes = await db.collection('votes_log')
+          .where({
+            _openid: openid,
+            type: 'post',
+            postId: _.in(postIds)
+          })
+          .field({ postId: true })
+          .get();
+        voterMap = new Set(voteRes.data.map(item => item.postId));
+        console.log('✅ [getPostList] 批量查询点赞状态成功');
+      } catch (voteError) {
+        console.error('❌ [getPostList] 批量查询点赞记录失败:', voteError);
+      }
+    }
+    
+    // 处理帖子数据
+    const processedPosts = posts.map(post => {
+      const authorName = post.authorName || post.authorNameSnapshot || '匿名用户';
+      const authorAvatar = post.authorAvatar || post.authorAvatarSnapshot || '';
+      const commentCount = post.commentCount || 0;
+      const isVoted = voterMap.has(post._id);
+      
+      return {
+        ...post,
+        authorName,
+        authorAvatar,
+        commentCount,
+        isVoted,
+        tags: Array.isArray(post.tags) ? post.tags : []
+      };
+    });
+    
+    if (processedPosts.length > 0) {
       console.log('🔍 [getPostList] 帖子详情:');
-      posts.forEach((post, index) => {
+      processedPosts.forEach((post, index) => {
         console.log(`📝 [getPostList] 帖子${index + 1}:`, {
           _id: post._id,
           title: post.title,
@@ -180,7 +155,7 @@ exports.main = async (event, context) => {
     // --- 优化图片URL转换逻辑 ---
     const fileIDs = new Set(); // 使用Set避免重复fileID
     
-    posts.forEach(post => {
+    processedPosts.forEach(post => {
       // 保证 imageUrls、originalImageUrls 一定为数组
       if (!Array.isArray(post.imageUrls)) post.imageUrls = post.imageUrls ? [post.imageUrls] : [];
       if (!Array.isArray(post.originalImageUrls)) post.originalImageUrls = post.originalImageUrls ? [post.originalImageUrls] : [];
@@ -235,11 +210,11 @@ exports.main = async (event, context) => {
       }
     }
 
-    console.log('✅ [getPostList] 云函数执行完成，返回帖子数量:', posts.length);
+    console.log('✅ [getPostList] 云函数执行完成，返回帖子数量:', processedPosts.length);
 
     return {
       success: true,
-      posts: posts
+      posts: processedPosts
     };
 
   } catch (e) {

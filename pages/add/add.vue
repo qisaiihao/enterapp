@@ -123,8 +123,15 @@
                     </view>
 
                     <!-- 高光选择全屏弹窗 -->
-                    <view v-if="highlightSelecting" class="highlight-selection-modal" @tap="closeHighlightModal">
-                        <view class="highlight-modal-content" @tap.stop="noop">
+                    <view v-if="highlightSelecting" class="highlight-selection-modal" 
+                          @tap="closeHighlightModal"
+                          @touchstart="onHighlightModalTouchStart"
+                          @touchmove="onHighlightModalTouchMove"
+                          @touchend="onHighlightModalTouchEnd">
+                        <view class="highlight-modal-content" @tap.stop="noop" 
+                              @touchstart.stop="onHighlightModalTouchStart"
+                              @touchmove.stop="onHighlightModalTouchMove"
+                              @touchend.stop="onHighlightModalTouchEnd">
                             <!-- 标题栏 -->
                             <view class="highlight-modal-header">
                                 <text class="highlight-modal-title">选择高光句</text>
@@ -590,6 +597,11 @@ export default {
             highlightModeEnabled: false,
             longPressTimer: null,
             touchStartLine: null,
+            // 高光弹窗触摸相关变量
+            highlightModalTouchStartX: 0,
+            highlightModalTouchStartY: 0,
+            highlightModalTouchCurrentX: 0,
+            highlightModalTouchCurrentY: 0,
             imageList: [],
 
             // 图片列表，包含原图和压缩图信息
@@ -2083,6 +2095,64 @@ export default {
             });
         },
 
+        // 高光弹窗触摸事件处理
+        onHighlightModalTouchStart: function (e) {
+            console.log('高光弹窗触摸开始');
+            const touch = e.touches[0];
+            this.highlightModalTouchStartX = touch.pageX || touch.clientX;
+            this.highlightModalTouchStartY = touch.pageY || touch.clientY;
+            this.highlightModalTouchCurrentX = touch.pageX || touch.clientX;
+            this.highlightModalTouchCurrentY = touch.pageY || touch.clientY;
+            console.log('触摸开始位置:', this.highlightModalTouchStartX, this.highlightModalTouchStartY);
+        },
+
+        onHighlightModalTouchMove: function (e) {
+            const touch = e.touches[0];
+            this.highlightModalTouchCurrentX = touch.pageX || touch.clientX;
+            this.highlightModalTouchCurrentY = touch.pageY || touch.clientY;
+        },
+
+        onHighlightModalTouchEnd: function (e) {
+            console.log('高光弹窗触摸结束');
+            const deltaX = this.highlightModalTouchCurrentX - this.highlightModalTouchStartX;
+            const deltaY = Math.abs(this.highlightModalTouchCurrentY - this.highlightModalTouchStartY);
+            
+            console.log('滑动距离 - deltaX:', deltaX, 'deltaY:', deltaY);
+            
+            // 检测右滑退出（从用户角度看，右滑退出更符合直觉）
+            if (deltaX > 20) {
+                console.log('检测到右滑，退出高光选择');
+                this.exitHighlightModalToEdit();
+                return;
+            }
+            
+            // 备用条件：检测左滑退出
+            if (deltaX < -20) {
+                console.log('检测到左滑，退出高光选择');
+                this.exitHighlightModalToEdit();
+                return;
+            }
+            
+            // 水平滑动距离大于垂直滑动距离的情况
+            if (Math.abs(deltaX) > deltaY && Math.abs(deltaX) > 15) {
+                console.log('检测到水平滑动，退出高光选择');
+                this.exitHighlightModalToEdit();
+            }
+        },
+
+        // 退出高光弹窗到编辑界面
+        exitHighlightModalToEdit: function () {
+            this.setData({
+                highlightSelecting: false
+            });
+            // 这里可以添加其他逻辑，比如保存当前选择的高光句等
+            uni.showToast({ 
+                title: '已退出高光选择', 
+                icon: 'none',
+                duration: 1000
+            });
+        },
+
         hideHighlightHint: function () {
             this.setData({ showHighlightHint: false });
         },
@@ -3372,6 +3442,10 @@ page {
     z-index: 1000;
     display: flex;
     flex-direction: column;
+    /* 考虑状态栏高度，确保内容在安全区域内，并增加额外边距 */
+    padding-top: 60px; /* 增加默认状态栏高度，作为备用 */
+    padding-top: calc(env(safe-area-inset-top) + 16px);
+    padding-top: calc(constant(safe-area-inset-top) + 16px); /* iOS 11.0-11.2 兼容 */
 }
 
 .highlight-modal-content {
@@ -3381,6 +3455,10 @@ page {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    /* 调整高度以适应顶部padding，增加额外边距 */
+    height: calc(100% - 60px); /* 增加默认状态栏高度，作为备用 */
+    height: calc(100% - env(safe-area-inset-top) - 16px);
+    height: calc(100% - constant(safe-area-inset-top) - 16px); /* iOS 11.0-11.2 兼容 */
 }
 
 .highlight-modal-header {

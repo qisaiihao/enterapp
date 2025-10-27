@@ -368,6 +368,18 @@
               "root": "./functions/uploadCollagePoetry",
               "timeout": 30,
               "memory": 512
+            },
+            {
+              "name": "getSearchSuggestions",
+              "root": "./functions/getSearchSuggestions",
+              "timeout": 10,
+              "memory": 256
+            },
+            {
+              "name": "searchStats",
+              "root": "./functions/searchStats",
+              "timeout": 10,
+              "memory": 256
             }
           ]
         }

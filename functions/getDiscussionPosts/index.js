@@ -46,7 +46,8 @@ exports.main = async (event, context) => {
     // 只查询讨论帖子
     const matchConditions = {
       isDiscussion: true
-    };\r\n    matchConditions.isHidden = _.neq(true);\r\n
+    };
+    matchConditions.isHidden = _.neq(true);
 
     console.log('🔍 [getDiscussionPosts] 最终筛选条件:', matchConditions);
 
