@@ -46,9 +46,8 @@
         <!-- 作者信息 -->
         <view class="single-author-info">
           <image
-            v-if="currentCollage.authorAvatar"
             class="single-author-avatar"
-            :src="currentCollage.authorAvatar"
+            :src="currentCollage.authorAvatar || '/static/images/avatar.png'"
             mode="aspectFill"
             @tap.stop.prevent="navigateToUserProfile"
             :data-user-id="currentCollage._openid"

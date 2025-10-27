@@ -51,9 +51,8 @@
 
                     <view class="author-info-outside">
                         <image
-                            v-if="item.authorAvatar"
                             class="author-avatar"
-                            :src="item.authorAvatar"
+                            :src="item.authorAvatar || '/static/images/avatar.png'"
                             mode="aspectFill"
                             @error="onAvatarError"
                             @tap.stop.prevent="navigateToUserProfile"
