@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/qisaihao/回车键_uni/functions/getPostList/**)",
+      "Read(//c/Users/qisaihao/回车键_uni/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

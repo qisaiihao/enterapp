@@ -468,7 +468,8 @@ export default {
             growthStats: {
                 seed: 0,
                 leaf: 0,
-                flower: 0
+                flower: 0,
+                peach: 0
             }
         };
     },
@@ -503,7 +504,7 @@ export default {
                         userPosts: [],
                         page: 0,
                         hasMore: true,
-                        growthStats: { seed: 0, leaf: 0, flower: 0 }
+                        growthStats: { seed: 0, leaf: 0, flower: 0, peach: 0 }
                     });
                     this.loadUserProfile();
                 }
@@ -516,7 +517,7 @@ export default {
                         userPosts: [],
                         page: 0,
                         hasMore: true,
-                        growthStats: { seed: 0, leaf: 0, flower: 0 }
+                        growthStats: { seed: 0, leaf: 0, flower: 0, peach: 0 }
                     });
                     this.loadUserProfile();
                 }
@@ -548,7 +549,8 @@ export default {
             growthStats: {
                 seed: 0,
                 leaf: 0,
-                flower: 0
+                flower: 0,
+                peach: 0
             }
         });
         this.loadUserProfile(() => {
@@ -624,6 +626,7 @@ export default {
                         seed: Number(userInfo.growthCounts.seed) || 0,
                         leaf: Number(userInfo.growthCounts.leaf) || 0,
                         flower: Number(userInfo.growthCounts.flower) || 0,
+                        peach: Number(userInfo.growthCounts.peach) || 0,
                       }
                     : this.computeGrowthStats(posts);
                 const normalizedPortfolios = await this.transformPortfolioList(portfolios);
@@ -1485,7 +1488,7 @@ export default {
 .post-content-navigator { display: block; background: transparent; }
 .navigator-hover { background-color: rgba(0,0,0,0.02); }
 
-.author-info-outside { display: flex; align-items: center; padding: 20rpx 40rpx 10rpx 40rpx; background: #fff; }
+.author-info-outside { display: flex; align-items: flex-start; padding: 20rpx 40rpx 10rpx 40rpx; background: #fff; }
 .author-info-outside .author-avatar { width: 60rpx; height: 60rpx; border-radius: 50%; margin-right: 15rpx; background-color: #f5f5f5; }
 .author-info-outside .author-name { font-size: 28rpx; color: #333; font-weight: 500; }
 

@@ -51,8 +51,8 @@
           <input
             class="folder-name-input"
             v-model="newFolderName"
-            placeholder="请输入作品集名称"
-            maxlength="20"
+            placeholder="请输入作品集名称（最多7个字）"
+            maxlength="7"
           />
         </view>
         <view class="modal-footer">
@@ -73,8 +73,8 @@
           <input
             class="folder-name-input"
             v-model="editingFolderName"
-            placeholder="请输入作品集名称"
-            maxlength="20"
+            placeholder="请输入作品集名称（最多7个字）"
+            maxlength="7"
           />
         </view>
         <view class="modal-footer">
@@ -186,6 +186,14 @@ export default {
         return;
       }
 
+      if (this.newFolderName.trim().length > 7) {
+        uni.showToast({
+          title: '作品集名称最多7个字',
+          icon: 'none'
+        });
+        return;
+      }
+
       try {
         uni.showLoading({ title: '创建中...' });
         const res = await this.callCloudFunction('createPortfolioFolder', {
@@ -247,6 +255,14 @@ export default {
       if (!this.editingFolderName.trim()) {
         uni.showToast({
           title: '请输入作品集名称',
+          icon: 'none'
+        });
+        return;
+      }
+
+      if (this.editingFolderName.trim().length > 7) {
+        uni.showToast({
+          title: '作品集名称最多7个字',
           icon: 'none'
         });
         return;

@@ -369,7 +369,7 @@
                                     <view class="book-spine">
                                         <view class="spine-content">
                                             <text 
-                                                v-for="(char, charIndex) in portfolio.name.split('')" 
+                                                v-for="(char, charIndex) in portfolio.name.split('').slice(0, 7)" 
                                                 :key="charIndex"
                                                 class="spine-text"
                                             >{{ char }}</text>
@@ -2280,7 +2280,7 @@ export default {
 /* 外部作者信息样式 */
 .author-info-outside {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     padding: 20rpx 40rpx 10rpx 40rpx;
     background: #fff;
     border-radius: 0;
@@ -2511,7 +2511,7 @@ export default {
 
 .author-info {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     /* margin-bottom: 15rpx;  // 移除多余的间距 */
 }
 

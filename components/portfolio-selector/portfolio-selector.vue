@@ -61,7 +61,7 @@
                 </view>
 
                 <view class="modal-body">
-                    <input class="portfolio-name-input" placeholder="请输入作品集名称" :value="newPortfolioName" @input="onPortfolioNameInput" :focus="true" @tap.stop.prevent="trueFun" />
+                    <input class="portfolio-name-input" placeholder="请输入作品集名称（最多7个字）" :value="newPortfolioName" @input="onPortfolioNameInput" :focus="true" @tap.stop.prevent="trueFun" maxlength="7" />
                 </view>
 
                 <view class="modal-footer">
@@ -289,6 +289,14 @@ export default {
             if (!portfolioName) {
                 uni.showToast({
                     title: '请输入作品集名称',
+                    icon: 'none'
+                });
+                return;
+            }
+
+            if (portfolioName.length > 7) {
+                uni.showToast({
+                    title: '作品集名称最多7个字',
                     icon: 'none'
                 });
                 return;
