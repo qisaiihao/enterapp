@@ -1147,6 +1147,18 @@ export default {
         onDelete: function (event) {
             const postId = event.currentTarget.dataset.postid;
             const index = event.currentTarget.dataset.index;
+            
+            console.log('【profile】onDelete调用:', { postId, index, event: event.currentTarget.dataset });
+            
+            if (!postId) {
+                console.error('【profile】onDelete: postId未定义');
+                uni.showToast({
+                    title: '删除失败：帖子ID未找到',
+                    icon: 'none'
+                });
+                return;
+            }
+            
             this.setData({
                 showDeleteModal: true,
                 deletePostId: postId,
@@ -1165,16 +1177,59 @@ export default {
 
         // 确认删除帖子
         confirmDelete: function () {
-            const postId = this.data.deletePostId;
-            const index = this.data.deletePostIndex;
+            console.log('【profile】confirmDelete调用开始');
+            console.log('【profile】this对象:', this);
+            console.log('【profile】this.data:', this.data);
+            console.log('【profile】this.$data:', this.$data);
+            
+            // 使用最安全的方式获取数据
+            const postId = (this && this.data && this.data.deletePostId) || 
+                          (this && this.$data && this.$data.deletePostId) || 
+                          (this && this.deletePostId);
+            const index = (this && this.data && this.data.deletePostIndex) || 
+                         (this && this.$data && this.$data.deletePostIndex) || 
+                         (this && this.deletePostIndex);
+            
+            console.log('【profile】最终获取的数据:', { postId, index });
+            
+            if (!postId) {
+                console.error('【profile】deletePostId未定义');
+                uni.showToast({
+                    title: '删除失败：帖子ID未找到',
+                    icon: 'none'
+                });
+                this.hideDeleteModal();
+                return;
+            }
+            
             this.hideDeleteModal();
             this.deletePost(postId, index);
         },
 
         // 保存到草稿箱
         saveToDraft: function () {
-            const postId = this.data.deletePostId;
-            const index = this.data.deletePostIndex;
+            console.log('【profile】saveToDraft调用开始');
+            
+            // 使用最安全的方式获取数据
+            const postId = (this && this.data && this.data.deletePostId) || 
+                          (this && this.$data && this.$data.deletePostId) || 
+                          (this && this.deletePostId);
+            const index = (this && this.data && this.data.deletePostIndex) || 
+                         (this && this.$data && this.$data.deletePostIndex) || 
+                         (this && this.deletePostIndex);
+            
+            console.log('【profile】saveToDraft最终获取的数据:', { postId, index });
+            
+            if (!postId) {
+                console.error('【profile】saveToDraft: deletePostId未定义');
+                uni.showToast({
+                    title: '保存失败：帖子ID未找到',
+                    icon: 'none'
+                });
+                this.hideDeleteModal();
+                return;
+            }
+            
             this.hideDeleteModal();
             this.saveToDraftBox(postId, index);
         },

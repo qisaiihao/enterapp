@@ -37,15 +37,25 @@ exports.main = async (event, context) => {
   }
 
   try {
+    console.log('【deletePost】开始删除帖子:', { postId, openid });
+    
     // 1. 读取帖子
     const postResult = await db.collection('posts').doc(postId).get();
     const post = postResult.data;
     if (!post) {
       return { success: false, message: 'POST_NOT_FOUND' };
     }
+    
+    console.log('【deletePost】帖子信息:', {
+      _openid: post._openid,
+      realAuthorOpenid: post.realAuthorOpenid,
+      isAnonymous: post.isAnonymous,
+      votes: post.votes
+    });
 
-    // 2. 权限校验
-    if (post._openid !== openid) {
+    // 2. 权限校验（支持匿名帖子）
+    const isOwner = post._openid === openid || post.realAuthorOpenid === openid;
+    if (!isOwner) {
       return {
         success: false,
         message: '权限不足，无法删除该内容'
@@ -56,7 +66,16 @@ exports.main = async (event, context) => {
     const votes = post.votes || 0;
     const bucket = bucketOf(votes);
     if (bucket) {
-      await db.collection('users').where({ _openid: post._openid }).update({
+      // 对于匿名帖子，需要更新真实作者的成长计数
+      const authorOpenid = post.realAuthorOpenid || post._openid;
+      console.log('【deletePost】更新成长计数:', {
+        bucket,
+        votes,
+        authorOpenid,
+        isAnonymous: !!post.realAuthorOpenid
+      });
+      
+      await db.collection('users').where({ _openid: authorOpenid }).update({
         data: { [`growthCounts.${bucket}`]: _.inc(-1), growthUpdatedAt: db.serverDate() }
       });
     }

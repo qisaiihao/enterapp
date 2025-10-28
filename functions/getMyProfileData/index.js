@@ -38,6 +38,7 @@ exports.main = async (event, context) => {
 
   const { skip = 0, limit = 20, action } = event;
   console.log('【profile云函数】收到参数:', { skip, limit, action });
+  console.log('【profile云函数】将查询用户帖子，包括匿名帖子，用户openid:', openid);
   
   // 如果是创建收藏夹，打印详细信息
   if (action === 'createFavoriteFolder') {
@@ -70,7 +71,7 @@ exports.main = async (event, context) => {
   }
 
   try {
-    // Step 1: Aggregate to get user info and their posts
+    // Step 1: Aggregate to get user info and their posts (including anonymous posts)
     const profileData = await db.collection('users').aggregate()
       .match({ _openid: openid })
       .limit(1)
@@ -78,7 +79,18 @@ exports.main = async (event, context) => {
         from: 'posts',
         let: { user_openid: '$_openid' },
         pipeline: [
-          { $match: { $expr: { $eq: ['$_openid', '$$user_openid'] } } },
+          { 
+            $match: { 
+              $expr: { 
+                $or: [
+                  // 匹配用户直接发布的帖子
+                  { $eq: ['$_openid', '$$user_openid'] },
+                  // 匹配用户发布的匿名帖子（通过realAuthorOpenid字段）
+                  { $eq: ['$realAuthorOpenid', '$$user_openid'] }
+                ]
+              } 
+            } 
+          },
           { $sort: { createTime: -1 } },
           { $skip: skip },
           { $limit: limit }
@@ -120,6 +132,15 @@ exports.main = async (event, context) => {
     };
     let posts = result.posts || []; // 这里已经是分页后的 posts
     console.log('【profile云函数】聚合后 posts 数量:', posts.length);
+    
+    // 统计帖子类型
+    const directPosts = posts.filter(post => post._openid === openid);
+    const anonymousPosts = posts.filter(post => post.realAuthorOpenid === openid);
+    console.log('【profile云函数】帖子类型统计:', {
+      总数量: posts.length,
+      直接发布: directPosts.length,
+      匿名发布: anonymousPosts.length
+    });
 
     // Step 2: Normalize冗余字段（移除重复排序，因为聚合管道已经排序）
     if (posts.length > 0) {
