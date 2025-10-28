@@ -1,87 +1,293 @@
-# miniprogram-to-uniapp 转换说明
+# 回车键 - 诗歌创作与分享平台
 
-## 0x00 转换模式
-根据转换模式，转换后的项目使用相应的工具打开，目前有两种模式：
+<div align="center">
 
-### HBuilder X 模式
-转换后的目录(以_uni结尾的目录), 需使用HBuilder X导入，进行运行和调试。
-如果项目使用了npm模块，需先使用npm install等命令进行安装，然后再运行
+![回车键](https://img.shields.io/badge/回车键-诗歌平台-blue)
+![uni-app](https://img.shields.io/badge/uni--app-Vue2-green)
+![CloudBase](https://img.shields.io/badge/CloudBase-腾讯云-orange)
+![多平台](https://img.shields.io/badge/多平台-小程序%20H5%20App-purple)
 
-### Vue-cli 模式
-转换后的目录(以_vue-cli结尾的目录), 需使用命令行安装依赖、运行和打包。
-详见文档：https://uniapp.dcloud.io/quickstart-cli.html#%E8%BF%90%E8%A1%8C%E3%80%81%E5%8F%91%E5%B8%83uni-app
+一个优雅的诗歌创作、分享与交流平台，支持多端运行
 
-注：
-上述两种项目类型，可以相互转换。
-[uni-app HBuilderX 工程与 vue-cli 工程相互转换](https://ask.dcloud.net.cn/article/35750)
+[功能特性](#-功能特性) • [技术栈](#-技术栈) • [快速开始](#-快速开始) • [项目结构](#-项目结构) • [部署指南](#-部署指南)
 
+</div>
 
-## 0x01 调试建议
-如果您想转换小程序为uni-app项目，并发布为App，
-建议运行到H5平台，因为H5平台速度快，而且与App平台贴合度更高。
-只有当强依赖硬件时，才使用真机调试，这样可以节约时间！
+## 📖 项目简介
 
+**回车键**是一个专注于诗歌创作与分享的社交平台，为用户提供优雅的创作环境和丰富的互动功能。项目采用uni-app框架开发，支持微信小程序、H5和App多端运行，后端基于腾讯云开发构建。
 
-## 0x02 常见问题
-### 1.命令行提示：“'wtu'不是内部或外部命令, 也不是可运行的程序”
-一般是node未安装在默认目录导致的，参照文章 [解决“npm不是内部或外部命令“](https://www.cnblogs.com/ldq678/p/10291824.html) 解决。
+### 🌟 核心特色
 
+- **诗意界面**：简洁优雅的UI设计，营造沉浸式创作氛围
+- **多端同步**：一次开发，多端运行，数据实时同步
+- **智能推荐**：基于用户喜好的个性化内容推荐
+- **作品集管理**：支持创建个人作品集，分类管理创作内容
+- **社区互动**：点赞、评论、关注等完整的社交功能
 
-### 2.PowerShell里提示：无法加载文件 XXXXXXXXX.ps1，因为在此系统上禁止运行脚本。
-以管理员身份运行`powershell`，执行
+## ✨ 功能特性
+
+### 🎨 创作功能
+- **诗歌创作**：支持富文本编辑，自定义背景色和文字颜色
+- **拼贴诗**：创新的拼贴诗歌创作模式
+- **草稿保存**：自动保存草稿，支持离线编辑
+- **图片上传**：支持多图片上传，自动压缩优化
+
+### 📱 社交互动
+- **广场浏览**：发现页展示精选内容
+- **个性化推荐**：基于用户行为的智能推荐
+- **点赞评论**：完整的互动体系
+- **关注系统**：关注感兴趣的作者
+- **消息通知**：实时消息推送
+
+### 📚 内容管理
+- **作品集**：创建个人作品集，分类管理
+- **收藏夹**：收藏喜欢的作品
+- **标签系统**：为作品添加标签，便于分类
+- **搜索功能**：全文搜索，快速找到内容
+
+### 👤 用户系统
+- **多端登录**：支持微信登录和账号密码登录
+- **个人资料**：自定义头像、昵称、签名
+- **隐私设置**：支持匿名发布
+- **数据统计**：查看个人创作和互动数据
+
+## 🛠 技术栈
+
+### 前端技术
+- **框架**：uni-app (Vue 2)
+- **UI组件**：自定义组件 + 原生组件
+- **状态管理**：Vuex + 本地存储
+- **样式**：SCSS + 响应式设计
+
+### 后端技术
+- **云服务**：腾讯云开发 (CloudBase)
+- **云函数**：Node.js + wx-server-sdk
+- **数据库**：云数据库 (MongoDB)
+- **存储**：云存储 (文件上传)
+
+### 开发工具
+- **IDE**：HBuilderX
+- **版本控制**：Git
+- **部署**：CloudBase CLI
+
+## 🚀 快速开始
+
+### 环境要求
+- Node.js >= 14.0.0
+- HBuilderX >= 3.0.0
+- 微信开发者工具 (小程序开发)
+
+### 安装步骤
+
+1. **克隆项目**
+```bash
+git clone https://github.com/your-username/回车键_uni.git
+cd 回车键_uni
 ```
-set-executionpolicy remotesigned
+
+2. **安装依赖**
+```bash
+npm install
 ```
-输入 y 即可
-或者，在PowerShell输入 `cmd` 后回车也行
 
+3. **配置云开发环境**
+   - 在腾讯云开发控制台创建环境
+   - 修改 `cloudbaserc.json` 中的环境ID
+   - 配置数据库权限
 
-### 3.setData为什么没有转换？需要我手动改吗？那我有100多个页面怎么改呀？
-`setData`函数已内置，在main.js通过mixin全局混入，所以不用转换，可直接使用`setData`函数！！！
+4. **部署云函数**
+```bash
+# 安装 CloudBase CLI
+npm install -g @cloudbase/cli
 
+# 登录腾讯云
+cloudbase login
 
-### 4.命令行报错："cannot read property ‘某某某’ of undefined"
-报错解释：有代码“`xx.某某某`”，但xx的值是undefined，因此，需要进报错的页面，调试调试，为啥xx为undefined，相应的调试代码即可。
-常见原因：可能接口跨域，可能真的没值，也可能没声明变量，也可能是工具转换问题等。
+# 部署云函数
+cloudbase functions:deploy
+```
 
+5. **运行项目**
+   - 使用 HBuilderX 打开项目
+   - 选择运行平台（H5/小程序/App）
+   - 点击运行
 
-### 5.为什么我运行到H5或app时，拿不到小程序用户的信息？为什么登录失败？
-转换后的uni-app项目，如需运行到其他小程序、H5和App时，登录和支付功能均需“重新对接”，需要增加 “新” 接口！
+### 开发模式
 
+```bash
+# H5开发
+npm run dev:h5
 
-### 6.跨域问题：为什么我的接口都没有返回数据呀？
-控制台有“CORS”、“Access-Control-Allow-Origin”等关键字时，不要犹豫，果断判断是因为跨域，导致访问接口失败。
-跨域，前端老生常谈，有N种解决办法，最简单的办法是运行到“内置浏览器”。
-PS: 仅仅 H5 平台存在跨域问题！发布后上传到服务器无此问题！
+# 小程序开发
+npm run dev:mp-weixin
 
+# App开发
+npm run dev:app-plus
+```
 
-### 7.Vant项目怎么转换呀？
+## 📁 项目结构
 
-Vant项目比较常见的报错是：代码`<button class="{{ utils.bem('action-sheet__item', { disabled: item.disabled || item.loading }) }} {{ item.className || '' }}"></button>`转到后，运行会报错，因为uni-app不支持在class里面写函数）
+```
+回车键_uni/
+├── pages/                  # 页面文件
+│   ├── index/             # 广场首页
+│   ├── poem-square/       # 诗歌广场
+│   ├── mountain/          # 山（发现页）
+│   ├── profile/           # 个人中心
+│   ├── post-detail/       # 帖子详情
+│   ├── add/               # 发布页面
+│   └── ...
+├── components/            # 组件库
+│   ├── custom-tabbar/     # 自定义标签栏
+│   ├── folder-selector/  # 文件夹选择器
+│   ├── portfolio-selector/ # 作品集选择器
+│   └── ...
+├── functions/             # 云函数
+│   ├── login/            # 登录
+│   ├── getPostList/      # 获取帖子列表
+│   ├── vote/             # 点赞
+│   ├── addComment/       # 添加评论
+│   └── ...
+├── utils/                # 工具函数
+│   ├── likeService.js    # 点赞服务
+│   ├── cloudCall.js      # 云函数调用
+│   └── ...
+├── static/               # 静态资源
+├── api-cache/            # API缓存
+├── App.vue               # 应用入口
+├── main.js               # 主文件
+├── pages.json            # 页面配置
+├── manifest.json         # 应用配置
+└── cloudbaserc.json      # 云开发配置
+```
 
-由于Vant的一些语法uni-app并不支持，因此需要特殊处理一下，这里分享三种方案，可以根据自己的情况进行选择。
+## 🔧 配置说明
 
-#### 方案一：【替换Vant组件】
-转换前，将vant组件全部用别的组件库替换掉再转换。
+### 云开发配置
 
-#### 方案二：【替换Vant组件】
-转换后，将vant组件使用uview1.x替换掉同功能组件。
+在 `cloudbaserc.json` 中配置你的云开发环境：
 
-#### 方案三：【不替换Vant组件】
-转换后，按uniapp引入小程序组件文档重新引入vant组件（小程序自定义组件支持：
-https://uniapp.dcloud.io/tutorial/miniprogram-subject.html#%E5%B0%8F%E7%A8%8B%E5%BA%8F%E8%87%AA%E5%AE%9A%E4%B9%89%E7%BB%84%E4%BB%B6%E6%94%AF%E6%8C%81）
+```json
+{
+  "envId": "your-env-id",
+  "framework": {
+    "name": "uni-app",
+    "plugins": {
+      "uni-app": {
+        "version": "2.0.0"
+      }
+    }
+  }
+}
+```
 
+### 数据库集合
 
-### 8.小程序转换为uni-app项目后，还能转换成其他小程序项目吗？
-当然可以，必须可以！
-小程序转换为uni-app项目后，就是uni-app项目了，uni-app项目能做啥就能做啥，
-能再次生成为各种小程序、发布H5和App。
+项目使用以下主要集合：
+- `users` - 用户信息
+- `posts` - 帖子内容
+- `comments` - 评论数据
+- `votes_log` - 点赞记录
+- `messages` - 消息通知
+- `portfolios` - 作品集
+- `favorites` - 收藏记录
 
+## 📱 多端适配
 
-### 9.uni-app生成的小程序项目，还能再转换回uni-app项目吗？
-不能。不支持这种项目的转换！
+### 微信小程序
+- 支持微信登录
+- 使用微信云开发
+- 适配小程序UI规范
 
+### H5端
+- 使用CloudBase SDK
+- 支持浏览器访问
+- 响应式设计
 
-### 其他
-- 因各种原因，本工具并非100%完美转换！有问题实属正常！
-- 如遇运行报错，请在https://github.com/zhangdaren/miniprogram-to-uniapp，将详细情况提交Issue！
+### App端
+- 支持原生功能
+- 相机拍照
+- 文件上传
+
+## 🚀 部署指南
+
+### 云函数部署
+
+```bash
+# 部署所有云函数
+cloudbase functions:deploy
+
+# 部署单个云函数
+cloudbase functions:deploy login
+
+# 查看部署状态
+cloudbase functions:list
+```
+
+### 前端部署
+
+#### H5部署
+```bash
+# 构建H5版本
+npm run build:h5
+
+# 部署到服务器
+# 将 dist/build/h5 目录上传到服务器
+```
+
+#### 小程序发布
+1. 使用微信开发者工具打开项目
+2. 点击"上传"按钮
+3. 在微信公众平台提交审核
+
+#### App发布
+1. 使用HBuilderX云打包
+2. 生成安装包
+3. 上传到应用商店
+
+## 🤝 贡献指南
+
+我们欢迎所有形式的贡献！
+
+### 如何贡献
+
+1. Fork 本仓库
+2. 创建你的特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交你的修改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 打开一个 Pull Request
+
+### 开发规范
+
+- 遵循 Vue.js 官方风格指南
+- 使用 ESLint 进行代码检查
+- 编写清晰的提交信息
+- 添加必要的注释和文档
+
+## 📄 许可证
+
+本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
+
+## 🙏 致谢
+
+感谢以下开源项目和服务：
+- [uni-app](https://uniapp.dcloud.io/) - 跨平台开发框架
+- [腾讯云开发](https://cloud.tencent.com/product/tcb) - 云服务支持
+- [Vue.js](https://vuejs.org/) - 前端框架
+
+## 📞 联系我们
+
+- 项目地址：[GitHub](https://github.com/your-username/回车键_uni)
+- 问题反馈：[Issues](https://github.com/your-username/回车键_uni/issues)
+- 邮箱：your-email@example.com
+
+---
+
+<div align="center">
+
+**让诗歌在指尖流淌，让创意在云端绽放** ✨
+
+Made with ❤️ by 回车键团队
+
+</div>
