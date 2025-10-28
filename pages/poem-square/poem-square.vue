@@ -362,54 +362,106 @@ export default {
     onSignatureError(e) {
       console.error('【poem-square】签名图片加载失败:', e);
     },
-    async onVote(e) {
+    onVote(e) {
+      console.log('【poem-square】点赞事件触发', e.currentTarget.dataset);
       const postId = e.currentTarget.dataset.postid;
       const index = e.currentTarget.dataset.index;
-      if (this.votingInProgress[postId]) return;
+      
+      if (!postId) {
+        console.error('【poem-square】点赞失败：postId为空');
+        uni.showToast({ title: '点赞失败：帖子ID缺失', icon: 'none' });
+        return;
+      }
+      
+      if (this.votingInProgress[postId]) {
+        console.log('【poem-square】正在点赞中，跳过重复请求');
+        return;
+      }
+      
       this.setData({ [`votingInProgress.${postId}`]: true });
       const list = this.postList;
       const originalVotes = Number(list[index].votes) || 0;
       const wasVoted = !!list[index].isVoted;
+      
+      console.log('【poem-square】点赞参数', { postId, index, originalVotes, wasVoted });
 
-      // 乐观更新
+      // 立即更新UI，提供即时反馈
       const optimisticVotes = wasVoted ? Math.max(0, originalVotes - 1) : originalVotes + 1;
-      list[index].votes = optimisticVotes;
-      list[index].isVoted = !wasVoted;
-      list[index].likeIcon = likeIcon.getLikeIcon(list[index].votes, list[index].isVoted);
-      this.setData({ postList: list });
+      const optimisticItem = {
+        ...list[index],
+        votes: optimisticVotes,
+        isVoted: !wasVoted,
+        likeIcon: likeIcon.getLikeIcon(optimisticVotes, !wasVoted)
+      };
+      const optimisticList = list.slice();
+      optimisticList[index] = optimisticItem;
+      this.setData({ postList: optimisticList });
 
-      try {
-        const result = await togglePostLike(postId, {
-          pageTag: 'poem-square',
-          context: this,
-          currentVotes: originalVotes,
-          currentIsLiked: wasVoted,
-          requireAuth: true
-        });
-        if (result && result.success) {
-          const updates = {};
-          updates[`postList[${index}].votes`] = result.votes;
-          updates[`postList[${index}].isVoted`] = result.isLiked;
-          updates[`postList[${index}].likeIcon`] = result.likeIcon;
-          this.setData(updates);
-        } else {
-          // 回滚
-          const updates = {};
-          updates[`postList[${index}].votes`] = originalVotes;
-          updates[`postList[${index}].isVoted`] = wasVoted;
-          updates[`postList[${index}].likeIcon`] = likeIcon.getLikeIcon(originalVotes, wasVoted);
-          this.setData(updates);
+      togglePostLike(postId, {
+        pageTag: 'poem-square',
+        context: this,
+        currentVotes: originalVotes,
+        currentIsLiked: wasVoted,
+        requireAuth: true
+      }).then((result) => {
+        console.log('【poem-square】服务返回结果:', result);
+        if (result.success) {
+          const currentList = this.postList || [];
+          const currentIndex = currentList.findIndex((p) => p._id === postId);
+          if (currentIndex > -1) {
+            const updatedItem = {
+              ...currentList[currentIndex],
+              votes: result.votes,
+              isVoted: result.isLiked,
+              likeIcon: result.likeIcon
+            };
+            const newList = currentList.slice();
+            newList[currentIndex] = updatedItem;
+            this.setData({ postList: newList });
+          }
+          console.log('【poem-square】服务调用成功，数据已同步');
+          return;
         }
-      } catch (err) {
-        const updates = {};
-        updates[`postList[${index}].votes`] = originalVotes;
-        updates[`postList[${index}].isVoted`] = wasVoted;
-        updates[`postList[${index}].likeIcon`] = likeIcon.getLikeIcon(originalVotes, wasVoted);
-        this.setData(updates);
+
+        const rollback = result.rollback || {
+          votes: originalVotes,
+          isLiked: wasVoted,
+          likeIcon: likeIcon.getLikeIcon(originalVotes, wasVoted)
+        };
+        console.warn('【poem-square】服务返回失败，回滚UI');
+        const currentList = this.postList || [];
+        const currentIndex = currentList.findIndex((p) => p._id === postId);
+        if (currentIndex > -1) {
+          const rollbackItem = {
+            ...currentList[currentIndex],
+            votes: rollback.votes,
+            isVoted: rollback.isLiked,
+            likeIcon: rollback.likeIcon
+          };
+          const rollbackList = currentList.slice();
+          rollbackList[currentIndex] = rollbackItem;
+          this.setData({ postList: rollbackList });
+        }
+        uni.showToast({ title: result?.message || '点赞失败', icon: 'none' });
+      }).catch((err) => {
+        console.error('【poem-square】点赞异常:', err);
+        const currentList = this.postList || [];
+        const currentIndex = currentList.findIndex((p) => p._id === postId);
+        if (currentIndex > -1) {
+          const rollbackItem = {
+            ...currentList[currentIndex],
+            votes: originalVotes,
+            isVoted: wasVoted,
+            likeIcon: likeIcon.getLikeIcon(originalVotes, wasVoted)
+          };
+          const rollbackList = currentList.slice();
+          rollbackList[currentIndex] = rollbackItem;
+          this.setData({ postList: rollbackList });
+        }
         uni.showToast({ title: '操作失败', icon: 'none' });
-      } finally {
+      }).finally(() => {
         this.setData({ [`votingInProgress.${postId}`]: false });
-      }
+      });
     },
 
     // 跨页同步：监听全局点赞变更
@@ -443,15 +495,7 @@ export default {
 </script>
 
 <style>
-/* 定义 Huiwen-mincho 字体 */
-@font-face {
-  font-family: 'Huiwen-mincho';
-  src: url('/static/fonts/Huiwen-mincho.otf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
-}
-
-
+/* 字体已在App.vue中全局预加载，这里不再需要重复定义 */
 
 .white-bg { 
   background: #fff; 

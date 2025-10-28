@@ -28,8 +28,14 @@
             @tap="openFolder(folder)"
           >
             <view class="folder-content">
-              <text class="folder-name">{{ folder.name }}</text>
-              <text class="folder-count">{{ folder.itemCount }} 个作品</text>
+              <view class="folder-icon">
+                <image v-if="folder.coverUrl" class="folder-cover-image" :src="folder.coverUrl" mode="aspectFill"></image>
+                <view v-else class="folder-default-icon">📚</view>
+              </view>
+              <view class="folder-info">
+                <text class="folder-name">{{ folder.name }}</text>
+                <text class="folder-count">{{ folder.itemCount }} 个作品</text>
+              </view>
             </view>
             <view class="folder-actions">
               <text class="action-btn edit" @tap.stop="editFolderName(folder)">编辑</text>
@@ -48,12 +54,33 @@
           <text class="close-btn" @tap="hideCreateModal">×</text>
         </view>
         <view class="modal-body">
-          <input
-            class="folder-name-input"
-            v-model="newFolderName"
-            placeholder="请输入作品集名称（最多7个字）"
-            maxlength="7"
-          />
+          <view class="create-folder-form">
+            <view class="form-item">
+              <view class="form-label">作品集名称</view>
+              <input
+                class="folder-name-input"
+                v-model="newFolderName"
+                placeholder="请输入作品集名称（最多7个字）"
+                maxlength="7"
+              />
+            </view>
+
+            <view class="form-item">
+              <view class="form-label">作品集封面</view>
+              <view class="cover-upload-section">
+                <view v-if="!newFolderCover" class="cover-upload-btn" @tap="chooseNewCoverImage">
+                  <view class="upload-icon">📷</view>
+                  <view class="upload-text">选择封面</view>
+                </view>
+                <view v-else class="cover-preview" @tap="chooseNewCoverImage">
+                  <image class="cover-image" :src="newFolderCover" mode="aspectFill"></image>
+                  <view class="cover-overlay">
+                    <view class="change-text">更换封面</view>
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
         </view>
         <view class="modal-footer">
           <button class="modal-btn cancel" @tap="hideCreateModal">取消</button>
@@ -70,12 +97,33 @@
           <text class="close-btn" @tap="hideEditModal">×</text>
         </view>
         <view class="modal-body">
-          <input
-            class="folder-name-input"
-            v-model="editingFolderName"
-            placeholder="请输入作品集名称（最多7个字）"
-            maxlength="7"
-          />
+          <view class="edit-folder-form">
+            <view class="form-item">
+              <view class="form-label">作品集名称</view>
+              <input
+                class="folder-name-input"
+                v-model="editingFolderName"
+                placeholder="请输入作品集名称（最多7个字）"
+                maxlength="7"
+              />
+            </view>
+
+            <view class="form-item">
+              <view class="form-label">作品集封面</view>
+              <view class="cover-upload-section">
+                <view v-if="!editingFolderCover" class="cover-upload-btn" @tap="chooseEditCoverImage">
+                  <view class="upload-icon">📷</view>
+                  <view class="upload-text">选择封面</view>
+                </view>
+                <view v-else class="cover-preview" @tap="chooseEditCoverImage">
+                  <image class="cover-image" :src="editingFolderCover" mode="aspectFill"></image>
+                  <view class="cover-overlay">
+                    <view class="change-text">更换封面</view>
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
         </view>
         <view class="modal-footer">
           <button class="modal-btn cancel" @tap="hideEditModal">取消</button>
@@ -97,10 +145,12 @@ export default {
       hasMore: false,
       showCreateModal: false,
       newFolderName: '',
+      newFolderCover: '',
       // 编辑相关
       showEditModal: false,
       editingFolder: null,
-      editingFolderName: ''
+      editingFolderName: '',
+      editingFolderCover: ''
     };
   },
 
@@ -166,14 +216,16 @@ export default {
     openCreateModal() {
       this.setData({
         showCreateModal: true,
-        newFolderName: ''
+        newFolderName: '',
+        newFolderCover: ''
       });
     },
 
     hideCreateModal() {
       this.setData({
         showCreateModal: false,
-        newFolderName: ''
+        newFolderName: '',
+        newFolderCover: ''
       });
     },
 
@@ -196,8 +248,13 @@ export default {
 
       try {
         uni.showLoading({ title: '创建中...' });
+        
+        // 先上传封面图片（如果有的话）
+        const coverUrl = await this.uploadNewCoverImage();
+        
         const res = await this.callCloudFunction('createPortfolioFolder', {
-          folderName: this.newFolderName.trim()
+          folderName: this.newFolderName.trim(),
+          coverUrl: coverUrl
         });
 
         if (res.result && res.result.success) {
@@ -224,6 +281,125 @@ export default {
       }
     },
 
+    // 选择新建作品集封面图片
+    chooseNewCoverImage() {
+      uni.chooseImage({
+        count: 1,
+        sizeType: ['compressed'],
+        sourceType: ['album', 'camera'],
+        success: (res) => {
+          const tempFilePath = res.tempFilePaths[0];
+          console.log('选择的新建作品集封面图片:', tempFilePath);
+          this.setData({
+            newFolderCover: tempFilePath
+          });
+        },
+        fail: (err) => {
+          console.error('选择图片失败:', err);
+          uni.showToast({
+            title: '选择图片失败',
+            icon: 'none'
+          });
+        }
+      });
+    },
+
+    // 上传新建作品集封面图片
+    uploadNewCoverImage() {
+      return new Promise((resolve, reject) => {
+        if (!this.newFolderCover) {
+          resolve(null);
+          return;
+        }
+
+        const timestamp = new Date().getTime();
+        const cloudPath = `portfolio_covers/${timestamp}_new_cover.jpg`;
+        
+        uni.showLoading({
+          title: '上传封面中...'
+        });
+
+        // 检查运行环境
+        // #ifdef H5
+        // H5环境：使用fetch获取blob，然后转换为base64
+        fetch(this.newFolderCover)
+          .then(response => response.blob())
+          .then(blob => {
+            return new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+          })
+          .then(base64 => {
+            // 移除data:image/jpeg;base64,前缀
+            const base64Data = base64.split(',')[1];
+            console.log('H5环境新建作品集封面图片base64转换成功');
+            
+            // 调用云函数上传
+            this.callCloudFunction('upload', {
+              fileContent: base64Data,
+              cloudPath: cloudPath
+            }).then((uploadRes) => {
+              uni.hideLoading();
+              console.log('H5环境新建作品集封面图片上传结果:', uploadRes);
+              if (uploadRes && uploadRes.result && uploadRes.result.fileID) {
+                resolve(uploadRes.result.fileID);
+              } else {
+                console.error('H5环境新建作品集封面图片上传失败:', uploadRes);
+                reject(new Error('上传失败'));
+              }
+            }).catch((uploadErr) => {
+              uni.hideLoading();
+              console.error('H5环境新建作品集封面图片上传云函数调用失败:', uploadErr);
+              reject(uploadErr);
+            });
+          })
+          .catch((err) => {
+            uni.hideLoading();
+            console.error('H5环境新建作品集封面图片base64转换失败:', err);
+            reject(err);
+          });
+        // #endif
+
+        // #ifndef H5
+        // 非H5环境（如小程序）：使用uni.getFileSystemManager
+        uni.getFileSystemManager().readFile({
+          filePath: this.newFolderCover,
+          encoding: 'base64',
+          success: (readRes) => {
+            console.log('非H5环境新建作品集封面图片base64读取成功');
+            
+            // 调用云函数上传
+            this.callCloudFunction('upload', {
+              fileContent: readRes.data,
+              cloudPath: cloudPath
+            }).then((uploadRes) => {
+              uni.hideLoading();
+              console.log('非H5环境新建作品集封面图片上传结果:', uploadRes);
+              if (uploadRes && uploadRes.result && uploadRes.result.fileID) {
+                resolve(uploadRes.result.fileID);
+              } else {
+                console.error('非H5环境新建作品集封面图片上传失败:', uploadRes);
+                reject(new Error('上传失败'));
+              }
+            }).catch((uploadErr) => {
+              uni.hideLoading();
+              console.error('非H5环境新建作品集封面图片上传云函数调用失败:', uploadErr);
+              reject(uploadErr);
+            });
+          },
+          fail: (readErr) => {
+            uni.hideLoading();
+            console.error('非H5环境新建作品集封面图片base64读取失败:', readErr);
+            reject(readErr);
+          }
+        });
+        // #endif
+      });
+    },
+
     openFolder(folder) {
       uni.navigateTo({
         url: `/pages/portfolio-detail/portfolio-detail?folderId=${folder._id}&folderName=${encodeURIComponent(folder.name)}`
@@ -237,7 +413,8 @@ export default {
       this.setData({
         showEditModal: true,
         editingFolder: folder,
-        editingFolderName: folder.name
+        editingFolderName: folder.name,
+        editingFolderCover: folder.coverUrl || ''
       });
     },
 
@@ -246,7 +423,8 @@ export default {
       this.setData({
         showEditModal: false,
         editingFolder: null,
-        editingFolderName: ''
+        editingFolderName: '',
+        editingFolderCover: ''
       });
     },
 
@@ -271,9 +449,13 @@ export default {
       try {
         uni.showLoading({ title: '保存中...' });
         
-        const res = await this.callCloudFunction('updatePortfolio', {
-          portfolioId: this.editingFolder._id,
-          name: this.editingFolderName.trim()
+        // 先上传封面图片（如果有的话）
+        const coverUrl = await this.uploadEditCoverImage();
+        
+        const res = await this.callCloudFunction('updatePortfolioFolder', {
+          folderId: this.editingFolder._id,
+          name: this.editingFolderName.trim(),
+          coverUrl: coverUrl
         });
 
         if (res.result && res.result.success) {
@@ -285,7 +467,11 @@ export default {
           // 更新本地作品集列表
           const updatedList = this.folders.map(folder => {
             if (folder._id === this.editingFolder._id) {
-              return { ...folder, name: this.editingFolderName.trim() };
+              return { 
+                ...folder, 
+                name: this.editingFolderName.trim(),
+                coverUrl: coverUrl || folder.coverUrl
+              };
             }
             return folder;
           });
@@ -302,7 +488,7 @@ export default {
           });
         }
       } catch (error) {
-        console.error('修改作品集名字失败:', error);
+        console.error('修改作品集失败:', error);
         uni.showToast({
           title: '修改失败',
           icon: 'none'
@@ -310,6 +496,125 @@ export default {
       } finally {
         uni.hideLoading();
       }
+    },
+
+    // 选择编辑作品集封面图片
+    chooseEditCoverImage() {
+      uni.chooseImage({
+        count: 1,
+        sizeType: ['compressed'],
+        sourceType: ['album', 'camera'],
+        success: (res) => {
+          const tempFilePath = res.tempFilePaths[0];
+          console.log('选择的编辑作品集封面图片:', tempFilePath);
+          this.setData({
+            editingFolderCover: tempFilePath
+          });
+        },
+        fail: (err) => {
+          console.error('选择图片失败:', err);
+          uni.showToast({
+            title: '选择图片失败',
+            icon: 'none'
+          });
+        }
+      });
+    },
+
+    // 上传编辑作品集封面图片
+    uploadEditCoverImage() {
+      return new Promise((resolve, reject) => {
+        if (!this.editingFolderCover) {
+          resolve(null);
+          return;
+        }
+
+        const timestamp = new Date().getTime();
+        const cloudPath = `portfolio_covers/${timestamp}_edit_cover.jpg`;
+        
+        uni.showLoading({
+          title: '上传封面中...'
+        });
+
+        // 检查运行环境
+        // #ifdef H5
+        // H5环境：使用fetch获取blob，然后转换为base64
+        fetch(this.editingFolderCover)
+          .then(response => response.blob())
+          .then(blob => {
+            return new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+          })
+          .then(base64 => {
+            // 移除data:image/jpeg;base64,前缀
+            const base64Data = base64.split(',')[1];
+            console.log('H5环境编辑作品集封面图片base64转换成功');
+            
+            // 调用云函数上传
+            this.callCloudFunction('upload', {
+              fileContent: base64Data,
+              cloudPath: cloudPath
+            }).then((uploadRes) => {
+              uni.hideLoading();
+              console.log('H5环境编辑作品集封面图片上传结果:', uploadRes);
+              if (uploadRes && uploadRes.result && uploadRes.result.fileID) {
+                resolve(uploadRes.result.fileID);
+              } else {
+                console.error('H5环境编辑作品集封面图片上传失败:', uploadRes);
+                reject(new Error('上传失败'));
+              }
+            }).catch((uploadErr) => {
+              uni.hideLoading();
+              console.error('H5环境编辑作品集封面图片上传云函数调用失败:', uploadErr);
+              reject(uploadErr);
+            });
+          })
+          .catch((err) => {
+            uni.hideLoading();
+            console.error('H5环境编辑作品集封面图片base64转换失败:', err);
+            reject(err);
+          });
+        // #endif
+
+        // #ifndef H5
+        // 非H5环境（如小程序）：使用uni.getFileSystemManager
+        uni.getFileSystemManager().readFile({
+          filePath: this.editingFolderCover,
+          encoding: 'base64',
+          success: (readRes) => {
+            console.log('非H5环境编辑作品集封面图片base64读取成功');
+            
+            // 调用云函数上传
+            this.callCloudFunction('upload', {
+              fileContent: readRes.data,
+              cloudPath: cloudPath
+            }).then((uploadRes) => {
+              uni.hideLoading();
+              console.log('非H5环境编辑作品集封面图片上传结果:', uploadRes);
+              if (uploadRes && uploadRes.result && uploadRes.result.fileID) {
+                resolve(uploadRes.result.fileID);
+              } else {
+                console.error('非H5环境编辑作品集封面图片上传失败:', uploadRes);
+                reject(new Error('上传失败'));
+              }
+            }).catch((uploadErr) => {
+              uni.hideLoading();
+              console.error('非H5环境编辑作品集封面图片上传云函数调用失败:', uploadErr);
+              reject(uploadErr);
+            });
+          },
+          fail: (readErr) => {
+            uni.hideLoading();
+            console.error('非H5环境编辑作品集封面图片base64读取失败:', readErr);
+            reject(readErr);
+          }
+        });
+        // #endif
+      });
     },
 
     async deleteFolder(folder) {
@@ -480,6 +785,34 @@ export default {
 .folder-content {
   flex: 1;
   display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.folder-icon {
+  width: 88rpx;
+  height: 88rpx;
+  background: #D9D9D9;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  flex-shrink: 0;
+}
+
+.folder-cover-image {
+  width: 100%;
+  height: 100%;
+  border-radius: 20rpx;
+}
+
+.folder-default-icon {
+  font-size: 40rpx;
+}
+
+.folder-info {
+  display: flex;
   flex-direction: column;
   gap: 8rpx;
 }
@@ -625,5 +958,91 @@ export default {
 .modal-btn.confirm[disabled] {
   background: #ccc;
   color: #999;
+}
+
+/* 封面上传样式 */
+.create-folder-form,
+.edit-folder-form {
+  display: flex;
+  flex-direction: column;
+  gap: 30rpx;
+}
+
+.form-item {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.form-label {
+  font-size: 26rpx;
+  color: #333333;
+  font-weight: 500;
+}
+
+.cover-upload-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.cover-upload-btn {
+  width: 200rpx;
+  height: 200rpx;
+  border: 2rpx dashed #e0e0e0;
+  border-radius: 12rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #f8f9fa;
+}
+
+.upload-icon {
+  font-size: 48rpx;
+  color: #999;
+  margin-bottom: 8rpx;
+}
+
+.upload-text {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.cover-preview {
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 12rpx;
+  overflow: hidden;
+  position: relative;
+}
+
+.cover-image {
+  width: 100%;
+  height: 100%;
+}
+
+.cover-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.cover-preview:active .cover-overlay {
+  opacity: 1;
+}
+
+.change-text {
+  color: #fff;
+  font-size: 24rpx;
+  font-weight: 500;
 }
 </style>

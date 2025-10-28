@@ -191,6 +191,15 @@ export default {
 </script>
 
 <style>
+/* 全局字体预加载 - 确保Huiwen-mincho字体在所有页面都能立即显示 */
+@font-face {
+  font-family: 'Huiwen-mincho';
+  src: url('/static/fonts/Huiwen-mincho.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap; /* 优化字体加载性能 */
+}
+
 /* 全局样式：修改下拉刷新的loading转圈圈颜色为黑色 */
 /* 针对微信小程序 */
 /* #ifdef MP-WEIXIN */

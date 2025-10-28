@@ -71,9 +71,50 @@ exports.main = async (event, context) => {
     }
 
     console.log('【getPortfolioFolders】返回作品集列表，数量:', result.data.length);
+    
+    // 处理封面图片URL转换
+    const folders = result.data;
+    const fileIDSet = new Set();
+    
+    // 收集所有需要转换的cloud:// URL
+    folders.forEach(folder => {
+      if (folder.coverUrl && folder.coverUrl.startsWith('cloud://')) {
+        fileIDSet.add(folder.coverUrl);
+      }
+    });
+
+    // 如果有需要转换的URL，批量获取临时URL
+    if (fileIDSet.size > 0) {
+      try {
+        const fileIDs = Array.from(fileIDSet);
+        console.log('【getPortfolioFolders】需要转换的封面URL数量:', fileIDs.length);
+        
+        const fileListResult = await cloud.getTempFileURL({ fileList: fileIDs });
+        const urlMap = new Map();
+        
+        fileListResult.fileList.forEach(item => {
+          if (item.status === 0) {
+            urlMap.set(item.fileID, item.tempFileURL);
+          }
+        });
+
+        console.log('【getPortfolioFolders】成功转换的URL数量:', urlMap.size);
+
+        // 替换封面URL
+        folders.forEach(folder => {
+          if (folder.coverUrl && urlMap.has(folder.coverUrl)) {
+            folder.coverUrl = urlMap.get(folder.coverUrl);
+            console.log('【getPortfolioFolders】转换封面URL:', folder.name, folder.coverUrl);
+          }
+        });
+      } catch (fileError) {
+        console.error('【getPortfolioFolders】封面URL转换失败:', fileError);
+      }
+    }
+    
     return {
       success: true,
-      folders: result.data
+      folders: folders
     };
   } catch (error) {
     console.error('【getPortfolioFolders】数据库查询失败:', error);

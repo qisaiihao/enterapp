@@ -44,6 +44,24 @@
               "memory": 128
             },
             {
+              "name": "createFavoriteFolder",
+              "root": "./functions/createFavoriteFolder",
+              "timeout": 10,
+              "memory": 256
+            },
+            {
+              "name": "deleteFavoriteFolder",
+              "root": "./functions/deleteFavoriteFolder",
+              "timeout": 10,
+              "memory": 256
+            },
+            {
+              "name": "updatePortfolioFolder",
+              "root": "./functions/updatePortfolioFolder",
+              "timeout": 10,
+              "memory": 256
+            },
+            {
               "name": "deleteComment",
               "root": "./functions/deleteComment",
               "timeout": 5,

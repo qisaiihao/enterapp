@@ -127,23 +127,6 @@
             </view>
         </scroll-view>
 
-        <!-- 底部操作栏 -->
-        <view v-if="selectedMessages.length > 0" class="bottom-action-bar">
-            <view class="action-info">
-                <text class="selected-time">{{ getSelectedTime() }}</text>
-                <view class="selected-content">
-                    <text>{{ getSelectedContent() }}</text>
-                </view>
-            </view>
-            <view class="action-buttons">
-                <view class="mark-read-btn" @tap="markSelectedAsRead">
-                    <text>已读</text>
-                </view>
-                <view class="delete-selected-btn" @tap="deleteSelectedMessages">
-                    <text>删除</text>
-                </view>
-            </view>
-        </view>
     </view>
 </template>
 
@@ -165,7 +148,6 @@ export default {
             activeTab: 'all',
             // all, like, comment, favorite, follow
             unreadCount: 0,
-            selectedMessages: [],
             showFilterDropdown: false,
             // 内容筛选
             contentFilter: 'all', // all, post, original, non-original, discussion
@@ -326,8 +308,6 @@ export default {
                 this.justLongPressed = false;
                 this.longPressGuardTimer = null;
             }, 200);
-
-            this.selectMessage(e);
         },
 
         handleMessageTap: function (e) {
@@ -342,11 +322,6 @@ export default {
 
             if (this.isSwipeMode) {
                 this.isSwipeMode = false;
-                return;
-            }
-
-            if (this.selectedMessages.length > 0) {
-                this.selectMessage(index);
                 return;
             }
 
@@ -856,34 +831,6 @@ export default {
             return actionMap[type] || '通知了你';
         },
 
-        // 选择消息（长按进入选择模式）
-        selectMessage: function (payload) {
-            this.closeAllSwipeActions();
-
-            const rawIndex = typeof payload === 'number'
-                ? payload
-                : (payload && payload.currentTarget && payload.currentTarget.dataset
-                    ? payload.currentTarget.dataset.index
-                    : undefined);
-            const index = typeof rawIndex === 'number' ? rawIndex : parseInt(rawIndex, 10);
-            if (Number.isNaN(index)) {
-                return;
-            }
-
-            const updatedSelections = [...this.selectedMessages];
-            const existingIndex = updatedSelections.indexOf(index);
-
-            if (existingIndex > -1) {
-                updatedSelections.splice(existingIndex, 1);
-            } else {
-                updatedSelections.push(index);
-            }
-
-            this.selectedMessages = updatedSelections;
-            this.setData({
-                selectedMessages: updatedSelections
-            });
-        },
 
         // 关注回关
         followBack: function (e) {
@@ -955,66 +902,9 @@ export default {
             });
         },
 
-        // 获取选中消息的时间
-        getSelectedTime: function () {
-            if (this.selectedMessages.length === 0) return '';
-            const firstSelected = this.messages[this.selectedMessages[0]];
-            return firstSelected ? firstSelected.formattedTime || '刚刚' : '';
-        },
 
-        // 获取选中消息的内容
-        getSelectedContent: function () {
-            if (this.selectedMessages.length === 0) return '';
-            const firstSelected = this.messages[this.selectedMessages[0]];
-            return firstSelected ? (firstSelected.postTitle || firstSelected.content || '标题') : '';
-        },
 
-        // 标记选中消息为已读
-        markSelectedAsRead: function () {
-            if (this.selectedMessages.length === 0) return;
-            
-            const messageIds = this.selectedMessages.map(index => this.messages[index]._id);
-            this.markMessagesAsRead(messageIds);
-            
-            this.setData({
-                selectedMessages: []
-            });
-        },
 
-        // 删除选中消息
-        deleteSelectedMessages: function () {
-            if (this.selectedMessages.length === 0) return;
-            
-            uni.showModal({
-                title: '确认删除',
-                content: `确定要删除选中的${this.selectedMessages.length}条消息吗？`,
-                success: (res) => {
-                    if (res.confirm) {
-                        const messageIds = this.selectedMessages.map(index => this.messages[index]._id);
-                        this.callCloudFunction('deleteMessage', { messageIds }).then((res) => {
-                            if (res.result && res.result.success) {
-                                // 从本地数据中移除
-                                const newMessages = this.messages.filter((msg, index) => !this.selectedMessages.includes(index));
-                                this.setData({
-                                    messages: newMessages,
-                                    selectedMessages: []
-                                });
-                                uni.showToast({
-                                    title: '删除成功',
-                                    icon: 'success'
-                                });
-                            }
-                        }).catch((err) => {
-                            console.error('删除消息失败:', err);
-                            uni.showToast({
-                                title: '删除失败',
-                                icon: 'none'
-                            });
-                        });
-                    }
-                }
-            });
-        }
     }
 };
 </script>
@@ -1380,72 +1270,6 @@ export default {
     border-radius: 50%;
 }
 
-/* 底部操作栏 */
-.bottom-action-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: #ffffff;
-    border-top: 1rpx solid #f0f0f0;
-    padding: 20rpx 30rpx;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.1);
-}
-
-.action-info {
-    flex: 1;
-}
-
-.selected-time {
-    font-size: 24rpx;
-    color: #999999;
-    background-color: #f5f5f5;
-    padding: 4rpx 12rpx;
-    border-radius: 12rpx;
-    display: inline-block;
-    margin-bottom: 8rpx;
-}
-
-.selected-content {
-    background-color: #f5f5f5;
-    padding: 8rpx 12rpx;
-    border-radius: 8rpx;
-}
-
-.selected-content text {
-    font-size: 26rpx;
-    color: #333333;
-}
-
-.action-buttons {
-    display: flex;
-    gap: 20rpx;
-}
-
-.mark-read-btn {
-    padding: 16rpx 32rpx;
-    background-color: #f0f0f0;
-    border-radius: 8rpx;
-}
-
-.mark-read-btn text {
-    font-size: 28rpx;
-    color: #000000;
-}
-
-.delete-selected-btn {
-    padding: 16rpx 32rpx;
-    background-color: #ff6b6b;
-    border-radius: 8rpx;
-}
-
-.delete-selected-btn text {
-    font-size: 28rpx;
-    color: #ffffff;
-}
 
 /* 加载更多 */
 .loading-more,

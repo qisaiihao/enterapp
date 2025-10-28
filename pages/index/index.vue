@@ -2157,9 +2157,9 @@ onReachBottom: function () {
     margin-left: 10rpx;
 }
 
-.vote-count.voted {
+/* .vote-count.voted {
     color: #ff4757;
-}
+} */
 
 .actions-left {
     display: flex;

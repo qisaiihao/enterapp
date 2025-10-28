@@ -167,7 +167,7 @@
                                 <image class="favorite-icon" src="/static/images/my_favorites.png" mode="aspectFit"></image>
                         </view>
                             <!-- 作品集按钮 - 只有原创诗且是自己的帖子才显示 -->
-                            <view v-else-if="post.isoriginal" class="portfolio-icon-container" @tap.stop.prevent="onAddToPortfolio">
+                            <view v-else-if="post.isOriginal && post.isPoem" class="portfolio-icon-container" @tap.stop.prevent="onAddToPortfolio">
                                 <image class="portfolio-icon" src="/static/images/portfolio.png" mode="aspectFit"></image>
                             </view>
                             <!-- 讨论按钮 - 只有诗歌类型才显示 -->

@@ -2119,22 +2119,9 @@ export default {
             
             console.log('滑动距离 - deltaX:', deltaX, 'deltaY:', deltaY);
             
-            // 检测右滑退出（从用户角度看，右滑退出更符合直觉）
-            if (deltaX > 20) {
-                console.log('检测到右滑，退出高光选择');
-                this.exitHighlightModalToEdit();
-                return;
-            }
-            
-            // 备用条件：检测左滑退出
-            if (deltaX < -20) {
-                console.log('检测到左滑，退出高光选择');
-                this.exitHighlightModalToEdit();
-                return;
-            }
-            
-            // 水平滑动距离大于垂直滑动距离的情况
-            if (Math.abs(deltaX) > deltaY && Math.abs(deltaX) > 15) {
+            // 只有当水平滑动距离明显大于垂直滑动距离时，才认为是水平滑动
+            // 这样可以避免垂直滑动（如下滑）意外触发退出
+            if (Math.abs(deltaX) > deltaY && Math.abs(deltaX) > 30) {
                 console.log('检测到水平滑动，退出高光选择');
                 this.exitHighlightModalToEdit();
             }
@@ -3181,10 +3168,12 @@ page {
 }
 
 .mode-switch-icon {
+    width: 110rpx;
+    height: 110rpx;
     padding: 12rpx;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.95);
-    box-shadow: 0 6rpx 16rpx rgba(0, 0, 0, 0.12);
+    background: transparent;
+    box-shadow: none;
 }
 
 .mode-switch-modal-icon {
@@ -3700,6 +3689,11 @@ page {
         height: 50rpx;
     }
     
+    .mode-switch-icon {
+        width: 70rpx;
+        height: 70rpx;
+    }
+    
     .side-tool-icon {
         font-size: 18rpx;
     }
@@ -3732,6 +3726,11 @@ page {
     .side-tool-btn {
         width: 70rpx;
         height: 70rpx;
+    }
+    
+    .mode-switch-icon {
+        width: 90rpx;
+        height: 90rpx;
     }
     
     .side-tool-icon {

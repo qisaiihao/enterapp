@@ -1,3 +1,47 @@
+// 字体预加载 - 确保Huiwen-mincho字体在应用启动时就加载
+// #ifdef H5
+if (typeof document !== 'undefined') {
+  // 创建字体预加载链接
+  const fontLink = document.createElement('link');
+  fontLink.rel = 'preload';
+  fontLink.as = 'font';
+  fontLink.type = 'font/otf';
+  fontLink.href = '/static/fonts/Huiwen-mincho.otf';
+  fontLink.crossOrigin = 'anonymous';
+  document.head.appendChild(fontLink);
+  
+  // 同时创建字体样式表
+  const fontStyle = document.createElement('style');
+  fontStyle.textContent = `
+    @font-face {
+      font-family: 'Huiwen-mincho';
+      src: url('/static/fonts/Huiwen-mincho.otf') format('opentype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+  `;
+  document.head.appendChild(fontStyle);
+  
+  console.log('🔤 [字体预加载] Huiwen-mincho字体已预加载');
+}
+// #endif
+
+// #ifdef APP-PLUS
+// App端字体预加载
+try {
+  const fontPath = plus.io.convertLocalFileSystemURL('/static/fonts/Huiwen-mincho.otf');
+  console.log('🔤 [字体预加载] App端字体路径:', fontPath);
+} catch (e) {
+  console.warn('🔤 [字体预加载] App端字体预加载失败:', e);
+}
+// #endif
+
+// #ifdef MP-WEIXIN
+// 微信小程序字体预加载
+console.log('🔤 [字体预加载] 微信小程序字体将在页面加载时自动处理');
+// #endif
+
 import App from './App';
 import fileUrlCache from './_utils/file-url-cache';
 import { setupCacheEventBridges } from '@/api-cache/events.js';

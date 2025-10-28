@@ -163,6 +163,12 @@ async function togglePostLike(postId, options = {}) {
         );
     } catch (error) {
         console.error('[likeService] 调用云函数失败', error);
+        console.error('[likeService] 错误详情:', {
+            message: error?.message,
+            code: error?.code,
+            errCode: error?.errCode,
+            stack: error?.stack
+        });
         if (showErrorToast) {
             showToast(error && error.message);
         }

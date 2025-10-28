@@ -1,65 +1,107 @@
 <template>
     <!-- pages/favorite-folders/favorite-folders.wxml -->
-    <view class="container">
-
-        <!-- 收藏夹列表 -->
-        <view v-if="folders.length > 0" class="folders-container">
-            <view
-                class="folder-item"
-                :data-folder-id="item._id"
-                :data-folder-name="item.name"
-                @tap="enterFolder"
-                @longpress="onFolderLongPress"
-                v-for="(item, index) in folders"
-                :key="index"
-            >
-                <view class="folder-icon">📁</view>
-
-                <view class="folder-info">
-                    <view class="folder-name">{{ item.name }}</view>
-                    <view class="folder-meta">
-                        <text class="item-count">{{ item.itemCount }} 个收藏</text>
-                        <text class="create-time">{{ item.createTime }}</text>
-                    </view>
-                </view>
-
-                <view class="folder-arrow">></view>
+    <view class="favorite-folders-page">
+        <!-- 顶部导航栏 -->
+        <view class="header">
+            <view class="header-left" @tap="goBack">
+                <text class="back-icon">←</text>
+            </view>
+            <text class="header-title">我的收藏</text>
+            <view class="header-right">
+                <text class="create-btn" @tap="showCreateFolder">+ 新建</text>
             </view>
         </view>
 
-        <!-- 空状态 -->
-        <view v-else class="empty-container">
-            <view class="empty-icon">📁</view>
-            <view class="empty-text">还没有收藏夹</view>
-            <view class="empty-subtext">创建收藏夹来整理你的收藏吧</view>
-        </view>
+        <!-- 收藏夹列表 -->
+        <scroll-view class="folders-list" scroll-y="true">
+            <view class="folders-content">
+                <view v-if="folders.length === 0" class="empty-state">
+                    <text class="empty-icon">📁</text>
+                    <text class="empty-text">暂无收藏夹</text>
+                    <text class="empty-subtext">创建您的第一个收藏夹吧</text>
+                </view>
 
-        <!-- 创建收藏夹按钮 -->
-        <view class="create-button" @tap="showCreateFolder">
-            <view class="create-icon">+</view>
-            <text>创建收藏夹</text>
-        </view>
+                <view v-else class="folder-grid">
+                    <view
+                        v-for="folder in folders"
+                        :key="folder._id"
+                        class="folder-item-simple"
+                        @tap="enterFolder(folder)"
+                    >
+                        <view class="folder-content">
+                            <text class="folder-name">{{ folder.name }}</text>
+                            <text class="folder-count">{{ folder.itemCount }} 个收藏</text>
+                        </view>
+                        <view class="folder-actions">
+                            <text class="action-btn edit" @tap.stop="editFolderName(folder)">编辑</text>
+                            <text class="action-btn delete" @tap.stop="deleteFolder(folder)">删除</text>
+                        </view>
+                    </view>
+                </view>
+            </view>
+        </scroll-view>
 
         <!-- 创建收藏夹弹窗 -->
-        <view v-if="showCreateModal" class="modal-overlay">
-            <view class="modal-content">
-                <view class="modal-title">创建收藏夹</view>
-                <input class="modal-input" placeholder="请输入收藏夹名称" :value="newFolderName" @input="onFolderNameInput" maxlength="20" @tap.stop.prevent="trueFun" />
-                <view class="modal-buttons">
-                    <button class="modal-btn cancel-btn" @tap="hideCreateModal">取消</button>
-                    <button class="modal-btn confirm-btn" @tap="createFolder">创建</button>
+        <view v-if="showCreateModal" class="modal-overlay" @tap="hideCreateModal">
+            <view class="modal-content" @tap.stop>
+                <view class="modal-header">
+                    <text class="modal-title">新建收藏夹</text>
+                    <text class="close-btn" @tap="hideCreateModal">×</text>
+                </view>
+                <view class="modal-body">
+                    <input
+                        class="folder-name-input"
+                        v-model="newFolderName"
+                        placeholder="请输入收藏夹名称（最多7个字）"
+                        maxlength="7"
+                    />
+                </view>
+                <view class="modal-footer">
+                    <button class="modal-btn cancel" @tap="hideCreateModal">取消</button>
+                    <button class="modal-btn confirm" @tap="createFolder" :disabled="!newFolderName.trim()">创建</button>
                 </view>
             </view>
         </view>
 
         <!-- 编辑收藏夹弹窗 -->
-        <view v-if="showEditModal" class="modal-overlay">
-            <view class="modal-content">
-                <view class="modal-title">重命名收藏夹</view>
-                <input class="modal-input" placeholder="请输入收藏夹名称" :value="editFolderName" @input="onEditFolderNameInput" maxlength="20" @tap.stop.prevent="trueFun" />
-                <view class="modal-buttons">
-                    <button class="modal-btn cancel-btn" @tap="hideEditModal">取消</button>
-                    <button class="modal-btn confirm-btn" @tap="updateFolderName">保存</button>
+        <view v-if="showEditModal" class="modal-overlay" @tap="hideEditModal">
+            <view class="modal-content" @tap.stop>
+                <view class="modal-header">
+                    <text class="modal-title">修改收藏夹名字</text>
+                    <text class="close-btn" @tap="hideEditModal">×</text>
+                </view>
+                <view class="modal-body">
+                    <view class="edit-folder-form">
+                        <view class="form-item">
+                            <view class="form-label">收藏夹名称</view>
+                            <input
+                                class="folder-name-input"
+                                v-model="editingFolderName"
+                                placeholder="请输入收藏夹名称（最多7个字）"
+                                maxlength="7"
+                            />
+                        </view>
+
+                        <view class="form-item">
+                            <view class="form-label">收藏夹封面</view>
+                            <view class="cover-upload-section">
+                                <view v-if="!editingFolderCover" class="cover-upload-btn" @tap="chooseEditCoverImage">
+                                    <view class="upload-icon">📷</view>
+                                    <view class="upload-text">选择封面</view>
+                                </view>
+                                <view v-else class="cover-preview" @tap="chooseEditCoverImage">
+                                    <image class="cover-image" :src="editingFolderCover" mode="aspectFill"></image>
+                                    <view class="cover-overlay">
+                                        <view class="change-text">更换封面</view>
+                                    </view>
+                                </view>
+                            </view>
+                        </view>
+                    </view>
+                </view>
+                <view class="modal-footer">
+                    <button class="modal-btn cancel" @tap="hideEditModal">取消</button>
+                    <button class="modal-btn confirm" @tap="saveFolderName" :disabled="!editingFolderName.trim()">保存</button>
                 </view>
             </view>
         </view>
@@ -78,7 +120,8 @@ export default {
             newFolderName: '',
             editingFolder: null,
             showEditModal: false,
-            editFolderName: ''
+            editingFolderName: '',
+            editingFolderCover: ''
         };
     },
     onLoad: function () {
@@ -93,6 +136,49 @@ export default {
         // 统一云函数调用方法
         callCloudFunction(name, data = {}, extraOptions = {}) {
             return cloudCall(name, data, Object.assign({ pageTag: 'favorite-folders', context: this, requireAuth: true }, extraOptions));
+        },
+
+        // 返回上一页
+        goBack() {
+            uni.navigateBack();
+        },
+
+        // 进入收藏夹
+        enterFolder(folder) {
+            console.log('=== 点击收藏夹项 ===');
+            console.log('folder对象:', folder);
+            
+            if (!folder || !folder._id) {
+                console.error('错误：folder对象或_id为空');
+                uni.showToast({
+                    title: '收藏夹信息错误',
+                    icon: 'none'
+                });
+                return;
+            }
+
+            const folderId = folder._id;
+            const folderName = folder.name;
+            
+            console.log('folderId:', folderId);
+            console.log('folderName:', folderName);
+
+            const targetUrl = `/pages/favorite-content/favorite-content?folderId=${folderId}&folderName=${encodeURIComponent(folderName || '')}`;
+            console.log('跳转URL:', targetUrl);
+            
+            uni.navigateTo({
+                url: targetUrl,
+                success: function () {
+                    console.log('跳转成功');
+                },
+                fail: function (err) {
+                    console.error('跳转失败:', err);
+                    uni.showToast({
+                        title: '跳转失败',
+                        icon: 'none'
+                    });
+                }
+            });
         },
         loadFolders: function () {
             this.setData({
@@ -224,82 +310,25 @@ export default {
                 });
         },
 
-        // 进入收藏夹
-        enterFolder: function (e) {
-            console.log('=== 点击收藏夹项 ===');
-            console.log('事件对象:', e);
-            console.log('dataset:', e.currentTarget.dataset);
-            const folderId = e.currentTarget.dataset.folderId;
-            const folderName = e.currentTarget.dataset.folderName;
-            console.log('提取的folderId:', folderId);
-            console.log('提取的folderName:', folderName);
-            if (!folderId) {
-                console.error('错误：folderId 为空');
-                uni.showToast({
-                    title: '收藏夹ID为空',
-                    icon: 'none'
-                });
-                return;
-            }
-            const targetUrl = `/pages/favorite-content/favorite-content?folderId=${folderId}&folderName=${encodeURIComponent(folderName || '')}`;
-            console.log('跳转URL:', targetUrl);
-            uni.navigateTo({
-                url: targetUrl,
-                success: function () {
-                    console.log('跳转成功');
-                },
-                fail: function (err) {
-                    console.error('跳转失败:', err);
-                }
-            });
-        },
-
-        // 长按收藏夹显示编辑选项
-        onFolderLongPress: function (e) {
-            const folderId = e.currentTarget.dataset.folderId;
-            const folderName = e.currentTarget.dataset.folderName;
-            uni.showActionSheet({
-                itemList: ['重命名', '删除'],
-                success: (res) => {
-                    if (res.tapIndex === 0) {
-                        // 重命名
-                        this.showEditFolder(folderId, folderName);
-                    } else if (res.tapIndex === 1) {
-                        // 删除
-                        this.deleteFolder(folderId, folderName);
-                    }
-                }
-            });
-        },
-
-        // 显示编辑收藏夹弹窗
-        showEditFolder: function (folderId, folderName) {
+        // 显示创建收藏夹弹窗
+        showCreateFolder() {
             this.setData({
-                showEditModal: true,
-                editingFolder: folderId,
-                editFolderName: folderName
+                showCreateModal: true,
+                newFolderName: ''
             });
         },
 
-        // 隐藏编辑收藏夹弹窗
-        hideEditModal: function () {
+        // 隐藏创建收藏夹弹窗
+        hideCreateModal() {
             this.setData({
-                showEditModal: false,
-                editingFolder: null,
-                editFolderName: ''
+                showCreateModal: false,
+                newFolderName: ''
             });
         },
 
-        // 输入编辑的收藏夹名称
-        onEditFolderNameInput: function (e) {
-            this.setData({
-                editFolderName: e.detail.value
-            });
-        },
-
-        // 更新收藏夹名称
-        updateFolderName: function () {
-            const folderName = this.editFolderName.trim();
+        // 创建收藏夹
+        async createFolder() {
+            const folderName = this.newFolderName.trim();
             if (!folderName) {
                 uni.showToast({
                     title: '请输入收藏夹名称',
@@ -308,26 +337,284 @@ export default {
                 return;
             }
 
-            // 这里需要创建一个更新收藏夹名称的云函数
-            uni.showToast({
-                title: '重命名功能待实现',
-                icon: 'none'
+            try {
+                uni.showLoading({ title: '创建中...' });
+                const result = await this.callCloudFunction('createFavoriteFolder', {
+                    folderName: folderName
+                });
+
+                if (result.result && result.result.success) {
+                    uni.showToast({
+                        title: '创建成功',
+                        icon: 'success'
+                    });
+                    this.hideCreateModal();
+                    this.loadFolders();
+                } else {
+                    uni.showToast({
+                        title: result.result?.message || '创建失败',
+                        icon: 'none'
+                    });
+                }
+            } catch (error) {
+                console.error('创建收藏夹失败:', error);
+                uni.showToast({
+                    title: '创建失败',
+                    icon: 'none'
+                });
+            } finally {
+                uni.hideLoading();
+            }
+        },
+
+        // 编辑收藏夹名称
+        editFolderName(folder) {
+            this.setData({
+                showEditModal: true,
+                editingFolder: folder,
+                editingFolderName: folder.name,
+                editingFolderCover: folder.coverUrl || ''
             });
-            this.hideEditModal();
+        },
+
+        // 隐藏编辑弹窗
+        hideEditModal() {
+            this.setData({
+                showEditModal: false,
+                editingFolder: null,
+                editingFolderName: '',
+                editingFolderCover: ''
+            });
+        },
+
+        // 选择编辑封面图片
+        chooseEditCoverImage() {
+            uni.chooseImage({
+                count: 1,
+                sizeType: ['compressed'],
+                sourceType: ['album', 'camera'],
+                success: (res) => {
+                    const tempFilePath = res.tempFilePaths[0];
+                    console.log('选择的编辑封面图片:', tempFilePath);
+                    this.setData({
+                        editingFolderCover: tempFilePath
+                    });
+                },
+                fail: (err) => {
+                    console.error('选择图片失败:', err);
+                    uni.showToast({
+                        title: '选择图片失败',
+                        icon: 'none'
+                    });
+                }
+            });
+        },
+
+        // 上传编辑封面图片
+        uploadEditCoverImage() {
+            return new Promise((resolve, reject) => {
+                if (!this.editingFolderCover) {
+                    resolve(null);
+                    return;
+                }
+
+                const timestamp = new Date().getTime();
+                const cloudPath = `folder_covers/${timestamp}_edit_cover.jpg`;
+                
+                uni.showLoading({
+                    title: '上传封面中...'
+                });
+
+                // 检查环境并使用相应的文件读取方式
+                if (typeof window !== 'undefined' && typeof FileReader !== 'undefined') {
+                    // H5环境：使用fetch获取blob，然后转换为base64
+                    fetch(this.editingFolderCover)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+                            return response.blob();
+                        })
+                        .then(blob => {
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                                const result = reader.result;
+                                if (!result || typeof result !== 'string') {
+                                    console.error('FileReader结果无效:', result);
+                                    reject(new Error('文件读取失败'));
+                                    return;
+                                }
+                                const base64 = result.split(',')[1];
+                                console.log('编辑封面图片转换为base64完成，长度:', base64.length);
+                                
+                                // 使用云函数上传
+                                this.callCloudFunction('upload', {
+                                    cloudPath: cloudPath,
+                                    fileContent: base64
+                                }).then((uploadRes) => {
+                                    uni.hideLoading();
+                                    console.log('编辑封面上传云函数返回结果:', uploadRes);
+                                    
+                                    if (uploadRes && uploadRes.result && uploadRes.result.success) {
+                                        console.log('编辑封面图片上传成功:', uploadRes.result.fileID);
+                                        resolve(uploadRes.result.fileID);
+                                    } else {
+                                        console.error('编辑封面上传云函数返回格式错误:', uploadRes);
+                                        reject(new Error('上传失败'));
+                                    }
+                                }).catch((err) => {
+                                    uni.hideLoading();
+                                    console.error('上传编辑封面图片失败:', err);
+                                    reject(err);
+                                });
+                            };
+                            reader.onerror = () => {
+                                uni.hideLoading();
+                                reject(new Error('文件读取失败'));
+                            };
+                            reader.readAsDataURL(blob);
+                        })
+                        .catch((err) => {
+                            uni.hideLoading();
+                            console.error('获取编辑封面图片失败:', err);
+                            reject(new Error('获取图片失败'));
+                        });
+                } else {
+                    // 小程序环境：使用getFileSystemManager
+                    uni.getFileSystemManager().readFile({
+                        filePath: this.editingFolderCover,
+                        encoding: 'base64',
+                        success: (res) => {
+                            console.log('编辑封面图片读取成功，base64长度:', res.data.length);
+                            
+                            // 使用云函数上传
+                            this.callCloudFunction('upload', {
+                                cloudPath: cloudPath,
+                                fileContent: res.data
+                            }).then((uploadRes) => {
+                                uni.hideLoading();
+                                console.log('编辑封面上传云函数返回结果:', uploadRes);
+                                
+                                if (uploadRes && uploadRes.result && uploadRes.result.success) {
+                                    console.log('编辑封面图片上传成功:', uploadRes.result.fileID);
+                                    resolve(uploadRes.result.fileID);
+                                } else {
+                                    console.error('编辑封面上传云函数返回格式错误:', uploadRes);
+                                    reject(new Error('上传失败'));
+                                }
+                            }).catch((err) => {
+                                uni.hideLoading();
+                                console.error('上传编辑封面图片失败:', err);
+                                reject(err);
+                            });
+                        },
+                        fail: (err) => {
+                            uni.hideLoading();
+                            console.error('读取编辑封面图片失败:', err);
+                            reject(new Error('读取图片失败'));
+                        }
+                    });
+                }
+            });
+        },
+
+        // 保存收藏夹名称
+        async saveFolderName() {
+            const folderName = this.editingFolderName.trim();
+            if (!folderName) {
+                uni.showToast({
+                    title: '请输入收藏夹名称',
+                    icon: 'none'
+                });
+                return;
+            }
+
+            if (!this.editingFolder) {
+                uni.showToast({
+                    title: '参数错误',
+                    icon: 'none'
+                });
+                return;
+            }
+
+            try {
+                uni.showLoading({ title: '修改中...' });
+                
+                // 先上传封面图片（如果有的话）
+                const coverUrl = await this.uploadEditCoverImage();
+                
+                const result = await this.callCloudFunction('updateFavoriteFolder', {
+                    folderId: this.editingFolder._id,
+                    name: folderName,
+                    coverUrl: coverUrl
+                });
+
+                if (result.result && result.result.success) {
+                    uni.showToast({
+                        title: '修改成功',
+                        icon: 'success'
+                    });
+                    this.hideEditModal();
+                    this.loadFolders();
+                } else {
+                    uni.showToast({
+                        title: result.result?.message || '修改失败',
+                        icon: 'none'
+                    });
+                }
+            } catch (error) {
+                console.error('修改收藏夹名称失败:', error);
+                uni.showToast({
+                    title: '修改失败',
+                    icon: 'none'
+                });
+            } finally {
+                uni.hideLoading();
+            }
         },
 
         // 删除收藏夹
-        deleteFolder: function (folderId, folderName) {
+        async deleteFolder(folder) {
+            if (folder.isDefault) {
+                uni.showToast({
+                    title: '默认收藏夹不能删除',
+                    icon: 'none'
+                });
+                return;
+            }
+
             uni.showModal({
                 title: '确认删除',
-                content: `确定要删除收藏夹"${folderName}"吗？删除后其中的所有收藏内容也会被删除。`,
-                success: (res) => {
+                content: `确定要删除收藏夹"${folder.name}"吗？里面的收藏不会被删除。`,
+                success: async (res) => {
                     if (res.confirm) {
-                        // 这里需要创建一个删除收藏夹的云函数
-                        uni.showToast({
-                            title: '删除功能待实现',
-                            icon: 'none'
-                        });
+                        try {
+                            uni.showLoading({ title: '删除中...' });
+                            const result = await this.callCloudFunction('deleteFavoriteFolder', {
+                                folderId: folder._id
+                            });
+
+                            if (result.result && result.result.success) {
+                                uni.showToast({
+                                    title: '删除成功',
+                                    icon: 'success'
+                                });
+                                this.loadFolders();
+                            } else {
+                                uni.showToast({
+                                    title: result.result?.message || '删除失败',
+                                    icon: 'none'
+                                });
+                            }
+                        } catch (error) {
+                            console.error('删除收藏夹失败:', error);
+                            uni.showToast({
+                                title: '删除失败',
+                                icon: 'none'
+                            });
+                        } finally {
+                            uni.hideLoading();
+                        }
                     }
                 }
             });
@@ -341,112 +628,174 @@ export default {
 </script>
 <style>
 /* pages/favorite-folders/favorite-folders.wxss */
-.container {
+.favorite-folders-page {
     min-height: 100vh;
-    background-color: #f5f5f5;
-    padding: 20rpx;
-}
-
-.loading-container {
+    background: #fff;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 400rpx;
+    flex-direction: column;
+    /* #ifdef APP-PLUS */
+    padding-top: var(--status-bar-height);
+    /* #endif */
 }
 
-.loading-text {
-    color: #999;
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 20rpx 30rpx;
+    background: #fff;
+    border-bottom: 1rpx solid #e9ecef;
+}
+
+.header-left {
+    position: absolute;
+    left: 30rpx;
+    width: 60rpx;
+    height: 60rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.back-icon {
+    font-size: 36rpx;
+    color: #333;
+    font-weight: bold;
+}
+
+.header-title {
+    font-size: 36rpx;
+    font-weight: 600;
+    color: #333;
+}
+
+.header-right {
+    position: absolute;
+    right: 30rpx;
+    width: 100rpx;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.create-btn {
+    font-size: 28rpx;
+    color: #9ed7ee;
+    font-weight: 500;
+}
+
+.folders-list {
+    flex: 1;
+    height: 0;
+    overflow: hidden;
+}
+
+.folders-content {
+    padding: 30rpx;
+}
+
+.loading {
+    text-align: center;
+    padding: 60rpx 0;
+    color: #666;
     font-size: 28rpx;
 }
 
-.folders-container {
-    padding-bottom: 120rpx;
-}
-
-.folder-item {
-    display: flex;
-    align-items: center;
-    background: white;
-    border-radius: 16rpx;
-    padding: 30rpx;
-    margin-bottom: 20rpx;
-    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
-}
-
-.folder-icon {
-    font-size: 48rpx;
-    margin-right: 24rpx;
-}
-
-.folder-info {
-    flex: 1;
-}
-
-.folder-name {
-    font-size: 32rpx;
-    font-weight: 500;
-    color: #333;
-    margin-bottom: 8rpx;
-}
-
-.folder-meta {
-    display: flex;
-    align-items: center;
-    font-size: 24rpx;
-    color: #999;
-}
-
-.item-count {
-    margin-right: 20rpx;
-}
-
-.folder-arrow {
-    font-size: 32rpx;
-    color: #ccc;
-}
-
-.empty-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 400rpx;
+.empty-state {
+    text-align: center;
+    padding: 120rpx 0;
 }
 
 .empty-icon {
-    font-size: 80rpx;
-    margin-bottom: 20rpx;
-    opacity: 0.5;
+    font-size: 120rpx;
+    margin-bottom: 30rpx;
+    display: block;
 }
 
 .empty-text {
     font-size: 32rpx;
-    color: #666;
-    margin-bottom: 12rpx;
+    color: #333;
+    margin-bottom: 20rpx;
+    display: block;
 }
 
 .empty-subtext {
-    font-size: 26rpx;
-    color: #999;
+    font-size: 28rpx;
+    color: #666;
+    display: block;
 }
 
-.create-button {
-    position: fixed;
-    bottom: 40rpx;
-    right: 40rpx;
+.folder-grid {
+    display: flex;
+    flex-direction: column;
+}
+
+.folder-item-simple {
+    padding: 30rpx 0;
     display: flex;
     align-items: center;
-    background: #9ed7ee;
-    color: white;
-    padding: 20rpx 30rpx;
-    border-radius: 50rpx;
-    box-shadow: 0 4rpx 12rpx rgba(7, 193, 96, 0.3);
-    font-size: 28rpx;
+    justify-content: space-between;
+    border-bottom: 1rpx solid #f0f0f0;
+    width: 100%;
+    box-sizing: border-box;
+    margin-right: 0;
+    padding-right: 0;
 }
 
-.create-icon {
+.folder-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8rpx;
+}
+
+.folder-name {
     font-size: 32rpx;
-    margin-right: 8rpx;
+    font-weight: 600;
+    color: #333;
+}
+
+.folder-count {
+    font-size: 26rpx;
+    color: #666;
+}
+
+.folder-actions {
+    display: flex;
+    gap: 8rpx;
+    flex-shrink: 0;
+    margin-right: -10rpx;
+    padding-right: 10rpx;
+    position: relative;
+    right: 0;
+}
+
+.action-btn {
+    font-size: 20rpx;
+    color: #9ed7ee;
+    padding: 8rpx 12rpx;
+    border-radius: 6rpx;
+    background: rgba(158, 215, 238, 0.1);
+    white-space: nowrap;
+    min-width: 60rpx;
+    text-align: center;
+}
+
+.action-btn.edit {
+    color: #9ed7ee;
+    background: rgba(158, 215, 238, 0.1);
+}
+
+.action-btn.delete {
+    color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.1);
+}
+
+.load-more {
+    text-align: center;
+    padding: 40rpx 0;
+    color: #666;
+    font-size: 28rpx;
 }
 
 /* 弹窗样式 */
@@ -464,61 +813,165 @@ export default {
 }
 
 .modal-content {
-    background: white;
-    border-radius: 16rpx;
-    padding: 40rpx;
-    margin: 40rpx;
-    width: calc(100% - 80rpx);
-    max-width: 500rpx;
-    position: relative;
-    z-index: 1001;
+    background: #fff;
+    border-radius: 20rpx;
+    width: 600rpx;
+    padding: 0;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 40rpx 40rpx 30rpx;
+    border-bottom: 1rpx solid #f0f0f0;
 }
 
 .modal-title {
-    font-size: 36rpx;
-    font-weight: 500;
+    font-size: 32rpx;
+    font-weight: 600;
     color: #333;
-    margin-bottom: 30rpx;
-    text-align: center;
 }
 
-.modal-input {
+.close-btn {
+    font-size: 40rpx;
+    color: #999;
+    width: 60rpx;
+    height: 60rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-body {
+    padding: 40rpx;
+}
+
+.folder-name-input {
     width: 100%;
     height: 80rpx;
-    border: 2rpx solid #e0e0e0;
-    border-radius: 8rpx;
+    border: 2rpx solid #e9ecef;
+    border-radius: 12rpx;
     padding: 0 20rpx;
     font-size: 28rpx;
-    margin-bottom: 30rpx;
+    color: #333;
     box-sizing: border-box;
 }
 
-.modal-input:focus {
+.folder-name-input:focus {
     border-color: #9ed7ee;
 }
 
-.modal-buttons {
+/* 编辑表单样式 */
+.edit-folder-form {
+    padding: 0 40rpx;
+}
+
+.form-item {
+    margin-bottom: 30rpx;
+}
+
+.form-label {
+    font-size: 26rpx;
+    color: #333333;
+    margin-bottom: 16rpx;
+    font-weight: 500;
+}
+
+/* 封面上传样式 */
+.cover-upload-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.cover-upload-btn {
+    width: 200rpx;
+    height: 200rpx;
+    border: 2rpx dashed #e0e0e0;
+    border-radius: 12rpx;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+}
+
+.upload-icon {
+    font-size: 48rpx;
+    color: #999;
+    margin-bottom: 8rpx;
+}
+
+.upload-text {
+    font-size: 24rpx;
+    color: #666;
+}
+
+.cover-preview {
+    width: 200rpx;
+    height: 200rpx;
+    border-radius: 12rpx;
+    overflow: hidden;
+    position: relative;
+}
+
+.cover-image {
+    width: 100%;
+    height: 100%;
+}
+
+.cover-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.cover-preview:active .cover-overlay {
+    opacity: 1;
+}
+
+.change-text {
+    color: #fff;
+    font-size: 24rpx;
+    font-weight: 500;
+}
+
+.modal-footer {
     display: flex;
     gap: 20rpx;
+    padding: 30rpx 40rpx 40rpx;
 }
 
 .modal-btn {
     flex: 1;
     height: 80rpx;
-    border-radius: 8rpx;
+    border-radius: 12rpx;
     font-size: 28rpx;
+    font-weight: 500;
     border: none;
-    position: relative;
-    z-index: 1002;
 }
 
-.cancel-btn {
-    background: #f5f5f5;
+.modal-btn.cancel {
+    background: #f8f9fa;
     color: #666;
 }
 
-.confirm-btn {
+.modal-btn.confirm {
     background: #9ed7ee;
-    color: white;
+    color: #fff;
+}
+
+.modal-btn.confirm[disabled] {
+    background: #ccc;
+    color: #999;
 }
 </style>

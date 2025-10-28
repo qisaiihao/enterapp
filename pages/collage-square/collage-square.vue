@@ -286,20 +286,50 @@ export default {
         return
       }
       
-      // 预加载图片
-      uni.downloadFile({
-        url: imageUrl,
-        success: (res) => {
-          if (res.statusCode === 200) {
+      // 预加载图片 - 使用更安全的方式
+      try {
+        // 对于H5环境，直接使用Image对象预加载
+        // #ifdef H5
+        const img = new Image()
+        img.crossOrigin = 'anonymous' // 设置跨域属性
+        img.onload = () => {
+          this.setData({
+            [`preloadedImages.${imageUrl}`]: imageUrl
+          })
+        }
+        img.onerror = (err) => {
+          console.warn('图片预加载失败，将使用原URL:', imageUrl)
+        }
+        img.src = imageUrl
+        // #endif
+
+        // 对于小程序环境，使用downloadFile
+        // #ifndef H5
+        uni.downloadFile({
+          url: imageUrl,
+          success: (res) => {
+            if (res.statusCode === 200 && res.tempFilePath) {
+              this.setData({
+                [`preloadedImages.${imageUrl}`]: res.tempFilePath
+              })
+            }
+          },
+          fail: (err) => {
+            console.warn('图片预加载失败，将使用原URL:', imageUrl)
+            // 降级处理：即使预加载失败，也不影响显示
             this.setData({
-              [`preloadedImages.${imageUrl}`]: res.tempFilePath
+              [`preloadedImages.${imageUrl}`]: imageUrl
             })
           }
-        },
-        fail: (err) => {
-          console.error('预加载图片失败:', err)
-        }
-      })
+        })
+        // #endif
+      } catch (error) {
+        console.warn('图片预加载异常，将使用原URL:', imageUrl)
+        // 降级处理：即使预加载失败，也不影响显示
+        this.setData({
+          [`preloadedImages.${imageUrl}`]: imageUrl
+        })
+      }
     },
     
     // 背景图片加载完成

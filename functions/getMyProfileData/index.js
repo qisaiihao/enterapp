@@ -38,12 +38,21 @@ exports.main = async (event, context) => {
 
   const { skip = 0, limit = 20, action } = event;
   console.log('【profile云函数】收到参数:', { skip, limit, action });
+  
+  // 如果是创建收藏夹，打印详细信息
+  if (action === 'createFavoriteFolder') {
+    console.log('【profile云函数】创建收藏夹参数:', {
+      folderName: event.folderName,
+      coverUrl: event.coverUrl,
+      openid: openid
+    });
+  }
 
   // 处理收藏功能相关请求
   if (action === 'getFavoriteFolders') {
     return await getFavoriteFolders(openid);
   } else if (action === 'createFavoriteFolder') {
-    return await createFavoriteFolder(openid, event.folderName);
+    return await createFavoriteFolder(openid, event.folderName, event.coverUrl);
   } else if (action === 'addToFavorite') {
     return await addToFavorite(openid, event.postId, event.folderId);
   } else if (action === 'getFavoritesByFolder') {
@@ -234,14 +243,55 @@ async function getFavoriteFolders(openid) {
           itemCount: 0,
           createTime: new Date(),
           updateTime: new Date(),
-          isDefault: true
+          isDefault: true,
+          coverUrl: null
         }]
       };
     }
 
+    // 处理封面图片URL转换
+    const folders = result.data;
+    const fileIDSet = new Set();
+    
+    // 收集所有需要转换的cloud:// URL
+    folders.forEach(folder => {
+      if (folder.coverUrl && folder.coverUrl.startsWith('cloud://')) {
+        fileIDSet.add(folder.coverUrl);
+      }
+    });
+
+    // 如果有需要转换的URL，批量获取临时URL
+    if (fileIDSet.size > 0) {
+      try {
+        const fileIDs = Array.from(fileIDSet);
+        console.log('【getFavoriteFolders】需要转换的封面URL数量:', fileIDs.length);
+        
+        const fileListResult = await cloud.getTempFileURL({ fileList: fileIDs });
+        const urlMap = new Map();
+        
+        fileListResult.fileList.forEach(item => {
+          if (item.status === 0) {
+            urlMap.set(item.fileID, item.tempFileURL);
+          }
+        });
+
+        console.log('【getFavoriteFolders】成功转换的URL数量:', urlMap.size);
+
+        // 替换封面URL
+        folders.forEach(folder => {
+          if (folder.coverUrl && urlMap.has(folder.coverUrl)) {
+            folder.coverUrl = urlMap.get(folder.coverUrl);
+            console.log('【getFavoriteFolders】转换封面URL:', folder.name, folder.coverUrl);
+          }
+        });
+      } catch (fileError) {
+        console.error('【getFavoriteFolders】封面URL转换失败:', fileError);
+      }
+    }
+
     return {
       success: true,
-      folders: result.data
+      folders: folders
     };
   } catch (error) {
     console.error('获取收藏夹失败:', error);
@@ -253,8 +303,14 @@ async function getFavoriteFolders(openid) {
   }
 }
 
-async function createFavoriteFolder(openid, folderName) {
+async function createFavoriteFolder(openid, folderName, coverUrl) {
   try {
+    console.log('【createFavoriteFolder】开始创建收藏夹:', {
+      openid,
+      folderName,
+      coverUrl
+    });
+    
     if (!folderName || folderName.trim() === '') {
       return {
         success: false,
@@ -286,15 +342,29 @@ async function createFavoriteFolder(openid, folderName) {
     }
 
     // 创建新收藏夹
+    const folderData = {
+      _openid: openid,
+      name: trimmedName,
+      createTime: new Date(),
+      updateTime: new Date(),
+      itemCount: 0
+    };
+
+    // 如果有封面图片，添加到数据中
+    if (coverUrl) {
+      folderData.coverUrl = coverUrl;
+      console.log('【createFavoriteFolder】添加封面URL到数据中:', coverUrl);
+    } else {
+      console.log('【createFavoriteFolder】没有封面URL');
+    }
+
+    console.log('【createFavoriteFolder】准备保存的数据:', folderData);
+
     const result = await db.collection('favorite_folders').add({
-      data: {
-        _openid: openid,
-        name: trimmedName,
-        createTime: new Date(),
-        updateTime: new Date(),
-        itemCount: 0
-      }
+      data: folderData
     });
+
+    console.log('【createFavoriteFolder】保存结果:', result);
 
     return {
       success: true,

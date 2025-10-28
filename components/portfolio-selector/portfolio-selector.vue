@@ -1,14 +1,11 @@
 <template>
-    <view>
+    <view class="portfolio-selector-container">
         <!-- components/portfolio-selector/portfolio-selector.wxml -->
-        <view v-if="showClone" class="modal-overlay">
-            <view class="modal-content">
+        <view v-if="showClone" class="modal-overlay" @tap="hideModal">
+            <view class="modal-content" @tap.stop>
                 <view class="modal-header">
-                    <view class="modal-title">选择作品集</view>
-                    <view class="header-actions">
-                        <view class="refresh-btn" @tap="loadPortfolios" :class="{ 'refreshing': isLoading }">⟳</view>
-                        <view class="close-btn" @tap="hideModal">×</view>
-                    </view>
+                    <view class="modal-title">添加作品集</view>
+                    <button class="create-btn" @tap="createPortfolio">创建</button>
                 </view>
 
                 <view class="modal-body">
@@ -20,20 +17,26 @@
                     <!-- 作品集列表 -->
                     <view v-else-if="portfolios.length > 0" class="portfolios-list">
                         <view
-                            :class="'portfolio-item ' + (selectedPortfolioId === item._id ? 'selected' : '')"
+                            class="portfolio-item"
                             :data-portfolio-id="item._id"
                             @tap="selectPortfolio"
                             v-for="(item, index) in portfolios"
                             :key="index"
                         >
-                            <view class="portfolio-icon">📚</view>
+                            <view class="portfolio-icon">
+                                <image v-if="item.coverUrl" class="portfolio-cover-image" :src="item.coverUrl" mode="aspectFill"></image>
+                                <view v-else class="portfolio-default-icon">📚</view>
+                            </view>
 
                             <view class="portfolio-info">
                                 <view class="portfolio-name">{{ item.name }}</view>
-                                <view class="portfolio-count">{{ item.itemCount }} 个作品</view>
+                                <view class="portfolio-count">{{ item.itemCount === 0 ? '空空如也~' : item.itemCount + '个作品' }}</view>
                             </view>
 
-                            <view v-if="selectedPortfolioId === item._id" class="selected-icon">✓</view>
+                            <view class="portfolio-meta">
+                                <view v-if="item.isRecent" class="recent-tag">最近使用</view>
+                                <view class="create-time">创建于{{ formatDate(item.createTime) }}</view>
+                            </view>
                         </view>
                     </view>
 
@@ -46,22 +49,42 @@
                 </view>
 
                 <view class="modal-footer">
-                    <button class="modal-btn secondary-btn" @tap="createPortfolio">创建作品集</button>
-                    <button class="modal-btn primary-btn" @tap="confirmAddToPortfolio" :disabled="!selectedPortfolioId">确认添加</button>
+                    <button class="modal-btn secondary-btn" @tap="hideModal">取消</button>
                 </view>
             </view>
         </view>
 
         <!-- 创建作品集弹窗 -->
-        <view v-if="showCreateModal" class="modal-overlay">
-            <view class="modal-content create-modal">
+        <view v-if="showCreateModal" class="modal-overlay" @tap="hideCreateModal">
+            <view class="modal-content create-modal" @tap.stop>
                 <view class="modal-header">
                     <view class="modal-title">创建作品集</view>
-                    <view class="close-btn" @tap="hideCreateModal" @tap.stop.prevent="trueFun">×</view>
+                    <button class="close-btn" @tap="hideCreateModal">×</button>
                 </view>
 
                 <view class="modal-body">
-                    <input class="portfolio-name-input" placeholder="请输入作品集名称（最多7个字）" :value="newPortfolioName" @input="onPortfolioNameInput" :focus="true" @tap.stop.prevent="trueFun" maxlength="7" />
+                    <view class="create-portfolio-form">
+                        <view class="form-item">
+                            <view class="form-label">作品集名称</view>
+                            <input class="portfolio-name-input" placeholder="请输入作品集名称" :value="newPortfolioName" @input="onPortfolioNameInput" :focus="true" @tap.stop.prevent="trueFun" maxlength="7" />
+                        </view>
+
+                        <view class="form-item">
+                            <view class="form-label">作品集封面</view>
+                            <view class="cover-upload-section">
+                                <view v-if="!newPortfolioCover" class="cover-upload-btn" @tap="choosePortfolioCoverImage">
+                                    <view class="upload-icon">📷</view>
+                                    <view class="upload-text">选择封面</view>
+                                </view>
+                                <view v-else class="cover-preview" @tap="choosePortfolioCoverImage">
+                                    <image class="cover-image" :src="newPortfolioCover" mode="aspectFill"></image>
+                                    <view class="cover-overlay">
+                                        <view class="change-text">更换封面</view>
+                                    </view>
+                                </view>
+                            </view>
+                        </view>
+                    </view>
                 </view>
 
                 <view class="modal-footer">
@@ -84,6 +107,7 @@ export default {
             selectedPortfolioId: '',
             showCreateModal: false,
             newPortfolioName: '',
+            newPortfolioCover: '',
             showClone: false
         };
     },
@@ -121,6 +145,16 @@ export default {
         // 统一云函数调用方法
         callCloudFunction(name, data = {}, extraOptions = {}) {
             return cloudCall(name, data, Object.assign({ pageTag: 'portfolio-selector', context: this, requireAuth: true }, extraOptions));
+        },
+
+        // 格式化日期
+        formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
         },
 
         // 加载作品集列表
@@ -182,8 +216,102 @@ export default {
         // 选择作品集
         selectPortfolio: function (e) {
             const portfolioId = e.currentTarget.dataset.portfolioId;
-            this.setData({
-                selectedPortfolioId: portfolioId
+            const postId = this.postId;
+            
+            console.log('选择作品集，postId:', postId, 'portfolioId:', portfolioId);
+            
+            if (!portfolioId) {
+                uni.showToast({
+                    title: '请选择作品集',
+                    icon: 'none'
+                });
+                return;
+            }
+            if (!postId) {
+                uni.showToast({
+                    title: '帖子ID不存在',
+                    icon: 'none'
+                });
+                return;
+            }
+
+            // 立刻添加到作品集
+            this.addToPortfolio(portfolioId, postId);
+        },
+
+        // 添加到作品集
+        addToPortfolio: function (portfolioId, postId) {
+            console.log('添加到作品集，postId:', postId, 'portfolioId:', portfolioId);
+            
+            if (!portfolioId) {
+                uni.showToast({
+                    title: '请选择作品集',
+                    icon: 'none'
+                });
+                return;
+            }
+            if (!postId) {
+                console.error('postId 为空，无法添加到作品集');
+                uni.showToast({
+                    title: '参数错误：帖子ID为空',
+                    icon: 'none'
+                });
+                return;
+            }
+            
+            uni.showLoading({
+                title: '添加中...'
+            });
+            
+            this.callCloudFunction('addToPortfolio', {
+                postId: postId,
+                folderId: portfolioId
+            }).then((res) => {
+                uni.hideLoading();
+                console.log('添加到作品集返回结果:', res);
+                if (res && res.result) {
+                    if (res.result.success) {
+                        uni.showToast({
+                            title: '添加成功'
+                        });
+                        console.log('添加成功，开始关闭弹窗');
+
+                        // 确保状态正确重置
+                        this.setData({
+                            selectedPortfolioId: ''
+                        });
+
+                        // 延迟关闭，确保用户能看到成功提示
+                        setTimeout(() => {
+                            this.hideModal();
+                        }, 1500);
+
+                        // 触发成功事件
+                        this.$emit('portfolioSuccess');
+                    } else {
+                        console.error('添加到作品集业务失败:', res.result);
+                        uni.showToast({
+                            title: res.result.message || '添加失败',
+                            icon: 'none',
+                            duration: 3000
+                        });
+                    }
+                } else {
+                    console.error('添加到作品集返回格式异常:', res);
+                    uni.showToast({
+                        title: '添加失败：返回格式错误',
+                        icon: 'none',
+                        duration: 3000
+                    });
+                }
+            }).catch((err) => {
+                uni.hideLoading();
+                console.error('添加到作品集云函数调用失败:', err);
+                uni.showToast({
+                    title: '添加失败: ' + (err.errMsg || '网络错误'),
+                    icon: 'none',
+                    duration: 3000
+                });
             });
         },
 
@@ -263,7 +391,8 @@ export default {
         createPortfolio: function () {
             this.setData({
                 showCreateModal: true,
-                newPortfolioName: ''
+                newPortfolioName: '',
+                newPortfolioCover: ''
             });
         },
 
@@ -271,7 +400,8 @@ export default {
         hideCreateModal: function () {
             this.setData({
                 showCreateModal: false,
-                newPortfolioName: ''
+                newPortfolioName: '',
+                newPortfolioCover: ''
             });
         },
 
@@ -283,8 +413,127 @@ export default {
             });
         },
 
+        // 选择作品集封面图片
+        choosePortfolioCoverImage: function () {
+            uni.chooseImage({
+                count: 1,
+                sizeType: ['compressed'],
+                sourceType: ['album', 'camera'],
+                success: (res) => {
+                    const tempFilePath = res.tempFilePaths[0];
+                    console.log('选择的作品集封面图片:', tempFilePath);
+                    this.setData({
+                        newPortfolioCover: tempFilePath
+                    });
+                },
+                fail: (err) => {
+                    console.error('选择图片失败:', err);
+                    uni.showToast({
+                        title: '选择图片失败',
+                        icon: 'none'
+                    });
+                }
+            });
+        },
+
+        // 上传作品集封面图片
+        uploadPortfolioCoverImage: function () {
+            return new Promise((resolve, reject) => {
+                if (!this.newPortfolioCover) {
+                    resolve(null);
+                    return;
+                }
+
+                const timestamp = new Date().getTime();
+                const cloudPath = `portfolio_covers/${timestamp}_cover.jpg`;
+                
+                uni.showLoading({
+                    title: '上传封面中...'
+                });
+
+                // 检查运行环境
+                // #ifdef H5
+                // H5环境：使用fetch获取blob，然后转换为base64
+                fetch(this.newPortfolioCover)
+                    .then(response => response.blob())
+                    .then(blob => {
+                        return new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onload = () => resolve(reader.result);
+                            reader.onerror = reject;
+                            reader.readAsDataURL(blob);
+                        });
+                    })
+                    .then(base64 => {
+                        // 移除data:image/jpeg;base64,前缀
+                        const base64Data = base64.split(',')[1];
+                        console.log('H5环境封面图片base64转换成功');
+                        
+                        // 调用云函数上传
+                        this.callCloudFunction('upload', {
+                            fileContent: base64Data,
+                            cloudPath: cloudPath
+                        }).then((uploadRes) => {
+                            uni.hideLoading();
+                            console.log('H5环境封面图片上传结果:', uploadRes);
+                            if (uploadRes && uploadRes.result && uploadRes.result.fileID) {
+                                resolve(uploadRes.result.fileID);
+                            } else {
+                                console.error('H5环境封面图片上传失败:', uploadRes);
+                                reject(new Error('上传失败'));
+                            }
+                        }).catch((uploadErr) => {
+                            uni.hideLoading();
+                            console.error('H5环境封面图片上传云函数调用失败:', uploadErr);
+                            reject(uploadErr);
+                        });
+                    })
+                    .catch((err) => {
+                        uni.hideLoading();
+                        console.error('H5环境封面图片base64转换失败:', err);
+                        reject(err);
+                    });
+                // #endif
+
+                // #ifndef H5
+                // 非H5环境（如小程序）：使用uni.getFileSystemManager
+                uni.getFileSystemManager().readFile({
+                    filePath: this.newPortfolioCover,
+                    encoding: 'base64',
+                    success: (readRes) => {
+                        console.log('非H5环境封面图片base64读取成功');
+                        
+                        // 调用云函数上传
+                        this.callCloudFunction('upload', {
+                            fileContent: readRes.data,
+                            cloudPath: cloudPath
+                        }).then((uploadRes) => {
+                            uni.hideLoading();
+                            console.log('非H5环境封面图片上传结果:', uploadRes);
+                            if (uploadRes && uploadRes.result && uploadRes.result.fileID) {
+                                resolve(uploadRes.result.fileID);
+                            } else {
+                                console.error('非H5环境封面图片上传失败:', uploadRes);
+                                reject(new Error('上传失败'));
+                            }
+                        }).catch((uploadErr) => {
+                            uni.hideLoading();
+                            console.error('非H5环境封面图片上传云函数调用失败:', uploadErr);
+                            reject(uploadErr);
+                        });
+                    },
+                    fail: (readErr) => {
+                        uni.hideLoading();
+                        console.error('非H5环境封面图片base64读取失败:', readErr);
+                        reject(readErr);
+                    }
+                });
+                // #endif
+            });
+        },
+
         // 创建作品集
-        createNewPortfolio: function () {
+        createNewPortfolio: async function () {
             const portfolioName = this.newPortfolioName.trim();
             if (!portfolioName) {
                 uni.showToast({
@@ -302,59 +551,62 @@ export default {
                 return;
             }
 
-            // 实时更新按钮状态
-            this.setData({
-                newPortfolioName: portfolioName
-            });
-            console.log('组件开始创建作品集，名称:', portfolioName);
-            uni.showLoading({
-                title: '创建中...'
-            });
-            this.callCloudFunction('createPortfolioFolder', {
-                folderName: portfolioName
-            }).then((res) => {
-                    uni.hideLoading();
-                    console.log('组件创建作品集返回结果:', res);
+            try {
+                uni.showLoading({ title: '创建中...' });
+                
+                // 先上传封面图片（如果有的话）
+                const coverUrl = await this.uploadPortfolioCoverImage();
+                
+                console.log('组件开始创建作品集，名称:', portfolioName, '封面:', coverUrl);
+                
+                const res = await this.callCloudFunction('createPortfolioFolder', {
+                    folderName: portfolioName,
+                    coverUrl: coverUrl
+                });
 
-                    // 更详细的返回结果检查
-                    if (res && res.result) {
-                        if (res.result.success) {
-                            uni.showToast({
-                                title: '创建成功',
-                                duration: 2000
-                            });
-                            this.setData({
-                                showCreateModal: false
-                            });
-                            // 延迟重新加载，确保状态同步
-                            setTimeout(() => {
-                                this.loadPortfolios();
-                            }, 300);
-                        } else {
-                            console.error('组件创建作品集业务失败:', res.result);
-                            uni.showToast({
-                                title: res.result.message || '创建失败',
-                                icon: 'none',
-                                duration: 3000
-                            });
-                        }
-                    } else {
-                        console.error('组件创建作品集返回格式异常:', res);
+                uni.hideLoading();
+                console.log('组件创建作品集返回结果:', res);
+
+                if (res && res.result) {
+                    if (res.result.success) {
                         uni.showToast({
-                            title: '创建失败：返回格式错误',
+                            title: '创建成功',
+                            duration: 2000
+                        });
+                        this.setData({
+                            showCreateModal: false,
+                            newPortfolioName: '',
+                            newPortfolioCover: ''
+                        });
+                        // 延迟重新加载，确保状态同步
+                        setTimeout(() => {
+                            this.loadPortfolios();
+                        }, 300);
+                    } else {
+                        console.error('组件创建作品集业务失败:', res.result);
+                        uni.showToast({
+                            title: res.result.message || '创建失败',
                             icon: 'none',
                             duration: 3000
                         });
                     }
-                }).catch((err) => {
-                    uni.hideLoading();
-                    console.error('组件创建作品集云函数调用失败:', err);
+                } else {
+                    console.error('组件创建作品集返回格式异常:', res);
                     uni.showToast({
-                        title: '创建失败: ' + (err.errMsg || '网络错误'),
+                        title: '创建失败：返回格式错误',
                         icon: 'none',
                         duration: 3000
                     });
+                }
+            } catch (error) {
+                uni.hideLoading();
+                console.error('组件创建作品集云函数调用失败:', error);
+                uni.showToast({
+                    title: '创建失败: ' + (error.errMsg || '网络错误'),
+                    icon: 'none',
+                    duration: 3000
                 });
+            }
         },
 
         // 隐藏弹窗
@@ -395,86 +647,64 @@ export default {
 </script>
 <style>
 /* components/portfolio-selector/portfolio-selector.wxss */
+/* 组件容器 */
+.portfolio-selector-container {
+    position: relative;
+}
+
 .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.1);
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align-items: flex-end;
     z-index: 1000;
 }
 
 .modal-content {
-    background: white;
-    border-radius: 16rpx;
-    margin: 40rpx;
-    width: calc(100% - 80rpx);
-    max-width: 600rpx;
-    max-height: 80vh;
+    background: #FFFFFF;
+    border-top-left-radius: 30rpx;
+    border-top-right-radius: 30rpx;
+    margin: 0;
+    width: 100%;
+    max-width: none;
+    max-height: 60vh;
+    min-height: 40vh;
+    animation: slideUp 0.3s ease;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 .modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 30rpx 40rpx;
-    border-bottom: 1rpx solid #f0f0f0;
+    justify-content: center;
+    padding: 20rpx 40rpx;
+    border-bottom: none;
+    position: relative;
 }
 
 .modal-title {
-    font-size: 36rpx;
+    font-size: 32rpx;
     font-weight: 500;
-    color: #333;
+    color: #000000;
+    text-align: center;
 }
 
-.header-actions {
-    display: flex;
-    align-items: center;
-    gap: 20rpx;
-}
-
-.refresh-btn {
-    font-size: 36rpx;
-    color: #9ed7ee;
-    padding: 8rpx;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.refresh-btn:active {
-    transform: scale(0.9);
-    opacity: 0.7;
-}
-
-.refresh-btn.refreshing {
-    animation: rotate 1s linear infinite;
-}
-
-@keyframes rotate {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-.close-btn {
-    font-size: 48rpx;
-    color: #999;
-    line-height: 1;
-    position: relative;
-    z-index: 1001;
+.create-btn {
+    position: absolute;
+    right: 40rpx;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: #989090;
+    font-size: 26rpx;
+    font-weight: normal;
+    padding: 0;
+    outline: none;
 }
 
 .modal-body {
@@ -497,52 +727,83 @@ export default {
 }
 
 .portfolios-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20rpx;
     padding: 0 40rpx;
 }
 
 .portfolio-item {
+    padding: 20rpx 0;
+    border-bottom: none;
+    position: relative;
     display: flex;
     align-items: center;
-    padding: 24rpx 0;
-    border-bottom: 1rpx solid #f8f8f8;
-}
-
-.portfolio-item:last-child {
-    border-bottom: none;
-}
-
-.portfolio-item.selected {
-    background: rgba(158, 215, 238, 0.1);
-    border-radius: 8rpx;
-    padding: 24rpx 20rpx;
-    margin: 0 -20rpx;
+    gap: 20rpx;
 }
 
 .portfolio-icon {
+    width: 88rpx;
+    height: 88rpx;
+    background: #D9D9D9;
+    border-radius: 20rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 40rpx;
     margin-right: 20rpx;
+    flex-shrink: 0;
+}
+
+.portfolio-cover-image {
+    width: 100%;
+    height: 100%;
+    border-radius: 20rpx;
+}
+
+.portfolio-default-icon {
+    font-size: 40rpx;
 }
 
 .portfolio-info {
-    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8rpx;
 }
 
 .portfolio-name {
-    font-size: 30rpx;
-    color: #333;
+    font-size: 26rpx;
+    color: #000000;
     font-weight: 500;
-    margin-bottom: 4rpx;
+    margin-bottom: 0;
 }
 
 .portfolio-count {
-    font-size: 24rpx;
-    color: #999;
+    font-size: 22rpx;
+    color: #989090;
+    font-weight: 400;
 }
 
-.selected-icon {
-    font-size: 32rpx;
-    color: #9ed7ee;
-    font-weight: bold;
+.portfolio-meta {
+    display: flex;
+    align-items: center;
+    gap: 10rpx;
+    margin-left: auto;
+}
+
+.recent-tag {
+    background: rgba(10, 10, 10, 0.2);
+    color: #FFFFFF;
+    font-size: 20rpx;
+    padding: 4rpx 8rpx;
+    border-radius: 10rpx;
+    font-weight: 400;
+}
+
+.create-time {
+    font-size: 20rpx;
+    color: #989090;
+    font-weight: 400;
 }
 
 .empty-state {
@@ -572,43 +833,59 @@ export default {
 }
 
 .modal-footer {
-    display: flex;
-    gap: 20rpx;
-    padding: 30rpx 40rpx;
-    border-top: 1rpx solid #f0f0f0;
+    justify-content: flex-end;
+    padding: 20rpx 40rpx calc(20rpx + env(safe-area-inset-bottom));
+    border-top: none;
+    align-items: center;
 }
 
 .modal-btn {
-    flex: 1;
-    height: 80rpx;
-    border-radius: 8rpx;
-    font-size: 28rpx;
+    width: 132rpx;
+    height: 52rpx;
+    border-radius: 40rpx;
+    font-size: 26rpx;
     border: none;
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
     z-index: 1001;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
 }
 
 .secondary-btn {
-    background: #f5f5f5;
-    color: #666;
+    background: #e8e8e8;
+    color: #989090;
+    font-weight: normal;
+    margin-left: auto !important;
+    margin-right: 0 !important;
 }
 
-.primary-btn {
-    background: #9ed7ee;
-    color: white;
-}
-
-.primary-btn:disabled {
-    background: #ccc;
-    color: #999;
+/* 滑入动画 */
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+    }
+    to {
+        transform: translateY(0);
+    }
 }
 
 /* 创建作品集弹窗样式 */
-.create-modal .modal-body {
-    padding: 40rpx;
+.create-portfolio-form {
+    padding: 0 40rpx;
+}
+
+.form-item {
+    margin-bottom: 30rpx;
+}
+
+.form-label {
+    font-size: 26rpx;
+    color: #333333;
+    margin-bottom: 16rpx;
+    font-weight: 500;
 }
 
 .portfolio-name-input {
@@ -623,5 +900,85 @@ export default {
 
 .portfolio-name-input:focus {
     border-color: #9ed7ee;
+}
+
+.close-btn {
+    position: absolute;
+    right: 40rpx;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: #989090;
+    font-size: 26rpx;
+    font-weight: normal;
+    padding: 0;
+}
+
+/* 封面上传样式 */
+.cover-upload-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.cover-upload-btn {
+    width: 200rpx;
+    height: 200rpx;
+    border: 2rpx dashed #e0e0e0;
+    border-radius: 12rpx;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+}
+
+.upload-icon {
+    font-size: 48rpx;
+    color: #999;
+    margin-bottom: 8rpx;
+}
+
+.upload-text {
+    font-size: 24rpx;
+    color: #666;
+}
+
+.cover-preview {
+    width: 200rpx;
+    height: 200rpx;
+    border-radius: 12rpx;
+    overflow: hidden;
+    position: relative;
+}
+
+.cover-image {
+    width: 100%;
+    height: 100%;
+}
+
+.cover-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.cover-preview:active .cover-overlay {
+    opacity: 1;
+}
+
+.change-text {
+    color: #fff;
+    font-size: 24rpx;
+    font-weight: 500;
 }
 </style>
