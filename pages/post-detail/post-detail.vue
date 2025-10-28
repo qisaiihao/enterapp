@@ -4295,7 +4295,7 @@ export default {
     font-size: 24rpx;
     padding: 4rpx 16rpx;
     border-radius: 999rpx;
-    background-color: #f0f0f0;
+    background-color: #d9d9d9;
     color: #ffffff;
     flex-shrink: 0;
 }
@@ -4582,12 +4582,10 @@ export default {
     padding: 20rpx 30rpx;
     padding-bottom: calc(20rpx + constant(safe-area-inset-bottom));
     padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
-    border-top: 1rpx solid #f0f0f0;
     display: flex;
     align-items: center;
     justify-content: space-between;
     z-index: 50;
-    box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.1);
 }
 
 .comment-input-container {
@@ -4597,9 +4595,9 @@ export default {
 
 .comment-input {
     width: 100%;
-    height: 80rpx;
+    height: 60rpx;
     background-color: #f5f5f5;
-    border-radius: 40rpx;
+    border-radius: 30rpx;
     padding: 0 30rpx;
     font-size: 28rpx;
     color: #333;

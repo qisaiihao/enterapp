@@ -22,24 +22,37 @@
 
         <view v-else class="folder-grid">
           <view
-            v-for="folder in folders"
+            v-for="(folder, index) in folders"
             :key="folder._id"
-            class="folder-item-simple"
-            @tap="openFolder(folder)"
+            class="folder-item-wrapper"
           >
-            <view class="folder-content">
-              <view class="folder-icon">
-                <image v-if="folder.coverUrl" class="folder-cover-image" :src="folder.coverUrl" mode="aspectFill"></image>
-                <view v-else class="folder-default-icon">📚</view>
+            <!-- 左滑操作按钮 -->
+            <view class="swipe-actions" :class="{ 'swipe-actions-show': folder.isSwipeOpen }">
+              <view class="action-btn edit-btn" @tap.stop="editFolderName(folder)">
+                <text>编辑</text>
               </view>
-              <view class="folder-info">
-                <text class="folder-name">{{ folder.name }}</text>
-                <text class="folder-count">{{ folder.itemCount }} 个作品</text>
+              <view class="action-btn delete-btn" @tap.stop="deleteFolder(folder)">
+                <text>删除</text>
               </view>
             </view>
-            <view class="folder-actions">
-              <text class="action-btn edit" @tap.stop="editFolderName(folder)">编辑</text>
-              <text class="action-btn delete" @tap.stop="deleteFolder(folder)">删除</text>
+
+            <!-- 作品集内容 -->
+            <view :class="'folder-item-simple ' + (folder.isSwipeOpen ? ' swipe-open' : '')"
+                  @tap="openFolder(folder)"
+                  @touchstart="onTouchStart"
+                  @touchmove="onTouchMove"
+                  @touchend="onTouchEnd"
+                  :data-index="index">
+              <view class="folder-content">
+                <view class="folder-icon">
+                  <image v-if="folder.coverUrl" class="folder-cover-image" :src="folder.coverUrl" mode="aspectFill"></image>
+                  <view v-else class="folder-default-icon">📚</view>
+                </view>
+                <view class="folder-info">
+                  <text class="folder-name">{{ folder.name }}</text>
+                  <text class="folder-count">{{ folder.itemCount }} 个作品</text>
+                </view>
+              </view>
             </view>
           </view>
         </view>
@@ -150,7 +163,13 @@ export default {
       showEditModal: false,
       editingFolder: null,
       editingFolderName: '',
-      editingFolderCover: ''
+      editingFolderCover: '',
+      // 触摸相关数据
+      touchStartX: 0,
+      touchStartY: 0,
+      touchCurrentX: 0,
+      touchCurrentY: 0,
+      isSwipeMode: false
     };
   },
 
@@ -401,14 +420,91 @@ export default {
     },
 
     openFolder(folder) {
+      // 如果是滑动模式，不处理点击
+      if (this.isSwipeMode) {
+        this.isSwipeMode = false;
+        return;
+      }
+
+      // 关闭所有滑动操作
+      this.closeAllSwipeActions();
+
       uni.navigateTo({
         url: `/pages/portfolio-detail/portfolio-detail?folderId=${folder._id}&folderName=${encodeURIComponent(folder.name)}`
       });
     },
 
+    // 触摸开始
+    onTouchStart(e) {
+      const touch = e.touches[0];
+      this.touchStartX = touch.pageX || touch.clientX;
+      this.touchStartY = touch.pageY || touch.clientY;
+      this.touchCurrentX = touch.pageX || touch.clientX;
+      this.touchCurrentY = touch.pageY || touch.clientY;
+      this.isSwipeMode = false;
+    },
+
+    // 触摸移动
+    onTouchMove(e) {
+      const touch = e.touches[0];
+      this.touchCurrentX = touch.pageX || touch.clientX;
+      this.touchCurrentY = touch.pageY || touch.clientY;
+
+      const deltaX = this.touchCurrentX - this.touchStartX;
+      const deltaY = Math.abs(this.touchCurrentY - this.touchStartY);
+
+      // 如果水平滑动距离大于垂直滑动距离，且向左滑动超过20px，则进入滑动模式
+      if (Math.abs(deltaX) > deltaY && deltaX < -20) {
+        this.isSwipeMode = true;
+        e.preventDefault();
+      }
+    },
+
+    // 触摸结束
+    onTouchEnd(e) {
+      const deltaX = this.touchCurrentX - this.touchStartX;
+      const deltaY = Math.abs(this.touchCurrentY - this.touchStartY);
+
+      // 如果水平滑动距离大于垂直滑动距离
+      if (Math.abs(deltaX) > deltaY) {
+        if (deltaX < -30) {
+          // 向左滑动超过30px，显示操作按钮
+          const index = parseInt(e.currentTarget.dataset.index);
+          this.openSwipeActions(index);
+        } else {
+          // 滑动距离不够，关闭所有滑动操作
+          this.closeAllSwipeActions();
+        }
+      }
+    },
+
+    // 打开滑动操作
+    openSwipeActions(index) {
+      const updatedFolders = this.folders.map((folder, i) => {
+        if (i === index) {
+          return { ...folder, isSwipeOpen: true };
+        } else {
+          return { ...folder, isSwipeOpen: false };
+        }
+      });
+      this.folders = updatedFolders;
+    },
+
+    // 关闭所有滑动操作
+    closeAllSwipeActions() {
+      const updatedFolders = this.folders.map(folder => ({
+        ...folder,
+        isSwipeOpen: false
+      }));
+      this.folders = updatedFolders;
+    },
+
 
     // 编辑作品集名字
     editFolderName(folder) {
+      // 关闭滑动操作
+      this.closeAllSwipeActions();
+
       console.log('编辑作品集:', folder);
       this.setData({
         showEditModal: true,
@@ -618,6 +714,9 @@ export default {
     },
 
     async deleteFolder(folder) {
+      // 关闭滑动操作
+      this.closeAllSwipeActions();
+
       if (folder.isDefault) {
         uni.showToast({
           title: '默认作品集不能删除',
@@ -770,6 +869,48 @@ export default {
   flex-direction: column;
 }
 
+/* 作品集项包装器 */
+.folder-item-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+
+/* 左滑操作按钮 */
+.swipe-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  display: flex;
+  z-index: 1;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  width: 240rpx;
+}
+
+.swipe-actions.swipe-actions-show {
+  transform: translateX(0);
+}
+
+.swipe-actions .action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 24rpx;
+  min-width: 120rpx;
+  flex: 1;
+  height: 100%;
+}
+
+.swipe-actions .edit-btn {
+  background-color: #999999;
+}
+
+.swipe-actions .delete-btn {
+  background-color: #cc9090;
+}
+
 .folder-item-simple {
   padding: 30rpx 0;
   display: flex;
@@ -780,6 +921,14 @@ export default {
   box-sizing: border-box;
   margin-right: 0;
   padding-right: 0;
+  position: relative;
+  background-color: #ffffff;
+  z-index: 2;
+  transition: transform 0.3s ease;
+}
+
+.folder-item-simple.swipe-open {
+  transform: translateX(-240rpx);
 }
 
 .folder-content {
@@ -828,36 +977,6 @@ export default {
   color: #666;
 }
 
-.folder-actions {
-  display: flex;
-  gap: 8rpx;
-  flex-shrink: 0;
-  margin-right: -10rpx;
-  padding-right: 10rpx;
-  position: relative;
-  right: 0;
-}
-
-.action-btn {
-  font-size: 20rpx;
-  color: #9ed7ee;
-  padding: 8rpx 12rpx;
-  border-radius: 6rpx;
-  background: rgba(158, 215, 238, 0.1);
-  white-space: nowrap;
-  min-width: 60rpx;
-  text-align: center;
-}
-
-.action-btn.edit {
-  color: #9ed7ee;
-  background: rgba(158, 215, 238, 0.1);
-}
-
-.action-btn.delete {
-  color: #ff6b6b;
-  background: rgba(255, 107, 107, 0.1);
-}
 
 .load-more {
   text-align: center;

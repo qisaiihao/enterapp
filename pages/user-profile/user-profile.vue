@@ -1212,11 +1212,11 @@ export default {
 }
 
 .follow-btn {
-    padding: 8rpx 24rpx;
-    background-color: #007aff;
-    color: #ffffff;
+    padding: 6rpx 24rpx;
+    background-color: #d9d9d9;
+    color: #000000;
     border: 1rpx solid transparent;
-    border-radius: 20rpx;
+    border-radius: 15rpx;
     font-size: 24rpx;
     font-weight: 500;
     min-width: 80rpx;
