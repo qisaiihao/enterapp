@@ -3,11 +3,11 @@
     <!-- 顶部导航栏 -->
     <view class="header">
       <view class="header-left" @tap="goBack">
-        <text class="back-icon">←</text>
+        <image class="back-icon-image" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
       </view>
       <text class="header-title">作品集</text>
       <view class="header-right">
-        <text class="create-btn" @tap="openCreateModal">+ 新建</text>
+        <image class="create-btn-icon" src="/static/images/select_more.png" mode="aspectFit" @tap="openCreateModal"></image>
       </view>
     </view>
 
@@ -283,6 +283,17 @@ export default {
           });
           this.hideCreateModal();
           this.loadFolders();
+
+          // 发送全局事件通知其他页面作品集已更新
+          try {
+            uni.$emit('portfolio-updated', {
+              type: 'create',
+              timestamp: Date.now()
+            });
+            console.log('【portfolio】发送作品集更新事件');
+          } catch (error) {
+            console.error('【portfolio】发送事件失败:', error);
+          }
         } else {
           uni.showToast({
             title: res.result?.message || '创建失败',
@@ -575,8 +586,19 @@ export default {
           this.setData({
             folders: updatedList
           });
-          
+
           this.hideEditModal();
+
+          // 发送全局事件通知其他页面作品集已更新
+          try {
+            uni.$emit('portfolio-updated', {
+              type: 'edit',
+              timestamp: Date.now()
+            });
+            console.log('【portfolio】发送作品集编辑事件');
+          } catch (error) {
+            console.error('【portfolio】发送编辑事件失败:', error);
+          }
         } else {
           uni.showToast({
             title: res.result.message || '修改失败',
@@ -743,6 +765,17 @@ export default {
                 });
                 // 重新加载作品集列表
                 this.loadFolders();
+
+                // 发送全局事件通知其他页面作品集已更新
+                try {
+                  uni.$emit('portfolio-updated', {
+                    type: 'delete',
+                    timestamp: Date.now()
+                  });
+                  console.log('【portfolio】发送作品集删除事件');
+                } catch (error) {
+                  console.error('【portfolio】发送删除事件失败:', error);
+                }
               } else {
                 uni.showToast({
                   title: result.result?.message || '删除失败',
@@ -797,10 +830,10 @@ export default {
   justify-content: center;
 }
 
-.back-icon {
-  font-size: 36rpx;
-  color: #333;
-  font-weight: bold;
+.back-icon-image {
+  width: 72rpx;
+  height: 72rpx;
+  margin-top: 4rpx;
 }
 
 .header-title {
@@ -815,12 +848,13 @@ export default {
   width: 100rpx;
   display: flex;
   justify-content: flex-end;
+  align-items: center;
 }
 
-.create-btn {
-  font-size: 28rpx;
-  color: #9ed7ee;
-  font-weight: 500;
+.create-btn-icon {
+  width: 72rpx;
+  height: 72rpx;
+  margin-top: 4rpx;
 }
 
 .portfolio-list {

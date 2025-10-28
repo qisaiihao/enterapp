@@ -120,7 +120,7 @@
       "path": "pages/favorite-folders/favorite-folders",
       "style": {
         "usingComponents": {},
-        "navigationBarTitleText": "我的收藏夹"
+        "navigationStyle": "custom"
       }
     },
     {
@@ -263,9 +263,9 @@
     }
   ],
   "tabBar": {
-    /* #ifdef MP-WEIXIN */
+
     "custom": true,
-    /* #endif */
+
     "color": "#999999",
     "selectedColor": "#9ed7ee",
     "backgroundColor": "#ffffff",

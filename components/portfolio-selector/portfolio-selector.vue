@@ -707,6 +707,10 @@ export default {
     outline: none;
 }
 
+.create-btn::after {
+    border: none;
+}
+
 .modal-body {
     flex: 1;
     padding: 20rpx 0;

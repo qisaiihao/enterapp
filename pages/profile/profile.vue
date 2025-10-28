@@ -516,6 +516,20 @@ export default {
         // onLoad 只负责触发异步请求，然后立即结束
         this.getProfileData();
         try { uni.$on && uni.$on('comment-count-changed', (e) => { try { this.updatePostCommentCount(e.postId, e.commentCount); } catch (_) {} }); } catch (_) {}
+
+        // 监听作品集更新事件
+        try {
+            uni.$on('portfolio-updated', (e) => {
+                console.log('【profile】收到作品集更新事件:', e);
+                // 刷新作品集数据
+                this.setData({
+                    portfolioList: []
+                });
+                this.loadPortfolios();
+            });
+        } catch (error) {
+            console.error('【profile】监听作品集更新事件失败:', error);
+        }
     },
     onShow: function () {
         // #ifndef MP-WEIXIN
@@ -764,13 +778,12 @@ export default {
 
             // 检查未读消息数量
 
-            // 如果当前是作品集标签页，加载作品集数据
-            if (this.currentTab === 'portfolio') {
-                this.setData({
-                    portfolioList: []
-                });
-                this.loadPortfolios();
-            }
+            // 无论如何都要刷新作品集数据，确保新创建的作品集能及时显示
+            console.log('【profile】onShow刷新作品集数据');
+            this.setData({
+                portfolioList: []
+            });
+            this.loadPortfolios();
         },
 
         // 强制刷新数据

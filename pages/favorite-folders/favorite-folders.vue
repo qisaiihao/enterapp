@@ -4,11 +4,11 @@
         <!-- 顶部导航栏 -->
         <view class="header">
             <view class="header-left" @tap="goBack">
-                <text class="back-icon">←</text>
+                <image class="back-icon-image" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
             </view>
             <text class="header-title">我的收藏</text>
             <view class="header-right">
-                <text class="create-btn" @tap="showCreateFolder">+ 新建</text>
+                <image class="create-btn-icon" src="/static/images/select_more.png" mode="aspectFit" @tap="showCreateFolder"></image>
             </view>
         </view>
 
@@ -45,8 +45,14 @@
                               @touchend="onTouchEnd"
                               :data-index="index">
                             <view class="folder-content">
-                                <text class="folder-name">{{ folder.name }}</text>
-                                <text class="folder-count">{{ folder.itemCount }} 个收藏</text>
+                                <view class="folder-icon">
+                                    <image v-if="folder.coverUrl" class="folder-cover-image" :src="folder.coverUrl" mode="aspectFill"></image>
+                                    <view v-else class="folder-default-icon">📁</view>
+                                </view>
+                                <view class="folder-info">
+                                    <text class="folder-name">{{ folder.name }}</text>
+                                    <text class="folder-count">{{ folder.itemCount }} 个收藏</text>
+                                </view>
                             </view>
                         </view>
                     </view>
@@ -732,9 +738,7 @@ export default {
     background: #fff;
     display: flex;
     flex-direction: column;
-    /* #ifdef APP-PLUS */
-    padding-top: var(--status-bar-height);
-    /* #endif */
+    padding-top: calc(var(--status-bar-height) + env(safe-area-inset-top));
 }
 
 .header {
@@ -757,10 +761,10 @@ export default {
     justify-content: center;
 }
 
-.back-icon {
-    font-size: 36rpx;
-    color: #333;
-    font-weight: bold;
+.back-icon-image {
+    width: 72rpx;
+    height: 72rpx;
+    margin-top: 4rpx;
 }
 
 .header-title {
@@ -775,12 +779,13 @@ export default {
     width: 100rpx;
     display: flex;
     justify-content: flex-end;
+    align-items: center;
 }
 
-.create-btn {
-    font-size: 28rpx;
-    color: #9ed7ee;
-    font-weight: 500;
+.create-btn-icon {
+    width: 72rpx;
+    height: 72rpx;
+    margin-top: 4rpx;
 }
 
 .folders-list {
@@ -893,6 +898,34 @@ export default {
 
 .folder-content {
     flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 20rpx;
+}
+
+.folder-icon {
+    width: 88rpx;
+    height: 88rpx;
+    background: #D9D9D9;
+    border-radius: 20rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40rpx;
+    flex-shrink: 0;
+}
+
+.folder-cover-image {
+    width: 100%;
+    height: 100%;
+    border-radius: 20rpx;
+}
+
+.folder-default-icon {
+    font-size: 40rpx;
+}
+
+.folder-info {
     display: flex;
     flex-direction: column;
     gap: 8rpx;
