@@ -162,25 +162,13 @@
                             <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="post && post._id ? post._id : ''">
                                 <image class="like-icon" :src="post.likeIcon" mode="aspectFit"></image>
                             </view>
-                            <!-- 收藏按钮 - 只有非自己的帖子才显示 -->
-                            <view v-if="!isOwnPost" :class="'favorite-icon-container ' + (isFavorited ? 'favorited' : '')" @tap.stop.prevent="onFavorite">
-                                <image class="favorite-icon" src="/static/images/my_favorites.png" mode="aspectFit"></image>
-                        </view>
                             <!-- 作品集按钮 - 只有原创诗且是自己的帖子才显示 -->
-                            <view v-else-if="post.isOriginal && post.isPoem" class="portfolio-icon-container" @tap.stop.prevent="onAddToPortfolio">
+                            <view v-if="post.isOriginal && post.isPoem && isOwnPost" class="portfolio-icon-container" @tap.stop.prevent="onAddToPortfolio">
                                 <image class="portfolio-icon" src="/static/images/portfolio.png" mode="aspectFit"></image>
                             </view>
-                            <!-- 讨论按钮 - 只有诗歌类型才显示 -->
-                            <view v-if="post.isPoem" class="discussion-icon-container" @tap.stop.prevent="onCreateDiscussion">
-                                <image class="discussion-icon" src="/static/images/write_poetry.png" mode="aspectFit"></image>
-                            </view>
-                            <!-- 分享按钮 - 只有诗歌类型才显示 -->
-                            <view v-if="post.isPoem" class="share-icon-container" @tap.stop.prevent="onShare">
+                            <!-- 分享按钮 -->
+                            <view class="share-icon-container" @tap.stop.prevent="onShare">
                                 <image class="share-icon" src="/static/images/share.png" mode="aspectFit"></image>
-                            </view>
-                            <!-- 写评论按钮 -->
-                            <view class="comment-icon-container" @tap.stop.prevent="expandInput">
-                                <image class="comment-icon" src="/static/images/comment.png" mode="aspectFit"></image>
                             </view>
                         </view>
                     </view>
@@ -188,7 +176,7 @@
 
                 <!-- Comment Section -->
                 <view class="comment-section">
-                    <view class="section-title">共{{ isCommentLoading ? '--' : commentCount }} 条评论</view>
+                    <view class="section-title">共 {{ isCommentLoading ? '--' : commentCount }} 条评论</view>
                     <view v-if="isCommentLoading" class="comment-skeleton-list">
                         <view class="comment-skeleton-item" v-for="n in commentSkeletonCount" :key="'detail-comment-skeleton-' + n">
                             <view class="skeleton-avatar skeleton-animate"></view>
@@ -215,7 +203,7 @@
 
                                 <view class="comment-main">
                                     <view class="comment-author">{{ item.isAnonymous ? '匿名用户' : item.authorName }}</view>
-                                    <view class="comment-content">{{ item.content }}</view>
+                                    <view class="comment-content" @tap="showReplyInput" :data-comment-id="item._id" :data-author-name="item.isAnonymous ? '匿名用户' : item.authorName">{{ item.content }}</view>
                                     <view v-if="item.imageUrls && item.imageUrls.length" class="comment-image-grid">
                                         <block v-for="(imageUrl, imageIndex) in item.imageUrls" :key="'comment-' + commentIndex + '-image-' + imageIndex">
                                             <image
@@ -240,10 +228,7 @@
                                                 <text class="like-count">{{ item.likes || 0 }}</text>
                                             </view>
                                             <view v-if="item.canDelete" class="delete-btn" @tap="onDeleteComment" :data-comment-id="item._id">
-                                                <text class="delete-text">删除</text>
-                                            </view>
-                                            <view class="reply-btn" @tap="showReplyInput" :data-comment-id="item._id" :data-author-name="item.isAnonymous ? '匿名用户' : item.authorName">
-                                                <text class="reply-text">回复</text>
+                                                <image class="delete-icon" src="/static/images/delete.png" mode="aspectFit"></image>
                                             </view>
                                         </view>
                                     </view>
@@ -270,7 +255,7 @@
 
                                             <view class="reply-main">
                                                 <view class="reply-author">{{ reply.isAnonymous ? '匿名用户' : reply.authorName }}</view>
-                                                <view class="reply-content">
+                                                <view class="reply-content" @tap="showReplyInput" :data-comment-id="item._id" :data-author-name="reply.isAnonymous ? '匿名用户' : reply.authorName">
                                                     <text v-if="reply.replyToAuthorName" class="reply-to">回复@{{ reply.replyToAuthorName }}：</text>
                                                     <text>{{ reply.content }}</text>
                                                 </view>
@@ -302,10 +287,7 @@
                                                             :data-comment-id="reply._id"
                                                             :data-parent-id="item._id"
                                                         >
-                                                            <text class="delete-text">删除</text>
-                                                        </view>
-                                                        <view class="reply-btn" @tap="showReplyInput" :data-comment-id="item._id" :data-author-name="reply.isAnonymous ? '匿名用户' : reply.authorName">
-                                                            <text class="reply-text">回复</text>
+                                                            <image class="delete-icon" src="/static/images/delete.png" mode="aspectFit"></image>
                                                         </view>
                                                     </view>
                                                 </view>
@@ -398,9 +380,31 @@
                             <image class="action-icon-image" src="/static/images/add_image.png" mode="aspectFit"></image>
                         </view>
                         </view>
-                    <button class="submit-button" @tap="onSubmitComment" :disabled="isSubmitDisabled">
-                        发送
-                    </button>
+                    <view class="submit-button" @tap="onSubmitComment" :class="{ 'disabled': isSubmitDisabled }">
+                        <image class="submit-icon" src="/static/images/commententer.png" mode="aspectFit"></image>
+                    </view>
+                </view>
+            </view>
+        </view>
+
+        <!-- 底部操作栏 -->
+        <view class="bottom-action-bar">
+            <view class="comment-input-container">
+                <input 
+                    class="comment-input" 
+                    placeholder="评论..." 
+                    :value="quickCommentText"
+                    @input="onQuickCommentInput"
+                    @confirm="onQuickCommentSubmit"
+                    @tap="expandInput"
+                />
+            </view>
+            <view class="action-icons">
+                <view class="action-icon" @tap="showDiscussionModal">
+                    <image class="action-icon-image" src="/static/images/write_poetry.png" mode="aspectFit"></image>
+                </view>
+                <view class="action-icon" @tap="toggleFavorite">
+                    <image class="action-icon-image" :src="post && post.isFavorited ? '/static/images/my_favorites.png' : '/static/images/my_favorites.png'" mode="aspectFit"></image>
                 </view>
             </view>
         </view>
@@ -510,6 +514,8 @@ export default {
             maxCommentImages: 3,
             isSubmittingComment: false,
             imgindex: 0,
+            quickCommentText: '', // 底部栏快速评论文本
+            discussionModalVisible: false, // 是否显示讨论模态框
             img: '',
             commentIndex: 0,
             commentImage: '',
@@ -2933,7 +2939,7 @@ export default {
                 console.log('【详情页头像点击】currentTarget:', currentTarget);
 
                 // 如果是匿名评论，不跳转
-                if (isAnonymous || (authorName === '匿名用户' && userId.includes('anonymous'))) {
+                if (isAnonymous || (dataset.authorName === '匿名用户' && userId.includes('anonymous'))) {
                     console.log('【详情页头像点击】匿名评论，不跳转');
                     uni.showToast({
                         title: '匿名用户无法查看主页',
@@ -3069,6 +3075,42 @@ export default {
                     url: '/pages/index/index'
                 });
             }
+        },
+
+        // 底部栏快速评论输入
+        onQuickCommentInput: function(e) {
+            this.quickCommentText = e.detail.value;
+        },
+
+        // 底部栏快速评论提交
+        onQuickCommentSubmit: function() {
+            const text = this.quickCommentText.trim();
+            if (!text) {
+                return;
+            }
+            
+            // 使用现有的评论提交逻辑
+            this.newComment = text;
+            this.quickCommentText = '';
+            this.onSubmitComment();
+        },
+
+        // 显示讨论模态框
+        showDiscussionModal: function() {
+            // 这里可以跳转到写讨论页面或显示讨论模态框
+            uni.navigateTo({
+                url: '/pages/create-discussion/create-discussion?postId=' + (this.post && this.post._id ? this.post._id : '')
+            });
+        },
+
+        // 切换收藏状态
+        toggleFavorite: function() {
+            if (!this.post || !this.post._id) {
+                return;
+            }
+            
+            // 使用现有的收藏逻辑
+            this.showFavoriteModal = true;
         },
 
         // 兼容性文件上传方法
@@ -3652,31 +3694,6 @@ export default {
     align-items: center;
 }
 
-.favorite-icon-container {
-    margin-right: 12rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 12rpx;
-    border-radius: 12rpx;
-    transition: all 0.2s ease;
-    width: 60rpx;
-    height: 60rpx;
-}
-
-.favorite-icon-container:active {
-    transform: scale(0.95);
-}
-
-.favorite-icon {
-    width: 56rpx;
-    height: 56rpx;
-    opacity: 1;
-}
-
-.favorite-icon-container.favorited .favorite-icon {
-    opacity: 0.6;
-}
 
 .portfolio-icon-container {
     margin-right: 12rpx;
@@ -3720,47 +3737,6 @@ export default {
     height: 56rpx;
 }
 
-.discussion-icon-container {
-    margin-right: 12rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 12rpx;
-    border-radius: 12rpx;
-    transition: all 0.2s ease;
-    width: 60rpx;
-    height: 60rpx;
-}
-
-.discussion-icon-container:active {
-    transform: scale(0.95);
-}
-
-.discussion-icon {
-    width: 56rpx;
-    height: 56rpx;
-}
-
-.comment-icon-container {
-    margin-right: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 12rpx;
-    border-radius: 12rpx;
-    transition: all 0.2s ease;
-    width: 60rpx;
-    height: 60rpx;
-}
-
-.comment-icon-container:active {
-    transform: scale(0.95);
-}
-
-.comment-icon {
-    width: 56rpx;
-    height: 56rpx;
-}
 
 .like-icon {
     width: 56rpx;
@@ -3834,6 +3810,11 @@ export default {
     line-height: 1.5;
     word-break: break-word;
     margin-bottom: 10rpx;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+.comment-content:active {
+    color: #9ed7ee;
 }
 .comment-image-grid {
     display: flex;
@@ -3877,13 +3858,13 @@ export default {
 .comment-actions {
     display: flex;
     align-items: center;
+    gap: 0;
 }
 
 .like-section {
     display: flex;
     align-items: center;
-    padding: 8rpx 12rpx;
-    margin-right: 15rpx;
+    padding: 4rpx 6rpx;
     transition: all 0.2s ease;
 }
 
@@ -3894,7 +3875,7 @@ export default {
 .like-section .like-icon {
     width: 32rpx;
     height: 32rpx;
-    margin-right: 8rpx;
+    margin-right: 4rpx;
 }
 
 .like-count {
@@ -3905,8 +3886,7 @@ export default {
 .delete-btn {
     display: flex;
     align-items: center;
-    padding: 8rpx 12rpx;
-    margin-right: 15rpx;
+    padding: 4rpx 6rpx;
     transition: opacity 0.2s ease;
 }
 
@@ -3922,7 +3902,7 @@ export default {
 .reply-btn {
     display: flex;
     align-items: center;
-    padding: 8rpx 12rpx;
+    padding: 4rpx 6rpx;
     transition: opacity 0.2s ease;
 }
 
@@ -3933,6 +3913,16 @@ export default {
 .reply-text {
     font-size: 26rpx;
     color: #9ed7ee;
+}
+
+.reply-icon {
+    width: 40rpx;
+    height: 40rpx;
+}
+
+.delete-icon {
+    width: 60rpx;
+    height: 60rpx;
 }
 
 .replies-container {
@@ -3979,6 +3969,11 @@ export default {
     color: #666;
     line-height: 1.4;
     word-break: break-word;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+.reply-content:active {
+    color: #9ed7ee;
 }
 
 .reply-to {
@@ -4002,6 +3997,7 @@ export default {
 .reply-actions {
     display: flex;
     align-items: center;
+    gap: 0;
 }
 
 .show-more-replies {
@@ -4215,23 +4211,25 @@ export default {
 }
 
 .submit-button {
-    width: 120rpx !important;
-    height: 64rpx !important;
-    line-height: 64rpx !important;
-    background-color: #9ed7ee;
-    color: white;
-    border-radius: 32rpx;
-    font-size: 28rpx;
+    width: 80rpx !important;
+    height: 80rpx !important;
+    background: transparent !important;
+    border: none !important;
     padding: 0 !important;
     margin: 0 !important;
-    border: none !important;
     box-sizing: border-box !important;
     flex-shrink: 0;
-    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.2s ease;
 }
-.submit-button[disabled] {
-    background-color: #b3e6c9;
-    color: #ffffff;
+.submit-button.disabled {
+    opacity: 0.5;
+}
+.submit-icon {
+    width: 80rpx;
+    height: 80rpx;
 }
 .submit-button::after {
     border: none;
@@ -4572,6 +4570,74 @@ export default {
   src: url('/static/fonts/Huiwen-mincho.otf') format('opentype');
   font-weight: normal;
   font-style: normal;
+}
+
+/* 底部操作栏样式 */
+.bottom-action-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: #ffffff;
+    padding: 20rpx 30rpx;
+    padding-bottom: calc(20rpx + constant(safe-area-inset-bottom));
+    padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+    border-top: 1rpx solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 50;
+    box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.1);
+}
+
+.comment-input-container {
+    flex: 1;
+    margin-right: 30rpx;
+}
+
+.comment-input {
+    width: 100%;
+    height: 80rpx;
+    background-color: #f5f5f5;
+    border-radius: 40rpx;
+    padding: 0 30rpx;
+    font-size: 28rpx;
+    color: #333;
+    border: none;
+    box-sizing: border-box;
+}
+
+.comment-input::placeholder {
+    color: #999;
+}
+
+.bottom-action-bar .action-icons {
+    display: flex;
+    gap: 30rpx;
+    align-items: center;
+}
+
+.bottom-action-bar .action-icon {
+    width: 60rpx;
+    height: 60rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+}
+
+.bottom-action-bar .action-icon:active {
+    transform: scale(0.95);
+}
+
+.bottom-action-bar .action-icon-image {
+    width: 60rpx;
+    height: 60rpx;
+}
+
+/* 调整页面底部间距，避免被底部栏遮挡 */
+.container {
+    padding-bottom: 140rpx;
 }
 </style>
 
