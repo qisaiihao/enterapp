@@ -118,7 +118,6 @@
                                         :data-user-id="item._openid"
                                         :data-is-anonymous="item.isAnonymous"
                                     ></image>
-                                    <text class="author-name">{{ item.authorName }}</text>
                                     <view v-if="item.isAnonymous" class="anonymous-tag">匿名</view>
                                 </view>
 
@@ -127,8 +126,8 @@
                                 <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item._id" hover-class="navigator-hover">
                                     <view class="post-item">
                                         <view class="post-title">{{ item.title }} <text v-if="item.isHidden" class="hidden-tag">已隐藏</text></view>
-                                        <!-- 诗歌作者信息 -->
-                                        <view v-if="item.isPoem && item.author" class="poem-author">{{ item.author }}</view>
+                                        <!-- 个人主页不显示诗歌作者信息 -->
+                                        <!-- <view v-if="item.isPoem && item.author" class="poem-author">{{ item.author }}</view> -->
 
                                         <!-- 图片显示逻辑 (已优化，使用 imageStyle 占位) -->
                                         <view
@@ -2633,6 +2632,16 @@ export default {
     font-size: 28rpx;
     color: #333;
     font-weight: 500;
+}
+
+/* 个人主页的"我发布的作品"部分不显示作者名字 */
+.my-posts-section .author-info-outside .author-name {
+    display: none;
+}
+
+/* 个人主页的"我发布的作品"部分不显示诗歌作者信息 */
+.my-posts-section .poem-author {
+    display: none;
 }
 
 .post-item {
