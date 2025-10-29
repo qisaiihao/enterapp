@@ -398,6 +398,12 @@
               "root": "./functions/searchStats",
               "timeout": 10,
               "memory": 256
+            },
+            {
+              "name": "getFollowingPosts",
+              "root": "./functions/getFollowingPosts",
+              "timeout": 10,
+              "memory": 256
             }
           ]
         }

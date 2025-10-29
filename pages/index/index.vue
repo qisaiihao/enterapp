@@ -1,11 +1,7 @@
 ﻿<template>
     <view>
         <!-- index.wxml -->
-        <view class="container" @touchstart="touchStart" @touchend="touchEnd">
-            <!-- 页面切换提示 -->
-            <view v-if="showPageIndicator" class="page-indicator">
-                <view class="page-indicator-text">{{ pageIndicatorText }}</view>
-            </view>
+        <view class="container">
 
             <!-- 页面切换栏 -->
         <page-tabs ref="pageTabs" :current-tab="currentTab" @tab-change="onTabChange"></page-tabs>
@@ -17,16 +13,29 @@
 
             <!-- 真实内容：当 isLoading 为 false 时显示 -->
             <view v-else class="square-mode-container">
-                <view v-if="postList.length === 0 && !isLoading" class="empty-state">
-                    <view class="empty-icon">📝</view>
-                    <view class="empty-text">还没有帖子哦～</view>
-                    <view class="empty-subtext">快来发布第一条帖子吧！</view>
-                </view>
-                <!-- 给你的帖子列表循环的父容器添加一个ID -->
-                <view id="post-list-container">
-                    <!-- 主页帖子列表 -->
-                    <view v-if="currentPage === 'home'">
-                        <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" v-for="(item, index) in postList" :key="index">
+                <!-- 使用swiper实现滑动切换 -->
+                <swiper 
+                    class="page-swiper" 
+                    :current="swiperCurrent" 
+                    @change="onSwiperChange"
+                    :duration="300"
+                    :disable-touch="false"
+                    :circular="false"
+                    :indicator-dots="false"
+                    :autoplay="false"
+                >
+                    <!-- 广场页 -->
+                    <swiper-item>
+                        <view class="swiper-page">
+                            <view v-if="postList.length === 0 && !isLoading" class="empty-state">
+                                <view class="empty-icon">📝</view>
+                                <view class="empty-text">还没有帖子哦～</view>
+                                <view class="empty-subtext">快来发布第一条帖子吧！</view>
+                            </view>
+                            <!-- 给你的帖子列表循环的父容器添加一个ID -->
+                            <view id="post-list-container">
+                                <!-- 主页帖子列表 -->
+                                <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" v-for="(item, index) in postList" :key="index">
                             <!-- 作者信息 -->
 
                             <view class="author-info-outside">
@@ -130,245 +139,245 @@
                                 </view>
                             </view>
                         </view>
-                    </view>
-
-                    <!-- 发现页帖子列表 -->
-                    <view v-else-if="currentPage === 'discover'">
-                        <view v-if="discoverPostList.length === 0 && !isLoading" class="empty-state">
-                            <view class="empty-icon">🔍</view>
-                            <view class="empty-text">发现页暂无内容</view>
-                            <view class="empty-subtext">推荐算法正在学习中...</view>
-                        </view>
-                        <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" v-for="(item, index) in discoverPostList" :key="index">
-                            <!-- 作者信息 -->
-
-                            <view class="author-info-outside">
-                                <image
-                                    class="author-avatar"
-                                    :src="item.isAnonymous ? '/static/images/avatar.png' : (item.authorAvatar || '/static/images/avatar.png')"
-                                    mode="aspectFill"
-                                    @error="onAvatarError"
-                                    @load="onAvatarLoad"
-                                    :data-postindex="index"
-                                    @tap.stop.prevent="navigateToUserProfile"
-                                    :data-user-id="item._openid"
-                                    :data-author-name="item.authorName"
-                                    :data-is-anonymous="item.isAnonymous"
-                                ></image>
-                                <text class="author-name">{{ item.isAnonymous ? '匿名用户' : item.authorName }}</text>
-                            </view>
-
-                            <!-- 可点击的内容区域 - 跳转到详情页 -->
-
-                            <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item._id" hover-class="navigator-hover">
-                                <view class="post-item">
-                                    <view class="post-title">{{ item.title }}</view>
-
-                                    <!-- 图片显示逻辑 (已优化，使用 imageStyle 占位) -->
-                                    <view
-                                        v-if="item.imageUrls && item.imageUrls.length > 0"
-                                        class="image-container-wrapper"
-                                        :style="item.imageStyle"
-                                        @tap.stop.prevent="handlePreview"
-                                        :data-src="item.imageUrls[0]"
-                                        :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                    >
-                                        <!-- 单张图片 -->
-                                        <block v-if="item.imageUrls.length === 1">
-                                            <image
-                                                class="post-image"
-                                                :src="item.imageUrls[0]"
-                                                mode="aspectFill"
-                                                :lazy-load="true"
-                                                @error="onImageError"
-                                                @tap.stop.prevent="handlePreview"
-                                                :data-src="item.imageUrls[0]"
-                                                :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                            />
-                                        </block>
-
-                                        <!-- 多张图片 -->
-                                        <block v-else-if="item.imageUrls.length > 1">
-                                            <swiper class="image-swiper" :indicator-dots="true" :circular="true">
-                                                <block v-for="(img, index1) in item.imageUrls" :key="index1">
-                                                    <swiper-item>
-                                                        <image
-                                                            class="post-image"
-                                                            :src="img"
-                                                            mode="aspectFill"
-                                                            :lazy-load="true"
-                                                            @error="onImageError"
-                                                            @tap.stop.prevent="handlePreview"
-                                                            :data-src="img"
-                                                            :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                                        />
-                                                    </swiper-item>
-                                                </block>
-                                            </swiper>
-                                        </block>
-                                    </view>
-
-                                    <view class="post-content" v-if="item.content" style="white-space: pre-wrap">{{ item.content }}</view>
-
-                                    <!-- 标签显示 -->
-                                    <view v-if="item.tags && item.tags.length > 0" class="post-tags">
-                                        <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="item" v-for="(item, index1) in item.tags" :key="index1">#{{ item }}</text>
-                                    </view>
-                                </view>
-                            </navigator>
-
-                            <!-- 独立的互动区域 - 不触发详情页跳转 -->
-
-                            <view class="vote-section">
-                                <view class="actions-left">
-                                    <!-- 左侧留空，保持布局平衡 -->
-                                </view>
-                                <view class="button-group">
-                                    <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
-                                        <image class="comment-icon" src="/static/images/comment.png" mode="aspectFit" />
-                                        <text class="action-text">{{ item.commentCount || 0 }}</text>
-                                    </view>
-                                    <view
-                                        class="like-icon-container"
-                                        @tap.stop.prevent="onVote"
-                                        :data-postid="item._id"
-                                        :data-index="index"
-                                        data-list-type="discover"
-                                    >
-                                        <image class="like-icon" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError"></image>
-                                    </view>
-                                    <view :class="'vote-count ' + (item.isVoted ? 'voted' : '')">
-                                        <text class="action-text">{{ item.votes || 0 }}</text>
-                                    </view>
-                                </view>
                             </view>
                         </view>
-                    </view>
+                    </swiper-item>
 
-                    <!-- 讨论页帖子列表 -->
-                    <view v-else-if="currentPage === 'discussion'">
-                        <view v-if="discussionPostList.length === 0 && !discussionIsLoading" class="empty-state">
-                            <view class="empty-icon">💬</view>
-                            <view class="empty-text">讨论区暂无内容</view>
-                            <view class="empty-subtext">快来发起第一个话题吧！</view>
-                        </view>
-                        <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" v-for="(item, index) in discussionPostList" :key="index">
-                            <!-- 作者信息 -->
-
-                            <view class="author-info-outside">
-                                <image
-                                    class="author-avatar"
-                                    :src="item.isAnonymous ? '/static/images/avatar.png' : (item.authorAvatar || '/static/images/avatar.png')"
-                                    mode="aspectFill"
-                                    @error="onAvatarError"
-                                    @load="onAvatarLoad"
-                                    :data-postindex="index"
-                                    @tap.stop.prevent="navigateToUserProfile"
-                                    :data-user-id="item._openid"
-                                    :data-author-name="item.authorName"
-                                    :data-is-anonymous="item.isAnonymous"
-                                ></image>
-                                <text class="author-name">{{ item.isAnonymous ? '匿名用户' : item.authorName }}</text>
+                    <!-- 关注页 -->
+                    <swiper-item>
+                        <view class="swiper-page">
+                            <view v-if="followingPostList.length === 0 && !followingIsLoading" class="empty-state">
+                                <view class="empty-icon">👥</view>
+                                <view class="empty-text">关注的人还没有发帖</view>
+                                <view class="empty-subtext">去关注更多有趣的人吧！</view>
                             </view>
-
-                            <!-- 可点击的内容区域 - 跳转到详情页 -->
-
-                            <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item._id" hover-class="navigator-hover">
-                                <view class="post-item">
-                                    <view class="post-title">{{ item.title }}</view>
-
-                                    <!-- 图片显示逻辑 (已优化，使用 imageStyle 占位) -->
-                                    <view
-                                        v-if="item.imageUrls && item.imageUrls.length > 0"
-                                        class="image-container-wrapper"
-                                        :style="item.imageStyle"
-                                        @tap.stop.prevent="handlePreview"
-                                        :data-src="item.imageUrls[0]"
-                                        :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                    >
-                                        <!-- 单张图片 -->
-                                        <block v-if="item.imageUrls.length === 1">
-                                            <image
-                                                class="post-image"
-                                                :src="item.imageUrls[0]"
-                                                mode="aspectFill"
-                                                :lazy-load="true"
-                                                @error="onImageError"
-                                                @tap.stop.prevent="handlePreview"
-                                                :data-src="item.imageUrls[0]"
-                                                :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                            />
-                                        </block>
-
-                                        <!-- 多张图片 -->
-                                        <block v-else-if="item.imageUrls.length > 1">
-                                            <swiper class="image-swiper" :indicator-dots="true" :circular="true">
-                                                <block v-for="(img, index1) in item.imageUrls" :key="index1">
-                                                    <swiper-item>
-                                                        <image
-                                                            class="post-image"
-                                                            :src="img"
-                                                            mode="aspectFill"
-                                                            :lazy-load="true"
-                                                            @error="onImageError"
-                                                            @tap.stop.prevent="handlePreview"
-                                                            :data-src="img"
-                                                            :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                                        />
-                                                    </swiper-item>
-                                                </block>
-                                            </swiper>
-                                        </block>
-                                    </view>
-
-                                    <view class="post-content" v-if="item.content" style="white-space: pre-wrap">{{ item.content }}</view>
-
-                                    <!-- 标签显示 -->
-                                    <view v-if="item.tags && item.tags.length > 0" class="post-tags">
-                                        <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="item" v-for="(item, index1) in item.tags" :key="index1">#{{ item }}</text>
-                                    </view>
+                            <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" v-for="(item, index) in followingPostList" :key="index">
+                                <!-- 作者信息 -->
+                                <view class="author-info-outside">
+                                    <image
+                                        class="author-avatar"
+                                        :src="item.isAnonymous ? '/static/images/avatar.png' : (item.authorAvatar || '/static/images/avatar.png')"
+                                        mode="aspectFill"
+                                        @error="onAvatarError"
+                                        @load="onAvatarLoad"
+                                        :data-postindex="index"
+                                        @tap.stop.prevent="navigateToUserProfile"
+                                        :data-user-id="item._openid"
+                                        :data-author-name="item.authorName"
+                                        :data-is-anonymous="item.isAnonymous"
+                                    ></image>
+                                    <text class="author-name">{{ item.isAnonymous ? '匿名用户' : item.authorName }}</text>
                                 </view>
-                            </navigator>
 
-                            <!-- 独立的互动区域 - 不触发详情页跳转 -->
+                                <!-- 可点击的内容区域 - 跳转到详情页 -->
+                                <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item._id" hover-class="navigator-hover">
+                                    <view class="post-item">
+                                        <view class="post-title">{{ item.title }}</view>
 
-                            <view class="vote-section">
-                                <view class="actions-left">
-                                    <!-- 左侧留空，保持布局平衡 -->
-                                </view>
-                                <view class="button-group">
-                                    <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
-                                        <image class="comment-icon" src="/static/images/comment.png" mode="aspectFit" />
-                                        <text class="action-text">{{ item.commentCount || 0 }}</text>
+                                        <!-- 图片显示逻辑 -->
+                                        <view
+                                            v-if="item.imageUrls && item.imageUrls.length > 0"
+                                            class="image-container-wrapper"
+                                            :style="item.imageStyle"
+                                            @tap.stop.prevent="handlePreview"
+                                            :data-src="item.imageUrls[0]"
+                                            :data-original-image-urls="item.originalImageUrls || item.imageUrls"
+                                        >
+                                            <!-- 单张图片 -->
+                                            <block v-if="item.imageUrls.length === 1">
+                                                <image
+                                                    class="post-image"
+                                                    :src="item.imageUrls[0]"
+                                                    mode="aspectFill"
+                                                    :lazy-load="true"
+                                                    @error="onImageError"
+                                                    @tap.stop.prevent="handlePreview"
+                                                    :data-src="item.imageUrls[0]"
+                                                    :data-original-image-urls="item.originalImageUrls || item.imageUrls"
+                                                />
+                                            </block>
+
+                                            <!-- 多张图片 -->
+                                            <block v-else-if="item.imageUrls.length > 1">
+                                                <swiper class="image-swiper" :indicator-dots="true" :circular="true">
+                                                    <block v-for="(img, imgIndex) in item.imageUrls" :key="imgIndex">
+                                                        <swiper-item>
+                                                            <image
+                                                                class="post-image"
+                                                                :src="img"
+                                                                mode="aspectFill"
+                                                                :lazy-load="true"
+                                                                @error="onImageError"
+                                                                @tap.stop.prevent="handlePreview"
+                                                                :data-src="img"
+                                                                :data-original-image-urls="item.originalImageUrls || item.imageUrls"
+                                                            />
+                                                        </swiper-item>
+                                                    </block>
+                                                </swiper>
+                                            </block>
+                                        </view>
+
+                                        <view class="post-content" v-if="item.content" style="white-space: pre-wrap">{{ item.content }}</view>
+
+                                        <!-- 标签显示 -->
+                                        <view v-if="item.tags && item.tags.length > 0" class="post-tags">
+                                            <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="item" v-for="(item, index1) in item.tags" :key="index1">#{{ item }}</text>
+                                        </view>
                                     </view>
-                                    <view
-                                        class="like-icon-container"
-                                        @tap.stop.prevent="onVote"
-                                        :data-postid="item._id"
-                                        :data-index="index"
-                                        data-list-type="discussion"
-                                    >
-                                        <image class="like-icon" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError"></image>
+                                </navigator>
+
+                                <!-- 独立的互动区域 -->
+                                <view class="vote-section">
+                                    <view class="actions-left">
+                                        <!-- 左侧留空，保持布局平衡 -->
                                     </view>
-                                    <view :class="'vote-count ' + (item.isVoted ? 'voted' : '')">
-                                        <text class="action-text">{{ item.votes || 0 }}</text>
+                                    <view class="button-group">
+                                        <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
+                                            <image class="comment-icon" src="/static/images/comment.png" mode="aspectFit" />
+                                            <text class="action-text">{{ item.commentCount || 0 }}</text>
+                                        </view>
+                                        <view
+                                            class="like-icon-container"
+                                            @tap.stop.prevent="onVote"
+                                            :data-postid="item._id"
+                                            :data-index="index"
+                                            data-list-type="following"
+                                        >
+                                            <image class="like-icon" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError"></image>
+                                        </view>
+                                        <view :class="'vote-count ' + (item.isVoted ? 'voted' : '')">
+                                            <text class="action-text">{{ item.votes || 0 }}</text>
+                                        </view>
                                     </view>
                                 </view>
                             </view>
                         </view>
-                    </view>
-                </view>
+                    </swiper-item>
+
+                    <!-- 讨论页 -->
+                    <swiper-item>
+                        <view class="swiper-page">
+                            <view v-if="discussionPostList.length === 0 && !discussionIsLoading" class="empty-state">
+                                <view class="empty-icon">💬</view>
+                                <view class="empty-text">讨论区暂无内容</view>
+                                <view class="empty-subtext">快来发起第一个话题吧！</view>
+                            </view>
+                            <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" v-for="(item, index) in discussionPostList" :key="index">
+                                <!-- 作者信息 -->
+                                <view class="author-info-outside">
+                                    <image
+                                        class="author-avatar"
+                                        :src="item.isAnonymous ? '/static/images/avatar.png' : (item.authorAvatar || '/static/images/avatar.png')"
+                                        mode="aspectFill"
+                                        @error="onAvatarError"
+                                        @load="onAvatarLoad"
+                                        :data-postindex="index"
+                                        @tap.stop.prevent="navigateToUserProfile"
+                                        :data-user-id="item._openid"
+                                        :data-author-name="item.authorName"
+                                        :data-is-anonymous="item.isAnonymous"
+                                    ></image>
+                                    <text class="author-name">{{ item.isAnonymous ? '匿名用户' : item.authorName }}</text>
+                                </view>
+
+                                <!-- 可点击的内容区域 - 跳转到详情页 -->
+                                <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item._id" hover-class="navigator-hover">
+                                    <view class="post-item">
+                                        <view class="post-title">{{ item.title }}</view>
+
+                                        <!-- 图片显示逻辑 -->
+                                        <view
+                                            v-if="item.imageUrls && item.imageUrls.length > 0"
+                                            class="image-container-wrapper"
+                                            :style="item.imageStyle"
+                                            @tap.stop.prevent="handlePreview"
+                                            :data-src="item.imageUrls[0]"
+                                            :data-original-image-urls="item.originalImageUrls || item.imageUrls"
+                                        >
+                                            <!-- 单张图片 -->
+                                            <block v-if="item.imageUrls.length === 1">
+                                                <image
+                                                    class="post-image"
+                                                    :src="item.imageUrls[0]"
+                                                    mode="aspectFill"
+                                                    :lazy-load="true"
+                                                    @error="onImageError"
+                                                    @tap.stop.prevent="handlePreview"
+                                                    :data-src="item.imageUrls[0]"
+                                                    :data-original-image-urls="item.originalImageUrls || item.imageUrls"
+                                                />
+                                            </block>
+
+                                            <!-- 多张图片 -->
+                                            <block v-else-if="item.imageUrls.length > 1">
+                                                <swiper class="image-swiper" :indicator-dots="true" :circular="true">
+                                                    <block v-for="(img, imgIndex) in item.imageUrls" :key="imgIndex">
+                                                        <swiper-item>
+                                                            <image
+                                                                class="post-image"
+                                                                :src="img"
+                                                                mode="aspectFill"
+                                                                :lazy-load="true"
+                                                                @error="onImageError"
+                                                                @tap.stop.prevent="handlePreview"
+                                                                :data-src="img"
+                                                                :data-original-image-urls="item.originalImageUrls || item.imageUrls"
+                                                            />
+                                                        </swiper-item>
+                                                    </block>
+                                                </swiper>
+                                            </block>
+                                        </view>
+
+                                        <view class="post-content" v-if="item.content" style="white-space: pre-wrap">{{ item.content }}</view>
+
+                                        <!-- 标签显示 -->
+                                        <view v-if="item.tags && item.tags.length > 0" class="post-tags">
+                                            <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="item" v-for="(item, index1) in item.tags" :key="index1">#{{ item }}</text>
+                                        </view>
+                                    </view>
+                                </navigator>
+
+                                <!-- 独立的互动区域 -->
+                                <view class="vote-section">
+                                    <view class="actions-left">
+                                        <!-- 左侧留空，保持布局平衡 -->
+                                    </view>
+                                    <view class="button-group">
+                                        <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
+                                            <image class="comment-icon" src="/static/images/comment.png" mode="aspectFit" />
+                                            <text class="action-text">{{ item.commentCount || 0 }}</text>
+                                        </view>
+                                        <view
+                                            class="like-icon-container"
+                                            @tap.stop.prevent="onVote"
+                                            :data-postid="item._id"
+                                            :data-index="index"
+                                            data-list-type="discussion"
+                                        >
+                                            <image class="like-icon" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError"></image>
+                                        </view>
+                                        <view :class="'vote-count ' + (item.isVoted ? 'voted' : '')">
+                                            <text class="action-text">{{ item.votes || 0 }}</text>
+                                        </view>
+                                    </view>
+                                </view>
+                            </view>
+                        </view>
+                    </swiper-item>
+                </swiper>
 
                 <!-- 在容器外部，页面的最底部添加加载提示 -->
                 <view class="loading-footer">
                     <block v-if="currentPage === 'home' && !hasMore && postList.length > 0">
                         <text>--- 我是有底线的 ---</text>
                     </block>
-                    <block v-else-if="currentPage === 'discover' && !discoverHasMore && discoverPostList.length > 0">
+                    <block v-else-if="currentPage === 'following' && !followingHasMore && followingPostList.length > 0">
                         <view class="discover-end-tip">
                             <text class="end-text">--- 没有更多了 ---</text>
                             <view class="refresh-tip">
-                                <text class="refresh-text">下拉刷新获取新的推荐</text>
+                                <text class="refresh-text">下拉刷新获取新的关注内容</text>
                             </view>
                         </view>
                     </block>
@@ -378,12 +387,9 @@
                 </view>
             </view>
 
-  
-        </view>
+            <app-tab-bar ref="customTabBar" />
 
-        <!-- #ifndef MP-WEIXIN -->
-        <app-tab-bar ref="customTabBar" />
-        <!-- #endif -->
+        </view>
 
     </view>
 </template>
@@ -454,31 +460,18 @@ export default {
             currentPage: 'home',
 
             // 'home' 或 'discover'
-            showPageIndicator: false,
 
-            // 是否显示页面切换提示
-            pageIndicatorText: '',
+            // swiper当前页面索引 (0: 广场, 1: 关注, 2: 讨论)
+            swiperCurrent: 0,
 
-            // 切换提示文字
+            // 发现页相关数据（保留但不显示入口）
             discoverPostList: [],
-
-            // 发现页的帖子列表
             discoverPage: 0,
-
-            // 发现页的分页
             discoverHasMore: true,
-
-            // 发现页是否还有更多数据
             discoverShownPostIds: [],
-
-            // 发现页已显示的帖子ID，用于防重复
             discoverRefreshTime: 0,
-
-            // 发现页加载状态
             discoverIsLoading: false,
             discoverIsLoadingMore: false,
-
-            // 发现页刷新时间戳
 
             // 讨论页相关数据
             discussionPostList: [],
@@ -486,22 +479,20 @@ export default {
             discussionHasMore: true,
             discussionIsLoading: false,
             discussionIsLoadingMore: false,
-            touchStartX: 0,
 
-            // 触摸开始X坐标
-            touchStartY: 0,
-
-            // 触摸开始Y坐标
-            touchEndX: 0,
-
-            // 触摸结束X坐标
-            // 触摸结束Y坐标
-            touchEndY: 0,
+            // 关注页相关数据
+            followingPostList: [],
+            followingPage: 0,
+            followingHasMore: true,
+            followingIsLoading: false,
+            followingIsLoadingMore: false,
 
             selected: 0,
             img: '',
             // 安全区域高度
-            safeAreaTop: 0
+            safeAreaTop: 0,
+            // swiper切换防抖定时器
+            swiperChangeTimer: null
         };
     },
     onLoad: function (options) {
@@ -555,6 +546,11 @@ export default {
     onUnload: function () {
         try { uni.$off && this.syncLikeStatusFromCache && uni.$off('like-changed', this.syncLikeStatusFromCache); } catch (_) {}
         try { uni.$off && uni.$off('comment-count-changed'); } catch (_) {}
+        // 清理swiper切换防抖定时器
+        if (this.swiperChangeTimer) {
+            clearTimeout(this.swiperChangeTimer);
+            this.swiperChangeTimer = null;
+        }
     },
     onPullDownRefresh: function () {
         console.log('🔍 [首页] 下拉刷新触发，当前页面:', this.currentPage);
@@ -590,6 +586,11 @@ export default {
             console.log('🔍 [首页] 执行发现页刷新');
             this.refreshDiscoverPosts();
             uni.stopPullDownRefresh();
+        } else if (this.currentPage === 'following') {
+            // 关注页刷新
+            console.log('🔍 [首页] 执行关注页刷新');
+            this.refreshFollowingPosts();
+            uni.stopPullDownRefresh();
         } else if (this.currentPage === 'discussion') {
             // 讨论页刷新
             console.log('🔍 [首页] 执行讨论页刷新');
@@ -616,8 +617,9 @@ onReachBottom: function () {
         this.scrollTimer = setTimeout(() => {
             const isHome = this.currentPage === 'home';
             const isDiscover = this.currentPage === 'discover';
+            const isFollowing = this.currentPage === 'following';
             const isDiscussion = this.currentPage === 'discussion';
-            if (!isHome && !isDiscover && !isDiscussion) {
+            if (!isHome && !isDiscover && !isFollowing && !isDiscussion) {
                 return;
             }
 
@@ -628,6 +630,9 @@ onReachBottom: function () {
             } else if (isDiscover) {
                 hasMore = this.discoverHasMore;
                 loadingFlag = this.discoverIsLoading || this.discoverIsLoadingMore;
+            } else if (isFollowing) {
+                hasMore = this.followingHasMore;
+                loadingFlag = this.followingIsLoading || this.followingIsLoadingMore;
             } else if (isDiscussion) {
                 hasMore = this.discussionHasMore;
                 loadingFlag = this.discussionIsLoading || this.discussionIsLoadingMore;
@@ -672,6 +677,8 @@ onReachBottom: function () {
                                 this.getPostList();
                             } else if (isDiscover) {
                                 this.loadRecommendationPosts();
+                            } else if (isFollowing) {
+                                this.loadFollowingPosts();
                             } else if (isDiscussion) {
                                 this.loadDiscussionPosts();
                             }
@@ -739,36 +746,94 @@ onReachBottom: function () {
             }
         },
 
+        // swiper切换处理
+        onSwiperChange(e) {
+            const current = e.detail.current;
+            console.log('swiper切换到:', current);
+            
+            // 防抖处理：避免快速滑动时的状态不一致
+            if (this.swiperChangeTimer) {
+                clearTimeout(this.swiperChangeTimer);
+            }
+            
+            this.swiperChangeTimer = setTimeout(() => {
+                this.setData({
+                    swiperCurrent: current
+                });
+
+                // 根据swiper索引映射到页面类型和标签
+                let pageType, tabValue;
+                switch(current) {
+                    case 0:
+                        pageType = 'home';
+                        tabValue = 'square';
+                        break;
+                    case 1:
+                        pageType = 'following';
+                        tabValue = 'following';
+                        break;
+                    case 2:
+                        pageType = 'discussion';
+                        tabValue = 'discussion';
+                        break;
+                }
+
+                this.setData({
+                    currentPage: pageType,
+                    currentTab: tabValue
+                });
+
+                // 如果页面还没有数据，加载数据
+                if (pageType === 'following' && this.followingPostList.length === 0) {
+                    this.loadFollowingPosts();
+                } else if (pageType === 'discussion' && this.discussionPostList.length === 0) {
+                    this.loadDiscussionPosts();
+                }
+            }, 10); // 10ms防抖延迟
+        },
+
         // 标签切换处理
         onTabChange(tabValue) {
             console.log('切换标签页:', tabValue);
+            
+            // 根据标签值映射到swiper索引
+            let swiperIndex;
+            switch(tabValue) {
+                case 'square':
+                    swiperIndex = 0;
+                    break;
+                case 'following':
+                    swiperIndex = 1;
+                    break;
+                case 'discussion':
+                    swiperIndex = 2;
+                    break;
+            }
+
             this.setData({
                 currentTab: tabValue,
-                showPageIndicator: true
+                swiperCurrent: swiperIndex
             });
 
             // 根据标签页映射到内部页面
             switch(tabValue) {
                 case 'square':
                     this.setData({
-                        currentPage: 'home',
-                        pageIndicatorText: '广场'
+                        currentPage: 'home'
                     });
                     break;
-                case 'discover':
+                case 'following':
                     this.setData({
-                        currentPage: 'discover',
-                        pageIndicatorText: '发现'
+                        currentPage: 'following'
                     });
-                    // 如果发现页还没有数据，加载发现页数据
-                    if (this.discoverPostList.length === 0) {
-                        this.loadDiscoverPosts();
+                    // 如果关注页还没有数据，加载关注页数据
+                    if (this.followingPostList.length === 0) {
+                        this.loadFollowingPosts();
                     }
                     break;
                 case 'discussion':
                     this.setData({
-                        currentPage: 'discussion',
-                        pageIndicatorText: '讨论'
+                        currentPage: 'discussion'
                     });
                     // 如果讨论页还没有数据，加载讨论页数据
                     if (this.discussionPostList.length === 0) {
@@ -776,13 +841,6 @@ onReachBottom: function () {
                     }
                     break;
             }
-
-            // 3秒后隐藏提示
-            setTimeout(() => {
-                this.setData({
-                    showPageIndicator: false
-                });
-            }, 3000);
         },
 
         // 等待登录完成再初始化首页数据，避免 isVoted 计算出错
@@ -880,6 +938,8 @@ onReachBottom: function () {
           if (!listType) {
               if (this.currentPage === 'discover') {
                   listType = 'discover';
+              } else if (this.currentPage === 'following') {
+                  listType = 'following';
               } else if (this.currentPage === 'discussion') {
                   listType = 'discussion';
               } else {
@@ -888,8 +948,10 @@ onReachBottom: function () {
           }
 
           const listKey = listType === 'discover' ? 'discoverPostList' :
+                         listType === 'following' ? 'followingPostList' :
                          listType === 'discussion' ? 'discussionPostList' : 'postList';
           const pageTag = listType === 'discover' ? 'discover' :
+                         listType === 'following' ? 'following' :
                          listType === 'discussion' ? 'discussion' : 'index';
             let list = this[listKey] || [];
             let targetIndex = index;
@@ -1271,6 +1333,7 @@ onReachBottom: function () {
                 collectIds(this.postList);
                 collectIds(this.discoverPostList);
                 collectIds(this.discussionPostList);
+                collectIds(this.followingPostList);
 
                 if (allPostIds.length === 0) return;
 
@@ -1302,6 +1365,7 @@ onReachBottom: function () {
                 patchList('postList');
                 patchList('discoverPostList');
                 patchList('discussionPostList');
+                patchList('followingPostList');
 
                 if (Object.keys(updates).length > 0) {
                     this.setData(updates);
@@ -1351,85 +1415,27 @@ onReachBottom: function () {
             });
         },
 
-        // --- 页面切换相关函数 ---
 
-        // 触摸开始事件
-        touchStart: function (e) {
-            this.setData({
-                touchStartX: e.touches[0].clientX,
-                touchStartY: e.touches[0].clientY
-            });
-        },
-
-        // 触摸结束事件
-        touchEnd: function (e) {
-            const touchEndX = e.changedTouches[0].clientX;
-            const touchEndY = e.changedTouches[0].clientY;
-            const diffX = this.touchStartX - touchEndX;
-            const diffY = this.touchStartY - touchEndY;
-
-            // 计算滑动距离和角度
-            const distance = Math.sqrt(diffX * diffX + diffY * diffY);
-            // 修复角度计算：使用绝对值确保角度正确
-            const angle = Math.abs((Math.atan2(Math.abs(diffY), Math.abs(diffX)) * 180) / Math.PI);
-
-            // 只有当水平滑动距离足够大，且滑动角度接近水平（小于45度）时才翻页
-            if (distance > 80 && Math.abs(diffX) > 50 && angle < 45) {
-                const currentPage = this.currentPage;
-                
-                if (currentPage === 'home') {
-                    // 主页：右滑进入发现页
-                    if (diffX < 0) {
-                        console.log('主页右滑切换到发现页');
-                        this.switchToDiscover();
-                    }
-                } else if (currentPage === 'discover') {
-                    // 发现页：左滑进入广场，右滑进入讨论
-                    if (diffX > 0) {
-                        console.log('发现页左滑切换到广场');
-                        this.switchToHome();
-                    } else if (diffX < 0) {
-                        console.log('发现页右滑切换到讨论');
-                        this.switchToDiscussion();
-                    }
-                } else if (currentPage === 'discussion') {
-                    // 讨论页：左滑进入发现
-                    if (diffX > 0) {
-                        console.log('讨论页左滑切换到发现页');
-                        this.switchToDiscover();
-                    }
-                }
-            }
-        },
-
-        // 切换到发现页
-        switchToDiscover: function () {
-            if (this.currentPage === 'discover') {
-                console.log('已经在发现页，无需切换');
+        // 切换到关注页
+        switchToFollowing: function () {
+            if (this.currentPage === 'following') {
+                console.log('已经在关注页，无需切换');
                 return;
             }
-            console.log('切换到发现页');
+            console.log('切换到关注页');
             this.setData({
-                currentPage: 'discover',
-                currentTab: 'discover',
-                showPageIndicator: true,
-                pageIndicatorText: '发现'
+                currentPage: 'following',
+                currentTab: 'following',
+                swiperCurrent: 1  // 关注页对应swiper索引1
             });
 
-            // 加载发现页数据（如果还没有）
-            if (this.discoverPostList.length === 0) {
-                console.log('开始加载发现页数据');
-                this.loadDiscoverPosts();
+            // 如果关注页还没有数据，加载关注页数据
+            if (this.followingPostList.length === 0) {
+                console.log('开始加载关注页数据');
+                this.loadFollowingPosts();
             } else {
-                console.log('发现页已有数据，直接切换');
+                console.log('关注页已有数据，直接切换');
             }
-
-            // 3秒后隐藏提示
-            setTimeout(() => {
-                this.setData({
-                    showPageIndicator: false
-                });
-            }, 3000);
         },
 
         // 切换回主页
@@ -1442,16 +1448,8 @@ onReachBottom: function () {
             this.setData({
                 currentPage: 'home',
                 currentTab: 'square',
-                showPageIndicator: true,
-                pageIndicatorText: '广场'
+                swiperCurrent: 0  // 主页对应swiper索引0
             });
-
-            // 3秒后隐藏提示
-            setTimeout(() => {
-                this.setData({
-                    showPageIndicator: false
-                });
-            }, 3000);
         },
 
         // 切换到讨论页
@@ -1464,8 +1462,7 @@ onReachBottom: function () {
             this.setData({
                 currentPage: 'discussion',
                 currentTab: 'discussion',
-                showPageIndicator: true,
-                pageIndicatorText: '讨论'
+                swiperCurrent: 2  // 讨论页对应swiper索引2
             });
 
             // 如果讨论页还没有数据，加载讨论页数据
@@ -1475,13 +1472,6 @@ onReachBottom: function () {
             } else {
                 console.log('讨论页已有数据，直接切换');
             }
-
-            // 3秒后隐藏提示
-            setTimeout(() => {
-                this.setData({
-                    showPageIndicator: false
-                });
-            }, 3000);
         },
 
         // 加载发现页数据 - 使用推荐算法
@@ -1794,42 +1784,110 @@ onReachBottom: function () {
         },
 
         // 空函数，用于阻止匿名帖子的头像点击事件
-        noop() {}
+        noop() {},
+
+        // 加载关注页数据
+        loadFollowingPosts: function () {
+            console.log('开始加载关注页数据');
+
+            if (this.followingIsLoading || this.followingIsLoadingMore) {
+                console.log('关注页正在加载中，跳过重复请求');
+                return;
+            }
+
+            if (!this.followingHasMore && this.followingPage > 0) {
+                console.log('关注页已无更多数据，跳过加载');
+                return;
+            }
+
+            const isInitialLoad = this.followingPage === 0 && this.followingPostList.length === 0;
+            this.setData({
+                followingIsLoading: isInitialLoad,
+                followingIsLoadingMore: !isInitialLoad
+            });
+
+            const skip = this.followingPage * PAGE_SIZE;
+
+            this.callCloudFunction('getFollowingPosts', {
+                skip: skip,
+                limit: PAGE_SIZE
+            }, { requireAuth: true }).then(async (res) => {
+                if (res.result && res.result.success && res.result.posts) {
+                    let posts = res.result.posts.map((post) => ({
+                        ...post,
+                        likeIcon: likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false)
+                    }));
+
+                    // 将 cloud:// 映射为可访问 URL，并预热
+                    posts = await hydrateTempUrls(posts);
+                    warmTempUrlsFromPosts(posts);
+
+                    const currentList = this.followingPage === 0 ? [] : this.followingPostList;
+                    const newList = currentList.concat(posts);
+
+                    this.setData({
+                        followingPostList: newList,
+                        followingPage: this.followingPage + 1,
+                        followingHasMore: posts.length === PAGE_SIZE,
+                        followingIsLoading: false,
+                        followingIsLoadingMore: false
+                    });
+
+                    console.log('关注页数据加载完成，帖子数量:', posts.length, '累计:', newList.length);
+
+                    // 预加载用户数据
+                    if (isInitialLoad) {
+                        setTimeout(() => {
+                            if (this.preloadUserData && typeof this.preloadUserData === 'function') {
+                                this.preloadUserData(posts);
+                            }
+                        }, 500);
+                    }
+                } else {
+                    this.setData({
+                        followingIsLoading: false,
+                        followingIsLoadingMore: false,
+                        followingHasMore: false
+                    });
+                    if (isInitialLoad) {
+                        uni.showToast({
+                            title: '暂无关注的人发帖',
+                            icon: 'none'
+                        });
+                    }
+                }
+            }).catch((err) => {
+                console.error('加载关注页数据失败:', err);
+                this.setData({
+                    followingIsLoading: false,
+                    followingIsLoadingMore: false
+                });
+                uni.showToast({
+                    title: '加载失败',
+                    icon: 'none'
+                });
+            });
+        },
+
+        // 刷新关注页数据
+        refreshFollowingPosts: function () {
+            console.log('刷新关注页数据');
+            this.setData({
+                followingPostList: [],
+                followingPage: 0,
+                followingHasMore: true,
+                followingIsLoading: false,
+                followingIsLoadingMore: false
+            });
+            this.loadFollowingPosts();
+        },
+
 
     }
 };
 </script>
 <style>
 /* index.wxss */
-.page-indicator {
-    position: fixed;
-    top: 100rpx;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 20rpx 40rpx;
-    border-radius: 50rpx;
-    font-size: 28rpx;
-    z-index: 9999;
-    animation: pageIndicatorFadeIn 0.3s ease-in-out;
-}
-
-.page-indicator-text {
-    text-align: center;
-    font-weight: 500;
-}
-
-@keyframes pageIndicatorFadeIn {
-    0% {
-        opacity: 0;
-        transform: translateX(-50%) translateY(-20rpx);
-    }
-    100% {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-    }
-}
 
 .container {
     padding: 255rpx 0 100rpx 0; /* 为page-tabs留出空间：188rpx(page-tabs总高度) + 62rpx(额外间距) */
@@ -2288,6 +2346,17 @@ onReachBottom: function () {
     border: 2rpx solid rgba(255, 193, 7, 0.3);
     border-radius: 20rpx;
     padding: 16rpx 24rpx;
+}
+
+/* swiper页面切换样式 */
+.page-swiper {
+    height: 100vh;
+    width: 100%;
+}
+
+.swiper-page {
+    height: 100%;
+    overflow-y: auto;
 }
 
 .refresh-text {

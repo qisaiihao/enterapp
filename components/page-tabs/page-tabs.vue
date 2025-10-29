@@ -51,7 +51,7 @@ export default {
       safeAreaTop: 0,
       tabs: [
         { label: '广场', value: 'square' },
-        { label: '发现', value: 'discover' },
+        { label: '关注', value: 'following' },
         { label: '讨论', value: 'discussion' }
       ]
     };
