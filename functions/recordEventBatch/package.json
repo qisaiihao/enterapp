@@ -1,0 +1,10 @@
+{
+  "name": "recordEventBatch",
+  "version": "1.0.0",
+  "description": "Batch record view events to view_events collection",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
+

@@ -1,0 +1,10 @@
+{
+  "name": "buildUserInterests",
+  "version": "1.0.0",
+  "description": "Build user_interests from user_post_day and posts metadata",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
+

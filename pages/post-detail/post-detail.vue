@@ -586,6 +586,7 @@ export default {
     },
     onUnload: function () {
         this.recordViewBehavior();
+        try { const viewEvents = require('../../utils/viewEvents.js'); viewEvents.flushViewQueue(); } catch (e) {}
         try { uni.$off && this.onGlobalCommentLikeChanged && uni.$off('comment-like-changed', this.onGlobalCommentLikeChanged); } catch (_) {}
     },
     onHide: function () {
@@ -593,6 +594,7 @@ export default {
             this.collapseInput();
         }
         this.recordViewBehavior();
+        try { const viewEvents = require('../../utils/viewEvents.js'); viewEvents.flushViewQueue(); } catch (e) {}
     },
     methods: {
         // 处理匿名头像点击事件的函数
@@ -3024,6 +3026,10 @@ export default {
             if (viewDuration < 3) {
                 return;
             }
+            try {
+                const viewEvents = require('../../utils/viewEvents.js');
+                viewEvents.enqueueView(this.currentPostId, viewDuration);
+            } catch (e) { console.warn('enqueueView failed', e); }
             this.callCloudFunction('recordView', {
                     postId: this.currentPostId,
                     viewDuration: viewDuration

@@ -1,0 +1,10 @@
+{
+  "name": "buildPostStatistics",
+  "version": "1.0.0",
+  "description": "Build post_statistics from post_day/user_post_day",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
+

@@ -404,6 +404,30 @@
               "root": "./functions/getFollowingPosts",
               "timeout": 10,
               "memory": 256
+            },
+            {
+              "name": "recordEventBatch",
+              "root": "./functions/recordEventBatch",
+              "timeout": 10,
+              "memory": 128
+            },
+            {
+              "name": "aggregateUserPostDay",
+              "root": "./functions/aggregateUserPostDay",
+              "timeout": 60,
+              "memory": 256
+            },
+            {
+              "name": "buildPostStatistics",
+              "root": "./functions/buildPostStatistics",
+              "timeout": 120,
+              "memory": 512
+            },
+            {
+              "name": "buildUserInterests",
+              "root": "./functions/buildUserInterests",
+              "timeout": 120,
+              "memory": 512
             }
           ]
         }
