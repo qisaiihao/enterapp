@@ -146,7 +146,14 @@
                     <!-- 关注页 -->
                     <swiper-item>
                         <view class="swiper-page">
-                            <view v-if="followingPostList.length === 0 && !followingIsLoading" class="empty-state">
+                            <!-- 关注页骨架屏：当 followingIsLoading 为 true 时显示 -->
+                            <view v-if="followingIsLoading">
+                                <skeleton pageType="index" />
+                            </view>
+                            
+                            <!-- 真实内容：当 followingIsLoading 为 false 时显示 -->
+                            <view v-else>
+                            <view v-if="followingPostList.length === 0" class="empty-state">
                                 <view class="empty-icon">👥</view>
                                 <view class="empty-text">关注的人还没有发帖</view>
                                 <view class="empty-subtext">去关注更多有趣的人吧！</view>
@@ -252,13 +259,21 @@
                                     </view>
                                 </view>
                             </view>
+                            </view>
                         </view>
                     </swiper-item>
 
                     <!-- 讨论页 -->
                     <swiper-item>
                         <view class="swiper-page">
-                            <view v-if="discussionPostList.length === 0 && !discussionIsLoading" class="empty-state">
+                            <!-- 讨论页骨架屏：当 discussionIsLoading 为 true 时显示 -->
+                            <view v-if="discussionIsLoading">
+                                <skeleton pageType="index" />
+                            </view>
+                            
+                            <!-- 真实内容：当 discussionIsLoading 为 false 时显示 -->
+                            <view v-else>
+                            <view v-if="discussionPostList.length === 0" class="empty-state">
                                 <view class="empty-icon">💬</view>
                                 <view class="empty-text">讨论区暂无内容</view>
                                 <view class="empty-subtext">快来发起第一个话题吧！</view>
@@ -363,6 +378,7 @@
                                         </view>
                                     </view>
                                 </view>
+                            </view>
                             </view>
                         </view>
                     </swiper-item>
