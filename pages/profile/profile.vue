@@ -1303,9 +1303,7 @@ export default {
         // 格式化月份标签
         formatMonthLabel: function (monthKey) {
             const [year, month] = monthKey.split('-');
-            const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月', 
-                              '七月', '八月', '九月', '十月', '十一月', '十二月'];
-            return `${year}年${monthNames[parseInt(month) - 1]}`;
+            return `${year}年${parseInt(month)}月`;
         },
 
         // 格式化帖子时间

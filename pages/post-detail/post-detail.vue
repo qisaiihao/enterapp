@@ -54,18 +54,20 @@
                                 style="pointer-events: auto; cursor: pointer;"
                             ></image>
                             <text class="author-name">{{ post.isAnonymous ? '匿名用户' : post.authorName }}</text>
+                        </view>
+                        <view class="author-right-actions">
                             <view v-if="!post.isAnonymous && isMutualFollow" class="mutual-tag">互相关注</view>
                             <view v-else-if="!post.isAnonymous && isFollowedByAuthor && !isMutualFollow" class="followed-tag">TA关注了你</view>
+                            <button
+                                v-if="showFollowButton && !post.isAnonymous && !isMutualFollow"
+                                :class="'follow-btn ' + (isFollowing ? 'following' : '')"
+                                @tap="onFollowTap"
+                                :loading="followPending"
+                                :disabled="followPending"
+                            >
+                                {{ isFollowing ? '已关注' : '关注' }}
+                            </button>
                         </view>
-                        <button
-                            v-if="showFollowButton && !post.isAnonymous && !isMutualFollow"
-                            :class="'follow-btn ' + (isFollowing ? 'following' : '')"
-                            @tap="onFollowTap"
-                            :loading="followPending"
-                            :disabled="followPending"
-                        >
-                            {{ isFollowing ? '已关注' : '关注' }}
-                        </button>
                     </view>
                     <view class="post-title">{{ post.title }}</view>
                     <view v-if="post.isPoem && post.author" class="poem-author">{{ post.author }}</view>
@@ -3511,6 +3513,14 @@ export default {
     flex-wrap: wrap;
 }
 
+.author-right-actions {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-left: auto;
+    gap: 12rpx;
+}
+
 .follow-btn {
     padding: 0 28rpx;
     height: 60rpx;
@@ -3521,7 +3531,6 @@ export default {
     border-radius: 999rpx;
     font-size: 26rpx;
     flex-shrink: 0;
-    margin-left: auto;
 }
 
 .follow-btn.following {
