@@ -805,6 +805,15 @@ onReachBottom: function () {
                 } else if (pageType === 'discussion' && this.discussionPostList.length === 0) {
                     this.loadDiscussionPosts();
                 }
+                
+                // 切换到关注页时，主动同步点赞状态（参考广场页实现）
+                if (pageType === 'following') {
+                    try {
+                        this.syncLikeStatusFromCache && this.syncLikeStatusFromCache();
+                    } catch (e) {
+                        console.warn('同步关注页点赞状态失败:', e);
+                    }
+                }
             }, 10); // 10ms防抖延迟
         },
 
@@ -845,6 +854,13 @@ onReachBottom: function () {
                     // 如果关注页还没有数据，加载关注页数据
                     if (this.followingPostList.length === 0) {
                         this.loadFollowingPosts();
+                    } else {
+                        // 如果已有数据，主动同步点赞状态（参考广场页实现）
+                        try {
+                            this.syncLikeStatusFromCache && this.syncLikeStatusFromCache();
+                        } catch (e) {
+                            console.warn('同步关注页点赞状态失败:', e);
+                        }
                     }
                     break;
                 case 'discussion':
@@ -1850,6 +1866,13 @@ onReachBottom: function () {
                     });
 
                     console.log('关注页数据加载完成，帖子数量:', posts.length, '累计:', newList.length);
+
+                    // 数据加载完成后，同步点赞状态（参考广场页实现）
+                    try {
+                        this.syncLikeStatusFromCache && this.syncLikeStatusFromCache();
+                    } catch (e) {
+                        console.warn('关注页数据加载后同步点赞状态失败:', e);
+                    }
 
                     // 预加载用户数据
                     if (isInitialLoad) {
