@@ -153,6 +153,7 @@
                             
                             <!-- 真实内容：当 followingIsLoading 为 false 时显示 -->
                             <view v-else>
+                            <view id="following-list-container">
                             <view v-if="followingPostList.length === 0" class="empty-state">
                                 <view class="empty-icon">👥</view>
                                 <view class="empty-text">关注的人还没有发帖</view>
@@ -260,6 +261,7 @@
                                 </view>
                             </view>
                             </view>
+                            </view>
                         </view>
                     </swiper-item>
 
@@ -273,6 +275,7 @@
                             
                             <!-- 真实内容：当 discussionIsLoading 为 false 时显示 -->
                             <view v-else>
+                            <view id="discussion-list-container">
                             <view v-if="discussionPostList.length === 0" class="empty-state">
                                 <view class="empty-icon">💬</view>
                                 <view class="empty-text">讨论区暂无内容</view>
@@ -378,6 +381,7 @@
                                         </view>
                                     </view>
                                 </view>
+                            </view>
                             </view>
                             </view>
                         </view>
@@ -663,47 +667,75 @@ onReachBottom: function () {
                 return;
             }
             
-            const windowInfo = uni.getWindowInfo();
-            const windowHeight = windowInfo.windowHeight;
-
-            console.log('【首页】滚动检测 - page:', this.currentPage, 'scrollTop:', e.scrollTop, 'windowHeight:', windowHeight);
-
-            // 使用 wx.createSelectorQuery() 获取页面总高度和最后一个元素的位置
-            uni.createSelectorQuery()
-                .in(this)
-                .select('#post-list-container')
-                .boundingClientRect((containerRect) => {
-                    if (containerRect && containerRect.height > 0) {
-                        const scrollHeight = containerRect.height; // 使用容器高度更准确
-                        const scrollTop = e.scrollTop;
-                        const distanceToBottom = scrollHeight - scrollTop - windowHeight;
-                        const preloadThreshold = windowHeight * 1.5; // 提前 1.5 屏预加载
+            // 使用 createSelectorQuery() 获取容器高度，参考 poem-square.vue 的实现
+            try {
+                const info = uni.getSystemInfoSync();
+                const winH = info.windowHeight;
+                
+                // 根据当前页面选择不同的容器ID
+                let containerId = '';
+                if (isHome) {
+                    containerId = '#post-list-container';
+                } else if (isFollowing) {
+                    containerId = '#following-list-container';
+                } else if (isDiscussion) {
+                    containerId = '#discussion-list-container';
+                }
+                
+                // 发现页暂时不处理（没有对应的模板）
+                if (!containerId) {
+                    return;
+                }
+                
+                uni.createSelectorQuery()
+                    .in(this)
+                    .select(containerId)
+                    .boundingClientRect((rect) => {
+                        if (!rect || !rect.height) {
+                            return;
+                        }
+                        
+                        // 参考 poem-square.vue 的计算方式
+                        // 使用 rect.bottom 来计算容器底部距离视口底部的距离
+                        const rectBottom = rect.top + rect.height;
+                        let distanceToBottom = rectBottom - winH;
+                        
+                        // 如果容器底部已经在视口上方（已经滚动到底部以下），distanceToBottom 会是负数
+                        // 这种情况下，距离应该是 0
+                        if (distanceToBottom < 0) {
+                            distanceToBottom = 0;
+                        }
+                        
+                        // 使用更大的预加载阈值，在更早的时候就触发（4 屏，确保提前足够多）
+                        const preloadThreshold = winH * 4;
 
                         console.log('【首页】滚动计算:', {
-                            scrollHeight,
-                            scrollTop,
-                            windowHeight,
-                            distanceToBottom,
-                            preloadThreshold
+                            containerId,
+                            rectTop: rect.top,
+                            rectHeight: rect.height,
+                            rectBottom: rectBottom,
+                            scrollTop: e.scrollTop,
+                            winH,
+                            distanceToBottom: distanceToBottom.toFixed(0),
+                            preloadThreshold: preloadThreshold.toFixed(0),
+                            shouldLoad: distanceToBottom < preloadThreshold
                         });
 
                         if (distanceToBottom < preloadThreshold) {
-                            console.log('【首页】触发预加载，页面:', this.currentPage);
+                            console.log('【首页】触发预加载，页面:', this.currentPage, '距离底部:', distanceToBottom.toFixed(0), 'rpx, 阈值:', preloadThreshold.toFixed(0), 'rpx');
                             if (isHome) {
                                 this.getPostList();
-                            } else if (isDiscover) {
-                                this.loadRecommendationPosts();
                             } else if (isFollowing) {
                                 this.loadFollowingPosts();
                             } else if (isDiscussion) {
                                 this.loadDiscussionPosts();
                             }
                         }
-                    } else {
-                        console.log('【首页】容器高度获取失败');
-                    }
-                })
-                .exec();
+                    })
+                    .exec();
+            } catch (err) {
+                console.error('【首页】滚动检测失败:', err);
+            }
         }, 100); // 100ms 防抖
     },
     methods: {

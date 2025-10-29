@@ -257,7 +257,7 @@
 
                                             <view class="reply-main">
                                                 <view class="reply-author">{{ reply.isAnonymous ? '匿名用户' : reply.authorName }}</view>
-                                                <view class="reply-content" @tap="showReplyInput" :data-comment-id="item._id" :data-author-name="reply.isAnonymous ? '匿名用户' : reply.authorName">
+                                                <view class="reply-content" @tap="showReplyInput" :data-comment-id="item._id" :data-author-name="reply.isAnonymous ? '匿名用户' : reply.authorName" :data-reply-id="reply._id">
                                                     <text v-if="reply.replyToAuthorName" class="reply-to">回复@{{ reply.replyToAuthorName }}：</text>
                                                     <text>{{ reply.content }}</text>
                                                 </view>
@@ -2586,13 +2586,17 @@ export default {
             console.log('收到的 data- attributes:', e.currentTarget.dataset);
             const commentId = e.currentTarget.dataset.commentId;
             const authorName = e.currentTarget.dataset.authorName;
+            const replyId = e.currentTarget.dataset.replyId; // 被回复的二级评论ID（如果存在）
+            
+            // 如果存在 replyId，说明是回复二级评论；否则是回复一级评论
             this.setData({
-                replyToComment: commentId,
-                replyToAuthor: authorName
+                replyToComment: commentId, // 父评论ID，作为 parentId
+                replyToAuthor: authorName  // 被回复的用户名，作为 replyToAuthorName
             });
             console.log('设置后的回复状态:', {
                 replyToComment: this.replyToComment,
-                replyToAuthor: this.replyToAuthor
+                replyToAuthor: this.replyToAuthor,
+                replyId: replyId // 记录被回复的二级评论ID（用于日志）
             });
             this.expandInput();
         },
@@ -4308,11 +4312,16 @@ export default {
 
 .mutual-tag {
     font-size: 24rpx;
-    padding: 4rpx 16rpx;
+    padding: 0 16rpx;
+    height: 60rpx;
+    line-height: 60rpx;
     border-radius: 999rpx;
     background-color: #d9d9d9;
     color: #ffffff;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .followed-tag {

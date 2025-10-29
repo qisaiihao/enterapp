@@ -33,9 +33,10 @@
             </view>
           </view>
 
-          <!-- 交互区（展开时显示） -->
-          <view class="vote-section" v-if="post.isExpanded" :style="{ backgroundColor: post.backgroundColor }">
-            <view class="actions-left"><!-- 预留左侧空间 --></view>
+          <!-- 交互区（展开时显示） - 预览页面隐藏 -->
+          <!-- <view class="vote-section" v-if="post.isExpanded" :style="{ backgroundColor: post.backgroundColor }">
+            <view class="actions-left">
+            </view>
             <view class="button-group">
               <view class="like-icon-container" @tap.stop.prevent="onVote">
                 <image class="like-icon" :src="post.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError" />
@@ -44,7 +45,7 @@
                 <image class="comment-icon" src="/static/images/comment.png" mode="aspectFit" />
               </view>
             </view>
-          </view>
+          </view> -->
         </view>
 
         <!-- 普通帖子和讨论帖子：使用index页面样式 -->
@@ -100,10 +101,9 @@
             </view>
           </view>
 
-          <!-- 互动区域 -->
-          <view class="vote-section">
+          <!-- 互动区域 - 预览页面隐藏 -->
+          <!-- <view class="vote-section">
             <view class="actions-left">
-              <!-- 左侧留空 -->
             </view>
             <view class="button-group">
               <view class="comment-count">
@@ -117,7 +117,7 @@
                 <text class="action-text">0</text>
               </view>
             </view>
-          </view>
+          </view> -->
         </view>
 
         <!-- 标题输入区域 -->

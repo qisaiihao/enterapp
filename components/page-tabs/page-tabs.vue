@@ -1,7 +1,7 @@
 <template>
-  <view class="page-tabs-container" :style="{ top: safeAreaTop + 'px' }">
+  <view class="page-tabs-container">
     <!-- 自定义顶部栏 -->
-    <view class="custom-top-bar">
+    <view class="custom-top-bar" :style="{ paddingTop: safeAreaTop + 'px' }">
       <view class="top-left" @tap="navigateToAdd">
         <image class="top-icon" src="/static/images/create_post.png" mode="aspectFit"></image>
       </view>
@@ -172,12 +172,12 @@ export default {
 <style>
 .page-tabs-container {
   position: fixed;
+  top: 0;
   left: 0;
   right: 0;
   background: #ffffff;
   z-index: 1000;
   box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
-  /* top 值通过 JavaScript 动态设置 */
   /* 添加伪元素作为状态栏区域的白色背景 */
 }
 
@@ -198,7 +198,7 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20rpx 40rpx 0 40rpx;
+  padding: 0 40rpx 0 40rpx; /* 移除上边距，safeAreaTop 会通过内联样式添加 */
   background: #fff;
 }
 

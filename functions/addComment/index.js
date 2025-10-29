@@ -121,10 +121,46 @@ exports.main = async (event, context) => {
       const postResult = await db.collection('posts').doc(postId).get()
       const post = postResult.data
       
-      // 如果给自己评论或匿名评论，不发送通知
-      if (post._openid === openid || isAnonymous) {
-        console.log('用户给自己评论或匿名评论，不发送通知')
+      let notifyUserId = null; // 要通知的用户ID
+      let shouldNotify = false; // 是否应该发送通知
+      
+      if (parentId) {
+        // 如果是回复评论，需要通知被回复评论的作者
+        try {
+          const parentCommentResult = await db.collection('comments').doc(parentId).get();
+          const parentComment = parentCommentResult.data;
+          
+          if (parentComment) {
+            // 获取被回复评论的作者ID（如果是匿名评论，使用realAuthorOpenid）
+            const parentCommentAuthorId = parentComment.isAnonymous 
+              ? (parentComment.realAuthorOpenid || parentComment._openid)
+              : parentComment._openid;
+            
+            // 如果回复的不是自己的评论，且不是匿名评论，则发送通知
+            if (parentCommentAuthorId !== openid && !isAnonymous) {
+              notifyUserId = parentCommentAuthorId;
+              shouldNotify = true;
+            } else {
+              console.log('回复自己的评论或匿名回复，不发送通知')
+            }
+          } else {
+            console.log('被回复的评论不存在，不发送通知')
+          }
+        } catch (commentError) {
+          console.error('查询被回复评论失败:', commentError)
+        }
       } else {
+        // 如果是直接评论帖子，通知帖子作者
+        // 如果给自己评论或匿名评论，不发送通知
+        if (post._openid !== openid && !isAnonymous) {
+          notifyUserId = post._openid;
+          shouldNotify = true;
+        } else {
+          console.log('用户给自己评论或匿名评论，不发送通知')
+        }
+      }
+      
+      if (shouldNotify && notifyUserId) {
         // 创建消息记录
         const contentType = post.contentType || 'post';
         let contentTypeText = '';
@@ -147,7 +183,7 @@ exports.main = async (event, context) => {
             fromUserId: openid,
             fromUserName: user ? user.nickName : '微信用户',
             fromUserAvatar: user ? user.avatarUrl : '',
-            toUserId: post._openid,
+            toUserId: notifyUserId,
             type: 'comment',
             postId: postId,
             postTitle: post.title || '无标题',
@@ -158,7 +194,7 @@ exports.main = async (event, context) => {
             createTime: new Date()
           }
         })
-        console.log('评论消息已创建')
+        console.log('评论消息已创建，通知用户:', notifyUserId)
       }
     } catch (msgError) {
       console.error('创建评论消息失败:', msgError)

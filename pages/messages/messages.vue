@@ -6,35 +6,11 @@
             <image class="back-icon" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
         </view>
 
-        <!-- 主要筛选区域 -->
+        <!-- 操作按钮区域 -->
         <view class="filter-section">
             <view class="filter-main">
                 <view class="filter-left">
-                    <view class="all-notifications-btn" :class="{ active: activeTab === 'all' }" @tap="switchTab" data-tab="all">
-                        <text>全部通知</text>
-                    </view>
-                    <view class="filter-dropdown" @tap="showFilterOptions">
-                        <text class="filter-icon">▼</text>
-                    </view>
-                </view>
-                
-                <!-- 筛选下拉菜单 -->
-                <view class="filter-dropdown-menu" :class="{ 'filter-dropdown-menu-show': showFilterDropdown }">
-                    <view class="filter-option" :class="{ active: contentFilter === 'all' }" @tap="setContentFilter" data-filter="all">
-                        <text>全部内容</text>
-                    </view>
-                    <view class="filter-option" :class="{ active: contentFilter === 'post' }" @tap="setContentFilter" data-filter="post">
-                        <text>只看帖子</text>
-                    </view>
-                    <view class="filter-option" :class="{ active: contentFilter === 'original' }" @tap="setContentFilter" data-filter="original">
-                        <text>原创诗歌</text>
-                    </view>
-                    <view class="filter-option" :class="{ active: contentFilter === 'non-original' }" @tap="setContentFilter" data-filter="non-original">
-                        <text>非原创</text>
-                    </view>
-                    <view class="filter-option" :class="{ active: contentFilter === 'discussion' }" @tap="setContentFilter" data-filter="discussion">
-                        <text>讨论</text>
-                    </view>
+                    <!-- 左侧留空 -->
                 </view>
                 <view class="filter-right">
                     <view class="clear-btn" @tap="clearAllMessages">
@@ -148,9 +124,6 @@ export default {
             activeTab: 'all',
             // all, like, comment, favorite, follow
             unreadCount: 0,
-            showFilterDropdown: false,
-            // 内容筛选
-            contentFilter: 'all', // all, post, original, non-original, discussion
             // 触摸相关数据
             touchStartX: 0,
             touchStartY: 0,
@@ -426,12 +399,11 @@ export default {
             this.setData({
                 isLoading: true
             });
-            const { page, PAGE_SIZE, activeTab, contentFilter } = this;
+            const { page, PAGE_SIZE, activeTab } = this;
             this.callCloudFunction('getMessages', {
                 skip: page * PAGE_SIZE,
                 limit: PAGE_SIZE,
-                type: activeTab === 'all' ? null : activeTab,
-                contentFilter: contentFilter === 'all' ? null : contentFilter
+                type: activeTab === 'all' ? null : activeTab
             }).then((res) => {
                 console.log('🔍 [消息页] 云函数返回结果:', res);
                     if (res.result && res.result.success) {
@@ -785,26 +757,6 @@ export default {
         },
 
 
-        // 显示筛选选项
-        showFilterOptions: function () {
-            this.showFilterDropdown = !this.showFilterDropdown;
-        },
-
-        // 设置内容筛选
-        setContentFilter: function (e) {
-            const filter = e.currentTarget.dataset.filter;
-            this.contentFilter = filter;
-            this.showFilterDropdown = false;
-            
-            // 重新加载消息
-            this.setData({
-                messages: [],
-                page: 0,
-                hasMore: true
-            });
-            this.loadMessages();
-        },
-
         // 标记全部为已读
         markAllAsRead: function () {
             const unreadMessages = this.messages.filter(msg => !msg.isRead);
@@ -913,7 +865,7 @@ export default {
 .container {
     min-height: 100vh;
     background-color: #ffffff;
-    padding-top: calc(200rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px))); /* 为返回按钮留出空间 */
+    padding-top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px))); /* 为返回按钮留出空间 */
 }
 
 /* 自定义返回按钮 */
@@ -941,136 +893,6 @@ export default {
     object-fit: contain;
 }
 
-/* 主要筛选区域 */
-.filter-section {
-    background-color: #ffffff;
-    padding: 20rpx 30rpx;
-    border-bottom: 1rpx solid #f0f0f0;
-    position: relative;
-}
-
-.filter-main {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.filter-left {
-    display: flex;
-    align-items: center;
-    gap: 20rpx;
-}
-
-.filter-right {
-    display: flex;
-    align-items: center;
-    gap: 20rpx;
-}
-
-.all-notifications-btn {
-    padding: 8rpx 16rpx;
-    background-color: rgba(24, 24, 24, 0.5);
-    border-radius: 10rpx;
-    border: none;
-    min-width: 100rpx;
-    height: 32rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.all-notifications-btn.active {
-    background-color: rgba(24, 24, 24, 0.7);
-}
-
-.all-notifications-btn text {
-    font-size: 24rpx;
-    color: #ffffff;
-    font-weight: 500;
-}
-
-.filter-dropdown {
-    padding: 8rpx 12rpx;
-    background-color: #D9D9D9;
-    border: none;
-    border-radius: 10rpx;
-    min-width: 40rpx;
-    height: 32rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.filter-icon {
-    font-size: 20rpx;
-    color: #666666;
-}
-
-.clear-btn, .mark-all-read-btn {
-    padding: 8rpx 16rpx;
-    background-color: #D9D9D9;
-    border: none;
-    border-radius: 10rpx;
-    min-width: 100rpx;
-    height: 32rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.clear-btn text, .mark-all-read-btn text {
-    font-size: 24rpx;
-    color: #989090;
-    font-weight: 500;
-}
-
-/* 筛选下拉菜单 */
-.filter-dropdown-menu {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background-color: #ffffff;
-    border: 1rpx solid #e0e0e0;
-    border-radius: 8rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
-    z-index: 100;
-    transform: translateY(-10rpx);
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.3s ease;
-}
-
-.filter-dropdown-menu.filter-dropdown-menu-show {
-    transform: translateY(0);
-    opacity: 1;
-    visibility: visible;
-}
-
-.filter-option {
-    padding: 20rpx 30rpx;
-    border-bottom: 1rpx solid #f0f0f0;
-    transition: background-color 0.2s ease;
-}
-
-.filter-option:last-child {
-    border-bottom: none;
-}
-
-.filter-option.active {
-    background-color: #f5f5f5;
-}
-
-.filter-option text {
-    font-size: 28rpx;
-    color: #333333;
-}
-
-.filter-option.active text {
-    color: #000000;
-    font-weight: 500;
-}
-
 /* 消息类型标签 */
 .tab-container {
     display: flex;
@@ -1096,6 +918,50 @@ export default {
 
 .tab-item.active text {
     color: #000000;
+    font-weight: 500;
+}
+
+/* 操作按钮区域 */
+.filter-section {
+    background-color: #ffffff;
+    padding: 20rpx 30rpx;
+    border-bottom: 1rpx solid #f0f0f0;
+    position: relative;
+}
+
+.filter-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.filter-left {
+    display: flex;
+    align-items: center;
+    gap: 20rpx;
+}
+
+.filter-right {
+    display: flex;
+    align-items: center;
+    gap: 20rpx;
+}
+
+.clear-btn, .mark-all-read-btn {
+    padding: 8rpx 16rpx;
+    background-color: #D9D9D9;
+    border: none;
+    border-radius: 10rpx;
+    min-width: 100rpx;
+    height: 32rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.clear-btn text, .mark-all-read-btn text {
+    font-size: 24rpx;
+    color: #989090;
     font-weight: 500;
 }
 
