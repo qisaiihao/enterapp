@@ -263,6 +263,11 @@ export default {
           p.isExpanded = false;
           p.authorSignature = ''; // 添加作者签名属性
           p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
+          
+          // 对帖子内容进行最终的换行优化处理
+          if (p.content) {
+            p.content = this.preventShortLineBreak(p.content);
+          }
         });
         
         const newPostList = this.page === 0 ? visibleList : this.postList.concat(visibleList);
@@ -489,7 +494,24 @@ export default {
       }
     },
     touchStart() {},
-    touchEnd() {}
+    touchEnd() {},
+    
+    /**
+     * 新增：智能防止短行换行的预处理函数
+     * @param {string} text - 原始文本
+     * @returns {string} - 处理后的文本
+     */
+    preventShortLineBreak(text) {
+      if (!text || typeof text !== 'string') return text;
+      
+      // 使用正则表达式匹配 "1个或2个字符" + "一个标点符号" 的组合
+      // 我们将常见的、不应在行首断开的标点都包含进去
+      const regex = /(.{1,2})([，。；：！？、])/g;
+      
+      // 在匹配到的字符和标点之间，插入一个零宽度的"单词连接符" (\u2060)
+      // 这个连接符是隐形的，但会告诉浏览器此处不可换行
+      return text.replace(regex, '$1\u2060$2');
+    }
   }
 };
 </script>
@@ -539,21 +561,40 @@ export default {
 
 /* Typography inspired by poem.css */
 .post-content {
+  /* 保留基础的字体、颜色、间距等样式 */
   font-family: 'Huiwen-mincho', sans-serif;
   font-style: normal;
   font-weight: 500;
-  font-size: 28rpx; /* 调小字体：14px * 2 */
-  line-height: 38rpx; /* 调整行距：19px * 2 */
+  font-size: 28rpx;
+  line-height: 38rpx;
   margin: 30rpx 0;
   width: 100%;
   color: #FFFFFF;
+  white-space: pre-wrap; /* 必须保留，以支持用户手动输入的回车换行 */
+
+  /* --- 最终的、健壮的中文排版方案 --- */
+  
+  /* 基础：使用左对齐，避免因两端对齐(justify)导致不自然的字间距拉伸。*/
+  text-align: left;
+  
+  /* 首选策略：保持中文词语的完整性，只在标点符号后换行。
+     这是避免单个汉字或标点掉到下一行（孤字问题）的核心。*/
+  word-break: keep-all;
+
+  /* 安全阀：当一个没有标点的超长句子要溢出容器时，
+     允许在这个长句内部强行换行，防止布局被破坏。*/
+  overflow-wrap: break-word;
 }
 
-/* 文字颜色现在通过内联样式动态设置 */
-/* 折叠态：当没有高光行时显示前三行，有高光行时显示高光行 */
+/* 针对折叠状态的额外优化 */
 .post-content.collapsed {
-  overflow: hidden;
+  /* 在折叠状态下，确保文本截断更自然 */
   text-overflow: ellipsis;
+  overflow: hidden;
+  
+  /* 避免在标点符号处截断 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 /* 当没有高光行时，使用三行裁切 */
@@ -561,6 +602,7 @@ export default {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
+  line-clamp: 3; /* 标准属性，用于兼容性 */
 }
 .post-content.expanded { display: block; overflow: visible; }
 .comment-emoji{ font-size: 40rpx; }

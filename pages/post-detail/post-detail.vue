@@ -1229,6 +1229,7 @@ export default {
 
         /**
          * 智能处理文字换行，将长文本按宽度分割成适合的行
+         * 应用中文排版优化，避免单字换行
          * @param {Object} ctx - Canvas上下文
          * @param {string} text - 原始文本
          * @param {number} maxWidth - 最大宽度
@@ -1238,7 +1239,9 @@ export default {
         wrapTextForCanvas: function(ctx, text, maxWidth, fontSize) {
             ctx.font = fontSize + 'px Huiwen-mincho, sans-serif';
 
-            const originalLines = text.split('\n');
+            // 先应用中文排版优化
+            const optimizedText = this.preventShortLineBreakForCanvas(text);
+            const originalLines = optimizedText.split('\n');
             const wrappedLines = [];
 
             originalLines.forEach(line => {
@@ -1255,32 +1258,118 @@ export default {
                     // 不需要换行
                     wrappedLines.push(line);
                 } else {
-                    // 需要换行，按字符逐步分割
-                    let currentLine = '';
-                    for (let i = 0; i < line.length; i++) {
-                        const testLine = currentLine + line[i];
-                        const testWidth = ctx.measureText ? ctx.measureText(testLine).width : testLine.length * fontSize * 0.6;
-
-                        if (testWidth <= maxWidth) {
-                            currentLine = testLine;
-                        } else {
-                            // 当前行已满，开始新行
-                            if (currentLine) {
-                                wrappedLines.push(currentLine);
-                            }
-                            currentLine = line[i];
-                        }
-                    }
-
-                    // 添加最后一行
-                    if (currentLine) {
-                        wrappedLines.push(currentLine);
-                    }
+                    // 需要换行，使用智能分割策略
+                    const smartLines = this.smartWrapLine(ctx, line, maxWidth, fontSize);
+                    wrappedLines.push(...smartLines);
                 }
             });
 
             console.log(`【文字换行】原行数: ${originalLines.length}, 处理后行数: ${wrappedLines.length}`);
             return wrappedLines;
+        },
+
+        /**
+         * 为Canvas文字渲染优化的短行换行预防函数
+         * @param {string} text - 原始文本
+         * @returns {string} - 处理后的文本
+         */
+        preventShortLineBreakForCanvas: function(text) {
+            if (!text || typeof text !== 'string') return text;
+            
+            // 使用正则表达式匹配 "1个或2个字符" + "一个标点符号" 的组合
+            const regex = /(.{1,2})([，。；：！？、])/g;
+            
+            // 在匹配到的字符和标点之间，插入一个零宽度的"单词连接符" (\u2060)
+            return text.replace(regex, '$1\u2060$2');
+        },
+
+        /**
+         * 智能分割单行文字，避免单字换行
+         * @param {Object} ctx - Canvas上下文
+         * @param {string} line - 要分割的行
+         * @param {number} maxWidth - 最大宽度
+         * @param {number} fontSize - 字体大小
+         * @returns {Array} 分割后的行数组
+         */
+        smartWrapLine: function(ctx, line, maxWidth, fontSize) {
+            const lines = [];
+            let currentLine = '';
+            
+            // 按标点符号分割，优先在标点后换行
+            const segments = line.split(/([，。；：！？、])/);
+            
+            for (let i = 0; i < segments.length; i++) {
+                const segment = segments[i];
+                if (!segment) continue;
+                
+                const testLine = currentLine + segment;
+                const testWidth = ctx.measureText ? ctx.measureText(testLine).width : testLine.length * fontSize * 0.6;
+                
+                if (testWidth <= maxWidth) {
+                    currentLine = testLine;
+                } else {
+                    // 当前行已满，需要换行
+                    if (currentLine) {
+                        lines.push(currentLine);
+                    }
+                    
+                    // 如果单个标点符号，直接添加到当前行
+                    if (/^[，。；：！？、]$/.test(segment)) {
+                        currentLine = segment;
+                    } else {
+                        // 如果是内容段，需要进一步分割
+                        const subLines = this.splitLongSegment(ctx, segment, maxWidth, fontSize);
+                        if (subLines.length > 0) {
+                            lines.push(...subLines.slice(0, -1)); // 除了最后一行
+                            currentLine = subLines[subLines.length - 1]; // 最后一行作为当前行
+                        } else {
+                            currentLine = segment;
+                        }
+                    }
+                }
+            }
+            
+            // 添加最后一行
+            if (currentLine) {
+                lines.push(currentLine);
+            }
+            
+            return lines;
+        },
+
+        /**
+         * 分割过长的内容段
+         * @param {Object} ctx - Canvas上下文
+         * @param {string} segment - 要分割的内容段
+         * @param {number} maxWidth - 最大宽度
+         * @param {number} fontSize - 字体大小
+         * @returns {Array} 分割后的行数组
+         */
+        splitLongSegment: function(ctx, segment, maxWidth, fontSize) {
+            const lines = [];
+            let currentLine = '';
+            
+            for (let i = 0; i < segment.length; i++) {
+                const testLine = currentLine + segment[i];
+                const testWidth = ctx.measureText ? ctx.measureText(testLine).width : testLine.length * fontSize * 0.6;
+                
+                if (testWidth <= maxWidth) {
+                    currentLine = testLine;
+                } else {
+                    // 当前行已满，开始新行
+                    if (currentLine) {
+                        lines.push(currentLine);
+                    }
+                    currentLine = segment[i];
+                }
+            }
+            
+            // 添加最后一行
+            if (currentLine) {
+                lines.push(currentLine);
+            }
+            
+            return lines;
         },
 
         drawCanvas: async function () {
@@ -1350,7 +1439,18 @@ export default {
 
                 // 更准确的内容高度计算 - 基于实际测量
                 const contentHeight = Math.max(wrappedContentHeight, 200); // 使用 wrap 后的精确高度，最小 200px
-                const titleHeight = titleLineHeight + 20; // 标题高度 + 间距
+                
+                // 【修复】计算标题的实际高度（支持多行标题）
+                let actualTitleHeight = titleLineHeight + 20; // 默认单行标题高度
+                if (this.post.title) {
+                    const titleLines = this.wrapTextForCanvas(ctx, this.post.title, textAreaWidth, titleFontSize);
+                    const titleLinesCount = titleLines.filter(line => line.trim()).length;
+                    if (titleLinesCount > 1) {
+                        actualTitleHeight = titleLinesCount * titleLineHeight + 20; // 多行标题高度
+                        console.log('【post-detail】标题多行，实际高度:', actualTitleHeight, '行数:', titleLinesCount);
+                    }
+                }
+                const titleHeight = actualTitleHeight;
                 
                 // 计算基础高度
                 const baseHeight = textTopPadding + titleHeight + titleBottomSpacing + contentHeight + textBottomPadding;
@@ -1436,10 +1536,23 @@ export default {
                     ctx.setFillStyle(textColor);
                     ctx.setTextAlign('left');
                     
-                    // 绘制标题
-                    const titleY = textTopPadding + titleFontSize;
+                    // 【修复】对标题也应用换行处理，避免标题过长溢出
+                    const titleLines = this.wrapTextForCanvas(ctx, title, textAreaWidth, titleFontSize);
+                    console.log('【post-detail】标题换行处理结果:', titleLines);
+                    
+                    // 绘制标题（支持多行）
+                    let titleY = textTopPadding + titleFontSize;
                     const titleX = textPadding;
-                    ctx.fillText(title, titleX, titleY);
+                    
+                    titleLines.forEach((line, index) => {
+                        if (line.trim()) {
+                            console.log('【post-detail】绘制标题第', index, '行:', line, '位置:', titleX, titleY);
+                            ctx.fillText(line, titleX, titleY);
+                            titleY += titleLineHeight;
+                        } else {
+                            titleY += titleLineHeight * 0.5; // 空行间距
+                        }
+                    });
                     
                     // 恢复正文字体
                     ctx.font = fontSize + 'px Huiwen-mincho, sans-serif';

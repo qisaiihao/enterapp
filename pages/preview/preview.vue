@@ -575,12 +575,59 @@ export default {
 
     // 上传图片并提交
     uploadImagesAndSubmit(addData) {
-      const { cloudCall } = require('../../utils/cloudCall.js');
-
-      // 模拟上传过程（这里需要实际的文件上传逻辑）
-      setTimeout(() => {
+      const that = this;
+      const timestamp = new Date().getTime();
+      const imageList = addData.imageList || [];
+      
+      if (!imageList || imageList.length === 0) {
         this.submitToDatabase(addData, []);
-      }, 1000);
+        return;
+      }
+      
+      console.log('开始上传图片:', imageList.length + '张');
+      const uploadPromises = imageList.map((imageInfo, index) => {
+        return new Promise((resolve, reject) => {
+          const imageTimestamp = timestamp + index;
+          const compressedCloudPath = `post_images/${imageTimestamp}_compressed.jpg`;
+          
+          // 使用兼容性上传方法
+          this.uploadFile(compressedCloudPath, imageInfo.compressedPath)
+            .then((compressedRes) => {
+              console.log('压缩图上传成功:', compressedRes);
+              console.log('压缩图fileID:', compressedRes.fileID);
+              const compressedFileID = compressedRes.fileID;
+              
+              if (imageInfo.needCompression) {
+                const originalCloudPath = `post_images/${imageTimestamp}_original.jpg`;
+                return this.uploadFile(originalCloudPath, imageInfo.originalPath)
+                  .then((originalRes) => {
+                    console.log('原图上传成功:', originalRes);
+                    console.log('原图fileID:', originalRes.fileID);
+                    resolve({
+                      compressedUrl: compressedFileID,
+                      originalUrl: originalRes.fileID
+                    });
+                  });
+              } else {
+                resolve({
+                  compressedUrl: compressedFileID,
+                  originalUrl: compressedFileID
+                });
+              }
+            })
+            .catch(reject);
+        });
+      });
+      
+      Promise.all(uploadPromises)
+        .then((uploadResults) => {
+          console.log('所有图片上传完成:', uploadResults);
+          this.submitToDatabase(addData, uploadResults);
+        })
+        .catch((err) => {
+          console.error('上传失败:', err);
+          this.publishFail(err);
+        });
     },
 
     // 仅提交文本
@@ -748,6 +795,159 @@ export default {
           }
         }
       });
+    },
+
+    // 兼容性文件上传方法
+    uploadFile(cloudPath, filePath) {
+      return new Promise((resolve, reject) => {
+        // 使用新的平台检测工具
+        const { getCurrentPlatform, getCloudFunctionMethod } = require('../../utils/platformDetector.js');
+        
+        const platform = getCurrentPlatform();
+        const method = getCloudFunctionMethod();
+        
+        if (method === 'tcb') {
+          // H5和App环境：使用云函数上传，避免multipart/form-data格式问题
+          this.uploadFileViaCloudFunction(cloudPath, filePath).then(resolve).catch(reject);
+        } else if (method === 'wx-cloud') {
+          // 小程序环境使用微信云开发
+          if (wx.cloud && wx.cloud.uploadFile) {
+            wx.cloud.uploadFile({
+              cloudPath: cloudPath,
+              filePath: filePath,
+              success: (res) => {
+                resolve(res);
+              },
+              fail: (err) => {
+                reject(err);
+              }
+            });
+          } else {
+            reject(new Error('微信云开发不可用'));
+          }
+        } else {
+          reject(new Error(`不支持的云函数调用方式: ${method}`));
+        }
+      });
+    },
+
+    // 通过云函数上传文件（解决H5环境multipart/form-data问题）
+    uploadFileViaCloudFunction(cloudPath, filePath, retryCount = 0) {
+      return new Promise((resolve, reject) => {
+        // 检查环境并使用相应的文件读取方式
+        if (typeof window !== 'undefined' && typeof FileReader !== 'undefined') {
+          // H5环境：使用fetch获取blob，然后转换为base64
+          
+          fetch(filePath)
+            .then(response => {
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              return response.blob();
+            })
+            .then(blob => {
+              const reader = new FileReader();
+              reader.onload = () => {
+                const result = reader.result;
+                if (!result || typeof result !== 'string') {
+                  console.error('❌ [Preview页面] FileReader结果无效:', result);
+                  reject(new Error('文件读取失败'));
+                  return;
+                }
+                const base64 = result.split(',')[1];
+                console.log(`🔍 [Preview页面] 文件转换为base64完成，长度: ${base64.length}`);
+                // 检查base64大小，如果太大则进一步压缩
+                if (base64.length > 6 * 1024 * 1024) { // 6MB base64约等于4.5MB文件
+                  console.warn('⚠️ [Preview页面] base64文件过大，尝试进一步压缩');
+                  // 可以在这里添加进一步的压缩逻辑
+                }
+                
+                this.callCloudFunction('upload', {
+                  cloudPath: cloudPath,
+                  fileContent: base64
+                }).then((uploadRes) => {
+                  console.log('上传云函数返回结果:', uploadRes);
+                  // 检查云函数返回格式并提取fileID
+                  if (uploadRes && uploadRes.result && uploadRes.result.success) {
+                    resolve({
+                      fileID: uploadRes.result.fileID,
+                      cloudPath: uploadRes.result.cloudPath
+                    });
+                  } else {
+                    reject(new Error('上传云函数返回格式错误'));
+                  }
+                }).catch((err) => {
+                  // 如果是网络错误且重试次数小于2，则重试
+                  if (retryCount < 2 && (err.errMsg === 'request:fail' || err.message?.includes('fail'))) {
+                    console.log(`🔄 [Preview页面] 上传失败，准备重试 (${retryCount + 1}/2)`);
+                    setTimeout(() => {
+                      this.uploadFileViaCloudFunction(cloudPath, filePath, retryCount + 1)
+                        .then(resolve).catch(reject);
+                    }, 1000 * (retryCount + 1)); // 递增延迟
+                  } else {
+                    reject(err);
+                  }
+                });
+              };
+              reader.onerror = () => {
+                console.error('❌ [Preview页面] FileReader读取失败');
+                reject(new Error('文件读取失败'));
+              };
+              reader.readAsDataURL(blob);
+            })
+            .catch(err => {
+              console.error('❌ [Preview页面] 获取文件blob失败:', err);
+              reject(new Error('获取文件失败: ' + err.message));
+            });
+        } else {
+          // App环境使用uni-app API
+          console.log('🔍 [Preview页面] App环境使用uni-app API读取文件');
+          try {
+            const fs = uni.getFileSystemManager();
+            if (fs && fs.readFile) {
+              fs.readFile({
+                filePath: filePath,
+                encoding: 'base64',
+                success: (readRes) => {
+                  const base64 = readRes.data;
+                  console.log(`🔍 [Preview页面] 文件读取完成，base64长度: ${base64.length}`);
+                  this.callCloudFunction('upload', {
+                    cloudPath: cloudPath,
+                    fileContent: base64
+                  }).then((uploadRes) => {
+                    console.log('App环境上传云函数返回结果:', uploadRes);
+                    // 检查云函数返回格式并提取fileID
+                    if (uploadRes && uploadRes.result && uploadRes.result.success) {
+                      resolve({
+                        fileID: uploadRes.result.fileID,
+                        cloudPath: uploadRes.result.cloudPath
+                      });
+                    } else {
+                      reject(new Error('上传云函数返回格式错误'));
+                    }
+                  }).catch(reject);
+                },
+                fail: (readErr) => {
+                  console.error('❌ [Preview页面] 文件读取失败：', readErr);
+                  reject(new Error(`文件读取失败: ${readErr.errMsg || '未知错误'}`));
+                }
+              });
+            } else {
+              console.error('❌ [Preview页面] getFileSystemManager不可用');
+              reject(new Error('文件系统API不可用'));
+            }
+          } catch (error) {
+            console.error('❌ [Preview页面] 文件系统API调用失败:', error);
+            reject(new Error('文件系统API不可用'));
+          }
+        }
+      });
+    },
+
+    // 调用云函数
+    callCloudFunction(name, data) {
+      const { cloudCall } = require('../../utils/cloudCall.js');
+      return cloudCall(name, data, { pageTag: 'preview', context: this, requireAuth: true });
     }
   }
 };

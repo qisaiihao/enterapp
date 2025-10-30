@@ -1,5 +1,5 @@
 ﻿<template>
-    <view>
+    <view class="page-wrapper">
         <!-- index.wxml -->
         <view class="container">
 
@@ -18,15 +18,26 @@
                     class="page-swiper" 
                     :current="swiperCurrent" 
                     @change="onSwiperChange"
+                    @touchstart="onSwiperTouchStart"
+                    @touchend="onSwiperTouchEnd"
                     :duration="300"
                     :disable-touch="false"
                     :circular="false"
                     :indicator-dots="false"
                     :autoplay="false"
+                    :skip-hidden-item-layout="true"
+                    :easing-function="easeOutCubic"
                 >
                     <!-- 广场页 -->
                     <swiper-item>
-                        <view class="swiper-page">
+                        <scroll-view 
+                            scroll-y="true" 
+                            class="swiper-page" 
+                            @scroll="handleScroll"
+                            refresher-enabled="true"
+                            :refresher-triggered="isRefreshing"
+                            @refresherrefresh="onRefresherRefresh"
+                        >
                             <view v-if="postList.length === 0 && !isLoading" class="empty-state">
                                 <view class="empty-icon">📝</view>
                                 <view class="empty-text">还没有帖子哦～</view>
@@ -140,12 +151,19 @@
                             </view>
                         </view>
                             </view>
-                        </view>
+                        </scroll-view>
                     </swiper-item>
 
                     <!-- 关注页 -->
                     <swiper-item>
-                        <view class="swiper-page">
+                        <scroll-view 
+                            scroll-y="true" 
+                            class="swiper-page" 
+                            @scroll="handleScroll"
+                            refresher-enabled="true"
+                            :refresher-triggered="isRefreshing"
+                            @refresherrefresh="onRefresherRefresh"
+                        >
                             <!-- 关注页骨架屏：当 followingIsLoading 为 true 时显示 -->
                             <view v-if="followingIsLoading">
                                 <skeleton pageType="index" />
@@ -262,12 +280,19 @@
                             </view>
                             </view>
                             </view>
-                        </view>
+                        </scroll-view>
                     </swiper-item>
 
                     <!-- 讨论页 -->
                     <swiper-item>
-                        <view class="swiper-page">
+                        <scroll-view 
+                            scroll-y="true" 
+                            class="swiper-page" 
+                            @scroll="handleScroll"
+                            refresher-enabled="true"
+                            :refresher-triggered="isRefreshing"
+                            @refresherrefresh="onRefresherRefresh"
+                        >
                             <!-- 讨论页骨架屏：当 discussionIsLoading 为 true 时显示 -->
                             <view v-if="discussionIsLoading">
                                 <skeleton pageType="index" />
@@ -384,7 +409,7 @@
                             </view>
                             </view>
                             </view>
-                        </view>
+                        </scroll-view>
                     </swiper-item>
                 </swiper>
 
@@ -455,6 +480,7 @@ export default {
             hasMore: true,
             isLoading: false,
             openid: '', // 添加 openid 字段
+            isRefreshing: false, // 下拉刷新状态
 
             // 恢复线上版本的初始值
             isLoadingMore: false,
@@ -512,7 +538,12 @@ export default {
             // 安全区域高度
             safeAreaTop: 0,
             // swiper切换防抖定时器
-            swiperChangeTimer: null
+            swiperChangeTimer: null,
+            // swiper触摸状态
+            swiperTouchStartX: null,
+            swiperTouchStartTime: null,
+            // swiper缓动函数
+            easeOutCubic: 'cubic-bezier(0.33, 1, 0.68, 1)'
         };
     },
     onLoad: function (options) {
@@ -572,52 +603,6 @@ export default {
             this.swiperChangeTimer = null;
         }
     },
-    onPullDownRefresh: function () {
-        console.log('🔍 [首页] 下拉刷新触发，当前页面:', this.currentPage);
-        if (this.currentPage === 'home') {
-            // 主页刷新 - 清除缓存并强制调用云函数
-            console.log('🔍 [首页] 执行主页刷新，清除缓存');
-            
-            // 清除首页缓存
-            try {
-                invalidateHomePosts({});
-                console.log('✅ [首页] 已清除首页缓存');
-            } catch (e) {
-                console.error('❌ [首页] 清除首页缓存失败:', e);
-            }
-            
-            this.setData(
-                {
-                    postList: [],
-                    swiperHeights: {},
-                    page: 0,
-                    hasMore: true
-                },
-                () => {
-                    console.log('🔍 [首页] 状态重置完成，开始获取数据');
-                    this.getPostList(() => {
-                        console.log('✅ [首页] 下拉刷新完成');
-                        uni.stopPullDownRefresh();
-                    });
-                }
-            );
-        } else if (this.currentPage === 'discover') {
-            // 发现页刷新 - 重新获取推荐
-            console.log('🔍 [首页] 执行发现页刷新');
-            this.refreshDiscoverPosts();
-            uni.stopPullDownRefresh();
-        } else if (this.currentPage === 'following') {
-            // 关注页刷新
-            console.log('🔍 [首页] 执行关注页刷新');
-            this.refreshFollowingPosts();
-            uni.stopPullDownRefresh();
-        } else if (this.currentPage === 'discussion') {
-            // 讨论页刷新
-            console.log('🔍 [首页] 执行讨论页刷新');
-            this.refreshDiscussionPosts();
-            uni.stopPullDownRefresh();
-        }
-    },
     // 移除或禁用 onReachBottom，避免与 onPageScroll 冲突
     /*
 onReachBottom: function () {
@@ -629,116 +614,164 @@ onReachBottom: function () {
 },
 */
 
-    // 优化页面滚动监听，使用更简单的防抖，移除 createSelectorQuery 提高性能
-    onPageScroll: function (e) {
-        if (this.scrollTimer) {
-            clearTimeout(this.scrollTimer);
-        }
-        this.scrollTimer = setTimeout(() => {
-            const isHome = this.currentPage === 'home';
-            const isDiscover = this.currentPage === 'discover';
-            const isFollowing = this.currentPage === 'following';
-            const isDiscussion = this.currentPage === 'discussion';
-            if (!isHome && !isDiscover && !isFollowing && !isDiscussion) {
-                return;
-            }
-
-            let hasMore, loadingFlag;
-            if (isHome) {
-                hasMore = this.hasMore;
-                loadingFlag = this.isLoading || this.isLoadingMore;
-            } else if (isDiscover) {
-                hasMore = this.discoverHasMore;
-                loadingFlag = this.discoverIsLoading || this.discoverIsLoadingMore;
-            } else if (isFollowing) {
-                hasMore = this.followingHasMore;
-                loadingFlag = this.followingIsLoading || this.followingIsLoadingMore;
-            } else if (isDiscussion) {
-                hasMore = this.discussionHasMore;
-                loadingFlag = this.discussionIsLoading || this.discussionIsLoadingMore;
-            }
-
-            if (!hasMore || loadingFlag) {
-                console.log('【首页】滚动检测被阻止:', {
-                    page: this.currentPage,
-                    hasMore,
-                    loadingFlag
-                });
-                return;
-            }
+    methods: {
+        // 处理scroll-view的下拉刷新事件
+        onRefresherRefresh: function() {
+            console.log('🔍 [首页] scroll-view下拉刷新触发，当前页面:', this.currentPage);
+            this.isRefreshing = true;
             
-            // 使用 createSelectorQuery() 获取容器高度，参考 poem-square.vue 的实现
-            try {
-                const info = uni.getSystemInfoSync();
-                const winH = info.windowHeight;
+            if (this.currentPage === 'home') {
+                // 主页刷新 - 清除缓存并强制调用云函数
+                console.log('🔍 [首页] 执行主页刷新，清除缓存');
                 
-                // 根据当前页面选择不同的容器ID
-                let containerId = '';
-                if (isHome) {
-                    containerId = '#post-list-container';
-                } else if (isFollowing) {
-                    containerId = '#following-list-container';
-                } else if (isDiscussion) {
-                    containerId = '#discussion-list-container';
+                // 清除首页缓存
+                try {
+                    const { invalidateHomePosts } = require('../../api-cache/home-posts.js');
+                    invalidateHomePosts({});
+                    console.log('✅ [首页] 已清除首页缓存');
+                } catch (e) {
+                    console.error('❌ [首页] 清除首页缓存失败:', e);
                 }
                 
-                // 发现页暂时不处理（没有对应的模板）
-                if (!containerId) {
+                this.setData(
+                    {
+                        postList: [],
+                        swiperHeights: {},
+                        page: 0,
+                        hasMore: true
+                    },
+                    () => {
+                        console.log('🔍 [首页] 状态重置完成，开始获取数据');
+                        this.getPostList(() => {
+                            console.log('✅ [首页] 下拉刷新完成');
+                            this.isRefreshing = false;
+                        });
+                    }
+                );
+            } else if (this.currentPage === 'discover') {
+                // 发现页刷新 - 重新获取推荐
+                console.log('🔍 [首页] 执行发现页刷新');
+                this.refreshDiscoverPosts();
+                this.isRefreshing = false;
+            } else if (this.currentPage === 'following') {
+                // 关注页刷新
+                console.log('🔍 [首页] 执行关注页刷新');
+                this.refreshFollowingPosts(() => {
+                    console.log('✅ [首页] 关注页刷新完成');
+                    this.isRefreshing = false;
+                });
+            } else if (this.currentPage === 'discussion') {
+                // 讨论页刷新
+                console.log('🔍 [首页] 执行讨论页刷新');
+                this.refreshDiscussionPosts(() => {
+                    console.log('✅ [首页] 讨论页刷新完成');
+                    this.isRefreshing = false;
+                });
+            }
+        },
+
+        // 处理滚动事件（从 onPageScroll 迁移过来）
+        handleScroll: function (e) {
+            if (this.scrollTimer) {
+                clearTimeout(this.scrollTimer);
+            }
+            this.scrollTimer = setTimeout(() => {
+                const isHome = this.currentPage === 'home';
+                const isDiscover = this.currentPage === 'discover';
+                const isFollowing = this.currentPage === 'following';
+                const isDiscussion = this.currentPage === 'discussion';
+                if (!isHome && !isDiscover && !isFollowing && !isDiscussion) {
+                    return;
+                }
+
+                let hasMore, loadingFlag;
+                if (isHome) {
+                    hasMore = this.hasMore;
+                    loadingFlag = this.isLoading || this.isLoadingMore;
+                } else if (isDiscover) {
+                    hasMore = this.discoverHasMore;
+                    loadingFlag = this.discoverIsLoading || this.discoverIsLoadingMore;
+                } else if (isFollowing) {
+                    hasMore = this.followingHasMore;
+                    loadingFlag = this.followingIsLoading || this.followingIsLoadingMore;
+                } else if (isDiscussion) {
+                    hasMore = this.discussionHasMore;
+                    loadingFlag = this.discussionIsLoading || this.discussionIsLoadingMore;
+                }
+
+                if (!hasMore || loadingFlag) {
+                    console.log('【首页】滚动检测被阻止:', {
+                        page: this.currentPage,
+                        hasMore,
+                        loadingFlag
+                    });
                     return;
                 }
                 
-                uni.createSelectorQuery()
-                    .in(this)
-                    .select(containerId)
-                    .boundingClientRect((rect) => {
-                        if (!rect || !rect.height) {
-                            return;
-                        }
-                        
-                        // 参考 poem-square.vue 的计算方式
-                        // 使用 rect.bottom 来计算容器底部距离视口底部的距离
-                        const rectBottom = rect.top + rect.height;
-                        let distanceToBottom = rectBottom - winH;
-                        
-                        // 如果容器底部已经在视口上方（已经滚动到底部以下），distanceToBottom 会是负数
-                        // 这种情况下，距离应该是 0
-                        if (distanceToBottom < 0) {
-                            distanceToBottom = 0;
-                        }
-                        
-                        // 使用更大的预加载阈值，在更早的时候就触发（4 屏，确保提前足够多）
-                        const preloadThreshold = winH * 4;
-
-                        console.log('【首页】滚动计算:', {
-                            containerId,
-                            rectTop: rect.top,
-                            rectHeight: rect.height,
-                            rectBottom: rectBottom,
-                            scrollTop: e.scrollTop,
-                            winH,
-                            distanceToBottom: distanceToBottom.toFixed(0),
-                            preloadThreshold: preloadThreshold.toFixed(0),
-                            shouldLoad: distanceToBottom < preloadThreshold
-                        });
-
-                        if (distanceToBottom < preloadThreshold) {
-                            console.log('【首页】触发预加载，页面:', this.currentPage, '距离底部:', distanceToBottom.toFixed(0), 'rpx, 阈值:', preloadThreshold.toFixed(0), 'rpx');
-                            if (isHome) {
-                                this.getPostList();
-                            } else if (isFollowing) {
-                                this.loadFollowingPosts();
-                            } else if (isDiscussion) {
-                                this.loadDiscussionPosts();
+                try {
+                    const info = uni.getSystemInfoSync();
+                    const winH = info.windowHeight;
+                    
+                    let containerId = '';
+                    if (isHome) {
+                        containerId = '#post-list-container';
+                    } else if (isFollowing) {
+                        containerId = '#following-list-container';
+                    } else if (isDiscussion) {
+                        containerId = '#discussion-list-container';
+                    }
+                    
+                    if (!containerId) {
+                        return;
+                    }
+                    
+                    uni.createSelectorQuery()
+                        .in(this)
+                        .select(containerId)
+                        .boundingClientRect((rect) => {
+                            if (!rect || !rect.height) {
+                                return;
                             }
-                        }
-                    })
-                    .exec();
-            } catch (err) {
-                console.error('【首页】滚动检测失败:', err);
-            }
-        }, 100); // 100ms 防抖
-    },
-    methods: {
+                            
+                            const rectBottom = rect.top + rect.height;
+                            let distanceToBottom = rectBottom - winH;
+                            
+                            if (distanceToBottom < 0) {
+                                distanceToBottom = 0;
+                            }
+                            
+                            const preloadThreshold = winH * 4;
+
+                            console.log('【首页】滚动计算:', {
+                                containerId,
+                                rectTop: rect.top,
+                                rectHeight: rect.height,
+                                rectBottom: rectBottom,
+                                scrollTop: e.detail.scrollTop, // 注意：这里的 e.scrollTop 变成了 e.detail.scrollTop
+                                winH,
+                                distanceToBottom: distanceToBottom.toFixed(0),
+                                preloadThreshold: preloadThreshold.toFixed(0),
+                                shouldLoad: distanceToBottom < preloadThreshold
+                            });
+
+                            if (distanceToBottom < preloadThreshold) {
+                                console.log('【首页】触发预加载，页面:', this.currentPage, '距离底部:', distanceToBottom.toFixed(0), 'rpx, 阈值:', preloadThreshold.toFixed(0), 'rpx');
+                                if (isHome) {
+                                    this.getPostList();
+                                } else if (isFollowing) {
+                                    this.loadFollowingPosts();
+                                } else if (isDiscussion) {
+                                    this.loadDiscussionPosts();
+                                }
+                            }
+                        })
+                        .exec();
+                } catch (err) {
+                    console.error('【首页】滚动检测失败:', err);
+                }
+            }, 100); // 100ms 防抖
+        },
+
         // 处理匿名头像点击事件的函数
         handleAnonymousAvatarClick(e) {
             console.log('【首页】匿名头像被点击，阻止跳转');
@@ -791,6 +824,56 @@ onReachBottom: function () {
                 }
             } catch (error) {
                 console.error('【index】安全区域调试失败:', error);
+            }
+        },
+
+        // swiper触摸开始事件
+        onSwiperTouchStart(e) {
+            this.swiperTouchStartX = e.touches[0].clientX;
+            this.swiperTouchStartTime = Date.now();
+        },
+
+        // swiper触摸结束事件
+        onSwiperTouchEnd(e) {
+            if (!this.swiperTouchStartX) return;
+            
+            const touchEndX = e.changedTouches[0].clientX;
+            const deltaX = touchEndX - this.swiperTouchStartX;
+            const deltaTime = Date.now() - this.swiperTouchStartTime;
+            
+            // 重置触摸状态
+            this.swiperTouchStartX = null;
+            this.swiperTouchStartTime = null;
+            
+            // 如果滑动距离太小或时间太短，不处理
+            if (Math.abs(deltaX) < 30 || deltaTime < 50) {
+                return;
+            }
+            
+            // 检查边界限制
+            const currentIndex = this.swiperCurrent;
+            const isLeftSwipe = deltaX < 0; // 向左滑动
+            const isRightSwipe = deltaX > 0; // 向右滑动
+            
+            // 边界检查 - 更严格的限制
+            if (isLeftSwipe && currentIndex >= 2) {
+                // 已经在最右边，禁止继续向左滑动
+                console.log('已到达右边界，禁止继续向左滑动');
+                // 强制回到当前页面
+                this.setData({
+                    swiperCurrent: 2
+                });
+                return;
+            }
+            
+            if (isRightSwipe && currentIndex <= 0) {
+                // 已经在最左边，禁止继续向右滑动
+                console.log('已到达左边界，禁止继续向右滑动');
+                // 强制回到当前页面
+                this.setData({
+                    swiperCurrent: 0
+                });
+                return;
             }
         },
 
@@ -1675,7 +1758,7 @@ onReachBottom: function () {
         },
 
         // 加载讨论页数据
-        loadDiscussionPosts: function () {
+        loadDiscussionPosts: function (callback) {
             console.log('开始加载讨论页数据');
 
             if (this.discussionIsLoading || this.discussionIsLoadingMore) {
@@ -1731,6 +1814,11 @@ onReachBottom: function () {
                             }
                         }, 500);
                     }
+
+                    // 调用回调函数（用于刷新完成通知）
+                    if (callback && typeof callback === 'function') {
+                        callback();
+                    }
                 } else {
                     this.setData({
                         discussionIsLoading: false,
@@ -1743,6 +1831,10 @@ onReachBottom: function () {
                             icon: 'none'
                         });
                     }
+                    // 调用回调函数（用于刷新完成通知）
+                    if (callback && typeof callback === 'function') {
+                        callback();
+                    }
                 }
             }).catch((err) => {
                 console.error('加载讨论页数据失败:', err);
@@ -1754,6 +1846,10 @@ onReachBottom: function () {
                     title: '加载失败',
                     icon: 'none'
                 });
+                // 调用回调函数（用于刷新完成通知）
+                if (callback && typeof callback === 'function') {
+                    callback();
+                }
             });
         },
 
@@ -1806,7 +1902,7 @@ onReachBottom: function () {
         },
 
         // 刷新讨论页数据
-        refreshDiscussionPosts: function () {
+        refreshDiscussionPosts: function (callback) {
             console.log('刷新讨论页数据');
             this.setData({
                 discussionPostList: [],
@@ -1815,7 +1911,7 @@ onReachBottom: function () {
                 discussionIsLoading: false,
                 discussionIsLoadingMore: false
             });
-            this.loadDiscussionPosts();
+            this.loadDiscussionPosts(callback);
         },
 
         // 刷新广场页数据（发布帖子后调用）
@@ -1851,7 +1947,7 @@ onReachBottom: function () {
         noop() {},
 
         // 加载关注页数据
-        loadFollowingPosts: function () {
+        loadFollowingPosts: function (callback) {
             console.log('开始加载关注页数据');
 
             if (this.followingIsLoading || this.followingIsLoadingMore) {
@@ -1914,6 +2010,11 @@ onReachBottom: function () {
                             }
                         }, 500);
                     }
+
+                    // 调用回调函数（用于刷新完成通知）
+                    if (callback && typeof callback === 'function') {
+                        callback();
+                    }
                 } else {
                     this.setData({
                         followingIsLoading: false,
@@ -1926,6 +2027,10 @@ onReachBottom: function () {
                             icon: 'none'
                         });
                     }
+                    // 调用回调函数（用于刷新完成通知）
+                    if (callback && typeof callback === 'function') {
+                        callback();
+                    }
                 }
             }).catch((err) => {
                 console.error('加载关注页数据失败:', err);
@@ -1937,11 +2042,15 @@ onReachBottom: function () {
                     title: '加载失败',
                     icon: 'none'
                 });
+                // 调用回调函数（用于刷新完成通知）
+                if (callback && typeof callback === 'function') {
+                    callback();
+                }
             });
         },
 
         // 刷新关注页数据
-        refreshFollowingPosts: function () {
+        refreshFollowingPosts: function (callback) {
             console.log('刷新关注页数据');
             this.setData({
                 followingPostList: [],
@@ -1950,7 +2059,7 @@ onReachBottom: function () {
                 followingIsLoading: false,
                 followingIsLoadingMore: false
             });
-            this.loadFollowingPosts();
+            this.loadFollowingPosts(callback);
         },
 
 
@@ -1960,12 +2069,30 @@ onReachBottom: function () {
 <style>
 /* index.wxss */
 
+/* 页面包装器 - 确保整个页面不会滑动 */
+.page-wrapper {
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
 .container {
     padding: 255rpx 0 100rpx 0; /* 为page-tabs留出空间：188rpx(page-tabs总高度) + 62rpx(额外间距) */
     background-color: #ffffff;
     min-height: 100vh;
     padding-bottom: 100rpx; /* 为底部tabBar留出空间 */
     position: relative;
+    /* 禁止整个容器滑动 */
+    overflow: hidden;
+    /* 禁用过度滑动 */
+    overscroll-behavior: none;
+    /* 确保容器不会产生滚动 */
+    height: 100vh;
 }
 
 
@@ -2026,6 +2153,8 @@ onReachBottom: function () {
 .square-mode-container {
     display: block;
     padding-top: 40rpx; /* 增加与顶部栏的距离 */
+    height: 100%;
+    overflow: hidden;
 }
 
 /* 新增：帖子项包装器样式 */
@@ -2423,11 +2552,15 @@ onReachBottom: function () {
 .page-swiper {
     height: 100vh;
     width: 100%;
+    /* 限制滑动边界 */
+    overflow: hidden;
+    /* 禁用过度滑动 */
+    overscroll-behavior: none;
 }
 
 .swiper-page {
     height: 100%;
-    overflow-y: auto;
+    /* scroll-view 会自动处理滚动，不需要 overflow-y: auto */
 }
 
 .refresh-text {

@@ -47,11 +47,99 @@ function calculateActualLines(ctx, text, maxWidth, fontSize) {
     return actualLineCount;
 }
 
-// 模拟换行处理函数
+// 智能防止短行换行的预处理函数（Canvas版本）
+function preventShortLineBreakForCanvas(text) {
+    if (!text || typeof text !== 'string') return text;
+    
+    // 使用正则表达式匹配 "1个或2个字符" + "一个标点符号" 的组合
+    const regex = /(.{1,2})([，。；：！？、])/g;
+    
+    // 在匹配到的字符和标点之间，插入一个零宽度的"单词连接符" (\u2060)
+    return text.replace(regex, '$1\u2060$2');
+}
+
+// 智能分割单行文字，避免单字换行
+function smartWrapLine(ctx, line, maxWidth, fontSize) {
+    const lines = [];
+    let currentLine = '';
+    
+    // 按标点符号分割，优先在标点后换行
+    const segments = line.split(/([，。；：！？、])/);
+    
+    for (let i = 0; i < segments.length; i++) {
+        const segment = segments[i];
+        if (!segment) continue;
+        
+        const testLine = currentLine + segment;
+        const testWidth = ctx.measureText ? ctx.measureText(testLine).width : testLine.length * fontSize * 0.6;
+        
+        if (testWidth <= maxWidth) {
+            currentLine = testLine;
+        } else {
+            // 当前行已满，需要换行
+            if (currentLine) {
+                lines.push(currentLine);
+            }
+            
+            // 如果单个标点符号，直接添加到当前行
+            if (/^[，。；：！？、]$/.test(segment)) {
+                currentLine = segment;
+            } else {
+                // 如果是内容段，需要进一步分割
+                const subLines = splitLongSegment(ctx, segment, maxWidth, fontSize);
+                if (subLines.length > 0) {
+                    lines.push(...subLines.slice(0, -1)); // 除了最后一行
+                    currentLine = subLines[subLines.length - 1]; // 最后一行作为当前行
+                } else {
+                    currentLine = segment;
+                }
+            }
+        }
+    }
+    
+    // 添加最后一行
+    if (currentLine) {
+        lines.push(currentLine);
+    }
+    
+    return lines;
+}
+
+// 分割过长的内容段
+function splitLongSegment(ctx, segment, maxWidth, fontSize) {
+    const lines = [];
+    let currentLine = '';
+    
+    for (let i = 0; i < segment.length; i++) {
+        const testLine = currentLine + segment[i];
+        const testWidth = ctx.measureText ? ctx.measureText(testLine).width : testLine.length * fontSize * 0.6;
+        
+        if (testWidth <= maxWidth) {
+            currentLine = testLine;
+        } else {
+            // 当前行已满，开始新行
+            if (currentLine) {
+                lines.push(currentLine);
+            }
+            currentLine = segment[i];
+        }
+    }
+    
+    // 添加最后一行
+    if (currentLine) {
+        lines.push(currentLine);
+    }
+    
+    return lines;
+}
+
+// 优化后的换行处理函数
 function wrapTextForCanvas(ctx, text, maxWidth, fontSize) {
     ctx.font = fontSize + 'px Huiwen-mincho, sans-serif';
 
-    const originalLines = text.split('\n');
+    // 先应用中文排版优化
+    const optimizedText = preventShortLineBreakForCanvas(text);
+    const originalLines = optimizedText.split('\n');
     const wrappedLines = [];
 
     originalLines.forEach(line => {
@@ -68,27 +156,9 @@ function wrapTextForCanvas(ctx, text, maxWidth, fontSize) {
             // 不需要换行
             wrappedLines.push(line);
         } else {
-            // 需要换行，按字符逐步分割
-            let currentLine = '';
-            for (let i = 0; i < line.length; i++) {
-                const testLine = currentLine + line[i];
-                const testWidth = ctx.measureText ? ctx.measureText(testLine).width : testLine.length * fontSize * 0.6;
-
-                if (testWidth <= maxWidth) {
-                    currentLine = testLine;
-                } else {
-                    // 当前行已满，开始新行
-                    if (currentLine) {
-                        wrappedLines.push(currentLine);
-                    }
-                    currentLine = line[i];
-                }
-            }
-
-            // 添加最后一行
-            if (currentLine) {
-                wrappedLines.push(currentLine);
-            }
+            // 需要换行，使用智能分割策略
+            const smartLines = smartWrapLine(ctx, line, maxWidth, fontSize);
+            wrappedLines.push(...smartLines);
         }
     });
 
@@ -100,8 +170,10 @@ function wrapTextForCanvas(ctx, text, maxWidth, fontSize) {
 console.log('=== 测试分享卡片文字计算逻辑 ===\n');
 
 const fontSize = 38;
+const titleFontSize = 42; // 标题字体稍大
 const maxWidth = 520; // 600px - 80px padding
 const lineHeight = 48;
+const titleLineHeight = 52; // 标题行高
 
 // 测试用例1：短文本
 console.log('测试1: 短文本');

@@ -77,7 +77,7 @@
                         <!-- 发送者和动作 -->
                         <view class="message-header">
                             <text class="sender-name">{{ item.fromUserName || '某用户' }}</text>
-                            <text class="action-text">{{ getActionText(item.type) }}</text>
+                            <text class="action-text">{{ getActionText(item.type, item.contentType) }}</text>
                             <!-- 关注按钮（仅关注类型显示，放在时间左边） -->
                             <view v-if="item.type === 'follow'" class="follow-btn" @tap.stop="followBack" :data-user-id="item.fromUserId" :data-index="index">
                                 <text>{{ item.isMutual ? '已互关' : '回关' }}</text>
@@ -773,11 +773,23 @@ export default {
         },
 
         // 获取动作文本
-        getActionText: function (type) {
+        getActionText: function (type, contentType) {
+            // 根据内容类型确定显示文本
+            let contentTypeText = '';
+            if (contentType === 'original') {
+                contentTypeText = '诗';
+            } else if (contentType === 'non-original') {
+                contentTypeText = '诗';
+            } else if (contentType === 'discussion') {
+                contentTypeText = '讨论';
+            } else {
+                contentTypeText = '帖子';
+            }
+            
             const actionMap = {
-                'like': '点赞了你的帖子',
-                'comment': '评论了你的诗',
-                'favorite': '收藏了你的诗',
+                'like': `点赞了你的${contentTypeText}`,
+                'comment': `评论了你的${contentTypeText}`,
+                'favorite': `收藏了你的${contentTypeText}`,
                 'follow': '关注了你'
             };
             return actionMap[type] || '通知了你';
