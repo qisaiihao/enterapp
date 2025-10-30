@@ -3247,41 +3247,42 @@ export default {
             const { getCloudFunctionMethod } = require('../../utils/platformDetector.js');
             const method = getCloudFunctionMethod();
 
-            if (method === 'tcb') {
-                const app = getApp();
-                if (!(app && app.$tcb && typeof app.$tcb.uploadFile === 'function')) {
-                    console.warn('[PostDetail] TCB实例不可用，回退到云函数上传');
-                    return await this.uploadFileViaCloudFunction(cloudPath, filePath);
-                }
-
-                let file = filePath;
-                try {
-                    // 优先使用 fetch 将临时路径转为 Blob 对象，这是最可靠的方式
-                    if (typeof filePath === "string" && typeof fetch === "function" && typeof Blob !== "undefined") {
-                        console.log('[PostDetail] 使用fetch读取文件为Blob');
-                        const resp = await fetch(filePath);
-                        file = await resp.blob();
+            try {
+                if (method === 'tcb') {
+                    const app = getApp();
+                    if (!(app && app.$tcb && typeof app.$tcb.uploadFile === 'function')) {
+                        throw new Error('TCB实例不可用，回退');
                     }
-                } catch (e) {
-                    console.warn('[PostDetail] fetch toBlob失败，改走云函数上传', e);
-                    return await this.uploadFileViaCloudFunction(cloudPath, filePath);
-                }
-
-                try {
-                    console.log('[PostDetail] 尝试使用TCB直传Blob/File对象');
+                    
+                    // 优先使用 fetch/Blob 直传
+                    const resp = await fetch(filePath);
+                    const file = await resp.blob();
                     const res = await app.$tcb.uploadFile({ cloudPath, file });
-                    // 返回一个统一的包含 fileID 的对象
-                    const fileID = (res && (res.fileID || res.fileId)) || (res && res.data && res.data.fileID);
-                    if (!fileID) throw new Error('上传成功但未返回fileID');
-                    return { fileID };
-                } catch (e) {
-                    console.warn('[PostDetail] TCB直传失败，fallback 到云函数', e);
-                    return await this.uploadFileViaCloudFunction(cloudPath, filePath);
+                    const fileID = res.fileID || res.fileId;
+                    if (!fileID) throw new Error('TCB直传成功但未返回fileID');
+                    
+                    // 【关键修正】总是返回一个标准格式的对象
+                    return { success: true, fileID: fileID };
+
+                } else if (method === "wx-cloud") {
+                    const res = await wx.cloud.uploadFile({ cloudPath, filePath });
+                    if (!res.fileID) throw new Error('小程序上传成功但未返回fileID');
+                    
+                    // 【关键修正】总是返回一个标准格式的对象
+                    return { success: true, fileID: res.fileID };
+                } else {
+                    throw new Error('不支持的云函数调用方式');
                 }
-            } else if (method === "wx-cloud") {
-                return await wx.cloud.uploadFile({ cloudPath, filePath });
+            } catch (err) {
+                // 如果上面的任何一步失败（fetch失败, TCB直传失败等），则启动最终的回退方案
+                console.warn(`[PostDetail] 主上传方案失败 (${err.message})，启动云函数中转上传...`);
+                
+                // 调用基于 plus.io 的 FileReader 回退方案
+                const result = await this.uploadFileViaCloudFunction(cloudPath, filePath);
+                
+                // 【关键修正】确保回退方案也返回标准格式的对象
+                return { success: true, fileID: result.fileID };
             }
-            throw new Error('不支持的云函数调用方式: ' + method);
         },
 
         // 图片加载事件处理
