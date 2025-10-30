@@ -3140,10 +3140,19 @@ export default {
 
         onInputBlur: function () {
             setTimeout(() => {
+                const oldKeyboardHeight = this.keyboardHeight;
                 this.setData({
                     isFocus: false,
                     keyboardHeight: 0
                 });
+
+                // 如果之前键盘有高度（键盘确实是弹起状态），则在键盘收起后滚动页面
+                if (oldKeyboardHeight > 0) {
+                    // 延迟一点时间让键盘完全收起，然后滚动页面
+                    setTimeout(() => {
+                        this.scrollToCommentBottom();
+                    }, 150);
+                }
             }, 100);
         },
 
@@ -3155,6 +3164,29 @@ export default {
                 replyToComment: null,
                 replyToAuthor: '',
             });
+        },
+
+        // 滚动到评论区底部
+        scrollToCommentBottom: function() {
+            try {
+                // 获取系统信息
+                const systemInfo = uni.getSystemInfoSync();
+                const windowHeight = systemInfo.windowHeight;
+
+                // 使用 uni.pageScrollTo 滚动到页面底部
+                uni.pageScrollTo({
+                    scrollTop: 999999, // 设置一个很大的值确保滚动到底部
+                    duration: 300, // 滚动动画时长
+                    success: () => {
+                        console.log('【post-detail】键盘收起后页面滚动成功');
+                    },
+                    fail: (err) => {
+                        console.warn('【post-detail】页面滚动失败:', err);
+                    }
+                });
+            } catch (error) {
+                console.error('【post-detail】scrollToCommentBottom 执行失败:', error);
+            }
         },
 
         recordViewBehavior: function () {
