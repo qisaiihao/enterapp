@@ -39,8 +39,11 @@ function getTcbInstance(context) {
 }
 
 async function invokeCloudFunction(method, payload) {
+    console.log(`🔍 [invokeCloudFunction] 调用方式: ${method}`);
+    
     if (method === 'tcb') {
         const instance = getTcbInstance(payload.context);
+        console.log(`🔍 [invokeCloudFunction] TCB实例:`, instance ? '可用' : '不可用');
         if (!instance) {
             throw createError('TCB_NOT_AVAILABLE', 'TCB 实例不可用');
         }
@@ -103,6 +106,7 @@ async function cloudCall(name, data = {}, options = {}) {
     }
 
     const method = platformDetector.getCloudFunctionMethod();
+    console.log(`🔍 [cloudCall] 云函数调用方式: ${method}, 函数名: ${name}`);
     const totalAttempts = Math.max(0, parseInt(retry, 10)) + 1;
 
     for (let attempt = 1; attempt <= totalAttempts; attempt += 1) {

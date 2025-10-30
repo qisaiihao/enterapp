@@ -2312,9 +2312,11 @@ export default {
                 this.expandInput();
             }
 
-            uni.chooseImage({
+            // 在APP端先请求读取存储权限
+            const startChoose = () => {
+                uni.chooseImage({
                 count: remaining,
-                sizeType: ['original', 'compressed'],
+                sizeType: ['original'],
                 sourceType: ['album', 'camera'],
                 success: (res) => {
                     const tempFiles =
@@ -2365,6 +2367,23 @@ export default {
                     }
                 }
             });
+            };
+
+            try {
+                const { getCurrentPlatform } = require('../../utils/platformDetector.js');
+                const platform = getCurrentPlatform();
+                if (platform === 'app') {
+                    const { requestAndroidStoragePermission } = require('../../utils/permissions.js');
+                    requestAndroidStoragePermission().then((granted) => {
+                        if (granted) {
+                            startChoose();
+                        }
+                    });
+                    return;
+                }
+            } catch (e) {}
+
+            startChoose();
         },
 
         chooseCommentImages: function () {
@@ -2379,31 +2398,16 @@ export default {
                     return;
                 }
                 const sizeInBytes = file.size || 0;
-                // 降低压缩阈值到200KB，确保所有超过200KB的图片都被压缩
-                const needCompression = sizeInBytes > 204800;
+                // 跳过压缩，直接使用原图
                 const imageInfo = {
                     id: 'comment_' + Date.now() + '_' + Math.floor(Math.random() * 100000),
                     originalPath: tempPath,
                     previewUrl: tempPath,
                     compressedPath: tempPath,
                     size: sizeInBytes,
-                    needCompression: needCompression
+                    needCompression: false
                 };
-                if (!needCompression) {
-                    resolve(imageInfo);
-                    return;
-                }
-                this.compressCommentImage(imageInfo)
-                    .then((resolvedInfo) => {
-                        resolve(resolvedInfo);
-                    })
-                    .catch((err) => {
-                        console.warn('评论图片压缩异常:', err);
-                        imageInfo.compressedPath = imageInfo.originalPath;
-                        imageInfo.previewUrl = imageInfo.originalPath;
-                        imageInfo.needCompression = false;
-                        resolve(imageInfo);
-                    });
+                resolve(imageInfo);
             });
         },
 
@@ -3238,47 +3242,46 @@ export default {
             this.showFavoriteModal = true;
         },
 
-        // 兼容性文件上传方法
-        uploadFile(cloudPath, filePath) {
-            console.log(`🔍 [帖子详情页] 上传文件: ${cloudPath}`, filePath);
-            
-            return new Promise((resolve, reject) => {
-                // 使用新的平台检测工具
-                const { getCurrentPlatform, getCloudFunctionMethod } = require('../../utils/platformDetector.js');
-                
-                const platform = getCurrentPlatform();
-                const method = getCloudFunctionMethod();
-                
-                console.log(`🔍 [帖子详情页] 运行环境检测 - 平台: ${platform}, 方法: ${method}`);
-                
-                if (method === 'tcb') {
-                    // H5和App环境：使用云函数上传，避免multipart/form-data格式问题
-                    this.uploadFileViaCloudFunction(cloudPath, filePath).then(resolve).catch(reject);
-                } else if (method === 'wx-cloud') {
-                    // 使用微信云开发上传文件（小程序环境）
-                    if (wx.cloud && wx.cloud.uploadFile) {
-                        console.log(`🔍 [帖子详情页] 小程序环境上传文件: ${cloudPath}`);
-                        wx.cloud.uploadFile({
-                            cloudPath: cloudPath,
-                            filePath: filePath,
-                            success: (res) => {
-                                console.log(`✅ [帖子详情页] 文件上传成功: ${cloudPath}`, res);
-                                resolve(res);
-                            },
-                            fail: (err) => {
-                                console.error(`❌ [帖子详情页] 文件上传失败: ${cloudPath}`, err);
-                                reject(err);
-                            }
-                        });
-                    } else {
-                        console.error(`❌ [帖子详情页] 微信云开发不可用`);
-                        reject(new Error('微信云开发不可用'));
-                    }
-                } else {
-                    console.error(`❌ [帖子详情页] 不支持的文件上传方式: ${method}`);
-                    reject(new Error(`不支持的文件上传方式: ${method}`));
+        // 兼容性文件上传方法（使用与profile-edit相同的健壮实现）
+        async uploadFile(cloudPath, filePath) {
+            const { getCloudFunctionMethod } = require('../../utils/platformDetector.js');
+            const method = getCloudFunctionMethod();
+
+            if (method === 'tcb') {
+                const app = getApp();
+                if (!(app && app.$tcb && typeof app.$tcb.uploadFile === 'function')) {
+                    console.warn('[PostDetail] TCB实例不可用，回退到云函数上传');
+                    return await this.uploadFileViaCloudFunction(cloudPath, filePath);
                 }
-            });
+
+                let file = filePath;
+                try {
+                    // 优先使用 fetch 将临时路径转为 Blob 对象，这是最可靠的方式
+                    if (typeof filePath === "string" && typeof fetch === "function" && typeof Blob !== "undefined") {
+                        console.log('[PostDetail] 使用fetch读取文件为Blob');
+                        const resp = await fetch(filePath);
+                        file = await resp.blob();
+                    }
+                } catch (e) {
+                    console.warn('[PostDetail] fetch toBlob失败，改走云函数上传', e);
+                    return await this.uploadFileViaCloudFunction(cloudPath, filePath);
+                }
+
+                try {
+                    console.log('[PostDetail] 尝试使用TCB直传Blob/File对象');
+                    const res = await app.$tcb.uploadFile({ cloudPath, file });
+                    // 返回一个统一的包含 fileID 的对象
+                    const fileID = (res && (res.fileID || res.fileId)) || (res && res.data && res.data.fileID);
+                    if (!fileID) throw new Error('上传成功但未返回fileID');
+                    return { fileID };
+                } catch (e) {
+                    console.warn('[PostDetail] TCB直传失败，fallback 到云函数', e);
+                    return await this.uploadFileViaCloudFunction(cloudPath, filePath);
+                }
+            } else if (method === "wx-cloud") {
+                return await wx.cloud.uploadFile({ cloudPath, filePath });
+            }
+            throw new Error('不支持的云函数调用方式: ' + method);
         },
 
         // 图片加载事件处理
@@ -3297,119 +3300,56 @@ export default {
             });
         },
 
-        // 通过云函数上传文件（解决H5环境multipart/form-data问题）
-        uploadFileViaCloudFunction(cloudPath, filePath, retryCount = 0) {
+        // 通过云函数上传（作为最终的回退方案，且只包含 plus.io，不再尝试 getFileSystemManager）
+        uploadFileViaCloudFunction(cloudPath, filePath) {
             return new Promise((resolve, reject) => {
-                // 检查环境并使用相应的文件读取方式
-                if (typeof window !== 'undefined' && typeof FileReader !== 'undefined') {
-                    // H5环境：使用fetch获取blob，然后转换为base64
-                    
+                const { getCurrentPlatform } = require('../../utils/platformDetector.js');
+                const platform = getCurrentPlatform();
+
+                if (platform === 'h5') {
                     fetch(filePath)
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error(`HTTP error! status: ${response.status}`);
-                            }
-                            return response.blob();
-                        })
+                        .then(response => response.blob())
                         .then(blob => {
                             const reader = new FileReader();
                             reader.onload = () => {
-                                const result = reader.result;
-                                if (!result || typeof result !== 'string') {
-                                    console.error('❌ [帖子详情页] FileReader结果无效:', result);
-                                    reject(new Error('文件读取失败'));
-                                    return;
-                                }
-                                const base64 = result.split(',')[1];
-                                console.log(`🔍 [帖子详情页] 文件转换为base64完成，长度: ${base64.length}`);
-                                
-                                this.callCloudFunction('upload', {
-                                    cloudPath: cloudPath,
-                                    fileContent: base64
-                                }).then((uploadRes) => {
-                                    console.log('上传云函数返回结果:', uploadRes);
-                                    // 检查云函数返回格式并提取fileID
-                                    if (uploadRes && uploadRes.result && uploadRes.result.success) {
-                                        resolve({
-                                            fileID: uploadRes.result.fileID,
-                                            cloudPath: uploadRes.result.cloudPath
-                                        });
-                                    } else {
-                                        reject(new Error('上传云函数返回格式错误'));
-                                    }
-                                }).catch((err) => {
-                                    // 如果是网络错误且重试次数小于2，则重试
-                                    if (retryCount < 2 && (err.errMsg === 'request:fail' || err.message?.includes('fail'))) {
-                                        console.log(`🔄 [帖子详情页] 上传失败，准备重试 (${retryCount + 1}/2)`);
-                                        setTimeout(() => {
-                                            this.uploadFileViaCloudFunction(cloudPath, filePath, retryCount + 1)
-                                                .then(resolve).catch(reject);
-                                        }, 1000 * (retryCount + 1)); // 递增延迟
-                                    } else {
-                                        reject(err);
-                                    }
-                                });
-                            };
-                            reader.onerror = () => {
-                                console.error('❌ [帖子详情页] FileReader读取失败');
-                                reject(new Error('文件读取失败'));
-                            };
-                            reader.readAsDataURL(blob);
-                        })
-                        .catch(err => {
-                            console.error('❌ [帖子详情页] 获取文件blob失败:', err);
-                            reject(new Error('获取文件失败: ' + err.message));
-                        });
-                } else {
-                    // App环境使用uni-app API
-                    console.log('🔍 [帖子详情页] App环境使用uni-app API读取文件');
-                    try {
-                        const fs = uni.getFileSystemManager();
-                        if (fs && fs.readFile) {
-                            fs.readFile({
-                                filePath: filePath,
-                                encoding: 'base64',
-                                success: (readRes) => {
-                                    const base64 = readRes.data;
-                                    console.log(`🔍 [帖子详情页] 文件读取完成，base64长度: ${base64.length}`);
-                                    this.callCloudFunction('upload', {
-                                        cloudPath: cloudPath,
-                                        fileContent: base64
-                                    }).then((uploadRes) => {
-                                        console.log('上传云函数返回结果:', uploadRes);
+                                const base64 = reader.result.split(",")[1];
+                                this.callCloudFunction("upload", { cloudPath, fileContent: base64 })
+                                    .then(uploadRes => {
                                         if (uploadRes && uploadRes.result && uploadRes.result.success) {
-                                            resolve({
-                                                fileID: uploadRes.result.fileID,
-                                                cloudPath: uploadRes.result.cloudPath
-                                            });
+                                            resolve({ fileID: uploadRes.result.fileID });
                                         } else {
-                                            reject(new Error('上传云函数返回格式错误'));
+                                            reject(new Error("云函数返回异常"));
                                         }
-                                    }).catch((err) => {
-                                        if (retryCount < 2 && (err.errMsg === 'request:fail' || err.message?.includes('fail'))) {
-                                            console.log(`🔄 [帖子详情页] 上传失败，准备重试 (${retryCount + 1}/2)`);
-                                            setTimeout(() => {
-                                                this.uploadFileViaCloudFunction(cloudPath, filePath, retryCount + 1)
-                                                    .then(resolve).catch(reject);
-                                            }, 1000 * (retryCount + 1));
-                                        } else {
-                                            reject(err);
-                                        }
-                                    });
-                                },
-                                fail: (err) => {
-                                    console.error('❌ [帖子详情页] 文件读取失败:', err);
-                                    reject(new Error('文件读取失败: ' + err.errMsg));
-                                }
-                            });
-                        } else {
-                            console.error('❌ [帖子详情页] uni.getFileSystemManager不可用');
-                            reject(new Error('文件系统管理器不可用'));
-                        }
-                    } catch (error) {
-                        console.error('❌ [帖子详情页] 文件读取异常:', error);
-                        reject(new Error('文件读取异常: ' + error.message));
+                                    }).catch(reject);
+                            };
+                            reader.onerror = () => reject(new Error("文件读取失败"));
+                            reader.readAsDataURL(blob);
+                        }).catch(err => reject(err));
+                } else { // App环境只使用 plus.io
+                    console.log('🔍 [PostDetail] App环境回退方案：使用plus.io读取文件');
+                    if (typeof plus === 'undefined' || !plus.io) {
+                        return reject(new Error('App端plus.io环境不可用'));
                     }
+                    plus.io.resolveLocalFileSystemURL(filePath, (entry) => {
+                        entry.file((file) => {
+                            const reader = new plus.io.FileReader();
+                            reader.onload = (e) => {
+                                const dataUrl = e.target.result || '';
+                                const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
+                                if (!base64) return reject(new Error('文件读取失败或为空'));
+                                this.callCloudFunction('upload', { cloudPath, fileContent: base64 })
+                                    .then(uploadRes => {
+                                        if (uploadRes && uploadRes.result && uploadRes.result.success) {
+                                            resolve({ fileID: uploadRes.result.fileID });
+                                        } else {
+                                            reject(new Error('云函数返回异常'));
+                                        }
+                                    }).catch(reject);
+                            };
+                            reader.onerror = (err) => reject(new Error('FileReader读取失败: ' + (err.message || 'unknown')));
+                            reader.readAsDataURL(file);
+                        }, (e) => reject(new Error('获取文件对象失败: ' + (e.message || 'unknown'))));
+                    }, (e) => reject(new Error('解析文件路径失败: ' + (e.message || 'unknown'))));
                 }
             });
         }

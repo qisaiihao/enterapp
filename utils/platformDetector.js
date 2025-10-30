@@ -56,7 +56,21 @@ function getPlatformInfo() {
                 }
 
                 // 检查App环境
-                if (typeof plus !== 'undefined' || systemInfo.platform) {
+                if (typeof plus !== 'undefined') {
+                    info.platform = 'app';
+                    info.isApp = true;
+                    
+                    if (systemInfo.platform === 'android') {
+                        info.isAndroid = true;
+                    } else if (systemInfo.platform === 'ios') {
+                        info.isIOS = true;
+                    }
+                    
+                    return info;
+                }
+                
+                // 备用检测：通过systemInfo判断app环境
+                if (systemInfo.platform && (systemInfo.platform === 'android' || systemInfo.platform === 'ios')) {
                     info.platform = 'app';
                     info.isApp = true;
                     
@@ -145,14 +159,26 @@ function supportsCloudFunction() {
 function getCloudFunctionMethod() {
     const info = getPlatformInfo();
     
+    // 添加调试信息
+    console.log('🔍 [PlatformDetector] 环境检测结果:', {
+        platform: info.platform,
+        isH5: info.isH5,
+        isApp: info.isApp,
+        isMiniProgram: info.isMiniProgram,
+        details: info.details
+    });
+    
     if (info.isH5 || info.isApp) {
+        console.log('🔍 [PlatformDetector] 使用TCB云函数调用方式');
         return 'tcb';
     }
     
     if (info.isMiniProgram) {
+        console.log('🔍 [PlatformDetector] 使用微信云开发调用方式');
         return 'wx-cloud';
     }
     
+    console.warn('🔍 [PlatformDetector] 未识别的环境，返回none');
     return 'none';
 }
 

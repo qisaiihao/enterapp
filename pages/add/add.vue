@@ -305,6 +305,7 @@
 // pages/add/add.js
 // 修复：移除全局数据库实例，改为在方法中动态获取
 const { cloudCall } = require('../../utils/cloudCall.js');
+const { readFileAsBase64 } = require('../../utils/fileReader.js');
 export default {
     data() {
         return {
@@ -1123,115 +1124,45 @@ export default {
 
         // 通过云函数上传文件（解决H5环境multipart/form-data问题）
         uploadFileViaCloudFunction(cloudPath, filePath, retryCount = 0) {
-            return new Promise((resolve, reject) => {
-                // 检查环境并使用相应的文件读取方式
-                if (typeof window !== 'undefined' && typeof FileReader !== 'undefined') {
-                    // H5环境：使用fetch获取blob，然后转换为base64
-                    
-                    fetch(filePath)
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error(`HTTP error! status: ${response.status}`);
-                            }
-                            return response.blob();
-                        })
-                        .then(blob => {
-                            const reader = new FileReader();
-                            reader.onload = () => {
-                                const result = reader.result;
-                                if (!result || typeof result !== 'string') {
-                                    console.error('❌ [Add页面] FileReader结果无效:', result);
-                                    reject(new Error('文件读取失败'));
-                                    return;
-                                }
-                                const base64 = result.split(',')[1];
-                                console.log(`🔍 [Add页面] 文件转换为base64完成，长度: ${base64.length}`);
-                                // 检查base64大小，如果太大则进一步压缩
-                                if (base64.length > 6 * 1024 * 1024) { // 6MB base64约等于4.5MB文件
-                                    console.warn('⚠️ [Add页面] base64文件过大，尝试进一步压缩');
-                                    // 可以在这里添加进一步的压缩逻辑
-                                }
-                                
-                                this.callCloudFunction('upload', {
-                                    cloudPath: cloudPath,
-                                    fileContent: base64
-                                }).then((uploadRes) => {
-                                    console.log('上传云函数返回结果:', uploadRes);
-                                    // 检查云函数返回格式并提取fileID
-                                    if (uploadRes && uploadRes.result && uploadRes.result.success) {
-                                        resolve({
-                                            fileID: uploadRes.result.fileID,
-                                            cloudPath: uploadRes.result.cloudPath
-                                        });
-                                    } else {
-                                        reject(new Error('上传云函数返回格式错误'));
-                                    }
-                                }).catch((err) => {
-                                    // 如果是网络错误且重试次数小于2，则重试
-                                    if (retryCount < 2 && (err.errMsg === 'request:fail' || err.message?.includes('fail'))) {
-                                        console.log(`🔄 [Add页面] 上传失败，准备重试 (${retryCount + 1}/2)`);
-                                        setTimeout(() => {
-                                            this.uploadFileViaCloudFunction(cloudPath, filePath, retryCount + 1)
-                                                .then(resolve).catch(reject);
-                                        }, 1000 * (retryCount + 1)); // 递增延迟
-                                    } else {
-                                        reject(err);
-                                    }
-                                });
-                            };
-                            reader.onerror = () => {
-                                console.error('❌ [Add页面] FileReader读取失败');
-                                reject(new Error('文件读取失败'));
-                            };
-                            reader.readAsDataURL(blob);
-                        })
-                        .catch(err => {
-                            console.error('❌ [Add页面] 获取文件blob失败:', err);
-                            reject(new Error('获取文件失败: ' + err.message));
-                        });
-                } else {
-                    // App环境使用uni-app API
-                    console.log('🔍 [Add页面] App环境使用uni-app API读取文件');
-                    try {
-                        const fs = uni.getFileSystemManager();
-                        if (fs && fs.readFile) {
-                            fs.readFile({
-                                filePath: filePath,
-                                encoding: 'base64',
-                                success: (readRes) => {
-                                    const base64 = readRes.data;
-                                    console.log(`🔍 [Add页面] 文件读取完成，base64长度: ${base64.length}`);
-                                    this.callCloudFunction('upload', {
-                                        cloudPath: cloudPath,
-                                        fileContent: base64
-                                    }).then((uploadRes) => {
-                                        console.log('App环境上传云函数返回结果:', uploadRes);
-                                        // 检查云函数返回格式并提取fileID
-                                        if (uploadRes && uploadRes.result && uploadRes.result.success) {
-                                            resolve({
-                                                fileID: uploadRes.result.fileID,
-                                                cloudPath: uploadRes.result.cloudPath
-                                            });
-                                        } else {
-                                            reject(new Error('上传云函数返回格式错误'));
-                                        }
-                                    }).catch(reject);
-                                },
-                                fail: (readErr) => {
-                                    console.error('❌ [Add页面] 文件读取失败：', readErr);
-                                    reject(new Error(`文件读取失败: ${readErr.errMsg || '未知错误'}`));
-                                }
-                            });
-                        } else {
-                            console.error('❌ [Add页面] getFileSystemManager不可用');
-                            reject(new Error('文件系统API不可用'));
-                        }
-                    } catch (error) {
-                        console.error('❌ [Add页面] 文件系统API调用失败:', error);
-                        reject(new Error('文件系统API不可用'));
+            return readFileAsBase64(filePath)
+                .then((base64) => {
+                    if (!base64) {
+                        throw new Error('文件读取失败');
                     }
-                }
-            });
+                    console.log(`?? [Add页面] 文件读取完成，base64长度: ${base64.length}`);
+                    if (base64.length > 6 * 1024 * 1024) {
+                        console.warn('?? [Add页面] base64文件较大，注意上传耗时');
+                    }
+                    return this.callCloudFunction('upload', {
+                        cloudPath,
+                        fileContent: base64
+                    });
+                })
+                .then((uploadRes) => {
+                    console.log('云函数返回结果:', uploadRes);
+                    if (uploadRes && uploadRes.result && uploadRes.result.success) {
+                        return {
+                            fileID: uploadRes.result.fileID,
+                            cloudPath: uploadRes.result.cloudPath
+                        };
+                    }
+                    throw new Error('上传云函数返回格式异常');
+                })
+                .catch((err) => {
+                    const message = (err && err.errMsg) || (err && err.message) || '';
+                    const shouldRetry = retryCount < 2 && (message.includes('request:fail') || message.includes('timeout'));
+                    if (shouldRetry) {
+                        console.log(`?? [Add页面] 上传失败，准备重试 (${retryCount + 1}/2)`, err);
+                        return new Promise((resolve, reject) => {
+                            setTimeout(() => {
+                                this.uploadFileViaCloudFunction(cloudPath, filePath, retryCount + 1)
+                                    .then(resolve)
+                                    .catch(reject);
+                            }, 1000 * (retryCount + 1));
+                        });
+                    }
+                    throw err;
+                });
         },
 
         preventPageScroll: function () {
@@ -1393,11 +1324,6 @@ export default {
                         const tempFilePath = file.path;
                         const sizeInBytes = file.size;
                         console.log(`获取到图片 ${tempFilePath} 的原始大小:`, (sizeInBytes / 1024).toFixed(2), 'KB');
-                        
-                        // 检查文件大小限制（5MB）
-                        if (sizeInBytes > 5 * 1024 * 1024) {
-                            throw new Error(`图片文件过大 (${(sizeInBytes / 1024 / 1024).toFixed(2)}MB)，请选择小于5MB的图片`);
-                        }
                         
                         const needCompression = sizeInBytes > 200000; // 降低压缩阈值从300KB到200KB
                         const imageInfo = {
