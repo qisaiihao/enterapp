@@ -182,24 +182,22 @@
                                 @tap.stop="openPortfolio"
                                 :data-portfolio="portfolio"
                             >
-                                <view class="book-spine">
-                                    <view class="spine-content">
-                                        <block v-if="portfolio.name">
-                                            <text
-                                                class="spine-text"
-                                                v-for="(char, charIndex) in portfolio.name.split('')"
-                                                :key="charIndex"
-                                            >
-                                                {{ char }}
-                                            </text>
-                                        </block>
-                                        <block v-else>
-                                            <text class="spine-text">N</text>
-                                            <text class="spine-text">A</text>
-                                            <text class="spine-text">M</text>
-                                            <text class="spine-text">E</text>
-                                        </block>
-                                    </view>
+                                <view class="book-spine" :style="calcBookHeight(portfolio.name)">
+                                    <block v-if="portfolio.name">
+                                        <text
+                                            class="spine-text"
+                                            v-for="(char, charIndex) in portfolio.name.split('')"
+                                            :key="charIndex"
+                                        >
+                                            {{ char }}
+                                        </text>
+                                    </block>
+                                    <block v-else>
+                                        <text class="spine-text">N</text>
+                                        <text class="spine-text">A</text>
+                                        <text class="spine-text">M</text>
+                                        <text class="spine-text">E</text>
+                                    </block>
                                 </view>
                             </view>
                             <view
@@ -636,6 +634,15 @@ export default {
         }
     },
     methods: {
+        calcBookHeight(name) {
+          const min = 120; // 最小高度rpx
+          const perChar = 40; // 每个字增加的高度rpx（字体22rpx + 间距18rpx）
+          const gap = 24;     // 上下内边距
+          const len = (name || '').length;
+          let height = min + perChar * (len > 2 ? len - 2 : 0) + gap;
+          // 移除最大高度限制，让标题可以完全显示
+          return `height: ${height}rpx;`;
+        },
         // 标签切换（他人主页）
         switchTab: function (e) {
             const tab = e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.tab;
@@ -1460,7 +1467,7 @@ export default {
 .books-shelf {
     display: flex;
     justify-content: flex-end;
-    align-items: flex-end;
+    align-items: flex-end; /* 保证所有书底边齐 */
     gap: 0;
     position: relative;
     padding-bottom: 18rpx;
@@ -1492,13 +1499,16 @@ export default {
 
 .book-spine {
     width: 72rpx;
-    height: 224rpx;
     border-radius: 20rpx 20rpx 0 0;
     position: relative;
     box-shadow: 2rpx 2rpx 8rpx rgba(0, 0, 0, 0.2);
+    background: inherit;
+    overflow: hidden;
     display: flex;
-    align-items: center;
     justify-content: center;
+    align-items: center;
+    padding: 12rpx 0;
+    box-sizing: border-box;
 }
 
 .book-1 .book-spine { background: #809076; }
@@ -1511,14 +1521,17 @@ export default {
 .spine-content {
     display: flex;
     flex-direction: column;
-    align-items: center;
     gap: 6rpx;
+    margin: 12rpx 0;
+    align-items: center;
 }
 
 .spine-text {
-    font-size: 22rpx;
+    font-size: 26rpx;
     color: #fff;
     writing-mode: vertical-rl;
+    line-height: 1.6;
+    letter-spacing: 4rpx;
 }
 
 .empty-portfolio {

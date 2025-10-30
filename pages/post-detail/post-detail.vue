@@ -168,6 +168,7 @@
                             <view v-if="post.isOriginal && post.isPoem && isOwnPost" class="portfolio-icon-container" @tap.stop.prevent="onAddToPortfolio">
                                 <image class="portfolio-icon" src="/static/images/portfolio.png" mode="aspectFit"></image>
                             </view>
+                            <button v-if="isOwnPost" class="edit-btn" @tap.stop.prevent="onEditPost">编辑</button>
                             <!-- 分享按钮 -->
                             <view class="share-icon-container" @tap.stop.prevent="onShare">
                                 <image class="share-icon" src="/static/images/share.png" mode="aspectFit"></image>
@@ -449,6 +450,18 @@
 
         <!-- 隐藏的canvas用于生成分享图片（增加 id 便于 H5 兜底导出） -->
         <canvas id="shareCanvas" canvas-id="shareCanvas" style="position: fixed; top: -9999px; left: -9999px; width: 750px; border-radius: 15px; overflow: hidden;" :style="{ height: shareCanvasHeight + 'px' }"></canvas>
+      <!-- 评论区、其它内容 --> 
+    <view v-if="showEditModal" class="edit-modal-mask">
+        <view class="edit-modal">
+            <view class="edit-modal-title">编辑帖子</view>
+            <input class="edit-title-input" :value="editForm.title" data-field="title" @input="onEditInput" placeholder="请输入标题" />
+            <textarea class="edit-content-textarea" :value="editForm.content" data-field="content" @input="onEditInput" placeholder="请输入正文" />
+            <view class="edit-modal-actions">
+                <button class="modal-cancel" @tap="onCancelEdit">取消</button>
+                <button class="modal-confirm" @tap="onSaveEdit">保存</button>
+            </view>
+        </view>
+    </view>
     </view>
 </template>
 
@@ -512,6 +525,11 @@ export default {
             isFollowedByAuthor: false,
             isMutualFollow: false,
             isOwnPost: false,
+            showEditModal: false,
+            editForm: {
+                title: '',
+                content: '',
+            },
             commentImages: [],
             maxCommentImages: 3,
             isSubmittingComment: false,
@@ -3300,6 +3318,26 @@ export default {
             });
         },
 
+        onEditPost() {
+            // 打开弹窗，回填当前内容
+            this.showEditModal = true;
+            this.editForm = {
+                title: this.post.title || '',
+                content: this.post.content || '',
+            };
+        },
+        onCancelEdit() {
+            this.showEditModal = false;
+        },
+        onEditInput(e) {
+            const field = e.currentTarget.dataset.field;
+            this.editForm[field] = e.detail.value;
+        },
+        onSaveEdit() {
+            uni.showToast({ title: '保存功能待实现', icon: 'none' });
+            this.showEditModal = false;
+        },
+
         // 通过云函数上传（作为最终的回退方案，且只包含 plus.io，不再尝试 getFileSystemManager）
         uploadFileViaCloudFunction(cloudPath, filePath) {
             return new Promise((resolve, reject) => {
@@ -4714,6 +4752,24 @@ export default {
 .container {
     padding-bottom: 140rpx;
 }
+.edit-modal-mask {
+  position: fixed; left: 0; top: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.35); z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+}
+.edit-modal {
+  background: #fff; border-radius: 10px; padding: 24px; width: 80vw; max-width: 400px;
+  box-shadow: 0 4px 40px #0002;
+}
+.edit-modal-title { font-weight: bold; font-size: 18px; margin-bottom: 12px; }
+.edit-title-input, .edit-content-textarea {
+  width: 100%; margin-bottom: 16px; border: 1px solid #eee; padding: 8px; border-radius: 6px; font-size: 16px;
+}
+.edit-content-textarea { min-height: 80px; resize: vertical; }
+.edit-modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.modal-cancel { background: #eee; }
+.modal-confirm { background: #3797ff; color: #fff; }
+
 </style>
 
 

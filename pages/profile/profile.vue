@@ -365,7 +365,7 @@
                                     :class="'book book-' + (index + 1)" 
                                     @tap.stop="openPortfolio(portfolio)"
                                 >
-                                    <view class="book-spine">
+                                    <view class="book-spine" :style="calcBookHeight(portfolio.name)">
                                         <view class="spine-content">
                                             <text 
                                                 v-for="(char, charIndex) in portfolio.name.split('').slice(0, 7)" 
@@ -727,6 +727,15 @@ export default {
         try { uni.$off && uni.$off('comment-count-changed'); } catch (_) {}
     },
     methods: {
+        calcBookHeight(name) {
+          const min = 120; // 最小高度rpx
+          const perChar = 40; // 每个字增加的高度rpx（字体22rpx + 间距18rpx）
+          const gap = 24;     // 上下内边距
+          const len = (name || '').length;
+          let height = min + perChar * (len > 2 ? len - 2 : 0) + gap;
+          // 移除最大高度限制，让标题可以完全显示
+          return `height: ${height}rpx;`;
+        },
         // 处理匿名头像点击事件的函数
         handleAnonymousAvatarClick(e) {
             console.log('【个人主页】匿名头像被点击，阻止跳转');
@@ -3098,13 +3107,15 @@ export default {
 
 .book-spine {
     width: 72rpx;
-    height: 224rpx;
     border-radius: 20rpx 20rpx 0 0;
     position: relative;
     box-shadow: 2rpx 2rpx 8rpx rgba(0, 0, 0, 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 12rpx 0;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .book-1 .book-spine {
@@ -3179,11 +3190,11 @@ export default {
 }
 
 .spine-text {
-    font-size: 28rpx;
-    font-weight: 300;
+    font-size: 26rpx;
     color: #fff;
-    text-shadow: 0 1rpx 2rpx rgba(0, 0, 0, 0.3);
-    line-height: 1.2;
+    writing-mode: vertical-rl;
+    line-height: 1.6;
+    letter-spacing: 4rpx;
 }
 
 .empty-portfolio {
