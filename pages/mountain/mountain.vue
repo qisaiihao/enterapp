@@ -409,12 +409,12 @@ export default {
   padding-top: env(safe-area-inset-top, var(--safe-area-inset-top, 44px)); /* 添加状态栏安全区域，备选方案 */
 }
 .square-mode-container {
-  padding: 40rpx;
+  padding: 100rpx;
   margin-bottom: 200rpx;
   padding-top: 250rpx; /* 增加上边距：100rpx(top-bar高度) + 150rpx(额外间距) */
   display: flex;
   flex-direction: column;
-  align-items: center; /* 居中卡片 */
+  align-items: stretch; /* 居中卡片 */
 }
 .empty-state { text-align: center; padding: 100rpx 0; color: #999; }
 .empty-icon { font-size: 80rpx; margin-bottom: 20rpx; }
@@ -422,9 +422,7 @@ export default {
 .empty-subtext { font-size: 24rpx; color: #999; }
 /* poem.css inspired card styles */
 .post-item-wrapper {
-  width: calc(100% - 80rpx); /* 响应式宽度：屏幕宽度减去左右各40rpx边距 */
-  margin-left: 40rpx; /* 左边距 */
-  margin-right: 40rpx; /* 右边距 */
+  width: 100%;
   border-radius: 30rpx; /* 15px * 2 */
   margin-bottom: 40rpx; /* 减少间距，让卡片更紧凑 */
   overflow: hidden;
@@ -447,6 +445,7 @@ export default {
   margin: 30rpx 0;
   width: 100%;
   color: #FFFFFF;
+  overflow-wrap: break-word;
 }
 
 /* 文字颜色现在通过内联样式动态设置 */
