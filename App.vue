@@ -123,6 +123,19 @@ export default {
             // 【关键修改】如果当前页面不是 splash 或 login，且没有缓存，则重定向到 splash
             if (!this.isAllowedPageForUnauthenticated()) {
                 console.log('⚠️ [登录流程] 检测到直接访问非登录页面，且无登录缓存，重定向到开屏页面');
+                
+                // 【关键修复】在重定向之前，确保 TCB 匿名认证已完成
+                try {
+                    const currentUser = this.$tcb.auth().currentUser;
+                    if (!currentUser) {
+                        console.log('🔐 [登录流程] 重定向前，确保匿名认证完成...');
+                        await this.$tcb.auth().signInAnonymously();
+                        console.log('✅ [登录流程] 匿名认证已完成');
+                    }
+                } catch (authError) {
+                    console.warn('⚠️ [登录流程] 匿名认证失败（可能已在 main.js 中完成）:', authError);
+                }
+                
                 // 延迟一小段时间，确保页面加载完成
                 setTimeout(() => {
                     uni.reLaunch({

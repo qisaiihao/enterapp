@@ -324,9 +324,35 @@ export default {
         },
 
         /**
+         * 确保 TCB 匿名认证已完成
+         */
+        async ensureTcbAuth() {
+            // #ifdef H5 || APP-PLUS
+            try {
+                const tcbInstance = this.$tcb || (typeof getApp === 'function' && getApp().$tcb);
+                if (tcbInstance && tcbInstance.auth) {
+                    const currentUser = tcbInstance.auth().currentUser;
+                    if (!currentUser) {
+                        console.log('🔐 [splash] 检测到 TCB 未认证，开始匿名认证...');
+                        await tcbInstance.auth().signInAnonymously();
+                        console.log('✅ [splash] TCB 匿名认证完成');
+                    } else {
+                        console.log('✅ [splash] TCB 已认证');
+                    }
+                }
+            } catch (error) {
+                console.warn('⚠️ [splash] TCB 认证检查失败（可能已在 main.js 中完成）:', error);
+            }
+            // #endif
+        },
+
+        /**
          * 函数：执行原有的其它预加载任务
          */
         async executeOriginalPreloadTasks() {
+            // 确保 TCB 认证已完成
+            await this.ensureTcbAuth();
+            
             const { app, openid } = await this.waitForOpenId();
 
             if (!openid) {

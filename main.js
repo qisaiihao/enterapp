@@ -118,6 +118,28 @@ try {
 console.log('🔧 [TCB初始化] TCB实例已创建:', tcbApp);
 console.log('🔧 [TCB初始化] 环境ID:', tcbApp.config?.env);
 console.log('🔧 [TCB初始化] 数据库方法可用:', typeof tcbApp.database === 'function');
+
+// 5. 立即进行匿名认证，确保在调用云函数之前完成认证
+// 这是关键修复：在应用启动时就完成 TCB 匿名认证，避免后续调用云函数时出现 "you can't request without auth" 错误
+// #ifdef H5 || APP-PLUS
+(async () => {
+  try {
+    // 检查是否已经登录
+    const currentUser = tcbApp.auth().currentUser;
+    if (!currentUser) {
+      console.log('🔐 [TCB初始化] 开始匿名认证...');
+      const authResult = await tcbApp.auth().signInAnonymously();
+      console.log('✅ [TCB初始化] 匿名认证成功:', authResult);
+      console.log('✅ [TCB初始化] 当前用户:', tcbApp.auth().currentUser);
+    } else {
+      console.log('✅ [TCB初始化] 用户已认证，跳过匿名登录');
+    }
+  } catch (error) {
+    console.error('❌ [TCB初始化] 匿名认证失败:', error);
+    // 认证失败不应该阻止应用启动，只是会影响后续的云函数调用
+  }
+})();
+// #endif
 Vue.prototype.$requireOpenid = function () {
   const appInstance = getApp();
   let openid = appInstance && appInstance.globalData && appInstance.globalData.openid;
@@ -301,6 +323,23 @@ export function createApp() {
     });
     // 2. 挂载
     app.config.globalProperties.$tcb = tcbApp;
+    
+    // 3. 立即进行匿名认证，确保在调用云函数之前完成认证
+    (async () => {
+      try {
+        const currentUser = tcbApp.auth().currentUser;
+        if (!currentUser) {
+          console.log('🔐 [TCB初始化-VUE3] 开始匿名认证...');
+          const authResult = await tcbApp.auth().signInAnonymously();
+          console.log('✅ [TCB初始化-VUE3] 匿名认证成功:', authResult);
+          console.log('✅ [TCB初始化-VUE3] 当前用户:', tcbApp.auth().currentUser);
+        } else {
+          console.log('✅ [TCB初始化-VUE3] 用户已认证，跳过匿名登录');
+        }
+      } catch (error) {
+        console.error('❌ [TCB初始化-VUE3] 匿名认证失败:', error);
+      }
+    })();
     // #endif
     // #ifdef MP-WEIXIN
     app.config.globalProperties.$tcb = {

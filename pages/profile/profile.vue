@@ -118,6 +118,7 @@
                                         :data-user-id="item._openid"
                                         :data-is-anonymous="item.isAnonymous"
                                     ></image>
+                                    <text class="author-name">{{ item.authorName }}</text>
                                     <view v-if="item.isAnonymous" class="anonymous-tag">匿名</view>
                                 </view>
 
@@ -1053,15 +1054,32 @@ export default {
                         console.log('【profile】✅ 缓存API成功返回帖子数量:', posts.length);
                         console.log('【profile】📋 缓存API返回的帖子ID列表:', posts.map(p => p._id));
 
-                        // 格式化帖子数据
+                        // 格式化帖子数据并确保使用个人资料昵称
+                        const currentUserInfo = this.userInfo || {};
                         posts.forEach((post, index) => {
                             if (post.createTime) post.formattedCreateTime = this.formatTime(post.createTime);
                             if (post.imageUrls && post.imageUrls.length > 0) post.imageStyle = `height: 0; padding-bottom: 75%;`;
+                            
+                            // 【关键修复】直接使用个人资料的昵称填充帖子的authorName
+                            if (currentUserInfo.nickName) {
+                                post.authorName = currentUserInfo.nickName;
+                            } else if (!post.authorName || post.authorName.trim() === '') {
+                                post.authorName = post.authorNameSnapshot || '我';
+                            }
+                            
+                            // 同样处理头像
+                            if (currentUserInfo.avatarUrl) {
+                                post.authorAvatar = currentUserInfo.avatarUrl;
+                            } else if (!post.authorAvatar || post.authorAvatar.trim() === '') {
+                                post.authorAvatar = post.authorAvatarSnapshot || '/static/images/avatar.png';
+                            }
+                            
                             console.log(`【profile】📝 缓存帖子${index + 1}:`, {
                                 id: post._id,
                                 title: post.title,
                                 createTime: post.createTime,
-                                formattedTime: post.formattedCreateTime
+                                formattedTime: post.formattedCreateTime,
+                                authorName: post.authorName
                             });
                         });
 
@@ -1128,7 +1146,7 @@ export default {
                     console.log('【profile】✅ 云函数成功返回帖子数量:', posts.length);
                     console.log('【profile】📋 云函数返回的帖子ID列表:', posts.map(p => p._id));
 
-                    // 格式化帖子数据
+                    // 格式化帖子数据并确保作者信息完整
                     posts.forEach((post, index) => {
                         if (post.createTime) {
                             post.formattedCreateTime = this.formatTime(post.createTime);
@@ -1137,11 +1155,34 @@ export default {
                         if (post.imageUrls && post.imageUrls.length > 0) {
                             post.imageStyle = `height: 0; padding-bottom: 75%;`; // 4:3 宽高比占位
                         }
+                        
+                        // 【关键修复】直接使用个人资料的昵称（userInfo.nickName）填充帖子的authorName
+                        // 个人资料页面显示的昵称就是 userInfo.nickName，这里也直接用这个
+                        const currentUserInfo = this.userInfo || {};
+                        if (currentUserInfo.nickName) {
+                            post.authorName = currentUserInfo.nickName;
+                            console.log(`【profile】✅ 帖子${index + 1}使用个人资料昵称:`, post.authorName);
+                        } else if (!post.authorName || post.authorName.trim() === '') {
+                            post.authorName = post.authorNameSnapshot || '我';
+                            console.log(`【profile】⚠️ 帖子${index + 1}个人资料无昵称，使用备选:`, post.authorName);
+                        }
+                        
+                        // 同样处理头像
+                        if (currentUserInfo.avatarUrl) {
+                            post.authorAvatar = currentUserInfo.avatarUrl;
+                        } else if (!post.authorAvatar || post.authorAvatar.trim() === '') {
+                            post.authorAvatar = post.authorAvatarSnapshot || '/static/images/avatar.png';
+                            console.log(`【profile】⚠️ 帖子${index + 1}个人资料无头像，使用备选`);
+                        }
+                        
                         console.log(`【profile】📝 云函数帖子${index + 1}:`, {
                             id: post._id,
                             title: post.title,
                             createTime: post.createTime,
-                            formattedTime: post.formattedCreateTime
+                            formattedTime: post.formattedCreateTime,
+                            authorName: post.authorName, // 使用个人资料昵称
+                            userInfoNickName: currentUserInfo.nickName, // 个人资料中的昵称
+                            hasAuthorAvatar: !!post.authorAvatar
                         });
                     });
 
@@ -2621,7 +2662,7 @@ export default {
 /* 外部作者信息样式 */
 .author-info-outside {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     padding: 20rpx 40rpx 10rpx 40rpx;
     background: #fff;
     border-radius: 0;
@@ -2643,10 +2684,10 @@ export default {
     font-weight: 500;
 }
 
-/* 个人主页的"我发布的作品"部分不显示作者名字 */
-.my-posts-section .author-info-outside .author-name {
+/* 个人主页的"我发布的作品"部分显示昵称（头像旁边的），但不显示诗歌作者信息 */
+/* .my-posts-section .author-info-outside .author-name {
     display: none;
-}
+} */
 
 /* 个人主页的"我发布的作品"部分不显示诗歌作者信息 */
 .my-posts-section .poem-author {
