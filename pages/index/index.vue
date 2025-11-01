@@ -2125,10 +2125,18 @@ onReachBottom: function () {
 }
 
 .container {
-    padding: 155rpx 0 100rpx 0; /* 为page-tabs留出空间：与切换栏底对齐 */
+    /* 顶部padding为切换栏留空间 */
+    /* App端：188rpx（切换栏本身）+ 88rpx（状态栏） */
+    /* #ifdef APP-PLUS */
+    padding-top: 276rpx;
+    /* #endif */
+    /* H5端：188rpx（切换栏本身，无状态栏） */
+    /* #ifdef H5 */
+    padding-top: 188rpx;
+    /* #endif */
+    padding-bottom: 100rpx; /* 为底部tabBar留出空间 */
     background-color: #ffffff;
     min-height: 100vh;
-    padding-bottom: 100rpx; /* 为底部tabBar留出空间 */
     position: relative;
     /* 禁止整个容器滑动 */
     overflow: hidden;
@@ -2136,6 +2144,7 @@ onReachBottom: function () {
     overscroll-behavior: none;
     /* 确保容器不会产生滚动 */
     height: 100vh;
+    box-sizing: border-box;
 }
 
 
@@ -2204,8 +2213,20 @@ onReachBottom: function () {
 #post-list-container,
 #following-list-container,
 #discussion-list-container {
-    padding-top: 120rpx; /* 增加上边距，确保内容不被切换栏遮挡 */
+    padding-top: 0; /* 移除padding-top，因为swiper已经在切换栏下方 */
     box-sizing: border-box;
+}
+
+/* 为空状态容器也添加上边距 */
+.swiper-page .empty-state {
+    /* App端：需要更多上边距 */
+    /* #ifdef APP-PLUS */
+    margin-top: 160rpx;
+    /* #endif */
+    /* H5端：上边距可以更小 */
+    /* #ifdef H5 */
+    margin-top: 100rpx;
+    /* #endif */
 }
 
 /* 新增：帖子项包装器样式 */
@@ -2601,25 +2622,66 @@ onReachBottom: function () {
 
 /* swiper页面切换样式 */
 .page-swiper {
-    height: 100vh;
+    /* 高度计算：100vh - 切换栏高度 - 底部tabBar高度 */
+    /* App端：276rpx（切换栏+状态栏） */
+    /* #ifdef APP-PLUS */
+    height: calc(100vh - 276rpx - 100rpx);
+    /* #endif */
+    /* H5端：188rpx（切换栏，无状态栏） */
+    /* #ifdef H5 */
+    height: calc(100vh - 188rpx - 100rpx);
+    /* #endif */
     width: 100%;
     /* 限制滑动边界 */
     overflow: hidden;
     /* 禁用过度滑动 */
     overscroll-behavior: none;
+    /* 确保在切换栏下方 */
+    position: relative;
+    z-index: 999;
 }
 
 .swiper-page {
     height: 100%;
     /* scroll-view 会自动处理滚动，不需要 overflow-y: auto */
-    /* 确保下拉刷新区域在最上层，高于切换栏 */
     position: relative;
-    z-index: 1001;
+    /* 降低z-index，确保在切换栏下方 */
+    z-index: 999;
+}
+
+/* 确保 scroll-view 的第一个子元素有上边距，让下拉刷新圆圈显示在切换栏下方 */
+.swiper-page > view:first-child {
+    /* App端：需要更多上边距 */
+    /* #ifdef APP-PLUS */
+    margin-top: 60rpx;
+    /* #endif */
+    /* H5端：上边距可以更小 */
+    /* #ifdef H5 */
+    margin-top: 20rpx;
+    /* #endif */
 }
 
 .refresh-text {
     font-size: 24rpx;
     color: #ffc107;
     font-weight: 500;
+}
+
+/* 下拉刷新转圈圈样式自定义 - 针对 index 页面 */
+/* 可以调整颜色、位置等，但大小和动画有限制 */
+.swiper-page .uni-pull-refresh-spinner,
+.swiper-page .wx-pull-refresh-spinner {
+    /* 颜色（部分平台支持）- 灰色 */
+    color: #999999 !important;
+    border-color: #999999 !important;
+    /* 位置偏移（如果需要） */
+    /* top: 20rpx; */
+}
+
+/* 下拉刷新容器样式 */
+.swiper-page .uni-pull-refresh,
+.swiper-page .wx-pull-refresh {
+    /* 可以调整背景、透明度等 */
+    background: transparent;
 }
 </style>

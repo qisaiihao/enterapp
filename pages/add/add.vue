@@ -229,7 +229,7 @@
 
         <!-- 标签选择器 -->
         <view v-if="showTagSelector" class="tag-selector-mask" @tap="showTagSelector=false">
-                <view class="tag-selector" @tap.stop="noop">
+            <view class="tag-selector" @tap.stop="noop">
                 <!-- 已选标签显示区域 -->
                 <view v-if="selectedTags.length > 0" class="selected-tags-section">
                     <view class="selected-tags-title">已选标签：</view>
@@ -293,7 +293,6 @@
                             {{ item }}
                         </view>
                     </view>
-                </view>
                 </view>
             </view>
         </view>
@@ -1310,7 +1309,7 @@ export default {
             uni.chooseImage({
                 count: remainingCount,
                 // 关键修改1：强制使用原图，把压缩控制权完全交给自己的代码
-                sizeType: ['original'],
+                sizeType: ['compressed'],
                 sourceType: ['album', 'camera'],
                 success: (res) => {
                     uni.showLoading({

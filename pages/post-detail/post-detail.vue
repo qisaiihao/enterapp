@@ -696,7 +696,6 @@ export default {
     methods: {
         // 处理匿名头像点击事件的函数
         handleAnonymousAvatarClick(e) {
-            console.log('【详情页】匿名头像被点击，阻止跳转');
             if (e && e.preventDefault) {
                 e.preventDefault();
             }
@@ -712,20 +711,12 @@ export default {
 
         // 空函数，用于阻止匿名帖子的头像点击事件
         noop(e) {
-            console.log('【详情页】noop函数被调用');
-            console.log('【详情页】noop - event:', e);
-            if (e && e.currentTarget) {
-                console.log('【详情页】noop - currentTarget:', e.currentTarget);
-                console.log('【详情页】noop - dataset:', e.currentTarget.dataset);
-            }
+            // noop function to prevent event propagation
         },
 
         // 测试函数 - 用于调试头像点击
         testAvatarClick: function(e) {
-            console.log('【测试】头像点击测试函数被调用');
-            console.log('【测试】事件对象:', e);
-            console.log('【测试】currentTarget:', e.currentTarget);
-            console.log('【测试】dataset:', e.currentTarget ? e.currentTarget.dataset : 'no currentTarget');
+            // test function for avatar click debugging
         },
 
         
@@ -764,20 +755,16 @@ export default {
         syncCurrentPostLikeStatus: function () {
             try {
                 if (!this.post || !this.post._id) {
-                    console.log('【帖子详情】没有当前帖子信息，跳过点赞状态同步');
                     return;
                 }
 
                 const postId = this.post._id;
-                console.log(`【帖子详情】同步帖子 ${postId} 的点赞状态`);
 
                 // 使用同步工具同步当前帖子的点赞状态
                 const { syncLikeStatusForPosts } = require('../../utils/likeStatusSync.js');
                 const syncResult = syncLikeStatusForPosts([postId]);
 
                 if (syncResult.success && syncResult.updated > 0) {
-                    console.log(`【帖子详情】帖子 ${postId} 点赞状态已更新`);
-
                     // 更新当前帖子的显示状态
                     const { getLatestLikeStatus } = require('../../utils/likeStatusSync.js');
                     const latestStatus = getLatestLikeStatus(postId);
@@ -791,13 +778,9 @@ export default {
                             'post.isVoted': latestStatus.isVoted,
                             'post.likeIcon': newLikeIcon
                         });
-
-                        console.log(`【帖子详情】更新点赞显示: ${latestStatus.votes}, ${latestStatus.isVoted}`);
                     }
                 } else if (syncResult.errors.length > 0) {
                     console.warn('【帖子详情】点赞状态同步出现错误:', syncResult.errors);
-                } else {
-                    console.log(`【帖子详情】帖子 ${postId} 点赞状态无变化`);
                 }
             } catch (err) {
                 console.error('【帖子详情】同步当前帖子点赞状态失败:', err);
@@ -823,27 +806,16 @@ export default {
             ).then(async (res) => {
                 if (res.result && res.result.post) {
                     let post = res.result.post;
-                    console.log('【post-detail】判断帖子匿名性:', {
-                        postId: post._id,
-                        isAnonymous: post.isAnonymous,
-                        anonymousType: typeof post.isAnonymous,
-                        anonymousValue: post.isAnonymous
-                    });
                     post.formattedCreateTime = this.formatTime(post.createTime);
                     post.likeIcon = likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false);
                     // 将 cloud:// 映射为可访问 URL，并预热
                     await hydrateTempUrls([post]);
                     warmTempUrlsFromPosts([post]);
-                    console.log('loadPostDetail完整返回数据:', res.result);
-                    console.log('loadPostDetail获取到的commentCount:', res.result.commentCount, '类型:', typeof res.result.commentCount);
-                    console.log('loadPostDetail获取到的post.commentCount:', post.commentCount, '类型:', typeof post.commentCount);
                     const finalCommentCount = res.result.commentCount || post.commentCount || 0;
-                    console.log('最终使用的commentCount:', finalCommentCount);
                     this.setData({
                         post: post,
                         commentCount: finalCommentCount
                     });
-                    console.log('loadPostDetail设置后的commentCount:', this.commentCount);
                     this.getComments(post && post._id ? post._id : '');
                     this.prepareFollowState(post._openid);
                 } else {
@@ -885,11 +857,8 @@ export default {
                 }
             ).then(async (res) => {
                 if (res.result && res.result.comments) {
-                    console.log('🔍 [DEBUG] 开始处理评论数据:', res.result.comments);
                     const currentUserOpenid = this.getCurrentUserId();
-                    console.log('🔍 [DEBUG] 当前用户openid:', currentUserOpenid);
                     const comments = res.result.comments.map((comment) => {
-                        console.log('🔍 [DEBUG] 处理评论:', comment._id, 'canDelete:', comment.canDelete, 'openid:', comment._openid, 'isAnonymous:', comment.isAnonymous);
                         const processedComment = {
                             ...comment,
                             formattedCreateTime: this.formatTime(comment.createTime),
@@ -899,16 +868,8 @@ export default {
                             _openid: comment._openid || '' // 确保_openid被保留
                         };
                         
-                        console.log('🔍 [DEBUG] 处理评论图片数据:', {
-                            commentId: processedComment._id,
-                            originalImageUrls: comment.imageUrls,
-                            processedImageUrls: processedComment.imageUrls,
-                            imageUrlsLength: processedComment.imageUrls.length
-                        });
-                        console.log('🔍 [DEBUG] 处理后的评论_openid:', processedComment._openid, 'isAnonymous:', processedComment.isAnonymous);
                         if (comment.replies) {
                             processedComment.replies = comment.replies.map((reply) => {
-                                console.log('🔍 [DEBUG] 处理回复:', reply._id, 'openid:', reply._openid, 'isAnonymous:', reply.isAnonymous);
                                 const processedReply = {
                                     ...reply,
                                     formattedCreateTime: this.formatTime(reply.createTime),
@@ -917,65 +878,10 @@ export default {
                                     originalImageUrls: Array.isArray(reply.originalImageUrls) ? reply.originalImageUrls : [],
                                     _openid: reply._openid || '' // 确保_openid被保留
                                 };
-                                
-                                console.log('🔍 [DEBUG] 处理回复图片数据:', {
-                                    replyId: processedReply._id,
-                                    originalImageUrls: reply.imageUrls,
-                                    processedImageUrls: processedReply.imageUrls,
-                                    imageUrlsLength: processedReply.imageUrls.length
-                                });
-                                console.log('🔍 [DEBUG] 处理后的回复_openid:', processedReply._openid, 'isAnonymous:', processedReply.isAnonymous);
                                 return processedReply;
                             });
                         }
                         return processedComment;
-                    });
-                    // 注释掉重复的URL转换，因为云函数已经处理过了
-                    // try {
-                    //     const ids = new Set();
-                    //     comments.forEach(c => {
-                    //         (Array.isArray(c.imageUrls) ? c.imageUrls : []).forEach(u => { if (typeof u === 'string' && u.startsWith('cloud://')) ids.add(u); });
-                    //         (Array.isArray(c.replies) ? c.replies : []).forEach(r => (Array.isArray(r.imageUrls) ? r.imageUrls : []).forEach(u => { if (typeof u === 'string' && u.startsWith('cloud://')) ids.add(u); }));
-                    //     });
-                    //     console.log('🔍 [DEBUG] 需要转换的图片URLs:', Array.from(ids));
-                    //     if (ids.size > 0) {
-                    //         const map = await fileUrlCache.getTempUrls(Array.from(ids));
-                    //         console.log('🔍 [DEBUG] URL转换结果:', map);
-                    //         comments.forEach(c => {
-                    //             if (Array.isArray(c.imageUrls)) c.imageUrls = c.imageUrls.map(u => map[u] || u);
-                    //             if (Array.isArray(c.replies)) c.replies = c.replies.map(r => ({
-                    //                 ...r,
-                    //                 imageUrls: Array.isArray(r.imageUrls) ? r.imageUrls.map(u => map[u] || u) : r.imageUrls
-                    //             }));
-                    //         });
-                    //     }
-                    // } catch (e) {
-                    //     console.error('🔍 [DEBUG] 图片URL转换失败:', e);
-                    // }
-                    console.log('getComments返回的commentCount:', res.result.commentCount);
-                    console.log('comments数组长度:', comments.length);
-                    console.log('当前页面的commentCount:', this.commentCount);
-                    
-                    // 调试：检查评论中的图片数据
-                    comments.forEach((comment, index) => {
-                        console.log(`🔍 [DEBUG] 评论${index}:`, {
-                            id: comment._id,
-                            content: comment.content,
-                            imageUrls: comment.imageUrls,
-                            imageUrlsLength: comment.imageUrls ? comment.imageUrls.length : 0,
-                            hasImages: comment.imageUrls && comment.imageUrls.length > 0
-                        });
-                        if (comment.replies) {
-                            comment.replies.forEach((reply, replyIndex) => {
-                                console.log(`🔍 [DEBUG] 回复${replyIndex}:`, {
-                                    id: reply._id,
-                                    content: reply.content,
-                                    imageUrls: reply.imageUrls,
-                                    imageUrlsLength: reply.imageUrls ? reply.imageUrls.length : 0,
-                                    hasImages: reply.imageUrls && reply.imageUrls.length > 0
-                                });
-                            });
-                        }
                     });
                     const newCommentCount = res.result.commentCount || comments.length;
                     const shouldUpdateCount = newCommentCount > this.commentCount;
@@ -985,8 +891,6 @@ export default {
                         comments: comments,
                         commentCount: shouldUpdateCount ? newCommentCount : this.commentCount
                     });
-                    
-                    console.log('更新后的commentCount:', this.commentCount);
                 } else {
                     uni.showToast({
                         title: '评论加载失败',
@@ -1135,7 +1039,6 @@ export default {
 
         // 分享相关方法
         onShare: function () {
-            console.log('【post-detail】点击分享按钮');
             if (!this.post || !this.post._id) {
                 uni.showToast({
                     title: '帖子信息无效',
@@ -1170,20 +1073,15 @@ export default {
         },
 
         generateShareImage: function () {
-            console.log('【post-detail】开始生成分享图片');
-            
             // 先加载字体，然后绘制Canvas
             this.loadFontAndDraw();
         },
 
         loadFontAndDraw: function () {
-            console.log('【post-detail】开始加载字体');
-            
             uni.loadFontFace({
                 family: 'Huiwen-mincho',
                 source: 'url("/static/fonts/Huiwen-mincho.otf")',
                 success: () => {
-                    console.log('【post-detail】字体加载成功');
                     // 延迟一下确保DOM已渲染
                     setTimeout(() => {
                         this.drawCanvas();
@@ -1221,16 +1119,11 @@ export default {
                 uni.getImageInfo({
                     src: url,
                     success: (res) => {
-                        console.log(`【Canvas】图片下载成功: ${res.path}`);
-                        console.log(`【Canvas】图片原始尺寸: ${res.width}x${res.height}`);
-                        
                         try {
                             // 固定宽度，高度按比例自适应
                             const scale = fixedWidth / res.width;
                             const drawWidth = fixedWidth;
                             const drawHeight = res.height * scale;
-                            
-                            console.log(`【Canvas】固定宽度: ${fixedWidth}, 自适应高度: ${drawHeight}`);
                             
                             ctx.drawImage(res.path, x, y, drawWidth, drawHeight);
                             resolve(); // 绘制指令已发出，Promise 完成
@@ -1243,7 +1136,6 @@ export default {
                         console.error(`【Canvas】图片下载失败: ${url}`, err);
                         // 如果是XMLHttpRequest相关的错误，尝试使用备用方案
                         if (err && err.errMsg && err.errMsg.includes('responseText')) {
-                            console.log('【Canvas】检测到XMLHttpRequest错误，使用备用方案');
                             // 在H5环境下，可以尝试直接使用图片URL
                             try {
                                 ctx.drawImage(url, x, y, fixedWidth, fixedWidth);
@@ -1264,26 +1156,21 @@ export default {
         // 获取作者签名
         async fetchAuthorSignature(authorOpenid) {
             if (!authorOpenid) {
-                console.log('【post-detail】没有作者openid，跳过签名获取');
                 return null;
             }
             
             // 如果是匿名帖子，不获取签名
             if (this.post && this.post.isAnonymous) {
-                console.log('【post-detail】匿名帖子，跳过签名获取');
                 return null;
             }
 
             try {
-                console.log('【post-detail】开始获取作者签名，openid:', authorOpenid);
                 const res = await this.callCloudFunction('getUserProfile', { userId: authorOpenid });
 
                 if (res.result && res.result.success && res.result.userInfo && res.result.userInfo.signatureUrl) {
                     const signatureUrl = res.result.userInfo.signatureUrl;
-                    console.log('【post-detail】获取到作者签名:', signatureUrl);
                     return signatureUrl;
                 } else {
-                    console.log('【post-detail】作者未设置签名');
                     return null;
                 }
             } catch (err) {
@@ -1323,11 +1210,9 @@ export default {
                     // 长文本需要换行，精确计算需要的行数
                     const estimatedLines = Math.ceil(textWidth / maxWidth);
                     actualLineCount += estimatedLines;
-                    console.log(`【文字测量】长行需要拆分为${estimatedLines}行，宽度: ${textWidth}, 最大宽度: ${maxWidth}`);
                 }
             });
 
-            console.log(`【文字测量】总计需要${actualLineCount}行，原行数: ${lines.length}`);
             return actualLineCount;
         },
 
@@ -2440,7 +2325,7 @@ export default {
             const startChoose = () => {
                 uni.chooseImage({
                 count: remaining,
-                sizeType: ['original'],
+                sizeType: ['compressed'],
                 sourceType: ['album', 'camera'],
                 success: (res) => {
                     const tempFiles =
