@@ -155,6 +155,10 @@
                             </view>
                         </view>
                             </view>
+                            <!-- 首页触底提示 -->
+                            <view v-if="currentPage === 'home' && !hasMore && postList.length > 0" class="end-tip">
+                                <text class="end-text">--- 我是有底线的 ---</text>
+                            </view>
                         </scroll-view>
                     </swiper-item>
 
@@ -287,6 +291,10 @@
                                 </view>
                             </view>
                             </view>
+                            </view>
+                            <!-- 关注页触底提示 -->
+                            <view v-if="currentPage === 'following' && !followingHasMore && followingPostList.length > 0" class="end-tip">
+                                <text class="end-text">--- 没有更多了 ---</text>
                             </view>
                         </scroll-view>
                     </swiper-item>
@@ -421,27 +429,13 @@
                             </view>
                             </view>
                             </view>
+                            <!-- 讨论页触底提示 -->
+                            <view v-if="currentPage === 'discussion' && !discussionHasMore && discussionPostList.length > 0" class="end-tip">
+                                <text class="end-text">--- 没有更多讨论了 ---</text>
+                            </view>
                         </scroll-view>
                     </swiper-item>
                 </swiper>
-
-                <!-- 在容器外部，页面的最底部添加加载提示 -->
-                <view class="loading-footer">
-                    <block v-if="currentPage === 'home' && !hasMore && postList.length > 0">
-                        <text>--- 我是有底线的 ---</text>
-                    </block>
-                    <block v-else-if="currentPage === 'following' && !followingHasMore && followingPostList.length > 0">
-                        <view class="discover-end-tip">
-                            <text class="end-text">--- 没有更多了 ---</text>
-                            <view class="refresh-tip">
-                                <text class="refresh-text">下拉刷新获取新的关注内容</text>
-                            </view>
-                        </view>
-                    </block>
-                    <block v-else-if="currentPage === 'discussion' && !discussionHasMore && discussionPostList.length > 0">
-                        <text>--- 没有更多讨论了 ---</text>
-                    </block>
-                </view>
             </view>
 
             <app-tab-bar ref="customTabBar" />
@@ -459,7 +453,7 @@ import AppTabBar from '@/custom-tab-bar/index.vue';
 // #endif
 // index.js
 // 修复：移除全局数据库实例，改为在方法中动态获取
-  const PAGE_SIZE = 5;
+  const PAGE_SIZE = 10;
   const DISCOVER_PAGE_SIZE = 5;
   const MAX_DISCOVER_EXCLUDE_IDS = 200;
 const imageOptimizer = require('../../utils/imageOptimizer');
@@ -783,7 +777,7 @@ onReachBottom: function () {
                                 distanceToBottom = 0;
                             }
                             
-                            const preloadThreshold = winH * 4;
+                            const preloadThreshold = winH * 2;
 
                             console.log('【首页】滚动计算:', {
                                 containerId,
@@ -2599,25 +2593,20 @@ onReachBottom: function () {
     opacity: 0.8;
 }
 
-/* 发现页推荐相关样式 */
-.discover-end-tip {
+/* 底部触底提示样式 */
+.end-tip {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     padding: 40rpx 20rpx;
     color: #999;
 }
 
 .end-text {
     font-size: 28rpx;
-    margin-bottom: 20rpx;
-}
-
-.refresh-tip {
-    background: rgba(255, 193, 7, 0.1);
-    border: 2rpx solid rgba(255, 193, 7, 0.3);
-    border-radius: 20rpx;
-    padding: 16rpx 24rpx;
+    color: #999;
+    text-align: center;
 }
 
 /* swiper页面切换样式 */
