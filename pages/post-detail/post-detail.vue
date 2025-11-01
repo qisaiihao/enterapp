@@ -519,6 +519,7 @@ export default {
             currentScrollTop: 0,
             preKeyboardScrollTop: null,
             isFocus: false,
+            keyboardHeightTimer: null, // APP端键盘高度更新定时器
             viewStartTime: 0,
             currentPostId: null,
             isFavorited: false,
@@ -605,6 +606,40 @@ export default {
             const self = this;
             uni.onKeyboardHeightChange((res) => {
                 const height = res.height || 0;
+                
+                // #ifdef APP-PLUS
+                // APP端：在 adjustResize 模式下，键盘高度变化需要特殊处理
+                if (height === 0) {
+                    // 键盘收起时，延迟更新以等待页面恢复
+                    // 这样可以避免页面还在恢复过程中就把 keyboardHeight 设为 0
+                    if (self.keyboardHeightTimer) {
+                        clearTimeout(self.keyboardHeightTimer);
+                    }
+                    self.keyboardHeightTimer = setTimeout(() => {
+                        // 只有在输入框未展开时才更新为0，避免与 collapseInput 冲突
+                        // 如果输入框还在展开状态，说明用户可能还在输入，不应该设为0
+                        if (!self.isInputExpanded) {
+                            self.setData({
+                                keyboardHeight: 0
+                            });
+                        }
+                    }, 100); // 延迟100ms，等待页面恢复
+                } else {
+                    // 键盘弹起时，立即更新
+                    if (self.keyboardHeightTimer) {
+                        clearTimeout(self.keyboardHeightTimer);
+                        self.keyboardHeightTimer = null;
+                    }
+                    // 如果输入框已展开，立即更新键盘高度
+                    // 即使输入框未展开，也更新，以便在展开时能立即显示正确位置
+                    self.setData({
+                        keyboardHeight: height
+                    });
+                }
+                // #endif
+                
+                // #ifdef MP-WEIXIN
+                // 小程序端：直接更新
                 if (height === 0 || !self.isInputExpanded) {
                     self.setData({
                         keyboardHeight: 0
@@ -614,6 +649,7 @@ export default {
                         keyboardHeight: height
                     });
                 }
+                // #endif
             });
         } catch (e) {
             console.warn('键盘高度监听设置失败:', e);
@@ -636,6 +672,14 @@ export default {
         // #ifdef H5
         // H5 端：移除了 document.body 的恢复操作
         // 因为移除 100vh 后，不再需要手动恢复 body 状态
+        // #endif
+        
+        // #ifdef APP-PLUS
+        // APP端：清理键盘高度定时器
+        if (this.keyboardHeightTimer) {
+            clearTimeout(this.keyboardHeightTimer);
+            this.keyboardHeightTimer = null;
+        }
         // #endif
         
         this.recordViewBehavior();
@@ -3230,18 +3274,45 @@ export default {
             } catch (err) {
                 console.warn('【onInputFocus】APP锁定滚动失败:', err);
             }
+            
+            // APP端：从事件中获取键盘高度，同时依赖 uni.onKeyboardHeightChange 的回调
+            // 如果事件中有高度，立即更新；如果没有，等待 onKeyboardHeightChange 回调
+            const focusHeight = e.detail ? e.detail.height : 0;
+            if (focusHeight > 0) {
+                // 立即更新，提供更好的响应性
+                this.setData({
+                    keyboardHeight: focusHeight
+                });
+            }
+            // 如果 focusHeight 为 0，说明可能是延迟触发，依赖 uni.onKeyboardHeightChange 回调
             // #endif
             
+            // #ifndef APP-PLUS
+            // 非APP端：直接从事件中获取
             this.setData({
                 keyboardHeight: e.detail ? e.detail.height : 0
             });
+            // #endif
         },
 
         onInputBlur: function () {
+            // #ifdef APP-PLUS
+            // APP端：在 adjustResize 模式下，键盘收起时页面需要时间恢复
+            // 不要立即将 keyboardHeight 设为 0，让 uni.onKeyboardHeightChange 来处理
+            // 这样可以确保页面恢复完成后再更新状态
+            this.setData({
+                isFocus: false
+                // keyboardHeight 由 uni.onKeyboardHeightChange 回调来更新
+            });
+            // #endif
+            
+            // #ifndef APP-PLUS
+            // 非APP端：立即重置
             this.setData({
                 isFocus: false,
                 keyboardHeight: 0
             });
+            // #endif
         },
 
         collapseInput: function () {
@@ -3252,19 +3323,50 @@ export default {
             // #endif
             
             // #ifdef APP-PLUS
+            // APP端：在 adjustResize 模式下，需要处理页面恢复
+            const self = this;
+            
+            // 先关闭输入框状态，但保留 keyboardHeight 让页面有时间恢复
+            this.setData({
+                isInputExpanded: false,
+                isFocus: false,
+                replyToComment: null,
+                replyToAuthor: '',
+            });
+            
+            // 延迟重置 keyboardHeight，给页面恢复的时间
+            if (this.keyboardHeightTimer) {
+                clearTimeout(this.keyboardHeightTimer);
+            }
+            this.keyboardHeightTimer = setTimeout(() => {
+                self.setData({
+                    keyboardHeight: 0
+                });
+            }, 150); // 延迟150ms，确保页面已经恢复
+            
+            // 恢复滚动位置
             try {
                 const scrollTop = this.preKeyboardScrollTop || this.currentScrollTop || 0;
                 if (scrollTop > 0) {
-                    uni.pageScrollTo({
-                        scrollTop: scrollTop,
-                        duration: 0
-                    });
+                    // 稍微延迟恢复滚动，等待页面布局恢复
+                    setTimeout(() => {
+                        try {
+                            uni.pageScrollTo({
+                                scrollTop: scrollTop,
+                                duration: 0
+                            });
+                        } catch (e) {
+                            console.warn('【collapseInput】APP恢复滚动失败:', e);
+                        }
+                    }, 100);
                 }
             } catch (e) {
                 console.warn('【collapseInput】APP恢复滚动失败:', e);
             }
             // #endif
             
+            // #ifndef APP-PLUS
+            // 非APP端：立即重置所有状态
             this.setData({
                 keyboardHeight: 0,
                 isInputExpanded: false,
@@ -3272,6 +3374,7 @@ export default {
                 replyToComment: null,
                 replyToAuthor: '',
             });
+            // #endif
         },
 
 
