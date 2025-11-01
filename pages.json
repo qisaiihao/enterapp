@@ -105,7 +105,9 @@
         "usingComponents": {
           "cloud-tip-modal": "/components/cloudTipModal/index",
           "folder-selector": "/components/folder-selector/folder-selector"
-        }
+        },
+        "disableSwipeBack": false,
+        "onReachBottomDistance": 50
       }
     },
     {

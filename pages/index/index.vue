@@ -36,6 +36,10 @@
                             @scroll="handleScroll"
                             refresher-enabled="true"
                             :refresher-triggered="isRefreshing"
+                            :refresher-threshold="90"
+                            refresher-background="#ffffff"
+                            refresher-default-style="black"
+                            refresher-background-style="#ffffff"
                             @refresherrefresh="onRefresherRefresh"
                         >
                             <view v-if="postList.length === 0 && !isLoading" class="empty-state">
@@ -162,6 +166,10 @@
                             @scroll="handleScroll"
                             refresher-enabled="true"
                             :refresher-triggered="isRefreshing"
+                            :refresher-threshold="90"
+                            refresher-background="#ffffff"
+                            refresher-default-style="black"
+                            refresher-background-style="#ffffff"
                             @refresherrefresh="onRefresherRefresh"
                         >
                             <!-- 关注页骨架屏：当 followingIsLoading 为 true 时显示 -->
@@ -291,6 +299,10 @@
                             @scroll="handleScroll"
                             refresher-enabled="true"
                             :refresher-triggered="isRefreshing"
+                            :refresher-threshold="90"
+                            refresher-background="#ffffff"
+                            refresher-default-style="black"
+                            refresher-background-style="#ffffff"
                             @refresherrefresh="onRefresherRefresh"
                         >
                             <!-- 讨论页骨架屏：当 discussionIsLoading 为 true 时显示 -->
@@ -632,42 +644,73 @@ onReachBottom: function () {
                 } catch (e) {
                     console.error('❌ [首页] 清除首页缓存失败:', e);
                 }
-                
-                this.setData(
-                    {
-                        postList: [],
-                        swiperHeights: {},
-                        page: 0,
-                        hasMore: true
-                    },
-                    () => {
-                        console.log('🔍 [首页] 状态重置完成，开始获取数据');
-                        this.getPostList(() => {
-                            console.log('✅ [首页] 下拉刷新完成');
-                            this.isRefreshing = false;
-                        });
-                    }
-                );
+                // 不清空列表，避免白屏；直接拉取首屏并一次性替换
+                this.reloadHomePostsForRefresh(() => {
+                    console.log('✅ [首页] 下拉刷新完成');
+                    // 使用 setTimeout 确保在数据更新后再停止刷新，让页面能正确回位
+                    setTimeout(() => {
+                        this.isRefreshing = false;
+                    }, 100);
+                });
             } else if (this.currentPage === 'discover') {
                 // 发现页刷新 - 重新获取推荐
                 console.log('🔍 [首页] 执行发现页刷新');
                 this.refreshDiscoverPosts();
-                this.isRefreshing = false;
+                // 使用 setTimeout 确保在数据更新后再停止刷新
+                setTimeout(() => {
+                    this.isRefreshing = false;
+                }, 100);
             } else if (this.currentPage === 'following') {
                 // 关注页刷新
                 console.log('🔍 [首页] 执行关注页刷新');
                 this.refreshFollowingPosts(() => {
                     console.log('✅ [首页] 关注页刷新完成');
-                    this.isRefreshing = false;
+                    // 使用 setTimeout 确保在数据更新后再停止刷新
+                    setTimeout(() => {
+                        this.isRefreshing = false;
+                    }, 100);
                 });
             } else if (this.currentPage === 'discussion') {
                 // 讨论页刷新
                 console.log('🔍 [首页] 执行讨论页刷新');
                 this.refreshDiscussionPosts(() => {
                     console.log('✅ [首页] 讨论页刷新完成');
-                    this.isRefreshing = false;
+                    // 使用 setTimeout 确保在数据更新后再停止刷新
+                    setTimeout(() => {
+                        this.isRefreshing = false;
+                    }, 100);
                 });
             }
+        },
+
+        // 通过下拉刷新重载首页首屏数据：保留旧列表直到新数据就绪
+        reloadHomePostsForRefresh: function (cb) {
+            const startPage = 0;
+            getHomePosts({ page: startPage, pageSize: PAGE_SIZE, context: this })
+                .then(async (list) => {
+                    const postsRaw = Array.isArray(list) ? list : [];
+                    let posts = normalizePostList(postsRaw).map((post) => ({
+                        ...post,
+                        likeIcon: likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false)
+                    }));
+                    posts = await hydrateTempUrls(posts);
+                    warmTempUrlsFromPosts(posts);
+                    this.setData({
+                        postList: posts,
+                        page: 1,
+                        hasMore: posts.length === PAGE_SIZE
+                    });
+                    try {
+                        this.preloadUserData && this.preloadUserData(posts);
+                    } catch (_) {}
+                })
+                .catch((err) => {
+                    console.error('【首页】reloadHomePostsForRefresh 失败:', err);
+                    uni.showToast({ title: '刷新失败', icon: 'none' });
+                })
+                .finally(() => {
+                    if (typeof cb === 'function') cb();
+                });
         },
 
         // 处理滚动事件（从 onPageScroll 迁移过来）
@@ -2082,7 +2125,7 @@ onReachBottom: function () {
 }
 
 .container {
-    padding: 255rpx 0 100rpx 0; /* 为page-tabs留出空间：188rpx(page-tabs总高度) + 62rpx(额外间距) */
+    padding: 155rpx 0 100rpx 0; /* 为page-tabs留出空间：与切换栏底对齐 */
     background-color: #ffffff;
     min-height: 100vh;
     padding-bottom: 100rpx; /* 为底部tabBar留出空间 */
@@ -2152,9 +2195,17 @@ onReachBottom: function () {
 /* 广场模式容器 */
 .square-mode-container {
     display: block;
-    padding-top: 40rpx; /* 增加与顶部栏的距离 */
+    padding-top: 20rpx; /* 减少容器本身的padding，因为scroll-view内容会单独处理 */
     height: 100%;
     overflow: hidden;
+}
+
+/* 内容容器上边距，避免被切换栏遮挡 */
+#post-list-container,
+#following-list-container,
+#discussion-list-container {
+    padding-top: 120rpx; /* 增加上边距，确保内容不被切换栏遮挡 */
+    box-sizing: border-box;
 }
 
 /* 新增：帖子项包装器样式 */
@@ -2561,6 +2612,9 @@ onReachBottom: function () {
 .swiper-page {
     height: 100%;
     /* scroll-view 会自动处理滚动，不需要 overflow-y: auto */
+    /* 确保下拉刷新区域在最上层，高于切换栏 */
+    position: relative;
+    z-index: 1001;
 }
 
 .refresh-text {

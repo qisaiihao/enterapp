@@ -64,6 +64,9 @@ export default {
             preloadCompleted: false,
 
             // 预加载是否完成
+            userClickedEnter: false,
+
+            // 用户是否已经点击过进入按钮（在加载完成前）
 
             // ---- 打字机动画所需数据 ----
             fullText: 'poementer',
@@ -181,6 +184,10 @@ export default {
 
             // 检查预加载是否完成
             if (!this.preloadCompleted) {
+                // 记录用户已点击，等待加载完成后自动跳转
+                this.setData({
+                    userClickedEnter: true
+                });
                 uni.showToast({
                     title: '正在加载中...',
                     icon: 'loading',
@@ -189,6 +196,14 @@ export default {
                 return;
             }
 
+            // 预加载已完成，执行跳转逻辑
+            this.proceedToNavigate();
+        },
+
+        /**
+         * 执行跳转逻辑（隐藏按钮，显示光标，然后跳转）
+         */
+        proceedToNavigate: function () {
             // 隐藏按钮，显示换行后的光标
             this.setData({
                 showEnterButton: false,
@@ -318,6 +333,13 @@ export default {
                 this.setData({
                     preloadCompleted: true
                 });
+                // 如果没有openid，也需要检查用户是否已点击过
+                if (this.userClickedEnter) {
+                    console.log('检测到用户之前已点击过进入按钮（无openid情况），自动触发跳转');
+                    setTimeout(() => {
+                        this.proceedToNavigate();
+                    }, 300);
+                }
                 return;
             }
 
@@ -340,12 +362,22 @@ export default {
             } catch (error) {
                 console.error('预加载任务执行过程中出现错误:', error);
             } finally {
-                // 预加载完成后，设置标志位，但不自动跳转
-                // 跳转将由用户点击"进入"按钮触发
+                // 预加载完成后，设置标志位
                 this.setData({
                     preloadCompleted: true
                 });
-                console.log('预加载任务完成，等待用户点击进入按钮');
+                console.log('预加载任务完成');
+                
+                // 如果用户之前已经点击过进入按钮，现在自动触发跳转
+                if (this.userClickedEnter) {
+                    console.log('检测到用户之前已点击过进入按钮，自动触发跳转');
+                    // 延迟一小段时间，确保状态更新完成
+                    setTimeout(() => {
+                        this.proceedToNavigate();
+                    }, 300);
+                } else {
+                    console.log('等待用户点击进入按钮');
+                }
             }
         },
 

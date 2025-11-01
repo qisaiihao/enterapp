@@ -266,6 +266,12 @@
               "memory": 256
             },
             {
+              "name": "syncUserPostsMetadata",
+              "root": "./functions/syncUserPostsMetadata",
+              "timeout": 60,
+              "memory": 256
+            },
+            {
               "name": "migrate_user_id",
               "root": "./functions/migrate_user_id",
               "timeout": 60,

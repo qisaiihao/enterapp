@@ -129,6 +129,36 @@ exports.main = async (event, context) => {
 
     console.log('🔍 [updateUserProfile] 更新结果:', updateResult);
 
+    // 如果更新了昵称或头像，异步同步到历史帖子（不阻塞返回）
+    // 只传递实际更新的字段，避免覆盖未修改的数据
+    if (updateResult.stats && updateResult.stats.updated > 0) {
+      const syncData = { openid: openid };
+      
+      // 只有在 updateData 中实际包含了这些字段时才传递
+      if (updateData.nickName) {
+        syncData.nickName = updateData.nickName;
+      }
+      if (updateData.avatarUrl) {
+        syncData.avatarUrl = updateData.avatarUrl;
+      }
+      
+      // 只有当至少有一个字段需要同步时才调用
+      if (syncData.nickName || syncData.avatarUrl) {
+        console.log('🔄 [updateUserProfile] 检测到昵称或头像更新，开始异步同步历史帖子...', {
+          hasNickName: !!syncData.nickName,
+          hasAvatarUrl: !!syncData.avatarUrl
+        });
+        cloud.callFunction({
+          name: 'syncUserPostsMetadata',
+          data: syncData
+        }).then((syncResult) => {
+          console.log('✅ [updateUserProfile] 历史帖子同步完成:', syncResult);
+        }).catch((syncError) => {
+          console.error('❌ [updateUserProfile] 历史帖子同步失败（不影响主流程）:', syncError);
+        });
+      }
+    }
+
     return {
       success: true,
       message: '用户资料更新成功',

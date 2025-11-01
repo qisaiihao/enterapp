@@ -26,6 +26,31 @@ export default {
 
     // 【重构】3. 将所有方法都放入 methods 对象中，这是 Vue 的标准做法
     methods: {
+        /**
+         * 获取当前页面路径
+         */
+        getCurrentPagePath() {
+            try {
+                const pages = getCurrentPages();
+                const currentPage = pages[pages.length - 1];
+                if (currentPage) {
+                    return currentPage.route || currentPage.$page?.fullPath || '';
+                }
+            } catch (e) {
+                console.warn('获取当前页面路径失败:', e);
+            }
+            return '';
+        },
+
+        /**
+         * 检查是否是允许的页面（splash 或 login）
+         */
+        isAllowedPageForUnauthenticated() {
+            const currentPath = this.getCurrentPagePath();
+            // 允许 splash 和 login 页面在没有登录时访问
+            return currentPath.includes('splash') || currentPath.includes('login');
+        },
+
         // 【重构 & 修正】4. 使用 async/await 重写整个登录流程，代码更清晰
         async loginAndCheckUser() {
             // 检查 $tcb 实例是否存在
@@ -95,6 +120,18 @@ export default {
             }
 
             // 步骤二：缓存未命中，执行完整的云端登录
+            // 【关键修改】如果当前页面不是 splash 或 login，且没有缓存，则重定向到 splash
+            if (!this.isAllowedPageForUnauthenticated()) {
+                console.log('⚠️ [登录流程] 检测到直接访问非登录页面，且无登录缓存，重定向到开屏页面');
+                // 延迟一小段时间，确保页面加载完成
+                setTimeout(() => {
+                    uni.reLaunch({
+                        url: '/pages/splash/splash'
+                    });
+                }, 100);
+                return; // 中断登录流程，等待在 splash 页面重新执行
+            }
+
             console.log('🤔 [登录流程] 缓存未命中，开始执行云端登录...');
             
             try {

@@ -15,12 +15,28 @@ export function setupCacheEventBridges() {
       try { clearDiscoverCache(); } catch (_) {}
     });
 
-    // 头像更新：失效对应用户资料与TA的个人主页分页
+    // 头像更新：失效对应用户资料与TA的个人主页分页，同时失效公共列表缓存
     uni.$on(EVENTS.AVATAR_UPDATED, (payload = {}) => {
       const uid = payload && (payload.userId || payload.userID || payload.uid);
       if (!uid) return;
       try { invalidateUserInfo(uid); } catch (_) {}
       try { invalidateUserPosts(uid); } catch (_) {}
+      // 失效公共列表缓存，确保下次查询列表时能看到更新后的头像昵称
+      try { invalidateHomePosts({}); } catch (_) {}
+      try { clearDiscoverCache(); } catch (_) {}
+      // 失效所有标签页缓存
+      try {
+        const cacheManager = require('@/_utils/cache-manager').default;
+        const nsStats = cacheManager.getStats ? cacheManager.getStats() : {};
+        const nsNames = Object.keys(nsStats);
+        const tagNsNames = nsNames.filter((n) => n.startsWith('posts:tag:'));
+        tagNsNames.forEach((nsName) => {
+          try {
+            const ns = cacheManager.namespace(nsName);
+            if (ns && ns.clear) ns.clear();
+          } catch (_) {}
+        });
+      } catch (_) {}
     });
 
     // 收藏变更：当前阶段按用户要求暂不做整页失效

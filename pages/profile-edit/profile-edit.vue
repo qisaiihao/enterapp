@@ -101,6 +101,7 @@
 // pages/profile-edit/profile-edit.js
 const app = getApp();
 const { cloudCall } = require('../../utils/cloudCall.js');
+const { uploadFile } = require('../../utils/uploader.js');
 export default {
     data() {
         return {
@@ -167,165 +168,6 @@ export default {
             return cloudCall(name, data, Object.assign({ pageTag: 'profile-edit', context: this, requireAuth: true }, extraOptions));
         },
 
-        // 兼容性文件上传方法
-        // 通用文件上传（重构：H5/App 使用 Blob 直传或回退云函数；小程序直传）
-        async uploadFile(cloudPath, filePath) {
-            const { getCloudFunctionMethod } = require('../../utils/platformDetector.js');
-            const method = getCloudFunctionMethod();
-            if (method === 'tcb') {
-                const app = getApp();
-                if (!(app && app.$tcb && typeof app.$tcb.uploadFile === 'function')) {
-                    throw new Error('TCB实例不可用');
-                }
-                let file = filePath;
-                try {
-                    if (typeof filePath === "string" && typeof fetch === "function" && typeof Blob !== "undefined") {
-                        const resp = await fetch(filePath);
-                        file = await resp.blob();
-                    } else if (filePath && filePath.tempFilePath && typeof fetch === "function") {
-                        const resp = await fetch(filePath.tempFilePath);
-                        file = await resp.blob();
-                    }
-                } catch (e) {
-                    console.warn('[ProfileEdit] toBlob失败，改走云函数上传', e);
-                    return await this.uploadFileViaCloudFunction(cloudPath, filePath);
-                }
-                try {
-                    const res = await app.$tcb.uploadFile({ cloudPath, file });
-                    return (res && (res.fileID || res.fileId)) || (res && res.data && res.data.fileID) || res;
-                } catch (e) {
-                    console.warn('[ProfileEdit] TCB直传失败，fallback 到云函数', e);
-                    return await this.uploadFileViaCloudFunction(cloudPath, filePath);
-                }
-            } else if (method === "wx-cloud") {
-                const res = await wx.cloud.uploadFile({ cloudPath, filePath });
-                return (res && res.fileID) ? res.fileID : res;
-            }
-            throw new Error('不支持的云函数调用方式: ' + method);
-        },
-
-
-        // 通过云函数上传（参考发布页逻辑）：H5 将文件转 base64 后上传，App 使用 uni.getFileSystemManager
-        uploadFileViaCloudFunction(cloudPath, filePath, retryCount = 0) {
-            return new Promise((resolve, reject) => {
-                // 检查环境并使用相应的文件读取方式
-                const { getCurrentPlatform } = require('../../utils/platformDetector.js');
-                const platform = getCurrentPlatform();
-                if (platform === 'h5') {
-                    // H5环境：使用fetch获取blob，然后转换为base64
-                    console.log('🔍 [ProfileEdit] H5环境使用fetch读取文件');
-                    fetch(filePath)
-                        .then(response => {
-                            if (!response.ok) throw new Error("HTTP " + response.status);
-                            return response.blob();
-                        })
-                        .then(blob => {
-                            const reader = new FileReader();
-                            reader.onload = () => {
-                                const result = reader.result;
-                                if (!result || typeof result !== "string") {
-                                    reject(new Error("文件读取失败"));
-                                    return;
-                                }
-                                const base64 = result.split(",")[1];
-                                console.log(`🔍 [ProfileEdit] H5环境文件读取完成，base64长度: ${base64.length}`);
-                                this.callCloudFunction("upload", { cloudPath, fileContent: base64 })
-                                    .then((uploadRes) => {
-                                        console.log('H5环境上传云函数返回结果:', uploadRes);
-                                        if (uploadRes && uploadRes.result && uploadRes.result.success) {
-                                            resolve(uploadRes.result.fileID);
-                                        } else {
-                                            reject(new Error("云函数返回异常"));
-                                        }
-                                    })
-                                    .catch((err) => {
-                                        if (retryCount < 2) {
-                                            setTimeout(() => {
-                                                this.uploadFileViaCloudFunction(cloudPath, filePath, retryCount + 1)
-                                                    .then(resolve).catch(reject);
-                                            }, 1000 * (retryCount + 1));
-                                        } else {
-                                            reject(err);
-                                        }
-                                    });
-                            };
-                            reader.onerror = () => reject(new Error("文件读取失败"));
-                            reader.readAsDataURL(blob);
-                        })
-                        .catch(err => reject(err));
-                } else {
-                    // App环境使用uni-app API
-                    console.log('🔍 [ProfileEdit] App环境使用uni-app API读取文件');
-                    try {
-                        // App 端优先使用 plus.io 读取为 base64，避免使用 getFileSystemManager（App 不支持）
-                        if (typeof platform !== 'undefined' && platform === 'app') {
-                            if (typeof plus === 'undefined' || !plus.io) {
-                                reject(new Error('App端运行环境不可用')); return;
-                            }
-                            plus.io.resolveLocalFileSystemURL(filePath, (entry) => {
-                                entry.file((file) => {
-                                    const reader = new plus.io.FileReader();
-                                    reader.onload = (e) => {
-                                        try {
-                                            const dataUrl = e.target.result || '';
-                                            const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
-                                            if (!base64) { reject(new Error('文件读取失败')); return; }
-                                            this.callCloudFunction('upload', { cloudPath, fileContent: base64 })
-                                                .then((uploadRes) => {
-                                                    console.log('App端上传云函数返回结果:', uploadRes);
-                                                    if (uploadRes && uploadRes.result && uploadRes.result.success) {
-                                                        resolve(uploadRes.result.fileID);
-                                                    } else {
-                                                        reject(new Error('云函数返回异常'));
-                                                    }
-                                                })
-                                                .catch(reject);
-                                        } catch (ex) {
-                                            reject(new Error('读取转换失败: ' + ex.message));
-                                        }
-                                    };
-                                    reader.onerror = (err) => reject(new Error('文件读取失败: ' + (err && err.message || 'unknown')));
-                                    reader.readAsDataURL(file);
-                                }, (e) => reject(new Error('获取文件失败: ' + (e && e.message || 'unknown'))));
-                            }, (e) => reject(new Error('路径解析失败: ' + (e && e.message || 'unknown'))));
-                            return;
-                        }
-                        const fs = uni.getFileSystemManager();
-                        if (fs && fs.readFile) {
-                            fs.readFile({
-                                filePath: filePath,
-                                encoding: 'base64',
-                                success: (readRes) => {
-                                    const base64 = readRes.data;
-                                    console.log(`🔍 [ProfileEdit] App环境文件读取完成，base64长度: ${base64.length}`);
-                                    this.callCloudFunction('upload', {
-                                        cloudPath: cloudPath,
-                                        fileContent: base64
-                                    }).then((uploadRes) => {
-                                        console.log('App环境上传云函数返回结果:', uploadRes);
-                                        // 检查云函数返回格式并提取fileID
-                                        if (uploadRes && uploadRes.result && uploadRes.result.success) {
-                                            resolve(uploadRes.result.fileID);
-                                        } else {
-                                            reject(new Error('上传云函数返回格式错误'));
-                                        }
-                                    }).catch(reject);
-                                },
-                                fail: (readErr) => {
-                                    console.error('❌ [ProfileEdit] App环境文件读取失败:', readErr);
-                                    reject(new Error('文件读取失败: ' + readErr.errMsg));
-                                }
-                            });
-                        } else {
-                            reject(new Error('文件系统管理器不可用'));
-                        }
-                    } catch (error) {
-                        console.error('❌ [ProfileEdit] App环境文件读取异常:', error);
-                        reject(new Error('文件读取异常: ' + error.message));
-                    }
-                }
-            });
-        },
         fetchUserProfile: function () {
             this.callCloudFunction('getMyProfileData', {}).then((res) => {
                     console.log('【profile-edit】📝 获取用户资料响应:', res);
@@ -808,22 +650,22 @@ export default {
             });
 
             const avatarUpload = this.tempAvatarPath
-                ? this.uploadFile(`user_avatars/${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`, this.tempAvatarPath)
+                ? uploadFile(`user_avatars/${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`, this.tempAvatarPath)
                 : Promise.resolve(null);
             const signatureUpload = this.signatureTempPath
-                ? this.uploadFile(`user_signatures/${Date.now()}_${Math.floor(Math.random() * 1000)}.png`, this.signatureTempPath)
+                ? uploadFile(`user_signatures/${Date.now()}_${Math.floor(Math.random() * 1000)}.png`, this.signatureTempPath)
                 : Promise.resolve(null);
             Promise.all([avatarUpload, signatureUpload])
                 .then(([avatarFileID, signatureFileID]) => {
                     const updateData = {
-                        avatarUrl: (typeof avatarFileID === 'object' && avatarFileID) ? (avatarFileID.fileID || avatarFileID.fileId || '') : (avatarFileID || ''),
+                        avatarUrl: avatarFileID || '',
                         nickName: this.nickName,
                         birthday: this.birthday,
                         bio: this.bio,
                         occupation: this.occupation,
                         region: this.region,
                         poemId: this.poemId,  // 新增：保存poemId
-                        signatureUrl: (typeof signatureFileID === 'object' && signatureFileID) ? (signatureFileID.fileID || signatureFileID.fileId || '') : (signatureFileID || '')
+                        signatureUrl: signatureFileID || ''
                     };
                     console.log('【profile-edit】📤 发送到云函数的数据:', updateData);
                     return this.callCloudFunction('updateUserProfile', updateData);

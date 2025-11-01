@@ -168,9 +168,8 @@
                             <view v-if="post.isOriginal && post.isPoem && isOwnPost" class="portfolio-icon-container" @tap.stop.prevent="onAddToPortfolio">
                                 <image class="portfolio-icon" src="/static/images/portfolio.png" mode="aspectFit"></image>
                             </view>
-                            <button v-if="isOwnPost" class="edit-btn" @tap.stop.prevent="onEditPost">编辑</button>
-                            <!-- 分享按钮 -->
-                            <view class="share-icon-container" @tap.stop.prevent="onShare">
+                              <!-- 分享按钮（仅诗歌帖子显示） -->
+                            <view v-if="post && post.isPoem" class="share-icon-container" @tap.stop.prevent="onShare">
                                 <image class="share-icon" src="/static/images/share.png" mode="aspectFit"></image>
                             </view>
                         </view>
@@ -339,7 +338,7 @@
         <view :class="'input-overlay ' + (isInputExpanded ? 'show' : '')" @tap="collapseInput"></view>
 
         <!-- 输入框容器：整体会根据键盘高度上移，默认隐藏 -->
-        <view v-if="isInputExpanded" class="comment-input-area" :style="'bottom: ' + keyboardHeight + 'px;'">
+        <view v-if="isInputExpanded" class="comment-input-area" :style="'bottom: ' + keyboardHeight + 'px; transform: translateZ(0);'">
 
             <!-- 展开状态：真正的输入区域 -->
             <view v-if="isInputExpanded" class="expanded-container">
@@ -366,6 +365,8 @@
                     maxlength="500"
                     :show-confirm-bar="false"
                     :adjust-position="false"
+                    :cursor-spacing="0"
+                    :hold-keyboard="false"
                 ></textarea>
 
                 <!-- 评论图片显示 -->
@@ -391,7 +392,7 @@
         </view>
 
         <!-- 底部操作栏 -->
-        <view class="bottom-action-bar">
+        <view class="bottom-action-bar" v-if="!isInputExpanded">
             <view class="comment-input-container">
                 <input 
                     class="comment-input" 
@@ -421,8 +422,8 @@
         <!-- 作品集选择器 -->
         <portfolio-selector :show="showPortfolioModal" :post-id="post && post._id ? post._id : ''" @hide="hidePortfolioModal" @portfolioSuccess="onPortfolioSuccess" />
 
-        <!-- 分享弹窗 -->
-        <view v-if="showShareModal" class="share-modal-overlay" @tap="hideShareModal">
+        <!-- 分享弹窗（仅诗歌帖子显示） -->
+        <view v-if="post && post.isPoem && showShareModal" class="share-modal-overlay" @tap="hideShareModal">
             <view class="share-modal" @tap.stop>
                 <view v-if="!shareImageUrl" class="share-loading">
                     <text>正在生成图片...</text>
@@ -478,6 +479,7 @@ const { formatRelativeTime } = require('../../utils/time.js');
 const avatarCache = require('../../utils/avatarCache');
 const followCache = require('../../utils/followCache');
 const { cloudCall } = require('../../utils/cloudCall.js');
+const { uploadFile } = require('../../utils/uploader.js');
 const postGalleryMixin = require('../../mixins/postGallery.js');
 import { hydrateTempUrls, warmTempUrlsFromPosts } from '@/_utils/hydrate-temp-urls';
 import fileUrlCache from '@/_utils/file-url-cache';
@@ -513,6 +515,9 @@ export default {
             shareImageRetryCount: 0,
             isInputExpanded: false,
             keyboardHeight: 0,
+            // 记录滚动位置，用于键盘收起后恢复
+            currentScrollTop: 0,
+            preKeyboardScrollTop: null,
             isFocus: false,
             viewStartTime: 0,
             currentPostId: null,
@@ -593,6 +598,27 @@ export default {
             this.shareLongpressMenuEnabled = true;
             // #endif
         } catch (e) {}
+
+        // 监听键盘高度变化，实时更新弹窗位置
+        // #ifdef MP-WEIXIN || APP-PLUS
+        try {
+            const self = this;
+            uni.onKeyboardHeightChange((res) => {
+                const height = res.height || 0;
+                if (height === 0 || !self.isInputExpanded) {
+                    self.setData({
+                        keyboardHeight: 0
+                    });
+                } else {
+                    self.setData({
+                        keyboardHeight: height
+                    });
+                }
+            });
+        } catch (e) {
+            console.warn('键盘高度监听设置失败:', e);
+        }
+        // #endif
     },
     onShow: function () {
         this.setData({
@@ -602,7 +628,16 @@ export default {
         // 同步当前帖子的点赞状态
         this.syncCurrentPostLikeStatus();
     },
+    onPageScroll: function(e) {
+        // 持续记录当前滚动位置
+        this.currentScrollTop = e.scrollTop || 0;
+    },
     onUnload: function () {
+        // #ifdef H5
+        // H5 端：移除了 document.body 的恢复操作
+        // 因为移除 100vh 后，不再需要手动恢复 body 状态
+        // #endif
+        
         this.recordViewBehavior();
         try { const viewEvents = require('../../utils/viewEvents.js'); viewEvents.flushViewQueue(); } catch (e) {}
         try { uni.$off && this.onGlobalCommentLikeChanged && uni.$off('comment-like-changed', this.onGlobalCommentLikeChanged); } catch (_) {}
@@ -1064,6 +1099,13 @@ export default {
                 });
                 return;
             }
+            if (!this.post.isPoem) {
+                uni.showToast({
+                    title: '仅诗歌帖子支持分享',
+                    icon: 'none'
+                });
+                return;
+            }
 
             // 显示分享弹窗，重置图片URL，并立即开始生成图片
             this.setData({
@@ -1394,17 +1436,18 @@ export default {
             try {
                 console.log('【post-detail】开始绘制Canvas');
                 
-                // 先获取作者签名（匿名帖子不获取签名）
+                // 先获取作者签名（匿名帖子或非原创诗歌不获取签名）
+                const shouldShowSignature = (!!this.post && !this.post.isAnonymous && !(this.post.isPoem && this.post.isOriginal === false));
                 let authorSignature = null;
-                if (this.post && this.post._openid && !this.post.isAnonymous) {
+                if (this.post && this.post._openid && shouldShowSignature) {
                     authorSignature = await this.fetchAuthorSignature(this.post._openid);
                     if (authorSignature) {
                         // 将签名URL保存到post对象中
                         this.post.authorSignature = authorSignature;
                         console.log('【post-detail】作者签名已获取并保存');
                     }
-                } else if (this.post && this.post.isAnonymous) {
-                    console.log('【post-detail】匿名帖子，跳过签名获取');
+                } else if (this.post && (!shouldShowSignature)) {
+                    console.log('【post-detail】本次不获取签名（匿名或非原创诗歌）');
                 }
                 
                 // 使用canvas生成图片
@@ -1479,7 +1522,7 @@ export default {
                 const fixedSignatureWidth = 120;
                 const signatureTextFontSize = 28; // 无签名图片时用文字署名字号
                 let signatureDrawHeight = 0;
-                if (this.post.authorSignature && !this.post.isAnonymous) {
+                if (this.post.authorSignature && shouldShowSignature) {
                     try {
                         const __sigInfo = await new Promise((resolve)=>{
                             uni.getImageInfo({ src: this.post.authorSignature, success: (res)=>resolve(res), fail: ()=>resolve(null) });
@@ -1491,13 +1534,17 @@ export default {
                     } catch(_) {}
                 }
 
-                // 【优化】动态调整Canvas高度，确保有足够空间（匿名帖子不计算签名高度）
+                // 【优化】动态调整Canvas高度，确保有足够空间
+                // 非原创诗歌需要为转载作者名字预留空间
+                const isNonOriginalPoem = this.post.isPoem && this.post.isOriginal === false && this.post.author;
+                const needsAuthorSpace = shouldShowSignature || isNonOriginalPoem;
+                
                 let finalCanvasHeight = textTopPadding + titleHeight + titleBottomSpacing + contentHeight
-                    + (this.post.authorSignature && !this.post.isAnonymous
+                    + (this.post.authorSignature && shouldShowSignature
                         ? (signatureTopGap + signatureDrawHeight)
-                        : ((!this.post.isAnonymous && ((this.post.authorName && this.post.authorName.trim()) || (this.post.author && this.post.author.trim())))
+                        : (needsAuthorSpace && ((this.post.authorName && this.post.authorName.trim()) || (this.post.author && this.post.author.trim())))
                             ? (signatureTopGap + signatureTextFontSize)
-                            : 0))
+                            : 0)
                     + textBottomPadding + 10;
 
                 // 【优化】更智能的高度调整策略
@@ -1602,8 +1649,8 @@ export default {
                 console.log('【post-detail】最终绘制位置:', y);
                 console.log('【post-detail】Canvas高度:', canvasHeight);
                 
-                // 绘制签名 - 模拟poem-square的签名位置（匿名帖子不绘制签名）
-                if (this.post.authorSignature && !this.post.isAnonymous) {
+                // 绘制签名 - 模拟poem-square的签名位置（匿名或非原创诗歌不绘制签名）
+                if (this.post.authorSignature && shouldShowSignature) {
                     console.log('【post-detail】准备绘制签名图片...');
                     // 缩小签名尺寸
                     const fixedSignatureWidth = 120; // 缩小签名宽度到120px
@@ -1631,7 +1678,7 @@ export default {
                     );
                     console.log('【post-detail】签名图片绘制指令已完成');
                 }
-                else if ( !this.post.isAnonymous) { 
+                else if (shouldShowSignature) { 
                     const authorName = ((this.post.authorName || this.post.author || '') + '').trim();
                     if (authorName) {
                         console.log('【post-detail】绘制文字署名:', authorName);
@@ -1642,6 +1689,21 @@ export default {
                         const sigTextX = canvasWidth - __wmMargin3 - __sigInset3;
                         const sigTextY = canvasHeight - __wmMargin3 - __sigInset3;
                         ctx.fillText(authorName, sigTextX, sigTextY);
+                        ctx.setTextAlign('left');
+                    }
+                }
+                // 非原创诗歌需要显示转载作者名字（不是发布者昵称）
+                else if (this.post.isPoem && this.post.isOriginal === false && this.post.author) {
+                    const originalAuthor = (this.post.author + '').trim();
+                    if (originalAuthor) {
+                        console.log('【post-detail】绘制非原创诗歌转载作者:', originalAuthor);
+                        ctx.setTextAlign('right');
+                        ctx.setFillStyle(textColor);
+                        ctx.font = signatureTextFontSize + 'px Huiwen-mincho, sans-serif';
+                        const __wmMargin3 = 24, __sigInset3 = 24;
+                        const sigTextX = canvasWidth - __wmMargin3 - __sigInset3;
+                        const sigTextY = canvasHeight - __wmMargin3 - __sigInset3;
+                        ctx.fillText(originalAuthor, sigTextX, sigTextY);
                         ctx.setTextAlign('left');
                     }
                 }
@@ -2537,39 +2599,37 @@ export default {
                 imagesCount: images.length
             });
             
-            // 使用兼容性的文件上传方法
+            // 使用通用的文件上传方法
             return Promise.all(
                 images.map((image, index) => {
                     const uniqueKey = (openid || 'guest') + '_' + timestamp + '_' + index;
                     const compressedCloudPath = 'comment_images/' + uniqueKey + '_compressed.jpg';
                     
-                    // 使用兼容性的文件上传方法
-                    return this.uploadFile(compressedCloudPath, image.compressedPath || image.previewUrl || image.originalPath)
-                        .then((compressedRes) => {
+                    // 使用通用的文件上传方法（uploadFile 返回 fileID 字符串）
+                    return uploadFile(compressedCloudPath, image.compressedPath || image.previewUrl || image.originalPath)
+                        .then((compressedFileID) => {
                             console.log('🔍 [DEBUG] 图片上传成功:', {
                                 index: index,
-                                compressedRes: compressedRes,
-                                fileID: compressedRes.fileID
+                                compressedFileID: compressedFileID
                             });
                             
                             if (image.needCompression) {
                                 const originalCloudPath = 'comment_images/' + uniqueKey + '_original.jpg';
-                                return this.uploadFile(originalCloudPath, image.originalPath)
-                                    .then((originalRes) => {
+                                return uploadFile(originalCloudPath, image.originalPath)
+                                    .then((originalFileID) => {
                                         console.log('🔍 [DEBUG] 原图上传成功:', {
                                             index: index,
-                                            originalRes: originalRes,
-                                            fileID: originalRes.fileID
+                                            originalFileID: originalFileID
                                         });
                                         return {
-                                        compressedUrl: compressedRes.fileID,
-                                        originalUrl: originalRes.fileID
+                                            compressedUrl: compressedFileID,
+                                            originalUrl: originalFileID
                                         };
                                     });
                             }
                             return {
-                                compressedUrl: compressedRes.fileID,
-                                originalUrl: compressedRes.fileID
+                                compressedUrl: compressedFileID,
+                                originalUrl: compressedFileID
                             };
                         });
                 })
@@ -3125,6 +3185,26 @@ export default {
         },
 
         expandInput: function () {
+            this.preKeyboardScrollTop = this.currentScrollTop;
+            const currentScroll = this.currentScrollTop || 0;
+            
+            // #ifdef H5
+            // H5 端：移除了 document.body 的 position: fixed 操作
+            // 因为移除 100vh 后，adjustResize 模式可以正常工作
+            // 输入框会通过 position: fixed 和动态的 bottom 值正确浮动在键盘上方
+            // #endif
+            
+            // #ifdef APP-PLUS
+            try {
+                uni.pageScrollTo({
+                    scrollTop: currentScroll,
+                    duration: 0
+                });
+            } catch (e) {
+                console.warn('【expandInput】APP锁定滚动失败:', e);
+            }
+            // #endif
+            
             this.setData({
                 isInputExpanded: true,
                 isFocus: true,
@@ -3132,62 +3212,68 @@ export default {
         },
 
         onInputFocus: function (e) {
-            console.log('键盘弹起，高度为:', e.detail.height);
+            this.preKeyboardScrollTop = this.currentScrollTop;
+            const targetScrollTop = this.preKeyboardScrollTop || this.currentScrollTop || 0;
+            
+            // #ifdef H5
+            // H5 端：移除了 document.body 的 position: fixed 操作
+            // 因为移除 100vh 后，adjustResize 模式可以正常工作
+            // 输入框会通过 position: fixed 和动态的 bottom 值正确浮动在键盘上方
+            // #endif
+            
+            // #ifdef APP-PLUS
+            try {
+                uni.pageScrollTo({
+                    scrollTop: targetScrollTop,
+                    duration: 0
+                });
+            } catch (err) {
+                console.warn('【onInputFocus】APP锁定滚动失败:', err);
+            }
+            // #endif
+            
             this.setData({
-                keyboardHeight: e.detail.height,
+                keyboardHeight: e.detail ? e.detail.height : 0
             });
         },
 
         onInputBlur: function () {
-            setTimeout(() => {
-                const oldKeyboardHeight = this.keyboardHeight;
-                this.setData({
-                    isFocus: false,
-                    keyboardHeight: 0
-                });
-
-                // 如果之前键盘有高度（键盘确实是弹起状态），则在键盘收起后滚动页面
-                if (oldKeyboardHeight > 0) {
-                    // 延迟一点时间让键盘完全收起，然后滚动页面
-                    setTimeout(() => {
-                        this.scrollToCommentBottom();
-                    }, 150);
-                }
-            }, 100);
+            this.setData({
+                isFocus: false,
+                keyboardHeight: 0
+            });
         },
 
         collapseInput: function () {
+            // #ifdef H5
+            // H5 端：移除了 document.body 的恢复操作
+            // 因为移除 100vh 后，adjustResize 模式可以正常工作
+            // 键盘收回时，页面布局会自动恢复，无需手动操作 body
+            // #endif
+            
+            // #ifdef APP-PLUS
+            try {
+                const scrollTop = this.preKeyboardScrollTop || this.currentScrollTop || 0;
+                if (scrollTop > 0) {
+                    uni.pageScrollTo({
+                        scrollTop: scrollTop,
+                        duration: 0
+                    });
+                }
+            } catch (e) {
+                console.warn('【collapseInput】APP恢复滚动失败:', e);
+            }
+            // #endif
+            
             this.setData({
+                keyboardHeight: 0,
                 isInputExpanded: false,
                 isFocus: false,
-                keyboardHeight: 0,
                 replyToComment: null,
                 replyToAuthor: '',
             });
         },
 
-        // 滚动到评论区底部
-        scrollToCommentBottom: function() {
-            try {
-                // 获取系统信息
-                const systemInfo = uni.getSystemInfoSync();
-                const windowHeight = systemInfo.windowHeight;
-
-                // 使用 uni.pageScrollTo 滚动到页面底部
-                uni.pageScrollTo({
-                    scrollTop: 999999, // 设置一个很大的值确保滚动到底部
-                    duration: 300, // 滚动动画时长
-                    success: () => {
-                        console.log('【post-detail】键盘收起后页面滚动成功');
-                    },
-                    fail: (err) => {
-                        console.warn('【post-detail】页面滚动失败:', err);
-                    }
-                });
-            } catch (error) {
-                console.error('【post-detail】scrollToCommentBottom 执行失败:', error);
-            }
-        },
 
         recordViewBehavior: function () {
             if (!this.currentPostId || !this.viewStartTime) {
@@ -3292,48 +3378,6 @@ export default {
             this.showFavoriteModal = true;
         },
 
-        // 兼容性文件上传方法（使用与profile-edit相同的健壮实现）
-        async uploadFile(cloudPath, filePath) {
-            const { getCloudFunctionMethod } = require('../../utils/platformDetector.js');
-            const method = getCloudFunctionMethod();
-
-            try {
-                if (method === 'tcb') {
-                    const app = getApp();
-                    if (!(app && app.$tcb && typeof app.$tcb.uploadFile === 'function')) {
-                        throw new Error('TCB实例不可用，回退');
-                    }
-                    
-                    // 优先使用 fetch/Blob 直传
-                    const resp = await fetch(filePath);
-                    const file = await resp.blob();
-                    const res = await app.$tcb.uploadFile({ cloudPath, file });
-                    const fileID = res.fileID || res.fileId;
-                    if (!fileID) throw new Error('TCB直传成功但未返回fileID');
-                    
-                    // 【关键修正】总是返回一个标准格式的对象
-                    return { success: true, fileID: fileID };
-
-                } else if (method === "wx-cloud") {
-                    const res = await wx.cloud.uploadFile({ cloudPath, filePath });
-                    if (!res.fileID) throw new Error('小程序上传成功但未返回fileID');
-                    
-                    // 【关键修正】总是返回一个标准格式的对象
-                    return { success: true, fileID: res.fileID };
-                } else {
-                    throw new Error('不支持的云函数调用方式');
-                }
-            } catch (err) {
-                // 如果上面的任何一步失败（fetch失败, TCB直传失败等），则启动最终的回退方案
-                console.warn(`[PostDetail] 主上传方案失败 (${err.message})，启动云函数中转上传...`);
-                
-                // 调用基于 plus.io 的 FileReader 回退方案
-                const result = await this.uploadFileViaCloudFunction(cloudPath, filePath);
-                
-                // 【关键修正】确保回退方案也返回标准格式的对象
-                return { success: true, fileID: result.fileID };
-            }
-        },
 
         // 图片加载事件处理
         onImageLoad: function(e) {
@@ -3371,59 +3415,6 @@ export default {
             this.showEditModal = false;
         },
 
-        // 通过云函数上传（作为最终的回退方案，且只包含 plus.io，不再尝试 getFileSystemManager）
-        uploadFileViaCloudFunction(cloudPath, filePath) {
-            return new Promise((resolve, reject) => {
-                const { getCurrentPlatform } = require('../../utils/platformDetector.js');
-                const platform = getCurrentPlatform();
-
-                if (platform === 'h5') {
-                    fetch(filePath)
-                        .then(response => response.blob())
-                        .then(blob => {
-                            const reader = new FileReader();
-                            reader.onload = () => {
-                                const base64 = reader.result.split(",")[1];
-                                this.callCloudFunction("upload", { cloudPath, fileContent: base64 })
-                                    .then(uploadRes => {
-                                        if (uploadRes && uploadRes.result && uploadRes.result.success) {
-                                            resolve({ fileID: uploadRes.result.fileID });
-                                        } else {
-                                            reject(new Error("云函数返回异常"));
-                                        }
-                                    }).catch(reject);
-                            };
-                            reader.onerror = () => reject(new Error("文件读取失败"));
-                            reader.readAsDataURL(blob);
-                        }).catch(err => reject(err));
-                } else { // App环境只使用 plus.io
-                    console.log('🔍 [PostDetail] App环境回退方案：使用plus.io读取文件');
-                    if (typeof plus === 'undefined' || !plus.io) {
-                        return reject(new Error('App端plus.io环境不可用'));
-                    }
-                    plus.io.resolveLocalFileSystemURL(filePath, (entry) => {
-                        entry.file((file) => {
-                            const reader = new plus.io.FileReader();
-                            reader.onload = (e) => {
-                                const dataUrl = e.target.result || '';
-                                const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
-                                if (!base64) return reject(new Error('文件读取失败或为空'));
-                                this.callCloudFunction('upload', { cloudPath, fileContent: base64 })
-                                    .then(uploadRes => {
-                                        if (uploadRes && uploadRes.result && uploadRes.result.success) {
-                                            resolve({ fileID: uploadRes.result.fileID });
-                                        } else {
-                                            reject(new Error('云函数返回异常'));
-                                        }
-                                    }).catch(reject);
-                            };
-                            reader.onerror = (err) => reject(new Error('FileReader读取失败: ' + (err.message || 'unknown')));
-                            reader.readAsDataURL(file);
-                        }, (e) => reject(new Error('获取文件对象失败: ' + (e.message || 'unknown'))));
-                    }, (e) => reject(new Error('解析文件路径失败: ' + (e.message || 'unknown'))));
-                }
-            });
-        }
     }
 };
 </script>
@@ -3456,12 +3447,22 @@ export default {
     object-fit: contain;
 }
 
+/* 确保 page 元素有高度 */
+page {
+    height: 100vh;
+}
+
 .container {
     background-color: #ffffff;
-    min-height: 100vh;
+    /* min-height: 100vh; */ /* 移除 vh 单位，避免在 adjustResize 模式下与键盘冲突 */
     padding-bottom: 140rpx;
     padding-top: calc(160rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px))); /* 添加安全区域上边距 */
     position: relative; /* 为返回按钮提供定位上下文 */
+    /* 新增，确保在内容不足时也能撑满一屏 */
+    display: flex;
+    flex-direction: column;
+    min-height: 100%; /* 使用百分比继承 page 的高度 */
+    box-sizing: border-box; /* 加上这个好习惯 */
 }
 
 .post-detail-skeleton {
@@ -4204,6 +4205,10 @@ export default {
     transition: bottom 0.2s ease-out;
     padding-bottom: constant(safe-area-inset-bottom);
     padding-bottom: env(safe-area-inset-bottom);
+    /* 创建新的层叠上下文，防止被键盘影响 */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    will-change: bottom;
 }
 
 .collapsed-bar {

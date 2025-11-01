@@ -210,11 +210,12 @@ exports.main = async (event, context) => {
       }
     }
 
-    // 给每个post加上作者信息
+    // 给每个post加上作者信息（优先使用帖子中存储的值，因为历史帖子已经通过syncUserPostsMetadata同步更新）
+    // 只有当帖子中没有作者信息时，才使用当前用户信息作为兜底
     posts = posts.map(post => ({
       ...post,
-      authorName: userInfo.nickName,
-      authorAvatar: userInfo.avatarUrl
+      authorName: post.authorName || post.authorNameSnapshot || userInfo.nickName || '匿名用户',
+      authorAvatar: post.authorAvatar || post.authorAvatarSnapshot || userInfo.avatarUrl || ''
     }));
 
     console.log('【profile云函数】最终返回 posts 数量:', posts.length);
