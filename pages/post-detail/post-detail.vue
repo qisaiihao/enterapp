@@ -337,8 +337,8 @@
         <!-- 遮罩层：当输入框展开时显示 -->
         <view :class="'input-overlay ' + (isInputExpanded ? 'show' : '')" @tap="collapseInput"></view>
 
-        <!-- 输入框容器：整体会根据键盘高度上移，默认隐藏 -->
-        <view v-if="isInputExpanded" class="comment-input-area" :style="'bottom: ' + keyboardHeight + 'px; transform: translateZ(0);'">
+        <!-- 输入框容器：保持在页面底部 -->
+        <view v-if="isInputExpanded" class="comment-input-area">
 
             <!-- 展开状态：真正的输入区域 -->
             <view v-if="isInputExpanded" class="expanded-container">
@@ -364,9 +364,7 @@
                     auto-height
                     maxlength="500"
                     :show-confirm-bar="false"
-                    :adjust-position="false"
                     :cursor-spacing="0"
-                    :hold-keyboard="false"
                 ></textarea>
 
                 <!-- 评论图片显示 -->
@@ -514,12 +512,8 @@ export default {
             shareCanvasHeight: 1000,
             shareImageRetryCount: 0,
             isInputExpanded: false,
-            keyboardHeight: 0,
-            // 记录滚动位置，用于键盘收起后恢复
             currentScrollTop: 0,
-            preKeyboardScrollTop: null,
             isFocus: false,
-            keyboardHeightTimer: null, // APP端键盘高度更新定时器
             viewStartTime: 0,
             currentPostId: null,
             isFavorited: false,
@@ -600,61 +594,6 @@ export default {
             // #endif
         } catch (e) {}
 
-        // 监听键盘高度变化，实时更新弹窗位置
-        // #ifdef MP-WEIXIN || APP-PLUS
-        try {
-            const self = this;
-            uni.onKeyboardHeightChange((res) => {
-                const height = res.height || 0;
-                
-                // #ifdef APP-PLUS
-                // APP端：在 adjustResize 模式下，键盘高度变化需要特殊处理
-                if (height === 0) {
-                    // 键盘收起时，延迟更新以等待页面恢复
-                    // 这样可以避免页面还在恢复过程中就把 keyboardHeight 设为 0
-                    if (self.keyboardHeightTimer) {
-                        clearTimeout(self.keyboardHeightTimer);
-                    }
-                    self.keyboardHeightTimer = setTimeout(() => {
-                        // 只有在输入框未展开时才更新为0，避免与 collapseInput 冲突
-                        // 如果输入框还在展开状态，说明用户可能还在输入，不应该设为0
-                        if (!self.isInputExpanded) {
-                            self.setData({
-                                keyboardHeight: 0
-                            });
-                        }
-                    }, 100); // 延迟100ms，等待页面恢复
-                } else {
-                    // 键盘弹起时，立即更新
-                    if (self.keyboardHeightTimer) {
-                        clearTimeout(self.keyboardHeightTimer);
-                        self.keyboardHeightTimer = null;
-                    }
-                    // 如果输入框已展开，立即更新键盘高度
-                    // 即使输入框未展开，也更新，以便在展开时能立即显示正确位置
-                    self.setData({
-                        keyboardHeight: height
-                    });
-                }
-                // #endif
-                
-                // #ifdef MP-WEIXIN
-                // 小程序端：直接更新
-                if (height === 0 || !self.isInputExpanded) {
-                    self.setData({
-                        keyboardHeight: 0
-                    });
-                } else {
-                    self.setData({
-                        keyboardHeight: height
-                    });
-                }
-                // #endif
-            });
-        } catch (e) {
-            console.warn('键盘高度监听设置失败:', e);
-        }
-        // #endif
     },
     onShow: function () {
         this.setData({
@@ -669,19 +608,6 @@ export default {
         this.currentScrollTop = e.scrollTop || 0;
     },
     onUnload: function () {
-        // #ifdef H5
-        // H5 端：移除了 document.body 的恢复操作
-        // 因为移除 100vh 后，不再需要手动恢复 body 状态
-        // #endif
-        
-        // #ifdef APP-PLUS
-        // APP端：清理键盘高度定时器
-        if (this.keyboardHeightTimer) {
-            clearTimeout(this.keyboardHeightTimer);
-            this.keyboardHeightTimer = null;
-        }
-        // #endif
-        
         this.recordViewBehavior();
         try { const viewEvents = require('../../utils/viewEvents.js'); viewEvents.flushViewQueue(); } catch (e) {}
         try { uni.$off && this.onGlobalCommentLikeChanged && uni.$off('comment-like-changed', this.onGlobalCommentLikeChanged); } catch (_) {}
@@ -3114,26 +3040,6 @@ export default {
         },
 
         expandInput: function () {
-            this.preKeyboardScrollTop = this.currentScrollTop;
-            const currentScroll = this.currentScrollTop || 0;
-            
-            // #ifdef H5
-            // H5 端：移除了 document.body 的 position: fixed 操作
-            // 因为移除 100vh 后，adjustResize 模式可以正常工作
-            // 输入框会通过 position: fixed 和动态的 bottom 值正确浮动在键盘上方
-            // #endif
-            
-            // #ifdef APP-PLUS
-            try {
-                uni.pageScrollTo({
-                    scrollTop: currentScroll,
-                    duration: 0
-                });
-            } catch (e) {
-                console.warn('【expandInput】APP锁定滚动失败:', e);
-            }
-            // #endif
-            
             this.setData({
                 isInputExpanded: true,
                 isFocus: true,
@@ -3141,125 +3047,22 @@ export default {
         },
 
         onInputFocus: function (e) {
-            this.preKeyboardScrollTop = this.currentScrollTop;
-            const targetScrollTop = this.preKeyboardScrollTop || this.currentScrollTop || 0;
-            
-            // #ifdef H5
-            // H5 端：移除了 document.body 的 position: fixed 操作
-            // 因为移除 100vh 后，adjustResize 模式可以正常工作
-            // 输入框会通过 position: fixed 和动态的 bottom 值正确浮动在键盘上方
-            // #endif
-            
-            // #ifdef APP-PLUS
-            try {
-                uni.pageScrollTo({
-                    scrollTop: targetScrollTop,
-                    duration: 0
-                });
-            } catch (err) {
-                console.warn('【onInputFocus】APP锁定滚动失败:', err);
-            }
-            
-            // APP端：从事件中获取键盘高度，同时依赖 uni.onKeyboardHeightChange 的回调
-            // 如果事件中有高度，立即更新；如果没有，等待 onKeyboardHeightChange 回调
-            const focusHeight = e.detail ? e.detail.height : 0;
-            if (focusHeight > 0) {
-                // 立即更新，提供更好的响应性
-                this.setData({
-                    keyboardHeight: focusHeight
-                });
-            }
-            // 如果 focusHeight 为 0，说明可能是延迟触发，依赖 uni.onKeyboardHeightChange 回调
-            // #endif
-            
-            // #ifndef APP-PLUS
-            // 非APP端：直接从事件中获取
-            this.setData({
-                keyboardHeight: e.detail ? e.detail.height : 0
-            });
-            // #endif
+            // 输入框获得焦点时的处理
         },
 
         onInputBlur: function () {
-            // #ifdef APP-PLUS
-            // APP端：在 adjustResize 模式下，键盘收起时页面需要时间恢复
-            // 不要立即将 keyboardHeight 设为 0，让 uni.onKeyboardHeightChange 来处理
-            // 这样可以确保页面恢复完成后再更新状态
             this.setData({
                 isFocus: false
-                // keyboardHeight 由 uni.onKeyboardHeightChange 回调来更新
             });
-            // #endif
-            
-            // #ifndef APP-PLUS
-            // 非APP端：立即重置
-            this.setData({
-                isFocus: false,
-                keyboardHeight: 0
-            });
-            // #endif
         },
 
         collapseInput: function () {
-            // #ifdef H5
-            // H5 端：移除了 document.body 的恢复操作
-            // 因为移除 100vh 后，adjustResize 模式可以正常工作
-            // 键盘收回时，页面布局会自动恢复，无需手动操作 body
-            // #endif
-            
-            // #ifdef APP-PLUS
-            // APP端：在 adjustResize 模式下，需要处理页面恢复
-            const self = this;
-            
-            // 先关闭输入框状态，但保留 keyboardHeight 让页面有时间恢复
             this.setData({
                 isInputExpanded: false,
                 isFocus: false,
                 replyToComment: null,
                 replyToAuthor: '',
             });
-            
-            // 延迟重置 keyboardHeight，给页面恢复的时间
-            if (this.keyboardHeightTimer) {
-                clearTimeout(this.keyboardHeightTimer);
-            }
-            this.keyboardHeightTimer = setTimeout(() => {
-                self.setData({
-                    keyboardHeight: 0
-                });
-            }, 150); // 延迟150ms，确保页面已经恢复
-            
-            // 恢复滚动位置
-            try {
-                const scrollTop = this.preKeyboardScrollTop || this.currentScrollTop || 0;
-                if (scrollTop > 0) {
-                    // 稍微延迟恢复滚动，等待页面布局恢复
-                    setTimeout(() => {
-                        try {
-                            uni.pageScrollTo({
-                                scrollTop: scrollTop,
-                                duration: 0
-                            });
-                        } catch (e) {
-                            console.warn('【collapseInput】APP恢复滚动失败:', e);
-                        }
-                    }, 100);
-                }
-            } catch (e) {
-                console.warn('【collapseInput】APP恢复滚动失败:', e);
-            }
-            // #endif
-            
-            // #ifndef APP-PLUS
-            // 非APP端：立即重置所有状态
-            this.setData({
-                keyboardHeight: 0,
-                isInputExpanded: false,
-                isFocus: false,
-                replyToComment: null,
-                replyToAuthor: '',
-            });
-            // #endif
         },
 
 
@@ -3442,7 +3245,7 @@ page {
 
 .container {
     background-color: #ffffff;
-    /* min-height: 100vh; */ /* 移除 vh 单位，避免在 adjustResize 模式下与键盘冲突 */
+    /* min-height: 100vh; */
     padding-bottom: 140rpx;
     padding-top: calc(160rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px))); /* 添加安全区域上边距 */
     position: relative; /* 为返回按钮提供定位上下文 */
@@ -4190,13 +3993,8 @@ page {
     bottom: 0;
     background-color: #ffffff;
     z-index: 100;
-    transition: bottom 0.2s ease-out;
     padding-bottom: constant(safe-area-inset-bottom);
     padding-bottom: env(safe-area-inset-bottom);
-    /* 创建新的层叠上下文，防止被键盘影响 */
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
-    will-change: bottom;
 }
 
 .collapsed-bar {
@@ -4591,8 +4389,10 @@ page {
     background: rgba(0, 0, 0, 0.5);
     z-index: 998;
     display: flex;
-    align-items: center;
+    align-items: flex-start; /* 改为从顶部开始对齐，而不是居中 */
     justify-content: center;
+    padding-top: 5vh; /* 顶部留一些空间 */
+    overflow-y: auto; /* 如果内容超出，允许滚动 */
 }
 
 .share-modal {
@@ -4603,12 +4403,13 @@ page {
     display: flex; /* 使用flex布局让内部元素更容易对齐 */
     flex-direction: column; /* 垂直排列：图片在上，按钮在下 */
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start; /* 改为从顶部开始，而不是居中 */
     z-index: 999;
     border-radius: 20rpx;
     padding: 20rpx;
     box-sizing: border-box; /* 加上这个，padding就不会撑大容器 */
-    /* 去掉阴影 */
+    /* 不限制高度，让内容自然展开 */
+    /* 滚动由外层的 overlay 提供 */
 }
 
 
