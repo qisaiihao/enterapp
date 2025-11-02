@@ -338,7 +338,7 @@
         <view :class="'input-overlay ' + (isInputExpanded ? 'show' : '')" @tap="collapseInput"></view>
 
         <!-- 输入框容器：保持在页面底部 -->
-        <view v-if="isInputExpanded" class="comment-input-area">
+        <view v-if="isInputExpanded" class="comment-input-area" :style="'bottom: ' + keyboardHeight + 'px;'">
 
             <!-- 展开状态：真正的输入区域 -->
             <view v-if="isInputExpanded" class="expanded-container">
@@ -361,6 +361,7 @@
                     @focus="onInputFocus"
                     @blur="onInputBlur"
                     :focus="isFocus"
+                    :adjust-position="false"
                     auto-height
                     maxlength="500"
                     :show-confirm-bar="false"
@@ -396,6 +397,7 @@
                     class="comment-input" 
                     placeholder="评论..." 
                     :value="quickCommentText"
+                    :adjust-position="false"
                     @input="onQuickCommentInput"
                     @confirm="onQuickCommentSubmit"
                     @tap="expandInput"
@@ -514,6 +516,7 @@ export default {
             isInputExpanded: false,
             currentScrollTop: 0,
             isFocus: false,
+            keyboardHeight: 0,
             viewStartTime: 0,
             currentPostId: null,
             isFavorited: false,
@@ -594,6 +597,21 @@ export default {
             // #endif
         } catch (e) {}
 
+        // 注册键盘高度监听
+        // #ifdef MP-WEIXIN || APP-PLUS
+        try {
+            this.keyboardHeightChangeHandler = (res) => {
+                const height = res.height || 0;
+                this.setData({
+                    keyboardHeight: height
+                });
+            };
+            uni.onKeyboardHeightChange(this.keyboardHeightChangeHandler);
+        } catch (e) {
+            console.warn('键盘高度监听设置失败:', e);
+        }
+        // #endif
+
     },
     onShow: function () {
         this.setData({
@@ -611,6 +629,18 @@ export default {
         this.recordViewBehavior();
         try { const viewEvents = require('../../utils/viewEvents.js'); viewEvents.flushViewQueue(); } catch (e) {}
         try { uni.$off && this.onGlobalCommentLikeChanged && uni.$off('comment-like-changed', this.onGlobalCommentLikeChanged); } catch (_) {}
+        
+        // 取消键盘高度监听
+        // #ifdef MP-WEIXIN || APP-PLUS
+        try {
+            if (this.keyboardHeightChangeHandler) {
+                uni.offKeyboardHeightChange(this.keyboardHeightChangeHandler);
+                this.keyboardHeightChangeHandler = null;
+            }
+        } catch (e) {
+            console.warn('取消键盘高度监听失败:', e);
+        }
+        // #endif
     },
     onHide: function () {
         if (this.isInputExpanded) {
