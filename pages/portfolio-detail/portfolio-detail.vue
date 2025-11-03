@@ -60,11 +60,8 @@
             <view class="vote-section" v-if="item.isExpanded" :style="{ backgroundColor: item.backgroundColor }">
               <view class="actions-left"><!-- 预留左侧空间 --></view>
               <view class="button-group">
-                <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="item._id" :data-index="index">
-                  <image class="like-icon" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError" />
-                </view>
-                <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
-                  <image class="comment-icon" src="/static/images/comment.png" mode="aspectFit" />
+                <view class="delete-icon-container" @tap.stop.prevent="onDeleteFromPortfolio" :data-portfolioid="item.portfolioId" :data-index="index">
+                  <image class="delete-icon" src="/static/images/delete.png" mode="aspectFit" />
                 </view>
               </view>
             </view>
@@ -629,6 +626,54 @@ export default {
     loadMore() {
       if (!this.hasMore || this.isLoadingMore || this.isLoading) return;
       this.getPostList();
+    },
+
+    // 从作品集中删除帖子
+    async onDeleteFromPortfolio(e) {
+      const portfolioId = e.currentTarget.dataset.portfolioid;
+      const index = e.currentTarget.dataset.index;
+      
+      // 确认对话框
+      uni.showModal({
+        title: '确认删除',
+        content: '确定要从作品集中移除此诗歌吗？',
+        success: async (res) => {
+          if (res.confirm) {
+            try {
+              uni.showLoading({ title: '删除中...' });
+              
+              // 调用云函数删除
+              const result = await this.callCloudFunction('removeFromPortfolio', {
+                portfolioId: portfolioId
+              });
+              
+              if (result && result.result && result.result.success) {
+                // 从列表中移除
+                const newPostList = this.postList.filter(item => item.portfolioId !== portfolioId);
+                this.setData({ postList: newPostList });
+                
+                uni.showToast({
+                  title: '删除成功',
+                  icon: 'success'
+                });
+              } else {
+                uni.showToast({
+                  title: '删除失败',
+                  icon: 'none'
+                });
+              }
+            } catch (error) {
+              console.error('删除失败:', error);
+              uni.showToast({
+                title: '删除失败',
+                icon: 'none'
+              });
+            } finally {
+              uni.hideLoading();
+            }
+          }
+        }
+      });
     }
   }
 };
@@ -784,7 +829,7 @@ export default {
 .comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; }
 .vote-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; border-radius: 20rpx; background: rgba(255,255,255,.9); box-shadow: 0 2rpx 8rpx rgba(0,0,0,.1); }
 .comment-icon { width: 60rpx; height: 60rpx; }
-.like-icon { width: 60rpx; height: 60rpx; margin-top: 5px; }
+.delete-icon { width: 80rpx; height: 80rpx; }
 
 /* 用户签名样式 */
 .user-signature {

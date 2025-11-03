@@ -3070,19 +3070,29 @@ export default {
         },
 
         expandInput: function () {
+            // 先重置键盘高度，确保弹窗在底部显示
+            // 直接同时设置所有状态，不需要延迟，让弹窗立即显示
             this.setData({
+                keyboardHeight: 0,
                 isInputExpanded: true,
-                isFocus: true,
+                isFocus: true, // 直接聚焦，让键盘和弹窗同步响应
             });
         },
 
         onInputFocus: function (e) {
             // 输入框获得焦点时的处理
+            // 从 focus 事件中获取键盘高度作为备用（如果 uni.onKeyboardHeightChange 响应慢）
+            if (e && e.detail && typeof e.detail.height === 'number' && e.detail.height > 0) {
+                this.setData({
+                    keyboardHeight: e.detail.height
+                });
+            }
         },
 
         onInputBlur: function () {
             this.setData({
-                isFocus: false
+                isFocus: false,
+                keyboardHeight: 0 // 键盘收起时重置高度
             });
         },
 
@@ -4025,6 +4035,8 @@ page {
     z-index: 100;
     padding-bottom: constant(safe-area-inset-bottom);
     padding-bottom: env(safe-area-inset-bottom);
+    transition: none; /* 禁用动画，直接显示到位 */
+    will-change: bottom; /* 优化性能 */
 }
 
 .collapsed-bar {
