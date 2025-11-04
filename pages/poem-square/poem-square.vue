@@ -17,7 +17,7 @@
       </view>
 
       <view id="post-list-container">
-        <view v-for="(item, index) in postList" v-if="item" :key="item._id || index" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
+        <view v-for="(item, index) in postList" v-if="item" :key="item._id ? `post-${item._id}-${index}` : `post-index-${index}`" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
           <view class="post-content-navigator" @tap="togglePostExpansion" @longpress="onLongPressCard" :data-index="index" :data-postid="item._id">
             <view class="post-item">
               <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.highlightLines || item.highlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.content" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
@@ -237,7 +237,8 @@ export default {
       return pick;
     },
     async getPostList(cb) {
-      console.log('【poem-square】getPostList 开始，isLoadingMore:', this.isLoadingMore, 'callback:', typeof cb);
+      console.log('🔍🔍🔍 【poem-square】getPostList 开始，isLoadingMore:', this.isLoadingMore, 'callback:', typeof cb);
+      console.log('🔍🔍🔍 【poem-square】当前页码:', this.page, 'PAGE_SIZE:', PAGE_SIZE);
       if (this.isLoadingMore) {
         console.log('【poem-square】正在加载更多，跳过请求');
         if (typeof cb === 'function') cb();
@@ -245,15 +246,37 @@ export default {
       }
       this.setData({ isLoadingMore: true });
       try {
-        const res = await this.callCloudFunction('getPostList', {
+        const requestParams = {
           skip: this.page * PAGE_SIZE,
           limit: PAGE_SIZE,
           excludeAnonymous: true,
           isPoem: true,        // 只获取诗歌类型的内容
           isOriginal: true     // 只获取原创内容
-        });
+        };
+        console.log('🔍🔍🔍 【poem-square】准备调用 getPostList 云函数，参数:', JSON.stringify(requestParams, null, 2));
+        const res = await this.callCloudFunction('getPostList', requestParams);
+        console.log('🔍🔍🔍 【poem-square】getPostList 云函数返回结果:', res);
         const list = (res && res.result && res.result.posts) ? res.result.posts : [];
-        console.log('【poem-square】获取到帖子数量:', list.length);
+        console.log('🔍🔍🔍 【poem-square】获取到帖子数量:', list.length);
+        if (list.length > 0) {
+          console.log('🔍🔍🔍 【poem-square】所有帖子的详细信息（用于验证随机性）:');
+          list.forEach((p, idx) => {
+            console.log(`  [${idx + 1}] ID: ${p._id}, 创建时间: ${p.createTime}, 标题: ${p.title || p.content?.substring(0, 20)}`);
+          });
+          console.log('🔍🔍🔍 【poem-square】前3个帖子的时间:', list.slice(0, 3).map(p => ({
+            id: p._id,
+            createTime: p.createTime,
+            title: p.title || p.content?.substring(0, 20)
+          })));
+          // 检查后4个帖子是否真的是随机的（创建时间应该不连续）
+          if (list.length >= 10) {
+            console.log('🔍🔍🔍 【poem-square】后4个帖子（应该是随机的）的创建时间:', list.slice(6, 10).map(p => ({
+              id: p._id,
+              createTime: p.createTime,
+              title: p.title || p.content?.substring(0, 20)
+            })));
+          }
+        }
         
         // 不再前端过滤帖子，因为是否获取签名是在后面控制的
         // 并且云函数调用已经包含了 excludeAnonymous: true，理论上后端已经过滤了
@@ -270,7 +293,17 @@ export default {
           p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
         });
         
-        const newPostList = this.page === 0 ? visibleList : this.postList.concat(visibleList);
+        // 【修复】首次加载时直接替换，加载更多时合并并去重，避免重复key
+        let newPostList;
+        if (this.page === 0) {
+          newPostList = visibleList;
+        } else {
+          // 加载更多时，过滤掉已存在的帖子，避免重复
+          const existingIds = new Set(this.postList.map(post => post._id).filter(Boolean));
+          const uniqueNewPosts = visibleList.filter(post => post && post._id && !existingIds.has(post._id));
+          newPostList = this.postList.concat(uniqueNewPosts);
+          console.log('【poem-square】去重：新帖子', visibleList.length, '去重后', uniqueNewPosts.length);
+        }
         this.setData({
           postList: newPostList,
           page: this.page + 1,

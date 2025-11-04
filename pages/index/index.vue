@@ -680,7 +680,7 @@ onReachBottom: function () {
         // 通过下拉刷新重载首页首屏数据：保留旧列表直到新数据就绪
         reloadHomePostsForRefresh: function (cb) {
             const startPage = 0;
-            getHomePosts({ page: startPage, pageSize: PAGE_SIZE, context: this })
+            getHomePosts({ page: startPage, pageSize: PAGE_SIZE, context: this, forceRefresh: true })
                 .then(async (list) => {
                     const postsRaw = Array.isArray(list) ? list : [];
                     let posts = normalizePostList(postsRaw).map((post) => ({
@@ -1467,15 +1467,18 @@ onReachBottom: function () {
                     }, 500);
 
                     const newPostsCount = posts.length;
+                    // 【修复】首次加载时应该直接替换列表，而不是合并，避免数据重复
                     const currentPostList = this.postList;
-                    const newPostList = currentPostList.concat(posts);
+                    const newPostList = isFirstLoad ? posts : currentPostList.concat(posts);
                     const updateData = {
                         postList: newPostList,
                         page: this.page + 1,
                         hasMore: newPostsCount === PAGE_SIZE
                     };
                     console.log('✅ [首页] 更新数据（缓存封装）:', {
+                        isFirstLoad,
                         newPostListLength: newPostList.length,
+                        currentPostListLength: currentPostList.length,
                         currentPage: this.page,
                         newPage: this.page + 1,
                         hasMore: updateData.hasMore,
