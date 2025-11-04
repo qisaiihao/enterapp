@@ -1,7 +1,11 @@
 <template>
     <!-- pages/my-likes/my-likes.wxml -->
     <view class="container">
+        <!-- 顶部导航栏 -->
         <view class="header">
+            <view class="header-left" @tap="goBack">
+                <image class="back-icon-image" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
+            </view>
             <text class="header-title">我的点赞</text>
         </view>
 
@@ -224,6 +228,25 @@ export default {
         onAvatarError: function (e) {
             console.error('头像加载失败', e);
             // 可以在这里设置默认头像
+        },
+
+        // 返回上一页
+        goBack: function () {
+            const pages = getCurrentPages();
+            if (pages.length > 1) {
+                uni.navigateBack({
+                    delta: 1,
+                    fail: () => {
+                        uni.switchTab({
+                            url: '/pages/index/index'
+                        });
+                    }
+                });
+            } else {
+                uni.switchTab({
+                    url: '/pages/index/index'
+                });
+            }
         }
     }
 };
@@ -237,13 +260,35 @@ export default {
 }
 
 .header {
-    padding: 20rpx 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 20rpx 30rpx;
+    background: #fff;
+    border-bottom: 1rpx solid #e9ecef;
     margin-bottom: 20rpx;
+}
+
+.header-left {
+    position: absolute;
+    left: 30rpx;
+    width: 60rpx;
+    height: 60rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.back-icon-image {
+    width: 72rpx;
+    height: 72rpx;
+    margin-top: 4rpx;
 }
 
 .header-title {
     font-size: 36rpx;
-    font-weight: bold;
+    font-weight: 600;
     color: #333;
 }
 

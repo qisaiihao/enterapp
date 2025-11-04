@@ -183,21 +183,23 @@
                                 :data-portfolio="portfolio"
                             >
                                 <view class="book-spine" :style="calcBookHeight(portfolio.name)">
-                                    <block v-if="portfolio.name">
-                                        <text
-                                            class="spine-text"
-                                            v-for="(char, charIndex) in portfolio.name.split('')"
-                                            :key="charIndex"
-                                        >
-                                            {{ char }}
-                                        </text>
-                                    </block>
-                                    <block v-else>
-                                        <text class="spine-text">N</text>
-                                        <text class="spine-text">A</text>
-                                        <text class="spine-text">M</text>
-                                        <text class="spine-text">E</text>
-                                    </block>
+                                    <view class="spine-content">
+                                        <block v-if="portfolio.name">
+                                            <text
+                                                class="spine-text"
+                                                v-for="(char, charIndex) in portfolio.name.split('')"
+                                                :key="charIndex"
+                                            >
+                                                {{ char }}
+                                            </text>
+                                        </block>
+                                        <block v-else>
+                                            <text class="spine-text">N</text>
+                                            <text class="spine-text">A</text>
+                                            <text class="spine-text">M</text>
+                                            <text class="spine-text">E</text>
+                                        </block>
+                                    </view>
                                 </view>
                             </view>
                             <view
@@ -1521,9 +1523,8 @@ export default {
 .spine-content {
     display: flex;
     flex-direction: column;
-    gap: 6rpx;
-    margin: 12rpx 0;
     align-items: center;
+    gap: 8rpx;
 }
 
 .spine-text {

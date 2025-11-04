@@ -417,19 +417,40 @@ export default {
         choosePortfolioCoverImage: function () {
             uni.chooseImage({
                 count: 1,
-                sizeType: ['compressed'],
+                sizeType: ['compressed'], // 强制使用压缩图片
                 sourceType: ['album', 'camera'],
                 success: (res) => {
                     const tempFilePath = res.tempFilePaths[0];
-                    console.log('选择的作品集封面图片:', tempFilePath);
-                    this.setData({
-                        newPortfolioCover: tempFilePath
+                    console.log('【portfolio-selector】选择的作品集封面图片:', tempFilePath);
+                    // 验证图片大小（可选，限制最大5MB）
+                    uni.getFileInfo({
+                        filePath: tempFilePath,
+                        success: (fileInfo) => {
+                            const maxSize = 5 * 1024 * 1024; // 5MB
+                            if (fileInfo.size > maxSize) {
+                                uni.showToast({
+                                    title: '图片过大，请选择更小的图片',
+                                    icon: 'none'
+                                });
+                                return;
+                            }
+                            this.setData({
+                                newPortfolioCover: tempFilePath
+                            });
+                        },
+                        fail: (err) => {
+                            console.warn('获取文件信息失败，但仍继续使用:', err);
+                            // 即使获取文件信息失败，也继续使用该图片
+                            this.setData({
+                                newPortfolioCover: tempFilePath
+                            });
+                        }
                     });
                 },
                 fail: (err) => {
-                    console.error('选择图片失败:', err);
+                    console.error('【portfolio-selector】选择图片失败:', err);
                     uni.showToast({
-                        title: '选择图片失败',
+                        title: err.errMsg || '选择图片失败',
                         icon: 'none'
                     });
                 }
@@ -475,17 +496,18 @@ export default {
                             cloudPath: cloudPath
                         }).then((uploadRes) => {
                             uni.hideLoading();
-                            console.log('H5环境封面图片上传结果:', uploadRes);
-                            if (uploadRes && uploadRes.result && uploadRes.result.fileID) {
+                            console.log('【portfolio-selector】H5环境封面图片上传结果:', uploadRes);
+                            if (uploadRes && uploadRes.result && uploadRes.result.success && uploadRes.result.fileID) {
                                 resolve(uploadRes.result.fileID);
                             } else {
-                                console.error('H5环境封面图片上传失败:', uploadRes);
-                                reject(new Error('上传失败'));
+                                const errorMsg = uploadRes?.result?.message || uploadRes?.result?.error || '上传失败';
+                                console.error('【portfolio-selector】H5环境封面图片上传失败:', uploadRes);
+                                reject(new Error(errorMsg));
                             }
                         }).catch((uploadErr) => {
                             uni.hideLoading();
-                            console.error('H5环境封面图片上传云函数调用失败:', uploadErr);
-                            reject(uploadErr);
+                            console.error('【portfolio-selector】H5环境封面图片上传云函数调用失败:', uploadErr);
+                            reject(new Error(uploadErr.message || '上传失败'));
                         });
                     })
                     .catch((err) => {
@@ -509,17 +531,18 @@ export default {
                             cloudPath: cloudPath
                         }).then((uploadRes) => {
                             uni.hideLoading();
-                            console.log('非H5环境封面图片上传结果:', uploadRes);
-                            if (uploadRes && uploadRes.result && uploadRes.result.fileID) {
+                            console.log('【portfolio-selector】非H5环境封面图片上传结果:', uploadRes);
+                            if (uploadRes && uploadRes.result && uploadRes.result.success && uploadRes.result.fileID) {
                                 resolve(uploadRes.result.fileID);
                             } else {
-                                console.error('非H5环境封面图片上传失败:', uploadRes);
-                                reject(new Error('上传失败'));
+                                const errorMsg = uploadRes?.result?.message || uploadRes?.result?.error || '上传失败';
+                                console.error('【portfolio-selector】非H5环境封面图片上传失败:', uploadRes);
+                                reject(new Error(errorMsg));
                             }
                         }).catch((uploadErr) => {
                             uni.hideLoading();
-                            console.error('非H5环境封面图片上传云函数调用失败:', uploadErr);
-                            reject(uploadErr);
+                            console.error('【portfolio-selector】非H5环境封面图片上传云函数调用失败:', uploadErr);
+                            reject(new Error(uploadErr.message || '上传失败'));
                         });
                     },
                     fail: (readErr) => {
@@ -555,9 +578,39 @@ export default {
                 uni.showLoading({ title: '创建中...' });
                 
                 // 先上传封面图片（如果有的话）
-                const coverUrl = await this.uploadPortfolioCoverImage();
+                let coverUrl = null;
+                if (this.newPortfolioCover) {
+                    try {
+                        coverUrl = await this.uploadPortfolioCoverImage();
+                        console.log('【portfolio-selector】封面图片上传成功，fileID:', coverUrl);
+                    } catch (uploadError) {
+                        console.error('【portfolio-selector】封面图片上传失败:', uploadError);
+                        uni.hideLoading();
+                        // 询问用户是否继续创建不带封面的作品集
+                        const userChoice = await new Promise((resolve) => {
+                            uni.showModal({
+                                title: '封面上传失败',
+                                content: '封面图片上传失败，是否继续创建不带封面的作品集？',
+                                confirmText: '继续创建',
+                                cancelText: '取消',
+                                success: (res) => {
+                                    resolve(res.confirm);
+                                },
+                                fail: () => {
+                                    resolve(false);
+                                }
+                            });
+                        });
+                        
+                        if (!userChoice) {
+                            // 用户选择取消，直接返回
+                            return;
+                        }
+                        // 用户选择继续创建，coverUrl 保持为 null
+                    }
+                }
                 
-                console.log('组件开始创建作品集，名称:', portfolioName, '封面:', coverUrl);
+                console.log('【portfolio-selector】组件开始创建作品集，名称:', portfolioName, '封面:', coverUrl);
                 
                 const res = await this.callCloudFunction('createPortfolioFolder', {
                     folderName: portfolioName,
@@ -565,7 +618,7 @@ export default {
                 });
 
                 uni.hideLoading();
-                console.log('组件创建作品集返回结果:', res);
+                console.log('【portfolio-selector】组件创建作品集返回结果:', res);
 
                 if (res && res.result) {
                     if (res.result.success) {
@@ -583,7 +636,7 @@ export default {
                             this.loadPortfolios();
                         }, 300);
                     } else {
-                        console.error('组件创建作品集业务失败:', res.result);
+                        console.error('【portfolio-selector】组件创建作品集业务失败:', res.result);
                         uni.showToast({
                             title: res.result.message || '创建失败',
                             icon: 'none',
@@ -591,7 +644,7 @@ export default {
                         });
                     }
                 } else {
-                    console.error('组件创建作品集返回格式异常:', res);
+                    console.error('【portfolio-selector】组件创建作品集返回格式异常:', res);
                     uni.showToast({
                         title: '创建失败：返回格式错误',
                         icon: 'none',
@@ -600,9 +653,9 @@ export default {
                 }
             } catch (error) {
                 uni.hideLoading();
-                console.error('组件创建作品集云函数调用失败:', error);
+                console.error('【portfolio-selector】组件创建作品集云函数调用失败:', error);
                 uni.showToast({
-                    title: '创建失败: ' + (error.errMsg || '网络错误'),
+                    title: error.message || '创建失败',
                     icon: 'none',
                     duration: 3000
                 });

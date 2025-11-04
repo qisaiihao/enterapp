@@ -1,6 +1,14 @@
 <template>
     <!-- pages/draft-box/draft-box.wxml -->
     <view class="container">
+        <!-- 顶部导航栏 -->
+        <view class="header">
+            <view class="header-left" @tap="goBack">
+                <image class="back-icon-image" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
+            </view>
+            <text class="header-title">草稿箱</text>
+        </view>
+        
         <!-- 草稿列表 -->
         <view v-if="drafts.length > 0" class="draft-list" @tap="closeAllDeleteActions">
             <view class="draft-item-wrapper" v-for="(item, index) in drafts" :key="index">
@@ -200,6 +208,25 @@ export default {
             });
         },
 
+        // 返回上一页
+        goBack: function () {
+            const pages = getCurrentPages();
+            if (pages.length > 1) {
+                uni.navigateBack({
+                    delta: 1,
+                    fail: () => {
+                        uni.switchTab({
+                            url: '/pages/index/index'
+                        });
+                    }
+                });
+            } else {
+                uni.switchTab({
+                    url: '/pages/index/index'
+                });
+            }
+        },
+
         // 兼容旧调用签名
         formatTime: function (timestamp) {
             return formatRelativeTime(timestamp) || formatDate(timestamp, 'yyyy-MM-dd HH:mm');
@@ -305,6 +332,38 @@ export default {
 .container {
     background-color: #fff;
     min-height: 100vh;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 20rpx 30rpx;
+    background: #fff;
+    border-bottom: 1rpx solid #e9ecef;
+}
+
+.header-left {
+    position: absolute;
+    left: 30rpx;
+    width: 60rpx;
+    height: 60rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.back-icon-image {
+    width: 72rpx;
+    height: 72rpx;
+    margin-top: 4rpx;
+}
+
+.header-title {
+    font-size: 36rpx;
+    font-weight: 600;
+    color: #333;
 }
 
 .draft-list {

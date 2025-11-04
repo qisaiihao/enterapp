@@ -4,7 +4,7 @@
         <!-- 头部 -->
         <view class="header" :style="'top: ' + statusBarHeight + 'px;'">
             <view class="header-left" @tap="goBack">
-                <text class="back-icon">←</text>
+                <image class="back-icon-image" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
             </view>
             <text class="header-title">意见反馈</text>
             <view class="header-right"></view>
@@ -266,7 +266,21 @@ export default {
 
         // 返回上一页
         goBack: function () {
-            uni.navigateBack();
+            const pages = getCurrentPages();
+            if (pages.length > 1) {
+                uni.navigateBack({
+                    delta: 1,
+                    fail: () => {
+                        uni.switchTab({
+                            url: '/pages/index/index'
+                        });
+                    }
+                });
+            } else {
+                uni.switchTab({
+                    url: '/pages/index/index'
+                });
+            }
         },
 
         // 兼容性文件上传方法
@@ -335,15 +349,16 @@ export default {
 .header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
+    position: relative;
     padding: 20rpx 30rpx;
     background-color: #fff;
-    border-bottom: 1rpx solid #eee;
-    position: sticky;
-    z-index: 100;
+    border-bottom: 1rpx solid #e9ecef;
 }
 
 .header-left {
+    position: absolute;
+    left: 30rpx;
     width: 60rpx;
     height: 60rpx;
     display: flex;
@@ -351,20 +366,25 @@ export default {
     justify-content: center;
 }
 
-.back-icon {
-    font-size: 36rpx;
-    color: #333;
-    font-weight: bold;
+.back-icon-image {
+    width: 72rpx;
+    height: 72rpx;
+    margin-top: 4rpx;
 }
 
 .header-title {
-    font-size: 32rpx;
+    font-size: 36rpx;
     font-weight: 600;
     color: #333;
 }
 
 .header-right {
+    position: absolute;
+    right: 30rpx;
     width: 60rpx;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
 }
 
 /* 内容区域 */
@@ -488,19 +508,27 @@ export default {
 .submit-btn {
     width: 100%;
     height: 88rpx;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #fff;
+    background: #fff;
+    color: #333;
     font-size: 32rpx;
     font-weight: 600;
     border-radius: 44rpx;
-    border: none;
+    border: 1rpx solid #e0e0e0;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.submit-btn:active {
+    background: #f5f5f5;
+    transform: scale(0.98);
 }
 
 .submit-btn.submitting {
-    background: #ccc;
+    background: #f5f5f5;
+    color: #999;
+    border-color: #e0e0e0;
 }
 
 .submit-btn::after {
