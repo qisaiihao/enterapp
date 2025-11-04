@@ -6,7 +6,7 @@
                     <image class="icon-img" :src="selected === index ? (item.selectedIconPath || item.iconPath) : item.iconPath" mode="aspectFill" />
                 </view>
             </view>
-            <text class="tab-bar-text">{{ item.text }}</text>
+            <text class="tab-bar-text" :style="'color: ' + (selected === index ? selectedColor : color)">{{ item.text }}</text>
         </view>
     </view>
 </template>
@@ -17,7 +17,7 @@ export default {
         return {
             selected: 0,
             color: '#999999',
-            selectedColor: '#9ed7ee',
+            selectedColor: '#000000',
             lastTapTime: 0,
             lastTapIndex: -1,
             doubleTapThreshold: 300,
@@ -30,19 +30,19 @@ export default {
                 },
                 {
                     pagePath: 'pages/poem-square/poem-square',
-                    text: '·',
+                    text: '原创',
                     iconPath: '/static/images/road.png',
                     selectedIconPath: '/static/images/roadplus.png'
                 },
                 {
                     pagePath: 'pages/mountain/mountain',
-                    text: '山',
+                    text: '读诗',
                     iconPath: '/static/images/mountain.png',
                     selectedIconPath: '/static/images/mountainplus.png'
                 },
                 {
                     pagePath: 'pages/profile/profile',
-                    text: '池',
+                    text: '我',
                     iconPath: '/static/images/pools.png',
                     selectedIconPath: '/static/images/poolsplus.png'
                 }
@@ -172,9 +172,8 @@ export default {
 
 .tab-bar-text {
   font-size: 22rpx;
-  color: transparent;
-  height: 0;
-  overflow: hidden;
+  margin-top: 4rpx;
+  transition: all 0.3s ease;
 }
 
 /* 响应式间距调整 */

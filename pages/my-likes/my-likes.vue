@@ -160,7 +160,12 @@ export default {
 
                 const posts = normalizePostList(res.result.posts || []);
                 console.log('【my-likes】本次返回帖子数量:', posts.length);
-                const newLikedPosts = page === 0 || isRefresh ? posts : this.likedPosts.concat(posts);
+                // 处理分页数据，避免重复
+                const newLikedPosts = page === 0 || isRefresh ? posts : (() => {
+                    const existingIds = new Set(this.likedPosts.map(p => p._id));
+                    const uniqueNewList = posts.filter(p => p && p._id && !existingIds.has(p._id));
+                    return this.likedPosts.concat(uniqueNewList);
+                })();
                 console.log('【my-likes】更新后 likedPosts 长度:', newLikedPosts.length, 'hasMore:', posts.length === PAGE_SIZE, 'page:', page + 1);
                 this.setData({
                     likedPosts: newLikedPosts

@@ -171,7 +171,15 @@ export default {
                 posts = await hydrateTempUrls(posts);
                 warmTempUrlsFromPosts(posts);
 
-                const newPostList = page === 0 || isRefresh ? posts : this.postList.concat(posts);
+                // 处理分页数据，避免重复
+                let newPostList;
+                if (page === 0 || isRefresh) {
+                    newPostList = posts;
+                } else {
+                    const existingIds = new Set(this.postList.map(p => p._id));
+                    const uniqueNewList = posts.filter(p => p && p._id && !existingIds.has(p._id));
+                    newPostList = this.postList.concat(uniqueNewList);
+                }
                 this.setData({
                     postList: newPostList
                 });

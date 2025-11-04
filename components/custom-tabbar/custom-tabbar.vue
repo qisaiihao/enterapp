@@ -14,7 +14,7 @@ export default {
         return {
             selected: 0,
             color: '#999999',
-            selectedColor: '#9ed7ee',
+            selectedColor: '#000000',
             list: [
                 {
                     pagePath: 'pages/index/index',
@@ -24,19 +24,19 @@ export default {
                 },
                 {
                     pagePath: 'pages/poem-square/poem-square',
-                    text: '路',
+                    text: '原创',
                     iconPath: '/static/images/road.png',
                     selectedIconPath: '/static/images/road.png'
                 },
                 {
                     pagePath: 'pages/mountain/mountain',
-                    text: '山',
+                    text: '读诗',
                     iconPath: '/static/images/mountain.png',
                     selectedIconPath: '/static/images/mountain.png'
                 },
                 {
                     pagePath: 'pages/profile/profile',
-                    text: '湖',
+                    text: '我',
                     iconPath: '/static/images/pools.png',
                     selectedIconPath: '/static/images/pools.png'
                 }

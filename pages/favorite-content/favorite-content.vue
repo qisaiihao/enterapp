@@ -298,7 +298,12 @@ export default {
                     return item;
                 });
 
-                const allFavorites = page === 0 || isRefresh ? newFavorites : this.favorites.concat(newFavorites);
+                // 处理分页数据，避免重复
+                const allFavorites = page === 0 || isRefresh ? newFavorites : (() => {
+                    const existingIds = new Set(this.favorites.map(p => p._id));
+                    const uniqueNewList = newFavorites.filter(p => p && p._id && !existingIds.has(p._id));
+                    return this.favorites.concat(uniqueNewList);
+                })();
                 this.setData({
                     favorites: allFavorites
                 });

@@ -745,7 +745,10 @@ export default {
                     posts = await hydrateTempUrls(posts);
                     warmTempUrlsFromPosts(posts);
                     
-                    const newPosts = this.userPosts.concat(posts);
+                    // 处理分页数据，避免重复
+                    const existingIds = new Set(this.userPosts.map(p => p._id));
+                    const uniqueNewList = posts.filter(p => p && p._id && !existingIds.has(p._id));
+                    const newPosts = this.userPosts.concat(uniqueNewList);
                     this.setData({
                         userPosts: newPosts,
                         page: page + 1,
@@ -1236,7 +1239,12 @@ export default {
                         warmTempUrlsFromPosts(normalized);
                     } catch (_) {}
 
-                    const newFavoriteList = favoritePage === 0 ? normalized : this.favoriteList.concat(normalized || []);
+                    // 处理分页数据，避免重复
+                    const newFavoriteList = favoritePage === 0 ? normalized : (() => {
+                        const existingIds = new Set(this.favoriteList.map(p => p._id));
+                        const uniqueNewList = (normalized || []).filter(p => p && p._id && !existingIds.has(p._id));
+                        return this.favoriteList.concat(uniqueNewList);
+                    })();
                     this.setData({
                         favoriteList: newFavoriteList,
                         favoritePage: favoritePage + 1,

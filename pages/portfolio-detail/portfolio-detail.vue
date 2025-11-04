@@ -308,7 +308,12 @@ export default {
           p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
         });
         
-        const newPostList = this.page === 0 ? list : this.postList.concat(list);
+        // 处理分页数据，避免重复
+        const newPostList = this.page === 0 ? list : (() => {
+          const existingIds = new Set(this.postList.map(p => p._id));
+          const uniqueNewList = list.filter(p => p && p._id && !existingIds.has(p._id));
+          return this.postList.concat(uniqueNewList);
+        })();
         this.setData({
           postList: newPostList,
           page: this.page + 1,

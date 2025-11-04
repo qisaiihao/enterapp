@@ -155,7 +155,15 @@ export default {
           p.authorSignature = ''; // 添加作者签名属性
           p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
         });
-        this.postList = this.page === 0 ? list : this.postList.concat(list);
+        // 处理分页数据，避免重复
+        if (this.page === 0) {
+          this.postList = list;
+        } else {
+          // 合并时去重：使用 Set 来去重，保留已存在的项
+          const existingIds = new Set(this.postList.map(p => p._id));
+          const uniqueNewList = list.filter(p => p && p._id && !existingIds.has(p._id));
+          this.postList = this.postList.concat(uniqueNewList);
+        }
         this.page += 1;
         this.hasMore = list.length === PAGE_SIZE;
       } catch (e) {

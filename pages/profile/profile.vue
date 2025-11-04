@@ -1083,7 +1083,12 @@ export default {
                             });
                         });
 
-                        const newMyPosts = page === 0 ? posts : this.myPosts.concat(posts);
+                        // 处理分页数据，避免重复
+                        const newMyPosts = page === 0 ? posts : (() => {
+                            const existingIds = new Set(this.myPosts.map(p => p._id));
+                            const uniqueNewList = posts.filter(p => p && p._id && !existingIds.has(p._id));
+                            return this.myPosts.concat(uniqueNewList);
+                        })();
                         console.log('【profile】📊 缓存API更新myPosts数据:', {
                             beforeLength: this.myPosts.length,
                             afterLength: newMyPosts.length,
@@ -1186,7 +1191,12 @@ export default {
                         });
                     });
 
-                    const newMyPosts = page === 0 ? posts : this.myPosts.concat(posts);
+                    // 处理分页数据，避免重复
+                    const newMyPosts = page === 0 ? posts : (() => {
+                        const existingIds = new Set(this.myPosts.map(p => p._id));
+                        const uniqueNewList = posts.filter(p => p && p._id && !existingIds.has(p._id));
+                        return this.myPosts.concat(uniqueNewList);
+                    })();
                     console.log('【profile】📊 云函数更新myPosts数据:', {
                         beforeLength: this.myPosts.length,
                         afterLength: newMyPosts.length,
@@ -1886,7 +1896,12 @@ export default {
                             if (favorite.favoriteTime) favorite.formattedFavoriteTime = this.formatTime(favorite.favoriteTime);
                             if (favorite.imageUrls && favorite.imageUrls.length > 0) favorite.imageStyle = `height: 0; padding-bottom: 75%;`;
                         });
-                        const newFavoriteList = favoritePage === 0 ? favorites : this.favoriteList.concat(favorites || []);
+                        // 处理分页数据，避免重复
+                        const newFavoriteList = favoritePage === 0 ? favorites : (() => {
+                            const existingIds = new Set(this.favoriteList.map(p => p._id));
+                            const uniqueNewList = (favorites || []).filter(p => p && p._id && !existingIds.has(p._id));
+                            return this.favoriteList.concat(uniqueNewList);
+                        })();
                         this.setData({
                             favoriteList: newFavoriteList,
                             favoritePage: favoritePage + 1,
@@ -1931,7 +1946,12 @@ export default {
                         }
                     });
 
-                    const newFavoriteList = favoritePage === 0 ? favorites : this.favoriteList.concat(favorites);
+                    // 处理分页数据，避免重复
+                    const newFavoriteList = favoritePage === 0 ? favorites : (() => {
+                        const existingIds = new Set(this.favoriteList.map(p => p._id));
+                        const uniqueNewList = favorites.filter(p => p && p._id && !existingIds.has(p._id));
+                        return this.favoriteList.concat(uniqueNewList);
+                    })();
                     console.log(
                         '【profile】更新后收藏列表长度:',
                         newFavoriteList.length,

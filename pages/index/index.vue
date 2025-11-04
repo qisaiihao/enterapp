@@ -1467,8 +1467,10 @@ onReachBottom: function () {
                     }, 500);
 
                     const newPostsCount = posts.length;
-                    const currentPostList = this.postList;
-                    const newPostList = currentPostList.concat(posts);
+                    // 处理分页数据，避免重复
+                    const existingIds = new Set(this.postList.map(p => p._id));
+                    const uniqueNewList = posts.filter(p => p && p._id && !existingIds.has(p._id));
+                    const newPostList = this.postList.concat(uniqueNewList);
                     const updateData = {
                         postList: newPostList,
                         page: this.page + 1,
@@ -1736,7 +1738,12 @@ onReachBottom: function () {
                 }
 
                 const currentList = Array.isArray(this.discoverPostList) ? this.discoverPostList.slice() : [];
-                const combined = page === 0 ? normalizedPosts : currentList.concat(normalizedPosts);
+                // 处理分页数据，避免重复
+                const combined = page === 0 ? normalizedPosts : (() => {
+                    const existingIds = new Set(currentList.map(p => p._id));
+                    const uniqueNewList = normalizedPosts.filter(p => p && p._id && !existingIds.has(p._id));
+                    return currentList.concat(uniqueNewList);
+                })();
 
                 // 记录已显示的帖子ID，并控制上限
                 const newShownIds = normalizedPosts.map((post) => post._id).filter(Boolean);
@@ -1830,8 +1837,11 @@ onReachBottom: function () {
                     posts = await hydrateTempUrls(posts);
                     warmTempUrlsFromPosts(posts);
 
+                    // 处理分页数据，避免重复
                     const currentList = this.discussionPage === 0 ? [] : this.discussionPostList;
-                    const newList = currentList.concat(posts);
+                    const existingIds = new Set(currentList.map(p => p._id));
+                    const uniqueNewList = posts.filter(p => p && p._id && !existingIds.has(p._id));
+                    const newList = currentList.concat(uniqueNewList);
 
                     this.setData({
                         discussionPostList: newList,
@@ -2019,8 +2029,11 @@ onReachBottom: function () {
                     posts = await hydrateTempUrls(posts);
                     warmTempUrlsFromPosts(posts);
 
+                    // 处理分页数据，避免重复
                     const currentList = this.followingPage === 0 ? [] : this.followingPostList;
-                    const newList = currentList.concat(posts);
+                    const existingIds = new Set(currentList.map(p => p._id));
+                    const uniqueNewList = posts.filter(p => p && p._id && !existingIds.has(p._id));
+                    const newList = currentList.concat(uniqueNewList);
 
                     this.setData({
                         followingPostList: newList,

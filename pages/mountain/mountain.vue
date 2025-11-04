@@ -278,7 +278,17 @@ export default {
           p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
         });
         
-        const newPostList = this.page === 0 ? visibleList : this.postList.concat(visibleList);
+        // 处理分页数据，避免重复
+        let newPostList;
+        if (this.page === 0) {
+          newPostList = visibleList;
+        } else {
+          // 合并时去重：使用 Set 来去重，保留已存在的项
+          const existingIds = new Set(this.postList.map(p => p._id));
+          const uniqueNewList = visibleList.filter(p => p && p._id && !existingIds.has(p._id));
+          newPostList = this.postList.concat(uniqueNewList);
+        }
+        
         this.setData({
           postList: newPostList,
           page: this.page + 1,

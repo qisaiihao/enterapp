@@ -204,10 +204,14 @@ export default {
             }
           });
 
+          // 处理分页数据，避免重复
           if (this.skip === 0) {
             this.postList = processedPosts;
           } else {
-            this.postList = [...this.postList, ...processedPosts];
+            // 合并时去重：使用 Set 来去重，保留已存在的项
+            const existingIds = new Set(this.postList.map(p => p._id));
+            const uniqueNewList = processedPosts.filter(p => p && p._id && !existingIds.has(p._id));
+            this.postList = [...this.postList, ...uniqueNewList];
           }
 
           this.hasMore = newPosts.length === this.limit;

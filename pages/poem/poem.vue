@@ -604,7 +604,12 @@ export default {
                         }
                     });
                     
-                    const newPostList = this.page === 0 ? posts : this.postList.concat(posts);
+                    // 处理分页数据，避免重复
+                    const newPostList = this.page === 0 ? posts : (() => {
+                        const existingIds = new Set(this.postList.map(p => p._id));
+                        const uniqueNewList = posts.filter(p => p && p._id && !existingIds.has(p._id));
+                        return this.postList.concat(uniqueNewList);
+                    })();
                     console.log('✅ [Poem] 更新后的postList长度:', newPostList.length);
                     
                     this.setData({
@@ -769,7 +774,10 @@ export default {
                                 post.imageUrls = post.imageUrl ? [post.imageUrl] : [];
                             }
                         });
-                        const newPostList = this.postList.concat(posts);
+                        // 处理分页数据，避免重复
+                        const existingIds = new Set(this.postList.map(p => p._id));
+                        const uniqueNewList = posts.filter(p => p && p._id && !existingIds.has(p._id));
+                        const newPostList = this.postList.concat(uniqueNewList);
                         this.setData({
                             postList: newPostList,
                             page: this.page + 1,

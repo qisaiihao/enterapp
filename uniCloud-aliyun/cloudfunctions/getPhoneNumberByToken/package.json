@@ -1,0 +1,11 @@
+{
+  "name": "getPhoneNumberByToken",
+  "version": "1.0.0",
+  "description": "通过 access_token 和 openid 获取手机号的云函数",
+  "main": "index.js",
+  "dependencies": {},
+  "extensions": {
+    "uni-cloud-verify": {}
+  }
+}
+
