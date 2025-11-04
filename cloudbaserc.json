@@ -358,6 +358,12 @@
               "memory": 128
             },
             {
+              "name": "updatePostContent",
+              "root": "./functions/updatePostContent",
+              "timeout": 10,
+              "memory": 256
+            },
+            {
               "name": "initDatabase",
               "root": "./functions/initDatabase",
               "timeout": 10,

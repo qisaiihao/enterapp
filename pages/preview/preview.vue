@@ -438,7 +438,9 @@ export default {
         selectedTags: addData.selectedTags,
         author: addData.author,
         highlightLines: addData.highlightLines,
-        highlightSelectedLineIndices: addData.highlightSelectedLineIndices
+        highlightSelectedLineIndices: addData.highlightSelectedLineIndices,
+        isEditMode: addData.isEditMode,
+        editingPostId: addData.editingPostId
       });
 
       const hasTitle = this.post && this.post.title && this.post.title.trim();
@@ -482,8 +484,17 @@ export default {
         imageList: addData.imageList || [], // 确保imageList字段存在
         // 添加匿名相关字段
         isAnonymous: this.post.isAnonymous || false,
-        anonymousAuthorName: this.post.anonymousAuthorName || '匿名用户'
+        anonymousAuthorName: this.post.anonymousAuthorName || '匿名用户',
+        // 保留编辑模式信息
+        isEditMode: addData.isEditMode || false,
+        editingPostId: addData.editingPostId || ''
       };
+      
+      console.log('【Preview】合并后的发布数据:', {
+        ...publishData,
+        isEditMode: publishData.isEditMode,
+        editingPostId: publishData.editingPostId
+      });
 
       // 执行发布逻辑
       this.executePublish(publishData);
@@ -591,13 +602,24 @@ export default {
       
       const uploadPromises = imageList.map((imageInfo, index) => {
         return new Promise((resolve, reject) => {
+          // 如果是编辑模式且图片来自编辑（不需要重新上传），使用原始fileID
+          if (addData.isEditMode && imageInfo.isFromEdit) {
+            // 优先使用保存的原始fileID，如果没有则使用compressedPath/originalPath
+            resolve({
+              compressedUrl: imageInfo.originalFileID || imageInfo.compressedPath,
+              originalUrl: imageInfo.originalOriginalFileID || imageInfo.originalPath
+            });
+            return;
+          }
+          
           const imageTimestamp = timestamp + index;
           const compressedCloudPath = `post_images/${imageTimestamp}_compressed.jpg`;
           
           console.log(`【Preview】准备上传第${index + 1}张图片:`, {
             compressedPath: imageInfo.compressedPath,
             originalPath: imageInfo.originalPath,
-            needCompression: imageInfo.needCompression
+            needCompression: imageInfo.needCompression,
+            isFromEdit: imageInfo.isFromEdit
           });
           
           // 使用兼容性上传方法
@@ -649,6 +671,77 @@ export default {
     submitToDatabase(addData, uploadResults) {
       const { cloudCall } = require('../../utils/cloudCall.js');
 
+      // 检查是否是编辑模式
+      const isEditMode = addData.isEditMode && addData.editingPostId;
+      console.log('【Preview】提交到数据库，编辑模式检查:', {
+        isEditMode: isEditMode,
+        editingPostId: addData.editingPostId,
+        addDataIsEditMode: addData.isEditMode
+      });
+
+      // 如果是编辑模式，调用更新接口
+      if (isEditMode) {
+        console.log('【Preview】进入编辑模式，准备更新帖子');
+        
+        // 确定作者信息
+        let authorName = '';
+        if (addData.publishMode === 'poem') {
+          if (addData.isOriginal) {
+            const userInfo = uni.getStorageSync('userInfo');
+            const userNickName = userInfo ? userInfo.nickName : '匿名用户';
+            authorName = addData.author && addData.author.trim() ? addData.author.trim() : userNickName;
+          } else {
+            authorName = addData.author && addData.author.trim() ? addData.author.trim() : '';
+          }
+        }
+
+        const imageUrls = uploadResults.map((result) => result.compressedUrl).filter(url => url);
+        const originalImageUrls = uploadResults.map((result) => result.originalUrl).filter(url => url);
+
+        // 准备更新数据
+        const updateData = {
+          title: addData.title,
+          content: addData.content,
+          tags: addData.selectedTags || [],
+          backgroundColor: addData.selectedBackgroundColor || '',
+          textColor: addData.selectedTextColor || '#000000',
+          highlightSentence: addData.highlightLines && addData.highlightLines.length > 0 ? addData.highlightLines[0] : '',
+          highlightLines: addData.highlightLines || [],
+          author: authorName,
+          isAnonymous: this.post.isAnonymous || false,
+          anonymousAuthorName: this.post.anonymousAuthorName || '匿名用户',
+          fileIDs: imageUrls.length > 0 ? imageUrls : [],
+          originalFileIDs: originalImageUrls.length > 0 ? originalImageUrls : (imageUrls.length > 0 ? imageUrls : []),
+          isDiscussion: addData.publishMode === 'discussion' || false
+        };
+
+        console.log('【Preview】准备更新帖子，数据:', {
+          postId: addData.editingPostId,
+          updateData: updateData
+        });
+
+        // 调用更新接口
+        return cloudCall('updatePostContent', {
+          postId: addData.editingPostId,
+          data: updateData
+        }, { pageTag: 'preview', context: this, requireAuth: true }).then((res) => {
+          console.log('【Preview】更新帖子结果:', res);
+          if (res && res.result && res.result.success) {
+            this.publishSuccess({
+              _id: addData.editingPostId
+            });
+          } else {
+            this.publishFail(new Error(res.result?.message || '更新失败'));
+          }
+        }).catch((err) => {
+          console.error('【Preview】更新帖子失败:', err);
+          this.publishFail(err);
+        });
+      }
+
+      // 如果不是编辑模式，创建新帖子
+      console.log('【Preview】非编辑模式，准备创建新帖子');
+
       // 确定作者信息
       let authorName = '';
       if (addData.publishMode === 'poem') {
@@ -688,7 +781,7 @@ export default {
       }
 
       // 调用云函数提交数据
-      cloudCall('contentCheck', {
+      return cloudCall('contentCheck', {
         title: addData.title,
         content: addData.content,
         fileIDs: uploadResults.map(r => r.compressedUrl).filter(url => url),
@@ -726,17 +819,32 @@ export default {
     // 发布成功
     publishSuccess(res) {
       uni.hideLoading();
+      
+      // 检查是否是编辑模式（从addData获取）
+      const pages = getCurrentPages();
+      const addPage = pages[pages.length - 2];
+      const isEditMode = addPage && addPage.$vm && addPage.$vm.isEditMode && addPage.$vm.editingPostId;
+      
+      const successMessage = isEditMode ? '编辑成功！' : '发布成功！';
       uni.showToast({
-        title: '发布成功！'
+        title: successMessage
       });
 
       // 触发全局事件，通知所有页面刷新缓存
       try {
-        const { emitPostCreated } = require('../../utils/events.js');
-        emitPostCreated(); // 触发新帖子创建事件，刷新所有相关缓存
-        console.log('【Preview】已触发 POST_CREATED 事件');
+        if (isEditMode) {
+          // 编辑模式：发送帖子更新事件
+          const { emitPostUpdated } = require('../../utils/events.js');
+          emitPostUpdated(res._id);
+          console.log('【Preview】已触发 POST_UPDATED 事件');
+        } else {
+          // 创建模式：发送帖子创建事件
+          const { emitPostCreated } = require('../../utils/events.js');
+          emitPostCreated(); // 触发新帖子创建事件，刷新所有相关缓存
+          console.log('【Preview】已触发 POST_CREATED 事件');
+        }
       } catch (e) {
-        console.error('触发POST_CREATED事件失败:', e);
+        console.error('触发事件失败:', e);
       }
 
       // 设置各页面需要刷新标记（备用机制）

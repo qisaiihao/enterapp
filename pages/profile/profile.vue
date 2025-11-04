@@ -462,6 +462,9 @@
         <!-- 底部操作菜单（参考豆瓣样式） -->
         <view v-if="isActionMenuVisible" class="action-menu-overlay" @tap="hideActionMenu">
             <view class="action-menu-container" @tap.stop>
+                <view class="action-menu-item" @tap="handleEditPost">
+                    <text>编辑</text>
+                </view>
                 <view class="action-menu-item" @tap="handleToggleVisibility">
                     <text>{{ actionMenuData.isHidden ? '取消隐藏' : '隐藏' }}</text>
                 </view>
@@ -834,6 +837,41 @@ export default {
                 uni.showToast({ title: '操作失败', icon: 'none' });
             }).finally(() => {
                 this.hideActionMenu();
+            });
+        },
+        
+        // 从菜单中处理编辑
+        handleEditPost: function () {
+            const { postId, index } = this.actionMenuData;
+            if (!postId || typeof index === 'undefined') {
+                console.error('【profile】handleEditPost: 参数缺失');
+                this.hideActionMenu();
+                return;
+            }
+            
+            // 获取当前帖子数据
+            const post = this.myPosts[index];
+            if (!post) {
+                console.error('【profile】handleEditPost: 帖子不存在');
+                this.hideActionMenu();
+                return;
+            }
+            
+            this.hideActionMenu();
+            
+            // 跳转到编辑页面，传递帖子ID
+            uni.navigateTo({
+                url: `/pages/add/add?mode=edit&postId=${postId}`,
+                success: () => {
+                    console.log('【profile】跳转到编辑页面成功');
+                },
+                fail: (err) => {
+                    console.error('【profile】跳转到编辑页面失败:', err);
+                    uni.showToast({
+                        title: '跳转失败',
+                        icon: 'none'
+                    });
+                }
             });
         },
         

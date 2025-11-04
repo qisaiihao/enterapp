@@ -178,13 +178,13 @@
                         <image class="side-tool-icon mode-switch-icon" src="/static/images/change.png" mode="aspectFit" alt="切换发布模式"></image>
                     </view>
                     
-                    <!-- 选择高光句按钮 - 只在诗歌模式下显示 -->
-                    <view v-if="publishMode === 'poem'" class="side-tool-btn" @tap.stop="toggleHighlightMode">
+                    <!-- 选择高光句按钮 -->
+                    <view class="side-tool-btn" @tap.stop="toggleHighlightMode">
                         <image class="side-tool-icon" src="/static/images/select_highlight.png" mode="aspectFit"></image>
                     </view>
                     
-                    <!-- 选择颜色按钮 - 只在诗歌模式下显示 -->
-                    <view v-if="publishMode === 'poem'" class="side-tool-btn" @tap.stop="onSelectColor">
+                    <!-- 选择颜色按钮 -->
+                    <view class="side-tool-btn" @tap.stop="onSelectColor">
                         <image class="side-tool-icon" src="/static/images/select_color.png" mode="aspectFit"></image>
                     </view>
                 </view>
@@ -309,6 +309,7 @@ export default {
     data() {
         return {
             content: '',
+            title: '', // 标题（在预览页面编辑）
             // 选择颜色
             selectedBackgroundColor: '#a4c4bd',
             selectedTextColor: '#333333',
@@ -664,6 +665,10 @@ export default {
             keyboardHeight: 0,
 
             // 键盘高度
+            // 编辑模式相关
+            isEditMode: false,
+            editingPostId: '',
+            editingPost: null,
 
             // 标签分类数据
             tagCategories: [
@@ -917,8 +922,16 @@ export default {
         // 页面加载时获取所有已有标签
         this.loadAllExistingTags();
 
+        // 检查是否是编辑帖子模式（从个人主页进入）
+        if (options.mode === 'edit' && options.postId) {
+            this.setData({
+                isEditMode: true,
+                editingPostId: options.postId
+            });
+            this.loadPostForEdit(options.postId);
+        } 
         // 检查是否是编辑草稿模式
-        if (options.mode === 'edit') {
+        else if (options.mode === 'edit') {
             this.loadEditingDraft();
         } else {
             // 加载草稿
@@ -1054,6 +1067,133 @@ export default {
                 })
                 .catch(err => {
                     console.error('Failed to load all existing tags:', err);
+                });
+        },
+
+        // 加载帖子数据用于编辑
+        loadPostForEdit: function (postId) {
+            console.log('【Add】加载帖子用于编辑，postId:', postId);
+            uni.showLoading({ title: '加载中...' });
+            
+            this.callCloudFunction('getPostDetail', { postId: postId }, { injectOpenId: false })
+                .then(async (res) => {
+                    if (res.result && res.result.post) {
+                        const post = res.result.post;
+                        console.log('【Add】加载到的帖子数据:', post);
+                        
+                        // 处理图片：将fileID转换为本地预览URL
+                        const imageList = [];
+                        if (post.imageUrls && post.imageUrls.length > 0) {
+                            try {
+                                // 在转换之前保存原始的fileID（如果存在）
+                                const originalImageUrls = post.imageUrls.map(url => 
+                                    typeof url === 'string' && url.startsWith('cloud://') ? url : null
+                                );
+                                const originalOriginalImageUrls = post.originalImageUrls ? 
+                                    post.originalImageUrls.map(url => 
+                                        typeof url === 'string' && url.startsWith('cloud://') ? url : null
+                                    ) : null;
+                                
+                                // 使用hydrate-temp-urls工具将fileID转换为临时URL（用于预览）
+                                const { hydrateTempUrls } = require('@/_utils/hydrate-temp-urls');
+                                await hydrateTempUrls([post]);
+                                
+                                // 将图片URL添加到imageList（编辑模式下保存原始fileID用于提交）
+                                for (let i = 0; i < post.imageUrls.length; i++) {
+                                    // 优先使用原始fileID，如果没有则使用转换后的URL
+                                    const originalFileID = originalImageUrls[i];
+                                    const originalOriginalFileID = originalOriginalImageUrls && originalOriginalImageUrls[i];
+                                    
+                                    imageList.push({
+                                        previewUrl: post.imageUrls[i], // 用于预览的临时URL
+                                        compressedPath: originalFileID || post.imageUrls[i], // 编辑模式下使用原始fileID
+                                        originalPath: originalOriginalFileID || (post.originalImageUrls && post.originalImageUrls[i]) || post.imageUrls[i],
+                                        needCompression: false, // 编辑模式下不需要压缩
+                                        isFromEdit: true, // 标记来自编辑模式
+                                        originalFileID: originalFileID, // 保存原始fileID
+                                        originalOriginalFileID: originalOriginalFileID // 保存原始原图fileID
+                                    });
+                                }
+                            } catch (err) {
+                                console.error('【Add】处理图片URL失败:', err);
+                            }
+                        }
+                        
+                        // 处理高光句
+                        let highlightLines = [];
+                        let highlightSelectedLineIndices = [];
+                        if (post.highlightLines && Array.isArray(post.highlightLines) && post.highlightLines.length > 0) {
+                            highlightLines = post.highlightLines;
+                            // 如果content存在，尝试找到高光行的索引
+                            if (post.content) {
+                                const lines = post.content.split(/\r?\n/);
+                                highlightSelectedLineIndices = highlightLines.map(hl => {
+                                    const index = lines.findIndex(line => line.trim() === hl.trim());
+                                    return index >= 0 ? index : -1;
+                                }).filter(idx => idx >= 0);
+                            }
+                        } else if (post.highlightSentence) {
+                            // 兼容旧版本的高光句字段
+                            highlightLines = [post.highlightSentence];
+                            if (post.content) {
+                                const lines = post.content.split(/\r?\n/);
+                                const index = lines.findIndex(line => line.trim() === post.highlightSentence.trim());
+                                if (index >= 0) {
+                                    highlightSelectedLineIndices = [index];
+                                }
+                            }
+                        }
+                        
+                        // 设置编辑数据
+                        this.setData({
+                            content: post.content || '',
+                            title: post.title || '',
+                            author: post.author || '',
+                            selectedTags: post.tags || [],
+                            selectedBackgroundColor: post.backgroundColor || '#a4c4bd',
+                            selectedTextColor: post.textColor || '#333333',
+                            selectedColorCombination: post.backgroundColor && post.textColor ? {
+                                backgroundColor: post.backgroundColor,
+                                textColor: post.textColor
+                            } : { backgroundColor: '#a4c4bd', textColor: '#333333' },
+                            highlightLines: highlightLines,
+                            highlightSelectedLineIndices: highlightSelectedLineIndices,
+                            highlightSentence: highlightLines[0] || '',
+                            imageList: imageList,
+                            publishMode: post.isPoem ? 'poem' : (post.isDiscussion ? 'discussion' : 'normal'),
+                            isOriginal: post.isOriginal || false,
+                            maxImageCount: post.isPoem ? 1 : 9,
+                            editingPost: post
+                        });
+                        
+                        // 更新发布模式相关的placeholder
+                        this.updatePlaceholder();
+                        
+                        // 检查是否可以发布
+                        this.checkCanPublish();
+                        
+                        uni.hideLoading();
+                    } else {
+                        uni.hideLoading();
+                        uni.showToast({
+                            title: '加载帖子失败',
+                            icon: 'none'
+                        });
+                        setTimeout(() => {
+                            uni.navigateBack();
+                        }, 1500);
+                    }
+                })
+                .catch((err) => {
+                    console.error('【Add】加载帖子失败:', err);
+                    uni.hideLoading();
+                    uni.showToast({
+                        title: '加载失败',
+                        icon: 'none'
+                    });
+                    setTimeout(() => {
+                        uni.navigateBack();
+                    }, 1500);
                 });
         },
 
@@ -1577,6 +1717,16 @@ export default {
             console.log('开始上传图片:', imageList.length + '张');
             const uploadPromises = imageList.map((imageInfo, index) => {
                 return new Promise((resolve, reject) => {
+                    // 如果是编辑模式且图片来自编辑（不需要重新上传），使用原始fileID
+                    if (that.isEditMode && imageInfo.isFromEdit) {
+                        // 优先使用保存的原始fileID，如果没有则使用compressedPath/originalPath
+                        resolve({
+                            compressedUrl: imageInfo.originalFileID || imageInfo.compressedPath,
+                            originalUrl: imageInfo.originalOriginalFileID || imageInfo.originalPath
+                        });
+                        return;
+                    }
+                    
                     const imageTimestamp = timestamp + index;
                     const compressedCloudPath = `post_images/${imageTimestamp}_compressed.jpg`;
                     
@@ -1626,7 +1776,8 @@ export default {
                 title: this.title,
                 content: this.content,
                 publishMode: this.publishMode,
-                isOriginal: this.isOriginal
+                isOriginal: this.isOriginal,
+                isEditMode: this.isEditMode
             });
             console.log('uploadResults详细信息:', uploadResults);
             console.log('uploadResults长度:', uploadResults.length);
@@ -1642,6 +1793,87 @@ export default {
                 imageUrlsValues: imageUrls.map(url => url ? url.substring(0, 50) + '...' : 'null/undefined')
             });
 
+            // 检查编辑模式状态
+            console.log('【Add】编辑模式检查:', {
+                isEditMode: this.isEditMode,
+                editingPostId: this.editingPostId,
+                editingPost: this.editingPost,
+                shouldUpdate: this.isEditMode && this.editingPostId
+            });
+
+            // 如果是编辑模式，调用更新接口
+            if (this.isEditMode && this.editingPostId) {
+                console.log('【Add】进入编辑模式，准备更新帖子');
+                // 确定作者信息
+                let authorName = '';
+                if (this.publishMode === 'poem') {
+                    if (this.isOriginal) {
+                        // 原创诗歌：如果填写了作者就用填写的，否则使用用户昵称
+                        const userInfo = uni.getStorageSync('userInfo');
+                        const userNickName = userInfo ? userInfo.nickName : '匿名用户';
+                        authorName = this.author && this.author.trim() ? this.author.trim() : userNickName;
+                    } else {
+                        // 非原创诗歌：必须使用填写的作者
+                        authorName = this.author && this.author.trim() ? this.author.trim() : '';
+                    }
+                }
+                
+                // 准备更新数据
+                const updateData = {
+                    title: this.title,
+                    content: this.content,
+                    tags: this.selectedTags || [],
+                    backgroundColor: this.selectedBackgroundColor || '',
+                    textColor: this.selectedTextColor || '#000000',
+                    highlightSentence: this.highlightLines && this.highlightLines.length > 0 ? this.highlightLines[0] : '',
+                    highlightLines: this.highlightLines || [],
+                    author: authorName,
+                    isAnonymous: this.editingPost && this.editingPost.isAnonymous || false,
+                    anonymousAuthorName: this.editingPost && this.editingPost.anonymousAuthorName || '',
+                    isDiscussion: this.publishMode === 'discussion' || false
+                };
+                
+                // 处理图片
+                if (imageUrls.length > 0) {
+                    updateData.fileIDs = imageUrls;
+                    updateData.originalFileIDs = originalImageUrls.length > 0 ? originalImageUrls : imageUrls;
+                } else {
+                    // 如果没有图片，清空图片字段
+                    updateData.fileIDs = [];
+                    updateData.originalFileIDs = [];
+                }
+                
+                console.log('【Add】编辑模式：准备更新帖子，数据:', {
+                    postId: this.editingPostId,
+                    updateData: updateData,
+                    imageUrls: imageUrls,
+                    originalImageUrls: originalImageUrls
+                });
+                
+                // 调用更新接口
+                return this.callCloudFunction('updatePostContent', {
+                    postId: this.editingPostId,
+                    data: updateData
+                }).then((res) => {
+                    console.log('更新帖子成功:', res);
+                    if (res && res.result && res.result.success) {
+                        this.publishSuccess({
+                            _id: this.editingPostId
+                        });
+                    } else {
+                        console.error('更新失败:', res);
+                        this.publishFail(new Error(res.result?.message || '更新失败'));
+                    }
+                }).catch((err) => {
+                    console.error('更新帖子失败:', err);
+                    this.publishFail(err);
+                });
+            }
+            
+            // 如果不是编辑模式，或者编辑模式检查失败，则创建新帖子
+            console.log('【Add】非编辑模式，准备创建新帖子');
+            
+            // 原有的创建帖子逻辑
             // 确定作者信息
             let authorName = '';
             if (this.publishMode === 'poem') {
@@ -1670,7 +1902,9 @@ export default {
                 // 新增标签字段
                 tags: this.selectedTags || [],
                 backgroundColor: this.selectedBackgroundColor || '',
-                highlightSentence: this.highlightSentence || ''
+                textColor: this.selectedTextColor || '#000000',
+                highlightSentence: this.highlightLines && this.highlightLines.length > 0 ? this.highlightLines[0] : (this.highlightSentence || ''),
+                highlightLines: this.highlightLines || []
             };
             
             if (imageUrls.length > 0) {
@@ -1710,6 +1944,9 @@ export default {
                 // 添加颜色信息
                 backgroundColor: this.selectedBackgroundColor || '',
                 textColor: this.selectedTextColor || '#000000',
+                // 添加高光信息
+                highlightSentence: this.highlightLines && this.highlightLines.length > 0 ? this.highlightLines[0] : (this.highlightSentence || ''),
+                highlightLines: this.highlightLines || []
             };
             
             return this.callCloudFunction('contentCheck', auditParams).then((res) => {
@@ -1800,8 +2037,9 @@ export default {
 
         publishSuccess: function (res) {
             uni.hideLoading();
+            const successMessage = this.isEditMode ? '编辑成功！' : '发布成功！';
             uni.showToast({
-                title: '发布成功！'
+                title: successMessage
             });
             // 新增：设置各页面需要刷新标记
             try {
@@ -1811,7 +2049,13 @@ export default {
                 uni.setStorageSync('shouldRefreshMountain', true);
                 const appInstance = getApp();
                 const userId = appInstance && appInstance.globalData && appInstance.globalData.openid;
-                try { const { emitPostCreated } = require('@/utils/events.js'); emitPostCreated(userId); } catch (e) { if (userId && uni.$emit) { uni.$emit('post-created', { userId }); } }
+                if (this.isEditMode) {
+                    // 编辑模式：发送帖子更新事件
+                    try { const { emitPostUpdated } = require('@/utils/events.js'); emitPostUpdated(res._id); } catch (e) { if (uni.$emit) { uni.$emit('post-updated', { postId: res._id }); } }
+                } else {
+                    // 创建模式：发送帖子创建事件
+                    try { const { emitPostCreated } = require('@/utils/events.js'); emitPostCreated(userId); } catch (e) { if (userId && uni.$emit) { uni.$emit('post-created', { userId }); } }
+                }
             } catch (e) {
                 console.log('CatchClause', e);
                 console.log('CatchClause', e);
@@ -1820,7 +2064,7 @@ export default {
             this.setData({
                 isPublished: true
             });
-            // 发布成功后清除草稿
+            // 发布成功后清除草稿（编辑模式也清除）
             this.clearDraft();
             uni.navigateBack({
                 delta: 1
@@ -1897,7 +2141,7 @@ export default {
             const previewPost = {
                 _id: 'preview-temp-id',
                 content: this.content || '',
-                title: '', // 标题将在预览页面输入
+                title: this.title || '', // 标题（编辑模式下已有值，新建模式下在预览页面输入）
                 textColor: this.selectedTextColor || '#000000',
                 backgroundColor: this.selectedBackgroundColor || '#ffffff',
                 isExpanded: true,
@@ -1915,7 +2159,9 @@ export default {
                     selectedTags: this.selectedTags,
                     author: this.author,
                     highlightLines: this.highlightLines,
-                    highlightSelectedLineIndices: this.highlightSelectedLineIndices
+                    highlightSelectedLineIndices: this.highlightSelectedLineIndices,
+                    isEditMode: this.isEditMode, // 传递编辑模式标记
+                    editingPostId: this.editingPostId // 传递编辑的帖子ID
                 }
             };
 
