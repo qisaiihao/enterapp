@@ -51,6 +51,15 @@
                             </button>
                             <view v-if="!showFollowButton && isMutualFollow" class="mutual-indicator">互相关注</view>
                             <view v-else-if="!showFollowButton && isFollowedByTarget" class="followed-indicator">TA关注了你</view>
+                            <button
+                                v-if="showBlockButton"
+                                :class="['block-btn', isBlocked ? 'blocked' : '']"
+                                @tap="onBlockTap"
+                                :loading="blockPending"
+                                :disabled="blockPending"
+                            >
+                                {{ isBlocked ? '已屏蔽' : '屏蔽' }}
+                            </button>
                         </view>
                     </view>
                 </view>
@@ -505,6 +514,12 @@ export default {
             isFollowedByTarget: false,
             isMutualFollow: false,
             followPending: false,
+            
+            // 屏蔽相关状态
+            showBlockButton: false,
+            isBlocked: false,
+            blockPending: false,
+            
             imgindex: 0,
             imageUrl: '',
 
@@ -720,6 +735,7 @@ export default {
                 });
                 avatarCache.updateUserAvatar(this.targetUserId, userInfo);
                 this.prepareFollowStateWithCache();
+                this.prepareBlockState();
                 this.fetchFollowCounts();
                 uni.setNavigationBarTitle({ title: userInfo.nickName || '用户主页' });
             }).catch((err) => {
@@ -931,6 +947,164 @@ export default {
 
         getCurrentUserId: function () {
             return getApp().globalData.openid || uni.getStorageSync('openid') || uni.getStorageSync('userOpenId');
+        },
+
+        // 准备屏蔽状态
+        prepareBlockState: function () {
+            const targetUserId = this.targetUserId;
+            const currentUserId = this.getCurrentUserId();
+            if (!targetUserId || !currentUserId || targetUserId === currentUserId) {
+                this.setData({
+                    showBlockButton: false,
+                    isBlocked: false
+                });
+                return;
+            }
+            this.setData({
+                showBlockButton: true,
+                isBlocked: false
+            });
+            this.fetchBlockStatus(targetUserId);
+        },
+
+        // 获取屏蔽状态
+        fetchBlockStatus: function (targetOpenid) {
+            if (!targetOpenid) {
+                return;
+            }
+            const currentUserId = this.getCurrentUserId();
+            if (!currentUserId) {
+                return;
+            }
+
+            this.callCloudFunction('block', {
+                action: 'checkBlock',
+                targetOpenid
+            }, { requireAuth: true }).then((res) => {
+                if (res.result && res.result.success) {
+                    this.setData({
+                        isBlocked: !!res.result.isBlocked
+                    });
+                } else {
+                    console.warn('检查屏蔽状态失败', res.result);
+                }
+            }).catch((err) => {
+                console.error('检查屏蔽状态调用失败:', err);
+            });
+        },
+
+        // 切换屏蔽状态
+        onBlockTap: function () {
+            if (this.blockPending) {
+                return;
+            }
+            const targetOpenid = this.targetUserId;
+            if (!targetOpenid) {
+                return;
+            }
+            const currentUserId = this.getCurrentUserId();
+            if (!currentUserId) {
+                uni.showToast({
+                    title: '请先登录',
+                    icon: 'none'
+                });
+                return;
+            }
+
+            // 确认对话框
+            const action = this.isBlocked ? '取消屏蔽' : '屏蔽';
+            uni.showModal({
+                title: '确认操作',
+                content: `确定要${action}该用户吗？${this.isBlocked ? '' : '屏蔽后将无法看到该用户的帖子和诗歌。'}`,
+                success: (modalRes) => {
+                    if (modalRes.confirm) {
+                        this.setData({
+                            blockPending: true
+                        });
+
+                        this.callCloudFunction('block', {
+                            action: 'toggleBlock',
+                            targetOpenid
+                        }, { requireAuth: true })
+                            .then((res) => {
+                                console.log('🔍 [onBlockTap] 云函数返回:', res);
+                                
+                                if (res && res.result) {
+                                    if (res.result.success) {
+                                        this.setData({
+                                            isBlocked: !!res.result.isBlocked
+                                        });
+                                        uni.showToast({
+                                            title: res.result.isBlocked ? '屏蔽成功，请刷新广场页面' : '已取消屏蔽',
+                                            icon: 'success',
+                                            duration: 2000
+                                        });
+                                        
+                                        // 屏蔽/取消屏蔽后，清除相关缓存
+                                        try {
+                                            const { invalidateHomePosts } = require('../../api-cache/home-posts.js');
+                                            const { clearDiscoverCache } = require('../../api-cache/discover.js');
+                                            invalidateHomePosts({}); // 清除首页缓存
+                                            clearDiscoverCache(); // 清除发现页缓存
+                                            console.log('✅ [onBlockTap] 已清除首页和发现页缓存');
+                                            
+                                            // 如果屏蔽成功，延迟提示用户刷新
+                                            if (res.result.isBlocked) {
+                                                setTimeout(() => {
+                                                    uni.showModal({
+                                                        title: '屏蔽成功',
+                                                        content: '该用户的帖子和诗歌将不再显示。请下拉刷新广场页面查看效果。',
+                                                        showCancel: false,
+                                                        confirmText: '知道了'
+                                                    });
+                                                }, 500);
+                                            }
+                                        } catch (cacheError) {
+                                            console.error('❌ [onBlockTap] 清除缓存失败:', cacheError);
+                                        }
+                                        
+                                        // 如果取消屏蔽，刷新页面数据
+                                        if (!res.result.isBlocked) {
+                                            this.loadUserProfile();
+                                        }
+                                    } else {
+                                        console.error('❌ [onBlockTap] 操作失败:', res.result);
+                                        uni.showToast({
+                                            title: res.result.message || '操作失败',
+                                            icon: 'none',
+                                            duration: 3000
+                                        });
+                                    }
+                                } else {
+                                    console.error('❌ [onBlockTap] 响应格式错误:', res);
+                                    uni.showToast({
+                                        title: '服务器响应异常',
+                                        icon: 'none',
+                                        duration: 3000
+                                    });
+                                }
+                            })
+                            .catch((err) => {
+                                console.error('❌ [onBlockTap] 切换屏蔽状态失败:', err);
+                                console.error('❌ [onBlockTap] 错误详情:', {
+                                    message: err.message,
+                                    code: err.code,
+                                    errCode: err.errCode
+                                });
+                                uni.showToast({
+                                    title: err.message || '网络错误，请稍后重试',
+                                    icon: 'none',
+                                    duration: 3000
+                                });
+                            })
+                            .finally(() => {
+                                this.setData({
+                                    blockPending: false
+                                });
+                            });
+                    }
+                }
+            });
         },
 
         navigateToPostDetail: function (e) {
@@ -1459,6 +1633,31 @@ export default {
 }
 
 .follow-btn[disabled] {
+    opacity: 0.7;
+}
+
+.block-btn {
+    padding: 6rpx 24rpx;
+    background-color: #f5f5f5;
+    color: #666666;
+    border: 1rpx solid #e0e0e0;
+    border-radius: 15rpx;
+    font-size: 24rpx;
+    font-weight: 500;
+    min-width: 80rpx;
+}
+
+.block-btn.blocked {
+    background-color: #ffebee;
+    color: #c62828;
+    border-color: #ef9a9a;
+}
+
+.block-btn::after {
+    border: none;
+}
+
+.block-btn[disabled] {
     opacity: 0.7;
 }
 

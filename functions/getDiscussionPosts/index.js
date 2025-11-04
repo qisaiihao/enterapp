@@ -41,6 +41,19 @@ exports.main = async (event, context) => {
   try {
     console.log('🔍 [getDiscussionPosts] 开始构建查询');
 
+    // 获取被屏蔽的用户ID列表
+    let blockedUserIds = [];
+    try {
+      const blocksRes = await db.collection('blocks')
+        .where({ blockerId: openid })
+        .field({ blockedId: true })
+        .get();
+      blockedUserIds = blocksRes.data.map(item => item.blockedId);
+      console.log('🔍 [getDiscussionPosts] 被屏蔽的用户数量:', blockedUserIds.length);
+    } catch (blockError) {
+      console.error('❌ [getDiscussionPosts] 获取屏蔽列表失败:', blockError);
+    }
+
     let query = db.collection('posts').aggregate();
 
     // 只查询讨论帖子
@@ -48,6 +61,21 @@ exports.main = async (event, context) => {
       isDiscussion: true
     };
     matchConditions.isHidden = _.neq(true);
+    
+    // 过滤被屏蔽用户的帖子（包括匿名帖子的realAuthorOpenid）
+    if (blockedUserIds.length > 0) {
+      matchConditions.$and = [
+        { _openid: _.nin(blockedUserIds) },
+        {
+          $or: [
+            { realAuthorOpenid: _.exists(false) }, // 不存在 realAuthorOpenid（非匿名帖子）
+            { realAuthorOpenid: _.eq(null) }, // realAuthorOpenid 为 null
+            { realAuthorOpenid: _.nin(blockedUserIds) } // realAuthorOpenid 不在屏蔽列表中
+          ]
+        }
+      ];
+      console.log('🔍 [getDiscussionPosts] 添加屏蔽用户过滤条件');
+    }
 
     console.log('🔍 [getDiscussionPosts] 最终筛选条件:', matchConditions);
 

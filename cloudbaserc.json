@@ -92,6 +92,12 @@
               "memory": 128
             },
             {
+              "name": "block",
+              "root": "./functions/block",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
               "name": "getAllTags",
               "root": "./functions/getAllTags",
               "timeout": 5,

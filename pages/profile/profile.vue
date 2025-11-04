@@ -35,6 +35,9 @@
                         <view class="sidebar-item" @tap="navigateToCollage">
                             <text>拼贴诗</text>
                         </view>
+                        <view class="sidebar-item" @tap="navigateToBlockedUsers">
+                            <text>黑名单</text>
+                        </view>
                         <view class="sidebar-item logout-item" @tap="showLogoutConfirm">
                             <text>退出登录</text>
                         </view>
@@ -2194,6 +2197,13 @@ export default {
         navigateToCollage: function () {
             uni.navigateTo({
                 url: '/pages/collage-main/collage-main'
+            });
+        },
+
+        // 跳转到黑名单页面
+        navigateToBlockedUsers: function () {
+            uni.navigateTo({
+                url: '/pages/blocked-users/blocked-users'
             });
         },
 

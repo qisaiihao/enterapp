@@ -29,6 +29,39 @@ exports.main = async (event, context) => {
   }
 
   try {
+    // 检查是否屏蔽了目标用户
+    let isBlocked = false;
+    try {
+      const blockRes = await db.collection('blocks').where({
+        blockerId: currentOpenid,
+        blockedId: userId
+      }).limit(1).get();
+      isBlocked = blockRes.data.length > 0;
+      
+      // 如果当前用户屏蔽了目标用户，返回错误
+      if (isBlocked) {
+        return {
+          success: false,
+          message: '无法查看该用户的信息',
+          code: 'USER_BLOCKED'
+        };
+      }
+    } catch (blockError) {
+      console.error('检查屏蔽状态失败:', blockError);
+    }
+
+    // 获取被屏蔽的用户ID列表（用于过滤帖子）
+    let blockedUserIds = [];
+    try {
+      const blocksRes = await db.collection('blocks')
+        .where({ blockerId: currentOpenid })
+        .field({ blockedId: true })
+        .get();
+      blockedUserIds = blocksRes.data.map(item => item.blockedId);
+    } catch (blockError) {
+      console.error('获取屏蔽列表失败:', blockError);
+    }
+
     // 获取目标用户的公开信息和帖子
     const profileData = await db.collection('users').aggregate()
       .match({ _openid: userId })
@@ -37,7 +70,13 @@ exports.main = async (event, context) => {
         from: 'posts',
         let: { user_openid: '$_openid' },
         pipeline: [
-          { $match: { $expr: { $eq: ['$_openid', '$$user_openid'] } } },
+          { 
+            $match: { 
+              $expr: { 
+                $eq: ['$_openid', '$$user_openid']
+              } 
+            } 
+          },
           { $sort: { createTime: -1 } },
           { $skip: skip },
           { $limit: limit }
@@ -66,11 +105,16 @@ exports.main = async (event, context) => {
 
     const userInfo = profileData.list[0];
     let posts = userInfo.posts || [];
-    // 非本人访问时，过滤掉隐藏帖
+    // 非本人访问时，过滤掉隐藏帖和被屏蔽用户的帖子
     try {
       const isOwner = String(currentOpenid) === String(userId);
       if (!isOwner && Array.isArray(posts)) {
-        posts = posts.filter((p) => !p || p.isHidden !== true);
+        posts = posts.filter((p) => {
+          if (!p || p.isHidden === true) return false;
+          // 虽然已经检查过是否屏蔽了目标用户，但这里再过滤一次确保安全
+          if (blockedUserIds.length > 0 && blockedUserIds.includes(p._openid)) return false;
+          return true;
+        });
       }
     } catch (_) {}
 

@@ -22,7 +22,19 @@ exports.main = async (event, context) => {
   const { skip = 0, limit = 10 } = event;
 
   try {
-    // 1. 获取用户关注列表
+    // 1. 获取被屏蔽的用户ID列表
+    let blockedUserIds = [];
+    try {
+      const blocksRes = await db.collection('blocks')
+        .where({ blockerId: openid })
+        .field({ blockedId: true })
+        .get();
+      blockedUserIds = blocksRes.data.map(item => item.blockedId);
+    } catch (blockError) {
+      console.error('获取屏蔽列表失败:', blockError);
+    }
+
+    // 2. 获取用户关注列表
     const followsRes = await db.collection('follows')
       .where({ followerId: openid })
       .field({ followedId: true })
@@ -37,9 +49,20 @@ exports.main = async (event, context) => {
       };
     }
 
-    const followedIds = followsRes.data.map(item => item.followedId);
+    const followedIds = followsRes.data
+      .map(item => item.followedId)
+      .filter(id => !blockedUserIds.includes(id)); // 过滤被屏蔽的用户
 
-    // 2. 获取关注用户的帖子
+    if (followedIds.length === 0) {
+      return {
+        success: true,
+        posts: [],
+        hasMore: false,
+        total: 0
+      };
+    }
+
+    // 3. 获取关注用户的帖子
     const postsRes = await db.collection('posts')
       .where({
         _openid: _.in(followedIds),
@@ -70,8 +93,16 @@ exports.main = async (event, context) => {
       authorMap.set(author._openid, author);
     });
 
-    // 4. 组装帖子数据
-    const posts = postsRes.data.map(post => {
+    // 4. 过滤被屏蔽用户的匿名帖子（再次过滤，因为匿名帖子的realAuthorOpenid可能不在followedIds中）
+    const filteredPosts = postsRes.data.filter(post => {
+      if (blockedUserIds.length === 0) return true;
+      // 检查匿名帖子的 realAuthorOpenid
+      if (post.realAuthorOpenid && blockedUserIds.includes(post.realAuthorOpenid)) return false;
+      return true;
+    });
+    
+    // 5. 组装帖子数据
+    const posts = filteredPosts.map(post => {
       const author = authorMap.get(post._openid) || {};
       return {
         ...post,
@@ -81,10 +112,10 @@ exports.main = async (event, context) => {
       };
     });
 
-    // 5. 处理头像URL
+    // 6. 处理头像URL
     await enrichAvatarUrls(posts);
 
-    // 6. 获取总数（用于判断是否还有更多）
+    // 7. 获取总数（用于判断是否还有更多）
     const totalRes = await db.collection('posts')
       .where({
         _openid: _.in(followedIds),

@@ -45,11 +45,24 @@ exports.main = async (event, context) => {
   try {
     console.log('🔍 [getPostList] 开始构建查询');
 
+    // 获取被屏蔽的用户ID列表
+    let blockedUserIds = [];
+    try {
+      const blocksRes = await db.collection('blocks')
+        .where({ blockerId: openid })
+        .field({ blockedId: true })
+        .get();
+      blockedUserIds = blocksRes.data.map(item => item.blockedId);
+      console.log('🔍 [getPostList] 被屏蔽的用户数量:', blockedUserIds.length);
+    } catch (blockError) {
+      console.error('❌ [getPostList] 获取屏蔽列表失败:', blockError);
+    }
+
     let query = db.collection('posts').aggregate();
 
     // 构建筛选条件
     const matchConditions = { isHidden: _.neq(true) };
-
+    
     // 如果指定了isPoem参数，添加诗歌筛选条件
     if (isPoem !== undefined) {
       matchConditions.isPoem = isPoem;
@@ -74,13 +87,20 @@ exports.main = async (event, context) => {
       matchConditions.isDiscussion = isDiscussion;
       console.log('🔍 [getPostList] 添加isDiscussion筛选条件:', isDiscussion);
     }
+    
+    // 过滤被屏蔽用户的帖子（查询阶段先过滤 _openid，结果处理阶段再过滤 realAuthorOpenid）
+    if (blockedUserIds.length > 0) {
+      // 在查询阶段过滤普通帖子的 _openid
+      matchConditions._openid = _.nin(blockedUserIds);
+      console.log('🔍 [getPostList] 添加屏蔽用户过滤条件（_openid），被屏蔽用户数:', blockedUserIds.length);
+    }
 
-    console.log('🔍 [getPostList] 最终筛选条件:', matchConditions);
+    console.log('🔍 [getPostList] 最终筛选条件:', JSON.stringify(matchConditions, null, 2));
 
     // 如果有筛选条件，应用match
     if (Object.keys(matchConditions).length > 0) {
       query = query.match(matchConditions);
-      console.log('🔍 [getPostList] 应用筛选条件');
+      console.log('🔍 [getPostList] 应用筛选条件，条件数量:', Object.keys(matchConditions).length);
     } else {
       console.log('🔍 [getPostList] 无筛选条件，查询所有帖子');
     }
@@ -118,8 +138,8 @@ exports.main = async (event, context) => {
       }
     }
     
-    // 处理帖子数据
-    const processedPosts = posts.map(post => {
+    // 处理帖子数据，并再次过滤被屏蔽用户（双重保险）
+    let processedPosts = posts.map(post => {
       const authorName = post.authorName || post.authorNameSnapshot || '匿名用户';
       const authorAvatar = post.authorAvatar || post.authorAvatarSnapshot || '';
       const commentCount = post.commentCount || 0;
@@ -134,6 +154,22 @@ exports.main = async (event, context) => {
         tags: Array.isArray(post.tags) ? post.tags : []
       };
     });
+    
+    // 双重保险：前端再次过滤被屏蔽用户的帖子（包括匿名帖子的realAuthorOpenid）
+    if (blockedUserIds.length > 0) {
+      processedPosts = processedPosts.filter(post => {
+        // 检查普通帖子的 _openid
+        if (blockedUserIds.includes(post._openid)) {
+          return false;
+        }
+        // 检查匿名帖子的 realAuthorOpenid
+        if (post.realAuthorOpenid && blockedUserIds.includes(post.realAuthorOpenid)) {
+          return false;
+        }
+        return true;
+      });
+      console.log('🔍 [getPostList] 前端过滤后剩余帖子数量:', processedPosts.length);
+    }
     
     if (processedPosts.length > 0) {
       console.log('🔍 [getPostList] 帖子详情:');

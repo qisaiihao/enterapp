@@ -74,6 +74,14 @@
       }
     },
     {
+      "path": "pages/blocked-users/blocked-users",
+      "style": {
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true,
+        "usingComponents": {}
+      }
+    },
+    {
       "path": "pages/fans/fans",
       "style": {
         "navigationStyle": "custom",
