@@ -1654,7 +1654,7 @@ export default {
                 ctx.moveTo(sx, y0);
                 ctx.lineTo(sx, sy);
                 ctx.stroke();
-                // 小字“poementer”
+                // 小字"poementer"
                 try {
                     const inset = 12; // 内边距
                     if (ctx.setFillStyle) ctx.setFillStyle(textColor); else ctx.fillStyle = textColor;
@@ -3242,8 +3242,66 @@ export default {
             this.editForm[field] = e.detail.value;
         },
         onSaveEdit() {
-            uni.showToast({ title: '保存功能待实现', icon: 'none' });
-            this.showEditModal = false;
+            // 验证输入
+            if (!this.editForm.title || !this.editForm.title.trim()) {
+                uni.showToast({ title: '请输入标题', icon: 'none' });
+                return;
+            }
+            if (!this.editForm.content || !this.editForm.content.trim()) {
+                uni.showToast({ title: '请输入正文', icon: 'none' });
+                return;
+            }
+            
+            // 检查是否有权限编辑
+            if (!this.post || !this.post._id) {
+                uni.showToast({ title: '帖子信息无效', icon: 'none' });
+                return;
+            }
+            
+            uni.showLoading({ title: '保存中...' });
+            
+            // 调用更新接口
+            cloudCall('updatePostContent', {
+                postId: this.post._id,
+                data: {
+                    title: this.editForm.title.trim(),
+                    content: this.editForm.content.trim()
+                }
+            }, { pageTag: 'post-detail', context: this, requireAuth: true })
+            .then((res) => {
+                uni.hideLoading();
+                if (res && res.result && res.result.success) {
+                    uni.showToast({ title: '保存成功', icon: 'success' });
+                    // 更新本地帖子数据
+                    this.setData({
+                        'post.title': this.editForm.title.trim(),
+                        'post.content': this.editForm.content.trim(),
+                        showEditModal: false
+                    });
+                    // 发送更新事件通知其他页面
+                    try {
+                        const { emitPostUpdated } = require('@/utils/events.js');
+                        emitPostUpdated(this.post._id);
+                    } catch (e) {
+                        if (uni.$emit) {
+                            uni.$emit('post-updated', { postId: this.post._id });
+                        }
+                    }
+                } else {
+                    uni.showToast({ 
+                        title: res.result?.message || '保存失败', 
+                        icon: 'none' 
+                    });
+                }
+            })
+            .catch((err) => {
+                uni.hideLoading();
+                console.error('保存失败:', err);
+                uni.showToast({ 
+                    title: err.message || '保存失败', 
+                    icon: 'none' 
+                });
+            });
         },
 
     }

@@ -90,11 +90,37 @@ exports.main = async (event, context) => {
     // 3. 查找相似内容（相同作者或标签的帖子）
     let query = db.collection('posts').aggregate();
 
+    // 获取被屏蔽的用户ID列表
+    let blockedUserIds = [];
+    try {
+      const blocksRes = await db.collection('blocks')
+        .where({ blockerId: openid })
+        .field({ blockedId: true })
+        .get();
+      blockedUserIds = blocksRes.data.map(item => item.blockedId);
+    } catch (blockError) {
+      console.error('获取屏蔽列表失败:', blockError);
+    }
+
     // 构建推荐条件
     const matchConditions = {
       _id: _.nin(interactedPostIds), // 排除已互动过的帖子
       isOriginal: true // 只推荐原创内容
     };
+
+    // 过滤被屏蔽用户的帖子（包括匿名帖子的realAuthorOpenid）
+    if (blockedUserIds.length > 0) {
+      matchConditions.$and = [
+        { _openid: _.nin(blockedUserIds) },
+        {
+          $or: [
+            { realAuthorOpenid: _.exists(false) }, // 不存在 realAuthorOpenid（非匿名帖子）
+            { realAuthorOpenid: _.eq(null) }, // realAuthorOpenid 为 null
+            { realAuthorOpenid: _.nin(blockedUserIds) } // realAuthorOpenid 不在屏蔽列表中
+          ]
+        }
+      ];
+    }
 
     // 如果有感兴趣的作者或标签，添加推荐条件
     if (interestedAuthorIds.size > 0 || interestedTags.size > 0) {

@@ -11,15 +11,39 @@ exports.main = async (event, context) => {
   console.log('event:', JSON.stringify(event, null, 2))
   console.log('context:', JSON.stringify(context, null, 2))
   
+  const wxContext = cloud.getWXContext();
+  const openid = wxContext.OPENID || event.openid;
   const { page = 0, pageSize = 10 } = event
   
   try {
+    // 获取被屏蔽的用户ID列表
+    let blockedUserIds = [];
+    if (openid) {
+      try {
+        const blocksRes = await db.collection('blocks')
+          .where({ blockerId: openid })
+          .field({ blockedId: true })
+          .get();
+        blockedUserIds = blocksRes.data.map(item => item.blockedId);
+      } catch (blockError) {
+        console.error('获取屏蔽列表失败:', blockError);
+      }
+    }
+
+    // 构建查询条件
+    const queryConditions = {
+      isFoundPoetry: true
+    };
+    
+    // 过滤被屏蔽用户的帖子
+    if (blockedUserIds.length > 0) {
+      queryConditions._openid = db.command.nin(blockedUserIds);
+    }
+
     // 查询拼贴诗数据（isFoundPoetry为true的帖子）
     console.log('开始查询拼贴诗数据...')
     const result = await db.collection('posts')
-      .where({
-        isFoundPoetry: true
-      })
+      .where(queryConditions)
       .orderBy('createTime', 'desc')
       .skip(page * pageSize)
       .limit(pageSize)
@@ -42,8 +66,18 @@ exports.main = async (event, context) => {
       }
     }
     
+    // 过滤被屏蔽用户的帖子（包括匿名帖子的realAuthorOpenid）
+    const filteredData = result.data.filter(post => {
+      if (blockedUserIds.length === 0) return true;
+      // 检查普通帖子的 _openid
+      if (blockedUserIds.includes(post._openid)) return false;
+      // 检查匿名帖子的 realAuthorOpenid
+      if (post.realAuthorOpenid && blockedUserIds.includes(post.realAuthorOpenid)) return false;
+      return true;
+    });
+    
     // 处理数据，确保格式正确
-    const processedData = result.data.map(post => ({
+    const processedData = filteredData.map(post => ({
       _id: post._id,
       _openid: post._openid,
       authorName: post.authorName || '匿名用户',

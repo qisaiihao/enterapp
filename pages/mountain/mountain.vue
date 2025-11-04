@@ -17,7 +17,7 @@
       </view>
 
       <view id="post-list-container">
-        <view v-for="(item, index) in postList" :key="item._id || index" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
+        <view v-for="(item, index) in postList" :key="item._id ? `post-${item._id}-${index}` : `post-index-${index}`" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
           <view class="post-content-navigator" @tap="togglePostExpansion" @longpress="onLongPressCard" :data-index="index" :data-postid="item._id">
             <view class="post-item">
               <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.highlightLines || item.highlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.content" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
@@ -278,17 +278,17 @@ export default {
           p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
         });
         
-        // 处理分页数据，避免重复
+        // 【修复】首次加载时直接替换，加载更多时合并并去重，避免重复key
         let newPostList;
         if (this.page === 0) {
           newPostList = visibleList;
         } else {
-          // 合并时去重：使用 Set 来去重，保留已存在的项
-          const existingIds = new Set(this.postList.map(p => p._id));
-          const uniqueNewList = visibleList.filter(p => p && p._id && !existingIds.has(p._id));
-          newPostList = this.postList.concat(uniqueNewList);
+          // 加载更多时，过滤掉已存在的帖子，避免重复
+          const existingIds = new Set(this.postList.map(post => post._id).filter(Boolean));
+          const uniqueNewPosts = visibleList.filter(post => post && post._id && !existingIds.has(post._id));
+          newPostList = this.postList.concat(uniqueNewPosts);
+          console.log('【mountain】去重：新帖子', visibleList.length, '去重后', uniqueNewPosts.length);
         }
-        
         this.setData({
           postList: newPostList,
           page: this.page + 1,

@@ -1,6 +1,7 @@
 export const EVENTS = {
   AVATAR_UPDATED: 'avatar-updated',
   POST_CREATED: 'post-created',
+  POST_UPDATED: 'post-updated', // { postId }
   FAVORITE_CHANGED: 'favorite-changed', // { userId, postId?, favored }
   LIKE_CHANGED: 'like-changed', // { postId, votes, isLiked, pageTag? }
   COMMENT_LIKE_CHANGED: 'comment-like-changed', // { postId, commentId, likes, liked }
@@ -16,6 +17,14 @@ export function emitAvatarUpdated(userId) {
 
 export function emitPostCreated(userId) {
   try { if (userId && uni && uni.$emit) uni.$emit(EVENTS.POST_CREATED, { userId }); } catch (_) {}
+}
+
+export function emitPostUpdated(postId) {
+  try {
+    if (postId && typeof uni !== 'undefined' && uni.$emit) {
+      uni.$emit(EVENTS.POST_UPDATED, { postId });
+    }
+  } catch (_) {}
 }
 
 export function emitFavoriteChanged({ userId, postId, favored }) {
@@ -65,6 +74,7 @@ export default {
   EVENTS,
   emitAvatarUpdated,
   emitPostCreated,
+  emitPostUpdated,
   emitFavoriteChanged,
   emitLikeChanged,
   emitCommentLikeChanged,

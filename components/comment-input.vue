@@ -59,3 +59,7 @@ export default {
 .submit-button.disabled { opacity: 0.5; pointer-events: none; }
 .submit-icon { width: 50rpx; height: 50rpx; }
 </style>
+
+
+
+

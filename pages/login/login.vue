@@ -5,10 +5,10 @@
       <view class="center-wrap">
       <view class="form-wrapper compact">
         <view class="input-wrapper">
-          <input class="input-field" type="text" placeholder="请输入 Poem ID" v-model="poemId" @input="onPoemIdInput" />
+          <input class="input-field" type="text" placeholder="请输入 Poem ID" v-model="poemId" />
         </view>
         <view class="input-wrapper">
-          <input class="input-field" type="password" placeholder="请输入密码" v-model="password" @input="onPasswordInput" />
+          <input class="input-field" type="password" placeholder="请输入密码" v-model="password" />
         </view>
 
         <!-- 注册入口 -->
@@ -137,14 +137,6 @@ export default {
         // 统一云函数调用方法
         callCloudFunction(name, data = {}, extraOptions = {}) {
             return cloudCall(name, data, Object.assign({ pageTag: 'login', context: this }, extraOptions));
-        },
-
-        onPoemIdInput(e) {
-            this.poemId = e.detail.value;
-        },
-
-        onPasswordInput(e) {
-            this.password = e.detail.value;
         },
 
         async onLogin() {

@@ -26,6 +26,19 @@ exports.main = async (event, context) => {
   }
 
   try {
+    // 获取被屏蔽的用户ID列表
+    let blockedUserIds = [];
+    try {
+      const blocksRes = await db.collection('blocks')
+        .where({ blockerId: openid })
+        .field({ blockedId: true })
+        .get();
+      blockedUserIds = blocksRes.data.map(item => item.blockedId);
+      console.log(`被屏蔽的用户数量: ${blockedUserIds.length}`);
+    } catch (blockError) {
+      console.error('获取屏蔽列表失败:', blockError);
+    }
+
     const baseLimit = typeof userLimit === 'number' && userLimit > 0 ? userLimit : personalizedLimit + hotLimit;
     const targetCount = Math.max(baseLimit + skip, 0);
     const allPosts = [];
@@ -236,11 +249,37 @@ async function getPersonalizedPosts(openId, limit, usedPostIds) {
       }
     });
 
+    // 获取被屏蔽的用户ID列表
+    let blockedUserIds = [];
+    try {
+      const blocksRes = await db.collection('blocks')
+        .where({ blockerId: openId })
+        .field({ blockedId: true })
+        .get();
+      blockedUserIds = blocksRes.data.map(item => item.blockedId);
+    } catch (blockError) {
+      console.error('获取屏蔽列表失败:', blockError);
+    }
+
     // 查找相似内容
     const matchConditions = {
       _id: _.nin([...interactedPostIds, ...usedPostIds])
       // 移除isOriginal限制，推荐所有类型的帖子
     };
+
+    // 过滤被屏蔽用户的帖子（包括匿名帖子的realAuthorOpenid）
+    if (blockedUserIds.length > 0) {
+      matchConditions.$and = [
+        { _openid: _.nin(blockedUserIds) },
+        {
+          $or: [
+            { realAuthorOpenid: _.exists(false) }, // 不存在 realAuthorOpenid（非匿名帖子）
+            { realAuthorOpenid: _.eq(null) }, // realAuthorOpenid 为 null
+            { realAuthorOpenid: _.nin(blockedUserIds) } // realAuthorOpenid 不在屏蔽列表中
+          ]
+        }
+      ];
+    }
 
     console.log(`感兴趣的作者数量: ${interestedAuthorIds.size}, 感兴趣的标签数量: ${interestedTags.size}`);
 
@@ -337,9 +376,35 @@ async function getHotPosts(limit, excludePostIds, openId) {
   try {
     console.log(`获取热门推荐，限制: ${limit}, 排除ID: ${excludePostIds.length}个`);
     
+    // 获取被屏蔽的用户ID列表
+    let blockedUserIds = [];
+    try {
+      const blocksRes = await db.collection('blocks')
+        .where({ blockerId: openId })
+        .field({ blockedId: true })
+        .get();
+      blockedUserIds = blocksRes.data.map(item => item.blockedId);
+    } catch (blockError) {
+      console.error('获取屏蔽列表失败:', blockError);
+    }
+    
     const matchConditions = {
       // 移除isOriginal限制，推荐所有类型的帖子
     };
+
+    // 过滤被屏蔽用户的帖子（包括匿名帖子的realAuthorOpenid）
+    if (blockedUserIds.length > 0) {
+      matchConditions.$and = [
+        { _openid: _.nin(blockedUserIds) },
+        {
+          $or: [
+            { realAuthorOpenid: _.exists(false) }, // 不存在 realAuthorOpenid（非匿名帖子）
+            { realAuthorOpenid: _.eq(null) }, // realAuthorOpenid 为 null
+            { realAuthorOpenid: _.nin(blockedUserIds) } // realAuthorOpenid 不在屏蔽列表中
+          ]
+        }
+      ];
+    }
 
     if (excludePostIds.length > 0) {
       matchConditions._id = _.nin(excludePostIds);
@@ -420,9 +485,35 @@ async function getLatestPosts(limit, excludePostIds, openId) {
   try {
     console.log(`获取最新帖子，限制: ${limit}, 排除ID: ${excludePostIds.length}个`);
     
+    // 获取被屏蔽的用户ID列表
+    let blockedUserIds = [];
+    try {
+      const blocksRes = await db.collection('blocks')
+        .where({ blockerId: openId })
+        .field({ blockedId: true })
+        .get();
+      blockedUserIds = blocksRes.data.map(item => item.blockedId);
+    } catch (blockError) {
+      console.error('获取屏蔽列表失败:', blockError);
+    }
+    
     const matchConditions = {
       // 移除isOriginal限制，推荐所有类型的帖子
     };
+
+    // 过滤被屏蔽用户的帖子（包括匿名帖子的realAuthorOpenid）
+    if (blockedUserIds.length > 0) {
+      matchConditions.$and = [
+        { _openid: _.nin(blockedUserIds) },
+        {
+          $or: [
+            { realAuthorOpenid: _.exists(false) }, // 不存在 realAuthorOpenid（非匿名帖子）
+            { realAuthorOpenid: _.eq(null) }, // realAuthorOpenid 为 null
+            { realAuthorOpenid: _.nin(blockedUserIds) } // realAuthorOpenid 不在屏蔽列表中
+          ]
+        }
+      ];
+    }
 
     if (excludePostIds.length > 0) {
       matchConditions._id = _.nin(excludePostIds);
@@ -531,6 +622,19 @@ async function getTagBasedPosts(openId, limit, usedPostIds) {
     
     // 2. 根据热门标签推荐帖子（包括原创和非原创）
     const tagNames = popularTags.map(tag => tag._id);
+    
+    // 获取被屏蔽的用户ID列表
+    let blockedUserIds = [];
+    try {
+      const blocksRes = await db.collection('blocks')
+        .where({ blockerId: openId })
+        .field({ blockedId: true })
+        .get();
+      blockedUserIds = blocksRes.data.map(item => item.blockedId);
+    } catch (blockError) {
+      console.error('获取屏蔽列表失败:', blockError);
+    }
+    
     const matchConditions = {
       tags: _.in(tagNames)
       // 移除isOriginal限制，推荐所有类型的帖子
@@ -538,6 +642,34 @@ async function getTagBasedPosts(openId, limit, usedPostIds) {
     
     if (usedPostIds.length > 0) {
       matchConditions._id = _.nin(Array.from(usedPostIds));
+    }
+    
+    // 过滤被屏蔽用户的帖子（包括匿名帖子的realAuthorOpenid）
+    if (blockedUserIds.length > 0) {
+      // 如果已经有 $and 条件，需要合并
+      if (matchConditions.$and) {
+        matchConditions.$and.push(
+          { _openid: _.nin(blockedUserIds) },
+          {
+            $or: [
+              { realAuthorOpenid: _.exists(false) },
+              { realAuthorOpenid: _.eq(null) },
+              { realAuthorOpenid: _.nin(blockedUserIds) }
+            ]
+          }
+        );
+      } else {
+        matchConditions.$and = [
+          { _openid: _.nin(blockedUserIds) },
+          {
+            $or: [
+              { realAuthorOpenid: _.exists(false) },
+              { realAuthorOpenid: _.eq(null) },
+              { realAuthorOpenid: _.nin(blockedUserIds) }
+            ]
+          }
+        ];
+      }
     }
     
     console.log('按标签推荐查询条件:', matchConditions);

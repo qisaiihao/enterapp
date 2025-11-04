@@ -31,7 +31,7 @@
     {
       "path": "pages/my-likes/my-likes",
       "style": {
-        "navigationBarTitleText": "我的点赞",
+        "navigationStyle": "custom",
         "enablePullDownRefresh": true,
         "usingComponents": {}
       }
@@ -67,6 +67,14 @@
     },
     {
       "path": "pages/following/following",
+      "style": {
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true,
+        "usingComponents": {}
+      }
+    },
+    {
+      "path": "pages/blocked-users/blocked-users",
       "style": {
         "navigationStyle": "custom",
         "enablePullDownRefresh": true,
@@ -201,13 +209,12 @@
       "path": "pages/draft-box/draft-box",
       "style": {
         "usingComponents": {},
-        "navigationBarTitleText": "草稿箱"
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/feedback/feedback",
       "style": {
-        "navigationBarTitleText": "意见反馈",
         "navigationStyle": "custom",
         "backgroundColor": "#f5f5f5",
         "usingComponents": {}

@@ -3,6 +3,16 @@
     <!-- 顶部栏 -->
     <top-bar />
 
+    <!-- 只看关注切换按钮 - 在写作入口下方 -->
+    <view class="filter-toggle-container">
+      <view 
+        :class="'filter-toggle-btn ' + (showFollowingOnly ? 'active' : '')" 
+        @tap="toggleFollowingFilter"
+      >
+        <text class="filter-toggle-text">{{ showFollowingOnly ? '显示全部' : '只看关注' }}</text>
+      </view>
+    </view>
+
     <!-- 加载中骨架 -->
     <view v-if="isLoading">
       <skeleton pageType="poem" />
@@ -12,12 +22,12 @@
     <view v-else class="square-mode-container">
       <view v-if="postList.length === 0" class="empty-state">
         <view class="empty-icon">😶</view>
-        <view class="empty-text">还没刷出来，再等等~</view>
-        <view class="empty-subtext">去广场看看吧～</view>
+        <view class="empty-text">{{ showFollowingOnly ? '关注的人还没有发布诗歌哦～' : '还没刷出来，再等等~' }}</view>
+        <view class="empty-subtext">{{ showFollowingOnly ? '去关注更多有趣的诗人吧！' : '去广场看看吧～' }}</view>
       </view>
 
       <view id="post-list-container">
-        <view v-for="(item, index) in postList" v-if="item" :key="item._id || index" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
+        <view v-for="(item, index) in postList" v-if="item" :key="item._id ? `post-${item._id}-${index}` : `post-index-${index}`" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
           <view class="post-content-navigator" @tap="togglePostExpansion" @longpress="onLongPressCard" :data-index="index" :data-postid="item._id">
             <view class="post-item">
               <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.highlightLines || item.highlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.content" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
@@ -125,7 +135,9 @@ export default {
       // 用户签名相关
       fetchingSignatures: {}, // 防止重复获取签名的状态管理
       // 安全区域高度
-      safeAreaTop: 0
+      safeAreaTop: 0,
+      // 只看关注模式
+      showFollowingOnly: false
     };
   },
     onLoad() {
@@ -223,6 +235,22 @@ export default {
         }
       });
     },
+    // 切换只看关注模式
+    toggleFollowingFilter() {
+      const newMode = !this.showFollowingOnly;
+      console.log('【poem-square】切换只看关注模式:', newMode);
+      
+      this.setData({
+        showFollowingOnly: newMode,
+        postList: [],
+        page: 0,
+        hasMore: true,
+        isLoading: true
+      });
+      
+      // 重新加载数据
+      this.getIndexData();
+    },
     generateRandomBackgroundColor() {
       const colors = this.backgroundColors;
       const last = this.lastUsedColorIndex;
@@ -237,7 +265,8 @@ export default {
       return pick;
     },
     async getPostList(cb) {
-      console.log('【poem-square】getPostList 开始，isLoadingMore:', this.isLoadingMore, 'callback:', typeof cb);
+      console.log('🔍🔍🔍 【poem-square】getPostList 开始，isLoadingMore:', this.isLoadingMore, 'callback:', typeof cb);
+      console.log('🔍🔍🔍 【poem-square】当前页码:', this.page, 'PAGE_SIZE:', PAGE_SIZE);
       if (this.isLoadingMore) {
         console.log('【poem-square】正在加载更多，跳过请求');
         if (typeof cb === 'function') cb();
@@ -245,15 +274,43 @@ export default {
       }
       this.setData({ isLoadingMore: true });
       try {
-        const res = await this.callCloudFunction('getPostList', {
+        // 根据模式选择不同的云函数
+        const isFollowingMode = this.showFollowingOnly;
+        const cloudFunctionName = isFollowingMode ? 'getFollowingPosts' : 'getPostList';
+        const requestParams = {
           skip: this.page * PAGE_SIZE,
           limit: PAGE_SIZE,
           excludeAnonymous: true,
           isPoem: true,        // 只获取诗歌类型的内容
           isOriginal: true     // 只获取原创内容
-        });
+        };
+        // 只看关注模式需要用户登录认证
+        const extraOptions = isFollowingMode ? { requireAuth: true } : {};
+        console.log('🔍🔍🔍 【poem-square】准备调用云函数:', cloudFunctionName, '参数:', JSON.stringify(requestParams, null, 2));
+        console.log('🔍🔍🔍 【poem-square】模式:', isFollowingMode ? '只看关注' : '全部');
+        const res = await this.callCloudFunction(cloudFunctionName, requestParams, extraOptions);
+        console.log('🔍🔍🔍 【poem-square】getPostList 云函数返回结果:', res);
         const list = (res && res.result && res.result.posts) ? res.result.posts : [];
-        console.log('【poem-square】获取到帖子数量:', list.length);
+        console.log('🔍🔍🔍 【poem-square】获取到帖子数量:', list.length);
+        if (list.length > 0) {
+          console.log('🔍🔍🔍 【poem-square】所有帖子的详细信息（用于验证随机性）:');
+          list.forEach((p, idx) => {
+            console.log(`  [${idx + 1}] ID: ${p._id}, 创建时间: ${p.createTime}, 标题: ${p.title || p.content?.substring(0, 20)}`);
+          });
+          console.log('🔍🔍🔍 【poem-square】前3个帖子的时间:', list.slice(0, 3).map(p => ({
+            id: p._id,
+            createTime: p.createTime,
+            title: p.title || p.content?.substring(0, 20)
+          })));
+          // 检查后4个帖子是否真的是随机的（创建时间应该不连续）
+          if (list.length >= 10) {
+            console.log('🔍🔍🔍 【poem-square】后4个帖子（应该是随机的）的创建时间:', list.slice(6, 10).map(p => ({
+              id: p._id,
+              createTime: p.createTime,
+              title: p.title || p.content?.substring(0, 20)
+            })));
+          }
+        }
         
         // 不再前端过滤帖子，因为是否获取签名是在后面控制的
         // 并且云函数调用已经包含了 excludeAnonymous: true，理论上后端已经过滤了
@@ -270,17 +327,17 @@ export default {
           p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
         });
         
-        // 处理分页数据，避免重复
+        // 【修复】首次加载时直接替换，加载更多时合并并去重，避免重复key
         let newPostList;
         if (this.page === 0) {
           newPostList = visibleList;
         } else {
-          // 合并时去重：使用 Map 来去重，保留已存在的项
-          const existingIds = new Set(this.postList.map(p => p._id));
-          const uniqueNewList = visibleList.filter(p => p && p._id && !existingIds.has(p._id));
-          newPostList = this.postList.concat(uniqueNewList);
+          // 加载更多时，过滤掉已存在的帖子，避免重复
+          const existingIds = new Set(this.postList.map(post => post._id).filter(Boolean));
+          const uniqueNewPosts = visibleList.filter(post => post && post._id && !existingIds.has(post._id));
+          newPostList = this.postList.concat(uniqueNewPosts);
+          console.log('【poem-square】去重：新帖子', visibleList.length, '去重后', uniqueNewPosts.length);
         }
-        
         this.setData({
           postList: newPostList,
           page: this.page + 1,
@@ -342,7 +399,7 @@ export default {
       this.fetchingSignatures[authorOpenid] = true;
 
       try {
-        const res = await this.callCloudFunction('getUserProfile', { userId: authorOpenid });
+        const res = await this.callCloudFunction('getUserProfile', { userId: authorOpenid, onlyProfile: true });
 
         if (res.result && res.result.success && res.result.userInfo && res.result.userInfo.signatureUrl) {
           const signatureUrl = res.result.userInfo.signatureUrl;
@@ -504,7 +561,28 @@ export default {
       }
     },
     touchStart() {},
-    touchEnd() {}
+    touchEnd() {},
+    // 从 like:status 缓存对齐当前列表的点赞状态（兜底：跨页返回时也能更新）
+    syncLikeStatusFromCache() {
+      try {
+        const list = Array.isArray(this.postList) ? this.postList : [];
+        const ids = list.map(p => p && p._id).filter(Boolean);
+        if (!ids.length) return;
+        try { const { syncLikeStatusForPosts } = require('../../utils/likeStatusSync.js'); syncLikeStatusForPosts(ids); } catch (_) {}
+        const { getLatestLikeStatus } = require('../../utils/likeStatusSync.js');
+        let changed = false;
+        const next = list.slice();
+        for (let i = 0; i < next.length; i += 1) {
+          const p = next[i]; if (!p || !p._id) continue;
+          const s = getLatestLikeStatus(p._id);
+          if (s && ((p.votes || 0) !== s.votes || !!p.isVoted !== !!s.isVoted)) {
+            p.votes = s.votes; p.isVoted = s.isVoted; p.likeIcon = likeIcon.getLikeIcon(s.votes, s.isVoted);
+            changed = true;
+          }
+        }
+        if (changed) this.setData({ postList: next });
+      } catch (err) { console.warn('[poem-square] syncLikeStatusFromCache failed', err); }
+    }
   }
 };
 </script>
@@ -520,7 +598,7 @@ export default {
 .square-mode-container {
   padding: 100rpx;
   margin-bottom: 200rpx;
-  padding-top: 250rpx; /* 增加上边距：100rpx(top-bar高度) + 150rpx(额外间距) */
+  padding-top: 250rpx; /* 与山界面保持一致 */
   display: flex;
   flex-direction: column;
   align-items: stretch; 
@@ -579,7 +657,7 @@ export default {
 .post-content.expanded { display: block; overflow: visible; }
 .comment-emoji{ font-size: 40rpx; }
 .comment-icon { width: 60rpx; height: 60rpx; }
-.vote-section { display: flex; justify-content: space-between; align-items: center; padding: 35rpx 50rpx; }
+.vote-section { display: flex; justify-content: space-between; align-items: center; padding: 25rpx 50rpx; }
 .actions-left { flex: 1; display: flex; align-items: center; gap: 20rpx; }
 .button-group { display: flex; align-items: center; gap: 30rpx; }
 .comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; }
@@ -626,28 +704,48 @@ export default {
 .loading-footer { text-align: center; color: #666; padding: 30rpx 0 120rpx; }
 .page-indicator { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,.7); color: #fff; padding: 20rpx 40rpx; border-radius: 40rpx; z-index: 1000; font-size: 28rpx; }
 .page-indicator-text { text-align: center; }
+
+/* 只看关注切换按钮 - 在写作入口下方 */
+.filter-toggle-container {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 44px) + 120rpx); /* 状态栏高度 + 顶部栏高度 + 额外间距 */
+  left: 30rpx;
+  z-index: 1;
+}
+
+.filter-toggle-btn {
+  padding: 12rpx 32rpx;
+  border-radius: 50rpx;
+  background: transparent;
+  border: 2rpx solid #e0e0e0;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  box-shadow: none;
+  min-width: 140rpx;
+  text-align: center;
+}
+
+.filter-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+.filter-toggle-btn.active {
+  background: transparent;
+  border: 2rpx solid #e0e0e0;
+  box-shadow: none;
+}
+
+.filter-toggle-text {
+  font-size: 26rpx;
+  color: #666;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.filter-toggle-btn.active .filter-toggle-text {
+  color: #666;
+}
 </style>
-    // 从 like:status 缓存对齐当前列表的点赞状态（兜底：跨页返回时也能更新）
-    syncLikeStatusFromCache() {
-      try {
-        const list = Array.isArray(this.postList) ? this.postList : [];
-        const ids = list.map(p => p && p._id).filter(Boolean);
-        if (!ids.length) return;
-        try { const { syncLikeStatusForPosts } = require('../../utils/likeStatusSync.js'); syncLikeStatusForPosts(ids); } catch (_) {}
-        const { getLatestLikeStatus } = require('../../utils/likeStatusSync.js');
-        let changed = false;
-        const next = list.slice();
-        for (let i = 0; i < next.length; i += 1) {
-          const p = next[i]; if (!p || !p._id) continue;
-          const s = getLatestLikeStatus(p._id);
-          if (s && ((p.votes || 0) !== s.votes || !!p.isVoted !== !!s.isVoted)) {
-            p.votes = s.votes; p.isVoted = s.isVoted; p.likeIcon = likeIcon.getLikeIcon(s.votes, s.isVoted);
-            changed = true;
-          }
-        }
-        if (changed) this.setData({ postList: next });
-      } catch (err) { console.warn('[poem-square] syncLikeStatusFromCache failed', err); }
-    },
 
 
 

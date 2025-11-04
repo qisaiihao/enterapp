@@ -33,6 +33,19 @@ exports.main = async (event, context) => {
   });
 
   try {
+    // 获取被屏蔽的用户ID列表
+    let blockedUserIds = [];
+    try {
+      const blocksRes = await db.collection('blocks')
+        .where({ blockerId: openid })
+        .field({ blockedId: true })
+        .get();
+      blockedUserIds = blocksRes.data.map(item => item.blockedId);
+      console.log('🔍 [searchPosts] 被屏蔽的用户数量:', blockedUserIds.length);
+    } catch (blockError) {
+      console.error('❌ [searchPosts] 获取屏蔽列表失败:', blockError);
+    }
+
     if (!keyword.trim()) {
       return {
         success: false,
@@ -206,6 +219,11 @@ exports.main = async (event, context) => {
     // 构建最终查询条件
     let finalConditions = {};
     
+    // 添加屏蔽用户过滤条件
+    if (blockedUserIds.length > 0) {
+      filterConditions._openid = _.nin(blockedUserIds);
+    }
+    
     console.log('搜索条件数量:', searchConditions.length);
     console.log('过滤条件:', filterConditions);
     
@@ -217,8 +235,15 @@ exports.main = async (event, context) => {
       ]);
       console.log('使用组合条件: 搜索 + 过滤');
     } else if (searchConditions.length > 0) {
-      // 只有搜索关键词
-      finalConditions = _.or(searchConditions);
+      // 只有搜索关键词，需要添加屏蔽过滤
+      if (blockedUserIds.length > 0) {
+        finalConditions = _.and([
+          _.or(searchConditions),
+          { _openid: _.nin(blockedUserIds) }
+        ]);
+      } else {
+        finalConditions = _.or(searchConditions);
+      }
       console.log('使用搜索条件');
     } else if (Object.keys(filterConditions).length > 0) {
       // 只有过滤条件
@@ -251,8 +276,17 @@ exports.main = async (event, context) => {
       posts = searchResult.data;
       console.log('搜索结果数量:', posts.length);
       
-      // 过滤隐藏的帖子
-      posts = posts.filter(p => !p || p.isHidden !== true);
+      // 过滤隐藏的帖子和被屏蔽用户的帖子（包括匿名帖子的realAuthorOpenid）
+      posts = posts.filter(p => {
+        if (!p || p.isHidden === true) return false;
+        if (blockedUserIds.length > 0) {
+          // 检查普通帖子的 _openid
+          if (blockedUserIds.includes(p._openid)) return false;
+          // 检查匿名帖子的 realAuthorOpenid
+          if (p.realAuthorOpenid && blockedUserIds.includes(p.realAuthorOpenid)) return false;
+        }
+        return true;
+      });
       
       // 计算相关性分数并排序
       posts = posts.map(post => {
@@ -331,7 +365,16 @@ exports.main = async (event, context) => {
           index === self.findIndex(p => p._id === post._id)
         );
         
-        posts = uniquePosts.filter(p => !p || p.isHidden !== true);
+        posts = uniquePosts.filter(p => {
+          if (!p || p.isHidden === true) return false;
+          // 过滤被屏蔽用户的帖子（包括匿名帖子的realAuthorOpenid）
+          if (blockedUserIds.length > 0) {
+            if (blockedUserIds.includes(p._openid)) return false;
+            // 检查匿名帖子的realAuthorOpenid
+            if (p.realAuthorOpenid && blockedUserIds.includes(p.realAuthorOpenid)) return false;
+          }
+          return true;
+        });
         
         // 应用过滤条件
         if (Object.keys(filterConditions).length > 0) {
@@ -364,7 +407,16 @@ exports.main = async (event, context) => {
           .limit(limit)
           .get();
         
-        posts = filterResult.data.filter(p => !p || p.isHidden !== true);
+        posts = filterResult.data.filter(p => {
+          if (!p || p.isHidden === true) return false;
+          // 过滤被屏蔽用户的帖子（包括匿名帖子的realAuthorOpenid）
+          if (blockedUserIds.length > 0) {
+            if (blockedUserIds.includes(p._openid)) return false;
+            // 检查匿名帖子的realAuthorOpenid
+            if (p.realAuthorOpenid && blockedUserIds.includes(p.realAuthorOpenid)) return false;
+          }
+          return true;
+        });
       } else {
         posts = [];
       }

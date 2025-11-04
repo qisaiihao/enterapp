@@ -35,6 +35,9 @@
                         <view class="sidebar-item" @tap="navigateToCollage">
                             <text>拼贴诗</text>
                         </view>
+                        <view class="sidebar-item" @tap="navigateToBlockedUsers">
+                            <text>黑名单</text>
+                        </view>
                         <view class="sidebar-item logout-item" @tap="showLogoutConfirm">
                             <text>退出登录</text>
                         </view>
@@ -104,6 +107,15 @@
                         <block v-if="myPosts.length > 0">
                             <!-- ... 你的帖子循环代码保持不变 ... -->
                             <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" v-for="(item, index) in myPosts" :key="index">
+                                <!-- 右上角三个点菜单按钮 -->
+                                <view class="more-menu-btn-top-right" @tap.stop.prevent="showActionMenu" :data-postid="item._id" :data-index="index" :data-hidden="item.isHidden === true">
+                                    <view class="more-menu-dots-small">
+                                        <view class="dot-small"></view>
+                                        <view class="dot-small"></view>
+                                        <view class="dot-small"></view>
+                                    </view>
+                                </view>
+
                                 <!-- 作者信息 -->
 
                                 <view class="author-info-outside">
@@ -199,20 +211,11 @@
                                     </view>
                                 </navigator>
 
-                                <!-- 删除按钮区域 -->
+                                <!-- 操作按钮区域 -->
 
                                 <view class="delete-section">
                                     <view class="time-left">
                                         <text class="post-time">发布于{{ item.formattedCreateTime || '未知时间' }}</text>
-                                    </view>
-                                    <view class="button-group">
-                                        <!-- 个人帖子显示隐藏按钮 -->
-                                        <view class="visibility-btn" @tap.stop.prevent="onToggleVisibility" :data-postid="item._id" :data-index="index" :data-hidden="item.isHidden === true">
-                                            <image class="visibility-icon" src="/static/images/hide.png" mode="aspectFit"></image>
-                                        </view>
-                                        <view class="delete-btn" @tap.stop.prevent="onDelete" :data-postid="item._id" :data-index="index">
-                                            <image class="delete-icon" src="/static/images/delete.png" mode="aspectFit"></image>
-                                        </view>
                                     </view>
                                 </view>
                             </view>
@@ -459,6 +462,24 @@
         <app-tab-bar ref="customTabBar" />
         <!-- #endif -->
         
+        <!-- 底部操作菜单（参考豆瓣样式） -->
+        <view v-if="isActionMenuVisible" class="action-menu-overlay" @tap="hideActionMenu">
+            <view class="action-menu-container" @tap.stop>
+                <view class="action-menu-item" @tap="handleEditPost">
+                    <text>编辑</text>
+                </view>
+                <view class="action-menu-item" @tap="handleToggleVisibility">
+                    <text>{{ actionMenuData.isHidden ? '取消隐藏' : '隐藏' }}</text>
+                </view>
+                <view class="action-menu-item action-menu-item-danger" @tap="handleDeleteFromMenu">
+                    <text>删除该动态</text>
+                </view>
+                <view class="action-menu-item action-menu-item-cancel" @tap="hideActionMenu">
+                    <text>取消</text>
+                </view>
+            </view>
+        </view>
+
         <!-- 删除帖子弹窗 -->
         <view v-if="showDeleteModal" class="modal-overlay" @tap="hideDeleteModal">
             <view class="modal-content" @tap.stop>
@@ -556,6 +577,13 @@ export default {
             showDeleteModal: false,
             deletePostId: '',
             deletePostIndex: -1,
+            // 底部操作菜单相关状态
+            isActionMenuVisible: false,
+            actionMenuData: {
+                postId: '',
+                index: -1,
+                isHidden: false
+            },
             // 花草成长统计
             growthStats: {
                 seed: 0,
@@ -753,7 +781,121 @@ export default {
             });
         },
 
-        // 隐藏/取消隐藏帖子
+        // 显示底部操作菜单
+        showActionMenu: function (e) {
+            const postId = e.currentTarget.dataset.postid;
+            const index = parseInt(e.currentTarget.dataset.index);
+            const isHidden = !!e.currentTarget.dataset.hidden;
+            
+            if (!postId || typeof index === 'undefined') {
+                console.error('【profile】showActionMenu: 参数缺失', { postId, index });
+                return;
+            }
+            
+            this.setData({
+                isActionMenuVisible: true,
+                actionMenuData: {
+                    postId: postId,
+                    index: index,
+                    isHidden: isHidden
+                }
+            });
+        },
+        
+        // 隐藏底部操作菜单
+        hideActionMenu: function () {
+            this.setData({
+                isActionMenuVisible: false,
+                actionMenuData: {
+                    postId: '',
+                    index: -1,
+                    isHidden: false
+                }
+            });
+        },
+        
+        // 从菜单中处理隐藏/取消隐藏
+        handleToggleVisibility: function () {
+            const { postId, index, isHidden } = this.actionMenuData;
+            if (!postId || typeof index === 'undefined') {
+                console.error('【profile】handleToggleVisibility: 参数缺失');
+                this.hideActionMenu();
+                return;
+            }
+            
+            const targetHidden = !isHidden;
+            this.callCloudFunction('updatePostVisibility', { postId, hidden: targetHidden }).then((res) => {
+                if (res && res.result && res.result.success) {
+                    const path = `myPosts[${index}].isHidden`;
+                    const updates = {};
+                    updates[path] = targetHidden;
+                    this.setData(updates);
+                    try { const { emitPostVisibilityChanged } = require('../../utils/events.js'); emitPostVisibilityChanged({ postId, isHidden: targetHidden }); } catch (_) {}
+                    uni.showToast({ title: targetHidden ? '已隐藏' : '已取消隐藏', icon: 'success' });
+                } else {
+                    uni.showToast({ title: res?.result?.message || '操作失败', icon: 'none' });
+                }
+            }).catch((err) => {
+                console.error('updatePostVisibility failed', err);
+                uni.showToast({ title: '操作失败', icon: 'none' });
+            }).finally(() => {
+                this.hideActionMenu();
+            });
+        },
+        
+        // 从菜单中处理编辑
+        handleEditPost: function () {
+            const { postId, index } = this.actionMenuData;
+            if (!postId || typeof index === 'undefined') {
+                console.error('【profile】handleEditPost: 参数缺失');
+                this.hideActionMenu();
+                return;
+            }
+            
+            // 获取当前帖子数据
+            const post = this.myPosts[index];
+            if (!post) {
+                console.error('【profile】handleEditPost: 帖子不存在');
+                this.hideActionMenu();
+                return;
+            }
+            
+            this.hideActionMenu();
+            
+            // 跳转到编辑页面，传递帖子ID
+            uni.navigateTo({
+                url: `/pages/add/add?mode=edit&postId=${postId}`,
+                success: () => {
+                    console.log('【profile】跳转到编辑页面成功');
+                },
+                fail: (err) => {
+                    console.error('【profile】跳转到编辑页面失败:', err);
+                    uni.showToast({
+                        title: '跳转失败',
+                        icon: 'none'
+                    });
+                }
+            });
+        },
+        
+        // 从菜单中处理删除
+        handleDeleteFromMenu: function () {
+            const { postId, index } = this.actionMenuData;
+            if (!postId || typeof index === 'undefined') {
+                console.error('【profile】handleDeleteFromMenu: 参数缺失');
+                this.hideActionMenu();
+                return;
+            }
+            
+            this.hideActionMenu();
+            this.setData({
+                showDeleteModal: true,
+                deletePostId: postId,
+                deletePostIndex: index
+            });
+        },
+        
+        // 隐藏/取消隐藏帖子（保留原方法，以防其他地方调用）
         onToggleVisibility: function (e) {
             const postId = e.currentTarget.dataset.postid;
             const index = e.currentTarget.dataset.index;
@@ -2078,6 +2220,13 @@ export default {
             });
         },
 
+        // 跳转到黑名单页面
+        navigateToBlockedUsers: function () {
+            uni.navigateTo({
+                url: '/pages/blocked-users/blocked-users'
+            });
+        },
+
         // 跳转到反馈管理页面（管理员）
         navigateToFeedbackAdmin: function () {
             uni.navigateTo({
@@ -2604,6 +2753,7 @@ export default {
 
 /* 新增：帖子项包装器样式 */
 .post-item-wrapper {
+    position: relative;
     background: #fff;
     margin-bottom: 20rpx;
     padding: 0;
@@ -2886,6 +3036,160 @@ export default {
 }
 
 .delete-icon {
+    width: 100rpx;
+    height: 100rpx;
+}
+
+/* 三个点菜单按钮样式 */
+.more-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10rpx;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.more-menu-btn:active {
+    transform: scale(0.9);
+    opacity: 0.7;
+}
+
+.more-menu-dots {
+    display: flex;
+    align-items: center;
+    gap: 6rpx;
+    padding: 8rpx;
+}
+
+.more-menu-dots .dot {
+    width: 12rpx;
+    height: 12rpx;
+    border-radius: 50%;
+    background-color: #666;
+}
+
+/* 右上角三个点菜单按钮（缩小版） */
+.more-menu-btn-top-right {
+    position: absolute;
+    top: 20rpx;
+    right: 20rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8rpx;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.more-menu-btn-top-right:active {
+    transform: scale(0.9);
+    opacity: 0.7;
+}
+
+.more-menu-dots-small {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4rpx;
+}
+
+.more-menu-dots-small .dot-small {
+    width: 8rpx;
+    height: 8rpx;
+    border-radius: 50%;
+    background-color: #666;
+}
+
+/* 底部操作菜单样式（参考豆瓣） */
+.action-menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.action-menu-container {
+    width: 100%;
+    background-color: #fff;
+    border-radius: 24rpx 24rpx 0 0;
+    padding-bottom: calc(40rpx + constant(safe-area-inset-bottom));
+    padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+
+.action-menu-item {
+    width: 100%;
+    height: 100rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32rpx;
+    color: #333;
+    border-bottom: 1rpx solid #f0f0f0;
+    transition: background-color 0.2s ease;
+}
+
+.action-menu-item:active {
+    background-color: #f5f5f5;
+}
+
+.action-menu-item:last-child {
+    border-bottom: none;
+}
+
+.action-menu-item-danger {
+    color: #ff3b30;
+}
+
+.action-menu-item-cancel {
+    margin-top: 20rpx;
+    border-top: 10rpx solid #f0f0f0;
+    border-bottom: none;
+    font-weight: 500;
+}
+
+.visibility-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    padding: 10rpx;
+    margin-right: 20rpx;
+}
+
+.visibility-btn:active {
+    transform: scale(0.9);
+}
+
+.visibility-icon {
     width: 100rpx;
     height: 100rpx;
 }
