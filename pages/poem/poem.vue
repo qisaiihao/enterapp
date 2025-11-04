@@ -4,6 +4,15 @@
         <view class="container">
             <!-- 顶部栏 -->
             <top-bar ref="topBar" @safe-area-ready="onTopBarSafeAreaReady"></top-bar>
+            <!-- 只看关注切换按钮 -->
+            <view class="filter-toggle-container" :style="{ top: filterToggleTop + 'px' }">
+                <view 
+                    :class="'filter-toggle-btn ' + (showFollowingOnly ? 'active' : '')" 
+                    @tap="toggleFollowingFilter"
+                >
+                    <text class="filter-toggle-text">{{ showFollowingOnly ? '显示全部' : '只看关注' }}</text>
+                </view>
+            </view>
             <!-- 双图层清晰背景 -->
             <view class="background-wrapper">
                 <image
@@ -71,8 +80,8 @@
 
                 <view v-if="postList.length === 0 && !isLoading" class="empty-state">
                     <view class="empty-icon">🛤️</view>
-                    <view class="empty-text">还没有路诗哦～</view>
-                    <view class="empty-subtext">快去广场发现原创好诗吧！</view>
+                    <view class="empty-text">{{ showFollowingOnly ? '关注的人还没有路诗哦～' : '还没有路诗哦～' }}</view>
+                    <view class="empty-subtext">{{ showFollowingOnly ? '去关注更多有趣的诗人吧！' : '快去广场发现原创好诗吧！' }}</view>
                 </view>
             </view>
 
@@ -106,8 +115,8 @@ export default {
             // 默认显示骨架屏
             postList: [],
 
-            topOffsetPx: 180,
-            poemModeStyle: 'top:180px;height:calc(100vh - 180px);',
+            topOffsetPx: 240, // 增加顶部偏移，为切换按钮留出空间
+            poemModeStyle: 'top:240px;height:calc(100vh - 240px);',
 
             currentPostIndex: 0,
             touchStartX: 0,
@@ -160,12 +169,19 @@ export default {
 
             selected: 0,
             url: '',
-            visible: false
+            visible: false,
+
+            // 只看关注模式
+            showFollowingOnly: false,
+            
+            // 切换按钮位置（初始值设为较大的值，确保可见）
+            filterToggleTop: 120
         };
     },
     onLoad: function () {
 
         this.computeTopOffset();
+        this.computeFilterToggleTop(); // 立即计算按钮位置
         this._isDestroyed = false;
         this.__topBarOffsetTimer = null;
         console.log('Poem 页面 onLoad');
@@ -195,6 +211,11 @@ export default {
         // TabBar 状态更新，使用兼容性处理
         const { updateTabBarStatus } = require('../../utils/tabBarCompatibility.js');
         updateTabBarStatus(this, 1);
+        
+        // 确保切换按钮位置正确
+        this.$nextTick(() => {
+            this.computeFilterToggleTop();
+        });
 
         // 检查是否需要刷新（发布帖子后）
         try {
@@ -263,8 +284,11 @@ export default {
                 });
             };
 
-            const fallbackOffset = 180;
+            const fallbackOffset = 240; // 增加默认偏移，为切换按钮留出空间
             applyOffset(fallbackOffset);
+            
+            // 同时计算切换按钮位置
+            this.computeFilterToggleTop();
 
             const measureOffset = (attempt = 0) => {
                 if (attempt >= 5 || this._isDestroyed) {
@@ -300,6 +324,19 @@ export default {
                             offset = statusBarHeight + rect.height;
                         }
 
+                        // 添加切换按钮的高度（约60rpx，转换为px）
+                        // 在uni-app中，rpx转px：1rpx = 屏幕宽度 / 750
+                        try {
+                            const systemInfo = uni.getSystemInfoSync();
+                            const screenWidth = systemInfo.windowWidth || 375;
+                            const filterButtonHeightRpx = 60; // rpx
+                            const filterButtonHeightPx = (filterButtonHeightRpx / 750) * screenWidth;
+                            offset += filterButtonHeightPx;
+                        } catch (e) {
+                            // 如果获取系统信息失败，使用默认值（约30px）
+                            offset += 30;
+                        }
+
                         if (offset > 0) {
                             applyOffset(offset);
                         }
@@ -329,9 +366,69 @@ export default {
             this.__topBarOffsetTimer = setTimeout(() => {
                 if (!this._isDestroyed) {
                     this.computeTopOffset();
+                    this.computeFilterToggleTop();
                 }
                 this.__topBarOffsetTimer = null;
             }, 30);
+        },
+
+        // 计算切换按钮的位置
+        computeFilterToggleTop() {
+            const compute = () => {
+                try {
+                    uni.createSelectorQuery()
+                        .in(this)
+                        .select('.top-bar-container')
+                        .boundingClientRect((rect) => {
+                            if (rect && rect.bottom) {
+                                // 按钮位置 = top-bar的底部位置
+                                const buttonTop = rect.bottom;
+                                this.setData({
+                                    filterToggleTop: buttonTop
+                                });
+                                console.log('✅ 【poem】切换按钮位置设置为:', buttonTop, 'px');
+                                console.log('✅ 【poem】top-bar位置信息:', {
+                                    top: rect.top,
+                                    bottom: rect.bottom,
+                                    height: rect.height
+                                });
+                            } else {
+                                // 如果获取不到，使用状态栏高度 + top-bar高度估算
+                                try {
+                                    const systemInfo = uni.getSystemInfoSync();
+                                    const statusBarHeight = systemInfo.statusBarHeight || 44;
+                                    const topBarHeight = 50; // 100rpx约等于50px
+                                    const estimatedTop = statusBarHeight + topBarHeight;
+                                    this.setData({
+                                        filterToggleTop: estimatedTop
+                                    });
+                                    console.log('【poem】使用估算位置:', estimatedTop);
+                                } catch (e) {
+                                    this.setData({
+                                        filterToggleTop: 120
+                                    });
+                                }
+                            }
+                        })
+                        .exec();
+                } catch (error) {
+                    console.error('【poem】计算切换按钮位置失败:', error);
+                    // 使用默认值
+                    this.setData({
+                        filterToggleTop: 120
+                    });
+                }
+            };
+            
+            // 延迟执行，确保DOM已渲染
+            setTimeout(() => {
+                compute();
+            }, 100);
+            
+            // 立即执行一次
+            this.$nextTick(() => {
+                compute();
+            });
         },
         toPoemSquare(){ uni.navigateTo({ url: "/pages/poem-square/poem-square" }); },
         navigateToUserProfile(payload) {
@@ -405,6 +502,39 @@ export default {
                 ],
                 activeLayerIndex: 0
             });
+            this.getPostList();
+        },
+
+        // 切换只看关注模式
+        toggleFollowingFilter: function () {
+            const newMode = !this.showFollowingOnly;
+            console.log('【poem】切换只看关注模式:', newMode);
+            
+            // 重置状态
+            this.setData({
+                showFollowingOnly: newMode,
+                postList: [],
+                currentPostIndex: 0,
+                page: 0,
+                hasMore: true,
+                isLoading: true,
+                currentPost: null,
+                currentAuthorSignature: '',
+                currentAuthorOpenid: '',
+                bgLayers: [
+                    {
+                        url: '',
+                        visible: false
+                    },
+                    {
+                        url: '',
+                        visible: false
+                    }
+                ],
+                activeLayerIndex: 0
+            });
+            
+            // 重新加载数据
             this.getPostList();
         },
 
@@ -558,21 +688,22 @@ export default {
             const skip = this.page * PAGE_SIZE;
             console.log('🔍 [Poem] 请求参数 - skip:', skip, 'page:', this.page, 'PAGE_SIZE:', PAGE_SIZE);
             
-            console.log('🔍 [Poem] 开始调用云函数 getPostList');
-            console.log('🔍 [Poem] 云函数参数:', {
+            // 根据模式选择不同的云函数
+            const isFollowingMode = this.showFollowingOnly;
+            const cloudFunctionName = isFollowingMode ? 'getFollowingPosts' : 'getPostList';
+            const requestParams = {
                 skip: skip,
                 limit: PAGE_SIZE,
                 isPoem: true,
                 isOriginal: true
-            });
+            };
+            
+            console.log('🔍 [Poem] 开始调用云函数:', cloudFunctionName);
+            console.log('🔍 [Poem] 云函数参数:', requestParams);
+            console.log('🔍 [Poem] 模式:', isFollowingMode ? '只看关注' : '全部');
             
             // 使用兼容性云函数调用
-            this.callCloudFunction('getPostList', {
-                skip: skip,
-                limit: PAGE_SIZE,
-                isPoem: true,
-                isOriginal: true
-            }).then((res) => {
+            this.callCloudFunction(cloudFunctionName, requestParams).then((res) => {
                 console.log('✅ [Poem] 云函数调用成功，原始响应:', res);
                 
                 if (res.result && res.result.success) {
@@ -753,13 +884,19 @@ export default {
 
             const skip = this.page * PAGE_SIZE;
             console.log('开始加载更多路诗歌，skip:', skip, 'page:', this.page);
-            // 使用兼容性云函数调用
-            this.callCloudFunction('getPostList', {
+            
+            // 根据模式选择不同的云函数
+            const isFollowingMode = this.showFollowingOnly;
+            const cloudFunctionName = isFollowingMode ? 'getFollowingPosts' : 'getPostList';
+            const requestParams = {
                 skip: skip,
                 limit: PAGE_SIZE,
                 isPoem: true,
                 isOriginal: true
-            }).then((res) => {
+            };
+            
+            // 使用兼容性云函数调用
+            this.callCloudFunction(cloudFunctionName, requestParams).then((res) => {
                     console.log('加载更多路诗歌结果:', res);
                     if (res.result && res.result.success) {
                         const posts = res.result.posts || [];
@@ -1371,4 +1508,56 @@ page {
     z-index: 1000;
 }
 
-.poem-square-entry{ position:fixed; right:24rpx; bottom:180rpx; width:96rpx; height:96rpx; border-radius:24rpx; background:#0bb07b; color:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 10rpx 26rpx rgba(0,0,0,.18); z-index:999; } .poem-square-entry::after{ border:none } </style>
+.poem-square-entry{ position:fixed; right:24rpx; bottom:180rpx; width:96rpx; height:96rpx; border-radius:24rpx; background:#0bb07b; color:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 10rpx 26rpx rgba(0,0,0,.18); z-index:999; } .poem-square-entry::after{ border:none } 
+
+/* 只看关注切换按钮 */
+.filter-toggle-container {
+    position: fixed;
+    /* top 值通过 JavaScript 动态设置 */
+    left: 0;
+    right: 0;
+    z-index: 10001; /* 确保在所有元素之上，包括背景图层和top-bar */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 16rpx 0;
+    background: rgba(255, 255, 255, 0.95); /* 使用半透明白色背景，确保可见 */
+    backdrop-filter: blur(10rpx); /* 添加毛玻璃效果 */
+    -webkit-backdrop-filter: blur(10rpx);
+    border-bottom: 1rpx solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+    min-height: 80rpx;
+}
+
+.filter-toggle-btn {
+    padding: 16rpx 40rpx;
+    border-radius: 50rpx;
+    background: #f5f5f5;
+    border: 2rpx solid #e0e0e0;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    box-shadow: 0 4rpx 8rpx rgba(0, 0, 0, 0.1);
+    min-width: 160rpx;
+    text-align: center;
+}
+
+.filter-toggle-btn:active {
+    transform: scale(0.95);
+}
+
+.filter-toggle-btn.active {
+    background: #0bb07b;
+    border-color: #0bb07b;
+    box-shadow: 0 4rpx 12rpx rgba(11, 176, 123, 0.3);
+}
+
+.filter-toggle-text {
+    font-size: 28rpx;
+    color: #666;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.filter-toggle-btn.active .filter-toggle-text {
+    color: #fff;
+}</style>

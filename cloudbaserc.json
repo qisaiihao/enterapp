@@ -184,8 +184,8 @@
             {
               "name": "getUserProfile",
               "root": "./functions/getUserProfile",
-              "timeout": 5,
-              "memory": 128
+              "timeout": 20,
+              "memory": 256
             },
             {
               "name": "imageManager",

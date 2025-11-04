@@ -3,6 +3,16 @@
     <!-- 顶部栏 -->
     <top-bar />
 
+    <!-- 只看关注切换按钮 - 在写作入口下方 -->
+    <view class="filter-toggle-container">
+      <view 
+        :class="'filter-toggle-btn ' + (showFollowingOnly ? 'active' : '')" 
+        @tap="toggleFollowingFilter"
+      >
+        <text class="filter-toggle-text">{{ showFollowingOnly ? '显示全部' : '只看关注' }}</text>
+      </view>
+    </view>
+
     <!-- 加载中骨架 -->
     <view v-if="isLoading">
       <skeleton pageType="poem" />
@@ -12,8 +22,8 @@
     <view v-else class="square-mode-container">
       <view v-if="postList.length === 0" class="empty-state">
         <view class="empty-icon">😶</view>
-        <view class="empty-text">还没刷出来，再等等~</view>
-        <view class="empty-subtext">去广场看看吧～</view>
+        <view class="empty-text">{{ showFollowingOnly ? '关注的人还没有发布诗歌哦～' : '还没刷出来，再等等~' }}</view>
+        <view class="empty-subtext">{{ showFollowingOnly ? '去关注更多有趣的诗人吧！' : '去广场看看吧～' }}</view>
       </view>
 
       <view id="post-list-container">
@@ -125,7 +135,9 @@ export default {
       // 用户签名相关
       fetchingSignatures: {}, // 防止重复获取签名的状态管理
       // 安全区域高度
-      safeAreaTop: 0
+      safeAreaTop: 0,
+      // 只看关注模式
+      showFollowingOnly: false
     };
   },
     onLoad() {
@@ -223,6 +235,22 @@ export default {
         }
       });
     },
+    // 切换只看关注模式
+    toggleFollowingFilter() {
+      const newMode = !this.showFollowingOnly;
+      console.log('【poem-square】切换只看关注模式:', newMode);
+      
+      this.setData({
+        showFollowingOnly: newMode,
+        postList: [],
+        page: 0,
+        hasMore: true,
+        isLoading: true
+      });
+      
+      // 重新加载数据
+      this.getIndexData();
+    },
     generateRandomBackgroundColor() {
       const colors = this.backgroundColors;
       const last = this.lastUsedColorIndex;
@@ -246,6 +274,9 @@ export default {
       }
       this.setData({ isLoadingMore: true });
       try {
+        // 根据模式选择不同的云函数
+        const isFollowingMode = this.showFollowingOnly;
+        const cloudFunctionName = isFollowingMode ? 'getFollowingPosts' : 'getPostList';
         const requestParams = {
           skip: this.page * PAGE_SIZE,
           limit: PAGE_SIZE,
@@ -253,8 +284,11 @@ export default {
           isPoem: true,        // 只获取诗歌类型的内容
           isOriginal: true     // 只获取原创内容
         };
-        console.log('🔍🔍🔍 【poem-square】准备调用 getPostList 云函数，参数:', JSON.stringify(requestParams, null, 2));
-        const res = await this.callCloudFunction('getPostList', requestParams);
+        // 只看关注模式需要用户登录认证
+        const extraOptions = isFollowingMode ? { requireAuth: true } : {};
+        console.log('🔍🔍🔍 【poem-square】准备调用云函数:', cloudFunctionName, '参数:', JSON.stringify(requestParams, null, 2));
+        console.log('🔍🔍🔍 【poem-square】模式:', isFollowingMode ? '只看关注' : '全部');
+        const res = await this.callCloudFunction(cloudFunctionName, requestParams, extraOptions);
         console.log('🔍🔍🔍 【poem-square】getPostList 云函数返回结果:', res);
         const list = (res && res.result && res.result.posts) ? res.result.posts : [];
         console.log('🔍🔍🔍 【poem-square】获取到帖子数量:', list.length);
@@ -365,7 +399,7 @@ export default {
       this.fetchingSignatures[authorOpenid] = true;
 
       try {
-        const res = await this.callCloudFunction('getUserProfile', { userId: authorOpenid });
+        const res = await this.callCloudFunction('getUserProfile', { userId: authorOpenid, onlyProfile: true });
 
         if (res.result && res.result.success && res.result.userInfo && res.result.userInfo.signatureUrl) {
           const signatureUrl = res.result.userInfo.signatureUrl;
@@ -527,7 +561,28 @@ export default {
       }
     },
     touchStart() {},
-    touchEnd() {}
+    touchEnd() {},
+    // 从 like:status 缓存对齐当前列表的点赞状态（兜底：跨页返回时也能更新）
+    syncLikeStatusFromCache() {
+      try {
+        const list = Array.isArray(this.postList) ? this.postList : [];
+        const ids = list.map(p => p && p._id).filter(Boolean);
+        if (!ids.length) return;
+        try { const { syncLikeStatusForPosts } = require('../../utils/likeStatusSync.js'); syncLikeStatusForPosts(ids); } catch (_) {}
+        const { getLatestLikeStatus } = require('../../utils/likeStatusSync.js');
+        let changed = false;
+        const next = list.slice();
+        for (let i = 0; i < next.length; i += 1) {
+          const p = next[i]; if (!p || !p._id) continue;
+          const s = getLatestLikeStatus(p._id);
+          if (s && ((p.votes || 0) !== s.votes || !!p.isVoted !== !!s.isVoted)) {
+            p.votes = s.votes; p.isVoted = s.isVoted; p.likeIcon = likeIcon.getLikeIcon(s.votes, s.isVoted);
+            changed = true;
+          }
+        }
+        if (changed) this.setData({ postList: next });
+      } catch (err) { console.warn('[poem-square] syncLikeStatusFromCache failed', err); }
+    }
   }
 };
 </script>
@@ -543,7 +598,7 @@ export default {
 .square-mode-container {
   padding: 100rpx;
   margin-bottom: 200rpx;
-  padding-top: 250rpx; /* 增加上边距：100rpx(top-bar高度) + 150rpx(额外间距) */
+  padding-top: 250rpx; /* 与山界面保持一致 */
   display: flex;
   flex-direction: column;
   align-items: stretch; 
@@ -602,7 +657,7 @@ export default {
 .post-content.expanded { display: block; overflow: visible; }
 .comment-emoji{ font-size: 40rpx; }
 .comment-icon { width: 60rpx; height: 60rpx; }
-.vote-section { display: flex; justify-content: space-between; align-items: center; padding: 35rpx 50rpx; }
+.vote-section { display: flex; justify-content: space-between; align-items: center; padding: 25rpx 50rpx; }
 .actions-left { flex: 1; display: flex; align-items: center; gap: 20rpx; }
 .button-group { display: flex; align-items: center; gap: 30rpx; }
 .comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; }
@@ -649,28 +704,48 @@ export default {
 .loading-footer { text-align: center; color: #666; padding: 30rpx 0 120rpx; }
 .page-indicator { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,.7); color: #fff; padding: 20rpx 40rpx; border-radius: 40rpx; z-index: 1000; font-size: 28rpx; }
 .page-indicator-text { text-align: center; }
+
+/* 只看关注切换按钮 - 在写作入口下方 */
+.filter-toggle-container {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 44px) + 120rpx); /* 状态栏高度 + 顶部栏高度 + 额外间距 */
+  left: 30rpx;
+  z-index: 1;
+}
+
+.filter-toggle-btn {
+  padding: 12rpx 32rpx;
+  border-radius: 50rpx;
+  background: transparent;
+  border: 2rpx solid #e0e0e0;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  box-shadow: none;
+  min-width: 140rpx;
+  text-align: center;
+}
+
+.filter-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+.filter-toggle-btn.active {
+  background: transparent;
+  border: 2rpx solid #e0e0e0;
+  box-shadow: none;
+}
+
+.filter-toggle-text {
+  font-size: 26rpx;
+  color: #666;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.filter-toggle-btn.active .filter-toggle-text {
+  color: #666;
+}
 </style>
-    // 从 like:status 缓存对齐当前列表的点赞状态（兜底：跨页返回时也能更新）
-    syncLikeStatusFromCache() {
-      try {
-        const list = Array.isArray(this.postList) ? this.postList : [];
-        const ids = list.map(p => p && p._id).filter(Boolean);
-        if (!ids.length) return;
-        try { const { syncLikeStatusForPosts } = require('../../utils/likeStatusSync.js'); syncLikeStatusForPosts(ids); } catch (_) {}
-        const { getLatestLikeStatus } = require('../../utils/likeStatusSync.js');
-        let changed = false;
-        const next = list.slice();
-        for (let i = 0; i < next.length; i += 1) {
-          const p = next[i]; if (!p || !p._id) continue;
-          const s = getLatestLikeStatus(p._id);
-          if (s && ((p.votes || 0) !== s.votes || !!p.isVoted !== !!s.isVoted)) {
-            p.votes = s.votes; p.isVoted = s.isVoted; p.likeIcon = likeIcon.getLikeIcon(s.votes, s.isVoted);
-            changed = true;
-          }
-        }
-        if (changed) this.setData({ postList: next });
-      } catch (err) { console.warn('[poem-square] syncLikeStatusFromCache failed', err); }
-    },
 
 
 
