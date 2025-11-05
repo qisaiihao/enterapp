@@ -83,6 +83,7 @@
 const { cloudCall } = require('../../utils/cloudCall.js');
 const { formatRelativeTime } = require('../../utils/time.js');
 const { previewImage } = require('../../utils/imagePreview.js');
+// authorSignature已从云函数返回，不再需要signatureCache
 // Temporary placeholder for hydrateTempUrls
 const hydrateTempUrls = async (posts) => posts;
 
@@ -196,7 +197,8 @@ export default {
             post.backgroundColor = post.backgroundColor || this.generateRandomBackgroundColor();
             post.textColor = post.textColor || '#222';
             post.isExpanded = false;
-            post.authorSignature = ''; // 添加作者签名属性
+            // authorSignature已从云函数返回，保留原始值（如果没有则为空字符串）
+            post.authorSignature = post.authorSignature || '';
             
             // 格式化时间
             if (post.createTime) {
@@ -217,13 +219,7 @@ export default {
           this.hasMore = newPosts.length === this.limit;
           this.skip += newPosts.length;
 
-          // 自动获取所有帖子的签名
-          this.postList.forEach((post, index) => {
-            if (post._openid && !post.authorSignature) {
-              this.fetchAuthorSignature(post._openid, index);
-            }
-          });
-
+          // authorSignature已从云函数返回，无需额外获取
           console.log('【他人作品集】加载成功，数量:', newPosts.length, '总数:', this.postList.length);
         } else {
           uni.showToast({
@@ -258,46 +254,11 @@ export default {
       const post = this.postList[index];
       if (post) {
         this.$set(this.postList, index, { ...post, isExpanded: !post.isExpanded });
-        
-        // 如果还没有签名，则获取签名（无论展开还是折叠）
-        if (post._openid && !post.authorSignature) {
-          this.fetchAuthorSignature(post._openid, index);
-        }
+        // authorSignature已从云函数返回，无需额外获取
       }
     },
 
-    // 获取作者签名
-    async fetchAuthorSignature(authorOpenid, postIndex) {
-      if (!authorOpenid) {
-        return;
-      }
-
-      try {
-        const res = await this.callCloudFunction('getUserProfile', { userId: authorOpenid });
-
-        if (res.result && res.result.success && res.result.userInfo && res.result.userInfo.signatureUrl) {
-          const signatureUrl = res.result.userInfo.signatureUrl;
-          console.log('【他人作品集】获取到作者签名:', signatureUrl);
-
-          this.$set(this.postList, postIndex, {
-            ...this.postList[postIndex],
-            authorSignature: signatureUrl
-          });
-        } else {
-          console.log('【他人作品集】作者未设置签名');
-          this.$set(this.postList, postIndex, {
-            ...this.postList[postIndex],
-            authorSignature: ''
-          });
-        }
-      } catch (err) {
-        console.error('【他人作品集】获取作者签名失败:', err);
-        this.$set(this.postList, postIndex, {
-          ...this.postList[postIndex],
-          authorSignature: ''
-        });
-      }
-    },
+    // authorSignature已从云函数返回，不再需要fetchAuthorSignature函数
 
     // 长按卡片
     onLongPressCard(e) {

@@ -162,7 +162,7 @@ export default {
                     handle(f && (f.tempFilePath || f.filePath));
                 }, fail: (e) => { if (!(e && e.errMsg && e.errMsg.includes('cancel'))) uni.showToast({ title: '选择失败', icon: 'none' }); } });
             } else {
-                uni.chooseImage({ count: 1, sizeType: ['compressed','original'], sourceType: ['album','camera'], success: (res) => {
+                uni.chooseImage({ count: 1, sizeType: ['compressed'], sourceType: ['album','camera'], success: (res) => {
                     handle(res.tempFilePaths && res.tempFilePaths[0]);
                 }, fail: (e) => { if (!(e && e.errMsg && e.errMsg.includes('cancel'))) uni.showToast({ title: '选择失败', icon: 'none' }); } });
             }

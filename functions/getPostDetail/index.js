@@ -84,8 +84,9 @@ exports.main = async (event, context) => {
     // 4. 组合最终结果
     const resultPost = {
       ...post,
-      authorName: author.nickName,
-      authorAvatar: author.avatarUrl,
+      authorName: post.authorName || post.authorNameSnapshot || author.nickName || '匿名用户',
+      authorAvatar: post.authorAvatar || post.authorAvatarSnapshot || author.avatarUrl || '',
+      authorSignature: post.authorSignature || '', // 签名URL（优先使用帖子中存储的值）
       isAuthor: post._openid === openid,
       isVoted: voteRes.data.length > 0,
       tags: post.tags || [] // 确保标签字段存在
@@ -119,6 +120,9 @@ exports.main = async (event, context) => {
     if (resultPost.authorAvatar && resultPost.authorAvatar.startsWith('cloud://')) {
       fileIDs.push(resultPost.authorAvatar);
     }
+    if (resultPost.authorSignature && resultPost.authorSignature.startsWith('cloud://')) {
+      fileIDs.push(resultPost.authorSignature);
+    }
 
     if (fileIDs.length > 0) {
       const fileListResult = await cloud.getTempFileURL({ fileList: fileIDs });
@@ -147,6 +151,9 @@ exports.main = async (event, context) => {
       }
       if (resultPost.authorAvatar && urlMap.has(resultPost.authorAvatar)) {
         resultPost.authorAvatar = urlMap.get(resultPost.authorAvatar);
+      }
+      if (resultPost.authorSignature && urlMap.has(resultPost.authorSignature)) {
+        resultPost.authorSignature = urlMap.get(resultPost.authorSignature);
       }
     }
 

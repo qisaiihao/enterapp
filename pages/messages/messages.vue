@@ -25,6 +25,9 @@
 
         <!-- 消息类型标签 -->
         <view class="tab-container">
+            <view :class="'tab-item ' + (activeTab === 'all' ? 'active' : '')" @tap="switchTab" data-tab="all">
+                <text>全部</text>
+            </view>
             <view :class="'tab-item ' + (activeTab === 'like' ? 'active' : '')" @tap="switchTab" data-tab="like">
                 <text>点赞</text>
             </view>
@@ -112,6 +115,7 @@ const app = getApp();
 const { formatTimeAgo } = require('../../utils/time');
 const { cloudCall } = require('../../utils/cloudCall.js');
 const { invalidateUnread } = require('../../api-cache/unread.js');
+const { getMessages: getMessagesWithCache, invalidateMessages } = require('../../api-cache/messages.js');
 const fileUrlCache = require('../../_utils/file-url-cache.js').default;
 export default {
     data() {
@@ -156,6 +160,8 @@ export default {
         this.justLongPressed = false;
     },
     onPullDownRefresh: function () {
+        // 下拉刷新时清除缓存并强制刷新
+        invalidateMessages({ type: this.activeTab === 'all' ? null : this.activeTab });
         this.setData({
             messages: [],
             page: 0,
@@ -163,7 +169,7 @@ export default {
         });
         this.loadMessages(() => {
             uni.stopPullDownRefresh();
-        });
+        }, true); // forceRefresh = true
     },
     watch: {
         // 本页未读数更新时，广播给全局（驱动小红点即时消失）
@@ -195,6 +201,13 @@ export default {
         // 统一云函数调用方法
         callCloudFunction(name, data = {}, extraOptions = {}) {
             return cloudCall(name, data, Object.assign({ pageTag: 'messages', context: this, requireAuth: true }, extraOptions));
+        },
+
+        // 获取当前用户ID
+        getCurrentUserId: function () {
+            const appInstance = getApp();
+            const openid = appInstance && appInstance.globalData && appInstance.globalData.openid;
+            return openid || uni.getStorageSync('openid') || uni.getStorageSync('userOpenId');
         },
 
         // 触摸开始
@@ -339,12 +352,14 @@ export default {
         // 滚动到顶部刷新
         onScrollToUpper() {
             console.log('🔍 [消息页] 滚动到顶部，刷新消息');
+            // 清除当前类型的缓存并强制刷新
+            invalidateMessages({ type: this.activeTab === 'all' ? null : this.activeTab });
             this.setData({
                 messages: [],
                 page: 0,
                 hasMore: true
             });
-            this.loadMessages();
+            this.loadMessages(null, true); // forceRefresh = true
         },
 
         // 转换cloud://URL为可访问的URL
@@ -381,119 +396,113 @@ export default {
             if (tab === this.activeTab) {
                 return;
             }
+            console.log('🔍 [消息页] 切换标签:', this.activeTab, '->', tab);
+            // 清除旧标签的缓存，确保切换时能获取最新数据
+            invalidateMessages({ type: this.activeTab === 'all' ? null : this.activeTab });
+            // 重置状态并加载新标签的数据
             this.setData({
                 activeTab: tab,
                 messages: [],
                 page: 0,
-                hasMore: true
+                hasMore: true,
+                isLoading: false  // 重置加载状态，确保可以加载新标签的数据
             });
-            this.loadMessages();
+            // 强制刷新新标签的数据
+            this.loadMessages(null, true);
         },
 
-        // 加载消息列表
-        loadMessages: function (callback) {
+        // 加载消息列表（使用缓存）
+        loadMessages: function (callback, forceRefresh = false) {
             if (this.isLoading) {
+                console.log('🔍 [消息页] 正在加载中，跳过重复请求');
+                if (typeof callback === 'function') {
+                    callback();
+                }
                 return;
             }
-            console.log('🔍 [消息页] 开始加载消息，页码:', this.page, '类型:', this.activeTab);
+            console.log('🔍 [消息页] 开始加载消息，页码:', this.page, '类型:', this.activeTab, 'forceRefresh:', forceRefresh);
             this.setData({
                 isLoading: true
             });
             const { page, PAGE_SIZE, activeTab } = this;
-            this.callCloudFunction('getMessages', {
-                skip: page * PAGE_SIZE,
-                limit: PAGE_SIZE,
-                type: activeTab === 'all' ? null : activeTab
-            }).then((res) => {
-                console.log('🔍 [消息页] 云函数返回结果:', res);
-                    if (res.result && res.result.success) {
-                        const newMessages = res.result.messages || [];
-                        const totalCount = res.result.totalCount || 0;
+            
+            // 使用缓存封装的接口
+            getMessagesWithCache({
+                page,
+                pageSize: PAGE_SIZE,
+                type: activeTab === 'all' ? null : activeTab,
+                context: this,
+                forceRefresh
+            }).then((result) => {
+                console.log('🔍 [消息页] 缓存接口返回结果:', result);
+                const newMessages = result.messages || [];
+                const unreadCount = result.unreadCount || 0;
+                
+                // 批量转换头像URL - 处理cloud://协议
+                const avatarUrls = newMessages
+                    .filter(msg => msg.fromUserAvatar && msg.fromUserAvatar.startsWith('cloud://'))
+                    .map(msg => msg.fromUserAvatar);
 
-                        // 批量转换头像URL - 处理cloud://协议
-                        const avatarUrls = newMessages
-                            .filter(msg => msg.fromUserAvatar && msg.fromUserAvatar.startsWith('cloud://'))
-                            .map(msg => msg.fromUserAvatar);
+                if (avatarUrls.length > 0) {
+                    fileUrlCache.getTempUrls(avatarUrls)
+                        .then(convertedUrls => {
+                            newMessages.forEach((msg) => {
+                                if (msg.fromUserAvatar && msg.fromUserAvatar.startsWith('cloud://')) {
+                                    const convertedUrl = convertedUrls[msg.fromUserAvatar];
+                                    if (convertedUrl) {
+                                        msg.fromUserAvatar = convertedUrl;
+                                    } else {
+                                        msg.fromUserAvatar = '/static/images/avatar.png';
+                                    }
+                                }
+                            });
 
-                        if (avatarUrls.length > 0) {
-                            fileUrlCache.getTempUrls(avatarUrls)
-                                .then(convertedUrls => {
-                                    newMessages.forEach((msg) => {
-                                        if (msg.fromUserAvatar && msg.fromUserAvatar.startsWith('cloud://')) {
-                                            const convertedUrl = convertedUrls[msg.fromUserAvatar];
-                                            if (convertedUrl) {
-                                                msg.fromUserAvatar = convertedUrl;
-                                            } else {
-                                                msg.fromUserAvatar = '/static/images/avatar.png';
-                                            }
-                                        }
-                                    });
+                            // 继续处理消息
+                            this.processMessagesAfterAvatarConversion(newMessages, page, PAGE_SIZE, { result: { unreadCount } }, callback);
+                        })
+                        .catch(error => {
+                            console.error('批量转换头像URL失败:', error);
+                            // 转换失败时使用默认头像
+                            newMessages.forEach((msg) => {
+                                if (msg.fromUserAvatar && msg.fromUserAvatar.startsWith('cloud://')) {
+                                    msg.fromUserAvatar = '/static/images/avatar.png';
+                                }
+                            });
 
-                                    // 继续处理消息
-                                    this.processMessagesAfterAvatarConversion(newMessages, page, PAGE_SIZE, res, callback);
-                                })
-                                .catch(error => {
-                                    console.error('批量转换头像URL失败:', error);
-                                    // 转换失败时使用默认头像
-                                    newMessages.forEach((msg) => {
-                                        if (msg.fromUserAvatar && msg.fromUserAvatar.startsWith('cloud://')) {
-                                            msg.fromUserAvatar = '/static/images/avatar.png';
-                                        }
-                                    });
-
-                                    // 继续处理消息
-                                    this.processMessagesAfterAvatarConversion(newMessages, page, PAGE_SIZE, res, callback);
-                                });
-                        } else {
-                            // 没有需要转换的头像，直接处理消息
-                            this.processMessagesAfterAvatarConversion(newMessages, page, PAGE_SIZE, res, callback);
-                        }
+                            // 继续处理消息
+                            this.processMessagesAfterAvatarConversion(newMessages, page, PAGE_SIZE, { result: { unreadCount } }, callback);
+                        });
+                } else {
+                    // 没有需要转换的头像，直接处理消息
+                    this.processMessagesAfterAvatarConversion(newMessages, page, PAGE_SIZE, { result: { unreadCount } }, callback);
+                }
+            }).catch((err) => {
+                console.error('获取消息失败:', err);
+                // 根据错误类型显示不同的提示
+                let errorMessage = '获取消息失败';
+                if (err && err.message) {
+                    if (err.message.includes('网络')) {
+                        errorMessage = '网络连接失败，请检查网络';
+                    } else if (err.message.includes('权限')) {
+                        errorMessage = '权限不足，请重新登录';
+                    } else if (err.message.includes('超时')) {
+                        errorMessage = '请求超时，请重试';
                     }
-                }).catch((err) => {
-                    console.error('获取消息失败:', err);
-                    // 根据错误类型显示不同的提示
-                    let errorMessage = '获取消息失败';
-                    if (err && err.message) {
-                        if (err.message.includes('网络')) {
-                            errorMessage = '网络连接失败，请检查网络';
-                        } else if (err.message.includes('权限')) {
-                            errorMessage = '权限不足，请重新登录';
-                        } else if (err.message.includes('超时')) {
-                            errorMessage = '请求超时，请重试';
-                        }
-                    }
-                    uni.showToast({
-                        title: errorMessage,
-                        icon: 'none',
-                        duration: 3000
-                    });
-                }).catch((err) => {
-                    console.error('获取消息失败:', err);
-                    // 根据错误类型显示不同的提示
-                    let errorMessage = '获取消息失败';
-                    if (err && err.message) {
-                        if (err.message.includes('网络')) {
-                            errorMessage = '网络连接失败，请检查网络';
-                        } else if (err.message.includes('权限')) {
-                            errorMessage = '权限不足，请重新登录';
-                        } else if (err.message.includes('超时')) {
-                            errorMessage = '请求超时，请重试';
-                        }
-                    }
-                    uni.showToast({
-                        title: errorMessage,
-                        icon: 'none',
-                        duration: 3000
-                    });
-
-                    // 错误情况下也要完成加载状态
-                    this.setData({
-                        isLoading: false
-                    });
-                    if (callback) {
-                        callback();
-                    }
+                }
+                uni.showToast({
+                    title: errorMessage,
+                    icon: 'none',
+                    duration: 3000
                 });
+
+                // 错误情况下也要完成加载状态
+                this.setData({
+                    isLoading: false
+                });
+                if (callback) {
+                    callback();
+                }
+            });
         },
 
         // 处理消息（格式化时间、内容等）
@@ -619,7 +628,11 @@ export default {
                         
                         // 清除未读消息缓存，让其他页面的小红点消失
                         invalidateUnread();
-                        console.log('【messages】已清除未读消息缓存');
+                        
+                        // 清除消息列表缓存，确保下次加载时显示最新状态
+                        invalidateMessages({ type: this.activeTab === 'all' ? null : this.activeTab });
+                        
+                        console.log('【messages】已清除未读消息缓存和消息列表缓存');
                     }
                 }).catch((err) => {
                     console.error('标记消息为已读失败:', err);
@@ -735,9 +748,10 @@ export default {
                                         emitUnreadChanged({ count: 0 });
                                     } catch (_) {}
                                     
-                                    // 清除未读消息缓存，让其他页面的小红点消失
+                                    // 清除未读消息缓存和消息列表缓存
                                     invalidateUnread();
-                                    console.log('【messages】清空消息后已清除未读消息缓存');
+                                    invalidateMessages(); // 清除所有类型的消息缓存
+                                    console.log('【messages】清空消息后已清除所有缓存');
                                     
                                     uni.showToast({
                                         title: '已清空',
@@ -831,36 +845,47 @@ export default {
             }
         },
 
-        // 检查关注状态
+        // 检查关注状态（优化：使用缓存批量查询，避免频繁调用云函数）
         checkFollowStatus: function (messages) {
             const followMessages = messages.filter(msg => msg.type === 'follow');
             if (followMessages.length === 0) {
                 return;
             }
 
-            // 批量检查关注状态
-            const userIds = followMessages.map(msg => msg.fromUserId);
-            const promises = userIds.map(userId => 
-                this.callCloudFunction('follow', {
-                    action: 'checkFollow',
-                    targetOpenid: userId
-                })
-            );
+            // 使用关注缓存批量查询，避免频繁调用云函数
+            const followCache = require('../../utils/followCache.js');
+            const currentUserId = this.getCurrentUserId();
+            if (!currentUserId) {
+                return;
+            }
 
-            Promise.all(promises).then(results => {
+            const userIds = [...new Set(followMessages.map(msg => msg.fromUserId).filter(Boolean))];
+            if (userIds.length === 0) {
+                return;
+            }
+
+            // 使用批量查询接口，减少云函数调用次数
+            followCache.getBatchFollowStatus(currentUserId, userIds).then(statuses => {
                 const updatedMessages = [...messages];
-                followMessages.forEach((msg, index) => {
-                    const result = results[index];
-                    if (result && result.result && result.result.success) {
+                let changed = false;
+                
+                followMessages.forEach((msg) => {
+                    if (!msg.fromUserId) return;
+                    const status = statuses[msg.fromUserId];
+                    if (status && status.isMutual !== undefined) {
                         const msgIndex = updatedMessages.findIndex(m => m._id === msg._id);
-                        if (msgIndex !== -1) {
-                            updatedMessages[msgIndex].isMutual = result.result.isMutual;
+                        if (msgIndex !== -1 && updatedMessages[msgIndex].isMutual !== status.isMutual) {
+                            updatedMessages[msgIndex].isMutual = status.isMutual;
+                            changed = true;
                         }
                     }
                 });
-                this.setData({
-                    messages: updatedMessages
-                });
+                
+                if (changed) {
+                    this.setData({
+                        messages: updatedMessages
+                    });
+                }
             }).catch(err => {
                 console.error('检查关注状态失败:', err);
             });

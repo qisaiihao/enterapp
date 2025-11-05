@@ -125,7 +125,8 @@ exports.main = async (event, context) => {
         authorName: user.nickName || '匿名用户',
         authorAvatar: user.avatarUrl || '',
         authorNameSnapshot: user.nickName || '匿名用户',
-        authorAvatarSnapshot: user.avatarUrl || ''
+        authorAvatarSnapshot: user.avatarUrl || '',
+        authorSignature: user.signatureUrl || '' // 签名URL
       }
     });
 

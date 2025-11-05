@@ -17,7 +17,8 @@
       "Bash(awk:*)",
       "Bash(npm run)",
       "Bash(npx @dcloudio/uvm)",
-      "Bash(npm run dev:app-plus:*)"
+      "Bash(npm run dev:app-plus:*)",
+      "Bash(powershell:*)"
     ],
     "deny": [],
     "ask": []

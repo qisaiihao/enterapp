@@ -45,6 +45,7 @@
 <script>
 const { imageManager } = require('../../utils/imageManager.js');
 const { cloudCall } = require('../../utils/cloudCall.js');
+const { getPostList: getPostListWithCache } = require('@/api-cache/post-list.js');
 export default {
     data() {
         return {
@@ -414,21 +415,23 @@ export default {
                 this.setData({
                     isPreloading: true
                 });
-                this.callCloudFunction('getPostList', {
-                    skip: 0,
-                    limit: 5,
+                // 使用缓存接口，复用 poem-square 等页面的缓存
+                getPostListWithCache({
+                    page: 0,
+                    pageSize: 5,
                     isPoem: true,
-                    isOriginal: true
-                }).then(async (res) => {
+                    isOriginal: true,
+                    context: this
+                }).then(async (posts) => {
                         // <-- success 回调也变成 async
                         try {
-                            if (res.result && res.result.success && res.result.posts) {
+                            if (posts && Array.isArray(posts) && posts.length > 0) {
                                 const app = getApp();
-                                app.globalData.preloadedPoemData = res.result.posts;
-                                if (res.result.posts.length > 0) {
+                                app.globalData.preloadedPoemData = posts;
+                                if (posts.length > 0) {
                                     console.log('诗歌数据获取成功，开始预加载相关图片...');
                                     // 关键改动：等待图片下载任务完成！
-                                    await this.preloadFirstPostImages(res.result.posts[0]);
+                                    await this.preloadFirstPostImages(posts[0]);
                                     console.log('相关图片预加载完成！');
                                 }
                             }
@@ -454,20 +457,22 @@ export default {
         // 预加载山页面数据
         preloadMountainData: function () {
             return new Promise(async (resolve, reject) => {
-                this.callCloudFunction('getPostList', {
-                    skip: 0,
-                    limit: 5,
+                // 使用缓存接口，复用 mountain 页面的缓存
+                getPostListWithCache({
+                    page: 0,
+                    pageSize: 5,
                     isPoem: true,
-                    isOriginal: false
-                }).then(async (res) => {
+                    isOriginal: false,
+                    context: this
+                }).then(async (posts) => {
                         try {
-                            if (res.result && res.result.success && res.result.posts) {
+                            if (posts && Array.isArray(posts) && posts.length > 0) {
                                 const app = getApp();
-                                app.globalData.preloadedMountainData = res.result.posts;
-                                if (res.result.posts.length > 0) {
+                                app.globalData.preloadedMountainData = posts;
+                                if (posts.length > 0) {
                                     console.log('山页面数据获取成功，开始预加载相关图片...');
                                     // 预加载第一张图片
-                                    await this.preloadFirstMountainImages(res.result.posts[0]);
+                                    await this.preloadFirstMountainImages(posts[0]);
                                     console.log('山页面相关图片预加载完成！');
                                 }
                             }

@@ -272,6 +272,12 @@
               "memory": 256
             },
             {
+              "name": "backfillPostSignatures",
+              "root": "./functions/backfillPostSignatures",
+              "timeout": 60,
+              "memory": 256
+            },
+            {
               "name": "syncUserPostsMetadata",
               "root": "./functions/syncUserPostsMetadata",
               "timeout": 60,

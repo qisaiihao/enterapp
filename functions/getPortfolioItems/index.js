@@ -111,6 +111,7 @@ exports.main = async (event, context) => {
         postCreateTime: post.createTime,
         postAuthorName: (user && user.nickName) || post.authorName || post.authorNameSnapshot || '我',
         postAuthorAvatar: (user && user.avatarUrl) || post.authorAvatar || post.authorAvatarSnapshot || '',
+        postAuthorSignature: post.authorSignature || '', // 签名URL
         postAuthorOpenid: post._openid,
         postTags: post.tags || [],
         postIsPoem: post.isPoem || false,
@@ -126,6 +127,7 @@ exports.main = async (event, context) => {
         votes: post.votes || 0,
         authorName: (user && user.nickName) || post.authorName || post.authorNameSnapshot || '我',
         authorAvatar: (user && user.avatarUrl) || post.authorAvatar || post.authorAvatarSnapshot || '',
+        authorSignature: post.authorSignature || '', // 签名URL
         _openid: post._openid,
         tags: post.tags || [],
         isPoem: post.isPoem || false,
@@ -161,6 +163,13 @@ exports.main = async (event, context) => {
       }
       if (portfolioItem.postAuthorAvatar && portfolioItem.postAuthorAvatar.startsWith('cloud://')) {
         fileIDSet.add(portfolioItem.postAuthorAvatar);
+      }
+      // 处理签名URL
+      if (portfolioItem.authorSignature && portfolioItem.authorSignature.startsWith('cloud://')) {
+        fileIDSet.add(portfolioItem.authorSignature);
+      }
+      if (portfolioItem.postAuthorSignature && portfolioItem.postAuthorSignature.startsWith('cloud://')) {
+        fileIDSet.add(portfolioItem.postAuthorSignature);
       }
     });
 
@@ -211,6 +220,12 @@ exports.main = async (event, context) => {
           }
           if (portfolioItem.postAuthorAvatar && tempURLMap.has(portfolioItem.postAuthorAvatar)) {
             portfolioItem.postAuthorAvatar = tempURLMap.get(portfolioItem.postAuthorAvatar);
+          }
+          if (portfolioItem.authorSignature && tempURLMap.has(portfolioItem.authorSignature)) {
+            portfolioItem.authorSignature = tempURLMap.get(portfolioItem.authorSignature);
+          }
+          if (portfolioItem.postAuthorSignature && tempURLMap.has(portfolioItem.postAuthorSignature)) {
+            portfolioItem.postAuthorSignature = tempURLMap.get(portfolioItem.postAuthorSignature);
           }
         });
       } catch (fileError) {

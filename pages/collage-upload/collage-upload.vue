@@ -69,8 +69,8 @@ export default {
     chooseImage() {
       uni.chooseImage({
         count: 1,
-        // 强制使用原图，把压缩控制权完全交给自己的代码
-        sizeType: ['original'],
+        // 统一使用压缩模式
+        sizeType: ['compressed'],
         sourceType: ['album', 'camera'],
         success: (res) => {
           uni.showLoading({

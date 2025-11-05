@@ -59,8 +59,10 @@
 import skeleton from '@/components/skeleton/skeleton';
 import topBar from '@/components/top-bar/top-bar.vue';
 const { cloudCall } = require('@/utils/cloudCall.js');
+const { getPostList: getPostListWithCache, invalidatePostList } = require('@/api-cache/post-list.js');
 const likeIcon = require('@/utils/likeIcon.js');
 const { togglePostLike } = require('../../utils/likeService.js');
+const signatureCache = require('@/utils/signatureCache.js');
 
 const PAGE_SIZE = 10;
 
@@ -81,7 +83,9 @@ export default {
       showPageIndicator: false,
       votingInProgress: {},
       // 用户签名相关
-      fetchingSignatures: {} // 防止重复获取签名的状态管理
+      fetchingSignatures: {}, // 防止重复获取签名的状态管理
+      // 加载锁定标志，防止重复触发加载
+      _loadingLock: false
     };
   },
   onLoad() {
@@ -138,16 +142,24 @@ export default {
       return pick;
     },
     async getPostList(cb) {
-      if (this.isLoadingMore) return;
+      // 双重检查：防止重复调用
+      if (this.isLoadingMore || this.isLoading || this._loadingLock) {
+        console.log('【road】正在加载中或已锁定，跳过请求');
+        if (typeof cb === 'function') cb();
+        return;
+      }
+      // 设置加载锁定
+      this._loadingLock = true;
       this.isLoadingMore = true;
       try {
-        const res = await this.callCloudFunction('getPostList', {
-          skip: this.page * PAGE_SIZE,
-          limit: PAGE_SIZE,
+        // 使用缓存封装的接口
+        const list = await getPostListWithCache({
+          page: this.page,
+          pageSize: PAGE_SIZE,
           isPoem: false,      // 路页面：只获取非诗歌类型的内容
-          isOriginal: true     // 只获取原创内容
+          isOriginal: true,   // 只获取原创内容
+          context: this
         });
-        const list = (res && res.result && res.result.posts) ? res.result.posts : [];
         list.forEach((p) => {
           p.backgroundColor = this.generateRandomBackgroundColor();
           p.textColor = '#222';
@@ -170,6 +182,7 @@ export default {
         uni.showToast({ title: '加载失败', icon: 'none' });
       } finally {
         this.isLoadingMore = false;
+        this._loadingLock = false; // 释放加载锁定
         if (typeof cb === 'function') cb();
       }
     },
@@ -191,7 +204,7 @@ export default {
     },
     onLikeIconError() {},
 
-    // 获取作者签名
+    // 获取作者签名（使用缓存）
     async fetchAuthorSignature(authorOpenid, postIndex) {
       if (!authorOpenid || this.fetchingSignatures[authorOpenid]) {
         return;
@@ -201,10 +214,11 @@ export default {
       this.fetchingSignatures[authorOpenid] = true;
 
       try {
-        const res = await this.callCloudFunction('getUserProfile', { userId: authorOpenid });
-
-        if (res.result && res.result.success && res.result.userInfo && res.result.userInfo.signatureUrl) {
-          const signatureUrl = res.result.userInfo.signatureUrl;
+        // 使用签名缓存获取签名
+        const signatureData = await signatureCache.getUserSignature(authorOpenid);
+        
+        if (signatureData && signatureData.signatureUrl) {
+          const signatureUrl = signatureData.signatureUrl;
           console.log('【road】获取到作者签名:', signatureUrl);
 
           this.setData({

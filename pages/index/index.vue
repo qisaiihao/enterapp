@@ -1,19 +1,19 @@
-﻿<template>
+<template>
     <view class="page-wrapper">
         <!-- index.wxml -->
         <view class="container">
 
-            <!-- 页面切换栏 -->
+            <!-- ҳ���л��� -->
         <page-tabs ref="pageTabs" :current-tab="currentTab" @tab-change="onTabChange"></page-tabs>
 
-            <!-- 骨架屏：当 isLoading 为 true 时显示 -->
+            <!-- �Ǽ������� isLoading Ϊ true ʱ��ʾ -->
             <view v-if="isLoading">
                 <skeleton pageType="index" />
             </view>
 
-            <!-- 真实内容：当 isLoading 为 false 时显示 -->
+            <!-- ��ʵ���ݣ��� isLoading Ϊ false ʱ��ʾ -->
             <view v-else class="square-mode-container">
-                <!-- 使用swiper实现滑动切换 -->
+                <!-- ʹ��swiperʵ�ֻ����л� -->
                 <swiper 
                     class="page-swiper" 
                     :current="swiperCurrent" 
@@ -28,7 +28,7 @@
                     :skip-hidden-item-layout="true"
                     :easing-function="easeOutCubic"
                 >
-                    <!-- 广场页 -->
+                    <!-- �㳡ҳ -->
                     <swiper-item>
                         <scroll-view 
                             scroll-y="true" 
@@ -43,15 +43,15 @@
                             @refresherrefresh="onRefresherRefresh"
                         >
                             <view v-if="postList.length === 0 && !isLoading" class="empty-state">
-                                <view class="empty-icon">📝</view>
-                                <view class="empty-text">还没有帖子哦～</view>
-                                <view class="empty-subtext">快来发布第一条帖子吧！</view>
+                                <view class="empty-icon">??</view>
+                                <view class="empty-text">��û������Ŷ��</view>
+                                <view class="empty-subtext">����������һ�����Ӱɣ�</view>
                             </view>
-                            <!-- 给你的帖子列表循环的父容器添加一个ID -->
+                            <!-- ����������б�ѭ���ĸ���������һ��ID -->
                             <view id="post-list-container">
-                                <!-- 主页帖子列表 -->
+                                <!-- ��ҳ�����б� -->
                                 <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" v-for="(item, index) in postList" :key="index">
-                            <!-- 作者信息 -->
+                            <!-- ������Ϣ -->
 
                             <view class="author-info-outside">
                                 <image
@@ -66,16 +66,16 @@
                                     :data-author-name="item.authorName"
                                     :data-is-anonymous="item.isAnonymous"
                                 ></image>
-                                <text class="author-name">{{ item.isAnonymous ? '匿名用户' : item.authorName }}</text>
+                                <text class="author-name">{{ item.isAnonymous ? '�����û�' : item.authorName }}</text>
                             </view>
 
-                            <!-- 可点击的内容区域 - 跳转到详情页 -->
+                            <!-- �ɵ������������ - ��ת������ҳ -->
 
                             <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item._id" hover-class="navigator-hover">
                                 <view class="post-item">
                                     <view class="post-title">{{ item.title }}</view>
 
-                                    <!-- 图片显示逻辑 (已优化，使用 imageStyle 占位) -->
+                                    <!-- ͼƬ��ʾ�߼� (���Ż���ʹ�� imageStyle ռλ) -->
                                     <view
                                         v-if="item.imageUrls && item.imageUrls.length > 0"
                                         class="image-container-wrapper"
@@ -84,7 +84,7 @@
                                         :data-src="item.imageUrls[0]"
                                         :data-original-image-urls="item.originalImageUrls || item.imageUrls"
                                     >
-                                        <!-- 单张图片 -->
+                                        <!-- ����ͼƬ -->
                                         <block v-if="item.imageUrls.length === 1">
                                             <image
                                                 class="post-image"
@@ -98,7 +98,7 @@
                                             />
                                         </block>
 
-                                        <!-- 多张图片 -->
+                                        <!-- ����ͼƬ -->
                                         <block v-else-if="item.imageUrls.length > 1">
                                             <swiper class="image-swiper" :indicator-dots="true" :circular="true">
                                                 <block v-for="(img, index1) in item.imageUrls" :key="index1">
@@ -121,18 +121,18 @@
 
                                     <view class="post-content" v-if="item.content" style="white-space: pre-wrap">{{ item.content }}</view>
 
-                                    <!-- 标签显示 -->
+                                    <!-- ��ǩ��ʾ -->
                                     <view v-if="item.tags && item.tags.length > 0" class="post-tags">
                                         <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="item" v-for="(item, index1) in item.tags" :key="index1">#{{ item }}</text>
                                     </view>
                                 </view>
                             </navigator>
 
-                            <!-- 独立的互动区域 - 不触发详情页跳转 -->
+                            <!-- �����Ļ������� - ����������ҳ��ת -->
 
                             <view class="vote-section">
                                 <view class="actions-left">
-                                    <!-- 左侧留空，保持布局平衡 -->
+                                    <!-- ������գ����ֲ���ƽ�� -->
                                 </view>
                                 <view class="button-group">
                                     <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
@@ -155,14 +155,14 @@
                             </view>
                         </view>
                             </view>
-                            <!-- 首页触底提示 -->
+                            <!-- ��ҳ������ʾ -->
                             <view v-if="currentPage === 'home' && !hasMore && postList.length > 0" class="end-tip">
-                                <text class="end-text">--- 我是有底线的 ---</text>
+                                <text class="end-text">--- �����е��ߵ� ---</text>
                             </view>
                         </scroll-view>
                     </swiper-item>
 
-                    <!-- 关注页 -->
+                    <!-- ��עҳ -->
                     <swiper-item>
                         <scroll-view 
                             scroll-y="true" 
@@ -176,21 +176,21 @@
                             refresher-background-style="#ffffff"
                             @refresherrefresh="onRefresherRefresh"
                         >
-                            <!-- 关注页骨架屏：当 followingIsLoading 为 true 时显示 -->
+                            <!-- ��עҳ�Ǽ������� followingIsLoading Ϊ true ʱ��ʾ -->
                             <view v-if="followingIsLoading">
                                 <skeleton pageType="index" />
                             </view>
                             
-                            <!-- 真实内容：当 followingIsLoading 为 false 时显示 -->
+                            <!-- ��ʵ���ݣ��� followingIsLoading Ϊ false ʱ��ʾ -->
                             <view v-else>
                             <view id="following-list-container">
                             <view v-if="followingPostList.length === 0" class="empty-state">
-                                <view class="empty-icon">👥</view>
-                                <view class="empty-text">关注的人还没有发帖</view>
-                                <view class="empty-subtext">去关注更多有趣的人吧！</view>
+                                <view class="empty-icon">??</view>
+                                <view class="empty-text">��ע���˻�û�з���</view>
+                                <view class="empty-subtext">ȥ��ע������Ȥ���˰ɣ�</view>
                             </view>
                             <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" v-for="(item, index) in followingPostList" :key="index">
-                                <!-- 作者信息 -->
+                                <!-- ������Ϣ -->
                                 <view class="author-info-outside">
                                     <image
                                         class="author-avatar"
@@ -204,15 +204,15 @@
                                         :data-author-name="item.authorName"
                                         :data-is-anonymous="item.isAnonymous"
                                     ></image>
-                                    <text class="author-name">{{ item.isAnonymous ? '匿名用户' : item.authorName }}</text>
+                                    <text class="author-name">{{ item.isAnonymous ? '�����û�' : item.authorName }}</text>
                                 </view>
 
-                                <!-- 可点击的内容区域 - 跳转到详情页 -->
+                                <!-- �ɵ������������ - ��ת������ҳ -->
                                 <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item._id" hover-class="navigator-hover">
                                     <view class="post-item">
                                         <view class="post-title">{{ item.title }}</view>
 
-                                        <!-- 图片显示逻辑 -->
+                                        <!-- ͼƬ��ʾ�߼� -->
                                         <view
                                             v-if="item.imageUrls && item.imageUrls.length > 0"
                                             class="image-container-wrapper"
@@ -221,7 +221,7 @@
                                             :data-src="item.imageUrls[0]"
                                             :data-original-image-urls="item.originalImageUrls || item.imageUrls"
                                         >
-                                            <!-- 单张图片 -->
+                                            <!-- ����ͼƬ -->
                                             <block v-if="item.imageUrls.length === 1">
                                                 <image
                                                     class="post-image"
@@ -235,7 +235,7 @@
                                                 />
                                             </block>
 
-                                            <!-- 多张图片 -->
+                                            <!-- ����ͼƬ -->
                                             <block v-else-if="item.imageUrls.length > 1">
                                                 <swiper class="image-swiper" :indicator-dots="true" :circular="true">
                                                     <block v-for="(img, imgIndex) in item.imageUrls" :key="imgIndex">
@@ -258,17 +258,17 @@
 
                                         <view class="post-content" v-if="item.content" style="white-space: pre-wrap">{{ item.content }}</view>
 
-                                        <!-- 标签显示 -->
+                                        <!-- ��ǩ��ʾ -->
                                         <view v-if="item.tags && item.tags.length > 0" class="post-tags">
                                             <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="item" v-for="(item, index1) in item.tags" :key="index1">#{{ item }}</text>
                                         </view>
                                     </view>
                                 </navigator>
 
-                                <!-- 独立的互动区域 -->
+                                <!-- �����Ļ������� -->
                                 <view class="vote-section">
                                     <view class="actions-left">
-                                        <!-- 左侧留空，保持布局平衡 -->
+                                        <!-- ������գ����ֲ���ƽ�� -->
                                     </view>
                                     <view class="button-group">
                                         <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
@@ -292,14 +292,14 @@
                             </view>
                             </view>
                             </view>
-                            <!-- 关注页触底提示 -->
+                            <!-- ��עҳ������ʾ -->
                             <view v-if="currentPage === 'following' && !followingHasMore && followingPostList.length > 0" class="end-tip">
-                                <text class="end-text">--- 没有更多了 ---</text>
+                                <text class="end-text">--- û�и����� ---</text>
                             </view>
                         </scroll-view>
                     </swiper-item>
 
-                    <!-- 讨论页 -->
+                    <!-- ����ҳ -->
                     <swiper-item>
                         <scroll-view 
                             scroll-y="true" 
@@ -313,21 +313,21 @@
                             refresher-background-style="#ffffff"
                             @refresherrefresh="onRefresherRefresh"
                         >
-                            <!-- 讨论页骨架屏：当 discussionIsLoading 为 true 时显示 -->
+                            <!-- ����ҳ�Ǽ������� discussionIsLoading Ϊ true ʱ��ʾ -->
                             <view v-if="discussionIsLoading">
                                 <skeleton pageType="index" />
                             </view>
                             
-                            <!-- 真实内容：当 discussionIsLoading 为 false 时显示 -->
+                            <!-- ��ʵ���ݣ��� discussionIsLoading Ϊ false ʱ��ʾ -->
                             <view v-else>
                             <view id="discussion-list-container">
                             <view v-if="discussionPostList.length === 0" class="empty-state">
-                                <view class="empty-icon">💬</view>
-                                <view class="empty-text">讨论区暂无内容</view>
-                                <view class="empty-subtext">快来发起第一个话题吧！</view>
+                                <view class="empty-icon">??</view>
+                                <view class="empty-text">��������������</view>
+                                <view class="empty-subtext">���������һ������ɣ�</view>
                             </view>
                             <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" v-for="(item, index) in discussionPostList" :key="index">
-                                <!-- 作者信息 -->
+                                <!-- ������Ϣ -->
                                 <view class="author-info-outside">
                                     <image
                                         class="author-avatar"
@@ -341,15 +341,15 @@
                                         :data-author-name="item.authorName"
                                         :data-is-anonymous="item.isAnonymous"
                                     ></image>
-                                    <text class="author-name">{{ item.isAnonymous ? '匿名用户' : item.authorName }}</text>
+                                    <text class="author-name">{{ item.isAnonymous ? '�����û�' : item.authorName }}</text>
                                 </view>
 
-                                <!-- 可点击的内容区域 - 跳转到详情页 -->
+                                <!-- �ɵ������������ - ��ת������ҳ -->
                                 <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item._id" hover-class="navigator-hover">
                                     <view class="post-item">
                                         <view class="post-title">{{ item.title }}</view>
 
-                                        <!-- 图片显示逻辑 -->
+                                        <!-- ͼƬ��ʾ�߼� -->
                                         <view
                                             v-if="item.imageUrls && item.imageUrls.length > 0"
                                             class="image-container-wrapper"
@@ -358,7 +358,7 @@
                                             :data-src="item.imageUrls[0]"
                                             :data-original-image-urls="item.originalImageUrls || item.imageUrls"
                                         >
-                                            <!-- 单张图片 -->
+                                            <!-- ����ͼƬ -->
                                             <block v-if="item.imageUrls.length === 1">
                                                 <image
                                                     class="post-image"
@@ -372,7 +372,7 @@
                                                 />
                                             </block>
 
-                                            <!-- 多张图片 -->
+                                            <!-- ����ͼƬ -->
                                             <block v-else-if="item.imageUrls.length > 1">
                                                 <swiper class="image-swiper" :indicator-dots="true" :circular="true">
                                                     <block v-for="(img, imgIndex) in item.imageUrls" :key="imgIndex">
@@ -395,17 +395,17 @@
 
                                         <view class="post-content" v-if="item.content" style="white-space: pre-wrap">{{ item.content }}</view>
 
-                                        <!-- 标签显示 -->
+                                        <!-- ��ǩ��ʾ -->
                                         <view v-if="item.tags && item.tags.length > 0" class="post-tags">
                                             <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="item" v-for="(item, index1) in item.tags" :key="index1">#{{ item }}</text>
                                         </view>
                                     </view>
                                 </navigator>
 
-                                <!-- 独立的互动区域 -->
+                                <!-- �����Ļ������� -->
                                 <view class="vote-section">
                                     <view class="actions-left">
-                                        <!-- 左侧留空，保持布局平衡 -->
+                                        <!-- ������գ����ֲ���ƽ�� -->
                                     </view>
                                     <view class="button-group">
                                         <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
@@ -429,9 +429,9 @@
                             </view>
                             </view>
                             </view>
-                            <!-- 讨论页触底提示 -->
+                            <!-- ����ҳ������ʾ -->
                             <view v-if="currentPage === 'discussion' && !discussionHasMore && discussionPostList.length > 0" class="end-tip">
-                                <text class="end-text">--- 没有更多讨论了 ---</text>
+                                <text class="end-text">--- û�и��������� ---</text>
                             </view>
                         </scroll-view>
                     </swiper-item>
@@ -452,10 +452,53 @@ import pageTabs from '@/components/page-tabs/page-tabs';
 import AppTabBar from '@/custom-tab-bar/index.vue';
 // #endif
 // index.js
-// 修复：移除全局数据库实例，改为在方法中动态获取
+// �޸����Ƴ�ȫ�����ݿ�ʵ������Ϊ�ڷ����ж�̬��ȡ
   const PAGE_SIZE = 10;
   const DISCOVER_PAGE_SIZE = 5;
   const MAX_DISCOVER_EXCLUDE_IDS = 200;
+
+// ǰ��Ƶ����������
+const FRONTEND_RATE_LIMITS = {
+  perMinute: 20,    // ÿ����20�Σ�����һ�£�
+  minInterval: 3000 // ��С������3�룬���������������
+};
+
+// ǰ������ʱ���¼
+let requestTimes = [];
+let lastRequestTime = 0;
+
+// ǰ��Ƶ�����Ƽ�麯��
+function checkFrontendRateLimit() {
+  const now = Date.now();
+
+  // ��������1���ӵļ�¼
+  requestTimes = requestTimes.filter(time => now - time < 60000);
+
+  // �����Ӽ�����
+  if (requestTimes.length >= FRONTEND_RATE_LIMITS.perMinute) {
+    const waitTime = Math.ceil((requestTimes[0] + 60000 - now) / 1000);
+    uni.showToast({
+      title: `�������Ƶ������${waitTime}�������`,
+      icon: 'none'
+    });
+    return false;
+  }
+
+  // �����С������
+  if (now - lastRequestTime < FRONTEND_RATE_LIMITS.minInterval) {
+    const waitTime = Math.ceil((FRONTEND_RATE_LIMITS.minInterval - (now - lastRequestTime)) / 1000);
+    console.log(`?? [ǰ������] ���������̣���ȴ�${waitTime}��`);
+    return false;
+  }
+
+  // ��¼��������ʱ��
+  requestTimes.push(now);
+  lastRequestTime = now;
+
+  console.log(`? [ǰ������] Ƶ�ʼ��ͨ������ǰ�����������: ${requestTimes.length}`);
+  return true;
+}
+
 const imageOptimizer = require('../../utils/imageOptimizer');
 const likeIcon = require('../../utils/likeIcon');
 const { togglePostLike } = require('../../utils/likeService.js');
@@ -485,38 +528,38 @@ export default {
             page: 0,
             hasMore: true,
             isLoading: false,
-            openid: '', // 添加 openid 字段
-            isRefreshing: false, // 下拉刷新状态
+            openid: '', // ���� openid �ֶ�
+            isRefreshing: false, // ����ˢ��״̬
 
-            // 恢复线上版本的初始值
+            // �ָ����ϰ汾�ĳ�ʼֵ
             isLoadingMore: false,
 
-            // 新增：专门用于控制底部"加载中"UI的状态
+            // ������ר�����ڿ��Ƶײ�"������"UI��״̬
             swiperHeights: {},
 
             imageClampHeights: {},
 
-            // 新增：单图瘦高图钳制高度
+            // ��������ͼ�ݸ�ͼǯ�Ƹ߶�
             displayMode: 'square',
 
-            // 首页只负责广场模式
+            // ��ҳֻ����㳡ģʽ
             imageCache: {},
 
-            // 图片缓存
+            // ͼƬ����
             visiblePosts: new Set(),
 
-            // 可见的帖子ID集合
+            // �ɼ�������ID����
   
-            // --- 页面切换相关 ---
+            // --- ҳ���л���� ---
             currentTab: 'square', // 'square', 'discover', 'discussion'
             currentPage: 'home',
 
-            // 'home' 或 'discover'
+            // 'home' �� 'discover'
 
-            // swiper当前页面索引 (0: 广场, 1: 关注, 2: 讨论)
+            // swiper��ǰҳ������ (0: �㳡, 1: ��ע, 2: ����)
             swiperCurrent: 0,
 
-            // 发现页相关数据（保留但不显示入口）
+            // ����ҳ������ݣ�����������ʾ��ڣ�
             discoverPostList: [],
             discoverPage: 0,
             discoverHasMore: true,
@@ -525,14 +568,14 @@ export default {
             discoverIsLoading: false,
             discoverIsLoadingMore: false,
 
-            // 讨论页相关数据
+            // ����ҳ�������
             discussionPostList: [],
             discussionPage: 0,
             discussionHasMore: true,
             discussionIsLoading: false,
             discussionIsLoadingMore: false,
 
-            // 关注页相关数据
+            // ��עҳ�������
             followingPostList: [],
             followingPage: 0,
             followingHasMore: true,
@@ -541,36 +584,36 @@ export default {
 
             selected: 0,
             img: '',
-            // 安全区域高度
+            // ��ȫ����߶�
             safeAreaTop: 0,
-            // swiper切换防抖定时器
+            // swiper�л�������ʱ��
             swiperChangeTimer: null,
-            // swiper触摸状态
+            // swiper����״̬
             swiperTouchStartX: null,
             swiperTouchStartTime: null,
-            // swiper缓动函数
+            // swiper��������
             easeOutCubic: 'cubic-bezier(0.33, 1, 0.68, 1)'
         };
     },
     onLoad: function (options) {
-        // 调试：检查安全区域高度
+        // ���ԣ���鰲ȫ����߶�
         this.debugSafeArea();
         
-        // 首页只负责广场模式
+        // ��ҳֻ����㳡ģʽ
         this.setData({
             displayMode: 'square'
         });
         this.pageLoadStartTime = Date.now();
 
-        // 初始化 openid
+        // ��ʼ�� openid
         this.initOpenid();
 
-        // 等待登录完成（openid 覆盖匿名后）再拉取首屏数据
+        // �ȴ���¼��ɣ�openid ��������������ȡ��������
         this.waitForLoginThenInit();
 
-        // 监听全局点赞变更，触发本页的缓存同步
+        // ����ȫ�ֵ��ޱ����������ҳ�Ļ���ͬ��
         try { uni.$on && uni.$on('like-changed', this.syncLikeStatusFromCache); } catch (_) {}
-        // 监听评论数变更，精确更新对应卡片的评论计数
+        // �����������������ȷ���¶�Ӧ��Ƭ�����ۼ���
         try { uni.$on && uni.$on('comment-count-changed', (e) => { try { this.updatePostCommentCount(e.postId, e.commentCount); } catch (_) {} }); } catch (_) {}
     },
     onShow: function () {
@@ -578,41 +621,39 @@ export default {
         try { uni.hideTabBar({ animation: false }); } catch (e) {}
         try { this.$refs.customTabBar && this.$refs.customTabBar.syncSelected && this.$refs.customTabBar.syncSelected(); } catch (e) {}
         // #endif
-        // TabBar 状态更新，使用兼容性处理
+        // TabBar ״̬���£�ʹ�ü����Դ���
         const { updateTabBarStatus } = require('../../utils/tabBarCompatibility.js');
         updateTabBarStatus(this, 0);
 
-        // 检查是否需要刷新（发布帖子后）
+        // ����Ƿ���Ҫˢ�£��������Ӻ�
         try {
             const shouldRefresh = uni.getStorageSync('shouldRefreshIndex');
             if (shouldRefresh) {
-                console.log('【index】检测到发布标记，刷新数据');
+                console.log('��index����⵽������ǣ�ˢ������');
                 uni.removeStorageSync('shouldRefreshIndex');
                 this.refreshIndexData();
             }
         } catch (e) {
-            console.log('CatchClause', e);
-            console.log('CatchClause', e);
-            console.error('检查刷新标记失败:', e);
+            console.error('���ˢ�±��ʧ��:', e);
         }
 
-        // 同步点赞状态：从缓存中获取最新的点赞状态
+        // ͬ������״̬���ӻ����л�ȡ���µĵ���״̬
         this.syncLikeStatusFromCache();
 
             },
     onUnload: function () {
         try { uni.$off && this.syncLikeStatusFromCache && uni.$off('like-changed', this.syncLikeStatusFromCache); } catch (_) {}
         try { uni.$off && uni.$off('comment-count-changed'); } catch (_) {}
-        // 清理swiper切换防抖定时器
+        // ����swiper�л�������ʱ��
         if (this.swiperChangeTimer) {
             clearTimeout(this.swiperChangeTimer);
             this.swiperChangeTimer = null;
         }
     },
-    // 移除或禁用 onReachBottom，避免与 onPageScroll 冲突
+    // �Ƴ������ onReachBottom�������� onPageScroll ��ͻ
     /*
 onReachBottom: function () {
-  console.log('【首页】onReachBottom触发，但主要加载逻辑在onPageScroll');
+  console.log('����ҳ��onReachBottom����������Ҫ�����߼���onPageScroll');
   if (!this.data.hasMore || this.data.isLoading) {
     return;
   }
@@ -621,55 +662,45 @@ onReachBottom: function () {
 */
 
     methods: {
-        // 处理scroll-view的下拉刷新事件
+        // ����scroll-view������ˢ���¼�
         onRefresherRefresh: function() {
-            console.log('🔍 [首页] scroll-view下拉刷新触发，当前页面:', this.currentPage);
             this.isRefreshing = true;
-            
+
             if (this.currentPage === 'home') {
-                // 主页刷新 - 清除缓存并强制调用云函数
-                console.log('🔍 [首页] 执行主页刷新，清除缓存');
-                
-                // 清除首页缓存
+                // ��ҳˢ�� - ������沢ǿ�Ƶ����ƺ���
+                // �����ҳ����
                 try {
                     const { invalidateHomePosts } = require('../../api-cache/home-posts.js');
                     invalidateHomePosts({});
-                    console.log('✅ [首页] 已清除首页缓存');
                 } catch (e) {
-                    console.error('❌ [首页] 清除首页缓存失败:', e);
+                    console.error('? [��ҳ] �����ҳ����ʧ��:', e);
                 }
-                // 不清空列表，避免白屏；直接拉取首屏并一次性替换
+                // ������б������������ֱ����ȡ������һ�����滻
                 this.reloadHomePostsForRefresh(() => {
-                    console.log('✅ [首页] 下拉刷新完成');
-                    // 使用 setTimeout 确保在数据更新后再停止刷新，让页面能正确回位
+                    // ʹ�� setTimeout ȷ�������ݸ��º���ֹͣˢ�£���ҳ������ȷ��λ
                     setTimeout(() => {
                         this.isRefreshing = false;
                     }, 100);
                 });
             } else if (this.currentPage === 'discover') {
-                // 发现页刷新 - 重新获取推荐
-                console.log('🔍 [首页] 执行发现页刷新');
+                // ����ҳˢ�� - ���»�ȡ�Ƽ�
                 this.refreshDiscoverPosts();
-                // 使用 setTimeout 确保在数据更新后再停止刷新
+                // ʹ�� setTimeout ȷ�������ݸ��º���ֹͣˢ��
                 setTimeout(() => {
                     this.isRefreshing = false;
                 }, 100);
             } else if (this.currentPage === 'following') {
-                // 关注页刷新
-                console.log('🔍 [首页] 执行关注页刷新');
+                // ��עҳˢ��
                 this.refreshFollowingPosts(() => {
-                    console.log('✅ [首页] 关注页刷新完成');
-                    // 使用 setTimeout 确保在数据更新后再停止刷新
+                    // ʹ�� setTimeout ȷ�������ݸ��º���ֹͣˢ��
                     setTimeout(() => {
                         this.isRefreshing = false;
                     }, 100);
                 });
             } else if (this.currentPage === 'discussion') {
-                // 讨论页刷新
-                console.log('🔍 [首页] 执行讨论页刷新');
+                // ����ҳˢ��
                 this.refreshDiscussionPosts(() => {
-                    console.log('✅ [首页] 讨论页刷新完成');
-                    // 使用 setTimeout 确保在数据更新后再停止刷新
+                    // ʹ�� setTimeout ȷ�������ݸ��º���ֹͣˢ��
                     setTimeout(() => {
                         this.isRefreshing = false;
                     }, 100);
@@ -677,7 +708,7 @@ onReachBottom: function () {
             }
         },
 
-        // 通过下拉刷新重载首页首屏数据：保留旧列表直到新数据就绪
+        // ͨ������ˢ��������ҳ�������ݣ��������б�ֱ�������ݾ���
         reloadHomePostsForRefresh: function (cb) {
             const startPage = 0;
             getHomePosts({ page: startPage, pageSize: PAGE_SIZE, context: this, forceRefresh: true })
@@ -699,19 +730,20 @@ onReachBottom: function () {
                     } catch (_) {}
                 })
                 .catch((err) => {
-                    console.error('【首页】reloadHomePostsForRefresh 失败:', err);
-                    uni.showToast({ title: '刷新失败', icon: 'none' });
+                    console.error('����ҳ��reloadHomePostsForRefresh ʧ��:', err);
+                    uni.showToast({ title: 'ˢ��ʧ��', icon: 'none' });
                 })
                 .finally(() => {
                     if (typeof cb === 'function') cb();
                 });
         },
 
-        // 处理滚动事件（从 onPageScroll 迁移过来）
+        // ���������¼����� onPageScroll Ǩ�ƹ�����
         handleScroll: function (e) {
             if (this.scrollTimer) {
                 clearTimeout(this.scrollTimer);
             }
+            // ���ӷ���ʱ�䵽300ms������Ƶ������
             this.scrollTimer = setTimeout(() => {
                 const isHome = this.currentPage === 'home';
                 const isDiscover = this.currentPage === 'discover';
@@ -737,11 +769,6 @@ onReachBottom: function () {
                 }
 
                 if (!hasMore || loadingFlag) {
-                    console.log('【首页】滚动检测被阻止:', {
-                        page: this.currentPage,
-                        hasMore,
-                        loadingFlag
-                    });
                     return;
                 }
                 
@@ -779,20 +806,7 @@ onReachBottom: function () {
                             
                             const preloadThreshold = winH * 2;
 
-                            console.log('【首页】滚动计算:', {
-                                containerId,
-                                rectTop: rect.top,
-                                rectHeight: rect.height,
-                                rectBottom: rectBottom,
-                                scrollTop: e.detail.scrollTop, // 注意：这里的 e.scrollTop 变成了 e.detail.scrollTop
-                                winH,
-                                distanceToBottom: distanceToBottom.toFixed(0),
-                                preloadThreshold: preloadThreshold.toFixed(0),
-                                shouldLoad: distanceToBottom < preloadThreshold
-                            });
-
                             if (distanceToBottom < preloadThreshold) {
-                                console.log('【首页】触发预加载，页面:', this.currentPage, '距离底部:', distanceToBottom.toFixed(0), 'rpx, 阈值:', preloadThreshold.toFixed(0), 'rpx');
                                 if (isHome) {
                                     this.getPostList();
                                 } else if (isFollowing) {
@@ -804,73 +818,62 @@ onReachBottom: function () {
                         })
                         .exec();
                 } catch (err) {
-                    console.error('【首页】滚动检测失败:', err);
+                    console.error('����ҳ���������ʧ��:', err);
                 }
-            }, 100); // 100ms 防抖
+            }, 300); // ���ӷ���ʱ�䵽300ms
         },
 
-        // 处理匿名头像点击事件的函数
+        // ��������ͷ�����¼��ĺ���
         handleAnonymousAvatarClick(e) {
-            console.log('【首页】匿名头像被点击，阻止跳转');
             if (e && e.preventDefault) {
                 e.preventDefault();
             }
             if (e && e.stopPropagation) {
                 e.stopPropagation();
             }
-            // 显示提示信息
+            // ��ʾ��ʾ��Ϣ
             uni.showToast({
-                title: '匿名用户无法查看主页',
+                title: '�����û��޷��鿴��ҳ',
                 icon: 'none'
             });
         },
 
-        // 调试安全区域
+        // ���԰�ȫ����
         debugSafeArea() {
             try {
-                // 获取系统信息
+                // ��ȡϵͳ��Ϣ
                 const systemInfo = uni.getSystemInfoSync();
-                console.log('【index】系统信息:', {
-                    statusBarHeight: systemInfo.statusBarHeight,
-                    safeAreaInsets: systemInfo.safeAreaInsets,
-                    safeArea: systemInfo.safeArea,
-                    windowHeight: systemInfo.windowHeight,
-                    screenHeight: systemInfo.screenHeight,
-                    platform: systemInfo.platform
-                });
 
-                // 动态设置安全区域 - 使用uni-app兼容方式
+                // ��̬���ð�ȫ���� - ʹ��uni-app���ݷ�ʽ
                 if (systemInfo.statusBarHeight) {
                     const safeAreaTop = systemInfo.statusBarHeight;
-                    console.log('【index】使用状态栏高度作为安全区域:', safeAreaTop);
-                    
-                    // 在uni-app中，我们可以通过设置页面数据来动态调整样式
+
+                    // ��uni-app�У����ǿ���ͨ������ҳ����������̬������ʽ
                     this.setData({
                         safeAreaTop: safeAreaTop
                     });
-                    
-                    // 尝试设置CSS变量（仅在支持的环境中）
+
+                    // ��������CSS����������֧�ֵĻ����У�
                     try {
                         if (typeof document !== 'undefined' && document.documentElement) {
                             document.documentElement.style.setProperty('--safe-area-inset-top', safeAreaTop + 'px');
-                            console.log('【index】CSS变量设置成功');
                         }
                     } catch (cssError) {
-                        console.log('【index】CSS变量设置失败，使用数据绑定方式:', cssError);
+                        // CSS��������ʧ�ܣ�ʹ�����ݰ󶨷�ʽ
                     }
                 }
             } catch (error) {
-                console.error('【index】安全区域调试失败:', error);
+                console.error('��index����ȫ�������ʧ��:', error);
             }
         },
 
-        // swiper触摸开始事件
+        // swiper������ʼ�¼�
         onSwiperTouchStart(e) {
             this.swiperTouchStartX = e.touches[0].clientX;
             this.swiperTouchStartTime = Date.now();
         },
 
-        // swiper触摸结束事件
+        // swiper���������¼�
         onSwiperTouchEnd(e) {
             if (!this.swiperTouchStartX) return;
             
@@ -878,35 +881,33 @@ onReachBottom: function () {
             const deltaX = touchEndX - this.swiperTouchStartX;
             const deltaTime = Date.now() - this.swiperTouchStartTime;
             
-            // 重置触摸状态
+            // ���ô���״̬
             this.swiperTouchStartX = null;
             this.swiperTouchStartTime = null;
             
-            // 如果滑动距离太小或时间太短，不处理
+            // �����������̫С��ʱ��̫�̣�������
             if (Math.abs(deltaX) < 30 || deltaTime < 50) {
                 return;
             }
             
-            // 检查边界限制
+            // ���߽�����
             const currentIndex = this.swiperCurrent;
-            const isLeftSwipe = deltaX < 0; // 向左滑动
-            const isRightSwipe = deltaX > 0; // 向右滑动
+            const isLeftSwipe = deltaX < 0; // ���󻬶�
+            const isRightSwipe = deltaX > 0; // ���һ���
             
-            // 边界检查 - 更严格的限制
+            // �߽��� - ���ϸ������
             if (isLeftSwipe && currentIndex >= 2) {
-                // 已经在最右边，禁止继续向左滑动
-                console.log('已到达右边界，禁止继续向左滑动');
-                // 强制回到当前页面
+                // �Ѿ������ұߣ���ֹ�������󻬶�
+                // ǿ�ƻص���ǰҳ��
                 this.setData({
                     swiperCurrent: 2
                 });
                 return;
             }
-            
+
             if (isRightSwipe && currentIndex <= 0) {
-                // 已经在最左边，禁止继续向右滑动
-                console.log('已到达左边界，禁止继续向右滑动');
-                // 强制回到当前页面
+                // �Ѿ�������ߣ���ֹ�������һ���
+                // ǿ�ƻص���ǰҳ��
                 this.setData({
                     swiperCurrent: 0
                 });
@@ -914,12 +915,11 @@ onReachBottom: function () {
             }
         },
 
-        // swiper切换处理
+        // swiper�л�����
         onSwiperChange(e) {
             const current = e.detail.current;
-            console.log('swiper切换到:', current);
             
-            // 防抖处理：避免快速滑动时的状态不一致
+            // ����������������ٻ���ʱ��״̬��һ��
             if (this.swiperChangeTimer) {
                 clearTimeout(this.swiperChangeTimer);
             }
@@ -929,7 +929,7 @@ onReachBottom: function () {
                     swiperCurrent: current
                 });
 
-                // 根据swiper索引映射到页面类型和标签
+                // ����swiper����ӳ�䵽ҳ�����ͺͱ�ǩ
                 let pageType, tabValue;
                 switch(current) {
                     case 0:
@@ -951,29 +951,28 @@ onReachBottom: function () {
                     currentTab: tabValue
                 });
 
-                // 如果页面还没有数据，加载数据
+                // ���ҳ�滹û�����ݣ���������
                 if (pageType === 'following' && this.followingPostList.length === 0) {
                     this.loadFollowingPosts();
                 } else if (pageType === 'discussion' && this.discussionPostList.length === 0) {
                     this.loadDiscussionPosts();
                 }
                 
-                // 切换到关注页时，主动同步点赞状态（参考广场页实现）
+                // �л�����עҳʱ������ͬ������״̬���ο��㳡ҳʵ�֣�
                 if (pageType === 'following') {
                     try {
                         this.syncLikeStatusFromCache && this.syncLikeStatusFromCache();
                     } catch (e) {
-                        console.warn('同步关注页点赞状态失败:', e);
+                        console.warn('ͬ����עҳ����״̬ʧ��:', e);
                     }
                 }
-            }, 10); // 10ms防抖延迟
+            }, 10); // 10ms�����ӳ�
         },
 
-        // 标签切换处理
+        // ��ǩ�л�����
         onTabChange(tabValue) {
-            console.log('切换标签页:', tabValue);
             
-            // 根据标签值映射到swiper索引
+            // ���ݱ�ǩֵӳ�䵽swiper����
             let swiperIndex;
             switch(tabValue) {
                 case 'square':
@@ -992,7 +991,7 @@ onReachBottom: function () {
                 swiperCurrent: swiperIndex
             });
 
-            // 根据标签页映射到内部页面
+            // ���ݱ�ǩҳӳ�䵽�ڲ�ҳ��
             switch(tabValue) {
                 case 'square':
                     this.setData({
@@ -1003,15 +1002,15 @@ onReachBottom: function () {
                     this.setData({
                         currentPage: 'following'
                     });
-                    // 如果关注页还没有数据，加载关注页数据
+                    // �����עҳ��û�����ݣ����ع�עҳ����
                     if (this.followingPostList.length === 0) {
                         this.loadFollowingPosts();
                     } else {
-                        // 如果已有数据，主动同步点赞状态（参考广场页实现）
+                        // ����������ݣ�����ͬ������״̬���ο��㳡ҳʵ�֣�
                         try {
                             this.syncLikeStatusFromCache && this.syncLikeStatusFromCache();
                         } catch (e) {
-                            console.warn('同步关注页点赞状态失败:', e);
+                            console.warn('ͬ����עҳ����״̬ʧ��:', e);
                         }
                     }
                     break;
@@ -1019,7 +1018,7 @@ onReachBottom: function () {
                     this.setData({
                         currentPage: 'discussion'
                     });
-                    // 如果讨论页还没有数据，加载讨论页数据
+                    // �������ҳ��û�����ݣ���������ҳ����
                     if (this.discussionPostList.length === 0) {
                         this.loadDiscussionPosts();
                     }
@@ -1027,9 +1026,9 @@ onReachBottom: function () {
             }
         },
 
-        // 等待登录完成再初始化首页数据，避免 isVoted 计算出错
+        // �ȴ���¼����ٳ�ʼ����ҳ���ݣ����� isVoted �������
         waitForLoginThenInit: function () {
-            const MAX_WAIT_MS = 5000; // 最多等待 5s
+            const MAX_WAIT_MS = 5000; // ���ȴ� 5s
             const CHECK_INTERVAL_MS = 100;
             const start = Date.now();
             const checkAndGo = () => {
@@ -1038,15 +1037,15 @@ onReachBottom: function () {
                     const loginDone = appInstance && appInstance.globalData && appInstance.globalData._loginProcessCompleted;
                     const openid = appInstance && appInstance.globalData && appInstance.globalData.openid;
                     if (loginDone && openid) {
-                        console.log('🔐 [首页] 检测到登录完成且已获取 openid，开始拉取数据');
+                        console.log('?? [��ҳ] ��⵽��¼������ѻ�ȡ openid����ʼ��ȡ����');
                         this.getIndexData();
                         return;
                     }
                 } catch (e) {
-                    console.log('🔐 [首页] 登录检测异常（忽略继续等待）', e);
+                    console.log('?? [��ҳ] ��¼����쳣�����Լ����ȴ���', e);
                 }
                 if (Date.now() - start >= MAX_WAIT_MS) {
-                    console.log('⏱️ [首页] 登录等待超时，兜底直接拉取数据');
+                    console.log('?? [��ҳ] ��¼�ȴ���ʱ������ֱ����ȡ����');
                     this.getIndexData();
                     return;
                 }
@@ -1055,7 +1054,7 @@ onReachBottom: function () {
             checkAndGo();
         },
         getIndexData: function () {
-            // 直接走 CacheManager 首页封装
+            // ֱ���� CacheManager ��ҳ��װ
             this.setData({ isLoading: true, postList: [], page: 0, hasMore: true });
             getHomePosts({ page: 0, pageSize: PAGE_SIZE, context: this })
                 .then(async (list) => {
@@ -1080,9 +1079,9 @@ onReachBottom: function () {
                     }, 500);
                 })
                 .catch((err) => {
-                    console.error('【首页】getIndexData（缓存封装）失败:', err);
+                    console.error('����ҳ��getIndexData�������װ��ʧ��:', err);
                     this.setData({ isLoading: false });
-                    uni.showToast({ title: '网络错误', icon: 'none' });
+                    uni.showToast({ title: '�������', icon: 'none' });
                 });
         },
 
@@ -1101,21 +1100,21 @@ onReachBottom: function () {
             );
         },
 
-        // catch:tap 用于图片预览，并阻止跳转
+        // catch:tap ����ͼƬԤ��������ֹ��ת
         handlePreview: function (event) {
-            console.log('【图片预览】handlePreview事件触发');
+            console.log('��ͼƬԤ����handlePreview�¼�����');
             const dataset = event && event.currentTarget ? event.currentTarget.dataset : {};
-            console.log('【图片预览】event.currentTarget.dataset:', dataset);
+            console.log('��ͼƬԤ����event.currentTarget.dataset:', dataset);
             const result = previewImage(event);
             if (!result) {
-                console.error('【图片预览】预览条件不满足', dataset);
+                console.error('��ͼƬԤ����Ԥ������������', dataset);
             }
             return result;
         },
 
         onVote: function (event) {
-            // 注意：小程序中不需要手动stopPropagation，因为使用了catch:tap绑定
-            console.log('【点赞】onVote事件触发', event.currentTarget.dataset);
+            // ע�⣺С�����в���Ҫ�ֶ�stopPropagation����Ϊʹ����catch:tap��
+            
             const postId = event.currentTarget.dataset.postid;
             const index = event.currentTarget.dataset.index;
             let listType = event.currentTarget.dataset.listType;
@@ -1143,12 +1142,12 @@ onReachBottom: function () {
                 targetIndex = list.findIndex((p) => p._id === postId);
             }
             if (targetIndex < 0) {
-                console.warn('【点赞】未找到对应的帖子，postId:', postId, 'listType:', listType);
+                console.warn('�����ޡ�δ�ҵ���Ӧ�����ӣ�postId:', postId, 'listType:', listType);
                 return;
             }
-            console.log('【点赞】postId:', postId, 'index:', index);
+            
             if (this.votingInProgress[postId]) {
-                console.log('【点赞】正在投票中，跳过');
+                console.log('�����ޡ�����ͶƱ�У�����');
                 return;
             }
             this.setData({
@@ -1157,9 +1156,9 @@ onReachBottom: function () {
             const originalItem = list[targetIndex] || {};
             const originalVotes = Number(originalItem.votes) || 0;
             const originalIsVoted = !!originalItem.isVoted;
-            console.log('【点赞】原始状态 - votes:', originalVotes, 'isVoted:', originalIsVoted);
+            console.log('�����ޡ�ԭʼ״̬ - votes:', originalVotes, 'isVoted:', originalIsVoted);
 
-            // 立即更新UI，提供即时反馈
+            // ��������UI���ṩ��ʱ����
             const optimisticVotes = originalIsVoted ? Math.max(0, originalVotes - 1) : originalVotes + 1;
             const optimisticItem = {
                 ...originalItem,
@@ -1180,7 +1179,7 @@ onReachBottom: function () {
                 currentIsLiked: originalIsVoted,
                 requireAuth: true
             }).then((result) => {
-                console.log('【点赞】服务返回结果:', result);
+                console.log('�����ޡ����񷵻ؽ��:', result);
                 if (result.success) {
                     const currentList = this[listKey] || [];
                     const currentIndex = currentList.findIndex((p) => p._id === postId);
@@ -1197,7 +1196,7 @@ onReachBottom: function () {
                             [listKey]: newList
                         });
                     }
-                    console.log('【点赞】服务调用成功，数据已同步');
+                    console.log('�����ޡ�������óɹ���������ͬ��');
                     return;
                 }
 
@@ -1206,7 +1205,7 @@ onReachBottom: function () {
                     isLiked: originalIsVoted,
                     likeIcon: likeIcon.getLikeIcon(originalVotes, originalIsVoted)
                 };
-                console.warn('【点赞】服务返回失败，回滚UI');
+                console.warn('�����ޡ����񷵻�ʧ�ܣ��ع�UI');
                 const currentList = this[listKey] || [];
                 const currentIndex = currentList.findIndex((p) => p._id === postId);
                 if (currentIndex > -1) {
@@ -1223,7 +1222,7 @@ onReachBottom: function () {
                     });
                 }
             }).catch((err) => {
-                console.error('【点赞】调用 likeService 失败:', err);
+                console.error('�����ޡ����� likeService ʧ��:', err);
                 const currentList = this[listKey] || [];
                 const currentIndex = currentList.findIndex((p) => p._id === postId);
                 if (currentIndex > -1) {
@@ -1240,7 +1239,7 @@ onReachBottom: function () {
                     });
                 }
             }).finally(() => {
-                console.log('【点赞】服务调用完成');
+                console.log('�����ޡ�����������');
                 this.setData({
                     [`votingInProgress.${postId}`]: false
                 });
@@ -1258,39 +1257,39 @@ onReachBottom: function () {
         },
 
         onImageError: function (e) {
-            console.error('图片加载失败', e.detail);
+            console.error('ͼƬ����ʧ��', e.detail);
         },
 
         onAvatarError: function (e) {
-            console.error('头像加载失败', e.detail);
+            console.error('ͷ�����ʧ��', e.detail);
         },
 
         onAvatarLoad: function (e) {
-            // 头像加载成功，不需要特殊处理
-            console.log('头像加载成功', e.detail);
+            // ͷ����سɹ�������Ҫ���⴦��
+            console.log('ͷ����سɹ�', e.detail);
         },
 
         onLikeIconError: function (e) {
-            console.error('点赞图标加载失败', e.detail, '图标路径:', e.currentTarget.dataset.src);
+            console.error('����ͼ�����ʧ��', e.detail, 'ͼ��·��:', e.currentTarget.dataset.src);
         },
 
-        // 图片预加载
+        // ͼƬԤ����
         preloadImages: function (posts) {
             const imageUrls = posts
                 .filter((post) => post.imageUrls && post.imageUrls.length > 0)
                 .map((post) => post.imageUrls[0])
-                .slice(0, 3); // 只预加载前3张图片
+                .slice(0, 3); // ֻԤ����ǰ3��ͼƬ
 
             if (imageUrls.length > 0) {
                 imageOptimizer.preloadImages(imageUrls, (url, success) => {
                     if (success) {
-                        console.log('图片预加载成功:', url);
+                        console.log('ͼƬԤ���سɹ�:', url);
                     }
                 });
             }
         },
 
-        // 预加载用户数据（头像和关注状态）
+        // Ԥ�����û����ݣ�ͷ��͹�ע״̬��
         preloadUserData: function (posts) {
             if (!posts || posts.length === 0) {
                 return;
@@ -1300,21 +1299,21 @@ onReachBottom: function () {
                 return;
             }
 
-            // 预加载头像
+            // Ԥ����ͷ��
             avatarCache.preloadAvatarsFromPosts(posts);
 
-            // 预加载关注状态
+            // Ԥ���ع�ע״̬
             followCache.preloadFollowStatusFromPosts(posts, currentUserId);
         },
 
-        // 初始化 openid
+        // ��ʼ�� openid
         initOpenid: function () {
             const appInstance = getApp();
             const openid = appInstance && appInstance.globalData && appInstance.globalData.openid;
             if (openid) {
                 this.setData({ openid });
             } else {
-                // 从本地存储获取
+                // �ӱ��ش洢��ȡ
                 const storedOpenid = uni.getStorageSync('openid') || uni.getStorageSync('userOpenId');
                 if (storedOpenid) {
                     this.setData({ openid: storedOpenid });
@@ -1322,101 +1321,110 @@ onReachBottom: function () {
             }
         },
 
-        // 获取当前用户ID
+        // ��ȡ��ǰ�û�ID
         getCurrentUserId: function () {
             return this.openid || uni.getStorageSync('openid') || uni.getStorageSync('userOpenId');
         },
 
-        // 新增：跳转到用户个人主页
+        // ��������ת���û�������ҳ
         navigateToUserProfile: function (e) {
             try {
-                console.log('【头像点击】事件触发', e);
+                console.log('��ͷ�������¼�����', e);
 
-                // 更安全的dataset获取方式
+                // ����ȫ��dataset��ȡ��ʽ
                 const currentTarget = e.currentTarget || e.target || {};
                 const dataset = currentTarget.dataset || {};
-                console.log('【头像点击】dataset:', dataset);
+                console.log('��ͷ������dataset:', dataset);
 
                 const userId = dataset.userId || dataset.userid || dataset.user || '';
-                const authorName = dataset.authorName || '未知用户';
+                const authorName = dataset.authorName || 'δ֪�û�';
                 const isAnonymous = dataset.isAnonymous || false;
 
-                console.log('【头像点击】提取的信息:', { userId, authorName, isAnonymous });
+                console.log('��ͷ��������ȡ����Ϣ:', { userId, authorName, isAnonymous });
 
-                // 检查是否为匿名帖子
-                if (isAnonymous || (authorName === '匿名用户' && userId.includes('anonymous'))) {
-                    console.log('【头像点击】匿名帖子，不跳转');
+                // ����Ƿ�Ϊ��������
+                if (isAnonymous || (authorName === '�����û�' && userId.includes('anonymous'))) {
+                    console.log('��ͷ�������������ӣ�����ת');
                     uni.showToast({
-                        title: '匿名用户无法查看主页',
+                        title: '�����û��޷��鿴��ҳ',
                         icon: 'none'
                     });
                     return;
                 }
 
                 if (!userId) {
-                    console.error('【头像点击】userId为空，dataset详情:', dataset);
+                    console.error('��ͷ������userIdΪ�գ�dataset����:', dataset);
                     uni.showToast({
-                        title: '用户信息获取失败',
+                        title: '�û���Ϣ��ȡʧ��',
                         icon: 'none'
                     });
                     return;
                 }
 
                 const currentUserOpenid = this.openid || this.getCurrentUserId();
-                console.log('【头像点击】当前用户ID:', currentUserOpenid);
+                console.log('��ͷ��������ǰ�û�ID:', currentUserOpenid);
 
-                // 检查是否点击的是自己的头像
+                // ����Ƿ��������Լ���ͷ��
                 if (userId === currentUserOpenid) {
-                    console.log('【头像点击】点击的是自己头像，切换到我的页面');
+                    console.log('��ͷ��������������Լ�ͷ���л����ҵ�ҳ��');
                     uni.switchTab({
                         url: '/pages/profile/profile',
                         fail: function (err) {
-                            console.error('【头像点击】切换到我的页面失败:', err);
+                            console.error('��ͷ�������л����ҵ�ҳ��ʧ��:', err);
                             uni.showToast({
-                                title: '页面跳转失败',
+                                title: 'ҳ����תʧ��',
                                 icon: 'none'
                             });
                         }
                     });
                 } else {
-                    console.log('【头像点击】点击的是他人头像，跳转到用户主页');
+                    console.log('��ͷ�����������������ͷ����ת���û���ҳ');
                     uni.navigateTo({
                         url: `/pages/user-profile/user-profile?userId=${encodeURIComponent(userId)}`,
                         success: function () {
-                            console.log('【头像点击】跳转成功');
+                            console.log('��ͷ��������ת�ɹ�');
                         },
                         fail: function (err) {
-                            console.error('【头像点击】跳转失败:', err);
+                            console.error('��ͷ��������תʧ��:', err);
                             uni.showToast({
-                                title: '跳转失败',
+                                title: '��תʧ��',
                                 icon: 'none'
                             });
                         }
                     });
                 }
             } catch (err) {
-                console.error('【头像点击】函数执行出错:', err);
+                console.error('��ͷ����������ִ�г���:', err);
                 uni.showToast({
-                    title: '跳转异常',
+                    title: '��ת�쳣',
                     icon: 'none'
                 });
             }
         },
 
-        // 优化 getPostList 函数，这是核心
+        // �Ż� getPostList ���������Ǻ���
         getPostList: function (cb) {
-            console.log('🔍 [首页] getPostList 开始调用');
-            console.log('🔍 [首页] 当前状态:', {
+            console.log('?? [��ҳ] getPostList ��ʼ����');
+            console.log('?? [��ҳ] ��ǰ״̬:', {
                 isLoading: this.isLoading,
                 isLoadingMore: this.isLoadingMore,
                 hasMore: this.hasMore,
                 page: this.page,
                 postListLength: this.postList.length
             });
-            
-            // 【修复】同时检查 isLoading 和 isLoadingMore，确保只有一个请求在进行
+
+            // ��ǰ��Ƶ�����Ƽ�顿
+            if (!checkFrontendRateLimit()) {
+                console.log('?? [��ҳ] getPostList��ǰ����������');
+                if (typeof cb === 'function') {
+                    cb();
+                }
+                return;
+            }
+
+            // ���޸���ͬʱ��� isLoading �� isLoadingMore��ȷ��ֻ��һ�������ڽ���
             if (this.isLoading || this.isLoadingMore || !this.hasMore) {
-                console.log('【首页】getPostList被阻止：正在加载中或没有更多数据');
+                console.log('����ҳ��getPostList����ֹ�����ڼ����л�û�и�������');
                 if (typeof cb === 'function') {
                     cb();
                 }
@@ -1425,31 +1433,31 @@ onReachBottom: function () {
             const skip = this.page * PAGE_SIZE;
             const isFirstLoad = this.page === 0;
             
-            console.log('🔍 [首页] 请求参数:', {
+            console.log('?? [��ҳ] �������:', {
                 skip,
                 page: this.page,
                 isFirstLoad,
                 PAGE_SIZE
             });
 
-            // 根据加载类型设置不同的状态
+            // ���ݼ����������ò�ͬ��״̬
             if (isFirstLoad) {
-                // 首次加载：显示骨架屏
+                // �״μ��أ���ʾ�Ǽ���
                 this.setData({
                     isLoading: true
                 });
             } else {
-                // 滑动加载更多：显示底部加载提示
+                // �������ظ��ࣺ��ʾ�ײ�������ʾ
                 this.setData({
                     isLoadingMore: true
                 });
             }
             const apiStartTime = Date.now();
-            // 使用缓存封装的首页分页数据，SWR + TTL
+            // ʹ�û����װ����ҳ��ҳ���ݣ�SWR + TTL
             getHomePosts({ page: this.page, pageSize: PAGE_SIZE, context: this })
                 .then(async (list) => {
                     const postsRaw = Array.isArray(list) ? list : [];
-                    console.log('✅ [首页] 获取到帖子数量（缓存封装）:', postsRaw.length);
+                    console.log('? [��ҳ] ��ȡ�����������������װ��:', postsRaw.length);
 
                     let posts = normalizePostList(postsRaw).map((post) => ({
                         ...post,
@@ -1467,7 +1475,7 @@ onReachBottom: function () {
                     }, 500);
 
                     const newPostsCount = posts.length;
-                    // 【修复】首次加载时应该直接替换列表，而不是合并，避免数据重复
+                    // ���޸����״μ���ʱӦ��ֱ���滻�б��������Ǻϲ������������ظ�
                     const currentPostList = this.postList;
                     const newPostList = isFirstLoad ? posts : currentPostList.concat(posts);
                     const updateData = {
@@ -1475,7 +1483,7 @@ onReachBottom: function () {
                         page: this.page + 1,
                         hasMore: newPostsCount === PAGE_SIZE
                     };
-                    console.log('✅ [首页] 更新数据（缓存封装）:', {
+                    console.log('? [��ҳ] �������ݣ������װ��:', {
                         isFirstLoad,
                         newPostListLength: newPostList.length,
                         currentPostListLength: currentPostList.length,
@@ -1490,9 +1498,9 @@ onReachBottom: function () {
                     }
                 })
                 .catch((err) => {
-                    console.error('【首页】getPostList（缓存封装）失败:', err);
+                    console.error('����ҳ��getPostList�������װ��ʧ��:', err);
                     if (isFirstLoad) {
-                        uni.showToast({ title: '网络错误', icon: 'none' });
+                        uni.showToast({ title: '�������', icon: 'none' });
                     }
                 })
                 .finally(() => {
@@ -1506,10 +1514,10 @@ onReachBottom: function () {
             return;
         },
 
-        // 模式切换现在通过底部tabBar实现，不再需要手动切换
+        // ģʽ�л�����ͨ���ײ�tabBarʵ�֣�������Ҫ�ֶ��л�
 
-        // 同步点赞状态：从缓存中获取最新的点赞状态
-                // ͬ������״̬���ӻ����л�ȡ���µĵ���״̬ + ���µ�ǰ�б�UI
+        // ͬ������״̬���ӻ����л�ȡ���µĵ���״̬
+                // ?????????????????��?????��?????? + ???��???��?UI
         syncLikeStatusFromCache: function () {
             try {
                 const allPostIds = [];
@@ -1558,44 +1566,44 @@ onReachBottom: function () {
                     this.setData(updates);
                 }
             } catch (err) {
-                console.error('����ҳ��ͬ������״̬ʧ��:', err);
+                console.error('???????????????????:', err);
             }
         },
 
-        // 标签点击处理
+        // ��ǩ�������
         onTagClick: function (e) {
             const tag = e.currentTarget.dataset.tag;
-            console.log('点击标签:', tag);
+            console.log('�����ǩ:', tag);
 
-            // 跳转到标签筛选页面
+            // ��ת����ǩɸѡҳ��
             uni.navigateTo({
                 url: `/pages/tag-filter/tag-filter?tag=${encodeURIComponent(tag)}`,
                 success: () => {
-                    console.log('跳转到标签筛选页面成功');
+                    console.log('��ת����ǩɸѡҳ��ɹ�');
                 },
                 fail: (err) => {
-                    console.error('跳转到标签筛选页面失败:', err);
+                    console.error('��ת����ǩɸѡҳ��ʧ��:', err);
                     uni.showToast({
-                        title: '跳转失败',
+                        title: '��תʧ��',
                         icon: 'none'
                     });
                 }
             });
         },
 
-        // 评论点击处理
+        // ���۵������
         onCommentClick: function (e) {
             const postId = e.currentTarget.dataset.postid;
-            console.log('点击评论，跳转到详情页:', postId);
+            console.log('������ۣ���ת������ҳ:', postId);
             uni.navigateTo({
                 url: `/pages/post-detail/post-detail?id=${postId}`,
                 success: () => {
-                    console.log('跳转到详情页成功');
+                    console.log('��ת������ҳ�ɹ�');
                 },
                 fail: (err) => {
-                    console.error('跳转到详情页失败:', err);
+                    console.error('��ת������ҳʧ��:', err);
                     uni.showToast({
-                        title: '跳转失败',
+                        title: '��תʧ��',
                         icon: 'none'
                     });
                 }
@@ -1603,81 +1611,81 @@ onReachBottom: function () {
         },
 
 
-        // 切换到关注页
+        // �л�����עҳ
         switchToFollowing: function () {
             if (this.currentPage === 'following') {
-                console.log('已经在关注页，无需切换');
+                console.log('�Ѿ��ڹ�עҳ�������л�');
                 return;
             }
-            console.log('切换到关注页');
+            console.log('�л�����עҳ');
             this.setData({
                 currentPage: 'following',
                 currentTab: 'following',
-                swiperCurrent: 1  // 关注页对应swiper索引1
+                swiperCurrent: 1  // ��עҳ��Ӧswiper����1
             });
 
-            // 如果关注页还没有数据，加载关注页数据
+            // �����עҳ��û�����ݣ����ع�עҳ����
             if (this.followingPostList.length === 0) {
-                console.log('开始加载关注页数据');
+                console.log('��ʼ���ع�עҳ����');
                 this.loadFollowingPosts();
             } else {
-                console.log('关注页已有数据，直接切换');
+                console.log('��עҳ�������ݣ�ֱ���л�');
             }
         },
 
-        // 切换回主页
+        // �л�����ҳ
         switchToHome: function () {
             if (this.currentPage === 'home') {
-                console.log('已经在主页，无需切换');
+                console.log('�Ѿ�����ҳ�������л�');
                 return;
             }
-            console.log('切换回主页');
+            console.log('�л�����ҳ');
             this.setData({
                 currentPage: 'home',
                 currentTab: 'square',
-                swiperCurrent: 0  // 主页对应swiper索引0
+                swiperCurrent: 0  // ��ҳ��Ӧswiper����0
             });
         },
 
-        // 切换到讨论页
+        // �л�������ҳ
         switchToDiscussion: function () {
             if (this.currentPage === 'discussion') {
-                console.log('已经在讨论页，无需切换');
+                console.log('�Ѿ�������ҳ�������л�');
                 return;
             }
-            console.log('切换到讨论页');
+            console.log('�л�������ҳ');
             this.setData({
                 currentPage: 'discussion',
                 currentTab: 'discussion',
-                swiperCurrent: 2  // 讨论页对应swiper索引2
+                swiperCurrent: 2  // ����ҳ��Ӧswiper����2
             });
 
-            // 如果讨论页还没有数据，加载讨论页数据
+            // �������ҳ��û�����ݣ���������ҳ����
             if (this.discussionPostList.length === 0) {
-                console.log('开始加载讨论页数据');
+                console.log('��ʼ��������ҳ����');
                 this.loadDiscussionPosts();
             } else {
-                console.log('讨论页已有数据，直接切换');
+                console.log('����ҳ�������ݣ�ֱ���л�');
             }
         },
 
-        // 加载发现页数据 - 使用推荐算法
+        // ���ط���ҳ���� - ʹ���Ƽ��㷨
         loadDiscoverPosts: function () {
-            console.log('开始加载发现页推荐数据');
+            console.log('��ʼ���ط���ҳ�Ƽ�����');
 
-            // 发现页只使用推荐算法，不再加载更多
+            // ����ҳֻʹ���Ƽ��㷨�����ټ��ظ���
             this.loadRecommendationPosts();
         },
 
-        // 加载推荐帖子（首次加载，走缓存封装）
+        // �����Ƽ����ӣ��״μ��أ��߻����װ��
         loadRecommendationPosts: async function () {
             if (this.discoverIsLoading || this.discoverIsLoadingMore) {
-                console.log('发现页正在加载中，跳过重复请求');
+                console.log('����ҳ���ڼ����У������ظ�����');
                 return;
             }
 
             if (!this.discoverHasMore && this.discoverPage > 0) {
-                console.log('发现页已无更多推荐，跳过加载');
+                console.log('����ҳ���޸����Ƽ�����������');
                 return;
             }
 
@@ -1700,22 +1708,22 @@ onReachBottom: function () {
                 });
 
                 const rawPosts = Array.isArray(result?.posts) ? result.posts : [];
-                console.log('获取推荐数据结果（分页）: page=', page, '条数=', rawPosts.length, 'hasMore=', result?.hasMore);
+                console.log('��ȡ�Ƽ����ݽ������ҳ��: page=', page, '����=', rawPosts.length, 'hasMore=', result?.hasMore);
 
                 let normalizedPosts = normalizePostList(rawPosts).map((post) => ({
                     ...post,
                     likeIcon: likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false)
                 }));
 
-                // 双重保险去重
+                // ˫�ر���ȥ��
                 normalizedPosts = normalizedPosts.filter((post) => post && post._id && !excludeSet.has(post._id));
 
-                // 将 cloud:// 映射为可访问 URL，并预热
+                // �� cloud:// ӳ��Ϊ�ɷ��� URL����Ԥ��
                 normalizedPosts = await hydrateTempUrls(normalizedPosts);
                 warmTempUrlsFromPosts(normalizedPosts);
 
                 if (!normalizedPosts.length) {
-                    console.log('暂无新的推荐内容');
+                    console.log('�����µ��Ƽ�����');
                     const hasMoreFromServer = !!(result && result.hasMore);
                     this.setData({
                         discoverPostList: page === 0 ? [] : this.discoverPostList,
@@ -1726,10 +1734,10 @@ onReachBottom: function () {
                         discoverPage: hasMoreFromServer ? page + 1 : page
                     });
                     if (hasMoreFromServer) {
-                        console.log('服务器提示仍有更多，继续尝试获取下一页');
+                        console.log('��������ʾ���и��࣬�������Ի�ȡ��һҳ');
                         this.loadRecommendationPosts();
                     } else {
-                        const toastTitle = isInitialLoad ? '暂时没有新的推荐' : '没有更多推荐了';
+                        const toastTitle = isInitialLoad ? '��ʱû���µ��Ƽ�' : 'û�и����Ƽ���';
                         uni.showToast({
                             title: toastTitle,
                             icon: 'none'
@@ -1739,14 +1747,14 @@ onReachBottom: function () {
                 }
 
                 const currentList = Array.isArray(this.discoverPostList) ? this.discoverPostList.slice() : [];
-                // 处理分页数据，避免重复
+                // ������ҳ���ݣ������ظ�
                 const combined = page === 0 ? normalizedPosts : (() => {
                     const existingIds = new Set(currentList.map(p => p._id));
                     const uniqueNewList = normalizedPosts.filter(p => p && p._id && !existingIds.has(p._id));
                     return currentList.concat(uniqueNewList);
                 })();
 
-                // 记录已显示的帖子ID，并控制上限
+                // ��¼����ʾ������ID������������
                 const newShownIds = normalizedPosts.map((post) => post._id).filter(Boolean);
                 const mergedSet = new Set(currentExcludeIds);
                 newShownIds.forEach((id) => mergedSet.add(id));
@@ -1762,11 +1770,11 @@ onReachBottom: function () {
                     discoverShownPostIds: updatedShownIds,
                     discoverRefreshTime: Date.now()
                 });
-                console.log('发现页推荐数据设置完成，帖子数量:', normalizedPosts.length, '累计:', combined.length, 'hasMore:', hasMore);
+                console.log('����ҳ�Ƽ�����������ɣ���������:', normalizedPosts.length, '�ۼ�:', combined.length, 'hasMore:', hasMore);
             } catch (err) {
-                console.error('推荐数据请求失败（分页）:', err);
+                console.error('�Ƽ���������ʧ�ܣ���ҳ��:', err);
                 uni.showToast({
-                    title: '推荐加载失败',
+                    title: '�Ƽ�����ʧ��',
                     icon: 'none'
                 });
             } finally {
@@ -1777,18 +1785,18 @@ onReachBottom: function () {
             }
         },
 
-        // 刷新发现页推荐
+        // ˢ�·���ҳ�Ƽ�
         refreshDiscoverPosts: function () {
-            console.log('刷新发现页推荐');
+            console.log('ˢ�·���ҳ�Ƽ�');
 
-            // 清理缓存，避免返回旧数据
+            // �������棬���ⷵ�ؾ�����
             try {
                 invalidateDiscover();
             } catch (e) {
-                console.warn('清理发现页缓存失败:', e);
+                console.warn('��������ҳ����ʧ��:', e);
             }
 
-            // 重置状态，但保留已展示过的ID，避免重复推荐
+            // ����״̬����������չʾ����ID�������ظ��Ƽ�
             this.setData({
                 discoverPostList: [],
                 discoverPage: 0,
@@ -1798,21 +1806,21 @@ onReachBottom: function () {
                 discoverIsLoadingMore: false
             });
 
-            // 重新加载推荐
+            // ���¼����Ƽ�
             this.loadRecommendationPosts();
         },
 
-        // 加载讨论页数据
+        // ��������ҳ����
         loadDiscussionPosts: function (callback) {
-            console.log('开始加载讨论页数据');
+            console.log('��ʼ��������ҳ����');
 
             if (this.discussionIsLoading || this.discussionIsLoadingMore) {
-                console.log('讨论页正在加载中，跳过重复请求');
+                console.log('����ҳ���ڼ����У������ظ�����');
                 return;
             }
 
             if (!this.discussionHasMore && this.discussionPage > 0) {
-                console.log('讨论页已无更多数据，跳过加载');
+                console.log('����ҳ���޸������ݣ���������');
                 return;
             }
 
@@ -1834,11 +1842,11 @@ onReachBottom: function () {
                         likeIcon: likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false)
                     }));
 
-                    // 将 cloud:// 映射为可访问 URL，并预热
+                    // �� cloud:// ӳ��Ϊ�ɷ��� URL����Ԥ��
                     posts = await hydrateTempUrls(posts);
                     warmTempUrlsFromPosts(posts);
 
-                    // 处理分页数据，避免重复
+                    // ������ҳ���ݣ������ظ�
                     const currentList = this.discussionPage === 0 ? [] : this.discussionPostList;
                     const existingIds = new Set(currentList.map(p => p._id));
                     const uniqueNewList = posts.filter(p => p && p._id && !existingIds.has(p._id));
@@ -1852,9 +1860,9 @@ onReachBottom: function () {
                         discussionIsLoadingMore: false
                     });
 
-                    console.log('讨论页数据加载完成，帖子数量:', posts.length, '累计:', newList.length);
+                    console.log('����ҳ���ݼ�����ɣ���������:', posts.length, '�ۼ�:', newList.length);
 
-                    // 预加载用户数据
+                    // Ԥ�����û�����
                     if (isInitialLoad) {
                         setTimeout(() => {
                             if (this.preloadUserData && typeof this.preloadUserData === 'function') {
@@ -1863,7 +1871,7 @@ onReachBottom: function () {
                         }, 500);
                     }
 
-                    // 调用回调函数（用于刷新完成通知）
+                    // ���ûص�����������ˢ�����֪ͨ��
                     if (callback && typeof callback === 'function') {
                         callback();
                     }
@@ -1875,83 +1883,83 @@ onReachBottom: function () {
                     });
                     if (isInitialLoad) {
                         uni.showToast({
-                            title: '暂无讨论内容',
+                            title: '������������',
                             icon: 'none'
                         });
                     }
-                    // 调用回调函数（用于刷新完成通知）
+                    // ���ûص�����������ˢ�����֪ͨ��
                     if (callback && typeof callback === 'function') {
                         callback();
                     }
                 }
             }).catch((err) => {
-                console.error('加载讨论页数据失败:', err);
+                console.error('��������ҳ����ʧ��:', err);
                 this.setData({
                     discussionIsLoading: false,
                     discussionIsLoadingMore: false
                 });
                 uni.showToast({
-                    title: '加载失败',
+                    title: '����ʧ��',
                     icon: 'none'
                 });
-                // 调用回调函数（用于刷新完成通知）
+                // ���ûص�����������ˢ�����֪ͨ��
                 if (callback && typeof callback === 'function') {
                     callback();
                 }
             });
         },
 
-        // 模拟讨论页数据
+        // ģ������ҳ����
         getMockDiscussionPosts: function () {
             return [
                 {
                     _id: 'discussion_1',
                     _openid: 'user_1',
-                    title: '大家觉得现代诗歌应该如何发展？',
-                    content: '最近看到很多现代诗作品，感觉风格各异。想听听大家对现代诗歌未来发展的看法。',
-                    authorName: '诗友小王',
+                    title: '��Ҿ����ִ�ʫ��Ӧ����η�չ��',
+                    content: '��������ܶ��ִ�ʫ��Ʒ���о������졣��������Ҷ��ִ�ʫ��δ����չ�Ŀ�����',
+                    authorName: 'ʫ��С��',
                     authorAvatar: '/static/images/avatar.png',
                     votes: 15,
                     commentCount: 8,
                     isVoted: false,
-                    tags: ['诗歌讨论', '现代诗'],
+                    tags: ['ʫ������', '�ִ�ʫ'],
                     imageUrls: [],
                     createdAt: new Date().toISOString()
                 },
                 {
                     _id: 'discussion_2',
                     _openid: 'user_2',
-                    title: '分享一首最喜欢的古诗',
-                    content: '最近重读了李白的《将进酒》，每次读都有新的感悟。大家最喜欢哪首古诗呢？',
-                    authorName: '古风爱好者',
+                    title: '����һ����ϲ���Ĺ�ʫ',
+                    content: '����ض�����׵ġ������ơ���ÿ�ζ������µĸ��򡣴����ϲ�����׹�ʫ�أ�',
+                    authorName: '�ŷ簮����',
                     authorAvatar: '/static/images/avatar.png',
                     votes: 23,
                     commentCount: 12,
                     isVoted: true,
-                    tags: ['古诗', '李白', '经典'],
+                    tags: ['��ʫ', '���', '����'],
                     imageUrls: [],
                     createdAt: new Date().toISOString()
                 },
                 {
                     _id: 'discussion_3',
                     _openid: 'user_3',
-                    title: '写作灵感枯竭怎么办？',
-                    content: '最近一段时间总是感觉写不出东西，灵感好像枯竭了。大家有什么好的建议吗？',
-                    authorName: '写作新手',
+                    title: 'д����пݽ���ô�죿',
+                    content: '���һ��ʱ�����Ǹо�д������������к���ݽ��ˡ������ʲô�õĽ�����',
+                    authorName: 'д������',
                     authorAvatar: '/static/images/avatar.png',
                     votes: 8,
                     commentCount: 6,
                     isVoted: false,
-                    tags: ['写作', '灵感', '求助'],
+                    tags: ['д��', '���', '����'],
                     imageUrls: [],
                     createdAt: new Date().toISOString()
                 }
             ];
         },
 
-        // 刷新讨论页数据
+        // ˢ������ҳ����
         refreshDiscussionPosts: function (callback) {
-            console.log('刷新讨论页数据');
+            console.log('ˢ������ҳ����');
             this.setData({
                 discussionPostList: [],
                 discussionPage: 0,
@@ -1962,19 +1970,19 @@ onReachBottom: function () {
             this.loadDiscussionPosts(callback);
         },
 
-        // 刷新广场页数据（发布帖子后调用）
+        // ˢ�¹㳡ҳ���ݣ��������Ӻ���ã�
         refreshIndexData: function () {
-            console.log('【index】开始刷新广场页数据');
+            console.log('��index����ʼˢ�¹㳡ҳ����');
 
-            // 清除首页缓存
+            // �����ҳ����
             try {
                 invalidateHomePosts({});
-                console.log('✅ [index] 已清除首页缓存');
+                console.log('? [index] �������ҳ����');
             } catch (e) {
-                console.error('❌ [index] 清除首页缓存失败:', e);
+                console.error('? [index] �����ҳ����ʧ��:', e);
             }
 
-            // 重置状态
+            // ����״̬
             this.setData({
                 postList: [],
                 page: 0,
@@ -1982,29 +1990,29 @@ onReachBottom: function () {
                 isLoading: false
             });
 
-            // 重新加载数据
+            // ���¼�������
             this.getIndexData();
         },
 
-        // 统一云函数调用方法
+        // ͳһ�ƺ������÷���
         callCloudFunction(name, data = {}, extraOptions = {}) {
             return cloudCall(name, data, Object.assign({ pageTag: 'index', context: this }, extraOptions));
         },
 
-        // 空函数，用于阻止匿名帖子的头像点击事件
+        // �պ�����������ֹ�������ӵ�ͷ�����¼�
         noop() {},
 
-        // 加载关注页数据
+        // ���ع�עҳ����
         loadFollowingPosts: function (callback) {
-            console.log('开始加载关注页数据');
+            console.log('��ʼ���ع�עҳ����');
 
             if (this.followingIsLoading || this.followingIsLoadingMore) {
-                console.log('关注页正在加载中，跳过重复请求');
+                console.log('��עҳ���ڼ����У������ظ�����');
                 return;
             }
 
             if (!this.followingHasMore && this.followingPage > 0) {
-                console.log('关注页已无更多数据，跳过加载');
+                console.log('��עҳ���޸������ݣ���������');
                 return;
             }
 
@@ -2026,11 +2034,11 @@ onReachBottom: function () {
                         likeIcon: likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false)
                     }));
 
-                    // 将 cloud:// 映射为可访问 URL，并预热
+                    // �� cloud:// ӳ��Ϊ�ɷ��� URL����Ԥ��
                     posts = await hydrateTempUrls(posts);
                     warmTempUrlsFromPosts(posts);
 
-                    // 处理分页数据，避免重复
+                    // ������ҳ���ݣ������ظ�
                     const currentList = this.followingPage === 0 ? [] : this.followingPostList;
                     const existingIds = new Set(currentList.map(p => p._id));
                     const uniqueNewList = posts.filter(p => p && p._id && !existingIds.has(p._id));
@@ -2044,16 +2052,16 @@ onReachBottom: function () {
                         followingIsLoadingMore: false
                     });
 
-                    console.log('关注页数据加载完成，帖子数量:', posts.length, '累计:', newList.length);
+                    console.log('��עҳ���ݼ�����ɣ���������:', posts.length, '�ۼ�:', newList.length);
 
-                    // 数据加载完成后，同步点赞状态（参考广场页实现）
+                    // ���ݼ�����ɺ�ͬ������״̬���ο��㳡ҳʵ�֣�
                     try {
                         this.syncLikeStatusFromCache && this.syncLikeStatusFromCache();
                     } catch (e) {
-                        console.warn('关注页数据加载后同步点赞状态失败:', e);
+                        console.warn('��עҳ���ݼ��غ�ͬ������״̬ʧ��:', e);
                     }
 
-                    // 预加载用户数据
+                    // Ԥ�����û�����
                     if (isInitialLoad) {
                         setTimeout(() => {
                             if (this.preloadUserData && typeof this.preloadUserData === 'function') {
@@ -2062,7 +2070,7 @@ onReachBottom: function () {
                         }, 500);
                     }
 
-                    // 调用回调函数（用于刷新完成通知）
+                    // ���ûص�����������ˢ�����֪ͨ��
                     if (callback && typeof callback === 'function') {
                         callback();
                     }
@@ -2074,35 +2082,35 @@ onReachBottom: function () {
                     });
                     if (isInitialLoad) {
                         uni.showToast({
-                            title: '暂无关注的人发帖',
+                            title: '���޹�ע���˷���',
                             icon: 'none'
                         });
                     }
-                    // 调用回调函数（用于刷新完成通知）
+                    // ���ûص�����������ˢ�����֪ͨ��
                     if (callback && typeof callback === 'function') {
                         callback();
                     }
                 }
             }).catch((err) => {
-                console.error('加载关注页数据失败:', err);
+                console.error('���ع�עҳ����ʧ��:', err);
                 this.setData({
                     followingIsLoading: false,
                     followingIsLoadingMore: false
                 });
                 uni.showToast({
-                    title: '加载失败',
+                    title: '����ʧ��',
                     icon: 'none'
                 });
-                // 调用回调函数（用于刷新完成通知）
+                // ���ûص�����������ˢ�����֪ͨ��
                 if (callback && typeof callback === 'function') {
                     callback();
                 }
             });
         },
 
-        // 刷新关注页数据
+        // ˢ�¹�עҳ����
         refreshFollowingPosts: function (callback) {
-            console.log('刷新关注页数据');
+            console.log('ˢ�¹�עҳ����');
             this.setData({
                 followingPostList: [],
                 followingPage: 0,
@@ -2120,7 +2128,7 @@ onReachBottom: function () {
 <style>
 /* index.wxss */
 
-/* 页面包装器 - 确保整个页面不会滑动 */
+/* ҳ���װ�� - ȷ������ҳ�治�Ử�� */
 .page-wrapper {
     height: 100vh;
     width: 100vw;
@@ -2133,30 +2141,30 @@ onReachBottom: function () {
 }
 
 .container {
-    /* 顶部padding为切换栏留空间 */
-    /* App端：188rpx（切换栏本身）+ 88rpx（状态栏） */
+    /* ����paddingΪ�л������ռ� */
+    /* App�ˣ�188rpx���л���������+ 88rpx��״̬���� */
     /* #ifdef APP-PLUS */
     padding-top: 276rpx;
     /* #endif */
-    /* H5端：188rpx（切换栏本身，无状态栏） */
+    /* H5�ˣ�188rpx���л�����������״̬���� */
     /* #ifdef H5 */
     padding-top: 188rpx;
     /* #endif */
-    padding-bottom: 100rpx; /* 为底部tabBar留出空间 */
+    padding-bottom: 100rpx; /* Ϊ�ײ�tabBar�����ռ� */
     background-color: #ffffff;
     min-height: 100vh;
     position: relative;
-    /* 禁止整个容器滑动 */
+    /* ��ֹ������������ */
     overflow: hidden;
-    /* 禁用过度滑动 */
+    /* ���ù��Ȼ��� */
     overscroll-behavior: none;
-    /* 确保容器不会产生滚动 */
+    /* ȷ����������������� */
     height: 100vh;
     box-sizing: border-box;
 }
 
 
-/* 读诗模式容器 */
+/* ��ʫģʽ���� */
 .poem-mode-container {
     position: fixed;
     top: 0;
@@ -2168,7 +2176,7 @@ onReachBottom: function () {
     overflow: hidden;
 }
 
-/* 滑动指示器 */
+/* ����ָʾ�� */
 .swipe-indicator {
     position: absolute;
     top: 50%;
@@ -2189,7 +2197,7 @@ onReachBottom: function () {
     right: 30rpx;
 }
 
-/* 帖子索引指示器 */
+/* ��������ָʾ�� */
 .post-indicator {
     position: absolute;
     bottom: 60rpx;
@@ -2203,41 +2211,41 @@ onReachBottom: function () {
     backdrop-filter: blur(10rpx);
 }
 
-/* 列表模式容器 */
+/* �б�ģʽ���� */
 .list-mode-container,
 .list-content {
     display: block;
 }
 
-/* 广场模式容器 */
+/* �㳡ģʽ���� */
 .square-mode-container {
     display: block;
-    padding-top: 20rpx; /* 减少容器本身的padding，因为scroll-view内容会单独处理 */
+    padding-top: 20rpx; /* ��������������padding����Ϊscroll-view���ݻᵥ������ */
     height: 100%;
     overflow: hidden;
 }
 
-/* 内容容器上边距，避免被切换栏遮挡 */
+/* ���������ϱ߾࣬���ⱻ�л����ڵ� */
 #post-list-container,
 #following-list-container,
 #discussion-list-container {
-    padding-top: 0; /* 移除padding-top，因为swiper已经在切换栏下方 */
+    padding-top: 0; /* �Ƴ�padding-top����Ϊswiper�Ѿ����л����·� */
     box-sizing: border-box;
 }
 
-/* 为空状态容器也添加上边距 */
+/* Ϊ��״̬����Ҳ�����ϱ߾� */
 .swiper-page .empty-state {
-    /* App端：需要更多上边距 */
+    /* App�ˣ���Ҫ�����ϱ߾� */
     /* #ifdef APP-PLUS */
     margin-top: 160rpx;
     /* #endif */
-    /* H5端：上边距可以更小 */
+    /* H5�ˣ��ϱ߾���Ը�С */
     /* #ifdef H5 */
     margin-top: 100rpx;
     /* #endif */
 }
 
-/* 新增：帖子项包装器样式 */
+/* �������������װ����ʽ */
 .post-item-wrapper {
     background: #fff;
     margin-bottom: 20rpx;
@@ -2247,40 +2255,40 @@ onReachBottom: function () {
     border-bottom: 1rpx solid #f0f0f0;
 }
 
-/* 原创帖子特殊样式 */
+/* ԭ������������ʽ */
 .post-item-wrapper.original-post {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 90%, rgba(235, 200, 141, 0.05) 95%, rgba(235, 200, 141, 0.08) 100%);
     border-left: 3rpx solid #ebc88d;
     position: relative;
 }
 
-/* 原创帖子光影效果已移除 */
+/* ԭ�����ӹ�ӰЧ�����Ƴ� */
 
-/* 新增：内容导航器样式 */
+/* ���������ݵ�������ʽ */
 .post-content-navigator {
     display: block;
     background: transparent;
 }
 
-/* 新增：导航器点击效果 */
+/* ���������������Ч�� */
 .navigator-hover {
     background-color: rgba(0, 0, 0, 0.02);
 }
 
-/* 新增：点赞按钮容器样式 */
+/* ���������ް�ť������ʽ */
 .like-icon-container {
     padding: 10rpx;
     border-radius: 50%;
     transition: all 0.2s ease;
 }
 
-/* 新增：点赞按钮点击效果 */
+/* ���������ް�ť���Ч�� */
 .like-icon-container:active {
     transform: scale(0.9);
     background-color: rgba(255, 107, 107, 0.1);
 }
 
-/* 新增：点赞图标样式 */
+/* ����������ͼ����ʽ */
 .like-icon {
     width: 40rpx;
     height: 40rpx;
@@ -2307,17 +2315,17 @@ onReachBottom: function () {
     font-weight: 500;
 }
 
-/* 新增：图片容器占位样式 */
+/* ������ͼƬ����ռλ��ʽ */
 .image-container-wrapper {
     position: relative;
     width: 100%;
-    background-color: #f0f0f0; /* 占位时的背景色，很重要 */
+    background-color: #f0f0f0; /* ռλʱ�ı���ɫ������Ҫ */
     overflow: hidden;
-    border-radius: 8px; /* 可以加个圆角，让占位块更好看 */
-    margin: 20rpx 0; /* 图片和下方内容的间距 */
+    border-radius: 8px; /* ���ԼӸ�Բ�ǣ���ռλ����ÿ� */
+    margin: 20rpx 0; /* ͼƬ���·����ݵļ�� */
 }
 
-/* 新增：让图片或Swiper填充整个占位容器 */
+/* ��������ͼƬ��Swiper�������ռλ���� */
 .image-container-wrapper .post-image,
 .image-container-wrapper .image-swiper {
     position: absolute;
@@ -2327,23 +2335,23 @@ onReachBottom: function () {
     height: 100%;
 }
 
-/* 多图容器 */
+/* ��ͼ���� */
 .multi-image-container {
     width: 100%;
     position: relative;
 }
 
-/* 单图容器 */
+/* ��ͼ���� */
 .single-image-container {
     width: 100%;
     position: relative;
 }
 
-/* 多张图片的swiper样式 */
+/* ����ͼƬ��swiper��ʽ */
 .image-swiper {
     width: 100%;
     background-color: #fff;
-    /* 高度由 style 绑定动态设置 */
+    /* �߶��� style �󶨶�̬���� */
 }
 
 .swiper-item {
@@ -2372,7 +2380,7 @@ onReachBottom: function () {
     background-color: #f5f5f5;
 }
 
-/* 图片数量指示器 */
+/* ͼƬ����ָʾ�� */
 .image-count-indicator {
     position: absolute;
     top: 20rpx;
@@ -2386,12 +2394,12 @@ onReachBottom: function () {
     backdrop-filter: blur(10rpx);
 }
 
-/* 卡片项样式 */
+/* ��Ƭ����ʽ */
 .post-item-wrapper {
     margin-bottom: 20rpx;
 }
 
-/* 外部作者信息样式 */
+/* �ⲿ������Ϣ��ʽ */
 .author-info-outside {
     display: flex;
     align-items: center;
@@ -2422,7 +2430,7 @@ onReachBottom: function () {
     padding: 20rpx 40rpx 30rpx 40rpx;
 }
 
-/* 定义点击时的样式 - 整个卡片缩小 */
+/* ������ʱ����ʽ - ������Ƭ��С */
 .post-card-active {
     transform: scale(0.98);
 }
@@ -2442,7 +2450,7 @@ onReachBottom: function () {
     -webkit-box-orient: vertical;
 }
 
-/* 诗歌作者样式 */
+/* ʫ��������ʽ */
 .poem-author {
     font-size: 32rpx;
     color: #000;
@@ -2470,7 +2478,7 @@ onReachBottom: function () {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    /* 上移一点：收紧与内容的垂直间距 */
+    /* ����һ�㣺�ս������ݵĴ�ֱ��� */
     margin-top: -8rpx;
     padding: 10rpx 60rpx 15rpx 60rpx;
 }
@@ -2538,7 +2546,7 @@ onReachBottom: function () {
     height: 48rpx;
 }
 
-/* 空状态样式 */
+/* ��״̬��ʽ */
 .empty-state {
     display: flex;
     flex-direction: column;
@@ -2565,7 +2573,7 @@ onReachBottom: function () {
     color: #999;
 }
 
-/* 加载更多样式 */
+/* ���ظ�����ʽ */
 .loading-more {
     display: flex;
     justify-content: center;
@@ -2578,7 +2586,7 @@ onReachBottom: function () {
     color: #999;
 }
 
-/* 底部加载状态样式 */
+/* �ײ�����״̬��ʽ */
 .loading-footer {
     text-align: center;
     padding: 20rpx 0;
@@ -2587,7 +2595,7 @@ onReachBottom: function () {
 }
 
 
-/* 标签样式 */
+/* ��ǩ��ʽ */
 .post-tags {
     margin-top: 30rpx;
     margin-bottom: 10rpx;
@@ -2607,7 +2615,7 @@ onReachBottom: function () {
     opacity: 0.8;
 }
 
-/* 底部触底提示样式 */
+/* �ײ�������ʾ��ʽ */
 .end-tip {
     display: flex;
     flex-direction: column;
@@ -2623,42 +2631,42 @@ onReachBottom: function () {
     text-align: center;
 }
 
-/* swiper页面切换样式 */
+/* swiperҳ���л���ʽ */
 .page-swiper {
-    /* 高度计算：100vh - 切换栏高度 - 底部tabBar高度 */
-    /* App端：276rpx（切换栏+状态栏） */
+    /* �߶ȼ��㣺100vh - �л����߶� - �ײ�tabBar�߶� */
+    /* App�ˣ�276rpx���л���+״̬���� */
     /* #ifdef APP-PLUS */
     height: calc(100vh - 276rpx - 100rpx);
     /* #endif */
-    /* H5端：188rpx（切换栏，无状态栏） */
+    /* H5�ˣ�188rpx���л�������״̬���� */
     /* #ifdef H5 */
     height: calc(100vh - 188rpx - 100rpx);
     /* #endif */
     width: 100%;
-    /* 限制滑动边界 */
+    /* ���ƻ����߽� */
     overflow: hidden;
-    /* 禁用过度滑动 */
+    /* ���ù��Ȼ��� */
     overscroll-behavior: none;
-    /* 确保在切换栏下方 */
+    /* ȷ�����л����·� */
     position: relative;
     z-index: 999;
 }
 
 .swiper-page {
     height: 100%;
-    /* scroll-view 会自动处理滚动，不需要 overflow-y: auto */
+    /* scroll-view ���Զ���������������Ҫ overflow-y: auto */
     position: relative;
-    /* 降低z-index，确保在切换栏下方 */
+    /* ����z-index��ȷ�����л����·� */
     z-index: 999;
 }
 
-/* 确保 scroll-view 的第一个子元素有上边距，让下拉刷新圆圈显示在切换栏下方 */
+/* ȷ�� scroll-view �ĵ�һ����Ԫ�����ϱ߾࣬������ˢ��ԲȦ��ʾ���л����·� */
 .swiper-page > view:first-child {
-    /* App端：需要更多上边距 */
+    /* App�ˣ���Ҫ�����ϱ߾� */
     /* #ifdef APP-PLUS */
     margin-top: 60rpx;
     /* #endif */
-    /* H5端：上边距可以更小 */
+    /* H5�ˣ��ϱ߾���Ը�С */
     /* #ifdef H5 */
     margin-top: 20rpx;
     /* #endif */
@@ -2670,21 +2678,21 @@ onReachBottom: function () {
     font-weight: 500;
 }
 
-/* 下拉刷新转圈圈样式自定义 - 针对 index 页面 */
-/* 可以调整颜色、位置等，但大小和动画有限制 */
+/* ����ˢ��תȦȦ��ʽ�Զ��� - ��� index ҳ�� */
+/* ���Ե�����ɫ��λ�õȣ�����С�Ͷ��������� */
 .swiper-page .uni-pull-refresh-spinner,
 .swiper-page .wx-pull-refresh-spinner {
-    /* 颜色（部分平台支持）- 灰色 */
+    /* ��ɫ������ƽ̨֧�֣�- ��ɫ */
     color: #999999 !important;
     border-color: #999999 !important;
-    /* 位置偏移（如果需要） */
+    /* λ��ƫ�ƣ������Ҫ�� */
     /* top: 20rpx; */
 }
 
-/* 下拉刷新容器样式 */
+/* ����ˢ��������ʽ */
 .swiper-page .uni-pull-refresh,
 .swiper-page .wx-pull-refresh {
-    /* 可以调整背景、透明度等 */
+    /* ���Ե���������͸���ȵ� */
     background: transparent;
 }
 </style>

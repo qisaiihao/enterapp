@@ -95,8 +95,10 @@ import AppTabBar from '@/custom-tab-bar/index.vue';
 import skeleton from '@/components/skeleton/skeleton';
 import topBar from '@/components/top-bar/top-bar.vue';
 const { cloudCall } = require('@/utils/cloudCall.js');
+const { getPostList: getPostListWithCache, invalidatePostList } = require('@/api-cache/post-list.js');
 const likeIcon = require('@/utils/likeIcon.js');
 const { togglePostLike } = require('../../utils/likeService.js');
+// authorSignature已从云函数返回，不再需要signatureCache
 
 const PAGE_SIZE = 10;
 
@@ -132,12 +134,12 @@ export default {
       backgroundColors: ['#a4c4bd', '#c9cfcf', '#906161', '#909388'],
       showPageIndicator: false,
       votingInProgress: {},
-      // 用户签名相关
-      fetchingSignatures: {}, // 防止重复获取签名的状态管理
       // 安全区域高度
       safeAreaTop: 0,
       // 只看关注模式
-      showFollowingOnly: false
+      showFollowingOnly: false,
+      // 加载锁定标志，防止重复触发加载
+      _loadingLock: false
     };
   },
     onLoad() {
@@ -151,15 +153,26 @@ export default {
   },
   onPullDownRefresh() {
     console.log('【poem-square】📱 下拉刷新，重新获取数据');
+    // 清除缓存并强制刷新
+    invalidatePostList({ isPoem: true, isOriginal: true, excludeAnonymous: true });
     this.getIndexData(() => {
       console.log('【poem-square】✅ 下拉刷新完成，停止刷新动画');
       uni.stopPullDownRefresh();
     });
   },
   onPageScroll(e) {
+    // 增加防抖时间到300ms，减少频繁触发
     if (this._scrollTimer) clearTimeout(this._scrollTimer);
     this._scrollTimer = setTimeout(() => {
+      // 双重检查：防止在定时器期间状态已变化
       if (!this.hasMore || this.isLoadingMore || this.isLoading) return;
+      
+      // 增加加载锁定标志，防止重复触发
+      if (this._loadingLock) {
+        console.log('【poem-square】加载锁定中，跳过本次滚动检查');
+        return;
+      }
+      
       try {
         const info = uni.getSystemInfoSync();
         const winH = info.windowHeight;
@@ -168,12 +181,20 @@ export default {
           const distanceToBottom = rect.height - e.scrollTop - winH;
           const preloadThreshold = winH * 1.5;
           if (distanceToBottom < preloadThreshold) {
+            // 再次检查状态，防止在查询期间状态变化
+            if (this._loadingLock || !this.hasMore || this.isLoadingMore || this.isLoading) {
+              return;
+            }
+            this._loadingLock = true;
             this.showPageIndicator = true;
-            this.getPostList(() => { this.showPageIndicator = false; });
+            this.getPostList(() => {
+              this.showPageIndicator = false;
+              this._loadingLock = false;
+            });
           }
         }).exec();
       } catch (_) {}
-    }, 100);
+    }, 300); // 增加防抖时间到300ms
   },
   methods: {
     // 调试安全区域
@@ -220,20 +241,117 @@ export default {
     },
     getIndexData(callback) {
       console.log('【poem-square】开始获取数据，callback:', typeof callback);
-      this.setData({ 
-        isLoading: true, 
-        postList: [], 
-        page: 0, 
-        hasMore: true 
-      });
-      this.getPostList(() => { 
-        console.log('【poem-square】getPostList 完成，设置 isLoading: false');
-        this.setData({ isLoading: false });
-        if (typeof callback === 'function') {
-          console.log('【poem-square】执行回调函数');
-          callback();
+      // 先尝试从缓存获取第一页数据，立即显示给用户
+      const cacheManager = require('@/_utils/cache-manager.js').default;
+      const ns = cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 });
+      const cacheKey = 'page:0:size:10:poem:true:orig:true:exclAnon:true';
+      
+      console.log('🔍 [poem-square-cache] 开始读取缓存，key:', cacheKey);
+      
+      // 直接读取持久化存储，不通过get方法（避免过期检查）
+      let cachedData = null;
+      let cacheSource = 'none';
+      try {
+        if (ns.persistent) {
+          console.log('🔍 [poem-square-cache] 检查持久化存储');
+          // 直接从持久化存储读取，不检查过期时间
+          const keys = ns.keys();
+          console.log('🔍 [poem-square-cache] 所有缓存键:', keys);
+          const matchedKey = keys.find(k => k.includes('page:0:size:10:poem:true:orig:true:exclAnon:true'));
+          console.log('🔍 [poem-square-cache] 匹配到的键:', matchedKey);
+          
+          if (matchedKey) {
+            const rec = ns._readPersist(matchedKey);
+            console.log('🔍 [poem-square-cache] 从持久化读取的记录:', rec ? { hasValue: !!rec.v, isArray: Array.isArray(rec.v), length: rec.v?.length, expireAt: rec.e } : null);
+            if (rec && rec.v && Array.isArray(rec.v) && rec.v.length > 0) {
+              cachedData = rec.v;
+              cacheSource = 'persistent';
+              console.log('✅ [poem-square-cache] 从持久化存储读取到缓存数据，数量:', cachedData.length);
+              // 恢复到内存缓存
+              ns.mem.set(matchedKey, rec);
+              console.log('✅ [poem-square-cache] 已恢复到内存缓存');
+            }
+          }
         }
+        // 如果持久化没找到，尝试从内存读取
+        if (!cachedData) {
+          console.log('🔍 [poem-square-cache] 从内存缓存读取');
+          const rec = ns.mem.get(cacheKey);
+          console.log('🔍 [poem-square-cache] 内存缓存记录:', rec ? { hasValue: !!rec.v, isArray: Array.isArray(rec.v), length: rec.v?.length, expireAt: rec.e } : null);
+          if (rec && rec.v && Array.isArray(rec.v) && rec.v.length > 0) {
+            cachedData = rec.v;
+            cacheSource = 'memory';
+            console.log('✅ [poem-square-cache] 从内存缓存读取到数据，数量:', cachedData.length);
+          }
+        }
+      } catch (e) {
+        console.error('❌ [poem-square-cache] 读取缓存失败:', e);
+      }
+      
+      console.log('🔍 [poem-square-cache] 缓存读取结果:', { 
+        found: !!cachedData, 
+        source: cacheSource, 
+        count: cachedData?.length || 0 
       });
+      
+      if (cachedData && Array.isArray(cachedData) && cachedData.length > 0) {
+        console.log('✅ [poem-square-cache] 发现缓存数据，立即显示，数量:', cachedData.length);
+        // 处理缓存数据
+        const visibleList = cachedData.filter(p => p && !p.isAnonymous);
+        console.log('🔍 [poem-square-cache] 过滤匿名后的数量:', visibleList.length);
+        
+        visibleList.forEach((p) => {
+          if (!p) return;
+          p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
+          p.textColor = p.textColor || '#222';
+          p.isExpanded = false;
+          p.authorSignature = '';
+          p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
+        });
+        
+        // 立即显示缓存数据
+        this.setData({ 
+          postList: visibleList,
+          page: 1,  // 缓存数据已经显示第一页，下一页是第1页
+          hasMore: true,
+          isLoading: false,  // 先显示缓存，不显示loading
+          isLoadingMore: false,
+          _loadingLock: false
+        });
+        console.log('✅ [poem-square-cache] 已显示缓存数据，准备后台刷新');
+        
+        // 然后异步刷新数据（会使用SWR策略，如果缓存未过期就不会调用云函数）
+        setTimeout(() => {
+          console.log('🔍 [poem-square-cache] 开始后台刷新，重置页码为0');
+          this.setData({ page: 0 }); // 重置页码，让getPostList从第一页开始
+          this.getPostList((newData) => { 
+            console.log('🔍 [poem-square-cache] 后台刷新完成，新数据:', newData ? newData.length : 0);
+            // processPostList 已经处理了合并逻辑，这里只需要执行回调
+            if (typeof callback === 'function') {
+              callback();
+            }
+          });
+        }, 100);
+      } else {
+        // 没有缓存，正常加载
+        console.log('⚠️ [poem-square-cache] 没有找到缓存数据，正常加载');
+        this.setData({ 
+          postList: [], 
+          page: 0, 
+          hasMore: true,
+          isLoading: true,
+          isLoadingMore: false,
+          _loadingLock: false
+        });
+        this.getPostList(() => { 
+          console.log('【poem-square】getPostList 完成，设置 isLoading: false');
+          this.setData({ isLoading: false });
+          if (typeof callback === 'function') {
+            console.log('【poem-square】执行回调函数');
+            callback();
+          }
+        });
+      }
     },
     // 切换只看关注模式
     toggleFollowingFilter() {
@@ -265,102 +383,155 @@ export default {
       return pick;
     },
     async getPostList(cb) {
-      console.log('🔍🔍🔍 【poem-square】getPostList 开始，isLoadingMore:', this.isLoadingMore, 'callback:', typeof cb);
+      console.log('🔍🔍🔍 【poem-square】getPostList 开始，isLoadingMore:', this.isLoadingMore, 'isLoading:', this.isLoading, 'callback:', typeof cb);
       console.log('🔍🔍🔍 【poem-square】当前页码:', this.page, 'PAGE_SIZE:', PAGE_SIZE);
-      if (this.isLoadingMore) {
-        console.log('【poem-square】正在加载更多，跳过请求');
+      // 双重检查：防止重复调用（首次加载时isLoading为true是正常的）
+      const isFirstLoad = this.page === 0;
+      if (!isFirstLoad && (this.isLoadingMore || this._loadingLock)) {
+        console.log('【poem-square】正在加载中或已锁定，跳过请求');
         if (typeof cb === 'function') cb();
         return;
       }
-      this.setData({ isLoadingMore: true });
+      // 设置加载锁定（首次加载时isLoading已经设置为true）
+      if (!isFirstLoad) {
+        this._loadingLock = true;
+        this.setData({ isLoadingMore: true });
+      }
       try {
         // 根据模式选择不同的云函数
         const isFollowingMode = this.showFollowingOnly;
-        const cloudFunctionName = isFollowingMode ? 'getFollowingPosts' : 'getPostList';
-        const requestParams = {
-          skip: this.page * PAGE_SIZE,
-          limit: PAGE_SIZE,
+        
+        // 只看关注模式使用 getFollowingPosts（没有缓存）
+        if (isFollowingMode) {
+          const requestParams = {
+            skip: this.page * PAGE_SIZE,
+            limit: PAGE_SIZE,
+            excludeAnonymous: true,
+            isPoem: true,
+            isOriginal: true
+          };
+          const extraOptions = { requireAuth: true };
+          console.log('🔍🔍🔍 【poem-square】准备调用云函数: getFollowingPosts');
+          const res = await this.callCloudFunction('getFollowingPosts', requestParams, extraOptions);
+          const list = (res && res.result && res.result.posts) ? res.result.posts : [];
+          this.processPostList(list, cb);
+          return;
+        }
+        
+        // 全部模式使用缓存
+        const list = await getPostListWithCache({
+          page: this.page,
+          pageSize: PAGE_SIZE,
           excludeAnonymous: true,
           isPoem: true,        // 只获取诗歌类型的内容
-          isOriginal: true     // 只获取原创内容
-        };
-        // 只看关注模式需要用户登录认证
-        const extraOptions = isFollowingMode ? { requireAuth: true } : {};
-        console.log('🔍🔍🔍 【poem-square】准备调用云函数:', cloudFunctionName, '参数:', JSON.stringify(requestParams, null, 2));
-        console.log('🔍🔍🔍 【poem-square】模式:', isFollowingMode ? '只看关注' : '全部');
-        const res = await this.callCloudFunction(cloudFunctionName, requestParams, extraOptions);
-        console.log('🔍🔍🔍 【poem-square】getPostList 云函数返回结果:', res);
-        const list = (res && res.result && res.result.posts) ? res.result.posts : [];
-        console.log('🔍🔍🔍 【poem-square】获取到帖子数量:', list.length);
-        if (list.length > 0) {
-          console.log('🔍🔍🔍 【poem-square】所有帖子的详细信息（用于验证随机性）:');
-          list.forEach((p, idx) => {
-            console.log(`  [${idx + 1}] ID: ${p._id}, 创建时间: ${p.createTime}, 标题: ${p.title || p.content?.substring(0, 20)}`);
-          });
-          console.log('🔍🔍🔍 【poem-square】前3个帖子的时间:', list.slice(0, 3).map(p => ({
+          isOriginal: true,    // 只获取原创内容
+          context: this
+        });
+        
+        this.processPostList(list, cb);
+      } catch (e) {
+        console.error('【poem-square】获取帖子列表失败:', e);
+        uni.showToast({ title: '加载失败', icon: 'none' });
+        // 只有非首次加载时才设置isLoadingMore
+        if (this.page !== 0) {
+          this.setData({ isLoadingMore: false });
+        }
+        this._loadingLock = false;
+        if (typeof cb === 'function') cb();
+      }
+    },
+    
+    processPostList(list, cb) {
+      console.log('🔍🔍🔍 【poem-square】获取到帖子数量:', list.length);
+      console.log('🔍🔍🔍 【poem-square】当前页码:', this.page, '现有列表长度:', this.postList.length);
+      
+      if (list.length > 0) {
+        console.log('🔍🔍🔍 【poem-square】所有帖子的详细信息（用于验证随机性）:');
+        list.forEach((p, idx) => {
+          console.log(`  [${idx + 1}] ID: ${p._id}, 创建时间: ${p.createTime}, 标题: ${p.title || p.content?.substring(0, 20)}`);
+        });
+        console.log('🔍🔍🔍 【poem-square】前3个帖子的时间:', list.slice(0, 3).map(p => ({
+          id: p._id,
+          createTime: p.createTime,
+          title: p.title || p.content?.substring(0, 20)
+        })));
+        if (list.length >= 10) {
+          console.log('🔍🔍🔍 【poem-square】后4个帖子（应该是随机的）的创建时间:', list.slice(6, 10).map(p => ({
             id: p._id,
             createTime: p.createTime,
             title: p.title || p.content?.substring(0, 20)
           })));
-          // 检查后4个帖子是否真的是随机的（创建时间应该不连续）
-          if (list.length >= 10) {
-            console.log('🔍🔍🔍 【poem-square】后4个帖子（应该是随机的）的创建时间:', list.slice(6, 10).map(p => ({
-              id: p._id,
-              createTime: p.createTime,
-              title: p.title || p.content?.substring(0, 20)
-            })));
-          }
         }
-        
-        // 不再前端过滤帖子，因为是否获取签名是在后面控制的
-        // 并且云函数调用已经包含了 excludeAnonymous: true，理论上后端已经过滤了
-        // 如果后端过滤不可靠，我们保留一个更简单的过滤逻辑
-        const visibleList = list.filter(p => p && !p.isAnonymous);
-        
-        visibleList.forEach((p) => {
-          if (!p) return; // 防止处理undefined项目
-          // 优先使用数据库中保存的背景颜色，如果没有则随机生成
-          p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
-          p.textColor = p.textColor || '#222';
-          p.isExpanded = false;
-          p.authorSignature = ''; // 添加作者签名属性
-          p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
-        });
-        
-        // 【修复】首次加载时直接替换，加载更多时合并并去重，避免重复key
-        let newPostList;
-        if (this.page === 0) {
-          newPostList = visibleList;
-        } else {
-          // 加载更多时，过滤掉已存在的帖子，避免重复
+      }
+      
+      const visibleList = list.filter(p => p && !p.isAnonymous);
+      console.log('🔍🔍🔍 【poem-square】过滤匿名后的数量:', visibleList.length);
+      
+      visibleList.forEach((p) => {
+        if (!p) return;
+        p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
+        p.textColor = p.textColor || '#222';
+        p.isExpanded = false;
+        // authorSignature已从云函数返回，保留原始值（如果没有则为空字符串）
+        p.authorSignature = p.authorSignature || '';
+        p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
+      });
+      
+      let newPostList;
+      if (this.page === 0) {
+        // 第一页：如果是刷新缓存数据，需要合并到现有列表
+        if (this.postList.length > 0) {
+          console.log('🔍🔍🔍 【poem-square】第一页刷新，现有列表:', this.postList.length, '新数据:', visibleList.length);
+          // 检查是否有新帖子
           const existingIds = new Set(this.postList.map(post => post._id).filter(Boolean));
-          const uniqueNewPosts = visibleList.filter(post => post && post._id && !existingIds.has(post._id));
-          newPostList = this.postList.concat(uniqueNewPosts);
-          console.log('【poem-square】去重：新帖子', visibleList.length, '去重后', uniqueNewPosts.length);
-        }
-        this.setData({
-          postList: newPostList,
-          page: this.page + 1,
-          hasMore: list.length === PAGE_SIZE
-        });
-        
-        // 自动获取所有帖子的签名（匿名帖子不获取签名）
-        newPostList.forEach((post, index) => {
-          if (post._openid && !post.authorSignature && !post.isAnonymous) {
-            this.fetchAuthorSignature(post._openid, index);
+          const newPosts = visibleList.filter(post => post && post._id && !existingIds.has(post._id));
+          console.log('🔍🔍🔍 【poem-square】真正的新帖子数量:', newPosts.length);
+          
+          if (newPosts.length > 0) {
+            // 有新帖子，补充到列表前面（最新的在前面）
+            newPostList = [...newPosts, ...this.postList];
+            console.log('✅ 【poem-square】合并后的列表长度:', newPostList.length);
+          } else {
+            // 没有新帖子，保持现有列表，但更新现有帖子的数据（可能有更新）
+            console.log('🔍🔍🔍 【poem-square】没有新帖子，更新现有帖子数据');
+            const updatedList = this.postList.map(existingPost => {
+              const updated = visibleList.find(p => p._id === existingPost._id);
+              return updated || existingPost;
+            });
+            newPostList = updatedList;
           }
-        });
-        console.log('【poem-square】数据处理完成');
-      } catch (e) {
-        console.error('【poem-square】获取帖子列表失败:', e);
-        uni.showToast({ title: '加载失败', icon: 'none' });
-      } finally {
-        console.log('【poem-square】设置 isLoadingMore: false，执行回调');
-        this.setData({ isLoadingMore: false });
-        if (typeof cb === 'function') {
-          console.log('【poem-square】执行回调函数');
-          cb();
+        } else {
+          // 没有现有列表，直接使用新数据
+          newPostList = visibleList;
+          console.log('🔍🔍🔍 【poem-square】没有现有列表，直接使用新数据');
         }
+      } else {
+        // 加载更多：合并并去重
+        const existingIds = new Set(this.postList.map(post => post._id).filter(Boolean));
+        const uniqueNewPosts = visibleList.filter(post => post && post._id && !existingIds.has(post._id));
+        newPostList = this.postList.concat(uniqueNewPosts);
+        console.log('【poem-square】去重：新帖子', visibleList.length, '去重后', uniqueNewPosts.length);
+      }
+      
+      console.log('🔍🔍🔍 【poem-square】最终列表长度:', newPostList.length, '页码:', this.page + 1);
+      
+      this.setData({
+        postList: newPostList,
+        page: this.page + 1,
+        hasMore: list.length === PAGE_SIZE
+      });
+      
+      // authorSignature已从云函数返回，无需额外获取
+      console.log('【poem-square】数据处理完成');
+      
+      // 只有非首次加载时才设置isLoadingMore
+      if (this.page !== 0) {
+        this.setData({ isLoadingMore: false });
+      }
+      this._loadingLock = false;
+      if (typeof cb === 'function') {
+        console.log('【poem-square】执行回调函数');
+        cb(newPostList); // 传递新列表数据给回调
       }
     },
     togglePostExpansion(e) {
@@ -370,10 +541,7 @@ export default {
 
       this.setData({ [`postList[${index}].isExpanded`]: next });
 
-      // 如果还没有签名，则获取签名（无论展开还是折叠，但匿名帖子不获取签名）
-      if (post._openid && !post.authorSignature && !post.isAnonymous) {
-        this.fetchAuthorSignature(post._openid, index);
-      }
+      // authorSignature已从云函数返回，无需额外获取
     },
     onCommentClick(e) {
       const postId = e.currentTarget.dataset.postid;
@@ -381,49 +549,7 @@ export default {
     },
     onLikeIconError() {},
 
-    // 获取作者签名
-    async fetchAuthorSignature(authorOpenid, postIndex) {
-      // 在函数入口处增加对帖子匿名状态的最终检查
-      const post = this.postList[postIndex];
-      // 如果帖子不存在，或者帖子是匿名的，则直接终止函数
-      if (!post || post.isAnonymous) {
-        console.log(`【poem-square】帖子索引 ${postIndex} 是匿名的，跳过签名获取。`);
-        return;
-      }
-
-      if (!authorOpenid || this.fetchingSignatures[authorOpenid]) {
-        return;
-      }
-
-      // 防重复调用
-      this.fetchingSignatures[authorOpenid] = true;
-
-      try {
-        const res = await this.callCloudFunction('getUserProfile', { userId: authorOpenid, onlyProfile: true });
-
-        if (res.result && res.result.success && res.result.userInfo && res.result.userInfo.signatureUrl) {
-          const signatureUrl = res.result.userInfo.signatureUrl;
-          console.log('【poem-square】获取到作者签名:', signatureUrl);
-
-          // 因为我们在函数入口已经判断过匿名状态，这里可以直接设置签名
-          this.setData({ [`postList[${postIndex}].authorSignature`]: signatureUrl });
-
-        } else {
-          console.log('【poem-square】作者未设置签名');
-          this.setData({
-            [`postList[${postIndex}].authorSignature`]: '' // 确保没有签名时为空
-          });
-        }
-      } catch (err) {
-        console.error('【poem-square】获取作者签名失败:', err);
-        this.setData({
-          [`postList[${postIndex}].authorSignature`]: '' // 出错时也确保为空
-        });
-      } finally {
-        // 清除获取状态
-        delete this.fetchingSignatures[authorOpenid];
-      }
-    },
+    // authorSignature已从云函数返回，不再需要fetchAuthorSignature函数
 
     // 签名图片加载成功
     onSignatureLoad(e) {

@@ -76,6 +76,7 @@ import AppTabBar from '@/custom-tab-bar/index.vue';
 import skeleton from '@/components/skeleton/skeleton';
 import topBar from '@/components/top-bar/top-bar.vue';
 const { cloudCall } = require('@/utils/cloudCall.js');
+const { getPostList: getPostListWithCache, invalidatePostList } = require('@/api-cache/post-list.js');
 const likeIcon = require('@/utils/likeIcon.js');
 const { togglePostLike } = require('../../utils/likeService.js');
 
@@ -142,20 +143,33 @@ export default {
       showPageIndicator: false,
       votingInProgress: {},
       // 安全区域高度
-      safeAreaTop: 0
+      safeAreaTop: 0,
+      // 加载锁定标志，防止重复触发加载
+      _loadingLock: false
     };
   },
   onPullDownRefresh() {
     console.log('【mountain】📱 下拉刷新，重新获取数据');
+    // 清除缓存并强制刷新
+    invalidatePostList({ isPoem: true, isOriginal: false, excludeAnonymous: true });
     this.getIndexData(() => {
       console.log('【mountain】✅ 下拉刷新完成，停止刷新动画');
       uni.stopPullDownRefresh();
     });
   },
   onPageScroll(e) {
+    // 增加防抖时间到300ms，减少频繁触发
     if (this._scrollTimer) clearTimeout(this._scrollTimer);
     this._scrollTimer = setTimeout(() => {
+      // 双重检查：防止在定时器期间状态已变化
       if (!this.hasMore || this.isLoadingMore || this.isLoading) return;
+      
+      // 增加加载锁定标志，防止重复触发
+      if (this._loadingLock) {
+        console.log('【mountain】加载锁定中，跳过本次滚动检查');
+        return;
+      }
+      
       try {
         const info = uni.getSystemInfoSync();
         const winH = info.windowHeight;
@@ -164,12 +178,24 @@ export default {
           const distanceToBottom = rect.height - e.scrollTop - winH;
           const preloadThreshold = winH * 1.5;
           if (distanceToBottom < preloadThreshold) {
+            // 再次检查状态，防止在查询期间状态变化
+            if (this._loadingLock || !this.hasMore || this.isLoadingMore || this.isLoading) {
+              console.log('【mountain】onPageScroll 检查：已锁定或正在加载，跳过', {
+                _loadingLock: this._loadingLock,
+                hasMore: this.hasMore,
+                isLoadingMore: this.isLoadingMore,
+                isLoading: this.isLoading
+              });
+              return;
+            }
             this.showPageIndicator = true;
-            this.getPostList(() => { this.showPageIndicator = false; });
+            this.getPostList(() => {
+              this.showPageIndicator = false;
+            });
           }
         }).exec();
       } catch (_) {}
-    }, 100);
+    }, 300); // 增加防抖时间到300ms
   },
   methods: {
     // 调试安全区域
@@ -217,10 +243,12 @@ export default {
     getIndexData(callback) {
       console.log('【mountain】开始获取数据，callback:', typeof callback);
       this.setData({ 
-        isLoading: true, 
         postList: [], 
         page: 0, 
-        hasMore: true 
+        hasMore: true,
+        isLoading: true,
+        isLoadingMore: false,
+        _loadingLock: false  // 重置加载锁定
       });
       this.getPostList(() => { 
         console.log('【mountain】getPostList 完成，设置 isLoading: false');
@@ -245,22 +273,34 @@ export default {
       return pick;
     },
     async getPostList(cb) {
-      console.log('【mountain】getPostList 开始，isLoadingMore:', this.isLoadingMore, 'callback:', typeof cb);
-      if (this.isLoadingMore) {
-        console.log('【mountain】正在加载更多，跳过请求');
+      console.log('【mountain】getPostList 开始，isLoadingMore:', this.isLoadingMore, 'isLoading:', this.isLoading, 'page:', this.page, '_loadingLock:', this._loadingLock, 'callback:', typeof cb);
+      // 双重检查：防止重复调用（首次加载时isLoading为true是正常的）
+      const isFirstLoad = this.page === 0;
+      if (!isFirstLoad && (this.isLoadingMore || this._loadingLock)) {
+        console.log('【mountain】正在加载中或已锁定，跳过请求', {
+          isLoadingMore: this.isLoadingMore,
+          _loadingLock: this._loadingLock,
+          page: this.page
+        });
         if (typeof cb === 'function') cb();
         return;
       }
-      this.setData({ isLoadingMore: true });
+      // 设置加载锁定（首次加载时isLoading已经设置为true）
+      if (!isFirstLoad) {
+        this._loadingLock = true;
+        this.setData({ isLoadingMore: true });
+        console.log('【mountain】设置加载锁定，isLoadingMore: true');
+      }
       try {
-        const res = await this.callCloudFunction('getPostList', {
-          skip: this.page * PAGE_SIZE,
-          limit: PAGE_SIZE,
+        // 使用缓存封装的接口
+        const list = await getPostListWithCache({
+          page: this.page,
+          pageSize: PAGE_SIZE,
           excludeAnonymous: true,
           isPoem: true,       // 山页面：只获取诗歌类型的内容
-          isOriginal: false   // 只获取非原创内容（山诗）
+          isOriginal: false,  // 只获取非原创内容（山诗）
+          context: this
         });
-        const list = (res && res.result && res.result.posts) ? res.result.posts : [];
         console.log('【mountain】获取到帖子数量:', list.length);
         console.log('【mountain】帖子匿名性判断:', list.map(p => ({
             postId: p._id,
@@ -300,8 +340,18 @@ export default {
         console.error('【mountain】获取帖子列表失败:', e);
         uni.showToast({ title: '加载失败', icon: 'none' });
       } finally {
-        console.log('【mountain】设置 isLoadingMore: false，执行回调');
-        this.setData({ isLoadingMore: false });
+        const currentPage = this.page; // 保存当前页码，因为下面会改变
+        console.log('【mountain】设置加载状态，执行回调', {
+          page: currentPage,
+          isFirstLoad: currentPage === 0
+        });
+        // 只有非首次加载时才设置isLoadingMore
+        if (currentPage !== 0) {
+          this.setData({ isLoadingMore: false });
+          console.log('【mountain】设置 isLoadingMore: false');
+        }
+        this._loadingLock = false; // 释放加载锁定
+        console.log('【mountain】释放加载锁定，_loadingLock: false');
         if (typeof cb === 'function') {
           console.log('【mountain】执行回调函数');
           cb();

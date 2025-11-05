@@ -100,7 +100,9 @@ import topBar from '@/components/top-bar/top-bar';
 // const db = this.$tcb.database(); // H5环境
 const PAGE_SIZE = 5;
 const { cloudCall } = require('../../utils/cloudCall.js');
+const { getPostList: getPostListWithCache, invalidatePostList } = require('../../api-cache/post-list.js');
 const postGalleryMixin = require('../../mixins/postGallery.js');
+// authorSignature已从云函数返回，不再需要signatureCache
 export default {
     components: {
         skeleton,
@@ -484,6 +486,8 @@ export default {
         // 新增：刷新诗歌数据的方法
         refreshPoemData: function () {
             console.log('【poem】开始刷新诗歌数据');
+            // 清除缓存
+            invalidatePostList({ isPoem: true, isOriginal: true });
             this.setData({
                 postList: [],
                 currentPostIndex: 0,
@@ -538,130 +542,6 @@ export default {
             this.getPostList();
         },
 
-        // 获取指定作者的签名信息
-        fetchAuthorSignature: function (authorOpenid) {
-            if (!authorOpenid) {
-                console.log('【poem】作者openid为空，不获取签名');
-                this.setData({
-                    currentAuthorSignature: ''
-                });
-                return;
-            }
-
-            // 防重复调用：如果是同一个作者且正在获取中，直接返回
-            if (this.currentAuthorOpenid === authorOpenid && this.isFetchingSignature) {
-                console.log('【poem】正在获取该作者签名，跳过重复调用');
-                return;
-            }
-
-            // 防重复调用：如果是同一个作者且已有签名，直接返回
-            if (this.currentAuthorOpenid === authorOpenid && this.currentAuthorSignature) {
-                console.log('【poem】该作者签名已存在，跳过重复获取');
-                return;
-            }
-            console.log('【poem】获取作者签名信息，openid:', authorOpenid);
-
-            // 设置获取状态
-            this.setData({
-                isFetchingSignature: true,
-                currentAuthorOpenid: authorOpenid
-            });
-
-            // 临时调试：直接查询数据库
-            // 修复：确保正确获取数据库实例
-            let db;
-            if (this.$tcb && this.$tcb.database) {
-                db = this.$tcb.database();
-                console.log('【poem】使用TCB数据库实例');
-            } else if (typeof wx !== 'undefined' && wx.cloud && wx.cloud.database) {
-                db = wx.cloud.database();
-                console.log('【poem】使用微信云数据库实例');
-            } else {
-                console.error('【poem】无法获取数据库实例，$tcb和wx.cloud都不可用');
-                this.setData({
-                    currentAuthorSignature: '',
-                    isFetchingSignature: false
-                });
-                return;
-            }
-            db.collection('users')
-                .where({
-                    _openid: authorOpenid
-                })
-                .get()
-                .then((res) => {
-                    console.log('【poem】直接查询数据库结果:', res);
-                    if (res.data && res.data.length > 0) {
-                        const user = res.data[0];
-                        console.log('【poem】数据库中的用户信息:', user);
-                        if (user.signatureUrl) {
-                            console.log('【poem】数据库中找到签名:', user.signatureUrl);
-                            this.setData({
-                                currentAuthorSignature: user.signatureUrl,
-                                isFetchingSignature: false
-                            });
-                        } else {
-                            console.log('【poem】数据库中用户没有设置签名');
-                            this.setData({
-                                currentAuthorSignature: '',
-                                isFetchingSignature: false
-                            });
-                        }
-                    } else {
-                        console.log('【poem】数据库中未找到用户');
-                        this.setData({
-                            currentAuthorSignature: '',
-                            isFetchingSignature: false
-                        });
-                    }
-                })
-                .catch((err) => {
-                    console.error('【poem】直接查询数据库失败:', err);
-                    this.setData({
-                        currentAuthorSignature: '',
-                        isFetchingSignature: false
-                    });
-                });
-
-            // 使用兼容性云函数调用
-            this.callCloudFunction('getUserProfile', {
-                userId: authorOpenid
-            }).then((res) => {
-                    console.log('【poem】getUserProfile返回结果:', res);
-                    if (res.result && res.result.success && res.result.userInfo) {
-                        const user = res.result.userInfo;
-                        console.log('【poem】作者信息:', user);
-                        if (user.signatureUrl) {
-                            console.log('【poem】获取到作者签名:', user.signatureUrl);
-                            this.setData({
-                                currentAuthorSignature: user.signatureUrl,
-                                isFetchingSignature: false
-                            });
-                            console.log('【poem】作者签名已设置到data中');
-                        } else {
-                            console.log('【poem】作者未设置签名，signatureUrl为空');
-                            this.setData({
-                                currentAuthorSignature: '',
-                                isFetchingSignature: false
-                            });
-                        }
-                    } else {
-                        console.log('【poem】获取作者信息失败或数据格式错误');
-                        this.setData({
-                            currentAuthorSignature: '',
-                            isFetchingSignature: false
-                        });
-                    }
-                }).catch((err) => {
-                    console.error('【poem】获取作者签名失败:', err);
-                    this.setData({
-                        currentAuthorSignature: '',
-                        isFetchingSignature: false
-                    });
-                });
-            
-        },
-
         // 签名图片加载成功
         onSignatureLoad: function (e) {
             console.log('【poem】签名图片加载成功:', e);
@@ -690,117 +570,112 @@ export default {
             
             // 根据模式选择不同的云函数
             const isFollowingMode = this.showFollowingOnly;
-            const cloudFunctionName = isFollowingMode ? 'getFollowingPosts' : 'getPostList';
-            const requestParams = {
-                skip: skip,
-                limit: PAGE_SIZE,
-                isPoem: true,
-                isOriginal: true
-            };
             
-            console.log('🔍 [Poem] 开始调用云函数:', cloudFunctionName);
-            console.log('🔍 [Poem] 云函数参数:', requestParams);
-            console.log('🔍 [Poem] 模式:', isFollowingMode ? '只看关注' : '全部');
-            
-            // 使用兼容性云函数调用
-            this.callCloudFunction(cloudFunctionName, requestParams).then((res) => {
-                console.log('✅ [Poem] 云函数调用成功，原始响应:', res);
+            // 只看关注模式使用 getFollowingPosts（没有缓存）
+            if (isFollowingMode) {
+                const requestParams = {
+                    skip: skip,
+                    limit: PAGE_SIZE,
+                    isPoem: true,
+                    isOriginal: true
+                };
                 
-                if (res.result && res.result.success) {
-                    const posts = res.result.posts || [];
-                    console.log('✅ [Poem] 获取到路诗歌数量:', posts.length);
-                    console.log('✅ [Poem] 完整响应数据:', res.result);
-
-                    // 调试：检查返回的诗歌数据
-                    if (posts.length > 0) {
-                        console.log('🔍 [Poem] 诗歌数据详情:');
-                        posts.forEach((post, index) => {
-                            console.log(`📝 [Poem] 诗歌${index + 1}:`, {
-                                _id: post._id,
-                                title: post.title,
-                                isPoem: post.isPoem,
-                                isOriginal: post.isOriginal,
-                                content: post.content ? post.content.substring(0, 50) + '...' : '无内容',
-                                authorName: post.authorName,
-                                createTime: post.createTime
-                            });
-                        });
-                    } else {
-                        console.log('⚠️ [Poem] 没有获取到任何诗歌数据');
+                console.log('🔍 [Poem] 准备调用云函数: getFollowingPosts');
+                this.callCloudFunction('getFollowingPosts', requestParams).then((res) => {
+                    this.processPoemPosts(res, cb);
+                }).catch((err) => {
+                    console.error('❌ [Poem] 云函数调用失败:', err);
+                    uni.showToast({ title: '网络错误', icon: 'none' });
+                    this.setData({ isLoading: false, hasFirstLoad_var: true });
+                    if (typeof cb === 'function') cb();
+                });
+                return;
+            }
+            
+            // 全部模式使用缓存
+            console.log('🔍 [Poem] 使用缓存接口获取帖子列表');
+            getPostListWithCache({
+                page: this.page,
+                pageSize: PAGE_SIZE,
+                isPoem: true,
+                isOriginal: true,
+                context: this
+            }).then((posts) => {
+                // 包装成与云函数返回格式一致的结构
+                const res = {
+                    result: {
+                        success: true,
+                        posts: posts
                     }
-                    
-                    posts.forEach((post) => {
-                        if (!post.imageUrls || post.imageUrls.length === 0) {
-                            post.imageUrls = post.imageUrl ? [post.imageUrl] : [];
-                        }
-                    });
-                    
-                    // 处理分页数据，避免重复
-                    const newPostList = this.page === 0 ? posts : (() => {
-                        const existingIds = new Set(this.postList.map(p => p._id));
-                        const uniqueNewList = posts.filter(p => p && p._id && !existingIds.has(p._id));
-                        return this.postList.concat(uniqueNewList);
-                    })();
-                    console.log('✅ [Poem] 更新后的postList长度:', newPostList.length);
-                    
-                    this.setData({
-                        postList: newPostList,
-                        page: this.page + 1,
-                        hasMore: posts.length === PAGE_SIZE
-                    });
-
-                    // 首次加载或刷新后，初始化显示
-                    if (this.page === 1 && newPostList.length > 0) {
-                        console.log('🎯 [Poem] 首次加载，显示第一个诗歌');
-                        console.log('🎯 [Poem] 第一个诗歌详情:', {
-                            title: newPostList[0].title,
-                            imageUrls: newPostList[0].imageUrls,
-                            poemBgImage: newPostList[0].poemBgImage,
-                            hasBgImage: !!newPostList[0].poemBgImage
-                        });
-                        this.updatePostDisplay(0); // 使用新函数来统一更新显示
-
-                        // 预加载后续几张图片，例如第2、3张
-                        if (newPostList.length > 1) {
-                            console.log('🔍 [Poem] 预加载第2张图片');
-                            this.loadImageForIndex(1);
-                        }
-                        if (newPostList.length > 2) {
-                            console.log('🔍 [Poem] 预加载第3张图片');
-                            this.loadImageForIndex(2);
-                        }
-                    } else {
-                        console.log('⚠️ [Poem] 未获取到诗歌帖子数据或非首次加载');
-                    }
-                } else {
-                    console.error('❌ [Poem] 云函数返回失败:', res.result);
-                    uni.showToast({
-                        title: '加载失败',
-                        icon: 'none'
-                    });
-                }
+                };
+                this.processPoemPosts(res, cb);
             }).catch((err) => {
-                console.error('❌ [Poem] 云函数调用失败:', err);
-                console.error('❌ [Poem] 错误详情:', {
-                    message: err.message,
-                    stack: err.stack,
-                    code: err.code
+                console.error('❌ [Poem] 缓存接口调用失败:', err);
+                uni.showToast({ title: '网络错误', icon: 'none' });
+                this.setData({ isLoading: false, hasFirstLoad_var: true });
+                if (typeof cb === 'function') cb();
+            });
+        },
+        
+        processPoemPosts(res, cb) {
+            console.log('✅ [Poem] 处理帖子数据');
+            
+            if (res.result && res.result.success) {
+                const posts = res.result.posts || [];
+                console.log('✅ [Poem] 获取到路诗歌数量:', posts.length);
+
+                if (posts.length > 0) {
+                    console.log('🔍 [Poem] 诗歌数据详情:');
+                    posts.forEach((post, index) => {
+                        console.log(`📝 [Poem] 诗歌${index + 1}:`, {
+                            _id: post._id,
+                            title: post.title,
+                            isPoem: post.isPoem,
+                            isOriginal: post.isOriginal,
+                            content: post.content ? post.content.substring(0, 50) + '...' : '无内容',
+                            authorName: post.authorName,
+                            createTime: post.createTime
+                        });
+                    });
+                }
+                
+                posts.forEach((post) => {
+                    if (!post.imageUrls || post.imageUrls.length === 0) {
+                        post.imageUrls = post.imageUrl ? [post.imageUrl] : [];
+                    }
                 });
-                uni.showToast({
-                    title: '网络错误',
-                    icon: 'none'
-                });
-            }).finally(() => {
-                console.log('🔍 [Poem] 云函数调用完成，设置loading为false');
+                
+                const newPostList = this.page === 0 ? posts : (() => {
+                    const existingIds = new Set(this.postList.map(p => p._id));
+                    const uniqueNewList = posts.filter(p => p && p._id && !existingIds.has(p._id));
+                    return this.postList.concat(uniqueNewList);
+                })();
+                
+                console.log('✅ [Poem] 更新后的postList长度:', newPostList.length);
+                
                 this.setData({
-                    isLoading: false,
-                    hasFirstLoad_var: true // 标记首次加载完成
+                    postList: newPostList,
+                    page: this.page + 1,
+                    hasMore: posts.length === PAGE_SIZE
                 });
 
-                if (typeof cb === 'function') {
-                    cb();
+                if (this.page === 1 && newPostList.length > 0) {
+                    console.log('🎯 [Poem] 首次加载，显示第一个诗歌');
+                    this.updatePostDisplay(0);
+                    if (newPostList.length > 1) {
+                        this.loadImageForIndex(1);
+                    }
+                    if (newPostList.length > 2) {
+                        this.loadImageForIndex(2);
+                    }
                 }
-            });
+            } else {
+                console.error('❌ [Poem] 数据返回失败:', res.result);
+                uni.showToast({ title: '加载失败', icon: 'none' });
+            }
+            
+            this.setData({ isLoading: false, hasFirstLoad_var: true });
+            if (typeof cb === 'function') cb();
         },
 
         touchStart: function (e) {
@@ -1024,14 +899,12 @@ export default {
                     isFetchingSignature: false
                 });
             } else if (nextAuthorOpenid) {
-                const shouldFetchSignature = previousAuthorOpenid !== nextAuthorOpenid || !previousSignature;
-                if (shouldFetchSignature) {
-                    this.setData({
-                        currentAuthorSignature: '',
-                        isFetchingSignature: false
-                    });
-                    this.fetchAuthorSignature(nextAuthorOpenid);
-                }
+                // authorSignature已从云函数返回，直接使用post.authorSignature
+                const authorSignature = (post && post.authorSignature) || '';
+                this.setData({
+                    currentAuthorSignature: authorSignature,
+                    isFetchingSignature: false
+                });
             } else {
                 this.setData({
                     currentAuthorSignature: '',

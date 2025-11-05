@@ -626,7 +626,8 @@ export default {
         this.currentScrollTop = e.scrollTop || 0;
     },
     onUnload: function () {
-        this.recordViewBehavior();
+        // 已停用：暂时不需要记录用户浏览记录
+        // this.recordViewBehavior();
         try { const viewEvents = require('../../utils/viewEvents.js'); viewEvents.flushViewQueue(); } catch (e) {}
         try { uni.$off && this.onGlobalCommentLikeChanged && uni.$off('comment-like-changed', this.onGlobalCommentLikeChanged); } catch (_) {}
         
@@ -646,7 +647,8 @@ export default {
         if (this.isInputExpanded) {
             this.collapseInput();
         }
-        this.recordViewBehavior();
+        // 已停用：暂时不需要记录用户浏览记录
+        // this.recordViewBehavior();
         try { const viewEvents = require('../../utils/viewEvents.js'); viewEvents.flushViewQueue(); } catch (e) {}
     },
     methods: {
@@ -939,7 +941,6 @@ export default {
         },
 
         onAddToPortfolio: function () {
-            console.log('【post-detail】点击作品集按钮');
             if (!this.post || !this.post._id) {
                 uni.showToast({
                     title: '帖子信息无效',
@@ -949,15 +950,11 @@ export default {
             }
 
             // 显示作品集选择器
-            console.log('【post-detail】显示作品集选择器，postId:', this.post._id);
             this.setData({
                 showPortfolioModal: true
             });
 
             // 延迟一下确保数据已设置
-            setTimeout(() => {
-                console.log('【post-detail】延迟检查showPortfolioModal:', this.showPortfolioModal);
-            }, 100);
         },
 
         hideFavoriteModal: function () {
@@ -1109,31 +1106,7 @@ export default {
         },
 
 
-        // 获取作者签名
-        async fetchAuthorSignature(authorOpenid) {
-            if (!authorOpenid) {
-                return null;
-            }
-            
-            // 如果是匿名帖子，不获取签名
-            if (this.post && this.post.isAnonymous) {
-                return null;
-            }
-
-            try {
-                const res = await this.callCloudFunction('getUserProfile', { userId: authorOpenid });
-
-                if (res.result && res.result.success && res.result.userInfo && res.result.userInfo.signatureUrl) {
-                    const signatureUrl = res.result.userInfo.signatureUrl;
-                    return signatureUrl;
-                } else {
-                    return null;
-                }
-            } catch (err) {
-                console.error('【post-detail】获取作者签名失败:', err);
-                return null;
-            }
-        },
+        // authorSignature已从云函数返回，不再需要fetchAuthorSignature函数
 
         /**
          * 精确计算文字在Canvas中的实际渲染行数
@@ -1209,7 +1182,6 @@ export default {
                 }
             });
 
-            console.log(`【文字换行】原行数: ${originalLines.length}, 处理后行数: ${wrappedLines.length}`);
             return wrappedLines;
         },
 
@@ -1319,21 +1291,9 @@ export default {
 
         drawCanvas: async function () {
             try {
-                console.log('【post-detail】开始绘制Canvas');
                 
-                // 先获取作者签名（匿名帖子或非原创诗歌不获取签名）
+                // 签名URL已从云函数返回，直接使用post.authorSignature（匿名帖子或非原创诗歌不显示签名）
                 const shouldShowSignature = (!!this.post && !this.post.isAnonymous && !(this.post.isPoem && this.post.isOriginal === false));
-                let authorSignature = null;
-                if (this.post && this.post._openid && shouldShowSignature) {
-                    authorSignature = await this.fetchAuthorSignature(this.post._openid);
-                    if (authorSignature) {
-                        // 将签名URL保存到post对象中
-                        this.post.authorSignature = authorSignature;
-                        console.log('【post-detail】作者签名已获取并保存');
-                    }
-                } else if (this.post && (!shouldShowSignature)) {
-                    console.log('【post-detail】本次不获取签名（匿名或非原创诗歌）');
-                }
                 
                 // 使用canvas生成图片
                 const ctx = uni.createCanvasContext('shareCanvas', this);
@@ -1347,7 +1307,6 @@ export default {
                     return;
                 }
                 
-                console.log('【post-detail】Canvas上下文创建成功');
                 
                 // 计算内容尺寸 - 模拟poem-square的样式
                 const content = this.post.content || '';
@@ -1393,7 +1352,6 @@ export default {
                     const titleLinesCount = titleLines.filter(line => line.trim()).length;
                     if (titleLinesCount > 1) {
                         actualTitleHeight = titleLinesCount * titleLineHeight + 20; // 多行标题高度
-                        console.log('【post-detail】标题多行，实际高度:', actualTitleHeight, '行数:', titleLinesCount);
                     }
                 }
                 const titleHeight = actualTitleHeight;
@@ -1437,34 +1395,19 @@ export default {
                     // 超过8行就增加缓冲，避免计算误差
                     const extraHeight = (actualLines - 8) * lineHeight * 1.2; // 1.2倍缓冲
                     finalCanvasHeight += extraHeight;
-                    console.log('【post-detail】内容较多，增加额外缓冲高度:', extraHeight);
                 }
 
                 // 【优化】增加额外的安全边距，确保底部有足够空间
                 const safetyMargin = 0;
                 finalCanvasHeight += safetyMargin;
-                console.log('【post-detail】增加安全边距:', safetyMargin);
                 
                 const canvasHeight = Math.ceil(finalCanvasHeight);
                 try { this.setData && this.setData({ shareCanvasHeight: canvasHeight }); } catch(_) { this.shareCanvasHeight = canvasHeight; }
                 if (this.$nextTick) { await new Promise(r => this.$nextTick(r)); }
                 
-                console.log('【post-detail】高度计算详情:', {
-                    actualLines,
-                    contentHeight,
-                    titleHeight,
-                    baseHeight,
-                    
-                    canvasHeight
-                });
-                
-                console.log('【post-detail】画布尺寸:', canvasWidth, 'x', canvasHeight);
-                console.log('【post-detail】内容行数:', actualLines);
-                console.log('【post-detail】内容高度:', contentHeight);
                 
                 // 绘制圆角背景 - 模拟poem-square的卡片样式
                 const bgColor = this.post.backgroundColor || '#FFFFFF';
-                console.log('【post-detail】背景色:', bgColor);
                 
                 // 绘制圆角背景 - 模拟poem-square的卡片样式
                 ctx.setFillStyle(bgColor);
@@ -1473,14 +1416,12 @@ export default {
                 
                 // 绘制文字内容
                 const textColor = this.post.textColor || '#000000';
-                console.log('【post-detail】文字颜色:', textColor);
                 ctx.setFillStyle(textColor);
                 ctx.setTextAlign('left');
                 
                 // 绘制标题
                 const title = this.post.title || '';
                 if (title) {
-                    console.log('【post-detail】绘制标题:', title);
                     // 设置标题字体
                     ctx.font = titleFontSize + 'px Huiwen-mincho, sans-serif';
                     ctx.setFillStyle(textColor);
@@ -1488,7 +1429,6 @@ export default {
                     
                     // 【修复】对标题也应用换行处理，避免标题过长溢出
                     const titleLines = this.wrapTextForCanvas(ctx, title, textAreaWidth, titleFontSize);
-                    console.log('【post-detail】标题换行处理结果:', titleLines);
                     
                     // 绘制标题（支持多行）
                     let titleY = textTopPadding + titleFontSize;
@@ -1496,7 +1436,6 @@ export default {
                     
                     titleLines.forEach((line, index) => {
                         if (line.trim()) {
-                            console.log('【post-detail】绘制标题第', index, '行:', line, '位置:', titleX, titleY);
                             ctx.fillText(line, titleX, titleY);
                             titleY += titleLineHeight;
                         } else {
@@ -1519,11 +1458,9 @@ export default {
                     if (line.trim()) {
                         // 检查是否超出边界
                         if (y > maxY) {
-                            console.log('【post-detail】文字超出边界，停止绘制');
                             return;
                         }
 
-                        console.log('【post-detail】绘制第', index, '行:', line, '位置:', x, y);
                         ctx.fillText(line, x, y);
                         y += lineHeight;
                     } else {
@@ -1531,12 +1468,9 @@ export default {
                     }
                 });
                 
-                console.log('【post-detail】最终绘制位置:', y);
-                console.log('【post-detail】Canvas高度:', canvasHeight);
                 
                 // 绘制签名 - 模拟poem-square的签名位置（匿名或非原创诗歌不绘制签名）
                 if (this.post.authorSignature && shouldShowSignature) {
-                    console.log('【post-detail】准备绘制签名图片...');
                     // 缩小签名尺寸
                     const fixedSignatureWidth = 120; // 缩小签名宽度到120px
                     const __wmMargin = 36, __wmW = 220, __wmH = 180, __sigPad = 12;
@@ -1547,11 +1481,6 @@ export default {
                     const __wmMargin2 = 24, __wmW2 = 220, __wmH2 = 180, __sigPad2 = 12;
                     const sigX = canvasWidth - __wmW2 - __wmMargin2 + __sigPad2;
                     const sigY = (canvasHeight - __wmH2 - __wmMargin2) + (__wmH2 - signatureDrawHeight - __sigPad2);
-                    console.log('【post-detail】签名绘制参数:', {
-                        x: sigX,
-                        y: sigY,
-                        fixedWidth: fixedSignatureWidth
-                    });
 
                     // 使用 await 等待异步绘制函数完成，固定宽度，高度自适应
                     await this.drawImageAsync(
@@ -1561,12 +1490,10 @@ export default {
                         sigY,
                         fixedSignatureWidth
                     );
-                    console.log('【post-detail】签名图片绘制指令已完成');
                 }
                 else if (shouldShowSignature) { 
                     const authorName = ((this.post.authorName || this.post.author || '') + '').trim();
                     if (authorName) {
-                        console.log('【post-detail】绘制文字署名:', authorName);
                         ctx.setTextAlign('right');
                         ctx.setFillStyle(textColor);
                         ctx.font = signatureTextFontSize + 'px Huiwen-mincho, sans-serif';
@@ -1581,7 +1508,6 @@ export default {
                 else if (this.post.isPoem && this.post.isOriginal === false && this.post.author) {
                     const originalAuthor = (this.post.author + '').trim();
                     if (originalAuthor) {
-                        console.log('【post-detail】绘制非原创诗歌转载作者:', originalAuthor);
                         ctx.setTextAlign('right');
                         ctx.setFillStyle(textColor);
                         ctx.font = signatureTextFontSize + 'px Huiwen-mincho, sans-serif';
@@ -3042,16 +2968,13 @@ export default {
                 }
 
                 const currentUserOpenid = this.openid || this.getCurrentUserId();
-                console.log('【详情页头像点击】当前用户:', currentUserOpenid);
 
                 // 检查是否点击的是自己的头像
                 if (userId === currentUserOpenid) {
-                    console.log('【详情页头像点击】跳转到我的页面');
                     uni.switchTab({
                         url: '/pages/profile/profile'
                     });
                 } else {
-                    console.log('【详情页头像点击】跳转到用户主页:', userId);
                     uni.navigateTo({
                         url: `/pages/user-profile/user-profile?userId=${encodeURIComponent(userId)}`
                     });
@@ -3107,25 +3030,28 @@ export default {
 
 
         recordViewBehavior: function () {
-            if (!this.currentPostId || !this.viewStartTime) {
-                return;
-            }
-            const viewDuration = Math.floor((Date.now() - this.viewStartTime) / 1000);
-            if (viewDuration < 3) {
-                return;
-            }
-            try {
-                const viewEvents = require('../../utils/viewEvents.js');
-                viewEvents.enqueueView(this.currentPostId, viewDuration);
-            } catch (e) { console.warn('enqueueView failed', e); }
-            this.callCloudFunction('recordView', {
-                    postId: this.currentPostId,
-                    viewDuration: viewDuration
-                }).then((res) => {
-                    console.log('浏览记录已保存', res);
-                }).catch((err) => {
-                    console.error('浏览记录保存失败:', err);
-                });
+            // 已停用：暂时不需要记录用户浏览记录
+            return;
+            
+            // if (!this.currentPostId || !this.viewStartTime) {
+            //     return;
+            // }
+            // const viewDuration = Math.floor((Date.now() - this.viewStartTime) / 1000);
+            // if (viewDuration < 3) {
+            //     return;
+            // }
+            // try {
+            //     const viewEvents = require('../../utils/viewEvents.js');
+            //     viewEvents.enqueueView(this.currentPostId, viewDuration);
+            // } catch (e) { console.warn('enqueueView failed', e); }
+            // this.callCloudFunction('recordView', {
+            //         postId: this.currentPostId,
+            //         viewDuration: viewDuration
+            //     }).then((res) => {
+            //         console.log('浏览记录已保存', res);
+            //     }).catch((err) => {
+            //         console.error('浏览记录保存失败:', err);
+            //     });
         },
 
         onTagClick: function (e) {
@@ -3212,12 +3138,9 @@ export default {
 
         // 图片加载事件处理
         onImageLoad: function(e) {
-            console.log('🔍 [DEBUG] 图片加载成功:', e.target.src);
         },
 
         onImageError: function(e) {
-            console.log('🔍 [DEBUG] 图片加载失败:', e.target.src);
-            console.log('🔍 [DEBUG] 错误详情:', e);
             // 显示错误信息
             uni.showToast({
                 title: '图片加载失败',

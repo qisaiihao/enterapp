@@ -9,6 +9,126 @@ const db = cloud.database();
 const _ = db.command;
 const $ = _.aggregate;
 
+// 频率限制配置
+const RATE_LIMITS = {
+  perMinute: 20,    // 每分钟20次
+  perHour: 200,     // 每小时200次
+  perDay: 600       // 每天600次
+};
+
+// 频率限制检查函数
+async function checkRateLimit(openid) {
+  try {
+    const now = Date.now();
+    const minuteAgo = now - 60 * 1000;
+    const hourAgo = now - 60 * 60 * 1000;
+    const dayAgo = now - 24 * 60 * 60 * 1000;
+
+    console.log('🔍 [RateLimit] 开始检查频率限制 - openid:', openid.substring(0, 8) + '...');
+
+    // 检查分钟级限制
+    const minuteCount = await db.collection('api_rate_limits')
+      .where({
+        openid: openid,
+        api_name: 'getPostList',
+        timestamp: _.gte(minuteAgo)
+      })
+      .count();
+
+    if (minuteCount.total >= RATE_LIMITS.perMinute) {
+      console.log('🚫 [RateLimit] 分钟级限制超限:', minuteCount.total, '/', RATE_LIMITS.perMinute);
+      return {
+        allowed: false,
+        reason: 'RATE_LIMIT_MINUTE_EXCEEDED',
+        resetTime: minuteAgo + 60000,
+        limit: RATE_LIMITS.perMinute,
+        current: minuteCount.total,
+        waitSeconds: Math.ceil((minuteAgo + 60000 - now) / 1000)
+      };
+    }
+
+    // 检查小时级限制
+    const hourCount = await db.collection('api_rate_limits')
+      .where({
+        openid: openid,
+        api_name: 'getPostList',
+        timestamp: _.gte(hourAgo)
+      })
+      .count();
+
+    if (hourCount.total >= RATE_LIMITS.perHour) {
+      console.log('🚫 [RateLimit] 小时级限制超限:', hourCount.total, '/', RATE_LIMITS.perHour);
+      return {
+        allowed: false,
+        reason: 'RATE_LIMIT_HOUR_EXCEEDED',
+        resetTime: hourAgo + 3600000,
+        limit: RATE_LIMITS.perHour,
+        current: hourCount.total,
+        waitSeconds: Math.ceil((hourAgo + 3600000 - now) / 1000)
+      };
+    }
+
+    // 检查日级限制
+    const dayCount = await db.collection('api_rate_limits')
+      .where({
+        openid: openid,
+        api_name: 'getPostList',
+        timestamp: _.gte(dayAgo)
+      })
+      .count();
+
+    if (dayCount.total >= RATE_LIMITS.perDay) {
+      console.log('🚫 [RateLimit] 日级限制超限:', dayCount.total, '/', RATE_LIMITS.perDay);
+      return {
+        allowed: false,
+        reason: 'RATE_LIMIT_DAY_EXCEEDED',
+        resetTime: dayAgo + 86400000,
+        limit: RATE_LIMITS.perDay,
+        current: dayCount.total,
+        waitSeconds: Math.ceil((dayAgo + 86400000 - now) / 1000)
+      };
+    }
+
+    // 记录本次请求
+    await db.collection('api_rate_limits').add({
+      data: {
+        openid: openid,
+        api_name: 'getPostList',
+        timestamp: now
+      }
+    });
+
+    // 定期清理过期记录（1%概率执行）
+    if (Math.random() < 0.01) {
+      try {
+        await db.collection('api_rate_limits')
+          .where({
+            timestamp: _.lt(dayAgo)
+          })
+          .remove();
+        console.log('🧹 [RateLimit] 清理过期记录完成');
+      } catch (cleanupError) {
+        console.warn('⚠️ [RateLimit] 清理过期记录失败:', cleanupError);
+      }
+    }
+
+    console.log('✅ [RateLimit] 频率检查通过 - 当前分钟:', minuteCount.total + 1, '小时:', hourCount.total + 1, '日:', dayCount.total + 1);
+    return {
+      allowed: true,
+      currentCounts: {
+        perMinute: minuteCount.total + 1,
+        perHour: hourCount.total + 1,
+        perDay: dayCount.total + 1
+      }
+    };
+
+  } catch (error) {
+    console.error('❌ [RateLimit] 频率限制检查失败:', error);
+    // 检查失败时允许通过，避免影响正常用户
+    return { allowed: true };
+  }
+}
+
 // 云函数入口函数
 exports.main = async (event, context) => {
   console.log('🔍 [getPostList] ========== 云函数开始执行 ==========');
@@ -39,6 +159,23 @@ exports.main = async (event, context) => {
       success: false,
       message: '无法获取用户 openid，请重新登录',
       code: 'NO_OPENID'
+    };
+  }
+
+  // 检查请求频率限制
+  const rateLimitResult = await checkRateLimit(openid);
+  if (!rateLimitResult.allowed) {
+    console.log('🚫 [getPostList] 频率限制拦截:', rateLimitResult.reason);
+    return {
+      success: false,
+      code: rateLimitResult.reason,
+      message: `请求过于频繁，请在${rateLimitResult.waitSeconds}秒后重试`,
+      data: {
+        limit: rateLimitResult.limit,
+        current: rateLimitResult.current,
+        resetTime: rateLimitResult.resetTime,
+        waitSeconds: rateLimitResult.waitSeconds
+      }
     };
   }
 
@@ -343,6 +480,7 @@ exports.main = async (event, context) => {
     let processedPosts = posts.map(post => {
       const authorName = post.authorName || post.authorNameSnapshot || '匿名用户';
       const authorAvatar = post.authorAvatar || post.authorAvatarSnapshot || '';
+      const authorSignature = post.authorSignature || ''; // 签名URL（匿名帖子可能为空）
       const commentCount = post.commentCount || 0;
       const isVoted = voterMap.has(post._id);
       
@@ -350,6 +488,7 @@ exports.main = async (event, context) => {
         ...post,
         authorName,
         authorAvatar,
+        authorSignature,
         commentCount,
         isVoted,
         tags: Array.isArray(post.tags) ? post.tags : []
@@ -404,6 +543,7 @@ exports.main = async (event, context) => {
         post.imageUrl,
         post.originalImageUrl,
         post.authorAvatar,
+        post.authorSignature, // 添加签名URL
         post.poemBgImage
       ].filter(url => url && url.startsWith('cloud://'));
       
@@ -433,6 +573,7 @@ exports.main = async (event, context) => {
           if (post.imageUrl) post.imageUrl = convertUrl(post.imageUrl);
           if (post.originalImageUrl) post.originalImageUrl = convertUrl(post.originalImageUrl);
           if (post.authorAvatar) post.authorAvatar = convertUrl(post.authorAvatar);
+          if (post.authorSignature) post.authorSignature = convertUrl(post.authorSignature); // 转换签名URL
           if (post.poemBgImage) post.poemBgImage = convertUrl(post.poemBgImage);
           
           if (Array.isArray(post.imageUrls)) {

@@ -205,6 +205,7 @@ exports.main = async (event, context) => {
     }).get();
     const userNickName = userInfo.data.length > 0 ? userInfo.data[0].nickName : '匿名用户';
     const userAvatar = userInfo.data.length > 0 ? (userInfo.data[0].avatarUrl || '') : '';
+    const userSignatureUrl = userInfo.data.length > 0 ? (userInfo.data[0].signatureUrl || '') : '';
     console.log('用户昵称:', userNickName);
     
     // 确定作者信息
@@ -257,6 +258,7 @@ exports.main = async (event, context) => {
       authorAvatar: displayAuthorAvatar,
       authorNameSnapshot: displayAuthorName,
       authorAvatarSnapshot: displayAuthorAvatar,
+      authorSignature: isAnonymous ? '' : (userSignatureUrl || ''), // 签名URL（匿名帖子不存储签名）
       // 匿名发帖相关字段
       isAnonymous: isAnonymous || false,
       anonymousAuthorName: anonymousAuthorName || '匿名用户',

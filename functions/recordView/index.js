@@ -1,10 +1,16 @@
 // 记录用户浏览行为的云函数
+// 【已停用】暂时不需要记录用户浏览记录，如需启用请取消注释下方代码
+
 const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
 
 exports.main = async (event, context) => {
+  // 已停用：直接返回成功，不记录任何数据
+  return { success: true, message: '浏览记录功能已停用' };
+  
+  /* 以下代码已停用，如需启用请取消注释
   const wxContext = cloud.getWXContext();
   const { postId, viewDuration = 0 } = event;
   const openid = wxContext.OPENID || event.openid;
@@ -67,4 +73,5 @@ exports.main = async (event, context) => {
       error: error.message
     };
   }
+  */
 };

@@ -129,7 +129,7 @@ exports.main = async (event, context) => {
 
     console.log('🔍 [updateUserProfile] 更新结果:', updateResult);
 
-    // 如果更新了昵称或头像，异步同步到历史帖子（不阻塞返回）
+    // 如果更新了昵称、头像或签名，异步同步到历史帖子（不阻塞返回）
     // 只传递实际更新的字段，避免覆盖未修改的数据
     if (updateResult.stats && updateResult.stats.updated > 0) {
       const syncData = { openid: openid };
@@ -141,12 +141,17 @@ exports.main = async (event, context) => {
       if (updateData.avatarUrl) {
         syncData.avatarUrl = updateData.avatarUrl;
       }
+      if (signatureUrl !== undefined) {
+        // 注意：如果用户删除签名（传入空字符串），也需要同步更新
+        syncData.signatureUrl = signatureUrl || '';
+      }
       
       // 只有当至少有一个字段需要同步时才调用
-      if (syncData.nickName || syncData.avatarUrl) {
-        console.log('🔄 [updateUserProfile] 检测到昵称或头像更新，开始异步同步历史帖子...', {
+      if (syncData.nickName || syncData.avatarUrl || signatureUrl !== undefined) {
+        console.log('🔄 [updateUserProfile] 检测到昵称、头像或签名更新，开始异步同步历史帖子...', {
           hasNickName: !!syncData.nickName,
-          hasAvatarUrl: !!syncData.avatarUrl
+          hasAvatarUrl: !!syncData.avatarUrl,
+          hasSignatureUrl: signatureUrl !== undefined
         });
         cloud.callFunction({
           name: 'syncUserPostsMetadata',

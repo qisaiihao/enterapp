@@ -310,7 +310,7 @@ export default {
             } else {
                 uni.chooseImage({
                     count: 1,
-                    sizeType: ['original', 'compressed'],
+                    sizeType: ['compressed'],
                     sourceType: ['album', 'camera'],
                     success: (res) => handleResult(res.tempFilePaths && res.tempFilePaths[0]),
                     fail: (err) => {

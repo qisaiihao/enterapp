@@ -134,6 +134,7 @@ import skeleton from '@/components/skeleton/skeleton';
 const { cloudCall } = require('@/utils/cloudCall.js');
 const likeIcon = require('@/utils/likeIcon.js');
 const { togglePostLike } = require('../../utils/likeService.js');
+// authorSignature已从云函数返回，不再需要signatureCache
 
 const PAGE_SIZE = 10;
 
@@ -156,8 +157,6 @@ export default {
       backgroundColors: ['#a4c4bd', '#c9cfcf', '#906161', '#909388'],
       showPageIndicator: false,
       votingInProgress: {},
-      // 用户签名相关
-      fetchingSignatures: {}, // 防止重复获取签名的状态管理
       // 安全区域高度
       safeAreaTop: 0,
       // portfolio-detail 特有属性
@@ -304,7 +303,8 @@ export default {
           p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
           p.textColor = p.textColor || '#222';
           p.isExpanded = false;
-          p.authorSignature = ''; // 添加作者签名属性
+          // authorSignature已从云函数返回，保留原始值（如果没有则为空字符串）
+          p.authorSignature = p.authorSignature || '';
           p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
         });
         
@@ -320,12 +320,7 @@ export default {
           hasMore: list.length === PAGE_SIZE
         });
         
-        // 自动获取所有帖子的签名
-        newPostList.forEach((post, index) => {
-          if (post._openid && !post.authorSignature) {
-            this.fetchAuthorSignature(post._openid, index);
-          }
-        });
+        // authorSignature已从云函数返回，无需额外获取
         console.log('【portfolio-detail】数据处理完成');
       } catch (e) {
         console.error('【portfolio-detail】获取作品列表失败:', e);
@@ -345,11 +340,7 @@ export default {
       const next = !post.isExpanded;
 
       this.setData({ [`postList[${index}].isExpanded`]: next });
-
-      // 如果还没有签名，则获取签名（无论展开还是折叠）
-      if (post._openid && !post.authorSignature) {
-        this.fetchAuthorSignature(post._openid, index);
-      }
+      // authorSignature已从云函数返回，无需额外获取
     },
     onCommentClick(e) {
       const postId = e.currentTarget.dataset.postid;
@@ -357,41 +348,7 @@ export default {
     },
     onLikeIconError() {},
 
-    // 获取作者签名
-    async fetchAuthorSignature(authorOpenid, postIndex) {
-      if (!authorOpenid || this.fetchingSignatures[authorOpenid]) {
-        return;
-      }
-
-      // 防重复调用
-      this.fetchingSignatures[authorOpenid] = true;
-
-      try {
-        const res = await this.callCloudFunction('getUserProfile', { userId: authorOpenid });
-
-        if (res.result && res.result.success && res.result.userInfo && res.result.userInfo.signatureUrl) {
-          const signatureUrl = res.result.userInfo.signatureUrl;
-          console.log('【portfolio-detail】获取到作者签名:', signatureUrl);
-
-          this.setData({
-            [`postList[${postIndex}].authorSignature`]: signatureUrl
-          });
-        } else {
-          console.log('【portfolio-detail】作者未设置签名');
-          this.setData({
-            [`postList[${postIndex}].authorSignature`]: ''
-          });
-        }
-      } catch (err) {
-        console.error('【portfolio-detail】获取作者签名失败:', err);
-        this.setData({
-          [`postList[${postIndex}].authorSignature`]: ''
-        });
-      } finally {
-        // 清除获取状态
-        delete this.fetchingSignatures[authorOpenid];
-      }
-    },
+    // authorSignature已从云函数返回，不再需要fetchAuthorSignature函数
 
     // 签名图片加载成功
     onSignatureLoad(e) {
