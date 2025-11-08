@@ -692,7 +692,8 @@ onReachBottom: function () {
                     this.setData({
                         postList: posts,
                         page: 1,
-                        hasMore: posts.length === PAGE_SIZE
+                        hasMore: posts.length === PAGE_SIZE,
+                        isLoading: false
                     });
                     try {
                         this.preloadUserData && this.preloadUserData(posts);
@@ -2021,10 +2022,23 @@ onReachBottom: function () {
                 limit: PAGE_SIZE
             }, { requireAuth: true }).then(async (res) => {
                 if (res.result && res.result.success && res.result.posts) {
-                    let posts = res.result.posts.map((post) => ({
-                        ...post,
-                        likeIcon: likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false)
-                    }));
+                    // 优先使用本地缓存中的点赞状态,如果没有缓存则使用云函数返回的状态
+                    const likeSync = require('../../utils/likeStatusSync.js');
+                    const getLatestLikeStatus = likeSync.getLatestLikeStatus;
+
+                    let posts = res.result.posts.map((post) => {
+                        // 尝试从本地缓存获取点赞状态
+                        const cachedStatus = getLatestLikeStatus(post._id);
+                        const finalVotes = cachedStatus ? cachedStatus.votes : (post.votes || 0);
+                        const finalIsVoted = cachedStatus ? cachedStatus.isVoted : (post.isVoted || false);
+
+                        return {
+                            ...post,
+                            votes: finalVotes,
+                            isVoted: finalIsVoted,
+                            likeIcon: likeIcon.getLikeIcon(finalVotes, finalIsVoted)
+                        };
+                    });
 
                     // 将 cloud:// 映射为可访问 URL，并预热
                     posts = await hydrateTempUrls(posts);
