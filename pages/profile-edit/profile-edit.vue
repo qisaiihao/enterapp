@@ -37,6 +37,16 @@
                     </view>
                 </view>
 
+                <!-- 手机号（只读） -->
+                <view class="form-row">
+                    <view class="form-label">
+                        <text>手机号</text>
+                    </view>
+                    <view class="form-input">
+                        <input class="input-field" type="text" :value="formattedPhoneNumber" :disabled="true" />
+                    </view>
+                </view>
+
                 <!-- 地区 -->
                 <view class="form-row">
                     <view class="form-label">
@@ -112,6 +122,7 @@ export default {
             occupation: '',
             region: '',
             poemId: '',        // 新增：poemId字段
+            phoneNumber: '',   // 手机号（只读显示）
             endDate: '',
             isSaving: false,
             tempAvatarPath: null,
@@ -147,6 +158,18 @@ export default {
                 this.tempAvatarPath !== null ||
                 this.signatureTempPath !== null
             );
+        },
+        // 格式化手机号显示（隐藏中间4位）
+        formattedPhoneNumber() {
+            if (!this.phoneNumber) {
+                return '未绑定';
+            }
+            // 如果手机号长度是11位，显示为：138****5678
+            if (this.phoneNumber.length === 11) {
+                return this.phoneNumber.substring(0, 3) + '****' + this.phoneNumber.substring(7);
+            }
+            // 其他情况直接显示
+            return this.phoneNumber;
         }
     },
     onLoad: function (options) {
@@ -184,6 +207,7 @@ export default {
                             occupation: user.occupation || '',
                             region: user.region || '',
                             poemId: user.poemId || '',          // 新增：设置poemId
+                            phoneNumber: user.phoneNumber || '', // 手机号（只读显示）
                             signatureUrl: user.signatureUrl || '',
                             signaturePreview: user.signatureUrl || '',
                             signatureTempPath: null
@@ -843,6 +867,12 @@ export default {
     color: #000000;
     background: transparent;
     border: none;
+}
+
+.input-field[disabled] {
+    color: #999999;
+    background-color: #f5f5f5;
+    opacity: 1;
     outline: none;
 }
 

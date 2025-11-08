@@ -36,11 +36,15 @@
           <text class="modal-close" @tap="closeBindPhoneModal">×</text>
         </view>
         <view class="modal-body">
-          <text class="modal-text">为了您的账户安全，请绑定手机号</text>
+          <text class="modal-text" v-if="isAppPlatform">为了您的账户安全，请绑定手机号</text>
+          <text class="modal-text" v-else>为了您的账户安全，请绑定手机号（暂仅支持APP端一键登录）</text>
         </view>
         <view class="modal-footer">
           <view class="modal-btn cancel-btn" @tap="closeBindPhoneModal">稍后再说</view>
-          <view class="modal-btn confirm-btn" @tap="handleBindPhone" :class="{ disabled: isBindingPhone }">立即绑定</view>
+          <!-- APP端显示一键登录按钮 -->
+          <view v-if="isAppPlatform" class="modal-btn confirm-btn" @tap="handleBindPhone" :class="{ disabled: isBindingPhone }">一键登录绑定</view>
+          <!-- 非APP端预留短信验证码登录入口（暂时注释） -->
+          <!-- <view v-else class="modal-btn confirm-btn" @tap="handleSmsLogin">短信验证码登录</view> -->
         </view>
       </view>
     </view>
@@ -101,6 +105,14 @@ export default {
     computed: {
         canLogin() {
             return this.poemId.trim() && this.password.trim();
+        },
+        isAppPlatform() {
+            // #ifdef APP-PLUS
+            return true;
+            // #endif
+            // #ifndef APP-PLUS
+            return false;
+            // #endif
         }
     },
     onLoad: function () {
@@ -296,8 +308,18 @@ export default {
             }, 300);
         },
 
-        // 处理绑定手机号
+        // 处理一键登录绑定手机号（仅APP端）
         async handleBindPhone() {
+
+            // 预留：短信验证码登录方法（非APP端）
+            // async handleSmsLogin() {
+            //     console.log('🔍 [短信登录] 开始短信验证码登录流程');
+            //     // TODO: 实现短信验证码登录逻辑
+            //     // 1. 跳转到短信验证码输入页面
+            //     // 2. 发送验证码
+            //     // 3. 验证码校验
+            //     // 4. 绑定手机号
+            // },
             if (this.isBindingPhone) {
                 return;
             }
@@ -324,48 +346,48 @@ export default {
 
                 const { access_token, openid: univerifyOpenid } = loginRes.authResult;
 
-                // 2. 调用 uniCloud 云函数获取手机号
-                // 注意：此函数仅用于获取手机号，不需要用户在 uniCloud 服务空间下登录
-                // 需要传递 univerify 返回的 access_token 和 openid
-                const phoneRes = await callUniCloudFunction('getPhoneNumberByToken', {
-                    access_token: access_token,
-                    openid: univerifyOpenid // univerify 返回的 openid
-                });
-
-                if (phoneRes.result.code !== 0 || !phoneRes.result.phoneNumber) {
-                    throw new Error(phoneRes.result.message || '获取手机号失败');
+                // 获取当前用户在腾讯云开发中的 openid
+                const app = getApp();
+                const userOpenid = app.globalData?.openid;
+                if (!userOpenid) {
+                    throw new Error('未获取到用户标识，请先登录');
                 }
 
-                const phoneNumber = phoneRes.result.phoneNumber;
-
-                // 3. 调用腾讯云云函数绑定手机号
-                const bindRes = await this.callCloudFunction('updateUser', {
-                    phoneNumber: phoneNumber
+                // 2. 调用 uniCloud 云函数获取手机号并同步到腾讯云
+                // 注意：uniCloud 云函数会自动将手机号同步到腾讯云开发数据库
+                // 需要传递：
+                //   - access_token: univerify 返回的 access_token
+                //   - openid: univerify 返回的 openid
+                //   - userOpenid: 腾讯云开发中的用户 openid
+                const phoneRes = await callUniCloudFunction('getPhoneNumberByToken', {
+                    access_token: access_token,
+                    openid: univerifyOpenid, // univerify 返回的 openid
+                    userOpenid: userOpenid   // 腾讯云开发中的用户 openid
                 });
 
-                if (bindRes.result && bindRes.result.success) {
-                    uni.showToast({
-                        title: '绑定成功',
-                        icon: 'success'
-                    });
+                if (phoneRes.result.code !== 0) {
+                    throw new Error(phoneRes.result.message || '绑定手机号失败');
+                }
 
+                // 3. 获取手机号并更新本地用户信息
+                const phoneNumber = phoneRes.result.phoneNumber;
+                if (phoneNumber) {
                     // 更新本地用户信息
-                    const app = getApp();
                     if (app.globalData.userInfo) {
                         app.globalData.userInfo.phoneNumber = phoneNumber;
                         app.globalData.userInfo.isPhoneVerified = true;
                         uni.setStorageSync('userInfo', app.globalData.userInfo);
                     }
 
+                    uni.showToast({
+                        title: '绑定成功',
+                        icon: 'success'
+                    });
+
                     // 关闭弹窗并跳转
                     this.closeBindPhoneModal();
                 } else {
-                    const message = bindRes.result?.message || '绑定失败，请重试';
-                    uni.showToast({
-                        title: message,
-                        icon: 'none',
-                        duration: 3000
-                    });
+                    throw new Error('未获取到手机号');
                 }
 
             } catch (error) {

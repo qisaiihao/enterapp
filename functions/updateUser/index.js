@@ -44,18 +44,72 @@ function getUserId(wxContext, event, context) {
 
 // 云函数入口函数
 exports.main = async (event, context) => {
+  // ==================== 🚀 新增逻辑：兼容HTTP请求 ====================
+  let params = event; // 默认参数来源是 event 本身 (小程序内部调用)
+  let isHttpRequest = false;
+
+  // 如果 event.body 存在，说明这很可能是一个 HTTP POST 请求
+  if (event.body) {
+    try {
+      params = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
+      isHttpRequest = true;
+      console.log('🔍 [updateUser] 检测到 HTTP 请求，解析 body:', params);
+    } catch (e) {
+      console.error('❌ [updateUser] HTTP body 解析失败:', e);
+      return { 
+        success: false, 
+        message: '请求体格式错误',
+        code: 'INVALID_BODY'
+      };
+    }
+  }
+  
+  // 也可以通过 httpMethod 判断是否是 HTTP 请求
+  if (event.httpMethod) {
+    isHttpRequest = true;
+    console.log('🔍 [updateUser] 检测到 HTTP 请求 (httpMethod):', event.httpMethod);
+  }
+
+  // 推荐：为 HTTP 调用增加一个简单的安全校验
+  // ⚠️ 建议将密钥存储在环境变量中，而不是硬编码在代码里
+  const TCB_SECRET_KEY = process.env.TCB_SECRET_KEY || 'Your-Custom-Secret-Key-123'; // ⚠️ 请替换成您自己的、复杂的密钥
+  if (isHttpRequest) {
+    // 仅对HTTP请求进行密钥校验
+    if (!params.secretKey || params.secretKey !== TCB_SECRET_KEY) {
+      console.error('❌ [updateUser] HTTP 请求密钥无效');
+      return { 
+        success: false, 
+        message: '无权访问',
+        code: 'INVALID_SECRET_KEY'
+      };
+    }
+    // 校验通过后，从参数中删除密钥，避免存入数据库
+    delete params.secretKey;
+    console.log('✅ [updateUser] HTTP 请求密钥校验通过');
+  }
+  // ====================================================================
+
   const wxContext = cloud.getWXContext();
-  const { nickName, avatarUrl, poemId, password, phoneNumber } = event;
+  
+  // 关键改动：所有参数都从 params 对象中解构（兼容两种调用方式）
+  const { nickName, avatarUrl, poemId, password, phoneNumber } = params;
 
   // 获取兼容的数据库实例和上下文
   const { db: database, isTCB } = getDatabaseAndContext();
 
-  // 获取用户标识
-  const openid = getUserId(wxContext, event, context);
+  // 关键改动：openid 优先从 params 中获取（HTTP调用时必需），否则使用原有逻辑
+  const openid = params.openid || getUserId(wxContext, event, context);
 
+  console.log('🔍 [updateUser] 请求类型:', isHttpRequest ? 'HTTP' : '内部调用');
   console.log('🔍 [updateUser] 最终使用的openid:', openid);
   console.log('🔍 [updateUser] 运行平台:', isTCB ? 'TCB' : 'WeApp');
-  console.log('🔍 [updateUser] 收到的参数:', { nickName, avatarUrl, poemId, password: password ? '***' : 'undefined', phoneNumber: phoneNumber ? '***' : 'undefined' });
+  console.log('🔍 [updateUser] 收到的参数:', { 
+    nickName, 
+    avatarUrl, 
+    poemId, 
+    password: password ? '***' : undefined, 
+    phoneNumber: phoneNumber ? '***' : undefined 
+  });
 
   if (!openid) {
     return {
