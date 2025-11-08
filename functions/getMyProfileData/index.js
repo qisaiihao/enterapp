@@ -108,6 +108,7 @@ exports.main = async (event, context) => {
         signatureUrl: 1,
         poemId: 1,    // 新增：获取poemId
         password: 1,  // 新增：获取password（谨慎使用）
+        phoneNumber: 1, // 新增：获取手机号
         growthCounts: 1,
         posts: '$userPosts'
       })
@@ -128,6 +129,7 @@ exports.main = async (event, context) => {
       signatureUrl: result.signatureUrl,
       poemId: result.poemId,     // 新增：poemId字段
       password: result.password,  // 新增：password字段（谨慎使用）
+      phoneNumber: result.phoneNumber, // 新增：手机号字段
       growthCounts: (result.growthCounts) || { seed: 0, leaf: 0, flower: 0, peach: 0 }
     };
     let posts = result.posts || []; // 这里已经是分页后的 posts

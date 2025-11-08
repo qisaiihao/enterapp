@@ -379,13 +379,23 @@ export default {
                         uni.setStorageSync('userInfo', app.globalData.userInfo);
                     }
 
-                    uni.showToast({
-                        title: '绑定成功',
-                        icon: 'success'
-                    });
+                    // 关闭弹窗
+                    this.showBindPhoneModal = false;
 
-                    // 关闭弹窗并跳转
-                    this.closeBindPhoneModal();
+                    // 延迟显示Toast并跳转，确保弹窗有足够时间消失
+                    setTimeout(() => {
+                        uni.showToast({
+                            title: '绑定成功',
+                            icon: 'success'
+                        });
+
+                        // 延迟跳转，让Toast显示完成
+                        setTimeout(() => {
+                            uni.switchTab({
+                                url: '/pages/poem-square/poem-square'
+                            });
+                        }, 1000);
+                    }, 300);
                 } else {
                     throw new Error('未获取到手机号');
                 }
