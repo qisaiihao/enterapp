@@ -211,7 +211,8 @@ try {
 
 function resolveOpenidForCall(functionName) {
   // 登录/获取 openid 类函数允许在无 openid 时调用
-  if (functionName === 'login' || functionName === 'getOpenId') {
+  // getPhoneNumberByToken 是 uniCloud 云函数，仅用于获取手机号，不需要腾讯云开发的 openid
+  if (functionName === 'login' || functionName === 'getOpenId' || functionName === 'getPhoneNumberByToken') {
     return { openid: null, allowed: true };
   }
   const appInstance = getApp();

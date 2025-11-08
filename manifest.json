@@ -95,6 +95,10 @@
         },
         "uniStatistics" : {
             "enable" : true
+        },
+        "uniCloud" : {
+            "service" : "poementer",
+            "version" : "1.0.0"
         }
     },
     "quickapp" : {},
@@ -130,17 +134,6 @@
     "h5" : {
         "uniStatistics" : {
             "enable" : true
-        }
-    },
-    "uniCloud" : {
-        "spaceId" : "",
-        "client" : {
-            "aliyun" : {
-                "spaceId" : ""
-            },
-            "tcb" : {
-                "spaceId" : ""
-            }
         }
     }
 }

@@ -53,16 +53,38 @@ const app = getApp();
 const { cloudCall } = require('../../utils/cloudCall.js');
 import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
 
-// 调用 uniCloud 云函数（优先使用云端）
+// 调用 uniCloud 云函数（自动处理本地调试服务连接失败的情况）
 async function callUniCloudFunction(name, data) {
-    // 直接调用，uniCloud 会自动选择：
-    // 1. 如果 HBuilderX 运行控制台选择了"连接云端云函数"，则使用云端
-    // 2. 如果选择了"连接本地云函数"，则使用本地调试服务
-    // 3. 如果本地调试服务连接失败，会自动降级到云端
-    return await uniCloud.callFunction({
-        name: name,
-        data: data
-    });
+    try {
+        // 直接调用，uniCloud 会根据 HBuilderX 配置自动选择本地或云端
+        // 理论上如果本地调试服务不可用，会自动降级到云端
+        return await uniCloud.callFunction({
+            name: name,
+            data: data
+        });
+    } catch (error) {
+        // 检查是否是本地调试服务连接失败
+        const errorMsg = error.message || error.errMsg || String(error);
+        const isLocalDebugError = errorMsg.includes('无法连接uniCloud本地调试服务') || 
+                                  errorMsg.includes('uniCloud本地调试') ||
+                                  errorMsg.includes('本地调试服务') ||
+                                  errorMsg.includes('localhost') ||
+                                  errorMsg.includes('127.0.0.1');
+        
+        if (isLocalDebugError) {
+            console.warn('⚠️ [uniCloud] 检测到本地调试服务连接失败，错误信息:', errorMsg);
+            console.warn('⚠️ [uniCloud] 提示：请在 HBuilderX 运行控制台切换到"连接云端云函数"');
+            
+            // 重新抛出错误，由调用方处理（会显示友好的错误提示）
+            const enhancedError = new Error('无法连接 uniCloud 本地调试服务。\n\n解决方案：\n1. 在 HBuilderX 运行控制台切换到"连接云端云函数"\n2. 或者确保客户端与主机在同一局域网\n3. 或者检查防火墙是否拦截了 HBuilderX');
+            enhancedError.originalError = error;
+            enhancedError.code = 'UNICLOUD_LOCAL_DEBUG_FAILED';
+            throw enhancedError;
+        }
+        
+        // 其他错误直接抛出
+        throw error;
+    }
 }
 
 export default {
@@ -302,10 +324,12 @@ export default {
 
                 const { access_token, openid: univerifyOpenid } = loginRes.authResult;
 
-                // 2. 调用 uniCloud 云函数获取手机号（强制使用云端）
+                // 2. 调用 uniCloud 云函数获取手机号
+                // 注意：此函数仅用于获取手机号，不需要用户在 uniCloud 服务空间下登录
+                // 需要传递 univerify 返回的 access_token 和 openid
                 const phoneRes = await callUniCloudFunction('getPhoneNumberByToken', {
                     access_token: access_token,
-                    openid: univerifyOpenid
+                    openid: univerifyOpenid // univerify 返回的 openid
                 });
 
                 if (phoneRes.result.code !== 0 || !phoneRes.result.phoneNumber) {
@@ -355,10 +379,15 @@ export default {
                 
                 // 检查是否是 uniCloud 本地调试服务连接问题
                 const errorMsg = error.message || error.errMsg || '';
-                if (errorMsg.includes('无法连接uniCloud本地调试服务') || errorMsg.includes('uniCloud本地调试')) {
+                const errorCode = error.code || '';
+                
+                if (errorCode === 'UNICLOUD_LOCAL_DEBUG_FAILED' || 
+                    errorMsg.includes('无法连接uniCloud本地调试服务') || 
+                    errorMsg.includes('uniCloud本地调试') ||
+                    errorMsg.includes('本地调试服务')) {
                     uni.showModal({
-                        title: '提示',
-                        content: '无法连接 uniCloud 服务。\n\n请检查：\n1. 是否已上传 uniCloud 云函数到服务空间\n2. 是否在 HBuilderX 中正确配置了 uniCloud 服务空间\n3. 如果使用本地调试，请确保客户端与主机在同一局域网',
+                        title: '连接 uniCloud 服务失败',
+                        content: '无法连接 uniCloud 本地调试服务。\n\n解决方案：\n1. 在 HBuilderX 运行控制台切换到"连接云端云函数"\n2. 或者确保客户端与主机在同一局域网\n3. 或者检查防火墙是否拦截了 HBuilderX\n4. 如果切换网络环境，请重启 HBuilderX',
                         showCancel: false,
                         confirmText: '知道了'
                     });
