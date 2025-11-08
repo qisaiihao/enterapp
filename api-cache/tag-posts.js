@@ -1,4 +1,5 @@
 import cacheManager from '@/_utils/cache-manager';
+import { buildCacheKey } from './cache-key-builder.js';
 const { cloudCall } = require('@/utils/cloudCall.js');
 
 // 标签页分页：TTL 90s + SWR 45s
@@ -8,24 +9,6 @@ const SWR_MS = 45 * 1000;
 
 // 使用统一的 posts:list 命名空间，以便与其他页面共享缓存
 const ns = cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 });
-
-/**
- * 构建缓存键（与 post-list.js 保持一致）
- * @param {Object} params - 查询参数
- */
-function buildCacheKey(params) {
-  const { page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous } = params;
-  const parts = [];
-  
-  if (typeof isPoem === 'boolean') parts.push(`poem:${isPoem}`);
-  if (typeof isOriginal === 'boolean') parts.push(`orig:${isOriginal}`);
-  if (typeof isDiscussion === 'boolean') parts.push(`disc:${isDiscussion}`);
-  if (tag) parts.push(`tag:${tag}`);
-  if (excludeAnonymous) parts.push('exclAnon:true');
-  
-  const filterKey = parts.length > 0 ? parts.join(':') : 'all';
-  return `page:${page}:size:${pageSize}:${filterKey}`;
-}
 
 /**
  * 获取标签帖子列表（复用统一缓存）

@@ -3,10 +3,13 @@
     "configurations" : [
         {
             "customPlaygroundType" : "local",
-            "playground" : "standard",
+            "playground" : "custom",
             "type" : "uni-app:app-android"
         },
         {
+            "app" : {
+                "launchtype" : "local"
+            },
             "default" : {
                 "launchtype" : "local"
             },

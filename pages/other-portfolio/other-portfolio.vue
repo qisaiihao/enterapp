@@ -83,6 +83,8 @@
 const { cloudCall } = require('../../utils/cloudCall.js');
 const { formatRelativeTime } = require('../../utils/time.js');
 const { previewImage } = require('../../utils/imagePreview.js');
+const { togglePostLike } = require('../../utils/likeService.js');
+const likeIcon = require('../../utils/likeIcon.js');
 // authorSignature已从云函数返回，不再需要signatureCache
 // Temporary placeholder for hydrateTempUrls
 const hydrateTempUrls = async (posts) => posts;
@@ -104,11 +106,14 @@ export default {
       touchEndY: 0,
       // 背景色和文字颜色处理
       lastUsedColorIndex: -1,
-      backgroundColors: ['#a4c4bd', '#c9cfcf', '#906161', '#909388']
+      backgroundColors: ['#a4c4bd', '#c9cfcf', '#906161', '#909388'],
+      votingInProgress: {} // 点赞进行中的状态
     };
   },
 
   onLoad(options) {
+    // 注册全局点赞事件
+    try { uni.$on && uni.$on('like-changed', this.onGlobalLikeChanged); } catch (_) {}
     console.log('【他人作品集】页面加载，参数:', options);
     this.folderId = options.folderId || '';
     this.folderName = decodeURIComponent(options.folderName || '未命名作品集');
@@ -127,6 +132,16 @@ export default {
     }
     
     this.loadPortfolioContent();
+  },
+
+  onShow() {
+    // 回到页面时，用缓存对齐当前可见帖子的点赞状态
+    try { this.syncLikeStatusFromCache && this.syncLikeStatusFromCache(); } catch (_) {}
+  },
+
+  onUnload() {
+    // 取消全局点赞事件监听
+    try { uni.$off && this.onGlobalLikeChanged && uni.$off('like-changed', this.onGlobalLikeChanged); } catch (_) {}
   },
 
   onPullDownRefresh() {
@@ -191,6 +206,10 @@ export default {
           // 处理图片URL
           const processedPosts = await hydrateTempUrls(newPosts);
           
+          // 优先使用本地缓存中的点赞状态，如果没有缓存则使用云函数返回的状态
+          const likeSync = require('../../utils/likeStatusSync.js');
+          const getLatestLikeStatus = likeSync.getLatestLikeStatus;
+          
           // 处理背景色、文字颜色和展开状态
           processedPosts.forEach(post => {
             // 优先使用数据库中保存的背景颜色，如果没有则随机生成
@@ -199,6 +218,14 @@ export default {
             post.isExpanded = false;
             // authorSignature已从云函数返回，保留原始值（如果没有则为空字符串）
             post.authorSignature = post.authorSignature || '';
+            
+            // 尝试从本地缓存获取点赞状态
+            const cachedStatus = getLatestLikeStatus(post._id);
+            if (cachedStatus) {
+              post.votes = cachedStatus.votes;
+              post.isVoted = cachedStatus.isVoted;
+            }
+            post.likeIcon = likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false);
             
             // 格式化时间
             if (post.createTime) {
@@ -266,39 +293,142 @@ export default {
     },
 
     // 点赞
-    onVote(e) {
+    async onVote(e) {
       const postId = e.currentTarget.dataset.postid;
       const index = e.currentTarget.dataset.index;
-      console.log('【他人作品集】点赞，postId:', postId);
       
-      // 调用点赞云函数
-      this.callCloudFunction('vote', {
-        postId: postId,
-        type: 'post'
-      }).then(res => {
-        if (res.result && res.result.success) {
-          const post = this.postList[index];
-          if (post) {
-            this.$set(this.postList, index, {
-              ...post,
-              votes: res.result.newVoteCount,
-              isVoted: res.result.isVoted,
-              likeIcon: res.result.isVoted ? '/static/images/seedplus.png' : '/static/images/seed.png'
-            });
+      if (!postId) {
+        console.error('【他人作品集】点赞失败：postId为空');
+        return;
+      }
+      
+      if (this.votingInProgress[postId]) {
+        console.log('【他人作品集】正在点赞中，跳过重复请求');
+        return;
+      }
+      
+      this.$set(this.votingInProgress, postId, true);
+      const list = this.postList;
+      const originalVotes = Number(list[index].votes) || 0;
+      const wasVoted = !!list[index].isVoted;
+      
+      // 乐观更新UI
+      const optimisticVotes = wasVoted ? Math.max(0, originalVotes - 1) : originalVotes + 1;
+      const optimisticItem = {
+        ...list[index],
+        votes: optimisticVotes,
+        isVoted: !wasVoted,
+        likeIcon: likeIcon.getLikeIcon(optimisticVotes, !wasVoted)
+      };
+      const optimisticList = list.slice();
+      optimisticList[index] = optimisticItem;
+      this.postList = optimisticList;
+      
+      try {
+        const result = await togglePostLike(postId, {
+          pageTag: 'other-portfolio',
+          context: this,
+          currentVotes: originalVotes,
+          currentIsLiked: wasVoted,
+          requireAuth: true
+        });
+        
+        if (result && result.success) {
+          const currentList = this.postList || [];
+          const currentIndex = currentList.findIndex((p) => p && p._id === postId);
+          if (currentIndex > -1) {
+            const updatedItem = {
+              ...currentList[currentIndex],
+              votes: result.votes,
+              isVoted: result.isLiked,
+              likeIcon: result.likeIcon
+            };
+            const newList = currentList.slice();
+            newList[currentIndex] = updatedItem;
+            this.postList = newList;
           }
         } else {
-          uni.showToast({
-            title: res.result?.message || '操作失败',
-            icon: 'none'
-          });
+          // 回滚
+          const rollbackItem = {
+            ...list[index],
+            votes: originalVotes,
+            isVoted: wasVoted,
+            likeIcon: likeIcon.getLikeIcon(originalVotes, wasVoted)
+          };
+          const rollbackList = list.slice();
+          rollbackList[index] = rollbackItem;
+          this.postList = rollbackList;
+          uni.showToast({ title: result?.message || '点赞失败', icon: 'none' });
         }
-      }).catch(error => {
-        console.error('【他人作品集】点赞失败:', error);
-        uni.showToast({
-          title: '操作失败',
-          icon: 'none'
-        });
-      });
+      } catch (err) {
+        console.error('【他人作品集】点赞异常:', err);
+        // 回滚
+        const rollbackItem = {
+          ...list[index],
+          votes: originalVotes,
+          isVoted: wasVoted,
+          likeIcon: likeIcon.getLikeIcon(originalVotes, wasVoted)
+        };
+        const rollbackList = list.slice();
+        rollbackList[index] = rollbackItem;
+        this.postList = rollbackList;
+        uni.showToast({ title: '操作失败', icon: 'none' });
+      } finally {
+        this.$set(this.votingInProgress, postId, false);
+      }
+    },
+
+    // 跨页同步：监听全局点赞变更
+    onGlobalLikeChanged(e = {}) {
+      try {
+        const postId = e.postId;
+        if (!postId) return;
+        const list = this.postList || [];
+        const idx = list.findIndex(p => p && (p._id === postId || p.id === postId));
+        if (idx > -1) {
+          const votes = typeof e.votes === 'number' ? e.votes : (list[idx].votes || 0);
+          const isLiked = typeof e.isLiked === 'boolean' ? e.isLiked : !!list[idx].isVoted;
+          const updatedItem = {
+            ...list[idx],
+            votes,
+            isVoted: isLiked,
+            likeIcon: likeIcon.getLikeIcon(votes, isLiked)
+          };
+          const newList = list.slice();
+          newList[idx] = updatedItem;
+          this.postList = newList;
+        }
+      } catch (_) {}
+    },
+
+    // 从缓存同步点赞状态
+    syncLikeStatusFromCache() {
+      try {
+        const list = Array.isArray(this.postList) ? this.postList : [];
+        const ids = list.map(p => p && p._id).filter(Boolean);
+        if (!ids.length) return;
+        try { 
+          const { syncLikeStatusForPosts } = require('../../utils/likeStatusSync.js'); 
+          syncLikeStatusForPosts(ids); 
+        } catch (_) {}
+        const { getLatestLikeStatus } = require('../../utils/likeStatusSync.js');
+        let changed = false;
+        const next = list.slice();
+        for (let i = 0; i < next.length; i += 1) {
+          const p = next[i]; 
+          if (!p || !p._id) continue;
+          const s = getLatestLikeStatus(p._id);
+          if (s && ((p.votes || 0) !== s.votes || !!p.isVoted !== !!s.isVoted)) {
+            p.votes = s.votes; 
+            p.isVoted = s.isVoted; 
+            p.likeIcon = likeIcon.getLikeIcon(s.votes, s.isVoted);
+            changed = true;
+          }
+        }
+        if (changed) this.postList = next;
+      } catch (err) { 
+        console.warn('[other-portfolio] syncLikeStatusFromCache failed', err); 
+      }
     },
 
     // 评论点击

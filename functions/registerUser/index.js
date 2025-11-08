@@ -10,9 +10,9 @@ const db = cloud.database();
 // 云函数入口函数
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
-  const { poemId, password, nickName, avatarFileID } = event;
+  const { poemId, password, nickName, avatarFileID, phoneNumber } = event;
 
-  console.log('🔍 [registerUser] 收到注册请求:', { poemId, nickName, password: password ? '***' : 'undefined' });
+  console.log('🔍 [registerUser] 收到注册请求:', { poemId, nickName, password: password ? '***' : 'undefined', phoneNumber: phoneNumber ? '***' : 'undefined' });
 
   if (!poemId || !password || !nickName) {
     return {
@@ -23,6 +23,24 @@ exports.main = async (event, context) => {
   }
 
   try {
+    // 如果提供了手机号，先检查手机号是否已存在
+    if (phoneNumber && phoneNumber.trim()) {
+      console.log('🔍 [registerUser] 检查手机号是否已存在');
+      const phoneCheckRes = await db.collection('users').where({
+        phoneNumber: phoneNumber.trim()
+      }).get();
+      
+      if (phoneCheckRes.data.length > 0) {
+        console.log('❌ [registerUser] 手机号已存在');
+        return {
+          success: false,
+          message: '该手机号已注册，请直接登录',
+          code: 'PHONE_ALREADY_EXISTS'
+        };
+      }
+      console.log('✅ [registerUser] 手机号可用');
+    }
+    
     // 检查Poem ID是否已存在
     const existingUserRes = await db.collection('users').where({
       poemId: poemId
@@ -56,17 +74,25 @@ exports.main = async (event, context) => {
     if (existingOpenidRes.data.length > 0) {
       // 用户已存在，更新信息
       console.log('🔍 [registerUser] 用户已存在，更新信息');
+      const updateData = {
+        poemId: poemId,
+        password: password,
+        nickName: nickName,
+        // 可选：注册时一并设置头像
+        ...(avatarFileID ? { avatarUrl: avatarFileID } : {}),
+        updateTime: new Date()
+      };
+      
+      // 如果提供了手机号，添加到更新数据中
+      if (phoneNumber && phoneNumber.trim()) {
+        updateData.phoneNumber = phoneNumber.trim();
+        updateData.isPhoneVerified = true;
+      }
+      
       await db.collection('users').where({
         _openid: openid
       }).update({
-        data: {
-          poemId: poemId,
-          password: password,
-          nickName: nickName,
-          // 可选：注册时一并设置头像
-          ...(avatarFileID ? { avatarUrl: avatarFileID } : {}),
-          updateTime: new Date()
-        }
+        data: updateData
       });
 
       // 获取更新后的用户信息
@@ -86,17 +112,25 @@ exports.main = async (event, context) => {
     } else {
       // 创建新用户
       console.log('🔍 [registerUser] 创建新用户');
+      const createData = {
+        _openid: openid,
+        poemId: poemId,
+        password: password,
+        nickName: nickName,
+        ...(avatarFileID ? { avatarUrl: avatarFileID } : {}),
+        growthCounts: { seed: 0, leaf: 0, flower: 0 },
+        growthUpdatedAt: db.serverDate(),
+        createTime: new Date()
+      };
+      
+      // 如果提供了手机号，添加到创建数据中
+      if (phoneNumber && phoneNumber.trim()) {
+        createData.phoneNumber = phoneNumber.trim();
+        createData.isPhoneVerified = true;
+      }
+      
       await db.collection('users').add({
-        data: {
-          _openid: openid,
-          poemId: poemId,
-          password: password,
-          nickName: nickName,
-          ...(avatarFileID ? { avatarUrl: avatarFileID } : {}),
-          growthCounts: { seed: 0, leaf: 0, flower: 0 },
-          growthUpdatedAt: db.serverDate(),
-          createTime: new Date()
-        }
+        data: createData
       });
 
       // 为新用户创建默认作品集

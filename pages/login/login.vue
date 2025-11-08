@@ -26,6 +26,24 @@
         <text class="ek-text">Enter ↵</text>
       </view>
     </view>
+
+    <!-- 底部绑定手机号弹窗 -->
+    <view class="bind-phone-modal" v-if="showBindPhoneModal" @tap.stop>
+      <view class="modal-mask" @tap="closeBindPhoneModal"></view>
+      <view class="modal-content">
+        <view class="modal-header">
+          <text class="modal-title">绑定手机号</text>
+          <text class="modal-close" @tap="closeBindPhoneModal">×</text>
+        </view>
+        <view class="modal-body">
+          <text class="modal-text">为了您的账户安全，请绑定手机号</text>
+        </view>
+        <view class="modal-footer">
+          <view class="modal-btn cancel-btn" @tap="closeBindPhoneModal">稍后再说</view>
+          <view class="modal-btn confirm-btn" @tap="handleBindPhone" :class="{ disabled: isBindingPhone }">立即绑定</view>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -35,12 +53,26 @@ const app = getApp();
 const { cloudCall } = require('../../utils/cloudCall.js');
 import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
 
+// 调用 uniCloud 云函数（优先使用云端）
+async function callUniCloudFunction(name, data) {
+    // 直接调用，uniCloud 会自动选择：
+    // 1. 如果 HBuilderX 运行控制台选择了"连接云端云函数"，则使用云端
+    // 2. 如果选择了"连接本地云函数"，则使用本地调试服务
+    // 3. 如果本地调试服务连接失败，会自动降级到云端
+    return await uniCloud.callFunction({
+        name: name,
+        data: data
+    });
+}
+
 export default {
     data() {
         return {
             poemId: '',
             password: '',
-            isLogging: false
+            isLogging: false,
+            showBindPhoneModal: false,
+            isBindingPhone: false
         };
     },
     
@@ -163,8 +195,10 @@ export default {
                     // 登录成功
                     const userInfo = loginRes.result.userInfo;
                     const openid = loginRes.result.openid;
+                    const isPhoneVerified = loginRes.result.isPhoneVerified;
                     
                     console.log('✅ [登录] 登录成功:', userInfo);
+                    console.log('🔍 [登录] 手机号验证状态:', isPhoneVerified);
                     
                     // 更新全局数据
                     const app = getApp();
@@ -186,12 +220,18 @@ export default {
                         icon: 'success'
                     });
                     
-                    // 跳转到主页面
-                    setTimeout(() => {
-                        uni.switchTab({
-                            url: '/pages/poem-square/poem-square'
-                        });
-                    }, 1000);
+                    // 检查是否需要绑定手机号
+                    if (isPhoneVerified === false) {
+                        // 显示底部弹窗提示绑定手机号
+                        this.showBindPhoneModal = true;
+                    } else {
+                        // 已绑定手机号，直接跳转
+                        setTimeout(() => {
+                            uni.switchTab({
+                                url: '/pages/poem-square/poem-square'
+                            });
+                        }, 1000);
+                    }
                     
                 } else {
                     // 登录失败
@@ -221,6 +261,118 @@ export default {
             uni.navigateTo({
                 url: '/pages/register/register'
             });
+        },
+
+        // 关闭绑定手机号弹窗
+        closeBindPhoneModal() {
+            this.showBindPhoneModal = false;
+            // 关闭弹窗后跳转到主页面
+            setTimeout(() => {
+                uni.switchTab({
+                    url: '/pages/poem-square/poem-square'
+                });
+            }, 300);
+        },
+
+        // 处理绑定手机号
+        async handleBindPhone() {
+            if (this.isBindingPhone) {
+                return;
+            }
+
+            this.isBindingPhone = true;
+            uni.showLoading({
+                title: '绑定中...',
+                mask: true
+            });
+
+            try {
+                // 1. 调用一键登录授权
+                const loginRes = await new Promise((resolve, reject) => {
+                    uni.login({
+                        provider: 'univerify',
+                        success: resolve,
+                        fail: reject
+                    });
+                });
+
+                if (!loginRes.authResult || !loginRes.authResult.access_token || !loginRes.authResult.openid) {
+                    throw new Error('获取授权失败');
+                }
+
+                const { access_token, openid: univerifyOpenid } = loginRes.authResult;
+
+                // 2. 调用 uniCloud 云函数获取手机号（强制使用云端）
+                const phoneRes = await callUniCloudFunction('getPhoneNumberByToken', {
+                    access_token: access_token,
+                    openid: univerifyOpenid
+                });
+
+                if (phoneRes.result.code !== 0 || !phoneRes.result.phoneNumber) {
+                    throw new Error(phoneRes.result.message || '获取手机号失败');
+                }
+
+                const phoneNumber = phoneRes.result.phoneNumber;
+
+                // 3. 调用腾讯云云函数绑定手机号
+                const bindRes = await this.callCloudFunction('updateUser', {
+                    phoneNumber: phoneNumber
+                });
+
+                if (bindRes.result && bindRes.result.success) {
+                    uni.showToast({
+                        title: '绑定成功',
+                        icon: 'success'
+                    });
+
+                    // 更新本地用户信息
+                    const app = getApp();
+                    if (app.globalData.userInfo) {
+                        app.globalData.userInfo.phoneNumber = phoneNumber;
+                        app.globalData.userInfo.isPhoneVerified = true;
+                        uni.setStorageSync('userInfo', app.globalData.userInfo);
+                    }
+
+                    // 关闭弹窗并跳转
+                    this.closeBindPhoneModal();
+                } else {
+                    const message = bindRes.result?.message || '绑定失败，请重试';
+                    uni.showToast({
+                        title: message,
+                        icon: 'none',
+                        duration: 3000
+                    });
+                }
+
+            } catch (error) {
+                console.error('❌ [绑定手机号] 失败:', error);
+                
+                // 如果是用户取消，不显示错误提示
+                if (error.errMsg && (error.errMsg.includes('cancel') || error.errMsg.includes('取消'))) {
+                    // 用户取消，不做处理
+                    return;
+                }
+                
+                // 检查是否是 uniCloud 本地调试服务连接问题
+                const errorMsg = error.message || error.errMsg || '';
+                if (errorMsg.includes('无法连接uniCloud本地调试服务') || errorMsg.includes('uniCloud本地调试')) {
+                    uni.showModal({
+                        title: '提示',
+                        content: '无法连接 uniCloud 服务。\n\n请检查：\n1. 是否已上传 uniCloud 云函数到服务空间\n2. 是否在 HBuilderX 中正确配置了 uniCloud 服务空间\n3. 如果使用本地调试，请确保客户端与主机在同一局域网',
+                        showCancel: false,
+                        confirmText: '知道了'
+                    });
+                } else {
+                    uni.showToast({
+                        title: error.message || error.errMsg || '绑定失败，请重试',
+                        icon: 'none',
+                        duration: 3000
+                    });
+                }
+            } finally {
+                uni.hideLoading();
+                this.isBindingPhone = false;
+            }
         }
     }
 };
@@ -267,4 +419,108 @@ export default {
 .enter-key-btn .ek-border { background: #333; filter: drop-shadow(0 6rpx 12rpx rgba(0,0,0,.18)); clip-path: polygon(55% 0,100% 0,100% 100%,0 100%,0 60%,55% 60%,55% 0); border-radius: 24rpx; }
 .enter-key-btn .ek-fill { background: #fff; clip-path: polygon(57% 2%,100% 2%,100% 100%,2% 100%,2% 62%,57% 62%,57% 2%); border-radius: 22rpx; }
 .enter-key-btn .ek-text { position: absolute; bottom: 24rpx; left: 24rpx; font-size: 28rpx; color: #333; font-weight: 500; }
+
+/* 绑定手机号弹窗 */
+.bind-phone-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.modal-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  position: relative;
+  width: 100%;
+  background: #fff;
+  border-radius: 32rpx 32rpx 0 0;
+  padding: 40rpx;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32rpx;
+}
+
+.modal-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.modal-close {
+  font-size: 48rpx;
+  color: #999;
+  line-height: 1;
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-body {
+  margin-bottom: 40rpx;
+}
+
+.modal-text {
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.6;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 24rpx;
+}
+
+.modal-btn {
+  flex: 1;
+  height: 88rpx;
+  line-height: 88rpx;
+  text-align: center;
+  border-radius: 44rpx;
+  font-size: 32rpx;
+  font-weight: 500;
+}
+
+.cancel-btn {
+  background: #f5f6f7;
+  color: #666;
+}
+
+.confirm-btn {
+  background: #333;
+  color: #fff;
+}
+
+.confirm-btn.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
 </style>

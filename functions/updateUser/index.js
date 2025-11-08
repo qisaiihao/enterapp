@@ -6,6 +6,7 @@ cloud.init({
 });
 
 const db = cloud.database();
+const _ = db.command;
 
 // 平台检测和兼容性处理
 function getDatabaseAndContext() {
@@ -44,7 +45,7 @@ function getUserId(wxContext, event, context) {
 // 云函数入口函数
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
-  const { nickName, avatarUrl, poemId, password } = event;
+  const { nickName, avatarUrl, poemId, password, phoneNumber } = event;
 
   // 获取兼容的数据库实例和上下文
   const { db: database, isTCB } = getDatabaseAndContext();
@@ -54,7 +55,7 @@ exports.main = async (event, context) => {
 
   console.log('🔍 [updateUser] 最终使用的openid:', openid);
   console.log('🔍 [updateUser] 运行平台:', isTCB ? 'TCB' : 'WeApp');
-  console.log('🔍 [updateUser] 收到的参数:', { nickName, avatarUrl, poemId, password: password ? '***' : 'undefined' });
+  console.log('🔍 [updateUser] 收到的参数:', { nickName, avatarUrl, poemId, password: password ? '***' : 'undefined', phoneNumber: phoneNumber ? '***' : 'undefined' });
 
   if (!openid) {
     return {
@@ -78,6 +79,30 @@ exports.main = async (event, context) => {
     if (userRecord.data.length > 0) {
       // User exists, update it
       console.log('🔍 [updateUser] 用户已存在，执行更新');
+      
+      // 如果提供了手机号，先检查是否已被其他账号绑定
+      if (phoneNumber && phoneNumber.trim()) {
+        console.log('🔍 [updateUser] 检查手机号是否已被其他账号使用');
+        // 先查询所有使用该手机号的用户
+        const phoneCheckRes = await database.collection('users').where({
+          phoneNumber: phoneNumber.trim()
+        }).get();
+        
+        // 检查是否有其他用户（非当前用户）使用了该手机号
+        const otherUser = phoneCheckRes.data.find(user => user._openid !== openid);
+        
+        if (otherUser) {
+          console.log('❌ [updateUser] 手机号已被其他账号使用');
+          return {
+            success: false,
+            message: '此手机号已被其他账号使用',
+            code: 'PHONE_ALREADY_BOUND',
+            platform: isTCB ? 'TCB' : 'WeApp'
+          };
+        }
+        console.log('✅ [updateUser] 手机号可用');
+      }
+      
       const updateData = {
         nickName,
         avatarUrl,
@@ -92,6 +117,13 @@ exports.main = async (event, context) => {
       if (password) {
         updateData.password = password;
         console.log('🔍 [updateUser] 将更新password');
+      }
+      
+      // 如果提供了手机号，更新手机号和验证状态
+      if (phoneNumber && phoneNumber.trim()) {
+        updateData.phoneNumber = phoneNumber.trim();
+        updateData.isPhoneVerified = true;
+        console.log('🔍 [updateUser] 将更新phoneNumber和isPhoneVerified');
       }
 
       console.log('🔍 [updateUser] 准备更新的数据:', updateData);

@@ -72,11 +72,15 @@ exports.main = async (event, context) => {
     // 返回用户信息，但不包含密码
     const { password: _, ...safeUserInfo } = userInfo;
 
+    // 判断是否已验证手机号：检查 phoneNumber 字段是否存在且不为空
+    const isPhoneVerified = !!(safeUserInfo.phoneNumber && safeUserInfo.phoneNumber.trim());
+
     return {
       success: true,
       message: '登录成功',
       userInfo: safeUserInfo,
-      openid: currentOpenid || userInfo._openid
+      openid: currentOpenid || userInfo._openid,
+      isPhoneVerified: isPhoneVerified
     };
 
   } catch (error) {

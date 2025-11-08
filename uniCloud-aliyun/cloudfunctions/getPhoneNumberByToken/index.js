@@ -10,58 +10,34 @@ exports.main = async (event, context) => {
     }
   }
 
-  const res = await uniCloud.getPhoneNumber({
-    provider: 'univerify',
-    apiKey: '【请替换为你的ApiKey】',      // 在DCloud开发者中心开通服务获取
-    apiSecret: '【请替换为你的ApiSecret】', // 在DCloud开发者中心开通服务获取
-    access_token: access_token,
-    openid: openid
-  });
+  try {
+    // 新版 uniCloud 不需要 apiKey 和 apiSecret
+    const res = await uniCloud.getPhoneNumber({
+      provider: 'univerify',
+      appid: context.APPID, // 客户端callFunction时携带的AppId信息
+      access_token: access_token,
+      openid: openid
+    });
 
-  if (res.code === 0 && res.phoneNumber) {
-    // 获取手机号成功
-    const phoneNumber = res.phoneNumber;
-
-    // ***************************************************************
-    // 在这里将获取到的手机号发送给您的腾讯云开发后端
-    // 推荐使用 uniCloud.httpclient 调用您腾讯云后端的API接口
-    // 为确保安全，建议您的腾讯云接口有签名校验机制
-    // ***************************************************************
-    try {
-      const tencentCloudApiUrl = '【你的腾讯云后端接收手机号的API地址】';
-      const response = await uniCloud.httpclient.request(tencentCloudApiUrl, {
-        method: 'POST',
-        data: {
-          phoneNumber: phoneNumber,
-          // 可以添加其他需要的信息，例如 openid
-        },
-        dataType: 'json'
-      });
-
-      // 根据腾讯云后端的返回结果，判断是否成功
-      if (response.data && response.data.success) {
-         return {
-            code: 0,
-            message: '获取手机号并同步成功',
-            // 出于安全考虑，通常不直接将手机号返回给前端
-            // 而是由腾讯云后端生成 token，这里可以将 token 返回
-            token: response.data.token
-         }
-      } else {
-         throw new Error('同步到腾讯云后端失败');
-      }
-    } catch (e) {
+    if (res.code === 0 && res.phoneNumber) {
+      // 获取手机号成功，直接返回给客户端
       return {
-        code: 500,
-        message: '调用腾讯云后端接口失败：' + e.message
+        code: 0,
+        message: '获取手机号成功',
+        phoneNumber: res.phoneNumber
+      }
+    } else {
+      // 获取手机号失败
+      return {
+        code: res.code || 500,
+        message: res.message || '获取手机号失败'
       }
     }
-
-  } else {
-    // 获取手机号失败
+  } catch (error) {
+    console.error('❌ [getPhoneNumberByToken] 获取手机号失败:', error);
     return {
-      code: res.code || 500,
-      message: res.message || '获取手机号失败'
+      code: 500,
+      message: '获取手机号失败：' + (error.message || '未知错误')
     }
   }
 };

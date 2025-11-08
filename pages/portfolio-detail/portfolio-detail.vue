@@ -181,6 +181,14 @@ export default {
     this.debugSafeArea();
     this.getIndexData();
   },
+  onShow() {
+    // 回到页面时，用缓存对齐当前可见帖子的点赞状态
+    try { this.syncLikeStatusFromCache && this.syncLikeStatusFromCache(); } catch (_) {}
+  },
+  onUnload() {
+    // 取消全局点赞事件监听
+    try { uni.$off && this.onGlobalLikeChanged && uni.$off('like-changed', this.onGlobalLikeChanged); } catch (_) {}
+  },
   onPullDownRefresh() {
     console.log('【portfolio-detail】📱 下拉刷新，重新获取数据');
     this.getIndexData(() => {
@@ -298,6 +306,10 @@ export default {
         const list = (res && res.result && res.result.portfolioItems) ? res.result.portfolioItems : [];
         console.log('【portfolio-detail】获取到作品数量:', list.length);
         
+        // 优先使用本地缓存中的点赞状态，如果没有缓存则使用云函数返回的状态
+        const likeSync = require('../../utils/likeStatusSync.js');
+        const getLatestLikeStatus = likeSync.getLatestLikeStatus;
+        
         list.forEach((p) => {
           // 优先使用数据库中保存的背景颜色，如果没有则随机生成
           p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
@@ -305,6 +317,13 @@ export default {
           p.isExpanded = false;
           // authorSignature已从云函数返回，保留原始值（如果没有则为空字符串）
           p.authorSignature = p.authorSignature || '';
+          
+          // 尝试从本地缓存获取点赞状态
+          const cachedStatus = getLatestLikeStatus(p._id);
+          if (cachedStatus) {
+            p.votes = cachedStatus.votes;
+            p.isVoted = cachedStatus.isVoted;
+          }
           p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
         });
         
@@ -426,6 +445,46 @@ export default {
           this.setData(updates);
         }
       } catch (_) {}
+    },
+
+    // 从缓存同步点赞状态
+    syncLikeStatusFromCache() {
+      try {
+        const list = Array.isArray(this.postList) ? this.postList : [];
+        const ids = list.map(p => p && p._id).filter(Boolean);
+        if (!ids.length) return;
+        try { 
+          const { syncLikeStatusForPosts } = require('../../utils/likeStatusSync.js'); 
+          syncLikeStatusForPosts(ids); 
+        } catch (_) {}
+        const { getLatestLikeStatus } = require('../../utils/likeStatusSync.js');
+        let changed = false;
+        const next = list.slice();
+        for (let i = 0; i < next.length; i += 1) {
+          const p = next[i]; 
+          if (!p || !p._id) continue;
+          const s = getLatestLikeStatus(p._id);
+          if (s && ((p.votes || 0) !== s.votes || !!p.isVoted !== !!s.isVoted)) {
+            p.votes = s.votes; 
+            p.isVoted = s.isVoted; 
+            p.likeIcon = likeIcon.getLikeIcon(s.votes, s.isVoted);
+            changed = true;
+          }
+        }
+        if (changed) {
+          const updates = {};
+          next.forEach((p, idx) => {
+            if (p && p._id) {
+              updates[`postList[${idx}].votes`] = p.votes;
+              updates[`postList[${idx}].isVoted`] = p.isVoted;
+              updates[`postList[${idx}].likeIcon`] = p.likeIcon;
+            }
+          });
+          this.setData(updates);
+        }
+      } catch (err) { 
+        console.warn('[portfolio-detail] syncLikeStatusFromCache failed', err); 
+      }
     },
     onLongPressCard(e) {
       const postId = e.currentTarget.dataset.postid;

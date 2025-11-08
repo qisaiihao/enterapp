@@ -1,5 +1,6 @@
 import { EVENTS } from '@/utils/events.js';
-import { invalidateHomePosts, } from '@/api-cache/home-posts.js';
+import { invalidateHomePosts } from '@/api-cache/home-posts.js';
+import { invalidatePostList } from '@/api-cache/post-list.js';
 import { clearDiscoverCache } from '@/api-cache/discover.js';
 import { invalidateUserInfo, invalidateUserPosts } from '@/api-cache/user-profile.js';
 
@@ -10,8 +11,14 @@ export function setupCacheEventBridges() {
     if (!uni || typeof uni.$on !== 'function') return;
 
     // 新帖发布：刷新首页与发现页相关缓存
+    // 由于所有页面都使用 posts:list 命名空间，失效首页缓存会清除所有相关缓存
     uni.$on(EVENTS.POST_CREATED, (payload = {}) => {
-      try { invalidateHomePosts({}); } catch (_) {}
+      try { 
+        // 失效所有首页缓存（包括所有筛选条件）
+        invalidateHomePosts({}); 
+        // 失效所有帖子列表缓存（跨页面共享的缓存）
+        invalidatePostList({});
+      } catch (_) {}
       try { clearDiscoverCache(); } catch (_) {}
     });
 
@@ -22,20 +29,18 @@ export function setupCacheEventBridges() {
       try { invalidateUserInfo(uid); } catch (_) {}
       try { invalidateUserPosts(uid); } catch (_) {}
       // 失效公共列表缓存，确保下次查询列表时能看到更新后的头像昵称
-      try { invalidateHomePosts({}); } catch (_) {}
+      // 由于所有页面都使用 posts:list 命名空间，失效首页缓存会清除所有相关缓存
+      try { 
+        invalidateHomePosts({}); 
+        // 失效所有帖子列表缓存（跨页面共享的缓存）
+        invalidatePostList({});
+      } catch (_) {}
       try { clearDiscoverCache(); } catch (_) {}
-      // 失效所有标签页缓存
+      // 失效所有标签页缓存（标签页也使用 posts:list 命名空间，但为了兼容性保留此逻辑）
       try {
-        const cacheManager = require('@/_utils/cache-manager').default;
-        const nsStats = cacheManager.getStats ? cacheManager.getStats() : {};
-        const nsNames = Object.keys(nsStats);
-        const tagNsNames = nsNames.filter((n) => n.startsWith('posts:tag:'));
-        tagNsNames.forEach((nsName) => {
-          try {
-            const ns = cacheManager.namespace(nsName);
-            if (ns && ns.clear) ns.clear();
-          } catch (_) {}
-        });
+        const { invalidateTagPosts } = require('@/api-cache/tag-posts.js');
+        // 由于标签页也使用 posts:list 命名空间，上面的 invalidatePostList 已经失效了
+        // 这里保留代码以防未来有独立的标签命名空间
       } catch (_) {}
     });
 
@@ -79,8 +84,10 @@ export function setupCacheEventBridges() {
           const cacheManager = require('@/_utils/cache-manager').default;
           const nsStats = cacheManager.getStats ? cacheManager.getStats() : {};
           const nsNames = Object.keys(nsStats);
+          // 由于所有帖子列表都使用 posts:list 命名空间，只需要更新这个命名空间即可
+          // 但为了兼容性，仍然遍历所有可能的命名空间
           const targets = nsNames.filter((n) => (
-            n === 'posts:home' || n === 'posts:discover' || n.startsWith('posts:tag:') || n.startsWith('me:posts') || n.startsWith('userPosts:')
+            n === 'posts:list' || n === 'posts:home' || n === 'posts:discover' || n.startsWith('posts:tag:') || n.startsWith('posts:') || n.startsWith('me:posts') || n.startsWith('userPosts:')
           ));
           targets.forEach((nsName) => {
             try {
@@ -128,8 +135,10 @@ export function setupCacheEventBridges() {
         const cacheManager = require('@/_utils/cache-manager').default;
         const nsStats = cacheManager.getStats ? cacheManager.getStats() : {};
         const nsNames = Object.keys(nsStats);
+        // 由于所有帖子列表都使用 posts:list 命名空间，只需要更新这个命名空间即可
+        // 但为了兼容性，仍然遍历所有可能的命名空间
         const targets = nsNames.filter((n) => (
-          n === 'posts:home' || n === 'posts:discover' || n.startsWith('posts:tag:') || n.startsWith('userPosts:')
+          n === 'posts:list' || n === 'posts:home' || n === 'posts:discover' || n.startsWith('posts:tag:') || n.startsWith('posts:') || n.startsWith('userPosts:')
         ));
         if (isHidden) {
           targets.forEach((nsName) => {
@@ -147,7 +156,11 @@ export function setupCacheEventBridges() {
             } catch (_) {}
           });
         } else {
-          try { invalidateHomePosts({}); } catch (_) {}
+          // 取消隐藏时，失效所有相关缓存，确保帖子重新出现在列表中
+          try { 
+            invalidateHomePosts({}); 
+            invalidatePostList({});
+          } catch (_) {}
           try { clearDiscoverCache(); } catch (_) {}
         }
       } catch (_) {}

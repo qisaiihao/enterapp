@@ -1,30 +1,14 @@
 import cacheManager from '@/_utils/cache-manager';
+import { buildCacheKey } from './cache-key-builder.js';
 const { cloudCall } = require('@/utils/cloudCall.js');
 
 // 通用帖子列表缓存：TTL 90s + SWR 45s
 // 支持不同筛选条件的帖子列表缓存
+// 【重要】使用统一的 posts:list 命名空间和 buildCacheKey 函数，实现跨页面缓存共享
 const TTL_MS = 90 * 1000;  // 90秒过期
 const SWR_MS = 45 * 1000;  // 45秒后台刷新
 
 const ns = cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 });
-
-/**
- * 构建缓存键
- * @param {Object} params - 查询参数
- */
-function buildCacheKey(params) {
-  const { page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous } = params;
-  const parts = [];
-  
-  if (typeof isPoem === 'boolean') parts.push(`poem:${isPoem}`);
-  if (typeof isOriginal === 'boolean') parts.push(`orig:${isOriginal}`);
-  if (typeof isDiscussion === 'boolean') parts.push(`disc:${isDiscussion}`);
-  if (tag) parts.push(`tag:${tag}`);
-  if (excludeAnonymous) parts.push('exclAnon:true');
-  
-  const filterKey = parts.length > 0 ? parts.join(':') : 'all';
-  return `page:${page}:size:${pageSize}:${filterKey}`;
-}
 
 /**
  * 获取帖子列表（带缓存）
@@ -81,7 +65,9 @@ export async function getPostList({
     return [];
   }
   
-  // 使用缓存
+  // 使用缓存（与 home-posts.js 共享 posts:list 命名空间）
+  // 如果其他页面（如首页、mountain、poem-square）已经加载过相同查询条件的数据，这里会直接复用缓存
+  // 无需额外调用云函数，提升加载速度并减少服务器压力
   return ns.getOrFetch(
     cacheKey,
     async () => {

@@ -1,4 +1,5 @@
 import cacheManager from '@/_utils/cache-manager';
+import { buildCacheKey } from './cache-key-builder.js';
 const { cloudCall } = require('@/utils/cloudCall.js');
 
 // 首页广场分页：TTL 90s + SWR 45s
@@ -9,25 +10,6 @@ const SWR_MS = 45 * 1000;
 
 // 使用统一的 posts:list 命名空间，以便与其他页面共享缓存
 const ns = cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 });
-
-/**
- * 构建缓存键（与 post-list.js 保持一致）
- * 确保与 mountain、poem-square 等页面使用相同的缓存键生成逻辑
- * @param {Object} params - 查询参数
- */
-function buildCacheKey(params) {
-  const { page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous } = params;
-  const parts = [];
-  
-  if (typeof isPoem === 'boolean') parts.push(`poem:${isPoem}`);
-  if (typeof isOriginal === 'boolean') parts.push(`orig:${isOriginal}`);
-  if (typeof isDiscussion === 'boolean') parts.push(`disc:${isDiscussion}`);
-  if (tag) parts.push(`tag:${tag}`);
-  if (excludeAnonymous) parts.push('exclAnon:true');
-  
-  const filterKey = parts.length > 0 ? parts.join(':') : 'all';
-  return `page:${page}:size:${pageSize}:${filterKey}`;
-}
 
 /**
  * 获取首页帖子列表（支持筛选条件，复用统一缓存）
@@ -86,9 +68,10 @@ export async function getHomePosts({
     return [];
   }
   
-  // 使用统一缓存（与 post-list.js 共享）
+  // 使用统一缓存（与 post-list.js 共享 posts:list 命名空间）
   // 注意：首页的无筛选条件查询（isPoem/isOriginal 等均为 undefined）会使用 'all' 作为过滤键
   // 这样即使 poem-square 获取了原创诗歌，首页仍然可以独立缓存无筛选的广场数据
+  // 但如果首页也需要相同的筛选条件（如 isPoem: true, isOriginal: true），可以直接复用其他页面的缓存！
   return ns.getOrFetch(
     cacheKey,
     async () => {

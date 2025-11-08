@@ -9,6 +9,17 @@
       </view>
 
       <view class="form-wrapper compact">
+        <!-- 一键注册按钮 -->
+        <view class="one-click-register-btn" @tap="handleOneClickRegister" v-if="!phoneNumber">
+          <text class="one-click-text">本机号码一键注册</text>
+        </view>
+
+        <!-- 手机号显示（只读） -->
+        <view class="input-wrapper" v-if="phoneNumber">
+          <text class="input-label">手机号</text>
+          <input class="input-field" type="text" :value="phoneNumber" disabled />
+        </view>
+
         <view class="input-wrapper">
           <text class="input-label">Poem ID</text>
           <input class="input-field" type="text" placeholder="请输入 Poem ID" v-model="poemId" @input="onPoemIdInput" />
@@ -51,6 +62,14 @@
 const app = getApp();
 const { cloudCall } = require('../../utils/cloudCall.js');
 
+// 调用 uniCloud 云函数（优先使用云端）
+async function callUniCloudFunction(name, data) {
+    return await uniCloud.callFunction({
+        name: name,
+        data: data
+    });
+}
+
 export default {
     data() {
         return {
@@ -62,7 +81,10 @@ export default {
             // 新增：头像直观状态
             localAvatarTempPath: '',
             avatarFileID: '',
-            isUploadingAvatar: false
+            isUploadingAvatar: false,
+            // 手机号相关
+            phoneNumber: '',
+            isGettingPhone: false
         };
     },
     
@@ -263,7 +285,9 @@ export default {
                     password: this.password.trim(),
                     nickName: this.nickName.trim(),
                     // 头像使用云函数上传返回的 fileID（不能直连COS）
-                    avatarFileID: this.avatarFileID || ''
+                    avatarFileID: this.avatarFileID || '',
+                    // 传递手机号（如果已获取）
+                    phoneNumber: this.phoneNumber || ''
                 });
 
                 console.log('🔍 [注册] 云函数返回结果:', registerRes);
@@ -299,11 +323,29 @@ export default {
                 } else {
                     // 注册失败
                     const message = registerRes.result?.message || '注册失败，请重试';
-                    uni.showToast({
-                        title: message,
-                        icon: 'none',
-                        duration: 3000
-                    });
+                    const code = registerRes.result?.code;
+                    
+                    // 如果手机号已存在，提示用户去登录
+                    if (code === 'PHONE_ALREADY_EXISTS') {
+                        uni.showModal({
+                            title: '提示',
+                            content: '该手机号已注册，请直接登录',
+                            showCancel: true,
+                            cancelText: '取消',
+                            confirmText: '去登录',
+                            success: (res) => {
+                                if (res.confirm) {
+                                    this.goToLogin();
+                                }
+                            }
+                        });
+                    } else {
+                        uni.showToast({
+                            title: message,
+                            icon: 'none',
+                            duration: 3000
+                        });
+                    }
                 }
                 
             } catch (error) {
@@ -322,6 +364,100 @@ export default {
         goToLogin() {
             // 跳转到登录页面
             uni.navigateBack();
+        },
+
+        // 处理一键注册
+        async handleOneClickRegister() {
+            if (this.isGettingPhone) {
+                return;
+            }
+
+            this.isGettingPhone = true;
+            uni.showLoading({
+                title: '获取手机号中...',
+                mask: true
+            });
+
+            try {
+                // 1. 调用一键登录授权
+                const loginRes = await new Promise((resolve, reject) => {
+                    uni.login({
+                        provider: 'univerify',
+                        success: resolve,
+                        fail: reject
+                    });
+                });
+
+                if (!loginRes.authResult || !loginRes.authResult.access_token || !loginRes.authResult.openid) {
+                    throw new Error('获取授权失败');
+                }
+
+                const { access_token, openid: univerifyOpenid } = loginRes.authResult;
+
+                // 2. 调用 uniCloud 云函数获取手机号（使用云端）
+                const phoneRes = await callUniCloudFunction('getPhoneNumberByToken', {
+                    access_token: access_token,
+                    openid: univerifyOpenid
+                });
+
+                if (phoneRes.result.code !== 0 || !phoneRes.result.phoneNumber) {
+                    throw new Error(phoneRes.result.message || '获取手机号失败');
+                }
+
+                const phoneNumber = phoneRes.result.phoneNumber;
+
+                // 3. 检查手机号是否已存在
+                uni.showLoading({
+                    title: '检查手机号...',
+                    mask: true
+                });
+
+                // 通过调用注册云函数来检查（传入空参数，只检查手机号）
+                // 或者我们可以直接调用 registerUser 但只传 phoneNumber，让后端检查
+                // 但更好的方式是创建一个检查接口，不过用户说合并到 registerUser 中
+                // 所以我们先尝试注册，如果手机号已存在会返回错误
+                
+                // 实际上，我们可以先调用 registerUser 检查，但这样不太优雅
+                // 更好的方式是：先调用一个检查接口，但用户说合并到 registerUser 中
+                // 所以我们直接设置手机号，在提交注册时再检查
+                
+                // 设置手机号
+                this.phoneNumber = phoneNumber;
+                
+                uni.showToast({
+                    title: '手机号获取成功',
+                    icon: 'success'
+                });
+
+            } catch (error) {
+                console.error('❌ [一键注册] 失败:', error);
+                
+                // 如果是用户取消，不显示错误提示
+                if (error.errMsg && (error.errMsg.includes('cancel') || error.errMsg.includes('取消'))) {
+                    // 用户取消，不做处理
+                    return;
+                }
+                
+                // 检查是否是 uniCloud 本地调试服务连接问题
+                const errorMsg = error.message || error.errMsg || '';
+                if (errorMsg.includes('无法连接uniCloud本地调试服务') || errorMsg.includes('uniCloud本地调试')) {
+                    uni.showModal({
+                        title: '提示',
+                        content: '无法连接 uniCloud 服务。\n\n请检查：\n1. 是否已上传 uniCloud 云函数到服务空间\n2. 是否在 HBuilderX 中正确配置了 uniCloud 服务空间\n3. 如果使用本地调试，请确保客户端与主机在同一局域网',
+                        showCancel: false,
+                        confirmText: '知道了'
+                    });
+                } else {
+                    uni.showToast({
+                        title: error.message || error.errMsg || '获取手机号失败，请重试',
+                        icon: 'none',
+                        duration: 3000
+                    });
+                }
+            } finally {
+                uni.hideLoading();
+                this.isGettingPhone = false;
+            }
         }
     }
 };
@@ -488,4 +624,29 @@ export default {
 .enter-key-btn .ek-fill { background: #fff; clip-path: polygon(57% 2%,100% 2%,100% 100%,2% 100%,2% 62%,57% 62%,57% 2%); border-radius: 22rpx; }
 .enter-key-btn .ek-text { position: absolute; bottom: 24rpx; left: 24rpx; font-size: 28rpx; color: #333; font-weight: 500; }
 .login-link-wrapper.subtle { color: #999; }
+
+/* 一键注册按钮 */
+.one-click-register-btn {
+  width: 100%;
+  height: 88rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 36rpx;
+  box-shadow: 0 8rpx 25rpx rgba(102, 126, 234, 0.3);
+}
+
+.one-click-text {
+  font-size: 32rpx;
+  color: #fff;
+  font-weight: 500;
+}
+
+/* 手机号输入框（只读） */
+.input-wrapper input[disabled] {
+  background: #f0f0f0;
+  color: #999;
+}
 </style>

@@ -43,7 +43,9 @@ function updatePostInCaches(postId, votes, isLiked, icon) {
         const targets = nsNames.filter((n) => (
             n === 'posts:home' ||
             n === 'posts:discover' ||
+            n === 'posts:list' ||
             n.startsWith('posts:tag:') ||
+            n.startsWith('posts:') ||
             n.startsWith('me:posts') ||
             n.startsWith('userPosts:')
         ));
