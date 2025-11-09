@@ -182,14 +182,11 @@ exports.main = async (event, context) => {
   try {
     console.log('🔍 [getPostList] 开始构建查询');
 
-    // 获取被屏蔽的用户ID列表
+    // 获取被屏蔽的用户ID列表（使用缓存）
     let blockedUserIds = [];
     try {
-      const blocksRes = await db.collection('blocks')
-        .where({ blockerId: openid })
-        .field({ blockedId: true })
-        .get();
-      blockedUserIds = blocksRes.data.map(item => item.blockedId);
+      const getBlockedUserIds = require('../_lib/get-blocked-user-ids');
+      blockedUserIds = await getBlockedUserIds(openid, db);
       console.log('🔍 [getPostList] 被屏蔽的用户数量:', blockedUserIds.length);
     } catch (blockError) {
       console.error('❌ [getPostList] 获取屏蔽列表失败:', blockError);
@@ -202,7 +199,13 @@ exports.main = async (event, context) => {
     
     // 如果指定了isPoem参数，添加诗歌筛选条件
     if (isPoem !== undefined) {
-      matchConditions.isPoem = isPoem;
+      if (isPoem === true) {
+        // 只获取诗歌：isPoem 必须为 true
+        matchConditions.isPoem = true;
+      } else {
+        // 只获取非诗歌：isPoem 为 false 或不存在（$ne: true 会匹配 false、null 和不存在的字段）
+        matchConditions.isPoem = _.neq(true);
+      }
       console.log('🔍 [getPostList] 添加isPoem筛选条件:', isPoem);
     }
 
@@ -227,7 +230,13 @@ exports.main = async (event, context) => {
 
     // 如果指定了isDiscussion参数，添加讨论筛选条件
     if (isDiscussion !== undefined) {
-      matchConditions.isDiscussion = isDiscussion;
+      if (isDiscussion === true) {
+        // 只获取讨论：isDiscussion 必须为 true
+        matchConditions.isDiscussion = true;
+      } else {
+        // 只获取非讨论：isDiscussion 为 false 或不存在（$ne: true 会匹配 false、null 和不存在的字段）
+        matchConditions.isDiscussion = _.neq(true);
+      }
       console.log('🔍 [getPostList] 添加isDiscussion筛选条件:', isDiscussion);
     }
     

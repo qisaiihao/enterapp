@@ -50,14 +50,11 @@ exports.main = async (event, context) => {
       console.error('检查屏蔽状态失败:', blockError);
     }
 
-    // 获取被屏蔽的用户ID列表（用于过滤帖子）
+    // 获取被屏蔽的用户ID列表（用于过滤帖子，使用缓存）
     let blockedUserIds = [];
     try {
-      const blocksRes = await db.collection('blocks')
-        .where({ blockerId: currentOpenid })
-        .field({ blockedId: true })
-        .get();
-      blockedUserIds = blocksRes.data.map(item => item.blockedId);
+      const getBlockedUserIds = require('../_lib/get-blocked-user-ids');
+      blockedUserIds = await getBlockedUserIds(currentOpenid, db);
     } catch (blockError) {
       console.error('获取屏蔽列表失败:', blockError);
     }

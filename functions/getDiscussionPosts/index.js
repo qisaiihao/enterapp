@@ -41,14 +41,11 @@ exports.main = async (event, context) => {
   try {
     console.log('🔍 [getDiscussionPosts] 开始构建查询');
 
-    // 获取被屏蔽的用户ID列表
+    // 获取被屏蔽的用户ID列表（使用缓存）
     let blockedUserIds = [];
     try {
-      const blocksRes = await db.collection('blocks')
-        .where({ blockerId: openid })
-        .field({ blockedId: true })
-        .get();
-      blockedUserIds = blocksRes.data.map(item => item.blockedId);
+      const getBlockedUserIds = require('../_lib/get-blocked-user-ids');
+      blockedUserIds = await getBlockedUserIds(openid, db);
       console.log('🔍 [getDiscussionPosts] 被屏蔽的用户数量:', blockedUserIds.length);
     } catch (blockError) {
       console.error('❌ [getDiscussionPosts] 获取屏蔽列表失败:', blockError);

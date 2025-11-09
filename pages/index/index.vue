@@ -42,6 +42,16 @@
                             refresher-background-style="#ffffff"
                             @refresherrefresh="onRefresherRefresh"
                         >
+                            <!-- 切换按钮 - 在帖子列表上方 -->
+                            <view class="filter-toggle-container">
+                                <view 
+                                    :class="'filter-toggle-btn ' + (showNormalPostsOnly ? 'active' : '')" 
+                                    @tap="toggleNormalPostsFilter"
+                                >
+                                    <text class="filter-toggle-text">{{ showNormalPostsOnly ? '显示全部' : '只看普通帖子' }}</text>
+                                </view>
+                            </view>
+                            
                             <view v-if="postList.length === 0 && !isLoading" class="empty-state">
                                 <view class="empty-icon">📝</view>
                                 <view class="empty-text">还没有帖子哦～</view>
@@ -549,7 +559,9 @@ export default {
             swiperTouchStartX: null,
             swiperTouchStartTime: null,
             // swiper缓动函数
-            easeOutCubic: 'cubic-bezier(0.33, 1, 0.68, 1)'
+            easeOutCubic: 'cubic-bezier(0.33, 1, 0.68, 1)',
+            // 只看普通帖子模式（排除诗歌和讨论）
+            showNormalPostsOnly: false
         };
     },
     onLoad: function (options) {
@@ -678,9 +690,27 @@ onReachBottom: function () {
         },
 
         // 通过下拉刷新重载首页首屏数据：保留旧列表直到新数据就绪
-        reloadHomePostsForRefresh: function (cb) {
+        reloadHomePostsForRefresh: function (cb, customFilterParams) {
             const startPage = 0;
-            getHomePosts({ page: startPage, pageSize: PAGE_SIZE, context: this, forceRefresh: true })
+            // 如果传入了自定义筛选参数，使用自定义参数；否则根据showNormalPostsOnly状态决定
+            let filterParams = {};
+            if (customFilterParams !== undefined) {
+                filterParams = customFilterParams;
+            } else {
+                // 根据showNormalPostsOnly状态决定筛选参数
+                if (this.showNormalPostsOnly) {
+                    // 只看普通帖子：排除诗歌和讨论
+                    filterParams.isPoem = false;
+                    filterParams.isDiscussion = false;
+                }
+            }
+            getHomePosts({ 
+                page: startPage, 
+                pageSize: PAGE_SIZE, 
+                context: this, 
+                forceRefresh: true,
+                ...filterParams
+            })
                 .then(async (list) => {
                     const postsRaw = Array.isArray(list) ? list : [];
                     let posts = normalizePostList(postsRaw).map((post) => ({
@@ -702,6 +732,8 @@ onReachBottom: function () {
                 .catch((err) => {
                     console.error('【首页】reloadHomePostsForRefresh 失败:', err);
                     uni.showToast({ title: '刷新失败', icon: 'none' });
+                    // 确保在错误时也重置加载状态
+                    this.setData({ isLoading: false });
                 })
                 .finally(() => {
                     if (typeof cb === 'function') cb();
@@ -1058,7 +1090,19 @@ onReachBottom: function () {
         getIndexData: function () {
             // 直接走 CacheManager 首页封装
             this.setData({ isLoading: true, postList: [], page: 0, hasMore: true });
-            getHomePosts({ page: 0, pageSize: PAGE_SIZE, context: this })
+            // 根据showNormalPostsOnly状态决定筛选参数
+            const filterParams = {};
+            if (this.showNormalPostsOnly) {
+                // 只看普通帖子：排除诗歌和讨论
+                filterParams.isPoem = false;
+                filterParams.isDiscussion = false;
+            }
+            getHomePosts({ 
+                page: 0, 
+                pageSize: PAGE_SIZE, 
+                context: this,
+                ...filterParams
+            })
                 .then(async (list) => {
                     const postsRaw = Array.isArray(list) ? list : [];
                     let posts = normalizePostList(postsRaw).map((post) => ({
@@ -1446,8 +1490,20 @@ onReachBottom: function () {
                 });
             }
             const apiStartTime = Date.now();
+            // 根据showNormalPostsOnly状态决定筛选参数
+            const filterParams = {};
+            if (this.showNormalPostsOnly) {
+                // 只看普通帖子：排除诗歌和讨论
+                filterParams.isPoem = false;
+                filterParams.isDiscussion = false;
+            }
             // 使用缓存封装的首页分页数据，SWR + TTL
-            getHomePosts({ page: this.page, pageSize: PAGE_SIZE, context: this })
+            getHomePosts({ 
+                page: this.page, 
+                pageSize: PAGE_SIZE, 
+                context: this,
+                ...filterParams
+            })
                 .then(async (list) => {
                     const postsRaw = Array.isArray(list) ? list : [];
                     console.log('✅ [首页] 获取到帖子数量（缓存封装）:', postsRaw.length);
@@ -1561,6 +1617,46 @@ onReachBottom: function () {
             } catch (err) {
                 console.error('����ҳ��ͬ������״̬ʧ��:', err);
             }
+        },
+
+        // 切换只看普通帖子模式
+        toggleNormalPostsFilter: function () {
+            const newMode = !this.showNormalPostsOnly;
+            console.log('【首页】切换只看普通帖子模式:', newMode);
+            
+            // 清除新模式的缓存，确保强制从云端刷新
+            try {
+                const { invalidateHomePosts } = require('../../api-cache/home-posts.js');
+                if (newMode) {
+                    // 切换到"只看普通帖子"模式，清除普通帖子模式的缓存
+                    invalidateHomePosts({ isPoem: false, isDiscussion: false });
+                } else {
+                    // 切换到"显示全部"模式，清除全部模式的缓存
+                    invalidateHomePosts({});
+                }
+                console.log('✅ [首页] 已清除新模式缓存，准备强制刷新');
+            } catch (e) {
+                console.error('❌ [首页] 清除缓存失败:', e);
+            }
+            
+            // 准备筛选参数（基于新状态）
+            const filterParams = newMode ? {
+                isPoem: false,
+                isDiscussion: false
+            } : {};
+            
+            // 先更新状态，使用setData的回调确保状态更新后再加载数据
+            this.setData({
+                showNormalPostsOnly: newMode,
+                postList: [],
+                page: 0,
+                hasMore: true,
+                isLoading: true,
+                isLoadingMore: false  // 确保 isLoadingMore 也为 false
+            }, () => {
+                // 状态更新完成后再强制从云端刷新数据，直接传入筛选参数确保使用正确的筛选条件
+                this.reloadHomePostsForRefresh(undefined, filterParams);
+            });
         },
 
         // 标签点击处理
@@ -2622,6 +2718,49 @@ onReachBottom: function () {
 }
 
 /* 底部触底提示样式 */
+/* 切换按钮样式 - 参考poem-square页面 */
+.filter-toggle-container {
+    padding: 20rpx 30rpx;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.filter-toggle-btn {
+    padding: 12rpx 32rpx;
+    border-radius: 50rpx;
+    background: transparent;
+    border: 2rpx solid #e0e0e0;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    box-shadow: none;
+    min-width: 140rpx;
+    text-align: center;
+    display: inline-block;
+}
+
+.filter-toggle-btn:active {
+    transform: scale(0.95);
+}
+
+.filter-toggle-btn.active {
+    background: transparent;
+    border: 2rpx solid #e0e0e0;
+    box-shadow: none;
+}
+
+.filter-toggle-text {
+    font-size: 26rpx;
+    color: #666;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.filter-toggle-btn.active .filter-toggle-text {
+    color: #666;
+}
+
 .end-tip {
     display: flex;
     flex-direction: column;

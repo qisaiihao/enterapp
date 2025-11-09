@@ -1,4 +1,8 @@
 <script>
+// #ifdef APP-PLUS
+import checkUpdate from '@/uni_modules/uni-upgrade-center-app/utils/check-update';
+// #endif
+
 export default {
     // 【重构】1. 将所有全局数据放入 data 函数中，这是 Vue 的标准做法
     data() {
@@ -16,6 +20,24 @@ export default {
     onLaunch: function () {
         // 清理缓存是好习惯，予以保留
         uni.removeStorageSync('cachedPostList');
+        
+        // #ifdef APP-PLUS
+        // 检查更新（热更新）- 仅在 App 端执行
+        // 双重保护：条件编译（编译时） + 运行时检查（plus 对象）
+        if (typeof plus !== 'undefined' && plus.runtime) {
+            try {
+                checkUpdate().then((result) => {
+                    console.log('✅ [热更新] 检查完成:', result);
+                }).catch((err) => {
+                    // 静默处理错误，避免影响应用启动
+                    console.warn('⚠️ [热更新] 检查失败（已忽略）:', err);
+                });
+            } catch (error) {
+                // 静默处理异常，避免影响应用启动
+                console.warn('⚠️ [热更新] 检查更新异常（已忽略）:', error);
+            }
+        }
+        // #endif
         
         // 执行登录流程
         this.loginAndCheckUser();

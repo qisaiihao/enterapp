@@ -26,14 +26,11 @@ exports.main = async (event, context) => {
   }
 
   try {
-    // 获取被屏蔽的用户ID列表
+    // 获取被屏蔽的用户ID列表（使用缓存）
     let blockedUserIds = [];
     try {
-      const blocksRes = await db.collection('blocks')
-        .where({ blockerId: openid })
-        .field({ blockedId: true })
-        .get();
-      blockedUserIds = blocksRes.data.map(item => item.blockedId);
+      const getBlockedUserIds = require('../_lib/get-blocked-user-ids');
+      blockedUserIds = await getBlockedUserIds(openid, db);
       console.log(`被屏蔽的用户数量: ${blockedUserIds.length}`);
     } catch (blockError) {
       console.error('获取屏蔽列表失败:', blockError);
@@ -249,14 +246,11 @@ async function getPersonalizedPosts(openId, limit, usedPostIds) {
       }
     });
 
-    // 获取被屏蔽的用户ID列表
+    // 获取被屏蔽的用户ID列表（使用缓存）
     let blockedUserIds = [];
     try {
-      const blocksRes = await db.collection('blocks')
-        .where({ blockerId: openId })
-        .field({ blockedId: true })
-        .get();
-      blockedUserIds = blocksRes.data.map(item => item.blockedId);
+      const getBlockedUserIds = require('../_lib/get-blocked-user-ids');
+      blockedUserIds = await getBlockedUserIds(openId, db);
     } catch (blockError) {
       console.error('获取屏蔽列表失败:', blockError);
     }
@@ -376,14 +370,11 @@ async function getHotPosts(limit, excludePostIds, openId) {
   try {
     console.log(`获取热门推荐，限制: ${limit}, 排除ID: ${excludePostIds.length}个`);
     
-    // 获取被屏蔽的用户ID列表
+    // 获取被屏蔽的用户ID列表（使用缓存）
     let blockedUserIds = [];
     try {
-      const blocksRes = await db.collection('blocks')
-        .where({ blockerId: openId })
-        .field({ blockedId: true })
-        .get();
-      blockedUserIds = blocksRes.data.map(item => item.blockedId);
+      const getBlockedUserIds = require('../_lib/get-blocked-user-ids');
+      blockedUserIds = await getBlockedUserIds(openId, db);
     } catch (blockError) {
       console.error('获取屏蔽列表失败:', blockError);
     }
@@ -485,14 +476,11 @@ async function getLatestPosts(limit, excludePostIds, openId) {
   try {
     console.log(`获取最新帖子，限制: ${limit}, 排除ID: ${excludePostIds.length}个`);
     
-    // 获取被屏蔽的用户ID列表
+    // 获取被屏蔽的用户ID列表（使用缓存）
     let blockedUserIds = [];
     try {
-      const blocksRes = await db.collection('blocks')
-        .where({ blockerId: openId })
-        .field({ blockedId: true })
-        .get();
-      blockedUserIds = blocksRes.data.map(item => item.blockedId);
+      const getBlockedUserIds = require('../_lib/get-blocked-user-ids');
+      blockedUserIds = await getBlockedUserIds(openId, db);
     } catch (blockError) {
       console.error('获取屏蔽列表失败:', blockError);
     }
@@ -623,14 +611,11 @@ async function getTagBasedPosts(openId, limit, usedPostIds) {
     // 2. 根据热门标签推荐帖子（包括原创和非原创）
     const tagNames = popularTags.map(tag => tag._id);
     
-    // 获取被屏蔽的用户ID列表
+    // 获取被屏蔽的用户ID列表（使用缓存）
     let blockedUserIds = [];
     try {
-      const blocksRes = await db.collection('blocks')
-        .where({ blockerId: openId })
-        .field({ blockedId: true })
-        .get();
-      blockedUserIds = blocksRes.data.map(item => item.blockedId);
+      const getBlockedUserIds = require('../_lib/get-blocked-user-ids');
+      blockedUserIds = await getBlockedUserIds(openId, db);
     } catch (blockError) {
       console.error('获取屏蔽列表失败:', blockError);
     }

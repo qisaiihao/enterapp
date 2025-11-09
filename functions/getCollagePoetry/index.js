@@ -16,15 +16,12 @@ exports.main = async (event, context) => {
   const { page = 0, pageSize = 10 } = event
   
   try {
-    // 获取被屏蔽的用户ID列表
+    // 获取被屏蔽的用户ID列表（使用缓存）
     let blockedUserIds = [];
     if (openid) {
       try {
-        const blocksRes = await db.collection('blocks')
-          .where({ blockerId: openid })
-          .field({ blockedId: true })
-          .get();
-        blockedUserIds = blocksRes.data.map(item => item.blockedId);
+        const getBlockedUserIds = require('../_lib/get-blocked-user-ids');
+        blockedUserIds = await getBlockedUserIds(openid, db);
       } catch (blockError) {
         console.error('获取屏蔽列表失败:', blockError);
       }

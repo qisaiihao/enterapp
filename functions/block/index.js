@@ -7,6 +7,9 @@ cloud.init({
 const db = cloud.database();
 const _ = db.command;
 
+// 引入屏蔽名单缓存工具
+const blockedCache = require('../../utils/blocked-users-cache');
+
 exports.main = async (event, context) => {
   console.log('🔍 [block] 云函数开始执行，event:', JSON.stringify(event));
   
@@ -124,6 +127,10 @@ async function toggleBlock(blockerId, targetOpenid) {
           });
           console.log('✅ [toggleBlock] 集合已创建并添加屏蔽记录，记录ID:', addResult._id);
           
+          // 更新缓存：添加到缓存中
+          blockedCache.updateCache(blockerId, targetOpenid, true);
+          console.log('✅ [toggleBlock] 已更新缓存（添加屏蔽）');
+          
           // 取消关注关系
           try {
             const followsCollection = db.collection('follows');
@@ -166,6 +173,10 @@ async function toggleBlock(blockerId, targetOpenid) {
       await blocksCollection.doc(existing.data[0]._id).remove();
       console.log('✅ [toggleBlock] 取消屏蔽成功');
       
+      // 更新缓存：从缓存中移除该用户
+      blockedCache.updateCache(blockerId, targetOpenid, false);
+      console.log('✅ [toggleBlock] 已更新缓存（移除屏蔽）');
+      
       // 同时取消关注关系（如果存在）
       try {
         const followsCollection = db.collection('follows');
@@ -199,6 +210,10 @@ async function toggleBlock(blockerId, targetOpenid) {
       }
     });
     console.log('✅ [toggleBlock] 添加屏蔽成功，记录ID:', addResult._id);
+
+    // 更新缓存：添加到缓存中
+    blockedCache.updateCache(blockerId, targetOpenid, true);
+    console.log('✅ [toggleBlock] 已更新缓存（添加屏蔽）');
 
     // 屏蔽时自动取消关注关系（如果存在）
     try {
@@ -322,20 +337,35 @@ async function checkBlock(blockerId, targetOpenid) {
 }
 
 // 获取被屏蔽的用户ID列表（用于过滤帖子）
+// 使用缓存机制减少数据库查询
 async function getBlockedUserIds(blockerId) {
   if (!blockerId) {
     return [];
   }
 
+  // 先尝试从缓存获取
+  const cached = blockedCache.getCachedBlockedIds(blockerId);
+  if (cached !== null) {
+    console.log('✅ [getBlockedUserIds] 从缓存获取，数量:', cached.length);
+    return cached;
+  }
+
+  // 缓存未命中，从数据库查询
   try {
     const blocksCollection = db.collection('blocks');
     const blocksRes = await blocksCollection.where({
       blockerId
     }).field({ blockedId: true }).get();
 
-    return blocksRes.data.map(item => item.blockedId);
+    const blockedIds = blocksRes.data.map(item => item.blockedId);
+    
+    // 写入缓存
+    blockedCache.setCachedBlockedIds(blockerId, blockedIds);
+    console.log('✅ [getBlockedUserIds] 从数据库查询并缓存，数量:', blockedIds.length);
+    
+    return blockedIds;
   } catch (error) {
-    console.error('获取屏蔽用户列表失败:', error);
+    console.error('❌ [getBlockedUserIds] 获取屏蔽用户列表失败:', error);
     return [];
   }
 }

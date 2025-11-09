@@ -90,14 +90,11 @@ exports.main = async (event, context) => {
     // 3. 查找相似内容（相同作者或标签的帖子）
     let query = db.collection('posts').aggregate();
 
-    // 获取被屏蔽的用户ID列表
+    // 获取被屏蔽的用户ID列表（使用缓存）
     let blockedUserIds = [];
     try {
-      const blocksRes = await db.collection('blocks')
-        .where({ blockerId: openid })
-        .field({ blockedId: true })
-        .get();
-      blockedUserIds = blocksRes.data.map(item => item.blockedId);
+      const getBlockedUserIds = require('../_lib/get-blocked-user-ids');
+      blockedUserIds = await getBlockedUserIds(openid, db);
     } catch (blockError) {
       console.error('获取屏蔽列表失败:', blockError);
     }

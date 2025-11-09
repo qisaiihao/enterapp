@@ -9,10 +9,17 @@
       </view>
 
       <view class="form-wrapper compact">
-        <!-- 一键注册按钮 -->
-        <view class="one-click-register-btn" @tap="handleOneClickRegister" v-if="!phoneNumber">
+        <!-- 一键注册按钮（仅 APP 端显示） -->
+        <view class="one-click-register-btn" @tap="handleOneClickRegister" v-if="!phoneNumber && isApp">
           <text class="one-click-text">本机号码一键注册</text>
         </view>
+        
+        <!-- 其他端（H5、小程序等）预留短信验证码注册入口（已隐藏，如需启用请取消注释） -->
+        <!--
+        <view class="sms-register-btn" @tap="handleSmsRegister" v-if="!phoneNumber && !isApp">
+          <text class="sms-text">短信验证码注册</text>
+        </view>
+        -->
 
         <!-- 手机号显示（只读） -->
         <view class="input-wrapper" v-if="phoneNumber">
@@ -121,6 +128,15 @@ export default {
                    this.confirmPassword.trim() && 
                    this.nickName.trim() &&
                    this.password === this.confirmPassword;
+        },
+        // 判断是否为 APP 端
+        isApp() {
+            // #ifdef APP-PLUS
+            return true;
+            // #endif
+            // #ifndef APP-PLUS
+            return false;
+            // #endif
         }
     },
     
@@ -392,9 +408,18 @@ export default {
             uni.navigateBack();
         },
 
-        // 处理一键注册
+        // 处理一键注册（仅 APP 端支持）
         async handleOneClickRegister() {
             if (this.isGettingPhone) {
+                return;
+            }
+
+            // 平台判断：只有 APP 端支持一键登录
+            if (!this.isApp) {
+                uni.showToast({
+                    title: '当前平台不支持一键注册',
+                    icon: 'none'
+                });
                 return;
             }
 
@@ -405,7 +430,8 @@ export default {
             });
 
             try {
-                // 1. 调用一键登录授权
+                // 1. 调用一键登录授权（仅 APP 端支持）
+                // #ifdef APP-PLUS
                 const loginRes = await new Promise((resolve, reject) => {
                     uni.login({
                         provider: 'univerify',
@@ -413,6 +439,39 @@ export default {
                         fail: reject
                     });
                 });
+                // #endif
+                
+                // #ifndef APP-PLUS
+                // 其他端（H5、小程序等）预留短信验证码注册入口
+                // 注意：以下代码已注释，如需启用请取消注释并实现相应逻辑
+                /*
+                // 短信验证码注册流程（示例代码，未实现）
+                // 1. 显示手机号输入框和验证码输入框
+                // 2. 调用发送验证码接口
+                // 3. 用户输入验证码后，调用验证接口
+                // 4. 验证成功后，设置手机号到 this.phoneNumber
+                
+                // 示例代码结构：
+                // const phoneNumber = '用户输入的手机号';
+                // const verifyCode = '用户输入的验证码';
+                // 
+                // // 发送验证码
+                // await this.sendSmsCode(phoneNumber);
+                // 
+                // // 验证验证码
+                // const verifyRes = await this.verifySmsCode(phoneNumber, verifyCode);
+                // if (verifyRes.success) {
+                //     this.phoneNumber = phoneNumber;
+                //     uni.showToast({
+                //         title: '手机号获取成功',
+                //         icon: 'success'
+                //     });
+                // }
+                */
+                throw new Error('当前平台不支持一键注册，请使用其他方式');
+                // #endif
+
+                // #ifdef APP-PLUS
 
                 if (!loginRes.authResult || !loginRes.authResult.access_token || !loginRes.authResult.openid) {
                     throw new Error('获取授权失败');
@@ -456,6 +515,7 @@ export default {
                     title: '手机号获取成功',
                     icon: 'success'
                 });
+                // #endif
 
             } catch (error) {
                 console.error('❌ [一键注册] 失败:', error);

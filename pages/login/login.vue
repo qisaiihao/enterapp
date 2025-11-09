@@ -27,8 +27,8 @@
       </view>
     </view>
 
-    <!-- 底部绑定手机号弹窗 -->
-    <view class="bind-phone-modal" v-if="showBindPhoneModal" @tap.stop>
+    <!-- 底部绑定手机号弹窗（仅 APP 端显示） -->
+    <view class="bind-phone-modal" v-if="showBindPhoneModal && isApp" @tap.stop>
       <view class="modal-mask" @tap="closeBindPhoneModal"></view>
       <view class="modal-content">
         <view class="modal-header">
@@ -36,15 +36,11 @@
           <text class="modal-close" @tap="closeBindPhoneModal">×</text>
         </view>
         <view class="modal-body">
-          <text class="modal-text" v-if="isAppPlatform">为了您的账户安全，请绑定手机号</text>
-          <text class="modal-text" v-else>为了您的账户安全，请绑定手机号（暂仅支持APP端一键登录）</text>
+          <text class="modal-text">为了您的账户安全，请绑定手机号</text>
         </view>
         <view class="modal-footer">
           <view class="modal-btn cancel-btn" @tap="closeBindPhoneModal">稍后再说</view>
-          <!-- APP端显示一键登录按钮 -->
-          <view v-if="isAppPlatform" class="modal-btn confirm-btn" @tap="handleBindPhone" :class="{ disabled: isBindingPhone }">一键登录绑定</view>
-          <!-- 非APP端预留短信验证码登录入口（暂时注释） -->
-          <!-- <view v-else class="modal-btn confirm-btn" @tap="handleSmsLogin">短信验证码登录</view> -->
+          <view class="modal-btn confirm-btn" @tap="handleBindPhone" :class="{ disabled: isBindingPhone }">立即绑定</view>
         </view>
       </view>
     </view>
@@ -106,7 +102,8 @@ export default {
         canLogin() {
             return this.poemId.trim() && this.password.trim();
         },
-        isAppPlatform() {
+        // 判断是否为 APP 端
+        isApp() {
             // #ifdef APP-PLUS
             return true;
             // #endif
@@ -254,12 +251,12 @@ export default {
                         icon: 'success'
                     });
                     
-                    // 检查是否需要绑定手机号
-                    if (isPhoneVerified === false) {
-                        // 显示底部弹窗提示绑定手机号
+                    // 检查是否需要绑定手机号（仅 APP 端提示）
+                    if (isPhoneVerified === false && this.isApp) {
+                        // 显示底部弹窗提示绑定手机号（仅 APP 端）
                         this.showBindPhoneModal = true;
                     } else {
-                        // 已绑定手机号，直接跳转
+                        // 已绑定手机号，或非 APP 端，直接跳转
                         setTimeout(() => {
                             uni.switchTab({
                                 url: '/pages/poem-square/poem-square'
@@ -308,19 +305,18 @@ export default {
             }, 300);
         },
 
-        // 处理一键登录绑定手机号（仅APP端）
+        // 处理绑定手机号（仅 APP 端支持一键登录）
         async handleBindPhone() {
-
-            // 预留：短信验证码登录方法（非APP端）
-            // async handleSmsLogin() {
-            //     console.log('🔍 [短信登录] 开始短信验证码登录流程');
-            //     // TODO: 实现短信验证码登录逻辑
-            //     // 1. 跳转到短信验证码输入页面
-            //     // 2. 发送验证码
-            //     // 3. 验证码校验
-            //     // 4. 绑定手机号
-            // },
             if (this.isBindingPhone) {
+                return;
+            }
+
+            // 平台判断：只有 APP 端支持一键登录
+            if (!this.isApp) {
+                uni.showToast({
+                    title: '当前平台不支持一键登录',
+                    icon: 'none'
+                });
                 return;
             }
 
@@ -331,7 +327,8 @@ export default {
             });
 
             try {
-                // 1. 调用一键登录授权
+                // 1. 调用一键登录授权（仅 APP 端支持）
+                // #ifdef APP-PLUS
                 const loginRes = await new Promise((resolve, reject) => {
                     uni.login({
                         provider: 'univerify',
@@ -345,6 +342,38 @@ export default {
                 }
 
                 const { access_token, openid: univerifyOpenid } = loginRes.authResult;
+                // #endif
+                
+                // #ifndef APP-PLUS
+                // 其他端（H5、小程序等）预留短信验证码登录入口
+                // 注意：以下代码已注释，如需启用请取消注释并实现相应逻辑
+                /*
+                // 短信验证码登录流程（示例代码，未实现）
+                // 1. 显示手机号输入框和验证码输入框
+                // 2. 调用发送验证码接口
+                // 3. 用户输入验证码后，调用验证接口
+                // 4. 验证成功后，调用 updateUser 云函数更新手机号
+                
+                // 示例代码结构：
+                // const phoneNumber = '用户输入的手机号';
+                // const verifyCode = '用户输入的验证码';
+                // 
+                // // 发送验证码
+                // await this.sendSmsCode(phoneNumber);
+                // 
+                // // 验证验证码并绑定手机号
+                // const verifyRes = await this.verifySmsCode(phoneNumber, verifyCode);
+                // if (verifyRes.success) {
+                //     const bindRes = await this.callCloudFunction('updateUser', {
+                //         phoneNumber: phoneNumber
+                //     });
+                //     // 处理绑定结果...
+                // }
+                */
+                throw new Error('当前平台不支持一键登录，请使用其他方式绑定手机号');
+                // #endif
+
+                // #ifdef APP-PLUS
 
                 // 获取当前用户在腾讯云开发中的 openid
                 const app = getApp();
@@ -379,26 +408,17 @@ export default {
                         uni.setStorageSync('userInfo', app.globalData.userInfo);
                     }
 
-                    // 关闭弹窗
-                    this.showBindPhoneModal = false;
+                    uni.showToast({
+                        title: '绑定成功',
+                        icon: 'success'
+                    });
 
-                    // 延迟显示Toast并跳转，确保弹窗有足够时间消失
-                    setTimeout(() => {
-                        uni.showToast({
-                            title: '绑定成功',
-                            icon: 'success'
-                        });
-
-                        // 延迟跳转，让Toast显示完成
-                        setTimeout(() => {
-                            uni.switchTab({
-                                url: '/pages/poem-square/poem-square'
-                            });
-                        }, 1000);
-                    }, 300);
+                    // 关闭弹窗并跳转
+                    this.closeBindPhoneModal();
                 } else {
                     throw new Error('未获取到手机号');
                 }
+                // #endif
 
             } catch (error) {
                 console.error('❌ [绑定手机号] 失败:', error);
