@@ -1,0 +1,30 @@
+{
+	"compilerOptions": {
+		// Allow JS files and avoid deep type-checking of external libs
+		"allowJs": true,
+		"skipLibCheck": true,
+		// Loosen implicit any to avoid errors from JS plugins
+		"noImplicitAny": false,
+		// Module/target suitable for uni-app (Vue 2 projects typically use esnext)
+		"target": "es2019",
+		"module": "esnext",
+		"moduleResolution": "node",
+		"lib": ["es2019", "dom"],
+		"jsx": "preserve",
+		"baseUrl": ".",
+		"paths": {}
+	},
+	"include": [
+		"**/*.ts",
+		"**/*.d.ts",
+		"**/*.vue",
+		"uni_modules/**/*.js"
+	 ],
+	"exclude": [
+		"node_modules",
+		"unpackage",
+		"dist"
+	]
+}
+
+

@@ -835,7 +835,7 @@ export default {
 .filter-toggle-container {
   position: absolute;
   top: calc(env(safe-area-inset-top, 44px) + 120rpx); /* 状态栏高度 + 顶部栏高度 + 额外间距 */
-  right: 30rpx;
+  left: 30rpx;
   z-index: 1;
 }
 

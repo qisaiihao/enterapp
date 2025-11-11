@@ -19,7 +19,8 @@
       "Bash(npx @dcloudio/uvm)",
       "Bash(npm run dev:app-plus:*)",
       "Bash(powershell:*)",
-      "Bash(clean_logs.bat:*)"
+      "Bash(clean_logs.bat:*)",
+      "WebFetch(domain:doc.dcloud.net.cn)"
     ],
     "deny": [],
     "ask": []

@@ -9,7 +9,10 @@ const _ = db.command;
 
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
-  const openid = wxContext.OPENID || event.openid;
+  // 与 getPostList/vote 保持一致：优先使用前端注入的 event.openid，
+  // 在某些运行环境（如 App/H5 通过 uniCloud）下，wxContext.OPENID 可能不可用或为空，
+  // 这会导致后续点赞状态查询用错 openid，从而初始显示“未点赞”。
+  const openid = event.openid || wxContext.OPENID;
 
   if (!openid) {
     return {
@@ -133,7 +136,32 @@ exports.main = async (event, context) => {
     // 8. 处理头像URL
     await enrichAvatarUrls(posts);
 
-    // 9. 获取总数（用于判断是否还有更多）
+    // 9. 查询当前用户对这些帖子的点赞状态
+    if (posts.length > 0) {
+      try {
+        const postIds = posts.map(post => post._id);
+        const votesResult = await db.collection('votes_log')
+          .where({
+            _openid: openid,
+            postId: _.in(postIds),
+            type: 'post'
+          })
+          .get();
+
+        const votedPostIds = new Set(votesResult.data.map(v => v.postId));
+        posts.forEach(post => {
+          post.isVoted = votedPostIds.has(post._id);
+        });
+      } catch (err) {
+        console.error('获取点赞状态失败:', err);
+        // 如果查询失败，默认所有帖子都未点赞
+        posts.forEach(post => {
+          post.isVoted = false;
+        });
+      }
+    }
+
+    // 10. 获取总数（用于判断是否还有更多）
     const totalRes = await db.collection('posts')
       .where(queryConditions)
       .count();

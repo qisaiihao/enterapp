@@ -22,6 +22,7 @@
             "Camera" : {},
             "File" : {},
             "IO" : {},
+			"Upgrade": {},
             "OAuth" : {}
         },
         "distribute" : {
@@ -94,7 +95,7 @@
             }
         },
         "uniStatistics" : {
-            "enable" : true
+            "enable" : false
         },
         "uniCloud" : {
             "service" : "poementer",
@@ -133,7 +134,7 @@
     "fallbackLocale" : "zh-Hans",
     "h5" : {
         "uniStatistics" : {
-            "enable" : true
+            "enable" : false
         }
     }
 }

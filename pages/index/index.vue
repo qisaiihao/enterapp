@@ -2156,6 +2156,18 @@ onReachBottom: function () {
 
                     console.log('关注页数据加载完成，帖子数量:', posts.length, '累计:', newList.length);
 
+                    // 将云函数返回的点赞状态更新到缓存中
+                    try {
+                        const updateLikeStatus = likeSync.updateLikeStatus;
+                        res.result.posts.forEach((post) => {
+                            if (post._id && (post.isVoted !== undefined || post.votes !== undefined)) {
+                                updateLikeStatus(post._id, post.votes || 0, post.isVoted || false);
+                            }
+                        });
+                    } catch (e) {
+                        console.warn('关注页更新点赞状态到缓存失败:', e);
+                    }
+
                     // 数据加载完成后，同步点赞状态（参考广场页实现）
                     try {
                         this.syncLikeStatusFromCache && this.syncLikeStatusFromCache();

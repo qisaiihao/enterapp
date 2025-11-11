@@ -22,20 +22,28 @@ export default {
         uni.removeStorageSync('cachedPostList');
         
         // #ifdef APP-PLUS
-        // 检查更新（热更新）- 仅在 App 端执行
-        // 双重保护：条件编译（编译时） + 运行时检查（plus 对象）
-        if (typeof plus !== 'undefined' && plus.runtime) {
-            try {
-                checkUpdate().then((result) => {
-                    console.log('✅ [热更新] 检查完成:', result);
-                }).catch((err) => {
-                    // 静默处理错误，避免影响应用启动
-                    console.warn('⚠️ [热更新] 检查失败（已忽略）:', err);
-                });
-            } catch (error) {
-                // 静默处理异常，避免影响应用启动
-                console.warn('⚠️ [热更新] 检查更新异常（已忽略）:', error);
-            }
+        console.log('当前为 APP-PLUS 环境，准备获取版本信息...');
+        try {
+            plus.runtime.getProperty(plus.runtime.appid, function(widgetInfo) {
+                console.log('plus.runtime.getProperty 回调已执行, widgetInfo 内容为:', JSON.stringify(widgetInfo));
+                if (widgetInfo && widgetInfo.version) {
+                    console.log('成功获取到当前应用版本:', widgetInfo.version);
+                    // 可在此执行热更新/版本检查
+                    try {
+                        checkUpdate().then((result) => {
+                            console.log('✅ [热更新] 检查完成:', result);
+                        }).catch((err) => {
+                            console.warn('⚠️ [热更新] 检查失败（已忽略）:', err);
+                        });
+                    } catch (e) {
+                        console.warn('⚠️ [热更新] 调用异常（已忽略）:', e);
+                    }
+                } else {
+                    console.error('获取应用版本信息失败，请检查 manifest.json 配置或运行环境。');
+                }
+            });
+        } catch (error) {
+            console.warn('⚠️ [App版本] 读取版本信息失败（已忽略）:', error);
         }
         // #endif
         

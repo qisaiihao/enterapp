@@ -59,16 +59,16 @@ import Vue from 'vue';
 import tcb from '@cloudbase/js-sdk';
 // #endif
 
-// 2. 初始化云开发环境
+// 2. 初始化云开发环境（支持热更新/重复执行，确保单例）
 // #ifdef H5 || APP-PLUS
-const tcbApp = tcb.init({
-  // !!!【请在此处替换为您自己的环境 ID】!!!
+const __global = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : {});
+const tcbApp = __global.__tcbAppInstance || tcb.init({
   env: 'cloud1-5gb0pbyl400845f5',
-  // 启用匿名认证，允许未登录用户调用云函数
-  auth: {
-    persistence: 'local'
-  }
+  auth: { persistence: 'local' }
 });
+if (!__global.__tcbAppInstance) {
+  __global.__tcbAppInstance = tcbApp;
+}
 // #endif
 
 // 3. 将 tcb 实例挂载到 Vue 的原型上
@@ -119,7 +119,7 @@ console.log('🔧 [TCB初始化] TCB实例已创建:', tcbApp);
 console.log('🔧 [TCB初始化] 环境ID:', tcbApp.config?.env);
 console.log('🔧 [TCB初始化] 数据库方法可用:', typeof tcbApp.database === 'function');
 
-// 5. 立即进行匿名认证，确保在调用云函数之前完成认证
+// 5. 立即进行匿名认证，确保在调用云函数之前完成认证（幂等处理）
 // 这是关键修复：在应用启动时就完成 TCB 匿名认证，避免后续调用云函数时出现 "you can't request without auth" 错误
 // #ifdef H5 || APP-PLUS
 (async () => {
