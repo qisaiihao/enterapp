@@ -46,6 +46,10 @@ export default {
             console.warn('⚠️ [App版本] 读取版本信息失败（已忽略）:', error);
         }
         // #endif
+
+        // #ifdef H5
+        console.log('当前为 H5 环境，跳过热更新检查');
+        // #endif
         
         // 执行登录流程
         this.loginAndCheckUser();

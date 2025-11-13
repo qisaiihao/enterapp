@@ -4,7 +4,8 @@
  */
 
 const cloud = require('wx-server-sdk');
-const blockedCache = require('../../utils/blocked-users-cache');
+const path = require('path');
+const blockedCache = require(path.resolve(__dirname, './blocked-users-cache'));
 
 /**
  * 获取被屏蔽的用户ID列表
@@ -51,4 +52,5 @@ async function getBlockedUserIds(blockerId, db = null) {
 }
 
 module.exports = getBlockedUserIds;
+
 

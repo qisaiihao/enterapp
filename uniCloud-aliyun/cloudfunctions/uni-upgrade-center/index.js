@@ -1,5 +1,6 @@
 'use strict';
-const uniID = require('uni-id-common')
+// 延迟创建 uni-id 实例，避免未配置时导致热更新检测报错
+let uniID
 const success = { success: true }
 const fail = { success: false }
 const checkVersion = require('./checkVersion')
@@ -23,7 +24,8 @@ exports.main = async (event, context) => {
 	const db = uniCloud.database()
 	const appListDBName = 'opendb-app-list'
 	const appVersionDBName = 'opendb-app-versions'
-	const uniIDIns = uniID.createInstance({ context: context })
+	// 仅在需要鉴权的操作时才创建 uni-id 实例
+	let uniIDIns
 	let res = {};
 
 	if (event.headers) {
@@ -47,6 +49,8 @@ exports.main = async (event, context) => {
 			res = await checkVersion(event, context)
 			break;
 		case 'deleteFile':
+			if (!uniID) uniID = require('uni-id-common')
+			if (!uniIDIns) uniIDIns = uniID.createInstance({ context })
 			let checkDeletePermission = await checkPermission(uniIDIns, event.uniIdToken, 'DELETE_OPENDB_APP_VERSIONS')
 			if (checkDeletePermission === true) {
 				res = await uniCloud.deleteFile({ fileList: params.fileList })
@@ -55,6 +59,8 @@ exports.main = async (event, context) => {
 			}
 			break;
 		case 'setNewAppData':
+			if (!uniID) uniID = require('uni-id-common')
+			if (!uniIDIns) uniIDIns = uniID.createInstance({ context })
 			let checkUpdatePermission = await checkPermission(uniIDIns, event.uniIdToken, 'UPDATE_OPENDB_APP_LIST')
 			if (checkUpdatePermission === true) {
 				params.value.create_date = Date.now()
@@ -108,3 +114,8 @@ exports.main = async (event, context) => {
 	//返回数据给客户端
 	return res
 };
+
+
+
+
+

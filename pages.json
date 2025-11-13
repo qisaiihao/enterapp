@@ -269,7 +269,18 @@
         "usingComponents": {}
       }
     }
-  ],
+    /* #ifdef APP-PLUS */
+    ,
+    {
+      "path": "uni_modules/uni-upgrade-center-app/pages/upgrade-popup",
+      "style": {
+        "navigationStyle": "custom",
+        "backgroundColor": "transparent"
+      }
+    }
+  
+    /* #endif */
+],
   "tabBar": {
 
     "custom": true,

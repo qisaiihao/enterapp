@@ -8,7 +8,7 @@ const db = cloud.database();
 const _ = db.command;
 
 // 引入屏蔽名单缓存工具
-const blockedCache = require('../../utils/blocked-users-cache');
+const blockedCache = require('./blocked-users-cache');
 
 exports.main = async (event, context) => {
   console.log('🔍 [block] 云函数开始执行，event:', JSON.stringify(event));
@@ -401,4 +401,5 @@ async function enrichAvatarUrls(list) {
     console.error('block 头像URL转换失败:', error);
   }
 }
+
 
