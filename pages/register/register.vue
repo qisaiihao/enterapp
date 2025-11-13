@@ -9,17 +9,52 @@
       </view>
 
       <view class="form-wrapper compact">
-        <!-- 一键注册按钮（仅 APP 端显示） -->
-        <view class="one-click-register-btn" @tap="handleOneClickRegister" v-if="!phoneNumber && isApp">
-          <text class="one-click-text">本机号码一键注册</text>
+        <!-- APP端：优先显示一键注册，其次显示短信注册 -->
+        <view v-if="isApp">
+          <!-- 一键注册按钮 -->
+          <view v-if="!showSmsMethod" class="one-click-register-btn" @tap="handleOneClickRegister">
+            <text class="one-click-text">本机号码一键注册</text>
+          </view>
+
+          <!-- 短信验证码注册（当一键注册失败或用户选择时） -->
+          <view v-if="showSmsMethod" class="sms-register-section">
+            <view class="input-wrapper">
+              <text class="input-label">手机号</text>
+              <input class="input-field" type="number" placeholder="请输入手机号" v-model="smsPhoneNumber" maxlength="11" />
+            </view>
+            <view class="code-wrapper">
+              <view class="input-wrapper code-input-wrapper">
+                <text class="input-label">验证码</text>
+                <input class="input-field" type="number" placeholder="请输入验证码" v-model="smsCode" maxlength="6" />
+              </view>
+              <view class="code-send-btn" @tap="sendSmsCode" :class="{ disabled: isSendingSms || smsCountdown > 0 || !smsPhoneNumber }">
+                <text class="code-send-text">{{ smsCountdown > 0 ? `${smsCountdown}秒后重发` : (isSendingSms ? '发送中...' : '获取验证码') }}</text>
+              </view>
+            </view>
+          </view>
+
+          <!-- 切换注册方式 -->
+          <view v-if="!phoneNumber" class="switch-method-text" @tap="toggleRegisterMethod">
+            <text>{{ showSmsMethod ? '使用一键注册' : '使用短信验证码注册' }}</text>
+          </view>
         </view>
-        
-        <!-- 其他端（H5、小程序等）预留短信验证码注册入口（已隐藏，如需启用请取消注释） -->
-        <!--
-        <view class="sms-register-btn" @tap="handleSmsRegister" v-if="!phoneNumber && !isApp">
-          <text class="sms-text">短信验证码注册</text>
+
+        <!-- 其他端（H5、小程序等）：直接显示短信验证码注册 -->
+        <view v-if="!isApp && !phoneNumber" class="sms-register-section">
+          <view class="input-wrapper">
+            <text class="input-label">手机号</text>
+            <input class="input-field" type="number" placeholder="请输入手机号" v-model="smsPhoneNumber" maxlength="11" />
+          </view>
+          <view class="code-wrapper">
+            <view class="input-wrapper code-input-wrapper">
+              <text class="input-label">验证码</text>
+              <input class="input-field" type="number" placeholder="请输入验证码" v-model="smsCode" maxlength="6" />
+            </view>
+            <view class="code-send-btn" @tap="sendSmsCode" :class="{ disabled: isSendingSms || smsCountdown > 0 || !smsPhoneNumber }">
+              <text class="code-send-text">{{ smsCountdown > 0 ? `${smsCountdown}秒后重发` : (isSendingSms ? '发送中...' : '获取验证码') }}</text>
+            </view>
+          </view>
         </view>
-        -->
 
         <!-- 手机号显示（只读） -->
         <view class="input-wrapper" v-if="phoneNumber">
@@ -61,6 +96,7 @@
         <text class="ek-text">Enter ↵</text>
       </view>
     </view>
+
   </view>
 </template>
 
@@ -117,7 +153,15 @@ export default {
             isUploadingAvatar: false,
             // 手机号相关
             phoneNumber: '',
-            isGettingPhone: false
+            isGettingPhone: false,
+            // 短信验证码相关
+            smsPhoneNumber: '',
+            smsCode: '',
+            isSendingSms: false,
+            smsCountdown: 0,
+            smsTimer: null,
+            // 注册方式切换（APP端）
+            showSmsMethod: false
         };
     },
     
@@ -311,6 +355,21 @@ export default {
                 return;
             }
 
+            // 如果是短信注册方式，先验证验证码
+            if (!this.isApp && !this.phoneNumber) {
+                // 其他端必须验证手机号
+                const verifySuccess = await this.verifyAndSetPhone();
+                if (!verifySuccess) {
+                    return;
+                }
+            } else if (this.isApp && this.showSmsMethod && !this.phoneNumber) {
+                // APP端选择了短信注册，也必须验证
+                const verifySuccess = await this.verifyAndSetPhone();
+                if (!verifySuccess) {
+                    return;
+                }
+            }
+
             this.isRegistering = true;
             uni.showLoading({
                 title: '注册中...',
@@ -406,6 +465,155 @@ export default {
         goToLogin() {
             // 跳转到登录页面
             uni.navigateBack();
+        },
+
+        // 短信验证码倒计时
+        startSmsCountdown() {
+            this.smsCountdown = 60;
+            this.smsTimer = setInterval(() => {
+                if (this.smsCountdown > 0) {
+                    this.smsCountdown--;
+                } else {
+                    clearInterval(this.smsTimer);
+                    this.smsTimer = null;
+                }
+            }, 1000);
+        },
+
+        // 发送短信验证码
+        async sendSmsCode() {
+            if (this.isSendingSms || this.smsCountdown > 0) {
+                return;
+            }
+
+            if (!this.smsPhoneNumber) {
+                uni.showToast({
+                    title: '请输入手机号',
+                    icon: 'none'
+                });
+                return;
+            }
+
+            // 验证手机号格式
+            const phoneRegex = /^1[3-9]\d{9}$/;
+            if (!phoneRegex.test(this.smsPhoneNumber)) {
+                uni.showToast({
+                    title: '请输入正确的手机号',
+                    icon: 'none'
+                });
+                return;
+            }
+
+            this.isSendingSms = true;
+            uni.showLoading({
+                title: '发送中...',
+                mask: true
+            });
+
+            try {
+                // 调用 uniCloud 发送短信验证码
+                const result = await callUniCloudFunction('sendSmsCode', {
+                    phone: this.smsPhoneNumber,
+                    scene: 'register'
+                });
+
+                console.log('📱 [短信注册] 发送结果:', result);
+
+                if (result.result && result.result.code === 0) {
+                    uni.showToast({
+                        title: '验证码已发送',
+                        icon: 'success'
+                    });
+                    this.startSmsCountdown();
+                } else {
+                    const message = result.result?.message || '发送失败';
+                    uni.showToast({
+                        title: message,
+                        icon: 'none',
+                        duration: 3000
+                    });
+                }
+            } catch (error) {
+                console.error('📱 [短信注册] 发送失败:', error);
+                uni.showToast({
+                    title: '发送失败，请重试',
+                    icon: 'none'
+                });
+            } finally {
+                uni.hideLoading();
+                this.isSendingSms = false;
+            }
+        },
+
+        // 验证短信验证码并设置手机号
+        async verifyAndSetPhone() {
+            if (!this.smsCode) {
+                uni.showToast({
+                    title: '请输入验证码',
+                    icon: 'none'
+                });
+                return false;
+            }
+
+            if (this.smsCode.length !== 6) {
+                uni.showToast({
+                    title: '请输入6位验证码',
+                    icon: 'none'
+                });
+                return false;
+            }
+
+            try {
+                // 调用 uniCloud 验证码校验函数
+                console.log('📱 [短信注册] 验证验证码:', this.smsCode);
+
+                const result = await callUniCloudFunction('verifySmsCode', {
+                    phone: this.smsPhoneNumber,
+                    code: this.smsCode,
+                    scene: 'register'
+                });
+
+                console.log('📱 [短信注册] 验证结果:', result);
+
+                if (result.result && result.result.code === 0) {
+                    // 验证成功，设置手机号
+                    this.phoneNumber = this.smsPhoneNumber;
+                    uni.showToast({
+                        title: '验证成功',
+                        icon: 'success'
+                    });
+                    return true;
+                } else {
+                    const message = result.result?.message || '验证码错误';
+                    uni.showToast({
+                        title: message,
+                        icon: 'none'
+                    });
+                    return false;
+                }
+            } catch (error) {
+                console.error('📱 [短信注册] 验证失败:', error);
+                uni.showToast({
+                    title: '验证失败，请重试',
+                    icon: 'none'
+                });
+                return false;
+            }
+        },
+
+        // 切换注册方式（APP端）
+        toggleRegisterMethod() {
+            this.showSmsMethod = !this.showSmsMethod;
+            // 清理短信相关数据
+            if (!this.showSmsMethod) {
+                this.smsPhoneNumber = '';
+                this.smsCode = '';
+                if (this.smsTimer) {
+                    clearInterval(this.smsTimer);
+                    this.smsTimer = null;
+                }
+                this.smsCountdown = 0;
+            }
         },
 
         // 处理一键注册（仅 APP 端支持）
@@ -741,5 +949,156 @@ export default {
 .input-wrapper input[disabled] {
   background: #f0f0f0;
   color: #999;
+}
+
+/* 短信验证码弹窗样式 */
+.sms-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialog-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.dialog-content {
+  position: relative;
+  width: 85%;
+  max-width: 600rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 40rpx;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40rpx;
+}
+
+.dialog-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.dialog-close {
+  font-size: 48rpx;
+  color: #999;
+  line-height: 1;
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialog-body {
+  margin-bottom: 40rpx;
+}
+
+.code-wrapper {
+  display: flex;
+  gap: 20rpx;
+  align-items: flex-end;
+}
+
+.code-input-wrapper {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.code-send-btn {
+  height: 88rpx;
+  padding: 0 24rpx;
+  background: #667eea;
+  border-radius: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.code-send-btn:active {
+  opacity: 0.8;
+}
+
+.code-send-btn.disabled {
+  background: #ccc;
+  pointer-events: none;
+}
+
+.code-send-text {
+  font-size: 28rpx;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.dialog-footer {
+  display: flex;
+  gap: 24rpx;
+}
+
+.dialog-btn {
+  flex: 1;
+  height: 88rpx;
+  line-height: 88rpx;
+  text-align: center;
+  border-radius: 44rpx;
+  font-size: 32rpx;
+  font-weight: 500;
+}
+
+.cancel-btn {
+  background: #f5f6f7;
+  color: #666;
+}
+
+.confirm-btn {
+  background: #667eea;
+  color: #fff;
+}
+
+.confirm-btn.disabled {
+  background: #ccc;
+  pointer-events: none;
+}
+
+/* 短信注册按钮样式 */
+.sms-register-btn {
+  width: 100%;
+  height: 88rpx;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+  border-radius: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 36rpx;
+  box-shadow: 0 8rpx 25rpx rgba(255, 107, 107, 0.3);
+  transition: all 0.2s ease;
+}
+
+.sms-register-btn:active {
+  transform: translateY(2rpx);
+  box-shadow: 0 4rpx 15rpx rgba(255, 107, 107, 0.3);
+}
+
+.sms-text {
+  font-size: 32rpx;
+  color: #fff;
+  font-weight: 500;
 }
 </style>

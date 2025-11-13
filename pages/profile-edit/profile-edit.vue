@@ -37,8 +37,8 @@
                     </view>
                 </view>
 
-                <!-- 手机号（只读） -->
-                <view class="form-row">
+                <!-- 手机号（可修改） -->
+                <view class="form-row" @tap="onEditPhoneNumber">
                     <view class="form-label">
                         <text>手机号</text>
                     </view>
@@ -104,6 +104,57 @@
                 <text class="ek-text" :class="{ 'ek-text-inactive': !hasChanges }">enter ↵</text>
             </view>
         </view>
+
+        <!-- 修改手机号弹窗 -->
+        <view class="edit-phone-modal" v-if="showEditPhoneModal" @tap.stop>
+            <view class="modal-mask" @tap="closeEditPhoneModal"></view>
+            <view class="modal-content">
+                <view class="modal-header">
+                    <text class="modal-title">修改手机号</text>
+                    <text class="modal-close" @tap="closeEditPhoneModal">×</text>
+                </view>
+                <view class="modal-body">
+                    <text class="modal-text">请输入新手机号并通过短信验证</text>
+
+                    <!-- 新手机号输入 -->
+                    <view class="input-wrapper">
+                        <input
+                            class="input-field"
+                            type="number"
+                            placeholder="请输入新手机号"
+                            v-model="newPhoneNumber"
+                            maxlength="11"
+                        />
+                    </view>
+
+                    <!-- 验证码输入 -->
+                    <view class="code-wrapper">
+                        <view class="input-wrapper code-input-wrapper">
+                            <input
+                                class="input-field"
+                                type="number"
+                                placeholder="请输入验证码"
+                                v-model="smsCode"
+                                maxlength="6"
+                            />
+                        </view>
+                        <view
+                            class="code-send-btn"
+                            @tap="sendEditPhoneSmsCode"
+                            :class="{ disabled: isSendingSms || smsCountdown > 0 || !newPhoneNumber }"
+                        >
+                            <text class="code-send-text">{{ smsCountdown > 0 ? `${smsCountdown}秒后重发` : (isSendingSms ? '发送中...' : '获取验证码') }}</text>
+                        </view>
+                    </view>
+                </view>
+                <view class="modal-footer">
+                    <view class="modal-btn cancel-btn" @tap="closeEditPhoneModal">取消</view>
+                    <view class="modal-btn confirm-btn" @tap="handleEditPhoneConfirm" :class="{ disabled: isVerifying || (!newPhoneNumber || !smsCode) }">
+                        确认修改
+                    </view>
+                </view>
+            </view>
+        </view>
     </view>
 </template>
 
@@ -130,6 +181,14 @@ export default {
             signaturePreview: '',
             signatureTempPath: null,
             isProcessingSignature: false,
+            // 修改手机号相关
+            showEditPhoneModal: false,
+            newPhoneNumber: '',
+            smsCode: '',
+            isSendingSms: false,
+            isVerifying: false,
+            smsCountdown: 0,
+            smsTimer: null,
             // 原始数据用于对比
             originalData: {
                 avatarUrl: '',
@@ -189,6 +248,33 @@ export default {
         // 统一云函数调用方法
         callCloudFunction(name, data = {}, extraOptions = {}) {
             return cloudCall(name, data, Object.assign({ pageTag: 'profile-edit', context: this, requireAuth: true }, extraOptions));
+        },
+
+        // 调用 uniCloud 云函数（自动处理本地调试服务连接失败的情况）
+        async callUniCloudFunction(name, data) {
+            try {
+                return await uniCloud.callFunction({
+                    name: name,
+                    data: data
+                });
+            } catch (error) {
+                const errorMsg = error.message || error.errMsg || String(error);
+                const isLocalDebugError = errorMsg.includes('无法连接uniCloud本地调试服务') ||
+                                          errorMsg.includes('uniCloud本地调试') ||
+                                          errorMsg.includes('本地调试服务') ||
+                                          errorMsg.includes('localhost') ||
+                                          errorMsg.includes('127.0.0.1');
+
+                if (isLocalDebugError) {
+                    console.warn('⚠️ [uniCloud] 检测到本地调试服务连接失败');
+                    const enhancedError = new Error('无法连接 uniCloud 本地调试服务');
+                    enhancedError.originalError = error;
+                    enhancedError.code = 'UNICLOUD_LOCAL_DEBUG_FAILED';
+                    throw enhancedError;
+                }
+
+                throw error;
+            }
         },
 
         fetchUserProfile: function () {
@@ -652,6 +738,229 @@ export default {
             uni.navigateBack();
         },
 
+        // 修改手机号相关方法
+        onEditPhoneNumber() {
+            console.log('📱 [profile-edit] 点击修改手机号');
+            this.showEditPhoneModal = true;
+            // 重置表单数据
+            this.newPhoneNumber = '';
+            this.smsCode = '';
+            this.smsCountdown = 0;
+            if (this.smsTimer) {
+                clearInterval(this.smsTimer);
+                this.smsTimer = null;
+            }
+        },
+
+        closeEditPhoneModal() {
+            console.log('📱 [profile-edit] 关闭修改手机号弹窗');
+            this.showEditPhoneModal = false;
+            this.newPhoneNumber = '';
+            this.smsCode = '';
+            this.smsCountdown = 0;
+            if (this.smsTimer) {
+                clearInterval(this.smsTimer);
+                this.smsTimer = null;
+            }
+        },
+
+        // 发送短信验证码（修改手机号）
+        async sendEditPhoneSmsCode() {
+            if (this.isSendingSms || this.smsCountdown > 0 || !this.newPhoneNumber) {
+                return;
+            }
+
+            // 验证手机号格式
+            const phoneRegex = /^1[3-9]\d{9}$/;
+            if (!phoneRegex.test(this.newPhoneNumber)) {
+                uni.showToast({
+                    title: '请输入正确的手机号格式',
+                    icon: 'none'
+                });
+                return;
+            }
+
+            // 检查是否和原手机号相同
+            if (this.newPhoneNumber === this.phoneNumber) {
+                uni.showToast({
+                    title: '新手机号不能与当前手机号相同',
+                    icon: 'none'
+                });
+                return;
+            }
+
+            this.isSendingSms = true;
+            uni.showLoading({
+                title: '发送中...',
+                mask: true
+            });
+
+            try {
+                // 调用 uniCloud 发送短信验证码
+                const result = await this.callUniCloudFunction('sendSmsCode', {
+                    phone: this.newPhoneNumber,
+                    scene: 'updatePhone' // 修改手机号场景
+                });
+
+                console.log('📱 [profile-edit] 发送短信结果:', result);
+
+                if (result.result && result.result.code === 0) {
+                    uni.showToast({
+                        title: '验证码已发送',
+                        icon: 'success'
+                    });
+                    this.startSmsCountdown();
+                } else {
+                    const message = result.result?.message || '发送失败';
+                    uni.showToast({
+                        title: message,
+                        icon: 'none',
+                        duration: 3000
+                    });
+                }
+            } catch (error) {
+                console.error('📱 [profile-edit] 发送短信失败:', error);
+
+                // 检查是否是 uniCloud 本地调试服务连接问题
+                const errorMsg = error.message || error.errMsg || '';
+                const errorCode = error.code || '';
+
+                if (errorCode === 'UNICLOUD_LOCAL_DEBUG_FAILED' ||
+                    errorMsg.includes('无法连接uniCloud本地调试服务') ||
+                    errorMsg.includes('uniCloud本地调试') ||
+                    errorMsg.includes('本地调试服务')) {
+                    uni.showModal({
+                        title: '连接 uniCloud 服务失败',
+                        content: '无法连接 uniCloud 本地调试服务。\n\n解决方案：\n1. 在 HBuilderX 运行控制台切换到"连接云端云函数"\n2. 或者确保客户端与主机在同一局域网\n3. 或者检查防火墙是否拦截了 HBuilderX\n4. 如果切换网络环境，请重启 HBuilderX',
+                        showCancel: false,
+                        confirmText: '知道了'
+                    });
+                } else {
+                    uni.showToast({
+                        title: '发送失败，请重试',
+                        icon: 'none'
+                    });
+                }
+            } finally {
+                uni.hideLoading();
+                this.isSendingSms = false;
+            }
+        },
+
+        // 短信验证码倒计时
+        startSmsCountdown() {
+            this.smsCountdown = 60;
+            this.smsTimer = setInterval(() => {
+                if (this.smsCountdown > 0) {
+                    this.smsCountdown--;
+                } else {
+                    clearInterval(this.smsTimer);
+                    this.smsTimer = null;
+                }
+            }, 1000);
+        },
+
+        // 确认修改手机号
+        async handleEditPhoneConfirm() {
+            if (this.isVerifying || !this.newPhoneNumber || !this.smsCode) {
+                return;
+            }
+
+            // 验证手机号格式
+            const phoneRegex = /^1[3-9]\d{9}$/;
+            if (!phoneRegex.test(this.newPhoneNumber)) {
+                uni.showToast({
+                    title: '请输入正确的手机号格式',
+                    icon: 'none'
+                });
+                return;
+            }
+
+            if (!this.smsCode || this.smsCode.length !== 6) {
+                uni.showToast({
+                    title: '请输入6位验证码',
+                    icon: 'none'
+                });
+                return;
+            }
+
+            this.isVerifying = true;
+            uni.showLoading({
+                title: '验证中...',
+                mask: true
+            });
+
+            try {
+                // 1. 验证短信验证码
+                const verifyRes = await this.callUniCloudFunction('verifySmsCode', {
+                    phone: this.newPhoneNumber,
+                    code: this.smsCode,
+                    scene: 'updatePhone'
+                });
+
+                console.log('📱 [profile-edit] 验证短信结果:', verifyRes);
+
+                if (verifyRes.result && verifyRes.result.code === 0) {
+                    // 2. 验证成功，更新用户手机号
+                    const updateRes = await this.callCloudFunction('updateUser', {
+                        phoneNumber: this.newPhoneNumber,
+                        isPhoneVerified: true
+                    });
+
+                    if (updateRes.result && updateRes.result.success) {
+                        uni.showToast({
+                            title: '手机号修改成功',
+                            icon: 'success'
+                        });
+
+                        // 更新本地数据
+                        this.phoneNumber = this.newPhoneNumber;
+                        this.closeEditPhoneModal();
+
+                        // 更新全局用户信息
+                        const app = getApp();
+                        if (app.globalData.userInfo) {
+                            app.globalData.userInfo.phoneNumber = this.newPhoneNumber;
+                            app.globalData.userInfo.isPhoneVerified = true;
+                            uni.setStorageSync('userInfo', app.globalData.userInfo);
+                        }
+                    } else {
+                        throw new Error(updateRes.result?.message || '更新手机号失败');
+                    }
+                } else {
+                    const message = verifyRes.result?.message || '验证码错误';
+                    throw new Error(message);
+                }
+            } catch (error) {
+                console.error('📱 [profile-edit] 修改手机号失败:', error);
+
+                // 检查是否是 uniCloud 本地调试服务连接问题
+                const errorMsg = error.message || error.errMsg || '';
+                const errorCode = error.code || '';
+
+                if (errorCode === 'UNICLOUD_LOCAL_DEBUG_FAILED' ||
+                    errorMsg.includes('无法连接uniCloud本地调试服务') ||
+                    errorMsg.includes('uniCloud本地调试') ||
+                    errorMsg.includes('本地调试服务')) {
+                    uni.showModal({
+                        title: '连接 uniCloud 服务失败',
+                        content: '无法连接 uniCloud 本地调试服务。\n\n解决方案：\n1. 在 HBuilderX 运行控制台切换到"连接云端云函数"\n2. 或者确保客户端与主机在同一局域网\n3. 或者检查防火墙是否拦截了 HBuilderX\n4. 如果切换网络环境，请重启 HBuilderX',
+                        showCancel: false,
+                        confirmText: '知道了'
+                    });
+                } else {
+                    uni.showToast({
+                        title: error.message || '修改失败，请重试',
+                        icon: 'none',
+                        duration: 3000
+                    });
+                }
+            } finally {
+                uni.hideLoading();
+                this.isVerifying = false;
+            }
+        },
+
         onSaveChanges: function () {
             if (this.isSaving || this.isProcessingSignature || !this.hasChanges) {
                 return;
@@ -1044,5 +1353,166 @@ export default {
     .form-label text, .input-field, .picker-display {
         font-size: 28rpx;
     }
+}
+
+/* 修改手机号弹窗 - 仅弹窗样式，不影响原有表单 */
+.edit-phone-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.modal-mask {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    position: relative;
+    width: 100%;
+    background: #fff;
+    border-radius: 32rpx 32rpx 0 0;
+    padding: 40rpx;
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32rpx;
+}
+
+.modal-title {
+    font-size: 36rpx;
+    font-weight: 600;
+    color: #333;
+}
+
+.modal-close {
+    font-size: 48rpx;
+    color: #999;
+    line-height: 1;
+    width: 48rpx;
+    height: 48rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-body {
+    margin-bottom: 40rpx;
+}
+
+.modal-text {
+    font-size: 28rpx;
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 32rpx;
+    display: block;
+}
+
+.modal-footer {
+    display: flex;
+    gap: 24rpx;
+}
+
+.modal-btn {
+    flex: 1;
+    height: 88rpx;
+    line-height: 88rpx;
+    text-align: center;
+    border-radius: 44rpx;
+    font-size: 32rpx;
+    font-weight: 500;
+}
+
+.cancel-btn {
+    background: #f5f6f7;
+    color: #666;
+}
+
+.confirm-btn {
+    background: #333;
+    color: #fff;
+}
+
+.confirm-btn.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* 验证码输入区域样式 - 仅弹窗内部使用 */
+.code-wrapper {
+    display: flex;
+    gap: 20rpx;
+    align-items: flex-end;
+    margin-bottom: 24rpx;
+}
+
+.code-input-wrapper {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+.code-send-btn {
+    height: 88rpx;
+    padding: 0 24rpx;
+    background: #667eea;
+    border-radius: 44rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.code-send-btn:active {
+    opacity: 0.8;
+}
+
+.code-send-btn.disabled {
+    background: #ccc;
+    pointer-events: none;
+}
+
+.code-send-text {
+    font-size: 28rpx;
+    color: #fff;
+    white-space: nowrap;
+}
+
+.input-wrapper {
+    margin-bottom: 24rpx;
+}
+
+/* 弹窗中的输入框样式 - 不影响原有表单输入框 */
+.modal-content .input-field {
+    width: 100%;
+    height: 88rpx;
+    border: 1rpx solid #e0e0e0;
+    border-radius: 12rpx;
+    padding: 0 24rpx;
+    font-size: 30rpx;
+    color: #333;
+    background: #f8f8f8;
 }
 </style>

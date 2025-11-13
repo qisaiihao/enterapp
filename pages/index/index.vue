@@ -1,5 +1,5 @@
-﻿<template>
-    <view class="page-wrapper">
+<template>
+    <view class="page-wrapper" :class="{ 'is-scrolling': isTouchScrolling }">
         <!-- index.wxml -->
         <view class="container">
 
@@ -34,6 +34,9 @@
                             scroll-y="true" 
                             class="swiper-page" 
                             @scroll="handleScroll"
+                            @touchstart="onTouchStart"
+                            @touchmove="onTouchMove"
+                            @touchend="onTouchEnd"
                             refresher-enabled="true"
                             :refresher-triggered="isRefreshing"
                             :refresher-threshold="90"
@@ -178,6 +181,9 @@
                             scroll-y="true" 
                             class="swiper-page" 
                             @scroll="handleScroll"
+                            @touchstart="onTouchStart"
+                            @touchmove="onTouchMove"
+                            @touchend="onTouchEnd"
                             refresher-enabled="true"
                             :refresher-triggered="isRefreshing"
                             :refresher-threshold="90"
@@ -315,6 +321,9 @@
                             scroll-y="true" 
                             class="swiper-page" 
                             @scroll="handleScroll"
+                            @touchstart="onTouchStart"
+                            @touchmove="onTouchMove"
+                            @touchend="onTouchEnd"
                             refresher-enabled="true"
                             :refresher-triggered="isRefreshing"
                             :refresher-threshold="90"
@@ -561,7 +570,14 @@ export default {
             // swiper缓动函数
             easeOutCubic: 'cubic-bezier(0.33, 1, 0.68, 1)',
             // 只看普通帖子模式（排除诗歌和讨论）
-            showNormalPostsOnly: false
+            showNormalPostsOnly: false,
+            // gesture/scroll flags to suppress active/hover during scroll
+            isTouchScrolling: false,
+            touchStartX: 0,
+            touchStartY: 0,
+            touchMoved: false,
+            hoverResetTimer: null,
+            lastScrollTime: 0
         };
     },
     onLoad: function (options) {
@@ -742,6 +758,10 @@ onReachBottom: function () {
 
         // 处理滚动事件（从 onPageScroll 迁移过来）
         handleScroll: function (e) {
+            // Mark scrolling and debounce end to avoid flicker
+            if (typeof this.kickScrollGuard === 'function') {
+                this.kickScrollGuard();
+            }
             if (this.scrollTimer) {
                 clearTimeout(this.scrollTimer);
             }
@@ -1148,6 +1168,7 @@ onReachBottom: function () {
 
         // catch:tap 用于图片预览，并阻止跳转
         handlePreview: function (event) {
+                        if (this.tapDisabled && this.tapDisabled()) { return; }
             console.log('【图片预览】handlePreview事件触发');
             const dataset = event && event.currentTarget ? event.currentTarget.dataset : {};
             console.log('【图片预览】event.currentTarget.dataset:', dataset);
@@ -1159,6 +1180,7 @@ onReachBottom: function () {
         },
 
         onVote: function (event) {
+                        if (this.tapDisabled && this.tapDisabled()) { return; }
             // 注意：小程序中不需要手动stopPropagation，因为使用了catch:tap绑定
             console.log('【点赞】onVote事件触发', event.currentTarget.dataset);
             const postId = event.currentTarget.dataset.postid;
@@ -1374,6 +1396,7 @@ onReachBottom: function () {
 
         // 新增：跳转到用户个人主页
         navigateToUserProfile: function (e) {
+                        if (this.tapDisabled && this.tapDisabled()) { return; }
             try {
                 console.log('【头像点击】事件触发', e);
 
@@ -1621,6 +1644,7 @@ onReachBottom: function () {
 
         // 切换只看普通帖子模式
         toggleNormalPostsFilter: function () {
+                        if (this.tapDisabled && this.tapDisabled()) { return; }
             const newMode = !this.showNormalPostsOnly;
             console.log('【首页】切换只看普通帖子模式:', newMode);
             
@@ -2236,6 +2260,54 @@ onReachBottom: function () {
         },
 
 
+        // --- touch / scroll guards ---
+        onTouchStart(e) {
+            try {
+                const t = (e && e.touches && e.touches[0]) || (e && e.changedTouches && e.changedTouches[0]);
+                if (!t) return;
+                this.touchStartX = t.clientX || t.pageX || 0;
+                this.touchStartY = t.clientY || t.pageY || 0;
+                this.touchMoved = false;
+            } catch (_) {}
+        },
+        onTouchMove(e) {
+            try {
+                const t = (e && e.touches && e.touches[0]) || (e && e.changedTouches && e.changedTouches[0]);
+                if (!t) return;
+                const dx = (t.clientX || t.pageX || 0) - (this.touchStartX || 0);
+                const dy = (t.clientY || t.pageY || 0) - (this.touchStartY || 0);
+                if (Math.abs(dx) + Math.abs(dy) > 8) {
+                    this.touchMoved = true;
+                    if (typeof this.kickScrollGuard === 'function') this.kickScrollGuard();
+                }
+            } catch (_) {}
+        },
+        onTouchEnd() {
+            if (this.touchMoved || this.isTouchScrolling) {
+                if (typeof this.kickScrollGuard === 'function') this.kickScrollGuard();
+            }
+        },
+        tapDisabled() {
+            try {
+                if (this.isTouchScrolling) return true;
+                if (this.lastScrollTime && (Date.now() - this.lastScrollTime) < 300) return true;
+            } catch (_) {}
+            return false;
+        },
+        // Centralized guard to mark scrolling and clear after a quiet period
+        kickScrollGuard() {
+            try {
+                this.isTouchScrolling = true;
+                this.lastScrollTime = Date.now();
+                if (this.hoverResetTimer) {
+                    clearTimeout(this.hoverResetTimer);
+                    this.hoverResetTimer = null;
+                }
+                this.hoverResetTimer = setTimeout(() => {
+                    this.isTouchScrolling = false;
+                }, 350);
+            } catch (_) {}
+        }
     }
 };
 </script>
@@ -2387,6 +2459,34 @@ onReachBottom: function () {
 /* 新增：导航器点击效果 */
 .navigator-hover {
     background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Disable press/active effects while scrolling to avoid accidental visual feedback */
+.is-scrolling .navigator-hover {
+    background-color: transparent !important;
+}
+.is-scrolling .post-image:active,
+.is-scrolling .post-tag:active,
+.is-scrolling .filter-toggle-btn:active,
+.is-scrolling .like-icon-container:active {
+    transform: none !important;
+    opacity: 1 !important;
+    background: transparent !important;
+}
+/* Fallback: neutralize any other :active inside list while scrolling */
+.is-scrolling .post-item-wrapper :active {
+    transform: none !important;
+    opacity: 1 !important;
+    background: transparent !important;
+}
+/* While scrolling, remove transitions to avoid flicker when class toggles */
+.is-scrolling .post-image,
+.is-scrolling .like-icon,
+.is-scrolling .like-icon-container,
+.is-scrolling .filter-toggle-btn,
+.is-scrolling .post-item-wrapper,
+.is-scrolling .post-content-navigator {
+    transition: none !important;
 }
 
 /* 新增：点赞按钮容器样式 */

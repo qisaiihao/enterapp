@@ -1,0 +1,11 @@
+{
+  "name": "sendSmsCode",
+  "version": "1.0.0",
+  "description": "uniCloud 发送短信验证码",
+  "main": "index.js",
+  "author": "",
+  "license": "MIT",
+  "extensions": {
+    "uni-cloud-sms": {}
+  }
+}

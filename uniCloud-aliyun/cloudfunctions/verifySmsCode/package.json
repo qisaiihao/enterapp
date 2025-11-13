@@ -1,0 +1,11 @@
+{
+  "name": "verifySmsCode",
+  "version": "1.0.0",
+  "description": "uniCloud 短信验证码校验",
+  "main": "index.js",
+  "author": "",
+  "license": "MIT",
+  "extensions": {
+    "uni-cloud-sms": {}
+  }
+}

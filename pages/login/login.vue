@@ -27,8 +27,8 @@
       </view>
     </view>
 
-    <!-- 底部绑定手机号弹窗（仅 APP 端显示） -->
-    <view class="bind-phone-modal" v-if="showBindPhoneModal && isApp" @tap.stop>
+    <!-- 底部绑定手机号弹窗 -->
+    <view class="bind-phone-modal" v-if="showBindPhoneModal" @tap.stop>
       <view class="modal-mask" @tap="closeBindPhoneModal"></view>
       <view class="modal-content">
         <view class="modal-header">
@@ -37,10 +37,32 @@
         </view>
         <view class="modal-body">
           <text class="modal-text">为了您的账户安全，请绑定手机号</text>
+
+          <!-- APP端一键绑定 -->
+          <view v-if="bindPhoneMethod === 'oneclick'" class="bind-method-desc">
+            <text>本机号码一键绑定</text>
+          </view>
+
+          <!-- H5/小程序短信验证绑定 -->
+          <view v-if="bindPhoneMethod === 'sms'" class="sms-bind-form">
+            <view class="input-wrapper">
+              <input class="input-field" type="number" placeholder="请输入手机号" v-model="smsPhoneNumber" maxlength="11" />
+            </view>
+            <view class="code-wrapper">
+              <view class="input-wrapper code-input-wrapper">
+                <input class="input-field" type="number" placeholder="请输入验证码" v-model="smsCode" maxlength="6" />
+              </view>
+              <view class="code-send-btn" @tap="sendBindSmsCode" :class="{ disabled: isSendingSms || smsCountdown > 0 || !smsPhoneNumber }">
+                <text class="code-send-text">{{ smsCountdown > 0 ? `${smsCountdown}秒后重发` : (isSendingSms ? '发送中...' : '获取验证码') }}</text>
+              </view>
+            </view>
+          </view>
         </view>
         <view class="modal-footer">
           <view class="modal-btn cancel-btn" @tap="closeBindPhoneModal">稍后再说</view>
-          <view class="modal-btn confirm-btn" @tap="handleBindPhone" :class="{ disabled: isBindingPhone }">立即绑定</view>
+          <view class="modal-btn confirm-btn" @tap="handleBindPhone" :class="{ disabled: isBindingPhone || (bindPhoneMethod === 'sms' && (!smsCode || !smsPhoneNumber)) }">
+            {{ bindPhoneMethod === 'oneclick' ? '一键绑定' : '确认绑定' }}
+          </view>
         </view>
       </view>
     </view>
@@ -94,7 +116,14 @@ export default {
             password: '',
             isLogging: false,
             showBindPhoneModal: false,
-            isBindingPhone: false
+            isBindingPhone: false,
+            bindPhoneMethod: 'oneclick', // 'oneclick' 或 'sms'
+            // 登录后绑定相关
+            smsPhoneNumber: '',
+            smsCode: '',
+            isSendingSms: false,
+            smsCountdown: 0,
+            smsTimer: null
         };
     },
     
@@ -202,6 +231,7 @@ export default {
             return cloudCall(name, data, Object.assign({ pageTag: 'login', context: this }, extraOptions));
         },
 
+        // 账号密码登录
         async onLogin() {
             if (!this.canLogin || this.isLogging) {
                 return;
@@ -222,57 +252,7 @@ export default {
 
                 console.log('🔍 [登录] 云函数返回结果:', loginRes);
 
-                if (loginRes.result && loginRes.result.success) {
-                    // 登录成功
-                    const userInfo = loginRes.result.userInfo;
-                    const openid = loginRes.result.openid;
-                    const isPhoneVerified = loginRes.result.isPhoneVerified;
-                    
-                    console.log('✅ [登录] 登录成功:', userInfo);
-                    console.log('🔍 [登录] 手机号验证状态:', isPhoneVerified);
-                    
-                    // 更新全局数据
-                    const app = getApp();
-                    // 将 openid 合并进 userInfo，便于 App.vue 缓存分支命中
-                    const userInfoWithOpenId = Object.assign({}, userInfo || {}, { _openid: openid });
-                    app.globalData.userInfo = userInfoWithOpenId;
-                    app.globalData.openid = openid;
-                    app.globalData._loginProcessCompleted = true;
-                    
-                    // 保存到本地缓存
-                    uni.setStorageSync('userInfo', userInfoWithOpenId);
-                    uni.setStorageSync('userOpenId', openid);
-                    
-                    // 账号切换/新登录后，清理所有与旧账号相关的缓存，并预热当前账号数据
-                    try { await resetAllCachesOnAccountChange({ newOpenId: openid }); } catch (e) { console.warn('cache reset failed', e); }
-                    
-                    uni.showToast({
-                        title: '登录成功',
-                        icon: 'success'
-                    });
-                    
-                    // 检查是否需要绑定手机号（仅 APP 端提示）
-                    if (isPhoneVerified === false && this.isApp) {
-                        // 显示底部弹窗提示绑定手机号（仅 APP 端）
-                        this.showBindPhoneModal = true;
-                    } else {
-                        // 已绑定手机号，或非 APP 端，直接跳转
-                        setTimeout(() => {
-                            uni.switchTab({
-                                url: '/pages/poem-square/poem-square'
-                            });
-                        }, 1000);
-                    }
-                    
-                } else {
-                    // 登录失败
-                    const message = loginRes.result?.message || '登录失败，请检查账号密码';
-                    uni.showToast({
-                        title: message,
-                        icon: 'none',
-                        duration: 3000
-                    });
-                }
+                await this.handleLoginResult(loginRes);
                 
             } catch (error) {
                 console.error('❌ [登录] 登录失败:', error);
@@ -297,6 +277,14 @@ export default {
         // 关闭绑定手机号弹窗
         closeBindPhoneModal() {
             this.showBindPhoneModal = false;
+            // 清理短信相关数据
+            this.smsPhoneNumber = '';
+            this.smsCode = '';
+            if (this.smsTimer) {
+                clearInterval(this.smsTimer);
+                this.smsTimer = null;
+            }
+            this.smsCountdown = 0;
             // 关闭弹窗后跳转到主页面
             setTimeout(() => {
                 uni.switchTab({
@@ -305,18 +293,142 @@ export default {
             }, 300);
         },
 
-        // 处理绑定手机号（仅 APP 端支持一键登录）
-        async handleBindPhone() {
-            if (this.isBindingPhone) {
+        // 登录后绑定 - 发送短信验证码
+        async sendBindSmsCode() {
+            if (this.isSendingSms || this.smsCountdown > 0) {
                 return;
             }
 
-            // 平台判断：只有 APP 端支持一键登录
-            if (!this.isApp) {
+            if (!this.smsPhoneNumber) {
                 uni.showToast({
-                    title: '当前平台不支持一键登录',
+                    title: '请输入手机号',
                     icon: 'none'
                 });
+                return;
+            }
+
+            // 验证手机号格式
+            const phoneRegex = /^1[3-9]\d{9}$/;
+            if (!phoneRegex.test(this.smsPhoneNumber)) {
+                uni.showToast({
+                    title: '请输入正确的手机号',
+                    icon: 'none'
+                });
+                return;
+            }
+
+            this.isSendingSms = true;
+            uni.showLoading({
+                title: '发送中...',
+                mask: true
+            });
+
+            try {
+                // 调用 uniCloud 发送短信验证码
+                const result = await callUniCloudFunction('sendSmsCode', {
+                    phone: this.smsPhoneNumber,
+                    scene: 'binding' // 绑定场景
+                });
+
+                console.log('📱 [登录后绑定] 发送结果:', result);
+
+                if (result.result && result.result.code === 0) {
+                    uni.showToast({
+                        title: '验证码已发送',
+                        icon: 'success'
+                    });
+                    this.startSmsCountdown();
+                } else {
+                    const message = result.result?.message || '发送失败';
+                    uni.showToast({
+                        title: message,
+                        icon: 'none',
+                        duration: 3000
+                    });
+                }
+            } catch (error) {
+                console.error('📱 [登录后绑定] 发送失败:', error);
+                uni.showToast({
+                    title: '发送失败，请重试',
+                    icon: 'none'
+                });
+            } finally {
+                uni.hideLoading();
+                this.isSendingSms = false;
+            }
+        },
+
+        // 登录后绑定 - 短信验证码倒计时
+        startSmsCountdown() {
+            this.smsCountdown = 60;
+            this.smsTimer = setInterval(() => {
+                if (this.smsCountdown > 0) {
+                    this.smsCountdown--;
+                } else {
+                    clearInterval(this.smsTimer);
+                    this.smsTimer = null;
+                }
+            }, 1000);
+        },
+
+        // 处理登录结果
+        async handleLoginResult(loginRes) {
+            console.log('🔍 [handleLoginResult] 处理登录结果:', loginRes);
+
+            // 检查云函数返回结构
+            const result = loginRes.result || loginRes;
+
+            if (result.success) {
+                console.log('✅ [handleLoginResult] 登录成功');
+
+                // 更新全局数据
+                const app = getApp();
+                app.globalData.userInfo = result.userInfo;
+                app.globalData.openid = result.openid;
+                app.globalData._loginProcessCompleted = true;
+
+                // 缓存用户信息
+                uni.setStorageSync('userInfo', result.userInfo);
+                uni.setStorageSync('userOpenId', result.openid);
+
+                // 检查是否需要绑定手机号
+                const isPhoneVerified = result.isPhoneVerified;
+                console.log('🔍 [handleLoginResult] 手机号验证状态:', isPhoneVerified);
+
+                if (!isPhoneVerified) {
+                    console.log('⚠️ [handleLoginResult] 需要绑定手机号');
+                    // 显示绑定手机号弹窗
+                    this.showBindPhoneModal = true;
+                    this.bindPhoneMethod = this.isApp ? 'oneclick' : 'sms';
+                } else {
+                    console.log('✅ [handleLoginResult] 手机号已验证，跳转到主页');
+                    // 跳转到主页
+                    uni.showToast({
+                        title: '登录成功',
+                        icon: 'success',
+                        duration: 2000
+                    });
+
+                    setTimeout(() => {
+                        uni.switchTab({
+                            url: '/pages/poem-square/poem-square'
+                        });
+                    }, 1500);
+                }
+            } else {
+                console.error('❌ [handleLoginResult] 登录失败:', result.message);
+                // 登录失败提示
+                uni.showToast({
+                    title: result.message || '登录失败，请重试',
+                    icon: 'none',
+                    duration: 3000
+                });
+            }
+        },
+
+        // 处理绑定手机号（支持多种方式）
+        async handleBindPhone() {
+            if (this.isBindingPhone) {
                 return;
             }
 
@@ -327,114 +439,124 @@ export default {
             });
 
             try {
-                // 1. 调用一键登录授权（仅 APP 端支持）
-                // #ifdef APP-PLUS
-                const loginRes = await new Promise((resolve, reject) => {
-                    uni.login({
-                        provider: 'univerify',
-                        success: resolve,
-                        fail: reject
+                if (this.bindPhoneMethod === 'oneclick') {
+                    // APP端一键绑定
+                    if (!this.isApp) {
+                        throw new Error('当前平台不支持一键登录');
+                    }
+
+                    // #ifdef APP-PLUS
+                    const loginRes = await new Promise((resolve, reject) => {
+                        uni.login({
+                            provider: 'univerify',
+                            success: resolve,
+                            fail: reject
+                        });
                     });
-                });
 
-                if (!loginRes.authResult || !loginRes.authResult.access_token || !loginRes.authResult.openid) {
-                    throw new Error('获取授权失败');
-                }
+                    if (!loginRes.authResult || !loginRes.authResult.access_token || !loginRes.authResult.openid) {
+                        throw new Error('获取授权失败');
+                    }
 
-                const { access_token, openid: univerifyOpenid } = loginRes.authResult;
-                // #endif
-                
-                // #ifndef APP-PLUS
-                // 其他端（H5、小程序等）预留短信验证码登录入口
-                // 注意：以下代码已注释，如需启用请取消注释并实现相应逻辑
-                /*
-                // 短信验证码登录流程（示例代码，未实现）
-                // 1. 显示手机号输入框和验证码输入框
-                // 2. 调用发送验证码接口
-                // 3. 用户输入验证码后，调用验证接口
-                // 4. 验证成功后，调用 updateUser 云函数更新手机号
-                
-                // 示例代码结构：
-                // const phoneNumber = '用户输入的手机号';
-                // const verifyCode = '用户输入的验证码';
-                // 
-                // // 发送验证码
-                // await this.sendSmsCode(phoneNumber);
-                // 
-                // // 验证验证码并绑定手机号
-                // const verifyRes = await this.verifySmsCode(phoneNumber, verifyCode);
-                // if (verifyRes.success) {
-                //     const bindRes = await this.callCloudFunction('updateUser', {
-                //         phoneNumber: phoneNumber
-                //     });
-                //     // 处理绑定结果...
-                // }
-                */
-                throw new Error('当前平台不支持一键登录，请使用其他方式绑定手机号');
-                // #endif
+                    const { access_token, openid: univerifyOpenid } = loginRes.authResult;
 
-                // #ifdef APP-PLUS
+                    // 获取当前用户在腾讯云开发中的 openid
+                    const app = getApp();
+                    const userOpenid = app.globalData?.openid;
+                    if (!userOpenid) {
+                        throw new Error('未获取到用户标识，请先登录');
+                    }
 
-                // 获取当前用户在腾讯云开发中的 openid
-                const app = getApp();
-                const userOpenid = app.globalData?.openid;
-                if (!userOpenid) {
-                    throw new Error('未获取到用户标识，请先登录');
-                }
+                    // 调用 uniCloud 云函数获取手机号并同步到腾讯云
+                    const phoneRes = await callUniCloudFunction('getPhoneNumberByToken', {
+                        access_token: access_token,
+                        openid: univerifyOpenid,
+                        userOpenid: userOpenid
+                    });
 
-                // 2. 调用 uniCloud 云函数获取手机号并同步到腾讯云
-                // 注意：uniCloud 云函数会自动将手机号同步到腾讯云开发数据库
-                // 需要传递：
-                //   - access_token: univerify 返回的 access_token
-                //   - openid: univerify 返回的 openid
-                //   - userOpenid: 腾讯云开发中的用户 openid
-                const phoneRes = await callUniCloudFunction('getPhoneNumberByToken', {
-                    access_token: access_token,
-                    openid: univerifyOpenid, // univerify 返回的 openid
-                    userOpenid: userOpenid   // 腾讯云开发中的用户 openid
-                });
+                    if (phoneRes.result.code !== 0) {
+                        throw new Error(phoneRes.result.message || '绑定手机号失败');
+                    }
 
-                if (phoneRes.result.code !== 0) {
-                    throw new Error(phoneRes.result.message || '绑定手机号失败');
-                }
+                    const phoneNumber = phoneRes.result.phoneNumber;
+                    if (!phoneNumber) {
+                        throw new Error('未获取到手机号');
+                    }
 
-                // 3. 获取手机号并更新本地用户信息
-                const phoneNumber = phoneRes.result.phoneNumber;
-                if (phoneNumber) {
                     // 更新本地用户信息
                     if (app.globalData.userInfo) {
                         app.globalData.userInfo.phoneNumber = phoneNumber;
                         app.globalData.userInfo.isPhoneVerified = true;
                         uni.setStorageSync('userInfo', app.globalData.userInfo);
                     }
+                    // #endif
 
-                    uni.showToast({
-                        title: '绑定成功',
-                        icon: 'success'
+                } else if (this.bindPhoneMethod === 'sms') {
+                    // H5/小程序短信验证绑定
+                    if (!this.smsPhoneNumber || !this.smsCode) {
+                        throw new Error('请输入手机号和验证码');
+                    }
+
+                    // 验证短信验证码
+                    const verifyRes = await callUniCloudFunction('verifySmsCode', {
+                        phone: this.smsPhoneNumber,
+                        code: this.smsCode,
+                        scene: 'binding'
                     });
 
-                    // 关闭弹窗并跳转
-                    this.closeBindPhoneModal();
-                } else {
-                    throw new Error('未获取到手机号');
+                    if (verifyRes.result && verifyRes.result.code === 0) {
+                        // 验证成功，更新用户手机号
+                        const app = getApp();
+                        const userOpenid = app.globalData?.openid;
+
+                        if (!userOpenid) {
+                            throw new Error('未获取到用户标识');
+                        }
+
+                        // 调用腾讯云函数更新用户信息
+                        const updateRes = await this.callCloudFunction('updateUser', {
+                            phoneNumber: this.smsPhoneNumber,
+                            isPhoneVerified: true
+                        });
+
+                        if (updateRes.result && updateRes.result.success) {
+                            // 更新本地用户信息
+                            if (app.globalData.userInfo) {
+                                app.globalData.userInfo.phoneNumber = this.smsPhoneNumber;
+                                app.globalData.userInfo.isPhoneVerified = true;
+                                uni.setStorageSync('userInfo', app.globalData.userInfo);
+                            }
+                        } else {
+                            throw new Error(updateRes.result?.message || '更新用户信息失败');
+                        }
+                    } else {
+                        const message = verifyRes.result?.message || '验证码错误';
+                        throw new Error(message);
+                    }
                 }
-                // #endif
+
+                uni.showToast({
+                    title: '绑定成功',
+                    icon: 'success'
+                });
+
+                // 关闭弹窗并跳转
+                this.closeBindPhoneModal();
 
             } catch (error) {
                 console.error('❌ [绑定手机号] 失败:', error);
-                
+
                 // 如果是用户取消，不显示错误提示
                 if (error.errMsg && (error.errMsg.includes('cancel') || error.errMsg.includes('取消'))) {
-                    // 用户取消，不做处理
                     return;
                 }
-                
+
                 // 检查是否是 uniCloud 本地调试服务连接问题
                 const errorMsg = error.message || error.errMsg || '';
                 const errorCode = error.code || '';
-                
-                if (errorCode === 'UNICLOUD_LOCAL_DEBUG_FAILED' || 
-                    errorMsg.includes('无法连接uniCloud本地调试服务') || 
+
+                if (errorCode === 'UNICLOUD_LOCAL_DEBUG_FAILED' ||
+                    errorMsg.includes('无法连接uniCloud本地调试服务') ||
                     errorMsg.includes('uniCloud本地调试') ||
                     errorMsg.includes('本地调试服务')) {
                     uni.showModal({
@@ -603,5 +725,44 @@ export default {
 .confirm-btn.disabled {
   opacity: 0.5;
   pointer-events: none;
+}
+
+/* 验证码输入区域样式（绑定手机号时使用） */
+.code-wrapper {
+  display: flex;
+  gap: 20rpx;
+  align-items: flex-end;
+  margin-bottom: 24rpx;
+}
+
+.code-input-wrapper {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.code-send-btn {
+  height: 88rpx;
+  padding: 0 24rpx;
+  background: #667eea;
+  border-radius: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.code-send-btn:active {
+  opacity: 0.8;
+}
+
+.code-send-btn.disabled {
+  background: #ccc;
+  pointer-events: none;
+}
+
+.code-send-text {
+  font-size: 28rpx;
+  color: #fff;
+  white-space: nowrap;
 }
 </style>
