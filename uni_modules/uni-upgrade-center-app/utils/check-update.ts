@@ -1,7 +1,7 @@
 import callCheckVersion, { UniUpgradeCenterResult } from "./call-check-version"
 import { platform_iOS } from './utils'
 // #ifdef UNI-APP-X
-import { openSchema } from '@/uni_modules/uts-openSchema'
+// import { openSchema } from '@/uni_modules/uts-openSchema'
 // #endif
 
 // 推荐再App.vue中使用
@@ -78,9 +78,8 @@ export default function () : Promise<UniUpgradeCenterResult> {
           // #endif
           // #ifdef UNI-APP-X
           uni.setStorageSync(PACKAGE_INFO_KEY, uniUpgradeCenterResult)
-          uni.openDialogPage({
+          uni.navigateTo({
             url: `/uni_modules/uni-upgrade-center-app/pages/uni-app-x/upgrade-popup?local_storage_key=${PACKAGE_INFO_KEY}`,
-            disableEscBack: true,
             fail: (err) => {
               console.error('更新弹框跳转失败', err)
               uni.removeStorageSync(PACKAGE_INFO_KEY)
@@ -138,7 +137,7 @@ function updateUseModal(packageInfo : UniUpgradeCenterResult) : void {
 				plus.runtime.openURL(url);
 				// #endif
 				// #ifdef UNI-APP-X
-				openSchema(url)
+				// openSchema(url)
 				// #endif
 				return;
 			}

@@ -22,7 +22,7 @@
             "Camera" : {},
             "File" : {},
             "IO" : {},
-			"Upgrade": {},
+            "Upgrade" : {},
             "OAuth" : {}
         },
         "distribute" : {

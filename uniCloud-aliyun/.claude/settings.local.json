@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/qisaihao/回车键_uni/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

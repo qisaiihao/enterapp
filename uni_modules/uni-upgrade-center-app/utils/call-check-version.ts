@@ -91,12 +91,12 @@ export default function () : Promise<UniUpgradeCenterResult> {
 					      message: res.result['message']
 					    })
 					  } else {
-              const result = JSON.parse<UniUpgradeCenterResult>(JSON.stringify(res.result)) as UniUpgradeCenterResult
+              const result = JSON.parse(JSON.stringify(res.result)) as UniUpgradeCenterResult
               resolve(result)
             }
 					}
 				}).catch<void>((err : any | null) => {
-					const error = err as UniCloudError
+					const error = err as any
 					if (error.errMsg == '未匹配到云函数[uni-upgrade-center]')
 						error.errMsg = '【uni-upgrade-center-app】未配置uni-upgrade-center，无法升级。参考: https://uniapp.dcloud.net.cn/uniCloud/upgrade-center.html'
 					reject(error.errMsg)
