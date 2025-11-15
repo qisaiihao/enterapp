@@ -17,7 +17,6 @@
         <maven.compiler.target>11</maven.compiler.target>
         <!-- 统一管理依赖版本 -->
         <justauth.version>1.16.6</justauth.version>
-        <scf.events.version>0.0.2</scf.events.version>
         <logback.version>1.2.11</logback.version>
     </properties>
 
@@ -30,12 +29,7 @@
             <version>${justauth.version}</version>
         </dependency>
 
-        <!-- 腾讯云云函数 (SCF) 的 Java 事件处理依赖 -->
-        <dependency>
-            <groupId>com.tencentcloudapi</groupId>
-            <artifactId>scf-java-events</artifactId>
-            <version>${scf.events.version}</version>
-        </dependency>
+        <!-- 注意：腾讯云开发的 Java 云函数使用标准的 Map 和 String 接口，不需要额外的 SDK 依赖 -->
 
         <!-- 日志门面 SLF4J -->
         <dependency>
@@ -55,11 +49,30 @@
             <artifactId>logback-core</artifactId>
             <version>${logback.version}</version>
         </dependency>
+        
+        <!-- Gson 用于 JSON 处理 -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.10.1</version>
+        </dependency>
     </dependencies>
 
     <!-- 4. 构建配置 -->
     <build>
         <plugins>
+            <!-- Maven 编译插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <source>11</source>
+                    <target>11</target>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+            
             <!-- 这是最关键的插件，用于将所有依赖打入最终的 jar 包 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -71,6 +84,23 @@
                         <goals>
                             <goal>shade</goal>
                         </goals>
+                        <configuration>
+                            <!-- 创建可执行的 fat jar -->
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <!-- 排除签名文件，避免冲突 -->
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <!-- 指定最终 jar 的名称 -->
+                            <finalName>${project.artifactId}-${project.version}</finalName>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

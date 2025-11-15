@@ -61,7 +61,7 @@ export default function () : Promise<UniUpgradeCenterResult> {
                   console.log('📱 [热更新] check-update: 静默更新下载成功，开始安装...')
                   // 下载好直接安装，下次启动生效
                   plus.runtime.install(res.tempFilePath, {
-                    force: false
+                    force: true
                   });
                   console.log('📱 [热更新] check-update: 静默更新安装完成，下次启动生效')
                   console.log('✅ 热更新成功')
@@ -208,7 +208,7 @@ function updateUseModal(packageInfo : UniUpgradeCenterResult) : void {
           // uni-app x 项目没有 plus5+ 故使用条件编译
 					// #ifndef UNI-APP-X
 					plus.runtime.install(res.tempFilePath, {
-						force: false
+						force: true
 					}, () => {
 						console.log('✅ 热更新成功')
 						if (is_mandatory) {

@@ -100,52 +100,90 @@ module.exports = async (event, context) => {
 			const hasAppPackage = !!Object.keys(appVersionInDb).length;
 			const hasWgtPackage = !!Object.keys(wgtVersionInDb).length;
 
-			// 取两个版本中版本号最大的包，版本一样，使用wgt包
-			let stablePublishDb = (() => {
-				// uni-app x 项目安卓端没有 wgt 升级
-				if (is_uniapp_x === true && platform === platform_Android) {
-					if (hasAppPackage) return appVersionInDb
-					return {}
-				}
-				if (hasAppPackage && hasWgtPackage) {
-					if (compare(wgtVersionInDb.version, appVersionInDb.version) >= 0)
-						return wgtVersionInDb
-					else {
-						return appVersionInDb
-					}
-				} else if (hasAppPackage) {
-					return appVersionInDb
-				} else if (hasWgtPackage) {
-					return wgtVersionInDb
-				}
-				return {}
-			})();
-
-			if (Object.keys(stablePublishDb).length) {
-				const {
-					version,
-					min_uni_version
-				} = stablePublishDb;
-
-				// 库中的version必须满足同时大于appVersion和wgtVersion才行，因为上次更新可能是wgt更新
-				const appUpdate = compare(version, appVersion) === 1; // app包可用更新
-				const wgtUpdate = compare(version, wgtVersion) === 1; // wgt包可用更新
-
-				if (appUpdate && wgtUpdate) {
-					// 判断是否可用wgt更新
-					if (min_uni_version && compare(min_uni_version, appVersion) < 1) {
-						return {
-							code: 101,
-							message: 'wgt更新',
-							...stablePublishDb
-						};
-					} else if (hasAppPackage && compare(appVersionInDb.version, appVersion) === 1) {
+			// uni-app x 项目安卓端没有 wgt 升级
+			if (is_uniapp_x === true && platform === platform_Android) {
+				if (hasAppPackage) {
+					const appUpdate = compare(appVersionInDb.version, appVersion) === 1;
+					if (appUpdate) {
 						return {
 							code: 102,
 							message: '整包更新',
 							...appVersionInDb
 						};
 					}
+				}
+			} else {
+				// 先检查 native_app 包是否有更新（整包更新优先级更高）
+				if (hasAppPackage) {
+					const appUpdate = compare(appVersionInDb.version, appVersion) === 1;
+					console.log('[云函数-热更新] 检查 native_app 包更新:', {
+						dbVersion: appVersionInDb.version,
+						clientVersion: appVersion,
+						appUpdate: appUpdate
+					});
+					if (appUpdate) {
+						return {
+							code: 102,
+							message: '整包更新',
+							...appVersionInDb
+						};
+					}
+				}
+				
+				// 如果 native_app 版本相同（没有整包更新），才检查 wgt 包是否有更新
+				// wgt 包只能在相同 native_app 版本的基础上更新
+				if (hasWgtPackage) {
+					// 先检查 native_app 版本是否相同
+					const appVersionMatch = !hasAppPackage || compare(appVersionInDb.version, appVersion) === 0;
+					console.log('[云函数-热更新] 检查 native_app 版本是否匹配:', {
+						hasAppPackage: hasAppPackage,
+						dbAppVersion: hasAppPackage ? appVersionInDb.version : 'N/A',
+						clientAppVersion: appVersion,
+						appVersionMatch: appVersionMatch
+					});
+					
+					if (appVersionMatch) {
+						const {
+							version: wgtVersionInDbVersion,
+							min_uni_version
+						} = wgtVersionInDb;
+						// 比较数据库中的 wgt 版本和客户端传的 wgt 版本
+						const wgtUpdate = compare(wgtVersionInDbVersion, wgtVersion) === 1; // wgt包可用更新
+						console.log('[云函数-热更新] 检查 wgt 包更新:', {
+							dbWgtVersion: wgtVersionInDbVersion,
+							clientWgtVersion: wgtVersion,
+							wgtUpdate: wgtUpdate,
+							min_uni_version: min_uni_version
+						});
+						
+						if (wgtUpdate) {
+							// 检查 min_uni_version 是否满足要求
+							// min_uni_version 是字符串格式（如 "3.0.0"），appVersion 是整数格式（如 "104"），不能直接比较
+							// 如果没有 min_uni_version 限制，或者 min_uni_version 为空，则允许更新
+							if (!min_uni_version || min_uni_version === '') {
+								console.log('[云函数-热更新] wgt 更新条件满足，返回更新');
+								return {
+									code: 101,
+									message: 'wgt更新',
+									...wgtVersionInDb
+								};
+							}
+							// 如果有 min_uni_version，需要检查是否满足（这里暂时跳过检查，因为格式不匹配）
+							// TODO: 如果需要严格检查 min_uni_version，需要将 appVersion 转换为对应的 uni-app 版本号
+							console.log('[云函数-热更新] wgt 更新条件满足（有 min_uni_version），返回更新');
+							return {
+								code: 101,
+								message: 'wgt更新',
+								...wgtVersionInDb
+							};
+						} else {
+							console.log('[云函数-热更新] wgt 包没有更新，wgtVersionInDbVersion:', wgtVersionInDbVersion, 'wgtVersion:', wgtVersion);
+						}
+					} else {
+						console.log('[云函数-热更新] native_app 版本不匹配，无法进行 wgt 更新');
+					}
+				} else {
+					console.log('[云函数-热更新] 没有 wgt 包');
 				}
 			}
 

@@ -66,7 +66,7 @@ export default function() {
 							if (res.statusCode == 200) {
 								// 下载好直接安装，下次启动生效
 								plus.runtime.install(res.tempFilePath, {
-									force: false
+									force: true
 								});
 							}
 						}
@@ -155,7 +155,7 @@ function updateUseModal(packageInfo) {
 					}
 					// 下载好直接安装，下次启动生效
 					plus.runtime.install(res.tempFilePath, {
-						force: false
+						force: true
 					}, () => {
 						if (is_mandatory) {
 							//更新完重启app

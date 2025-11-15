@@ -20,7 +20,8 @@
       "Bash(npm run dev:app-plus:*)",
       "Bash(powershell:*)",
       "Bash(clean_logs.bat:*)",
-      "WebFetch(domain:doc.dcloud.net.cn)"
+      "WebFetch(domain:doc.dcloud.net.cn)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

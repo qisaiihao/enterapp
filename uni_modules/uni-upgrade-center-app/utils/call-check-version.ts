@@ -86,8 +86,22 @@ export default function () : Promise<UniUpgradeCenterResult> {
 					data,
 					success: (e) => {
 						console.log('📱 [热更新] call-check-version: 云函数调用成功，返回结果:', e.result)
-						// 如果返回 code < 0，添加更详细的提示
-						if (e.result && e.result.code < 0) {
+						console.log('📱 [热更新] call-check-version: 返回结果详情:', JSON.stringify(e.result, null, 2))
+						// 根据返回的 code 进行不同的处理
+						if (e.result && e.result.code > 0) {
+							console.log('✅ [热更新] 检测到新版本，code:', e.result.code)
+							console.log('📱 [热更新] 新版本信息:', {
+								version: e.result.version,
+								type: e.result.type,
+								platform: e.result.platform
+							})
+						} else if (e.result && e.result.code === 0) {
+							console.log('📱 [热更新] 云函数返回 code=0，表示当前已是最新版本')
+							console.log('📱 [热更新] 这可能是因为：')
+							console.log('   1. 数据库中的 version 没有同时大于 appVersion 和 wgtVersion')
+							console.log('   2. 对于 wgt 包，云函数要求 version 必须同时大于 appVersion("' + appVersionStr + '") 和 wgtVersion("' + wgtVersion + '")')
+							console.log('   3. 如果数据库中的 version 是 "1.0.2"，appVersion 是 "104"，比较会失败（"1.0.2" < "104"）')
+						} else if (e.result && e.result.code < 0) {
 							console.warn('⚠️ [热更新] 云函数返回错误码:', e.result.code, '消息:', e.result.message)
 							if (e.result.code === -101) {
 								console.warn('⚠️ [热更新] 提示：请检查数据库中是否存在以下条件的版本记录：')
@@ -95,6 +109,9 @@ export default function () : Promise<UniUpgradeCenterResult> {
 								console.warn('   - platform: Android/iOS/Harmony（根据当前平台）')
 								console.warn('   - stable_publish: true')
 								console.warn('   - type: "wgt" 或 "native_app"')
+								console.warn('⚠️ [热更新] 当前客户端版本信息：')
+								console.warn('   - appVersion:', appVersionStr)
+								console.warn('   - wgtVersion:', wgtVersion)
 							}
 						}
 						resolve(e.result as UniUpgradeCenterResult)
