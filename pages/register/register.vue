@@ -9,58 +9,7 @@
       </view>
 
       <view class="form-wrapper compact">
-        <!-- APP端：优先显示一键注册，其次显示短信注册 -->
-        <view v-if="isApp">
-          <!-- 一键注册按钮 -->
-          <view v-if="!showSmsMethod" class="one-click-register-btn" @tap="handleOneClickRegister">
-            <text class="one-click-text">本机号码一键注册</text>
-          </view>
-
-          <!-- 短信验证码注册（当一键注册失败或用户选择时） -->
-          <view v-if="showSmsMethod" class="sms-register-section">
-            <view class="input-wrapper">
-              <text class="input-label">手机号</text>
-              <input class="input-field" type="number" placeholder="请输入手机号" v-model="smsPhoneNumber" maxlength="11" />
-            </view>
-            <view class="code-wrapper">
-              <view class="input-wrapper code-input-wrapper">
-                <text class="input-label">验证码</text>
-                <input class="input-field" type="number" placeholder="请输入验证码" v-model="smsCode" maxlength="6" />
-              </view>
-              <view class="code-send-btn" @tap="sendSmsCode" :class="{ disabled: isSendingSms || smsCountdown > 0 || !smsPhoneNumber }">
-                <text class="code-send-text">{{ smsCountdown > 0 ? `${smsCountdown}秒后重发` : (isSendingSms ? '发送中...' : '获取验证码') }}</text>
-              </view>
-            </view>
-          </view>
-
-          <!-- 切换注册方式 -->
-          <view v-if="!phoneNumber" class="switch-method-text" @tap="toggleRegisterMethod">
-            <text>{{ showSmsMethod ? '使用一键注册' : '使用短信验证码注册' }}</text>
-          </view>
-        </view>
-
-        <!-- 其他端（H5、小程序等）：直接显示短信验证码注册 -->
-        <view v-if="!isApp && !phoneNumber" class="sms-register-section">
-          <view class="input-wrapper">
-            <text class="input-label">手机号</text>
-            <input class="input-field" type="number" placeholder="请输入手机号" v-model="smsPhoneNumber" maxlength="11" />
-          </view>
-          <view class="code-wrapper">
-            <view class="input-wrapper code-input-wrapper">
-              <text class="input-label">验证码</text>
-              <input class="input-field" type="number" placeholder="请输入验证码" v-model="smsCode" maxlength="6" />
-            </view>
-            <view class="code-send-btn" @tap="sendSmsCode" :class="{ disabled: isSendingSms || smsCountdown > 0 || !smsPhoneNumber }">
-              <text class="code-send-text">{{ smsCountdown > 0 ? `${smsCountdown}秒后重发` : (isSendingSms ? '发送中...' : '获取验证码') }}</text>
-            </view>
-          </view>
-        </view>
-
-        <!-- 手机号显示（只读） -->
-        <view class="input-wrapper" v-if="phoneNumber">
-          <text class="input-label">手机号</text>
-          <input class="input-field" type="text" :value="phoneNumber" disabled />
-        </view>
+        <!-- 根据需求：不在资料表单中直接展示手机号输入，改为点击确认后弹窗绑定 -->
 
         <view class="input-wrapper">
           <text class="input-label">Poem ID</text>
@@ -97,6 +46,36 @@
       </view>
     </view>
 
+    <!-- 绑定手机号弹窗（样式对齐个人资料修改页面） -->
+    <view class="edit-phone-modal" v-if="showBindPhoneModal" @tap.stop>
+      <view class="modal-mask" @tap="closeBindPhoneModal"></view>
+      <view class="modal-content">
+        <view class="modal-header">
+          <text class="modal-title">绑定手机号</text>
+          <text class="modal-close" @tap="closeBindPhoneModal">×</text>
+        </view>
+        <view class="modal-body">
+          <text class="modal-text">为保障账户安全，请先绑定手机号完成注册</text>
+          <view class="sms-bind-form">
+            <view class="input-wrapper">
+              <input class="input-field" type="number" placeholder="请输入手机号" v-model="smsPhoneNumber" maxlength="11" />
+            </view>
+            <view class="code-wrapper">
+              <view class="input-wrapper code-input-wrapper">
+                <input class="input-field" type="number" placeholder="请输入验证码" v-model="smsCode" maxlength="6" />
+              </view>
+              <view class="code-send-btn" @tap="sendBindSmsCodeForRegister" :class="{ disabled: isSendingSms || smsCountdown > 0 || !smsPhoneNumber }">
+                <text class="code-send-text">{{ smsCountdown > 0 ? `${smsCountdown}秒后重发` : (isSendingSms ? '发送中...' : '获取验证码') }}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+        <view class="modal-footer">
+          <view class="modal-btn cancel-btn" @tap="closeBindPhoneModal">取消</view>
+          <view class="modal-btn confirm-btn" @tap="handleBindPhoneForRegister" :class="{ disabled: isBindingPhone || (!smsCode || !smsPhoneNumber) }">确认绑定</view>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -147,6 +126,7 @@ export default {
             confirmPassword: '',
             nickName: '',
             isRegistering: false,
+            isWaitingPhoneBind: false,
             // 新增：头像直观状态
             localAvatarTempPath: '',
             avatarFileID: '',
@@ -160,8 +140,9 @@ export default {
             isSendingSms: false,
             smsCountdown: 0,
             smsTimer: null,
-            // 注册方式切换（APP端）
-            showSmsMethod: false
+            // 绑定弹窗
+            showBindPhoneModal: false,
+            isBindingPhone: false
         };
     },
     
@@ -355,78 +336,60 @@ export default {
                 return;
             }
 
-            // 如果是短信注册方式，先验证验证码
-            if (!this.isApp && !this.phoneNumber) {
-                // 其他端必须验证手机号
-                const verifySuccess = await this.verifyAndSetPhone();
-                if (!verifySuccess) {
-                    return;
+            // 必须先绑定手机号
+            if (!this.phoneNumber) {
+                if (this.isApp) {
+                    // App 先拉起一键登录弹窗，用户可选择其它方式切换到短信
+                    this.tryOneClickBindOnAppThenRegister();
+                } else {
+                    // 其他端：直接弹短信验证码绑定
+                    this.showBindPhoneModal = true;
                 }
-            } else if (this.isApp && this.showSmsMethod && !this.phoneNumber) {
-                // APP端选择了短信注册，也必须验证
-                const verifySuccess = await this.verifyAndSetPhone();
-                if (!verifySuccess) {
-                    return;
-                }
+                return;
             }
 
+            // 已有手机号，直接提交注册
+            await this.submitRegister();
+        },
+
+        goToLogin() {
+            // 跳转到登录页面
+            uni.navigateBack();
+        },
+        
+        // 提交注册（要求 phoneNumber 已有值）
+        async submitRegister() {
+            if (this.isRegistering) return;
             this.isRegistering = true;
-            uni.showLoading({
-                title: '注册中...',
-                mask: true
-            });
+            uni.showLoading({ title: '注册中...', mask: true });
 
             try {
                 // 先进行匿名登录获取openid
                 await this.performAuth();
 
-                // 调用注册云函数
                 const registerRes = await this.callCloudFunction('registerUser', {
                     poemId: this.poemId.trim(),
                     password: this.password.trim(),
                     nickName: this.nickName.trim(),
-                    // 头像使用云函数上传返回的 fileID（不能直连COS）
                     avatarFileID: this.avatarFileID || '',
-                    // 传递手机号（如果已获取）
                     phoneNumber: this.phoneNumber || ''
                 });
 
                 console.log('🔍 [注册] 云函数返回结果:', registerRes);
 
                 if (registerRes.result && registerRes.result.success) {
-                    // 注册成功
                     const userInfo = registerRes.result.userInfo;
                     const openid = registerRes.result.openid;
-                    
-                    console.log('✅ [注册] 注册成功:', userInfo);
-                    
-                    // 更新全局数据
                     const app = getApp();
                     app.globalData.userInfo = userInfo;
                     app.globalData.openid = openid;
-                    
-                    // 保存到本地缓存
                     uni.setStorageSync('userInfo', userInfo);
                     uni.setStorageSync('userOpenId', openid);
-                    
-                    uni.showToast({
-                        title: '注册成功',
-                        icon: 'success'
-                    });
-                    
-                    // 跳转到主页面
-                    setTimeout(() => {
-                        uni.switchTab({
-                            url: '/pages/poem-square/poem-square'
-                        });
-                    }, 1000);
-                    
+                    uni.showToast({ title: '注册成功', icon: 'success' });
+                    setTimeout(() => { uni.switchTab({ url: '/pages/poem-square/poem-square' }); }, 1000);
                 } else {
-                    // 注册失败
                     const message = registerRes.result?.message || '注册失败，请重试';
                     const code = registerRes.result?.code;
-                    
-                    // 如果手机号已存在，提示用户去登录
                     if (code === 'PHONE_ALREADY_EXISTS') {
                         uni.showModal({
                             title: '提示',
@@ -434,37 +397,21 @@ export default {
                             showCancel: true,
                             cancelText: '取消',
                             confirmText: '去登录',
-                            success: (res) => {
-                                if (res.confirm) {
-                                    this.goToLogin();
-                                }
-                            }
+                            success: (res) => { if (res.confirm) { this.goToLogin(); } }
                         });
+                    } else if (code === 'POEM_ID_EXISTS') {
+                        uni.showToast({ title: '该Poem ID已被使用', icon: 'none' });
                     } else {
-                        uni.showToast({
-                            title: message,
-                            icon: 'none',
-                            duration: 3000
-                        });
+                        uni.showToast({ title: message, icon: 'none', duration: 3000 });
                     }
                 }
-                
             } catch (error) {
                 console.error('❌ [注册] 注册失败:', error);
-                uni.showToast({
-                    title: '注册失败，请重试',
-                    icon: 'none',
-                    duration: 3000
-                });
+                uni.showToast({ title: '注册失败，请重试', icon: 'none', duration: 3000 });
             } finally {
                 uni.hideLoading();
                 this.isRegistering = false;
             }
-        },
-
-        goToLogin() {
-            // 跳转到登录页面
-            uni.navigateBack();
         },
 
         // 短信验证码倒计时
@@ -480,8 +427,8 @@ export default {
             }, 1000);
         },
 
-        // 发送短信验证码
-        async sendSmsCode() {
+        // 注册流程使用的：发送绑定短信验证码（场景：register）
+        async sendBindSmsCodeForRegister() {
             if (this.isSendingSms || this.smsCountdown > 0) {
                 return;
             }
@@ -511,7 +458,7 @@ export default {
             });
 
             try {
-                // 调用 uniCloud 发送短信验证码
+                // 调用 uniCloud 发送短信验证码（场景：register）
                 const result = await callUniCloudFunction('sendSmsCode', {
                     phone: this.smsPhoneNumber,
                     scene: 'register'
@@ -534,7 +481,7 @@ export default {
                     });
                 }
             } catch (error) {
-                console.error('📱 [短信注册] 发送失败:', error);
+                console.error('📱 [注册-短信绑定] 发送失败:', error);
                 uni.showToast({
                     title: '发送失败，请重试',
                     icon: 'none'
@@ -545,141 +492,89 @@ export default {
             }
         },
 
-        // 验证短信验证码并设置手机号
-        async verifyAndSetPhone() {
-            if (!this.smsCode) {
-                uni.showToast({
-                    title: '请输入验证码',
-                    icon: 'none'
-                });
-                return false;
+        // 注册流程使用的：验证短信验证码并设置手机号，然后继续注册
+        async handleBindPhoneForRegister() {
+            if (this.isBindingPhone) return;
+
+            if (!this.smsPhoneNumber) {
+                uni.showToast({ title: '请输入手机号', icon: 'none' });
+                return;
+            }
+            if (!this.smsCode || this.smsCode.length !== 6) {
+                uni.showToast({ title: '请输入6位验证码', icon: 'none' });
+                return;
             }
 
-            if (this.smsCode.length !== 6) {
-                uni.showToast({
-                    title: '请输入6位验证码',
-                    icon: 'none'
-                });
-                return false;
-            }
+            this.isBindingPhone = true;
+            uni.showLoading({ title: '验证中...', mask: true });
 
             try {
-                // 调用 uniCloud 验证码校验函数
-                console.log('📱 [短信注册] 验证验证码:', this.smsCode);
-
                 const result = await callUniCloudFunction('verifySmsCode', {
                     phone: this.smsPhoneNumber,
                     code: this.smsCode,
                     scene: 'register'
                 });
 
-                console.log('📱 [短信注册] 验证结果:', result);
+                console.log('📱 [注册-短信绑定] 验证结果:', result);
 
                 if (result.result && result.result.code === 0) {
-                    // 验证成功，设置手机号
+                    // 绑定成功
                     this.phoneNumber = this.smsPhoneNumber;
-                    uni.showToast({
-                        title: '验证成功',
-                        icon: 'success'
-                    });
-                    return true;
+                    this.closeBindPhoneModal();
+                    uni.showToast({ title: '绑定成功', icon: 'success' });
+                    // 继续注册
+                    this.submitRegister();
                 } else {
                     const message = result.result?.message || '验证码错误';
-                    uni.showToast({
-                        title: message,
-                        icon: 'none'
-                    });
-                    return false;
+                    uni.showToast({ title: message, icon: 'none' });
                 }
             } catch (error) {
-                console.error('📱 [短信注册] 验证失败:', error);
-                uni.showToast({
-                    title: '验证失败，请重试',
-                    icon: 'none'
-                });
-                return false;
+                console.error('📱 [注册-短信绑定] 验证失败:', error);
+                uni.showToast({ title: '验证失败，请重试', icon: 'none' });
+            } finally {
+                uni.hideLoading();
+                this.isBindingPhone = false;
             }
         },
 
-        // 切换注册方式（APP端）
-        toggleRegisterMethod() {
-            this.showSmsMethod = !this.showSmsMethod;
-            // 清理短信相关数据
-            if (!this.showSmsMethod) {
-                this.smsPhoneNumber = '';
-                this.smsCode = '';
-                if (this.smsTimer) {
-                    clearInterval(this.smsTimer);
-                    this.smsTimer = null;
-                }
-                this.smsCountdown = 0;
-            }
+        // 打开/关闭绑定手机号弹窗
+        closeBindPhoneModal() {
+            this.showBindPhoneModal = false;
+            this.smsPhoneNumber = '';
+            this.smsCode = '';
+            if (this.smsTimer) { clearInterval(this.smsTimer); this.smsTimer = null; }
+            this.smsCountdown = 0;
         },
 
-        // 处理一键注册（仅 APP 端支持）
-        async handleOneClickRegister() {
-            if (this.isGettingPhone) {
-                return;
-            }
+        
 
-            // 平台判断：只有 APP 端支持一键登录
-            if (!this.isApp) {
-                uni.showToast({
-                    title: '当前平台不支持一键注册',
-                    icon: 'none'
-                });
-                return;
-            }
+        // App 端：拉起一键登录弹窗（带“其它方式”按钮），成功后设置手机号并继续注册
+        async tryOneClickBindOnAppThenRegister() {
+            // #ifndef APP-PLUS
+            // 非 APP 端直接走短信
+            this.showBindPhoneModal = true;
+            return;
+            // #endif
 
+            if (this.isGettingPhone) return;
             this.isGettingPhone = true;
-            uni.showLoading({
-                title: '获取手机号中...',
-                mask: true
-            });
 
             try {
-                // 1. 调用一键登录授权（仅 APP 端支持）
-                // #ifdef APP-PLUS
+                // 预登录可优化冷启动（忽略失败）
+                if (uni.preLogin) {
+                    try { await new Promise((resolve) => uni.preLogin({ provider: 'univerify', success: resolve, fail: resolve })); } catch (e) {}
+                }
+
                 const loginRes = await new Promise((resolve, reject) => {
                     uni.login({
                         provider: 'univerify',
+                        univerifyStyle: {
+                            otherLoginButton: { visible: true, text: '选择其它方式' }
+                        },
                         success: resolve,
                         fail: reject
                     });
                 });
-                // #endif
-                
-                // #ifndef APP-PLUS
-                // 其他端（H5、小程序等）预留短信验证码注册入口
-                // 注意：以下代码已注释，如需启用请取消注释并实现相应逻辑
-                /*
-                // 短信验证码注册流程（示例代码，未实现）
-                // 1. 显示手机号输入框和验证码输入框
-                // 2. 调用发送验证码接口
-                // 3. 用户输入验证码后，调用验证接口
-                // 4. 验证成功后，设置手机号到 this.phoneNumber
-                
-                // 示例代码结构：
-                // const phoneNumber = '用户输入的手机号';
-                // const verifyCode = '用户输入的验证码';
-                // 
-                // // 发送验证码
-                // await this.sendSmsCode(phoneNumber);
-                // 
-                // // 验证验证码
-                // const verifyRes = await this.verifySmsCode(phoneNumber, verifyCode);
-                // if (verifyRes.success) {
-                //     this.phoneNumber = phoneNumber;
-                //     uni.showToast({
-                //         title: '手机号获取成功',
-                //         icon: 'success'
-                //     });
-                // }
-                */
-                throw new Error('当前平台不支持一键注册，请使用其他方式');
-                // #endif
-
-                // #ifdef APP-PLUS
 
                 if (!loginRes.authResult || !loginRes.authResult.access_token || !loginRes.authResult.openid) {
                     throw new Error('获取授权失败');
@@ -687,77 +582,30 @@ export default {
 
                 const { access_token, openid: univerifyOpenid } = loginRes.authResult;
 
-                // 2. 调用 uniCloud 云函数获取手机号
-                // 注意：此函数仅用于获取手机号，不需要用户在 uniCloud 服务空间下登录
-                // 需要传递 univerify 返回的 access_token 和 openid
+                uni.showLoading({ title: '获取手机号...', mask: true });
                 const phoneRes = await callUniCloudFunction('getPhoneNumberByToken', {
                     access_token: access_token,
-                    openid: univerifyOpenid // univerify 返回的 openid
+                    openid: univerifyOpenid
                 });
 
-                if (phoneRes.result.code !== 0 || !phoneRes.result.phoneNumber) {
-                    throw new Error(phoneRes.result.message || '获取手机号失败');
+                if (!phoneRes || phoneRes.result?.code !== 0 || !phoneRes.result?.phoneNumber) {
+                    throw new Error(phoneRes?.result?.message || '获取手机号失败');
                 }
 
-                const phoneNumber = phoneRes.result.phoneNumber;
-
-                // 3. 检查手机号是否已存在
-                uni.showLoading({
-                    title: '检查手机号...',
-                    mask: true
-                });
-
-                // 通过调用注册云函数来检查（传入空参数，只检查手机号）
-                // 或者我们可以直接调用 registerUser 但只传 phoneNumber，让后端检查
-                // 但更好的方式是创建一个检查接口，不过用户说合并到 registerUser 中
-                // 所以我们先尝试注册，如果手机号已存在会返回错误
-                
-                // 实际上，我们可以先调用 registerUser 检查，但这样不太优雅
-                // 更好的方式是：先调用一个检查接口，但用户说合并到 registerUser 中
-                // 所以我们直接设置手机号，在提交注册时再检查
-                
-                // 设置手机号
-                this.phoneNumber = phoneNumber;
-                
-                uni.showToast({
-                    title: '手机号获取成功',
-                    icon: 'success'
-                });
-                // #endif
-
-            } catch (error) {
-                console.error('❌ [一键注册] 失败:', error);
-                
-                // 如果是用户取消，不显示错误提示
-                if (error.errMsg && (error.errMsg.includes('cancel') || error.errMsg.includes('取消'))) {
-                    // 用户取消，不做处理
-                    return;
-                }
-                
-                // 检查是否是 uniCloud 本地调试服务连接问题
-                const errorMsg = error.message || error.errMsg || '';
-                const errorCode = error.code || '';
-                
-                if (errorCode === 'UNICLOUD_LOCAL_DEBUG_FAILED' || 
-                    errorMsg.includes('无法连接uniCloud本地调试服务') || 
-                    errorMsg.includes('uniCloud本地调试') ||
-                    errorMsg.includes('本地调试服务')) {
-                    uni.showModal({
-                        title: '连接 uniCloud 服务失败',
-                        content: '无法连接 uniCloud 本地调试服务。\n\n解决方案：\n1. 在 HBuilderX 运行控制台切换到"连接云端云函数"\n2. 或者确保客户端与主机在同一局域网\n3. 或者检查防火墙是否拦截了 HBuilderX\n4. 如果切换网络环境，请重启 HBuilderX',
-                        showCancel: false,
-                        confirmText: '知道了'
-                    });
-                } else {
-                    uni.showToast({
-                        title: error.message || error.errMsg || '获取手机号失败，请重试',
-                        icon: 'none',
-                        duration: 3000
-                    });
-                }
-            } finally {
+                this.phoneNumber = phoneRes.result.phoneNumber;
                 uni.hideLoading();
+                uni.showToast({ title: '手机号获取成功', icon: 'success' });
+
+                // 一键绑定成功，提交注册
+                await this.submitRegister();
+            } catch (err) {
+                console.warn('⚠️ [注册] 一键登录未完成，切换短信方式:', err);
+                // 无论是用户选择其它方式还是失败，均展示短信弹窗
+                try { if (uni.closeAuthView) uni.closeAuthView(); } catch (e) {}
+                this.showBindPhoneModal = true;
+            } finally {
                 this.isGettingPhone = false;
+                uni.hideLoading();
             }
         }
     }
@@ -903,7 +751,6 @@ export default {
 .avatar-preview image { width: 100%; height: 100%; display: block; }
 .avatar-cta { margin-top: 12rpx; font-size: 24rpx; color: #999; }
 .form-wrapper { width: 100%; max-width: 640rpx; }
-.form-wrapper.compact { }
 .input-wrapper { margin-bottom: 24rpx; background: transparent; border-radius: 0; padding: 0; border: none; box-shadow: none; }
 .input-label { display: block; font-size: 26rpx; color: #888; margin-bottom: 12rpx; }
 .input-field { width: 100%; height: 88rpx; border: none; outline: none; background: #f5f6f7; border-radius: 9999rpx; padding: 0 26rpx; font-size: 30rpx; color: #333; }
@@ -925,6 +772,60 @@ export default {
 .enter-key-btn .ek-fill { background: #fff; clip-path: polygon(57% 2%,100% 2%,100% 100%,2% 100%,2% 62%,57% 62%,57% 2%); border-radius: 22rpx; }
 .enter-key-btn .ek-text { position: absolute; bottom: 24rpx; left: 24rpx; font-size: 28rpx; color: #333; font-weight: 500; }
 .login-link-wrapper.subtle { color: #999; }
+
+/* 绑定手机号弹窗（复用个人资料修改样式） */
+.edit-phone-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.modal-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  position: relative;
+  width: 100%;
+  background: #fff;
+  border-radius: 32rpx 32rpx 0 0;
+  padding: 40rpx;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32rpx;
+}
+
+.modal-title { font-size: 36rpx; font-weight: 600; color: #333; }
+.modal-close { font-size: 48rpx; color: #999; line-height: 1; width: 48rpx; height: 48rpx; display: flex; align-items: center; justify-content: center; }
+.modal-body { margin-bottom: 40rpx; }
+.modal-text { font-size: 28rpx; color: #666; line-height: 1.6; margin-bottom: 32rpx; display: block; }
+
+.modal-footer { display: flex; gap: 24rpx; }
+.modal-btn { flex: 1; height: 88rpx; line-height: 88rpx; text-align: center; border-radius: 44rpx; font-size: 32rpx; font-weight: 500; }
+.cancel-btn { background: #f5f6f7; color: #666; }
+.confirm-btn { background: #333; color: #fff; }
+.confirm-btn.disabled { opacity: 0.5; pointer-events: none; }
 
 /* 一键注册按钮 */
 .one-click-register-btn {
@@ -1012,24 +913,33 @@ export default {
 
 .code-wrapper {
   display: flex;
-  gap: 20rpx;
-  align-items: flex-end;
+  gap: 16rpx;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
 }
 
 .code-input-wrapper {
-  flex: 1;
-  margin-bottom: 0;
+  flex: 0 0 auto;
+  width: 380rpx;
+  min-width: 0;
+  margin-bottom: 0 !important;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
 }
 
 .code-send-btn {
   height: 88rpx;
-  padding: 0 24rpx;
-  background: #667eea;
+  width: 220rpx;
+  padding: 0 20rpx;
+  background: #999999;
   border-radius: 44rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .code-send-btn:active {
@@ -1042,9 +952,41 @@ export default {
 }
 
 .code-send-text {
-  font-size: 28rpx;
+  font-size: 26rpx;
   color: #fff;
   white-space: nowrap;
+}
+
+/* 手机号输入框样式 */
+.sms-bind-form .input-wrapper {
+  margin-right: 0;
+  margin-bottom: 24rpx;
+}
+
+/* 弹窗中的输入框样式 */
+.edit-phone-modal .modal-content .input-field {
+  width: 100%;
+  height: 88rpx;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 12rpx;
+  padding: 0 24rpx;
+  font-size: 30rpx;
+  color: #333;
+  background: #f8f8f8;
+}
+
+/* 无边框输入：仅作用于绑定手机号弹窗的输入框 */
+.edit-phone-modal .input-field {
+  border: none !important;
+}
+
+/* 验证码输入框对齐样式 */
+.code-input-wrapper .input-field {
+  height: 100%;
+  line-height: 88rpx;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 24rpx;
 }
 
 .dialog-footer {

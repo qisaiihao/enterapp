@@ -730,25 +730,33 @@ export default {
 /* 验证码输入区域样式（绑定手机号时使用） */
 .code-wrapper {
   display: flex;
-  gap: 20rpx;
-  align-items: flex-end;
+  gap: 16rpx;
+  align-items: center;
   margin-bottom: 24rpx;
+  justify-content: space-between;
 }
 
 .code-input-wrapper {
-  flex: 1;
-  margin-bottom: 0;
+  flex: 0 0 auto;
+  width: 380rpx;
+  min-width: 0;
+  margin-bottom: 0 !important;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
 }
 
 .code-send-btn {
   height: 88rpx;
-  padding: 0 24rpx;
-  background: #667eea;
+  width: 220rpx;
+  padding: 0 20rpx;
+  background: #999999;
   border-radius: 44rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .code-send-btn:active {
@@ -761,8 +769,40 @@ export default {
 }
 
 .code-send-text {
-  font-size: 28rpx;
+  font-size: 26rpx;
   color: #fff;
   white-space: nowrap;
+}
+
+/* 手机号输入框样式 */
+.sms-bind-form .input-wrapper {
+  margin-right: 0;
+  margin-bottom: 24rpx;
+}
+
+/* 弹窗中的输入框样式 */
+.bind-phone-modal .modal-content .input-field {
+  width: 100%;
+  height: 88rpx;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 12rpx;
+  padding: 0 24rpx;
+  font-size: 30rpx;
+  color: #333;
+  background: #f8f8f8;
+}
+
+/* 无边框输入：仅作用于绑定手机号弹窗的输入框 */
+.bind-phone-modal .input-field {
+  border: none !important;
+}
+
+/* 验证码输入框对齐样式 */
+.code-input-wrapper .input-field {
+  height: 100%;
+  line-height: 88rpx;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 24rpx;
 }
 </style>

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <view>
         <!-- 滚动容器 -->
         <scroll-view class="container" scroll-y="true">
@@ -39,11 +39,11 @@
 
                 <!-- 手机号（可修改） -->
                 <view class="form-row" @tap="onEditPhoneNumber">
-                    <view class="form-label">
+                    <view class="form-label" @tap.stop="onEditPhoneNumber">
                         <text>手机号</text>
                     </view>
-                    <view class="form-input">
-                        <input class="input-field" type="text" :value="formattedPhoneNumber" :disabled="true" />
+                    <view class="form-input" @tap.stop="onEditPhoneNumber">
+                        <input class="input-field" type="text" :value="formattedPhoneNumber" :disabled="true" @tap.stop="onEditPhoneNumber" />
                     </view>
                 </view>
 
@@ -117,7 +117,7 @@
                     <text class="modal-text">请输入新手机号并通过短信验证</text>
 
                     <!-- 新手机号输入 -->
-                    <view class="input-wrapper">
+                    <view class="input-wrapper phone-input-wrapper">
                         <input
                             class="input-field"
                             type="number"
@@ -739,9 +739,11 @@ export default {
         },
 
         // 修改手机号相关方法
-        onEditPhoneNumber() {
-            console.log('📱 [profile-edit] 点击修改手机号');
+        onEditPhoneNumber(e) {
+            console.log('📱 [profile-edit] 点击修改手机号', e);
+            console.log('📱 [profile-edit] 当前 showEditPhoneModal 值:', this.showEditPhoneModal);
             this.showEditPhoneModal = true;
+            console.log('📱 [profile-edit] 设置后 showEditPhoneModal 值:', this.showEditPhoneModal);
             // 重置表单数据
             this.newPhoneNumber = '';
             this.smsCode = '';
@@ -750,6 +752,10 @@ export default {
                 clearInterval(this.smsTimer);
                 this.smsTimer = null;
             }
+            // 强制更新视图
+            this.$nextTick(() => {
+                console.log('📱 [profile-edit] nextTick 后 showEditPhoneModal 值:', this.showEditPhoneModal);
+            });
         },
 
         closeEditPhoneModal() {
@@ -1178,12 +1184,14 @@ export default {
     border: none;
 }
 
-.input-field[disabled] {
-    color: #999999;
-    background-color: #f5f5f5;
-    opacity: 1;
-    outline: none;
-}
+ .input-field[disabled] {
+     color: #999999;
+     background-color: #f5f5f5;
+     opacity: 1;
+     outline: none;
+     pointer-events: none;
+     /* 让点击穿透禁用的输入框，父级整行可点 */
+ }
 
 .picker-display {
     font-size: 30rpx;
@@ -1223,6 +1231,7 @@ export default {
     background: transparent;
     border: none;
     outline: none;
+    pointer-events: none;
     resize: none;
 }
 
@@ -1464,25 +1473,33 @@ export default {
 /* 验证码输入区域样式 - 仅弹窗内部使用 */
 .code-wrapper {
     display: flex;
-    gap: 20rpx;
-    align-items: flex-end;
+    gap: 16rpx;
+    align-items: center;
     margin-bottom: 24rpx;
+    justify-content: space-between;
 }
 
 .code-input-wrapper {
-    flex: 1;
-    margin-bottom: 0;
+    flex: 0 0 auto;
+    width: 380rpx;
+    min-width: 0;
+    margin-bottom: 0 !important;
+    height: 88rpx;
+    display: flex;
+    align-items: center;
 }
 
 .code-send-btn {
     height: 88rpx;
-    padding: 0 24rpx;
-    background: #667eea;
+    width: 220rpx;
+    padding: 0 20rpx;
+    background: #999999;
     border-radius: 44rpx;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
+    flex-shrink: 0;
 }
 
 .code-send-btn:active {
@@ -1495,13 +1512,18 @@ export default {
 }
 
 .code-send-text {
-    font-size: 28rpx;
+    font-size: 26rpx;
     color: #fff;
     white-space: nowrap;
 }
 
 .input-wrapper {
     margin-bottom: 24rpx;
+}
+
+/* 手机号输入框样式 */
+.phone-input-wrapper {
+    margin-right: 0;
 }
 
 /* 弹窗中的输入框样式 - 不影响原有表单输入框 */
@@ -1514,5 +1536,18 @@ export default {
     font-size: 30rpx;
     color: #333;
     background: #f8f8f8;
+}
+/* 无边框输入：仅作用于"修改手机号"弹窗的两个输入框 */
+.edit-phone-modal .input-field {
+    border: none !important;
+}
+
+/* 验证码输入框对齐样式 */
+.code-input-wrapper .input-field {
+    height: 100%;
+    line-height: 88rpx;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0 24rpx;
 }
 </style>
