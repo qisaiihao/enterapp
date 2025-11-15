@@ -64,6 +64,7 @@ export default function () : Promise<UniUpgradeCenterResult> {
                     force: false
                   });
                   console.log('📱 [热更新] check-update: 静默更新安装完成，下次启动生效')
+                  console.log('✅ 热更新成功')
                 }
               }
             });
@@ -122,6 +123,9 @@ export default function () : Promise<UniUpgradeCenterResult> {
           } else if (code === -102) {
             // -102 表示参数错误
             console.error('❌ [热更新] check-update: 参数错误，code:', code, 'message:', message)
+          } else if (code === -999) {
+            // -999 表示云服务资源耗尽
+            console.warn('⚠️ [热更新] check-update: 云服务资源已耗尽，请稍后重试或联系管理员')
           } else {
             console.error('❌ [热更新] check-update: 版本检查失败，code:', code, 'message:', message)
           }
@@ -131,6 +135,11 @@ export default function () : Promise<UniUpgradeCenterResult> {
         console.log('📱 [热更新] check-update: 当前已是最新版本，无需更新')
         return resolve(uniUpgradeCenterResult)
       }).catch((err) => {
+        // 检查是否是资源耗尽错误
+        const errorMsg = err?.errMsg || err?.message || String(err)
+        if (errorMsg.includes('resource exhausted') || errorMsg.includes('ResourceExhausted') || err?.code === -999) {
+          console.warn('⚠️ [热更新] check-update: 云服务资源已耗尽，请稍后重试')
+        }
         reject(err)
       })
     });
@@ -201,6 +210,7 @@ function updateUseModal(packageInfo : UniUpgradeCenterResult) : void {
 					plus.runtime.install(res.tempFilePath, {
 						force: false
 					}, () => {
+						console.log('✅ 热更新成功')
 						if (is_mandatory) {
 							//更新完重启app
 							// #ifdef APP-PLUS
@@ -246,6 +256,7 @@ function updateUseModal(packageInfo : UniUpgradeCenterResult) : void {
           uni.installApk({
           	filePath: res.tempFilePath,
           	success: () => {
+          		console.log('✅ 热更新成功')
           		uni.showModal({
           			title: '安装成功请手动重启'
           		});

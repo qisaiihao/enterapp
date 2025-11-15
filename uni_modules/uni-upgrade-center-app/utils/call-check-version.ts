@@ -40,34 +40,34 @@ export default function () : Promise<UniUpgradeCenterResult> {
 		const systemInfo = uni.getSystemInfoSync()
 		// 写死 appid，直接使用 manifest.json 中的格式（与数据库格式一致）
 		const appId = '__UNI__E0A1A41'
-		// 使用 plus.runtime.version 获取版本号（versionCode），而不是 systemInfo.appVersion（versionName）
-		// plus.runtime.version 返回的是 manifest.json 中的 versionCode（整数）
-		// systemInfo.appVersion 返回的是 versionName（字符串，如 "1.0.0"）
-		const appVersion = plus.runtime.version || systemInfo.appVersion
-		console.log('📱 [热更新] call-check-version: 使用固定 App ID:', appId, 'App 版本:', appVersion)
-		console.log('📱 [热更新] call-check-version: plus.runtime.version:', plus.runtime.version, '(versionCode)')
-		console.log('📱 [热更新] call-check-version: systemInfo.appVersion:', systemInfo.appVersion, '(versionName)')
+		console.log('📱 [热更新] call-check-version: 使用固定 App ID:', appId)
 		console.log('📱 [热更新] call-check-version: systemInfo.appId:', systemInfo.appId, '(仅供参考)')
 		console.log('📱 [热更新] call-check-version: plus.runtime.appid:', plus.runtime.appid, '(仅供参考)')
 		// #ifndef UNI-APP-X 
-		// appVersion 可能是数字（plus.runtime.version）或字符串（systemInfo.appVersion），需要转换为字符串
-		const appVersionStr = String(appVersion || '')
-		if (typeof appId === 'string' && appVersionStr.length > 0 && appId.length > 0) {
+		if (typeof appId === 'string' && appId.length > 0) {
 			// 获取 WGT 版本信息
-			// plus.runtime.getProperty 需要使用 plus.runtime.appid（生产环境）或 systemInfo.appId（开发环境）
-			// 优先使用 plus.runtime.appid，如果它是 "HBuilder"（开发环境），则使用 systemInfo.appId
-			let runtimeAppId = plus.runtime.appid
-			if (!runtimeAppId || runtimeAppId === 'HBuilder') {
-				runtimeAppId = systemInfo.appId || '__UNI__E0A1A41'
-				console.log('📱 [热更新] call-check-version: plus.runtime.appid 不可用，使用 systemInfo.appId:', runtimeAppId)
-			} else {
-				console.log('📱 [热更新] call-check-version: 使用 plus.runtime.appid 获取 WGT 版本:', runtimeAppId)
+			// 始终使用 plus.runtime.appid，即使在开发环境中它可能是 "HBuilder"，也能正确获取版本信息
+			const runtimeAppId = plus.runtime.appid
+			if (!runtimeAppId) {
+				console.error('❌ [热更新] call-check-version: plus.runtime.appid 为空，无法获取版本信息')
+				reject('plus.runtime.appid is empty')
+				return
 			}
+			console.log('📱 [热更新] call-check-version: 使用 plus.runtime.appid 获取版本信息:', runtimeAppId)
 			
 			plus.runtime.getProperty(runtimeAppId, function (widgetInfo) {
 				console.log('📱 [热更新] call-check-version: plus.runtime.getProperty 回调，widgetInfo:', widgetInfo)
+				// 使用 widgetInfo.versionCode 获取版本号
+				// versionCode 可能是数字或字符串，需要统一处理
+				let appVersion = 0
+				if (widgetInfo && widgetInfo.versionCode !== undefined && widgetInfo.versionCode !== null && widgetInfo.versionCode !== '') {
+					appVersion = typeof widgetInfo.versionCode === 'number' ? widgetInfo.versionCode : parseInt(widgetInfo.versionCode, 10) || 0
+				}
+				// appVersion 是整数版本号，需要转换为字符串
+				const appVersionStr = String(appVersion || '')
 				// 如果 widgetInfo.version 为空，使用默认值 '0.0.0'，这样至少可以查询原生包
-				const wgtVersion = widgetInfo && widgetInfo.version ? widgetInfo.version : '0.0.0'
+				const wgtVersion = widgetInfo && widgetInfo.version && widgetInfo.version !== '' ? widgetInfo.version : '0.0.0'
+				console.log('📱 [热更新] call-check-version: App 版本号 (versionCode):', appVersion)
 				console.log('📱 [热更新] call-check-version: WGT 版本号:', wgtVersion, '(如果为空则使用默认值 0.0.0)')
 				console.log('📱 [热更新] call-check-version: 准备调用云函数检查更新，参数:', {
 					appid: appId,
@@ -101,20 +101,36 @@ export default function () : Promise<UniUpgradeCenterResult> {
 					},
 					fail: (error) => {
 						console.error('❌ [热更新] call-check-version: 云函数调用失败:', error)
-						reject(error)
+						// 检查是否是资源耗尽错误
+						const errorMsg = error?.errMsg || error?.message || String(error)
+						if (errorMsg.includes('resource exhausted') || errorMsg.includes('ResourceExhausted')) {
+							console.warn('⚠️ [热更新] 云服务资源已耗尽，请检查 uniCloud 服务配额或稍后重试')
+							// 资源耗尽时，返回一个特殊的结果，而不是直接 reject，让调用方可以优雅处理
+							reject({
+								code: -999,
+								message: '云服务资源已耗尽，请稍后重试或联系管理员',
+								error: error
+							})
+						} else {
+							reject(error)
+						}
 					}
 				})
 			})
 		} else {
-			reject('plus.runtime.appid is EMPTY')
+			reject('appId is invalid')
 		}
 		// #endif
 		// #ifdef UNI-APP-X
-		if (typeof appId === 'string' && typeof appVersion === 'string' && appId.length > 0 && appVersion.length > 0) {
+		// UNI-APP-X 平台暂时保持原逻辑，因为可能没有 plus.runtime.getProperty
+		const appBaseInfoX = uni.getAppBaseInfo()
+		const appVersionX = appBaseInfoX.appVersionCode || 0
+		const appVersionXStr = String(appVersionX || '')
+		if (typeof appId === 'string' && appVersionXStr.length > 0 && appId.length > 0) {
 			let data = {
 				action: 'checkVersion',
 				appid: appId,
-				appVersion: appVersion,
+				appVersion: appVersionXStr,
 				is_uniapp_x: true,
 				wgtVersion: '0.0.0.0.0.1'
 			}

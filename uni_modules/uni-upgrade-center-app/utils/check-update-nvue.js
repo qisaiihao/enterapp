@@ -2,10 +2,12 @@ function callCheckVersion() {
 	// #ifdef APP-PLUS
 	return new Promise((resolve, reject) => {
 		plus.runtime.getProperty(plus.runtime.appid, function(widgetInfo) {
+			// 使用 widgetInfo.versionCode 获取版本号
+			const appVersion = widgetInfo && widgetInfo.versionCode ? widgetInfo.versionCode : 0
 			let data = {
 				action: 'checkVersion',
 				appid: plus.runtime.appid,
-				appVersion: plus.runtime.version,
+				appVersion: String(appVersion),
 				wgtVersion: widgetInfo.version
 			}
 			uniCloud.callFunction({
