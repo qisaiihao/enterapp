@@ -1,0 +1,33 @@
+{
+	"compilerOptions": {
+		"target": "es2019",
+		"module": "esnext",
+		"moduleResolution": "node",
+		"lib": ["es2019", "dom"],
+		"jsx": "preserve",
+		"baseUrl": ".",
+		"paths": {},
+		"allowJs": true,
+		"checkJs": false,
+		"skipLibCheck": true
+	},
+	"include": [
+		"**/*.js",
+		"**/*.vue"
+	],
+	"exclude": [
+		"node_modules",
+		"unpackage",
+		"dist"
+	],
+	"vueCompilerOptions": {
+		"experimentalCompatMode": 2,
+		"experimentalTemplateCompilerOptions": {
+			"compatConfig": {
+				"MODE": 2
+			}
+		},
+		"globalTypesPath": "./.vscode/vue-global-types.d.ts"
+	}
+}
+

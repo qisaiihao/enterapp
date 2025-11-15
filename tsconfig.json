@@ -1,11 +1,11 @@
 {
 	"compilerOptions": {
-		// Allow JS files and avoid deep type-checking of external libs
-		"allowJs": true,
+		// 不编译 JS 文件，只做类型检查
+		"allowJs": false,
 		"skipLibCheck": true,
-		// Loosen implicit any to avoid errors from JS plugins
+		// 允许隐式 any，避免过于严格的类型检查
 		"noImplicitAny": false,
-		// Module/target suitable for uni-app (Vue 2 projects typically use esnext)
+		// 模块和目标配置，适合 uni-app
 		"target": "es2019",
 		"module": "esnext",
 		"moduleResolution": "node",
@@ -14,16 +14,19 @@
 		"baseUrl": ".",
 		"paths": {}
 	},
+	"vueCompilerOptions": {
+		"globalTypesPath": "./.vscode/vue-global-types.d.ts"
+	},
 	"include": [
 		"**/*.ts",
 		"**/*.d.ts",
-		"**/*.vue",
-		"uni_modules/**/*.js"
-	 ],
+		"**/*.vue"
+	],
 	"exclude": [
 		"node_modules",
 		"unpackage",
-		"dist"
+		"dist",
+		"**/*.js"
 	]
 }
 

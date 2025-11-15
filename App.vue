@@ -22,12 +22,25 @@ export default {
         uni.removeStorageSync('cachedPostList');
         
         // #ifdef APP-PLUS
-        console.log('当前为 APP-PLUS 环境，准备获取版本信息...');
+        console.log('📱 [热更新] 当前为 APP-PLUS 环境，准备获取版本信息...');
         try {
+            // 获取系统信息中的版本号
+            const systemInfo = uni.getSystemInfoSync();
+            const appId = systemInfo.appId;
+            const appVersion = systemInfo.appVersion;
+            console.log('📱 [热更新] App ID:', appId);
+            console.log('📱 [热更新] App 版本号 (appVersion):', appVersion);
+            
             plus.runtime.getProperty(plus.runtime.appid, function(widgetInfo) {
-                console.log('plus.runtime.getProperty 回调已执行, widgetInfo 内容为:', JSON.stringify(widgetInfo));
+                console.log('📱 [热更新] plus.runtime.getProperty 回调已执行');
                 if (widgetInfo && widgetInfo.version) {
-                    console.log('成功获取到当前应用版本:', widgetInfo.version);
+                    const wgtVersion = widgetInfo.version;
+                    console.log('📱 [热更新] WGT 资源包版本号 (wgtVersion):', wgtVersion);
+                    console.log('📱 [热更新] 当前完整版本信息:', {
+                        appId: appId,
+                        appVersion: appVersion,
+                        wgtVersion: wgtVersion
+                    });
                     // 可在此执行热更新/版本检查
                     try {
                         checkUpdate().then((result) => {
@@ -39,11 +52,11 @@ export default {
                         console.warn('⚠️ [热更新] 调用异常（已忽略）:', e);
                     }
                 } else {
-                    console.error('获取应用版本信息失败，请检查 manifest.json 配置或运行环境。');
+                    console.error('❌ [热更新] 获取 WGT 版本信息失败，请检查 manifest.json 配置或运行环境。');
                 }
             });
         } catch (error) {
-            console.warn('⚠️ [App版本] 读取版本信息失败（已忽略）:', error);
+            console.warn('⚠️ [热更新] 读取版本信息失败（已忽略）:', error);
         }
         // #endif
 

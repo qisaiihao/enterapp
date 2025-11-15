@@ -67,6 +67,14 @@ module.exports = async (event, context) => {
 	if (appid && appVersion && wgtVersion && platform) {
 		const collection = uniCloud.database().collection(app_version_db_name);
 
+		console.log('[云函数-热更新] 查询参数:', {
+			appid: appid,
+			platform: platform,
+			stable_publish: true,
+			appVersion: appVersion,
+			wgtVersion: wgtVersion
+		});
+
 		const record = await collection.where({
 				appid,
 				platform,
@@ -74,6 +82,17 @@ module.exports = async (event, context) => {
 			})
 			.orderBy('create_date', 'desc')
 			.get();
+
+		console.log('[云函数-热更新] 查询结果:', {
+			recordCount: record && record.data ? record.data.length : 0,
+			records: record && record.data ? record.data.map(item => ({
+				appid: item.appid,
+				platform: item.platform,
+				version: item.version,
+				type: item.type,
+				stable_publish: item.stable_publish
+			})) : []
+		});
 
 		if (record && record.data && record.data.length > 0) {
 			const appVersionInDb = record.data.find(item => item.type === package_app) || {};

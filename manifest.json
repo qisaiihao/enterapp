@@ -3,7 +3,7 @@
     "appid" : "__UNI__E0A1A41",
     "description" : "",
     "versionName" : "1.0.0",
-    "versionCode" : 101,
+    "versionCode" : 103,
     "transformPx" : false,
     "app-plus" : {
         "usingComponents" : true,

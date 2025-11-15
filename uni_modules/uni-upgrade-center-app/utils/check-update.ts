@@ -1,25 +1,43 @@
+// @ts-nocheck - 条件编译导致 TypeScript 类型检查问题，禁用此文件的类型检查
+// 类型声明，用于条件编译块内的全局对象
+declare const uni: any
+declare const plus: any
+declare const uniCloud: any
+
 import callCheckVersion, { UniUpgradeCenterResult } from "./call-check-version"
 import { platform_iOS } from './utils'
 // #ifdef UNI-APP-X
+// @ts-ignore - 条件编译模块
 import { openSchema } from '@/uni_modules/uts-openSchema'
 // #endif
 
 // 推荐再App.vue中使用
 const PACKAGE_INFO_KEY = '__package_info__'
 // #ifdef APP-HARMONY
+// @ts-ignore - 条件编译导致类型检查问题
 export default function (component?: any) : Promise<UniUpgradeCenterResult> {
 // #endif
 // #ifndef APP-HARMONY
+// @ts-ignore - 条件编译导致类型检查问题
 export default function () : Promise<UniUpgradeCenterResult> {
 // #endif
 	return new Promise<UniUpgradeCenterResult>((resolve, reject) => {
+		console.log('📱 [热更新] check-update: 开始检查更新...')
 		callCheckVersion().then(async (uniUpgradeCenterResult) => {
 			// NOTE uni-app x 3.96 解构有问题
 			const code = uniUpgradeCenterResult.code
 			const message = uniUpgradeCenterResult.message
 			const url = uniUpgradeCenterResult.url // 安装包下载地址
+			console.log('📱 [热更新] check-update: 版本检查返回 code:', code)
         // 此处逻辑仅为示例，可自行编写
         if (code > 0) {
+			console.log('📱 [热更新] check-update: 检测到新版本，code:', code, '版本信息:', {
+				version: uniUpgradeCenterResult.version,
+				type: uniUpgradeCenterResult.type,
+				platform: uniUpgradeCenterResult.platform,
+				is_mandatory: uniUpgradeCenterResult.is_mandatory,
+				is_silently: uniUpgradeCenterResult.is_silently
+			})
           // 腾讯云获取下载链接
           if (/^cloud:\/\//.test(url)) {
               const tcbRes = await uniCloud.getTempFileURL({ fileList: [url] });
@@ -35,14 +53,17 @@ export default function () : Promise<UniUpgradeCenterResult> {
           // #ifndef UNI-APP-X
           // 静默更新，只有wgt有
           if (uniUpgradeCenterResult.is_silently) {
+            console.log('📱 [热更新] check-update: 检测到静默更新，开始后台下载...')
             uni.downloadFile({
               url: uniUpgradeCenterResult.url,
               success: res => {
                 if (res.statusCode == 200) {
+                  console.log('📱 [热更新] check-update: 静默更新下载成功，开始安装...')
                   // 下载好直接安装，下次启动生效
                   plus.runtime.install(res.tempFilePath, {
                     force: false
                   });
+                  console.log('📱 [热更新] check-update: 静默更新安装完成，下次启动生效')
                 }
               }
             });
@@ -90,9 +111,24 @@ export default function () : Promise<UniUpgradeCenterResult> {
 
           return resolve(uniUpgradeCenterResult)
         } else if (code < 0) {
-          console.error(message)
+          // code < 0 表示错误，需要区分处理
+          if (code === -101) {
+            // -101 表示数据库中没有找到版本记录，可能是：
+            // 1. 数据库中没有该 appid 的版本记录
+            // 2. appid 不匹配
+            // 3. 平台不匹配
+            console.warn('⚠️ [热更新] check-update: 数据库中没有找到版本记录，code:', code, 'message:', message)
+            console.warn('⚠️ [热更新] 可能的原因：1. 数据库中没有该 appid 的版本记录 2. appid 不匹配 3. 平台不匹配')
+          } else if (code === -102) {
+            // -102 表示参数错误
+            console.error('❌ [热更新] check-update: 参数错误，code:', code, 'message:', message)
+          } else {
+            console.error('❌ [热更新] check-update: 版本检查失败，code:', code, 'message:', message)
+          }
           return reject(uniUpgradeCenterResult)
         }
+        // code === 0 表示当前已是最新版本
+        console.log('📱 [热更新] check-update: 当前已是最新版本，无需更新')
         return resolve(uniUpgradeCenterResult)
       }).catch((err) => {
         reject(err)
@@ -103,8 +139,10 @@ export default function () : Promise<UniUpgradeCenterResult> {
 /**
  * 使用 uni.showModal 升级
  */
+// @ts-ignore - 条件编译导致类型检查问题
 function updateUseModal(packageInfo : UniUpgradeCenterResult) : void {
 	// #ifdef APP
+	// 函数实现
 	const {
 		title, // 标题
 		contents, // 升级内容
@@ -117,14 +155,15 @@ function updateUseModal(packageInfo : UniUpgradeCenterResult) : void {
 	let isWGT = type === 'wgt'
 	let isiOS = !isWGT ? platform.includes(platform_iOS) : false;
 
+	let confirmText: string
 	// #ifndef UNI-APP-X
-	let confirmText = isiOS ? '立即跳转更新' : '立即下载更新'
+	confirmText = isiOS ? '立即跳转更新' : '立即下载更新'
 	// #endif
 	// #ifdef UNI-APP-X
-	let confirmText = '立即下载更新'
+	confirmText = '立即下载更新'
 	// #endif
 
-    return uni.showModal({
+    uni.showModal({
       title,
       content: contents,
       showCancel: !is_mandatory,
@@ -225,4 +264,6 @@ function updateUseModal(packageInfo : UniUpgradeCenterResult) : void {
 		}
 	});
 	// #endif
+	// 非 APP 环境下函数体为空
+	return;
 }
