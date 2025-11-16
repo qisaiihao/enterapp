@@ -55,14 +55,9 @@ export default {
     getSafeAreaTop() {
       try {
         const systemInfo = uni.getSystemInfoSync();
-        console.log('【top-bar】获取系统信息:', {
-          statusBarHeight: systemInfo.statusBarHeight,
-          platform: systemInfo.platform
-        });
         
         // 使用状态栏高度作为安全区域
         const safeAreaTop = systemInfo.statusBarHeight || 0;
-        console.log('【top-bar】设置安全区域高度:', safeAreaTop);
         
         this.safeAreaTop = safeAreaTop;
         try {
@@ -84,12 +79,8 @@ export default {
 
     // 跳转到写诗页面
     navigateToAdd() {
-      console.log('点击写诗按钮，跳转到add页面');
       uni.navigateTo({
         url: '/pages/add/add',
-        success: () => {
-          console.log('跳转到add页面成功');
-        },
         fail: (err) => {
           console.error('跳转到add页面失败:', err);
           uni.showToast({
@@ -102,12 +93,8 @@ export default {
 
     // 跳转到搜索页面
     navigateToSearch() {
-      console.log('点击搜索框，跳转到搜索页面');
       uni.navigateTo({
         url: '/pages/search/search',
-        success: () => {
-          console.log('跳转到搜索页面成功');
-        },
         fail: (err) => {
           console.error('跳转到搜索页面失败:', err);
           uni.showToast({
@@ -122,9 +109,6 @@ export default {
     navigateToMessages() {
       uni.navigateTo({
         url: '/pages/messages/messages',
-        success: () => {
-          console.log('跳转到消息页面成功');
-        },
         fail: (err) => {
           console.error('跳转到消息页面失败:', err);
           uni.showToast({

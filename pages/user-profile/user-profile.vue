@@ -555,7 +555,6 @@ export default {
         };
     },
     onLoad: function (options) {
-        console.log('【用户主页】页面加载,options:', options);
         const targetUserId = options.userId;
         if (!targetUserId) {
             uni.showToast({
@@ -569,45 +568,8 @@ export default {
             targetUserId
         });
         this.loadUserProfile();
-        // 可选：监听全局事件以事件驱动失效与刷新（仅命中当前用户时刷新）
-        try {
-            uni.$on && uni.$on('avatar-updated', (e) => {
-                if (e && e.userId === this.targetUserId) {
-                    invalidateUserInfo(this.targetUserId);
-                    this.loadUserProfile();
-                }
-            });
-            uni.$on && uni.$on('post-created', (e) => {
-                if (e && e.userId === this.targetUserId) {
-                    invalidateUserPosts(this.targetUserId);
-                    invalidateUserPortfolios(this.targetUserId);
-                    this.setData({
-                        userPosts: [],
-                        page: 0,
-                        hasMore: true,
-                        growthStats: { seed: 0, leaf: 0, flower: 0, peach: 0 }
-                    });
-                    this.loadUserProfile();
-                }
-            });
-            uni.$on && uni.$on('favorite-changed', (e) => {
-                if (e && e.userId === this.targetUserId) {
-                    invalidateUserPosts(this.targetUserId);
-                    invalidateUserPortfolios(this.targetUserId);
-                    this.setData({
-                        userPosts: [],
-                        page: 0,
-                        hasMore: true,
-                        growthStats: { seed: 0, leaf: 0, flower: 0, peach: 0 }
-                    });
-                    this.loadUserProfile();
-                }
-            });
-        } catch (err) {}
     },
     onPullDownRefresh: function () {
-        console.log('【用户主页】下拉刷新触发');
-        
         // 清除用户信息缓存
         invalidateUserInfo(this.targetUserId);
         // 清除用户帖子缓存
@@ -663,19 +625,14 @@ export default {
         // 标签切换（他人主页）
         switchTab: function (e) {
             const tab = e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.tab;
-            console.log('【用户主页】switchTab 被调用，当前tab:', this.currentTab, '切换到tab:', tab);
             if (!tab || tab === this.currentTab) return;
             this.setData({ currentTab: tab });
 
             // 根据切换的标签加载相应数据
             switch (tab) {
                 case 'portfolio':
-                    console.log('【用户主页】切换到作品集标签，portfolioLoading:', this.portfolioLoading);
                     if (!this.portfolioLoading) {
-                        console.log('【用户主页】开始调用 loadUserPortfolios');
                         this.loadUserPortfolios();
-                    } else {
-                        console.log('【用户主页】portfolioLoading为true，跳过调用');
                     }
                     // 加载时间轴数据
                     if (this.timelinePosts.length === 0 && !this.timelineLoading) {
@@ -683,14 +640,10 @@ export default {
                     }
                     break;
                 case 'favorites':
-                    console.log('【用户主页】切换到收藏标签，favoriteList.length:', this.favoriteList.length, 'favoriteLoading:', this.favoriteLoading);
                     if (this.favoriteList.length === 0 && !this.favoriteLoading) {
                         this.setData({ favoritePage: 0 });
                         try { invalidateUserFavorites && invalidateUserFavorites(this.targetUserId); } catch (_) {}
-                        console.log('【用户主页】开始调用 loadUserFavorites');
                         this.loadUserFavorites();
-                    } else {
-                        console.log('【用户主页】已有收藏数据或正在加载，跳过调用');
                     }
                     break;
             }
@@ -705,7 +658,6 @@ export default {
             const infoPromise = getUserInfo(this.targetUserId, this);
             const postsPromise = getUserPosts({ userId: this.targetUserId, page: 0, pageSize: this.PAGE_SIZE, context: this });
             const portfolioPromise = getUserPortfolios(this.targetUserId, this).catch((error) => {
-                console.error('【用户主页】获取作品集失败:', error);
                 return [];
             });
             Promise.all([infoPromise, postsPromise, portfolioPromise]).then(async ([userInfo, posts, portfolios]) => {
@@ -739,7 +691,6 @@ export default {
                 this.fetchFollowCounts();
                 uni.setNavigationBarTitle({ title: userInfo.nickName || '用户主页' });
             }).catch((err) => {
-                console.error('【用户主页】缓存加载失败:', err);
                 uni.showToast({ title: '网络异常，请稍后重试', icon: 'none' });
             }).finally(() => {
                 this.setData({ isLoading: false, portfolioLoading: false });
@@ -776,7 +727,7 @@ export default {
                             : this.computeGrowthStats(newPosts)
                     });
                 })
-                .catch((err) => { console.error('【用户主页】加载更多帖子失败', err); })
+                .catch((err) => { console.error('加载更多帖子失败', err); })
                 .finally(() => { 
                     // 只在首次加载时隐藏全屏加载状态
                     if (page === 0) {
@@ -803,7 +754,7 @@ export default {
                 });
                 return stats;
             } catch (err) {
-                console.error('【用户主页】计算成长统计失败:', err);
+                console.error('计算成长统计失败:', err);
                 return { seed: 0, leaf: 0, flower: 0, peach: 0 };
             }
         },
@@ -1030,8 +981,6 @@ export default {
                             targetOpenid
                         }, { requireAuth: true })
                             .then((res) => {
-                                console.log('🔍 [onBlockTap] 云函数返回:', res);
-                                
                                 if (res && res.result) {
                                     if (res.result.success) {
                                         this.setData({
@@ -1049,7 +998,6 @@ export default {
                                             const { clearDiscoverCache } = require('../../api-cache/discover.js');
                                             invalidateHomePosts({}); // 清除首页缓存
                                             clearDiscoverCache(); // 清除发现页缓存
-                                            console.log('✅ [onBlockTap] 已清除首页和发现页缓存');
                                             
                                             // 如果屏蔽成功，延迟提示用户刷新
                                             if (res.result.isBlocked) {
@@ -1063,7 +1011,7 @@ export default {
                                                 }, 500);
                                             }
                                         } catch (cacheError) {
-                                            console.error('❌ [onBlockTap] 清除缓存失败:', cacheError);
+                                            console.error('清除缓存失败:', cacheError);
                                         }
                                         
                                         // 如果取消屏蔽，刷新页面数据
@@ -1071,7 +1019,7 @@ export default {
                                             this.loadUserProfile();
                                         }
                                     } else {
-                                        console.error('❌ [onBlockTap] 操作失败:', res.result);
+                                        console.error('操作失败:', res.result);
                                         uni.showToast({
                                             title: res.result.message || '操作失败',
                                             icon: 'none',
@@ -1079,7 +1027,7 @@ export default {
                                         });
                                     }
                                 } else {
-                                    console.error('❌ [onBlockTap] 响应格式错误:', res);
+                                    console.error('响应格式错误:', res);
                                     uni.showToast({
                                         title: '服务器响应异常',
                                         icon: 'none',
@@ -1088,8 +1036,8 @@ export default {
                                 }
                             })
                             .catch((err) => {
-                                console.error('❌ [onBlockTap] 切换屏蔽状态失败:', err);
-                                console.error('❌ [onBlockTap] 错误详情:', {
+                                console.error('切换屏蔽状态失败:', err);
+                                console.error('错误详情:', {
                                     message: err.message,
                                     code: err.code,
                                     errCode: err.errCode
@@ -1113,7 +1061,7 @@ export default {
         navigateToPostDetail: function (e) {
             const postId = typeof e === 'string' ? e : (e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.id);
             if (!postId) {
-                console.error('【用户主页】navigateToPostDetail: postId未定义');
+                console.error('navigateToPostDetail: postId未定义');
                 return;
             }
             uni.navigateTo({
@@ -1204,7 +1152,6 @@ export default {
 
         // 独立加载时间轴数据
         loadTimelineData: function () {
-            console.log('【用户主页】开始加载时间轴数据');
             this.setData({
                 timelineLoading: true,
                 timelineError: false
@@ -1213,7 +1160,6 @@ export default {
             const targetUserId = this.targetUserId;
             
             if (!targetUserId) {
-                console.error('【用户主页】时间轴加载失败：无法获取用户ID');
                 this.setData({
                     timelineLoading: false,
                     timelineError: true
@@ -1227,15 +1173,11 @@ export default {
                 skip: 0,
                 limit: 1000 // 获取大量数据，确保包含所有帖子
             }).then((res) => {
-                console.log('【用户主页】时间轴云函数返回:', res);
-
                 if (res && res.result && res.result.success) {
                     const allPosts = res.result.posts || [];
-                    console.log('【用户主页】获取到全部帖子数量:', allPosts.length);
                     
                     // 只筛选原创诗歌类型的帖子
                     const originalPoemPosts = allPosts.filter(post => post.isPoem === true && post.isOriginal === true);
-                    console.log('【用户主页】筛选后原创诗歌帖子数量:', originalPoemPosts.length);
                     
                     // 格式化时间
                     originalPoemPosts.forEach(post => {
@@ -1254,14 +1196,12 @@ export default {
                         timelineError: false
                     });
                 } else {
-                    console.error('【用户主页】时间轴云函数返回失败:', res && res.result);
                     this.setData({
                         timelineLoading: false,
                         timelineError: true
                     });
                 }
             }).catch((err) => {
-                console.error('【用户主页】时间轴云函数调用失败:', err);
                 this.setData({
                     timelineLoading: false,
                     timelineError: true
@@ -1302,15 +1242,11 @@ export default {
         async loadUserPortfolios(cb) {
             try {
                 this.setData({ portfolioLoading: true });
-                console.log('【用户主页】loadUserPortfolios调用getUserPortfolios，userId:', this.targetUserId);
                 let portfolios = await getUserPortfolios(this.targetUserId, this);
-                console.log('【用户主页】getUserPortfolios返回结果:', portfolios);
                 portfolios = await this.transformPortfolioList(portfolios);
-                console.log('【用户主页】transformPortfolioList处理后的结果:', portfolios);
                 this.setData({ portfolioList: portfolios });
-                try { console.log('[user-profile] portfolioList set ->', this.portfolioList.length); } catch (_) {}
             } catch (error) {
-                console.error('【用户主页】加载用户作品集失败:', error);
+                console.error('加载用户作品集失败:', error);
             } finally {
                 this.setData({ portfolioLoading: false });
                 if (typeof cb === 'function') cb();
@@ -1342,12 +1278,12 @@ export default {
                             }
                         });
                     } catch (err) {
-                        console.error('【用户主页】转换作品集封面失败:', err);
+                        console.error('转换作品集封面失败:', err);
                     }
                 }
                 return normalized;
             } catch (err) {
-                console.error('【用户主页】处理作品集数据失败:', err);
+                console.error('处理作品集数据失败:', err);
                 return [];
             }
         },
@@ -1361,7 +1297,6 @@ export default {
                     uni.showToast({ title: '作品集信息获取失败', icon: 'none' });
                     return;
                 }
-                console.log('打开他人作品集:', portfolio);
                 // 跳转到他人作品集页面：优先携带该作品集真实 owner 的 openid，避免 userId 来源不一致
                 const ownerId = portfolio._openid || this.targetUserId;
                 uni.navigateTo({
@@ -1378,15 +1313,7 @@ export default {
             if (this.favoriteLoading) return;
 
             const { favoritePage, PAGE_SIZE } = this;
-            console.log('【用户主页】请求收藏分页参数:', {
-                favoritePage,
-                PAGE_SIZE,
-                skip: favoritePage * PAGE_SIZE,
-                limit: PAGE_SIZE
-            });
-
-            this.setData({ favoriteLoading: true });
-
+            // 调用云函数获取收藏数据
             getUserFavorites({ userId: this.targetUserId, page: favoritePage, pageSize: PAGE_SIZE, context: this })
                 .then(async (favorites) => {
                     // 将 { postId, favoriteTime, post: {...} } 规范化为贴合模板的数据结构

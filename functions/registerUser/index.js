@@ -10,9 +10,9 @@ const db = cloud.database();
 // 云函数入口函数
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
-  const { poemId, password, nickName, avatarFileID, phoneNumber } = event;
+  const { poemId, password, nickName, avatarFileID, phoneNumber, openid: providedOpenid, githubUsername, githubAvatar, githubEmail } = event;
 
-  console.log('🔍 [registerUser] 收到注册请求:', { poemId, nickName, password: password ? '***' : 'undefined', phoneNumber: phoneNumber ? '***' : 'undefined' });
+  console.log('🔍 [registerUser] 收到注册请求:', { poemId, nickName, password: password ? '***' : 'undefined', phoneNumber: phoneNumber ? '***' : 'undefined', providedOpenid: providedOpenid ? '***' : 'undefined' });
 
   if (!poemId || !password || !nickName) {
     return {
@@ -56,8 +56,8 @@ exports.main = async (event, context) => {
       };
     }
 
-    // 获取当前用户的openid
-    const openid = wxContext.OPENID || event.openid;
+    // 获取当前用户的openid（优先使用传入的 openid，用于 GitHub 登录）
+    const openid = providedOpenid || wxContext.OPENID || event.openid;
     if (!openid) {
       return {
         success: false,
@@ -88,6 +88,11 @@ exports.main = async (event, context) => {
         updateData.phoneNumber = phoneNumber.trim();
         updateData.isPhoneVerified = true;
       }
+      
+      // 如果提供了 GitHub 信息，添加到更新数据中
+      if (githubUsername) updateData.githubUsername = githubUsername;
+      if (githubAvatar) updateData.githubAvatar = githubAvatar;
+      if (githubEmail) updateData.githubEmail = githubEmail;
       
       await db.collection('users').where({
         _openid: openid
@@ -128,6 +133,11 @@ exports.main = async (event, context) => {
         createData.phoneNumber = phoneNumber.trim();
         createData.isPhoneVerified = true;
       }
+      
+      // 如果提供了 GitHub 信息，添加到创建数据中
+      if (githubUsername) createData.githubUsername = githubUsername;
+      if (githubAvatar) createData.githubAvatar = githubAvatar;
+      if (githubEmail) createData.githubEmail = githubEmail;
       
       await db.collection('users').add({
         data: createData

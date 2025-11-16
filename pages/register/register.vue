@@ -33,7 +33,9 @@
 
         <view class="login-link-wrapper subtle">
           <text class="login-text">已有账号？</text>
-          <text class="login-link" @tap="goToLogin">去登录</text>
+          <text class="login-link" @tap="handleLoginLinkTap">
+            {{ fromGithub ? '绑定账号' : '去登录' }}
+          </text>
         </view>
       </view>
     </view>
@@ -43,6 +45,34 @@
       <view class="ek-layer ek-border"></view>
       <view class="ek-layer ek-fill">
         <text class="ek-text">Enter ↵</text>
+      </view>
+    </view>
+
+    <!-- 绑定已有账号弹窗 -->
+    <view class="edit-phone-modal" v-if="showBindAccountDialog" @tap.stop>
+      <view class="modal-mask" @tap="closeBindAccountDialog"></view>
+      <view class="modal-content">
+        <view class="modal-header">
+          <text class="modal-title">绑定 GitHub 到已有账号</text>
+          <text class="modal-close" @tap="closeBindAccountDialog">×</text>
+        </view>
+        <view class="modal-body">
+          <text class="modal-text">请输入您已有账号的 Poem ID 和密码</text>
+          <view class="sms-bind-form">
+            <view class="input-wrapper">
+              <input class="input-field" type="text" placeholder="请输入 Poem ID" v-model="bindPoemId" />
+            </view>
+            <view class="input-wrapper">
+              <input class="input-field" type="password" placeholder="请输入密码" v-model="bindPassword" />
+            </view>
+          </view>
+        </view>
+        <view class="modal-footer">
+          <view class="modal-btn cancel-btn" @tap="closeBindAccountDialog">取消</view>
+          <view class="modal-btn confirm-btn" @tap="handleBindGithubToAccount" :class="{ disabled: isBinding || !bindPoemId || !bindPassword }">
+            {{ isBinding ? '绑定中...' : '确认绑定' }}
+          </view>
+        </view>
       </view>
     </view>
 
@@ -142,7 +172,15 @@ export default {
             smsTimer: null,
             // 绑定弹窗
             showBindPhoneModal: false,
-            isBindingPhone: false
+            isBindingPhone: false,
+            // GitHub 登录相关
+            fromGithub: false,
+            githubData: null,
+            // 绑定已有账号
+            showBindAccountDialog: false,
+            bindPoemId: '',
+            bindPassword: '',
+            isBinding: false
         };
     },
     
@@ -165,7 +203,36 @@ export default {
         }
     },
     
-    onLoad: function () {
+    onLoad: function (options) {
+        // 检查是否来自 GitHub 登录
+        if (options.fromGithub === 'true' && options.githubData) {
+            try {
+                this.fromGithub = true;
+                this.githubData = JSON.parse(decodeURIComponent(options.githubData));
+                
+                console.log('📱 [注册页] 检测到 GitHub 登录数据:', this.githubData);
+                
+                // 预填充表单数据
+                if (this.githubData.githubUsername) {
+                    this.poemId = this.githubData.githubUsername;
+                }
+                if (this.githubData.githubName) {
+                    this.nickName = this.githubData.githubName;
+                }
+                if (this.githubData.githubAvatar) {
+                    this.localAvatarTempPath = this.githubData.githubAvatar;
+                    this.avatarFileID = this.githubData.githubAvatar;
+                }
+                
+                uni.showToast({
+                    title: '请完善注册信息',
+                    icon: 'none',
+                    duration: 2000
+                });
+            } catch (error) {
+                console.error('❌ [注册页] 解析 GitHub 数据失败:', error);
+            }
+        }
     },
     
     methods: {
@@ -357,6 +424,125 @@ export default {
             uni.navigateBack();
         },
         
+        // 处理"去登录"或"绑定账号"点击
+        handleLoginLinkTap() {
+            if (this.fromGithub) {
+                this.showBindAccountModal();
+            } else {
+                this.goToLogin();
+            }
+        },
+        
+        // 显示绑定账号弹窗
+        showBindAccountModal() {
+            this.showBindAccountDialog = true;
+        },
+        
+        // 关闭绑定账号弹窗
+        closeBindAccountDialog() {
+            this.showBindAccountDialog = false;
+            this.bindPoemId = '';
+            this.bindPassword = '';
+        },
+        
+        // 绑定 GitHub 到已有账号
+        async handleBindGithubToAccount() {
+            if (this.isBinding || !this.bindPoemId || !this.bindPassword) return;
+            
+            this.isBinding = true;
+            uni.showLoading({ title: '绑定中...', mask: true });
+            
+            try {
+                // 1. 先验证账号密码
+                const loginResult = await this.$tcb.callFunction({
+                    name: 'loginWithCredentials',
+                    data: {
+                        poemId: this.bindPoemId,
+                        password: this.bindPassword
+                    }
+                });
+                
+                console.log('🔍 [绑定账号] 登录验证结果:', loginResult);
+                
+                if (!loginResult.result || !loginResult.result.success) {
+                    throw new Error(loginResult.result?.message || '账号或密码错误');
+                }
+                
+                const userInfo = loginResult.result.userInfo;  // 注意：是 userInfo 不是 user
+                const targetOpenid = userInfo._openid;  // 查询到的用户的 openid
+                
+                console.log('✅ [绑定账号] 查询到的用户信息:', userInfo);
+                console.log('✅ [绑定账号] 目标账号的 openid:', targetOpenid);
+                console.log('✅ [绑定账号] GitHub数据:', this.githubData);
+                
+                // 2. 使用查询到的用户的 openid 来更新数据库，添加 GitHub 信息
+                const updateData = {
+                    openid: targetOpenid,  // 使用查询到的用户的 openid
+                    githubEmail: this.githubData.githubEmail,
+                    githubOpenid: this.githubData.openid  // 保存 GitHub 的 openid，用于后续 GitHub 登录
+                };
+                
+                console.log('🔍 [绑定账号] 准备更新的数据:', updateData);
+                
+                const updateResult = await this.$tcb.callFunction({
+                    name: 'updateUser',
+                    data: updateData
+                });
+                
+                console.log('🔍 [绑定账号] 更新结果:', updateResult);
+                console.log('🔍 [绑定账号] 更新结果详情:', JSON.stringify(updateResult, null, 2));
+                
+                if (!updateResult.result || !updateResult.result.success) {
+                    throw new Error(updateResult.result?.message || '绑定失败，请重试');
+                }
+                
+                // 3. 保存用户信息到本地（使用查询到的用户信息 + GitHub 信息）
+                const updatedUserInfo = {
+                    ...userInfo,
+                    githubEmail: this.githubData.githubEmail,
+                    githubOpenid: this.githubData.openid,
+                    _openid: targetOpenid  // 使用查询到的用户的 openid
+                };
+                
+                uni.setStorageSync('userInfo', updatedUserInfo);
+                uni.setStorageSync('github_access_token', this.githubData.accessToken);
+                
+                // 4. 更新全局状态
+                const app = getApp();
+                if (app) {
+                    app.globalData = app.globalData || {};
+                    app.globalData.userInfo = updatedUserInfo;
+                    app.globalData.openid = targetOpenid;  // 使用查询到的用户的 openid
+                    app.globalData._loginProcessCompleted = true;
+                }
+                
+                uni.hideLoading();
+                uni.showToast({
+                    title: 'GitHub 绑定成功！',
+                    icon: 'success',
+                    duration: 2000
+                });
+                
+                // 5. 跳转到诗歌广场
+                setTimeout(() => {
+                    uni.reLaunch({
+                        url: '/pages/poem-square/poem-square'
+                    });
+                }, 2000);
+                
+            } catch (error) {
+                console.error('❌ [绑定账号] 失败:', error);
+                uni.hideLoading();
+                uni.showModal({
+                    title: '绑定失败',
+                    content: error.message || '请检查账号密码是否正确',
+                    showCancel: false
+                });
+            } finally {
+                this.isBinding = false;
+            }
+        },
+        
         // 提交注册（要求 phoneNumber 已有值）
         async submitRegister() {
             if (this.isRegistering) return;
@@ -364,27 +550,44 @@ export default {
             uni.showLoading({ title: '注册中...', mask: true });
 
             try {
-                // 先进行匿名登录获取openid
-                await this.performAuth();
+                // 如果是 GitHub 登录，使用 GitHub 的 openid；否则进行匿名登录获取 openid
+                let openid = null;
+                if (this.fromGithub && this.githubData && this.githubData.openid) {
+                    openid = this.githubData.openid;
+                    console.log('✅ [注册] 使用 GitHub openid:', openid);
+                } else {
+                    await this.performAuth();
+                }
 
-                const registerRes = await this.callCloudFunction('registerUser', {
+                const registerData = {
                     poemId: this.poemId.trim(),
                     password: this.password.trim(),
                     nickName: this.nickName.trim(),
                     avatarFileID: this.avatarFileID || '',
                     phoneNumber: this.phoneNumber || ''
-                });
+                };
+                
+                // 如果是 GitHub 登录，添加 openid 和 GitHub 相关信息
+                if (this.fromGithub && this.githubData) {
+                    registerData.openid = this.githubData.openid;
+                    registerData.githubUsername = this.githubData.githubUsername;
+                    registerData.githubAvatar = this.githubData.githubAvatar;
+                    registerData.githubEmail = this.githubData.githubEmail;
+                }
+
+                const registerRes = await this.callCloudFunction('registerUser', registerData);
 
                 console.log('🔍 [注册] 云函数返回结果:', registerRes);
 
                 if (registerRes.result && registerRes.result.success) {
                     const userInfo = registerRes.result.userInfo;
-                    const openid = registerRes.result.openid;
+                    const returnedOpenid = registerRes.result.openid;
                     const app = getApp();
                     app.globalData.userInfo = userInfo;
-                    app.globalData.openid = openid;
+                    app.globalData.openid = returnedOpenid;
+                    app.globalData._loginProcessCompleted = true;
                     uni.setStorageSync('userInfo', userInfo);
-                    uni.setStorageSync('userOpenId', openid);
+                    uni.setStorageSync('userOpenId', returnedOpenid);
                     uni.showToast({ title: '注册成功', icon: 'success' });
                     setTimeout(() => { uni.switchTab({ url: '/pages/poem-square/poem-square' }); }, 1000);
                 } else {

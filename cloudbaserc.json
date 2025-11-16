@@ -452,6 +452,12 @@
               "root": "./functions/buildUserInterests",
               "timeout": 120,
               "memory": 512
+            },
+            {
+              "name": "github-auth",
+              "root": "./functions/github-auth",
+              "timeout": 10,
+              "memory": 256
             }
           ]
         }

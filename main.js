@@ -22,8 +22,6 @@ if (typeof document !== 'undefined') {
     }
   `;
   document.head.appendChild(fontStyle);
-  
-  console.log('🔤 [字体预加载] Huiwen-mincho字体已预加载');
 }
 // #endif
 
@@ -31,7 +29,6 @@ if (typeof document !== 'undefined') {
 // App端字体预加载
 try {
   const fontPath = plus.io.convertLocalFileSystemURL('/static/fonts/Huiwen-mincho.otf');
-  console.log('🔤 [字体预加载] App端字体路径:', fontPath);
 } catch (e) {
   console.warn('🔤 [字体预加载] App端字体预加载失败:', e);
 }
@@ -39,7 +36,6 @@ try {
 
 // #ifdef MP-WEIXIN
 // 微信小程序字体预加载
-console.log('🔤 [字体预加载] 微信小程序字体将在页面加载时自动处理');
 // #endif
 
 import App from './App';
@@ -114,10 +110,6 @@ try {
   console.warn('fileUrlCache resolver setup failed:', e);
 }
 
-// 4. 添加调试信息，确保TCB正确初始化
-console.log('🔧 [TCB初始化] TCB实例已创建:', tcbApp);
-console.log('🔧 [TCB初始化] 环境ID:', tcbApp.config?.env);
-console.log('🔧 [TCB初始化] 数据库方法可用:', typeof tcbApp.database === 'function');
 
 // 5. 立即进行匿名认证，确保在调用云函数之前完成认证（幂等处理）
 // 这是关键修复：在应用启动时就完成 TCB 匿名认证，避免后续调用云函数时出现 "you can't request without auth" 错误
@@ -127,12 +119,7 @@ console.log('🔧 [TCB初始化] 数据库方法可用:', typeof tcbApp.database
     // 检查是否已经登录
     const currentUser = tcbApp.auth().currentUser;
     if (!currentUser) {
-      console.log('🔐 [TCB初始化] 开始匿名认证...');
-      const authResult = await tcbApp.auth().signInAnonymously();
-      console.log('✅ [TCB初始化] 匿名认证成功:', authResult);
-      console.log('✅ [TCB初始化] 当前用户:', tcbApp.auth().currentUser);
-    } else {
-      console.log('✅ [TCB初始化] 用户已认证，跳过匿名登录');
+      await tcbApp.auth().signInAnonymously();
     }
   } catch (error) {
     console.error('❌ [TCB初始化] 匿名认证失败:', error);
@@ -190,7 +177,6 @@ try {
       const ctx = { $tcb: (Vue && Vue.prototype && Vue.prototype.$tcb) ? Vue.prototype.$tcb : (typeof uni !== 'undefined' && uni.$tcb ? uni.$tcb : null) };
       // 触发一次资料读取（内部会将 cloud:// 头像映射为 https，并写入持久层）
       await getMyInfo(ctx);
-      console.log('🔰 [prewarm] getMyInfo done');
     } catch (e) {
       console.warn('🔰 [prewarm] getMyInfo failed', e);
     }
@@ -330,12 +316,7 @@ export function createApp() {
       try {
         const currentUser = tcbApp.auth().currentUser;
         if (!currentUser) {
-          console.log('🔐 [TCB初始化-VUE3] 开始匿名认证...');
-          const authResult = await tcbApp.auth().signInAnonymously();
-          console.log('✅ [TCB初始化-VUE3] 匿名认证成功:', authResult);
-          console.log('✅ [TCB初始化-VUE3] 当前用户:', tcbApp.auth().currentUser);
-        } else {
-          console.log('✅ [TCB初始化-VUE3] 用户已认证，跳过匿名登录');
+          await tcbApp.auth().signInAnonymously();
         }
       } catch (error) {
         console.error('❌ [TCB初始化-VUE3] 匿名认证失败:', error);

@@ -2392,23 +2392,12 @@ export default {
 
         uploadCommentImages: function () {
             const images = this.commentImages || [];
-            console.log('🔍 [DEBUG] uploadCommentImages 开始:', {
-                imagesCount: images.length,
-                images: images
-            });
             
             if (!images.length) {
-                console.log('🔍 [DEBUG] 没有图片需要上传');
                 return Promise.resolve([]);
             }
             const openid = this.getCurrentUserId() || 'guest';
             const timestamp = Date.now();
-            
-            console.log('🔍 [DEBUG] 开始上传图片:', {
-                openid: openid,
-                timestamp: timestamp,
-                imagesCount: images.length
-            });
             
             // 使用通用的文件上传方法
             return Promise.all(
@@ -2419,19 +2408,10 @@ export default {
                     // 使用通用的文件上传方法（uploadFile 返回 fileID 字符串）
                     return uploadFile(compressedCloudPath, image.compressedPath || image.previewUrl || image.originalPath)
                         .then((compressedFileID) => {
-                            console.log('🔍 [DEBUG] 图片上传成功:', {
-                                index: index,
-                                compressedFileID: compressedFileID
-                            });
-                            
                             if (image.needCompression) {
                                 const originalCloudPath = 'comment_images/' + uniqueKey + '_original.jpg';
                                 return uploadFile(originalCloudPath, image.originalPath)
                                     .then((originalFileID) => {
-                                        console.log('🔍 [DEBUG] 原图上传成功:', {
-                                            index: index,
-                                            originalFileID: originalFileID
-                                        });
                                         return {
                                             compressedUrl: compressedFileID,
                                             originalUrl: originalFileID
@@ -2523,12 +2503,6 @@ export default {
                 const imageUrls = imageUploadResults.map((item) => item.compressedUrl);
                 const originalImageUrls = imageUploadResults.map((item) => item.originalUrl);
                 
-                console.log('🔍 [DEBUG] 评论图片上传结果:', {
-                    imageUploadResults: imageUploadResults,
-                    imageUrls: imageUrls,
-                    originalImageUrls: originalImageUrls,
-                    imageCount: imageUrls.length
-                });
                 const res = await this.callCloudFunction(
                     'addComment',
                     {

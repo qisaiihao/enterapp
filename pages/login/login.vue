@@ -1,4 +1,4 @@
-﻿<template>
+﻿﻿<template>
   <view class="white-page">
     <view class="container">
       <text class="brand">poementer</text>
@@ -14,6 +14,14 @@
         <!-- 注册入口 -->
         <view class="register-link" @tap="goToRegister">
           <text class="register-text">注册</text>
+        </view>
+
+        <!-- GitHub 登录 -->
+        <view class="github-login-wrapper">
+          <button class="github-login-btn" @tap="loginWithGitHub">
+            <text class="github-icon"></text>
+            <text class="github-text">使用 GitHub 登录</text>
+          </button>
         </view>
     </view>
       </view>
@@ -143,14 +151,234 @@ export default {
     },
     onLoad: function () {
         console.log('🔍 [登录页面] 页面加载');
-        
+
         // 检查是否需要重新初始化openid
         this.checkAndInitializeOpenid();
 
         // 如果本地已有登录信息，自动设置全局并跳转，避免重复登录
         this.tryAutoRedirect();
+
+        // 处理 GitHub 回调（新的云函数直接处理模式）
+        this.handleGitHubRedirectCallback();
     },
     methods: {
+        // GitHub 登录
+        async loginWithGitHub() {
+            try {
+                uni.showLoading({
+                    title: '正在跳转...',
+                    mask: true
+                });
+
+                // 判断当前平台
+                let platform = 'app';  // 默认为 app
+                // #ifdef H5
+                platform = 'h5';
+                // #endif
+                // #ifdef APP-PLUS
+                platform = 'app';
+                // #endif
+
+                // 获取 GitHub 授权 URL
+                console.log(`🔍 [GitHub登录] 当前平台: ${platform}，调用云函数获取授权URL...`);
+                const result = await this.callCloudFunction('github-auth', {
+                    action: 'getAuthUrl',
+                    platform: platform  // 传递平台参数
+                }, {
+                    injectOpenId: false  // GitHub登录不需要openid
+                });
+
+                console.log('🔍 [GitHub登录] 云函数返回结果:', result);
+
+                if (result.result && result.result.success) {
+                    // 跳转到 GitHub 授权页面
+                    console.log('✅ [GitHub登录] 获取授权URL成功:', result.result.authUrl);
+                    
+                    // #ifdef H5
+                    // H5 环境使用 window.location
+                    window.location.href = result.result.authUrl;
+                    // #endif
+                    
+                    // #ifdef APP-PLUS
+                    // App 环境：使用 WebView 内嵌浏览器（可以监听回调）
+                    // 或者使用外部浏览器 + URL Scheme（当前方案）
+                    plus.runtime.openURL(result.result.authUrl);
+                    // #endif
+                    
+                    // #ifdef MP-WEIXIN
+                    // 小程序环境不支持 GitHub OAuth，提示用户
+                    uni.showToast({
+                        title: '小程序暂不支持 GitHub 登录',
+                        icon: 'none',
+                        duration: 3000
+                    });
+                    // #endif
+                } else {
+                    console.error('❌ [GitHub登录] 获取授权URL失败:', result);
+                    const message = result.result ? result.result.message : '获取授权链接失败';
+                    throw new Error(message);
+                }
+            } catch (error) {
+                console.error('GitHub 登录失败:', error);
+                uni.showToast({
+                    title: error.message || '登录失败，请重试',
+                    icon: 'none',
+                    duration: 3000
+                });
+            } finally {
+                uni.hideLoading();
+            }
+        },
+
+        // 处理 GitHub 回调（云函数直接处理并重定向回来的模式）
+        handleGitHubRedirectCallback() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const githubLogin = urlParams.get('githubLogin');
+
+            if (githubLogin === 'success') {
+                try {
+                    const loginDataStr = urlParams.get('loginData');
+                    if (!loginDataStr) {
+                        throw new Error('登录数据缺失');
+                    }
+
+                    const result = JSON.parse(decodeURIComponent(loginDataStr));
+
+                    if (result.user) {
+                        // 更新全局数据
+                        const app = getApp();
+                        app.globalData.userInfo = result.user;
+                        app.globalData.openid = result.user.openid;
+                        app.globalData._loginProcessCompleted = true;
+
+                        // 缓存用户信息
+                        uni.setStorageSync('userInfo', result.user);
+                        uni.setStorageSync('userOpenId', result.user.openid);
+
+                        if (result.needPhoneBinding) {
+                            // 需要绑定手机号
+                            this.showBindPhoneModal = true;
+                            this.bindPhoneMethod = this.isApp ? 'oneclick' : 'sms';
+                        } else {
+                            // 直接跳转到主页
+                            uni.showToast({
+                                title: '登录成功',
+                                icon: 'success',
+                                duration: 2000
+                            });
+
+                            setTimeout(() => {
+                                uni.switchTab({
+                                    url: '/pages/poem-square/poem-square'
+                                });
+                            }, 1500);
+                        }
+                    } else {
+                        throw new Error('用户信息缺失');
+                    }
+                } catch (error) {
+                    console.error('GitHub 重定向回调处理失败:', error);
+                    uni.showToast({
+                        title: 'GitHub 登录失败：' + error.message,
+                        icon: 'none',
+                        duration: 3000
+                    });
+                }
+            } else if (githubLogin === 'error') {
+                try {
+                    const errorDataStr = urlParams.get('errorData');
+                    if (errorDataStr) {
+                        const errorData = JSON.parse(decodeURIComponent(errorDataStr));
+                        uni.showToast({
+                            title: 'GitHub 登录失败：' + errorData.message,
+                            icon: 'none',
+                            duration: 3000
+                        });
+                    } else {
+                        uni.showToast({
+                            title: 'GitHub 登录失败，请重试',
+                            icon: 'none',
+                            duration: 3000
+                        });
+                    }
+                } catch (error) {
+                    uni.showToast({
+                        title: 'GitHub 登录失败，请重试',
+                        icon: 'none',
+                        duration: 3000
+                    });
+                }
+            }
+        },
+
+        // 处理 GitHub 回调（旧的手动处理模式 - 保留备用）
+        async handleGitHubCallback() {
+            // 从 URL 获取 code 和 state
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            const state = urlParams.get('state');
+
+            if (code) {
+                try {
+                    uni.showLoading({
+                        title: '登录中...',
+                        mask: true
+                    });
+
+                    // 处理 GitHub 回调
+                    const result = await this.callCloudFunction('github-auth', {
+                        action: 'handleCallback',
+                        code: code,
+                        state: state
+                    }, {
+                        injectOpenId: false  // GitHub回调不需要openid
+                    });
+
+                    if (result.success) {
+                        // 更新全局数据
+                        const app = getApp();
+                        app.globalData.userInfo = result.user;
+                        app.globalData.openid = result.user.openid;
+                        app.globalData._loginProcessCompleted = true;
+
+                        // 缓存用户信息
+                        uni.setStorageSync('userInfo', result.user);
+                        uni.setStorageSync('userOpenId', result.user.openid);
+
+                        if (result.needPhoneBinding) {
+                            // 需要绑定手机号
+                            this.showBindPhoneModal = true;
+                            this.bindPhoneMethod = this.isApp ? 'oneclick' : 'sms';
+                        } else {
+                            // 直接跳转到主页
+                            uni.showToast({
+                                title: '登录成功',
+                                icon: 'success',
+                                duration: 2000
+                            });
+
+                            setTimeout(() => {
+                                uni.switchTab({
+                                    url: '/pages/poem-square/poem-square'
+                                });
+                            }, 1500);
+                        }
+                    } else {
+                        throw new Error(result.message || 'GitHub 登录失败');
+                    }
+                } catch (error) {
+                    console.error('GitHub 登录失败:', error);
+                    uni.showToast({
+                        title: error.message || '登录失败，请重试',
+                        icon: 'none',
+                        duration: 3000
+                    });
+                } finally {
+                    uni.hideLoading();
+                }
+            }
+        },
+
         // 已有本地登录信息则自动跳转
         tryAutoRedirect: function () {
             try {
@@ -339,7 +567,7 @@ export default {
                     });
                     this.startSmsCountdown();
                 } else {
-                    const message = result.result?.message || '发送失败';
+                    const message = result.result && result.result.message ? result.result.message : '发送失败';
                     uni.showToast({
                         title: message,
                         icon: 'none',
@@ -462,7 +690,7 @@ export default {
 
                     // 获取当前用户在腾讯云开发中的 openid
                     const app = getApp();
-                    const userOpenid = app.globalData?.openid;
+                    const userOpenid = app.globalData && app.globalData.openid ? app.globalData.openid : null;
                     if (!userOpenid) {
                         throw new Error('未获取到用户标识，请先登录');
                     }
@@ -507,7 +735,7 @@ export default {
                     if (verifyRes.result && verifyRes.result.code === 0) {
                         // 验证成功，更新用户手机号
                         const app = getApp();
-                        const userOpenid = app.globalData?.openid;
+                        const userOpenid = app.globalData && app.globalData.openid ? app.globalData.openid : null;
 
                         if (!userOpenid) {
                             throw new Error('未获取到用户标识');
@@ -527,10 +755,10 @@ export default {
                                 uni.setStorageSync('userInfo', app.globalData.userInfo);
                             }
                         } else {
-                            throw new Error(updateRes.result?.message || '更新用户信息失败');
+                            throw new Error(updateRes.result && updateRes.result.message ? updateRes.result.message : '更新用户信息失败');
                         }
                     } else {
-                        const message = verifyRes.result?.message || '验证码错误';
+                        const message = verifyRes.result && verifyRes.result.message ? verifyRes.result.message : '验证码错误';
                         throw new Error(message);
                     }
                 }
@@ -604,6 +832,39 @@ export default {
 }
 .register-text:active {
   color: #666;
+}
+
+/* GitHub 登录 */
+.github-login-wrapper {
+  width: 100%;
+  margin-top: 40rpx;
+  text-align: center;
+}
+.github-login-btn {
+  width: 100%;
+  height: 88rpx;
+  background: #24292e;
+  border-radius: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  border: none;
+  box-shadow: 0 8rpx 25rpx rgba(36, 41, 46, 0.3);
+  transition: all 0.2s ease;
+}
+.github-login-btn:active {
+  transform: translateY(2rpx);
+  box-shadow: 0 4rpx 15rpx rgba(36, 41, 46, 0.3);
+}
+.github-icon {
+  font-size: 32rpx;
+  color: #fff;
+}
+.github-text {
+  font-size: 30rpx;
+  color: #fff;
+  font-weight: 500;
 }
 /* 回车键形状按钮 */
 .enter-key-btn {

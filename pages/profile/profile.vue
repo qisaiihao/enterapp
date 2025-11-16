@@ -614,7 +614,6 @@ export default {
         // 监听作品集更新事件
         try {
             uni.$on('portfolio-updated', (e) => {
-                console.log('【profile】收到作品集更新事件:', e);
                 // 刷新作品集数据
                 this.setData({
                     portfolioList: []
@@ -636,35 +635,25 @@ export default {
 
         // 每次进入页面时主动刷新数据（但避免首次加载时重复调用）
         if (this._hasFirstShow) {
-            console.log('【profile】onShow触发,开始刷新数据');
             this.refreshProfileData();
         } else {
-            console.log('【profile】首次显示,标记已显示');
             this.setData({
                 hasFirstShow_var: true
             });
         }
     },
     onPullDownRefresh: function () {
-        console.log('【profile】⬇️ ⬇️ ⬇️ 下拉刷新触发！');
-        console.log('【profile】📊 当前标签:', this.currentTab);
-        console.log('【profile】📋 刷新前myPosts长度:', this.myPosts.length);
-        console.log('【profile】📋 刷新前favoriteList长度:', this.favoriteList.length);
-        console.log('【profile】📋 刷新前portfolioList长度:', this.portfolioList.length);
-
         // 清除缓存
         try {
             const { invalidateMyInfo } = require('../../api-cache/my.js');
             const { invalidateMyProfile } = require('../../api-cache/profile.js');
             invalidateMyInfo();
             invalidateMyProfile();
-            console.log('【profile】✅ 缓存已清除');
         } catch (e) {
             console.error('【profile】清除缓存失败:', e);
         }
 
         if (this.currentTab === 'posts') {
-            console.log('【profile】🔄 重置帖子数据状态');
             this.setData({
                 myPosts: [],
                 page: 0,
@@ -674,14 +663,10 @@ export default {
             });
             this.updateGrowthStats([]);
 
-            console.log('【profile】🔄 开始加载帖子数据（强制云端）');
             this.loadMyPosts(() => {
-                console.log('【profile】✅ 下拉刷新完成，停止刷新动画');
-                console.log('【profile】📊 刷新后myPosts长度:', this.myPosts.length);
                 uni.stopPullDownRefresh();
             }, true); // 强制从云端获取
         } else if (this.currentTab === 'favorites') {
-            console.log('【profile】🔄 重置收藏数据状态');
             this.setData({
                 favoriteList: [],
                 favoritePage: 0,
@@ -690,14 +675,10 @@ export default {
                 imageClampHeights: {}
             });
 
-            console.log('【profile】🔄 开始加载收藏数据');
             this.loadFavorites(() => {
-                console.log('【profile】✅ 收藏下拉刷新完成，停止刷新动画');
-                console.log('【profile】📊 刷新后favoriteList长度:', this.favoriteList.length);
                 uni.stopPullDownRefresh();
             });
         } else if (this.currentTab === 'portfolio') {
-            console.log('【profile】🔄 重置作品集数据状态');
             this.setData({
                 portfolioList: [],
                 timelinePosts: [],
@@ -706,14 +687,10 @@ export default {
                 timelineError: false,
                 collapsedMonths: {}
             });
-
-            console.log('【profile】🔄 开始加载作品集和时间轴数据（强制云端）');
-            
             // 并行加载作品集和时间轴数据
             Promise.all([
                 new Promise((resolve) => {
                     this.loadPortfolios(() => {
-                        console.log('【profile】✅ 作品集数据加载完成');
                         resolve();
                     });
                 }),
@@ -723,29 +700,22 @@ export default {
                     const checkInterval = setInterval(() => {
                         if (!this.timelineLoading) {
                             clearInterval(checkInterval);
-                            console.log('【profile】✅ 时间轴数据加载完成');
                             resolve();
                         }
                     }, 100);
                 })
             ]).then(() => {
-                console.log('【profile】✅ 作品集下拉刷新完成，停止刷新动画');
-                console.log('【profile】📊 刷新后portfolioList长度:', this.portfolioList.length);
-                console.log('【profile】📊 刷新后timelinePosts长度:', this.timelinePosts.length);
                 uni.stopPullDownRefresh();
             });
         }
     },
     onReachBottom: function () {
-        console.log('【profile】触底加载触发, currentTab:', this.currentTab);
         if (this.currentTab === 'posts') {
-            console.log('【profile】触底加载我的帖子, hasMore:', this.hasMore, 'isLoading:', this.isLoading, '当前页:', this.page);
             if (!this.hasMore || this.isLoading) {
                 return;
             }
             this.loadMyPosts();
         } else if (this.currentTab === 'favorites') {
-            console.log('【profile】触底加载收藏, favoriteHasMore:', this.favoriteHasMore, 'favoriteLoading:', this.favoriteLoading);
             if (!this.favoriteHasMore || this.favoriteLoading) {
                 return;
             }
@@ -767,7 +737,6 @@ export default {
         },
         // 处理匿名头像点击事件的函数
         handleAnonymousAvatarClick(e) {
-            console.log('【个人主页】匿名头像被点击，阻止跳转');
             if (e && e.preventDefault) {
                 e.preventDefault();
             }

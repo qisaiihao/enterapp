@@ -29,6 +29,13 @@
       }
     },
     {
+      "path": "pages/auth/callback",
+      "style": {
+        "navigationStyle": "custom",
+        "usingComponents": {}
+      }
+    },
+    {
       "path": "pages/my-likes/my-likes",
       "style": {
         "navigationStyle": "custom",

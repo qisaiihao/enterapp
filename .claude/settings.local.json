@@ -21,7 +21,12 @@
       "Bash(powershell:*)",
       "Bash(clean_logs.bat:*)",
       "WebFetch(domain:doc.dcloud.net.cn)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(mkdir:*)",
+      "Bash(npm install)",
+      "Bash(tcloud fn run:*)",
+      "Bash(GITHUB_REDIRECT_URI=\"https://cloud1-5gb0pbyl400845f5-1378788263.ap-shanghai.app.tcloudbase.com/github-auth\" FRONTEND_URL=\"https://cloud1-5gb0pbyl400845f5-1378788263.ap-shanghai.app.tcloudbase.com\" tcb fn deploy:*)",
+      "Bash(GITHUB_REDIRECT_URI=\"https://cloud1-5gb0pbyl400845f5-1378788263.ap-shanghai.app.tcloudbase.com/github-auth\" FRONTEND_URL=\"https://cloud1-5gb0pbyl400845f5-1378788263.ap-shanghai.app.tcloudbase.com\" tcb fn deploy github-auth)"
     ],
     "deny": [],
     "ask": []

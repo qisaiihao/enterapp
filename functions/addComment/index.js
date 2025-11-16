@@ -36,15 +36,6 @@ exports.main = async (event, context) => {
   const sanitizedImageUrls = Array.isArray(imageUrls) ? imageUrls.filter(url => !!url) : [];
   let sanitizedOriginalImageUrls = Array.isArray(originalImageUrls) ? originalImageUrls.filter(url => !!url) : [];
 
-  console.log('🔍 [addComment DEBUG] 接收到的图片数据:', {
-    imageUrls: imageUrls,
-    originalImageUrls: originalImageUrls,
-    sanitizedImageUrls: sanitizedImageUrls,
-    sanitizedOriginalImageUrls: sanitizedOriginalImageUrls,
-    imageUrlsType: typeof imageUrls,
-    originalImageUrlsType: typeof originalImageUrls
-  });
-
   if (sanitizedOriginalImageUrls.length === 0 && sanitizedImageUrls.length > 0) {
     sanitizedOriginalImageUrls = sanitizedImageUrls.slice();
   }
@@ -83,16 +74,6 @@ exports.main = async (event, context) => {
       authorAvatar: isAnonymous ? '/static/images/avatar.png' : (user ? user.avatarUrl : ''),
       realAuthorOpenid: isAnonymous ? openid : null
     };
-
-    console.log('🔍 [addComment DEBUG] 准备保存的评论数据:', {
-      postId: commentData.postId,
-      content: commentData.content,
-      imageUrls: commentData.imageUrls,
-      originalImageUrls: commentData.originalImageUrls,
-      hasImages: commentData.hasImages,
-      imageUrlsLength: commentData.imageUrls.length,
-      originalImageUrlsLength: commentData.originalImageUrls.length
-    });
 
     // 如果 parentId 存在，说明这是一条回复
     if (parentId) {

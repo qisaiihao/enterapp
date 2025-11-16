@@ -142,7 +142,33 @@ export default {
       _loadingLock: false
     };
   },
-    onLoad() {
+    onLoad(options) {
+    // 处理 GitHub 登录回调
+    if (options.githubLogin === 'success' && options.loginData) {
+      try {
+        const loginData = JSON.parse(decodeURIComponent(options.loginData));
+        console.log('✅ [poem-square] GitHub 登录成功，用户信息:', loginData.user);
+        
+        // 更新全局数据
+        const app = getApp();
+        app.globalData.userInfo = loginData.user;
+        app.globalData.openid = loginData.user._openid || loginData.user.openid;
+        app.globalData._loginProcessCompleted = true;
+        
+        // 缓存用户信息
+        uni.setStorageSync('userInfo', loginData.user);
+        uni.setStorageSync('userOpenId', loginData.user._openid || loginData.user.openid);
+        
+        uni.showToast({
+          title: '登录成功',
+          icon: 'success',
+          duration: 2000
+        });
+      } catch (error) {
+        console.error('❌ [poem-square] GitHub 登录数据解析失败:', error);
+      }
+    }
+    
     // 注册全局点赞变更事件（跨页实时更新）
     // replaced invalid registration
     try { uni.$on && uni.$on('like-changed', this.onGlobalLikeChanged); } catch (_) {}

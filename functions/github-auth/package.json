@@ -1,0 +1,13 @@
+{
+  "name": "github-auth",
+  "version": "1.0.0",
+  "description": "GitHub OAuth authentication for PoemEnter",
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^0.21.4",
+    "@cloudbase/node-sdk": "^2.4.0"
+  },
+  "cloudbaseConfig": {
+    "timeout": 60
+  }
+}

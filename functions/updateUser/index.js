@@ -92,7 +92,7 @@ exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
   
   // 关键改动：所有参数都从 params 对象中解构（兼容两种调用方式）
-  const { nickName, avatarUrl, poemId, password, phoneNumber } = params;
+  const { nickName, avatarUrl, poemId, password, phoneNumber, githubUsername, githubAvatar, githubEmail, githubOpenid } = params;
 
   // 获取兼容的数据库实例和上下文
   const { db: database, isTCB } = getDatabaseAndContext();
@@ -158,12 +158,18 @@ exports.main = async (event, context) => {
       }
       
       const updateData = {
-        nickName,
-        avatarUrl,
         updatedAt: new Date()
       };
 
-      // 如果提供了poemId和password，则更新这些字段
+      // 只添加有值的字段，避免undefined覆盖原有数据
+      if (nickName) {
+        updateData.nickName = nickName;
+        console.log('🔍 [updateUser] 将更新nickName:', nickName);
+      }
+      if (avatarUrl) {
+        updateData.avatarUrl = avatarUrl;
+        console.log('🔍 [updateUser] 将更新avatarUrl');
+      }
       if (poemId) {
         updateData.poemId = poemId;
         console.log('🔍 [updateUser] 将更新poemId:', poemId);
@@ -178,6 +184,24 @@ exports.main = async (event, context) => {
         updateData.phoneNumber = phoneNumber.trim();
         updateData.isPhoneVerified = true;
         console.log('🔍 [updateUser] 将更新phoneNumber和isPhoneVerified');
+      }
+      
+      // 如果提供了GitHub相关信息，更新这些字段
+      if (githubUsername) {
+        updateData.githubUsername = githubUsername;
+        console.log('🔍 [updateUser] 将更新githubUsername:', githubUsername);
+      }
+      if (githubAvatar) {
+        updateData.githubAvatar = githubAvatar;
+        console.log('🔍 [updateUser] 将更新githubAvatar');
+      }
+      if (githubEmail !== undefined) {
+        updateData.githubEmail = githubEmail;
+        console.log('🔍 [updateUser] 将更新githubEmail');
+      }
+      if (githubOpenid) {
+        updateData.githubOpenid = githubOpenid;
+        console.log('🔍 [updateUser] 将更新githubOpenid:', githubOpenid);
       }
 
       console.log('🔍 [updateUser] 准备更新的数据:', updateData);

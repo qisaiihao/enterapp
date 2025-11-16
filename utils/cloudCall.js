@@ -74,7 +74,7 @@ async function cloudCall(name, data = {}, options = {}) {
         injectOpenId,
         requireAuth = false
     } = options;
-    const shouldInjectOpenId = typeof injectOpenId === 'boolean' ? injectOpenId : !['login', 'getOpenId'].includes(name);
+    const shouldInjectOpenId = typeof injectOpenId === 'boolean' ? injectOpenId : !['login', 'getOpenId', 'github-auth'].includes(name);
 
     const payload = ensureObject(data);
     let openid = null;

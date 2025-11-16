@@ -126,10 +126,8 @@ export default {
     watch: {
         show: {
             handler: function (newVal, oldVal) {
-                console.log('【portfolio-selector】show变化:', { newVal, oldVal });
                 this.showClone = newVal;
                 if (newVal && !oldVal) { // 从false变为true时
-                    console.log('【portfolio-selector】弹窗显示，开始加载作品集');
                     setTimeout(() => {
                         if (this.showClone) {
                             this.loadPortfolios();
@@ -159,66 +157,50 @@ export default {
 
         // 加载作品集列表
         loadPortfolios: function () {
-            console.log('开始加载作品集列表...');
             this.setData({
                 isLoading: true
             });
             this.callCloudFunction('getPortfolioFolders').then((res) => {
-                    console.log('portfolio-selector获取作品集:', res);
-                    if (res.result && res.result.success) {
-                        const portfolios = res.result.folders || [];
-                        console.log('获取到作品集数量:', portfolios.length);
+                if (res.result && res.result.success) {
+                    const portfolios = res.result.folders || [];
 
-                        // 如果当前选中的作品集不存在了，清空选择
-                        const currentSelectedId = this.selectedPortfolioId;
-                        if (currentSelectedId && !portfolios.some((p) => p._id === currentSelectedId)) {
-                            console.log('清空失效的选中状态');
-                            this.setData({
-                                selectedPortfolioId: ''
-                            });
-                        }
+                    // 如果当前选中的作品集不存在了，清空选择
+                    const currentSelectedId = this.selectedPortfolioId;
+                    if (currentSelectedId && !portfolios.some((p) => p._id === currentSelectedId)) {
                         this.setData({
-                            portfolios: portfolios,
-                            isLoading: false
-                        });
-                    } else {
-                        console.error('获取作品集失败，返回结果:', res);
-                        uni.showToast({
-                            title: res.result?.message || '加载失败',
-                            icon: 'none'
-                        });
-                        this.setData({
-                            isLoading: false,
-                            portfolios: [],
-                            selectedPortfolioId: '' // 加载失败时清空选择
+                            selectedPortfolioId: ''
                         });
                     }
-                }).catch((err) => {
-                    console.error('获取作品集失败:', err);
-                    console.error('错误详情:', err.errMsg || err.message);
-
-                    // 如果获取失败，尝试重新加载一次
-                    setTimeout(() => {
-                        if (this.showClone) { // 如果弹窗还在显示中
-                            console.log('重新尝试加载作品集...');
-                            this.loadPortfolios();
-                        }
-                    }, 1000);
-
+                    this.setData({
+                        portfolios: portfolios,
+                        isLoading: false
+                    });
+                } else {
                     this.setData({
                         isLoading: false,
                         portfolios: [],
-                        selectedPortfolioId: '' // 网络错误时清空选择
+                        selectedPortfolioId: '' // 加载失败时清空选择
                     });
+                    // 如果获取失败，尝试重新加载一次
+                    setTimeout(() => {
+                        if (this.showClone) { // 如果弹窗还在显示中
+                            this.loadPortfolios();
+                        }
+                    }, 1000);
+                }
+            }).catch(() => {
+                this.setData({
+                    isLoading: false,
+                    portfolios: [],
+                    selectedPortfolioId: '' // 网络错误时清空选择
                 });
+            });
         },
 
         // 选择作品集
         selectPortfolio: function (e) {
             const portfolioId = e.currentTarget.dataset.portfolioId;
             const postId = this.postId;
-            
-            console.log('选择作品集，postId:', postId, 'portfolioId:', portfolioId);
             
             if (!portfolioId) {
                 uni.showToast({
@@ -241,8 +223,6 @@ export default {
 
         // 添加到作品集
         addToPortfolio: function (portfolioId, postId) {
-            console.log('添加到作品集，postId:', postId, 'portfolioId:', portfolioId);
-            
             if (!portfolioId) {
                 uni.showToast({
                     title: '请选择作品集',
@@ -251,9 +231,8 @@ export default {
                 return;
             }
             if (!postId) {
-                console.error('postId 为空，无法添加到作品集');
                 uni.showToast({
-                    title: '参数错误：帖子ID为空',
+                    title: '帖子ID不存在',
                     icon: 'none'
                 });
                 return;
@@ -268,13 +247,11 @@ export default {
                 folderId: portfolioId
             }).then((res) => {
                 uni.hideLoading();
-                console.log('添加到作品集返回结果:', res);
                 if (res && res.result) {
                     if (res.result.success) {
                         uni.showToast({
                             title: '添加成功'
                         });
-                        console.log('添加成功，开始关闭弹窗');
 
                         // 确保状态正确重置
                         this.setData({
@@ -289,28 +266,22 @@ export default {
                         // 触发成功事件
                         this.$emit('portfolioSuccess');
                     } else {
-                        console.error('添加到作品集业务失败:', res.result);
                         uni.showToast({
                             title: res.result.message || '添加失败',
-                            icon: 'none',
-                            duration: 3000
+                            icon: 'none'
                         });
                     }
                 } else {
-                    console.error('添加到作品集返回格式异常:', res);
                     uni.showToast({
                         title: '添加失败：返回格式错误',
-                        icon: 'none',
-                        duration: 3000
+                        icon: 'none'
                     });
                 }
             }).catch((err) => {
                 uni.hideLoading();
-                console.error('添加到作品集云函数调用失败:', err);
                 uni.showToast({
-                    title: '添加失败: ' + (err.errMsg || '网络错误'),
-                    icon: 'none',
-                    duration: 3000
+                    title: '网络错误：' + (err.errMsg || '未知错误'),
+                    icon: 'none'
                 });
             });
         },
@@ -319,7 +290,6 @@ export default {
         confirmAddToPortfolio: function () {
             const selectedPortfolioId = this.selectedPortfolioId;
             const postId = this.postId;
-            console.log('确认添加到作品集，postId:', postId, 'folderId:', selectedPortfolioId);
             if (!selectedPortfolioId) {
                 uni.showToast({
                     title: '请选择作品集',
@@ -328,9 +298,8 @@ export default {
                 return;
             }
             if (!postId) {
-                console.error('postId 为空，无法添加到作品集');
                 uni.showToast({
-                    title: '参数错误：帖子ID为空',
+                    title: '帖子ID不存在',
                     icon: 'none'
                 });
                 return;
@@ -342,19 +311,9 @@ export default {
                 postId: postId,
                 folderId: selectedPortfolioId
             }).then((res) => {
-                    uni.hideLoading();
-                    console.log('确认添加到作品集返回结果:', res);
-                    if (res && res.result) {
-                        if (res.result.success) {
-                            uni.showToast({
-                                title: '添加成功'
-                            });
-                            console.log('添加成功，开始关闭弹窗');
-
-                            // 确保状态正确重置
-                            this.setData({
-                                selectedPortfolioId: ''
-                            });
+                uni.hideLoading();
+                if (res && res.result) {
+                    if (res.result.success) {
 
                             // 延迟关闭，确保用户能看到成功提示
                             setTimeout(() => {
