@@ -581,7 +581,6 @@ export default {
         };
     },
     onLoad: function (options) {
-        // 调试：检查安全区域高度
         this.debugSafeArea();
         
         // 首页只负责广场模式
@@ -614,13 +613,11 @@ export default {
         try {
             const shouldRefresh = uni.getStorageSync('shouldRefreshIndex');
             if (shouldRefresh) {
-                console.log('【index】检测到发布标记，刷新数据');
+                this.clearHoverAndScrollState();
                 uni.removeStorageSync('shouldRefreshIndex');
                 this.refreshIndexData();
             }
         } catch (e) {
-            console.log('CatchClause', e);
-            console.log('CatchClause', e);
             console.error('检查刷新标记失败:', e);
         }
 
@@ -651,53 +648,36 @@ onReachBottom: function () {
     methods: {
         // 处理scroll-view的下拉刷新事件
         onRefresherRefresh: function() {
-            console.log('🔍 [首页] scroll-view下拉刷新触发，当前页面:', this.currentPage);
-            this.isRefreshing = true;
-            
             if (this.currentPage === 'home') {
                 // 主页刷新 - 清除缓存并强制调用云函数
-                console.log('🔍 [首页] 执行主页刷新，清除缓存');
-                
-                // 清除首页缓存
                 try {
                     const { invalidateHomePosts } = require('../../api-cache/home-posts.js');
                     invalidateHomePosts({});
-                    console.log('✅ [首页] 已清除首页缓存');
                 } catch (e) {
-                    console.error('❌ [首页] 清除首页缓存失败:', e);
+                    console.error('清除首页缓存失败:', e);
                 }
                 // 不清空列表，避免白屏；直接拉取首屏并一次性替换
                 this.reloadHomePostsForRefresh(() => {
-                    console.log('✅ [首页] 下拉刷新完成');
-                    // 使用 setTimeout 确保在数据更新后再停止刷新，让页面能正确回位
                     setTimeout(() => {
                         this.isRefreshing = false;
                     }, 100);
                 });
             } else if (this.currentPage === 'discover') {
                 // 发现页刷新 - 重新获取推荐
-                console.log('🔍 [首页] 执行发现页刷新');
                 this.refreshDiscoverPosts();
-                // 使用 setTimeout 确保在数据更新后再停止刷新
                 setTimeout(() => {
                     this.isRefreshing = false;
                 }, 100);
             } else if (this.currentPage === 'following') {
                 // 关注页刷新
-                console.log('🔍 [首页] 执行关注页刷新');
                 this.refreshFollowingPosts(() => {
-                    console.log('✅ [首页] 关注页刷新完成');
-                    // 使用 setTimeout 确保在数据更新后再停止刷新
                     setTimeout(() => {
                         this.isRefreshing = false;
                     }, 100);
                 });
             } else if (this.currentPage === 'discussion') {
                 // 讨论页刷新
-                console.log('🔍 [首页] 执行讨论页刷新');
                 this.refreshDiscussionPosts(() => {
-                    console.log('✅ [首页] 讨论页刷新完成');
-                    // 使用 setTimeout 确保在数据更新后再停止刷新
                     setTimeout(() => {
                         this.isRefreshing = false;
                     }, 100);
@@ -705,60 +685,8 @@ onReachBottom: function () {
             }
         },
 
-        // 通过下拉刷新重载首页首屏数据：保留旧列表直到新数据就绪
-        reloadHomePostsForRefresh: function (cb, customFilterParams) {
-            const startPage = 0;
-            // 如果传入了自定义筛选参数，使用自定义参数；否则根据showNormalPostsOnly状态决定
-            let filterParams = {};
-            if (customFilterParams !== undefined) {
-                filterParams = customFilterParams;
-            } else {
-                // 根据showNormalPostsOnly状态决定筛选参数
-                if (this.showNormalPostsOnly) {
-                    // 只看普通帖子：排除诗歌和讨论
-                    filterParams.isPoem = false;
-                    filterParams.isDiscussion = false;
-                }
-            }
-            getHomePosts({ 
-                page: startPage, 
-                pageSize: PAGE_SIZE, 
-                context: this, 
-                forceRefresh: true,
-                ...filterParams
-            })
-                .then(async (list) => {
-                    const postsRaw = Array.isArray(list) ? list : [];
-                    let posts = normalizePostList(postsRaw).map((post) => ({
-                        ...post,
-                        likeIcon: likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false)
-                    }));
-                    posts = await hydrateTempUrls(posts);
-                    warmTempUrlsFromPosts(posts);
-                    this.setData({
-                        postList: posts,
-                        page: 1,
-                        hasMore: posts.length === PAGE_SIZE,
-                        isLoading: false
-                    });
-                    try {
-                        this.preloadUserData && this.preloadUserData(posts);
-                    } catch (_) {}
-                })
-                .catch((err) => {
-                    console.error('【首页】reloadHomePostsForRefresh 失败:', err);
-                    uni.showToast({ title: '刷新失败', icon: 'none' });
-                    // 确保在错误时也重置加载状态
-                    this.setData({ isLoading: false });
-                })
-                .finally(() => {
-                    if (typeof cb === 'function') cb();
-                });
-        },
-
         // 处理滚动事件（从 onPageScroll 迁移过来）
         handleScroll: function (e) {
-            // Mark scrolling and debounce end to avoid flicker
             if (typeof this.kickScrollGuard === 'function') {
                 this.kickScrollGuard();
             }
@@ -790,11 +718,6 @@ onReachBottom: function () {
                 }
 
                 if (!hasMore || loadingFlag) {
-                    console.log('【首页】滚动检测被阻止:', {
-                        page: this.currentPage,
-                        hasMore,
-                        loadingFlag
-                    });
                     return;
                 }
                 
@@ -832,20 +755,7 @@ onReachBottom: function () {
                             
                             const preloadThreshold = winH * 2;
 
-                            console.log('【首页】滚动计算:', {
-                                containerId,
-                                rectTop: rect.top,
-                                rectHeight: rect.height,
-                                rectBottom: rectBottom,
-                                scrollTop: e.detail.scrollTop, // 注意：这里的 e.scrollTop 变成了 e.detail.scrollTop
-                                winH,
-                                distanceToBottom: distanceToBottom.toFixed(0),
-                                preloadThreshold: preloadThreshold.toFixed(0),
-                                shouldLoad: distanceToBottom < preloadThreshold
-                            });
-
                             if (distanceToBottom < preloadThreshold) {
-                                console.log('【首页】触发预加载，页面:', this.currentPage, '距离底部:', distanceToBottom.toFixed(0), 'rpx, 阈值:', preloadThreshold.toFixed(0), 'rpx');
                                 if (isHome) {
                                     this.getPostList();
                                 } else if (isFollowing) {
@@ -857,14 +767,13 @@ onReachBottom: function () {
                         })
                         .exec();
                 } catch (err) {
-                    console.error('【首页】滚动检测失败:', err);
+                    console.error('滚动检测失败:', err);
                 }
             }, 100); // 100ms 防抖
         },
 
         // 处理匿名头像点击事件的函数
         handleAnonymousAvatarClick(e) {
-            console.log('【首页】匿名头像被点击，阻止跳转');
             if (e && e.preventDefault) {
                 e.preventDefault();
             }
@@ -883,19 +792,9 @@ onReachBottom: function () {
             try {
                 // 获取系统信息
                 const systemInfo = uni.getSystemInfoSync();
-                console.log('【index】系统信息:', {
-                    statusBarHeight: systemInfo.statusBarHeight,
-                    safeAreaInsets: systemInfo.safeAreaInsets,
-                    safeArea: systemInfo.safeArea,
-                    windowHeight: systemInfo.windowHeight,
-                    screenHeight: systemInfo.screenHeight,
-                    platform: systemInfo.platform
-                });
-
                 // 动态设置安全区域 - 使用uni-app兼容方式
                 if (systemInfo.statusBarHeight) {
                     const safeAreaTop = systemInfo.statusBarHeight;
-                    console.log('【index】使用状态栏高度作为安全区域:', safeAreaTop);
                     
                     // 在uni-app中，我们可以通过设置页面数据来动态调整样式
                     this.setData({
@@ -906,13 +805,13 @@ onReachBottom: function () {
                     try {
                         if (typeof document !== 'undefined' && document.documentElement) {
                             document.documentElement.style.setProperty('--safe-area-inset-top', safeAreaTop + 'px');
-                            console.log('【index】CSS变量设置成功');
                         }
                     } catch (cssError) {
-                        console.log('【index】CSS变量设置失败，使用数据绑定方式:', cssError);
+                        console.log('CSS变量设置失败，使用数据绑定方式:', cssError);
                     }
                 }
             } catch (error) {
+                console.error('安全区域调试失败:', error);
                 console.error('【index】安全区域调试失败:', error);
             }
         },

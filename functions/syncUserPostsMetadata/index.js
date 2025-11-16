@@ -26,14 +26,6 @@ exports.main = async (event) => {
     };
   }
 
-  console.log('🔍 [syncUserPostsMetadata] 开始同步用户帖子元数据:', {
-    openid,
-    hasNickName: !!nickName,
-    hasAvatarUrl: !!avatarUrl,
-    hasSignatureUrl: !!signatureUrl,
-    batchSize
-  });
-
   // 如果既没有昵称也没有头像也没有签名，直接返回
   if (!nickName && !avatarUrl && !signatureUrl) {
     return {
@@ -65,8 +57,6 @@ exports.main = async (event) => {
         hasMore = false;
         break;
       }
-
-      console.log(`📝 [syncUserPostsMetadata] 处理第 ${offset / batchSize + 1} 批，共 ${posts.length} 条帖子`);
 
       // 构建更新数据（只更新提供的字段）
       const updateData = {};
@@ -105,8 +95,6 @@ exports.main = async (event) => {
       if (posts.length < batchSize) {
         hasMore = false;
       }
-
-      console.log(`✅ [syncUserPostsMetadata] 批次完成，已处理 ${totalProcessed} 条，已更新 ${totalUpdated} 条`);
     }
 
     console.log(`🎉 [syncUserPostsMetadata] 同步完成，总共处理 ${totalProcessed} 条帖子，更新 ${totalUpdated} 条`);

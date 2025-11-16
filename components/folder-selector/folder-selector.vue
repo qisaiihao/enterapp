@@ -253,9 +253,6 @@ export default {
             const folderId = e.currentTarget.dataset.folderid;
             const index = e.currentTarget.dataset.index;
             const folder = this.folders[index];
-            
-            console.log('删除收藏夹:', folderId, folder.name);
-            
             // 显示自定义确认弹窗
             this.setData({
                 showDeleteConfirm: true,
@@ -270,8 +267,6 @@ export default {
         // 确认删除
         confirmDelete() {
             const { folderId, index, folder } = this.deleteFolderInfo;
-            
-            console.log('开始删除收藏夹:', folderId);
             this.callCloudFunction('deleteFavoriteFolder', {
                 folderId
             }).then((res) => {
@@ -315,29 +310,16 @@ export default {
         },
         // 加载收藏夹列表
         loadFolders: function () {
-            console.log('开始加载收藏夹列表...');
             this.setData({
                 isLoading: true
             });
             const openid = this.$requireOpenid && this.$requireOpenid();
-            console.log('获取到的openid:', openid);
-            if (!openid) {
-                console.log('openid为空，停止加载');
-                this.setData({
-                    isLoading: false,
-                    folders: [],
-                    selectedFolderId: ''
-                });
-                return;
-            }
             this.callCloudFunction('getMyProfileData', {
                     action: 'getFavoriteFolders',
                     openid
                 }).then((res) => {
-                    console.log('folder-selector获取收藏夹:', res);
                     if (res.result && res.result.success) {
                         const folders = res.result.folders || [];
-                        console.log('获取到收藏夹数量:', folders.length);
 
                         // 为每个收藏夹添加isSwipeOpen字段
                         const foldersWithSwipe = folders.map(folder => ({
@@ -349,9 +331,7 @@ export default {
                             folders: foldersWithSwipe,
                             isLoading: false
                         });
-                        console.log('收藏夹加载完成，isLoading设为false');
                     } else {
-                        console.log('服务返回失败:', res.result);
                         uni.showToast({
                             title: res.result?.message || '加载失败',
                             icon: 'none'
@@ -406,13 +386,11 @@ export default {
                 openid
             }).then((res) => {
                 uni.hideLoading();
-                console.log('直接收藏返回结果:', res);
                 if (res && res.result) {
                     if (res.result.success) {
                         uni.showToast({
                             title: '收藏成功'
                         });
-                        console.log('收藏成功，开始关闭弹窗');
 
                         // 确保状态正确重置
 
@@ -493,7 +471,6 @@ export default {
             this.setData({
                 newFolderName: folderName
             });
-            console.log('组件开始创建收藏夹，名称:', folderName);
             const openid = this.$requireOpenid && this.$requireOpenid();
             if (!openid) {
                 return;
@@ -510,7 +487,6 @@ export default {
                     openid
                 }).then((res) => {
                     uni.hideLoading();
-                    console.log('组件创建收藏夹返回结果:', res);
 
                     // 更详细的返回结果检查
                     if (res && res.result) {

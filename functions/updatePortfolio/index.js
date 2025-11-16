@@ -13,10 +13,6 @@ exports.main = async (event, context) => {
   const openid = wxContext.OPENID || event.openid;
   const { portfolioId, name, description } = event;
 
-  console.log('🔍 [updatePortfolio] 开始执行，openid:', openid);
-  console.log('🔍 [updatePortfolio] 作品集ID:', portfolioId);
-  console.log('🔍 [updatePortfolio] 新名称:', name);
-
   if (!openid) {
     console.log('❌ [updatePortfolio] 获取openid失败');
     return {
@@ -77,7 +73,6 @@ exports.main = async (event, context) => {
     }
 
     // 更新作品集
-    console.log('🔍 [updatePortfolio] 开始更新作品集');
     const updateData = {
       name: name.trim(),
       updateTime: new Date()
@@ -92,8 +87,6 @@ exports.main = async (event, context) => {
       data: updateData
     });
 
-    console.log('✅ [updatePortfolio] 作品集更新成功');
-    
     return {
       success: true,
       message: '作品集更新成功',

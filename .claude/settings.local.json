@@ -26,7 +26,13 @@
       "Bash(npm install)",
       "Bash(tcloud fn run:*)",
       "Bash(GITHUB_REDIRECT_URI=\"https://cloud1-5gb0pbyl400845f5-1378788263.ap-shanghai.app.tcloudbase.com/github-auth\" FRONTEND_URL=\"https://cloud1-5gb0pbyl400845f5-1378788263.ap-shanghai.app.tcloudbase.com\" tcb fn deploy:*)",
-      "Bash(GITHUB_REDIRECT_URI=\"https://cloud1-5gb0pbyl400845f5-1378788263.ap-shanghai.app.tcloudbase.com/github-auth\" FRONTEND_URL=\"https://cloud1-5gb0pbyl400845f5-1378788263.ap-shanghai.app.tcloudbase.com\" tcb fn deploy github-auth)"
+      "Bash(GITHUB_REDIRECT_URI=\"https://cloud1-5gb0pbyl400845f5-1378788263.ap-shanghai.app.tcloudbase.com/github-auth\" FRONTEND_URL=\"https://cloud1-5gb0pbyl400845f5-1378788263.ap-shanghai.app.tcloudbase.com\" tcb fn deploy github-auth)",
+      "Bash(while read dir)",
+      "Bash(do if ! grep -q \"pages/$dir/\" pages.json)",
+      "Bash(then echo \"未在pages.json中注册: $dir\")",
+      "Bash(fi:*)",
+      "Bash(done)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

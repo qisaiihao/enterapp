@@ -219,18 +219,14 @@ export default {
          * 换行光标闪烁两下后跳转
          */
         blinkNewLineCursorAndNavigate: function () {
-            console.log('开始换行光标闪烁动画');
             let blinkCount = 0;
             const maxBlinks = 2;
             const blinkInterval = setInterval(() => {
                 blinkCount++;
-                console.log(`光标闪烁第${blinkCount}次`);
                 if (blinkCount >= maxBlinks) {
                     clearInterval(blinkInterval);
-                    console.log('光标闪烁完成，准备跳转');
                     // 闪烁完成后跳转
                     setTimeout(() => {
-                        console.log('调用navigateToTarget方法');
                         this.navigateToTarget();
                     }, 500); // 延迟0.5秒后跳转
                 }
@@ -261,7 +257,6 @@ export default {
             // }
 
             // 暂时直接使用本地开屏图
-            console.log('使用默认本地开屏图');
             this.setData({
                 preloadedImagePath: '/static/images/splash.png'
             });
@@ -334,11 +329,8 @@ export default {
                 if (tcbInstance && tcbInstance.auth) {
                     const currentUser = tcbInstance.auth().currentUser;
                     if (!currentUser) {
-                        console.log('🔐 [splash] 检测到 TCB 未认证，开始匿名认证...');
                         await tcbInstance.auth().signInAnonymously();
-                        console.log('✅ [splash] TCB 匿名认证完成');
                     } else {
-                        console.log('✅ [splash] TCB 已认证');
                     }
                 }
             } catch (error) {
@@ -429,23 +421,18 @@ export default {
                                 const app = getApp();
                                 app.globalData.preloadedPoemData = posts;
                                 if (posts.length > 0) {
-                                    console.log('诗歌数据获取成功，开始预加载相关图片...');
                                     // 关键改动：等待图片下载任务完成！
                                     await this.preloadFirstPostImages(posts[0]);
-                                    console.log('相关图片预加载完成！');
                                 }
                             }
                             resolve(); // <-- 成功路径的 resolve 移动到这里
                         } catch (e) {
-                            console.log('CatchClause', e);
-                            console.log('CatchClause', e);
                             reject(e); // 捕获内部错误
                         }
                 }).catch((err) => {
                     console.error('诗歌数据预加载失败:', err);
                     reject(err);
                 }).finally(() => {
-                    console.log('诗歌数据预加载流程结束');
                     this.setData({
                         preloadProgress: 100,
                         isPreloading: false
@@ -470,16 +457,12 @@ export default {
                                 const app = getApp();
                                 app.globalData.preloadedMountainData = posts;
                                 if (posts.length > 0) {
-                                    console.log('山页面数据获取成功，开始预加载相关图片...');
                                     // 预加载第一张图片
                                     await this.preloadFirstMountainImages(posts[0]);
-                                    console.log('山页面相关图片预加载完成！');
                                 }
                             }
                             resolve();
                         } catch (e) {
-                            console.log('CatchClause', e);
-                            console.log('CatchClause', e);
                             reject(e);
                         }
                 }).catch((err) => {
@@ -513,7 +496,6 @@ export default {
                             }
                         }
                         if (shouldSkipDownload) {
-                            console.log('🔍 [H5] 山页面首张背景图跳过下载，直接使用原URL:', bgImageUrl);
                             app.globalData.preloadedImages[bgImageUrl] = bgImageUrl;
                             resolve();
                             return;
@@ -523,14 +505,12 @@ export default {
                             url: bgImageUrl,
                             success: (res) => {
                                 if (res.statusCode === 200) {
-                                    console.log('山页面首张背景图预加载成功:', res.tempFilePath);
                                     app.globalData.preloadedImages[bgImageUrl] = res.tempFilePath;
                                 }
                             },
                             fail: (err) => {
                                 console.error('山页面背景图预加载失败:', bgImageUrl, err);
                                 if (isH5 || isCloudFile) {
-                                    console.log('🔍 [H5] 山页面背景图预加载失败，使用原URL:', bgImageUrl);
                                     app.globalData.preloadedImages[bgImageUrl] = bgImageUrl;
                                 }
                             },
@@ -557,7 +537,6 @@ export default {
                             }
                         }
                         if (shouldSkipDownload) {
-                            console.log('🔍 [H5] 山页面作者头像预加载跳过下载，直接使用原URL');
                             app.globalData.preloadedImages[post.authorAvatar] = post.authorAvatar;
                             resolve();
                             return;
@@ -566,7 +545,6 @@ export default {
                             url: post.authorAvatar,
                             success: (res) => {
                                 if (res.statusCode === 200) {
-                                    console.log('山页面作者头像预加载成功');
                                     app.globalData.preloadedImages[post.authorAvatar] = res.tempFilePath;
                                 }
                             },
@@ -609,7 +587,6 @@ export default {
                             // 使用 complete 确保无论成功失败都会计数
                             loadedCount++;
                             if (loadedCount === totalCount) {
-                                console.log('所有Tab图标预加载尝试完毕');
                                 resolve(); // 所有图标都处理完后，完成 Promise
                             }
                         }
@@ -645,7 +622,6 @@ export default {
                             }
                         }
                         if (shouldSkipDownload) {
-                            console.log('🔍 [H5] 首张背景图预加载跳过下载，直接使用原URL:', bgImageUrl);
                             app.globalData.preloadedImages[bgImageUrl] = bgImageUrl;
                             resolve();
                             return;
@@ -655,14 +631,12 @@ export default {
                             url: bgImageUrl,
                             success: (res) => {
                                 if (res.statusCode === 200) {
-                                    console.log('首张背景图预加载成功:', res.tempFilePath);
                                     app.globalData.preloadedImages[bgImageUrl] = res.tempFilePath;
                                 }
                             },
                             fail: (err) => {
                                 console.error('首张背景图预加载失败:', bgImageUrl, err);
                                 if (isH5 || isCloudFile) {
-                                    console.log('🔍 [H5] 首张背景图预加载失败，使用原URL:', bgImageUrl);
                                     app.globalData.preloadedImages[bgImageUrl] = bgImageUrl;
                                 }
                             },
@@ -689,7 +663,6 @@ export default {
                             }
                         }
                         if (shouldSkipDownload) {
-                            console.log('🔍 [H5] 作者头像预加载跳过下载，直接使用原URL');
                             app.globalData.preloadedImages[post.authorAvatar] = post.authorAvatar;
                             resolve();
                             return;
@@ -698,7 +671,6 @@ export default {
                             url: post.authorAvatar,
                             success: (res) => {
                                 if (res.statusCode === 200) {
-                                    console.log('作者头像预加载成功');
                                     app.globalData.preloadedImages[post.authorAvatar] = res.tempFilePath;
                                 }
                             },
@@ -737,34 +709,24 @@ export default {
         },
 
         navigateToTarget: function () {
-            console.log('navigateToTarget方法被调用');
             // 开始淡出动画
             this.startFadeOut();
 
             // 延迟跳转，让动画完成
             setTimeout(() => {
-                console.log('开始检查用户登录状态');
                 // 检查用户是否已登录
                 const app = getApp();
-                console.log('用户登录状态检查:', {
-                    userInfo: !!app.globalData.userInfo,
-                    openid: !!app.globalData.openid
-                });
 
                 if (app.globalData.userInfo && app.globalData.openid) {
-                    console.log('用户已登录，跳转到poem页面');
-                    // 用户已登录，跳转到主页面
                     uni.switchTab({
                         url: '/pages/poem-square/poem-square'
                     });
                 } else {
-                    console.log('用户未登录，跳转到登录页面');
-                    // 用户未登录，跳转到新的登录页面（支持poemid和password登录）
                     uni.redirectTo({
                         url: '/pages/login/login'
                     });
                 }
-            }, 800); // 等待动画完成
+            }, 800);
         },
 
         startFadeOut: function () {

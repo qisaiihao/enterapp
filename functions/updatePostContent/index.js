@@ -86,12 +86,6 @@ exports.main = async (event, context) => {
     // 执行更新（只更新指定字段，保留其他字段如 votes, commentCount 等）
     await db.collection('posts').doc(postId).update({ data: updateData });
     
-    console.log('【updatePostContent】更新成功:', {
-      postId,
-      updateFields: Object.keys(updateData),
-      preservedFields: ['votes', 'commentCount', 'createTime', '_openid']
-    });
-    
     return { success: true, postId, updateFields: Object.keys(updateData) };
   } catch (e) {
     console.error('【updatePostContent】更新失败:', e);

@@ -1235,7 +1235,6 @@ export default {
         },
 
         onTagClick: function () {
-            console.log('占位：函数 onTagClick 未声明');
         },
 
         // 加载用户作品集

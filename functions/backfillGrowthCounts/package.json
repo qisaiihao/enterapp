@@ -1,9 +1,0 @@
-{
-  "name": "backfillGrowthCounts",
-  "version": "1.0.0",
-  "description": "回填用户成长计数的云函数",
-  "main": "index.js",
-  "dependencies": {
-    "wx-server-sdk": "~2.6.3"
-  }
-}

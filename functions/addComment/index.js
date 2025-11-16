@@ -121,23 +121,16 @@ exports.main = async (event, context) => {
             if (parentCommentAuthorId !== openid && !isAnonymous) {
               notifyUserId = parentCommentAuthorId;
               shouldNotify = true;
-            } else {
-              console.log('回复自己的评论或匿名回复，不发送通知')
             }
-          } else {
-            console.log('被回复的评论不存在，不发送通知')
           }
         } catch (commentError) {
           console.error('查询被回复评论失败:', commentError)
         }
       } else {
-        // 如果是直接评论帖子，通知帖子作者
-        // 如果给自己评论或匿名评论，不发送通知
+        // 如果是直接评论帖子，通知帖子作者（排除给自己评论或匿名评论的情况）
         if (post._openid !== openid && !isAnonymous) {
           notifyUserId = post._openid;
           shouldNotify = true;
-        } else {
-          console.log('用户给自己评论或匿名评论，不发送通知')
         }
       }
       
@@ -175,7 +168,6 @@ exports.main = async (event, context) => {
             createTime: new Date()
           }
         })
-        console.log('评论消息已创建，通知用户:', notifyUserId)
       }
     } catch (msgError) {
       console.error('创建评论消息失败:', msgError)

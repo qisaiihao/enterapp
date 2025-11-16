@@ -252,9 +252,6 @@ exports.main = async (event, context) => {
     // 如果有筛选条件，应用match
     if (Object.keys(matchConditions).length > 0) {
       query = query.match(matchConditions);
-      console.log('🔍 [getPostList] 应用筛选条件，条件数量:', Object.keys(matchConditions).length);
-    } else {
-      console.log('🔍 [getPostList] 无筛选条件，查询所有帖子');
     }
 
     // 判断是否启用随机混合逻辑
@@ -262,15 +259,6 @@ exports.main = async (event, context) => {
     // 有筛选条件时（山、路页面），只返回时间顺序的帖子
     const hasFilter = isPoem !== undefined || isOriginal !== undefined || isDiscussion !== undefined || tag;
     const enableRandomMix = !hasFilter;  // 没有筛选条件时启用随机混合
-    
-    console.log('🔍 [getPostList] 筛选条件判断:', {
-      hasFilter: hasFilter,
-      isPoem: isPoem,
-      isOriginal: isOriginal,
-      isDiscussion: isDiscussion,
-      tag: tag,
-      enableRandomMix: enableRandomMix
-    });
     
     let posts = [];
     let timeOrderedPosts = []; // 在外层声明，以便在日志输出时使用
@@ -281,17 +269,13 @@ exports.main = async (event, context) => {
       const TIME_ORDERED_COUNT = 6;  // 按时间顺序的帖子数量
       const RANDOM_COUNT = 4;        // 随机帖子的数量
       
-      console.log('🔍 [getPostList] 使用随机混合逻辑：', TIME_ORDERED_COUNT, '个时间顺序 +', RANDOM_COUNT, '个随机');
-      
       // 1. 先获取按时间顺序的帖子（6个）
       const timeOrderedQuery = query.sort({ createTime: -1 })
         .skip(skip)
         .limit(TIME_ORDERED_COUNT);
       
-      console.log('🔍 [getPostList] 查询时间顺序帖子 - skip:', skip, 'limit:', TIME_ORDERED_COUNT);
       const timeOrderedRes = await timeOrderedQuery.end();
       timeOrderedPosts = timeOrderedRes.list || []; // 使用外层声明的变量
-      console.log('✅ [getPostList] 获取到时间顺序帖子数量:', timeOrderedPosts.length);
       
       // 2. 获取随机帖子（4个）
       randomPosts = []; // 重置随机帖子数组
@@ -319,8 +303,6 @@ exports.main = async (event, context) => {
           .count('total')
           .end();
         const totalPosts = (countRes.list && countRes.list[0] && countRes.list[0].total) || 0;
-        
-        console.log(`🔍 [getPostList] 符合条件的随机帖子总数: ${totalPosts}`);
         
         if (totalPosts > 0) {
           // 改进的随机策略：多次随机查询以增加随机性
@@ -357,8 +339,6 @@ exports.main = async (event, context) => {
               const existingIds = new Set(candidatePosts.map(p => p._id));
               const newPosts = batchPosts.filter(p => !existingIds.has(p._id));
               candidatePosts = candidatePosts.concat(newPosts);
-              
-              console.log(`🔍 [getPostList] 第${i + 1}批随机查询：skip=${randomSkip}, 获取${newPosts.length}个新帖子`);
             }
           }
           
@@ -395,8 +375,6 @@ exports.main = async (event, context) => {
             shuffled[j] = temp;
           }
           randomPosts = shuffled.slice(0, Math.min(RANDOM_COUNT, shuffled.length));
-          
-          console.log(`✅ [getPostList] 从 ${candidatePosts.length} 个候选帖子中随机选择了 ${randomPosts.length} 个随机帖子`);
         }
       } catch (randomError) {
         console.error('❌ [getPostList] 获取随机帖子失败:', randomError);
@@ -416,54 +394,21 @@ exports.main = async (event, context) => {
         }
         
         posts = allPosts;
-        console.log('🔍 [getPostList] 混合前 - 时间顺序帖子数量:', timeOrderedPosts.length);
-        console.log('🔍 [getPostList] 混合前 - 随机帖子数量:', randomPosts.length);
-        console.log('🔍 [getPostList] 随机帖子的ID和创建时间:', randomPosts.map(p => ({
-          id: p._id,
-          createTime: p.createTime,
-          title: p.title || (p.content && p.content.substring(0, 20)) || ''
-        })));
-        console.log('🔍 [getPostList] 混合后帖子的顺序（前10个）:', posts.slice(0, 10).map((p, idx) => ({
-          位置: idx + 1,
-          id: p._id,
-          createTime: p.createTime,
-          title: p.title || (p.content && p.content.substring(0, 20)) || '',
-          来源: timeOrderedPosts.some(tp => tp._id === p._id) ? '时间顺序' : '随机'
-        })));
       } else {
         posts = timeOrderedPosts.slice();
-        console.log('⚠️ [getPostList] 没有获取到随机帖子，只返回时间顺序的帖子');
       }
     } else {
       // 山和路页面：只返回时间顺序的帖子
-      console.log('🔍 [getPostList] 使用时间顺序排序（无随机混合）');
       const timeOrderedQuery = query.sort({ createTime: -1 })
         .skip(skip)
         .limit(limit);
       
-      console.log('🔍 [getPostList] 查询时间顺序帖子 - skip:', skip, 'limit:', limit);
       const timeOrderedRes = await timeOrderedQuery.end();
       posts = timeOrderedRes.list || [];
-      console.log('✅ [getPostList] 获取到时间顺序帖子数量:', posts.length);
     }
     
     // 确保返回的帖子数量不超过limit
     posts = posts.slice(0, limit);
-    if (enableRandomMix) {
-      // 在 enableRandomMix 分支中，timeOrderedPosts 和 randomPosts 已定义
-      const timeOrderedCount = posts.filter(p => timeOrderedPosts.some(tp => tp._id === p._id)).length;
-      const randomCount = posts.length - timeOrderedCount;
-      console.log('✅ [getPostList] 最终混合结果：时间顺序', timeOrderedCount, '个，随机', randomCount, '个，总计', posts.length, '个');
-      console.log('✅ [getPostList] 最终帖子列表的顺序和创建时间:', posts.map((p, idx) => ({
-        位置: idx + 1,
-        id: p._id,
-        createTime: p.createTime,
-        title: p.title || (p.content && p.content.substring(0, 20)) || '',
-        类型: timeOrderedPosts.some(tp => tp._id === p._id) ? '时间顺序' : '随机'
-      })));
-    } else {
-      console.log('✅ [getPostList] 最终结果：时间顺序', posts.length, '个');
-    }
     
     // 批量查询点赞状态
     let voterMap = new Set();
@@ -479,7 +424,6 @@ exports.main = async (event, context) => {
           .field({ postId: true })
           .get();
         voterMap = new Set(voteRes.data.map(item => item.postId));
-        console.log('✅ [getPostList] 批量查询点赞状态成功');
       } catch (voteError) {
         console.error('❌ [getPostList] 批量查询点赞记录失败:', voteError);
       }
@@ -517,26 +461,8 @@ exports.main = async (event, context) => {
         }
         return true;
       });
-      console.log('🔍 [getPostList] 前端过滤后剩余帖子数量:', processedPosts.length);
     }
     
-    if (processedPosts.length > 0) {
-      console.log('🔍 [getPostList] 帖子详情:');
-      processedPosts.forEach((post, index) => {
-        console.log(`📝 [getPostList] 帖子${index + 1}:`, {
-          _id: post._id,
-          title: post.title,
-          isPoem: post.isPoem,
-          isOriginal: post.isOriginal,
-          isFoundPoetry: post.isFoundPoetry,
-          authorName: post.authorName,
-          createTime: post.createTime
-        });
-      });
-    } else {
-      console.log('⚠️ [getPostList] 没有找到符合条件的帖子');
-    }
-
     // --- 优化图片URL转换逻辑 ---
     const fileIDs = new Set(); // 使用Set避免重复fileID
     
@@ -559,11 +485,8 @@ exports.main = async (event, context) => {
       urlsToCheck.forEach(url => fileIDs.add(url));
     });
 
-    console.log('🔍 [getPostList] 需要转换的图片数量:', fileIDs.size);
-
     if (fileIDs.size > 0) {
       try {
-        console.log('🔍 [getPostList] 开始转换图片URL');
         const fileListResult = await cloud.getTempFileURL({ fileList: Array.from(fileIDs) });
         const urlMap = new Map();
         
@@ -572,8 +495,6 @@ exports.main = async (event, context) => {
             urlMap.set(item.fileID, item.tempFileURL);
           }
         });
-
-        console.log('✅ [getPostList] 图片URL转换完成，成功转换数量:', urlMap.size);
 
         // 批量转换所有帖子的图片URL
         processedPosts.forEach(post => {

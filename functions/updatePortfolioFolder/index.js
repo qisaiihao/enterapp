@@ -7,8 +7,6 @@ exports.main = async (event, context) => {
   const openid = wxContext.OPENID || event.openid;
   const { folderId, name, coverUrl } = event;
 
-  console.log('【updatePortfolioFolder云函数】收到参数:', { openid, folderId, name, coverUrl });
-
   if (!openid) {
     return { success: false, message: '用户未登录' };
   }
@@ -56,22 +54,16 @@ exports.main = async (event, context) => {
     if (coverUrl !== undefined) {
       if (coverUrl) {
         updateData.coverUrl = coverUrl;
-        console.log('【updatePortfolioFolder云函数】更新封面URL:', coverUrl);
       } else {
         // 如果coverUrl为空字符串，表示删除封面
         updateData.coverUrl = null;
-        console.log('【updatePortfolioFolder云函数】删除封面');
       }
     }
-
-    console.log('【updatePortfolioFolder云函数】准备更新的数据:', updateData);
 
     // 更新作品集
     const result = await db.collection('portfolio_folders').doc(folderId).update({
       data: updateData
     });
-
-    console.log('【updatePortfolioFolder云函数】更新结果:', result);
 
     return { 
       success: true, 

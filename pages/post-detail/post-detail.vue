@@ -1746,8 +1746,7 @@ export default {
                 
                 // 检查DOM元素是否有效
                 if (!img || typeof img !== 'object') {
-                    console.log('【post-detail】图片元素无效');
-                    return;
+                    this.refreshCommentListIfNeeded();
                 }
                 
                 console.log('【post-detail】图片DOM状态检查:', {

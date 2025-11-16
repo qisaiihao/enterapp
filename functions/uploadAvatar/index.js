@@ -10,7 +10,6 @@ cloud.init({
  */
 exports.main = async (event, context) => {
   try {
-    console.log('🔍 [云函数] uploadAvatar被调用，event:', event);
     
     const wxContext = cloud.getWXContext();
     const openid = wxContext.OPENID || event.openid;
@@ -40,8 +39,6 @@ exports.main = async (event, context) => {
       cloudPath: cloudPath,
       fileContent: buffer
     });
-    
-    console.log('✅ [云函数] 文件上传成功:', result);
     
     return {
       success: true,

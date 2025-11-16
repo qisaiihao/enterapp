@@ -22,7 +22,6 @@ exports.main = async (event, context) => {
   }
 
   const { userId, skip = 0, limit = 20, onlyProfile = false } = event;
-  console.log('【getUserProfile云函数】收到参数:', { userId, skip, limit, onlyProfile });
 
   if (!userId) {
     return { success: false, message: '用户ID不能为空' };
@@ -215,15 +214,12 @@ exports.main = async (event, context) => {
           // 转换用户头像URL和签名URL
           if (userInfo.avatarUrl && urlMap.has(userInfo.avatarUrl)) {
             userInfo.avatarUrl = urlMap.get(userInfo.avatarUrl);
-            console.log('✅ 头像URL转换成功:', userInfo.avatarUrl);
           } else if (userInfo.avatarUrl && userInfo.avatarUrl.startsWith('cloud://')) {
-            console.warn('⚠️ 头像URL转换失败，使用默认头像:', userInfo.avatarUrl);
             userInfo.avatarUrl = '/static/images/avatar.png';
           }
           if (userInfo.signatureUrl && urlMap.has(userInfo.signatureUrl)) {
             userInfo.signatureUrl = urlMap.get(userInfo.signatureUrl);
           } else if (userInfo.signatureUrl && userInfo.signatureUrl.startsWith('cloud://')) {
-            console.warn('⚠️ 签名URL转换失败:', userInfo.signatureUrl);
             userInfo.signatureUrl = null;
           }
         } catch (fileError) {
@@ -319,8 +315,6 @@ exports.main = async (event, context) => {
         }
       }
     }
-
-    console.log('【getUserProfile云函数】最终返回 posts 数量:', posts.length, 'onlyProfile:', onlyProfile);
 
     return {
       success: true,

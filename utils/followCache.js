@@ -24,7 +24,6 @@ class FollowCache {
         // 先检查缓存
         const cached = nsFollow(currentUserId).get(targetUserId);
         if (cached) {
-            console.log(`【关注缓存】命中缓存: ${currentUserId} -> ${targetUserId}`);
             return Promise.resolve(cached);
         }
 
@@ -63,7 +62,6 @@ class FollowCache {
     loadFollowStatus(currentUserId, targetUserId) {
         const key = `${currentUserId}_${targetUserId}`;
         this.loadingFollows.add(key);
-        console.log(`【关注缓存】开始加载关注状态: ${currentUserId} -> ${targetUserId}`);
         return new Promise((resolve) => {
             // 调用云函数检查关注状态
             this.callCloudFunction('follow', {
@@ -117,7 +115,6 @@ class FollowCache {
 
         // 批量加载未缓存的关注状态
         if (needLoadUserIds.length > 0) {
-            console.log(`【关注缓存】批量加载关注状态: ${needLoadUserIds.length}个`);
             return new Promise((resolve) => {
                 this.callCloudFunction('getBatchFollowStatus', {
                     currentUserId: currentUserId,
@@ -159,9 +156,7 @@ class FollowCache {
 
         // 异步预加载，不阻塞UI
         setTimeout(() => {
-            this.getBatchFollowStatus(currentUserId, targetUserIds).then((statuses) => {
-                console.log(`【关注缓存】预加载完成: ${Object.keys(statuses).length}个关注状态`);
-            });
+            this.getBatchFollowStatus(currentUserId, targetUserIds);
         }, 100);
     }
 
@@ -198,7 +193,6 @@ class FollowCache {
 
                     // 更新缓存
                     this.updateFollowStatus(currentUserId, targetUserId, followData);
-                    console.log(`【关注缓存】切换关注状态成功: ${currentUserId} -> ${targetUserId}`, followData);
                     resolve(followData);
                 } else {
                     console.warn(`【关注缓存】切换关注状态失败: ${currentUserId} -> ${targetUserId}`, res.result);
@@ -220,8 +214,6 @@ class FollowCache {
             nsFollow(userId).clear();
             return true;
         } catch (e) {
-            console.log('CatchClause', e);
-            console.log('CatchClause', e);
             console.error('清理用户关注缓存失败:', e);
             return false;
         }

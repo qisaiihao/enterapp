@@ -70,14 +70,6 @@ exports.main = async (event, context) => {
     const authorOpenid = postBefore._openid
     const oldVotes = postBefore.votes || 0
 
-    console.log('🔍 [vote] 解析参数:', {
-      postId,
-      eventOpenid: eventOpenid ? '提供' : '未提供',
-      wxCtxOpenid: wxCtxOpenid ? '提供' : '未提供',
-      chosenOpenidSource: eventOpenid ? 'event.openid' : 'wxContext.OPENID',
-      chosenOpenidExists: !!openid
-    });
-
     if (!openid) {
       console.error('❌ [vote] 无法获取用户 openid');
       return {
@@ -88,31 +80,26 @@ exports.main = async (event, context) => {
     }
 
     // 1. 查找 votes_log 表，精确查找 type 为 'post' 的记录
-    console.log('🔍 [vote] 查询投票记录，postId:', postId, 'openid:', openid);
     const log = await db.collection('votes_log').where({
       _openid: openid,
       postId: postId,
       type: 'post'
     }).get()
 
-    console.log('🔍 [vote] 投票记录查询结果:', log.data.length, '条记录');
 
     let updatedPost;
     let isLiked = false;
 
     if (log.data.length > 0) {
       // 2. 如果找到了记录，说明是"取消点赞"
-      console.log('🔍 [vote] 执行取消点赞操作');
       await db.collection('votes_log').doc(log.data[0]._id).remove()
       await db.collection('posts').doc(postId).update({ data: { votes: _.inc(-1) } })
       const postSnapAfter = await db.collection('posts').doc(postId).get()
       const newVotes = (postSnapAfter.data && postSnapAfter.data.votes) || (oldVotes - 1)
       await updateAuthorGrowthCounts(authorOpenid, oldVotes, newVotes)
       isLiked = false
-      console.log('✅ [vote] 取消点赞完成');
     } else {
       // 3. 如果没找到记录，说明是"点赞"
-      console.log('🔍 [vote] 执行点赞操作');
       await db.collection('votes_log').add({
         data: {
           _openid: openid,
@@ -126,7 +113,6 @@ exports.main = async (event, context) => {
       const newVotes = (postSnapAfter.data && postSnapAfter.data.votes) || (oldVotes + 1)
       await updateAuthorGrowthCounts(authorOpenid, oldVotes, newVotes)
       isLiked = true
-      console.log('✅ [vote] 点赞完成');
 
       // === 新增：创建点赞消息通知 ===
       try {
@@ -141,9 +127,7 @@ exports.main = async (event, context) => {
         const user = userResult.data[0]
         
         // 如果给自己点赞，不发送通知
-        if (post._openid === openid) {
-          console.log('用户给自己点赞，不发送通知')
-        } else {
+        if (post._openid !== openid) {
           // 创建消息记录
           const contentType = post.contentType || 'post'; // 获取内容类型
           let contentTypeText = '';
@@ -172,7 +156,6 @@ exports.main = async (event, context) => {
               createTime: new Date()
             }
           })
-          console.log('点赞消息已创建')
         }
       } catch (msgError) {
         console.error('创建点赞消息失败:', msgError)
@@ -181,12 +164,9 @@ exports.main = async (event, context) => {
     }
 
     // 4. 无论点赞还是取消，都重新获取文章的最新数据
-    console.log('🔍 [vote] 获取帖子最新数据');
     updatedPost = await db.collection('posts').doc(postId).get();
 
-    // 确保获取到最新的数据
     const finalVotes = updatedPost.data.votes || 0;
-    console.log('🔍 [vote] 最终票数:', finalVotes, '点赞状态:', isLiked);
 
     const result = {
       success: true,

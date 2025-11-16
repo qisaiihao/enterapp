@@ -880,11 +880,6 @@ export default {
             return raw.split(/\r?\n/);
         },
         placeholderText() {
-            console.log('【Add】计算placeholderText:', {
-                publishMode: this.publishMode,
-                isOriginal: this.isOriginal
-            });
-            
             if (this.publishMode === 'normal') {
                 return '此刻你想要分享...\n分享诗歌请在右边切换发布模式';
             } else if (this.publishMode === 'poem' && this.isOriginal) {
@@ -900,14 +895,12 @@ export default {
     watch: {
         publishMode: {
             handler(newVal, oldVal) {
-                console.log('【Add】publishMode变化:', { oldVal, newVal, isOriginal: this.isOriginal });
                 this.updatePlaceholder();
             },
             immediate: true
         },
         isOriginal: {
             handler(newVal, oldVal) {
-                console.log('【Add】isOriginal变化:', { oldVal, newVal, publishMode: this.publishMode });
                 this.updatePlaceholder();
             },
             immediate: true
@@ -984,11 +977,6 @@ export default {
     methods: {
         // 更新placeholder文字
         updatePlaceholder() {
-            console.log('【Add】更新placeholder:', {
-                publishMode: this.publishMode,
-                isOriginal: this.isOriginal
-            });
-            
             let newPlaceholder = '';
             if (this.publishMode === 'normal') {
                 newPlaceholder = '此刻你想要分享...\n分享诗歌请在右边切换发布模式';
@@ -1005,8 +993,6 @@ export default {
             this.setData({
                 currentPlaceholder: newPlaceholder
             });
-            
-            console.log('【Add】placeholder已更新为:', newPlaceholder);
         },
 
         // 页面点击事件 - 点击外部区域退出键盘
@@ -1031,8 +1017,6 @@ export default {
                 const prevPage = pages[pages.length - 2];
                 const prevRoute = prevPage.route;
                 
-                console.log('来源页面路由:', prevRoute);
-                
                 if (prevRoute === 'pages/poem-square/poem-square') {
                     // 从poem-square进入，设置为原创诗歌模式
                     this.setData({
@@ -1041,7 +1025,6 @@ export default {
                         maxImageCount: 1,
                         imageList: this.imageList.length > 1 ? [this.imageList[0]] : this.imageList // 限制图片数量
                     });
-                    console.log('设置为原创诗歌模式');
                 } else if (prevRoute === 'pages/mountain/mountain') {
                     // 从mountain进入，设置为非原创诗歌模式
                     this.setData({
@@ -1050,7 +1033,6 @@ export default {
                         maxImageCount: 1,
                         imageList: this.imageList.length > 1 ? [this.imageList[0]] : this.imageList // 限制图片数量
                     });
-                    console.log('设置为非原创诗歌模式');
                 }
                 // 从其他页面进入时，保持草稿中的设置或默认设置
             }
@@ -1074,10 +1056,8 @@ export default {
                     console.error('Failed to load all existing tags:', err);
                 });
         },
-
         // 加载帖子数据用于编辑
         loadPostForEdit: function (postId) {
-            console.log('【Add】加载帖子用于编辑，postId:', postId);
             uni.showLoading({ title: '加载中...' });
             
             this.callCloudFunction('getPostDetail', { postId: postId }, { injectOpenId: false })

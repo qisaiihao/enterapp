@@ -5,9 +5,6 @@ cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 })
 
-console.log('=== 云函数启动 ===')
-console.log('云环境初始化完成，环境ID:', cloud.DYNAMIC_CURRENT_ENV)
-
 const db = cloud.database()
 
 // 平台检测和兼容性处理
@@ -37,16 +34,10 @@ function getUserId(wxContext, event, context) {
 }
 
 exports.main = async (event, context) => {
-  console.log('=== 云函数开始执行 ===')
-  console.log('event:', JSON.stringify(event, null, 2))
-  console.log('context:', JSON.stringify(context, null, 2))
-  
   const { fileContent, cloudPath } = event
   const wxContext = cloud.getWXContext()
   const openid = getUserId(wxContext, event, context)
-  
-  console.log('openid:', openid)
-  
+
   if (!openid) {
     return {
       success: false,
@@ -54,12 +45,8 @@ exports.main = async (event, context) => {
       code: 'NO_OPENID'
     }
   }
-  
+
   try {
-    console.log('开始上传拼贴诗，openid:', openid)
-    console.log('fileContent 长度:', fileContent ? fileContent.length : 'undefined')
-    console.log('cloudPath:', cloudPath)
-    
     // 验证输入参数
     if (!fileContent) {
       throw new Error('fileContent 参数缺失')
@@ -68,23 +55,14 @@ exports.main = async (event, context) => {
     if (!cloudPath) {
       cloudPath = `collage-poetry/${openid}_${Date.now()}.jpg`
     }
-    
-    console.log('准备上传到云存储，路径:', cloudPath)
-    
+
     // 上传图片到云存储
-    console.log('开始调用 cloud.uploadFile，参数:', {
-      cloudPath: cloudPath,
-      fileContentLength: fileContent.length,
-      fileContentType: typeof fileContent
-    })
-    
     let uploadResult
     try {
       uploadResult = await cloud.uploadFile({
         cloudPath: cloudPath,
         fileContent: Buffer.from(fileContent, 'base64')
       })
-      console.log('cloud.uploadFile 调用完成')
     } catch (uploadError) {
       console.error('cloud.uploadFile 调用失败:', uploadError)
       console.error('上传错误详情:', {
@@ -97,15 +75,8 @@ exports.main = async (event, context) => {
       throw new Error(`云存储上传失败: ${uploadError.message || uploadError.errMsg || '未知错误'}`)
     }
     
-    console.log('云存储上传结果:', JSON.stringify(uploadResult, null, 2))
-    console.log('uploadResult.fileID:', uploadResult.fileID)
-    console.log('uploadResult.fileID 类型:', typeof uploadResult.fileID)
-    console.log('uploadResult 所有属性:', Object.keys(uploadResult))
-    
     // 检查不同的可能返回格式
     let fileID = uploadResult.fileID || uploadResult.fileid || uploadResult.FileID || uploadResult.file_id
-    console.log('提取的 fileID:', fileID)
-    console.log('fileID 类型:', typeof fileID)
     
     if (!fileID) {
       console.error('上传结果中没有找到 fileID，完整结果:', uploadResult)
@@ -118,15 +89,10 @@ exports.main = async (event, context) => {
       
       // 尝试从其他可能的字段中获取 fileID
       const allKeys = Object.keys(uploadResult)
-      console.log('uploadResult 的所有键:', allKeys)
-      
-      // 查找包含 'file' 或 'id' 的键
       const fileKeys = allKeys.filter(key => 
         key.toLowerCase().includes('file') || 
         key.toLowerCase().includes('id')
       )
-      console.log('可能的文件相关键:', fileKeys)
-      
       for (const key of fileKeys) {
         console.log(`${key}:`, uploadResult[key], typeof uploadResult[key])
       }
