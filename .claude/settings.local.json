@@ -32,7 +32,8 @@
       "Bash(then echo \"未在pages.json中注册: $dir\")",
       "Bash(fi:*)",
       "Bash(done)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npm run dev:h5:*)"
     ],
     "deny": [],
     "ask": []
