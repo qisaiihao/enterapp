@@ -181,109 +181,31 @@
 
             <!-- 他人作品集 -->
             <view class="portfolio-section" v-if="currentTab === 'portfolio'">
-                <block v-if="portfolioList.length > 0">
-                    <view class="books-container">
-                        <view class="books-shelf">
-                            <view
-                                v-for="(portfolio, index) in portfolioList"
-                                :key="portfolio._id || index"
-                                :class="'book book-' + ((index % 5) + 1)"
-                                @tap.stop="openPortfolio"
-                                :data-portfolio="portfolio"
-                            >
-                                <view class="book-spine" :style="calcBookHeight(portfolio.name)">
-                                    <view class="spine-content">
-                                        <block v-if="portfolio.name">
-                                            <text
-                                                class="spine-text"
-                                                v-for="(char, charIndex) in portfolio.name.split('')"
-                                                :key="charIndex"
-                                            >
-                                                {{ char }}
-                                            </text>
-                                        </block>
-                                        <block v-else>
-                                            <text class="spine-text">N</text>
-                                            <text class="spine-text">A</text>
-                                            <text class="spine-text">M</text>
-                                            <text class="spine-text">E</text>
-                                        </block>
-                                    </view>
-                                </view>
-                            </view>
-                            <view
-                                v-if="portfolioList.length > 0"
-                                class="shelf-line"
-                                :style="{ width: (Math.max(portfolioList.length, 1) * 72 + 20) + 'rpx' }"
-                            ></view>
-                        </view>
-                    </view>
-                </block>
-                <view v-else-if="!portfolioLoading" class="empty-portfolio">
-                    <text class="empty-text">TA还没有创建作品集</text>
-                </view>
+                <!-- 作品集书籍组件 -->
+                <PortfolioBook
+                    :portfolioList="portfolioList"
+                    :emptyText="'TA还没有创建作品集'"
+                    @open-portfolio="openPortfolio"
+                    @navigate-to-portfolio="navigateToPortfolio"
+                />
+
+                <!-- 加载状态 -->
                 <view v-if="portfolioLoading" class="loading-tip">
                     <text>加载中...</text>
                 </view>
-                
-                <!-- 时间轴部分 -->
-                <view class="timeline-container" v-if="timelinePosts.length > 0">
-                    <view class="timeline-title">时间轴</view>
-                    <view class="timeline-wrapper">
-                        <view class="timeline-vertical-line"></view>
-                        <view class="timeline-content">
-                            <view 
-                                v-for="(group, monthKey, index) in timelineGroups" 
-                                :key="monthKey"
-                                class="timeline-month-group"
-                            >
-                                <view class="timeline-month-header" @tap="toggleMonthCollapse(monthKey)">
-                                    <view class="timeline-month-marker" :class="{ 'first-month': index === 0 }"></view>
-                                    <view class="timeline-month-label">
-                                        {{ formatMonthLabel(monthKey) }}
-                                    </view>
-                                </view>
-                                <view class="timeline-posts" v-if="!collapsedMonths[monthKey]">
-                                    <view 
-                                        v-for="(post, postIndex) in group" 
-                                        :key="post._id"
-                                        class="timeline-post-item"
-                                        @tap="navigateToPostDetail(post._id)"
-                                    >
-                                        <!-- 日期显示在帖子上面，同一天只显示一次 -->
-                                        <view v-if="post.showDate" class="timeline-post-date">
-                                            {{ formatDateLabel(post.dateStr) }}
-                                        </view>
-                                        <view class="timeline-post-content">
-                                            <view class="timeline-post-title">{{ post.title }}</view>
-                                        </view>
-                                    </view>
-                                </view>
-                            </view>
-                        </view>
-                    </view>
-                </view>
-                
-                <!-- 时间轴加载状态 -->
-                <view class="timeline-loading" v-if="currentTab === 'portfolio' && timelineLoading">
-                    <view class="timeline-loading-icon">⏳</view>
-                    <view class="timeline-loading-text">正在加载时间轴...</view>
-                </view>
-                
-                <!-- 时间轴错误状态 -->
-                <view class="timeline-error" v-if="currentTab === 'portfolio' && timelineError">
-                    <view class="timeline-error-icon">⚠️</view>
-                    <view class="timeline-error-text">加载失败</view>
-                    <view class="timeline-error-subtext">请检查网络连接后重试</view>
-                    <view class="timeline-retry-btn" @tap="loadTimelineData">重试</view>
-                </view>
-                
-                <!-- 时间轴空状态 -->
-                <view class="timeline-empty" v-if="currentTab === 'portfolio' && !timelineLoading && !timelineError && timelinePosts.length === 0">
-                    <view class="timeline-empty-icon">📝</view>
-                    <view class="timeline-empty-text">还没有发布原创诗歌</view>
-                    <view class="timeline-empty-subtext">发布原创诗歌后，这里会显示TA的创作时间轴</view>
-                </view>
+  
+                <!-- 时间轴组件 -->
+                <TimelineView
+                    :timelinePosts="timelinePosts"
+                    :timelineGroups="timelineGroups"
+                    :collapsedMonths.sync="collapsedMonths"
+                    :isLoading="timelineLoading"
+                    :hasError="timelineError"
+                    :title="'TA的创作时间轴'"
+                    @navigate-to-post="navigateToPostDetail"
+                    @retry="loadTimelineData"
+                    @update:collapsed-months="updateCollapsedMonths"
+                />
             </view>
 
             <!-- 他人收藏 -->
@@ -476,7 +398,11 @@
 <script>
 import { getUserInfo, getUserPosts, getUserPortfolios, getUserFavorites, invalidateUserInfo, invalidateUserPosts, invalidateUserPortfolios, invalidateUserFavorites } from '@/api-cache/user-profile.js';
 import { hydrateTempUrls, warmTempUrlsFromPosts } from '../../_utils/hydrate-temp-urls';
+import { groupPostsByMonth, processPostsForTimeline, formatMonthLabel, formatDateLabel, toggleMonthCollapse } from '@/utils/timeline.js';
+import { calcBookHeight, calcShelfLineWidth } from '@/utils/bookLayout.js';
 import skeleton from '@/components/skeleton/skeleton';
+import TimelineView from '@/components/TimelineView.vue';
+import PortfolioBook from '@/components/PortfolioBook.vue';
 const PAGE_SIZE = 5;
 const { formatRelativeTime } = require('../../utils/time.js');
 const avatarCache = require('../../utils/avatarCache');
@@ -487,7 +413,9 @@ const postGalleryMixin = require('../../mixins/postGallery.js');
 const fileUrlCache = require('../../_utils/file-url-cache.js').default;
 export default {
     components: {
-        skeleton
+        skeleton,
+        TimelineView,
+        PortfolioBook
     },
     mixins: [postGalleryMixin],
     data() {
@@ -613,15 +541,6 @@ export default {
         }
     },
     methods: {
-        calcBookHeight(name) {
-          const min = 120; // 最小高度rpx
-          const perChar = 40; // 每个字增加的高度rpx（字体22rpx + 间距18rpx）
-          const gap = 24;     // 上下内边距
-          const len = (name || '').length;
-          let height = min + perChar * (len > 2 ? len - 2 : 0) + gap;
-          // 移除最大高度限制，让标题可以完全显示
-          return `height: ${height}rpx;`;
-        },
         // 标签切换（他人主页）
         switchTab: function (e) {
             const tab = e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.tab;
@@ -737,6 +656,7 @@ export default {
         },
 
         // 准备关注状态
+
         computeGrowthStats(postList = []) {
             try {
                 const stats = { seed: 0, leaf: 0, flower: 0, peach: 0 };
@@ -1080,71 +1000,13 @@ export default {
             return formatRelativeTime(dateString);
         },
 
-        // 时间轴相关方法
-        // 按月份分组帖子
-        groupPostsByMonth: function (posts) {
-            const groups = {};
-            posts.forEach(post => {
-                if (!post.createTime) return;
-                const date = new Date(post.createTime);
-                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                if (!groups[monthKey]) {
-                    groups[monthKey] = [];
-                }
-                groups[monthKey].push(post);
-            });
-            return groups;
+        // 处理组件事件的方法
+        navigateToPortfolio() {
+            // PortfolioBook组件点击事件处理（暂时为空实现）
+            console.log('Navigate to portfolio');
         },
 
-        // 处理同一天帖子的日期显示
-        processPostsForTimeline: function (posts) {
-            if (!posts || posts.length === 0) return [];
-            
-            // 按日期排序
-            const sortedPosts = posts.sort((a, b) => new Date(b.createTime) - new Date(a.createTime));
-            
-            // 处理同一天帖子的日期显示
-            const processedPosts = [];
-            let lastDate = null;
-            
-            sortedPosts.forEach(post => {
-                const postDate = new Date(post.createTime);
-                const dateStr = `${postDate.getFullYear()}-${String(postDate.getMonth() + 1).padStart(2, '0')}-${String(postDate.getDate()).padStart(2, '0')}`;
-                
-                // 如果是同一天，不显示日期
-                const showDate = lastDate !== dateStr;
-                lastDate = dateStr;
-                
-                processedPosts.push({
-                    ...post,
-                    showDate: showDate,
-                    dateStr: dateStr
-                });
-            });
-            
-            return processedPosts;
-        },
-
-        // 格式化日期标签（只显示日子）
-        formatDateLabel: function (dateKey) {
-            const [year, month, day] = dateKey.split('-');
-            return `${day}日`;
-        },
-
-        // 格式化月份标签
-        formatMonthLabel: function (monthKey) {
-            const [year, month] = monthKey.split('-');
-            return `${year}年${parseInt(month)}月`;
-        },
-
-        // 切换月份折叠状态
-        toggleMonthCollapse: function (monthKey) {
-            const newCollapsed = { ...this.collapsedMonths };
-            if (newCollapsed[monthKey]) {
-                delete newCollapsed[monthKey];
-            } else {
-                newCollapsed[monthKey] = true;
-            }
+        updateCollapsedMonths(newCollapsed) {
             this.setData({
                 collapsedMonths: newCollapsed
             });
@@ -1158,7 +1020,7 @@ export default {
             });
 
             const targetUserId = this.targetUserId;
-            
+
             if (!targetUserId) {
                 this.setData({
                     timelineLoading: false,
@@ -1175,10 +1037,10 @@ export default {
             }).then((res) => {
                 if (res && res.result && res.result.success) {
                     const allPosts = res.result.posts || [];
-                    
+
                     // 只筛选原创诗歌类型的帖子
                     const originalPoemPosts = allPosts.filter(post => post.isPoem === true && post.isOriginal === true);
-                    
+
                     // 格式化时间
                     originalPoemPosts.forEach(post => {
                         if (post.createTime) {
@@ -1186,12 +1048,12 @@ export default {
                         }
                     });
 
-                    // 处理同一天帖子的日期显示
-                    const processedPosts = this.processPostsForTimeline(originalPoemPosts);
-                    
+                    // 使用工具函数处理数据
+                    const processedPosts = processPostsForTimeline(originalPoemPosts);
+
                     this.setData({
                         timelinePosts: processedPosts,
-                        timelineGroups: this.groupPostsByMonth(processedPosts),
+                        timelineGroups: groupPostsByMonth(processedPosts),
                         timelineLoading: false,
                         timelineError: false
                     });
@@ -1439,32 +1301,6 @@ export default {
     overflow: visible;
 }
 
-.profile-growth-stats {
-    position: absolute;
-    top: 120rpx;
-    right: 40rpx;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 18rpx;
-}
-
-.growth-item {
-    display: flex;
-    align-items: center;
-    gap: 12rpx;
-}
-
-.growth-icon {
-    width: 48rpx;
-    height: 48rpx;
-}
-
-.growth-count {
-    font-size: 30rpx;
-    font-weight: 600;
-    color: #333333;
-}
 
 .profile-avatar-large {
     display: flex;
@@ -1595,89 +1431,6 @@ export default {
     opacity: 0.7;
 }
 
-.books-container {
-    padding: 40rpx 0;
-}
-
-.books-shelf {
-    display: flex;
-    justify-content: flex-end;
-    align-items: flex-end; /* 保证所有书底边齐 */
-    gap: 0;
-    position: relative;
-    padding-bottom: 18rpx;
-}
-
-.shelf-line {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    height: 18rpx;
-    background: #000;
-    border-radius: 4rpx;
-    z-index: 1;
-}
-
-.book {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    cursor: pointer;
-    transition: transform 0.2s ease;
-    position: relative;
-    margin-bottom: 0;
-}
-
-.book:active {
-    transform: scale(0.95);
-}
-
-.book-spine {
-    width: 72rpx;
-    border-radius: 20rpx 20rpx 0 0;
-    position: relative;
-    box-shadow: 2rpx 2rpx 8rpx rgba(0, 0, 0, 0.2);
-    background: inherit;
-    overflow: hidden;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 12rpx 0;
-    box-sizing: border-box;
-}
-
-.book-1 .book-spine { background: #809076; }
-.book-2 .book-spine { background: #f9d794; }
-.book-2 .spine-text { color: #333; }
-.book-3 .book-spine { background: #2b4139; }
-.book-4 .book-spine { background: #ccb8a3; }
-.book-5 .book-spine { background: #8a6f4d; }
-
-.spine-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8rpx;
-}
-
-.spine-text {
-    font-size: 26rpx;
-    color: #fff;
-    writing-mode: vertical-rl;
-    line-height: 1.6;
-    letter-spacing: 4rpx;
-}
-
-.empty-portfolio {
-    padding: 120rpx 0;
-    text-align: center;
-    color: #999;
-}
-
-.empty-portfolio .empty-text {
-    font-size: 28rpx;
-    color: #999;
-}
 
 .mutual-indicator {
     padding: 8rpx 20rpx;
@@ -1904,241 +1657,32 @@ export default {
     margin-right: 24rpx;
 }
 
-/* 时间轴样式 */
-.timeline-container {
-    margin: 30rpx;
-    background: #fff;
-    border-radius: 16rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
-    padding: 30rpx;
-}
-
-.timeline-title {
-    font-size: 32rpx;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 30rpx;
-    text-align: center;
-}
-
-.timeline-wrapper {
-    position: relative;
-    display: flex;
-}
-
-.timeline-vertical-line {
+/* 成长统计样式 */
+.profile-growth-stats {
     position: absolute;
-    left: 20rpx;
-    top: 20rpx;
-    bottom: 0;
-    width: 4rpx;
-    background: #809076;
-    z-index: 1;
+    top: 120rpx;
+    right: 40rpx;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 18rpx;
 }
 
-.timeline-content {
-    flex: 1;
-    padding-left: 65rpx;
-    padding-right: 20rpx;
-    position: relative;
-    z-index: 2;
-}
-
-.timeline-month-group {
-    margin-bottom: 40rpx;
-}
-
-.timeline-month-group:last-child {
-    margin-bottom: 0;
-}
-
-.timeline-month-header {
+.growth-item {
     display: flex;
     align-items: center;
-    margin-bottom: 20rpx;
-    position: relative;
+    gap: 12rpx;
 }
 
-.timeline-month-marker {
-    position: absolute;
-    left: -45rpx;
-    width: 20rpx;
-    height: 4rpx;
-    background: #809076;
+.growth-icon {
+    width: 48rpx;
+    height: 48rpx;
 }
 
-.timeline-month-marker.first-month {
-    height: 4rpx;
-    width: 25rpx;
-}
-
-.timeline-month-label {
-    font-size: 28rpx;
+.growth-count {
+    font-size: 30rpx;
     font-weight: 600;
-    color: #809076;
-    flex-shrink: 0;
-    cursor: pointer;
-    -webkit-user-select: none;
-    user-select: none;
+    color: #333333;
 }
 
-.timeline-month-header {
-    cursor: pointer;
-}
-
-.timeline-posts {
-    margin-left: 10rpx;
-}
-
-.timeline-post-item {
-    padding: 20rpx 0;
-    border-bottom: 1rpx solid #f8f8f8;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    position: relative;
-}
-
-.timeline-post-item:last-child {
-    border-bottom: none;
-}
-
-.timeline-post-item:active {
-    background-color: #f8f8f8;
-}
-
-.timeline-post-date {
-    font-size: 24rpx;
-    color: #999;
-    margin-bottom: 10rpx;
-}
-
-.timeline-post-content {
-    margin-left: 0;
-}
-
-.timeline-post-title {
-    font-size: 28rpx;
-    color: #333;
-    line-height: 1.5;
-    word-break: break-word;
-}
-
-/* 响应式适配 */
-@media (max-width: 750rpx) {
-    .timeline-container {
-        margin: 20rpx;
-    }
-    
-    .timeline-title {
-        font-size: 28rpx;
-    }
-    
-    .timeline-month-label {
-        font-size: 26rpx;
-    }
-    
-    .timeline-post-title {
-        font-size: 26rpx;
-    }
-    
-    .timeline-post-time {
-        font-size: 22rpx;
-    }
-}
-
-/* 时间轴空状态 */
-.timeline-empty {
-    margin: 30rpx;
-    background: #fff;
-    border-radius: 16rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
-    padding: 60rpx 30rpx;
-    text-align: center;
-}
-
-.timeline-empty-icon {
-    font-size: 80rpx;
-    margin-bottom: 20rpx;
-}
-
-.timeline-empty-text {
-    font-size: 28rpx;
-    color: #666;
-    margin-bottom: 10rpx;
-}
-
-.timeline-empty-subtext {
-    font-size: 24rpx;
-    color: #999;
-    line-height: 1.4;
-}
-
-/* 时间轴加载状态 */
-.timeline-loading {
-    margin: 30rpx;
-    background: #fff;
-    border-radius: 16rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
-    padding: 60rpx 30rpx;
-    text-align: center;
-}
-
-.timeline-loading-icon {
-    font-size: 60rpx;
-    margin-bottom: 20rpx;
-    animation: rotate 2s linear infinite;
-}
-
-.timeline-loading-text {
-    font-size: 28rpx;
-    color: #666;
-}
-
-@keyframes rotate {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
-/* 时间轴错误状态 */
-.timeline-error {
-    margin: 30rpx;
-    background: #fff;
-    border-radius: 16rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
-    padding: 60rpx 30rpx;
-    text-align: center;
-}
-
-.timeline-error-icon {
-    font-size: 60rpx;
-    margin-bottom: 20rpx;
-}
-
-.timeline-error-text {
-    font-size: 28rpx;
-    color: #ff6b6b;
-    margin-bottom: 10rpx;
-}
-
-.timeline-error-subtext {
-    font-size: 24rpx;
-    color: #999;
-    margin-bottom: 30rpx;
-    line-height: 1.4;
-}
-
-.timeline-retry-btn {
-    display: inline-block;
-    padding: 20rpx 40rpx;
-    background: #809076;
-    color: #fff;
-    border-radius: 8rpx;
-    font-size: 26rpx;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-
-.timeline-retry-btn:active {
-    background-color: #6d7a64;
-}
 </style>
