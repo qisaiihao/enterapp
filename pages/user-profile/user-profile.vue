@@ -400,6 +400,7 @@ import { getUserInfo, getUserPosts, getUserPortfolios, getUserFavorites, invalid
 import { hydrateTempUrls, warmTempUrlsFromPosts } from '../../_utils/hydrate-temp-urls';
 import { groupPostsByMonth, processPostsForTimeline, formatMonthLabel, formatDateLabel, toggleMonthCollapse } from '@/utils/timeline.js';
 import { calcBookHeight, calcShelfLineWidth } from '@/utils/bookLayout.js';
+import { extractGrowthStats } from '@/utils/growthStats.js';
 import skeleton from '@/components/skeleton/skeleton';
 import TimelineView from '@/components/TimelineView.vue';
 import PortfolioBook from '@/components/PortfolioBook.vue';
@@ -586,14 +587,7 @@ export default {
                 posts = await hydrateTempUrls(posts);
                 warmTempUrlsFromPosts(posts);
 
-                const growthStats = (userInfo && userInfo.growthCounts)
-                    ? {
-                        seed: Number(userInfo.growthCounts.seed) || 0,
-                        leaf: Number(userInfo.growthCounts.leaf) || 0,
-                        flower: Number(userInfo.growthCounts.flower) || 0,
-                        peach: Number(userInfo.growthCounts.peach) || 0,
-                      }
-                    : this.computeGrowthStats(posts);
+                const growthStats = extractGrowthStats(userInfo, posts);
                 const normalizedPortfolios = await this.transformPortfolioList(portfolios);
                 this.setData({
                     userInfo,
@@ -641,9 +635,7 @@ export default {
                         userPosts: newPosts,
                         page: page + 1,
                         hasMore: posts.length === PAGE_SIZE,
-                        growthStats: (this.userInfo && this.userInfo.growthCounts)
-                            ? this.growthStats
-                            : this.computeGrowthStats(newPosts)
+                        growthStats: extractGrowthStats(this.userInfo, newPosts)
                     });
                 })
                 .catch((err) => { console.error('加载更多帖子失败', err); })
@@ -657,28 +649,7 @@ export default {
 
         // 准备关注状态
 
-        computeGrowthStats(postList = []) {
-            try {
-                const stats = { seed: 0, leaf: 0, flower: 0, peach: 0 };
-                (postList || []).forEach((post) => {
-                    const votes = Number(post && post.votes) || 0;
-                    if (votes <= 3) {
-                        stats.seed += 1;
-                    } else if (votes <= 7) {
-                        stats.leaf += 1;
-                    } else if (votes <= 15) {
-                        stats.flower += 1;
-                    } else {
-                        stats.peach += 1;
-                    }
-                });
-                return stats;
-            } catch (err) {
-                console.error('计算成长统计失败:', err);
-                return { seed: 0, leaf: 0, flower: 0, peach: 0 };
-            }
-        },
-
+        
         prepareFollowState: function () {
             const targetUserId = this.targetUserId;
             const currentUserId = this.getCurrentUserId();

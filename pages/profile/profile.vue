@@ -430,6 +430,7 @@ import {
   toggleMonthCollapse as toggleMonthCollapseUtil
 } from '@/utils/timeline.js';
 import { calcBookHeight as calcBookHeightUtil } from '@/utils/bookLayout.js';
+import { extractGrowthStats } from '@/utils/growthStats.js';
 const app = getApp();
 const { formatRelativeTime } = require('../../utils/time.js');
 const { previewImage } = require('../../utils/imagePreview.js');
@@ -1280,33 +1281,10 @@ export default {
 
         updateGrowthStats(postList = this.myPosts) {
             try {
-                // 如果后端已提供聚合后的分段计数，直接使用
-                if (this.userInfo && this.userInfo.growthCounts) {
-                    const gc = this.userInfo.growthCounts || {};
-                    console.log('【profile】使用后端growthCounts数据:', gc);
-                    this.setData({ growthStats: {
-                        seed: Number(gc.seed) || 0,
-                        leaf: Number(gc.leaf) || 0,
-                        flower: Number(gc.flower) || 0,
-                        peach: Number(gc.peach) || 0,
-                    }});
-                    return;
-                }
-                console.log('【profile】后端未提供growthCounts，使用前端计算');
-                const stats = { seed: 0, leaf: 0, flower: 0, peach: 0 };
-                (postList || []).forEach((post) => {
-                    const votes = Number(post && post.votes) || 0;
-                    if (votes <= 3) {
-                        stats.seed += 1;
-                    } else if (votes <= 7) {
-                        stats.leaf += 1;
-                    } else if (votes <= 15) {
-                        stats.flower += 1;
-                    } else {
-                        stats.peach += 1;
-                    }
-                });
-                this.setData({ growthStats: stats });
+                // 使用工具函数提取成长统计（优先使用后端数据，否则前端计算）
+                const growthStats = extractGrowthStats(this.userInfo, postList);
+                console.log('【profile】使用工具函数计算成长统计:', growthStats);
+                this.setData({ growthStats });
             } catch (e) {
                 console.error('【profile】计算成长统计失败:', e);
                 this.setData({ growthStats: { seed: 0, leaf: 0, flower: 0, peach: 0 } });
