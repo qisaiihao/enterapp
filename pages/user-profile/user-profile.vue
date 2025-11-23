@@ -12,7 +12,7 @@
         <view v-else class="main-content">
             <!-- User Profile Card -->
             <view class="profile-card profile-card-center">
-                <view class="profile-growth-stats">
+                <view class="profile-growth-stats" style="display: none;">
                     <view class="growth-item">
                         <image class="growth-icon" src="/static/images/seedplus.png" mode="aspectFit"></image>
                         <text class="growth-count">{{ growthStats.seed }}</text>
