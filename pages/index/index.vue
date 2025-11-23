@@ -657,10 +657,16 @@ onReachBottom: function () {
                     console.error('清除首页缓存失败:', e);
                 }
                 // 不清空列表，避免白屏；直接拉取首屏并一次性替换
-                this.reloadHomePostsForRefresh(() => {
-                    setTimeout(() => {
-                        this.isRefreshing = false;
-                    }, 100);
+                this.setData({
+                    page: 0,
+                    hasMore: true,
+                    postList: []
+                }, () => {
+                    this.getPostList(() => {
+                        setTimeout(() => {
+                            this.isRefreshing = false;
+                        }, 100);
+                    });
                 });
             } else if (this.currentPage === 'discover') {
                 // 发现页刷新 - 重新获取推荐
@@ -1578,7 +1584,7 @@ onReachBottom: function () {
                 isLoadingMore: false  // 确保 isLoadingMore 也为 false
             }, () => {
                 // 状态更新完成后再强制从云端刷新数据，直接传入筛选参数确保使用正确的筛选条件
-                this.reloadHomePostsForRefresh(undefined, filterParams);
+                this.getPostList();
             });
         },
 
