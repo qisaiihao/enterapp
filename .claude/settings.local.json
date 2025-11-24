@@ -33,7 +33,9 @@
       "Bash(fi:*)",
       "Bash(done)",
       "Bash(find:*)",
-      "Bash(npm run dev:h5:*)"
+      "Bash(npm run dev:h5:*)",
+      "Bash(for:*)",
+      "Bash(do echo:*)"
     ],
     "deny": [],
     "ask": []

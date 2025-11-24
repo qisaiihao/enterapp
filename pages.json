@@ -276,7 +276,7 @@
         "usingComponents": {}
       }
     }
-    /* #ifdef APP-PLUS */
+
     ,
     {
       "path": "uni_modules/uni-upgrade-center-app/pages/upgrade-popup",
@@ -286,7 +286,7 @@
       }
     }
   
-    /* #endif */
+
 ],
   "tabBar": {
 

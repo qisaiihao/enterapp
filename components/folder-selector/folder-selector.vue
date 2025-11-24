@@ -314,6 +314,16 @@ export default {
                 isLoading: true
             });
             const openid = this.$requireOpenid && this.$requireOpenid();
+
+            if (!openid) {
+                console.log('openid为空，停止加载');
+                this.setData({
+                    isLoading: false,
+                    folders: [],
+                    selectedFolderId: ''
+                });
+                return;
+            }
             this.callCloudFunction('getMyProfileData', {
                     action: 'getFavoriteFolders',
                     openid

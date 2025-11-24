@@ -28,7 +28,11 @@ function getDatabaseAndContext() {
 // 获取用户ID的兼容函数
 function getUserId(wxContext, event, context) {
   // 优先级：event.openid > context.OPENID > wxContext.OPENID > wxContext.claims.openid
-  return event.openid || context.OPENID || wxContext.OPENID || (wxContext.claims && wxContext.claims.openid);
+  let openid = event.openid || context.OPENID || wxContext.OPENID || (wxContext.claims && wxContext.claims.openid);
+
+
+
+  return openid;
 }
 
 // 云函数入口函数

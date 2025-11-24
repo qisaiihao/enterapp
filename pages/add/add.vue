@@ -305,6 +305,12 @@
 // 修复：移除全局数据库实例，改为在方法中动态获取
 const { cloudCall } = require('../../utils/cloudCall.js');
 const { readFileAsBase64 } = require('../../utils/fileReader.js');
+
+// 导入重构后的API和工具函数
+const { getAllTags } = require('../../api-cache/tags.js');
+const { getPostDetail, updatePostContent } = require('../../api-cache/post.js');
+const { checkDuplicatePoem, contentAudit, uploadFile, saveDraft } = require('../../api-cache/publish.js');
+const { validatePublishData, canPublish, generateDraftData, generatePublishData, processUploadResults } = require('../../utils/publishUtils.js');
 export default {
     data() {
         return {
@@ -1045,16 +1051,13 @@ export default {
         },
 
         // 加载所有已有标签
-        loadAllExistingTags() {
-            this.callCloudFunction('getAllTags')
-                .then(res => {
-                    if (res.result && res.result.success) {
-                        this.allExistingTags = res.result.tags;
-                    }
-                })
-                .catch(err => {
-                    console.error('Failed to load all existing tags:', err);
-                });
+        async loadAllExistingTags() {
+            try {
+                const tags = await getAllTags(this);
+                this.allExistingTags = tags;
+            } catch (err) {
+                console.error('Failed to load all existing tags:', err);
+            }
         },
         // 加载帖子数据用于编辑
         loadPostForEdit: function (postId) {
@@ -1356,17 +1359,17 @@ export default {
   
         // 检查是否可以发布
         checkCanPublish: function () {
-            const hasImages = this.imageList.length > 0;
-            const hasContent = this.content && this.content.trim();
-            let canPublish = hasImages || hasContent;
+            const publishData = {
+                content: this.content,
+                images: this.imageList,
+                publishMode: this.publishMode,
+                isOriginal: this.isOriginal,
+                author: this.author
+            };
 
-            // 如果是非原创诗歌，必须填写作者
-            if (this.publishMode === 'poem' && !this.isOriginal) {
-                const hasAuthor = this.author && this.author.trim();
-                canPublish = canPublish && hasAuthor;
-            }
+            const canPublishValue = canPublish(publishData);
             this.setData({
-                canPublish: canPublish
+                canPublish: canPublishValue
             });
         },
 

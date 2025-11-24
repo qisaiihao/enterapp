@@ -77,7 +77,14 @@ import skeleton from '@/components/skeleton/skeleton';
 import topBar from '@/components/top-bar/top-bar.vue';
 const { cloudCall } = require('@/utils/cloudCall.js');
 const { getPostList: getPostListWithCache, invalidatePostList } = require('@/api-cache/post-list.js');
+import { getMountainPoems } from '@/api-cache/poems.js';
 const likeIcon = require('@/utils/likeIcon.js');
+import {
+  generateRandomBackgroundColor,
+  toggleArrayItemExpansion,
+  updatePostsUIProperties
+} from '@/utils/uiHelpers.js';
+import { navigateToPostDetail } from '@/utils/navigation.js';
 const { togglePostLike } = require('../../utils/likeService.js');
 
 const PAGE_SIZE = 10;
@@ -237,10 +244,7 @@ export default {
       }
     },
 
-    callCloudFunction(name, data = {}, extraOptions = {}) {
-      return cloudCall(name, data, Object.assign({ pageTag: 'mountain', context: this, requireAuth: false }, extraOptions));
-    },
-    getIndexData(callback) {
+        getIndexData(callback) {
       console.log('【mountain】开始获取数据，callback:', typeof callback);
       this.setData({ 
         postList: [], 
@@ -260,17 +264,9 @@ export default {
       });
     },
     generateRandomBackgroundColor() {
-      const colors = this.backgroundColors;
-      const last = this.lastUsedColorIndex;
-      if (last === -1) {
-        const idx = Math.floor(Math.random() * colors.length);
-        this.lastUsedColorIndex = idx;
-        return colors[idx];
-      }
-      const avail = colors.filter((_, i) => i !== last);
-      const pick = avail[Math.floor(Math.random() * avail.length)];
-      this.lastUsedColorIndex = colors.indexOf(pick);
-      return pick;
+      const result = generateRandomBackgroundColor(this.backgroundColors, this.lastUsedColorIndex);
+      this.lastUsedColorIndex = result.index;
+      return result.color;
     },
     async getPostList(cb) {
       console.log('【mountain】getPostList 开始，isLoadingMore:', this.isLoadingMore, 'isLoading:', this.isLoading, 'page:', this.page, '_loadingLock:', this._loadingLock, 'callback:', typeof cb);
@@ -292,13 +288,10 @@ export default {
         console.log('【mountain】设置加载锁定，isLoadingMore: true');
       }
       try {
-        // 使用缓存封装的接口
-        const list = await getPostListWithCache({
+        // 使用山诗专用API
+        const list = await getMountainPoems({
           page: this.page,
           pageSize: PAGE_SIZE,
-          excludeAnonymous: true,
-          isPoem: true,       // 山页面：只获取诗歌类型的内容
-          isOriginal: false,  // 只获取非原创内容（山诗）
           context: this
         });
         console.log('【mountain】获取到帖子数量:', list.length);
@@ -360,15 +353,12 @@ export default {
     },
     togglePostExpansion(e) {
       const index = e.currentTarget.dataset.index;
-      const post = this.postList[index];
-      const next = !post.isExpanded;
-
-      this.setData({ [`postList[${index}].isExpanded`]: next });
-
+      const newPostList = toggleArrayItemExpansion(this.postList, index);
+      this.setData({ postList: newPostList });
     },
     onCommentClick(e) {
       const postId = e.currentTarget.dataset.postid;
-      uni.navigateTo({ url: `/pages/post-detail/post-detail?id=${postId}` });
+      navigateToPostDetail(postId);
     },
     onLikeIconError() {},
 

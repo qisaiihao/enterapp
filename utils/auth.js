@@ -78,7 +78,29 @@ function setLoginState(userInfo = null, openid = null) {
     app.globalData._loginProcessCompleted = true;
 }
 
+function getCurrentUserId(context = null) {
+    // 优先从context获取
+    if (context && context.openid) {
+        return context.openid;
+    }
+
+    // 从全局App实例获取
+    const app = getAppInstance();
+    if (app && app.globalData && app.globalData.openid) {
+        return app.globalData.openid;
+    }
+
+    // 从本地存储获取
+    const fromStorage = readOpenIdFromStorage();
+    if (fromStorage) {
+        return fromStorage;
+    }
+
+    return null;
+}
+
 module.exports = {
     getOpenId,
-    setLoginState
+    setLoginState,
+    getCurrentUserId
 };

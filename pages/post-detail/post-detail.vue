@@ -483,6 +483,17 @@ const { uploadFile } = require('../../utils/uploader.js');
 const postGalleryMixin = require('../../mixins/postGallery.js');
 import { hydrateTempUrls, warmTempUrlsFromPosts } from '@/_utils/hydrate-temp-urls';
 import fileUrlCache from '@/_utils/file-url-cache';
+
+// 导入重构后的工具函数
+const { getCurrentUserId } = require('../../utils/auth.js');
+const { calculateActualLines, wrapText, clampText } = require('../../utils/canvasText.js');
+const { processComments, validateCommentInput, processCommentImages, findComment, calculateRemainingChars } = require('../../utils/commentUtils.js');
+const { generateShareImageName, isValidImageDataUrl, base64ToArrayBuffer, saveImageToAlbum, createTempFilePath, compressImage, getImageInfo } = require('../../utils/shareImage.js');
+
+// 导入重构后的API函数
+const { getPostDetail, updatePostContent, togglePostFavorite, recordPostView } = require('../../api-cache/post.js');
+const { getComments, submitComment, deleteComment, likeComment } = require('../../api-cache/comment.js');
+const { checkFollowStatus, toggleFollowStatus } = require('../../api-cache/following.js');
 export default {
     components: {
         cloudTipModal,
@@ -626,11 +637,9 @@ export default {
         this.currentScrollTop = e.scrollTop || 0;
     },
     onUnload: function () {
-        // 已停用：暂时不需要记录用户浏览记录
-        // this.recordViewBehavior();
         try { const viewEvents = require('../../utils/viewEvents.js'); viewEvents.flushViewQueue(); } catch (e) {}
         try { uni.$off && this.onGlobalCommentLikeChanged && uni.$off('comment-like-changed', this.onGlobalCommentLikeChanged); } catch (_) {}
-        
+
         // 取消键盘高度监听
         // #ifdef MP-WEIXIN || APP-PLUS
         try {
@@ -647,8 +656,6 @@ export default {
         if (this.isInputExpanded) {
             this.collapseInput();
         }
-        // 已停用：暂时不需要记录用户浏览记录
-        // this.recordViewBehavior();
         try { const viewEvents = require('../../utils/viewEvents.js'); viewEvents.flushViewQueue(); } catch (e) {}
     },
     methods: {
@@ -745,127 +752,91 @@ export default {
             }
         },
 
-        // 统一云函数调用方法
-        callCloudFunction(name, data = {}, extraOptions = {}) {
-            return cloudCall(name, data, Object.assign({ pageTag: 'post-detail', context: this }, extraOptions));
-        },
         loadPostDetail: function (postId) {
             this.setData({
                 isCommentLoading: true
             });
-            this.callCloudFunction(
-                'getPostDetail',
-                {
-                    postId: postId
-                },
-                {
-                    injectOpenId: false
-                }
-            ).then(async (res) => {
-                if (res.result && res.result.post) {
-                    let post = res.result.post;
-                    post.formattedCreateTime = this.formatTime(post.createTime);
-                    post.likeIcon = likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false);
-                    // 将 cloud:// 映射为可访问 URL，并预热
-                    await hydrateTempUrls([post]);
-                    warmTempUrlsFromPosts([post]);
-                    const finalCommentCount = res.result.commentCount || post.commentCount || 0;
-                    this.setData({
-                        post: post,
-                        commentCount: finalCommentCount
-                    });
-                    this.getComments(post && post._id ? post._id : '');
-                    this.prepareFollowState(post._openid);
-                } else {
+
+            getPostDetail(postId)
+                .then(async (res) => {
+                    if (res.result && res.result.post) {
+                        let post = res.result.post;
+                        post.formattedCreateTime = this.formatTime(post.createTime);
+                        post.likeIcon = likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false);
+                        // 将 cloud:// 映射为可访问 URL，并预热
+                        await hydrateTempUrls([post]);
+                        warmTempUrlsFromPosts([post]);
+                        const finalCommentCount = res.result.commentCount || post.commentCount || 0;
+                        this.setData({
+                            post: post,
+                            commentCount: finalCommentCount
+                        });
+                        this.getComments(post && post._id ? post._id : '');
+                        this.prepareFollowState(post._openid);
+                    } else {
+                        this.setData({
+                            isCommentLoading: false
+                        });
+                        uni.showToast({
+                            title: '帖子加载失败',
+                            icon: 'none'
+                        });
+                    }
+                })
+                .catch((err) => {
+                    console.error('Failed to get post detail', err);
                     this.setData({
                         isCommentLoading: false
                     });
                     uni.showToast({
-                        title: '帖子加载失败',
+                        title: '网络错误',
                         icon: 'none'
                     });
-                }
-            }).catch((err) => {
-                console.error('Failed to get post detail', err);
-                this.setData({
-                    isCommentLoading: false
+                })
+                .finally(() => {
+                    this.setData({
+                        isLoading: false
+                    });
                 });
-                uni.showToast({
-                    title: '网络错误',
-                    icon: 'none'
-                });
-            }).finally(() => {
-                this.setData({
-                    isLoading: false
-                });
-            });
         },
 
         getComments: function (postId) {
             this.setData({
                 isCommentLoading: true
             });
-            this.callCloudFunction(
-                'getComments',
-                {
-                    postId: postId
-                },
-                {
-                    injectOpenId: true
-                }
-            ).then(async (res) => {
-                if (res.result && res.result.comments) {
-                    const currentUserOpenid = this.getCurrentUserId();
-                    const comments = res.result.comments.map((comment) => {
-                        const processedComment = {
-                            ...comment,
-                            formattedCreateTime: this.formatTime(comment.createTime),
-                            likeIcon: likeIcon.getLikeIcon(comment.likes || 0, comment.liked || false),
-                            imageUrls: Array.isArray(comment.imageUrls) ? comment.imageUrls : [],
-                            originalImageUrls: Array.isArray(comment.originalImageUrls) ? comment.originalImageUrls : [],
-                            _openid: comment._openid || '' // 确保_openid被保留
-                        };
-                        
-                        if (comment.replies) {
-                            processedComment.replies = comment.replies.map((reply) => {
-                                const processedReply = {
-                                    ...reply,
-                                    formattedCreateTime: this.formatTime(reply.createTime),
-                                    likeIcon: likeIcon.getLikeIcon(reply.likes || 0, reply.liked || false),
-                                    imageUrls: Array.isArray(reply.imageUrls) ? reply.imageUrls : [],
-                                    originalImageUrls: Array.isArray(reply.originalImageUrls) ? reply.originalImageUrls : [],
-                                    _openid: reply._openid || '' // 确保_openid被保留
-                                };
-                                return processedReply;
-                            });
-                        }
-                        return processedComment;
-                    });
-                    const newCommentCount = res.result.commentCount || comments.length;
-                    const shouldUpdateCount = newCommentCount > this.commentCount;
-                    
-                    // 使用setData确保响应式更新
-                    this.setData({
-                        comments: comments,
-                        commentCount: shouldUpdateCount ? newCommentCount : this.commentCount
-                    });
-                } else {
+
+            getComments(postId)
+                .then(async (res) => {
+                    if (res.result && res.result.comments) {
+                        // 使用新的评论处理工具函数
+                        const comments = processComments(res.result.comments);
+                        const newCommentCount = res.result.commentCount || comments.length;
+                        const shouldUpdateCount = newCommentCount > this.commentCount;
+
+                        // 使用setData确保响应式更新
+                        this.setData({
+                            comments: comments,
+                            commentCount: shouldUpdateCount ? newCommentCount : this.commentCount
+                        });
+                    } else {
+                        uni.showToast({
+                            title: '评论加载失败',
+                            icon: 'none'
+                        });
+                    }
+                })
+                .catch((err) => {
+                    console.error('Failed to get comments', err);
                     uni.showToast({
-                        title: '评论加载失败',
+                        title: '网络错误',
                         icon: 'none'
                     });
-                }
-            }).catch((err) => {
-                console.error('Failed to get comments', err);
-                uni.showToast({
-                    title: '网络错误',
-                    icon: 'none'
+                })
+                .finally(() => {
+                    this.setData({
+                        isCommentLoading: false
+                    });
                 });
-            }).finally(() => {
-                this.setData({
-                    isCommentLoading: false
-                });
-            });
         },
 
         onVote: function (event) {
@@ -2471,11 +2442,12 @@ export default {
                 return;
             }
             const trimmedContent = (this.newComment || '').trim();
-            const hasContent = trimmedContent.length > 0;
-            const hasImages = Array.isArray(this.commentImages) && this.commentImages.length > 0;
-            if (!hasContent && !hasImages) {
+
+            // 使用新的验证工具函数
+            const validationResult = validateCommentInput(trimmedContent, this.commentImages);
+            if (!validationResult.isValid) {
                 uni.showToast({
-                    title: '请输入内容或添加图片',
+                    title: validationResult.message,
                     icon: 'none'
                 });
                 return;
@@ -2502,19 +2474,20 @@ export default {
                 const imageUrls = imageUploadResults.map((item) => item.compressedUrl);
                 const originalImageUrls = imageUploadResults.map((item) => item.originalUrl);
                 
-                const res = await this.callCloudFunction(
-                    'addComment',
-                    {
-                        postId: postId,
-                        content: trimmedContent,
-                        parentId: parentId,
-                        replyToAuthorName: replyToAuthor,
-                        imageUrls: imageUrls,
-                        originalImageUrls: originalImageUrls,
-                        isAnonymous: this.post.isAnonymous || false
-                    },
-                    { requireAuth: true }
-                );
+                const commentData = {
+                    postId: postId,
+                    content: trimmedContent,
+                    images: imageUrls.map((url, index) => ({
+                        url: url,
+                        originalUrl: originalImageUrls[index],
+                        order: index
+                    })),
+                    parentId: parentId,
+                    replyToAuthorName: replyToAuthor,
+                    isAnonymous: this.post.isAnonymous || false
+                };
+
+                const res = await submitComment(commentData);
                 uni.hideLoading();
                 if (res.result && res.result.success) {
                     uni.showToast({
@@ -2593,6 +2566,16 @@ export default {
             if (!commentId) {
                 return;
             }
+
+            const postId = this.post && this.post._id ? this.post._id : '';
+            if (!postId) {
+                uni.showToast({
+                    title: '帖子信息缺失',
+                    icon: 'none'
+                });
+                return;
+            }
+
             uni.showModal({
                 title: '删除评论',
                 content: '确定要删除这条评论吗？',
@@ -2605,13 +2588,7 @@ export default {
                         title: '正在删除',
                         mask: true
                     });
-                    this.callCloudFunction(
-                        'deleteComment',
-                        {
-                            commentId
-                        },
-                        { requireAuth: true }
-                    ).then((result) => {
+                    deleteComment(commentId, postId, parentId).then((result) => {
                             if (result.result && result.result.success) {
                                 const deletedCount = Math.max(1, result.result.deletedCount || 1);
                                 let updatedComments;
@@ -2679,14 +2656,7 @@ export default {
             this.setData({
                 comments: comments
             });
-            this.callCloudFunction(
-                'likeComment',
-                {
-                    commentId: commentId,
-                    postId: postId
-                },
-                { requireAuth: true }
-            ).then((res) => {
+            likeComment(commentId, newLikeState).then((res) => {
                     if (res.result && res.result.success) {
                         if (comment.likes !== res.result.likes) {
                             this.updateCommentLikeStatus(commentId, newLikeState, res.result.likes);
@@ -2821,14 +2791,8 @@ export default {
             if (!targetOpenid) {
                 return;
             }
-            this.callCloudFunction(
-                'follow',
-                {
-                    action: 'checkFollow',
-                    targetOpenid
-                },
-                { requireAuth: true }
-            ).then((res) => {
+
+            checkFollowStatus(targetOpenid).then((res) => {
                     if (res.result && res.result.success) {
                         this.setData({
                             isFollowing: !!res.result.isFollowing,
@@ -2899,7 +2863,7 @@ export default {
         },
 
         getCurrentUserId: function () {
-            return this.openid || uni.getStorageSync('openid') || uni.getStorageSync('userOpenId');
+            return getCurrentUserId(this);
         },
 
         retryLoad: function () {
@@ -3001,31 +2965,6 @@ export default {
             });
         },
 
-
-        recordViewBehavior: function () {
-            // 已停用：暂时不需要记录用户浏览记录
-            return;
-            
-            // if (!this.currentPostId || !this.viewStartTime) {
-            //     return;
-            // }
-            // const viewDuration = Math.floor((Date.now() - this.viewStartTime) / 1000);
-            // if (viewDuration < 3) {
-            //     return;
-            // }
-            // try {
-            //     const viewEvents = require('../../utils/viewEvents.js');
-            //     viewEvents.enqueueView(this.currentPostId, viewDuration);
-            // } catch (e) { console.warn('enqueueView failed', e); }
-            // this.callCloudFunction('recordView', {
-            //         postId: this.currentPostId,
-            //         viewDuration: viewDuration
-            //     }).then((res) => {
-            //         console.log('浏览记录已保存', res);
-            //     }).catch((err) => {
-            //         console.error('浏览记录保存失败:', err);
-            //     });
-        },
 
         onTagClick: function (e) {
             const tag = e.currentTarget.dataset.tag;
@@ -3157,13 +3096,10 @@ export default {
             uni.showLoading({ title: '保存中...' });
             
             // 调用更新接口
-            cloudCall('updatePostContent', {
-                postId: this.post._id,
-                data: {
-                    title: this.editForm.title.trim(),
-                    content: this.editForm.content.trim()
-                }
-            }, { pageTag: 'post-detail', context: this, requireAuth: true })
+            updatePostContent(this.post._id, {
+                title: this.editForm.title.trim(),
+                content: this.editForm.content.trim()
+            })
             .then((res) => {
                 uni.hideLoading();
                 if (res && res.result && res.result.success) {

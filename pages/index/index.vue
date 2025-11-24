@@ -483,10 +483,13 @@ const followCache = require('../../utils/followCache');
 import { getUnreadCount } from '@/api-cache/unread.js';
 import { getDiscoverFeed, invalidateDiscover } from '@/api-cache/discover.js';
 import { getHomePosts, invalidateHomePosts } from '@/api-cache/home-posts.js';
+import { getFollowingPosts, invalidateFollowingPosts } from '@/api-cache/following.js';
+import { getDiscussionPosts, invalidateDiscussionPosts } from '@/api-cache/discussion.js';
 import { hydrateTempUrls, warmTempUrlsFromPosts } from '@/_utils/hydrate-temp-urls';
 const { previewImage } = require('../../utils/imagePreview.js');
 const { normalizePostList } = require('../../utils/postNormalizer.js');
 const { cloudCall } = require('../../utils/cloudCall.js');
+import { navigateToTagFilter, navigateToPostDetail, navigateToUserProfile as navigateToUserProfileUtil, extractDataset } from '@/utils/navigation.js';
 const postGalleryMixin = require('../../mixins/postGallery.js');
 export default {
     components: {
@@ -1301,76 +1304,22 @@ onReachBottom: function () {
 
         // 新增：跳转到用户个人主页
         navigateToUserProfile: function (e) {
-                        if (this.tapDisabled && this.tapDisabled()) { return; }
+            if (this.tapDisabled && this.tapDisabled()) { return; }
             try {
                 console.log('【头像点击】事件触发', e);
-
-                // 更安全的dataset获取方式
-                const currentTarget = e.currentTarget || e.target || {};
-                const dataset = currentTarget.dataset || {};
+                const dataset = extractDataset(e);
                 console.log('【头像点击】dataset:', dataset);
 
-                const userId = dataset.userId || dataset.userid || dataset.user || '';
-                const authorName = dataset.authorName || '未知用户';
-                const isAnonymous = dataset.isAnonymous || false;
-
-                console.log('【头像点击】提取的信息:', { userId, authorName, isAnonymous });
-
-                // 检查是否为匿名帖子
-                if (isAnonymous || (authorName === '匿名用户' && userId.includes('anonymous'))) {
-                    console.log('【头像点击】匿名帖子，不跳转');
-                    uni.showToast({
-                        title: '匿名用户无法查看主页',
-                        icon: 'none'
-                    });
-                    return;
-                }
-
-                if (!userId) {
-                    console.error('【头像点击】userId为空，dataset详情:', dataset);
-                    uni.showToast({
-                        title: '用户信息获取失败',
-                        icon: 'none'
-                    });
-                    return;
-                }
-
-                const currentUserOpenid = this.openid || this.getCurrentUserId();
-                console.log('【头像点击】当前用户ID:', currentUserOpenid);
-
-                // 检查是否点击的是自己的头像
-                if (userId === currentUserOpenid) {
-                    console.log('【头像点击】点击的是自己头像，切换到我的页面');
-                    uni.switchTab({
-                        url: '/pages/profile/profile',
-                        fail: function (err) {
-                            console.error('【头像点击】切换到我的页面失败:', err);
-                            uni.showToast({
-                                title: '页面跳转失败',
-                                icon: 'none'
-                            });
-                        }
-                    });
-                } else {
-                    console.log('【头像点击】点击的是他人头像，跳转到用户主页');
-                    uni.navigateTo({
-                        url: `/pages/user-profile/user-profile?userId=${encodeURIComponent(userId)}`,
-                        success: function () {
-                            console.log('【头像点击】跳转成功');
-                        },
-                        fail: function (err) {
-                            console.error('【头像点击】跳转失败:', err);
-                            uni.showToast({
-                                title: '跳转失败',
-                                icon: 'none'
-                            });
-                        }
-                    });
-                }
+                navigateToUserProfileUtil({
+                    userId: dataset.userId || dataset.userid || dataset.user || '',
+                    authorName: dataset.authorName || '未知用户',
+                    isAnonymous: dataset.isAnonymous || false,
+                    currentUserId: this.openid || this.getCurrentUserId()
+                });
             } catch (err) {
-                console.error('【头像点击】函数执行出错:', err);
+                console.error('【头像点击】处理失败:', err);
                 uni.showToast({
-                    title: '跳转异常',
+                    title: '跳转失败',
                     icon: 'none'
                 });
             }
@@ -1591,41 +1540,13 @@ onReachBottom: function () {
         // 标签点击处理
         onTagClick: function (e) {
             const tag = e.currentTarget.dataset.tag;
-            console.log('点击标签:', tag);
-
-            // 跳转到标签筛选页面
-            uni.navigateTo({
-                url: `/pages/tag-filter/tag-filter?tag=${encodeURIComponent(tag)}`,
-                success: () => {
-                    console.log('跳转到标签筛选页面成功');
-                },
-                fail: (err) => {
-                    console.error('跳转到标签筛选页面失败:', err);
-                    uni.showToast({
-                        title: '跳转失败',
-                        icon: 'none'
-                    });
-                }
-            });
+            navigateToTagFilter(tag);
         },
 
         // 评论点击处理
         onCommentClick: function (e) {
             const postId = e.currentTarget.dataset.postid;
-            console.log('点击评论，跳转到详情页:', postId);
-            uni.navigateTo({
-                url: `/pages/post-detail/post-detail?id=${postId}`,
-                success: () => {
-                    console.log('跳转到详情页成功');
-                },
-                fail: (err) => {
-                    console.error('跳转到详情页失败:', err);
-                    uni.showToast({
-                        title: '跳转失败',
-                        icon: 'none'
-                    });
-                }
-            });
+            navigateToPostDetail(postId);
         },
 
 
@@ -1829,8 +1750,8 @@ onReachBottom: function () {
         },
 
         // 加载讨论页数据
-        loadDiscussionPosts: function (callback) {
-            console.log('开始加载讨论页数据');
+        loadDiscussionPosts: function (callback, forceRefresh = false) {
+            console.log('开始加载讨论页数据', forceRefresh ? '(强制刷新)' : '');
 
             if (this.discussionIsLoading || this.discussionIsLoadingMore) {
                 console.log('讨论页正在加载中，跳过重复请求');
@@ -1848,43 +1769,43 @@ onReachBottom: function () {
                 discussionIsLoadingMore: !isInitialLoad
             });
 
-            const skip = this.discussionPage * PAGE_SIZE;
-
-            this.callCloudFunction('getDiscussionPosts', {
-                skip: skip,
-                limit: PAGE_SIZE
-            }, { requireAuth: false }).then(async (res) => {
-                if (res.result && res.result.success && res.result.posts) {
-                    let posts = res.result.posts.map((post) => ({
+            getDiscussionPosts({
+                page: this.discussionPage,
+                pageSize: PAGE_SIZE,
+                context: this,
+                forceRefresh: forceRefresh
+            }).then(async (posts) => {
+                if (posts && posts.length > 0) {
+                    let processedPosts = posts.map((post) => ({
                         ...post,
                         likeIcon: likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false)
                     }));
 
                     // 将 cloud:// 映射为可访问 URL，并预热
-                    posts = await hydrateTempUrls(posts);
-                    warmTempUrlsFromPosts(posts);
+                    processedPosts = await hydrateTempUrls(processedPosts);
+                    warmTempUrlsFromPosts(processedPosts);
 
                     // 处理分页数据，避免重复
                     const currentList = this.discussionPage === 0 ? [] : this.discussionPostList;
                     const existingIds = new Set(currentList.map(p => p._id));
-                    const uniqueNewList = posts.filter(p => p && p._id && !existingIds.has(p._id));
+                    const uniqueNewList = processedPosts.filter(p => p && p._id && !existingIds.has(p._id));
                     const newList = currentList.concat(uniqueNewList);
 
                     this.setData({
                         discussionPostList: newList,
                         discussionPage: this.discussionPage + 1,
-                        discussionHasMore: posts.length === PAGE_SIZE,
+                        discussionHasMore: processedPosts.length === PAGE_SIZE,
                         discussionIsLoading: false,
                         discussionIsLoadingMore: false
                     });
 
-                    console.log('讨论页数据加载完成，帖子数量:', posts.length, '累计:', newList.length);
+                    console.log('讨论页数据加载完成，帖子数量:', processedPosts.length, '累计:', newList.length);
 
                     // 预加载用户数据
                     if (isInitialLoad) {
                         setTimeout(() => {
                             if (this.preloadUserData && typeof this.preloadUserData === 'function') {
-                                this.preloadUserData(posts);
+                                this.preloadUserData(processedPosts);
                             }
                         }, 500);
                     }
@@ -1927,57 +1848,17 @@ onReachBottom: function () {
             });
         },
 
-        // 模拟讨论页数据
-        getMockDiscussionPosts: function () {
-            return [
-                {
-                    _id: 'discussion_1',
-                    _openid: 'user_1',
-                    title: '大家觉得现代诗歌应该如何发展？',
-                    content: '最近看到很多现代诗作品，感觉风格各异。想听听大家对现代诗歌未来发展的看法。',
-                    authorName: '诗友小王',
-                    authorAvatar: '/static/images/avatar.png',
-                    votes: 15,
-                    commentCount: 8,
-                    isVoted: false,
-                    tags: ['诗歌讨论', '现代诗'],
-                    imageUrls: [],
-                    createdAt: new Date().toISOString()
-                },
-                {
-                    _id: 'discussion_2',
-                    _openid: 'user_2',
-                    title: '分享一首最喜欢的古诗',
-                    content: '最近重读了李白的《将进酒》，每次读都有新的感悟。大家最喜欢哪首古诗呢？',
-                    authorName: '古风爱好者',
-                    authorAvatar: '/static/images/avatar.png',
-                    votes: 23,
-                    commentCount: 12,
-                    isVoted: true,
-                    tags: ['古诗', '李白', '经典'],
-                    imageUrls: [],
-                    createdAt: new Date().toISOString()
-                },
-                {
-                    _id: 'discussion_3',
-                    _openid: 'user_3',
-                    title: '写作灵感枯竭怎么办？',
-                    content: '最近一段时间总是感觉写不出东西，灵感好像枯竭了。大家有什么好的建议吗？',
-                    authorName: '写作新手',
-                    authorAvatar: '/static/images/avatar.png',
-                    votes: 8,
-                    commentCount: 6,
-                    isVoted: false,
-                    tags: ['写作', '灵感', '求助'],
-                    imageUrls: [],
-                    createdAt: new Date().toISOString()
-                }
-            ];
-        },
-
         // 刷新讨论页数据
         refreshDiscussionPosts: function (callback) {
             console.log('刷新讨论页数据');
+
+            // 清理缓存
+            try {
+                invalidateDiscussionPosts();
+            } catch (e) {
+                console.warn('清理讨论页缓存失败:', e);
+            }
+
             this.setData({
                 discussionPostList: [],
                 discussionPage: 0,
@@ -1985,7 +1866,9 @@ onReachBottom: function () {
                 discussionIsLoading: false,
                 discussionIsLoadingMore: false
             });
-            this.loadDiscussionPosts(callback);
+
+            // 强制刷新
+            this.loadDiscussionPosts(callback, true);
         },
 
         // 刷新广场页数据（发布帖子后调用）
@@ -2012,17 +1895,13 @@ onReachBottom: function () {
             this.getIndexData();
         },
 
-        // 统一云函数调用方法
-        callCloudFunction(name, data = {}, extraOptions = {}) {
-            return cloudCall(name, data, Object.assign({ pageTag: 'index', context: this }, extraOptions));
-        },
-
+        
         // 空函数，用于阻止匿名帖子的头像点击事件
         noop() {},
 
         // 加载关注页数据
-        loadFollowingPosts: function (callback) {
-            console.log('开始加载关注页数据');
+        loadFollowingPosts: function (callback, forceRefresh = false) {
+            console.log('开始加载关注页数据', forceRefresh ? '(强制刷新)' : '');
 
             if (this.followingIsLoading || this.followingIsLoadingMore) {
                 console.log('关注页正在加载中，跳过重复请求');
@@ -2040,18 +1919,18 @@ onReachBottom: function () {
                 followingIsLoadingMore: !isInitialLoad
             });
 
-            const skip = this.followingPage * PAGE_SIZE;
-
-            this.callCloudFunction('getFollowingPosts', {
-                skip: skip,
-                limit: PAGE_SIZE
-            }, { requireAuth: true }).then(async (res) => {
-                if (res.result && res.result.success && res.result.posts) {
+            getFollowingPosts({
+                page: this.followingPage,
+                pageSize: PAGE_SIZE,
+                context: this,
+                forceRefresh: forceRefresh
+            }).then(async (posts) => {
+                if (posts && posts.length > 0) {
                     // 优先使用本地缓存中的点赞状态,如果没有缓存则使用云函数返回的状态
                     const likeSync = require('../../utils/likeStatusSync.js');
                     const getLatestLikeStatus = likeSync.getLatestLikeStatus;
 
-                    let posts = res.result.posts.map((post) => {
+                    let processedPosts = posts.map((post) => {
                         // 尝试从本地缓存获取点赞状态
                         const cachedStatus = getLatestLikeStatus(post._id);
                         const finalVotes = cachedStatus ? cachedStatus.votes : (post.votes || 0);
@@ -2066,29 +1945,29 @@ onReachBottom: function () {
                     });
 
                     // 将 cloud:// 映射为可访问 URL，并预热
-                    posts = await hydrateTempUrls(posts);
-                    warmTempUrlsFromPosts(posts);
+                    processedPosts = await hydrateTempUrls(processedPosts);
+                    warmTempUrlsFromPosts(processedPosts);
 
                     // 处理分页数据，避免重复
                     const currentList = this.followingPage === 0 ? [] : this.followingPostList;
                     const existingIds = new Set(currentList.map(p => p._id));
-                    const uniqueNewList = posts.filter(p => p && p._id && !existingIds.has(p._id));
+                    const uniqueNewList = processedPosts.filter(p => p && p._id && !existingIds.has(p._id));
                     const newList = currentList.concat(uniqueNewList);
 
                     this.setData({
                         followingPostList: newList,
                         followingPage: this.followingPage + 1,
-                        followingHasMore: posts.length === PAGE_SIZE,
+                        followingHasMore: processedPosts.length === PAGE_SIZE,
                         followingIsLoading: false,
                         followingIsLoadingMore: false
                     });
 
-                    console.log('关注页数据加载完成，帖子数量:', posts.length, '累计:', newList.length);
+                    console.log('关注页数据加载完成，帖子数量:', processedPosts.length, '累计:', newList.length);
 
                     // 将云函数返回的点赞状态更新到缓存中
                     try {
                         const updateLikeStatus = likeSync.updateLikeStatus;
-                        res.result.posts.forEach((post) => {
+                        posts.forEach((post) => {
                             if (post._id && (post.isVoted !== undefined || post.votes !== undefined)) {
                                 updateLikeStatus(post._id, post.votes || 0, post.isVoted || false);
                             }
@@ -2108,7 +1987,7 @@ onReachBottom: function () {
                     if (isInitialLoad) {
                         setTimeout(() => {
                             if (this.preloadUserData && typeof this.preloadUserData === 'function') {
-                                this.preloadUserData(posts);
+                                this.preloadUserData(processedPosts);
                             }
                         }, 500);
                     }
@@ -2154,6 +2033,14 @@ onReachBottom: function () {
         // 刷新关注页数据
         refreshFollowingPosts: function (callback) {
             console.log('刷新关注页数据');
+
+            // 清理缓存
+            try {
+                invalidateFollowingPosts();
+            } catch (e) {
+                console.warn('清理关注页缓存失败:', e);
+            }
+
             this.setData({
                 followingPostList: [],
                 followingPage: 0,
@@ -2161,7 +2048,9 @@ onReachBottom: function () {
                 followingIsLoading: false,
                 followingIsLoadingMore: false
             });
-            this.loadFollowingPosts(callback);
+
+            // 强制刷新
+            this.loadFollowingPosts(callback, true);
         },
 
 

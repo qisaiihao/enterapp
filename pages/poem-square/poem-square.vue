@@ -96,7 +96,15 @@ import skeleton from '@/components/skeleton/skeleton';
 import topBar from '@/components/top-bar/top-bar.vue';
 const { cloudCall } = require('@/utils/cloudCall.js');
 const { getPostList: getPostListWithCache, invalidatePostList } = require('@/api-cache/post-list.js');
+const { getFollowingPoems, invalidateFollowingPoems, getOriginalPoems } = require('@/api-cache/poems.js');
 const likeIcon = require('@/utils/likeIcon.js');
+import {
+  generateRandomBackgroundColor,
+  toggleArrayItemExpansion,
+  updatePostsUIProperties,
+  mergePostLists
+} from '@/utils/uiHelpers.js';
+import { navigateToPostDetail } from '@/utils/navigation.js';
 const { togglePostLike } = require('../../utils/likeService.js');
 // authorSignature已从云函数返回，不再需要signatureCache
 
@@ -181,6 +189,7 @@ export default {
     console.log('【poem-square】📱 下拉刷新，重新获取数据');
     // 清除缓存并强制刷新
     invalidatePostList({ isPoem: true, isOriginal: true, excludeAnonymous: true });
+    invalidateFollowingPoems();
     this.getIndexData(() => {
       console.log('【poem-square】✅ 下拉刷新完成，停止刷新动画');
       uni.stopPullDownRefresh();
@@ -262,10 +271,7 @@ export default {
       }
     },
 
-    callCloudFunction(name, data = {}, extraOptions = {}) {
-      return cloudCall(name, data, Object.assign({ pageTag: 'poem-square', context: this, requireAuth: false }, extraOptions));
-    },
-    getIndexData(callback) {
+        getIndexData(callback) {
       console.log('【poem-square】开始获取数据，callback:', typeof callback);
       // 先尝试从缓存获取第一页数据，立即显示给用户
       const cacheManager = require('@/_utils/cache-manager.js').default;
@@ -396,17 +402,9 @@ export default {
       this.getIndexData();
     },
     generateRandomBackgroundColor() {
-      const colors = this.backgroundColors;
-      const last = this.lastUsedColorIndex;
-      if (last === -1) {
-        const idx = Math.floor(Math.random() * colors.length);
-        this.lastUsedColorIndex = idx;
-        return colors[idx];
-      }
-      const avail = colors.filter((_, i) => i !== last);
-      const pick = avail[Math.floor(Math.random() * avail.length)];
-      this.lastUsedColorIndex = colors.indexOf(pick);
-      return pick;
+      const result = generateRandomBackgroundColor(this.backgroundColors, this.lastUsedColorIndex);
+      this.lastUsedColorIndex = result.index;
+      return result.color;
     },
     async getPostList(cb) {
       console.log('🔍🔍🔍 【poem-square】getPostList 开始，isLoadingMore:', this.isLoadingMore, 'isLoading:', this.isLoading, 'callback:', typeof cb);
@@ -427,30 +425,22 @@ export default {
         // 根据模式选择不同的云函数
         const isFollowingMode = this.showFollowingOnly;
         
-        // 只看关注模式使用 getFollowingPosts（没有缓存）
+        // 只看关注模式使用 getFollowingPoems（带缓存）
         if (isFollowingMode) {
-          const requestParams = {
-            skip: this.page * PAGE_SIZE,
-            limit: PAGE_SIZE,
-            excludeAnonymous: true,
-            isPoem: true,
-            isOriginal: true
-          };
-          const extraOptions = { requireAuth: true };
-          console.log('🔍🔍🔍 【poem-square】准备调用云函数: getFollowingPosts');
-          const res = await this.callCloudFunction('getFollowingPosts', requestParams, extraOptions);
-          const list = (res && res.result && res.result.posts) ? res.result.posts : [];
+          console.log('🔍🔍🔍 【poem-square】准备调用关注诗歌API');
+          const list = await getFollowingPoems({
+            page: this.page,
+            pageSize: PAGE_SIZE,
+            context: this
+          });
           this.processPostList(list, cb);
           return;
         }
-        
-        // 全部模式使用缓存
-        const list = await getPostListWithCache({
+
+        // 全部模式使用原创诗歌API
+        const list = await getOriginalPoems({
           page: this.page,
           pageSize: PAGE_SIZE,
-          excludeAnonymous: true,
-          isPoem: true,        // 只获取诗歌类型的内容
-          isOriginal: true,    // 只获取原创内容
           context: this
         });
         
@@ -562,16 +552,12 @@ export default {
     },
     togglePostExpansion(e) {
       const index = e.currentTarget.dataset.index;
-      const post = this.postList[index];
-      const next = !post.isExpanded;
-
-      this.setData({ [`postList[${index}].isExpanded`]: next });
-
-      // authorSignature已从云函数返回，无需额外获取
+      const newPostList = toggleArrayItemExpansion(this.postList, index);
+      this.setData({ postList: newPostList });
     },
     onCommentClick(e) {
       const postId = e.currentTarget.dataset.postid;
-      uni.navigateTo({ url: `/pages/post-detail/post-detail?id=${postId}` });
+      navigateToPostDetail(postId);
     },
     onLikeIconError() {},
 

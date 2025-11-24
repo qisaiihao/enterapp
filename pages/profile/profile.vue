@@ -411,17 +411,10 @@ import Sidebar from './Sidebar.vue';
 import TimelineView from '@/components/TimelineView.vue';
 import PortfolioBook from '@/components/PortfolioBook.vue';
 import { getMyPosts, getMyFavorites, invalidateMyFavorites, invalidateMyPosts, invalidateMyInfo, getMyInfo } from '@/api-cache/my.js';
+import { togglePostVisibility, deletePost, saveDraft, getPostDetail, removeFavorite, getFollowerCount, updateUserInfo, logout } from '@/api-cache/profile-actions.js';
 import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
-import {
-  togglePostVisibility,
-  deletePost as deletePostApi,
-  saveDraft,
-  getPostDetail,
-  removeFavorite,
-  getFollowerCount,
-  updateUserInfo,
-  logout
-} from '@/api-cache/profile-actions.js';
+import { navigateToUserProfile } from '@/utils/navigation.js';
+import { calculateAge } from '@/utils/ageCalculator.js';
 import {
   groupPostsByMonth as groupPostsByMonthUtil,
   processPostsForTimeline as processPostsForTimelineUtil,
@@ -798,24 +791,21 @@ export default {
             });
         },
         
-        // 隐藏/取消隐藏帖子（保留原方法，以防其他地方调用）
+        // 隐藏/取消隐藏帖子（使用API封装）
         onToggleVisibility: function (e) {
             const postId = e.currentTarget.dataset.postid;
             const index = e.currentTarget.dataset.index;
             const currentlyHidden = !!e.currentTarget.dataset.hidden;
             if (!postId || typeof index === 'undefined') return;
             const targetHidden = !currentlyHidden;
-            this.callCloudFunction('updatePostVisibility', { postId, hidden: targetHidden }).then((res) => {
-                if (res && res.result && res.result.success) {
-                    const path = `myPosts[${index}].isHidden`;
-                    const updates = {};
-                    updates[path] = targetHidden;
-                    this.setData(updates);
-                    try { const { emitPostVisibilityChanged } = require('../../utils/events.js'); emitPostVisibilityChanged({ postId, isHidden: targetHidden }); } catch (_) {}
-                    uni.showToast({ title: targetHidden ? '已隐藏' : '已取消隐藏', icon: 'success' });
-                } else {
-                    uni.showToast({ title: res?.result?.message || '操作失败', icon: 'none' });
-                }
+
+            togglePostVisibility(postId, this).then(() => {
+                const path = `myPosts[${index}].isHidden`;
+                const updates = {};
+                updates[path] = targetHidden;
+                this.setData(updates);
+                try { const { emitPostVisibilityChanged } = require('../../utils/events.js'); emitPostVisibilityChanged({ postId, isHidden: targetHidden }); } catch (_) {}
+                uni.showToast({ title: targetHidden ? '已隐藏' : '已取消隐藏', icon: 'success' });
             }).catch((err) => {
                 console.error('updatePostVisibility failed', err);
                 uni.showToast({ title: '操作失败', icon: 'none' });
@@ -1169,101 +1159,79 @@ export default {
             }
         },
 
-        // 新增：直接使用云函数加载帖子的方法
+        // 新增：直接使用API封装加载帖子的方法
         loadMyPostsDirectly: function (page, pageSize, openid, cb) {
-            console.log('【profile】🔥 直接调用云函数getMyProfileData');
-            console.log('【profile】📤 云函数参数:', {
-                name: 'getMyProfileData',
-                data: {
-                    skip: page * pageSize,
-                    limit: pageSize,
-                    openid: openid
-                }
-            });
+            console.log('【profile】🔥 使用API封装getMyPosts');
+            getMyPosts({
+                page,
+                pageSize,
+                context: this,
+                forceRefresh: true
+            }).then((posts) => {
+                console.log('【profile】✅ API封装成功返回帖子数量:', posts.length);
+                console.log('【profile】📋 API封装返回的帖子ID列表:', posts.map(p => p._id));
 
-            this.$tcb.callFunction({
-                name: 'getMyProfileData',
-                data: {
-                    skip: page * pageSize,
-                    limit: pageSize,
-                    openid: openid
-                }
-            }).then((res) => {
-                console.log('【profile】📥 云函数返回完整响应:', res);
+                // 格式化帖子数据并确保作者信息完整
+                posts.forEach((post, index) => {
+                    if (post.createTime) {
+                        post.formattedCreateTime = this.formatTime(post.createTime);
+                    }
+                    // 为每个帖子设置默认的图片样式
+                    if (post.imageUrls && post.imageUrls.length > 0) {
+                        post.imageStyle = `height: 0; padding-bottom: 75%;`; // 4:3 宽高比占位
+                    }
 
-                if (res.result && res.result.success) {
-                    const posts = res.result.posts || [];
-                    console.log('【profile】✅ 云函数成功返回帖子数量:', posts.length);
-                    console.log('【profile】📋 云函数返回的帖子ID列表:', posts.map(p => p._id));
+                    // 【关键修复】直接使用个人资料的昵称（userInfo.nickName）填充帖子的authorName
+                    // 个人资料页面显示的昵称就是 userInfo.nickName，这里也直接用这个
+                    const currentUserInfo = this.userInfo || {};
+                    if (currentUserInfo.nickName) {
+                        post.authorName = currentUserInfo.nickName;
+                        console.log(`【profile】✅ 帖子${index + 1}使用个人资料昵称:`, post.authorName);
+                    } else if (!post.authorName || post.authorName.trim() === '') {
+                        post.authorName = post.authorNameSnapshot || '我';
+                        console.log(`【profile】⚠️ 帖子${index + 1}个人资料无昵称，使用备选:`, post.authorName);
+                    }
 
-                    // 格式化帖子数据并确保作者信息完整
-                    posts.forEach((post, index) => {
-                        if (post.createTime) {
-                            post.formattedCreateTime = this.formatTime(post.createTime);
-                        }
-                        // 为每个帖子设置默认的图片样式
-                        if (post.imageUrls && post.imageUrls.length > 0) {
-                            post.imageStyle = `height: 0; padding-bottom: 75%;`; // 4:3 宽高比占位
-                        }
-                        
-                        // 【关键修复】直接使用个人资料的昵称（userInfo.nickName）填充帖子的authorName
-                        // 个人资料页面显示的昵称就是 userInfo.nickName，这里也直接用这个
-                        const currentUserInfo = this.userInfo || {};
-                        if (currentUserInfo.nickName) {
-                            post.authorName = currentUserInfo.nickName;
-                            console.log(`【profile】✅ 帖子${index + 1}使用个人资料昵称:`, post.authorName);
-                        } else if (!post.authorName || post.authorName.trim() === '') {
-                            post.authorName = post.authorNameSnapshot || '我';
-                            console.log(`【profile】⚠️ 帖子${index + 1}个人资料无昵称，使用备选:`, post.authorName);
-                        }
-                        
-                        // 同样处理头像
-                        if (currentUserInfo.avatarUrl) {
-                            post.authorAvatar = currentUserInfo.avatarUrl;
-                        } else if (!post.authorAvatar || post.authorAvatar.trim() === '') {
-                            post.authorAvatar = post.authorAvatarSnapshot || '/static/images/avatar.png';
-                            console.log(`【profile】⚠️ 帖子${index + 1}个人资料无头像，使用备选`);
-                        }
-                        
-                        console.log(`【profile】📝 云函数帖子${index + 1}:`, {
-                            id: post._id,
-                            title: post.title,
-                            createTime: post.createTime,
-                            formattedTime: post.formattedCreateTime,
-                            authorName: post.authorName, // 使用个人资料昵称
-                            userInfoNickName: currentUserInfo.nickName, // 个人资料中的昵称
-                            hasAuthorAvatar: !!post.authorAvatar
-                        });
+                    // 同样处理头像
+                    if (currentUserInfo.avatarUrl) {
+                        post.authorAvatar = currentUserInfo.avatarUrl;
+                    } else if (!post.authorAvatar || post.authorAvatar.trim() === '') {
+                        post.authorAvatar = post.authorAvatarSnapshot || '/static/images/avatar.png';
+                        console.log(`【profile】⚠️ 帖子${index + 1}个人资料无头像，使用备选`);
+                    }
+
+                    console.log(`【profile】📝 API封装帖子${index + 1}:`, {
+                        id: post._id,
+                        title: post.title,
+                        createTime: post.createTime,
+                        formattedTime: post.formattedCreateTime,
+                        authorName: post.authorName, // 使用个人资料昵称
+                        userInfoNickName: currentUserInfo.nickName, // 个人资料中的昵称
+                        hasAuthorAvatar: !!post.authorAvatar
                     });
+                });
 
-                    // 处理分页数据，避免重复
-                    const newMyPosts = page === 0 ? posts : (() => {
-                        const existingIds = new Set(this.myPosts.map(p => p._id));
-                        const uniqueNewList = posts.filter(p => p && p._id && !existingIds.has(p._id));
-                        return this.myPosts.concat(uniqueNewList);
-                    })();
-                    console.log('【profile】📊 云函数更新myPosts数据:', {
-                        beforeLength: this.myPosts.length,
-                        afterLength: newMyPosts.length,
-                        page: page + 1,
-                        hasMore: posts.length === pageSize
-                    });
+                // 处理分页数据，避免重复
+                const newMyPosts = page === 0 ? posts : (() => {
+                    const existingIds = new Set(this.myPosts.map(p => p._id));
+                    const uniqueNewList = posts.filter(p => p && p._id && !existingIds.has(p._id));
+                    return this.myPosts.concat(uniqueNewList);
+                })();
+                console.log('【profile】📊 API封装更新myPosts数据:', {
+                    beforeLength: this.myPosts.length,
+                    afterLength: newMyPosts.length,
+                    page: page + 1,
+                    hasMore: posts.length === pageSize
+                });
 
-                    this.setData({
-                        myPosts: newMyPosts,
-                        page: page + 1,
-                        hasMore: posts.length === pageSize
-                    });
-                    this.updateGrowthStats(newMyPosts);
-                } else {
-                    console.error('【profile】❌ 云函数返回失败:', res.result);
-                    uni.showToast({
-                        title: res.result?.message || '获取数据失败',
-                        icon: 'none'
-                    });
-                }
+                this.setData({
+                    myPosts: newMyPosts,
+                    page: page + 1,
+                    hasMore: posts.length === pageSize
+                });
+                this.updateGrowthStats(newMyPosts);
             }).catch((err) => {
-                console.error('【profile】❌ 云函数调用失败:', err);
+                console.error('【profile】❌ API封装调用失败:', err);
                 uni.showToast({
                     title: '网络错误',
                     icon: 'none'
@@ -1273,7 +1241,7 @@ export default {
                     isLoading: false
                 });
                 if (typeof cb === 'function') {
-                    console.log('【profile】🎯 云函数loadMyPosts完成，调用回调');
+                    console.log('【profile】🎯 API封装loadMyPosts完成，调用回调');
                     cb();
                 }
             });
@@ -1291,29 +1259,9 @@ export default {
             }
         },
 
-        // 根据生日计算年龄
+        // 根据生日计算年龄（使用工具函数）
         calculateAge: function (birthday) {
-            if (!birthday) {
-                return '';
-            }
-            try {
-                const birth = new Date(birthday);
-                if (isNaN(birth.getTime())) {
-                    return '';
-                }
-                const now = new Date();
-                let age = now.getFullYear() - birth.getFullYear();
-                const m = now.getMonth() - birth.getMonth();
-                if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) {
-                    age--;
-                }
-                return age > 0 ? age : '';
-            } catch (e) {
-                console.log('CatchClause', e);
-                console.log('CatchClause', e);
-                console.error('计算年龄失败:', e);
-                return '';
-            }
+            return calculateAge(birthday);
         },
 
         // 格式化时间
@@ -1554,22 +1502,16 @@ export default {
                 });
         },
 
-        // 保存到草稿箱
+        // 保存到草稿箱（使用API封装）
         saveToDraftBox: function (postId, index) {
             const that = this;
             uni.showLoading({
                 title: '保存中...'
             });
 
-            // 先获取帖子详情
-            this.$tcb.callFunction({
-                name: 'getPostDetail',
-                data: {
-                    postId: postId
-                }
-            }).then((res) => {
-                if (res.result && res.result.post) {
-                    const post = res.result.post;
+            getPostDetail(postId, this).then((result) => {
+                const post = result.post;
+                if (post) {
                     const draftData = {
                         title: post.title || '',
                         content: post.content || '',
@@ -1589,18 +1531,8 @@ export default {
                         saveTime: new Date()
                     };
 
-                    // 保存到草稿箱
-                    const app = getApp();
-                    const currentOpenid = app && app.globalData && app.globalData.openid;
-                    
-                    return this.$tcb.callFunction({
-                        name: 'getMyProfileData',
-                        data: {
-                            action: 'saveDraft',
-                            draftData: draftData,
-                            openid: currentOpenid
-                        }
-                    });
+                    // 保存到草稿箱（使用API封装）
+                    return saveDraft(draftData, this);
                 } else {
                     uni.hideLoading();
                     uni.showToast({
@@ -1609,21 +1541,14 @@ export default {
                     });
                     return Promise.reject('获取帖子信息失败');
                 }
-            }).then((draftRes) => {
+            }).then(() => {
                 uni.hideLoading();
-                if (draftRes.result && draftRes.result.success) {
-                    uni.showToast({
-                        title: '已保存到草稿箱',
-                        icon: 'success'
-                    });
-                    // 删除原帖子
-                    that.deletePost(postId, index);
-                } else {
-                    uni.showToast({
-                        title: draftRes.result?.message || '保存草稿失败',
-                        icon: 'none'
-                    });
-                }
+                uni.showToast({
+                    title: '已保存到草稿箱',
+                    icon: 'success'
+                });
+                // 删除原帖子
+                that.deletePost(postId, index);
             }).catch((err) => {
                 uni.hideLoading();
                 console.error('保存草稿失败:', err);
@@ -1757,16 +1682,11 @@ export default {
 
         // 检查未读消息数量
 
-        // fetch follow/fan counters for current user
+        // fetch follow/fan counters for current user (使用API封装)
         fetchFollowCounts: function () {
-            try {
-                this.$tcb.callFunction({ name: 'follow', data: { action: 'getFollowerList', skip: 0, limit: 1 } })
-                    .then((res) => {
-                        const followerTotal = (res && res.result && res.result.total) || 0;
-                        this.setData({ followerCount: followerTotal });
-                    })
-                    .catch(() => {});
-            } catch (e) {}
+            getFollowerCount(this).then((followerTotal) => {
+                this.setData({ followerCount: followerTotal });
+            }).catch((e) => {});
         },
 
         // 新增：标签切换方法
@@ -1852,74 +1772,6 @@ export default {
                         if (typeof cb === 'function') cb();
                     });
             } catch (e) {}
-            // 传递当前用户的openid给云函数
-            const app = getApp();
-            const currentOpenid = app && app.globalData && app.globalData.openid;
-            
-            this.$tcb.callFunction({
-                name: 'getMyProfileData',
-                data: {
-                    action: 'getAllFavorites',
-                    skip: favoritePage * PAGE_SIZE,
-                    limit: PAGE_SIZE,
-                    openid: currentOpenid
-                }
-            }).then((res) => {
-                console.log('【profile】获取收藏返回:', res);
-                if (res.result && res.result.success) {
-                    const favorites = res.result.favorites || [];
-                    console.log('【profile】本次返回收藏数量:', favorites.length);
-
-                    // 格式化时间和设置图片样式
-                    favorites.forEach((favorite) => {
-                        if (favorite.favoriteTime) {
-                            favorite.formattedFavoriteTime = this.formatTime(favorite.favoriteTime);
-                        }
-                        // 为每个收藏的帖子设置默认的图片样式
-                        if (favorite.imageUrls && favorite.imageUrls.length > 0) {
-                            favorite.imageStyle = `height: 0; padding-bottom: 75%;`; // 4:3 宽高比占位
-                        }
-                    });
-
-                    // 处理分页数据，避免重复
-                    const newFavoriteList = favoritePage === 0 ? favorites : (() => {
-                        const existingIds = new Set(this.favoriteList.map(p => p._id));
-                        const uniqueNewList = favorites.filter(p => p && p._id && !existingIds.has(p._id));
-                        return this.favoriteList.concat(uniqueNewList);
-                    })();
-                    console.log(
-                        '【profile】更新后收藏列表长度:',
-                        newFavoriteList.length,
-                        'favoriteHasMore:',
-                        favorites.length === PAGE_SIZE,
-                        'favoritePage:',
-                        favoritePage + 1
-                    );
-                    this.setData({
-                        favoriteList: newFavoriteList,
-                        favoritePage: favoritePage + 1,
-                        favoriteHasMore: favorites.length === PAGE_SIZE
-                    });
-                } else {
-                    uni.showToast({
-                        title: res.result?.message || '加载收藏失败',
-                        icon: 'none'
-                    });
-                }
-            }).catch((err) => {
-                console.error('【profile】获取收藏失败:', err);
-                uni.showToast({
-                    title: '网络错误',
-                    icon: 'none'
-                });
-            }).finally(() => {
-                this.setData({
-                    favoriteLoading: false
-                });
-                if (typeof cb === 'function') {
-                    cb();
-                }
-            });
         },
 
         // 新增：收藏项跳转到帖子详情
@@ -2028,16 +1880,15 @@ export default {
         },
 
         // 执行退出登录
-        performLogout: async function () {
+        performLogout: function () {
             console.log('🔍 [退出登录] 开始执行退出登录流程');
-            
-            try {
-                // 先清空所有缓存（包含 me:favorites 等命名空间与 fileUrlCache）
-                try { await resetAllCachesOnAccountChange({}); } catch (e) { console.warn('cache reset on logout failed', e); }
+
+            // 先清空所有缓存（包含 me:favorites 等命名空间与 fileUrlCache）
+            resetAllCachesOnAccountChange({}).then(() => {
                 // 清除本地存储的用户信息
                 uni.removeStorageSync('userInfo');
                 uni.removeStorageSync('userOpenId');
-                
+
                 // 清除全局数据
                 const app = getApp();
                 if (app && app.globalData) {
@@ -2045,7 +1896,7 @@ export default {
                     app.globalData.openid = null;
                     app.globalData._loginProcessCompleted = false; // 重置登录流程标记
                 }
-                
+
                 // 清除当前页面的用户数据
                 this.setData({
                     userInfo: null,
@@ -2054,55 +1905,53 @@ export default {
                     isLoading: false,
                     isSidebarOpen: false
                 });
-                
+
                 console.log('✅ [退出登录] 本地数据清除完成');
-                
+
                 // 重新初始化匿名openid，确保用户可以重新登录
                 this.reinitializeAnonymousOpenid();
-                
+
                 // 显示退出成功提示
                 uni.showToast({
                     title: '已退出登录',
                     icon: 'success',
                     duration: 1500
                 });
-                
+
                 // 延迟跳转到登录页面
                 setTimeout(() => {
                     uni.redirectTo({
                         url: '/pages/login/login'
                     });
                 }, 1500);
-                
-            } catch (error) {
+            }).catch((error) => {
                 console.error('❌ [退出登录] 退出登录失败:', error);
                 uni.showToast({
                     title: '退出失败，请重试',
                     icon: 'none'
                 });
-            }
+            });
         },
 
         // 重新初始化匿名openid
         reinitializeAnonymousOpenid: function () {
             console.log('🔄 [退出登录] 重新初始化匿名openid');
-            
-            // 调用login云函数获取新的匿名openid
-            this.$tcb.callFunction({
-                name: 'login'
-            }).then((loginRes) => {
+
+            logout(this).then((loginRes) => {
                 console.log('✅ [退出登录] 匿名openid初始化成功:', loginRes);
-                
+
                 // 获取openid
                 let openid = null;
-                if (loginRes.result && loginRes.result.openid) {
+                if (loginRes.anonymousOpenid) {
+                    openid = loginRes.anonymousOpenid;
+                } else if (loginRes.result && loginRes.result.openid) {
                     openid = loginRes.result.openid;
                 } else if (loginRes.openid) {
                     openid = loginRes.openid;
                 } else if (loginRes.result && loginRes.result.uid) {
                     openid = loginRes.result.uid;
                 }
-                
+
                 if (openid) {
                     // 更新全局数据
                     const app = getApp();
@@ -2110,7 +1959,7 @@ export default {
                         app.globalData.openid = openid;
                         console.log('✅ [退出登录] 匿名openid已设置:', openid);
                     }
-                    
+
                     // 缓存openid
                     uni.setStorageSync('userOpenId', openid);
                 } else {
@@ -2127,31 +1976,7 @@ export default {
         },
 
         navigateToUserProfile(e) {
-            try {
-                const dataset = (e && e.currentTarget && e.currentTarget.dataset) || {};
-                const userId = dataset.userId || dataset.userid || dataset.user || '';
-                const isAnonymous = dataset.isAnonymous === 'true' || dataset.isAnonymous === true;
-                
-                // 检查是否为匿名用户
-                if (isAnonymous || (dataset.authorName === '匿名用户' && userId.includes('anonymous'))) {
-                    console.log('【个人主页】匿名用户，不跳转');
-                    uni.showToast({
-                        title: '匿名用户无法查看主页',
-                        icon: 'none'
-                    });
-                    return;
-                }
-                
-                if (!userId) {
-                    uni.showToast({ title: '用户ID缺失', icon: 'none' });
-                    return;
-                }
-                const url = `/pages/user-profile/user-profile?userId=${userId}`;
-                uni.navigateTo({ url });
-            } catch (err) {
-                console.error('[navigateToUserProfile] failed:', err);
-                uni.showToast({ title: '跳转失败', icon: 'none' });
-            }
+            navigateToUserProfile(e);
         },
 
         onTagClick() {
@@ -2173,12 +1998,11 @@ export default {
         },
         
         // 加载作品集列表
-        async loadPortfolios(cb) {
-            try {
-                // 首先确保用户有默认作品集 - 暂时关闭
-                // await this.ensureDefaultPortfolio();
+        loadPortfolios(cb) {
+            // 首先确保用户有默认作品集 - 暂时关闭
+            // this.ensureDefaultPortfolio();
 
-                const res = await this.callCloudFunction('getPortfolioFolders', {});
+            this.callCloudFunction('getPortfolioFolders', {}).then((res) => {
                 if (res.result && res.result.success) {
                     this.setData({
                         portfolioList: res.result.folders || []
@@ -2186,14 +2010,14 @@ export default {
                 } else {
                     console.error('获取作品集失败:', res.result);
                 }
-            } catch (error) {
+            }).catch((error) => {
                 console.error('加载作品集失败:', error);
-            } finally {
+            }).finally(() => {
                 // 执行回调函数（如果存在）
                 if (typeof cb === 'function') {
                     cb();
                 }
-            }
+            });
         },
 
         // 确保用户有默认作品集 - 暂时关闭
