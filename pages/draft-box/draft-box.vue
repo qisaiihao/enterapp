@@ -51,7 +51,7 @@
 <script>
 // pages/draft-box/draft-box.js
 const { formatRelativeTime, formatDate } = require('../../utils/time.js');
-const { cloudCall } = require('../../utils/cloudCall.js');
+const { getMyDrafts, deleteDraft } = require('../../api-cache/draft.js');
 // 修复：移除全局数据库实例，改为在方法中动态获取
 export default {
     data() {
@@ -71,58 +71,41 @@ export default {
         this.loadDrafts();
     },
     methods: {
-        // 统一云函数调用方法
-        callCloudFunction(name, data = {}, extraOptions = {}) {
-            return cloudCall(name, data, Object.assign({ pageTag: 'draft-box', context: this, requireAuth: true }, extraOptions));
-        },
         // 加载草稿列表
-        loadDrafts: function () {
+        async loadDrafts() {
             this.setData({
                 isLoading: true
             });
-            const openid = this.$requireOpenid && this.$requireOpenid();
-            if (!openid) {
+
+            try {
+                const drafts = await getMyDrafts({
+                    page: 0,
+                    pageSize: 20,
+                    context: this
+                });
+
+                console.log('获取草稿列表结果:', drafts);
+
+                // 格式化时间
+                const formattedDrafts = drafts.map((draft) => ({
+                    ...draft,
+                    formattedSaveTime: formatRelativeTime(draft.saveTime) || formatDate(draft.saveTime, 'yyyy-MM-dd HH:mm')
+                }));
+
+                this.setData({
+                    drafts: formattedDrafts,
+                    isLoading: false
+                });
+            } catch (err) {
+                console.error('获取草稿失败:', err);
                 this.setData({
                     isLoading: false
                 });
-                return;
-            }
-            this.callCloudFunction('getMyProfileData', {
-                    action: 'getDrafts',
-                    openid
-                }).then((res) => {
-                    console.log('获取草稿列表结果:', res);
-                    if (res.result && res.result.success) {
-                        const drafts = res.result.drafts || [];
-                        // 格式化时间
-                        const formattedDrafts = drafts.map((draft) => ({
-                            ...draft,
-                            formattedSaveTime: formatRelativeTime(draft.saveTime) || formatDate(draft.saveTime, 'yyyy-MM-dd HH:mm')
-                        }));
-                        this.setData({
-                            drafts: formattedDrafts,
-                            isLoading: false
-                        });
-                    } else {
-                        console.error('获取草稿失败:', res.result);
-                        this.setData({
-                            isLoading: false
-                        });
-                        uni.showToast({
-                            title: '加载草稿失败',
-                            icon: 'none'
-                        });
-                    }
-                }).catch((err) => {
-                    console.error('获取草稿失败:', err);
-                    this.setData({
-                        isLoading: false
-                    });
-                    uni.showToast({
-                        title: '网络错误',
-                        icon: 'none'
-                    });
+                uni.showToast({
+                    title: err.message || '加载草稿失败',
+                    icon: 'none'
                 });
+            }
         },
 
         // 编辑草稿
@@ -150,54 +133,50 @@ export default {
         },
 
         // 删除草稿
-        deleteDraft: function (e) {
+        async deleteDraft(e) {
             const draftId = e.currentTarget.dataset.draftId;
             if (!draftId) {
                 return;
             }
-            uni.showModal({
-                title: '删除草稿',
-                content: '确定要删除这个草稿吗？',
-                confirmColor: '#ff4d4f',
-                success: (res) => {
-                    if (!res.confirm) {
-                        return;
-                    }
-                    const openid = this.$requireOpenid && this.$requireOpenid();
-                    if (!openid) {
-                        return;
-                    }
-                    uni.showLoading({
-                        title: '删除中...'
-                    });
-                    this.callCloudFunction('getMyProfileData', {
-                            action: 'deleteDraft',
-                            draftId: draftId,
-                            openid
-                        }).then((result) => {
+
+            return new Promise((resolve) => {
+                uni.showModal({
+                    title: '删除草稿',
+                    content: '确定要删除这个草稿吗？',
+                    confirmColor: '#ff4d4f',
+                    success: async (res) => {
+                        if (!res.confirm) {
+                            resolve();
+                            return;
+                        }
+
+                        try {
+                            uni.showLoading({
+                                title: '删除中...'
+                            });
+
+                            const result = await deleteDraft(draftId, { context: this });
+
                             uni.hideLoading();
-                            if (result.result && result.result.success) {
-                                uni.showToast({
-                                    title: '删除成功',
-                                    icon: 'success'
-                                });
-                                // 重新加载草稿列表
-                                this.loadDrafts();
-                            } else {
-                                uni.showToast({
-                                    title: result.result?.message || '删除失败',
-                                    icon: 'none'
-                                });
-                            }
-                        }).catch((err) => {
+                            uni.showToast({
+                                title: '删除成功',
+                                icon: 'success'
+                            });
+
+                            // 重新加载草稿列表
+                            await this.loadDrafts();
+                        } catch (err) {
                             uni.hideLoading();
                             console.error('删除草稿失败:', err);
                             uni.showToast({
-                                title: '删除失败',
+                                title: err.message || '删除失败',
                                 icon: 'none'
                             });
-                        });
-                }
+                        } finally {
+                            resolve();
+                        }
+                    }
+                });
             });
         },
 

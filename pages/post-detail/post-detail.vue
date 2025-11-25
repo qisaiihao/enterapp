@@ -673,18 +673,6 @@ export default {
                 icon: 'none'
             });
         },
-
-        // 空函数，用于阻止匿名帖子的头像点击事件
-        noop(e) {
-            // noop function to prevent event propagation
-        },
-
-        // 测试函数 - 用于调试头像点击
-        testAvatarClick: function(e) {
-            // test function for avatar click debugging
-        },
-
-        
         // 跨页同步：监听 like-changed 的处理
         onGlobalLikeChanged: function (e = {}) {
             try {
@@ -1077,7 +1065,6 @@ export default {
         },
 
 
-        // authorSignature已从云函数返回，不再需要fetchAuthorSignature函数
 
         /**
          * 精确计算文字在Canvas中的实际渲染行数

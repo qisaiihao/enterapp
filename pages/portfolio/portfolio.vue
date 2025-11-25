@@ -148,7 +148,14 @@
 </template>
 
 <script>
-const { cloudCall } = require('../../utils/cloudCall.js');
+const {
+  getPortfolioFolders,
+  createPortfolioFolder,
+  updatePortfolioFolder,
+  deletePortfolio,
+  uploadFile,
+  invalidatePortfolioCache
+} = require('../../api-cache/portfolio.js');
 
 export default {
   data() {
@@ -182,20 +189,16 @@ export default {
     this.loadFolders(() => {
       console.log('【portfolio】下拉刷新完成，停止刷新动画');
       uni.stopPullDownRefresh();
-    });
+    }, true); // 强制刷新
   },
 
   methods: {
-    // 统一云函数调用方法
-    callCloudFunction(name, data = {}, extraOptions = {}) {
-      return cloudCall(name, data, Object.assign({ pageTag: 'portfolio', context: this, requireAuth: true }, extraOptions));
-    },
 
     goBack() {
       uni.navigateBack();
     },
 
-    async loadFolders(callback) {
+    async loadFolders(callback, forceRefresh = false) {
       if (this.loading) {
         if (typeof callback === 'function') callback();
         return;
@@ -203,20 +206,17 @@ export default {
 
       this.loading = true;
       try {
-        const res = await this.callCloudFunction('getPortfolioFolders', {});
-        if (res.result && res.result.success) {
-          this.folders = res.result.folders || [];
-          console.log('【portfolio】作品集加载成功，数量:', this.folders.length);
-        } else {
-          uni.showToast({
-            title: '获取作品集失败',
-            icon: 'none'
-          });
-        }
+        const folders = await getPortfolioFolders({
+          forceRefresh: forceRefresh,
+          context: this
+        });
+
+        this.folders = folders || [];
+        console.log('【portfolio】作品集加载成功，数量:', this.folders.length);
       } catch (error) {
         console.error('加载作品集失败:', error);
         uni.showToast({
-          title: '加载失败',
+          title: error.message || '加载失败',
           icon: 'none'
         });
       } finally {
@@ -267,7 +267,7 @@ export default {
 
       try {
         uni.showLoading({ title: '创建中...' });
-        
+
         // 先上传封面图片（如果有的话）
         let coverUrl = null;
         if (this.newFolderCover) {
@@ -292,7 +292,7 @@ export default {
                 }
               });
             });
-            
+
             if (!userChoice) {
               // 用户选择取消，直接返回
               return;
@@ -300,35 +300,25 @@ export default {
             // 用户选择继续创建，coverUrl 保持为 null
           }
         }
-        
-        const res = await this.callCloudFunction('createPortfolioFolder', {
-          folderName: this.newFolderName.trim(),
-          coverUrl: coverUrl
+
+        await createPortfolioFolder(this.newFolderName.trim(), coverUrl, { context: this });
+
+        uni.showToast({
+          title: '创建成功',
+          icon: 'success'
         });
+        this.hideCreateModal();
+        this.loadFolders();
 
-        if (res.result && res.result.success) {
-          uni.showToast({
-            title: '创建成功',
-            icon: 'success'
+        // 发送全局事件通知其他页面作品集已更新
+        try {
+          uni.$emit('portfolio-updated', {
+            type: 'create',
+            timestamp: Date.now()
           });
-          this.hideCreateModal();
-          this.loadFolders();
-
-          // 发送全局事件通知其他页面作品集已更新
-          try {
-            uni.$emit('portfolio-updated', {
-              type: 'create',
-              timestamp: Date.now()
-            });
-            console.log('【portfolio】发送作品集更新事件');
-          } catch (error) {
-            console.error('【portfolio】发送事件失败:', error);
-          }
-        } else {
-          uni.showToast({
-            title: res.result?.message || '创建失败',
-            icon: 'none'
-          });
+          console.log('【portfolio】发送作品集更新事件');
+        } catch (error) {
+          console.error('【portfolio】发送事件失败:', error);
         }
       } catch (error) {
         console.error('创建作品集失败:', error);
@@ -387,101 +377,57 @@ export default {
     },
 
     // 上传新建作品集封面图片
-    uploadNewCoverImage() {
-      return new Promise((resolve, reject) => {
-        if (!this.newFolderCover) {
-          resolve(null);
-          return;
-        }
+    async uploadNewCoverImage() {
+      if (!this.newFolderCover) {
+        return null;
+      }
 
-        const timestamp = new Date().getTime();
-        const cloudPath = `portfolio_covers/${timestamp}_new_cover.jpg`;
-        
+      const timestamp = new Date().getTime();
+      const cloudPath = `portfolio_covers/${timestamp}_new_cover.jpg`;
+
+      try {
         uni.showLoading({
           title: '上传封面中...'
         });
 
+        let fileContent;
+
         // 检查运行环境
         // #ifdef H5
         // H5环境：使用fetch获取blob，然后转换为base64
-        fetch(this.newFolderCover)
-          .then(response => response.blob())
-          .then(blob => {
-            return new Promise((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(reader.result);
-              reader.onerror = reject;
-              reader.readAsDataURL(blob);
-            });
-          })
-          .then(base64 => {
-            // 移除data:image/jpeg;base64,前缀
-            const base64Data = base64.split(',')[1];
-            console.log('H5环境新建作品集封面图片base64转换成功');
-            
-            // 调用云函数上传
-            this.callCloudFunction('upload', {
-              fileContent: base64Data,
-              cloudPath: cloudPath
-            }).then((uploadRes) => {
-              uni.hideLoading();
-              console.log('【portfolio】H5环境新建作品集封面图片上传结果:', uploadRes);
-              if (uploadRes && uploadRes.result && uploadRes.result.success && uploadRes.result.fileID) {
-                resolve(uploadRes.result.fileID);
-              } else {
-                const errorMsg = uploadRes?.result?.message || uploadRes?.result?.error || '上传失败';
-                console.error('【portfolio】H5环境新建作品集封面图片上传失败:', uploadRes);
-                reject(new Error(errorMsg));
-              }
-            }).catch((uploadErr) => {
-              uni.hideLoading();
-              console.error('【portfolio】H5环境新建作品集封面图片上传云函数调用失败:', uploadErr);
-              reject(new Error(uploadErr.message || '上传失败'));
-            });
-          })
-          .catch((err) => {
-            uni.hideLoading();
-            console.error('H5环境新建作品集封面图片base64转换失败:', err);
-            reject(err);
-          });
+        const response = await fetch(this.newFolderCover);
+        const blob = await response.blob();
+        fileContent = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+        // 移除data:image/jpeg;base64,前缀
+        fileContent = fileContent.split(',')[1];
         // #endif
 
         // #ifndef H5
         // 非H5环境（如小程序）：使用uni.getFileSystemManager
-        uni.getFileSystemManager().readFile({
-          filePath: this.newFolderCover,
-          encoding: 'base64',
-          success: (readRes) => {
-            console.log('非H5环境新建作品集封面图片base64读取成功');
-            
-            // 调用云函数上传
-            this.callCloudFunction('upload', {
-              fileContent: readRes.data,
-              cloudPath: cloudPath
-            }).then((uploadRes) => {
-              uni.hideLoading();
-              console.log('【portfolio】非H5环境新建作品集封面图片上传结果:', uploadRes);
-              if (uploadRes && uploadRes.result && uploadRes.result.success && uploadRes.result.fileID) {
-                resolve(uploadRes.result.fileID);
-              } else {
-                const errorMsg = uploadRes?.result?.message || uploadRes?.result?.error || '上传失败';
-                console.error('【portfolio】非H5环境新建作品集封面图片上传失败:', uploadRes);
-                reject(new Error(errorMsg));
-              }
-            }).catch((uploadErr) => {
-              uni.hideLoading();
-              console.error('【portfolio】非H5环境新建作品集封面图片上传云函数调用失败:', uploadErr);
-              reject(new Error(uploadErr.message || '上传失败'));
-            });
-          },
-          fail: (readErr) => {
-            uni.hideLoading();
-            console.error('非H5环境新建作品集封面图片base64读取失败:', readErr);
-            reject(readErr);
-          }
+        fileContent = await new Promise((resolve, reject) => {
+          uni.getFileSystemManager().readFile({
+            filePath: this.newFolderCover,
+            encoding: 'base64',
+            success: (readRes) => resolve(readRes.data),
+            fail: reject
+          });
         });
         // #endif
-      });
+
+        const uploadRes = await uploadFile(cloudPath, fileContent, { context: this });
+
+        uni.hideLoading();
+        return uploadRes.fileID || uploadRes;
+      } catch (error) {
+        uni.hideLoading();
+        console.error('上传封面图片失败:', error);
+        throw error;
+      }
     },
 
     openFolder(folder) {
@@ -609,60 +555,54 @@ export default {
 
       try {
         uni.showLoading({ title: '保存中...' });
-        
+
         // 先上传封面图片（如果有的话）
         const coverUrl = await this.uploadEditCoverImage();
-        
-        const res = await this.callCloudFunction('updatePortfolioFolder', {
-          folderId: this.editingFolder._id,
-          name: this.editingFolderName.trim(),
-          coverUrl: coverUrl
+
+        await updatePortfolioFolder(
+          this.editingFolder._id,
+          this.editingFolderName.trim(),
+          coverUrl,
+          { context: this }
+        );
+
+        uni.showToast({
+          title: '修改成功',
+          icon: 'success'
         });
 
-        if (res.result && res.result.success) {
-          uni.showToast({
-            title: '修改成功',
-            icon: 'success'
-          });
-          
-          // 更新本地作品集列表
-          const updatedList = this.folders.map(folder => {
-            if (folder._id === this.editingFolder._id) {
-              return { 
-                ...folder, 
-                name: this.editingFolderName.trim(),
-                coverUrl: coverUrl || folder.coverUrl
-              };
-            }
-            return folder;
-          });
-          
-          this.setData({
-            folders: updatedList
-          });
-
-          this.hideEditModal();
-
-          // 发送全局事件通知其他页面作品集已更新
-          try {
-            uni.$emit('portfolio-updated', {
-              type: 'edit',
-              timestamp: Date.now()
-            });
-            console.log('【portfolio】发送作品集编辑事件');
-          } catch (error) {
-            console.error('【portfolio】发送编辑事件失败:', error);
+        // 更新本地作品集列表
+        const updatedList = this.folders.map(folder => {
+          if (folder._id === this.editingFolder._id) {
+            return {
+              ...folder,
+              name: this.editingFolderName.trim(),
+              coverUrl: coverUrl || folder.coverUrl
+            };
           }
-        } else {
-          uni.showToast({
-            title: res.result.message || '修改失败',
-            icon: 'none'
+          return folder;
+        });
+
+        this.setData({
+          folders: updatedList
+        });
+
+        this.hideEditModal();
+
+        // 发送全局事件通知其他页面作品集已更新
+        try {
+          uni.$emit('portfolio-updated', {
+            type: 'edit',
+            timestamp: Date.now()
           });
+          console.log('【portfolio】发送作品集编辑事件');
+        } catch (error) {
+          console.error('【portfolio】发送编辑事件失败:', error);
         }
       } catch (error) {
         console.error('修改作品集失败:', error);
         uni.showToast({
-          title: '修改失败',
+          title: error.message || '修改失败',
           icon: 'none'
         });
       } finally {
@@ -694,99 +634,57 @@ export default {
     },
 
     // 上传编辑作品集封面图片
-    uploadEditCoverImage() {
-      return new Promise((resolve, reject) => {
-        if (!this.editingFolderCover) {
-          resolve(null);
-          return;
-        }
+    async uploadEditCoverImage() {
+      if (!this.editingFolderCover) {
+        return null;
+      }
 
-        const timestamp = new Date().getTime();
-        const cloudPath = `portfolio_covers/${timestamp}_edit_cover.jpg`;
-        
+      const timestamp = new Date().getTime();
+      const cloudPath = `portfolio_covers/${timestamp}_edit_cover.jpg`;
+
+      try {
         uni.showLoading({
           title: '上传封面中...'
         });
 
+        let fileContent;
+
         // 检查运行环境
         // #ifdef H5
         // H5环境：使用fetch获取blob，然后转换为base64
-        fetch(this.editingFolderCover)
-          .then(response => response.blob())
-          .then(blob => {
-            return new Promise((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(reader.result);
-              reader.onerror = reject;
-              reader.readAsDataURL(blob);
-            });
-          })
-          .then(base64 => {
-            // 移除data:image/jpeg;base64,前缀
-            const base64Data = base64.split(',')[1];
-            console.log('H5环境编辑作品集封面图片base64转换成功');
-            
-            // 调用云函数上传
-            this.callCloudFunction('upload', {
-              fileContent: base64Data,
-              cloudPath: cloudPath
-            }).then((uploadRes) => {
-              uni.hideLoading();
-              console.log('H5环境编辑作品集封面图片上传结果:', uploadRes);
-              if (uploadRes && uploadRes.result && uploadRes.result.fileID) {
-                resolve(uploadRes.result.fileID);
-              } else {
-                console.error('H5环境编辑作品集封面图片上传失败:', uploadRes);
-                reject(new Error('上传失败'));
-              }
-            }).catch((uploadErr) => {
-              uni.hideLoading();
-              console.error('H5环境编辑作品集封面图片上传云函数调用失败:', uploadErr);
-              reject(uploadErr);
-            });
-          })
-          .catch((err) => {
-            uni.hideLoading();
-            console.error('H5环境编辑作品集封面图片base64转换失败:', err);
-            reject(err);
-          });
+        const response = await fetch(this.editingFolderCover);
+        const blob = await response.blob();
+        fileContent = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+        // 移除data:image/jpeg;base64,前缀
+        fileContent = fileContent.split(',')[1];
         // #endif
 
         // #ifndef H5
         // 非H5环境（如小程序）：使用uni.getFileSystemManager
-        uni.getFileSystemManager().readFile({
-          filePath: this.editingFolderCover,
-          encoding: 'base64',
-          success: (readRes) => {
-            console.log('非H5环境编辑作品集封面图片base64读取成功');
-            
-            // 调用云函数上传
-            this.callCloudFunction('upload', {
-              fileContent: readRes.data,
-              cloudPath: cloudPath
-            }).then((uploadRes) => {
-              uni.hideLoading();
-              console.log('非H5环境编辑作品集封面图片上传结果:', uploadRes);
-              if (uploadRes && uploadRes.result && uploadRes.result.fileID) {
-                resolve(uploadRes.result.fileID);
-              } else {
-                console.error('非H5环境编辑作品集封面图片上传失败:', uploadRes);
-                reject(new Error('上传失败'));
-              }
-            }).catch((uploadErr) => {
-              uni.hideLoading();
-              console.error('非H5环境编辑作品集封面图片上传云函数调用失败:', uploadErr);
-              reject(uploadErr);
-            });
-          },
-          fail: (readErr) => {
-            uni.hideLoading();
-            console.error('非H5环境编辑作品集封面图片base64读取失败:', readErr);
-            reject(readErr);
-          }
+        fileContent = await new Promise((resolve, reject) => {
+          uni.getFileSystemManager().readFile({
+            filePath: this.editingFolderCover,
+            encoding: 'base64',
+            success: (readRes) => resolve(readRes.data),
+            fail: reject
+          });
         });
         // #endif
-      });
+
+        const uploadRes = await uploadFile(cloudPath, fileContent, { context: this });
+
+        uni.hideLoading();
+        return uploadRes.fileID || uploadRes;
+      } catch (error) {
+        uni.hideLoading();
+        console.error('上传封面图片失败:', error);
+        throw error;
+      }
     },
 
     async deleteFolder(folder) {
@@ -801,22 +699,22 @@ export default {
         return;
       }
 
-      uni.showModal({
-        title: '确认删除',
-        content: `确定要删除作品集"${folder.name}"吗？里面的作品不会被删除。`,
-        success: async (res) => {
-          if (res.confirm) {
-            try {
-              uni.showLoading({ title: '删除中...' });
-              const result = await this.callCloudFunction('deletePortfolio', {
-                portfolioId: folder._id
-              });
+      return new Promise((resolve) => {
+        uni.showModal({
+          title: '确认删除',
+          content: `确定要删除作品集"${folder.name}"吗？里面的作品不会被删除。`,
+          success: async (res) => {
+            if (res.confirm) {
+              try {
+                uni.showLoading({ title: '删除中...' });
 
-              if (result.result && result.result.success) {
+                await deletePortfolio(folder._id, { context: this });
+
                 uni.showToast({
                   title: '删除成功',
                   icon: 'success'
                 });
+
                 // 重新加载作品集列表
                 this.loadFolders();
 
@@ -830,23 +728,21 @@ export default {
                 } catch (error) {
                   console.error('【portfolio】发送删除事件失败:', error);
                 }
-              } else {
+              } catch (error) {
+                console.error('删除作品集失败:', error);
                 uni.showToast({
-                  title: result.result?.message || '删除失败',
+                  title: error.message || '删除失败',
                   icon: 'none'
                 });
+              } finally {
+                uni.hideLoading();
+                resolve();
               }
-            } catch (error) {
-              console.error('删除作品集失败:', error);
-              uni.showToast({
-                title: '删除失败',
-                icon: 'none'
-              });
-            } finally {
-              uni.hideLoading();
+            } else {
+              resolve();
             }
           }
-        }
+        });
       });
     }
   }

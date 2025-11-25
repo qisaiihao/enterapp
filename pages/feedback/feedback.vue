@@ -65,7 +65,7 @@
 <script>
 // 用户反馈页面
 const { previewImage: previewImageUtil } = require('../../utils/imagePreview.js');
-const { cloudCall } = require('../../utils/cloudCall.js');
+const { submitFeedback } = require('../../api-cache/feedback.js');
 export default {
     data() {
         return {
@@ -88,10 +88,6 @@ export default {
         });
     },
     methods: {
-        // 统一云函数调用方法
-        callCloudFunction(name, data = {}, extraOptions = {}) {
-            return cloudCall(name, data, Object.assign({ pageTag: 'feedback', context: this }, extraOptions));
-        },
         // 输入反馈内容
         onContentInput: function (e) {
             this.setData({
@@ -159,7 +155,7 @@ export default {
         },
 
         // 提交反馈
-        submitFeedback: function () {
+        async submitFeedback() {
             const { content, images, submitting } = this;
             if (submitting) {
                 return;
@@ -171,53 +167,50 @@ export default {
                 });
                 return;
             }
-            this.setData({
-                submitting: true
-            });
 
-            const openid = this.$requireOpenid && this.$requireOpenid();
-            if (!openid) {
+            try {
+                this.setData({
+                    submitting: true
+                });
+
+                // 先上传图片
+                const imageUrls = await this.uploadImages(images);
+
+                // 提交反馈数据
+                await submitFeedback({
+                    content: content.trim(),
+                    type: 'other',
+                    images: imageUrls,
+                    contactInfo: {},
+                    userAgent: ''
+                }, { context: this });
+
+                uni.showToast({
+                    title: '反馈提交成功',
+                    icon: 'success'
+                });
+
+                // 清空表单
+                this.setData({
+                    content: '',
+                    images: []
+                });
+
+                // 延迟返回上一页
+                setTimeout(() => {
+                    uni.navigateBack();
+                }, 1500);
+            } catch (error) {
+                console.error('提交反馈失败:', error);
+                uni.showToast({
+                    title: error.message || '提交失败，请重试',
+                    icon: 'none'
+                });
+            } finally {
                 this.setData({
                     submitting: false
                 });
-                return;
             }
-
-            // 先上传图片
-            this.uploadImages(images)
-                .then((imageUrls) => {
-                    // 提交反馈数据
-                    return this.submitFeedbackData(content, imageUrls, openid);
-                })
-                .then(() => {
-                    uni.showToast({
-                        title: '反馈提交成功',
-                        icon: 'success'
-                    });
-
-                    // 清空表单
-                    this.setData({
-                        content: '',
-                        images: []
-                    });
-
-                    // 延迟返回上一页
-                    setTimeout(() => {
-                        uni.navigateBack();
-                    }, 1500);
-                })
-                .catch((error) => {
-                    console.error('提交反馈失败:', error);
-                    uni.showToast({
-                        title: '提交失败，请重试',
-                        icon: 'none'
-                    });
-                })
-                .finally(() => {
-                    this.setData({
-                        submitting: false
-                    });
-                });
         },
 
         // 上传图片到云存储
@@ -237,31 +230,6 @@ export default {
                     });
             });
             return Promise.all(uploadPromises);
-        },
-
-        // 提交反馈数据
-        submitFeedbackData: function (content, imageUrls, openid) {
-            return new Promise((resolve, reject) => {
-                const safeOpenid = openid || (this.$requireOpenid && this.$requireOpenid());
-                if (!safeOpenid) {
-                    return reject(new Error('用户未登录'));
-                }
-                this.callCloudFunction('feedbackManager', {
-                        action: 'submitFeedback',
-                        content: content,
-                        imageUrls: imageUrls,
-                        openid: safeOpenid
-                    }).then((res) => {
-                        if (res.result && res.result.success) {
-                            resolve(res.result);
-                        } else {
-                            reject(new Error(res.result?.message || '提交失败'));
-                        }
-                    }).catch((err) => {
-                        console.error('调用云函数失败:', err);
-                        reject(err);
-                    });
-            });
         },
 
         // 返回上一页

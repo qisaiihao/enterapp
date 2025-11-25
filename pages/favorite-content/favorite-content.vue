@@ -130,7 +130,7 @@
 // pages/favorite-content/favorite-content.js
 const { formatRelativeTime } = require('../../utils/time.js');
 const { previewImage } = require('../../utils/imagePreview.js');
-const { cloudCall } = require('../../utils/cloudCall.js');
+const { getMyFavorites, removeFromFavorites } = require('../../api-cache/favorites.js');
 const postGalleryMixin = require('../../mixins/postGallery.js');
 const paginationMixin = require('../../mixins/pagination.js');
 const { normalizePostList } = require('../../utils/postNormalizer.js');
@@ -190,20 +190,7 @@ export default {
         // 不执行任何操作，避免干扰加载
     },
     methods: {
-        // 统一云函数调用方法
-        callCloudFunction(name, data = {}, extraOptions = {}) {
-            return cloudCall(name, data, Object.assign({ pageTag: 'favorite-content', context: this, requireAuth: true }, extraOptions));
-        },
         async loadFavorites({ page, isRefresh }) {
-            if (!this.folderId) {
-                const error = new Error('参数错误：收藏夹ID为空');
-                error.__toastShown = true;
-                uni.showToast({
-                    title: '参数错误：收藏夹ID为空',
-                    icon: 'none'
-                });
-                throw error;
-            }
             if (isRefresh) {
                 this.setData({
                     favorites: [],
@@ -212,49 +199,17 @@ export default {
                 });
             }
 
-            const skip = page * this.pageSize;
-            const timeoutMs = 10000;
-            let timeoutId = null;
-
-            const timeoutPromise = new Promise((_, reject) => {
-                timeoutId = setTimeout(() => {
-                    const timeoutError = new Error('加载超时，请重试');
-                    timeoutError.code = 'LOAD_TIMEOUT';
-                    timeoutError.__toastShown = true;
-                    uni.showToast({
-                        title: '加载超时，请重试',
-                        icon: 'none'
-                    });
-                    reject(timeoutError);
-                }, timeoutMs);
-            });
-
             try {
-                const res = await Promise.race([
-                    this.callCloudFunction('getMyProfileData', {
-                        action: 'getFavoritesByFolder',
-                        folderId: this.folderId,
-                        skip,
-                        limit: this.pageSize
-                    }),
-                    timeoutPromise
-                ]);
-                if (timeoutId) {
-                    clearTimeout(timeoutId);
-                }
-                console.log('云函数调用成功，返回结果:', res);
-                if (!res.result || res.result.success !== true) {
-                    const message = (res.result && res.result.message) || '加载失败';
-                    uni.showToast({
-                        title: message,
-                        icon: 'none'
-                    });
-                    const error = new Error(message);
-                    error.__toastShown = true;
-                    throw error;
-                }
+                const favorites = await getMyFavorites({
+                    page: page,
+                    pageSize: this.pageSize,
+                    contentType: 'all',
+                    context: this
+                });
 
-                const newFavorites = normalizePostList(res.result.favorites || []).map((favorite, index) => {
+                console.log('获取收藏列表结果:', favorites);
+
+                const newFavorites = favorites.map((favorite, index) => {
                     const item = { ...favorite };
                     if (!item.formattedCreateTime && item.createTime) {
                         item.formattedCreateTime = this.formatTime(item.createTime);
@@ -304,6 +259,7 @@ export default {
                     const uniqueNewList = newFavorites.filter(p => p && p._id && !existingIds.has(p._id));
                     return this.favorites.concat(uniqueNewList);
                 })();
+
                 this.setData({
                     favorites: allFavorites
                 });
@@ -313,21 +269,12 @@ export default {
                     hasMore: newFavorites.length === this.pageSize
                 };
             } catch (error) {
-                if (timeoutId) {
-                    clearTimeout(timeoutId);
-                }
                 console.error('加载收藏数据失败:', error);
-                if (!error || !error.__toastShown) {
-                    uni.showToast({
-                        title: '网络错误',
-                        icon: 'none'
-                    });
-                }
+                uni.showToast({
+                    title: error.message || '加载收藏数据失败',
+                    icon: 'none'
+                });
                 throw error;
-            } finally {
-                if (timeoutId) {
-                    clearTimeout(timeoutId);
-                }
             }
         },
 
@@ -366,49 +313,52 @@ export default {
         },
 
         // 取消收藏
-        removeFavorite: function (e) {
+        async removeFavorite(e) {
             const favoriteId = e.currentTarget.dataset.favoriteId;
+            const postId = e.currentTarget.dataset.postId;
             const index = e.currentTarget.dataset.index;
             const favorite = this.favorites[index];
             const postTitle = favorite ? favorite.postTitle : '未知标题';
-            uni.showModal({
-                title: '确认取消收藏',
-                content: `确定要取消收藏"${postTitle}"吗？`,
-                success: (res) => {
-                    if (res.confirm) {
-                        uni.showLoading({
-                            title: '处理中...'
-                        });
-                        this.callCloudFunction('getMyProfileData', {
-                                action: 'removeFromFavorite',
-                                favoriteId: favoriteId
-                            }).then((res) => {
-                                uni.hideLoading();
-                                if (res.result && res.result.success) {
-                                    uni.showToast({
-                                        title: '取消收藏成功'
-                                    });
-                                    // 从列表中移除该项
-                                    const favorites = this.favorites.filter((item) => item._id !== favoriteId);
-                                    this.setData({
-                                        favorites: favorites
-                                    });
-                                } else {
-                                    uni.showToast({
-                                        title: res.result.message || '操作失败',
-                                        icon: 'none'
-                                    });
-                                }
-                            }).catch((err) => {
-                                uni.hideLoading();
-                                console.error('取消收藏失败:', err);
-                                uni.showToast({
-                                    title: '网络错误',
-                                    icon: 'none'
-                                });
+
+            return new Promise((resolve) => {
+                uni.showModal({
+                    title: '确认取消收藏',
+                    content: `确定要取消收藏"${postTitle}"吗？`,
+                    success: async (res) => {
+                        if (!res.confirm) {
+                            resolve();
+                            return;
+                        }
+
+                        try {
+                            uni.showLoading({
+                                title: '处理中...'
                             });
+
+                            await removeFromFavorites(postId, 'post', { context: this });
+
+                            uni.hideLoading();
+                            uni.showToast({
+                                title: '取消收藏成功'
+                            });
+
+                            // 从列表中移除该项
+                            const favorites = this.favorites.filter((item) => item._id !== favoriteId);
+                            this.setData({
+                                favorites: favorites
+                            });
+                        } catch (err) {
+                            uni.hideLoading();
+                            console.error('取消收藏失败:', err);
+                            uni.showToast({
+                                title: err.message || '取消收藏失败',
+                                icon: 'none'
+                            });
+                        } finally {
+                            resolve();
+                        }
                     }
-                }
+                });
             });
         },
 
