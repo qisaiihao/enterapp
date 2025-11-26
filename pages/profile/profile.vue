@@ -22,48 +22,17 @@
                 <!-- Main Content -->
                 <view class="main-content">
                     <!-- User Profile Card -->
-                        <view class="profile-card profile-card-center">
-                        <view class="profile-growth-stats" style="display: none;">
-                            <view class="growth-item">
-                            <image class="growth-icon" src="/static/images/seedplus.png" mode="aspectFit"></image>
-                            <text class="growth-count">{{ growthStats.seed }}</text>
-                        </view>
-                        <view class="growth-item">
-                            <image class="growth-icon" src="/static/images/leafplus.png" mode="aspectFit"></image>
-                            <text class="growth-count">{{ growthStats.leaf }}</text>
-                        </view>
-                        <view class="growth-item">
-                            <image class="growth-icon" src="/static/images/flowerplus.png" mode="aspectFit"></image>
-                            <text class="growth-count">{{ growthStats.flower }}</text>
-                        </view>
-                        <view class="growth-item">
-                            <image class="growth-icon" src="/static/images/peachplus.png" mode="aspectFit"></image>
-                            <text class="growth-count">{{ growthStats.peach }}</text>
-                        </view>
-                    </view>
-                        <view class="profile-avatar-large">
-                            <image :src="userInfo.avatarUrl || '/static/images/avatar.png'" mode="aspectFill" @error="onAvatarError"></image>
-                        </view>
-                        <view class="profile-info-center">
-                            <text class="profile-name-center">{{ userInfo.nickName || '微信用户' }}</text>
-                            <text class="profile-poemid">poemid：{{ userInfo.poemId || '未知' }}</text>
-                            <text class="profile-bio-center">{{ userInfo.bio || '这个用户很懒,什么都没留下...' }}</text>
-                            <view class="profile-bottom-row">
-                                <text class="profile-followers" @tap="navigateToFans">被关注数：{{ followerCount }}</text>
-                                <view class="profile-buttons">
-                                    <view class="edit-profile-btn" @tap="navigateToEditProfile">
-                                        <text>编辑主页</text>
-                                    </view>
-                                    <image src="/static/images/icons/menu-icon.svg" class="menu-btn-small" @tap="toggleSidebar"></image>
-                                </view>
-                            </view>
-                        </view>
-                    </view>
-                    <!-- 年龄和生日卡片 -->
-                    <view v-if="isViewingSelf" class="profile-detail-card">
-                        <text class="detail-item-inline">生日:{{ userInfo.birthday ? userInfo.birthday : '未设置' }}</text>
-                        <text class="detail-item-inline">年龄:{{ userInfo.age ? userInfo.age + '岁' : '未知' }}</text>
-                    </view>
+                    <ProfileCard
+                        :user-info="userInfo"
+                        :follower-count="followerCount"
+                        :growth-stats="growthStats"
+                        :is-self="isViewingSelf"
+                        :show-growth-stats="false"
+                        @avatar-error="onAvatarError"
+                        @edit-profile="navigateToEditProfile"
+                        @toggle-sidebar="toggleSidebar"
+                        @navigate-fans="navigateToFans"
+                    />
                     <!-- Tab Navigation -->
                     <view class="tab-navigation">
                         <view :class="'tab-item ' + (currentTab === 'posts' ? 'active' : '')" data-tab="posts" @tap="switchTab">
@@ -80,120 +49,25 @@
                     <!-- My Posts Section -->
                     <view class="my-posts-section" v-if="currentTab === 'posts'">
                         <block v-if="myPosts.length > 0">
-                            <!-- ... 你的帖子循环代码保持不变 ... -->
-                            <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" v-for="(item, index) in myPosts" :key="index">
-                                <!-- 右上角三个点菜单按钮 -->
-                                <view class="more-menu-btn-top-right" @tap.stop.prevent="showActionMenu" :data-postid="item._id" :data-index="index" :data-hidden="item.isHidden === true">
-                                    <view class="more-menu-dots-small">
-                                        <view class="dot-small"></view>
-                                        <view class="dot-small"></view>
-                                        <view class="dot-small"></view>
-                                    </view>
-                                </view>
-
-                                <!-- 作者信息 -->
-
-                                <view class="author-info-outside">
-                                    <image
-                                        class="author-avatar"
-                                        :src="item.isAnonymous ? '/static/images/avatar.png' : (item.authorAvatar || '/static/images/avatar.png')"
-                                        mode="aspectFill"
-                                        @error="onAvatarError"
-                                        @load="onAvatarLoad"
-                                        :data-postindex="index"
-                                        @tap.stop.prevent="navigateToUserProfile"
-                                        :data-user-id="item._openid"
-                                        :data-is-anonymous="item.isAnonymous"
-                                    ></image>
-                                    <text class="author-name">{{ item.authorName }}</text>
-                                    <view v-if="item.isAnonymous" class="anonymous-tag">匿名</view>
-                                </view>
-
-                                <!-- 可点击的内容区域 - 跳转到详情页 -->
-
-                                <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item._id" hover-class="navigator-hover">
-                                    <view class="post-item">
-                                        <view class="post-title">{{ item.title }} <text v-if="item.isHidden" class="hidden-tag">已隐藏</text></view>
-                                        <!-- 个人主页不显示诗歌作者信息 -->
-                                        <!-- <view v-if="item.isPoem && item.author" class="poem-author">{{ item.author }}</view> -->
-
-                                        <!-- 图片显示逻辑 (已优化，使用 imageStyle 占位) -->
-                                        <view
-                                            v-if="item.imageUrls && item.imageUrls.length > 0"
-                                            class="image-container-wrapper"
-                                            :style="item.imageStyle"
-                                            @tap.stop.prevent="handlePreview"
-                                            :data-src="item.imageUrls[0]"
-                                            :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                        >
-                                            <!-- 单张图片 -->
-                                            <block v-if="item.imageUrls.length === 1">
-                                                <image
-                                                    :id="'single-image-' + item._id"
-                                                    class="post-image"
-                                                    :src="item.imageUrls[0]"
-                                                    mode="aspectFill"
-                                                    :lazy-load="true"
-                                                    @error="onImageError"
-                                                    @load="onImageLoad"
-                                                    :data-postid="item._id"
-                                                    :data-postindex="index"
-                                                    data-imgindex="0"
-                                                    data-type="single"
-                                                />
-                                            </block>
-
-                                            <!-- 多张图片 -->
-                                            <block v-else-if="item.imageUrls.length > 1">
-                                                <swiper
-                                                    :id="'swiper-' + item._id"
-                                                    class="image-swiper"
-                                                    :indicator-dots="true"
-                                                    :circular="true"
-                                                    :style="'height: ' + (swiperHeights[index] ? swiperHeights[index] + 'px' : '220px') + ';'"
-                                                >
-                                                    <block v-for="(img, imgindex) in item.imageUrls" :key="imgindex">
-                                                        <swiper-item>
-                                                            <image
-                                                                class="post-image"
-                                                                :src="img"
-                                                                mode="aspectFill"
-                                                                :lazy-load="true"
-                                                                @error="onImageError"
-                                                                @load="onImageLoad"
-                                                                @tap.stop.prevent="handlePreview"
-                                                                :data-src="img"
-                                                                :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                                                :data-postid="item._id"
-                                                                :data-postindex="index"
-                                                                :data-imgindex="imgindex"
-                                                                data-type="multi"
-                                                            />
-                                                        </swiper-item>
-                                                    </block>
-                                                </swiper>
-                                            </block>
-                                        </view>
-
-                                        <view class="post-content" v-if="item.content" style="white-space: pre-wrap">{{ item.content }}</view>
-
-                                        <!-- 标签显示 -->
-                                        <view v-if="item.tags && item.tags.length > 0" class="post-tags">
-                                            <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="item" v-for="(item, index1) in item.tags" :key="index1">
-                                                #{{ item }}
-                                            </text>
-                                        </view>
-                                    </view>
-                                </navigator>
-
-                                <!-- 操作按钮区域 -->
-
-                                <view class="delete-section">
-                                    <view class="time-left">
-                                        <text class="post-time">发布于{{ item.formattedCreateTime || '未知时间' }}</text>
-                                    </view>
-                                </view>
-                            </view>
+                            <PostItem
+                                v-for="(item, index) in myPosts"
+                                :key="item._id || index"
+                                :item="item"
+                                :index="index"
+                                :swiper-height="swiperHeights[index]"
+                                :show-menu="true"
+                                :show-poem-author="false"
+                                time-label="发布于"
+                                time-field="formattedCreateTime"
+                                @show-action-menu="handlePostActionMenu"
+                                @avatar-error="onAvatarError"
+                                @avatar-load="onAvatarLoad"
+                                @navigate-to-user="handleNavigateToUser"
+                                @preview-image="handlePreviewImage"
+                                @image-error="onImageError"
+                                @image-load="onImageLoad"
+                                @tag-click="handleTagClick"
+                            />
                             <!-- 加载更多提示 -->
                             <view class="loading-footer">
                                 <block v-if="!hasMore && myPosts.length > 0">
@@ -210,115 +84,26 @@
                     <!-- Favorites Section -->
                     <view class="favorites-section" v-if="currentTab === 'favorites'">
                         <block v-if="favoriteList.length > 0">
-                            <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" v-for="(item, index) in favoriteList" :key="index">
-                                <!-- 作者信息 -->
-
-                                <view class="author-info-outside">
-                                    <image
-                                        class="author-avatar"
-                                        :src="item.isAnonymous ? '/static/images/avatar.png' : (item.authorAvatar || '/static/images/avatar.png')"
-                                        mode="aspectFill"
-                                        @error="onAvatarError"
-                                        @load="onAvatarLoad"
-                                        :data-postindex="index"
-                                        @tap.stop.prevent="navigateToUserProfile"
-                                        :data-user-id="item._openid"
-                                        :data-is-anonymous="item.isAnonymous"
-                                    ></image>
-                                    <text class="author-name">{{ item.authorName }}</text>
-                                </view>
-
-                                <!-- 可点击的内容区域 - 跳转到详情页 -->
-
-                                <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item._id" hover-class="navigator-hover">
-                                    <view class="post-item">
-                                        <view class="post-title">{{ item.title }} <text v-if="item.isHidden" class="hidden-tag">已隐藏</text></view>
-                                        <!-- 诗歌作者信息 -->
-                                        <view v-if="item.isPoem && item.author" class="poem-author">{{ item.author }}</view>
-
-                                        <!-- 图片显示逻辑 (已优化，使用 imageStyle 占位) -->
-                                        <view
-                                            v-if="item.imageUrls && item.imageUrls.length > 0"
-                                            class="image-container-wrapper"
-                                            :style="item.imageStyle"
-                                            @tap.stop.prevent="handlePreview"
-                                            :data-src="item.imageUrls[0]"
-                                            :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                        >
-                                            <!-- 单张图片 -->
-                                            <block v-if="item.imageUrls.length === 1">
-                                                <image
-                                                    :id="'single-image-' + item._id"
-                                                    class="post-image"
-                                                    :src="item.imageUrls[0]"
-                                                    mode="aspectFill"
-                                                    :lazy-load="true"
-                                                    @error="onImageError"
-                                                    @load="onImageLoad"
-                                                    :data-postid="item._id"
-                                                    :data-postindex="index"
-                                                    data-imgindex="0"
-                                                    data-type="single"
-                                                />
-                                            </block>
-
-                                            <!-- 多张图片 -->
-                                            <block v-else-if="item.imageUrls.length > 1">
-                                                <swiper
-                                                    :id="'swiper-' + item._id"
-                                                    class="image-swiper"
-                                                    :indicator-dots="true"
-                                                    :circular="true"
-                                                    :style="'height: ' + (swiperHeights[index] ? swiperHeights[index] + 'px' : '220px') + ';'"
-                                                >
-                                                    <block v-for="(img, imgindex) in item.imageUrls" :key="imgindex">
-                                                        <swiper-item>
-                                                            <image
-                                                                class="post-image"
-                                                                :src="img"
-                                                                mode="aspectFill"
-                                                                :lazy-load="true"
-                                                                @error="onImageError"
-                                                                @load="onImageLoad"
-                                                                @tap.stop.prevent="handlePreview"
-                                                                :data-src="img"
-                                                                :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                                                :data-postid="item._id"
-                                                                :data-postindex="index"
-                                                                :data-imgindex="imgindex"
-                                                                data-type="multi"
-                                                            />
-                                                        </swiper-item>
-                                                    </block>
-                                                </swiper>
-                                            </block>
-                                        </view>
-
-                                        <view class="post-content" v-if="item.content" style="white-space: pre-wrap">{{ item.content }}</view>
-
-                                        <!-- 标签显示 -->
-                                        <view v-if="item.tags && item.tags.length > 0" class="post-tags">
-                                            <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="item" v-for="(item, index1) in item.tags" :key="index1">
-                                                #{{ item }}
-                                            </text>
-                                        </view>
-                                    </view>
-                                </navigator>
-
-                                <!-- 取消收藏按钮区域 -->
-
-                                <view class="delete-section">
-                                    <view class="time-left">
-                                        <text class="favorite-time">收藏于{{ item.formattedFavoriteTime || '未知时间' }}</text>
-                                    </view>
-                                    <view class="button-group">
-                                        <!-- 收藏帖子不显示隐藏按钮，只显示取消收藏按钮 -->
-                                        <button class="remove-favorite-btn" size="mini" @tap.stop.prevent="removeFavorite" :data-favorite-id="item.favoriteId" :data-index="index">
-                                            取消收藏
-                                        </button>
-                                    </view>
-                                </view>
-                            </view>
+                            <PostItem
+                                v-for="(item, index) in favoriteList"
+                                :key="item._id || index"
+                                :item="item"
+                                :index="index"
+                                :swiper-height="swiperHeights[index]"
+                                :show-menu="false"
+                                :show-poem-author="true"
+                                time-label="收藏于"
+                                time-field="formattedFavoriteTime"
+                                :show-remove-favorite-btn="true"
+                                @avatar-error="onAvatarError"
+                                @avatar-load="onAvatarLoad"
+                                @navigate-to-user="handleNavigateToUser"
+                                @preview-image="handlePreviewImage"
+                                @image-error="onImageError"
+                                @image-load="onImageLoad"
+                                @tag-click="handleTagClick"
+                                @remove-favorite="handleRemoveFavorite"
+                            />
                             <!-- 加载更多提示 -->
                             <view class="loading-footer">
                                 <block v-if="!favoriteHasMore && favoriteList.length > 0">
@@ -362,43 +147,25 @@
         <app-tab-bar ref="customTabBar" />
         <!-- #endif -->
         
-        <!-- 底部操作菜单（参考豆瓣样式） -->
-        <view v-if="isActionMenuVisible" class="action-menu-overlay" @tap="hideActionMenu">
-            <view class="action-menu-container" @tap.stop>
-                <view class="action-menu-item" @tap="handleEditPost">
-                    <text>编辑</text>
-                </view>
-                <view class="action-menu-item" @tap="handleToggleVisibility">
-                    <text>{{ actionMenuData.isHidden ? '取消隐藏' : '隐藏' }}</text>
-                </view>
-                <view class="action-menu-item action-menu-item-danger" @tap="handleDeleteFromMenu">
-                    <text>删除该动态</text>
-                </view>
-                <view class="action-menu-item action-menu-item-cancel" @tap="hideActionMenu">
-                    <text>取消</text>
-                </view>
-            </view>
-        </view>
+        <!-- 底部操作菜单 -->
+        <ActionMenu
+            :visible="isActionMenuVisible"
+            :is-hidden="actionMenuData.isHidden"
+            @close="hideActionMenu"
+            @edit="handleEditPost"
+            @toggle-visibility="handleToggleVisibility"
+            @delete="handleDeleteFromMenu"
+        />
 
         <!-- 删除帖子弹窗 -->
-        <view v-if="showDeleteModal" class="modal-overlay" @tap="hideDeleteModal">
-            <view class="modal-content" @tap.stop>
-                <view class="modal-header">
-                    <view class="modal-title">删除帖子</view>
-                    <view class="close-btn" @tap="hideDeleteModal">×</view>
-                </view>
-                
-                <view class="modal-body">
-                    <view class="modal-text">您确定要删除这条帖子吗？</view>
-                </view>
-                
-                <view class="modal-footer">
-                    <button class="modal-btn cancel-btn" @tap="hideDeleteModal">取消</button>
-                    <button class="modal-btn draft-btn" @tap="saveToDraft">保存草稿</button>
-                    <button class="modal-btn modal-delete-btn" @tap="confirmDelete">删除</button>
-                </view>
-            </view>
-        </view>
+        <DeleteModal
+            :visible="showDeleteModal"
+            title="删除帖子"
+            message="您确定要删除这条帖子吗？"
+            @close="hideDeleteModal"
+            @save-draft="saveToDraft"
+            @confirm="confirmDelete"
+        />
     </view>
 
 </template>
@@ -410,6 +177,10 @@ import AppTabBar from '@/custom-tab-bar/index.vue';
 import Sidebar from './Sidebar.vue';
 import TimelineView from '@/components/TimelineView.vue';
 import PortfolioBook from '@/components/PortfolioBook.vue';
+import PostItem from '@/components/PostItem.vue';
+import ProfileCard from '@/components/ProfileCard.vue';
+import ActionMenu from '@/components/ActionMenu.vue';
+import DeleteModal from '@/components/DeleteModal.vue';
 import { getMyPosts, getMyFavorites, invalidateMyFavorites, invalidateMyPosts, invalidateMyInfo, getMyInfo } from '@/api-cache/my.js';
 import { togglePostVisibility, deletePost, saveDraft, getPostDetail, removeFavorite, getFollowerCount, updateUserInfo, logout } from '@/api-cache/profile-actions.js';
 import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
@@ -435,6 +206,10 @@ export default {
         Sidebar,
         TimelineView,
         PortfolioBook,
+        PostItem,
+        ProfileCard,
+        ActionMenu,
+        DeleteModal,
         // #ifndef MP-WEIXIN
         AppTabBar
         // #endif
@@ -572,6 +347,17 @@ export default {
             console.error('【profile】清除缓存失败:', e);
         }
 
+        // 超时保护：最多10秒后自动停止刷新动画
+        const refreshTimeout = setTimeout(() => {
+            console.warn('【profile】下拉刷新超时，强制停止');
+            uni.stopPullDownRefresh();
+        }, 10000);
+
+        const stopRefresh = () => {
+            clearTimeout(refreshTimeout);
+            uni.stopPullDownRefresh();
+        };
+
         if (this.currentTab === 'posts') {
             this.setData({
                 myPosts: [],
@@ -583,7 +369,7 @@ export default {
             this.updateGrowthStats([]);
 
             this.loadMyPosts(() => {
-                uni.stopPullDownRefresh();
+                stopRefresh();
             }, true); // 强制从云端获取
         } else if (this.currentTab === 'favorites') {
             this.setData({
@@ -595,7 +381,7 @@ export default {
             });
 
             this.loadFavorites(() => {
-                uni.stopPullDownRefresh();
+                stopRefresh();
             });
         } else if (this.currentTab === 'portfolio') {
             this.setData({
@@ -624,7 +410,7 @@ export default {
                     }, 100);
                 })
             ]).then(() => {
-                uni.stopPullDownRefresh();
+                stopRefresh();
             });
         }
     },
@@ -1983,6 +1769,72 @@ export default {
             console.log('占位：函数 onTagClick 未声明');
         },
 
+        // === PostItem 组件事件处理方法 ===
+        
+        // 处理帖子操作菜单
+        handlePostActionMenu(data) {
+            this.setData({
+                isActionMenuVisible: true,
+                actionMenuData: {
+                    postId: data.postId,
+                    index: data.index,
+                    isHidden: data.isHidden
+                }
+            });
+        },
+        
+        // 处理跳转用户主页
+        handleNavigateToUser(data) {
+            if (data.isAnonymous) {
+                uni.showToast({
+                    title: '匿名用户',
+                    icon: 'none'
+                });
+                return;
+            }
+            // 构造兼容原有 navigateToUserProfile 的事件对象
+            const fakeEvent = {
+                currentTarget: {
+                    dataset: {
+                        userId: data.userId,
+                        isAnonymous: data.isAnonymous
+                    }
+                }
+            };
+            navigateToUserProfile(fakeEvent);
+        },
+        
+        // 处理预览图片
+        handlePreviewImage(data) {
+            previewImage({
+                current: data.src,
+                urls: data.urls
+            });
+        },
+        
+        // 处理标签点击
+        handleTagClick(data) {
+            console.log('标签点击:', data.tag);
+            // 可以跳转到标签搜索页面
+            // uni.navigateTo({
+            //     url: `/pages/search/search?tag=${encodeURIComponent(data.tag)}`
+            // });
+        },
+        
+        // 处理取消收藏
+        handleRemoveFavorite(data) {
+            // 构造兼容原有 removeFavorite 方法的事件对象
+            const fakeEvent = {
+                currentTarget: {
+                    dataset: {
+                        favoriteId: data.favoriteId,
+                        index: data.index
+                    }
+                }
+            };
+            this.removeFavorite(fakeEvent);
+        },
+
         // 统一云函数调用方法
         callCloudFunction(name, data = {}, extraOptions = {}) {
             return cloudCall(name, data, Object.assign({ pageTag: 'profile', context: this, requireAuth: true }, extraOptions));
@@ -2247,429 +2099,8 @@ export default {
     padding: 0 10rpx;
 }
 
-/* 新增：帖子项包装器样式 */
-.post-item-wrapper {
-    position: relative;
-    background: #fff;
-    margin-bottom: 20rpx;
-    padding: 0;
-    box-shadow: none;
-    border-radius: 0;
-    border-bottom: 1rpx solid #f0f0f0;
-}
+/* PostItem 组件样式已封装，此处已清理冗余样式 */
 
-/* 原创帖子特殊样式 */
-.post-item-wrapper.original-post {
-    background: linear-gradient(90deg, rgba(235, 200, 141, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
-    border-left: 3rpx solid #ebc88d;
-    position: relative;
-}
-
-/* 新增：内容导航器样式 */
-.post-content-navigator {
-    display: block;
-    background: transparent;
-}
-
-/* 新增：导航器点击效果 */
-.navigator-hover {
-    background-color: rgba(0, 0, 0, 0.02);
-}
-
-/* 新增：点赞按钮容器样式 */
-.like-btn-container {
-    position: absolute;
-    top: 20rpx;
-    right: 20rpx;
-    z-index: 10;
-}
-
-/* 匿名标签样式 */
-.anonymous-tag {
-    background: #ff6b6b;
-    color: white;
-    font-size: 20rpx;
-    padding: 4rpx 8rpx;
-    border-radius: 10rpx;
-    margin-left: 10rpx;
-    font-weight: 500;
-}
-
-.like-btn {
-    width: 60rpx;
-    height: 60rpx;
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
-    transition: all 0.2s ease;
-}
-
-.like-btn:active {
-    transform: scale(0.9);
-}
-
-.like-icon {
-    font-size: 24rpx;
-    color: #666;
-}
-
-.like-icon.liked {
-    color: #ff4757;
-}
-
-/* 定义点击时的样式 - 整个卡片缩小 */
-.post-card-active {
-    transform: scale(0.98);
-}
-
-/* 外部作者信息样式 */
-.author-info-outside {
-    display: flex;
-    align-items: center;
-    padding: 20rpx 40rpx 10rpx 40rpx;
-    background: #fff;
-    border-radius: 0;
-    box-shadow: none;
-}
-
-.author-info-outside .author-avatar {
-    width: 60rpx;
-    height: 60rpx;
-    border-radius: 50%;
-    margin-right: 15rpx;
-    background-color: #f5f5f5;
-    cursor: pointer;
-}
-
-.author-info-outside .author-name {
-    font-size: 28rpx;
-    color: #333;
-    font-weight: 500;
-}
-
-/* 个人主页的"我发布的作品"部分显示昵称（头像旁边的），但不显示诗歌作者信息 */
-/* .my-posts-section .author-info-outside .author-name {
-    display: none;
-} */
-
-/* 个人主页的"我发布的作品"部分不显示诗歌作者信息 */
-.my-posts-section .poem-author {
-    display: none;
-}
-
-.post-item {
-    width: 100%;
-    background: #fff;
-    border-radius: 0;
-    box-shadow: none;
-    box-sizing: border-box;
-    padding: 20rpx 40rpx 30rpx 40rpx;
-}
-
-.post-title {
-    font-size: 36rpx;
-    font-weight: bold;
-    color: #333333;
-    margin-bottom: 15rpx;
-    line-height: 1.4;
-    word-break: break-word;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-}
-
-/* 诗歌作者样式 */
-.poem-author {
-    font-size: 32rpx;
-    color: #000;
-    text-align: center;
-    margin: 5rpx 0 15rpx 0;
-    letter-spacing: 2rpx;
-}
-
-/* 新增：图片容器占位样式 */
-.image-container-wrapper {
-    position: relative;
-    width: 100%;
-    background-color: #f0f0f0; /* 占位时的背景色，很重要 */
-    overflow: hidden;
-    border-radius: 8px; /* 可以加个圆角，让占位块更好看 */
-    margin: 20rpx 0; /* 图片和下方内容的间距 */
-}
-
-/* 新增：让图片或swiper填充整个占位容器 */
-.image-container-wrapper .post-image,
-.image-container-wrapper .image-swiper {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-}
-
-/* 多张图片的swiper样式 */
-.image-swiper {
-    width: 100%;
-    background-color: #fff;
-    /* 高度由 style 绑定动态设置 */
-}
-
-.swiper-item {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.post-image {
-    width: 100%;
-    height: 100%;
-    display: block;
-    object-fit: contain;
-}
-
-.post-image:active {
-    transform: scale(1.05);
-}
-
-.post-image.single-image {
-    width: 100%;
-    height: auto;
-    display: block;
-    object-fit: cover;
-}
-
-/* 图片数量指示器 */
-.image-count-indicator {
-    position: absolute;
-    top: 20rpx;
-    right: 20rpx;
-    background: rgba(0, 0, 0, 0.6);
-    color: #fff;
-    padding: 8rpx 12rpx;
-    border-radius: 20rpx;
-    font-size: 24rpx;
-    z-index: 5;
-}
-
-.post-content {
-    font-size: 28rpx;
-    color: #666666;
-    line-height: 1.6;
-    margin-top: 15rpx;
-    word-break: break-word;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
-    -webkit-box-orient: vertical;
-}
-
-/* 删除按钮区域样式 */
-.delete-section {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 20rpx;
-    padding: 0 40rpx 0 40rpx;
-}
-
-/* 左侧时间区域，保持原有样式 */
-.time-left {
-    flex: 1;
-}
-
-.button-group {
-    display: flex;
-    align-items: center;
-}
-
-.favorite-time,
-.post-time {
-    font-size: 24rpx;
-    color: #999;
-}
-
-/* 标签样式 */
-.post-tags {
-    margin-top: 30rpx;
-    margin-bottom: 10rpx;
-    line-height: 1.5;
-}
-
-.post-tag {
-    color: #24375f;
-    font-size: 26rpx;
-    margin-right: 10rpx;
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
-
-.post-tag:active {
-    color: #1a2a4a;
-    opacity: 0.8;
-}
-
-.delete-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    padding: 10rpx;
-}
-
-.delete-btn:active {
-    transform: scale(0.9);
-}
-
-.delete-icon {
-    width: 100rpx;
-    height: 100rpx;
-}
-
-/* 三个点菜单按钮样式 */
-.more-menu-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 10rpx;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.more-menu-btn:active {
-    transform: scale(0.9);
-    opacity: 0.7;
-}
-
-.more-menu-dots {
-    display: flex;
-    align-items: center;
-    gap: 6rpx;
-    padding: 8rpx;
-}
-
-.more-menu-dots .dot {
-    width: 12rpx;
-    height: 12rpx;
-    border-radius: 50%;
-    background-color: #666;
-}
-
-/* 右上角三个点菜单按钮（缩小版） */
-.more-menu-btn-top-right {
-    position: absolute;
-    top: 20rpx;
-    right: 20rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 8rpx;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    z-index: 10;
-}
-
-.more-menu-btn-top-right:active {
-    transform: scale(0.9);
-    opacity: 0.7;
-}
-
-.more-menu-dots-small {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4rpx;
-}
-
-.more-menu-dots-small .dot-small {
-    width: 8rpx;
-    height: 8rpx;
-    border-radius: 50%;
-    background-color: #666;
-}
-
-/* 底部操作菜单样式（参考豆瓣） */
-.action-menu-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 9999;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-}
-
-.action-menu-container {
-    width: 100%;
-    background-color: #fff;
-    border-radius: 24rpx 24rpx 0 0;
-    padding-bottom: calc(40rpx + constant(safe-area-inset-bottom));
-    padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
-    animation: slideUp 0.3s ease;
-}
-
-@keyframes slideUp {
-    from {
-        transform: translateY(100%);
-    }
-    to {
-        transform: translateY(0);
-    }
-}
-
-.action-menu-item {
-    width: 100%;
-    height: 100rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 32rpx;
-    color: #333;
-    border-bottom: 1rpx solid #f0f0f0;
-    transition: background-color 0.2s ease;
-}
-
-.action-menu-item:active {
-    background-color: #f5f5f5;
-}
-
-.action-menu-item:last-child {
-    border-bottom: none;
-}
-
-.action-menu-item-danger {
-    color: #ff3b30;
-}
-
-.action-menu-item-cancel {
-    margin-top: 20rpx;
-    border-top: 10rpx solid #f0f0f0;
-    border-bottom: none;
-    font-weight: 500;
-}
 
 .visibility-btn {
     display: flex;
@@ -2690,25 +2121,7 @@ export default {
     height: 100rpx;
 }
 
-.remove-favorite-btn {
-    background-color: #f39c12;
-    color: #fff;
-    border: none;
-    border-radius: 8rpx;
-    font-size: 24rpx;
-    padding: 8rpx 16rpx;
-    line-height: 1.2;
-    min-width: 100rpx;
-    transition: background-color 0.2s ease;
-}
-
-.remove-favorite-btn:active {
-    background-color: #e67e22;
-}
-
-.remove-favorite-btn::after {
-    border: none;
-}
+/* .remove-favorite-btn 已封装到 PostItem 组件 */
 
 .empty-tip {
     text-align: center;
@@ -2786,125 +2199,6 @@ export default {
 .back-btn:active {
     background: rgba(0, 0, 0, 0.2);
 }
-.profile-avatar-large {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin: 70rpx 0 40rpx 0;
-}
-
-.profile-avatar-large image {
-    width: 175rpx;
-    height: 175rpx;
-    border-radius: 50%;
-    display: block;
-}
-.profile-info-center {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    margin-top: 20rpx;
-    width: 100%;
-}
-.profile-name-center {
-    font-family: 'Inter', sans-serif;
-    font-weight: 600;
-    font-size: 30rpx;
-    line-height: 36rpx;
-    color: #000000;
-    margin-bottom: 20rpx;
-    text-align: left;
-}
-
-.profile-poemid {
-    font-family: 'Inter', sans-serif;
-    font-weight: 300;
-    font-size: 20rpx;
-    line-height: 24rpx;
-    color: #989090;
-    margin-bottom: 20rpx;
-}
-  .profile-bio-center {
-      font-family: 'Inter', sans-serif;
-      font-weight: 600;
-      font-size: 24rpx;
-      line-height: 30rpx;
-      color: #000000;
-      text-align: left;
-      margin-bottom: 20rpx;
-  }
-
-  .profile-bottom-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      width: 100%;
-      margin-bottom: 10rpx;
-  }
-
-  .profile-buttons {
-      display: flex;
-      align-items: center;
-      gap: 20rpx;
-  }
-
-  .profile-followers {
-      font-family: 'Inter', sans-serif;
-      font-weight: 300;
-      font-size: 24rpx;
-      line-height: 30rpx;
-      color: #989090;
-      margin: 0;
-  }
-
-  .edit-profile-btn {
-      position: relative;
-      width: 246rpx;
-      height: 54rpx;
-      background: #D9D9D9;
-      border-radius: 10rpx;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-  }
-
-  .edit-profile-btn:active {
-      background-color: #C0C0C0;
-  }
-
-  .edit-profile-btn text {
-      font-family: 'Inter', sans-serif;
-      font-weight: 800;
-      font-size: 28rpx;
-      line-height: 34rpx;
-      color: #FFFFFF;
-  }
-  .profile-meta-center {
-      font-size: 26rpx;
-      color: #666;
-      margin-top: 8rpx;
-      text-align: center;
-  }
-.profile-detail-card {
-    margin: 0 30rpx 30rpx 30rpx;
-    padding: 30rpx 40rpx;
-    background-color: #fff;
-    border-radius: 16rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 40rpx;
-}
-.detail-item-inline {
-    font-size: 28rpx;
-    color: #666;
-    margin-right: 20rpx;
-    white-space: nowrap;
-}
 
 /* 底部加载状态样式 */
 .loading-footer {
@@ -2955,110 +2249,6 @@ export default {
     border-radius: 6rpx; 
 }
 
-/* 删除弹窗样式 */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-}
-
-.modal-content {
-    background: white;
-    border-radius: 16rpx;
-    margin: 40rpx;
-    width: calc(100% - 80rpx);
-    max-width: 600rpx;
-    display: flex;
-    flex-direction: column;
-}
-
-.modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 30rpx 40rpx;
-    border-bottom: 1rpx solid #f0f0f0;
-}
-
-.modal-title {
-    font-size: 36rpx;
-    font-weight: 500;
-    color: #333;
-}
-
-.close-btn {
-    font-size: 48rpx;
-    color: #999;
-    line-height: 1;
-    cursor: pointer;
-}
-
-.modal-body {
-    padding: 40rpx;
-}
-
-.modal-text {
-    font-size: 32rpx;
-    color: #666;
-    text-align: center;
-    line-height: 1.5;
-}
-
-.modal-footer {
-    display: flex;
-    padding: 0 40rpx 40rpx;
-    gap: 20rpx;
-}
-
-.modal-btn {
-    flex: 1;
-    height: 80rpx;
-    border-radius: 12rpx;
-    font-size: 28rpx;
-    font-weight: 500;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.modal-btn:active {
-    transform: scale(0.95);
-}
-
-.cancel-btn {
-    background-color: #f5f5f5;
-    color: #666;
-}
-
-.draft-btn {
-    background-color: #f5f5f5;
-    color: #666;
-}
-
-/* 个人主页中的删除图标按钮 */
-.delete-btn {
-    background-color: transparent;
-    color: #666;
-}
-
-/* 弹窗中的删除按钮 */
-.modal-delete-btn {
-    background-color: #cc9090;
-    color: white;
-}
 
 /* 成长统计样式 */
 .profile-growth-stats {

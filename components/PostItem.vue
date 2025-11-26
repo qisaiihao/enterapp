@@ -1,0 +1,523 @@
+<template>
+    <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')">
+        <!-- 右上角三个点菜单按钮 -->
+        <view 
+            v-if="showMenu" 
+            class="more-menu-btn-top-right" 
+            @tap.stop.prevent="onShowActionMenu"
+        >
+            <view class="more-menu-dots-small">
+                <view class="dot-small"></view>
+                <view class="dot-small"></view>
+                <view class="dot-small"></view>
+            </view>
+        </view>
+
+        <!-- 作者信息 -->
+        <view class="author-info-outside">
+            <image
+                class="author-avatar"
+                :src="item.isAnonymous ? '/static/images/avatar.png' : (item.authorAvatar || '/static/images/avatar.png')"
+                mode="aspectFill"
+                @error="onAvatarError"
+                @load="onAvatarLoad"
+                @tap.stop.prevent="onNavigateToUser"
+            ></image>
+            <text class="author-name">{{ item.authorName }}</text>
+            <view v-if="item.isAnonymous" class="anonymous-tag">匿名</view>
+        </view>
+
+        <!-- 可点击的内容区域 - 跳转到详情页 -->
+        <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item._id" hover-class="navigator-hover">
+            <view class="post-item">
+                <view class="post-title">{{ item.title }} <text v-if="item.isHidden" class="hidden-tag">已隐藏</text></view>
+                <!-- 诗歌作者信息 -->
+                <view v-if="showPoemAuthor && item.isPoem && item.author" class="poem-author">{{ item.author }}</view>
+
+                <!-- 图片显示逻辑 (已优化，使用 imageStyle 占位) -->
+                <view
+                    v-if="item.imageUrls && item.imageUrls.length > 0"
+                    class="image-container-wrapper"
+                    :style="item.imageStyle"
+                    @tap.stop.prevent="onPreviewImage"
+                    :data-src="item.imageUrls[0]"
+                    :data-original-image-urls="item.originalImageUrls || item.imageUrls"
+                >
+                    <!-- 单张图片 -->
+                    <block v-if="item.imageUrls.length === 1">
+                        <image
+                            :id="'single-image-' + item._id"
+                            class="post-image"
+                            :src="item.imageUrls[0]"
+                            mode="aspectFill"
+                            :lazy-load="true"
+                            @error="onImageError"
+                            @load="onImageLoad"
+                            :data-postid="item._id"
+                            :data-imgindex="0"
+                            data-type="single"
+                        />
+                    </block>
+
+                    <!-- 多张图片 -->
+                    <block v-else-if="item.imageUrls.length > 1">
+                        <swiper
+                            :id="'swiper-' + item._id"
+                            class="image-swiper"
+                            :indicator-dots="true"
+                            :circular="true"
+                            :style="'height: ' + (swiperHeight ? swiperHeight + 'px' : '220px') + ';'"
+                        >
+                            <block v-for="(img, imgindex) in item.imageUrls" :key="imgindex">
+                                <swiper-item>
+                                    <image
+                                        class="post-image"
+                                        :src="img"
+                                        mode="aspectFill"
+                                        :lazy-load="true"
+                                        @error="onImageError"
+                                        @load="onImageLoad"
+                                        @tap.stop.prevent="onPreviewImageMulti"
+                                        :data-src="img"
+                                        :data-original-image-urls="item.originalImageUrls || item.imageUrls"
+                                        :data-postid="item._id"
+                                        :data-imgindex="imgindex"
+                                        data-type="multi"
+                                    />
+                                </swiper-item>
+                            </block>
+                        </swiper>
+                    </block>
+                </view>
+
+                <view class="post-content" v-if="item.content" style="white-space: pre-wrap">{{ item.content }}</view>
+
+                <!-- 标签显示 -->
+                <view v-if="item.tags && item.tags.length > 0" class="post-tags">
+                    <text 
+                        class="post-tag" 
+                        @tap.stop.prevent="onTagClick" 
+                        :data-tag="tag" 
+                        v-for="(tag, tagIndex) in item.tags" 
+                        :key="tagIndex"
+                    >
+                        #{{ tag }}
+                    </text>
+                </view>
+            </view>
+        </navigator>
+
+        <!-- 底部操作区域 -->
+        <view class="delete-section">
+            <view class="time-left">
+                <text class="post-time">{{ timeLabel }}{{ displayTime }}</text>
+            </view>
+            <view v-if="showRemoveFavoriteBtn" class="button-group">
+                <button class="remove-favorite-btn" size="mini" @tap.stop.prevent="onRemoveFavorite">
+                    取消收藏
+                </button>
+            </view>
+        </view>
+    </view>
+</template>
+
+<script>
+export default {
+    name: 'PostItem',
+    props: {
+        // 帖子数据
+        item: {
+            type: Object,
+            required: true
+        },
+        // 帖子索引
+        index: {
+            type: Number,
+            required: true
+        },
+        // swiper高度
+        swiperHeight: {
+            type: Number,
+            default: 220
+        },
+        // 是否显示三点菜单
+        showMenu: {
+            type: Boolean,
+            default: false
+        },
+        // 是否显示诗歌作者
+        showPoemAuthor: {
+            type: Boolean,
+            default: true
+        },
+        // 时间标签前缀
+        timeLabel: {
+            type: String,
+            default: '发布于'
+        },
+        // 显示的时间字段
+        timeField: {
+            type: String,
+            default: 'formattedCreateTime'
+        },
+        // 是否显示取消收藏按钮
+        showRemoveFavoriteBtn: {
+            type: Boolean,
+            default: false
+        }
+    },
+    computed: {
+        displayTime() {
+            return this.item[this.timeField] || '未知时间';
+        }
+    },
+    methods: {
+        // 显示操作菜单
+        onShowActionMenu() {
+            this.$emit('show-action-menu', {
+                postId: this.item._id,
+                index: this.index,
+                isHidden: this.item.isHidden === true
+            });
+        },
+        // 头像加载失败
+        onAvatarError(e) {
+            this.$emit('avatar-error', e);
+        },
+        // 头像加载成功
+        onAvatarLoad(e) {
+            this.$emit('avatar-load', e);
+        },
+        // 跳转用户主页
+        onNavigateToUser() {
+            this.$emit('navigate-to-user', {
+                userId: this.item._openid,
+                isAnonymous: this.item.isAnonymous
+            });
+        },
+        // 预览图片（单图/外层容器点击）
+        onPreviewImage(e) {
+            this.$emit('preview-image', {
+                src: this.item.imageUrls[0],
+                urls: this.item.originalImageUrls || this.item.imageUrls,
+                event: e
+            });
+        },
+        // 预览图片（多图swiper内点击）
+        onPreviewImageMulti(e) {
+            const dataset = e.currentTarget.dataset;
+            this.$emit('preview-image', {
+                src: dataset.src,
+                urls: dataset.originalImageUrls || this.item.imageUrls,
+                event: e
+            });
+        },
+        // 图片加载失败
+        onImageError(e) {
+            this.$emit('image-error', {
+                postId: this.item._id,
+                index: this.index,
+                imgindex: e.currentTarget.dataset.imgindex,
+                type: e.currentTarget.dataset.type,
+                event: e
+            });
+        },
+        // 图片加载成功
+        onImageLoad(e) {
+            this.$emit('image-load', {
+                postId: this.item._id,
+                index: this.index,
+                imgindex: e.currentTarget.dataset.imgindex,
+                type: e.currentTarget.dataset.type,
+                event: e
+            });
+        },
+        // 点击标签
+        onTagClick(e) {
+            const tag = e.currentTarget.dataset.tag;
+            this.$emit('tag-click', { tag });
+        },
+        // 取消收藏
+        onRemoveFavorite() {
+            this.$emit('remove-favorite', {
+                favoriteId: this.item.favoriteId,
+                index: this.index
+            });
+        }
+    }
+};
+</script>
+
+<style scoped>
+/* 帖子项包装器样式 */
+.post-item-wrapper {
+    position: relative;
+    background: #fff;
+    margin-bottom: 20rpx;
+    padding: 0;
+    box-shadow: none;
+    border-radius: 0;
+    border-bottom: 1rpx solid #f0f0f0;
+}
+
+/* 原创帖子特殊样式 */
+.post-item-wrapper.original-post {
+    background: linear-gradient(90deg, rgba(235, 200, 141, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
+    border-left: 3rpx solid #ebc88d;
+    position: relative;
+}
+
+/* 右上角三个点菜单按钮（缩小版） */
+.more-menu-btn-top-right {
+    position: absolute;
+    top: 20rpx;
+    right: 20rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8rpx;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.more-menu-btn-top-right:active {
+    transform: scale(0.9);
+    opacity: 0.7;
+}
+
+.more-menu-dots-small {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4rpx;
+}
+
+.more-menu-dots-small .dot-small {
+    width: 8rpx;
+    height: 8rpx;
+    border-radius: 50%;
+    background-color: #666;
+}
+
+/* 外部作者信息样式 */
+.author-info-outside {
+    display: flex;
+    align-items: center;
+    padding: 20rpx 40rpx 10rpx 40rpx;
+    background: #fff;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.author-info-outside .author-avatar {
+    width: 60rpx;
+    height: 60rpx;
+    border-radius: 50%;
+    margin-right: 15rpx;
+    background-color: #f5f5f5;
+    cursor: pointer;
+}
+
+.author-info-outside .author-name {
+    font-size: 28rpx;
+    color: #333;
+    font-weight: 500;
+}
+
+/* 匿名标签样式 */
+.anonymous-tag {
+    background: #ff6b6b;
+    color: white;
+    font-size: 20rpx;
+    padding: 4rpx 8rpx;
+    border-radius: 10rpx;
+    margin-left: 10rpx;
+    font-weight: 500;
+}
+
+/* 内容导航器样式 */
+.post-content-navigator {
+    display: block;
+    background: transparent;
+}
+
+/* 导航器点击效果 */
+.navigator-hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.post-item {
+    width: 100%;
+    background: #fff;
+    border-radius: 0;
+    box-shadow: none;
+    box-sizing: border-box;
+    padding: 20rpx 40rpx 30rpx 40rpx;
+}
+
+.post-title {
+    font-size: 36rpx;
+    font-weight: bold;
+    color: #333333;
+    margin-bottom: 15rpx;
+    line-height: 1.4;
+    word-break: break-word;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+/* 诗歌作者样式 */
+.poem-author {
+    font-size: 32rpx;
+    color: #000;
+    text-align: center;
+    margin: 5rpx 0 15rpx 0;
+    letter-spacing: 2rpx;
+}
+
+/* 隐藏标签 */
+.hidden-tag { 
+    font-size: 22rpx; 
+    color: #ff6b6b; 
+    margin-left: 8rpx; 
+    padding: 2rpx 8rpx; 
+    border: 1rpx solid #ffadb0; 
+    border-radius: 6rpx; 
+}
+
+/* 图片容器占位样式 */
+.image-container-wrapper {
+    position: relative;
+    width: 100%;
+    background-color: #f0f0f0;
+    overflow: hidden;
+    border-radius: 8px;
+    margin: 20rpx 0;
+}
+
+/* 让图片或swiper填充整个占位容器 */
+.image-container-wrapper .post-image,
+.image-container-wrapper .image-swiper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* 多张图片的swiper样式 */
+.image-swiper {
+    width: 100%;
+    background-color: #fff;
+}
+
+.swiper-item {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.post-image {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+}
+
+.post-image:active {
+    transform: scale(1.05);
+}
+
+.post-image.single-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+}
+
+.post-content {
+    font-size: 28rpx;
+    color: #666666;
+    line-height: 1.6;
+    margin-top: 15rpx;
+    word-break: break-word;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+
+/* 标签样式 */
+.post-tags {
+    margin-top: 30rpx;
+    margin-bottom: 10rpx;
+    line-height: 1.5;
+}
+
+.post-tag {
+    color: #24375f;
+    font-size: 26rpx;
+    margin-right: 10rpx;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.post-tag:active {
+    color: #1a2a4a;
+    opacity: 0.8;
+}
+
+/* 删除按钮区域样式 */
+.delete-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20rpx;
+    padding: 0 40rpx 0 40rpx;
+}
+
+/* 左侧时间区域 */
+.time-left {
+    flex: 1;
+}
+
+.button-group {
+    display: flex;
+    align-items: center;
+}
+
+.post-time {
+    font-size: 24rpx;
+    color: #999;
+}
+
+/* 取消收藏按钮 */
+.remove-favorite-btn {
+    background-color: #f39c12;
+    color: #fff;
+    border: none;
+    border-radius: 8rpx;
+    font-size: 24rpx;
+    padding: 8rpx 16rpx;
+    line-height: 1.2;
+    min-width: 100rpx;
+    transition: background-color 0.2s ease;
+}
+
+.remove-favorite-btn:active {
+    background-color: #e67e22;
+}
+
+.remove-favorite-btn::after {
+    border: none;
+}
+</style>
