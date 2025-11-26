@@ -1,7 +1,11 @@
-import cacheManager from '@/\_utils/cache-manager';
+import cacheManager from '@/cache/core/manager';
 const { cloudCall } = require('@/utils/cloudCall.js');
 
-// 用户资料缓存（仅在事件触发后失效，不设 TTL）
+// 用户资料缓存：TTL 5min + SWR 2min
+// 使用 TTL 作为兜底，避免事件失效时缓存永不更新
+const USER_PROFILE_TTL = 5 * 60 * 1000;  // 5分钟
+const USER_PROFILE_SWR = 2 * 60 * 1000;  // 2分钟
+
 const nsProfile = cacheManager.namespace('profiles:user', { persistent: true, maxItems: 512 });
 
 export async function getUserInfo(userId, context) {
@@ -12,14 +16,17 @@ export async function getUserInfo(userId, context) {
       return res.result.userInfo || {};
     }
     return {};
-  }, { ttlMs: 0, swrMs: 0 });
+  }, { ttlMs: USER_PROFILE_TTL, swrMs: USER_PROFILE_SWR });
 }
 
 export function invalidateUserInfo(userId) {
   nsProfile.delete(`${userId}`);
 }
 
-// 用户帖子分页缓存（仅事件触发时失效，不设 TTL）
+// 用户帖子分页缓存：TTL 2min + SWR 1min
+const USER_POSTS_TTL = 2 * 60 * 1000;
+const USER_POSTS_SWR = 60 * 1000;
+
 function postsNs(userId) {
   return cacheManager.namespace(`userPosts:${userId}`, { persistent: true, maxItems: 200 });
 }
@@ -33,7 +40,7 @@ export async function getUserPosts({ userId, page = 0, pageSize = 10, context })
       return res.result.posts || [];
     }
     return [];
-  }, { ttlMs: 0, swrMs: 0 });
+  }, { ttlMs: USER_POSTS_TTL, swrMs: USER_POSTS_SWR });
 }
 
 export function invalidateUserPosts(userId, page, pageSize = 10) {
@@ -64,7 +71,10 @@ export function invalidateUserPortfolios(userId) {
   nsPortfolio.delete(`${userId}`);
 }
 
-// 用户收藏分页缓存（仅事件触发时失效，不设 TTL）
+// 用户收藏分页缓存：TTL 2min + SWR 1min
+const USER_FAVORITES_TTL = 2 * 60 * 1000;
+const USER_FAVORITES_SWR = 60 * 1000;
+
 function favoritesNs(userId) {
   return cacheManager.namespace(`userFavorites:${userId}`, { persistent: true, maxItems: 200 });
 }
@@ -78,7 +88,7 @@ export async function getUserFavorites({ userId, page = 0, pageSize = 10, contex
       return res.result.favorites || [];
     }
     return [];
-  }, { ttlMs: 0, swrMs: 0 });
+  }, { ttlMs: USER_FAVORITES_TTL, swrMs: USER_FAVORITES_SWR });
 }
 
 export function invalidateUserFavorites(userId, page, pageSize = 10) {

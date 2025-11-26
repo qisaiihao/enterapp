@@ -34,8 +34,7 @@
 </template>
 
 <script>
-import { getUnreadCount } from '@/api-cache/unread.js';
-import { EVENTS } from '@/utils/events.js';
+import unreadBadge from '@/cache/stores/unread-badge.js';
 
 export default {
   name: 'PageTabs',
@@ -53,29 +52,23 @@ export default {
         { label: '广场', value: 'square' },
         { label: '关注', value: 'following' },
         { label: '讨论', value: 'discussion' }
-      ]
+      ],
+      _unsubscribe: null
     };
   },
   mounted() {
-    // 检查未读消息数量
-    this.checkUnreadMessageCount();
     // 获取安全区域高度
     this.getSafeAreaTop();
-    // 订阅未读变化，跨页面保持一致
-    try {
-      if (typeof uni !== 'undefined' && uni.$on) {
-        this.__onUnreadChanged = ({ count, delta } = {}) => {
-          let next = this.unreadMessageCount || 0;
-          if (typeof count === 'number') next = count;
-          if (typeof delta === 'number') next = Math.max(0, next + delta);
-          this.unreadMessageCount = next;
-        };
-        uni.$on(EVENTS.UNREAD_CHANGED, this.__onUnreadChanged);
-      }
-    } catch (_) {}
+    // 订阅未读数变化（会立即用当前值回调一次）
+    this._unsubscribe = unreadBadge.subscribe((count) => {
+      this.unreadMessageCount = count;
+    });
   },
   beforeDestroy() {
-    try { if (this.__onUnreadChanged && uni && uni.$off) uni.$off(EVENTS.UNREAD_CHANGED, this.__onUnreadChanged); } catch (_) {}
+    if (this._unsubscribe) {
+      this._unsubscribe();
+      this._unsubscribe = null;
+    }
   },
   methods: {
     // 获取安全区域高度
@@ -157,13 +150,6 @@ export default {
           });
         }
       });
-    },
-
-    // 检查未读消息数量
-    checkUnreadMessageCount() {
-      getUnreadCount(this).then((n) => {
-        this.unreadMessageCount = n || 0;
-      }).catch(() => {});
     }
   }
 };

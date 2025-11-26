@@ -1,8 +1,8 @@
 // 点赞服务：封装 vote 云函数调用，统一缓存同步与错误提示。
 const { cloudCall } = require('./cloudCall.js');
 const likeIcon = require('./likeIcon.js');
-const cacheManager = require('../_utils/cache-manager');
-const { updateLikeStatus } = require('./likeStatusSync');
+const cacheManager = require('../cache/core/manager');
+const likeStatusCache = require('../cache/stores/like-status');
 const { emitLikeChanged } = require('./events.js');
 
 const DEFAULT_ERROR_MESSAGE = '操作失败，请稍后重试';
@@ -203,8 +203,8 @@ async function togglePostLike(postId, options = {}) {
 
     if (updateCache) {
         updatePostInCaches(postId, finalVotes, finalIsLiked, finalIcon);
-        // 更新到专门的点赞状态缓存，供其他页面同步使用
-        updateLikeStatus(postId, finalVotes, finalIsLiked);
+        // 更新到统一的点赞状态缓存，供其他页面同步使用
+        likeStatusCache.updateLikeStatus(postId, finalVotes, finalIsLiked);
     }
 
     // ���¼�����, ͬ����ҳ�ĵ���״̬

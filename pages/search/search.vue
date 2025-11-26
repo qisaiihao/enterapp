@@ -200,6 +200,8 @@ const { normalizePostList } = require('../../utils/postNormalizer.js');
 const { cloudCall } = require('../../utils/cloudCall.js');
 const { searchCache } = require('../../utils/searchCache.js');
 const SearchHighlighter = require('../../utils/searchHighlighter.js');
+const searchHistoryCache = require('../../cache/stores/search-history.js');
+
 export default {
     components: {
         skeleton
@@ -501,7 +503,7 @@ export default {
                 content: '确定要清空搜索历史吗？',
                 success: (res) => {
                     if (res.confirm) {
-                        uni.removeStorageSync('searchHistory');
+                        searchHistoryCache.clearSearchHistory();
                         this.setData({
                             searchHistory: []
                         });
@@ -513,13 +515,11 @@ export default {
         // 加载搜索历史
         loadSearchHistory: function () {
             try {
-                const history = uni.getStorageSync('searchHistory') || [];
+                const history = searchHistoryCache.getDisplayHistory();
                 this.setData({
-                    searchHistory: history.slice(0, 10) // 最多显示10条历史记录
+                    searchHistory: history
                 });
             } catch (e) {
-                console.log('CatchClause', e);
-                console.log('CatchClause', e);
                 console.error('加载搜索历史失败:', e);
             }
         },
@@ -527,23 +527,11 @@ export default {
         // 保存搜索历史
         saveSearchHistory: function (keyword) {
             try {
-                let history = uni.getStorageSync('searchHistory') || [];
-
-                // 移除重复项
-                history = history.filter((item) => item !== keyword);
-
-                // 添加到开头
-                history.unshift(keyword);
-
-                // 限制历史记录数量
-                history = history.slice(0, 20);
-                uni.setStorageSync('searchHistory', history);
+                searchHistoryCache.addSearchHistory(keyword);
                 this.setData({
-                    searchHistory: history.slice(0, 10)
+                    searchHistory: searchHistoryCache.getDisplayHistory()
                 });
             } catch (e) {
-                console.log('CatchClause', e);
-                console.log('CatchClause', e);
                 console.error('保存搜索历史失败:', e);
             }
         },

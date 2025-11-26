@@ -47,17 +47,18 @@ export function setupCacheEventBridges() {
     // 收藏变更：当前阶段按用户要求暂不做整页失效
     // uni.$on(EVENTS.FAVORITE_CHANGED, () => { /* no-op */ });
 
-    // 点赞变更：更新专用缓存并同步到相关命名空间列表缓存
+    // 点赞变更：更新 like:status 专用缓存并同步到列表缓存
     uni.$on(EVENTS.LIKE_CHANGED, (payload = {}) => {
       try {
         const postId = payload.postId;
         const votes = payload.votes;
         const isLiked = payload.isLiked;
         if (!postId) return;
-        // 更新 like:status 专用缓存，随后批量同步到列表缓存
-        try { const { updateLikeStatus, syncLikeStatusForPosts } = require('@/utils/likeStatusSync.js');
-          updateLikeStatus(postId, votes, isLiked);
-          syncLikeStatusForPosts([postId]);
+        // 使用统一的点赞状态缓存
+        try { 
+          const likeStatusCache = require('@/cache/stores/like-status');
+          likeStatusCache.updateLikeStatus(postId, votes, isLiked);
+          likeStatusCache.syncToListCaches([postId]);
         } catch (_) {}
       } catch (_) {}
     });

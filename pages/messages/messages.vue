@@ -116,7 +116,8 @@ const { formatTimeAgo } = require('../../utils/time');
 const { cloudCall } = require('../../utils/cloudCall.js');
 const { invalidateUnread } = require('../../api-cache/unread.js');
 const { getMessages: getMessagesWithCache, invalidateMessages } = require('../../api-cache/messages.js');
-const fileUrlCache = require('../../_utils/file-url-cache.js').default;
+const fileUrlCache = require('../../cache/core/file-url.js').default;
+const unreadBadge = require('../../cache/stores/unread-badge.js');
 export default {
     data() {
         return {
@@ -620,19 +621,14 @@ export default {
                             messages: updatedMessages,
                             unreadCount: nextUnread
                         });
-                        // 立即广播未读变化，确保顶部小红点立刻消失
-                        try {
-                            const { emitUnreadChanged } = require('../../utils/events.js');
-                            emitUnreadChanged({ count: nextUnread });
-                        } catch (_) {}
                         
-                        // 清除未读消息缓存，让其他页面的小红点消失
-                        invalidateUnread();
+                        // 使用 unreadBadge 统一管理，自动广播到所有订阅者
+                        unreadBadge.setUnreadCount(nextUnread);
                         
-                        // 清除消息列表缓存，确保下次加载时显示最新状态
+                        // 清除消息列表缓存
                         invalidateMessages({ type: this.activeTab === 'all' ? null : this.activeTab });
                         
-                        console.log('【messages】已清除未读消息缓存和消息列表缓存');
+                        console.log('【messages】已标记已读，未读数:', nextUnread);
                     }
                 }).catch((err) => {
                     console.error('标记消息为已读失败:', err);
@@ -742,15 +738,12 @@ export default {
                         this.callCloudFunction('clearAllMessages', {}).then((res) => {
                                 if (res.result && res.result.success) {
                                     this.setData({ messages: [], page: 0, hasMore: false, unreadCount: 0 });
-                                    // 立即广播 0，确保顶部小红点立刻消失
-                                    try {
-                                        const { emitUnreadChanged } = require('../../utils/events.js');
-                                        emitUnreadChanged({ count: 0 });
-                                    } catch (_) {}
                                     
-                                    // 清除未读消息缓存和消息列表缓存
-                                    invalidateUnread();
-                                    invalidateMessages(); // 清除所有类型的消息缓存
+                                    // 使用 unreadBadge 清零，自动广播到所有订阅者
+                                    unreadBadge.clearUnread();
+                                    
+                                    // 清除消息列表缓存
+                                    invalidateMessages();
                                     console.log('【messages】清空消息后已清除所有缓存');
                                     
                                     uni.showToast({

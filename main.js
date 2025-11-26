@@ -154,6 +154,12 @@ Vue.prototype.$requireOpenid = function () {
 // 缓存事件桥：监听发帖/头像更新等事件并失效相关缓存
 try { setupCacheEventBridges(); } catch (e) { console.warn('setupCacheEventBridges failed', e); }
 
+// 初始化未读消息红点管理器
+try {
+  const unreadBadge = require('@/cache/stores/unread-badge.js');
+  unreadBadge.initUnreadCount();
+} catch (e) { console.warn('unreadBadge init failed', e); }
+
 // 登录完成后预热：我的资料 + 头像
 try {
   const waitLoginThen = (fn) => {

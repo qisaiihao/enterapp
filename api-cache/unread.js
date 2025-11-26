@@ -1,4 +1,4 @@
-import cacheManager from '@/\_utils/cache-manager';
+import cacheManager from '@/cache/core/manager';
 const { cloudCall } = require('@/utils/cloudCall.js');
 const { emitUnreadChanged } = require('@/utils/events.js');
 
@@ -12,7 +12,7 @@ export async function getUnreadCount(context) {
       return res.result.count || 0;
     }
     return 0;
-  }, { ttlMs: 60 * 1000, swrMs: 60 * 1000 });
+  }, { ttlMs: 30 * 1000, swrMs: 30 * 1000 }); // 30秒，消息需要更实时
 }
 
 export function invalidateUnread() {
@@ -42,7 +42,7 @@ export function updateUnreadCache(next) {
       });
     } else if (typeof next === 'number') {
       const n = next < 0 ? 0 : (next | 0);
-      ns.set(KEY, n, { ttlMs: 60 * 1000, swrMs: 60 * 1000 });
+      ns.set(KEY, n, { ttlMs: 30 * 1000 });
     }
   } catch (_) {}
 }
