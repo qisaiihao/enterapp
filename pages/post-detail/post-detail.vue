@@ -298,6 +298,7 @@ import portfolioSelector from '@/components/portfolio-selector/portfolio-selecto
 import PostDetailSkeleton from '@/components/PostDetailSkeleton.vue';
 import CommentList from '@/components/CommentList.vue';
 import ShareModal from '@/components/ShareModal.vue';
+import CommentInput from '@/components/CommentInput.vue';
 // pages/post-detail/post-detail.js
 const app = getApp();
 const likeIcon = require('../../utils/likeIcon');
@@ -315,6 +316,7 @@ import fileUrlCache from '@/_utils/file-url-cache';
 // 导入重构后的工具函数
 const { getCurrentUserId } = require('../../utils/auth.js');
 const { calculateActualLines, wrapText, clampText } = require('../../utils/canvasText.js');
+const shareCanvas = require('../../utils/shareCanvas.js');
 const { processComments, validateCommentInput, processCommentImages, findComment, calculateRemainingChars } = require('../../utils/commentUtils.js');
 const { generateShareImageName, isValidImageDataUrl, base64ToArrayBuffer, saveImageToAlbum, createTempFilePath, compressImage, getImageInfo } = require('../../utils/shareImage.js');
 
@@ -329,7 +331,8 @@ export default {
         portfolioSelector,
         PostDetailSkeleton,
         CommentList,
-        ShareModal
+        ShareModal,
+        CommentInput
     },
     mixins: [postGalleryMixin],
     data() {
