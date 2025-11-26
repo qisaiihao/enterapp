@@ -227,6 +227,37 @@
                 </view>
             </view>
         </view>
+
+        <!-- 帖子详情页骨架屏 -->
+        <view v-else-if="pageType === 'post-detail'" class="skeleton-post-detail-container">
+            <!-- 帖子内容骨架 -->
+            <view class="skeleton-detail-wrapper">
+                <view class="skeleton-header">
+                    <view class="skeleton-avatar skeleton-animate"></view>
+                    <view class="skeleton-header-text">
+                        <view class="skeleton-line medium skeleton-animate"></view>
+                        <view class="skeleton-line short skeleton-animate"></view>
+                    </view>
+                </view>
+                <view class="skeleton-line long skeleton-animate"></view>
+                <view class="skeleton-line medium skeleton-animate"></view>
+                <view class="skeleton-line short skeleton-animate"></view>
+                <view class="skeleton-image skeleton-animate"></view>
+                <view class="skeleton-line long skeleton-animate"></view>
+                <view class="skeleton-line medium skeleton-animate"></view>
+            </view>
+            <!-- 评论区骨架 -->
+            <view class="skeleton-section-title skeleton-animate"></view>
+            <view class="skeleton-comment-list">
+                <view class="skeleton-comment-item" v-for="n in 3" :key="'detail-skeleton-comment-' + n">
+                    <view class="skeleton-avatar skeleton-animate"></view>
+                    <view class="skeleton-comment-body">
+                        <view class="skeleton-line medium skeleton-animate"></view>
+                        <view class="skeleton-line short skeleton-animate"></view>
+                    </view>
+                </view>
+            </view>
+        </view>
     </view>
 </template>
 
@@ -721,5 +752,46 @@ export default {
     border-radius: 12rpx;
     background: #f0f0f0;
     margin: 20rpx 40rpx;
+}
+
+/* 帖子详情页骨架屏样式 */
+.skeleton-post-detail-container {
+    padding: 30rpx;
+}
+
+.skeleton-detail-wrapper {
+    background: #fff;
+    padding: 30rpx;
+    border-radius: 16rpx;
+    margin-bottom: 30rpx;
+}
+
+.skeleton-section-title {
+    height: 36rpx;
+    width: 150rpx;
+    border-radius: 8rpx;
+    background: #f0f0f0;
+    margin-bottom: 20rpx;
+}
+
+.skeleton-comment-list {
+    background: #fff;
+    padding: 20rpx 30rpx;
+    border-radius: 16rpx;
+}
+
+.skeleton-comment-item {
+    display: flex;
+    padding: 20rpx 0;
+    border-bottom: 1rpx solid #f5f5f5;
+}
+
+.skeleton-comment-item:last-child {
+    border-bottom: none;
+}
+
+.skeleton-comment-body {
+    flex: 1;
+    margin-left: 15rpx;
 }
 </style>

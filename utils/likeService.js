@@ -1,7 +1,7 @@
 // 点赞服务：封装 vote 云函数调用，统一缓存同步与错误提示。
 const { cloudCall } = require('./cloudCall.js');
 const likeIcon = require('./likeIcon.js');
-const cacheManager = require('../_utils/cache-manager').default;
+const cacheManager = require('../_utils/cache-manager');
 const { updateLikeStatus } = require('./likeStatusSync');
 const { emitLikeChanged } = require('./events.js');
 

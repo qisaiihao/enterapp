@@ -148,14 +148,14 @@
 </template>
 
 <script>
-const {
+import {
   getPortfolioFolders,
   createPortfolioFolder,
   updatePortfolioFolder,
-  deletePortfolio,
+  deletePortfolio as deletePortfolioApi,
   uploadFile,
   invalidatePortfolioCache
-} = require('../../api-cache/portfolio.js');
+} from '@/api-cache/portfolio.js';
 
 export default {
   data() {
@@ -211,7 +211,12 @@ export default {
           context: this
         });
 
-        this.folders = folders || [];
+        // 确保每个 folder 对象都有 isSwipeOpen 和 itemCount 属性，防止 UI 渲染报错
+        this.folders = (folders || []).map(f => ({
+          ...f,
+          isSwipeOpen: false,
+          itemCount: f.itemCount || 0
+        }));
         console.log('【portfolio】作品集加载成功，数量:', this.folders.length);
       } catch (error) {
         console.error('加载作品集失败:', error);
@@ -233,19 +238,17 @@ export default {
     },
 
     openCreateModal() {
-      this.setData({
-        showCreateModal: true,
-        newFolderName: '',
-        newFolderCover: ''
-      });
+      // 修复：使用 Vue 赋值而不是 setData
+      this.showCreateModal = true;
+      this.newFolderName = '';
+      this.newFolderCover = '';
     },
 
     hideCreateModal() {
-      this.setData({
-        showCreateModal: false,
-        newFolderName: '',
-        newFolderCover: ''
-      });
+      // 修复：使用 Vue 赋值
+      this.showCreateModal = false;
+      this.newFolderName = '';
+      this.newFolderCover = '';
     },
 
     async createFolder() {
@@ -353,16 +356,12 @@ export default {
                 });
                 return;
               }
-              this.setData({
-                newFolderCover: tempFilePath
-              });
+              this.newFolderCover = tempFilePath;
             },
             fail: (err) => {
               console.warn('获取文件信息失败，但仍继续使用:', err);
               // 即使获取文件信息失败，也继续使用该图片
-              this.setData({
-                newFolderCover: tempFilePath
-              });
+              this.newFolderCover = tempFilePath;
             }
           });
         },
@@ -517,22 +516,20 @@ export default {
       this.closeAllSwipeActions();
 
       console.log('编辑作品集:', folder);
-      this.setData({
-        showEditModal: true,
-        editingFolder: folder,
-        editingFolderName: folder.name,
-        editingFolderCover: folder.coverUrl || ''
-      });
+      // 修复：使用 Vue 赋值
+      this.showEditModal = true;
+      this.editingFolder = folder;
+      this.editingFolderName = folder.name;
+      this.editingFolderCover = folder.coverUrl || '';
     },
 
     // 隐藏编辑弹窗
     hideEditModal() {
-      this.setData({
-        showEditModal: false,
-        editingFolder: null,
-        editingFolderName: '',
-        editingFolderCover: ''
-      });
+      // 修复：使用 Vue 赋值
+      this.showEditModal = false;
+      this.editingFolder = null;
+      this.editingFolderName = '';
+      this.editingFolderCover = '';
     },
 
     // 保存作品集名字
@@ -583,9 +580,8 @@ export default {
           return folder;
         });
 
-        this.setData({
-          folders: updatedList
-        });
+        // 修复：使用 Vue 赋值，这里需要使用 $set 强制更新数组
+        this.folders = updatedList;
 
         this.hideEditModal();
 
@@ -619,9 +615,7 @@ export default {
         success: (res) => {
           const tempFilePath = res.tempFilePaths[0];
           console.log('选择的编辑作品集封面图片:', tempFilePath);
-          this.setData({
-            editingFolderCover: tempFilePath
-          });
+          this.editingFolderCover = tempFilePath;
         },
         fail: (err) => {
           console.error('选择图片失败:', err);
@@ -708,7 +702,7 @@ export default {
               try {
                 uni.showLoading({ title: '删除中...' });
 
-                await deletePortfolio(folder._id, { context: this });
+                await deletePortfolioApi(folder._id, { context: this });
 
                 uni.showToast({
                   title: '删除成功',

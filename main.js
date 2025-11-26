@@ -185,7 +185,7 @@ try {
 
 // 调试：读取本地 CACHE_DEBUG 开关并注入查看函数
 try {
-  const cacheManager = require('@/_utils/cache-manager').default;
+  const cacheManager = require('@/_utils/cache-manager');
   let dbg = false;
   try { const v = uni.getStorageSync && uni.getStorageSync('CACHE_DEBUG'); dbg = v === true || v === '1' || v === 1 || v === 'true'; } catch(_) {}
   cacheManager.setDebug(!!dbg);

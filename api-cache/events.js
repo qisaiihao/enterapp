@@ -81,7 +81,7 @@ export function setupCacheEventBridges() {
         const commentCount = (payload && typeof payload.commentCount === 'number') ? payload.commentCount : undefined;
         if (!postId || typeof commentCount !== 'number') return;
         try {
-          const cacheManager = require('@/_utils/cache-manager').default;
+          const cacheManager = require('@/_utils/cache-manager');
           const nsStats = cacheManager.getStats ? cacheManager.getStats() : {};
           const nsNames = Object.keys(nsStats);
           // 由于所有帖子列表都使用 posts:list 命名空间，只需要更新这个命名空间即可
@@ -132,7 +132,7 @@ export function setupCacheEventBridges() {
         const postId = payload && payload.postId;
         const isHidden = !!(payload && payload.isHidden);
         if (!postId) return;
-        const cacheManager = require('@/_utils/cache-manager').default;
+        const cacheManager = require('@/_utils/cache-manager');
         const nsStats = cacheManager.getStats ? cacheManager.getStats() : {};
         const nsNames = Object.keys(nsStats);
         // 由于所有帖子列表都使用 posts:list 命名空间，只需要更新这个命名空间即可

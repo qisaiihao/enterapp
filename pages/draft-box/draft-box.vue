@@ -51,7 +51,7 @@
 <script>
 // pages/draft-box/draft-box.js
 const { formatRelativeTime, formatDate } = require('../../utils/time.js');
-const { getMyDrafts, deleteDraft } = require('../../api-cache/draft.js');
+const { getMyDrafts, deleteDraft: deleteDraftApi } = require('../../api-cache/draft.js');
 // 修复：移除全局数据库实例，改为在方法中动态获取
 export default {
     data() {
@@ -73,40 +73,66 @@ export default {
     methods: {
         // 加载草稿列表
         async loadDrafts() {
-            this.setData({
-                isLoading: true
-            });
+    this.setData({
+        isLoading: true
+    });
 
-            try {
-                const drafts = await getMyDrafts({
-                    page: 0,
-                    pageSize: 20,
-                    context: this
-                });
+    try {
+        // 1. 获取响应对象
+        const res = await getMyDrafts({
+            page: 0,
+            pageSize: 20,
+            context: this
+        });
 
-                console.log('获取草稿列表结果:', drafts);
+        console.log('API原始返回:', res);
 
-                // 格式化时间
-                const formattedDrafts = drafts.map((draft) => ({
-                    ...draft,
-                    formattedSaveTime: formatRelativeTime(draft.saveTime) || formatDate(draft.saveTime, 'yyyy-MM-dd HH:mm')
-                }));
+        // --- 修改开始：增强响应格式兼容性 ---
+        // 尝试从不同的响应结构中提取草稿数组
+        let rawList = [];
 
-                this.setData({
-                    drafts: formattedDrafts,
-                    isLoading: false
-                });
-            } catch (err) {
-                console.error('获取草稿失败:', err);
-                this.setData({
-                    isLoading: false
-                });
-                uni.showToast({
-                    title: err.message || '加载草稿失败',
-                    icon: 'none'
-                });
-            }
-        },
+        // 1. 兼容 result.drafts (草稿相关的特定API可能返回这个)
+        if (res.result && Array.isArray(res.result.drafts)) {
+            rawList = res.result.drafts;
+        }
+        // 2. 兼容 result.data (标准云数据库查询通常返回这个)
+        else if (res.result && Array.isArray(res.result.data)) {
+            rawList = res.result.data;
+        }
+        // 3. 兼容 result 直接是数组的情况
+        else if (res.result && Array.isArray(res.result)) {
+            rawList = res.result;
+        }
+        // 4. 兼容响应直接是数组的情况
+        else if (Array.isArray(res)) {
+            rawList = res;
+        }
+
+        // --- 修改结束 ---
+
+        console.log('提取出的草稿数组:', rawList);
+
+        // 3. 对提取出的数组进行 map 操作
+        const formattedDrafts = rawList.map((draft) => ({
+            ...draft,
+            formattedSaveTime: formatRelativeTime(draft.saveTime) || formatDate(draft.saveTime, 'yyyy-MM-dd HH:mm')
+        }));
+
+        this.setData({
+            drafts: formattedDrafts,
+            isLoading: false
+        });
+    } catch (err) {
+        console.error('获取草稿失败:', err);
+        this.setData({
+            isLoading: false
+        });
+        uni.showToast({
+            title: err.message || '加载草稿失败',
+            icon: 'none'
+        });
+    }
+},
 
         // 编辑草稿
         editDraft: function (e) {
@@ -155,7 +181,7 @@ export default {
                                 title: '删除中...'
                             });
 
-                            const result = await deleteDraft(draftId, { context: this });
+                            const result = await deleteDraftApi(draftId, { context: this });
 
                             uni.hideLoading();
                             uni.showToast({

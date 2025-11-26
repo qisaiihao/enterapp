@@ -2,7 +2,7 @@
  * 点赞状态同步工具
  * 用于在不同页面间同步点赞状态
  */
-const cacheManager = require('../_utils/cache-manager').default;
+const cacheManager = require('../_utils/cache-manager');
 const likeIcon = require('./likeIcon');
 
 /**

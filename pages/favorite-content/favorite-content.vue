@@ -130,7 +130,7 @@
 // pages/favorite-content/favorite-content.js
 const { formatRelativeTime } = require('../../utils/time.js');
 const { previewImage } = require('../../utils/imagePreview.js');
-const { getMyFavorites, removeFromFavorites } = require('../../api-cache/favorites.js');
+const { getMyFavorites, removeFromFavorites: removeFromFavoritesApi } = require('../../api-cache/favorites.js');
 const postGalleryMixin = require('../../mixins/postGallery.js');
 const paginationMixin = require('../../mixins/pagination.js');
 const { normalizePostList } = require('../../utils/postNormalizer.js');
@@ -335,7 +335,7 @@ export default {
                                 title: '处理中...'
                             });
 
-                            await removeFromFavorites(postId, 'post', { context: this });
+                            await removeFromFavoritesApi(postId, 'post', { context: this });
 
                             uni.hideLoading();
                             uni.showToast({

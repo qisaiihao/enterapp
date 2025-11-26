@@ -8,6 +8,25 @@ const { cloudCall } = require('../utils/cloudCall.js');
 const ns = cacheManager.namespace('portfolio', { persistent: true, maxItems: 32 });
 
 /**
+ * 辅助函数：提取数据
+ */
+function extractFolders(res) {
+  // 1. 优先检查 result.folders (匹配你代码原本的逻辑)
+  if (res.result && Array.isArray(res.result.folders)) {
+    return res.result.folders;
+  }
+  // 2. 兼容 result.data (标准数据库返回)
+  if (res.result && Array.isArray(res.result.data)) {
+    return res.result.data;
+  }
+  // 3. 兼容 result 直接是数组
+  if (res.result && Array.isArray(res.result)) {
+    return res.result;
+  }
+  return [];
+}
+
+/**
  * 获取作品集文件夹列表
  * @param {Object} options - 选项
  * @param {boolean} options.forceRefresh - 是否强制刷新
@@ -20,7 +39,7 @@ async function getPortfolioFolders({ forceRefresh = false, context } = {}) {
   // 如果强制刷新，使用时间戳作为缓存键的一部分来绕过缓存
   const finalCacheKey = forceRefresh ? `${cacheKey}:ts:${Date.now()}` : cacheKey;
 
-  console.log('🔍 [portfolio] 请求作品集列表 - key:', finalCacheKey, 'forceRefresh:', forceRefresh);
+  console.log('🔍 [portfolio] 请求列表 - key:', finalCacheKey, 'forceRefresh:', forceRefresh);
 
   // 强制刷新时，跳过缓存直接调用云函数
   if (forceRefresh) {
@@ -30,11 +49,7 @@ async function getPortfolioFolders({ forceRefresh = false, context } = {}) {
       {},
       { pageTag: 'portfolio', context, requireAuth: true }
     );
-    console.log('🔍 [portfolio] 云函数返回 - success:', res?.result?.success, 'folders数量:', res?.result?.folders?.length);
-    if (res && res.result && res.result.success) {
-      return res.result.folders || [];
-    }
-    return [];
+    return extractFolders(res);
   }
 
   // 使用缓存
@@ -47,11 +62,7 @@ async function getPortfolioFolders({ forceRefresh = false, context } = {}) {
         {},
         { pageTag: 'portfolio', context, requireAuth: true }
       );
-      console.log('🔍 [portfolio] 云函数返回 - success:', res?.result?.success, 'folders数量:', res?.result?.folders?.length);
-      if (res && res.result && res.result.success) {
-        return res.result.folders || [];
-      }
-      return [];
+      return extractFolders(res);
     },
     { ttlMs: 5 * 60 * 1000, swrMs: 60 * 1000 } // 5分钟TTL，1分钟SWR
   );

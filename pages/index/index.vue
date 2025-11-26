@@ -1,19 +1,13 @@
 <template>
     <view class="page-wrapper" :class="{ 'is-scrolling': isTouchScrolling }">
-        <!-- index.wxml -->
         <view class="container">
+            <page-tabs ref="pageTabs" :current-tab="currentTab" @tab-change="onTabChange"></page-tabs>
 
-            <!-- 页面切换栏 -->
-        <page-tabs ref="pageTabs" :current-tab="currentTab" @tab-change="onTabChange"></page-tabs>
-
-            <!-- 骨架屏：当 isLoading 为 true 时显示 -->
             <view v-if="isLoading">
                 <skeleton pageType="index" />
             </view>
 
-            <!-- 真实内容：当 isLoading 为 false 时显示 -->
             <view v-else class="square-mode-container">
-                <!-- 使用swiper实现滑动切换 -->
                 <swiper 
                     class="page-swiper" 
                     :current="swiperCurrent" 
@@ -28,7 +22,6 @@
                     :skip-hidden-item-layout="true"
                     :easing-function="easeOutCubic"
                 >
-                    <!-- 广场页 -->
                     <swiper-item>
                         <scroll-view 
                             scroll-y="true" 
@@ -45,137 +38,47 @@
                             refresher-background-style="#ffffff"
                             @refresherrefresh="onRefresherRefresh"
                         >
-                            <!-- 切换按钮 - 在帖子列表上方 -->
                             <view class="filter-toggle-container">
-                                <view 
-                                    :class="'filter-toggle-btn ' + (showNormalPostsOnly ? 'active' : '')" 
+                                <view
+                                    :class="'filter-toggle-btn ' + (showNormalPostsOnly ? 'active' : '')"
                                     @tap="toggleNormalPostsFilter"
                                 >
                                     <text class="filter-toggle-text">{{ showNormalPostsOnly ? '显示全部' : '只看普通帖子' }}</text>
                                 </view>
                             </view>
-                            
+
                             <view v-if="postList.length === 0 && !isLoading" class="empty-state">
                                 <view class="empty-icon">📝</view>
                                 <view class="empty-text">还没有帖子哦～</view>
                                 <view class="empty-subtext">快来发布第一条帖子吧！</view>
                             </view>
-                            <!-- 给你的帖子列表循环的父容器添加一个ID -->
                             <view id="post-list-container">
-                                <!-- 主页帖子列表 -->
-                                <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" v-for="(item, index) in postList" :key="index">
-                            <!-- 作者信息 -->
-
-                            <view class="author-info-outside">
-                                <image
-                                    class="author-avatar"
-                                    :src="item.isAnonymous ? '/static/images/avatar.png' : (item.authorAvatar || '/static/images/avatar.png')"
-                                    mode="aspectFill"
-                                    @error="onAvatarError"
-                                    @load="onAvatarLoad"
-                                    :data-postindex="index"
-                                    @tap.stop.prevent="navigateToUserProfile"
-                                    :data-user-id="item._openid"
-                                    :data-author-name="item.authorName"
-                                    :data-is-anonymous="item.isAnonymous"
-                                ></image>
-                                <text class="author-name">{{ item.isAnonymous ? '匿名用户' : item.authorName }}</text>
+                                <post-item
+                                    v-for="(item, index) in postList"
+                                    :key="item._id || index"
+                                    :item="item"
+                                    :index="index"
+                                    :swiper-height="swiperHeights[index]"
+                                    :show-vote-section="true"
+                                    list-type="home"
+                                    @avatar-error="onAvatarError"
+                                    @avatar-load="onAvatarLoad"
+                                    @navigate-to-user="handleNavigateToUser"
+                                    @preview-image="handlePreviewImage"
+                                    @image-error="onImageError"
+                                    @image-load="onImageLoad"
+                                    @tag-click="handleTagClick"
+                                    @vote="handleVote"
+                                    @comment-click="handleCommentClick"
+                                    @like-icon-error="onLikeIconError"
+                                />
                             </view>
-
-                            <!-- 可点击的内容区域 - 跳转到详情页 -->
-
-                            <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item._id" hover-class="navigator-hover">
-                                <view class="post-item">
-                                    <view class="post-title">{{ item.title }}</view>
-
-                                    <!-- 图片显示逻辑 (已优化，使用 imageStyle 占位) -->
-                                    <view
-                                        v-if="item.imageUrls && item.imageUrls.length > 0"
-                                        class="image-container-wrapper"
-                                        :style="item.imageStyle"
-                                        @tap.stop.prevent="handlePreview"
-                                        :data-src="item.imageUrls[0]"
-                                        :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                    >
-                                        <!-- 单张图片 -->
-                                        <block v-if="item.imageUrls.length === 1">
-                                            <image
-                                                class="post-image"
-                                                :src="item.imageUrls[0]"
-                                                mode="aspectFill"
-                                                :lazy-load="true"
-                                                @error="onImageError"
-                                                @tap.stop.prevent="handlePreview"
-                                                :data-src="item.imageUrls[0]"
-                                                :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                            />
-                                        </block>
-
-                                        <!-- 多张图片 -->
-                                        <block v-else-if="item.imageUrls.length > 1">
-                                            <swiper class="image-swiper" :indicator-dots="true" :circular="true">
-                                                <block v-for="(img, index1) in item.imageUrls" :key="index1">
-                                                    <swiper-item>
-                                                        <image
-                                                            class="post-image"
-                                                            :src="img"
-                                                            mode="aspectFill"
-                                                            :lazy-load="true"
-                                                            @error="onImageError"
-                                                            @tap.stop.prevent="handlePreview"
-                                                            :data-src="img"
-                                                            :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                                        />
-                                                    </swiper-item>
-                                                </block>
-                                            </swiper>
-                                        </block>
-                                    </view>
-
-                                    <view class="post-content" v-if="item.content" style="white-space: pre-wrap">{{ item.content }}</view>
-
-                                    <!-- 标签显示 -->
-                                    <view v-if="item.tags && item.tags.length > 0" class="post-tags">
-                                        <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="item" v-for="(item, index1) in item.tags" :key="index1">#{{ item }}</text>
-                                    </view>
-                                </view>
-                            </navigator>
-
-                            <!-- 独立的互动区域 - 不触发详情页跳转 -->
-
-                            <view class="vote-section">
-                                <view class="actions-left">
-                                    <!-- 左侧留空，保持布局平衡 -->
-                                </view>
-                                <view class="button-group">
-                                    <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
-                                        <image class="comment-icon" src="/static/images/comment.png" mode="aspectFit" />
-                                        <text class="action-text">{{ item.commentCount || 0 }}</text>
-                                    </view>
-                                    <view
-                                        class="like-icon-container"
-                                        @tap.stop.prevent="onVote"
-                                        :data-postid="item._id"
-                                        :data-index="index"
-                                        data-list-type="home"
-                                    >
-                                        <image class="like-icon" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError"></image>
-                                    </view>
-                                    <view :class="'vote-count ' + (item.isVoted ? 'voted' : '')">
-                                        <text class="action-text">{{ item.votes || 0 }}</text>
-                                    </view>
-                                </view>
-                            </view>
-                        </view>
-                            </view>
-                            <!-- 首页触底提示 -->
-                            <view v-if="currentPage === 'home' && !hasMore && postList.length > 0" class="end-tip">
+                              <view v-if="currentPage === 'home' && !hasMore && postList.length > 0" class="end-tip">
                                 <text class="end-text">--- 我是有底线的 ---</text>
                             </view>
                         </scroll-view>
                     </swiper-item>
 
-                    <!-- 关注页 -->
                     <swiper-item>
                         <scroll-view 
                             scroll-y="true" 
@@ -192,12 +95,10 @@
                             refresher-background-style="#ffffff"
                             @refresherrefresh="onRefresherRefresh"
                         >
-                            <!-- 关注页骨架屏：当 followingIsLoading 为 true 时显示 -->
                             <view v-if="followingIsLoading">
                                 <skeleton pageType="index" />
                             </view>
-                            
-                            <!-- 真实内容：当 followingIsLoading 为 false 时显示 -->
+
                             <view v-else>
                             <view id="following-list-container">
                             <view v-if="followingPostList.length === 0" class="empty-state">
@@ -205,117 +106,33 @@
                                 <view class="empty-text">关注的人还没有发帖</view>
                                 <view class="empty-subtext">去关注更多有趣的人吧！</view>
                             </view>
-                            <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" v-for="(item, index) in followingPostList" :key="index">
-                                <!-- 作者信息 -->
-                                <view class="author-info-outside">
-                                    <image
-                                        class="author-avatar"
-                                        :src="item.isAnonymous ? '/static/images/avatar.png' : (item.authorAvatar || '/static/images/avatar.png')"
-                                        mode="aspectFill"
-                                        @error="onAvatarError"
-                                        @load="onAvatarLoad"
-                                        :data-postindex="index"
-                                        @tap.stop.prevent="navigateToUserProfile"
-                                        :data-user-id="item._openid"
-                                        :data-author-name="item.authorName"
-                                        :data-is-anonymous="item.isAnonymous"
-                                    ></image>
-                                    <text class="author-name">{{ item.isAnonymous ? '匿名用户' : item.authorName }}</text>
-                                </view>
-
-                                <!-- 可点击的内容区域 - 跳转到详情页 -->
-                                <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item._id" hover-class="navigator-hover">
-                                    <view class="post-item">
-                                        <view class="post-title">{{ item.title }}</view>
-
-                                        <!-- 图片显示逻辑 -->
-                                        <view
-                                            v-if="item.imageUrls && item.imageUrls.length > 0"
-                                            class="image-container-wrapper"
-                                            :style="item.imageStyle"
-                                            @tap.stop.prevent="handlePreview"
-                                            :data-src="item.imageUrls[0]"
-                                            :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                        >
-                                            <!-- 单张图片 -->
-                                            <block v-if="item.imageUrls.length === 1">
-                                                <image
-                                                    class="post-image"
-                                                    :src="item.imageUrls[0]"
-                                                    mode="aspectFill"
-                                                    :lazy-load="true"
-                                                    @error="onImageError"
-                                                    @tap.stop.prevent="handlePreview"
-                                                    :data-src="item.imageUrls[0]"
-                                                    :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                                />
-                                            </block>
-
-                                            <!-- 多张图片 -->
-                                            <block v-else-if="item.imageUrls.length > 1">
-                                                <swiper class="image-swiper" :indicator-dots="true" :circular="true">
-                                                    <block v-for="(img, imgIndex) in item.imageUrls" :key="imgIndex">
-                                                        <swiper-item>
-                                                            <image
-                                                                class="post-image"
-                                                                :src="img"
-                                                                mode="aspectFill"
-                                                                :lazy-load="true"
-                                                                @error="onImageError"
-                                                                @tap.stop.prevent="handlePreview"
-                                                                :data-src="img"
-                                                                :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                                            />
-                                                        </swiper-item>
-                                                    </block>
-                                                </swiper>
-                                            </block>
-                                        </view>
-
-                                        <view class="post-content" v-if="item.content" style="white-space: pre-wrap">{{ item.content }}</view>
-
-                                        <!-- 标签显示 -->
-                                        <view v-if="item.tags && item.tags.length > 0" class="post-tags">
-                                            <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="item" v-for="(item, index1) in item.tags" :key="index1">#{{ item }}</text>
-                                        </view>
-                                    </view>
-                                </navigator>
-
-                                <!-- 独立的互动区域 -->
-                                <view class="vote-section">
-                                    <view class="actions-left">
-                                        <!-- 左侧留空，保持布局平衡 -->
-                                    </view>
-                                    <view class="button-group">
-                                        <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
-                                            <image class="comment-icon" src="/static/images/comment.png" mode="aspectFit" />
-                                            <text class="action-text">{{ item.commentCount || 0 }}</text>
-                                        </view>
-                                        <view
-                                            class="like-icon-container"
-                                            @tap.stop.prevent="onVote"
-                                            :data-postid="item._id"
-                                            :data-index="index"
-                                            data-list-type="following"
-                                        >
-                                            <image class="like-icon" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError"></image>
-                                        </view>
-                                        <view :class="'vote-count ' + (item.isVoted ? 'voted' : '')">
-                                            <text class="action-text">{{ item.votes || 0 }}</text>
-                                        </view>
-                                    </view>
-                                </view>
+                            <post-item
+                                v-for="(item, index) in followingPostList"
+                                :key="item._id || index"
+                                :item="item"
+                                :index="index"
+                                :swiper-height="swiperHeights[index]"
+                                :show-vote-section="true"
+                                list-type="following"
+                                @avatar-error="onAvatarError"
+                                @avatar-load="onAvatarLoad"
+                                @navigate-to-user="handleNavigateToUser"
+                                @preview-image="handlePreviewImage"
+                                @image-error="onImageError"
+                                @image-load="onImageLoad"
+                                @tag-click="handleTagClick"
+                                @vote="handleVote"
+                                @comment-click="handleCommentClick"
+                                @like-icon-error="onLikeIconError"
+                            />
                             </view>
                             </view>
-                            </view>
-                            <!-- 关注页触底提示 -->
-                            <view v-if="currentPage === 'following' && !followingHasMore && followingPostList.length > 0" class="end-tip">
+                                <view v-if="currentPage === 'following' && !followingHasMore && followingPostList.length > 0" class="end-tip">
                                 <text class="end-text">--- 没有更多了 ---</text>
                             </view>
                         </scroll-view>
                     </swiper-item>
 
-                    <!-- 讨论页 -->
                     <swiper-item>
                         <scroll-view 
                             scroll-y="true" 
@@ -332,12 +149,10 @@
                             refresher-background-style="#ffffff"
                             @refresherrefresh="onRefresherRefresh"
                         >
-                            <!-- 讨论页骨架屏：当 discussionIsLoading 为 true 时显示 -->
                             <view v-if="discussionIsLoading">
                                 <skeleton pageType="index" />
                             </view>
-                            
-                            <!-- 真实内容：当 discussionIsLoading 为 false 时显示 -->
+
                             <view v-else>
                             <view id="discussion-list-container">
                             <view v-if="discussionPostList.length === 0" class="empty-state">
@@ -345,111 +160,28 @@
                                 <view class="empty-text">讨论区暂无内容</view>
                                 <view class="empty-subtext">快来发起第一个话题吧！</view>
                             </view>
-                            <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" v-for="(item, index) in discussionPostList" :key="index">
-                                <!-- 作者信息 -->
-                                <view class="author-info-outside">
-                                    <image
-                                        class="author-avatar"
-                                        :src="item.isAnonymous ? '/static/images/avatar.png' : (item.authorAvatar || '/static/images/avatar.png')"
-                                        mode="aspectFill"
-                                        @error="onAvatarError"
-                                        @load="onAvatarLoad"
-                                        :data-postindex="index"
-                                        @tap.stop.prevent="navigateToUserProfile"
-                                        :data-user-id="item._openid"
-                                        :data-author-name="item.authorName"
-                                        :data-is-anonymous="item.isAnonymous"
-                                    ></image>
-                                    <text class="author-name">{{ item.isAnonymous ? '匿名用户' : item.authorName }}</text>
-                                </view>
-
-                                <!-- 可点击的内容区域 - 跳转到详情页 -->
-                                <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item._id" hover-class="navigator-hover">
-                                    <view class="post-item">
-                                        <view class="post-title">{{ item.title }}</view>
-
-                                        <!-- 图片显示逻辑 -->
-                                        <view
-                                            v-if="item.imageUrls && item.imageUrls.length > 0"
-                                            class="image-container-wrapper"
-                                            :style="item.imageStyle"
-                                            @tap.stop.prevent="handlePreview"
-                                            :data-src="item.imageUrls[0]"
-                                            :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                        >
-                                            <!-- 单张图片 -->
-                                            <block v-if="item.imageUrls.length === 1">
-                                                <image
-                                                    class="post-image"
-                                                    :src="item.imageUrls[0]"
-                                                    mode="aspectFill"
-                                                    :lazy-load="true"
-                                                    @error="onImageError"
-                                                    @tap.stop.prevent="handlePreview"
-                                                    :data-src="item.imageUrls[0]"
-                                                    :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                                />
-                                            </block>
-
-                                            <!-- 多张图片 -->
-                                            <block v-else-if="item.imageUrls.length > 1">
-                                                <swiper class="image-swiper" :indicator-dots="true" :circular="true">
-                                                    <block v-for="(img, imgIndex) in item.imageUrls" :key="imgIndex">
-                                                        <swiper-item>
-                                                            <image
-                                                                class="post-image"
-                                                                :src="img"
-                                                                mode="aspectFill"
-                                                                :lazy-load="true"
-                                                                @error="onImageError"
-                                                                @tap.stop.prevent="handlePreview"
-                                                                :data-src="img"
-                                                                :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                                            />
-                                                        </swiper-item>
-                                                    </block>
-                                                </swiper>
-                                            </block>
-                                        </view>
-
-                                        <view class="post-content" v-if="item.content" style="white-space: pre-wrap">{{ item.content }}</view>
-
-                                        <!-- 标签显示 -->
-                                        <view v-if="item.tags && item.tags.length > 0" class="post-tags">
-                                            <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="item" v-for="(item, index1) in item.tags" :key="index1">#{{ item }}</text>
-                                        </view>
-                                    </view>
-                                </navigator>
-
-                                <!-- 独立的互动区域 -->
-                                <view class="vote-section">
-                                    <view class="actions-left">
-                                        <!-- 左侧留空，保持布局平衡 -->
-                                    </view>
-                                    <view class="button-group">
-                                        <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
-                                            <image class="comment-icon" src="/static/images/comment.png" mode="aspectFit" />
-                                            <text class="action-text">{{ item.commentCount || 0 }}</text>
-                                        </view>
-                                        <view
-                                            class="like-icon-container"
-                                            @tap.stop.prevent="onVote"
-                                            :data-postid="item._id"
-                                            :data-index="index"
-                                            data-list-type="discussion"
-                                        >
-                                            <image class="like-icon" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError"></image>
-                                        </view>
-                                        <view :class="'vote-count ' + (item.isVoted ? 'voted' : '')">
-                                            <text class="action-text">{{ item.votes || 0 }}</text>
-                                        </view>
-                                    </view>
-                                </view>
+                            <post-item
+                                v-for="(item, index) in discussionPostList"
+                                :key="item._id || index"
+                                :item="item"
+                                :index="index"
+                                :swiper-height="swiperHeights[index]"
+                                :show-vote-section="true"
+                                list-type="discussion"
+                                @avatar-error="onAvatarError"
+                                @avatar-load="onAvatarLoad"
+                                @navigate-to-user="handleNavigateToUser"
+                                @preview-image="handlePreviewImage"
+                                @image-error="onImageError"
+                                @image-load="onImageLoad"
+                                @tag-click="handleTagClick"
+                                @vote="handleVote"
+                                @comment-click="handleCommentClick"
+                                @like-icon-error="onLikeIconError"
+                            />
                             </view>
                             </view>
-                            </view>
-                            <!-- 讨论页触底提示 -->
-                            <view v-if="currentPage === 'discussion' && !discussionHasMore && discussionPostList.length > 0" class="end-tip">
+                                  <view v-if="currentPage === 'discussion' && !discussionHasMore && discussionPostList.length > 0" class="end-tip">
                                 <text class="end-text">--- 没有更多讨论了 ---</text>
                             </view>
                         </scroll-view>
@@ -467,11 +199,10 @@
 <script>
 import skeleton from '@/components/skeleton/skeleton';
 import pageTabs from '@/components/page-tabs/page-tabs';
+import PostItem from '@/components/PostItem.vue';
 // #ifndef MP-WEIXIN
 import AppTabBar from '@/custom-tab-bar/index.vue';
 // #endif
-// index.js
-// 修复：移除全局数据库实例，改为在方法中动态获取
   const PAGE_SIZE = 10;
   const DISCOVER_PAGE_SIZE = 5;
   const MAX_DISCOVER_EXCLUDE_IDS = 200;
@@ -495,6 +226,7 @@ export default {
     components: {
         skeleton,
         pageTabs,
+        PostItem,
         // #ifndef MP-WEIXIN
         AppTabBar
         // #endif
@@ -507,38 +239,17 @@ export default {
             page: 0,
             hasMore: true,
             isLoading: false,
-            openid: '', // 添加 openid 字段
-            isRefreshing: false, // 下拉刷新状态
-
-            // 恢复线上版本的初始值
+            openid: '',
+            isRefreshing: false,
             isLoadingMore: false,
-
-            // 新增：专门用于控制底部"加载中"UI的状态
             swiperHeights: {},
-
             imageClampHeights: {},
-
-            // 新增：单图瘦高图钳制高度
             displayMode: 'square',
-
-            // 首页只负责广场模式
             imageCache: {},
-
-            // 图片缓存
             visiblePosts: new Set(),
-
-            // 可见的帖子ID集合
-  
-            // --- 页面切换相关 ---
-            currentTab: 'square', // 'square', 'discover', 'discussion'
+            currentTab: 'square',
             currentPage: 'home',
-
-            // 'home' 或 'discover'
-
-            // swiper当前页面索引 (0: 广场, 1: 关注, 2: 讨论)
             swiperCurrent: 0,
-
-            // 发现页相关数据（保留但不显示入口）
             discoverPostList: [],
             discoverPage: 0,
             discoverHasMore: true,
@@ -546,35 +257,24 @@ export default {
             discoverRefreshTime: 0,
             discoverIsLoading: false,
             discoverIsLoadingMore: false,
-
-            // 讨论页相关数据
             discussionPostList: [],
             discussionPage: 0,
             discussionHasMore: true,
             discussionIsLoading: false,
             discussionIsLoadingMore: false,
-
-            // 关注页相关数据
             followingPostList: [],
             followingPage: 0,
             followingHasMore: true,
             followingIsLoading: false,
             followingIsLoadingMore: false,
-
             selected: 0,
             img: '',
-            // 安全区域高度
             safeAreaTop: 0,
-            // swiper切换防抖定时器
             swiperChangeTimer: null,
-            // swiper触摸状态
             swiperTouchStartX: null,
             swiperTouchStartTime: null,
-            // swiper缓动函数
             easeOutCubic: 'cubic-bezier(0.33, 1, 0.68, 1)',
-            // 只看普通帖子模式（排除诗歌和讨论）
             showNormalPostsOnly: false,
-            // gesture/scroll flags to suppress active/hover during scroll
             isTouchScrolling: false,
             touchStartX: 0,
             touchStartY: 0,
@@ -585,22 +285,13 @@ export default {
     },
     onLoad: function (options) {
         this.debugSafeArea();
-        
-        // 首页只负责广场模式
         this.setData({
             displayMode: 'square'
         });
         this.pageLoadStartTime = Date.now();
-
-        // 初始化 openid
         this.initOpenid();
-
-        // 等待登录完成（openid 覆盖匿名后）再拉取首屏数据
         this.waitForLoginThenInit();
-
-        // 监听全局点赞变更，触发本页的缓存同步
         try { uni.$on && uni.$on('like-changed', this.syncLikeStatusFromCache); } catch (_) {}
-        // 监听评论数变更，精确更新对应卡片的评论计数
         try { uni.$on && uni.$on('comment-count-changed', (e) => { try { this.updatePostCommentCount(e.postId, e.commentCount); } catch (_) {} }); } catch (_) {}
     },
     onShow: function () {
@@ -631,35 +322,21 @@ export default {
     onUnload: function () {
         try { uni.$off && this.syncLikeStatusFromCache && uni.$off('like-changed', this.syncLikeStatusFromCache); } catch (_) {}
         try { uni.$off && uni.$off('comment-count-changed'); } catch (_) {}
-        // 清理swiper切换防抖定时器
         if (this.swiperChangeTimer) {
             clearTimeout(this.swiperChangeTimer);
             this.swiperChangeTimer = null;
         }
     },
-    // 移除或禁用 onReachBottom，避免与 onPageScroll 冲突
-    /*
-onReachBottom: function () {
-  console.log('【首页】onReachBottom触发，但主要加载逻辑在onPageScroll');
-  if (!this.data.hasMore || this.data.isLoading) {
-    return;
-  }
-  this.getPostList();
-},
-*/
 
     methods: {
-        // 处理scroll-view的下拉刷新事件
-        onRefresherRefresh: function() {
+          onRefresherRefresh: function() {
             if (this.currentPage === 'home') {
-                // 主页刷新 - 清除缓存并强制调用云函数
                 try {
                     const { invalidateHomePosts } = require('../../api-cache/home-posts.js');
                     invalidateHomePosts({});
                 } catch (e) {
                     console.error('清除首页缓存失败:', e);
                 }
-                // 不清空列表，避免白屏；直接拉取首屏并一次性替换
                 this.setData({
                     page: 0,
                     hasMore: true,
@@ -672,20 +349,17 @@ onReachBottom: function () {
                     });
                 });
             } else if (this.currentPage === 'discover') {
-                // 发现页刷新 - 重新获取推荐
                 this.refreshDiscoverPosts();
                 setTimeout(() => {
                     this.isRefreshing = false;
                 }, 100);
             } else if (this.currentPage === 'following') {
-                // 关注页刷新
                 this.refreshFollowingPosts(() => {
                     setTimeout(() => {
                         this.isRefreshing = false;
                     }, 100);
                 });
             } else if (this.currentPage === 'discussion') {
-                // 讨论页刷新
                 this.refreshDiscussionPosts(() => {
                     setTimeout(() => {
                         this.isRefreshing = false;
@@ -694,8 +368,7 @@ onReachBottom: function () {
             }
         },
 
-        // 处理滚动事件（从 onPageScroll 迁移过来）
-        handleScroll: function (e) {
+            handleScroll: function (e) {
             if (typeof this.kickScrollGuard === 'function') {
                 this.kickScrollGuard();
             }
@@ -778,39 +451,30 @@ onReachBottom: function () {
                 } catch (err) {
                     console.error('滚动检测失败:', err);
                 }
-            }, 100); // 100ms 防抖
+            }, 100);
         },
 
-        // 处理匿名头像点击事件的函数
-        handleAnonymousAvatarClick(e) {
+            handleAnonymousAvatarClick(e) {
             if (e && e.preventDefault) {
                 e.preventDefault();
             }
             if (e && e.stopPropagation) {
                 e.stopPropagation();
             }
-            // 显示提示信息
-            uni.showToast({
+              uni.showToast({
                 title: '匿名用户无法查看主页',
                 icon: 'none'
             });
         },
 
-        // 调试安全区域
-        debugSafeArea() {
+            debugSafeArea() {
             try {
-                // 获取系统信息
                 const systemInfo = uni.getSystemInfoSync();
-                // 动态设置安全区域 - 使用uni-app兼容方式
                 if (systemInfo.statusBarHeight) {
                     const safeAreaTop = systemInfo.statusBarHeight;
-                    
-                    // 在uni-app中，我们可以通过设置页面数据来动态调整样式
                     this.setData({
                         safeAreaTop: safeAreaTop
                     });
-                    
-                    // 尝试设置CSS变量（仅在支持的环境中）
                     try {
                         if (typeof document !== 'undefined' && document.documentElement) {
                             document.documentElement.style.setProperty('--safe-area-inset-top', safeAreaTop + 'px');
@@ -825,49 +489,38 @@ onReachBottom: function () {
             }
         },
 
-        // swiper触摸开始事件
-        onSwiperTouchStart(e) {
+                onSwiperTouchStart(e) {
             this.swiperTouchStartX = e.touches[0].clientX;
             this.swiperTouchStartTime = Date.now();
         },
 
-        // swiper触摸结束事件
-        onSwiperTouchEnd(e) {
+                onSwiperTouchEnd(e) {
             if (!this.swiperTouchStartX) return;
             
             const touchEndX = e.changedTouches[0].clientX;
             const deltaX = touchEndX - this.swiperTouchStartX;
             const deltaTime = Date.now() - this.swiperTouchStartTime;
             
-            // 重置触摸状态
             this.swiperTouchStartX = null;
             this.swiperTouchStartTime = null;
-            
-            // 如果滑动距离太小或时间太短，不处理
             if (Math.abs(deltaX) < 30 || deltaTime < 50) {
                 return;
             }
             
-            // 检查边界限制
             const currentIndex = this.swiperCurrent;
-            const isLeftSwipe = deltaX < 0; // 向左滑动
-            const isRightSwipe = deltaX > 0; // 向右滑动
-            
-            // 边界检查 - 更严格的限制
+            const isLeftSwipe = deltaX < 0;
+            const isRightSwipe = deltaX > 0;
+
             if (isLeftSwipe && currentIndex >= 2) {
-                // 已经在最右边，禁止继续向左滑动
                 console.log('已到达右边界，禁止继续向左滑动');
-                // 强制回到当前页面
                 this.setData({
                     swiperCurrent: 2
                 });
                 return;
             }
-            
+
             if (isRightSwipe && currentIndex <= 0) {
-                // 已经在最左边，禁止继续向右滑动
                 console.log('已到达左边界，禁止继续向右滑动');
-                // 强制回到当前页面
                 this.setData({
                     swiperCurrent: 0
                 });
@@ -875,13 +528,11 @@ onReachBottom: function () {
             }
         },
 
-        // swiper切换处理
-        onSwiperChange(e) {
+              onSwiperChange(e) {
             const current = e.detail.current;
             console.log('swiper切换到:', current);
             
-            // 防抖处理：避免快速滑动时的状态不一致
-            if (this.swiperChangeTimer) {
+              if (this.swiperChangeTimer) {
                 clearTimeout(this.swiperChangeTimer);
             }
             
@@ -1549,6 +1200,48 @@ onReachBottom: function () {
             navigateToPostDetail(postId);
         },
 
+        // ========== PostItem 组件事件适配方法 ==========
+        
+        // 处理用户头像点击（适配 PostItem 组件）
+        handleNavigateToUser: function (data) {
+            if (this.tapDisabled && this.tapDisabled()) { return; }
+            navigateToUserProfileUtil({
+                userId: data.userId,
+                authorName: data.authorName || '未知用户',
+                isAnonymous: data.isAnonymous || false,
+                currentUserId: this.openid || this.getCurrentUserId()
+            });
+        },
+
+        // 处理图片预览（适配 PostItem 组件）
+        handlePreviewImage: function (data) {
+            previewImage(data.src, data.urls);
+        },
+
+        // 处理标签点击（适配 PostItem 组件）
+        handleTagClick: function (data) {
+            navigateToTagFilter(data.tag);
+        },
+
+        // 处理点赞（适配 PostItem 组件）
+        handleVote: function (data) {
+            // 构造兼容原 onVote 方法的事件对象
+            const fakeEvent = {
+                currentTarget: {
+                    dataset: {
+                        postid: data.postId,
+                        index: data.index,
+                        listType: data.listType
+                    }
+                }
+            };
+            this.onVote(fakeEvent);
+        },
+
+        // 处理评论点击（适配 PostItem 组件）
+        handleCommentClick: function (data) {
+            navigateToPostDetail(data.postId);
+        },
 
         // 切换到关注页
         switchToFollowing: function () {
@@ -2106,9 +1799,6 @@ onReachBottom: function () {
 };
 </script>
 <style>
-/* index.wxss */
-
-/* 页面包装器 - 确保整个页面不会滑动 */
 .page-wrapper {
     height: 100vh;
     width: 100vw;
@@ -2121,30 +1811,23 @@ onReachBottom: function () {
 }
 
 .container {
-    /* 顶部padding为切换栏留空间 */
-    /* App端：188rpx（切换栏本身）+ 88rpx（状态栏） */
     /* #ifdef APP-PLUS */
     padding-top: 276rpx;
     /* #endif */
-    /* H5端：188rpx（切换栏本身，无状态栏） */
     /* #ifdef H5 */
     padding-top: 188rpx;
     /* #endif */
-    padding-bottom: 100rpx; /* 为底部tabBar留出空间 */
+    padding-bottom: 100rpx;
     background-color: #ffffff;
     min-height: 100vh;
     position: relative;
-    /* 禁止整个容器滑动 */
     overflow: hidden;
-    /* 禁用过度滑动 */
     overscroll-behavior: none;
-    /* 确保容器不会产生滚动 */
     height: 100vh;
     box-sizing: border-box;
 }
 
 
-/* 读诗模式容器 */
 .poem-mode-container {
     position: fixed;
     top: 0;
@@ -2156,7 +1839,6 @@ onReachBottom: function () {
     overflow: hidden;
 }
 
-/* 滑动指示器 */
 .swipe-indicator {
     position: absolute;
     top: 50%;
@@ -2177,7 +1859,6 @@ onReachBottom: function () {
     right: 30rpx;
 }
 
-/* 帖子索引指示器 */
 .post-indicator {
     position: absolute;
     bottom: 60rpx;
@@ -2191,41 +1872,34 @@ onReachBottom: function () {
     backdrop-filter: blur(10rpx);
 }
 
-/* 列表模式容器 */
 .list-mode-container,
 .list-content {
     display: block;
 }
 
-/* 广场模式容器 */
 .square-mode-container {
     display: block;
-    padding-top: 20rpx; /* 减少容器本身的padding，因为scroll-view内容会单独处理 */
+    padding-top: 20rpx;
     height: 100%;
     overflow: hidden;
 }
 
-/* 内容容器上边距，避免被切换栏遮挡 */
 #post-list-container,
 #following-list-container,
 #discussion-list-container {
-    padding-top: 0; /* 移除padding-top，因为swiper已经在切换栏下方 */
+    padding-top: 0;
     box-sizing: border-box;
 }
 
-/* 为空状态容器也添加上边距 */
 .swiper-page .empty-state {
-    /* App端：需要更多上边距 */
     /* #ifdef APP-PLUS */
     margin-top: 160rpx;
     /* #endif */
-    /* H5端：上边距可以更小 */
     /* #ifdef H5 */
     margin-top: 100rpx;
     /* #endif */
 }
 
-/* 新增：帖子项包装器样式 */
 .post-item-wrapper {
     background: #fff;
     margin-bottom: 20rpx;
@@ -2235,27 +1909,21 @@ onReachBottom: function () {
     border-bottom: 1rpx solid #f0f0f0;
 }
 
-/* 原创帖子特殊样式 */
 .post-item-wrapper.original-post {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 90%, rgba(235, 200, 141, 0.05) 95%, rgba(235, 200, 141, 0.08) 100%);
     border-left: 3rpx solid #ebc88d;
     position: relative;
 }
 
-/* 原创帖子光影效果已移除 */
-
-/* 新增：内容导航器样式 */
 .post-content-navigator {
     display: block;
     background: transparent;
 }
 
-/* 新增：导航器点击效果 */
 .navigator-hover {
     background-color: rgba(0, 0, 0, 0.02);
 }
 
-/* Disable press/active effects while scrolling to avoid accidental visual feedback */
 .is-scrolling .navigator-hover {
     background-color: transparent !important;
 }
@@ -2267,13 +1935,11 @@ onReachBottom: function () {
     opacity: 1 !important;
     background: transparent !important;
 }
-/* Fallback: neutralize any other :active inside list while scrolling */
 .is-scrolling .post-item-wrapper :active {
     transform: none !important;
     opacity: 1 !important;
     background: transparent !important;
 }
-/* While scrolling, remove transitions to avoid flicker when class toggles */
 .is-scrolling .post-image,
 .is-scrolling .like-icon,
 .is-scrolling .like-icon-container,
@@ -2283,278 +1949,6 @@ onReachBottom: function () {
     transition: none !important;
 }
 
-/* 新增：点赞按钮容器样式 */
-.like-icon-container {
-    padding: 10rpx;
-    border-radius: 50%;
-    transition: all 0.2s ease;
-}
-
-/* 新增：点赞按钮点击效果 */
-.like-icon-container:active {
-    transform: scale(0.9);
-    background-color: rgba(255, 107, 107, 0.1);
-}
-
-/* 新增：点赞图标样式 */
-.like-icon {
-    width: 40rpx;
-    height: 40rpx;
-    transition: all 0.2s ease;
-}
-
-.author-info {
-    display: flex;
-    align-items: center;
-    margin-bottom: 15rpx;
-}
-
-.author-avatar {
-    width: 60rpx;
-    height: 60rpx;
-    border-radius: 50%;
-    margin-right: 15rpx;
-    background-color: #f5f5f5;
-}
-
-.author-name {
-    font-size: 28rpx;
-    color: #333;
-    font-weight: 500;
-}
-
-/* 新增：图片容器占位样式 */
-.image-container-wrapper {
-    position: relative;
-    width: 100%;
-    background-color: #f0f0f0; /* 占位时的背景色，很重要 */
-    overflow: hidden;
-    border-radius: 8px; /* 可以加个圆角，让占位块更好看 */
-    margin: 20rpx 0; /* 图片和下方内容的间距 */
-}
-
-/* 新增：让图片或Swiper填充整个占位容器 */
-.image-container-wrapper .post-image,
-.image-container-wrapper .image-swiper {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-}
-
-/* 多图容器 */
-.multi-image-container {
-    width: 100%;
-    position: relative;
-}
-
-/* 单图容器 */
-.single-image-container {
-    width: 100%;
-    position: relative;
-}
-
-/* 多张图片的swiper样式 */
-.image-swiper {
-    width: 100%;
-    background-color: #fff;
-    /* 高度由 style 绑定动态设置 */
-}
-
-.swiper-item {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.post-image {
-    width: 100%;
-    height: 100%;
-    display: block;
-    object-fit: contain;
-}
-
-.post-image:active {
-    transform: scale(1.05);
-}
-
-.post-image.single-image {
-    width: 100%;
-    height: auto;
-    display: block;
-    background-color: #f5f5f5;
-}
-
-/* 图片数量指示器 */
-.image-count-indicator {
-    position: absolute;
-    top: 20rpx;
-    right: 20rpx;
-    background-color: rgba(0, 0, 0, 0.6);
-    color: white;
-    padding: 8rpx 16rpx;
-    border-radius: 20rpx;
-    font-size: 24rpx;
-    z-index: 10;
-    backdrop-filter: blur(10rpx);
-}
-
-/* 卡片项样式 */
-.post-item-wrapper {
-    margin-bottom: 20rpx;
-}
-
-/* 外部作者信息样式 */
-.author-info-outside {
-    display: flex;
-    align-items: center;
-    padding: 20rpx 40rpx 10rpx 40rpx;
-    background: #fff;
-}
-
-.author-info-outside .author-avatar {
-    width: 60rpx;
-    height: 60rpx;
-    border-radius: 50%;
-    margin-right: 15rpx;
-    background-color: #f5f5f5;
-    cursor: pointer;
-}
-
-.author-info-outside .author-name {
-    font-size: 28rpx;
-    color: #333;
-    font-weight: 500;
-}
-
-.post-item {
-    width: 100%;
-    background: #fff;
-    box-shadow: none;
-    box-sizing: border-box;
-    padding: 20rpx 40rpx 30rpx 40rpx;
-}
-
-/* 定义点击时的样式 - 整个卡片缩小 */
-.post-card-active {
-    transform: scale(0.98);
-}
-
-.post-title {
-    font-size: 36rpx;
-    font-weight: bold;
-    color: #333333;
-    margin-bottom: 15rpx;
-    line-height: 1.4;
-    word-break: break-word;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-}
-
-/* 诗歌作者样式 */
-.poem-author {
-    font-size: 32rpx;
-    color: #000;
-    text-align: center;
-    margin: 5rpx 0 15rpx 0;
-    letter-spacing: 2rpx;
-}
-
-.post-content {
-    font-size: 28rpx;
-    color: #666666;
-    line-height: 1.6;
-    margin-top: 15rpx;
-    word-break: break-word;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
-    -webkit-box-orient: vertical;
-}
-
-
-.vote-section {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    /* 上移一点：收紧与内容的垂直间距 */
-    margin-top: -8rpx;
-    padding: 10rpx 60rpx 15rpx 60rpx;
-}
-
-.vote-count,
-.comment-count {
-    display: flex;
-    align-items: center;
-    font-size: 28rpx;
-    color: #999;
-    margin-left: 10rpx;
-    transition: color 0.2s ease;
-}
-
-.comment-icon {
-    width: 40rpx;
-    height: 40rpx;
-    margin-right: 8rpx;
-}
-
-.vote-count {
-    margin-left: 10rpx;
-}
-
-/* .vote-count.voted {
-    color: #ff4757;
-} */
-
-.actions-left {
-    display: flex;
-    align-items: center;
-}
-
-.action-emoji {
-    font-size: 28rpx;
-    margin-right: 8rpx;
-}
-
-.action-text {
-    font-size: 28rpx;
-    color: inherit;
-}
-
-.button-group {
-    display: flex;
-    align-items: center;
-}
-
-.like-icon-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 8rpx;
-    border-radius: 8rpx;
-    margin-left: 20rpx;
-    transition: all 0.2s ease;
-}
-
-.like-icon-container:active {
-    transform: scale(0.95);
-}
-
-.like-icon {
-    width: 48rpx;
-    height: 48rpx;
-}
-
-/* 空状态样式 */
 .empty-state {
     display: flex;
     flex-direction: column;
@@ -2581,7 +1975,6 @@ onReachBottom: function () {
     color: #999;
 }
 
-/* 加载更多样式 */
 .loading-more {
     display: flex;
     justify-content: center;
@@ -2594,7 +1987,6 @@ onReachBottom: function () {
     color: #999;
 }
 
-/* 底部加载状态样式 */
 .loading-footer {
     text-align: center;
     padding: 20rpx 0;
@@ -2602,29 +1994,6 @@ onReachBottom: function () {
     font-size: 14px;
 }
 
-
-/* 标签样式 */
-.post-tags {
-    margin-top: 30rpx;
-    margin-bottom: 10rpx;
-    line-height: 1.5;
-}
-
-.post-tag {
-    color: #24375f;
-    font-size: 26rpx;
-    margin-right: 10rpx;
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
-
-.post-tag:active {
-    color: #1a2a4a;
-    opacity: 0.8;
-}
-
-/* 底部触底提示样式 */
-/* 切换按钮样式 - 参考poem-square页面 */
 .filter-toggle-container {
     padding: 20rpx 30rpx;
     position: relative;
@@ -2682,42 +2051,30 @@ onReachBottom: function () {
     text-align: center;
 }
 
-/* swiper页面切换样式 */
 .page-swiper {
-    /* 高度计算：100vh - 切换栏高度 - 底部tabBar高度 */
-    /* App端：276rpx（切换栏+状态栏） */
     /* #ifdef APP-PLUS */
     height: calc(100vh - 276rpx - 100rpx);
     /* #endif */
-    /* H5端：188rpx（切换栏，无状态栏） */
     /* #ifdef H5 */
     height: calc(100vh - 188rpx - 100rpx);
     /* #endif */
     width: 100%;
-    /* 限制滑动边界 */
     overflow: hidden;
-    /* 禁用过度滑动 */
     overscroll-behavior: none;
-    /* 确保在切换栏下方 */
     position: relative;
     z-index: 999;
 }
 
 .swiper-page {
     height: 100%;
-    /* scroll-view 会自动处理滚动，不需要 overflow-y: auto */
     position: relative;
-    /* 降低z-index，确保在切换栏下方 */
     z-index: 999;
 }
 
-/* 确保 scroll-view 的第一个子元素有上边距，让下拉刷新圆圈显示在切换栏下方 */
 .swiper-page > view:first-child {
-    /* App端：需要更多上边距 */
     /* #ifdef APP-PLUS */
     margin-top: 60rpx;
     /* #endif */
-    /* H5端：上边距可以更小 */
     /* #ifdef H5 */
     margin-top: 20rpx;
     /* #endif */
@@ -2729,21 +2086,14 @@ onReachBottom: function () {
     font-weight: 500;
 }
 
-/* 下拉刷新转圈圈样式自定义 - 针对 index 页面 */
-/* 可以调整颜色、位置等，但大小和动画有限制 */
 .swiper-page .uni-pull-refresh-spinner,
 .swiper-page .wx-pull-refresh-spinner {
-    /* 颜色（部分平台支持）- 灰色 */
     color: #999999 !important;
     border-color: #999999 !important;
-    /* 位置偏移（如果需要） */
-    /* top: 20rpx; */
 }
 
-/* 下拉刷新容器样式 */
 .swiper-page .uni-pull-refresh,
 .swiper-page .wx-pull-refresh {
-    /* 可以调整背景、透明度等 */
     background: transparent;
 }
 </style>

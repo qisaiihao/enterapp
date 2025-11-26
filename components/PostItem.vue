@@ -107,8 +107,8 @@
             </view>
         </navigator>
 
-        <!-- 底部操作区域 -->
-        <view class="delete-section">
+        <!-- 底部操作区域 - profile模式：时间+取消收藏 -->
+        <view v-if="!showVoteSection" class="delete-section">
             <view class="time-left">
                 <text class="post-time">{{ timeLabel }}{{ displayTime }}</text>
             </view>
@@ -116,6 +116,28 @@
                 <button class="remove-favorite-btn" size="mini" @tap.stop.prevent="onRemoveFavorite">
                     取消收藏
                 </button>
+            </view>
+        </view>
+
+        <!-- 底部操作区域 - feed模式：评论+点赞 -->
+        <view v-if="showVoteSection" class="vote-section">
+            <view class="actions-left">
+                <!-- 左侧留空，保持布局平衡 -->
+            </view>
+            <view class="button-group">
+                <view class="comment-count" @tap.stop.prevent="onCommentClick">
+                    <image class="comment-icon" src="/static/images/comment.png" mode="aspectFit" />
+                    <text class="action-text">{{ item.commentCount || 0 }}</text>
+                </view>
+                <view
+                    class="like-icon-container"
+                    @tap.stop.prevent="onVote"
+                >
+                    <image class="like-icon" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError"></image>
+                </view>
+                <view :class="'vote-count ' + (item.isVoted ? 'voted' : '')">
+                    <text class="action-text">{{ item.votes || 0 }}</text>
+                </view>
             </view>
         </view>
     </view>
@@ -164,6 +186,16 @@ export default {
         showRemoveFavoriteBtn: {
             type: Boolean,
             default: false
+        },
+        // 是否显示互动区（评论/点赞）- feed模式
+        showVoteSection: {
+            type: Boolean,
+            default: false
+        },
+        // 列表类型标识（用于点赞事件区分）
+        listType: {
+            type: String,
+            default: 'home'
         }
     },
     computed: {
@@ -192,6 +224,7 @@ export default {
         onNavigateToUser() {
             this.$emit('navigate-to-user', {
                 userId: this.item._openid,
+                authorName: this.item.authorName,
                 isAnonymous: this.item.isAnonymous
             });
         },
@@ -243,6 +276,24 @@ export default {
                 favoriteId: this.item.favoriteId,
                 index: this.index
             });
+        },
+        // 点赞
+        onVote() {
+            this.$emit('vote', {
+                postId: this.item._id,
+                index: this.index,
+                listType: this.listType
+            });
+        },
+        // 评论点击
+        onCommentClick() {
+            this.$emit('comment-click', {
+                postId: this.item._id
+            });
+        },
+        // 点赞图标加载失败
+        onLikeIconError(e) {
+            this.$emit('like-icon-error', e);
         }
     }
 };
@@ -519,5 +570,64 @@ export default {
 
 .remove-favorite-btn::after {
     border: none;
+}
+
+/* ========== 互动区样式（feed模式） ========== */
+.vote-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    /* 上移一点：收紧与内容的垂直间距 */
+    margin-top: -8rpx;
+    padding: 10rpx 60rpx 15rpx 60rpx;
+}
+
+.vote-count,
+.comment-count {
+    display: flex;
+    align-items: center;
+    font-size: 28rpx;
+    color: #999;
+    margin-left: 10rpx;
+    transition: color 0.2s ease;
+}
+
+.comment-icon {
+    width: 40rpx;
+    height: 40rpx;
+    margin-right: 8rpx;
+}
+
+.vote-count {
+    margin-left: 10rpx;
+}
+
+.actions-left {
+    display: flex;
+    align-items: center;
+}
+
+.action-text {
+    font-size: 28rpx;
+    color: inherit;
+}
+
+.like-icon-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8rpx;
+    border-radius: 8rpx;
+    margin-left: 20rpx;
+    transition: all 0.2s ease;
+}
+
+.like-icon-container:active {
+    transform: scale(0.95);
+}
+
+.like-icon {
+    width: 48rpx;
+    height: 48rpx;
 }
 </style>

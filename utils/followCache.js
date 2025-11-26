@@ -1,5 +1,5 @@
 // 关注状态缓存工具（迁移至 CacheManager）
-const cacheManager = require('../_utils/cache-manager').default;
+const cacheManager = require('../_utils/cache-manager');
 const { cloudCall } = require('./cloudCall.js');
 
 function nsFollow(currentUserId) {

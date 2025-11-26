@@ -16,7 +16,8 @@ async function getMyFavorites({
   page = 0,
   pageSize = 20,
   contentType = 'all',
-  context
+  context,
+  ...options
 } = {}) {
   return cloudCall('getMyProfileData', {
     action: 'getFavorites',
@@ -37,7 +38,7 @@ async function getMyFavorites({
  * @param {Object} options - 额外选项
  * @returns {Promise} 添加收藏结果
  */
-function addToFavorites(postId, postType = 'post', options = {}) {
+function addToFavorites(postId, postType = 'post', ...options) {
   if (!postId) {
     return Promise.reject(new Error('帖子ID不能为空'));
   }
@@ -59,7 +60,7 @@ function addToFavorites(postId, postType = 'post', options = {}) {
  * @param {Object} options - 额外选项
  * @returns {Promise} 移除收藏结果
  */
-function removeFromFavorites(postId, options = {}) {
+function removeFromFavorites(postId, ...options) {
   if (!postId) {
     return Promise.reject(new Error('帖子ID不能为空'));
   }
@@ -80,7 +81,7 @@ function removeFromFavorites(postId, options = {}) {
  * @param {Object} options - 额外选项
  * @returns {Promise} 批量添加收藏结果
  */
-function batchAddToFavorites(postIds, options = {}) {
+function batchAddToFavorites(postIds, ...options) {
   if (!Array.isArray(postIds) || postIds.length === 0) {
     return Promise.reject(new Error('帖子ID数组不能为空'));
   }
@@ -101,7 +102,7 @@ function batchAddToFavorites(postIds, options = {}) {
  * @param {Object} options - 额外选项
  * @returns {Promise} 批量移除收藏结果
  */
-function batchRemoveFromFavorites(postIds, options = {}) {
+function batchRemoveFromFavorites(postIds, ...options) {
   if (!Array.isArray(postIds) || postIds.length === 0) {
     return Promise.reject(new Error('帖子ID数组不能为空'));
   }
@@ -121,7 +122,7 @@ function batchRemoveFromFavorites(postIds, options = {}) {
  * @param {Object} options - 额外选项
  * @returns {Promise} 统计信息
  */
-function getFavoriteStats(options = {}) {
+function getFavoriteStats(...options) {
   return cloudCall('getMyProfileData', {
     action: 'getFavoriteStats'
   }, Object.assign({
@@ -137,7 +138,7 @@ function getFavoriteStats(options = {}) {
  * @param {Object} options - 额外选项
  * @returns {Promise} 检查结果
  */
-function checkIsFavorited(postId, options = {}) {
+function checkIsFavorited(postId, ...options) {
   if (!postId) {
     return Promise.reject(new Error('帖子ID不能为空'));
   }
@@ -160,7 +161,7 @@ function checkIsFavorited(postId, options = {}) {
  * @param {Object} options - 额外选项
  * @returns {Promise} 导出结果
  */
-function exportFavorites(exportOptions = {}, options = {}) {
+function exportFavorites(exportOptions = {}, ...options) {
   const params = {
     action: 'exportFavorites',
     format: exportOptions.format || 'json',
@@ -181,7 +182,7 @@ function exportFavorites(exportOptions = {}, options = {}) {
  * @param {Object} options - 额外选项
  * @returns {Promise} 同步结果
  */
-function syncFavoriteStatus(postId, isFavorited, options = {}) {
+function syncFavoriteStatus(postId, isFavorited, ...options) {
   if (!postId) {
     return Promise.reject(new Error('帖子ID不能为空'));
   }

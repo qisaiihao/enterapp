@@ -9,33 +9,7 @@
         
         <view class="container">
             <block v-if="isLoading">
-                <view class="post-detail-skeleton">
-                    <view class="skeleton-wrapper">
-                        <view class="skeleton-header">
-                            <view class="skeleton-avatar skeleton-animate"></view>
-                            <view class="skeleton-header-text">
-                                <view class="skeleton-line medium skeleton-animate"></view>
-                                <view class="skeleton-line short skeleton-animate"></view>
-                            </view>
-                        </view>
-                        <view class="skeleton-line long skeleton-animate"></view>
-                        <view class="skeleton-line medium skeleton-animate"></view>
-                        <view class="skeleton-line short skeleton-animate"></view>
-                        <view class="skeleton-image skeleton-animate"></view>
-                        <view class="skeleton-line long skeleton-animate"></view>
-                        <view class="skeleton-line medium skeleton-animate"></view>
-                    </view>
-                    <view class="skeleton-section-title skeleton-animate"></view>
-                    <view class="comment-skeleton-list">
-                        <view class="comment-skeleton-item" v-for="n in commentSkeletonCount" :key="'post-skeleton-comment-' + n">
-                            <view class="skeleton-avatar skeleton-animate"></view>
-                            <view class="comment-skeleton-body">
-                                <view class="skeleton-line medium skeleton-animate"></view>
-                                <view class="skeleton-line short skeleton-animate"></view>
-                            </view>
-                        </view>
-                    </view>
-                </view>
+                <post-detail-skeleton :comment-count="commentSkeletonCount" />
             </block>
             <block v-else-if="post && post._id">
                 <!-- Post Content -->
@@ -177,154 +151,19 @@
                 </view>
 
                 <!-- Comment Section -->
-                <view class="comment-section">
-                    <view class="section-title">共 {{ isCommentLoading ? '--' : commentCount }} 条评论</view>
-                    <view v-if="isCommentLoading" class="comment-skeleton-list">
-                        <view class="comment-skeleton-item" v-for="n in commentSkeletonCount" :key="'detail-comment-skeleton-' + n">
-                            <view class="skeleton-avatar skeleton-animate"></view>
-                            <view class="comment-skeleton-body">
-                                <view class="skeleton-line medium skeleton-animate"></view>
-                                <view class="skeleton-line short skeleton-animate"></view>
-                            </view>
-                        </view>
-                    </view>
-                    <view v-else class="comment-list">
-                        <block v-if="comments.length > 0">
-                            <view class="comment-item" v-for="(item, commentIndex) in comments" :key="item._id || commentIndex">
-                                <image
-                                    class="comment-avatar"
-                                    :src="item.isAnonymous ? '/static/images/avatar.png' : (item.authorAvatar || '/static/images/avatar.png')"
-                                    mode="aspectFill"
-                                    @error="onAvatarError"
-                                    @click="navigateToUserProfile"
-                                    :data-user-id="item._openid"
-                                    :data-author-name="item.authorName"
-                                    :data-is-anonymous="item.isAnonymous"
-                                    style="pointer-events: auto; cursor: pointer;"
-                                ></image>
-
-                                <view class="comment-main">
-                                    <view class="comment-author">{{ item.isAnonymous ? '匿名用户' : item.authorName }}</view>
-                                    <view class="comment-content" @tap="showReplyInput" :data-comment-id="item._id" :data-author-name="item.isAnonymous ? '匿名用户' : item.authorName">{{ item.content }}</view>
-                                    <view v-if="item.imageUrls && item.imageUrls.length" class="comment-image-grid">
-                                        <block v-for="(imageUrl, imageIndex) in item.imageUrls" :key="'comment-' + commentIndex + '-image-' + imageIndex">
-                                            <image
-                                                v-if="imageUrl"
-                                                class="comment-image"
-                                                :src="imageUrl"
-                                                mode="widthFix"
-                                                @tap="previewCommentImageFromList"
-                                                :data-comment-index="commentIndex"
-                                                :data-image-index="imageIndex"
-                                                :data-is-reply="false"
-                                                @error="onImageError"
-                                                @load="onImageLoad"
-                                            ></image>
-                                        </block>
-                                    </view>
-                                    <view class="comment-footer">
-                                        <view class="comment-time">{{ item.formattedCreateTime }}</view>
-                                        <view class="comment-actions">
-                                            <view class="like-section" @tap="toggleLikeComment" :data-comment-id="item._id" :data-liked="item.liked">
-                                                <image class="like-icon" :src="item.likeIcon"></image>
-                                                <text class="like-count">{{ item.likes || 0 }}</text>
-                                            </view>
-                                            <view v-if="item.canDelete" class="delete-btn" @tap="onDeleteComment" :data-comment-id="item._id">
-                                                <image class="delete-icon" src="/static/images/delete.png" mode="aspectFit"></image>
-                                            </view>
-                                        </view>
-                                    </view>
-
-                                    <!-- Replies -->
-                                    <view v-if="item.replies && item.replies.length > 0" class="replies-container">
-                                        <view
-                                            class="reply-item"
-                                            v-if="replyIndex < (item.showAllReplies ? item.replies.length : 3)"
-                                            v-for="(reply, replyIndex) in item.replies"
-                                            :key="reply._id || replyIndex"
-                                        >
-                                            <image
-                                                class="reply-avatar"
-                                                :src="reply.isAnonymous ? '/static/images/avatar.png' : reply.authorAvatar"
-                                                mode="aspectFill"
-                                                @error="onAvatarError"
-                                                @click="navigateToUserProfile"
-                                                :data-user-id="reply._openid"
-                                                :data-author-name="reply.authorName"
-                                                :data-is-anonymous="reply.isAnonymous"
-                                                style="pointer-events: auto; cursor: pointer;"
-                                            ></image>
-
-                                            <view class="reply-main">
-                                                <view class="reply-author">{{ reply.isAnonymous ? '匿名用户' : reply.authorName }}</view>
-                                                <view class="reply-content" @tap="showReplyInput" :data-comment-id="item._id" :data-author-name="reply.isAnonymous ? '匿名用户' : reply.authorName" :data-reply-id="reply._id">
-                                                    <text v-if="reply.replyToAuthorName" class="reply-to">回复@{{ reply.replyToAuthorName }}：</text>
-                                                    <text>{{ reply.content }}</text>
-                                                </view>
-                                                <view v-if="reply.imageUrls && reply.imageUrls.length" class="comment-image-grid reply-image-grid">
-                                                    <image
-                                                        class="comment-image"
-                                                        :src="replyImageUrl"
-                                                        mode="aspectFill"
-                                                        @tap="previewCommentImageFromList"
-                                                        :data-comment-index="commentIndex"
-                                                        :data-reply-index="replyIndex"
-                                                        :data-image-index="replyImageIndex"
-                                                        :data-is-reply="true"
-                                                        v-for="(replyImageUrl, replyImageIndex) in reply.imageUrls"
-                                                        :key="replyImageIndex"
-                                                    ></image>
-                                                </view>
-                                                <view class="reply-footer">
-                                                    <view class="reply-time">{{ reply.formattedCreateTime }}</view>
-                                                    <view class="reply-actions">
-                                                        <view class="like-section" @tap="toggleLikeComment" :data-comment-id="reply._id" :data-liked="reply.liked">
-                                                            <image class="like-icon" :src="reply.likeIcon"></image>
-                                                            <text class="like-count">{{ reply.likes || 0 }}</text>
-                                                        </view>
-                                                        <view
-                                                            v-if="reply.canDelete"
-                                                            class="delete-btn"
-                                                            @tap="onDeleteComment"
-                                                            :data-comment-id="reply._id"
-                                                            :data-parent-id="item._id"
-                                                        >
-                                                            <image class="delete-icon" src="/static/images/delete.png" mode="aspectFit"></image>
-                                                        </view>
-                                                    </view>
-                                                </view>
-                                            </view>
-                                        </view>
-
-                                        <view
-                                            v-if="item.replies.length > 3 && !item.showAllReplies"
-                                            class="show-more-replies"
-                                            @tap="toggleShowAllReplies"
-                                            :data-comment-id="item._id"
-                                        >
-                                            <text class="show-more-text">显示{{ item.replies.length - 3 }}条回复</text>
-                                        </view>
-
-                                        <view
-                                            v-if="item.replies.length > 3 && item.showAllReplies"
-                                            class="show-more-replies"
-                                            @tap="toggleShowAllReplies"
-                                            :data-comment-id="item._id"
-                                        >
-                                            <text class="show-more-text">收起回复</text>
-                                        </view>
-                                    </view>
-                                </view>
-                            </view>
-                        </block>
-                        <block v-else>
-                            <view class="no-comment-tip">
-                                <view class="empty-icon">💬</view>
-                                <view class="empty-text">暂无评论，快来抢沙发吧！</view>
-                            </view>
-                        </block>
-                    </view>
-                </view>
+                <comment-list
+                    :comments="comments"
+                    :comment-count="commentCount"
+                    :is-loading="isCommentLoading"
+                    :skeleton-count="commentSkeletonCount"
+                    @avatar-error="onAvatarError"
+                    @navigate-to-user="handleCommentNavigateToUser"
+                    @reply-click="handleReplyClick"
+                    @like="handleCommentLike"
+                    @delete="handleCommentDelete"
+                    @preview-image="handleCommentPreviewImage"
+                    @toggle-replies="handleToggleReplies"
+                />
             </block>
             <block v-else>
                 <view class="error-container">
@@ -423,31 +262,17 @@
         <portfolio-selector :show="showPortfolioModal" :post-id="post && post._id ? post._id : ''" @hide="hidePortfolioModal" @portfolioSuccess="onPortfolioSuccess" />
 
         <!-- 分享弹窗（仅诗歌帖子显示） -->
-        <view v-if="post && post.isPoem && showShareModal" class="share-modal-overlay" @tap="hideShareModal">
-            <view class="share-modal" @tap.stop>
-                <view v-if="!shareImageUrl" class="share-loading">
-                    <text>正在生成图片...</text>
-                </view>
-                <image
-                    v-else
-                    ref="shareImage"
-                    class="share-generated-image"
-                    :src="shareImageUrl"
-                    mode="widthFix"
-                    @longpress="onImageLongPress"
-                    @load="onShareImageLoad"
-                    @error="onShareImageError"
-                    :show-menu-by-longpress="shareLongpressMenuEnabled"
-                ></image>
-
-                <!-- 显式的保存按钮：使用图片，居中放在下方（H5/APP 显示） -->
-                <!-- #ifdef H5 || APP-PLUS -->
-                <view class="share-actions">
-                    <image class="share-download-image" src="/static/images/download.png" mode="widthFix" @tap.stop="saveShareImage"></image>
-                </view>
-                <!-- #endif -->
-            </view>
-        </view>
+        <share-modal
+            v-if="post && post.isPoem"
+            :show="showShareModal"
+            :image-url="shareImageUrl"
+            :longpress-menu-enabled="shareLongpressMenuEnabled"
+            @hide="hideShareModal"
+            @longpress="onImageLongPress"
+            @load="onShareImageLoad"
+            @error="onShareImageError"
+            @save="saveShareImage"
+        />
 
         <!-- 隐藏的canvas用于生成分享图片（增加 id 便于 H5 兜底导出） -->
         <canvas id="shareCanvas" canvas-id="shareCanvas" style="position: fixed; top: -9999px; left: -9999px; width: 750px; border-radius: 15px; overflow: hidden;" :style="{ height: shareCanvasHeight + 'px' }"></canvas>
@@ -470,6 +295,9 @@
 import cloudTipModal from '@/components/cloudTipModal/index';
 import folderSelector from '@/components/folder-selector/folder-selector';
 import portfolioSelector from '@/components/portfolio-selector/portfolio-selector';
+import PostDetailSkeleton from '@/components/PostDetailSkeleton.vue';
+import CommentList from '@/components/CommentList.vue';
+import ShareModal from '@/components/ShareModal.vue';
 // pages/post-detail/post-detail.js
 const app = getApp();
 const likeIcon = require('../../utils/likeIcon');
@@ -498,7 +326,10 @@ export default {
     components: {
         cloudTipModal,
         folderSelector,
-        portfolioSelector
+        portfolioSelector,
+        PostDetailSkeleton,
+        CommentList,
+        ShareModal
     },
     mixins: [postGalleryMixin],
     data() {
@@ -547,35 +378,9 @@ export default {
             commentImages: [],
             maxCommentImages: 3,
             isSubmittingComment: false,
-            imgindex: 0,
-            quickCommentText: '', // 底部栏快速评论文本
-            discussionModalVisible: false, // 是否显示讨论模态框
-            img: '',
-            commentIndex: 0,
-            commentImage: '',
-            imageIndex: 0,
-            replyIndex: 0,
-
-            reply: {
-                authorAvatar: '',
-                _openid: '',
-                authorName: '',
-                content: '',
-                imageUrls: '',
-                formattedCreateTime: '',
-                _id: '',
-                liked: '',
-                likeIcon: '',
-                likes: '',
-                canDelete: ''
-            },
-
-            replyImage: '',
-            replyImageIndex: 0,
-
+            quickCommentText: '',
             // 是否启用原生长按菜单（仅小程序有效）
             shareLongpressMenuEnabled: false,
-
         };
     },
     onLoad: function (options) {
@@ -2630,60 +2435,66 @@ export default {
         toggleLikeComment: function (e) {
             const { commentId } = e.currentTarget.dataset;
             const postId = this.post && this.post._id ? this.post._id : '';
-            const comments = this.comments;
-            const { comment, isReply } = this.findComment(comments, commentId);
-            if (!comment) {
-                return;
-            }
+            const { comment, isReply, commentIndex, replyIndex } = this.findCommentWithIndex(this.comments, commentId);
+            if (!comment) return;
+            
             const newLikeState = !comment.liked;
             const oldLikes = comment.likes || 0;
-            comment.liked = newLikeState;
-            comment.likes = oldLikes + (newLikeState ? 1 : -1);
-            comment.likeIcon = likeIcon.getLikeIcon(comment.likes, comment.liked);
-            this.setData({
-                comments: comments
-            });
-            likeComment(commentId, newLikeState).then((res) => {
-                    if (res.result && res.result.success) {
-                        if (comment.likes !== res.result.likes) {
-                            this.updateCommentLikeStatus(commentId, newLikeState, res.result.likes);
+            const newLikes = oldLikes + (newLikeState ? 1 : -1);
+            const newLikeIcon = likeIcon.getLikeIcon(newLikes, newLikeState);
+            
+            // 使用 Vue 响应式方式更新
+            if (isReply) {
+                this.$set(this.comments[commentIndex].replies[replyIndex], 'liked', newLikeState);
+                this.$set(this.comments[commentIndex].replies[replyIndex], 'likes', newLikes);
+                this.$set(this.comments[commentIndex].replies[replyIndex], 'likeIcon', newLikeIcon);
+            } else {
+                this.$set(this.comments[commentIndex], 'liked', newLikeState);
+                this.$set(this.comments[commentIndex], 'likes', newLikes);
+                this.$set(this.comments[commentIndex], 'likeIcon', newLikeIcon);
+            }
+            
+            likeComment(commentId, postId, newLikeState).then((res) => {
+                    const result = res.result || res;
+                    if (result && result.success) {
+                        if (newLikes !== result.likes) {
+                            this.updateCommentLikeStatus(commentId, newLikeState, result.likes);
                         }
                     } else {
                         this.updateCommentLikeStatus(commentId, !newLikeState, oldLikes);
-                        uni.showToast({
-                            title: '操作失败',
-                            icon: 'none'
-                        });
+                        uni.showToast({ title: '操作失败', icon: 'none' });
                     }
                 }).catch((err) => {
                     this.updateCommentLikeStatus(commentId, !newLikeState, oldLikes);
-                    console.error('Failed to like comment', err);
-                    uni.showToast({
-                        title: '网络错误',
-                        icon: 'none'
-                    });
+                    uni.showToast({ title: '网络错误', icon: 'none' });
                 });
         },
 
         updateCommentLikeStatus: function (commentId, newLikeState, finalLikes) {
-            let comments = this.comments;
-            const { comment, isReply } = this.findComment(comments, commentId);
+            const { comment, isReply, commentIndex, replyIndex } = this.findCommentWithIndex(this.comments, commentId);
             if (comment) {
-                comment.liked = newLikeState;
-                comment.likes = finalLikes;
-                comment.likeIcon = likeIcon.getLikeIcon(comment.likes, comment.liked);
-                this.setData({
-                    comments: comments
-                });
+                const newLikeIcon = likeIcon.getLikeIcon(finalLikes, newLikeState);
+                if (isReply) {
+                    this.$set(this.comments[commentIndex].replies[replyIndex], 'liked', newLikeState);
+                    this.$set(this.comments[commentIndex].replies[replyIndex], 'likes', finalLikes);
+                    this.$set(this.comments[commentIndex].replies[replyIndex], 'likeIcon', newLikeIcon);
+                } else {
+                    this.$set(this.comments[commentIndex], 'liked', newLikeState);
+                    this.$set(this.comments[commentIndex], 'likes', finalLikes);
+                    this.$set(this.comments[commentIndex], 'likeIcon', newLikeIcon);
+                }
             }
         },
 
-        findComment: function (comments, commentId) {
+        // 查找评论并返回索引（用于 Vue 响应式更新）
+        findCommentWithIndex: function (comments, commentId) {
             for (let i = 0; i < comments.length; i++) {
                 if (comments[i]._id === commentId) {
                     return {
                         comment: comments[i],
-                        isReply: false
+                        isReply: false,
+                        commentIndex: i,
+                        replyIndex: -1
                     };
                 }
                 if (comments[i].replies) {
@@ -2691,7 +2502,9 @@ export default {
                         if (comments[i].replies[j]._id === commentId) {
                             return {
                                 comment: comments[i].replies[j],
-                                isReply: true
+                                isReply: true,
+                                commentIndex: i,
+                                replyIndex: j
                             };
                         }
                     }
@@ -2699,7 +2512,9 @@ export default {
             }
             return {
                 comment: null,
-                isReply: false
+                isReply: false,
+                commentIndex: -1,
+                replyIndex: -1
             };
         },
 
@@ -2713,6 +2528,72 @@ export default {
                     comments: comments
                 });
             }
+        },
+
+        // ========== CommentItem 组件事件适配方法 ==========
+        
+        handleCommentNavigateToUser: function (data) {
+            const fakeEvent = {
+                currentTarget: {
+                    dataset: {
+                        userId: data.userId,
+                        authorName: data.authorName,
+                        isAnonymous: data.isAnonymous
+                    }
+                }
+            };
+            this.navigateToUserProfile(fakeEvent);
+        },
+
+        handleReplyClick: function (data) {
+            const fakeEvent = {
+                currentTarget: {
+                    dataset: {
+                        commentId: data.commentId,
+                        authorName: data.authorName,
+                        replyId: data.replyId
+                    }
+                }
+            };
+            this.showReplyInput(fakeEvent);
+        },
+
+        handleCommentLike: function (data) {
+            this.toggleLikeComment({
+                currentTarget: {
+                    dataset: { commentId: data.commentId, liked: data.liked }
+                }
+            });
+        },
+
+        handleCommentDelete: function (data) {
+            const fakeEvent = {
+                currentTarget: {
+                    dataset: {
+                        commentId: data.commentId,
+                        parentId: data.parentId
+                    }
+                }
+            };
+            this.onDeleteComment(fakeEvent);
+        },
+
+        handleCommentPreviewImage: function (data) {
+            const { imageUrls, imageIndex } = data;
+            if (imageUrls && imageUrls.length > 0) {
+                previewImage(imageUrls[imageIndex], imageUrls);
+            }
+        },
+
+        handleToggleReplies: function (data) {
+            const fakeEvent = {
+                currentTarget: {
+                    dataset: {
+                        commentId: data.commentId
+                    }
+                }
+            };
+            this.toggleShowAllReplies(fakeEvent);
         },
 
         formatTime: function (dateString) {
@@ -3417,6 +3298,7 @@ page {
     overflow: hidden;
     text-overflow: ellipsis;
     display: -webkit-box;
+    line-clamp: 2;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
 }
@@ -3612,259 +3494,7 @@ page {
     text-align: left;
 }
 
-.comment-list {
-    margin-top: 20rpx;
-}
-
-.comment-item {
-    display: flex;
-    margin-bottom: 0;
-    padding: 20rpx 0;
-    border-bottom: 1rpx solid #f0f0f0;
-}
-
-.comment-item:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-}
-
-.comment-avatar {
-    width: 60rpx;
-    height: 60rpx;
-    border-radius: 50%;
-    margin-right: 15rpx;
-    flex-shrink: 0;
-    background-color: #f5f5f5;
-    margin-left: 0;
-    pointer-events: auto;
-    cursor: pointer;
-    z-index: 10;
-    position: relative;
-}
-
-.comment-main {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-width: 0;
-}
-
-.comment-author {
-    font-size: 28rpx;
-    color: #333;
-    font-weight: bold;
-    margin-bottom: 8rpx;
-}
-
-.comment-content {
-    font-size: 28rpx;
-    color: #666;
-    line-height: 1.5;
-    word-break: break-word;
-    margin-bottom: 10rpx;
-    cursor: pointer;
-    transition: color 0.2s ease;
-}
-.comment-content:active {
-    color: #9ed7ee;
-}
-.comment-image-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 12rpx;
-    margin-bottom: 12rpx;
-    width: 100%;
-}
-
-.comment-image {
-    width: 100%;
-    max-width: 100%;
-    height: auto;
-    min-height: 200rpx;
-    max-height: 800rpx;
-    border-radius: 12rpx;
-    background-color: #f2f2f2;
-    display: block;
-    object-fit: contain;
-    border: 1px solid #e0e0e0;
-}
-
-.reply-image-grid {
-    margin-top: 10rpx;
-}
-
-.comment-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    margin-right: 40rpx;
-}
-
-.comment-time {
-    font-size: 24rpx;
-    color: #999;
-    opacity: 0.8;
-}
-
-.comment-actions {
-    display: flex;
-    align-items: center;
-    gap: 0;
-}
-
-.like-section {
-    display: flex;
-    align-items: center;
-    padding: 4rpx 6rpx;
-    transition: all 0.2s ease;
-}
-
-.like-section:active {
-    transform: scale(0.95);
-}
-
-.like-section .like-icon {
-    width: 32rpx;
-    height: 32rpx;
-    margin-right: 4rpx;
-}
-
-.like-count {
-    font-size: 26rpx;
-    color: #666;
-}
-
-.delete-btn {
-    display: flex;
-    align-items: center;
-    padding: 4rpx 6rpx;
-    transition: opacity 0.2s ease;
-}
-
-.delete-btn:active {
-    opacity: 0.7;
-}
-
-.delete-text {
-    font-size: 26rpx;
-    color: #ff4d4f;
-}
-
-.reply-btn {
-    display: flex;
-    align-items: center;
-    padding: 4rpx 6rpx;
-    transition: opacity 0.2s ease;
-}
-
-.reply-btn:active {
-    opacity: 0.7;
-}
-
-.reply-text {
-    font-size: 26rpx;
-    color: #9ed7ee;
-}
-
-.reply-icon {
-    width: 40rpx;
-    height: 40rpx;
-}
-
-.delete-icon {
-    width: 60rpx;
-    height: 60rpx;
-}
-
-.replies-container {
-    margin-top: 15rpx;
-    margin-left: 10rpx;
-    padding-left: 10rpx;
-    border-left: 2rpx solid #f0f0f0;
-}
-
-.reply-item {
-    display: flex;
-    margin-bottom: 15rpx;
-}
-
-.reply-avatar {
-    width: 40rpx;
-    height: 40rpx;
-    border-radius: 50%;
-    margin-right: 10rpx;
-    flex-shrink: 0;
-    background-color: #f5f5f5;
-    pointer-events: auto;
-    cursor: pointer;
-    z-index: 10;
-    position: relative;
-}
-
-.reply-main {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-width: 0;
-}
-
-.reply-author {
-    font-size: 24rpx;
-    color: #333;
-    font-weight: bold;
-    margin-bottom: 4rpx;
-}
-
-.reply-content {
-    font-size: 26rpx;
-    color: #666;
-    line-height: 1.4;
-    word-break: break-word;
-    cursor: pointer;
-    transition: color 0.2s ease;
-}
-.reply-content:active {
-    color: #9ed7ee;
-}
-
-.reply-to {
-    color: #9ed7ee;
-    font-weight: bold;
-}
-
-.reply-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 8rpx;
-}
-
-.reply-time {
-    font-size: 22rpx;
-    color: #999;
-    opacity: 0.8;
-}
-
-.reply-actions {
-    display: flex;
-    align-items: center;
-    gap: 0;
-}
-
-.show-more-replies {
-    padding: 10rpx 0;
-    transition: opacity 0.2s ease;
-}
-
-.show-more-replies:active {
-    opacity: 0.7;
-}
-
-.show-more-text {
-    font-size: 24rpx;
-    color: #9ed7ee;
-}
+/* 评论相关样式已移入 CommentItem.vue 和 CommentList.vue */
 
 .no-comment-tip {
     display: flex;
@@ -3951,8 +3581,10 @@ page {
     line-height: 1.6;
     box-sizing: border-box;
     border: none;
+    appearance: none;
     -webkit-appearance: none;
     -webkit-box-sizing: border-box;
+    user-select: text;
     -webkit-user-select: text;
     -webkit-touch-callout: default;
     outline: none;
@@ -4298,132 +3930,7 @@ page {
     overflow-wrap: break-word;
 }
 
-/* 分享弹窗样式 */
-.share-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 998;
-    display: flex;
-    align-items: flex-start; /* 改为从顶部开始对齐，而不是居中 */
-    justify-content: center;
-    padding-top: 5vh; /* 顶部留一些空间 */
-    overflow-y: auto; /* 如果内容超出，允许滚动 */
-}
-
-.share-modal {
-    /* 去掉白色背景 */
-    background: transparent;
-    width: 80vw;
-    max-width: 500px; /* 限制一个最大宽度，防止在大屏幕上过宽 */
-    display: flex; /* 使用flex布局让内部元素更容易对齐 */
-    flex-direction: column; /* 垂直排列：图片在上，按钮在下 */
-    align-items: center;
-    justify-content: flex-start; /* 改为从顶部开始，而不是居中 */
-    z-index: 999;
-    border-radius: 20rpx;
-    padding: 20rpx;
-    box-sizing: border-box; /* 加上这个，padding就不会撑大容器 */
-    /* 不限制高度，让内容自然展开 */
-    /* 滚动由外层的 overlay 提供 */
-}
-
-
-
-.share-loading {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 400rpx;
-    font-size: 28rpx;
-    color: #666;
-}
-
-
-.share-generated-image {
-    /* mode="widthFix" 会自动处理宽高比，我们只需要告诉它宽度即可 */
-    width: 100%; 
-    
-    /* display: block 是好习惯，可以避免一些潜在的布局问题 */
-    display: block; 
-    
-    /* 其他美化样式 - 与Canvas绘制的圆角保持一致 */
-    border-radius: 15px; /* 与Canvas绘制的圆角半径15px保持一致 */
-    background-color: #f0f0f0; /* 图片加载时的底色 */
-    box-shadow: 0 8rpx 8rpx rgba(0, 0, 0, 0.25);
-    overflow: hidden; /* 确保圆角效果正确显示 */
-}
-
-/* 强制显示图片的CSS类 */
-.force-image-display {
-    width: 100% !important;
-    height: auto !important;
-    min-height: 200px !important;
-    max-height: 80vh !important;
-    display: block !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    background-color: #f0f0f0 !important;
-    border: 2px solid #007aff !important;
-}
-
-.share-preview-card {
-    border-radius: 16rpx;
-    padding: 40rpx;
-    position: relative;
-    min-height: 200rpx;
-    box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
-}
-
-.share-preview-content {
-    font-family: 'Huiwen-mincho', sans-serif;
-    font-size: 28rpx;
-    line-height: 38rpx;
-    white-space: pre-wrap;
-    margin-bottom: 20rpx;
-}
-
-.share-preview-signature {
-    position: absolute;
-    bottom: 20rpx;
-    right: 20rpx;
-}
-
-.share-signature-image {
-    width: 180rpx;
-    height: 90rpx;
-    opacity: 0.8;
-}
-
-.share-actions {
-    display: flex;
-    justify-content: center;
-}
-
-.share-download-btn {
-    background: #007AFF;
-    color: white;
-    border: none;
-    border-radius: 12rpx;
-    padding: 24rpx 60rpx;
-    font-size: 30rpx;
-    font-weight: 600;
-}
-
-.share-download-btn:active {
-    background: #0056CC;
-}
-
-/* 图片下载按钮样式（替代文本按钮） */
-.share-download-image {
-    width: 140rpx;
-    height: auto;
-    display: block;
-    margin: 24rpx auto 0 auto; /* 居中并与图片留白 */
-}
+/* 分享弹窗样式已移入 ShareModal.vue */
 
 /* 定义 Huiwen-mincho 字体 */
 @font-face {

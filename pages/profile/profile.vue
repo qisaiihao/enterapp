@@ -186,6 +186,8 @@ import { togglePostVisibility, deletePost, saveDraft, getPostDetail, removeFavor
 import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
 import { navigateToUserProfile } from '@/utils/navigation.js';
 import { calculateAge } from '@/utils/ageCalculator.js';
+import { fetchPortfolioFolders } from '@/utils/profilePortfolio.js';
+import { fetchTimelineData } from '@/utils/profileTimeline.js';
 import {
   groupPostsByMonth as groupPostsByMonthUtil,
   processPostsForTimeline as processPostsForTimelineUtil,
@@ -1100,7 +1102,7 @@ export default {
 
             const app = getApp();
             const currentOpenid = app.globalData.openid;
-            
+
             if (!currentOpenid) {
                 console.error('【profile】时间轴加载失败：无法获取用户openid');
                 this.setData({
@@ -1110,55 +1112,22 @@ export default {
                 return;
             }
 
-            // 调用云函数获取全部帖子数据
-            this.$tcb.callFunction({
-                name: 'getMyProfileData',
-                data: {
-                    skip: 0,
-                    limit: 1000, // 获取大量数据，确保包含所有帖子
-                    openid: currentOpenid
-                }
-            }).then((res) => {
-                console.log('【profile】时间轴云函数返回:', res);
-
-                if (res.result && res.result.success) {
-                    const allPosts = res.result.posts || [];
-                    console.log('【profile】获取到全部帖子数量:', allPosts.length);
-                    
-                    // 只筛选原创诗歌类型的帖子
-                    const originalPoemPosts = allPosts.filter(post => post.isPoem === true && post.isOriginal === true);
-                    console.log('【profile】筛选后原创诗歌帖子数量:', originalPoemPosts.length);
-                    
-                    // 格式化时间
-                    originalPoemPosts.forEach(post => {
-                        if (post.createTime) {
-                            post.formattedCreateTime = this.formatTime(post.createTime);
-                        }
-                    });
-
-                    // 处理同一天帖子的日期显示
-                    const processedPosts = processPostsForTimelineUtil(originalPoemPosts);
-                    
+            fetchTimelineData(this.$tcb, { openid: currentOpenid, formatTimeFn: this.formatTime })
+                .then(({ posts, groups }) => {
                     this.setData({
-                        timelinePosts: processedPosts,
-                        timelineGroups: groupPostsByMonthUtil(processedPosts),
+                        timelinePosts: posts,
+                        timelineGroups: groups,
                         timelineLoading: false,
                         timelineError: false
                     });
-                } else {
-                    console.error('【profile】时间轴云函数返回失败:', res.result);
+                })
+                .catch((err) => {
+                    console.error('【profile】时间轴数据加载失败:', err);
                     this.setData({
                         timelineLoading: false,
                         timelineError: true
                     });
-                }
-            }).catch((err) => {
-                console.error('【profile】时间轴云函数调用失败:', err);
-                this.setData({
-                    timelineLoading: false,
-                    timelineError: true
                 });
-            });
         },
 
         // 删除帖子
@@ -1843,46 +1812,38 @@ export default {
         // 打开作品集
         openPortfolio(portfolio) {
             console.log('打开作品集:', portfolio);
-            // 跳转到作品集详情页面
             uni.navigateTo({
                 url: `/pages/portfolio-detail/portfolio-detail?folderId=${portfolio._id}&folderName=${encodeURIComponent(portfolio.name)}`
             });
         },
-        
-        // 加载作品集列表
-        loadPortfolios(cb) {
-            // 首先确保用户有默认作品集 - 暂时关闭
-            // this.ensureDefaultPortfolio();
 
-            this.callCloudFunction('getPortfolioFolders', {}).then((res) => {
-                if (res.result && res.result.success) {
-                    this.setData({
-                        portfolioList: res.result.folders || []
-                    });
-                } else {
-                    console.error('获取作品集失败:', res.result);
-                }
-            }).catch((error) => {
-                console.error('加载作品集失败:', error);
-            }).finally(() => {
-                // 执行回调函数（如果存在）
-                if (typeof cb === 'function') {
-                    cb();
-                }
+        // 跳转到作品集管理页面
+        navigateToPortfolio() {
+            uni.navigateTo({
+                url: '/pages/portfolio/portfolio'
             });
         },
 
-        // 确保用户有默认作品集 - 暂时关闭
-        // async ensureDefaultPortfolio() {
-        //     try {
-        //         const res = await this.callCloudFunction('ensureDefaultPortfolio', {});
-        //         if (res.result && res.result.success) {
-        //             console.log('✅ [profile] 默认作品集检查完成:', res.result.message);
-        //         }
-        //     } catch (error) {
-        //         console.error('❌ [profile] 确保默认作品集失败:', error);
-        //     }
-        // }
+        // 加载作品集列表
+        loadPortfolios(cb) {
+            const callFn = (name, data) => this.callCloudFunction(name, data);
+            fetchPortfolioFolders(callFn)
+                .then((folders) => {
+                    this.setData({
+                        portfolioList: folders
+                    });
+                })
+                .catch((error) => {
+                    console.error('加载作品集失败:', error);
+                    uni.showToast({ title: '作品集加载失败', icon: 'none' });
+                })
+                .finally(() => {
+                    if (typeof cb === 'function') {
+                        cb();
+                    }
+                });
+        },
+
     }
 };
 </script>

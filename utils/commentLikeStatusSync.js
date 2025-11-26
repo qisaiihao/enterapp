@@ -1,4 +1,4 @@
-const cacheManager = require('../_utils/cache-manager').default;
+const cacheManager = require('../_utils/cache-manager');
 
 function ns() {
   return cacheManager.namespace('comment:like:status', { persistent: true, maxItems: 2000 });

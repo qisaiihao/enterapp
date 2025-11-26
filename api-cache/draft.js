@@ -5,22 +5,26 @@ const { cloudCall } = require('../utils/cloudCall.js');
 
 /**
  * 获取我的草稿列表
- * @param {Object} options - 查询选项
- * @param {number} options.page - 页码
- * @param {number} options.pageSize - 每页数量
- * @param {Object} options.context - 页面上下文
+ * @param {Object} params - 查询选项
  * @returns {Promise} 草稿列表
  */
-async function getMyDrafts({ page = 0, pageSize = 20, context } = {}) {
+async function getMyDrafts(params = {}) {
+  // 将解构移入函数体内，解决 ReferenceError 问题
+  const { 
+    page = 0, 
+    pageSize = 20, 
+    context, 
+    ...options 
+  } = params;
+
   return cloudCall('getMyProfileData', {
     action: 'getDrafts',
     page: page,
     pageSize: pageSize
   }, Object.assign({
     pageTag: 'draft-box',
-    requireAuth: true,
-    ...options
-  }));
+    requireAuth: true
+  }, options));
 }
 
 /**

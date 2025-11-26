@@ -1,5 +1,5 @@
 // 头像缓存工具（迁移至 CacheManager）
-const cacheManager = require('../_utils/cache-manager').default;
+const cacheManager = require('../_utils/cache-manager');
 const fileUrlCache = require('../_utils/file-url-cache').default || require('../_utils/file-url-cache');
 const { cloudCall } = require('./cloudCall.js');
 

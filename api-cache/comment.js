@@ -94,17 +94,22 @@ function deleteComment(commentId, postId, parentId = null, options = {}) {
 /**
  * 点赞评论
  * @param {string} commentId - 评论ID
- * @param {boolean} isLiked - 是否点赞
+ * @param {string} postId - 帖子ID
+ * @param {boolean} isLiked - 是否点赞（可选，云函数会自动切换）
  * @param {Object} options - 额外选项
  * @returns {Promise} 点赞结果
  */
-function likeComment(commentId, isLiked, options = {}) {
+function likeComment(commentId, postId, isLiked, options = {}) {
     if (!commentId) {
         return Promise.reject(new Error('评论ID不能为空'));
+    }
+    if (!postId) {
+        return Promise.reject(new Error('帖子ID不能为空'));
     }
 
     return cloudCall('likeComment', {
         commentId: commentId,
+        postId: postId,
         isLiked: isLiked
     }, Object.assign({
         pageTag: 'post-detail',

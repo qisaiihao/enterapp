@@ -65,7 +65,7 @@
 <script>
 // 用户反馈页面
 const { previewImage: previewImageUtil } = require('../../utils/imagePreview.js');
-const { submitFeedback } = require('../../api-cache/feedback.js');
+const { submitFeedback: submitFeedbackApi } = require('../../api-cache/feedback.js');
 export default {
     data() {
         return {
@@ -177,7 +177,7 @@ export default {
                 const imageUrls = await this.uploadImages(images);
 
                 // 提交反馈数据
-                await submitFeedback({
+                await submitFeedbackApi({
                     content: content.trim(),
                     type: 'other',
                     images: imageUrls,

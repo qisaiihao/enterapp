@@ -162,7 +162,9 @@ exports.main = async (event, context) => {
     };
   }
 
-  // 检查请求频率限制
+  // 检查请求频率限制（临时禁用以排查超时问题）
+  // TODO: 优化频率限制检查逻辑后重新启用
+  /*
   const rateLimitResult = await checkRateLimit(openid);
   if (!rateLimitResult.allowed) {
     console.log('🚫 [getPostList] 频率限制拦截:', rateLimitResult.reason);
@@ -178,6 +180,7 @@ exports.main = async (event, context) => {
       }
     };
   }
+  */
 
   try {
     console.log('🔍 [getPostList] 开始构建查询');

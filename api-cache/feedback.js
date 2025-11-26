@@ -47,7 +47,7 @@ function submitFeedback(feedbackData, options = {}) {
  * @param {Object} options.context - 页面上下文
  * @returns {Promise} 反馈列表
  */
-async function getFeedbackList({ page = 0, pageSize = 20, status = '', type = '', context } = {}) {
+async function getFeedbackList({ page = 0, pageSize = 20, status = '', type = '', context, ...options } = {}) {
   const params = {
     action: 'getList',
     page: page,
@@ -72,7 +72,7 @@ async function getFeedbackList({ page = 0, pageSize = 20, status = '', type = ''
  * @param {Object} options - 额外选项
  * @returns {Promise} 更新结果
  */
-function updateFeedbackStatus(feedbackId, status, comment = '', options = {}) {
+function updateFeedbackStatus(feedbackId, status, comment = '', ...options) {
   if (!feedbackId) {
     return Promise.reject(new Error('反馈ID不能为空'));
   }
@@ -95,7 +95,7 @@ function updateFeedbackStatus(feedbackId, status, comment = '', options = {}) {
  * @param {Object} options - 额外选项
  * @returns {Promise} 删除结果
  */
-function deleteFeedback(feedbackId, options = {}) {
+function deleteFeedback(feedbackId, ...options) {
   if (!feedbackId) {
     return Promise.reject(new Error('反馈ID不能为空'));
   }
@@ -116,7 +116,7 @@ function deleteFeedback(feedbackId, options = {}) {
  * @param {Object} options - 额外选项
  * @returns {Promise} 反馈详情
  */
-function getFeedbackDetail(feedbackId, options = {}) {
+function getFeedbackDetail(feedbackId, ...options) {
   if (!feedbackId) {
     return Promise.reject(new Error('反馈ID不能为空'));
   }

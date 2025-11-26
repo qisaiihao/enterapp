@@ -242,4 +242,4 @@ class CacheManager {
 }
 
 const singleton = new CacheManager();
-export default singleton;
+module.exports = singleton;

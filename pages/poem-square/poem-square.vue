@@ -274,7 +274,7 @@ export default {
         getIndexData(callback) {
       console.log('【poem-square】开始获取数据，callback:', typeof callback);
       // 先尝试从缓存获取第一页数据，立即显示给用户
-      const cacheManager = require('@/_utils/cache-manager.js').default;
+      const cacheManager = require('@/_utils/cache-manager.js');
       const ns = cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 });
       const cacheKey = 'page:0:size:10:poem:true:orig:true:exclAnon:true';
       
