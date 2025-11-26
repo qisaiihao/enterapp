@@ -315,8 +315,8 @@ import fileUrlCache from '@/_utils/file-url-cache';
 
 // 导入重构后的工具函数
 const { getCurrentUserId } = require('../../utils/auth.js');
-const { calculateActualLines, wrapText, clampText } = require('../../utils/canvasText.js');
-const shareCanvas = require('../../utils/shareCanvas.js');
+const { calculateActualLines: calcCanvasLines, wrapText, clampText } = require('../../utils/canvasText.js');
+const { drawImageAsync, calculateActualLines: calcLines, wrapText: wrapCanvasText } = require('../../utils/shareCanvas.js');
 const { processComments, validateCommentInput, processCommentImages, findComment, calculateRemainingChars } = require('../../utils/commentUtils.js');
 const { generateShareImageName, isValidImageDataUrl, base64ToArrayBuffer, saveImageToAlbum, createTempFilePath, compressImage, getImageInfo } = require('../../utils/shareImage.js');
 
@@ -817,244 +817,12 @@ export default {
             });
         },
 
-        /**
-         * 异步绘制网络图片到 Canvas，固定宽度，高度自适应
-         * @param {Object} ctx - Canvas 的绘图上下文
-         * @param {string} url - 网络图片的 URL
-         * @param {number} x - 绘制位置的 x 坐标
-         * @param {number} y - 绘制位置的 y 坐标
-         * @param {number} fixedWidth - 固定宽度
-         * @returns {Promise<void>} - 操作完成时 resolve
-         */
-        drawImageAsync: function(ctx, url, x, y, fixedWidth) {
-            return new Promise((resolve, reject) => {
-                // 检查URL是否有效
-                if (!url || typeof url !== 'string') {
-                    console.error('【Canvas】无效的图片URL:', url);
-                    reject(new Error('无效的图片URL'));
-                    return;
-                }
-                
-                // 统一使用uni.getImageInfo，但添加错误处理
-                uni.getImageInfo({
-                    src: url,
-                    success: (res) => {
-                        try {
-                            // 固定宽度，高度按比例自适应
-                            const scale = fixedWidth / res.width;
-                            const drawWidth = fixedWidth;
-                            const drawHeight = res.height * scale;
-                            
-                            ctx.drawImage(res.path, x, y, drawWidth, drawHeight);
-                            resolve(); // 绘制指令已发出，Promise 完成
-                        } catch (e) {
-                            console.error('【Canvas】drawImage 异常:', e);
-                            reject(e);
-                        }
-                    },
-                    fail: (err) => {
-                        console.error(`【Canvas】图片下载失败: ${url}`, err);
-                        // 如果是XMLHttpRequest相关的错误，尝试使用备用方案
-                        if (err && err.errMsg && err.errMsg.includes('responseText')) {
-                            // 在H5环境下，可以尝试直接使用图片URL
-                            try {
-                                ctx.drawImage(url, x, y, fixedWidth, fixedWidth);
-                                resolve();
-                            } catch (e) {
-                                console.error('【Canvas】备用方案也失败:', e);
-                                reject(err);
-                            }
-                        } else {
-                            reject(err); // 下载失败
-                        }
-                    }
-                });
-            });
-        },
+  
 
 
-
-        /**
-         * 精确计算文字在Canvas中的实际渲染行数
-         * @param {Object} ctx - Canvas上下文
-         * @param {string} text - 要计算的文本
-         * @param {number} maxWidth - 最大宽度
-         * @param {number} fontSize - 字体大小
-         * @returns {number} 实际需要的行数
-         */
-        calculateActualLines: function(ctx, text, maxWidth, fontSize) {
-            // 设置字体
-            ctx.font = fontSize + 'px Huiwen-mincho, sans-serif';
-
-            const lines = text.split('\n');
-            let actualLineCount = 0;
-
-            lines.forEach(line => {
-                if (!line.trim()) {
-                    actualLineCount += 0.5; // 空行占一半高度
-                    return;
-                }
-
-                // 测量文字宽度
-                const textWidth = ctx.measureText ? ctx.measureText(line).width : line.length * fontSize * 0.6;
-
-                // 计算需要多少行
-                if (textWidth <= maxWidth) {
-                    actualLineCount += 1;
-                } else {
-                    // 长文本需要换行，精确计算需要的行数
-                    const estimatedLines = Math.ceil(textWidth / maxWidth);
-                    actualLineCount += estimatedLines;
-                }
-            });
-
-            return actualLineCount;
-        },
-
-        /**
-         * 智能处理文字换行，将长文本按宽度分割成适合的行
-         * 应用中文排版优化，避免单字换行
-         * @param {Object} ctx - Canvas上下文
-         * @param {string} text - 原始文本
-         * @param {number} maxWidth - 最大宽度
-         * @param {number} fontSize - 字体大小
-         * @returns {Array} 处理后的行数组
-         */
-        wrapTextForCanvas: function(ctx, text, maxWidth, fontSize) {
-            ctx.font = fontSize + 'px Huiwen-mincho, sans-serif';
-
-            // 先应用中文排版优化
-            const optimizedText = this.preventShortLineBreakForCanvas(text);
-            const originalLines = optimizedText.split('\n');
-            const wrappedLines = [];
-
-            originalLines.forEach(line => {
-                if (!line.trim()) {
-                    // 保留空行
-                    wrappedLines.push('');
-                    return;
-                }
-
-                // 测量当前行宽度
-                const textWidth = ctx.measureText ? ctx.measureText(line).width : line.length * fontSize * 0.6;
-
-                if (textWidth <= maxWidth) {
-                    // 不需要换行
-                    wrappedLines.push(line);
-                } else {
-                    // 需要换行，使用智能分割策略
-                    const smartLines = this.smartWrapLine(ctx, line, maxWidth, fontSize);
-                    wrappedLines.push(...smartLines);
-                }
-            });
-
-            return wrappedLines;
-        },
-
-        /**
-         * 为Canvas文字渲染优化的短行换行预防函数
-         * @param {string} text - 原始文本
-         * @returns {string} - 处理后的文本
-         */
-        preventShortLineBreakForCanvas: function(text) {
-            if (!text || typeof text !== 'string') return text;
-            
-            // 使用正则表达式匹配 "1个或2个字符" + "一个标点符号" 的组合
-            const regex = /(.{1,2})([，。；：！？、])/g;
-            
-            // 在匹配到的字符和标点之间，插入一个零宽度的"单词连接符" (\u2060)
-            return text.replace(regex, '$1\u2060$2');
-        },
-
-        /**
-         * 智能分割单行文字，避免单字换行
-         * @param {Object} ctx - Canvas上下文
-         * @param {string} line - 要分割的行
-         * @param {number} maxWidth - 最大宽度
-         * @param {number} fontSize - 字体大小
-         * @returns {Array} 分割后的行数组
-         */
-        smartWrapLine: function(ctx, line, maxWidth, fontSize) {
-            const lines = [];
-            let currentLine = '';
-            
-            // 按标点符号分割，优先在标点后换行
-            const segments = line.split(/([，。；：！？、])/);
-            
-            for (let i = 0; i < segments.length; i++) {
-                const segment = segments[i];
-                if (!segment) continue;
-                
-                const testLine = currentLine + segment;
-                const testWidth = ctx.measureText ? ctx.measureText(testLine).width : testLine.length * fontSize * 0.6;
-                
-                if (testWidth <= maxWidth) {
-                    currentLine = testLine;
-                } else {
-                    // 当前行已满，需要换行
-                    if (currentLine) {
-                        lines.push(currentLine);
-                    }
-                    
-                    // 如果单个标点符号，直接添加到当前行
-                    if (/^[，。；：！？、]$/.test(segment)) {
-                        currentLine = segment;
-                    } else {
-                        // 如果是内容段，需要进一步分割
-                        const subLines = this.splitLongSegment(ctx, segment, maxWidth, fontSize);
-                        if (subLines.length > 0) {
-                            lines.push(...subLines.slice(0, -1)); // 除了最后一行
-                            currentLine = subLines[subLines.length - 1]; // 最后一行作为当前行
-                        } else {
-                            currentLine = segment;
-                        }
-                    }
-                }
-            }
-            
-            // 添加最后一行
-            if (currentLine) {
-                lines.push(currentLine);
-            }
-            
-            return lines;
-        },
-
-        /**
-         * 分割过长的内容段
-         * @param {Object} ctx - Canvas上下文
-         * @param {string} segment - 要分割的内容段
-         * @param {number} maxWidth - 最大宽度
-         * @param {number} fontSize - 字体大小
-         * @returns {Array} 分割后的行数组
-         */
-        splitLongSegment: function(ctx, segment, maxWidth, fontSize) {
-            const lines = [];
-            let currentLine = '';
-            
-            for (let i = 0; i < segment.length; i++) {
-                const testLine = currentLine + segment[i];
-                const testWidth = ctx.measureText ? ctx.measureText(testLine).width : testLine.length * fontSize * 0.6;
-                
-                if (testWidth <= maxWidth) {
-                    currentLine = testLine;
-                } else {
-                    // 当前行已满，开始新行
-                    if (currentLine) {
-                        lines.push(currentLine);
-                    }
-                    currentLine = segment[i];
-                }
-            }
-            
-            // 添加最后一行
-            if (currentLine) {
-                lines.push(currentLine);
-            }
-            
-            return lines;
-        },
-
+        
+        
+        
         drawCanvas: async function () {
             try {
                 
@@ -1102,10 +870,10 @@ export default {
                 const textAreaWidth = canvasWidth - 160; // 减去左右padding (80*2)
 
                 // 【新增】使用精确的文字测量函数计算实际行数
-                const actualLines = this.calculateActualLines(ctx, content, textAreaWidth, fontSize);
+                const actualLines = calcLines(ctx, content, textAreaWidth, fontSize);
 
                 // 【新增】使用智能换行函数处理长文本
-                const processedLines = this.wrapTextForCanvas(ctx, content, textAreaWidth, fontSize);
+                const processedLines = wrapCanvasText(ctx, content, textAreaWidth, fontSize);
                 const wrappedContentHeight = processedLines.reduce((h, line) => h + (line && line.trim() ? lineHeight : lineHeight * 0.5), 0);
 
                 // 更准确的内容高度计算 - 基于实际测量
@@ -1114,7 +882,7 @@ export default {
                 // 【修复】计算标题的实际高度（支持多行标题）
                 let actualTitleHeight = titleLineHeight + 20; // 默认单行标题高度
                 if (this.post.title) {
-                    const titleLines = this.wrapTextForCanvas(ctx, this.post.title, textAreaWidth, titleFontSize);
+                    const titleLines = wrapCanvasText(ctx, this.post.title, textAreaWidth, titleFontSize);
                     const titleLinesCount = titleLines.filter(line => line.trim()).length;
                     if (titleLinesCount > 1) {
                         actualTitleHeight = titleLinesCount * titleLineHeight + 20; // 多行标题高度
@@ -1194,7 +962,7 @@ export default {
                     ctx.setTextAlign('left');
                     
                     // 【修复】对标题也应用换行处理，避免标题过长溢出
-                    const titleLines = this.wrapTextForCanvas(ctx, title, textAreaWidth, titleFontSize);
+                    const titleLines = wrapCanvasText(ctx, title, textAreaWidth, titleFontSize);
                     
                     // 绘制标题（支持多行）
                     let titleY = textTopPadding + titleFontSize;
@@ -1249,7 +1017,7 @@ export default {
                     const sigY = (canvasHeight - __wmH2 - __wmMargin2) + (__wmH2 - signatureDrawHeight - __sigPad2);
 
                     // 使用 await 等待异步绘制函数完成，固定宽度，高度自适应
-                    await this.drawImageAsync(
+                    await drawImageAsync(
                         ctx,
                         this.post.authorSignature,
                         sigX,
