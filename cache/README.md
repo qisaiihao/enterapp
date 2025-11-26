@@ -99,6 +99,59 @@ cache.searchCache.get(keyword);
 | `myLikes` | 我的点赞 | 2min | 30s |
 | `portfolio` | 作品集 | 5min | 1min |
 | `unread` | 未读数 | 30s | 30s |
+| `posts:detail` | 帖子详情 | 2min | 1min |
+
+## 缓存空间共用机制
+
+### `posts:list` 共用命名空间
+
+以下页面共用 `posts:list` 命名空间，通过 `buildCacheKey()` 生成不同的缓存键：
+
+```
+┌────────────────────────────────────────────────────────┐
+│  posts:list 命名空间                                    │
+├────────────────────────────────────────────────────────┤
+│  首页 (home-posts.js)                                  │
+│  诗歌页 (poems.js)                                     │
+│  标签页 (tag-posts.js)                                 │
+│  通用列表 (post-list.js)                               │
+├────────────────────────────────────────────────────────┤
+│  缓存键格式: page:N:size:M:筛选条件                      │
+│  例如:                                                  │
+│  - "page:0:size:10:all"              ← 无筛选           │
+│  - "page:0:size:10:poem:true"        ← 仅诗歌           │
+│  - "page:0:size:10:poem:true:orig:true" ← 原创诗歌      │
+│  - "page:0:size:10:tag:古诗"         ← 标签筛选         │
+└────────────────────────────────────────────────────────┘
+```
+
+**共用效果**：如果诗歌页加载了 `poem:true:orig:true` 的数据，首页使用相同筛选条件时会直接命中缓存。
+
+### 独立命名空间
+
+以下场景使用独立命名空间，不与其他页面共用：
+
+| 命名空间 | 用途 | 原因 |
+|----------|------|------|
+| `posts:discover` | 发现页推荐 | 推荐算法不同 |
+| `following:posts` | 关注动态 | 仅关注的人 |
+| `discussion:posts` | 讨论区 | 仅讨论类型 |
+| `userPosts:<id>` | 他人主页 | 按用户隔离 |
+| `posts:detail` | 帖子详情 | 完整数据 |
+
+### 列表与详情的关系
+
+列表和详情**不能直接共用**，但支持**预填充**：
+
+```js
+// 从列表进入详情时，先用列表数据预填充
+import { prefillPostDetail } from '@/api-cache/post.js';
+
+onPostTap(post) {
+  prefillPostDetail(post);  // 用列表数据预填充详情缓存
+  uni.navigateTo({ url: `/pages/post-detail/post-detail?id=${post._id}` });
+}
+```
 
 ## 事件驱动失效
 
