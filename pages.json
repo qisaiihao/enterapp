@@ -306,6 +306,20 @@
       ]
     }
   ],
+  "preloadRule": {
+    "pages/profile/profile": {
+      "network": "all",
+      "packages": ["pages-user", "pages-content"]
+    },
+    "pages/index/index": {
+      "network": "all",
+      "packages": ["pages-tools"]
+    },
+    "pages/poem-square/poem-square": {
+      "network": "all",
+      "packages": ["pages-tools"]
+    }
+  },
   "tabBar": {
     "custom": true,
     "color": "#999999",
@@ -347,6 +361,10 @@
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#F6F6F6",
     "navigationBarTitleText": "回车键",
-    "navigationBarTextStyle": "black"
+    "navigationBarTextStyle": "black",
+    "app-plus": {
+      "animationType": "slide-in-right",
+      "animationDuration": 280
+    }
   }
 }

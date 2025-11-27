@@ -9,6 +9,7 @@
                     :current="swiperCurrent" 
                     @change="onSwiperChange"
                     @touchstart="onSwiperTouchStart"
+                    @touchmove="onSwiperTouchMove"
                     @touchend="onSwiperTouchEnd"
                     :duration="300"
                     :disable-touch="false"
@@ -33,6 +34,8 @@
                             empty-text="还没有帖子哦～"
                             empty-subtext="快来发布第一条帖子吧！"
                             end-text="--- 我是有底线的 ---"
+                            :scroll-enabled="!isSwiping"
+                            :refresher-enabled="!isSwiping"
                             @refresh="onHomeRefresh"
                             @load-more="getPostList"
                             @avatar-error="onAvatarError"
@@ -77,6 +80,8 @@
                             empty-text="关注的人还没有发帖"
                             empty-subtext="去关注更多有趣的人吧！"
                             end-text="--- 没有更多了 ---"
+                            :scroll-enabled="!isSwiping"
+                            :refresher-enabled="!isSwiping"
                             @refresh="onFollowingRefresh"
                             @load-more="loadFollowingPosts"
                             @avatar-error="onAvatarError"
@@ -110,6 +115,8 @@
                             empty-text="讨论区暂无内容"
                             empty-subtext="快来发起第一个话题吧！"
                             end-text="--- 没有更多讨论了 ---"
+                            :scroll-enabled="!isSwiping"
+                            :refresher-enabled="!isSwiping"
                             @refresh="onDiscussionRefresh"
                             @load-more="loadDiscussionPosts"
                             @avatar-error="onAvatarError"
@@ -215,6 +222,7 @@ export default {
             safeAreaTop: 0,
             swiperChangeTimer: null,
             swiperTouchStartX: null,
+            swiperTouchStartY: null,
             swiperTouchStartTime: null,
             easeOutCubic: 'cubic-bezier(0.33, 1, 0.68, 1)',
             showNormalPostsOnly: false,
@@ -223,7 +231,9 @@ export default {
             touchStartY: 0,
             touchMoved: false,
             hoverResetTimer: null,
-            lastScrollTime: 0
+            lastScrollTime: 0,
+            isSwiping: false,
+            swipeDirectionDecided: false
         };
     },
     onLoad: function (options) {
@@ -470,7 +480,30 @@ export default {
 
                 onSwiperTouchStart(e) {
             this.swiperTouchStartX = e.touches[0].clientX;
+            this.swiperTouchStartY = e.touches[0].clientY;
             this.swiperTouchStartTime = Date.now();
+            this.isSwiping = false;
+            this.swipeDirectionDecided = false;
+        },
+
+        onSwiperTouchMove(e) {
+            // 如果已经确定方向，不再判断
+            if (this.swipeDirectionDecided) return;
+            if (!this.swiperTouchStartX || !this.swiperTouchStartY) return;
+            
+            const touchX = e.touches[0].clientX;
+            const touchY = e.touches[0].clientY;
+            const deltaX = Math.abs(touchX - this.swiperTouchStartX);
+            const deltaY = Math.abs(touchY - this.swiperTouchStartY);
+            
+            // 移动超过 3px 就判断方向
+            if (deltaX > 3 || deltaY > 3) {
+                this.swipeDirectionDecided = true;
+                // 如果是水平滑动，禁用上下滚动和刷新
+                if (deltaX > deltaY) {
+                    this.isSwiping = true;
+                }
+            }
         },
 
                 onSwiperTouchEnd(e) {
@@ -481,7 +514,10 @@ export default {
             const deltaTime = Date.now() - this.swiperTouchStartTime;
             
             this.swiperTouchStartX = null;
+            this.swiperTouchStartY = null;
             this.swiperTouchStartTime = null;
+            this.isSwiping = false;
+            this.swipeDirectionDecided = false;
             if (Math.abs(deltaX) < 30 || deltaTime < 50) {
                 return;
             }

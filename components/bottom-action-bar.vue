@@ -12,10 +12,10 @@
     </view>
     <view class="action-icons">
       <view class="action-icon" @tap="$emit('show-discussion-modal')">
-        <image class="action-icon-image" src="/static/images/write_poetry.png" mode="aspectFit"/>
+        <image class="action-icon-image" src="/static/images/newicons/comment.png" mode="aspectFit"/>
       </view>
       <view class="action-icon" @tap="$emit('toggle-favorite')">
-        <image class="action-icon-image" :src="post && post.isFavorited ? '/static/images/my_favorites.png' : '/static/images/my_favorites.png'" mode="aspectFit"/>
+        <image class="action-icon-image" :src="post && post.isFavorited ? '/static/images/newicons/collection.png' : '/static/images/newicons/collection.png'" mode="aspectFit"/>
       </view>
     </view>
   </view>

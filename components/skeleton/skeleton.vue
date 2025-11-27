@@ -368,22 +368,24 @@ export default {
     border-radius: 50%;
 }
 
-/* 动画效果 */
+/* 动画效果 - 更柔和的微光效果 */
 .skeleton-animate {
     background: linear-gradient(90deg, 
-        rgba(255, 255, 255, 0.2) 25%, 
-        rgba(255, 255, 255, 0.4) 50%, 
-        rgba(255, 255, 255, 0.2) 75%);
-    background-size: 200% 100%;
-    animation: skeleton-loading 1.5s infinite linear;
+        rgba(255, 255, 255, 0.1) 0%, 
+        rgba(255, 255, 255, 0.3) 20%, 
+        rgba(255, 255, 255, 0.5) 50%, 
+        rgba(255, 255, 255, 0.3) 80%, 
+        rgba(255, 255, 255, 0.1) 100%);
+    background-size: 400% 100%;
+    animation: skeleton-shimmer 1.8s ease-in-out infinite;
 }
 
-@keyframes skeleton-loading {
+@keyframes skeleton-shimmer {
     0% {
-        background-position: 200% 0;
+        background-position: 100% 0;
     }
     100% {
-        background-position: -200% 0;
+        background-position: -100% 0;
     }
 }
 

@@ -65,7 +65,7 @@
                 <image class="like-icon" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError" />
               </view>
               <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
-                <image class="comment-icon" src="/static/images/comment.png" mode="aspectFit" />
+                <image class="comment-icon" src="/static/images/newicons/comment.png" mode="aspectFit" />
               </view>
             </view>
           </view>

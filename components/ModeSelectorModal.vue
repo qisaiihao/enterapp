@@ -2,7 +2,7 @@
     <!-- 模式选择器弹窗 -->
     <view v-if="show" class="mode-selector-mask" @tap="$emit('close')">
         <view class="mode-selector" @tap.stop>
-            <image class="mode-switch-modal-icon" src="/static/images/change.png" mode="aspectFit" alt="切换发布模式"></image>
+            <image class="mode-switch-modal-icon" src="/static/images/newicons/switch_publish.png" mode="aspectFit" alt="切换发布模式"></image>
             <view class="mode-title">选择发布模式</view>
             <view class="mode-list">
                 <view class="mode-option" @tap="onSelect('poem', true)">

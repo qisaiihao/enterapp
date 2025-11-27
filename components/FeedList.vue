@@ -1,12 +1,12 @@
 <template>
     <scroll-view 
-        scroll-y="true" 
+        :scroll-y="scrollEnabled" 
         class="feed-list-scroll" 
         @scroll="handleScroll"
         @touchstart="onTouchStart"
         @touchmove="onTouchMove"
         @touchend="onTouchEnd"
-        refresher-enabled="true"
+        :refresher-enabled="refresherEnabled"
         :refresher-triggered="refresherTriggered"
         :refresher-threshold="90"
         refresher-background="#ffffff"
@@ -137,6 +137,16 @@ export default {
         preloadThreshold: {
             type: Number,
             default: 2
+        },
+        // 是否允许滚动（用于左右滑动时禁用上下滚动）
+        scrollEnabled: {
+            type: Boolean,
+            default: true
+        },
+        // 是否允许下拉刷新（用于左右滑动时禁用）
+        refresherEnabled: {
+            type: Boolean,
+            default: true
         }
     },
     data() {
@@ -240,6 +250,27 @@ export default {
     align-items: center;
     justify-content: center;
     padding: 100rpx 40rpx;
+    animation: emptyFadeIn 0.5s ease;
+}
+
+@keyframes emptyFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.empty-icon {
+    animation: emptyIconBounce 2s ease-in-out infinite;
+}
+
+@keyframes emptyIconBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10rpx); }
 }
 
 .empty-icon {
@@ -263,11 +294,33 @@ export default {
     justify-content: center;
     align-items: center;
     padding: 30rpx 0;
+    animation: loadingFadeIn 0.3s ease;
+}
+
+@keyframes loadingFadeIn {
+    from { opacity: 0; transform: translateY(10rpx); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .loading-text {
     font-size: 26rpx;
     color: #999;
+}
+
+/* 加载点动画 */
+.loading-more::before {
+    content: '';
+    width: 28rpx;
+    height: 28rpx;
+    border: 3rpx solid #e0e0e0;
+    border-top-color: #333;
+    border-radius: 50%;
+    margin-right: 16rpx;
+    animation: loadingSpin 0.8s linear infinite;
+}
+
+@keyframes loadingSpin {
+    to { transform: rotate(360deg); }
 }
 
 .end-tip {

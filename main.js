@@ -1,3 +1,7 @@
+// 【性能优化】生产环境静默日志输出
+import { silenceConsoleInProduction } from '@/utils/logger.js';
+silenceConsoleInProduction();
+
 // 字体预加载 - 确保Huiwen-mincho字体在应用启动时就加载
 // #ifdef H5
 if (typeof document !== 'undefined') {

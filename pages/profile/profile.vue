@@ -39,10 +39,10 @@
                             <image class="tab-icon" src="/static/images/my_posts.png" mode="aspectFit"></image>
                         </view>
                         <view :class="'tab-item ' + (currentTab === 'portfolio' ? 'active' : '')" data-tab="portfolio" @tap="switchTab">
-                            <image class="tab-icon" src="/static/images/portfolio.png" mode="aspectFit"></image>
+                            <image class="tab-icon" src="/static/images/newicons/library.png" mode="aspectFit"></image>
                         </view>
                         <view :class="'tab-item ' + (currentTab === 'favorites' ? 'active' : '')" data-tab="favorites" @tap="switchTab">
-                            <image class="tab-icon" src="/static/images/my_favorites.png" mode="aspectFit"></image>
+                            <image class="tab-icon" src="/static/images/newicons/collection.png" mode="aspectFit"></image>
                         </view>
                     </view>
 

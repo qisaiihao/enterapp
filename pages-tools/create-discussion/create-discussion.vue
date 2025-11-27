@@ -83,11 +83,11 @@
         <!-- 底部按钮组 - 只在已选择句子时显示 -->
         <view v-if="hasSelectedSentences" class="bottom-buttons">
             <view class="button-item" @tap.stop="addMoreSentences">
-                <image class="button-icon" src="/static/images/add_tag.png" mode="aspectFit"></image>
+                <image class="button-icon" src="/static/images/newicons/tag.png" mode="aspectFit"></image>
             </view>
 
             <view class="button-item" @tap.stop="saveDraft">
-                <image class="button-icon" src="/static/images/save_draft.png" mode="aspectFit"></image>
+                <image class="button-icon" src="/static/images/newicons/save_draft.png" mode="aspectFit"></image>
             </view>
 
             <view class="button-item" @tap.stop="deleteContent">
@@ -95,7 +95,7 @@
             </view>
 
             <view class="button-item" @tap.stop="publishDiscussion">
-                <image class="button-icon" src="/static/images/publish.png" mode="aspectFit"></image>
+                <image class="button-icon" src="/static/images/newicons/publish_send.png" mode="aspectFit"></image>
             </view>
         </view>
 

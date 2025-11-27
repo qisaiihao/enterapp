@@ -74,3 +74,22 @@ $uni-color-subtitle: #555555; // 二级标题颜色
 $uni-font-size-subtitle:26px;
 $uni-color-paragraph: #3F536E; // 文章段落颜色
 $uni-font-size-paragraph:15px;
+
+/* ========== 动画相关变量 ========== */
+
+/* 缓动函数 */
+$ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+$ease-out-cubic: cubic-bezier(0.33, 1, 0.68, 1);
+$ease-in-out-cubic: cubic-bezier(0.65, 0, 0.35, 1);
+$ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+$ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+/* 动画时长 */
+$duration-fast: 150ms;
+$duration-normal: 250ms;
+$duration-slow: 350ms;
+
+/* 常用过渡 */
+$transition-fast: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+$transition-normal: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+$transition-bounce: all 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275);

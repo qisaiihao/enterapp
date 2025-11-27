@@ -42,11 +42,11 @@
                 <view class="expanded-actions">
                     <view class="action-icons">
                         <view class="action-icon" @tap="chooseImages">
-                            <image class="action-icon-image" src="/static/images/add_image.png" mode="aspectFit"></image>
+                            <image class="action-icon-image" src="/static/images/newicons/image.png" mode="aspectFit"></image>
                         </view>
                     </view>
                     <view class="submit-button" @tap="submit" :class="{ 'disabled': isSubmitDisabled }">
-                        <image class="submit-icon" src="/static/images/commententer.png" mode="aspectFit"></image>
+                        <image class="submit-icon" src="/static/images/newicons/comment.png" mode="aspectFit"></image>
                     </view>
                 </view>
             </view>

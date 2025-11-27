@@ -26,7 +26,7 @@
           <view class="action-icon" @tap="$emit('choose-images')"></view>
         </view>
         <view class="submit-button" @tap="$emit('submit-comment')" :class="{ disabled: isSubmitDisabled }">
-          <image class="submit-icon" src="/static/images/commententer.png" mode="aspectFit"/>
+          <image class="submit-icon" src="/static/images/newicons/comment.png" mode="aspectFit"/>
         </view>
       </view>
     </view>

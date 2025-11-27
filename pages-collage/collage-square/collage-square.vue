@@ -72,7 +72,7 @@
             <text class="action-text">{{ currentCollage.votes || 0 }}</text>
           </view>
           <view class="action-item" @tap.stop.prevent="onComment" :data-postid="currentCollage._id">
-            <image class="action-icon" src="/static/images/comment.png" mode="aspectFit" />
+            <image class="action-icon" src="/static/images/newicons/comment.png" mode="aspectFit" />
             <text class="action-text">{{ currentCollage.commentCount || 0 }}</text>
           </view>
         </view>

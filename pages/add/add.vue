@@ -90,22 +90,22 @@
                 <view class="side-toolbar">
                     <!-- 加标签按钮 -->
                     <view class="side-tool-btn" @tap.stop="toggleTagSelector">
-                        <image class="side-tool-icon" src="/static/images/add_tag.png" mode="aspectFit"></image>
+                        <image class="side-tool-icon" src="/static/images/newicons/tag.png" mode="aspectFit"></image>
                     </view>
                     
                     <!-- 配图按钮 -->
                     <view class="side-tool-btn" @tap.stop="handleChooseImage">
-                        <image class="side-tool-icon" src="/static/images/add_image.png" mode="aspectFit"></image>
+                        <image class="side-tool-icon" src="/static/images/newicons/image.png" mode="aspectFit"></image>
                     </view>
                     
                     <!-- 切换发布模式按钮 -->
                     <view class="side-tool-btn mode-switch-btn" @tap.stop="switchMode">
-                        <image class="side-tool-icon mode-switch-icon" src="/static/images/change.png" mode="aspectFit" alt="切换发布模式"></image>
+                        <image class="side-tool-icon mode-switch-icon" src="/static/images/newicons/switch_publish.png" mode="aspectFit" alt="切换发布模式"></image>
                     </view>
                     
                     <!-- 选择高光句按钮（仅诗歌模式显示） -->
                     <view v-if="publishMode === 'poem'" class="side-tool-btn" @tap.stop="toggleHighlightMode">
-                        <image class="side-tool-icon" src="/static/images/select_highlight.png" mode="aspectFit"></image>
+                        <image class="side-tool-icon" src="/static/images/newicons/highlight.png" mode="aspectFit"></image>
                     </view>
                     
                     <!-- 选择颜色按钮 -->
@@ -2153,7 +2153,7 @@ page {
 
 
 .side-tool-btn {
-    width: 90rpx; /* 调整按钮尺寸 */
+    width: 90rpx;
     height: 90rpx;
     border: none; /* 移除边框 */
     background: transparent; /* 移除背景 */
@@ -2405,8 +2405,8 @@ page {
     }
     
     .side-tool-btn {
-        width: 50rpx;
-        height: 50rpx;
+        width: 70rpx;
+        height: 70rpx;
     }
     
     .mode-switch-icon {
@@ -2444,8 +2444,8 @@ page {
     }
     
     .side-tool-btn {
-        width: 70rpx;
-        height: 70rpx;
+        width: 80rpx;
+        height: 80rpx;
     }
     
     .mode-switch-icon {

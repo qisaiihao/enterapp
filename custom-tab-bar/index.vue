@@ -12,6 +12,8 @@
 </template>
 
 <script>
+import { lightImpact } from '@/utils/haptics.js';
+
 export default {
     data() {
         return {
@@ -68,6 +70,9 @@ export default {
             const url = data.path;
             const index = data.index;
             const currentTime = Date.now();
+
+            // 触觉反馈
+            lightImpact();
 
             const isDoubleTap = currentTime - this.lastTapTime < this.doubleTapThreshold && this.lastTapIndex === index && this.selected === index;
 

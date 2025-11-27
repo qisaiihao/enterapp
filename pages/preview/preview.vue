@@ -159,13 +159,13 @@
         <image class="button-icon" src="/static/images/delete.png" mode="aspectFit"></image>
       </view>
       <view class="button-item" @tap.stop="saveDraft">
-        <image class="button-icon" src="/static/images/save_draft.png" mode="aspectFit"></image>
+        <image class="button-icon" src="/static/images/newicons/save_draft.png" mode="aspectFit"></image>
       </view>
       <view class="button-item" @tap.stop="publishAnonymously">
-        <image class="button-icon" src="/static/images/niming.png" mode="aspectFit"></image>
+        <image class="button-icon" src="/static/images/newicons/anonymous.png" mode="aspectFit"></image>
       </view>
       <view class="button-item" @tap.stop="goToPublish">
-        <image class="button-icon" src="/static/images/publish.png" mode="aspectFit"></image>
+        <image class="button-icon" src="/static/images/newicons/publish_send.png" mode="aspectFit"></image>
       </view>
     </view>
   </view>
@@ -1089,14 +1089,19 @@ export default {
   opacity: 0.8;
 }
 
-.preview-page .bottom-buttons .button-item .button-icon {
-  width: 80rpx !important;
-  height: 80rpx !important;
+.bottom-buttons .button-item {
+  width: 120rpx;
+  height: 120rpx;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10rpx;
 }
 
 .bottom-buttons .button-icon {
-  width: 80rpx !important;
-  height: 80rpx !important;
+  width: 90rpx;
+  height: 90rpx;
 }
 .empty-state { text-align: center; padding: 100rpx 0; color: #999; }
 .empty-icon { font-size: 80rpx; margin-bottom: 20rpx; }

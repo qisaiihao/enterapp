@@ -3,14 +3,14 @@
     <!-- 自定义顶部栏 -->
     <view class="custom-top-bar">
       <view class="top-left" @tap="navigateToAdd">
-        <image class="top-icon" src="/static/images/write_poetry.png" mode="aspectFit"></image>
+        <image class="top-icon" :src="leftIcon" mode="aspectFit"></image>
       </view>
       <view class="top-right">
         <view class="top-item" @tap="navigateToSearch">
-          <image class="top-icon" src="/static/images/search.png" mode="aspectFit"></image>
+          <image class="top-icon" src="/static/images/newicons/search.png" mode="aspectFit"></image>
         </view>
         <view class="top-item" @tap="navigateToMessages">
-          <image class="top-icon" src="/static/images/messages.png" mode="aspectFit"></image>
+          <image class="top-icon" src="/static/images/newicons/notification.png" mode="aspectFit"></image>
           <view v-if="unreadMessageCount > 0" class="unread-dot"></view>
         </view>
       </view>
@@ -22,6 +22,12 @@
 import unreadBadge from '@/cache/stores/unread-badge.js';
 
 export default {
+  props: {
+    leftIcon: {
+      type: String,
+      default: '/static/images/write_poetry.png'
+    }
+  },
   data() {
     return {
       unreadMessageCount: 0,

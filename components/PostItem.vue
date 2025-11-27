@@ -126,7 +126,7 @@
             </view>
             <view class="button-group">
                 <view class="comment-count" @tap.stop.prevent="onCommentClick">
-                    <image class="comment-icon" src="/static/images/comment.png" mode="aspectFit" />
+                    <image class="comment-icon" src="/static/images/newicons/comment.png" mode="aspectFit" />
                     <text class="action-text">{{ item.commentCount || 0 }}</text>
                 </view>
                 <view
@@ -309,6 +309,20 @@ export default {
     box-shadow: none;
     border-radius: 0;
     border-bottom: 1rpx solid #f0f0f0;
+    /* 列表项淡入动画 */
+    animation: postFadeIn 0.35s ease-out;
+    transform-origin: center top;
+}
+
+@keyframes postFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(15rpx);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* 原创帖子特殊样式 */
@@ -393,9 +407,11 @@ export default {
     background: transparent;
 }
 
-/* 导航器点击效果 */
+/* 导航器点击效果 - 更明显的反馈 */
 .navigator-hover {
-    background-color: rgba(0, 0, 0, 0.02);
+    background-color: rgba(0, 0, 0, 0.04);
+    transform: scale(0.995);
+    transition: all 0.12s ease;
 }
 
 .post-item {
@@ -480,10 +496,25 @@ export default {
     height: 100%;
     display: block;
     object-fit: contain;
+    /* 图片加载淡入动画 */
+    opacity: 0;
+    animation: imageFadeIn 0.4s ease forwards;
+}
+
+@keyframes imageFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 .post-image:active {
-    transform: scale(1.05);
+    transform: scale(1.02);
+    transition: transform 0.15s ease;
 }
 
 .post-image.single-image {
@@ -619,15 +650,48 @@ export default {
     padding: 8rpx;
     border-radius: 8rpx;
     margin-left: 20rpx;
-    transition: all 0.2s ease;
+    transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .like-icon-container:active {
-    transform: scale(0.95);
+    transform: scale(0.85);
+}
+
+/* 点赞弹跳动画 */
+.like-icon-container.bouncing {
+    animation: likeBouncePop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.6);
+}
+
+@keyframes likeBouncePop {
+    0% { transform: scale(1); }
+    25% { transform: scale(0.8); }
+    50% { transform: scale(1.25); }
+    75% { transform: scale(0.95); }
+    100% { transform: scale(1); }
 }
 
 .like-icon {
     width: 48rpx;
     height: 48rpx;
+    transition: transform 0.2s ease;
+}
+
+/* 点赞数字变化动画 */
+.vote-count {
+    transition: color 0.2s ease, transform 0.15s ease;
+}
+
+.vote-count.voted {
+    color: #e74c3c;
+}
+
+.vote-count.vote-changed {
+    animation: voteNumberPop 0.3s ease;
+}
+
+@keyframes voteNumberPop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
 }
 </style>

@@ -1,23 +1,10 @@
 <template>
-  <view class="page-tabs-container">
-    <!-- 自定义顶部栏 -->
-    <view class="custom-top-bar" :style="{ paddingTop: safeAreaTop + 'px' }">
-      <view class="top-left" @tap="navigateToAdd">
-        <image class="top-icon" src="/static/images/create_post.png" mode="aspectFit"></image>
-      </view>
-      <view class="top-right">
-        <view class="top-item" @tap="navigateToSearch">
-          <image class="top-icon" src="/static/images/search.png" mode="aspectFit"></image>
-        </view>
-        <view class="top-item" @tap="navigateToMessages">
-          <image class="top-icon" src="/static/images/messages.png" mode="aspectFit"></image>
-          <view v-if="unreadMessageCount > 0" class="unread-dot"></view>
-        </view>
-      </view>
-    </view>
+  <view class="page-tabs-wrapper">
+    <!-- 复用 top-bar 组件，传入不同的左侧图标 -->
+    <top-bar ref="topBar" left-icon="/static/images/newicons/write_poem.png" @safe-area-ready="onSafeAreaReady" />
 
-    <!-- 页面切换标签栏 -->
-    <view class="tabs-container">
+    <!-- 页面切换标签栏 - 定位在 top-bar 下方 -->
+    <view class="tabs-container" :style="{ top: (safeAreaTop + 60) + 'px' }">
       <view class="tabs-list">
         <view
           v-for="(tab, index) in tabs"
@@ -26,18 +13,22 @@
           @tap="switchTab(tab.value)"
         >
           <text class="tab-text">{{ tab.label }}</text>
-          <view v-if="currentTab === tab.value" class="tab-indicator"></view>
         </view>
+        <!-- 滑动指示器，通过 transform 实现平移动画 -->
+        <view class="tab-indicator" :style="indicatorStyle"></view>
       </view>
     </view>
   </view>
 </template>
 
 <script>
-import unreadBadge from '@/cache/stores/unread-badge.js';
+import topBar from '@/components/top-bar/top-bar.vue';
 
 export default {
   name: 'PageTabs',
+  components: {
+    topBar
+  },
   props: {
     currentTab: {
       type: String,
@@ -46,52 +37,24 @@ export default {
   },
   data() {
     return {
-      unreadMessageCount: 0,
       safeAreaTop: 0,
       tabs: [
         { label: '广场', value: 'square' },
         { label: '关注', value: 'following' },
         { label: '讨论', value: 'discussion' }
-      ],
-      _unsubscribe: null
+      ]
     };
   },
-  mounted() {
-    // 获取安全区域高度
-    this.getSafeAreaTop();
-    // 订阅未读数变化（会立即用当前值回调一次）
-    this._unsubscribe = unreadBadge.subscribe((count) => {
-      this.unreadMessageCount = count;
-    });
-  },
-  beforeDestroy() {
-    if (this._unsubscribe) {
-      this._unsubscribe();
-      this._unsubscribe = null;
+  computed: {
+    // 计算指示器的位置
+    indicatorStyle() {
+      const index = this.tabs.findIndex(tab => tab.value === this.currentTab);
+      // 每个 tab 占 1/3 宽度，指示器在 tab 中心
+      const translateX = (index * 100 / 3) + (100 / 6); // 移动到对应 tab 的中心
+      return `left: calc(${translateX}% - 30rpx);`; // 30rpx 是指示器宽度的一半
     }
   },
   methods: {
-    // 获取安全区域高度
-    getSafeAreaTop() {
-      try {
-        const systemInfo = uni.getSystemInfoSync();
-        console.log('【page-tabs】获取系统信息:', {
-          statusBarHeight: systemInfo.statusBarHeight,
-          platform: systemInfo.platform
-        });
-        
-        // 使用状态栏高度作为安全区域
-        const safeAreaTop = systemInfo.statusBarHeight || 0;
-        console.log('【page-tabs】设置安全区域高度:', safeAreaTop);
-        
-        this.safeAreaTop = safeAreaTop;
-      } catch (error) {
-        console.error('【page-tabs】获取安全区域失败:', error);
-        // 使用默认值
-        this.safeAreaTop = 44; // iOS 默认状态栏高度
-      }
-    },
-
     // 切换标签页
     switchTab(tabValue) {
       if (tabValue !== this.currentTab) {
@@ -99,136 +62,28 @@ export default {
       }
     },
 
-    // 跳转到写诗页面
-    navigateToAdd() {
-      console.log('点击写诗按钮，跳转到add页面');
-      uni.navigateTo({
-        url: '/pages/add/add',
-        success: () => {
-          console.log('跳转到add页面成功');
-        },
-        fail: (err) => {
-          console.error('跳转到add页面失败:', err);
-          uni.showToast({
-            title: '跳转失败',
-            icon: 'none'
-          });
-        }
-      });
-    },
-
-    // 跳转到搜索页面
-    navigateToSearch() {
-      console.log('点击搜索框，跳转到搜索页面');
-      uni.navigateTo({
-        url: '/pages-tools/search/search',
-        success: () => {
-          console.log('跳转到搜索页面成功');
-        },
-        fail: (err) => {
-          console.error('跳转到搜索页面失败:', err);
-          uni.showToast({
-            title: '跳转失败',
-            icon: 'none'
-          });
-        }
-      });
-    },
-
-    // 跳转到消息页面
-    navigateToMessages() {
-      uni.navigateTo({
-        url: '/pages-tools/messages/messages',
-        success: () => {
-          console.log('跳转到消息页面成功');
-        },
-        fail: (err) => {
-          console.error('跳转到消息页面失败:', err);
-          uni.showToast({
-            title: '跳转失败',
-            icon: 'none'
-          });
-        }
-      });
+    // 接收 top-bar 传递的安全区域高度
+    onSafeAreaReady(height) {
+      this.safeAreaTop = height;
     }
   }
 };
 </script>
 
 <style>
-.page-tabs-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  background: #ffffff;
-  z-index: 1000;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
-  /* 添加伪元素作为状态栏区域的白色背景 */
+/* 包裹容器 */
+.page-tabs-wrapper {
+  /* 无需特殊样式，top-bar 和 tabs-container 各自 fixed */
 }
 
-.page-tabs-container::before {
-  content: '';
-  position: absolute;
-  top: -100vh; /* 向上延伸覆盖状态栏区域 */
-  left: 0;
-  right: 0;
-  height: 100vh;
-  background: #ffffff;
-  z-index: -1;
-}
-
-/* 自定义顶部栏样式 */
-.custom-top-bar {
-  height: 100rpx;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 40rpx 0 40rpx; /* 移除上边距，safeAreaTop 会通过内联样式添加 */
-  background: #fff;
-}
-
-.top-left {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  padding: 10rpx;
-}
-
-.top-left:active {
-  transform: scale(0.95);
-}
-
-.top-right {
-  display: flex;
-  align-items: center;
-  gap: 40rpx;
-}
-
-.top-item {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  padding: 10rpx;
-  position: relative;
-}
-
-.top-item:active {
-  transform: scale(0.95);
-}
-
-.top-icon {
-  width: 80rpx;
-  height: 80rpx;
-  filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1));
-}
-
-/* 标签栏样式 */
+/* 标签栏样式 - 固定在 top-bar 下方 */
 .tabs-container {
+  position: fixed;
+  left: 0;
+  right: 0;
   height: 88rpx;
+  background: #ffffff;
+  z-index: 999; /* 比 top-bar 低一层 */
 }
 
 .tabs-list {
@@ -245,64 +100,36 @@ export default {
   justify-content: center;
   align-items: center;
   position: relative;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .tab-item:active {
-  background-color: rgba(0, 0, 0, 0.02);
+  background-color: rgba(0, 0, 0, 0.03);
+  transform: scale(0.97);
 }
 
 .tab-text {
   font-size: 30rpx;
-  color: #666;
+  color: #333;
   font-weight: 500;
-  transition: color 0.2s ease;
+  transition: color 0.2s ease, transform 0.2s ease;
 }
 
 .tab-item.active .tab-text {
-  color: #24375f;
+  color: #000;
   font-weight: 600;
+  transform: scale(1.02);
 }
 
 .tab-indicator {
   position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 8rpx;
   width: 60rpx;
   height: 6rpx;
-  background: #24375f;
+  background: #333;
   border-radius: 3rpx;
-  transition: all 0.3s ease;
-}
-
-/* 未读消息小红点 */
-.unread-dot {
-  position: absolute;
-  top: 4rpx;
-  right: 4rpx;
-  width: 16rpx;
-  height: 16rpx;
-  background-color: #ff6b6b;
-  border-radius: 50%;
-  border: 2rpx solid #ffffff;
   z-index: 10;
-  animation: pulse 2s infinite;
-}
-
-/* 红点脉冲动画 */
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.2);
-    opacity: 0.8;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+  /* 使用更丝滑的缓动函数 */
+  transition: left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 </style>

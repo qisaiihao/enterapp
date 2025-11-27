@@ -140,7 +140,7 @@
                             </view>
                             <!-- 作品集按钮 - 只有原创诗且是自己的帖子才显示 -->
                             <view v-if="post.isOriginal && post.isPoem && isOwnPost" class="portfolio-icon-container" @tap.stop.prevent="onAddToPortfolio">
-                                <image class="portfolio-icon" src="/static/images/portfolio.png" mode="aspectFit"></image>
+                                <image class="portfolio-icon" src="/static/images/newicons/library.png" mode="aspectFit"></image>
                             </view>
                               <!-- 分享按钮（仅诗歌帖子显示） -->
                             <view v-if="post && post.isPoem" class="share-icon-container" @tap.stop.prevent="onShare">
@@ -219,11 +219,11 @@
                 <view class="expanded-actions">
                     <view class="action-icons">
                         <view class="action-icon" @tap="chooseImages">
-                            <image class="action-icon-image" src="/static/images/add_image.png" mode="aspectFit"></image>
+                            <image class="action-icon-image" src="/static/images/newicons/image.png" mode="aspectFit"></image>
                         </view>
                         </view>
                     <view class="submit-button" @tap="onSubmitComment" :class="{ 'disabled': isSubmitDisabled }">
-                        <image class="submit-icon" src="/static/images/commententer.png" mode="aspectFit"></image>
+                        <image class="submit-icon" src="/static/images/newicons/comment.png" mode="aspectFit"></image>
                     </view>
                 </view>
             </view>
@@ -244,10 +244,10 @@
             </view>
             <view class="action-icons">
                 <view class="action-icon" @tap="showDiscussionModal">
-                    <image class="action-icon-image" src="/static/images/write_poetry.png" mode="aspectFit"></image>
+                    <image class="action-icon-image" src="/static/images/newicons/comment.png" mode="aspectFit"></image>
                 </view>
                 <view class="action-icon" @tap="toggleFavorite">
-                    <image class="action-icon-image" :src="post && post.isFavorited ? '/static/images/my_favorites.png' : '/static/images/my_favorites.png'" mode="aspectFit"></image>
+                    <image class="action-icon-image" :src="post && post.isFavorited ? '/static/images/newicons/collection.png' : '/static/images/newicons/collection.png'" mode="aspectFit"></image>
                 </view>
             </view>
         </view>
