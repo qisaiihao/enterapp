@@ -17,95 +17,21 @@
 
             <!-- 文章列表 -->
             <view v-if="postList.length > 0" class="post-list">
-                <view class="post-item-wrapper" v-for="(item, index) in postList" :key="index">
-                    <!-- 作者信息 -->
-
-                    <view class="author-info-outside">
-                        <image
-                            class="author-avatar"
-                            :src="item.authorAvatar || '/static/images/avatar.png'"
-                            mode="aspectFill"
-                            @error="onAvatarError"
-                            @tap.stop.prevent="navigateToUserProfile"
-                            :data-user-id="item._openid"
-                        ></image>
-                        <text class="author-name">{{ item.authorName }}</text>
-                    </view>
-
-                    <!-- 帖子内容 -->
-
-                    <view class="post-item" @tap="onPostTap" :data-postid="item._id">
-                        <view class="post-title">{{ item.title }}</view>
-
-                        <!-- 图片显示 -->
-                        <view
-                            v-if="item.imageUrls && item.imageUrls.length > 0"
-                            class="image-container-wrapper"
-                            :style="item.imageStyle"
-                            @tap.stop.prevent="handlePreview"
-                            :data-src="item.imageUrls[0]"
-                            :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                        >
-                            <!-- 单张图片 -->
-                            <block v-if="item.imageUrls.length === 1">
-                                <image
-                                    class="post-image"
-                                    :src="item.imageUrls[0]"
-                                    mode="aspectFill"
-                                    :lazy-load="true"
-                                    @error="onImageError"
-                                    @tap.stop.prevent="handlePreview"
-                                    :data-src="item.imageUrls[0]"
-                                    :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                />
-                            </block>
-
-                            <!-- 多张图片 -->
-                            <block v-else-if="item.imageUrls.length > 1">
-                                <swiper class="image-swiper" :indicator-dots="true" :circular="true">
-                                    <block v-for="(img, index1) in item.imageUrls" :key="index1">
-                                        <swiper-item>
-                                            <image
-                                                class="post-image"
-                                                :src="img"
-                                                mode="aspectFill"
-                                                :lazy-load="true"
-                                                @error="onImageError"
-                                                @tap.stop.prevent="handlePreview"
-                                                :data-src="img"
-                                                :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                            />
-                                        </swiper-item>
-                                    </block>
-                                </swiper>
-                            </block>
-                        </view>
-
-                        <view class="post-content" v-if="item.content" style="white-space: pre-wrap">{{ item.content }}</view>
-
-                        <!-- 标签显示 -->
-                        <view v-if="item.tags && item.tags.length > 0" class="post-tags">
-                            <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="item" v-for="(item, index1) in item.tags" :key="index1">#{{ item }}</text>
-                        </view>
-                    </view>
-
-                    <!-- 互动区域 -->
-
-                    <view class="vote-section">
-                        <view class="actions-left">
-                            <!-- 左侧留空，保持布局平衡 -->
-                        </view>
-                        <view class="actions-right">
-                            <view class="action-item" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
-                                <text class="action-emoji">💬</text>
-                                <text class="action-text">{{ item.commentCount || 0 }}</text>
-                            </view>
-                            <view class="action-item">
-                                <text class="action-text">{{ item.votes || 0 }}</text>
-                            </view>
-                        </view>
-                    </view>
-                </view>
+                <post-item
+                    v-for="(item, index) in postList"
+                    :key="item._id || index"
+                    :item="item"
+                    :index="index"
+                    :show-vote-section="true"
+                    list-type="tag"
+                    @avatar-error="onAvatarError"
+                    @navigate-to-user="handleNavigateToUser"
+                    @preview-image="handlePreviewImage"
+                    @image-error="onImageError"
+                    @tag-click="handleTagClick"
+                    @vote="handleVote"
+                    @comment-click="handleCommentClick"
+                />
             </view>
 
 
@@ -118,10 +44,14 @@
 
 <script>
 import skeleton from '@/components/skeleton/skeleton';
+import PostItem from '@/components/PostItem.vue';
 // pages/tag-filter/tag-filter.js
 // 修复：移除全局数据库实例，改为在方法中动态获取
 const PAGE_SIZE = 10;
 const { previewImage } = require('../../utils/imagePreview.js');
+const likeIcon = require('../../utils/likeIcon');
+const { togglePostLike } = require('../../utils/likeService.js');
+const likeSync = require('../../utils/likeStatusSync.js');
 const { normalizePostList } = require('../../utils/postNormalizer.js');
 const { cloudCall } = require('../../utils/cloudCall.js');
 import { getTagPosts } from '@/api-cache/tag-posts.js';
@@ -129,14 +59,16 @@ import { hydrateTempUrls, warmTempUrlsFromPosts } from '@/_utils/hydrate-temp-ur
 const paginationMixin = require('../../mixins/pagination.js');
 export default {
     components: {
-        skeleton
+        skeleton,
+        PostItem
     },
     mixins: [paginationMixin],
     data() {
         return {
             tag: '',
             postList: [],
-            img: ''
+            img: '',
+            votingInProgress: {}
         };
     },
     onLoad: function (options) {
@@ -170,6 +102,32 @@ export default {
                 let posts = normalizePostList(raw || []);
                 posts = await hydrateTempUrls(posts);
                 warmTempUrlsFromPosts(posts);
+
+                // 优先使用本地缓存中的点赞状态，添加 likeIcon
+                const getLatestLikeStatus = likeSync.getLatestLikeStatus;
+                posts = posts.map((post) => {
+                    const cachedStatus = getLatestLikeStatus(post._id);
+                    const finalVotes = cachedStatus ? cachedStatus.votes : (post.votes || 0);
+                    const finalIsVoted = cachedStatus ? cachedStatus.isVoted : (post.isVoted || false);
+                    return {
+                        ...post,
+                        votes: finalVotes,
+                        isVoted: finalIsVoted,
+                        likeIcon: likeIcon.getLikeIcon(finalVotes, finalIsVoted)
+                    };
+                });
+
+                // 将云函数返回的点赞状态更新到缓存
+                try {
+                    const updateLikeStatus = likeSync.updateLikeStatus;
+                    raw.forEach((post) => {
+                        if (post._id && (post.isVoted !== undefined || post.votes !== undefined)) {
+                            updateLikeStatus(post._id, post.votes || 0, post.isVoted || false);
+                        }
+                    });
+                } catch (e) {
+                    console.warn('标签页更新点赞状态到缓存失败:', e);
+                }
 
                 // 处理分页数据，避免重复
                 let newPostList;
@@ -226,11 +184,6 @@ export default {
             }
         },
 
-        // 图片预览
-        handlePreview: function (event) {
-            return previewImage(event, { fallbackToast: false });
-        },
-
         onImageError: function (e) {
             console.error('图片加载失败', e.detail);
         },
@@ -239,43 +192,131 @@ export default {
             console.error('头像加载失败', e.detail);
         },
 
-        // 标签点击处理
-        onTagClick: function (e) {
-            const tag = e.currentTarget.dataset.tag;
-            console.log('点击标签:', tag);
+        // ========== PostItem 组件事件适配方法 ==========
 
-            // 跳转到标签筛选页面
-            uni.navigateTo({
-                url: `/pages/tag-filter/tag-filter?tag=${encodeURIComponent(tag)}`,
-                success: () => {
-                    console.log('跳转到标签筛选页面成功');
-                },
-                fail: (err) => {
-                    console.error('跳转到标签筛选页面失败:', err);
-                    uni.showToast({
-                        title: '跳转失败',
-                        icon: 'none'
+        // 处理用户头像点击
+        handleNavigateToUser: function (data) {
+            const userId = data.userId;
+            if (userId) {
+                const app = getApp();
+                const currentUserOpenid = app.globalData.openid;
+                if (userId === currentUserOpenid) {
+                    uni.switchTab({
+                        url: '/pages/profile/profile'
+                    });
+                } else {
+                    uni.navigateTo({
+                        url: `/pages/user-profile/user-profile?userId=${userId}`
                     });
                 }
+            }
+        },
+
+        // 处理图片预览
+        handlePreviewImage: function (data) {
+            previewImage(data.src, data.urls);
+        },
+
+        // 处理标签点击
+        handleTagClick: function (data) {
+            const tag = data.tag;
+            if (tag) {
+                uni.navigateTo({
+                    url: `/pages/tag-filter/tag-filter?tag=${encodeURIComponent(tag)}`
+                });
+            }
+        },
+
+        // 处理评论点击
+        handleCommentClick: function (data) {
+            uni.navigateTo({
+                url: `/pages/post-detail/post-detail?id=${data.postId}`
             });
         },
 
-        // 评论点击处理
-        onCommentClick: function (e) {
-            const postId = e.currentTarget.dataset.postid;
-            console.log('点击评论，跳转到详情页:', postId);
-            uni.navigateTo({
-                url: `/pages/post-detail/post-detail?id=${postId}`,
-                success: () => {
-                    console.log('跳转到详情页成功');
-                },
-                fail: (err) => {
-                    console.error('跳转到详情页失败:', err);
-                    uni.showToast({
-                        title: '跳转失败',
-                        icon: 'none'
-                    });
+        // 处理点赞
+        handleVote: function (data) {
+            const postId = data.postId;
+            const index = data.index;
+
+            if (this.votingInProgress[postId]) {
+                return;
+            }
+            this.votingInProgress[postId] = true;
+
+            const list = this.postList;
+            const targetIndex = list.findIndex((p) => p._id === postId);
+            if (targetIndex < 0) {
+                this.votingInProgress[postId] = false;
+                return;
+            }
+
+            const originalItem = list[targetIndex];
+            const originalVotes = Number(originalItem.votes) || 0;
+            const originalIsVoted = !!originalItem.isVoted;
+
+            // 乐观更新
+            const optimisticVotes = originalIsVoted ? Math.max(0, originalVotes - 1) : originalVotes + 1;
+            const optimisticList = list.slice();
+            optimisticList[targetIndex] = {
+                ...originalItem,
+                votes: optimisticVotes,
+                isVoted: !originalIsVoted,
+                likeIcon: likeIcon.getLikeIcon(optimisticVotes, !originalIsVoted)
+            };
+            this.setData({ postList: optimisticList });
+
+            togglePostLike(postId, {
+                pageTag: 'tag-filter',
+                context: this,
+                currentVotes: originalVotes,
+                currentIsLiked: originalIsVoted,
+                requireAuth: true
+            }).then((result) => {
+                if (result.success) {
+                    const currentList = this.postList;
+                    const currentIndex = currentList.findIndex((p) => p._id === postId);
+                    if (currentIndex > -1) {
+                        const newList = currentList.slice();
+                        newList[currentIndex] = {
+                            ...currentList[currentIndex],
+                            votes: result.votes,
+                            isVoted: result.isLiked,
+                            likeIcon: result.likeIcon
+                        };
+                        this.setData({ postList: newList });
+                    }
+                } else {
+                    // 回滚
+                    const currentList = this.postList;
+                    const currentIndex = currentList.findIndex((p) => p._id === postId);
+                    if (currentIndex > -1) {
+                        const newList = currentList.slice();
+                        newList[currentIndex] = {
+                            ...currentList[currentIndex],
+                            votes: originalVotes,
+                            isVoted: originalIsVoted,
+                            likeIcon: likeIcon.getLikeIcon(originalVotes, originalIsVoted)
+                        };
+                        this.setData({ postList: newList });
+                    }
                 }
+            }).catch(() => {
+                // 回滚
+                const currentList = this.postList;
+                const currentIndex = currentList.findIndex((p) => p._id === postId);
+                if (currentIndex > -1) {
+                    const newList = currentList.slice();
+                    newList[currentIndex] = {
+                        ...currentList[currentIndex],
+                        votes: originalVotes,
+                        isVoted: originalIsVoted,
+                        likeIcon: likeIcon.getLikeIcon(originalVotes, originalIsVoted)
+                    };
+                    this.setData({ postList: newList });
+                }
+            }).finally(() => {
+                this.votingInProgress[postId] = false;
             });
         }
     }
@@ -321,139 +362,6 @@ export default {
 /* 文章列表样式 */
 .post-list {
     margin-bottom: 20rpx;
-}
-
-.post-item-wrapper {
-    background-color: #fff;
-    border-radius: 16rpx;
-    margin-bottom: 20rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
-    overflow: hidden;
-}
-
-/* 作者信息 */
-.author-info-outside {
-    display: flex;
-    align-items: center;
-    padding: 20rpx 20rpx 0 20rpx;
-    margin-bottom: 15rpx;
-}
-
-.author-avatar {
-    width: 60rpx;
-    height: 60rpx;
-    border-radius: 50%;
-    margin-right: 15rpx;
-}
-
-.author-name {
-    font-size: 28rpx;
-    color: #333;
-    font-weight: 500;
-}
-
-/* 帖子内容 */
-.post-item {
-    padding: 0 20rpx 20rpx 20rpx;
-}
-
-.post-title {
-    font-size: 32rpx;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 15rpx;
-    line-height: 1.4;
-}
-
-.post-content {
-    font-size: 28rpx;
-    color: #666;
-    line-height: 1.6;
-    margin-bottom: 15rpx;
-}
-
-/* 图片容器 */
-.image-container-wrapper {
-    position: relative;
-    width: 100%;
-    margin-bottom: 15rpx;
-    background-color: #f0f0f0; /* 占位时的背景色，很重要 */
-    overflow: hidden;
-    border-radius: 12rpx;
-}
-
-.image-container-wrapper .post-image,
-.image-container-wrapper .image-swiper {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.post-image {
-    width: 100%;
-    height: 100%;
-    display: block;
-    object-fit: cover;
-}
-
-.image-swiper {
-    width: 100%;
-    height: 100%;
-}
-
-/* 标签样式 */
-.post-tags {
-    margin: 20rpx 0 10rpx 0;
-    line-height: 1.5;
-}
-
-.post-tag {
-    color: #24375f;
-    font-size: 26rpx;
-    margin-right: 10rpx;
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
-
-.post-tag:active {
-    color: #1a2a4a;
-    opacity: 0.8;
-}
-
-/* 互动区域 */
-.vote-section {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15rpx 20rpx 20rpx 20rpx;
-    border-top: 1rpx solid #f0f0f0;
-}
-
-.actions-left {
-    flex: 1;
-}
-
-.actions-right {
-    display: flex;
-    gap: 30rpx;
-}
-
-.action-item {
-    display: flex;
-    align-items: center;
-    gap: 8rpx;
-}
-
-.action-emoji {
-    font-size: 24rpx;
-}
-
-.action-text {
-    font-size: 24rpx;
-    color: #999;
 }
 
 /* 加载更多 */

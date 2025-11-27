@@ -278,4 +278,3 @@ function updateUseModal(packageInfo : UniUpgradeCenterResult) : void {
 	// 非 APP 环境下函数体为空
 	return;
 }
-}

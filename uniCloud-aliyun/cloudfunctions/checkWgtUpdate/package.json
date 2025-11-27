@@ -1,0 +1,7 @@
+{
+  "name": "check-wgt-update",
+  "version": "1.0.0",
+  "description": "自定义 WGT 热更新检查云函数",
+  "main": "index.js",
+  "dependencies": {}
+}

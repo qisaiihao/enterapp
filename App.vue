@@ -1,6 +1,7 @@
 <script>
 // #ifdef APP-PLUS
-import checkUpdate from '@/uni_modules/uni-upgrade-center-app/utils/check-update';
+// import checkUpdate from '@/uni_modules/uni-upgrade-center-app/utils/check-update';
+import { checkAndUpdate } from '@/utils/hotUpdate.js';
 // #endif
 
 export default {
@@ -51,9 +52,9 @@ export default {
                         appVersion: appVersion,
                         wgtVersion: wgtVersion
                     });
-                    // 可在此执行热更新/版本检查
+                    // 使用自定义热更新逻辑
                     try {
-                        checkUpdate().then((result) => {
+                        checkAndUpdate({ silent: true, showConfirm: true }).then((result) => {
                             console.log('✅ [热更新] 检查完成:', result);
                         }).catch((err) => {
                             // 区分不同类型的错误，提供更友好的提示
@@ -80,11 +81,14 @@ export default {
         console.log('当前为 H5 环境，跳过热更新检查');
         // #endif
         
-        // 执行登录流程
-        this.loginAndCheckUser();
-        
-        // 标记登录流程已开始
+        // 【性能优化】立即标记登录流程已开始，不阻塞后续操作
         this.globalData._loginProcessStarted = true;
+        
+        // 【性能优化】使用 nextTick 延迟执行非关键任务，让页面先渲染
+        this.$nextTick(() => {
+            // 执行登录流程（异步，不阻塞UI）
+            this.loginAndCheckUser();
+        });
     },
     
     // 【新增】onShow 生命周期：处理 App 从后台唤醒的情况
