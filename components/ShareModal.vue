@@ -1,6 +1,6 @@
 <template>
     <view v-if="show" class="share-modal-overlay" @tap="$emit('hide')">
-        <view class="share-modal" @tap.stop>
+        <scroll-view class="share-modal" scroll-y @tap.stop>
             <view v-if="!imageUrl" class="share-loading">
                 <text>正在生成图片...</text>
             </view>
@@ -22,7 +22,7 @@
                 <image class="share-download-image" src="/static/images/download.png" mode="widthFix" @tap.stop="$emit('save')"></image>
             </view>
             <!-- #endif -->
-        </view>
+        </scroll-view>
     </view>
 </template>
 
@@ -75,7 +75,7 @@ export default {
     display: flex;
     flex-direction: column;
     align-items: center;
-    max-width: 90%;
+    width: 90%;
     max-height: 85vh;
 }
 
@@ -86,8 +86,7 @@ export default {
 }
 
 .share-generated-image {
-    max-width: 100%;
-    max-height: 70vh;
+    width: 100%;
     border-radius: 20rpx;
     box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.3);
 }

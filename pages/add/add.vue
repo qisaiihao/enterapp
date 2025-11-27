@@ -18,61 +18,14 @@
         </view>
 
         <!-- 颜色选择弹层 -->
-        <view v-if="showColorPicker" class="color-picker-mask" @tap="showColorPicker=false">
-            <view class="color-picker" @tap.stop="noop">
-                <!-- 色卡选择界面 -->
-                <view v-if="colorPickerStep === 'palette'" class="color-palette-step">
-                    <view class="color-picker-title">选择色卡</view>
-                    <scroll-view class="palette-scroll" :scroll-y="true">
-                        <view class="palette-grid">
-                            <view 
-                                v-for="(palette, index) in colorPalettes" 
-                                :key="index" 
-                                class="palette-card" 
-                                :style="{ backgroundColor: palette.colors[0].backgroundColor }"
-                                @tap="selectPalette"
-                                :data-index="index"
-                            >
-                                <view class="palette-name" :style="{ color: palette.colors[0].textColor }">{{ palette.name }}</view>
-                                <view class="palette-preview">
-                                    <view 
-                                        v-for="(color, colorIndex) in palette.colors.slice(0, 3)" 
-                                        :key="colorIndex"
-                                        class="mini-color"
-                                        :style="{ backgroundColor: color.backgroundColor }"
-                                    ></view>
-                                </view>
-                            </view>
-                        </view>
-                    </scroll-view>
-                </view>
-
-                <!-- 具体颜色选择界面 -->
-                <view v-if="colorPickerStep === 'colors'" class="color-detail-step">
-                    <view class="color-picker-header">
-                        <view class="color-picker-title">{{ selectedPalette.name }}</view>
-                        <view class="color-picker-back-btn" @tap="goBackToPalette">
-                            <image class="color-picker-back-icon" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
-                        </view>
-                    </view>
-                    <scroll-view class="colors-scroll" :scroll-y="true">
-                        <view class="colors-grid">
-                            <view 
-                                v-for="(color, index) in selectedPalette.colors" 
-                                :key="index" 
-                                class="color-option"
-                                :style="{ backgroundColor: color.backgroundColor, color: color.textColor }"
-                                @tap="chooseColor"
-                                :data-color="color"
-                            >
-                                <text class="color-text">{{ getPoemLine(index) }}</text>
-                                <text v-if="isColorSelected(color)" class="color-check">✓</text>
-                            </view>
-                        </view>
-                    </scroll-view>
-                </view>
-            </view>
-        </view>
+        <ColorPickerModal
+            :show="showColorPicker"
+            :colorPalettes="colorPalettes"
+            :poemLines="poemLines"
+            :selectedColorCombination="selectedColorCombination"
+            @close="showColorPicker = false"
+            @select="onColorSelect"
+        />
 
         <!-- 内容输入区域 -->
         <view class="content-section">
@@ -123,42 +76,14 @@
                     </view>
 
                     <!-- 高光选择全屏弹窗 -->
-                    <view v-if="highlightSelecting" class="highlight-selection-modal" 
-                          @tap="closeHighlightModal"
-                          @touchstart="onHighlightModalTouchStart"
-                          @touchmove="onHighlightModalTouchMove"
-                          @touchend="onHighlightModalTouchEnd">
-                        <view class="highlight-modal-content" @tap.stop="noop" 
-                              @touchstart.stop="onHighlightModalTouchStart"
-                              @touchmove.stop="onHighlightModalTouchMove"
-                              @touchend.stop="onHighlightModalTouchEnd">
-                            <!-- 标题栏 -->
-                            <view class="highlight-modal-header">
-                                <text class="highlight-modal-title">选择高光句</text>
-                                <view class="highlight-modal-close" @tap="closeHighlightModal">×</view>
-                            </view>
-                            
-                            <!-- 内容选择区域 -->
-                            <view class="highlight-content-wrapper">
-                                <view class="highlight-content-display">
-                                    <text class="highlight-content-line" v-for="(line, index) in splitContentLines"
-                                          :key="'highlight-line-' + index"
-                                          :class="{ 'selected-line': highlightSelectedLineIndices.includes(index) }"
-                                          @tap.stop="toggleHighlightLine"
-                                          :data-index="index">
-                                        {{ line || '\u00A0' }}
-                                    </text>
-                                </view>
-                            </view>
-                            
-                            <!-- 底部操作栏 -->
-                            <view class="highlight-modal-actions">
-                                <view class="highlight-action-btn primary" @tap.stop="finishHighlight" :class="{ 'disabled': highlightSelectedLineIndices.length === 0 }">
-                                    <image class="highlight-action-icon" src="/static/images/confirm_selection.png" mode="aspectFill"></image>
-                                </view>
-                            </view>
-                        </view>
-                    </view>
+                    <HighlightSelectorModal
+                        :show="highlightSelecting"
+                        :contentLines="splitContentLines"
+                        :selectedLineIndices="highlightSelectedLineIndices"
+                        @close="highlightSelecting = false"
+                        @update="onHighlightUpdate"
+                        @confirm="onHighlightConfirm"
+                    />
                 </view>
 
                 <!-- 右侧工具栏 -->
@@ -202,100 +127,23 @@
         </view>
 
         <!-- 模式选择器 -->
-        <view v-if="showModeSelector" class="mode-selector-mask" @tap="showModeSelector=false">
-            <view class="mode-selector" @tap.stop="noop">
-                <image class="mode-switch-modal-icon" src="/static/images/change.png" mode="aspectFit" alt="切换发布模式"></image>
-                <view class="mode-title">选择发布模式</view>
-                <view class="mode-list">
-                    <view class="mode-option" @tap="selectPublishMode" :data-mode="'poem'" :data-original="true">
-                        <view class="mode-text">原创诗歌</view>
-                        <view v-if="publishMode === 'poem' && isOriginal" class="mode-check">✓</view>
-                    </view>
-                    <view class="mode-option" @tap="selectPublishMode" :data-mode="'poem'" :data-original="false">
-                        <view class="mode-text">非原创诗歌</view>
-                        <view v-if="publishMode === 'poem' && !isOriginal" class="mode-check">✓</view>
-                    </view>
-                    <view class="mode-option" @tap="selectPublishMode" :data-mode="'normal'" :data-original="null">
-                        <view class="mode-text">普通帖子</view>
-                        <view v-if="publishMode === 'normal'" class="mode-check">✓</view>
-                    </view>
-                    <view class="mode-option" @tap="selectPublishMode" :data-mode="'discussion'" :data-original="null">
-                        <view class="mode-text">讨论帖子</view>
-                        <view v-if="publishMode === 'discussion'" class="mode-check">✓</view>
-                    </view>
-                </view>
-            </view>
-        </view>
+        <ModeSelectorModal
+            :show="showModeSelector"
+            :publishMode="publishMode"
+            :isOriginal="isOriginal"
+            @close="showModeSelector = false"
+            @select="onModeSelect"
+        />
 
         <!-- 标签选择器 -->
-        <view v-if="showTagSelector" class="tag-selector-mask" @tap="showTagSelector=false">
-            <view class="tag-selector" @tap.stop="noop">
-                <!-- 已选标签显示区域 -->
-                <view v-if="selectedTags.length > 0" class="selected-tags-section">
-                    <view class="selected-tags-title">已选标签：</view>
-                    <view class="selected-tags-list">
-                        <view 
-                            class="selected-tag" 
-                            v-for="(tag, index) in selectedTags" 
-                            :key="index"
-                            @tap.stop="removeTag"
-                            :data-tag="tag"
-                        >
-                            {{ tag }}
-                            <text class="remove-icon">×</text>
-                        </view>
-                    </view>
-                </view>
-
-                <!-- 分类选择器 -->
-                <view class="category-selector">
-                    <scroll-view class="category-scroll" :scroll-x="true" :show-scrollbar="false">
-                        <view class="category-list">
-                            <view
-                                :class="'category-item ' + (currentCategoryIndex === index ? 'active' : '')"
-                                @tap.stop="switchCategory"
-                                :data-index="index"
-                                v-for="(item, index) in tagCategories"
-                                :key="index"
-                            >
-                                <text class="category-icon">{{ item.icon }}</text>
-
-                                <text class="category-name">{{ item.name }}</text>
-                            </view>
-                        </view>
-                    </scroll-view>
-                </view>
-
-                <!-- 当前分类的标签 -->
-                <view class="current-category-tags">
-                    <view
-                        :class="'preset-tag ' + (selectedTags.includes(item) ? 'selected' : '')"
-                        @tap.stop="selectTag"
-                        :data-tag="item"
-                        v-for="(item, index) in tagCategories[currentCategoryIndex].tags"
-                        :key="index"
-                    >
-                        {{ item }}
-                    </view>
-                </view>
-
-                <!-- 自定义标签输入 -->
-                <view class="custom-tag-input">
-                    <input placeholder="输入自定义标签" :value="customTag" @input="onCustomTagInput" @tap.stop="noop" maxlength="10" />
-                    <button size="mini" @tap.stop="addCustomTag">添加</button>
-                </view>
-
-                <!-- 匹配的标签推荐 -->
-                <view v-if="showMatchedTags && matchedTags.length > 0" class="matched-tags">
-                    <view class="matched-tags-title">推荐标签：</view>
-                    <view class="matched-tags-list">
-                        <view class="matched-tag" @tap.stop="selectMatchedTag" :data-tag="item" v-for="(item, index) in matchedTags" :key="index">
-                            {{ item }}
-                        </view>
-                    </view>
-                </view>
-            </view>
-        </view>
+        <TagSelectorModal
+            :show="showTagSelector"
+            :tagCategories="tagCategories"
+            :selectedTags="selectedTags"
+            :allExistingTags="allExistingTags"
+            @close="showTagSelector = false"
+            @update="onTagsUpdate"
+        />
     </view>
     <!-- 这个 </view> 是用来闭合最外层的 <view class="container"> 的 -->
 </template>
@@ -311,7 +159,25 @@ const { getAllTags } = require('../../api-cache/tags.js');
 const { getPostDetail, updatePostContent } = require('../../api-cache/post.js');
 const { checkDuplicatePoem, contentAudit, uploadFile, saveDraft } = require('../../api-cache/publish.js');
 const { validatePublishData, canPublish, generateDraftData, generatePublishData, processUploadResults } = require('../../utils/publishUtils.js');
+
+// 导入静态配置数据
+import { colorPalettes } from '../../utils/colorPalettes.js';
+import { tagCategories } from '../../utils/tagCategories.js';
+import { poemLines } from '../../utils/poemLines.js';
+
+// 导入拆分的组件
+import ModeSelectorModal from '../../components/ModeSelectorModal.vue';
+import ColorPickerModal from '../../components/ColorPickerModal.vue';
+import TagSelectorModal from '../../components/TagSelectorModal.vue';
+import HighlightSelectorModal from '../../components/HighlightSelectorModal.vue';
+
 export default {
+    components: {
+        ModeSelectorModal,
+        ColorPickerModal,
+        TagSelectorModal,
+        HighlightSelectorModal
+    },
     data() {
         return {
             content: '',
@@ -324,276 +190,11 @@ export default {
             colorPickerStep: 'palette', // 'palette' 或 'colors'
             selectedPalette: null,
             
-            // 诗歌句子数组
-            poemLines: [
-                '为什么到处都是冰凌',
-                '因为此地是妆台',
-                '玫瑰即花香',
-                '塞尚的苹果我全都消受不来',
-                '黄昏织满了红雀的翅膀',
-                '她在那独自成婚',
-                '我却不肯蓝',
-                '石榴爆裂',
-                '我敞开我的花衣',
-                '时代的郁金香雷雨',
-                '悲伤的童年的甜美',
-                '它甜过草莓，甜过蜜',
-                '星星或许会相视大笑',
-                '膨胀的虱子',
-                '我的河流和你的河流',
-                '饭后的一场睡眠',
-                '模糊而黯然神伤的镜子',
-                '你如同忧郁这个字',
-                '湖底其实无底',
-                '眼下是春天',
-                '梦像鸟儿一样飞了',
-                '猫太咸了',
-                '我安然而坐',
-                '青苔说了另一半',
-                '橄榄树林的一阵悲风',
-                '影子不会死',
-                '我不问皑皑白雪',
-                '胭脂用尽时',
-                '争渡，争渡',
-                '昨日之日不可留',
-                '飘飘何所似',
-                '此闲行',
-                '我做云',
-                '恐美人之迟暮',
-                '太阳天天新天天旧',
-                '但岸陆表示怀疑',
-                '通过我',
-                '一毛税也不用交',
-                '所有的城市都是船',
-                '它荒草萋萋',
-                '你不仅是安妮塔',
-                '马蹄正在踢着石头',
-                '做坏事像下雨',
-                '这位死了的女士的眼睛对我诉说',
-                '吻向虚空的齿列',
-                '一场樱花人生',
-                '感叹号太漫不经心',
-                '祝太阳万岁',
-                '只要你要',
-                '你这只人类的小舟',
-                '如果你吻我',
-                '鸢尾花开遍窗前和心峦',
-                '此身仍是草芥',
-                '一朵百合的馨香将弥漫河畔',
-                '这时天将大雪降在巴黎',
-                '好等你醒来与我相识',
-                '三等车厢的夏天',
-                '修辞而已',
-                '无性别的卵',
-                '一个看不见的热吻',
-                '一切被称作大地的',
-                '在电梯里想着乡野',
-                '生人即离别',
-                '打开、关闭、打开',
-                '因云和树的倒影不是云和树而受苦',
-                '食盐戏法',
-                '必要的真空',
-                '我是一汪黑水',
-                '地球颠倒两极',
-                '请把世界装进一只牡蛎',
-                '菩萨难写',
-                '你爱你之为你',
-                '柳树叶落下来了',
-                '耳畔有水蚓拖声',
-                '一朵花有两个春天是不公平的',
-                '红藕香残玉簟秋',
-                '轻解罗裳',
-                '独上兰舟',
-                '云中谁寄锦书来',
-                '雁字回时',
-                '月满西楼',
-                '花自飘零水自流',
-                '一种相思',
-                '两处闲愁',
-                '此情无计可消除',
-                '才下眉头',
-                '却上心头',
-                
-            ],
+            // 诗歌句子数组（从配置文件导入）
+            poemLines: poemLines,
             
-            // 色卡数据
-            colorPalettes: [
-                {
-                    name: 'Darlington',
-                    colors: [
-                        { backgroundColor: '#ACCAB2', textColor: '#D44720' },
-                        { backgroundColor: '#E9A752', textColor: '#78614D' },
-                        { backgroundColor: '#D44720', textColor: '#F0E6D5' },
-                        { backgroundColor: '#78614D', textColor: '#E9A752' }
-                    ]
-                },
-                {
-                    name: 'True Navy',
-                    colors: [
-                        { backgroundColor: '#28374D', textColor: '#DDE6ED' },
-                        { backgroundColor: '#536D82', textColor: '#DDE6ED' },
-                        { backgroundColor: '#9DB2BF', textColor: '#28374D' },
-                        { backgroundColor: '#DDE6ED', textColor: '#28374D' }
-                    ]
-                },
-                {
-                    name: 'Inkwell',
-                    colors: [
-                        { backgroundColor: '#2C3639', textColor: '#DCD7C9' },
-                        { backgroundColor: '#3F4E4F', textColor: '#DCD7C9' },
-                        { backgroundColor: '#A27B5B', textColor: '#2C3639' },
-                        { backgroundColor: '#DCD7C9', textColor: '#2C3639' }
-                    ]
-                },
-                {
-                    name: 'Olive',
-                    colors: [
-                        { backgroundColor: '#706134', textColor: '#FAE7C9' },
-                        { backgroundColor: '#B0926A', textColor: '#706134' },
-                        { backgroundColor: '#E1C78F', textColor: '#706134' },
-                        { backgroundColor: '#FAE7C9', textColor: '#706134' }
-                    ]
-                },
-                {
-                    name: 'Red Chai',
-                    colors: [
-                        { backgroundColor: '#632626', textColor: '#DBCB96' },
-                        { backgroundColor: '#9D5353', textColor: '#DBCB96' },
-                        { backgroundColor: '#BF8B67', textColor: '#632626' },
-                        { backgroundColor: '#DBCB96', textColor: '#632626' }
-                    ]
-                },
-                {
-                    name: 'Cotton',
-                    colors: [
-                        { backgroundColor: '#EDEBBD', textColor: '#1B1717' },
-                        { backgroundColor: '#810100', textColor: '#EDEBBD' },
-                        { backgroundColor: '#630000', textColor: '#EDEBBD' },
-                        { backgroundColor: '#1B1717', textColor: '#EDEBBD' }
-                    ]
-                },
-                {
-                    name: '宣纸白鸢尾蓝',
-                    colors: [
-                        { backgroundColor: '#F9F2E0', textColor: '#1660AB' },
-                        { backgroundColor: '#1660AB', textColor: '#F9F2E0' }
-                    ]
-                },
-                {
-                    name: 'Emerald Green',
-                    colors: [
-                        { backgroundColor: '#28413B', textColor: '#F8D794' },
-                        { backgroundColor: '#809076', textColor: '#111A1B' },
-                        { backgroundColor: '#F8D794', textColor: '#111A1B' },
-                        { backgroundColor: '#B8682C', textColor: '#111A1B' },
-                        { backgroundColor: '#111A1B', textColor: '#F8D794' }
-                    ]
-                },
-                {
-                    name: 'Space Cadet',
-                    colors: [
-                        { backgroundColor: '#25344F', textColor: '#D5B893' },
-                        { backgroundColor: '#617891', textColor: '#D5B893' },
-                        { backgroundColor: '#D5B893', textColor: '#25344F' },
-                        { backgroundColor: '#6F4D38', textColor: '#D5B893' },
-                        { backgroundColor: '#632024', textColor: '#D5B893' }
-                    ]
-                },
-                {
-                    name: 'Jasper Orange',
-                    colors: [
-                        { backgroundColor: '#E48F50', textColor: '#2D293B' },
-                        { backgroundColor: '#753130', textColor: '#729BAE' },
-                        { backgroundColor: '#2D293B', textColor: '#E48F50' },
-                        { backgroundColor: '#60859E', textColor: '#2D293B' },
-                        { backgroundColor: '#729BAE', textColor: '#2D293B' }
-                    ]
-                },
-                {
-                    name: 'Maastricht Blue',
-                    colors: [
-                        { backgroundColor: '#041A38', textColor: '#D8E7EE' },
-                        { backgroundColor: '#4A9ACB', textColor: '#041A38' },
-                        { backgroundColor: '#97D4F1', textColor: '#041A38' },
-                        { backgroundColor: '#394C5C', textColor: '#D8E7EE' },
-                        { backgroundColor: '#D8E7EE', textColor: '#041A38' }
-                    ]
-                },
-                {
-                    name: 'Dark Sienna',
-                    colors: [
-                        { backgroundColor: '#481718', textColor: '#93A292' },
-                        { backgroundColor: '#CA5655', textColor: '#F3EBE0' },
-                        { backgroundColor: '#93A292', textColor: '#481718' },
-                        { backgroundColor: '#39703D', textColor: '#F3EBE0' },
-                        { backgroundColor: '#75B974', textColor: '#481718' }
-                    ]
-                },
-                {
-                    name: 'Medium Carmine',
-                    colors: [
-                        { backgroundColor: '#AF3D41', textColor: '#EAC891' },
-                        { backgroundColor: '#70A3AC', textColor: '#131A1F' },
-                        { backgroundColor: '#5393A3', textColor: '#131A1F' },
-                        { backgroundColor: '#17566F', textColor: '#EAC891' },
-                        { backgroundColor: '#131A1F', textColor: '#AF3D41' }
-                    ]
-                },
-                {
-                    name: 'Hot Paprika',
-                    colors: [
-                        { backgroundColor: '#B53324', textColor: '#F5E2CE' },
-                        { backgroundColor: '#E5A657', textColor: '#B53324' },
-                        { backgroundColor: '#DFBC94', textColor: '#B53324' },
-                        { backgroundColor: '#F5E2CE', textColor: '#B53324' }
-                    ]
-                },
-                {
-                    name: 'Terracota',
-                    colors: [
-                        { backgroundColor: '#D08224', textColor: '#EAC891' },
-                        { backgroundColor: '#AE431E', textColor: '#EAC891' },
-                        { backgroundColor: '#8A8635', textColor: '#EAC891' },
-                        { backgroundColor: '#EAC891', textColor: '#AE431E' }
-                    ]
-                },
-                {
-                    name: 'Shell Beige',
-                    colors: [
-                        { backgroundColor: '#F4C9AC', textColor: '#756C4F' },
-                        { backgroundColor: '#EF9E70', textColor: '#756C4F' },
-                        { backgroundColor: '#AE6455', textColor: '#F4C9AC' },
-                        { backgroundColor: '#756C4F', textColor: '#F4C9AC' }
-                    ]
-                },
-                {
-                    name: 'Lady Diana',
-                    colors: [
-                        { backgroundColor: '#EAD7E4', textColor: '#818B70' },
-                        { backgroundColor: '#FCC5DB', textColor: '#818B70' },
-                        { backgroundColor: '#FF8486', textColor: '#FFFFFF' },
-                        { backgroundColor: '#818B70', textColor: '#EAD7E4' }
-                    ]
-                },
-                {
-                    name: 'Ocean Deep',
-                    colors: [
-                        { backgroundColor: '#4E635E', textColor: '#E2E0CB' },
-                        { backgroundColor: '#E2E0CB', textColor: '#4E635E' },
-                        { backgroundColor: '#A8B49E', textColor: '#4E635E' },
-                        { backgroundColor: '#818C78', textColor: '#E2E0CB' }
-                    ]
-                },
-                {
-                    name: 'Almond',
-                    colors: [
-                        { backgroundColor: '#D6BD98', textColor: '#1A3636' },
-                        { backgroundColor: '#677D6A', textColor: '#D6BD98' },
-                        { backgroundColor: '#40534C', textColor: '#D6BD98' },
-                        { backgroundColor: '#1A3636', textColor: '#D6BD98' }
-                    ]
-                }
-            ],
+            // 色卡数据（从配置文件导入）
+            colorPalettes: colorPalettes,
 
             // 高光选择
             highlightSelecting: false,
@@ -681,201 +282,8 @@ export default {
             editingPostId: '',
             editingPost: null,
 
-            // 标签分类数据
-            tagCategories: [
-                {
-                    name: '内容主题',
-                    icon: '📝',
-                    tags: [
-                        '爱情',
-                        '亲情',
-                        '友情',
-                        '乡愁',
-                        '思念',
-                        '孤独',
-                        '咏物',
-                        '山水',
-                        '田园',
-                        '季节',
-                        '春天',
-                        '夏日',
-                        '秋风',
-                        '冬雪',
-                        '人生',
-                        '理想',
-                        '哲理',
-                        '时间',
-                        '青春',
-                        '成长',
-                        '生死',
-                        '怀古',
-                        '咏史',
-                        '边塞',
-                        '战争',
-                        '爱国',
-                        '城市',
-                        '乡村',
-                        '生活',
-                        '旅行',
-                        '饮食',
-                        '劳动'
-                    ]
-                },
-                {
-                    name: '情感基调',
-                    icon: '💭',
-                    tags: [
-                        '治愈',
-                        '温暖',
-                        '浪漫',
-                        '唯美',
-                        '悲伤',
-                        '伤感',
-                        '惆怅',
-                        '寂寞',
-                        '豪放',
-                        '豁达',
-                        '激昂',
-                        '热血',
-                        '婉约',
-                        '细腻',
-                        '清新',
-                        '宁静',
-                        '励志',
-                        '鼓舞',
-                        '坚定',
-                        '充满希望',
-                        '讽刺',
-                        '批判',
-                        '深沉',
-                        '引人深思'
-                    ]
-                },
-                {
-                    name: '形式体裁',
-                    icon: '📖',
-                    tags: [
-                        '古体诗',
-                        '近体诗',
-                        '五言',
-                        '七言',
-                        '绝句',
-                        '律诗',
-                        '词',
-                        '曲',
-                        '乐府',
-                        '骚体',
-                        '现代诗',
-                        '自由诗',
-                        '散文诗',
-                        '十四行诗',
-                        '叙事诗',
-                        '俳句',
-                        '短歌',
-                        '史诗',
-                        '长诗',
-                        '短诗',
-                        '微型诗',
-                        '三行诗'
-                    ]
-                },
-                {
-                    name: '意象元素',
-                    icon: '🌙',
-                    tags: [
-                        '月亮',
-                        '星星',
-                        '太阳',
-                        '宇宙',
-                        '银河',
-                        '风',
-                        '雨',
-                        '雪',
-                        '云',
-                        '雾',
-                        '河流',
-                        '大海',
-                        '山峰',
-                        '森林',
-                        '花',
-                        '草',
-                        '树',
-                        '麦田',
-                        '落叶',
-                        '梅',
-                        '兰',
-                        '竹',
-                        '菊',
-                        '鸟',
-                        '马',
-                        '蝉',
-                        '鱼',
-                        '蝴蝶',
-                        '酒',
-                        '剑',
-                        '琴',
-                        '灯',
-                        '船',
-                        '镜子',
-                        '红色',
-                        '白色',
-                        '蓝色',
-                        '金色'
-                    ]
-                },
-                {
-                    name: '风格流派',
-                    icon: '🎭',
-                    tags: [
-                        '唐诗',
-                        '宋词',
-                        '元曲',
-                        '先秦',
-                        '两汉',
-                        '魏晋',
-                        '建安风骨',
-                        '朦胧诗',
-                        '新月派',
-                        '浪漫主义',
-                        '现实主义',
-                        '象征主义',
-                        '现代主义',
-                        '意象派',
-                        '垮掉的一代',
-                        '中文诗',
-                        '英文诗',
-                        '日文诗',
-                        '法文诗',
-                        '翻译诗',
-                        '中国',
-                        '英国',
-                        '美国',
-                        '日本',
-                        '俄罗斯'
-                    ]
-                },
-                {
-                    name: '场景用途',
-                    icon: '🎯',
-                    tags: [
-                        '晚安诗',
-                        '早安问候',
-                        '节日祝福',
-                        '春节',
-                        '中秋',
-                        '情人节',
-                        '毕业季',
-                        '婚礼致辞',
-                        '旅行途中',
-                        '雨天读诗',
-                        '写给孩子',
-                        '致敬母亲',
-                        '送给朋友',
-                        '适合摘抄',
-                        '可以用作签名'
-                    ]
-                }
-            ],
+            // 标签分类数据（从配置文件导入）
+            tagCategories: tagCategories,
 
             tags: []
         };
@@ -1381,11 +789,8 @@ export default {
             });
         },
 
-        // 选择发布模式
-        selectPublishMode: function (e) {
-            const mode = e.currentTarget.dataset.mode;
-            const isOriginal = e.currentTarget.dataset.original;
-
+        // 选择发布模式（组件事件处理）
+        onModeSelect: function ({ mode, isOriginal }) {
             // 设置讨论模式标志
             const isDiscussion = mode === 'discussion';
 
@@ -2176,61 +1581,7 @@ export default {
             });
         },
 
-        // 选择色卡
-        selectPalette: function (e) {
-            const index = e.currentTarget.dataset.index;
-            const palette = this.colorPalettes[index];
-            this.setData({
-                selectedPalette: palette,
-                colorPickerStep: 'colors'
-            });
-        },
-
-        // 返回色卡选择
-        goBackToPalette: function () {
-            this.setData({
-                colorPickerStep: 'palette',
-                selectedPalette: null
-            });
-        },
-
-        // 获取诗歌句子
-        getPoemLine: function(index) {
-            // 使用全局文案索引，确保每个颜色组内的不同颜色显示不同文案
-            const globalIndex = this.getGlobalTextIndex(index);
-            return this.poemLines[globalIndex] || '示例文字';
-        },
-
-        // 获取全局文案索引
-        getGlobalTextIndex: function(localIndex) {
-            // 计算当前颜色组在全局色卡中的起始位置
-            const currentPaletteIndex = this.getCurrentPaletteIndex();
-            const colorsBeforeCurrent = this.getColorsCountBeforeCurrent();
-            return (colorsBeforeCurrent + localIndex) % this.poemLines.length;
-        },
-
-        // 获取当前色卡在色卡数组中的索引
-        getCurrentPaletteIndex: function() {
-            if (!this.selectedPalette) return 0;
-            return this.colorPalettes.findIndex(palette => palette.name === this.selectedPalette.name);
-        },
-
-        // 获取当前色卡之前所有色卡的颜色总数
-        getColorsCountBeforeCurrent: function() {
-            const currentIndex = this.getCurrentPaletteIndex();
-            let count = 0;
-            for (let i = 0; i < currentIndex; i++) {
-                count += this.colorPalettes[i].colors.length;
-            }
-            return count;
-        },
-
-        // 检查颜色是否被选中
-        isColorSelected: function (color) {
-            return this.selectedColorCombination && 
-                   this.selectedColorCombination.backgroundColor === color.backgroundColor &&
-                   this.selectedColorCombination.textColor === color.textColor;
-        },
+        /* 颜色选择相关方法已移至 ColorPickerModal.vue 组件 */
 
         // 占位：高光开关（保留原来的弹窗模式作为备用）
         onToggleHighlight: function () {
@@ -2247,57 +1598,25 @@ export default {
             });
         },
 
-        // 关闭高光选择弹窗
-        closeHighlightModal: function () {
-            this.setData({
-                highlightSelecting: false
+        // 高光选择更新（组件事件处理）
+        onHighlightUpdate: function (indices) {
+            this.setData({ highlightSelectedLineIndices: indices });
+        },
+
+        // 高光选择确认（组件事件处理）
+        onHighlightConfirm: function (indices) {
+            const lines = (this.content || '').split(/\r?\n/);
+            const picked = indices.map(i => lines[i] || '').filter(Boolean);
+            this.setData({ 
+                highlightLines: picked, 
+                highlightSentence: picked[0] || '', 
+                highlightSelecting: false,
+                highlightSelectedLineIndices: indices
             });
+            uni.showToast({ title: '已设置高光', icon: 'success' });
         },
 
-        // 高光弹窗触摸事件处理
-        onHighlightModalTouchStart: function (e) {
-            console.log('高光弹窗触摸开始');
-            const touch = e.touches[0];
-            this.highlightModalTouchStartX = touch.pageX || touch.clientX;
-            this.highlightModalTouchStartY = touch.pageY || touch.clientY;
-            this.highlightModalTouchCurrentX = touch.pageX || touch.clientX;
-            this.highlightModalTouchCurrentY = touch.pageY || touch.clientY;
-            console.log('触摸开始位置:', this.highlightModalTouchStartX, this.highlightModalTouchStartY);
-        },
-
-        onHighlightModalTouchMove: function (e) {
-            const touch = e.touches[0];
-            this.highlightModalTouchCurrentX = touch.pageX || touch.clientX;
-            this.highlightModalTouchCurrentY = touch.pageY || touch.clientY;
-        },
-
-        onHighlightModalTouchEnd: function (e) {
-            console.log('高光弹窗触摸结束');
-            const deltaX = this.highlightModalTouchCurrentX - this.highlightModalTouchStartX;
-            const deltaY = Math.abs(this.highlightModalTouchCurrentY - this.highlightModalTouchStartY);
-            
-            console.log('滑动距离 - deltaX:', deltaX, 'deltaY:', deltaY);
-            
-            // 只有当水平滑动距离明显大于垂直滑动距离时，才认为是水平滑动
-            // 这样可以避免垂直滑动（如下滑）意外触发退出
-            if (Math.abs(deltaX) > deltaY && Math.abs(deltaX) > 30) {
-                console.log('检测到水平滑动，退出高光选择');
-                this.exitHighlightModalToEdit();
-            }
-        },
-
-        // 退出高光弹窗到编辑界面
-        exitHighlightModalToEdit: function () {
-            this.setData({
-                highlightSelecting: false
-            });
-            // 这里可以添加其他逻辑，比如保存当前选择的高光句等
-            uni.showToast({ 
-                title: '已退出高光选择', 
-                icon: 'none',
-                duration: 1000
-            });
-        },
+        /* 高光弹窗相关方法已移至 HighlightSelectorModal.vue 组件 */
 
         hideHighlightHint: function () {
             this.setData({ showHighlightHint: false });
@@ -2389,191 +1708,32 @@ export default {
             });
         },
 
-        // 切换单行高亮（旧的方法，保留用于弹窗模式）
-        toggleHighlightLine: function (e) {
-            const idx = Number(e.currentTarget.dataset.index);
-            const arr = this.highlightSelectedLineIndices.slice();
-            const pos = arr.indexOf(idx);
-            if (pos >= 0) {
-                arr.splice(pos, 1);
-            } else {
-                // 限制最多选择三行
-                if (arr.length >= 3) {
-                    uni.showToast({
-                        title: '最多只能选择三行高光',
-                        icon: 'none'
-                    });
-                    return;
-                }
-                arr.push(idx);
-            }
-            arr.sort((a,b) => a - b);
-            this.setData({ highlightSelectedLineIndices: arr });
-        },
-
-        // 完成选择，生成高光行数组
-        finishHighlight: function () {
-            const lines = (this.content || '').split(/\r?\n/);
-            const picked = this.highlightSelectedLineIndices.map(i => lines[i] || '').filter(Boolean);
-            this.setData({ highlightLines: picked, highlightSentence: picked[0] || '', highlightSelecting: false });
-            uni.showToast({ title: '已设置高光', icon: 'success' });
-        },
+        /* toggleHighlightLine 和 finishHighlight 已移至 HighlightSelectorModal.vue 组件 */
 
         // 清除选择
         clearHighlight: function () {
             this.setData({ highlightSelectedLineIndices: [], highlightLines: [], highlightSentence: '' });
         },
 
-        // 选择颜色
-        chooseColor: function (e) {
-            const color = e.currentTarget.dataset.color;
+        // 选择颜色（组件事件处理）
+        onColorSelect: function (color) {
             this.setData({ 
                 selectedBackgroundColor: color.backgroundColor,
                 selectedTextColor: color.textColor,
                 selectedColorCombination: color,
-                showColorPicker: false,
-                colorPickerStep: 'palette' // 重置步骤
+                showColorPicker: false
             });
             uni.showToast({ title: '已设置颜色搭配', icon: 'success' });
         },
 
         noop() {},
 
-        // 分类切换功能
-        switchCategory: function (e) {
-            const index = e.currentTarget.dataset.index;
-            this.setData({
-                currentCategoryIndex: index
-            });
+        // 标签更新（组件事件处理）
+        onTagsUpdate: function (tags) {
+            this.setData({ selectedTags: tags });
         },
 
-        selectTag: function (e) {
-            const tag = e.currentTarget.dataset.tag;
-            const selectedTags = this.selectedTags;
-            if (selectedTags.includes(tag)) {
-                // 如果已选中，则取消选择
-                const index = selectedTags.indexOf(tag);
-                selectedTags.splice(index, 1);
-            } else {
-                // 如果未选中且未超过限制，则添加
-                if (selectedTags.length < 5) {
-                    selectedTags.push(tag);
-                } else {
-                    uni.showToast({
-                        title: '最多选择5个标签',
-                        icon: 'none'
-                    });
-                    return;
-                }
-            }
-            this.setData({
-                selectedTags: selectedTags
-            });
-        },
-
-        onCustomTagInput: function (e) {
-            const inputValue = e.detail.value;
-            console.log('【标签输入】用户输入:', inputValue);
-            this.setData({ customTag: inputValue });
-            // 实时搜索匹配标签
-            this.searchMatchingTags(inputValue);
-        },
-
-        // 搜索匹配的标签
-        searchMatchingTags: function (inputValue) {
-            console.log('【标签搜索】搜索参数:', {
-                inputValue: inputValue,
-                inputLength: inputValue ? inputValue.length : 0,
-                allExistingTags: this.allExistingTags,
-                selectedTags: this.selectedTags
-            });
-            if (!inputValue || inputValue.length < 2) {
-                console.log('【标签搜索】输入长度不足，清空匹配结果');
-                this.setData({
-                    matchedTags: [],
-                    showMatchedTags: false
-                });
-                return;
-            }
-            const allTags = this.allExistingTags;
-            console.log('【标签搜索】开始匹配，总标签数:', allTags.length);
-            const matched = allTags
-                .filter((tag) => {
-                    const isMatch = tag.toLowerCase().includes(inputValue.toLowerCase());
-                    const notSelected = !this.selectedTags.includes(tag);
-                    console.log(`【标签搜索】检查标签"${tag}": 匹配=${isMatch}, 未选中=${notSelected}`);
-                    return isMatch && notSelected;
-                })
-                .slice(0, 5); // 最多显示5个匹配结果
-
-            console.log('【标签搜索】匹配结果:', matched);
-            this.setData({
-                matchedTags: matched,
-                showMatchedTags: matched.length > 0
-            });
-            console.log('【标签搜索】设置状态:', {
-                matchedTags: matched,
-                showMatchedTags: matched.length > 0
-            });
-        },
-
-        // 选择匹配的标签
-        selectMatchedTag: function (e) {
-            const tag = e.currentTarget.dataset.tag;
-            if (this.selectedTags.includes(tag)) {
-                uni.showToast({
-                    title: '标签已存在',
-                    icon: 'none'
-                });
-                return;
-            }
-            if (this.selectedTags.length >= 5) {
-                uni.showToast({
-                    title: '最多选择5个标签',
-                    icon: 'none'
-                });
-                return;
-            }
-            const selectedTags = [...this.selectedTags, tag];
-            this.setData({
-                selectedTags: selectedTags,
-                customTag: '',
-                showMatchedTags: false,
-                matchedTags: []
-            });
-        },
-
-        addCustomTag: function () {
-            const tag = this.customTag && this.customTag.trim();
-            if (!tag) {
-                uni.showToast({
-                    title: '请输入标签内容',
-                    icon: 'none'
-                });
-                return;
-            }
-            if (this.selectedTags.includes(tag)) {
-                uni.showToast({
-                    title: '标签已存在',
-                    icon: 'none'
-                });
-                return;
-            }
-            if (this.selectedTags.length >= 5) {
-                uni.showToast({
-                    title: '最多选择5个标签',
-                    icon: 'none'
-                });
-                return;
-            }
-            this.selectedTags.push(tag);
-            this.setData({
-                selectedTags: this.selectedTags,
-                customTag: '',
-                showMatchedTags: false,
-                matchedTags: []
-            });
-        },
+        /* 标签选择相关方法已移至 TagSelectorModal.vue 组件 */
 
         // 保存草稿
         saveDraft: function () {
@@ -2613,14 +1773,6 @@ export default {
                     uni.showToast({ title: "网络错误，保存失败", icon: "none" });
                     resolve(false);
                 });
-            });
-        },
-
-        removeTag: function (e) {
-            const tag = e.currentTarget.dataset.tag;
-            const selectedTags = this.selectedTags.filter((t) => t !== tag);
-            this.setData({
-                selectedTags: selectedTags
             });
         },
 
@@ -2905,72 +2057,7 @@ page {
 }
 
 
-/* 模式选择器 */
-/* 模式选择器遮罩 */
-.mode-selector-mask {
-    position: fixed;
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    background: rgba(0,0,0,.35);
-    z-index: 130;
-    display: flex;
-    align-items: flex-end;
-}
-
-.mode-selector {
-    width: 100%;
-    background: #fff;
-    border-top-left-radius: 24rpx;
-    border-top-right-radius: 24rpx;
-    padding: 24rpx 28rpx calc(24rpx + env(safe-area-inset-bottom));
-}
-
-.mode-title {
-    font-size: 30rpx;
-    color: #333;
-    text-align: center;
-    margin-bottom: 24rpx;
-    font-weight: 500;
-}
-
-.mode-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-}
-
-.mode-option {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 24rpx 0;
-    border-bottom: 1rpx solid #f0f0f0;
-    transition: all 0.2s ease;
-}
-
-.mode-option:last-child {
-    border-bottom: none;
-}
-
-.mode-option:active {
-    background: #f8f9fa;
-}
-
-.mode-text {
-    font-size: 28rpx;
-    color: #333;
-    flex: 1;
-}
-
-.mode-check {
-    color: #1c9bd6;
-    font-size: 28rpx;
-    font-weight: bold;
-}
-
-
+/* 模式选择器样式已移至 ModeSelectorModal.vue 组件 */
 
 /* 标签选择区域样式 */
 .tag-section {
@@ -3034,255 +2121,7 @@ page {
     cursor: pointer;
 }
 
-/* 标签选择弹层 */
-.tag-selector-mask {
-    position: fixed;
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    background: rgba(0,0,0,.35);
-    z-index: 130;
-    display: flex;
-    align-items: flex-end;
-    /* 确保遮罩层覆盖整个屏幕 */
-    width: 100vw;
-    height: 100vh;
-    box-sizing: border-box;
-}
-
-.tag-selector {
-    width: 100%;
-    background: #fff;
-    border-top-left-radius: 24rpx;
-    border-top-right-radius: 24rpx;
-    padding: 40rpx 20rpx calc(40rpx + env(safe-area-inset-bottom)); /* 减少左右padding，给更多显示空间 */
-    min-height: 20vh;
-    max-height: 85vh; /* 增加最大高度，给更多显示空间 */
-    display: flex;
-    flex-direction: column;
-    animation: slideUp 0.3s ease;
-    /* 确保内容可以滚动 */
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    /* 确保弹窗不会被截断 */
-    box-sizing: border-box;
-}
-
-/* 已选标签显示区域样式 */
-.selected-tags-section {
-    margin-bottom: 20rpx;
-    padding-bottom: 15rpx;
-    border-bottom: 1px solid #eee;
-}
-
-.selected-tags-title {
-    font-size: 26rpx;
-    color: #666;
-    margin-bottom: 10rpx;
-    font-weight: 500;
-}
-
-.selected-tags-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8rpx;
-}
-
-.selected-tag {
-    display: flex;
-    align-items: center;
-    background: #9ed7ee;
-    color: white;
-    padding: 6rpx 12rpx;
-    border-radius: 16rpx;
-    font-size: 22rpx;
-    position: relative;
-    transition: all 0.3s ease;
-}
-
-.selected-tag:active {
-    background: #7bc4d4;
-    transform: scale(0.95);
-}
-
-.remove-icon {
-    margin-left: 6rpx;
-    font-size: 20rpx;
-    font-weight: bold;
-    opacity: 0.8;
-}
-
-/* 分类选择器样式 */
-.category-selector {
-    margin-bottom: 20rpx;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 15rpx;
-}
-
-.category-scroll {
-    width: 100%;
-    white-space: nowrap;
-    /* 确保滚动区域能正常显示 */
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-}
-
-.category-list {
-    display: flex;
-    gap: 15rpx;
-    padding: 10rpx 5rpx; /* 减少左右padding，给更多显示空间 */
-    /* 确保列表能正常滚动 */
-    min-width: max-content;
-}
-
-.category-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 15rpx 12rpx;
-    border-radius: 12rpx;
-    background: #f5f5f5;
-    transition: all 0.3s ease;
-    flex-shrink: 0;
-    /* 移除min-width限制，让内容自然适应 */
-}
-
-.category-item.active {
-    background: #9ed7ee;
-    color: white;
-}
-
-.category-icon {
-    font-size: 24rpx;
-    margin-bottom: 5rpx;
-}
-
-.category-name {
-    font-size: 20rpx;
-    text-align: center;
-    line-height: 1.2;
-}
-
-/* 当前分类标签样式 */
-.current-category-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10rpx;
-    margin-bottom: 20rpx;
-    /* 确保标签区域可以正常显示 */
-    max-height: 300rpx;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    /* 减少左右边距，给更多显示空间 */
-    margin-left: -5rpx;
-    margin-right: -5rpx;
-}
-
-.preset-tag {
-    padding: 8rpx 16rpx;
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 20rpx;
-    font-size: 24rpx;
-    color: #666;
-    transition: all 0.3s ease;
-}
-
-.preset-tag.selected {
-    background: #9ed7ee;
-    color: white;
-    border-color: #9ed7ee;
-}
-
-.custom-tag-input {
-    display: flex;
-    align-items: center;
-    gap: 10rpx;
-}
-
-.custom-tag-input input {
-    flex: 1;
-    height: 60rpx;
-    border: 1px solid #ddd;
-    border-radius: 8rpx;
-    padding: 0 15rpx;
-    font-size: 26rpx;
-}
-
-.custom-tag-input button {
-    background: #9ed7ee;
-    color: white;
-    border: none;
-    border-radius: 8rpx;
-    padding: 0 20rpx;
-    height: 60rpx;
-    font-size: 24rpx;
-    flex-shrink: 0;
-    /* 移除min-width限制，让按钮根据内容自适应 */
-}
-
-/* 匹配标签推荐样式 */
-.matched-tags {
-    margin-top: 15rpx;
-    padding: 15rpx;
-    background: #f8f9fa;
-    border-radius: 8rpx;
-    border: 1px solid #e9ecef;
-}
-
-.matched-tags-title {
-    font-size: 24rpx;
-    color: #666;
-    margin-bottom: 10rpx;
-}
-
-.matched-tags-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8rpx;
-    /* 确保推荐标签区域可以正常显示 */
-    max-height: 200rpx;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-}
-
-.matched-tag {
-    background: #e3f2fd;
-    color: #1976d2;
-    padding: 6rpx 12rpx;
-    border-radius: 12rpx;
-    font-size: 22rpx;
-    border: 1px solid #bbdefb;
-    transition: all 0.2s ease;
-}
-
-.matched-tag:active {
-    background: #bbdefb;
-    transform: scale(0.95);
-}
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10rpx);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(100%);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
+/* 标签选择弹层样式已移至 TagSelectorModal.vue 组件 */
 
 /* ====== 右侧工具栏样式 ====== */
 .side-toolbar {
@@ -3335,12 +2174,7 @@ page {
     box-shadow: none;
 }
 
-.mode-switch-modal-icon {
-    width: 72rpx;
-    height: 72rpx;
-    margin: 0 auto 20rpx;
-    display: block;
-}
+/* .mode-switch-modal-icon 已移至 ModeSelectorModal.vue 组件 */
 
 .side-tool-icon { 
     width: 75rpx; /* 调整图标尺寸到75rpx */
@@ -3416,293 +2250,9 @@ page {
     right: 130rpx; /* 调整字符计数位置 */
 }
 
-/* 颜色选择弹层 */
-.color-picker-mask { 
-    position: fixed; 
-    left: 0; 
-    right: 0; 
-    top: 0; 
-    bottom: 0; 
-    background: rgba(0,0,0,.35); 
-    z-index: 130; 
-    display: flex; 
-    align-items: flex-end; 
-}
+/* 颜色选择弹层样式已移至 ColorPickerModal.vue 组件 */
 
-.color-picker {
-    width: 100%;
-    background: #fff;
-    border-top-left-radius: 24rpx;
-    border-top-right-radius: 24rpx;
-    padding: 24rpx 28rpx calc(24rpx + env(safe-area-inset-bottom));
-    min-height: 50vh; /* 最小高度设为半屏 */
-    max-height: 70vh; /* 限制最大高度为70%屏幕高度 */
-    display: flex;
-    flex-direction: column;
-    animation: slideUp 0.3s ease;
-}
-
-.color-picker-title {
-    font-size: 32rpx;
-    font-weight: 600;
-    color: #333;
-    flex: 1;
-    text-align: center;
-}
-
-.color-picker-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 24rpx;
-    position: relative;
-}
-
-.color-picker-back-btn {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 80rpx;
-    height: 80rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    border-radius: 50%;
-    z-index: 10;
-}
-
-.color-picker-back-icon {
-    width: 60rpx;
-    height: 60rpx;
-}
-
-
-/* 色卡选择界面 */
-.color-palette-step {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-}
-
-.color-palette-step .color-picker-title {
-    margin-bottom: 32rpx; /* 增加标题下方的间距 */
-}
-
-.palette-scroll {
-    flex: 1;
-    min-height: 800rpx;
-    max-height: 1000rpx;
-}
-
-.palette-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    grid-gap: 20rpx;
-    padding: 0 10rpx;
-}
-
-.palette-card {
-    height: 120rpx;
-    border-radius: 16rpx;
-    padding: 16rpx;
-    position: relative;
-    box-shadow: 0 4rpx 12rpx rgba(0,0,0,.1);
-    transition: transform 0.2s ease;
-}
-
-.palette-card:active {
-    transform: scale(0.98);
-}
-
-.palette-name {
-    font-size: 24rpx;
-    font-weight: 600;
-    margin-bottom: 8rpx;
-    text-shadow: 0 1rpx 2rpx rgba(0,0,0,0.3);
-}
-
-.palette-preview {
-    display: flex;
-    gap: 8rpx;
-}
-
-.mini-color {
-    width: 20rpx;
-    height: 20rpx;
-    border-radius: 50%;
-    border: 2rpx solid rgba(255,255,255,0.5);
-}
-
-/* 具体颜色选择界面 */
-.colors-scroll {
-    flex: 1;
-    min-height: 800rpx;
-    max-height: 1000rpx;
-}
-
-.colors-grid {
-    display: grid;
-    grid-template-columns: repeat(1, 1fr);
-    grid-gap: 16rpx;
-    padding: 0 10rpx;
-}
-
-.color-option {
-    height: 100rpx;
-    border-radius: 16rpx;
-    padding: 20rpx;
-    position: relative;
-    box-shadow: 0 4rpx 12rpx rgba(0,0,0,.1);
-    transition: transform 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.color-option:active {
-    transform: scale(0.98);
-}
-
-.color-text {
-    font-size: 28rpx;
-    font-weight: 500;
-}
-
-.color-check { 
-    position: absolute; 
-    right: 20rpx; 
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 32rpx; 
-    font-weight: bold;
-    text-shadow: 0 1rpx 2rpx rgba(0,0,0,.3); 
-}
-
-/* 高光选择全屏弹窗样式 */
-.highlight-selection-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: #fff;
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    /* 考虑状态栏高度，确保内容在安全区域内，并增加额外边距 */
-    padding-top: 60px; /* 增加默认状态栏高度，作为备用 */
-    padding-top: calc(env(safe-area-inset-top) + 16px);
-    padding-top: calc(constant(safe-area-inset-top) + 16px); /* iOS 11.0-11.2 兼容 */
-}
-
-.highlight-modal-content {
-    width: 100%;
-    height: 100%;
-    background: #fff;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    /* 调整高度以适应顶部padding，增加额外边距 */
-    height: calc(100% - 60px); /* 增加默认状态栏高度，作为备用 */
-    height: calc(100% - env(safe-area-inset-top) - 16px);
-    height: calc(100% - constant(safe-area-inset-top) - 16px); /* iOS 11.0-11.2 兼容 */
-}
-
-.highlight-modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 30rpx 40rpx;
-    border-bottom: 1rpx solid #f0f0f0;
-    background: #fff;
-}
-
-.highlight-modal-title {
-    font-size: 32rpx;
-    font-weight: 600;
-    color: #333;
-}
-
-.highlight-modal-close {
-    width: 60rpx;
-    height: 60rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 40rpx;
-    color: #999;
-    border-radius: 50%;
-    background: #f5f5f5;
-}
-
-.highlight-content-wrapper {
-    flex: 1;
-    padding: 40rpx;
-    overflow-y: auto;
-    background: #fff;
-}
-
-.highlight-content-display {
-    display: flex;
-    flex-direction: column;
-}
-
-.highlight-content-line {
-    display: block;
-    margin-bottom: 16rpx;
-    padding: 12rpx 16rpx;
-    border-radius: 8rpx;
-    line-height: 1.8;
-    font-size: 36rpx;
-    white-space: pre-wrap;
-    word-break: break-word;
-    color: #999;
-    transition: all 0.2s ease;
-}
-
-.highlight-content-line.selected-line {
-    color: #000;
-    font-weight: 500;
-}
-
-.highlight-modal-actions {
-    position: fixed;
-    bottom: 60rpx;
-    right: 30rpx;
-    z-index: 1001;
-}
-
-.highlight-action-btn {
-    width: 140rpx;
-    height: 140rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-}
-
-.highlight-action-btn.primary {
-    background: transparent;
-}
-
-.highlight-action-btn.primary.disabled {
-    opacity: 0.5;
-}
-
-.highlight-action-btn:active {
-    transform: scale(0.95);
-}
-
-.highlight-action-text {
-    font-size: 28rpx;
-    font-weight: 500;
-}
-
-.highlight-action-icon {
-    width: 120rpx;
-    height: 120rpx;
-}
+/* 高光选择全屏弹窗样式已移至 HighlightSelectorModal.vue 组件 */
 
 /* 高光选择覆盖层样式 */
 .highlight-overlay {

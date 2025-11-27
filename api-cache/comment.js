@@ -51,7 +51,7 @@ function submitComment(commentData, options = {}) {
         return Promise.reject(new Error('评论内容不能为空'));
     }
 
-    return cloudCall('submitComment', {
+    return cloudCall('addComment', {
         postId: postId,
         content: content ? content.trim() : '',
         images: images || [],

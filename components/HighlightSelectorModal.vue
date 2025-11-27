@@ -1,0 +1,268 @@
+<template>
+    <!-- 高光选择全屏弹窗 -->
+    <view v-if="show" class="highlight-selection-modal" 
+          @tap="onClose"
+          @touchstart="onTouchStart"
+          @touchmove="onTouchMove"
+          @touchend="onTouchEnd">
+        <view class="highlight-modal-content" @tap.stop 
+              @touchstart.stop="onTouchStart"
+              @touchmove.stop="onTouchMove"
+              @touchend.stop="onTouchEnd">
+            <!-- 标题栏 -->
+            <view class="highlight-modal-header">
+                <text class="highlight-modal-title">选择高光句</text>
+                <view class="highlight-modal-close" @tap="onClose">×</view>
+            </view>
+            
+            <!-- 内容选择区域 -->
+            <view class="highlight-content-wrapper">
+                <view class="highlight-content-display">
+                    <text class="highlight-content-line" 
+                          v-for="(line, index) in contentLines"
+                          :key="'highlight-line-' + index"
+                          :class="{ 'selected-line': selectedIndices.includes(index) }"
+                          @tap.stop="onToggleLine(index)">
+                        {{ line || '\u00A0' }}
+                    </text>
+                </view>
+            </view>
+            
+            <!-- 底部操作栏 -->
+            <view class="highlight-modal-actions">
+                <view class="highlight-action-btn primary" 
+                      @tap.stop="onConfirm" 
+                      :class="{ 'disabled': selectedIndices.length === 0 }">
+                    <image class="highlight-action-icon" src="/static/images/confirm_selection.png" mode="aspectFill"></image>
+                </view>
+            </view>
+        </view>
+    </view>
+</template>
+
+<script>
+export default {
+    name: 'HighlightSelectorModal',
+    props: {
+        show: {
+            type: Boolean,
+            default: false
+        },
+        contentLines: {
+            type: Array,
+            default: () => []
+        },
+        selectedLineIndices: {
+            type: Array,
+            default: () => []
+        }
+    },
+    data() {
+        return {
+            // 内部维护选中状态
+            selectedIndices: [],
+            // 触摸相关
+            touchStartX: 0,
+            touchStartY: 0,
+            touchCurrentX: 0,
+            touchCurrentY: 0
+        };
+    },
+    watch: {
+        // 当弹窗打开时，同步外部的选中状态
+        show(val) {
+            if (val) {
+                this.selectedIndices = [...this.selectedLineIndices];
+            }
+        },
+        // 监听外部选中状态变化
+        selectedLineIndices: {
+            handler(val) {
+                if (this.show) {
+                    this.selectedIndices = [...val];
+                }
+            },
+            deep: true
+        }
+    },
+    methods: {
+        // 关闭弹窗
+        onClose() {
+            this.$emit('close');
+        },
+
+        // 切换行选中状态
+        onToggleLine(index) {
+            const arr = [...this.selectedIndices];
+            const pos = arr.indexOf(index);
+            
+            if (pos >= 0) {
+                arr.splice(pos, 1);
+            } else {
+                // 限制最多选择三行
+                if (arr.length >= 3) {
+                    uni.showToast({ title: '最多只能选择三行高光', icon: 'none' });
+                    return;
+                }
+                arr.push(index);
+            }
+            
+            arr.sort((a, b) => a - b);
+            this.selectedIndices = arr;
+            this.$emit('update', arr);
+        },
+
+        // 确认选择
+        onConfirm() {
+            if (this.selectedIndices.length === 0) return;
+            this.$emit('confirm', this.selectedIndices);
+        },
+
+        // 触摸事件处理（用于滑动关闭）
+        onTouchStart(e) {
+            const touch = e.touches[0];
+            this.touchStartX = touch.pageX || touch.clientX;
+            this.touchStartY = touch.pageY || touch.clientY;
+            this.touchCurrentX = this.touchStartX;
+            this.touchCurrentY = this.touchStartY;
+        },
+
+        onTouchMove(e) {
+            const touch = e.touches[0];
+            this.touchCurrentX = touch.pageX || touch.clientX;
+            this.touchCurrentY = touch.pageY || touch.clientY;
+        },
+
+        onTouchEnd() {
+            const deltaX = this.touchCurrentX - this.touchStartX;
+            const deltaY = Math.abs(this.touchCurrentY - this.touchStartY);
+            
+            // 水平滑动距离大于垂直滑动距离，且大于30px时，关闭弹窗
+            if (Math.abs(deltaX) > deltaY && Math.abs(deltaX) > 30) {
+                this.$emit('close');
+                uni.showToast({ title: '已退出高光选择', icon: 'none', duration: 1000 });
+            }
+        }
+    }
+};
+</script>
+
+<style scoped>
+/* 高光选择全屏弹窗样式 */
+.highlight-selection-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #fff;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    padding-top: 60px;
+    padding-top: calc(env(safe-area-inset-top) + 16px);
+    padding-top: calc(constant(safe-area-inset-top) + 16px);
+}
+
+.highlight-modal-content {
+    width: 100%;
+    height: 100%;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    height: calc(100% - 60px);
+    height: calc(100% - env(safe-area-inset-top) - 16px);
+    height: calc(100% - constant(safe-area-inset-top) - 16px);
+}
+
+.highlight-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 30rpx 40rpx;
+    border-bottom: 1rpx solid #f0f0f0;
+    background: #fff;
+}
+
+.highlight-modal-title {
+    font-size: 32rpx;
+    font-weight: 600;
+    color: #333;
+}
+
+.highlight-modal-close {
+    width: 60rpx;
+    height: 60rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40rpx;
+    color: #999;
+    border-radius: 50%;
+    background: #f5f5f5;
+}
+
+.highlight-content-wrapper {
+    flex: 1;
+    padding: 40rpx;
+    overflow-y: auto;
+    background: #fff;
+}
+
+.highlight-content-display {
+    display: flex;
+    flex-direction: column;
+}
+
+.highlight-content-line {
+    display: block;
+    margin-bottom: 16rpx;
+    padding: 12rpx 16rpx;
+    border-radius: 8rpx;
+    line-height: 1.8;
+    font-size: 36rpx;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: #999;
+    transition: all 0.2s ease;
+}
+
+.highlight-content-line.selected-line {
+    color: #000;
+    font-weight: 500;
+}
+
+.highlight-modal-actions {
+    position: fixed;
+    bottom: 60rpx;
+    right: 30rpx;
+    z-index: 1001;
+}
+
+.highlight-action-btn {
+    width: 140rpx;
+    height: 140rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.highlight-action-btn.primary {
+    background: transparent;
+}
+
+.highlight-action-btn.primary.disabled {
+    opacity: 0.5;
+}
+
+.highlight-action-btn:active {
+    transform: scale(0.95);
+}
+
+.highlight-action-icon {
+    width: 120rpx;
+    height: 120rpx;
+}
+</style>
