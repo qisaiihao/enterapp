@@ -678,7 +678,7 @@ export default {
                     uni.showToast({ title: '用户ID缺失', icon: 'none' });
                     return;
                 }
-                uni.navigateTo({ url: `/pages/user-profile/user-profile?userId=${encodeURIComponent(userId)}` });
+                uni.navigateTo({ url: `/pages-user/user-profile/user-profile?userId=${encodeURIComponent(userId)}` });
             } catch (err) {
                 console.error('[messages] navigateToUserProfile failed:', err);
                 uni.showToast({ title: '跳转失败', icon: 'none' });

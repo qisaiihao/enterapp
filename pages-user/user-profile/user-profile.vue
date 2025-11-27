@@ -1059,7 +1059,7 @@ export default {
                     uni.showToast({ title: '用户ID缺失', icon: 'none' });
                     return;
                 }
-                const url = `/pages/user-profile/user-profile?userId=${userId}`;
+                const url = `/pages-user/user-profile/user-profile?userId=${userId}`;
                 uni.navigateTo({ url });
             } catch (err) {
                 console.error('[navigateToUserProfile] failed:', err);
@@ -1132,7 +1132,7 @@ export default {
                 // 跳转到他人作品集页面：优先携带该作品集真实 owner 的 openid，避免 userId 来源不一致
                 const ownerId = portfolio._openid || this.targetUserId;
                 uni.navigateTo({
-                    url: `/pages/other-portfolio/other-portfolio?folderId=${portfolio._id}&folderName=${encodeURIComponent(portfolio.name || '未命名作品集')}&userId=${ownerId}`
+                    url: `/pages-content/other-portfolio/other-portfolio?folderId=${portfolio._id}&folderName=${encodeURIComponent(portfolio.name || '未命名作品集')}&userId=${ownerId}`
                 });
             } catch (err) {
                 console.error('[openPortfolio] failed:', err);

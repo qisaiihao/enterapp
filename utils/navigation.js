@@ -14,7 +14,7 @@ export function navigateToTagFilter(tag, onSuccess, onFail) {
 
   // 跳转到标签筛选页面
   uni.navigateTo({
-    url: `/pages/tag-filter/tag-filter?tag=${encodeURIComponent(tag)}`,
+    url: `/pages-tools/tag-filter/tag-filter?tag=${encodeURIComponent(tag)}`,
     success: () => {
       console.log('跳转到标签筛选页面成功');
       onSuccess && onSuccess();
@@ -116,7 +116,7 @@ export function navigateToUserProfile({
   } else {
     console.log('【头像点击】点击的是他人头像，跳转到用户主页');
     uni.navigateTo({
-      url: `/pages/user-profile/user-profile?userId=${encodeURIComponent(userId)}`,
+      url: `/pages-user/user-profile/user-profile?userId=${encodeURIComponent(userId)}`,
       success: function () {
         console.log('【头像点击】跳转成功');
         onSuccess && onSuccess();

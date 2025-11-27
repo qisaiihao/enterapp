@@ -1660,7 +1660,7 @@ export default {
 
             console.log('【post-detail】跳转到创建讨论页面，postId:', this.post._id);
             uni.navigateTo({
-                url: `/pages/create-discussion/create-discussion?postId=${this.post._id}`,
+                url: `/pages-tools/create-discussion/create-discussion?postId=${this.post._id}`,
                 success: () => {
                     console.log('【post-detail】跳转到创建讨论页面成功');
                 },
@@ -2552,7 +2552,7 @@ export default {
                     });
                 } else {
                     uni.navigateTo({
-                        url: `/pages/user-profile/user-profile?userId=${encodeURIComponent(userId)}`
+                        url: `/pages-user/user-profile/user-profile?userId=${encodeURIComponent(userId)}`
                     });
                 }
             } catch (err) {
@@ -2609,7 +2609,7 @@ export default {
             const tag = e.currentTarget.dataset.tag;
             console.log('点击标签:', tag);
             uni.navigateTo({
-                url: `/pages/tag-filter/tag-filter?tag=${encodeURIComponent(tag)}`,
+                url: `/pages-tools/tag-filter/tag-filter?tag=${encodeURIComponent(tag)}`,
                 success: () => {
                     console.log('跳转到标签筛选页面成功');
                 },
@@ -2672,7 +2672,7 @@ export default {
         showDiscussionModal: function() {
             // 这里可以跳转到写讨论页面或显示讨论模态框
             uni.navigateTo({
-                url: '/pages/create-discussion/create-discussion?postId=' + (this.post && this.post._id ? this.post._id : '')
+                url: '/pages-tools/create-discussion/create-discussion?postId=' + (this.post && this.post._id ? this.post._id : '')
             });
         },
 

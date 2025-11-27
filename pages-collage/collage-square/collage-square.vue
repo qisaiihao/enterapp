@@ -439,7 +439,7 @@ export default {
     navigateToUserProfile(e) {
       const userId = e.currentTarget.dataset.userId
       uni.navigateTo({
-        url: `/pages/user-profile/user-profile?userId=${userId}`
+        url: `/pages-user/user-profile/user-profile?userId=${userId}`
       })
     }
   }

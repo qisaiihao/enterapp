@@ -178,7 +178,7 @@ export default {
                     });
                 } else {
                     uni.navigateTo({
-                        url: `/pages/user-profile/user-profile?userId=${userId}`
+                        url: `/pages-user/user-profile/user-profile?userId=${userId}`
                     });
                 }
             }
@@ -206,7 +206,7 @@ export default {
                     });
                 } else {
                     uni.navigateTo({
-                        url: `/pages/user-profile/user-profile?userId=${userId}`
+                        url: `/pages-user/user-profile/user-profile?userId=${userId}`
                     });
                 }
             }
@@ -222,7 +222,7 @@ export default {
             const tag = data.tag;
             if (tag) {
                 uni.navigateTo({
-                    url: `/pages/tag-filter/tag-filter?tag=${encodeURIComponent(tag)}`
+                    url: `/pages-tools/tag-filter/tag-filter?tag=${encodeURIComponent(tag)}`
                 });
             }
         },

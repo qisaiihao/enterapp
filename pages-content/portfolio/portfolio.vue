@@ -440,7 +440,7 @@ export default {
       this.closeAllSwipeActions();
 
       uni.navigateTo({
-        url: `/pages/portfolio-detail/portfolio-detail?folderId=${folder._id}&folderName=${encodeURIComponent(folder.name)}`
+        url: `/pages-content/portfolio-detail/portfolio-detail?folderId=${folder._id}&folderName=${encodeURIComponent(folder.name)}`
       });
     },
 

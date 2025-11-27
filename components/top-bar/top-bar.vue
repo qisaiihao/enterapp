@@ -90,7 +90,7 @@ export default {
     // 跳转到搜索页面
     navigateToSearch() {
       uni.navigateTo({
-        url: '/pages/search/search',
+        url: '/pages-tools/search/search',
         fail: (err) => {
           console.error('跳转到搜索页面失败:', err);
           uni.showToast({
@@ -104,7 +104,7 @@ export default {
     // 跳转到消息页面
     navigateToMessages() {
       uni.navigateTo({
-        url: '/pages/messages/messages',
+        url: '/pages-tools/messages/messages',
         fail: (err) => {
           console.error('跳转到消息页面失败:', err);
           uni.showToast({

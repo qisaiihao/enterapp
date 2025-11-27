@@ -197,7 +197,7 @@ export default {
             console.log('folderId:', folderId);
             console.log('folderName:', folderName);
 
-            const targetUrl = `/pages/favorite-content/favorite-content?folderId=${folderId}&folderName=${encodeURIComponent(folderName || '')}`;
+            const targetUrl = `/pages-content/favorite-content/favorite-content?folderId=${folderId}&folderName=${encodeURIComponent(folderName || '')}`;
             console.log('跳转URL:', targetUrl);
 
             uni.navigateTo({

@@ -67,7 +67,7 @@ export default {
         navigateToMyLikes() {
             this.$emit('close');
             uni.navigateTo({
-                url: '/pages/my-likes/my-likes'
+                url: '/pages-user/my-likes/my-likes'
             });
         },
 
@@ -75,7 +75,7 @@ export default {
         navigateToPortfolio() {
             this.$emit('close');
             uni.navigateTo({
-                url: '/pages/portfolio/portfolio'
+                url: '/pages-content/portfolio/portfolio'
             });
         },
 
@@ -83,7 +83,7 @@ export default {
         navigateToDraftBox() {
             this.$emit('close');
             uni.navigateTo({
-                url: '/pages/draft-box/draft-box'
+                url: '/pages-content/draft-box/draft-box'
             });
         },
 
@@ -91,7 +91,7 @@ export default {
         navigateToFeedback() {
             this.$emit('close');
             uni.navigateTo({
-                url: '/pages/feedback/feedback'
+                url: '/pages-tools/feedback/feedback'
             });
         },
 
@@ -99,7 +99,7 @@ export default {
         navigateToCollage() {
             this.$emit('close');
             uni.navigateTo({
-                url: '/pages/collage/collage'
+                url: '/pages-collage/collage-main/collage-main'
             });
         },
 
@@ -107,7 +107,7 @@ export default {
         navigateToBlockedUsers() {
             this.$emit('close');
             uni.navigateTo({
-                url: '/pages/blocked-users/blocked-users'
+                url: '/pages-user/blocked-users/blocked-users'
             });
         },
 

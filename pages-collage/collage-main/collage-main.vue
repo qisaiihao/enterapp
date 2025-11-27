@@ -49,7 +49,7 @@ export default {
     // 跳转到上传页面
     navigateToUpload() {
       uni.navigateTo({
-        url: '/pages/collage-upload/collage-upload'
+        url: '/pages-collage/collage-upload/collage-upload'
       })
     },
     
@@ -72,7 +72,7 @@ export default {
     // 跳转到拼贴诗广场
     navigateToSquare() {
       uni.navigateTo({
-        url: '/pages/collage-square/collage-square'
+        url: '/pages-collage/collage-square/collage-square'
       })
     }
   }

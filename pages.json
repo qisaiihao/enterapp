@@ -36,14 +36,6 @@
       }
     },
     {
-      "path": "pages/my-likes/my-likes",
-      "style": {
-        "navigationStyle": "custom",
-        "enablePullDownRefresh": true,
-        "usingComponents": {}
-      }
-    },
-    {
       "path": "pages/index/index",
       "style": {
         "navigationStyle": "custom",
@@ -73,47 +65,6 @@
       }
     },
     {
-      "path": "pages/following/following",
-      "style": {
-        "navigationStyle": "custom",
-        "enablePullDownRefresh": true,
-        "usingComponents": {}
-      }
-    },
-    {
-      "path": "pages/blocked-users/blocked-users",
-      "style": {
-        "navigationStyle": "custom",
-        "enablePullDownRefresh": true,
-        "usingComponents": {}
-      }
-    },
-    {
-      "path": "pages/fans/fans",
-      "style": {
-        "navigationStyle": "custom",
-        "enablePullDownRefresh": true,
-        "usingComponents": {}
-      }
-    },
-    {
-      "path": "pages/user-profile/user-profile",
-      "style": {
-        "usingComponents": {},
-        "navigationBarTitleText": "用户主页",
-        "enablePullDownRefresh": true,
-        "onReachBottomDistance": 50
-      }
-    },
-    {
-      "path": "pages/profile-edit/profile-edit",
-      "style": {
-        "navigationStyle": "custom",
-        "usingComponents": {},
-        "disableScroll": true
-      }
-    },
-    {
       "path": "pages/post-detail/post-detail",
       "style": {
         "navigationStyle": "custom",
@@ -133,111 +84,6 @@
       }
     },
     {
-      "path": "pages/favorite-folders/favorite-folders",
-      "style": {
-        "usingComponents": {},
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/favorite-content/favorite-content",
-      "style": {
-        "usingComponents": {},
-        "enablePullDownRefresh": true,
-        "onReachBottomDistance": 50
-      }
-    },
-    {
-      "path": "pages/messages/messages",
-      "style": {
-        "navigationStyle": "custom",
-        "enablePullDownRefresh": true,
-        "backgroundColor": "#f8f9fa",
-        "backgroundTextStyle": "dark",
-        "usingComponents": {}
-      }
-    },
-    {
-      "path": "pages/image-manager/image-manager",
-      "style": {
-        "navigationBarTitleText": "图片管理",
-        "usingComponents": {}
-      }
-    },
-    {
-      "path": "pages/tag-filter/tag-filter",
-      "style": {
-        "usingComponents": {
-          "skeleton": "/components/skeleton/skeleton"
-        },
-        "enablePullDownRefresh": true,
-        "onReachBottomDistance": 50
-      }
-    },
-    {
-      "path": "pages/search/search",
-      "style": {
-        "usingComponents": {
-          "skeleton": "/components/skeleton/skeleton"
-        },
-        "navigationBarTitleText": "搜索",
-        "navigationBarBackgroundColor": "#ffffff",
-        "navigationBarTextStyle": "black",
-        "backgroundColor": "#f7f8fa"
-      }
-    },
-    {
-      "path": "pages/portfolio/portfolio",
-      "style": {
-        "usingComponents": {},
-        "navigationStyle": "custom",
-        "enablePullDownRefresh": true
-      }
-    },
-    {
-      "path": "pages/portfolio-detail/portfolio-detail",
-      "style": {
-        "usingComponents": {},
-        "navigationStyle": "custom",
-        "enablePullDownRefresh": true
-      }
-    },
-    {
-      "path": "pages/other-portfolio/other-portfolio",
-      "style": {
-        "usingComponents": {
-          "skeleton": "/components/skeleton/skeleton"
-        },
-        "navigationStyle": "custom",
-        "enablePullDownRefresh": true
-      }
-    },
-    {
-      "path": "pages/draft-box/draft-box",
-      "style": {
-        "usingComponents": {},
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/feedback/feedback",
-      "style": {
-        "navigationStyle": "custom",
-        "backgroundColor": "#f5f5f5",
-        "usingComponents": {}
-      }
-    },
-    {
-      "path": "pages/feedback-admin/feedback-admin",
-      "style": {
-        "navigationBarTitleText": "反馈管理",
-        "navigationStyle": "custom",
-        "backgroundColor": "#f5f5f5",
-        "enablePullDownRefresh": true,
-        "usingComponents": {}
-      }
-    },
-    {
       "path": "pages/poem-square/poem-square",
       "style": {
         "navigationStyle": "custom",
@@ -248,50 +94,220 @@
       }
     },
     {
-      "path": "pages/create-discussion/create-discussion",
-      "style": {
-        "navigationStyle": "custom",
-        "backgroundColor": "#f5f5f5",
-        "usingComponents": {}
-      }
-    },
-    {
-      "path": "pages/collage-main/collage-main",
-      "style": {
-        "navigationStyle": "custom",
-        "usingComponents": {}
-      }
-    },
-    {
-      "path": "pages/collage-square/collage-square",
-      "style": {
-        "navigationStyle": "custom",
-        "usingComponents": {}
-      }
-    },
-    {
-      "path": "pages/collage-upload/collage-upload",
-      "style": {
-        "navigationStyle": "custom",
-        "usingComponents": {}
-      }
-    }
-
-    ,
-    {
       "path": "uni_modules/uni-upgrade-center-app/pages/upgrade-popup",
       "style": {
         "navigationStyle": "custom",
         "backgroundColor": "transparent"
       }
     }
-  
-
-],
+  ],
+  "subPackages": [
+    {
+      "root": "pages-user",
+      "pages": [
+        {
+          "path": "user-profile/user-profile",
+          "style": {
+            "usingComponents": {},
+            "navigationBarTitleText": "用户主页",
+            "enablePullDownRefresh": true,
+            "onReachBottomDistance": 50
+          }
+        },
+        {
+          "path": "profile-edit/profile-edit",
+          "style": {
+            "navigationStyle": "custom",
+            "usingComponents": {},
+            "disableScroll": true
+          }
+        },
+        {
+          "path": "following/following",
+          "style": {
+            "navigationStyle": "custom",
+            "enablePullDownRefresh": true,
+            "usingComponents": {}
+          }
+        },
+        {
+          "path": "fans/fans",
+          "style": {
+            "navigationStyle": "custom",
+            "enablePullDownRefresh": true,
+            "usingComponents": {}
+          }
+        },
+        {
+          "path": "blocked-users/blocked-users",
+          "style": {
+            "navigationStyle": "custom",
+            "enablePullDownRefresh": true,
+            "usingComponents": {}
+          }
+        },
+        {
+          "path": "my-likes/my-likes",
+          "style": {
+            "navigationStyle": "custom",
+            "enablePullDownRefresh": true,
+            "usingComponents": {}
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages-content",
+      "pages": [
+        {
+          "path": "favorite-folders/favorite-folders",
+          "style": {
+            "usingComponents": {},
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "favorite-content/favorite-content",
+          "style": {
+            "usingComponents": {},
+            "enablePullDownRefresh": true,
+            "onReachBottomDistance": 50
+          }
+        },
+        {
+          "path": "portfolio/portfolio",
+          "style": {
+            "usingComponents": {},
+            "navigationStyle": "custom",
+            "enablePullDownRefresh": true
+          }
+        },
+        {
+          "path": "portfolio-detail/portfolio-detail",
+          "style": {
+            "usingComponents": {},
+            "navigationStyle": "custom",
+            "enablePullDownRefresh": true
+          }
+        },
+        {
+          "path": "other-portfolio/other-portfolio",
+          "style": {
+            "usingComponents": {
+              "skeleton": "/components/skeleton/skeleton"
+            },
+            "navigationStyle": "custom",
+            "enablePullDownRefresh": true
+          }
+        },
+        {
+          "path": "draft-box/draft-box",
+          "style": {
+            "usingComponents": {},
+            "navigationStyle": "custom"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages-tools",
+      "pages": [
+        {
+          "path": "search/search",
+          "style": {
+            "usingComponents": {
+              "skeleton": "/components/skeleton/skeleton"
+            },
+            "navigationBarTitleText": "搜索",
+            "navigationBarBackgroundColor": "#ffffff",
+            "navigationBarTextStyle": "black",
+            "backgroundColor": "#f7f8fa"
+          }
+        },
+        {
+          "path": "messages/messages",
+          "style": {
+            "navigationStyle": "custom",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#f8f9fa",
+            "backgroundTextStyle": "dark",
+            "usingComponents": {}
+          }
+        },
+        {
+          "path": "tag-filter/tag-filter",
+          "style": {
+            "usingComponents": {
+              "skeleton": "/components/skeleton/skeleton"
+            },
+            "enablePullDownRefresh": true,
+            "onReachBottomDistance": 50
+          }
+        },
+        {
+          "path": "feedback/feedback",
+          "style": {
+            "navigationStyle": "custom",
+            "backgroundColor": "#f5f5f5",
+            "usingComponents": {}
+          }
+        },
+        {
+          "path": "feedback-admin/feedback-admin",
+          "style": {
+            "navigationBarTitleText": "反馈管理",
+            "navigationStyle": "custom",
+            "backgroundColor": "#f5f5f5",
+            "enablePullDownRefresh": true,
+            "usingComponents": {}
+          }
+        },
+        {
+          "path": "image-manager/image-manager",
+          "style": {
+            "navigationBarTitleText": "图片管理",
+            "usingComponents": {}
+          }
+        },
+        {
+          "path": "create-discussion/create-discussion",
+          "style": {
+            "navigationStyle": "custom",
+            "backgroundColor": "#f5f5f5",
+            "usingComponents": {}
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages-collage",
+      "pages": [
+        {
+          "path": "collage-main/collage-main",
+          "style": {
+            "navigationStyle": "custom",
+            "usingComponents": {}
+          }
+        },
+        {
+          "path": "collage-square/collage-square",
+          "style": {
+            "navigationStyle": "custom",
+            "usingComponents": {}
+          }
+        },
+        {
+          "path": "collage-upload/collage-upload",
+          "style": {
+            "navigationStyle": "custom",
+            "usingComponents": {}
+          }
+        }
+      ]
+    }
+  ],
   "tabBar": {
-
     "custom": true,
-
     "color": "#999999",
     "selectedColor": "#9ed7ee",
     "backgroundColor": "#ffffff",
@@ -332,6 +348,5 @@
     "navigationBarBackgroundColor": "#F6F6F6",
     "navigationBarTitleText": "回车键",
     "navigationBarTextStyle": "black"
-  },
-  "subPackages": []
+  }
 }

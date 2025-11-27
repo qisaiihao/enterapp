@@ -1403,27 +1403,27 @@ export default {
         
         navigateToFollowing: function () {
             uni.navigateTo({
-                url: '/pages/following/following'
+                url: '/pages-user/following/following'
             });
         },
 
         navigateToFans: function () {
             uni.navigateTo({
-                url: '/pages/fans/fans'
+                url: '/pages-user/fans/fans'
             });
         },
 
         // 跳转到编辑资料页面
         navigateToEditProfile: function () {
             uni.navigateTo({
-                url: '/pages/profile-edit/profile-edit'
+                url: '/pages-user/profile-edit/profile-edit'
             });
         },
 
         // 跳转到收藏夹页面
         navigateToFavoriteFolders: function () {
             uni.navigateTo({
-                url: '/pages/favorite-folders/favorite-folders'
+                url: '/pages-content/favorite-folders/favorite-folders'
             });
         },
 
@@ -1431,7 +1431,7 @@ export default {
         // 跳转到消息通知页面
         navigateToMessages: function () {
             uni.navigateTo({
-                url: '/pages/messages/messages'
+                url: '/pages-tools/messages/messages'
             });
         },
 
@@ -1603,7 +1603,7 @@ export default {
         // 新增：跳转到图片管理页面
         navigateToImageManager: function () {
             uni.navigateTo({
-                url: '/pages/image-manager/image-manager'
+                url: '/pages-tools/image-manager/image-manager'
             });
         },
 
@@ -1611,7 +1611,7 @@ export default {
         // 跳转到反馈管理页面（管理员）
         navigateToFeedbackAdmin: function () {
             uni.navigateTo({
-                url: '/pages/feedback-admin/feedback-admin'
+                url: '/pages-tools/feedback-admin/feedback-admin'
             });
         },
 
@@ -1786,7 +1786,7 @@ export default {
             console.log('标签点击:', data.tag);
             // 可以跳转到标签搜索页面
             // uni.navigateTo({
-            //     url: `/pages/search/search?tag=${encodeURIComponent(data.tag)}`
+            //     url: `/pages-tools/search/search?tag=${encodeURIComponent(data.tag)}`
             // });
         },
         
@@ -1813,14 +1813,14 @@ export default {
         openPortfolio(portfolio) {
             console.log('打开作品集:', portfolio);
             uni.navigateTo({
-                url: `/pages/portfolio-detail/portfolio-detail?folderId=${portfolio._id}&folderName=${encodeURIComponent(portfolio.name)}`
+                url: `/pages-content/portfolio-detail/portfolio-detail?folderId=${portfolio._id}&folderName=${encodeURIComponent(portfolio.name)}`
             });
         },
 
         // 跳转到作品集管理页面
         navigateToPortfolio() {
             uni.navigateTo({
-                url: '/pages/portfolio/portfolio'
+                url: '/pages-content/portfolio/portfolio'
             });
         },
 

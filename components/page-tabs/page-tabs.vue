@@ -121,7 +121,7 @@ export default {
     navigateToSearch() {
       console.log('点击搜索框，跳转到搜索页面');
       uni.navigateTo({
-        url: '/pages/search/search',
+        url: '/pages-tools/search/search',
         success: () => {
           console.log('跳转到搜索页面成功');
         },
@@ -138,7 +138,7 @@ export default {
     // 跳转到消息页面
     navigateToMessages() {
       uni.navigateTo({
-        url: '/pages/messages/messages',
+        url: '/pages-tools/messages/messages',
         success: () => {
           console.log('跳转到消息页面成功');
         },

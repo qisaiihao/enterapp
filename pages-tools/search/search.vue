@@ -553,7 +553,7 @@ export default {
         onTagClick: function (e) {
             const tag = e.currentTarget.dataset.tag;
             uni.navigateTo({
-                url: `/pages/tag-filter/tag-filter?tag=${encodeURIComponent(tag)}`
+                url: `/pages-tools/tag-filter/tag-filter?tag=${encodeURIComponent(tag)}`
             });
         },
 
@@ -584,7 +584,7 @@ export default {
         navigateToUserProfile: function (e) {
             const userId = e.currentTarget.dataset.userId;
             uni.navigateTo({
-                url: `/pages/user-profile/user-profile?userId=${userId}`
+                url: `/pages-user/user-profile/user-profile?userId=${userId}`
             });
         },
 

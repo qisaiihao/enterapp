@@ -343,7 +343,7 @@ export default {
                 return;
             }
             uni.navigateTo({
-                url: `/pages/user-profile/user-profile?userId=${openid}`
+                url: `/pages-user/user-profile/user-profile?userId=${openid}`
             });
         },
 

@@ -435,7 +435,7 @@ export default {
             const userId = e.currentTarget.dataset.userId;
             if (userId) {
                 uni.navigateTo({
-                    url: `/pages/user-profile/user-profile?userId=${userId}`
+                    url: `/pages-user/user-profile/user-profile?userId=${userId}`
                 });
             }
         },
@@ -446,7 +446,7 @@ export default {
             if (tag) {
                 // 可以跳转到标签页面或搜索页面
                 uni.navigateTo({
-                    url: `/pages/search/search?keyword=${encodeURIComponent(tag)}`
+                    url: `/pages-tools/search/search?keyword=${encodeURIComponent(tag)}`
                 });
             }
         }
