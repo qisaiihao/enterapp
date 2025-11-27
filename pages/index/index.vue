@@ -3,11 +3,7 @@
         <view class="container">
             <page-tabs ref="pageTabs" :current-tab="currentTab" @tab-change="onTabChange"></page-tabs>
 
-            <view v-if="isLoading">
-                <skeleton pageType="index" />
-            </view>
-
-            <view v-else class="square-mode-container">
+            <view class="square-mode-container">
                 <swiper 
                     class="page-swiper" 
                     :current="swiperCurrent" 
@@ -23,168 +19,113 @@
                     :easing-function="easeOutCubic"
                 >
                     <swiper-item>
-                        <scroll-view 
-                            scroll-y="true" 
-                            class="swiper-page" 
-                            @scroll="handleScroll"
-                            @touchstart="onTouchStart"
-                            @touchmove="onTouchMove"
-                            @touchend="onTouchEnd"
-                            refresher-enabled="true"
+                        <feed-list
+                            class="swiper-page"
+                            :posts="postList"
+                            :is-loading="isLoading"
+                            :is-loading-more="isLoadingMore"
+                            :has-more="hasMore"
                             :refresher-triggered="isRefreshing"
-                            :refresher-threshold="90"
-                            refresher-background="#ffffff"
-                            refresher-default-style="black"
-                            refresher-background-style="#ffffff"
-                            @refresherrefresh="onRefresherRefresh"
+                            :swiper-heights="swiperHeights"
+                            list-type="home"
+                            container-id="post-list-container"
+                            empty-icon="📝"
+                            empty-text="还没有帖子哦～"
+                            empty-subtext="快来发布第一条帖子吧！"
+                            end-text="--- 我是有底线的 ---"
+                            @refresh="onHomeRefresh"
+                            @load-more="getPostList"
+                            @avatar-error="onAvatarError"
+                            @avatar-load="onAvatarLoad"
+                            @navigate-to-user="handleNavigateToUser"
+                            @preview-image="handlePreviewImage"
+                            @image-error="onImageError"
+                            @image-load="onImageLoad"
+                            @tag-click="handleTagClick"
+                            @vote="handleVote"
+                            @comment-click="handleCommentClick"
+                            @like-icon-error="onLikeIconError"
+                            @touch-start="onTouchStart"
+                            @touch-move="onTouchMove"
+                            @touch-end="onTouchEnd"
                         >
-                            <view class="filter-toggle-container">
-                                <view
-                                    :class="'filter-toggle-btn ' + (showNormalPostsOnly ? 'active' : '')"
-                                    @tap="toggleNormalPostsFilter"
-                                >
-                                    <text class="filter-toggle-text">{{ showNormalPostsOnly ? '显示全部' : '只看普通帖子' }}</text>
+                            <template #filter>
+                                <view class="filter-toggle-container">
+                                    <view
+                                        :class="'filter-toggle-btn ' + (showNormalPostsOnly ? 'active' : '')"
+                                        @tap="toggleNormalPostsFilter"
+                                    >
+                                        <text class="filter-toggle-text">{{ showNormalPostsOnly ? '显示全部' : '只看普通帖子' }}</text>
+                                    </view>
                                 </view>
-                            </view>
-
-                            <view v-if="postList.length === 0 && !isLoading" class="empty-state">
-                                <view class="empty-icon">📝</view>
-                                <view class="empty-text">还没有帖子哦～</view>
-                                <view class="empty-subtext">快来发布第一条帖子吧！</view>
-                            </view>
-                            <view id="post-list-container">
-                                <post-item
-                                    v-for="(item, index) in postList"
-                                    :key="item._id || index"
-                                    :item="item"
-                                    :index="index"
-                                    :swiper-height="swiperHeights[index]"
-                                    :show-vote-section="true"
-                                    list-type="home"
-                                    @avatar-error="onAvatarError"
-                                    @avatar-load="onAvatarLoad"
-                                    @navigate-to-user="handleNavigateToUser"
-                                    @preview-image="handlePreviewImage"
-                                    @image-error="onImageError"
-                                    @image-load="onImageLoad"
-                                    @tag-click="handleTagClick"
-                                    @vote="handleVote"
-                                    @comment-click="handleCommentClick"
-                                    @like-icon-error="onLikeIconError"
-                                />
-                            </view>
-                              <view v-if="currentPage === 'home' && !hasMore && postList.length > 0" class="end-tip">
-                                <text class="end-text">--- 我是有底线的 ---</text>
-                            </view>
-                        </scroll-view>
+                            </template>
+                        </feed-list>
                     </swiper-item>
 
                     <swiper-item>
-                        <scroll-view 
-                            scroll-y="true" 
-                            class="swiper-page" 
-                            @scroll="handleScroll"
-                            @touchstart="onTouchStart"
-                            @touchmove="onTouchMove"
-                            @touchend="onTouchEnd"
-                            refresher-enabled="true"
+                        <feed-list
+                            class="swiper-page"
+                            :posts="followingPostList"
+                            :is-loading="followingIsLoading"
+                            :is-loading-more="followingIsLoadingMore"
+                            :has-more="followingHasMore"
                             :refresher-triggered="isRefreshing"
-                            :refresher-threshold="90"
-                            refresher-background="#ffffff"
-                            refresher-default-style="black"
-                            refresher-background-style="#ffffff"
-                            @refresherrefresh="onRefresherRefresh"
-                        >
-                            <view v-if="followingIsLoading">
-                                <skeleton pageType="index" />
-                            </view>
-
-                            <view v-else>
-                            <view id="following-list-container">
-                            <view v-if="followingPostList.length === 0" class="empty-state">
-                                <view class="empty-icon">👥</view>
-                                <view class="empty-text">关注的人还没有发帖</view>
-                                <view class="empty-subtext">去关注更多有趣的人吧！</view>
-                            </view>
-                            <post-item
-                                v-for="(item, index) in followingPostList"
-                                :key="item._id || index"
-                                :item="item"
-                                :index="index"
-                                :swiper-height="swiperHeights[index]"
-                                :show-vote-section="true"
-                                list-type="following"
-                                @avatar-error="onAvatarError"
-                                @avatar-load="onAvatarLoad"
-                                @navigate-to-user="handleNavigateToUser"
-                                @preview-image="handlePreviewImage"
-                                @image-error="onImageError"
-                                @image-load="onImageLoad"
-                                @tag-click="handleTagClick"
-                                @vote="handleVote"
-                                @comment-click="handleCommentClick"
-                                @like-icon-error="onLikeIconError"
-                            />
-                            </view>
-                            </view>
-                                <view v-if="currentPage === 'following' && !followingHasMore && followingPostList.length > 0" class="end-tip">
-                                <text class="end-text">--- 没有更多了 ---</text>
-                            </view>
-                        </scroll-view>
+                            :swiper-heights="swiperHeights"
+                            list-type="following"
+                            container-id="following-list-container"
+                            empty-icon="👥"
+                            empty-text="关注的人还没有发帖"
+                            empty-subtext="去关注更多有趣的人吧！"
+                            end-text="--- 没有更多了 ---"
+                            @refresh="onFollowingRefresh"
+                            @load-more="loadFollowingPosts"
+                            @avatar-error="onAvatarError"
+                            @avatar-load="onAvatarLoad"
+                            @navigate-to-user="handleNavigateToUser"
+                            @preview-image="handlePreviewImage"
+                            @image-error="onImageError"
+                            @image-load="onImageLoad"
+                            @tag-click="handleTagClick"
+                            @vote="handleVote"
+                            @comment-click="handleCommentClick"
+                            @like-icon-error="onLikeIconError"
+                            @touch-start="onTouchStart"
+                            @touch-move="onTouchMove"
+                            @touch-end="onTouchEnd"
+                        />
                     </swiper-item>
 
                     <swiper-item>
-                        <scroll-view 
-                            scroll-y="true" 
-                            class="swiper-page" 
-                            @scroll="handleScroll"
-                            @touchstart="onTouchStart"
-                            @touchmove="onTouchMove"
-                            @touchend="onTouchEnd"
-                            refresher-enabled="true"
+                        <feed-list
+                            class="swiper-page"
+                            :posts="discussionPostList"
+                            :is-loading="discussionIsLoading"
+                            :is-loading-more="discussionIsLoadingMore"
+                            :has-more="discussionHasMore"
                             :refresher-triggered="isRefreshing"
-                            :refresher-threshold="90"
-                            refresher-background="#ffffff"
-                            refresher-default-style="black"
-                            refresher-background-style="#ffffff"
-                            @refresherrefresh="onRefresherRefresh"
-                        >
-                            <view v-if="discussionIsLoading">
-                                <skeleton pageType="index" />
-                            </view>
-
-                            <view v-else>
-                            <view id="discussion-list-container">
-                            <view v-if="discussionPostList.length === 0" class="empty-state">
-                                <view class="empty-icon">💬</view>
-                                <view class="empty-text">讨论区暂无内容</view>
-                                <view class="empty-subtext">快来发起第一个话题吧！</view>
-                            </view>
-                            <post-item
-                                v-for="(item, index) in discussionPostList"
-                                :key="item._id || index"
-                                :item="item"
-                                :index="index"
-                                :swiper-height="swiperHeights[index]"
-                                :show-vote-section="true"
-                                list-type="discussion"
-                                @avatar-error="onAvatarError"
-                                @avatar-load="onAvatarLoad"
-                                @navigate-to-user="handleNavigateToUser"
-                                @preview-image="handlePreviewImage"
-                                @image-error="onImageError"
-                                @image-load="onImageLoad"
-                                @tag-click="handleTagClick"
-                                @vote="handleVote"
-                                @comment-click="handleCommentClick"
-                                @like-icon-error="onLikeIconError"
-                            />
-                            </view>
-                            </view>
-                                  <view v-if="currentPage === 'discussion' && !discussionHasMore && discussionPostList.length > 0" class="end-tip">
-                                <text class="end-text">--- 没有更多讨论了 ---</text>
-                            </view>
-                        </scroll-view>
+                            :swiper-heights="swiperHeights"
+                            list-type="discussion"
+                            container-id="discussion-list-container"
+                            empty-icon="💬"
+                            empty-text="讨论区暂无内容"
+                            empty-subtext="快来发起第一个话题吧！"
+                            end-text="--- 没有更多讨论了 ---"
+                            @refresh="onDiscussionRefresh"
+                            @load-more="loadDiscussionPosts"
+                            @avatar-error="onAvatarError"
+                            @avatar-load="onAvatarLoad"
+                            @navigate-to-user="handleNavigateToUser"
+                            @preview-image="handlePreviewImage"
+                            @image-error="onImageError"
+                            @image-load="onImageLoad"
+                            @tag-click="handleTagClick"
+                            @vote="handleVote"
+                            @comment-click="handleCommentClick"
+                            @like-icon-error="onLikeIconError"
+                            @touch-start="onTouchStart"
+                            @touch-move="onTouchMove"
+                            @touch-end="onTouchEnd"
+                        />
                     </swiper-item>
                 </swiper>
             </view>
@@ -200,6 +141,7 @@
 import skeleton from '@/components/skeleton/skeleton';
 import pageTabs from '@/components/page-tabs/page-tabs';
 import PostItem from '@/components/PostItem.vue';
+import FeedList from '@/components/FeedList.vue';
 // #ifndef MP-WEIXIN
 import AppTabBar from '@/custom-tab-bar/index.vue';
 // #endif
@@ -227,6 +169,7 @@ export default {
         skeleton,
         pageTabs,
         PostItem,
+        FeedList,
         // #ifndef MP-WEIXIN
         AppTabBar
         // #endif
@@ -366,6 +309,42 @@ export default {
                     }, 100);
                 });
             }
+        },
+
+        // 首页刷新（FeedList 组件触发）
+        onHomeRefresh: function () {
+            this.isRefreshing = true;
+            try {
+                const { invalidateHomePosts } = require('../../api-cache/home-posts.js');
+                invalidateHomePosts({});
+            } catch (e) {
+                console.error('清除首页缓存失败:', e);
+            }
+            this.setData({
+                page: 0,
+                hasMore: true,
+                postList: []
+            }, () => {
+                this.getPostList(() => {
+                    this.isRefreshing = false;
+                });
+            });
+        },
+
+        // 关注页刷新（FeedList 组件触发）
+        onFollowingRefresh: function () {
+            this.isRefreshing = true;
+            this.refreshFollowingPosts(() => {
+                this.isRefreshing = false;
+            });
+        },
+
+        // 讨论页刷新（FeedList 组件触发）
+        onDiscussionRefresh: function () {
+            this.isRefreshing = true;
+            this.refreshDiscussionPosts(() => {
+                this.isRefreshing = false;
+            });
         },
 
             handleScroll: function (e) {
@@ -1175,15 +1154,16 @@ export default {
             } : {};
             
             // 先更新状态，使用setData的回调确保状态更新后再加载数据
+            // 注意：不要设置 isLoading: true，让 getPostList 自己设置，否则会被防重入检查阻止
             this.setData({
                 showNormalPostsOnly: newMode,
                 postList: [],
                 page: 0,
                 hasMore: true,
-                isLoading: true,
-                isLoadingMore: false  // 确保 isLoadingMore 也为 false
+                isLoading: false,
+                isLoadingMore: false
             }, () => {
-                // 状态更新完成后再强制从云端刷新数据，直接传入筛选参数确保使用正确的筛选条件
+                // 状态更新完成后再强制从云端刷新数据
                 this.getPostList();
             });
         },

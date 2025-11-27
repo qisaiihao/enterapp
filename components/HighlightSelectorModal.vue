@@ -9,6 +9,10 @@
               @touchstart.stop="onTouchStart"
               @touchmove.stop="onTouchMove"
               @touchend.stop="onTouchEnd">
+            <!-- 自定义Toast提示（解决层级问题） -->
+            <view v-if="showTip" class="custom-toast">
+                <text class="custom-toast-text">{{ tipText }}</text>
+            </view>
             <!-- 标题栏 -->
             <view class="highlight-modal-header">
                 <text class="highlight-modal-title">选择高光句</text>
@@ -65,7 +69,11 @@ export default {
             touchStartX: 0,
             touchStartY: 0,
             touchCurrentX: 0,
-            touchCurrentY: 0
+            touchCurrentY: 0,
+            // 自定义提示
+            showTip: false,
+            tipText: '',
+            tipTimer: null
         };
     },
     watch: {
@@ -91,6 +99,19 @@ export default {
             this.$emit('close');
         },
 
+        // 显示自定义提示
+        showCustomTip(text, duration = 2000) {
+            // 清除之前的定时器
+            if (this.tipTimer) {
+                clearTimeout(this.tipTimer);
+            }
+            this.tipText = text;
+            this.showTip = true;
+            this.tipTimer = setTimeout(() => {
+                this.showTip = false;
+            }, duration);
+        },
+
         // 切换行选中状态
         onToggleLine(index) {
             const arr = [...this.selectedIndices];
@@ -101,7 +122,7 @@ export default {
             } else {
                 // 限制最多选择三行
                 if (arr.length >= 3) {
-                    uni.showToast({ title: '最多只能选择三行高光', icon: 'none' });
+                    this.showCustomTip('最多只能选择三行高光');
                     return;
                 }
                 arr.push(index);
@@ -156,7 +177,7 @@ export default {
     right: 0;
     bottom: 0;
     background: #fff;
-    z-index: 1000;
+    z-index: 99999;
     display: flex;
     flex-direction: column;
     padding-top: 60px;
@@ -264,5 +285,23 @@ export default {
 .highlight-action-icon {
     width: 120rpx;
     height: 120rpx;
+}
+
+/* 自定义Toast提示样式 */
+.custom-toast {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.75);
+    padding: 20rpx 40rpx;
+    border-radius: 12rpx;
+    z-index: 999999;
+}
+
+.custom-toast-text {
+    color: #fff;
+    font-size: 28rpx;
+    white-space: nowrap;
 }
 </style>

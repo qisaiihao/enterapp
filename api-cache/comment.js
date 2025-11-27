@@ -28,8 +28,10 @@ function getComments(postId, options = {}) {
  * @param {Object} commentData - 评论数据
  * @param {string} commentData.postId - 帖子ID
  * @param {string} commentData.content - 评论内容
- * @param {Array} commentData.images - 评论图片
+ * @param {Array} commentData.images - 评论图片，格式为 [{url, originalUrl, order}]
  * @param {string} commentData.parentId - 父评论ID（回复时使用）
+ * @param {string} commentData.replyToAuthorName - 被回复者名称
+ * @param {boolean} commentData.isAnonymous - 是否匿名评论
  * @param {Object} options - 额外选项
  * @returns {Promise} 提交结果
  */
@@ -38,7 +40,7 @@ function submitComment(commentData, options = {}) {
         return Promise.reject(new Error('评论数据不能为空'));
     }
 
-    const { postId, content, images, parentId } = commentData;
+    const { postId, content, images, parentId, replyToAuthorName, isAnonymous } = commentData;
 
     if (!postId) {
         return Promise.reject(new Error('帖子ID不能为空'));
@@ -51,11 +53,22 @@ function submitComment(commentData, options = {}) {
         return Promise.reject(new Error('评论内容不能为空'));
     }
 
+    // 将 images 数组对象格式转换为云函数期望的 imageUrls 和 originalImageUrls 数组
+    let imageUrls = [];
+    let originalImageUrls = [];
+    if (hasImages) {
+        imageUrls = images.map(img => img.url || img).filter(Boolean);
+        originalImageUrls = images.map(img => img.originalUrl || img.url || img).filter(Boolean);
+    }
+
     return cloudCall('addComment', {
         postId: postId,
         content: content ? content.trim() : '',
-        images: images || [],
-        parentId: parentId || null
+        imageUrls: imageUrls,
+        originalImageUrls: originalImageUrls,
+        parentId: parentId || null,
+        replyToAuthorName: replyToAuthorName || null,
+        isAnonymous: isAnonymous || false
     }, Object.assign({
         pageTag: 'post-detail',
         requireAuth: true,

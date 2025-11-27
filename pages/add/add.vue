@@ -103,8 +103,8 @@
                         <image class="side-tool-icon mode-switch-icon" src="/static/images/change.png" mode="aspectFit" alt="切换发布模式"></image>
                     </view>
                     
-                    <!-- 选择高光句按钮 -->
-                    <view class="side-tool-btn" @tap.stop="toggleHighlightMode">
+                    <!-- 选择高光句按钮（仅诗歌模式显示） -->
+                    <view v-if="publishMode === 'poem'" class="side-tool-btn" @tap.stop="toggleHighlightMode">
                         <image class="side-tool-icon" src="/static/images/select_highlight.png" mode="aspectFit"></image>
                     </view>
                     
@@ -1501,7 +1501,18 @@ export default {
         },
 
         goBack: function () {
-            // 设置导航标志，防止递归调用
+            // 如果正在导航中，直接返回
+            if (this.isNavigating) {
+                return;
+            }
+            
+            // 如果有内容且未发布，提示保存草稿
+            if (!this.isPublished && this.hasContent()) {
+                this.exitWithOptionalSave();
+                return;
+            }
+            
+            // 没有内容，直接返回
             this.setData({ isNavigating: true });
             
             // 获取页面栈
