@@ -176,6 +176,11 @@
                     </view>
                     <view style="height: 200rpx"></view>
                 </block>
+                <!-- 骨架屏：数据未加载完成时显示 -->
+                <view v-else-if="!postsHasEverLoaded">
+                    <skeleton pageType="user-posts" />
+                </view>
+                <!-- 真正的空状态 -->
                 <view v-else class="empty-tip"><text>TA还没有发布内容哦～</text></view>
             </view>
 
@@ -290,9 +295,15 @@
                     </view>
                     <view style="height: 200rpx"></view>
                 </block>
+                <!-- 骨架屏：数据未加载完成时显示 -->
+                <view v-else-if="!favoritesHasEverLoaded">
+                    <skeleton pageType="user-favorites" />
+                </view>
+                <!-- 真正的空状态 -->
                 <view v-else-if="!favoriteLoading" class="empty-tip">
                     <text>TA还没有收藏内容</text>
                 </view>
+                <!-- 加载更多时显示 -->
                 <view v-if="favoriteLoading" class="loading-tip">
                     <text>加载中...</text>
                 </view>
@@ -480,7 +491,12 @@ export default {
             timelineGroups: {},
             timelineLoading: false,
             timelineError: false,
-            collapsedMonths: {} // 存储每个月份的折叠状态
+            collapsedMonths: {}, // 存储每个月份的折叠状态
+            
+            // 各个部分的加载完成标识符
+            postsHasEverLoaded: false,
+            portfolioHasEverLoaded: false,
+            favoritesHasEverLoaded: false
         };
     },
     onLoad: function (options) {
@@ -596,7 +612,9 @@ export default {
                     hasMore: posts.length === this.PAGE_SIZE,
                     growthStats,
                     portfolioList: normalizedPortfolios,
-                    portfolioLoading: false
+                    portfolioLoading: false,
+                    postsHasEverLoaded: true,
+                    portfolioHasEverLoaded: true
                 });
                 avatarCache.updateUserAvatar(this.targetUserId, userInfo);
                 this.prepareFollowStateWithCache();
@@ -605,6 +623,10 @@ export default {
                 uni.setNavigationBarTitle({ title: userInfo.nickName || '用户主页' });
             }).catch((err) => {
                 uni.showToast({ title: '网络异常，请稍后重试', icon: 'none' });
+                this.setData({ 
+                    postsHasEverLoaded: true,
+                    portfolioHasEverLoaded: true
+                });
             }).finally(() => {
                 this.setData({ isLoading: false, portfolioLoading: false });
                 if (typeof cb === 'function') cb();
@@ -973,8 +995,8 @@ export default {
 
         // 处理组件事件的方法
         navigateToPortfolio() {
-            // PortfolioBook组件点击事件处理（暂时为空实现）
-            console.log('Navigate to portfolio');
+            // PortfolioBook组件容器点击事件处理（暂时为空实现）
+            console.log('Navigate to portfolio container clicked');
         },
 
         updateCollapsedMonths(newCollapsed) {
@@ -1121,10 +1143,9 @@ export default {
         },
 
         // 打开作品集
-        openPortfolio(e) {
+        openPortfolio(portfolio) {
             try {
-                const dataset = (e && e.currentTarget && e.currentTarget.dataset) || {};
-                const portfolio = dataset.portfolio;
+                console.log('Opening portfolio:', portfolio);
                 if (!portfolio || !portfolio._id) {
                     uni.showToast({ title: '作品集信息获取失败', icon: 'none' });
                     return;
@@ -1183,12 +1204,14 @@ export default {
                     this.setData({
                         favoriteList: newFavoriteList,
                         favoritePage: favoritePage + 1,
-                        favoriteHasMore: (favorites || []).length === PAGE_SIZE
+                        favoriteHasMore: (favorites || []).length === PAGE_SIZE,
+                        favoritesHasEverLoaded: true
                     });
                 })
                 .catch((err) => {
                     console.error('【用户主页】获取收藏失败:', err);
                     uni.showToast({ title: '网络异常', icon: 'none' });
+                    this.setData({ favoritesHasEverLoaded: true });
                 })
                 .finally(() => {
                     this.setData({ favoriteLoading: false });
@@ -1656,4 +1679,21 @@ export default {
     color: #333333;
 }
 
-</style>
+/* 加载提示样式 */
+.loading-tip {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 60rpx 40rpx;
+    color: #999;
+    font-size: 28rpx;
+}
+
+.empty-tip {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 60rpx 40rpx;
+    color: #666;
+    font-size: 28rpx;
+}

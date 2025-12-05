@@ -118,7 +118,16 @@ export default {
 
       // 刷新山页面数据
       this.getIndexData();
+      return; // 强制刷新后不再进行缓存检查
     }
+    
+    // 检查缓存新鲜度：从其他页面返回时触发SWR检查
+    try {
+      if (this.hasEverLoaded && this.postList.length > 0) {
+        getMountainPoems({ page: 0, pageSize: PAGE_SIZE, context: this }).catch(() => {});
+      }
+    } catch (_) {}
+    
     // 回到页面时，用缓存对齐当前可见帖子的点赞状态
     try { this.syncLikeStatusFromCache && this.syncLikeStatusFromCache(); } catch (_) {}
   },
@@ -292,7 +301,29 @@ export default {
         const list = await getMountainPoems({
           page: this.page,
           pageSize: PAGE_SIZE,
-          context: this
+          context: this,
+          // SWR后台更新回调
+          onBackgroundUpdate: async (newPosts) => {
+            if (!Array.isArray(newPosts) || newPosts.length === 0 || this.page !== 0) return;
+            try {
+              const visibleList = newPosts.filter(p => p && !p.isAnonymous);
+              visibleList.forEach((p) => {
+                if (!p) return;
+                p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
+                p.textColor = p.textColor || '#222';
+                p.isExpanded = false;
+                p.authorSignature = p.authorSignature || '';
+                p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
+              });
+              
+              const currentPostIds = this.postList.slice(0, PAGE_SIZE).map(p => p._id).join(',');
+              const newPostIds = visibleList.map(p => p._id).join(',');
+              if (currentPostIds !== newPostIds) {
+                const existingLaterPosts = this.postList.slice(PAGE_SIZE);
+                this.setData({ postList: [...visibleList, ...existingLaterPosts] });
+              }
+            } catch (_) {}
+          }
         });
         console.log('【mountain】获取到帖子数量:', list.length);
         console.log('【mountain】帖子匿名性判断:', list.map(p => ({

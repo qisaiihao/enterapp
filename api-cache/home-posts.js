@@ -23,6 +23,7 @@ const ns = cacheManager.namespace('posts:list', { persistent: true, maxItems: 25
  * @param {boolean} options.excludeAnonymous - 是否排除匿名（可选）
  * @param {Object} options.context - 页面上下文
  * @param {boolean} options.forceRefresh - 是否强制刷新（跳过缓存）
+ * @param {Function} options.onBackgroundUpdate - SWR后台更新完成回调
  */
 export async function getHomePosts({ 
   page = 0, 
@@ -33,7 +34,8 @@ export async function getHomePosts({
   tag,
   excludeAnonymous,
   context, 
-  forceRefresh = false 
+  forceRefresh = false,
+  onBackgroundUpdate
 } = {}) {
   // 构建统一的缓存键
   const key = buildCacheKey({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous });
@@ -41,61 +43,33 @@ export async function getHomePosts({
   // 如果强制刷新，使用时间戳作为缓存键的一部分来绕过缓存
   const cacheKey = forceRefresh && page === 0 ? `${key}:ts:${Date.now()}` : key;
   
-  console.log('🔍 [home-posts] 请求数据 - key:', cacheKey, 'forceRefresh:', forceRefresh, 'params:', {
-    page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous
-  });
-  
   // 第一页且强制刷新时，跳过缓存直接调用云函数
   if (page === 0 && forceRefresh) {
-    console.log('🔍 [home-posts] 第一页强制刷新，跳过缓存直接调用云函数');
     const res = await cloudCall(
       'getPostList',
-      {
-        skip: page * pageSize,
-        limit: pageSize,
-        isPoem,
-        isOriginal,
-        isDiscussion,
-        tag,
-        excludeAnonymous
-      },
+      { skip: page * pageSize, limit: pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous },
       { pageTag: 'home', context }
     );
-    console.log('🔍 [home-posts] 云函数返回 - success:', res?.result?.success, 'posts数量:', res?.result?.posts?.length);
     if (res && res.result && res.result.success) {
       return res.result.posts || [];
     }
     return [];
   }
   
-  // 使用统一缓存（与 post-list.js 共享 posts:list 命名空间）
-  // 注意：首页的无筛选条件查询（isPoem/isOriginal 等均为 undefined）会使用 'all' 作为过滤键
-  // 这样即使 poem-square 获取了原创诗歌，首页仍然可以独立缓存无筛选的广场数据
-  // 但如果首页也需要相同的筛选条件（如 isPoem: true, isOriginal: true），可以直接复用其他页面的缓存！
   return ns.getOrFetch(
     cacheKey,
     async () => {
-      console.log('🔍 [home-posts] 缓存未命中，调用云函数 - key:', key);
       const res = await cloudCall(
         'getPostList',
-        {
-          skip: page * pageSize,
-          limit: pageSize,
-          isPoem,
-          isOriginal,
-          isDiscussion,
-          tag,
-          excludeAnonymous
-        },
+        { skip: page * pageSize, limit: pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous },
         { pageTag: 'home', context }
       );
-      console.log('🔍 [home-posts] 云函数返回 - success:', res?.result?.success, 'posts数量:', res?.result?.posts?.length);
       if (res && res.result && res.result.success) {
         return res.result.posts || [];
       }
       return [];
     },
-    { ttlMs: TTL_MS, swrMs: SWR_MS }
+    { ttlMs: TTL_MS, swrMs: SWR_MS, onBackgroundUpdate }
   );
 }
 

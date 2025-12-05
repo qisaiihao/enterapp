@@ -16,12 +16,14 @@ const followingNs = cacheManager.namespace('poems:following', { persistent: true
  * @param {number} options.pageSize - 每页数量
  * @param {Object} options.context - 页面上下文
  * @param {boolean} options.forceRefresh - 是否强制刷新（跳过缓存）
+ * @param {Function} options.onBackgroundUpdate - SWR后台更新完成回调
  */
 async function getFollowingPoems({
   page = 0,
   pageSize = 10,
   context,
-  forceRefresh = false
+  forceRefresh = false,
+  onBackgroundUpdate
 } = {}) {
   // 构建缓存键
   const key = buildCacheKey({ page, pageSize });
@@ -74,7 +76,11 @@ async function getFollowingPoems({
       }
       return [];
     },
-    { ttlMs: TTL_MS, swrMs: SWR_MS }
+    { 
+      ttlMs: TTL_MS, 
+      swrMs: SWR_MS,
+      onBackgroundUpdate
+    }
   );
 }
 
@@ -105,12 +111,14 @@ function invalidateFollowingPoems({ page, pageSize = 10 } = {}) {
  * @param {number} options.pageSize - 每页数量
  * @param {Object} options.context - 页面上下文
  * @param {boolean} options.forceRefresh - 是否强制刷新（跳过缓存）
+ * @param {Function} options.onBackgroundUpdate - SWR后台更新完成回调
  */
 async function getOriginalPoems({
   page = 0,
   pageSize = 10,
   context,
-  forceRefresh = false
+  forceRefresh = false,
+  onBackgroundUpdate
 } = {}) {
   const { getPostList } = require('./post-list.js');
 
@@ -121,7 +129,8 @@ async function getOriginalPoems({
     isOriginal: true,
     excludeAnonymous: true,
     context,
-    forceRefresh
+    forceRefresh,
+    onBackgroundUpdate
   });
 }
 
@@ -133,12 +142,14 @@ async function getOriginalPoems({
  * @param {number} options.pageSize - 每页数量
  * @param {Object} options.context - 页面上下文
  * @param {boolean} options.forceRefresh - 是否强制刷新（跳过缓存）
+ * @param {Function} options.onBackgroundUpdate - SWR后台更新完成回调
  */
 async function getMountainPoems({
   page = 0,
   pageSize = 10,
   context,
-  forceRefresh = false
+  forceRefresh = false,
+  onBackgroundUpdate
 } = {}) {
   const { getPostList } = require('./post-list.js');
 
@@ -149,7 +160,8 @@ async function getMountainPoems({
     isOriginal: false,
     excludeAnonymous: true,
     context,
-    forceRefresh
+    forceRefresh,
+    onBackgroundUpdate
   });
 }
 

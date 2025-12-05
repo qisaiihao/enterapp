@@ -153,7 +153,7 @@
     <!-- 底部按钮组 -->
     <view class="bottom-buttons" style="border-top: none !important;">
       <view class="button-item" @tap.stop="goBack">
-        <image class="button-icon" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
+        <image class="button-icon" src="/static/images/newicons/back.png" mode="aspectFit"></image>
       </view>
       <view class="button-item" @tap.stop="deletePost">
         <image class="button-icon" src="/static/images/delete.png" mode="aspectFit"></image>

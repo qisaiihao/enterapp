@@ -151,8 +151,9 @@ class NamespaceHandle {
 
   set(key, val, opts) {
     const ttlMs = (opts && opts.ttlMs) || 0;
-    const expireAt = ttlMs > 0 ? now() + ttlMs : 0;
-    const rec = { v: val, e: expireAt, la: now() };
+    const nowTs = now();
+    const expireAt = ttlMs > 0 ? nowTs + ttlMs : 0;
+    const rec = { v: val, e: expireAt, la: nowTs };
     this.mem.set(key, rec);
     this._trimLRU();
     this._writePersist(key, rec);
@@ -168,11 +169,30 @@ class NamespaceHandle {
         if (rec) this.mem.set(key, rec);
       }
       if (!rec) return false;
-      const ttlRemaining = rec.e > 0 ? Math.max(0, rec.e - nowTs) : 0;
+      
+      // 检查缓存是否已过期（除非永不过期）
+      if (rec.e > 0 && rec.e <= nowTs) {
+        this.mem.delete(key);
+        this._removePersist(key);
+        return false;
+      }
+      
       const cur = rec.v;
       const next = typeof updater === 'function' ? updater(cur) : cur;
       if (next !== undefined) {
-        this.set(key, next, { ttlMs: ttlRemaining });
+        // 注意：这里传递的ttlMs应该是绝对值，不是相对值
+        // 但update方法的语义应该是保持原有过期设置
+        if (rec.e === 0) {
+          // 永不过期的缓存，直接更新数据但不改变过期设置
+          const newRec = { v: next, e: 0, la: nowTs };
+          this.mem.set(key, newRec);
+          this._writePersist(key, newRec);
+        } else {
+          // 有过期时间的缓存，使用绝对过期时间
+          const newRec = { v: next, e: rec.e, la: nowTs };
+          this.mem.set(key, newRec);
+          this._writePersist(key, newRec);
+        }
         return true;
       }
       return false;
@@ -182,6 +202,22 @@ class NamespaceHandle {
   delete(key) {
     this.mem.delete(key);
     this._removePersist(key);
+  }
+
+  // 清除所有永不过期的缓存（用于修复旧的错误缓存）
+  clearInfiniteCache() {
+    let clearedCount = 0;
+    // 清理内存缓存
+    for (const [key, rec] of this.mem.entries()) {
+      if (rec.e === 0) {
+        console.log(`🧹 [Cache-Cleanup] 清除永不过期缓存 - key: ${key.substring(0, 50)}...`);
+        this.mem.delete(key);
+        this._removePersist(key);
+        clearedCount++;
+      }
+    }
+    console.log(`✨ [Cache-Cleanup] 已清除 ${clearedCount} 个永不过期缓存`);
+    return clearedCount;
   }
 
   clear() {
@@ -205,6 +241,7 @@ class NamespaceHandle {
   async getOrFetch(key, loader, opts) {
     const ttlMs = (opts && opts.ttlMs) || 0;
     const swrMs = (opts && opts.swrMs) || 0;
+    const onBackgroundUpdate = opts && opts.onBackgroundUpdate;
 
     const nowTs = now();
     let rec = this.mem.get(key);
@@ -215,16 +252,21 @@ class NamespaceHandle {
 
     const isFresh = rec && (rec.e === 0 || rec.e > nowTs);
     const isStale = rec && rec.e > 0 && rec.e <= nowTs;
+    const isInSWRWindow = isStale && swrMs > 0 && nowTs - rec.e <= swrMs;
 
     if (isFresh) {
       rec.la = nowTs;
       return rec.v;
     }
 
-    if (isStale && swrMs > 0 && nowTs - rec.e <= swrMs) {
+    if (isInSWRWindow) {
       rec.la = nowTs;
+      // SWR: 先返回旧数据，后台更新
       loader().then((val) => {
         this.set(key, val, { ttlMs });
+        if (onBackgroundUpdate && typeof onBackgroundUpdate === 'function') {
+          try { onBackgroundUpdate(val); } catch (_) {}
+        }
       }).catch(() => {});
       return rec.v;
     }

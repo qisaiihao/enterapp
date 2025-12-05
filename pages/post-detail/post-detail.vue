@@ -144,7 +144,7 @@
                             </view>
                               <!-- 分享按钮（仅诗歌帖子显示） -->
                             <view v-if="post && post.isPoem" class="share-icon-container" @tap.stop.prevent="onShare">
-                                <image class="share-icon" src="/static/images/share.png" mode="aspectFit"></image>
+                                <image class="share-icon" src="/static/images/newicons/save_share.png" mode="aspectFit"></image>
                             </view>
                         </view>
                     </view>

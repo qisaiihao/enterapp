@@ -76,20 +76,21 @@ export function navigateToUserProfile({
 }) {
   console.log('【头像点击】提取的信息:', { userId, authorName, isAnonymous, currentUserId });
 
-  // 检查是否为匿名帖子
-  if (isAnonymous || (authorName === '匿名用户' && userId.includes('anonymous'))) {
-    console.log('【头像点击】匿名帖子，不跳转');
+  // 先检查 userId 是否有效
+  if (!userId) {
+    console.error('【头像点击】userId为空');
     uni.showToast({
-      title: '匿名用户无法查看主页',
+      title: '用户信息获取失败',
       icon: 'none'
     });
     return;
   }
 
-  if (!userId) {
-    console.error('【头像点击】userId为空');
+  // 检查是否为匿名帖子
+  if (isAnonymous || (authorName === '匿名用户' && userId.includes('anonymous'))) {
+    console.log('【头像点击】匿名帖子，不跳转');
     uni.showToast({
-      title: '用户信息获取失败',
+      title: '匿名用户无法查看主页',
       icon: 'none'
     });
     return;

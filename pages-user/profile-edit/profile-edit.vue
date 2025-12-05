@@ -38,12 +38,12 @@
                 </view>
 
                 <!-- 手机号（可修改） -->
-                <view class="form-row" @tap="onEditPhoneNumber">
-                    <view class="form-label" @tap.stop="onEditPhoneNumber">
+                <view class="form-row phone-row" @tap="onEditPhoneNumber">
+                    <view class="form-label">
                         <text>手机号</text>
                     </view>
-                    <view class="form-input" @tap.stop="onEditPhoneNumber">
-                        <input class="input-field" type="text" :value="formattedPhoneNumber" :disabled="true" @tap.stop="onEditPhoneNumber" />
+                    <view class="form-input">
+                        <input class="input-field" type="text" :value="formattedPhoneNumber" :disabled="true" />
                     </view>
                 </view>
 
@@ -727,12 +727,6 @@ export default {
             });
         },
 
-        // 个性签名输入（绑定到bio字段）
-        onBioInput: function (e) {
-            this.setData({
-                bio: e.detail.value
-            });
-        },
 
         goBack: function () {
             uni.navigateBack();
@@ -1149,6 +1143,20 @@ export default {
     background-color: #f0f0f0;
 }
 
+/* 手机号表单行特殊样式 - 增强H5端点击体验 */
+.phone-row {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.phone-row:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.phone-row:active {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
 .form-label {
     flex-shrink: 0;
     background-color: #cccccc;
@@ -1231,7 +1239,7 @@ export default {
     background: transparent;
     border: none;
     outline: none;
-    pointer-events: none;
+    pointer-events: auto;
     resize: none;
 }
 

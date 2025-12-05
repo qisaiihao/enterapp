@@ -134,6 +134,15 @@ exports.main = async (event, context) => {
     };
     let posts = result.posts || []; // 这里已经是分页后的 posts
     console.log('【profile云函数】聚合后 posts 数量:', posts.length);
+    // 打印第一个帖子的 _openid 字段，确认数据结构
+    if (posts.length > 0) {
+      console.log('【profile云函数】第一个帖子关键字段:', {
+        _id: posts[0]._id,
+        _openid: posts[0]._openid,
+        title: posts[0].title,
+        isAnonymous: posts[0].isAnonymous
+      });
+    }
     
     // 统计帖子类型
     const directPosts = posts.filter(post => post._openid === openid);

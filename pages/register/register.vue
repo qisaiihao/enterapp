@@ -101,7 +101,7 @@
           </view>
         </view>
         <view class="modal-footer">
-          <view class="modal-btn cancel-btn" @tap="closeBindPhoneModal">取消</view>
+          <view class="modal-btn cancel-btn" @tap="skipBindPhoneAndRegister">跳过</view>
           <view class="modal-btn confirm-btn" @tap="handleBindPhoneForRegister" :class="{ disabled: isBindingPhone || (!smsCode || !smsPhoneNumber) }">确认绑定</view>
         </view>
       </view>
@@ -747,6 +747,14 @@ export default {
             this.smsCode = '';
             if (this.smsTimer) { clearInterval(this.smsTimer); this.smsTimer = null; }
             this.smsCountdown = 0;
+        },
+
+        // 跳过手机号绑定并继续注册
+        async skipBindPhoneAndRegister() {
+            console.log('📱 [注册] 用户选择跳过手机号绑定');
+            this.closeBindPhoneModal();
+            // 不设置手机号，直接提交注册
+            await this.submitRegister();
         },
 
         

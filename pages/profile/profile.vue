@@ -182,7 +182,7 @@ import ProfileCard from '@/components/ProfileCard.vue';
 import ActionMenu from '@/components/ActionMenu.vue';
 import DeleteModal from '@/components/DeleteModal.vue';
 import { getMyPosts, getMyFavorites, invalidateMyFavorites, invalidateMyPosts, invalidateMyInfo, getMyInfo } from '@/api-cache/my.js';
-import { togglePostVisibility, deletePost, saveDraft, getPostDetail, removeFavorite, getFollowerCount, updateUserInfo, logout } from '@/api-cache/profile-actions.js';
+import { togglePostVisibility, deletePost as deletePostApi, saveDraft, getPostDetail, removeFavorite, getFollowerCount, updateUserInfo, logout } from '@/api-cache/profile-actions.js';
 import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
 import { navigateToUserProfile } from '@/utils/navigation.js';
 import { calculateAge } from '@/utils/ageCalculator.js';
@@ -883,6 +883,11 @@ export default {
                             if (post.createTime) post.formattedCreateTime = this.formatTime(post.createTime);
                             if (post.imageUrls && post.imageUrls.length > 0) post.imageStyle = `height: 0; padding-bottom: 75%;`;
                             
+                            // 【关键修复】确保帖子有 _openid 字段（我的帖子都是当前用户的）
+                            if (!post._openid && currentOpenid) {
+                                post._openid = currentOpenid;
+                            }
+                            
                             // 【关键修复】直接使用个人资料的昵称填充帖子的authorName
                             if (currentUserInfo.nickName) {
                                 post.authorName = currentUserInfo.nickName;
@@ -899,6 +904,7 @@ export default {
                             
                             console.log(`【profile】📝 缓存帖子${index + 1}:`, {
                                 id: post._id,
+                                _openid: post._openid,
                                 title: post.title,
                                 createTime: post.createTime,
                                 formattedTime: post.formattedCreateTime,
@@ -960,6 +966,8 @@ export default {
                 console.log('【profile】📋 API封装返回的帖子ID列表:', posts.map(p => p._id));
 
                 // 格式化帖子数据并确保作者信息完整
+                const app = getApp();
+                const currentOpenid = app && app.globalData && app.globalData.openid;
                 posts.forEach((post, index) => {
                     if (post.createTime) {
                         post.formattedCreateTime = this.formatTime(post.createTime);
@@ -967,6 +975,11 @@ export default {
                     // 为每个帖子设置默认的图片样式
                     if (post.imageUrls && post.imageUrls.length > 0) {
                         post.imageStyle = `height: 0; padding-bottom: 75%;`; // 4:3 宽高比占位
+                    }
+                    
+                    // 【关键修复】确保帖子有 _openid 字段（我的帖子都是当前用户的）
+                    if (!post._openid && currentOpenid) {
+                        post._openid = currentOpenid;
                     }
 
                     // 【关键修复】直接使用个人资料的昵称（userInfo.nickName）填充帖子的authorName
@@ -990,6 +1003,7 @@ export default {
 
                     console.log(`【profile】📝 API封装帖子${index + 1}:`, {
                         id: post._id,
+                        _openid: post._openid,
                         title: post.title,
                         createTime: post.createTime,
                         formattedTime: post.formattedCreateTime,
@@ -1754,23 +1768,16 @@ export default {
         
         // 处理跳转用户主页
         handleNavigateToUser(data) {
-            if (data.isAnonymous) {
-                uni.showToast({
-                    title: '匿名用户',
-                    icon: 'none'
-                });
-                return;
-            }
-            // 构造兼容原有 navigateToUserProfile 的事件对象
-            const fakeEvent = {
-                currentTarget: {
-                    dataset: {
-                        userId: data.userId,
-                        isAnonymous: data.isAnonymous
-                    }
-                }
-            };
-            navigateToUserProfile(fakeEvent);
+            // 获取当前用户ID
+            const app = getApp();
+            const currentUserId = (app && app.globalData && app.globalData.openid) || uni.getStorageSync('openid') || uni.getStorageSync('userOpenId');
+            // 直接调用 navigateToUserProfile，传入正确的参数格式
+            navigateToUserProfile({
+                userId: data.userId,
+                authorName: data.authorName || '未知用户',
+                isAnonymous: data.isAnonymous || false,
+                currentUserId: currentUserId
+            });
         },
         
         // 处理预览图片

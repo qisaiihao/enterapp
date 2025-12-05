@@ -108,8 +108,8 @@
                         <image class="side-tool-icon" src="/static/images/newicons/highlight.png" mode="aspectFit"></image>
                     </view>
                     
-                    <!-- 选择颜色按钮 -->
-                    <view class="side-tool-btn" @tap.stop="onSelectColor">
+                    <!-- 选择颜色按钮（仅诗歌模式显示） -->
+                    <view v-if="publishMode === 'poem'" class="side-tool-btn" @tap.stop="onSelectColor">
                         <image class="side-tool-icon" src="/static/images/select_color.png" mode="aspectFit"></image>
                     </view>
                 </view>
@@ -2177,9 +2177,7 @@ page {
 }
 
 .mode-switch-icon {
-    width: 110rpx;
-    height: 110rpx;
-    padding: 12rpx;
+    /* 移除尺寸和padding设置，使用统一的 .side-tool-icon 样式 */
     border-radius: 50%;
     background: transparent;
     box-shadow: none;
@@ -2188,8 +2186,8 @@ page {
 /* .mode-switch-modal-icon 已移至 ModeSelectorModal.vue 组件 */
 
 .side-tool-icon { 
-    width: 75rpx; /* 调整图标尺寸到75rpx */
-    height: 75rpx;
+    width: 110rpx; /* 调整图标尺寸与上面两个图标一致 */
+    height: 110rpx;
     display: flex;
     align-items: center;
     justify-content: center;

@@ -16,15 +16,17 @@ const ns = cacheManager.namespace('following:posts', { persistent: true, maxItem
  * @param {number} options.pageSize - 每页数量
  * @param {Object} options.context - 页面上下文
  * @param {boolean} options.forceRefresh - 是否强制刷新（跳过缓存）
+ * @param {Function} options.onBackgroundUpdate - SWR后台更新完成回调
  */
 async function getFollowingPosts({
   page = 0,
   pageSize = 10,
   context,
-  forceRefresh = false
+  forceRefresh = false,
+  onBackgroundUpdate
 } = {}) {
-  // 构建缓存键
-  const key = buildCacheKey({ page, pageSize });
+  // 构建缓存键（添加 following 标识避免与其他页面冲突）
+  const key = `following:${buildCacheKey({ page, pageSize })}`;
 
   // 如果强制刷新，使用时间戳作为缓存键的一部分来绕过缓存
   const cacheKey = forceRefresh && page === 0 ? `${key}:ts:${Date.now()}` : key;
@@ -68,7 +70,11 @@ async function getFollowingPosts({
       }
       return [];
     },
-    { ttlMs: TTL_MS, swrMs: SWR_MS }
+    { 
+      ttlMs: TTL_MS, 
+      swrMs: SWR_MS,
+      onBackgroundUpdate
+    }
   );
 }
 
@@ -81,7 +87,7 @@ async function getFollowingPosts({
 function invalidateFollowingPosts({ page, pageSize = 10 } = {}) {
   if (typeof page === 'number') {
     // 清除特定页的缓存
-    const key = buildCacheKey({ page, pageSize });
+    const key = `following:${buildCacheKey({ page, pageSize })}`;
     ns.delete(key);
     console.log(`🔍 [following] 清除缓存 - key: ${key}`);
   } else {

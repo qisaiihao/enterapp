@@ -222,14 +222,27 @@ export default {
         },
         // 跳转用户主页
         onNavigateToUser() {
+            // 统一使用 _openid 字段
+            const userId = this.item._openid;
+            console.log('【PostItem】点击头像，帖子信息:', { 
+                postId: this.item._id, 
+                _openid: this.item._openid,
+                authorName: this.item.authorName,
+                isAnonymous: this.item.isAnonymous 
+            });
             this.$emit('navigate-to-user', {
-                userId: this.item._openid,
+                userId: userId,
                 authorName: this.item.authorName,
                 isAnonymous: this.item.isAnonymous
             });
         },
         // 预览图片（单图/外层容器点击）
         onPreviewImage(e) {
+            console.log('【PostItem】图片预览 - 单图:', {
+                src: this.item.imageUrls[0],
+                originalUrls: this.item.originalImageUrls,
+                compressedUrls: this.item.imageUrls
+            });
             this.$emit('preview-image', {
                 src: this.item.imageUrls[0],
                 urls: this.item.originalImageUrls || this.item.imageUrls,
@@ -239,9 +252,15 @@ export default {
         // 预览图片（多图swiper内点击）
         onPreviewImageMulti(e) {
             const dataset = e.currentTarget.dataset;
+            console.log('【PostItem】图片预览 - 多图:', {
+                clickedSrc: dataset.src,
+                originalUrls: this.item.originalImageUrls,
+                compressedUrls: this.item.imageUrls
+            });
+            // 直接使用 item 中的原图数组，避免 dataset 转换问题
             this.$emit('preview-image', {
                 src: dataset.src,
-                urls: dataset.originalImageUrls || this.item.imageUrls,
+                urls: this.item.originalImageUrls || this.item.imageUrls,
                 event: e
             });
         },

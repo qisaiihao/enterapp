@@ -20,7 +20,7 @@ function makeExcludeKey(arr) {
   }
 }
 
-export async function getDiscoverFeed({ excludePostIds = [], page = 0, pageSize = 5, context } = {}) {
+export async function getDiscoverFeed({ excludePostIds = [], page = 0, pageSize = 5, context, onBackgroundUpdate } = {}) {
   const key = `page:${page}:${makeExcludeKey(excludePostIds)}`;
   return ns.getOrFetch(
     key,
@@ -40,7 +40,11 @@ export async function getDiscoverFeed({ excludePostIds = [], page = 0, pageSize 
       }
       return { posts: [], hasMore: false };
     },
-    { ttlMs: TTL_MS, swrMs: SWR_MS }
+    { 
+      ttlMs: TTL_MS, 
+      swrMs: SWR_MS,
+      onBackgroundUpdate
+    }
   );
 }
 

@@ -17,13 +17,13 @@
         <!-- 顶部筛选按钮插槽 -->
         <slot name="filter"></slot>
 
-        <!-- 骨架屏 -->
-        <view v-if="isLoading && posts.length === 0">
+        <!-- 骨架屏：初次加载或正在加载且没有数据时显示 -->
+        <view v-if="(isLoading && posts.length === 0) || (posts.length === 0 && !hasEverLoaded)">
             <skeleton pageType="index" />
         </view>
 
-        <!-- 空状态 -->
-        <view v-else-if="posts.length === 0" class="empty-state">
+        <!-- 空状态：确认没有数据时才显示 -->
+        <view v-else-if="posts.length === 0 && hasEverLoaded && !isLoading" class="empty-state">
             <view class="empty-icon">{{ emptyIcon }}</view>
             <view class="empty-text">{{ emptyText }}</view>
             <view class="empty-subtext">{{ emptySubtext }}</view>
@@ -147,6 +147,11 @@ export default {
         refresherEnabled: {
             type: Boolean,
             default: true
+        },
+        // 是否曾经加载过数据（用于区分初始状态和真正的空状态）
+        hasEverLoaded: {
+            type: Boolean,
+            default: false
         }
     },
     data() {

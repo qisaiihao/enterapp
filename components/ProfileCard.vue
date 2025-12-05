@@ -14,7 +14,7 @@
         <view class="profile-info-center">
             <text class="profile-name-center">{{ displayName }}</text>
             <text class="profile-poemid">poemid：{{ poemIdText }}</text>
-            <text class="profile-bio-center">{{ bioText }}</text>
+            <text class="profile-bio-center" @tap="$emit('edit-profile')">{{ bioText }}</text>
             <view class="profile-bottom-row">
                 <text class="profile-followers" @tap="$emit('navigate-fans')">
                     被关注数：{{ followerCountText }}
@@ -211,6 +211,12 @@ export default {
     color: #000000;
     text-align: left;
     margin-bottom: 20rpx;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.profile-bio-center:active {
+    opacity: 0.7;
 }
 
 .profile-bottom-row {

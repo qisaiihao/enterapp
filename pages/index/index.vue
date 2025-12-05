@@ -26,6 +26,7 @@
                             :is-loading="isLoading"
                             :is-loading-more="isLoadingMore"
                             :has-more="hasMore"
+                            :has-ever-loaded="homeHasEverLoaded"
                             :refresher-triggered="isRefreshing"
                             :swiper-heights="swiperHeights"
                             list-type="home"
@@ -72,6 +73,7 @@
                             :is-loading="followingIsLoading"
                             :is-loading-more="followingIsLoadingMore"
                             :has-more="followingHasMore"
+                            :has-ever-loaded="followingHasEverLoaded"
                             :refresher-triggered="isRefreshing"
                             :swiper-heights="swiperHeights"
                             list-type="following"
@@ -107,6 +109,7 @@
                             :is-loading="discussionIsLoading"
                             :is-loading-more="discussionIsLoadingMore"
                             :has-more="discussionHasMore"
+                            :has-ever-loaded="discussionHasEverLoaded"
                             :refresher-triggered="isRefreshing"
                             :swiper-heights="swiperHeights"
                             list-type="discussion"
@@ -188,7 +191,7 @@ export default {
             votingInProgress: {},
             page: 0,
             hasMore: true,
-            isLoading: false,
+            isLoading: true,
             openid: '',
             isRefreshing: false,
             isLoadingMore: false,
@@ -217,6 +220,10 @@ export default {
             followingHasMore: true,
             followingIsLoading: false,
             followingIsLoadingMore: false,
+            // 各个页面的加载完成标识符
+            homeHasEverLoaded: false,
+            followingHasEverLoaded: false,
+            discussionHasEverLoaded: false,
             selected: 0,
             img: '',
             safeAreaTop: 0,
@@ -260,13 +267,49 @@ export default {
         try {
             const shouldRefresh = uni.getStorageSync('shouldRefreshIndex');
             if (shouldRefresh) {
-                this.clearHoverAndScrollState();
                 uni.removeStorageSync('shouldRefreshIndex');
                 this.refreshIndexData();
+                return; // 强制刷新后不再进行其他检查
             }
         } catch (e) {
             console.error('检查刷新标记失败:', e);
         }
+
+        // 检查缓存新鲜度：从其他页面返回时触发SWR检查
+        try {
+            if (this.homeHasEverLoaded && this.postList.length > 0) {
+                const filterParams = {};
+                if (this.showNormalPostsOnly) {
+                    filterParams.isPoem = false;
+                    filterParams.isDiscussion = false;
+                }
+                getHomePosts({ 
+                    page: 0, 
+                    pageSize: PAGE_SIZE, 
+                    context: this,
+                    ...filterParams,
+                    onBackgroundUpdate: async (newPosts) => {
+                        if (!Array.isArray(newPosts) || newPosts.length === 0) return;
+                        try {
+                            let posts = normalizePostList(newPosts).map((post) => ({
+                                ...post,
+                                likeIcon: likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false)
+                            }));
+                            posts = await hydrateTempUrls(posts);
+                            warmTempUrlsFromPosts(posts);
+                            
+                            if (this.currentPage === 'home' && this.swiperCurrent === 0) {
+                                const currentPostIds = this.postList.map(p => p._id).join(',');
+                                const newPostIds = posts.map(p => p._id).join(',');
+                                if (currentPostIds !== newPostIds) {
+                                    this.setData({ postList: posts, hasMore: posts.length === PAGE_SIZE });
+                                }
+                            }
+                        } catch (_) {}
+                    }
+                }).catch(() => {});
+            }
+        } catch (_) {}
 
         // 同步点赞状态：从缓存中获取最新的点赞状态
         this.syncLikeStatusFromCache();
@@ -682,8 +725,14 @@ export default {
             checkAndGo();
         },
         getIndexData: function () {
-            // 直接走 CacheManager 首页封装
-            this.setData({ isLoading: true, postList: [], page: 0, hasMore: true });
+            // 清理永不过期缓存（修复旧的错误缓存）
+            try {
+                const cacheManager = require('@/_utils/cache-manager.js');
+                const ns = cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 });
+                if (ns.clearInfiniteCache) ns.clearInfiniteCache();
+            } catch (_) {}
+            
+            this.setData({ isLoading: true, postList: [], page: 0, hasMore: true, homeHasEverLoaded: false });
             // 根据showNormalPostsOnly状态决定筛选参数
             const filterParams = {};
             if (this.showNormalPostsOnly) {
@@ -695,7 +744,27 @@ export default {
                 page: 0, 
                 pageSize: PAGE_SIZE, 
                 context: this,
-                ...filterParams
+                ...filterParams,
+                // SWR后台更新回调
+                onBackgroundUpdate: async (newPosts) => {
+                    if (!Array.isArray(newPosts) || newPosts.length === 0) return;
+                    try {
+                        let posts = normalizePostList(newPosts).map((post) => ({
+                            ...post,
+                            likeIcon: likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false)
+                        }));
+                        posts = await hydrateTempUrls(posts);
+                        warmTempUrlsFromPosts(posts);
+                        
+                        if (this.currentPage === 'home' && this.swiperCurrent === 0) {
+                            const currentPostIds = this.postList.map(p => p._id).join(',');
+                            const newPostIds = posts.map(p => p._id).join(',');
+                            if (currentPostIds !== newPostIds) {
+                                this.setData({ postList: posts, hasMore: posts.length === PAGE_SIZE });
+                            }
+                        }
+                    } catch (_) {}
+                }
             })
                 .then(async (list) => {
                     const postsRaw = Array.isArray(list) ? list : [];
@@ -709,7 +778,8 @@ export default {
                         postList: posts,
                         page: 1,
                         isLoading: false,
-                        hasMore: posts.length === PAGE_SIZE
+                        hasMore: posts.length === PAGE_SIZE,
+                        homeHasEverLoaded: true
                     });
                     const self = this;
                     setTimeout(() => {
@@ -720,7 +790,7 @@ export default {
                 })
                 .catch((err) => {
                     console.error('【首页】getIndexData（缓存封装）失败:', err);
-                    this.setData({ isLoading: false });
+                    this.setData({ isLoading: false, homeHasEverLoaded: true });
                     uni.showToast({ title: '网络错误', icon: 'none' });
                 });
         },
@@ -1231,7 +1301,15 @@ export default {
 
         // 处理图片预览（适配 PostItem 组件）
         handlePreviewImage: function (data) {
-            previewImage(data.src, data.urls);
+            console.log('【index】处理图片预览:', {
+                current: data.src,
+                urls: data.urls,
+                urlsLength: data.urls ? data.urls.length : 0
+            });
+            previewImage({
+                current: data.src,
+                urls: data.urls
+            });
         },
 
         // 处理标签点击（适配 PostItem 组件）
@@ -1482,7 +1560,34 @@ export default {
                 page: this.discussionPage,
                 pageSize: PAGE_SIZE,
                 context: this,
-                forceRefresh: forceRefresh
+                forceRefresh: forceRefresh,
+                // SWR后台更新回调：讨论页后台更新完成时调用
+                onBackgroundUpdate: async (newPosts) => {
+                    console.log('🔄 [SWR-Discussion] 后台更新完成', newPosts?.length);
+                    if (Array.isArray(newPosts) && newPosts.length > 0 && this.currentPage === 'discussion') {
+                        try {
+                            let processedPosts = newPosts.map((post) => ({
+                                ...post,
+                                likeIcon: likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false)
+                            }));
+                            processedPosts = await hydrateTempUrls(processedPosts);
+                            warmTempUrlsFromPosts(processedPosts);
+                            
+                            // 只在数据有变化时更新
+                            const currentPostIds = this.discussionPostList.slice(0, PAGE_SIZE).map(p => p._id).join(',');
+                            const newPostIds = processedPosts.map(p => p._id).join(',');
+                            if (currentPostIds !== newPostIds) {
+                                const existingLaterPosts = this.discussionPostList.slice(PAGE_SIZE);
+                                this.setData({
+                                    discussionPostList: [...processedPosts, ...existingLaterPosts]
+                                });
+                                console.log('✨ [SWR-Discussion] 页面数据已后台更新');
+                            }
+                        } catch (error) {
+                            console.error('❌ [SWR-Discussion] 处理后台更新数据失败:', error);
+                        }
+                    }
+                }
             }).then(async (posts) => {
                 if (posts && posts.length > 0) {
                     let processedPosts = posts.map((post) => ({
@@ -1505,7 +1610,8 @@ export default {
                         discussionPage: this.discussionPage + 1,
                         discussionHasMore: processedPosts.length === PAGE_SIZE,
                         discussionIsLoading: false,
-                        discussionIsLoadingMore: false
+                        discussionIsLoadingMore: false,
+                        discussionHasEverLoaded: true
                     });
 
                     console.log('讨论页数据加载完成，帖子数量:', processedPosts.length, '累计:', newList.length);
@@ -1527,7 +1633,8 @@ export default {
                     this.setData({
                         discussionIsLoading: false,
                         discussionIsLoadingMore: false,
-                        discussionHasMore: false
+                        discussionHasMore: false,
+                        discussionHasEverLoaded: true
                     });
                     if (isInitialLoad) {
                         uni.showToast({
@@ -1544,7 +1651,8 @@ export default {
                 console.error('加载讨论页数据失败:', err);
                 this.setData({
                     discussionIsLoading: false,
-                    discussionIsLoadingMore: false
+                    discussionIsLoadingMore: false,
+                    discussionHasEverLoaded: true
                 });
                 uni.showToast({
                     title: '加载失败',
@@ -1632,7 +1740,44 @@ export default {
                 page: this.followingPage,
                 pageSize: PAGE_SIZE,
                 context: this,
-                forceRefresh: forceRefresh
+                forceRefresh: forceRefresh,
+                // SWR后台更新回调：关注页后台更新完成时调用
+                onBackgroundUpdate: async (newPosts) => {
+                    console.log('🔄 [SWR-Following] 后台更新完成', newPosts?.length);
+                    if (Array.isArray(newPosts) && newPosts.length > 0 && this.currentPage === 'following' && this.swiperCurrent === 1) {
+                        try {
+                            // 处理后台更新的数据
+                            const likeSync = require('../../utils/likeStatusSync.js');
+                            const getLatestLikeStatus = likeSync.getLatestLikeStatus;
+                            let processedPosts = newPosts.map((post) => {
+                                const cachedStatus = getLatestLikeStatus(post._id);
+                                const finalVotes = cachedStatus ? cachedStatus.votes : (post.votes || 0);
+                                const finalIsVoted = cachedStatus ? cachedStatus.isVoted : (post.isVoted || false);
+                                return {
+                                    ...post,
+                                    votes: finalVotes,
+                                    isVoted: finalIsVoted,
+                                    likeIcon: likeIcon.getLikeIcon(finalVotes, finalIsVoted)
+                                };
+                            });
+                            processedPosts = await hydrateTempUrls(processedPosts);
+                            warmTempUrlsFromPosts(processedPosts);
+                            
+                            // 只在数据有变化时更新
+                            const currentPostIds = this.followingPostList.slice(0, PAGE_SIZE).map(p => p._id).join(',');
+                            const newPostIds = processedPosts.map(p => p._id).join(',');
+                            if (currentPostIds !== newPostIds) {
+                                const existingLaterPosts = this.followingPostList.slice(PAGE_SIZE);
+                                this.setData({
+                                    followingPostList: [...processedPosts, ...existingLaterPosts]
+                                });
+                                console.log('✨ [SWR-Following] 页面数据已后台更新');
+                            }
+                        } catch (error) {
+                            console.error('❌ [SWR-Following] 处理后台更新数据失败:', error);
+                        }
+                    }
+                }
             }).then(async (posts) => {
                 if (posts && posts.length > 0) {
                     // 优先使用本地缓存中的点赞状态,如果没有缓存则使用云函数返回的状态
@@ -1668,7 +1813,8 @@ export default {
                         followingPage: this.followingPage + 1,
                         followingHasMore: processedPosts.length === PAGE_SIZE,
                         followingIsLoading: false,
-                        followingIsLoadingMore: false
+                        followingIsLoadingMore: false,
+                        followingHasEverLoaded: true
                     });
 
                     console.log('关注页数据加载完成，帖子数量:', processedPosts.length, '累计:', newList.length);
@@ -1709,7 +1855,8 @@ export default {
                     this.setData({
                         followingIsLoading: false,
                         followingIsLoadingMore: false,
-                        followingHasMore: false
+                        followingHasMore: false,
+                        followingHasEverLoaded: true
                     });
                     if (isInitialLoad) {
                         uni.showToast({
@@ -1726,7 +1873,8 @@ export default {
                 console.error('加载关注页数据失败:', err);
                 this.setData({
                     followingIsLoading: false,
-                    followingIsLoadingMore: false
+                    followingIsLoadingMore: false,
+                    followingHasEverLoaded: true
                 });
                 uni.showToast({
                     title: '加载失败',

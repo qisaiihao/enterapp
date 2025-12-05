@@ -116,6 +116,18 @@ export default {
     try { uni.hideTabBar({ animation: false }); } catch (e) {}
     try { this.$refs.customTabBar && this.$refs.customTabBar.syncSelected && this.$refs.customTabBar.syncSelected(); } catch (e) {}
     // #endif
+    
+    // 检查缓存新鲜度：从其他页面返回时触发SWR检查
+    try {
+      if (this.hasEverLoaded && this.postList.length > 0) {
+        if (this.showFollowingOnly) {
+          getFollowingPoems({ page: 0, pageSize: PAGE_SIZE, context: this }).catch(() => {});
+        } else {
+          getOriginalPoems({ page: 0, pageSize: PAGE_SIZE, context: this }).catch(() => {});
+        }
+      }
+    } catch (_) {}
+    
     // 回到页面时，用缓存对齐当前可见帖子的点赞状态
     try { this.syncLikeStatusFromCache && this.syncLikeStatusFromCache(); } catch (_) {}
   },
@@ -427,11 +439,41 @@ export default {
         
         // 只看关注模式使用 getFollowingPoems（带缓存）
         if (isFollowingMode) {
-          console.log('🔍🔍🔍 【poem-square】准备调用关注诗歌API');
+          console.log('【poem-square】准备调用关注诗歌API');
           const list = await getFollowingPoems({
             page: this.page,
             pageSize: PAGE_SIZE,
-            context: this
+            context: this,
+            // SWR后台更新回调：关注诗歌后台更新完成时调用
+            onBackgroundUpdate: async (newPosts) => {
+              console.log(' [SWR-PoemSquare-Following] 后台更新完成', newPosts?.length);
+              if (Array.isArray(newPosts) && newPosts.length > 0 && this.showFollowingOnly && this.page === 0) {
+                try {
+                  const visibleList = newPosts.filter(p => p && !p.isAnonymous);
+                  visibleList.forEach((p) => {
+                    if (!p) return;
+                    p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
+                    p.textColor = p.textColor || '#222';
+                    p.isExpanded = false;
+                    p.authorSignature = p.authorSignature || '';
+                    p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
+                  });
+                  
+                  // 只在数据有变化时更新
+                  const currentPostIds = this.postList.slice(0, PAGE_SIZE).map(p => p._id).join(',');
+                  const newPostIds = visibleList.map(p => p._id).join(',');
+                  if (currentPostIds !== newPostIds) {
+                    const existingLaterPosts = this.postList.slice(PAGE_SIZE);
+                    this.setData({
+                      postList: [...visibleList, ...existingLaterPosts]
+                    });
+                    console.log(' [SWR-PoemSquare-Following] 页面数据已后台更新');
+                  }
+                } catch (error) {
+                  console.error(' [SWR-PoemSquare-Following] 处理后台更新数据失败:', error);
+                }
+              }
+            }
           });
           this.processPostList(list, cb);
           return;
@@ -441,7 +483,37 @@ export default {
         const list = await getOriginalPoems({
           page: this.page,
           pageSize: PAGE_SIZE,
-          context: this
+          context: this,
+          // SWR后台更新回调：原创诗歌后台更新完成时调用
+          onBackgroundUpdate: async (newPosts) => {
+            console.log(' [SWR-PoemSquare-Original] 后台更新完成', newPosts?.length);
+            if (Array.isArray(newPosts) && newPosts.length > 0 && !this.showFollowingOnly && this.page === 0) {
+              try {
+                const visibleList = newPosts.filter(p => p && !p.isAnonymous);
+                visibleList.forEach((p) => {
+                  if (!p) return;
+                  p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
+                  p.textColor = p.textColor || '#222';
+                  p.isExpanded = false;
+                  p.authorSignature = p.authorSignature || '';
+                  p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
+                });
+                
+                // 只在数据有变化时更新
+                const currentPostIds = this.postList.slice(0, PAGE_SIZE).map(p => p._id).join(',');
+                const newPostIds = visibleList.map(p => p._id).join(',');
+                if (currentPostIds !== newPostIds) {
+                  const existingLaterPosts = this.postList.slice(PAGE_SIZE);
+                  this.setData({
+                    postList: [...visibleList, ...existingLaterPosts]
+                  });
+                  console.log(' [SWR-PoemSquare-Original] 页面数据已后台更新');
+                }
+              } catch (error) {
+                console.error(' [SWR-PoemSquare-Original] 处理后台更新数据失败:', error);
+              }
+            }
+          }
         });
         
         this.processPostList(list, cb);

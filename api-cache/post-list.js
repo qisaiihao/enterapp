@@ -22,6 +22,7 @@ const ns = cacheManager.namespace('posts:list', { persistent: true, maxItems: 25
  * @param {boolean} options.excludeAnonymous - 是否排除匿名
  * @param {Object} options.context - 页面上下文
  * @param {boolean} options.forceRefresh - 是否强制刷新（跳过缓存）
+ * @param {Function} options.onBackgroundUpdate - SWR后台更新完成回调
  */
 export async function getPostList({ 
   page = 0, 
@@ -32,7 +33,8 @@ export async function getPostList({
   tag, 
   excludeAnonymous,
   context, 
-  forceRefresh = false 
+  forceRefresh = false,
+  onBackgroundUpdate
 } = {}) {
   const key = buildCacheKey({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous });
   
@@ -91,7 +93,11 @@ export async function getPostList({
       }
       return [];
     },
-    { ttlMs: TTL_MS, swrMs: SWR_MS }
+    { 
+      ttlMs: TTL_MS, 
+      swrMs: SWR_MS,
+      onBackgroundUpdate
+    }
   );
 }
 
