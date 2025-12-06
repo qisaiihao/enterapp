@@ -172,6 +172,11 @@
 </template>
 
 <script>
+// 工具函数导入
+import { cloudCall } from '@/utils/cloudCall.js';
+import { getCurrentPlatform, getCloudFunctionMethod } from '@/utils/platformDetector.js';
+import { emitPostUpdated, emitPostCreated } from '@/utils/events.js';
+
 export default {
   data() {
     return {
@@ -522,8 +527,6 @@ export default {
 
     // 检查重复诗歌
     checkDuplicatePoem(addData) {
-      const { cloudCall } = require('../../utils/cloudCall.js');
-
       cloudCall('checkDuplicatePoem', {
         title: addData.title.trim(),
         author: addData.author.trim(),
@@ -669,8 +672,6 @@ export default {
 
     // 提交到数据库
     submitToDatabase(addData, uploadResults) {
-      const { cloudCall } = require('../../utils/cloudCall.js');
-
       // 检查是否是编辑模式
       const isEditMode = addData.isEditMode && addData.editingPostId;
       console.log('【Preview】提交到数据库，编辑模式检查:', {
@@ -834,12 +835,10 @@ export default {
       try {
         if (isEditMode) {
           // 编辑模式：发送帖子更新事件
-          const { emitPostUpdated } = require('../../utils/events.js');
           emitPostUpdated(res._id);
           console.log('【Preview】已触发 POST_UPDATED 事件');
         } else {
           // 创建模式：发送帖子创建事件
-          const { emitPostCreated } = require('../../utils/events.js');
           emitPostCreated(); // 触发新帖子创建事件，刷新所有相关缓存
           console.log('【Preview】已触发 POST_CREATED 事件');
         }
@@ -917,7 +916,6 @@ export default {
 
     // 兼容性文件上传方法（使用与profile-edit相同的健壮实现）
     async uploadFile(cloudPath, filePath) {
-      const { getCloudFunctionMethod } = require('../../utils/platformDetector.js');
       const method = getCloudFunctionMethod();
 
       try {
@@ -961,7 +959,6 @@ export default {
     // 通过云函数上传（作为最终的回退方案，且只包含 plus.io，不再尝试 getFileSystemManager）
     uploadFileViaCloudFunction(cloudPath, filePath) {
       return new Promise((resolve, reject) => {
-        const { getCurrentPlatform } = require('../../utils/platformDetector.js');
         const platform = getCurrentPlatform();
 
         if (platform === 'h5') {
@@ -1014,7 +1011,6 @@ export default {
 
     // 调用云函数
     callCloudFunction(name, data) {
-      const { cloudCall } = require('../../utils/cloudCall.js');
       return cloudCall(name, data, { pageTag: 'preview', context: this, requireAuth: true });
     }
   }

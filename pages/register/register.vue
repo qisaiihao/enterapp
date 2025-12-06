@@ -111,8 +111,10 @@
 
 <script>
 // pages/register/register.js
+import { cloudCall } from '@/utils/cloudCall.js';
+import { getCurrentPlatform } from '@/utils/platformDetector.js';
+
 const app = getApp();
-const { cloudCall } = require('../../utils/cloudCall.js');
 
 // 调用 uniCloud 云函数（自动处理本地调试服务连接失败的情况）
 async function callUniCloudFunction(name, data) {
@@ -329,7 +331,6 @@ export default {
             console.log('🔐 [Register] 开始认证流程');
             
             return new Promise((resolve, reject) => {
-                const { getCurrentPlatform } = require('../../utils/platformDetector.js');
                 const platform = getCurrentPlatform();
                 
                 if (platform === 'h5' || platform === 'app') {

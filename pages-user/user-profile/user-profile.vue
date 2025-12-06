@@ -1,5 +1,4 @@
 <template>
-    ﻿
     <!-- pages/user-profile/user-profile.wxml -->
     <view class="container">
 
@@ -1697,3 +1696,4 @@ export default {
     color: #666;
     font-size: 28rpx;
 }
+</style>

@@ -79,9 +79,10 @@
 
 <script>
 // pages/login/login.js
-const app = getApp();
-const { cloudCall } = require('../../utils/cloudCall.js');
+import { cloudCall } from '@/utils/cloudCall.js';
 import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
+
+const app = getApp();
 
 // 调用 uniCloud 云函数（自动处理本地调试服务连接失败的情况）
 async function callUniCloudFunction(name, data) {

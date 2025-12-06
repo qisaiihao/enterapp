@@ -75,17 +75,18 @@ import AppTabBar from '@/custom-tab-bar/index.vue';
 // #endif
 import skeleton from '@/components/skeleton/skeleton';
 import topBar from '@/components/top-bar/top-bar.vue';
-const { cloudCall } = require('@/utils/cloudCall.js');
-const { getPostList: getPostListWithCache, invalidatePostList } = require('@/api-cache/post-list.js');
+import { cloudCall } from '@/utils/cloudCall.js';
+import { getPostList as getPostListWithCache, invalidatePostList } from '@/api-cache/post-list.js';
 import { getMountainPoems } from '@/api-cache/poems.js';
-const likeIcon = require('@/utils/likeIcon.js');
+import likeIcon from '@/utils/likeIcon.js';
 import {
   generateRandomBackgroundColor,
   toggleArrayItemExpansion,
   updatePostsUIProperties
 } from '@/utils/uiHelpers.js';
 import { navigateToPostDetail } from '@/utils/navigation.js';
-const { togglePostLike } = require('../../utils/likeService.js');
+import { togglePostLike } from '@/utils/likeService.js';
+import { syncLikeStatusForPosts, getLatestLikeStatus } from '@/utils/likeStatusSync.js';
 
 const PAGE_SIZE = 10;
 
@@ -397,7 +398,6 @@ export default {
       const postId = e.currentTarget.dataset.postid;
       const index = e.currentTarget.dataset.index;
       if (this.votingInProgress[postId]) return;
-      this.setData({ [`votingInProgress.${postId}`]: true });
       const list = this.postList;
       const originalVotes = Number(list[index].votes) || 0;
       const wasVoted = !!list[index].isVoted;
@@ -407,7 +407,11 @@ export default {
       list[index].votes = optimisticVotes;
       list[index].isVoted = !wasVoted;
       list[index].likeIcon = likeIcon.getLikeIcon(list[index].votes, list[index].isVoted);
-      this.setData({ postList: list });
+      // 批量更新：标记投票进行中 + 乐观更新列表
+      this.setData({ 
+        [`votingInProgress.${postId}`]: true,
+        postList: list 
+      });
 
       try {
         const result = await togglePostLike(postId, {
@@ -564,8 +568,7 @@ export default {
         const list = Array.isArray(this.postList) ? this.postList : [];
         const ids = list.map(p => p && p._id).filter(Boolean);
         if (!ids.length) return;
-        try { const { syncLikeStatusForPosts } = require('../../utils/likeStatusSync.js'); syncLikeStatusForPosts(ids); } catch (_) {}
-        const { getLatestLikeStatus } = require('../../utils/likeStatusSync.js');
+        try { syncLikeStatusForPosts(ids); } catch (_) {}
         let changed = false;
         const next = list.slice();
         for (let i = 0; i < next.length; i += 1) {

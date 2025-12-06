@@ -150,20 +150,23 @@
 
 <script>
 // pages/add/add.js
-// 修复：移除全局数据库实例，改为在方法中动态获取
-const { cloudCall } = require('../../utils/cloudCall.js');
-const { readFileAsBase64 } = require('../../utils/fileReader.js');
+// 工具函数导入
+import { cloudCall } from '@/utils/cloudCall.js';
+import { readFileAsBase64 } from '@/utils/fileReader.js';
+import { getCurrentPlatform, getCloudFunctionMethod } from '@/utils/platformDetector.js';
+import { hydrateTempUrls } from '@/_utils/hydrate-temp-urls';
+import { emitPostUpdated, emitPostCreated } from '@/utils/events.js';
 
-// 导入重构后的API和工具函数
-const { getAllTags } = require('../../api-cache/tags.js');
-const { getPostDetail, updatePostContent } = require('../../api-cache/post.js');
-const { checkDuplicatePoem, contentAudit, uploadFile, saveDraft } = require('../../api-cache/publish.js');
-const { validatePublishData, canPublish, generateDraftData, generatePublishData, processUploadResults } = require('../../utils/publishUtils.js');
+// API函数导入
+import { getAllTags } from '@/api-cache/tags.js';
+import { getPostDetail, updatePostContent } from '@/api-cache/post.js';
+import { checkDuplicatePoem, contentAudit, uploadFile, saveDraft } from '@/api-cache/publish.js';
+import { validatePublishData, canPublish, generateDraftData, generatePublishData, processUploadResults } from '@/utils/publishUtils.js';
 
 // 导入静态配置数据
-import { colorPalettes } from '../../utils/colorPalettes.js';
-import { tagCategories } from '../../utils/tagCategories.js';
-import { poemLines } from '../../utils/poemLines.js';
+import { colorPalettes } from '@/utils/colorPalettes.js';
+import { tagCategories } from '@/utils/tagCategories.js';
+import { poemLines } from '@/utils/poemLines.js';
 
 // 导入拆分的组件
 import ModeSelectorModal from '../../components/ModeSelectorModal.vue';
@@ -491,7 +494,6 @@ export default {
                                     ) : null;
                                 
                                 // 使用hydrate-temp-urls工具将fileID转换为临时URL（用于预览）
-                                const { hydrateTempUrls } = require('@/_utils/hydrate-temp-urls');
                                 await hydrateTempUrls([post]);
                                 
                                 // 将图片URL添加到imageList（编辑模式下保存原始fileID用于提交）
@@ -626,9 +628,6 @@ export default {
         // 兼容性文件上传方法
         uploadFile(cloudPath, filePath) {
             return new Promise((resolve, reject) => {
-                // 使用新的平台检测工具
-                const { getCurrentPlatform, getCloudFunctionMethod } = require('../../utils/platformDetector.js');
-                
                 const platform = getCurrentPlatform();
                 const method = getCloudFunctionMethod();
                 
@@ -857,23 +856,19 @@ export default {
                         const sizeInBytes = file.size;
                         console.log(`获取到图片 ${tempFilePath} 的原始大小:`, (sizeInBytes / 1024).toFixed(2), 'KB');
                         
-                        const needCompression = sizeInBytes > 200000; // 降低压缩阈值从300KB到200KB
+                        // 所有图片都需要压缩处理（原图80%，压缩图更激进）
                         const imageInfo = {
                             originalPath: tempFilePath,
                             imageSize: sizeInBytes,
-                            needCompression: needCompression,
+                            needCompression: true, // 始终需要压缩
                             previewUrl: tempFilePath,
                             compressedPath: tempFilePath,
+                            originalCompressedPath: tempFilePath, // 新增：80%质量压缩后的"原图"
                             originalUrl: '',
                             compressedUrl: ''
                         };
-                        if (needCompression) {
-                            // 如果需要压缩，调用返回Promise的压缩函数
-                            return that.compressImage(imageInfo);
-                        } else {
-                            // 如果不需要压缩，直接用 Promise.resolve 包装后返回
-                            return Promise.resolve(imageInfo);
-                        }
+                        // 所有图片都走双重压缩流程
+                        return that.compressImage(imageInfo);
                     });
                     Promise.all(imagePromises)
                         .then((newImages) => {
@@ -914,33 +909,52 @@ export default {
         compressImage: function (imageInfo) {
             return new Promise((resolve) => {
                 // 检查运行环境
-                const { getCurrentPlatform } = require('../../utils/platformDetector.js');
                 const platform = getCurrentPlatform();
                 
                 if (platform === 'h5') {
-                    // H5环境使用Canvas压缩
-                    console.log('🔍 [Add页面] H5环境使用Canvas压缩图片');
-                    this.compressImageWithCanvas(imageInfo).then(resolve).catch(() => {
-                        // Canvas压缩失败，使用原图
+                    // H5环境使用Canvas双重压缩
+                    console.log('🔍 [Add页面] H5环境使用Canvas双重压缩图片');
+                    this.compressImageWithCanvasDual(imageInfo).then(resolve).catch(() => {
                         console.log('Canvas压缩失败，使用原图');
                         imageInfo.compressedPath = imageInfo.originalPath;
+                        imageInfo.originalCompressedPath = imageInfo.originalPath;
                         imageInfo.previewUrl = imageInfo.originalPath;
                         resolve(imageInfo);
                     });
                 } else {
-                    // 小程序和App环境使用uni.compressImage
-                    console.log('🔍 [Add页面] 小程序/App环境使用uni.compressImage');
+                    // 小程序和App环境：双重压缩
+                    console.log('🔍 [Add页面] 小程序/App环境双重压缩');
+                    const that = this;
+                    
+                    // 第一步：80%质量压缩作为"原图"
                     uni.compressImage({
                         src: imageInfo.originalPath,
                         quality: 80,
-                        success: (compressRes) => {
-                            imageInfo.compressedPath = compressRes.tempFilePath;
-                            imageInfo.previewUrl = compressRes.tempFilePath;
-                            resolve(imageInfo);
+                        success: (originalRes) => {
+                            imageInfo.originalCompressedPath = originalRes.tempFilePath;
+                            console.log('✅ 原图压缩完成(80%):', originalRes.tempFilePath);
+                            
+                            // 第二步：50%质量压缩作为"压缩图"
+                            uni.compressImage({
+                                src: imageInfo.originalPath,
+                                quality: 50,
+                                success: (compressRes) => {
+                                    imageInfo.compressedPath = compressRes.tempFilePath;
+                                    imageInfo.previewUrl = compressRes.tempFilePath;
+                                    console.log('✅ 压缩图完成(50%):', compressRes.tempFilePath);
+                                    resolve(imageInfo);
+                                },
+                                fail: (err) => {
+                                    console.log('压缩图压缩失败，使用原图压缩版:', err);
+                                    imageInfo.compressedPath = imageInfo.originalCompressedPath;
+                                    imageInfo.previewUrl = imageInfo.originalCompressedPath;
+                                    resolve(imageInfo);
+                                }
+                            });
                         },
                         fail: (err) => {
-                            // 压缩失败，使用原图作为备用
-                            console.log('压缩失败，使用原图:', err);
+                            console.log('原图压缩失败，使用原始文件:', err);
+                            imageInfo.originalCompressedPath = imageInfo.originalPath;
                             imageInfo.compressedPath = imageInfo.originalPath;
                             imageInfo.previewUrl = imageInfo.originalPath;
                             resolve(imageInfo);
@@ -950,8 +964,8 @@ export default {
             });
         },
 
-        // H5环境使用Canvas压缩图片
-        compressImageWithCanvas: function (imageInfo) {
+        // H5环境使用Canvas双重压缩图片
+        compressImageWithCanvasDual: function (imageInfo) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
                 img.crossOrigin = 'anonymous';
@@ -962,9 +976,9 @@ export default {
                         const canvas = document.createElement('canvas');
                         const ctx = canvas.getContext('2d');
                         
-                        // 计算压缩后的尺寸 - 降低最大尺寸以减少文件大小
-                        const maxWidth = 1200;  // 从1920降低到1200
-                        const maxHeight = 1200; // 从1920降低到1200
+                        // 计算压缩后的尺寸
+                        const maxWidth = 1200;
+                        const maxHeight = 1200;
                         let { width, height } = img;
                         
                         if (width > height) {
@@ -981,22 +995,34 @@ export default {
                         
                         canvas.width = width;
                         canvas.height = height;
-                        
-                        // 绘制压缩后的图片
                         ctx.drawImage(img, 0, 0, width, height);
                         
-                        // 转换为blob
-                        canvas.toBlob((blob) => {
-                            if (blob) {
-                                const compressedUrl = URL.createObjectURL(blob);
-                                imageInfo.compressedPath = compressedUrl;
-                                imageInfo.previewUrl = compressedUrl;
-                                console.log('✅ [Add页面] Canvas压缩成功，新尺寸:', width, 'x', height);
-                                resolve(imageInfo);
+                        // 生成两个版本：原图80%质量，压缩图50%质量
+                        canvas.toBlob((originalBlob) => {
+                            if (originalBlob) {
+                                const originalUrl = URL.createObjectURL(originalBlob);
+                                imageInfo.originalCompressedPath = originalUrl;
+                                console.log('✅ [Add页面] H5原图压缩完成(80%)');
+                                
+                                // 生成压缩图(50%质量)
+                                canvas.toBlob((compressedBlob) => {
+                                    if (compressedBlob) {
+                                        const compressedUrl = URL.createObjectURL(compressedBlob);
+                                        imageInfo.compressedPath = compressedUrl;
+                                        imageInfo.previewUrl = compressedUrl;
+                                        console.log('✅ [Add页面] H5压缩图完成(50%)');
+                                        resolve(imageInfo);
+                                    } else {
+                                        // 压缩图失败，使用原图版本
+                                        imageInfo.compressedPath = originalUrl;
+                                        imageInfo.previewUrl = originalUrl;
+                                        resolve(imageInfo);
+                                    }
+                                }, 'image/jpeg', 0.5);
                             } else {
                                 reject(new Error('Canvas压缩失败'));
                             }
-                        }, 'image/jpeg', 0.6); // 降低压缩质量从0.8到0.6
+                        }, 'image/jpeg', 0.8);
                         
                     } catch (error) {
                         console.error('Canvas压缩过程出错:', error);
@@ -1130,24 +1156,26 @@ export default {
                             console.log('压缩图fileID:', compressedRes.fileID);
                             console.log('压缩图fileID类型:', typeof compressedRes.fileID);
                             const compressedFileID = compressedRes.fileID;
-                            if (imageInfo.needCompression) {
-                                const originalCloudPath = `post_images/${imageTimestamp}_original.jpg`;
-                                return that.uploadFile(originalCloudPath, imageInfo.originalPath)
-                                    .then((originalRes) => {
-                                        console.log('原图上传成功:', originalRes);
-                                        console.log('原图fileID:', originalRes.fileID);
-                                        console.log('原图fileID类型:', typeof originalRes.fileID);
-                                        resolve({
-                                            compressedUrl: compressedFileID,
-                                            originalUrl: originalRes.fileID
-                                        });
+                            // 始终上传原图（80%质量压缩版本）
+                            const originalCloudPath = `post_images/${imageTimestamp}_original.jpg`;
+                            // 使用 originalCompressedPath（80%压缩后的原图）
+                            const originalPath = imageInfo.originalCompressedPath || imageInfo.originalPath;
+                            return that.uploadFile(originalCloudPath, originalPath)
+                                .then((originalRes) => {
+                                    console.log('原图上传成功(80%压缩):', originalRes);
+                                    console.log('原图fileID:', originalRes.fileID);
+                                    resolve({
+                                        compressedUrl: compressedFileID,
+                                        originalUrl: originalRes.fileID
                                     });
-                            } else {
-                                resolve({
-                                    compressedUrl: compressedFileID,
-                                    originalUrl: compressedFileID
+                                }).catch((err) => {
+                                    // 原图上传失败，压缩图和原图使用同一个
+                                    console.log('原图上传失败，使用压缩图:', err);
+                                    resolve({
+                                        compressedUrl: compressedFileID,
+                                        originalUrl: compressedFileID
+                                    });
                                 });
-                            }
                         })
                         .catch(reject);
                 });
@@ -1444,10 +1472,10 @@ export default {
                 const userId = appInstance && appInstance.globalData && appInstance.globalData.openid;
                 if (this.isEditMode) {
                     // 编辑模式：发送帖子更新事件
-                    try { const { emitPostUpdated } = require('@/utils/events.js'); emitPostUpdated(res._id); } catch (e) { if (uni.$emit) { uni.$emit('post-updated', { postId: res._id }); } }
+                    try { emitPostUpdated(res._id); } catch (e) { if (uni.$emit) { uni.$emit('post-updated', { postId: res._id }); } }
                 } else {
                     // 创建模式：发送帖子创建事件
-                    try { const { emitPostCreated } = require('@/utils/events.js'); emitPostCreated(userId); } catch (e) { if (userId && uni.$emit) { uni.$emit('post-created', { userId }); } }
+                    try { emitPostCreated(userId); } catch (e) { if (userId && uni.$emit) { uni.$emit('post-created', { userId }); } }
                 }
             } catch (e) {
                 console.log('CatchClause', e);

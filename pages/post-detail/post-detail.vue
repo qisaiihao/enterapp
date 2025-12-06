@@ -299,31 +299,37 @@ import PostDetailSkeleton from '@/components/PostDetailSkeleton.vue';
 import CommentList from '@/components/CommentList.vue';
 import ShareModal from '@/components/ShareModal.vue';
 import CommentInput from '@/components/CommentInput.vue';
-// pages/post-detail/post-detail.js
-const app = getApp();
-const likeIcon = require('../../utils/likeIcon');
-const { togglePostLike } = require('../../utils/likeService.js');
-const { previewImage } = require('../../utils/imagePreview.js');
-const { formatRelativeTime } = require('../../utils/time.js');
-const avatarCache = require('../../utils/avatarCache');
-const followCache = require('../../utils/followCache');
-const { cloudCall } = require('../../utils/cloudCall.js');
-const { uploadFile } = require('../../utils/uploader.js');
-const postGalleryMixin = require('../../mixins/postGallery.js');
+
+// 工具函数导入
 import { hydrateTempUrls, warmTempUrlsFromPosts } from '@/_utils/hydrate-temp-urls';
 import fileUrlCache from '@/_utils/file-url-cache';
+import likeIcon from '@/utils/likeIcon';
+import { togglePostLike } from '@/utils/likeService.js';
+import { previewImage } from '@/utils/imagePreview.js';
+import { formatRelativeTime } from '@/utils/time.js';
+import avatarCache from '@/utils/avatarCache';
+import followCache from '@/utils/followCache';
+import { cloudCall } from '@/utils/cloudCall.js';
+import { uploadFile } from '@/utils/uploader.js';
+import postGalleryMixin from '@/mixins/postGallery.js';
+import { getCurrentUserId } from '@/utils/auth.js';
+import { calculateActualLines as calcCanvasLines, wrapText, clampText } from '@/utils/canvasText.js';
+import { drawImageAsync, calculateActualLines as calcLines, wrapText as wrapCanvasText } from '@/utils/shareCanvas.js';
+import { processComments, validateCommentInput, processCommentImages, findComment, calculateRemainingChars } from '@/utils/commentUtils.js';
+import { generateShareImageName, isValidImageDataUrl, base64ToArrayBuffer, saveImageToAlbum, createTempFilePath, compressImage, getImageInfo } from '@/utils/shareImage.js';
+import { syncLikeStatusForPosts, getLatestLikeStatus } from '@/utils/likeStatusSync.js';
+import { flushViewQueue } from '@/utils/viewEvents.js';
+import { getCurrentPlatform } from '@/utils/platformDetector.js';
+import { requestAndroidStoragePermission } from '@/utils/permissions.js';
+import { emitCommentCountChanged, emitPostUpdated } from '@/utils/events.js';
 
-// 导入重构后的工具函数
-const { getCurrentUserId } = require('../../utils/auth.js');
-const { calculateActualLines: calcCanvasLines, wrapText, clampText } = require('../../utils/canvasText.js');
-const { drawImageAsync, calculateActualLines: calcLines, wrapText: wrapCanvasText } = require('../../utils/shareCanvas.js');
-const { processComments, validateCommentInput, processCommentImages, findComment, calculateRemainingChars } = require('../../utils/commentUtils.js');
-const { generateShareImageName, isValidImageDataUrl, base64ToArrayBuffer, saveImageToAlbum, createTempFilePath, compressImage, getImageInfo } = require('../../utils/shareImage.js');
+// API函数导入
+import { getPostDetail, updatePostContent, togglePostFavorite, recordPostView } from '@/api-cache/post.js';
+import { getComments, submitComment, deleteComment, likeComment } from '@/api-cache/comment.js';
+import { checkFollowStatus, toggleFollowStatus } from '@/api-cache/following.js';
 
-// 导入重构后的API函数
-const { getPostDetail, updatePostContent, togglePostFavorite, recordPostView } = require('../../api-cache/post.js');
-const { getComments, submitComment, deleteComment, likeComment } = require('../../api-cache/comment.js');
-const { checkFollowStatus, toggleFollowStatus } = require('../../api-cache/following.js');
+// pages/post-detail/post-detail.js
+const app = getApp();
 export default {
     components: {
         cloudTipModal,
@@ -445,7 +451,7 @@ export default {
         this.currentScrollTop = e.scrollTop || 0;
     },
     onUnload: function () {
-        try { const viewEvents = require('../../utils/viewEvents.js'); viewEvents.flushViewQueue(); } catch (e) {}
+        try { flushViewQueue(); } catch (e) {}
         try { uni.$off && this.onGlobalCommentLikeChanged && uni.$off('comment-like-changed', this.onGlobalCommentLikeChanged); } catch (_) {}
 
         // 取消键盘高度监听
@@ -464,7 +470,7 @@ export default {
         if (this.isInputExpanded) {
             this.collapseInput();
         }
-        try { const viewEvents = require('../../utils/viewEvents.js'); viewEvents.flushViewQueue(); } catch (e) {}
+        try { flushViewQueue(); } catch (e) {}
     },
     methods: {
         // 处理匿名头像点击事件的函数
@@ -489,7 +495,6 @@ export default {
                 if (postId !== this.post._id) return;
                 const votes = typeof e.votes === 'number' ? e.votes : (this.post.votes || 0);
                 const isLiked = typeof e.isLiked === 'boolean' ? e.isLiked : !!this.post.isVoted;
-                const likeIcon = require('../../utils/likeIcon');
                 this.setData({
                     'post.votes': votes,
                     'post.isVoted': isLiked,
@@ -505,10 +510,9 @@ export default {
                 const comments = this.comments || [];
                 const { comment } = this.findComment(comments, commentId);
                 if (!comment) return;
-                const likeIconUtil = require('../../utils/likeIcon');
                 comment.likes = typeof likes === 'number' ? likes : (comment.likes || 0);
                 comment.liked = typeof liked === 'boolean' ? liked : !!comment.liked;
-                comment.likeIcon = likeIconUtil.getLikeIcon(comment.likes, comment.liked);
+                comment.likeIcon = likeIcon.getLikeIcon(comment.likes, comment.liked);
                 this.setData({ comments });
             } catch (_) {}
         },
@@ -522,16 +526,13 @@ export default {
                 const postId = this.post._id;
 
                 // 使用同步工具同步当前帖子的点赞状态
-                const { syncLikeStatusForPosts } = require('../../utils/likeStatusSync.js');
                 const syncResult = syncLikeStatusForPosts([postId]);
 
                 if (syncResult.success && syncResult.updated > 0) {
                     // 更新当前帖子的显示状态
-                    const { getLatestLikeStatus } = require('../../utils/likeStatusSync.js');
                     const latestStatus = getLatestLikeStatus(postId);
 
                     if (latestStatus) {
-                        const likeIcon = require('../../utils/likeIcon');
                         const newLikeIcon = likeIcon.getLikeIcon(latestStatus.votes, latestStatus.isVoted);
 
                         this.setData({
@@ -640,16 +641,15 @@ export default {
             if (this.votingInProgress) {
                 return;
             }
-            this.setData({
-                votingInProgress: true
-            });
             const post = this.post;
             const originalVotes = post.votes;
             const originalIsVoted = post.isVoted;
             const newVotes = originalIsVoted ? originalVotes - 1 : originalVotes + 1;
             const newIsVoted = !originalIsVoted;
             const newLikeIcon = likeIcon.getLikeIcon(newVotes, newIsVoted);
+            // 批量更新：标记投票进行中 + 乐观更新帖子状态
             this.setData({
+                votingInProgress: true,
                 'post.votes': newVotes,
                 'post.isVoted': newIsVoted,
                 'post.likeIcon': newLikeIcon
@@ -1794,10 +1794,8 @@ export default {
             };
 
             try {
-                const { getCurrentPlatform } = require('../../utils/platformDetector.js');
                 const platform = getCurrentPlatform();
                 if (platform === 'app') {
-                    const { requestAndroidStoragePermission } = require('../../utils/permissions.js');
                     requestAndroidStoragePermission().then((granted) => {
                         if (granted) {
                             startChoose();
@@ -2057,7 +2055,7 @@ export default {
                         title: '评论成功'
                     });
                     const newCommentCount = this.commentCount + 1;
-                    try { const { emitCommentCountChanged } = require('../../utils/events.js'); emitCommentCountChanged({ postId, commentCount: newCommentCount }); } catch (_) {}
+                    try { emitCommentCountChanged({ postId, commentCount: newCommentCount }); } catch (_) {}
                     this.setData({
                         newComment: '',
                         commentImages: [],
@@ -2168,7 +2166,7 @@ export default {
                                     updatedComments = this.comments.filter((comment) => comment._id !== commentId);
                                 }
                                 const newCommentCount = Math.max(0, this.commentCount - deletedCount);
-                                try { const { emitCommentCountChanged } = require('../../utils/events.js'); emitCommentCountChanged({ postId: this.post && this.post._id ? this.post._id : '', commentCount: newCommentCount }); } catch (_) {}
+                                try { emitCommentCountChanged({ postId: this.post && this.post._id ? this.post._id : '', commentCount: newCommentCount }); } catch (_) {}
                                 this.setData({
                                     comments: updatedComments,
                                     commentCount: newCommentCount
@@ -2751,7 +2749,6 @@ export default {
                     });
                     // 发送更新事件通知其他页面
                     try {
-                        const { emitPostUpdated } = require('@/utils/events.js');
                         emitPostUpdated(this.post._id);
                     } catch (e) {
                         if (uni.$emit) {

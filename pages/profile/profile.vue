@@ -197,11 +197,16 @@ import {
 } from '@/utils/timeline.js';
 import { calcBookHeight as calcBookHeightUtil } from '@/utils/bookLayout.js';
 import { extractGrowthStats } from '@/utils/growthStats.js';
+import { formatRelativeTime } from '@/utils/time.js';
+import { previewImage } from '@/utils/imagePreview.js';
+import { cloudCall } from '@/utils/cloudCall.js';
+import postGalleryMixin from '@/mixins/postGallery.js';
+import { updateTabBarStatus } from '@/utils/tabBarCompatibility.js';
+import { invalidateMyInfo } from '@/api-cache/my.js';
+import { invalidateMyProfile } from '@/api-cache/profile.js';
+import { emitPostVisibilityChanged, emitFavoriteChanged } from '@/utils/events.js';
+
 const app = getApp();
-const { formatRelativeTime } = require('../../utils/time.js');
-const { previewImage } = require('../../utils/imagePreview.js');
-const { cloudCall } = require('../../utils/cloudCall.js');
-const postGalleryMixin = require('../../mixins/postGallery.js');
 const PAGE_SIZE = 5;
 export default {
     components: {
@@ -326,7 +331,6 @@ export default {
         try { this.$refs.customTabBar && this.$refs.customTabBar.syncSelected && this.$refs.customTabBar.syncSelected(); } catch (e) {}
         // #endif
         // TabBar 状态更新，使用兼容性处理
-        const { updateTabBarStatus } = require('../../utils/tabBarCompatibility.js');
         updateTabBarStatus(this, 3);
 
         // 每次进入页面时主动刷新数据（但避免首次加载时重复调用）
@@ -341,8 +345,6 @@ export default {
     onPullDownRefresh: function () {
         // 清除缓存
         try {
-            const { invalidateMyInfo } = require('../../api-cache/my.js');
-            const { invalidateMyProfile } = require('../../api-cache/profile.js');
             invalidateMyInfo();
             invalidateMyProfile();
         } catch (e) {
@@ -505,7 +507,6 @@ export default {
                     this.setData(updates);
 
                     try {
-                        const { emitPostVisibilityChanged } = require('../../utils/events.js');
                         emitPostVisibilityChanged({ postId, isHidden: result.isHidden });
                     } catch (_) {}
 
@@ -592,7 +593,7 @@ export default {
                 const updates = {};
                 updates[path] = targetHidden;
                 this.setData(updates);
-                try { const { emitPostVisibilityChanged } = require('../../utils/events.js'); emitPostVisibilityChanged({ postId, isHidden: targetHidden }); } catch (_) {}
+                try { emitPostVisibilityChanged({ postId, isHidden: targetHidden }); } catch (_) {}
                 uni.showToast({ title: targetHidden ? '已隐藏' : '已取消隐藏', icon: 'success' });
             }).catch((err) => {
                 console.error('updatePostVisibility failed', err);
@@ -1588,7 +1589,6 @@ export default {
                                     const userId = appInstance && appInstance.globalData && appInstance.globalData.openid;
                                     const removed = that.favoriteList[index];
                                     const postId = removed && (removed._id || removed.postId);
-                                    const { emitFavoriteChanged } = require('@/utils/events.js');
                                     emitFavoriteChanged({ userId, postId, favored: false });
                                 } catch (e) {}
                             } else {

@@ -94,10 +94,10 @@ import AppTabBar from '@/custom-tab-bar/index.vue';
 // #endif
 import skeleton from '@/components/skeleton/skeleton';
 import topBar from '@/components/top-bar/top-bar.vue';
-const { cloudCall } = require('@/utils/cloudCall.js');
-const { getPostList: getPostListWithCache, invalidatePostList } = require('@/api-cache/post-list.js');
-const { getFollowingPoems, invalidateFollowingPoems, getOriginalPoems } = require('@/api-cache/poems.js');
-const likeIcon = require('@/utils/likeIcon.js');
+import { cloudCall } from '@/utils/cloudCall.js';
+import { getPostList as getPostListWithCache, invalidatePostList } from '@/api-cache/post-list.js';
+import { getFollowingPoems, invalidateFollowingPoems, getOriginalPoems } from '@/api-cache/poems.js';
+import likeIcon from '@/utils/likeIcon.js';
 import {
   generateRandomBackgroundColor,
   toggleArrayItemExpansion,
@@ -105,8 +105,9 @@ import {
   mergePostLists
 } from '@/utils/uiHelpers.js';
 import { navigateToPostDetail } from '@/utils/navigation.js';
-const { togglePostLike } = require('../../utils/likeService.js');
-// authorSignature已从云函数返回，不再需要signatureCache
+import { togglePostLike } from '@/utils/likeService.js';
+import cacheManager from '@/_utils/cache-manager.js';
+import { syncLikeStatusForPosts, getLatestLikeStatus } from '@/utils/likeStatusSync.js';
 
 const PAGE_SIZE = 10;
 
@@ -286,7 +287,6 @@ export default {
         getIndexData(callback) {
       console.log('【poem-square】开始获取数据，callback:', typeof callback);
       // 先尝试从缓存获取第一页数据，立即显示给用户
-      const cacheManager = require('@/_utils/cache-manager.js');
       const ns = cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 });
       const cacheKey = 'page:0:size:10:poem:true:orig:true:exclAnon:true';
       
@@ -660,7 +660,6 @@ export default {
         return;
       }
       
-      this.setData({ [`votingInProgress.${postId}`]: true });
       const list = this.postList;
       const originalVotes = Number(list[index].votes) || 0;
       const wasVoted = !!list[index].isVoted;
@@ -677,7 +676,11 @@ export default {
       };
       const optimisticList = list.slice();
       optimisticList[index] = optimisticItem;
-      this.setData({ postList: optimisticList });
+      // 批量更新：标记投票进行中 + 乐观更新列表
+      this.setData({ 
+        [`votingInProgress.${postId}`]: true,
+        postList: optimisticList 
+      });
 
       togglePostLike(postId, {
         pageTag: 'poem-square',
@@ -778,8 +781,7 @@ export default {
         const list = Array.isArray(this.postList) ? this.postList : [];
         const ids = list.map(p => p && p._id).filter(Boolean);
         if (!ids.length) return;
-        try { const { syncLikeStatusForPosts } = require('../../utils/likeStatusSync.js'); syncLikeStatusForPosts(ids); } catch (_) {}
-        const { getLatestLikeStatus } = require('../../utils/likeStatusSync.js');
+        try { syncLikeStatusForPosts(ids); } catch (_) {}
         let changed = false;
         const next = list.slice();
         for (let i = 0; i < next.length; i += 1) {

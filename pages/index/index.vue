@@ -148,6 +148,7 @@
 </template>
 
 <script>
+// 组件导入
 import skeleton from '@/components/skeleton/skeleton';
 import pageTabs from '@/components/page-tabs/page-tabs';
 import PostItem from '@/components/PostItem.vue';
@@ -155,25 +156,35 @@ import FeedList from '@/components/FeedList.vue';
 // #ifndef MP-WEIXIN
 import AppTabBar from '@/custom-tab-bar/index.vue';
 // #endif
-  const PAGE_SIZE = 10;
-  const DISCOVER_PAGE_SIZE = 5;
-  const MAX_DISCOVER_EXCLUDE_IDS = 200;
-const imageOptimizer = require('../../utils/imageOptimizer');
-const likeIcon = require('../../utils/likeIcon');
-const { togglePostLike } = require('../../utils/likeService.js');
-const avatarCache = require('../../utils/avatarCache');
-const followCache = require('../../utils/followCache');
+
+// API 缓存导入
 import { getUnreadCount } from '@/api-cache/unread.js';
 import { getDiscoverFeed, invalidateDiscover } from '@/api-cache/discover.js';
 import { getHomePosts, invalidateHomePosts } from '@/api-cache/home-posts.js';
 import { getFollowingPosts, invalidateFollowingPosts } from '@/api-cache/following.js';
 import { getDiscussionPosts, invalidateDiscussionPosts } from '@/api-cache/discussion.js';
+
+// 工具函数导入
 import { hydrateTempUrls, warmTempUrlsFromPosts } from '@/_utils/hydrate-temp-urls';
-const { previewImage } = require('../../utils/imagePreview.js');
-const { normalizePostList } = require('../../utils/postNormalizer.js');
-const { cloudCall } = require('../../utils/cloudCall.js');
 import { navigateToTagFilter, navigateToPostDetail, navigateToUserProfile as navigateToUserProfileUtil, extractDataset } from '@/utils/navigation.js';
-const postGalleryMixin = require('../../mixins/postGallery.js');
+import { updateTabBarStatus } from '@/utils/tabBarCompatibility.js';
+import { syncLikeStatusForPosts, getLatestLikeStatus } from '@/utils/likeStatusSync.js';
+import imageOptimizer from '@/utils/imageOptimizer';
+import likeIcon from '@/utils/likeIcon';
+import { togglePostLike } from '@/utils/likeService.js';
+import avatarCache from '@/utils/avatarCache';
+import followCache from '@/utils/followCache';
+import { previewImage } from '@/utils/imagePreview.js';
+import { normalizePostList } from '@/utils/postNormalizer.js';
+import { processPostList } from '@/utils/postProcessor.js';
+import { cloudCall } from '@/utils/cloudCall.js';
+import postGalleryMixin from '@/mixins/postGallery.js';
+import cacheManager from '@/_utils/cache-manager.js';
+
+// 常量定义
+const PAGE_SIZE = 10;
+const DISCOVER_PAGE_SIZE = 5;
+const MAX_DISCOVER_EXCLUDE_IDS = 200;
 export default {
     components: {
         skeleton,
@@ -260,7 +271,6 @@ export default {
         try { this.$refs.customTabBar && this.$refs.customTabBar.syncSelected && this.$refs.customTabBar.syncSelected(); } catch (e) {}
         // #endif
         // TabBar 状态更新，使用兼容性处理
-        const { updateTabBarStatus } = require('../../utils/tabBarCompatibility.js');
         updateTabBarStatus(this, 0);
 
         // 检查是否需要刷新（发布帖子后）
@@ -291,13 +301,7 @@ export default {
                     onBackgroundUpdate: async (newPosts) => {
                         if (!Array.isArray(newPosts) || newPosts.length === 0) return;
                         try {
-                            let posts = normalizePostList(newPosts).map((post) => ({
-                                ...post,
-                                likeIcon: likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false)
-                            }));
-                            posts = await hydrateTempUrls(posts);
-                            warmTempUrlsFromPosts(posts);
-                            
+                            const posts = await processPostList(newPosts);
                             if (this.currentPage === 'home' && this.swiperCurrent === 0) {
                                 const currentPostIds = this.postList.map(p => p._id).join(',');
                                 const newPostIds = posts.map(p => p._id).join(',');
@@ -328,7 +332,6 @@ export default {
           onRefresherRefresh: function() {
             if (this.currentPage === 'home') {
                 try {
-                    const { invalidateHomePosts } = require('../../api-cache/home-posts.js');
                     invalidateHomePosts({});
                 } catch (e) {
                     console.error('清除首页缓存失败:', e);
@@ -368,7 +371,6 @@ export default {
         onHomeRefresh: function () {
             this.isRefreshing = true;
             try {
-                const { invalidateHomePosts } = require('../../api-cache/home-posts.js');
                 invalidateHomePosts({});
             } catch (e) {
                 console.error('清除首页缓存失败:', e);
@@ -595,10 +597,6 @@ export default {
             }
             
             this.swiperChangeTimer = setTimeout(() => {
-                this.setData({
-                    swiperCurrent: current
-                });
-
                 // 根据swiper索引映射到页面类型和标签
                 let pageType, tabValue;
                 switch(current) {
@@ -616,7 +614,9 @@ export default {
                         break;
                 }
 
+                // 批量更新状态，减少渲染次数
                 this.setData({
+                    swiperCurrent: current,
                     currentPage: pageType,
                     currentTab: tabValue
                 });
@@ -643,57 +643,45 @@ export default {
         onTabChange(tabValue) {
             console.log('切换标签页:', tabValue);
             
-            // 根据标签值映射到swiper索引
-            let swiperIndex;
+            // 根据标签值映射到swiper索引和页面类型
+            let swiperIndex, pageType;
             switch(tabValue) {
                 case 'square':
                     swiperIndex = 0;
+                    pageType = 'home';
                     break;
                 case 'following':
                     swiperIndex = 1;
+                    pageType = 'following';
                     break;
                 case 'discussion':
                     swiperIndex = 2;
+                    pageType = 'discussion';
                     break;
             }
 
+            // 批量更新状态，减少渲染次数
             this.setData({
                 currentTab: tabValue,
-                swiperCurrent: swiperIndex
+                swiperCurrent: swiperIndex,
+                currentPage: pageType
             });
 
-            // 根据标签页映射到内部页面
-            switch(tabValue) {
-                case 'square':
-                    this.setData({
-                        currentPage: 'home'
-                    });
-                    break;
-                case 'following':
-                    this.setData({
-                        currentPage: 'following'
-                    });
-                    // 如果关注页还没有数据，加载关注页数据
-                    if (this.followingPostList.length === 0) {
-                        this.loadFollowingPosts();
-                    } else {
-                        // 如果已有数据，主动同步点赞状态（参考广场页实现）
-                        try {
-                            this.syncLikeStatusFromCache && this.syncLikeStatusFromCache();
-                        } catch (e) {
-                            console.warn('同步关注页点赞状态失败:', e);
-                        }
+            // 后续操作（数据加载、状态同步）
+            if (tabValue === 'following') {
+                if (this.followingPostList.length === 0) {
+                    this.loadFollowingPosts();
+                } else {
+                    try {
+                        this.syncLikeStatusFromCache && this.syncLikeStatusFromCache();
+                    } catch (e) {
+                        console.warn('同步关注页点赞状态失败:', e);
                     }
-                    break;
-                case 'discussion':
-                    this.setData({
-                        currentPage: 'discussion'
-                    });
-                    // 如果讨论页还没有数据，加载讨论页数据
-                    if (this.discussionPostList.length === 0) {
-                        this.loadDiscussionPosts();
-                    }
-                    break;
+                }
+            } else if (tabValue === 'discussion') {
+                if (this.discussionPostList.length === 0) {
+                    this.loadDiscussionPosts();
+                }
             }
         },
 
@@ -727,7 +715,6 @@ export default {
         getIndexData: function () {
             // 清理永不过期缓存（修复旧的错误缓存）
             try {
-                const cacheManager = require('@/_utils/cache-manager.js');
                 const ns = cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 });
                 if (ns.clearInfiniteCache) ns.clearInfiniteCache();
             } catch (_) {}
@@ -749,13 +736,7 @@ export default {
                 onBackgroundUpdate: async (newPosts) => {
                     if (!Array.isArray(newPosts) || newPosts.length === 0) return;
                     try {
-                        let posts = normalizePostList(newPosts).map((post) => ({
-                            ...post,
-                            likeIcon: likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false)
-                        }));
-                        posts = await hydrateTempUrls(posts);
-                        warmTempUrlsFromPosts(posts);
-                        
+                        const posts = await processPostList(newPosts);
                         if (this.currentPage === 'home' && this.swiperCurrent === 0) {
                             const currentPostIds = this.postList.map(p => p._id).join(',');
                             const newPostIds = posts.map(p => p._id).join(',');
@@ -768,12 +749,7 @@ export default {
             })
                 .then(async (list) => {
                     const postsRaw = Array.isArray(list) ? list : [];
-                    let posts = normalizePostList(postsRaw).map((post) => ({
-                        ...post,
-                        likeIcon: likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false)
-                    }));
-                    posts = await hydrateTempUrls(posts);
-                    warmTempUrlsFromPosts(posts);
+                    const posts = await processPostList(postsRaw);
                     this.setData({
                         postList: posts,
                         page: 1,
@@ -862,9 +838,6 @@ export default {
                 console.log('【点赞】正在投票中，跳过');
                 return;
             }
-            this.setData({
-                [`votingInProgress.${postId}`]: true
-            });
             const originalItem = list[targetIndex] || {};
             const originalVotes = Number(originalItem.votes) || 0;
             const originalIsVoted = !!originalItem.isVoted;
@@ -880,7 +853,9 @@ export default {
             };
             const optimisticList = list.slice();
             optimisticList[targetIndex] = optimisticItem;
+            // 批量更新：标记投票进行中 + 乐观更新列表
             this.setData({
+                [`votingInProgress.${postId}`]: true,
                 [listKey]: optimisticList
             });
 
@@ -1121,13 +1096,7 @@ export default {
                     const postsRaw = Array.isArray(list) ? list : [];
                     console.log('✅ [首页] 获取到帖子数量（缓存封装）:', postsRaw.length);
 
-                    let posts = normalizePostList(postsRaw).map((post) => ({
-                        ...post,
-                        likeIcon: likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false)
-                    }));
-
-                    posts = await hydrateTempUrls(posts);
-                    warmTempUrlsFromPosts(posts);
+                    const posts = await processPostList(postsRaw);
 
                     const self = this;
                     setTimeout(() => {
@@ -1194,9 +1163,7 @@ export default {
 
                 if (allPostIds.length === 0) return;
 
-                const likeSync = require('../../utils/likeStatusSync.js');
-                try { likeSync.syncLikeStatusForPosts(allPostIds); } catch (_) {}
-                const getLatestLikeStatus = likeSync.getLatestLikeStatus;
+                try { syncLikeStatusForPosts(allPostIds); } catch (_) {}
                 const updates = {};
 
                 const patchList = (key) => {
@@ -1211,7 +1178,6 @@ export default {
                         if (s && (((Number(p.votes) || 0) !== s.votes) || (!!p.isVoted !== !!s.isVoted))) {
                             p.votes = s.votes;
                             p.isVoted = s.isVoted;
-                            const likeIcon = require('../../utils/likeIcon');
                             p.likeIcon = likeIcon.getLikeIcon(s.votes, s.isVoted);
                             changed = true;
                         }
@@ -1240,7 +1206,6 @@ export default {
             
             // 清除新模式的缓存，确保强制从云端刷新
             try {
-                const { invalidateHomePosts } = require('../../api-cache/home-posts.js');
                 if (newMode) {
                     // 切换到"只看普通帖子"模式，清除普通帖子模式的缓存
                     invalidateHomePosts({ isPoem: false, isDiscussion: false });
@@ -1436,17 +1401,11 @@ export default {
                 const rawPosts = Array.isArray(result?.posts) ? result.posts : [];
                 console.log('获取推荐数据结果（分页）: page=', page, '条数=', rawPosts.length, 'hasMore=', result?.hasMore);
 
-                let normalizedPosts = normalizePostList(rawPosts).map((post) => ({
-                    ...post,
-                    likeIcon: likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false)
-                }));
+                // 使用统一的处理函数
+                let normalizedPosts = await processPostList(rawPosts);
 
                 // 双重保险去重
                 normalizedPosts = normalizedPosts.filter((post) => post && post._id && !excludeSet.has(post._id));
-
-                // 将 cloud:// 映射为可访问 URL，并预热
-                normalizedPosts = await hydrateTempUrls(normalizedPosts);
-                warmTempUrlsFromPosts(normalizedPosts);
 
                 if (!normalizedPosts.length) {
                     console.log('暂无新的推荐内容');
@@ -1566,13 +1525,7 @@ export default {
                     console.log('🔄 [SWR-Discussion] 后台更新完成', newPosts?.length);
                     if (Array.isArray(newPosts) && newPosts.length > 0 && this.currentPage === 'discussion') {
                         try {
-                            let processedPosts = newPosts.map((post) => ({
-                                ...post,
-                                likeIcon: likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false)
-                            }));
-                            processedPosts = await hydrateTempUrls(processedPosts);
-                            warmTempUrlsFromPosts(processedPosts);
-                            
+                            const processedPosts = await processPostList(newPosts);
                             // 只在数据有变化时更新
                             const currentPostIds = this.discussionPostList.slice(0, PAGE_SIZE).map(p => p._id).join(',');
                             const newPostIds = processedPosts.map(p => p._id).join(',');
@@ -1590,14 +1543,7 @@ export default {
                 }
             }).then(async (posts) => {
                 if (posts && posts.length > 0) {
-                    let processedPosts = posts.map((post) => ({
-                        ...post,
-                        likeIcon: likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false)
-                    }));
-
-                    // 将 cloud:// 映射为可访问 URL，并预热
-                    processedPosts = await hydrateTempUrls(processedPosts);
-                    warmTempUrlsFromPosts(processedPosts);
+                    const processedPosts = await processPostList(posts);
 
                     // 处理分页数据，避免重复
                     const currentList = this.discussionPage === 0 ? [] : this.discussionPostList;
@@ -1746,23 +1692,8 @@ export default {
                     console.log('🔄 [SWR-Following] 后台更新完成', newPosts?.length);
                     if (Array.isArray(newPosts) && newPosts.length > 0 && this.currentPage === 'following' && this.swiperCurrent === 1) {
                         try {
-                            // 处理后台更新的数据
-                            const likeSync = require('../../utils/likeStatusSync.js');
-                            const getLatestLikeStatus = likeSync.getLatestLikeStatus;
-                            let processedPosts = newPosts.map((post) => {
-                                const cachedStatus = getLatestLikeStatus(post._id);
-                                const finalVotes = cachedStatus ? cachedStatus.votes : (post.votes || 0);
-                                const finalIsVoted = cachedStatus ? cachedStatus.isVoted : (post.isVoted || false);
-                                return {
-                                    ...post,
-                                    votes: finalVotes,
-                                    isVoted: finalIsVoted,
-                                    likeIcon: likeIcon.getLikeIcon(finalVotes, finalIsVoted)
-                                };
-                            });
-                            processedPosts = await hydrateTempUrls(processedPosts);
-                            warmTempUrlsFromPosts(processedPosts);
-                            
+                            // 使用统一处理函数，启用缓存点赞状态
+                            const processedPosts = await processPostList(newPosts, { useCachedLikeStatus: true });
                             // 只在数据有变化时更新
                             const currentPostIds = this.followingPostList.slice(0, PAGE_SIZE).map(p => p._id).join(',');
                             const newPostIds = processedPosts.map(p => p._id).join(',');
@@ -1780,27 +1711,8 @@ export default {
                 }
             }).then(async (posts) => {
                 if (posts && posts.length > 0) {
-                    // 优先使用本地缓存中的点赞状态,如果没有缓存则使用云函数返回的状态
-                    const likeSync = require('../../utils/likeStatusSync.js');
-                    const getLatestLikeStatus = likeSync.getLatestLikeStatus;
-
-                    let processedPosts = posts.map((post) => {
-                        // 尝试从本地缓存获取点赞状态
-                        const cachedStatus = getLatestLikeStatus(post._id);
-                        const finalVotes = cachedStatus ? cachedStatus.votes : (post.votes || 0);
-                        const finalIsVoted = cachedStatus ? cachedStatus.isVoted : (post.isVoted || false);
-
-                        return {
-                            ...post,
-                            votes: finalVotes,
-                            isVoted: finalIsVoted,
-                            likeIcon: likeIcon.getLikeIcon(finalVotes, finalIsVoted)
-                        };
-                    });
-
-                    // 将 cloud:// 映射为可访问 URL，并预热
-                    processedPosts = await hydrateTempUrls(processedPosts);
-                    warmTempUrlsFromPosts(processedPosts);
+                    // 使用统一处理函数，优先使用本地缓存中的点赞状态
+                    const processedPosts = await processPostList(posts, { useCachedLikeStatus: true });
 
                     // 处理分页数据，避免重复
                     const currentList = this.followingPage === 0 ? [] : this.followingPostList;

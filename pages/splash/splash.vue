@@ -43,9 +43,10 @@
 </template>
 
 <script>
-const { imageManager } = require('../../utils/imageManager.js');
-const { cloudCall } = require('../../utils/cloudCall.js');
-const { getPostList: getPostListWithCache } = require('@/api-cache/post-list.js');
+import { imageManager } from '@/utils/imageManager.js';
+import { cloudCall } from '@/utils/cloudCall.js';
+import { getPostList as getPostListWithCache } from '@/api-cache/post-list.js';
+
 export default {
     data() {
         return {
