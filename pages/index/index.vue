@@ -99,7 +99,16 @@
                             @touch-start="onTouchStart"
                             @touch-move="onTouchMove"
                             @touch-end="onTouchEnd"
-                        />
+                        >
+                            <template #filter>
+                                <following-avatar-bar
+                                    ref="followingAvatarBar"
+                                    :selected-user-id="followingSelectedUserId"
+                                    @select-user="onFollowingUserSelect"
+                                    @back="onFollowingAvatarBarBack"
+                                />
+                            </template>
+                        </feed-list>
                     </swiper-item>
 
                     <swiper-item>
@@ -153,6 +162,7 @@ import skeleton from '@/components/skeleton/skeleton';
 import pageTabs from '@/components/page-tabs/page-tabs';
 import PostItem from '@/components/PostItem.vue';
 import FeedList from '@/components/FeedList.vue';
+import FollowingAvatarBar from '@/components/following-avatar-bar/following-avatar-bar.vue';
 // #ifndef MP-WEIXIN
 import AppTabBar from '@/custom-tab-bar/index.vue';
 // #endif
@@ -191,6 +201,7 @@ export default {
         pageTabs,
         PostItem,
         FeedList,
+        FollowingAvatarBar,
         // #ifndef MP-WEIXIN
         AppTabBar
         // #endif
@@ -231,6 +242,7 @@ export default {
             followingHasMore: true,
             followingIsLoading: false,
             followingIsLoadingMore: false,
+            followingSelectedUserId: null,
             // 各个页面的加载完成标识符
             homeHasEverLoaded: false,
             followingHasEverLoaded: false,
@@ -1665,9 +1677,55 @@ export default {
         // 空函数，用于阻止匿名帖子的头像点击事件
         noop() {},
 
+        // 关注用户选择处理
+        onFollowingUserSelect: function (userId) {
+            console.log('选择关注用户:', userId);
+            
+            // 如果选择的用户没变，不做处理
+            if (this.followingSelectedUserId === userId) {
+                return;
+            }
+            
+            // 更新选中状态并重新加载帖子
+            this.setData({
+                followingSelectedUserId: userId,
+                followingPostList: [],
+                followingPage: 0,
+                followingHasMore: true,
+                followingIsLoading: false,
+                followingIsLoadingMore: false,
+                followingHasEverLoaded: false
+            }, () => {
+                this.loadFollowingPosts(null, true);
+            });
+        },
+
+        // 关注头像栏返回按钮点击（取消用户筛选，回到全部）
+        onFollowingAvatarBarBack: function () {
+            console.log('关注头像栏返回按钮点击');
+            
+            // 如果已经是全部状态，不做处理
+            if (!this.followingSelectedUserId) {
+                return;
+            }
+            
+            // 取消用户筛选
+            this.setData({
+                followingSelectedUserId: null,
+                followingPostList: [],
+                followingPage: 0,
+                followingHasMore: true,
+                followingIsLoading: false,
+                followingIsLoadingMore: false,
+                followingHasEverLoaded: false
+            }, () => {
+                this.loadFollowingPosts(null, true);
+            });
+        },
+
         // 加载关注页数据
         loadFollowingPosts: function (callback, forceRefresh = false) {
-            console.log('开始加载关注页数据', forceRefresh ? '(强制刷新)' : '');
+            console.log('开始加载关注页数据', forceRefresh ? '(强制刷新)' : '', this.followingSelectedUserId ? `(筛选用户: ${this.followingSelectedUserId})` : '');
 
             if (this.followingIsLoading || this.followingIsLoadingMore) {
                 console.log('关注页正在加载中，跳过重复请求');
@@ -1690,6 +1748,7 @@ export default {
                 pageSize: PAGE_SIZE,
                 context: this,
                 forceRefresh: forceRefresh,
+                filterByUserId: this.followingSelectedUserId || undefined,
                 // SWR后台更新回调：关注页后台更新完成时调用
                 onBackgroundUpdate: async (newPosts) => {
                     console.log('🔄 [SWR-Following] 后台更新完成', newPosts?.length);
@@ -1813,13 +1872,24 @@ export default {
                 console.warn('清理关注页缓存失败:', e);
             }
 
+            // 刷新时重置用户筛选，回到全部状态
             this.setData({
                 followingPostList: [],
                 followingPage: 0,
                 followingHasMore: true,
                 followingIsLoading: false,
-                followingIsLoadingMore: false
+                followingIsLoadingMore: false,
+                followingSelectedUserId: null
             });
+
+            // 刷新头像栏
+            try {
+                if (this.$refs.followingAvatarBar && this.$refs.followingAvatarBar.refresh) {
+                    this.$refs.followingAvatarBar.refresh();
+                }
+            } catch (e) {
+                console.warn('刷新头像栏失败:', e);
+            }
 
             // 强制刷新
             this.loadFollowingPosts(callback, true);

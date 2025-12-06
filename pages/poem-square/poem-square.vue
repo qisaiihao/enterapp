@@ -3,14 +3,21 @@
     <!-- 顶部栏 -->
     <top-bar />
 
-    <!-- 只看关注切换按钮 - 在写作入口下方 -->
-    <view class="filter-toggle-container">
-      <view 
-        :class="'filter-toggle-btn ' + (showFollowingOnly ? 'active' : '')" 
-        @tap="toggleFollowingFilter"
-      >
-        <text class="filter-toggle-text">{{ showFollowingOnly ? '显示全部' : '只看关注' }}</text>
+    <!-- 只看关注切换按钮 - 只在非关注模式下显示 -->
+    <view v-if="!showFollowingOnly" class="filter-toggle-container">
+      <view class="filter-toggle-btn" @tap="toggleFollowingFilter">
+        <text class="filter-toggle-text">只看关注</text>
       </view>
+    </view>
+
+    <!-- 关注头像栏 - 只在关注模式下显示 -->
+    <view v-if="showFollowingOnly" class="following-avatar-bar-wrapper">
+      <following-avatar-bar
+        ref="followingAvatarBar"
+        :selected-user-id="followingSelectedUserId"
+        @select-user="onFollowingUserSelect"
+        @back="exitFollowingMode"
+      />
     </view>
 
     <!-- 加载中骨架 -->
@@ -19,7 +26,7 @@
     </view>
 
     <!-- 内容列表 -->
-    <view v-else class="square-mode-container">
+    <view v-else :class="['square-mode-container', showFollowingOnly ? 'with-avatar-bar' : '']">
       <view v-if="postList.length === 0" class="empty-state">
         <view class="empty-icon">😶</view>
         <view class="empty-text">{{ showFollowingOnly ? '关注的人还没有发布诗歌哦～' : '还没刷出来，再等等~' }}</view>
@@ -94,6 +101,7 @@ import AppTabBar from '@/custom-tab-bar/index.vue';
 // #endif
 import skeleton from '@/components/skeleton/skeleton';
 import topBar from '@/components/top-bar/top-bar.vue';
+import FollowingAvatarBar from '@/components/following-avatar-bar/following-avatar-bar.vue';
 import { cloudCall } from '@/utils/cloudCall.js';
 import { getPostList as getPostListWithCache, invalidatePostList } from '@/api-cache/post-list.js';
 import { getFollowingPoems, invalidateFollowingPoems, getOriginalPoems } from '@/api-cache/poems.js';
@@ -108,6 +116,7 @@ import { navigateToPostDetail } from '@/utils/navigation.js';
 import { togglePostLike } from '@/utils/likeService.js';
 import cacheManager from '@/_utils/cache-manager.js';
 import { syncLikeStatusForPosts, getLatestLikeStatus } from '@/utils/likeStatusSync.js';
+import fileUrlCache from '@/cache/core/file-url';
 
 const PAGE_SIZE = 10;
 
@@ -140,6 +149,7 @@ export default {
   components: {
     skeleton,
     topBar,
+    FollowingAvatarBar,
     // #ifndef MP-WEIXIN
     AppTabBar
     // #endif
@@ -159,6 +169,8 @@ export default {
       safeAreaTop: 0,
       // 只看关注模式
       showFollowingOnly: false,
+      // 关注头像栏选中的用户ID
+      followingSelectedUserId: null,
       // 加载锁定标志，防止重复触发加载
       _loadingLock: false
     };
@@ -399,19 +411,57 @@ export default {
     },
     // 切换只看关注模式
     toggleFollowingFilter() {
-      const newMode = !this.showFollowingOnly;
-      console.log('【poem-square】切换只看关注模式:', newMode);
+      console.log('【poem-square】进入只看关注模式');
       
       this.setData({
-        showFollowingOnly: newMode,
+        showFollowingOnly: true,
         postList: [],
         page: 0,
         hasMore: true,
-        isLoading: true
+        isLoading: true,
+        followingSelectedUserId: null
       });
       
       // 重新加载数据
       this.getIndexData();
+    },
+
+    // 退出关注模式（由头像栏的返回按钮触发）
+    exitFollowingMode() {
+      console.log('【poem-square】退出只看关注模式');
+      
+      this.setData({
+        showFollowingOnly: false,
+        postList: [],
+        page: 0,
+        hasMore: true,
+        isLoading: true,
+        followingSelectedUserId: null
+      });
+      
+      // 重新加载数据
+      this.getIndexData();
+    },
+
+    // 关注头像栏用户选择处理
+    onFollowingUserSelect(userId) {
+      console.log('【poem-square】选择关注用户:', userId);
+      
+      // 如果选择的用户没变，不做处理
+      if (this.followingSelectedUserId === userId) {
+        return;
+      }
+      
+      // 更新选中状态并重新加载帖子
+      this.setData({
+        followingSelectedUserId: userId,
+        postList: [],
+        page: 0,
+        hasMore: true,
+        isLoading: true
+      }, () => {
+        this.getIndexData();
+      });
     },
     generateRandomBackgroundColor() {
       const result = generateRandomBackgroundColor(this.backgroundColors, this.lastUsedColorIndex);
@@ -439,11 +489,12 @@ export default {
         
         // 只看关注模式使用 getFollowingPoems（带缓存）
         if (isFollowingMode) {
-          console.log('【poem-square】准备调用关注诗歌API');
+          console.log('【poem-square】准备调用关注诗歌API', this.followingSelectedUserId ? `(筛选用户: ${this.followingSelectedUserId})` : '');
           const list = await getFollowingPoems({
             page: this.page,
             pageSize: PAGE_SIZE,
             context: this,
+            filterByUserId: this.followingSelectedUserId || undefined,
             // SWR后台更新回调：关注诗歌后台更新完成时调用
             onBackgroundUpdate: async (newPosts) => {
               console.log(' [SWR-PoemSquare-Following] 后台更新完成', newPosts?.length);
@@ -458,6 +509,9 @@ export default {
                     p.authorSignature = p.authorSignature || '';
                     p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
                   });
+                  
+                  // 转换 cloud:// URLs
+                  await this.convertCloudUrls(visibleList);
                   
                   // 只在数据有变化时更新
                   const currentPostIds = this.postList.slice(0, PAGE_SIZE).map(p => p._id).join(',');
@@ -475,7 +529,7 @@ export default {
               }
             }
           });
-          this.processPostList(list, cb);
+          await this.processPostList(list, cb);
           return;
         }
 
@@ -499,6 +553,9 @@ export default {
                   p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
                 });
                 
+                // 转换 cloud:// URLs
+                await this.convertCloudUrls(visibleList);
+                
                 // 只在数据有变化时更新
                 const currentPostIds = this.postList.slice(0, PAGE_SIZE).map(p => p._id).join(',');
                 const newPostIds = visibleList.map(p => p._id).join(',');
@@ -516,7 +573,7 @@ export default {
           }
         });
         
-        this.processPostList(list, cb);
+        await this.processPostList(list, cb);
       } catch (e) {
         console.error('【poem-square】获取帖子列表失败:', e);
         uni.showToast({ title: '加载失败', icon: 'none' });
@@ -529,7 +586,7 @@ export default {
       }
     },
     
-    processPostList(list, cb) {
+    async processPostList(list, cb) {
       console.log('🔍🔍🔍 【poem-square】获取到帖子数量:', list.length);
       console.log('🔍🔍🔍 【poem-square】当前页码:', this.page, '现有列表长度:', this.postList.length);
       
@@ -564,6 +621,9 @@ export default {
         p.authorSignature = p.authorSignature || '';
         p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
       });
+      
+      // 客户端安全网：转换任何未转换的 cloud:// URLs
+      await this.convertCloudUrls(visibleList);
       
       let newPostList;
       if (this.page === 0) {
@@ -644,6 +704,46 @@ export default {
     onSignatureError(e) {
       console.error('【poem-square】签名图片加载失败:', e);
     },
+    
+    // 客户端转换 cloud:// URLs 为 HTTP URLs（安全网）
+    async convertCloudUrls(posts) {
+      if (!posts || posts.length === 0) return;
+      
+      // 收集所有需要转换的 cloud:// URLs
+      const cloudUrls = [];
+      posts.forEach(post => {
+        if (post.authorSignature && post.authorSignature.startsWith('cloud://')) {
+          cloudUrls.push(post.authorSignature);
+        }
+        if (post.authorAvatar && post.authorAvatar.startsWith('cloud://')) {
+          cloudUrls.push(post.authorAvatar);
+        }
+      });
+      
+      if (cloudUrls.length === 0) return;
+      
+      console.log('【poem-square】客户端转换 cloud:// URLs，数量:', cloudUrls.length);
+      
+      try {
+        // 使用 fileUrlCache 批量转换
+        const urlMap = await fileUrlCache.getTempUrls(cloudUrls);
+        
+        // 更新帖子数据
+        posts.forEach(post => {
+          if (post.authorSignature && urlMap[post.authorSignature]) {
+            post.authorSignature = urlMap[post.authorSignature];
+          }
+          if (post.authorAvatar && urlMap[post.authorAvatar]) {
+            post.authorAvatar = urlMap[post.authorAvatar];
+          }
+        });
+        
+        console.log('【poem-square】cloud:// URLs 转换完成');
+      } catch (error) {
+        console.error('【poem-square】cloud:// URLs 转换失败:', error);
+      }
+    },
+    
     onVote(e) {
       console.log('【poem-square】点赞事件触发', e.currentTarget.dataset);
       const postId = e.currentTarget.dataset.postid;
@@ -811,6 +911,10 @@ export default {
   padding: 100rpx;
   margin-bottom: 200rpx;
   padding-top: 250rpx; /* 与山界面保持一致 */
+}
+
+.square-mode-container.with-avatar-bar {
+  padding-top: 360rpx; /* 关注模式下为头像栏留出空间 */
   display: flex;
   flex-direction: column;
   align-items: stretch; 
@@ -956,6 +1060,15 @@ export default {
 
 .filter-toggle-btn.active .filter-toggle-text {
   color: #666;
+}
+
+/* 关注头像栏定位 */
+.following-avatar-bar-wrapper {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 44px) + 140rpx); /* 紧贴顶部栏下方 */
+  left: 0;
+  right: 0;
+  z-index: 10;
 }
 </style>
 

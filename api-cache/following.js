@@ -17,31 +17,40 @@ const ns = cacheManager.namespace('following:posts', { persistent: true, maxItem
  * @param {Object} options.context - 页面上下文
  * @param {boolean} options.forceRefresh - 是否强制刷新（跳过缓存）
  * @param {Function} options.onBackgroundUpdate - SWR后台更新完成回调
+ * @param {string} options.filterByUserId - 筛选特定用户的帖子
  */
 async function getFollowingPosts({
   page = 0,
   pageSize = 10,
   context,
   forceRefresh = false,
-  onBackgroundUpdate
+  onBackgroundUpdate,
+  filterByUserId
 } = {}) {
-  // 构建缓存键（添加 following 标识避免与其他页面冲突）
-  const key = `following:${buildCacheKey({ page, pageSize })}`;
+  // 构建缓存键（添加 following 标识和用户筛选）
+  const userSuffix = filterByUserId ? `:user:${filterByUserId}` : '';
+  const key = `following:${buildCacheKey({ page, pageSize })}${userSuffix}`;
 
   // 如果强制刷新，使用时间戳作为缓存键的一部分来绕过缓存
   const cacheKey = forceRefresh && page === 0 ? `${key}:ts:${Date.now()}` : key;
 
   console.log('🔍 [following] 请求数据 - key:', cacheKey, 'forceRefresh:', forceRefresh);
 
+  // 构建云函数参数
+  const cloudParams = {
+    skip: page * pageSize,
+    limit: pageSize
+  };
+  if (filterByUserId) {
+    cloudParams.filterByUserId = filterByUserId;
+  }
+
   // 第一页且强制刷新时，跳过缓存直接调用云函数
   if (page === 0 && forceRefresh) {
     console.log('🔍 [following] 第一页强制刷新，跳过缓存直接调用云函数');
     const res = await cloudCall(
       'getFollowingPosts',
-      {
-        skip: page * pageSize,
-        limit: pageSize
-      },
+      cloudParams,
       { pageTag: 'following', context, requireAuth: true }
     );
     console.log('🔍 [following] 云函数返回 - success:', res?.result?.success, 'posts数量:', res?.result?.posts?.length);
@@ -58,10 +67,7 @@ async function getFollowingPosts({
       console.log('🔍 [following] 缓存未命中，调用云函数 - key:', key);
       const res = await cloudCall(
         'getFollowingPosts',
-        {
-          skip: page * pageSize,
-          limit: pageSize
-        },
+        cloudParams,
         { pageTag: 'following', context, requireAuth: true }
       );
       console.log('🔍 [following] 云函数返回 - success:', res?.result?.success, 'posts数量:', res?.result?.posts?.length);

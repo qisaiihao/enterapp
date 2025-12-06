@@ -430,6 +430,12 @@
               "memory": 256
             },
             {
+              "name": "getFollowingUsersWithUpdate",
+              "root": "./functions/getFollowingUsersWithUpdate",
+              "timeout": 10,
+              "memory": 256
+            },
+            {
               "name": "recordEventBatch",
               "root": "./functions/recordEventBatch",
               "timeout": 10,

@@ -22,7 +22,7 @@ exports.main = async (event, context) => {
     };
   }
 
-  const { skip = 0, limit = 10, isPoem, isOriginal } = event;
+  const { skip = 0, limit = 10, isPoem, isOriginal, filterByUserId } = event;
 
   try {
     // 1. 获取被屏蔽的用户ID列表（使用缓存）
@@ -49,7 +49,7 @@ exports.main = async (event, context) => {
       };
     }
 
-    const followedIds = followsRes.data
+    let followedIds = followsRes.data
       .map(item => item.followedId)
       .filter(id => !blockedUserIds.includes(id)); // 过滤被屏蔽的用户
 
@@ -60,6 +60,22 @@ exports.main = async (event, context) => {
         hasMore: false,
         total: 0
       };
+    }
+
+    // 如果指定了用户ID筛选，且该用户在关注列表中
+    if (filterByUserId) {
+      if (!followedIds.includes(filterByUserId)) {
+        // 筛选的用户不在关注列表中
+        return {
+          success: true,
+          posts: [],
+          hasMore: false,
+          total: 0
+        };
+      }
+      // 只筛选该用户的帖子
+      followedIds = [filterByUserId];
+      console.log('🔍 [getFollowingPosts] 按用户ID筛选:', filterByUserId);
     }
 
     // 3. 构建查询条件
@@ -105,7 +121,8 @@ exports.main = async (event, context) => {
       .field({
         _openid: true,
         nickName: true,
-        avatarUrl: true
+        avatarUrl: true,
+        signatureUrl: true
       })
       .get();
 
@@ -129,12 +146,13 @@ exports.main = async (event, context) => {
         ...post,
         authorName: author.nickName || '微信用户',
         authorAvatar: author.avatarUrl || '',
+        authorSignature: post.isAnonymous ? '' : (author.signatureUrl || ''),
         isAnonymous: post.isAnonymous || false
       };
     });
 
-    // 8. 处理头像URL
-    await enrichAvatarUrls(posts);
+    // 8. 处理头像URL和签名URL
+    await enrichCloudUrls(posts);
 
     // 9. 查询当前用户对这些帖子的点赞状态
     if (posts.length > 0) {
@@ -185,20 +203,26 @@ exports.main = async (event, context) => {
   }
 };
 
-// 处理头像URL
-async function enrichAvatarUrls(list) {
-  const fileIDs = Array.from(new Set(
-    list
-      .filter(user => user.authorAvatar && user.authorAvatar.startsWith('cloud://'))
-      .map(user => user.authorAvatar)
-  ));
+// 处理头像URL和签名URL
+async function enrichCloudUrls(list) {
+  // 收集所有需要转换的 cloud:// URLs
+  const fileIDs = new Set();
+  
+  list.forEach(post => {
+    if (post.authorAvatar && post.authorAvatar.startsWith('cloud://')) {
+      fileIDs.add(post.authorAvatar);
+    }
+    if (post.authorSignature && post.authorSignature.startsWith('cloud://')) {
+      fileIDs.add(post.authorSignature);
+    }
+  });
 
-  if (fileIDs.length === 0) {
+  if (fileIDs.size === 0) {
     return;
   }
 
   try {
-    const tempUrls = await cloud.getTempFileURL({ fileList: fileIDs });
+    const tempUrls = await cloud.getTempFileURL({ fileList: Array.from(fileIDs) });
     const urlMap = new Map();
 
     tempUrls.fileList.forEach(file => {
@@ -211,8 +235,11 @@ async function enrichAvatarUrls(list) {
       if (post.authorAvatar && urlMap.has(post.authorAvatar)) {
         post.authorAvatar = urlMap.get(post.authorAvatar);
       }
+      if (post.authorSignature && urlMap.has(post.authorSignature)) {
+        post.authorSignature = urlMap.get(post.authorSignature);
+      }
     });
   } catch (error) {
-    console.error('处理头像URL失败:', error);
+    console.error('处理云文件URL失败:', error);
   }
 }

@@ -1,0 +1,9 @@
+{
+  "name": "getFollowingUsersWithUpdate",
+  "version": "1.0.0",
+  "description": "获取关注用户列表（按最近发帖时间排序）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

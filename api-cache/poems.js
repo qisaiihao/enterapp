@@ -17,16 +17,19 @@ const followingNs = cacheManager.namespace('poems:following', { persistent: true
  * @param {Object} options.context - 页面上下文
  * @param {boolean} options.forceRefresh - 是否强制刷新（跳过缓存）
  * @param {Function} options.onBackgroundUpdate - SWR后台更新完成回调
+ * @param {string} options.filterByUserId - 筛选特定用户的诗歌
  */
 async function getFollowingPoems({
   page = 0,
   pageSize = 10,
   context,
   forceRefresh = false,
-  onBackgroundUpdate
+  onBackgroundUpdate,
+  filterByUserId
 } = {}) {
-  // 构建缓存键
-  const key = buildCacheKey({ page, pageSize });
+  // 构建缓存键（添加用户筛选）
+  const userSuffix = filterByUserId ? `:user:${filterByUserId}` : '';
+  const key = buildCacheKey({ page, pageSize }) + userSuffix;
 
   // 如果强制刷新，使用时间戳作为缓存键的一部分来绕过缓存
   const cacheKey = forceRefresh && page === 0 ? `${key}:ts:${Date.now()}` : key;
@@ -36,15 +39,19 @@ async function getFollowingPoems({
   // 第一页且强制刷新时，跳过缓存直接调用云函数
   if (page === 0 && forceRefresh) {
     console.log('🔍 [poems] 第一页强制刷新，跳过缓存直接调用云函数');
+    const cloudParams = {
+      skip: page * pageSize,
+      limit: pageSize,
+      excludeAnonymous: true,
+      isPoem: true,
+      isOriginal: true
+    };
+    if (filterByUserId) {
+      cloudParams.filterByUserId = filterByUserId;
+    }
     const res = await cloudCall(
       'getFollowingPosts',
-      {
-        skip: page * pageSize,
-        limit: pageSize,
-        excludeAnonymous: true,
-        isPoem: true,
-        isOriginal: true
-      },
+      cloudParams,
       { pageTag: 'poems', context, requireAuth: true }
     );
     console.log('🔍 [poems] 云函数返回 - success:', res?.result?.success, 'posts数量:', res?.result?.posts?.length);
@@ -59,15 +66,19 @@ async function getFollowingPoems({
     cacheKey,
     async () => {
       console.log('🔍 [poems] 缓存未命中，调用云函数 - key:', key);
+      const cloudParams = {
+        skip: page * pageSize,
+        limit: pageSize,
+        excludeAnonymous: true,
+        isPoem: true,
+        isOriginal: true
+      };
+      if (filterByUserId) {
+        cloudParams.filterByUserId = filterByUserId;
+      }
       const res = await cloudCall(
         'getFollowingPosts',
-        {
-          skip: page * pageSize,
-          limit: pageSize,
-          excludeAnonymous: true,
-          isPoem: true,
-          isOriginal: true
-        },
+        cloudParams,
         { pageTag: 'poems', context, requireAuth: true }
       );
       console.log('🔍 [poems] 云函数返回 - success:', res?.result?.success, 'posts数量:', res?.result?.posts?.length);
