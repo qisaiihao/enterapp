@@ -202,7 +202,6 @@ import { previewImage } from '@/utils/imagePreview.js';
 import { cloudCall } from '@/utils/cloudCall.js';
 import postGalleryMixin from '@/mixins/postGallery.js';
 import { updateTabBarStatus } from '@/utils/tabBarCompatibility.js';
-import { invalidateMyInfo } from '@/api-cache/my.js';
 import { invalidateMyProfile } from '@/api-cache/profile.js';
 import { emitPostVisibilityChanged, emitFavoriteChanged } from '@/utils/events.js';
 

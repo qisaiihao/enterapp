@@ -1108,7 +1108,10 @@ export default {
                     const newPostsCount = posts.length;
                     // 【修复】首次加载时应该直接替换列表，而不是合并，避免数据重复
                     const currentPostList = this.postList;
-                    const newPostList = isFirstLoad ? posts : currentPostList.concat(posts);
+                    // 【修复】加载更多时去重，避免重复key警告
+                    const existingIds = new Set(currentPostList.map(p => p._id));
+                    const uniqueNewPosts = posts.filter(p => !existingIds.has(p._id));
+                    const newPostList = isFirstLoad ? posts : currentPostList.concat(uniqueNewPosts);
                     const updateData = {
                         postList: newPostList,
                         page: this.page + 1,
