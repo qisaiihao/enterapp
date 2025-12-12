@@ -115,6 +115,15 @@
           }
         },
         {
+          "path": "poet-profile/poet-profile",
+          "style": {
+            "usingComponents": {},
+            "navigationBarTitleText": "诗人主页",
+            "enablePullDownRefresh": true,
+            "onReachBottomDistance": 50
+          }
+        },
+        {
           "path": "profile-edit/profile-edit",
           "style": {
             "navigationStyle": "custom",

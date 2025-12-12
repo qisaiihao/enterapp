@@ -154,13 +154,15 @@ async function getOriginalPoems({
  * @param {Object} options.context - 页面上下文
  * @param {boolean} options.forceRefresh - 是否强制刷新（跳过缓存）
  * @param {Function} options.onBackgroundUpdate - SWR后台更新完成回调
+ * @param {string} options.filterByPoet - 按诗人筛选
  */
 async function getMountainPoems({
   page = 0,
   pageSize = 10,
   context,
   forceRefresh = false,
-  onBackgroundUpdate
+  onBackgroundUpdate,
+  filterByPoet
 } = {}) {
   const { getPostList } = require('./post-list.js');
 
@@ -170,6 +172,7 @@ async function getMountainPoems({
     isPoem: true,
     isOriginal: false,
     excludeAnonymous: true,
+    author: filterByPoet,
     context,
     forceRefresh,
     onBackgroundUpdate

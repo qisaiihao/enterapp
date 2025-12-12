@@ -109,7 +109,8 @@ function wrapText(ctx, text, maxWidth, fontSize, fontFamily = 'Huiwen-mincho, sa
                 const char = line[i];
                 const testLine = currentLine + char;
                 const testWidth = ctx.measureText ? ctx.measureText(testLine).width : testLine.length * fontSize * 0.6;
-                if (testWidth > maxWidth && currentLine) {
+                // 优化：给Canvas文本测量增加5%的容错，避免过于保守的换行
+                if (testWidth > maxWidth * 0.95 && currentLine) {
                     wrappedLines.push(currentLine);
                     currentLine = char;
                 } else {

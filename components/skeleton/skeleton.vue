@@ -6,7 +6,7 @@
         <!-- 诗歌广场/山页面骨架屏 - 简洁卡片样式 -->
         <view v-if="pageType === 'poem' || pageType === 'mountain'" class="skeleton-poem-square-container">
             <!-- 第一个诗歌卡片骨架 -->
-            <view class="skeleton-poem-card">
+            <view :class="['skeleton-poem-card', { 'mountain-card': pageType === 'mountain' }]">
                 <!-- 诗歌内容骨架 -->
                 <view class="skeleton-poem-content">
                     <view class="skeleton-poem-line skeleton-animate"></view>
@@ -21,7 +21,7 @@
             </view>
 
             <!-- 第二个诗歌卡片骨架 -->
-            <view class="skeleton-poem-card skeleton-secondary">
+            <view :class="['skeleton-poem-card', 'skeleton-secondary', { 'mountain-card': pageType === 'mountain' }]">
                 <view class="skeleton-poem-content">
                     <view class="skeleton-poem-line skeleton-animate"></view>
                     <view class="skeleton-poem-line skeleton-animate" style="width: 85%"></view>
@@ -34,7 +34,7 @@
             </view>
 
             <!-- 第三个诗歌卡片骨架 -->
-            <view class="skeleton-poem-card skeleton-tertiary">
+            <view :class="['skeleton-poem-card', 'skeleton-tertiary', { 'mountain-card': pageType === 'mountain' }]">
                 <view class="skeleton-poem-content">
                     <view class="skeleton-poem-line skeleton-animate"></view>
                     <view class="skeleton-poem-line skeleton-animate"></view>
@@ -320,6 +320,14 @@ export default {
     box-shadow: 0 8rpx 8rpx rgba(0, 0, 0, 0.25);
     position: relative;
     margin-bottom: 40rpx;
+}
+
+/* mountain页面卡片样式 - 匹配mountain页面设计 */
+.skeleton-poem-card.mountain-card {
+    padding: 40rpx;
+    border-radius: 20rpx;
+    margin-bottom: 30rpx;
+    box-shadow: 0 4rpx 4rpx rgba(0, 0, 0, 0.25);
 }
 
 /* 第二个卡片样式 */

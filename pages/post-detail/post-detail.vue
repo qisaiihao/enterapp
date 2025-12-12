@@ -44,7 +44,7 @@
                         </view>
                     </view>
                     <view class="post-title">{{ post.title }}</view>
-                    <view v-if="post.isPoem && post.author" class="poem-author">{{ post.author }}</view>
+                    <view v-if="post.isPoem && post.author" class="poem-author" :class="{ 'poem-author-clickable': canGoToPoetProfile }" @tap="onPoetNameTap">{{ post.author }}</view>
                     
                     <!-- 讨论类型帖子特殊渲染 -->
                     <view v-if="post.isDiscussion && post.sentenceGroups" class="discussion-content">
@@ -267,11 +267,20 @@
             :show="showShareModal"
             :image-url="shareImageUrl"
             :longpress-menu-enabled="shareLongpressMenuEnabled"
+            :share-config="shareConfig"
+            :preview-text="post.content ? post.content.split('\n')[0] || '春花秋月何时了' : '春花秋月何时了'"
+            :color-palettes="colorPalettes"
+            :poem-lines="poemLines"
             @hide="hideShareModal"
             @longpress="onImageLongPress"
             @load="onShareImageLoad"
             @error="onShareImageError"
             @save="saveShareImage"
+            @font-size-preview="onFontSizePreview"
+            @font-family-preview="onFontFamilyPreview"
+            @font-settings-change="onFontSettingsChange"
+            @color-change="onColorChange"
+            @force-regenerate="forceRegenerateCanvas"
         />
 
         <!-- 隐藏的canvas用于生成分享图片（增加 id 便于 H5 兜底导出） -->
@@ -319,6 +328,8 @@ import { processComments, validateCommentInput, processCommentImages, findCommen
 import { generateShareImageName, isValidImageDataUrl, base64ToArrayBuffer, saveImageToAlbum, createTempFilePath, compressImage, getImageInfo } from '@/utils/shareImage.js';
 import { syncLikeStatusForPosts, getLatestLikeStatus } from '@/utils/likeStatusSync.js';
 import { flushViewQueue } from '@/utils/viewEvents.js';
+import { colorPalettes } from '@/utils/colorPalettes.js';
+import { poemLines } from '@/utils/poemLines.js';
 import { getCurrentPlatform } from '@/utils/platformDetector.js';
 import { requestAndroidStoragePermission } from '@/utils/permissions.js';
 import { emitCommentCountChanged, emitPostUpdated } from '@/utils/events.js';
@@ -341,6 +352,16 @@ export default {
         CommentInput
     },
     mixins: [postGalleryMixin],
+    computed: {
+        // 是否可以跳转到诗人主页（非原创诗且作者名与发布用户昵称不同）
+        canGoToPoetProfile() {
+            if (!this.post || !this.post.author) return false;
+            if (this.post.isOriginal) return false;
+            const poetName = this.post.author;
+            const authorName = this.post.authorName || this.post.authorNameSnapshot || '';
+            return poetName.trim() !== authorName.trim();
+        }
+    },
     data() {
         return {
             post: null,
@@ -364,6 +385,17 @@ export default {
             shareImageUrl: '',
             shareCanvasHeight: 1000,
             shareImageRetryCount: 0,
+            shareConfig: {
+                fontSize: 38,
+                titleFontSize: 46,
+                fontFamily: 'Huiwen-mincho',
+                backgroundColor: '#FFFFFF', // 将在onShare时更新为帖子的实际颜色
+                textColor: '#000000',       // 将在onShare时更新为帖子的实际颜色
+                fontScale: 1.0
+            },
+            regenerateTimeout: null,
+            colorPalettes: colorPalettes,
+            poemLines: poemLines,
             isInputExpanded: false,
             currentScrollTop: 0,
             isFocus: false,
@@ -774,6 +806,10 @@ export default {
                 return;
             }
 
+            // 初始化shareConfig使用帖子的实际颜色
+            this.shareConfig.backgroundColor = this.post.backgroundColor || '#FFFFFF';
+            this.shareConfig.textColor = this.post.textColor || '#000000';
+
             // 显示分享弹窗，重置图片URL，并立即开始生成图片
             this.setData({
                 showShareModal: true,
@@ -798,23 +834,57 @@ export default {
         },
 
         loadFontAndDraw: function () {
-            uni.loadFontFace({
-                family: 'Huiwen-mincho',
-                source: 'url("/static/fonts/Huiwen-mincho.otf")',
-                success: () => {
-                    // 延迟一下确保DOM已渲染
-                    setTimeout(() => {
-                        this.drawCanvas();
-                    }, 100);
-                },
-                fail: (err) => {
-                    console.error('【post-detail】字体加载失败:', err);
-                    // 即使字体加载失败，也继续绘制（使用默认字体）
-                    setTimeout(() => {
-                        this.drawCanvas();
-                    }, 100);
-                }
-            });
+            const fontFamily = this.shareConfig.fontFamily || 'Huiwen-mincho';
+            const fontSourceMap = {
+                'Huiwen-mincho': '/static/fonts/Huiwen-mincho.otf',
+                '文楷': '/static/fonts/文楷.ttf',
+                '蒲瓜正楷体': '/static/fonts/蒲瓜正楷体.ttf',
+                '龙藏体': '/static/fonts/龙藏体.ttf',
+                '小小皓体': '/static/fonts/小小皓体.ttf'
+            };
+
+            // 字体缩放系数映射表 - 解决不同字体在相同字号下大小差异问题
+            const fontScaleMap = {
+                'Huiwen-mincho': 1.0,
+                '文楷': 1.0,
+                '蒲瓜正楷体': 1.0,
+                '龙藏体': 1.0,
+                '小小皓体': 1.0
+            };
+
+            // 应用字体缩放系数到shareConfig
+            const fontScale = fontScaleMap[fontFamily] || 1.0;
+            this.shareConfig.fontScale = fontScale;
+
+            const fontSource = fontSourceMap[fontFamily];
+            
+            if (fontSource) {
+                console.log('【post-detail】加载字体:', fontFamily, fontSource);
+                uni.loadFontFace({
+                    family: fontFamily,
+                    source: `url("${fontSource}")`,
+                    success: () => {
+                        console.log('【post-detail】字体加载成功:', fontFamily);
+                        // 延迟一下确保DOM已渲染
+                        setTimeout(() => {
+                            this.drawCanvas();
+                        }, 100);
+                    },
+                    fail: (err) => {
+                        console.error('【post-detail】字体加载失败:', fontFamily, err);
+                        // 即使字体加载失败，也继续绘制（使用默认字体）
+                        setTimeout(() => {
+                            this.drawCanvas();
+                        }, 100);
+                    }
+                });
+            } else {
+                // 系统字体或未知字体，直接绘制
+                console.log('【post-detail】使用系统字体:', fontFamily);
+                setTimeout(() => {
+                    this.drawCanvas();
+                }, 50);
+            }
         },
 
   
@@ -846,28 +916,34 @@ export default {
                 const content = this.post.content || '';
                 const lines = content.split('\n');
                 
-                // 字体设置 - 完全按照poem-square的样式
-                const fontSize = 38; // 进一步增大字号到38px
-                const lineHeight = 48; // 相应调整行高
-                const fontFamily = 'Huiwen-mincho, sans-serif';
+                // 字体设置 - 使用动态配置
+                const baseFontSize = this.shareConfig.fontSize || 38;
+                const fontScale = this.shareConfig.fontScale || 1.0;
+                const fontSize = Math.round(baseFontSize * fontScale); // 应用字体缩放系数
+                const lineHeight = Math.round(fontSize * 1.26); // 行高为字号的1.26倍
+                const fontFamily = this.shareConfig.fontFamily || 'Huiwen-mincho';
+                const actualFontFamily = fontFamily === 'system' ? 'sans-serif' : fontFamily + ', sans-serif';
                 
-                // 设置字体 - 使用加载的自定义字体
-                ctx.font = fontSize + 'px Huiwen-mincho, sans-serif';
+                console.log('【drawCanvas】字体缩放:', { fontFamily, baseFontSize, fontScale, fontSize });
+                
+                // 设置字体 - 使用缩放后的字号
+                ctx.font = fontSize + 'px ' + actualFontFamily;
 
-                // 计算文字区域尺寸
-                const textPadding = 80; // 增大左右padding
-                const textTopPadding = 80; // 增大上padding
-                const textBottomPadding = 60; // 进一步增大下padding
+                // 计算文字区域尺寸 - 优化padding给文本更多空间
+                const textPadding = 60; // 优化：减少左右padding，避免提早换行
+                const textTopPadding = 80; // 保持上padding
+                const textBottomPadding = 60; // 保持下padding
 
-                // 标题字体设置
-                const titleFontSize = 46; // 标题字号比正文大
-                const titleLineHeight = 56; // 相应调整标题行高
-                const titleBottomSpacing = 32; // 标题与正文的间距
+                // 标题字体设置 - 使用动态配置，同样应用缩放系数
+                const baseTitleFontSize = this.shareConfig.titleFontSize || Math.round(baseFontSize * 1.21);
+                const titleFontSize = Math.round(baseTitleFontSize * fontScale); // 标题也应用相同缩放系数
+                const titleLineHeight = Math.round(titleFontSize * 1.22); // 标题行高
+                const titleBottomSpacing = Math.round(fontSize * 0.84); // 标题与正文的间距
 
                 // 计算画布尺寸 - 固定宽度，高度自适应
                 // 使用与poem-square页面一致的尺寸比例
                 const canvasWidth = 750; // 增大卡片宽度到750px
-                const textAreaWidth = canvasWidth - 160; // 减去左右padding (80*2)
+                const textAreaWidth = canvasWidth - 120; // 优化：减少padding，给文本更多空间 (60*2)
 
                 // 【新增】使用精确的文字测量函数计算实际行数
                 const actualLines = calcLines(ctx, content, textAreaWidth, fontSize);
@@ -924,15 +1000,8 @@ export default {
                             : 0)
                     + textBottomPadding + 10;
 
-                // 【优化】更智能的高度调整策略
-                if (false && actualLines > 8) {
-                    // 超过8行就增加缓冲，避免计算误差
-                    const extraHeight = (actualLines - 8) * lineHeight * 1.2; // 1.2倍缓冲
-                    finalCanvasHeight += extraHeight;
-                }
-
-                // 【优化】增加额外的安全边距，确保底部有足够空间
-                const safetyMargin = 0;
+                // 【修复】增加额外的安全边距，确保不同字体大小下都有足够空间
+                const safetyMargin = Math.max(60, Math.ceil(lineHeight * 1.5)); // 动态安全边距
                 finalCanvasHeight += safetyMargin;
                 
                 const canvasHeight = Math.ceil(finalCanvasHeight);
@@ -940,16 +1009,16 @@ export default {
                 if (this.$nextTick) { await new Promise(r => this.$nextTick(r)); }
                 
                 
-                // 绘制圆角背景 - 模拟poem-square的卡片样式
-                const bgColor = this.post.backgroundColor || '#FFFFFF';
+                // 绘制圆角背景 - 使用动态颜色配置
+                const bgColor = this.shareConfig.backgroundColor || this.post.backgroundColor || '#FFFFFF';
                 
-                // 绘制圆角背景 - 模拟poem-square的卡片样式
+                // 绘制圆角背景
                 ctx.setFillStyle(bgColor);
                 this.drawRoundedRect(ctx, 0, 0, canvasWidth, canvasHeight, 15);
                 ctx.fill();
                 
-                // 绘制文字内容
-                const textColor = this.post.textColor || '#000000';
+                // 绘制文字内容 - 使用动态颜色配置
+                const textColor = this.shareConfig.textColor || this.post.textColor || '#000000';
                 ctx.setFillStyle(textColor);
                 ctx.setTextAlign('left');
                 
@@ -957,12 +1026,13 @@ export default {
                 const title = this.post.title || '';
                 if (title) {
                     // 设置标题字体
-                    ctx.font = titleFontSize + 'px Huiwen-mincho, sans-serif';
+                    ctx.font = titleFontSize + 'px ' + actualFontFamily;
                     ctx.setFillStyle(textColor);
                     ctx.setTextAlign('left');
                     
                     // 【修复】对标题也应用换行处理，避免标题过长溢出
-                    const titleLines = wrapCanvasText(ctx, title, textAreaWidth, titleFontSize);
+                    // 确保wrapCanvasText使用正确的标题字体参数
+                    const titleLines = wrapCanvasText(ctx, title, textAreaWidth, titleFontSize, actualFontFamily);
                     
                     // 绘制标题（支持多行）
                     let titleY = textTopPadding + titleFontSize;
@@ -978,7 +1048,7 @@ export default {
                     });
                     
                     // 恢复正文字体
-                    ctx.font = fontSize + 'px Huiwen-mincho, sans-serif';
+                    ctx.font = fontSize + 'px ' + actualFontFamily;
                 }
                 
                 // 【修改】使用处理后的行数组进行绘制，确保长文本正确换行
@@ -1003,37 +1073,34 @@ export default {
                 });
                 
                 
-                // 绘制签名 - 模拟poem-square的签名位置（匿名或非原创诗歌不绘制签名）
+                // 绘制签名 - 修复签名位置，确保不超出canvas边界
                 if (this.post.authorSignature && shouldShowSignature) {
                     // 缩小签名尺寸
                     const fixedSignatureWidth = 120; // 缩小签名宽度到120px
-                    const __wmMargin = 36, __wmW = 220, __wmH = 180, __sigPad = 12;
-                    const signatureX = canvasWidth - __wmW - __wmMargin + __sigPad; // 调整右边距到60px
-                    const signatureY = y + signatureTopGap; // 增大签名下边距，从底部向上160px开始绘制
+                    const signatureMargin = 40; // 简化边距设置
 
-                    // 让签名位于右下角水印区域内
-                    const __wmMargin2 = 24, __wmW2 = 220, __wmH2 = 180, __sigPad2 = 12;
-                    const sigX = canvasWidth - __wmW2 - __wmMargin2 + __sigPad2;
-                    const sigY = (canvasHeight - __wmH2 - __wmMargin2) + (__wmH2 - signatureDrawHeight - __sigPad2);
+                    // 动态计算签名位置，确保在canvas内
+                    const signatureX = canvasWidth - fixedSignatureWidth - signatureMargin;
+                    const signatureY = Math.min(y + signatureTopGap, canvasHeight - signatureDrawHeight - signatureMargin);
 
                     // 使用 await 等待异步绘制函数完成，固定宽度，高度自适应
                     await drawImageAsync(
                         ctx,
                         this.post.authorSignature,
-                        sigX,
-                        sigY,
+                        signatureX,
+                        signatureY,
                         fixedSignatureWidth
                     );
                 }
-                else if (shouldShowSignature) { 
+                else if (shouldShowSignature) {
                     const authorName = ((this.post.authorName || this.post.author || '') + '').trim();
                     if (authorName) {
                         ctx.setTextAlign('right');
                         ctx.setFillStyle(textColor);
                         ctx.font = signatureTextFontSize + 'px Huiwen-mincho, sans-serif';
-                        const __wmMargin3 = 24, __sigInset3 = 24;
-                        const sigTextX = canvasWidth - __wmMargin3 - __sigInset3;
-                        const sigTextY = canvasHeight - __wmMargin3 - __sigInset3;
+                        const textMargin = 48; // 统一文本边距
+                        const sigTextX = canvasWidth - textMargin;
+                        const sigTextY = Math.max(canvasHeight - textMargin, y + signatureTopGap); // 确保不与正文重叠
                         ctx.fillText(authorName, sigTextX, sigTextY);
                         ctx.setTextAlign('left');
                     }
@@ -1045,9 +1112,9 @@ export default {
                         ctx.setTextAlign('right');
                         ctx.setFillStyle(textColor);
                         ctx.font = signatureTextFontSize + 'px Huiwen-mincho, sans-serif';
-                        const __wmMargin3 = 24, __sigInset3 = 24;
-                        const sigTextX = canvasWidth - __wmMargin3 - __sigInset3;
-                        const sigTextY = canvasHeight - __wmMargin3 - __sigInset3;
+                        const textMargin = 48; // 统一文本边距
+                        const sigTextX = canvasWidth - textMargin;
+                        const sigTextY = Math.max(canvasHeight - textMargin, y + signatureTopGap); // 确保不与正文重叠
                         ctx.fillText(originalAuthor, sigTextX, sigTextY);
                         ctx.setTextAlign('left');
                     }
@@ -1586,6 +1653,111 @@ export default {
                     icon: 'none'
                 });
             }
+        },
+
+        // 字体设置相关事件处理
+        onFontSizePreview: function(fontSize) {
+            // 实时预览字号变化，使用防抖
+            // 确保fontScale也被正确设置
+            const fontFamily = this.shareConfig.fontFamily || 'Huiwen-mincho';
+            const fontScaleMap = {
+                'Huiwen-mincho': 1.0,
+                '文楷': 1.0,
+                '蒲瓜正楷体': 1.0,
+                '龙藏体': 1.0,
+                '小小皓体': 1.0
+            };
+            const fontScale = fontScaleMap[fontFamily] || 1.0;
+            
+            this.debouncedRegenerateImage({
+                ...this.shareConfig,
+                fontSize: fontSize,
+                titleFontSize: Math.round(fontSize * 1.21), // 标题字号比正文大21%
+                fontScale: fontScale // 确保fontScale被正确设置
+            });
+        },
+
+        onFontFamilyPreview: function(fontFamily) {
+            // 实时预览字体变化，使用防抖
+            // 确保fontScale也被正确设置
+            const fontScaleMap = {
+                'Huiwen-mincho': 1.0,
+                '文楷': 1.0,
+                '蒲瓜正楷体': 1.0,
+                '龙藏体': 1.0,
+                '小小皓体': 1.0
+            };
+            const fontScale = fontScaleMap[fontFamily] || 1.0;
+            
+            this.debouncedRegenerateImage({
+                ...this.shareConfig,
+                fontFamily: fontFamily,
+                fontScale: fontScale // 确保fontScale被正确设置
+            });
+        },
+
+        onFontSettingsChange: function(settings) {
+            // 确认字体设置变化
+            this.shareConfig = {
+                ...this.shareConfig,
+                fontSize: settings.fontSize,
+                titleFontSize: Math.round(settings.fontSize * 1.21),
+                fontFamily: settings.fontFamily
+            };
+            this.regenerateShareImage();
+        },
+
+        onColorChange: function(colorConfig) {
+            // 颜色变化
+            this.shareConfig = {
+                ...this.shareConfig,
+                backgroundColor: colorConfig.backgroundColor,
+                textColor: colorConfig.textColor
+            };
+            this.regenerateShareImage();
+        },
+
+        // 防抖重新生成图片（300ms延迟）
+        debouncedRegenerateImage: function(tempConfig) {
+            clearTimeout(this.regenerateTimeout);
+            this.regenerateTimeout = setTimeout(() => {
+                const oldConfig = { ...this.shareConfig };
+                this.shareConfig = tempConfig;
+                this.regenerateShareImage();
+                // 预览完成后可以选择是否恢复原配置，这里保持新配置用于实时预览
+            }, 300);
+        },
+
+        // 重新生成分享图片
+        regenerateShareImage: function() {
+            console.log('【post-detail】重新生成分享图片，新配置:', this.shareConfig);
+            this.shareImageUrl = '';
+            this.shareImageRetryCount = 0;
+            // 重置Canvas高度，强制重新计算
+            this.shareCanvasHeight = 1000;
+            // 延迟一下确保UI更新和配置生效
+            this.$nextTick(() => {
+                // 再次延迟确保所有状态都已更新
+                setTimeout(() => {
+                    this.generateShareImage();
+                }, 50);
+            });
+        },
+
+        // 强制重新生成Canvas（弹窗关闭后）
+        forceRegenerateCanvas: function() {
+            console.log('【post-detail】强制重新生成Canvas，确保无遮挡渲染');
+            // 清除当前图片，重置状态
+            this.shareImageUrl = '';
+            this.shareImageRetryCount = 0;
+            this.shareCanvasHeight = 1000;
+
+            // 延迟重新生成，确保DOM完全更新
+            this.$nextTick(() => {
+                setTimeout(() => {
+                    this.generateShareImage();
+                }, 200); // 增加延迟确保所有动画完成
+            });
         },
 
         // 尝试将base64转换为临时文件
@@ -2513,6 +2685,27 @@ export default {
             }
         },
 
+        // 点击诗人名跳转到诗人主页（仅非原创诗）
+        onPoetNameTap: function () {
+            if (!this.post || !this.post.author) return;
+            
+            // 只有非原创诗才跳转
+            if (this.post.isOriginal) {
+                return;
+            }
+            
+            // 如果作者名和发布用户昵称相同，可能是用户上传错误，不创建诗人主页
+            const poetName = this.post.author;
+            const authorName = this.post.authorName || this.post.authorNameSnapshot || '';
+            if (poetName.trim() === authorName.trim()) {
+                return;
+            }
+            
+            uni.navigateTo({
+                url: `/pages-user/poet-profile/poet-profile?poetName=${encodeURIComponent(poetName)}`
+            });
+        },
+
         navigateToUserProfile: function (e) {
             try {
                 console.log('【详情页头像点击】函数被调用，事件对象:', e);
@@ -3078,6 +3271,10 @@ page {
     margin: 10rpx 0 15rpx 0;
     font-weight: bold;
     letter-spacing: 2rpx;
+}
+
+.poem-author-clickable:active {
+    opacity: 0.7;
 }
 
 .post-content {
@@ -3790,6 +3987,127 @@ page {
 .edit-modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .modal-cancel { background: #eee; }
 .modal-confirm { background: #3797ff; color: #fff; }
+
+/* ========== 过渡动画 ========== */
+
+/* 帖子详情内容淡入动画 */
+.post-detail-wrapper {
+    animation: detailFadeIn 0.4s ease-out;
+}
+
+@keyframes detailFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20rpx);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 图片加载淡入动画 */
+.post-image {
+    animation: imageFadeIn 0.5s ease-out;
+}
+
+@keyframes imageFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* 点赞按钮点击弹跳动画 */
+.like-icon-container.liked-animation {
+    animation: likeBouncePop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.6);
+}
+
+@keyframes likeBouncePop {
+    0% { transform: scale(1); }
+    25% { transform: scale(0.8); }
+    50% { transform: scale(1.25); }
+    75% { transform: scale(0.95); }
+    100% { transform: scale(1); }
+}
+
+/* 点赞数字变化动画 */
+.vote-count.vote-changed {
+    animation: voteNumberPop 0.3s ease;
+}
+
+@keyframes voteNumberPop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+/* 评论区淡入动画 */
+.comment-section {
+    animation: commentFadeIn 0.4s ease-out 0.1s both;
+}
+
+@keyframes commentFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(15rpx);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 单条评论淡入动画 */
+.comment-item {
+    animation: commentItemFadeIn 0.3s ease-out both;
+}
+
+@keyframes commentItemFadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(-10rpx);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* 底部操作栏滑入动画 */
+.bottom-action-bar {
+    animation: bottomBarSlideIn 0.3s ease-out;
+}
+
+@keyframes bottomBarSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+/* 标签淡入动画 */
+.tags-section {
+    animation: tagsFadeIn 0.4s ease-out 0.15s both;
+}
+
+@keyframes tagsFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
 
 </style>
 

@@ -471,17 +471,21 @@ async function addToFavorite(openid, postId, folderId) {
       if (post._openid === openid) {
         console.log('用户给自己收藏，不发送通知')
       } else {
-        // 创建消息记录
-        const contentType = post.contentType || 'post'; // 获取内容类型
-        let contentTypeText = '';
-        if (contentType === 'original') {
-          contentTypeText = '原创诗歌';
-        } else if (contentType === 'non-original') {
-          contentTypeText = '转载诗歌';
-        } else if (contentType === 'discussion') {
+        // 根据帖子实际字段确定内容类型
+        let contentType = 'post';
+        let contentTypeText = '帖子';
+        
+        if (post.isDiscussion) {
+          contentType = 'discussion';
           contentTypeText = '讨论';
-        } else {
-          contentTypeText = '帖子';
+        } else if (post.isPoem) {
+          if (post.isOriginal) {
+            contentType = 'original';
+            contentTypeText = '原创诗歌';
+          } else {
+            contentType = 'non-original';
+            contentTypeText = '诗歌';
+          }
         }
         
         await db.collection('messages').add({

@@ -28,7 +28,7 @@
         </view>
 
         <!-- 可点击的内容区域 - 跳转到详情页 -->
-        <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item._id" hover-class="navigator-hover">
+        <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item._id" hover-class="none">
             <view class="post-item">
                 <view class="post-title">{{ item.title }} <text v-if="item.isHidden" class="hidden-tag">已隐藏</text></view>
                 <!-- 诗歌作者信息 -->

@@ -138,7 +138,7 @@ exports.main = async (event, context) => {
   const wxCtxOpenid = wxContext.OPENID;
   const eventOpenid = event.openid;
   const openid = eventOpenid || wxCtxOpenid;
-  const { skip = 0, limit = 10, isPoem, isOriginal, isDiscussion, tag = '' } = event; // 添加isPoem、isOriginal、isDiscussion和tag参数
+  const { skip = 0, limit = 10, isPoem, isOriginal, isDiscussion, tag = '', author = '' } = event; // 添加author参数用于诗人筛选
 
   console.log('🔍 [getPostList] 解析参数:', {
     eventOpenid: eventOpenid ? '提供' : '未提供',
@@ -150,7 +150,8 @@ exports.main = async (event, context) => {
     isPoem,
     isOriginal,
     isDiscussion,
-    tag
+    tag,
+    author
   });
 
   if (!openid) {
@@ -241,6 +242,12 @@ exports.main = async (event, context) => {
         matchConditions.isDiscussion = _.neq(true);
       }
       console.log('🔍 [getPostList] 添加isDiscussion筛选条件:', isDiscussion);
+    }
+    
+    // 按诗人（作者）筛选
+    if (author && author.trim()) {
+      matchConditions.author = author.trim();
+      console.log('🔍 [getPostList] 添加author筛选条件:', author);
     }
     
     // 过滤被屏蔽用户的帖子（查询阶段先过滤 _openid，结果处理阶段再过滤 realAuthorOpenid）

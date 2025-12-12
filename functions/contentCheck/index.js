@@ -375,6 +375,41 @@ exports.main = async (event, context) => {
       insertedCount: result.stats?.inserted || 1
     });
 
+    // ------------------- 4. 非原创诗歌自动创建诗人主页 -------------------
+    if (publishMode === 'poem' && !isOriginal && authorName && authorName.trim()) {
+      try {
+        const poetName = authorName.trim();
+        console.log('检查诗人主页是否存在:', poetName);
+        
+        // 查询诗人是否已存在
+        const poetResult = await db.collection('poets')
+          .where({ name: poetName })
+          .limit(1)
+          .get();
+        
+        if (!poetResult.data || poetResult.data.length === 0) {
+          // 诗人不存在，自动创建
+          console.log('诗人主页不存在，自动创建:', poetName);
+          const newPoet = {
+            name: poetName,
+            avatar: '',  // 默认无头像
+            bio: '',     // 默认无简介
+            createTime: db.serverDate(),
+            updateTime: db.serverDate(),
+            creatorOpenid: currentOpenid  // 记录谁首次触发创建
+          };
+          
+          const poetAddResult = await db.collection('poets').add({ data: newPoet });
+          console.log('诗人主页创建成功:', poetAddResult._id);
+        } else {
+          console.log('诗人主页已存在，无需创建:', poetName);
+        }
+      } catch (poetError) {
+        // 诗人主页创建失败不影响帖子发布
+        console.warn('自动创建诗人主页失败（不影响发帖）:', poetError);
+      }
+    }
+
     // 全部成功，返回成功状态
     return {
       code: 0,

@@ -266,18 +266,6 @@
               "memory": 128
             },
             {
-              "name": "backfillPostMetadata",
-              "root": "./functions/backfillPostMetadata",
-              "timeout": 60,
-              "memory": 256
-            },
-            {
-              "name": "backfillPostSignatures",
-              "root": "./functions/backfillPostSignatures",
-              "timeout": 60,
-              "memory": 256
-            },
-            {
               "name": "syncUserPostsMetadata",
               "root": "./functions/syncUserPostsMetadata",
               "timeout": 60,
@@ -394,12 +382,6 @@
               "memory": 256
             },
             {
-              "name": "backfillGrowthCounts",
-              "root": "./functions/backfillGrowthCounts",
-              "timeout": 120,
-              "memory": 256
-            },
-            {
               "name": "getCollagePoetry",
               "root": "./functions/getCollagePoetry",
               "timeout": 10,
@@ -462,6 +444,54 @@
             {
               "name": "github-auth",
               "root": "./functions/github-auth",
+              "timeout": 10,
+              "memory": 256
+            },
+            {
+              "name": "getOtherPortfolioItems",
+              "root": "./functions/getOtherPortfolioItems",
+              "timeout": 10,
+              "memory": 256
+            },
+            {
+              "name": "getPoetInfo",
+              "root": "./functions/getPoetInfo",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "getPoetList",
+              "root": "./functions/getPoetList",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "getPoetPosts",
+              "root": "./functions/getPoetPosts",
+              "timeout": 10,
+              "memory": 256
+            },
+            {
+              "name": "loginWithPhone",
+              "root": "./functions/loginWithPhone",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "sendSmsCode",
+              "root": "./functions/sendSmsCode",
+              "timeout": 10,
+              "memory": 128
+            },
+            {
+              "name": "updateFavoriteFolder",
+              "root": "./functions/updateFavoriteFolder",
+              "timeout": 5,
+              "memory": 128
+            },
+            {
+              "name": "updatePoetInfo",
+              "root": "./functions/updatePoetInfo",
               "timeout": 10,
               "memory": 256
             }

@@ -16,9 +16,6 @@
                     <view class="clear-btn" @tap="clearAllMessages">
                         <text>清空</text>
                     </view>
-                    <view class="mark-all-read-btn" @tap="markAllAsRead">
-                        <text>全部已读</text>
-                    </view>
                 </view>
             </view>
         </view>
@@ -52,9 +49,6 @@
             <view class="message-item-wrapper" v-for="(item, index) in messages" :key="index">
                 <!-- 左滑操作按钮 -->
                 <view class="swipe-actions" :class="{ 'swipe-actions-show': item.isSwipeOpen }">
-                    <view class="action-btn mark-read-btn" @tap.stop="markMessageAsRead" :data-index="index">
-                        <text>已读</text>
-                    </view>
                     <view class="action-btn delete-btn" @tap.stop="deleteMessage" :data-messageid="item._id" :data-index="index">
                         <text>删除</text>
                     </view>
@@ -337,17 +331,6 @@ export default {
                 title: '暂未找到可跳转的内容',
                 icon: 'none'
             });
-        },
-
-        // 标记消息为已读
-        markMessageAsRead(e) {
-            const index = parseInt(e.currentTarget.dataset.index);
-            const message = this.messages[index];
-            if (message && !message.isRead) {
-                this.markMessagesAsRead([message._id]);
-                // 关闭滑动操作
-                this.closeAllSwipeActions();
-            }
         },
 
         // 滚动到顶部刷新
@@ -764,26 +747,13 @@ export default {
         },
 
 
-        // 标记全部为已读
-        markAllAsRead: function () {
-            const unreadMessages = this.messages.filter(msg => !msg.isRead);
-            if (unreadMessages.length === 0) {
-                uni.showToast({
-                    title: '没有未读消息',
-                    icon: 'none'
-                });
-                return;
-            }
-            
-            const messageIds = unreadMessages.map(msg => msg._id);
-            this.markMessagesAsRead(messageIds);
-        },
-
         // 获取动作文本
         getActionText: function (type, contentType) {
             // 根据内容类型确定显示文本
             let contentTypeText = '';
-            if (contentType === 'original') {
+            if (contentType === 'comment') {
+                contentTypeText = '评论';
+            } else if (contentType === 'original') {
                 contentTypeText = '诗';
             } else if (contentType === 'non-original') {
                 contentTypeText = '诗';
@@ -977,7 +947,7 @@ export default {
     gap: 20rpx;
 }
 
-.clear-btn, .mark-all-read-btn {
+.clear-btn {
     padding: 8rpx 16rpx;
     background-color: #D9D9D9;
     border: none;
@@ -989,7 +959,7 @@ export default {
     justify-content: center;
 }
 
-.clear-btn text, .mark-all-read-btn text {
+.clear-btn text {
     font-size: 24rpx;
     color: #989090;
     font-weight: 500;
@@ -1038,7 +1008,7 @@ export default {
     z-index: 1;
     transform: translateX(100%);
     transition: transform 0.3s ease;
-    width: 300rpx;
+    width: 150rpx;
 }
 
 .swipe-actions.swipe-actions-show {
@@ -1054,10 +1024,6 @@ export default {
     font-size: 24rpx;
     min-width: 80rpx;
     flex: 1;
-}
-
-.mark-read-btn {
-    background-color: #999999;
 }
 
 .delete-btn {

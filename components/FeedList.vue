@@ -39,6 +39,7 @@
                 :swiper-height="swiperHeights[index]"
                 :show-vote-section="true"
                 :list-type="listType"
+                :show-poem-author="showPoemAuthor"
                 @avatar-error="$emit('avatar-error', $event)"
                 @avatar-load="$emit('avatar-load', $event)"
                 @navigate-to-user="$emit('navigate-to-user', $event)"
@@ -152,6 +153,11 @@ export default {
         hasEverLoaded: {
             type: Boolean,
             default: false
+        },
+        // 是否显示诗歌作者
+        showPoemAuthor: {
+            type: Boolean,
+            default: true
         }
     },
     data() {

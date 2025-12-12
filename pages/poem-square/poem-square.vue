@@ -4,14 +4,14 @@
     <top-bar />
 
     <!-- 只看关注切换按钮 - 只在非关注模式下显示 -->
-    <view v-if="!showFollowingOnly" class="filter-toggle-container">
+    <view v-if="!showFollowingOnly" class="filter-toggle-container" :style="{ top: (safeAreaTop * 2 + 160) + 'rpx' }">
       <view class="filter-toggle-btn" @tap="toggleFollowingFilter">
         <text class="filter-toggle-text">只看关注</text>
       </view>
     </view>
 
     <!-- 关注头像栏 - 只在关注模式下显示 -->
-    <view v-if="showFollowingOnly" class="following-avatar-bar-wrapper">
+    <view v-if="showFollowingOnly" class="following-avatar-bar-wrapper" :style="{ top: (safeAreaTop * 2 + 140) + 'rpx' }">
       <following-avatar-bar
         ref="followingAvatarBar"
         :selected-user-id="followingSelectedUserId"
@@ -21,12 +21,17 @@
     </view>
 
     <!-- 加载中骨架 -->
-    <view v-if="isLoading">
-      <skeleton pageType="poem" />
+    <!-- 在存在关注组件时不显示骨架屏 -->
+    <view v-if="isLoading && !showFollowingOnly">
+      <skeleton
+        pageType="poem"
+        :hasFilterBar="false"
+        filterBarType=""
+      />
     </view>
 
     <!-- 内容列表 -->
-    <view v-else :class="['square-mode-container', showFollowingOnly ? 'with-avatar-bar' : '']">
+    <view v-else :class="['square-mode-container', showFollowingOnly ? 'with-avatar-bar' : '']" :style="{ paddingTop: showFollowingOnly ? ((safeAreaTop * 2 + 360) + 'rpx') : ((safeAreaTop * 2 + 250) + 'rpx') }">
       <view v-if="postList.length === 0" class="empty-state">
         <view class="empty-icon">😶</view>
         <view class="empty-text">{{ showFollowingOnly ? '关注的人还没有发布诗歌哦～' : '还没刷出来，再等等~' }}</view>
@@ -271,34 +276,104 @@ export default {
           platform: systemInfo.platform
         });
 
-        // 动态设置安全区域 - 使用uni-app兼容方式
-        if (systemInfo.statusBarHeight) {
-          const safeAreaTop = systemInfo.statusBarHeight;
-          console.log('【poem-square】使用状态栏高度作为安全区域:', safeAreaTop);
-          
-          // 在uni-app中，我们可以通过设置页面数据来动态调整样式
-          this.setData({
-            safeAreaTop: safeAreaTop
-          });
-          
-          // 尝试设置CSS变量（仅在支持的环境中）
-          try {
-            if (typeof document !== 'undefined' && document.documentElement) {
-              document.documentElement.style.setProperty('--safe-area-inset-top', safeAreaTop + 'px');
-              console.log('【poem-square】CSS变量设置成功');
-            }
-          } catch (cssError) {
-            console.log('【poem-square】CSS变量设置失败，使用数据绑定方式:', cssError);
-          }
+        // 动态设置安全区域 - 优先使用safeAreaInsets.top，其次使用statusBarHeight
+        let safeAreaTop = 0;
+
+        // #ifdef APP-PLUS
+        // 在app端，优先使用safeAreaInsets.top
+        if (systemInfo.safeAreaInsets && systemInfo.safeAreaInsets.top > 0) {
+          safeAreaTop = systemInfo.safeAreaInsets.top;
+          console.log('【poem-square】使用safeAreaInsets.top作为安全区域:', safeAreaTop);
+        } else if (systemInfo.statusBarHeight) {
+          safeAreaTop = systemInfo.statusBarHeight;
+          console.log('【poem-square】使用statusBarHeight作为安全区域:', safeAreaTop);
         }
+        // #endif
+
+        // #ifndef APP-PLUS
+        // 在H5端，使用statusBarHeight
+        if (systemInfo.statusBarHeight) {
+          safeAreaTop = systemInfo.statusBarHeight;
+          console.log('【poem-square】使用statusBarHeight作为安全区域:', safeAreaTop);
+        }
+        // #endif
+
+        // 设置页面数据
+        this.setData({
+          safeAreaTop: safeAreaTop
+        });
+
+        // 设置CSS变量 - 适配不同平台
+        try {
+          // #ifdef H5
+          if (typeof document !== 'undefined' && document.documentElement) {
+            document.documentElement.style.setProperty('--safe-area-top', safeAreaTop + 'px');
+            console.log('【poem-square】H5端CSS变量设置成功: --safe-area-top =', safeAreaTop + 'px');
+          }
+          // #endif
+
+          // #ifdef APP-PLUS
+          // 在app端，通过page的style设置CSS变量
+          const pages = getCurrentPages();
+          if (pages.length > 0) {
+            const currentPage = pages[pages.length - 1];
+            if (currentPage && currentPage.$el) {
+              currentPage.$el.style.setProperty('--safe-area-top', safeAreaTop + 'px');
+              console.log('【poem-square】APP端CSS变量设置成功: --safe-area-top =', safeAreaTop + 'px');
+            }
+          }
+          // #endif
+        } catch (cssError) {
+          console.log('【poem-square】CSS变量设置失败，使用数据绑定方式:', cssError);
+        }
+
+        // 备用方案：直接修改页面根元素样式
+        try {
+          // #ifdef APP-PLUS
+          const app = getApp();
+          if (app.globalData) {
+            app.globalData.safeAreaTop = safeAreaTop;
+          }
+          // #endif
+        } catch (_) {}
+
       } catch (error) {
         console.error('【poem-square】安全区域调试失败:', error);
+        // 使用默认值
+        this.setData({
+          safeAreaTop: 44
+        });
       }
     },
 
         getIndexData(callback) {
       console.log('【poem-square】开始获取数据，callback:', typeof callback);
-      // 先尝试从缓存获取第一页数据，立即显示给用户
+
+      // 判断是否是用户筛选操作
+      const isUserFiltering = this.showFollowingOnly && this.followingSelectedUserId;
+
+      if (isUserFiltering) {
+        // 用户筛选时：立即清空列表，显示加载状态
+        console.log('🔍 [poem-square] 用户筛选模式，立即清空列表');
+        this.setData({
+          postList: [],
+          page: 0,
+          hasMore: true,
+          isLoading: true,
+          isLoadingMore: false,
+          _loadingLock: false
+        });
+        this.getPostList(() => {
+          console.log('【poem-square】用户筛选 getPostList 完成，设置 isLoading: false');
+          this.setData({ isLoading: false });
+          if (typeof callback === 'function') {
+            callback();
+          }
+        });
+        return;
+      }
+
+      // 非筛选模式：先尝试从缓存获取第一页数据，立即显示给用户
       const ns = cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 });
       const cacheKey = 'page:0:size:10:poem:true:orig:true:exclAnon:true';
       
@@ -446,16 +521,15 @@ export default {
     // 关注头像栏用户选择处理
     onFollowingUserSelect(userId) {
       console.log('【poem-square】选择关注用户:', userId);
-      
+
       // 如果选择的用户没变，不做处理
       if (this.followingSelectedUserId === userId) {
         return;
       }
-      
+
       // 更新选中状态并重新加载帖子
       this.setData({
         followingSelectedUserId: userId,
-        postList: [],
         page: 0,
         hasMore: true,
         isLoading: true
@@ -627,14 +701,21 @@ export default {
       
       let newPostList;
       if (this.page === 0) {
-        // 第一页：如果是刷新缓存数据，需要合并到现有列表
-        if (this.postList.length > 0) {
+        // 第一页：判断是否是用户筛选操作
+        const isUserFiltering = this.showFollowingOnly && this.followingSelectedUserId;
+
+        if (isUserFiltering) {
+          // 用户筛选时直接替换列表
+          console.log('🔍🔍🔍 【poem-square】用户筛选，直接替换列表');
+          newPostList = visibleList;
+        } else if (this.postList.length > 0) {
+          // 第一页刷新：合并缓存数据
           console.log('🔍🔍🔍 【poem-square】第一页刷新，现有列表:', this.postList.length, '新数据:', visibleList.length);
           // 检查是否有新帖子
           const existingIds = new Set(this.postList.map(post => post._id).filter(Boolean));
           const newPosts = visibleList.filter(post => post && post._id && !existingIds.has(post._id));
           console.log('🔍🔍🔍 【poem-square】真正的新帖子数量:', newPosts.length);
-          
+
           if (newPosts.length > 0) {
             // 有新帖子，补充到列表前面（最新的在前面）
             newPostList = [...newPosts, ...this.postList];
@@ -910,14 +991,14 @@ export default {
 .square-mode-container {
   padding: 100rpx;
   margin-bottom: 200rpx;
-  padding-top: 250rpx; /* 与山界面保持一致 */
+  padding-top: calc(var(--safe-area-top, 44px) + 250rpx); /* 动态计算：安全区域 + 基础间距 */
 }
 
 .square-mode-container.with-avatar-bar {
-  padding-top: 360rpx; /* 关注模式下为头像栏留出空间 */
+  padding-top: calc(var(--safe-area-top, 44px) + 360rpx); /* 动态计算：安全区域 + 头像栏高度 */
   display: flex;
   flex-direction: column;
-  align-items: stretch; 
+  align-items: stretch;
 }
 .empty-state { text-align: center; padding: 100rpx 0; color: #999; }
 .empty-icon { font-size: 80rpx; margin-bottom: 20rpx; }
@@ -1024,8 +1105,8 @@ export default {
 /* 只看关注切换按钮 - 在写作入口下方 */
 .filter-toggle-container {
   position: absolute;
-  top: calc(env(safe-area-inset-top, 44px) + 120rpx); /* 状态栏高度 + 顶部栏高度 + 额外间距 */
-  left: 30rpx;
+  top: calc(var(--safe-area-top, 44px) + 160rpx); /* 使用动态变量的安全区域高度，增加40rpx */
+  right: 30rpx; /* 改为右对齐 */
   z-index: 1;
 }
 
@@ -1065,7 +1146,7 @@ export default {
 /* 关注头像栏定位 */
 .following-avatar-bar-wrapper {
   position: absolute;
-  top: calc(env(safe-area-inset-top, 44px) + 140rpx); /* 紧贴顶部栏下方 */
+  top: calc(var(--safe-area-top, 44px) + 140rpx); /* 使用动态变量的安全区域高度 */
   left: 0;
   right: 0;
   z-index: 10;

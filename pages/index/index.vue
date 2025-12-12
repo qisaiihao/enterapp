@@ -29,6 +29,7 @@
                             :has-ever-loaded="homeHasEverLoaded"
                             :refresher-triggered="isRefreshing"
                             :swiper-heights="swiperHeights"
+                            :show-poem-author="false"
                             list-type="home"
                             container-id="post-list-container"
                             empty-icon="📝"
@@ -76,6 +77,7 @@
                             :has-ever-loaded="followingHasEverLoaded"
                             :refresher-triggered="isRefreshing"
                             :swiper-heights="swiperHeights"
+                            :show-poem-author="false"
                             list-type="following"
                             container-id="following-list-container"
                             empty-icon="👥"
@@ -1680,12 +1682,12 @@ export default {
         // 关注用户选择处理
         onFollowingUserSelect: function (userId) {
             console.log('选择关注用户:', userId);
-            
+
             // 如果选择的用户没变，不做处理
             if (this.followingSelectedUserId === userId) {
                 return;
             }
-            
+
             // 更新选中状态并重新加载帖子
             this.setData({
                 followingSelectedUserId: userId,
@@ -1696,19 +1698,20 @@ export default {
                 followingIsLoadingMore: false,
                 followingHasEverLoaded: false
             }, () => {
-                this.loadFollowingPosts(null, true);
+                // 移除强制刷新参数，让缓存机制生效
+                this.loadFollowingPosts(null, false);
             });
         },
 
         // 关注头像栏返回按钮点击（取消用户筛选，回到全部）
         onFollowingAvatarBarBack: function () {
             console.log('关注头像栏返回按钮点击');
-            
+
             // 如果已经是全部状态，不做处理
             if (!this.followingSelectedUserId) {
                 return;
             }
-            
+
             // 取消用户筛选
             this.setData({
                 followingSelectedUserId: null,
@@ -1719,7 +1722,8 @@ export default {
                 followingIsLoadingMore: false,
                 followingHasEverLoaded: false
             }, () => {
-                this.loadFollowingPosts(null, true);
+                // 移除强制刷新参数，让缓存机制生效
+                this.loadFollowingPosts(null, false);
             });
         },
 

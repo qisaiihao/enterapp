@@ -1,6 +1,6 @@
 <template>
     <!-- 颜色选择弹层 -->
-    <view v-if="show" class="color-picker-mask" @tap="$emit('close')">
+    <view v-if="show" class="color-picker-mask" @tap.stop="$emit('close')">
         <view class="color-picker" @tap.stop>
             <!-- 色卡选择界面 -->
             <view v-if="step === 'palette'" class="color-palette-step">

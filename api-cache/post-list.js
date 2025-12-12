@@ -20,6 +20,7 @@ const ns = cacheManager.namespace('posts:list', { persistent: true, maxItems: 25
  * @param {boolean} options.isDiscussion - 是否只获取讨论
  * @param {string} options.tag - 标签筛选
  * @param {boolean} options.excludeAnonymous - 是否排除匿名
+ * @param {string} options.author - 按诗人（作者）筛选
  * @param {Object} options.context - 页面上下文
  * @param {boolean} options.forceRefresh - 是否强制刷新（跳过缓存）
  * @param {Function} options.onBackgroundUpdate - SWR后台更新完成回调
@@ -32,17 +33,19 @@ export async function getPostList({
   isDiscussion, 
   tag, 
   excludeAnonymous,
+  author,
   context, 
   forceRefresh = false,
   onBackgroundUpdate
 } = {}) {
-  const key = buildCacheKey({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous });
+  const authorSuffix = author ? `:author:${author}` : '';
+  const key = buildCacheKey({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous }) + authorSuffix;
   
   // 如果强制刷新，使用时间戳作为缓存键的一部分来绕过缓存
   const cacheKey = forceRefresh && page === 0 ? `${key}:ts:${Date.now()}` : key;
   
   console.log('🔍 [post-list-cache] 请求数据 - key:', cacheKey, 'forceRefresh:', forceRefresh, 'params:', {
-    page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous
+    page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous, author
   });
   
   // 第一页且强制刷新时，跳过缓存直接调用云函数
@@ -57,7 +60,8 @@ export async function getPostList({
         isOriginal,
         isDiscussion,
         tag,
-        excludeAnonymous
+        excludeAnonymous,
+        author
       },
       { pageTag: 'post-list', context }
     );
@@ -83,7 +87,8 @@ export async function getPostList({
           isOriginal,
           isDiscussion,
           tag,
-          excludeAnonymous
+          excludeAnonymous,
+          author
         },
         { pageTag: 'post-list', context }
       );

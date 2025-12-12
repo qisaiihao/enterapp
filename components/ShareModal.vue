@@ -1,5 +1,5 @@
 <template>
-    <view v-if="show" class="share-modal-overlay" @tap="$emit('hide')" @touchmove.stop.prevent>
+    <view v-if="show" class="share-modal-overlay" @tap="onOverlayTap" @touchmove.stop.prevent>
         <view class="share-modal-container">
             <scroll-view 
                 class="share-modal" 
@@ -29,21 +29,61 @@
                         @touchend="onImageTouchEnd"
                     ></image>
 
-                    <!-- 显式的保存按钮：H5/APP 显示 -->
-                    <!-- #ifdef H5 || APP-PLUS -->
-                    <view v-if="imageUrl" class="share-actions">
-                        <image class="share-download-image" src="/static/images/download.png" mode="widthFix" @tap.stop="$emit('save')"></image>
+                    <!-- 底部工具栏 -->
+                    <view v-if="imageUrl" class="share-toolbar">
+                        <!-- 字号字体按钮 -->
+                        <view class="toolbar-btn" @tap.stop="onFontSettingTap">
+                            <text class="toolbar-btn-text">Aa</text>
+                        </view>
+                        
+                        <!-- 颜色按钮 -->
+                        <view class="toolbar-btn" @tap.stop="onColorPickerTap">
+                            <view class="color-preview" :style="{ backgroundColor: currentBackgroundColor }"></view>
+                        </view>
+                        
+                        <!-- 下载按钮 -->
+                        <view class="toolbar-btn" @tap.stop="$emit('save')">
+                            <image class="toolbar-icon" src="/static/images/newicons/save_share.png" mode="aspectFit" style="width: 48rpx; height: 48rpx;"></image>
+                        </view>
                     </view>
-                    <!-- #endif -->
                 </view>
             </scroll-view>
         </view>
+        
+        <!-- 字号字体选择弹窗 -->
+        <FontSelectorModal
+            :show="showFontSelector"
+            :fontSize="shareConfig.fontSize"
+            :fontFamily="shareConfig.fontFamily"
+            :previewText="previewText"
+            @close="onFontSelectorClose"
+            @font-size-preview="onFontSizePreview"
+            @font-family-preview="onFontFamilyPreview"
+            @confirm="onFontSettingsConfirm"
+        />
+        
+        <!-- 颜色选择弹窗 -->
+        <ColorPickerModal
+            :show="showColorPicker"
+            :colorPalettes="colorPalettes"
+            :poemLines="poemLines"
+            :selectedColorCombination="currentColorCombination"
+            @close="onColorPickerClose"
+            @select="onColorSelect"
+        />
     </view>
 </template>
 
 <script>
+import FontSelectorModal from './FontSelectorModal.vue';
+import ColorPickerModal from './ColorPickerModal.vue';
+
 export default {
     name: 'ShareModal',
+    components: {
+        FontSelectorModal,
+        ColorPickerModal
+    },
     props: {
         show: {
             type: Boolean,
@@ -56,16 +96,79 @@ export default {
         longpressMenuEnabled: {
             type: Boolean,
             default: false
+        },
+        shareConfig: {
+            type: Object,
+            default: () => ({
+                fontSize: 38,
+                titleFontSize: 46,
+                fontFamily: 'Huiwen-mincho',
+                backgroundColor: '#FFFFFF',
+                textColor: '#000000'
+            })
+        },
+        previewText: {
+            type: String,
+            default: '春花秋月何时了'
+        },
+        colorPalettes: {
+            type: Array,
+            default: () => []
+        },
+        poemLines: {
+            type: Array,
+            default: () => []
         }
     },
     data() {
         return {
             isScrolling: false,
             touchStartTime: 0,
-            touchStartPos: { x: 0, y: 0 }
+            touchStartPos: { x: 0, y: 0 },
+            showFontSelector: false,
+            showColorPicker: false
         };
     },
+    computed: {
+        currentBackgroundColor() {
+            return this.shareConfig.backgroundColor || '#FFFFFF';
+        },
+        currentColorCombination() {
+            return {
+                backgroundColor: this.shareConfig.backgroundColor,
+                textColor: this.shareConfig.textColor
+            };
+        }
+    },
     methods: {
+        // 点击overlay时的处理
+        onOverlayTap() {
+            // 如果有子弹窗打开，则关闭子弹窗并触发重绘
+            if (this.showFontSelector) {
+                console.log('【ShareModal】关闭字体选择弹窗');
+                this.showFontSelector = false;
+                this.$nextTick(() => {
+                    setTimeout(() => {
+                        console.log('【ShareModal】触发force-regenerate');
+                        this.$emit('force-regenerate');
+                    }, 200);
+                });
+                return;
+            }
+            if (this.showColorPicker) {
+                console.log('【ShareModal】关闭颜色选择弹窗');
+                this.showColorPicker = false;
+                this.$nextTick(() => {
+                    setTimeout(() => {
+                        this.$emit('force-regenerate');
+                    }, 200);
+                });
+                return;
+            }
+            // 没有子弹窗打开，则关闭整个ShareModal
+            this.$emit('hide');
+        },
+        
         onImageLongPress(e) {
             // 只有在非滑动状态才触发长按
             if (!this.isScrolling) {
@@ -127,6 +230,89 @@ export default {
             setTimeout(() => {
                 this.isScrolling = false;
             }, 50);
+        },
+        
+        // 字号字体设置按钮
+        onFontSettingTap() {
+            this.showFontSelector = true;
+        },
+        
+        // 颜色选择按钮
+        onColorPickerTap() {
+            this.showColorPicker = true;
+        },
+        
+        // 字号变化
+        onFontSizeChange(fontSize) {
+            this.$emit('font-size-change', fontSize);
+        },
+        
+        // 字体变化
+        onFontFamilyChange(fontFamily) {
+            this.$emit('font-family-change', fontFamily);
+        },
+        
+        // 颜色变化
+        onColorChange(colorConfig) {
+            this.$emit('color-change', colorConfig);
+        },
+        
+        // 字号预览（实时预览）
+        onFontSizePreview(fontSize) {
+            this.$emit('font-size-preview', fontSize);
+        },
+        
+        // 字体预览（实时预览）
+        onFontFamilyPreview(fontFamily) {
+            this.$emit('font-family-preview', fontFamily);
+        },
+        
+        // 字体设置确认
+        onFontSettingsConfirm(settings) {
+            this.showFontSelector = false;
+            this.$emit('font-settings-change', settings);
+            // 延迟触发重绘，确保弹窗完全关闭后再绘制
+            this.$nextTick(() => {
+                setTimeout(() => {
+                    this.$emit('force-regenerate');
+                }, 100);
+            });
+        },
+        
+        // 颜色选择确认
+        onColorSelect(colorConfig) {
+            this.showColorPicker = false;
+            this.$emit('color-change', colorConfig);
+            // 延迟触发重绘，确保弹窗完全关闭后再绘制
+            this.$nextTick(() => {
+                setTimeout(() => {
+                    this.$emit('force-regenerate');
+                }, 100);
+            });
+        },
+        
+        // 字体选择弹窗关闭（包括点击外部、返回键等）
+        onFontSelectorClose() {
+            console.log('【ShareModal】字体选择弹窗关闭');
+            this.showFontSelector = false;
+            // 延迟触发重绘，确保弹窗完全关闭后再绘制
+            this.$nextTick(() => {
+                setTimeout(() => {
+                    console.log('【ShareModal】触发force-regenerate');
+                    this.$emit('force-regenerate');
+                }, 200);
+            });
+        },
+
+        // 颜色选择弹窗关闭（包括点击外部、返回键等）
+        onColorPickerClose() {
+            this.showColorPicker = false;
+            // 延迟触发重绘，确保弹窗完全关闭后再绘制
+            this.$nextTick(() => {
+                setTimeout(() => {
+                    this.$emit('force-regenerate');
+                }, 100);
+            });
         }
     }
 };
@@ -183,10 +369,10 @@ export default {
 
 .share-generated-image {
     width: 100%;
-    border-radius: 20rpx;
-    box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.3);
-    /* 确保图片在滚动容器中正确显示 */
-    flex-shrink: 0;
+    height: auto;
+    border-radius: 12rpx;
+    box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.15);
+    margin-bottom: 32rpx;
 }
 
 .share-actions {
@@ -203,5 +389,56 @@ export default {
 
 .share-download-image:active {
     opacity: 0.6;
+}
+
+/* 底部工具栏 */
+.share-toolbar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 32rpx;
+    padding: 24rpx 0;
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 16rpx;
+    margin-top: 16rpx;
+}
+
+.toolbar-btn {
+    width: 96rpx;
+    height: 96rpx;
+    background: #d9d9d9;
+    border-radius: 48rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+}
+
+.toolbar-btn:active {
+    transform: scale(0.95);
+    background: #E8E8E8;
+}
+
+.toolbar-btn-text {
+    font-size: 32rpx;
+    font-weight: 600;
+    color: #333333;
+}
+
+.toolbar-icon {
+    width: 48rpx !important;
+    height: 48rpx !important;
+    min-width: 48rpx;
+    min-height: 48rpx;
+    display: block;
+}
+
+.color-preview {
+    width: 48rpx;
+    height: 48rpx;
+    border-radius: 24rpx;
+    border: 4rpx solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.15);
 }
 </style>

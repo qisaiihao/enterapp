@@ -3,13 +3,28 @@
     <!-- 顶部栏 -->
     <top-bar />
 
-    <!-- 加载中骨架 -->
-    <view v-if="isLoading">
-      <skeleton pageType="mountain" />
+    <!-- 诗人筛选栏 -->
+    <view class="poet-avatar-bar-wrapper" :style="{ top: (safeAreaTop * 2 + 140) + 'rpx' }">
+      <poet-avatar-bar
+        :selectedPoetName="selectedPoetName"
+        @select="onPoetSelect"
+      />
     </view>
 
     <!-- 内容列表 -->
-    <view v-else class="square-mode-container">
+    <view class="square-mode-container with-avatar-bar" :style="{ paddingTop: (safeAreaTop * 2 + 340) + 'rpx' }">
+      <!-- 加载中骨架 - 嵌入到内容容器中，而不是覆盖整个页面 -->
+      <!-- 在存在诗人筛选组件时正常显示骨架屏 -->
+      <view v-if="isLoading">
+        <skeleton
+          pageType="mountain"
+          :hasFilterBar="false"
+          filterBarType=""
+        />
+      </view>
+
+      <!-- 真实内容 -->
+      <view v-else>
       <view v-if="postList.length === 0" class="empty-state">
         <view class="empty-icon">⛰️</view>
         <view class="empty-text">还没刷出来，等一下~</view>
@@ -54,9 +69,10 @@
       </view>
 
       <!-- 底部加载/结束提示 -->
-      <view class="loading-footer">
-        <block v-if="!hasMore && postList.length > 0"><text>—— 到底啦 ——</text></block>
-      </view>
+        <view class="loading-footer">
+          <block v-if="!hasMore && postList.length > 0"><text>—— 到底啦 ——</text></block>
+        </view>
+      </view>  <!-- 关闭 v-else -->
     </view>
 
     <!-- 顶部提示（用于调试滑动预加载阈值） -->
@@ -75,6 +91,7 @@ import AppTabBar from '@/custom-tab-bar/index.vue';
 // #endif
 import skeleton from '@/components/skeleton/skeleton';
 import topBar from '@/components/top-bar/top-bar.vue';
+import poetAvatarBar from '@/components/poet-avatar-bar/poet-avatar-bar.vue';
 import { cloudCall } from '@/utils/cloudCall.js';
 import { getPostList as getPostListWithCache, invalidatePostList } from '@/api-cache/post-list.js';
 import { getMountainPoems } from '@/api-cache/poems.js';
@@ -125,7 +142,7 @@ export default {
     // 检查缓存新鲜度：从其他页面返回时触发SWR检查
     try {
       if (this.hasEverLoaded && this.postList.length > 0) {
-        getMountainPoems({ page: 0, pageSize: PAGE_SIZE, context: this }).catch(() => {});
+        getMountainPoems({ page: 0, pageSize: PAGE_SIZE, context: this, filterByPoet: this.selectedPoetName }).catch(() => {});
       }
     } catch (_) {}
     
@@ -144,6 +161,7 @@ export default {
   components: {
     skeleton,
     topBar,
+    poetAvatarBar,
     // #ifndef MP-WEIXIN
     AppTabBar
     // #endif
@@ -154,6 +172,7 @@ export default {
       page: 0,
       hasMore: true,
       isLoading: true,
+      selectedPoetName: null,  // 当前选中的诗人名字，null表示全部
       isLoadingMore: false,
       lastUsedColorIndex: -1,
       backgroundColors: ['#a4c4bd', '#c9cfcf', '#906161', '#909388'],
@@ -215,6 +234,14 @@ export default {
     }, 300); // 增加防抖时间到300ms
   },
   methods: {
+    // 选择诗人筛选
+    onPoetSelect(poetName) {
+      console.log('【mountain】选择诗人:', poetName);
+      this.selectedPoetName = poetName;
+      // 重新加载数据
+      this.getIndexData();
+    },
+    
     // 调试安全区域
     debugSafeArea() {
       try {
@@ -229,28 +256,73 @@ export default {
           platform: systemInfo.platform
         });
 
-        // 动态设置安全区域 - 使用uni-app兼容方式
-        if (systemInfo.statusBarHeight) {
-          const safeAreaTop = systemInfo.statusBarHeight;
-          console.log('【mountain】使用状态栏高度作为安全区域:', safeAreaTop);
-          
-          // 在uni-app中，我们可以通过设置页面数据来动态调整样式
-          this.setData({
-            safeAreaTop: safeAreaTop
-          });
-          
-          // 尝试设置CSS变量（仅在支持的环境中）
-          try {
-            if (typeof document !== 'undefined' && document.documentElement) {
-              document.documentElement.style.setProperty('--safe-area-inset-top', safeAreaTop + 'px');
-              console.log('【mountain】CSS变量设置成功');
-            }
-          } catch (cssError) {
-            console.log('【mountain】CSS变量设置失败，使用数据绑定方式:', cssError);
-          }
+        // 动态设置安全区域 - 优先使用safeAreaInsets.top，其次使用statusBarHeight
+        let safeAreaTop = 0;
+
+        // #ifdef APP-PLUS
+        // 在app端，优先使用safeAreaInsets.top
+        if (systemInfo.safeAreaInsets && systemInfo.safeAreaInsets.top > 0) {
+          safeAreaTop = systemInfo.safeAreaInsets.top;
+          console.log('【mountain】使用safeAreaInsets.top作为安全区域:', safeAreaTop);
+        } else if (systemInfo.statusBarHeight) {
+          safeAreaTop = systemInfo.statusBarHeight;
+          console.log('【mountain】使用statusBarHeight作为安全区域:', safeAreaTop);
         }
+        // #endif
+
+        // #ifndef APP-PLUS
+        // 在H5端，使用statusBarHeight
+        if (systemInfo.statusBarHeight) {
+          safeAreaTop = systemInfo.statusBarHeight;
+          console.log('【mountain】使用statusBarHeight作为安全区域:', safeAreaTop);
+        }
+        // #endif
+
+        // 设置页面数据
+        this.setData({
+          safeAreaTop: safeAreaTop
+        });
+
+        // 设置CSS变量 - 适配不同平台
+        try {
+          // #ifdef H5
+          if (typeof document !== 'undefined' && document.documentElement) {
+            document.documentElement.style.setProperty('--safe-area-top', safeAreaTop + 'px');
+            console.log('【mountain】H5端CSS变量设置成功: --safe-area-top =', safeAreaTop + 'px');
+          }
+          // #endif
+
+          // #ifdef APP-PLUS
+          // 在app端，通过page的style设置CSS变量
+          const pages = getCurrentPages();
+          if (pages.length > 0) {
+            const currentPage = pages[pages.length - 1];
+            if (currentPage && currentPage.$el) {
+              currentPage.$el.style.setProperty('--safe-area-top', safeAreaTop + 'px');
+              console.log('【mountain】APP端CSS变量设置成功: --safe-area-top =', safeAreaTop + 'px');
+            }
+          }
+          // #endif
+        } catch (cssError) {
+          console.log('【mountain】CSS变量设置失败，使用数据绑定方式:', cssError);
+        }
+
+        // 备用方案：直接修改页面根元素样式
+        try {
+          // #ifdef APP-PLUS
+          const app = getApp();
+          if (app.globalData) {
+            app.globalData.safeAreaTop = safeAreaTop;
+          }
+          // #endif
+        } catch (_) {}
+
       } catch (error) {
         console.error('【mountain】安全区域调试失败:', error);
+        // 使用默认值
+        this.setData({
+          safeAreaTop: 44
+        });
       }
     },
 
@@ -303,6 +375,7 @@ export default {
           page: this.page,
           pageSize: PAGE_SIZE,
           context: this,
+          filterByPoet: this.selectedPoetName,
           // SWR后台更新回调
           onBackgroundUpdate: async (newPosts) => {
             if (!Array.isArray(newPosts) || newPosts.length === 0 || this.page !== 0) return;
@@ -561,6 +634,20 @@ export default {
 .loading-footer { text-align: center; color: #666; padding: 30rpx 0 120rpx; }
 .page-indicator { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,.7); color: #fff; padding: 20rpx 40rpx; border-radius: 40rpx; z-index: 1000; font-size: 28rpx; }
 .page-indicator-text { text-align: center; }
+
+/* 诗人筛选栏定位 */
+.poet-avatar-bar-wrapper {
+  position: absolute;
+  top: calc(var(--safe-area-top, 44px) + 140rpx); /* 使用动态变量的安全区域高度 */
+  left: 0;
+  right: 0;
+  z-index: 10;
+}
+
+/* 内容列表有头像栏时的上边距 */
+.square-mode-container.with-avatar-bar {
+  padding-top: calc(var(--safe-area-top, 44px) + 340rpx); /* 动态计算：安全区域 + 头像栏高度 */
+}
 </style>
     // 从 like:status 缓存对齐当前列表的点赞状态（兜底：跨页返回时也能更新）
     syncLikeStatusFromCache() {
