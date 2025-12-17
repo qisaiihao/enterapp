@@ -36,13 +36,33 @@
                             v-for="font in fontOptions" 
                             :key="font.value"
                             class="font-option"
-                            :class="{ 'selected': currentFontFamily === font.value }"
+                            :class="{ 
+                                'selected': currentFontFamily === font.value,
+                                'downloading': downloadingFont === font.value
+                            }"
                             @tap="onFontFamilyChange(font.value)"
                         >
-                            <text class="font-option-text" :style="{ fontFamily: font.value }">
-                                {{ font.name }}
-                            </text>
-                            <text v-if="currentFontFamily === font.value" class="font-check">✓</text>
+                            <view class="font-option-content">
+                                <text class="font-option-text" :style="{ fontFamily: font.isLoaded ? font.value : 'inherit' }">
+                                    {{ font.name }}
+                                </text>
+                                <view class="font-option-meta">
+                                    <text v-if="!font.isDefault" class="font-size-text">{{ font.sizeFormatted }}</text>
+                                    <text v-if="font.isCached && !font.isDefault" class="font-status-text">已缓存</text>
+                                    <text v-else-if="!font.isDefault" class="font-status-text">需下载</text>
+                                </view>
+                            </view>
+                            
+                            <!-- 下载进度条 -->
+                            <view v-if="downloadingFont === font.value" class="download-progress">
+                                <view class="progress-bar">
+                                    <view class="progress-fill" :style="{ width: downloadProgress + '%' }" style="background-color: #ccc;"></view>
+                                </view>
+                                <text class="progress-text">{{ downloadProgress }}%</text>
+                            </view>
+                            
+                            <!-- 选中标记 -->
+                            <text v-else-if="currentFontFamily === font.value" class="font-check">✓</text>
                         </view>
                     </view>
                 </scroll-view>
@@ -58,6 +78,8 @@
 </template>
 
 <script>
+import fontManager from '@/utils/fontManager.js';
+
 export default {
     name: 'FontSelectorModal',
     props: {
@@ -82,14 +104,14 @@ export default {
         return {
             currentFontSize: this.fontSize,
             currentFontFamily: this.fontFamily,
-            fontOptions: [
-                { name: '汇文明朝', value: 'Huiwen-mincho' },
-                { name: '文楷', value: '文楷' },
-                { name: '蒲瓜正楷体', value: '蒲瓜正楷体' },
-                { name: '龙藏体', value: '龙藏体' },
-                { name: '小小皓体', value: '小小皓体' }
-            ]
+            fontOptions: [],
+            downloadingFont: '', // 当前正在下载的字体
+            downloadProgress: 0, // 下载进度 0-100
+            isLoading: false
         };
+    },
+    async created() {
+        await this.loadFontOptions();
     },
     watch: {
         fontSize(val) {
@@ -119,7 +141,48 @@ export default {
             this.$emit('font-size-preview', this.currentFontSize);
         },
         
-        onFontFamilyChange(fontFamily) {
+        async onFontFamilyChange(fontFamily) {
+            const fontOption = this.fontOptions.find(opt => opt.value === fontFamily);
+            
+            // 默认字体直接切换，无需下载
+            if (fontOption.isDefault) {
+                this.currentFontFamily = fontFamily;
+                this.$emit('font-family-preview', this.currentFontFamily);
+                return;
+            }
+            
+            // 非默认字体且未缓存，需要下载
+            if (!fontOption.isCached) {
+                try {
+                    this.downloadingFont = fontFamily;
+                    this.downloadProgress = 0;
+                    
+                    await fontManager.ensureFontAvailable(fontFamily, (progress) => {
+                        this.downloadProgress = progress;
+                    });
+                    
+                    // 更新字体选项状态
+                    await this.loadFontOptions();
+                    
+                    uni.showToast({
+                        title: '字体下载完成',
+                        icon: 'success',
+                        duration: 1000
+                    });
+                } catch (error) {
+                    console.error('字体下载失败:', error);
+                    uni.showToast({
+                        title: '字体下载失败',
+                        icon: 'none',
+                        duration: 2000
+                    });
+                    return; // 下载失败时不切换字体
+                } finally {
+                    this.downloadingFont = '';
+                    this.downloadProgress = 0;
+                }
+            }
+            
             this.currentFontFamily = fontFamily;
             // 实时预览
             this.$emit('font-family-preview', this.currentFontFamily);
@@ -130,6 +193,26 @@ export default {
                 fontSize: this.currentFontSize,
                 fontFamily: this.currentFontFamily
             });
+        },
+        
+        async loadFontOptions() {
+            this.isLoading = true;
+            try {
+                const availableFonts = fontManager.getAvailableFonts();
+                this.fontOptions = availableFonts.map(font => ({
+                    name: font.displayName,
+                    value: font.fontFamily,
+                    size: font.size,
+                    isDefault: font.isDefault,
+                    isCached: font.isCached,
+                    isLoaded: font.isLoaded,
+                    sizeFormatted: fontManager.formatFileSize(font.size)
+                }));
+            } catch (error) {
+                console.error('加载字体选项失败:', error);
+            } finally {
+                this.isLoading = false;
+            }
         }
     }
 };
@@ -241,7 +324,20 @@ export default {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    min-height: 60rpx;
+    min-height: 80rpx;
+}
+
+.font-option-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8rpx;
+}
+
+.font-option-meta {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
 }
 
 .font-option:active {
@@ -253,6 +349,12 @@ export default {
     border: 2rpx solid #333333;
 }
 
+.font-option.downloading {
+    background: #F0F0F0;
+    border: 2rpx solid #333333;
+}
+
+
 .font-option-text {
     font-size: 26rpx;
     color: #333;
@@ -261,8 +363,55 @@ export default {
 
 .font-check {
     font-size: 24rpx;
-    color: #333333;
+    color: #333;
     font-weight: bold;
+}
+
+.font-size-text {
+    font-size: 20rpx;
+    color: #999;
+    background: #F0F0F0;
+    padding: 4rpx 8rpx;
+    border-radius: 4rpx;
+}
+
+.font-status-text {
+    font-size: 20rpx;
+    padding: 4rpx 8rpx;
+    border-radius: 4rpx;
+    font-weight: 500;
+    color: #999;
+    background: #F0F0F0;
+}
+
+/* 下载进度条样式 */
+.download-progress {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8rpx;
+    min-width: 80rpx;
+}
+
+.progress-bar {
+    width: 60rpx;
+    height: 6rpx;
+    background: #F0F0F0;
+    border-radius: 3rpx;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #999;
+    border-radius: 3rpx;
+    transition: width 0.1s ease;
+}
+
+.progress-text {
+    font-size: 20rpx;
+    color: #999;
+    font-weight: 500;
 }
 
 /* 操作按钮 */
@@ -311,5 +460,14 @@ export default {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.font-option.downloading .font-option-text {
+    animation: pulse 1.5s infinite;
 }
 </style>

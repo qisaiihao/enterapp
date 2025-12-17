@@ -143,16 +143,10 @@ export default {
     methods: {
         // 点击overlay时的处理
         onOverlayTap() {
-            // 如果有子弹窗打开，则关闭子弹窗并触发重绘
+            // 如果有子弹窗打开，则关闭子弹窗（不重新生成）
             if (this.showFontSelector) {
                 console.log('【ShareModal】关闭字体选择弹窗');
                 this.showFontSelector = false;
-                this.$nextTick(() => {
-                    setTimeout(() => {
-                        console.log('【ShareModal】触发force-regenerate');
-                        this.$emit('force-regenerate');
-                    }, 200);
-                });
                 return;
             }
             if (this.showColorPicker) {
@@ -295,13 +289,7 @@ export default {
         onFontSelectorClose() {
             console.log('【ShareModal】字体选择弹窗关闭');
             this.showFontSelector = false;
-            // 延迟触发重绘，确保弹窗完全关闭后再绘制
-            this.$nextTick(() => {
-                setTimeout(() => {
-                    console.log('【ShareModal】触发force-regenerate');
-                    this.$emit('force-regenerate');
-                }, 200);
-            });
+            // 仅关闭弹窗，不重新生成分享卡片
         },
 
         // 颜色选择弹窗关闭（包括点击外部、返回键等）

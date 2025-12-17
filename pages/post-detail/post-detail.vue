@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <view>
         
         <!-- pages/post-detail/post-detail.wxml -->
@@ -333,6 +333,7 @@ import { poemLines } from '@/utils/poemLines.js';
 import { getCurrentPlatform } from '@/utils/platformDetector.js';
 import { requestAndroidStoragePermission } from '@/utils/permissions.js';
 import { emitCommentCountChanged, emitPostUpdated } from '@/utils/events.js';
+import fontManager from '@/utils/fontManager.js'; // 添加fontManager导入
 
 // API函数导入
 import { getPostDetail, updatePostContent, togglePostFavorite, recordPostView } from '@/api-cache/post.js';
@@ -422,6 +423,7 @@ export default {
             quickCommentText: '',
             // 是否启用原生长按菜单（仅小程序有效）
             shareLongpressMenuEnabled: false,
+            fontManager: null // 添加fontManager初始化
         };
     },
     onLoad: function (options) {
@@ -469,6 +471,8 @@ export default {
         }
         // #endif
 
+        // 初始化字体管理器
+        this.fontManager = fontManager;
     },
     onShow: function () {
         this.setData({
@@ -833,57 +837,54 @@ export default {
             this.loadFontAndDraw();
         },
 
-        loadFontAndDraw: function () {
+        loadFontAndDraw: async function () {
             const fontFamily = this.shareConfig.fontFamily || 'Huiwen-mincho';
-            const fontSourceMap = {
-                'Huiwen-mincho': '/static/fonts/Huiwen-mincho.otf',
-                '文楷': '/static/fonts/文楷.ttf',
-                '蒲瓜正楷体': '/static/fonts/蒲瓜正楷体.ttf',
-                '龙藏体': '/static/fonts/龙藏体.ttf',
-                '小小皓体': '/static/fonts/小小皓体.ttf'
-            };
-
-            // 字体缩放系数映射表 - 解决不同字体在相同字号下大小差异问题
-            const fontScaleMap = {
-                'Huiwen-mincho': 1.0,
-                '文楷': 1.0,
-                '蒲瓜正楷体': 1.0,
-                '龙藏体': 1.0,
-                '小小皓体': 1.0
-            };
-
-            // 应用字体缩放系数到shareConfig
-            const fontScale = fontScaleMap[fontFamily] || 1.0;
-            this.shareConfig.fontScale = fontScale;
-
-            const fontSource = fontSourceMap[fontFamily];
             
-            if (fontSource) {
-                console.log('【post-detail】加载字体:', fontFamily, fontSource);
-                uni.loadFontFace({
-                    family: fontFamily,
-                    source: `url("${fontSource}")`,
-                    success: () => {
-                        console.log('【post-detail】字体加载成功:', fontFamily);
-                        // 延迟一下确保DOM已渲染
-                        setTimeout(() => {
-                            this.drawCanvas();
-                        }, 100);
-                    },
-                    fail: (err) => {
-                        console.error('【post-detail】字体加载失败:', fontFamily, err);
-                        // 即使字体加载失败，也继续绘制（使用默认字体）
-                        setTimeout(() => {
-                            this.drawCanvas();
-                        }, 100);
-                    }
+            console.log('【post-detail】开始加载字体:', fontFamily);
+            
+            try {
+                // 使用fontManager确保字体可用（自动下载和缓存）
+                await this.fontManager.ensureFontAvailable(fontFamily, (progress, loaded, total) => {
+                    console.log(`【post-detail】字体下载进度: ${progress}% (${loaded}/${total})`);
+                    // 可以在这里显示下载进度给用户
                 });
-            } else {
-                // 系统字体或未知字体，直接绘制
-                console.log('【post-detail】使用系统字体:', fontFamily);
+                
+                console.log('【post-detail】字体加载成功:', fontFamily);
+                
+                // 字体缩放系数映射表 - 解决不同字体在相同字号下大小差异问题
+                const fontScaleMap = {
+                    'Huiwen-mincho': 1.0,
+                    '文楷': 1.0,
+                    '蒲瓜正楷体': 1.0,
+                    '龙藏体': 1.0,
+                    '小小皓体': 1.0,
+                    '南西雅致黑': 1.0,
+                    '字体圈欣意吉祥宋': 1.0,
+                    '汇文明朝-蒲瓜版': 1.0
+                };
+                
+                // 应用字体缩放系数到shareConfig
+                const fontScale = fontScaleMap[fontFamily] || 1.0;
+                this.shareConfig.fontScale = fontScale;
+                
+                // 延迟一下确保DOM已渲染
                 setTimeout(() => {
                     this.drawCanvas();
-                }, 50);
+                }, 100);
+                
+            } catch (error) {
+                console.error('【post-detail】字体加载失败:', fontFamily, error);
+                
+;
+                
+                // 回退到默认字体
+                this.shareConfig.fontFamily = 'Huiwen-mincho';
+                this.shareConfig.fontScale = 1.0;
+                
+                // 即使字体加载失败，也继续绘制（使用默认字体）
+                setTimeout(() => {
+                    this.drawCanvas();
+                }, 100);
             }
         },
 
@@ -1408,7 +1409,10 @@ export default {
                 '文楷': 1.0,
                 '蒲瓜正楷体': 1.0,
                 '龙藏体': 1.0,
-                '小小皓体': 1.0
+                '小小皓体': 1.0,
+                '南西雅致黑': 1.0,
+                '字体圈正意吉祥宋': 1.0,
+                '汇文明朝-蒲瓜版': 1.0
             };
             const fontScale = fontScaleMap[fontFamily] || 1.0;
             
@@ -1428,7 +1432,10 @@ export default {
                 '文楷': 1.0,
                 '蒲瓜正楷体': 1.0,
                 '龙藏体': 1.0,
-                '小小皓体': 1.0
+                '小小皓体': 1.0,
+                '南西雅致黑': 1.0,
+                '字体圈正意吉祥宋': 1.0,
+                '汇文明朝-蒲瓜版': 1.0
             };
             const fontScale = fontScaleMap[fontFamily] || 1.0;
             
