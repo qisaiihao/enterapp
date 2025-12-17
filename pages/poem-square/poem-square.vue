@@ -14,6 +14,7 @@
     <view v-if="showFollowingOnly" class="following-avatar-bar-wrapper" :style="{ top: (safeAreaTop * 2 + 140) + 'rpx' }">
       <following-avatar-bar
         ref="followingAvatarBar"
+        mode="poem-square"
         :selected-user-id="followingSelectedUserId"
         @select-user="onFollowingUserSelect"
         @back="exitFollowingMode"

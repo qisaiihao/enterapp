@@ -15,7 +15,7 @@
                     <view class="avatar-wrapper back-wrapper">
                         <image class="back-icon" src="/static/images/newicons/back.png" mode="aspectFit" />
                     </view>
-                    <text class="avatar-name">全部</text>
+                    <text class="avatar-name">{{ backButtonText }}</text>
                 </view>
 
                 <!-- 用户头像列表 -->
@@ -55,6 +55,11 @@ export default {
         selectedUserId: {
             type: String,
             default: null
+        },
+        // 使用场景：'index' 表示首页关注页（两级），'poem-square' 表示诗歌页（三级）
+        mode: {
+            type: String,
+            default: 'index'
         }
     },
     data() {
@@ -64,6 +69,30 @@ export default {
             scrollLeft: 0,
             defaultAvatar: '/static/images/avatar.png'
         };
+    },
+    computed: {
+        // 动态返回按钮文字
+        backButtonText() {
+            if (this.mode === 'index') {
+                // Index 页面两级筛选
+                if (this.selectedUserId) {
+                    // 第二级：特定用户，显示"全部"，点击回到第一级（所有关注用户）
+                    return '全部';
+                } else {
+                    // 第一级：所有关注用户，这里不应该显示返回按钮，但保险起见返回"全部"
+                    return '全部';
+                }
+            } else {
+                // Poem-square 页面三级筛选
+                if (this.selectedUserId) {
+                    // 第三级：选中了特定用户，显示"全部关注"，点击回到第二级（所有关注用户）
+                    return '全部关注';
+                } else {
+                    // 第二级：显示所有关注用户，显示"所有诗歌"，点击回到第一级（所有诗歌包括未关注）
+                    return '所有诗歌';
+                }
+            }
+        }
     },
     mounted() {
         this.loadUsers();
@@ -99,9 +128,27 @@ export default {
             this.loadUsers(true);
         },
 
-        // 返回按钮点击（退出关注模式）
+        // 返回按钮点击（兼容两种筛选逻辑）
         onBackClick() {
-            this.$emit('back');
+            if (this.mode === 'index') {
+                // Index 页面两级筛选逻辑
+                if (this.selectedUserId) {
+                    // 第二级 → 第一级：从特定用户回到所有关注用户
+                    this.$emit('select-user', null);
+                } else {
+                    // 第一级：在 index 页面，这种情况不应该发生，但为了兼容，触发 back 事件
+                    this.$emit('back');
+                }
+            } else {
+                // Poem-square 页面三级筛选逻辑
+                if (this.selectedUserId) {
+                    // 第三级 → 第二级：从特定用户回到所有关注用户
+                    this.$emit('select-user', null);
+                } else {
+                    // 第二级 → 第一级：从关注用户回到所有诗歌（包括未关注）
+                    this.$emit('back');
+                }
+            }
         },
 
         // 选择用户（点击已选中的头像取消筛选）

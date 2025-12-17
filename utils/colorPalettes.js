@@ -178,6 +178,51 @@ export const colorPalettes = [
             { backgroundColor: '#40534C', textColor: '#D6BD98' },
             { backgroundColor: '#1A3636', textColor: '#D6BD98' }
         ]
+    },
+    {
+        name: '蓝灰系',
+        colors: [
+            { backgroundColor: '#E5E4E0', textColor: '#6A8E74' },
+            { backgroundColor: '#A4AEAF', textColor: '#6A8E74' },
+            { backgroundColor: '#6A8E74', textColor: '#E5E4E0' },
+            { backgroundColor: '#6A8E74', textColor: '#A4AEAF' }
+        ]
+    },
+    {
+        name: '银鱼白系',
+        colors: [
+            { backgroundColor: '#CACED1', textColor: '#414B4E' },
+            { backgroundColor: '#88ADA6', textColor: '#414B4E' },
+            { backgroundColor: '#414B4E', textColor: '#CACED1' },
+            { backgroundColor: '#414B4E', textColor: '#88ADA6' }
+        ]
+    },
+    {
+        name: '黄灰系',
+        colors: [
+            { backgroundColor: '#C8CAC5', textColor: '#2F4941' },
+            { backgroundColor: '#C8CAC5', textColor: '#6E766C' },
+            { backgroundColor: '#2F4941', textColor: '#C8CAC5' },
+            { backgroundColor: '#6E766C', textColor: '#C8CAC5' }
+        ]
+    },
+    {
+        name: '芡食白系',
+        colors: [
+            { backgroundColor: '#E2E1E6', textColor: '#423A4F' },
+            { backgroundColor: '#E2E1E6', textColor: '#AF989B' },
+            { backgroundColor: '#AF989B', textColor: '#423A4F' },
+            { backgroundColor: '#423A4F', textColor: '#E2E1E6' }
+        ]
+    },
+    {
+        name: '花白系',
+        colors: [
+            { backgroundColor: '#BFC9CE', textColor: '#36434A' },
+            { backgroundColor: '#BFC9CE', textColor: '#748386' },
+            { backgroundColor: '#748386', textColor: '#BFC9CE' },
+            { backgroundColor: '#36434A', textColor: '#BFC9CE' }
+        ]
     }
 ];
 
