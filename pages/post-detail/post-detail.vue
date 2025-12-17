@@ -244,7 +244,7 @@
             </view>
             <view class="action-icons">
                 <view class="action-icon" @tap="showDiscussionModal">
-                    <image class="action-icon-image" src="/static/images/newicons/comment.png" mode="aspectFit"></image>
+                    <image class="action-icon-image" src="/static/images/newicons/taolun.png" mode="aspectFit"></image>
                 </view>
                 <view class="action-icon" @tap="toggleFavorite">
                     <image class="action-icon-image" :src="post && post.isFavorited ? '/static/images/newicons/collection.png' : '/static/images/newicons/collection.png'" mode="aspectFit"></image>
@@ -323,7 +323,7 @@ import { uploadFile } from '@/utils/uploader.js';
 import postGalleryMixin from '@/mixins/postGallery.js';
 import { getCurrentUserId } from '@/utils/auth.js';
 import { calculateActualLines as calcCanvasLines, wrapText, clampText } from '@/utils/canvasText.js';
-import { drawImageAsync, calculateActualLines as calcLines, wrapText as wrapCanvasText } from '@/utils/shareCanvas.js';
+import { drawImageAsync, calculateActualLines as calcLines, wrapText as wrapCanvasText, calculateShareCardHeight, drawShareCardContent } from '@/utils/shareCanvas.js';
 import { processComments, validateCommentInput, processCommentImages, findComment, calculateRemainingChars } from '@/utils/commentUtils.js';
 import { generateShareImageName, isValidImageDataUrl, base64ToArrayBuffer, saveImageToAlbum, createTempFilePath, compressImage, getImageInfo } from '@/utils/shareImage.js';
 import { syncLikeStatusForPosts, getLatestLikeStatus } from '@/utils/likeStatusSync.js';
@@ -895,107 +895,23 @@ export default {
         
         drawCanvas: async function () {
             try {
-                
+                const canvasWidth = 750;
                 // 签名URL已从云函数返回，直接使用post.authorSignature（匿名帖子或非原创诗歌不显示签名）
                 const shouldShowSignature = (!!this.post && !this.post.isAnonymous && !(this.post.isPoem && this.post.isOriginal === false));
                 
-                // 【修复】先计算Canvas高度，更新DOM后再创建上下文
-                // 计算内容尺寸 - 模拟poem-square的样式
-                const content = this.post.content || '';
+                // 【优化】使用独立模块计算Canvas高度
+                const measureCtx = uni.createCanvasContext('shareCanvas', this);
+                const heightResult = await calculateShareCardHeight({
+                    measureCtx,
+                    post: this.post,
+                    shareConfig: this.shareConfig,
+                    canvasWidth,
+                    shouldShowSignature
+                });
                 
-                // 字体设置 - 使用动态配置
-                const baseFontSize = this.shareConfig.fontSize || 38;
-                const fontScale = this.shareConfig.fontScale || 1.0;
-                const fontSize = Math.round(baseFontSize * fontScale); // 应用字体缩放系数
-                const lineHeight = Math.round(fontSize * 1.26); // 行高为字号的1.26倍
-                const fontFamily = this.shareConfig.fontFamily || 'Huiwen-mincho';
-                const actualFontFamily = fontFamily === 'system' ? 'sans-serif' : fontFamily + ', sans-serif';
-                
-                console.log('【drawCanvas】字体缩放:', { fontFamily, baseFontSize, fontScale, fontSize });
+                const canvasHeight = heightResult.canvasHeight;
+                console.log('【drawCanvas】计算高度:', canvasHeight);
 
-                // 计算文字区域尺寸 - 优化padding给文本更多空间
-                const textPadding = 60; // 优化：减少左右padding，避免提早换行
-                const textTopPadding = 80; // 保持上padding
-                const textBottomPadding = 60; // 保持下padding
-
-                // 标题字体设置 - 使用动态配置，同样应用缩放系数
-                const baseTitleFontSize = this.shareConfig.titleFontSize || Math.round(baseFontSize * 1.21);
-                const titleFontSize = Math.round(baseTitleFontSize * fontScale); // 标题也应用相同缩放系数
-                const titleLineHeight = Math.round(titleFontSize * 1.22); // 标题行高
-                const titleBottomSpacing = Math.round(fontSize * 0.84); // 标题与正文的间距
-
-                // 计算画布尺寸 - 固定宽度，高度自适应
-                // 使用与poem-square页面一致的尺寸比例
-                const canvasWidth = 750; // 增大卡片宽度到750px
-                const textAreaWidth = canvasWidth - 120; // 优化：减少padding，给文本更多空间 (60*2)
-
-                // 【修复】先创建临时ctx用于测量文字，计算高度
-                let measureCtx = uni.createCanvasContext('shareCanvas', this);
-                if (measureCtx) {
-                    measureCtx.font = fontSize + 'px ' + actualFontFamily;
-                }
-
-                // 【新增】使用精确的文字测量函数计算实际行数
-                const actualLines = calcLines(measureCtx, content, textAreaWidth, fontSize);
-
-                // 【新增】使用智能换行函数处理长文本
-                const processedLines = wrapCanvasText(measureCtx, content, textAreaWidth, fontSize);
-                const wrappedContentHeight = processedLines.reduce((h, line) => h + (line && line.trim() ? lineHeight : lineHeight * 0.5), 0);
-
-                // 更准确的内容高度计算 - 基于实际测量
-                const contentHeight = Math.max(wrappedContentHeight, 200); // 使用 wrap 后的精确高度，最小 200px
-                
-                // 【修复】计算标题的实际高度（支持多行标题）
-                let actualTitleHeight = titleLineHeight + 20; // 默认单行标题高度
-                if (this.post.title) {
-                    const titleLines = wrapCanvasText(measureCtx, this.post.title, textAreaWidth, titleFontSize);
-                    const titleLinesCount = titleLines.filter(line => line.trim()).length;
-                    if (titleLinesCount > 1) {
-                        actualTitleHeight = titleLinesCount * titleLineHeight + 20; // 多行标题高度
-                    }
-                }
-                const titleHeight = actualTitleHeight;
-                
-                // 计算基础高度
-                const baseHeight = textTopPadding + titleHeight + titleBottomSpacing + contentHeight + textBottomPadding;
-                
-                // 为签名预留足够空间
-                // 动态签名参数：放在正文下方，并按固定宽度等比缩放高度
-                const signatureTopGap = 40;
-                const fixedSignatureWidth = 120;
-                const signatureTextFontSize = 28; // 无签名图片时用文字署名字号
-                let signatureDrawHeight = 0;
-                if (this.post.authorSignature && shouldShowSignature) {
-                    try {
-                        const __sigInfo = await new Promise((resolve)=>{
-                            uni.getImageInfo({ src: this.post.authorSignature, success: (res)=>resolve(res), fail: ()=>resolve(null) });
-                        });
-                        if (__sigInfo && __sigInfo.width > 0) {
-                            const __scale = fixedSignatureWidth / __sigInfo.width;
-                            signatureDrawHeight = Math.max(1, Math.round(__sigInfo.height * __scale));
-                        }
-                    } catch(_) {}
-                }
-
-                // 【优化】动态调整Canvas高度，确保有足够空间
-                // 非原创诗歌需要为转载作者名字预留空间
-                const isNonOriginalPoem = this.post.isPoem && this.post.isOriginal === false && this.post.author;
-                const needsAuthorSpace = shouldShowSignature || isNonOriginalPoem;
-                
-                let finalCanvasHeight = textTopPadding + titleHeight + titleBottomSpacing + contentHeight
-                    + (this.post.authorSignature && shouldShowSignature
-                        ? (signatureTopGap + signatureDrawHeight)
-                        : (needsAuthorSpace && ((this.post.authorName && this.post.authorName.trim()) || (this.post.author && this.post.author.trim())))
-                            ? (signatureTopGap + signatureTextFontSize)
-                            : 0)
-                    + textBottomPadding + 10;
-
-                // 【修复】增加额外的安全边距，确保不同字体大小下都有足够空间
-                const safetyMargin = Math.max(60, Math.ceil(lineHeight * 1.5)); // 动态安全边距
-                finalCanvasHeight += safetyMargin;
-                
-                const canvasHeight = Math.ceil(finalCanvasHeight);
-                
                 // 【关键修复】先更新Canvas高度，等待DOM更新完成
                 try { this.setData && this.setData({ shareCanvasHeight: canvasHeight }); } catch(_) { this.shareCanvasHeight = canvasHeight; }
                 if (this.$nextTick) { await new Promise(r => this.$nextTick(r)); }
@@ -1009,123 +925,19 @@ export default {
                     uni.showToast({ title: 'Canvas创建失败', icon: 'none' });
                     return;
                 }
-                // 重新设置字体
-                ctx.font = fontSize + 'px ' + actualFontFamily;
-                
-                // 绘制圆角背景 - 使用动态颜色配置
-                const bgColor = this.shareConfig.backgroundColor || this.post.backgroundColor || '#FFFFFF';
-                
-                // 绘制圆角背景
-                ctx.setFillStyle(bgColor);
-                this.drawRoundedRect(ctx, 0, 0, canvasWidth, canvasHeight, 15);
-                ctx.fill();
-                
-                // 绘制文字内容 - 使用动态颜色配置
-                const textColor = this.shareConfig.textColor || this.post.textColor || '#000000';
-                ctx.setFillStyle(textColor);
-                ctx.setTextAlign('left');
-                
-                // 绘制标题
-                const title = this.post.title || '';
-                if (title) {
-                    // 设置标题字体
-                    ctx.font = titleFontSize + 'px ' + actualFontFamily;
-                    ctx.setFillStyle(textColor);
-                    ctx.setTextAlign('left');
-                    
-                    // 【修复】对标题也应用换行处理，避免标题过长溢出
-                    // 确保wrapCanvasText使用正确的标题字体参数
-                    const titleLines = wrapCanvasText(ctx, title, textAreaWidth, titleFontSize, actualFontFamily);
-                    
-                    // 绘制标题（支持多行）
-                    let titleY = textTopPadding + titleFontSize;
-                    const titleX = textPadding;
-                    
-                    titleLines.forEach((line, index) => {
-                        if (line.trim()) {
-                            ctx.fillText(line, titleX, titleY);
-                            titleY += titleLineHeight;
-                        } else {
-                            titleY += titleLineHeight * 0.5; // 空行间距
-                        }
-                    });
-                    
-                    // 恢复正文字体
-                    ctx.font = fontSize + 'px ' + actualFontFamily;
-                }
-                
-                // 【修改】使用处理后的行数组进行绘制，确保长文本正确换行
-                let y = textTopPadding + titleHeight + titleBottomSpacing + fontSize; // 标题下方开始绘制正文，增加间距
-                const x = textPadding;
 
-                // 【优化】更保守的边界检查，为签名和底部留出充足空间
-                const maxY = Number.POSITIVE_INFINITY; // 不再限制正文绘制高度，由最终导出高度裁切
-
-                processedLines.forEach((line, index) => {
-                    if (line.trim()) {
-                        // 检查是否超出边界
-                        if (y > maxY) {
-                            return;
-                        }
-
-                        ctx.fillText(line, x, y);
-                        y += lineHeight;
-                    } else {
-                        y += lineHeight * 0.5; // 空行间距
-                    }
+                // 【优化】使用独立模块绘制分享卡片内容
+                await drawShareCardContent({
+                    ctx,
+                    post: this.post,
+                    shareConfig: this.shareConfig,
+                    canvasWidth,
+                    canvasHeight,
+                    shouldShowSignature,
+                    ...heightResult
                 });
-                
-                
-                // 绘制签名 - 修复签名位置，确保不超出canvas边界
-                if (this.post.authorSignature && shouldShowSignature) {
-                    // 缩小签名尺寸
-                    const fixedSignatureWidth = 120; // 缩小签名宽度到120px
-                    const signatureMargin = 40; // 简化边距设置
 
-                    // 动态计算签名位置，确保在canvas内
-                    const signatureX = canvasWidth - fixedSignatureWidth - signatureMargin;
-                    const signatureY = Math.min(y + signatureTopGap, canvasHeight - signatureDrawHeight - signatureMargin);
-
-                    // 使用 await 等待异步绘制函数完成，固定宽度，高度自适应
-                    await drawImageAsync(
-                        ctx,
-                        this.post.authorSignature,
-                        signatureX,
-                        signatureY,
-                        fixedSignatureWidth
-                    );
-                }
-                else if (shouldShowSignature) {
-                    const authorName = ((this.post.authorName || this.post.author || '') + '').trim();
-                    if (authorName) {
-                        ctx.setTextAlign('right');
-                        ctx.setFillStyle(textColor);
-                        ctx.font = signatureTextFontSize + 'px Huiwen-mincho, sans-serif';
-                        const textMargin = 48; // 统一文本边距
-                        const sigTextX = canvasWidth - textMargin;
-                        const sigTextY = Math.max(canvasHeight - textMargin, y + signatureTopGap); // 确保不与正文重叠
-                        ctx.fillText(authorName, sigTextX, sigTextY);
-                        ctx.setTextAlign('left');
-                    }
-                }
-                // 非原创诗歌需要显示转载作者名字（不是发布者昵称）
-                else if (this.post.isPoem && this.post.isOriginal === false && this.post.author) {
-                    const originalAuthor = (this.post.author + '').trim();
-                    if (originalAuthor) {
-                        ctx.setTextAlign('right');
-                        ctx.setFillStyle(textColor);
-                        ctx.font = signatureTextFontSize + 'px Huiwen-mincho, sans-serif';
-                        const textMargin = 48; // 统一文本边距
-                        const sigTextX = canvasWidth - textMargin;
-                        const sigTextY = Math.max(canvasHeight - textMargin, y + signatureTopGap); // 确保不与正文重叠
-                        ctx.fillText(originalAuthor, sigTextX, sigTextY);
-                        ctx.setTextAlign('left');
-                    }
-                }
-                
                 console.log('【post-detail】开始执行draw');
-                // 右下角水印（细线阶梯形）
-                try { this.drawCornerWatermark(ctx, canvasWidth, canvasHeight); } catch (e) { console.warn('draw watermark failed', e); }
 
 
                 ctx.draw(false, () => {
@@ -1141,62 +953,6 @@ export default {
                 console.error('【post-detail】绘制过程中出现严重错误:', error);
                 uni.showToast({ title: '图片生成失败，请重试', icon: 'none' });
             }
-        },
-
-        // 右下角水印（参考 login 页 Enter 键造型）
-                // 右下角水印（参考 login 页 Enter 键造型）
-        // 需求：右、下两条边不可见；并在键帽内写小字 poementer
-        drawCornerWatermark(ctx, canvasWidth, canvasHeight) {
-            const margin = 24; // 更靠近右下角
-            const w = 220;     // 水印宽度
-            const h = 180;     // 水印高度
-            const stepX = 0.55; // 折点（横向比例）
-            const stepY = 0.60; // 折点（纵向比例）
-            const x0 = canvasWidth - w - margin;
-            const y0 = canvasHeight - h - margin;
-            const lineWidth = 1.5;                 // 更细的线
-            const strokeColor = 'rgba(0,0,0,0.16)'; // 略淡
-            const textColor = 'rgba(0,0,0,0.22)';   // 文字稍重一点
-            const sx = x0 + w * stepX;
-            const sy = y0 + h * stepY;
-            // 只画：顶边(左段)+左边(下段)+内横线+内竖线；不画右边和底边
-            ctx.save();
-            try {
-                if (ctx.setLineWidth) ctx.setLineWidth(lineWidth); else ctx.lineWidth = lineWidth;
-                if (ctx.setStrokeStyle) ctx.setStrokeStyle(strokeColor); else ctx.strokeStyle = strokeColor;
-                // 顶边（从折点到右上）——保持右/下两边不可见
-                ctx.beginPath();
-                ctx.moveTo(sx, y0);
-                ctx.lineTo(x0 + w, y0);
-                ctx.stroke();
-                // 左边（从折点高度到左下角）
-                ctx.beginPath();
-                ctx.moveTo(x0, sy);
-                ctx.lineTo(x0, y0 + h);
-                ctx.stroke();
-                // 内横线（折点高度）
-                ctx.beginPath();
-                ctx.moveTo(x0, sy);
-                ctx.lineTo(sx, sy);
-                ctx.stroke();
-                // 内竖线（折点宽度）
-                ctx.beginPath();
-                ctx.moveTo(sx, y0);
-                ctx.lineTo(sx, sy);
-                ctx.stroke();
-                // 小字"poementer"
-                try {
-                    const inset = 12; // 内边距
-                    if (ctx.setFillStyle) ctx.setFillStyle(textColor); else ctx.fillStyle = textColor;
-                    const fontPx = 18;
-                    try { ctx.font = fontPx + 'px Huiwen-mincho, sans-serif'; } catch (_) {}
-                    if (ctx.setFontSize) ctx.setFontSize(fontPx);
-                    if (ctx.setTextAlign) ctx.setTextAlign('left'); else ctx.textAlign = 'left';
-                    const textX = x0 + inset;
-                    const textY = y0 + h - inset;
-                    ctx.fillText('poementer', textX, textY);
-                } catch (_) {}
-            } finally { ctx.restore(); }
         },
 
         // 独立的导出函数
@@ -1306,22 +1062,6 @@ export default {
                             }
                         }, this);
         },
-
-        // 绘制圆角矩形
-        drawRoundedRect: function (ctx, x, y, width, height, radius) {
-            ctx.beginPath();
-            ctx.moveTo(x + radius, y);
-            ctx.lineTo(x + width - radius, y);
-            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-            ctx.lineTo(x + width, y + height - radius);
-            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-            ctx.lineTo(x + radius, y + height);
-            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-            ctx.lineTo(x, y + radius);
-            ctx.quadraticCurveTo(x, y, x + radius, y);
-            ctx.closePath();
-        },
-
 
         onImageLongPress: function () {
             console.log('【post-detail】用户长按图片');
@@ -3343,7 +3083,7 @@ page {
     justify-content: flex-end;
     align-items: center;
     margin-top: 10rpx;
-    padding: 10rpx 40rpx 0 40rpx;
+    padding: 10rpx 0rpx 0 40rpx;
 }
 
 .actions-left {

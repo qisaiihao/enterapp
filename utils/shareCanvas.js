@@ -221,13 +221,311 @@ function canvasToTempFile(canvasId, context, width, height) {
     });
 }
 
+/**
+ * 绘制圆角矩形（使用 quadraticCurveTo）
+ */
+function drawRoundedRect(ctx, x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+}
+
+/**
+ * 绘制右下角水印
+ */
+function drawCornerWatermark(ctx, canvasWidth, canvasHeight) {
+    const margin = 24;
+    const w = 220;
+    const h = 180;
+    const stepX = 0.55;
+    const stepY = 0.60;
+    const x0 = canvasWidth - w - margin;
+    const y0 = canvasHeight - h - margin;
+    const lineWidth = 1.5;
+    const strokeColor = 'rgba(0,0,0,0.16)';
+    const textColor = 'rgba(0,0,0,0.22)';
+    const sx = x0 + w * stepX;
+    const sy = y0 + h * stepY;
+    
+    ctx.save();
+    try {
+        if (ctx.setLineWidth) ctx.setLineWidth(lineWidth); else ctx.lineWidth = lineWidth;
+        if (ctx.setStrokeStyle) ctx.setStrokeStyle(strokeColor); else ctx.strokeStyle = strokeColor;
+        // 顶边
+        ctx.beginPath();
+        ctx.moveTo(sx, y0);
+        ctx.lineTo(x0 + w, y0);
+        ctx.stroke();
+        // 左边
+        ctx.beginPath();
+        ctx.moveTo(x0, sy);
+        ctx.lineTo(x0, y0 + h);
+        ctx.stroke();
+        // 内横线
+        ctx.beginPath();
+        ctx.moveTo(x0, sy);
+        ctx.lineTo(sx, sy);
+        ctx.stroke();
+        // 内竖线
+        ctx.beginPath();
+        ctx.moveTo(sx, y0);
+        ctx.lineTo(sx, sy);
+        ctx.stroke();
+        // 小字"poementer"
+        try {
+            const inset = 12;
+            if (ctx.setFillStyle) ctx.setFillStyle(textColor); else ctx.fillStyle = textColor;
+            const fontPx = 18;
+            try { ctx.font = fontPx + 'px Huiwen-mincho, sans-serif'; } catch (_) {}
+            if (ctx.setFontSize) ctx.setFontSize(fontPx);
+            if (ctx.setTextAlign) ctx.setTextAlign('left'); else ctx.textAlign = 'left';
+            ctx.fillText('poementer', x0 + inset, y0 + h - inset);
+        } catch (_) {}
+    } finally { ctx.restore(); }
+}
+
+/**
+ * 计算分享卡片所需高度
+ * @param {Object} options - 配置项
+ * @returns {Promise<{canvasHeight: number, processedLines: string[], titleHeight: number, signatureDrawHeight: number}>}
+ */
+async function calculateShareCardHeight(options) {
+    const {
+        measureCtx,
+        post,
+        shareConfig,
+        canvasWidth = 750,
+        shouldShowSignature = true
+    } = options;
+
+    const baseFontSize = shareConfig.fontSize || 38;
+    const fontScale = shareConfig.fontScale || 1.0;
+    const fontSize = Math.round(baseFontSize * fontScale);
+    const lineHeight = Math.round(fontSize * 1.26);
+    const fontFamily = shareConfig.fontFamily || 'Huiwen-mincho';
+    const actualFontFamily = fontFamily === 'system' ? 'sans-serif' : fontFamily + ', sans-serif';
+
+    const textPadding = 60;
+    const textTopPadding = 80;
+    const textBottomPadding = 60;
+
+    const baseTitleFontSize = shareConfig.titleFontSize || Math.round(baseFontSize * 1.21);
+    const titleFontSize = Math.round(baseTitleFontSize * fontScale);
+    const titleLineHeight = Math.round(titleFontSize * 1.22);
+    const titleBottomSpacing = Math.round(fontSize * 0.84);
+
+    const textAreaWidth = canvasWidth - 120;
+    const content = post.content || '';
+
+    if (measureCtx) {
+        measureCtx.font = fontSize + 'px ' + actualFontFamily;
+    }
+
+    // 计算正文行数和高度
+    const processedLines = wrapText(measureCtx, content, textAreaWidth, fontSize);
+    const wrappedContentHeight = processedLines.reduce((h, line) => h + (line && line.trim() ? lineHeight : lineHeight * 0.5), 0);
+    const contentHeight = Math.max(wrappedContentHeight, 200);
+
+    // 计算标题高度
+    let actualTitleHeight = titleLineHeight + 20;
+    if (post.title) {
+        const titleLines = wrapText(measureCtx, post.title, textAreaWidth, titleFontSize);
+        const titleLinesCount = titleLines.filter(line => line.trim()).length;
+        if (titleLinesCount > 1) {
+            actualTitleHeight = titleLinesCount * titleLineHeight + 20;
+        }
+    }
+    const titleHeight = actualTitleHeight;
+
+    // 计算签名高度
+    const signatureTopGap = 40;
+    const fixedSignatureWidth = 120;
+    const signatureTextFontSize = 28;
+    let signatureDrawHeight = 0;
+    
+    if (post.authorSignature && shouldShowSignature) {
+        try {
+            const sigInfo = await new Promise((resolve) => {
+                uni.getImageInfo({ src: post.authorSignature, success: (res) => resolve(res), fail: () => resolve(null) });
+            });
+            if (sigInfo && sigInfo.width > 0) {
+                const scale = fixedSignatureWidth / sigInfo.width;
+                signatureDrawHeight = Math.max(1, Math.round(sigInfo.height * scale));
+            }
+        } catch (_) {}
+    }
+
+    // 计算最终高度
+    const isNonOriginalPoem = post.isPoem && post.isOriginal === false && post.author;
+    const needsAuthorSpace = shouldShowSignature || isNonOriginalPoem;
+
+    let finalCanvasHeight = textTopPadding + titleHeight + titleBottomSpacing + contentHeight
+        + (post.authorSignature && shouldShowSignature
+            ? (signatureTopGap + signatureDrawHeight)
+            : (needsAuthorSpace && ((post.authorName && post.authorName.trim()) || (post.author && post.author.trim())))
+                ? (signatureTopGap + signatureTextFontSize)
+                : 0)
+        + textBottomPadding + 10;
+
+    const safetyMargin = Math.max(60, Math.ceil(lineHeight * 1.5));
+    finalCanvasHeight += safetyMargin;
+
+    return {
+        canvasHeight: Math.ceil(finalCanvasHeight),
+        processedLines,
+        titleHeight,
+        signatureDrawHeight,
+        fontSize,
+        lineHeight,
+        titleFontSize,
+        titleLineHeight,
+        titleBottomSpacing,
+        actualFontFamily,
+        textPadding,
+        textTopPadding,
+        textBottomPadding,
+        textAreaWidth,
+        signatureTopGap,
+        fixedSignatureWidth,
+        signatureTextFontSize
+    };
+}
+
+/**
+ * 绘制分享卡片内容
+ * @param {Object} options - 配置项
+ */
+async function drawShareCardContent(options) {
+    const {
+        ctx,
+        post,
+        shareConfig,
+        canvasWidth,
+        canvasHeight,
+        processedLines,
+        titleHeight,
+        signatureDrawHeight,
+        fontSize,
+        lineHeight,
+        titleFontSize,
+        titleLineHeight,
+        titleBottomSpacing,
+        actualFontFamily,
+        textPadding,
+        textTopPadding,
+        textAreaWidth,
+        signatureTopGap,
+        fixedSignatureWidth,
+        signatureTextFontSize,
+        shouldShowSignature
+    } = options;
+
+    // 设置字体
+    ctx.font = fontSize + 'px ' + actualFontFamily;
+
+    // 绘制圆角背景
+    const bgColor = shareConfig.backgroundColor || post.backgroundColor || '#FFFFFF';
+    ctx.setFillStyle(bgColor);
+    drawRoundedRect(ctx, 0, 0, canvasWidth, canvasHeight, 15);
+    ctx.fill();
+
+    // 绘制文字内容
+    const textColor = shareConfig.textColor || post.textColor || '#000000';
+    ctx.setFillStyle(textColor);
+    ctx.setTextAlign('left');
+
+    // 绘制标题
+    const title = post.title || '';
+    if (title) {
+        ctx.font = titleFontSize + 'px ' + actualFontFamily;
+        ctx.setFillStyle(textColor);
+        ctx.setTextAlign('left');
+
+        const titleLines = wrapText(ctx, title, textAreaWidth, titleFontSize, actualFontFamily);
+        let titleY = textTopPadding + titleFontSize;
+        const titleX = textPadding;
+
+        titleLines.forEach((line) => {
+            if (line.trim()) {
+                ctx.fillText(line, titleX, titleY);
+                titleY += titleLineHeight;
+            } else {
+                titleY += titleLineHeight * 0.5;
+            }
+        });
+
+        ctx.font = fontSize + 'px ' + actualFontFamily;
+    }
+
+    // 绘制正文
+    let y = textTopPadding + titleHeight + titleBottomSpacing + fontSize;
+    const x = textPadding;
+
+    processedLines.forEach((line) => {
+        if (line.trim()) {
+            ctx.fillText(line, x, y);
+            y += lineHeight;
+        } else {
+            y += lineHeight * 0.5;
+        }
+    });
+
+    // 绘制签名
+    if (post.authorSignature && shouldShowSignature) {
+        const signatureMargin = 40;
+        const signatureX = canvasWidth - fixedSignatureWidth - signatureMargin;
+        const signatureY = Math.min(y + signatureTopGap, canvasHeight - signatureDrawHeight - signatureMargin);
+
+        await drawImageAsync(ctx, post.authorSignature, signatureX, signatureY, fixedSignatureWidth);
+    } else if (shouldShowSignature) {
+        const authorName = ((post.authorName || post.author || '') + '').trim();
+        if (authorName) {
+            ctx.setTextAlign('right');
+            ctx.setFillStyle(textColor);
+            ctx.font = signatureTextFontSize + 'px Huiwen-mincho, sans-serif';
+            const textMargin = 48;
+            const sigTextX = canvasWidth - textMargin;
+            const sigTextY = Math.max(canvasHeight - textMargin, y + signatureTopGap);
+            ctx.fillText(authorName, sigTextX, sigTextY);
+            ctx.setTextAlign('left');
+        }
+    } else if (post.isPoem && post.isOriginal === false && post.author) {
+        const originalAuthor = (post.author + '').trim();
+        if (originalAuthor) {
+            ctx.setTextAlign('right');
+            ctx.setFillStyle(textColor);
+            ctx.font = signatureTextFontSize + 'px Huiwen-mincho, sans-serif';
+            const textMargin = 48;
+            const sigTextX = canvasWidth - textMargin;
+            const sigTextY = Math.max(canvasHeight - textMargin, y + signatureTopGap);
+            ctx.fillText(originalAuthor, sigTextX, sigTextY);
+            ctx.setTextAlign('left');
+        }
+    }
+
+    // 绘制水印
+    try { drawCornerWatermark(ctx, canvasWidth, canvasHeight); } catch (e) { console.warn('draw watermark failed', e); }
+}
+
 module.exports = {
     drawImageAsync,
     calculateActualLines,
     wrapText,
     preventShortLineBreak,
     drawRoundRect,
+    drawRoundedRect,
     drawMultiLineText,
     loadFont,
-    canvasToTempFile
+    canvasToTempFile,
+    drawCornerWatermark,
+    calculateShareCardHeight,
+    drawShareCardContent
 };
