@@ -899,22 +899,9 @@ export default {
                 // 签名URL已从云函数返回，直接使用post.authorSignature（匿名帖子或非原创诗歌不显示签名）
                 const shouldShowSignature = (!!this.post && !this.post.isAnonymous && !(this.post.isPoem && this.post.isOriginal === false));
                 
-                // 使用canvas生成图片
-                const ctx = uni.createCanvasContext('shareCanvas', this);
-                
-                if (!ctx) {
-                    console.error('【post-detail】Canvas上下文创建失败');
-                    uni.showToast({
-                        title: 'Canvas创建失败',
-                        icon: 'none'
-                    });
-                    return;
-                }
-                
-                
+                // 【修复】先计算Canvas高度，更新DOM后再创建上下文
                 // 计算内容尺寸 - 模拟poem-square的样式
                 const content = this.post.content || '';
-                const lines = content.split('\n');
                 
                 // 字体设置 - 使用动态配置
                 const baseFontSize = this.shareConfig.fontSize || 38;
@@ -925,9 +912,6 @@ export default {
                 const actualFontFamily = fontFamily === 'system' ? 'sans-serif' : fontFamily + ', sans-serif';
                 
                 console.log('【drawCanvas】字体缩放:', { fontFamily, baseFontSize, fontScale, fontSize });
-                
-                // 设置字体 - 使用缩放后的字号
-                ctx.font = fontSize + 'px ' + actualFontFamily;
 
                 // 计算文字区域尺寸 - 优化padding给文本更多空间
                 const textPadding = 60; // 优化：减少左右padding，避免提早换行
@@ -945,11 +929,17 @@ export default {
                 const canvasWidth = 750; // 增大卡片宽度到750px
                 const textAreaWidth = canvasWidth - 120; // 优化：减少padding，给文本更多空间 (60*2)
 
+                // 【修复】先创建临时ctx用于测量文字，计算高度
+                let measureCtx = uni.createCanvasContext('shareCanvas', this);
+                if (measureCtx) {
+                    measureCtx.font = fontSize + 'px ' + actualFontFamily;
+                }
+
                 // 【新增】使用精确的文字测量函数计算实际行数
-                const actualLines = calcLines(ctx, content, textAreaWidth, fontSize);
+                const actualLines = calcLines(measureCtx, content, textAreaWidth, fontSize);
 
                 // 【新增】使用智能换行函数处理长文本
-                const processedLines = wrapCanvasText(ctx, content, textAreaWidth, fontSize);
+                const processedLines = wrapCanvasText(measureCtx, content, textAreaWidth, fontSize);
                 const wrappedContentHeight = processedLines.reduce((h, line) => h + (line && line.trim() ? lineHeight : lineHeight * 0.5), 0);
 
                 // 更准确的内容高度计算 - 基于实际测量
@@ -958,7 +948,7 @@ export default {
                 // 【修复】计算标题的实际高度（支持多行标题）
                 let actualTitleHeight = titleLineHeight + 20; // 默认单行标题高度
                 if (this.post.title) {
-                    const titleLines = wrapCanvasText(ctx, this.post.title, textAreaWidth, titleFontSize);
+                    const titleLines = wrapCanvasText(measureCtx, this.post.title, textAreaWidth, titleFontSize);
                     const titleLinesCount = titleLines.filter(line => line.trim()).length;
                     if (titleLinesCount > 1) {
                         actualTitleHeight = titleLinesCount * titleLineHeight + 20; // 多行标题高度
@@ -1005,9 +995,22 @@ export default {
                 finalCanvasHeight += safetyMargin;
                 
                 const canvasHeight = Math.ceil(finalCanvasHeight);
+                
+                // 【关键修复】先更新Canvas高度，等待DOM更新完成
                 try { this.setData && this.setData({ shareCanvasHeight: canvasHeight }); } catch(_) { this.shareCanvasHeight = canvasHeight; }
                 if (this.$nextTick) { await new Promise(r => this.$nextTick(r)); }
+                // 额外等待一帧确保Canvas尺寸已更新
+                await new Promise(r => setTimeout(r, 50));
                 
+                // 【关键修复】Canvas高度更新后，重新创建上下文进行绘制
+                const ctx = uni.createCanvasContext('shareCanvas', this);
+                if (!ctx) {
+                    console.error('【post-detail】Canvas上下文创建失败');
+                    uni.showToast({ title: 'Canvas创建失败', icon: 'none' });
+                    return;
+                }
+                // 重新设置字体
+                ctx.font = fontSize + 'px ' + actualFontFamily;
                 
                 // 绘制圆角背景 - 使用动态颜色配置
                 const bgColor = this.shareConfig.backgroundColor || this.post.backgroundColor || '#FFFFFF';
