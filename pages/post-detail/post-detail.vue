@@ -2214,7 +2214,10 @@ export default {
             let comments = this.comments;
             const comment = comments.find((c) => c._id === commentId);
             if (comment) {
-                comment.showAllReplies = !comment.showAllReplies;
+                const nextVal = !comment.showAllReplies;
+                // keep reactivity even if the flag was not pre-defined
+                this.$set(comment, 'showAllReplies', nextVal);
+                // trigger view update
                 this.setData({
                     comments: comments
                 });

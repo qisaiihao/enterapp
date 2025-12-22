@@ -21,7 +21,9 @@ function processComments(comments) {
             likeIcon: getLikeIcon(comment.likes || 0, comment.liked || false),
             imageUrls: Array.isArray(comment.imageUrls) ? comment.imageUrls : [],
             originalImageUrls: Array.isArray(comment.originalImageUrls) ? comment.originalImageUrls : [],
-            _openid: comment._openid || ''
+            _openid: comment._openid || '',
+            // ensure reply folding flag is reactive on first render
+            showAllReplies: false
         };
 
         // 处理回复
