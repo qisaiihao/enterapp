@@ -13,8 +13,48 @@ exports.main = async (event, context) => {
   
   const wxContext = cloud.getWXContext();
   const openid = wxContext.OPENID || event.openid;
-  const { page = 0, pageSize = 10 } = event
-  
+  const { page = 0, pageSize = 10, mode } = event
+
+  // ========== mode: words（返回拼贴词库）==========
+  if (mode === 'words') {
+    try {
+      const {
+        limit = 10,
+        groups = ['nouns', 'verbs', 'imagery'],
+        seed = Date.now()
+      } = event;
+
+      const limitPerGroup = Math.max(3, Math.min(20, Number(limit) || 10));
+      const rng = mulberry32(seed);
+
+      const pickWords = (arr) => shuffleWithRng(arr, rng).slice(0, limitPerGroup);
+
+      const wordBank = getDefaultWordBank();
+      const payload = {};
+      groups.forEach((g) => {
+        const key = g.toLowerCase();
+        if (wordBank[key]) {
+          payload[key] = pickWords(wordBank[key]);
+        }
+      });
+
+      return {
+        success: true,
+        mode: 'words',
+        seedUsed: seed,
+        limit: limitPerGroup,
+        data: payload
+      };
+    } catch (err) {
+      console.error('获取拼贴词库失败:', err);
+      return {
+        success: false,
+        mode: 'words',
+        message: err.message || '获取拼贴词库失败'
+      };
+    }
+  }
+
   try {
     // 获取被屏蔽的用户ID列表（使用缓存）
     let blockedUserIds = [];
@@ -177,4 +217,46 @@ function getLikeIcon(votes, isVoted) {
   if (votes >= 20) return '/static/images/leafplus.png'
   if (votes >= 10) return '/static/images/seedplus.png'
   return '/static/images/seed.png'
+}
+
+// 默认词库
+function getDefaultWordBank() {
+  return {
+    nouns: [
+      '月光', '湖面', '纸船', '夜色', '微风', '街灯', '旅人', '雨巷', '旧书',
+      '海岸', '青苔', '石阶', '山谷', '列车', '清晨', '晚钟', '雾霭', '野花',
+      '行囊', '星河', '猫影', '琴弦', '屋檐', '灯塔', '旷野', '城墙'
+    ],
+    verbs: [
+      '飘落', '游走', '折返', '靠近', '停泊', '潜行', '追逐', '凝望', '拾起',
+      '回响', '叩问', '坠落', '闪烁', '栖息', '穿行', '搁浅', '拥抱', '折叠',
+      '点燃', '晃动', '撕裂', '复苏'
+    ],
+    imagery: [
+      '像黎明前的薄蓝', '像雨后的青石', '像擦肩而过的车尾灯', '像火车驶出隧道的白光',
+      '像手心温热的糖纸', '像一封未寄出的信', '像风吹散的檐下风铃',
+      '像月色落进井口', '像潮汐推开的门', '像旧电影的颗粒感', '像屋顶上的雪声',
+      '像夏夜停电的屋子', '像落日余晖的橙', '像玻璃上未干的水迹'
+    ]
+  };
+}
+
+// 伪随机生成器（可重复，便于前端重现同一词序）
+function mulberry32(a) {
+  return function () {
+    let t = (a += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// 使用给定 RNG 的洗牌
+function shuffleWithRng(arr, rng) {
+  const copy = arr.slice();
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
 }

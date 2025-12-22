@@ -311,6 +311,13 @@
             "navigationStyle": "custom",
             "usingComponents": {}
           }
+        },
+        {
+          "path": "collage-compose/collage-compose",
+          "style": {
+            "navigationStyle": "custom",
+            "usingComponents": {}
+          }
         }
       ]
     }

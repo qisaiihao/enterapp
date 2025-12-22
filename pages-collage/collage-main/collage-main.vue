@@ -13,10 +13,10 @@
         <view class="option-text">上传图片</view>
       </view>
 
-      <!-- 输入文本 -->
-      <view class="option-item" @tap="navigateToText">
+      <!-- 拼贴创作 -->
+      <view class="option-item" @tap="navigateToCompose">
         <view class="option-bg option-bg-2"></view>
-        <view class="option-text">输入文本</view>
+        <view class="option-text">拼贴创作</view>
       </view>
 
       <!-- 图片拼贴 -->
@@ -53,11 +53,10 @@ export default {
       })
     },
     
-    // 跳转到文本输入页面
-    navigateToText() {
-      uni.showToast({
-        title: '内容开发中',
-        icon: 'none'
+    // 跳转到拼贴创作页面
+    navigateToCompose() {
+      uni.navigateTo({
+        url: '/pages-collage/collage-compose/collage-compose'
       })
     },
     
