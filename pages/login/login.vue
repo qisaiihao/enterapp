@@ -16,12 +16,15 @@
           <text class="register-text">注册</text>
         </view>
 
-        <!-- GitHub 登录 -->
+        <!-- GitHub 登录（图标样式） -->
         <view class="github-login-wrapper">
-          <button class="github-login-btn" @tap="loginWithGitHub">
-            <text class="github-icon"></text>
-            <text class="github-text">使用 GitHub 登录</text>
-          </button>
+          <image
+            class="github-login-icon"
+            src="/static/images/github-logo.png"
+            mode="aspectFit"
+            :aria-label="'使用 GitHub 登录'"
+            @tap="loginWithGitHub"
+          />
         </view>
     </view>
       </view>
@@ -838,34 +841,19 @@ export default {
 /* GitHub 登录 */
 .github-login-wrapper {
   width: 100%;
-  margin-top: 40rpx;
+  margin-top: 30rpx;
   text-align: center;
 }
-.github-login-btn {
-  width: 100%;
-  height: 88rpx;
-  background: #24292e;
-  border-radius: 44rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12rpx;
-  border: none;
-  box-shadow: 0 8rpx 25rpx rgba(36, 41, 46, 0.3);
-  transition: all 0.2s ease;
+.github-login-icon {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  box-shadow: 0 8rpx 18rpx rgba(0, 0, 0, 0.15);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
-.github-login-btn:active {
-  transform: translateY(2rpx);
-  box-shadow: 0 4rpx 15rpx rgba(36, 41, 46, 0.3);
-}
-.github-icon {
-  font-size: 32rpx;
-  color: #fff;
-}
-.github-text {
-  font-size: 30rpx;
-  color: #fff;
-  font-weight: 500;
+.github-login-icon:active {
+  transform: scale(0.95);
+  box-shadow: 0 4rpx 10rpx rgba(0, 0, 0, 0.2);
 }
 /* 回车键形状按钮 */
 .enter-key-btn {
