@@ -3,6 +3,7 @@
 // import checkUpdate from '@/uni_modules/uni-upgrade-center-app/utils/check-update';
 import { checkAndUpdate } from '@/utils/hotUpdate.js';
 // #endif
+import fontManager from '@/utils/fontManager.js';
 
 export default {
     // 【重构】1. 将所有全局数据放入 data 函数中，这是 Vue 的标准做法
@@ -83,6 +84,13 @@ export default {
         
         // 【性能优化】立即标记登录流程已开始，不阻塞后续操作
         this.globalData._loginProcessStarted = true;
+        
+        // 【字体预加载】提前加载默认字体，避免第一次生成卡片时字体未就绪
+        fontManager.preloadCommonFonts(['汇文明朝']).then(results => {
+            console.log('【App】默认字体预加载完成:', results);
+        }).catch(err => {
+            console.warn('【App】默认字体预加载失败:', err);
+        });
         
         // 【性能优化】使用 nextTick 延迟执行非关键任务，让页面先渲染
         this.$nextTick(() => {

@@ -389,7 +389,7 @@ export default {
             shareConfig: {
                 fontSize: 38,
                 titleFontSize: 46,
-                fontFamily: 'Huiwen-mincho',
+                fontFamily: '汇文明朝',
                 backgroundColor: '#FFFFFF', // 将在onShare时更新为帖子的实际颜色
                 textColor: '#000000',       // 将在onShare时更新为帖子的实际颜色
                 fontScale: 1.0
@@ -838,7 +838,7 @@ export default {
         },
 
         loadFontAndDraw: async function () {
-            const fontFamily = this.shareConfig.fontFamily || 'Huiwen-mincho';
+            const fontFamily = this.shareConfig.fontFamily || '汇文明朝';
             
             console.log('【post-detail】开始加载字体:', fontFamily);
             
@@ -853,38 +853,33 @@ export default {
                 
                 // 字体缩放系数映射表 - 解决不同字体在相同字号下大小差异问题
                 const fontScaleMap = {
-                    'Huiwen-mincho': 1.0,
+                    '汇文明朝': 1.0,
                     '文楷': 1.0,
-                    '蒲瓜正楷体': 1.0,
                     '龙藏体': 1.0,
                     '小小皓体': 1.0,
                     '南西雅致黑': 1.0,
-                    '字体圈欣意吉祥宋': 1.0,
-                    '汇文明朝-蒲瓜版': 1.0
+                    '字体圈欣意吉祥宋': 1.0
                 };
                 
                 // 应用字体缩放系数到shareConfig
                 const fontScale = fontScaleMap[fontFamily] || 1.0;
                 this.shareConfig.fontScale = fontScale;
                 
-                // 延迟一下确保DOM已渲染
-                setTimeout(() => {
-                    this.drawCanvas();
-                }, 100);
+                // 【关键】等待字体渲染就绪，App端需要更长时间
+                await new Promise(r => setTimeout(r, 150));
+                
+                this.drawCanvas();
                 
             } catch (error) {
                 console.error('【post-detail】字体加载失败:', fontFamily, error);
                 
-;
-                
                 // 回退到默认字体
-                this.shareConfig.fontFamily = 'Huiwen-mincho';
+                this.shareConfig.fontFamily = '汇文明朝';
                 this.shareConfig.fontScale = 1.0;
                 
                 // 即使字体加载失败，也继续绘制（使用默认字体）
-                setTimeout(() => {
-                    this.drawCanvas();
-                }, 100);
+                await new Promise(r => setTimeout(r, 150));
+                this.drawCanvas();
             }
         },
 
@@ -916,8 +911,8 @@ export default {
                 // 【关键修复】先更新Canvas高度，等待DOM更新完成
                 try { this.setData && this.setData({ shareCanvasHeight: canvasHeight }); } catch(_) { this.shareCanvasHeight = canvasHeight; }
                 if (this.$nextTick) { await new Promise(r => this.$nextTick(r)); }
-                // 额外等待一帧确保Canvas尺寸已更新
-                await new Promise(r => setTimeout(r, 50));
+                // 额外等待确保Canvas尺寸已更新（App端需要更长时间）
+                await new Promise(r => setTimeout(r, 100));
                 
                 // 【关键修复】Canvas高度更新后，重新创建上下文进行绘制
                 const ctx = uni.createCanvasContext('shareCanvas', this);
@@ -926,6 +921,9 @@ export default {
                     uni.showToast({ title: 'Canvas创建失败', icon: 'none' });
                     return;
                 }
+
+                // 【修复】先清空Canvas，避免残留
+                ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
                 // 【优化】使用独立模块绘制分享卡片内容
                 await drawShareCardContent({
@@ -1403,16 +1401,14 @@ export default {
         onFontSizePreview: function(fontSize) {
             // 实时预览字号变化，使用防抖
             // 确保fontScale也被正确设置
-            const fontFamily = this.shareConfig.fontFamily || 'Huiwen-mincho';
+            const fontFamily = this.shareConfig.fontFamily || '汇文明朝';
             const fontScaleMap = {
-                'Huiwen-mincho': 1.0,
+                '汇文明朝': 1.0,
                 '文楷': 1.0,
-                '蒲瓜正楷体': 1.0,
                 '龙藏体': 1.0,
                 '小小皓体': 1.0,
                 '南西雅致黑': 1.0,
-                '字体圈正意吉祥宋': 1.0,
-                '汇文明朝-蒲瓜版': 1.0
+                '字体圈欣意吉祥宋': 1.0
             };
             const fontScale = fontScaleMap[fontFamily] || 1.0;
             
@@ -1428,14 +1424,12 @@ export default {
             // 实时预览字体变化，使用防抖
             // 确保fontScale也被正确设置
             const fontScaleMap = {
-                'Huiwen-mincho': 1.0,
+                '汇文明朝': 1.0,
                 '文楷': 1.0,
-                '蒲瓜正楷体': 1.0,
                 '龙藏体': 1.0,
                 '小小皓体': 1.0,
                 '南西雅致黑': 1.0,
-                '字体圈正意吉祥宋': 1.0,
-                '汇文明朝-蒲瓜版': 1.0
+                '字体圈欣意吉祥宋': 1.0
             };
             const fontScale = fontScaleMap[fontFamily] || 1.0;
             
@@ -3650,9 +3644,9 @@ page {
 
 /* 分享弹窗样式已移入 ShareModal.vue */
 
-/* 定义 Huiwen-mincho 字体 */
+/* 定义汇文明朝字体 - 统一使用中文名称 */
 @font-face {
-  font-family: 'Huiwen-mincho';
+  font-family: '汇文明朝';
   src: url('/static/fonts/Huiwen-mincho.otf') format('opentype');
   font-weight: normal;
   font-style: normal;

@@ -29,7 +29,15 @@
 
             <!-- 字体选择 -->
             <view class="font-family-section">
-                <view class="section-title">字体样式</view>
+                <view class="section-header">
+                    <view class="section-title">字体样式</view>
+                    <!-- 本地字体功能暂时隐藏，待后续完善
+                    <view class="add-font-btn" @tap="onAddCustomFont">
+                        <text class="add-font-icon">+</text>
+                        <text class="add-font-text">本地字体</text>
+                    </view>
+                    -->
+                </view>
                 <scroll-view class="font-options-scroll" :scroll-y="true">
                     <view class="font-options">
                         <view 
@@ -43,13 +51,14 @@
                             @tap="onFontFamilyChange(font.value)"
                         >
                             <view class="font-option-content">
-                                <text class="font-option-text" :style="{ fontFamily: font.isLoaded ? font.value : 'inherit' }">
+                                <text class="font-option-text" :style="{ fontFamily: font.isLoaded ? font.name : 'inherit' }">
                                     {{ font.name }}
                                 </text>
                                 <view class="font-option-meta">
+                                    <text v-if="font.isCustom" class="font-status-text custom">自定义</text>
                                     <text v-if="!font.isDefault" class="font-size-text">{{ font.sizeFormatted }}</text>
-                                    <text v-if="font.isCached && !font.isDefault" class="font-status-text">已缓存</text>
-                                    <text v-else-if="!font.isDefault" class="font-status-text">需下载</text>
+                                    <text v-if="font.isCached && !font.isDefault && !font.isCustom" class="font-status-text">已缓存</text>
+                                    <text v-else-if="!font.isDefault && !font.isCustom" class="font-status-text">需下载</text>
                                 </view>
                             </view>
                             
@@ -61,17 +70,14 @@
                                 <text class="progress-text">{{ downloadProgress }}%</text>
                             </view>
                             
+                            <!-- 删除自定义字体按钮 -->
+                            <text v-else-if="font.isCustom && currentFontFamily !== font.value" class="font-delete" @tap.stop="onDeleteCustomFont(font.value)">删除</text>
+                            
                             <!-- 选中标记 -->
                             <text v-else-if="currentFontFamily === font.value" class="font-check">✓</text>
                         </view>
                     </view>
                 </scroll-view>
-            </view>
-
-            <!-- 确认按钮 -->
-            <view class="font-actions">
-                <view class="action-btn cancel-btn" @tap="$emit('close')">取消</view>
-                <view class="action-btn confirm-btn" @tap="onConfirm">确认</view>
             </view>
         </view>
     </view>
@@ -93,7 +99,7 @@ export default {
         },
         fontFamily: {
             type: String,
-            default: 'Huiwen-mincho'
+            default: '汇文明朝'
         },
         previewText: {
             type: String,
@@ -103,7 +109,7 @@ export default {
     data() {
         return {
             currentFontSize: this.fontSize,
-            currentFontFamily: this.fontFamily,
+            currentFontFamily: '', // 内部使用 fontFamily ID
             fontOptions: [],
             downloadingFont: '', // 当前正在下载的字体
             downloadProgress: 0, // 下载进度 0-100
@@ -112,23 +118,35 @@ export default {
     },
     async created() {
         await this.loadFontOptions();
+        this.initCurrentFont();
     },
     watch: {
         fontSize(val) {
             this.currentFontSize = val;
         },
         fontFamily(val) {
-            this.currentFontFamily = val;
+            this.initCurrentFont();
         },
         // 当弹窗关闭时重置状态
         show(val) {
             if (val) {
                 this.currentFontSize = this.fontSize;
-                this.currentFontFamily = this.fontFamily;
+                this.initCurrentFont();
             }
         }
     },
     methods: {
+        // 根据传入的 fontFamily（可能是 displayName）初始化当前字体
+        initCurrentFont() {
+            // 先尝试直接匹配 fontFamily ID
+            let fontOption = this.fontOptions.find(opt => opt.value === this.fontFamily);
+            // 如果没找到，尝试匹配 displayName
+            if (!fontOption) {
+                fontOption = this.fontOptions.find(opt => opt.name === this.fontFamily);
+            }
+            this.currentFontFamily = fontOption ? fontOption.value : '汇文明朝';
+        },
+        
         // 滑动过程中实时更新显示
         onFontSizeChanging(e) {
             this.currentFontSize = e.detail.value;
@@ -147,7 +165,8 @@ export default {
             // 默认字体直接切换，无需下载
             if (fontOption.isDefault) {
                 this.currentFontFamily = fontFamily;
-                this.$emit('font-family-preview', this.currentFontFamily);
+                // 传递 displayName 用于 CSS 渲染
+                this.$emit('font-family-preview', fontOption.name);
                 return;
             }
             
@@ -184,14 +203,16 @@ export default {
             }
             
             this.currentFontFamily = fontFamily;
-            // 实时预览
-            this.$emit('font-family-preview', this.currentFontFamily);
+            // 传递 displayName 用于 CSS 渲染
+            this.$emit('font-family-preview', fontOption.name);
         },
         
         onConfirm() {
+            const fontOption = this.fontOptions.find(opt => opt.value === this.currentFontFamily);
+            // 传递 displayName 用于 CSS 渲染
             this.$emit('confirm', {
                 fontSize: this.currentFontSize,
-                fontFamily: this.currentFontFamily
+                fontFamily: fontOption ? fontOption.name : this.currentFontFamily
             });
         },
         
@@ -204,6 +225,7 @@ export default {
                     value: font.fontFamily,
                     size: font.size,
                     isDefault: font.isDefault,
+                    isCustom: font.isCustom,
                     isCached: font.isCached,
                     isLoaded: font.isLoaded,
                     sizeFormatted: fontManager.formatFileSize(font.size)
@@ -212,6 +234,62 @@ export default {
                 console.error('加载字体选项失败:', error);
             } finally {
                 this.isLoading = false;
+            }
+        },
+        
+        async onAddCustomFont() {
+            try {
+                uni.showLoading({ title: '选择字体文件...' });
+                const result = await fontManager.addCustomFont();
+                uni.hideLoading();
+                
+                uni.showToast({
+                    title: '字体添加成功',
+                    icon: 'success',
+                    duration: 1500
+                });
+                
+                // 刷新字体列表并选中新字体
+                await this.loadFontOptions();
+                this.currentFontFamily = result.fontFamily;
+                // 传递 displayName 用于 CSS 渲染
+                this.$emit('font-family-preview', result.displayName);
+                
+            } catch (error) {
+                uni.hideLoading();
+                console.error('添加自定义字体失败:', error);
+                uni.showToast({
+                    title: error.message || '添加失败',
+                    icon: 'none',
+                    duration: 2000
+                });
+            }
+        },
+        
+        async onDeleteCustomFont(fontFamily) {
+            try {
+                await fontManager.deleteCustomFont(fontFamily);
+                uni.showToast({
+                    title: '已删除',
+                    icon: 'success',
+                    duration: 1000
+                });
+                
+                // 如果删除的是当前选中的字体，切换到默认字体
+                if (this.currentFontFamily === fontFamily) {
+                    this.currentFontFamily = '汇文明朝';
+                    // 传递 displayName
+                    this.$emit('font-family-preview', '汇文明朝');
+                }
+                
+                await this.loadFontOptions();
+            } catch (error) {
+                console.error('删除自定义字体失败:', error);
+                uni.showToast({
+                    title: '删除失败',
+                    icon: 'none',
+                    duration: 2000
+                });
             }
         }
     }
@@ -237,9 +315,9 @@ export default {
     background: #fff;
     border-top-left-radius: 24rpx;
     border-top-right-radius: 24rpx;
-    padding: 32rpx 32rpx calc(32rpx + env(safe-area-inset-bottom));
-    height: 40vh;
-    max-height: 40vh;
+    padding: 32rpx 32rpx env(safe-area-inset-bottom);
+    height: 65vh;
+    max-height: 65vh;
     display: flex;
     flex-direction: column;
     animation: slideUp 0.3s ease;
@@ -301,11 +379,44 @@ export default {
     flex: 1;
     display: flex;
     flex-direction: column;
+    min-height: 0;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24rpx;
+}
+
+.add-font-btn {
+    display: flex;
+    align-items: center;
+    gap: 8rpx;
+    padding: 12rpx 20rpx;
+    background: #F5F5F5;
+    border-radius: 8rpx;
+    transition: all 0.2s ease;
+}
+
+.add-font-btn:active {
+    background: #E8E8E8;
+}
+
+.add-font-icon {
+    font-size: 28rpx;
+    color: #333;
+    font-weight: bold;
+}
+
+.add-font-text {
+    font-size: 24rpx;
+    color: #333;
 }
 
 .font-options-scroll {
     flex: 1;
-    max-height: 300rpx;
+    min-height: 0;
 }
 
 .font-options {
@@ -384,6 +495,17 @@ export default {
     background: #F0F0F0;
 }
 
+.font-status-text.custom {
+    color: #92400e;
+    background: #fef3c7;
+}
+
+.font-delete {
+    font-size: 22rpx;
+    color: #ef4444;
+    padding: 8rpx 16rpx;
+}
+
 /* 下载进度条样式 */
 .download-progress {
     display: flex;
@@ -412,43 +534,6 @@ export default {
     font-size: 20rpx;
     color: #999;
     font-weight: 500;
-}
-
-/* 操作按钮 */
-.font-actions {
-    display: flex;
-    gap: 24rpx;
-    margin-top: 8rpx;
-}
-
-.action-btn {
-    flex: 1;
-    height: 88rpx;
-    border-radius: 12rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 32rpx;
-    font-weight: 500;
-    transition: all 0.2s ease;
-}
-
-.cancel-btn {
-    background: #F5F5F5;
-    color: #666;
-}
-
-.cancel-btn:active {
-    background: #E8E8E8;
-}
-
-.confirm-btn {
-    background: #333333;
-    color: #FFFFFF;
-}
-
-.confirm-btn:active {
-    background: #222222;
 }
 
 @keyframes slideUp {

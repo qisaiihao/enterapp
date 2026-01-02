@@ -2,6 +2,19 @@
  * 分享图片 Canvas 绘制工具函数
  */
 
+// 兼容旧的 fontFamily ID 到 displayName 的映射
+const LEGACY_FONT_MAP = {
+    'Huiwen-mincho': '汇文明朝'
+};
+
+/**
+ * 获取字体的显示名称（用于 Canvas）
+ * 统一使用 displayName，兼容旧的 fontFamily ID
+ */
+function getFontDisplayName(fontFamily) {
+    return LEGACY_FONT_MAP[fontFamily] || fontFamily;
+}
+
 /**
  * 异步绘制网络图片到 Canvas
  * @param {Object} ctx - Canvas 上下文
@@ -57,7 +70,7 @@ function drawImageAsync(ctx, url, x, y, fixedWidth) {
  * @param {string} fontFamily - 字体
  * @returns {number}
  */
-function calculateActualLines(ctx, text, maxWidth, fontSize, fontFamily = 'Huiwen-mincho, sans-serif') {
+function calculateActualLines(ctx, text, maxWidth, fontSize, fontFamily = '汇文明朝, sans-serif') {
     ctx.font = `${fontSize}px ${fontFamily}`;
     const lines = text.split('\n');
     let actualLineCount = 0;
@@ -87,7 +100,7 @@ function calculateActualLines(ctx, text, maxWidth, fontSize, fontFamily = 'Huiwe
  * @param {string} fontFamily - 字体
  * @returns {string[]}
  */
-function wrapText(ctx, text, maxWidth, fontSize, fontFamily = 'Huiwen-mincho, sans-serif') {
+function wrapText(ctx, text, maxWidth, fontSize, fontFamily = '汇文明朝, sans-serif') {
     ctx.font = `${fontSize}px ${fontFamily}`;
     const optimizedText = preventShortLineBreak(text);
     const originalLines = optimizedText.split('\n');
@@ -284,7 +297,7 @@ function drawCornerWatermark(ctx, canvasWidth, canvasHeight) {
             const inset = 12;
             if (ctx.setFillStyle) ctx.setFillStyle(textColor); else ctx.fillStyle = textColor;
             const fontPx = 18;
-            try { ctx.font = fontPx + 'px Huiwen-mincho, sans-serif'; } catch (_) {}
+            try { ctx.font = fontPx + 'px 汇文明朝, sans-serif'; } catch (_) {}
             if (ctx.setFontSize) ctx.setFontSize(fontPx);
             if (ctx.setTextAlign) ctx.setTextAlign('left'); else ctx.textAlign = 'left';
             ctx.fillText('poementer', x0 + inset, y0 + h - inset);
@@ -310,8 +323,10 @@ async function calculateShareCardHeight(options) {
     const fontScale = shareConfig.fontScale || 1.0;
     const fontSize = Math.round(baseFontSize * fontScale);
     const lineHeight = Math.round(fontSize * 1.26);
-    const fontFamily = shareConfig.fontFamily || 'Huiwen-mincho';
-    const actualFontFamily = fontFamily === 'system' ? 'sans-serif' : fontFamily + ', sans-serif';
+    const fontFamily = shareConfig.fontFamily || '汇文明朝';
+    // 将字体 ID 转换为显示名称，用于 Canvas 绑定
+    const fontDisplayName = getFontDisplayName(fontFamily);
+    const actualFontFamily = fontFamily === 'system' ? 'sans-serif' : fontDisplayName + ', sans-serif';
 
     const textPadding = 60;
     const textTopPadding = 80;
@@ -431,6 +446,9 @@ async function drawShareCardContent(options) {
     // 设置字体
     ctx.font = fontSize + 'px ' + actualFontFamily;
 
+    // 【修复】先清空Canvas，确保没有残留
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
     // 绘制圆角背景
     const bgColor = shareConfig.backgroundColor || post.backgroundColor || '#FFFFFF';
     ctx.setFillStyle(bgColor);
@@ -490,7 +508,7 @@ async function drawShareCardContent(options) {
         if (authorName) {
             ctx.setTextAlign('right');
             ctx.setFillStyle(textColor);
-            ctx.font = signatureTextFontSize + 'px Huiwen-mincho, sans-serif';
+            ctx.font = signatureTextFontSize + 'px ' + actualFontFamily;
             const textMargin = 48;
             const sigTextX = canvasWidth - textMargin;
             const sigTextY = Math.max(canvasHeight - textMargin, y + signatureTopGap);
@@ -502,7 +520,7 @@ async function drawShareCardContent(options) {
         if (originalAuthor) {
             ctx.setTextAlign('right');
             ctx.setFillStyle(textColor);
-            ctx.font = signatureTextFontSize + 'px Huiwen-mincho, sans-serif';
+            ctx.font = signatureTextFontSize + 'px ' + actualFontFamily;
             const textMargin = 48;
             const sigTextX = canvasWidth - textMargin;
             const sigTextY = Math.max(canvasHeight - textMargin, y + signatureTopGap);

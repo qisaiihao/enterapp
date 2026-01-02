@@ -84,6 +84,12 @@
       }
     },
     {
+      "path": "pages/test-direct-download",
+      "style": {
+        "navigationBarTitleText": "TCB直传测试"
+      }
+    },
+    {
       "path": "pages/poem-square/poem-square",
       "style": {
         "navigationStyle": "custom",

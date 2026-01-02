@@ -93,6 +93,16 @@ export default {
         };
     },
     onLoad: function () {
+        // 检查是否在10分钟内重复进入，如果是则跳过开屏动画
+        if (this.shouldSkipSplash()) {
+            console.log('⏭️ [splash] 10分钟内重复进入，跳过开屏动画');
+            this.skipToMainPage();
+            return;
+        }
+        
+        // 记录本次访问时间
+        this.recordSplashVisit();
+        
         // 1. 启动打字机动画
         this.executeTypingAnimation();
 
@@ -103,6 +113,74 @@ export default {
         // 统一云函数调用方法
         callCloudFunction(name, data = {}, extraOptions = {}) {
             return cloudCall(name, data, Object.assign({ pageTag: 'splash', context: this }, extraOptions));
+        },
+
+        /**
+         * 检查是否应该跳过开屏动画（10分钟内重复进入）
+         */
+        shouldSkipSplash() {
+            try {
+                const lastVisit = uni.getStorageSync('lastSplashVisitTime');
+                if (!lastVisit) return false;
+                
+                const now = Date.now();
+                const tenMinutes = 10 * 60 * 1000; // 10分钟（毫秒）
+                
+                return (now - lastVisit) < tenMinutes;
+            } catch (e) {
+                console.warn('检查开屏访问时间失败:', e);
+                return false;
+            }
+        },
+
+        /**
+         * 记录本次开屏访问时间
+         */
+        recordSplashVisit() {
+            try {
+                uni.setStorageSync('lastSplashVisitTime', Date.now());
+            } catch (e) {
+                console.warn('记录开屏访问时间失败:', e);
+            }
+        },
+
+        /**
+         * 跳过开屏动画，直接进入主页面
+         */
+        skipToMainPage() {
+            const app = getApp();
+            
+            // 检查用户是否已登录
+            if (app && app.globalData && app.globalData.userInfo && app.globalData.openid) {
+                uni.switchTab({
+                    url: '/pages/poem-square/poem-square'
+                });
+            } else {
+                // 尝试从缓存恢复登录状态
+                try {
+                    const cachedUserInfo = uni.getStorageSync('userInfo');
+                    const cachedOpenId = uni.getStorageSync('userOpenId');
+                    
+                    if (cachedUserInfo && cachedOpenId) {
+                        // 恢复登录状态
+                        if (app && app.globalData) {
+                            app.globalData.userInfo = cachedUserInfo;
+                            app.globalData.openid = cachedOpenId;
+                        }
+                        uni.switchTab({
+                            url: '/pages/poem-square/poem-square'
+                        });
+                    } else {
+                        uni.redirectTo({
+                            url: '/pages/login/login'
+                        });
+                    }
+                } catch (e) {
+                    uni.redirectTo({
+                        url: '/pages/login/login'
+                    });
+                }
+            }
         },
 
         /**

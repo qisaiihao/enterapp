@@ -16,8 +16,8 @@
           <text class="register-text">注册</text>
         </view>
 
-        <!-- GitHub 登录（图标样式） -->
-        <view class="github-login-wrapper">
+        <!-- GitHub 登录（图标样式）- 暂时隐藏 -->
+        <!-- <view class="github-login-wrapper">
           <image
             class="github-login-icon"
             src="/static/images/github-logo.png"
@@ -25,7 +25,7 @@
             :aria-label="'使用 GitHub 登录'"
             @tap="loginWithGitHub"
           />
-        </view>
+        </view> -->
     </view>
       </view>
     </view>
