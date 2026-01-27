@@ -166,6 +166,8 @@ exports.main = async (event, context) => {
             postId: postId,
             postTitle: post.title || '无标题',
             contentType: contentType,
+            // 标记是否为对评论的回复，便于前端准确展示
+            isReply: !!parentId,
             content: messageContent,
             commentId: result._id,
             isRead: false,

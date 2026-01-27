@@ -4,6 +4,10 @@
         <view class="back-button" @tap.stop="goBack">
             <image class="back-icon" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
         </view>
+        <!-- 右上角退出 -->
+        <view class="exit-button" @tap.stop="goBack">
+            <text class="exit-text">退出</text>
+        </view>
 
         <!-- 标题输入框 -->
         <view class="title-input-wrapper" @tap.stop="noop">
@@ -18,7 +22,11 @@
         </view>
 
         <!-- 句子选择区域 -->
-        <view v-if="!hasSelectedSentences" class="sentence-selection-area">
+        <view v-if="isSelecting" class="sentence-selection-area">
+            <!-- 右上角退出（返回被引用的诗歌界面） -->
+            <view class="selection-exit" @tap.stop="exitToPost">
+                <text class="selection-exit-text">退出</text>
+            </view>
             <!-- 原文显示区域 -->
             <view class="original-content-wrapper">
                 <view class="original-content-display">
@@ -39,17 +47,24 @@
 
             <!-- 完成选择按钮 -->
             <view class="selection-actions">
-                <view class="select-done-btn" @tap.stop="finishSelection" :class="{ 'disabled': highlightSelectedLineIndices.length === 0 }">
+                <view class="select-done-btn" @tap.stop="finishSelection">
                     <image class="select-done-icon" src="/static/images/confirm_selection.png" mode="aspectFill"></image>
                 </view>
             </view>
         </view>
 
-        <!-- 已选句子评论区域 -->
+        <!-- 已选句子评论区域（编辑区） -->
         <view v-else class="selected-sentences-area">
-            <view v-for="(sentenceGroup, groupIndex) in selectedSentenceGroups" :key="'group-' + groupIndex" class="sentence-group">
+            <view v-for="(sentenceGroup, groupIndex) in selectedSentenceGroups"
+                  :key="'group-' + groupIndex"
+                  class="sentence-group"
+                  :class="sentenceGroup.sentences && sentenceGroup.sentences.length ? 'has-sentences' : 'no-sentences'"
+                  :style="groupSpacingStyle(groupIndex)">
                 <!-- 句子卡片 -->
-                <view class="sentence-card">
+                <view
+                    v-if="sentenceGroup.sentences && sentenceGroup.sentences.length"
+                    class="sentence-card"
+                >
                     <view class="sentence-content">
                         <text v-for="(line, lineIndex) in sentenceGroup.sentences" :key="'sentence-' + lineIndex" class="sentence-line">
                             {{ line }}
@@ -58,7 +73,11 @@
                 </view>
 
                 <!-- 评论输入框 -->
-                <view class="comment-input-wrapper" @tap.stop="noop">
+                <view
+                    class="comment-input-wrapper"
+                    :class="sentenceGroup.sentences && sentenceGroup.sentences.length ? 'with-sentence' : 'no-sentence'"
+                    @tap.stop="noop"
+                >
                     <textarea
                         class="comment-input"
                         :placeholder="groupIndex === 0 ? '分享你对这句子的看法...' : '继续分享你的看法...'"
@@ -80,10 +99,10 @@
 
                   </view>
 
-        <!-- 底部按钮组 - 只在已选择句子时显示 -->
-        <view v-if="hasSelectedSentences" class="bottom-buttons">
+        <!-- 底部按钮组 - 仅编辑态展示 -->
+        <view v-if="!isSelecting" class="bottom-buttons">
             <view class="button-item" @tap.stop="addMoreSentences">
-                <image class="button-icon" src="/static/images/newicons/tag.png" mode="aspectFit"></image>
+                <image class="button-icon" src="/static/images/newicons/back.png" mode="aspectFit"></image>
             </view>
 
             <view class="button-item" @tap.stop="saveDraft">
@@ -113,10 +132,10 @@ export default {
             currentPostId: '',        // 当前引用的帖子ID
             discussionTitle: '',      // 讨论标题
 
-            // 句子选择相关
-            hasSelectedSentences: false,          // 是否已选择句子
+            // 句子选择/编辑相关
+            isSelecting: true,                   // 是否处于选句模式
             selectedSentenceGroups: [],          // 已选择的句子组
-            currentSelectingGroup: 0,             // 当前正在选择的组索引
+            currentSelectingGroup: 0,            // 当前正在选择的组索引
 
             // 高亮选择相关
             highlightSelectedLineIndices: [],     // 已选中的行索引
@@ -133,10 +152,23 @@ export default {
             return hasValidComment && !this.isPublishing;
         },
 
+        // 是否已有句子组（用于空态提示）
+        hasSelectedSentences() {
+            return this.selectedSentenceGroups.some(group => Array.isArray(group.sentences) && group.sentences.length > 0);
+        },
+
         // 分割内容为行数组
         splitContentLines() {
             const content = this.quotedPost ? this.quotedPost.fullContent : '';
             return content.split(/\r?\n/);
+        },
+
+        // 根据已选句子数量自适应组间距（越少越紧凑）
+        groupGapRpx() {
+            const count = Math.max(1, this.selectedSentenceGroups.length);
+            if (count >= 3) return 16;
+            if (count === 2) return 12;
+            return 8;
         }
     },
 
@@ -164,6 +196,42 @@ export default {
 
         // 空函数，用于阻止事件冒泡
         noop() {},
+
+        // 退出到被引用诗歌页面，优先回到上一个页面，避免循环/无效ID
+        exitToPost() {
+            const pages = getCurrentPages();
+            // 若有上一页，直接返回上一页（通常是诗歌详情页）
+            if (pages && pages.length > 1) {
+                uni.navigateBack({ delta: 1 });
+                return;
+            }
+            // 否则兜底按 postId 跳转
+            const postId = this.currentPostId || (this.quotedPost && this.quotedPost.postId);
+            if (postId) {
+                uni.redirectTo({
+                    url: `/pages/post-detail/post-detail?postId=${postId}`
+                });
+            } else {
+                // 最后兜底回首页，避免留在死页
+                uni.switchTab({ url: '/pages/index/index' });
+            }
+        },
+
+        // 根据已选句子数量自适应组间距，未选满时自动收紧
+        groupSpacingStyle(index) {
+            const gap = `${this.groupGapRpx}rpx`;
+            const isLast = index === this.selectedSentenceGroups.length - 1;
+            const group = this.selectedSentenceGroups[index] || {};
+            const hasSentences = Array.isArray(group.sentences) && group.sentences.length > 0;
+            const style = {
+                marginBottom: isLast ? '0rpx' : gap
+            };
+            if (!hasSentences) {
+                style.paddingTop = '16rpx';
+                style.paddingBottom = '16rpx';
+            }
+            return style;
+        },
 
         // 统一云函数调用方法
         callCloudFunction(name, data = {}, extraOptions = {}) {
@@ -200,8 +268,12 @@ export default {
                             authorName: post.authorName,
                             authorAvatar: post.authorAvatar,
                             createTime: post.createTime
-                        }
+                        },
+                        currentPostId: post._id // 确保退出时有有效 postId
                     });
+
+                    // 初始化默认句子组，允许先写内容
+                    this.ensureDefaultGroup();
 
                     // 显示选择提示
                     this.setData({ showHighlightHint: true });
@@ -255,10 +327,12 @@ export default {
 
         // 完成选择
         finishSelection() {
+            // 若无选中行，直接进入编辑态并保留空句子组
             if (this.highlightSelectedLineIndices.length === 0) {
-                uni.showToast({
-                    title: '请至少选择一行',
-                    icon: 'none'
+                this.ensureDefaultGroup();
+                this.setData({
+                    isSelecting: false,
+                    showHighlightHint: false
                 });
                 return;
             }
@@ -267,9 +341,11 @@ export default {
             const selectedLines = this.highlightSelectedLineIndices.map(i => lines[i] || '').filter(line => line.trim() !== '');
 
             if (selectedLines.length === 0) {
-                uni.showToast({
-                    title: '请选择有效的句子',
-                    icon: 'none'
+                this.ensureDefaultGroup();
+                this.setData({
+                    isSelecting: false,
+                    showHighlightHint: false,
+                    highlightSelectedLineIndices: []
                 });
                 return;
             }
@@ -282,8 +358,8 @@ export default {
 
             this.setData({
                 selectedSentenceGroups: [...this.selectedSentenceGroups, newGroup],
-                hasSelectedSentences: true,
-                highlightSelectedLineIndices: []
+                highlightSelectedLineIndices: [],
+                isSelecting: false
             });
 
             uni.showToast({
@@ -307,7 +383,7 @@ export default {
         // 添加更多句子
         addMoreSentences() {
             this.setData({
-                hasSelectedSentences: false,
+                isSelecting: true,
                 highlightSelectedLineIndices: [],
                 showHighlightHint: true
             });
@@ -316,6 +392,18 @@ export default {
             setTimeout(() => {
                 this.setData({ showHighlightHint: false });
             }, 3000);
+        },
+
+        // 确保至少存在一个句子组，便于先输入内容
+        ensureDefaultGroup() {
+            if (!this.selectedSentenceGroups || this.selectedSentenceGroups.length === 0) {
+                this.setData({
+                    selectedSentenceGroups: [{
+                        sentences: [],
+                        comment: ''
+                    }]
+                });
+            }
         },
 
         // 保存草稿
@@ -333,7 +421,7 @@ export default {
                     quotedPostId: this.currentPostId,
                     quotedPost: this.quotedPost,
                     selectedSentenceGroups: this.selectedSentenceGroups,
-                    hasSelectedSentences: this.hasSelectedSentences,
+                    isSelecting: this.isSelecting,
                     saveTime: new Date().getTime(),
                     isDraft: true,
                     type: 'discussion'
@@ -387,10 +475,13 @@ export default {
                     if (res.confirm) {
                         // 清空所有数据
                         this.setData({
-                            selectedSentenceGroups: [],
-                            hasSelectedSentences: false,
+                            selectedSentenceGroups: [{
+                                sentences: [],
+                                comment: ''
+                            }],
                             highlightSelectedLineIndices: [],
-                            showHighlightHint: true
+                            showHighlightHint: true,
+                            isSelecting: false
                         });
 
                         // 重新显示选择提示
@@ -565,6 +656,22 @@ export default {
     height: 100rpx;
 }
 
+.exit-button {
+    position: absolute;
+    top: calc(40rpx + env(safe-area-inset-top));
+    right: 30rpx;
+    padding: 14rpx 20rpx;
+    border-radius: 24rpx;
+    background: rgba(0,0,0,0.06);
+    z-index: 11;
+}
+
+.exit-text {
+    font-size: 26rpx;
+    color: #666;
+    font-weight: 600;
+}
+
 /* 引用帖子区域 */
 .quoted-post {
     background: #fff;
@@ -639,8 +746,8 @@ export default {
 
 .char-count {
     position: absolute;
-    bottom: 20rpx;
-    right: 30rpx;
+    bottom: 18rpx;
+    right: 24rpx;
     font-size: 24rpx;
     color: #999;
 }
@@ -722,6 +829,10 @@ export default {
     bottom: 60rpx;
     right: 30rpx;
     z-index: 1001;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20rpx;
 }
 
 .select-done-btn {
@@ -737,10 +848,6 @@ export default {
     transform: scale(0.95);
 }
 
-.select-done-btn.disabled {
-    opacity: 0.5;
-}
-
 .select-done-icon {
     width: 120rpx;
     height: 120rpx;
@@ -750,8 +857,10 @@ export default {
     background: #fff;
     border-radius: 16rpx;
     padding: 30rpx;
-    margin-bottom: 20rpx;
+    margin-bottom: 0;
 }
+.sentence-group.no-sentences { padding-top: 16rpx; padding-bottom: 16rpx; }
+.sentence-group.has-sentences { padding-top: 30rpx; padding-bottom: 30rpx; }
 
 .sentence-card {
     background: transparent;
@@ -828,17 +937,20 @@ export default {
     border: 1rpx solid #e0e0e0;
     border-radius: 20rpx;
     background: #fff;
+    margin-top: 10rpx; /* 适度上移，贴近提示区域 */
 }
+.comment-input-wrapper.no-sentence { margin-top: 0; }
 
 .comment-input {
     width: 100%;
-    min-height: 100rpx;
+    min-height: 140rpx; /* 留足上下内边距后的可视区 */
+    box-sizing: border-box;
     font-family: 'Inter', sans-serif;
     font-weight: 600;
     font-size: 32rpx; /* 16px * 2 */
-    line-height: 38rpx; /* 19px * 2 */
+    line-height: 44rpx; /* 提升行高，文字更居中 */
     color: #000000;
-    padding: 20rpx;
+    padding: 28rpx 24rpx 44rpx 24rpx; /* 适度留白，保证计数器位置 */
     background: transparent;
     border: none;
     outline: none;
@@ -895,13 +1007,38 @@ export default {
     overflow-y: auto;
 }
 
+.selection-exit {
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + 20rpx);
+    right: 30rpx;
+    padding: 14rpx 20rpx;
+    background: rgba(0,0,0,0.06);
+    border-radius: 24rpx;
+    z-index: 1200;
+}
+
+.selection-exit-text {
+    font-size: 26rpx;
+    color: #555;
+    font-weight: 600;
+}
+
 /* 已选句子区域 - 需要为底部按钮留出空间 */
 .selected-sentences-area {
-    margin: 20rpx 30rpx 20rpx 30rpx; /* 调整上边距，因为标题输入框已经处理了间距 */
+    margin: 10rpx 30rpx 20rpx 30rpx; /* 减小与空态提示的距离 */
     margin-bottom: 200rpx; /* 为底部按钮留出空间 */
     padding-bottom: 160rpx; /* 增加底部padding，为固定按钮留出足够空间 */
     box-sizing: border-box;
     max-width: calc(100vw - 60rpx); /* 确保不超出屏幕，减去左右边距 */
+}
+
+.empty-hint {
+    color: #999;
+    font-size: 28rpx;
+    margin-bottom: 20rpx;
+    padding: 24rpx;
+    background: #f9f9f9;
+    border-radius: 16rpx;
 }
 
 </style>

@@ -1,0 +1,63 @@
+846:             } catch (e) {
+847:                 console.warn('【FontManager】删除字体文件失败:', fontFamily, e);
+848:             }
+849:         }
+850: 
+851:         this.saveCacheInfo();
+852:     }
+853: 
+854:     async ensureFontAvailable(fontFamily, onProgress) {
+855:         // 规范化字体名称
+856:         const normalizedName = this.normalizeFontName(fontFamily);
+857:         
+858:         const cached = await this.isFontCached(normalizedName);
+859:         let fontPath = null;
+860:         
+861:         if (!cached) {
+862:             fontPath = await this.downloadFont(normalizedName, onProgress);
+863:         } else {
+864:             fontPath = await this.getFontPath(normalizedName);
+865:         }
+866: 
+867:         if (!this.loadedFonts.has(normalizedName) && fontPath) {
+868:             await this._loadFontFace(normalizedName, fontPath);
+869:         }
+870: 
+871:         return fontPath;
+872:     }
+873:     
+874:     async _loadFontFace(fontFamily, fontPath) {
+875:         const config = this.getFontConfig(fontFamily);
+876:         const displayName = config?.displayName || fontFamily;
+877:         const platform = platformDetector.getCurrentPlatform();
+878: 
+879:         // H5 端使用原生 FontFace API，更可靠
+880:         if (platform === 'h5' && typeof FontFace !== 'undefined') {
+881:             try {
+882:                 const font = new FontFace(displayName, `url("${fontPath}")`);
+883:                 await font.load();
+884:                 document.fonts.add(font);
+885:                 this.loadedFonts.add(fontFamily);
+886:                 console.log(`【FontManager】✅ 字体加载成功 (FontFace API):`, displayName);
+887:                 return true;
+888:             } catch (err) {
+889:                 console.error(`【FontManager】❌ 字体加载失败 (FontFace API):`, displayName, err);
+890:                 return false;
+891:             }
+892:         }
+893: 
+894:         // App 端需要转换路径格式
+895:         let sourcePath = fontPath;
+896:         if (platform === 'app') {
+897:             // #ifdef APP-PLUS
+898:             // 对于 /static/ 开头的本地资源，需要特殊处理
+899:             if (fontPath && fontPath.startsWith('/static/')) {
+900:                 // 使用相对路径，uni.loadFontFace 会自动处理
+901:                 sourcePath = fontPath;
+902:             } else if (fontPath && !fontPath.startsWith('http') && !fontPath.startsWith('file://')) {
+903:                 // 其他本地路径，转换为 file:// 格式
+904:                 sourcePath = plus.io.convertLocalFileSystemURL(fontPath);
+905:             }
+906:             console.log('【FontManager】App端字体路径:', fontPath, '->', sourcePath);
+907:             // #endif
+908:         }

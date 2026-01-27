@@ -74,7 +74,7 @@
                         <!-- 发送者和动作 -->
                         <view class="message-header">
                             <text class="sender-name">{{ item.fromUserName || '某用户' }}</text>
-                            <text class="action-text">{{ getActionText(item.type, item.contentType) }}</text>
+                            <text class="action-text">{{ getActionText(item) }}</text>
                             <!-- 关注按钮（仅关注类型显示，放在时间左边） -->
                             <view v-if="item.type === 'follow'" class="follow-btn" @tap.stop="followBack" :data-user-id="item.fromUserId" :data-index="index">
                                 <text>{{ item.isMutual ? '已互关' : '回关' }}</text>
@@ -529,7 +529,10 @@ export default {
                     if (msg.type === 'like') {
                         msg.content = `${userName} ${timeAgo}点赞了你的${contentTypeText}`;
                     } else if (msg.type === 'comment') {
-                        const isReply = originalContent.includes('回复了你的评论');
+                        const isReply = !!msg.isReply 
+                            || originalContent.includes('评论了你的评论') 
+                            || originalContent.includes('回复了你的评论')
+                            || !!msg.parentId;
                         const actionText = isReply ? '回复了你的评论' : `评论了你的${contentTypeText}`;
                         msg.content = `${userName} ${timeAgo}${actionText}`;
                     } else if (msg.type === 'favorite') {
@@ -748,14 +751,24 @@ export default {
 
 
         // 获取动作文本
-        getActionText: function (type, contentType) {
+        getActionText: function (msg) {
+            if (!msg) return '通知了你';
+            const { type, contentType, content, isReply, parentId } = msg;
+            
+            // 优先判断是否为“评论的回复”，无需依赖 contentType
+            const repliedToComment = !!isReply 
+                || !!parentId 
+                || (content || '').includes('评论了你的评论') 
+                || (content || '').includes('回复了你的评论');
+            if (type === 'comment' && repliedToComment) {
+                return '回复了你的评论';
+            }
+
             // 根据内容类型确定显示文本
             let contentTypeText = '';
             if (contentType === 'comment') {
                 contentTypeText = '评论';
-            } else if (contentType === 'original') {
-                contentTypeText = '诗';
-            } else if (contentType === 'non-original') {
+            } else if (contentType === 'original' || contentType === 'non-original') {
                 contentTypeText = '诗';
             } else if (contentType === 'discussion') {
                 contentTypeText = '讨论';

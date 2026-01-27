@@ -895,10 +895,14 @@ class FontManager {
         let sourcePath = fontPath;
         if (platform === 'app') {
             // #ifdef APP-PLUS
-            // 对于 /static/ 开头的本地资源，需要特殊处理
+            // 对于 /static/ 开头的本地资源，需要转换到 _www 下的真实路径，否则 App 端会找不到文件而回落系统字体
             if (fontPath && fontPath.startsWith('/static/')) {
-                // 使用相对路径，uni.loadFontFace 会自动处理
-                sourcePath = fontPath;
+                try {
+                    sourcePath = plus.io.convertLocalFileSystemURL(`_www${fontPath}`);
+                } catch (e) {
+                    // 兜底：直接转换原始路径
+                    sourcePath = plus.io.convertLocalFileSystemURL(fontPath);
+                }
             } else if (fontPath && !fontPath.startsWith('http') && !fontPath.startsWith('file://')) {
                 // 其他本地路径，转换为 file:// 格式
                 sourcePath = plus.io.convertLocalFileSystemURL(fontPath);

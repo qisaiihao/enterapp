@@ -1,0 +1,51 @@
+420:     /**
+421:      * 获取字体配置（内置 + 自定义）
+422:      */
+423:     getFontConfig(fontFamily) {
+424:         // 先规范化字体名称
+425:         const normalizedName = this.normalizeFontName(fontFamily);
+426:         return FONT_CONFIG[normalizedName] || this.customFonts[normalizedName] || null;
+427:     }
+428: 
+429:     async isFontCached(fontFamily) {
+430:         const normalizedName = this.normalizeFontName(fontFamily);
+431:         const config = this.getFontConfig(normalizedName);
+432:         if (!config) return false;
+433:         if (config.isDefault) return true;
+434:         if (config.isCustom) return true; // 自定义字体已存储
+435: 
+436:         const cacheData = this.cacheInfo.fonts[fontFamily];
+437:         if (!cacheData) return false;
+438:         if (cacheData.version !== config.version) return false;
+439: 
+440:         const platform = platformDetector.getCurrentPlatform();
+441:         
+442:         if (platform === 'h5') {
+443:             if (cacheData.storageType === 'indexedDB') {
+444:                 try {
+445:                     const cached = await this._loadFromIndexedDB(fontFamily);
+446:                     return !!(cached && cached.data);
+447:                 } catch (e) {
+448:                     return false;
+449:                 }
+450:             }
+451:             return !!(cacheData.cloudUrl || cacheData.isH5Cache);
+452:         }
+453:         
+454:         if (platform === 'app') {
+455:             if (cacheData.path) {
+456:                 try {
+457:                     await new Promise((resolve, reject) => {
+458:                         plus.io.resolveLocalFileSystemURL(cacheData.path, resolve, reject);
+459:                     });
+460:                     return true;
+461:                 } catch (e) {
+462:                     return false;
+463:                 }
+464:             }
+465:             return !!cacheData.cloudUrl;
+466:         }
+467: 
+468:         try {
+469:             const fs = uni.getFileSystemManager();
+470:             const safeFileName = getSafeFileName(fontFamily);

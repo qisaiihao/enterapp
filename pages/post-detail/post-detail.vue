@@ -49,8 +49,8 @@
                     <!-- 讨论类型帖子特殊渲染 -->
                     <view v-if="post.isDiscussion && post.sentenceGroups" class="discussion-content">
                         <view v-for="(sentenceGroup, groupIndex) in post.sentenceGroups" :key="'discussion-group-' + groupIndex" class="discussion-sentence-group">
-                            <!-- 句子卡片 -->
-                            <view class="discussion-sentence-card">
+                            <!-- 句子卡片：仅在有有效句子时显示，避免空灰框 -->
+                            <view v-if="hasDiscussionSentences(sentenceGroup)" class="discussion-sentence-card">
                                 <view class="discussion-sentence-content">
                                     <text v-for="(line, lineIndex) in sentenceGroup.sentences" :key="'discussion-sentence-' + lineIndex" class="discussion-sentence-line">
                                         {{ line }}
@@ -522,6 +522,15 @@ export default {
                 title: '匿名用户无法查看主页',
                 icon: 'none'
             });
+        },
+
+        // 判断讨论句子组是否有有效句子，避免渲染空灰卡片
+        hasDiscussionSentences(group) {
+            return (
+                group &&
+                Array.isArray(group.sentences) &&
+                group.sentences.some((line) => (line || '').trim().length > 0)
+            );
         },
         // 跨页同步：监听 like-changed 的处理
         onGlobalLikeChanged: function (e = {}) {
