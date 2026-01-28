@@ -1,5 +1,16 @@
 {
   "envId": "cloud1-5gb0pbyl400845f5",
+  "functions": [
+    {
+      "name": "contentCheck",
+      "timeout": 3,
+      "memory": 256,
+      "runtime": "Nodejs16.13",
+      "handler": "index.main",
+      "configPath": "functions/contentCheck/config.json",
+      "params": {}
+    }
+  ],
   "framework": {
     "name": "uni-app",
     "plugins": {
@@ -48,7 +59,8 @@
               "name": "contentCheck",
               "root": "./functions/contentCheck",
               "timeout": 3,
-              "memory": 256
+              "memory": 256,
+              "runtime": "Nodejs16.13"
             },
             {
               "name": "createDefaultPortfolios",

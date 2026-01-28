@@ -494,6 +494,28 @@ export default {
         isEditMode: addData.isEditMode || false,
         editingPostId: addData.editingPostId || ''
       };
+      // 讨论模式：补齐句子组与高光行，保证提交时不丢字段
+      if (publishData.publishMode === 'discussion') {
+        let discussionSentenceGroups = [];
+        if (typeof addData.buildDiscussionSentenceGroups === 'function') {
+          discussionSentenceGroups = addData.buildDiscussionSentenceGroups();
+        } else if (Array.isArray(addData.sentenceGroups)) {
+          discussionSentenceGroups = addData.sentenceGroups;
+        }
+        publishData.sentenceGroups = discussionSentenceGroups;
+        publishData.discussionSentences = discussionSentenceGroups.map(g => ({
+          sentences: Array.isArray(g.sentences) ? g.sentences : [],
+          comment: (g.comment || '').trim()
+        }));
+        const mergedDiscussionHighlight = (addData.highlightLines && addData.highlightLines.length > 0)
+          ? addData.highlightLines
+          : (discussionSentenceGroups.length > 0
+            ? discussionSentenceGroups.reduce((acc, g) => acc.concat(g.sentences || []), [])
+            : []);
+        if (!publishData.highlightLines || publishData.highlightLines.length === 0) {
+          publishData.highlightLines = mergedDiscussionHighlight;
+        }
+      }
       
       console.log('【Preview】合并后的发布数据:', {
         ...publishData,
@@ -680,6 +702,15 @@ export default {
         addDataIsEditMode: addData.isEditMode
       });
 
+      const discussionSentenceGroups = addData.publishMode === 'discussion'
+        ? (addData.sentenceGroups || addData.discussionSentences || [])
+        : [];
+      const mergedDiscussionHighlight = (addData.highlightLines && addData.highlightLines.length > 0)
+        ? addData.highlightLines
+        : (Array.isArray(discussionSentenceGroups) && discussionSentenceGroups.length > 0
+          ? discussionSentenceGroups.reduce((acc, g) => acc.concat(g.sentences || []), [])
+          : []);
+
       // 如果是编辑模式，调用更新接口
       if (isEditMode) {
         console.log('【Preview】进入编辑模式，准备更新帖子');
@@ -706,14 +737,19 @@ export default {
           tags: addData.selectedTags || [],
           backgroundColor: addData.selectedBackgroundColor || '',
           textColor: addData.selectedTextColor || '#000000',
-          highlightSentence: addData.highlightLines && addData.highlightLines.length > 0 ? addData.highlightLines[0] : '',
-          highlightLines: addData.highlightLines || [],
+          highlightSentence: (addData.highlightLines && addData.highlightLines.length > 0 ? addData.highlightLines[0] : (mergedDiscussionHighlight[0] || '')),
+          highlightLines: addData.highlightLines && addData.highlightLines.length > 0 ? addData.highlightLines : mergedDiscussionHighlight,
           author: authorName,
           isAnonymous: this.post.isAnonymous || false,
           anonymousAuthorName: this.post.anonymousAuthorName || '匿名用户',
           fileIDs: imageUrls.length > 0 ? imageUrls : [],
           originalFileIDs: originalImageUrls.length > 0 ? originalImageUrls : (imageUrls.length > 0 ? imageUrls : []),
-          isDiscussion: addData.publishMode === 'discussion' || false
+          isDiscussion: addData.publishMode === 'discussion' || false,
+          sentenceGroups: addData.publishMode === 'discussion' ? discussionSentenceGroups : undefined,
+          discussionSentences: addData.publishMode === 'discussion' ? discussionSentenceGroups.map(g => ({
+            sentences: g.sentences || [],
+            comment: (g.comment || '').trim()
+          })) : undefined
         };
 
         console.log('【Preview】准备更新帖子，数据:', {
@@ -763,6 +799,7 @@ export default {
         votes: 0,
         isPoem: addData.publishMode === 'poem',
         isOriginal: addData.isOriginal,
+        isDiscussion: addData.publishMode === 'discussion',
         author: authorName,
         tags: addData.selectedTags || [],
         // 匿名发帖相关字段
@@ -770,6 +807,19 @@ export default {
         anonymousAuthorName: this.post.anonymousAuthorName || '匿名用户',
         realAuthorOpenid: this.post.isAnonymous ? (uni.getStorageSync('openid') || uni.getStorageSync('userOpenId')) : null
       };
+      if (addData.publishMode === 'discussion' && Array.isArray(discussionSentenceGroups)) {
+        postData.sentenceGroups = discussionSentenceGroups;
+        postData.discussionSentences = discussionSentenceGroups.map(g => ({
+          sentences: g.sentences || [],
+          comment: (g.comment || '').trim()
+        }));
+        if (!postData.highlightLines || postData.highlightLines.length === 0) {
+          postData.highlightLines = mergedDiscussionHighlight;
+        }
+        if (!postData.highlightSentence && mergedDiscussionHighlight.length > 0) {
+          postData.highlightSentence = mergedDiscussionHighlight[0];
+        }
+      }
 
       if (uploadResults.length > 0) {
         const imageUrls = uploadResults.map((result) => result.compressedUrl);
@@ -789,14 +839,19 @@ export default {
         originalFileIDs: uploadResults.map(r => r.originalUrl).filter(url => url),
         publishMode: addData.publishMode,
         isOriginal: addData.isOriginal,
-        isDiscussion: addData.isDiscussion || false,
+        isDiscussion: addData.isDiscussion || addData.publishMode === 'discussion' || false,
         author: addData.author,
         tags: addData.selectedTags || [],
         // 添加颜色信息
         backgroundColor: addData.selectedBackgroundColor || '',
         textColor: addData.selectedTextColor || '#000000',
         // 添加高光行信息
-        highlightLines: addData.highlightLines || [],
+        highlightLines: (addData.highlightLines && addData.highlightLines.length > 0) ? addData.highlightLines : mergedDiscussionHighlight,
+        sentenceGroups: addData.publishMode === 'discussion' ? discussionSentenceGroups : [],
+        discussionSentences: addData.publishMode === 'discussion' ? discussionSentenceGroups.map(g => ({
+          sentences: g.sentences || [],
+          comment: (g.comment || '').trim()
+        })) : [],
         // 添加匿名发帖相关参数
         isAnonymous: this.post.isAnonymous || false,
         anonymousAuthorName: this.post.anonymousAuthorName || '匿名用户',

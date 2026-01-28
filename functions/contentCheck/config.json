@@ -1,4 +1,5 @@
 {
+  "runtime": "Nodejs16.13",
   "permissions": {
     "openapi": [
       "cms.TextModeration",

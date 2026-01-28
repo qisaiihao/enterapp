@@ -46,8 +46,8 @@
                     <view class="post-title">{{ post.title }}</view>
                     <view v-if="post.isPoem && post.author" class="poem-author" :class="{ 'poem-author-clickable': canGoToPoetProfile }" @tap="onPoetNameTap">{{ post.author }}</view>
                     
-                    <!-- 讨论类型帖子特殊渲染 -->
-                    <view v-if="post.isDiscussion && post.sentenceGroups" class="discussion-content">
+                    <!-- 讨论类型帖子特殊渲染：仅当存在有效句子或评论时展示，否则回退到正文 -->
+                    <view v-if="post.isDiscussion && hasValidDiscussionGroups(post)" class="discussion-content">
                         <view v-for="(sentenceGroup, groupIndex) in post.sentenceGroups" :key="'discussion-group-' + groupIndex" class="discussion-sentence-group">
                             <!-- 句子卡片：仅在有有效句子时显示，避免空灰框 -->
                             <view v-if="hasDiscussionSentences(sentenceGroup)" class="discussion-sentence-card">
@@ -531,6 +531,15 @@ export default {
                 Array.isArray(group.sentences) &&
                 group.sentences.some((line) => (line || '').trim().length > 0)
             );
+        },
+        // 判断整个帖子是否有有效的讨论内容（句子或评论），用于决定是否展示讨论块
+        hasValidDiscussionGroups(post) {
+            if (!post || !Array.isArray(post.sentenceGroups)) return false;
+            return post.sentenceGroups.some(g => {
+                const hasLines = Array.isArray(g.sentences) && g.sentences.some(l => (l || '').trim().length > 0);
+                const hasComment = g && g.comment && g.comment.trim().length > 0;
+                return hasLines || hasComment;
+            });
         },
         // 跨页同步：监听 like-changed 的处理
         onGlobalLikeChanged: function (e = {}) {

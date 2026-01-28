@@ -36,7 +36,7 @@ exports.main = async (event, context) => {
   }
 
   // 从 event 中获取要审查的文本和图片fileID
-  const { text, fileIDs, originalFileIDs, title, content, publishMode, isOriginal, author, tags, backgroundColor, textColor, highlightSentence, highlightLines, isDiscussion, parentPostId, isAnonymous, anonymousAuthorName, realAuthorOpenid } = event;
+  const { text, fileIDs, originalFileIDs, title, content, publishMode, isOriginal, author, tags, backgroundColor, textColor, highlightSentence, highlightLines, isDiscussion, parentPostId, isAnonymous, anonymousAuthorName, realAuthorOpenid, sentenceGroups = [], discussionSentences = [], quotedPostId = '' } = event;
   
   console.log('接收到的fileIDs:', fileIDs);
   console.log('接收到的originalFileIDs:', originalFileIDs);
@@ -44,6 +44,43 @@ exports.main = async (event, context) => {
   console.log('fileIDs长度:', fileIDs ? fileIDs.length : 'undefined');
   console.log('originalFileIDs长度:', originalFileIDs ? originalFileIDs.length : 'undefined');
   console.log('匿名发帖参数:', { isAnonymous, anonymousAuthorName, realAuthorOpenid });
+  console.log('讨论参数:', {
+    isDiscussion,
+    sentenceGroupsLength: Array.isArray(sentenceGroups) ? sentenceGroups.length : 0,
+    discussionSentencesLength: Array.isArray(discussionSentences) ? discussionSentences.length : 0,
+    quotedPostId
+  });
+
+  // 统一处理高光行，便于后续写库
+  let effectiveHighlightLines = Array.isArray(highlightLines) ? highlightLines : [];
+  let highlightSentenceValue = highlightSentence || '';
+
+  // 讨论模式：规范化句子组与高光行
+  let normalizedSentenceGroups = [];
+  if (isDiscussion) {
+    if (Array.isArray(sentenceGroups)) {
+      normalizedSentenceGroups = sentenceGroups
+        .map(g => ({
+          sentences: Array.isArray(g.sentences) ? g.sentences.filter(s => typeof s === 'string' && s.trim() !== '') : [],
+          comment: (g.comment || '').trim()
+        }))
+        .filter(g => g.sentences.length > 0 || g.comment);
+    } else if (Array.isArray(discussionSentences)) {
+      normalizedSentenceGroups = discussionSentences
+        .map(g => ({
+          sentences: Array.isArray(g.sentences) ? g.sentences.filter(s => typeof s === 'string' && s.trim() !== '') : [],
+          comment: (g.comment || '').trim()
+        }))
+        .filter(g => g.sentences.length > 0 || g.comment);
+    }
+
+    if (normalizedSentenceGroups.length > 0 && effectiveHighlightLines.length === 0) {
+      effectiveHighlightLines = normalizedSentenceGroups.reduce((acc, g) => acc.concat(g.sentences || []), []);
+    }
+    if (!highlightSentenceValue && effectiveHighlightLines.length > 0) {
+      highlightSentenceValue = effectiveHighlightLines[0];
+    }
+  }
   
   /* 
   // 以下是原来的内容审核逻辑，暂时注释掉，未来续费后可以重新启用
@@ -252,6 +289,12 @@ exports.main = async (event, context) => {
       // 新增讨论相关字段
       isDiscussion: isDiscussion || false,
       parentPostId: parentPostId || '',
+      quotedPostId: quotedPostId || '',
+      sentenceGroups: normalizedSentenceGroups,
+      discussionSentences: normalizedSentenceGroups.map(g => ({
+        sentences: g.sentences,
+        comment: g.comment
+      })),
       // 新增作者字段
       author: authorName,
       authorName: displayAuthorName,
@@ -269,7 +312,7 @@ exports.main = async (event, context) => {
       // UI 定制：背景色 + 高光句（可选）
       backgroundColor: backgroundColor || '',
       textColor: textColor || '#000000',
-      highlightSentence: highlightSentence || '',
+      highlightSentence: highlightSentenceValue || '',
       _openid: ownerOpenid,
       auditStatus: 'approved', // 审核通过
       auditTime: new Date()
@@ -352,7 +395,7 @@ exports.main = async (event, context) => {
         data: {
           backgroundColor: backgroundColor || postData.backgroundColor || '',
           textColor: textColor || postData.textColor || '#000000',
-          highlightSentence: highlightSentence || postData.highlightSentence || ''
+          highlightSentence: highlightSentenceValue || postData.highlightSentence || ''
         }
       });
 
@@ -360,7 +403,7 @@ exports.main = async (event, context) => {
       try {
         await db.collection('posts').doc(result._id).update({
           data: {
-            highlightLines: Array.isArray(highlightLines) ? highlightLines : []
+            highlightLines: Array.isArray(effectiveHighlightLines) ? effectiveHighlightLines : []
           }
         });
       } catch (e) {

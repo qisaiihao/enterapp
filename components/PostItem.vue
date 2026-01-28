@@ -90,7 +90,20 @@
                     </block>
                 </view>
 
-                <view class="post-content" v-if="item.content" style="white-space: pre-wrap">{{ item.content }}</view>
+                <!-- 讨论帖子优先展示引用句子块，其次正文 -->
+                <view v-if="item.isDiscussion && hasValidDiscussionGroups(item)" class="discussion-content">
+                    <view v-for="(group, gIndex) in item.sentenceGroups" :key="'disc-group-' + gIndex" class="discussion-sentence-group">
+                        <view v-if="hasDiscussionSentences(group)" class="discussion-sentence-card">
+                            <view class="discussion-sentence-content">
+                                <text v-for="(line, lIndex) in group.sentences" :key="'disc-line-' + lIndex" class="discussion-sentence-line">
+                                    {{ line }}
+                                </text>
+                            </view>
+                        </view>
+                        <view v-if="group.comment" class="discussion-comment">{{ group.comment }}</view>
+                    </view>
+                </view>
+                <view class="post-content" v-else-if="item.content" style="white-space: pre-wrap">{{ item.content }}</view>
 
                 <!-- 标签显示 -->
                 <view v-if="item.tags && item.tags.length > 0" class="post-tags">
@@ -204,6 +217,13 @@ export default {
         }
     },
     methods: {
+        hasDiscussionSentences(group) {
+            return group && Array.isArray(group.sentences) && group.sentences.some(line => (line || '').trim().length > 0);
+        },
+        hasValidDiscussionGroups(post) {
+            if (!post || !Array.isArray(post.sentenceGroups)) return false;
+            return post.sentenceGroups.some(g => this.hasDiscussionSentences(g) || (g && g.comment && g.comment.trim().length > 0));
+        },
         // 显示操作菜单
         onShowActionMenu() {
             this.$emit('show-action-menu', {
