@@ -31,69 +31,8 @@
         <view class="content-section">
             <!-- 主输入区域 -->
                 <view class="main-input-area" @tap.stop="noop">
-                <!-- 正文输入区域 -->
-                <template v-if="publishMode !== 'discussion'">
-                    <view class="content-input-wrapper" :data-highlight-mode="highlightModeEnabled">
-                        <textarea
-                            class="content-textarea"
-                            :placeholder="currentPlaceholder"
-                            @input="onContentInput"
-                            @tap.stop="onTextareaTap"
-                            maxlength="1500"
-                            :value="content"
-                            :show-confirm-bar="false"
-                            :adjust-position="false"
-                            @focus="onTextareaFocus"
-                            @blur="onTextareaBlur"
-                            @scroll="onTextareaScroll"
-                        ></textarea>
-                        <view v-if="content.length > 1400" class="char-count">{{ content.length }}/1500</view>
-
-                        <!-- 长按选择覆盖层 -->
-                        <view
-                            v-if="content.trim() && highlightModeEnabled"
-                            class="highlight-select-overlay"
-                            @touchstart="onOverlayTouchStart"
-                            @touchend="onOverlayTouchEnd"
-                            @touchmove="onOverlayTouchMove"
-                            catchtouchmove="true"
-                        >
-                            <scroll-view class="overlay-scroll" :scroll-y="true" :scroll-top="overlayScrollTop">
-                                <view class="overlay-content">
-                                    <view
-                                        v-for="(line, i) in splitContentLines"
-                                        :key="'overlay-line-' + i"
-                                        :class="'overlay-line ' + (highlightSelectedLineIndices.includes(i) ? 'highlighted' : '')"
-                                        :style="'top: ' + (i * 48) + 'rpx;'"
-                                        :data-index="i"
-                                        @touchstart="onLineTouchStart"
-                                        @touchend="onLineTouchEnd"
-                                    >
-                                        <view class="overlay-line-content">{{ line || ' ' }}</view>
-                                    </view>
-                                </view>
-                            </scroll-view>
-                        </view>
-
-                        <!-- 高光选择提示 -->
-                        <view v-if="showHighlightHint" class="highlight-hint">
-                            <text class="hint-text">点击文字即可选择高光行</text>
-                        </view>
-
-                        <!-- 高光选择全屏弹窗 -->
-                        <HighlightSelectorModal
-                            :show="highlightSelecting"
-                            :contentLines="splitContentLines"
-                            :selectedLineIndices="highlightSelectedLineIndices"
-                            @close="highlightSelecting = false"
-                            @update="onHighlightUpdate"
-                            @confirm="onHighlightConfirm"
-                        />
-                    </view>
-                </template>
-
                 <!-- 讨论模式：块级编辑器，直接交错正文/引用 -->
-                <template v-else>
+                <template v-if="publishMode === 'discussion'">
                     <scroll-view class="block-scroll" :scroll-y="true" :show-scrollbar="true">
                         <view class="block-editor">
                             <view
@@ -142,7 +81,106 @@
                         </view>
                     </scroll-view>
                 </template>
+                <!-- 组诗模式：分块输入 -->
+                <template v-else-if="isSeries && publishMode === 'poem'">
+                    <scroll-view class="block-scroll" :scroll-y="true" :show-scrollbar="true">
+                        <view class="block-editor">
+                            <view
+                                v-for="(block, idx) in seriesBlocks"
+                                :key="'series-block-' + block.id"
+                                class="block-card series-block"
+                            >
+                                <input
+                                    class="series-subtitle"
+                                    :placeholder="`小标题（可选）${idx + 1}`"
+                                    :value="block.subtitle"
+                                    @input="onSeriesSubtitleInput(idx, $event)"
+                                />
+                                <textarea
+                                    class="content-textarea"
+                                    :placeholder="`组诗段落 ${idx + 1}`"
+                                    :value="block.content"
+                                    @input="onSeriesContentInput(idx, $event)"
+                                    auto-height
+                                    maxlength="1500"
+                                    :show-confirm-bar="false"
+                                    :adjust-position="false"
+                                ></textarea>
+                                <view class="block-actions">
+                                    <button size="mini" @tap.stop="moveSeriesBlock(idx, -1)" :disabled="idx === 0">上移</button>
+                                    <button size="mini" @tap.stop="moveSeriesBlock(idx, 1)" :disabled="idx === seriesBlocks.length - 1">下移</button>
+                                    <button size="mini" @tap.stop="removeSeriesBlock(idx)" :disabled="seriesBlocks.length === 1">删除</button>
+                                </view>
+                                <view class="insert-actions">
+                                    <button size="mini" plain @tap.stop="addSeriesBlock(idx)" :disabled="seriesBlocks.length >= maxSeriesBlocks">在后插入段落</button>
+                                </view>
+                            </view>
+                            <view class="block-add-tail">
+                                <button size="mini" type="default" plain @tap.stop="addSeriesBlock(seriesBlocks.length - 1)" :disabled="seriesBlocks.length >= maxSeriesBlocks">末尾添加段落</button>
+                            </view>
+                        </view>
+                    </scroll-view>
+                </template>
+                <!-- 普通/诗歌单段输入 -->
+                <template v-else>
+                    <view class="content-input-wrapper" :data-highlight-mode="highlightModeEnabled">
+                        <textarea
+                            class="content-textarea"
+                            :placeholder="currentPlaceholder"
+                            @input="onContentInput"
+                            @tap.stop="onTextareaTap"
+                            maxlength="1500"
+                            :value="content"
+                            :show-confirm-bar="false"
+                            :adjust-position="false"
+                            @focus="onTextareaFocus"
+                            @blur="onTextareaBlur"
+                            @scroll="onTextareaScroll"
+                        ></textarea>
+                        <view v-if="content.length > 1400" class="char-count">{{ content.length }}/1500</view>
 
+                        <!-- 长按选择覆盖层 -->
+                        <view
+                            v-if="content.trim() && highlightModeEnabled"
+                            class="highlight-select-overlay"
+                            @touchstart="onOverlayTouchStart"
+                            @touchend="onOverlayTouchEnd"
+                            @touchmove="onOverlayTouchMove"
+                            catchtouchmove="true"
+                        >
+                            <scroll-view class="overlay-scroll" :scroll-y="true" :scroll-top="overlayScrollTop">
+                                <view class="overlay-content">
+                                    <view
+                                        v-for="(line, i) in splitContentLines"
+                                        :key="'overlay-line-' + i"
+                                        :class="'overlay-line ' + (highlightSelectedLineIndices.includes(i) ? 'highlighted' : '')"
+                                        :style="'top: ' + (i * 48) + 'rpx;'"
+                                        :data-index="i"
+                                        @touchstart="onLineTouchStart"
+                                        @touchend="onLineTouchEnd"
+                                    >
+                                        <view class="overlay-line-content">{{ line || ' ' }}</view>
+                                    </view>
+                                </view>
+                            </scroll-view>
+                        </view>
+
+                        <!-- 高光选择提示 -->
+                        <view v-if="showHighlightHint" class="highlight-hint">
+                            <text class="hint-text">点击文字即可选择高光行</text>
+                        </view>
+    </view>
+
+    <!-- 高光选择全屏弹窗：放在容器末尾，所有模式共用 -->
+    <HighlightSelectorModal
+        :show="highlightSelecting"
+        :contentLines="highlightSourceLines && highlightSourceLines.length ? highlightSourceLines : highlightSelectionLines"
+        :selectedLineIndices="highlightSelectedLineIndices"
+        @close="highlightSelecting = false"
+        @update="onHighlightUpdate"
+        @confirm="onHighlightConfirm"
+    />
+</template>
                 <!-- 右侧工具栏 -->
                 <view class="side-toolbar">
                     <!-- 加标签按钮 -->
@@ -158,6 +196,11 @@
                     <!-- 切换发布模式按钮 -->
                     <view class="side-tool-btn mode-switch-btn" @tap.stop="switchMode">
                         <image class="side-tool-icon mode-switch-icon" src="/static/images/newicons/switch_publish.png" mode="aspectFit" alt="切换发布模式"></image>
+                    </view>
+
+                    <!-- 组诗开关（诗歌模式显示） -->
+                    <view v-if="publishMode === 'poem'" :class="'side-tool-btn series-toggle-btn ' + (isSeries ? 'active' : '')" @tap.stop="toggleSeriesMode">
+                        <text class="side-tool-text">组</text>
                     </view>
 
                     <!-- 选择高光句按钮（仅诗歌模式显示） -->
@@ -202,6 +245,16 @@
             :allExistingTags="allExistingTags"
             @close="showTagSelector = false"
             @update="onTagsUpdate"
+        />
+
+        <!-- 高光选择全屏弹窗（所有诗歌模式共用） -->
+        <HighlightSelectorModal
+            :show="highlightSelecting"
+            :contentLines="highlightSourceLines && highlightSourceLines.length ? highlightSourceLines : highlightSelectionLines"
+            :selectedLineIndices="highlightSelectedLineIndices"
+            @close="highlightSelecting = false"
+            @update="onHighlightUpdate"
+            @confirm="onHighlightConfirm"
         />
     </view>
     <!-- 这个 </view> 是用来闭合最外层的 <view class="container"> 的 -->
@@ -264,6 +317,8 @@ export default {
             highlightLines: [],
             // 高光句（兼容旧字段）
             highlightSentence: '',
+            // 高光上下文
+            highlightSourceLines: [],
 
             // 新的覆盖层相关状态
             overlayScrollTop: 0,
@@ -287,6 +342,10 @@ export default {
 
             // 'normal' | 'poem' | 'discussion' 普通模式 | 诗歌模式 | 讨论模式
             isOriginal: false,
+            // 组诗模式
+            isSeries: false,
+            seriesBlocks: [{ id: Date.now(), subtitle: '', content: '', highlightSentence: '' }],
+            maxSeriesBlocks: 20,
             
             // 当前placeholder文字
             currentPlaceholder: '此刻你想要分享...\n分享诗歌请在右边切换发布模式',
@@ -355,10 +414,31 @@ export default {
         };
     },
     computed: {
+        highlightSelectionLines() {
+            // 组诗：拼所有段落
+            if (this.isSeries && Array.isArray(this.seriesBlocks)) {
+                return this.seriesBlocks
+                    .map(b => (b.content || '').split(/\r?\n/))
+                    .flat();
+            }
+            // 讨论模式：拼正文/引用
+            if (this.publishMode === 'discussion') {
+                return (this.blocks || []).map(b => b.text || '').join('\n').split(/\r?\n/);
+            }
+            // 普通/诗歌：直接正文
+            return (this.content || '').split(/\r?\n/);
+        },
         splitContentLines() {
-            // 保留给高光模式使用，取第一个正文块作为正文来源
-            const contentBlock = (this.blocks.find(b => b.type === 'content') || { text: '' }).text;
-            return contentBlock.split(/\r?\n/);
+            // 高光模式来源：组诗取首段，讨论取首个正文块，其余取content
+            let source = '';
+            if (this.isSeries && Array.isArray(this.seriesBlocks) && this.seriesBlocks.length > 0) {
+                source = this.seriesBlocks[0].content || '';
+            } else if (this.publishMode === 'discussion') {
+                source = (this.blocks.find(b => b.type === 'content') || { text: '' }).text;
+            } else {
+                source = this.content || '';
+            }
+            return source.split(/\r?\n/);
         },
         placeholderText() {
             if (this.publishMode === 'normal') {
@@ -909,7 +989,9 @@ export default {
                 images: this.imageList,
                 publishMode: this.publishMode,
                 isOriginal: this.isOriginal,
-                author: this.author
+                author: this.author,
+                isSeries: this.isSeries,
+                seriesBlocks: this.seriesBlocks
             };
 
             // 讨论模式下允许“只引用无正文”，用引用拼接作为验证内容
@@ -919,6 +1001,14 @@ export default {
                     .join('\n')
                     .trim();
                 publishData.content = syntheticContent;
+            }
+            // 组诗模式：合并段落作为验证内容
+            if (this.isSeries) {
+                const syntheticSeries = (this.seriesBlocks || [])
+                    .map(b => (b.content || b.subtitle || '').trim())
+                    .filter(Boolean)
+                    .join('\n');
+                publishData.content = syntheticSeries;
             }
 
             const canPublishValue = canPublish(publishData);
@@ -933,6 +1023,42 @@ export default {
                 showModeSelector: !this.showModeSelector,
                 showTagSelector: false // 隐藏标签选择器
             });
+        },
+        // 组诗开关
+        toggleSeriesMode() {
+            if (this.publishMode !== 'poem') {
+                uni.showToast({ title: '组诗仅支持诗歌模式', icon: 'none' });
+                return;
+            }
+            if (this.isSeries) {
+                // 关闭组诗，合并内容回主正文
+                const merged = (this.seriesBlocks || [])
+                    .map(b => (b.content || b.subtitle || '').trim())
+                    .filter(Boolean)
+                    .join('\n\n');
+                this.setData({
+                    isSeries: false,
+                    content: merged
+                });
+            } else {
+                // 开启组诗，用现有正文初始化第一段
+                const initialBlocks = (this.seriesBlocks && this.seriesBlocks.length > 0)
+                    ? this.seriesBlocks
+                    : [{
+                        id: `series-${Date.now()}`,
+                        subtitle: '',
+                        content: this.content || '',
+                        highlightSentence: '',
+                        highlightLines: []
+                    }];
+                this.setData({
+                    isSeries: true,
+                    seriesBlocks: initialBlocks,
+                    content: ''
+                });
+                this.syncSeriesBlocks(initialBlocks);
+            }
+            this.checkCanPublish();
         },
 
         // 打开/关闭引用句悬浮窗（讨论模式）
@@ -961,6 +1087,102 @@ export default {
             const [item] = next.splice(idx, 1);
             next.splice(target, 0, item);
             this.setData({ blocks: next });
+        },
+        // 组诗：同步段落列表并更新高光
+        syncSeriesBlocks(blocks, manualSeriesHighlights = null) {
+            const normalized = (blocks || []).map((b, order) => {
+                const content = (b.content || '').trim();
+                const subtitle = (b.subtitle || '').trim();
+                const highlight =
+                    (b.highlightSentence && b.highlightSentence.trim()) ||
+                    (content.split(/\r?\n/).find(l => l && l.trim()) || '');
+                const highlightLines =
+                    (Array.isArray(b.highlightLines) && b.highlightLines.length > 0)
+                        ? b.highlightLines
+                        : (highlight ? [highlight] : []);
+                return {
+                    id: b.id || `series-${Date.now()}-${order}`,
+                    subtitle,
+                    content,
+                    highlightSentence: highlight,
+                    highlightLines,
+                    order
+                };
+            });
+            // 有用户手选高光时，完全尊重所选顺序（可重复），只截取前三条；否则用段落默认高光补足
+            const manualHighlights = Array.isArray(manualSeriesHighlights)
+                ? manualSeriesHighlights
+                : (Array.isArray(this.highlightLines) ? this.highlightLines : []);
+            let limitedHighlights = manualHighlights
+                .map(l => (l || '').trim())
+                .filter(Boolean)
+                .slice(0, 3);
+            if (limitedHighlights.length === 0) {
+                const auto = [];
+                for (const block of normalized) {
+                    if (auto.length >= 3) break;
+                    if (Array.isArray(block.highlightLines) && block.highlightLines.length > 0) {
+                        for (const line of block.highlightLines) {
+                            if (auto.length >= 3) break;
+                            const s = (line || '').trim();
+                            if (s) auto.push(s);
+                        }
+                    } else if (block.highlightSentence) {
+                        const s = (block.highlightSentence || '').trim();
+                        if (s) auto.push(s);
+                    }
+                }
+                limitedHighlights = auto.slice(0, 3);
+            }
+            this.setData({
+                seriesBlocks: normalized,
+                highlightLines: this.isSeries ? limitedHighlights : this.highlightLines,
+                highlightSentence: this.isSeries ? (limitedHighlights[0] || '') : this.highlightSentence
+            });
+            this.checkCanPublish();
+        },
+        addSeriesBlock(afterIndex = -1) {
+            if ((this.seriesBlocks || []).length >= this.maxSeriesBlocks) {
+                uni.showToast({ title: '已达到段落上限', icon: 'none' });
+                return;
+            }
+            const next = (this.seriesBlocks || []).slice();
+            const insertPos = Math.max(0, afterIndex + 1);
+            next.splice(insertPos, 0, {
+                id: `series-${Date.now()}-${Math.random()}`,
+                subtitle: '',
+                content: '',
+                highlightSentence: '',
+                highlightLines: []
+            });
+            this.syncSeriesBlocks(next);
+        },
+        removeSeriesBlock(idx) {
+            const next = (this.seriesBlocks || []).slice();
+            if (next.length <= 1) {
+                uni.showToast({ title: '至少保留一个段落', icon: 'none' });
+                return;
+            }
+            next.splice(idx, 1);
+            this.syncSeriesBlocks(next);
+        },
+        moveSeriesBlock(idx, direction) {
+            const next = (this.seriesBlocks || []).slice();
+            const target = idx + direction;
+            if (target < 0 || target >= next.length) return;
+            const [item] = next.splice(idx, 1);
+            next.splice(target, 0, item);
+            this.syncSeriesBlocks(next);
+        },
+        onSeriesSubtitleInput(idx, e) {
+            const next = (this.seriesBlocks || []).slice();
+            next[idx] = { ...next[idx], subtitle: e.detail.value || '' };
+            this.syncSeriesBlocks(next);
+        },
+        onSeriesContentInput(idx, e) {
+            const next = (this.seriesBlocks || []).slice();
+            next[idx] = { ...next[idx], content: e.detail.value || '' };
+            this.syncSeriesBlocks(next);
         },
         onQuoteBlockInput(idx, e) {
             const next = (this.blocks || []).slice();
@@ -1837,7 +2059,18 @@ export default {
                 ? this.highlightLines
                 : (previewSentenceGroups.length > 0 ? previewSentenceGroups.reduce((acc, g) => acc.concat(g.sentences || []), []) : []);
 
-            // 讨论模式：将引用诗句拼入预览正文
+            // 组诗模式：准备段落与高光
+            const previewSeriesBlocks = this.isSeries ? (this.seriesBlocks || []) : [];
+            const seriesHighlight = this.isSeries
+                ? previewSeriesBlocks.reduce((acc, b) => {
+                    const h = (b.highlightSentence && b.highlightSentence.trim()) ||
+                        ((b.content || '').split(/\r?\n/).find(line => line && line.trim()) || '');
+                    if (h) acc.push(h);
+                    return acc;
+                  }, [])
+                : [];
+
+            // 拼装预览正文
             let previewContent = this.content || '';
             if (this.publishMode === 'discussion') {
                 const quote = previewSentenceGroups.length > 0
@@ -1849,6 +2082,12 @@ export default {
                     previewContent = quote;
                 }
             }
+            if (this.isSeries) {
+                previewContent = previewSeriesBlocks
+                    .map(b => (b.content || b.subtitle || '').trim())
+                    .filter(Boolean)
+                    .join('\n\n');
+            }
 
             const previewPost = {
                 _id: 'preview-temp-id',
@@ -1859,7 +2098,11 @@ export default {
                 isExpanded: true,
                 likeIcon: '/static/images/seed.png',
                 imageUrls: (this.imageList || []).map(i => i.previewUrl),
-                highlightLines: (this.highlightLines && this.highlightLines.length > 0) ? this.highlightLines : previewHighlight,
+                isSeries: this.isSeries,
+                seriesBlocks: this.isSeries ? previewSeriesBlocks : [],
+                highlightLines: (this.highlightLines && this.highlightLines.length > 0)
+                    ? this.highlightLines
+                    : (this.isSeries ? seriesHighlight : previewHighlight),
                 // 传递当前编辑的数据供预览页面使用
                 editData: {
                     selectedBackgroundColor: this.selectedBackgroundColor,
@@ -1868,9 +2111,13 @@ export default {
                     imageList: this.imageList,
                     publishMode: this.publishMode,
                     isOriginal: this.isOriginal,
+                    isSeries: this.isSeries,
+                    seriesBlocks: previewSeriesBlocks,
                     selectedTags: this.selectedTags,
                     author: this.author,
-                    highlightLines: (this.highlightLines && this.highlightLines.length > 0) ? this.highlightLines : previewHighlight,
+                    highlightLines: (this.highlightLines && this.highlightLines.length > 0)
+                        ? this.highlightLines
+                        : (this.isSeries ? seriesHighlight : previewHighlight),
                     highlightSelectedLineIndices: this.highlightSelectedLineIndices,
                     isEditMode: this.isEditMode, // 传递编辑模式标记
                     editingPostId: this.editingPostId, // 传递编辑的帖子ID
@@ -1903,19 +2150,38 @@ export default {
 
         /* 颜色选择相关方法已移至 ColorPickerModal.vue 组件 */
 
-        // 占位：高光开关（保留原来的弹窗模式作为备用）
-        onToggleHighlight: function () {
-            this.setData({ highlightSelecting: !this.highlightSelecting });
-            if (this.highlightSelecting) {
-                uni.showToast({ title: '点击要高亮的行', icon: 'none' });
-            }
-        },
 
-        // 新的覆盖层相关方法
+        // 为整首（含组诗）选择高光：把所有段落拼在一起
         toggleHighlightMode: function () {
-            this.setData({
-                highlightSelecting: !this.highlightSelecting
-            });
+            if (this.publishMode === 'poem') {
+                let lines = this.highlightSelectionLines;
+                // 组诗时如第一段为空但有后续段落，需要重新拼接非空行
+                if (this.isSeries && Array.isArray(this.seriesBlocks)) {
+                    const hasAny = this.seriesBlocks.some(b => (b.content || '').trim());
+                    if (hasAny && (!lines || lines.length === 0 || !lines.some(l => (l || '').trim()))) {
+                        lines = this.seriesBlocks
+                            .map(b => (b.content || '').split(/\r?\n/))
+                            .flat();
+                    }
+                }
+                const indices = [];
+                if (this.highlightLines && this.highlightLines.length > 0) {
+                    lines.forEach((line, i) => {
+                        if (this.highlightLines.includes(line)) indices.push(i);
+                    });
+                }
+                this.setData({
+                    highlightSelecting: true,
+                    highlightSourceLines: lines,
+                    highlightSelectedLineIndices: indices
+                });
+            } else {
+                this.setData({
+                    highlightSelecting: !this.highlightSelecting,
+                    highlightSourceLines: [],
+                    highlightSelectedLineIndices: []
+                });
+            }
         },
 
         // 高光选择更新（组件事件处理）
@@ -1925,13 +2191,32 @@ export default {
 
         // 高光选择确认（组件事件处理）
         onHighlightConfirm: function (indices) {
-            const lines = (this.content || '').split(/\r?\n/);
+            const lines = (this.highlightSourceLines && this.highlightSourceLines.length > 0)
+                ? this.highlightSourceLines
+                : this.highlightSelectionLines;
             const picked = indices.map(i => lines[i] || '').filter(Boolean);
+
+            // 写回整体高光（适配组诗/普通诗）
             this.setData({ 
                 highlightLines: picked, 
-                highlightSentence: picked[0] || '', 
+                highlightSentence: picked[0] || '' 
+            });
+
+            // 如果是组诗，同步第一段高光用于封面提示
+            if (this.isSeries && this.seriesBlocks && this.seriesBlocks.length > 0) {
+                const next = (this.seriesBlocks || []).slice();
+                next[0] = { 
+                    ...next[0], 
+                    highlightLines: picked, 
+                    highlightSentence: picked[0] || '' 
+                };
+                this.syncSeriesBlocks(next, picked);
+            }
+
+            this.setData({
                 highlightSelecting: false,
-                highlightSelectedLineIndices: indices
+                highlightSelectedLineIndices: indices,
+                highlightSourceLines: []
             });
             uni.showToast({ title: '已设置高光', icon: 'success' });
         },
@@ -2905,6 +3190,33 @@ page {
 
 .block-card .quote-textarea {
     min-height: 220rpx;
+}
+
+/* 组诗样式 */
+.series-block .series-subtitle,
+.series-block .series-highlight {
+    width: 100%;
+    border: 1rpx solid #e0e0e0;
+    border-radius: 12rpx;
+    padding: 12rpx 16rpx;
+    margin-bottom: 12rpx;
+    font-size: 28rpx;
+}
+.series-block .series-highlight {
+    background: #f7f9fb;
+}
+.series-block .block-actions,
+.series-block .insert-actions {
+    margin-top: 8rpx;
+}
+.side-tool-text {
+    color: #333;
+    font-size: 24rpx;
+    font-weight: 600;
+}
+.series-toggle-btn.active {
+    background: #1c9bd6;
+    color: #fff;
 }
 
 .discussion-preview {

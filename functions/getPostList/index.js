@@ -446,9 +446,24 @@ exports.main = async (event, context) => {
       const authorSignature = post.authorSignature || ''; // 签名URL（匿名帖子可能为空）
       const commentCount = post.commentCount || 0;
       const isVoted = voterMap.has(post._id);
+
+      // 组诗字段兜底：确保列表返回至少前三段
+      const seriesBlocksRaw = Array.isArray(post.seriesBlocks) ? post.seriesBlocks : [];
+      const seriesBlocks = seriesBlocksRaw.slice(0, 3).map((b, idx) => ({
+        id: b.id || `series-${idx}`,
+        subtitle: b.subtitle || b.subTitle || '',
+        content: b.content || '',
+        highlightSentence: b.highlightSentence || (b.content ? String(b.content).split(/\r?\n/).find(l => l && l.trim()) || '' : ''),
+        highlightLines: Array.isArray(b.highlightLines) ? b.highlightLines : []
+      }));
+      const seriesBlockCount = post.seriesBlockCount || seriesBlocksRaw.length || seriesBlocks.length;
+      const isSeries = post.isSeries || seriesBlocks.length > 0;
       
       return {
         ...post,
+        isSeries,
+        seriesBlocks,
+        seriesBlockCount,
         authorName,
         authorAvatar,
         authorSignature,

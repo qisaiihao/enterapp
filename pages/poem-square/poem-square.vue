@@ -40,7 +40,26 @@
       </view>
 
       <view id="post-list-container">
-        <view v-for="(item, index) in postList" v-if="item" :key="item._id ? `post-${item._id}-${index}` : `post-index-${index}`" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
+        <view
+          v-for="(item, index) in postList"
+          v-if="item"
+          :key="item._id ? `post-${item._id}-${index}` : `post-index-${index}`"
+          class="post-item-wrapper"
+          :class="item.isSeries && !item.isExpanded ? 'stacked-series-card' : ''"
+          :style="{ backgroundColor: item.backgroundColor }"
+        >
+          <!-- 组诗叠层的底层卡片（同色） -->
+          <view
+            v-if="item.isSeries && !item.isExpanded"
+            class="series-layer layer-2"
+            :style="{ backgroundColor: item.backgroundColor }"
+          ></view>
+          <view
+            v-if="item.isSeries && !item.isExpanded"
+            class="series-layer layer-1"
+            :style="{ backgroundColor: item.backgroundColor }"
+          ></view>
+
           <view class="post-content-navigator" @tap="togglePostExpansion" @longpress="onLongPressCard" :data-index="index" :data-postid="item._id">
             <view class="post-item">
               <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.highlightLines || item.highlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.content" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
@@ -48,7 +67,6 @@
                   {{ item.content }}
                 </block>
                 <block v-else>
-                  <!-- 折叠状态下只显示高光行 -->
                   <block v-if="item.highlightLines && item.highlightLines.length > 0">
                     <text v-for="(highlightLine, index) in item.highlightLines" :key="'line-' + index" style="font-weight: 700; display: block;">{{ highlightLine }}</text>
                   </block>
@@ -116,7 +134,7 @@ import {
   generateRandomBackgroundColor,
   toggleArrayItemExpansion,
   updatePostsUIProperties,
-  mergePostLists
+    mergePostLists
 } from '@/utils/uiHelpers.js';
 import { navigateToPostDetail } from '@/utils/navigation.js';
 import { togglePostLike } from '@/utils/likeService.js';
@@ -1011,11 +1029,12 @@ export default {
   width: 100%;
   border-radius: 30rpx; /* 15px * 2 */
   margin-bottom: 40rpx; /* 减少间距，让卡片更紧凑 */
-  overflow: hidden;
+  overflow: visible; /* 允许叠层露出 */
   box-shadow: 0 8rpx 8rpx rgba(0, 0, 0, 0.25); /* 0px 4px 4px * 2 */
   transition: transform .3s ease;
   border: none;
-  position: relative; /* 为卷边效果添加定位 */
+  position: relative; /* 为叠层添加定位 */
+  padding: 0; /* 避免额外占位 */
 }
 
 
@@ -1024,7 +1043,32 @@ export default {
 
 .post-item-wrapper:active { transform: scale(0.98); }
 .post-content-navigator { display: block; }
-.post-item { padding: 30rpx 60rpx 30rpx 80rpx; position: relative; } /* 进一步减少上下padding，文字往左移动 */
+.post-item { padding: 26rpx 50rpx 26rpx 60rpx; position: relative; } /* 缩小内边距匹配普通卡 */
+
+/* 组诗外层叠层（同色卡片） */
+.stacked-series-card { }
+.series-layer {
+  position: absolute;
+  top: 10rpx;
+  left: 12rpx;
+  right: -12rpx;
+  bottom: -10rpx;
+  border-radius: 30rpx;
+  box-shadow: 0 6rpx 12rpx rgba(0,0,0,0.14);
+  z-index: 1;
+}
+.series-layer.layer-2 {
+  top: 22rpx;
+  left: 24rpx;
+  right: -2rpx;
+  bottom: -2rpx;
+  z-index: 0;
+  box-shadow: 0 10rpx 16rpx rgba(0,0,0,0.12);
+}
+.stacked-series-card .post-content-navigator {
+  position: relative;
+  z-index: 2; /* 主卡片在最上层 */
+}
 
 /* Typography inspired by poem.css */
 .post-content {

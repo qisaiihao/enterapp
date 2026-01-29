@@ -36,7 +36,7 @@ exports.main = async (event, context) => {
   }
 
   // 从 event 中获取要审查的文本和图片fileID
-  const { text, fileIDs, originalFileIDs, title, content, publishMode, isOriginal, author, tags, backgroundColor, textColor, highlightSentence, highlightLines, isDiscussion, parentPostId, isAnonymous, anonymousAuthorName, realAuthorOpenid, sentenceGroups = [], discussionSentences = [], quotedPostId = '' } = event;
+  let { text, fileIDs, originalFileIDs, title, content, publishMode, isOriginal, author, tags, backgroundColor, textColor, highlightSentence, highlightLines, isDiscussion, parentPostId, isAnonymous, anonymousAuthorName, realAuthorOpenid, sentenceGroups = [], discussionSentences = [], quotedPostId = '', isSeries = false, seriesBlocks = [] } = event;
   
   console.log('接收到的fileIDs:', fileIDs);
   console.log('接收到的originalFileIDs:', originalFileIDs);
@@ -50,9 +50,17 @@ exports.main = async (event, context) => {
     discussionSentencesLength: Array.isArray(discussionSentences) ? discussionSentences.length : 0,
     quotedPostId
   });
+  content = content || '';
+  title = title || '';
 
-  // 统一处理高光行，便于后续写库
-  let effectiveHighlightLines = Array.isArray(highlightLines) ? highlightLines : [];
+  // 统一处理高光行，便于后续写库（保持用户选择的顺序，可包含重复句，但最多三句）
+  const clampTop3 = (lines = []) =>
+    (lines || [])
+      .map(l => (l || '').trim())
+      .filter(Boolean)
+      .slice(0, 3);
+
+  let effectiveHighlightLines = clampTop3(Array.isArray(highlightLines) ? highlightLines : []);
   let highlightSentenceValue = highlightSentence || '';
 
   // 讨论模式：规范化句子组与高光行
@@ -75,11 +83,76 @@ exports.main = async (event, context) => {
     }
 
     if (normalizedSentenceGroups.length > 0 && effectiveHighlightLines.length === 0) {
-      effectiveHighlightLines = normalizedSentenceGroups.reduce((acc, g) => acc.concat(g.sentences || []), []);
+      effectiveHighlightLines = clampTop3(normalizedSentenceGroups.reduce((acc, g) => acc.concat(g.sentences || []), []));
     }
     if (!highlightSentenceValue && effectiveHighlightLines.length > 0) {
       highlightSentenceValue = effectiveHighlightLines[0];
     }
+  }
+  // 组诗模式：规范化分块并生成高光与合并内容
+  let normalizedSeriesBlocks = [];
+  if (isSeries) {
+    normalizedSeriesBlocks = Array.isArray(seriesBlocks)
+      ? seriesBlocks
+          .map((block, idx) => {
+            const blockContent = (block && block.content ? String(block.content) : '').trim();
+            const blockSubtitle = (block && block.subtitle ? String(block.subtitle) : '').trim();
+            const blockHighlight =
+              (block && block.highlightSentence && String(block.highlightSentence).trim()) ||
+              (blockContent.split(/\n+/).find(line => line && line.trim()) || '');
+            const blockHighlightLines = Array.isArray(block?.highlightLines)
+              ? block.highlightLines.filter(l => typeof l === 'string' && l.trim() !== '')
+              : (blockHighlight ? [blockHighlight] : []);
+            const imageUrl = block && block.imageUrl ? String(block.imageUrl) : '';
+            const bg = block && block.backgroundColor ? String(block.backgroundColor) : '';
+            const txtColor = block && block.textColor ? String(block.textColor) : '';
+            if (!blockContent && !blockSubtitle && !imageUrl) return null;
+            return {
+              id: block?.id || `block-${idx}`,
+              order: typeof block?.order === 'number' ? block.order : idx,
+              subtitle: blockSubtitle,
+              content: blockContent,
+              highlightSentence: blockHighlight,
+              highlightLines: blockHighlightLines,
+              imageUrl,
+              backgroundColor: bg,
+              textColor: txtColor
+            };
+          })
+          .filter(Boolean)
+      : [];
+
+    if (normalizedSeriesBlocks.length > 0) {
+      const mergedSeriesContent = normalizedSeriesBlocks.map(b => b.content).filter(Boolean).join('\n\n');
+      if (!content || !String(content).trim()) {
+        content = mergedSeriesContent;
+      }
+      if (effectiveHighlightLines.length === 0) {
+        const collected = [];
+        for (const b of normalizedSeriesBlocks) {
+          if (collected.length >= 3) break;
+          if (Array.isArray(b.highlightLines) && b.highlightLines.length > 0) {
+            for (const line of b.highlightLines) {
+              if (collected.length >= 3) break;
+              const s = (line || '').trim();
+              if (s) collected.push(s);
+            }
+          } else if (b.highlightSentence) {
+            const s = b.highlightSentence.trim();
+            if (s) collected.push(s);
+          }
+        }
+        effectiveHighlightLines = clampTop3(collected);
+      }
+      if (!highlightSentenceValue && effectiveHighlightLines.length > 0) {
+        highlightSentenceValue = effectiveHighlightLines[0];
+      }
+    }
+  }
+  // 兜底限量，保证最终写库不超过三句（保留可能的重复，符合用户选择）
+  effectiveHighlightLines = clampTop3(effectiveHighlightLines);
+  if (!highlightSentenceValue && effectiveHighlightLines.length > 0) {
+    highlightSentenceValue = effectiveHighlightLines[0];
   }
   
   /* 
@@ -259,7 +332,7 @@ exports.main = async (event, context) => {
       console.log('匿名发帖设置:', { authorName, displayAuthorName, displayAuthorAvatar });
     } else {
       // 正常发帖
-      if (publishMode === 'poem') {
+      if (publishMode === 'poem' || isSeries) {
         if (isOriginal) {
           // 原创诗歌：如果填写了作者就用填写的，否则使用用户昵称
           authorName = author && author.trim() ? author.trim() : userNickName;
@@ -284,7 +357,13 @@ exports.main = async (event, context) => {
       votes: 0,
       commentCount: 0,
       // 新增诗歌相关字段
-      isPoem: publishMode === 'poem',
+      isPoem: publishMode === 'poem' || isSeries,
+      isSeries: Boolean(isSeries),
+      publishMode: publishMode || (isSeries ? 'poem' : 'normal'),
+      seriesBlocks: normalizedSeriesBlocks,
+      seriesBlockCount: normalizedSeriesBlocks.length,
+      seriesCoverImage: normalizedSeriesBlocks[0]?.imageUrl || '',
+      seriesCoverHighlight: highlightSentenceValue || '',
       isOriginal: isOriginal || false,
       // 新增讨论相关字段
       isDiscussion: isDiscussion || false,
@@ -313,6 +392,7 @@ exports.main = async (event, context) => {
       backgroundColor: backgroundColor || '',
       textColor: textColor || '#000000',
       highlightSentence: highlightSentenceValue || '',
+      highlightLines: Array.isArray(effectiveHighlightLines) ? dedupeTop3(effectiveHighlightLines) : [],
       _openid: ownerOpenid,
       auditStatus: 'approved', // 审核通过
       auditTime: new Date()
@@ -350,7 +430,7 @@ exports.main = async (event, context) => {
         }
         
         // 如果是诗歌模式，第一张图片作为背景图
-        if (publishMode === 'poem') {
+        if (publishMode === 'poem' || isSeries) {
           postData.poemBgImage = validFileIDs[0];
         }
       } else {
@@ -359,7 +439,8 @@ exports.main = async (event, context) => {
     }
 
     // 数据验证
-    if (!postData.title && !postData.content) {
+    const hasSeriesBlocks = postData.isSeries && Array.isArray(postData.seriesBlocks) && postData.seriesBlocks.length > 0;
+    if (!postData.title && !postData.content && !hasSeriesBlocks) {
       throw new Error('标题和内容不能同时为空');
     }
     
@@ -419,7 +500,7 @@ exports.main = async (event, context) => {
     });
 
     // ------------------- 4. 非原创诗歌自动创建诗人主页 -------------------
-    if (publishMode === 'poem' && !isOriginal && authorName && authorName.trim()) {
+    if ((publishMode === 'poem' || isSeries) && !isOriginal && authorName && authorName.trim()) {
       try {
         const poetName = authorName.trim();
         console.log('检查诗人主页是否存在:', poetName);

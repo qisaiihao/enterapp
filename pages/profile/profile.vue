@@ -30,6 +30,7 @@
                         :show-growth-stats="false"
                         @avatar-error="onAvatarError"
                         @edit-profile="navigateToEditProfile"
+                        @compose-series="goToSeriesCompose"
                         @toggle-sidebar="toggleSidebar"
                         @navigate-fans="navigateToFans"
                     />
@@ -774,6 +775,7 @@ export default {
             });
             
             if (userInfo && userInfo._openid) {
+                this.setData({ isViewingSelf: true });
                 this.fetchUserProfileFast();
                 this.fetchFollowCounts(); // 首次加载时也要获取关注数
                 // 首次加载时也要加载帖子数据
@@ -1432,6 +1434,9 @@ export default {
             uni.navigateTo({
                 url: '/pages-user/profile-edit/profile-edit'
             });
+        },
+        goToSeriesCompose: function () {
+            uni.navigateTo({ url: '/pages/series-compose/series-compose' });
         },
 
         // 跳转到收藏夹页面
@@ -2099,6 +2104,19 @@ export default {
     background-color: #fff;
     border-radius: 16rpx;
     box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+}
+
+.series-entry {
+    margin: 12rpx 24rpx 0 24rpx;
+    display: flex;
+    justify-content: flex-end;
+}
+.series-btn {
+    background: #3b7cff;
+    color: #fff;
+    padding: 12rpx 28rpx;
+    border-radius: 12rpx;
+    font-size: 26rpx;
 }
 
 .author-info {

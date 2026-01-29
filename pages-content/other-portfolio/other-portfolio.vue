@@ -545,11 +545,18 @@ export default {
 }
 
 .content-container {
-  padding: 40rpx;
-  padding-top: 160rpx; /* 增加顶部内边距，避免与按钮重叠 */
+  width: 100vw;            /* 占满视口宽度 */
+  box-sizing: border-box;
+  padding: 0 0 32rpx;
+  padding-top: 140rpx; /* 顶部留白，避免与返回按钮重叠 */
   display: flex;
   flex-direction: column;
-  align-items: center; /* 居中卡片 */
+  align-items: stretch; /* 让卡片撑满容器 */
+}
+
+#post-list-container {
+  width: 100vw;
+  box-sizing: border-box;
 }
 
 .empty-state { 
@@ -576,11 +583,11 @@ export default {
 
 /* poem.css inspired card styles */
 .post-item-wrapper {
-  width: calc(100% - 80rpx); /* 响应式宽度：屏幕宽度减去左右各40rpx边距 */
-  margin-left: 40rpx; /* 左边距 */
-  margin-right: 40rpx; /* 右边距 */
+  width: 100%; /* 占满容器，消除左右空白 */
+  margin-left: 0;
+  margin-right: 0;
   border-radius: 30rpx; /* 15px * 2 */
-  margin-bottom: 40rpx; /* 减少间距，让卡片更紧凑 */
+  margin-bottom: 32rpx; /* 减少间距，让卡片更紧凑 */
   overflow: hidden;
   box-shadow: 0 8rpx 8rpx rgba(0, 0, 0, 0.25); /* 0px 4px 4px * 2 */
   transition: transform .3s ease;
@@ -597,8 +604,10 @@ export default {
 }
 
 .post-item { 
-  padding: 30rpx 60rpx 30rpx 80rpx; 
+  padding: 32rpx; 
   position: relative; 
+  width: 100%;
+  box-sizing: border-box;
 } /* 进一步减少上下padding，文字往左移动 */
 
 /* Typography inspired by poem.css */

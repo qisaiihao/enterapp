@@ -21,10 +21,20 @@ function validatePublishData(publishData) {
         };
     }
 
-    const { title, content, author, publishMode, isOriginal, images } = publishData;
+    const { title, content, author, publishMode, isOriginal, images, isSeries, seriesBlocks } = publishData;
+
+    const validBlocks = Array.isArray(seriesBlocks)
+        ? seriesBlocks.filter(b => {
+            if (!b) return false;
+            const text = (b.content || '').trim();
+            const subtitle = (b.subtitle || '').trim();
+            return text || subtitle;
+        })
+        : [];
+    const hasSeriesBlocks = Boolean(isSeries) && validBlocks.length > 0;
 
     // 检查是否有内容或图片
-    const hasContent = content && content.trim().length > 0;
+    const hasContent = (content && content.trim().length > 0) || hasSeriesBlocks;
     const hasImages = images && images.length > 0;
 
     if (!hasContent && !hasImages) {
@@ -32,6 +42,19 @@ function validatePublishData(publishData) {
             isValid: false,
             message: '请输入内容或添加图片'
         };
+    }
+
+    if (isSeries) {
+        if (!hasSeriesBlocks) {
+            return { isValid: false, message: '请至少添加一个组诗段落' };
+        }
+        if (validBlocks.length > 20) {
+            return { isValid: false, message: '组诗段落数量不能超过20个' };
+        }
+        const longBlock = validBlocks.find(b => (b.content || '').length > 2000);
+        if (longBlock) {
+            return { isValid: false, message: '单个段落内容请控制在2000字以内' };
+        }
     }
 
     // 检查标题长度（如果有）
@@ -51,7 +74,7 @@ function validatePublishData(publishData) {
     }
 
     // 如果是非原创诗歌，必须填写作者
-    if (publishMode === 'poem' && !isOriginal) {
+    if ((publishMode === 'poem' || isSeries) && !isOriginal) {
         if (!author || !author.trim()) {
             return {
                 isValid: false,
@@ -92,11 +115,15 @@ function validatePublishData(publishData) {
  */
 function canPublish(data) {
     const hasImages = data.images && data.images.length > 0;
-    const hasContent = data.content && data.content.trim();
+    const hasSeriesBlocks = data.isSeries && Array.isArray(data.seriesBlocks) && data.seriesBlocks.some(b => {
+        if (!b) return false;
+        return (b.content && b.content.trim()) || (b.subtitle && b.subtitle.trim());
+    });
+    const hasContent = (data.content && data.content.trim()) || hasSeriesBlocks;
     let canPublish = hasImages || hasContent;
 
     // 如果是非原创诗歌，必须填写作者
-    if (data.publishMode === 'poem' && !data.isOriginal) {
+    if ((data.publishMode === 'poem' || data.isSeries) && !data.isOriginal) {
         const hasAuthor = data.author && data.author.trim();
         canPublish = canPublish && hasAuthor;
     }
@@ -119,7 +146,9 @@ function generateDraftData(formData) {
         selectedTags,
         imageList,
         backgroundColor,
-        textColor
+        textColor,
+        isSeries,
+        seriesBlocks
     } = formData;
 
     return {
@@ -128,6 +157,8 @@ function generateDraftData(formData) {
         author: author || '',
         publishMode: publishMode || 'normal',
         isOriginal: Boolean(isOriginal),
+        isSeries: Boolean(isSeries),
+        seriesBlocks: Array.isArray(seriesBlocks) ? seriesBlocks : [],
         selectedTags: selectedTags || [],
         imageList: imageList || [],
         backgroundColor: backgroundColor || '',
@@ -150,6 +181,8 @@ function cleanDraftData(draftData) {
         author: draftData.author || '',
         publishMode: draftData.publishMode || 'normal',
         isOriginal: Boolean(draftData.isOriginal),
+        isSeries: Boolean(draftData.isSeries),
+        seriesBlocks: Array.isArray(draftData.seriesBlocks) ? draftData.seriesBlocks : [],
         selectedTags: Array.isArray(draftData.selectedTags) ? draftData.selectedTags : [],
         imageList: Array.isArray(draftData.imageList) ? draftData.imageList : [],
         backgroundColor: draftData.backgroundColor || '',
@@ -171,7 +204,9 @@ function generatePublishData(formData) {
         isOriginal,
         selectedTags,
         imageList,
-        backgroundColor
+        backgroundColor,
+        isSeries,
+        seriesBlocks
     } = formData;
 
     const postData = {
@@ -179,12 +214,14 @@ function generatePublishData(formData) {
         content: (content || '').trim(),
         publishMode: publishMode || 'normal',
         isOriginal: Boolean(isOriginal),
+        isSeries: Boolean(isSeries),
+        seriesBlocks: Array.isArray(seriesBlocks) ? seriesBlocks : [],
         tags: Array.isArray(selectedTags) ? selectedTags : [],
         images: Array.isArray(imageList) ? imageList.map(img => img.url || img.path).filter(Boolean) : []
     };
 
     // 如果是非原创诗歌，添加作者信息
-    if (postData.publishMode === 'poem' && !postData.isOriginal && author) {
+    if ((postData.publishMode === 'poem' || postData.isSeries) && !postData.isOriginal && author) {
         postData.author = (author || '').trim();
     }
 

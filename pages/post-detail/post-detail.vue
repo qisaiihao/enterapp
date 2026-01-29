@@ -64,6 +64,17 @@
                             </view>
                         </view>
                     </view>
+                    <!-- 组诗内容 -->
+                    <view v-else-if="post.isSeries && post.seriesBlocks && post.seriesBlocks.length > 0" class="series-detail">
+                        <view v-for="(block, idx) in post.seriesBlocks" :key="'series-block-' + idx" class="series-detail-block">
+                            <view class="series-block-header">
+                                <text class="series-block-index">第{{ idx + 1 }}节</text>
+                                <text v-if="block.subtitle" class="series-block-subtitle">{{ block.subtitle }}</text>
+                                <text v-else class="series-block-subtitle">组诗</text>
+                            </view>
+                            <view class="series-block-content">{{ block.content }}</view>
+                        </view>
+                    </view>
                     
                     <!-- 普通帖子内容 -->
                     <view class="post-content" v-else-if="post.content">{{ post.content }}</view>
@@ -3872,6 +3883,42 @@ page {
     to {
         opacity: 1;
     }
+}
+
+/* 组诗详情 */
+.series-detail {
+    margin-top: 16rpx;
+    display: flex;
+    flex-direction: column;
+    gap: 16rpx;
+}
+.series-detail-block {
+    padding: 20rpx;
+    border-radius: 14rpx;
+    background: #f6f8fb;
+    box-shadow: 0 4rpx 10rpx rgba(0,0,0,0.04);
+}
+.series-block-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12rpx;
+    margin-bottom: 8rpx;
+    color: #6b7280;
+    font-size: 24rpx;
+}
+.series-block-index {
+    font-weight: 700;
+    color: #1c9bd6;
+}
+.series-block-subtitle {
+    font-size: 26rpx;
+    color: #374151;
+}
+.series-block-content {
+    white-space: pre-wrap;
+    font-size: 30rpx;
+    line-height: 1.6;
+    color: #111;
 }
 
 </style>

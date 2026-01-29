@@ -16,6 +16,12 @@ const EDITABLE_KEYS = [
   'anonymousAuthorName',
   'author',
   'isDiscussion',
+  'isSeries',
+  'seriesBlocks',
+  'seriesBlockCount',
+  'seriesCoverImage',
+  'seriesCoverHighlight',
+  'publishMode'
 ];
 
 exports.main = async (event, context) => {
@@ -39,6 +45,18 @@ exports.main = async (event, context) => {
       updateData[key] = input[key];
     }
   });
+
+  // 组诗：自动维护段落数与内容聚合
+  if (input.seriesBlocks !== undefined && Array.isArray(input.seriesBlocks)) {
+    updateData.seriesBlockCount = input.seriesBlocks.length;
+    if (!input.content) {
+      const merged = input.seriesBlocks
+        .map(b => (b && b.content ? String(b.content).trim() : ''))
+        .filter(Boolean)
+        .join('\n\n');
+      if (merged) updateData.content = merged;
+    }
+  }
   
   // 处理fileIDs：如果提供了fileIDs，需要更新imageUrl和imageUrls字段
   if (input.fileIDs !== undefined) {

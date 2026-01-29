@@ -63,6 +63,20 @@
               "runtime": "Nodejs16.13"
             },
             {
+              "name": "listMySingles",
+              "root": "./functions/listMySingles",
+              "timeout": 3,
+              "memory": 256,
+              "runtime": "Nodejs16.13"
+            },
+            {
+              "name": "createSeriesFromSingles",
+              "root": "./functions/createSeriesFromSingles",
+              "timeout": 5,
+              "memory": 256,
+              "runtime": "Nodejs16.13"
+            },
+            {
               "name": "createDefaultPortfolios",
               "root": "./functions/createDefaultPortfolios",
               "timeout": 3,

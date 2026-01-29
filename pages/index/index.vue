@@ -1104,6 +1104,8 @@ export default {
                 page: this.page, 
                 pageSize: PAGE_SIZE, 
                 context: this,
+                // 首次加载强制刷新，确保最新的组诗分块
+                forceRefresh: isFirstLoad,
                 ...filterParams
             })
                 .then(async (list) => {

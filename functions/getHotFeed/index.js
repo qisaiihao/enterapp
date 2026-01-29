@@ -100,6 +100,9 @@ exports.main = async (event, context) => {
         originalImageUrls: '$originalImageUrls',
         votes: '$votes',
         isPoem: '$isPoem',
+        isSeries: '$isSeries',
+        seriesBlocks: '$seriesBlocks',
+        seriesBlockCount: '$seriesBlockCount',
         isOriginal: '$isOriginal',
         poemBgImage: '$poemBgImage',
         tags: '$tags',
@@ -169,10 +172,25 @@ exports.main = async (event, context) => {
       }
     }
 
+    // 组诗字段兜底：列表至少返回前三段
+    const normalizedPosts = posts.map((post, idx) => {
+      const seriesBlocksRaw = Array.isArray(post.seriesBlocks) ? post.seriesBlocks : [];
+      const seriesBlocks = seriesBlocksRaw.slice(0, 3).map((b, i) => ({
+        id: b.id || `series-${i}`,
+        subtitle: b.subtitle || b.subTitle || '',
+        content: b.content || '',
+        highlightSentence: b.highlightSentence || (b.content ? String(b.content).split(/\r?\n/).find(l => l && l.trim()) || '' : ''),
+        highlightLines: Array.isArray(b.highlightLines) ? b.highlightLines : []
+      }));
+      const seriesBlockCount = post.seriesBlockCount || seriesBlocksRaw.length || seriesBlocks.length;
+      const isSeries = post.isSeries || seriesBlocks.length > 0;
+      return { ...post, isSeries, seriesBlocks, seriesBlockCount };
+    });
+
     return {
       success: true,
-      posts: posts,
-      total: posts.length
+      posts: normalizedPosts,
+      total: normalizedPosts.length
     };
 
   } catch (error) {

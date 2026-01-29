@@ -103,6 +103,25 @@
                         <view v-if="group.comment" class="discussion-comment">{{ group.comment }}</view>
                     </view>
                 </view>
+                <view v-else-if="isSeriesPost(item)" class="series-preview">
+                    <view class="series-stack">
+                        <view
+                            v-for="(block, bIndex) in seriesCoverBlocks(item)"
+                            :key="'series-cover-' + bIndex"
+                            class="series-card top stacked"
+                            :style="stackStyle(bIndex)"
+                        >
+                            <view class="series-subtitle">{{ block.subtitle }}</view>
+                            <view class="series-lines">
+                                <text v-for="(line, li) in block.lines" :key="'line-' + bIndex + '-' + li" class="series-line">
+                                    {{ line }}
+                                </text>
+                                <text v-if="block.hasMore" class="series-ellipsis">…</text>
+                            </view>
+                            <view v-if="bIndex === 0" class="series-meta">组诗·{{ item.seriesBlockCount || (item.seriesBlocks && item.seriesBlocks.length) || seriesCoverBlocks(item).length }}</view>
+                        </view>
+                    </view>
+                </view>
                 <view class="post-content" v-else-if="item.content" style="white-space: pre-wrap">{{ item.content }}</view>
 
                 <!-- 标签显示 -->
@@ -220,9 +239,60 @@ export default {
         hasDiscussionSentences(group) {
             return group && Array.isArray(group.sentences) && group.sentences.some(line => (line || '').trim().length > 0);
         },
+        // 兼容：后端遗漏 isSeries 时，只要有分块也按组诗渲染
+        isSeriesPost(post) {
+            return !!(post && (post.isSeries || (Array.isArray(post.seriesBlocks) && post.seriesBlocks.length > 0)));
+        },
         hasValidDiscussionGroups(post) {
             if (!post || !Array.isArray(post.sentenceGroups)) return false;
             return post.sentenceGroups.some(g => this.hasDiscussionSentences(g) || (g && g.comment && g.comment.trim().length > 0));
+        },
+        seriesCoverBlocks(post) {
+            if (!post) return [];
+            let blocks = [];
+            if (Array.isArray(post.seriesBlocks) && post.seriesBlocks.length > 0) {
+                blocks = post.seriesBlocks.slice(0, 3).map((b, idx) => {
+                    const subtitle = (b.subtitle && b.subtitle.trim()) || `其${idx + 1}`;
+                    const linesAll = (b.content || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+                    const lines = linesAll.slice(0, 3);
+                    const hasMore = linesAll.length > 3;
+                    return { subtitle, lines, hasMore };
+                });
+            } else if (post.content) {
+                // fallback: 若缺少seriesBlocks，尝试用正文分段生成至少2-3张卡片
+                const parts = post.content.split(/\n\s*\n/).filter(p => p && p.trim()).slice(0, 3);
+                parts.forEach((p, idx) => {
+                    const linesAll = p.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+                    if (linesAll.length === 0) return;
+                    blocks.push({
+                        subtitle: `其${idx + 1}`,
+                        lines: linesAll.slice(0, 3),
+                        hasMore: linesAll.length > 3
+                    });
+                });
+            }
+            if (blocks.length === 0) {
+                blocks = [{
+                    subtitle: '其一',
+                    lines: [post.highlightSentence || post.title || '组诗'],
+                    hasMore: false
+                }];
+            }
+            // 调试：输出叠层块数量
+            try {
+                if (blocks.length > 1) {
+                    console.log('[PostItem] seriesCoverBlocks', post._id, 'count', blocks.length, blocks);
+                }
+            } catch (e) {}
+            return blocks;
+        },
+        stackStyle(index) {
+            // 阶梯向右下错位，露出底层边缘
+            const offset = 20 * index;
+            const dx = 12 * index;
+            const dy = 12 * index;
+            const scale = 1 - index * 0.04; // 0->1,1->0.96,2->0.92
+            return `top:${offset}rpx; left:${offset}rpx; transform: translate(${dx}rpx, ${dy}rpx) scale(${scale}); z-index:${10 - index};`;
         },
         // 显示操作菜单
         onShowActionMenu() {
@@ -732,5 +802,58 @@ export default {
     0% { transform: scale(1); }
     50% { transform: scale(1.2); }
     100% { transform: scale(1); }
+}
+
+/* 组诗叠层卡片 */
+.series-preview {
+    margin-top: 16rpx;
+}
+.series-stack {
+    position: relative;
+    padding: 24rpx;
+    min-height: 340rpx;
+    height: 340rpx;
+    overflow: visible;
+    box-sizing: border-box;
+}
+.series-card {
+    border-radius: 16rpx;
+    background: #f5f7fa;
+    padding: 36rpx 34rpx;
+    min-height: 260rpx;
+    box-shadow: 0 16rpx 30rpx rgba(0, 0, 0, 0.16);
+    position: absolute;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    width: calc(100% - 64rpx); /* 再收窄一些，避免左右溢出 */
+}
+.series-card.top {
+    background: linear-gradient(180deg, #ffffff, #f7f8fa);
+}
+.series-subtitle {
+    font-size: 30rpx;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 12rpx;
+}
+.series-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 6rpx;
+    color: #4a4a4a;
+    font-size: 26rpx;
+    line-height: 38rpx;
+}
+.series-line {
+    display: block;
+}
+.series-ellipsis {
+    margin-top: 4rpx;
+    color: #999;
+    font-size: 26rpx;
+}
+.series-meta {
+    margin-top: 12rpx;
+    font-size: 24rpx;
+    color: #666;
 }
 </style>

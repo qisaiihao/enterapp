@@ -440,6 +440,7 @@ export default {
         imageList: addData.imageList,
         publishMode: addData.publishMode,
         isOriginal: addData.isOriginal,
+        isSeries: addData.isSeries,
         selectedTags: addData.selectedTags,
         author: addData.author,
         highlightLines: addData.highlightLines,
@@ -449,7 +450,8 @@ export default {
       });
 
       const hasTitle = this.post && this.post.title && this.post.title.trim();
-      const hasContent = addData.content && addData.content.trim();
+      const hasSeriesBlocks = addData.isSeries && Array.isArray(addData.seriesBlocks) && addData.seriesBlocks.some(b => (b.content && b.content.trim()) || (b.subtitle && b.subtitle.trim()));
+      const hasContent = (addData.content && addData.content.trim()) || hasSeriesBlocks;
       const hasImages = addData.imageList && Array.isArray(addData.imageList) && addData.imageList.length > 0;
 
       if (!hasTitle && !hasContent && !hasImages) {
@@ -469,7 +471,7 @@ export default {
       }
 
       // 如果是非原创诗歌，必须填写作者
-      if (addData.publishMode === 'poem' && !addData.isOriginal) {
+      if ((addData.publishMode === 'poem' || addData.isSeries) && !addData.isOriginal) {
         const hasAuthor = this.post && this.post.author && this.post.author.trim();
         if (!hasAuthor) {
           uni.showToast({
@@ -487,6 +489,8 @@ export default {
         author: this.post.author || '',
         content: addData.content || '', // 确保content字段存在
         imageList: addData.imageList || [], // 确保imageList字段存在
+        isSeries: addData.isSeries || false,
+        seriesBlocks: Array.isArray(addData.seriesBlocks) ? addData.seriesBlocks : [],
         // 添加匿名相关字段
         isAnonymous: this.post.isAnonymous || false,
         anonymousAuthorName: this.post.anonymousAuthorName || '匿名用户',
@@ -516,6 +520,24 @@ export default {
           publishData.highlightLines = mergedDiscussionHighlight;
         }
       }
+      // 组诗模式：聚合正文与高光
+      if (publishData.isSeries) {
+        const seriesHighlight = (addData.highlightLines && addData.highlightLines.length > 0)
+          ? addData.highlightLines
+          : publishData.seriesBlocks.reduce((acc, b) => {
+              const h = (b.highlightSentence && b.highlightSentence.trim()) ||
+                ((b.content || '').split(/\r?\n/).find(line => line && line.trim()) || '');
+              if (h) acc.push(h);
+              return acc;
+            }, []);
+        publishData.content = publishData.seriesBlocks
+          .map(b => (b.content || b.subtitle || '').trim())
+          .filter(Boolean)
+          .join('\n\n');
+        if (!publishData.highlightLines || publishData.highlightLines.length === 0) {
+          publishData.highlightLines = seriesHighlight;
+        }
+      }
       
       console.log('【Preview】合并后的发布数据:', {
         ...publishData,
@@ -534,7 +556,7 @@ export default {
       });
 
       // 如果是非原创诗歌，先检查重复
-      if (addData.publishMode === 'poem' && !addData.isOriginal) {
+      if ((addData.publishMode === 'poem' || addData.isSeries) && !addData.isOriginal) {
         this.checkDuplicatePoem(addData);
       } else {
         // 直接发布
@@ -710,6 +732,20 @@ export default {
         : (Array.isArray(discussionSentenceGroups) && discussionSentenceGroups.length > 0
           ? discussionSentenceGroups.reduce((acc, g) => acc.concat(g.sentences || []), [])
           : []);
+      const seriesBlocks = addData.isSeries ? (addData.seriesBlocks || []) : [];
+      const mergedSeriesContent = addData.isSeries
+        ? seriesBlocks.map(b => (b.content || b.subtitle || '').trim()).filter(Boolean).join('\n\n')
+        : '';
+      const seriesHighlight = addData.isSeries
+        ? ((addData.highlightLines && addData.highlightLines.length > 0)
+            ? addData.highlightLines
+            : seriesBlocks.reduce((acc, b) => {
+                const h = (b.highlightSentence && b.highlightSentence.trim()) ||
+                  ((b.content || '').split(/\r?\n/).find(line => line && line.trim()) || '');
+                if (h) acc.push(h);
+                return acc;
+              }, []))
+        : [];
 
       // 如果是编辑模式，调用更新接口
       if (isEditMode) {
@@ -717,7 +753,7 @@ export default {
         
         // 确定作者信息
         let authorName = '';
-        if (addData.publishMode === 'poem') {
+        if (addData.publishMode === 'poem' || addData.isSeries) {
           if (addData.isOriginal) {
             const userInfo = uni.getStorageSync('userInfo');
             const userNickName = userInfo ? userInfo.nickName : '匿名用户';
@@ -733,12 +769,12 @@ export default {
         // 准备更新数据
         const updateData = {
           title: addData.title,
-          content: addData.content,
+          content: addData.isSeries ? mergedSeriesContent : addData.content,
           tags: addData.selectedTags || [],
           backgroundColor: addData.selectedBackgroundColor || '',
           textColor: addData.selectedTextColor || '#000000',
-          highlightSentence: (addData.highlightLines && addData.highlightLines.length > 0 ? addData.highlightLines[0] : (mergedDiscussionHighlight[0] || '')),
-          highlightLines: addData.highlightLines && addData.highlightLines.length > 0 ? addData.highlightLines : mergedDiscussionHighlight,
+          highlightSentence: (addData.highlightLines && addData.highlightLines.length > 0 ? addData.highlightLines[0] : ((addData.isSeries ? seriesHighlight[0] : mergedDiscussionHighlight[0]) || '')),
+          highlightLines: addData.highlightLines && addData.highlightLines.length > 0 ? addData.highlightLines : (addData.isSeries ? seriesHighlight : mergedDiscussionHighlight),
           author: authorName,
           isAnonymous: this.post.isAnonymous || false,
           anonymousAuthorName: this.post.anonymousAuthorName || '匿名用户',
@@ -749,7 +785,10 @@ export default {
           discussionSentences: addData.publishMode === 'discussion' ? discussionSentenceGroups.map(g => ({
             sentences: g.sentences || [],
             comment: (g.comment || '').trim()
-          })) : undefined
+          })) : undefined,
+          isSeries: addData.isSeries || false,
+          seriesBlocks: addData.isSeries ? seriesBlocks : undefined,
+          seriesBlockCount: addData.isSeries ? seriesBlocks.length : undefined
         };
 
         console.log('【Preview】准备更新帖子，数据:', {
@@ -781,7 +820,7 @@ export default {
 
       // 确定作者信息
       let authorName = '';
-      if (addData.publishMode === 'poem') {
+      if (addData.publishMode === 'poem' || addData.isSeries) {
         if (addData.isOriginal) {
           const userInfo = uni.getStorageSync('userInfo');
           const userNickName = userInfo ? userInfo.nickName : '匿名用户';
@@ -794,10 +833,11 @@ export default {
       // 准备提交数据
       const postData = {
         title: addData.title,
-        content: addData.content,
+        content: addData.isSeries ? mergedSeriesContent : addData.content,
         createTime: new Date(),
         votes: 0,
-        isPoem: addData.publishMode === 'poem',
+        isPoem: addData.publishMode === 'poem' || addData.isSeries,
+        isSeries: addData.isSeries || false,
         isOriginal: addData.isOriginal,
         isDiscussion: addData.publishMode === 'discussion',
         author: authorName,
@@ -820,6 +860,17 @@ export default {
           postData.highlightSentence = mergedDiscussionHighlight[0];
         }
       }
+      if (addData.isSeries) {
+        postData.seriesBlocks = seriesBlocks;
+        postData.seriesBlockCount = seriesBlocks.length;
+        const seriesLines = seriesHighlight;
+        if (!postData.highlightLines || postData.highlightLines.length === 0) {
+          postData.highlightLines = seriesLines;
+        }
+        if (!postData.highlightSentence && seriesLines.length > 0) {
+          postData.highlightSentence = seriesLines[0];
+        }
+      }
 
       if (uploadResults.length > 0) {
         const imageUrls = uploadResults.map((result) => result.compressedUrl);
@@ -834,19 +885,21 @@ export default {
       // 调用云函数提交数据
       return cloudCall('contentCheck', {
         title: addData.title,
-        content: addData.content,
+        content: addData.isSeries ? mergedSeriesContent : addData.content,
         fileIDs: uploadResults.map(r => r.compressedUrl).filter(url => url),
         originalFileIDs: uploadResults.map(r => r.originalUrl).filter(url => url),
         publishMode: addData.publishMode,
         isOriginal: addData.isOriginal,
         isDiscussion: addData.isDiscussion || addData.publishMode === 'discussion' || false,
+        isSeries: addData.isSeries || false,
+        seriesBlocks: addData.isSeries ? seriesBlocks : [],
         author: addData.author,
         tags: addData.selectedTags || [],
         // 添加颜色信息
         backgroundColor: addData.selectedBackgroundColor || '',
         textColor: addData.selectedTextColor || '#000000',
         // 添加高光行信息
-        highlightLines: (addData.highlightLines && addData.highlightLines.length > 0) ? addData.highlightLines : mergedDiscussionHighlight,
+        highlightLines: (addData.highlightLines && addData.highlightLines.length > 0) ? addData.highlightLines : (addData.isSeries ? seriesHighlight : mergedDiscussionHighlight),
         sentenceGroups: addData.publishMode === 'discussion' ? discussionSentenceGroups : [],
         discussionSentences: addData.publishMode === 'discussion' ? discussionSentenceGroups.map(g => ({
           sentences: g.sentences || [],
