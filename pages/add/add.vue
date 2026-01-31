@@ -237,8 +237,6 @@
 // pages/add/add.js
 // 工具函数导入
 import { cloudCall } from '@/utils/cloudCall.js';
-import { readFileAsBase64 } from '@/utils/fileReader.js';
-import { getCurrentPlatform, getCloudFunctionMethod } from '@/utils/platformDetector.js';
 import { hydrateTempUrls } from '@/_utils/hydrate-temp-urls';
 import { emitPostUpdated, emitPostCreated } from '@/utils/events.js';
 
@@ -260,6 +258,24 @@ import TagSelectorModal from '../../components/TagSelectorModal.vue';
 import HighlightSelectorModal from '../../components/HighlightSelectorModal.vue';
 import AddImageSection from '../../components/add/AddImageSection.vue';
 import SideToolbar from '../../components/add/SideToolbar.vue';
+import {
+    addBlock as discussionAddBlock,
+    removeBlock as discussionRemoveBlock,
+    moveBlock as discussionMoveBlock,
+    onQuoteBlockInput as discussionOnQuoteBlockInput,
+    onBlockInput as discussionOnBlockInput,
+    onDiscussionQuoteInput as discussionOnDiscussionQuoteInput,
+    buildGroups as discussionBuildGroups
+} from './useDiscussion.js';
+import {
+    toggleSeriesMode as seriesToggleMode,
+    syncSeriesBlocks as seriesSync,
+    addSeriesBlock as seriesAddBlock,
+    removeSeriesBlock as seriesRemoveBlock,
+    moveSeriesBlock as seriesMoveBlock,
+    onSeriesSubtitleInput as seriesSubtitleInput,
+    onSeriesContentInput as seriesContentInput
+} from './useSeries.js';
 
 // 纯函数工具
 import {
@@ -270,6 +286,14 @@ import {
     normalizeSeriesBlocks,
     seriesBlocksToContent
 } from './addPure.js';
+import {
+    handleChooseImage as imagesHandleChoose,
+    compressImage as imagesCompressImage,
+    compressImageWithCanvasDual as imagesCompressCanvasDual,
+    uploadImagesAndSubmit as imagesUploadAndSubmit,
+    uploadFile as imagesUploadFile,
+    uploadFileViaCloudFunction as imagesUploadFileViaCF
+} from './useImages.js';
 
 export default {
     components: {
@@ -574,7 +598,7 @@ export default {
         // 讨论模式：生成句子组数据（内容/引用交错）
         buildDiscussionSentenceGroups() {
             if (this.publishMode !== 'discussion') return [];
-            return buildDiscussionSentenceGroups(this.blocks, this.content);
+            return discussionBuildGroups(this.blocks, this.content);
         },
 
         // 根据来源页面设置默认发布模式
@@ -777,76 +801,12 @@ export default {
         },
         // 兼容性文件上传方法
         uploadFile(cloudPath, filePath) {
-            return new Promise((resolve, reject) => {
-                const platform = getCurrentPlatform();
-                const method = getCloudFunctionMethod();
-                
-                if (method === 'tcb') {
-                    // H5和App环境：使用云函数上传，避免multipart/form-data格式问题
-                    this.uploadFileViaCloudFunction(cloudPath, filePath).then(resolve).catch(reject);
-                } else if (method === 'wx-cloud') {
-                    // 小程序环境使用微信云开发
-                    if (wx.cloud && wx.cloud.uploadFile) {
-                        wx.cloud.uploadFile({
-                            cloudPath: cloudPath,
-                            filePath: filePath,
-                            success: (res) => {
-                                resolve(res);
-                            },
-                            fail: (err) => {
-                                reject(err);
-                            }
-                        });
-                    } else {
-                        reject(new Error('微信云开发不可用'));
-                    }
-                } else {
-                    reject(new Error(`不支持的云函数调用方式: ${method}`));
-                }
-            });
+            return imagesUploadFile(this, cloudPath, filePath);
         },
 
         // 通过云函数上传文件（解决H5环境multipart/form-data问题）
         uploadFileViaCloudFunction(cloudPath, filePath, retryCount = 0) {
-            return readFileAsBase64(filePath)
-                .then((base64) => {
-                    if (!base64) {
-                        throw new Error('文件读取失败');
-                    }
-                    console.log(`?? [Add页面] 文件读取完成，base64长度: ${base64.length}`);
-                    if (base64.length > 6 * 1024 * 1024) {
-                        console.warn('?? [Add页面] base64文件较大，注意上传耗时');
-                    }
-                    return this.callCloudFunction('upload', {
-                        cloudPath,
-                        fileContent: base64
-                    });
-                })
-                .then((uploadRes) => {
-                    console.log('云函数返回结果:', uploadRes);
-                    if (uploadRes && uploadRes.result && uploadRes.result.success) {
-                        return {
-                            fileID: uploadRes.result.fileID,
-                            cloudPath: uploadRes.result.cloudPath
-                        };
-                    }
-                    throw new Error('上传云函数返回格式异常');
-                })
-                .catch((err) => {
-                    const message = (err && err.errMsg) || (err && err.message) || '';
-                    const shouldRetry = retryCount < 2 && (message.includes('request:fail') || message.includes('timeout'));
-                    if (shouldRetry) {
-                        console.log(`?? [Add页面] 上传失败，准备重试 (${retryCount + 1}/2)`, err);
-                        return new Promise((resolve, reject) => {
-                            setTimeout(() => {
-                                this.uploadFileViaCloudFunction(cloudPath, filePath, retryCount + 1)
-                                    .then(resolve)
-                                    .catch(reject);
-                            }, 1000 * (retryCount + 1));
-                        });
-                    }
-                    throw err;
-                });
+            return imagesUploadFileViaCF(this, cloudPath, filePath, retryCount);
         },
 
         preventPageScroll: function () {
@@ -960,140 +920,45 @@ export default {
         },
         // 组诗开关
         toggleSeriesMode() {
-            if (this.publishMode !== 'poem') {
-                uni.showToast({ title: '组诗仅支持诗歌模式', icon: 'none' });
-                return;
-            }
-            if (this.isSeries) {
-                // 关闭组诗，合并内容回主正文
-                const merged = seriesBlocksToContent(this.seriesBlocks);
-                this.setData({
-                    isSeries: false,
-                    content: merged
-                });
-            } else {
-                // 开启组诗，用现有正文初始化第一段
-                const initialBlocks = (this.seriesBlocks && this.seriesBlocks.length > 0)
-                    ? this.seriesBlocks
-                    : [{
-                        id: `series-${Date.now()}`,
-                        subtitle: '',
-                        content: this.content || '',
-                        highlightSentence: '',
-                        highlightLines: []
-                    }];
-                this.setData({
-                    isSeries: true,
-                    seriesBlocks: initialBlocks,
-                    content: ''
-                });
-                this.syncSeriesBlocks(initialBlocks);
-            }
-            this.checkCanPublish();
+            seriesToggleMode(this);
         },
 
         // 打开/关闭引用句悬浮窗（讨论模式）
         toggleQuotePopup() {},
         closeQuotePopup() {},
         addBlock(afterIndex, type) {
-            const next = (this.blocks || []).slice();
-            const insertPos = afterIndex + 1;
-            next.splice(insertPos, 0, { type, text: '' });
-            this.setData({ blocks: next });
+            discussionAddBlock(this, afterIndex, type);
         },
         removeBlock(idx) {
-            const next = (this.blocks || []).slice();
-            next.splice(idx, 1);
-            // 保证至少有一个正文块
-            if (!next.some(b => b.type === 'content')) {
-                next.unshift({ type: 'content', text: '' });
-            }
-            this.setData({ blocks: next });
-            this.checkCanPublish();
+            discussionRemoveBlock(this, idx);
         },
         moveBlock(idx, direction) {
-            const next = (this.blocks || []).slice();
-            const target = idx + direction;
-            if (target < 0 || target >= next.length) return;
-            const [item] = next.splice(idx, 1);
-            next.splice(target, 0, item);
-            this.setData({ blocks: next });
+            discussionMoveBlock(this, idx, direction);
         },
         // 组诗：同步段落列表并更新高光
         syncSeriesBlocks(blocks, manualSeriesHighlights = null) {
-            const manual = manualSeriesHighlights ?? this.highlightLines;
-            const { blocks: normalized, highlightLines, highlightSentence } = normalizeSeriesBlocks(
-                blocks,
-                manual,
-                this.isSeries
-            );
-            this.setData({
-                seriesBlocks: normalized,
-                highlightLines: this.isSeries ? highlightLines : this.highlightLines,
-                highlightSentence: this.isSeries ? (highlightSentence || '') : this.highlightSentence
-            });
-            this.checkCanPublish();
+            seriesSync(this, blocks, manualSeriesHighlights);
         },
         addSeriesBlock(afterIndex = -1) {
-            if ((this.seriesBlocks || []).length >= this.maxSeriesBlocks) {
-                uni.showToast({ title: '已达到段落上限', icon: 'none' });
-                return;
-            }
-            const next = (this.seriesBlocks || []).slice();
-            const insertPos = Math.max(0, afterIndex + 1);
-            next.splice(insertPos, 0, {
-                id: `series-${Date.now()}-${Math.random()}`,
-                subtitle: '',
-                content: '',
-                highlightSentence: '',
-                highlightLines: []
-            });
-            this.syncSeriesBlocks(next);
+            seriesAddBlock(this, afterIndex);
         },
         removeSeriesBlock(idx) {
-            const next = (this.seriesBlocks || []).slice();
-            if (next.length <= 1) {
-                uni.showToast({ title: '至少保留一个段落', icon: 'none' });
-                return;
-            }
-            next.splice(idx, 1);
-            this.syncSeriesBlocks(next);
+            seriesRemoveBlock(this, idx);
         },
         moveSeriesBlock(idx, direction) {
-            const next = (this.seriesBlocks || []).slice();
-            const target = idx + direction;
-            if (target < 0 || target >= next.length) return;
-            const [item] = next.splice(idx, 1);
-            next.splice(target, 0, item);
-            this.syncSeriesBlocks(next);
+            seriesMoveBlock(this, idx, direction);
         },
         onSeriesSubtitleInput(idx, e) {
-            const next = (this.seriesBlocks || []).slice();
-            next[idx] = { ...next[idx], subtitle: e.detail.value || '' };
-            this.syncSeriesBlocks(next);
+            seriesSubtitleInput(this, idx, e.detail.value);
         },
         onSeriesContentInput(idx, e) {
-            const next = (this.seriesBlocks || []).slice();
-            next[idx] = { ...next[idx], content: e.detail.value || '' };
-            this.syncSeriesBlocks(next);
+            seriesContentInput(this, idx, e.detail.value);
         },
         onQuoteBlockInput(idx, e) {
-            const next = (this.blocks || []).slice();
-            next[idx] = { ...next[idx], text: e.detail.value || '' };
-            this.setData({ blocks: next });
-            this.checkCanPublish();
+            discussionOnQuoteBlockInput(this, idx, e.detail.value);
         },
         onBlockInput(idx, e) {
-            const next = (this.blocks || []).slice();
-            const val = e.detail.value || '';
-            next[idx] = { ...next[idx], text: val };
-            this.setData({ blocks: next });
-            // 若这是第一个正文块，同步到 content 供高光等逻辑使用
-            const firstContentIndex = next.findIndex(b => b.type === 'content');
-            if (firstContentIndex === idx) {
-                this.setData({ content: val });
-            }
-            this.checkCanPublish();
+            discussionOnBlockInput(this, idx, e.detail.value);
         },
 
         // 选择发布模式（组件事件处理）
@@ -1142,13 +1007,7 @@ export default {
 
         // 讨论模式：引用诗句输入（兼容旧调用，写入当前块列表中第一个引用块，没有则插入一个）
         onDiscussionQuoteInput(e) {
-            const idx = (this.blocks || []).findIndex(b => b.type === 'quote');
-            if (idx === -1) {
-                this.addBlock(0, 'quote');
-                this.onQuoteBlockInput(1, e); // 新增在正文后
-            } else {
-                this.onQuoteBlockInput(idx, e);
-            }
+            discussionOnDiscussionQuoteInput(this, e);
         },
 
         handleChooseImage: function () {
@@ -1235,135 +1094,12 @@ export default {
         },
 
         compressImage: function (imageInfo) {
-            return new Promise((resolve) => {
-                // 检查运行环境
-                const platform = getCurrentPlatform();
-                
-                if (platform === 'h5') {
-                    // H5环境使用Canvas双重压缩
-                    console.log('🔍 [Add页面] H5环境使用Canvas双重压缩图片');
-                    this.compressImageWithCanvasDual(imageInfo).then(resolve).catch(() => {
-                        console.log('Canvas压缩失败，使用原图');
-                        imageInfo.compressedPath = imageInfo.originalPath;
-                        imageInfo.originalCompressedPath = imageInfo.originalPath;
-                        imageInfo.previewUrl = imageInfo.originalPath;
-                        resolve(imageInfo);
-                    });
-                } else {
-                    // 小程序和App环境：双重压缩
-                    console.log('🔍 [Add页面] 小程序/App环境双重压缩');
-                    const that = this;
-                    
-                    // 第一步：80%质量压缩作为"原图"
-                    uni.compressImage({
-                        src: imageInfo.originalPath,
-                        quality: 80,
-                        success: (originalRes) => {
-                            imageInfo.originalCompressedPath = originalRes.tempFilePath;
-                            console.log('✅ 原图压缩完成(80%):', originalRes.tempFilePath);
-                            
-                            // 第二步：50%质量压缩作为"压缩图"
-                            uni.compressImage({
-                                src: imageInfo.originalPath,
-                                quality: 50,
-                                success: (compressRes) => {
-                                    imageInfo.compressedPath = compressRes.tempFilePath;
-                                    imageInfo.previewUrl = compressRes.tempFilePath;
-                                    console.log('✅ 压缩图完成(50%):', compressRes.tempFilePath);
-                                    resolve(imageInfo);
-                                },
-                                fail: (err) => {
-                                    console.log('压缩图压缩失败，使用原图压缩版:', err);
-                                    imageInfo.compressedPath = imageInfo.originalCompressedPath;
-                                    imageInfo.previewUrl = imageInfo.originalCompressedPath;
-                                    resolve(imageInfo);
-                                }
-                            });
-                        },
-                        fail: (err) => {
-                            console.log('原图压缩失败，使用原始文件:', err);
-                            imageInfo.originalCompressedPath = imageInfo.originalPath;
-                            imageInfo.compressedPath = imageInfo.originalPath;
-                            imageInfo.previewUrl = imageInfo.originalPath;
-                            resolve(imageInfo);
-                        }
-                    });
-                }
-            });
+            return imagesCompressImage(this, imageInfo);
         },
 
         // H5环境使用Canvas双重压缩图片
         compressImageWithCanvasDual: function (imageInfo) {
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                
-                img.onload = () => {
-                    try {
-                        // 创建Canvas
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        
-                        // 计算压缩后的尺寸
-                        const maxWidth = 1200;
-                        const maxHeight = 1200;
-                        let { width, height } = img;
-                        
-                        if (width > height) {
-                            if (width > maxWidth) {
-                                height = (height * maxWidth) / width;
-                                width = maxWidth;
-                            }
-                        } else {
-                            if (height > maxHeight) {
-                                width = (width * maxHeight) / height;
-                                height = maxHeight;
-                            }
-                        }
-                        
-                        canvas.width = width;
-                        canvas.height = height;
-                        ctx.drawImage(img, 0, 0, width, height);
-                        
-                        // 生成两个版本：原图80%质量，压缩图50%质量
-                        canvas.toBlob((originalBlob) => {
-                            if (originalBlob) {
-                                const originalUrl = URL.createObjectURL(originalBlob);
-                                imageInfo.originalCompressedPath = originalUrl;
-                                console.log('✅ [Add页面] H5原图压缩完成(80%)');
-                                
-                                // 生成压缩图(50%质量)
-                                canvas.toBlob((compressedBlob) => {
-                                    if (compressedBlob) {
-                                        const compressedUrl = URL.createObjectURL(compressedBlob);
-                                        imageInfo.compressedPath = compressedUrl;
-                                        imageInfo.previewUrl = compressedUrl;
-                                        console.log('✅ [Add页面] H5压缩图完成(50%)');
-                                        resolve(imageInfo);
-                                    } else {
-                                        // 压缩图失败，使用原图版本
-                                        imageInfo.compressedPath = originalUrl;
-                                        imageInfo.previewUrl = originalUrl;
-                                        resolve(imageInfo);
-                                    }
-                                }, 'image/jpeg', 0.5);
-                            } else {
-                                reject(new Error('Canvas压缩失败'));
-                            }
-                        }, 'image/jpeg', 0.8);
-                        
-                    } catch (error) {
-                        console.error('Canvas压缩过程出错:', error);
-                        reject(error);
-                    }
-                };
-                
-                img.onerror = () => {
-                    reject(new Error('图片加载失败'));
-                };
-                
-                img.src = imageInfo.originalPath;
-            });
+            return imagesCompressCanvasDual(imageInfo);
         },
 
         updateImageList: function (newImages) {
@@ -1459,65 +1195,7 @@ export default {
         },
 
         uploadImagesAndSubmit: function () {
-            const that = this;
-            const timestamp = new Date().getTime();
-            const imageList = this.imageList;
-            console.log('开始上传图片:', imageList.length + '张');
-            const uploadPromises = imageList.map((imageInfo, index) => {
-                return new Promise((resolve, reject) => {
-                    // 如果是编辑模式且图片来自编辑（不需要重新上传），使用原始fileID
-                    if (that.isEditMode && imageInfo.isFromEdit) {
-                        // 优先使用保存的原始fileID，如果没有则使用compressedPath/originalPath
-                        resolve({
-                            compressedUrl: imageInfo.originalFileID || imageInfo.compressedPath,
-                            originalUrl: imageInfo.originalOriginalFileID || imageInfo.originalPath
-                        });
-                        return;
-                    }
-                    
-                    const imageTimestamp = timestamp + index;
-                    const compressedCloudPath = `post_images/${imageTimestamp}_compressed.jpg`;
-                    
-                    // 使用兼容性上传方法
-                    that.uploadFile(compressedCloudPath, imageInfo.compressedPath)
-                        .then((compressedRes) => {
-                            console.log('压缩图上传成功:', compressedRes);
-                            console.log('压缩图fileID:', compressedRes.fileID);
-                            console.log('压缩图fileID类型:', typeof compressedRes.fileID);
-                            const compressedFileID = compressedRes.fileID;
-                            // 始终上传原图（80%质量压缩版本）
-                            const originalCloudPath = `post_images/${imageTimestamp}_original.jpg`;
-                            // 使用 originalCompressedPath（80%压缩后的原图）
-                            const originalPath = imageInfo.originalCompressedPath || imageInfo.originalPath;
-                            return that.uploadFile(originalCloudPath, originalPath)
-                                .then((originalRes) => {
-                                    console.log('原图上传成功(80%压缩):', originalRes);
-                                    console.log('原图fileID:', originalRes.fileID);
-                                    resolve({
-                                        compressedUrl: compressedFileID,
-                                        originalUrl: originalRes.fileID
-                                    });
-                                }).catch((err) => {
-                                    // 原图上传失败，压缩图和原图使用同一个
-                                    console.log('原图上传失败，使用压缩图:', err);
-                                    resolve({
-                                        compressedUrl: compressedFileID,
-                                        originalUrl: compressedFileID
-                                    });
-                                });
-                        })
-                        .catch(reject);
-                });
-            });
-            Promise.all(uploadPromises)
-                .then((uploadResults) => {
-                    console.log('所有图片上传完成:', uploadResults);
-                    return that.submitWithContentCheck(uploadResults);
-                })
-                .catch((err) => {
-                    console.error('上传失败:', err);
-                    that.publishFail(err);
-                });
+            return imagesUploadAndSubmit(this);
         },
 
         submitToDatabase: function (uploadResults) {
