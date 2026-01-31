@@ -2,20 +2,14 @@
     <!-- pages/add/add.wxml -->
     <view class="container" @tap="onPageTap">
         <!-- 图片预览区域 -->
-        <view v-if="imageList.length > 0" class="image-section">
-            <scroll-view class="image-preview-scroll" :scroll-x="true" :show-scrollbar="false">
-                <view class="image-preview-container">
-                    <view class="image-preview-item" v-for="(item, index) in imageList" :key="index">
-                        <image class="preview-image" :src="item.previewUrl" mode="aspectFill" @error="onImageError"></image>
-
-                        <view class="image-remove-btn" @tap="removeImage" :data-index="index">×</view>
-                    </view>
-                    <view v-if="imageList.length < maxImageCount" class="add-image-btn" @tap="handleChooseImage">
-                        <view class="add-icon">+</view>
-                    </view>
-                </view>
-            </scroll-view>
-        </view>
+        <AddImageSection
+            v-if="imageList.length > 0"
+            :imageList="imageList"
+            :maxImageCount="maxImageCount"
+            @choose="handleChooseImage"
+            @remove="removeImage"
+            @error="onImageError"
+        />
 
         <!-- 颜色选择弹层 -->
         <ColorPickerModal
@@ -182,37 +176,16 @@
     />
 </template>
                 <!-- 右侧工具栏 -->
-                <view class="side-toolbar">
-                    <!-- 加标签按钮 -->
-                    <view class="side-tool-btn" @tap.stop="toggleTagSelector">
-                        <image class="side-tool-icon" src="/static/images/newicons/tag.png" mode="aspectFit"></image>
-                    </view>
-
-                    <!-- 配图按钮 -->
-                    <view class="side-tool-btn" @tap.stop="handleChooseImage">
-                        <image class="side-tool-icon" src="/static/images/newicons/image.png" mode="aspectFit"></image>
-                    </view>
-
-                    <!-- 切换发布模式按钮 -->
-                    <view class="side-tool-btn mode-switch-btn" @tap.stop="switchMode">
-                        <image class="side-tool-icon mode-switch-icon" src="/static/images/newicons/switch_publish.png" mode="aspectFit" alt="切换发布模式"></image>
-                    </view>
-
-                    <!-- 组诗开关（诗歌模式显示） -->
-                    <view v-if="publishMode === 'poem'" :class="'side-tool-btn series-toggle-btn ' + (isSeries ? 'active' : '')" @tap.stop="toggleSeriesMode">
-                        <text class="side-tool-text">组</text>
-                    </view>
-
-                    <!-- 选择高光句按钮（仅诗歌模式显示） -->
-                    <view v-if="publishMode === 'poem'" class="side-tool-btn" @tap.stop="toggleHighlightMode">
-                        <image class="side-tool-icon" src="/static/images/newicons/highlight.png" mode="aspectFit"></image>
-                    </view>
-
-                    <!-- 选择颜色按钮（仅诗歌模式显示） -->
-                    <view v-if="publishMode === 'poem'" class="side-tool-btn" @tap.stop="onSelectColor">
-                        <image class="side-tool-icon" src="/static/images/select_color.png" mode="aspectFit"></image>
-                    </view>
-                </view>
+                <SideToolbar
+                    :publishMode="publishMode"
+                    :isSeries="isSeries"
+                    @toggle-tags="toggleTagSelector"
+                    @choose-image="handleChooseImage"
+                    @switch-mode="switchMode"
+                    @toggle-series="toggleSeriesMode"
+                    @toggle-highlight="toggleHighlightMode"
+                    @select-color="onSelectColor"
+                />
             </view>
 
             <view class="helper-text">上方正文即为你的讨论内容</view>
@@ -285,13 +258,27 @@ import ModeSelectorModal from '../../components/ModeSelectorModal.vue';
 import ColorPickerModal from '../../components/ColorPickerModal.vue';
 import TagSelectorModal from '../../components/TagSelectorModal.vue';
 import HighlightSelectorModal from '../../components/HighlightSelectorModal.vue';
+import AddImageSection from '../../components/add/AddImageSection.vue';
+import SideToolbar from '../../components/add/SideToolbar.vue';
+
+// 纯函数工具
+import {
+    computePlaceholder,
+    hasAnyContent as hasAnyContentFn,
+    buildDiscussionSentenceGroups,
+    mergeDiscussionContent,
+    normalizeSeriesBlocks,
+    seriesBlocksToContent
+} from './addPure.js';
 
 export default {
     components: {
         ModeSelectorModal,
         ColorPickerModal,
         TagSelectorModal,
-        HighlightSelectorModal
+        HighlightSelectorModal,
+        AddImageSection,
+        SideToolbar
     },
     data() {
         return {
@@ -473,7 +460,11 @@ export default {
         },
         // 是否有任意内容
         hasAnyContent() {
-            return this.blocks.some(b => (b.text || '').trim()) || (this.imageList && this.imageList.length > 0);
+            return hasAnyContentFn({
+                content: this.content,
+                blocks: this.blocks,
+                seriesBlocks: this.seriesBlocks
+            });
         }
     },
     watch: {
@@ -561,21 +552,8 @@ export default {
     methods: {
         // 更新placeholder文字
         updatePlaceholder() {
-            let newPlaceholder = '';
-            if (this.publishMode === 'normal') {
-                newPlaceholder = '此刻你想要分享...\n分享诗歌请在右边切换发布模式';
-            } else if (this.publishMode === 'poem' && this.isOriginal) {
-                newPlaceholder = '在这里写下你的原创诗歌~';
-            } else if (this.publishMode === 'poem' && !this.isOriginal) {
-                newPlaceholder = '在这里分享你喜欢的诗歌~';
-            } else if (this.publishMode === 'discussion') {
-                newPlaceholder = '在这里说说你想要讨论的吧~';
-            } else {
-                newPlaceholder = '此刻你想要分享...';
-            }
-            
             this.setData({
-                currentPlaceholder: newPlaceholder
+                currentPlaceholder: computePlaceholder(this.publishMode, this.isOriginal)
             });
         },
 
@@ -596,44 +574,7 @@ export default {
         // 讨论模式：生成句子组数据（内容/引用交错）
         buildDiscussionSentenceGroups() {
             if (this.publishMode !== 'discussion') return [];
-
-            const orderedBlocks = this.blocks || [];
-            const groups = [];
-
-            orderedBlocks.forEach((block) => {
-                if (block.type === 'content') {
-                    const comment = (block.text || '').trim();
-                    if (comment) {
-                        groups.push({
-                            sentences: [],
-                            comment
-                        });
-                    }
-                } else if (block.type === 'quote') {
-                    const sentences = (block.text || '')
-                        .split(/\r?\n/)
-                        .map(line => line.trim())
-                        .filter(Boolean);
-                    if (sentences.length) {
-                        groups.push({
-                            sentences,
-                            comment: ''
-                        });
-                    }
-                }
-            });
-
-            if (!groups.length) {
-                const fallback = (this.content || '').trim();
-                if (fallback) {
-                    groups.push({
-                        sentences: [],
-                        comment: fallback
-                    });
-                }
-            }
-
-            return groups;
+            return buildDiscussionSentenceGroups(this.blocks, this.content);
         },
 
         // 根据来源页面设置默认发布模式
@@ -996,19 +937,12 @@ export default {
 
             // 讨论模式下允许“只引用无正文”，用引用拼接作为验证内容
             if (this.publishMode === 'discussion') {
-                const syntheticContent = (this.blocks || [])
-                    .map(b => b.text || '')
-                    .join('\n')
-                    .trim();
-                publishData.content = syntheticContent;
+                const groups = buildDiscussionSentenceGroups(this.blocks, this.content);
+                publishData.content = mergeDiscussionContent(groups, this.content);
             }
             // 组诗模式：合并段落作为验证内容
             if (this.isSeries) {
-                const syntheticSeries = (this.seriesBlocks || [])
-                    .map(b => (b.content || b.subtitle || '').trim())
-                    .filter(Boolean)
-                    .join('\n');
-                publishData.content = syntheticSeries;
+                publishData.content = seriesBlocksToContent(this.seriesBlocks);
             }
 
             const canPublishValue = canPublish(publishData);
@@ -1032,10 +966,7 @@ export default {
             }
             if (this.isSeries) {
                 // 关闭组诗，合并内容回主正文
-                const merged = (this.seriesBlocks || [])
-                    .map(b => (b.content || b.subtitle || '').trim())
-                    .filter(Boolean)
-                    .join('\n\n');
+                const merged = seriesBlocksToContent(this.seriesBlocks);
                 this.setData({
                     isSeries: false,
                     content: merged
@@ -1090,54 +1021,16 @@ export default {
         },
         // 组诗：同步段落列表并更新高光
         syncSeriesBlocks(blocks, manualSeriesHighlights = null) {
-            const normalized = (blocks || []).map((b, order) => {
-                const content = (b.content || '').trim();
-                const subtitle = (b.subtitle || '').trim();
-                const highlight =
-                    (b.highlightSentence && b.highlightSentence.trim()) ||
-                    (content.split(/\r?\n/).find(l => l && l.trim()) || '');
-                const highlightLines =
-                    (Array.isArray(b.highlightLines) && b.highlightLines.length > 0)
-                        ? b.highlightLines
-                        : (highlight ? [highlight] : []);
-                return {
-                    id: b.id || `series-${Date.now()}-${order}`,
-                    subtitle,
-                    content,
-                    highlightSentence: highlight,
-                    highlightLines,
-                    order
-                };
-            });
-            // 有用户手选高光时，完全尊重所选顺序（可重复），只截取前三条；否则用段落默认高光补足
-            const manualHighlights = Array.isArray(manualSeriesHighlights)
-                ? manualSeriesHighlights
-                : (Array.isArray(this.highlightLines) ? this.highlightLines : []);
-            let limitedHighlights = manualHighlights
-                .map(l => (l || '').trim())
-                .filter(Boolean)
-                .slice(0, 3);
-            if (limitedHighlights.length === 0) {
-                const auto = [];
-                for (const block of normalized) {
-                    if (auto.length >= 3) break;
-                    if (Array.isArray(block.highlightLines) && block.highlightLines.length > 0) {
-                        for (const line of block.highlightLines) {
-                            if (auto.length >= 3) break;
-                            const s = (line || '').trim();
-                            if (s) auto.push(s);
-                        }
-                    } else if (block.highlightSentence) {
-                        const s = (block.highlightSentence || '').trim();
-                        if (s) auto.push(s);
-                    }
-                }
-                limitedHighlights = auto.slice(0, 3);
-            }
+            const manual = manualSeriesHighlights ?? this.highlightLines;
+            const { blocks: normalized, highlightLines, highlightSentence } = normalizeSeriesBlocks(
+                blocks,
+                manual,
+                this.isSeries
+            );
             this.setData({
                 seriesBlocks: normalized,
-                highlightLines: this.isSeries ? limitedHighlights : this.highlightLines,
-                highlightSentence: this.isSeries ? (limitedHighlights[0] || '') : this.highlightSentence
+                highlightLines: this.isSeries ? highlightLines : this.highlightLines,
+                highlightSentence: this.isSeries ? (highlightSentence || '') : this.highlightSentence
             });
             this.checkCanPublish();
         },
@@ -1482,8 +1375,9 @@ export default {
         },
 
         removeImage: function (e) {
-            const index = e.currentTarget.dataset.index;
-            const imageList = this.imageList;
+            const index = typeof e === 'number' ? e : (e && e.currentTarget ? e.currentTarget.dataset.index : -1);
+            if (index < 0) return;
+            const imageList = this.imageList.slice();
             imageList.splice(index, 1);
             this.setData({
                 imageList: imageList
@@ -1658,17 +1552,9 @@ export default {
                     : []);
 
             // 如果需要把引用诗句直接拼进正文内容，构建一个最终内容
-            let finalContent = this.content || '';
-            if (this.publishMode === 'discussion') {
-                const quote = discussionSentenceGroups.length > 0
-                    ? discussionSentenceGroups.map(g => (g.sentences || []).join('\n')).filter(Boolean).join('\n')
-                    : '';
-                if (quote && finalContent) {
-                    finalContent = `${quote}\n\n${finalContent}`;
-                } else if (quote) {
-                    finalContent = quote;
-                }
-            }
+            let finalContent = this.publishMode === 'discussion'
+                ? mergeDiscussionContent(discussionSentenceGroups, this.content)
+                : (this.content || '');
 
             // 检查编辑模式状态
             console.log('【Add】编辑模式检查:', {
@@ -2061,32 +1947,15 @@ export default {
 
             // 组诗模式：准备段落与高光
             const previewSeriesBlocks = this.isSeries ? (this.seriesBlocks || []) : [];
-            const seriesHighlight = this.isSeries
-                ? previewSeriesBlocks.reduce((acc, b) => {
-                    const h = (b.highlightSentence && b.highlightSentence.trim()) ||
-                        ((b.content || '').split(/\r?\n/).find(line => line && line.trim()) || '');
-                    if (h) acc.push(h);
-                    return acc;
-                  }, [])
-                : [];
+            const { highlightLines: seriesHighlight } = normalizeSeriesBlocks(previewSeriesBlocks, this.highlightLines, true);
 
             // 拼装预览正文
-            let previewContent = this.content || '';
-            if (this.publishMode === 'discussion') {
-                const quote = previewSentenceGroups.length > 0
-                    ? previewSentenceGroups.map(g => (g.sentences || []).join('\n')).filter(Boolean).join('\n')
-                    : '';
-                if (quote && previewContent) {
-                    previewContent = `${quote}\n\n${previewContent}`;
-                } else if (quote) {
-                    previewContent = quote;
-                }
-            }
+            let previewContent = this.publishMode === 'discussion'
+                ? mergeDiscussionContent(previewSentenceGroups, this.content)
+                : (this.content || '');
+
             if (this.isSeries) {
-                previewContent = previewSeriesBlocks
-                    .map(b => (b.content || b.subtitle || '').trim())
-                    .filter(Boolean)
-                    .join('\n\n');
+                previewContent = seriesBlocksToContent(previewSeriesBlocks);
             }
 
             const previewPost = {
@@ -2527,78 +2396,6 @@ page {
 
 
 
-/* 图片预览区域 */
-.image-section {
-    padding: 30rpx;
-    background: #f8f9fa;
-}
-
-.image-preview-scroll {
-    width: 100%;
-    white-space: nowrap;
-}
-
-.image-preview-container {
-    display: flex;
-    gap: 20rpx;
-    padding: 0 10rpx;
-}
-
-.image-preview-item {
-    position: relative;
-    width: 200rpx;
-    height: 200rpx;
-    border-radius: 12rpx;
-    overflow: hidden;
-    flex-shrink: 0;
-}
-
-.preview-image {
-    width: 100%;
-    height: 100%;
-    border-radius: 12rpx;
-}
-
-.image-remove-btn {
-    position: absolute;
-    top: -8rpx;
-    right: -8rpx;
-    width: 40rpx;
-    height: 40rpx;
-    background: #ff4444;
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24rpx;
-    font-weight: bold;
-    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.2);
-}
-
-.add-image-btn {
-    width: 200rpx;
-    height: 200rpx;
-    border: 2rpx dashed #ddd;
-    border-radius: 12rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #fff;
-    transition: all 0.3s ease;
-    flex-shrink: 0;
-}
-
-.add-image-btn:active {
-    background: #f5f5f5;
-    border-color: #9ed7ee;
-}
-
-.add-icon {
-    font-size: 60rpx;
-    color: #999;
-}
-
 /* 内容输入区域 */
 .content-section {
     padding: 30rpx;
@@ -2748,74 +2545,6 @@ page {
 }
 
 /* 标签选择弹层样式已移至 TagSelectorModal.vue 组件 */
-
-/* ====== 右侧工具栏样式 ====== */
-.side-toolbar {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: 90rpx; /* 调整工具栏宽度与按钮宽度一致 */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 0; /* 移除间距，让图标紧密排列 */
-    z-index: 10;
-    padding: 20rpx 0;
-    background: transparent;
-}
-
-
-.side-tool-btn {
-    width: 90rpx;
-    height: 90rpx;
-    border: none; /* 移除边框 */
-    background: transparent; /* 移除背景 */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: none; /* 移除阴影 */
-    transition: all 0.2s ease;
-    flex-shrink: 0;
-    margin-bottom: 20rpx; /* 调整间距 */
-    margin-right: 0rpx; /* 向右移动 */
-}
-
-.side-tool-btn:active { 
-    transform: scale(0.95);
-}
-
-
-.mode-switch-btn {
-    position: relative;
-}
-
-.mode-switch-icon {
-    /* 移除尺寸和padding设置，使用统一的 .side-tool-icon 样式 */
-    border-radius: 50%;
-    background: transparent;
-    box-shadow: none;
-}
-
-/* .mode-switch-modal-icon 已移至 ModeSelectorModal.vue 组件 */
-
-.side-tool-icon { 
-    width: 110rpx; /* 调整图标尺寸与上面两个图标一致 */
-    height: 110rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 30rpx;
-    color: #333;
-}
-
-.side-tool-text {
-    font-size: 36rpx;
-    font-weight: 700;
-    color: #444;
-    line-height: 90rpx;
-}
 
 /* 左下角返回按钮 */
 .back-btn {
@@ -3209,15 +2938,6 @@ page {
 .series-block .insert-actions {
     margin-top: 8rpx;
 }
-.side-tool-text {
-    color: #333;
-    font-size: 24rpx;
-    font-weight: 600;
-}
-.series-toggle-btn.active {
-    background: #1c9bd6;
-    color: #fff;
-}
 
 .discussion-preview {
     margin-top: 20rpx;
@@ -3259,25 +2979,6 @@ page {
         min-height: 180rpx;
     }
     
-    .side-toolbar {
-        width: 70rpx;
-        gap: 15rpx;
-    }
-    
-    .side-tool-btn {
-        width: 70rpx;
-        height: 70rpx;
-    }
-    
-    .mode-switch-icon {
-        width: 70rpx;
-        height: 70rpx;
-    }
-    
-    .side-tool-icon {
-        font-size: 18rpx;
-    }
-    
     .floating-action-btn {
         width: 200rpx;
         height: 200rpx;
@@ -3298,25 +2999,6 @@ page {
         min-height: 250rpx;
     }
     
-    .side-toolbar {
-        width: 90rpx;
-        gap: 25rpx;
-    }
-    
-    .side-tool-btn {
-        width: 80rpx;
-        height: 80rpx;
-    }
-    
-    .mode-switch-icon {
-        width: 90rpx;
-        height: 90rpx;
-    }
-    
-    .side-tool-icon {
-        font-size: 22rpx;
-    }
-    
     .floating-action-btn {
         width: 200rpx;
         height: 200rpx;
@@ -3331,16 +3013,6 @@ page {
 @media screen and (max-width: 600rpx) {
     .main-input-area {
         flex-direction: column;
-    }
-    
-    .side-toolbar {
-        position: relative;
-        width: 100%;
-        height: auto;
-        flex-direction: row;
-        justify-content: space-around;
-        padding: 20rpx 0;
-        gap: 10rpx;
     }
     
     .content-input-wrapper {
