@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <view class="profile-card profile-card-center">
         <view v-if="showGrowthStats" class="profile-growth-stats">
             <view class="growth-item" v-for="(value, key) in displayGrowthStats" :key="key">
@@ -37,11 +37,6 @@
                     />
                 </view>
             </view>
-        </view>
-
-        <view v-if="isSelf" class="profile-detail-card">
-            <text class="detail-item-inline">生日:{{ birthdayText }}</text>
-            <text class="detail-item-inline">年龄:{{ ageText }}</text>
         </view>
     </view>
 </template>
@@ -82,7 +77,7 @@ export default {
             return this.userInfo?.poemId || '未知';
         },
         bioText() {
-            return this.userInfo?.bio || '这个用户很懒,什么都没留下...';
+            return this.userInfo?.bio || '这个用户很懒，什么都没留下…';
         },
         followerCountText() {
             return this.followerCount ?? 0;
@@ -325,3 +320,5 @@ export default {
     white-space: nowrap;
 }
 </style>
+
+

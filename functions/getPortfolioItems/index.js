@@ -12,7 +12,7 @@ const db = cloud.database();
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
   const callerOpenid = wxContext.OPENID || event.openid;
-  const { folderId, userId, skip = 0, limit = 10 } = event;
+  const { folderId, userId, skip = 0, limit = 10, idsOnly = false } = event;
 
   if (!callerOpenid) {
     return {
@@ -48,6 +48,23 @@ exports.main = async (event, context) => {
       callerOpenid,
       resolvedOpenid
     });
+
+    // 只需要 ID 时，直接返回轻量结果（支持分页），避免重复在前端过滤
+    if (idsOnly) {
+      const safeLimit = Math.min(Math.max(Number(limit) || 0, 1), 1000);
+      const idResult = await db.collection('portfolio_items')
+        .where({ _openid: resolvedOpenid, folderId })
+        .orderBy('createTime', 'desc')
+        .skip(skip)
+        .limit(safeLimit)
+        .field({ postId: true })
+        .get();
+
+      return {
+        success: true,
+        postIds: idResult.data.map(item => item.postId).filter(Boolean)
+      };
+    }
 
     // 获取作品集中的项目
     const portfolioResult = await db.collection('portfolio_items').where({

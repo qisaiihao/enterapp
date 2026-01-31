@@ -54,11 +54,26 @@ exports.main = async (event, context) => {
   title = title || '';
 
   // 统一处理高光行，便于后续写库（保持用户选择的顺序，可包含重复句，但最多三句）
-  const clampTop3 = (lines = []) =>
-    (lines || [])
-      .map(l => (l || '').trim())
-      .filter(Boolean)
-      .slice(0, 3);
+const clampTop3 = (lines = []) =>
+  (lines || [])
+    .map(l => (l || '').trim())
+    .filter(Boolean)
+    .slice(0, 3);
+
+// 去重并截取前三行，兼容老版本未定义 dedupeTop3 的情况
+const dedupeTop3 = (lines = []) => {
+  const seen = new Set();
+  const result = [];
+  for (const raw of lines || []) {
+    const line = (raw || '').trim();
+    if (!line) continue;
+    if (seen.has(line)) continue;
+    seen.add(line);
+    result.push(line);
+    if (result.length >= 3) break;
+  }
+  return result;
+};
 
   let effectiveHighlightLines = clampTop3(Array.isArray(highlightLines) ? highlightLines : []);
   let highlightSentenceValue = highlightSentence || '';

@@ -166,7 +166,9 @@ export default {
       showAddModal: false,
       myPosts: [],
       myPostsLoading: false,
-      selectedPostIds: []
+      selectedPostIds: [],
+      // 当前作品集内已有的帖子ID（用于过滤批量添加列表，避免重复）
+      existingPostIds: []
     };
   },
   onLoad(options) {
@@ -501,11 +503,13 @@ export default {
     },
 
     // 打开批量添加弹窗
-    openAddModal() {
+    async openAddModal() {
       this.setData({
         showAddModal: true,
         selectedPostIds: []
       });
+      // 先获取当前作品集内的所有帖子ID，过滤掉已经添加过的内容
+      await this.fetchExistingPostIds();
       this.loadMyPosts();
     },
 
@@ -515,6 +519,26 @@ export default {
         showAddModal: false,
         selectedPostIds: []
       });
+    },
+
+    // 获取当前作品集内的所有帖子ID，避免分页导致的重复展示
+    async fetchExistingPostIds() {
+      try {
+        const res = await this.callCloudFunction('getPortfolioItems', {
+          folderId: this.folderId,
+          skip: 0,
+          limit: 500, // 单次取足够多即可覆盖常见规模
+          idsOnly: true
+        });
+        const postIds = (res && res.result && Array.isArray(res.result.postIds)) ? res.result.postIds : [];
+        this.setData({ existingPostIds: postIds });
+        return postIds;
+      } catch (err) {
+        console.error('获取作品集已有帖子ID失败，使用已加载列表兜底:', err);
+        const fallbackIds = this.postList.map(item => item._id).filter(Boolean);
+        this.setData({ existingPostIds: fallbackIds });
+        return fallbackIds;
+      }
     },
 
     // 加载我的原创诗歌
@@ -529,8 +553,10 @@ export default {
         if (res.result && res.result.success && res.result.posts) {
           console.log('【作品集】获取到的我的帖子:', res.result.posts.length);
           
-          // 过滤掉已经在作品集中的帖子
-          const existingPostIds = this.postList.map(item => item._id);
+          // 过滤掉已经在作品集中的帖子（需要包含未加载分页的帖子ID）
+          const existingPostIds = this.existingPostIds.length
+            ? this.existingPostIds
+            : this.postList.map(item => item._id).filter(Boolean);
           console.log('【作品集】已存在的帖子ID:', existingPostIds);
           
           // 只显示原创诗歌，使用isOriginal和isPoem字段
