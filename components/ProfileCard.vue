@@ -23,13 +23,6 @@
                     <view class="edit-profile-btn" @tap="$emit('edit-profile')">
                         <text>编辑主页</text>
                     </view>
-                    <view
-                        class="compose-btn"
-                        :class="{ disabled: !isSelf }"
-                        @tap="onComposeTap"
-                    >
-                        <text>组诗合成</text>
-                    </view>
                     <image
                         src="/static/images/icons/menu-icon.svg"
                         class="menu-btn-small"
@@ -110,13 +103,6 @@ export default {
     methods: {
         handleAvatarError(event) {
             this.$emit('avatar-error', event);
-        },
-        onComposeTap() {
-            if (!this.isSelf) {
-                uni.showToast({ title: '仅可在自己的主页使用', icon: 'none' });
-                return;
-            }
-            this.$emit('compose-series');
         }
     }
 };
@@ -240,17 +226,6 @@ export default {
     display: flex;
     align-items: center;
     gap: 20rpx;
-}
-.compose-btn {
-    background: #3b7cff;
-    color: #fff;
-    padding: 10rpx 20rpx;
-    border-radius: 12rpx;
-    font-size: 26rpx;
-}
-.compose-btn.disabled {
-    background: #d6d6d6;
-    color: #fff;
 }
 
 .profile-followers {
