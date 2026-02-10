@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <view>
 
         <!-- pages/profile/profile.wxml -->
@@ -30,7 +30,6 @@
                         :show-growth-stats="false"
                         @avatar-error="onAvatarError"
                         @edit-profile="navigateToEditProfile"
-                        @compose-series="goToSeriesCompose"
                         @toggle-sidebar="toggleSidebar"
                         @navigate-fans="navigateToFans"
                     />
@@ -156,6 +155,7 @@
             @edit="handleEditPost"
             @toggle-visibility="handleToggleVisibility"
             @delete="handleDeleteFromMenu"
+            @compose-series="handleComposeSeries"
         />
 
         <!-- 删除帖子弹窗 -->
@@ -1437,6 +1437,12 @@ export default {
         },
         goToSeriesCompose: function () {
             uni.navigateTo({ url: '/pages/series-compose/series-compose' });
+        },
+        
+        // 从菜单中处理组诗合成
+        handleComposeSeries: function () {
+            this.hideActionMenu();
+            this.goToSeriesCompose();
         },
 
         // 跳转到收藏夹页面

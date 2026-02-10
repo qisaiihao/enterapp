@@ -76,8 +76,8 @@
                             <text class="sender-name">{{ item.fromUserName || '某用户' }}</text>
                             <text class="action-text">{{ getActionText(item) }}</text>
                             <!-- 关注按钮（仅关注类型显示，放在时间左边） -->
-                            <view v-if="item.type === 'follow'" class="follow-btn" @tap.stop="followBack" :data-user-id="item.fromUserId" :data-index="index">
-                                <text>{{ item.isMutual ? '已互关' : '回关' }}</text>
+                            <view v-if="item.type === 'follow'" :class="'follow-btn ' + (item.isFollowing ? 'following' : '')" @tap.stop="followBack" :data-user-id="item.fromUserId" :data-index="index">
+                                <text>{{ item.isFollowing ? '已关注' : '回关' }}</text>
                             </view>
                             <text class="message-time">{{ item.formattedTime || '刚刚' }}</text>
                         </view>
@@ -544,6 +544,7 @@ export default {
                     } else if (msg.type === 'follow') {
                         msg.content = `${userName} ${timeAgo}关注了你`;
                         // 对于关注消息，需要检查是否已经互相关注
+                        msg.isFollowing = false; // 默认值，后续会通过API检查
                         msg.isMutual = false; // 默认值，后续会通过API检查
                     }
                 }
@@ -799,7 +800,8 @@ export default {
                         // 更新本地数据中的关注状态
                         const updatedMessages = [...this.messages];
                         if (updatedMessages[index]) {
-                            updatedMessages[index].isMutual = res.result.isFollowing;
+                            updatedMessages[index].isFollowing = res.result.isFollowing;
+                            updatedMessages[index].isMutual = res.result.isMutual;
                         }
                         this.setData({
                             messages: updatedMessages
@@ -848,9 +850,10 @@ export default {
                 followMessages.forEach((msg) => {
                     if (!msg.fromUserId) return;
                     const status = statuses[msg.fromUserId];
-                    if (status && status.isMutual !== undefined) {
+                    if (status && status.isFollowing !== undefined) {
                         const msgIndex = updatedMessages.findIndex(m => m._id === msg._id);
-                        if (msgIndex !== -1 && updatedMessages[msgIndex].isMutual !== status.isMutual) {
+                        if (msgIndex !== -1 && updatedMessages[msgIndex].isFollowing !== status.isFollowing) {
+                            updatedMessages[msgIndex].isFollowing = status.isFollowing;
                             updatedMessages[msgIndex].isMutual = status.isMutual;
                             changed = true;
                         }
@@ -1133,6 +1136,14 @@ export default {
 .follow-btn text {
     font-size: 24rpx;
     color: #000000;
+}
+
+.follow-btn.following {
+    background-color: #f0f0f0;
+}
+
+.follow-btn.following text {
+    color: #666666;
 }
 
 .unread-dot {
