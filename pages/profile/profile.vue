@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <view>
 
         <!-- pages/profile/profile.wxml -->
@@ -153,9 +153,9 @@
             :is-hidden="actionMenuData.isHidden"
             @close="hideActionMenu"
             @edit="handleEditPost"
-            @compose-series="handleComposeSeriesFromMenu"
             @toggle-visibility="handleToggleVisibility"
             @delete="handleDeleteFromMenu"
+            @compose-series="handleComposeSeries"
         />
 
         <!-- 删除帖子弹窗 -->
@@ -183,17 +183,6 @@ import ProfileCard from '@/components/ProfileCard.vue';
 import ActionMenu from '@/components/ActionMenu.vue';
 import DeleteModal from '@/components/DeleteModal.vue';
 import { getMyPosts, getMyFavorites, invalidateMyFavorites, invalidateMyPosts, invalidateMyInfo, getMyInfo } from '@/api-cache/my.js';
-import fileUrlCache from '@/_utils/file-url-cache';
-
-// 简单兜底：将 cloud://env.bucket/path 转为 https://bucket.tcb.qcloud.la/path
-function normalizeCloudUrl(url) {
-    if (typeof url !== 'string' || !url.startsWith('cloud://')) return url;
-    const m = /^cloud:\/\/[^.]+\.(.+?)\/(.+)$/.exec(url);
-    if (m && m[1] && m[2]) {
-        return `https://${m[1]}.tcb.qcloud.la/${m[2]}`;
-    }
-    return url;
-}
 import { togglePostVisibility, deletePost as deletePostApi, saveDraft, getPostDetail, removeFavorite, getFollowerCount, updateUserInfo, logout } from '@/api-cache/profile-actions.js';
 import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
 import { navigateToUserProfile } from '@/utils/navigation.js';
@@ -494,20 +483,6 @@ export default {
                     index: -1,
                     isHidden: false
                 }
-            });
-        },
-
-        // 组诗合成入口（从帖子操作菜单）
-        handleComposeSeriesFromMenu: function () {
-            const { postId, index } = this.actionMenuData;
-            if (!postId || typeof index === 'undefined') {
-                console.error('【profile】handleComposeSeriesFromMenu: 参数缺失');
-                this.hideActionMenu();
-                return;
-            }
-            this.hideActionMenu();
-            uni.navigateTo({
-                url: '/pages/series-compose/series-compose'
             });
         },
         
@@ -843,24 +818,9 @@ export default {
         // 新增：使用缓存封装的资料拉取，显著降低头像/签名首屏等待
         fetchUserProfileFast: function () {
             getMyInfo(this)
-                .then(async (user) => {
+                .then((user) => {
                     console.log('【profile】获取到的用户数据:', user);
                     console.log('【profile】growthCounts数据:', user?.growthCounts);
-
-                    // 转换用户头像/签名的 cloud:// URL，避免 H5 无法加载
-                    try {
-                        if (user?.avatarUrl && user.avatarUrl.startsWith('cloud://')) {
-                            const url = await fileUrlCache.getTempUrl(user.avatarUrl);
-                            user.avatarUrl = normalizeCloudUrl(url);
-                        }
-                        if (user?.signatureUrl && user.signatureUrl.startsWith('cloud://')) {
-                            const url = await fileUrlCache.getTempUrl(user.signatureUrl);
-                            user.signatureUrl = normalizeCloudUrl(url);
-                        }
-                    } catch (e) {
-                        console.warn('【profile】用户头像/签名临时URL转换失败', e);
-                    }
-
                     if (user && user.birthday) user.age = this.calculateAge(user.birthday); else if (user) user.age = '';
                     this.setData({ userInfo: user || {}, isLoading: false });
                     // 立即更新成长统计
@@ -915,23 +875,9 @@ export default {
             console.log('【profile】🚀 使用缓存API获取帖子（分页加载）');
             try {
                 return getMyPosts({ page, pageSize: PAGE_SIZE, context: this, forceRefresh: forceRefresh })
-                    .then(async (posts) => {
+                    .then((posts) => {
                         console.log('【profile】✅ 缓存API成功返回帖子数量:', posts.length);
                         console.log('【profile】📋 缓存API返回的帖子ID列表:', posts.map(p => p._id));
-
-                        // 将 cloud:// URL 转为临时可访问链接，避免 H5 加载错误
-                        try {
-                            const { hydrateTempUrls } = require('@/_utils/hydrate-temp-urls');
-                            await hydrateTempUrls(posts);
-                        } catch (e) {
-                            console.warn('【profile】hydrateTempUrls(缓存路径) 失败，跳过转换', e);
-                        }
-
-                        // 兜底：再做一次 normalize（如果转换失败仍是 cloud://）
-                        posts.forEach(p => {
-                            if (p.authorAvatar) p.authorAvatar = normalizeCloudUrl(p.authorAvatar);
-                            if (Array.isArray(p.imageUrls)) p.imageUrls = p.imageUrls.map(normalizeCloudUrl);
-                        });
 
                         // 格式化帖子数据并确保使用个人资料昵称
                         const currentUserInfo = this.userInfo || {};
@@ -1010,30 +956,16 @@ export default {
         },
 
         // 新增：直接使用API封装加载帖子的方法
-        loadMyPostsDirectly: async function (page, pageSize, openid, cb) {
+        loadMyPostsDirectly: function (page, pageSize, openid, cb) {
             console.log('【profile】🔥 使用API封装getMyPosts');
-            try {
-                const posts = await getMyPosts({
-                    page,
-                    pageSize,
-                    context: this,
-                    forceRefresh: true
-                });
+            getMyPosts({
+                page,
+                pageSize,
+                context: this,
+                forceRefresh: true
+            }).then((posts) => {
                 console.log('【profile】✅ API封装成功返回帖子数量:', posts.length);
                 console.log('【profile】📋 API封装返回的帖子ID列表:', posts.map(p => p._id));
-
-                // H5 下将 cloud:// 批量转成临时 URL，避免头像/图片 ERR_UNKNOWN_URL_SCHEME
-                try {
-                    const { hydrateTempUrls } = require('@/_utils/hydrate-temp-urls');
-                    await hydrateTempUrls(posts);
-                } catch (e) {
-                    console.warn('【profile】hydrateTempUrls 失败，跳过转换', e);
-                }
-                // 兜底 normalize
-                posts.forEach(p => {
-                    if (p.authorAvatar) p.authorAvatar = normalizeCloudUrl(p.authorAvatar);
-                    if (Array.isArray(p.imageUrls)) p.imageUrls = p.imageUrls.map(normalizeCloudUrl);
-                });
 
                 // 格式化帖子数据并确保作者信息完整
                 const app = getApp();
@@ -1064,14 +996,12 @@ export default {
                     }
 
                     // 同样处理头像
-                        if (currentUserInfo.avatarUrl) {
-                            post.authorAvatar = normalizeCloudUrl(currentUserInfo.avatarUrl);
-                        } else if (!post.authorAvatar || post.authorAvatar.trim() === '') {
-                            post.authorAvatar = post.authorAvatarSnapshot || '/static/images/avatar.png';
-                            console.log(`【profile】⚠️ 帖子${index + 1}个人资料无头像，使用备选`);
-                        } else {
-                            post.authorAvatar = normalizeCloudUrl(post.authorAvatar);
-                        }
+                    if (currentUserInfo.avatarUrl) {
+                        post.authorAvatar = currentUserInfo.avatarUrl;
+                    } else if (!post.authorAvatar || post.authorAvatar.trim() === '') {
+                        post.authorAvatar = post.authorAvatarSnapshot || '/static/images/avatar.png';
+                        console.log(`【profile】⚠️ 帖子${index + 1}个人资料无头像，使用备选`);
+                    }
 
                     console.log(`【profile】📝 API封装帖子${index + 1}:`, {
                         id: post._id,
@@ -1104,13 +1034,13 @@ export default {
                     hasMore: posts.length === pageSize
                 });
                 this.updateGrowthStats(newMyPosts);
-            } catch (err) {
+            }).catch((err) => {
                 console.error('【profile】❌ API封装调用失败:', err);
                 uni.showToast({
                     title: '网络错误',
                     icon: 'none'
                 });
-            } finally {
+            }).finally(() => {
                 this.setData({
                     isLoading: false
                 });
@@ -1118,7 +1048,7 @@ export default {
                     console.log('【profile】🎯 API封装loadMyPosts完成，调用回调');
                     cb();
                 }
-            }
+            });
         },
 
         updateGrowthStats(postList = this.myPosts) {
@@ -1504,6 +1434,15 @@ export default {
             uni.navigateTo({
                 url: '/pages-user/profile-edit/profile-edit'
             });
+        },
+        goToSeriesCompose: function () {
+            uni.navigateTo({ url: '/pages/series-compose/series-compose' });
+        },
+        
+        // 从菜单中处理组诗合成
+        handleComposeSeries: function () {
+            this.hideActionMenu();
+            this.goToSeriesCompose();
         },
 
         // 跳转到收藏夹页面

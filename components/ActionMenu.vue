@@ -4,6 +4,9 @@
             <view class="action-menu-item" @tap="$emit('edit')">
                 <text>编辑</text>
             </view>
+            <view class="action-menu-item" @tap="$emit('compose-series')">
+                <text>组诗合成</text>
+            </view>
             <view class="action-menu-item" @tap="$emit('toggle-visibility')">
                 <text>{{ isHidden ? '取消隐藏' : '隐藏' }}</text>
             </view>
