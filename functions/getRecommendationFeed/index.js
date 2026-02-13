@@ -6,6 +6,7 @@ const _ = db.command;
 const $ = _.aggregate;
 
 exports.main = async (event, context) => {
+  const requestStart = Date.now();
   const wxContext = cloud.getWXContext();
   const openid = wxContext.OPENID || event.openid;
   const {
@@ -16,8 +17,25 @@ exports.main = async (event, context) => {
     excludePostIds = [] // 排除已显示的帖子ID
   } = event;
   const openId = openid;
+  const debug = !!(event && event.debug);
+
+  const maskId = (id) => {
+    if (!id || typeof id !== 'string') return '';
+    if (id.length <= 8) return id;
+    return `${id.slice(0, 3)}***${id.slice(-3)}`;
+  };
+
+  console.log('[reco] start', {
+    openid: maskId(openid),
+    skip,
+    userLimit,
+    personalizedLimit,
+    hotLimit,
+    excludeCount: Array.isArray(excludePostIds) ? excludePostIds.length : 0
+  });
 
   if (!openid) {
+    console.warn('[reco] no openid');
     return {
       success: false,
       message: '无法获取用户 openid，请重新登录',
@@ -34,6 +52,7 @@ exports.main = async (event, context) => {
     } catch (blockError) {
       console.error('获取屏蔽列表失败:', blockError);
     }
+    console.log('[reco] blocked', { count: blockedUserIds.length });
 
     const baseLimit = typeof userLimit === 'number' && userLimit > 0 ? userLimit : personalizedLimit + hotLimit;
     const targetCount = Math.max(baseLimit + skip, 0);
@@ -42,6 +61,9 @@ exports.main = async (event, context) => {
 
     // 先检查数据库中是否有帖子数据
     const totalPostsCount = await db.collection('posts').count();
+    if (debug) {
+      console.log('[reco] totals', { totalPostsCount: totalPostsCount.total });
+    }
 
     // 1. 获取个性化推荐（基于用户互动记录）
     let remaining = targetCount - allPosts.length;
@@ -55,6 +77,7 @@ exports.main = async (event, context) => {
         });
         allPosts.push(...personalizedPosts);
       }
+      console.log('[reco] personalized', { count: personalizedPosts.length, remaining: targetCount - allPosts.length });
     }
 
     remaining = targetCount - allPosts.length;
@@ -68,6 +91,7 @@ exports.main = async (event, context) => {
         });
         allPosts.push(...tagBasedPosts);
       }
+      console.log('[reco] tag_based', { count: tagBasedPosts.length, remaining: targetCount - allPosts.length });
     }
 
     remaining = targetCount - allPosts.length;
@@ -81,6 +105,7 @@ exports.main = async (event, context) => {
         });
         allPosts.push(...hotPosts);
       }
+      console.log('[reco] hot', { count: hotPosts.length, remaining: targetCount - allPosts.length });
     }
 
     remaining = targetCount - allPosts.length;
@@ -95,6 +120,7 @@ exports.main = async (event, context) => {
         allPosts.push(...additionalHotPosts);
         remaining = targetCount - allPosts.length;
       }
+      console.log('[reco] hot_extra', { count: additionalHotPosts.length, remaining });
     }
 
     remaining = targetCount - allPosts.length;
@@ -108,6 +134,7 @@ exports.main = async (event, context) => {
         });
         allPosts.push(...latestPosts);
       }
+      console.log('[reco] latest', { count: latestPosts.length, remaining: targetCount - allPosts.length });
     }
 
     // 4. 按时间排序并分页
@@ -126,6 +153,19 @@ exports.main = async (event, context) => {
 
     const finalPosts = sortedPosts.slice(skip, skip + baseLimit);
     const hasMore = sortedPosts.length > skip + baseLimit;
+
+    const elapsedMs = Date.now() - requestStart;
+    console.log('[reco] done', {
+      total: finalPosts.length,
+      hasMore,
+      counts: {
+        personalized: finalPosts.filter(p => p.recommendationType === 'personalized').length,
+        tagBased: finalPosts.filter(p => p.recommendationType === 'tag_based').length,
+        hot: finalPosts.filter(p => p.recommendationType === 'hot').length,
+        latest: finalPosts.filter(p => p.recommendationType === 'latest').length
+      },
+      elapsedMs
+    });
 
     return {
       success: true,

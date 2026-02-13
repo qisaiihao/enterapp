@@ -7,6 +7,9 @@
             <view class="action-menu-item" @tap="$emit('toggle-visibility')">
                 <text>{{ isHidden ? '取消隐藏' : '隐藏' }}</text>
             </view>
+            <view class="action-menu-item" @tap="$emit('compose-series')">
+                <text>组诗合成</text>
+            </view>
             <view class="action-menu-item action-menu-item-danger" @tap="$emit('delete')">
                 <text>删除该动态</text>
             </view>

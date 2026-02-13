@@ -2986,7 +2986,7 @@ page {
     padding: 0 28rpx;
     height: 60rpx;
     line-height: 60rpx;
-    background-color: #9ed7ee;
+    background-color: #1f1f1f;
     color: #ffffff;
     border: none;
     border-radius: 999rpx;

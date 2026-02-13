@@ -15,16 +15,19 @@ exports.main = async (event, context) => {
   }
 
   try {
-    // 尽量少过滤，避免漏掉用户可选短诗
-    const cond = {
-      _openid: openid,
-      // 只排除组诗本身
-      isSeries: _.or([_.eq(false), _.exists(false)])
-      // merged / isHidden 不再过滤，交给前端提示
-    };
+    // 同时匹配本人发布与匿名发布（realAuthorOpenid 记录真实作者）
+    const cond = _.and([
+      _.or([{ _openid: openid }, { realAuthorOpenid: openid }]),
+      {
+        // 只排除组诗本体
+        isSeries: _.or([_.eq(false), _.exists(false)])
+        // merged / isHidden 不再过滤，交给前端提示
+      }
+    ]);
 
     console.log('[listMySingles] 查询条件', cond);
-    const res = await db.collection('posts')
+    const res = await db
+      .collection('posts')
       .where(cond)
       .orderBy('createTime', 'desc')
       .limit(200)

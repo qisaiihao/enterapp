@@ -64,7 +64,8 @@ import tcb from '@cloudbase/js-sdk';
 const __global = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : {});
 const tcbApp = __global.__tcbAppInstance || tcb.init({
   env: 'cloud1-5gb0pbyl400845f5',
-  auth: { persistence: 'local' }
+  auth: { persistence: 'local' },
+  timeout: 120000
 });
 if (!__global.__tcbAppInstance) {
   __global.__tcbAppInstance = tcbApp;
@@ -316,7 +317,8 @@ export function createApp() {
       // 启用匿名认证，允许未登录用户调用云函数
       auth: {
         persistence: 'local'
-      }
+      },
+      timeout: 120000
     });
     // 2. 挂载
     app.config.globalProperties.$tcb = tcbApp;

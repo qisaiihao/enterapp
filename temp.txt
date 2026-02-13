@@ -1,0 +1,40 @@
+                            myPosts: newMyPosts,
+                            page: page + 1,
+                            hasMore: posts.length === PAGE_SIZE
+                        });
+                        this.updateGrowthStats(newMyPosts);
+
+                        console.log('【profile】? 缓存API加载完成');
+                        return posts;
+                    })
+                    .catch((err) => {
+                        console.error('【profile】? 缓存API获取帖子失败，回退到云函数:', err);
+                        // 回退到云函数
+                        return this.loadMyPostsDirectly(page, PAGE_SIZE, currentOpenid, cb);
+                    })
+                    .finally(() => {
+                        this.setData({ isLoading: false });
+                        if (typeof cb === 'function') {
+                            console.log('【profile】?? 缓存API loadMyPosts完成，调用回调');
+                            cb();
+                        }
+                    });
+            } catch (e) {
+                console.error('【profile】? 缓存API调用异常，回退到云函数:', e);
+                return this.loadMyPostsDirectly(page, PAGE_SIZE, currentOpenid, cb);
+            }
+        },
+
+        // 新增：直接使用API封装加载帖子的方法
+        loadMyPostsDirectly: function (page, pageSize, openid, cb) {
+            console.log('【profile】?? 使用API封装getMyPosts');
+            getMyPosts({
+                page,
+                pageSize,
+                context: this,
+                forceRefresh: true
+            }).then((posts) => {
+                console.log('【profile】? API封装成功返回帖子数量:', posts.length);
+                console.log('【profile】?? API封装返回的帖子ID列表:', posts.map(p => p._id));
+
+                // 格式化帖子数据并确保作者信息完整

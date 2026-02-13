@@ -79,6 +79,7 @@ export default {
             });
         },
 
+
         // 跳转到草稿箱页面
         navigateToDraftBox() {
             this.$emit('close');

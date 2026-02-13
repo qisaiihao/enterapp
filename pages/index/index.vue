@@ -22,15 +22,15 @@
                     <swiper-item>
                         <feed-list
                             class="swiper-page"
-                            :posts="postList"
-                            :is-loading="isLoading"
-                            :is-loading-more="isLoadingMore"
-                            :has-more="hasMore"
-                            :has-ever-loaded="homeHasEverLoaded"
+                            :posts="homeFeedPosts"
+                            :is-loading="homeFeedIsLoading"
+                            :is-loading-more="homeFeedIsLoadingMore"
+                            :has-more="homeFeedHasMore"
+                            :has-ever-loaded="homeFeedHasEverLoaded"
                             :refresher-triggered="isRefreshing"
                             :swiper-heights="swiperHeights"
                             :show-poem-author="false"
-                            list-type="home"
+                            :list-type="homeFeedListType"
                             container-id="post-list-container"
                             empty-icon="📝"
                             empty-text="还没有帖子哦～"
@@ -39,7 +39,7 @@
                             :scroll-enabled="!isSwiping"
                             :refresher-enabled="!isSwiping"
                             @refresh="onHomeRefresh"
-                            @load-more="getPostList"
+                            @load-more="loadHomeMore"
                             @avatar-error="onAvatarError"
                             @avatar-load="onAvatarLoad"
                             @navigate-to-user="handleNavigateToUser"
@@ -61,6 +61,12 @@
                                         @tap="toggleNormalPostsFilter"
                                     >
                                         <text class="filter-toggle-text">{{ showNormalPostsOnly ? '显示全部' : '只看普通帖子' }}</text>
+                                    </view>
+                                    <view
+                                        :class="'filter-toggle-btn ' + (useRecommendFeed ? 'active' : '')"
+                                        @tap="toggleRecommendFeed"
+                                    >
+                                        <text class="filter-toggle-text">{{ useRecommendFeed ? '推荐中' : '推荐' }}</text>
                                     </view>
                                 </view>
                             </template>
@@ -171,7 +177,7 @@ import AppTabBar from '@/custom-tab-bar/index.vue';
 
 // API 缓存导入
 import { getUnreadCount } from '@/api-cache/unread.js';
-import { getDiscoverFeed, invalidateDiscover } from '@/api-cache/discover.js';
+import { getContentPoemFeed, invalidateContentPoemFeed } from '@/api-cache/poem-reco.js';
 import { getHomePosts, invalidateHomePosts } from '@/api-cache/home-posts.js';
 import { getFollowingPosts, invalidateFollowingPosts } from '@/api-cache/following.js';
 import { getDiscussionPosts, invalidateDiscussionPosts } from '@/api-cache/discussion.js';
@@ -234,6 +240,7 @@ export default {
             discoverRefreshTime: 0,
             discoverIsLoading: false,
             discoverIsLoadingMore: false,
+            discoverHasEverLoaded: false,
             discussionPostList: [],
             discussionPage: 0,
             discussionHasMore: true,
@@ -258,6 +265,7 @@ export default {
             swiperTouchStartTime: null,
             easeOutCubic: 'cubic-bezier(0.33, 1, 0.68, 1)',
             showNormalPostsOnly: false,
+            useRecommendFeed: false,
             isTouchScrolling: false,
             touchStartX: 0,
             touchStartY: 0,
@@ -267,6 +275,26 @@ export default {
             isSwiping: false,
             swipeDirectionDecided: false
         };
+    },
+    computed: {
+        homeFeedPosts() {
+            return this.useRecommendFeed ? this.discoverPostList : this.postList;
+        },
+        homeFeedIsLoading() {
+            return this.useRecommendFeed ? this.discoverIsLoading : this.isLoading;
+        },
+        homeFeedIsLoadingMore() {
+            return this.useRecommendFeed ? this.discoverIsLoadingMore : this.isLoadingMore;
+        },
+        homeFeedHasMore() {
+            return this.useRecommendFeed ? this.discoverHasMore : this.hasMore;
+        },
+        homeFeedHasEverLoaded() {
+            return this.useRecommendFeed ? this.discoverHasEverLoaded : this.homeHasEverLoaded;
+        },
+        homeFeedListType() {
+            return this.useRecommendFeed ? 'discover' : 'home';
+        }
     },
     onLoad: function (options) {
         this.debugSafeArea();
@@ -345,6 +373,13 @@ export default {
     methods: {
           onRefresherRefresh: function() {
             if (this.currentPage === 'home') {
+                if (this.useRecommendFeed) {
+                    this.refreshDiscoverPosts();
+                    setTimeout(() => {
+                        this.isRefreshing = false;
+                    }, 100);
+                    return;
+                }
                 try {
                     invalidateHomePosts({});
                 } catch (e) {
@@ -384,6 +419,10 @@ export default {
         // 首页刷新（FeedList 组件触发）
         onHomeRefresh: function () {
             this.isRefreshing = true;
+            if (this.useRecommendFeed) {
+                this.refreshDiscoverPosts();
+                return;
+            }
             try {
                 invalidateHomePosts({});
             } catch (e) {
@@ -398,6 +437,15 @@ export default {
                     this.isRefreshing = false;
                 });
             });
+        },
+
+        // 首页加载更多（根据推荐开关走不同逻辑）
+        loadHomeMore: function () {
+            if (this.useRecommendFeed) {
+                this.loadRecommendationPosts();
+                return;
+            }
+            this.getPostList();
         },
 
         // 关注页刷新（FeedList 组件触发）
@@ -1258,6 +1306,30 @@ export default {
             });
         },
 
+        // 切换推荐流
+        toggleRecommendFeed: function () {
+            if (this.tapDisabled && this.tapDisabled()) { return; }
+            const newMode = !this.useRecommendFeed;
+            console.log('【首页】切换推荐流:', newMode);
+
+            this.setData({
+                useRecommendFeed: newMode
+            }, () => {
+                if (newMode) {
+                    this.refreshDiscoverPosts();
+                } else if (this.postList.length === 0) {
+                    this.setData({
+                        page: 0,
+                        hasMore: true,
+                        isLoading: false,
+                        isLoadingMore: false
+                    }, () => {
+                        this.getPostList();
+                    });
+                }
+            });
+        },
+
         // 标签点击处理
         onTagClick: function (e) {
             const tag = e.currentTarget.dataset.tag;
@@ -1410,14 +1482,24 @@ export default {
                 const excludeSet = new Set(currentExcludeIds);
                 const page = this.discoverPage;
 
-                const result = await getDiscoverFeed({
+                const result = await getContentPoemFeed({
                     excludePostIds: currentExcludeIds,
                     page,
                     pageSize: DISCOVER_PAGE_SIZE,
-                    context: this
+                    context: this,
+                    debugEmbedding: true
                 });
 
-                const rawPosts = Array.isArray(result?.posts) ? result.posts : [];
+                const rawPosts = Array.isArray(result) ? result : (Array.isArray(result?.posts) ? result.posts : []);
+                const embeddingDebug = result && result.debug && result.debug.embedding;
+                if (embeddingDebug) {
+                    console.log('[poem-content-reco] embedding debug', embeddingDebug);
+                } else {
+                    console.log('[poem-content-reco] embedding debug missing', {
+                        hasResult: !!result,
+                        hasDebug: !!(result && result.debug)
+                    });
+                }
                 console.log('获取推荐数据结果（分页）: page=', page, '条数=', rawPosts.length, 'hasMore=', result?.hasMore);
 
                 // 使用统一的处理函数
@@ -1435,7 +1517,8 @@ export default {
                         discoverRefreshTime: Date.now(),
                         discoverIsLoading: false,
                         discoverIsLoadingMore: false,
-                        discoverPage: hasMoreFromServer ? page + 1 : page
+                        discoverPage: hasMoreFromServer ? page + 1 : page,
+                        discoverHasEverLoaded: true
                     });
                     if (hasMoreFromServer) {
                         console.log('服务器提示仍有更多，继续尝试获取下一页');
@@ -1465,14 +1548,15 @@ export default {
                 const updatedShownIds = Array.from(mergedSet).slice(-MAX_DISCOVER_EXCLUDE_IDS);
 
                 const hasMoreFromServer = !!(result && result.hasMore);
-                const hasMore = (normalizedPosts.length >= DISCOVER_PAGE_SIZE) || hasMoreFromServer;
+                const hasMore = (normalizedPosts.length > 0) || hasMoreFromServer;
 
                 this.setData({
                     discoverPostList: combined,
                     discoverPage: page + 1,
                     discoverHasMore: (normalizedPosts.length >= DISCOVER_PAGE_SIZE) || hasMore,
                     discoverShownPostIds: updatedShownIds,
-                    discoverRefreshTime: Date.now()
+                    discoverRefreshTime: Date.now(),
+                    discoverHasEverLoaded: true
                 });
                 console.log('发现页推荐数据设置完成，帖子数量:', normalizedPosts.length, '累计:', combined.length, 'hasMore:', hasMore);
             } catch (err) {
@@ -1484,7 +1568,9 @@ export default {
             } finally {
                 this.setData({
                     discoverIsLoading: false,
-                    discoverIsLoadingMore: false
+                    discoverIsLoadingMore: false,
+                    discoverHasEverLoaded: true,
+                    isRefreshing: false
                 });
             }
         },
@@ -1495,19 +1581,21 @@ export default {
 
             // 清理缓存，避免返回旧数据
             try {
-                invalidateDiscover();
+                invalidateContentPoemFeed();
             } catch (e) {
                 console.warn('清理发现页缓存失败:', e);
             }
 
-            // 重置状态，但保留已展示过的ID，避免重复推荐
+            // 重置状态，并清空已展示ID，避免推荐流被旧排除列表“卡住”
             this.setData({
                 discoverPostList: [],
                 discoverPage: 0,
                 discoverHasMore: true,
+                discoverShownPostIds: [],
                 discoverRefreshTime: Date.now(),
                 discoverIsLoading: false,
-                discoverIsLoadingMore: false
+                discoverIsLoadingMore: false,
+                discoverHasEverLoaded: false
             });
 
             // 重新加载推荐
@@ -1970,7 +2058,7 @@ export default {
     padding-top: 276rpx;
     /* #endif */
     /* #ifdef H5 */
-    padding-top: 188rpx;
+    padding-top: 200rpx;
     /* #endif */
     padding-bottom: 100rpx;
     background-color: #ffffff;
@@ -2034,9 +2122,11 @@ export default {
 
 .square-mode-container {
     display: block;
-    padding-top: 20rpx;
+    padding-top: 10rpx;
     height: 100%;
     overflow: hidden;
+    position: relative;
+    z-index: 1;
 }
 
 #post-list-container,
@@ -2155,6 +2245,7 @@ export default {
     z-index: 1;
     display: flex;
     justify-content: flex-end;
+    gap: 16rpx;
 }
 
 .filter-toggle-btn {
@@ -2217,21 +2308,22 @@ export default {
     overflow: hidden;
     overscroll-behavior: none;
     position: relative;
-    z-index: 999;
+    /* 低于 tabs，但保留自身事件 */
+    z-index: 2;
 }
 
 .swiper-page {
     height: 100%;
     position: relative;
-    z-index: 999;
+    z-index: 2;
 }
 
 .swiper-page > view:first-child {
     /* #ifdef APP-PLUS */
-    margin-top: 60rpx;
+    margin-top: 40rpx;
     /* #endif */
     /* #ifdef H5 */
-    margin-top: 20rpx;
+    margin-top: 10rpx;
     /* #endif */
 }
 

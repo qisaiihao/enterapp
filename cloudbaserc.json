@@ -9,6 +9,43 @@
       "handler": "index.main",
       "configPath": "functions/contentCheck/config.json",
       "params": {}
+    },
+    {
+      "name": "embedText",
+      "timeout": 60,
+      "memory": 512,
+      "runtime": "Nodejs18.15",
+      "handler": "index.main",
+      "root": "./functions/embedText",
+      "installDependency": true,
+      "params": {}
+    },
+    {
+      "name": "getPoemContentFeed",
+      "timeout": 60,
+      "memory": 256,
+      "runtime": "Nodejs16.13",
+      "handler": "index.main",
+      "root": "./functions/getPoemContentFeed",
+      "installDependency": false,
+      "params": {}
+    },
+    {
+      "name": "backfillPostEmbeddings",
+      "timeout": 60,
+      "memory": 512,
+      "runtime": "Nodejs16.13",
+      "handler": "index.main",
+      "root": "./functions/backfillPostEmbeddings",
+      "installDependency": true,
+      "params": {},
+      "triggers": [
+        {
+          "name": "backfill-embedding-timer",
+          "type": "timer",
+          "config": "0 */10 * * * * *"
+        }
+      ]
     }
   ],
   "framework": {
@@ -60,21 +97,22 @@
               "root": "./functions/contentCheck",
               "timeout": 3,
               "memory": 256,
-              "runtime": "Nodejs16.13"
+              "runtime": "Nodejs18.15"
             },
             {
               "name": "listMySingles",
               "root": "./functions/listMySingles",
               "timeout": 3,
               "memory": 256,
-              "runtime": "Nodejs16.13"
+              "runtime": "Nodejs18.15"
             },
             {
               "name": "createSeriesFromSingles",
               "root": "./functions/createSeriesFromSingles",
               "timeout": 5,
               "memory": 256,
-              "runtime": "Nodejs16.13"
+              "runtime": "Nodejs16.13",
+              "installDependency": false
             },
             {
               "name": "createDefaultPortfolios",
@@ -142,6 +180,14 @@
               "root": "./functions/deletePost",
               "timeout": 3,
               "memory": 128
+            },
+            {
+              "name": "embedText",
+              "root": "./functions/embedText",
+              "timeout": 60,
+              "memory": 512,
+              "runtime": "Nodejs18.15",
+              "installDependency": true
             },
             {
               "name": "ensureDefaultPortfolio",
@@ -256,6 +302,29 @@
               "root": "./functions/getPersonalizedFeed",
               "timeout": 3,
               "memory": 256
+            },
+            {
+              "name": "getPoemContentFeed",
+              "root": "./functions/getPoemContentFeed",
+              "timeout": 60,
+              "memory": 256,
+              "runtime": "Nodejs16.13",
+              "installDependency": false
+            },
+            {
+              "name": "backfillPostEmbeddings",
+              "root": "./functions/backfillPostEmbeddings",
+              "timeout": 60,
+              "memory": 512,
+              "runtime": "Nodejs16.13",
+              "installDependency": true,
+              "triggers": [
+                {
+                  "name": "backfill-embedding-timer",
+                  "type": "timer",
+                  "config": "0 */10 * * * * *"
+                }
+              ]
             },
             {
               "name": "getPoetInfo",

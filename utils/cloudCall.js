@@ -47,7 +47,7 @@ async function invokeCloudFunction(method, payload) {
         if (!instance) {
             throw createError('TCB_NOT_AVAILABLE', 'TCB 实例不可用');
         }
-        return instance.callFunction(payload.options);
+        return instance.callFunction(payload.options, undefined, payload.customReqOpts);
     }
 
     if (method === 'wx-cloud' && typeof wx !== 'undefined' && wx.cloud && typeof wx.cloud.callFunction === 'function') {
@@ -72,7 +72,8 @@ async function cloudCall(name, data = {}, options = {}) {
         retryDelay = DEFAULT_RETRY_DELAY,
         context,
         injectOpenId,
-        requireAuth = false
+        requireAuth = false,
+        timeoutMs
     } = options;
     const shouldInjectOpenId = typeof injectOpenId === 'boolean' ? injectOpenId : !['login', 'getOpenId', 'github-auth'].includes(name);
 
@@ -117,7 +118,8 @@ async function cloudCall(name, data = {}, options = {}) {
                 options: {
                     name,
                     data: payload
-                }
+                },
+                customReqOpts: typeof timeoutMs === 'number' && timeoutMs > 0 ? { timeout: timeoutMs } : undefined
             });
             console.log(`[cloudCall][${pageTag}] 云函数 "${name}" 调用成功`, result);
             return result;

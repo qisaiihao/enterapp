@@ -84,6 +84,10 @@
             <view class="signature-section">
                 <view class="signature-header">
                     <text class="signature-title">签个名吧~</text>
+                    <view class="signature-options">
+                        <text class="signature-option-label">自动去白底</text>
+                        <switch class="signature-option-switch" :checked="autoRemoveSignatureBg" @change="onToggleSignatureBg" />
+                    </view>
                     <view class="signature-upload-btn" @tap="onChooseSignature">
                         <image class="upload-icon" src="/static/images/upload.png" mode="aspectFit"></image>
                     </view>
@@ -91,6 +95,12 @@
                 <view class="signature-container">
                     <image v-if="signaturePreview" class="signature-preview" :src="signaturePreview" mode="aspectFit"></image>
                 </view>
+                <canvas
+                    id="signatureCanvas"
+                    canvas-id="signatureCanvas"
+                    type="2d"
+                    class="signature-canvas"
+                ></canvas>
             </view>
 
             <!-- 为固定按钮留出空间 -->
@@ -181,6 +191,7 @@ export default {
             signaturePreview: '',
             signatureTempPath: null,
             isProcessingSignature: false,
+            autoRemoveSignatureBg: true,
             // 修改手机号相关
             showEditPhoneModal: false,
             newPhoneNumber: '',
@@ -437,34 +448,53 @@ export default {
         },
 
         processSignatureImage(filePath) {
-            // 暂时注释掉所有canvas处理逻辑，直接使用原图
-            console.log('签名处理：直接使用原图，跳过canvas处理');
-            
-            uni.showLoading({
-                title: '处理中...',
-                mask: true
-            });
-            
-            this.setData({
-                isProcessingSignature: true
-            });
-            
-            // 直接使用原图，不进行任何处理
-            setTimeout(() => {
-                uni.hideLoading();
-                uni.showToast({
-                    title: '签名已保存',
-                    icon: 'success',
-                    duration: 1500
-                });
-                
+            if (!filePath) {
+                uni.showToast({ title: '未选择图片', icon: 'none' });
+                return;
+            }
+
+            if (!this.autoRemoveSignatureBg) {
                 this.setData({
                     signaturePreview: filePath,
                     signatureTempPath: filePath,
-                    signatureUrl: '',
-                    isProcessingSignature: false
+                    signatureUrl: ''
                 });
-            }, 500); // 模拟处理时间
+                return;
+            }
+
+            uni.showLoading({ title: '处理中...', mask: true });
+            this.setData({ isProcessingSignature: true });
+
+            this.removeWhiteBackground(filePath)
+                .then((processedPath) => {
+                    uni.hideLoading();
+                    uni.showToast({
+                        title: '签名已优化',
+                        icon: 'success',
+                        duration: 1500
+                    });
+                    this.setData({
+                        signaturePreview: processedPath || filePath,
+                        signatureTempPath: processedPath || filePath,
+                        signatureUrl: '',
+                        isProcessingSignature: false
+                    });
+                })
+                .catch((err) => {
+                    console.error('签名去白底失败，回退原图:', err);
+                    uni.hideLoading();
+                    uni.showToast({
+                        title: '去白底失败，已使用原图',
+                        icon: 'none',
+                        duration: 2000
+                    });
+                    this.setData({
+                        signaturePreview: filePath,
+                        signatureTempPath: filePath,
+                        signatureUrl: '',
+                        isProcessingSignature: false
+                    });
+                });
             
             /* 
             // 注释掉的canvas处理逻辑
@@ -689,6 +719,114 @@ export default {
                 });
             });
             */
+        },
+
+        onToggleSignatureBg(e) {
+            const enabled = !!(e && e.detail && e.detail.value);
+            this.setData({
+                autoRemoveSignatureBg: enabled
+            });
+        },
+
+        async removeWhiteBackground(filePath) {
+            const { getCurrentPlatform } = require('../../utils/platformDetector.js');
+            const platform = getCurrentPlatform();
+
+            const canvas = await new Promise((resolve, reject) => {
+                try {
+                    const query = uni.createSelectorQuery().in(this);
+                    query
+                        .select('#signatureCanvas')
+                        .fields({ node: true, size: true })
+                        .exec((res) => {
+                            const node = res && res[0] && res[0].node;
+                            if (node) {
+                                resolve(node);
+                                return;
+                            }
+                            if (typeof document !== 'undefined') {
+                                const domCanvas = document.getElementById('signatureCanvas');
+                                if (domCanvas) {
+                                    resolve(domCanvas);
+                                    return;
+                                }
+                            }
+                            reject(new Error('无法获取 canvas 节点'));
+                        });
+                } catch (error) {
+                    reject(error);
+                }
+            });
+
+            const ctx = canvas.getContext('2d');
+            const img = canvas.createImage ? canvas.createImage() : new Image();
+
+            const imgInfo = await new Promise((resolve, reject) => {
+                img.onload = () => resolve({ width: img.width, height: img.height });
+                img.onerror = (e) => reject(e || new Error('图片加载失败'));
+                img.src = filePath;
+            });
+
+            const maxSide = 900;
+            const scale = Math.min(1, maxSide / Math.max(imgInfo.width, imgInfo.height));
+            const width = Math.max(1, Math.round(imgInfo.width * scale));
+            const height = Math.max(1, Math.round(imgInfo.height * scale));
+
+            canvas.width = width;
+            canvas.height = height;
+            ctx.clearRect(0, 0, width, height);
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const imageData = ctx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+
+            const threshold = 240;
+            const softRange = 18;
+            const chromaThreshold = 20;
+
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                const max = Math.max(r, g, b);
+                const min = Math.min(r, g, b);
+                const whiteness = (r + g + b) / 3;
+                const chroma = max - min;
+
+                if (whiteness >= threshold && chroma <= chromaThreshold) {
+                    data[i + 3] = 0;
+                } else if (
+                    whiteness >= threshold - softRange &&
+                    chroma <= chromaThreshold + 6
+                ) {
+                    const t = (whiteness - (threshold - softRange)) / softRange;
+                    data[i + 3] = Math.round(data[i + 3] * (1 - Math.min(1, Math.max(0, t))));
+                }
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+
+            if (platform === 'h5' && typeof canvas.toBlob === 'function') {
+                const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+                if (!blob) {
+                    throw new Error('H5 导出失败');
+                }
+                return URL.createObjectURL(blob);
+            }
+
+            return await new Promise((resolve, reject) => {
+                uni.canvasToTempFilePath(
+                    {
+                        canvasId: 'signatureCanvas',
+                        canvas,
+                        fileType: 'png',
+                        quality: 1,
+                        success: (res) => resolve(res.tempFilePath),
+                        fail: (err) => reject(err)
+                    },
+                    this
+                );
+            });
         },
 
         onNicknameInput(e) {
@@ -1264,6 +1402,21 @@ export default {
     color: #999999;
 }
 
+.signature-options {
+    display: flex;
+    align-items: center;
+    gap: 10rpx;
+}
+
+.signature-option-label {
+    font-size: 24rpx;
+    color: #999999;
+}
+
+.signature-option-switch {
+    transform: scale(0.8);
+}
+
 .signature-container {
     display: flex;
     flex-direction: column;
@@ -1296,6 +1449,16 @@ export default {
     max-height: 200rpx;
     border-radius: 12rpx;
     object-fit: contain;
+}
+
+.signature-canvas {
+    position: fixed;
+    left: -9999px;
+    top: -9999px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
 }
 
 /* 回车键形状按钮 */

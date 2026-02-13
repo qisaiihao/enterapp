@@ -4,7 +4,7 @@
     <top-bar ref="topBar" left-icon="/static/images/newicons/write_poem.png" @safe-area-ready="onSafeAreaReady" />
 
     <!-- 页面切换标签栏 - 定位在 top-bar 下方 -->
-    <view class="tabs-container" :style="{ top: (safeAreaTop + 60) + 'px' }">
+    <view class="tabs-container" :style="{ top: (safeAreaTop + 70) + 'px' }">
       <view class="tabs-list">
         <view
           v-for="(tab, index) in tabs"
@@ -83,7 +83,8 @@ export default {
   right: 0;
   height: 88rpx;
   background: #ffffff;
-  z-index: 999; /* 比 top-bar 低一层 */
+  /* 仅需略高于内容，避免过高遮挡；top-bar 本身更高 */
+  z-index: 1050;
 }
 
 .tabs-list {
