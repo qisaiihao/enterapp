@@ -556,15 +556,18 @@ export default {
             });
 
             try {
-                // 调用 uniCloud 发送短信验证码
-                const result = await callUniCloudFunction('sendSmsCode', {
-                    phone: this.smsPhoneNumber,
-                    scene: 'binding' // 绑定场景
+                // 调用腾讯云函数发送短信验证码
+                const result = await this.$tcb.callFunction({
+                    name: 'sendSmsCode',
+                    data: {
+                        phone: this.smsPhoneNumber,
+                        scene: 'binding' // 绑定场景
+                    }
                 });
 
                 console.log('📱 [登录后绑定] 发送结果:', result);
 
-                if (result.result && result.result.code === 0) {
+                if (result.result && result.result.success === true) {
                     uni.showToast({
                         title: '验证码已发送',
                         icon: 'success'
@@ -729,14 +732,17 @@ export default {
                         throw new Error('请输入手机号和验证码');
                     }
 
-                    // 验证短信验证码
-                    const verifyRes = await callUniCloudFunction('verifySmsCode', {
-                        phone: this.smsPhoneNumber,
-                        code: this.smsCode,
-                        scene: 'binding'
+                    // 验证短信验证码 - 调用腾讯云函数
+                    const verifyRes = await this.$tcb.callFunction({
+                        name: 'verifySmsCode',
+                        data: {
+                            phone: this.smsPhoneNumber,
+                            code: this.smsCode,
+                            scene: 'binding'
+                        }
                     });
 
-                    if (verifyRes.result && verifyRes.result.code === 0) {
+                    if (verifyRes.result && verifyRes.result.success === true) {
                         // 验证成功，更新用户手机号
                         const app = getApp();
                         const userOpenid = app.globalData && app.globalData.openid ? app.globalData.openid : null;

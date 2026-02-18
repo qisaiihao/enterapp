@@ -662,15 +662,18 @@ export default {
             });
 
             try {
-                // 调用 uniCloud 发送短信验证码（场景：register）
-                const result = await callUniCloudFunction('sendSmsCode', {
-                    phone: this.smsPhoneNumber,
-                    scene: 'register'
+                // 调用腾讯云函数发送短信验证码（场景：register）
+                const result = await this.$tcb.callFunction({
+                    name: 'sendSmsCode',
+                    data: {
+                        phone: this.smsPhoneNumber,
+                        scene: 'binding'
+                    }
                 });
 
                 console.log('📱 [短信注册] 发送结果:', result);
 
-                if (result.result && result.result.code === 0) {
+                if (result.result && result.result.success === true) {
                     uni.showToast({
                         title: '验证码已发送',
                         icon: 'success'
@@ -713,15 +716,18 @@ export default {
             uni.showLoading({ title: '验证中...', mask: true });
 
             try {
-                const result = await callUniCloudFunction('verifySmsCode', {
-                    phone: this.smsPhoneNumber,
-                    code: this.smsCode,
-                    scene: 'register'
+                const result = await this.$tcb.callFunction({
+                    name: 'verifySmsCode',
+                    data: {
+                        phone: this.smsPhoneNumber,
+                        code: this.smsCode,
+                        scene: 'binding'
+                    }
                 });
 
                 console.log('📱 [注册-短信绑定] 验证结果:', result);
 
-                if (result.result && result.result.code === 0) {
+                if (result.result && result.result.success === true) {
                     // 绑定成功
                     this.phoneNumber = this.smsPhoneNumber;
                     this.closeBindPhoneModal();

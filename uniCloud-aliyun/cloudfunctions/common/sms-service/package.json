@@ -1,0 +1,8 @@
+{
+  "name": "sms-service",
+  "version": "1.0.0",
+  "description": "短信服务公共模块",
+  "main": "index.js",
+  "author": "",
+  "license": "MIT"
+}

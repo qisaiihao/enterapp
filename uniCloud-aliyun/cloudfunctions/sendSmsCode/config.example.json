@@ -1,0 +1,15 @@
+{
+  "provider": "tencentcloud",
+  "testMode": false,
+  "unicloud": {
+    "templateId": "你的uniCloud模板ID"
+  },
+  "tencentcloud": {
+    "secretId": "${TENCENT_SECRET_ID}",
+    "secretKey": "${TENCENT_SECRET_KEY}",
+    "sdkAppId": "你的短信应用ID",
+    "signName": "你的短信签名",
+    "templateId": "你的模板ID",
+    "region": "ap-guangzhou"
+  }
+}

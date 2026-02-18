@@ -5,6 +5,9 @@
   "main": "index.js",
   "author": "",
   "license": "MIT",
+  "dependencies": {
+    "tencentcloud-sdk-nodejs-sms": "^4.0.3"
+  },
   "extensions": {
     "uni-cloud-sms": {}
   }
