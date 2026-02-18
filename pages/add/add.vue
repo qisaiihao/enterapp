@@ -86,6 +86,7 @@
                             >
                                 <input
                                     class="series-subtitle"
+                                    placeholder-class="subtitle-placeholder"
                                     :placeholder="`小标题（可选）${idx + 1}`"
                                     :value="block.subtitle"
                                     @input="onSeriesSubtitleInput(idx, $event)"
@@ -95,22 +96,24 @@
                                     :placeholder="`组诗段落 ${idx + 1}`"
                                     :value="block.content"
                                     @input="onSeriesContentInput(idx, $event)"
-                                    auto-height
                                     maxlength="1500"
                                     :show-confirm-bar="false"
                                     :adjust-position="false"
                                 ></textarea>
                                 <view class="block-actions">
-                                    <button size="mini" @tap.stop="moveSeriesBlock(idx, -1)" :disabled="idx === 0">上移</button>
-                                    <button size="mini" @tap.stop="moveSeriesBlock(idx, 1)" :disabled="idx === seriesBlocks.length - 1">下移</button>
-                                    <button size="mini" @tap.stop="removeSeriesBlock(idx)" :disabled="seriesBlocks.length === 1">删除</button>
+                                    <view class="icon-btn" @tap.stop="moveSeriesBlock(idx, -1)" :class="{ disabled: idx === 0 }">
+                                        <text class="arrow-icon">↑</text>
+                                    </view>
+                                    <view class="icon-btn" @tap.stop="moveSeriesBlock(idx, 1)" :class="{ disabled: idx === seriesBlocks.length - 1 }">
+                                        <text class="arrow-icon">↓</text>
+                                    </view>
+                                    <view class="icon-btn" @tap.stop="confirmRemoveSeriesBlock(idx)" :class="{ disabled: seriesBlocks.length === 1 }">
+                                        <image class="action-icon" src="/static/images/newicons/delete.png" mode="aspectFit" />
+                                    </view>
+                                    <view class="icon-btn" @tap.stop="addSeriesBlock(idx)" :class="{ disabled: seriesBlocks.length >= maxSeriesBlocks }">
+                                        <image class="action-icon" src="/static/images/select_more.png" mode="aspectFit" />
+                                    </view>
                                 </view>
-                                <view class="insert-actions">
-                                    <button size="mini" plain @tap.stop="addSeriesBlock(idx)" :disabled="seriesBlocks.length >= maxSeriesBlocks">在后插入段落</button>
-                                </view>
-                            </view>
-                            <view class="block-add-tail">
-                                <button size="mini" type="default" plain @tap.stop="addSeriesBlock(seriesBlocks.length - 1)" :disabled="seriesBlocks.length >= maxSeriesBlocks">末尾添加段落</button>
                             </view>
                         </view>
                     </scroll-view>
@@ -206,6 +209,7 @@
             :show="showModeSelector"
             :publishMode="publishMode"
             :isOriginal="isOriginal"
+            :isSeries="isSeries"
             @close="showModeSelector = false"
             @select="onModeSelect"
         />
@@ -970,6 +974,19 @@ export default {
         },
         addSeriesBlock(afterIndex = -1) {
             seriesAddBlock(this, afterIndex);
+        },
+        confirmRemoveSeriesBlock(idx) {
+            uni.showModal({
+                title: '确认删除',
+                content: '确定要删除这个段落吗？',
+                confirmText: '删除',
+                cancelText: '取消',
+                success: (res) => {
+                    if (res.confirm) {
+                        this.removeSeriesBlock(idx);
+                    }
+                }
+            });
         },
         removeSeriesBlock(idx) {
             seriesRemoveBlock(this, idx);
@@ -2582,11 +2599,11 @@ page {
 }
 
 .block-card {
-    padding: 18rpx;
-    border-radius: 16rpx;
-    background: #fff;
-    box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.06);
-    border: 1rpx solid #e6e6e6;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    border: none;
 }
 
 .block-card.quote {
@@ -2595,20 +2612,51 @@ page {
 }
 
 .block-actions,
-.insert-actions,
-.block-add-tail {
+.insert-actions {
     display: flex;
     gap: 12rpx;
     flex-wrap: wrap;
-    margin-top: 12rpx;
+    margin-top: 20rpx;
+    justify-content: flex-end; /* 靠右对齐 */
 }
 
 .insert-actions {
-    justify-content: flex-start;
+    justify-content: center;
 }
 
-.block-add-tail {
-    justify-content: space-between;
+/* 图标按钮样式 */
+.icon-btn {
+    width: 60rpx;
+    height: 60rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f5f5f5;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.icon-btn:active {
+    transform: scale(0.9);
+    background: #e0e0e0;
+}
+
+.icon-btn.disabled {
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+.arrow-icon {
+    font-size: 32rpx;
+    color: #333;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.action-icon {
+    width: 40rpx;
+    height: 40rpx;
 }
 
 .block-scroll {
@@ -2618,6 +2666,8 @@ page {
     margin-right: 70rpx; /* 与 content-input-wrapper 保持一致，为右侧工具栏留出空间 */
     padding-right: 0;
     padding-bottom: 200rpx; /* 为底部操作按钮留白，避免滚动遮挡 */
+    overflow-y: auto; /* 容器可滚动 */
+    overflow-x: hidden;
 }
 
 .block-card .content-textarea {
@@ -2629,7 +2679,47 @@ page {
 }
 
 /* 组诗样式 */
-.series-block .series-subtitle,
+.series-block .series-subtitle {
+    width: 100%;
+    border: none;
+    border-radius: 0;
+    padding: 16rpx 60rpx; /* 与正文左右对齐 */
+    margin-bottom: 32rpx; /* 增加与正文的距离 */
+    font-size: 32rpx; /* 与正文一致 */
+    background: transparent;
+    line-height: 1.5;
+    color: #989090; /* 与正文颜色一致 */
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 700; /* 加粗 */
+    height: auto;
+    min-height: 60rpx;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+}
+
+/* 小标题的 placeholder 样式 */
+.subtitle-placeholder {
+    color: #d0d0d0 !important; /* 更浅的颜色 */
+    font-weight: 400 !important; /* placeholder 不加粗 */
+}
+
+.series-block .series-subtitle::-webkit-input-placeholder {
+    color: #d0d0d0; /* 更浅的颜色 */
+}
+
+.series-block .series-subtitle::-moz-placeholder {
+    color: #d0d0d0;
+}
+
+.series-block .series-subtitle:-ms-input-placeholder {
+    color: #d0d0d0;
+}
+
+.series-block .series-subtitle::placeholder {
+    color: #d0d0d0;
+}
+
 .series-block .series-highlight {
     width: 100%;
     border: 1rpx solid #e0e0e0;
@@ -2637,13 +2727,41 @@ page {
     padding: 12rpx 16rpx;
     margin-bottom: 12rpx;
     font-size: 28rpx;
-}
-.series-block .series-highlight {
     background: #f7f9fb;
+    line-height: 1.5;
+    color: #333;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 300;
+    box-sizing: border-box;
 }
+
 .series-block .block-actions,
 .series-block .insert-actions {
-    margin-top: 8rpx;
+    margin-top: 20rpx;
+    margin-bottom: 40rpx; /* 增加段落之间的间距 */
+    justify-content: flex-end; /* 靠右对齐 */
+}
+
+.series-block .content-textarea {
+    width: 100%;
+    border: none;
+    border-radius: 20rpx; /* 与普通诗歌一致 */
+    padding: 60rpx; /* 与普通诗歌一致 */
+    font-size: 32rpx; /* 与普通诗歌一致 */
+    background: #E8E8E8; /* 与普通诗歌一致 */
+    line-height: 1.5;
+    color: #989090;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 300;
+    height: 450rpx; /* 固定高度 */
+    resize: none;
+    overflow-y: auto; /* 内容超出时显示滚动条 */
+    overflow-x: hidden;
+    -webkit-appearance: none;
+    appearance: none;
+    box-sizing: border-box;
+    outline: none;
+    -webkit-overflow-scrolling: touch;
 }
 
 .discussion-preview {
