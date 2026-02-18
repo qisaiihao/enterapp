@@ -270,23 +270,45 @@ function installWgt(wgtPath) {
  * 完整更新检查流程（推荐使用）
  * 
  * 流程：
- * 1. 先调用官方插件检查整包更新 (native_app)
- * 2. 不需要整包更新则检查自定义热更新 (wgt)
- * 3. 弹窗让用户选择是否更新
- * 4. 更新或直接进入
+ * 1. 检查缓存，如果在缓存时间内则跳过检查
+ * 2. 先调用官方插件检查整包更新 (native_app)
+ * 3. 不需要整包更新则检查自定义热更新 (wgt)
+ * 4. 弹窗让用户选择是否更新
+ * 5. 更新或直接进入
  * 
  * @param {Object} options 选项
  * @param {boolean} options.silent 是否静默检查（不显示"已是最新版本"提示）
  * @param {boolean} options.showConfirm 是否显示确认弹窗
+ * @param {number} options.cacheTime 缓存时间（毫秒），默认30分钟
  * @returns {Promise<Object>}
  */
 export async function checkAndUpdate(options = {}) {
-    const { silent = true, showConfirm = true } = options;
+    const { silent = true, showConfirm = true, cacheTime = 30 * 60 * 1000 } = options; // 默认30分钟
     
     console.log('🔍 [hotUpdate] ========== 开始完整更新检查流程 ==========');
     
     // #ifdef APP-PLUS
     try {
+        // ============ 第零步：检查缓存 ============
+        try {
+            const lastCheckTime = uni.getStorageSync('lastUpdateCheckTime');
+            const lastCheckResult = uni.getStorageSync('lastUpdateCheckResult');
+            
+            if (lastCheckTime && lastCheckResult) {
+                const now = Date.now();
+                const timeSinceLastCheck = now - lastCheckTime;
+                
+                if (timeSinceLastCheck < cacheTime) {
+                    const remainingMinutes = Math.ceil((cacheTime - timeSinceLastCheck) / 60000);
+                    console.log(`⏭️ [hotUpdate] 距离上次检查仅 ${Math.floor(timeSinceLastCheck / 60000)} 分钟，跳过本次检查（缓存有效期：${remainingMinutes} 分钟）`);
+                    console.log('🔍 [hotUpdate] ========== 使用缓存结果，检查流程结束 ==========');
+                    return lastCheckResult;
+                }
+            }
+        } catch (e) {
+            console.warn('⚠️ [hotUpdate] 读取缓存失败，继续正常检查:', e);
+        }
+        
         // ============ 第一步：检查整包更新（官方插件）============
         console.log('📦 [hotUpdate] 第一步：检查整包更新...');
         
@@ -298,10 +320,12 @@ export async function checkAndUpdate(options = {}) {
             // 注意：官方插件检测到整包更新时会自动弹窗，这里只需要记录
             if (officialResult && officialResult.code > 0 && officialResult.type === 'native_app') {
                 console.log('📦 [hotUpdate] 检测到整包更新，官方插件已处理');
-                return {
+                const result = {
                     type: 'native',
                     ...officialResult
                 };
+                // 有更新时不缓存结果，下次启动继续检查
+                return result;
             }
             
             // code === 0 表示已是最新版本，继续检查热更新
@@ -319,14 +343,18 @@ export async function checkAndUpdate(options = {}) {
         const wgtUpdateInfo = await checkWgtUpdate();
         console.log('🔥 [hotUpdate] 热更新检查结果:', wgtUpdateInfo);
         
+        let result;
+        
         if (wgtUpdateInfo.code === 1 && wgtUpdateInfo.hasUpdate) {
             // 有热更新，下载并安装
             console.log('✅ [hotUpdate] 发现热更新版本:', wgtUpdateInfo.version);
-            const result = await downloadAndInstallWgt(wgtUpdateInfo, { showConfirm });
-            return {
+            const installResult = await downloadAndInstallWgt(wgtUpdateInfo, { showConfirm });
+            result = {
                 type: 'wgt',
-                ...result
+                ...installResult
             };
+            // 有更新时不缓存结果，下次启动继续检查
+            return result;
         } else if (wgtUpdateInfo.code === -10 && wgtUpdateInfo.needNativeUpdate) {
             // 需要更新原生包（热更新的 min_uni_version 要求）
             console.log('⚠️ [hotUpdate] 热更新要求更新原生包');
@@ -338,7 +366,7 @@ export async function checkAndUpdate(options = {}) {
                     confirmText: '知道了'
                 });
             }
-            return {
+            result = {
                 type: 'need_native',
                 ...wgtUpdateInfo
             };
@@ -351,11 +379,22 @@ export async function checkAndUpdate(options = {}) {
                     icon: 'none'
                 });
             }
-            return {
+            result = {
                 type: 'latest',
                 ...wgtUpdateInfo
             };
         }
+        
+        // ============ 缓存检查结果 ============
+        try {
+            uni.setStorageSync('lastUpdateCheckTime', Date.now());
+            uni.setStorageSync('lastUpdateCheckResult', result);
+            console.log('💾 [hotUpdate] 检查结果已缓存');
+        } catch (e) {
+            console.warn('⚠️ [hotUpdate] 缓存结果失败:', e);
+        }
+        
+        return result;
         
     } catch (error) {
         console.error('❌ [hotUpdate] 更新流程失败:', error);

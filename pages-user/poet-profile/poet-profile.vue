@@ -15,7 +15,10 @@
                 <view class="profile-info-center">
                     <text class="profile-name-center">{{ poetInfo.name || '未知诗人' }}</text>
                     <view class="profile-bio-wrapper">
-                        <text v-if="!isEditingBio" class="profile-bio-center" @tap="onBioTap">{{ poetInfo.bio || '暂无诗人简介' }}</text>
+                        <view v-if="!isEditingBio" @tap="onBioTap">
+                            <text class="profile-bio-center">{{ poetInfo.bio || '暂无诗人简介' }}</text>
+                            <text v-if="!poetInfo.bio && canEdit" class="bio-edit-hint">（点击可编辑简介、头像）</text>
+                        </view>
                         <view v-else class="bio-edit-wrapper">
                             <textarea 
                                 class="bio-textarea"
@@ -587,6 +590,17 @@ export default {
     text-align: center;
     margin-bottom: 20rpx;
     display: block;
+}
+
+.bio-edit-hint {
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    font-size: 22rpx;
+    line-height: 32rpx;
+    color: #999999;
+    text-align: center;
+    display: block;
+    margin-top: 8rpx;
 }
 
 .bio-edit-wrapper {

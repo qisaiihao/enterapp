@@ -122,6 +122,7 @@
                         <!-- 作品集书籍组件 -->
                         <PortfolioBook
                             :portfolio-list="portfolioList"
+                            :is-loading="portfolioLoading"
                             @navigate-to-portfolio="navigateToPortfolio"
                             @open-portfolio="openPortfolio"
                         />
@@ -267,6 +268,7 @@ export default {
 
             followerCount: 0,
             portfolioList: [],
+            portfolioLoading: false,  // 作品集加载状态
             img: '',
             // 关注统计
             followerCount: 0,
@@ -1843,16 +1845,19 @@ export default {
 
         // 加载作品集列表
         loadPortfolios(cb) {
+            this.setData({ portfolioLoading: true });
             const callFn = (name, data) => this.callCloudFunction(name, data);
             fetchPortfolioFolders(callFn)
                 .then((folders) => {
                     this.setData({
-                        portfolioList: folders
+                        portfolioList: folders,
+                        portfolioLoading: false
                     });
                 })
                 .catch((error) => {
                     console.error('加载作品集失败:', error);
                     uni.showToast({ title: '作品集加载失败', icon: 'none' });
+                    this.setData({ portfolioLoading: false });
                 })
                 .finally(() => {
                     if (typeof cb === 'function') {

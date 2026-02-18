@@ -188,7 +188,7 @@
                 />
             </view>
 
-            <view class="helper-text">上方正文即为你的讨论内容</view>
+            <view class="helper-text" v-show="publishMode === 'discussion'" :class="{ 'fade-out': !showDiscussionHelper }">上方正文即为你的讨论内容</view>
         </view>
 
         <!-- 左下角返回按钮 -->
@@ -372,6 +372,8 @@ export default {
         parentPostId: '',
         parentPostInfo: null,
         canPublish: false,
+        showDiscussionHelper: true, // 讨论模式提示文字显示状态
+        discussionHelperTimer: null, // 讨论模式提示文字定时器
 
             // 是否可以发布
             selectedTags: [],
@@ -495,6 +497,27 @@ export default {
         publishMode: {
             handler(newVal, oldVal) {
                 this.updatePlaceholder();
+                
+                // 讨论模式：显示提示并5秒后淡出
+                if (newVal === 'discussion') {
+                    // 清除之前的定时器
+                    if (this.discussionHelperTimer) {
+                        clearTimeout(this.discussionHelperTimer);
+                    }
+                    // 显示提示
+                    this.setData({ showDiscussionHelper: true });
+                    // 5秒后开始淡出
+                    this.discussionHelperTimer = setTimeout(() => {
+                        this.setData({ showDiscussionHelper: false });
+                    }, 5000);
+                } else {
+                    // 非讨论模式：立即隐藏提示
+                    if (this.discussionHelperTimer) {
+                        clearTimeout(this.discussionHelperTimer);
+                        this.discussionHelperTimer = null;
+                    }
+                    this.setData({ showDiscussionHelper: false });
+                }
             },
             immediate: true
         },
@@ -547,6 +570,12 @@ export default {
         this.preventPageScroll();
     },
     onUnload: function () {
+        // 清除讨论模式提示定时器
+        if (this.discussionHelperTimer) {
+            clearTimeout(this.discussionHelperTimer);
+            this.discussionHelperTimer = null;
+        }
+        
         // 只有真正退出发布页时提示保存草稿（已发布的不提示）
         if (!this.isPublished && this.hasContent()) {
             // 在onUnload中不调用exitWithOptionalSave，避免无限递归
@@ -2647,6 +2676,13 @@ page {
     margin-top: 12rpx;
     font-size: 24rpx;
     color: #888;
+    text-align: center;
+    opacity: 1;
+    transition: opacity 1s ease-out;
+}
+
+.helper-text.fade-out {
+    opacity: 0;
 }
 
 /* 响应式设计 - 小屏幕适配 */

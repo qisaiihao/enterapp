@@ -159,11 +159,14 @@ Vue.prototype.$requireOpenid = function () {
 // 缓存事件桥：监听发帖/头像更新等事件并失效相关缓存
 try { setupCacheEventBridges(); } catch (e) { console.warn('setupCacheEventBridges failed', e); }
 
-// 初始化未读消息红点管理器
-try {
-  const unreadBadge = require('@/cache/stores/unread-badge.js');
-  unreadBadge.initUnreadCount();
-} catch (e) { console.warn('unreadBadge init failed', e); }
+// 延迟初始化未读消息红点管理器（优化启动速度）
+// 在页面加载完成后再检查未读消息，不阻塞启动流程
+setTimeout(() => {
+  try {
+    const unreadBadge = require('@/cache/stores/unread-badge.js');
+    unreadBadge.initUnreadCount();
+  } catch (e) { console.warn('unreadBadge init failed', e); }
+}, 1000); // 延迟1秒，让页面先加载完成
 
 // 登录完成后预热：我的资料 + 头像
 try {

@@ -26,9 +26,14 @@
                 :style="{ width: calcShelfLineWidth(portfolioList.length) }"
             ></view>
 
+            <!-- 加载中状态 -->
+            <view v-if="isLoading && portfolioList.length === 0" class="empty-portfolio">
+                <text class="empty-text">作品集加载中...</text>
+            </view>
+
             <!-- 如果没有作品集，显示空状态 -->
-            <view v-if="portfolioList.length === 0" class="empty-portfolio">
-                <text class="empty-text">暂无作品集</text>
+            <view v-else-if="!isLoading && portfolioList.length === 0" class="empty-portfolio">
+                <text class="empty-text">{{ emptyText }}</text>
             </view>
         </view>
     </view>
@@ -43,6 +48,11 @@ export default {
         portfolioList: {
             type: Array,
             default: () => []
+        },
+        // 加载状态
+        isLoading: {
+            type: Boolean,
+            default: false
         },
         // 可选的标题配置
         emptyText: {

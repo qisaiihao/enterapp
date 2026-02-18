@@ -4,7 +4,7 @@
     <top-bar ref="topBar" left-icon="/static/images/newicons/write_poem.png" @safe-area-ready="onSafeAreaReady" />
 
     <!-- 页面切换标签栏 - 定位在 top-bar 下方 -->
-    <view class="tabs-container" :style="{ top: (safeAreaTop + 70) + 'px' }">
+    <view class="tabs-container" :style="{ top: (safeAreaTop + 50) + 'px' }">
       <view class="tabs-list">
         <view
           v-for="(tab, index) in tabs"

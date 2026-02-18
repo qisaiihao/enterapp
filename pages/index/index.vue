@@ -1,9 +1,9 @@
 <template>
     <view class="page-wrapper" :class="{ 'is-scrolling': isTouchScrolling }">
         <view class="container">
-            <page-tabs ref="pageTabs" :current-tab="currentTab" @tab-change="onTabChange"></page-tabs>
+            <page-tabs ref="pageTabs" :current-tab="currentTab" @tab-change="onTabChange" @tabs-ready="onTabsReady"></page-tabs>
 
-            <view class="square-mode-container">
+            <view class="square-mode-container" :style="{ paddingTop: totalHeaderHeight + 'px' }">
                 <swiper 
                     class="page-swiper" 
                     :current="swiperCurrent" 
@@ -2122,7 +2122,7 @@ export default {
 
 .square-mode-container {
     display: block;
-    padding-top: 10rpx;
+    /* padding-top 通过内联样式动态设置 */
     height: 100%;
     overflow: hidden;
     position: relative;
