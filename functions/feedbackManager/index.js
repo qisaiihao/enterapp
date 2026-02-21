@@ -6,6 +6,21 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 const _ = db.command
 
+// 验证管理员权限（通过poemId）
+async function isAdmin(openid) {
+  try {
+    const result = await db.collection('users').where({
+      _openid: openid,
+      poemId: 'qisaihao'
+    }).get()
+    
+    return result.data.length > 0
+  } catch (error) {
+    console.error('验证管理员权限失败:', error)
+    return false
+  }
+}
+
 // 云函数入口函数
 exports.main = async (event, context) => {
   try {
@@ -121,10 +136,8 @@ async function getFeedbackList(openid, data) {
   
   try {
     // 检查管理员权限
-    const adminOpenids = ['ojYBd1_A3uCbQ1LGcHxWxOAeA5SE', 'ojYBd14JG3-ghYuGCI2WHmkMc9nE'] // 管理员openid列表
-    const isAdmin = adminOpenids.includes(openid)
-    
-    if (!isAdmin) {
+    const hasAdminPermission = await isAdmin(openid)
+    if (!hasAdminPermission) {
       return {
         success: false,
         error: '权限不足，只有管理员可以查看反馈列表'
@@ -156,10 +169,8 @@ async function deleteFeedback(openid, data) {
   
   try {
     // 检查管理员权限
-    const adminOpenids = ['ojYBd1_A3uCbQ1LGcHxWxOAeA5SE', 'ojYBd14JG3-ghYuGCI2WHmkMc9nE'] // 管理员openid列表
-    const isAdmin = adminOpenids.includes(openid)
-    
-    if (!isAdmin) {
+    const hasAdminPermission = await isAdmin(openid)
+    if (!hasAdminPermission) {
       return {
         success: false,
         error: '权限不足，只有管理员可以删除反馈'
@@ -211,10 +222,8 @@ async function markAsProcessed(openid, data) {
   
   try {
     // 检查管理员权限
-    const adminOpenids = ['ojYBd1_A3uCbQ1LGcHxWxOAeA5SE', 'ojYBd14JG3-ghYuGCI2WHmkMc9nE'] // 管理员openid列表
-    const isAdmin = adminOpenids.includes(openid)
-    
-    if (!isAdmin) {
+    const hasAdminPermission = await isAdmin(openid)
+    if (!hasAdminPermission) {
       return {
         success: false,
         error: '权限不足，只有管理员可以处理反馈'

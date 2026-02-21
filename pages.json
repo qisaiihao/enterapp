@@ -333,6 +333,57 @@
           }
         }
       ]
+    },
+    {
+      "root": "pages-admin",
+      "pages": [
+        {
+          "path": "admin-menu/admin-menu",
+          "style": {
+            "navigationStyle": "custom",
+            "backgroundColor": "#f5f5f5",
+            "usingComponents": {}
+          }
+        },
+        {
+          "path": "admin-posts/admin-posts",
+          "style": {
+            "navigationStyle": "custom",
+            "backgroundColor": "#f5f5f5",
+            "enablePullDownRefresh": false,
+            "onReachBottomDistance": 50,
+            "usingComponents": {}
+          }
+        },
+        {
+          "path": "poet-management/poet-management",
+          "style": {
+            "navigationStyle": "custom",
+            "backgroundColor": "#f5f5f5",
+            "enablePullDownRefresh": true,
+            "onReachBottomDistance": 50,
+            "usingComponents": {}
+          }
+        },
+        {
+          "path": "feedback-list/feedback-list",
+          "style": {
+            "navigationStyle": "custom",
+            "backgroundColor": "#f5f5f5",
+            "enablePullDownRefresh": true,
+            "onReachBottomDistance": 50,
+            "usingComponents": {}
+          }
+        },
+        {
+          "path": "password-recovery/password-recovery",
+          "style": {
+            "navigationStyle": "custom",
+            "backgroundColor": "#f5f5f5",
+            "usingComponents": {}
+          }
+        }
+      ]
     }
   ],
   "preloadRule": {

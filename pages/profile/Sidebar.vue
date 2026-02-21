@@ -28,6 +28,10 @@
                 <view class="sidebar-item" @tap="navigateToBlockedUsers">
                     <text>黑名单</text>
                 </view>
+                <!-- 管理入口：仅对qisaihao用户显示 -->
+                <view v-if="isAdmin" class="sidebar-item" @tap="navigateToAdmin">
+                    <text>管理</text>
+                </view>
                 <view class="sidebar-item logout-item" @tap="showLogoutConfirm">
                     <text>退出登录</text>
                 </view>
@@ -48,8 +52,15 @@ export default {
             type: Object,
             default: () => ({
                 avatarUrl: '',
-                nickName: ''
+                nickName: '',
+                poemId: ''
             })
+        }
+    },
+    computed: {
+        // 判断是否为管理员
+        isAdmin() {
+            return this.userInfo && this.userInfo.poemId === 'qisaihao';
         }
     },
     methods: {
@@ -109,6 +120,14 @@ export default {
             this.$emit('close');
             uni.navigateTo({
                 url: '/pages-user/blocked-users/blocked-users'
+            });
+        },
+
+        // 跳转到管理页面
+        navigateToAdmin() {
+            this.$emit('close');
+            uni.navigateTo({
+                url: '/pages-admin/admin-menu/admin-menu'
             });
         },
 
