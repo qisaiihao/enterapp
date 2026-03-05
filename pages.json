@@ -110,7 +110,16 @@
       "path": "uni_modules/uni-upgrade-center-app/pages/upgrade-popup",
       "style": {
         "navigationStyle": "custom",
-        "backgroundColor": "transparent"
+        "disableScroll": true,
+        "app-plus": {
+          "backgroundColorTop": "transparent",
+          "background": "transparent",
+          "titleNView": false,
+          "scrollIndicator": false,
+          "popGesture": "none",
+          "animationType": "fade-in",
+          "animationDuration": 200
+        }
       }
     }
   ],
@@ -403,7 +412,7 @@
   "tabBar": {
     "custom": true,
     "color": "#999999",
-    "selectedColor": "#9ed7ee",
+    "selectedColor": "#000000",
     "backgroundColor": "#ffffff",
     "borderStyle": "black",
     "list": [

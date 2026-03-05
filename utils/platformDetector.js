@@ -88,16 +88,27 @@ function getPlatformInfo() {
         }
 
         // 3. 检查微信小程序环境（备用检测）
-        if (typeof wx !== 'undefined' && wx.getSystemInfoSync) {
+        if (typeof wx !== 'undefined' && wx.getAccountInfoSync) {
             try {
-                const systemInfo = wx.getSystemInfoSync();
                 const accountInfo = wx.getAccountInfoSync();
                 
                 if (accountInfo.miniProgram) {
                     info.platform = 'mp-weixin';
                     info.isMiniProgram = true;
                     info.isWeixin = true;
-                    info.details.systemInfo = systemInfo;
+                    
+                    // 使用新的API获取系统信息
+                    try {
+                        if (wx.getWindowInfo) {
+                            info.details.windowInfo = wx.getWindowInfo();
+                        }
+                        if (wx.getDeviceInfo) {
+                            info.details.deviceInfo = wx.getDeviceInfo();
+                        }
+                    } catch (e) {
+                        // 忽略获取详细信息失败
+                    }
+                    
                     info.details.accountInfo = accountInfo;
                     return info;
                 }

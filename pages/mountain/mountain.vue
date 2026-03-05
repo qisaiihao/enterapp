@@ -32,7 +32,7 @@
       </view>
 
       <view id="post-list-container">
-        <view v-for="(item, index) in postList" :key="item._id ? `post-${item._id}-${index}` : `post-index-${index}`" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
+        <view v-for="(item, index) in postList" :key="index" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
           <view class="post-content-navigator" @tap="togglePostExpansion" @longpress="onLongPressCard" :data-index="index" :data-postid="item._id">
             <view class="post-item">
               <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.highlightLines || item.highlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.content" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
@@ -42,7 +42,7 @@
                 <block v-else>
                   <!-- 折叠状态下只显示高光行 -->
                   <block v-if="item.highlightLines && item.highlightLines.length > 0">
-                    <text v-for="(highlightLine, index) in item.highlightLines" :key="'line-' + index" style="font-weight: 700; display: block;">{{ highlightLine }}</text>
+                    <text v-for="(highlightLine, index) in item.highlightLines" :key="index" style="font-weight: 700; display: block;">{{ highlightLine }}</text>
                   </block>
                   <block v-else>
                     {{ item.content }}
@@ -112,6 +112,26 @@ export default {
     // #ifndef MP-WEIXIN
     try { uni.hideTabBar({ animation: false }); } catch (e) {}
     try { this.$refs.customTabBar && this.$refs.customTabBar.syncSelected && this.$refs.customTabBar.syncSelected(); } catch (e) {}
+    // #endif
+
+    // #ifdef MP-WEIXIN
+    // 更新小程序自定义tabBar的选中状态
+    console.log('=== mountain onShow ===');
+    if (typeof this.getTabBar === 'function') {
+      const tabBar = this.getTabBar();
+      console.log('mountain getTabBar() 返回:', tabBar);
+      console.log('tabBar 是否有 setData:', tabBar && typeof tabBar.setData);
+      if (tabBar && tabBar.setData) {
+        console.log('调用 tabBar.setData({ selected: 2 })');
+        tabBar.setData({ selected: 2 }, () => {
+          console.log('mountain tabBar.setData 回调执行，当前 selected:', tabBar.data.selected);
+        });
+      } else {
+        console.warn('mountain tabBar 不可用或没有 setData 方法');
+      }
+    } else {
+      console.warn('mountain this.getTabBar 不是函数');
+    }
     // #endif
 
     // 检查是否需要刷新数据
@@ -551,15 +571,7 @@ export default {
 </script>
 
 <style>
-/* 定义 Huiwen-mincho 字体 */
-@font-face {
-  font-family: 'Huiwen-mincho';
-  src: url('/static/fonts/Huiwen-mincho.otf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
-}
-
-
+/* 诗歌内容使用汇文明朝字体，其他地方使用系统默认字体 */
 
 .white-bg { 
   background: #fff; 
@@ -595,7 +607,7 @@ export default {
 .post-item { padding: 30rpx 60rpx 30rpx 80rpx; position: relative; } /* 进一步减少上下padding，文字往左移动 */
 /* Typography inspired by poem.css */
 .post-content {
-  font-family: 'Huiwen-mincho', sans-serif;
+  font-family: '汇文明朝', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   font-style: normal;
   font-weight: 500;
   font-size: 28rpx; /* 调小字体：14px * 2 */

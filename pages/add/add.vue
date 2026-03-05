@@ -31,7 +31,7 @@
                         <view class="block-editor">
                             <view
                                 v-for="(block, idx) in blocks"
-                                :key="'block-' + idx"
+                                :key="idx"
                                 class="block-card"
                                 :class="block.type"
                             >
@@ -81,7 +81,7 @@
                         <view class="block-editor">
                             <view
                                 v-for="(block, idx) in seriesBlocks"
-                                :key="'series-block-' + block.id"
+                                :key="block.id"
                                 class="block-card series-block"
                             >
                                 <input
@@ -149,7 +149,7 @@
                                 <view class="overlay-content">
                                     <view
                                         v-for="(line, i) in splitContentLines"
-                                        :key="'overlay-line-' + i"
+                                        :key="i"
                                         :class="'overlay-line ' + (highlightSelectedLineIndices.includes(i) ? 'highlighted' : '')"
                                         :style="'top: ' + (i * 48) + 'rpx;'"
                                         :data-index="i"
@@ -166,18 +166,8 @@
                         <view v-if="showHighlightHint" class="highlight-hint">
                             <text class="hint-text">点击文字即可选择高光行</text>
                         </view>
-    </view>
-
-    <!-- 高光选择全屏弹窗：放在容器末尾，所有模式共用 -->
-    <HighlightSelectorModal
-        :show="highlightSelecting"
-        :contentLines="highlightSourceLines && highlightSourceLines.length ? highlightSourceLines : highlightSelectionLines"
-        :selectedLineIndices="highlightSelectedLineIndices"
-        @close="highlightSelecting = false"
-        @update="onHighlightUpdate"
-        @confirm="onHighlightConfirm"
-    />
-</template>
+                    </view>
+                </template>
                 <!-- 右侧工具栏 -->
                 <SideToolbar
                     :publishMode="publishMode"

@@ -20,6 +20,38 @@ export default {
 
     // 【重构】2. onLaunch 是 Vue 的生命周期函数，保持不变
     onLaunch: function (options) {
+        // 小程序环境：在 App.vue 中初始化云开发（确保最早执行）
+        // 不使用条件编译，改为运行时检测
+        if (typeof wx !== 'undefined' && wx.cloud) {
+            console.log('☁️ [App.vue] 检测到微信小程序环境，开始初始化云开发...');
+            try {
+                // 立即初始化 wx.cloud
+                wx.cloud.init({
+                    env: 'cloud1-5gb0pbyl400845f5',
+                    traceUser: true
+                });
+                console.log('✅ [App.vue] 云开发初始化完成');
+                
+                // 挂载到 this.$tcb
+                this.$tcb = wx.cloud;
+                console.log('✅ [App.vue] wx.cloud 已挂载到 this.$tcb');
+                
+                // 同时挂载到 Vue 原型和 uni 对象
+                if (typeof Vue !== 'undefined' && Vue.prototype) {
+                    Vue.prototype.$tcb = wx.cloud;
+                    console.log('✅ [App.vue] wx.cloud 已挂载到 Vue.prototype.$tcb');
+                }
+                if (typeof uni !== 'undefined') {
+                    uni.$tcb = wx.cloud;
+                    console.log('✅ [App.vue] wx.cloud 已挂载到 uni.$tcb');
+                }
+            } catch (error) {
+                console.error('❌ [App.vue] 云开发初始化失败:', error);
+            }
+        } else if (typeof wx !== 'undefined') {
+            console.error('❌ [App.vue] wx.cloud 不可用，请检查基础库版本（需要 >= 2.2.3）');
+        }
+        
         // #ifdef APP-PLUS
         // 处理 URL Scheme 启动（GitHub OAuth 回调）
         const args = plus.runtime.arguments;
@@ -82,15 +114,57 @@ export default {
         console.log('当前为 H5 环境，跳过热更新检查');
         // #endif
         
+        // 【关键修复】在所有操作之前初始化云开发
+        console.log('🔍 [App.vue] onLaunch 开始执行');
+        if (typeof wx !== 'undefined' && wx.cloud) {
+            console.log('☁️ [App.vue] 检测到 wx.cloud，立即初始化');
+            try {
+                wx.cloud.init({
+                    env: 'cloud1-5gb0pbyl400845f5',
+                    traceUser: true
+                });
+                console.log('✅ [App.vue] wx.cloud.init() 调用成功');
+                
+                // 挂载到全局
+                this.$tcb = wx.cloud;
+                if (typeof Vue !== 'undefined' && Vue.prototype) {
+                    Vue.prototype.$tcb = wx.cloud;
+                }
+                if (typeof uni !== 'undefined') {
+                    uni.$tcb = wx.cloud;
+                }
+                console.log('✅ [App.vue] wx.cloud 已挂载到全局');
+            } catch (error) {
+                console.error('❌ [App.vue] wx.cloud 初始化失败:', error);
+            }
+        } else {
+            console.log('⚠️ [App.vue] wx 或 wx.cloud 不存在');
+            console.log('typeof wx:', typeof wx);
+            if (typeof wx !== 'undefined') {
+                console.log('wx.cloud:', wx.cloud);
+            }
+        }
+        
         // 【性能优化】立即标记登录流程已开始，不阻塞后续操作
         this.globalData._loginProcessStarted = true;
         
-        // 【字体预加载】提前加载默认字体，避免第一次生成卡片时字体未就绪
-        fontManager.preloadCommonFonts(['汇文明朝']).then(results => {
-            console.log('【App】默认字体预加载完成:', results);
+        // 【字体预加载】小程序启动时立即下载汇文明朝字体到本地缓存
+        // 下载前使用微信默认字体，下载后自动切换到汇文明朝
+        // App 和 H5 环境已经打包了本地字体文件，无需下载
+        // #ifdef MP-WEIXIN
+        console.log('🔤 [App.vue] 小程序环境，开始预加载汇文明朝字体');
+        fontManager.ensureFontAvailable('汇文明朝', (progress) => {
+            console.log(`🔤 [App.vue] 汇文明朝字体下载进度: ${progress}%`);
+        }).then(() => {
+            console.log('✅ [App.vue] 汇文明朝字体预加载完成，已缓存到本地');
+            // 字体加载完成后，可以触发全局事件通知页面刷新
+            try {
+                uni.$emit && uni.$emit('font-loaded', { fontFamily: '汇文明朝' });
+            } catch (e) {}
         }).catch(err => {
-            console.warn('【App】默认字体预加载失败:', err);
+            console.warn('⚠️ [App.vue] 汇文明朝字体预加载失败，将使用系统默认字体:', err);
         });
+        // #endif
         
         // 【性能优化】使用 nextTick 延迟执行非关键任务，让页面先渲染
         this.$nextTick(() => {
@@ -324,11 +398,13 @@ export default {
             const cachedUserInfo = uni.getStorageSync('userInfo');
             if (cachedUserInfo && cachedUserInfo._openid) {
                 try {
-                    // 先进行匿名认证
+                    // 只在 H5/APP 环境进行匿名认证
+                    // #ifdef H5 || APP-PLUS
                     const currentUser = this.$tcb.auth().currentUser;
                     if (!currentUser) {
                         await this.$tcb.auth().signInAnonymously();
                     }
+                    // #endif
                     
                     // 调用云函数验证用户是否存在
                     const verifyRes = await this.$tcb.callFunction({
@@ -385,7 +461,8 @@ export default {
             if (!this.isAllowedPageForUnauthenticated()) {
                 console.log('⚠️ [登录流程] 检测到直接访问非登录页面，且无登录缓存，重定向到开屏页面');
                 
-                // 【关键修复】在重定向之前，确保 TCB 匿名认证已完成
+                // 【关键修复】在重定向之前，确保 TCB 匿名认证已完成（仅 H5/APP）
+                // #ifdef H5 || APP-PLUS
                 try {
                     const currentUser = this.$tcb.auth().currentUser;
                     if (!currentUser) {
@@ -396,6 +473,7 @@ export default {
                 } catch (authError) {
                     console.warn('⚠️ [登录流程] 匿名认证失败（可能已在 main.js 中完成）:', authError);
                 }
+                // #endif
                 
                 // 延迟一小段时间，确保页面加载完成
                 setTimeout(() => {
@@ -409,7 +487,8 @@ export default {
             console.log('🤔 [登录流程] 缓存未命中，开始执行云端登录...');
             
             try {
-                // 检查是否已经登录，避免重复登录
+                // 检查是否已经登录，避免重复登录（仅 H5/APP）
+                // #ifdef H5 || APP-PLUS
                 const currentUser = this.$tcb.auth().currentUser;
                 if (!currentUser) {
                     console.log('🔐 [认证] 尝试匿名登录...');
@@ -418,6 +497,7 @@ export default {
                 } else {
                     console.log('✅ [认证] 用户已登录，跳过匿名登录');
                 }
+                // #endif
                 
                 // 【修正】调用 this.$tcb，而不是 uniCloud！
                 const loginRes = await this.$tcb.callFunction({
@@ -502,7 +582,9 @@ export default {
 </script>
 
 <style>
-/* 全局字体预加载 - 确保Huiwen-mincho字体在所有页面都能立即显示 */
+/* 全局字体预加载 - 仅用于诗歌内容 */
+/* 小程序不支持 CSS @font-face 加载本地字体，只在 H5 和 APP 环境使用 */
+/* #ifndef MP-WEIXIN */
 @font-face {
   font-family: 'Huiwen-mincho';
   src: url('/static/fonts/Huiwen-mincho.otf') format('opentype');
@@ -510,6 +592,7 @@ export default {
   font-style: normal;
   font-display: swap; /* 优化字体加载性能 */
 }
+/* #endif */
 
 /* 全局样式：修改下拉刷新的loading转圈圈颜色为黑色 */
 /* 针对微信小程序 */

@@ -18,7 +18,7 @@
                 <block v-else>
                   <!-- 折叠状态下只显示高光行 -->
                   <block v-if="post.highlightLines && post.highlightLines.length > 0">
-                    <text v-for="(highlightLine, index) in post.highlightLines" :key="'line-' + index" style="font-weight: 700; display: block;">{{ highlightLine }}</text>
+                    <text v-for="(highlightLine, index) in post.highlightLines" :key="index" style="font-weight: 700; display: block;">{{ highlightLine }}</text>
                   </block>
                   <block v-else>
                     {{ post.content }}
@@ -1126,13 +1126,7 @@ export default {
 </script>
 
 <style>
-/* 定义 Huiwen-mincho 字体 */
-@font-face {
-  font-family: 'Huiwen-mincho';
-  src: url('/static/fonts/Huiwen-mincho.otf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
-}
+/* 诗歌内容使用汇文明朝字体，其他地方使用系统默认字体 */
 
 .white-bg {
   background: #fff;
@@ -1309,7 +1303,7 @@ export default {
 
 /* Typography inspired by poem.css */
 .post-content {
-  font-family: 'Huiwen-mincho', sans-serif;
+  font-family: '汇文明朝', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   font-style: normal;
   font-weight: 500;
   font-size: 28rpx; /* 调小字体：14px * 2 */

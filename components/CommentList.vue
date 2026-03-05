@@ -4,7 +4,7 @@
         
         <!-- 评论骨架屏 -->
         <view v-if="isLoading" class="comment-skeleton-list">
-            <view class="comment-skeleton-item" v-for="n in skeletonCount" :key="'comment-skeleton-' + n">
+            <view class="comment-skeleton-item" v-for="n in skeletonCount" :key="n">
                 <view class="skeleton-avatar skeleton-animate"></view>
                 <view class="comment-skeleton-body">
                     <view class="skeleton-line medium skeleton-animate"></view>
@@ -18,7 +18,7 @@
             <block v-if="comments.length > 0">
                 <comment-item
                     v-for="(item, commentIndex) in comments"
-                    :key="item._id || commentIndex"
+                    :key="commentIndex"
                     :item="item"
                     :comment-index="commentIndex"
                     @avatar-error="$emit('avatar-error', $event)"

@@ -249,7 +249,7 @@
             <!-- 评论区骨架 -->
             <view class="skeleton-section-title skeleton-animate"></view>
             <view class="skeleton-comment-list">
-                <view class="skeleton-comment-item" v-for="n in 3" :key="'detail-skeleton-comment-' + n">
+                <view class="skeleton-comment-item" v-for="n in 3" :key="n">
                     <view class="skeleton-avatar skeleton-animate"></view>
                     <view class="skeleton-comment-body">
                         <view class="skeleton-line medium skeleton-animate"></view>

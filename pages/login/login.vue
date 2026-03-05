@@ -3,30 +3,63 @@
     <view class="container">
       <text class="brand">poementer</text>
       <view class="center-wrap">
-      <view class="form-wrapper compact">
-        <view class="input-wrapper">
-          <input class="input-field" type="text" placeholder="请输入 Poem ID" v-model="poemId" />
+        
+        <!-- 小程序环境：显示微信授权登录 -->
+        <!-- #ifdef MP-WEIXIN -->
+        <view class="wechat-login-section" v-if="!showPasswordLogin">
+          <button 
+            class="wechat-login-btn" 
+            @tap="loginWithWechat"
+            :disabled="isLogging"
+          >
+            <text class="wechat-login-text">微信授权登录</text>
+          </button>
+          
+          <!-- 切换到账号密码登录 -->
+          <view class="switch-login-method" @tap="showPasswordLogin = true">
+            <text class="switch-text">使用 Poem ID 登录</text>
+          </view>
         </view>
-        <view class="input-wrapper">
-          <input class="input-field" type="password" placeholder="请输入密码" v-model="password" />
-        </view>
+        <!-- #endif -->
+        
+        <!-- H5/App 环境 或 小程序切换到密码登录 -->
+        <!-- #ifndef MP-WEIXIN -->
+        <view class="password-login-section">
+        <!-- #endif -->
+        <!-- #ifdef MP-WEIXIN -->
+        <view class="password-login-section" v-if="showPasswordLogin">
+        <!-- #endif -->
+          <view class="form-wrapper compact">
+            <view class="input-wrapper">
+              <input class="input-field" type="text" placeholder="请输入 Poem ID" v-model="poemId" />
+            </view>
+            <view class="input-wrapper">
+              <input class="input-field" type="password" placeholder="请输入密码" v-model="password" />
+            </view>
 
-        <!-- 注册入口 -->
-        <view class="register-link" @tap="goToRegister">
-          <text class="register-text">注册</text>
-        </view>
+            <!-- 注册入口 -->
+            <view class="register-link" @tap="goToRegister">
+              <text class="register-text">注册</text>
+            </view>
 
-        <!-- GitHub 登录（图标样式）- 暂时隐藏 -->
-        <!-- <view class="github-login-wrapper">
-          <image
-            class="github-login-icon"
-            src="/static/images/github-logo.png"
-            mode="aspectFit"
-            :aria-label="'使用 GitHub 登录'"
-            @tap="loginWithGitHub"
-          />
-        </view> -->
-    </view>
+            <!-- GitHub 登录（图标样式）- 暂时隐藏 -->
+            <!-- <view class="github-login-wrapper">
+              <image
+                class="github-login-icon"
+                src="/static/images/github-logo.png"
+                mode="aspectFit"
+                :aria-label="'使用 GitHub 登录'"
+                @tap="loginWithGitHub"
+              />
+            </view> -->
+          </view>
+          
+          <!-- #ifdef MP-WEIXIN -->
+          <view class="switch-login-method" @tap="showPasswordLogin = false">
+            <text class="switch-text">返回微信登录</text>
+          </view>
+          <!-- #endif -->
+        </view>
       </view>
     </view>
 
@@ -84,10 +117,12 @@
 // pages/login/login.js
 import { cloudCall } from '@/utils/cloudCall.js';
 import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
+import { ensureWxCloudInit } from '@/utils/wxCloudInit.js';
 
 const app = getApp();
 
-// 调用 uniCloud 云函数（自动处理本地调试服务连接失败的情况）
+// #ifdef APP-PLUS
+// 调用 uniCloud 云函数（仅 APP 环境支持，用于一键登录）
 async function callUniCloudFunction(name, data) {
     try {
         // 直接调用，uniCloud 会根据 HBuilderX 配置自动选择本地或云端
@@ -120,6 +155,7 @@ async function callUniCloudFunction(name, data) {
         throw error;
     }
 }
+// #endif
 
 export default {
     data() {
@@ -127,6 +163,7 @@ export default {
             poemId: '',
             password: '',
             isLogging: false,
+            showPasswordLogin: false, // 小程序环境下控制是否显示密码登录
             showBindPhoneModal: false,
             isBindingPhone: false,
             bindPhoneMethod: 'oneclick', // 'oneclick' 或 'sms'
@@ -141,6 +178,11 @@ export default {
     
     computed: {
         canLogin() {
+            // #ifdef MP-WEIXIN
+            if (!this.showPasswordLogin) {
+                return true; // 微信登录始终可用
+            }
+            // #endif
             return this.poemId.trim() && this.password.trim();
         },
         // 判断是否为 APP 端
@@ -156,6 +198,33 @@ export default {
     onLoad: function () {
         console.log('🔍 [登录页面] 页面加载');
 
+        // 【关键修复】确保微信云开发已初始化
+        ensureWxCloudInit();
+
+        // #ifdef MP-WEIXIN
+        // 小程序环境：确保 wx.cloud 已初始化
+        if (typeof wx !== 'undefined' && wx.cloud) {
+            // 检查是否已经初始化过
+            if (!this.$tcb) {
+                console.log('⚠️ [登录页面] wx.cloud 未挂载，立即初始化');
+                try {
+                    wx.cloud.init({
+                        env: 'cloud1-5gb0pbyl400845f5',
+                        traceUser: true
+                    });
+                    this.$tcb = wx.cloud;
+                    console.log('✅ [登录页面] wx.cloud 初始化完成并挂载到 this.$tcb');
+                } catch (error) {
+                    console.error('❌ [登录页面] wx.cloud 初始化失败:', error);
+                }
+            } else {
+                console.log('✅ [登录页面] wx.cloud 已初始化');
+            }
+        } else {
+            console.error('❌ [登录页面] wx.cloud 不可用');
+        }
+        // #endif
+
         // 检查是否需要重新初始化openid
         this.checkAndInitializeOpenid();
 
@@ -166,6 +235,90 @@ export default {
         this.handleGitHubRedirectCallback();
     },
     methods: {
+        // 微信授权登录
+        async loginWithWechat() {
+            // #ifdef MP-WEIXIN
+            if (this.isLogging) return;
+            
+            this.isLogging = true;
+            uni.showLoading({
+                title: '登录中...',
+                mask: true
+            });
+            
+            try {
+                console.log('🔍 [微信登录] 开始微信登录流程');
+                
+                // 1. 调用 wx.login 获取 code
+                const loginRes = await new Promise((resolve, reject) => {
+                    wx.login({
+                        success: resolve,
+                        fail: reject
+                    });
+                });
+                
+                console.log('🔍 [微信登录] wx.login 成功:', loginRes);
+                
+                if (!loginRes.code) {
+                    throw new Error('获取微信登录凭证失败');
+                }
+                
+                // 2. 调用云函数验证用户
+                const result = await this.callCloudFunction('loginWithWechat', {
+                    code: loginRes.code
+                });
+                
+                console.log('🔍 [微信登录] 云函数返回结果:', result);
+                
+                if (result.result && result.result.success) {
+                    // 登录成功（包括自动注册的新用户）
+                    console.log('✅ [微信登录] 登录成功');
+                    
+                    // 如果是新用户，显示欢迎提示
+                    if (result.result.isNewUser) {
+                        const poemId = result.result.defaultPoemId || result.result.userInfo?.poemId;
+                        uni.showToast({
+                            title: `欢迎！您的 Poem ID: ${poemId}`,
+                            icon: 'none',
+                            duration: 3000
+                        });
+                    }
+                    
+                    await this.handleLoginResult(result);
+                } else {
+                    throw new Error(result.result?.message || '登录失败');
+                }
+            } catch (error) {
+                console.error('❌ [微信登录] 失败:', error);
+                
+                // 如果是用户拒绝授权，提示使用账号密码登录
+                if (error.errMsg && error.errMsg.includes('auth deny')) {
+                    uni.showModal({
+                        title: '授权失败',
+                        content: '您拒绝了微信授权，可以使用 Poem ID 登录',
+                        showCancel: true,
+                        cancelText: '取消',
+                        confirmText: '使用 Poem ID',
+                        success: (res) => {
+                            if (res.confirm) {
+                                this.showPasswordLogin = true;
+                            }
+                        }
+                    });
+                } else {
+                    uni.showToast({
+                        title: error.message || '登录失败，请重试',
+                        icon: 'none',
+                        duration: 3000
+                    });
+                }
+            } finally {
+                uni.hideLoading();
+                this.isLogging = false;
+            }
+            // #endif
+        },
+        
         // GitHub 登录
         async loginWithGitHub() {
             try {
@@ -236,6 +389,12 @@ export default {
 
         // 处理 GitHub 回调（云函数直接处理并重定向回来的模式）
         handleGitHubRedirectCallback() {
+            // #ifdef H5
+            // 小程序不支持 GitHub 登录，只在 H5 环境处理
+            if (typeof window === 'undefined' || !window.location) {
+                return;
+            }
+            
             const urlParams = new URLSearchParams(window.location.search);
             const githubLogin = urlParams.get('githubLogin');
 
@@ -313,10 +472,17 @@ export default {
                     });
                 }
             }
+            // #endif
         },
 
         // 处理 GitHub 回调（旧的手动处理模式 - 保留备用）
         async handleGitHubCallback() {
+            // #ifdef H5
+            // 小程序不支持 GitHub 登录，只在 H5 环境处理
+            if (typeof window === 'undefined' || !window.location) {
+                return;
+            }
+            
             // 从 URL 获取 code 和 state
             const urlParams = new URLSearchParams(window.location.search);
             const code = urlParams.get('code');
@@ -381,6 +547,7 @@ export default {
                     uni.hideLoading();
                 }
             }
+            // #endif
         },
 
         // 已有本地登录信息则自动跳转
@@ -465,6 +632,13 @@ export default {
 
         // 账号密码登录
         async onLogin() {
+            // #ifdef MP-WEIXIN
+            if (!this.showPasswordLogin) {
+                // 微信登录
+                return this.loginWithWechat();
+            }
+            // #endif
+            
             if (!this.canLogin || this.isLogging) {
                 return;
             }
@@ -842,6 +1016,70 @@ export default {
 }
 .register-text:active {
   color: #666;
+}
+
+/* 微信登录区域 */
+.wechat-login-section {
+  width: 100%;
+  max-width: 560rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32rpx;
+}
+
+.wechat-login-btn {
+  width: 100%;
+  height: 96rpx;
+  background: #07c160;
+  border-radius: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+.wechat-login-btn:active {
+  opacity: 0.8;
+  transform: scale(0.98);
+}
+
+.wechat-login-btn[disabled] {
+  opacity: 0.6;
+}
+
+.wechat-login-text {
+  font-size: 32rpx;
+  color: #fff;
+  font-weight: 500;
+}
+
+.switch-login-method {
+  width: 100%;
+  text-align: center;
+  padding: 16rpx 0;
+}
+
+.switch-text {
+  font-size: 28rpx;
+  color: #999;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.switch-text:active {
+  color: #666;
+}
+
+.password-login-section {
+  width: 100%;
+  max-width: 560rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24rpx;
 }
 
 /* GitHub 登录 */

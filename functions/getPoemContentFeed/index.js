@@ -1,3 +1,4 @@
+// TODO: AI推荐算法暂时停用
 // 诗歌内容驱动的推荐（不依赖标签）
 // 复用前后端分离：前端通过 cloudCall 访问本函数
 const cloud = require('wx-server-sdk');

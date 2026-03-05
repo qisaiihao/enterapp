@@ -76,12 +76,53 @@ if (!__global.__tcbAppInstance) {
 // #ifdef H5 || APP-PLUS
 Vue.prototype.$tcb = tcbApp;
 // #endif
-// #ifdef MP-WEIXIN
-Vue.prototype.$tcb = {
-  callFunction(options = {}) { return wx.cloud.callFunction(options); },
-  getTempFileURL(args = {}) { return wx.cloud.getTempFileURL(args); }
-};
-// #endif
+
+// 小程序环境：初始化 wx.cloud 并挂载到 Vue 原型
+// 【关键修复】不使用条件编译，改为运行时检测
+if (typeof wx !== 'undefined' && wx.cloud) {
+  console.log('☁️ [main.js] 检测到微信小程序环境，开始初始化云开发...');
+  try {
+    // 立即同步初始化 wx.cloud
+    wx.cloud.init({
+      env: 'cloud1-5gb0pbyl400845f5',
+      traceUser: true
+    });
+    console.log('✅ [main.js] 云开发初始化完成，环境 ID: cloud1-5gb0pbyl400845f5');
+    
+    // 挂载 wx.cloud 到 Vue 原型，保持与 H5/APP 的一致性
+    Vue.prototype.$tcb = {
+      callFunction(options = {}) { 
+        console.log('🔍 [Vue.$tcb] 调用云函数:', options.name);
+        return wx.cloud.callFunction(options); 
+      },
+      getTempFileURL(args = {}) { return wx.cloud.getTempFileURL(args); },
+      database() { return wx.cloud.database(); },
+      uploadFile(options = {}) { return wx.cloud.uploadFile(options); },
+      downloadFile(options = {}) { return wx.cloud.downloadFile(options); },
+      deleteFile(options = {}) { return wx.cloud.deleteFile(options); },
+      // 添加 auth 方法的空实现，避免调用时报错
+      auth() {
+        return {
+          currentUser: null,
+          signInAnonymously() {
+            return Promise.resolve();
+          }
+        };
+      }
+    };
+    console.log('✅ [main.js] wx.cloud 已挂载到 Vue.prototype.$tcb');
+    
+    // 同时挂载到 uni 对象，确保全局可访问
+    if (typeof uni !== 'undefined') {
+      uni.$tcb = Vue.prototype.$tcb;
+      console.log('✅ [main.js] wx.cloud 已挂载到 uni.$tcb');
+    }
+  } catch (error) {
+    console.error('❌ [main.js] 云开发初始化失败:', error);
+  }
+} else if (typeof wx !== 'undefined') {
+  console.error('❌ [main.js] wx.cloud 不可用，请使用 2.2.3 或以上的基础库');
+}
 
 // 注入临时 URL 解析器（全平台支持）
 try {
@@ -238,6 +279,8 @@ function resolveOpenidForCall(functionName) {
   return { openid, allowed: true };
 }
 
+// #ifdef APP-PLUS
+// uniCloud 拦截器仅在 APP 环境下启用（用于热更新和一键登录）
 const originalUniCloudCallFunction = uniCloud.callFunction.bind(uniCloud);
 uniCloud.callFunction = function (options = {}) {
   const name = options.name;
@@ -263,6 +306,7 @@ uniCloud.callFunction = function (options = {}) {
   const mergedOptions = Object.assign({}, options, { data });
   return originalUniCloudCallFunction(mergedOptions);
 };
+// #endif
 
 // #ifdef H5 || APP-PLUS
 const originalTcbCallFunction = tcbApp.callFunction.bind(tcbApp);
@@ -339,9 +383,33 @@ export function createApp() {
     })();
     // #endif
     // #ifdef MP-WEIXIN
+    // 小程序环境：初始化 wx.cloud 并挂载到 app
+    if (!wx.cloud) {
+      console.error('❌ [云开发-VUE3] 请使用 2.2.3 或以上的基础库以使用云能力');
+    } else {
+      console.log('☁️ [云开发-VUE3] 开始初始化...');
+      wx.cloud.init({
+        env: 'cloud1-5gb0pbyl400845f5', // 您的云环境 ID
+        traceUser: true
+      });
+      console.log('✅ [云开发-VUE3] 初始化完成，环境 ID: cloud1-5gb0pbyl400845f5');
+    }
     app.config.globalProperties.$tcb = {
       callFunction(options = {}) { return wx.cloud.callFunction(options); },
-      getTempFileURL(args = {}) { return wx.cloud.getTempFileURL(args); }
+      getTempFileURL(args = {}) { return wx.cloud.getTempFileURL(args); },
+      database() { return wx.cloud.database(); },
+      uploadFile(options = {}) { return wx.cloud.uploadFile(options); },
+      downloadFile(options = {}) { return wx.cloud.downloadFile(options); },
+      deleteFile(options = {}) { return wx.cloud.deleteFile(options); },
+      // 添加 auth 方法的空实现，避免调用时报错
+      auth() {
+        return {
+          currentUser: null,
+          signInAnonymously() {
+            return Promise.resolve();
+          }
+        };
+      }
     };
 
     // 注入临时 URL 解析器（VUE3环境）

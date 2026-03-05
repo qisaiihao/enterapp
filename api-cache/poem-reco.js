@@ -1,3 +1,6 @@
+// TODO: AI推荐算法暂时停用
+// 以下代码已注释，等待后续完善
+
 import cacheManager from '@/_utils/cache-manager';
 import { buildCacheKey } from './cache-key-builder.js';
 const { cloudCall } = require('@/utils/cloudCall.js');
@@ -29,6 +32,11 @@ async function getContentPoemFeed({
   debugEmbedding = false,
   timeoutMs
 } = {}) {
+  // TODO: AI推荐算法暂时停用，返回空数据
+  console.log('AI推荐算法已停用');
+  return { posts: [], hasMore: false };
+  
+  /* 以下代码暂时停用
   const baseKey = buildCacheKey({ page, pageSize, mode: 'content' });
   // 排除列表参与 key，避免重复命中
   const key =
@@ -67,18 +75,26 @@ async function getContentPoemFeed({
   }
 
   return ns.getOrFetch(key, loader, { ttlMs: TTL_MS, swrMs: SWR_MS });
+  */
 }
 
 /**
  * 失效缓存
  */
 function invalidateContentPoemFeed({ page, pageSize = 10 } = {}) {
+  // TODO: AI推荐算法暂时停用
+  console.log('AI推荐算法已停用，无需清理缓存');
+  return;
+  
+  /* 以下代码暂时停用
   if (typeof page === 'number') {
     const key = buildCacheKey({ page, pageSize, mode: 'content' });
     ns.delete(key);
   } else {
     ns.clear();
   }
+  */
 }
 
 export { getContentPoemFeed, invalidateContentPoemFeed };
+

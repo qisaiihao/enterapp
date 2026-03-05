@@ -261,7 +261,8 @@ export default {
             return cloudCall(name, data, Object.assign({ pageTag: 'profile-edit', context: this, requireAuth: true }, extraOptions));
         },
 
-        // 调用 uniCloud 云函数（自动处理本地调试服务连接失败的情况）
+        // #ifdef APP-PLUS
+        // 调用 uniCloud 云函数（仅 APP 环境支持，用于一键登录）
         async callUniCloudFunction(name, data) {
             try {
                 return await uniCloud.callFunction({
@@ -287,6 +288,7 @@ export default {
                 throw error;
             }
         },
+        // #endif
 
         fetchUserProfile: function () {
             this.callCloudFunction('getMyProfileData', {}).then((res) => {

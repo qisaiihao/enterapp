@@ -24,7 +24,7 @@
                 <view class="highlight-content-display">
                     <text class="highlight-content-line" 
                           v-for="(line, index) in contentLines"
-                          :key="'highlight-line-' + index"
+                          :key="index"
                           :class="{ 'selected-line': selectedIndices.includes(index) }"
                           @tap.stop="onToggleLine(index)">
                         {{ line || '\u00A0' }}

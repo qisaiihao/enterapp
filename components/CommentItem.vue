@@ -49,7 +49,7 @@
             <view v-if="!isReply && item.replies && item.replies.length > 0" class="replies-container">
                 <comment-item
                     v-for="(reply, replyIndex) in visibleReplies"
-                    :key="reply._id || replyIndex"
+                    :key="replyIndex"
                     :item="reply"
                     :is-reply="true"
                     :comment-index="commentIndex"

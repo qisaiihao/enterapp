@@ -1,0 +1,50 @@
+/**
+ * 诗歌内容专用样式
+ * 只在诗歌内容区域使用汇文明朝字体
+ * 其他地方使用系统默认字体
+ */
+
+/* 诗歌内容字体 - 汇文明朝 */
+.post-content {
+  font-family: '汇文明朝', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 28rpx;
+  line-height: 38rpx;
+  margin: 30rpx 0;
+  width: 100%;
+  overflow-wrap: break-word;
+}
+
+/* 组诗副标题 */
+.series-subtitle {
+  font-family: '汇文明朝', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  font-size: 24rpx;
+  font-weight: 600;
+  margin-bottom: 20rpx;
+  opacity: 0.8;
+}
+
+/* 折叠态 */
+.post-content.collapsed {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 当没有高光行时，使用三行裁切 */
+.post-content.collapsed.no-highlight {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+/* 展开态 */
+.post-content.expanded {
+  display: block;
+  overflow: visible;
+}
+
+/* 组诗展开态的内容边距调整 */
+.series-single-card .post-content {
+  margin: 20rpx 0 20rpx 0;
+}

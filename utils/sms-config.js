@@ -57,8 +57,9 @@ async function sendSmsCode(phone, scene = 'binding') {
   
   console.log(`📱 [SMS] 使用 ${funcInfo.provider} 发送短信`);
   
+  // #ifdef APP-PLUS
   if (funcInfo.provider === 'unicloud') {
-    // 调用 uniCloud 云函数
+    // 调用 uniCloud 云函数（仅 APP 环境支持）
     return await uniCloud.callFunction({
       name: funcInfo.name,
       data: {
@@ -66,7 +67,10 @@ async function sendSmsCode(phone, scene = 'binding') {
         scene: scene
       }
     });
-  } else if (funcInfo.provider === 'tencentcloud') {
+  }
+  // #endif
+  
+  if (funcInfo.provider === 'tencentcloud') {
     // 调用微信云开发云函数
     return await wx.cloud.callFunction({
       name: funcInfo.name,
@@ -76,6 +80,8 @@ async function sendSmsCode(phone, scene = 'binding') {
       }
     });
   }
+  
+  throw new Error(`不支持的服务商: ${funcInfo.provider}`);
 }
 
 /**
@@ -90,8 +96,9 @@ async function verifySmsCode(phone, code, scene = 'binding') {
   
   console.log(`🔍 [SMS] 使用 ${funcInfo.provider} 验证短信`);
   
+  // #ifdef APP-PLUS
   if (funcInfo.provider === 'unicloud') {
-    // 调用 uniCloud 云函数
+    // 调用 uniCloud 云函数（仅 APP 环境支持）
     return await uniCloud.callFunction({
       name: funcInfo.name,
       data: {
@@ -100,7 +107,10 @@ async function verifySmsCode(phone, code, scene = 'binding') {
         scene: scene
       }
     });
-  } else if (funcInfo.provider === 'tencentcloud') {
+  }
+  // #endif
+  
+  if (funcInfo.provider === 'tencentcloud') {
     // 调用微信云开发云函数
     return await wx.cloud.callFunction({
       name: funcInfo.name,
@@ -111,6 +121,8 @@ async function verifySmsCode(phone, code, scene = 'binding') {
       }
     });
   }
+  
+  throw new Error(`不支持的服务商: ${funcInfo.provider}`);
 }
 
 module.exports = {

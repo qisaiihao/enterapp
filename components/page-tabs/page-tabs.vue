@@ -4,7 +4,7 @@
     <top-bar ref="topBar" left-icon="/static/images/newicons/write_poem.png" @safe-area-ready="onSafeAreaReady" />
 
     <!-- 页面切换标签栏 - 定位在 top-bar 下方 -->
-    <view class="tabs-container" :style="{ top: (safeAreaTop + 50) + 'px' }">
+    <view class="tabs-container" :style="{ top: tabsTopPosition }">
       <view class="tabs-list">
         <view
           v-for="(tab, index) in tabs"
@@ -52,6 +52,16 @@ export default {
       // 每个 tab 占 1/3 宽度，指示器在 tab 中心
       const translateX = (index * 100 / 3) + (100 / 6); // 移动到对应 tab 的中心
       return `left: calc(${translateX}% - 30rpx);`; // 30rpx 是指示器宽度的一半
+    },
+    // 计算 tabs 的 top 位置
+    tabsTopPosition() {
+      // top-bar 高度 = safeAreaTop(px) + 100rpx
+      // 需要将 rpx 转换为 px：100rpx ≈ 50px (iPhone 6 基准)
+      const topBarHeightPx = this.safeAreaTop + 50; // safeAreaTop(px) + 100rpx转px
+      console.log('📍 [page-tabs] safeAreaTop:', this.safeAreaTop);
+      console.log('📍 [page-tabs] topBarHeightPx:', topBarHeightPx);
+      console.log('📍 [page-tabs] tabsTopPosition:', topBarHeightPx + 'px');
+      return topBarHeightPx + 'px';
     }
   },
   methods: {
@@ -64,7 +74,9 @@ export default {
 
     // 接收 top-bar 传递的安全区域高度
     onSafeAreaReady(height) {
+      console.log('📍 [page-tabs] 接收到 safeAreaTop:', height);
       this.safeAreaTop = height;
+      console.log('📍 [page-tabs] 设置后 this.safeAreaTop:', this.safeAreaTop);
     }
   }
 };

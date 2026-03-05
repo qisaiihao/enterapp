@@ -1,3 +1,5 @@
+// TODO: AI推荐算法暂时停用
+// 定时任务：批量补齐帖子的 embedding 字段
 const cloud = require('wx-server-sdk');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });

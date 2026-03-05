@@ -116,7 +116,8 @@ import { getCurrentPlatform } from '@/utils/platformDetector.js';
 
 const app = getApp();
 
-// 调用 uniCloud 云函数（自动处理本地调试服务连接失败的情况）
+// #ifdef APP-PLUS
+// 调用 uniCloud 云函数（仅 APP 环境支持，用于一键登录）
 async function callUniCloudFunction(name, data) {
     try {
         // 直接调用，uniCloud 会根据 HBuilderX 配置自动选择本地或云端
@@ -149,6 +150,7 @@ async function callUniCloudFunction(name, data) {
         throw error;
     }
 }
+// #endif
 
 export default {
     data() {
@@ -178,6 +180,9 @@ export default {
             // GitHub 登录相关
             fromGithub: false,
             githubData: null,
+            // 微信登录相关
+            fromWechat: false,
+            wechatData: null,
             // 绑定已有账号
             showBindAccountDialog: false,
             bindPoemId: '',
@@ -233,6 +238,27 @@ export default {
                 });
             } catch (error) {
                 console.error('❌ [注册页] 解析 GitHub 数据失败:', error);
+            }
+        }
+        
+        // 检查是否来自微信登录
+        if (options.fromWechat === 'true') {
+            try {
+                this.fromWechat = true;
+                // 从本地存储读取微信数据
+                const wechatData = uni.getStorageSync('wechat_temp_data');
+                if (wechatData) {
+                    this.wechatData = wechatData;
+                    console.log('📱 [注册页] 检测到微信登录数据:', this.wechatData);
+                    
+                    uni.showToast({
+                        title: '请完善注册信息',
+                        icon: 'none',
+                        duration: 2000
+                    });
+                }
+            } catch (error) {
+                console.error('❌ [注册页] 读取微信数据失败:', error);
             }
         }
     },
