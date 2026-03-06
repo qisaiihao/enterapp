@@ -100,6 +100,7 @@
                     canvas-id="signatureCanvas"
                     type="2d"
                     class="signature-canvas"
+                    :style="{ width: signatureCanvasWidth + 'px', height: signatureCanvasHeight + 'px' }"
                 ></canvas>
             </view>
 
@@ -190,8 +191,11 @@ export default {
             signatureUrl: '',
             signaturePreview: '',
             signatureTempPath: null,
+            signatureOriginalPath: '',
             isProcessingSignature: false,
             autoRemoveSignatureBg: true,
+            signatureCanvasWidth: 1,
+            signatureCanvasHeight: 1,
             // 修改手机号相关
             showEditPhoneModal: false,
             newPhoneNumber: '',
@@ -453,6 +457,11 @@ export default {
             if (!filePath) {
                 uni.showToast({ title: '未选择图片', icon: 'none' });
                 return;
+            }
+
+            // 记录原始签名图，便于开关切换时回退/重处理
+            if (this.signatureOriginalPath !== filePath) {
+                this.setData({ signatureOriginalPath: filePath });
             }
 
             if (!this.autoRemoveSignatureBg) {
@@ -725,43 +734,112 @@ export default {
 
         onToggleSignatureBg(e) {
             const enabled = !!(e && e.detail && e.detail.value);
-            this.setData({
-                autoRemoveSignatureBg: enabled
-            });
+            this.setData({ autoRemoveSignatureBg: enabled });
+
+            // 切换开关时，如果已有签名图，立即重处理/回退
+            const originalPath = this.signatureOriginalPath || this.signatureTempPath;
+            if (!originalPath) return;
+
+            if (!enabled) {
+                this.setData({
+                    signaturePreview: originalPath,
+                    signatureTempPath: originalPath,
+                    signatureUrl: ''
+                });
+                return;
+            }
+
+            if (this.isProcessingSignature) return;
+            this.processSignatureImage(originalPath);
         },
 
         async removeWhiteBackground(filePath) {
             const { getCurrentPlatform } = require('../../utils/platformDetector.js');
             const platform = getCurrentPlatform();
 
-            const canvas = await new Promise((resolve, reject) => {
-                try {
-                    const query = uni.createSelectorQuery().in(this);
-                    query
-                        .select('#signatureCanvas')
-                        .fields({ node: true, size: true })
-                        .exec((res) => {
-                            const node = res && res[0] && res[0].node;
-                            if (node) {
-                                resolve(node);
-                                return;
-                            }
-                            if (typeof document !== 'undefined') {
-                                const domCanvas = document.getElementById('signatureCanvas');
-                                if (domCanvas) {
-                                    resolve(domCanvas);
+            const sampleBackgroundColor = (pixels, width, height) => {
+                const samplePoints = [
+                    [2, 2],
+                    [width - 3, 2],
+                    [2, height - 3],
+                    [width - 3, height - 3],
+                    [Math.floor(width / 2), 2],
+                    [Math.floor(width / 2), height - 3]
+                ];
+                let r = 0;
+                let g = 0;
+                let b = 0;
+                let count = 0;
+                samplePoints.forEach(([x, y]) => {
+                    if (x < 0 || y < 0 || x >= width || y >= height) return;
+                    const idx = (y * width + x) * 4;
+                    r += pixels[idx];
+                    g += pixels[idx + 1];
+                    b += pixels[idx + 2];
+                    count += 1;
+                });
+                if (!count) return { r: 255, g: 255, b: 255 };
+                return {
+                    r: Math.round(r / count),
+                    g: Math.round(g / count),
+                    b: Math.round(b / count)
+                };
+            };
+
+            let rawWidth = 0;
+            let rawHeight = 0;
+            try {
+                const imageInfo = await new Promise((resolve, reject) => {
+                    uni.getImageInfo({
+                        src: filePath,
+                        success: resolve,
+                        fail: reject
+                    });
+                });
+                rawWidth = imageInfo && imageInfo.width ? imageInfo.width : 0;
+                rawHeight = imageInfo && imageInfo.height ? imageInfo.height : 0;
+            } catch (infoErr) {
+                // H5/部分平台可能无法获取本地图片信息，降级为后续 img 尺寸
+                rawWidth = 0;
+                rawHeight = 0;
+            }
+
+            const isH5 = platform === 'h5' && typeof document !== 'undefined';
+            let canvas = null;
+            let ctx = null;
+
+            if (isH5) {
+                canvas = document.createElement('canvas');
+                ctx = canvas.getContext('2d');
+                if (!ctx) throw new Error('无法获取 canvas context');
+            } else {
+                canvas = await new Promise((resolve, reject) => {
+                    try {
+                        const query = uni.createSelectorQuery().in(this);
+                        query
+                            .select('#signatureCanvas')
+                            .fields({ node: true, size: true })
+                            .exec((res) => {
+                                const node = res && res[0] && res[0].node;
+                                if (node) {
+                                    resolve(node);
                                     return;
                                 }
-                            }
-                            reject(new Error('无法获取 canvas 节点'));
-                        });
-                } catch (error) {
-                    reject(error);
-                }
-            });
+                                reject(new Error('无法获取 canvas 节点'));
+                            });
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+                ctx = canvas.getContext('2d');
+                if (!ctx) throw new Error('无法获取 canvas context');
+            }
 
-            const ctx = canvas.getContext('2d');
-            const img = canvas.createImage ? canvas.createImage() : new Image();
+            const img = canvas.createImage ? canvas.createImage() : (typeof Image !== 'undefined' ? new Image() : null);
+            if (!img) throw new Error('当前环境不支持加载图片');
+            if (isH5 && img && typeof img.crossOrigin !== 'undefined') {
+                img.crossOrigin = 'anonymous';
+            }
 
             const imgInfo = await new Promise((resolve, reject) => {
                 img.onload = () => resolve({ width: img.width, height: img.height });
@@ -769,22 +847,37 @@ export default {
                 img.src = filePath;
             });
 
-            const maxSide = 900;
-            const scale = Math.min(1, maxSide / Math.max(imgInfo.width, imgInfo.height));
-            const width = Math.max(1, Math.round(imgInfo.width * scale));
-            const height = Math.max(1, Math.round(imgInfo.height * scale));
+            const baseWidth = rawWidth || imgInfo.width || 0;
+            const baseHeight = rawHeight || imgInfo.height || 0;
+            if (!baseWidth || !baseHeight) {
+                throw new Error('无法获取图片尺寸');
+            }
+
+            const maxSide = 1200;
+            const scale = Math.min(1, maxSide / Math.max(baseWidth, baseHeight));
+            const width = Math.max(1, Math.round(baseWidth * scale));
+            const height = Math.max(1, Math.round(baseHeight * scale));
 
             canvas.width = width;
             canvas.height = height;
+            if (!isH5) {
+                this.setData({
+                    signatureCanvasWidth: width,
+                    signatureCanvasHeight: height
+                });
+            }
             ctx.clearRect(0, 0, width, height);
             ctx.drawImage(img, 0, 0, width, height);
 
             const imageData = ctx.getImageData(0, 0, width, height);
             const data = imageData.data;
 
-            const threshold = 240;
-            const softRange = 18;
-            const chromaThreshold = 20;
+            const bg = sampleBackgroundColor(data, width, height);
+            const bgLuma = (bg.r + bg.g + bg.b) / 3;
+            const threshold = Math.max(200, Math.min(250, bgLuma - 2));
+            const softRange = 28;
+            const chromaThreshold = 40;
+            const distanceThreshold = 36;
 
             for (let i = 0; i < data.length; i += 4) {
                 const r = data[i];
@@ -794,40 +887,51 @@ export default {
                 const min = Math.min(r, g, b);
                 const whiteness = (r + g + b) / 3;
                 const chroma = max - min;
+                const dist = Math.max(Math.abs(r - bg.r), Math.abs(g - bg.g), Math.abs(b - bg.b));
 
-                if (whiteness >= threshold && chroma <= chromaThreshold) {
+                const isBgStrong = dist <= 18 && chroma <= 26;
+                const isBgSoft = dist <= distanceThreshold && chroma <= chromaThreshold;
+
+                if (isBgStrong || (whiteness >= threshold && isBgSoft)) {
                     data[i + 3] = 0;
-                } else if (
-                    whiteness >= threshold - softRange &&
-                    chroma <= chromaThreshold + 6
-                ) {
-                    const t = (whiteness - (threshold - softRange)) / softRange;
-                    data[i + 3] = Math.round(data[i + 3] * (1 - Math.min(1, Math.max(0, t))));
+                } else if (whiteness >= threshold - softRange && isBgSoft) {
+                    const t = Math.min(1, Math.max(0, (dist - 18) / (distanceThreshold - 18)));
+                    data[i + 3] = Math.round(data[i + 3] * t);
                 }
             }
 
             ctx.putImageData(imageData, 0, 0);
 
-            if (platform === 'h5' && typeof canvas.toBlob === 'function') {
-                const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
-                if (!blob) {
-                    throw new Error('H5 导出失败');
+            if (platform === 'h5') {
+                if (typeof canvas.toBlob === 'function') {
+                    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+                    if (!blob) {
+                        throw new Error('H5 导出失败');
+                    }
+                    return URL.createObjectURL(blob);
                 }
-                return URL.createObjectURL(blob);
+                // H5 fallback: toDataURL
+                if (typeof canvas.toDataURL === 'function') {
+                    const dataUrl = canvas.toDataURL('image/png');
+                    return dataUrl;
+                }
             }
 
             return await new Promise((resolve, reject) => {
-                uni.canvasToTempFilePath(
-                    {
-                        canvasId: 'signatureCanvas',
-                        canvas,
-                        fileType: 'png',
-                        quality: 1,
-                        success: (res) => resolve(res.tempFilePath),
-                        fail: (err) => reject(err)
-                    },
-                    this
-                );
+                const exportOptions = {
+                    canvas,
+                    x: 0,
+                    y: 0,
+                    width,
+                    height,
+                    destWidth: width,
+                    destHeight: height,
+                    fileType: 'png',
+                    quality: 1,
+                    success: (res) => resolve(res.tempFilePath),
+                    fail: (err) => reject(err)
+                };
+                uni.canvasToTempFilePath(exportOptions, this);
             });
         },
 
@@ -1434,8 +1538,18 @@ export default {
     display: flex;
     flex-direction: column;
     gap: 20rpx;
-    width: 60%;
+    width: 100%;
     align-items: flex-start;
+    padding: 10rpx;
+    border-radius: 12rpx;
+    background-color: #ffffff;
+    background-image:
+        linear-gradient(45deg, #e6e6e6 25%, transparent 25%),
+        linear-gradient(-45deg, #e6e6e6 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #e6e6e6 75%),
+        linear-gradient(-45deg, transparent 75%, #e6e6e6 75%);
+    background-size: 24rpx 24rpx;
+    background-position: 0 0, 0 12rpx, 12rpx -12rpx, -12rpx 0px;
 }
 
 .signature-upload-btn {
@@ -1468,8 +1582,6 @@ export default {
     position: fixed;
     left: -9999px;
     top: -9999px;
-    width: 1px;
-    height: 1px;
     opacity: 0;
     pointer-events: none;
 }
