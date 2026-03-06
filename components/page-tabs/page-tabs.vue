@@ -1,10 +1,10 @@
 <template>
   <view class="page-tabs-wrapper">
     <!-- 复用 top-bar 组件，传入不同的左侧图标 -->
-    <top-bar ref="topBar" left-icon="/static/images/newicons/write_poem.png" @safe-area-ready="onSafeAreaReady" />
+    <top-bar ref="topBar" left-icon="/static/images/newicons/write_poem.png" />
 
     <!-- 页面切换标签栏 - 定位在 top-bar 下方 -->
-    <view class="tabs-container" :style="{ top: (safeAreaTop + 70) + 'px' }">
+    <view class="tabs-container">
       <view class="tabs-list">
         <view
           v-for="(tab, index) in tabs"
@@ -37,7 +37,6 @@ export default {
   },
   data() {
     return {
-      safeAreaTop: 0,
       tabs: [
         { label: '广场', value: 'square' },
         { label: '关注', value: 'following' },
@@ -60,11 +59,6 @@ export default {
       if (tabValue !== this.currentTab) {
         this.$emit('tab-change', tabValue);
       }
-    },
-
-    // 接收 top-bar 传递的安全区域高度
-    onSafeAreaReady(height) {
-      this.safeAreaTop = height;
     }
   }
 };
@@ -82,6 +76,7 @@ export default {
   left: 0;
   right: 0;
   height: 88rpx;
+  top: calc(env(safe-area-inset-top, var(--safe-area-inset-top, 0px)) + 120rpx);
   background: #ffffff;
   /* 仅需略高于内容，避免过高遮挡；top-bar 本身更高 */
   z-index: 1050;

@@ -2054,12 +2054,7 @@ export default {
 }
 
 .container {
-    /* #ifdef APP-PLUS */
-    padding-top: 276rpx;
-    /* #endif */
-    /* #ifdef H5 */
-    padding-top: 200rpx;
-    /* #endif */
+    padding-top: calc(208rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
     padding-bottom: 100rpx;
     background-color: #ffffff;
     min-height: 100vh;
@@ -2298,12 +2293,7 @@ export default {
 }
 
 .page-swiper {
-    /* #ifdef APP-PLUS */
-    height: calc(100vh - 276rpx - 100rpx);
-    /* #endif */
-    /* #ifdef H5 */
-    height: calc(100vh - 188rpx - 100rpx);
-    /* #endif */
+    height: calc(100vh - 208rpx - 100rpx - env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
     width: 100%;
     overflow: hidden;
     overscroll-behavior: none;
