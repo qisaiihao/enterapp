@@ -43,7 +43,7 @@
         <view class="poem-chips" :class="{'highlight': dropHighlight}">
           <view
             v-for="(word, idx) in poemWords"
-            :key="idx + word"
+            :key="idx"
             class="chip poem-chip"
             :class="{'line-break': word === '\\n'}"
             data-source="poem"

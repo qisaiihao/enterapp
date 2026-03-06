@@ -1,3 +1,4 @@
+// TODO: AI推荐算法暂时停用
 /**
  * embedText 云函数
  * 输入: { texts: string[] }

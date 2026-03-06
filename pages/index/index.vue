@@ -3,7 +3,7 @@
         <view class="container">
             <page-tabs ref="pageTabs" :current-tab="currentTab" @tab-change="onTabChange"></page-tabs>
 
-            <view class="square-mode-container">
+            <view class="square-mode-container" :style="squareContainerStyle">
                 <swiper 
                     class="page-swiper" 
                     :current="swiperCurrent" 
@@ -62,7 +62,9 @@
                                     >
                                         <text class="filter-toggle-text">{{ showNormalPostsOnly ? '显示全部' : '只看普通帖子' }}</text>
                                     </view>
+                                    <!-- TODO: AI推荐算法暂时停用，隐藏推荐按钮 -->
                                     <view
+                                        v-if="false"
                                         :class="'filter-toggle-btn ' + (useRecommendFeed ? 'active' : '')"
                                         @tap="toggleRecommendFeed"
                                     >
@@ -294,24 +296,88 @@ export default {
         },
         homeFeedListType() {
             return this.useRecommendFeed ? 'discover' : 'home';
+        },
+        // 计算 square-mode-container 的样式
+        squareContainerStyle() {
+            console.log('🎨 [squareContainerStyle] 开始计算样式');
+            console.log('🎨 [squareContainerStyle] safeAreaTop:', this.safeAreaTop);
+            
+            // #ifdef MP-WEIXIN
+            // 小程序端：safeAreaTop + top-bar(100rpx) + tabs(88rpx) + 额外间距(20rpx)
+            // safeAreaTop 需要从 px 转换为 rpx（px * 2 = rpx，基于 iPhone 6 基准）
+            const safeAreaTopRpx = this.safeAreaTop * 2; // 将 px 转换为 rpx
+            const topBarHeight = 100; // top-bar 高度（rpx）
+            const tabsHeight = 88;    // tabs 高度（rpx）
+            const extraSpacing = 20;  // 额外间距（rpx）
+            const totalHeight = safeAreaTopRpx + topBarHeight + tabsHeight + extraSpacing;
+            console.log('🎨 [MP-WEIXIN] safeAreaTopRpx:', safeAreaTopRpx, 'rpx');
+            console.log('🎨 [MP-WEIXIN] topBarHeight:', topBarHeight, 'rpx');
+            console.log('🎨 [MP-WEIXIN] tabsHeight:', tabsHeight, 'rpx');
+            console.log('🎨 [MP-WEIXIN] extraSpacing:', extraSpacing, 'rpx');
+            console.log('🎨 [MP-WEIXIN] totalHeight:', totalHeight, 'rpx');
+            const style = { paddingTop: totalHeight + 'rpx' };
+            console.log('🎨 [MP-WEIXIN] 返回样式:', style);
+            return style;
+            // #endif
+            
+            // #ifndef MP-WEIXIN
+            // APP 和 H5 端：使用原来的固定值（已在 .container 中设置）
+            console.log('🎨 [APP/H5] 返回空样式对象');
+            return {};
+            // #endif
         }
     },
     onLoad: function (options) {
+        console.log('🚀 [onLoad] 页面开始加载');
         this.debugSafeArea();
         this.setData({
             displayMode: 'square'
         });
+        console.log('🚀 [onLoad] displayMode 设置为 square');
         this.pageLoadStartTime = Date.now();
         this.initOpenid();
         this.waitForLoginThenInit();
         try { uni.$on && uni.$on('like-changed', this.syncLikeStatusFromCache); } catch (_) {}
         try { uni.$on && uni.$on('comment-count-changed', (e) => { try { this.updatePostCommentCount(e.postId, e.commentCount); } catch (_) {} }); } catch (_) {}
+        console.log('🚀 [onLoad] 页面加载完成');
     },
-    onShow: function () {
+    onShow() {
+        console.log('🎬 [onShow] 页面显示');
+        
+        // 【临时修复】如果 onLoad 没有执行，在 onShow 中初始化
+        if (!this.pageLoadStartTime) {
+            console.log('⚠️ [onShow] 检测到 onLoad 未执行，在 onShow 中初始化');
+            this.debugSafeArea();
+            this.setData({
+                displayMode: 'square'
+            });
+            this.pageLoadStartTime = Date.now();
+            this.initOpenid();
+            this.waitForLoginThenInit();
+            try { uni.$on && uni.$on('like-changed', this.syncLikeStatusFromCache); } catch (_) {}
+            try { uni.$on && uni.$on('comment-count-changed', (e) => { try { this.updatePostCommentCount(e.postId, e.commentCount); } catch (_) {} }); } catch (_) {}
+        }
+        
         // #ifndef MP-WEIXIN
         try { uni.hideTabBar({ animation: false }); } catch (e) {}
         try { this.$refs.customTabBar && this.$refs.customTabBar.syncSelected && this.$refs.customTabBar.syncSelected(); } catch (e) {}
         // #endif
+        
+        // #ifdef MP-WEIXIN
+        // 更新小程序自定义tabBar的选中状态
+        console.log('=== index onShow ===');
+        if (typeof this.getTabBar === 'function') {
+          const tabBar = this.getTabBar();
+          console.log('index getTabBar() 返回:', tabBar);
+          if (tabBar && tabBar.setData) {
+            console.log('调用 tabBar.setData({ selected: 0 })');
+            tabBar.setData({ selected: 0 }, () => {
+              console.log('index tabBar.setData 回调执行');
+            });
+          }
+        }
+        // #endif
+        
         // TabBar 状态更新，使用兼容性处理
         updateTabBarStatus(this, 0);
 
@@ -419,10 +485,11 @@ export default {
         // 首页刷新（FeedList 组件触发）
         onHomeRefresh: function () {
             this.isRefreshing = true;
-            if (this.useRecommendFeed) {
-                this.refreshDiscoverPosts();
-                return;
-            }
+            // TODO: AI推荐算法暂时停用
+            // if (this.useRecommendFeed) {
+            //     this.refreshDiscoverPosts();
+            //     return;
+            // }
             try {
                 invalidateHomePosts({});
             } catch (e) {
@@ -440,11 +507,12 @@ export default {
         },
 
         // 首页加载更多（根据推荐开关走不同逻辑）
+        // TODO: AI推荐算法暂时停用
         loadHomeMore: function () {
-            if (this.useRecommendFeed) {
-                this.loadRecommendationPosts();
-                return;
-            }
+            // if (this.useRecommendFeed) {
+            //     this.loadRecommendationPosts();
+            //     return;
+            // }
             this.getPostList();
         },
 
@@ -564,13 +632,20 @@ export default {
         },
 
             debugSafeArea() {
+            console.log('📏 [debugSafeArea] 开始获取安全区域高度');
             try {
                 const systemInfo = uni.getSystemInfoSync();
+                console.log('📏 [debugSafeArea] systemInfo:', systemInfo);
+                console.log('📏 [debugSafeArea] statusBarHeight:', systemInfo.statusBarHeight);
+                
                 if (systemInfo.statusBarHeight) {
                     const safeAreaTop = systemInfo.statusBarHeight;
+                    console.log('📏 [debugSafeArea] 设置 safeAreaTop:', safeAreaTop);
                     this.setData({
                         safeAreaTop: safeAreaTop
                     });
+                    console.log('📏 [debugSafeArea] setData 完成，当前 this.safeAreaTop:', this.safeAreaTop);
+                    
                     try {
                         if (typeof document !== 'undefined' && document.documentElement) {
                             document.documentElement.style.setProperty('--safe-area-inset-top', safeAreaTop + 'px');
@@ -578,10 +653,11 @@ export default {
                     } catch (cssError) {
                         console.log('CSS变量设置失败，使用数据绑定方式:', cssError);
                     }
+                } else {
+                    console.warn('⚠️ [debugSafeArea] statusBarHeight 不存在');
                 }
             } catch (error) {
-                console.error('安全区域调试失败:', error);
-                console.error('【index】安全区域调试失败:', error);
+                console.error('❌ [debugSafeArea] 安全区域调试失败:', error);
             }
         },
 
@@ -749,14 +825,25 @@ export default {
 
         // 等待登录完成再初始化首页数据，避免 isVoted 计算出错
         waitForLoginThenInit: function () {
+            console.log('🔐 [waitForLoginThenInit] 开始等待登录');
             const MAX_WAIT_MS = 5000; // 最多等待 5s
             const CHECK_INTERVAL_MS = 100;
             const start = Date.now();
             const checkAndGo = () => {
                 try {
                     const appInstance = getApp();
+                    console.log('🔐 [waitForLoginThenInit] 检查登录状态...');
+                    console.log('🔐 [waitForLoginThenInit] appInstance:', appInstance ? '存在' : '不存在');
+                    
+                    if (appInstance && appInstance.globalData) {
+                        console.log('🔐 [waitForLoginThenInit] globalData:', appInstance.globalData);
+                        console.log('🔐 [waitForLoginThenInit] _loginProcessCompleted:', appInstance.globalData._loginProcessCompleted);
+                        console.log('🔐 [waitForLoginThenInit] openid:', appInstance.globalData.openid);
+                    }
+                    
                     const loginDone = appInstance && appInstance.globalData && appInstance.globalData._loginProcessCompleted;
                     const openid = appInstance && appInstance.globalData && appInstance.globalData.openid;
+                    
                     if (loginDone && openid) {
                         console.log('🔐 [首页] 检测到登录完成且已获取 openid，开始拉取数据');
                         this.getIndexData();
@@ -765,7 +852,11 @@ export default {
                 } catch (e) {
                     console.log('🔐 [首页] 登录检测异常（忽略继续等待）', e);
                 }
-                if (Date.now() - start >= MAX_WAIT_MS) {
+                
+                const elapsed = Date.now() - start;
+                console.log('🔐 [waitForLoginThenInit] 已等待:', elapsed, 'ms');
+                
+                if (elapsed >= MAX_WAIT_MS) {
                     console.log('⏱️ [首页] 登录等待超时，兜底直接拉取数据');
                     this.getIndexData();
                     return;
@@ -775,6 +866,8 @@ export default {
             checkAndGo();
         },
         getIndexData: function () {
+            console.log('🔍 [getIndexData] 开始加载首页数据');
+            
             // 清理永不过期缓存（修复旧的错误缓存）
             try {
                 const ns = cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 });
@@ -782,6 +875,8 @@ export default {
             } catch (_) {}
             
             this.setData({ isLoading: true, postList: [], page: 0, hasMore: true, homeHasEverLoaded: false });
+            console.log('🔍 [getIndexData] 初始状态设置完成');
+            
             // 根据showNormalPostsOnly状态决定筛选参数
             const filterParams = {};
             if (this.showNormalPostsOnly) {
@@ -789,6 +884,7 @@ export default {
                 filterParams.isPoem = false;
                 filterParams.isDiscussion = false;
             }
+            
             getHomePosts({ 
                 page: 0, 
                 pageSize: PAGE_SIZE, 
@@ -810,8 +906,14 @@ export default {
                 }
             })
                 .then(async (list) => {
+                    console.log('🔍 [getIndexData] 云函数返回数据:', list?.length || 0, '条');
                     const postsRaw = Array.isArray(list) ? list : [];
+                    console.log('🔍 [getIndexData] 开始处理帖子数据...');
                     const posts = await processPostList(postsRaw);
+                    console.log('🔍 [getIndexData] 帖子数据处理完成:', posts.length, '条');
+                    console.log('🔍 [getIndexData] 第一条帖子:', posts[0]);
+                    
+                    // 【关键修复】确保数据正确设置
                     this.setData({
                         postList: posts,
                         page: 1,
@@ -819,6 +921,14 @@ export default {
                         hasMore: posts.length === PAGE_SIZE,
                         homeHasEverLoaded: true
                     });
+                    
+                    console.log('🔍 [getIndexData] setData 完成，当前状态:');
+                    console.log('   - postList.length:', this.postList?.length || 0);
+                    console.log('   - isLoading:', this.isLoading);
+                    console.log('   - homeHasEverLoaded:', this.homeHasEverLoaded);
+                    console.log('   - homeFeedPosts.length:', this.homeFeedPosts?.length || 0);
+                    console.log('   - homeFeedHasEverLoaded:', this.homeFeedHasEverLoaded);
+                    
                     const self = this;
                     setTimeout(() => {
                         if (self.preloadUserData && typeof self.preloadUserData === 'function') {
@@ -1159,8 +1269,11 @@ export default {
                 .then(async (list) => {
                     const postsRaw = Array.isArray(list) ? list : [];
                     console.log('✅ [首页] 获取到帖子数量（缓存封装）:', postsRaw.length);
+                    console.log('✅ [首页] 原始数据示例:', postsRaw[0]);
 
                     const posts = await processPostList(postsRaw);
+                    console.log('✅ [首页] 处理后帖子数量:', posts.length);
+                    console.log('✅ [首页] 处理后数据示例:', posts[0]);
 
                     const self = this;
                     setTimeout(() => {
@@ -1191,6 +1304,14 @@ export default {
                         newPostsCount
                     });
                     this.setData(updateData);
+                    
+                    // 【调试】验证 setData 后的状态
+                    console.log('✅ [首页] setData 后验证:');
+                    console.log('   - this.postList.length:', this.postList?.length || 0);
+                    console.log('   - this.homeFeedPosts.length:', this.homeFeedPosts?.length || 0);
+                    console.log('   - this.isLoading:', this.isLoading);
+                    console.log('   - this.homeHasEverLoaded:', this.homeHasEverLoaded);
+                    
                     if (isFirstLoad) {
                         this.preloadImages(posts);
                     }
@@ -1307,26 +1428,33 @@ export default {
         },
 
         // 切换推荐流
+        // TODO: AI推荐算法暂时停用
         toggleRecommendFeed: function () {
-            if (this.tapDisabled && this.tapDisabled()) { return; }
-            const newMode = !this.useRecommendFeed;
-            console.log('【首页】切换推荐流:', newMode);
+            // if (this.tapDisabled && this.tapDisabled()) { return; }
+            // const newMode = !this.useRecommendFeed;
+            // console.log('【首页】切换推荐流:', newMode);
 
-            this.setData({
-                useRecommendFeed: newMode
-            }, () => {
-                if (newMode) {
-                    this.refreshDiscoverPosts();
-                } else if (this.postList.length === 0) {
-                    this.setData({
-                        page: 0,
-                        hasMore: true,
-                        isLoading: false,
-                        isLoadingMore: false
-                    }, () => {
-                        this.getPostList();
-                    });
-                }
+            // this.setData({
+            //     useRecommendFeed: newMode
+            // }, () => {
+            //     if (newMode) {
+            //         this.refreshDiscoverPosts();
+            //     } else if (this.postList.length === 0) {
+            //         this.setData({
+            //             page: 0,
+            //             hasMore: true,
+            //             isLoading: false,
+            //             isLoadingMore: false
+            //         }, () => {
+            //             this.getPostList();
+            //         });
+            //     }
+            // });
+            
+            // 暂时禁用推荐功能
+            uni.showToast({
+                title: '推荐功能暂时停用',
+                icon: 'none'
             });
         },
 
@@ -1452,15 +1580,28 @@ export default {
         },
 
         // 加载发现页数据 - 使用推荐算法
+        // TODO: AI推荐算法暂时停用
         loadDiscoverPosts: function () {
-            console.log('开始加载发现页推荐数据');
-
+            console.log('开始加载发现页推荐数据 - 已停用AI推荐');
             // 发现页只使用推荐算法，不再加载更多
-            this.loadRecommendationPosts();
+            // this.loadRecommendationPosts();
+            
+            // 暂时显示空状态
+            this.setData({
+                discoverPostList: [],
+                discoverHasMore: false,
+                discoverHasEverLoaded: true,
+                discoverIsLoading: false
+            });
         },
 
         // 加载推荐帖子（首次加载，走缓存封装）
+        // TODO: AI推荐算法暂时停用
         loadRecommendationPosts: async function () {
+            console.log('AI推荐算法已停用');
+            return;
+            /* 以下代码暂时停用
+            // ========== AI推荐算法代码开始 ==========
             if (this.discoverIsLoading || this.discoverIsLoadingMore) {
                 console.log('发现页正在加载中，跳过重复请求');
                 return;
@@ -1573,6 +1714,8 @@ export default {
                     isRefreshing: false
                 });
             }
+            // ========== AI推荐算法代码结束 ==========
+            */
         },
 
         // 刷新发现页推荐
@@ -1580,26 +1723,28 @@ export default {
             console.log('刷新发现页推荐');
 
             // 清理缓存，避免返回旧数据
-            try {
-                invalidateContentPoemFeed();
-            } catch (e) {
-                console.warn('清理发现页缓存失败:', e);
-            }
+            // TODO: AI推荐算法暂时停用
+            // try {
+            //     invalidateContentPoemFeed();
+            // } catch (e) {
+            //     console.warn('清理发现页缓存失败:', e);
+            // }
 
             // 重置状态，并清空已展示ID，避免推荐流被旧排除列表“卡住”
             this.setData({
                 discoverPostList: [],
                 discoverPage: 0,
-                discoverHasMore: true,
+                discoverHasMore: false,
                 discoverShownPostIds: [],
                 discoverRefreshTime: Date.now(),
                 discoverIsLoading: false,
                 discoverIsLoadingMore: false,
-                discoverHasEverLoaded: false
+                discoverHasEverLoaded: true
             });
 
             // 重新加载推荐
-            this.loadRecommendationPosts();
+            // TODO: AI推荐算法暂时停用
+            // this.loadRecommendationPosts();
         },
 
         // 加载讨论页数据
@@ -2037,6 +2182,12 @@ export default {
                     this.isTouchScrolling = false;
                 }, 350);
             } catch (_) {}
+        },
+        
+        // 临时方法：强制加载数据
+        forceLoadData() {
+            console.log('🔴 [forceLoadData] 手动触发数据加载');
+            this.getIndexData();
         }
     }
 };
@@ -2054,7 +2205,15 @@ export default {
 }
 
 .container {
-    padding-top: calc(208rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
+    /* #ifdef APP-PLUS */
+    padding-top: 276rpx;
+    /* #endif */
+    /* #ifdef H5 */
+    padding-top: 200rpx;
+    /* #endif */
+    /* #ifdef MP-WEIXIN */
+    padding-top: 0;
+    /* #endif */
     padding-bottom: 100rpx;
     background-color: #ffffff;
     min-height: 100vh;
@@ -2117,11 +2276,16 @@ export default {
 
 .square-mode-container {
     display: block;
-    padding-top: 10rpx;
     height: 100%;
     overflow: hidden;
     position: relative;
+    /* #ifdef MP-WEIXIN */
+    z-index: 100; /* 小程序端：高于 top-bar::before，但低于 top-bar 和 tabs */
+    padding-top: 280rpx; /* 增加上边距，避免内容被 top-bar 和 tabs 遮挡 */
+    /* #endif */
+    /* #ifndef MP-WEIXIN */
     z-index: 1;
+    /* #endif */
 }
 
 #post-list-container,
@@ -2293,19 +2457,27 @@ export default {
 }
 
 .page-swiper {
-    height: calc(100vh - 208rpx - 100rpx - env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
+    /* #ifdef APP-PLUS */
+    height: calc(100vh - 276rpx - 100rpx);
+    /* #endif */
+    /* #ifdef H5 */
+    height: calc(100vh - 188rpx - 100rpx);
+    /* #endif */
+    /* #ifdef MP-WEIXIN */
+    height: 100%; /* 小程序端：使用父容器的高度 */
+    /* #endif */
     width: 100%;
     overflow: hidden;
     overscroll-behavior: none;
     position: relative;
-    /* 低于 tabs，但保留自身事件 */
-    z-index: 2;
+    /* 确保在 top-bar 和 tabs 下方，但高于背景 */
+    z-index: 100;
 }
 
 .swiper-page {
     height: 100%;
     position: relative;
-    z-index: 2;
+    z-index: 100;
 }
 
 .swiper-page > view:first-child {

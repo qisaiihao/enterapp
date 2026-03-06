@@ -102,7 +102,7 @@ export default {
             default: () => ({
                 fontSize: 38,
                 titleFontSize: 46,
-                fontFamily: 'Huiwen-mincho',
+                fontFamily: '汇文明朝',
                 backgroundColor: '#FFFFFF',
                 textColor: '#000000'
             })

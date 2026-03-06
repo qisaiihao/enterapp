@@ -18,7 +18,9 @@
       "handler": "index.main",
       "root": "./functions/embedText",
       "installDependency": true,
-      "params": {}
+      "params": {},
+      "_comment": "TODO: AI推荐算法暂时停用",
+      "_disabled": true
     },
     {
       "name": "getPoemContentFeed",
@@ -28,7 +30,9 @@
       "handler": "index.main",
       "root": "./functions/getPoemContentFeed",
       "installDependency": false,
-      "params": {}
+      "params": {},
+      "_comment": "TODO: AI推荐算法暂时停用",
+      "_disabled": true
     },
     {
       "name": "backfillPostEmbeddings",
@@ -39,7 +43,10 @@
       "root": "./functions/backfillPostEmbeddings",
       "installDependency": true,
       "params": {},
-      "triggers": [
+      "triggers": [],
+      "_comment": "TODO: AI推荐算法暂时停用，已禁用定时触发器",
+      "_disabled": true,
+      "_original_triggers": [
         {
           "name": "backfill-embedding-timer",
           "type": "timer",
@@ -187,7 +194,9 @@
               "timeout": 60,
               "memory": 512,
               "runtime": "Nodejs18.15",
-              "installDependency": true
+              "installDependency": true,
+              "_comment": "TODO: AI推荐算法暂时停用",
+              "_disabled": true
             },
             {
               "name": "ensureDefaultPortfolio",
@@ -309,7 +318,9 @@
               "timeout": 60,
               "memory": 256,
               "runtime": "Nodejs16.13",
-              "installDependency": false
+              "installDependency": false,
+              "_comment": "TODO: AI推荐算法暂时停用",
+              "_disabled": true
             },
             {
               "name": "backfillPostEmbeddings",
@@ -318,7 +329,10 @@
               "memory": 512,
               "runtime": "Nodejs16.13",
               "installDependency": true,
-              "triggers": [
+              "triggers": [],
+              "_comment": "TODO: AI推荐算法暂时停用，已禁用定时触发器",
+              "_disabled": true,
+              "_original_triggers": [
                 {
                   "name": "backfill-embedding-timer",
                   "type": "timer",
@@ -379,7 +393,9 @@
               "name": "getRecommendationFeed",
               "root": "./functions/getRecommendationFeed",
               "timeout": 3,
-              "memory": 256
+              "memory": 256,
+              "_comment": "TODO: AI推荐算法暂时停用",
+              "_disabled": true
             },
             {
               "name": "getSearchSuggestions",
@@ -450,6 +466,12 @@
             {
               "name": "loginWithPhone",
               "root": "./functions/loginWithPhone",
+              "timeout": 3,
+              "memory": 128
+            },
+            {
+              "name": "loginWithWechat",
+              "root": "./functions/loginWithWechat",
               "timeout": 3,
               "memory": 128
             },

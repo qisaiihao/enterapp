@@ -265,7 +265,8 @@ export default {
             return cloudCall(name, data, Object.assign({ pageTag: 'profile-edit', context: this, requireAuth: true }, extraOptions));
         },
 
-        // 调用 uniCloud 云函数（自动处理本地调试服务连接失败的情况）
+        // #ifdef APP-PLUS
+        // 调用 uniCloud 云函数（仅 APP 环境支持，用于一键登录）
         async callUniCloudFunction(name, data) {
             try {
                 return await uniCloud.callFunction({
@@ -291,6 +292,7 @@ export default {
                 throw error;
             }
         },
+        // #endif
 
         fetchUserProfile: function () {
             this.callCloudFunction('getMyProfileData', {}).then((res) => {
@@ -1038,15 +1040,18 @@ export default {
             });
 
             try {
-                // 调用 uniCloud 发送短信验证码
-                const result = await this.callUniCloudFunction('sendSmsCode', {
-                    phone: this.newPhoneNumber,
-                    scene: 'updatePhone' // 修改手机号场景
+                // 调用腾讯云开发发送短信验证码
+                const result = await this.$tcb.callFunction({
+                    name: 'sendSmsCode',
+                    data: {
+                        phone: this.newPhoneNumber,
+                        scene: 'updatePhone' // 修改手机号场景
+                    }
                 });
 
                 console.log('📱 [profile-edit] 发送短信结果:', result);
 
-                if (result.result && result.result.code === 0) {
+                if (result.result && result.result.success === true) {
                     uni.showToast({
                         title: '验证码已发送',
                         icon: 'success'
@@ -1133,16 +1138,19 @@ export default {
             });
 
             try {
-                // 1. 验证短信验证码
-                const verifyRes = await this.callUniCloudFunction('verifySmsCode', {
-                    phone: this.newPhoneNumber,
-                    code: this.smsCode,
-                    scene: 'updatePhone'
+                // 1. 验证短信验证码 - 调用腾讯云函数
+                const verifyRes = await this.$tcb.callFunction({
+                    name: 'verifySmsCode',
+                    data: {
+                        phone: this.newPhoneNumber,
+                        code: this.smsCode,
+                        scene: 'updatePhone'
+                    }
                 });
 
                 console.log('📱 [profile-edit] 验证短信结果:', verifyRes);
 
-                if (verifyRes.result && verifyRes.result.code === 0) {
+                if (verifyRes.result && verifyRes.result.success === true) {
                     // 2. 验证成功，更新用户手机号
                     const updateRes = await this.callCloudFunction('updateUser', {
                         phoneNumber: this.newPhoneNumber,
@@ -1170,8 +1178,13 @@ export default {
                         throw new Error(updateRes.result?.message || '更新手机号失败');
                     }
                 } else {
+                    // 验证失败
                     const message = verifyRes.result?.message || '验证码错误';
-                    throw new Error(message);
+                    uni.showToast({
+                        title: message,
+                        icon: 'none',
+                        duration: 3000
+                    });
                 }
             } catch (error) {
                 console.error('📱 [profile-edit] 修改手机号失败:', error);

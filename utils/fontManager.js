@@ -10,6 +10,22 @@
 const platformDetector = require('./platformDetector.js');
 import fileUrlCache from '@/cache/core/file-url.js';
 
+// 【关键修复】在模块加载时立即初始化微信云开发
+if (typeof wx !== 'undefined' && wx.cloud) {
+    console.log('☁️ [fontManager.js] 检测到 wx.cloud，立即初始化');
+    try {
+        wx.cloud.init({
+            env: 'cloud1-5gb0pbyl400845f5',
+            traceUser: true
+        });
+        console.log('✅ [fontManager.js] wx.cloud 初始化完成');
+    } catch (error) {
+        console.error('❌ [fontManager.js] wx.cloud 初始化失败:', error);
+    }
+} else {
+    console.log('⚠️ [fontManager.js] wx.cloud 不可用');
+}
+
 const FONT_STORAGE_KEY = 'cached_fonts';
 const CUSTOM_FONTS_KEY = 'custom_fonts';
 const FONT_CACHE_DIR = 'fonts';
@@ -31,9 +47,11 @@ const FONT_CONFIG = {
     '汇文明朝': {
         displayName: '汇文明朝',
         filename: 'Huiwen-mincho.otf',
+        cloudPath: 'cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/fonts/Huiwen-mincho.otf',
         size: 15400,
         version: '1.0.0',
-        isDefault: true
+        // 小程序从云端下载，App/H5 使用本地文件
+        isDefault: platformDetector.getCurrentPlatform() !== 'mp-weixin'
     },
     '小小皓体': {
         displayName: '小小皓体',
@@ -891,8 +909,23 @@ class FontManager {
             }
         }
 
-        // App 端需要转换路径格式
+        // 小程序端路径处理
         let sourcePath = fontPath;
+        if (platform === 'mp-weixin') {
+            // #ifdef MP-WEIXIN
+            // 对于默认字体（/static/ 开头），小程序不支持直接加载
+            // 需要跳过加载，因为小程序无法动态加载本地静态资源
+            if (fontPath && fontPath.startsWith('/static/')) {
+                console.log('【FontManager】⚠️ 小程序环境跳过默认字体加载（使用系统字体）:', displayName);
+                this.loadedFonts.add(fontFamily);
+                return true;
+            }
+            // 其他路径（如 wxfile:// 或用户数据目录）保持不变
+            console.log('【FontManager】小程序端字体路径:', fontPath);
+            // #endif
+        }
+        
+        // App 端需要转换路径格式
         if (platform === 'app') {
             // #ifdef APP-PLUS
             // 对于 /static/ 开头的本地资源，需要转换到 _www 下的真实路径，否则 App 端会找不到文件而回落系统字体
@@ -926,6 +959,8 @@ class FontManager {
                 },
                 fail: (err) => {
                     console.error(`【FontManager】❌ 字体加载失败:`, displayName, sourcePath, err);
+                    // 即使加载失败，也标记为已加载，避免重复尝试
+                    this.loadedFonts.add(fontFamily);
                     resolve(false);
                 }
             });

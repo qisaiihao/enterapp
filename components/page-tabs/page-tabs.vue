@@ -1,10 +1,10 @@
 <template>
   <view class="page-tabs-wrapper">
     <!-- 复用 top-bar 组件，传入不同的左侧图标 -->
-    <top-bar ref="topBar" left-icon="/static/images/newicons/write_poem.png" />
+    <top-bar ref="topBar" left-icon="/static/images/newicons/write_poem.png" @safe-area-ready="onSafeAreaReady" />
 
     <!-- 页面切换标签栏 - 定位在 top-bar 下方 -->
-    <view class="tabs-container">
+    <view class="tabs-container" :style="{ top: tabsTopPosition }">
       <view class="tabs-list">
         <view
           v-for="(tab, index) in tabs"
@@ -37,6 +37,7 @@ export default {
   },
   data() {
     return {
+      safeAreaTop: 0,
       tabs: [
         { label: '广场', value: 'square' },
         { label: '关注', value: 'following' },
@@ -51,6 +52,16 @@ export default {
       // 每个 tab 占 1/3 宽度，指示器在 tab 中心
       const translateX = (index * 100 / 3) + (100 / 6); // 移动到对应 tab 的中心
       return `left: calc(${translateX}% - 30rpx);`; // 30rpx 是指示器宽度的一半
+    },
+    // 计算 tabs 的 top 位置
+    tabsTopPosition() {
+      // top-bar 高度 = safeAreaTop(px) + 100rpx
+      // 需要将 rpx 转换为 px：100rpx ≈ 50px (iPhone 6 基准)
+      const topBarHeightPx = this.safeAreaTop + 50; // safeAreaTop(px) + 100rpx转px
+      console.log('📍 [page-tabs] safeAreaTop:', this.safeAreaTop);
+      console.log('📍 [page-tabs] topBarHeightPx:', topBarHeightPx);
+      console.log('📍 [page-tabs] tabsTopPosition:', topBarHeightPx + 'px');
+      return topBarHeightPx + 'px';
     }
   },
   methods: {
@@ -59,6 +70,13 @@ export default {
       if (tabValue !== this.currentTab) {
         this.$emit('tab-change', tabValue);
       }
+    },
+
+    // 接收 top-bar 传递的安全区域高度
+    onSafeAreaReady(height) {
+      console.log('📍 [page-tabs] 接收到 safeAreaTop:', height);
+      this.safeAreaTop = height;
+      console.log('📍 [page-tabs] 设置后 this.safeAreaTop:', this.safeAreaTop);
     }
   }
 };
@@ -76,7 +94,6 @@ export default {
   left: 0;
   right: 0;
   height: 88rpx;
-  top: calc(env(safe-area-inset-top, var(--safe-area-inset-top, 0px)) + 120rpx);
   background: #ffffff;
   /* 仅需略高于内容，避免过高遮挡；top-bar 本身更高 */
   z-index: 1050;

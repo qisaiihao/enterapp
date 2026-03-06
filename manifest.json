@@ -2,7 +2,7 @@
     "name" : "poementer",
     "appid" : "__UNI__E0A1A41",
     "description" : "",
-    "versionName" : "1.4",
+    "versionName" : "1.3.0",
     "versionCode" : 140,
     "transformPx" : false,
     "app-plus" : {
@@ -116,8 +116,11 @@
     "mp-weixin" : {
         "appid" : "wx9db4f8a61ab11fbb",
         "setting" : {
-            "urlCheck" : false
+            "urlCheck" : false,
+            "es6" : true,
+            "minified" : true
         },
+        "libVersion" : "3.0.0",
         "usingComponents" : true,
         "permission" : {
             "scope.userLocation" : {

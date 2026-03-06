@@ -14,10 +14,10 @@
 
         <view
             v-if="publishMode === 'poem'"
-            :class="['side-tool-btn', 'series-toggle-btn', isSeries ? 'active' : '']"
+            class="side-tool-btn series-toggle-btn"
             @tap.stop="$emit('toggle-series')"
         >
-            <text class="side-tool-text">组</text>
+            <image class="side-tool-icon" src="/static/images/zushi.png" mode="aspectFit" />
         </view>
 
         <view v-if="publishMode === 'poem'" class="side-tool-btn" @tap.stop="$emit('toggle-highlight')">
@@ -109,10 +109,7 @@ export default {
     line-height: 90rpx;
 }
 
-.series-toggle-btn.active {
-    background: #1c9bd6;
-    color: #fff;
-}
+/* 移除组诗按钮的 active 状态样式 */
 
 @media screen and (max-width: 750rpx) {
     .side-toolbar {

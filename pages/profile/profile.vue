@@ -51,7 +51,7 @@
                         <block v-if="myPosts.length > 0">
                             <PostItem
                                 v-for="(item, index) in myPosts"
-                                :key="item._id || index"
+                                :key="index"
                                 :item="item"
                                 :index="index"
                                 :swiper-height="swiperHeights[index]"
@@ -86,7 +86,7 @@
                         <block v-if="favoriteList.length > 0">
                             <PostItem
                                 v-for="(item, index) in favoriteList"
-                                :key="item._id || index"
+                                :key="index"
                                 :item="item"
                                 :index="index"
                                 :swiper-height="swiperHeights[index]"
@@ -122,6 +122,7 @@
                         <!-- 作品集书籍组件 -->
                         <PortfolioBook
                             :portfolio-list="portfolioList"
+                            :is-loading="portfolioLoading"
                             @navigate-to-portfolio="navigateToPortfolio"
                             @open-portfolio="openPortfolio"
                         />
@@ -267,6 +268,7 @@ export default {
 
             followerCount: 0,
             portfolioList: [],
+            portfolioLoading: false,  // 作品集加载状态
             img: '',
             // 关注统计
             followerCount: 0,
@@ -330,6 +332,22 @@ export default {
         try { uni.hideTabBar({ animation: false }); } catch (e) {}
         try { this.$refs.customTabBar && this.$refs.customTabBar.syncSelected && this.$refs.customTabBar.syncSelected(); } catch (e) {}
         // #endif
+        
+        // #ifdef MP-WEIXIN
+        // 更新小程序自定义tabBar的选中状态
+        console.log('=== profile onShow ===');
+        if (typeof this.getTabBar === 'function') {
+          const tabBar = this.getTabBar();
+          console.log('profile getTabBar() 返回:', tabBar);
+          if (tabBar && tabBar.setData) {
+            console.log('调用 tabBar.setData({ selected: 3 })');
+            tabBar.setData({ selected: 3 }, () => {
+              console.log('profile tabBar.setData 回调执行');
+            });
+          }
+        }
+        // #endif
+        
         // TabBar 状态更新，使用兼容性处理
         updateTabBarStatus(this, 3);
 
@@ -1843,16 +1861,19 @@ export default {
 
         // 加载作品集列表
         loadPortfolios(cb) {
+            this.setData({ portfolioLoading: true });
             const callFn = (name, data) => this.callCloudFunction(name, data);
             fetchPortfolioFolders(callFn)
                 .then((folders) => {
                     this.setData({
-                        portfolioList: folders
+                        portfolioList: folders,
+                        portfolioLoading: false
                     });
                 })
                 .catch((error) => {
                     console.error('加载作品集失败:', error);
                     uni.showToast({ title: '作品集加载失败', icon: 'none' });
+                    this.setData({ portfolioLoading: false });
                 })
                 .finally(() => {
                     if (typeof cb === 'function') {

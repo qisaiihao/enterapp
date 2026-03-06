@@ -92,15 +92,17 @@
 
                 <!-- 讨论帖子优先展示引用句子块，其次正文 -->
                 <view v-if="item.isDiscussion && hasValidDiscussionGroups(item)" class="discussion-content">
-                    <view v-for="(group, gIndex) in item.sentenceGroups" :key="'disc-group-' + gIndex" class="discussion-sentence-group">
-                        <view v-if="hasDiscussionSentences(group)" class="discussion-sentence-card">
+                    <!-- 只显示第一个有效的引用句子组 -->
+                    <view v-if="getFirstValidDiscussionGroup(item)" class="discussion-sentence-group">
+                        <view v-if="hasDiscussionSentences(getFirstValidDiscussionGroup(item))" class="discussion-sentence-card">
                             <view class="discussion-sentence-content">
-                                <text v-for="(line, lIndex) in group.sentences" :key="'disc-line-' + lIndex" class="discussion-sentence-line">
-                                    {{ line }}
+                                <!-- 只显示第一句 -->
+                                <text class="discussion-sentence-line">
+                                    {{ getFirstValidDiscussionGroup(item).sentences[0] }}
                                 </text>
                             </view>
                         </view>
-                        <view v-if="group.comment" class="discussion-comment">{{ group.comment }}</view>
+                        <view v-if="getFirstValidDiscussionGroup(item).comment" class="discussion-comment-preview">{{ getFirstValidDiscussionGroup(item).comment }}</view>
                     </view>
                 </view>
                 <view v-else-if="isSeriesPost(item)" class="series-simple-preview">
@@ -223,6 +225,11 @@ export default {
     methods: {
         hasDiscussionSentences(group) {
             return group && Array.isArray(group.sentences) && group.sentences.some(line => (line || '').trim().length > 0);
+        },
+        // 获取第一个有效的讨论句子组
+        getFirstValidDiscussionGroup(post) {
+            if (!post || !Array.isArray(post.sentenceGroups)) return null;
+            return post.sentenceGroups.find(g => this.hasDiscussionSentences(g) || (g && g.comment && g.comment.trim().length > 0));
         },
         // 兼容：后端遗漏 isSeries 时，只要有分块也按组诗渲染
         isSeriesPost(post) {
@@ -820,5 +827,73 @@ export default {
     font-size: 24rpx;
     color: #999;
     font-style: italic;
+}
+
+/* 讨论类型帖子样式 */
+.discussion-content {
+    margin: 20rpx 0;
+}
+
+.discussion-sentence-group {
+    margin-bottom: 30rpx;
+}
+
+.discussion-sentence-card {
+    background: #f5f5f5;
+    border-radius: 12rpx;
+    padding: 30rpx;
+    margin-bottom: 20rpx;
+    width: 100%;
+    min-height: 120rpx;
+    position: relative;
+    box-sizing: border-box;
+    max-width: 100%;
+}
+
+.discussion-sentence-content {
+    position: relative;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    box-sizing: border-box;
+    max-width: 100%;
+}
+
+.discussion-sentence-line {
+    font-family: 'Inter', sans-serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 40rpx;
+    line-height: 48rpx;
+    color: #989090;
+    display: block;
+    margin-bottom: 8rpx;
+    word-wrap: break-word;
+    word-break: break-all;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-wrap: break-word;
+}
+
+.discussion-sentence-line:last-child {
+    margin-bottom: 0;
+}
+
+/* 讨论评论预览样式 - 与普通帖子正文保持一致 */
+.discussion-comment-preview {
+    font-size: 28rpx;
+    color: #666666;
+    line-height: 1.6;
+    margin-top: 15rpx;
+    word-break: break-word;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
 }
 </style>

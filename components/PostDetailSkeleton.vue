@@ -17,7 +17,7 @@
         </view>
         <view class="skeleton-section-title skeleton-animate"></view>
         <view class="comment-skeleton-list">
-            <view class="comment-skeleton-item" v-for="n in commentCount" :key="'skeleton-comment-' + n">
+            <view class="comment-skeleton-item" v-for="n in commentCount" :key="n">
                 <view class="skeleton-avatar skeleton-animate"></view>
                 <view class="comment-skeleton-body">
                     <view class="skeleton-line medium skeleton-animate"></view>

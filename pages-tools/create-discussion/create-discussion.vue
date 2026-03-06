@@ -31,7 +31,7 @@
             <view class="original-content-wrapper">
                 <view class="original-content-display">
                     <text class="content-line" v-for="(line, index) in splitContentLines"
-                          :key="'content-line-' + index"
+                          :key="index"
                           :class="{ 'selected-line': highlightSelectedLineIndices.includes(index) }"
                           @tap.stop="toggleLineSelection"
                           :data-index="index">
@@ -55,18 +55,18 @@
 
         <!-- 已选句子评论区域（编辑区） -->
         <view v-else class="selected-sentences-area">
-            <view v-for="(sentenceGroup, groupIndex) in selectedSentenceGroups"
-                  :key="'group-' + groupIndex"
+            <view v-for="(sentenceGroup, groupIndex) in selectedSentenceGroupsWithStyles"
+                  :key="groupIndex"
                   class="sentence-group"
                   :class="sentenceGroup.sentences && sentenceGroup.sentences.length ? 'has-sentences' : 'no-sentences'"
-                  :style="groupSpacingStyle(groupIndex)">
+                  :style="sentenceGroup.spacingStyle">
                 <!-- 句子卡片 -->
                 <view
                     v-if="sentenceGroup.sentences && sentenceGroup.sentences.length"
                     class="sentence-card"
                 >
                     <view class="sentence-content">
-                        <text v-for="(line, lineIndex) in sentenceGroup.sentences" :key="'sentence-' + lineIndex" class="sentence-line">
+                        <text v-for="(line, lineIndex) in sentenceGroup.sentences" :key="lineIndex" class="sentence-line">
                             {{ line }}
                         </text>
                     </view>
@@ -169,6 +169,26 @@ export default {
             if (count >= 3) return 16;
             if (count === 2) return 12;
             return 8;
+        },
+        
+        // 为小程序端预处理句子组，添加样式
+        selectedSentenceGroupsWithStyles() {
+            return this.selectedSentenceGroups.map((group, index) => {
+                const gap = `${this.groupGapRpx}rpx`;
+                const isLast = index === this.selectedSentenceGroups.length - 1;
+                const hasSentences = Array.isArray(group.sentences) && group.sentences.length > 0;
+                const style = {
+                    marginBottom: isLast ? '0rpx' : gap
+                };
+                if (!hasSentences) {
+                    style.paddingTop = '16rpx';
+                    style.paddingBottom = '16rpx';
+                }
+                return {
+                    ...group,
+                    spacingStyle: style
+                };
+            });
         }
     },
 

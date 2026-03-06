@@ -13,11 +13,12 @@
                     <view class="mode-text">非原创诗歌</view>
                     <view v-if="publishMode === 'poem' && !isOriginal" class="mode-check">✓</view>
                 </view>
-                <view class="mode-option" @tap="onSelect('normal', null)">
+                <!-- 组诗模式下隐藏普通帖子和讨论帖子选项 -->
+                <view v-if="!isSeries" class="mode-option" @tap="onSelect('normal', null)">
                     <view class="mode-text">普通帖子</view>
                     <view v-if="publishMode === 'normal'" class="mode-check">✓</view>
                 </view>
-                <view class="mode-option" @tap="onSelect('discussion', null)">
+                <view v-if="!isSeries" class="mode-option" @tap="onSelect('discussion', null)">
                     <view class="mode-text">讨论帖子</view>
                     <view v-if="publishMode === 'discussion'" class="mode-check">✓</view>
                 </view>
@@ -39,6 +40,10 @@ export default {
             default: 'normal'
         },
         isOriginal: {
+            type: Boolean,
+            default: false
+        },
+        isSeries: {
             type: Boolean,
             default: false
         }

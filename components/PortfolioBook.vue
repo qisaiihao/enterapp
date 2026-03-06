@@ -3,15 +3,15 @@
         <view class="books-shelf">
             <!-- 动态显示作品集书籍 -->
             <view
-                v-for="(portfolio, index) in portfolioList"
+                v-for="(portfolio, index) in portfolioListWithStyles"
                 :key="portfolio._id"
                 :class="'book book-' + (index % 12 + 1)"
                 @tap.stop="openPortfolio(portfolio)"
             >
-                <view class="book-spine" :style="calcBookHeight(portfolio.name)">
+                <view class="book-spine" :style="portfolio.heightStyle">
                     <view class="spine-content">
                         <text
-                            v-for="(char, charIndex) in portfolio.name.split('').slice(0, 7)"
+                            v-for="(char, charIndex) in portfolio.nameChars"
                             :key="charIndex"
                             class="spine-text"
                         >{{ char }}</text>
@@ -23,12 +23,17 @@
             <view
                 v-if="portfolioList.length > 0"
                 class="shelf-line"
-                :style="{ width: calcShelfLineWidth(portfolioList.length) }"
+                :style="{ width: shelfLineWidth }"
             ></view>
 
+            <!-- 加载中状态 -->
+            <view v-if="isLoading && portfolioList.length === 0" class="empty-portfolio">
+                <text class="empty-text">作品集加载中...</text>
+            </view>
+
             <!-- 如果没有作品集，显示空状态 -->
-            <view v-if="portfolioList.length === 0" class="empty-portfolio">
-                <text class="empty-text">暂无作品集</text>
+            <view v-else-if="!isLoading && portfolioList.length === 0" class="empty-portfolio">
+                <text class="empty-text">{{ emptyText }}</text>
             </view>
         </view>
     </view>
@@ -44,23 +49,35 @@ export default {
             type: Array,
             default: () => []
         },
+        // 加载状态
+        isLoading: {
+            type: Boolean,
+            default: false
+        },
         // 可选的标题配置
         emptyText: {
             type: String,
             default: '暂无作品集'
         }
     },
-    methods: {
-        // 计算书籍高度
-        calcBookHeight(name) {
-            return calcBookHeightUtil(name);
+    computed: {
+        // 为小程序端预处理作品集列表，添加样式和字符数组
+        portfolioListWithStyles() {
+            return this.portfolioList.map(portfolio => {
+                return {
+                    ...portfolio,
+                    heightStyle: calcBookHeightUtil(portfolio.name),
+                    nameChars: (portfolio.name || '').split('').slice(0, 7)
+                };
+            });
         },
-
+        
         // 计算书架线宽度
-        calcShelfLineWidth(count) {
-            return calcShelfLineWidth(count);
-        },
-
+        shelfLineWidth() {
+            return calcShelfLineWidth(this.portfolioList.length);
+        }
+    },
+    methods: {
         // 导航到作品集页面
         navigateToPortfolio() {
             this.$emit('navigate-to-portfolio');

@@ -1,73 +1,70 @@
 'use strict';
 
+const { successResponse, errorResponse } = require('sms-service');
+
 const db = uniCloud.database();
 
 exports.main = async (event, context) => {
   // 参数校验
-  const { phone, code, scene = 'login' } = event;
-
-  if (!phone || !code) {
-    return {
-      code: 1001,
-      message: '请输入手机号和验证码'
-    };
-  }
-
-  // 验证手机号格式
-  const phoneRegex = /^1[3-9]\d{9}$/;
-  if (!phoneRegex.test(phone)) {
-    return {
-      code: 1002,
-      message: '手机号格式不正确'
-    };
-  }
-
-  // 验证验证码格式
-  if (!/^\d{6}$/.test(code)) {
-    return {
-      code: 1003,
-      message: '验证码格式不正确'
-    };
-  }
+  const { phone, code, scene = 'binding' } = event;
 
   try {
-    console.log('🔍 [verifySmsCode] 开始验证验证码，手机号:', phone.substring(0, 3) + '********', '验证码:', code);
+    console.log('🔍 [verifySmsCode] 开始验证验证码');
+    console.log('🔍 [verifySmsCode] 手机号:', phone ? phone.substring(0, 3) + '****' : '未提供');
+    console.log('🔍 [verifySmsCode] 场景:', scene);
 
-    const now = new Date();
+    // 1. 参数验证
+    if (!phone || !code) {
+      return errorResponse('请输入手机号和验证码', 1001);
+    }
 
-    // 查找有效的验证码记录
+    // 2. 验证手机号格式
+    const phoneRegex = /^(\+86)?1[3-9]\d{9}$/;
+    if (!phoneRegex.test(phone)) {
+      return errorResponse('手机号格式不正确', 1002);
+    }
+
+    // 3. 验证验证码格式
+    if (!/^\d{6}$/.test(code)) {
+      return errorResponse('验证码格式不正确', 1003);
+    }
+
+    // 4. 场景验证
+    const validScenes = ['binding', 'updatePhone', 'resetPassword'];
+    if (!validScenes.includes(scene)) {
+      return errorResponse(`不支持的场景: ${scene}`, 1004);
+    }
+
+    const now = Date.now();
+
+    // 5. 查找有效的验证码记录
     const verifyRecord = await db.collection('sms_codes')
       .where({
         phone: phone,
         code: code,
         scene: scene,
         used: false,
-        expiredAt: db.command.gt(now) // 未过期
+        expiredAt: db.command.gt(now)
       })
       .orderBy('createdAt', 'desc')
       .limit(1)
       .get();
 
-    console.log('🔍 [verifySmsCode] 查询结果:', verifyRecord);
+    console.log('🔍 [verifySmsCode] 查询结果数量:', verifyRecord.data.length);
 
+    // 6. 检查验证码是否存在
     if (verifyRecord.data.length === 0) {
-      return {
-        code: 2001,
-        message: '验证码错误或已过期'
-      };
+      return errorResponse('验证码错误或已过期', 2001);
     }
 
     const record = verifyRecord.data[0];
 
-    // 检查验证码是否已过期（双重保险）
+    // 7. 双重检查过期时间（保险起见）
     if (record.expiredAt < now) {
-      return {
-        code: 2002,
-        message: '验证码已过期'
-      };
+      return errorResponse('验证码已过期', 2002);
     }
 
-    // 标记验证码为已使用
+    // 8. 标记验证码为已使用
     await db.collection('sms_codes').doc(record._id).update({
       used: true,
       usedAt: now
@@ -75,20 +72,15 @@ exports.main = async (event, context) => {
 
     console.log('✅ [verifySmsCode] 验证成功');
 
-    return {
-      code: 0,
-      message: '验证成功',
-      data: {
-        phone: phone,
-        verifiedAt: now
-      }
-    };
+    // 9. 返回成功响应
+    return successResponse('验证成功', {
+      phone: phone,
+      scene: scene,
+      verifiedAt: now
+    });
 
   } catch (error) {
     console.error('❌ [verifySmsCode] 验证失败:', error);
-    return {
-      code: 5000,
-      message: '验证失败：' + (error.message || '未知错误')
-    };
+    return errorResponse('验证失败：' + (error.message || '未知错误'), 5000);
   }
 };

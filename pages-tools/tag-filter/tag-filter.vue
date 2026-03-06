@@ -19,7 +19,7 @@
             <view v-if="postList.length > 0" class="post-list">
                 <post-item
                     v-for="(item, index) in postList"
-                    :key="item._id || index"
+                    :key="index"
                     :item="item"
                     :index="index"
                     :show-vote-section="true"

@@ -59,7 +59,9 @@ export default {
             poets: [],
             isLoading: false,
             scrollLeft: 0,
-            defaultAvatar: '/static/images/avatar.png'
+            defaultAvatar: '/static/images/avatar.png',
+            lastClickedPoet: null,  // 记录上次点击的诗人
+            clickTimer: null  // 点击计时器
         };
     },
     mounted() {
@@ -99,7 +101,24 @@ export default {
 
         // 选中诗人
         selectPoet(poetName) {
-            this.$emit('select', poetName);
+            // 如果点击的是同一个诗人
+            if (this.selectedPoetName === poetName) {
+                // 第二次点击，进入诗人主页
+                this.navigateToPoetProfile(poetName);
+            } else {
+                // 第一次点击，筛选该诗人的诗
+                this.$emit('select', poetName);
+            }
+        },
+
+        // 导航到诗人主页
+        navigateToPoetProfile(poetName) {
+            if (!poetName) return;
+            
+            // 跳转到诗人主页（使用 poetName 参数）
+            uni.navigateTo({
+                url: `/pages-user/poet-profile/poet-profile?poetName=${encodeURIComponent(poetName)}`
+            });
         },
 
         // 点击返回（显示全部）

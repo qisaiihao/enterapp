@@ -1,114 +1,115 @@
 'use strict';
 
+const {
+  SmsProviderFactory,
+  loadSmsConfig,
+  generateVerificationCode,
+  validatePhone,
+  successResponse,
+  errorResponse,
+  checkRateLimit,
+  saveSmsCode,
+  logSmsSuccess,
+  logSmsError
+} = require('sms-service');
+
 exports.main = async (event, context) => {
-  // 参数校验
-  const { phone, scene = 'login' } = event;
-
-  if (!phone) {
-    return {
-      code: 1001,
-      message: '请输入手机号'
-    };
-  }
-
-  // 验证手机号格式（中国大陆）
-  const phoneRegex = /^1[3-9]\d{9}$/;
-  if (!phoneRegex.test(phone)) {
-    return {
-      code: 1002,
-      message: '请输入正确的手机号格式'
-    };
-  }
+  const db = uniCloud.database();
+  const { phone, scene = 'binding' } = event;
+  const clientIP = context.CLIENTIP || '';
 
   try {
-    console.log('📱 [uniCloud] 开始发送短信验证码，手机号:', phone.substring(0, 3) + '********');
+    console.log('📱 [sendSmsCode] 开始处理短信发送请求');
+    console.log('📱 [sendSmsCode] 手机号:', phone ? phone.substring(0, 3) + '****' : '未提供');
+    console.log('📱 [sendSmsCode] 场景:', scene);
 
-    // 生成6位验证码
-    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-    console.log('📱 [uniCloud] 生成验证码:', verificationCode);
+    // 1. 参数验证
+    if (!phone) {
+      return errorResponse('请输入手机号', 1001);
+    }
 
-    // 根据场景选择模板
-    let templateId;
-    let templateData;
+    if (!scene) {
+      return errorResponse('请指定使用场景', 1002);
+    }
 
-    // 使用指定的模板ID 37351
-    templateId = '37351';
-    templateData = {
-      code: verificationCode,
-      time: '5分钟'
-    };
+    // 2. 手机号格式验证
+    if (!validatePhone(phone)) {
+      return errorResponse('手机号格式不正确', 1003);
+    }
 
-    console.log('📱 [uniCloud] 使用模板ID 37351');
+    // 3. 场景有效性验证
+    const validScenes = ['binding', 'updatePhone', 'resetPassword'];
+    if (!validScenes.includes(scene)) {
+      return errorResponse(`不支持的场景: ${scene}，支持的场景: ${validScenes.join(', ')}`, 1004);
+    }
 
-    console.log('📱 [uniCloud] 使用模板ID:', templateId);
+    // 4. 频率限制检查
+    const rateLimitResult = await checkRateLimit(phone, clientIP, db);
+    if (!rateLimitResult.allowed) {
+      console.log('📱 [sendSmsCode] 频率限制:', rateLimitResult.message);
+      return errorResponse(rateLimitResult.message, 2001);
+    }
 
-    // 发送短信
-    const smsResult = await uniCloud.sendSms({
-      appid: context.APPID, // 使用当前应用的 appid
+    // 5. 加载配置
+    let config;
+    try {
+      config = loadSmsConfig('./config.json');
+    } catch (configError) {
+      console.error('📱 [sendSmsCode] 配置加载失败:', configError);
+      return errorResponse('系统配置错误，请联系管理员', 5001);
+    }
+
+    // 6. 生成验证码
+    const code = generateVerificationCode(config.testMode);
+    console.log('📱 [sendSmsCode] 验证码已生成');
+
+    // 7. 获取短信服务商并发送
+    let provider;
+    try {
+      provider = SmsProviderFactory.createProvider(config);
+    } catch (providerError) {
+      console.error('📱 [sendSmsCode] 服务商创建失败:', providerError);
+      return errorResponse('短信服务初始化失败', 5002);
+    }
+
+    const sendResult = await provider.sendVerificationCode(phone, code, scene);
+
+    // 8. 处理发送结果
+    if (!sendResult.success) {
+      // 记录失败日志
+      await logSmsError(phone, scene, provider.getProviderName(), sendResult, clientIP, db);
+      
+      console.error('📱 [sendSmsCode] 发送失败:', sendResult.message);
+      return errorResponse(`发送失败: ${sendResult.message}`, 3001);
+    }
+
+    // 9. 存储验证码到数据库
+    try {
+      await saveSmsCode({
+        phone,
+        code,
+        scene,
+        ip: clientIP
+      }, db);
+    } catch (dbError) {
+      console.error('📱 [sendSmsCode] 数据库保存失败:', dbError);
+      // 短信已发送，数据库失败不影响用户体验
+    }
+
+    // 10. 记录成功日志
+    await logSmsSuccess(phone, scene, provider.getProviderName(), sendResult, clientIP, db);
+
+    console.log('✅ [sendSmsCode] 短信发送成功');
+
+    // 11. 返回成功响应
+    return successResponse('验证码已发送，请注意查收', {
       phone: phone,
-      templateId: templateId,
-      data: templateData
+      expireTime: 5 * 60, // 5分钟，单位秒
+      remainTime: 60 // 下次可发送间隔，单位秒
     });
 
-    console.log('📱 [uniCloud] 短信发送结果:', smsResult);
-
-    // 检查发送结果
-    if (smsResult.code !== 0) {
-      console.error('📱 [uniCloud] 短信发送失败:', smsResult.message);
-      return {
-        code: 2001,
-        message: smsResult.message || '短信发送失败'
-      };
-    }
-
-    // 保存验证码到数据库（用于后续校验）
-    const db = uniCloud.database();
-    const now = new Date();
-    const expiredAt = new Date(now.getTime() + 5 * 60 * 1000); // 5分钟后过期
-
-    try {
-      await db.collection('sms_codes').add({
-        phone: phone,
-        code: verificationCode,
-        scene: scene,
-        used: false,
-        createdAt: now,
-        expiredAt: expiredAt,
-        ip: context.CLIENTIP || ''
-      });
-
-      console.log('✅ [uniCloud] 验证码记录已保存');
-
-      return {
-        code: 0,
-        message: '验证码已发送，请注意查收',
-        data: {
-          phone: phone,
-          expireTime: 5 * 60, // 5分钟，单位秒
-          remainTime: 60 // 下次可发送间隔，单位秒
-        }
-      };
-
-    } catch (dbError) {
-      console.error('📱 [uniCloud] 数据库操作失败:', dbError);
-      // 即使数据库操作失败，也返回成功（因为短信已发送）
-      return {
-        code: 0,
-        message: '验证码已发送，请注意查收',
-        data: {
-          phone: phone,
-          expireTime: 5 * 60,
-          remainTime: 60,
-          warning: '验证码记录保存失败'
-        }
-      };
-    }
-
   } catch (error) {
-    console.error('📱 [uniCloud] 发送短信异常:', error);
-    return {
-      code: 5000,
-      message: '发送失败：' + (error.message || '未知错误')
-    };
+    console.error('📱 [sendSmsCode] 系统异常:', error);
+    return errorResponse('系统错误，请稍后重试', 5000);
   }
 };

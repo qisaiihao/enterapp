@@ -21,7 +21,7 @@
         </view>
 
         <view v-else id="post-list-container">
-          <view v-for="(item, index) in postList" :key="item._id || index" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
+          <view v-for="(item, index) in postList" :key="index" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
             <view class="post-content-navigator" @tap="togglePostExpansion" @longpress="onLongPressCard" :data-index="index" :data-postid="item._id">
               <view class="post-item">
                 <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.highlightLines || item.highlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.content" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
@@ -31,7 +31,7 @@
                   <block v-else>
                     <!-- 折叠状态下只显示高光行 -->
                     <block v-if="item.highlightLines && item.highlightLines.length > 0">
-                      <text v-for="(highlightLine, index) in item.highlightLines" :key="'line-' + index" style="font-weight: 700; display: block;">{{ highlightLine }}</text>
+                      <text v-for="(highlightLine, index) in item.highlightLines" :key="index" style="font-weight: 700; display: block;">{{ highlightLine }}</text>
                     </block>
                     <block v-else>
                       {{ item.content }}
@@ -488,13 +488,7 @@ export default {
 </script>
 
 <style scoped>
-/* 定义 Huiwen-mincho 字体 */
-@font-face {
-  font-family: 'Huiwen-mincho';
-  src: url('/static/fonts/Huiwen-mincho.otf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
-}
+/* 诗歌内容使用汇文明朝字体，其他地方使用系统默认字体 */
 
 .other-portfolio-page {
   background: #fff;
@@ -612,7 +606,7 @@ export default {
 
 /* Typography inspired by poem.css */
 .post-content {
-  font-family: 'Huiwen-mincho', sans-serif;
+  font-family: '汇文明朝', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   font-style: normal;
   font-weight: 500;
   font-size: 28rpx; /* 调小字体：14px * 2 */

@@ -43,7 +43,7 @@
         <view
           v-for="(item, index) in postList"
           v-if="item"
-          :key="item._id ? `post-${item._id}-${index}` : `post-index-${index}`"
+          :key="index"
           class="post-item-wrapper"
           :class="item.isSeries && !item.seriesExpanded ? 'stacked-series-card' : ''"
           :style="{ backgroundColor: item.backgroundColor }"
@@ -77,7 +77,15 @@
                   
                   <!-- 作者签名 -->
                   <view v-if="item.authorSignature && !item.isAnonymous" class="user-signature">
-                    <image class="signature-image" :src="item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
+                    <image 
+                      class="signature-image" 
+                      :src="item.authorSignature" 
+                      mode="aspectFit" 
+                      :webp="true"
+                      :show-menu-by-longpress="false"
+                      @error="onSignatureError" 
+                      @load="onSignatureLoad"
+                    ></image>
                   </view>
                 </view>
               </view>
@@ -112,7 +120,7 @@
                   </block>
                   <block v-else>
                     <block v-if="item.highlightLines && item.highlightLines.length > 0">
-                      <text v-for="(highlightLine, hlIndex) in item.highlightLines" :key="'line-' + hlIndex" style="font-weight: 700; display: block;">{{ highlightLine }}</text>
+                      <text v-for="(highlightLine, hlIndex) in item.highlightLines" :key="hlIndex" style="font-weight: 700; display: block;">{{ highlightLine }}</text>
                     </block>
                     <block v-else>
                       {{ item.content }}
@@ -122,12 +130,28 @@
 
                 <!-- 作者签名 - 展开时显示大签名（匿名帖子不显示签名） -->
                 <view v-if="item.isExpanded && item.authorSignature && !item.isAnonymous" class="user-signature">
-                  <image class="signature-image" :src="item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
+                  <image 
+                    class="signature-image" 
+                    :src="item.authorSignature" 
+                    mode="aspectFit" 
+                    :webp="true"
+                    :show-menu-by-longpress="false"
+                    @error="onSignatureError" 
+                    @load="onSignatureLoad"
+                  ></image>
                 </view>
 
                 <!-- 作者签名 - 折叠时显示小签名（匿名帖子不显示签名） -->
                 <view v-if="!item.isExpanded && item.authorSignature && !item.isAnonymous" class="user-signature-small">
-                  <image class="signature-image-small" :src="item.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
+                  <image 
+                    class="signature-image-small" 
+                    :src="item.authorSignature" 
+                    mode="aspectFit" 
+                    :webp="true"
+                    :show-menu-by-longpress="false"
+                    @error="onSignatureError" 
+                    @load="onSignatureLoad"
+                  ></image>
                 </view>
               </view>
             </view>
@@ -194,6 +218,29 @@ export default {
     // #ifndef MP-WEIXIN
     try { uni.hideTabBar({ animation: false }); } catch (e) {}
     try { this.$refs.customTabBar && this.$refs.customTabBar.syncSelected && this.$refs.customTabBar.syncSelected(); } catch (e) {}
+    // #endif
+    
+    // #ifdef MP-WEIXIN
+    // 更新小程序自定义tabBar的选中状态
+    console.log('=== poem-square onShow ===');
+    console.log('尝试获取 tabBar...');
+    if (typeof this.getTabBar === 'function') {
+      const tabBar = this.getTabBar();
+      console.log('getTabBar() 返回:', tabBar);
+      if (tabBar) {
+        if (tabBar.updateSelected) {
+          console.log('调用 tabBar.updateSelected(1)');
+          tabBar.updateSelected(1);
+        } else if (tabBar.setData) {
+          console.log('调用 tabBar.setData({ selected: 1 })');
+          tabBar.setData({ selected: 1 });
+        } else {
+          console.warn('tabBar 不可用或没有 updateSelected/setData 方法');
+        }
+      }
+    } else {
+      console.warn('this.getTabBar 不是函数');
+    }
     // #endif
     
     // 检查缓存新鲜度：从其他页面返回时触发SWR检查
@@ -1291,7 +1338,7 @@ export default {
 
 /* Typography inspired by poem.css */
 .post-content {
-  font-family: 'Huiwen-mincho', sans-serif;
+  font-family: '汇文明朝', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   font-style: normal;
   font-weight: 500;
   font-size: 28rpx; /* 调小字体：14px * 2 */
@@ -1309,7 +1356,7 @@ export default {
 
 /* 组诗副标题样式 */
 .series-subtitle {
-  font-family: 'Huiwen-mincho', sans-serif;
+  font-family: '汇文明朝', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   font-size: 24rpx;
   font-weight: 600;
   margin-bottom: 20rpx;
@@ -1356,6 +1403,9 @@ export default {
   filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1)); /* 添加轻微阴影 */
   display: block; /* 确保图片正确显示 */
   background: transparent; /* 确保背景透明 */
+  /* #ifdef MP-WEIXIN */
+  image-rendering: -webkit-optimize-contrast; /* 优化小程序图片渲染 */
+  /* #endif */
 }
 
 /* 组诗展开态的签名位置调整 */
@@ -1379,6 +1429,9 @@ export default {
   filter: drop-shadow(0 1rpx 2rpx rgba(0, 0, 0, 0.1)); /* 添加轻微阴影 */
   display: block; /* 确保图片正确显示 */
   background: transparent; /* 确保背景透明 */
+  /* #ifdef MP-WEIXIN */
+  image-rendering: -webkit-optimize-contrast; /* 优化小程序图片渲染 */
+  /* #endif */
 }
 
 .loading-footer { text-align: center; color: #666; padding: 30rpx 0 120rpx; }

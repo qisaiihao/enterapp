@@ -1,0 +1,15 @@
+{
+  "provider": "tencentcloud",
+  "testMode": false,
+  "unicloud": {
+    "templateId": "37351"
+  },
+  "tencentcloud": {
+    "secretId": "${TENCENT_SECRET_ID}",
+    "secretKey": "${TENCENT_SECRET_KEY}",
+    "sdkAppId": "1401056037",
+    "signName": "江门市新会区回车键网络",
+    "templateId": "2601313",
+    "region": "ap-guangzhou"
+  }
+}

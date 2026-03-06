@@ -48,11 +48,11 @@
                     
                     <!-- 讨论类型帖子特殊渲染：仅当存在有效句子或评论时展示，否则回退到正文 -->
                     <view v-if="post.isDiscussion && hasValidDiscussionGroups(post)" class="discussion-content">
-                        <view v-for="(sentenceGroup, groupIndex) in post.sentenceGroups" :key="'discussion-group-' + groupIndex" class="discussion-sentence-group">
+                        <view v-for="(sentenceGroup, groupIndex) in post.sentenceGroups" :key="groupIndex" class="discussion-sentence-group">
                             <!-- 句子卡片：仅在有有效句子时显示，避免空灰框 -->
                             <view v-if="hasDiscussionSentences(sentenceGroup)" class="discussion-sentence-card">
                                 <view class="discussion-sentence-content">
-                                    <text v-for="(line, lineIndex) in sentenceGroup.sentences" :key="'discussion-sentence-' + lineIndex" class="discussion-sentence-line">
+                                    <text v-for="(line, lineIndex) in sentenceGroup.sentences" :key="lineIndex" class="discussion-sentence-line">
                                         {{ line }}
                                     </text>
                                 </view>
@@ -66,7 +66,7 @@
                     </view>
                     <!-- 组诗内容 -->
                     <view v-else-if="post.isSeries && post.seriesBlocks && post.seriesBlocks.length > 0" class="series-simple-display">
-                        <view v-for="(block, idx) in post.seriesBlocks" :key="'series-block-' + idx" class="series-poem-block">
+                        <view v-for="(block, idx) in post.seriesBlocks" :key="idx" class="series-poem-block">
                             <view v-if="block.subtitle" class="series-poem-subtitle">{{ block.subtitle }}</view>
                             <view class="post-content">{{ block.content }}</view>
                         </view>
@@ -314,7 +314,6 @@ import portfolioSelector from '@/components/portfolio-selector/portfolio-selecto
 import PostDetailSkeleton from '@/components/PostDetailSkeleton.vue';
 import CommentList from '@/components/CommentList.vue';
 import ShareModal from '@/components/ShareModal.vue';
-import CommentInput from '@/components/CommentInput.vue';
 
 // 工具函数导入
 import { hydrateTempUrls, warmTempUrlsFromPosts } from '@/_utils/hydrate-temp-urls';
@@ -356,8 +355,7 @@ export default {
         portfolioSelector,
         PostDetailSkeleton,
         CommentList,
-        ShareModal,
-        CommentInput
+        ShareModal
     },
     mixins: [postGalleryMixin],
     computed: {
@@ -3669,13 +3667,7 @@ page {
 
 /* 分享弹窗样式已移入 ShareModal.vue */
 
-/* 定义汇文明朝字体 - 统一使用中文名称 */
-@font-face {
-  font-family: '汇文明朝';
-  src: url('/static/fonts/Huiwen-mincho.otf') format('opentype');
-  font-weight: normal;
-  font-style: normal;
-}
+/* 诗歌内容使用汇文明朝字体，其他地方使用系统默认字体 */
 
 /* 底部操作栏样式 */
 .bottom-action-bar {

@@ -1,224 +1,250 @@
-# 字体云存储动态加载方案
+# 云端字体加载方案
 
 ## 概述
-将字体文件从本地静态资源迁移到腾讯云存储，实现按需动态下载，显著减小应用包大小。
 
-## 技术架构
+本项目使用云端字体加载方案，规避小程序包大小限制，同时保证用户体验。
 
-### 1. 文件结构
-```
-├── utils/
-│   ├── fontManager.js          # 字体管理核心
-│   └── fontUploader.js         # 字体上传工具（开发用）
-├── components/
-│   └── FontSelectorModal.vue   # 字体选择器（已更新支持下载）
-├── pages/
-│   └── font-manager/           # 字体管理页面
-│       └── font-manager.vue
-└── static/fonts/               # 仅保留默认字体
-    └── Huiwen-mincho.otf      # 汇文明朝（默认字体）
-```
+## 方案特点
 
-### 2. 核心功能
+### 1. 平台差异化处理
 
-#### FontManager 类
-- **字体缓存管理**: LRU策略，50MB上限
-- **动态下载**: 从腾讯云存储按需下载
-- **本地存储**: 缓存到 `wx.env.USER_DATA_PATH/fonts/`
-- **版本控制**: 支持字体更新和校验
+- **小程序**: 从云端下载字体到本地缓存
+- **App**: 使用打包在应用内的本地字体文件
+- **H5**: 使用打包在项目中的本地字体文件
 
-#### 字体配置
+### 2. 渐进式加载
+
+- **首次启动**: 使用微信默认字体显示内容
+- **后台下载**: 自动从云端下载汇文明朝字体
+- **下载完成**: 自动切换到汇文明朝字体
+- **后续启动**: 直接使用已缓存的字体，无需再次下载
+
+### 3. 优势
+
+- ✅ 不占用小程序包大小
+- ✅ 按需下载，节省流量
+- ✅ 永久缓存，一次下载终身使用
+- ✅ 降级方案，下载失败时使用系统字体
+- ✅ 跨平台支持
+
+## 技术实现
+
+### 字体配置 (utils/fontManager.js)
+
 ```javascript
 const FONT_CONFIG = {
-    'Huiwen-mincho': { displayName: '汇文明朝', isDefault: true },
-    '文楷': { displayName: '文楷', size: 18456789 },
-    '蒲瓜正楷体': { displayName: '蒲瓜正楷体', size: 15234567 },
-    // ... 其他字体
+    '汇文明朝': {
+        displayName: '汇文明朝',
+        filename: 'Huiwen-mincho.otf',
+        cloudPath: 'cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/fonts/Huiwen-mincho.otf',
+        size: 15400,
+        version: '1.0.0',
+        // 小程序从云端下载，App/H5 使用本地文件
+        isDefault: platformDetector.getCurrentPlatform() !== 'mp-weixin'
+    }
 };
 ```
 
-## 部署步骤
+### 预加载逻辑 (App.vue)
 
-### 1. 配置腾讯云存储
-
-#### 1.1 创建云存储桶
-```bash
-# 在腾讯云开发控制台创建存储桶
-# 或使用 CLI 工具
-tcb storage:create-bucket fonts-bucket
-```
-
-#### 1.2 上传字体文件
-```bash
-# 方法一：使用控制台上传
-# 1. 登录腾讯云开发控制台
-# 2. 进入云存储
-# 3. 创建 fonts/ 目录
-# 4. 上传字体文件
-
-# 方法二：使用 CLI 工具
-tcb storage:upload ./static/fonts/文楷.ttf fonts/文楷.ttf
-tcb storage:upload ./static/fonts/蒲瓜正楷体.ttf fonts/蒲瓜正楷体.ttf
-tcb storage:upload ./static/fonts/龙藏体.ttf fonts/龙藏体.ttf
-tcb storage:upload ./static/fonts/小小皓体.ttf fonts/小小皓体.ttf
-tcb storage:upload ./static/fonts/南西雅致黑.ttf fonts/南西雅致黑.ttf
-tcb storage:upload ./static/fonts/字体圈欣意吉祥宋.ttf fonts/字体圈欣意吉祥宋.ttf
-tcb storage:upload ./static/fonts/汇文明朝-蒲瓜版.ttf fonts/汇文明朝-蒲瓜版.ttf
-```
-
-#### 1.3 配置 CDN 加速（推荐）
 ```javascript
-// 在 fontManager.js 中更新 URL
-const CLOUD_FONT_BASE_URL = 'https://your-cdn-domain.com/fonts';
-// 或使用直接存储URL
-const CLOUD_FONT_BASE_URL = 'https://your-env-id.tcb.qcloud.la/fonts';
+// 小程序环境：启动时自动下载字体
+// #ifdef MP-WEIXIN
+fontManager.ensureFontAvailable('汇文明朝', (progress) => {
+    console.log(`字体下载进度: ${progress}%`);
+}).then(() => {
+    console.log('字体加载完成');
+    // 触发全局事件通知页面刷新
+    uni.$emit('font-loaded', { fontFamily: '汇文明朝' });
+}).catch(err => {
+    console.warn('字体加载失败，使用系统默认字体');
+});
+// #endif
 ```
 
-### 2. 更新应用配置
+### 全局字体应用 (App.vue)
 
-#### 2.1 修改字体管理器配置
+```css
+/* 全局应用汇文明朝字体 */
+page {
+  font-family: '汇文明朝', -apple-system, BlinkMacSystemFont, 
+               'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 
+               'Microsoft YaHei', sans-serif;
+}
+```
+
+## 使用方法
+
+### 1. 在页面中使用
+
+字体会自动应用到所有文本，无需额外配置：
+
+```vue
+<template>
+    <view>
+        <text>这段文字会自动使用汇文明朝字体</text>
+    </view>
+</template>
+```
+
+### 2. 在 Canvas 中使用
+
 ```javascript
-// utils/fontManager.js
-const CLOUD_FONT_BASE_URL = 'https://your-actual-storage-url.com/fonts';
+// 确保字体已加载
+await fontManager.ensureFontAvailable('汇文明朝');
 
-// 更新字体文件大小（获取实际文件大小）
-const FONT_CONFIG = {
-    '文楷': { size: 18456789 }, // 替换为实际大小
-    // ... 其他字体配置
-};
+// 使用字体绘制
+const ctx = uni.createCanvasContext('myCanvas');
+ctx.font = '32px 汇文明朝';
+ctx.fillText('春江潮水连海平', 0, 0);
+ctx.draw();
 ```
 
-#### 2.2 清理本地字体文件
-```bash
-# 删除非默认字体文件，保留 Huiwen-mincho.otf
-rm static/fonts/文楷.ttf
-rm static/fonts/蒲瓜正楷体.ttf
-rm static/fonts/龙藏体.ttf
-rm static/fonts/小小皓体.ttf
-rm static/fonts/南西雅致黑.ttf
-rm static/fonts/字体圈欣意吉祥宋.ttf
-rm static/fonts/汇文明朝-蒲瓜版.ttf
-```
+### 3. 监听字体加载完成
 
-### 3. 功能验证
-
-#### 3.1 测试下载功能
-1. 删除应用数据重新安装
-2. 进入分享页面选择非默认字体
-3. 观察下载进度和缓存效果
-4. 测试网络异常时的降级处理
-
-#### 3.2 缓存管理测试
-1. 访问字体管理页面：`/pages/font-manager/font-manager`
-2. 测试下载、删除、清空功能
-3. 验证缓存大小限制和LRU清理
-
-## 技术优势
-
-### 包体积优化
-- **前**: 8个字体文件 ≈ 80MB
-- **后**: 1个默认字体 ≈ 2.5MB  
-- **减少**: 约77.5MB (97%减少)
-
-### 用户体验
-- **首次使用**: 立即可用默认字体
-- **字体切换**: 进度条显示下载状态
-- **离线使用**: 已下载字体无需网络
-- **智能缓存**: 自动清理最少使用字体
-
-### 技术特性
-- **渐进加载**: 先显示默认字体，后台下载
-- **错误处理**: 下载失败自动降级
-- **版本控制**: 支持字体文件更新
-- **跨平台**: 支持小程序、APP、H5
-
-## 监控和维护
-
-### 1. 性能监控
 ```javascript
-// 添加字体下载监控
-fontManager.on('downloadStart', (fontFamily) => {
-    // 上报下载开始事件
+// 在页面的 onLoad 或 mounted 中监听
+uni.$on('font-loaded', (data) => {
+    console.log('字体加载完成:', data.fontFamily);
+    // 可以在这里刷新页面或重新渲染
+    this.$forceUpdate();
 });
 
-fontManager.on('downloadSuccess', (fontFamily, duration) => {
-    // 上报下载成功和耗时
-});
-
-fontManager.on('downloadError', (fontFamily, error) => {
-    // 上报下载错误
-});
+// 记得在页面卸载时移除监听
+onUnload() {
+    uni.$off('font-loaded');
+}
 ```
 
-### 2. 缓存统计
+## 缓存管理
+
+### 查看缓存状态
+
 ```javascript
-// 获取缓存使用情况
 const stats = fontManager.getCacheStats();
 console.log('缓存统计:', stats);
+// {
+//   totalFonts: 6,
+//   cachedFonts: 1,
+//   loadedFonts: 1,
+//   cacheSize: 15400,
+//   cacheSizeFormatted: '15.04 KB'
+// }
 ```
 
-### 3. 用户行为分析
-- 字体使用频率统计
-- 下载成功率监控
-- 缓存命中率分析
+### 检查字体是否已缓存
+
+```javascript
+const isCached = await fontManager.isFontCached('汇文明朝');
+console.log('字体已缓存:', isCached);
+```
+
+### 清除字体缓存
+
+```javascript
+// 清除单个字体
+await fontManager.deleteFontCache('汇文明朝');
+
+// 清除所有字体缓存
+await fontManager.clearAllCache();
+```
+
+## 存储位置
+
+### 小程序
+- 路径: `wx.env.USER_DATA_PATH/fonts/`
+- 特点: 永久存储，不会被清理
+
+### App
+- 路径: `_doc/fonts/`
+- 特点: 应用私有目录，卸载时清除
+
+### H5
+- 存储: IndexedDB
+- 特点: 浏览器本地存储，清除缓存时会被删除
+
+## 性能优化
+
+### 1. 预加载策略
+
+- 在 App 启动时立即开始下载
+- 不阻塞页面渲染
+- 后台静默下载
+
+### 2. 缓存策略
+
+- 首次下载后永久缓存
+- 版本控制，支持字体更新
+- 自动清理过期缓存
+
+### 3. 降级方案
+
+- 下载失败时使用系统字体
+- 不影响应用正常使用
+- 下次启动自动重试
+
+## 测试页面
+
+访问 `pages/test-font-loading.vue` 可以测试字体加载功能：
+
+- 查看字体加载状态
+- 查看下载进度
+- 对比默认字体和自定义字体
+- 手动清除缓存测试
 
 ## 注意事项
 
-### 1. 网络环境
-- 确保云存储 CDN 覆盖用户地区
-- 设置合理的超时时间（建议30秒）
-- 提供网络异常提示
+1. **首次启动体验**: 用户首次启动小程序时，会短暂看到系统默认字体，这是正常现象
+2. **网络依赖**: 首次下载需要网络连接，建议在 WiFi 环境下使用
+3. **存储空间**: 字体文件约 15KB，对用户存储空间影响极小
+4. **版本更新**: 如需更新字体，修改 `version` 字段即可触发重新下载
 
-### 2. 存储权限
-- 配置云存储读取权限
-- 确保匿名用户可访问字体文件
-- 定期检查存储配额使用情况
+## 添加新字体
 
-### 3. 兼容性
-- 测试不同平台的字体加载
-- 验证低端设备的性能表现
-- 确保网络受限环境的可用性
+在 `fontManager.js` 的 `FONT_CONFIG` 中添加配置：
 
-## 成本分析
-
-### 存储成本
-- 字体文件总大小: ~80MB
-- 腾讯云存储费用: ~0.1元/月
-
-### 流量成本
-- 单次字体下载: 2-20MB
-- 月活用户下载: 根据实际使用情况
-- CDN 加速费用: 按流量计费
-
-### ROI 收益
-- 应用包大小减少97%
-- 应用商店审核通过率提升
-- 用户下载转化率提升
-- 更新版本流量成本降低
-
-## 后续优化
-
-### 1. 智能预加载
 ```javascript
-// 根据用户历史使用偏好预加载字体
-fontManager.preloadUserFavorites();
+'新字体名称': {
+    displayName: '新字体名称',
+    filename: 'new-font.ttf',
+    cloudPath: 'cloud://your-env.../fonts/new-font.ttf',
+    size: 2000000, // 字节
+    version: '1.0.0',
+    isDefault: platformDetector.getCurrentPlatform() !== 'mp-weixin'
+}
 ```
 
-### 2. 增量更新
+然后在需要的地方使用：
+
 ```javascript
-// 支持字体文件增量更新
-fontManager.checkForUpdates();
+await fontManager.ensureFontAvailable('新字体名称');
 ```
 
-### 3. 压缩优化
-```javascript
-// 字体文件压缩和子集化
-fontManager.loadFontSubset(fontFamily, characters);
-```
+## 故障排查
 
----
+### 字体下载失败
 
-**实施时间**: 预计2-3天
-**维护成本**: 低
-**技术风险**: 低
-**预期收益**: 显著减小包体积，提升用户体验
+1. 检查云存储文件是否存在
+2. 检查云存储权限配置
+3. 查看控制台错误日志
+4. 确认网络连接正常
+
+### 字体未生效
+
+1. 确认字体已下载完成
+2. 检查 CSS 中的 font-family 设置
+3. 尝试强制刷新页面
+4. 查看 fontManager.loadedFonts 是否包含该字体
+
+### 缓存问题
+
+1. 手动清除缓存重新下载
+2. 检查存储空间是否充足
+3. 确认小程序版本是否最新
+
+## 相关文件
+
+- `utils/fontManager.js` - 字体管理核心逻辑
+- `App.vue` - 全局字体预加载
+- `uni.scss` - 全局字体变量
+- `pages/test-font-loading.vue` - 字体加载测试页面

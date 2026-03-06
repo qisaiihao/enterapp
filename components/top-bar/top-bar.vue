@@ -161,9 +161,15 @@ export default {
 .custom-top-bar {
   height: 100rpx;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  /* #ifdef MP-WEIXIN */
+  justify-content: flex-start; /* 小程序端：靠左对齐 */
+  padding: 20rpx 200rpx 0 40rpx; /* 小程序端：右侧留出更多空间避免被小程序按钮遮挡 */
+  /* #endif */
+  /* #ifndef MP-WEIXIN */
+  justify-content: space-between; /* 非小程序端：两端对齐 */
   padding: 20rpx 40rpx 0 40rpx;
+  /* #endif */
+  align-items: center;
   background: #fff;
   border-bottom: none;
   box-shadow: none;
@@ -175,6 +181,9 @@ export default {
   cursor: pointer;
   transition: all 0.2s ease;
   padding: 10rpx;
+  /* #ifdef MP-WEIXIN */
+  margin-right: 40rpx; /* 小程序端：与右侧按钮保持间距 */
+  /* #endif */
 }
 
 .top-left:active {
@@ -185,6 +194,9 @@ export default {
   display: flex;
   align-items: center;
   gap: 40rpx;
+  /* #ifdef MP-WEIXIN */
+  margin-left: 0; /* 小程序端：紧跟左侧按钮 */
+  /* #endif */
 }
 
 .top-item {

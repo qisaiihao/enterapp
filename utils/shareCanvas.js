@@ -362,7 +362,7 @@ async function calculateShareCardHeight(options) {
 
     // 计算签名高度
     const signatureTopGap = 40;
-    const fixedSignatureWidth = 120;
+    const fixedSignatureWidth = 240; // 签名宽度（从 120 增加到 240，两倍大小）
     const signatureTextFontSize = 28;
     let signatureDrawHeight = 0;
     

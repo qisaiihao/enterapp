@@ -33,7 +33,7 @@
         <view v-else :id="containerId">
             <post-item
                 v-for="(item, index) in posts"
-                :key="item._id || index"
+                :key="index"
                 :item="item"
                 :index="index"
                 :swiper-height="swiperHeights[index]"
@@ -167,6 +167,22 @@ export default {
             touchStartY: 0,
             touchMoved: false
         };
+    },
+    mounted() {
+        console.log('📋 [FeedList] mounted');
+        console.log('📋 [FeedList] posts:', this.posts);
+        console.log('📋 [FeedList] posts.length:', this.posts?.length || 0);
+        console.log('📋 [FeedList] isLoading:', this.isLoading);
+        console.log('📋 [FeedList] hasEverLoaded:', this.hasEverLoaded);
+        console.log('📋 [FeedList] listType:', this.listType);
+    },
+    watch: {
+        posts: {
+            handler(newVal) {
+                console.log('📋 [FeedList] posts 变化:', newVal?.length || 0);
+            },
+            immediate: true
+        }
     },
     methods: {
         // 下拉刷新

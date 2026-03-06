@@ -46,6 +46,7 @@
 import { imageManager } from '@/utils/imageManager.js';
 import { cloudCall } from '@/utils/cloudCall.js';
 import { getPostList as getPostListWithCache } from '@/api-cache/post-list.js';
+import { ensureWxCloudInit } from '@/utils/wxCloudInit.js';
 
 export default {
     data() {
@@ -93,6 +94,10 @@ export default {
         };
     },
     onLoad: function () {
+        // 【关键修复】确保微信云开发已初始化
+        console.log('🔍 [splash] 页面加载，开始初始化云开发');
+        ensureWxCloudInit();
+        
         // 检查是否在10分钟内重复进入，如果是则跳过开屏动画
         if (this.shouldSkipSplash()) {
             console.log('⏭️ [splash] 10分钟内重复进入，跳过开屏动画');
@@ -146,9 +151,17 @@ export default {
 
         /**
          * 跳过开屏动画，直接进入主页面
+         * 注意：跳过时不执行预加载，因为页面会自己加载缓存数据
          */
-        skipToMainPage() {
+        async skipToMainPage() {
             const app = getApp();
+            
+            // 不再执行预加载任务，因为：
+            // 1. 页面会自己从缓存加载数据（更快）
+            // 2. 避免重复的网络请求
+            // 3. 减少不必要的计算
+            
+            console.log('⚡ [splash] 快速进入模式：跳过预加载，直接使用页面缓存');
             
             // 检查用户是否已登录
             if (app && app.globalData && app.globalData.userInfo && app.globalData.openid) {
