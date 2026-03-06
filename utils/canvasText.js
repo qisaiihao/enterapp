@@ -11,8 +11,8 @@
  * @returns {number} 实际需要的行数
  */
 function calculateActualLines(ctx, text, maxWidth, fontSize) {
-    // 设置字体
-    ctx.font = fontSize + 'px Huiwen-mincho, sans-serif';
+    // 设置字体 - 使用统一的字体名称
+    ctx.font = fontSize + 'px 汇文明朝, sans-serif';
 
     const lines = text.split('\n');
     let actualLineCount = 0;

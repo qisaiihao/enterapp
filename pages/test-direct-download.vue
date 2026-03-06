@@ -10,6 +10,7 @@
     </view>
     
     <button @click="testFontManager" type="primary">下载并应用字体</button>
+    <button @click="testDomainConfig" type="default">测试域名配置</button>
     <button @click="addCustomFont" type="default">添加本地字体</button>
     <button @click="clearCache" type="warn">清除字体缓存</button>
     
@@ -96,6 +97,88 @@ export default {
     
     refreshFontList() {
       this.availableFonts = fontManager.getAvailableFonts();
+    },
+    
+    async testDomainConfig() {
+      this.result = '';
+      this.logs = [];
+      this.addLog('🔍 开始测试域名配置...');
+      
+      try {
+        // #ifdef MP-WEIXIN
+        const testUrl = 'https://636c-cloud1-5gb0pbyl400845f5-1378788263.tcb.qcloud.la/fonts/Huiwen-mincho.otf';
+        this.addLog(`测试URL: ${testUrl}`);
+        
+        // 1. 测试 uni.request
+        this.addLog('1️⃣ 测试 uni.request (HEAD)...');
+        try {
+          const requestRes = await new Promise((resolve, reject) => {
+            uni.request({
+              url: testUrl,
+              method: 'HEAD',
+              success: resolve,
+              fail: reject
+            });
+          });
+          this.addLog(`✅ uni.request 成功，状态码: ${requestRes.statusCode}`);
+        } catch (err) {
+          this.addLog(`❌ uni.request 失败: ${err.errMsg}`);
+        }
+        
+        // 2. 测试 wx.cloud.getTempFileURL
+        this.addLog('2️⃣ 测试 wx.cloud.getTempFileURL...');
+        try {
+          const cloudPath = 'cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/fonts/Huiwen-mincho.otf';
+          const tempRes = await wx.cloud.getTempFileURL({
+            fileList: [cloudPath]
+          });
+          
+          if (tempRes.fileList && tempRes.fileList[0]) {
+            const tempUrl = tempRes.fileList[0].tempFileURL;
+            this.addLog(`✅ 获取临时链接成功`);
+            this.addLog(`   临时URL: ${tempUrl}`);
+            
+            // 3. 测试 uni.loadFontFace
+            this.addLog('3️⃣ 测试 uni.loadFontFace...');
+            await new Promise((resolve, reject) => {
+              uni.loadFontFace({
+                family: '测试字体',
+                source: `url("${tempUrl}")`,
+                global: true,
+                success: (res) => {
+                  this.addLog(`✅ loadFontFace 成功!`);
+                  this.addLog(`   结果: ${JSON.stringify(res)}`);
+                  resolve(res);
+                },
+                fail: (err) => {
+                  this.addLog(`❌ loadFontFace 失败: ${err.errMsg}`);
+                  this.addLog(`   状态: ${err.status}`);
+                  reject(err);
+                }
+              });
+            });
+            
+            this.result = '✅ 所有测试通过！域名配置正确。';
+            this.addLog('🎉 所有测试通过！');
+            
+          } else {
+            throw new Error('未获取到临时链接');
+          }
+        } catch (err) {
+          this.addLog(`❌ 云存储测试失败: ${err.message || err.errMsg}`);
+          throw err;
+        }
+        // #endif
+        
+        // #ifndef MP-WEIXIN
+        this.result = '⚠️ 此测试仅在微信小程序环境有效';
+        this.addLog('⚠️ 此测试仅在微信小程序环境有效');
+        // #endif
+        
+      } catch (error) {
+        this.result = `❌ 测试失败\n\n可能原因：\n1. 域名未配置或配置错误\n2. 需要在微信公众平台配置 request 合法域名\n3. 域名：https://636c-cloud1-5gb0pbyl400845f5-1378788263.tcb.qcloud.la\n\n错误信息：${error.message || error.errMsg}`;
+        this.addLog(`❌ 测试失败: ${error.message || error.errMsg}`);
+      }
     },
     
     async testFontManager() {

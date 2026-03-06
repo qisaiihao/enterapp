@@ -613,6 +613,8 @@ export default {
                     app.globalData.userInfo = userInfo;
                     app.globalData.openid = returnedOpenid;
                     app.globalData._loginProcessCompleted = true;
+                    // 【关键修复】设置登录状态标记
+                    app.globalData.isLoggedIn = true;
                     uni.setStorageSync('userInfo', userInfo);
                     uni.setStorageSync('userOpenId', returnedOpenid);
                     uni.showToast({ title: '注册成功', icon: 'success' });

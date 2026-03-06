@@ -112,7 +112,14 @@
 
           <!-- 普通卡片或组诗折叠态 -->
           <block v-if="!item.seriesExpanded">
-            <view class="post-content-navigator" @tap="togglePostExpansion" @longpress="onLongPressCard" :data-index="index" :data-postid="item._id">
+            <view 
+              class="post-content-navigator" 
+              :class="{ 'has-vote-section': item.isExpanded && !item.isSeries }"
+              @tap="togglePostExpansion" 
+              @longpress="onLongPressCard" 
+              :data-index="index" 
+              :data-postid="item._id"
+            >
               <view class="post-item">
                 <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.highlightLines || item.highlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.content" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
                   <block v-if="item.isExpanded">
@@ -1274,7 +1281,16 @@ export default {
 /* 背景颜色现在通过内联样式动态设置，不再使用固定的CSS类 */
 
 .post-item-wrapper:active { transform: scale(0.98); }
-.post-content-navigator { display: block; }
+.post-content-navigator { 
+  display: block; 
+  border-radius: 30rpx; /* 默认完整圆角（折叠态） */
+  overflow: hidden;
+}
+
+/* 展开态时，post-content-navigator 只保留上方圆角 */
+.post-content-navigator.has-vote-section {
+  border-radius: 30rpx 30rpx 0 0;
+}
 .post-item { padding: 26rpx 50rpx 26rpx 60rpx; position: relative; } /* 缩小内边距匹配普通卡 */
 
 /* 组诗外层叠层（同色卡片） - 两张卡片，后一张向左上平移12rpx */
@@ -1310,6 +1326,11 @@ export default {
   border-radius: 30rpx 30rpx 0 0; /* 只保留上方圆角 */
   overflow: visible;
   min-height: auto;
+}
+
+/* 组诗单卡片的 post-content-navigator 覆盖普通卡片的圆角设置 */
+.series-single-card .post-content-navigator {
+  border-radius: 30rpx 30rpx 0 0; /* 组诗卡片只保留上方圆角 */
 }
 
 /* 组诗展开态的 vote-section 添加下方圆角 */
@@ -1379,7 +1400,13 @@ export default {
 .post-content.expanded { display: block; overflow: visible; }
 .comment-emoji{ font-size: 40rpx; }
 .comment-icon { width: 60rpx; height: 60rpx; }
-.vote-section { display: flex; justify-content: space-between; align-items: center; padding: 25rpx 50rpx; }
+.vote-section { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  padding: 25rpx 50rpx; 
+  border-radius: 0 0 30rpx 30rpx; /* 添加下方圆角 */
+}
 .actions-left { flex: 1; display: flex; align-items: center; gap: 20rpx; }
 .button-group { display: flex; align-items: center; gap: 30rpx; }
 .comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; }

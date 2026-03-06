@@ -2,9 +2,11 @@
 import { silenceConsoleInProduction } from '@/utils/logger.js';
 silenceConsoleInProduction();
 
-// 字体预加载 - 确保Huiwen-mincho字体在应用启动时就加载
+// 字体预加载 - 确保汇文明朝字体在应用启动时就加载
 // #ifdef H5
 if (typeof document !== 'undefined') {
+  console.log('🔤 [字体预加载] H5端开始预加载汇文明朝字体');
+  
   // 创建字体预加载链接
   const fontLink = document.createElement('link');
   fontLink.rel = 'preload';
@@ -18,7 +20,7 @@ if (typeof document !== 'undefined') {
   const fontStyle = document.createElement('style');
   fontStyle.textContent = `
     @font-face {
-      font-family: 'Huiwen-mincho';
+      font-family: '汇文明朝';
       src: url('/static/fonts/Huiwen-mincho.otf') format('opentype');
       font-weight: normal;
       font-style: normal;
@@ -26,20 +28,47 @@ if (typeof document !== 'undefined') {
     }
   `;
   document.head.appendChild(fontStyle);
+  
+  // 使用 FontFace API 强制加载字体
+  if (typeof FontFace !== 'undefined') {
+    const font = new FontFace('汇文明朝', 'url(/static/fonts/Huiwen-mincho.otf)');
+    font.load().then(function(loadedFont) {
+      document.fonts.add(loadedFont);
+      console.log('✅ [字体预加载] H5端汇文明朝字体加载成功');
+    }).catch(function(error) {
+      console.error('❌ [字体预加载] H5端汇文明朝字体加载失败:', error);
+    });
+  }
 }
 // #endif
 
 // #ifdef APP-PLUS
 // App端字体预加载
+console.log('🔤 [字体预加载] App端开始预加载汇文明朝字体');
 try {
-  const fontPath = plus.io.convertLocalFileSystemURL('/static/fonts/Huiwen-mincho.otf');
+  const fontPath = plus.io.convertLocalFileSystemURL('_www/static/fonts/Huiwen-mincho.otf');
+  console.log('📍 [字体预加载] App端字体路径:', fontPath);
+  
+  // 使用 uni.loadFontFace 加载字体
+  uni.loadFontFace({
+    family: '汇文明朝',
+    source: `url("${fontPath}")`,
+    global: true,
+    success: function() {
+      console.log('✅ [字体预加载] App端汇文明朝字体加载成功');
+    },
+    fail: function(err) {
+      console.error('❌ [字体预加载] App端汇文明朝字体加载失败:', err);
+    }
+  });
 } catch (e) {
-  console.warn('🔤 [字体预加载] App端字体预加载失败:', e);
+  console.warn('❌ [字体预加载] App端字体预加载失败:', e);
 }
 // #endif
 
 // #ifdef MP-WEIXIN
-// 微信小程序字体预加载
+// 微信小程序端不预加载字体，使用系统默认字体
+console.log('⚠️ [字体预加载] 小程序端跳过字体预加载，使用系统字体');
 // #endif
 
 import App from './App';

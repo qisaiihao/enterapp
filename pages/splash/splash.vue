@@ -151,49 +151,17 @@ export default {
 
         /**
          * 跳过开屏动画，直接进入主页面
-         * 注意：跳过时不执行预加载，因为页面会自己加载缓存数据
+         * 【小程序审核优化】允许未登录浏览
          */
         async skipToMainPage() {
             const app = getApp();
             
-            // 不再执行预加载任务，因为：
-            // 1. 页面会自己从缓存加载数据（更快）
-            // 2. 避免重复的网络请求
-            // 3. 减少不必要的计算
-            
             console.log('⚡ [splash] 快速进入模式：跳过预加载，直接使用页面缓存');
             
-            // 检查用户是否已登录
-            if (app && app.globalData && app.globalData.userInfo && app.globalData.openid) {
-                uni.switchTab({
-                    url: '/pages/poem-square/poem-square'
-                });
-            } else {
-                // 尝试从缓存恢复登录状态
-                try {
-                    const cachedUserInfo = uni.getStorageSync('userInfo');
-                    const cachedOpenId = uni.getStorageSync('userOpenId');
-                    
-                    if (cachedUserInfo && cachedOpenId) {
-                        // 恢复登录状态
-                        if (app && app.globalData) {
-                            app.globalData.userInfo = cachedUserInfo;
-                            app.globalData.openid = cachedOpenId;
-                        }
-                        uni.switchTab({
-                            url: '/pages/poem-square/poem-square'
-                        });
-                    } else {
-                        uni.redirectTo({
-                            url: '/pages/login/login'
-                        });
-                    }
-                } catch (e) {
-                    uni.redirectTo({
-                        url: '/pages/login/login'
-                    });
-                }
-            }
+            // 【小程序审核优化】直接跳转到原创诗歌页面（主页）
+            uni.switchTab({
+                url: '/pages/poem-square/poem-square'
+            });
         },
 
         /**
@@ -806,18 +774,10 @@ export default {
 
             // 延迟跳转，让动画完成
             setTimeout(() => {
-                // 检查用户是否已登录
-                const app = getApp();
-
-                if (app.globalData.userInfo && app.globalData.openid) {
-                    uni.switchTab({
-                        url: '/pages/poem-square/poem-square'
-                    });
-                } else {
-                    uni.redirectTo({
-                        url: '/pages/login/login'
-                    });
-                }
+                // 【小程序审核优化】直接跳转到原创诗歌页面（主页）
+                uni.switchTab({
+                    url: '/pages/poem-square/poem-square'
+                });
             }, 800);
         },
 

@@ -426,6 +426,8 @@ export default {
                             appInstance.globalData = appInstance.globalData || {};
                             appInstance.globalData.userInfo = latestUserInfo;
                             appInstance.globalData.openid = latestUserInfo._openid;
+                            // 【关键修复】设置登录状态标记
+                            appInstance.globalData.isLoggedIn = true;
                             console.log('✅ [登录流程] getApp().globalData 已更新:', appInstance.globalData);
                         } else {
                         }
@@ -586,7 +588,7 @@ export default {
 /* 小程序不支持 CSS @font-face 加载本地字体，只在 H5 和 APP 环境使用 */
 /* #ifndef MP-WEIXIN */
 @font-face {
-  font-family: 'Huiwen-mincho';
+  font-family: '汇文明朝';
   src: url('/static/fonts/Huiwen-mincho.otf') format('opentype');
   font-weight: normal;
   font-style: normal;

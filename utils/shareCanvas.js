@@ -324,9 +324,21 @@ async function calculateShareCardHeight(options) {
     const fontSize = Math.round(baseFontSize * fontScale);
     const lineHeight = Math.round(fontSize * 1.26);
     const fontFamily = shareConfig.fontFamily || '汇文明朝';
+    
     // 将字体 ID 转换为显示名称，用于 Canvas 绑定
     const fontDisplayName = getFontDisplayName(fontFamily);
-    const actualFontFamily = fontFamily === 'system' ? 'sans-serif' : fontDisplayName + ', sans-serif';
+    
+    // 【关键修复】根据平台选择字体
+    let actualFontFamily;
+    // #ifdef MP-WEIXIN
+    actualFontFamily = 'sans-serif';  // 小程序端强制使用系统字体
+    console.log('【shareCanvas】小程序端使用系统字体');
+    // #endif
+    // #ifndef MP-WEIXIN
+    // H5/App端使用实际字体名称
+    actualFontFamily = fontFamily === 'system' ? 'sans-serif' : fontDisplayName + ', sans-serif';
+    console.log('【shareCanvas】H5/App端使用字体:', actualFontFamily);
+    // #endif
 
     const textPadding = 60;
     const textTopPadding = 80;

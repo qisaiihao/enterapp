@@ -2,11 +2,11 @@
   <view class="white-page">
     <view class="container">
       <text class="brand">poementer</text>
-      <view class="center-wrap">
-        
-        <!-- 小程序环境：显示微信授权登录 -->
-        <!-- #ifdef MP-WEIXIN -->
-        <view class="wechat-login-section" v-if="!showPasswordLogin">
+      
+      <!-- 小程序环境：显示微信授权登录 -->
+      <!-- #ifdef MP-WEIXIN -->
+      <view class="center-wrap wechat-wrap" v-if="!showPasswordLogin">
+        <view class="wechat-login-section">
           <button 
             class="wechat-login-btn" 
             @tap="loginWithWechat"
@@ -20,15 +20,18 @@
             <text class="switch-text">使用 Poem ID 登录</text>
           </view>
         </view>
-        <!-- #endif -->
+      </view>
+      
+      <view class="center-wrap" v-if="showPasswordLogin">
+      <!-- #endif -->
+      
+      <!-- H5/App 环境 -->
+      <!-- #ifndef MP-WEIXIN -->
+      <view class="center-wrap">
+      <!-- #endif -->
         
         <!-- H5/App 环境 或 小程序切换到密码登录 -->
-        <!-- #ifndef MP-WEIXIN -->
         <view class="password-login-section">
-        <!-- #endif -->
-        <!-- #ifdef MP-WEIXIN -->
-        <view class="password-login-section" v-if="showPasswordLogin">
-        <!-- #endif -->
           <view class="form-wrapper compact">
             <view class="input-wrapper">
               <input class="input-field" type="text" placeholder="请输入 Poem ID" v-model="poemId" />
@@ -64,12 +67,22 @@
     </view>
 
     <!-- 右下角"回车键"形状按钮：点击登录 -->
+    <!-- #ifdef MP-WEIXIN -->
+    <view class="enter-key-btn" v-if="showPasswordLogin" @tap="onLogin" :class="{ disabled: !canLogin || isLogging }">
+      <view class="ek-layer ek-border"></view>
+      <view class="ek-layer ek-fill">
+        <text class="ek-text">Enter ↵</text>
+      </view>
+    </view>
+    <!-- #endif -->
+    <!-- #ifndef MP-WEIXIN -->
     <view class="enter-key-btn" @tap="onLogin" :class="{ disabled: !canLogin || isLogging }">
       <view class="ek-layer ek-border"></view>
       <view class="ek-layer ek-fill">
         <text class="ek-text">Enter ↵</text>
       </view>
     </view>
+    <!-- #endif -->
 
     <!-- 底部绑定手机号弹窗 -->
     <view class="bind-phone-modal" v-if="showBindPhoneModal" @tap.stop>
@@ -561,6 +574,8 @@ export default {
                     app.globalData.userInfo = cachedUserInfo;
                     app.globalData.openid = cachedUserInfo._openid || cachedOpenId;
                     app.globalData._loginProcessCompleted = true;
+                    // 【关键修复】设置登录状态标记
+                    app.globalData.isLoggedIn = true;
                     console.log('✅ [登录页面] 检测到已登录用户，自动跳转');
                     uni.switchTab({ url: '/pages/poem-square/poem-square' });
                 }
@@ -795,6 +810,8 @@ export default {
                 app.globalData.userInfo = result.userInfo;
                 app.globalData.openid = result.openid;
                 app.globalData._loginProcessCompleted = true;
+                // 【关键修复】设置登录状态标记
+                app.globalData.isLoggedIn = true;
 
                 // 缓存用户信息
                 uni.setStorageSync('userInfo', result.userInfo);
@@ -996,6 +1013,8 @@ export default {
 .white-page { background: #fff; min-height: 100vh; position: relative; }
 .container { position: relative; min-height: 100vh; padding: 0 0 140rpx; }
 .center-wrap { position: absolute; top: 30%; left: 0; right: 0; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; padding: 0 40rpx; }
+/* 微信登录区域位置调整到中下 */
+.wechat-wrap { top: 50%; }
 .brand { display: block; width: 100%; margin: 20vh 0 48rpx; font-size: 44rpx; font-weight: 600; color: #333; text-align: center; }
 .form-wrapper { width: 100%; max-width: 560rpx; display: flex; flex-direction: column; align-items: center; }
 .input-wrapper { width: 100%; margin-bottom: 36rpx; background: transparent; padding: 0; border: none; box-shadow: none; }
@@ -1031,7 +1050,7 @@ export default {
 .wechat-login-btn {
   width: 100%;
   height: 96rpx;
-  background: #07c160;
+  background: #4c6756;
   border-radius: 48rpx;
   display: flex;
   align-items: center;

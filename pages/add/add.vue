@@ -523,6 +523,31 @@ export default {
         }
     },
     onLoad: function (options) {
+        // 【小程序审核优化】检查登录状态，未登录则提示并返回
+        const app = getApp();
+        const isLoggedIn = app && app.globalData && app.globalData.isLoggedIn;
+        
+        if (!isLoggedIn) {
+            console.log('⚠️ [Add] 用户未登录，提示登录');
+            uni.showModal({
+                title: '需要登录',
+                content: '发帖需要登录，请先登录',
+                confirmText: '去登录',
+                cancelText: '取消',
+                success: (res) => {
+                    if (res.confirm) {
+                        // 使用 navigateTo 跳转到登录页
+                        uni.navigateTo({
+                            url: '/pages/login/login'
+                        });
+                    } else {
+                        uni.navigateBack();
+                    }
+                }
+            });
+            return;
+        }
+        
         // 初始化颜色/高光编辑相关状态（向后兼容）
         this.setData({
             selectedBackgroundColor: this.selectedBackgroundColor || '#a4c4bd',

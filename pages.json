@@ -84,12 +84,6 @@
       }
     },
     {
-      "path": "pages/test-direct-download",
-      "style": {
-        "navigationBarTitleText": "TCB直传测试"
-      }
-    },
-    {
       "path": "pages/poem-square/poem-square",
       "style": {
         "navigationStyle": "custom",
@@ -104,6 +98,12 @@
       "style": {
         "navigationBarTitleText": "组诗合成",
         "enablePullDownRefresh": false
+      }
+    },
+    {
+      "path": "pages/test-direct-download",
+      "style": {
+        "navigationBarTitleText": "字体加载测试"
       }
     },
     {
