@@ -174,6 +174,7 @@
 const app = getApp();
 const { cloudCall } = require('../../utils/cloudCall.js');
 const { uploadFile } = require('../../utils/uploader.js');
+const { checkContentSafe, checkImageSafe, checkTextSafe } = require('../../utils/contentModeration.js');
 export default {
     data() {
         return {
@@ -1216,10 +1217,23 @@ export default {
             }
         },
 
-        onSaveChanges: function () {
+        onSaveChanges: async function () {
             if (this.isSaving || this.isProcessingSignature || !this.hasChanges) {
                 return;
             }
+
+            // 【内容审核】审核个人资料内容（仅小程序端）
+            const moderationResult = await this.moderateProfileContent();
+            if (!moderationResult.passed) {
+                uni.showModal({
+                    title: '内容审核未通过',
+                    content: moderationResult.message || '您的个人资料包含不适当的信息，请修改后重试',
+                    showCancel: false,
+                    confirmText: '知道了'
+                });
+                return;
+            }
+
             this.setData({
                 isSaving: true
             });
@@ -1295,6 +1309,64 @@ export default {
                         isSaving: false
                     });
                 });
+        },
+
+        // 【内容审核】审核个人资料内容（仅小程序端）
+        async moderateProfileContent() {
+            console.log('🔍 [ProfileEdit] 开始审核个人资料');
+            
+            try {
+                uni.showLoading({
+                    title: '审核中...',
+                    mask: true
+                });
+
+                // 准备审核内容
+                const textContent = [
+                    this.nickName || '',
+                    this.poemId || '',
+                    this.bio || ''
+                ].filter(Boolean).join('\n');
+
+                const imageUrls = [];
+                
+                // 添加头像
+                if (this.tempAvatarPath) {
+                    imageUrls.push(this.tempAvatarPath);
+                }
+                
+                // 添加签名
+                if (this.signatureTempPath) {
+                    imageUrls.push(this.signatureTempPath);
+                }
+
+                console.log('🔍 [ProfileEdit] 审核内容:', {
+                    textLength: textContent.length,
+                    imageCount: imageUrls.length
+                });
+
+                // 调用批量审核
+                const result = await checkContentSafe({
+                    text: textContent,
+                    images: imageUrls
+                }, {
+                    scene: 1 // 场景1-资料
+                });
+
+                uni.hideLoading();
+                console.log('🔍 [ProfileEdit] 审核结果:', result);
+                return result;
+
+            } catch (error) {
+                uni.hideLoading();
+                console.error('❌ [ProfileEdit] 个人资料审核失败:', error);
+                
+                // 审核失败时返回通过
+                return {
+                    passed: true,
+                    message: '审核服务暂时不可用'
+                };
+            }
         },
 
         }

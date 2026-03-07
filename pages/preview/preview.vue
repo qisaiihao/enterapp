@@ -176,6 +176,7 @@
 import { cloudCall } from '@/utils/cloudCall.js';
 import { getCurrentPlatform, getCloudFunctionMethod } from '@/utils/platformDetector.js';
 import { emitPostUpdated, emitPostCreated } from '@/utils/events.js';
+import { checkContentSafe, checkTextSafe, checkImageSafe } from '@/utils/contentModeration.js';
 
 export default {
   data() {
@@ -550,7 +551,20 @@ export default {
     },
 
     // 执行发布逻辑
-    executePublish(addData) {
+    async executePublish(addData) {
+      // 【内容审核】先进行内容审核（仅小程序端）
+      const moderationResult = await this.moderateContent(addData);
+      if (!moderationResult.passed) {
+        // 审核未通过，显示错误并停止发布
+        uni.showModal({
+          title: '内容审核未通过',
+          content: moderationResult.message || '您的内容包含不适当的信息，请修改后重试',
+          showCancel: false,
+          confirmText: '知道了'
+        });
+        return;
+      }
+
       uni.showLoading({
         title: '发布中...'
       });
@@ -566,6 +580,93 @@ export default {
         } else {
           this.submitTextOnly(addData);
         }
+      }
+    },
+
+    // 【内容审核】审核发布内容（仅小程序端）
+    async moderateContent(addData) {
+      console.log('🔍 [Preview] 开始内容审核');
+      
+      try {
+        // 显示审核中提示
+        uni.showLoading({
+          title: '审核中...',
+          mask: true
+        });
+
+        // 准备审核内容
+        let textContent = '';
+        const imageUrls = [];
+
+        // 根据不同模式提取文本内容
+        if (addData.publishMode === 'discussion') {
+          // 讨论模式：合并所有正文和引用
+          const sentenceGroups = addData.sentenceGroups || [];
+          textContent = sentenceGroups.map(g => {
+            const sentences = (g.sentences || []).join('\n');
+            const comment = g.comment || '';
+            return `${sentences}\n${comment}`;
+          }).join('\n\n');
+        } else if (addData.isSeries) {
+          // 组诗模式：合并所有段落
+          const seriesBlocks = addData.seriesBlocks || [];
+          textContent = seriesBlocks.map(b => {
+            const subtitle = b.subtitle || '';
+            const content = b.content || '';
+            return subtitle ? `${subtitle}\n${content}` : content;
+          }).join('\n\n');
+        } else {
+          // 普通模式/诗歌模式：直接使用content
+          textContent = addData.content || '';
+        }
+
+        // 添加标题和作者到审核内容
+        if (addData.title) {
+          textContent = `${addData.title}\n\n${textContent}`;
+        }
+
+        // 提取图片URL
+        if (addData.imageList && Array.isArray(addData.imageList)) {
+          addData.imageList.forEach(img => {
+            if (img.previewUrl) {
+              imageUrls.push(img.previewUrl);
+            } else if (img.compressedPath) {
+              imageUrls.push(img.compressedPath);
+            }
+          });
+        }
+
+        console.log('🔍 [Preview] 审核内容:', {
+          textLength: textContent.length,
+          imageCount: imageUrls.length,
+          publishMode: addData.publishMode
+        });
+
+        // 调用批量审核
+        const result = await checkContentSafe({
+          text: textContent,
+          images: imageUrls
+        }, {
+          scene: 3, // 场景3-论坛
+          title: addData.title,
+          nickname: addData.author
+        });
+
+        uni.hideLoading();
+
+        console.log('🔍 [Preview] 审核结果:', result);
+
+        return result;
+
+      } catch (error) {
+        uni.hideLoading();
+        console.error('❌ [Preview] 内容审核失败:', error);
+        
+        // 审核失败时返回通过（避免阻塞发布）
+        return {
+          passed: true,
+          message: '审核服务暂时不可用，已跳过审核'
+        };
       }
     },
 

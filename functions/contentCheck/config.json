@@ -1,9 +1,9 @@
 {
-  "runtime": "Nodejs16.13",
   "permissions": {
-    "openapi": [
-      "cms.TextModeration",
-      "cms.ImageModeration"
-    ]
+    "openapi": []
+  },
+  "env": {
+    "WECHAT_APPID": "wx9db4f8a61ab11fbb",
+    "WECHAT_SECRET": "ff673422d30edd9b1b6a0c095854fd65"
   }
 }

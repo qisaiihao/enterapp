@@ -159,6 +159,7 @@ const { formatRelativeTime } = require('../../utils/time.js');
 const { previewImage } = require('../../utils/imagePreview.js');
 const { cloudCall } = require('../../utils/cloudCall.js');
 const postGalleryMixin = require('../../mixins/postGallery.js');
+const { checkImageSafe, checkTextSafe } = require('../../utils/contentModeration.js');
 
 const PAGE_SIZE = 10;
 
@@ -375,6 +376,18 @@ export default {
                 });
                 
                 if (!res.tempFilePaths || res.tempFilePaths.length === 0) return;
+
+                // 【内容审核】审核头像图片（仅小程序端）
+                const moderationResult = await this.moderatePoetAvatar(res.tempFilePaths[0]);
+                if (!moderationResult.passed) {
+                    uni.showModal({
+                        title: '内容审核未通过',
+                        content: moderationResult.message || '您上传的图片包含不适当的内容，请更换后重试',
+                        showCancel: false,
+                        confirmText: '知道了'
+                    });
+                    return;
+                }
                 
                 uni.showLoading({ title: '上传中...' });
                 
@@ -439,6 +452,18 @@ export default {
         // 保存简介
         async saveBio() {
             if (this.savingBio) return;
+
+            // 【内容审核】审核简介内容（仅小程序端）
+            const moderationResult = await this.moderatePoetBio(this.editingBio);
+            if (!moderationResult.passed) {
+                uni.showModal({
+                    title: '内容审核未通过',
+                    content: moderationResult.message || '您的简介包含不适当的信息，请修改后重试',
+                    showCancel: false,
+                    confirmText: '知道了'
+                });
+                return;
+            }
             
             this.setData({ savingBio: true });
             
@@ -464,6 +489,64 @@ export default {
                 uni.showToast({ title: '保存失败', icon: 'none' });
             } finally {
                 this.setData({ savingBio: false });
+            }
+        },
+        
+        // 【内容审核】审核诗人头像（仅小程序端）
+        async moderatePoetAvatar(imagePath) {
+            console.log('🔍 [PoetProfile] 开始审核诗人头像');
+            
+            try {
+                uni.showLoading({
+                    title: '审核中...',
+                    mask: true
+                });
+
+                const result = await checkImageSafe(imagePath, {
+                    scene: 1 // 场景1-资料
+                });
+
+                uni.hideLoading();
+                console.log('🔍 [PoetProfile] 头像审核结果:', result);
+                return result;
+
+            } catch (error) {
+                uni.hideLoading();
+                console.error('❌ [PoetProfile] 头像审核失败:', error);
+                
+                return {
+                    passed: true,
+                    message: '审核服务暂时不可用'
+                };
+            }
+        },
+
+        // 【内容审核】审核诗人简介（仅小程序端）
+        async moderatePoetBio(bio) {
+            console.log('🔍 [PoetProfile] 开始审核诗人简介');
+            
+            try {
+                uni.showLoading({
+                    title: '审核中...',
+                    mask: true
+                });
+
+                const result = await checkTextSafe(bio, {
+                    scene: 1 // 场景1-资料
+                });
+
+                uni.hideLoading();
+                console.log('🔍 [PoetProfile] 简介审核结果:', result);
+                return result;
+
+            } catch (error) {
+                uni.hideLoading();
+                console.error('❌ [PoetProfile] 简介审核失败:', error);
+                
+                return {
+                    passed: true,
+                    message: '审核服务暂时不可用'
+                };
             }
         },
         

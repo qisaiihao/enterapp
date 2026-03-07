@@ -107,6 +107,12 @@
       }
     },
     {
+      "path": "pages/test-content-moderation",
+      "style": {
+        "navigationBarTitleText": "内容审核测试"
+      }
+    },
+    {
       "path": "uni_modules/uni-upgrade-center-app/pages/upgrade-popup",
       "style": {
         "navigationStyle": "custom",

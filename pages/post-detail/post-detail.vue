@@ -340,6 +340,7 @@ import { getCurrentPlatform } from '@/utils/platformDetector.js';
 import { requestAndroidStoragePermission } from '@/utils/permissions.js';
 import { emitCommentCountChanged, emitPostUpdated } from '@/utils/events.js';
 import fontManager from '@/utils/fontManager.js'; // 添加fontManager导入
+import { checkContentSafe, checkTextSafe } from '@/utils/contentModeration.js';
 
 // API函数导入
 import { getPostDetail, updatePostContent, togglePostFavorite, recordPostView } from '@/api-cache/post.js';
@@ -1960,6 +1961,19 @@ export default {
                 });
                 return;
             }
+
+            // 【内容审核】审核评论内容（仅小程序端）
+            const moderationResult = await this.moderateCommentContent(trimmedContent, this.commentImages);
+            if (!moderationResult.passed) {
+                uni.showModal({
+                    title: '内容审核未通过',
+                    content: moderationResult.message || '您的评论包含不适当的信息，请修改后重试',
+                    showCancel: false,
+                    confirmText: '知道了'
+                });
+                return;
+            }
+
             const parentId = this.replyToComment;
             const replyToAuthor = this.replyToAuthor;
             this.setData({
@@ -2030,6 +2044,52 @@ export default {
                     isSubmittingComment: false
                 });
                 this.updateSubmitState();
+            }
+        },
+
+        // 【内容审核】审核评论内容（仅小程序端）
+        async moderateCommentContent(content, images) {
+            console.log('🔍 [PostDetail] 开始审核评论');
+            
+            try {
+                uni.showLoading({
+                    title: '审核中...',
+                    mask: true
+                });
+
+                // 提取图片URL
+                const imageUrls = [];
+                if (images && Array.isArray(images)) {
+                    images.forEach(img => {
+                        if (img.previewUrl) {
+                            imageUrls.push(img.previewUrl);
+                        } else if (img.path) {
+                            imageUrls.push(img.path);
+                        }
+                    });
+                }
+
+                // 调用审核
+                const result = await checkContentSafe({
+                    text: content,
+                    images: imageUrls
+                }, {
+                    scene: 2 // 场景2-评论
+                });
+
+                uni.hideLoading();
+                console.log('🔍 [PostDetail] 评论审核结果:', result);
+                return result;
+
+            } catch (error) {
+                uni.hideLoading();
+                console.error('❌ [PostDetail] 评论审核失败:', error);
+                
+                // 审核失败时返回通过
+                return {
+                    passed: true,
+                    message: '审核服务暂时不可用'
+                };
             }
         },
 
