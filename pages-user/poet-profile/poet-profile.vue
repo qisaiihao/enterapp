@@ -10,7 +10,7 @@
             <!-- 诗人信息卡片 -->
             <view class="profile-card profile-card-center">
                 <view class="profile-avatar-large" @tap="onAvatarTap">
-                    <image :src="poetInfo.avatar || '/static/images/avatar.png'" mode="aspectFill" @error="onAvatarError"></image>
+                    <image :src="(poetInfo.avatar && poetInfo.avatar.trim()) || '/static/images/avatar.png'" mode="aspectFill" @error="onAvatarError"></image>
                 </view>
                 <view class="profile-info-center">
                     <text class="profile-name-center">{{ poetInfo.name || '未知诗人' }}</text>
@@ -248,7 +248,8 @@ export default {
                 
                 // 处理诗人头像 URL 转换
                 let poetInfo = { ...poetInfoRaw };
-                if (poetInfo.avatar && poetInfo.avatar.startsWith('cloud://')) {
+                // 确保空字符串被当作无头像处理
+                if (poetInfo.avatar && poetInfo.avatar.trim() && poetInfo.avatar.startsWith('cloud://')) {
                     try {
                         const urlMap = await fileUrlCache.getTempUrls([poetInfo.avatar]);
                         if (urlMap[poetInfo.avatar]) {
@@ -256,7 +257,11 @@ export default {
                         }
                     } catch (e) {
                         console.error('转换诗人头像URL失败:', e);
+                        poetInfo.avatar = '';  // 转换失败时清空
                     }
+                } else if (!poetInfo.avatar || !poetInfo.avatar.trim()) {
+                    // 确保空字符串被设置为空
+                    poetInfo.avatar = '';
                 }
                 
                 // 处理帖子数据
@@ -486,6 +491,7 @@ export default {
         // 头像加载错误
         onAvatarError(e) {
             console.error('【诗人头像】加载失败，当前URL:', this.poetInfo.avatar, '错误:', e);
+            // 确保设置为默认头像
             this.setData({
                 poetInfo: {
                     ...this.poetInfo,

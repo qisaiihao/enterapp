@@ -56,21 +56,6 @@ async function invokeCloudFunction(method, payload) {
             throw createError('WX_CLOUD_NOT_AVAILABLE', 'wx.cloud 不可用');
         }
         
-        // 【关键修复】在每次调用前确保已初始化
-        try {
-            if (!wx.cloud._isInitialized) {
-                console.log('☁️ [invokeCloudFunction] wx.cloud 未初始化，立即初始化');
-                wx.cloud.init({
-                    env: 'cloud1-5gb0pbyl400845f5',
-                    traceUser: true
-                });
-                wx.cloud._isInitialized = true;
-                console.log('✅ [invokeCloudFunction] wx.cloud 初始化完成');
-            }
-        } catch (initError) {
-            console.warn('⚠️ [invokeCloudFunction] 初始化检查失败，尝试直接调用:', initError);
-        }
-        
         console.log(`🔍 [invokeCloudFunction] wx.cloud 可用，调用云函数:`, payload.options.name);
         return wx.cloud.callFunction(payload.options);
     }

@@ -10,22 +10,6 @@
 const platformDetector = require('./platformDetector.js');
 import fileUrlCache from '@/cache/core/file-url.js';
 
-// 【关键修复】在模块加载时立即初始化微信云开发
-if (typeof wx !== 'undefined' && wx.cloud) {
-    console.log('☁️ [fontManager.js] 检测到 wx.cloud，立即初始化');
-    try {
-        wx.cloud.init({
-            env: 'cloud1-5gb0pbyl400845f5',
-            traceUser: true
-        });
-        console.log('✅ [fontManager.js] wx.cloud 初始化完成');
-    } catch (error) {
-        console.error('❌ [fontManager.js] wx.cloud 初始化失败:', error);
-    }
-} else {
-    console.log('⚠️ [fontManager.js] wx.cloud 不可用');
-}
-
 const FONT_STORAGE_KEY = 'cached_fonts';
 const CUSTOM_FONTS_KEY = 'custom_fonts';
 const FONT_CACHE_DIR = 'fonts';

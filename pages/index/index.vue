@@ -823,47 +823,10 @@ export default {
             }
         },
 
-        // 等待登录完成再初始化首页数据，避免 isVoted 计算出错
+        // 初始化首页数据（不需要等待登录）
         waitForLoginThenInit: function () {
-            console.log('🔐 [waitForLoginThenInit] 开始等待登录');
-            const MAX_WAIT_MS = 5000; // 最多等待 5s
-            const CHECK_INTERVAL_MS = 100;
-            const start = Date.now();
-            const checkAndGo = () => {
-                try {
-                    const appInstance = getApp();
-                    console.log('🔐 [waitForLoginThenInit] 检查登录状态...');
-                    console.log('🔐 [waitForLoginThenInit] appInstance:', appInstance ? '存在' : '不存在');
-                    
-                    if (appInstance && appInstance.globalData) {
-                        console.log('🔐 [waitForLoginThenInit] globalData:', appInstance.globalData);
-                        console.log('🔐 [waitForLoginThenInit] _loginProcessCompleted:', appInstance.globalData._loginProcessCompleted);
-                        console.log('🔐 [waitForLoginThenInit] openid:', appInstance.globalData.openid);
-                    }
-                    
-                    const loginDone = appInstance && appInstance.globalData && appInstance.globalData._loginProcessCompleted;
-                    const openid = appInstance && appInstance.globalData && appInstance.globalData.openid;
-                    
-                    if (loginDone && openid) {
-                        console.log('🔐 [首页] 检测到登录完成且已获取 openid，开始拉取数据');
-                        this.getIndexData();
-                        return;
-                    }
-                } catch (e) {
-                    console.log('🔐 [首页] 登录检测异常（忽略继续等待）', e);
-                }
-                
-                const elapsed = Date.now() - start;
-                console.log('🔐 [waitForLoginThenInit] 已等待:', elapsed, 'ms');
-                
-                if (elapsed >= MAX_WAIT_MS) {
-                    console.log('⏱️ [首页] 登录等待超时，兜底直接拉取数据');
-                    this.getIndexData();
-                    return;
-                }
-                setTimeout(checkAndGo, CHECK_INTERVAL_MS);
-            };
-            checkAndGo();
+            console.log('🔍 [首页] 开始加载数据');
+            this.getIndexData();
         },
         getIndexData: function () {
             console.log('🔍 [getIndexData] 开始加载首页数据');
