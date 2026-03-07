@@ -1,9 +1,11 @@
 // 管理员功能云函数
-const cloud = require('wx-server-sdk')
+const cloudbase = require('@cloudbase/node-sdk')
 
-cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
+const app = cloudbase.init({
+  env: cloudbase.SYMBOL_CURRENT_ENV
+})
 
-const db = cloud.database()
+const db = app.database()
 const _ = db.command
 
 // 验证管理员权限（通过poemId）
@@ -27,8 +29,8 @@ exports.main = async (event, context) => {
     const action = event.action
     console.log('adminManager 云函数收到操作:', action)
 
-    const wxContext = cloud.getWXContext()
-    const openid = wxContext.OPENID || event.openid
+    // 从 context 或 event 中获取 openid
+    const openid = (event.userInfo && event.userInfo.openId) || event.openid
 
     if (!openid) {
       return {

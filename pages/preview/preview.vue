@@ -983,47 +983,131 @@ export default {
         postData.originalImageUrls = originalImageUrls;
       }
 
-      // 调用云函数提交数据
-      return cloudCall('contentCheck', {
-        title: addData.title,
-        content: addData.isSeries ? mergedSeriesContent : addData.content,
-        fileIDs: uploadResults.map(r => r.compressedUrl).filter(url => url),
-        originalFileIDs: uploadResults.map(r => r.originalUrl).filter(url => url),
-        publishMode: addData.publishMode,
-        isOriginal: addData.isOriginal,
-        isDiscussion: addData.isDiscussion || addData.publishMode === 'discussion' || false,
-        isSeries: addData.isSeries || false,
-        seriesBlocks: addData.isSeries ? seriesBlocks : [],
-        author: addData.author,
-        tags: addData.selectedTags || [],
-        // 添加颜色信息
-        backgroundColor: addData.selectedBackgroundColor || '',
-        textColor: addData.selectedTextColor || '#000000',
-        // 添加高光行信息
-        highlightLines: (addData.highlightLines && addData.highlightLines.length > 0) ? addData.highlightLines : (addData.isSeries ? seriesHighlight : mergedDiscussionHighlight),
-        sentenceGroups: addData.publishMode === 'discussion' ? discussionSentenceGroups : [],
-        discussionSentences: addData.publishMode === 'discussion' ? discussionSentenceGroups.map(g => ({
-          sentences: g.sentences || [],
-          comment: (g.comment || '').trim()
-        })) : [],
-        // 添加匿名发帖相关参数
-        isAnonymous: this.post.isAnonymous || false,
-        anonymousAuthorName: this.post.anonymousAuthorName || '匿名用户',
-        realAuthorOpenid: this.post.isAnonymous ? (uni.getStorageSync('openid') || uni.getStorageSync('userOpenId')) : null,
-        // 匿名帖子使用固定openid，指向专用匿名账户
-        openid: this.post.isAnonymous ? '123456' : null
-      }, { pageTag: 'preview', context: this, requireAuth: true }).then((res) => {
-        if (res && res.result && res.result.code === 0) {
-          this.publishSuccess({
-            _id: res.result.postId
-          });
-        } else {
-          this.publishFail(new Error(res.result?.msg || '云函数返回失败'));
-        }
-      }).catch((err) => {
-        console.error('数据库提交失败:', err);
-        this.publishFail(err);
-      });
+      // 检查当前平台
+      // #ifdef MP-WEIXIN
+      const needAudit = true; // 小程序需要审核
+      // #endif
+      
+      // #ifndef MP-WEIXIN
+      const needAudit = false; // APP 和 H5 不需要审核
+      // #endif
+      
+      console.log('🔍 [Preview] 当前平台是否需要审核:', needAudit);
+      
+      // 如果需要审核(小程序)
+      if (needAudit) {
+        // 第一步:内容审核
+        return cloudCall('contentCheck', {
+          type: 'batch', // 批量审核(文本+图片)
+          content: addData.isSeries ? mergedSeriesContent : addData.content,
+          images: uploadResults.map(r => r.compressedUrl).filter(url => url),
+          scene: 3, // 场景值3=论坛
+          title: addData.title,
+          nickname: uni.getStorageSync('userInfo')?.nickName || ''
+        }, { pageTag: 'preview', context: this, requireAuth: true })
+        .then((auditRes) => {
+          console.log('🔍 [Preview] 审核结果:', auditRes);
+          
+          // 检查审核是否通过
+          if (!auditRes.result || !auditRes.result.passed) {
+            throw new Error(auditRes.result?.message || '内容审核未通过');
+          }
+          
+          // 第二步:审核通过,创建帖子
+          return cloudCall('createPost', {
+            title: addData.title,
+            content: addData.isSeries ? mergedSeriesContent : addData.content,
+            fileIDs: uploadResults.map(r => r.compressedUrl).filter(url => url),
+            originalFileIDs: uploadResults.map(r => r.originalUrl).filter(url => url),
+            publishMode: addData.publishMode,
+            isOriginal: addData.isOriginal,
+            isDiscussion: addData.isDiscussion || addData.publishMode === 'discussion' || false,
+            isSeries: addData.isSeries || false,
+            seriesBlocks: addData.isSeries ? seriesBlocks : [],
+            author: addData.author,
+            tags: addData.selectedTags || [],
+            // 添加颜色信息
+            backgroundColor: addData.selectedBackgroundColor || '',
+            textColor: addData.selectedTextColor || '#000000',
+            // 添加高光行信息
+            highlightLines: (addData.highlightLines && addData.highlightLines.length > 0) ? addData.highlightLines : (addData.isSeries ? seriesHighlight : mergedDiscussionHighlight),
+            sentenceGroups: addData.publishMode === 'discussion' ? discussionSentenceGroups : [],
+            discussionSentences: addData.publishMode === 'discussion' ? discussionSentenceGroups.map(g => ({
+              sentences: g.sentences || [],
+              comment: (g.comment || '').trim()
+            })) : [],
+            // 添加匿名发帖相关参数
+            isAnonymous: this.post.isAnonymous || false,
+            anonymousAuthorName: this.post.anonymousAuthorName || '匿名用户',
+            realAuthorOpenid: this.post.isAnonymous ? (uni.getStorageSync('openid') || uni.getStorageSync('userOpenId')) : null,
+            // 匿名帖子使用固定openid，指向专用匿名账户
+            openid: this.post.isAnonymous ? '123456' : null
+          }, { pageTag: 'preview', context: this, requireAuth: true });
+        })
+        .then((createRes) => {
+          console.log('✅ [Preview] 创建帖子结果:', createRes);
+          
+          if (createRes && createRes.result && createRes.result.code === 0) {
+            this.publishSuccess({
+              _id: createRes.result.postId
+            });
+          } else {
+            this.publishFail(new Error(createRes.result?.msg || '创建帖子失败'));
+          }
+        })
+        .catch((err) => {
+          console.error('❌ [Preview] 发布失败:', err);
+          this.publishFail(err);
+        });
+      } else {
+        // APP 和 H5 直接创建帖子,不需要审核
+        console.log('🚀 [Preview] APP/H5 环境,直接创建帖子');
+        
+        return cloudCall('createPost', {
+          title: addData.title,
+          content: addData.isSeries ? mergedSeriesContent : addData.content,
+          fileIDs: uploadResults.map(r => r.compressedUrl).filter(url => url),
+          originalFileIDs: uploadResults.map(r => r.originalUrl).filter(url => url),
+          publishMode: addData.publishMode,
+          isOriginal: addData.isOriginal,
+          isDiscussion: addData.isDiscussion || addData.publishMode === 'discussion' || false,
+          isSeries: addData.isSeries || false,
+          seriesBlocks: addData.isSeries ? seriesBlocks : [],
+          author: addData.author,
+          tags: addData.selectedTags || [],
+          // 添加颜色信息
+          backgroundColor: addData.selectedBackgroundColor || '',
+          textColor: addData.selectedTextColor || '#000000',
+          // 添加高光行信息
+          highlightLines: (addData.highlightLines && addData.highlightLines.length > 0) ? addData.highlightLines : (addData.isSeries ? seriesHighlight : mergedDiscussionHighlight),
+          sentenceGroups: addData.publishMode === 'discussion' ? discussionSentenceGroups : [],
+          discussionSentences: addData.publishMode === 'discussion' ? discussionSentenceGroups.map(g => ({
+            sentences: g.sentences || [],
+            comment: (g.comment || '').trim()
+          })) : [],
+          // 添加匿名发帖相关参数
+          isAnonymous: this.post.isAnonymous || false,
+          anonymousAuthorName: this.post.anonymousAuthorName || '匿名用户',
+          realAuthorOpenid: this.post.isAnonymous ? (uni.getStorageSync('openid') || uni.getStorageSync('userOpenId')) : null,
+          // 匿名帖子使用固定openid，指向专用匿名账户
+          openid: this.post.isAnonymous ? '123456' : null
+        }, { pageTag: 'preview', context: this, requireAuth: true })
+        .then((createRes) => {
+          console.log('✅ [Preview] 创建帖子结果:', createRes);
+          
+          if (createRes && createRes.result && createRes.result.code === 0) {
+            this.publishSuccess({
+              _id: createRes.result.postId
+            });
+          } else {
+            this.publishFail(new Error(createRes.result?.msg || '创建帖子失败'));
+          }
+        })
+        .catch((err) => {
+          console.error('❌ [Preview] 发布失败:', err);
+          this.publishFail(err);
+        });
+      }
     },
 
     // 发布成功

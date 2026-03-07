@@ -3,7 +3,10 @@
     "openapi": []
   },
   "env": {
-    "WECHAT_APPID": "wx9db4f8a61ab11fbb",
-    "WECHAT_SECRET": "ff673422d30edd9b1b6a0c095854fd65"
+    "_comment": "环境变量已在云函数控制台配置，无需在此文件中设置",
+    "_required": [
+      "WECHAT_APPID - 微信小程序 AppID",
+      "WECHAT_SECRET - 微信小程序 Secret"
+    ]
   }
 }

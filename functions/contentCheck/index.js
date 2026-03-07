@@ -18,23 +18,39 @@ const cacheManager = require('./cacheManager');
 /**
  * 云函数入口
  * @param {object} event - 请求参数
- * @param {string} event.type - 审核类型：'text' | 'image' | 'batch'
- * @param {string} event.content - 文本内容（type=text时）
+ * @param {string} event.type - 审核类型：'text' | 'image' | 'batch' (新版) 或 undefined (旧版兼容)
+ * @param {string} event.content - 文本内容
  * @param {string} event.imageUrl - 图片URL（type=image时）
  * @param {string[]} event.images - 图片URL数组（type=batch时）
+ * @param {string[]} event.fileIDs - 图片URL数组（旧版兼容）
  * @param {number} event.scene - 场景值（1-资料、2-评论、3-论坛、4-社交日志）
  * @param {string} event.title - 可选：标题
  * @param {string} event.nickname - 可选：昵称
  * @param {string} event.signature - 可选：个性签名（scene=1时）
+ * 
+ * 旧版兼容参数（审核通过后创建帖子）:
+ * @param {string} event.publishMode - 发布模式
+ * @param {boolean} event.isOriginal - 是否原创
+ * @param {boolean} event.isDiscussion - 是否讨论
+ * @param {boolean} event.isSeries - 是否组诗
+ * @param {array} event.seriesBlocks - 组诗段落
+ * @param {string} event.author - 作者
+ * @param {array} event.tags - 标签
+ * @param {string} event.backgroundColor - 背景色
+ * @param {string} event.textColor - 文字颜色
+ * @param {array} event.highlightLines - 高光行
+ * @param {array} event.sentenceGroups - 讨论句子组
+ * @param {array} event.discussionSentences - 讨论句子
+ * @param {boolean} event.isAnonymous - 是否匿名
+ * @param {string} event.anonymousAuthorName - 匿名作者名
+ * @param {string} event.realAuthorOpenid - 真实作者openid
+ * 
  * @param {object} context - 云函数上下文
- * @returns {Promise<object>} 审核结果
+ * @returns {Promise<object>} 审核结果 或 创建帖子结果（旧版）
  */
 exports.main = async (event, context) => {
   console.log('🔍 [contentCheck] 开始处理内容审核请求');
   console.log('🔍 [contentCheck] 请求参数:', JSON.stringify(event, null, 2));
-  console.log('🔍 [contentCheck] event.type 类型:', typeof event.type);
-  console.log('🔍 [contentCheck] event.type 值:', event.type);
-  console.log('🔍 [contentCheck] event 所有键:', Object.keys(event));
   
   const wxContext = cloud.getWXContext();
   const { OPENID } = wxContext;
@@ -56,7 +72,8 @@ exports.main = async (event, context) => {
     }
     
     // 验证 openid
-    if (!OPENID) {
+    const openid = event.openid || OPENID;
+    if (!openid) {
       console.error('❌ [contentCheck] 无法获取用户 openid');
       return {
         success: false,
@@ -66,7 +83,17 @@ exports.main = async (event, context) => {
       };
     }
     
-    // 提取请求参数
+    // 检测是否为旧版调用（没有 type 参数，但有 publishMode 等参数）
+    const isLegacyMode = !event.type && (event.publishMode || event.fileIDs);
+    
+    console.log('🔍 [contentCheck] 调用模式:', isLegacyMode ? '旧版(兼容)' : '新版');
+    
+    if (isLegacyMode) {
+      // 旧版模式：审核 + 创建帖子
+      return await handleLegacyMode(event, openid);
+    }
+    
+    // 新版模式：仅审核
     const {
       type,
       content,
@@ -92,7 +119,7 @@ exports.main = async (event, context) => {
     console.log('✅ [contentCheck] 基础验证通过');
     console.log('🔍 [contentCheck] 审核类型:', type);
     console.log('🔍 [contentCheck] 场景值:', scene);
-    console.log('🔍 [contentCheck] 用户 openid:', OPENID);
+    console.log('🔍 [contentCheck] 用户 openid:', openid);
     
     // 根据类型调用相应的审核逻辑
     let result;
@@ -104,13 +131,13 @@ exports.main = async (event, context) => {
         title,
         nickname,
         signature,
-        openid: OPENID
+        openid
       });
     } else if (type === 'image') {
       result = await checkImageContent({
         imageUrl,
         scene,
-        openid: OPENID
+        openid
       });
     } else if (type === 'batch') {
       result = await checkBatchContent({
@@ -119,7 +146,7 @@ exports.main = async (event, context) => {
         scene,
         title,
         nickname,
-        openid: OPENID
+        openid
       });
     }
     
@@ -136,6 +163,123 @@ exports.main = async (event, context) => {
     };
   }
 };
+
+
+/**
+ * 旧版兼容模式：跳过审核,直接创建帖子
+ * (因为旧版 APP 的审核服务是禁用的,所以直接创建)
+ */
+async function handleLegacyMode(event, openid) {
+  console.log('🔄 [contentCheck] 旧版兼容模式：跳过审核,直接创建帖子');
+  
+  const {
+    fileIDs = [],
+    originalFileIDs = []
+  } = event;
+  
+  // 旧版模式：跳过审核,直接创建帖子
+  console.log('✅ [contentCheck] 旧版模式：跳过审核,直接创建帖子');
+  
+  try {
+    // 获取用户信息
+    const userResult = await db.collection('users').where({
+      _openid: openid
+    }).get();
+    
+    if (userResult.data.length === 0) {
+      return {
+        code: -1,
+        msg: '用户信息不存在',
+        success: false,
+        passed: true
+      };
+    }
+    
+    const user = userResult.data[0];
+    
+    // 准备帖子数据
+    const postData = {
+      _openid: openid,
+      authorName: event.isAnonymous ? event.anonymousAuthorName : user.nickName,
+      authorAvatar: event.isAnonymous ? '/static/images/avatar.png' : user.avatarUrl,
+      title: event.title || '',
+      content: event.content || '',
+      createTime: db.serverDate(),
+      votes: 0,
+      commentCount: 0,
+      viewCount: 0,
+      isPoem: event.publishMode === 'poem' || event.isSeries || false,
+      isSeries: event.isSeries || false,
+      isOriginal: event.isOriginal || false,
+      isDiscussion: event.isDiscussion || false,
+      author: event.author || '',
+      tags: event.tags || [],
+      isAnonymous: event.isAnonymous || false,
+      anonymousAuthorName: event.anonymousAuthorName || '匿名用户',
+      realAuthorOpenid: event.realAuthorOpenid || null
+    };
+    
+    // 添加颜色信息
+    if (event.backgroundColor) {
+      postData.backgroundColor = event.backgroundColor;
+    }
+    if (event.textColor) {
+      postData.textColor = event.textColor;
+    }
+    
+    // 添加高光行信息
+    if (event.highlightLines && event.highlightLines.length > 0) {
+      postData.highlightLines = event.highlightLines;
+      postData.highlightSentence = event.highlightLines[0];
+    }
+    
+    // 添加图片信息
+    if (fileIDs && fileIDs.length > 0) {
+      postData.imageUrl = fileIDs[0];
+      postData.imageUrls = fileIDs;
+    }
+    if (originalFileIDs && originalFileIDs.length > 0) {
+      postData.originalImageUrl = originalFileIDs[0];
+      postData.originalImageUrls = originalFileIDs;
+    }
+    
+    // 讨论模式特殊处理
+    if (event.isDiscussion) {
+      postData.sentenceGroups = event.sentenceGroups || [];
+      postData.discussionSentences = event.discussionSentences || [];
+    }
+    
+    // 组诗模式特殊处理
+    if (event.isSeries) {
+      postData.seriesBlocks = event.seriesBlocks || [];
+      postData.seriesBlockCount = (event.seriesBlocks || []).length;
+    }
+    
+    // 创建帖子
+    const result = await db.collection('posts').add({
+      data: postData
+    });
+    
+    console.log('✅ [contentCheck] 旧版模式：帖子创建成功:', result._id);
+    
+    return {
+      code: 0,
+      msg: '发布成功',
+      postId: result._id,
+      success: true,
+      passed: true
+    };
+    
+  } catch (error) {
+    console.error('❌ [contentCheck] 旧版模式：创建帖子失败:', error);
+    return {
+      code: -1,
+      msg: error.message || '发布失败',
+      success: false,
+      passed: true // 审核通过了，但创建失败
+    };
+  }
+}
 
 
 /**
