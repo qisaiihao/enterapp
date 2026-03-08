@@ -19,6 +19,11 @@
           <view class="switch-login-method" @tap="showPasswordLogin = true">
             <text class="switch-text">使用 Poem ID 登录</text>
           </view>
+          
+          <!-- 取消登录按钮 -->
+          <view class="logout-link" @tap="handleLogout">
+            <text class="logout-text">取消登录</text>
+          </view>
         </view>
       </view>
       
@@ -130,7 +135,6 @@
 // pages/login/login.js
 import { cloudCall } from '@/utils/cloudCall.js';
 import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
-import { ensureWxCloudInit } from '@/utils/wxCloudInit.js';
 
 const app = getApp();
 
@@ -210,33 +214,6 @@ export default {
     },
     onLoad: function () {
         console.log('🔍 [登录页面] 页面加载');
-
-        // 【关键修复】确保微信云开发已初始化
-        ensureWxCloudInit();
-
-        // #ifdef MP-WEIXIN
-        // 小程序环境：确保 wx.cloud 已初始化
-        if (typeof wx !== 'undefined' && wx.cloud) {
-            // 检查是否已经初始化过
-            if (!this.$tcb) {
-                console.log('⚠️ [登录页面] wx.cloud 未挂载，立即初始化');
-                try {
-                    wx.cloud.init({
-                        env: 'cloud1-5gb0pbyl400845f5',
-                        traceUser: true
-                    });
-                    this.$tcb = wx.cloud;
-                    console.log('✅ [登录页面] wx.cloud 初始化完成并挂载到 this.$tcb');
-                } catch (error) {
-                    console.error('❌ [登录页面] wx.cloud 初始化失败:', error);
-                }
-            } else {
-                console.log('✅ [登录页面] wx.cloud 已初始化');
-            }
-        } else {
-            console.error('❌ [登录页面] wx.cloud 不可用');
-        }
-        // #endif
 
         // 检查是否需要重新初始化openid
         this.checkAndInitializeOpenid();
@@ -695,6 +672,21 @@ export default {
             });
         },
 
+        // 取消登录（从登录页返回）
+        handleLogout() {
+            // 直接返回上一页，不需要确认和清除数据
+            const pages = getCurrentPages();
+            if (pages.length > 1) {
+                // 有上一页，返回上一页
+                uni.navigateBack();
+            } else {
+                // 没有上一页，跳转到首页
+                uni.switchTab({
+                    url: '/pages/poem-square/poem-square'
+                });
+            }
+        },
+
         // 关闭绑定手机号弹窗
         closeBindPhoneModal() {
             this.showBindPhoneModal = false;
@@ -1089,6 +1081,25 @@ export default {
 }
 
 .switch-text:active {
+  color: #666;
+}
+
+/* 取消登录按钮样式 */
+.logout-link {
+  width: 100%;
+  text-align: center;
+  padding: 16rpx 0;
+  margin-top: 8rpx;
+}
+
+.logout-text {
+  font-size: 28rpx;
+  color: #999;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.logout-text:active {
   color: #666;
 }
 

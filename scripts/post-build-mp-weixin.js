@@ -2,6 +2,7 @@
  * 微信小程序编译后处理脚本
  * 1. 在 vendor.js 开头注入 wx.cloud 初始化代码
  * 2. 复制自定义 tabBar 原生组件到编译输出目录
+ * 3. 删除小程序打包后的字体文件（小程序使用云端字体）
  */
 
 const fs = require('fs');
@@ -96,6 +97,46 @@ if (typeof wx !== 'undefined' && wx.cloud && !wx.cloud._kiroInitialized) {
     }
   } catch (error) {
     console.error('❌ 复制 tabBar 组件失败:', error);
+  }
+
+  // 3. 删除小程序打包后的字体文件
+  const fontsDir = path.join(__dirname, `../unpackage/dist/${mode}/mp-weixin/static/fonts`);
+  
+  try {
+    if (fs.existsSync(fontsDir)) {
+      // 读取字体目录中的所有文件
+      const files = fs.readdirSync(fontsDir);
+      let deletedCount = 0;
+      
+      files.forEach(file => {
+        const filePath = path.join(fontsDir, file);
+        const stat = fs.statSync(filePath);
+        
+        // 只删除文件，不删除子目录
+        if (stat.isFile()) {
+          fs.unlinkSync(filePath);
+          deletedCount++;
+          console.log(`🗑️  已删除字体文件: ${file}`);
+        }
+      });
+      
+      if (deletedCount > 0) {
+        console.log(`✅ 已删除 ${deletedCount} 个字体文件（小程序使用云端字体）`);
+      } else {
+        console.log('ℹ️ 字体目录为空，无需删除');
+      }
+      
+      // 如果目录为空，删除目录本身
+      const remainingFiles = fs.readdirSync(fontsDir);
+      if (remainingFiles.length === 0) {
+        fs.rmdirSync(fontsDir);
+        console.log('🗑️  已删除空的 fonts 目录');
+      }
+    } else {
+      console.log('ℹ️ 字体目录不存在，跳过删除');
+    }
+  } catch (error) {
+    console.error('❌ 删除字体文件失败:', error);
   }
 });
 

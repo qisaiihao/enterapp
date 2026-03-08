@@ -723,8 +723,6 @@ export default {
       return result.color;
     },
     async getPostList(cb) {
-      console.log('🔍🔍🔍 【poem-square】getPostList 开始，isLoadingMore:', this.isLoadingMore, 'isLoading:', this.isLoading, 'callback:', typeof cb);
-      console.log('🔍🔍🔍 【poem-square】当前页码:', this.page, 'PAGE_SIZE:', PAGE_SIZE);
       // 双重检查：防止重复调用（首次加载时isLoading为true是正常的）
       const isFirstLoad = this.page === 0;
       if (!isFirstLoad && (this.isLoadingMore || this._loadingLock)) {
@@ -871,30 +869,7 @@ export default {
     },
     
     async processPostList(list, cb) {
-      console.log('🔍🔍🔍 【poem-square】获取到帖子数量:', list.length);
-      console.log('🔍🔍🔍 【poem-square】当前页码:', this.page, '现有列表长度:', this.postList.length);
-      
-      if (list.length > 0) {
-        console.log('🔍🔍🔍 【poem-square】所有帖子的详细信息（用于验证随机性）:');
-        list.forEach((p, idx) => {
-          console.log(`  [${idx + 1}] ID: ${p._id}, 创建时间: ${p.createTime}, 标题: ${p.title || p.content?.substring(0, 20)}`);
-        });
-        console.log('🔍🔍🔍 【poem-square】前3个帖子的时间:', list.slice(0, 3).map(p => ({
-          id: p._id,
-          createTime: p.createTime,
-          title: p.title || p.content?.substring(0, 20)
-        })));
-        if (list.length >= 10) {
-          console.log('🔍🔍🔍 【poem-square】后4个帖子（应该是随机的）的创建时间:', list.slice(6, 10).map(p => ({
-            id: p._id,
-            createTime: p.createTime,
-            title: p.title || p.content?.substring(0, 20)
-          })));
-        }
-      }
-      
       const visibleList = list.filter(p => p && !p.isAnonymous);
-      console.log('🔍🔍🔍 【poem-square】过滤匿名后的数量:', visibleList.length);
       
       visibleList.forEach((p) => {
         if (!p) return;
@@ -931,15 +906,12 @@ export default {
 
         if (isUserFiltering) {
           // 用户筛选时直接替换列表
-          console.log('🔍🔍🔍 【poem-square】用户筛选，直接替换列表');
           newPostList = visibleList;
         } else if (this.postList.length > 0) {
           // 第一页刷新：合并缓存数据
-          console.log('🔍🔍🔍 【poem-square】第一页刷新，现有列表:', this.postList.length, '新数据:', visibleList.length);
           // 检查是否有新帖子
           const existingIds = new Set(this.postList.map(post => post._id).filter(Boolean));
           const newPosts = visibleList.filter(post => post && post._id && !existingIds.has(post._id));
-          console.log('🔍🔍🔍 【poem-square】真正的新帖子数量:', newPosts.length);
 
           if (newPosts.length > 0) {
             // 有新帖子，补充到列表前面（最新的在前面）
@@ -947,7 +919,6 @@ export default {
             console.log('✅ 【poem-square】合并后的列表长度:', newPostList.length);
           } else {
             // 没有新帖子，保持现有列表，但更新现有帖子的数据（可能有更新）
-            console.log('🔍🔍🔍 【poem-square】没有新帖子，更新现有帖子数据');
             const updatedList = this.postList.map(existingPost => {
               const updated = visibleList.find(p => p._id === existingPost._id);
               return updated || existingPost;
@@ -957,7 +928,6 @@ export default {
         } else {
           // 没有现有列表，直接使用新数据
           newPostList = visibleList;
-          console.log('🔍🔍🔍 【poem-square】没有现有列表，直接使用新数据');
         }
       } else {
         // 加载更多：合并并去重
@@ -966,8 +936,6 @@ export default {
         newPostList = this.postList.concat(uniqueNewPosts);
         console.log('【poem-square】去重：新帖子', visibleList.length, '去重后', uniqueNewPosts.length);
       }
-      
-      console.log('🔍🔍🔍 【poem-square】最终列表长度:', newPostList.length, '页码:', this.page + 1);
       
       this.setData({
         postList: newPostList,

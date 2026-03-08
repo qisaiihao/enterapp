@@ -683,11 +683,6 @@ cloudbase hosting:deploy dist/build/h5 -e your-env-id
 # 将 dist/build/h5 目录上传到服务器
 ```
 
-#### 小程序发布
-1. 使用微信开发者工具打开项目
-2. 点击"上传"按钮，填写版本号和备注
-3. 在微信公众平台提交审核
-4. 审核通过后发布
 
 #### App 发布
 1. 使用 HBuilderX 云打包
@@ -742,25 +737,6 @@ db.collection('votes_log').createIndex({
 - 缓存空间：约 155MB（30天数据）
 - 相比永久存储节省：~80%
 
-## 🤝 贡献指南
-
-我们欢迎所有形式的贡献！
-
-### 如何贡献
-
-1. Fork 本仓库
-2. 创建你的特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交你的修改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 打开一个 Pull Request
-
-### 开发规范
-
-- 遵循 Vue.js 官方风格指南
-- 使用 ESLint 进行代码检查
-- 编写清晰的提交信息
-- 添加必要的注释和文档
-- 云函数需要添加错误处理和日志
 
 ### 代码风格
 
@@ -836,17 +812,6 @@ import cache from '@/cache';
 cache.clearAll();
 ```
 
-## 📄 许可证
-
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
-
-## 🙏 致谢
-
-感谢以下开源项目和服务：
-- [uni-app](https://uniapp.dcloud.io/) - 跨平台开发框架
-- [腾讯云开发](https://cloud.tencent.com/product/tcb) - 云服务支持
-- [Vue.js](https://vuejs.org/) - 前端框架
-- [wx-server-sdk](https://developers.weixin.qq.com/miniprogram/dev/wxcloud/guide/) - 微信云开发 SDK
 
 ## 📞 联系我们
 
@@ -873,8 +838,7 @@ cache.clearAll();
 - 🚧 性能监控和分析
 
 ### 计划中
-- 📋 AI 辅助创作
-- 📋 语音朗读功能
+- 📋 AI 推荐算法
 - 📋 诗歌比赛和活动
 - 📋 更多字体和主题
 - 📋 国际化支持
@@ -883,8 +847,8 @@ cache.clearAll();
 
 <div align="center">
 
-**让诗歌在指尖流淌，让创意在云端绽放** ✨
+**让诗歌在指尖流淌，让创意在云端绽放** 
 
-Made with ❤️ by 回车键团队
+by 回车键团队
 
 </div>

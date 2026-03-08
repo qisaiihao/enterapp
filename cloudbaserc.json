@@ -149,6 +149,13 @@
               "memory": 256
             },
             {
+              "name": "adminManager",
+              "root": "./functions/adminManager",
+              "timeout": 5,
+              "memory": 256,
+              "runtime": "Nodejs16.13"
+            },
+            {
               "name": "addToPortfolio",
               "root": "./functions/addToPortfolio",
               "timeout": 3,
@@ -176,12 +183,6 @@
             {
               "name": "clearAllMessages",
               "root": "./functions/clearAllMessages",
-              "timeout": 3,
-              "memory": 128
-            },
-            {
-              "name": "clearCollection",
-              "root": "./functions/clearCollection",
               "timeout": 3,
               "memory": 128
             },
@@ -524,18 +525,6 @@
               "root": "./functions/github-auth",
               "timeout": 3,
               "memory": 256
-            },
-            {
-              "name": "imageManager",
-              "root": "./functions/imageManager",
-              "timeout": 3,
-              "memory": 128
-            },
-            {
-              "name": "initDatabase",
-              "root": "./functions/initDatabase",
-              "timeout": 3,
-              "memory": 128
             },
             {
               "name": "likeComment",

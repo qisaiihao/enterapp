@@ -46,7 +46,6 @@
 import { imageManager } from '@/utils/imageManager.js';
 import { cloudCall } from '@/utils/cloudCall.js';
 import { getPostList as getPostListWithCache } from '@/api-cache/post-list.js';
-import { ensureWxCloudInit } from '@/utils/wxCloudInit.js';
 
 export default {
     data() {
@@ -94,9 +93,7 @@ export default {
         };
     },
     onLoad: function () {
-        // 【关键修复】确保微信云开发已初始化
-        console.log('🔍 [splash] 页面加载，开始初始化云开发');
-        ensureWxCloudInit();
+        console.log('🔍 [splash] 页面加载');
         
         // 检查是否在10分钟内重复进入，如果是则跳过开屏动画
         if (this.shouldSkipSplash()) {
