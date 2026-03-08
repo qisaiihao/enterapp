@@ -39,7 +39,7 @@
 </template>
 
 <script>
-const { cloudCall } = require('../../utils/cloudCall.js');
+const { getAdminUserPassword } = require('../../api-cache/admin-manager.js');
 
 export default {
     data() {
@@ -50,7 +50,7 @@ export default {
         };
     },
     methods: {
-        searchUser() {
+        async searchUser() {
             if (!this.searchQuery.trim()) {
                 uni.showToast({
                     title: '请输入昵称或poemid',
@@ -61,32 +61,30 @@ export default {
 
             uni.showLoading({ title: '搜索中...' });
 
-            cloudCall('adminManager', {
-                action: 'getUserPassword',
-                query: this.searchQuery.trim()
-            }).then(res => {
+            try {
+                const result = await getAdminUserPassword({
+                    query: this.searchQuery.trim(),
+                    context: this
+                });
                 uni.hideLoading();
                 this.searched = true;
-                
-                if (res.result && res.result.success) {
-                    this.userResult = res.result.user;
-                } else {
-                    this.userResult = null;
+                this.userResult = result.user || null;
+                if (!this.userResult) {
                     uni.showToast({
-                        title: res.result?.error || '未找到用户',
+                        title: '未找到用户',
                         icon: 'none'
                     });
                 }
-            }).catch(err => {
+            } catch (err) {
                 uni.hideLoading();
                 this.searched = true;
                 this.userResult = null;
                 console.error('搜索用户失败:', err);
                 uni.showToast({
-                    title: '网络错误',
+                    title: err.message || '搜索失败',
                     icon: 'none'
                 });
-            });
+            }
         },
 
         copyPassword() {

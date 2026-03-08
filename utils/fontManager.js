@@ -36,7 +36,6 @@ const FONT_CONFIG = {
         version: '1.0.0',
         // 小程序端跳过加载（使用系统字体），App/H5 使用本地文件
         isDefault: platformDetector.getCurrentPlatform() !== 'mp-weixin',
-        skipMiniProgram: true  // 小程序端跳过字体加载
     },
     '小小皓体': {
         displayName: '小小皓体',
@@ -937,13 +936,8 @@ class FontManager {
         console.log('【FontManager】🎯 确保字体可用:', fontFamily, '规范化后:', normalizedName);
         
         const config = this.getFontConfig(normalizedName);
-        const platform = platformDetector.getCurrentPlatform();
-        
-        // 【关键修复】小程序端跳过字体加载
-        if (platform === 'mp-weixin' && config && config.skipMiniProgram) {
-            console.log('【FontManager】⚠️ 小程序端跳过字体加载，使用系统默认字体');
-            this.loadedFonts.add(normalizedName);
-            return null;
+        if (!config) {
+            throw new Error("未知字体: " + normalizedName);
         }
         
         const cached = await this.isFontCached(normalizedName);
@@ -963,7 +957,10 @@ class FontManager {
 
         if (!this.loadedFonts.has(normalizedName) && fontPath) {
             console.log('【FontManager】🔤 字体未加载到内存，开始加载...');
-            await this._loadFontFace(normalizedName, fontPath);
+            const loaded = await this._loadFontFace(normalizedName, fontPath);
+            if (!loaded) {
+                throw new Error("字体加载失败: " + normalizedName);
+            }
         } else {
             console.log('【FontManager】✅ 字体已加载到内存');
         }
@@ -985,13 +982,6 @@ class FontManager {
                 
                 // 【关键修复】等待字体真正可用
                 await document.fonts.ready;
-                
-                // 【关键修复】强制触发重绘，确保字体立即生效
-                if (typeof document !== 'undefined' && document.body) {
-                    document.body.style.fontFamily = displayName + ', sans-serif';
-                    // 触发重排
-                    void document.body.offsetHeight;
-                }
                 
                 this.loadedFonts.add(fontFamily);
                 console.log(`【FontManager】✅ 字体加载成功 (FontFace API):`, displayName);
@@ -1069,7 +1059,6 @@ class FontManager {
                     }
                     
                     // 即使加载失败，也标记为已加载，避免重复尝试
-                    this.loadedFonts.add(fontFamily);
                     resolve(false);
                 }
             });

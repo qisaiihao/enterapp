@@ -21,67 +21,33 @@
             </view>
 
         <!-- 关注列表 -->
-        <view v-if="currentTab === 'following'">
-            <block v-if="followings.length > 0">
-                <view class="list">
-                    <view class="user-item" v-for="(item, index) in followings" :key="index">
-                        <view class="user-info" :data-openid="item._openid" @tap="openUserProfile">
-                            <image class="avatar" :src="item.avatarUrl || defaultAvatar" mode="aspectFill" @error="onAvatarError" :data-index="index"></image>
-                            <view class="info-text">
-                                <text class="name">{{ item.nickName || '微信用户' }}</text>
-                                <text class="bio">{{ item.bio || '这个用户还没有留下简介~' }}</text>
-                            </view>
-                        </view>
-                        <button
-                            class="action-btn unfollow-btn"
-                            size="mini"
-                            @tap.stop.prevent="onToggleFollow"
-                            :data-openid="item._openid"
-                            :data-index="index"
-                            :loading="pendingOpenid === item._openid"
-                            :disabled="pendingOpenid === item._openid"
-                        >
-                            取消关注
-                        </button>
-                    </view>
-                </view>
-            </block>
-            <view v-else class="empty">
-                <text>还没有关注任何人，去广场看看吧～</text>
-            </view>
-        </view>
+        <relation-user-list
+            v-if="currentTab === 'following'"
+            :users="followings"
+            :pending-openid="pendingOpenid"
+            :default-avatar="defaultAvatar"
+            empty-text="还没有关注任何人，去广场看看吧～"
+            action-text="取消关注"
+            action-class="unfollow-btn"
+            @user-tap="openUserProfile"
+            @action-tap="onToggleFollow"
+            @avatar-error="onAvatarError"
+        />
 
         <!-- 粉丝列表 -->
-        <view v-if="currentTab === 'followers'">
-            <block v-if="followers.length > 0">
-                <view class="list">
-                    <view class="user-item" v-for="(item, index) in followers" :key="index">
-                        <view class="user-info" :data-openid="item._openid" @tap="openUserProfile">
-                            <image class="avatar" :src="item.avatarUrl || defaultAvatar" mode="aspectFill" @error="onAvatarError" :data-index="index"></image>
-                            <view class="info-text">
-                                <text class="name">{{ item.nickName || '微信用户' }}</text>
-                                <text class="bio">{{ item.bio || '这个人很懒，什么都没留下~' }}</text>
-                            </view>
-                        </view>
-                        <button
-                            class="action-btn"
-                            :class="item.isMutual ? 'unfollow-btn' : 'follow-btn'"
-                            size="mini"
-                            @tap.stop.prevent="onToggleFollow"
-                            :data-openid="item._openid"
-                            :data-index="index"
-                            :loading="pendingOpenid === item._openid"
-                            :disabled="pendingOpenid === item._openid"
-                        >
-                            {{ getButtonText(item) }}
-                        </button>
-                    </view>
-                </view>
-            </block>
-            <view v-else class="empty">
-                <text>还没有粉丝，快去多发点内容吧~</text>
-            </view>
-        </view>
+        <relation-user-list
+            v-if="currentTab === 'followers'"
+            :users="followers"
+            :pending-openid="pendingOpenid"
+            :default-avatar="defaultAvatar"
+            default-bio="这个人很懒，什么都没留下~"
+            empty-text="还没有粉丝，快去多发点内容吧~"
+            :action-text-fn="getButtonText"
+            :action-class-fn="getButtonClass"
+            @user-tap="openUserProfile"
+            @action-tap="onToggleFollow"
+            @avatar-error="onAvatarError"
+        />
 
             <!-- 底部提示 -->
             <view v-if="getCurrentList().length > 0" class="footer-hint">
@@ -92,9 +58,19 @@
 </template>
 
 <script>
+import RelationUserList from '@/components/relation/user-list.vue';
 const { formatRelativeTime } = require('../../utils/time.js');
-const { cloudCall } = require('../../utils/cloudCall.js');
+const {
+    getFollowingList,
+    getFollowerList,
+    toggleFollowRelation,
+    checkFollowRelation,
+    markFollowNotificationsRead
+} = require('../../api-cache/relation.js');
 export default {
+    components: {
+        RelationUserList
+    },
     data() {
         return {
             currentTab: 'followers', // 默认显示被关注页面
@@ -133,11 +109,7 @@ export default {
     methods: {
         // 统一时间格式化
         formatTime: undefined,
-        // 统一云函数调用方法
-        callCloudFunction(name, data = {}, extraOptions = {}) {
-            return cloudCall(name, data, Object.assign({ pageTag: 'fans', context: this, requireAuth: true }, extraOptions));
-        },
-        loadFollowers(reset = false) {
+        async loadFollowers(reset = false) {
             if (this.isLoading) {
                 return;
             }
@@ -152,43 +124,37 @@ export default {
             this.setData({
                 isLoading: true
             });
-            this.callCloudFunction('follow', {
-                    action: 'getFollowerList',
-                    skip: page * this.PAGE_SIZE,
-                    limit: this.PAGE_SIZE
-                }).then((res) => {
-                    if (res.result && res.result.success) {
-                        const list = res.result.list || [];
-                        const newList = reset ? list : this.followers.concat(list);
-                        this.setData({
-                            followers: newList,
-                            page: page + 1,
-                            hasMore: !!res.result.hasMore,
-                            total: res.result.total || newList.length
-                        });
-                    } else {
-                        uni.showToast({
-                            title: res.result && res.result.message ? res.result.message : '加载失败',
-                            icon: 'none'
-                        });
-                    }
-                }).catch((err) => {
-                    console.error('获取粉丝列表失败:', err);
-                    uni.showToast({
-                        title: '网络错误',
-                        icon: 'none'
-                    });
-                }).finally(() => {
-                    this.setData({
-                        isLoading: false
-                    });
-                    if (reset) {
-                        uni.stopPullDownRefresh();
-                    }
+            try {
+                const result = await getFollowerList({
+                    page,
+                    pageSize: this.PAGE_SIZE,
+                    context: this
                 });
+                const list = result.list || [];
+                const newList = reset ? list : this.followers.concat(list);
+                this.setData({
+                    followers: newList,
+                    page: page + 1,
+                    hasMore: !!result.hasMore,
+                    total: result.total || newList.length
+                });
+            } catch (err) {
+                console.error('获取粉丝列表失败:', err);
+                uni.showToast({
+                    title: err.message || '加载失败',
+                    icon: 'none'
+                });
+            } finally {
+                this.setData({
+                    isLoading: false
+                });
+                if (reset) {
+                    uni.stopPullDownRefresh();
+                }
+            }
         },
 
-        loadFollowings(reset = false) {
+        async loadFollowings(reset = false) {
             if (this.isLoading) {
                 return;
             }
@@ -202,132 +168,98 @@ export default {
             this.setData({
                 isLoading: true
             });
-            const openid = this.$requireOpenid && this.$requireOpenid();
-            if (!openid) {
+            try {
+                const result = await getFollowingList({
+                    page,
+                    pageSize: this.PAGE_SIZE,
+                    context: this
+                });
+                const list = result.list || [];
+                const newList = reset ? list : this.followings.concat(list);
+                this.setData({
+                    followings: newList,
+                    page: page + 1,
+                    hasMore: !!result.hasMore,
+                    total: result.total || newList.length
+                });
+            } catch (err) {
+                console.error('获取关注列表失败:', err);
+                uni.showToast({
+                    title: err.message || '加载失败',
+                    icon: 'none'
+                });
+            } finally {
                 this.setData({
                     isLoading: false
                 });
                 if (reset) {
                     uni.stopPullDownRefresh();
                 }
-                return;
             }
-            this.callCloudFunction('follow', {
-                    action: 'getFollowingList',
-                    skip: page * this.PAGE_SIZE,
-                    limit: this.PAGE_SIZE,
-                    openid
-                }).then((res) => {
-                    if (res.result && res.result.success) {
-                        const list = res.result.list || [];
-                        const newList = reset ? list : this.followings.concat(list);
-                        this.setData({
-                            followings: newList,
-                            page: page + 1,
-                            hasMore: !!res.result.hasMore,
-                            total: res.result.total || newList.length
-                        });
-                    } else {
-                        uni.showToast({
-                            title: res.result && res.result.message ? res.result.message : '加载失败',
-                            icon: 'none'
-                        });
-                    }
-                }).catch((err) => {
-                    console.error('获取关注列表失败:', err);
-                    uni.showToast({
-                        title: '网络错误',
-                        icon: 'none'
-                    });
-                }).finally(() => {
-                    this.setData({
-                        isLoading: false
-                    });
-                    if (reset) {
-                        uni.stopPullDownRefresh();
-                    }
-                });
         },
 
         markFollowNotificationsRead() {
-            this.callCloudFunction('follow', {
-                action: 'markFollowNotificationsRead'
+            markFollowNotificationsRead({
+                context: this
             }).catch((err) => {
                 console.error('标记关注消息已读失败:', err);
             });
         },
 
-        onToggleFollow(e) {
-            const openid = e.currentTarget.dataset.openid;
-            const index = e.currentTarget.dataset.index;
+        async onToggleFollow(payload) {
+            const openid = payload && payload.openid;
+            const index = payload && payload.index;
             if (!openid || index === undefined || this.pendingOpenid) {
                 return;
             }
             this.setData({
                 pendingOpenid: openid
             });
-            
-            const currentOpenid = this.$requireOpenid && this.$requireOpenid();
-            if (!currentOpenid) {
+            try {
+                const { isFollowing } = await toggleFollowRelation({
+                    targetOpenid: openid,
+                    context: this,
+                    pageTag: 'fans:toggle-follow'
+                });
+                const listKey = this.currentTab === 'following' ? 'followings' : 'followers';
+                this.setData({
+                    [`${listKey}[${index}].isMutual`]: isFollowing
+                });
+                uni.showToast({
+                    title: isFollowing ? '关注成功' : '已取消关注',
+                    icon: 'success'
+                });
+                this.refreshUserStatus(openid, index);
+            } catch (err) {
+                console.error('操作关注状态失败:', err);
+                uni.showToast({
+                    title: err.message || '操作失败',
+                    icon: 'none'
+                });
+            } finally {
                 this.setData({
                     pendingOpenid: null
                 });
-                return;
             }
-            
-            this.callCloudFunction('follow', {
-                    action: 'toggleFollow',
-                    targetOpenid: openid,
-                    openid: currentOpenid
-                }).then((res) => {
-                    if (res.result && res.result.success) {
-                        const isFollowing = !!res.result.isFollowing;
-                        const listKey = this.currentTab === 'following' ? 'followings' : 'followers';
-                        this.setData({
-                            [`${listKey}[${index}].isMutual`]: isFollowing
-                        });
-                        uni.showToast({
-                            title: isFollowing ? '关注成功' : '已取消关注',
-                            icon: 'success'
-                        });
-                        this.refreshUserStatus(openid, index);
-                    } else {
-                        uni.showToast({
-                            title: res.result && res.result.message ? res.result.message : '操作失败',
-                            icon: 'none'
-                        });
-                    }
-                }).catch((err) => {
-                    console.error('操作关注状态失败:', err);
-                    uni.showToast({
-                        title: '网络错误',
-                        icon: 'none'
-                    });
-                }).finally(() => {
-                    this.setData({
-                        pendingOpenid: null
-                    });
-                });
         },
 
         refreshUserStatus(openid, index) {
-            this.callCloudFunction('follow', {
-                    action: 'checkFollow',
-                    targetOpenid: openid
-                }).then((res) => {
-                    if (res.result && res.result.success) {
-                        const listKey = this.currentTab === 'following' ? 'followings' : 'followers';
-                        this.setData({
-                            [`${listKey}[${index}].isMutual`]: !!res.result.isMutual
-                        });
-                    }
-                }).catch((err) => {
-                    console.error('刷新用户状态失败:', err);
+            checkFollowRelation({
+                targetOpenid: openid,
+                context: this,
+                pageTag: 'fans:check-follow'
+            }).then((result) => {
+                const listKey = this.currentTab === 'following' ? 'followings' : 'followers';
+                this.setData({
+                    [`${listKey}[${index}].isMutual`]: !!result.isMutual
                 });
+            }).catch((err) => {
+                    console.error('刷新用户状态失败:', err);
+            });
         },
 
-        onAvatarError(e) {
-            const index = e.currentTarget.dataset.index;
+        onAvatarError(payload) {
+            const index = payload && payload.index;
             if (index === undefined) {
                 return;
             }
@@ -337,8 +269,8 @@ export default {
             });
         },
 
-        openUserProfile(e) {
-            const openid = e.currentTarget.dataset.openid;
+        openUserProfile(payload) {
+            const openid = payload && payload.openid;
             if (!openid) {
                 return;
             }
@@ -372,6 +304,9 @@ export default {
             } else {
                 return '回关';
             }
+        },
+        getButtonClass(item) {
+            return item && item.isMutual ? 'unfollow-btn' : 'follow-btn';
         },
 
         // 获取当前列表

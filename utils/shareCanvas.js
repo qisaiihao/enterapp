@@ -327,18 +327,8 @@ async function calculateShareCardHeight(options) {
     
     // 将字体 ID 转换为显示名称，用于 Canvas 绑定
     const fontDisplayName = getFontDisplayName(fontFamily);
-    
-    // 【关键修复】根据平台选择字体
-    let actualFontFamily;
-    // #ifdef MP-WEIXIN
-    actualFontFamily = 'sans-serif';  // 小程序端强制使用系统字体
-    console.log('【shareCanvas】小程序端使用系统字体');
-    // #endif
-    // #ifndef MP-WEIXIN
-    // H5/App端使用实际字体名称
-    actualFontFamily = fontFamily === 'system' ? 'sans-serif' : fontDisplayName + ', sans-serif';
-    console.log('【shareCanvas】H5/App端使用字体:', actualFontFamily);
-    // #endif
+    const actualFontFamily = fontFamily === 'system' ? 'sans-serif' : fontDisplayName + ', sans-serif';
+    console.log('【shareCanvas】当前端使用字体:', actualFontFamily);
 
     const textPadding = 60;
     const textTopPadding = 80;
@@ -357,14 +347,14 @@ async function calculateShareCardHeight(options) {
     }
 
     // 计算正文行数和高度
-    const processedLines = wrapText(measureCtx, content, textAreaWidth, fontSize);
+    const processedLines = wrapText(measureCtx, content, textAreaWidth, fontSize, actualFontFamily);
     const wrappedContentHeight = processedLines.reduce((h, line) => h + (line && line.trim() ? lineHeight : lineHeight * 0.5), 0);
     const contentHeight = Math.max(wrappedContentHeight, 200);
 
     // 计算标题高度
     let actualTitleHeight = titleLineHeight + 20;
     if (post.title) {
-        const titleLines = wrapText(measureCtx, post.title, textAreaWidth, titleFontSize);
+        const titleLines = wrapText(measureCtx, post.title, textAreaWidth, titleFontSize, actualFontFamily);
         const titleLinesCount = titleLines.filter(line => line.trim()).length;
         if (titleLinesCount > 1) {
             actualTitleHeight = titleLinesCount * titleLineHeight + 20;

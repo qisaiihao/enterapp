@@ -197,10 +197,15 @@ import skeleton from '@/components/skeleton/skeleton';
 // 修复：移除全局数据库实例，改为在方法中动态获取
 const { previewImage } = require('../../utils/imagePreview.js');
 const { normalizePostList } = require('../../utils/postNormalizer.js');
-const { cloudCall } = require('../../utils/cloudCall.js');
 const { searchCache } = require('../../utils/searchCache.js');
 const SearchHighlighter = require('../../utils/searchHighlighter.js');
 const searchHistoryCache = require('../../cache/stores/search-history.js');
+const {
+    getSearchSuggestions: getSearchSuggestionsApi,
+    searchPosts,
+    recordSearchStats: recordSearchStatsApi,
+    getHotSearches: getHotSearchesApi
+} = require('../../api-cache/search.js');
 
 export default {
     components: {
@@ -238,10 +243,6 @@ export default {
         this.getHotSearches();
     },
     methods: {
-        // 统一云函数调用方法
-        callCloudFunction(name, data = {}, extraOptions = {}) {
-            return cloudCall(name, data, Object.assign({ pageTag: 'search', context: this }, extraOptions));
-        },
         // 搜索输入处理
         onSearchInput: function (e) {
             const keyword = e.detail.value;
@@ -308,15 +309,12 @@ export default {
                 return;
             }
 
-            this.callCloudFunction('getSearchSuggestions', {
-                keyword: keyword,
-                limit: 8
-            }).then((res) => {
-                if (res.result && res.result.success) {
+            getSearchSuggestionsApi(keyword, 8, {
+                context: this
+            }).then((result) => {
                     this.setData({
-                        searchSuggestions: res.result.suggestions || []
+                        searchSuggestions: result.suggestions || []
                     });
-                }
             }).catch((err) => {
                 console.error('获取搜索建议失败:', err);
             });
@@ -412,16 +410,15 @@ export default {
             }
 
             // 调用云函数搜索
-            this.callCloudFunction('searchPosts', {
-                    keyword: searchKeyword,
+            searchPosts(searchKeyword, {
                     limit: 20,
                     filter: this.currentFilter,
                     sort: this.currentSort,
                     page: this.currentPage
-                }).then((res) => {
-                    console.log('搜索结果:', res);
-                    if (res.result && res.result.success) {
-                        const posts = normalizePostList(res.result.posts || []);
+                }, {
+                    context: this
+                }).then((result) => {
+                        const posts = normalizePostList(result.posts || []);
                         console.log('设置搜索结果:', posts.length, '条结果，关键词:', searchKeyword);
                         
                         // 添加搜索高亮
@@ -450,16 +447,10 @@ export default {
                             posts: newResults,
                             hasMore: posts.length >= 20
                         });
-                    } else {
-                        uni.showToast({
-                            title: '搜索失败',
-                            icon: 'none'
-                        });
-                    }
                 }).catch((err) => {
                     console.error('搜索失败:', err);
                     uni.showToast({
-                        title: '网络错误',
+                        title: err.message || '搜索失败',
                         icon: 'none'
                     });
                 }).finally(() => {
@@ -656,13 +647,10 @@ export default {
                 return;
             }
 
-            this.callCloudFunction('searchStats', {
-                keyword: keyword,
-                action: 'record'
-            }).then((res) => {
-                if (res.result && res.result.success) {
-                    console.log('搜索统计记录成功');
-                }
+            recordSearchStatsApi(keyword, {
+                context: this
+            }).then(() => {
+                console.log('搜索统计记录成功');
             }).catch((err) => {
                 console.error('搜索统计记录失败:', err);
             });
@@ -670,15 +658,13 @@ export default {
 
         // 获取热门搜索词
         getHotSearches: function () {
-            this.callCloudFunction('searchStats', {
-                action: 'getHotSearches'
-            }).then((res) => {
-                if (res.result && res.result.success) {
-                    const hotSearches = res.result.hotSearches.map(item => item.keyword);
+            getHotSearchesApi(10, {
+                context: this
+            }).then((result) => {
+                    const hotSearches = (result.hotSearches || []).map(item => item.keyword);
                     this.setData({
                         hotSearches: hotSearches.length > 0 ? hotSearches : this.hotSearches
                     });
-                }
             }).catch((err) => {
                 console.error('获取热门搜索词失败:', err);
             });

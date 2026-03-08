@@ -1,137 +1,135 @@
 /**
- * 反馈相关API缓存层
+ * 反馈相关 API 封装
  */
-const { cloudCall } = require('../utils/cloudCall.js');
+const { callActionAndUnwrap } = require('./_shared/cloud-wrapper.js');
+
+async function callFeedbackManager(action, payload = {}, options = {}) {
+  const {
+    pageTag = 'feedback',
+    context,
+    requireAuth = false,
+    fallbackMessage = '操作失败'
+  } = options;
+
+  return callActionAndUnwrap({
+    functionName: 'feedbackManager',
+    action,
+    payload,
+    pageTag,
+    context,
+    requireAuth,
+    fallbackMessage
+  });
+}
 
 /**
  * 提交反馈
- * @param {Object} feedbackData - 反馈数据
- * @param {string} feedbackData.content - 反馈内容
- * @param {string} feedbackData.type - 反馈类型 (bug, suggestion, other)
- * @param {Array} feedbackData.images - 相关图片
- * @param {Object} feedbackData.contactInfo - 联系信息
- * @param {Object} options - 额外选项
- * @returns {Promise} 提交结果
  */
 function submitFeedback(feedbackData, options = {}) {
   if (!feedbackData || !feedbackData.content || !feedbackData.content.trim()) {
     return Promise.reject(new Error('反馈内容不能为空'));
   }
 
+  const imageUrls = Array.isArray(feedbackData.imageUrls)
+    ? feedbackData.imageUrls
+    : (Array.isArray(feedbackData.images) ? feedbackData.images : []);
+
   const params = {
     content: feedbackData.content.trim(),
+    imageUrls,
     type: feedbackData.type || 'other',
-    images: feedbackData.images || [],
+    images: feedbackData.images || imageUrls,
     contactInfo: feedbackData.contactInfo || {},
     userAgent: feedbackData.userAgent || '',
     timestamp: Date.now()
   };
 
-  return cloudCall('feedbackManager', {
-    action: 'submit',
-    ...params
-  }, Object.assign({
+  return callFeedbackManager('submitFeedback', params, Object.assign({
     pageTag: 'feedback',
     requireAuth: false,
-    ...options
-  }));
+    fallbackMessage: '反馈提交失败'
+  }, options));
 }
 
 /**
  * 获取反馈列表（管理员）
- * @param {Object} options - 查询选项
- * @param {number} options.page - 页码
- * @param {number} options.pageSize - 每页数量
- * @param {string} options.status - 状态筛选
- * @param {string} options.type - 类型筛选
- * @param {Object} options.context - 页面上下文
- * @returns {Promise} 反馈列表
  */
-async function getFeedbackList({ page = 0, pageSize = 20, status = '', type = '', context, ...options } = {}) {
+async function getFeedbackList({ page = 0, pageSize = 20, skip, limit, status = '', type = '', context, ...options } = {}) {
+  const safeLimit = Math.max(1, Number(limit || pageSize) || 20);
+  const safeSkip = Math.max(0, Number.isFinite(Number(skip)) ? Number(skip) : (Number(page) || 0) * safeLimit);
+
   const params = {
-    action: 'getList',
-    page: page,
-    pageSize: pageSize
+    skip: safeSkip,
+    limit: safeLimit
   };
 
   if (status) params.status = status;
   if (type) params.type = type;
 
-  return cloudCall('feedbackManager', params, Object.assign({
+  return callFeedbackManager('getFeedbackList', params, Object.assign({
     pageTag: 'feedback-admin',
+    context,
     requireAuth: true,
-    ...options
-  }));
+    fallbackMessage: '加载失败'
+  }, options));
 }
 
 /**
  * 更新反馈状态（管理员）
- * @param {string} feedbackId - 反馈ID
- * @param {string} status - 新状态
- * @param {string} comment - 处理备注
- * @param {Object} options - 额外选项
- * @returns {Promise} 更新结果
+ * 云函数当前仅支持标记为已处理，导出名保持不变以兼容调用方。
  */
-function updateFeedbackStatus(feedbackId, status, comment = '', ...options) {
+function updateFeedbackStatus(feedbackId, status, comment = '', options = {}) {
   if (!feedbackId) {
     return Promise.reject(new Error('反馈ID不能为空'));
   }
 
-  return cloudCall('feedbackManager', {
-    action: 'updateStatus',
-    feedbackId: feedbackId,
-    status: status,
-    comment: comment
+  return callFeedbackManager('markAsProcessed', {
+    feedbackId,
+    status,
+    comment
   }, Object.assign({
     pageTag: 'feedback-admin',
     requireAuth: true,
-    ...options
-  }));
+    fallbackMessage: '操作失败'
+  }, options));
 }
 
 /**
  * 删除反馈（管理员）
- * @param {string} feedbackId - 反馈ID
- * @param {Object} options - 额外选项
- * @returns {Promise} 删除结果
  */
-function deleteFeedback(feedbackId, ...options) {
+function deleteFeedback(feedbackId, options = {}) {
   if (!feedbackId) {
     return Promise.reject(new Error('反馈ID不能为空'));
   }
 
-  return cloudCall('feedbackManager', {
-    action: 'delete',
-    feedbackId: feedbackId
+  return callFeedbackManager('deleteFeedback', {
+    feedbackId
   }, Object.assign({
     pageTag: 'feedback-admin',
     requireAuth: true,
-    ...options
-  }));
+    fallbackMessage: '删除失败'
+  }, options));
 }
 
 /**
  * 获取反馈详情
- * @param {string} feedbackId - 反馈ID
- * @param {Object} options - 额外选项
- * @returns {Promise} 反馈详情
  */
-function getFeedbackDetail(feedbackId, ...options) {
+function getFeedbackDetail(feedbackId, options = {}) {
   if (!feedbackId) {
     return Promise.reject(new Error('反馈ID不能为空'));
   }
 
-  return cloudCall('feedbackManager', {
-    action: 'getDetail',
-    feedbackId: feedbackId
+  return callFeedbackManager('getFeedbackDetail', {
+    feedbackId
   }, Object.assign({
     pageTag: 'feedback-admin',
     requireAuth: true,
-    ...options
-  }));
+    fallbackMessage: '加载失败'
+  }, options));
 }
 
 module.exports = {
+  callFeedbackManager,
   submitFeedback,
   getFeedbackList,
   updateFeedbackStatus,

@@ -66,18 +66,16 @@
 // 用户反馈页面
 const { previewImage: previewImageUtil } = require('../../utils/imagePreview.js');
 const { submitFeedback: submitFeedbackApi } = require('../../api-cache/feedback.js');
+const { uploadFileCompat } = require('../../utils/upload-compat.js');
+
 export default {
     data() {
         return {
             content: '',
-            // 反馈内容
             images: [],
-            // 反馈图片
             submitting: false,
-            // 提交状态
             maxImages: 3,
-            // 最大图片数量
-            statusBarHeight: 0 // 状态栏高度
+            statusBarHeight: 0
         };
     },
     onLoad: function () {
@@ -173,10 +171,8 @@ export default {
                     submitting: true
                 });
 
-                // 先上传图片
                 const imageUrls = await this.uploadImages(images);
 
-                // 提交反馈数据
                 await submitFeedbackApi({
                     content: content.trim(),
                     type: 'other',
@@ -190,13 +186,11 @@ export default {
                     icon: 'success'
                 });
 
-                // 清空表单
                 this.setData({
                     content: '',
                     images: []
                 });
 
-                // 延迟返回上一页
                 setTimeout(() => {
                     uni.navigateBack();
                 }, 1500);
@@ -220,10 +214,14 @@ export default {
             }
             const uploadPromises = images.map((image, index) => {
                 const fileName = `feedback/${Date.now()}_${index}.jpg`;
-                return this.uploadFile(fileName, image.path)
-                    .then((res) => {
-                        return res.fileID;
-                    })
+                return uploadFileCompat({
+                    cloudPath: fileName,
+                    filePath: image.path,
+                    context: this,
+                    pageTag: 'feedback',
+                    requireAuth: false
+                })
+                    .then((res) => res.fileID)
                     .catch((err) => {
                         console.error('图片上传失败:', err);
                         throw err;
@@ -253,67 +251,27 @@ export default {
 
         // 兼容性文件上传方法
         uploadFile(cloudPath, filePath) {
-            console.log(`🔍 [反馈页] 上传文件: ${cloudPath}`, filePath);
-            
-            return new Promise((resolve, reject) => {
-                // 使用新的平台检测工具
-                const { getCurrentPlatform, getCloudFunctionMethod } = require('../../utils/platformDetector.js');
-                
-                const platform = getCurrentPlatform();
-                const method = getCloudFunctionMethod();
-                
-                console.log(`🔍 [反馈页] 运行环境检测 - 平台: ${platform}, 方法: ${method}`);
-                
-                if (method === 'tcb') {
-                    // 使用TCB上传文件（H5和App环境）
-                    if (this.$tcb && this.$tcb.uploadFile) {
-                        console.log(`🔍 [反馈页] TCB环境上传文件: ${cloudPath}`);
-                        this.$tcb.uploadFile({
-                            cloudPath: cloudPath,
-                            filePath: filePath
-                        }).then(resolve).catch(reject);
-                    } else {
-                        console.error(`❌ [反馈页] TCB实例不可用`);
-                        reject(new Error('TCB实例不可用'));
-                    }
-                } else if (method === 'wx-cloud') {
-                    // 使用微信云开发上传文件（小程序环境）
-                    if (wx.cloud && wx.cloud.uploadFile) {
-                        console.log(`🔍 [反馈页] 小程序环境上传文件: ${cloudPath}`);
-                        wx.cloud.uploadFile({
-                            cloudPath: cloudPath,
-                            filePath: filePath,
-                            success: (res) => {
-                                console.log(`✅ [反馈页] 文件上传成功: ${cloudPath}`, res);
-                                resolve(res);
-                            },
-                            fail: (err) => {
-                                console.error(`❌ [反馈页] 文件上传失败: ${cloudPath}`, err);
-                                reject(err);
-                            }
-                        });
-                    } else {
-                        console.error(`❌ [反馈页] 微信云开发不可用`);
-                        reject(new Error('微信云开发不可用'));
-                    }
-                } else {
-                    console.error(`❌ [反馈页] 不支持的文件上传方式: ${method}`);
-                    reject(new Error(`不支持的文件上传方式: ${method}`));
-                }
+            return uploadFileCompat({
+                cloudPath,
+                filePath,
+                context: this,
+                pageTag: 'feedback',
+                requireAuth: false
             });
         }
     }
 };
 </script>
+
 <style>
-/* 用户反馈页面样式 */
+/* Feedback page styles */
 .container {
     min-height: 100vh;
     background-color: #f5f5f5;
     padding-bottom: 40rpx;
 }
 
-/* 头部 */
+/* Header */
 .header {
     display: flex;
     align-items: center;
@@ -355,7 +313,7 @@ export default {
     align-items: center;
 }
 
-/* 内容区域 */
+/* Content section */
 .content-section {
     background-color: #fff;
     margin: 20rpx 30rpx;
@@ -389,7 +347,7 @@ export default {
     margin-top: 10rpx;
 }
 
-/* 图片上传区域 */
+/* Image upload section */
 .image-section {
     background-color: #fff;
     margin: 20rpx 30rpx;
@@ -468,7 +426,7 @@ export default {
     text-align: center;
 }
 
-/* 提交按钮 */
+/* Submit button */
 .submit-section {
     margin: 40rpx 30rpx;
 }
@@ -503,7 +461,7 @@ export default {
     border: none;
 }
 
-/* 底部提示 */
+/* Footer tip */
 .footer-tip {
     text-align: center;
     padding: 0 30rpx;

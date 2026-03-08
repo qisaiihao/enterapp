@@ -51,7 +51,10 @@
 </template>
 
 <script>
-const { cloudCall } = require('../../utils/cloudCall.js');
+const {
+    listAdminPoets,
+    deleteAdminPoet
+} = require('../../api-cache/admin-manager.js');
 
 export default {
     data() {
@@ -80,36 +83,30 @@ export default {
         });
     },
     methods: {
-        loadPoets(callback) {
+        async loadPoets(callback) {
             if (this.loading) return;
             
             this.loading = true;
-            cloudCall('adminManager', {
-                action: 'getPoetList',
-                offset: this.offset,
-                limit: this.limit
-            }).then(res => {
-                if (res.result && res.result.success) {
-                    const newPoets = res.result.poets || [];
-                    this.poets = [...this.poets, ...newPoets];
-                    this.offset += newPoets.length;
-                    this.hasMore = newPoets.length === this.limit;
-                } else {
-                    uni.showToast({
-                        title: res.result?.error || '加载失败',
-                        icon: 'none'
-                    });
-                }
-            }).catch(err => {
+            try {
+                const result = await listAdminPoets({
+                    offset: this.offset,
+                    limit: this.limit,
+                    context: this
+                });
+                const newPoets = result.poets || [];
+                this.poets = [...this.poets, ...newPoets];
+                this.offset += newPoets.length;
+                this.hasMore = newPoets.length === this.limit;
+            } catch (err) {
                 console.error('加载诗人列表失败:', err);
                 uni.showToast({
-                    title: '网络错误',
+                    title: err.message || '加载失败',
                     icon: 'none'
                 });
-            }).finally(() => {
+            } finally {
                 this.loading = false;
                 if (callback) callback();
-            });
+            }
         },
 
         navigateToPoetProfile(e) {
@@ -138,34 +135,28 @@ export default {
             });
         },
 
-        deletePoet(poetId, index) {
+        async deletePoet(poetId, index) {
             uni.showLoading({ title: '删除中...' });
 
-            cloudCall('adminManager', {
-                action: 'deletePoet',
-                poetId: poetId
-            }).then(res => {
-                uni.hideLoading();
-                if (res.result && res.result.success) {
-                    this.poets.splice(index, 1);
-                    uni.showToast({
-                        title: '删除成功',
-                        icon: 'success'
-                    });
-                } else {
-                    uni.showToast({
-                        title: res.result?.error || '删除失败',
-                        icon: 'none'
-                    });
-                }
-            }).catch(err => {
-                uni.hideLoading();
+            try {
+                await deleteAdminPoet({
+                    poetId,
+                    context: this
+                });
+                this.poets.splice(index, 1);
+                uni.showToast({
+                    title: '删除成功',
+                    icon: 'success'
+                });
+            } catch (err) {
                 console.error('删除诗人失败:', err);
                 uni.showToast({
-                    title: '网络错误',
+                    title: err.message || '删除失败',
                     icon: 'none'
                 });
-            });
+            } finally {
+                uni.hideLoading();
+            }
         },
 
         formatTime(timestamp) {

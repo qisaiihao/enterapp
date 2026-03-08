@@ -107,9 +107,15 @@
 // pages/messages/messages.js
 const app = getApp();
 const { formatTimeAgo } = require('../../utils/time');
-const { cloudCall } = require('../../utils/cloudCall.js');
-const { invalidateUnread } = require('../../api-cache/unread.js');
-const { getMessages: getMessagesWithCache, invalidateMessages } = require('../../api-cache/messages.js');
+const { getUnreadCount, invalidateUnread } = require('../../api-cache/unread.js');
+const {
+    getMessages: getMessagesWithCache,
+    markMessagesAsRead: markMessagesAsReadApi,
+    deleteMessageById,
+    clearMessages,
+    invalidateMessages
+} = require('../../api-cache/messages.js');
+const { toggleFollow } = require('../../api-cache/following.js');
 const fileUrlCache = require('../../cache/core/file-url.js').default;
 const unreadBadge = require('../../cache/stores/unread-badge.js');
 export default {
@@ -191,11 +197,6 @@ export default {
             } catch (err) {
                 uni.switchTab({ url: '/pages/index/index' });
             }
-        },
-
-        // 统一云函数调用方法
-        callCloudFunction(name, data = {}, extraOptions = {}) {
-            return cloudCall(name, data, Object.assign({ pageTag: 'messages', context: this, requireAuth: true }, extraOptions));
         },
 
         // 获取当前用户ID
@@ -442,7 +443,7 @@ export default {
                             });
 
                             // 继续处理消息
-                            this.processMessagesAfterAvatarConversion(newMessages, page, PAGE_SIZE, { result: { unreadCount } }, callback);
+                            this.processMessagesAfterAvatarConversion(newMessages, page, PAGE_SIZE, unreadCount, callback);
                         })
                         .catch(error => {
                             console.error('批量转换头像URL失败:', error);
@@ -454,11 +455,11 @@ export default {
                             });
 
                             // 继续处理消息
-                            this.processMessagesAfterAvatarConversion(newMessages, page, PAGE_SIZE, { result: { unreadCount } }, callback);
+                            this.processMessagesAfterAvatarConversion(newMessages, page, PAGE_SIZE, unreadCount, callback);
                         });
                 } else {
                     // 没有需要转换的头像，直接处理消息
-                    this.processMessagesAfterAvatarConversion(newMessages, page, PAGE_SIZE, { result: { unreadCount } }, callback);
+                    this.processMessagesAfterAvatarConversion(newMessages, page, PAGE_SIZE, unreadCount, callback);
                 }
             }).catch((err) => {
                 console.error('获取消息失败:', err);
@@ -490,7 +491,7 @@ export default {
         },
 
         // 处理消息（格式化时间、内容等）
-        processMessagesAfterAvatarConversion: function (newMessages, page, PAGE_SIZE, res, callback) {
+        processMessagesAfterAvatarConversion: function (newMessages, page, PAGE_SIZE, unreadCount, callback) {
             // 格式化时间和消息内容
             newMessages.forEach((msg) => {
                 if (msg.createTime) {
@@ -554,7 +555,7 @@ export default {
                 messages: allMessages,
                 page: page + 1,
                 hasMore: newMessages.length === PAGE_SIZE,
-                unreadCount: res.result.unreadCount || 0
+                unreadCount: unreadCount || 0
             });
 
             // 检查关注消息的互相关注状态
@@ -576,12 +577,10 @@ export default {
 
         // 检查未读消息数量
         checkUnreadCount: function () {
-            this.callCloudFunction('getUnreadMessageCount', {}).then((res) => {
-                    if (res.result && res.result.success) {
-                        this.setData({
-                            unreadCount: res.result.count || 0
-                        });
-                    }
+            getUnreadCount(this).then((count) => {
+                    this.setData({
+                        unreadCount: count || 0
+                    });
                 }).catch((err) => {
                     console.error('获取未读消息数量失败:', err);
                 });
@@ -592,31 +591,27 @@ export default {
             if (!messageIds || messageIds.length === 0) {
                 return;
             }
-            this.callCloudFunction('markMessagesAsRead', {
-                messageIds
-            }).then((res) => {
-                    if (res.result && res.result.success) {
-                        // 更新本地数据
-                        const updatedMessages = this.messages.map((msg) => {
-                            if (messageIds.includes(msg._id)) {
-                                msg.isRead = true;
-                            }
-                            return msg;
-                        });
-                        const nextUnread = Math.max(0, this.unreadCount - messageIds.length);
-                        this.setData({
-                            messages: updatedMessages,
-                            unreadCount: nextUnread
-                        });
-                        
-                        // 使用 unreadBadge 统一管理，自动广播到所有订阅者
-                        unreadBadge.setUnreadCount(nextUnread);
-                        
-                        // 清除消息列表缓存
-                        invalidateMessages({ type: this.activeTab === 'all' ? null : this.activeTab });
-                        
-                        console.log('【messages】已标记已读，未读数:', nextUnread);
-                    }
+            markMessagesAsReadApi(messageIds, this).then(() => {
+                    // 更新本地数据
+                    const updatedMessages = this.messages.map((msg) => {
+                        if (messageIds.includes(msg._id)) {
+                            msg.isRead = true;
+                        }
+                        return msg;
+                    });
+                    const nextUnread = Math.max(0, this.unreadCount - messageIds.length);
+                    this.setData({
+                        messages: updatedMessages,
+                        unreadCount: nextUnread
+                    });
+
+                    // 使用 unreadBadge 统一管理，自动广播到所有订阅者
+                    unreadBadge.setUnreadCount(nextUnread);
+
+                    // 清除消息列表缓存
+                    invalidateMessages({ type: this.activeTab === 'all' ? null : this.activeTab });
+
+                    console.log('【messages】已标记已读，未读数:', nextUnread);
                 }).catch((err) => {
                     console.error('标记消息为已读失败:', err);
                 });
@@ -683,30 +678,19 @@ export default {
                 success: (res) => {
                     if (res.confirm) {
                         console.log('开始删除消息:', messageId);
-                        this.callCloudFunction('deleteMessage', {
-                            messageId
-                        }).then((res) => {
-                                console.log('删除消息云函数返回:', res);
-                                if (res.result && res.result.success) {
-                                    const messages = this.messages.filter((msg, i) => i !== index);
-                                    this.messages = messages;
-                                    // 关闭滑动操作
-                                    this.closeAllSwipeActions();
-                                    uni.showToast({
-                                        title: '删除成功',
-                                        icon: 'success'
-                                    });
-                                } else {
-                                    console.error('删除失败，云函数返回:', res);
-                                    uni.showToast({
-                                        title: '删除失败',
-                                        icon: 'none'
-                                    });
-                                }
+                        deleteMessageById(messageId, this).then(() => {
+                                const messages = this.messages.filter((msg, i) => i !== index);
+                                this.messages = messages;
+                                // 关闭滑动操作
+                                this.closeAllSwipeActions();
+                                uni.showToast({
+                                    title: '删除成功',
+                                    icon: 'success'
+                                });
                             }).catch((err) => {
                                 console.error('删除消息失败:', err);
                                 uni.showToast({
-                                    title: '删除失败',
+                                    title: err.message || '删除失败',
                                     icon: 'none'
                                 });
                             });
@@ -722,26 +706,24 @@ export default {
                 content: '确定要清空所有消息吗？此操作不可恢复。',
                 success: (res) => {
                     if (res.confirm) {
-                        this.callCloudFunction('clearAllMessages', {}).then((res) => {
-                                if (res.result && res.result.success) {
-                                    this.setData({ messages: [], page: 0, hasMore: false, unreadCount: 0 });
-                                    
-                                    // 使用 unreadBadge 清零，自动广播到所有订阅者
-                                    unreadBadge.clearUnread();
-                                    
-                                    // 清除消息列表缓存
-                                    invalidateMessages();
-                                    console.log('【messages】清空消息后已清除所有缓存');
-                                    
-                                    uni.showToast({
-                                        title: '已清空',
-                                        icon: 'success'
-                                    });
-                                }
+                        clearMessages(this).then(() => {
+                                this.setData({ messages: [], page: 0, hasMore: false, unreadCount: 0 });
+
+                                // 使用 unreadBadge 清零，自动广播到所有订阅者
+                                unreadBadge.clearUnread();
+
+                                // 清除消息列表缓存
+                                invalidateMessages();
+                                console.log('【messages】清空消息后已清除所有缓存');
+
+                                uni.showToast({
+                                    title: '已清空',
+                                    icon: 'success'
+                                });
                             }).catch((err) => {
                                 console.error('清空消息失败:', err);
                                 uni.showToast({
-                                    title: '清空失败',
+                                    title: err.message || '清空失败',
                                     icon: 'none'
                                 });
                             });
@@ -792,31 +774,29 @@ export default {
             const userId = e.currentTarget.dataset.userId;
             const index = e.currentTarget.dataset.index;
             if (userId) {
-                this.callCloudFunction('follow', { 
-                    action: 'toggleFollow',
-                    targetOpenid: userId 
-                }).then((res) => {
-                    if (res.result && res.result.success) {
+                toggleFollow(userId, {
+                    context: this,
+                    pageTag: 'messages:toggle-follow'
+                }).then((result) => {
                         // 更新本地数据中的关注状态
                         const updatedMessages = [...this.messages];
                         if (updatedMessages[index]) {
-                            updatedMessages[index].isFollowing = res.result.isFollowing;
-                            updatedMessages[index].isMutual = res.result.isMutual;
+                            updatedMessages[index].isFollowing = result.isFollowing;
+                            updatedMessages[index].isMutual = result.isMutual;
                         }
                         this.setData({
                             messages: updatedMessages
                         });
                         
-                        const message = res.result.isFollowing ? '关注成功' : '取消关注';
+                        const message = result.isFollowing ? '关注成功' : '取消关注';
                         uni.showToast({
                             title: message,
                             icon: 'success'
                         });
-                    }
                 }).catch((err) => {
                     console.error('关注操作失败:', err);
                     uni.showToast({
-                        title: '操作失败',
+                        title: err.message || '操作失败',
                         icon: 'none'
                     });
                 });

@@ -414,12 +414,17 @@ import { extractGrowthStats } from '@/utils/growthStats.js';
 import skeleton from '@/components/skeleton/skeleton';
 import TimelineView from '@/components/TimelineView.vue';
 import PortfolioBook from '@/components/PortfolioBook.vue';
+import {
+    checkFollowRelation,
+    checkBlockRelation,
+    toggleBlockRelation,
+    getFollowCounts
+} from '@/api-cache/relation.js';
 const PAGE_SIZE = 5;
 const { formatRelativeTime } = require('../../utils/time.js');
 const avatarCache = require('../../utils/avatarCache');
 const followCache = require('../../utils/followCache');
 const { previewImage } = require('../../utils/imagePreview.js');
-const { cloudCall } = require('../../utils/cloudCall.js');
 const postGalleryMixin = require('../../mixins/postGallery.js');
 const fileUrlCache = require('../../_utils/file-url-cache.js').default;
 export default {
@@ -583,10 +588,6 @@ export default {
                     break;
             }
         },
-        // 统一云函数调用方法
-        callCloudFunction(name, data = {}, extraOptions = {}) {
-            return cloudCall(name, data, Object.assign({ pageTag: 'user-profile', context: this }, extraOptions));
-        },
         // 加载用户信息和帖子
         loadUserProfile: function (cb) {
             this.setData({ isLoading: true, portfolioLoading: true });
@@ -738,22 +739,19 @@ export default {
             if (!targetOpenid) {
                 return;
             }
-            this.callCloudFunction('follow', {
-                    action: 'checkFollow',
-                    targetOpenid
-                }, { requireAuth: true }).then((res) => {
-                    if (res.result && res.result.success) {
-                        this.setData({
-                            isFollowing: !!res.result.isFollowing,
-                            isFollowedByTarget: !!res.result.isFollower,
-                            isMutualFollow: !!res.result.isMutual
-                        });
-                    } else {
-                        console.warn('检查关注状态失败', res.result);
-                    }
-                }).catch((err) => {
-                    console.error('检查关注状态调用失败:', err);
+            checkFollowRelation({
+                targetOpenid,
+                context: this,
+                pageTag: 'user-profile:check-follow'
+            }).then((result) => {
+                this.setData({
+                    isFollowing: !!result.isFollowing,
+                    isFollowedByTarget: !!result.isFollower,
+                    isMutualFollow: !!result.isMutual
                 });
+            }).catch((err) => {
+                console.error('检查关注状态调用失败:', err);
+            });
         },
 
         onFollowTap: function () {
@@ -843,17 +841,14 @@ export default {
                 return;
             }
 
-            this.callCloudFunction('block', {
-                action: 'checkBlock',
-                targetOpenid
-            }, { requireAuth: true }).then((res) => {
-                if (res.result && res.result.success) {
-                    this.setData({
-                        isBlocked: !!res.result.isBlocked
-                    });
-                } else {
-                    console.warn('检查屏蔽状态失败', res.result);
-                }
+            checkBlockRelation({
+                targetOpenid,
+                context: this,
+                pageTag: 'user-profile:check-block'
+            }).then((result) => {
+                this.setData({
+                    isBlocked: !!result.isBlocked
+                });
             }).catch((err) => {
                 console.error('检查屏蔽状态调用失败:', err);
             });
@@ -888,63 +883,46 @@ export default {
                             blockPending: true
                         });
 
-                        this.callCloudFunction('block', {
-                            action: 'toggleBlock',
-                            targetOpenid
-                        }, { requireAuth: true })
-                            .then((res) => {
-                                if (res && res.result) {
-                                    if (res.result.success) {
-                                        this.setData({
-                                            isBlocked: !!res.result.isBlocked
-                                        });
-                                        uni.showToast({
-                                            title: res.result.isBlocked ? '屏蔽成功，请刷新广场页面' : '已取消屏蔽',
-                                            icon: 'success',
-                                            duration: 2000
-                                        });
-                                        
-                                        // 屏蔽/取消屏蔽后，清除相关缓存
-                                        try {
-                                            const { invalidateHomePosts } = require('../../api-cache/home-posts.js');
-                                            const { clearDiscoverCache } = require('../../api-cache/discover.js');
-                                            invalidateHomePosts({}); // 清除首页缓存
-                                            clearDiscoverCache(); // 清除发现页缓存
-                                            
-                                            // 如果屏蔽成功，延迟提示用户刷新
-                                            if (res.result.isBlocked) {
-                                                setTimeout(() => {
-                                                    uni.showModal({
-                                                        title: '屏蔽成功',
-                                                        content: '该用户的帖子和诗歌将不再显示。请下拉刷新广场页面查看效果。',
-                                                        showCancel: false,
-                                                        confirmText: '知道了'
-                                                    });
-                                                }, 500);
-                                            }
-                                        } catch (cacheError) {
-                                            console.error('清除缓存失败:', cacheError);
-                                        }
-                                        
-                                        // 如果取消屏蔽，刷新页面数据
-                                        if (!res.result.isBlocked) {
-                                            this.loadUserProfile();
-                                        }
-                                    } else {
-                                        console.error('操作失败:', res.result);
-                                        uni.showToast({
-                                            title: res.result.message || '操作失败',
-                                            icon: 'none',
-                                            duration: 3000
-                                        });
+                        toggleBlockRelation({
+                            targetOpenid,
+                            context: this,
+                            pageTag: 'user-profile:toggle-block'
+                        })
+                            .then((result) => {
+                                this.setData({
+                                    isBlocked: !!result.isBlocked
+                                });
+                                uni.showToast({
+                                    title: result.isBlocked ? '屏蔽成功，请刷新广场页面' : '已取消屏蔽',
+                                    icon: 'success',
+                                    duration: 2000
+                                });
+
+                                // 屏蔽/取消屏蔽后，清除相关缓存
+                                try {
+                                    const { invalidateHomePosts } = require('../../api-cache/home-posts.js');
+                                    const { clearDiscoverCache } = require('../../api-cache/discover.js');
+                                    invalidateHomePosts({}); // 清除首页缓存
+                                    clearDiscoverCache(); // 清除发现页缓存
+
+                                    // 如果屏蔽成功，延迟提示用户刷新
+                                    if (result.isBlocked) {
+                                        setTimeout(() => {
+                                            uni.showModal({
+                                                title: '屏蔽成功',
+                                                content: '该用户的帖子和诗歌将不再显示。请下拉刷新广场页面查看效果。',
+                                                showCancel: false,
+                                                confirmText: '知道了'
+                                            });
+                                        }, 500);
                                     }
-                                } else {
-                                    console.error('响应格式错误:', res);
-                                    uni.showToast({
-                                        title: '服务器响应异常',
-                                        icon: 'none',
-                                        duration: 3000
-                                    });
+                                } catch (cacheError) {
+                                    console.error('清除缓存失败:', cacheError);
+                                }
+
+                                // 如果取消屏蔽，刷新页面数据
+                                if (!result.isBlocked) {
+                                    this.loadUserProfile();
                                 }
                             })
                             .catch((err) => {
@@ -1021,40 +999,34 @@ export default {
                 return;
             }
 
-            // 调用云函数获取全部帖子数据
-            this.callCloudFunction('getUserProfile', {
+            // 通过 API 层加载，页面不再解析 res.result 协议
+            getUserPosts({
                 userId: targetUserId,
-                skip: 0,
-                limit: 1000 // 获取大量数据，确保包含所有帖子
-            }).then((res) => {
-                if (res && res.result && res.result.success) {
-                    const allPosts = res.result.posts || [];
+                page: 0,
+                pageSize: 1000,
+                context: this
+            }).then((allPosts) => {
+                const posts = Array.isArray(allPosts) ? allPosts : [];
 
-                    // 只筛选原创诗歌类型的帖子
-                    const originalPoemPosts = allPosts.filter(post => post.isPoem === true && post.isOriginal === true);
+                // 只筛选原创诗歌类型的帖子
+                const originalPoemPosts = posts.filter(post => post.isPoem === true && post.isOriginal === true);
 
-                    // 格式化时间
-                    originalPoemPosts.forEach(post => {
-                        if (post.createTime) {
-                            post.formattedCreateTime = this.formatTime(post.createTime);
-                        }
-                    });
+                // 格式化时间
+                originalPoemPosts.forEach(post => {
+                    if (post.createTime) {
+                        post.formattedCreateTime = this.formatTime(post.createTime);
+                    }
+                });
 
-                    // 使用工具函数处理数据
-                    const processedPosts = processPostsForTimeline(originalPoemPosts);
+                // 使用工具函数处理数据
+                const processedPosts = processPostsForTimeline(originalPoemPosts);
 
-                    this.setData({
-                        timelinePosts: processedPosts,
-                        timelineGroups: groupPostsByMonth(processedPosts),
-                        timelineLoading: false,
-                        timelineError: false
-                    });
-                } else {
-                    this.setData({
-                        timelineLoading: false,
-                        timelineError: true
-                    });
-                }
+                this.setData({
+                    timelinePosts: processedPosts,
+                    timelineGroups: groupPostsByMonth(processedPosts),
+                    timelineLoading: false,
+                    timelineError: false
+                });
             }).catch((err) => {
                 this.setData({
                     timelineLoading: false,
@@ -1224,22 +1196,15 @@ export default {
                 return;
             }
 
-            this.callCloudFunction('follow', {
-                action: 'getFollowCounts',
-                targetOpenid: this.targetUserId
-            }).then((res) => {
-                if (res.result && res.result.success) {
-                    this.setData({
-                        followingCount: res.result.followingCount || 0,
-                        followerCount: res.result.followerCount || 0
-                    });
-                } else {
-                    console.warn('获取关注数失败', res.result);
-                    this.setData({
-                        followingCount: 0,
-                        followerCount: 0
-                    });
-                }
+            getFollowCounts({
+                targetOpenid: this.targetUserId,
+                context: this,
+                pageTag: 'user-profile:follow-counts'
+            }).then((result) => {
+                this.setData({
+                    followingCount: result.followingCount || 0,
+                    followerCount: result.followerCount || 0
+                });
             }).catch((err) => {
                 console.error('获取关注数调用失败:', err);
                 this.setData({

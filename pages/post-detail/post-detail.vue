@@ -615,15 +615,15 @@ export default {
             });
 
             getPostDetail(postId)
-                .then(async (res) => {
-                    if (res.result && res.result.post) {
-                        let post = res.result.post;
+                .then(async (detail) => {
+                    if (detail && detail.post) {
+                        let post = detail.post;
                         post.formattedCreateTime = this.formatTime(post.createTime);
                         post.likeIcon = likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false);
                         // 将 cloud:// 映射为可访问 URL，并预热
                         await hydrateTempUrls([post]);
                         warmTempUrlsFromPosts([post]);
-                        const finalCommentCount = res.result.commentCount || post.commentCount || 0;
+                        const finalCommentCount = detail.commentCount || post.commentCount || 0;
                         this.setData({
                             post: post,
                             commentCount: finalCommentCount
@@ -663,11 +663,11 @@ export default {
             });
 
             getComments(postId)
-                .then(async (res) => {
-                    if (res.result && res.result.comments) {
+                .then(async (result) => {
+                    if (result && result.comments) {
                         // 使用新的评论处理工具函数
-                        const comments = processComments(res.result.comments);
-                        const newCommentCount = res.result.commentCount || comments.length;
+                        const comments = processComments(result.comments);
+                        const newCommentCount = result.commentCount || comments.length;
                         const shouldUpdateCount = newCommentCount > this.commentCount;
 
                         // 使用setData确保响应式更新
@@ -898,10 +898,15 @@ export default {
                 console.error('【post-detail】字体加载失败:', fontFamily, error);
                 
                 // 回退到默认字体
-                this.shareConfig.fontFamily = '汇文明朝';
+                this.shareConfig.fontFamily = 'system';
                 this.shareConfig.fontScale = 1.0;
-                
-                // 即使字体加载失败，也继续绘制（使用默认字体）
+                uni.showToast({
+                    title: '字体加载失败，已回退默认字体',
+                    icon: 'none',
+                    duration: 2000
+                });
+
+                // 即使字体加载失败，也继续绘制
                 await new Promise(r => setTimeout(r, 150));
                 this.drawCanvas();
             }
@@ -2001,9 +2006,9 @@ export default {
                     isAnonymous: this.post.isAnonymous || false
                 };
 
-                const res = await submitComment(commentData);
+                const result = await submitComment(commentData);
                 uni.hideLoading();
-                if (res.result && res.result.success) {
+                if (result) {
                     uni.showToast({
                         title: '评论成功'
                     });
@@ -2024,11 +2029,6 @@ export default {
                             prePage.updatePostCommentCount(postId, newCommentCount);
                         }
                     }
-                } else {
-                    uni.showToast({
-                        title: (res.result && res.result.message) || '评论失败',
-                        icon: 'none'
-                    });
                 }
             } catch (error) {
                 console.log('CatchClause', error);
@@ -2222,8 +2222,7 @@ export default {
                 this.$set(this.comments[commentIndex], 'likeIcon', newLikeIcon);
             }
             
-            likeComment(commentId, postId, newLikeState).then((res) => {
-                    const result = res.result || res;
+            likeComment(commentId, postId, newLikeState).then((result) => {
                     if (result && result.success) {
                         if (newLikes !== result.likes) {
                             this.updateCommentLikeStatus(commentId, newLikeState, result.likes);
@@ -2432,14 +2431,14 @@ export default {
             }
 
             checkFollowStatus(targetOpenid).then((res) => {
-                    if (res.result && res.result.success) {
+                    if (res && res.success) {
                         this.setData({
-                            isFollowing: !!res.result.isFollowing,
-                            isFollowedByAuthor: !!res.result.isFollower,
-                            isMutualFollow: !!res.result.isMutual
+                            isFollowing: !!res.isFollowing,
+                            isFollowedByAuthor: !!res.isFollower,
+                            isMutualFollow: !!res.isMutual
                         });
                     } else {
-                        console.warn('检查关注状态失败', res.result);
+                        console.warn('检查关注状态失败', res);
                     }
                 }).catch((err) => {
                     console.error('检查关注状态调用失败:', err);
@@ -2760,29 +2759,22 @@ export default {
                 title: this.editForm.title.trim(),
                 content: this.editForm.content.trim()
             })
-            .then((res) => {
+            .then(() => {
                 uni.hideLoading();
-                if (res && res.result && res.result.success) {
-                    uni.showToast({ title: '保存成功', icon: 'success' });
-                    // 更新本地帖子数据
-                    this.setData({
-                        'post.title': this.editForm.title.trim(),
-                        'post.content': this.editForm.content.trim(),
-                        showEditModal: false
-                    });
-                    // 发送更新事件通知其他页面
-                    try {
-                        emitPostUpdated(this.post._id);
-                    } catch (e) {
-                        if (uni.$emit) {
-                            uni.$emit('post-updated', { postId: this.post._id });
-                        }
+                uni.showToast({ title: '保存成功', icon: 'success' });
+                // 更新本地帖子数据
+                this.setData({
+                    'post.title': this.editForm.title.trim(),
+                    'post.content': this.editForm.content.trim(),
+                    showEditModal: false
+                });
+                // 发送更新事件通知其他页面
+                try {
+                    emitPostUpdated(this.post._id);
+                } catch (e) {
+                    if (uni.$emit) {
+                        uni.$emit('post-updated', { postId: this.post._id });
                     }
-                } else {
-                    uni.showToast({ 
-                        title: res.result?.message || '保存失败', 
-                        icon: 'none' 
-                    });
                 }
             })
             .catch((err) => {
@@ -2999,6 +2991,7 @@ page {
     padding: 40rpx 40rpx 20rpx 40rpx;
     border-bottom: 1rpx solid #f0f0f0;
     margin-bottom: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
 }
 
 .post-detail-wrapper.original-post {
@@ -3114,6 +3107,7 @@ page {
     white-space: pre-wrap;
     color: #666;
     word-break: break-word;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
 }
 
 .image-container {

@@ -81,6 +81,11 @@
 const { formatRelativeTime } = require('../../utils/time.js');
 const { previewImage: previewImageUtil } = require('../../utils/imagePreview.js');
 const { cloudCall } = require('../../utils/cloudCall.js');
+const {
+    getFeedbackList: getFeedbackListApi,
+    updateFeedbackStatus,
+    deleteFeedback: deleteFeedbackApi
+} = require('../../api-cache/feedback.js');
 export default {
     data() {
         return {
@@ -182,8 +187,6 @@ export default {
                     throw new Error('无法获取用户信息');
                 }
             } catch (error) {
-                console.log('CatchClause', error);
-                console.log('CatchClause', error);
                 console.error('权限检查失败:', error);
                 uni.showModal({
                     title: '错误',
@@ -206,34 +209,27 @@ export default {
             this.setData({
                 loading: true
             });
-            this.callCloudFunction('feedbackManager', {
-                    action: 'getFeedbackList',
-                    skip: currentPage * pageSize,
-                    limit: pageSize
-                }).then((res) => {
-                    if (res.result && res.result.success) {
-                        const feedbackList = res.result.feedbackList || [];
+            getFeedbackListApi({
+                skip: currentPage * pageSize,
+                limit: pageSize,
+                context: this
+            }).then((result) => {
+                    const feedbackList = result.feedbackList || [];
 
-                        // 格式化时间
-                        feedbackList.forEach((feedback) => {
-                            feedback.formattedCreateTime = this.formatTime(feedback.createTime);
-                        });
-                        const newFeedbackList = isRefresh ? feedbackList : this.feedbackList.concat(feedbackList);
-                        this.setData({
-                            feedbackList: newFeedbackList,
-                            page: currentPage + 1,
-                            hasMore: feedbackList.length === pageSize
-                        });
-                    } else {
-                        uni.showToast({
-                            title: res.result?.message || '加载失败',
-                            icon: 'none'
-                        });
-                    }
+                    // 格式化时间
+                    feedbackList.forEach((feedback) => {
+                        feedback.formattedCreateTime = this.formatTime(feedback.createTime);
+                    });
+                    const newFeedbackList = isRefresh ? feedbackList : this.feedbackList.concat(feedbackList);
+                    this.setData({
+                        feedbackList: newFeedbackList,
+                        page: currentPage + 1,
+                        hasMore: feedbackList.length === pageSize
+                    });
                 }).catch((err) => {
                     console.error('加载反馈列表失败:', err);
                     uni.showToast({
-                        title: '网络错误',
+                        title: err.message || '加载失败',
                         icon: 'none'
                     });
                 }).finally(() => {
@@ -277,33 +273,25 @@ export default {
                         uni.showLoading({
                             title: '删除中...'
                         });
-                        this.callCloudFunction('feedbackManager', {
-                                action: 'deleteFeedback',
-                                feedbackId: feedbackId
-                            }).then((res) => {
+                        deleteFeedbackApi(feedbackId, {
+                                context: that
+                            }).then(() => {
                                 uni.hideLoading();
-                                if (res.result && res.result.success) {
-                                    uni.showToast({
-                                        title: '删除成功',
-                                        icon: 'success'
-                                    });
+                                uni.showToast({
+                                    title: '删除成功',
+                                    icon: 'success'
+                                });
 
-                                    // 从列表中移除
-                                    const newList = that.feedbackList.filter((item, i) => i !== index);
-                                    that.setData({
-                                        feedbackList: newList
-                                    });
-                                } else {
-                                    uni.showToast({
-                                        title: res.result?.message || '删除失败',
-                                        icon: 'none'
-                                    });
-                                }
+                                // 从列表中移除
+                                const newList = that.feedbackList.filter((item, i) => i !== index);
+                                that.setData({
+                                    feedbackList: newList
+                                });
                             }).catch((err) => {
                                 uni.hideLoading();
                                 console.error('删除反馈失败:', err);
                                 uni.showToast({
-                                    title: '删除失败',
+                                    title: err.message || '删除失败',
                                     icon: 'none'
                                 });
                             });
@@ -320,33 +308,25 @@ export default {
             uni.showLoading({
                 title: '处理中...'
             });
-            this.callCloudFunction('feedbackManager', {
-                    action: 'markAsProcessed',
-                    feedbackId: feedbackId
-                }).then((res) => {
+            updateFeedbackStatus(feedbackId, 'processed', '', {
+                    context: this
+                }).then(() => {
                     uni.hideLoading();
-                    if (res.result && res.result.success) {
-                        uni.showToast({
-                            title: '已标记为处理',
-                            icon: 'success'
-                        });
+                    uni.showToast({
+                        title: '已标记为处理',
+                        icon: 'success'
+                    });
 
-                        // 更新列表中的状态
-                        that.setData({
-                            [`feedbackList[${index}].isProcessed`]: true,
-                            [`feedbackList[${index}].processedTime`]: new Date()
-                        });
-                    } else {
-                        uni.showToast({
-                            title: res.result?.message || '操作失败',
-                            icon: 'none'
-                        });
-                    }
+                    // 更新列表中的状态
+                    that.setData({
+                        [`feedbackList[${index}].isProcessed`]: true,
+                        [`feedbackList[${index}].processedTime`]: new Date()
+                    });
                 }).catch((err) => {
                     uni.hideLoading();
                     console.error('标记处理失败:', err);
                     uni.showToast({
-                        title: '操作失败',
+                        title: err.message || '操作失败',
                         icon: 'none'
                     });
                 });

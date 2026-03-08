@@ -4,7 +4,10 @@
 	"description": "",
 	"main": "main.js",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1"
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"check:encoding": "node scripts/check-encoding.js",
+		"check:syntax": "node scripts/check-syntax.js",
+		"check:quality": "npm run check:encoding && npm run check:syntax"
 	},
 	"author": "",
 	"dependencies": {

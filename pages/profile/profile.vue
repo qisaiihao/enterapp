@@ -184,11 +184,11 @@ import ProfileCard from '@/components/ProfileCard.vue';
 import ActionMenu from '@/components/ActionMenu.vue';
 import DeleteModal from '@/components/DeleteModal.vue';
 import { getMyPosts, getMyFavorites, invalidateMyFavorites, invalidateMyPosts, invalidateMyInfo, getMyInfo } from '@/api-cache/my.js';
-import { togglePostVisibility, deletePost as deletePostApi, saveDraft, getPostDetail, removeFavorite, getFollowerCount, updateUserInfo, logout } from '@/api-cache/profile-actions.js';
+import { togglePostVisibility, deletePost as deletePostApi, saveDraft, getPostDetail, removeFavorite as removeFavoriteApi, getFollowerCount, updateUserInfo, logout } from '@/api-cache/profile-actions.js';
+import { getPortfolioFolders } from '@/api-cache/portfolio.js';
 import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
 import { navigateToUserProfile } from '@/utils/navigation.js';
 import { calculateAge } from '@/utils/ageCalculator.js';
-import { fetchPortfolioFolders } from '@/utils/profilePortfolio.js';
 import { fetchTimelineData } from '@/utils/profileTimeline.js';
 import {
   groupPostsByMonth as groupPostsByMonthUtil,
@@ -201,7 +201,6 @@ import { calcBookHeight as calcBookHeightUtil } from '@/utils/bookLayout.js';
 import { extractGrowthStats } from '@/utils/growthStats.js';
 import { formatRelativeTime } from '@/utils/time.js';
 import { previewImage } from '@/utils/imagePreview.js';
-import { cloudCall } from '@/utils/cloudCall.js';
 import postGalleryMixin from '@/mixins/postGallery.js';
 import { updateTabBarStatus } from '@/utils/tabBarCompatibility.js';
 import { invalidateMyProfile } from '@/api-cache/profile.js';
@@ -1621,38 +1620,23 @@ export default {
                         uni.showLoading({
                             title: '取消收藏中...'
                         });
-                        // 传递当前用户的openid给云函数
-                        const app = getApp();
-                        const currentOpenid = app && app.globalData && app.globalData.openid;
-                        
-                        that.callCloudFunction('getMyProfileData', {
-                            action: 'removeFromFavorite',
-                            favoriteId: favoriteId,
-                            openid: currentOpenid
-                        }).then((res) => {
+                        removeFavoriteApi(favoriteId, that).then(() => {
                             uni.hideLoading();
-                            if (res.result && res.result.success) {
-                                uni.showToast({
-                                    title: '已取消收藏'
-                                });
-                                // 从列表中移除该项
-                                const newList = that.favoriteList.filter((item, i) => i !== index);
-                                that.setData({
-                                    favoriteList: newList
-                                });
-                                try {
-                                    const appInstance = getApp();
-                                    const userId = appInstance && appInstance.globalData && appInstance.globalData.openid;
-                                    const removed = that.favoriteList[index];
-                                    const postId = removed && (removed._id || removed.postId);
-                                    emitFavoriteChanged({ userId, postId, favored: false });
-                                } catch (e) {}
-                            } else {
-                                uni.showToast({
-                                    title: '取消收藏失败',
-                                    icon: 'none'
-                                });
-                            }
+                            uni.showToast({
+                                title: '已取消收藏'
+                            });
+                            // 从列表中移除该项
+                            const newList = that.favoriteList.filter((item, i) => i !== index);
+                            that.setData({
+                                favoriteList: newList
+                            });
+                            try {
+                                const appInstance = getApp();
+                                const userId = appInstance && appInstance.globalData && appInstance.globalData.openid;
+                                const removed = that.favoriteList[index];
+                                const postId = removed && (removed._id || removed.postId);
+                                emitFavoriteChanged({ userId, postId, favored: false });
+                            } catch (e) {}
                         }).catch((err) => {
                             uni.hideLoading();
                             uni.showToast({
@@ -1867,11 +1851,6 @@ export default {
             this.removeFavorite(fakeEvent);
         },
 
-        // 统一云函数调用方法
-        callCloudFunction(name, data = {}, extraOptions = {}) {
-            return cloudCall(name, data, Object.assign({ pageTag: 'profile', context: this, requireAuth: true }, extraOptions));
-        },
-
         // 打开作品集
         openPortfolio(portfolio) {
             console.log('打开作品集:', portfolio);
@@ -1890,8 +1869,7 @@ export default {
         // 加载作品集列表
         loadPortfolios(cb) {
             this.setData({ portfolioLoading: true });
-            const callFn = (name, data) => this.callCloudFunction(name, data);
-            fetchPortfolioFolders(callFn)
+            getPortfolioFolders({ context: this })
                 .then((folders) => {
                     this.setData({
                         portfolioList: folders,

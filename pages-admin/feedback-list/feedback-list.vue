@@ -70,7 +70,11 @@
 </template>
 
 <script>
-const { cloudCall } = require('../../utils/cloudCall.js');
+const {
+    getFeedbackList,
+    updateFeedbackStatus,
+    deleteFeedback
+} = require('../../api-cache/feedback.js');
 
 export default {
     data() {
@@ -99,36 +103,30 @@ export default {
         });
     },
     methods: {
-        loadFeedback(callback) {
+        async loadFeedback(callback) {
             if (this.loading) return;
             
             this.loading = true;
-            cloudCall('feedbackManager', {
-                action: 'getFeedbackList',
-                skip: this.skip,
-                limit: this.limit
-            }).then(res => {
-                if (res.result && res.result.success) {
-                    const newFeedback = res.result.feedbackList || [];
-                    this.feedbackList = [...this.feedbackList, ...newFeedback];
-                    this.skip += newFeedback.length;
-                    this.hasMore = newFeedback.length === this.limit;
-                } else {
-                    uni.showToast({
-                        title: res.result?.error || '加载失败',
-                        icon: 'none'
-                    });
-                }
-            }).catch(err => {
+            try {
+                const result = await getFeedbackList({
+                    skip: this.skip,
+                    limit: this.limit,
+                    context: this
+                });
+                const newFeedback = result.feedbackList || [];
+                this.feedbackList = [...this.feedbackList, ...newFeedback];
+                this.skip += newFeedback.length;
+                this.hasMore = newFeedback.length === this.limit;
+            } catch (err) {
                 console.error('加载反馈失败:', err);
                 uni.showToast({
-                    title: '网络错误',
+                    title: err.message || '加载失败',
                     icon: 'none'
                 });
-            }).finally(() => {
+            } finally {
                 this.loading = false;
                 if (callback) callback();
-            });
+            }
         },
 
         previewImage(e) {
@@ -140,39 +138,32 @@ export default {
             });
         },
 
-        markAsProcessed(e) {
+        async markAsProcessed(e) {
             const feedbackId = e.currentTarget.dataset.id;
             const index = e.currentTarget.dataset.index;
 
             uni.showLoading({ title: '处理中...' });
 
-            cloudCall('feedbackManager', {
-                action: 'markAsProcessed',
-                feedbackId: feedbackId
-            }).then(res => {
-                uni.hideLoading();
-                if (res.result && res.result.success) {
-                    this.feedbackList[index].isProcessed = true;
-                    this.feedbackList[index].processedTime = new Date();
-                    this.$forceUpdate();
-                    uni.showToast({
-                        title: '已标记为处理',
-                        icon: 'success'
-                    });
-                } else {
-                    uni.showToast({
-                        title: res.result?.error || '操作失败',
-                        icon: 'none'
-                    });
-                }
-            }).catch(err => {
-                uni.hideLoading();
+            try {
+                await updateFeedbackStatus(feedbackId, 'processed', '', {
+                    context: this
+                });
+                this.feedbackList[index].isProcessed = true;
+                this.feedbackList[index].processedTime = new Date();
+                this.$forceUpdate();
+                uni.showToast({
+                    title: '已标记为处理',
+                    icon: 'success'
+                });
+            } catch (err) {
                 console.error('标记处理失败:', err);
                 uni.showToast({
-                    title: '网络错误',
+                    title: err.message || '操作失败',
                     icon: 'none'
                 });
-            });
+            } finally {
+                uni.hideLoading();
+            }
         },
 
         confirmDelete(e) {
@@ -193,34 +184,27 @@ export default {
             });
         },
 
-        deleteFeedback(feedbackId, index) {
+        async deleteFeedback(feedbackId, index) {
             uni.showLoading({ title: '删除中...' });
 
-            cloudCall('feedbackManager', {
-                action: 'deleteFeedback',
-                feedbackId: feedbackId
-            }).then(res => {
-                uni.hideLoading();
-                if (res.result && res.result.success) {
-                    this.feedbackList.splice(index, 1);
-                    uni.showToast({
-                        title: '删除成功',
-                        icon: 'success'
-                    });
-                } else {
-                    uni.showToast({
-                        title: res.result?.error || '删除失败',
-                        icon: 'none'
-                    });
-                }
-            }).catch(err => {
-                uni.hideLoading();
+            try {
+                await deleteFeedback(feedbackId, {
+                    context: this
+                });
+                this.feedbackList.splice(index, 1);
+                uni.showToast({
+                    title: '删除成功',
+                    icon: 'success'
+                });
+            } catch (err) {
                 console.error('删除反馈失败:', err);
                 uni.showToast({
-                    title: '网络错误',
+                    title: err.message || '删除失败',
                     icon: 'none'
                 });
-            });
+            } finally {
+                uni.hideLoading();
+            }
         },
 
         formatTime(timestamp) {

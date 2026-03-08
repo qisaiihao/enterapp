@@ -234,15 +234,13 @@
 
 <script>
 // pages/add/add.js
-// 工具函数导入
-import { cloudCall } from '@/utils/cloudCall.js';
 import { hydrateTempUrls } from '@/_utils/hydrate-temp-urls';
 import { emitPostUpdated, emitPostCreated } from '@/utils/events.js';
 
 // API函数导入
 import { getAllTags } from '@/api-cache/tags.js';
 import { getPostDetail, updatePostContent } from '@/api-cache/post.js';
-import { checkDuplicatePoem, contentAudit, uploadFile, saveDraft } from '@/api-cache/publish.js';
+import { checkDuplicatePoem as checkDuplicatePoemApi, contentAudit, saveDraft as saveDraftApi } from '@/api-cache/publish.js';
 import { validatePublishData, canPublish, generateDraftData, generatePublishData, processUploadResults } from '@/utils/publishUtils.js';
 
 // 导入静态配置数据
@@ -718,13 +716,6 @@ export default {
                 // 从其他页面进入时，保持草稿中的设置或默认设置
             }
         },
-
-
-        // 统一云函数调用方法
-        callCloudFunction(name, data = {}, extraOptions = {}) {
-            return cloudCall(name, data, Object.assign({ pageTag: 'add', context: this, requireAuth: true }, extraOptions));
-        },
-
         // 加载所有已有标签
         async loadAllExistingTags() {
             try {
@@ -738,10 +729,10 @@ export default {
         loadPostForEdit: function (postId) {
             uni.showLoading({ title: '加载中...' });
             
-            this.callCloudFunction('getPostDetail', { postId: postId }, { injectOpenId: false })
-                .then(async (res) => {
-                    if (res.result && res.result.post) {
-                        const post = res.result.post;
+            getPostDetail(postId, { context: this, injectOpenId: false })
+                .then(async (detail) => {
+                    if (detail && detail.post) {
+                        const post = detail.post;
                         console.log('【Add】加载到的帖子数据:', post);
                         
                         // 处理图片：将fileID转换为本地预览URL
@@ -847,14 +838,7 @@ export default {
                         
                         uni.hideLoading();
                     } else {
-                        uni.hideLoading();
-                        uni.showToast({
-                            title: '加载帖子失败',
-                            icon: 'none'
-                        });
-                        setTimeout(() => {
-                            uni.navigateBack();
-                        }, 1500);
+                        throw new Error('帖子不存在');
                     }
                 })
                 .catch((err) => {
@@ -1268,26 +1252,14 @@ export default {
             uni.showLoading({
                 title: '检查中...'
             });
-            this.callCloudFunction('checkDuplicatePoem', {
-                title: this.title.trim(),
-                author: this.author.trim(),
-                isOriginal: this.isOriginal
-            }).then((res) => {
+            checkDuplicatePoemApi(this.title.trim(), this.author.trim(), this.isOriginal, { context: this, pageTag: 'add' })
+                .then((result) => {
                     uni.hideLoading();
-                    console.log('重复检查结果:', res.result);
-                    if (res.result.success) {
-                        if (res.result.isDuplicate) {
-                            // 发现重复，显示确认对话框
-                            this.showDuplicateConfirmDialog(res.result.duplicateCount);
-                        } else {
-                            // 没有重复，直接发布
-                            this.proceedWithPublish();
-                        }
+                    console.log('重复检查结果:', result);
+                    if (result.isDuplicate) {
+                        this.showDuplicateConfirmDialog(result.duplicateCount);
                     } else {
-                        uni.showToast({
-                            title: '检查失败，请重试',
-                            icon: 'none'
-                        });
+                        this.proceedWithPublish();
                     }
                 }).catch((err) => {
                     uni.hideLoading();
@@ -1433,20 +1405,12 @@ export default {
                 });
                 
                 // 调用更新接口
-                return this.callCloudFunction('updatePostContent', {
-                    postId: this.editingPostId,
-                    data: updateData
-                }).then((res) => {
-                    console.log('更新帖子成功:', res);
-                    if (res && res.result && res.result.success) {
+                return updatePostContent(this.editingPostId, { data: updateData }, { context: this, pageTag: 'add' })
+                    .then(() => {
                         this.publishSuccess({
                             _id: this.editingPostId
                         });
-                    } else {
-                        console.error('更新失败:', res);
-                        this.publishFail(new Error(res.result?.message || '更新失败'));
-                    }
-                }).catch((err) => {
+                    }).catch((err) => {
                     console.error('更新帖子失败:', err);
                     this.publishFail(err);
                 });
@@ -1557,11 +1521,9 @@ export default {
                 joinActivityTitleSnapshot: this.joinedActivityTitle || ''
             };
             
-            return this.callCloudFunction('contentCheck', auditParams).then((res) => {
-                console.log('数据库提交成功:', res);
-                const result = (res && res.result) ? res.result : {};
-                const ok = result.code === 0 || result.success === true;
-                if (ok) {
+            return contentAudit(auditParams, { context: this, pageTag: 'add' }).then((result) => {
+                console.log('数据库提交成功:', result);
+                if (result.code === 0 || result.success === true) {
                     this.publishSuccess({
                         _id: result.postId
                     });
@@ -2058,20 +2020,11 @@ export default {
                     saveTime: new Date()
                 };
                 uni.showLoading({ title: "保存中..." });
-                this.callCloudFunction("getMyProfileData", {
-                    action: "saveDraft",
-                    draftData: draftData
-                }).then((res) => {
+                saveDraftApi(draftData, { context: this, pageTag: 'add' }).then(() => {
                     uni.hideLoading();
-                    if (res.result && res.result.success) {
-                        uni.showToast({ title: "草稿已保存", icon: "success" });
-                        this.clearDraft();
-                        resolve(true);
-                    } else {
-                        console.error("保存草稿失败:", res.result);
-                        uni.showToast({ title: (res.result && res.result.message) ? res.result.message : "保存草稿失败", icon: "none" });
-                        resolve(false);
-                    }
+                    uni.showToast({ title: "草稿已保存", icon: "success" });
+                    this.clearDraft();
+                    resolve(true);
                 }).catch((err) => {
                     uni.hideLoading();
                     console.error("保存草稿失败:", err);
@@ -2987,10 +2940,3 @@ page {
 }
 
 </style>
-
-
-
-
-
-
-

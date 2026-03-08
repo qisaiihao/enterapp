@@ -2,6 +2,7 @@
 // 图片选择、压缩、上传相关逻辑，保持与原 add.vue 行为一致
 import { readFileAsBase64 } from '@/utils/fileReader.js';
 import { getCurrentPlatform, getCloudFunctionMethod } from '@/utils/platformDetector.js';
+import { uploadFile as uploadFileApi } from '@/api-cache/publish.js';
 
 export function handleChooseImage(ctx) {
     const remainingCount = ctx.maxImageCount - ctx.imageList.length;
@@ -217,16 +218,16 @@ export function uploadFileViaCloudFunction(ctx, cloudPath, filePath, retryCount 
             if (base64.length > 6 * 1024 * 1024) {
                 console.warn('🔍 [Add页面] base64文件较大，注意上传耗时');
             }
-            return ctx.callCloudFunction('upload', {
-                cloudPath,
-                fileContent: base64
+            return uploadFileApi(cloudPath, base64, {
+                context: ctx,
+                pageTag: 'add'
             });
         })
         .then((uploadRes) => {
-            if (uploadRes && uploadRes.result && uploadRes.result.success) {
+            if (uploadRes && uploadRes.fileID) {
                 return {
-                    fileID: uploadRes.result.fileID,
-                    cloudPath: uploadRes.result.cloudPath
+                    fileID: uploadRes.fileID,
+                    cloudPath: uploadRes.cloudPath
                 };
             }
             throw new Error('上传云函数返回格式异常');

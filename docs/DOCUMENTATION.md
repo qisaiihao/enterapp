@@ -14,9 +14,14 @@
 - **更新频率**: 随版本更新
 
 ### [ARCHITECTURE.md](./ARCHITECTURE.md)
-- **内容**: 系统架构设计，技术选型，模块划分
-- **适用**: 架构理解、技术决策、模块开发
-- **更新频率**: 架构变更时更新
+- **内容**: 维护版系统架构（分层边界、核心时序、缓存语义、质量门禁、扩展指引）
+- **适用**: 日常维护、重构执行、需求扩展
+- **更新频率**: 结构或规范变更时更新
+
+### [ARCHITECTURE.legacy.md](./ARCHITECTURE.legacy.md)
+- **内容**: 历史架构文档归档版本（仅供追溯）
+- **适用**: 旧实现对照、历史行为排查
+- **更新频率**: 不再维护（归档）
 
 ### [项目开发总结.md](./项目开发总结.md)
 - **内容**: 开发过程经验总结，问题解决方案，最佳实践
@@ -44,6 +49,12 @@
 ### 🔧 系统设计文档
 - [docs/REFACTOR_OPTIMIZATION_PLAN.md](./docs/REFACTOR_OPTIMIZATION_PLAN.md) - 重构优化计划
 - [docs/REFACTOR_REUSE_PLAN.md](./docs/REFACTOR_REUSE_PLAN.md) - 代码复用重构计划
+- [docs/general-code-style-guide.md](./docs/general-code-style-guide.md) - 全局码风规范（无损重构）
+- [docs/activity-code-style-guide.md](./docs/activity-code-style-guide.md) - 活动链路码风补充
+- [docs/refactor-commit-checklist.md](./docs/refactor-commit-checklist.md) - 重构提交清单
+- [docs/no-loss-regression-checklist.md](./docs/no-loss-regression-checklist.md) - 无损回归清单
+- [docs/encoding-and-mojibake-guide.md](./docs/encoding-and-mojibake-guide.md) - 编码与乱码处理规范
+- [docs/layered-examples.md](./docs/layered-examples.md) - 分层实现示例
 
 ### ☁️ 云开发文档
 - [docs/cloud-functions-deployment-status.md](./docs/cloud-functions-deployment-status.md) - 云函数部署状态

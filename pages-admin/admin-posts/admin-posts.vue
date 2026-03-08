@@ -67,7 +67,11 @@
 </template>
 
 <script>
-const { cloudCall } = require('../../utils/cloudCall.js');
+const {
+    listAdminPosts,
+    updateAdminPostType,
+    deleteAdminPost
+} = require('../../api-cache/admin-manager.js');
 
 export default {
     data() {
@@ -96,35 +100,29 @@ export default {
         }
     },
     methods: {
-        loadPosts() {
+        async loadPosts() {
             if (this.loading) return;
-            
+
             this.loading = true;
-            cloudCall('adminManager', {
-                action: 'getAllPosts',
-                page: this.page,
-                pageSize: this.pageSize
-            }).then(res => {
-                if (res.result && res.result.success) {
-                    const newPosts = res.result.posts || [];
-                    this.posts = [...this.posts, ...newPosts];
-                    this.page++;
-                    this.hasMore = newPosts.length === this.pageSize;
-                } else {
-                    uni.showToast({
-                        title: res.result?.error || '加载失败',
-                        icon: 'none'
-                    });
-                }
-            }).catch(err => {
+            try {
+                const result = await listAdminPosts({
+                    page: this.page,
+                    pageSize: this.pageSize,
+                    context: this
+                });
+                const newPosts = result.posts || [];
+                this.posts = [...this.posts, ...newPosts];
+                this.page++;
+                this.hasMore = newPosts.length === this.pageSize;
+            } catch (err) {
                 console.error('加载帖子失败:', err);
                 uni.showToast({
-                    title: '网络错误',
+                    title: err.message || '加载失败',
                     icon: 'none'
                 });
-            }).finally(() => {
+            } finally {
                 this.loading = false;
-            });
+            }
         },
         
         navigateToDetail(e) {
@@ -145,40 +143,34 @@ export default {
             this.selectedPostIndex = null;
         },
         
-        changePostType(e) {
+        async changePostType(e) {
             const newType = e.currentTarget.dataset.type;
             const post = this.posts[this.selectedPostIndex];
             
             uni.showLoading({ title: '更新中...' });
-            
-            cloudCall('adminManager', {
-                action: 'updatePostType',
-                postId: post._id,
-                postType: newType
-            }).then(res => {
-                uni.hideLoading();
-                if (res.result && res.result.success) {
-                    this.posts[this.selectedPostIndex].postType = newType;
-                    this.$forceUpdate();
-                    uni.showToast({
-                        title: '更新成功',
-                        icon: 'success'
-                    });
-                    this.hideTypeSelector();
-                } else {
-                    uni.showToast({
-                        title: res.result?.error || '更新失败',
-                        icon: 'none'
-                    });
-                }
-            }).catch(err => {
-                uni.hideLoading();
+
+            try {
+                await updateAdminPostType({
+                    postId: post._id,
+                    postType: newType,
+                    context: this
+                });
+                this.posts[this.selectedPostIndex].postType = newType;
+                this.$forceUpdate();
+                uni.showToast({
+                    title: '更新成功',
+                    icon: 'success'
+                });
+                this.hideTypeSelector();
+            } catch (err) {
                 console.error('更新帖子类型失败:', err);
                 uni.showToast({
-                    title: '网络错误',
+                    title: err.message || '更新失败',
                     icon: 'none'
                 });
-            });
+            } finally {
+                uni.hideLoading();
+            }
         },
         
         confirmDelete(e) {
@@ -199,34 +191,28 @@ export default {
             });
         },
         
-        deletePost(postId, index) {
+        async deletePost(postId, index) {
             uni.showLoading({ title: '删除中...' });
-            
-            cloudCall('adminManager', {
-                action: 'deletePost',
-                postId: postId
-            }).then(res => {
-                uni.hideLoading();
-                if (res.result && res.result.success) {
-                    this.posts.splice(index, 1);
-                    uni.showToast({
-                        title: '删除成功',
-                        icon: 'success'
-                    });
-                } else {
-                    uni.showToast({
-                        title: res.result?.error || '删除失败',
-                        icon: 'none'
-                    });
-                }
-            }).catch(err => {
-                uni.hideLoading();
+
+            try {
+                await deleteAdminPost({
+                    postId,
+                    context: this
+                });
+                this.posts.splice(index, 1);
+                uni.showToast({
+                    title: '删除成功',
+                    icon: 'success'
+                });
+            } catch (err) {
                 console.error('删除帖子失败:', err);
                 uni.showToast({
-                    title: '网络错误',
+                    title: err.message || '删除失败',
                     icon: 'none'
                 });
-            });
+            } finally {
+                uni.hideLoading();
+            }
         },
         
         getPostTypeText(type) {

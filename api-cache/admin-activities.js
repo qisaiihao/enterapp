@@ -1,27 +1,15 @@
-const { cloudCall } = require('@/utils/cloudCall.js');
-
-function unwrapAdminResult(res, fallbackMessage) {
-  const result = (res && res.result) || {};
-  if (!result.success) {
-    throw new Error(result.error || fallbackMessage || '请求失败');
-  }
-  return result;
-}
+const { callActionAndUnwrap } = require('./_shared/cloud-wrapper.js');
 
 async function callAdminActivity(action, payload = {}, { pageTag, context, fallbackMessage } = {}) {
-  const res = await cloudCall(
-    'adminManager',
-    {
-      action,
-      ...payload
-    },
-    {
-      pageTag: pageTag || `admin-activity:${action}`,
-      context,
-      requireAuth: true
-    }
-  );
-  return unwrapAdminResult(res, fallbackMessage || '操作失败');
+  return callActionAndUnwrap({
+    functionName: 'adminManager',
+    action,
+    payload,
+    pageTag: pageTag || `admin-activity:${action}`,
+    context,
+    requireAuth: true,
+    fallbackMessage: fallbackMessage || '操作失败'
+  });
 }
 
 async function listAdminActivities({

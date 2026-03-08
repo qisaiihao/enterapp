@@ -10,33 +10,17 @@
             </view>
 
             <!-- 黑名单列表 -->
-            <view v-if="blockedUsers.length > 0">
-                <view class="list">
-                    <view class="user-item" v-for="(item, index) in blockedUsers" :key="index">
-                        <view class="user-info" :data-openid="item._openid" @tap="openUserProfile">
-                            <image class="avatar" :src="item.avatarUrl || defaultAvatar" mode="aspectFill" @error="onAvatarError" :data-index="index"></image>
-                            <view class="info-text">
-                                <text class="name">{{ item.nickName || '微信用户' }}</text>
-                                <text class="bio">{{ item.bio || '这个用户还没有留下简介~' }}</text>
-                            </view>
-                        </view>
-                        <button
-                            class="action-btn unblock-btn"
-                            size="mini"
-                            @tap.stop.prevent="onUnblock"
-                            :data-openid="item._openid"
-                            :data-index="index"
-                            :loading="pendingOpenid === item._openid"
-                            :disabled="pendingOpenid === item._openid"
-                        >
-                            解除屏蔽
-                        </button>
-                    </view>
-                </view>
-            </view>
-            <view v-else class="empty">
-                <text>黑名单为空，快去屏蔽那些讨厌的用户吧～</text>
-            </view>
+            <relation-user-list
+                :users="blockedUsers"
+                :pending-openid="pendingOpenid"
+                :default-avatar="defaultAvatar"
+                empty-text="黑名单为空，快去屏蔽那些讨厌的用户吧～"
+                action-text="解除屏蔽"
+                action-class="unblock-btn"
+                @user-tap="openUserProfile"
+                @action-tap="onUnblock"
+                @avatar-error="onAvatarError"
+            />
 
             <!-- 底部提示 -->
             <view v-if="blockedUsers.length > 0" class="footer-hint">
@@ -47,8 +31,15 @@
 </template>
 
 <script>
-const { cloudCall } = require('../../utils/cloudCall.js');
+import RelationUserList from '@/components/relation/user-list.vue';
+const {
+    getBlockedList,
+    toggleBlockRelation
+} = require('../../api-cache/relation.js');
 export default {
+    components: {
+        RelationUserList
+    },
     data() {
         return {
             blockedUsers: [],
@@ -73,13 +64,8 @@ export default {
         this.loadBlockedUsers();
     },
     methods: {
-        // 统一云函数调用方法
-        callCloudFunction(name, data = {}, extraOptions = {}) {
-            return cloudCall(name, data, Object.assign({ pageTag: 'blocked-users', context: this, requireAuth: true }, extraOptions));
-        },
-        
         // 加载黑名单列表
-        loadBlockedUsers(reset = false) {
+        async loadBlockedUsers(reset = false) {
             if (this.isLoading) {
                 return;
             }
@@ -93,56 +79,39 @@ export default {
             this.setData({
                 isLoading: true
             });
-            const openid = this.$requireOpenid && this.$requireOpenid();
-            if (!openid) {
+            try {
+                const result = await getBlockedList({
+                    page,
+                    pageSize: this.PAGE_SIZE,
+                    context: this
+                });
+                const list = result.list || [];
+                const newList = reset ? list : this.blockedUsers.concat(list);
+                this.setData({
+                    blockedUsers: newList,
+                    page: page + 1,
+                    hasMore: !!result.hasMore
+                });
+            } catch (err) {
+                console.error('获取黑名单列表失败:', err);
+                uni.showToast({
+                    title: err.message || '加载失败',
+                    icon: 'none'
+                });
+            } finally {
                 this.setData({
                     isLoading: false
                 });
                 if (reset) {
                     uni.stopPullDownRefresh();
                 }
-                return;
             }
-            this.callCloudFunction('block', {
-                    action: 'getBlockedList',
-                    skip: page * this.PAGE_SIZE,
-                    limit: this.PAGE_SIZE,
-                    openid
-                }).then((res) => {
-                    if (res.result && res.result.success) {
-                        const list = res.result.list || [];
-                        const newList = reset ? list : this.blockedUsers.concat(list);
-                        this.setData({
-                            blockedUsers: newList,
-                            page: page + 1,
-                            hasMore: !!res.result.hasMore
-                        });
-                    } else {
-                        uni.showToast({
-                            title: res.result && res.result.message ? res.result.message : '加载失败',
-                            icon: 'none'
-                        });
-                    }
-                }).catch((err) => {
-                    console.error('获取黑名单列表失败:', err);
-                    uni.showToast({
-                        title: '网络错误',
-                        icon: 'none'
-                    });
-                }).finally(() => {
-                    this.setData({
-                        isLoading: false
-                    });
-                    if (reset) {
-                        uni.stopPullDownRefresh();
-                    }
-                });
         },
 
         // 解除屏蔽
-        onUnblock(e) {
-            const openid = e.currentTarget.dataset.openid;
-            const index = e.currentTarget.dataset.index;
+        onUnblock(payload) {
+            const openid = payload && payload.openid;
+            const index = payload && payload.index;
             if (!openid || this.pendingOpenid) {
                 return;
             }
@@ -156,73 +125,59 @@ export default {
                         this.setData({
                             pendingOpenid: openid
                         });
-                        const currentOpenid = this.$requireOpenid && this.$requireOpenid();
-                        if (!currentOpenid) {
+                        toggleBlockRelation({
+                            targetOpenid: openid,
+                            context: this,
+                            pageTag: 'blocked-users:toggle-block'
+                        }).then((result) => {
+                            const stillBlocked = !!result.isBlocked;
+                            if (!stillBlocked) {
+                                // 从列表中移除
+                                const list = this.blockedUsers.filter((item, idx) => idx !== index);
+                                this.setData({
+                                    blockedUsers: list
+                                });
+                                uni.showToast({
+                                    title: '已解除屏蔽',
+                                    icon: 'success'
+                                });
+                                // 如果列表为空且还有更多数据，尝试加载
+                                if (list.length === 0 && this.hasMore) {
+                                    this.loadBlockedUsers();
+                                }
+                                // 清除相关缓存
+                                try {
+                                    const { invalidateHomePosts } = require('../../api-cache/home-posts.js');
+                                    const { clearDiscoverCache } = require('../../api-cache/discover.js');
+                                    invalidateHomePosts({});
+                                    clearDiscoverCache();
+                                } catch (cacheError) {
+                                    console.error('清除缓存失败:', cacheError);
+                                }
+                            } else {
+                                uni.showToast({
+                                    title: '操作失败',
+                                    icon: 'none'
+                                });
+                            }
+                        }).catch((err) => {
+                            console.error('解除屏蔽失败:', err);
+                            uni.showToast({
+                                title: err.message || '操作失败',
+                                icon: 'none'
+                            });
+                        }).finally(() => {
                             this.setData({
                                 pendingOpenid: null
                             });
-                            return;
-                        }
-                        this.callCloudFunction('block', {
-                                action: 'toggleBlock',
-                                targetOpenid: openid,
-                                openid: currentOpenid
-                            }).then((res) => {
-                                if (res.result && res.result.success) {
-                                    const stillBlocked = !!res.result.isBlocked;
-                                    if (!stillBlocked) {
-                                        // 从列表中移除
-                                        const list = this.blockedUsers.filter((item, idx) => idx !== index);
-                                        this.setData({
-                                            blockedUsers: list
-                                        });
-                                        uni.showToast({
-                                            title: '已解除屏蔽',
-                                            icon: 'success'
-                                        });
-                                        // 如果列表为空且还有更多数据，尝试加载
-                                        if (list.length === 0 && this.hasMore) {
-                                            this.loadBlockedUsers();
-                                        }
-                                        // 清除相关缓存
-                                        try {
-                                            const { invalidateHomePosts } = require('../../api-cache/home-posts.js');
-                                            const { clearDiscoverCache } = require('../../api-cache/discover.js');
-                                            invalidateHomePosts({});
-                                            clearDiscoverCache();
-                                        } catch (cacheError) {
-                                            console.error('清除缓存失败:', cacheError);
-                                        }
-                                    } else {
-                                        uni.showToast({
-                                            title: '操作失败',
-                                            icon: 'none'
-                                        });
-                                    }
-                                } else {
-                                    uni.showToast({
-                                        title: res.result && res.result.message ? res.result.message : '操作失败',
-                                        icon: 'none'
-                                    });
-                                }
-                            }).catch((err) => {
-                                console.error('解除屏蔽失败:', err);
-                                uni.showToast({
-                                    title: '网络错误',
-                                    icon: 'none'
-                                });
-                            }).finally(() => {
-                                this.setData({
-                                    pendingOpenid: null
-                                });
-                            });
+                        });
                     }
                 }
             });
         },
 
-        onAvatarError(e) {
-            const index = e.currentTarget.dataset.index;
+        onAvatarError(payload) {
+            const index = payload && payload.index;
             if (index === undefined) {
                 return;
             }
@@ -232,8 +187,8 @@ export default {
             });
         },
 
-        openUserProfile(e) {
-            const openid = e.currentTarget.dataset.openid;
+        openUserProfile(payload) {
+            const openid = payload && payload.openid;
             if (!openid) {
                 return;
             }

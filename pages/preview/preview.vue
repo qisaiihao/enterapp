@@ -219,10 +219,11 @@
 
 <script>
 // 工具函数导入
-import { cloudCall } from '@/utils/cloudCall.js';
-import { getCurrentPlatform, getCloudFunctionMethod } from '@/utils/platformDetector.js';
 import { emitPostUpdated, emitPostCreated } from '@/utils/events.js';
 import { getRecentActivities } from '@/api-cache/activities.js';
+import { updatePostContent } from '@/api-cache/post.js';
+import { checkDuplicatePoem as checkDuplicatePoemApi, contentAudit } from '@/api-cache/publish.js';
+import { uploadPreviewFile, uploadPreviewFileViaCloudFunction } from './preview-upload.js';
 const { formatDateYmd, formatRange: formatActivityRangeUtil } = require('@/utils/activity.js');
 
 export default {
@@ -776,25 +777,17 @@ export default {
 
     // 检查重复诗歌
     checkDuplicatePoem(addData) {
-      cloudCall('checkDuplicatePoem', {
-        title: addData.title.trim(),
-        author: addData.author.trim(),
-        isOriginal: addData.isOriginal
-      }, { pageTag: 'preview', context: this, requireAuth: true }).then((res) => {
+      checkDuplicatePoemApi(
+        addData.title.trim(),
+        addData.author.trim(),
+        addData.isOriginal,
+        { context: this, pageTag: 'preview' }
+      ).then((result) => {
         uni.hideLoading();
-        if (res.result && res.result.success) {
-          if (res.result.isDuplicate) {
-            // 发现重复，显示确认对话框
-            this.showDuplicateConfirmDialog(res.result.duplicateCount, addData);
-          } else {
-            // 没有重复，直接发布
-            this.proceedWithPublish(addData);
-          }
+        if (result.isDuplicate) {
+          this.showDuplicateConfirmDialog(result.duplicateCount, addData);
         } else {
-          uni.showToast({
-            title: '检查失败，请重试',
-            icon: 'none'
-          });
+          this.proceedWithPublish(addData);
         }
       }).catch((err) => {
         uni.hideLoading();
@@ -1010,18 +1003,10 @@ export default {
         });
 
         // 调用更新接口
-        return cloudCall('updatePostContent', {
-          postId: addData.editingPostId,
-          data: updateData
-        }, { pageTag: 'preview', context: this, requireAuth: true }).then((res) => {
-          console.log('【Preview】更新帖子结果:', res);
-          if (res && res.result && res.result.success) {
-            this.publishSuccess({
-              _id: addData.editingPostId
-            });
-          } else {
-            this.publishFail(new Error(res.result?.message || '更新失败'));
-          }
+        return updatePostContent(addData.editingPostId, { data: updateData }, { context: this, pageTag: 'preview' }).then(() => {
+          this.publishSuccess({
+            _id: addData.editingPostId
+          });
         }).catch((err) => {
           console.error('【Preview】更新帖子失败:', err);
           this.publishFail(err);
@@ -1096,7 +1081,7 @@ export default {
       }
 
       // 调用云函数提交数据
-      return cloudCall('contentCheck', {
+      return contentAudit({
         title: addData.title,
         content: addData.isSeries ? mergedSeriesContent : addData.content,
         fileIDs: uploadResults.map(r => r.compressedUrl).filter(url => url),
@@ -1128,8 +1113,7 @@ export default {
         realAuthorOpenid: this.post.isAnonymous ? (uni.getStorageSync('openid') || uni.getStorageSync('userOpenId')) : null,
         // 匿名帖子使用固定openid，指向专用匿名账户
         openid: this.post.isAnonymous ? '123456' : null
-      }, { pageTag: 'preview', context: this, requireAuth: true }).then((res) => {
-        const result = (res && res.result) ? res.result : {};
+      }, { pageTag: 'preview', context: this }).then((result) => {
         const ok = result.code === 0 || result.success === true;
         if (ok) {
           this.publishSuccess({
@@ -1276,102 +1260,12 @@ export default {
 
     // 兼容性文件上传方法（使用与profile-edit相同的健壮实现）
     async uploadFile(cloudPath, filePath) {
-      const method = getCloudFunctionMethod();
-
-      try {
-        if (method === 'tcb') {
-          const app = getApp();
-          if (!(app && app.$tcb && typeof app.$tcb.uploadFile === 'function')) {
-            throw new Error('TCB实例不可用，回退');
-          }
-          
-          // 优先使用 fetch/Blob 直传
-          const resp = await fetch(filePath);
-          const file = await resp.blob();
-          const res = await app.$tcb.uploadFile({ cloudPath, file });
-          const fileID = res.fileID || res.fileId;
-          if (!fileID) throw new Error('TCB直传成功但未返回fileID');
-          
-          // 【关键修正】总是返回一个标准格式的对象
-          return { success: true, fileID: fileID };
-
-        } else if (method === "wx-cloud") {
-          const res = await wx.cloud.uploadFile({ cloudPath, filePath });
-          if (!res.fileID) throw new Error('小程序上传成功但未返回fileID');
-          
-          // 【关键修正】总是返回一个标准格式的对象
-          return { success: true, fileID: res.fileID };
-        } else {
-          throw new Error('不支持的云函数调用方式');
-        }
-      } catch (err) {
-        // 如果上面的任何一步失败（fetch失败, TCB直传失败等），则启动最终的回退方案
-        console.warn(`[Preview] 主上传方案失败 (${err.message})，启动云函数中转上传...`);
-        
-        // 调用基于 plus.io 的 FileReader 回退方案
-        const result = await this.uploadFileViaCloudFunction(cloudPath, filePath);
-        
-        // 【关键修正】确保回退方案也返回标准格式的对象
-        return { success: true, fileID: result.fileID };
-      }
+      return uploadPreviewFile(this, cloudPath, filePath);
     },
 
     // 通过云函数上传（作为最终的回退方案，且只包含 plus.io，不再尝试 getFileSystemManager）
     uploadFileViaCloudFunction(cloudPath, filePath) {
-      return new Promise((resolve, reject) => {
-        const platform = getCurrentPlatform();
-
-        if (platform === 'h5') {
-          fetch(filePath)
-            .then(response => response.blob())
-            .then(blob => {
-              const reader = new FileReader();
-              reader.onload = () => {
-                const base64 = reader.result.split(",")[1];
-                this.callCloudFunction("upload", { cloudPath, fileContent: base64 })
-                  .then(uploadRes => {
-                    if (uploadRes && uploadRes.result && uploadRes.result.success) {
-                      resolve({ fileID: uploadRes.result.fileID });
-                    } else {
-                      reject(new Error("云函数返回异常"));
-                    }
-                  }).catch(reject);
-              };
-              reader.onerror = () => reject(new Error("文件读取失败"));
-              reader.readAsDataURL(blob);
-            }).catch(err => reject(err));
-        } else { // App环境只使用 plus.io
-          console.log('🔍 [Preview] App环境回退方案：使用plus.io读取文件');
-          if (typeof plus === 'undefined' || !plus.io) {
-            return reject(new Error('App端plus.io环境不可用'));
-          }
-          plus.io.resolveLocalFileSystemURL(filePath, (entry) => {
-            entry.file((file) => {
-              const reader = new plus.io.FileReader();
-              reader.onload = (e) => {
-                const dataUrl = e.target.result || '';
-                const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
-                if (!base64) return reject(new Error('文件读取失败或为空'));
-                this.callCloudFunction('upload', { cloudPath, fileContent: base64 })
-                  .then(uploadRes => {
-                    if (uploadRes && uploadRes.result && uploadRes.result.success) {
-                      resolve({ fileID: uploadRes.result.fileID });
-                    } else {
-                      reject(new Error('云函数返回异常'));
-                    }
-                  }).catch(reject);
-              };
-              reader.onerror = (err) => reject(new Error('FileReader读取失败: ' + (err.message || 'unknown')));
-              reader.readAsDataURL(file);
-            }, (e) => reject(new Error('获取文件对象失败: ' + (e.message || 'unknown'))));
-          }, (e) => reject(new Error('解析文件路径失败: ' + (e.message || 'unknown'))));
-        }
-      });
-    },
-
-    // 调用云函数
-    callCloudFunction(name, data) {
-      return cloudCall(name, data, { pageTag: 'preview', context: this, requireAuth: true });
+      return uploadPreviewFileViaCloudFunction(this, cloudPath, filePath);
     }
   }
 };
