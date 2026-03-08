@@ -55,7 +55,8 @@ exports.main = async (event, context) => {
 
     // 只查询讨论帖子
     const matchConditions = {
-      isDiscussion: true
+      isDiscussion: true,
+      isActivityPost: _.neq(true)
     };
     matchConditions.isHidden = _.neq(true);
     

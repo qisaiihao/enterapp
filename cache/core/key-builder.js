@@ -13,10 +13,22 @@
  * @param {boolean} [params.isDiscussion] - 是否只获取讨论
  * @param {string} [params.tag] - 标签筛选
  * @param {boolean} [params.excludeAnonymous] - 是否排除匿名
+ * @param {boolean} [params.includeActivity] - 是否查询活动帖子
+ * @param {string} [params.activityId] - 活动ID
  * @returns {string} 缓存键
  */
 export function buildCacheKey(params) {
-  const { page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous } = params;
+  const {
+    page,
+    pageSize,
+    isPoem,
+    isOriginal,
+    isDiscussion,
+    tag,
+    excludeAnonymous,
+    includeActivity,
+    activityId
+  } = params;
   const parts = [];
   
   if (typeof isPoem === 'boolean') parts.push(`poem:${isPoem}`);
@@ -24,6 +36,8 @@ export function buildCacheKey(params) {
   if (typeof isDiscussion === 'boolean') parts.push(`disc:${isDiscussion}`);
   if (tag) parts.push(`tag:${tag}`);
   if (excludeAnonymous) parts.push('exclAnon:true');
+  if (includeActivity === true) parts.push('inclAct:true');
+  if (activityId) parts.push(`act:${activityId}`);
   
   const filterKey = parts.length > 0 ? parts.join(':') : 'all';
   return `page:${page}:size:${pageSize}:${filterKey}`;
@@ -55,6 +69,8 @@ export function parseCacheKey(cacheKey) {
       case 'disc': params.isDiscussion = value === 'true'; break;
       case 'tag': params.tag = value; break;
       case 'exclAnon': if (value === 'true') params.excludeAnonymous = true; break;
+      case 'inclAct': if (value === 'true') params.includeActivity = true; break;
+      case 'act': params.activityId = value; break;
     }
   }
   

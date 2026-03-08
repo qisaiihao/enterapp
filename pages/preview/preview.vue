@@ -7,6 +7,10 @@
       </view>
 
       <view v-else id="post-list-container">
+        <view v-if="post.editData && post.editData.isActivityMode" class="activity-mode-banner">
+          <text class="activity-mode-label">Publish to activity:</text>
+          <text class="activity-mode-title">{{ post.editData.activityTitle || 'Untitled Activity' }}</text>
+        </view>
         <!-- 诗歌模式：使用折叠卡片样式（与poem-square完全一致） -->
         <view v-if="post.editData && post.editData.publishMode === 'poem'" class="post-item-wrapper" :style="{ backgroundColor: post.backgroundColor }">
           <view class="post-content-navigator" @tap="togglePostExpansion">
@@ -147,6 +151,48 @@
             />
           </view>
         </view>
+
+        <!-- 参加活动选择区域（放在标题/作者下方） -->
+        <view v-if="showJoinActivitySelector" class="join-activity-section" @tap.stop="noop">
+          <view class="join-activity-header">
+            <text class="join-activity-label">参加活动</text>
+            <text class="join-activity-optional">可选</text>
+          </view>
+
+          <view class="join-activity-card" @tap="openJoinActivitySelector">
+            <text class="join-activity-title">{{ selectedActivityDisplayTitle }}</text>
+            <text class="join-activity-subtitle">{{ selectedActivityDisplaySubtitle }}</text>
+          </view>
+
+          <view class="join-activity-actions">
+            <button class="join-activity-btn primary" :disabled="joinActivitiesLoading" @tap="openJoinActivitySelector">
+              {{ joinActivitiesLoading ? '加载中...' : (showJoinActivityPanel ? '收起活动列表' : '选择活动') }}
+            </button>
+            <button
+              v-if="joinedActivityId"
+              class="join-activity-btn"
+              :disabled="joinActivitiesLoading"
+              @tap="clearJoinedActivity"
+            >
+              不参加
+            </button>
+          </view>
+
+          <view v-if="showJoinActivityPanel" class="join-activity-list">
+            <view class="join-activity-item clear" @tap="clearJoinedActivity">
+              <text>不参加活动</text>
+            </view>
+            <view
+              v-for="activity in joinableActivities"
+              :key="activity._id"
+              :class="['join-activity-item', joinedActivityId === activity._id ? 'active' : '']"
+              @tap="selectJoinedActivity(activity)"
+            >
+              <text class="item-title">{{ activity.title || '未命名活动' }}</text>
+              <text class="item-sub">{{ formatActivityRange(activity.startTime, activity.endTime) }}</text>
+            </view>
+          </view>
+        </view>
       </view>
     </view>
 
@@ -176,14 +222,42 @@
 import { cloudCall } from '@/utils/cloudCall.js';
 import { getCurrentPlatform, getCloudFunctionMethod } from '@/utils/platformDetector.js';
 import { emitPostUpdated, emitPostCreated } from '@/utils/events.js';
+import { getRecentActivities } from '@/api-cache/activities.js';
+const { formatDateYmd, formatRange: formatActivityRangeUtil } = require('@/utils/activity.js');
 
 export default {
   data() {
     return {
       post: null,
       backgroundColors: ['#a4c4bd', '#c9cfcf', '#906161', '#909388'],
-      lastUsedColorIndex: -1
+      lastUsedColorIndex: -1,
+      joinableActivities: [],
+      joinActivitiesLoading: false,
+      joinActivitiesLoaded: false,
+      joinedActivityId: '',
+      joinedActivityTitle: '',
+      joinedActivityRangeText: '',
+      showJoinActivityPanel: false,
+      lastSubmitActivityId: ''
     };
+  },
+  computed: {
+    isLockedAdminActivityMode() {
+      const editData = this.post && this.post.editData ? this.post.editData : {};
+      return !!(editData.isActivityMode && editData.fromAdminActivity);
+    },
+    showJoinActivitySelector() {
+      return !!this.post && !this.isLockedAdminActivityMode;
+    },
+    selectedActivityDisplayTitle() {
+      return this.joinedActivityTitle || '不参加活动';
+    },
+    selectedActivityDisplaySubtitle() {
+      if (!this.joinedActivityId) {
+        return '发布到普通流，不进入活动帖子流';
+      }
+      return this.joinedActivityRangeText || '该帖子会显示在所选活动的帖子流';
+    }
   },
   onLoad() {
     try {
@@ -262,6 +336,8 @@ export default {
       this.post.author = this.post.editData.author;
     }
 
+    this.initJoinActivityState();
+
     // 调试：确保editData结构完整
     if (this.post && this.post.editData) {
       console.log('【Preview】最终editData:', this.post.editData);
@@ -276,6 +352,9 @@ export default {
     // 页面点击事件 - 点击外部区域退出键盘
     onPageTap() {
       uni.hideKeyboard();
+      if (this.showJoinActivityPanel) {
+        this.showJoinActivityPanel = false;
+      }
     },
 
     // 空函数，用于阻止事件冒泡
@@ -299,6 +378,122 @@ export default {
     onAuthorInput(event) {
       if (this.post) {
         this.post.author = event.detail.value;
+      }
+    },
+
+    initJoinActivityState() {
+      const editData = this.post && this.post.editData ? this.post.editData : {};
+      if (!editData || this.isLockedAdminActivityMode) {
+        this.joinedActivityId = '';
+        this.joinedActivityTitle = '';
+        this.joinedActivityRangeText = '';
+        this.showJoinActivityPanel = false;
+        this.syncJoinedActivityToAddPage();
+        return;
+      }
+
+      this.joinedActivityId = editData.joinedActivityId || '';
+      this.joinedActivityTitle = editData.joinedActivityTitle || editData.joinedActivityTitleSnapshot || '';
+      this.joinedActivityRangeText = '';
+      this.showJoinActivityPanel = false;
+      this.syncJoinedActivityToAddPage();
+
+      if (this.joinedActivityId) {
+        this.ensureJoinableActivitiesLoaded(false);
+      }
+    },
+
+    formatActivityDate(input) {
+      return formatDateYmd(input, '--');
+    },
+
+    formatActivityRange(startTime, endTime) {
+      return formatActivityRangeUtil(startTime, endTime);
+    },
+
+    async ensureJoinableActivitiesLoaded(forceRefresh = false) {
+      if (this.joinActivitiesLoading) return;
+      if (this.joinActivitiesLoaded && !forceRefresh) return;
+
+      this.joinActivitiesLoading = true;
+      try {
+        const result = await getRecentActivities({
+          page: 0,
+          pageSize: 50,
+          scene: 'join',
+          context: this,
+          forceRefresh
+        });
+        const list = Array.isArray(result.activities) ? result.activities : [];
+        this.joinableActivities = list.map(item => ({
+          ...item,
+          rangeText: this.formatActivityRange(item.startTime, item.endTime)
+        }));
+        this.joinActivitiesLoaded = true;
+
+        if (this.joinedActivityId) {
+          const matched = this.joinableActivities.find(item => item && item._id === this.joinedActivityId);
+          if (matched) {
+            this.joinedActivityTitle = matched.title || this.joinedActivityTitle;
+            this.joinedActivityRangeText = matched.rangeText || '';
+          }
+        }
+      } catch (error) {
+        console.error('【Preview】加载可参加活动失败:', error);
+      } finally {
+        this.joinActivitiesLoading = false;
+      }
+    },
+
+    async openJoinActivitySelector() {
+      if (this.isLockedAdminActivityMode) return;
+      await this.ensureJoinableActivitiesLoaded(false);
+
+      const activities = Array.isArray(this.joinableActivities) ? this.joinableActivities : [];
+      if (activities.length === 0) {
+        uni.showToast({
+          title: '当前没有可参加的活动',
+          icon: 'none'
+        });
+        return;
+      }
+      this.showJoinActivityPanel = !this.showJoinActivityPanel;
+    },
+
+    selectJoinedActivity(activity) {
+      if (!activity || !activity._id) return;
+      this.joinedActivityId = activity._id || '';
+      this.joinedActivityTitle = activity.title || '';
+      this.joinedActivityRangeText = activity.rangeText || this.formatActivityRange(activity.startTime, activity.endTime);
+      this.showJoinActivityPanel = false;
+      this.syncJoinedActivityToAddPage();
+    },
+
+    clearJoinedActivity() {
+      this.joinedActivityId = '';
+      this.joinedActivityTitle = '';
+      this.joinedActivityRangeText = '';
+      this.showJoinActivityPanel = false;
+      this.syncJoinedActivityToAddPage();
+    },
+
+    syncJoinedActivityToAddPage() {
+      try {
+        const pages = getCurrentPages();
+        const addPage = pages[pages.length - 2];
+        const addVm = addPage && addPage.$vm ? addPage.$vm : null;
+        if (!addVm) return;
+        if (typeof addVm.setData === 'function') {
+          addVm.setData({
+            joinedActivityId: this.joinedActivityId || '',
+            joinedActivityTitle: this.joinedActivityTitle || ''
+          });
+          return;
+        }
+        addVm.joinedActivityId = this.joinedActivityId || '';
+        addVm.joinedActivityTitle = this.joinedActivityTitle || '';
+      } catch (error) {
+        console.warn('【Preview】同步活动选择到编辑页失败:', error);
       }
     },
 
@@ -483,6 +678,10 @@ export default {
       }
 
       // 合并预览页面的标题和作者数据与add页面的其他数据
+      const isLockedAdminActivity = !!(addData.isActivityMode && addData.fromAdminActivity);
+      const selectedJoinActivityId = this.joinedActivityId || addData.joinedActivityId || '';
+      const selectedJoinActivityTitle = this.joinedActivityTitle || addData.joinedActivityTitle || '';
+
       const publishData = {
         ...addData,
         title: this.post.title || '',
@@ -496,7 +695,13 @@ export default {
         anonymousAuthorName: this.post.anonymousAuthorName || '匿名用户',
         // 保留编辑模式信息
         isEditMode: addData.isEditMode || false,
-        editingPostId: addData.editingPostId || ''
+        editingPostId: addData.editingPostId || '',
+        isActivityMode: !!addData.isActivityMode,
+        activityId: isLockedAdminActivity ? (addData.activityId || '') : '',
+        activityTitleSnapshot: isLockedAdminActivity ? (addData.activityTitle || addData.activityTitleSnapshot || '') : '',
+        fromAdminActivity: isLockedAdminActivity,
+        joinActivityId: isLockedAdminActivity ? '' : selectedJoinActivityId,
+        joinActivityTitleSnapshot: isLockedAdminActivity ? '' : selectedJoinActivityTitle
       };
       // 讨论模式：补齐句子组与高光行，保证提交时不丢字段
       if (publishData.publishMode === 'discussion') {
@@ -747,6 +952,9 @@ export default {
               }, []))
         : [];
 
+      const isLockedAdminActivityMode = !!(addData.isActivityMode && addData.fromAdminActivity);
+      this.lastSubmitActivityId = addData.activityId || addData.joinActivityId || '';
+
       // 如果是编辑模式，调用更新接口
       if (isEditMode) {
         console.log('【Preview】进入编辑模式，准备更新帖子');
@@ -790,6 +998,11 @@ export default {
           seriesBlocks: addData.isSeries ? seriesBlocks : undefined,
           seriesBlockCount: addData.isSeries ? seriesBlocks.length : undefined
         };
+
+        if (!isLockedAdminActivityMode) {
+          updateData.joinedActivityId = addData.joinActivityId || '';
+          updateData.joinedActivityTitleSnapshot = addData.joinActivityTitleSnapshot || '';
+        }
 
         console.log('【Preview】准备更新帖子，数据:', {
           postId: addData.editingPostId,
@@ -895,6 +1108,10 @@ export default {
         seriesBlocks: addData.isSeries ? seriesBlocks : [],
         author: addData.author,
         tags: addData.selectedTags || [],
+        activityId: addData.activityId || '',
+        activityTitleSnapshot: addData.activityTitleSnapshot || '',
+        joinActivityId: addData.joinActivityId || '',
+        joinActivityTitleSnapshot: addData.joinActivityTitleSnapshot || '',
         // 添加颜色信息
         backgroundColor: addData.selectedBackgroundColor || '',
         textColor: addData.selectedTextColor || '#000000',
@@ -912,12 +1129,15 @@ export default {
         // 匿名帖子使用固定openid，指向专用匿名账户
         openid: this.post.isAnonymous ? '123456' : null
       }, { pageTag: 'preview', context: this, requireAuth: true }).then((res) => {
-        if (res && res.result && res.result.code === 0) {
+        const result = (res && res.result) ? res.result : {};
+        const ok = result.code === 0 || result.success === true;
+        if (ok) {
           this.publishSuccess({
-            _id: res.result.postId
+            _id: result.postId
           });
         } else {
-          this.publishFail(new Error(res.result?.msg || '云函数返回失败'));
+          console.error('【Preview】contentCheck 返回失败:', result);
+          this.publishFail(new Error(result.msg || result.message || '云函数返回失败'));
         }
       }).catch((err) => {
         console.error('数据库提交失败:', err);
@@ -932,7 +1152,10 @@ export default {
       // 检查是否是编辑模式（从addData获取）
       const pages = getCurrentPages();
       const addPage = pages[pages.length - 2];
-      const isEditMode = addPage && addPage.$vm && addPage.$vm.isEditMode && addPage.$vm.editingPostId;
+      const addVm = addPage && addPage.$vm ? addPage.$vm : null;
+      const isEditMode = !!(addVm && addVm.isEditMode && addVm.editingPostId);
+      const isActivityMode = !!(addVm && addVm.isActivityMode);
+      const fromAdminActivity = !!(addVm && addVm.fromAdminActivity);
       
       const successMessage = isEditMode ? '编辑成功！' : '发布成功！';
       uni.showToast({
@@ -960,19 +1183,41 @@ export default {
         uni.setStorageSync('shouldRefreshProfile', true);
         uni.setStorageSync('shouldRefreshPoem', true);
         uni.setStorageSync('shouldRefreshMountain', true);
+        if (this.lastSubmitActivityId) {
+          uni.setStorageSync('shouldRefreshActivityList', true);
+          uni.setStorageSync('shouldRefreshActivityDetailId', this.lastSubmitActivityId);
+        }
+        if (isActivityMode && fromAdminActivity) {
+          uni.setStorageSync('shouldRefreshAdminActivityPosts', true);
+        }
       } catch (e) {
         console.error('设置刷新标记失败:', e);
       }
 
       // 清除发布页面的草稿
       try {
-        const pages = getCurrentPages();
-        const addPage = pages[pages.length - 2];
-        if (addPage && addPage.$vm && addPage.$vm.clearDraft) {
-          addPage.$vm.clearDraft();
+        if (addVm && addVm.clearDraft) {
+          addVm.clearDraft();
         }
       } catch (e) {
         console.error('清除草稿失败:', e);
+      }
+
+      if (isActivityMode && fromAdminActivity) {
+        uni.navigateBack({
+          delta: 2,
+          fail: () => {
+            uni.navigateBack({
+              delta: 1,
+              fail: () => {
+                uni.reLaunch({
+                  url: '/pages-admin/activity-management/activity-management'
+                });
+              }
+            });
+          }
+        });
+        return;
       }
 
       // 返回首页
@@ -1003,6 +1248,13 @@ export default {
 
     // 匿名发布
     publishAnonymously() {
+      if (this.post && this.post.editData && this.post.editData.isActivityMode) {
+        uni.showToast({
+          title: 'Activity posts cannot be anonymous',
+          icon: 'none'
+        });
+        return;
+      }
       uni.showModal({
         title: '匿名发布',
         content: '确定要匿名发布这个帖子吗？匿名帖子将不会显示您的真实身份。',
@@ -1222,6 +1474,25 @@ export default {
 .signature-image { width: 180rpx; height: 90rpx; opacity: 0.8; filter: drop-shadow(0 2rpx 4rpx rgba(0,0,0,0.1)); display: block; background: transparent; }
 
 /* 标题输入区域样式 */
+.activity-mode-banner {
+  margin-bottom: 24rpx;
+  padding: 16rpx 18rpx;
+  border-radius: 12rpx;
+  background: #f3f7ff;
+  border: 1rpx solid #d6e4ff;
+}
+
+.activity-mode-label {
+  font-size: 24rpx;
+  color: #4f5f7f;
+}
+
+.activity-mode-title {
+  font-size: 24rpx;
+  color: #1d2d4d;
+  font-weight: 600;
+}
+
 .title-input-section {
   margin-top: 30rpx;
   padding: 0 20rpx;
@@ -1279,6 +1550,128 @@ export default {
 
 .author-input:focus {
   border-bottom: none;
+}
+
+.join-activity-section {
+  margin-top: 36rpx;
+  padding: 0 20rpx;
+}
+
+.join-activity-header {
+  width: 80%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.join-activity-label {
+  font-size: 30rpx;
+  color: #333;
+  font-weight: 600;
+}
+
+.join-activity-optional {
+  font-size: 22rpx;
+  color: #98a2b3;
+}
+
+.join-activity-card {
+  width: 80%;
+  margin-top: 14rpx;
+  border-radius: 14rpx;
+  background: #f7f8fa;
+  border: 1rpx solid #e5e7eb;
+  padding: 18rpx 20rpx;
+  box-sizing: border-box;
+}
+
+.join-activity-title {
+  display: block;
+  font-size: 28rpx;
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.join-activity-subtitle {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.join-activity-actions {
+  width: 80%;
+  margin-top: 14rpx;
+  display: flex;
+  gap: 14rpx;
+}
+
+.join-activity-btn {
+  margin: 0;
+  width: auto;
+  flex: 0 0 auto;
+  min-width: 160rpx;
+  height: 58rpx;
+  line-height: 58rpx;
+  border-radius: 999rpx;
+  padding: 0 22rpx;
+  border: 1rpx solid #d0d5dd;
+  background: #fff;
+  color: #344054;
+  font-size: 24rpx;
+}
+
+.join-activity-btn.primary {
+  border-color: #b2ddff;
+  background: #eff8ff;
+  color: #175cd3;
+}
+
+.join-activity-btn::after {
+  border: none;
+}
+
+.join-activity-list {
+  width: 80%;
+  margin-top: 12rpx;
+  border-radius: 12rpx;
+  border: 1rpx solid #e4e7ec;
+  overflow: hidden;
+  background: #fff;
+  max-height: 360rpx;
+  overflow-y: auto;
+}
+
+.join-activity-item {
+  padding: 14rpx 18rpx;
+  border-bottom: 1rpx solid #f1f3f5;
+}
+
+.join-activity-item:last-child {
+  border-bottom: none;
+}
+
+.join-activity-item.clear {
+  background: #f8fafc;
+  color: #475467;
+}
+
+.join-activity-item.active {
+  background: #eef4ff;
+}
+
+.join-activity-item .item-title {
+  display: block;
+  font-size: 25rpx;
+  color: #1f2937;
+}
+
+.join-activity-item .item-sub {
+  display: block;
+  margin-top: 4rpx;
+  font-size: 21rpx;
+  color: #667085;
 }
 
 /* 适配从发布页浮动按钮的层级 */

@@ -5,23 +5,13 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 const _ = db.command
-const ADMIN_POEM_IDS = ['qisaihao', 'jingmikun']
-const ACTIVITY_SUMMARY_MAX_LENGTH = 200
-const ACTIVITY_RULES_MAX_LENGTH = 5000
-const {
-  normalizeDateInput,
-  normalizeStatus,
-  normalizeSortWeight,
-  normalizeActivityRules,
-  buildAdminActivityView
-} = require('../_lib/activity')
 
 // 验证管理员权限（通过poemId）
 async function isAdmin(openid) {
   try {
     const result = await db.collection('users').where({
       _openid: openid,
-      poemId: _.in(ADMIN_POEM_IDS)
+      poemId: 'qisaihao'
     }).get()
     
     return result.data.length > 0
@@ -29,21 +19,6 @@ async function isAdmin(openid) {
     console.error('验证管理员权限失败:', error)
     return false
   }
-}
-
-const actionHandlers = {
-  getAllPosts: (event) => getAllPosts(event),
-  updatePostType: (event) => updatePostType(event),
-  deletePost: (event) => deletePost(event),
-  getUserPassword: (event) => getUserPassword(event),
-  getPoetList: (event) => getPoetList(event),
-  deletePoet: (event) => deletePoet(event),
-  listActivities: (event) => listActivities(event),
-  createActivity: (event, openid) => createActivity(event, openid),
-  updateActivity: (event, openid) => updateActivity(event, openid),
-  setActivityStatus: (event) => setActivityStatus(event),
-  deleteActivity: (event) => deleteActivity(event),
-  getActivityDetail: (event) => getActivityDetail(event)
 }
 
 // 云函数入口函数
@@ -70,14 +45,38 @@ exports.main = async (event, context) => {
         error: '权限不足，只有管理员可以执行此操作'
       }
     }
-    const handler = actionHandlers[action]
-    if (!handler) {
-      return {
-        success: false,
-        error: `未知的操作类型: ${action}`
-      }
+
+    switch (action) {
+      case 'getAllPosts':
+        return await getAllPosts(event)
+      case 'updatePostType':
+        return await updatePostType(event)
+      case 'deletePost':
+        return await deletePost(event)
+      case 'getUserPassword':
+        return await getUserPassword(event)
+      case 'getPoetList':
+        return await getPoetList(event)
+      case 'deletePoet':
+        return await deletePoet(event)
+      case 'listActivities':
+        return await listActivities(event)
+      case 'createActivity':
+        return await createActivity(event, openid)
+      case 'updateActivity':
+        return await updateActivity(event, openid)
+      case 'setActivityStatus':
+        return await setActivityStatus(event)
+      case 'deleteActivity':
+        return await deleteActivity(event)
+      case 'getActivityDetail':
+        return await getActivityDetail(event)
+      default:
+        return {
+          success: false,
+          error: `未知的操作类型: ${action}`
+        }
     }
-    return await handler(event, openid)
   } catch (error) {
     console.error('adminManager 云函数错误:', error)
     return {
@@ -356,6 +355,37 @@ async function deletePoet(data) {
   }
 }
 
+function normalizeDateInput(value) {
+  if (!value) return null
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return null
+  return parsed
+}
+
+function normalizeStatus(status) {
+  const valid = ['draft', 'published', 'archived']
+  return valid.includes(status) ? status : null
+}
+
+function normalizeSortWeight(value, fallback = 0) {
+  if (value === undefined || value === null || value === '') return fallback
+  const num = Number(value)
+  if (Number.isNaN(num)) return fallback
+  return num
+}
+
+function toActivityView(activity = {}) {
+  const now = Date.now()
+  const startMs = activity.startTime ? new Date(activity.startTime).getTime() : 0
+  const endMs = activity.endTime ? new Date(activity.endTime).getTime() : 0
+  const isOngoing = startMs > 0 && endMs > 0 && startMs <= now && endMs >= now
+  return {
+    ...activity,
+    postCount: Number(activity.postCount) || 0,
+    isOngoing
+  }
+}
+
 // 获取活动列表（管理员）
 async function listActivities(data) {
   const {
@@ -390,7 +420,7 @@ async function listActivities(data) {
         .get()
     ])
 
-    const activities = (listRes.data || []).map((activity) => buildAdminActivityView(activity))
+    const activities = (listRes.data || []).map(toActivityView)
     const total = countRes.total || 0
 
     return {
@@ -413,7 +443,6 @@ async function createActivity(data, openid) {
   const {
     title = '',
     summary = '',
-    rules = '',
     coverImage = '',
     startTime,
     endTime,
@@ -422,8 +451,7 @@ async function createActivity(data, openid) {
   } = data || {}
 
   const safeTitle = String(title || '').trim()
-  const safeSummary = String(summary || '').trim().slice(0, ACTIVITY_SUMMARY_MAX_LENGTH)
-  const safeRules = normalizeActivityRules(rules, ACTIVITY_RULES_MAX_LENGTH)
+  const safeSummary = String(summary || '').trim().slice(0, 200)
   const safeCover = String(coverImage || '').trim()
   const safeStart = normalizeDateInput(startTime)
   const safeEnd = normalizeDateInput(endTime)
@@ -442,7 +470,6 @@ async function createActivity(data, openid) {
     const payload = {
       title: safeTitle,
       summary: safeSummary,
-      rules: safeRules,
       coverImage: safeCover,
       startTime: safeStart,
       endTime: safeEnd,
@@ -460,7 +487,7 @@ async function createActivity(data, openid) {
     return {
       success: true,
       activityId: addRes._id,
-      activity: buildAdminActivityView({ _id: addRes._id, ...payload })
+      activity: toActivityView({ _id: addRes._id, ...payload })
     }
   } catch (error) {
     console.error('创建活动失败:', error)
@@ -492,10 +519,7 @@ async function updateActivity(data, openid) {
       updateData.title = safeTitle
     }
     if (Object.prototype.hasOwnProperty.call(data, 'summary')) {
-      updateData.summary = String(data.summary || '').trim().slice(0, ACTIVITY_SUMMARY_MAX_LENGTH)
-    }
-    if (Object.prototype.hasOwnProperty.call(data, 'rules')) {
-      updateData.rules = normalizeActivityRules(data.rules, ACTIVITY_RULES_MAX_LENGTH)
+      updateData.summary = String(data.summary || '').trim().slice(0, 200)
     }
     if (Object.prototype.hasOwnProperty.call(data, 'coverImage')) {
       updateData.coverImage = String(data.coverImage || '').trim()
@@ -612,7 +636,7 @@ async function getActivityDetail(data) {
     }
     return {
       success: true,
-      activity: buildAdminActivityView(res.data)
+      activity: toActivityView(res.data)
     }
   } catch (error) {
     console.error('获取活动详情失败:', error)

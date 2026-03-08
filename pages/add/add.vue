@@ -181,6 +181,11 @@
                 />
             </view>
 
+            <view v-if="isActivityMode" class="activity-mode-banner">
+                <text class="activity-mode-label">Publish to activity:</text>
+                <text class="activity-mode-title">{{ activityTitle || 'Untitled Activity' }}</text>
+            </view>
+
             <view class="helper-text" v-show="publishMode === 'discussion'" :class="{ 'fade-out': !showDiscussionHelper }">上方正文即为你的讨论内容</view>
         </view>
 
@@ -344,6 +349,13 @@ export default {
 
             // 最大图片数量
             publishMode: 'normal',
+            // ??????
+            isActivityMode: false,
+            activityId: '',
+            activityTitle: '',
+            fromAdminActivity: false,
+            joinedActivityId: '',
+            joinedActivityTitle: '',
 
             // 'normal' | 'poem' | 'discussion' 普通模式 | 诗歌模式 | 讨论模式
             isOriginal: false,
@@ -523,20 +535,20 @@ export default {
         }
     },
     onLoad: function (options) {
-        // 【小程序审核优化】检查登录状态，未登录则提示并返回
+        options = options || {};
+        // 登录校验
         const app = getApp();
         const isLoggedIn = app && app.globalData && app.globalData.isLoggedIn;
-        
+
         if (!isLoggedIn) {
-            console.log('⚠️ [Add] 用户未登录，提示登录');
+            console.log('[Add] user not logged in');
             uni.showModal({
                 title: '需要登录',
-                content: '发帖需要登录，请先登录',
+                content: '发帖前请先登录',
                 confirmText: '去登录',
                 cancelText: '取消',
                 success: (res) => {
                     if (res.confirm) {
-                        // 使用 navigateTo 跳转到登录页
                         uni.navigateTo({
                             url: '/pages/login/login'
                         });
@@ -547,8 +559,7 @@ export default {
             });
             return;
         }
-        
-        // 初始化颜色/高光编辑相关状态（向后兼容）
+
         this.setData({
             selectedBackgroundColor: this.selectedBackgroundColor || '#a4c4bd',
             selectedTextColor: this.selectedTextColor || '#333333',
@@ -558,32 +569,60 @@ export default {
             selectedPalette: null,
             highlightSentence: this.highlightSentence || ''
         });
-        // 页面加载时获取所有已有标签
+
         this.loadAllExistingTags();
 
-        // 检查是否是编辑帖子模式（从个人主页进入）
+        const activityId = typeof options.activityId === 'string' ? options.activityId.trim() : '';
+        let activityTitle = '';
+        if (typeof options.activityTitle === 'string') {
+            try {
+                activityTitle = decodeURIComponent(options.activityTitle);
+            } catch (error) {
+                activityTitle = options.activityTitle;
+            }
+        }
+        const fromAdminActivity = options.fromAdminActivity === '1' || options.fromAdminActivity === 'true';
+        const isActivityMode = !!activityId;
+
+        if (isActivityMode) {
+            this.setData({
+                isActivityMode: true,
+                activityId,
+                activityTitle: activityTitle || '',
+                fromAdminActivity,
+                joinedActivityId: '',
+                joinedActivityTitle: '',
+                publishMode: 'normal',
+                isOriginal: false,
+                isDiscussion: false,
+                isSeries: false,
+                showModeSelector: false,
+                maxImageCount: 9
+            });
+        }
+
         if (options.mode === 'edit' && options.postId) {
             this.setData({
                 isEditMode: true,
                 editingPostId: options.postId
             });
             this.loadPostForEdit(options.postId);
-        } 
-        // 检查是否是编辑草稿模式
-        else if (options.mode === 'edit') {
+        } else if (options.mode === 'edit') {
             this.loadEditingDraft();
-        } else {
-            // 加载草稿
+        } else if (!isActivityMode) {
             this.loadDraft();
         }
 
-        // 检查来源页面并设置默认发布模式（在草稿加载后执行，优先级更高）
-        this.setDefaultPublishMode();
+        if (!isActivityMode) {
+            this.setDefaultPublishMode();
+        } else {
+            this.updatePlaceholder();
+            this.checkCanPublish();
+        }
 
-        // 确保页面不会滚动
         this.preventPageScroll();
     },
-    
+
     onShow: function () {
         // 每次显示页面时都确保页面不会滚动
         this.preventPageScroll();
@@ -651,6 +690,9 @@ export default {
 
         // 根据来源页面设置默认发布模式
         setDefaultPublishMode: function() {
+            if (this.isActivityMode) {
+                return;
+            }
             const pages = getCurrentPages();
             if (pages.length > 1) {
                 const prevPage = pages[pages.length - 2];
@@ -765,6 +807,11 @@ export default {
                         }
                         
                         // 设置编辑数据
+                        const isOfficialActivityPost = !!(post.isActivityPost && post.activityId);
+                        const officialActivityTitle = post.activityTitleSnapshot || '';
+                        const joinedActivityId = post.joinedActivityId || '';
+                        const joinedActivityTitle = post.joinedActivityTitleSnapshot || '';
+
                         this.setData({
                             content: post.content || '',
                             title: post.title || '',
@@ -783,7 +830,13 @@ export default {
                             publishMode: post.isPoem ? 'poem' : (post.isDiscussion ? 'discussion' : 'normal'),
                             isOriginal: post.isOriginal || false,
                             maxImageCount: post.isPoem ? 1 : 9,
-                            editingPost: post
+                            editingPost: post,
+                            isActivityMode: isOfficialActivityPost,
+                            activityId: isOfficialActivityPost ? (post.activityId || '') : '',
+                            activityTitle: isOfficialActivityPost ? officialActivityTitle : '',
+                            fromAdminActivity: isOfficialActivityPost,
+                            joinedActivityId: isOfficialActivityPost ? '' : joinedActivityId,
+                            joinedActivityTitle: isOfficialActivityPost ? '' : joinedActivityTitle
                         });
                         
                         // 更新发布模式相关的placeholder
@@ -961,13 +1014,27 @@ export default {
 
         // 切换发布模式
         switchMode: function () {
+            if (this.isActivityMode) {
+                uni.showToast({
+                    title: 'Activity mode locked',
+                    icon: 'none'
+                });
+                return;
+            }
             this.setData({
                 showModeSelector: !this.showModeSelector,
-                showTagSelector: false // 隐藏标签选择器
+                showTagSelector: false // ???????????
             });
         },
-        // 组诗开关
+        // ???????
         toggleSeriesMode() {
+            if (this.isActivityMode) {
+                uni.showToast({
+                    title: 'Activity mode locked',
+                    icon: 'none'
+                });
+                return;
+            }
             seriesToggleMode(this);
         },
 
@@ -1024,6 +1091,14 @@ export default {
 
         // 选择发布模式（组件事件处理）
         onModeSelect: function ({ mode, isOriginal }) {
+            if (this.isActivityMode) {
+                uni.showToast({
+                    title: 'Activity mode locked',
+                    icon: 'none'
+                });
+                this.setData({ showModeSelector: false });
+                return;
+            }
             // 设置讨论模式标志
             const isDiscussion = mode === 'discussion';
 
@@ -1475,21 +1550,24 @@ export default {
                 textColor: this.selectedTextColor || '#000000',
                 // 添加高光信息
                 highlightSentence: this.highlightLines && this.highlightLines.length > 0 ? this.highlightLines[0] : (this.highlightSentence || mergedDiscussionHighlight[0] || ''),
-                highlightLines: this.highlightLines && this.highlightLines.length > 0 ? this.highlightLines : mergedDiscussionHighlight || []
+                highlightLines: this.highlightLines && this.highlightLines.length > 0 ? this.highlightLines : mergedDiscussionHighlight || [],
+                activityId: this.activityId || '',
+                activityTitleSnapshot: this.activityTitle || '',
+                joinActivityId: this.joinedActivityId || '',
+                joinActivityTitleSnapshot: this.joinedActivityTitle || ''
             };
             
             return this.callCloudFunction('contentCheck', auditParams).then((res) => {
                 console.log('数据库提交成功:', res);
-                // 检查云函数返回的结果格式
-                if (res && res.result && res.result.code === 0) {
-                    // 云函数返回成功
+                const result = (res && res.result) ? res.result : {};
+                const ok = result.code === 0 || result.success === true;
+                if (ok) {
                     this.publishSuccess({
-                        _id: res.result.postId
+                        _id: result.postId
                     });
                 } else {
-                    // 云函数返回失败
-                    console.error('云函数返回失败:', res);
-                    this.publishFail(new Error(res.result?.msg || '云函数返回失败'));
+                    console.error('【Add】contentCheck 返回失败:', result);
+                    this.publishFail(new Error(result.msg || result.message || '云函数返回失败'));
                 }
             }).catch((err) => {
                 console.error('数据库提交失败:', err);
@@ -1542,17 +1620,19 @@ export default {
             that.callCloudFunction('contentCheck', auditParams)
                 .then((res) => {
                     console.log('内容审核结果:', res);
-                    if (res.result.code === 0) {
+                    const result = (res && res.result) ? res.result : {};
+                    const ok = result.code === 0 || result.success === true;
+                    if (ok) {
                         // 审核通过，发布成功
                         that.publishSuccess({
-                            _id: res.result.postId
+                            _id: result.postId
                         });
                     } else {
                         // 审核不通过，显示错误信息
                         uni.hideLoading();
                         uni.showModal({
                             title: '发布失败',
-                            content: res.result.msg || '内容审核不通过，请检查内容后重试',
+                            content: result.msg || result.message || '内容审核不通过，请检查内容后重试',
                             showCancel: false
                         });
                     }
@@ -1576,6 +1656,9 @@ export default {
                 uni.setStorageSync('shouldRefreshProfile', true);
                 uni.setStorageSync('shouldRefreshPoem', true);
                 uni.setStorageSync('shouldRefreshMountain', true);
+                if (this.isActivityMode && this.fromAdminActivity) {
+                    uni.setStorageSync('shouldRefreshAdminActivityPosts', true);
+                }
                 const appInstance = getApp();
                 const userId = appInstance && appInstance.globalData && appInstance.globalData.openid;
                 if (this.isEditMode) {
@@ -1729,7 +1812,13 @@ export default {
                     highlightSelectedLineIndices: this.highlightSelectedLineIndices,
                     isEditMode: this.isEditMode, // 传递编辑模式标记
                     editingPostId: this.editingPostId, // 传递编辑的帖子ID
-                    sentenceGroups: previewSentenceGroups
+                    sentenceGroups: previewSentenceGroups,
+                    isActivityMode: this.isActivityMode,
+                    activityId: this.activityId || '',
+                    activityTitle: this.activityTitle || '',
+                    fromAdminActivity: this.fromAdminActivity,
+                    joinedActivityId: this.joinedActivityId || '',
+                    joinedActivityTitle: this.joinedActivityTitle || ''
                 }
             };
 
@@ -2803,6 +2892,27 @@ page {
     line-height: 42rpx;
     color: #6b6b6b;
     word-break: break-word;
+}
+
+.activity-mode-banner {
+    margin-top: 12rpx;
+    margin-bottom: 8rpx;
+    padding: 14rpx 18rpx;
+    border-radius: 12rpx;
+    background: #f3f7ff;
+    border: 1rpx solid #d6e4ff;
+    text-align: center;
+}
+
+.activity-mode-label {
+    font-size: 24rpx;
+    color: #4f5f7f;
+}
+
+.activity-mode-title {
+    font-size: 24rpx;
+    color: #1d2d4d;
+    font-weight: 600;
 }
 
 .helper-text {

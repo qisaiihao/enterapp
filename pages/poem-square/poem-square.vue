@@ -10,6 +10,12 @@
       </view>
     </view>
 
+    <view v-if="!showFollowingOnly" class="activity-entry-container" :style="{ top: (safeAreaTop * 2 + 160) + 'rpx' }">
+      <view class="activity-entry-btn" @tap="navigateToActivityList">
+        <text class="activity-entry-text">近期活动</text>
+      </view>
+    </view>
+
     <!-- 关注头像栏 - 只在关注模式下显示 -->
     <view v-if="showFollowingOnly" class="following-avatar-bar-wrapper" :style="{ top: (safeAreaTop * 2 + 140) + 'rpx' }">
       <following-avatar-bar
@@ -226,6 +232,41 @@ export default {
     try { uni.hideTabBar({ animation: false }); } catch (e) {}
     try { this.$refs.customTabBar && this.$refs.customTabBar.syncSelected && this.$refs.customTabBar.syncSelected(); } catch (e) {}
     // #endif
+
+    const shouldRefreshIndex = uni.getStorageSync('shouldRefreshIndex');
+    const shouldRefreshProfile = uni.getStorageSync('shouldRefreshProfile');
+    const shouldRefreshPoem = uni.getStorageSync('shouldRefreshPoem');
+    const shouldRefreshMountain = uni.getStorageSync('shouldRefreshMountain');
+
+    if (shouldRefreshIndex || shouldRefreshProfile || shouldRefreshPoem || shouldRefreshMountain) {
+      console.log('【poem-square】检测到刷新标记，强制刷新诗歌广场数据:', {
+        shouldRefreshIndex,
+        shouldRefreshProfile,
+        shouldRefreshPoem,
+        shouldRefreshMountain
+      });
+
+      uni.removeStorageSync('shouldRefreshIndex');
+      uni.removeStorageSync('shouldRefreshProfile');
+      uni.removeStorageSync('shouldRefreshPoem');
+      uni.removeStorageSync('shouldRefreshMountain');
+
+      invalidatePostList({ isPoem: true, isOriginal: true, excludeAnonymous: true });
+      invalidateFollowingPoems();
+
+      this.setData({
+        page: 0,
+        hasMore: true,
+        isLoading: true,
+        isLoadingMore: false,
+        _loadingLock: false
+      });
+
+      this.getIndexData(() => {
+        this.setData({ isLoading: false });
+      });
+      return;
+    }
     
     // #ifdef MP-WEIXIN
     // 更新小程序自定义tabBar的选中状态
@@ -632,6 +673,12 @@ export default {
       
       // 重新加载数据
       this.getIndexData();
+    },
+
+    navigateToActivityList() {
+      uni.navigateTo({
+        url: '/pages-content/activity-list/activity-list'
+      });
     },
 
     // 退出关注模式（由头像栏的返回按钮触发）
@@ -1506,6 +1553,32 @@ export default {
   color: #666;
 }
 
+.activity-entry-container {
+  position: absolute;
+  top: calc(var(--safe-area-top, 44px) + 160rpx);
+  left: 30rpx;
+  z-index: 1;
+}
+
+.activity-entry-btn {
+  padding: 12rpx 32rpx;
+  border-radius: 50rpx;
+  border: 2rpx solid #e0e0e0;
+  background: #fff;
+  box-shadow: none;
+}
+
+.activity-entry-btn:active {
+  transform: scale(0.95);
+}
+
+.activity-entry-text {
+  font-size: 26rpx;
+  color: #666;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
 /* 关注头像栏定位 */
 .following-avatar-bar-wrapper {
   position: absolute;
@@ -1515,8 +1588,6 @@ export default {
   z-index: 10;
 }
 </style>
-
-
 
 
 

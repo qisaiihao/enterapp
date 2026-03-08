@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <view class="admin-menu-container">
         <view class="admin-header">
             <text class="admin-title">管理中心</text>
@@ -11,16 +11,16 @@
                     <text class="menu-title">管理帖子</text>
                     <text class="menu-desc">查看、删除和修改帖子类型</text>
                 </view>
-                <text class="menu-arrow">›</text>
+                <text class="menu-arrow">→</text>
             </view>
 
             <view class="menu-item" @tap="navigateTo" data-url="/pages-admin/poet-management/poet-management">
                 <view class="menu-icon">✍️</view>
                 <view class="menu-info">
                     <text class="menu-title">管理诗人</text>
-                    <text class="menu-desc">删除错误创建的诗人主页</text>
+                    <text class="menu-desc">清理错误创建的诗人主页</text>
                 </view>
-                <text class="menu-arrow">›</text>
+                <text class="menu-arrow">→</text>
             </view>
 
             <view class="menu-item" @tap="navigateTo" data-url="/pages-admin/feedback-list/feedback-list">
@@ -29,7 +29,16 @@
                     <text class="menu-title">反馈建议</text>
                     <text class="menu-desc">查看用户反馈和建议</text>
                 </view>
-                <text class="menu-arrow">›</text>
+                <text class="menu-arrow">→</text>
+            </view>
+
+            <view class="menu-item" @tap="navigateTo" data-url="/pages-admin/activity-management/activity-management">
+                <view class="menu-icon">🎯</view>
+                <view class="menu-info">
+                    <text class="menu-title">活动管理</text>
+                    <text class="menu-desc">创建活动并发布活动帖</text>
+                </view>
+                <text class="menu-arrow">→</text>
             </view>
 
             <view class="menu-item" @tap="navigateTo" data-url="/pages-admin/password-recovery/password-recovery">
@@ -38,7 +47,7 @@
                     <text class="menu-title">找回密码</text>
                     <text class="menu-desc">查询用户密码信息</text>
                 </view>
-                <text class="menu-arrow">›</text>
+                <text class="menu-arrow">→</text>
             </view>
         </view>
     </view>
@@ -115,7 +124,7 @@ export default {
 }
 
 .menu-arrow {
-    font-size: 48rpx;
+    font-size: 36rpx;
     color: #ccc;
 }
 </style>

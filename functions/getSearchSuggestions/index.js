@@ -47,7 +47,8 @@ exports.main = async (event, context) => {
     try {
       const titleResult = await db.collection('posts')
         .where({
-          title: searchRegex
+          title: searchRegex,
+          isActivityPost: _.neq(true)
         })
         .field({
           title: true
@@ -74,7 +75,8 @@ exports.main = async (event, context) => {
     try {
       const tagsResult = await db.collection('posts')
         .where({
-          tags: searchRegex
+          tags: searchRegex,
+          isActivityPost: _.neq(true)
         })
         .field({
           tags: true
@@ -99,7 +101,8 @@ exports.main = async (event, context) => {
     try {
       const authorResult = await db.collection('posts')
         .where({
-          authorName: searchRegex
+          authorName: searchRegex,
+          isActivityPost: _.neq(true)
         })
         .field({
           authorName: true

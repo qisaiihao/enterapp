@@ -237,6 +237,24 @@
             "usingComponents": {},
             "navigationStyle": "custom"
           }
+        },
+        {
+          "path": "activity-list/activity-list",
+          "style": {
+            "usingComponents": {},
+            "navigationBarTitleText": "近期活动",
+            "enablePullDownRefresh": true,
+            "onReachBottomDistance": 50
+          }
+        },
+        {
+          "path": "activity-detail/activity-detail",
+          "style": {
+            "usingComponents": {},
+            "navigationBarTitleText": "活动详情",
+            "enablePullDownRefresh": true,
+            "onReachBottomDistance": 50
+          }
         }
       ]
     },
@@ -391,6 +409,34 @@
             "backgroundColor": "#f5f5f5",
             "usingComponents": {}
           }
+        },
+        {
+          "path": "activity-management/activity-management",
+          "style": {
+            "navigationBarTitleText": "活动管理",
+            "backgroundColor": "#f5f5f5",
+            "enablePullDownRefresh": true,
+            "onReachBottomDistance": 50,
+            "usingComponents": {}
+          }
+        },
+        {
+          "path": "activity-editor/activity-editor",
+          "style": {
+            "navigationBarTitleText": "编辑活动",
+            "backgroundColor": "#f5f5f5",
+            "usingComponents": {}
+          }
+        },
+        {
+          "path": "activity-posts/activity-posts",
+          "style": {
+            "navigationBarTitleText": "活动帖子",
+            "backgroundColor": "#f5f5f5",
+            "enablePullDownRefresh": true,
+            "onReachBottomDistance": 50,
+            "usingComponents": {}
+          }
         }
       ]
     }
@@ -398,15 +444,23 @@
   "preloadRule": {
     "pages/profile/profile": {
       "network": "all",
-      "packages": ["pages-user", "pages-content"]
+      "packages": [
+        "pages-user",
+        "pages-content"
+      ]
     },
     "pages/index/index": {
       "network": "all",
-      "packages": ["pages-tools"]
+      "packages": [
+        "pages-tools"
+      ]
     },
     "pages/poem-square/poem-square": {
       "network": "all",
-      "packages": ["pages-tools"]
+      "packages": [
+        "pages-tools",
+        "pages-content"
+      ]
     }
   },
   "tabBar": {

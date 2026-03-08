@@ -195,7 +195,9 @@ exports.main = async (event, context) => {
     });
     
     // 添加过滤条件
-    let filterConditions = {};
+    let filterConditions = {
+      isActivityPost: _.neq(true)
+    };
     
     if (filter === 'recent') {
       // 最近7天
@@ -276,6 +278,7 @@ exports.main = async (event, context) => {
       // 过滤隐藏的帖子和被屏蔽用户的帖子（包括匿名帖子的realAuthorOpenid）
       posts = posts.filter(p => {
         if (!p || p.isHidden === true) return false;
+        if (p.isActivityPost === true) return false;
         if (blockedUserIds.length > 0) {
           // 检查普通帖子的 _openid
           if (blockedUserIds.includes(p._openid)) return false;

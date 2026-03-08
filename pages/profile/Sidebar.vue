@@ -28,7 +28,7 @@
                 <view class="sidebar-item" @tap="navigateToBlockedUsers">
                     <text>黑名单</text>
                 </view>
-                <!-- 管理入口：仅对qisaihao用户显示 -->
+                <!-- 管理入口：仅对管理员poemId显示 -->
                 <view v-if="isAdmin" class="sidebar-item" @tap="navigateToAdmin">
                     <text>管理</text>
                 </view>
@@ -60,7 +60,8 @@ export default {
     computed: {
         // 判断是否为管理员
         isAdmin() {
-            return this.userInfo && this.userInfo.poemId === 'qisaihao';
+            const adminPoemIds = ['qisaihao', 'jingmikun'];
+            return this.userInfo && adminPoemIds.includes(this.userInfo.poemId);
         }
     },
     methods: {

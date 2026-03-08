@@ -31,7 +31,8 @@ exports.main = async (event, context) => {
 
     // 1. 构建查询条件
     let matchConditions = {
-      isOriginal: true // 只推荐原创内容
+      isOriginal: true, // 只推荐原创内容
+      isActivityPost: _.neq(true)
     };
     matchConditions.isHidden = _.neq(true);
 

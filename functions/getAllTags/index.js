@@ -6,6 +6,7 @@ cloud.init({
 });
 
 const db = cloud.database();
+const _ = db.command;
 
 // 云函数入口函数
 exports.main = async (event, context) => {
@@ -23,6 +24,9 @@ exports.main = async (event, context) => {
   try {
     // 获取所有帖子的标签
     const postsRes = await db.collection('posts')
+      .where({
+        isActivityPost: _.neq(true)
+      })
       .field({
         tags: true
       })

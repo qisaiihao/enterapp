@@ -93,7 +93,10 @@ exports.main = async (event, context) => {
             { 
               $match: { 
                 $expr: { 
-                  $eq: ['$_openid', '$$user_openid']
+                  $and: [
+                    { $eq: ['$_openid', '$$user_openid'] },
+                    { $ne: ['$isActivityPost', true] }
+                  ]
                 } 
               } 
             },
@@ -135,6 +138,7 @@ exports.main = async (event, context) => {
         if (!isOwner && Array.isArray(posts)) {
           posts = posts.filter((p) => {
             if (!p || p.isHidden === true) return false;
+            if (p.isActivityPost === true) return false;
             // 虽然已经检查过是否屏蔽了目标用户，但这里再过滤一次确保安全
             if (blockedUserIds.length > 0 && blockedUserIds.includes(p._openid)) return false;
             return true;

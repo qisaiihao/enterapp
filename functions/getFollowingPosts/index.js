@@ -84,7 +84,9 @@ exports.main = async (event, context) => {
       // 只获取已审核通过的帖子
       auditStatus: 'approved',
       // 不显示隐藏的帖子
-      isHidden: _.neq(true)
+      isHidden: _.neq(true),
+      // 关注流默认排除活动帖子
+      isActivityPost: _.neq(true)
     };
 
     // 如果指定了isPoem参数，添加诗歌筛选条件

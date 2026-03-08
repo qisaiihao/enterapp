@@ -5,13 +5,14 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 const _ = db.command
+const ADMIN_POEM_IDS = ['qisaihao', 'jingmikun']
 
 // 验证管理员权限（通过poemId）
 async function isAdmin(openid) {
   try {
     const result = await db.collection('users').where({
       _openid: openid,
-      poemId: 'qisaihao'
+      poemId: _.in(ADMIN_POEM_IDS)
     }).get()
     
     return result.data.length > 0

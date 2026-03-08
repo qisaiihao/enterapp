@@ -257,7 +257,8 @@ async function getPersonalizedPosts(openId, limit, usedPostIds) {
 
     // 查找相似内容
     const matchConditions = {
-      _id: _.nin([...interactedPostIds, ...usedPostIds])
+      _id: _.nin([...interactedPostIds, ...usedPostIds]),
+      isActivityPost: _.neq(true)
       // 移除isOriginal限制，推荐所有类型的帖子
     };
 
@@ -362,6 +363,7 @@ async function getHotPosts(limit, excludePostIds, openId) {
     }
     
     const matchConditions = {
+      isActivityPost: _.neq(true)
       // 移除isOriginal限制，推荐所有类型的帖子
     };
 
@@ -463,6 +465,7 @@ async function getLatestPosts(limit, excludePostIds, openId) {
     }
     
     const matchConditions = {
+      isActivityPost: _.neq(true)
       // 移除isOriginal限制，推荐所有类型的帖子
     };
 
@@ -561,6 +564,9 @@ async function getTagBasedPosts(openId, limit, usedPostIds) {
   try {
     // 1. 获取所有热门标签（包括原创和非原创帖子）
     const tagsResult = await db.collection('posts').aggregate()
+      .match({
+        isActivityPost: _.neq(true)
+      })
       .unwind('$tags')
       .group({
         _id: '$tags',
@@ -589,7 +595,8 @@ async function getTagBasedPosts(openId, limit, usedPostIds) {
     }
     
     const matchConditions = {
-      tags: _.in(tagNames)
+      tags: _.in(tagNames),
+      isActivityPost: _.neq(true)
       // 移除isOriginal限制，推荐所有类型的帖子
     };
     

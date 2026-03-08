@@ -68,7 +68,8 @@ exports.main = async (event, context) => {
     // 2. 获取用户互动过的帖子信息，提取作者和标签
     const postsRes = await db.collection('posts')
       .where({
-        _id: _.in(interactedPostIds)
+        _id: _.in(interactedPostIds),
+        isActivityPost: _.neq(true)
       })
       .field({
         _openid: true,
@@ -102,7 +103,8 @@ exports.main = async (event, context) => {
     // 构建推荐条件
     const matchConditions = {
       _id: _.nin(interactedPostIds), // 排除已互动过的帖子
-      isOriginal: true // 只推荐原创内容
+      isOriginal: true, // 只推荐原创内容
+      isActivityPost: _.neq(true)
     };
 
     // 过滤被屏蔽用户的帖子（包括匿名帖子的realAuthorOpenid）
