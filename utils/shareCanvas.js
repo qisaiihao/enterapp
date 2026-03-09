@@ -35,27 +35,32 @@ function drawImageAsync(ctx, url, x, y, fixedWidth) {
             src: url,
             success: (res) => {
                 try {
+                    const drawPath = res.path || res.tempFilePath || url;
+                    // H5 下禁止直接绘制跨域远程图，避免污染 Canvas 导致无法导出
+                    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+                        const isSafeLocalPath = drawPath.startsWith('/') || drawPath.startsWith('data:') || drawPath.startsWith('blob:') || drawPath.startsWith('file:');
+                        let isSameOrigin = false;
+                        try {
+                            const parsed = new URL(drawPath, window.location.origin);
+                            isSameOrigin = parsed.origin === window.location.origin;
+                        } catch (_) {}
+                        if (!isSafeLocalPath && !isSameOrigin) {
+                            reject(new Error('H5跨域图片会污染Canvas，已跳过图片绘制'));
+                            return;
+                        }
+                    }
+
                     const scale = fixedWidth / res.width;
                     const drawWidth = fixedWidth;
                     const drawHeight = res.height * scale;
-                    ctx.drawImage(res.path, x, y, drawWidth, drawHeight);
+                    ctx.drawImage(drawPath, x, y, drawWidth, drawHeight);
                     resolve({ width: drawWidth, height: drawHeight });
                 } catch (e) {
                     reject(e);
                 }
             },
             fail: (err) => {
-                // H5 备用方案
-                if (err?.errMsg?.includes('responseText')) {
-                    try {
-                        ctx.drawImage(url, x, y, fixedWidth, fixedWidth);
-                        resolve({ width: fixedWidth, height: fixedWidth });
-                    } catch (e) {
-                        reject(err);
-                    }
-                } else {
-                    reject(err);
-                }
+                reject(err);
             }
         });
     });
@@ -488,6 +493,18 @@ async function drawShareCardContent(options) {
     // 绘制正文
     let y = textTopPadding + titleHeight + titleBottomSpacing + fontSize;
     const x = textPadding;
+    const drawTextSignature = (signatureName) => {
+        const finalName = ((signatureName || '') + '').trim();
+        if (!finalName) return;
+        ctx.setTextAlign('right');
+        ctx.setFillStyle(textColor);
+        ctx.font = signatureTextFontSize + 'px ' + actualFontFamily;
+        const textMargin = 48;
+        const sigTextX = canvasWidth - textMargin;
+        const sigTextY = Math.max(canvasHeight - textMargin, y + signatureTopGap);
+        ctx.fillText(finalName, sigTextX, sigTextY);
+        ctx.setTextAlign('left');
+    };
 
     processedLines.forEach((line) => {
         if (line.trim()) {
@@ -503,32 +520,16 @@ async function drawShareCardContent(options) {
         const signatureMargin = 40;
         const signatureX = canvasWidth - fixedSignatureWidth - signatureMargin;
         const signatureY = Math.min(y + signatureTopGap, canvasHeight - signatureDrawHeight - signatureMargin);
-
-        await drawImageAsync(ctx, post.authorSignature, signatureX, signatureY, fixedSignatureWidth);
+        try {
+            await drawImageAsync(ctx, post.authorSignature, signatureX, signatureY, fixedSignatureWidth);
+        } catch (e) {
+            console.warn('draw signature image failed, fallback to text signature', e);
+            drawTextSignature(post.authorName || post.author);
+        }
     } else if (shouldShowSignature) {
-        const authorName = ((post.authorName || post.author || '') + '').trim();
-        if (authorName) {
-            ctx.setTextAlign('right');
-            ctx.setFillStyle(textColor);
-            ctx.font = signatureTextFontSize + 'px ' + actualFontFamily;
-            const textMargin = 48;
-            const sigTextX = canvasWidth - textMargin;
-            const sigTextY = Math.max(canvasHeight - textMargin, y + signatureTopGap);
-            ctx.fillText(authorName, sigTextX, sigTextY);
-            ctx.setTextAlign('left');
-        }
+        drawTextSignature(post.authorName || post.author);
     } else if (post.isPoem && post.isOriginal === false && post.author) {
-        const originalAuthor = (post.author + '').trim();
-        if (originalAuthor) {
-            ctx.setTextAlign('right');
-            ctx.setFillStyle(textColor);
-            ctx.font = signatureTextFontSize + 'px ' + actualFontFamily;
-            const textMargin = 48;
-            const sigTextX = canvasWidth - textMargin;
-            const sigTextY = Math.max(canvasHeight - textMargin, y + signatureTopGap);
-            ctx.fillText(originalAuthor, sigTextX, sigTextY);
-            ctx.setTextAlign('left');
-        }
+        drawTextSignature(post.author);
     }
 
     // 绘制水印

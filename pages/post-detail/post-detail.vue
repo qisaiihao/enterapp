@@ -863,9 +863,16 @@ export default {
 
         loadFontAndDraw: async function () {
             const fontFamily = this.shareConfig.fontFamily || '汇文明朝';
-            
+
             console.log('【post-detail】开始加载字体:', fontFamily);
-            
+
+            if (fontFamily === 'system') {
+                this.shareConfig.fontScale = 1.0;
+                await new Promise(r => setTimeout(r, 50));
+                this.drawCanvas();
+                return;
+            }
+
             try {
                 // 使用fontManager确保字体可用（自动下载和缓存）
                 await this.fontManager.ensureFontAvailable(fontFamily, (progress, loaded, total) => {
