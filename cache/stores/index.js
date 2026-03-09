@@ -11,6 +11,7 @@ const likeStatusCache = require('./like-status');
 const searchHistoryCache = require('./search-history');
 const refreshFlags = require('./refresh-flags');
 const unreadBadge = require('./unread-badge');
+const activityBadge = require('./activity-badge');
 
 module.exports = {
   avatarCache,
@@ -21,5 +22,6 @@ module.exports = {
   likeStatusCache,
   searchHistoryCache,
   refreshFlags,
-  unreadBadge
+  unreadBadge,
+  activityBadge
 };

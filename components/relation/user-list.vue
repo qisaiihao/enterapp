@@ -1,8 +1,8 @@
 <template>
   <view>
-    <block v-if="users.length > 0">
+    <block v-if="displayUsers.length > 0">
       <view class="list">
-        <view class="user-item" v-for="(item, index) in users" :key="item._openid || index">
+        <view class="user-item" v-for="(item, index) in displayUsers" :key="item._openid || index">
           <view class="user-info" @tap="onUserTap(item, index)">
             <image
               class="avatar"
@@ -17,13 +17,13 @@
           </view>
           <button
             class="action-btn"
-            :class="resolveActionClass(item)"
+            :class="item._resolvedActionClass"
             size="mini"
             @tap.stop.prevent="onActionTap(item, index)"
             :loading="pendingOpenid === item._openid"
             :disabled="pendingOpenid === item._openid"
           >
-            {{ resolveActionText(item) }}
+            {{ item._resolvedActionText }}
           </button>
         </view>
       </view>
@@ -74,6 +74,18 @@ export default {
       default: null
     }
   },
+  computed: {
+    displayUsers() {
+      const list = Array.isArray(this.users) ? this.users : [];
+      return list.map((item) => {
+        const source = item && typeof item === 'object' ? item : {};
+        return Object.assign({}, source, {
+          _resolvedActionText: this.resolveActionText(source),
+          _resolvedActionClass: this.resolveActionClass(source)
+        });
+      });
+    }
+  },
   methods: {
     resolveActionText(item) {
       if (typeof this.actionTextFn === 'function') {
@@ -87,25 +99,32 @@ export default {
       }
       return this.actionClass;
     },
+    getSourceItem(index, fallback) {
+      const sourceList = Array.isArray(this.users) ? this.users : [];
+      return sourceList[index] || fallback;
+    },
     onUserTap(item, index) {
+      const sourceItem = this.getSourceItem(index, item);
       this.$emit('user-tap', {
-        item,
+        item: sourceItem,
         index,
-        openid: item && item._openid
+        openid: sourceItem && sourceItem._openid
       });
     },
     onActionTap(item, index) {
+      const sourceItem = this.getSourceItem(index, item);
       this.$emit('action-tap', {
-        item,
+        item: sourceItem,
         index,
-        openid: item && item._openid
+        openid: sourceItem && sourceItem._openid
       });
     },
     onAvatarError(item, index) {
+      const sourceItem = this.getSourceItem(index, item);
       this.$emit('avatar-error', {
-        item,
+        item: sourceItem,
         index,
-        openid: item && item._openid
+        openid: sourceItem && sourceItem._openid
       });
     }
   }

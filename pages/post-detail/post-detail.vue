@@ -329,7 +329,7 @@ import { uploadFile } from '@/utils/uploader.js';
 import postGalleryMixin from '@/mixins/postGallery.js';
 import { getCurrentUserId } from '@/utils/auth.js';
 import { calculateActualLines as calcCanvasLines, wrapText, clampText } from '@/utils/canvasText.js';
-import { drawImageAsync, calculateActualLines as calcLines, wrapText as wrapCanvasText, calculateShareCardHeight, drawShareCardContent } from '@/utils/shareCanvas.js';
+import { drawImageAsync, calculateActualLines as calcLines, wrapText as wrapCanvasText, calculateShareCardHeight, drawShareCardContent, exportShareCanvas } from '@/utils/shareCanvas.js';
 import { processComments, validateCommentInput, processCommentImages, findComment, calculateRemainingChars } from '@/utils/commentUtils.js';
 import { generateShareImageName, isValidImageDataUrl, base64ToArrayBuffer, saveImageToAlbum, createTempFilePath, compressImage, getImageInfo } from '@/utils/shareImage.js';
 import { syncLikeStatusForPosts, getLatestLikeStatus } from '@/utils/likeStatusSync.js';
@@ -392,6 +392,7 @@ export default {
             shareImageUrl: '',
             shareCanvasHeight: 1000,
             shareImageRetryCount: 0,
+            shareRenderToken: 0,
             shareConfig: {
                 fontSize: 38,
                 titleFontSize: 46,
@@ -851,6 +852,7 @@ export default {
         },
 
         hideShareModal: function () {
+            this.shareRenderToken += 1;
             this.setData({
                 showShareModal: false
             });
@@ -858,10 +860,12 @@ export default {
 
         generateShareImage: function () {
             // 先加载字体，然后绘制Canvas
-            this.loadFontAndDraw();
+            const renderToken = (this.shareRenderToken || 0) + 1;
+            this.shareRenderToken = renderToken;
+            this.loadFontAndDraw(renderToken);
         },
 
-        loadFontAndDraw: async function () {
+        loadFontAndDraw: async function (renderToken) {
             const fontFamily = this.shareConfig.fontFamily || '汇文明朝';
 
             console.log('【post-detail】开始加载字体:', fontFamily);
@@ -869,7 +873,7 @@ export default {
             if (fontFamily === 'system') {
                 this.shareConfig.fontScale = 1.0;
                 await new Promise(r => setTimeout(r, 50));
-                this.drawCanvas();
+                this.drawCanvas(renderToken);
                 return;
             }
 
@@ -899,7 +903,7 @@ export default {
                 // 【关键】等待字体渲染就绪，App端需要更长时间
                 await new Promise(r => setTimeout(r, 150));
                 
-                this.drawCanvas();
+                this.drawCanvas(renderToken);
                 
             } catch (error) {
                 console.error('【post-detail】字体加载失败:', fontFamily, error);
@@ -915,7 +919,7 @@ export default {
 
                 // 即使字体加载失败，也继续绘制
                 await new Promise(r => setTimeout(r, 150));
-                this.drawCanvas();
+                this.drawCanvas(renderToken);
             }
         },
 
@@ -925,8 +929,9 @@ export default {
         
         
         
-        drawCanvas: async function () {
+        drawCanvas: async function (renderToken) {
             try {
+                if (renderToken !== this.shareRenderToken) return;
                 const canvasWidth = 750;
                 // 签名URL已从云函数返回，直接使用post.authorSignature（匿名帖子或非原创诗歌不显示签名）
                 const shouldShowSignature = (!!this.post && !this.post.isAnonymous && !(this.post.isPoem && this.post.isOriginal === false));
@@ -942,6 +947,7 @@ export default {
                 });
                 
                 const canvasHeight = heightResult.canvasHeight;
+                if (renderToken !== this.shareRenderToken) return;
                 console.log('【drawCanvas】计算高度:', canvasHeight);
 
                 // 【关键修复】先更新Canvas高度，等待DOM更新完成
@@ -949,6 +955,7 @@ export default {
                 if (this.$nextTick) { await new Promise(r => this.$nextTick(r)); }
                 // 额外等待确保Canvas尺寸已更新（App端需要更长时间）
                 await new Promise(r => setTimeout(r, 100));
+                if (renderToken !== this.shareRenderToken) return;
                 
                 // 【关键修复】Canvas高度更新后，重新创建上下文进行绘制
                 const ctx = uni.createCanvasContext('shareCanvas', this);
@@ -976,11 +983,13 @@ export default {
 
 
                 ctx.draw(false, () => {
+                    if (renderToken !== this.shareRenderToken) return;
                     console.log('【post-detail】Canvas绘制完成，开始导出图片');
                     
                     // 再次延迟确保绘制完成
                     setTimeout(() => {
-                        this.exportCanvas(canvasWidth, canvasHeight);
+                        if (renderToken !== this.shareRenderToken) return;
+                        this.exportCanvas(canvasWidth, canvasHeight, renderToken);
                     }, 150); // 增加一个微小延迟，应对低性能设备
                 });
 
@@ -991,111 +1000,39 @@ export default {
         },
 
         // 独立的导出函数
-        exportCanvas: function(canvasWidth, canvasHeight) {
-            console.log('【Canvas】开始导出Canvas，尺寸:', { canvasWidth, canvasHeight });
-            
-            uni.canvasToTempFilePath({
-                canvasId: 'shareCanvas',
-                x: 0,
-                y: 0,
-                width: canvasWidth,
-                height: canvasHeight,
-                destWidth: canvasWidth * 2, // 提高分辨率
-                destHeight: canvasHeight * 2, // 提高分辨率
-                success: (res) => {
-                    console.log('【Canvas】图片生成成功:', res.tempFilePath);
-                    console.log('【Canvas】导出参数:', {
-                        canvasWidth,
-                        canvasHeight,
-                        destWidth: canvasWidth * 2,
-                        destHeight: canvasHeight * 2
-                    });
-                    
-                    // 确保隐藏loading
-                    uni.hideLoading();
-                    console.log('【Canvas】Loading已隐藏');
-                    
-                    // 直接显示图片，不保存
-                    const generateImageUrl = function(){
-                        try{
-                            var raw=(res && (res.tempFilePath||res.apFilePath||res.filePath))||'';
-                            var b=Date.now();
-                            // 确保URL格式正确，避免base64 URI问题
-                            if (raw && raw.startsWith('data:')) {
-                                            // 如果是base64 URI，直接返回
-                                            return raw;
-                                        } else {
-                                            // 如果是文件路径，添加时间戳防止缓存
-                                            return (raw? raw+((raw.indexOf('?')>-1?'&':'?')+'_'+b) : raw);
-                                        }
-                                    }catch(e){
-                                        return res.tempFilePath;
-                                    }
-                                };
+        exportCanvas: async function(canvasWidth, canvasHeight, renderToken) {
+            if (renderToken !== this.shareRenderToken) return;
+            console.log('[Canvas] export start', { canvasWidth, canvasHeight });
 
-                                const imageUrl = generateImageUrl();
-                                
-                                // 如果是base64 URI，根据平台使用不同的处理方式
-                                if (imageUrl && imageUrl.startsWith('data:')) {
-                                    console.log('【post-detail】检测到base64 URI，使用跨平台处理');
-                                    
-                                    // #ifdef H5
-                                    // H5平台：直接使用base64 Data URI
-                                    console.log('【post-detail】H5平台直接使用base64 URI');
-                                    this.setData({
-                                        shareImageUrl: imageUrl
-                                    });
-                                    // #endif
-                                    
-                                    // #ifndef H5
-                                    // 非H5平台：使用uni.base64ToTempFilePath()转换
-                                    console.log('【post-detail】非H5平台使用uni.base64ToTempFilePath()转换');
-                                    uni.base64ToTempFilePath({
-                                        base64Data: imageUrl,
-                                        success: (res) => {
-                                            console.log('【post-detail】base64转换成功，临时文件路径:', res.filePath);
-                                            this.setData({
-                                                shareImageUrl: res.filePath
-                                            });
-                                        },
-                                        fail: (err) => {
-                                            console.error('【post-detail】base64转换失败:', err);
-                                            // 如果转换失败，直接使用原URL
-                                            this.setData({
-                                                shareImageUrl: imageUrl
-                                            });
-                                        }
-                                    });
-                                    // #endif
-                                } else {
-                                    // 如果不是base64，直接使用
-                                    this.setData({
-                                        shareImageUrl: imageUrl
-                                    });
-                                }
-                                
-                                // 验证设置是否成功
-                                setTimeout(() => {
-                                    console.log('【post-detail】当前shareImageUrl:', this.shareImageUrl);
-                                }, 100);
-                            },
-                            fail: (err) => {
-                                console.error('【Canvas】生成图片失败:', err);
-                                console.error('【Canvas】失败详情:', {
-                                    canvasWidth,
-                                    canvasHeight,
-                                    destWidth: canvasWidth * 2,
-                                    destHeight: canvasHeight * 2,
-                                    error: err
-                                });
-                                
-                                // 确保隐藏loading
-                                uni.hideLoading();
-                                console.log('【Canvas】Loading已隐藏 (失败情况)');
-                                
-                                uni.showToast({ title: '图片导出失败', icon: 'none' });
-                            }
-                        }, this);
+            try {
+                const exportResult = await exportShareCanvas({
+                    canvasId: 'shareCanvas',
+                    context: this,
+                    width: canvasWidth,
+                    height: canvasHeight,
+                    fileType: 'jpg',
+                    quality: 0.9,
+                    scales: [2, 2, 1.5, 1],
+                    retryDelayMs: 120
+                });
+
+                if (renderToken !== this.shareRenderToken) return;
+
+                const raw = (exportResult && exportResult.tempFilePath) || '';
+                const cacheBuster = Date.now();
+                const imageUrl = raw && raw.startsWith('data:')
+                    ? raw
+                    : (raw ? raw + ((raw.indexOf('?') > -1 ? '&' : '?') + '_' + cacheBuster) : raw);
+
+                uni.hideLoading();
+                this.setData({ shareImageUrl: imageUrl });
+                console.log('[Canvas] export success', { scale: exportResult.scale, imageUrl });
+            } catch (err) {
+                if (renderToken !== this.shareRenderToken) return;
+                console.error('[Canvas] export failed', err);
+                uni.hideLoading();
+                uni.showToast({ title: '图片导出失败', icon: 'none' });
+            }
         },
 
         onImageLongPress: function () {

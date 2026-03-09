@@ -104,6 +104,7 @@ import {
 import { navigateToPostDetail } from '@/utils/navigation.js';
 import { togglePostLike } from '@/utils/likeService.js';
 import { syncLikeStatusForPosts, getLatestLikeStatus } from '@/utils/likeStatusSync.js';
+import { updateTabBarStatus } from '@/utils/tabBarCompatibility.js';
 
 const PAGE_SIZE = 10;
 
@@ -113,26 +114,7 @@ export default {
     try { uni.hideTabBar({ animation: false }); } catch (e) {}
     try { this.$refs.customTabBar && this.$refs.customTabBar.syncSelected && this.$refs.customTabBar.syncSelected(); } catch (e) {}
     // #endif
-
-    // #ifdef MP-WEIXIN
-    // 更新小程序自定义tabBar的选中状态
-    console.log('=== mountain onShow ===');
-    if (typeof this.getTabBar === 'function') {
-      const tabBar = this.getTabBar();
-      console.log('mountain getTabBar() 返回:', tabBar);
-      console.log('tabBar 是否有 setData:', tabBar && typeof tabBar.setData);
-      if (tabBar && tabBar.setData) {
-        console.log('调用 tabBar.setData({ selected: 2 })');
-        tabBar.setData({ selected: 2 }, () => {
-          console.log('mountain tabBar.setData 回调执行，当前 selected:', tabBar.data.selected);
-        });
-      } else {
-        console.warn('mountain tabBar 不可用或没有 setData 方法');
-      }
-    } else {
-      console.warn('mountain this.getTabBar 不是函数');
-    }
-    // #endif
+    updateTabBarStatus(this, 2);
 
     // 检查是否需要刷新数据
     const shouldRefreshIndex = uni.getStorageSync('shouldRefreshIndex');

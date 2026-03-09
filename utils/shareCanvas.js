@@ -7,6 +7,147 @@ const LEGACY_FONT_MAP = {
     'Huiwen-mincho': '汇文明朝'
 };
 
+const DEFAULT_SIGNATURE_OPTIONS = {
+    threshold: 245,
+    neutralTolerance: 18,
+    targetWidth: 240
+};
+
+const signaturePreprocessCache = new Map();
+
+function isMiniProgramEnv() {
+    return typeof wx !== 'undefined' && !!wx;
+}
+
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function getImageInfoSafe(src) {
+    return new Promise((resolve) => {
+        uni.getImageInfo({
+            src,
+            success: (res) => resolve(res || null),
+            fail: () => resolve(null)
+        });
+    });
+}
+
+function dataUrlToTempFilePath(dataUrl) {
+    return new Promise((resolve, reject) => {
+        if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) {
+            reject(new Error('invalid data url'));
+            return;
+        }
+        if (typeof uni.base64ToTempFilePath !== 'function') {
+            reject(new Error('base64ToTempFilePath unavailable'));
+            return;
+        }
+        uni.base64ToTempFilePath({
+            base64Data: dataUrl,
+            success: (res) => resolve(res.filePath),
+            fail: (err) => reject(err)
+        });
+    });
+}
+
+async function removeWhiteBackgroundFromSignature(localPath, imageInfo, options) {
+    if (!isMiniProgramEnv() || !wx.createOffscreenCanvas) return null;
+    if (!localPath) return null;
+
+    const sourceWidth = imageInfo && imageInfo.width ? imageInfo.width : 0;
+    const sourceHeight = imageInfo && imageInfo.height ? imageInfo.height : 0;
+    if (!sourceWidth || !sourceHeight) return null;
+
+    const targetWidth = Math.max(1, Math.round(Math.min(options.targetWidth || sourceWidth, sourceWidth)));
+    const scale = targetWidth / sourceWidth;
+    const targetHeight = Math.max(1, Math.round(sourceHeight * scale));
+
+    let canvas = null;
+    let ctx = null;
+    try {
+        canvas = wx.createOffscreenCanvas({ type: '2d', width: targetWidth, height: targetHeight });
+        ctx = canvas && canvas.getContext && canvas.getContext('2d');
+    } catch (_) {}
+    if (!canvas || !ctx) return null;
+
+    try {
+        ctx.clearRect(0, 0, targetWidth, targetHeight);
+        ctx.drawImage(localPath, 0, 0, targetWidth, targetHeight);
+        const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
+        const data = imageData && imageData.data;
+        if (!data || !data.length) return null;
+
+        let changed = 0;
+        for (let i = 0; i < data.length; i += 4) {
+            const alpha = data[i + 3];
+            if (!alpha) continue;
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+            const spread = Math.max(r, g, b) - Math.min(r, g, b);
+            const isNearWhite = r >= options.threshold && g >= options.threshold && b >= options.threshold;
+            if (isNearWhite && spread <= options.neutralTolerance) {
+                data[i + 3] = 0;
+                changed += 1;
+            }
+        }
+
+        if (!changed) return null;
+        ctx.putImageData(imageData, 0, 0);
+
+        if (typeof canvas.toTempFilePath === 'function') {
+            const res = await new Promise((resolve, reject) => {
+                canvas.toTempFilePath({
+                    fileType: 'png',
+                    quality: 1,
+                    success: resolve,
+                    fail: reject
+                });
+            });
+            return (res && (res.tempFilePath || res.filePath)) || null;
+        }
+
+        if (typeof canvas.toDataURL === 'function') {
+            const dataUrl = canvas.toDataURL('image/png');
+            if (!dataUrl) return null;
+            return await dataUrlToTempFilePath(dataUrl);
+        }
+    } catch (e) {
+        console.warn('[shareCanvas] remove signature white background failed', e);
+    }
+
+    return null;
+}
+
+async function prepareSignatureForCard(signatureUrl, rawOptions = {}) {
+    if (!signatureUrl || typeof signatureUrl !== 'string') return signatureUrl;
+
+    const options = {
+        ...DEFAULT_SIGNATURE_OPTIONS,
+        ...rawOptions
+    };
+
+    const cacheKey = `${signatureUrl}|${options.threshold}|${options.neutralTolerance}|${options.targetWidth}`;
+    if (signaturePreprocessCache.has(cacheKey)) {
+        return signaturePreprocessCache.get(cacheKey);
+    }
+
+    const task = (async () => {
+        if (!isMiniProgramEnv()) return signatureUrl;
+
+        const info = await getImageInfoSafe(signatureUrl);
+        if (!info) return signatureUrl;
+
+        const localPath = info.path || info.tempFilePath || signatureUrl;
+        const processedPath = await removeWhiteBackgroundFromSignature(localPath, info, options);
+        return processedPath || localPath || signatureUrl;
+    })().catch(() => signatureUrl);
+
+    signaturePreprocessCache.set(cacheKey, task);
+    return task;
+}
+
 /**
  * 获取字体的显示名称（用于 Canvas）
  * 统一使用 displayName，兼容旧的 fontFamily ID
@@ -221,7 +362,11 @@ function loadFont(family, source) {
  * @param {number} height - 高度
  * @returns {Promise<string>}
  */
-function canvasToTempFile(canvasId, context, width, height) {
+function canvasToTempFile(canvasId, context, width, height, options = {}) {
+    const destScale = Math.max(1, Number(options.destScale || 2));
+    const fileType = options.fileType || 'jpg';
+    const quality = typeof options.quality === 'number' ? options.quality : 0.9;
+
     return new Promise((resolve, reject) => {
         uni.canvasToTempFilePath({
             canvasId,
@@ -229,10 +374,10 @@ function canvasToTempFile(canvasId, context, width, height) {
             y: 0,
             width,
             height,
-            destWidth: width * 2,
-            destHeight: height * 2,
-            fileType: 'jpg',
-            quality: 0.9,
+            destWidth: Math.max(1, Math.round(width * destScale)),
+            destHeight: Math.max(1, Math.round(height * destScale)),
+            fileType,
+            quality,
             success: (res) => resolve(res.tempFilePath),
             fail: (err) => reject(err)
         }, context);
@@ -240,8 +385,44 @@ function canvasToTempFile(canvasId, context, width, height) {
 }
 
 /**
- * 绘制圆角矩形（使用 quadraticCurveTo）
+ * Export share canvas with retry scales for mini-program reliability.
+ * @param {Object} options
+ * @returns {Promise<{tempFilePath: string, scale: number}>}
  */
+async function exportShareCanvas(options) {
+    const {
+        canvasId,
+        context,
+        width,
+        height,
+        fileType = 'jpg',
+        quality = 0.9,
+        scales = [2, 2, 1.5, 1],
+        retryDelayMs = 120
+    } = options || {};
+
+    let lastError = null;
+    for (let i = 0; i < scales.length; i++) {
+        const scale = scales[i];
+        try {
+            const tempFilePath = await canvasToTempFile(canvasId, context, width, height, {
+                destScale: scale,
+                fileType,
+                quality
+            });
+            return { tempFilePath, scale };
+        } catch (err) {
+            lastError = err;
+            console.warn('[shareCanvas] export retry failed', { scale, err });
+            if (i < scales.length - 1 && retryDelayMs > 0) {
+                await sleep(retryDelayMs);
+            }
+        }
+    }
+
+    throw (lastError || new Error('canvas export failed'));
+}
+
 function drawRoundedRect(ctx, x, y, width, height, radius) {
     ctx.beginPath();
     ctx.moveTo(x + radius, y);
@@ -521,7 +702,10 @@ async function drawShareCardContent(options) {
         const signatureX = canvasWidth - fixedSignatureWidth - signatureMargin;
         const signatureY = Math.min(y + signatureTopGap, canvasHeight - signatureDrawHeight - signatureMargin);
         try {
-            await drawImageAsync(ctx, post.authorSignature, signatureX, signatureY, fixedSignatureWidth);
+            const signaturePath = await prepareSignatureForCard(post.authorSignature, {
+                targetWidth: fixedSignatureWidth
+            });
+            await drawImageAsync(ctx, signaturePath || post.authorSignature, signatureX, signatureY, fixedSignatureWidth);
         } catch (e) {
             console.warn('draw signature image failed, fallback to text signature', e);
             drawTextSignature(post.authorName || post.author);
@@ -546,6 +730,8 @@ module.exports = {
     drawMultiLineText,
     loadFont,
     canvasToTempFile,
+    exportShareCanvas,
+    prepareSignatureForCard,
     drawCornerWatermark,
     calculateShareCardHeight,
     drawShareCardContent

@@ -63,6 +63,7 @@ module.exports = {
   searchHistoryCache: stores.searchHistoryCache,
   refreshFlags: stores.refreshFlags,
   unreadBadge: stores.unreadBadge,
+  activityBadge: stores.activityBadge,
   
   // 调试工具
   getStats: () => cacheManager.getStats(),

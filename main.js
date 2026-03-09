@@ -236,6 +236,10 @@ setTimeout(() => {
     const unreadBadge = require('@/cache/stores/unread-badge.js');
     unreadBadge.initUnreadCount();
   } catch (e) { console.warn('unreadBadge init failed', e); }
+  try {
+    const activityBadge = require('@/cache/stores/activity-badge.js');
+    activityBadge.initActivityBadge();
+  } catch (e) { console.warn('activityBadge init failed', e); }
 }, 1000); // 延迟1秒，让页面先加载完成
 
 // 登录完成后预热：我的资料 + 头像

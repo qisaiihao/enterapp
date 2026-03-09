@@ -1,92 +1,106 @@
 /**
- * TabBar 兼容性处理工具
- * 解决 getTabBar() 在不同平台不支持的问题
+ * TabBar compatibility helpers.
  */
 
-/**
- * 安全地更新TabBar状态
- * @param {Object} pageInstance - 页面实例
- * @param {number} selectedIndex - 选中的tab索引
- */
-export function updateTabBarStatus(pageInstance, selectedIndex) {
+function getNativeTabBar(pageInstance) {
     try {
-        // 只使用原生getTabBar API
-        if (typeof pageInstance.getTabBar === 'function' && pageInstance.getTabBar()) {
-            pageInstance.getTabBar().setData({
-                selected: selectedIndex
-            });
-            console.log(`TabBar状态更新成功 (原生API): selected=${selectedIndex}`);
-            return true;
+        if (typeof pageInstance?.getTabBar === 'function') {
+            const tabBar = pageInstance.getTabBar();
+            if (tabBar) return tabBar;
         }
     } catch (e) {
-        console.log('原生getTabBar API不可用:', e.message);
+        console.log('getTabBar unavailable:', e.message);
+    }
+    return null;
+}
+
+/**
+ * Safely update TabBar selected index.
+ * @param {Object} pageInstance
+ * @param {number} selectedIndex
+ * @returns {boolean}
+ */
+export function updateTabBarStatus(pageInstance, selectedIndex) {
+    const normalizedIndex = typeof selectedIndex === 'number'
+        ? selectedIndex
+        : parseInt(selectedIndex, 10);
+
+    if (Number.isNaN(normalizedIndex)) {
+        console.warn('TabBar update ignored: invalid selected index', selectedIndex);
+        return false;
     }
 
-    // 如果原生API不可用，使用存储机制作为备选
+    const tabBar = getNativeTabBar(pageInstance);
+    if (tabBar) {
+        try {
+            if (typeof tabBar.updateSelected === 'function') {
+                tabBar.updateSelected(normalizedIndex);
+                console.log(`TabBar updated by updateSelected: selected=${normalizedIndex}`);
+                return true;
+            }
+
+            if (typeof tabBar.setData === 'function') {
+                tabBar.setData({ selected: normalizedIndex });
+                console.log(`TabBar updated by setData: selected=${normalizedIndex}`);
+                return true;
+            }
+
+            console.warn('TabBar instance has no updateSelected/setData method');
+        } catch (e) {
+            console.log('Native TabBar update failed:', e.message);
+        }
+    }
+
     try {
-        uni.setStorageSync('currentTabIndex', selectedIndex);
-        console.log(`TabBar状态已保存到存储: selected=${selectedIndex}`);
+        uni.setStorageSync('currentTabIndex', normalizedIndex);
+        console.log(`TabBar state cached: selected=${normalizedIndex}`);
         return true;
     } catch (e) {
-        console.log('存储机制不可用:', e.message);
+        console.log('TabBar cache fallback unavailable:', e.message);
     }
 
-    console.warn('原生getTabBar API不可用，当前平台可能不支持getTabBar()');
     return false;
 }
 
 /**
- * 获取当前TabBar状态
- * @param {Object} pageInstance - 页面实例
- * @returns {number|null} 当前选中的tab索引
+ * Read current selected index from tabBar or fallback cache.
+ * @param {Object} pageInstance
+ * @returns {number|null}
  */
 export function getCurrentTabBarStatus(pageInstance) {
     try {
-        // 方法1：从原生getTabBar获取
-        if (typeof pageInstance.getTabBar === 'function' && pageInstance.getTabBar()) {
-            const tabBar = pageInstance.getTabBar();
-            return tabBar.data?.selected || null;
+        const tabBar = getNativeTabBar(pageInstance);
+        if (tabBar && typeof tabBar.data?.selected === 'number') {
+            return tabBar.data.selected;
         }
     } catch (e) {
-        console.log('无法从原生getTabBar获取状态');
+        console.log('Failed to read tabBar selected state');
     }
 
     try {
-        // 方法2：从自定义组件获取
-        const tabBar = pageInstance.$refs?.customTabBar;
-        if (tabBar && tabBar.data) {
-            return tabBar.data.selected || null;
-        }
+        const cached = uni.getStorageSync('currentTabIndex');
+        return typeof cached === 'number' ? cached : null;
     } catch (e) {
-        console.log('无法从自定义组件获取状态');
-    }
-
-    try {
-        // 方法3：从存储获取
-        return uni.getStorageSync('currentTabIndex') || null;
-    } catch (e) {
-        console.log('无法从存储获取状态');
+        console.log('Failed to read tabBar cache');
     }
 
     return null;
 }
 
 /**
- * 检查当前平台是否支持getTabBar
- * @returns {boolean} 是否支持
+ * Whether current runtime may support custom tabBar APIs.
+ * @returns {boolean}
  */
 export function isTabBarSupported() {
     try {
-        // 检查是否在小程序环境
-        if (typeof wx !== 'undefined' && wx.getTabBar) {
+        if (typeof wx !== 'undefined' && typeof wx.getTabBar === 'function') {
             return true;
         }
-        
-        // 检查是否有自定义tabBar
-        if (typeof uni !== 'undefined' && uni.getTabBar) {
+
+        if (typeof uni !== 'undefined' && typeof uni.getTabBar === 'function') {
             return true;
         }
-        
+
         return false;
     } catch (e) {
         return false;

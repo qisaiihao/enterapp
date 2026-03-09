@@ -46,7 +46,7 @@
                         </text>
                         <view class="font-meta">
                             <text class="font-size">{{ font.sizeFormatted }}</text>
-                            <text class="font-status" :class="getStatusClass(font)">
+                            <text class="font-status" :class="{ default: font.isDefault, cached: !font.isDefault && font.isCached, 'not-cached': !font.isDefault && !font.isCached }">
                                 {{ getStatusText(font) }}
                             </text>
                         </view>
@@ -271,12 +271,6 @@ export default {
             if (font.isDefault) return '默认';
             if (font.isCached) return '已缓存';
             return '需下载';
-        },
-
-        getStatusClass(font) {
-            if (font.isDefault) return 'default';
-            if (font.isCached) return 'cached';
-            return 'not-cached';
         }
     }
 };

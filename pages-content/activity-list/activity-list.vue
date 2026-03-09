@@ -55,6 +55,7 @@
 
 <script>
 import { getRecentActivities, invalidateRecentActivities } from '@/api-cache/activities.js';
+import activityBadge from '@/cache/stores/activity-badge.js';
 const {
   isActivityOngoing,
   formatRange: formatActivityRange
@@ -72,6 +73,7 @@ export default {
     };
   },
   onLoad() {
+    try { activityBadge.markActivitySeen(); } catch (_) {}
     this.refresh();
   },
   onPullDownRefresh() {

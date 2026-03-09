@@ -1,7 +1,7 @@
 <template>
-  <view class="top-bar-container" :style="{ top: safeAreaTop + 'px' }">
+  <view class="top-bar-container">
     <!-- 自定义顶部栏 -->
-    <view class="custom-top-bar">
+    <view class="custom-top-bar" :style="{ paddingTop: safeAreaTop + 'px' }">
       <view class="top-left" @tap="navigateToAdd">
         <image class="top-icon" :src="leftIcon" mode="aspectFit"></image>
       </view>
@@ -137,13 +137,13 @@ export default {
 <style>
 .top-bar-container {
   position: fixed;
+  top: 0;
   left: 0;
   right: 0;
   background: #ffffff;
   z-index: 1000;
   border-bottom: none;
   box-shadow: none;
-  /* top 值通过 JavaScript 动态设置 */
   /* 添加伪元素作为状态栏区域的白色背景 */
 }
 
@@ -163,11 +163,13 @@ export default {
   display: flex;
   /* #ifdef MP-WEIXIN */
   justify-content: flex-start; /* 小程序端：靠左对齐 */
-  padding: 20rpx 200rpx 0 40rpx; /* 小程序端：右侧留出更多空间避免被小程序按钮遮挡 */
+  padding-right: 200rpx; /* 小程序端：右侧留出更多空间避免被小程序按钮遮挡 */
+  padding-left: 40rpx;
   /* #endif */
   /* #ifndef MP-WEIXIN */
   justify-content: space-between; /* 非小程序端：两端对齐 */
-  padding: 20rpx 40rpx 0 40rpx;
+  padding-right: 40rpx;
+  padding-left: 40rpx;
   /* #endif */
   align-items: center;
   background: #fff;

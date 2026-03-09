@@ -1,7 +1,7 @@
 /**
  * 微信小程序编译后处理脚本
  * 1. 在 vendor.js 开头注入 wx.cloud 初始化代码
- * 2. 复制自定义 tabBar 原生组件到编译输出目录
+ * 2. 复制自定义 tabBar 原生组件到编译输出目录（custom-tab-bar 作为唯一源码）
  * 3. 删除小程序打包后的字体文件（小程序使用云端字体）
  */
 
@@ -13,6 +13,35 @@ const modes = ['dev', 'build'];
 
 modes.forEach(mode => {
   console.log(`\n=== 处理 ${mode} 模式 ===`);
+
+  const outputDir = path.join(__dirname, `../unpackage/dist/${mode}/mp-weixin`);
+  const rootProjectConfigPath = path.join(__dirname, '../project.config.json');
+  const rootProjectPrivateConfigPath = path.join(__dirname, '../project.private.config.json');
+
+  // 0. 确保输出目录携带 project.config.json（微信开发者工具要求包含 appid）
+  try {
+    if (!fs.existsSync(outputDir)) {
+      console.log(`⚠️ 输出目录不存在，跳过配置复制: ${outputDir}`);
+    } else {
+      if (fs.existsSync(rootProjectConfigPath)) {
+        const targetProjectConfigPath = path.join(outputDir, 'project.config.json');
+        fs.copyFileSync(rootProjectConfigPath, targetProjectConfigPath);
+        console.log('✅ 已复制 project.config.json 到输出目录');
+      } else {
+        console.log('⚠️ 根目录 project.config.json 不存在，无法复制');
+      }
+
+      if (fs.existsSync(rootProjectPrivateConfigPath)) {
+        const targetProjectPrivateConfigPath = path.join(outputDir, 'project.private.config.json');
+        fs.copyFileSync(rootProjectPrivateConfigPath, targetProjectPrivateConfigPath);
+        console.log('✅ 已复制 project.private.config.json 到输出目录');
+      } else {
+        console.log('ℹ️ 根目录 project.private.config.json 不存在，跳过复制');
+      }
+    }
+  } catch (error) {
+    console.error('❌ 复制项目配置失败:', error);
+  }
   
   // 1. 注入 wx.cloud 初始化代码
   const vendorPath = path.join(__dirname, `../unpackage/dist/${mode}/mp-weixin/common/vendor.js`);
@@ -50,8 +79,8 @@ if (typeof wx !== 'undefined' && wx.cloud && !wx.cloud._kiroInitialized) {
     console.error('❌ 注入失败:', error);
   }
 
-  // 2. 复制自定义 tabBar 原生组件
-  const sourceDir = path.join(__dirname, '../custom-tab-bar-mp');
+  // 2. 复制自定义 tabBar 原生组件（兜底，正常情况下 uni-app 会自动输出该目录）
+  const sourceDir = path.join(__dirname, '../custom-tab-bar');
   const targetDir = path.join(__dirname, `../unpackage/dist/${mode}/mp-weixin/custom-tab-bar`);
 
   const filesToCopy = ['index.js', 'index.wxml', 'index.wxss', 'index.json'];
@@ -60,40 +89,39 @@ if (typeof wx !== 'undefined' && wx.cloud && !wx.cloud._kiroInitialized) {
     // 检查源目录是否存在
     if (!fs.existsSync(sourceDir)) {
       console.log(`⚠️ 源目录不存在: ${sourceDir}`);
-      return;
-    }
-
-    // 确保目标目录存在
-    if (!fs.existsSync(targetDir)) {
-      fs.mkdirSync(targetDir, { recursive: true });
-      console.log(`📁 创建目标目录: ${targetDir}`);
-    }
-
-    // 复制每个文件
-    let copiedCount = 0;
-    filesToCopy.forEach(file => {
-      const sourcePath = path.join(sourceDir, file);
-      const targetPath = path.join(targetDir, file);
-      
-      if (fs.existsSync(sourcePath)) {
-        fs.copyFileSync(sourcePath, targetPath);
-        copiedCount++;
-      } else {
-        console.warn(`⚠️ 源文件不存在: ${file}`);
-      }
-    });
-
-    // 删除可能干扰的 index.vue 文件
-    const vueFilePath = path.join(targetDir, 'index.vue');
-    if (fs.existsSync(vueFilePath)) {
-      fs.unlinkSync(vueFilePath);
-      console.log('🗑️  已删除 index.vue（避免干扰原生组件）');
-    }
-
-    if (copiedCount === filesToCopy.length) {
-      console.log(`✅ 已复制自定义 tabBar 组件 (${copiedCount}/${filesToCopy.length} 个文件)`);
     } else {
-      console.log(`⚠️ 部分文件复制失败 (${copiedCount}/${filesToCopy.length} 个文件)`);
+      // 确保目标目录存在
+      if (!fs.existsSync(targetDir)) {
+        fs.mkdirSync(targetDir, { recursive: true });
+        console.log(`📁 创建目标目录: ${targetDir}`);
+      }
+
+      // 复制每个文件
+      let copiedCount = 0;
+      filesToCopy.forEach(file => {
+        const sourcePath = path.join(sourceDir, file);
+        const targetPath = path.join(targetDir, file);
+        
+        if (fs.existsSync(sourcePath)) {
+          fs.copyFileSync(sourcePath, targetPath);
+          copiedCount++;
+        } else {
+          console.warn(`⚠️ 源文件不存在: ${file}`);
+        }
+      });
+
+      // 删除可能干扰的 index.vue 文件
+      const vueFilePath = path.join(targetDir, 'index.vue');
+      if (fs.existsSync(vueFilePath)) {
+        fs.unlinkSync(vueFilePath);
+        console.log('🗑️  已删除 index.vue（避免干扰原生组件）');
+      }
+
+      if (copiedCount === filesToCopy.length) {
+        console.log(`✅ 已复制自定义 tabBar 组件 (${copiedCount}/${filesToCopy.length} 个文件)`);
+      } else {
+        console.log(`⚠️ 部分文件复制失败 (${copiedCount}/${filesToCopy.length} 个文件)`);
+      }
     }
   } catch (error) {
     console.error('❌ 复制 tabBar 组件失败:', error);

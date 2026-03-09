@@ -362,22 +362,7 @@ export default {
         try { uni.hideTabBar({ animation: false }); } catch (e) {}
         try { this.$refs.customTabBar && this.$refs.customTabBar.syncSelected && this.$refs.customTabBar.syncSelected(); } catch (e) {}
         // #endif
-        
-        // #ifdef MP-WEIXIN
-        // 更新小程序自定义tabBar的选中状态
-        console.log('=== index onShow ===');
-        if (typeof this.getTabBar === 'function') {
-          const tabBar = this.getTabBar();
-          console.log('index getTabBar() 返回:', tabBar);
-          if (tabBar && tabBar.setData) {
-            console.log('调用 tabBar.setData({ selected: 0 })');
-            tabBar.setData({ selected: 0 }, () => {
-              console.log('index tabBar.setData 回调执行');
-            });
-          }
-        }
-        // #endif
-        
+
         // TabBar 状态更新，使用兼容性处理
         updateTabBarStatus(this, 0);
 

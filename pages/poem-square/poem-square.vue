@@ -10,9 +10,10 @@
       </view>
     </view>
 
-    <view v-if="!showFollowingOnly" class="activity-entry-container" :style="{ top: (safeAreaTop * 2 + 160) + 'rpx' }">
+    <view v-if="!showFollowingOnly" class="activity-entry-container" :style="{ top: (safeAreaTop * 2 + 140) + 'rpx' }">
       <view class="activity-entry-btn" @tap="navigateToActivityList">
-        <text class="activity-entry-text">近期活动</text>
+        <image class="activity-entry-icon" src="/static/images/icons/activities.png" mode="aspectFit" />
+        <view v-if="hasNewActivity" class="activity-entry-dot"></view>
       </view>
     </view>
 
@@ -223,6 +224,8 @@ import { togglePostLike } from '@/utils/likeService.js';
 import cacheManager from '@/_utils/cache-manager.js';
 import { syncLikeStatusForPosts, getLatestLikeStatus } from '@/utils/likeStatusSync.js';
 import fileUrlCache from '@/cache/core/file-url';
+import { updateTabBarStatus } from '@/utils/tabBarCompatibility.js';
+import activityBadge from '@/cache/stores/activity-badge.js';
 
 const PAGE_SIZE = 10;
 
@@ -232,6 +235,8 @@ export default {
     try { uni.hideTabBar({ animation: false }); } catch (e) {}
     try { this.$refs.customTabBar && this.$refs.customTabBar.syncSelected && this.$refs.customTabBar.syncSelected(); } catch (e) {}
     // #endif
+
+    try { activityBadge.refreshActivityBadge({ forceRefresh: true, context: this }); } catch (_) {}
 
     const shouldRefreshIndex = uni.getStorageSync('shouldRefreshIndex');
     const shouldRefreshProfile = uni.getStorageSync('shouldRefreshProfile');
@@ -267,29 +272,7 @@ export default {
       });
       return;
     }
-    
-    // #ifdef MP-WEIXIN
-    // 更新小程序自定义tabBar的选中状态
-    console.log('=== poem-square onShow ===');
-    console.log('尝试获取 tabBar...');
-    if (typeof this.getTabBar === 'function') {
-      const tabBar = this.getTabBar();
-      console.log('getTabBar() 返回:', tabBar);
-      if (tabBar) {
-        if (tabBar.updateSelected) {
-          console.log('调用 tabBar.updateSelected(1)');
-          tabBar.updateSelected(1);
-        } else if (tabBar.setData) {
-          console.log('调用 tabBar.setData({ selected: 1 })');
-          tabBar.setData({ selected: 1 });
-        } else {
-          console.warn('tabBar 不可用或没有 updateSelected/setData 方法');
-        }
-      }
-    } else {
-      console.warn('this.getTabBar 不是函数');
-    }
-    // #endif
+    updateTabBarStatus(this, 1);
     
     // 检查缓存新鲜度：从其他页面返回时触发SWR检查
     try {
@@ -336,7 +319,9 @@ export default {
       // 关注头像栏选中的用户ID
       followingSelectedUserId: null,
       // 加载锁定标志，防止重复触发加载
-      _loadingLock: false
+      _loadingLock: false,
+      hasNewActivity: false,
+      _activityBadgeUnsubscribe: null
     };
   },
     onLoad(options) {
@@ -369,10 +354,30 @@ export default {
     // 注册全局点赞变更事件（跨页实时更新）
     // replaced invalid registration
     try { uni.$on && uni.$on('like-changed', this.onGlobalLikeChanged); } catch (_) {}
+    try { this.hasNewActivity = !!activityBadge.getHasNewActivity(); } catch (_) {}
+    try {
+      this._activityBadgeUnsubscribe = activityBadge.subscribe((hasNew) => {
+        try {
+          this.setData({ hasNewActivity: !!hasNew });
+        } catch (_) {
+          this.hasNewActivity = !!hasNew;
+        }
+      });
+    } catch (_) {}
+    try { activityBadge.refreshActivityBadge({ context: this }); } catch (_) {}
     // 设备安全区初始化
     this.debugSafeArea();
     // 首次加载数据
     this.getIndexData();
+  },
+  onUnload() {
+    try { uni.$off && uni.$off('like-changed', this.onGlobalLikeChanged); } catch (_) {}
+    try {
+      if (typeof this._activityBadgeUnsubscribe === 'function') {
+        this._activityBadgeUnsubscribe();
+      }
+    } catch (_) {}
+    this._activityBadgeUnsubscribe = null;
   },
   onPullDownRefresh() {
     console.log('【poem-square】📱 下拉刷新，重新获取数据');
@@ -677,7 +682,10 @@ export default {
 
     navigateToActivityList() {
       uni.navigateTo({
-        url: '/pages-content/activity-list/activity-list'
+        url: '/pages-content/activity-list/activity-list',
+        success: () => {
+          try { activityBadge.markActivitySeen(); } catch (_) {}
+        }
       });
     },
 
@@ -1523,28 +1531,56 @@ export default {
 
 .activity-entry-container {
   position: absolute;
-  top: calc(var(--safe-area-top, 44px) + 160rpx);
+  top: calc(var(--safe-area-top, 44px) + 140rpx);
   left: 30rpx;
   z-index: 1;
 }
 
 .activity-entry-btn {
-  padding: 12rpx 32rpx;
-  border-radius: 50rpx;
-  border: 2rpx solid #e0e0e0;
-  background: #fff;
-  box-shadow: none;
+  width: 120rpx;
+  height: 98rpx;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .activity-entry-btn:active {
   transform: scale(0.95);
 }
 
-.activity-entry-text {
-  font-size: 26rpx;
-  color: #666;
-  font-weight: 600;
-  line-height: 1.2;
+.activity-entry-icon {
+  width: 120rpx;
+  height: 98rpx;
+  display: block;
+}
+
+.activity-entry-dot {
+  position: absolute;
+  top: 2rpx;
+  right: 2rpx;
+  width: 16rpx;
+  height: 16rpx;
+  background: #ff4d4f;
+  border-radius: 50%;
+  border: 2rpx solid #fff;
+  z-index: 2;
+  animation: activity-dot-pulse 2s infinite;
+}
+
+@keyframes activity-dot-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* 关注头像栏定位 */
@@ -1556,7 +1592,3 @@ export default {
   z-index: 10;
 }
 </style>
-
-
-
-
