@@ -57,7 +57,7 @@
       "runtime": "Nodejs10.15",
       "handler": "index.main",
       "root": "./functions/getFollowingPosts",
-      "installDependency": false,
+      "installDependency": true,
       "params": {}
     },
     {
@@ -67,7 +67,7 @@
       "runtime": "Nodejs10.15",
       "handler": "index.main",
       "root": "./functions/getDiscussionPosts",
-      "installDependency": false,
+      "installDependency": true,
       "params": {}
     },
     {

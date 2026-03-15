@@ -30,11 +30,13 @@ function getSafeFileName(fontName) {
 const FONT_CONFIG = {
     '汇文明朝': {
         displayName: '汇文明朝',
-        filename: 'Huiwen-mincho.otf',
+        filename: 'Huiwen-mincho-compressed.woff2', // 统一使用 WOFF2 格式
         cloudPath: 'cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/fonts/Huiwen-mincho.otf',
+        // 小程序端使用 WOFF2 格式的 HTTPS 链接
+        mpWeixinUrl: 'https://636c-cloud1-5gb0pbyl400845f5-1378788263.tcb.qcloud.la/fonts/Huiwen-mincho-compressed.woff2',
         size: 15400,
         version: '1.0.0',
-        // 小程序端跳过加载（使用系统字体），App/H5 使用本地文件
+        // 小程序端使用 wx.loadFontFace 加载，App/H5 使用本地文件
         isDefault: platformDetector.getCurrentPlatform() !== 'mp-weixin',
     },
     '小小皓体': {
@@ -599,30 +601,28 @@ class FontManager {
         const config = this.getFontConfig(fontFamily);
         
         console.log('【FontManager】🔍 执行下载 - 字体:', fontFamily, '平台:', platform);
-        console.log('【FontManager】📦 云存储路径:', config.cloudPath);
         
-        const downloadUrl = await fileUrlCache.getTempUrl(config.cloudPath);
-        console.log('【FontManager】🔗 获取临时链接:', downloadUrl);
-        
-        if (!downloadUrl || downloadUrl === config.cloudPath) {
-            throw new Error('获取字体下载链接失败');
-        }
-        
-        // 【关键修复】小程序端不支持加载本地字体文件，直接使用云存储链接
+        // 【关键修复】小程序端直接使用 HTTPS 链接，不需要获取临时链接
         if (platform === 'mp-weixin') {
-            console.log('【FontManager】☁️ 小程序端直接使用云存储链接，不下载到本地');
+            // 优先使用配置中的 mpWeixinUrl（WOFF2 格式）
+            const mpUrl = config.mpWeixinUrl;
+            if (!mpUrl) {
+                throw new Error('小程序端字体链接未配置');
+            }
             
-            // 保存云存储链接到缓存信息
+            console.log('【FontManager】☁️ 小程序端直接使用 HTTPS 链接:', mpUrl);
+            
+            // 保存 HTTPS 链接到缓存信息
             this.cacheInfo.fonts[fontFamily] = {
                 version: config.version,
                 size: config.size,
                 downloadTime: Date.now(),
-                cloudUrl: downloadUrl,
+                cloudUrl: mpUrl,
                 isCloudFont: true
             };
             this.saveCacheInfo();
             
-            console.log('【FontManager】💾 已保存云存储链接到缓存:', this.cacheInfo.fonts[fontFamily]);
+            console.log('【FontManager】💾 已保存字体链接到缓存:', this.cacheInfo.fonts[fontFamily]);
             
             // 模拟下载进度
             if (onProgress) {
@@ -631,7 +631,16 @@ class FontManager {
                 }
             }
             
-            return downloadUrl;
+            return mpUrl;
+        }
+        
+        // 其他平台（H5/App）使用云存储路径获取临时链接
+        console.log('【FontManager】📦 云存储路径:', config.cloudPath);
+        const downloadUrl = await fileUrlCache.getTempUrl(config.cloudPath);
+        console.log('【FontManager】🔗 获取临时链接:', downloadUrl);
+        
+        if (!downloadUrl || downloadUrl === config.cloudPath) {
+            throw new Error('获取字体下载链接失败');
         }
         
         if (platform === 'h5') {
