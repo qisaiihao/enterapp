@@ -578,7 +578,7 @@ export default {
             
             // 跳转到编辑页面，传递帖子ID
             uni.navigateTo({
-                url: `/pages/add/add?mode=edit&postId=${postId}`,
+                url: `/pages-publish/add/add?mode=edit&postId=${postId}`,
                 success: () => {
                     console.log('【profile】跳转到编辑页面成功');
                 },
@@ -1465,7 +1465,7 @@ export default {
             });
         },
         goToSeriesCompose: function () {
-            uni.navigateTo({ url: '/pages/series-compose/series-compose' });
+            uni.navigateTo({ url: '/pages-publish/series-compose/series-compose' });
         },
         
         // 从菜单中处理组诗合成

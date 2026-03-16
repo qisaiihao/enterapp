@@ -759,25 +759,35 @@ export default {
   align-items: center;
   justify-content: center;
   position: relative;
-  padding: 20rpx 30rpx;
   background: #fff;
   border-bottom: 1rpx solid #e9ecef;
+  /* #ifdef MP-WEIXIN */
+  padding: 80rpx 30rpx 20rpx 30rpx;
+  /* #endif */
+  /* #ifndef MP-WEIXIN */
+  padding: 20rpx 30rpx;
+  /* #endif */
 }
 
 .header-left {
   position: absolute;
+  /* #ifdef MP-WEIXIN */
   left: 30rpx;
-  width: 60rpx;
-  height: 60rpx;
+  top: 80rpx;
+  /* #endif */
+  /* #ifndef MP-WEIXIN */
+  left: 30rpx;
+  /* #endif */
+  width: 80rpx;
+  height: 80rpx;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .back-icon-image {
-  width: 72rpx;
-  height: 72rpx;
-  margin-top: 4rpx;
+  width: 60rpx;
+  height: 60rpx;
 }
 
 .header-title {
@@ -788,17 +798,23 @@ export default {
 
 .header-right {
   position: absolute;
+  /* #ifdef MP-WEIXIN */
+  left: 110rpx;
+  top: 72rpx;
+  /* #endif */
+  /* #ifndef MP-WEIXIN */
   right: 30rpx;
-  width: 100rpx;
+  /* #endif */
+  width: 80rpx;
+  height: 80rpx;
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   align-items: center;
 }
 
 .create-btn-icon {
-  width: 72rpx;
-  height: 72rpx;
-  margin-top: 4rpx;
+  width: 60rpx;
+  height: 60rpx;
 }
 
 .portfolio-list {

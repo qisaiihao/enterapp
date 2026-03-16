@@ -153,43 +153,15 @@
         </view>
 
         <!-- 参加活动选择区域（放在标题/作者下方） -->
-        <view v-if="showJoinActivitySelector" class="join-activity-section" @tap.stop="noop">
-          <view class="join-activity-header">
-            <text class="join-activity-label">参加活动</text>
-            <text class="join-activity-optional">可选</text>
-          </view>
-
-          <view class="join-activity-card" @tap="openJoinActivitySelector">
-            <text class="join-activity-title">{{ selectedActivityDisplayTitle }}</text>
-            <text class="join-activity-subtitle">{{ selectedActivityDisplaySubtitle }}</text>
-          </view>
-
-          <view class="join-activity-actions">
-            <button class="join-activity-btn primary" :disabled="joinActivitiesLoading" @tap="openJoinActivitySelector">
-              {{ joinActivitiesLoading ? '加载中...' : (showJoinActivityPanel ? '收起活动列表' : '选择活动') }}
-            </button>
-            <button
-              v-if="joinedActivityId"
-              class="join-activity-btn"
-              :disabled="joinActivitiesLoading"
-              @tap="clearJoinedActivity"
-            >
-              不参加
-            </button>
-          </view>
-
-          <view v-if="showJoinActivityPanel" class="join-activity-list">
-            <view class="join-activity-item clear" @tap="clearJoinedActivity">
-              <text>不参加活动</text>
-            </view>
+        <view v-if="showJoinActivitySelector && joinableActivities.length > 0" class="join-activity-section" @tap.stop="noop">
+          <view class="join-activity-buttons">
             <view
               v-for="activity in joinableActivities"
               :key="activity._id"
-              :class="['join-activity-item', joinedActivityId === activity._id ? 'active' : '']"
-              @tap="selectJoinedActivity(activity)"
+              :class="['activity-btn', joinedActivityId === activity._id ? 'selected' : '']"
+              @tap="toggleActivity(activity)"
             >
-              <text class="item-title">{{ activity.title || '未命名活动' }}</text>
-              <text class="item-sub">{{ formatActivityRange(activity.startTime, activity.endTime) }}</text>
+              <text class="activity-btn-text">{{ activity.title || '未命名活动' }}</text>
             </view>
           </view>
         </view>
@@ -338,6 +310,11 @@ export default {
     }
 
     this.initJoinActivityState();
+    
+    // 自动加载活动列表
+    if (this.showJoinActivitySelector) {
+      this.ensureJoinableActivitiesLoaded(false);
+    }
 
     // 调试：确保editData结构完整
     if (this.post && this.post.editData) {
@@ -468,6 +445,18 @@ export default {
       this.joinedActivityRangeText = activity.rangeText || this.formatActivityRange(activity.startTime, activity.endTime);
       this.showJoinActivityPanel = false;
       this.syncJoinedActivityToAddPage();
+    },
+
+    toggleActivity(activity) {
+      if (!activity || !activity._id) return;
+      
+      // 如果点击的是已选中的活动，则取消选择
+      if (this.joinedActivityId === activity._id) {
+        this.clearJoinedActivity();
+      } else {
+        // 否则选择该活动
+        this.selectJoinedActivity(activity);
+      }
     },
 
     clearJoinedActivity() {
@@ -1284,8 +1273,8 @@ export default {
 .square-mode-container {
   padding: 40rpx;
   margin-bottom: 0; /* 移除margin-bottom，让固定按钮真正固定 */
-  padding-top: 100rpx; /* 增加顶部边距，与屏幕顶部保持距离 */
-  padding-bottom: 200rpx; /* 增加底部padding，为固定按钮留出足够空间 */
+  padding-top: 180rpx; /* 增加顶部边距，让内容整体下移 */
+  padding-bottom: 120rpx; /* 减少底部padding，为固定按钮留出合适空间 */
 }
 
 /* 底部按钮组 */
@@ -1295,7 +1284,7 @@ export default {
   left: 0 !important;
   right: 0 !important;
   background: #fff !important;
-  padding: 30rpx 20rpx calc(60rpx + env(safe-area-inset-bottom)) 20rpx !important;
+  padding: 30rpx 20rpx calc(10rpx + env(safe-area-inset-bottom)) 20rpx !important;
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
@@ -1310,7 +1299,7 @@ export default {
   left: 0;
   right: 0;
   background: #fff;
-  padding: 30rpx 20rpx calc(60rpx + env(safe-area-inset-bottom)) 20rpx;
+  padding: 30rpx 20rpx calc(80rpx + env(safe-area-inset-bottom)) 20rpx;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1451,121 +1440,29 @@ export default {
   padding: 0 20rpx;
 }
 
-.join-activity-header {
-  width: 80%;
+.join-activity-buttons {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20rpx;
 }
 
-.join-activity-label {
-  font-size: 30rpx;
-  color: #333;
-  font-weight: 600;
-}
-
-.join-activity-optional {
-  font-size: 22rpx;
-  color: #98a2b3;
-}
-
-.join-activity-card {
-  width: 80%;
-  margin-top: 14rpx;
-  border-radius: 14rpx;
-  background: #f7f8fa;
-  border: 1rpx solid #e5e7eb;
-  padding: 18rpx 20rpx;
-  box-sizing: border-box;
-}
-
-.join-activity-title {
-  display: block;
-  font-size: 28rpx;
-  color: #1f2937;
-  font-weight: 500;
-}
-
-.join-activity-subtitle {
-  display: block;
-  margin-top: 6rpx;
-  font-size: 22rpx;
-  color: #6b7280;
-  line-height: 1.4;
-}
-
-.join-activity-actions {
-  width: 80%;
-  margin-top: 14rpx;
-  display: flex;
-  gap: 14rpx;
-}
-
-.join-activity-btn {
-  margin: 0;
-  width: auto;
-  flex: 0 0 auto;
-  min-width: 160rpx;
-  height: 58rpx;
-  line-height: 58rpx;
-  border-radius: 999rpx;
-  padding: 0 22rpx;
-  border: 1rpx solid #d0d5dd;
-  background: #fff;
-  color: #344054;
-  font-size: 24rpx;
-}
-
-.join-activity-btn.primary {
-  border-color: #b2ddff;
-  background: #eff8ff;
-  color: #175cd3;
-}
-
-.join-activity-btn::after {
-  border: none;
-}
-
-.join-activity-list {
-  width: 80%;
-  margin-top: 12rpx;
+.activity-btn {
+  padding: 16rpx 32rpx;
   border-radius: 12rpx;
-  border: 1rpx solid #e4e7ec;
-  overflow: hidden;
+  border: 2rpx solid #999;
   background: #fff;
-  max-height: 360rpx;
-  overflow-y: auto;
+  transition: all 0.3s ease;
 }
 
-.join-activity-item {
-  padding: 14rpx 18rpx;
-  border-bottom: 1rpx solid #f1f3f5;
+.activity-btn.selected {
+  background: #e0e0e0;
+  border-color: #999;
 }
 
-.join-activity-item:last-child {
-  border-bottom: none;
-}
-
-.join-activity-item.clear {
-  background: #f8fafc;
-  color: #475467;
-}
-
-.join-activity-item.active {
-  background: #eef4ff;
-}
-
-.join-activity-item .item-title {
-  display: block;
-  font-size: 25rpx;
-  color: #1f2937;
-}
-
-.join-activity-item .item-sub {
-  display: block;
-  margin-top: 4rpx;
-  font-size: 21rpx;
-  color: #667085;
+.activity-btn-text {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
 }
 
 /* 适配从发布页浮动按钮的层级 */

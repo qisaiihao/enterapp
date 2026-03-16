@@ -82,7 +82,7 @@ export default {
     // 跳转到写诗页面
     navigateToAdd() {
       uni.navigateTo({
-        url: '/pages/add/add',
+        url: '/pages-publish/add/add',
         fail: (err) => {
           console.error('跳转到add页面失败:', err);
           uni.showToast({

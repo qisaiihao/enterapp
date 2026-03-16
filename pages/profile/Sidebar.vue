@@ -32,6 +32,10 @@
                 <view v-if="isAdmin" class="sidebar-item" @tap="navigateToAdmin">
                     <text>管理</text>
                 </view>
+                <!-- 测试工具：仅对管理员显示 -->
+                <view v-if="isAdmin" class="sidebar-item" @tap="navigateToTest">
+                    <text>测试</text>
+                </view>
                 <view class="sidebar-item logout-item" @tap="showLogoutConfirm">
                     <text>退出登录</text>
                 </view>
@@ -129,6 +133,14 @@ export default {
             this.$emit('close');
             uni.navigateTo({
                 url: '/pages-admin/admin-menu/admin-menu'
+            });
+        },
+
+        // 跳转到测试页面
+        navigateToTest() {
+            this.$emit('close');
+            uni.navigateTo({
+                url: '/pages-debug/test-menu/test-menu'
             });
         },
 

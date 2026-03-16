@@ -1792,7 +1792,7 @@ export default {
             try { uni.setStorageSync('preview_post', previewPost); } catch (e) {}
 
             uni.navigateTo({
-                url: '/pages/preview/preview',
+                url: '/pages-publish/preview/preview',
                 success: (res) => {
                     try { res.eventChannel.emit('preview-data', { post: previewPost }); } catch (e) {}
                 }

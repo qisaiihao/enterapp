@@ -77,6 +77,7 @@
     </view>
 
     <!-- 绑定手机号弹窗（样式对齐个人资料修改页面） -->
+    <!-- #ifndef MP-WEIXIN -->
     <view class="edit-phone-modal" v-if="showBindPhoneModal" @tap.stop>
       <view class="modal-mask" @tap="closeBindPhoneModal"></view>
       <view class="modal-content">
@@ -106,6 +107,7 @@
         </view>
       </view>
     </view>
+    <!-- #endif -->
   </view>
 </template>
 
@@ -430,7 +432,8 @@ export default {
                 return;
             }
 
-            // 必须先绑定手机号
+            // #ifndef MP-WEIXIN
+            // 必须先绑定手机号（非小程序端）
             if (!this.phoneNumber) {
                 if (this.isApp) {
                     // App 先拉起一键登录弹窗，用户可选择其它方式切换到短信
@@ -441,8 +444,9 @@ export default {
                 }
                 return;
             }
+            // #endif
 
-            // 已有手机号，直接提交注册
+            // 已有手机号或小程序端，直接提交注册
             await this.submitRegister();
         },
 

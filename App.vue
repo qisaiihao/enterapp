@@ -78,8 +78,8 @@ export default {
                     // 使用 widgetInfo.versionCode 获取版本号
                     const appVersion = widgetInfo.versionCode || 0;
                     const wgtVersion = widgetInfo.version || '';
-                    console.log('📱 [热更新] App 版本号 (versionCode):', appVersion);
-                    console.log('📱 [热更新] WGT 资源包版本号 (wgtVersion):', wgtVersion);
+                    console.log('📱 [热更新] App 版本号 :', appVersion);
+                    console.log('📱 [热更新] WGT 资源包版本号 :', wgtVersion);
                     console.log('📱 [热更新] 当前完整版本信息:', {
                         appId: appId,
                         appVersion: appVersion,
@@ -153,16 +153,29 @@ export default {
         // App 和 H5 环境已经打包了本地字体文件，无需下载
         // #ifdef MP-WEIXIN
         console.log('🔤 [App.vue] 小程序环境，开始预加载汇文明朝字体');
+        console.log('🔤 [App.vue] 字体文件大小: 7.9MB，预计需要 10-30 秒');
+        
+        let lastProgress = 0;
         fontManager.ensureFontAvailable('汇文明朝', (progress) => {
-            console.log(`🔤 [App.vue] 汇文明朝字体下载进度: ${progress}%`);
+            // 每 10% 输出一次日志，避免刷屏
+            if (progress - lastProgress >= 10 || progress === 100) {
+                console.log(`🔤 [App.vue] 汇文明朝字体加载进度: ${progress}%`);
+                lastProgress = progress;
+            }
         }).then(() => {
             console.log('✅ [App.vue] 汇文明朝字体预加载完成，已缓存到本地');
+            console.log('✅ [App.vue] 后续启动将直接使用缓存，无需重新下载');
             // 字体加载完成后，可以触发全局事件通知页面刷新
             try {
                 uni.$emit && uni.$emit('font-loaded', { fontFamily: '汇文明朝' });
             } catch (e) {}
         }).catch(err => {
             console.warn('⚠️ [App.vue] 汇文明朝字体预加载失败，将使用系统默认字体:', err);
+            console.warn('⚠️ [App.vue] 可能原因：');
+            console.warn('   1. 网络连接不稳定');
+            console.warn('   2. 域名配置问题（需要配置 request 合法域名）');
+            console.warn('   3. 字体文件较大，加载超时');
+            console.warn('   4. 系统默认字体仍可正常使用');
         });
         // #endif
         

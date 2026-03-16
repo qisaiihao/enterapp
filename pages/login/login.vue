@@ -90,6 +90,7 @@
     <!-- #endif -->
 
     <!-- 底部绑定手机号弹窗 -->
+    <!-- #ifndef MP-WEIXIN -->
     <view class="bind-phone-modal" v-if="showBindPhoneModal" @tap.stop>
       <view class="modal-mask" @tap="closeBindPhoneModal"></view>
       <view class="modal-content">
@@ -128,6 +129,7 @@
         </view>
       </view>
     </view>
+    <!-- #endif -->
   </view>
 </template>
 
@@ -810,6 +812,7 @@ export default {
                 uni.setStorageSync('userOpenId', result.openid);
 
                 // 检查是否需要绑定手机号
+                // #ifndef MP-WEIXIN
                 const isPhoneVerified = result.isPhoneVerified;
                 console.log('🔍 [handleLoginResult] 手机号验证状态:', isPhoneVerified);
 
@@ -819,7 +822,8 @@ export default {
                     this.showBindPhoneModal = true;
                     this.bindPhoneMethod = this.isApp ? 'oneclick' : 'sms';
                 } else {
-                    console.log('✅ [handleLoginResult] 手机号已验证，跳转到主页');
+                // #endif
+                    console.log('✅ [handleLoginResult] 手机号已验证或小程序端跳过验证，跳转到主页');
                     // 跳转到主页
                     uni.showToast({
                         title: '登录成功',
@@ -832,7 +836,9 @@ export default {
                             url: '/pages/poem-square/poem-square'
                         });
                     }, 1500);
+                // #ifndef MP-WEIXIN
                 }
+                // #endif
             } else {
                 console.error('❌ [handleLoginResult] 登录失败:', result.message);
                 // 登录失败提示

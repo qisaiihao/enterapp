@@ -32,9 +32,9 @@ const FONT_CONFIG = {
         displayName: '汇文明朝',
         filename: 'Huiwen-mincho-compressed.woff2', // 统一使用 WOFF2 格式
         cloudPath: 'cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/fonts/Huiwen-mincho.otf',
-        // 小程序端使用 WOFF2 格式的 HTTPS 链接
+        // 小程序端使用 WOFF2 格式的 HTTPS 链接（直接使用 TCB 域名，避免云函数超时）
         mpWeixinUrl: 'https://636c-cloud1-5gb0pbyl400845f5-1378788263.tcb.qcloud.la/fonts/Huiwen-mincho-compressed.woff2',
-        size: 15400,
+        size: 7993880, // 7.9MB
         version: '1.0.0',
         // 小程序端使用 wx.loadFontFace 加载，App/H5 使用本地文件
         isDefault: platformDetector.getCurrentPlatform() !== 'mp-weixin',
@@ -535,7 +535,7 @@ class FontManager {
         const platform = platformDetector.getCurrentPlatform();
         const cacheData = this.cacheInfo.fonts[fontFamily];
         
-        // 【关键修复】小程序端优先使用云存储链接
+        // 【关键修复】小程序端优先使用云存储链接（需要配置 CORS）
         if (platform === 'mp-weixin') {
             if (cacheData && cacheData.cloudUrl) {
                 console.log('【FontManager】小程序端使用云存储链接:', cacheData.cloudUrl);
@@ -602,7 +602,7 @@ class FontManager {
         
         console.log('【FontManager】🔍 执行下载 - 字体:', fontFamily, '平台:', platform);
         
-        // 【关键修复】小程序端直接使用 HTTPS 链接，不需要获取临时链接
+        // 【关键修复】小程序端直接使用 HTTPS 链接（需要配置 CORS）
         if (platform === 'mp-weixin') {
             // 优先使用配置中的 mpWeixinUrl（WOFF2 格式）
             const mpUrl = config.mpWeixinUrl;
@@ -611,6 +611,8 @@ class FontManager {
             }
             
             console.log('【FontManager】☁️ 小程序端直接使用 HTTPS 链接:', mpUrl);
+            console.log('【FontManager】⚠️ 请确保云存储 CORS 配置正确：');
+            console.log('【FontManager】   Access-Control-Allow-Origin: servicewechat.com 或 *');
             
             // 保存 HTTPS 链接到缓存信息
             this.cacheInfo.fonts[fontFamily] = {
@@ -977,10 +979,11 @@ class FontManager {
         return fontPath;
     }
     
-    async _loadFontFace(fontFamily, fontPath) {
+    async _loadFontFace(fontFamily, fontPath, retryCount = 0) {
         const config = this.getFontConfig(fontFamily);
         const displayName = config?.displayName || fontFamily;
         const platform = platformDetector.getCurrentPlatform();
+        const MAX_RETRIES = 2; // 最多重试2次
 
         // H5 端使用原生 FontFace API，更可靠
         if (platform === 'h5' && typeof FontFace !== 'undefined') {
@@ -1012,10 +1015,12 @@ class FontManager {
                 return true;
             }
             
-            // 【关键修复】小程序端只支持 http/https 协议
+            // 【关键修复】小程序端支持 HTTPS 云端字体（需要配置 CORS）
             // 云存储链接已经是 https，直接使用
             if (fontPath && (fontPath.startsWith('http://') || fontPath.startsWith('https://'))) {
                 console.log('【FontManager】小程序端使用云存储链接加载字体:', fontPath);
+                console.log('【FontManager】字体大小:', config?.size ? `${(config.size / 1024 / 1024).toFixed(2)} MB` : '未知');
+                console.log('【FontManager】⚠️ 如果加载失败，请检查云存储 CORS 配置');
                 sourcePath = fontPath;
             } else {
                 console.error('【FontManager】小程序端不支持的字体路径协议:', fontPath);
@@ -1043,32 +1048,71 @@ class FontManager {
         }
 
         console.log('【FontManager】准备加载字体:', displayName, '路径:', sourcePath);
+        if (retryCount > 0) {
+            console.log('【FontManager】重试次数:', retryCount);
+        }
 
-        // 使用 uni.loadFontFace
+        // 使用 uni.loadFontFace，添加超时和重试机制
         return new Promise((resolve) => {
+            // 设置超时时间（大文件需要更长时间）
+            const timeout = setTimeout(() => {
+                console.warn(`【FontManager】⚠️ 字体加载超时 (${displayName})，但可能仍在后台加载...`);
+                
+                // 超时后重试
+                if (retryCount < MAX_RETRIES) {
+                    console.log(`【FontManager】🔄 准备重试加载字体 (${retryCount + 1}/${MAX_RETRIES})...`);
+                    setTimeout(async () => {
+                        const retryResult = await this._loadFontFace(fontFamily, fontPath, retryCount + 1);
+                        resolve(retryResult);
+                    }, 2000); // 等待2秒后重试
+                } else {
+                    console.error(`【FontManager】❌ 字体加载失败，已达到最大重试次数`);
+                    // 标记为已加载，避免重复尝试
+                    this.loadedFonts.add(fontFamily);
+                    resolve(false);
+                }
+            }, 30000); // 30秒超时（大文件需要更长时间）
+            
             uni.loadFontFace({
                 family: displayName,
                 source: `url("${sourcePath}")`,
                 global: true,
                 success: () => {
+                    clearTimeout(timeout);
                     this.loadedFonts.add(fontFamily);
                     console.log(`【FontManager】✅ 字体加载成功:`, displayName);
+                    if (retryCount > 0) {
+                        console.log(`【FontManager】✅ 重试成功！`);
+                    }
                     resolve(true);
                 },
                 fail: (err) => {
+                    clearTimeout(timeout);
                     console.error(`【FontManager】❌ 字体加载失败:`, displayName, sourcePath, err);
                     
                     // 【关键提示】小程序端字体加载失败的常见原因
                     if (platform === 'mp-weixin') {
                         console.error(`【FontManager】⚠️ 小程序端字体加载失败可能的原因：`);
-                        console.error(`  1. 需要在微信小程序后台配置 request 合法域名`);
-                        console.error(`  2. 域名：${sourcePath.match(/https?:\/\/[^/]+/)?.[0]}`);
-                        console.error(`  3. 配置路径：微信公众平台 > 开发管理 > 开发设置 > 服务器域名 > request合法域名`);
-                        console.error(`  4. 或者：小程序将回退使用系统默认字体`);
+                        console.error(`  1. 云存储 CORS 配置不正确（最常见）`);
+                        console.error(`  2. 需要设置 Access-Control-Allow-Origin: servicewechat.com 或 *`);
+                        console.error(`  3. 配置路径：腾讯云控制台 > 云开发 > 云存储 > 权限设置 > CORS配置`);
+                        console.error(`  4. 字体文件较大 (${config?.size ? (config.size / 1024 / 1024).toFixed(2) + ' MB' : '未知'})，可能需要更长加载时间`);
+                        console.error(`  5. 字体 URL: ${sourcePath.match(/https?:\/\/[^/]+/)?.[0]}`);
+                        console.error(`  6. 小程序将回退使用系统默认字体`);
                     }
                     
-                    // 即使加载失败，也标记为已加载，避免重复尝试
-                    resolve(false);
+                    // 失败后重试
+                    if (retryCount < MAX_RETRIES) {
+                        console.log(`【FontManager】🔄 准备重试加载字体 (${retryCount + 1}/${MAX_RETRIES})...`);
+                        setTimeout(async () => {
+                            const retryResult = await this._loadFontFace(fontFamily, fontPath, retryCount + 1);
+                            resolve(retryResult);
+                        }, 2000); // 等待2秒后重试
+                    } else {
+                        // 标记为已加载，避免重复尝试
+                        this.loadedFonts.add(fontFamily);
+                        resolve(false);
+                    }
                 }
             });
         });

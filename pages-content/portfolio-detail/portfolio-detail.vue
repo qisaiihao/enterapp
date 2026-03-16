@@ -27,7 +27,14 @@
 
         <view v-else id="post-list-container">
           <view v-for="(item, index) in postList" :key="index" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
-            <view class="post-content-navigator" @tap="togglePostExpansion" @longpress="onLongPressCard" :data-index="index" :data-postid="item._id">
+            <view 
+            class="post-content-navigator" 
+            :class="{ 'has-vote-section': item.isExpanded }"
+            @tap="togglePostExpansion" 
+            @longpress="onLongPressCard" 
+            :data-index="index" 
+            :data-postid="item._id"
+          >
               <view class="post-item">
                 <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.highlightLines || item.highlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.content" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
                   <block v-if="item.isExpanded">
@@ -803,8 +810,10 @@ export default {
 .content-container {
   width: 100vw;
   box-sizing: border-box;
-  padding: 0 0 32rpx;
-  padding-top: 140rpx; /* 顶部留白，避免与更多按钮重叠 */
+  padding: 100rpx; /* 与 poem-square 保持一致的左右边距 */
+  padding-top: 240rpx; /* 增加顶部留白，避免与更多按钮重叠 */
+  padding-bottom: 32rpx;
+  margin-bottom: 200rpx; /* 与 poem-square 保持一致的底部边距 */
   display: flex;
   flex-direction: column;
   align-items: stretch; /* 让卡片撑满容器 */
@@ -820,7 +829,7 @@ export default {
   margin-left: 0;
   margin-right: 0;
   border-radius: 30rpx; /* 15px * 2 */
-  margin-bottom: 32rpx; /* 减少间距，让卡片更紧凑 */
+  margin-bottom: 40rpx; /* 与 poem-square 保持一致的卡片间距 */
   overflow: hidden;
   box-shadow: 0 8rpx 8rpx rgba(0, 0, 0, 0.25); /* 0px 4px 4px * 2 */
   transition: transform .3s ease;
@@ -833,8 +842,19 @@ export default {
 /* 背景颜色现在通过内联样式动态设置，不再使用固定的CSS类 */
 
 .post-item-wrapper:active { transform: scale(0.98); }
-.post-content-navigator { display: block; width: 100%; }
-.post-item { padding: 32rpx; position: relative; width: 100%; box-sizing: border-box; } /* 进一步减少padding，文字往左移动 */
+.post-content-navigator { 
+  display: block; 
+  width: 100%;
+  border-radius: 30rpx; /* 默认完整圆角（折叠态） */
+  overflow: hidden;
+}
+
+/* 展开态时，post-content-navigator 只保留上方圆角 */
+.post-content-navigator.has-vote-section {
+  border-radius: 30rpx 30rpx 0 0;
+}
+
+.post-item { padding: 26rpx 50rpx 26rpx 60rpx; position: relative; width: 100%; box-sizing: border-box; } /* 与 poem-square 保持一致的内边距 */
 
 /* Typography inspired by poem.css */
 .post-content {
@@ -864,7 +884,13 @@ export default {
 .post-content.expanded { display: block; overflow: visible; }
 .comment-emoji{ font-size: 40rpx; }
 .comment-icon { width: 60rpx; height: 60rpx; }
-.vote-section { display: flex; justify-content: space-between; align-items: center; padding: 35rpx 50rpx; }
+.vote-section { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  padding: 35rpx 50rpx;
+  border-radius: 0 0 30rpx 30rpx; /* 只保留下方圆角，与 poem-square 保持一致 */
+}
 .actions-left { flex: 1; display: flex; align-items: center; gap: 20rpx; }
 .button-group { display: flex; align-items: center; gap: 30rpx; }
 .comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; }
