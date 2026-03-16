@@ -205,6 +205,7 @@ import postGalleryMixin from '@/mixins/postGallery.js';
 import { updateTabBarStatus } from '@/utils/tabBarCompatibility.js';
 import { invalidateMyProfile } from '@/api-cache/profile.js';
 import { emitPostVisibilityChanged, emitFavoriteChanged } from '@/utils/events.js';
+import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
 
 const app = getApp();
 const PAGE_SIZE = 5;
@@ -1871,6 +1872,21 @@ export default {
                     }
                 });
         },
+        
+        // 分享到好友/群聊
+        onShareAppMessage(res) {
+            return getShareAppMessageConfig({
+                title: 'poementer',
+                path: '/pages/profile/profile'
+            });
+        },
+        
+        // 分享到朋友圈
+        onShareTimeline() {
+            return getShareTimelineConfig({
+                title: 'poementer'
+            });
+        }
 
     }
 };

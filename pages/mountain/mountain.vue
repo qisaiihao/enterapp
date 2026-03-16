@@ -105,6 +105,7 @@ import { navigateToPostDetail } from '@/utils/navigation.js';
 import { togglePostLike } from '@/utils/likeService.js';
 import { syncLikeStatusForPosts, getLatestLikeStatus } from '@/utils/likeStatusSync.js';
 import { updateTabBarStatus } from '@/utils/tabBarCompatibility.js';
+import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
 
 const PAGE_SIZE = 10;
 
@@ -547,7 +548,22 @@ export default {
       }
     },
     touchStart() {},
-    touchEnd() {}
+    touchEnd() {},
+    
+    // 分享到好友/群聊
+    onShareAppMessage(res) {
+      return getShareAppMessageConfig({
+        title: 'poementer',
+        path: '/pages/mountain/mountain'
+      });
+    },
+    
+    // 分享到朋友圈
+    onShareTimeline() {
+      return getShareTimelineConfig({
+        title: 'poementer'
+      });
+    }
   }
 };
 </script>

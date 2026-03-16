@@ -226,6 +226,7 @@ import { syncLikeStatusForPosts, getLatestLikeStatus } from '@/utils/likeStatusS
 import fileUrlCache from '@/cache/core/file-url';
 import { updateTabBarStatus } from '@/utils/tabBarCompatibility.js';
 import activityBadge from '@/cache/stores/activity-badge.js';
+import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
 
 const PAGE_SIZE = 10;
 
@@ -1256,6 +1257,21 @@ export default {
         }
         if (changed) this.setData({ postList: next });
       } catch (err) { console.warn('[poem-square] syncLikeStatusFromCache failed', err); }
+    },
+    
+    // 分享到好友/群聊
+    onShareAppMessage(res) {
+      return getShareAppMessageConfig({
+        title: 'poementer',
+        path: '/pages/poem-square/poem-square'
+      });
+    },
+    
+    // 分享到朋友圈
+    onShareTimeline() {
+      return getShareTimelineConfig({
+        title: 'poementer'
+      });
     }
   }
 };

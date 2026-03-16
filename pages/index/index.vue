@@ -200,6 +200,7 @@ import { processPostList } from '@/utils/postProcessor.js';
 import { cloudCall } from '@/utils/cloudCall.js';
 import postGalleryMixin from '@/mixins/postGallery.js';
 import cacheManager from '@/_utils/cache-manager.js';
+import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
 
 // 常量定义
 const PAGE_SIZE = 10;
@@ -2136,6 +2137,21 @@ export default {
         forceLoadData() {
             console.log('🔴 [forceLoadData] 手动触发数据加载');
             this.getIndexData();
+        },
+        
+        // 分享到好友/群聊
+        onShareAppMessage(res) {
+            return getShareAppMessageConfig({
+                title: 'poementer',
+                path: '/pages/index/index'
+            });
+        },
+        
+        // 分享到朋友圈
+        onShareTimeline() {
+            return getShareTimelineConfig({
+                title: 'poementer'
+            });
         }
     }
 };
