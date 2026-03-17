@@ -100,12 +100,38 @@
         </view>
         <view class="modal-body">
           <text class="modal-text">检测到您使用 Poem ID 登录，是否将此账号绑定到当前微信？</text>
-          <text class="modal-text" style="margin-top: 20rpx; color: #999; font-size: 26rpx;">绑定后，您的所有数据（帖子、评论等）将关联到当前微信账号。</text>
+          <text class="modal-text" style="margin-top: 20rpx; color: #999; font-size: 26rpx;">绑定后，下次可直接使用微信登录此账号，数据更安全且可跨端共享。</text>
         </view>
         <view class="modal-footer">
           <view class="modal-btn cancel-btn" @tap="skipBindWechat">跳过</view>
           <view class="modal-btn confirm-btn" @tap="handleBindWechat" :class="{ disabled: isBindingWechat }">
             {{ isBindingWechat ? '绑定中...' : '确认绑定' }}
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 解绑确认弹窗（小程序专属） -->
+    <view class="bind-phone-modal" v-if="showRebindConfirmModal" @tap.stop>
+      <view class="modal-mask" @tap="cancelRebind"></view>
+      <view class="modal-content">
+        <view class="modal-header">
+          <text class="modal-title">微信已绑定其他账号</text>
+          <text class="modal-close" @tap="cancelRebind">×</text>
+        </view>
+        <view class="modal-body">
+          <text class="modal-text">当前微信已绑定到账号：</text>
+          <view class="bound-account-info">
+            <text class="bound-account-text">Poem ID: {{ boundAccountInfo?.poemId }}</text>
+            <text class="bound-account-text">昵称: {{ boundAccountInfo?.nickName }}</text>
+          </view>
+          <text class="modal-text" style="margin-top: 20rpx; color: #ff6b6b; font-size: 26rpx;">是否解绑该账号，并绑定到当前登录的账号？</text>
+          <text class="modal-text" style="margin-top: 10rpx; color: #999; font-size: 24rpx;">注意：解绑后，原账号将无法使用微信登录。</text>
+        </view>
+        <view class="modal-footer">
+          <view class="modal-btn cancel-btn" @tap="cancelRebind">取消</view>
+          <view class="modal-btn confirm-btn warning-btn" @tap="confirmRebind" :class="{ disabled: isBindingWechat }">
+            {{ isBindingWechat ? '处理中...' : '确认解绑并重新绑定' }}
           </view>
         </view>
       </view>
@@ -218,7 +244,10 @@ export default {
             // 绑定微信相关
             showBindWechatModal: false,
             isBindingWechat: false,
-            pendingLoginResult: null // 暂存登录结果，等待用户确认绑定
+            pendingLoginResult: null, // 暂存登录结果，等待用户确认绑定
+            // 解绑确认相关
+            showRebindConfirmModal: false,
+            boundAccountInfo: null // 已绑定的账号信息
         };
     },
     
@@ -1096,49 +1125,27 @@ export default {
 
             try {
                 const result = this.pendingLoginResult;
-                const oldOpenid = result.openid;
-                const newOpenid = result.currentOpenid;
                 const poemId = result.userInfo.poemId;
 
-                console.log('🔍 [handleBindWechat] 开始绑定微信:', { oldOpenid, newOpenid, poemId });
+                console.log('🔍 [handleBindWechat] 开始绑定微信到账号:', { poemId });
 
-                // 调用云函数批量更新 openid
-                const bindResult = await this.callCloudFunction('bindWechatOpenid', {
-                    oldOpenid: oldOpenid,
-                    poemId: poemId
+                // 调用新的云函数：只添加 wechatOpenId，不修改 _openid
+                const bindResult = await this.callCloudFunction('bindWechatToAccount', {
+                    poemId: poemId,
+                    forceRebind: false // 首次绑定，不强制
                 });
 
                 console.log('🔍 [handleBindWechat] 绑定结果:', bindResult);
 
                 if (bindResult.result && bindResult.result.success) {
-                    // 绑定成功，更新全局数据
-                    const app = getApp();
-                    result.userInfo._openid = newOpenid;
-                    app.globalData.userInfo = result.userInfo;
-                    app.globalData.openid = newOpenid;
-                    app.globalData._loginProcessCompleted = true;
-                    app.globalData.isLoggedIn = true;
-
-                    uni.setStorageSync('userInfo', result.userInfo);
-                    uni.setStorageSync('userOpenId', newOpenid);
-
+                    // 绑定成功
+                    this.completeBindWechat(result);
+                } else if (bindResult.result && bindResult.result.code === 'WECHAT_ALREADY_BOUND') {
+                    // 微信已绑定到其他账号，显示解绑确认弹窗
+                    console.log('⚠️ [handleBindWechat] 微信已绑定到其他账号，显示解绑确认弹窗');
+                    this.boundAccountInfo = bindResult.result.boundAccount;
                     this.showBindWechatModal = false;
-                    this.pendingLoginResult = null;
-
-                    const updateStats = bindResult.result.updateResults;
-                    const totalUpdated = Object.values(updateStats).reduce((sum, count) => sum + count, 0);
-
-                    uni.showToast({
-                        title: `绑定成功！已更新 ${totalUpdated} 条数据`,
-                        icon: 'success',
-                        duration: 3000
-                    });
-
-                    setTimeout(() => {
-                        uni.switchTab({
-                            url: '/pages/poem-square/poem-square'
-                        });
-                    }, 2000);
+                    this.showRebindConfirmModal = true;
                 } else {
                     throw new Error(bindResult.result?.message || '绑定失败');
                 }
@@ -1153,6 +1160,90 @@ export default {
                 uni.hideLoading();
                 this.isBindingWechat = false;
             }
+        },
+
+        // 确认解绑并重新绑定
+        async confirmRebind() {
+            if (this.isBindingWechat || !this.pendingLoginResult) return;
+
+            this.isBindingWechat = true;
+            uni.showLoading({
+                title: '重新绑定中...',
+                mask: true
+            });
+
+            try {
+                const result = this.pendingLoginResult;
+                const poemId = result.userInfo.poemId;
+
+                console.log('🔍 [confirmRebind] 确认解绑并重新绑定:', { poemId });
+
+                // 调用云函数，强制重新绑定
+                const bindResult = await this.callCloudFunction('bindWechatToAccount', {
+                    poemId: poemId,
+                    forceRebind: true // 强制重新绑定
+                });
+
+                console.log('🔍 [confirmRebind] 重新绑定结果:', bindResult);
+
+                if (bindResult.result && bindResult.result.success) {
+                    // 重新绑定成功
+                    this.showRebindConfirmModal = false;
+                    this.boundAccountInfo = null;
+                    this.completeBindWechat(result);
+                } else {
+                    throw new Error(bindResult.result?.message || '重新绑定失败');
+                }
+            } catch (error) {
+                console.error('❌ [confirmRebind] 重新绑定失败:', error);
+                uni.showToast({
+                    title: error.message || '重新绑定失败，请重试',
+                    icon: 'none',
+                    duration: 3000
+                });
+            } finally {
+                uni.hideLoading();
+                this.isBindingWechat = false;
+            }
+        },
+
+        // 取消解绑
+        cancelRebind() {
+            this.showRebindConfirmModal = false;
+            this.boundAccountInfo = null;
+            // 返回到绑定微信弹窗
+            this.showBindWechatModal = true;
+        },
+
+        // 完成绑定微信（公共方法）
+        completeBindWechat(result) {
+            // 绑定成功，更新本地用户信息
+            const app = getApp();
+            result.userInfo.wechatOpenId = result.currentOpenid;
+            app.globalData.userInfo = result.userInfo;
+            app.globalData.openid = result.openid; // 保持原有 openid
+            app.globalData._loginProcessCompleted = true;
+            app.globalData.isLoggedIn = true;
+
+            uni.setStorageSync('userInfo', result.userInfo);
+            uni.setStorageSync('userOpenId', result.openid);
+
+            this.showBindWechatModal = false;
+            this.showRebindConfirmModal = false;
+            this.pendingLoginResult = null;
+            this.boundAccountInfo = null;
+
+            uni.showToast({
+                title: '绑定成功！下次可直接使用微信登录',
+                icon: 'success',
+                duration: 3000
+            });
+
+            setTimeout(() => {
+                uni.switchTab({
+                    url: '/pages/poem-square/poem-square'
+                });
+            }, 2000);
         }
     }
 };
@@ -1484,5 +1575,30 @@ export default {
   box-sizing: border-box;
   margin: 0;
   padding: 0 24rpx;
+}
+
+/* 已绑定账号信息样式 */
+.bound-account-info {
+  margin-top: 20rpx;
+  padding: 24rpx;
+  background: #f5f6f7;
+  border-radius: 12rpx;
+}
+
+.bound-account-text {
+  display: block;
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.8;
+}
+
+/* 警告按钮样式 */
+.warning-btn {
+  background: #ff6b6b;
+  color: #fff;
+}
+
+.warning-btn:active {
+  opacity: 0.8;
 }
 </style>
