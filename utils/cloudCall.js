@@ -97,12 +97,26 @@ async function cloudCall(name, data = {}, options = {}) {
         if (!openid) {
             if (requireAuth) {
                 const error = createError('NO_OPENID', '用户未登录或 openid 缺失');
-                if (typeof uni !== 'undefined' && uni.showToast) {
-                    uni.showToast({
-                        title: '请先登录',
-                        icon: 'none'
-                    });
+                
+                // 使用统一的登录提示
+                if (typeof uni !== 'undefined') {
+                    try {
+                        // 动态导入authHelper，避免循环依赖
+                        const authHelper = await import('./authHelper.js');
+                        await authHelper.requireLogin({
+                            content: '此操作需要登录，请先登录'
+                        });
+                    } catch (importError) {
+                        // 降级到简单的toast提示
+                        if (uni.showToast) {
+                            uni.showToast({
+                                title: '请先登录',
+                                icon: 'none'
+                            });
+                        }
+                    }
                 }
+                
                 console.warn(`[cloudCall][${pageTag}] openid 缺失，调用 "${name}" 失败`);
                 throw error;
             }

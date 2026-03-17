@@ -190,6 +190,7 @@ import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
 import { navigateToUserProfile } from '@/utils/navigation.js';
 import { calculateAge } from '@/utils/ageCalculator.js';
 import { fetchTimelineData } from '@/utils/profileTimeline.js';
+import { checkLoginOrPrompt } from '@/utils/authHelper.js';
 import {
   groupPostsByMonth as groupPostsByMonthUtil,
   processPostsForTimeline as processPostsForTimelineUtil,
@@ -302,32 +303,19 @@ export default {
             collapsedMonths: {} // 存储每个月份的折叠状态
         };
     },
-    onLoad: function (options) {
-        // 【小程序审核优化】检查登录状态，未登录则提示并跳转到登录页
-        const app = getApp();
-        const isLoggedIn = app && app.globalData && app.globalData.isLoggedIn;
+    async onLoad(options) {
+        // 使用新的登录检查工具
+        const isLoggedIn = await checkLoginOrPrompt({
+            content: '查看个人主页需要登录，请先登录',
+            onCancel: () => {
+                // 返回到首页
+                uni.switchTab({
+                    url: '/pages/index/index'
+                });
+            }
+        });
         
         if (!isLoggedIn) {
-            console.log('⚠️ [Profile] 用户未登录，提示登录');
-            uni.showModal({
-                title: '需要登录',
-                content: '查看个人主页需要登录，请先登录',
-                confirmText: '去登录',
-                cancelText: '取消',
-                success: (res) => {
-                    if (res.confirm) {
-                        // 使用 navigateTo 跳转到登录页
-                        uni.navigateTo({
-                            url: '/pages/login/login'
-                        });
-                    } else {
-                        // 返回到首页
-                        uni.switchTab({
-                            url: '/pages/index/index'
-                        });
-                    }
-                }
-            });
             return;
         }
         

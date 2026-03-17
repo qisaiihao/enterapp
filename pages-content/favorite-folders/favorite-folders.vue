@@ -130,6 +130,8 @@
 <script>
 // pages/favorite-folders/favorite-folders.js
 const { cloudCall } = require('../../utils/cloudCall.js');
+import { checkLoginOrPrompt } from '@/utils/authHelper.js';
+
 export default {
     data() {
         return {
@@ -149,8 +151,21 @@ export default {
             isSwipeMode: false
         };
     },
-    onLoad: function () {
+    async onLoad() {
         console.log('=== 收藏夹列表页面 onLoad ===');
+        
+        // 检查登录状态
+        const isLoggedIn = await checkLoginOrPrompt({
+            content: '查看收藏夹需要登录，请先登录',
+            onCancel: () => {
+                uni.navigateBack();
+            }
+        });
+        
+        if (!isLoggedIn) {
+            return;
+        }
+        
         this.loadFolders();
     },
     onShow: function () {

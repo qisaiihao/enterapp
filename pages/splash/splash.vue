@@ -208,16 +208,17 @@ export default {
         },
 
         async navigateAfterSplash() {
-            // #ifdef MP-WEIXIN
-            await this.waitForLoginBootstrap();
-            if (!this.hasAuthenticatedUser()) {
-                console.log('🔐 [splash] MP-WEIXIN 未登录，跳转登录页');
-                uni.reLaunch({
-                    url: '/pages/login/login?forceLogin=1'
-                });
-                return;
-            }
-            // #endif
+            // 【修改】移除强制登录验证，允许未登录用户进入主页面
+            console.log('🚀 [splash] 允许未登录访问，直接进入诗歌广场');
+            
+            // 可选：后台静默尝试登录，但不阻塞用户访问
+            this.waitForLoginBootstrap().then(() => {
+                if (this.hasAuthenticatedUser()) {
+                    console.log('✅ [splash] 后台登录成功');
+                } else {
+                    console.log('ℹ️ [splash] 用户未登录，但允许继续浏览');
+                }
+            });
 
             uni.switchTab({
                 url: '/pages/poem-square/poem-square'

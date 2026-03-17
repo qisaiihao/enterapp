@@ -236,6 +236,7 @@
 // pages/add/add.js
 import { hydrateTempUrls } from '@/_utils/hydrate-temp-urls';
 import { emitPostUpdated, emitPostCreated } from '@/utils/events.js';
+import { checkLoginOrPrompt } from '@/utils/authHelper.js';
 
 // API函数导入
 import { getAllTags } from '@/api-cache/tags.js';
@@ -532,29 +533,18 @@ export default {
             immediate: true
         }
     },
-    onLoad: function (options) {
+    async onLoad(options) {
         options = options || {};
-        // 登录校验
-        const app = getApp();
-        const isLoggedIn = app && app.globalData && app.globalData.isLoggedIn;
-
+        
+        // 使用新的登录检查工具
+        const isLoggedIn = await checkLoginOrPrompt({
+            content: '发帖前请先登录',
+            onCancel: () => {
+                uni.navigateBack();
+            }
+        });
+        
         if (!isLoggedIn) {
-            console.log('[Add] user not logged in');
-            uni.showModal({
-                title: '需要登录',
-                content: '发帖前请先登录',
-                confirmText: '去登录',
-                cancelText: '取消',
-                success: (res) => {
-                    if (res.confirm) {
-                        uni.navigateTo({
-                            url: '/pages/login/login'
-                        });
-                    } else {
-                        uni.navigateBack();
-                    }
-                }
-            });
             return;
         }
 

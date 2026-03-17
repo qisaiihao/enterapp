@@ -391,12 +391,11 @@ export default {
         },
 
         /**
-         * 检查是否是允许的页面（splash、login 或 register）
+         * 检查是否是允许的页面（现在允许所有页面未登录访问）
          */
         isAllowedPageForUnauthenticated() {
-            const currentPath = this.getCurrentPagePath();
-            // 允许 splash、login 和 register 页面在没有登录时访问
-            return currentPath.includes('splash') || currentPath.includes('login') || currentPath.includes('register');
+            // 【修改】允许所有页面未登录访问，只在特定操作时提示登录
+            return true;
         },
 
         // 【重构 & 修正】4. 使用 async/await 重写整个登录流程，代码更清晰
@@ -472,32 +471,8 @@ export default {
             }
 
             // 步骤二：缓存未命中，执行完整的云端登录
-            // 【关键修改】如果当前页面不是 splash 或 login，且没有缓存，则重定向到 splash
-            if (!this.isAllowedPageForUnauthenticated()) {
-                console.log('⚠️ [登录流程] 检测到直接访问非登录页面，且无登录缓存，重定向到开屏页面');
-                
-                // 【关键修复】在重定向之前，确保 TCB 匿名认证已完成（仅 H5/APP）
-                // #ifdef H5 || APP-PLUS
-                try {
-                    const currentUser = this.$tcb.auth().currentUser;
-                    if (!currentUser) {
-                        console.log('🔐 [登录流程] 重定向前，确保匿名认证完成...');
-                        await this.$tcb.auth().signInAnonymously();
-                        console.log('✅ [登录流程] 匿名认证已完成');
-                    }
-                } catch (authError) {
-                    console.warn('⚠️ [登录流程] 匿名认证失败（可能已在 main.js 中完成）:', authError);
-                }
-                // #endif
-                
-                // 延迟一小段时间，确保页面加载完成
-                setTimeout(() => {
-                    uni.reLaunch({
-                        url: '/pages/splash/splash'
-                    });
-                }, 100);
-                return; // 中断登录流程，等待在 splash 页面重新执行
-            }
+            // 【修改】允许未登录用户访问所有页面，不强制重定向
+            console.log('🤔 [登录流程] 缓存未命中，但允许未登录访问，继续后台登录...');
 
             console.log('🤔 [登录流程] 缓存未命中，开始执行云端登录...');
             
