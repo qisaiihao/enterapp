@@ -151,11 +151,73 @@ export default {
          * 【小程序审核优化】允许未登录浏览
          */
         async skipToMainPage() {
-            const app = getApp();
-            
             console.log('⚡ [splash] 快速进入模式：跳过预加载，直接使用页面缓存');
-            
-            // 【小程序审核优化】直接跳转到原创诗歌页面（主页）
+            await this.navigateAfterSplash();
+        },
+
+        waitForLoginBootstrap(maxWait = 2500) {
+            return new Promise((resolve) => {
+                let app = null;
+                try {
+                    app = getApp();
+                } catch (e) {
+                    resolve();
+                    return;
+                }
+
+                if (!app || !app.globalData || app.globalData._loginProcessCompleted) {
+                    resolve();
+                    return;
+                }
+
+                const start = Date.now();
+                const timer = setInterval(() => {
+                    const done = app && app.globalData && app.globalData._loginProcessCompleted;
+                    if (done || Date.now() - start >= maxWait) {
+                        clearInterval(timer);
+                        resolve();
+                    }
+                }, 120);
+            });
+        },
+
+        hasAuthenticatedUser() {
+            const app = getApp();
+            const globalData = (app && app.globalData) || {};
+            if (globalData.isLoggedIn && globalData.userInfo) {
+                return true;
+            }
+
+            let cachedUserInfo = null;
+            try {
+                cachedUserInfo = uni.getStorageSync('userInfo');
+            } catch (e) {}
+
+            if (cachedUserInfo && (cachedUserInfo.poemId || cachedUserInfo._openid)) {
+                if (app) {
+                    app.globalData = app.globalData || {};
+                    app.globalData.userInfo = cachedUserInfo;
+                    app.globalData.openid = cachedUserInfo._openid || app.globalData.openid;
+                    app.globalData.isLoggedIn = true;
+                }
+                return true;
+            }
+
+            return false;
+        },
+
+        async navigateAfterSplash() {
+            // #ifdef MP-WEIXIN
+            await this.waitForLoginBootstrap();
+            if (!this.hasAuthenticatedUser()) {
+                console.log('🔐 [splash] MP-WEIXIN 未登录，跳转登录页');
+                uni.reLaunch({
+                    url: '/pages/login/login?forceLogin=1'
+                });
+                return;
+            }
+            // #endif
+
             uni.switchTab({
                 url: '/pages/poem-square/poem-square'
             });
@@ -770,11 +832,8 @@ export default {
             this.startFadeOut();
 
             // 延迟跳转，让动画完成
-            setTimeout(() => {
-                // 【小程序审核优化】直接跳转到原创诗歌页面（主页）
-                uni.switchTab({
-                    url: '/pages/poem-square/poem-square'
-                });
+            setTimeout(async () => {
+                await this.navigateAfterSplash();
             }, 800);
         },
 
@@ -1062,4 +1121,3 @@ page {
 .enter-key-label { position: absolute; left: 22rpx; bottom: 18rpx; font-size: 24rpx; color: #333; font-weight: 500; }
 .enter-key-arrow { position: absolute; right: 22rpx; bottom: 18rpx; font-size: 26rpx; color: #333; font-weight: 700; }
 </style>
-

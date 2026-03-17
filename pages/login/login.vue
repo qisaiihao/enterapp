@@ -1,11 +1,11 @@
-﻿﻿<template>
+<template>
   <view class="white-page">
     <view class="container">
       <text class="brand">poementer</text>
       
       <!-- 小程序环境：显示微信授权登录 -->
       <!-- #ifdef MP-WEIXIN -->
-      <view class="center-wrap wechat-wrap" v-if="!showPasswordLogin">
+      <view class="center-wrap wechat-wrap" v-if="enableWechatLogin && !showPasswordLogin">
         <view class="wechat-login-section">
           <button 
             class="wechat-login-btn" 
@@ -63,7 +63,7 @@
           </view>
           
           <!-- #ifdef MP-WEIXIN -->
-          <view class="switch-login-method" @tap="showPasswordLogin = false">
+          <view class="switch-login-method" v-if="enableWechatLogin" @tap="showPasswordLogin = false">
             <text class="switch-text">返回微信登录</text>
           </view>
           <!-- #endif -->
@@ -180,7 +180,8 @@ export default {
             poemId: '',
             password: '',
             isLogging: false,
-            showPasswordLogin: false, // 小程序环境下控制是否显示密码登录
+            showPasswordLogin: true, // 小程序环境下控制是否显示密码登录
+            enableWechatLogin: true,
             showBindPhoneModal: false,
             isBindingPhone: false,
             bindPhoneMethod: 'oneclick', // 'oneclick' 或 'sms'
@@ -196,7 +197,7 @@ export default {
     computed: {
         canLogin() {
             // #ifdef MP-WEIXIN
-            if (!this.showPasswordLogin) {
+            if (this.enableWechatLogin && !this.showPasswordLogin) {
                 return true; // 微信登录始终可用
             }
             // #endif
@@ -625,7 +626,7 @@ export default {
         // 账号密码登录
         async onLogin() {
             // #ifdef MP-WEIXIN
-            if (!this.showPasswordLogin) {
+            if (this.enableWechatLogin && !this.showPasswordLogin) {
                 // 微信登录
                 return this.loginWithWechat();
             }

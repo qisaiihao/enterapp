@@ -1,4 +1,3 @@
-// 云函数入口文件
 const cloud = require('wx-server-sdk');
 
 cloud.init({
@@ -12,7 +11,10 @@ exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
   const { poemId, password } = event;
 
-  console.log('🔍 [loginWithCredentials] 收到登录请求:', { poemId, password: password ? '***' : 'undefined' });
+  console.log('[loginWithCredentials] request:', {
+    poemId,
+    password: password ? '***' : 'undefined'
+  });
 
   if (!poemId || !password) {
     return {
@@ -23,13 +25,12 @@ exports.main = async (event, context) => {
   }
 
   try {
-    // 查询用户是否存在
     const userRes = await db.collection('users').where({
-      poemId: poemId,
-      password: password
+      poemId,
+      password
     }).get();
 
-    console.log('🔍 [loginWithCredentials] 查询结果:', userRes);
+    console.log('[loginWithCredentials] query result count:', userRes.data.length);
 
     if (userRes.data.length === 0) {
       return {
@@ -40,18 +41,17 @@ exports.main = async (event, context) => {
     }
 
     const userInfo = userRes.data[0];
-    const currentOpenid = wxContext.OPENID;
-    
-    console.log('✅ [loginWithCredentials] 登录成功，用户信息:', {
-      _openid: userInfo._openid,
-      nickName: userInfo.nickName,
+    const currentOpenid = wxContext.OPENID || null;
+
+    console.log('[loginWithCredentials] login success before normalize:', {
+      dbOpenid: userInfo._openid,
+      currentOpenid,
       poemId: userInfo.poemId,
-      currentOpenid: currentOpenid
+      nickName: userInfo.nickName
     });
 
-    // 如果当前openid与数据库中的openid不同，更新数据库中的openid
-    if (currentOpenid && currentOpenid !== userInfo._openid) {
-      console.log('🔄 [loginWithCredentials] 检测到openid变化，更新数据库中的openid');
+    // 仅在历史数据缺少 _openid 时补齐，避免不同平台登录相互覆盖账号锚点
+    if (!userInfo._openid && currentOpenid) {
       try {
         await db.collection('users').doc(userInfo._id).update({
           data: {
@@ -59,32 +59,28 @@ exports.main = async (event, context) => {
             updateTime: new Date()
           }
         });
-        console.log('✅ [loginWithCredentials] openid更新成功');
-        
-        // 更新用户信息中的openid
         userInfo._openid = currentOpenid;
+        console.log('[loginWithCredentials] filled missing _openid with currentOpenid');
       } catch (updateError) {
-        console.error('❌ [loginWithCredentials] openid更新失败:', updateError);
-        // 即使更新失败，也继续登录流程
+        console.error('[loginWithCredentials] failed to fill missing _openid:', updateError);
       }
+    } else if (currentOpenid && userInfo._openid && currentOpenid !== userInfo._openid) {
+      console.log('[loginWithCredentials] openid mismatch detected, keep db _openid unchanged');
     }
 
-    // 返回用户信息，但不包含密码
     const { password: _, ...safeUserInfo } = userInfo;
-
-    // 判断是否已验证手机号：检查 phoneNumber 字段是否存在且不为空
+    const resolvedOpenid = safeUserInfo._openid || currentOpenid;
     const isPhoneVerified = !!(safeUserInfo.phoneNumber && safeUserInfo.phoneNumber.trim());
 
     return {
       success: true,
       message: '登录成功',
       userInfo: safeUserInfo,
-      openid: currentOpenid || userInfo._openid,
-      isPhoneVerified: isPhoneVerified
+      openid: resolvedOpenid,
+      isPhoneVerified
     };
-
   } catch (error) {
-    console.error('❌ [loginWithCredentials] 登录失败:', error);
+    console.error('[loginWithCredentials] error:', error);
     return {
       success: false,
       message: '登录失败，请重试',
