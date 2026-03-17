@@ -39,7 +39,42 @@ exports.main = async (event, context) => {
     
     const user = userRes.data[0];
     
-    // 2. 检查该微信是否已绑定到其他账号
+    // 2. 检查该微信 openid 是否已被用作其他账号的 _openid（原有账号）
+    const existingOpenidRes = await db.collection('users').where({
+      _openid: wechatOpenId
+    }).get();
+    
+    if (existingOpenidRes.data.length > 0 && existingOpenidRes.data[0]._id !== user._id) {
+      const conflictUser = existingOpenidRes.data[0];
+      
+      // 如果不是强制绑定，返回警告信息
+      if (!forceRebind) {
+        console.log('⚠️ [bindWechatToAccount] 该微信 openid 已被用作其他账号的 _openid，需要用户确认');
+        
+        // 检查冲突账号是否设置了 Poem ID 和密码
+        const hasPoemId = !!(conflictUser.poemId && conflictUser.poemId.trim());
+        const hasPassword = !!(conflictUser.password && conflictUser.password.trim());
+        
+        return {
+          success: false,
+          message: '该微信已被用于其他账号',
+          code: 'OPENID_CONFLICT',
+          conflictType: '_openid',
+          conflictAccount: {
+            poemId: conflictUser.poemId || null,
+            nickName: conflictUser.nickName || '未设置昵称',
+            hasPoemId: hasPoemId,
+            hasPassword: hasPassword,
+            canLogin: hasPoemId && hasPassword // 是否可以通过 Poem ID 登录
+          }
+        };
+      }
+      
+      // 强制绑定：警告用户原账号将无法访问
+      console.log('⚠️ [bindWechatToAccount] 强制绑定，原账号将无法通过微信访问:', conflictUser.poemId || '未设置PoemID');
+    }
+    
+    // 3. 检查该微信是否已绑定到其他账号的 wechatOpenId
     const existingBindRes = await db.collection('users').where({
       wechatOpenId: wechatOpenId
     }).get();
@@ -54,6 +89,7 @@ exports.main = async (event, context) => {
           success: false,
           message: '该微信已绑定到其他账号',
           code: 'WECHAT_ALREADY_BOUND',
+          conflictType: 'wechatOpenId',
           boundAccount: {
             poemId: oldUser.poemId,
             nickName: oldUser.nickName
@@ -72,7 +108,7 @@ exports.main = async (event, context) => {
       console.log('✅ [bindWechatToAccount] 已解绑旧账号');
     }
     
-    // 3. 更新用户的 wechatOpenId
+    // 4. 更新用户的 wechatOpenId
     await db.collection('users').doc(user._id).update({
       data: {
         wechatOpenId: wechatOpenId,

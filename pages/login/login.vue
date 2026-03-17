@@ -136,6 +136,56 @@
         </view>
       </view>
     </view>
+
+    <!-- _openid 冲突确认弹窗（小程序专属） -->
+    <view class="bind-phone-modal" v-if="showOpenidConflictModal" @tap.stop>
+      <view class="modal-mask" @tap="cancelOpenidConflict"></view>
+      <view class="modal-content">
+        <view class="modal-header">
+          <text class="modal-title">⚠️ 重要提示</text>
+          <text class="modal-close" @tap="cancelOpenidConflict">×</text>
+        </view>
+        <view class="modal-body">
+          <text class="modal-text">当前微信已被用于注册账号：</text>
+          <view class="bound-account-info">
+            <text class="bound-account-text">Poem ID: {{ conflictAccountInfo?.poemId || '未设置' }}</text>
+            <text class="bound-account-text">昵称: {{ conflictAccountInfo?.nickName }}</text>
+          </view>
+          
+          <!-- 如果冲突账号没有设置 Poem ID，显示数据丢失警告 -->
+          <view v-if="!conflictAccountInfo?.canLogin">
+            <text class="modal-text" style="margin-top: 20rpx; color: #ff4444; font-size: 28rpx; font-weight: bold;">⚠️ 该账号未设置 Poem ID 和密码！</text>
+            <text class="modal-text" style="margin-top: 10rpx; color: #ff6b6b; font-size: 26rpx;">如果继续绑定，该账号的数据将永久丢失，无法找回！</text>
+            <text class="modal-text" style="margin-top: 15rpx; color: #333; font-size: 26rpx; font-weight: bold;">建议操作：</text>
+            <text class="modal-text" style="margin-top: 5rpx; color: #666; font-size: 24rpx;">1. 点击"取消"</text>
+            <text class="modal-text" style="margin-top: 5rpx; color: #666; font-size: 24rpx;">2. 使用微信登录原账号</text>
+            <text class="modal-text" style="margin-top: 5rpx; color: #666; font-size: 24rpx;">3. 在个人资料中设置 Poem ID 和密码</text>
+            <text class="modal-text" style="margin-top: 5rpx; color: #666; font-size: 24rpx;">4. 再回来绑定当前账号</text>
+          </view>
+          
+          <!-- 如果冲突账号已设置 Poem ID，显示普通警告 -->
+          <view v-else>
+            <text class="modal-text" style="margin-top: 20rpx; color: #ff6b6b; font-size: 28rpx; font-weight: bold;">如果继续绑定，该账号将无法通过微信登录！</text>
+            <text class="modal-text" style="margin-top: 10rpx; color: #666; font-size: 24rpx;">该账号可以继续通过 Poem ID + 密码登录。</text>
+            <text class="modal-text" style="margin-top: 10rpx; color: #666; font-size: 24rpx;">建议：如果您想使用该账号，请点击"取消"，然后使用微信登录。</text>
+          </view>
+        </view>
+        <view class="modal-footer">
+          <view class="modal-btn cancel-btn" @tap="cancelOpenidConflict">取消</view>
+          <view class="modal-btn confirm-btn" 
+                :class="{ 
+                  'warning-btn': true, 
+                  'danger-btn': !conflictAccountInfo?.canLogin,
+                  'disabled': isBindingWechat 
+                }" 
+                @tap="confirmOpenidConflict">
+            <text v-if="isBindingWechat">处理中...</text>
+            <text v-else-if="!conflictAccountInfo?.canLogin">我知道风险，继续绑定</text>
+            <text v-else>我知道了，继续绑定</text>
+          </view>
+        </view>
+      </view>
+    </view>
     <!-- #endif -->
 
     <!-- 底部绑定手机号弹窗 -->
@@ -247,7 +297,10 @@ export default {
             pendingLoginResult: null, // 暂存登录结果，等待用户确认绑定
             // 解绑确认相关
             showRebindConfirmModal: false,
-            boundAccountInfo: null // 已绑定的账号信息
+            boundAccountInfo: null, // 已绑定的账号信息
+            // _openid 冲突确认相关
+            showOpenidConflictModal: false,
+            conflictAccountInfo: null // 冲突的账号信息
         };
     },
     
@@ -1140,6 +1193,35 @@ export default {
                 if (bindResult.result && bindResult.result.success) {
                     // 绑定成功
                     this.completeBindWechat(result);
+                } else if (bindResult.result && bindResult.result.code === 'OPENID_CONFLICT') {
+                    // 微信 openid 已被用作其他账号的 _openid
+                    console.log('⚠️ [handleBindWechat] 微信 openid 冲突，显示警告弹窗');
+                    this.conflictAccountInfo = bindResult.result.conflictAccount;
+                    this.showBindWechatModal = false;
+                    this.showOpenidConflictModal = true;
+                } else if (bindResult.result && bindResult.result.code === 'WECHAT_ALREADY_BOUND') {
+                    // 微信已绑定到其他账号，显示解绑确认弹窗
+                    console.log('⚠️ [handleBindWechat] 微信已绑定到其他账号，显示解绑确认弹窗');
+                    this.boundAccountInfo = bindResult.result.boundAccount;
+                    this.showBindWechatModal = false;
+                    this.showRebindConfirmModal = true;
+                } else {
+                    throw new Error(bindResult.result?.message || '绑定失败');
+                }
+            } catch (error) {
+                console.error('❌ [handleBindWechat] 绑定失败:', error);
+                uni.showToast({
+                    title: error.message || '绑定失败，请重试',
+                    icon: 'none',
+                    duration: 3000
+                });
+            } finally {
+                uni.hideLoading();
+                this.isBindingWechat = false;
+            }
+        },
+                    // 绑定成功
+                    this.completeBindWechat(result);
                 } else if (bindResult.result && bindResult.result.code === 'WECHAT_ALREADY_BOUND') {
                     // 微信已绑定到其他账号，显示解绑确认弹窗
                     console.log('⚠️ [handleBindWechat] 微信已绑定到其他账号，显示解绑确认弹窗');
@@ -1211,6 +1293,59 @@ export default {
         cancelRebind() {
             this.showRebindConfirmModal = false;
             this.boundAccountInfo = null;
+            // 返回到绑定微信弹窗
+            this.showBindWechatModal = true;
+        },
+
+        // 确认 openid 冲突并继续绑定
+        async confirmOpenidConflict() {
+            if (this.isBindingWechat || !this.pendingLoginResult) return;
+
+            this.isBindingWechat = true;
+            uni.showLoading({
+                title: '绑定中...',
+                mask: true
+            });
+
+            try {
+                const result = this.pendingLoginResult;
+                const poemId = result.userInfo.poemId;
+
+                console.log('🔍 [confirmOpenidConflict] 用户确认继续绑定，忽略 openid 冲突:', { poemId });
+
+                // 调用云函数，强制绑定
+                const bindResult = await this.callCloudFunction('bindWechatToAccount', {
+                    poemId: poemId,
+                    forceRebind: true // 强制绑定，忽略冲突
+                });
+
+                console.log('🔍 [confirmOpenidConflict] 强制绑定结果:', bindResult);
+
+                if (bindResult.result && bindResult.result.success) {
+                    // 绑定成功
+                    this.showOpenidConflictModal = false;
+                    this.conflictAccountInfo = null;
+                    this.completeBindWechat(result);
+                } else {
+                    throw new Error(bindResult.result?.message || '绑定失败');
+                }
+            } catch (error) {
+                console.error('❌ [confirmOpenidConflict] 强制绑定失败:', error);
+                uni.showToast({
+                    title: error.message || '绑定失败，请重试',
+                    icon: 'none',
+                    duration: 3000
+                });
+            } finally {
+                uni.hideLoading();
+                this.isBindingWechat = false;
+            }
+        },
+
+        // 取消 openid 冲突绑定
+        cancelOpenidConflict() {
+            this.showOpenidConflictModal = false;
+            this.conflictAccountInfo = null;
             // 返回到绑定微信弹窗
             this.showBindWechatModal = true;
         },
@@ -1600,5 +1735,17 @@ export default {
 
 .warning-btn:active {
   opacity: 0.8;
+}
+
+/* 危险按钮样式（数据丢失风险） */
+.danger-btn {
+  background: #ff4444 !important;
+  color: #fff !important;
+  border: 2rpx solid #ff2222 !important;
+  box-shadow: 0 0 20rpx rgba(255, 68, 68, 0.3);
+}
+
+.danger-btn:active {
+  opacity: 0.9;
 }
 </style>
