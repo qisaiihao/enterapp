@@ -341,6 +341,7 @@ import { requestAndroidStoragePermission } from '@/utils/permissions.js';
 import { emitCommentCountChanged, emitPostUpdated } from '@/utils/events.js';
 import fontManager from '@/utils/fontManager.js'; // 添加fontManager导入
 import { checkContentSafe, checkTextSafe } from '@/utils/contentModeration.js';
+import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
 
 // API函数导入
 import { getPostDetail, updatePostContent, togglePostFavorite, recordPostView } from '@/api-cache/post.js';
@@ -2730,6 +2731,40 @@ export default {
                 });
             });
         },
+        
+        // 分享到好友/群聊
+        onShareAppMessage(res) {
+            const postId = this.post?._id;
+            // 优先使用标题，如果没有标题则使用内容前20个字符
+            let title = 'poementer';
+            if (this.post?.title) {
+                title = this.post.title;
+            } else if (this.post?.content) {
+                title = this.post.content.substring(0, 20) + (this.post.content.length > 20 ? '...' : '');
+            }
+            
+            return getShareAppMessageConfig({
+                title: title,
+                path: postId ? `/pages/post-detail/post-detail?id=${postId}` : '/pages/poem-square/poem-square'
+            });
+        },
+        
+        // 分享到朋友圈
+        onShareTimeline() {
+            const postId = this.post?._id;
+            // 优先使用标题，如果没有标题则使用内容前20个字符
+            let title = 'poementer';
+            if (this.post?.title) {
+                title = this.post.title;
+            } else if (this.post?.content) {
+                title = this.post.content.substring(0, 20) + (this.post.content.length > 20 ? '...' : '');
+            }
+            
+            return getShareTimelineConfig({
+                title: title,
+                query: postId ? `id=${postId}` : ''
+            });
+        }
 
     }
 };

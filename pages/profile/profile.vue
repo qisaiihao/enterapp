@@ -205,6 +205,7 @@ import postGalleryMixin from '@/mixins/postGallery.js';
 import { updateTabBarStatus } from '@/utils/tabBarCompatibility.js';
 import { invalidateMyProfile } from '@/api-cache/profile.js';
 import { emitPostVisibilityChanged, emitFavoriteChanged } from '@/utils/events.js';
+import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
 
 const app = getApp();
 const PAGE_SIZE = 5;
@@ -578,7 +579,7 @@ export default {
             
             // 跳转到编辑页面，传递帖子ID
             uni.navigateTo({
-                url: `/pages/add/add?mode=edit&postId=${postId}`,
+                url: `/pages-publish/add/add?mode=edit&postId=${postId}`,
                 success: () => {
                     console.log('【profile】跳转到编辑页面成功');
                 },
@@ -1465,7 +1466,7 @@ export default {
             });
         },
         goToSeriesCompose: function () {
-            uni.navigateTo({ url: '/pages/series-compose/series-compose' });
+            uni.navigateTo({ url: '/pages-publish/series-compose/series-compose' });
         },
         
         // 从菜单中处理组诗合成
@@ -1871,6 +1872,21 @@ export default {
                     }
                 });
         },
+        
+        // 分享到好友/群聊
+        onShareAppMessage(res) {
+            return getShareAppMessageConfig({
+                title: 'poementer',
+                path: '/pages/profile/profile'
+            });
+        },
+        
+        // 分享到朋友圈
+        onShareTimeline() {
+            return getShareTimelineConfig({
+                title: 'poementer'
+            });
+        }
 
     }
 };

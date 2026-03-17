@@ -46,6 +46,7 @@
 import { imageManager } from '@/utils/imageManager.js';
 import { cloudCall } from '@/utils/cloudCall.js';
 import { getPostList as getPostListWithCache } from '@/api-cache/post-list.js';
+import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
 
 export default {
     data() {
@@ -842,6 +843,21 @@ export default {
             this.setData({
                 fadeOut: true,
                 zoomOut: true
+            });
+        },
+        
+        // 分享到好友/群聊
+        onShareAppMessage(res) {
+            return getShareAppMessageConfig({
+                title: 'poementer',
+                path: '/pages/poem-square/poem-square'
+            });
+        },
+        
+        // 分享到朋友圈
+        onShareTimeline() {
+            return getShareTimelineConfig({
+                title: 'poementer'
             });
         }
     }

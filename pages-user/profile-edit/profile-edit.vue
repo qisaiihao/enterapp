@@ -38,6 +38,7 @@
                 </view>
 
                 <!-- 手机号（可修改） -->
+                <!-- #ifndef MP-WEIXIN -->
                 <view class="form-row phone-row" @tap="onEditPhoneNumber">
                     <view class="form-label">
                         <text>手机号</text>
@@ -46,6 +47,7 @@
                         <input class="input-field" type="text" :value="formattedPhoneNumber" :disabled="true" />
                     </view>
                 </view>
+                <!-- #endif -->
 
                 <!-- 地区 -->
                 <view class="form-row">

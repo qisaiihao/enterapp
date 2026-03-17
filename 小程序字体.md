@@ -1,0 +1,82 @@
+简述：使用开启CORS的woff字体格式(或ttf)的https资源地址，使用wx.loadFontFace API(css原生@font-face语法)加载使用。
+
+⚠️ 注意：字体商用需授权许可，目前免费可商用的大部分字体，可见参考索引5。以下示例使用的是开源字体：得意黑和钉钉进步体。
+
+1. wx.loadFontFace
+使用wx.loadFontFace 加载字体，配合wxss和wxml使用，参见文档 & 官方示例
+
+// -- wxss --
+// .DingTalk-JinBuTi {
+//  font-family: 'DingTalk-JinBuTi';
+// }
+wx.loadFontFace({
+  family: 'DingTalk-JinBuTi',
+  source: 'url("https://xxx/font/DingTalk-JinBuTi.woff")', //此处需替换为真实字体地址
+  success(res) {
+    console.log(res.status)
+  },
+  fail: function (res) {
+    console.log(res.status)
+  },
+  complete: function (res) {
+    console.log(res.status)
+  }
+});
+注意：
+
+格式支持常见的基本所有类型(ttf、woff、woff2（web主流）、otf、sfnt)，建议格式为 TTF 和 WOFF（推荐），WOFF2 在低版本的 iOS 上会不兼容。
+字体链接仅支持https链接
+字体链接访问需满足浏览器同源策略，字体文件资源设置CORS的Access-Control-Allow-Origin为小程序域名：servicewechat.com或者*才可以。
+经过测试，ios和小米手机对于未设置CORS的字体文件仍然可以正常加载，荣耀和vivo无法正常加载，需要设置正确的CORS即可正常加载
+在加载成功之后，会自动刷新字体显示
+不需要设置downloadFile合法域名及业务域名。
+扩展：一次加载，全局使用
+如下在app.js中加载添加全局参数（global: true），即可在任意页面中的font-family中使用该字体。
+
+onLaunch() {
+  wx.loadFontFace({
+    family: 'DingTalk-JinBuTi',
+    global: true,
+    source: 'url("https://xxx/font/DingTalk-JinBuTi.woff")',  //此处需替换为真实字体地址
+    success(res) {
+      console.log(res.status)
+    },
+    fail: function (res) {
+      console.log(res.status)
+    },
+    complete: function (res) {
+      console.log(res.status)
+    }
+  });
+},
+2. @font-face
+同css加载字体的规则，见MDN文档，
+
+注意：字体链接访问需满足浏览器同源策略。支持常见格式。
+
+@font-face {
+    font-family: "SmileySans-Oblique";
+    src: url("https://xxx/font/SmileySans-Oblique.woff");  //此处需替换为真实字体地址
+}
+​
+.SmileySans-Oblique {
+    font-family: 'SmileySans-Oblique';
+}
+扩展：全局使用
+在app.wxss中引入字体即可全局使用。
+
+@font-face {
+  font-family: "SmileySans-Oblique";
+  src: url("https://xxx/font/SmileySans-Oblique.woff");  //此处需替换为真实字体地址
+}
+​
+.SmileySans-Oblique {
+  font-family: 'SmileySans-Oblique';
+}
+3. face-font base64
+因源码过大致小程序增加包体积，暂不考虑。英文字体可以考虑。参见此。
+
+扩展：在canvas中使用
+小程序canvas渲染时需要字体加载完成，css方式字体加载完成不容易监听，小程序文档提到可使用wx.loadFontFaced的回调中渲染canvas。参考文档及代码示例。
+
+另外wxml-to-canvas中不支持font-family属性，可参考链接4修改源码实现。

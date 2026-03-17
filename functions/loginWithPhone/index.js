@@ -58,24 +58,11 @@ exports.main = async (event, context) => {
       currentOpenid: currentOpenid
     });
 
-    // 如果当前openid与数据库中的openid不同，更新数据库中的openid
-    if (currentOpenid && currentOpenid !== userInfo._openid) {
-      console.log('🔄 [loginWithPhone] 检测到openid变化，更新数据库中的openid');
-      try {
-        await db.collection('users').doc(userInfo._id).update({
-          data: {
-            _openid: currentOpenid,
-            updateTime: new Date()
-          }
-        });
-        console.log('✅ [loginWithPhone] openid更新成功');
-
-        // 更新用户信息中的openid
-        userInfo._openid = currentOpenid;
-      } catch (updateError) {
-        console.error('❌ [loginWithPhone] openid更新失败:', updateError);
-        // 即使更新失败，也继续登录流程
-      }
+    // 检测 openid 是否不同（但不自动更新）
+    const needBindWechat = currentOpenid && currentOpenid !== userInfo._openid;
+    
+    if (needBindWechat) {
+      console.log('⚠️ [loginWithPhone] 检测到 openid 不同，需要用户确认绑定');
     }
 
     // 返回用户信息，但不包含密码
@@ -88,7 +75,9 @@ exports.main = async (event, context) => {
       success: true,
       message: '登录成功',
       userInfo: safeUserInfo,
-      openid: currentOpenid || userInfo._openid,
+      openid: userInfo._openid, // 返回数据库中的 openid
+      currentOpenid: currentOpenid, // 返回当前微信的 openid
+      needBindWechat: needBindWechat, // 是否需要绑定微信
       isPhoneVerified: isPhoneVerified
     };
 

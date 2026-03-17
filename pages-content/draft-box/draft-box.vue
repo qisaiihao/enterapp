@@ -145,7 +145,7 @@ export default {
             try {
                 uni.setStorageSync('editing_draft', draft);
                 uni.navigateTo({
-                    url: '/pages/add/add?mode=edit'
+                    url: '/pages-publish/add/add?mode=edit'
                 });
             } catch (error) {
                 console.log('CatchClause', error);
@@ -209,7 +209,7 @@ export default {
         // 去发布页面
         goToPublish: function () {
             uni.navigateTo({
-                url: '/pages/add/add'
+                url: '/pages-publish/add/add'
             });
         },
 

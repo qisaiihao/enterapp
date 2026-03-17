@@ -7,13 +7,7 @@
         "navigationStyle": "custom"
       }
     },
-    {
-      "path": "pages/preview/preview",
-      "style": {
-        "navigationStyle": "custom",
-        "usingComponents": {}
-      }
-    },
+
     {
       "path": "pages/login/login",
       "style": {
@@ -76,13 +70,7 @@
         "onReachBottomDistance": 50
       }
     },
-    {
-      "path": "pages/add/add",
-      "style": {
-        "navigationStyle": "custom",
-        "usingComponents": {}
-      }
-    },
+
     {
       "path": "pages/poem-square/poem-square",
       "style": {
@@ -93,19 +81,8 @@
         }
       }
     },
-    {
-      "path": "pages/series-compose/series-compose",
-      "style": {
-        "navigationBarTitleText": "组诗合成",
-        "enablePullDownRefresh": false
-      }
-    },
-    {
-      "path": "pages/test-direct-download",
-      "style": {
-        "navigationBarTitleText": "字体加载测试"
-      }
-    },
+
+
     {
       "path": "uni_modules/uni-upgrade-center-app/pages/upgrade-popup",
       "style": {
@@ -362,6 +339,62 @@
       ]
     },
     {
+      "root": "pages-publish",
+      "pages": [
+        {
+          "path": "add/add",
+          "style": {
+            "navigationStyle": "custom",
+            "usingComponents": {}
+          }
+        },
+        {
+          "path": "preview/preview",
+          "style": {
+            "navigationStyle": "custom",
+            "usingComponents": {}
+          }
+        },
+        {
+          "path": "series-compose/series-compose",
+          "style": {
+            "navigationBarTitleText": "组诗合成",
+            "enablePullDownRefresh": false
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages-debug",
+      "pages": [
+        {
+          "path": "test-menu/test-menu",
+          "style": {
+            "navigationStyle": "custom",
+            "backgroundColor": "#f5f5f5"
+          }
+        },
+        {
+          "path": "test-direct-download/test-direct-download",
+          "style": {
+            "navigationBarTitleText": "字体加载测试"
+          }
+        },
+        {
+          "path": "test-domain-config/test-domain-config",
+          "style": {
+            "navigationBarTitleText": "域名配置测试"
+          }
+        },
+        {
+          "path": "test-cloud-storage/test-cloud-storage",
+          "style": {
+            "navigationBarTitleText": "云存储测试"
+          }
+        }
+      ]
+    },
+    {
       "root": "pages-admin",
       "pages": [
         {
@@ -459,7 +492,14 @@
       "network": "all",
       "packages": [
         "pages-tools",
-        "pages-content"
+        "pages-content",
+        "pages-publish"
+      ]
+    },
+    "pages/mountain/mountain": {
+      "network": "all",
+      "packages": [
+        "pages-publish"
       ]
     }
   },

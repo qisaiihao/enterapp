@@ -249,6 +249,11 @@ export default {
                 
                 // 处理诗人头像 URL 转换
                 let poetInfo = { ...poetInfoRaw };
+                // 保存原始的 cloud:// URL，用于后续清除缓存
+                const originalAvatarCloudUrl = poetInfo.avatar && poetInfo.avatar.trim() && poetInfo.avatar.startsWith('cloud://') 
+                    ? poetInfo.avatar 
+                    : null;
+                
                 // 确保空字符串被当作无头像处理
                 if (poetInfo.avatar && poetInfo.avatar.trim() && poetInfo.avatar.startsWith('cloud://')) {
                     try {
@@ -263,6 +268,11 @@ export default {
                 } else if (!poetInfo.avatar || !poetInfo.avatar.trim()) {
                     // 确保空字符串被设置为空
                     poetInfo.avatar = '';
+                }
+                
+                // 保存原始 cloud:// URL 到 poetInfo 对象
+                if (originalAvatarCloudUrl) {
+                    poetInfo._originalAvatarCloudUrl = originalAvatarCloudUrl;
                 }
                 
                 // 处理帖子数据
@@ -391,6 +401,9 @@ export default {
                 
                 uni.showLoading({ title: '上传中...' });
                 
+                // 保存旧头像的 cloud:// URL，用于清除缓存
+                const oldAvatarCloudUrl = this.poetInfo._originalAvatarCloudUrl || null;
+                
                 const result = await updatePoetInfo({
                     poetName: this.poetName,
                     avatarPath: res.tempFilePaths[0],
@@ -400,8 +413,20 @@ export default {
                 if (result.success) {
                     console.log('【诗人头像更新】返回的avatar:', result.avatar);
                     
+                    // 清除旧头像的缓存
+                    if (oldAvatarCloudUrl) {
+                        try {
+                            fileUrlCache.invalidate([oldAvatarCloudUrl]);
+                            console.log('【诗人头像更新】已清除旧头像缓存:', oldAvatarCloudUrl);
+                        } catch (e) {
+                            console.error('清除旧头像缓存失败:', e);
+                        }
+                    }
+                    
                     // 如果返回的是 cloud:// 格式，需要转换
                     let avatarUrl = result.avatar;
+                    const newAvatarCloudUrl = avatarUrl && avatarUrl.startsWith('cloud://') ? avatarUrl : null;
+                    
                     if (avatarUrl && avatarUrl.startsWith('cloud://')) {
                         try {
                             const urlMap = await fileUrlCache.getTempUrls([avatarUrl]);
@@ -417,7 +442,8 @@ export default {
                     this.setData({
                         poetInfo: {
                             ...this.poetInfo,
-                            avatar: avatarUrl
+                            avatar: avatarUrl,
+                            _originalAvatarCloudUrl: newAvatarCloudUrl
                         }
                     });
                     console.log('【诗人头像更新】setData后 poetInfo.avatar:', this.poetInfo.avatar);

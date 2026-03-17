@@ -203,7 +203,7 @@ export default {
       ].join('&');
 
       uni.navigateTo({
-        url: `/pages/add/add?${query}`
+        url: `/pages-publish/add/add?${query}`
       });
     },
 

@@ -89,7 +89,57 @@
     </view>
     <!-- #endif -->
 
+    <!-- 绑定微信弹窗（小程序专属） -->
+    <!-- #ifdef MP-WEIXIN -->
+    <view class="bind-phone-modal" v-if="showBindWechatModal" @tap.stop>
+      <view class="modal-mask" @tap="closeBindWechatModal"></view>
+      <view class="modal-content">
+        <view class="modal-header">
+          <text class="modal-title">绑定微信账号</text>
+          <text class="modal-close" @tap="closeBindWechatModal">×</text>
+        </view>
+        <view class="modal-body">
+          <text class="modal-text">检测到您使用 Poem ID 登录，是否将此账号绑定到当前微信？</text>
+          <text class="modal-text" style="margin-top: 20rpx; color: #999; font-size: 26rpx;">绑定后，下次可直接使用微信登录此账号，数据更安全且可跨端共享。</text>
+        </view>
+        <view class="modal-footer">
+          <view class="modal-btn cancel-btn" @tap="skipBindWechat">跳过</view>
+          <view class="modal-btn confirm-btn" @tap="handleBindWechat" :class="{ disabled: isBindingWechat }">
+            {{ isBindingWechat ? '绑定中...' : '确认绑定' }}
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 解绑确认弹窗（小程序专属） -->
+    <view class="bind-phone-modal" v-if="showRebindConfirmModal" @tap.stop>
+      <view class="modal-mask" @tap="cancelRebind"></view>
+      <view class="modal-content">
+        <view class="modal-header">
+          <text class="modal-title">微信已绑定其他账号</text>
+          <text class="modal-close" @tap="cancelRebind">×</text>
+        </view>
+        <view class="modal-body">
+          <text class="modal-text">当前微信已绑定到账号：</text>
+          <view class="bound-account-info">
+            <text class="bound-account-text">Poem ID: {{ boundAccountInfo?.poemId }}</text>
+            <text class="bound-account-text">昵称: {{ boundAccountInfo?.nickName }}</text>
+          </view>
+          <text class="modal-text" style="margin-top: 20rpx; color: #ff6b6b; font-size: 26rpx;">是否解绑该账号，并绑定到当前登录的账号？</text>
+          <text class="modal-text" style="margin-top: 10rpx; color: #999; font-size: 24rpx;">注意：解绑后，原账号将无法使用微信登录。</text>
+        </view>
+        <view class="modal-footer">
+          <view class="modal-btn cancel-btn" @tap="cancelRebind">取消</view>
+          <view class="modal-btn confirm-btn warning-btn" @tap="confirmRebind" :class="{ disabled: isBindingWechat }">
+            {{ isBindingWechat ? '处理中...' : '确认解绑并重新绑定' }}
+          </view>
+        </view>
+      </view>
+    </view>
+    <!-- #endif -->
+
     <!-- 底部绑定手机号弹窗 -->
+    <!-- #ifndef MP-WEIXIN -->
     <view class="bind-phone-modal" v-if="showBindPhoneModal" @tap.stop>
       <view class="modal-mask" @tap="closeBindPhoneModal"></view>
       <view class="modal-content">
@@ -128,6 +178,7 @@
         </view>
       </view>
     </view>
+    <!-- #endif -->
   </view>
 </template>
 
@@ -190,7 +241,14 @@ export default {
             smsCode: '',
             isSendingSms: false,
             smsCountdown: 0,
-            smsTimer: null
+            smsTimer: null,
+            // 绑定微信相关
+            showBindWechatModal: false,
+            isBindingWechat: false,
+            pendingLoginResult: null, // 暂存登录结果，等待用户确认绑定
+            // 解绑确认相关
+            showRebindConfirmModal: false,
+            boundAccountInfo: null // 已绑定的账号信息
         };
     },
     
@@ -798,6 +856,17 @@ export default {
             if (result.success) {
                 console.log('✅ [handleLoginResult] 登录成功');
 
+                // #ifdef MP-WEIXIN
+                // 小程序环境：检查是否需要绑定微信
+                if (result.needBindWechat) {
+                    // openid 不同，询问是否绑定微信
+                    console.log('⚠️ [handleLoginResult] 检测到 openid 不同，显示绑定微信弹窗');
+                    this.pendingLoginResult = result;
+                    this.showBindWechatModal = true;
+                    return; // 等待用户确认
+                }
+                // #endif
+
                 // 更新全局数据
                 const app = getApp();
                 app.globalData.userInfo = result.userInfo;
@@ -811,6 +880,7 @@ export default {
                 uni.setStorageSync('userOpenId', result.openid);
 
                 // 检查是否需要绑定手机号
+                // #ifndef MP-WEIXIN
                 const isPhoneVerified = result.isPhoneVerified;
                 console.log('🔍 [handleLoginResult] 手机号验证状态:', isPhoneVerified);
 
@@ -820,7 +890,8 @@ export default {
                     this.showBindPhoneModal = true;
                     this.bindPhoneMethod = this.isApp ? 'oneclick' : 'sms';
                 } else {
-                    console.log('✅ [handleLoginResult] 手机号已验证，跳转到主页');
+                // #endif
+                    console.log('✅ [handleLoginResult] 手机号已验证或小程序端跳过验证，跳转到主页');
                     // 跳转到主页
                     uni.showToast({
                         title: '登录成功',
@@ -833,7 +904,9 @@ export default {
                             url: '/pages/poem-square/poem-square'
                         });
                     }, 1500);
+                // #ifndef MP-WEIXIN
                 }
+                // #endif
             } else {
                 console.error('❌ [handleLoginResult] 登录失败:', result.message);
                 // 登录失败提示
@@ -998,6 +1071,180 @@ export default {
                 uni.hideLoading();
                 this.isBindingPhone = false;
             }
+        },
+
+        // 关闭绑定微信弹窗
+        closeBindWechatModal() {
+            this.showBindWechatModal = false;
+            // 跳过绑定，直接完成登录
+            this.skipBindWechat();
+        },
+
+        // 跳过绑定微信
+        skipBindWechat() {
+            if (!this.pendingLoginResult) return;
+            
+            console.log('⚠️ [skipBindWechat] 用户跳过绑定微信');
+            
+            // 使用原有的 openid 完成登录
+            const result = this.pendingLoginResult;
+            const app = getApp();
+            app.globalData.userInfo = result.userInfo;
+            app.globalData.openid = result.openid;
+            app.globalData._loginProcessCompleted = true;
+            app.globalData.isLoggedIn = true;
+
+            uni.setStorageSync('userInfo', result.userInfo);
+            uni.setStorageSync('userOpenId', result.openid);
+
+            this.showBindWechatModal = false;
+            this.pendingLoginResult = null;
+
+            // 跳转到主页
+            uni.showToast({
+                title: '登录成功',
+                icon: 'success',
+                duration: 2000
+            });
+
+            setTimeout(() => {
+                uni.switchTab({
+                    url: '/pages/poem-square/poem-square'
+                });
+            }, 1500);
+        },
+
+        // 处理绑定微信
+        async handleBindWechat() {
+            if (this.isBindingWechat || !this.pendingLoginResult) return;
+
+            this.isBindingWechat = true;
+            uni.showLoading({
+                title: '绑定中...',
+                mask: true
+            });
+
+            try {
+                const result = this.pendingLoginResult;
+                const poemId = result.userInfo.poemId;
+
+                console.log('🔍 [handleBindWechat] 开始绑定微信到账号:', { poemId });
+
+                // 调用新的云函数：只添加 wechatOpenId，不修改 _openid
+                const bindResult = await this.callCloudFunction('bindWechatToAccount', {
+                    poemId: poemId,
+                    forceRebind: false // 首次绑定，不强制
+                });
+
+                console.log('🔍 [handleBindWechat] 绑定结果:', bindResult);
+
+                if (bindResult.result && bindResult.result.success) {
+                    // 绑定成功
+                    this.completeBindWechat(result);
+                } else if (bindResult.result && bindResult.result.code === 'WECHAT_ALREADY_BOUND') {
+                    // 微信已绑定到其他账号，显示解绑确认弹窗
+                    console.log('⚠️ [handleBindWechat] 微信已绑定到其他账号，显示解绑确认弹窗');
+                    this.boundAccountInfo = bindResult.result.boundAccount;
+                    this.showBindWechatModal = false;
+                    this.showRebindConfirmModal = true;
+                } else {
+                    throw new Error(bindResult.result?.message || '绑定失败');
+                }
+            } catch (error) {
+                console.error('❌ [handleBindWechat] 绑定失败:', error);
+                uni.showToast({
+                    title: error.message || '绑定失败，请重试',
+                    icon: 'none',
+                    duration: 3000
+                });
+            } finally {
+                uni.hideLoading();
+                this.isBindingWechat = false;
+            }
+        },
+
+        // 确认解绑并重新绑定
+        async confirmRebind() {
+            if (this.isBindingWechat || !this.pendingLoginResult) return;
+
+            this.isBindingWechat = true;
+            uni.showLoading({
+                title: '重新绑定中...',
+                mask: true
+            });
+
+            try {
+                const result = this.pendingLoginResult;
+                const poemId = result.userInfo.poemId;
+
+                console.log('🔍 [confirmRebind] 确认解绑并重新绑定:', { poemId });
+
+                // 调用云函数，强制重新绑定
+                const bindResult = await this.callCloudFunction('bindWechatToAccount', {
+                    poemId: poemId,
+                    forceRebind: true // 强制重新绑定
+                });
+
+                console.log('🔍 [confirmRebind] 重新绑定结果:', bindResult);
+
+                if (bindResult.result && bindResult.result.success) {
+                    // 重新绑定成功
+                    this.showRebindConfirmModal = false;
+                    this.boundAccountInfo = null;
+                    this.completeBindWechat(result);
+                } else {
+                    throw new Error(bindResult.result?.message || '重新绑定失败');
+                }
+            } catch (error) {
+                console.error('❌ [confirmRebind] 重新绑定失败:', error);
+                uni.showToast({
+                    title: error.message || '重新绑定失败，请重试',
+                    icon: 'none',
+                    duration: 3000
+                });
+            } finally {
+                uni.hideLoading();
+                this.isBindingWechat = false;
+            }
+        },
+
+        // 取消解绑
+        cancelRebind() {
+            this.showRebindConfirmModal = false;
+            this.boundAccountInfo = null;
+            // 返回到绑定微信弹窗
+            this.showBindWechatModal = true;
+        },
+
+        // 完成绑定微信（公共方法）
+        completeBindWechat(result) {
+            // 绑定成功，更新本地用户信息
+            const app = getApp();
+            result.userInfo.wechatOpenId = result.currentOpenid;
+            app.globalData.userInfo = result.userInfo;
+            app.globalData.openid = result.openid; // 保持原有 openid
+            app.globalData._loginProcessCompleted = true;
+            app.globalData.isLoggedIn = true;
+
+            uni.setStorageSync('userInfo', result.userInfo);
+            uni.setStorageSync('userOpenId', result.openid);
+
+            this.showBindWechatModal = false;
+            this.showRebindConfirmModal = false;
+            this.pendingLoginResult = null;
+            this.boundAccountInfo = null;
+
+            uni.showToast({
+                title: '绑定成功！下次可直接使用微信登录',
+                icon: 'success',
+                duration: 3000
+            });
+
+            setTimeout(() => {
+                uni.switchTab({
+                    url: '/pages/poem-square/poem-square'
+                });
+            }, 2000);
         }
     }
 };
@@ -1329,5 +1576,30 @@ export default {
   box-sizing: border-box;
   margin: 0;
   padding: 0 24rpx;
+}
+
+/* 已绑定账号信息样式 */
+.bound-account-info {
+  margin-top: 20rpx;
+  padding: 24rpx;
+  background: #f5f6f7;
+  border-radius: 12rpx;
+}
+
+.bound-account-text {
+  display: block;
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.8;
+}
+
+/* 警告按钮样式 */
+.warning-btn {
+  background: #ff6b6b;
+  color: #fff;
+}
+
+.warning-btn:active {
+  opacity: 0.8;
 }
 </style>

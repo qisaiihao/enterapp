@@ -29,8 +29,32 @@ exports.main = async (event, context) => {
       };
     }
     
-    // 2. 查询用户是否已注册
+    // 2. 查询用户是否已注册（优先查找绑定的微信账号）
     console.log('🔍 [loginWithWechat] 查询用户是否已注册...');
+    
+    // 2.1 先查找是否有通过 wechatOpenId 绑定的账号
+    const boundUserRes = await db.collection('users')
+      .where({
+        wechatOpenId: OPENID
+      })
+      .get();
+    
+    if (boundUserRes.data.length > 0) {
+      // 找到绑定的账号，使用该账号登录
+      const user = boundUserRes.data[0];
+      console.log('✅ [loginWithWechat] 找到绑定的账号，使用该账号登录');
+      
+      return {
+        success: true,
+        needRegister: false,
+        userInfo: user,
+        openid: user._openid,
+        isPhoneVerified: user.isPhoneVerified || false,
+        isBoundAccount: true // 标记为绑定账号
+      };
+    }
+    
+    // 2.2 查找是否有 _openid 匹配的账号（原有逻辑）
     const userRes = await db.collection('users')
       .where({
         _openid: OPENID
@@ -78,6 +102,7 @@ exports.main = async (event, context) => {
       // 创建新用户
       const newUser = {
         _openid: OPENID,
+        wechatOpenId: OPENID, // 新增：记录微信 openid
         poemId: poemId,
         nickName: '微信用户',
         avatarUrl: '',

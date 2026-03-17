@@ -152,7 +152,12 @@ exports.main = async (event, context) => {
         isOriginal: post.isOriginal || false,
         commentCount: post.commentCount === undefined || post.commentCount === null ? 0 : post.commentCount,
         addedTime: portfolioItem.createTime,
-        portfolioId: portfolioItem._id
+        portfolioId: portfolioItem._id,
+        // 颜色信息 - 从帖子中获取
+        backgroundColor: post.backgroundColor || null,
+        textColor: post.textColor || null,
+        // 高光行信息
+        highlightLines: post.highlightLines || []
       };
     }).filter(item => item !== null);
 
