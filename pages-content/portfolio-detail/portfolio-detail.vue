@@ -1,16 +1,8 @@
 <template>
   <view class="portfolio-detail-page" @touchstart="touchStart" @touchend="touchEnd">
-    <!-- 自定义返回按钮 -->
-    <view class="custom-back-btn" @tap="goBack">
-      <image class="back-icon" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
-    </view>
+    <dual-action-top-bar @left-click="goBack" @right-click="openAddModal" />
     
     <view class="container">
-      <!-- 右上角更多按钮 -->
-      <view class="custom-more-btn" @tap="openAddModal">
-        <image class="more-icon" src="/static/images/select_more.png" mode="aspectFit"></image>
-      </view>
-
       <!-- 加载中骨架 -->
       <view v-if="isLoading">
         <skeleton />
@@ -138,6 +130,7 @@
 
 <script>
 import skeleton from '@/components/skeleton/skeleton';
+import dualActionTopBar from '@/components/dual-action-top-bar/dual-action-top-bar.vue';
 const { cloudCall } = require('@/utils/cloudCall.js');
 const likeIcon = require('@/utils/likeIcon.js');
 const { togglePostLike } = require('../../utils/likeService.js');
@@ -147,7 +140,8 @@ const PAGE_SIZE = 10;
 
 export default {
   components: {
-    skeleton
+    skeleton,
+    dualActionTopBar
   },
   
   onUnload() {
@@ -164,8 +158,6 @@ export default {
       backgroundColors: ['#a4c4bd', '#c9cfcf', '#906161', '#909388'],
       showPageIndicator: false,
       votingInProgress: {},
-      // 安全区域高度
-      safeAreaTop: 0,
       // portfolio-detail 特有属性
       folderId: '',
       folderName: '',
@@ -185,9 +177,6 @@ export default {
     this.folderId = options.folderId || '';
     this.folderName = decodeURIComponent(options.folderName || '作品集');
     
-    
-    // 调试：检查安全区域高度
-    this.debugSafeArea();
     this.getIndexData();
   },
   onShow() {
@@ -225,45 +214,6 @@ export default {
     }, 100);
   },
   methods: {
-    // 调试安全区域
-    debugSafeArea() {
-      try {
-        // 获取系统信息
-        const systemInfo = uni.getSystemInfoSync();
-        console.log('【portfolio-detail】系统信息:', {
-          statusBarHeight: systemInfo.statusBarHeight,
-          safeAreaInsets: systemInfo.safeAreaInsets,
-          safeArea: systemInfo.safeArea,
-          windowHeight: systemInfo.windowHeight,
-          screenHeight: systemInfo.screenHeight,
-          platform: systemInfo.platform
-        });
-
-        // 动态设置安全区域 - 使用uni-app兼容方式
-        if (systemInfo.statusBarHeight) {
-          const safeAreaTop = systemInfo.statusBarHeight;
-          console.log('【portfolio-detail】使用状态栏高度作为安全区域:', safeAreaTop);
-          
-          // 在uni-app中，我们可以通过设置页面数据来动态调整样式
-          this.setData({
-            safeAreaTop: safeAreaTop
-          });
-          
-          // 尝试设置CSS变量（仅在支持的环境中）
-          try {
-            if (typeof document !== 'undefined' && document.documentElement) {
-              document.documentElement.style.setProperty('--safe-area-inset-top', safeAreaTop + 'px');
-              console.log('【portfolio-detail】CSS变量设置成功');
-            }
-          } catch (cssError) {
-            console.log('【portfolio-detail】CSS变量设置失败，使用数据绑定方式:', cssError);
-          }
-        }
-      } catch (error) {
-        console.error('【portfolio-detail】安全区域调试失败:', error);
-      }
-    },
-
     callCloudFunction(name, data = {}, extraOptions = {}) {
       return cloudCall(name, data, Object.assign({ pageTag: 'portfolio-detail', context: this, requireAuth: true }, extraOptions));
     },
@@ -746,60 +696,10 @@ export default {
   /* #endif */
 }
 
-.custom-back-btn {
-  position: absolute;
-  top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px))); /* 添加安全区域偏移 */
-  left: 40rpx;
-  width: 100rpx;
-  height: 100rpx;
-  background: transparent;
-  border: none;
-  display: block;
-  z-index: 100;
-  transition: all 0.2s ease;
-}
-
-.custom-back-btn:active {
-  transform: scale(0.95);
-}
-
-.custom-back-btn .back-icon {
-  width: 100rpx;
-  height: 100rpx;
-  display: block;
-  object-fit: contain;
-}
-
 .container {
   flex: 1;
   display: flex;
   flex-direction: column;
-}
-
-/* 右上角更多按钮 */
-.custom-more-btn {
-  position: absolute;
-  top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px))); /* 添加安全区域偏移 */
-  right: 40rpx;
-  width: 100rpx;
-  height: 100rpx;
-  background: transparent;
-  border: none;
-  display: block;
-  z-index: 100;
-  transition: all 0.2s ease;
-  box-sizing: border-box;
-}
-
-.custom-more-btn:active {
-  transform: scale(0.95);
-}
-
-.custom-more-btn .more-icon {
-  width: 100rpx;
-  height: 100rpx;
-  display: block;
-  object-fit: contain;
 }
 
 .content-scroll {

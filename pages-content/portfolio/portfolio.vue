@@ -1,19 +1,16 @@
 <template>
   <view class="portfolio-page">
-    <!-- 顶部导航栏 -->
-    <view class="header">
-      <view class="header-left" @tap="goBack">
-        <image class="back-icon-image" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
-      </view>
-      <text class="header-title">作品集</text>
-      <view class="header-right">
-        <image class="create-btn-icon" src="/static/images/select_more.png" mode="aspectFit" @tap="openCreateModal"></image>
-      </view>
-    </view>
+    <dual-action-top-bar
+      title="作品集"
+      :show-divider="true"
+      @left-click="goBack"
+      @right-click="openCreateModal"
+      @safe-area-ready="onSafeAreaReady"
+    />
 
     <!-- 作品集列表 -->
     <scroll-view class="portfolio-list" scroll-y="true" @scrolltolower="loadMore">
-      <view class="portfolio-content">
+      <view class="portfolio-content" :style="{ paddingTop: contentTopPadding }">
         <view v-if="folders.length === 0" class="empty-state">
           <text class="empty-icon">📁</text>
           <text class="empty-text">暂无作品集</text>
@@ -148,6 +145,7 @@
 </template>
 
 <script>
+import dualActionTopBar from '@/components/dual-action-top-bar/dual-action-top-bar.vue';
 import {
   getPortfolioFolders,
   createPortfolioFolder,
@@ -158,6 +156,9 @@ import {
 } from '@/api-cache/portfolio.js';
 
 export default {
+  components: {
+    dualActionTopBar
+  },
   data() {
     return {
       folders: [],
@@ -176,8 +177,15 @@ export default {
       touchStartY: 0,
       touchCurrentX: 0,
       touchCurrentY: 0,
-      isSwipeMode: false
+      isSwipeMode: false,
+      safeAreaTop: 0
     };
+  },
+
+  computed: {
+    contentTopPadding() {
+      return `calc(${this.safeAreaTop}px + 150rpx)`;
+    }
   },
 
   onLoad() {
@@ -193,6 +201,9 @@ export default {
   },
 
   methods: {
+    onSafeAreaReady(height) {
+      this.safeAreaTop = height || 0;
+    },
 
     goBack() {
       uni.navigateBack();
@@ -752,69 +763,6 @@ export default {
   /* #ifdef APP-PLUS */
   padding-top: var(--status-bar-height);
   /* #endif */
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  background: #fff;
-  border-bottom: 1rpx solid #e9ecef;
-  /* #ifdef MP-WEIXIN */
-  padding: 80rpx 30rpx 20rpx 30rpx;
-  /* #endif */
-  /* #ifndef MP-WEIXIN */
-  padding: 20rpx 30rpx;
-  /* #endif */
-}
-
-.header-left {
-  position: absolute;
-  /* #ifdef MP-WEIXIN */
-  left: 30rpx;
-  top: 80rpx;
-  /* #endif */
-  /* #ifndef MP-WEIXIN */
-  left: 30rpx;
-  /* #endif */
-  width: 80rpx;
-  height: 80rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.back-icon-image {
-  width: 60rpx;
-  height: 60rpx;
-}
-
-.header-title {
-  font-size: 36rpx;
-  font-weight: 600;
-  color: #333;
-}
-
-.header-right {
-  position: absolute;
-  /* #ifdef MP-WEIXIN */
-  left: 110rpx;
-  top: 72rpx;
-  /* #endif */
-  /* #ifndef MP-WEIXIN */
-  right: 30rpx;
-  /* #endif */
-  width: 80rpx;
-  height: 80rpx;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.create-btn-icon {
-  width: 60rpx;
-  height: 60rpx;
 }
 
 .portfolio-list {

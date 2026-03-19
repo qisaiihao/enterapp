@@ -391,6 +391,7 @@ export default {
             showPortfolioModal: false,
             showShareModal: false,
             shareImageUrl: '',
+            shareImageFilePath: '',
             shareCanvasHeight: 1000,
             shareImageRetryCount: 0,
             shareRenderToken: 0,
@@ -844,6 +845,7 @@ export default {
             this.setData({
                 showShareModal: true,
                 shareImageUrl: '',
+                shareImageFilePath: '',
                 shareImageRetryCount: 0,
                 shareCanvasHeight: 4000
             });
@@ -855,7 +857,8 @@ export default {
         hideShareModal: function () {
             this.shareRenderToken += 1;
             this.setData({
-                showShareModal: false
+                showShareModal: false,
+                shareImageFilePath: ''
             });
         },
 
@@ -1020,14 +1023,22 @@ export default {
                 if (renderToken !== this.shareRenderToken) return;
 
                 const raw = (exportResult && exportResult.tempFilePath) || '';
-                const cacheBuster = Date.now();
-                const imageUrl = raw && raw.startsWith('data:')
-                    ? raw
-                    : (raw ? raw + ((raw.indexOf('?') > -1 ? '&' : '?') + '_' + cacheBuster) : raw);
+                let imageUrl = raw;
+
+                // H5 端展示时追加时间戳避免图片缓存；小程序/APP 需保留原始临时文件路径用于保存。
+                // #ifdef H5
+                if (raw && !raw.startsWith('data:') && !/^blob:/i.test(raw)) {
+                    const cacheBuster = Date.now();
+                    imageUrl = raw + ((raw.indexOf('?') > -1 ? '&' : '?') + '_' + cacheBuster);
+                }
+                // #endif
 
                 uni.hideLoading();
-                this.setData({ shareImageUrl: imageUrl });
-                console.log('[Canvas] export success', { scale: exportResult.scale, imageUrl });
+                this.setData({
+                    shareImageUrl: imageUrl,
+                    shareImageFilePath: raw
+                });
+                console.log('[Canvas] export success', { scale: exportResult.scale, imageUrl, raw });
             } catch (err) {
                 if (renderToken !== this.shareRenderToken) return;
                 console.error('[Canvas] export failed', err);
@@ -1161,6 +1172,14 @@ export default {
         // 跨端保存分享图片
         saveShareImage: function () {
             const url = this.shareImageUrl;
+            const filePath = this.shareImageFilePath;
+            const isRemoteUrl = (value) => /^https?:\/\//i.test(value || '');
+            const isDataUrl = (value) => typeof value === 'string' && value.startsWith('data:');
+            const isLocalFilePath = (value) => {
+                if (!value || typeof value !== 'string') return false;
+                return /^(wxfile:\/\/|file:\/\/|blob:|\/_doc\/|\/_www\/|\/?storage\/|[A-Za-z]:\\|\/data\/|\/var\/|tmp\/|\.\/tmp\/)/i.test(value)
+                    || (!isRemoteUrl(value) && !isDataUrl(value));
+            };
             if (!url) {
                 uni.showToast({ title: '图片生成中…', icon: 'none' });
                 return;
@@ -1203,6 +1222,13 @@ export default {
             };
 
             // H5：下载到本地
+            // #ifdef MP-WEIXIN || APP-PLUS
+            if (filePath && isLocalFilePath(filePath)) {
+                saveFromPath(filePath);
+                return;
+            }
+            // #endif
+
             const saveOnH5 = (finalUrl) => {
                 // #ifdef H5
                 try {
@@ -1246,7 +1272,10 @@ export default {
                 // #ifdef MP-WEIXIN || APP-PLUS
                 uni.base64ToTempFilePath({
                     base64Data: url,
-                    success: (res) => saveFromPath(res.filePath),
+                    success: (res) => {
+                        this.setData({ shareImageFilePath: res.filePath });
+                        saveFromPath(res.filePath);
+                    },
                     fail: (err) => {
                         console.error('base64ToTempFilePath 失败:', err);
                         toastFail('图片转换失败');
@@ -1263,7 +1292,14 @@ export default {
                     url,
                     success: (res) => {
                         if (res.statusCode === 200) {
-                            saveFromPath(res.tempFilePath || res.filePath);
+                                const downloadedPath = res.tempFilePath || res.filePath;
+                                if (downloadedPath) {
+                                    this.setData({ shareImageFilePath: downloadedPath });
+                                    saveFromPath(downloadedPath);
+                                } else {
+                                    console.error('downloadFile succeeded without file path:', res);
+                                    toastFail('save failed');
+                                }
                         } else {
                             console.error('downloadFile 非200:', res.statusCode);
                             toastFail('下载失败');
@@ -1281,6 +1317,9 @@ export default {
             } else {
                 // 认为是本地临时路径
                 // #ifdef MP-WEIXIN || APP-PLUS
+                if (url && isLocalFilePath(url)) {
+                    this.setData({ shareImageFilePath: url });
+                }
                 saveFromPath(url);
                 // #endif
                 // #ifdef H5
@@ -1450,6 +1489,7 @@ export default {
         regenerateShareImage: function() {
             console.log('【post-detail】重新生成分享图片，新配置:', this.shareConfig);
             this.shareImageUrl = '';
+            this.shareImageFilePath = '';
             this.shareImageRetryCount = 0;
             // 重置Canvas高度，强制重新计算
             this.shareCanvasHeight = 1000;
@@ -1467,6 +1507,7 @@ export default {
             console.log('【post-detail】强制重新生成Canvas，确保无遮挡渲染');
             // 清除当前图片，重置状态
             this.shareImageUrl = '';
+            this.shareImageFilePath = '';
             this.shareImageRetryCount = 0;
             this.shareCanvasHeight = 1000;
 
@@ -3925,15 +3966,6 @@ page {
 }
 
 </style>
-
-
-
-
-
-
-
-
-
 
 
 
