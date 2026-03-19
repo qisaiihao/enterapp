@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <style>
+      .title { font: 700 34px SimSun, Songti SC, serif; fill: #173455; }
+      .label { font: 600 24px SimSun, Songti SC, serif; fill: #173455; }
+      .text { font: 21px SimSun, Songti SC, serif; fill: #1f2d3d; }
+      .small { font: 18px SimSun, Songti SC, serif; fill: #385068; }
+      .box { fill: #f8fbff; stroke: #4f79a7; stroke-width: 3; rx: 18; ry: 18; }
+      .arrow { stroke: #2c5b8f; stroke-width: 4; fill: none; marker-end: url(#m); }
+    </style>
+    <marker id="m" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 z" fill="#2c5b8f"/>
+    </marker>
+  </defs>
+  <text x="800" y="58" text-anchor="middle" class="title">活动模块流程图</text>
+
+  <rect x="130" y="180" width="250" height="92" class="box"/>
+  <text x="255" y="215" text-anchor="middle" class="label">活动管理</text>
+  <text x="255" y="248" text-anchor="middle" class="small">后台维护标题、摘要、时间、封面</text>
+
+  <rect x="470" y="180" width="250" height="92" class="box"/>
+  <text x="595" y="215" text-anchor="middle" class="label">活动列表页</text>
+  <text x="595" y="248" text-anchor="middle" class="small">getRecentActivities + 列表缓存</text>
+
+  <rect x="810" y="180" width="250" height="92" class="box"/>
+  <text x="935" y="215" text-anchor="middle" class="label">活动详情页</text>
+  <text x="935" y="248" text-anchor="middle" class="small">活动信息、状态标签、统计摘要</text>
+
+  <rect x="1150" y="180" width="250" height="92" class="box"/>
+  <text x="1275" y="215" text-anchor="middle" class="label">活动帖子列表</text>
+  <text x="1275" y="248" text-anchor="middle" class="small">getPostList(activityId) 分页加载</text>
+
+  <rect x="300" y="520" width="1000" height="190" class="box"/>
+  <text x="800" y="565" text-anchor="middle" class="label">活动链路关键动作</text>
+  <text x="800" y="607" text-anchor="middle" class="text">1. 列表页按“进行中 + 近 30 天结束”活动展示。</text>
+  <text x="800" y="647" text-anchor="middle" class="text">2. 活动详情页可承接帖子列表浏览，并与通用详情、点赞、评论能力复用。</text>
+  <text x="800" y="687" text-anchor="middle" class="text">3. 活动变更后通过缓存失效与刷新标记同步管理端和用户端视图。</text>
+
+  <path d="M380 226 L470 226" class="arrow"/>
+  <path d="M720 226 L810 226" class="arrow"/>
+  <path d="M1060 226 L1150 226" class="arrow"/>
+  <path d="M935 272 L935 420" class="arrow"/>
+  <path d="M935 420 L800 420 L800 520" class="arrow"/>
+</svg>

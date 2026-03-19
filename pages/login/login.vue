@@ -122,8 +122,8 @@
         <view class="modal-body">
           <text class="modal-text">当前微信已绑定到账号：</text>
           <view class="bound-account-info">
-            <text class="bound-account-text">Poem ID: {{ boundAccountInfo?.poemId }}</text>
-            <text class="bound-account-text">昵称: {{ boundAccountInfo?.nickName }}</text>
+            <text class="bound-account-text">Poem ID: {{ boundAccountPoemId }}</text>
+            <text class="bound-account-text">昵称: {{ boundAccountNickName }}</text>
           </view>
           <text class="modal-text" style="margin-top: 20rpx; color: #ff6b6b; font-size: 26rpx;">是否解绑该账号，并绑定到当前登录的账号？</text>
           <text class="modal-text" style="margin-top: 10rpx; color: #999; font-size: 24rpx;">注意：解绑后，原账号将无法使用微信登录。</text>
@@ -148,12 +148,12 @@
         <view class="modal-body">
           <text class="modal-text">当前微信已被用于注册账号：</text>
           <view class="bound-account-info">
-            <text class="bound-account-text">Poem ID: {{ conflictAccountInfo?.poemId || '未设置' }}</text>
-            <text class="bound-account-text">昵称: {{ conflictAccountInfo?.nickName }}</text>
+            <text class="bound-account-text">Poem ID: {{ conflictAccountPoemId }}</text>
+            <text class="bound-account-text">昵称: {{ conflictAccountNickName }}</text>
           </view>
           
           <!-- 如果冲突账号没有设置 Poem ID，显示数据丢失警告 -->
-          <view v-if="!conflictAccountInfo?.canLogin">
+          <view v-if="!conflictAccountCanLogin">
             <text class="modal-text" style="margin-top: 20rpx; color: #ff4444; font-size: 28rpx; font-weight: bold;">⚠️ 该账号未设置 Poem ID 和密码！</text>
             <text class="modal-text" style="margin-top: 10rpx; color: #ff6b6b; font-size: 26rpx;">如果继续绑定，该账号的数据将永久丢失，无法找回！</text>
             <text class="modal-text" style="margin-top: 15rpx; color: #333; font-size: 26rpx; font-weight: bold;">建议操作：</text>
@@ -175,12 +175,12 @@
           <view class="modal-btn confirm-btn" 
                 :class="{ 
                   'warning-btn': true, 
-                  'danger-btn': !conflictAccountInfo?.canLogin,
+                  'danger-btn': !conflictAccountCanLogin,
                   'disabled': isBindingWechat 
                 }" 
                 @tap="confirmOpenidConflict">
             <text v-if="isBindingWechat">处理中...</text>
-            <text v-else-if="!conflictAccountInfo?.canLogin">我知道风险，继续绑定</text>
+            <text v-else-if="!conflictAccountCanLogin">我知道风险，继续绑定</text>
             <text v-else>我知道了，继续绑定</text>
           </view>
         </view>
@@ -313,6 +313,21 @@ export default {
             }
             // #endif
             return this.poemId.trim() && this.password.trim();
+        },
+        boundAccountPoemId() {
+            return this.boundAccountInfo && this.boundAccountInfo.poemId ? this.boundAccountInfo.poemId : '';
+        },
+        boundAccountNickName() {
+            return this.boundAccountInfo && this.boundAccountInfo.nickName ? this.boundAccountInfo.nickName : '';
+        },
+        conflictAccountPoemId() {
+            return this.conflictAccountInfo && this.conflictAccountInfo.poemId ? this.conflictAccountInfo.poemId : '未设置';
+        },
+        conflictAccountNickName() {
+            return this.conflictAccountInfo && this.conflictAccountInfo.nickName ? this.conflictAccountInfo.nickName : '';
+        },
+        conflictAccountCanLogin() {
+            return !!(this.conflictAccountInfo && this.conflictAccountInfo.canLogin);
         },
         // 判断是否为 APP 端
         isApp() {
@@ -1200,29 +1215,6 @@ export default {
                     this.conflictAccountInfo = bindResult.result.conflictAccount;
                     this.showBindWechatModal = false;
                     this.showOpenidConflictModal = true;
-                } else if (bindResult.result && bindResult.result.code === 'WECHAT_ALREADY_BOUND') {
-                    // 微信已绑定到其他账号，显示解绑确认弹窗
-                    console.log('⚠️ [handleBindWechat] 微信已绑定到其他账号，显示解绑确认弹窗');
-                    this.boundAccountInfo = bindResult.result.boundAccount;
-                    this.showBindWechatModal = false;
-                    this.showRebindConfirmModal = true;
-                } else {
-                    throw new Error(bindResult.result?.message || '绑定失败');
-                }
-            } catch (error) {
-                console.error('❌ [handleBindWechat] 绑定失败:', error);
-                uni.showToast({
-                    title: error.message || '绑定失败，请重试',
-                    icon: 'none',
-                    duration: 3000
-                });
-            } finally {
-                uni.hideLoading();
-                this.isBindingWechat = false;
-            }
-        },
-                    // 绑定成功
-                    this.completeBindWechat(result);
                 } else if (bindResult.result && bindResult.result.code === 'WECHAT_ALREADY_BOUND') {
                     // 微信已绑定到其他账号，显示解绑确认弹窗
                     console.log('⚠️ [handleBindWechat] 微信已绑定到其他账号，显示解绑确认弹窗');

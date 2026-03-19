@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <style>
+      .title { font: 700 34px SimSun, Songti SC, serif; fill: #173455; }
+      .label { font: 600 24px SimSun, Songti SC, serif; fill: #173455; }
+      .text { font: 20px SimSun, Songti SC, serif; fill: #1f2d3d; }
+      .head { font: 700 20px SimSun, Songti SC, serif; fill: #ffffff; }
+      .cell { fill: #f8fbff; stroke: #698bb2; stroke-width: 2; }
+      .headbg { fill: #4f79a7; stroke: #2c5b8f; stroke-width: 2; }
+      .ok { fill: #e8f5e9; }
+      .warn { fill: #fff8e1; }
+    </style>
+  </defs>
+  <text x="800" y="60" text-anchor="middle" class="title">测试矩阵示意图</text>
+
+  <rect x="160" y="140" width="260" height="70" class="headbg"/>
+  <rect x="420" y="140" width="240" height="70" class="headbg"/>
+  <rect x="660" y="140" width="240" height="70" class="headbg"/>
+  <rect x="900" y="140" width="240" height="70" class="headbg"/>
+  <rect x="1140" y="140" width="300" height="70" class="headbg"/>
+  <text x="290" y="183" text-anchor="middle" class="head">测试维度</text>
+  <text x="540" y="183" text-anchor="middle" class="head">覆盖对象</text>
+  <text x="780" y="183" text-anchor="middle" class="head">结果状态</text>
+  <text x="1020" y="183" text-anchor="middle" class="head">来源依据</text>
+  <text x="1290" y="183" text-anchor="middle" class="head">说明</text>
+
+  <rect x="160" y="210" width="260" height="95" class="cell"/>
+  <rect x="420" y="210" width="240" height="95" class="cell"/>
+  <rect x="660" y="210" width="240" height="95" class="cell ok"/>
+  <rect x="900" y="210" width="240" height="95" class="cell"/>
+  <rect x="1140" y="210" width="300" height="95" class="cell"/>
+  <text x="290" y="250" text-anchor="middle" class="text">静态语法检查</text>
+  <text x="540" y="250" text-anchor="middle" class="text">已变更 JS/Vue 文件</text>
+  <text x="780" y="250" text-anchor="middle" class="text">通过</text>
+  <text x="1020" y="250" text-anchor="middle" class="text">check:syntax</text>
+  <text x="1290" y="250" text-anchor="middle" class="text">2026-03-18 基线结果</text>
+
+  <rect x="160" y="305" width="260" height="95" class="cell"/>
+  <rect x="420" y="305" width="240" height="95" class="cell"/>
+  <rect x="660" y="305" width="240" height="95" class="cell warn"/>
+  <rect x="900" y="305" width="240" height="95" class="cell"/>
+  <rect x="1140" y="305" width="300" height="95" class="cell"/>
+  <text x="290" y="345" text-anchor="middle" class="text">编码质量检查</text>
+  <text x="540" y="345" text-anchor="middle" class="text">两处换行差异文件</text>
+  <text x="780" y="345" text-anchor="middle" class="text">待修正</text>
+  <text x="1020" y="345" text-anchor="middle" class="text">check:quality</text>
+  <text x="1290" y="345" text-anchor="middle" class="text">不影响本文档事实记录</text>
+
+  <rect x="160" y="400" width="260" height="95" class="cell"/>
+  <rect x="420" y="400" width="240" height="95" class="cell"/>
+  <rect x="660" y="400" width="240" height="95" class="cell"/>
+  <rect x="900" y="400" width="240" height="95" class="cell"/>
+  <rect x="1140" y="400" width="300" height="95" class="cell"/>
+  <text x="290" y="440" text-anchor="middle" class="text">功能链路验证</text>
+  <text x="540" y="440" text-anchor="middle" class="text">登录、发布、互动、活动</text>
+  <text x="780" y="440" text-anchor="middle" class="text">以文档证据为准</text>
+  <text x="1020" y="440" text-anchor="middle" class="text">README / 架构文档</text>
+  <text x="1290" y="440" text-anchor="middle" class="text">未实机补充部分明确标注</text>
+
+  <rect x="160" y="495" width="260" height="95" class="cell"/>
+  <rect x="420" y="495" width="240" height="95" class="cell"/>
+  <rect x="660" y="495" width="240" height="95" class="cell"/>
+  <rect x="900" y="495" width="240" height="95" class="cell"/>
+  <rect x="1140" y="495" width="300" height="95" class="cell"/>
+  <text x="290" y="535" text-anchor="middle" class="text">多端适配验证</text>
+  <text x="540" y="535" text-anchor="middle" class="text">小程序 / H5 / App</text>
+  <text x="780" y="535" text-anchor="middle" class="text">部分已有记录</text>
+  <text x="1020" y="535" text-anchor="middle" class="text">字体 / OAuth 文档</text>
+  <text x="1290" y="535" text-anchor="middle" class="text">需结合实机与配置环境补全</text>
+</svg>

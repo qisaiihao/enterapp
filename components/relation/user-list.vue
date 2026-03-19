@@ -2,13 +2,13 @@
   <view>
     <block v-if="displayUsers.length > 0">
       <view class="list">
-        <view class="user-item" v-for="(item, index) in displayUsers" :key="item._openid || index">
-          <view class="user-info" @tap="onUserTap(item, index)">
+        <view class="user-item" v-for="(item, index) in displayUsers" :key="item._renderKey">
+          <view class="user-info" @tap="onUserTap(index)">
             <image
               class="avatar"
               :src="item.avatarUrl || defaultAvatar"
               mode="aspectFill"
-              @error="onAvatarError(item, index)"
+              @error="onAvatarError(index)"
             ></image>
             <view class="info-text">
               <text class="name">{{ item.nickName || '微信用户' }}</text>
@@ -19,7 +19,7 @@
             class="action-btn"
             :class="item._resolvedActionClass"
             size="mini"
-            @tap.stop.prevent="onActionTap(item, index)"
+            @tap.stop.prevent="onActionTap(index)"
             :loading="pendingOpenid === item._openid"
             :disabled="pendingOpenid === item._openid"
           >
@@ -64,22 +64,15 @@ export default {
     actionClass: {
       type: String,
       default: ''
-    },
-    actionTextFn: {
-      type: Function,
-      default: null
-    },
-    actionClassFn: {
-      type: Function,
-      default: null
     }
   },
   computed: {
     displayUsers() {
       const list = Array.isArray(this.users) ? this.users : [];
-      return list.map((item) => {
+      return list.map((item, index) => {
         const source = item && typeof item === 'object' ? item : {};
         return Object.assign({}, source, {
+          _renderKey: source._openid || `user-${index}`,
           _resolvedActionText: this.resolveActionText(source),
           _resolvedActionClass: this.resolveActionClass(source)
         });
@@ -88,39 +81,45 @@ export default {
   },
   methods: {
     resolveActionText(item) {
-      if (typeof this.actionTextFn === 'function') {
-        return this.actionTextFn(item);
+      if (item && Object.prototype.hasOwnProperty.call(item, '_resolvedActionText')) {
+        return item._resolvedActionText;
+      }
+      if (item && Object.prototype.hasOwnProperty.call(item, 'actionText')) {
+        return item.actionText;
       }
       return this.actionText;
     },
     resolveActionClass(item) {
-      if (typeof this.actionClassFn === 'function') {
-        return this.actionClassFn(item);
+      if (item && Object.prototype.hasOwnProperty.call(item, '_resolvedActionClass')) {
+        return item._resolvedActionClass;
+      }
+      if (item && Object.prototype.hasOwnProperty.call(item, 'actionClass')) {
+        return item.actionClass;
       }
       return this.actionClass;
     },
-    getSourceItem(index, fallback) {
+    getSourceItem(index) {
       const sourceList = Array.isArray(this.users) ? this.users : [];
-      return sourceList[index] || fallback;
+      return sourceList[index] || null;
     },
-    onUserTap(item, index) {
-      const sourceItem = this.getSourceItem(index, item);
+    onUserTap(index) {
+      const sourceItem = this.getSourceItem(index);
       this.$emit('user-tap', {
         item: sourceItem,
         index,
         openid: sourceItem && sourceItem._openid
       });
     },
-    onActionTap(item, index) {
-      const sourceItem = this.getSourceItem(index, item);
+    onActionTap(index) {
+      const sourceItem = this.getSourceItem(index);
       this.$emit('action-tap', {
         item: sourceItem,
         index,
         openid: sourceItem && sourceItem._openid
       });
     },
-    onAvatarError(item, index) {
-      const sourceItem = this.getSourceItem(index, item);
+    onAvatarError(index) {
+      const sourceItem = this.getSourceItem(index);
       this.$emit('avatar-error', {
         item: sourceItem,
         index,

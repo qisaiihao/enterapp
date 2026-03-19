@@ -23,7 +23,7 @@
         <!-- 关注列表 -->
         <relation-user-list
             v-if="currentTab === 'following'"
-            :users="followings"
+            :users="displayFollowings"
             :pending-openid="pendingOpenid"
             :default-avatar="defaultAvatar"
             empty-text="还没有关注任何人，去广场看看吧～"
@@ -37,13 +37,11 @@
         <!-- 粉丝列表 -->
         <relation-user-list
             v-if="currentTab === 'followers'"
-            :users="followers"
+            :users="displayFollowers"
             :pending-openid="pendingOpenid"
             :default-avatar="defaultAvatar"
             default-bio="这个人很懒，什么都没留下~"
             empty-text="还没有粉丝，快去多发点内容吧~"
-            :action-text-fn="getButtonText"
-            :action-class-fn="getButtonClass"
             @user-tap="openUserProfile"
             @action-tap="onToggleFollow"
             @avatar-error="onAvatarError"
@@ -84,6 +82,28 @@ export default {
             defaultAvatar: '/images/avatar.png',
             total: ''
         };
+    },
+    computed: {
+        displayFollowings() {
+            return (this.followings || []).map((item) => ({
+                _openid: item && item._openid ? item._openid : '',
+                nickName: item && item.nickName ? item.nickName : '',
+                avatarUrl: item && item.avatarUrl ? item.avatarUrl : '',
+                bio: item && item.bio ? item.bio : '',
+                _resolvedActionText: '取消关注',
+                _resolvedActionClass: 'unfollow-btn'
+            }));
+        },
+        displayFollowers() {
+            return (this.followers || []).map((item) => ({
+                _openid: item && item._openid ? item._openid : '',
+                nickName: item && item.nickName ? item.nickName : '',
+                avatarUrl: item && item.avatarUrl ? item.avatarUrl : '',
+                bio: item && item.bio ? item.bio : '',
+                _resolvedActionText: item && item.isMutual ? '\u4e92\u76f8\u5173\u6ce8' : '\u56de\u5173',
+                _resolvedActionClass: item && item.isMutual ? 'unfollow-btn' : 'follow-btn'
+            }));
+        }
     },
     onLoad() {
         this.markFollowNotificationsRead();

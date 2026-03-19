@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="920" viewBox="0 0 1600 920">
+  <defs>
+    <style>
+      .title { font: 700 34px SimSun, Songti SC, serif; fill: #173455; }
+      .label { font: 600 24px SimSun, Songti SC, serif; fill: #173455; }
+      .text { font: 21px SimSun, Songti SC, serif; fill: #1f2d3d; }
+      .small { font: 18px SimSun, Songti SC, serif; fill: #385068; }
+      .box { fill: #f8fbff; stroke: #4f79a7; stroke-width: 3; rx: 18; ry: 18; }
+      .arrow { stroke: #2c5b8f; stroke-width: 4; fill: none; marker-end: url(#m); }
+    </style>
+    <marker id="m" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 z" fill="#2c5b8f"/>
+    </marker>
+  </defs>
+  <text x="800" y="58" text-anchor="middle" class="title">核心数据关系图</text>
+
+  <rect x="650" y="130" width="300" height="96" class="box"/>
+  <text x="800" y="170" text-anchor="middle" class="label">users</text>
+  <text x="800" y="203" text-anchor="middle" class="small">账号、资料、登录方式、关系链路标识</text>
+
+  <rect x="650" y="320" width="300" height="110" class="box"/>
+  <text x="800" y="360" text-anchor="middle" class="label">posts</text>
+  <text x="800" y="392" text-anchor="middle" class="small">标题、正文、作者、标签、图片、统计量</text>
+
+  <rect x="260" y="520" width="280" height="96" class="box"/>
+  <text x="400" y="560" text-anchor="middle" class="label">comments</text>
+  <text x="400" y="593" text-anchor="middle" class="small">评论内容、评论者、目标帖子</text>
+
+  <rect x="660" y="520" width="280" height="96" class="box"/>
+  <text x="800" y="560" text-anchor="middle" class="label">messages</text>
+  <text x="800" y="593" text-anchor="middle" class="small">点赞、评论、关注等通知</text>
+
+  <rect x="1060" y="520" width="280" height="96" class="box"/>
+  <text x="1200" y="560" text-anchor="middle" class="label">portfolios / favorites</text>
+  <text x="1200" y="593" text-anchor="middle" class="small">作品集、收藏夹、目录结构</text>
+
+  <rect x="160" y="730" width="280" height="96" class="box"/>
+  <text x="300" y="770" text-anchor="middle" class="label">view_log</text>
+  <text x="300" y="803" text-anchor="middle" class="small">浏览事件与短期行为记录</text>
+
+  <rect x="540" y="730" width="280" height="96" class="box"/>
+  <text x="680" y="770" text-anchor="middle" class="label">user_interests</text>
+  <text x="680" y="803" text-anchor="middle" class="small">用户兴趣画像与权重聚合</text>
+
+  <rect x="920" y="730" width="280" height="96" class="box"/>
+  <text x="1060" y="770" text-anchor="middle" class="label">post_statistics</text>
+  <text x="1060" y="803" text-anchor="middle" class="small">帖子热度与浏览统计结果</text>
+
+  <rect x="1240" y="730" width="220" height="96" class="box"/>
+  <text x="1350" y="770" text-anchor="middle" class="label">activities</text>
+  <text x="1350" y="803" text-anchor="middle" class="small">活动主题与关联帖子</text>
+
+  <path d="M800 226 L800 320" class="arrow"/>
+  <path d="M710 430 L470 520" class="arrow"/>
+  <path d="M800 430 L800 520" class="arrow"/>
+  <path d="M890 430 L1130 520" class="arrow"/>
+  <path d="M630 395 L370 730" class="arrow"/>
+  <path d="M760 430 L690 730" class="arrow"/>
+  <path d="M840 430 L1030 730" class="arrow"/>
+  <path d="M960 390 L1310 730" class="arrow"/>
+</svg>

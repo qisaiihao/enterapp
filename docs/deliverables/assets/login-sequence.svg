@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <style>
+      .title { font: 700 34px SimSun, Songti SC, serif; fill: #173455; }
+      .head { font: 600 22px SimSun, Songti SC, serif; fill: #173455; }
+      .text { font: 20px SimSun, Songti SC, serif; fill: #203040; }
+      .line { stroke: #8aa2bf; stroke-width: 3; }
+      .arrow { stroke: #2c5b8f; stroke-width: 4; fill: none; marker-end: url(#m); }
+      .box { fill: #f8fbff; stroke: #4f79a7; stroke-width: 3; rx: 14; ry: 14; }
+    </style>
+    <marker id="m" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 z" fill="#2c5b8f"/>
+    </marker>
+  </defs>
+  <text x="800" y="58" text-anchor="middle" class="title">登录初始化时序图</text>
+
+  <text x="170" y="120" text-anchor="middle" class="head">用户</text>
+  <text x="450" y="120" text-anchor="middle" class="head">开屏/应用层</text>
+  <text x="760" y="120" text-anchor="middle" class="head">本地缓存</text>
+  <text x="1080" y="120" text-anchor="middle" class="head">云认证与 login</text>
+  <text x="1380" y="120" text-anchor="middle" class="head">users 集合</text>
+
+  <line x1="170" y1="150" x2="170" y2="800" class="line"/>
+  <line x1="450" y1="150" x2="450" y2="800" class="line"/>
+  <line x1="760" y1="150" x2="760" y2="800" class="line"/>
+  <line x1="1080" y1="150" x2="1080" y2="800" class="line"/>
+  <line x1="1380" y1="150" x2="1380" y2="800" class="line"/>
+
+  <rect x="360" y="180" width="180" height="46" class="box"/>
+  <text x="450" y="210" text-anchor="middle" class="text">应用启动</text>
+  <path d="M170 203 L360 203" class="arrow"/>
+
+  <rect x="670" y="260" width="180" height="46" class="box"/>
+  <text x="760" y="290" text-anchor="middle" class="text">读取 userInfo / openid</text>
+  <path d="M450 283 L670 283" class="arrow"/>
+  <path d="M850 305 L450 305" class="arrow"/>
+
+  <rect x="990" y="360" width="180" height="46" class="box"/>
+  <text x="1080" y="390" text-anchor="middle" class="text">匿名认证 / 获取 openid</text>
+  <path d="M450 383 L990 383" class="arrow"/>
+  <path d="M1170 405 L450 405" class="arrow"/>
+
+  <rect x="1290" y="460" width="180" height="46" class="box"/>
+  <text x="1380" y="490" text-anchor="middle" class="text">校验账号记录</text>
+  <path d="M1080 483 L1290 483" class="arrow"/>
+  <path d="M1470 505 L1080 505" class="arrow"/>
+
+  <rect x="360" y="565" width="180" height="46" class="box"/>
+  <text x="450" y="595" text-anchor="middle" class="text">写入 globalData 与缓存</text>
+  <path d="M1080 588 L540 588" class="arrow"/>
+
+  <rect x="360" y="670" width="180" height="46" class="box"/>
+  <text x="450" y="700" text-anchor="middle" class="text">跳转首页或注册页</text>
+  <path d="M450 693 L170 693" class="arrow"/>
+</svg>

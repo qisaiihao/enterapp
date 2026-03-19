@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <style>
+      .title { font: 700 34px SimSun, Songti SC, serif; fill: #173455; }
+      .head { font: 600 22px SimSun, Songti SC, serif; fill: #173455; }
+      .text { font: 20px SimSun, Songti SC, serif; fill: #203040; }
+      .line { stroke: #8aa2bf; stroke-width: 3; }
+      .arrow { stroke: #2c5b8f; stroke-width: 4; fill: none; marker-end: url(#m); }
+      .box { fill: #f8fbff; stroke: #4f79a7; stroke-width: 3; rx: 14; ry: 14; }
+    </style>
+    <marker id="m" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 z" fill="#2c5b8f"/>
+    </marker>
+  </defs>
+  <text x="800" y="58" text-anchor="middle" class="title">发帖发布时序图</text>
+
+  <text x="130" y="120" text-anchor="middle" class="head">用户</text>
+  <text x="390" y="120" text-anchor="middle" class="head">add 页面</text>
+  <text x="660" y="120" text-anchor="middle" class="head">preview 页面</text>
+  <text x="950" y="120" text-anchor="middle" class="head">上传/审核服务</text>
+  <text x="1240" y="120" text-anchor="middle" class="head">createPost 云函数</text>
+  <text x="1480" y="120" text-anchor="middle" class="head">列表刷新</text>
+
+  <line x1="130" y1="150" x2="130" y2="800" class="line"/>
+  <line x1="390" y1="150" x2="390" y2="800" class="line"/>
+  <line x1="660" y1="150" x2="660" y2="800" class="line"/>
+  <line x1="950" y1="150" x2="950" y2="800" class="line"/>
+  <line x1="1240" y1="150" x2="1240" y2="800" class="line"/>
+  <line x1="1480" y1="150" x2="1480" y2="800" class="line"/>
+
+  <rect x="300" y="180" width="180" height="46" class="box"/>
+  <text x="390" y="210" text-anchor="middle" class="text">编辑内容与图片</text>
+  <path d="M130 203 L300 203" class="arrow"/>
+
+  <rect x="570" y="270" width="180" height="46" class="box"/>
+  <text x="660" y="300" text-anchor="middle" class="text">预览并合并参数</text>
+  <path d="M390 293 L570 293" class="arrow"/>
+
+  <rect x="860" y="360" width="180" height="46" class="box"/>
+  <text x="950" y="390" text-anchor="middle" class="text">上传图片 / 审核内容</text>
+  <path d="M660 383 L860 383" class="arrow"/>
+  <path d="M1040 405 L660 405" class="arrow"/>
+
+  <rect x="1150" y="470" width="180" height="46" class="box"/>
+  <text x="1240" y="500" text-anchor="middle" class="text">创建帖子记录</text>
+  <path d="M660 493 L1150 493" class="arrow"/>
+  <path d="M1330 515 L660 515" class="arrow"/>
+
+  <rect x="1390" y="585" width="180" height="46" class="box"/>
+  <text x="1480" y="615" text-anchor="middle" class="text">刷新标记与事件广播</text>
+  <path d="M1240 608 L1390 608" class="arrow"/>
+  <path d="M1480 655 L390 655" class="arrow"/>
+
+  <rect x="300" y="690" width="180" height="46" class="box"/>
+  <text x="390" y="720" text-anchor="middle" class="text">返回首页 / 个人页</text>
+  <path d="M390 713 L130 713" class="arrow"/>
+</svg>

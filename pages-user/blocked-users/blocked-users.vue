@@ -11,7 +11,7 @@
 
             <!-- 黑名单列表 -->
             <relation-user-list
-                :users="blockedUsers"
+                :users="displayBlockedUsers"
                 :pending-openid="pendingOpenid"
                 :default-avatar="defaultAvatar"
                 empty-text="黑名单为空，快去屏蔽那些讨厌的用户吧～"
@@ -50,6 +50,18 @@ export default {
             pendingOpenid: null,
             defaultAvatar: '/images/avatar.png'
         };
+    },
+    computed: {
+        displayBlockedUsers() {
+            return (this.blockedUsers || []).map((item) => ({
+                _openid: item && item._openid ? item._openid : '',
+                nickName: item && item.nickName ? item.nickName : '',
+                avatarUrl: item && item.avatarUrl ? item.avatarUrl : '',
+                bio: item && item.bio ? item.bio : '',
+                _resolvedActionText: '解除屏蔽',
+                _resolvedActionClass: 'unblock-btn'
+            }));
+        }
     },
     onLoad() {
         this.loadBlockedUsers(true);

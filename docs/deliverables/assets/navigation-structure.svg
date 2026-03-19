@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="920" viewBox="0 0 1600 920">
+  <defs>
+    <style>
+      .title { font: 700 34px SimSun, Songti SC, serif; fill: #173455; }
+      .label { font: 600 24px SimSun, Songti SC, serif; fill: #173455; }
+      .text { font: 22px SimSun, Songti SC, serif; fill: #1f2d3d; }
+      .small { font: 19px SimSun, Songti SC, serif; fill: #385068; }
+      .root { fill: #eef5fb; stroke: #2c5b8f; stroke-width: 4; rx: 20; ry: 20; }
+      .node { fill: #fbfdff; stroke: #698bb2; stroke-width: 3; rx: 18; ry: 18; }
+      .line { stroke: #4f79a7; stroke-width: 4; fill: none; }
+    </style>
+  </defs>
+  <text x="800" y="60" text-anchor="middle" class="title">页面导航与分包结构图</text>
+
+  <rect x="580" y="100" width="440" height="82" class="root"/>
+  <text x="800" y="147" text-anchor="middle" class="label">应用入口与主导航</text>
+  <text x="800" y="174" text-anchor="middle" class="small">开屏页 / 登录注册 / 广场 / 发现 / 个人中心 / 详情页</text>
+
+  <path d="M800 182 L800 230" class="line"/>
+  <path d="M220 320 L1380 320" class="line"/>
+  <path d="M320 230 L320 320" class="line"/>
+  <path d="M560 230 L560 320" class="line"/>
+  <path d="M800 230 L800 320" class="line"/>
+  <path d="M1040 230 L1040 320" class="line"/>
+  <path d="M1280 230 L1280 320" class="line"/>
+
+  <rect x="140" y="320" width="360" height="150" class="node"/>
+  <rect x="380" y="320" width="360" height="150" class="node"/>
+  <rect x="620" y="320" width="360" height="150" class="node"/>
+  <rect x="860" y="320" width="360" height="150" class="node"/>
+  <rect x="1100" y="320" width="360" height="150" class="node"/>
+
+  <text x="320" y="360" text-anchor="middle" class="label">pages-user</text>
+  <text x="320" y="394" text-anchor="middle" class="small">用户主页、诗人主页、资料编辑、</text>
+  <text x="320" y="422" text-anchor="middle" class="small">关注、粉丝、屏蔽用户、我的点赞</text>
+
+  <text x="560" y="360" text-anchor="middle" class="label">pages-content</text>
+  <text x="560" y="394" text-anchor="middle" class="small">收藏夹、收藏内容、作品集、</text>
+  <text x="560" y="422" text-anchor="middle" class="small">他人作品集、草稿箱、活动列表与详情</text>
+
+  <text x="800" y="360" text-anchor="middle" class="label">pages-tools</text>
+  <text x="800" y="394" text-anchor="middle" class="small">搜索、消息、标签筛选、反馈、</text>
+  <text x="800" y="422" text-anchor="middle" class="small">图片管理、讨论创建、管理辅助页</text>
+
+  <text x="1040" y="360" text-anchor="middle" class="label">pages-collage / publish</text>
+  <text x="1040" y="394" text-anchor="middle" class="small">拼贴诗主页、广场、上传、合成，</text>
+  <text x="1040" y="422" text-anchor="middle" class="small">以及 add、preview、series-compose</text>
+
+  <text x="1280" y="360" text-anchor="middle" class="label">pages-admin / debug</text>
+  <text x="1280" y="394" text-anchor="middle" class="small">活动管理、帖子管理、反馈查看、</text>
+  <text x="1280" y="422" text-anchor="middle" class="small">密码找回、测试页面与域名校验</text>
+
+  <rect x="180" y="560" width="1240" height="250" class="root"/>
+  <text x="800" y="610" text-anchor="middle" class="label">导航组织原则</text>
+  <text x="280" y="668" class="text">1. 主包承载高频入口，分包承载专题功能，降低首次加载体积。</text>
+  <text x="280" y="708" class="text">2. 个人相关、内容管理、工具能力、拼贴诗与后台管理均使用独立分包。</text>
+  <text x="280" y="748" class="text">3. 页面间通过参数、刷新标记与事件总线回流，避免重复拉取与页面状态错乱。</text>
+  <text x="280" y="788" class="text">4. 发布、详情、活动等链路采用“列表页 - 详情页 - 回流刷新”的统一导航模型。</text>
+</svg>

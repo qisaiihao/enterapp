@@ -1,0 +1,1310 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>回车键Poementer软件-Vue3迁移改造计划</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 18mm 14mm 18mm 14mm;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      background: #fff;
+      color: #1b1f24;
+      font-family: "SimSun", "Songti SC", "STSong", serif;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    body {
+      font-size: 10.5pt;
+      line-height: 1.65;
+    }
+
+    .document {
+      width: 100%;
+    }
+
+    .cover-page {
+      min-height: 236mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 10mm 8mm;
+      background: linear-gradient(180deg, #f4f8fc 0%, #ffffff 48%, #f7fbff 100%);
+      border: 0.35mm solid #cad8e6;
+    }
+
+    .cover-kicker {
+      font-size: 13pt;
+      letter-spacing: 0.2em;
+      color: #31567c;
+      margin-bottom: 12mm;
+    }
+
+    .cover-page h1 {
+      margin: 0 0 8mm;
+      font-size: 24pt;
+      line-height: 1.3;
+      color: #13283d;
+    }
+
+    .cover-subtitle {
+      margin: 0 0 14mm;
+      font-size: 11pt;
+      color: #41556b;
+    }
+
+    .cover-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4mm 8mm;
+      margin-bottom: 14mm;
+    }
+
+    .cover-meta div {
+      padding: 3.2mm 4mm;
+      border: 0.25mm solid #d1dde9;
+      background: rgba(255, 255, 255, 0.88);
+    }
+
+    .cover-meta span {
+      display: block;
+      margin-bottom: 1mm;
+      font-size: 8.8pt;
+      color: #5d6b7a;
+    }
+
+    .cover-meta strong {
+      font-size: 10.5pt;
+      color: #1a2f47;
+      font-weight: 700;
+    }
+
+    .cover-note {
+      margin-top: auto;
+      padding-top: 6mm;
+      border-top: 0.3mm solid #d6e1eb;
+      color: #435264;
+    }
+
+    .cover-note p {
+      margin: 0 0 1.8mm;
+      text-align: left;
+    }
+
+    .page-break {
+      break-before: page;
+      page-break-before: always;
+      height: 0;
+    }
+
+    h2,
+    h3,
+    h4,
+    p,
+    ul,
+    ol,
+    table,
+    blockquote,
+    pre {
+      margin-top: 0;
+    }
+
+    h2 {
+      margin-bottom: 4mm;
+      padding-bottom: 1.4mm;
+      border-bottom: 0.45mm solid #324d75;
+      color: #10233e;
+      font-size: 15.5pt;
+      line-height: 1.3;
+    }
+
+    h3 {
+      margin-bottom: 2.2mm;
+      color: #203d61;
+      font-size: 11.8pt;
+      line-height: 1.35;
+    }
+
+    h4 {
+      margin-bottom: 1.4mm;
+      color: #294b6b;
+      font-size: 10.8pt;
+      line-height: 1.4;
+    }
+
+    p {
+      margin-bottom: 2.2mm;
+      text-align: justify;
+    }
+
+    ul,
+    ol {
+      margin-bottom: 2.4mm;
+      padding-left: 5.8mm;
+    }
+
+    li {
+      margin-bottom: 1mm;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 3mm;
+      table-layout: fixed;
+    }
+
+    th,
+    td {
+      border: 0.25mm solid #8395aa;
+      padding: 1.7mm 2mm;
+      vertical-align: top;
+      word-break: break-word;
+      font-size: 10pt;
+      line-height: 1.5;
+    }
+
+    th {
+      background: #eaf0f7;
+      text-align: left;
+      font-weight: 700;
+    }
+
+    blockquote {
+      margin-bottom: 3mm;
+      padding: 2mm 2.8mm;
+      border-left: 1mm solid #a5b7ca;
+      background: #f6f8fb;
+      color: #3a4a5a;
+    }
+
+    code {
+      padding: 0 0.8mm;
+      background: #f1f4f8;
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 9.2pt;
+    }
+
+    pre {
+      overflow: auto;
+      margin-bottom: 3mm;
+      padding: 2.4mm 2.8mm;
+      border: 0.25mm solid #d0dbe6;
+      background: #f8fbfd;
+    }
+
+    pre code {
+      padding: 0;
+      background: transparent;
+      display: block;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.45;
+    }
+
+    a {
+      color: #1f4f88;
+      text-decoration: none;
+    }
+
+    hr {
+      border: none;
+      border-top: 0.25mm solid #d5dee8;
+      margin: 4mm 0;
+    }
+
+    tr,
+    img,
+    pre,
+    blockquote {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+  </style>
+</head>
+<body>
+  <article class="document">
+<div class="cover-page">
+  <div class="cover-kicker">回车键 Poementer 软件</div>
+  <h1>Vue2 -&gt; Vue3 迁移改造计划</h1>
+  <p class="cover-subtitle">PDF 交付版 / 本轮仅交付迁移分析与实施计划，不改动应用运行时代码</p>
+  <div class="cover-meta">
+    <div><span>文档版本</span><strong>V1.0</strong></div>
+    <div><span>编制日期</span><strong>2026-03-19</strong></div>
+    <div><span>适用范围</span><strong>uni-app 现有多端项目（微信小程序 / H5 / App）</strong></div>
+    <div><span>交付形式</span><strong>Markdown / HTML / PDF</strong></div>
+  </div>
+  <div class="cover-note">
+    <p>说明：本文件用于指导后续 Vue2 到 Vue3 的实际迁移实施。</p>
+    <p>本轮范围仅限分析、排期、风险与验收方案，不包含代码迁移补丁。</p>
+  </div>
+</div>
+<div class="page-break"></div>
+<h2>1. 编制说明与交付边界</h2>
+<h3>1.1 编制目的</h3>
+<p>本报告用于回答“当前仓库从 Vue2 迁移到 Vue3，哪些地方必须改、为什么改、先改哪里、如何验证”的问题，并形成一份可直接归档、可供后续实施使用的正式计划文档。</p>
+<h3>1.2 本轮交付范围</h3>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>本轮结论</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>交付目标</td>
+<td>仅交付《Vue3 迁移改造计划》Markdown / HTML / PDF</td>
+</tr>
+<tr>
+<td>代码迁移</td>
+<td>本轮不实施</td>
+</tr>
+<tr>
+<td>业务功能改造</td>
+<td>本轮不实施</td>
+</tr>
+<tr>
+<td>HarmonyOS 适配</td>
+<td>不纳入本轮范围</td>
+</tr>
+<tr>
+<td>前端架构方向</td>
+<td>继续保留 Options API，不在本轮强制改 Composition API</td>
+</tr>
+<tr>
+<td>状态管理改造</td>
+<td>不在本轮引入 Pinia / Vuex 重构</td>
+</tr>
+<tr>
+<td>后端云函数 / 数据库</td>
+<td>原则上不改，仅在联调暴露契约问题时再处理</td>
+</tr>
+</tbody>
+</table>
+<h3>1.3 交付物清单</h3>
+<table>
+<thead>
+<tr>
+<th>交付物</th>
+<th>路径</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>源文档</td>
+<td><code>docs/deliverables/回车键Poementer软件-Vue3迁移改造计划.md</code></td>
+<td>迁移分析与计划正文</td>
+</tr>
+<tr>
+<td>中间文件</td>
+<td><code>docs/deliverables/回车键Poementer软件-Vue3迁移改造计划.html</code></td>
+<td>浏览与打印检查版</td>
+</tr>
+<tr>
+<td>正式交付件</td>
+<td><code>docs/deliverables/回车键Poementer软件-Vue3迁移改造计划.pdf</code></td>
+<td>归档与发送版</td>
+</tr>
+<tr>
+<td>导出脚本</td>
+<td><code>scripts/export-vue3-migration-pdf.mjs</code></td>
+<td>独立的 Markdown -&gt; HTML -&gt; PDF 导出链路</td>
+</tr>
+</tbody>
+</table>
+<h3>1.4 基线说明</h3>
+<ol>
+<li>本报告基于 2026-03-19 对当前工作区进行静态扫描所得结论编写。</li>
+<li>统计时排除了 <code>node_modules</code>、<code>unpackage</code>、<code>.git</code> 与 <code>docs/deliverables</code> 目录中的生成产物。</li>
+<li>本轮执行严格限定在文档与导出脚本范围，不触碰 <code>App.vue</code>、<code>main.js</code>、<code>utils/runtime-*</code> 等业务运行时代码。</li>
+</ol>
+<div class="page-break"></div>
+<h2>2. 执行摘要</h2>
+<h3>2.1 总体判断</h3>
+<p>当前项目具备迁移到 Vue3 的条件，但不能通过“仅修改 <code>manifest.json</code> 为 <code>vueVersion: &quot;3&quot;</code>”完成升级。核心原因不是页面数量多，而是启动链路、全局能力挂载、Vue2 响应式遗留写法和页面事件清理仍与 Vue2 运行机制强耦合。</p>
+<h3>2.2 一句话结论</h3>
+<ul>
+<li>真正的主风险在启动入口与页面响应式细节，不在云函数和数据库。</li>
+<li>运行时切换前，必须先补齐 <code>main.js</code> 中 Vue3 分支的启动职责，收口 <code>App.vue</code> 的重复初始化。</li>
+<li><code>this.$set</code>、<code>beforeDestroy</code>、<code>.sync</code> 这类 Vue2 语法遗留量不大，但属于必须处理项。</li>
+<li><code>setData</code> 使用量很高，但由于 <code>uni_modules/zp-mixins</code> 已存在 Vue3 分支，本轮迁移可以先保留该方案，不必同步重写为 Composition API。</li>
+<li><code>getApp().globalData</code> 依赖面较大，短期建议“收口”而不是“替换”。</li>
+<li>迁移应采用分阶段推进：先切运行时，再清语法，再稳热点页面，最后做回归和清理。</li>
+</ul>
+<h3>2.3 迁移目标定义</h3>
+<p>本项目本轮 Vue3 迁移的成功标准不是“代码更现代”，而是以下四项同时成立：</p>
+<ol>
+<li>微信小程序、H5、App 三端均能正常启动。</li>
+<li>登录、首页、详情、发帖、个人中心、活动链路全部可回归。</li>
+<li>Vue2 专属 API 已被清理到不会阻断 Vue3 运行。</li>
+<li>文档、测试清单和验收标准完整，便于后续实施与复盘。</li>
+</ol>
+<div class="page-break"></div>
+<h2>3. 仓库扫描方法与基线数据</h2>
+<h3>3.1 关键扫描结论</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>扫描结果</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>manifest.json</code></td>
+<td><code>vueVersion: &quot;2&quot;</code></td>
+<td>当前仍未切换到 Vue3 运行时</td>
+</tr>
+<tr>
+<td>主入口</td>
+<td><code>main.js</code> 同时含 <code>#ifndef VUE3</code> 与 <code>#ifdef VUE3</code> 分支</td>
+<td>已存在 Vue3 启动骨架，但职责不等价</td>
+</tr>
+<tr>
+<td><code>.vue</code> 文件数</td>
+<td>120</td>
+<td>为前端改造面提供量级判断</td>
+</tr>
+<tr>
+<td><code>pages.json</code> 页面登记数</td>
+<td>51</td>
+<td>含 1 个 <code>uni-upgrade-center-app</code> 页面入口</td>
+</tr>
+<tr>
+<td><code>setData(</code> 命中</td>
+<td>592 处 / 42 个文件</td>
+<td>迁移最大体量热点</td>
+</tr>
+<tr>
+<td><code>this.$set</code> 命中</td>
+<td>36 处 / 9 个文件</td>
+<td>Vue3 必改项</td>
+</tr>
+<tr>
+<td><code>globalData</code> 命中</td>
+<td>280 处 / 26 个文件</td>
+<td>全局状态耦合明显</td>
+</tr>
+<tr>
+<td><code>uni.$on</code> 命中</td>
+<td>50 处 / 11 个文件</td>
+<td>需要核对注册与解绑配对</td>
+</tr>
+<tr>
+<td><code>uni.$off</code> 命中</td>
+<td>22 处 / 9 个文件</td>
+<td>存在解绑粒度不统一风险</td>
+</tr>
+<tr>
+<td>自有 <code>beforeDestroy</code></td>
+<td>2 处</td>
+<td>位于 <code>components/FeedList.vue</code>、<code>components/top-bar/top-bar.vue</code></td>
+</tr>
+<tr>
+<td>自有 <code>.sync</code></td>
+<td>1 处</td>
+<td>位于 <code>pages-user/user-profile/user-profile.vue</code></td>
+</tr>
+<tr>
+<td>自有 <code>await uni.*</code> Promise 写法</td>
+<td>未发现明显依赖</td>
+<td>Promise 化不是本项目首要风险</td>
+</tr>
+</tbody>
+</table>
+<h3>3.2 迁移含义解读</h3>
+<ul>
+<li>Vue3 迁移不是“页面数量大导致困难”，而是“少数基础机制对运行时绑定很深”。</li>
+<li>统计上最需要关注的是 <code>setData</code>、<code>globalData</code>、事件总线和入口初始化，而不是云函数目录。</li>
+<li>自有代码中的 Vue2 生命周期和 <code>.sync</code> 规模有限，适合在第二阶段集中清理。</li>
+</ul>
+<h3>3.3 关键文件观察</h3>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>当前观察</th>
+<th>迁移含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>manifest.json</code></td>
+<td>仍声明 Vue2</td>
+<td>不切换则不会进入 Vue3 运行时</td>
+</tr>
+<tr>
+<td><code>main.js</code></td>
+<td>Vue2 分支承担了完整启动职责，Vue3 分支偏骨架</td>
+<td>需先做到功能等价</td>
+</tr>
+<tr>
+<td><code>App.vue</code></td>
+<td>重复做云初始化与全局挂载</td>
+<td>需与 <code>main.js</code> 重新分责</td>
+</tr>
+<tr>
+<td><code>uni_modules/zp-mixins/index.js</code></td>
+<td>已有 <code>#ifdef VUE3</code> 分支</td>
+<td><code>setData</code> 可先保留，不必本轮整体重构</td>
+</tr>
+<tr>
+<td><code>uni_modules/zp-mixins/methods/setData.js</code></td>
+<td>已实现 Vue3 兼容思路</td>
+<td>说明迁移重点不在全面移除 <code>setData</code></td>
+</tr>
+</tbody>
+</table>
+<div class="page-break"></div>
+<h2>4. 热点分布与高风险模块</h2>
+<h3>4.1 <code>setData</code> 热点页面</h3>
+<table>
+<thead>
+<tr>
+<th>排名</th>
+<th>文件</th>
+<th style="text-align:right">命中次数</th>
+<th>迁移关注点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>pages/post-detail/post-detail.vue</code></td>
+<td style="text-align:right">61</td>
+<td>评论区、回复区、点赞状态、局部刷新</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>pages/index/index.vue</code></td>
+<td style="text-align:right">56</td>
+<td>首页列表、下拉刷新、点赞同步、红点联动</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>pages/profile/profile.vue</code></td>
+<td style="text-align:right">52</td>
+<td>个人中心首页、关注数据、消息同步</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>pages-publish/add/add.vue</code></td>
+<td style="text-align:right">45</td>
+<td>发帖表单、预览前状态、系列内容同步</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>pages-user/user-profile/user-profile.vue</code></td>
+<td style="text-align:right">39</td>
+<td>时间轴、收藏页签、折叠状态</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>pages/poem-square/poem-square.vue</code></td>
+<td style="text-align:right">31</td>
+<td>列表刷新与点赞回流</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>pages-tools/search/search.vue</code></td>
+<td style="text-align:right">26</td>
+<td>搜索列表更新与结果切换</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>pages-user/profile-edit/profile-edit.vue</code></td>
+<td style="text-align:right">25</td>
+<td>个人资料编辑回写</td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>pages-content/portfolio-detail/portfolio-detail.vue</code></td>
+<td style="text-align:right">24</td>
+<td>作品集详情与互动态同步</td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>pages-user/poet-profile/poet-profile.vue</code></td>
+<td style="text-align:right">17</td>
+<td>他人主页列表与关注态</td>
+</tr>
+</tbody>
+</table>
+<h3>4.2 <code>this.$set</code> 热点文件</h3>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th style="text-align:right">命中次数</th>
+<th>建议处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pages/post-detail/post-detail.vue</code></td>
+<td style="text-align:right">13</td>
+<td>改为对象属性直接赋值 / 数组整体替换</td>
+</tr>
+<tr>
+<td><code>pages-content/draft-box/draft-box.vue</code></td>
+<td style="text-align:right">5</td>
+<td>草稿项更新改为新数组回写</td>
+</tr>
+<tr>
+<td><code>pages-content/other-portfolio/other-portfolio.vue</code></td>
+<td style="text-align:right">3</td>
+<td>列表局部状态字典直接赋值</td>
+</tr>
+<tr>
+<td><code>pages-content/activity-detail/activity-detail.vue</code></td>
+<td style="text-align:right">3</td>
+<td>活动帖子局部态直接赋值</td>
+</tr>
+<tr>
+<td><code>pages-admin/activity-posts/activity-posts.vue</code></td>
+<td style="text-align:right">3</td>
+<td>管理页状态字典改写</td>
+</tr>
+<tr>
+<td><code>pages/font-manager/font-manager.vue</code></td>
+<td style="text-align:right">2</td>
+<td>下载 loading 状态直接赋值</td>
+</tr>
+<tr>
+<td><code>uni_modules/mp-html/**</code></td>
+<td style="text-align:right">6</td>
+<td>三方模块版本核验，不在首轮自改</td>
+</tr>
+<tr>
+<td><code>uni_modules/uni-table/**</code></td>
+<td style="text-align:right">1</td>
+<td>三方模块版本核验，不在首轮自改</td>
+</tr>
+</tbody>
+</table>
+<h3>4.3 <code>globalData</code> 依赖最重文件</h3>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th style="text-align:right">命中次数</th>
+<th>主要用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pages/login/login.vue</code></td>
+<td style="text-align:right">43</td>
+<td>登录态、openid、重定向信息</td>
+</tr>
+<tr>
+<td><code>pages/splash/splash.vue</code></td>
+<td style="text-align:right">41</td>
+<td>启动引导与自动登录状态</td>
+</tr>
+<tr>
+<td><code>App.vue</code></td>
+<td style="text-align:right">41</td>
+<td>全局会话、启动状态、登录编排</td>
+</tr>
+<tr>
+<td><code>pages/profile/profile.vue</code></td>
+<td style="text-align:right">27</td>
+<td>用户资料与关系链数据</td>
+</tr>
+<tr>
+<td><code>main.js</code></td>
+<td style="text-align:right">21</td>
+<td>openid、预热与 badge 初始化</td>
+</tr>
+<tr>
+<td><code>utils/auth.js</code></td>
+<td style="text-align:right">14</td>
+<td>鉴权和登录辅助</td>
+</tr>
+<tr>
+<td><code>utils/authHelper.js</code></td>
+<td style="text-align:right">11</td>
+<td>登录帮助逻辑</td>
+</tr>
+</tbody>
+</table>
+<h3>4.4 高风险回归优先级</h3>
+<table>
+<thead>
+<tr>
+<th>优先级</th>
+<th>文件 / 模块</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P1</td>
+<td><code>pages/index/index.vue</code></td>
+<td>首屏、列表、点赞事件、TabBar 联动集中</td>
+</tr>
+<tr>
+<td>P1</td>
+<td><code>pages/post-detail/post-detail.vue</code></td>
+<td><code>setData</code> 和 <code>$set</code> 双高发，评论态复杂</td>
+</tr>
+<tr>
+<td>P1</td>
+<td><code>pages/profile/profile.vue</code></td>
+<td>用户态、红点、关系链联动多</td>
+</tr>
+<tr>
+<td>P1</td>
+<td><code>pages/login/login.vue</code></td>
+<td><code>globalData</code> 依赖最重，直接影响启动成功率</td>
+</tr>
+<tr>
+<td>P1</td>
+<td><code>pages-publish/add/add.vue</code></td>
+<td>发布链路状态量大，易出现局部失活</td>
+</tr>
+<tr>
+<td>P1</td>
+<td><code>pages-user/user-profile/user-profile.vue</code></td>
+<td><code>.sync</code>、时间轴、Tab 切换和列表加载都在此处汇合</td>
+</tr>
+<tr>
+<td>P2</td>
+<td><code>pages/poem-square/poem-square.vue</code>、<code>pages/mountain/mountain.vue</code></td>
+<td>列表刷新和事件总线密集</td>
+</tr>
+<tr>
+<td>P2</td>
+<td><code>pages-content/activity-detail/activity-detail.vue</code>、<code>pages-content/other-portfolio/other-portfolio.vue</code>、<code>pages-content/draft-box/draft-box.vue</code></td>
+<td>互动态和局部替换逻辑明显</td>
+</tr>
+<tr>
+<td>P3</td>
+<td><code>components/FeedList.vue</code>、<code>components/top-bar/top-bar.vue</code>、<code>custom-tab-bar/index.vue</code></td>
+<td>首屏共用组件，需优先联调</td>
+</tr>
+</tbody>
+</table>
+<div class="page-break"></div>
+<h2>5. 必须调整项详析</h2>
+<h3>5.1 启动入口与初始化职责</h3>
+<p>当前 <code>main.js</code> 的 <code>#ifndef VUE3</code> 分支不仅负责创建应用，还承载了以下职责：</p>
+<ul>
+<li>云开发初始化与 <code>$tcb</code> 注入；</li>
+<li>小程序 <code>wx.cloud</code> 包装与 <code>uni.$tcb</code> 挂载；</li>
+<li><code>openid</code> 兜底和 <code>$requireOpenid</code>；</li>
+<li><code>fileUrlCache</code> resolver 注册；</li>
+<li>缓存桥接 <code>setupCacheEventBridges()</code>；</li>
+<li>未读红点、活动红点初始化；</li>
+<li>登录完成后的资料预热。</li>
+</ul>
+<p>而 <code>#ifdef VUE3</code> 分支目前只覆盖了其中一部分能力。结论是：切 Vue3 前，必须先把启动职责抽成单一 bootstrap 模块，再由 Vue3 入口复用，否则只会得到“能编译但功能不完整”的状态。</p>
+<h3>5.2 Vue2 全局 API 替换</h3>
+<p>根据 uni-app Vue3 配置方式，入口应切换到 <code>createSSRApp(App)</code>；根据 Vue 3 迁移指南，全局 API 不再围绕 <code>Vue</code> 构造函数展开，而是围绕应用实例展开。</p>
+<p>因此必须处理：</p>
+<table>
+<thead>
+<tr>
+<th>Vue2 写法</th>
+<th>Vue3 对应方向</th>
+<th>本项目含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>new Vue({...})</code></td>
+<td><code>createSSRApp(App)</code></td>
+<td>入口改造必做</td>
+</tr>
+<tr>
+<td><code>Vue.prototype.xxx</code></td>
+<td><code>app.config.globalProperties.xxx</code></td>
+<td><code>$tcb</code>、<code>$requireOpenid</code> 等必须迁移</td>
+</tr>
+<tr>
+<td><code>Vue.use(...)</code></td>
+<td><code>app.use(...)</code></td>
+<td>插件挂载方式统一调整</td>
+</tr>
+<tr>
+<td><code>Vue.mixin(...)</code></td>
+<td><code>app.mixin(...)</code></td>
+<td>全局 mixin 挂载方式调整</td>
+</tr>
+</tbody>
+</table>
+<h3>5.3 Vue2 响应式遗留写法</h3>
+<p>Vue 3 已移除 <code>$set</code> / <code>$delete</code> 这类依赖旧响应式系统的 API。本项目自有代码中仍有 36 处 <code>this.$set</code>，必须处理；否则进入 Vue3 后会直接报错或行为异常。</p>
+<p>推荐改法如下：</p>
+<pre><code class="language-js">// 旧写法
+this.$set(this.votingInProgress, postId, true)
+
+// Vue3 迁移写法
+this.votingInProgress[postId] = true
+</code></pre>
+<pre><code class="language-js">// 旧写法
+this.$set(this.draftList, index, nextDraft)
+
+// Vue3 迁移写法
+const next = this.draftList.slice()
+next[index] = nextDraft
+this.draftList = next
+</code></pre>
+<h3>5.4 生命周期与双向绑定</h3>
+<p>自有代码里的 <code>beforeDestroy</code> 需要改为 <code>beforeUnmount</code>；若后续发现 <code>destroyed</code>，对应改为 <code>unmounted</code>。当前自有 <code>.sync</code> 命中 1 处：<code>pages-user/user-profile/user-profile.vue</code> 中的 <code>:collapsedMonths.sync=&quot;collapsedMonths&quot;</code>，应改为：</p>
+<pre><code class="language-html">&lt;TimelineView v-model:collapsed-months=&quot;collapsedMonths&quot; /&gt;
+</code></pre>
+<p>并保持子组件继续发出 <code>update:collapsed-months</code> 事件。</p>
+<h3>5.5 全局状态与事件总线</h3>
+<ul>
+<li><code>getApp().globalData</code> 目前分布 280 处，短期不建议强行替换成新状态库。</li>
+<li>更稳妥的做法是新增一个轻量 helper，将会话信息、登录状态、openid、未读标记的读写统一收口。</li>
+<li><code>uni.$on</code> / <code>uni.$off</code> 必须统一成“按 handler 注册、按同一个 handler 解绑”，避免页面卸载时误清空其他监听器或留下重复监听。</li>
+</ul>
+<h3>5.6 三方模块处理原则</h3>
+<p><code>uni_modules/zp-mixins</code> 已显式包含 Vue3 条件分支，说明 <code>setData</code> 过渡方案可继续使用；但 <code>mp-html</code>、<code>uni-table</code>、<code>uni-forms</code> 等三方模块中仍能检索到 Vue2 生命周期痕迹，因此建议策略为：</p>
+<ol>
+<li>第一轮先不私自修改三方源码；</li>
+<li>先完成自有代码迁移与三端冒烟；</li>
+<li>仅在实机验证确认三方兼容问题后，再决定升级版本或局部补丁。</li>
+</ol>
+<div class="page-break"></div>
+<h2>6. 分阶段实施计划</h2>
+<h3>6.1 阶段划分总表</h3>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>目标</th>
+<th>主要产出</th>
+<th>退出条件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>阶段 0</td>
+<td>建立迁移基线</td>
+<td>冻结范围、扫描结果、计划文档</td>
+<td>变更边界清晰</td>
+</tr>
+<tr>
+<td>阶段 1</td>
+<td>切换运行时</td>
+<td><code>manifest.json</code>、<code>main.js</code>、bootstrap 模块</td>
+<td>Vue3 可启动且功能等价</td>
+</tr>
+<tr>
+<td>阶段 2</td>
+<td>清理 Vue2 语法</td>
+<td><code>$set</code>、生命周期、<code>.sync</code>、全局 API 替换</td>
+<td>不再依赖 Vue2 专属 API</td>
+</tr>
+<tr>
+<td>阶段 3</td>
+<td>稳定热点页面</td>
+<td>P1 / P2 页面逐页回归</td>
+<td>主链路可用</td>
+</tr>
+<tr>
+<td>阶段 4</td>
+<td>收口全局状态与事件</td>
+<td>helper、事件解绑规范、冗余清理</td>
+<td>启动与事件行为稳定</td>
+</tr>
+<tr>
+<td>阶段 5</td>
+<td>全量回归与清理</td>
+<td>删除过时分支、补测试记录</td>
+<td>可合并、可发布、可归档</td>
+</tr>
+</tbody>
+</table>
+<h3>6.2 阶段 1：先切运行时，不碰业务逻辑</h3>
+<ol>
+<li>将 <code>manifest.json</code> 的 <code>vueVersion</code> 从 <code>2</code> 切换到 <code>3</code>。</li>
+<li>保留 <code>createSSRApp</code> 入口，补齐当前 Vue2 路径已有能力，做到功能等价后再删旧分支。</li>
+<li>将云开发初始化、<code>$tcb</code> 注入、<code>openid</code> 兜底、缓存桥接、badge 初始化、预热逻辑抽到单一 bootstrap 模块。</li>
+<li><code>App.vue</code> 只保留应用生命周期、登录编排、URL Scheme 处理和全局样式，不再承担 <code>Vue.prototype</code> 级职责。</li>
+</ol>
+<h3>6.3 阶段 2：清理 Vue2 语法遗留</h3>
+<ol>
+<li>全量替换自有代码里的 <code>Vue.prototype</code>、<code>Vue.use</code>、<code>new Vue</code>。</li>
+<li>全量替换 <code>this.$set</code>；按对象、数组、字典三类场景分别改写。</li>
+<li>生命周期统一改名：<code>beforeDestroy -&gt; beforeUnmount</code>，<code>destroyed -&gt; unmounted</code>。</li>
+<li><code>.sync</code> 迁移到参数化 <code>v-model</code>。</li>
+<li>复核 watcher：凡是依赖数组 / 对象内部变更的，明确补 <code>deep: true</code>。</li>
+</ol>
+<h3>6.4 阶段 3：逐页稳态化</h3>
+<p>推荐顺序：</p>
+<ol>
+<li>登录与自动登录链路：<code>pages/login/login.vue</code>、<code>pages/splash/splash.vue</code>。</li>
+<li>首屏与列表链路：<code>pages/index/index.vue</code>、<code>pages/poem-square/poem-square.vue</code>、<code>pages/mountain/mountain.vue</code>。</li>
+<li>详情与互动链路：<code>pages/post-detail/post-detail.vue</code>、<code>pages-content/portfolio-detail/portfolio-detail.vue</code>。</li>
+<li>用户链路：<code>pages/profile/profile.vue</code>、<code>pages-user/user-profile/user-profile.vue</code>、<code>pages-user/poet-profile/poet-profile.vue</code>。</li>
+<li>发布链路：<code>pages-publish/add/add.vue</code>、<code>pages-publish/preview/preview.vue</code>、<code>pages-content/draft-box/draft-box.vue</code>。</li>
+<li>活动链路：<code>pages-content/activity-list/activity-list.vue</code>、<code>pages-content/activity-detail/activity-detail.vue</code>、<code>pages-admin/activity-posts/activity-posts.vue</code>。</li>
+</ol>
+<h3>6.5 阶段 4：清理冗余与死代码</h3>
+<ul>
+<li>删除 <code>main.js</code> 中只为 Vue2 存在的兼容分支。</li>
+<li>删除重复初始化和无效注释。</li>
+<li>将临时兜底逻辑沉淀为稳定 helper，避免迁移后留下“兼容层债务”。</li>
+</ul>
+<h3>6.6 阶段 5：交付与归档</h3>
+<ul>
+<li>输出迁移记录、问题清单、回归结果。</li>
+<li>对最终版本执行一次完整导出和归档，保证后续接手者能复盘“为什么这样迁”。</li>
+</ul>
+<div class="page-break"></div>
+<h2>7. 详细改造清单</h2>
+<h3>7.1 入口与全局能力</h3>
+<table>
+<thead>
+<tr>
+<th>改造项</th>
+<th>当前位置</th>
+<th>预期动作</th>
+<th>风险等级</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>运行时切换</td>
+<td><code>manifest.json</code></td>
+<td>改为 Vue3</td>
+<td>高</td>
+</tr>
+<tr>
+<td>应用创建方式</td>
+<td><code>main.js</code></td>
+<td>统一到 <code>createSSRApp</code></td>
+<td>高</td>
+</tr>
+<tr>
+<td><code>$tcb</code> 注入</td>
+<td><code>main.js</code>、<code>App.vue</code></td>
+<td>收口到 bootstrap + <code>app.config.globalProperties</code></td>
+<td>高</td>
+</tr>
+<tr>
+<td><code>fileUrlCache</code> resolver</td>
+<td><code>main.js</code></td>
+<td>保留但重挂到 Vue3 路径</td>
+<td>中</td>
+</tr>
+<tr>
+<td>badge 初始化</td>
+<td><code>main.js</code></td>
+<td>抽到统一启动流程</td>
+<td>中</td>
+</tr>
+<tr>
+<td>登录预热</td>
+<td><code>main.js</code></td>
+<td>保留并改到 Vue3 路径</td>
+<td>中</td>
+</tr>
+</tbody>
+</table>
+<h3>7.2 页面与组件语法</h3>
+<table>
+<thead>
+<tr>
+<th>改造项</th>
+<th>影响面</th>
+<th>处理原则</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>this.$set</code></td>
+<td>9 个文件 / 36 处</td>
+<td>全量替换，禁止残留</td>
+</tr>
+<tr>
+<td><code>beforeDestroy</code></td>
+<td>2 个自有组件</td>
+<td>直接改名为 <code>beforeUnmount</code></td>
+</tr>
+<tr>
+<td><code>.sync</code></td>
+<td>1 个页面</td>
+<td>迁移为 <code>v-model:*</code></td>
+</tr>
+<tr>
+<td>watcher 深度监听</td>
+<td>若干页面</td>
+<td>按数据结构补 <code>deep: true</code></td>
+</tr>
+<tr>
+<td><code>setData</code></td>
+<td>42 个文件 / 592 处</td>
+<td>首轮继续沿用 <code>zp-mixins</code>，不做大重写</td>
+</tr>
+</tbody>
+</table>
+<h3>7.3 状态与事件</h3>
+<table>
+<thead>
+<tr>
+<th>改造项</th>
+<th>当前问题</th>
+<th>建议策略</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>globalData</code></td>
+<td>裸读裸写过多</td>
+<td>增加统一 helper 收口</td>
+</tr>
+<tr>
+<td><code>uni.$on</code> / <code>uni.$off</code></td>
+<td>注册与解绑粒度不一致</td>
+<td>明确 handler 常量并在卸载时一一解绑</td>
+</tr>
+<tr>
+<td>点赞 / 评论 / 未读事件</td>
+<td>多页联动</td>
+<td>先保证不重复触发，再考虑重构</td>
+</tr>
+<tr>
+<td>自定义缓存桥接</td>
+<td>依赖启动顺序</td>
+<td>迁移时必须保留初始化时机</td>
+</tr>
+</tbody>
+</table>
+<h3>7.4 明确不在本轮做的事</h3>
+<ol>
+<li>不将 Options API 全量改写成 Composition API。</li>
+<li>不上 Pinia / Vuex 全量状态迁移。</li>
+<li>不做 HarmonyOS 运行适配。</li>
+<li>不因 Vue3 迁移顺手重构页面视觉或业务流程。</li>
+<li>不主动修改后端云函数和数据库结构。</li>
+</ol>
+<div class="page-break"></div>
+<h2>8. 风险识别与回归策略</h2>
+<h3>8.1 主要风险矩阵</h3>
+<table>
+<thead>
+<tr>
+<th>风险</th>
+<th>触发场景</th>
+<th>影响</th>
+<th>应对策略</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>启动成功但能力缺失</td>
+<td>只改 <code>vueVersion</code>，未补全 Vue3 入口</td>
+<td>页面可打开但登录 / 云调用异常</td>
+<td>先做 bootstrap 功能等价</td>
+</tr>
+<tr>
+<td>响应式失效</td>
+<td><code>this.$set</code> 未清理</td>
+<td>点赞、评论、草稿局部状态不刷新</td>
+<td>全量替换并逐点验证</td>
+</tr>
+<tr>
+<td>事件重复触发</td>
+<td><code>uni.$on</code> 重复注册或解绑不精确</td>
+<td>点赞数、未读红点重复更新</td>
+<td>统一按 handler 注册解绑</td>
+</tr>
+<tr>
+<td>页面卸载泄漏</td>
+<td>生命周期未改或清理遗漏</td>
+<td>返回页面后事件叠加</td>
+<td>统一检查 <code>onUnload</code> / <code>beforeUnmount</code></td>
+</tr>
+<tr>
+<td>三方模块兼容性</td>
+<td><code>mp-html</code>、<code>uni-table</code> 等版本差异</td>
+<td>某些组件在 Vue3 下异常</td>
+<td>先冒烟验证，再决定升级</td>
+</tr>
+<tr>
+<td>启动链路变慢</td>
+<td>bootstrap 抽取后顺序不当</td>
+<td>首屏白屏或登录延迟</td>
+<td>关键链路串行，预热与 badge 延后</td>
+</tr>
+</tbody>
+</table>
+<h3>8.2 不建议的迁移方式</h3>
+<ul>
+<li>一次性把 <code>setData</code>、<code>globalData</code>、页面结构和状态管理全部重写。</li>
+<li>在没有跑通三端启动前，就同步做 Composition API 重构。</li>
+<li>不做扫描、不列优先级，直接从页面数量最多的目录开工。</li>
+</ul>
+<h3>8.3 推荐的回归节奏</h3>
+<ol>
+<li>每完成一个阶段，都先做微信小程序冒烟，因为云能力和登录链路最敏感。</li>
+<li>首屏和详情页通过后，再回归发帖与个人中心。</li>
+<li>活动、收藏夹、消息中心等第二梯队功能放在主链路稳定之后处理。</li>
+<li>三端回归顺序建议为：微信小程序 -&gt; H5 -&gt; App。</li>
+</ol>
+<div class="page-break"></div>
+<h2>9. 测试矩阵与验收标准</h2>
+<h3>9.1 启动与编译验收</h3>
+<table>
+<thead>
+<tr>
+<th>检查项</th>
+<th>验收标准</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>微信小程序启动</td>
+<td>无 <code>$tcb</code> 未定义、登录态丢失、云调用初始化失败</td>
+</tr>
+<tr>
+<td>H5 启动</td>
+<td>页面可访问，登录和跳转正常</td>
+</tr>
+<tr>
+<td>App 启动</td>
+<td>URL Scheme、热更新、字体预载不因迁移失效</td>
+</tr>
+<tr>
+<td>编译过程</td>
+<td>无 Vue2 专属 API 导致的硬错误</td>
+</tr>
+</tbody>
+</table>
+<h3>9.2 核心业务回归</h3>
+<table>
+<thead>
+<tr>
+<th>业务链路</th>
+<th>必测内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>登录 / 自动登录</td>
+<td>微信登录、GitHub 回调、回跳逻辑</td>
+</tr>
+<tr>
+<td>首页</td>
+<td>列表加载、下拉刷新、点赞、评论数同步</td>
+</tr>
+<tr>
+<td>帖子详情</td>
+<td>评论区、回复区、点赞、收藏、删除 / 新增评论回流</td>
+</tr>
+<tr>
+<td>发帖链路</td>
+<td>新建、预览、发布、返回编辑、草稿箱</td>
+</tr>
+<tr>
+<td>个人中心</td>
+<td>我的主页、他人主页、关注 / 拉黑、作品集</td>
+</tr>
+<tr>
+<td>活动链路</td>
+<td>活动列表、活动详情、活动帖子聚合</td>
+</tr>
+<tr>
+<td>消息链路</td>
+<td>未读红点、活动红点、顶部栏、TabBar 切换</td>
+</tr>
+</tbody>
+</table>
+<h3>9.3 响应式专项验证</h3>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>重点验证点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>原 <code>$set</code> 位置</td>
+<td>评论点赞、草稿局部替换、字典状态切换、字体下载 loading</td>
+</tr>
+<tr>
+<td><code>setData</code> 重度页面</td>
+<td>深层路径赋值、数组索引替换、重复赋值后的视图同步</td>
+</tr>
+<tr>
+<td>watcher</td>
+<td>深层对象 / 数组变化是否还能触发业务逻辑</td>
+</tr>
+<tr>
+<td><code>.sync</code> 替换</td>
+<td>时间轴折叠状态是否双向同步</td>
+</tr>
+</tbody>
+</table>
+<h3>9.4 事件与清理专项</h3>
+<p>需逐一验证以下事件不会重复触发或泄漏：</p>
+<ul>
+<li><code>like-changed</code></li>
+<li><code>comment-count-changed</code></li>
+<li><code>comment-like-changed</code></li>
+<li><code>avatar-updated</code></li>
+<li><code>post-created</code></li>
+<li><code>favorite-changed</code></li>
+<li><code>unread-changed</code></li>
+</ul>
+<h3>9.5 最终验收标准</h3>
+<ol>
+<li>三端启动通过。</li>
+<li>六条核心业务链路全部回归通过。</li>
+<li>自有代码不再残留 <code>this.$set</code>、<code>beforeDestroy</code>、<code>.sync</code>。</li>
+<li>所有高风险页面均完成至少一次人工回归记录。</li>
+<li>最终文档、变更说明和测试结果可归档。</li>
+</ol>
+<div class="page-break"></div>
+<h2>10. 实施建议与资源安排</h2>
+<h3>10.1 推荐实施顺序</h3>
+<table>
+<thead>
+<tr>
+<th>周期</th>
+<th>建议投入</th>
+<th>主要工作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第 1 周</td>
+<td>1 人主改 + 1 人回归支持</td>
+<td>启动入口梳理、bootstrap 抽取、<code>manifest.json</code> 切换</td>
+</tr>
+<tr>
+<td>第 2 周</td>
+<td>1 人主改 + 1 人页面联调</td>
+<td>清理 <code>$set</code>、生命周期、<code>.sync</code>，完成 P1 页面联调</td>
+</tr>
+<tr>
+<td>第 3 周</td>
+<td>1 人主改 + 1 人测试</td>
+<td>P2 页面稳态化、事件清理、三端回归</td>
+</tr>
+<tr>
+<td>第 4 周</td>
+<td>机动</td>
+<td>清理冗余、补问题清单、完成发布前验收</td>
+</tr>
+</tbody>
+</table>
+<h3>10.2 建议的里程碑门禁</h3>
+<ol>
+<li>不允许在阶段 1 未跑通三端启动前展开大规模页面重构。</li>
+<li>不允许在 P1 页面未通过回归前删除 Vue2 兼容分支。</li>
+<li>不允许在事件总线清理未完成前判定“迁移完成”。</li>
+<li>不允许把文档计划与实际代码改造脱节，阶段完成后要同步补记录。</li>
+</ol>
+<h3>10.3 成本与收益判断</h3>
+<ul>
+<li>成本主要集中在前端页面层和启动链路，不在云函数。</li>
+<li>收益主要体现在：后续依赖升级空间更大、Vue2 历史包袱更少、三端统一维护成本下降。</li>
+<li>若按本报告的“分阶段 + 优先级”方式执行，迁移风险可控；若改成“全量重写”，风险会显著上升。</li>
+</ul>
+<div class="page-break"></div>
+<h2>11. 参考依据</h2>
+<h3>11.1 外部参考</h3>
+<table>
+<thead>
+<tr>
+<th>来源</th>
+<th>链接</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>华为开发者话题页</td>
+<td><code>https://developer.huawei.com/consumer/cn/forum/topic/0213198526159516042?fid=0109140870620153026</code></td>
+<td>作为迁移背景参考链接</td>
+</tr>
+<tr>
+<td>uni-app Vue3 应用配置</td>
+<td><code>https://uniapp.dcloud.io/tutorial/vue3-api.html</code></td>
+<td>确认 <code>createSSRApp</code> 入口方式</td>
+</tr>
+<tr>
+<td>uni-app API 概述</td>
+<td><code>https://uniapp.dcloud.io/api/</code></td>
+<td>核对 Vue2 / Vue3 Promise 化差异</td>
+</tr>
+<tr>
+<td>Vue 3 迁移指南总览</td>
+<td><code>https://v3-migration.vuejs.org/zh/breaking-changes/</code></td>
+<td>核对 breaking changes 清单</td>
+</tr>
+<tr>
+<td>Vue 3 <code>v-model</code> 迁移</td>
+<td><code>https://v3-migration.vuejs.org/zh/breaking-changes/v-model.html</code></td>
+<td><code>.sync</code> 与 <code>v-model:*</code> 替换依据</td>
+</tr>
+</tbody>
+</table>
+<h3>11.2 本仓库内部依据</h3>
+<ul>
+<li><code>manifest.json</code></li>
+<li><code>main.js</code></li>
+<li><code>App.vue</code></li>
+<li><code>pages.json</code></li>
+<li><code>pages/post-detail/post-detail.vue</code></li>
+<li><code>pages/index/index.vue</code></li>
+<li><code>pages/profile/profile.vue</code></li>
+<li><code>pages-publish/add/add.vue</code></li>
+<li><code>pages-user/user-profile/user-profile.vue</code></li>
+<li><code>uni_modules/zp-mixins/index.js</code></li>
+<li><code>uni_modules/zp-mixins/methods/setData.js</code></li>
+</ul>
+<h3>11.3 说明</h3>
+<p>本报告结论以仓库静态扫描结果为主，外部资料主要用于校对迁移方向与 breaking changes，不替代项目自身代码事实。</p>
+<div class="page-break"></div>
+<h2>12. 附录：后续实施时的核对清单</h2>
+<h3>12.1 开工前核对</h3>
+<ul>
+<li>已冻结“本轮不做”的改造范围。</li>
+<li>已确认 <code>manifest.json</code>、<code>main.js</code>、<code>App.vue</code> 为第一批改造对象。</li>
+<li>已列出 P1 / P2 / P3 页面优先级。</li>
+<li>已准备三端测试环境。</li>
+</ul>
+<h3>12.2 每阶段完成后核对</h3>
+<ul>
+<li>启动是否仍稳定。</li>
+<li>登录链路是否仍可用。</li>
+<li>事件监听是否存在重复。</li>
+<li>页面局部响应式是否恢复正常。</li>
+<li>文档与问题单是否同步更新。</li>
+</ul>
+<h3>12.3 最终交付核对</h3>
+<ul>
+<li>迁移代码已和本计划逐项对齐。</li>
+<li>测试矩阵全部留痕。</li>
+<li>删除了无效的 Vue2 兼容代码。</li>
+<li>最终版本具备可归档的 Markdown / HTML / PDF 文档。</li>
+</ul>
+<h3>12.4 本文档结论</h3>
+<p>本项目的 Vue3 迁移属于“前端运行时与响应式机制升级项目”，不是“后端重构项目”，也不是“全站重写项目”。只要坚持“先入口、后语法、再页面、最后清理”的路径，迁移可以在不改业务模型的前提下稳步完成。</p>
+
+  </article>
+</body>
+</html>

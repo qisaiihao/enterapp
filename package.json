@@ -7,12 +7,18 @@
 		"test": "echo \"Error: no test specified\" && exit 1",
 		"check:encoding": "node scripts/check-encoding.js",
 		"check:syntax": "node scripts/check-syntax.js",
-		"check:quality": "npm run check:encoding && npm run check:syntax"
+		"check:quality": "npm run check:encoding && npm run check:syntax",
+		"export:doc": "node scripts/export-doc-pdf.mjs",
+		"export:source": "node scripts/export-source-pdf.mjs"
 	},
 	"author": "",
 	"dependencies": {
 		"@cloudbase/js-sdk": "^2.21.9",
 		"wx-server-sdk": "^3.0.1"
 	},
-	"license": "[object Object]" 
+	"license": "[object Object]",
+	"devDependencies": {
+		"markdown-it": "^14.1.1",
+		"puppeteer-core": "^24.39.1"
+	}
 }

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <style>
+      .title { font: 700 34px SimSun, Songti SC, serif; fill: #173455; }
+      .label { font: 600 24px SimSun, Songti SC, serif; fill: #173455; }
+      .text { font: 21px SimSun, Songti SC, serif; fill: #1f2d3d; }
+      .small { font: 18px SimSun, Songti SC, serif; fill: #385068; }
+      .box { fill: #f8fbff; stroke: #4f79a7; stroke-width: 3; rx: 18; ry: 18; }
+      .arrow { stroke: #2c5b8f; stroke-width: 4; fill: none; marker-end: url(#m); }
+      .dash { stroke: #7b90aa; stroke-width: 3; fill: none; stroke-dasharray: 10 10; }
+    </style>
+    <marker id="m" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 z" fill="#2c5b8f"/>
+    </marker>
+  </defs>
+  <text x="800" y="58" text-anchor="middle" class="title">统一缓存与一致性流程图</text>
+
+  <rect x="90" y="220" width="220" height="90" class="box"/>
+  <text x="200" y="255" text-anchor="middle" class="label">页面层</text>
+  <text x="200" y="287" text-anchor="middle" class="small">列表、详情、个人页、活动页</text>
+
+  <rect x="390" y="220" width="240" height="90" class="box"/>
+  <text x="510" y="255" text-anchor="middle" class="label">api-cache</text>
+  <text x="510" y="287" text-anchor="middle" class="small">语义方法、解包、错误归一</text>
+
+  <rect x="720" y="180" width="280" height="160" class="box"/>
+  <text x="860" y="225" text-anchor="middle" class="label">CacheManager</text>
+  <text x="860" y="262" text-anchor="middle" class="small">LRU / TTL / SWR / 命名空间</text>
+  <text x="860" y="295" text-anchor="middle" class="small">列表缓存、详情缓存、临时 URL 缓存</text>
+
+  <rect x="1090" y="220" width="220" height="90" class="box"/>
+  <text x="1200" y="255" text-anchor="middle" class="label">cloud-wrapper</text>
+  <text x="1200" y="287" text-anchor="middle" class="small">callAction / unwrap</text>
+
+  <rect x="1360" y="220" width="170" height="90" class="box"/>
+  <text x="1445" y="255" text-anchor="middle" class="label">云函数</text>
+  <text x="1445" y="287" text-anchor="middle" class="small">业务处理</text>
+
+  <rect x="480" y="520" width="760" height="180" class="box"/>
+  <text x="860" y="565" text-anchor="middle" class="label">事件驱动失效机制</text>
+  <text x="860" y="605" text-anchor="middle" class="text">POST_CREATED / AVATAR_UPDATED / COMMENT_COUNT_CHANGED / POST_VISIBILITY_CHANGED</text>
+  <text x="860" y="645" text-anchor="middle" class="small">成功操作后通过事件总线与刷新标记同步列表页、详情页、个人页和活动页状态</text>
+
+  <path d="M310 265 L390 265" class="arrow"/>
+  <path d="M630 265 L720 265" class="arrow"/>
+  <path d="M1000 265 L1090 265" class="arrow"/>
+  <path d="M1310 265 L1360 265" class="arrow"/>
+  <path d="M860 340 L860 520" class="arrow"/>
+  <path d="M730 610 L250 320" class="dash"/>
+  <path d="M990 610 L560 320" class="dash"/>
+  <path d="M1180 610 L860 340" class="dash"/>
+</svg>

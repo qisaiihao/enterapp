@@ -1,0 +1,82 @@
+[
+  {
+    "order": 1,
+    "path": "main.js",
+    "label": "启动入口与云环境初始化"
+  },
+  {
+    "order": 2,
+    "path": "App.vue",
+    "label": "应用级生命周期与全局逻辑"
+  },
+  {
+    "order": 3,
+    "path": "utils/cloudCall.js",
+    "label": "统一云函数调用封装"
+  },
+  {
+    "order": 4,
+    "path": "api-cache/_shared/cloud-wrapper.js",
+    "label": "语义 API 解包与错误归一"
+  },
+  {
+    "order": 5,
+    "path": "functions/login/index.js",
+    "label": "登录云函数入口"
+  },
+  {
+    "order": 6,
+    "path": "functions/getUserProfile/index.js",
+    "label": "用户资料查询云函数"
+  },
+  {
+    "order": 7,
+    "path": "pages/login/login.vue",
+    "label": "登录页面"
+  },
+  {
+    "order": 8,
+    "path": "pages/index/index.vue",
+    "label": "首页主内容流"
+  },
+  {
+    "order": 9,
+    "path": "pages/post-detail/post-detail.vue",
+    "label": "帖子详情与互动页面"
+  },
+  {
+    "order": 10,
+    "path": "pages-publish/preview/preview.vue",
+    "label": "发布预览与提交页面"
+  },
+  {
+    "order": 11,
+    "path": "functions/contentCheck/index.js",
+    "label": "内容审核云函数"
+  },
+  {
+    "order": 12,
+    "path": "functions/createPost/index.js",
+    "label": "创建帖子云函数"
+  },
+  {
+    "order": 13,
+    "path": "functions/getPostList/index.js",
+    "label": "帖子列表云函数"
+  },
+  {
+    "order": 14,
+    "path": "functions/getPostDetail/index.js",
+    "label": "帖子详情云函数"
+  },
+  {
+    "order": 15,
+    "path": "functions/vote/index.js",
+    "label": "点赞云函数"
+  },
+  {
+    "order": 16,
+    "path": "functions/addComment/index.js",
+    "label": "评论云函数"
+  }
+]

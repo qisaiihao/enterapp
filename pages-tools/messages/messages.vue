@@ -7,7 +7,7 @@
         </view>
 
         <!-- 操作按钮区域 -->
-        <view class="filter-section">
+        <view class="filter-section" :style="filterSectionInlineStyle">
             <view class="filter-main">
                 <view class="filter-left">
                     <!-- 左侧留空 -->
@@ -129,6 +129,7 @@ export default {
             activeTab: 'all',
             // all, like, comment, favorite, follow
             unreadCount: 0,
+            filterSectionInlineStyle: '',
             // 触摸相关数据
             touchStartX: 0,
             touchStartY: 0,
@@ -140,6 +141,7 @@ export default {
         };
     },
     onLoad: function (options) {
+        this.setupMpHeaderLayout();
         this.loadMessages();
     },
     onShow: function () {
@@ -179,6 +181,25 @@ export default {
         }
     },
     methods: {
+        setupMpHeaderLayout() {
+            // #ifdef MP-WEIXIN
+            try {
+                const systemInfo = uni.getSystemInfoSync ? uni.getSystemInfoSync() : {};
+                const menuButton = wx.getMenuButtonBoundingClientRect ? wx.getMenuButtonBoundingClientRect() : null;
+
+                if (!menuButton) {
+                    return;
+                }
+
+                const windowWidth = systemInfo.windowWidth || 375;
+                const rightInset = Math.max(30, windowWidth - menuButton.left + 24);
+
+                this.filterSectionInlineStyle = `padding-right: ${rightInset}px;`;
+            } catch (err) {
+                console.warn('[messages] setupMpHeaderLayout failed:', err);
+            }
+            // #endif
+        },
         // 返回上一页
         goBack() {
             try {
