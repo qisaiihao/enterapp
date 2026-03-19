@@ -3,54 +3,32 @@
 // import checkUpdate from '@/uni_modules/uni-upgrade-center-app/utils/check-update';
 import { checkAndUpdate } from '@/utils/hotUpdate.js';
 // #endif
+import {
+    getAppState,
+    markLoginProcessCompleted,
+    markLoginProcessStarted,
+    patchAppState,
+    setUserSession
+} from '@/utils/app-state.js';
 import fontManager from '@/utils/fontManager.js';
+import { installRuntimeBindings } from '@/utils/runtime-bootstrap.js';
 
 export default {
-    // 【重构】1. 将所有全局数据放入 data 函数中，这是 Vue 的标准做法
     data() {
         return {
-            // globalData 对象将在这里被 Vue 响应式地管理
             globalData: {
                 userInfo: null,
-                openid: null
-                // 您可以保留其他全局变量，但 env ID 已在 main.js 中配置，这里不再需要
+                openid: null,
+                isLoggedIn: false,
+                _loginProcessStarted: false,
+                _loginProcessCompleted: false
             }
         };
     },
 
-    // 【重构】2. onLaunch 是 Vue 的生命周期函数，保持不变
     onLaunch: function (options) {
-        // 小程序环境：在 App.vue 中初始化云开发（确保最早执行）
-        // 不使用条件编译，改为运行时检测
-        if (typeof wx !== 'undefined' && wx.cloud) {
-            console.log('☁️ [App.vue] 检测到微信小程序环境，开始初始化云开发...');
-            try {
-                // 立即初始化 wx.cloud
-                wx.cloud.init({
-                    env: 'cloud1-5gb0pbyl400845f5',
-                    traceUser: true
-                });
-                console.log('✅ [App.vue] 云开发初始化完成');
-                
-                // 挂载到 this.$tcb
-                this.$tcb = wx.cloud;
-                console.log('✅ [App.vue] wx.cloud 已挂载到 this.$tcb');
-                
-                // 同时挂载到 Vue 原型和 uni 对象
-                if (typeof Vue !== 'undefined' && Vue.prototype) {
-                    Vue.prototype.$tcb = wx.cloud;
-                    console.log('✅ [App.vue] wx.cloud 已挂载到 Vue.prototype.$tcb');
-                }
-                if (typeof uni !== 'undefined') {
-                    uni.$tcb = wx.cloud;
-                    console.log('✅ [App.vue] wx.cloud 已挂载到 uni.$tcb');
-                }
-            } catch (error) {
-                console.error('❌ [App.vue] 云开发初始化失败:', error);
-            }
-        } else if (typeof wx !== 'undefined') {
-            console.error('❌ [App.vue] wx.cloud 不可用，请检查基础库版本（需要 >= 2.2.3）');
-        }
+        installRuntimeBindings(this);
+        this.syncGlobalDataFromAppState();
         
         // #ifdef APP-PLUS
         // 处理 URL Scheme 启动（GitHub OAuth 回调）
@@ -114,39 +92,8 @@ export default {
         console.log('当前为 H5 环境，跳过热更新检查');
         // #endif
         
-        // 【关键修复】在所有操作之前初始化云开发
-        console.log('🔍 [App.vue] onLaunch 开始执行');
-        if (typeof wx !== 'undefined' && wx.cloud) {
-            console.log('☁️ [App.vue] 检测到 wx.cloud，立即初始化');
-            try {
-                wx.cloud.init({
-                    env: 'cloud1-5gb0pbyl400845f5',
-                    traceUser: true
-                });
-                console.log('✅ [App.vue] wx.cloud.init() 调用成功');
-                
-                // 挂载到全局
-                this.$tcb = wx.cloud;
-                if (typeof Vue !== 'undefined' && Vue.prototype) {
-                    Vue.prototype.$tcb = wx.cloud;
-                }
-                if (typeof uni !== 'undefined') {
-                    uni.$tcb = wx.cloud;
-                }
-                console.log('✅ [App.vue] wx.cloud 已挂载到全局');
-            } catch (error) {
-                console.error('❌ [App.vue] wx.cloud 初始化失败:', error);
-            }
-        } else {
-            console.log('⚠️ [App.vue] wx 或 wx.cloud 不存在');
-            console.log('typeof wx:', typeof wx);
-            if (typeof wx !== 'undefined') {
-                console.log('wx.cloud:', wx.cloud);
-            }
-        }
-        
-        // 【性能优化】立即标记登录流程已开始，不阻塞后续操作
-        this.globalData._loginProcessStarted = true;
+        markLoginProcessStarted();
+        this.syncGlobalDataFromAppState();
         
         // 【字体预加载】小程序启动时立即下载汇文明朝字体到本地缓存
         // 下载前使用微信默认字体，下载后自动切换到汇文明朝
@@ -221,8 +168,32 @@ export default {
         // #endif
     },
 
-    // 【重构】3. 将所有方法都放入 methods 对象中，这是 Vue 的标准做法
     methods: {
+        syncGlobalDataFromAppState() {
+            this.globalData = Object.assign({}, this.globalData, getAppState());
+        },
+
+        applyAppState(partial = {}) {
+            patchAppState(partial);
+            this.syncGlobalDataFromAppState();
+        },
+
+        applyUserSession(userInfo, openid = null, extra = {}) {
+            setUserSession(userInfo, openid);
+            if (extra && Object.keys(extra).length > 0) {
+                patchAppState(extra);
+            }
+            this.syncGlobalDataFromAppState();
+        },
+
+        finishLoginProcess(extra = {}) {
+            markLoginProcessCompleted();
+            if (extra && Object.keys(extra).length > 0) {
+                patchAppState(extra);
+            }
+            this.syncGlobalDataFromAppState();
+        },
+
         /**
          * 处理 URL Scheme 启动（GitHub OAuth 回调）
          */
@@ -284,18 +255,10 @@ export default {
                                 const loginData = JSON.parse(data);
                                 const userInfo = loginData.user;
                                 
-                                // 更新全局用户信息
-                                this.globalData.userInfo = userInfo;
-                                this.globalData.openid = userInfo._openid || userInfo.openid;
-                                
-                                // 更新 getApp().globalData
-                                const appInstance = getApp();
-                                if (appInstance) {
-                                    appInstance.globalData = appInstance.globalData || {};
-                                    appInstance.globalData.userInfo = userInfo;
-                                    appInstance.globalData.openid = userInfo._openid || userInfo.openid;
-                                    appInstance.globalData._loginProcessCompleted = true;
-                                }
+                                this.applyUserSession(userInfo, userInfo._openid || userInfo.openid, {
+                                    _loginProcessCompleted: true,
+                                    isLoggedIn: true
+                                });
                                 
                                 // 保存到本地存储
                                 uni.setStorageSync('userInfo', userInfo);
@@ -400,6 +363,8 @@ export default {
 
         // 【重构 & 修正】4. 使用 async/await 重写整个登录流程，代码更清晰
         async loginAndCheckUser() {
+            installRuntimeBindings(this);
+
             // 检查 $tcb 实例是否存在
             if (!this.$tcb) {
                 console.error('致命错误：this.$tcb 未定义！请检查 main.js 的初始化代码是否执行！');
@@ -428,30 +393,13 @@ export default {
                         // 使用云端返回的最新用户信息
                         const latestUserInfo = verifyRes.result.userInfo;
                         
-                        // 同时更新 this.globalData 和 getApp().globalData
-                        this.globalData.userInfo = latestUserInfo;
-                        this.globalData.openid = latestUserInfo._openid;
-                        
-                        // 确保 getApp().globalData 也被正确设置
-                        const appInstance = getApp();
-                        if (appInstance) {
-                            appInstance.globalData = appInstance.globalData || {};
-                            appInstance.globalData.userInfo = latestUserInfo;
-                            appInstance.globalData.openid = latestUserInfo._openid;
-                            // 【关键修复】设置登录状态标记
-                            appInstance.globalData.isLoggedIn = true;
-                            console.log('✅ [登录流程] getApp().globalData 已更新:', appInstance.globalData);
-                        } else {
-                        }
+                        this.applyUserSession(latestUserInfo, latestUserInfo._openid, {
+                            _loginProcessCompleted: true,
+                            isLoggedIn: true
+                        });
                         
                         // 更新本地缓存为最新的用户信息
                         uni.setStorageSync('userInfo', latestUserInfo);
-                        
-                        // 标记登录流程已完成
-                        this.globalData._loginProcessCompleted = true;
-                        if (appInstance) {
-                            appInstance.globalData._loginProcessCompleted = true;
-                        }
                         
                         console.log('✅ [登录流程] 缓存验证成功，用户已登录');
                         return; // 登录成功，结束流程
@@ -516,7 +464,7 @@ export default {
                     throw new Error('云函数 login 未返回 openid');
                 }
                 console.log('✅ [云函数 login] 调用成功, openid: ', openid);
-                this.globalData.openid = openid;
+                this.applyAppState({ openid });
                 uni.setStorageSync('userOpenId', openid); // 缓存 openid
 
                 // 步骤三：根据 openid 查询用户数据库
@@ -530,34 +478,25 @@ export default {
                     // 用户已存在，登录成功
                     const userInfo = userRes.data[0];
                     console.log('✅ [数据库查询] 用户已注册, 登录成功: ', userInfo);
-                    this.globalData.userInfo = userInfo;
+                    this.applyAppState({ userInfo });
                     uni.setStorageSync('userInfo', userInfo); // 写入缓存
                 } else {
                     // 用户不存在，是新用户
                     console.log('🤔 [数据库查询] 新用户，尚未注册');
-                    this.globalData.userInfo = null; // 确保 userInfo 为 null
+                    this.applyAppState({ userInfo: null });
                 }
                 
-                // 无论新旧用户，都更新 getApp() 的 globalData
-                const appInstance = getApp();
-                if (appInstance) {
-                    appInstance.globalData = appInstance.globalData || {};
-                    appInstance.globalData.userInfo = this.globalData.userInfo;
-                    appInstance.globalData.openid = this.globalData.openid;
-                    appInstance.globalData._loginProcessCompleted = true; // 标记登录流程已完成
-                    console.log('✅ [登录流程] getApp().globalData 已更新:', appInstance.globalData);
-                } else {
-                }
+                this.finishLoginProcess({
+                    userInfo: this.globalData.userInfo,
+                    openid: this.globalData.openid,
+                    isLoggedIn: !!this.globalData.userInfo
+                });
 
             } catch (err) {
                 // 处理登录错误
                 
                 // 即使登录失败，也标记登录流程已完成，避免后续显示登录提示
-                const appInstance = getApp();
-                if (appInstance) {
-                    appInstance.globalData = appInstance.globalData || {};
-                    appInstance.globalData._loginProcessCompleted = true;
-                }
+                this.finishLoginProcess();
                 
                 uni.showToast({
                     icon: 'none',
