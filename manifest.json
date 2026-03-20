@@ -143,7 +143,7 @@
         "enable" : false,
         "version" : "1"
     },
-    "vueVersion" : "2",
+    "vueVersion" : "3",
     "fallbackLocale" : "zh-Hans",
     "h5" : {
         "uniStatistics" : {

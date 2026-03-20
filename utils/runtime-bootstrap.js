@@ -18,6 +18,9 @@ function getBindingTarget(target) {
   if (!target) {
     return null;
   }
+  if (target.$ && target.$.appContext && target.$.appContext.config && target.$.appContext.config.globalProperties) {
+    return target.$.appContext.config.globalProperties;
+  }
   if (target.config && target.config.globalProperties) {
     return target.config.globalProperties;
   }

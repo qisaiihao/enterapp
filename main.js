@@ -78,11 +78,7 @@ import { ensureTcbReady, installRuntimeBindings, setupRuntimeSideEffects } from 
 // 全局mixins，用于实现setData等功能，请勿删除！';
 import zpMixins from '@/uni_modules/zp-mixins/index.js';
 
-// #ifndef VUE3
-import Vue from 'vue';
-
 const runtimeTcb = ensureTcbReady();
-installRuntimeBindings(Vue);
 setupRuntimeSideEffects();
 
 // 调试：读取本地 CACHE_DEBUG 开关并注入查看函数
@@ -175,6 +171,10 @@ if (runtimeTcb && typeof runtimeTcb.callFunction === 'function') {
 }
 // #endif
 
+// #ifndef VUE3
+import Vue from 'vue';
+
+installRuntimeBindings(Vue);
 Vue.use(zpMixins); // 保留这行
 
 Vue.config.productionTip = false;
@@ -192,7 +192,6 @@ import { createSSRApp } from 'vue';
 export function createApp() {
     const app = createSSRApp(App);
     installRuntimeBindings(app);
-    setupRuntimeSideEffects();
     app.mixin(zpMixins);
     return {
         app

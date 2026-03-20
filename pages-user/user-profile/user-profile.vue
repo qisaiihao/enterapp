@@ -202,13 +202,12 @@
                 <TimelineView
                     :timelinePosts="timelinePosts"
                     :timelineGroups="timelineGroups"
-                    :collapsedMonths.sync="collapsedMonths"
+                    v-model:collapsed-months="collapsedMonths"
                     :isLoading="timelineLoading"
                     :hasError="timelineError"
                     :title="'TA的创作时间轴'"
                     @navigate-to-post="navigateToPostDetail"
                     @retry="loadTimelineData"
-                    @update:collapsed-months="updateCollapsedMonths"
                 />
             </view>
 
