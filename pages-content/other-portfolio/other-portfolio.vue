@@ -280,7 +280,9 @@ export default {
       const index = e.currentTarget.dataset.index;
       const post = this.postList[index];
       if (post) {
-        this.$set(this.postList, index, { ...post, isExpanded: !post.isExpanded });
+        const nextPostList = this.postList.slice();
+        nextPostList[index] = { ...post, isExpanded: !post.isExpanded };
+        this.postList = nextPostList;
         // authorSignature已从云函数返回，无需额外获取
       }
     },
@@ -307,7 +309,7 @@ export default {
         return;
       }
       
-      this.$set(this.votingInProgress, postId, true);
+      this.votingInProgress[postId] = true;
       const list = this.postList;
       const originalVotes = Number(list[index].votes) || 0;
       const wasVoted = !!list[index].isVoted;
@@ -374,7 +376,7 @@ export default {
         this.postList = rollbackList;
         uni.showToast({ title: '操作失败', icon: 'none' });
       } finally {
-        this.$set(this.votingInProgress, postId, false);
+        this.votingInProgress[postId] = false;
       }
     },
 

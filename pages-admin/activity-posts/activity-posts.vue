@@ -242,11 +242,11 @@ export default {
       const postId = data && data.postId;
       if (!postId) return;
       if (this.votingInProgress[postId]) return;
-      this.$set(this.votingInProgress, postId, true);
+      this.votingInProgress[postId] = true;
 
       const index = this.postList.findIndex(item => item && item._id === postId);
       if (index < 0) {
-        this.$set(this.votingInProgress, postId, false);
+        this.votingInProgress[postId] = false;
         return;
       }
 
@@ -297,7 +297,7 @@ export default {
           this.postList = rollback;
         }
       }).finally(() => {
-        this.$set(this.votingInProgress, postId, false);
+        this.votingInProgress[postId] = false;
       });
     },
 
