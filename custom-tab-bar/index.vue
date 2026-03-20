@@ -13,6 +13,7 @@
 
 <script>
 import { lightImpact } from '@/utils/haptics.js';
+import { getAppState } from '@/utils/app-state.js';
 
 export default {
     data() {
@@ -73,8 +74,7 @@ export default {
 
             // 【小程序审核优化】点击"我"时检查登录状态
             if (index === 3) { // "我"的索引是3
-                const app = getApp();
-                const isLoggedIn = app && app.globalData && app.globalData.isLoggedIn;
+                const isLoggedIn = !!getAppState().isLoggedIn;
                 
                 if (!isLoggedIn) {
                     console.log('⚠️ [TabBar] 用户未登录，提示登录');

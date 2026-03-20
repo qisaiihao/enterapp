@@ -76,6 +76,16 @@ export function setUserSession(userInfo, openid = null) {
   return patchAppState(partial);
 }
 
+export function clearUserSession() {
+  return patchAppState({
+    userInfo: null,
+    openid: null,
+    isLoggedIn: false,
+    _loginProcessStarted: false,
+    _loginProcessCompleted: false
+  });
+}
+
 export function markLoginProcessStarted() {
   return patchAppState({
     _loginProcessStarted: true
