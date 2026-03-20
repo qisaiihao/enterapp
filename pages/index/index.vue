@@ -201,6 +201,7 @@ import { cloudCall } from '@/utils/cloudCall.js';
 import postGalleryMixin from '@/mixins/postGallery.js';
 import cacheManager from '@/_utils/cache-manager.js';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
+import { getOpenid } from '@/utils/app-state.js';
 
 // 常量定义
 const PAGE_SIZE = 10;
@@ -338,8 +339,7 @@ export default {
         this.pageLoadStartTime = Date.now();
         this.initOpenid();
         this.waitForLoginThenInit();
-        try { uni.$on && uni.$on('like-changed', this.syncLikeStatusFromCache); } catch (_) {}
-        try { uni.$on && uni.$on('comment-count-changed', (e) => { try { this.updatePostCommentCount(e.postId, e.commentCount); } catch (_) {} }); } catch (_) {}
+        this.ensureGlobalEventBindings();
         console.log('🚀 [onLoad] 页面加载完成');
     },
     onShow() {
@@ -355,8 +355,7 @@ export default {
             this.pageLoadStartTime = Date.now();
             this.initOpenid();
             this.waitForLoginThenInit();
-            try { uni.$on && uni.$on('like-changed', this.syncLikeStatusFromCache); } catch (_) {}
-            try { uni.$on && uni.$on('comment-count-changed', (e) => { try { this.updatePostCommentCount(e.postId, e.commentCount); } catch (_) {} }); } catch (_) {}
+            this.ensureGlobalEventBindings();
         }
         
         // #ifndef MP-WEIXIN
@@ -414,8 +413,7 @@ export default {
 
             },
     onUnload: function () {
-        try { uni.$off && this.syncLikeStatusFromCache && uni.$off('like-changed', this.syncLikeStatusFromCache); } catch (_) {}
-        try { uni.$off && uni.$off('comment-count-changed'); } catch (_) {}
+        this.releaseGlobalEventBindings();
         if (this.swiperChangeTimer) {
             clearTimeout(this.swiperChangeTimer);
             this.swiperChangeTimer = null;
@@ -423,6 +421,38 @@ export default {
     },
 
     methods: {
+          ensureGlobalEventBindings: function () {
+            if (this._globalEventsBound) {
+                return;
+            }
+            if (!this._likeChangedHandler) {
+                this._likeChangedHandler = () => {
+                    try {
+                        this.syncLikeStatusFromCache && this.syncLikeStatusFromCache();
+                    } catch (_) {}
+                };
+            }
+            if (!this._commentCountChangedHandler) {
+                this._commentCountChangedHandler = (e = {}) => {
+                    try {
+                        if (e.postId) {
+                            this.updatePostCommentCount(e.postId, e.commentCount);
+                        }
+                    } catch (_) {}
+                };
+            }
+            try { uni.$on && uni.$on('like-changed', this._likeChangedHandler); } catch (_) {}
+            try { uni.$on && uni.$on('comment-count-changed', this._commentCountChangedHandler); } catch (_) {}
+            this._globalEventsBound = true;
+        },
+          releaseGlobalEventBindings: function () {
+            if (!this._globalEventsBound) {
+                return;
+            }
+            try { uni.$off && this._likeChangedHandler && uni.$off('like-changed', this._likeChangedHandler); } catch (_) {}
+            try { uni.$off && this._commentCountChangedHandler && uni.$off('comment-count-changed', this._commentCountChangedHandler); } catch (_) {}
+            this._globalEventsBound = false;
+        },
           onRefresherRefresh: function() {
             if (this.currentPage === 'home') {
                 if (this.useRecommendFeed) {
@@ -1116,8 +1146,7 @@ export default {
 
         // 初始化 openid
         initOpenid: function () {
-            const appInstance = getApp();
-            const openid = appInstance && appInstance.globalData && appInstance.globalData.openid;
+            const openid = getOpenid();
             if (openid) {
                 this.setData({ openid });
             } else {
@@ -1284,8 +1313,7 @@ export default {
 
         // 模式切换现在通过底部tabBar实现，不再需要手动切换
 
-        // 同步点赞状态：从缓存中获取最新的点赞状态
-                // ͬ������״̬���ӻ����л�ȡ���µĵ���״̬ + ���µ�ǰ�б�UI
+        // 同步点赞状态：从缓存中获取最新状态并刷新当前列表 UI
         syncLikeStatusFromCache: function () {
             try {
                 const allPostIds = [];
@@ -1331,7 +1359,7 @@ export default {
                     this.setData(updates);
                 }
             } catch (err) {
-                console.error('����ҳ��ͬ������״̬ʧ��:', err);
+                console.error('同步点赞状态失败:', err);
             }
         },
 

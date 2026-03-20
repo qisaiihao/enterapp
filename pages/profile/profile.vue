@@ -207,8 +207,8 @@ import { updateTabBarStatus } from '@/utils/tabBarCompatibility.js';
 import { invalidateMyProfile } from '@/api-cache/profile.js';
 import { emitPostVisibilityChanged, emitFavoriteChanged } from '@/utils/events.js';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
+import { clearUserSession, getAppState, getOpenid, patchAppState } from '@/utils/app-state.js';
 
-const app = getApp();
 const PAGE_SIZE = 5;
 export default {
     components: {
@@ -326,22 +326,10 @@ export default {
             swiperFixedHeight: fixedHeight
         });
 
+        this.ensureGlobalEventBindings();
+
         // onLoad 只负责触发异步请求，然后立即结束
         this.getProfileData();
-        try { uni.$on && uni.$on('comment-count-changed', (e) => { try { this.updatePostCommentCount(e.postId, e.commentCount); } catch (_) {} }); } catch (_) {}
-
-        // 监听作品集更新事件
-        try {
-            uni.$on('portfolio-updated', (e) => {
-                // 刷新作品集数据
-                this.setData({
-                    portfolioList: []
-                });
-                this.loadPortfolios();
-            });
-        } catch (error) {
-            console.error('【profile】监听作品集更新事件失败:', error);
-        }
     },
     onShow: function () {
         // #ifndef MP-WEIXIN
@@ -450,11 +438,93 @@ export default {
         }
     },
     onUnload: function () {
-        try { uni.$off && uni.$off('comment-count-changed'); } catch (_) {}
+        this.releaseGlobalEventBindings();
+        this.clearLoginWaitTimers();
     },
     methods: {
         calcBookHeight(name) {
           return calcBookHeightUtil(name);
+        },
+        ensureGlobalEventBindings: function () {
+            if (this._globalEventsBound) {
+                return;
+            }
+            if (!this._commentCountChangedHandler) {
+                this._commentCountChangedHandler = (e = {}) => {
+                    try {
+                        if (e.postId) {
+                            this.updatePostCommentCount(e.postId, e.commentCount);
+                        }
+                    } catch (_) {}
+                };
+            }
+            if (!this._portfolioUpdatedHandler) {
+                this._portfolioUpdatedHandler = () => {
+                    this.setData({
+                        portfolioList: []
+                    });
+                    this.loadPortfolios();
+                };
+            }
+            if (!this._avatarUpdatedHandler) {
+                this._avatarUpdatedHandler = (e = {}) => {
+                    const openid = getOpenid();
+                    if (e.userId === openid) {
+                        invalidateMyInfo();
+                        getMyInfo(this).then((info) => this.setData({ userInfo: info || {} })).catch(() => {});
+                    }
+                };
+            }
+            if (!this._postCreatedHandler) {
+                this._postCreatedHandler = (e = {}) => {
+                    const openid = getOpenid();
+                    if (e.userId === openid) {
+                        invalidateMyPosts();
+                        this.setData({ myPosts: [], page: 0, hasMore: true });
+                        this.updateGrowthStats([]);
+                        this.loadMyPosts();
+                    }
+                };
+            }
+            if (!this._favoriteChangedHandler) {
+                this._favoriteChangedHandler = (e = {}) => {
+                    const openid = getOpenid();
+                    if (e.userId === openid) {
+                        invalidateMyFavorites();
+                        if (this.currentTab === 'favorites') {
+                            this.setData({ favoriteList: [], favoritePage: 0, favoriteHasMore: true });
+                            this.loadFavorites();
+                        }
+                    }
+                };
+            }
+            try { uni.$on && uni.$on('comment-count-changed', this._commentCountChangedHandler); } catch (_) {}
+            try { uni.$on && uni.$on('portfolio-updated', this._portfolioUpdatedHandler); } catch (_) {}
+            try { uni.$on && uni.$on('avatar-updated', this._avatarUpdatedHandler); } catch (_) {}
+            try { uni.$on && uni.$on('post-created', this._postCreatedHandler); } catch (_) {}
+            try { uni.$on && uni.$on('favorite-changed', this._favoriteChangedHandler); } catch (_) {}
+            this._globalEventsBound = true;
+        },
+        releaseGlobalEventBindings: function () {
+            if (!this._globalEventsBound) {
+                return;
+            }
+            try { uni.$off && this._commentCountChangedHandler && uni.$off('comment-count-changed', this._commentCountChangedHandler); } catch (_) {}
+            try { uni.$off && this._portfolioUpdatedHandler && uni.$off('portfolio-updated', this._portfolioUpdatedHandler); } catch (_) {}
+            try { uni.$off && this._avatarUpdatedHandler && uni.$off('avatar-updated', this._avatarUpdatedHandler); } catch (_) {}
+            try { uni.$off && this._postCreatedHandler && uni.$off('post-created', this._postCreatedHandler); } catch (_) {}
+            try { uni.$off && this._favoriteChangedHandler && uni.$off('favorite-changed', this._favoriteChangedHandler); } catch (_) {}
+            this._globalEventsBound = false;
+        },
+        clearLoginWaitTimers: function () {
+            if (this._loginWaitInterval) {
+                clearInterval(this._loginWaitInterval);
+                this._loginWaitInterval = null;
+            }
+            if (this._loginWaitTimeout) {
+                clearTimeout(this._loginWaitTimeout);
+                this._loginWaitTimeout = null;
+            }
         },
         // 处理匿名头像点击事件的函数
         handleAnonymousAvatarClick(e) {
@@ -746,53 +816,23 @@ export default {
         },
 
         checkLoginAndFetchData: function () {
-            // 绑定缓存事件（我的主页）：头像更换/发帖/收藏时失效对应缓存
-            if (!this._cacheEventsBound) {
-                this._cacheEventsBound = true;
-                try {
-                    uni.$on && uni.$on('avatar-updated', (e) => {
-                        const app = getApp();
-                        const oid = app && app.globalData && app.globalData.openid;
-                        if (e && e.userId === oid) {
-                            invalidateMyInfo();
-                            getMyInfo(this).then((info) => this.setData({ userInfo: info || {} })).catch(() => {});
-                        }
-                    });
-                    uni.$on && uni.$on('post-created', (e) => {
-                        const app = getApp();
-                        const oid = app && app.globalData && app.globalData.openid;
-                        if (e && e.userId === oid) {
-                            invalidateMyPosts();
-                            this.setData({ myPosts: [], page: 0, hasMore: true });
-                            this.updateGrowthStats([]);
-                            this.loadMyPosts();
-                        }
-                    });
-                    uni.$on && uni.$on('favorite-changed', (e) => {
-                        const app = getApp();
-                        const oid = app && app.globalData && app.globalData.openid;
-                        if (e && e.userId === oid) {
-                            invalidateMyFavorites();
-                            if (this.currentTab === 'favorites') {
-                                this.setData({ favoriteList: [], favoritePage: 0, favoriteHasMore: true });
-                                this.loadFavorites();
-                            }
-                        }
-                    });
-                } catch (err) {}
-            }
             // 检查登录状态
-            const app = getApp();
-            const userInfo = app.globalData && app.globalData.userInfo;
-            const loginProcessCompleted = app.globalData && app.globalData._loginProcessCompleted;
+            const state = getAppState();
+            const userInfo = state.userInfo;
+            const currentOpenid = (userInfo && (userInfo._openid || userInfo.openid)) || state.openid;
+            const loginProcessCompleted = !!state._loginProcessCompleted;
+
+            if (currentOpenid && state.openid !== currentOpenid) {
+                patchAppState({ openid: currentOpenid });
+            }
             
             console.log('🔍 [profile] 检查登录状态:', {
                 hasUserInfo: !!userInfo,
-                hasOpenid: !!(userInfo && userInfo._openid),
+                hasOpenid: !!currentOpenid,
                 loginProcessCompleted: loginProcessCompleted
             });
             
-            if (userInfo && userInfo._openid) {
+            if (userInfo && currentOpenid) {
                 this.setData({ isViewingSelf: true });
                 this.fetchUserProfileFast();
                 this.fetchFollowCounts(); // 首次加载时也要获取关注数
@@ -814,20 +854,20 @@ export default {
 
         // 等待登录流程完成
         waitForLoginProcess: function () {
-            const checkInterval = setInterval(() => {
-                const app = getApp();
-                const loginProcessCompleted = app.globalData && app.globalData._loginProcessCompleted;
+            this.clearLoginWaitTimers();
+            this._loginWaitInterval = setInterval(() => {
+                const loginProcessCompleted = !!getAppState()._loginProcessCompleted;
                 
                 if (loginProcessCompleted) {
-                    clearInterval(checkInterval);
+                    this.clearLoginWaitTimers();
                     console.log('✅ [profile] 登录流程已完成，重新检查登录状态');
                     this.checkLoginAndFetchData();
                 }
             }, 100); // 每100ms检查一次
             
             // 设置超时，避免无限等待
-            setTimeout(() => {
-                clearInterval(checkInterval);
+            this._loginWaitTimeout = setTimeout(() => {
+                this.clearLoginWaitTimers();
                 console.log('⚠️ [profile] 等待登录流程超时，继续执行');
                 this.checkLoginAndFetchData();
             }, 5000); // 5秒超时
@@ -879,8 +919,7 @@ export default {
             }
 
             // 获取当前用户openid用于调试
-            const app = getApp();
-            const currentOpenid = app && app.globalData && app.globalData.openid;
+            const currentOpenid = getOpenid();
             console.log('【profile】👤 当前用户openid:', currentOpenid);
 
             // 如果是下拉刷新（page === 0）或强制刷新，直接从云端获取数据
@@ -986,8 +1025,7 @@ export default {
                 console.log('【profile】📋 API封装返回的帖子ID列表:', posts.map(p => p._id));
 
                 // 格式化帖子数据并确保作者信息完整
-                const app = getApp();
-                const currentOpenid = app && app.globalData && app.globalData.openid;
+                const currentOpenid = getOpenid();
                 posts.forEach((post, index) => {
                     if (post.createTime) {
                         post.formattedCreateTime = this.formatTime(post.createTime);
@@ -1134,8 +1172,7 @@ export default {
                 timelineError: false
             });
 
-            const app = getApp();
-            const currentOpenid = app.globalData.openid;
+            const currentOpenid = getOpenid();
 
             if (!currentOpenid) {
                 console.error('【profile】时间轴加载失败：无法获取用户openid');
@@ -1604,8 +1641,7 @@ export default {
                                 favoriteList: newList
                             });
                             try {
-                                const appInstance = getApp();
-                                const userId = appInstance && appInstance.globalData && appInstance.globalData.openid;
+                                const userId = getOpenid();
                                 const removed = that.favoriteList[index];
                                 const postId = removed && (removed._id || removed.postId);
                                 emitFavoriteChanged({ userId, postId, favored: false });
@@ -1670,14 +1706,9 @@ export default {
                 // 清除本地存储的用户信息
                 uni.removeStorageSync('userInfo');
                 uni.removeStorageSync('userOpenId');
+                uni.removeStorageSync('openid');
 
-                // 清除全局数据
-                const app = getApp();
-                if (app && app.globalData) {
-                    app.globalData.userInfo = null;
-                    app.globalData.openid = null;
-                    app.globalData._loginProcessCompleted = false; // 重置登录流程标记
-                }
+                clearUserSession();
 
                 // 清除当前页面的用户数据
                 this.setData({
@@ -1735,12 +1766,8 @@ export default {
                 }
 
                 if (openid) {
-                    // 更新全局数据
-                    const app = getApp();
-                    if (app && app.globalData) {
-                        app.globalData.openid = openid;
-                        console.log('✅ [退出登录] 匿名openid已设置:', openid);
-                    }
+                    patchAppState({ openid: openid });
+                    console.log('✅ [退出登录] 匿名openid已设置:', openid);
 
                     // 缓存openid
                     uni.setStorageSync('userOpenId', openid);
@@ -1782,8 +1809,7 @@ export default {
         // 处理跳转用户主页
         handleNavigateToUser(data) {
             // 获取当前用户ID
-            const app = getApp();
-            const currentUserId = (app && app.globalData && app.globalData.openid) || uni.getStorageSync('openid') || uni.getStorageSync('userOpenId');
+            const currentUserId = getOpenid();
             // 直接调用 navigateToUserProfile，传入正确的参数格式
             navigateToUserProfile({
                 userId: data.userId,
@@ -2284,4 +2310,3 @@ export default {
     color: #333;
 }
 </style>
-
