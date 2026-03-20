@@ -43,7 +43,7 @@ export default {
       this.unreadMessageCount = count;
     });
   },
-  beforeDestroy() {
+  beforeUnmount() {
     // 取消订阅
     if (this._unsubscribe) {
       this._unsubscribe();

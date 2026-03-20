@@ -256,7 +256,7 @@ export default {
             this.$emit('touch-end', e);
         }
     },
-    beforeDestroy() {
+    beforeUnmount() {
         if (this.scrollTimer) {
             clearTimeout(this.scrollTimer);
             this.scrollTimer = null;
