@@ -1221,29 +1221,6 @@ export default {
                 this.isBindingWechat = false;
             }
         },
-                    // 绑定成功
-                    this.completeBindWechat(result);
-                } else if (bindResult.result && bindResult.result.code === 'WECHAT_ALREADY_BOUND') {
-                    // 微信已绑定到其他账号，显示解绑确认弹窗
-                    console.log('⚠️ [handleBindWechat] 微信已绑定到其他账号，显示解绑确认弹窗');
-                    this.boundAccountInfo = bindResult.result.boundAccount;
-                    this.showBindWechatModal = false;
-                    this.showRebindConfirmModal = true;
-                } else {
-                    throw new Error(bindResult.result?.message || '绑定失败');
-                }
-            } catch (error) {
-                console.error('❌ [handleBindWechat] 绑定失败:', error);
-                uni.showToast({
-                    title: error.message || '绑定失败，请重试',
-                    icon: 'none',
-                    duration: 3000
-                });
-            } finally {
-                uni.hideLoading();
-                this.isBindingWechat = false;
-            }
-        },
 
         // 确认解绑并重新绑定
         async confirmRebind() {
