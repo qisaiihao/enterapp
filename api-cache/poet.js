@@ -147,6 +147,7 @@ export async function updatePoetInfo({ poetName, bio, avatarPath, context }) {
     );
 
     invalidatePoetInfo(poetName);
+    invalidatePoetList();
     return {
       success: true,
       avatar: result.avatar || '',

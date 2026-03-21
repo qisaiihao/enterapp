@@ -39,25 +39,13 @@ export async function getHomePosts({
 } = {}) {
   // 构建统一的缓存键
   const key = buildCacheKey({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous });
-  
-  // 如果强制刷新，使用时间戳作为缓存键的一部分来绕过缓存
-  const cacheKey = forceRefresh && page === 0 ? `${key}:ts:${Date.now()}` : key;
-  
-  // 第一页且强制刷新时，跳过缓存直接调用云函数
-  if (page === 0 && forceRefresh) {
-    const res = await cloudCall(
-      'getPostList',
-      { skip: page * pageSize, limit: pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous },
-      { pageTag: 'home', context }
-    );
-    if (res && res.result && res.result.success) {
-      return res.result.posts || [];
-    }
-    return [];
+
+  if (forceRefresh && page === 0) {
+    ns.delete(key);
   }
-  
+
   return ns.getOrFetch(
-    cacheKey,
+    key,
     async () => {
       const res = await cloudCall(
         'getPostList',

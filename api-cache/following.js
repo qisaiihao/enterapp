@@ -32,7 +32,10 @@ async function getFollowingPosts({
 } = {}) {
   const userSuffix = filterByUserId ? `:user:${filterByUserId}` : '';
   const key = `following:${buildCacheKey({ page, pageSize })}${userSuffix}`;
-  const cacheKey = forceRefresh && page === 0 ? `${key}:ts:${Date.now()}` : key;
+
+  if (forceRefresh && page === 0) {
+    ns.delete(key);
+  }
 
   const cloudParams = {
     skip: page * pageSize,
@@ -42,7 +45,7 @@ async function getFollowingPosts({
     cloudParams.filterByUserId = filterByUserId;
   }
 
-  console.log('[following] request', { cacheKey, forceRefresh, cloudParams });
+  console.log('[following] request', { key, forceRefresh, cloudParams });
 
   const fetchFollowingPosts = async () => {
     const result = await callCloudAndUnwrap(
@@ -54,14 +57,8 @@ async function getFollowingPosts({
     return result.posts || [];
   };
 
-  // 第 1 页强制刷新：跳过缓存直接请求
-  if (page === 0 && forceRefresh) {
-    console.log('[following] force refresh first page, bypass cache');
-    return fetchFollowingPosts();
-  }
-
   return ns.getOrFetch(
-    cacheKey,
+    key,
     () => {
       console.log('[following] cache miss, fetch from cloud', { key });
       return fetchFollowingPosts();

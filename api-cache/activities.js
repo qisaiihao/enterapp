@@ -125,12 +125,14 @@ export async function getRecentActivities({
 } = {}) {
   const safeScene = scene === 'join' ? 'join' : 'recent';
   const key = `page:${page}:size:${pageSize}:scene:${safeScene}`;
-  const cacheKey = forceRefresh && page === 0 ? `${key}:ts:${Date.now()}` : key;
   const fetcher = () => fetchRecentActivitiesPage({ page, pageSize, scene: safeScene, context });
-  if (page === 0 && forceRefresh) return fetcher();
+
+  if (forceRefresh && page === 0) {
+    listNs.delete(key);
+  }
 
   const data = await listNs.getOrFetch(
-    cacheKey,
+    key,
     fetcher,
     {
       ttlMs: LIST_TTL_MS,
@@ -154,12 +156,14 @@ export async function getActivityDetail({
   }
 
   const key = `id:${safeActivityId}`;
-  const cacheKey = forceRefresh ? `${key}:ts:${Date.now()}` : key;
   const fetcher = () => fetchActivityDetailData({ activityId: safeActivityId, context });
-  if (forceRefresh) return fetcher();
+
+  if (forceRefresh) {
+    detailNs.delete(key);
+  }
 
   const data = await detailNs.getOrFetch(
-    cacheKey,
+    key,
     fetcher,
     {
       ttlMs: DETAIL_TTL_MS,
@@ -188,12 +192,14 @@ export async function getActivityPosts({
 
   const ns = activityPostsNamespace(activityId);
   const key = buildCacheKey({ page, pageSize, includeActivity: true, activityId });
-  const cacheKey = forceRefresh && page === 0 ? `${key}:ts:${Date.now()}` : key;
   const fetcher = () => fetchActivityPostsPage({ activityId, page, pageSize, context });
-  if (page === 0 && forceRefresh) return fetcher();
+
+  if (forceRefresh && page === 0) {
+    ns.delete(key);
+  }
 
   const data = await ns.getOrFetch(
-    cacheKey,
+    key,
     fetcher,
     {
       ttlMs: POSTS_TTL_MS,

@@ -21,8 +21,6 @@ function extractFoldersFromResult(result = {}) {
  * 获取作品集文件夹列表
  */
 async function getPortfolioFolders({ forceRefresh = false, context } = {}) {
-  const cacheKey = forceRefresh ? `folders:ts:${Date.now()}` : 'folders';
-
   const fetchFolders = async () => {
     const result = await callCloudAndGetResult(
       'getPortfolioFolders',
@@ -37,11 +35,11 @@ async function getPortfolioFolders({ forceRefresh = false, context } = {}) {
   };
 
   if (forceRefresh) {
-    return fetchFolders();
+    ns.delete('folders');
   }
 
   return ns.getOrFetch(
-    cacheKey,
+    'folders',
     fetchFolders,
     { ttlMs: 5 * 60 * 1000, swrMs: 60 * 1000 }
   );

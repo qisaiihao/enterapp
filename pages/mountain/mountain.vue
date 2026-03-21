@@ -6,6 +6,7 @@
     <!-- 诗人筛选栏 -->
     <view class="poet-avatar-bar-wrapper" :style="{ top: (safeAreaTop * 2 + 140) + 'rpx' }">
       <poet-avatar-bar
+        ref="poetAvatarBar"
         :selectedPoetName="selectedPoetName"
         @select="onPoetSelect"
       />
@@ -137,7 +138,8 @@ export default {
       uni.removeStorageSync('shouldRefreshPoem');
       uni.removeStorageSync('shouldRefreshMountain');
 
-      // 刷新山页面数据
+      // 刷新山页面数据和诗人筛选栏
+      try { this.$refs.poetAvatarBar && this.$refs.poetAvatarBar.refresh(); } catch (_) {}
       this.getIndexData();
       return; // 强制刷新后不再进行缓存检查
     }
@@ -191,6 +193,8 @@ export default {
     console.log('【mountain】📱 下拉刷新，重新获取数据');
     // 清除缓存并强制刷新
     invalidatePostList({ isPoem: true, isOriginal: false, excludeAnonymous: true });
+    // 同时刷新诗人筛选栏
+    try { this.$refs.poetAvatarBar && this.$refs.poetAvatarBar.refresh(); } catch (_) {}
     this.getIndexData(() => {
       console.log('【mountain】✅ 下拉刷新完成，停止刷新动画');
       uni.stopPullDownRefresh();

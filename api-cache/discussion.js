@@ -28,34 +28,16 @@ export async function getDiscussionPosts({
   // 构建缓存键
   const key = buildCacheKey({ page, pageSize });
 
-  // 如果强制刷新，使用时间戳作为缓存键的一部分来绕过缓存
-  const cacheKey = forceRefresh && page === 0 ? `${key}:ts:${Date.now()}` : key;
+  console.log(' [discussion] 请求数据 - key:', key, 'forceRefresh:', forceRefresh);
 
-  console.log('🔍 [discussion] 请求数据 - key:', cacheKey, 'forceRefresh:', forceRefresh);
-
-  // 第一页且强制刷新时，跳过缓存直接调用云函数
-  if (page === 0 && forceRefresh) {
-    console.log('🔍 [discussion] 第一页强制刷新，跳过缓存直接调用云函数');
-    const res = await cloudCall(
-      'getDiscussionPosts',
-      {
-        skip: page * pageSize,
-        limit: pageSize
-      },
-      { pageTag: 'discussion', context, requireAuth: false }
-    );
-    console.log('🔍 [discussion] 云函数返回 - success:', res?.result?.success, 'posts数量:', res?.result?.posts?.length);
-    if (res && res.result && res.result.success) {
-      return res.result.posts || [];
-    }
-    return [];
+  if (forceRefresh && page === 0) {
+    ns.delete(key);
   }
 
-  // 使用缓存
   return ns.getOrFetch(
-    cacheKey,
+    key,
     async () => {
-      console.log('🔍 [discussion] 缓存未命中，调用云函数 - key:', key);
+      console.log(' [discussion] 缓存未命中，调用云函数 - key:', key);
       const res = await cloudCall(
         'getDiscussionPosts',
         {

@@ -419,7 +419,7 @@ export default {
                 new Promise((resolve) => {
                     this.loadPortfolios(() => {
                         resolve();
-                    });
+                    }, true); // 下拉刷新强制更新缓存
                 }),
                 new Promise((resolve) => {
                     this.loadTimelineData();
@@ -726,7 +726,7 @@ export default {
             this.setData({
                 portfolioList: []
             });
-            this.loadPortfolios();
+            this.loadPortfolios(null, true);
         },
 
         // 强制刷新数据
@@ -1840,9 +1840,9 @@ export default {
         },
 
         // 加载作品集列表
-        loadPortfolios(cb) {
+        loadPortfolios(cb, forceRefresh = false) {
             this.setData({ portfolioLoading: true });
-            getPortfolioFolders({ context: this })
+            getPortfolioFolders({ context: this, forceRefresh })
                 .then((folders) => {
                     this.setData({
                         portfolioList: folders,

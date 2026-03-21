@@ -696,19 +696,19 @@ export default {
   /* #endif */
 }
 
-.container {
+.portfolio-detail-page .container {
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
-.content-scroll {
+.portfolio-detail-page .content-scroll {
   flex: 1;
   height: 0;
 }
 
-.content-container {
-  width: 100vw;
+.portfolio-detail-page .content-container {
+  width: 100%;
   box-sizing: border-box;
   padding: 100rpx; /* 与 poem-square 保持一致的左右边距 */
   padding-top: 240rpx; /* 增加顶部留白，避免与更多按钮重叠 */
