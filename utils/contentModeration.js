@@ -4,6 +4,16 @@
 import { cloudCall } from './cloudCall.js';
 import { getCurrentPlatform } from './platformDetector.js';
 
+const MODERATION_SERVICE_ENABLED = false;
+const MODERATION_DISABLED_MESSAGE = '审核服务暂未启用，已跳过审核';
+
+function buildBypassResult(platform) {
+  return {
+    passed: true,
+    message: platform === 'mp-weixin' ? MODERATION_DISABLED_MESSAGE : '审核通过'
+  };
+}
+
 /**
  * 检查是否需要进行内容审核
  * 只有微信小程序端需要审核，H5和App端跳过
@@ -11,9 +21,9 @@ import { getCurrentPlatform } from './platformDetector.js';
  */
 export function shouldModerate() {
   const platform = getCurrentPlatform();
-  const needModeration = platform === 'mp-weixin';
+  const needModeration = platform === 'mp-weixin' && MODERATION_SERVICE_ENABLED;
   
-  console.log(`🔍 [ContentModeration] 平台: ${platform}, 需要审核: ${needModeration}`);
+  console.log(`🔍 [ContentModeration] 平台: ${platform}, 审核服务可用: ${MODERATION_SERVICE_ENABLED}, 需要审核: ${needModeration}`);
   
   return needModeration;
 }
@@ -30,13 +40,11 @@ export function shouldModerate() {
  * @returns {Promise<{passed: boolean, message: string}>}
  */
 export async function checkTextSafe(content, options = {}) {
+  const platform = getCurrentPlatform();
   // 非小程序端直接返回通过
   if (!shouldModerate()) {
-    console.log('🔍 [ContentModeration] 非小程序端，跳过文本审核');
-    return {
-      passed: true,
-      message: '审核通过'
-    };
+    console.log('🔍 [ContentModeration] 当前环境跳过文本审核');
+    return buildBypassResult(platform);
   }
   
   return checkText(content, options);
@@ -51,13 +59,11 @@ export async function checkTextSafe(content, options = {}) {
  * @returns {Promise<{passed: boolean, message: string, traceId: string}>}
  */
 export async function checkImageSafe(imageUrl, options = {}) {
+  const platform = getCurrentPlatform();
   // 非小程序端直接返回通过
   if (!shouldModerate()) {
-    console.log('🔍 [ContentModeration] 非小程序端，跳过图片审核');
-    return {
-      passed: true,
-      message: '审核通过'
-    };
+    console.log('🔍 [ContentModeration] 当前环境跳过图片审核');
+    return buildBypassResult(platform);
   }
   
   return checkImage(imageUrl, options);
@@ -76,13 +82,11 @@ export async function checkImageSafe(imageUrl, options = {}) {
  * @returns {Promise<{passed: boolean, message: string, failedType: string}>}
  */
 export async function checkContentSafe(content, options = {}) {
+  const platform = getCurrentPlatform();
   // 非小程序端直接返回通过
   if (!shouldModerate()) {
-    console.log('🔍 [ContentModeration] 非小程序端，跳过批量审核');
-    return {
-      passed: true,
-      message: '审核通过'
-    };
+    console.log('🔍 [ContentModeration] 当前环境跳过批量审核');
+    return buildBypassResult(platform);
   }
   
   return checkContent(content, options);

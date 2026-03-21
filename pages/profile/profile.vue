@@ -1825,17 +1825,40 @@ export default {
         },
 
         // 打开作品集
-        openPortfolio(portfolio) {
-            console.log('打开作品集:', portfolio);
+        openPortfolio(portfolio = {}) {
+            const folderId = portfolio.folderId || portfolio._id || '';
+            const folderName = portfolio.folderName || portfolio.name || '';
+            console.log('打开作品集:', { folderId, folderName, portfolio });
+            if (!folderId) {
+                uni.showToast({
+                    title: '作品集信息缺失',
+                    icon: 'none'
+                });
+                return;
+            }
             uni.navigateTo({
-                url: `/pages-content/portfolio-detail/portfolio-detail?folderId=${portfolio._id}&folderName=${encodeURIComponent(portfolio.name)}`
+                url: `/pages-content/portfolio-detail/portfolio-detail?folderId=${folderId}&folderName=${encodeURIComponent(folderName)}`,
+                fail: (error) => {
+                    console.error('打开作品集详情失败:', error);
+                    uni.showToast({
+                        title: '打开作品集失败',
+                        icon: 'none'
+                    });
+                }
             });
         },
 
         // 跳转到作品集管理页面
         navigateToPortfolio() {
             uni.navigateTo({
-                url: '/pages-content/portfolio/portfolio'
+                url: '/pages-content/portfolio/portfolio',
+                fail: (error) => {
+                    console.error('跳转作品集管理页面失败:', error);
+                    uni.showToast({
+                        title: '打开作品集失败',
+                        icon: 'none'
+                    });
+                }
             });
         },
 
@@ -2284,4 +2307,3 @@ export default {
     color: #333;
 }
 </style>
-
