@@ -50,6 +50,7 @@
 // 引入云函数调用工具
 const { cloudCall } = require('../../utils/cloudCall.js');
 const platformDetector = require('../../utils/platformDetector.js');
+const { requestAndroidStoragePermission } = require('../../utils/permissions.js');
 
 export default {
   data() {
@@ -67,6 +68,10 @@ export default {
     
     // 选择图片
     chooseImage() {
+      if (platformDetector.getCurrentPlatform() === 'app') {
+        this.chooseImageForApp();
+        return;
+      }
       uni.chooseImage({
         count: 1,
         // 统一使用压缩模式
@@ -144,6 +149,153 @@ export default {
     },
     
     // 压缩图片
+    chooseImageForApp() {
+      requestAndroidStoragePermission().then((granted) => {
+        if (!granted) {
+          return;
+        }
+
+        const chooseApi = typeof uni.chooseMedia === 'function' ? 'chooseMedia' : 'chooseImage';
+        const chooseOptions = {
+          count: 1,
+          sourceType: ['album', 'camera'],
+          success: (res) => {
+            this.handleSelectedImageResult(res);
+          },
+          fail: (err) => {
+            console.error('App choose image failed:', err);
+            if (err && err.errMsg && err.errMsg.includes('cancel')) {
+              return;
+            }
+            uni.showToast({
+              title: err && err.errMsg && err.errMsg.includes('\u6587\u4ef6\u7ba1\u7406\u5668') ? '\u9700\u8981\u76f8\u518c\u6743\u9650' : '\u9009\u62e9\u56fe\u7247\u5931\u8d25',
+              icon: 'none'
+            });
+          }
+        };
+
+        if (chooseApi === 'chooseMedia') {
+          uni.chooseMedia({
+            ...chooseOptions,
+            mediaType: ['image']
+          });
+          return;
+        }
+
+        uni.chooseImage({
+          ...chooseOptions,
+          sizeType: ['compressed']
+        });
+      });
+    },
+
+    handleSelectedImageResult(res) {
+      this.normalizeSelectedImageFile(res).then((file) => {
+        if (!file || !file.path) {
+          throw new Error('\u672a\u83b7\u53d6\u5230\u6709\u6548\u7684\u56fe\u7247\u6587\u4ef6');
+        }
+
+        uni.showLoading({
+          title: '\u5904\u7406\u4e2d...'
+        });
+
+        console.log('App selected image file:', file);
+        const tempFilePath = file.path;
+        const sizeInBytes = file.size || 0;
+
+        if (sizeInBytes > 0) {
+          console.log(`Selected image ${tempFilePath} original size:`, (sizeInBytes / 1024).toFixed(2), 'KB');
+        }
+
+        if (sizeInBytes > 5 * 1024 * 1024) {
+          uni.hideLoading();
+          uni.showModal({
+            title: '\u63d0\u793a',
+            content: `\u56fe\u7247\u6587\u4ef6\u8fc7\u5927 (${(sizeInBytes / 1024 / 1024).toFixed(2)}MB)\uff0c\u8bf7\u9009\u62e9\u5c0f\u4e8e5MB\u7684\u56fe\u7247`,
+            showCancel: false,
+            confirmText: '\u786e\u5b9a'
+          });
+          return;
+        }
+
+        const needCompression = sizeInBytes > 200000;
+        this.imageInfo = {
+          originalPath: tempFilePath,
+          imageSize: sizeInBytes,
+          needCompression: needCompression,
+          previewUrl: tempFilePath,
+          compressedPath: tempFilePath,
+          originalUrl: '',
+          compressedUrl: ''
+        };
+
+        if (needCompression) {
+          this.compressImage(this.imageInfo)
+            .then(() => {
+              uni.hideLoading();
+              this.selectedImage = this.imageInfo.previewUrl;
+            })
+            .catch((err) => {
+              uni.hideLoading();
+              console.error('Image compression failed:', err);
+              this.imageInfo.compressedPath = this.imageInfo.originalPath;
+              this.imageInfo.previewUrl = this.imageInfo.originalPath;
+              this.selectedImage = this.imageInfo.previewUrl;
+            });
+          return;
+        }
+
+        uni.hideLoading();
+        this.selectedImage = this.imageInfo.previewUrl;
+      }).catch((err) => {
+        console.error('App image preprocessing failed:', err);
+        uni.hideLoading();
+        uni.showToast({
+          title: '\u9009\u62e9\u56fe\u7247\u5931\u8d25',
+          icon: 'none'
+        });
+      });
+    },
+
+    normalizeSelectedImageFile(res) {
+      return new Promise((resolve) => {
+        const tempFiles = Array.isArray(res && res.tempFiles) ? res.tempFiles : [];
+        const firstFile = tempFiles[0] || {};
+        const tempFilePaths = Array.isArray(res && res.tempFilePaths) ? res.tempFilePaths : [];
+        const filePath = firstFile.path || firstFile.tempFilePath || firstFile.filePath || tempFilePaths[0] || '';
+
+        if (!filePath) {
+          resolve(null);
+          return;
+        }
+
+        if (typeof firstFile.size === 'number' && firstFile.size > 0) {
+          resolve({
+            path: filePath,
+            size: firstFile.size
+          });
+          return;
+        }
+
+        uni.getFileInfo({
+          filePath,
+          success: (fileInfo) => {
+            resolve({
+              path: filePath,
+              size: fileInfo.size || 0
+            });
+          },
+          fail: (err) => {
+            console.warn('Get image file size failed:', err);
+            resolve({
+              path: filePath,
+              size: 0
+            });
+          }
+        });
+      });
+    },
+
     compressImage(imageInfo) {
       return new Promise((resolve) => {
         // 检查运行环境

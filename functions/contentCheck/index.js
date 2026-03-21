@@ -1,5 +1,6 @@
 ﻿// 寮曞叆鑵捐浜慡DK鍜屼簯寮€鍙慡DK
-const tencentcloud = require("tencentcloud-sdk-nodejs");
+// 注意：内容审核 SDK 当前未启用，不能在模块加载阶段强依赖它，
+// 否则仅做“审核直通”时也会因为缺少依赖导致整个云函数启动失败。
 const cloud = require('wx-server-sdk');
 
 // 鍒濆鍖栦簯寮€鍙?
@@ -12,8 +13,6 @@ const _ = db.command;
 const ADMIN_POEM_IDS = ['qisaihao', 'jingmikun'];
 
 // 鎷垮埌鍐呭瀹夊叏锛坈ms锛夌殑 client
-const CmsClient = tencentcloud.cms.v20190321.Client;
-
 async function isAdmin(openid) {
   try {
     const result = await db.collection('users').where({
@@ -54,13 +53,36 @@ function buildSuccess({ postId, msg = '发布成功', extra = {} }) {
     ...extra
   };
 }
+function isModerationOnlyRequest(event = {}) {
+  return typeof event.type === 'string' && ['text', 'image', 'batch'].includes(event.type);
+}
+
+function buildModerationPass(message = '审核通过', extra = {}) {
+  return {
+    code: 0,
+    success: true,
+    passed: true,
+    message,
+    msg: message,
+    ...extra
+  };
+}
+
 exports.main = async (event, context) => {
   console.log('=== contentCheck started ===');
-  console.log('[contentCheck] audit is bypassed and post will be created directly');
   console.log('[contentCheck] received event:', JSON.stringify(event, null, 2));
   
   // 鏆傛椂璺宠繃瀹℃牳锛岀洿鎺ユ墽琛屽笘瀛愬垱寤洪€昏緫
-  console.log('[contentCheck] skip audit and continue to create post');
+  const moderationOnly = isModerationOnlyRequest(event);
+  console.log('[contentCheck] request mode:', moderationOnly ? 'moderation-only' : 'legacy-create-post');
+
+  if (moderationOnly) {
+    console.log('[contentCheck] moderation-only request detected, skip post creation');
+    console.log('[contentCheck] audit service is currently bypassed, return pass result directly');
+    return buildModerationPass();
+  }
+
+  console.log('[contentCheck] legacy publish request detected, continue to create post');
 
   const wxContext = cloud.getWXContext();
   // Prefer event.openid so callers can override (e.g., anonymous posts)
@@ -780,7 +802,3 @@ const dedupeTop3 = (lines = []) => {
     });
   }
 };
-
-
-
-

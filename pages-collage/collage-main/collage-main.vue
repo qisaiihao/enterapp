@@ -55,8 +55,9 @@ export default {
     
     // 跳转到拼贴创作页面
     navigateToCompose() {
-      uni.navigateTo({
-        url: '/pages-collage/collage-compose/collage-compose'
+      uni.showToast({
+        title: '内容开发中',
+        icon: 'none'
       })
     },
     

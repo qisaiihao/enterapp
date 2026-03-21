@@ -1,42 +1,35 @@
 <template>
-    <!-- 高光选择全屏弹窗 -->
-    <view v-if="show" class="highlight-selection-modal" 
-          @tap="onClose"
-          @touchstart="onTouchStart"
-          @touchmove="onTouchMove"
-          @touchend="onTouchEnd">
-        <view class="highlight-modal-content" @tap.stop 
-              @touchstart.stop="onTouchStart"
-              @touchmove.stop="onTouchMove"
-              @touchend.stop="onTouchEnd">
-            <!-- 自定义Toast提示（解决层级问题） -->
+    <view v-if="show" class="highlight-selection-modal">
+        <view class="highlight-modal-content" @tap.stop>
             <view v-if="showTip" class="custom-toast">
                 <text class="custom-toast-text">{{ tipText }}</text>
             </view>
-            <!-- 标题栏 -->
+
             <view class="highlight-modal-header">
                 <text class="highlight-modal-title">选择高光句</text>
-                <view class="highlight-modal-close" @tap="onClose">×</view>
+                <view class="highlight-modal-close" @tap.stop="onClose">×</view>
             </view>
-            
-            <!-- 内容选择区域 -->
-            <view class="highlight-content-wrapper">
+
+            <scroll-view class="highlight-content-wrapper" :scroll-y="true" enable-flex="true">
                 <view class="highlight-content-display">
-                    <text class="highlight-content-line" 
-                          v-for="(line, index) in contentLines"
-                          :key="index"
-                          :class="{ 'selected-line': selectedIndices.includes(index) }"
-                          @tap.stop="onToggleLine(index)">
-                        {{ line || '\u00A0' }}
-                    </text>
+                    <view
+                        v-for="(line, index) in contentLines"
+                        :key="index"
+                        class="highlight-content-line"
+                        :class="{ 'selected-line': selectedIndices.includes(index) }"
+                        @tap.stop="onToggleLine(index)"
+                    >
+                        <text class="highlight-content-line-text">{{ line || '' }}</text>
+                    </view>
                 </view>
-            </view>
-            
-            <!-- 底部操作栏 -->
+            </scroll-view>
+
             <view class="highlight-modal-actions">
-                <view class="highlight-action-btn primary" 
-                      @tap.stop="onConfirm" 
-                      :class="{ 'disabled': selectedIndices.length === 0 }">
+                <view
+                    class="highlight-action-btn primary"
+                    :class="{ 'disabled': selectedIndices.length === 0 }"
+                    @tap.stop="onConfirm"
+                >
                     <image class="highlight-action-icon" src="/static/images/confirm_selection.png" mode="aspectFill"></image>
                 </view>
             </view>
@@ -63,27 +56,18 @@ export default {
     },
     data() {
         return {
-            // 内部维护选中状态
             selectedIndices: [],
-            // 触摸相关
-            touchStartX: 0,
-            touchStartY: 0,
-            touchCurrentX: 0,
-            touchCurrentY: 0,
-            // 自定义提示
             showTip: false,
             tipText: '',
             tipTimer: null
         };
     },
     watch: {
-        // 当弹窗打开时，同步外部的选中状态
         show(val) {
             if (val) {
                 this.selectedIndices = [...this.selectedLineIndices];
             }
         },
-        // 监听外部选中状态变化
         selectedLineIndices: {
             handler(val) {
                 if (this.show) {
@@ -93,83 +77,60 @@ export default {
             deep: true
         }
     },
+    beforeDestroy() {
+        if (this.tipTimer) {
+            clearTimeout(this.tipTimer);
+            this.tipTimer = null;
+        }
+    },
     methods: {
-        // 关闭弹窗
         onClose() {
             this.$emit('close');
         },
 
-        // 显示自定义提示
         showCustomTip(text, duration = 2000) {
-            // 清除之前的定时器
             if (this.tipTimer) {
                 clearTimeout(this.tipTimer);
             }
+
             this.tipText = text;
             this.showTip = true;
             this.tipTimer = setTimeout(() => {
                 this.showTip = false;
+                this.tipTimer = null;
             }, duration);
         },
 
-        // 切换行选中状态
         onToggleLine(index) {
             const arr = [...this.selectedIndices];
             const pos = arr.indexOf(index);
-            
+
             if (pos >= 0) {
                 arr.splice(pos, 1);
             } else {
-                // 限制最多选择三行
                 if (arr.length >= 3) {
-                    this.showCustomTip('最多只能选择三行高光');
+                    this.showCustomTip('最多只能选择三句高光');
                     return;
                 }
                 arr.push(index);
             }
-            
+
             arr.sort((a, b) => a - b);
             this.selectedIndices = arr;
             this.$emit('update', arr);
         },
 
-        // 确认选择
         onConfirm() {
-            if (this.selectedIndices.length === 0) return;
-            this.$emit('confirm', this.selectedIndices);
-        },
-
-        // 触摸事件处理（用于滑动关闭）
-        onTouchStart(e) {
-            const touch = e.touches[0];
-            this.touchStartX = touch.pageX || touch.clientX;
-            this.touchStartY = touch.pageY || touch.clientY;
-            this.touchCurrentX = this.touchStartX;
-            this.touchCurrentY = this.touchStartY;
-        },
-
-        onTouchMove(e) {
-            const touch = e.touches[0];
-            this.touchCurrentX = touch.pageX || touch.clientX;
-            this.touchCurrentY = touch.pageY || touch.clientY;
-        },
-
-        onTouchEnd() {
-            const deltaX = this.touchCurrentX - this.touchStartX;
-            const deltaY = Math.abs(this.touchCurrentY - this.touchStartY);
-            
-            // 水平滑动距离大于垂直滑动距离，且大于30px时，关闭弹窗
-            if (Math.abs(deltaX) > deltaY && Math.abs(deltaX) > 30) {
-                this.$emit('close');
-                uni.showToast({ title: '已退出高光选择', icon: 'none', duration: 1000 });
+            if (this.selectedIndices.length === 0) {
+                return;
             }
+            this.$emit('confirm', this.selectedIndices);
         }
     }
 };
 </script>
 
 <style scoped>
-/* 高光选择全屏弹窗样式 */
 .highlight-selection-modal {
     position: fixed;
     top: 0;
@@ -227,31 +188,39 @@ export default {
 .highlight-content-wrapper {
     flex: 1;
     padding: 40rpx;
-    overflow-y: auto;
+    box-sizing: border-box;
     background: #fff;
 }
 
 .highlight-content-display {
     display: flex;
     flex-direction: column;
+    padding-bottom: 220rpx;
 }
 
 .highlight-content-line {
     display: block;
+    min-height: 72rpx;
     margin-bottom: 16rpx;
     padding: 12rpx 16rpx;
     border-radius: 8rpx;
     line-height: 1.8;
     font-size: 36rpx;
-    white-space: pre-wrap;
-    word-break: break-word;
     color: #999;
     transition: all 0.2s ease;
+}
+
+.highlight-content-line-text {
+    display: block;
+    min-height: 48rpx;
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 
 .highlight-content-line.selected-line {
     color: #000;
     font-weight: 500;
+    background: rgba(158, 215, 238, 0.22);
 }
 
 .highlight-modal-actions {
@@ -287,7 +256,6 @@ export default {
     height: 120rpx;
 }
 
-/* 自定义Toast提示样式 */
 .custom-toast {
     position: fixed;
     top: 50%;

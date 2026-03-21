@@ -1448,7 +1448,7 @@ export default {
 
 .activity-btn {
   padding: 16rpx 32rpx;
-  border-radius: 12rpx;
+  border-radius: 24rpx;
   border: 2rpx solid #999;
   background: #fff;
   transition: all 0.3s ease;

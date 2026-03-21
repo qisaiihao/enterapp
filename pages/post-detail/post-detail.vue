@@ -201,14 +201,15 @@
                 <!-- 多行文本输入框 -->
                 <textarea
                     class="expanded-textarea"
+                    :style="'height: ' + commentTextareaHeight + 'px;'"
                     placeholder="留下你的精彩评论..."
                     :value="newComment"
                     @input="onCommentInput"
+                    @linechange="onCommentLineChange"
                     @focus="onInputFocus"
                     @blur="onInputBlur"
                     :focus="isFocus"
                     :adjust-position="false"
-                    auto-height
                     maxlength="500"
                     :show-confirm-bar="false"
                     :cursor-spacing="0"
@@ -430,12 +431,17 @@ export default {
             maxCommentImages: 3,
             isSubmittingComment: false,
             quickCommentText: '',
+            commentTextareaMinHeight: 90,
+            commentTextareaMaxHeight: 175,
+            commentTextareaHeight: 90,
             // 是否启用原生长按菜单（仅小程序有效）
             shareLongpressMenuEnabled: false,
             fontManager: null // 添加fontManager初始化
         };
     },
     onLoad: function (options) {
+        this.initializeCommentTextareaMetrics();
+
         const postId = options.id;
         if (postId) {
             this.setData({
@@ -1632,6 +1638,49 @@ export default {
             }
         },
 
+        initializeCommentTextareaMetrics: function () {
+            try {
+                const systemInfo = uni.getSystemInfoSync ? uni.getSystemInfoSync() : null;
+                const rpxToPx = systemInfo && systemInfo.windowWidth ? systemInfo.windowWidth / 750 : 0.5;
+                const minHeight = Math.round(180 * rpxToPx);
+                const maxHeight = Math.round(350 * rpxToPx);
+
+                this.setData({
+                    commentTextareaMinHeight: minHeight,
+                    commentTextareaMaxHeight: maxHeight,
+                    commentTextareaHeight: minHeight
+                });
+            } catch (error) {
+                console.warn('Failed to initialize comment textarea height:', error);
+            }
+        },
+
+        resetCommentTextareaHeight: function () {
+            const minHeight = this.commentTextareaMinHeight || 90;
+            if (this.commentTextareaHeight !== minHeight) {
+                this.setData({
+                    commentTextareaHeight: minHeight
+                });
+            }
+        },
+
+        onCommentLineChange: function (e) {
+            const nextHeight = e && e.detail ? Number(e.detail.height) : NaN;
+            if (!Number.isFinite(nextHeight)) {
+                return;
+            }
+
+            const minHeight = this.commentTextareaMinHeight || 90;
+            const maxHeight = this.commentTextareaMaxHeight || 175;
+            const clampedHeight = Math.max(minHeight, Math.min(nextHeight, maxHeight));
+
+            if (Math.abs((this.commentTextareaHeight || 0) - clampedHeight) > 1) {
+                this.setData({
+                    commentTextareaHeight: clampedHeight
+                });
+            }
+        },
+
 
 
 
@@ -2602,6 +2651,7 @@ export default {
         },
 
         collapseInput: function () {
+            this.resetCommentTextareaHeight();
             this.setData({
                 isInputExpanded: false,
                 isFocus: false,
@@ -3383,6 +3433,8 @@ page {
     width: 100%;
     min-height: 180rpx;
     max-height: 350rpx;
+    overflow-y: auto;
+    overflow-x: hidden;
     padding: 20rpx 24rpx;
     background-color: #ffffff;
     border-radius: 0;
@@ -3397,6 +3449,8 @@ page {
     -webkit-user-select: text;
     -webkit-touch-callout: default;
     outline: none;
+    resize: none;
+    display: block;
 }
 
 .expanded-actions {
@@ -3966,11 +4020,6 @@ page {
 }
 
 </style>
-
-
-
-
-
 
 
 

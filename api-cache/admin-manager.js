@@ -60,6 +60,30 @@ function getAdminUserPassword({ query, context } = {}) {
   );
 }
 
+function getBatchReplaceConfig({ context } = {}) {
+  return callAdminManager(
+    'getBatchReplaceConfig',
+    {},
+    { pageTag: 'admin-batch-replace:config', context, fallbackMessage: '获取配置失败' }
+  );
+}
+
+function previewAdminFieldReplace({ collectionName, fieldName, findValue, replaceValue, context } = {}) {
+  return callAdminManager(
+    'previewFieldReplace',
+    { collectionName, fieldName, findValue, replaceValue },
+    { pageTag: 'admin-batch-replace:preview', context, fallbackMessage: '预览失败' }
+  );
+}
+
+function executeAdminFieldReplace({ collectionName, fieldName, findValue, replaceValue, context } = {}) {
+  return callAdminManager(
+    'executeFieldReplace',
+    { collectionName, fieldName, findValue, replaceValue },
+    { pageTag: 'admin-batch-replace:execute', context, fallbackMessage: '替换失败' }
+  );
+}
+
 module.exports = {
   callAdminManager,
   listAdminPosts,
@@ -67,5 +91,8 @@ module.exports = {
   deleteAdminPost,
   listAdminPoets,
   deleteAdminPoet,
-  getAdminUserPassword
+  getAdminUserPassword,
+  getBatchReplaceConfig,
+  previewAdminFieldReplace,
+  executeAdminFieldReplace
 };

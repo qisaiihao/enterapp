@@ -120,7 +120,7 @@
                 </template>
                 <!-- 普通/诗歌单段输入 -->
                 <template v-else>
-                    <view class="content-input-wrapper" :data-highlight-mode="highlightModeEnabled">
+                    <view class="content-input-wrapper">
                         <textarea
                             class="content-textarea"
                             :placeholder="currentPlaceholder"
@@ -132,41 +132,13 @@
                             :adjust-position="false"
                             @focus="onTextareaFocus"
                             @blur="onTextareaBlur"
-                            @scroll="onTextareaScroll"
                         ></textarea>
                         <view v-if="content.length > 1400" class="char-count">{{ content.length }}/1500</view>
 
                         <!-- 长按选择覆盖层 -->
-                        <view
-                            v-if="content.trim() && highlightModeEnabled"
-                            class="highlight-select-overlay"
-                            @touchstart="onOverlayTouchStart"
-                            @touchend="onOverlayTouchEnd"
-                            @touchmove="onOverlayTouchMove"
-                            catchtouchmove="true"
-                        >
-                            <scroll-view class="overlay-scroll" :scroll-y="true" :scroll-top="overlayScrollTop">
-                                <view class="overlay-content">
-                                    <view
-                                        v-for="(line, i) in splitContentLines"
-                                        :key="i"
-                                        :class="'overlay-line ' + (highlightSelectedLineIndices.includes(i) ? 'highlighted' : '')"
-                                        :style="'top: ' + (i * 48) + 'rpx;'"
-                                        :data-index="i"
-                                        @touchstart="onLineTouchStart"
-                                        @touchend="onLineTouchEnd"
-                                    >
-                                        <view class="overlay-line-content">{{ line || ' ' }}</view>
-                                    </view>
-                                </view>
-                            </scroll-view>
-                        </view>
 
                         <!-- 高光选择提示 -->
-                        <view v-if="showHighlightHint" class="highlight-hint">
-                            <text class="hint-text">点击文字即可选择高光行</text>
-                        </view>
-                    </view>
+</view>
                 </template>
                 <!-- 右侧工具栏 -->
                 <SideToolbar
@@ -330,17 +302,7 @@ export default {
             highlightSourceLines: [],
 
             // 新的覆盖层相关状态
-            overlayScrollTop: 0,
-            textareaScrollTop: 0,
-            showHighlightHint: false,
-            highlightModeEnabled: false,
-            longPressTimer: null,
-            touchStartLine: null,
             // 高光弹窗触摸相关变量
-            highlightModalTouchStartX: 0,
-            highlightModalTouchStartY: 0,
-            highlightModalTouchCurrentX: 0,
-            highlightModalTouchCurrentY: 0,
             imageList: [],
 
             // 图片列表，包含原图和压缩图信息
@@ -1872,102 +1834,6 @@ export default {
 
         /* 高光弹窗相关方法已移至 HighlightSelectorModal.vue 组件 */
 
-        hideHighlightHint: function () {
-            this.setData({ showHighlightHint: false });
-        },
-
-        // textarea滚动事件
-        onTextareaScroll: function (e) {
-            this.setData({
-                textareaScrollTop: e.detail.scrollTop,
-                overlayScrollTop: e.detail.scrollTop
-            });
-        },
-
-        // 覆盖层触摸事件
-        onOverlayTouchStart: function (e) {
-            // 阻止事件冒泡，避免触发textarea的焦点
-            e.preventDefault();
-        },
-
-        onOverlayTouchEnd: function (e) {
-            e.preventDefault();
-        },
-
-        onOverlayTouchMove: function (e) {
-            e.preventDefault();
-        },
-
-        // 行触摸事件
-        onLineTouchStart: function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            const index = Number(e.currentTarget.dataset.index);
-            this.touchStartLine = index;
-        },
-
-        onLineTouchEnd: function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            const index = Number(e.currentTarget.dataset.index);
-            if (this.touchStartLine === index) {
-                // 单击直接选择
-                this.toggleLineHighlight(index);
-                // 触觉反馈（如果支持）
-                try {
-                    uni.vibrateShort();
-                } catch (e) {}
-            }
-
-            this.touchStartLine = null;
-        },
-
-        // 切换行高亮
-        toggleLineHighlight: function (lineIndex) {
-            const arr = this.highlightSelectedLineIndices.slice();
-            const pos = arr.indexOf(lineIndex);
-
-            if (pos >= 0) {
-                // 取消选中
-                arr.splice(pos, 1);
-            } else {
-                // 检查是否超过限制
-                if (arr.length >= 3) {
-                    uni.showToast({
-                        title: '最多只能选择三行高光',
-                        icon: 'none'
-                    });
-                    return;
-                }
-                // 添加选中
-                arr.push(lineIndex);
-            }
-
-            arr.sort((a, b) => a - b);
-            this.setData({ highlightSelectedLineIndices: arr });
-
-            // 更新高光行数据
-            this.updateHighlightLines();
-        },
-
-        // 更新高光行数据
-        updateHighlightLines: function () {
-            const lines = (this.content || '').split(/\r?\n/);
-            const picked = this.highlightSelectedLineIndices.map(i => lines[i] || '').filter(Boolean);
-            this.setData({
-                highlightLines: picked,
-                highlightSentence: picked[0] || ''
-            });
-        },
-
-        /* toggleHighlightLine 和 finishHighlight 已移至 HighlightSelectorModal.vue 组件 */
-
-        // 清除选择
-        clearHighlight: function () {
-            this.setData({ highlightSelectedLineIndices: [], highlightLines: [], highlightSentence: '' });
-        },
 
         // 选择颜色（组件事件处理）
         onColorSelect: function (color) {
@@ -2401,104 +2267,14 @@ page {
 }
 
 /* 新的覆盖层样式 */
-.highlight-select-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1;
-    pointer-events: auto;
-    overflow: hidden;
-    /* 确保不超出输入框边界 */
-    max-width: 100%;
-    max-height: 100%;
-    box-sizing: border-box;
-}
 
-.overlay-scroll {
-    height: 100%;
-    width: 100%;
-    overflow-y: auto;
-    /* 匹配textarea的滚动行为 */
-}
 
-.overlay-content {
-    height: 100%;
-    width: 100%;
-    /* 移除所有可能导致额外空间的样式 */
-    font-size: 0; /* 隐藏字体，不占用空间 */
-    line-height: 0;
-    color: transparent;
-    box-sizing: border-box;
-    border-radius: 20rpx;
-    /* 确保不超出父容器 */
-    max-width: 100%;
-    max-height: 100%;
-    overflow: hidden;
-    position: relative; /* 为绝对定位的子元素提供定位上下文 */
-}
 
-.overlay-line {
-    margin: 0;
-    position: absolute; /* 绝对定位，通过style属性设置top */
-    left: 0;
-    right: 0;
-    height: 48rpx; /* 固定行高：32rpx字体 + 1.5行高 */
-    transition: background-color 0.2s ease;
-    padding: 20rpx; /* 减少padding，避免超出边界 */
-    line-height: 1.5;
-    font-size: 32rpx; /* 与输入框保持相同的字体大小 */
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-weight: 300;
-    box-sizing: border-box;
-    pointer-events: none; /* 防止干扰滚动 */
-    /* 确保不超出父容器 */
-    max-width: 100%;
-    overflow: hidden;
-}
 
-.overlay-line.highlighted {
-    background-color: rgba(158, 215, 238, 0.2);
-    border-radius: 8rpx;
-}
 
-.overlay-line-content {
-    color: #666; /* 半透明颜色，让用户能看到下面的文字 */
-    white-space: pre-wrap;
-    word-break: break-word;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-weight: 300;
-    font-size: 32rpx; /* 与输入框保持相同的字体大小 */
-    line-height: 1.5;
-    margin: 0;
-    padding: 0;
-    display: block;
-    /* 确保文字不超出边界 */
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
 
 /* 高光选择提示 */
-.highlight-hint {
-    position: fixed;
-    bottom: 100rpx;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(128, 128, 128, 0.6);
-    color: white;
-    padding: 12rpx 24rpx;
-    border-radius: 20rpx;
-    z-index: 1000;
-    text-align: center;
-    white-space: nowrap;
-}
 
-.hint-text {
-    font-size: 24rpx;
-    line-height: 1.2;
-}
 
 
 /* 调整textarea的z-index，确保在覆盖层下方 */

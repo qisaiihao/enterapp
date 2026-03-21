@@ -1,22 +1,70 @@
 // 管理员功能云函数
-const cloudbase = require('@cloudbase/node-sdk')
+const cloud = require('wx-server-sdk')
 
-const app = cloudbase.init({
-  env: cloudbase.SYMBOL_CURRENT_ENV
+cloud.init({
+  env: cloud.DYNAMIC_CURRENT_ENV
 })
 
-const db = app.database()
+const db = cloud.database()
 const _ = db.command
 const ADMIN_POEM_IDS = ['qisaihao', 'jingmikun']
 const ACTIVITY_SUMMARY_MAX_LENGTH = 200
 const ACTIVITY_RULES_MAX_LENGTH = 5000
+const BATCH_REPLACE_SAMPLE_LIMIT = 10
+const BATCH_REPLACE_COLLECTIONS = [
+  {
+    value: 'users',
+    label: 'users',
+    fields: ['_openid', 'poemId', 'nickName', 'phoneNumber', 'githubUsername', 'avatarUrl']
+  },
+  {
+    value: 'posts',
+    label: 'posts',
+    fields: ['_openid', 'authorName', 'authorAvatar', 'title', 'content', 'publishMode', 'activityId', 'joinActivityId']
+  },
+  {
+    value: 'comments',
+    label: 'comments',
+    fields: ['_openid', 'postId', 'content', 'authorName', 'replyToCommentId', 'replyToUserId', 'parentCommentId']
+  },
+  {
+    value: 'follows',
+    label: 'follows',
+    fields: ['followerId', 'followedId']
+  },
+  {
+    value: 'favorites',
+    label: 'favorites',
+    fields: ['userId', 'postId', 'folderId', 'folderName']
+  },
+  {
+    value: 'messages',
+    label: 'messages',
+    fields: ['userId', 'fromUserId', 'toUserId', 'postId', 'commentId', 'type']
+  },
+  {
+    value: 'feedback',
+    label: 'feedback',
+    fields: ['openid', 'poemId', 'status', 'content']
+  },
+  {
+    value: 'activities',
+    label: 'activities',
+    fields: ['title', 'status', 'creatorOpenid']
+  },
+  {
+    value: '__custom__',
+    label: '自定义集合',
+    fields: ['__custom__']
+  }
+]
 const {
   normalizeDateInput,
   normalizeStatus,
   normalizeSortWeight,
   normalizeActivityRules,
   buildAdminActivityView
-} = require('../_lib/activity')
+} = require('./_lib/activity')
 
 // 验证管理员权限（通过poemId）
 async function isAdmin(openid) {
@@ -40,6 +88,9 @@ const actionHandlers = {
   getUserPassword: (event) => getUserPassword(event),
   getPoetList: (event) => getPoetList(event),
   deletePoet: (event) => deletePoet(event),
+  getBatchReplaceConfig: () => getBatchReplaceConfig(),
+  previewFieldReplace: (event) => previewFieldReplace(event),
+  executeFieldReplace: (event) => executeFieldReplace(event),
   listActivities: (event) => listActivities(event),
   createActivity: (event, openid) => createActivity(event, openid),
   updateActivity: (event, openid) => updateActivity(event, openid),
@@ -90,6 +141,179 @@ exports.main = async (event, context) => {
 }
 
 // 获取所有帖子
+function getBatchReplaceConfig() {
+  return {
+    success: true,
+    collections: BATCH_REPLACE_COLLECTIONS,
+    tips: [
+      '仅支持单字段精确匹配替换',
+      '当前工具按字符串值进行查找与替换',
+      '建议先预览，再执行正式替换'
+    ]
+  }
+}
+
+async function previewFieldReplace(event) {
+  const params = normalizeBatchReplaceParams(event)
+  if (!params.success) {
+    return params
+  }
+
+  try {
+    const collectionRef = db.collection(params.collectionName)
+    const whereCondition = {
+      [params.fieldName]: params.findValue
+    }
+    const [countRes, sampleRes] = await Promise.all([
+      collectionRef.where(whereCondition).count(),
+      collectionRef.where(whereCondition).limit(BATCH_REPLACE_SAMPLE_LIMIT).get()
+    ])
+
+    return {
+      success: true,
+      mode: 'preview',
+      collectionName: params.collectionName,
+      fieldName: params.fieldName,
+      findValue: params.findValue,
+      replaceValue: params.replaceValue,
+      matchedCount: countRes.total || 0,
+      sampleDocs: sampleRes.data || []
+    }
+  } catch (error) {
+    console.error('[adminManager] previewFieldReplace failed:', error)
+    return {
+      success: false,
+      error: `预览失败：${error.message}`
+    }
+  }
+}
+
+async function executeFieldReplace(event) {
+  const params = normalizeBatchReplaceParams(event)
+  if (!params.success) {
+    return params
+  }
+
+  try {
+    const collectionRef = db.collection(params.collectionName)
+    const whereCondition = {
+      [params.fieldName]: params.findValue
+    }
+
+    const [countRes, sampleRes] = await Promise.all([
+      collectionRef.where(whereCondition).count(),
+      collectionRef.where(whereCondition).limit(BATCH_REPLACE_SAMPLE_LIMIT).get()
+    ])
+
+    const matchedCount = countRes.total || 0
+    if (!matchedCount) {
+      return {
+        success: true,
+        mode: 'execute',
+        collectionName: params.collectionName,
+        fieldName: params.fieldName,
+        findValue: params.findValue,
+        replaceValue: params.replaceValue,
+        matchedCount: 0,
+        updatedCount: 0,
+        sampleDocs: [],
+        message: '未找到匹配记录'
+      }
+    }
+
+    const updateRes = await collectionRef.where(whereCondition).update({
+      data: {
+        [params.fieldName]: params.replaceValue
+      }
+    })
+
+    return {
+      success: true,
+      mode: 'execute',
+      collectionName: params.collectionName,
+      fieldName: params.fieldName,
+      findValue: params.findValue,
+      replaceValue: params.replaceValue,
+      matchedCount,
+      updatedCount: (updateRes && updateRes.stats && updateRes.stats.updated) || 0,
+      sampleDocs: sampleRes.data || [],
+      message: '批量替换完成'
+    }
+  } catch (error) {
+    console.error('[adminManager] executeFieldReplace failed:', error)
+    return {
+      success: false,
+      error: `执行替换失败：${error.message}`
+    }
+  }
+}
+
+function normalizeBatchReplaceParams(event = {}) {
+  const collectionName = normalizeCollectionName(event.collectionName || event.collection)
+  const fieldName = normalizeFieldName(event.fieldName || event.field)
+  const findValue = normalizeReplaceValue(event.findValue)
+  const replaceValue = normalizeReplaceValue(event.replaceValue, { allowEmpty: true })
+
+  if (!collectionName) {
+    return {
+      success: false,
+      error: '请选择集合名称'
+    }
+  }
+
+  if (!fieldName) {
+    return {
+      success: false,
+      error: '请选择字段名称'
+    }
+  }
+
+  if (findValue === '') {
+    return {
+      success: false,
+      error: '查找值不能为空'
+    }
+  }
+
+  if (findValue === replaceValue) {
+    return {
+      success: false,
+      error: '查找值与替换值不能相同'
+    }
+  }
+
+  return {
+    success: true,
+    collectionName,
+    fieldName,
+    findValue,
+    replaceValue
+  }
+}
+
+function normalizeCollectionName(value) {
+  const normalized = typeof value === 'string' ? value.trim() : ''
+  if (!normalized) return ''
+  return /^[A-Za-z0-9_-]+$/.test(normalized) ? normalized : ''
+}
+
+function normalizeFieldName(value) {
+  const normalized = typeof value === 'string' ? value.trim() : ''
+  if (!normalized) return ''
+  return /^[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*$/.test(normalized) ? normalized : ''
+}
+
+function normalizeReplaceValue(value, { allowEmpty = false } = {}) {
+  if (value === null || value === undefined) {
+    return allowEmpty ? '' : ''
+  }
+  const normalized = String(value)
+  if (!allowEmpty && normalized === '') {
+    return ''
+  }
+  return normalized
+}
+
 async function getAllPosts(data) {
   const { page = 0, pageSize = 20 } = data
   
