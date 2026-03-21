@@ -7,7 +7,7 @@ cloud.init({
 
 const db = cloud.database()
 const _ = db.command
-const ADMIN_POEM_IDS = ['qisaihao', 'jingmikun']
+const ADMIN_POEM_IDS = ['qisaihao', 'jingmikun', 'ZOUHE']
 const ACTIVITY_SUMMARY_MAX_LENGTH = 200
 const ACTIVITY_RULES_MAX_LENGTH = 5000
 const BATCH_REPLACE_SAMPLE_LIMIT = 10

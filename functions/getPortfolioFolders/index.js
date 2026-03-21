@@ -30,10 +30,11 @@ exports.main = async (event, context) => {
       _openid: openid
     }).orderBy('createTime', 'desc').get();
 
-    console.log('【getPortfolioFolders】查询结果，数量:', result.data.length);
+    const dataList = result.data || [];
+    console.log('【getPortfolioFolders】查询结果，数量:', dataList.length);
 
     // 如果用户没有任何作品集，自动创建一个默认作品集
-    if (result.data.length === 0) {
+    if (dataList.length === 0) {
       console.log('【getPortfolioFolders】用户没有作品集，创建默认作品集');
       try {
         const defaultFolder = await db.collection('portfolio_folders').add({
@@ -61,24 +62,25 @@ exports.main = async (event, context) => {
           }]
         };
       } catch (createError) {
-        console.error('【getPortfolioFolders】创建默认作品集失败:', createError);
+        const createErrDetail = createError.errMsg || createError.message || (typeof createError === 'object' ? JSON.stringify(createError) : String(createError));
+        console.error('【getPortfolioFolders】创建默认作品集失败:', createError, '详情:', createErrDetail);
         return {
           success: false,
           message: '创建默认作品集失败',
-          error: createError.message
+          error: createErrDetail
         };
       }
     }
 
-    console.log('【getPortfolioFolders】返回作品集列表，数量:', result.data.length);
+    console.log('【getPortfolioFolders】返回作品集列表，数量:', dataList.length);
     
     // 处理封面图片URL转换
-    const folders = result.data;
+    const folders = result.data || [];
     const fileIDSet = new Set();
     
     // 收集所有需要转换的cloud:// URL
     folders.forEach(folder => {
-      if (folder.coverUrl && folder.coverUrl.startsWith('cloud://')) {
+      if (folder.coverUrl && typeof folder.coverUrl === 'string' && folder.coverUrl.startsWith('cloud://')) {
         fileIDSet.add(folder.coverUrl);
       }
     });
@@ -117,11 +119,12 @@ exports.main = async (event, context) => {
       folders: folders
     };
   } catch (error) {
-    console.error('【getPortfolioFolders】数据库查询失败:', error);
+    const errDetail = error.errMsg || error.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
+    console.error('【getPortfolioFolders】数据库查询失败:', error, '详情:', errDetail);
     return {
       success: false,
       message: '获取作品集失败',
-      error: error.message
+      error: errDetail
     };
   }
 };

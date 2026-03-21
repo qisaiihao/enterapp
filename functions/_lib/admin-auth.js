@@ -1,4 +1,4 @@
-const ADMIN_POEM_IDS = ['qisaihao', 'jingmikun'];
+const ADMIN_POEM_IDS = ['qisaihao', 'jingmikun', 'ZOUHE'];
 
 async function isAdminByPoemId({ db, command, openid, loggerPrefix = 'admin-auth' } = {}) {
   if (!db || !command || !openid) {

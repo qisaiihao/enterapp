@@ -187,6 +187,7 @@ export default {
 
 .highlight-content-wrapper {
     flex: 1;
+    height: 0;
     padding: 40rpx;
     box-sizing: border-box;
     background: #fff;
