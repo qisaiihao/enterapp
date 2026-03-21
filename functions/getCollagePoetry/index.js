@@ -5,6 +5,7 @@ cloud.init({
 })
 
 const db = cloud.database()
+const _ = db.command
 
 exports.main = async (event, context) => {
   console.log('=== getCollagePoetry 云函数开始执行 ===')
@@ -122,12 +123,33 @@ exports.main = async (event, context) => {
       imageUrls: post.imageUrls || [],
       votes: post.votes || 0,
       commentCount: post.commentCount || 0,
-      isVoted: post.isVoted || false,
-      likeIcon: getLikeIcon(post.votes || 0, post.isVoted || false),
+      isVoted: false,
+      likeIcon: getLikeIcon(post.votes || 0, false),
       createTime: post.createTime || post.createdAt,
       createdAt: post.createdAt,
       updatedAt: post.updatedAt
     }))
+
+    // 查询当前用户的点赞状态
+    if (openid && processedData.length > 0) {
+      try {
+        const postIds = processedData.map(p => p._id)
+        const votesResult = await db.collection('votes_log')
+          .where({
+            _openid: openid,
+            postId: _.in(postIds),
+            type: 'post'
+          })
+          .get()
+        const votedPostIds = new Set(votesResult.data.map(v => v.postId))
+        processedData.forEach(post => {
+          post.isVoted = votedPostIds.has(post._id)
+          post.likeIcon = getLikeIcon(post.votes, post.isVoted)
+        })
+      } catch (voteError) {
+        console.error('获取点赞状态失败:', voteError)
+      }
+    }
     
     // 转换图片URL：将云存储fileID转换为临时访问URL
     const fileIDs = new Set()

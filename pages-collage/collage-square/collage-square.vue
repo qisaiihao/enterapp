@@ -90,6 +90,7 @@
 <script>
 // 引入云函数调用工具
 const { cloudCall } = require('../../utils/cloudCall.js');
+const { togglePostLike } = require('../../utils/likeService.js');
 
 export default {
   data() {
@@ -421,10 +422,31 @@ export default {
     },
     
     // 点赞
-    onLike(e) {
+    async onLike(e) {
       const postId = e.currentTarget.dataset.postid
-      // 实现点赞逻辑
-      console.log('点赞:', postId)
+      if (!postId) return
+
+      const result = await togglePostLike(postId, {
+        pageTag: 'collage-square',
+        context: this,
+        currentVotes: this.currentCollage.votes || 0,
+        currentIsLiked: this.currentCollage.isVoted || false,
+        requireAuth: true
+      })
+
+      if (result && result.success) {
+        const updated = {
+          ...this.currentCollage,
+          votes: result.votes,
+          isVoted: result.isLiked,
+          likeIcon: result.likeIcon
+        }
+        this.currentCollage = updated
+        const idx = this.currentCollageIndex
+        if (this.collageList[idx]) {
+          this.$set(this.collageList, idx, { ...this.collageList[idx], votes: result.votes, isVoted: result.isLiked, likeIcon: result.likeIcon })
+        }
+      }
     },
     
     // 评论
