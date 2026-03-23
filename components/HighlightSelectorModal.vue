@@ -17,18 +17,19 @@
             </view>
             
             <!-- 内容选择区域 -->
-            <view class="highlight-content-wrapper">
+            <scroll-view class="highlight-content-wrapper" scroll-y="true" :show-scrollbar="false">
                 <view class="highlight-content-display">
-                    <text class="highlight-content-line" 
-                          v-for="(line, index) in contentLines"
-                          :key="index"
-                          :class="{ 'selected-line': selectedIndices.includes(index) }"
-                          @tap.stop="onToggleLine(index)">
-                        <template v-if="line">{{ line }}</template>
-                        <template v-else><text>&#8203;</text></template>
-                    </text>
+                    <view
+                        v-for="(line, index) in contentLines"
+                        :key="index"
+                        class="highlight-content-line"
+                        :class="{ 'selected-line': selectedIndices.includes(index) }"
+                        @tap.stop="onToggleLine(index)"
+                    >
+                        <text class="highlight-content-line-text">{{ line || '\u00A0' }}</text>
+                    </view>
                 </view>
-            </view>
+            </scroll-view>
             
             <!-- 底部操作栏 -->
             <view class="highlight-modal-actions">
@@ -63,11 +64,6 @@ export default {
         return {
             // 内部维护选中状态
             selectedIndices: [],
-            // 触摸相关
-            touchStartX: 0,
-            touchStartY: 0,
-            touchCurrentX: 0,
-            touchCurrentY: 0,
             // 自定义提示
             showTip: false,
             tipText: '',
@@ -135,32 +131,12 @@ export default {
         onConfirm() {
             if (this.selectedIndices.length === 0) return;
             this.$emit('confirm', this.selectedIndices);
-        },
-
-        // 触摸事件处理（用于滑动关闭）
-        onTouchStart(e) {
-            const touch = e.touches[0];
-            this.touchStartX = touch.pageX || touch.clientX;
-            this.touchStartY = touch.pageY || touch.clientY;
-            this.touchCurrentX = this.touchStartX;
-            this.touchCurrentY = this.touchStartY;
-        },
-
-        onTouchMove(e) {
-            const touch = e.touches[0];
-            this.touchCurrentX = touch.pageX || touch.clientX;
-            this.touchCurrentY = touch.pageY || touch.clientY;
-        },
-
-        onTouchEnd() {
-            const deltaX = this.touchCurrentX - this.touchStartX;
-            const deltaY = Math.abs(this.touchCurrentY - this.touchStartY);
-            
-            // 水平滑动距离大于垂直滑动距离，且大于30px时，关闭弹窗
-            if (Math.abs(deltaX) > deltaY && Math.abs(deltaX) > 30) {
-                this.$emit('close');
-                uni.showToast({ title: '已退出高光选择', icon: 'none', duration: 1000 });
-            }
+        }
+    },
+    beforeDestroy() {
+        if (this.tipTimer) {
+            clearTimeout(this.tipTimer);
+            this.tipTimer = null;
         }
     }
 };
@@ -236,33 +212,42 @@ export default {
 
 .highlight-content-wrapper {
     flex: 1;
+    height: 0;
     padding: 40rpx;
-    overflow-y: auto;
     background: #fff;
+    box-sizing: border-box;
 }
 
 .highlight-content-display {
     display: flex;
     flex-direction: column;
+    padding-bottom: 180rpx;
 }
 
 .highlight-content-line {
-    display: block;
     margin-bottom: 16rpx;
     padding: 12rpx 16rpx;
     border-radius: 8rpx;
+    color: #999;
+    transition: all 0.2s ease;
+}
+
+.highlight-content-line-text {
     line-height: 1.8;
     font-size: 36rpx;
     white-space: pre-wrap;
     word-break: break-word;
-    color: #999;
-    transition: all 0.2s ease;
+    color: inherit;
 }
 
 .highlight-content-line.selected-line {
     color: #000;
     font-weight: 500;
-    background: #e6f7ff;
+    background: rgba(158, 215, 238, 0.14);
+}
+
+.highlight-content-line.selected-line .highlight-content-line-text {
+    font-weight: 500;
 }
 
 /* #ifdef MP-WEIXIN */

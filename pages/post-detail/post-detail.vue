@@ -341,7 +341,7 @@ import { getCurrentPlatform } from '@/utils/platformDetector.js';
 import { requestAndroidStoragePermission } from '@/utils/permissions.js';
 import { emitCommentCountChanged, emitPostUpdated } from '@/utils/events.js';
 import fontManager from '@/utils/fontManager.js'; // 添加fontManager导入
-import { checkContentSafe, checkTextSafe } from '@/utils/contentModeration.js';
+import { checkContentSafe, checkTextSafe, shouldModerate } from '@/utils/contentModeration.js';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
 
 // API函数导入
@@ -2085,6 +2085,14 @@ export default {
         // 【内容审核】审核评论内容（仅小程序端）
         async moderateCommentContent(content, images) {
             console.log('🔍 [PostDetail] 开始审核评论');
+
+            if (!shouldModerate()) {
+                console.log('🔍 [PostDetail] 当前环境无需审核，直接放行评论');
+                return {
+                    passed: true,
+                    message: '审核已跳过'
+                };
+            }
             
             try {
                 uni.showLoading({
@@ -3442,6 +3450,7 @@ page {
     line-height: 1.6;
     box-sizing: border-box;
     border: none;
+    overflow-y: auto;
     appearance: none;
     -webkit-appearance: none;
     -webkit-box-sizing: border-box;
@@ -4020,7 +4029,3 @@ page {
 }
 
 </style>
-
-
-
-

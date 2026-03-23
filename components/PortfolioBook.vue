@@ -1,5 +1,5 @@
 <template>
-    <view class="books-container" @tap="navigateToPortfolio">
+    <view class="books-container">
         <view class="books-shelf">
             <!-- 动态显示作品集书籍 -->
             <view
@@ -85,7 +85,10 @@ export default {
 
         // 打开作品集
         openPortfolio(portfolio) {
-            this.$emit('open-portfolio', portfolio);
+            this.$emit('open-portfolio', {
+                folderId: portfolio && portfolio._id ? portfolio._id : '',
+                folderName: portfolio && portfolio.name ? portfolio.name : ''
+            });
         }
     }
 };

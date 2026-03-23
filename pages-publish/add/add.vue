@@ -1764,35 +1764,40 @@ export default {
 
         // 为整首（含组诗）选择高光：把所有段落拼在一起
         toggleHighlightMode: function () {
-            if (this.publishMode === 'poem') {
-                let lines = this.highlightSelectionLines;
-                // 组诗时如第一段为空但有后续段落，需要重新拼接非空行
-                if (this.isSeries && Array.isArray(this.seriesBlocks)) {
-                    const hasAny = this.seriesBlocks.some(b => (b.content || '').trim());
-                    if (hasAny && (!lines || lines.length === 0 || !lines.some(l => (l || '').trim()))) {
-                        lines = this.seriesBlocks
-                            .map(b => (b.content || '').split(/\r?\n/))
-                            .flat();
-                    }
+            if (this.publishMode !== 'poem') {
+                return;
+            }
+
+            let lines = this.highlightSelectionLines;
+            if (this.isSeries && Array.isArray(this.seriesBlocks)) {
+                const hasAny = this.seriesBlocks.some(b => (b.content || '').trim());
+                if (hasAny && (!lines || lines.length === 0 || !lines.some(l => (l || '').trim()))) {
+                    lines = this.seriesBlocks
+                        .map(b => (b.content || '').split(/\r?\n/))
+                        .flat();
                 }
-                const indices = [];
-                if (this.highlightLines && this.highlightLines.length > 0) {
-                    lines.forEach((line, i) => {
-                        if (this.highlightLines.includes(line)) indices.push(i);
-                    });
-                }
-                this.setData({
-                    highlightSelecting: true,
-                    highlightSourceLines: lines,
-                    highlightSelectedLineIndices: indices
-                });
-            } else {
-                this.setData({
-                    highlightSelecting: !this.highlightSelecting,
-                    highlightSourceLines: [],
-                    highlightSelectedLineIndices: []
+            }
+
+            const availableLines = (lines || [])
+                .map(line => (typeof line === 'string' ? line : String(line || '')))
+                .filter(line => line.trim().length > 0);
+
+            if (availableLines.length === 0) {
+                uni.showToast({ title: '先写内容再选高光', icon: 'none' });
+                return;
+            }
+
+            const indices = [];
+            if (this.highlightLines && this.highlightLines.length > 0) {
+                availableLines.forEach((line, i) => {
+                    if (this.highlightLines.includes(line)) indices.push(i);
                 });
             }
+            this.setData({
+                highlightSelecting: true,
+                highlightSourceLines: availableLines,
+                highlightSelectedLineIndices: indices.slice(0, 3)
+            });
         },
 
         // 高光选择更新（组件事件处理）
@@ -1805,7 +1810,7 @@ export default {
             const lines = (this.highlightSourceLines && this.highlightSourceLines.length > 0)
                 ? this.highlightSourceLines
                 : this.highlightSelectionLines;
-            const picked = indices.map(i => lines[i] || '').filter(Boolean);
+            const picked = indices.map(i => lines[i] || '').filter(line => (line || '').trim());
 
             // 写回整体高光（适配组诗/普通诗）
             this.setData({ 

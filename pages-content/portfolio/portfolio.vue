@@ -441,17 +441,34 @@ export default {
     },
 
     openFolder(folder) {
+      if (!folder || !folder._id) {
+        uni.showToast({
+          title: '作品集信息缺失',
+          icon: 'none'
+        });
+        return;
+      }
+
       // 如果是滑动模式，不处理点击
       if (this.isSwipeMode) {
         this.isSwipeMode = false;
         return;
       }
 
-      // 关闭所有滑动操作
-      this.closeAllSwipeActions();
+      if (folder.isSwipeOpen || this.folders.some(item => item && item.isSwipeOpen)) {
+        this.closeAllSwipeActions();
+        return;
+      }
 
       uni.navigateTo({
-        url: `/pages-content/portfolio-detail/portfolio-detail?folderId=${folder._id}&folderName=${encodeURIComponent(folder.name)}`
+        url: `/pages-content/portfolio-detail/portfolio-detail?folderId=${folder._id}&folderName=${encodeURIComponent(folder.name)}`,
+        fail: (error) => {
+          console.error('【portfolio】打开作品集详情失败:', error);
+          uni.showToast({
+            title: '打开作品集失败',
+            icon: 'none'
+          });
+        }
       });
     },
 
