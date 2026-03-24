@@ -16,7 +16,7 @@
         <text v-if="activitySummary" class="header-summary">{{ activitySummary }}</text>
         <view class="header-meta">
           <text class="meta-item">{{ formatRange(activityStartTime, activityEndTime) }}</text>
-          <text class="meta-item">{{ postCount }} 帖</text>
+          <text class="meta-item">{{ displayPostCount }} 帖</text>
           <text :class="['status-tag', isOngoing ? 'ongoing' : 'ended']">
             {{ isOngoing ? '进行中' : '已结束' }}
           </text>
@@ -38,17 +38,20 @@
       <text :class="['rules-text', (!rulesExpanded && showRulesToggle) ? 'collapsed' : '']">{{ activityRules }}</text>
     </view>
 
-    <view v-if="isLoading && postList.length === 0" class="state-box">
+    <view v-if="isLoading && displayPostList.length === 0" class="state-box">
       <text class="state-text">加载帖子中...</text>
     </view>
 
-    <view v-else-if="postList.length === 0" class="state-box">
+    <view v-else-if="displayPostList.length === 0" class="state-box">
       <text class="state-title">活动里还没有帖子</text>
-      <text class="state-subtitle">参与活动后的帖子会显示在这里</text>
+      <text class="state-subtitle">参与活动后的作品会显示在这里</text>
     </view>
 
     <view v-else class="post-list">
-      <view v-for="(item, index) in postList" :key="item._id || index">
+      <view
+        v-for="(item, index) in displayPostList"
+        :key="`${item && item._id ? item._id : index}-${fontRenderToken}`"
+      >
         <activity-poem-card
           v-if="isPoemCard(item)"
           :item="item"
@@ -76,7 +79,7 @@
     <view v-if="isLoadingMore" class="footer-tip">
       <text>加载中...</text>
     </view>
-    <view v-if="!hasMore && postList.length > 0" class="footer-tip">
+    <view v-if="!hasMore && displayPostList.length > 0" class="footer-tip">
       <text>没有更多帖子了</text>
     </view>
   </view>
@@ -90,16 +93,49 @@ import fileUrlCache from '@/_utils/file-url-cache';
 const { previewImage } = require('@/utils/imagePreview.js');
 const likeIcon = require('@/utils/likeIcon.js');
 const { togglePostLike } = require('@/utils/likeService.js');
+const { getLatestLikeStatus } = require('@/utils/likeStatusSync.js');
 const {
   decodeParamSafe,
   formatRange: formatActivityRange,
   isActivityOngoing
 } = require('@/utils/activity.js');
 
+function buildSeriesPoems(post = {}) {
+  const rawBlocks = Array.isArray(post.seriesBlocks) ? post.seriesBlocks : [];
+  return rawBlocks
+    .map((block, blockIndex) => ({
+      id: block && (block.id || `series-${blockIndex}`),
+      subtitle: block && (block.subtitle || block.subTitle || ''),
+      content: block && block.content ? block.content : '',
+      highlightLines: Array.isArray(block && block.highlightLines)
+        ? block.highlightLines.filter(line => (line || '').trim())
+        : [],
+      highlightSentence: block && block.highlightSentence
+        ? block.highlightSentence
+        : ''
+    }))
+    .filter(block => (block.content || '').trim() || (block.subtitle || '').trim());
+}
+
 export default {
   components: {
     PostItem,
     ActivityPoemCard
+  },
+  computed: {
+    displayPostList() {
+      return this.sortActivityPosts(this.filterVisibleActivityPosts(this.postList || []));
+    },
+    displayPostCount() {
+      if (this.allowUserSubmission === false) {
+        const visiblePostCount = Number(this.visiblePostCount);
+        if (Number.isFinite(visiblePostCount) && visiblePostCount >= 0) {
+          return visiblePostCount;
+        }
+        return this.displayPostList.length;
+      }
+      return this.postCount;
+    }
   },
   data() {
     return {
@@ -111,6 +147,8 @@ export default {
       activityStartTime: '',
       activityEndTime: '',
       postCount: 0,
+      visiblePostCount: null,
+      allowUserSubmission: true,
       isOngoing: false,
       rulesExpanded: false,
       showRulesToggle: false,
@@ -120,12 +158,15 @@ export default {
       hasMore: true,
       isLoading: false,
       isLoadingMore: false,
+      fontRenderToken: 0,
       votingInProgress: {},
       poemBackgroundColors: ['#a4c4bd', '#c9cfcf', '#906161', '#909388']
     };
   },
   onLoad(options) {
     options = options || {};
+    this.bindGlobalEvents();
+
     this.activityId = decodeParamSafe(options.activityId);
     if (!this.activityId) {
       uni.showToast({ title: '活动参数错误', icon: 'none' });
@@ -142,27 +183,150 @@ export default {
     this.isOngoing = isActivityOngoing(this.activityStartTime, this.activityEndTime);
 
     this.hydrateActivityCover();
-    this.loadActivityDetail({ forceRefresh: true });
-    this.refreshPosts();
+    this.loadActivityDetail({ forceRefresh: true })
+      .finally(() => {
+        this.refreshPosts();
+      });
   },
   onShow() {
+    this.syncLikeStatusFromCache();
+
     const shouldRefreshList = !!uni.getStorageSync('shouldRefreshActivityList');
     const refreshActivityId = uni.getStorageSync('shouldRefreshActivityDetailId');
     if (shouldRefreshList || (refreshActivityId && refreshActivityId === this.activityId)) {
       uni.removeStorageSync('shouldRefreshActivityList');
       uni.removeStorageSync('shouldRefreshActivityDetailId');
-      this.loadActivityDetail({ forceRefresh: true });
-      this.refreshPosts();
+      this.loadActivityDetail({ forceRefresh: true })
+        .finally(() => {
+          this.refreshPosts();
+        });
     }
   },
+  onUnload() {
+    this.unbindGlobalEvents();
+  },
   onPullDownRefresh() {
-    this.loadActivityDetail({ forceRefresh: true });
-    this.refreshPosts(true);
+    this.loadActivityDetail({ forceRefresh: true })
+      .finally(() => {
+        this.refreshPosts(true);
+      });
   },
   onReachBottom() {
     this.loadMore();
   },
   methods: {
+    bindGlobalEvents() {
+      if (!this._fontLoadedHandler) {
+        this._fontLoadedHandler = () => {
+          this.handleFontLoaded();
+        };
+      }
+      if (!this._likeChangedHandler) {
+        this._likeChangedHandler = (payload = {}) => {
+          this.onGlobalLikeChanged(payload);
+        };
+      }
+      try { uni.$on && uni.$on('font-loaded', this._fontLoadedHandler); } catch (_) {}
+      try { uni.$on && uni.$on('like-changed', this._likeChangedHandler); } catch (_) {}
+    },
+
+    unbindGlobalEvents() {
+      try { uni.$off && this._fontLoadedHandler && uni.$off('font-loaded', this._fontLoadedHandler); } catch (_) {}
+      try { uni.$off && this._likeChangedHandler && uni.$off('like-changed', this._likeChangedHandler); } catch (_) {}
+    },
+
+    handleFontLoaded() {
+      this.fontRenderToken += 1;
+      this.postList = (this.postList || []).map(item => (item ? { ...item } : item));
+    },
+
+    onGlobalLikeChanged(payload = {}) {
+      const postId = payload.postId;
+      if (!postId) return;
+
+      const index = this.postList.findIndex(item => item && item._id === postId);
+      if (index < 0) return;
+
+      const current = this.postList[index];
+      const votes = typeof payload.votes === 'number' ? payload.votes : (Number(current.votes) || 0);
+      const isVoted = typeof payload.isLiked === 'boolean' ? payload.isLiked : !!current.isVoted;
+      const next = this.postList.slice();
+      next[index] = {
+        ...current,
+        votes,
+        isVoted,
+        likeIcon: likeIcon.getLikeIcon(votes, isVoted)
+      };
+      this.postList = next;
+    },
+
+    syncLikeStatusFromCache() {
+      if (!Array.isArray(this.postList) || this.postList.length === 0) return;
+
+      let changed = false;
+      const next = this.postList.map((item) => {
+        if (!item || !item._id) return item;
+        const cached = getLatestLikeStatus(item._id);
+        if (!cached) return item;
+        const votes = Number(cached.votes);
+        const isVoted = !!cached.isVoted;
+        if (votes === Number(item.votes || 0) && isVoted === !!item.isVoted) {
+          return item;
+        }
+        changed = true;
+        return {
+          ...item,
+          votes,
+          isVoted,
+          likeIcon: likeIcon.getLikeIcon(votes, isVoted)
+        };
+      });
+
+      if (changed) {
+        this.postList = next;
+      }
+    },
+
+    isPinnedActivityPost(item = {}) {
+      if (!item) return false;
+      if (item.isActivityPost === true) return true;
+
+      const activityId = String(item.activityId || '').trim();
+      const joinedActivityId = String(item.joinedActivityId || '').trim();
+      return !!activityId && activityId === this.activityId && joinedActivityId !== this.activityId;
+    },
+
+    getActivitySortTimestamp(item = {}) {
+      const raw = this.isPinnedActivityPost(item)
+        ? (item.activityPublishTime || item.createTime)
+        : (item.joinedActivityAt || item.createTime);
+      const timestamp = raw ? new Date(raw).getTime() : 0;
+      return Number.isFinite(timestamp) ? timestamp : 0;
+    },
+
+    sortActivityPosts(list = []) {
+      return list.slice().sort((left, right) => {
+        const leftPinned = this.isPinnedActivityPost(left) ? 0 : 1;
+        const rightPinned = this.isPinnedActivityPost(right) ? 0 : 1;
+        if (leftPinned !== rightPinned) return leftPinned - rightPinned;
+
+        const timeDiff = this.getActivitySortTimestamp(right) - this.getActivitySortTimestamp(left);
+        if (timeDiff !== 0) return timeDiff;
+
+        const leftCreate = left && left.createTime ? new Date(left.createTime).getTime() : 0;
+        const rightCreate = right && right.createTime ? new Date(right.createTime).getTime() : 0;
+        return rightCreate - leftCreate;
+      });
+    },
+
+    filterVisibleActivityPosts(list = []) {
+      const safeList = Array.isArray(list) ? list : [];
+      if (this.allowUserSubmission !== false) {
+        return safeList;
+      }
+      return safeList.filter(item => this.isPinnedActivityPost(item));
+    },
+
     async hydrateActivityCover() {
       const cover = String(this.activityCover || '').trim();
       if (!cover || !cover.startsWith('cloud://')) return;
@@ -207,6 +371,11 @@ export default {
         this.activityCover = activity.coverImage || this.activityCover;
         this.activityStartTime = activity.startTime || this.activityStartTime;
         this.activityEndTime = activity.endTime || this.activityEndTime;
+        this.allowUserSubmission = activity.allowUserSubmission !== false;
+        const visiblePostCount = Number(activity.visiblePostCount);
+        this.visiblePostCount = Number.isFinite(visiblePostCount) && visiblePostCount >= 0
+          ? visiblePostCount
+          : null;
         this.isOngoing = isActivityOngoing(this.activityStartTime, this.activityEndTime);
 
         const nextPostCount = Number(activity.postCount) || 0;
@@ -252,6 +421,7 @@ export default {
           const absoluteIndex = targetPage * this.pageSize + idx;
           return this.normalizePost(post, absoluteIndex);
         });
+
         if (targetPage === 0) {
           this.postList = incoming;
         } else {
@@ -260,6 +430,7 @@ export default {
           this.postList = this.postList.concat(uniquePosts);
         }
 
+        this.syncLikeStatusFromCache();
         this.hasMore = typeof result.hasMore === 'boolean' ? result.hasMore : incoming.length === this.pageSize;
         this.page = targetPage + 1;
         this.postCount = Math.max(this.postCount, this.postList.length);
@@ -279,19 +450,25 @@ export default {
     },
 
     normalizePost(post, absoluteIndex = 0) {
-      const votes = Number(post.votes) || 0;
-      const isVoted = !!post.isVoted;
-      const highlightLines = Array.isArray(post.highlightLines)
+      const votes = Number(post && post.votes) || 0;
+      const isVoted = !!(post && post.isVoted);
+      const highlightLines = Array.isArray(post && post.highlightLines)
         ? post.highlightLines.filter(line => (line || '').trim())
         : [];
       const defaultBg = this.poemBackgroundColors[absoluteIndex % this.poemBackgroundColors.length];
+      const seriesPoems = buildSeriesPoems(post);
+      const isSeries = !!(post && (post.isSeries === true || seriesPoems.length > 0));
+
       return {
         ...post,
         votes,
         isVoted,
         highlightLines,
-        backgroundColor: post.backgroundColor || defaultBg,
-        textColor: post.textColor || '#222',
+        isSeries,
+        seriesPoems,
+        authorSignature: post && post.authorSignature ? post.authorSignature : '',
+        backgroundColor: (post && post.backgroundColor) || defaultBg,
+        textColor: (post && post.textColor) || '#222',
         likeIcon: likeIcon.getLikeIcon(votes, isVoted)
       };
     },
@@ -372,6 +549,7 @@ export default {
 
         const currentIndex = this.postList.findIndex(item => item && item._id === postId);
         if (currentIndex < 0) return;
+
         const updated = this.postList.slice();
         updated[currentIndex] = {
           ...updated[currentIndex],
@@ -562,7 +740,7 @@ export default {
 
 .post-list {
   margin-top: 16rpx;
-  background: #fff;
+  padding: 0 20rpx 24rpx;
 }
 
 .footer-tip {

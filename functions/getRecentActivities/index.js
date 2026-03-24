@@ -5,7 +5,40 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 const _ = db.command
 const $ = _.aggregate
-const { buildPublicActivityView } = require('../_lib/activity')
+const { buildPublicActivityView } = require('./_lib/activity')
+
+async function getVisibleActivityPostCount(activityId) {
+  if (!activityId) return 0
+
+  const res = await db.collection('posts').aggregate()
+    .match({
+      isHidden: _.neq(true),
+      $or: [
+        {
+          isActivityPost: true,
+          activityId
+        },
+        {
+          activityId,
+          joinedActivityId: _.neq(activityId)
+        }
+      ]
+    })
+    .count('total')
+    .end()
+
+  return (res.list && res.list[0] && Number(res.list[0].total)) || 0
+}
+
+async function attachVisiblePostCount(activityView) {
+  if (!activityView || !activityView._id) return activityView
+  if (activityView.allowUserSubmission !== false) return activityView
+
+  return {
+    ...activityView,
+    visiblePostCount: await getVisibleActivityPostCount(activityView._id)
+  }
+}
 
 async function getActivityDetail(activityId) {
   if (!activityId) {
@@ -25,9 +58,13 @@ async function getActivityDetail(activityId) {
       }
     }
 
+    const publicActivity = await attachVisiblePostCount(
+      buildPublicActivityView(activity, { includeRules: true })
+    )
+
     return {
       success: true,
-      activity: buildPublicActivityView(activity, { includeRules: true })
+      activity: publicActivity
     }
   } catch (error) {
     console.error('获取活动详情失败:', error)
@@ -56,6 +93,7 @@ exports.main = async (event, context) => {
       ? {
           status: 'published',
           isDeleted: _.neq(true),
+          allowUserSubmission: _.nin([false, 'false', 0, '0']),
           startTime: _.lte(now),
           endTime: _.gte(now)
         }
@@ -92,6 +130,7 @@ exports.main = async (event, context) => {
           endTime: '$endTime',
           status: '$status',
           sortWeight: '$sortWeight',
+          allowUserSubmission: '$allowUserSubmission',
           postCount: '$postCount',
           lastPostTime: '$lastPostTime',
           createdBy: '$createdBy',
@@ -103,7 +142,9 @@ exports.main = async (event, context) => {
         .end()
     ])
 
-    const list = (listRes.list || []).map((activity) => buildPublicActivityView(activity))
+    const list = await Promise.all(
+      (listRes.list || []).map((activity) => attachVisiblePostCount(buildPublicActivityView(activity)))
+    )
     const total = countRes.total || 0
 
     return {

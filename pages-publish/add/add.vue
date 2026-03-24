@@ -315,6 +315,7 @@ export default {
             activityId: '',
             activityTitle: '',
             fromAdminActivity: false,
+            joinActivityEnabled: false,
             joinedActivityId: '',
             joinedActivityTitle: '',
 
@@ -540,6 +541,7 @@ export default {
                 activityId,
                 activityTitle: activityTitle || '',
                 fromAdminActivity,
+                joinActivityEnabled: false,
                 joinedActivityId: '',
                 joinedActivityTitle: '',
                 publishMode: 'normal',
@@ -778,6 +780,7 @@ export default {
                             activityId: isOfficialActivityPost ? (post.activityId || '') : '',
                             activityTitle: isOfficialActivityPost ? officialActivityTitle : '',
                             fromAdminActivity: isOfficialActivityPost,
+                            joinActivityEnabled: !isOfficialActivityPost && !!joinedActivityId,
                             joinedActivityId: isOfficialActivityPost ? '' : joinedActivityId,
                             joinedActivityTitle: isOfficialActivityPost ? '' : joinedActivityTitle
                         });
@@ -1731,6 +1734,7 @@ export default {
                     activityId: this.activityId || '',
                     activityTitle: this.activityTitle || '',
                     fromAdminActivity: this.fromAdminActivity,
+                    joinActivityEnabled: !!this.joinActivityEnabled,
                     joinedActivityId: this.joinedActivityId || '',
                     joinedActivityTitle: this.joinedActivityTitle || ''
                 }

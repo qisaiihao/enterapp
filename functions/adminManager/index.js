@@ -63,6 +63,7 @@ const {
   normalizeStatus,
   normalizeSortWeight,
   normalizeActivityRules,
+  normalizeAllowUserSubmission,
   buildAdminActivityView
 } = require('./_lib/activity')
 
@@ -644,7 +645,8 @@ async function createActivity(data, openid) {
     startTime,
     endTime,
     status = 'draft',
-    sortWeight = 0
+    sortWeight = 0,
+    allowUserSubmission = true
   } = data || {}
 
   const safeTitle = String(title || '').trim()
@@ -655,6 +657,7 @@ async function createActivity(data, openid) {
   const safeEnd = normalizeDateInput(endTime)
   const safeStatus = normalizeStatus(status || 'draft')
   const safeSortWeight = normalizeSortWeight(sortWeight, 0)
+  const safeAllowUserSubmission = normalizeAllowUserSubmission(allowUserSubmission, true)
 
   if (!safeTitle) return { success: false, error: '活动标题不能为空' }
   if (!safeStart || !safeEnd) return { success: false, error: '活动开始/结束时间无效' }
@@ -674,6 +677,7 @@ async function createActivity(data, openid) {
       endTime: safeEnd,
       status: safeStatus,
       sortWeight: safeSortWeight,
+      allowUserSubmission: safeAllowUserSubmission,
       postCount: 0,
       lastPostTime: null,
       createdBy: openid,
@@ -733,6 +737,12 @@ async function updateActivity(data, openid) {
       const safeStatus = normalizeStatus(data.status)
       if (!safeStatus) return { success: false, error: '活动状态无效' }
       updateData.status = safeStatus
+    }
+    if (Object.prototype.hasOwnProperty.call(data, 'allowUserSubmission')) {
+      updateData.allowUserSubmission = normalizeAllowUserSubmission(
+        data.allowUserSubmission,
+        normalizeAllowUserSubmission(current.allowUserSubmission, true)
+      )
     }
 
     const nextStart = Object.prototype.hasOwnProperty.call(data, 'startTime')

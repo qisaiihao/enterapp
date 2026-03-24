@@ -153,15 +153,43 @@
         </view>
 
         <!-- 参加活动选择区域（放在标题/作者下方） -->
-        <view v-if="showJoinActivitySelector && joinableActivities.length > 0" class="join-activity-section" @tap.stop="noop">
-          <view class="join-activity-buttons">
-            <view
-              v-for="activity in joinableActivities"
-              :key="activity._id"
-              :class="['activity-btn', joinedActivityId === activity._id ? 'selected' : '']"
-              @tap="toggleActivity(activity)"
-            >
-              <text class="activity-btn-text">{{ activity.title || '未命名活动' }}</text>
+        <view v-if="showJoinActivitySelector" class="join-activity-section" @tap.stop="noop">
+          <view class="join-activity-toggle" @tap="toggleJoinActivityEnabled">
+            <view :class="['join-activity-checkbox', joinActivityEnabled ? 'checked' : '']">
+              <text v-if="joinActivityEnabled" class="join-activity-checkbox-icon">✓</text>
+            </view>
+            <view class="join-activity-toggle-copy">
+              <text class="join-activity-toggle-title">参与活动</text>
+              <text class="join-activity-toggle-subtitle">勾选后可选择参加的活动，仅显示允许投稿的活动</text>
+            </view>
+          </view>
+
+          <picker
+            v-if="joinActivityEnabled && joinableActivities.length > 0"
+            class="join-activity-picker-wrap"
+            mode="selector"
+            :range="joinableActivities"
+            range-key="title"
+            :value="joinActivityPickerIndex"
+            @change="onJoinActivityPickerChange"
+          >
+            <view class="join-activity-picker">
+              <view class="join-activity-picker-copy">
+                <text class="join-activity-picker-label">参加的活动</text>
+                <text class="join-activity-picker-title">{{ selectedActivityDisplayTitle }}</text>
+                <text class="join-activity-picker-subtitle">{{ selectedActivityDisplaySubtitle }}</text>
+              </view>
+              <text class="join-activity-picker-arrow">›</text>
+            </view>
+          </picker>
+
+          <view v-else-if="joinActivityEnabled" class="join-activity-picker disabled">
+            <view class="join-activity-picker-copy">
+              <text class="join-activity-picker-label">参加的活动</text>
+              <text class="join-activity-picker-title">{{ joinActivitiesLoading ? '加载可参加活动中...' : '当前没有可投稿活动' }}</text>
+              <text class="join-activity-picker-subtitle">
+                {{ joinActivitiesLoading ? '请稍候' : '已关闭投稿的活动不会出现在这里' }}
+              </text>
             </view>
           </view>
         </view>
@@ -207,6 +235,7 @@ export default {
       joinableActivities: [],
       joinActivitiesLoading: false,
       joinActivitiesLoaded: false,
+      joinActivityEnabled: false,
       joinedActivityId: '',
       joinedActivityTitle: '',
       joinedActivityRangeText: '',
@@ -222,12 +251,19 @@ export default {
     showJoinActivitySelector() {
       return !!this.post && !this.isLockedAdminActivityMode;
     },
+    joinActivityPickerIndex() {
+      const index = (this.joinableActivities || []).findIndex(item => item && item._id === this.joinedActivityId);
+      return index >= 0 ? index : 0;
+    },
     selectedActivityDisplayTitle() {
-      return this.joinedActivityTitle || '不参加活动';
+      return this.joinedActivityTitle || '请选择活动';
     },
     selectedActivityDisplaySubtitle() {
-      if (!this.joinedActivityId) {
+      if (!this.joinActivityEnabled) {
         return '发布到普通流，不进入活动帖子流';
+      }
+      if (!this.joinedActivityId) {
+        return '选中后作品会显示在对应活动的帖子流中';
       }
       return this.joinedActivityRangeText || '该帖子会显示在所选活动的帖子流';
     }
@@ -362,6 +398,7 @@ export default {
     initJoinActivityState() {
       const editData = this.post && this.post.editData ? this.post.editData : {};
       if (!editData || this.isLockedAdminActivityMode) {
+        this.joinActivityEnabled = false;
         this.joinedActivityId = '';
         this.joinedActivityTitle = '';
         this.joinedActivityRangeText = '';
@@ -370,6 +407,10 @@ export default {
         return;
       }
 
+      const hasExplicitJoinActivityEnabled = Object.prototype.hasOwnProperty.call(editData, 'joinActivityEnabled');
+      this.joinActivityEnabled = hasExplicitJoinActivityEnabled
+        ? this.normalizeAllowUserSubmission(editData.joinActivityEnabled, false)
+        : !!editData.joinedActivityId;
       this.joinedActivityId = editData.joinedActivityId || '';
       this.joinedActivityTitle = editData.joinedActivityTitle || editData.joinedActivityTitleSnapshot || '';
       this.joinedActivityRangeText = '';
@@ -389,6 +430,16 @@ export default {
       return formatActivityRangeUtil(startTime, endTime);
     },
 
+    normalizeAllowUserSubmission(value, fallback = true) {
+      if (value === undefined || value === null || value === '') return fallback;
+      if (typeof value === 'boolean') return value;
+      if (typeof value === 'number') return value !== 0;
+      const normalized = String(value).trim().toLowerCase();
+      if (['false', '0', 'off', 'no'].includes(normalized)) return false;
+      if (['true', '1', 'on', 'yes'].includes(normalized)) return true;
+      return fallback;
+    },
+
     async ensureJoinableActivitiesLoaded(forceRefresh = false) {
       if (this.joinActivitiesLoading) return;
       if (this.joinActivitiesLoaded && !forceRefresh) return;
@@ -406,7 +457,7 @@ export default {
         this.joinableActivities = list.map(item => ({
           ...item,
           rangeText: this.formatActivityRange(item.startTime, item.endTime)
-        }));
+        })).filter(item => item && item._id && this.normalizeAllowUserSubmission(item.allowUserSubmission, true));
         this.joinActivitiesLoaded = true;
 
         if (this.joinedActivityId) {
@@ -414,6 +465,8 @@ export default {
           if (matched) {
             this.joinedActivityTitle = matched.title || this.joinedActivityTitle;
             this.joinedActivityRangeText = matched.rangeText || '';
+          } else {
+            this.clearJoinedActivity({ keepToggle: true });
           }
         }
       } catch (error) {
@@ -423,23 +476,34 @@ export default {
       }
     },
 
-    async openJoinActivitySelector() {
+    async toggleJoinActivityEnabled() {
       if (this.isLockedAdminActivityMode) return;
-      await this.ensureJoinableActivitiesLoaded(false);
+      const nextValue = !this.joinActivityEnabled;
+      this.joinActivityEnabled = nextValue;
 
-      const activities = Array.isArray(this.joinableActivities) ? this.joinableActivities : [];
-      if (activities.length === 0) {
-        uni.showToast({
-          title: '当前没有可参加的活动',
-          icon: 'none'
-        });
+      if (!nextValue) {
+        this.clearJoinedActivity();
         return;
       }
-      this.showJoinActivityPanel = !this.showJoinActivityPanel;
+
+      await this.ensureJoinableActivitiesLoaded(false);
+      if (!this.joinedActivityId && this.joinableActivities.length === 1) {
+        this.selectJoinedActivity(this.joinableActivities[0]);
+        return;
+      }
+      this.syncJoinedActivityToAddPage();
+    },
+
+    onJoinActivityPickerChange(event) {
+      const index = Number(event && event.detail ? event.detail.value : -1);
+      if (index < 0) return;
+      const activity = this.joinableActivities[index];
+      this.selectJoinedActivity(activity);
     },
 
     selectJoinedActivity(activity) {
       if (!activity || !activity._id) return;
+      this.joinActivityEnabled = true;
       this.joinedActivityId = activity._id || '';
       this.joinedActivityTitle = activity.title || '';
       this.joinedActivityRangeText = activity.rangeText || this.formatActivityRange(activity.startTime, activity.endTime);
@@ -447,19 +511,10 @@ export default {
       this.syncJoinedActivityToAddPage();
     },
 
-    toggleActivity(activity) {
-      if (!activity || !activity._id) return;
-      
-      // 如果点击的是已选中的活动，则取消选择
-      if (this.joinedActivityId === activity._id) {
-        this.clearJoinedActivity();
-      } else {
-        // 否则选择该活动
-        this.selectJoinedActivity(activity);
+    clearJoinedActivity({ keepToggle = false } = {}) {
+      if (!keepToggle) {
+        this.joinActivityEnabled = false;
       }
-    },
-
-    clearJoinedActivity() {
       this.joinedActivityId = '';
       this.joinedActivityTitle = '';
       this.joinedActivityRangeText = '';
@@ -475,11 +530,13 @@ export default {
         if (!addVm) return;
         if (typeof addVm.setData === 'function') {
           addVm.setData({
+            joinActivityEnabled: !!this.joinActivityEnabled,
             joinedActivityId: this.joinedActivityId || '',
             joinedActivityTitle: this.joinedActivityTitle || ''
           });
           return;
         }
+        addVm.joinActivityEnabled = !!this.joinActivityEnabled;
         addVm.joinedActivityId = this.joinedActivityId || '';
         addVm.joinedActivityTitle = this.joinedActivityTitle || '';
       } catch (error) {
@@ -667,10 +724,18 @@ export default {
         }
       }
 
+      if (this.joinActivityEnabled && !this.joinedActivityId && !this.isLockedAdminActivityMode) {
+        uni.showToast({
+          title: '请选择要参加的活动',
+          icon: 'none'
+        });
+        return;
+      }
+
       // 合并预览页面的标题和作者数据与add页面的其他数据
       const isLockedAdminActivity = !!(addData.isActivityMode && addData.fromAdminActivity);
-      const selectedJoinActivityId = this.joinedActivityId || addData.joinedActivityId || '';
-      const selectedJoinActivityTitle = this.joinedActivityTitle || addData.joinedActivityTitle || '';
+      const selectedJoinActivityId = this.joinActivityEnabled ? (this.joinedActivityId || addData.joinedActivityId || '') : '';
+      const selectedJoinActivityTitle = this.joinActivityEnabled ? (this.joinedActivityTitle || addData.joinedActivityTitle || '') : '';
 
       const publishData = {
         ...addData,
@@ -1440,29 +1505,105 @@ export default {
   padding: 0 20rpx;
 }
 
-.join-activity-buttons {
+.join-activity-toggle {
   display: flex;
-  flex-wrap: wrap;
+  align-items: flex-start;
+  padding: 26rpx 28rpx;
+  border-radius: 24rpx;
+  background: #f7f8fa;
+  border: 1rpx solid #eceef2;
   gap: 20rpx;
 }
 
-.activity-btn {
-  padding: 16rpx 32rpx;
-  border-radius: 24rpx;
-  border: 2rpx solid #999;
+.join-activity-checkbox {
+  width: 36rpx;
+  height: 36rpx;
+  margin-top: 4rpx;
+  border-radius: 10rpx;
+  border: 2rpx solid #c9ced6;
   background: #fff;
-  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
 }
 
-.activity-btn.selected {
-  background: #e0e0e0;
-  border-color: #999;
+.join-activity-checkbox.checked {
+  background: #2f6bff;
+  border-color: #2f6bff;
 }
 
-.activity-btn-text {
-  font-size: 28rpx;
-  color: #333;
-  font-weight: 500;
+.join-activity-checkbox-icon {
+  color: #fff;
+  font-size: 24rpx;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.join-activity-toggle-copy,
+.join-activity-picker-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.join-activity-toggle-title,
+.join-activity-picker-title {
+  font-size: 30rpx;
+  line-height: 1.4;
+  color: #1f2329;
+  font-weight: 600;
+}
+
+.join-activity-toggle-subtitle,
+.join-activity-picker-subtitle {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  line-height: 1.5;
+  color: #7a7f87;
+}
+
+.join-activity-picker-wrap {
+  display: block;
+  margin-top: 20rpx;
+}
+
+.join-activity-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 26rpx 28rpx;
+  border-radius: 24rpx;
+  background: #fff;
+  border: 1rpx solid #eceef2;
+  box-shadow: 0 8rpx 24rpx rgba(31, 35, 41, 0.05);
+}
+
+.join-activity-picker-label {
+  font-size: 22rpx;
+  line-height: 1.4;
+  letter-spacing: 1rpx;
+  color: #8b9098;
+  margin-bottom: 8rpx;
+}
+
+.join-activity-picker-arrow {
+  margin-left: 20rpx;
+  color: #b5bac3;
+  font-size: 36rpx;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.join-activity-picker.disabled {
+  background: #f7f8fa;
+  box-shadow: none;
+}
+
+.join-activity-picker.disabled .join-activity-picker-title {
+  color: #7a7f87;
 }
 
 /* 适配从发布页浮动按钮的层级 */

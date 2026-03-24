@@ -88,6 +88,18 @@
       </view>
 
       <view class="form-item">
+        <view class="switch-row">
+          <text class="label switch-label">允许用户投稿</text>
+          <switch
+            color="#1f9d55"
+            :checked="normalizeAllowUserSubmission(form.allowUserSubmission, true)"
+            @change="onAllowSubmissionChange"
+          />
+        </view>
+        <text class="helper-text">关闭后活动仍会展示，但不会出现在投稿活动选择器中。</text>
+      </view>
+
+      <view class="form-item">
         <text class="label">状态</text>
         <picker mode="selector" :range="statusLabels" :value="statusIndex" @change="onStatusChange">
           <view class="picker-value">{{ statusLabels[statusIndex] }}</view>
@@ -134,6 +146,7 @@ export default {
         startDate: '',
         endDate: '',
         sortWeight: 0,
+        allowUserSubmission: true,
         status: 'draft'
       },
       statusIndex: 0,
@@ -150,6 +163,16 @@ export default {
     }
   },
   methods: {
+    normalizeAllowUserSubmission(value, fallback = true) {
+      if (value === undefined || value === null || value === '') return fallback;
+      if (typeof value === 'boolean') return value;
+      if (typeof value === 'number') return value !== 0;
+      const normalized = String(value).trim().toLowerCase();
+      if (['false', '0', 'off', 'no'].includes(normalized)) return false;
+      if (['true', '1', 'on', 'yes'].includes(normalized)) return true;
+      return fallback;
+    },
+
     async loadDetail() {
       try {
         uni.showLoading({ title: '加载中...' });
@@ -184,6 +207,7 @@ export default {
         startDate: formatDateYmd(activity.startTime, ''),
         endDate: formatDateYmd(activity.endTime, ''),
         sortWeight: Number(activity.sortWeight) || 0,
+        allowUserSubmission: this.normalizeAllowUserSubmission(activity.allowUserSubmission, true),
         status: statusValue
       };
       this.statusIndex = statusIndex >= 0 ? statusIndex : 0;
@@ -323,6 +347,17 @@ export default {
       };
     },
 
+    onAllowSubmissionChange(event) {
+      const checked = this.normalizeAllowUserSubmission(
+        event && event.detail ? event.detail.value : false,
+        false
+      );
+      this.form = {
+        ...this.form,
+        allowUserSubmission: checked
+      };
+    },
+
     onStatusChange(event) {
       const index = Number(event && event.detail ? event.detail.value : 0) || 0;
       const option = ACTIVITY_STATUS_OPTIONS[index] || ACTIVITY_STATUS_OPTIONS[0];
@@ -358,6 +393,7 @@ export default {
         startTime: new Date(`${this.form.startDate}T00:00:00`).toISOString(),
         endTime: new Date(`${this.form.endDate}T23:59:59`).toISOString(),
         sortWeight: Number(this.form.sortWeight) || 0,
+        allowUserSubmission: this.normalizeAllowUserSubmission(this.form.allowUserSubmission, true),
         status: this.form.status || 'draft'
       };
     },
@@ -440,6 +476,25 @@ export default {
   font-size: 26rpx;
   color: #555;
   margin-bottom: 10rpx;
+}
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.switch-label {
+  margin-bottom: 0;
+}
+
+.helper-text {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: #8a94a6;
 }
 
 .input,

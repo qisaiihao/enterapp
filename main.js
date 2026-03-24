@@ -2,6 +2,12 @@
 import { silenceConsoleInProduction } from '@/utils/logger.js';
 silenceConsoleInProduction();
 
+function emitBuiltinFontLoaded() {
+  try {
+    uni.$emit && uni.$emit('font-loaded', { fontFamily: '汇文明朝' });
+  } catch (e) {}
+}
+
 // 字体预加载 - 确保汇文明朝字体在应用启动时就加载
 // #ifdef H5
 if (typeof document !== 'undefined') {
@@ -11,8 +17,8 @@ if (typeof document !== 'undefined') {
   const fontLink = document.createElement('link');
   fontLink.rel = 'preload';
   fontLink.as = 'font';
-  fontLink.type = 'font/otf';
-  fontLink.href = '/static/fonts/Huiwen-mincho.otf';
+  fontLink.type = 'font/woff2';
+  fontLink.href = '/static/fonts/Huiwen-mincho-compressed.woff2';
   fontLink.crossOrigin = 'anonymous';
   document.head.appendChild(fontLink);
   
@@ -21,7 +27,7 @@ if (typeof document !== 'undefined') {
   fontStyle.textContent = `
     @font-face {
       font-family: '汇文明朝';
-      src: url('/static/fonts/Huiwen-mincho.otf') format('opentype');
+      src: url('/static/fonts/Huiwen-mincho-compressed.woff2') format('woff2');
       font-weight: normal;
       font-style: normal;
       font-display: swap;
@@ -31,9 +37,10 @@ if (typeof document !== 'undefined') {
   
   // 使用 FontFace API 强制加载字体
   if (typeof FontFace !== 'undefined') {
-    const font = new FontFace('汇文明朝', 'url(/static/fonts/Huiwen-mincho.otf)');
+    const font = new FontFace('汇文明朝', 'url(/static/fonts/Huiwen-mincho-compressed.woff2)');
     font.load().then(function(loadedFont) {
       document.fonts.add(loadedFont);
+      emitBuiltinFontLoaded();
       console.log('✅ [字体预加载] H5端汇文明朝字体加载成功');
     }).catch(function(error) {
       console.error('❌ [字体预加载] H5端汇文明朝字体加载失败:', error);
@@ -55,6 +62,7 @@ try {
     source: `url("${fontPath}")`,
     global: true,
     success: function() {
+      emitBuiltinFontLoaded();
       console.log('✅ [字体预加载] App端汇文明朝字体加载成功');
     },
     fail: function(err) {

@@ -1,7 +1,9 @@
 import cacheManager from '@/_utils/cache-manager';
 import { buildCacheKey } from './cache-key-builder.js';
 import fileUrlCache from '@/_utils/file-url-cache';
+import { hydrateTempUrls } from '@/cache/core/hydrate.js';
 const { cloudCall } = require('@/utils/cloudCall.js');
+const likeStatusCache = require('@/cache/stores/like-status.js');
 
 const LIST_TTL_MS = 60 * 1000;
 const LIST_SWR_MS = 30 * 1000;
@@ -108,7 +110,13 @@ async function fetchActivityPostsPage({ activityId, page, pageSize, context }) {
   );
   const result = getSuccessResult(res);
   if (!result) return { posts: [], hasMore: false };
-  const posts = result.posts || [];
+  const posts = Array.isArray(result.posts) ? result.posts : [];
+  await hydrateTempUrls(posts);
+  try {
+    likeStatusCache.preloadFromPosts(posts);
+  } catch (error) {
+    console.warn('[activities cache] preload like status failed:', error);
+  }
   return {
     posts,
     hasMore: posts.length === pageSize

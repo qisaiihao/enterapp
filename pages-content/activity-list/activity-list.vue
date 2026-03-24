@@ -38,7 +38,7 @@
 
           <view class="meta-row">
             <text class="meta-text">{{ formatRange(item.startTime, item.endTime) }}</text>
-            <text class="meta-text">{{ item.postCount || 0 }} 帖</text>
+            <text class="meta-text">{{ getDisplayPostCount(item) }} 帖</text>
           </view>
         </view>
       </view>
@@ -146,7 +146,7 @@ export default {
         `coverImage=${encodeURIComponent(item.coverImage || '')}`,
         `startTime=${encodeURIComponent(item.startTime || '')}`,
         `endTime=${encodeURIComponent(item.endTime || '')}`,
-        `postCount=${encodeURIComponent(String(item.postCount || 0))}`
+        `postCount=${encodeURIComponent(String(this.getDisplayPostCount(item)))}`
       ].join('&');
 
       uni.navigateTo({
@@ -161,6 +161,16 @@ export default {
 
     formatRange(startTime, endTime) {
       return formatActivityRange(startTime, endTime);
+    },
+
+    getDisplayPostCount(item) {
+      if (item && item.allowUserSubmission === false) {
+        const visiblePostCount = Number(item.visiblePostCount);
+        if (Number.isFinite(visiblePostCount) && visiblePostCount >= 0) {
+          return visiblePostCount;
+        }
+      }
+      return Number(item && item.postCount) || 0;
     }
   }
 };

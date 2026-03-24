@@ -25,6 +25,16 @@ function normalizeActivityRules(value, maxLength = 5000) {
     .slice(0, maxLength);
 }
 
+function normalizeAllowUserSubmission(value, fallback = true) {
+  if (value === undefined || value === null || value === '') return fallback;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  const normalized = String(value).trim().toLowerCase();
+  if (['false', '0', 'off', 'no'].includes(normalized)) return false;
+  if (['true', '1', 'on', 'yes'].includes(normalized)) return true;
+  return fallback;
+}
+
 function isActivityOngoing(startTime, endTime, nowTs = Date.now()) {
   const startMs = startTime ? new Date(startTime).getTime() : 0;
   const endMs = endTime ? new Date(endTime).getTime() : 0;
@@ -36,6 +46,7 @@ function buildAdminActivityView(activity = {}) {
     ...activity,
     summary: typeof activity.summary === 'string' ? activity.summary : '',
     rules: typeof activity.rules === 'string' ? activity.rules : '',
+    allowUserSubmission: normalizeAllowUserSubmission(activity.allowUserSubmission, true),
     postCount: Number(activity.postCount) || 0,
     isOngoing: isActivityOngoing(activity.startTime, activity.endTime)
   };
@@ -51,6 +62,7 @@ function buildPublicActivityView(activity = {}, { includeRules = false } = {}) {
     endTime: activity.endTime || null,
     status: activity.status || '',
     sortWeight: Number(activity.sortWeight) || 0,
+    allowUserSubmission: normalizeAllowUserSubmission(activity.allowUserSubmission, true),
     postCount: Number(activity.postCount) || 0,
     lastPostTime: activity.lastPostTime || null,
     createdBy: activity.createdBy || '',
@@ -73,6 +85,7 @@ module.exports = {
   normalizeStatus,
   normalizeSortWeight,
   normalizeActivityRules,
+  normalizeAllowUserSubmission,
   isActivityOngoing,
   buildAdminActivityView,
   buildPublicActivityView

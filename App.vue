@@ -577,7 +577,9 @@ export default {
 /* #ifndef MP-WEIXIN */
 @font-face {
   font-family: '汇文明朝';
-  src: url('/static/fonts/Huiwen-mincho-compressed.woff2') format('woff2');
+  src:
+    url('/static/fonts/Huiwen-mincho-compressed.woff2') format('woff2'),
+    url('/static/fonts/Huiwen-mincho.otf') format('opentype');
   font-weight: normal;
   font-style: normal;
   font-display: swap; /* 优化字体加载性能 */

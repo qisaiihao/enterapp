@@ -14,7 +14,7 @@
       "name": "adminManager",
       "timeout": 3,
       "memory": 256,
-      "runtime": "Nodejs10.15",
+      "runtime": "Nodejs16.13",
       "handler": "index.main",
       "root": "./functions/adminManager",
       "installDependency": true,
@@ -160,12 +160,6 @@
               "root": "./functions/addToPortfolio",
               "timeout": 3,
               "memory": 128
-            },
-            {
-              "name": "adminManager",
-              "root": "./functions/adminManager",
-              "timeout": 3,
-              "memory": 256
             },
 
             {

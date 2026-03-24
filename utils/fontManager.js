@@ -15,6 +15,13 @@ const CUSTOM_FONTS_KEY = 'custom_fonts';
 const FONT_CACHE_DIR = 'fonts';
 const MAX_CACHE_SIZE = 100 * 1024 * 1024; // 100MB缓存限制
 
+function getDefaultLocalFileName(config, platform = platformDetector.getCurrentPlatform()) {
+    if (config && config.localFileNameByPlatform && config.localFileNameByPlatform[platform]) {
+        return config.localFileNameByPlatform[platform];
+    }
+    return config ? config.filename : '';
+}
+
 /**
  * 生成安全的文件名（避免中文字符导致的加载问题）
  */
@@ -30,7 +37,11 @@ function getSafeFileName(fontName) {
 const FONT_CONFIG = {
     '汇文明朝': {
         displayName: '汇文明朝',
-        filename: 'Huiwen-mincho-compressed.woff2', // 统一使用 WOFF2 格式
+        filename: 'Huiwen-mincho-compressed.woff2',
+        localFileNameByPlatform: {
+            h5: 'Huiwen-mincho-compressed.woff2',
+            app: 'Huiwen-mincho.otf'
+        },
         cloudPath: 'cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/fonts/Huiwen-mincho.otf',
         // 小程序端使用 WOFF2 格式的 HTTPS 链接（直接使用 TCB 域名，避免云函数超时）
         mpWeixinUrl: 'https://636c-cloud1-5gb0pbyl400845f5-1378788263.tcb.qcloud.la/fonts/Huiwen-mincho-compressed.woff2',
@@ -529,7 +540,8 @@ class FontManager {
         if (!config) return null;
 
         if (config.isDefault) {
-            return `/static/fonts/${config.filename}`;
+            const platform = platformDetector.getCurrentPlatform();
+            return `/static/fonts/${getDefaultLocalFileName(config, platform)}`;
         }
 
         const platform = platformDetector.getCurrentPlatform();

@@ -131,6 +131,9 @@ exports.main = async (event, context) => {
         if (joinedActivityDoc.status !== 'published') {
           return { success: false, code: 'JOIN_ACTIVITY_NOT_PUBLISHED', message: '活动未发布，暂不可参加' };
         }
+        if (joinedActivityDoc.allowUserSubmission === false) {
+          return { success: false, code: 'JOIN_ACTIVITY_SUBMISSION_DISABLED', message: '该活动暂不支持用户投稿' };
+        }
 
         const nowMs = Date.now();
         const startMs = joinedActivityDoc.startTime ? new Date(joinedActivityDoc.startTime).getTime() : 0;
@@ -205,4 +208,3 @@ exports.main = async (event, context) => {
     return { success: false, code: 'ERROR', message: e.message };
   }
 };
-

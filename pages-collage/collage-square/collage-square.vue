@@ -88,95 +88,178 @@
 </template>
 
 <script>
-// 引入云函数调用工具
-const { cloudCall } = require('../../utils/cloudCall.js');
+import { getCollageList } from '@/api-cache/collage.js';
 const { togglePostLike } = require('../../utils/likeService.js');
+const likeIcon = require('../../utils/likeIcon.js');
+const { getLatestLikeStatus } = require('@/utils/likeStatusSync.js');
+
+const PAGE_SIZE = 10;
 
 export default {
   data() {
     return {
-      // 拼贴诗数据
       collageList: [],
       currentCollageIndex: 0,
       currentCollage: null,
       isLoading: false,
       hasMore: true,
       page: 0,
-      
-      // 双图层背景系统
       bgLayers: [
         { url: '', visible: false },
         { url: '', visible: false }
       ],
       activeLayerIndex: 0,
       preloadedImages: {},
-      
-      // 触摸相关
       touchStartX: 0,
       touchStartY: 0,
       touchEndX: 0,
       touchEndY: 0,
-      isTransitioning: false
+      isTransitioning: false,
+      votingInProgress: {}
     }
   },
-  
+
   onLoad() {
+    this.bindGlobalEvents()
     this.loadCollageList()
   },
-  
+
+  onShow() {
+    this.syncLikeStatusFromCache()
+    this.syncCurrentCollageFromList()
+  },
+
+  onUnload() {
+    this.unbindGlobalEvents()
+  },
+
   methods: {
+    bindGlobalEvents() {
+      if (!this._likeChangedHandler) {
+        this._likeChangedHandler = (payload = {}) => {
+          this.onGlobalLikeChanged(payload)
+        }
+      }
+      try { uni.$on && uni.$on('like-changed', this._likeChangedHandler) } catch (_) {}
+    },
+
+    unbindGlobalEvents() {
+      try { uni.$off && this._likeChangedHandler && uni.$off('like-changed', this._likeChangedHandler) } catch (_) {}
+    },
+
+    normalizeCollage(post = {}) {
+      const votes = Number(post.votes) || 0
+      const isVoted = !!post.isVoted
+      return {
+        ...post,
+        imageUrls: Array.isArray(post.imageUrls) ? post.imageUrls : (post.imageUrls ? [post.imageUrls] : []),
+        votes,
+        isVoted,
+        likeIcon: post.likeIcon || likeIcon.getLikeIcon(votes, isVoted)
+      }
+    },
+
+    syncCurrentCollageFromList() {
+      if (!Array.isArray(this.collageList) || this.collageList.length === 0) {
+        this.currentCollage = null
+        this.currentCollageIndex = 0
+        return
+      }
+
+      const nextIndex = Math.min(this.currentCollageIndex, this.collageList.length - 1)
+      this.currentCollageIndex = nextIndex
+      this.currentCollage = this.collageList[nextIndex]
+    },
+
+    syncLikeStatusFromCache() {
+      if (!Array.isArray(this.collageList) || this.collageList.length === 0) return
+
+      let changed = false
+      const nextList = this.collageList.map((item) => {
+        if (!item || !item._id) return item
+        const cached = getLatestLikeStatus(item._id)
+        if (!cached) return item
+        const votes = Number(cached.votes) || 0
+        const isVoted = !!cached.isVoted
+        if (votes === Number(item.votes || 0) && isVoted === !!item.isVoted) {
+          return item
+        }
+        changed = true
+        return {
+          ...item,
+          votes,
+          isVoted,
+          likeIcon: likeIcon.getLikeIcon(votes, isVoted)
+        }
+      })
+
+      if (changed) {
+        this.collageList = nextList
+      }
+      this.syncCurrentCollageFromList()
+    },
+
+    onGlobalLikeChanged(payload = {}) {
+      const postId = payload.postId
+      if (!postId) return
+
+      const index = this.collageList.findIndex(item => item && item._id === postId)
+      if (index < 0) return
+
+      const current = this.collageList[index]
+      const votes = typeof payload.votes === 'number' ? payload.votes : (Number(current.votes) || 0)
+      const isVoted = typeof payload.isLiked === 'boolean' ? payload.isLiked : !!current.isVoted
+      const nextList = this.collageList.slice()
+      nextList[index] = {
+        ...current,
+        votes,
+        isVoted,
+        likeIcon: likeIcon.getLikeIcon(votes, isVoted)
+      }
+      this.collageList = nextList
+      this.syncCurrentCollageFromList()
+    },
+
     goBack() {
       uni.navigateBack()
     },
-    
-    // 加载拼贴诗列表
+
     async loadCollageList() {
       if (this.isLoading) return
+      if (!this.hasMore && this.page > 0) return
 
-      console.log('🔍 [拼贴诗广场] 开始加载拼贴诗列表，page:', this.page)
+      const isFirstPage = this.page === 0
       this.isLoading = true
 
       try {
-        const result = await cloudCall('getCollagePoetry', {
+        const result = await getCollageList({
           page: this.page,
-          pageSize: 10
-        }, { pageTag: 'collage-square', context: this, requireAuth: true })
-        
-        console.log('🔍 [拼贴诗广场] 云函数调用结果:', result)
-        console.log('🔍 [拼贴诗广场] result.result:', result.result)
-        
-        if (result && result.result && result.result.success) {
-          const newCollages = result.result.data || []
-          console.log('✅ [拼贴诗广场] 获取到拼贴诗数量:', newCollages.length)
-          console.log('✅ [拼贴诗广场] 拼贴诗数据:', newCollages)
-          
-          if (this.page === 0) {
-            this.collageList = newCollages
-          } else {
-            this.collageList = this.collageList.concat(newCollages)
-          }
-          
-          this.hasMore = newCollages.length === 10
-          this.page++
-          
-          // 如果有数据且是首次加载，设置当前拼贴诗
-          if (this.collageList.length > 0 && !this.currentCollage) {
-            this.currentCollage = this.collageList[0]
-            this.updateBackgroundImage(0)
-          }
+          pageSize: PAGE_SIZE,
+          context: this
+        })
+
+        const incoming = (result.posts || []).map((item) => this.normalizeCollage(item))
+        if (isFirstPage) {
+          this.collageList = incoming
+          this.currentCollageIndex = 0
         } else {
-          console.error('❌ [拼贴诗广场] 云函数调用失败:', result)
-          console.error('❌ [拼贴诗广场] 失败原因分析:', {
-            hasResult: !!result,
-            hasResultResult: !!(result && result.result),
-            hasSuccess: !!(result && result.result && result.result.success),
-            resultStructure: result
-          })
+          const existingIds = new Set(this.collageList.map(item => item && item._id).filter(Boolean))
+          const uniquePosts = incoming.filter(item => item && item._id && !existingIds.has(item._id))
+          this.collageList = this.collageList.concat(uniquePosts)
+        }
+
+        this.hasMore = !!result.hasMore
+        this.page += 1
+        this.syncLikeStatusFromCache()
+        this.syncCurrentCollageFromList()
+
+        if (isFirstPage && this.currentCollage) {
+          this.updateBackgroundImage(this.currentCollageIndex)
         }
       } catch (error) {
-        console.error('❌ [拼贴诗广场] 加载拼贴诗失败:', error)
+        console.error('? [?????] ???????:', error)
         uni.showToast({
-          title: '加载失败',
+          title: '????',
           icon: 'none'
         })
       } finally {
@@ -184,7 +267,7 @@ export default {
       }
     },
     
-    // 更新背景图片
+    // ??????
     updateBackgroundImage(index) {
       const collage = this.collageList[index]
       if (!collage || !collage.imageUrls || !collage.imageUrls[0]) {
@@ -194,39 +277,29 @@ export default {
       
       const imageUrl = collage.imageUrls[0]
       
-      // 优先使用预加载的本地缓存路径
       let finalImageUrl = this.preloadedImages[imageUrl]
-      
       if (!finalImageUrl) {
         finalImageUrl = imageUrl
       }
       
-      // 检查是否是首次显示
       const isFirstDisplay = this.bgLayers[0].url === '' && this.bgLayers[1].url === ''
       
       if (isFirstDisplay) {
-        // 首次显示：直接设置第一个图层
         this.setData({
           'bgLayers[0].url': finalImageUrl,
           'bgLayers[0].visible': true,
           'bgLayers[1].visible': false,
           activeLayerIndex: 0
         })
-        
-        // 预加载下一张
         this.preloadNextBackgroundImage(index)
       } else {
-        // 后续切换：延迟切换背景图
         setTimeout(() => {
           this.switchBackgroundImage(finalImageUrl)
         }, 100)
-        
-        // 预加载下一张
         this.preloadNextBackgroundImage(index)
       }
     },
     
-    // 双图层切换函数
     switchBackgroundImage(newImageUrl) {
       if (!newImageUrl) {
         this.resetBackgroundLayers()
@@ -239,12 +312,10 @@ export default {
       const currentActiveIndex = this.activeLayerIndex
       const nextActiveIndex = (currentActiveIndex + 1) % 2
       
-      // 先设置下一层的图片URL
       this.setData({
         [`bgLayers[${nextActiveIndex}].url`]: finalImageUrl
       })
       
-      // 延迟切换可见性
       setTimeout(() => {
         this.setData({
           [`bgLayers[${currentActiveIndex}].visible`]: false,
@@ -254,7 +325,6 @@ export default {
       }, preloadedUrl ? 50 : 150)
     },
     
-    // 重置背景图层
     resetBackgroundLayers() {
       this.setData({
         'bgLayers[0].url': '',
@@ -265,7 +335,6 @@ export default {
       })
     },
     
-    // 预加载下一张背景图
     preloadNextBackgroundImage(currentIndex) {
       const nextIndex = currentIndex + 1
       if (nextIndex >= this.collageList.length) {
@@ -281,30 +350,25 @@ export default {
       }
       
       const imageUrl = nextCollage.imageUrls[0]
-      
-      // 检查是否已预加载
       if (this.preloadedImages[imageUrl]) {
         return
       }
       
-      // 预加载图片 - 使用更安全的方式
       try {
-        // 对于H5环境，直接使用Image对象预加载
         // #ifdef H5
         const img = new Image()
-        img.crossOrigin = 'anonymous' // 设置跨域属性
+        img.crossOrigin = 'anonymous'
         img.onload = () => {
           this.setData({
             [`preloadedImages.${imageUrl}`]: imageUrl
           })
         }
-        img.onerror = (err) => {
-          console.warn('图片预加载失败，将使用原URL:', imageUrl)
+        img.onerror = () => {
+          console.warn('????????????URL:', imageUrl)
         }
         img.src = imageUrl
         // #endif
 
-        // 对于小程序环境，使用downloadFile
         // #ifndef H5
         uni.downloadFile({
           url: imageUrl,
@@ -315,9 +379,8 @@ export default {
               })
             }
           },
-          fail: (err) => {
-            console.warn('图片预加载失败，将使用原URL:', imageUrl)
-            // 降级处理：即使预加载失败，也不影响显示
+          fail: () => {
+            console.warn('????????????URL:', imageUrl)
             this.setData({
               [`preloadedImages.${imageUrl}`]: imageUrl
             })
@@ -325,27 +388,23 @@ export default {
         })
         // #endif
       } catch (error) {
-        console.warn('图片预加载异常，将使用原URL:', imageUrl)
-        // 降级处理：即使预加载失败，也不影响显示
+        console.warn('????????????URL:', imageUrl)
         this.setData({
           [`preloadedImages.${imageUrl}`]: imageUrl
         })
       }
     },
     
-    // 背景图片加载完成
     onBackgroundImageLoad(e) {
       const layerIndex = e.currentTarget.dataset.layerIndex
-      console.log(`图层${layerIndex}图片加载完成`)
+      console.log(`??${layerIndex}??????`)
     },
     
-    // 触摸开始
     touchStart(e) {
       this.touchStartX = e.touches[0].clientX
       this.touchStartY = e.touches[0].clientY
     },
     
-    // 触摸结束
     touchEnd(e) {
       this.touchEndX = e.changedTouches[0].clientX
       this.touchEndY = e.changedTouches[0].clientY
@@ -355,19 +414,15 @@ export default {
       const distance = Math.sqrt(diffX * diffX + diffY * diffY)
       const angle = Math.abs((Math.atan2(Math.abs(diffY), Math.abs(diffX)) * 180) / Math.PI)
       
-      // 水平滑动切换
       if (distance > 80 && Math.abs(diffX) > 50 && angle < 45) {
         if (diffX > 0) {
-          // 左滑：下一张
           this.nextCollage()
         } else {
-          // 右滑：上一张
           this.prevCollage()
         }
       }
     },
     
-    // 下一张拼贴诗
     nextCollage() {
       if (this.isTransitioning || this.collageList.length <= 1) return
       
@@ -386,7 +441,6 @@ export default {
       }, 500)
     },
     
-    // 上一张拼贴诗
     prevCollage() {
       if (this.isTransitioning || this.collageList.length <= 1) return
       
@@ -405,7 +459,6 @@ export default {
       }, 500)
     },
     
-    // 点击拼贴诗
     onCollageTap(e) {
       const postId = e.currentTarget.dataset.postid
       uni.navigateTo({
@@ -413,43 +466,62 @@ export default {
       })
     },
     
-    // 预览拼贴诗图片
     previewCollageImage() {
+      if (!this.currentCollage || !this.currentCollage.imageUrls || this.currentCollage.imageUrls.length === 0) return
       uni.previewImage({
         urls: this.currentCollage.imageUrls,
         current: this.currentCollage.imageUrls[0]
       })
     },
     
-    // 点赞
     async onLike(e) {
       const postId = e.currentTarget.dataset.postid
-      if (!postId) return
+      if (!postId || this.votingInProgress[postId]) return
 
-      const result = await togglePostLike(postId, {
-        pageTag: 'collage-square',
-        context: this,
-        currentVotes: this.currentCollage.votes || 0,
-        currentIsLiked: this.currentCollage.isVoted || false,
-        requireAuth: true
+      const current = this.currentCollage || this.collageList.find(item => item && item._id === postId)
+      if (!current) return
+
+      this.$set(this.votingInProgress, postId, true)
+
+      const originalVotes = Number(current.votes) || 0
+      const originalIsVoted = !!current.isVoted
+      const optimisticVotes = originalIsVoted ? Math.max(0, originalVotes - 1) : originalVotes + 1
+
+      this.onGlobalLikeChanged({
+        postId,
+        votes: optimisticVotes,
+        isLiked: !originalIsVoted
       })
 
-      if (result && result.success) {
-        const updated = {
-          ...this.currentCollage,
+      try {
+        const result = await togglePostLike(postId, {
+          pageTag: 'collage-square',
+          context: this,
+          currentVotes: originalVotes,
+          currentIsLiked: originalIsVoted,
+          requireAuth: true
+        })
+
+        if (!result || !result.success) {
+          throw new Error('????')
+        }
+
+        this.onGlobalLikeChanged({
+          postId,
           votes: result.votes,
-          isVoted: result.isLiked,
-          likeIcon: result.likeIcon
-        }
-        this.currentCollage = updated
-        const idx = this.currentCollageIndex
-        if (this.collageList[idx]) {
-          this.$set(this.collageList, idx, { ...this.collageList[idx], votes: result.votes, isVoted: result.isLiked, likeIcon: result.likeIcon })
-        }
+          isLiked: result.isLiked
+        })
+      } catch (error) {
+        this.onGlobalLikeChanged({
+          postId,
+          votes: originalVotes,
+          isLiked: originalIsVoted
+        })
+      } finally {
+        this.$set(this.votingInProgress, postId, false)
       }
     },
     
-    // 评论
     onComment(e) {
       const postId = e.currentTarget.dataset.postid
       uni.navigateTo({
@@ -457,7 +529,6 @@ export default {
       })
     },
     
-    // 跳转到用户主页
     navigateToUserProfile(e) {
       const userId = e.currentTarget.dataset.userId
       uni.navigateTo({

@@ -10,10 +10,13 @@
       </view>
     </view>
 
-    <view v-if="!showFollowingOnly" class="activity-entry-container" :style="{ top: (safeAreaTop * 2 + 140) + 'rpx' }">
+    <view v-if="!showFollowingOnly" class="activity-entry-container" :style="{ top: (safeAreaTop * 2 + 118) + 'rpx' }">
       <view class="activity-entry-btn" @tap="navigateToActivityList">
-        <image class="activity-entry-icon" src="/static/images/icons/activities.png" mode="aspectFit" />
-        <view v-if="hasNewActivity" class="activity-entry-dot"></view>
+        <view class="activity-entry-icon-wrap">
+          <image class="activity-entry-icon" src="/static/images/icons/activities.png" mode="aspectFit" />
+          <view v-if="hasNewActivity" class="activity-entry-dot"></view>
+        </view>
+        <text class="activity-entry-text">活动</text>
       </view>
     </view>
 
@@ -1547,16 +1550,17 @@ export default {
 
 .activity-entry-container {
   position: absolute;
-  top: calc(var(--safe-area-top, 44px) + 140rpx);
+  top: calc(var(--safe-area-top, 44px) + 118rpx);
   left: 30rpx;
-  z-index: 1;
+  z-index: 5;
 }
 
 .activity-entry-btn {
   width: 120rpx;
-  height: 98rpx;
+  min-height: 114rpx;
   position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
 }
@@ -1565,10 +1569,27 @@ export default {
   transform: scale(0.95);
 }
 
-.activity-entry-icon {
+.activity-entry-icon-wrap {
   width: 120rpx;
   height: 98rpx;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.activity-entry-icon {
+  width: 100%;
+  height: 100%;
   display: block;
+}
+
+.activity-entry-text {
+  margin-top: -8rpx;
+  font-size: 22rpx;
+  line-height: 1.2;
+  color: #9b9b9b;
+  text-align: center;
 }
 
 .activity-entry-dot {

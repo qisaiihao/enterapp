@@ -19,6 +19,22 @@ function isMiniProgramEnv() {
     return typeof wx !== 'undefined' && !!wx;
 }
 
+function isH5BrowserEnv() {
+    return typeof window !== 'undefined' && typeof document !== 'undefined';
+}
+
+function isCanvasSafeUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    if (/^(data:|blob:|file:|\/)/i.test(url)) return true;
+    if (!isH5BrowserEnv()) return false;
+    try {
+        const parsed = new URL(url, window.location.origin);
+        return parsed.origin === window.location.origin;
+    } catch (_) {
+        return false;
+    }
+}
+
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -134,6 +150,21 @@ async function prepareSignatureForCard(signatureUrl, rawOptions = {}) {
     }
 
     const task = (async () => {
+        if (isH5BrowserEnv()) {
+            if (isCanvasSafeUrl(signatureUrl) || typeof fetch !== 'function' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
+                return signatureUrl;
+            }
+            try {
+                const response = await fetch(signatureUrl, { mode: 'cors', cache: 'no-store' });
+                if (!response || !response.ok) return signatureUrl;
+                const blob = await response.blob();
+                if (!blob) return signatureUrl;
+                return URL.createObjectURL(blob);
+            } catch (_) {
+                return signatureUrl;
+            }
+        }
+
         if (!isMiniProgramEnv()) return signatureUrl;
 
         const info = await getImageInfoSafe(signatureUrl);
@@ -177,18 +208,9 @@ function drawImageAsync(ctx, url, x, y, fixedWidth) {
             success: (res) => {
                 try {
                     const drawPath = res.path || res.tempFilePath || url;
-                    // H5 下禁止直接绘制跨域远程图，避免污染 Canvas 导致无法导出
-                    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-                        const isSafeLocalPath = drawPath.startsWith('/') || drawPath.startsWith('data:') || drawPath.startsWith('blob:') || drawPath.startsWith('file:');
-                        let isSameOrigin = false;
-                        try {
-                            const parsed = new URL(drawPath, window.location.origin);
-                            isSameOrigin = parsed.origin === window.location.origin;
-                        } catch (_) {}
-                        if (!isSafeLocalPath && !isSameOrigin) {
-                            reject(new Error('H5跨域图片会污染Canvas，已跳过图片绘制'));
-                            return;
-                        }
+                    if (isH5BrowserEnv() && !isCanvasSafeUrl(drawPath)) {
+                        reject(new Error('H5跨域图片会污染Canvas，已跳过图片绘制'));
+                        return;
                     }
 
                     const scale = fixedWidth / res.width;
@@ -553,15 +575,19 @@ async function calculateShareCardHeight(options) {
     const fixedSignatureWidth = 240; // 签名宽度（从 120 增加到 240，两倍大小）
     const signatureTextFontSize = 28;
     let signatureDrawHeight = 0;
+    let preparedSignatureUrl = '';
     
     if (post.authorSignature && shouldShowSignature) {
         try {
-            const sigInfo = await new Promise((resolve) => {
-                uni.getImageInfo({ src: post.authorSignature, success: (res) => resolve(res), fail: () => resolve(null) });
+            preparedSignatureUrl = await prepareSignatureForCard(post.authorSignature, {
+                targetWidth: fixedSignatureWidth
             });
+            const sigInfo = await getImageInfoSafe(preparedSignatureUrl || post.authorSignature);
             if (sigInfo && sigInfo.width > 0) {
                 const scale = fixedSignatureWidth / sigInfo.width;
                 signatureDrawHeight = Math.max(1, Math.round(sigInfo.height * scale));
+            } else {
+                signatureDrawHeight = Math.round(fixedSignatureWidth * 0.42);
             }
         } catch (_) {}
     }
@@ -598,7 +624,8 @@ async function calculateShareCardHeight(options) {
         textAreaWidth,
         signatureTopGap,
         fixedSignatureWidth,
-        signatureTextFontSize
+        signatureTextFontSize,
+        preparedSignatureUrl
     };
 }
 
@@ -628,7 +655,8 @@ async function drawShareCardContent(options) {
         signatureTopGap,
         fixedSignatureWidth,
         signatureTextFontSize,
-        shouldShowSignature
+        shouldShowSignature,
+        preparedSignatureUrl
     } = options;
 
     // 设置字体
@@ -702,10 +730,7 @@ async function drawShareCardContent(options) {
         const signatureX = canvasWidth - fixedSignatureWidth - signatureMargin;
         const signatureY = Math.min(y + signatureTopGap, canvasHeight - signatureDrawHeight - signatureMargin);
         try {
-            const signaturePath = await prepareSignatureForCard(post.authorSignature, {
-                targetWidth: fixedSignatureWidth
-            });
-            await drawImageAsync(ctx, signaturePath || post.authorSignature, signatureX, signatureY, fixedSignatureWidth);
+            await drawImageAsync(ctx, preparedSignatureUrl || post.authorSignature, signatureX, signatureY, fixedSignatureWidth);
         } catch (e) {
             console.warn('draw signature image failed, fallback to text signature', e);
             drawTextSignature(post.authorName || post.author);

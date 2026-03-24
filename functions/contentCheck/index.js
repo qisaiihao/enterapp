@@ -201,6 +201,13 @@ exports.main = async (event, context) => {
           errorCode: 'JOIN_ACTIVITY_NOT_PUBLISHED'
         });
       }
+      if (joinActivityDoc.allowUserSubmission === false) {
+        return buildFailure({
+          code: -1107,
+          msg: '该活动暂不支持用户投稿',
+          errorCode: 'JOIN_ACTIVITY_SUBMISSION_DISABLED'
+        });
+      }
       const nowMs = Date.now();
       const startMs = joinActivityDoc.startTime ? new Date(joinActivityDoc.startTime).getTime() : 0;
       const endMs = joinActivityDoc.endTime ? new Date(joinActivityDoc.endTime).getTime() : 0;

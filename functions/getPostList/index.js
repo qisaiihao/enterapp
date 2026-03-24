@@ -292,6 +292,25 @@ exports.main = async (event, context) => {
       query = query.match(matchConditions);
     }
 
+    if (isActivityQuery) {
+      query = query.addFields({
+        activityOrder: {
+          $cond: [
+            { $eq: ['$isActivityPost', true] },
+            0,
+            1
+          ]
+        },
+        activitySortTime: {
+          $cond: [
+            { $eq: ['$isActivityPost', true] },
+            { $ifNull: ['$activityPublishTime', '$createTime'] },
+            { $ifNull: ['$joinedActivityAt', '$createTime'] }
+          ]
+        }
+      });
+    }
+
     // 鍒ゆ柇鏄惁鍚敤闅忔満娣峰悎閫昏緫
     // 鍙湁褰撴病鏈夌瓫閫夋潯浠舵椂锛堝箍鍦洪〉闈級锛屾墠鍚敤闅忔満娣峰悎
     // 鏈夌瓫閫夋潯浠舵椂锛堝北銆佽矾椤甸潰锛夛紝鍙繑鍥炴椂闂撮『搴忕殑甯栧瓙
@@ -308,7 +327,11 @@ exports.main = async (event, context) => {
       const RANDOM_COUNT = 4;        // 闅忔満甯栧瓙鐨勬暟閲?
       
       // 1. 鍏堣幏鍙栨寜鏃堕棿椤哄簭鐨勫笘瀛愶紙6涓級
-      const timeOrderedQuery = query.sort({ createTime: -1 })
+      const timeOrderedQuery = query.sort(
+        isActivityQuery
+          ? { activityOrder: 1, activitySortTime: -1, createTime: -1 }
+          : { createTime: -1 }
+      )
         .skip(skip)
         .limit(TIME_ORDERED_COUNT);
       
@@ -440,7 +463,11 @@ exports.main = async (event, context) => {
       }
     } else {
       // 灞卞拰璺〉闈細鍙繑鍥炴椂闂撮『搴忕殑甯栧瓙
-      const timeOrderedQuery = query.sort({ createTime: -1 })
+      const timeOrderedQuery = query.sort(
+        isActivityQuery
+          ? { activityOrder: 1, activitySortTime: -1, createTime: -1 }
+          : { createTime: -1 }
+      )
         .skip(skip)
         .limit(limit);
       
@@ -604,4 +631,3 @@ exports.main = async (event, context) => {
     };
   }
 };
-

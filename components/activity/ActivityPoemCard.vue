@@ -1,52 +1,134 @@
 <template>
-  <view class="activity-poem-card" :style="{ backgroundColor: item.backgroundColor || '#a4c4bd' }">
-    <view class="post-content-navigator" @tap="toggleExpanded">
-      <view class="post-item">
-        <view
-          :class="'post-content ' + (expanded ? 'expanded' : 'collapsed') + (!expanded && (!safeHighlightLines || safeHighlightLines.length === 0) ? ' no-highlight' : '')"
-          :style="{ color: item.textColor || '#222', whiteSpace: 'pre-wrap' }"
-        >
-          <block v-if="expanded">
-            {{ item.content || '' }}
-          </block>
-          <block v-else>
-            <block v-if="safeHighlightLines && safeHighlightLines.length > 0">
-              <text
-                v-for="(highlightLine, hlIndex) in safeHighlightLines"
-                :key="hlIndex"
-                style="font-weight: 700; display: block;"
+  <view
+    :class="['activity-poem-card', isSeries && !seriesExpanded ? 'stacked-series-card' : '']"
+    :style="{ backgroundColor: safeBackgroundColor }"
+  >
+    <view
+      v-if="isSeries && !seriesExpanded"
+      class="series-layer layer-1"
+      :style="{ backgroundColor: safeBackgroundColor }"
+    ></view>
+
+    <block v-if="isSeries && seriesExpanded && currentSeriesPoem">
+      <view class="series-expanded-wrapper">
+        <view class="series-single-card" @tap="toggleCard">
+          <view class="post-content-navigator">
+            <view class="post-item">
+              <view
+                v-if="currentSeriesPoem.subtitle"
+                class="series-subtitle"
+                :style="{ color: safeTextColor }"
               >
-                {{ highlightLine }}
-              </text>
-            </block>
-            <block v-else>
+                {{ currentSeriesPoem.subtitle }}
+              </view>
+
+              <view class="post-content expanded" :style="{ color: safeTextColor, whiteSpace: 'pre-wrap' }">
+                {{ currentSeriesPoem.content }}
+              </view>
+
+              <view v-if="showSignature" class="user-signature">
+                <image
+                  class="signature-image"
+                  :src="item.authorSignature"
+                  mode="aspectFit"
+                  :webp="true"
+                  :show-menu-by-longpress="false"
+                  @error="onSignatureError"
+                />
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <view class="series-page-indicator">
+          {{ currentSeriesIndex + 1 }} / {{ seriesPoems.length }}
+        </view>
+
+        <view class="vote-section" :style="{ backgroundColor: safeBackgroundColor }">
+          <view class="actions-left"></view>
+          <view class="button-group">
+            <view class="like-icon-container" @tap.stop.prevent="onVote">
+              <image class="like-icon" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" />
+            </view>
+            <view class="comment-count" @tap.stop.prevent="onCommentClick">
+              <image class="comment-icon" src="/static/images/newicons/comment.png" mode="aspectFit" />
+            </view>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <block v-else>
+      <view
+        class="post-content-navigator"
+        :class="{ 'has-vote-section': expanded && !isSeries }"
+        @tap="toggleCard"
+      >
+        <view class="post-item">
+          <view
+            v-if="item.content"
+            :class="['post-content', expanded ? 'expanded' : 'collapsed', !expanded && safeHighlightLines.length === 0 ? 'no-highlight' : '']"
+            :style="{ color: safeTextColor, whiteSpace: 'pre-wrap' }"
+          >
+            <block v-if="expanded">
               {{ item.content || '' }}
             </block>
-          </block>
-        </view>
+            <block v-else>
+              <block v-if="safeHighlightLines.length > 0">
+                <text
+                  v-for="(highlightLine, highlightIndex) in safeHighlightLines"
+                  :key="highlightIndex"
+                  class="highlight-line"
+                >
+                  {{ highlightLine }}
+                </text>
+              </block>
+              <block v-else>
+                {{ item.content || '' }}
+              </block>
+            </block>
+          </view>
 
-        <view v-if="expanded && item.authorSignature && !item.isAnonymous" class="user-signature">
-          <image
-            class="signature-image"
-            :src="item.authorSignature"
-            mode="aspectFit"
-            @error="onSignatureError"
-          />
+          <view v-if="expanded && showSignature" class="user-signature">
+            <image
+              class="signature-image"
+              :src="item.authorSignature"
+              mode="aspectFit"
+              :webp="true"
+              :show-menu-by-longpress="false"
+              @error="onSignatureError"
+            />
+          </view>
+
+          <view v-if="!expanded && showSignature" class="user-signature-small">
+            <image
+              class="signature-image-small"
+              :src="item.authorSignature"
+              mode="aspectFit"
+              :webp="true"
+              :show-menu-by-longpress="false"
+              @error="onSignatureError"
+            />
+          </view>
         </view>
       </view>
-    </view>
 
-    <view class="vote-section" v-if="expanded" :style="{ backgroundColor: item.backgroundColor || '#a4c4bd' }">
-      <view class="actions-left"></view>
-      <view class="button-group">
-        <view class="like-icon-container" @tap.stop.prevent="onVote">
-          <image class="like-icon" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" />
-        </view>
-        <view class="comment-count" @tap.stop.prevent="onCommentClick">
-          <image class="comment-icon" src="/static/images/newicons/comment.png" mode="aspectFit" />
+      <view
+        v-if="expanded && !isSeries"
+        class="vote-section"
+        :style="{ backgroundColor: safeBackgroundColor }"
+      >
+        <view class="actions-left"></view>
+        <view class="button-group">
+          <view class="like-icon-container" @tap.stop.prevent="onVote">
+            <image class="like-icon" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" />
+          </view>
+          <view class="comment-count" @tap.stop.prevent="onCommentClick">
+            <image class="comment-icon" src="/static/images/newicons/comment.png" mode="aspectFit" />
+          </view>
         </view>
       </view>
-    </view>
+    </block>
   </view>
 </template>
 
@@ -65,26 +147,74 @@ export default {
   },
   data() {
     return {
-      expanded: false
+      expanded: false,
+      seriesExpanded: false,
+      currentSeriesIndex: 0,
+      signatureHidden: false
     };
   },
   computed: {
+    safeBackgroundColor() {
+      return this.item && this.item.backgroundColor ? this.item.backgroundColor : '#a4c4bd';
+    },
+    safeTextColor() {
+      return this.item && this.item.textColor ? this.item.textColor : '#222';
+    },
     safeHighlightLines() {
       return Array.isArray(this.item && this.item.highlightLines)
         ? this.item.highlightLines.filter(line => (line || '').trim())
         : [];
+    },
+    seriesPoems() {
+      return Array.isArray(this.item && this.item.seriesPoems)
+        ? this.item.seriesPoems.filter(block => block && ((block.content || '').trim() || (block.subtitle || '').trim()))
+        : [];
+    },
+    isSeries() {
+      return !!(this.item && (this.item.isSeries || this.seriesPoems.length > 0));
+    },
+    currentSeriesPoem() {
+      if (!this.seriesPoems.length) return null;
+      return this.seriesPoems[this.currentSeriesIndex] || this.seriesPoems[0];
+    },
+    showSignature() {
+      return !!(
+        this.item &&
+        !this.item.isAnonymous &&
+        this.item.authorSignature &&
+        !this.signatureHidden
+      );
     }
   },
   watch: {
-    'item._id': {
-      immediate: false,
-      handler() {
-        this.expanded = false;
-      }
+    'item._id'() {
+      this.resetState();
+    },
+    'item.authorSignature'() {
+      this.signatureHidden = false;
     }
   },
   methods: {
-    toggleExpanded() {
+    resetState() {
+      this.expanded = false;
+      this.seriesExpanded = false;
+      this.currentSeriesIndex = 0;
+      this.signatureHidden = false;
+    },
+    toggleCard() {
+      if (this.isSeries) {
+        if (!this.seriesExpanded) {
+          this.seriesExpanded = true;
+          return;
+        }
+        if (this.currentSeriesIndex < this.seriesPoems.length - 1) {
+          this.currentSeriesIndex += 1;
+          return;
+        }
+        this.seriesExpanded = false;
+        this.currentSeriesIndex = 0;
+        return;
+      }
       this.expanded = !this.expanded;
     },
     onVote() {
@@ -98,8 +228,8 @@ export default {
         postId: this.item && this.item._id
       });
     },
-    onSignatureError(error) {
-      this.$emit('signature-error', error);
+    onSignatureError() {
+      this.signatureHidden = true;
     }
   }
 };
@@ -107,92 +237,186 @@ export default {
 
 <style scoped>
 .activity-poem-card {
-  width: calc(100% - 40rpx);
-  margin: 24rpx 20rpx 0;
-  border-radius: 28rpx;
-  overflow: hidden;
-  box-shadow: 0 8rpx 8rpx rgba(0, 0, 0, 0.2);
-  transition: transform 0.25s ease;
+  width: 100%;
+  border-radius: 30rpx;
+  margin-bottom: 40rpx;
+  overflow: visible;
+  box-shadow: 0 8rpx 8rpx rgba(0, 0, 0, 0.25);
+  transition: transform .3s ease;
+  border: none;
+  position: relative;
+  padding: 0;
 }
 
-.activity-poem-card:active {
-  transform: scale(0.99);
-}
+.activity-poem-card:active { transform: scale(0.98); }
 
 .post-content-navigator {
   display: block;
+  border-radius: 30rpx;
+  overflow: hidden;
 }
 
-.post-item {
-  padding: 30rpx 60rpx 30rpx 80rpx;
+.post-content-navigator.has-vote-section {
+  border-radius: 30rpx 30rpx 0 0;
+}
+
+.post-item { padding: 26rpx 50rpx 26rpx 60rpx; position: relative; }
+
+.stacked-series-card {
   position: relative;
+}
+
+.series-layer.layer-1 {
+  position: absolute;
+  top: -12rpx;
+  left: -12rpx;
+  right: 12rpx;
+  bottom: 12rpx;
+  border-radius: 30rpx;
+  box-shadow: 0 6rpx 12rpx rgba(0,0,0,0.14);
+  z-index: 1;
+}
+
+.stacked-series-card .post-content-navigator {
+  position: relative;
+  z-index: 2;
+}
+
+.series-expanded-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.series-single-card {
+  position: relative;
+  width: 100%;
+  border-radius: 30rpx 30rpx 0 0;
+  overflow: visible;
+  min-height: auto;
+}
+
+.series-single-card .post-content-navigator {
+  border-radius: 30rpx 30rpx 0 0;
+}
+
+.series-expanded-wrapper .vote-section {
+  border-radius: 0 0 30rpx 30rpx;
+}
+
+.series-single-card .post-item {
+  padding: 60rpx 50rpx 60rpx 60rpx;
 }
 
 .post-content {
   font-family: '汇文明朝', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   font-style: normal;
   font-weight: 500;
-  font-size: 34rpx;
-  line-height: 58rpx;
-  letter-spacing: 0.08em;
-  min-height: 140rpx;
+  font-size: 28rpx;
+  line-height: 38rpx;
+  margin: 30rpx 0;
+  width: 100%;
+  overflow-wrap: break-word;
+}
+
+.series-single-card .post-content {
+  margin: 20rpx 0 20rpx 0;
+}
+
+.series-subtitle {
+  font-family: '汇文明朝', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  font-size: 24rpx;
+  font-weight: 600;
+  margin-bottom: 20rpx;
+  opacity: 0.8;
 }
 
 .post-content.collapsed {
-  max-height: 220rpx;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.post-content.no-highlight {
-  font-weight: 500;
+.post-content.collapsed.no-highlight {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
-.post-content.expanded {
-  max-height: none;
+.post-content.expanded { display: block; overflow: visible; }
+
+.vote-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 25rpx 50rpx;
+  border-radius: 0 0 30rpx 30rpx;
 }
+
+.actions-left { flex: 1; display: flex; align-items: center; gap: 20rpx; }
+.button-group { display: flex; align-items: center; gap: 30rpx; }
+.comment-count,
+.like-icon-container { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; }
+.comment-icon,
+.like-icon { width: 60rpx; height: 60rpx; }
+.like-icon { margin-top: 5px; }
 
 .user-signature {
   position: absolute;
-  bottom: 0;
-  right: 40rpx;
+  bottom: 10rpx;
+  right: 60rpx;
+  z-index: 10;
+  pointer-events: none;
 }
 
 .signature-image {
   width: 180rpx;
   height: 90rpx;
   opacity: 0.8;
+  filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1));
+  display: block;
+  background: transparent;
 }
 
-.vote-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 18rpx 36rpx 20rpx;
+.series-single-card .user-signature {
+  bottom: 20rpx;
 }
 
-.actions-left {
-  width: 1rpx;
-  height: 1rpx;
+.user-signature-small {
+  position: absolute;
+  bottom: 30rpx;
+  right: 60rpx;
+  z-index: 10;
+  pointer-events: none;
 }
 
-.button-group {
-  display: flex;
-  align-items: center;
-  gap: 24rpx;
+.signature-image-small {
+  width: 100rpx;
+  height: 50rpx;
+  opacity: 0.6;
+  filter: drop-shadow(0 1rpx 2rpx rgba(0, 0, 0, 0.1));
+  display: block;
+  background: transparent;
 }
 
-.like-icon-container,
-.comment-count {
-  width: 56rpx;
-  height: 56rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.series-page-indicator {
+  margin: 0 auto 10rpx;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: #333;
+  font-size: 24rpx;
+  text-align: center;
+  width: fit-content;
+  align-self: center;
+  font-weight: 500;
 }
 
-.like-icon,
-.comment-icon {
-  width: 42rpx;
-  height: 42rpx;
+.highlight-line {
+  display: block;
+  font-family: '汇文明朝', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 28rpx;
+  line-height: 38rpx;
 }
 </style>
