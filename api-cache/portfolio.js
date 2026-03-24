@@ -10,10 +10,24 @@ const {
 
 const ns = cacheManager.namespace('portfolio', { persistent: true, maxItems: 32 });
 
+function normalizePortfolioFolder(folder = {}) {
+  const count = Number(
+    folder.itemCount !== undefined && folder.itemCount !== null
+      ? folder.itemCount
+      : folder.postCount
+  ) || 0;
+
+  return {
+    ...folder,
+    itemCount: count,
+    postCount: count
+  };
+}
+
 function extractFoldersFromResult(result = {}) {
-  if (Array.isArray(result.folders)) return result.folders;
-  if (Array.isArray(result.data)) return result.data;
-  if (Array.isArray(result)) return result;
+  if (Array.isArray(result.folders)) return result.folders.map(normalizePortfolioFolder);
+  if (Array.isArray(result.data)) return result.data.map(normalizePortfolioFolder);
+  if (Array.isArray(result)) return result.map(normalizePortfolioFolder);
   return [];
 }
 
@@ -167,6 +181,15 @@ function invalidatePortfolioCache() {
   ns.delete('folders');
 }
 
+function notifyPortfolioUpdated(payload = {}) {
+  invalidatePortfolioCache();
+  try {
+    uni.$emit('portfolio-updated', payload);
+  } catch (error) {
+    console.warn('[portfolio] emit portfolio-updated failed', error);
+  }
+}
+
 module.exports = {
   getPortfolioFolders,
   createPortfolioFolder,
@@ -175,6 +198,7 @@ module.exports = {
   uploadFile,
   getPortfolioDetail,
   updatePortfolioPostOrder,
-  invalidatePortfolioCache
+  invalidatePortfolioCache,
+  notifyPortfolioUpdated,
+  normalizePortfolioFolder
 };
-

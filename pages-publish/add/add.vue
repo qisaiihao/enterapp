@@ -265,6 +265,11 @@ import {
     uploadFileViaCloudFunction as imagesUploadFileViaCF
 } from './useImages.js';
 
+const WORKING_DRAFT_KEY = 'publish_working_draft_v1';
+const LEGACY_DRAFT_KEY = 'publish_draft';
+const WORKING_DRAFT_EXPIRE_MS = 7 * 24 * 60 * 60 * 1000;
+const WORKING_DRAFT_SAVE_DELAY = 500;
+
 export default {
     components: {
         ModeSelectorModal,
@@ -372,6 +377,7 @@ export default {
 
             // 是否正在导航，用于防止onBackPress递归调用
             isNavigating: false,
+            discardWorkingDraftOnExit: false,
 
             // 是否临时隐藏（如选择图片），用于避免触发草稿保存
             author: '',
@@ -391,7 +397,9 @@ export default {
             // 标签分类数据（从配置文件导入）
             tagCategories: tagCategories,
 
-            tags: []
+            tags: [],
+            workingDraftSaveTimer: null,
+            draftStateRestoring: false
         };
     },
     computed: {
@@ -553,6 +561,8 @@ export default {
             });
         }
 
+        let restoredDraft = false;
+
         if (options.mode === 'edit' && options.postId) {
             this.setData({
                 isEditMode: true,
@@ -560,12 +570,15 @@ export default {
             });
             this.loadPostForEdit(options.postId);
         } else if (options.mode === 'edit') {
-            this.loadEditingDraft();
-        } else if (!isActivityMode) {
-            this.loadDraft();
+            restoredDraft = this.loadEditingDraft();
+        } else {
+            restoredDraft = this.loadDraft({
+                isActivityMode,
+                activityId
+            });
         }
 
-        if (!isActivityMode) {
+        if (!isActivityMode && !(options.mode === 'edit' && options.postId) && !restoredDraft) {
             this.setDefaultPublishMode();
         } else {
             this.updatePlaceholder();
@@ -587,11 +600,11 @@ export default {
         }
         
         // 只有真正退出发布页时提示保存草稿（已发布的不提示）
-        if (!this.isPublished && this.hasContent()) {
+        if (!this.isPublished && !this.discardWorkingDraftOnExit && this.hasContent()) {
             // 在onUnload中不调用exitWithOptionalSave，避免无限递归
             // 直接清除草稿即可
             try {
-                this.clearDraft && this.clearDraft();
+                this.flushWorkingDraft && this.flushWorkingDraft();
             } catch (e) {
                 console.error('清除草稿失败:', e);
             }
@@ -599,6 +612,9 @@ export default {
     },
     onHide: function () {
         // 其它情况不再提示，仅重置临时隐藏标志
+        if (!this.isPublished && !this.discardWorkingDraftOnExit) {
+            this.flushWorkingDraft && this.flushWorkingDraft();
+        }
         this.setData({ isTemporaryHide: false });
     },
     // App/H5：拦截物理返回，优先弹出草稿提示
@@ -627,6 +643,250 @@ export default {
 
         // 空函数，用于阻止事件冒泡
         noop() {},
+
+        buildDefaultBlocks(draftData = {}) {
+            if (Array.isArray(draftData.blocks) && draftData.blocks.length > 0) {
+                return draftData.blocks;
+            }
+
+            const quoteBlocks = Array.isArray(draftData.discussionQuoteBlocks)
+                ? draftData.discussionQuoteBlocks.map(text => ({ type: 'quote', text: text || '' }))
+                : ((draftData.discussionQuoteText || '').trim()
+                    ? [{ type: 'quote', text: draftData.discussionQuoteText }]
+                    : []);
+
+            return [
+                { type: 'content', text: draftData.content || '' },
+                ...quoteBlocks
+            ];
+        },
+
+        buildDefaultSeriesBlocks(draftData = {}) {
+            if (Array.isArray(draftData.seriesBlocks) && draftData.seriesBlocks.length > 0) {
+                return draftData.seriesBlocks.map(block => ({
+                    id: block.id || `series-${Date.now()}-${Math.random()}`,
+                    subtitle: block.subtitle || '',
+                    content: block.content || '',
+                    highlightSentence: block.highlightSentence || '',
+                    highlightLines: Array.isArray(block.highlightLines) ? block.highlightLines : []
+                }));
+            }
+
+            return [{
+                id: `series-${Date.now()}`,
+                subtitle: '',
+                content: draftData.content || '',
+                highlightSentence: draftData.highlightSentence || '',
+                highlightLines: Array.isArray(draftData.highlightLines) ? draftData.highlightLines : []
+            }];
+        },
+
+        buildWorkingDraftData() {
+            return {
+                version: 1,
+                title: this.title || '',
+                content: this.content || '',
+                imageList: Array.isArray(this.imageList) ? this.imageList : [],
+                publishMode: this.publishMode || 'normal',
+                isOriginal: !!this.isOriginal,
+                isDiscussion: !!this.isDiscussion,
+                isSeries: !!this.isSeries,
+                seriesBlocks: Array.isArray(this.seriesBlocks) ? this.seriesBlocks : [],
+                selectedTags: Array.isArray(this.selectedTags) ? this.selectedTags : [],
+                customTag: this.customTag || '',
+                author: this.author || '',
+                selectedBackgroundColor: this.selectedBackgroundColor || '#a4c4bd',
+                selectedTextColor: this.selectedTextColor || '#333333',
+                selectedColorCombination: this.selectedColorCombination || {
+                    backgroundColor: this.selectedBackgroundColor || '#a4c4bd',
+                    textColor: this.selectedTextColor || '#333333'
+                },
+                blocks: Array.isArray(this.blocks) ? this.blocks : [],
+                highlightLines: Array.isArray(this.highlightLines) ? this.highlightLines : [],
+                highlightSentence: this.highlightSentence || '',
+                highlightSelectedLineIndices: Array.isArray(this.highlightSelectedLineIndices) ? this.highlightSelectedLineIndices : [],
+                joinActivityEnabled: !!this.joinActivityEnabled,
+                joinedActivityId: this.joinedActivityId || '',
+                joinedActivityTitle: this.joinedActivityTitle || '',
+                isActivityMode: !!this.isActivityMode,
+                activityId: this.activityId || '',
+                activityTitle: this.activityTitle || '',
+                fromAdminActivity: !!this.fromAdminActivity,
+                isEditMode: !!this.isEditMode,
+                editingPostId: this.editingPostId || '',
+                maxImageCount: this.maxImageCount,
+                updatedAt: Date.now(),
+                saveTime: Date.now()
+            };
+        },
+
+        hasWorkingDraftState(draftData = {}) {
+            return !!(
+                (draftData.title && draftData.title.trim()) ||
+                (draftData.author && draftData.author.trim()) ||
+                (draftData.content && draftData.content.trim()) ||
+                (Array.isArray(draftData.imageList) && draftData.imageList.length > 0) ||
+                (Array.isArray(draftData.selectedTags) && draftData.selectedTags.length > 0) ||
+                (Array.isArray(draftData.blocks) && draftData.blocks.some(block => (block.text || '').trim())) ||
+                (Array.isArray(draftData.seriesBlocks) && draftData.seriesBlocks.some(block => ((block.content || '').trim() || (block.subtitle || '').trim()))) ||
+                draftData.joinActivityEnabled ||
+                draftData.joinedActivityId ||
+                draftData.activityId
+            );
+        },
+
+        getStoredWorkingDraft(matchOptions = {}) {
+            try {
+                const draftData = uni.getStorageSync(WORKING_DRAFT_KEY);
+                if (!draftData || typeof draftData !== 'object') {
+                    return null;
+                }
+
+                const savedAt = Number(draftData.updatedAt || draftData.saveTime || 0);
+                if (savedAt && Date.now() - savedAt > WORKING_DRAFT_EXPIRE_MS) {
+                    uni.removeStorageSync(WORKING_DRAFT_KEY);
+                    return null;
+                }
+
+                if (matchOptions.mode === 'create' && draftData.isEditMode) {
+                    return null;
+                }
+
+                if (matchOptions.isEditMode) {
+                    if (!draftData.isEditMode) {
+                        return null;
+                    }
+                    if (matchOptions.editingPostId && draftData.editingPostId !== matchOptions.editingPostId) {
+                        return null;
+                    }
+                }
+
+                if (matchOptions.isActivityMode === true) {
+                    if (!draftData.isActivityMode) {
+                        return null;
+                    }
+                    if (matchOptions.activityId && draftData.activityId && draftData.activityId !== matchOptions.activityId) {
+                        return null;
+                    }
+                }
+
+                if (matchOptions.isActivityMode === false && draftData.isActivityMode) {
+                    return null;
+                }
+
+                return draftData;
+            } catch (error) {
+                console.error('读取工作草稿失败:', error);
+                return null;
+            }
+        },
+
+        saveWorkingDraft({ silent = true } = {}) {
+            if (this.draftStateRestoring || this.isPublished || this.discardWorkingDraftOnExit) {
+                return false;
+            }
+
+            const draftData = this.buildWorkingDraftData();
+            if (!this.hasWorkingDraftState(draftData)) {
+                try {
+                    uni.removeStorageSync(WORKING_DRAFT_KEY);
+                } catch (_) {}
+                return false;
+            }
+
+            try {
+                uni.setStorageSync(WORKING_DRAFT_KEY, draftData);
+                if (!silent) {
+                    uni.showToast({ title: '已自动保存', icon: 'success' });
+                }
+                return true;
+            } catch (error) {
+                console.error('保存工作草稿失败:', error);
+                return false;
+            }
+        },
+
+        scheduleWorkingDraftSave() {
+            if (this.draftStateRestoring || this.isPublished || this.discardWorkingDraftOnExit) {
+                return;
+            }
+            if (this.workingDraftSaveTimer) {
+                clearTimeout(this.workingDraftSaveTimer);
+            }
+            this.workingDraftSaveTimer = setTimeout(() => {
+                this.workingDraftSaveTimer = null;
+                this.saveWorkingDraft({ silent: true });
+            }, WORKING_DRAFT_SAVE_DELAY);
+        },
+
+        flushWorkingDraft() {
+            if (this.workingDraftSaveTimer) {
+                clearTimeout(this.workingDraftSaveTimer);
+                this.workingDraftSaveTimer = null;
+            }
+            return this.saveWorkingDraft({ silent: true });
+        },
+
+        restoreDraftState(draftData, { removeEditingDraft = false } = {}) {
+            if (!draftData) return false;
+
+            const publishMode = draftData.publishMode || 'normal';
+            const isSeries = !!draftData.isSeries;
+            const blocks = this.buildDefaultBlocks(draftData);
+            const seriesBlocks = this.buildDefaultSeriesBlocks(draftData);
+            const discussionFirstContent = (blocks.find(block => block.type === 'content') || {}).text || '';
+            const mergedSeriesContent = seriesBlocksToContent(seriesBlocks);
+            const content = publishMode === 'discussion'
+                ? (draftData.content || discussionFirstContent)
+                : (isSeries ? (draftData.content || mergedSeriesContent) : (draftData.content || ''));
+
+            this.draftStateRestoring = true;
+            this.setData({
+                title: draftData.title || '',
+                content,
+                imageList: Array.isArray(draftData.imageList) ? draftData.imageList : [],
+                publishMode,
+                isOriginal: !!draftData.isOriginal,
+                isDiscussion: publishMode === 'discussion',
+                isSeries,
+                seriesBlocks,
+                selectedTags: Array.isArray(draftData.selectedTags) ? draftData.selectedTags : [],
+                customTag: draftData.customTag || '',
+                author: draftData.author || '',
+                selectedBackgroundColor: draftData.selectedBackgroundColor || '#a4c4bd',
+                selectedTextColor: draftData.selectedTextColor || '#333333',
+                selectedColorCombination: draftData.selectedColorCombination || {
+                    backgroundColor: draftData.selectedBackgroundColor || '#a4c4bd',
+                    textColor: draftData.selectedTextColor || '#333333'
+                },
+                blocks,
+                highlightLines: Array.isArray(draftData.highlightLines) ? draftData.highlightLines : [],
+                highlightSentence: draftData.highlightSentence || '',
+                highlightSelectedLineIndices: Array.isArray(draftData.highlightSelectedLineIndices) ? draftData.highlightSelectedLineIndices : [],
+                joinActivityEnabled: !!draftData.joinActivityEnabled,
+                joinedActivityId: draftData.joinedActivityId || '',
+                joinedActivityTitle: draftData.joinedActivityTitle || '',
+                isActivityMode: !!draftData.isActivityMode,
+                activityId: draftData.activityId || '',
+                activityTitle: draftData.activityTitle || '',
+                fromAdminActivity: !!draftData.fromAdminActivity,
+                isEditMode: !!draftData.isEditMode,
+                editingPostId: draftData.editingPostId || '',
+                maxImageCount: draftData.maxImageCount || (publishMode === 'poem' ? 1 : 9)
+            });
+            this.draftStateRestoring = false;
+
+            this.updatePlaceholder();
+            this.checkCanPublish();
+
+            if (removeEditingDraft) {
+                try {
+                    uni.removeStorageSync('editing_draft');
+                } catch (_) {}
+            }
+
+            return true;
+        },
 
         // 检查是否有内容
         hasContent() {
@@ -784,6 +1044,17 @@ export default {
                             joinedActivityId: isOfficialActivityPost ? '' : joinedActivityId,
                             joinedActivityTitle: isOfficialActivityPost ? '' : joinedActivityTitle
                         });
+                        const editWorkingDraft = this.getStoredWorkingDraft({
+                            isEditMode: true,
+                            editingPostId: postId
+                        });
+                        if (editWorkingDraft) {
+                            this.restoreDraftState({
+                                ...editWorkingDraft,
+                                isEditMode: true,
+                                editingPostId: postId
+                            });
+                        }
                         
                         // 更新发布模式相关的placeholder
                         this.updatePlaceholder();
@@ -824,6 +1095,7 @@ export default {
                 success: (res) => {
                     this.setData({ isNavigating: true });
                     if (res.confirm) {
+                        this.setData({ discardWorkingDraftOnExit: false });
                         try {
                             const p = this.saveDraft && this.saveDraft();
                             if (p && typeof p.finally === 'function') {
@@ -833,6 +1105,7 @@ export default {
                             }
                         } catch (_) { try { uni.navigateBack(); } catch (e) {} }
                     } else {
+                        this.setData({ discardWorkingDraftOnExit: true });
                         try { this.clearDraft && this.clearDraft(); } catch (_) {}
                         try { uni.navigateBack(); } catch (e) {}
                     }
@@ -879,6 +1152,21 @@ export default {
                 blocks
             });
             this.checkCanPublish();
+            this.scheduleWorkingDraftSave();
+        },
+
+        onTitleInput(event) {
+            this.setData({
+                title: event.detail.value || ''
+            });
+            this.scheduleWorkingDraftSave();
+        },
+
+        onAuthorInput(event) {
+            this.setData({
+                author: event.detail.value || ''
+            });
+            this.scheduleWorkingDraftSave();
         },
 
         onContainerTap: function (event) {
@@ -1078,6 +1366,7 @@ export default {
             });
 
             this.checkCanPublish();
+            this.scheduleWorkingDraftSave();
         },
 
         // 讨论模式：引用诗句输入（兼容旧调用，写入当前块列表中第一个引用块，没有则插入一个）
@@ -1183,6 +1472,7 @@ export default {
             this.setData({
                 imageList: updatedList
             });
+            this.scheduleWorkingDraftSave();
         },
 
         removeImage: function (e) {
@@ -1194,6 +1484,7 @@ export default {
                 imageList: imageList
             });
             this.checkCanPublish();
+            this.scheduleWorkingDraftSave();
         },
 
         // 发布功能已移至预览页面
@@ -1679,6 +1970,7 @@ export default {
         // 去预览：把当前编辑内容带到预览页，仅展示不提交
         goToPreview: function () {
             // 讨论模式：构造句子组与高光行
+            this.flushWorkingDraft();
             const previewSentenceGroups = this.publishMode === 'discussion' ? this.buildDiscussionSentenceGroups() : [];
             const previewHighlight = (this.highlightLines && this.highlightLines.length > 0)
                 ? this.highlightLines
@@ -1700,6 +1992,7 @@ export default {
             const previewPost = {
                 _id: 'preview-temp-id',
                 content: previewContent || '',
+                author: this.author || '',
                 title: this.title || '', // 标题（编辑模式下已有值，新建模式下在预览页面输入）
                 textColor: this.selectedTextColor || '#000000',
                 backgroundColor: this.selectedBackgroundColor || '#ffffff',
@@ -1807,6 +2100,7 @@ export default {
         // 高光选择更新（组件事件处理）
         onHighlightUpdate: function (indices) {
             this.setData({ highlightSelectedLineIndices: indices });
+            this.scheduleWorkingDraftSave();
         },
 
         // 高光选择确认（组件事件处理）
@@ -1838,6 +2132,7 @@ export default {
                 highlightSelectedLineIndices: indices,
                 highlightSourceLines: []
             });
+            this.scheduleWorkingDraftSave();
             uni.showToast({ title: '已设置高光', icon: 'success' });
         },
 
@@ -1852,6 +2147,7 @@ export default {
                 selectedColorCombination: color,
                 showColorPicker: false
             });
+            this.scheduleWorkingDraftSave();
             uni.showToast({ title: '已设置颜色搭配', icon: 'success' });
         },
 
@@ -1860,6 +2156,7 @@ export default {
         // 标签更新（组件事件处理）
         onTagsUpdate: function (tags) {
             this.setData({ selectedTags: tags });
+            this.scheduleWorkingDraftSave();
         },
 
         /* 标签选择相关方法已移至 TagSelectorModal.vue 组件 */
@@ -1867,6 +2164,7 @@ export default {
         // 保存草稿
         saveDraft: function () {
             return new Promise((resolve) => {
+                this.flushWorkingDraft();
                 const draftData = {
                     title: this.title,
                     content: this.content,
@@ -1885,6 +2183,19 @@ export default {
                     saveTime: new Date()
                 };
                 uni.showLoading({ title: "保存中..." });
+                draftData.isDiscussion = this.isDiscussion;
+                draftData.isSeries = this.isSeries;
+                draftData.seriesBlocks = this.seriesBlocks;
+                draftData.highlightLines = this.highlightLines;
+                draftData.highlightSentence = this.highlightSentence;
+                draftData.highlightSelectedLineIndices = this.highlightSelectedLineIndices;
+                draftData.joinActivityEnabled = !!this.joinActivityEnabled;
+                draftData.joinedActivityId = this.joinedActivityId || '';
+                draftData.joinedActivityTitle = this.joinedActivityTitle || '';
+                draftData.isActivityMode = !!this.isActivityMode;
+                draftData.activityId = this.activityId || '';
+                draftData.activityTitle = this.activityTitle || '';
+                draftData.fromAdminActivity = !!this.fromAdminActivity;
                 saveDraftApi(draftData, { context: this, pageTag: 'add' }).then(() => {
                     uni.hideLoading();
                     uni.showToast({ title: "草稿已保存", icon: "success" });
@@ -1900,103 +2211,52 @@ export default {
         },
 
         // 加载草稿
-        loadDraft: function () {
+        loadDraft: function ({ isActivityMode = false, activityId = '' } = {}) {
             try {
-                const draftData = uni.getStorageSync('publish_draft');
-                if (draftData && draftData.saveTime) {
-                    // 检查草稿是否过期（7天）
-                    const now = new Date().getTime();
-                    const draftAge = now - draftData.saveTime;
-                    const sevenDays = 10080 * 60 * 1000;
-                    if (draftAge < sevenDays) {
-                        uni.showModal({
-                            title: '恢复草稿',
-                            content: '检测到您有未完成的草稿，是否恢复？',
-                            confirmText: '恢复',
-                            cancelText: '重新开始',
-                            success: (res) => {
-                                if (res.confirm) {
-                                    this.setData({
-                                        title: draftData.title || '',
-                                        content: draftData.content || '',
-                                        imageList: draftData.imageList || [],
-                                        publishMode: draftData.publishMode || 'normal',
-                                        isOriginal: draftData.isOriginal || false,
-                                        selectedTags: draftData.selectedTags || [],
-                                        customTag: draftData.customTag || '',
-                                        author: draftData.author || '',
-                                        selectedBackgroundColor: draftData.selectedBackgroundColor || '#a4c4bd',
-                                        selectedTextColor: draftData.selectedTextColor || '#333333',
-                                        selectedColorCombination: draftData.selectedColorCombination || { backgroundColor: '#a4c4bd', textColor: '#333333' },
-                                        blocks: draftData.blocks
-                                            || [
-                                                { type: 'content', text: draftData.content || '' },
-                                                ...(draftData.discussionQuoteBlocks
-                                                    ? draftData.discussionQuoteBlocks.map(t => ({ type: 'quote', text: t }))
-                                                    : draftData.discussionQuoteText
-                                                        ? [{ type: 'quote', text: draftData.discussionQuoteText }]
-                                                        : [])
-                                            ],
-                                        maxImageCount: draftData.publishMode === 'poem' ? 1 : 9
-                                    });
-                                    this.checkCanPublish();
-                                    uni.showToast({
-                                        title: '草稿已恢复',
-                                        icon: 'success'
-                                    });
-                                } else {
-                                    this.clearDraft();
-                                }
-                            }
-                        });
-                    } else {
-                        // 草稿过期，自动清除
+                const workingDraft = this.getStoredWorkingDraft({
+                    mode: 'create',
+                    isActivityMode,
+                    activityId
+                });
+                if (workingDraft) {
+                    this.restoreDraftState(workingDraft);
+                    return true;
+                }
+
+                const legacyDraft = uni.getStorageSync(LEGACY_DRAFT_KEY);
+                if (legacyDraft && typeof legacyDraft === 'object') {
+                    const savedAt = Number(legacyDraft.updatedAt || legacyDraft.saveTime || 0);
+                    if (savedAt && Date.now() - savedAt > WORKING_DRAFT_EXPIRE_MS) {
                         this.clearDraft();
+                        return false;
+                    }
+
+                    if (!legacyDraft.isEditMode) {
+                        if ((isActivityMode && !!legacyDraft.isActivityMode) || (!isActivityMode && !legacyDraft.isActivityMode)) {
+                            this.restoreDraftState(legacyDraft);
+                            try { uni.removeStorageSync(LEGACY_DRAFT_KEY); } catch (_) {}
+                            return true;
+                        }
                     }
                 }
+                return false;
             } catch (e) {
                 console.log('CatchClause', e);
                 console.log('CatchClause', e);
                 console.error('加载草稿失败:', e);
+                return false;
             }
         },
 
         // 加载编辑中的草稿
         loadEditingDraft: function () {
             try {
-                const draftData = uni.getStorageSync('editing_draft');
-                if (draftData) {
-                    this.setData({
-                        title: draftData.title || '',
-                        content: draftData.content || '',
-                        imageList: draftData.imageList || [],
-                        publishMode: draftData.publishMode || 'normal',
-                        isOriginal: draftData.isOriginal || false,
-                        selectedTags: draftData.selectedTags || [],
-                        customTag: draftData.customTag || '',
-                        author: draftData.author || '',
-                        selectedBackgroundColor: draftData.selectedBackgroundColor || '#a4c4bd',
-                        selectedTextColor: draftData.selectedTextColor || '#333333',
-                        selectedColorCombination: draftData.selectedColorCombination || { backgroundColor: '#a4c4bd', textColor: '#333333' },
-                        maxImageCount: draftData.publishMode === 'poem' ? 1 : 9,
-                        blocks: draftData.blocks
-                            || [
-                                { type: 'content', text: draftData.content || '' },
-                                ...(draftData.discussionQuoteBlocks
-                                    ? draftData.discussionQuoteBlocks.map(t => ({ type: 'quote', text: t }))
-                                    : draftData.discussionQuoteText
-                                        ? [{ type: 'quote', text: draftData.discussionQuoteText }]
-                                        : [])
-                            ]
-                    });
-                    this.checkCanPublish();
-                    uni.showToast({
-                        title: '草稿已加载',
-                        icon: 'success'
-                    });
-                    // 清除编辑草稿数据
-                    uni.removeStorageSync('editing_draft');
+                const explicitDraft = uni.getStorageSync('editing_draft');
+                if (explicitDraft) {
+                    this.restoreDraftState(explicitDraft, { removeEditingDraft: true });
+                    return true;
                 }
+                return false;
             } catch (e) {
                 console.log('CatchClause', e);
                 console.log('CatchClause', e);
@@ -2005,12 +2265,21 @@ export default {
                     title: '加载草稿失败',
                     icon: 'none'
                 });
+                return false;
             }
         },
 
         // 清除草稿
         clearDraft: function () {
             try {
+                if (this.workingDraftSaveTimer) {
+                    clearTimeout(this.workingDraftSaveTimer);
+                    this.workingDraftSaveTimer = null;
+                }
+                uni.removeStorageSync(WORKING_DRAFT_KEY);
+                uni.removeStorageSync(LEGACY_DRAFT_KEY);
+                uni.removeStorageSync('editing_draft');
+                uni.removeStorageSync('preview_post');
                 uni.removeStorageSync('publish_draft');
             } catch (e) {
                 console.log('CatchClause', e);

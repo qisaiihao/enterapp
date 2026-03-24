@@ -91,6 +91,42 @@
       "params": {}
     },
     {
+      "name": "addToPortfolio",
+      "timeout": 3,
+      "memory": 128,
+      "handler": "index.main",
+      "root": "./functions/addToPortfolio",
+      "installDependency": true,
+      "params": {}
+    },
+    {
+      "name": "removeFromPortfolio",
+      "timeout": 3,
+      "memory": 128,
+      "handler": "index.main",
+      "root": "./functions/removeFromPortfolio",
+      "installDependency": true,
+      "params": {}
+    },
+    {
+      "name": "deletePost",
+      "timeout": 3,
+      "memory": 128,
+      "handler": "index.main",
+      "root": "./functions/deletePost",
+      "installDependency": true,
+      "params": {}
+    },
+    {
+      "name": "getPortfolioFolders",
+      "timeout": 3,
+      "memory": 128,
+      "handler": "index.main",
+      "root": "./functions/getPortfolioFolders",
+      "installDependency": true,
+      "params": {}
+    },
+    {
       "name": "embedText",
       "timeout": 60,
       "memory": 512,

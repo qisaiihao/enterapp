@@ -15,20 +15,7 @@
         <view v-if="post.editData && post.editData.publishMode === 'poem'" class="post-item-wrapper" :style="{ backgroundColor: post.backgroundColor }">
           <view class="post-content-navigator" @tap="togglePostExpansion">
             <view class="post-item" :style="{ backgroundColor: post.backgroundColor }">
-              <view :class="'post-content ' + (post.isExpanded ? 'expanded' : 'collapsed') + (!post.isExpanded && (!post.highlightLines || post.highlightLines.length === 0) ? ' no-highlight' : '')" :style="{ color: post.textColor || '#222', whiteSpace: 'pre-wrap' }">
-                <block v-if="post.isExpanded">
-                  {{ post.content }}
-                </block>
-                <block v-else>
-                  <!-- 折叠状态下只显示高光行 -->
-                  <block v-if="post.highlightLines && post.highlightLines.length > 0">
-                    <text v-for="(highlightLine, index) in post.highlightLines" :key="index" style="font-weight: 700; display: block;">{{ highlightLine }}</text>
-                  </block>
-                  <block v-else>
-                    {{ post.content }}
-                  </block>
-                </block>
-              </view>
+              <view :class="'post-content ' + (post.isExpanded ? 'expanded' : 'collapsed') + (!post.isExpanded && (!post.highlightLines || post.highlightLines.length === 0) ? ' no-highlight' : '')" :style="{ color: post.textColor || '#222', whiteSpace: 'pre-wrap' }"><block v-if="post.isExpanded">{{ post.displayContent || post.content }}</block><block v-else><block v-if="getPreviewHighlightLines().length > 0"><text v-for="(highlightLine, index) in getPreviewHighlightLines()" :key="index" style="font-weight: 700; display: block;">{{ highlightLine }}</text></block><block v-else>{{ post.displayContent || post.content }}</block></block></view>
 
               <!-- 作者签名 - 匿名不显示 -->
               <view v-if="post.isExpanded && post.authorSignature && !post.isAnonymous" class="user-signature">
@@ -97,11 +84,11 @@
             </view>
 
             <!-- 内容 -->
-            <view class="post-content" v-if="post.content" style="white-space: pre-wrap">{{ post.content }}</view>
+            <view class="post-content" v-if="post.content" style="white-space: pre-wrap">{{ post.displayContent || post.content }}</view>
 
             <!-- 标签 -->
-            <view v-if="post.editData && post.editData.selectedTags && post.editData.selectedTags.length > 0" class="post-tags">
-              <text class="post-tag" v-for="(tag, index) in post.editData.selectedTags" :key="index">#{{ tag }}</text>
+            <view v-if="getPreviewTags().length > 0" class="post-tags">
+              <text class="post-tag" v-for="(tag, index) in getPreviewTags()" :key="index">#{{ tag }}</text>
             </view>
           </view>
 
@@ -152,45 +139,45 @@
           </view>
         </view>
 
-        <!-- 参加活动选择区域（放在标题/作者下方） -->
-        <view v-if="showJoinActivitySelector" class="join-activity-section" @tap.stop="noop">
-          <view class="join-activity-toggle" @tap="toggleJoinActivityEnabled">
-            <view :class="['join-activity-checkbox', joinActivityEnabled ? 'checked' : '']">
-              <text v-if="joinActivityEnabled" class="join-activity-checkbox-icon">✓</text>
-            </view>
-            <view class="join-activity-toggle-copy">
-              <text class="join-activity-toggle-title">参与活动</text>
-              <text class="join-activity-toggle-subtitle">勾选后可选择参加的活动，仅显示允许投稿的活动</text>
+        <!-- 参加活动选择区域（恢复为原来的按钮式选择） -->
+        <view v-if="showJoinActivitySelector && joinableActivities.length > 0" class="join-activity-section" @tap.stop="noop">
+          <view class="join-activity-buttons">
+            <view
+              v-for="activity in joinableActivities"
+              :key="activity._id"
+              :class="['activity-btn', joinedActivityId === activity._id ? 'selected' : '']"
+              @tap="toggleActivity(activity)"
+            >
+              <text class="activity-btn-text">{{ activity.title || '未命名活动' }}</text>
             </view>
           </view>
+        </view>
 
-          <picker
-            v-if="joinActivityEnabled && joinableActivities.length > 0"
-            class="join-activity-picker-wrap"
-            mode="selector"
-            :range="joinableActivities"
-            range-key="title"
-            :value="joinActivityPickerIndex"
-            @change="onJoinActivityPickerChange"
-          >
-            <view class="join-activity-picker">
-              <view class="join-activity-picker-copy">
-                <text class="join-activity-picker-label">参加的活动</text>
-                <text class="join-activity-picker-title">{{ selectedActivityDisplayTitle }}</text>
-                <text class="join-activity-picker-subtitle">{{ selectedActivityDisplaySubtitle }}</text>
-              </view>
-              <text class="join-activity-picker-arrow">›</text>
+        <view class="preview-meta-section">
+          <view v-if="post.title" class="preview-meta-card">
+            <text class="preview-meta-label">标题</text>
+            <text class="preview-meta-value">{{ post.title }}</text>
+          </view>
+          <view v-if="getPreviewAuthor()" class="preview-meta-card">
+            <text class="preview-meta-label">作者</text>
+            <text class="preview-meta-value">{{ getPreviewAuthor() }}</text>
+          </view>
+          <view v-if="getPreviewTags().length > 0" class="preview-meta-card">
+            <text class="preview-meta-label">标签</text>
+            <view class="preview-meta-tags">
+              <text v-for="(tag, index) in getPreviewTags()" :key="`tag-${index}`" class="preview-meta-tag">#{{ tag }}</text>
             </view>
-          </picker>
-
-          <view v-else-if="joinActivityEnabled" class="join-activity-picker disabled">
-            <view class="join-activity-picker-copy">
-              <text class="join-activity-picker-label">参加的活动</text>
-              <text class="join-activity-picker-title">{{ joinActivitiesLoading ? '加载可参加活动中...' : '当前没有可投稿活动' }}</text>
-              <text class="join-activity-picker-subtitle">
-                {{ joinActivitiesLoading ? '请稍候' : '已关闭投稿的活动不会出现在这里' }}
-              </text>
+          </view>
+          <view v-if="post.isSeries && getPreviewSeriesBlocks().length > 0" class="preview-meta-card">
+            <text class="preview-meta-label">组诗段落</text>
+            <view v-for="(block, index) in getPreviewSeriesBlocks()" :key="`series-${index}`" class="preview-series-item">
+              <text class="preview-series-title">{{ block.subtitle || `第${index + 1}段` }}</text>
+              <text class="preview-series-content">{{ block.content || '' }}</text>
             </view>
+          </view>
+          <view v-if="getPreviewActivityText()" class="preview-meta-card">
+            <text class="preview-meta-label">活动归属</text>
+            <text class="preview-meta-value">{{ getPreviewActivityText() }}</text>
           </view>
         </view>
       </view>
@@ -222,9 +209,10 @@
 import { emitPostUpdated, emitPostCreated } from '@/utils/events.js';
 import { getRecentActivities } from '@/api-cache/activities.js';
 import { updatePostContent } from '@/api-cache/post.js';
-import { checkDuplicatePoem as checkDuplicatePoemApi, contentAudit } from '@/api-cache/publish.js';
+import { checkDuplicatePoem as checkDuplicatePoemApi, contentAudit, saveDraft as saveDraftApi } from '@/api-cache/publish.js';
 import { uploadPreviewFile, uploadPreviewFileViaCloudFunction } from './preview-upload.js';
 const { formatDateYmd, formatRange: formatActivityRangeUtil } = require('@/utils/activity.js');
+const { attachPoemDisplayFields } = require('@/utils/poemDisplay.js');
 
 export default {
   data() {
@@ -235,11 +223,9 @@ export default {
       joinableActivities: [],
       joinActivitiesLoading: false,
       joinActivitiesLoaded: false,
-      joinActivityEnabled: false,
       joinedActivityId: '',
       joinedActivityTitle: '',
       joinedActivityRangeText: '',
-      showJoinActivityPanel: false,
       lastSubmitActivityId: ''
     };
   },
@@ -250,22 +236,6 @@ export default {
     },
     showJoinActivitySelector() {
       return !!this.post && !this.isLockedAdminActivityMode;
-    },
-    joinActivityPickerIndex() {
-      const index = (this.joinableActivities || []).findIndex(item => item && item._id === this.joinedActivityId);
-      return index >= 0 ? index : 0;
-    },
-    selectedActivityDisplayTitle() {
-      return this.joinedActivityTitle || '请选择活动';
-    },
-    selectedActivityDisplaySubtitle() {
-      if (!this.joinActivityEnabled) {
-        return '发布到普通流，不进入活动帖子流';
-      }
-      if (!this.joinedActivityId) {
-        return '选中后作品会显示在对应活动的帖子流中';
-      }
-      return this.joinedActivityRangeText || '该帖子会显示在所选活动的帖子流';
     }
   },
   onLoad() {
@@ -273,7 +243,7 @@ export default {
       const eventChannel = this.getOpenerEventChannel && this.getOpenerEventChannel();
       if (eventChannel && eventChannel.on) {
         eventChannel.on('preview-data', ({ post }) => {
-          this.post = post;
+          this.post = this.preparePreviewPost(post);
           console.log('【Preview】收到数据:', post);
           console.log('【Preview】publishMode:', post.editData?.publishMode);
 
@@ -306,7 +276,7 @@ export default {
       try {
         const cached = uni.getStorageSync('preview_post');
         if (cached) {
-          this.post = cached;
+          this.post = this.preparePreviewPost(cached);
           console.log('【Preview】从缓存获取数据:', cached);
           console.log('【Preview】缓存publishMode:', cached.editData?.publishMode);
 
@@ -366,13 +336,114 @@ export default {
     // 页面点击事件 - 点击外部区域退出键盘
     onPageTap() {
       uni.hideKeyboard();
-      if (this.showJoinActivityPanel) {
-        this.showJoinActivityPanel = false;
-      }
     },
 
     // 空函数，用于阻止事件冒泡
     noop() {},
+
+    getAddPageVm() {
+      try {
+        const pages = getCurrentPages();
+        const addPage = pages[pages.length - 2];
+        return addPage && addPage.$vm ? addPage.$vm : null;
+      } catch (_) {
+        return null;
+      }
+    },
+
+    preparePreviewPost(rawPost) {
+      if (!rawPost) return rawPost;
+
+      const post = { ...rawPost };
+      const editData = post.editData || {};
+      post.title = post.title || editData.title || '';
+      post.author = post.author || editData.author || '';
+      post.content = post.content || editData.content || '';
+      post.tags = Array.isArray(post.tags) && post.tags.length > 0
+        ? post.tags
+        : (Array.isArray(editData.selectedTags) ? editData.selectedTags : []);
+      post.highlightLines = Array.isArray(post.highlightLines) && post.highlightLines.length > 0
+        ? post.highlightLines
+        : (Array.isArray(editData.highlightLines) ? editData.highlightLines : []);
+      post.seriesBlocks = Array.isArray(post.seriesBlocks) && post.seriesBlocks.length > 0
+        ? post.seriesBlocks
+        : (Array.isArray(editData.seriesBlocks) ? editData.seriesBlocks : []);
+      post.isSeries = typeof post.isSeries === 'boolean' ? post.isSeries : !!editData.isSeries;
+      post.isPoem = typeof post.isPoem === 'boolean' ? post.isPoem : editData.publishMode === 'poem';
+      post.activityTitle = post.activityTitle || post.activityTitleSnapshot || editData.activityTitle || '';
+      post.joinedActivityTitle = post.joinedActivityTitle || post.joinedActivityTitleSnapshot || editData.joinedActivityTitle || '';
+
+      if (editData.publishMode === 'poem') {
+        if (editData.selectedColorCombination) {
+          post.backgroundColor = editData.selectedColorCombination.backgroundColor;
+          post.textColor = editData.selectedColorCombination.textColor;
+        } else if (editData.selectedBackgroundColor) {
+          post.backgroundColor = editData.selectedBackgroundColor;
+          post.textColor = editData.selectedTextColor || '#333333';
+        } else {
+          post.backgroundColor = post.backgroundColor || '#a4c4bd';
+          post.textColor = post.textColor || '#333333';
+        }
+      }
+
+      const normalized = attachPoemDisplayFields(post);
+      post.displayContent = normalized.displayContent || post.content || '';
+      post.displayHighlightLines = normalized.displayHighlightLines || post.highlightLines || [];
+      post.displaySeriesPoems = normalized.displaySeriesPoems || [];
+      if (typeof post.isExpanded === 'undefined') {
+        post.isExpanded = false;
+      }
+      return post;
+    },
+
+    getPreviewTags() {
+      return this.post && Array.isArray(this.post.tags)
+        ? this.post.tags
+        : [];
+    },
+
+    getPreviewHighlightLines() {
+      if (!this.post) return [];
+      if (Array.isArray(this.post.displayHighlightLines) && this.post.displayHighlightLines.length > 0) {
+        return this.post.displayHighlightLines;
+      }
+      if (Array.isArray(this.post.highlightLines)) {
+        return this.post.highlightLines;
+      }
+      return this.post.editData && Array.isArray(this.post.editData.highlightLines)
+        ? this.post.editData.highlightLines
+        : [];
+    },
+
+    getPreviewSeriesBlocks() {
+      if (!this.post) return [];
+      if (Array.isArray(this.post.displaySeriesPoems) && this.post.displaySeriesPoems.length > 0) {
+        return this.post.displaySeriesPoems;
+      }
+      if (Array.isArray(this.post.seriesBlocks)) {
+        return this.post.seriesBlocks;
+      }
+      return this.post.editData && Array.isArray(this.post.editData.seriesBlocks)
+        ? this.post.editData.seriesBlocks
+        : [];
+    },
+
+    getPreviewAuthor() {
+      if (!this.post) return '';
+      return this.post.author || (this.post.editData && this.post.editData.author) || '';
+    },
+
+    getPreviewActivityText() {
+      if (!this.post) return '';
+      const editData = this.post.editData || {};
+      if (editData.isActivityMode || this.post.isActivityPost) {
+        return this.post.activityTitle || editData.activityTitle || '';
+      }
+      if (this.joinedActivityId) {
+        return this.joinedActivityTitle || this.post.joinedActivityTitle || editData.joinedActivityTitle || '';
+      }
+      return '';
+    },
 
     // 切换文章展开/折叠状态
     togglePostExpansion() {
@@ -383,38 +454,67 @@ export default {
 
     // 标题输入处理
     onTitleInput(event) {
-      if (this.post) {
-        this.post.title = event.detail.value;
+      if (!this.post) return;
+      const value = event && event.detail ? (event.detail.value || '') : '';
+      this.post = {
+        ...this.post,
+        title: value,
+        editData: {
+          ...(this.post.editData || {}),
+          title: value
+        }
+      };
+      const addVm = this.getAddPageVm();
+      if (addVm) {
+        if (typeof addVm.setData === 'function') {
+          addVm.setData({ title: value });
+        } else {
+          addVm.title = value;
+        }
+        if (typeof addVm.scheduleWorkingDraftSave === 'function') {
+          addVm.scheduleWorkingDraftSave();
+        }
       }
     },
 
     // 作者输入处理
     onAuthorInput(event) {
-      if (this.post) {
-        this.post.author = event.detail.value;
+      if (!this.post) return;
+      const value = event && event.detail ? (event.detail.value || '') : '';
+      this.post = {
+        ...this.post,
+        author: value,
+        editData: {
+          ...(this.post.editData || {}),
+          author: value
+        }
+      };
+      const addVm = this.getAddPageVm();
+      if (addVm) {
+        if (typeof addVm.setData === 'function') {
+          addVm.setData({ author: value });
+        } else {
+          addVm.author = value;
+        }
+        if (typeof addVm.scheduleWorkingDraftSave === 'function') {
+          addVm.scheduleWorkingDraftSave();
+        }
       }
     },
 
     initJoinActivityState() {
       const editData = this.post && this.post.editData ? this.post.editData : {};
       if (!editData || this.isLockedAdminActivityMode) {
-        this.joinActivityEnabled = false;
         this.joinedActivityId = '';
         this.joinedActivityTitle = '';
         this.joinedActivityRangeText = '';
-        this.showJoinActivityPanel = false;
         this.syncJoinedActivityToAddPage();
         return;
       }
 
-      const hasExplicitJoinActivityEnabled = Object.prototype.hasOwnProperty.call(editData, 'joinActivityEnabled');
-      this.joinActivityEnabled = hasExplicitJoinActivityEnabled
-        ? this.normalizeAllowUserSubmission(editData.joinActivityEnabled, false)
-        : !!editData.joinedActivityId;
       this.joinedActivityId = editData.joinedActivityId || '';
       this.joinedActivityTitle = editData.joinedActivityTitle || editData.joinedActivityTitleSnapshot || '';
       this.joinedActivityRangeText = '';
-      this.showJoinActivityPanel = false;
       this.syncJoinedActivityToAddPage();
 
       if (this.joinedActivityId) {
@@ -466,7 +566,7 @@ export default {
             this.joinedActivityTitle = matched.title || this.joinedActivityTitle;
             this.joinedActivityRangeText = matched.rangeText || '';
           } else {
-            this.clearJoinedActivity({ keepToggle: true });
+            this.clearJoinedActivity();
           }
         }
       } catch (error) {
@@ -476,49 +576,27 @@ export default {
       }
     },
 
-    async toggleJoinActivityEnabled() {
-      if (this.isLockedAdminActivityMode) return;
-      const nextValue = !this.joinActivityEnabled;
-      this.joinActivityEnabled = nextValue;
-
-      if (!nextValue) {
-        this.clearJoinedActivity();
-        return;
-      }
-
-      await this.ensureJoinableActivitiesLoaded(false);
-      if (!this.joinedActivityId && this.joinableActivities.length === 1) {
-        this.selectJoinedActivity(this.joinableActivities[0]);
-        return;
-      }
-      this.syncJoinedActivityToAddPage();
-    },
-
-    onJoinActivityPickerChange(event) {
-      const index = Number(event && event.detail ? event.detail.value : -1);
-      if (index < 0) return;
-      const activity = this.joinableActivities[index];
-      this.selectJoinedActivity(activity);
-    },
-
     selectJoinedActivity(activity) {
       if (!activity || !activity._id) return;
-      this.joinActivityEnabled = true;
       this.joinedActivityId = activity._id || '';
       this.joinedActivityTitle = activity.title || '';
       this.joinedActivityRangeText = activity.rangeText || this.formatActivityRange(activity.startTime, activity.endTime);
-      this.showJoinActivityPanel = false;
       this.syncJoinedActivityToAddPage();
     },
 
-    clearJoinedActivity({ keepToggle = false } = {}) {
-      if (!keepToggle) {
-        this.joinActivityEnabled = false;
+    toggleActivity(activity) {
+      if (!activity || !activity._id) return;
+      if (this.joinedActivityId === activity._id) {
+        this.clearJoinedActivity();
+        return;
       }
+      this.selectJoinedActivity(activity);
+    },
+
+    clearJoinedActivity() {
       this.joinedActivityId = '';
       this.joinedActivityTitle = '';
       this.joinedActivityRangeText = '';
-      this.showJoinActivityPanel = false;
       this.syncJoinedActivityToAddPage();
     },
 
@@ -530,15 +608,21 @@ export default {
         if (!addVm) return;
         if (typeof addVm.setData === 'function') {
           addVm.setData({
-            joinActivityEnabled: !!this.joinActivityEnabled,
+            joinActivityEnabled: !!this.joinedActivityId,
             joinedActivityId: this.joinedActivityId || '',
             joinedActivityTitle: this.joinedActivityTitle || ''
           });
+          if (typeof addVm.scheduleWorkingDraftSave === 'function') {
+            addVm.scheduleWorkingDraftSave();
+          }
           return;
         }
-        addVm.joinActivityEnabled = !!this.joinActivityEnabled;
+        addVm.joinActivityEnabled = !!this.joinedActivityId;
         addVm.joinedActivityId = this.joinedActivityId || '';
         addVm.joinedActivityTitle = this.joinedActivityTitle || '';
+        if (typeof addVm.scheduleWorkingDraftSave === 'function') {
+          addVm.scheduleWorkingDraftSave();
+        }
       } catch (error) {
         console.warn('【Preview】同步活动选择到编辑页失败:', error);
       }
@@ -602,45 +686,45 @@ export default {
       }
       
       try {
-        // 保存草稿到本地存储
-        const draftData = {
-          ...this.post,
-          saveTime: new Date().getTime(),
-          isDraft: true
-        };
-        
-        // 获取现有草稿列表
-        let drafts = [];
-        try {
-          const existingDrafts = uni.getStorageSync('drafts');
-          if (existingDrafts && Array.isArray(existingDrafts)) {
-            drafts = existingDrafts;
+        const addVm = this.getAddPageVm();
+        if (addVm && typeof addVm.saveDraft === 'function') {
+          if (typeof addVm.flushWorkingDraft === 'function') {
+            addVm.flushWorkingDraft();
           }
-        } catch (e) {
-          console.log('获取草稿列表失败，创建新列表');
+          addVm.saveDraft();
+          return;
         }
-        
-        // 添加新草稿
-        drafts.unshift(draftData);
-        
-        // 限制草稿数量（最多保存10个）
-        if (drafts.length > 10) {
-          drafts = drafts.slice(0, 10);
-        }
-        
-        // 保存草稿列表
-        uni.setStorageSync('drafts', drafts);
-        
-        uni.showToast({
-          title: '草稿已保存',
-          icon: 'success'
+
+        const editData = this.post.editData || {};
+        const cloudDraftData = {
+          ...editData,
+          title: this.post.title || editData.title || '',
+          author: this.post.author || editData.author || '',
+          content: this.post.content || editData.content || '',
+          imageList: Array.isArray(editData.imageList) ? editData.imageList : [],
+          selectedTags: Array.isArray(editData.selectedTags) ? editData.selectedTags : [],
+          highlightLines: Array.isArray(editData.highlightLines) ? editData.highlightLines : [],
+          highlightSelectedLineIndices: Array.isArray(editData.highlightSelectedLineIndices) ? editData.highlightSelectedLineIndices : [],
+          joinActivityEnabled: !!this.joinedActivityId,
+          joinedActivityId: this.joinedActivityId || '',
+          joinedActivityTitle: this.joinedActivityTitle || '',
+          saveTime: Date.now()
+        };
+        uni.showLoading({ title: '保存中...' });
+        saveDraftApi(cloudDraftData, { context: this, pageTag: 'preview' }).then(() => {
+          uni.hideLoading();
+          uni.showToast({
+            title: '草稿已保存',
+            icon: 'success'
+          });
+        }).catch((error) => {
+          uni.hideLoading();
+          console.error('【Preview】save draft failed:', error);
+          uni.showToast({
+            title: '保存失败',
+            icon: 'none'
+          });
         });
-        
-        // 返回编辑页面
-        setTimeout(() => {
-          uni.navigateBack();
-        }, 1500);
-        
       } catch (e) {
         console.error('保存草稿失败:', e);
         uni.showToast({
@@ -691,7 +775,7 @@ export default {
         editingPostId: addData.editingPostId
       });
 
-      const hasTitle = this.post && this.post.title && this.post.title.trim();
+      const hasTitle = (addData.title && addData.title.trim()) || (this.post && this.post.title && this.post.title.trim());
       const hasSeriesBlocks = addData.isSeries && Array.isArray(addData.seriesBlocks) && addData.seriesBlocks.some(b => (b.content && b.content.trim()) || (b.subtitle && b.subtitle.trim()));
       const hasContent = (addData.content && addData.content.trim()) || hasSeriesBlocks;
       const hasImages = addData.imageList && Array.isArray(addData.imageList) && addData.imageList.length > 0;
@@ -714,7 +798,7 @@ export default {
 
       // 如果是非原创诗歌，必须填写作者
       if ((addData.publishMode === 'poem' || addData.isSeries) && !addData.isOriginal) {
-        const hasAuthor = this.post && this.post.author && this.post.author.trim();
+        const hasAuthor = (addData.author && addData.author.trim()) || (this.post && this.post.author && this.post.author.trim());
         if (!hasAuthor) {
           uni.showToast({
             title: '非原创诗歌必须填写作者',
@@ -724,23 +808,15 @@ export default {
         }
       }
 
-      if (this.joinActivityEnabled && !this.joinedActivityId && !this.isLockedAdminActivityMode) {
-        uni.showToast({
-          title: '请选择要参加的活动',
-          icon: 'none'
-        });
-        return;
-      }
-
       // 合并预览页面的标题和作者数据与add页面的其他数据
       const isLockedAdminActivity = !!(addData.isActivityMode && addData.fromAdminActivity);
-      const selectedJoinActivityId = this.joinActivityEnabled ? (this.joinedActivityId || addData.joinedActivityId || '') : '';
-      const selectedJoinActivityTitle = this.joinActivityEnabled ? (this.joinedActivityTitle || addData.joinedActivityTitle || '') : '';
+      const selectedJoinActivityId = this.joinedActivityId || addData.joinedActivityId || '';
+      const selectedJoinActivityTitle = this.joinedActivityTitle || addData.joinedActivityTitle || '';
 
       const publishData = {
         ...addData,
-        title: this.post.title || '',
-        author: this.post.author || '',
+        title: addData.title || (this.post && this.post.title) || '',
+        author: addData.author || (this.post && this.post.author) || '',
         content: addData.content || '', // 确保content字段存在
         imageList: addData.imageList || [], // 确保imageList字段存在
         isSeries: addData.isSeries || false,
@@ -1505,108 +1581,87 @@ export default {
   padding: 0 20rpx;
 }
 
-.join-activity-toggle {
+.join-activity-buttons {
   display: flex;
-  align-items: flex-start;
-  padding: 26rpx 28rpx;
-  border-radius: 24rpx;
-  background: #f7f8fa;
-  border: 1rpx solid #eceef2;
+  flex-wrap: wrap;
   gap: 20rpx;
 }
 
-.join-activity-checkbox {
-  width: 36rpx;
-  height: 36rpx;
-  margin-top: 4rpx;
-  border-radius: 10rpx;
-  border: 2rpx solid #c9ced6;
+.activity-btn {
+  padding: 16rpx 32rpx;
+  border-radius: 12rpx;
+  border: 2rpx solid #999;
   background: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
-.join-activity-checkbox.checked {
-  background: #2f6bff;
-  border-color: #2f6bff;
+.activity-btn.selected {
+  background: #e0e0e0;
+  border-color: #999;
 }
 
-.join-activity-checkbox-icon {
-  color: #fff;
-  font-size: 24rpx;
-  line-height: 1;
-  font-weight: 700;
-}
-
-.join-activity-toggle-copy,
-.join-activity-picker-copy {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.join-activity-toggle-title,
-.join-activity-picker-title {
-  font-size: 30rpx;
+.activity-btn-text {
+  font-size: 28rpx;
+  color: #333;
   line-height: 1.4;
-  color: #1f2329;
-  font-weight: 600;
-}
-
-.join-activity-toggle-subtitle,
-.join-activity-picker-subtitle {
-  margin-top: 8rpx;
-  font-size: 24rpx;
-  line-height: 1.5;
-  color: #7a7f87;
-}
-
-.join-activity-picker-wrap {
-  display: block;
-  margin-top: 20rpx;
-}
-
-.join-activity-picker {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 26rpx 28rpx;
-  border-radius: 24rpx;
-  background: #fff;
-  border: 1rpx solid #eceef2;
-  box-shadow: 0 8rpx 24rpx rgba(31, 35, 41, 0.05);
-}
-
-.join-activity-picker-label {
-  font-size: 22rpx;
-  line-height: 1.4;
-  letter-spacing: 1rpx;
-  color: #8b9098;
-  margin-bottom: 8rpx;
-}
-
-.join-activity-picker-arrow {
-  margin-left: 20rpx;
-  color: #b5bac3;
-  font-size: 36rpx;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.join-activity-picker.disabled {
-  background: #f7f8fa;
-  box-shadow: none;
-}
-
-.join-activity-picker.disabled .join-activity-picker-title {
-  color: #7a7f87;
 }
 
 /* 适配从发布页浮动按钮的层级 */
+.preview-meta-section {
+  margin: 32rpx 20rpx 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.preview-meta-card {
+  padding: 24rpx 28rpx;
+  border-radius: 24rpx;
+  background: #f7f8fa;
+  border: 1rpx solid #eceef2;
+}
+
+.preview-meta-label {
+  display: block;
+  font-size: 22rpx;
+  color: #8b9098;
+  margin-bottom: 12rpx;
+}
+
+.preview-meta-value,
+.preview-meta-line,
+.preview-series-title,
+.preview-series-content {
+  display: block;
+  color: #1f2329;
+  line-height: 1.6;
+}
+
+.preview-meta-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.preview-meta-tag {
+  padding: 6rpx 18rpx;
+  border-radius: 999rpx;
+  background: #fff;
+  color: #445;
+  font-size: 24rpx;
+}
+
+.preview-series-item + .preview-series-item {
+  margin-top: 16rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #e7e9ee;
+}
+
+.preview-series-title {
+  font-weight: 600;
+  margin-bottom: 8rpx;
+}
+
 .preview-page { position: relative; z-index: 1; }
 
 /* 诗歌帖子的样式（与poem-square完全一致） */

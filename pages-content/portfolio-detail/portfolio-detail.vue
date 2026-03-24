@@ -134,6 +134,7 @@ import dualActionTopBar from '@/components/dual-action-top-bar/dual-action-top-b
 const { cloudCall } = require('@/utils/cloudCall.js');
 const likeIcon = require('@/utils/likeIcon.js');
 const { togglePostLike } = require('../../utils/likeService.js');
+const { notifyPortfolioUpdated } = require('../../api-cache/portfolio.js');
 // authorSignature已从云函数返回，不再需要signatureCache
 
 const PAGE_SIZE = 10;
@@ -588,6 +589,11 @@ export default {
             icon: 'success'
           });
           this.hideAddModal();
+          notifyPortfolioUpdated({
+            source: 'portfolio-detail:add',
+            folderId: this.folderId || '',
+            delta: successCount
+          });
           // 重新加载作品集内容
           this.getIndexData();
         } else {
@@ -655,6 +661,12 @@ export default {
                 // 从列表中移除
                 const newPostList = this.postList.filter(item => item.portfolioId !== portfolioId);
                 this.setData({ postList: newPostList });
+                notifyPortfolioUpdated({
+                  source: 'portfolio-detail:remove',
+                  folderId: this.folderId || '',
+                  portfolioId,
+                  delta: -1
+                });
                 
                 uni.showToast({
                   title: '删除成功',

@@ -115,29 +115,26 @@ Vue.prototype.$tcb = tcbApp;
 // #endif
 
 // 小程序环境：初始化 wx.cloud 并挂载到 Vue 原型
-// 【关键修复】不使用条件编译，改为运行时检测
+// #ifdef MP-WEIXIN
 if (typeof wx !== 'undefined' && wx.cloud) {
   console.log('☁️ [main.js] 检测到微信小程序环境，开始初始化云开发...');
   try {
-    // 立即同步初始化 wx.cloud
     wx.cloud.init({
       env: 'cloud1-5gb0pbyl400845f5',
       traceUser: true
     });
     console.log('✅ [main.js] 云开发初始化完成，环境 ID: cloud1-5gb0pbyl400845f5');
-    
-    // 挂载 wx.cloud 到 Vue 原型，保持与 H5/APP 的一致性
+
     Vue.prototype.$tcb = {
-      callFunction(options = {}) { 
+      callFunction(options = {}) {
         console.log('🔍 [Vue.$tcb] 调用云函数:', options.name);
-        return wx.cloud.callFunction(options); 
+        return wx.cloud.callFunction(options);
       },
       getTempFileURL(args = {}) { return wx.cloud.getTempFileURL(args); },
       database() { return wx.cloud.database(); },
       uploadFile(options = {}) { return wx.cloud.uploadFile(options); },
       downloadFile(options = {}) { return wx.cloud.downloadFile(options); },
       deleteFile(options = {}) { return wx.cloud.deleteFile(options); },
-      // 添加 auth 方法的空实现，避免调用时报错
       auth() {
         return {
           currentUser: null,
@@ -148,8 +145,7 @@ if (typeof wx !== 'undefined' && wx.cloud) {
       }
     };
     console.log('✅ [main.js] wx.cloud 已挂载到 Vue.prototype.$tcb');
-    
-    // 同时挂载到 uni 对象，确保全局可访问
+
     if (typeof uni !== 'undefined') {
       uni.$tcb = Vue.prototype.$tcb;
       console.log('✅ [main.js] wx.cloud 已挂载到 uni.$tcb');
@@ -157,9 +153,10 @@ if (typeof wx !== 'undefined' && wx.cloud) {
   } catch (error) {
     console.error('❌ [main.js] 云开发初始化失败:', error);
   }
-} else if (typeof wx !== 'undefined') {
+} else {
   console.error('❌ [main.js] wx.cloud 不可用，请使用 2.2.3 或以上的基础库');
 }
+// #endif
 
 // 注入临时 URL 解析器（全平台支持）
 try {

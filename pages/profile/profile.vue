@@ -185,7 +185,7 @@ import ActionMenu from '@/components/ActionMenu.vue';
 import DeleteModal from '@/components/DeleteModal.vue';
 import { getMyPosts, getMyFavorites, invalidateMyFavorites, invalidateMyPosts, invalidateMyInfo, getMyInfo } from '@/api-cache/my.js';
 import { togglePostVisibility, deletePost as deletePostApi, saveDraft, getPostDetail, removeFavorite as removeFavoriteApi, getFollowerCount, updateUserInfo, logout } from '@/api-cache/profile-actions.js';
-import { getPortfolioFolders } from '@/api-cache/portfolio.js';
+import { getPortfolioFolders, notifyPortfolioUpdated } from '@/api-cache/portfolio.js';
 import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
 import { navigateToUserProfile } from '@/utils/navigation.js';
 import { calculateAge } from '@/utils/ageCalculator.js';
@@ -1271,9 +1271,14 @@ export default {
                     that.setData({
                         myPosts: newList
                     });
+                    notifyPortfolioUpdated({
+                        source: 'profile:delete-post',
+                        postId: postId
+                    });
                     // 新增：删除成功后设置首页需要刷新标记
                     try {
                         uni.setStorageSync('shouldRefreshIndex', true);
+                        uni.setStorageSync('shouldRefreshProfile', true);
                     } catch (e) {
                         console.log('CatchClause', e);
                         console.log('CatchClause', e);

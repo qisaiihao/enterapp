@@ -58,6 +58,7 @@
           :index="index"
           @vote="handleVote"
           @comment-click="handleCommentClick"
+          @longpress="handleCardLongPress"
         />
         <post-item
           v-else
@@ -90,6 +91,7 @@ import PostItem from '@/components/PostItem.vue';
 import ActivityPoemCard from '@/components/activity/ActivityPoemCard.vue';
 import { getActivityPosts, getActivityDetail, invalidateActivityPosts } from '@/api-cache/activities.js';
 import fileUrlCache from '@/_utils/file-url-cache';
+const { attachPoemDisplayFields } = require('@/utils/poemDisplay.js');
 const { previewImage } = require('@/utils/imagePreview.js');
 const likeIcon = require('@/utils/likeIcon.js');
 const { togglePostLike } = require('@/utils/likeService.js');
@@ -459,7 +461,7 @@ export default {
       const seriesPoems = buildSeriesPoems(post);
       const isSeries = !!(post && (post.isSeries === true || seriesPoems.length > 0));
 
-      return {
+      return attachPoemDisplayFields({
         ...post,
         votes,
         isVoted,
@@ -470,7 +472,7 @@ export default {
         backgroundColor: (post && post.backgroundColor) || defaultBg,
         textColor: (post && post.textColor) || '#222',
         likeIcon: likeIcon.getLikeIcon(votes, isVoted)
-      };
+      });
     },
 
     isPoemCard(item) {
@@ -491,6 +493,12 @@ export default {
     },
 
     handleCommentClick(data) {
+      if (!data || !data.postId) return;
+      uni.navigateTo({
+        url: `/pages/post-detail/post-detail?id=${data.postId}`
+      });
+    },
+    handleCardLongPress(data) {
       if (!data || !data.postId) return;
       uni.navigateTo({
         url: `/pages/post-detail/post-detail?id=${data.postId}`

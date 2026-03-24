@@ -152,7 +152,8 @@ import {
   updatePortfolioFolder,
   deletePortfolio as deletePortfolioApi,
   uploadFile,
-  invalidatePortfolioCache
+  invalidatePortfolioCache,
+  normalizePortfolioFolder
 } from '@/api-cache/portfolio.js';
 
 export default {
@@ -189,7 +190,27 @@ export default {
   },
 
   onLoad() {
+    this.onPortfolioUpdated = this.handlePortfolioUpdated.bind(this);
+    try {
+      uni.$on('portfolio-updated', this.onPortfolioUpdated);
+    } catch (error) {
+      console.error('【portfolio】监听作品集更新事件失败:', error);
+    }
     this.loadFolders();
+  },
+
+  onShow() {
+    this.loadFolders(null, true);
+  },
+
+  onUnload() {
+    try {
+      if (this.onPortfolioUpdated) {
+        uni.$off('portfolio-updated', this.onPortfolioUpdated);
+      }
+    } catch (error) {
+      console.error('【portfolio】移除作品集更新监听失败:', error);
+    }
   },
 
   onPullDownRefresh() {
@@ -203,6 +224,34 @@ export default {
   methods: {
     onSafeAreaReady(height) {
       this.safeAreaTop = height || 0;
+    },
+
+    handlePortfolioUpdated(event = {}) {
+      try {
+        const folderId = event.folderId || '';
+        const delta = Number(event.delta || 0);
+
+        if (folderId && delta && Array.isArray(this.folders) && this.folders.length > 0) {
+          this.folders = this.folders.map(folder => {
+            if (!folder || folder._id !== folderId) return folder;
+            const currentCount = Number(
+              folder.itemCount !== undefined && folder.itemCount !== null
+                ? folder.itemCount
+                : folder.postCount
+            ) || 0;
+            const nextCount = Math.max(0, currentCount + delta);
+            return {
+              ...folder,
+              itemCount: nextCount,
+              postCount: nextCount
+            };
+          });
+        }
+
+        this.loadFolders(null, true);
+      } catch (error) {
+        console.error('【portfolio】处理作品集更新事件失败:', error);
+      }
     },
 
     goBack() {
@@ -222,12 +271,15 @@ export default {
           context: this
         });
 
-        // 确保每个 folder 对象都有 isSwipeOpen 和 itemCount 属性，防止 UI 渲染报错
-        this.folders = (folders || []).map(f => ({
-          ...f,
+        this.folders = (folders || []).map(f => {
+          const normalizedFolder = normalizePortfolioFolder(f || {});
+          return {
+            ...normalizedFolder,
           isSwipeOpen: false,
-          itemCount: f.itemCount || 0
-        }));
+            itemCount: normalizedFolder.itemCount,
+            postCount: normalizedFolder.postCount
+          };
+        });
         console.log('【portfolio】作品集加载成功，数量:', this.folders.length);
       } catch (error) {
         console.error('加载作品集失败:', error);

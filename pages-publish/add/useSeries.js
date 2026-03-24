@@ -1,38 +1,60 @@
 // pages/add/useSeries.js
-// 组诗相关逻辑，使用 addPure 中的纯函数，保持上下文 this 的 setData / checkCanPublish
+// 组诗相关逻辑，保持对外 ctx.setData / ctx.checkCanPublish 兼容
 import { normalizeSeriesBlocks, seriesBlocksToContent } from './addPure.js';
+
+function scheduleDraftSave(ctx) {
+    ctx.scheduleWorkingDraftSave && ctx.scheduleWorkingDraftSave();
+}
 
 export function toggleSeriesMode(ctx) {
     if (ctx.publishMode !== 'poem') {
         uni.showToast({ title: '组诗仅支持诗歌模式', icon: 'none' });
         return;
     }
+
     if (ctx.isSeries) {
-        // 关闭组诗，合并内容回主正文
         const merged = seriesBlocksToContent(ctx.seriesBlocks);
         ctx.setData({
             isSeries: false,
             content: merged
         });
-    } else {
-        // 开启组诗，用现有正文初始化第一段
-        const initialBlocks = (ctx.seriesBlocks && ctx.seriesBlocks.length > 0)
-            ? ctx.seriesBlocks
-            : [{
-                id: `series-${Date.now()}`,
-                subtitle: '',
-                content: ctx.content || '',
-                highlightSentence: '',
-                highlightLines: []
-            }];
-        ctx.setData({
-            isSeries: true,
-            seriesBlocks: initialBlocks,
-            content: ''
-        });
-        syncSeriesBlocks(ctx, initialBlocks);
+        ctx.checkCanPublish && ctx.checkCanPublish();
+        scheduleDraftSave(ctx);
+        return;
     }
-    ctx.checkCanPublish && ctx.checkCanPublish();
+
+    const currentContent = ctx.content || '';
+    const existingBlocks = Array.isArray(ctx.seriesBlocks) && ctx.seriesBlocks.length > 0
+        ? ctx.seriesBlocks.map(block => ({ ...block }))
+        : [];
+
+    const initialBlocks = existingBlocks.length > 0
+        ? existingBlocks
+        : [{
+            id: `series-${Date.now()}`,
+            subtitle: '',
+            content: '',
+            highlightSentence: '',
+            highlightLines: []
+        }];
+
+    if (currentContent || !(initialBlocks[0] && initialBlocks[0].content)) {
+        initialBlocks[0] = {
+            ...(initialBlocks[0] || {}),
+            id: (initialBlocks[0] && initialBlocks[0].id) || `series-${Date.now()}`,
+            subtitle: (initialBlocks[0] && initialBlocks[0].subtitle) || '',
+            content: currentContent || ((initialBlocks[0] && initialBlocks[0].content) || ''),
+            highlightSentence: (initialBlocks[0] && initialBlocks[0].highlightSentence) || '',
+            highlightLines: (initialBlocks[0] && initialBlocks[0].highlightLines) || []
+        };
+    }
+
+    ctx.setData({
+        isSeries: true,
+        seriesBlocks: initialBlocks,
+        content: seriesBlocksToContent(initialBlocks)
+    });
+    syncSeriesBlocks(ctx, initialBlocks);
 }
 
 export function syncSeriesBlocks(ctx, blocks, manualSeriesHighlights = null) {
@@ -42,12 +64,15 @@ export function syncSeriesBlocks(ctx, blocks, manualSeriesHighlights = null) {
         manual,
         ctx.isSeries
     );
+
     ctx.setData({
         seriesBlocks: normalized,
+        content: ctx.isSeries ? seriesBlocksToContent(normalized) : ctx.content,
         highlightLines: ctx.isSeries ? highlightLines : ctx.highlightLines,
         highlightSentence: ctx.isSeries ? (highlightSentence || '') : ctx.highlightSentence
     });
     ctx.checkCanPublish && ctx.checkCanPublish();
+    scheduleDraftSave(ctx);
 }
 
 export function addSeriesBlock(ctx, afterIndex = -1) {
@@ -55,6 +80,7 @@ export function addSeriesBlock(ctx, afterIndex = -1) {
         uni.showToast({ title: '已达到段落上限', icon: 'none' });
         return;
     }
+
     const next = (ctx.seriesBlocks || []).slice();
     const insertPos = Math.max(0, afterIndex + 1);
     next.splice(insertPos, 0, {

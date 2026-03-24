@@ -11,7 +11,7 @@
 
     <block v-if="isSeries && seriesExpanded && currentSeriesPoem">
       <view class="series-expanded-wrapper">
-        <view class="series-single-card" @tap="toggleCard">
+        <view class="series-single-card" @tap="toggleCard" @longpress="onLongPress">
           <view class="post-content-navigator">
             <view class="post-item">
               <view
@@ -22,9 +22,7 @@
                 {{ currentSeriesPoem.subtitle }}
               </view>
 
-              <view class="post-content expanded" :style="{ color: safeTextColor, whiteSpace: 'pre-wrap' }">
-                {{ currentSeriesPoem.content }}
-              </view>
+              <view class="post-content expanded" :style="{ color: safeTextColor, whiteSpace: 'pre-wrap' }">{{ currentSeriesPoem.content }}</view>
 
               <view v-if="showSignature" class="user-signature">
                 <image
@@ -63,31 +61,18 @@
         class="post-content-navigator"
         :class="{ 'has-vote-section': expanded && !isSeries }"
         @tap="toggleCard"
+        @longpress="onLongPress"
       >
         <view class="post-item">
           <view
-            v-if="item.content"
+            v-if="displayContent"
             :class="['post-content', expanded ? 'expanded' : 'collapsed', !expanded && safeHighlightLines.length === 0 ? 'no-highlight' : '']"
             :style="{ color: safeTextColor, whiteSpace: 'pre-wrap' }"
-          >
-            <block v-if="expanded">
-              {{ item.content || '' }}
-            </block>
-            <block v-else>
-              <block v-if="safeHighlightLines.length > 0">
-                <text
+          ><block v-if="expanded">{{ displayContent }}</block><block v-else><block v-if="safeHighlightLines.length > 0"><text
                   v-for="(highlightLine, highlightIndex) in safeHighlightLines"
                   :key="highlightIndex"
                   class="highlight-line"
-                >
-                  {{ highlightLine }}
-                </text>
-              </block>
-              <block v-else>
-                {{ item.content || '' }}
-              </block>
-            </block>
-          </view>
+                >{{ highlightLine }}</text></block><block v-else>{{ displayContent }}</block></block></view>
 
           <view v-if="expanded && showSignature" class="user-signature">
             <image
@@ -133,6 +118,12 @@
 </template>
 
 <script>
+const {
+  normalizePoemDisplayText,
+  normalizePoemDisplayLines,
+  normalizeSeriesBlocksForDisplay
+} = require('@/utils/poemDisplay.js');
+
 export default {
   name: 'ActivityPoemCard',
   props: {
@@ -160,15 +151,27 @@ export default {
     safeTextColor() {
       return this.item && this.item.textColor ? this.item.textColor : '#222';
     },
+    displayContent() {
+      const raw = this.item && this.item.displayContent !== undefined
+        ? this.item.displayContent
+        : normalizePoemDisplayText(this.item && this.item.content ? this.item.content : '');
+      return raw || '';
+    },
     safeHighlightLines() {
-      return Array.isArray(this.item && this.item.highlightLines)
-        ? this.item.highlightLines.filter(line => (line || '').trim())
-        : [];
+      const rawLines = Array.isArray(this.item && this.item.displayHighlightLines)
+        ? this.item.displayHighlightLines
+        : normalizePoemDisplayLines(this.item && this.item.highlightLines);
+      return rawLines.filter(line => (line || '').trim());
     },
     seriesPoems() {
-      return Array.isArray(this.item && this.item.seriesPoems)
-        ? this.item.seriesPoems.filter(block => block && ((block.content || '').trim() || (block.subtitle || '').trim()))
-        : [];
+      const rawSeries = Array.isArray(this.item && this.item.displaySeriesPoems) && this.item.displaySeriesPoems.length > 0
+        ? this.item.displaySeriesPoems
+        : normalizeSeriesBlocksForDisplay(
+          Array.isArray(this.item && this.item.seriesPoems) && this.item.seriesPoems.length > 0
+            ? this.item.seriesPoems
+            : this.item && this.item.seriesBlocks
+        );
+      return rawSeries.filter(block => block && ((block.content || '').trim() || (block.subtitle || '').trim()));
     },
     isSeries() {
       return !!(this.item && (this.item.isSeries || this.seriesPoems.length > 0));
@@ -226,6 +229,12 @@ export default {
     onCommentClick() {
       this.$emit('comment-click', {
         postId: this.item && this.item._id
+      });
+    },
+    onLongPress() {
+      this.$emit('longpress', {
+        postId: this.item && this.item._id,
+        index: this.index
       });
     },
     onSignatureError() {

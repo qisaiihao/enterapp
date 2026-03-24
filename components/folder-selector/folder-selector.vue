@@ -42,7 +42,7 @@
 
                                     <view class="folder-info">
                                         <view class="folder-name">{{ item.name }}</view>
-                                        <view class="folder-count">{{ item.itemCount === 0 ? '空空如也~' : item.itemCount + '个内容' }}</view>
+                                        <view class="folder-count">{{ ((item.itemCount !== undefined && item.itemCount !== null) ? item.itemCount : item.postCount) === 0 ? '空空如也~' : (((item.itemCount !== undefined && item.itemCount !== null) ? item.itemCount : item.postCount) || 0) + '个内容' }}</view>
                                     </view>
 
                                     <view class="folder-meta">

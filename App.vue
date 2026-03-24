@@ -21,22 +21,19 @@ export default {
     // 【重构】2. onLaunch 是 Vue 的生命周期函数，保持不变
     onLaunch: function (options) {
         // 小程序环境：在 App.vue 中初始化云开发（确保最早执行）
-        // 不使用条件编译，改为运行时检测
+        // #ifdef MP-WEIXIN
         if (typeof wx !== 'undefined' && wx.cloud) {
             console.log('☁️ [App.vue] 检测到微信小程序环境，开始初始化云开发...');
             try {
-                // 立即初始化 wx.cloud
                 wx.cloud.init({
                     env: 'cloud1-5gb0pbyl400845f5',
                     traceUser: true
                 });
                 console.log('✅ [App.vue] 云开发初始化完成');
-                
-                // 挂载到 this.$tcb
+
                 this.$tcb = wx.cloud;
                 console.log('✅ [App.vue] wx.cloud 已挂载到 this.$tcb');
-                
-                // 同时挂载到 Vue 原型和 uni 对象
+
                 if (typeof Vue !== 'undefined' && Vue.prototype) {
                     Vue.prototype.$tcb = wx.cloud;
                     console.log('✅ [App.vue] wx.cloud 已挂载到 Vue.prototype.$tcb');
@@ -48,9 +45,10 @@ export default {
             } catch (error) {
                 console.error('❌ [App.vue] 云开发初始化失败:', error);
             }
-        } else if (typeof wx !== 'undefined') {
+        } else {
             console.error('❌ [App.vue] wx.cloud 不可用，请检查基础库版本（需要 >= 2.2.3）');
         }
+        // #endif
         
         // #ifdef APP-PLUS
         // 处理 URL Scheme 启动（GitHub OAuth 回调）

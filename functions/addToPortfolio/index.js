@@ -1,5 +1,3 @@
-// 添加帖子到作品集的云函数
-// 基于addToFavorite逻辑修改
 const cloud = require('wx-server-sdk');
 
 cloud.init({
@@ -8,8 +6,24 @@ cloud.init({
 
 const db = cloud.database();
 
-// 云函数入口函数
-exports.main = async (event, context) => {
+async function syncFolderCount(folderId) {
+  if (!folderId) return;
+
+  const countResult = await db.collection('portfolio_items').where({
+    folderId
+  }).count();
+  const exactCount = Number(countResult.total) || 0;
+
+  await db.collection('portfolio_folders').doc(folderId).update({
+    data: {
+      itemCount: exactCount,
+      postCount: exactCount,
+      updateTime: new Date()
+    }
+  });
+}
+
+exports.main = async (event) => {
   const wxContext = cloud.getWXContext();
   const openid = wxContext.OPENID || event.openid;
   const { postId, folderId } = event;
@@ -30,11 +44,10 @@ exports.main = async (event, context) => {
       };
     }
 
-    // 检查是否已经添加过
     const existingPortfolio = await db.collection('portfolio_items').where({
       _openid: openid,
-      postId: postId,
-      folderId: folderId
+      postId,
+      folderId
     }).get();
 
     if (existingPortfolio.data.length > 0) {
@@ -44,23 +57,16 @@ exports.main = async (event, context) => {
       };
     }
 
-    // 添加到作品集
     const result = await db.collection('portfolio_items').add({
       data: {
         _openid: openid,
-        postId: postId,
-        folderId: folderId,
+        postId,
+        folderId,
         createTime: new Date()
       }
     });
 
-    // 更新作品集的项目数量
-    await db.collection('portfolio_folders').doc(folderId).update({
-      data: {
-        itemCount: db.command.inc(1),
-        updateTime: new Date()
-      }
-    });
+    await syncFolderCount(folderId);
 
     return {
       success: true,

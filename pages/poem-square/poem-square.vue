@@ -71,7 +71,9 @@
               <view 
                 class="series-single-card"
                 @tap="onSeriesCardTap"
+                @longpress="onLongPressCard"
                 :data-index="index"
+                :data-postid="item._id"
               >
                 <!-- 当前显示的诗 -->
                 <view class="post-item">
@@ -81,9 +83,7 @@
                   </view>
                   
                   <!-- 显示内容 -->
-                  <view class="post-content expanded" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
-                    {{ item.seriesPoems[item.currentSeriesIndex || 0].content }}
-                  </view>
+                  <view class="post-content expanded" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">{{ item.seriesPoems[item.currentSeriesIndex || 0].content }}</view>
                   
                   <!-- 作者签名 -->
                   <view v-if="item.authorSignature && !item.isAnonymous" class="user-signature">
@@ -131,19 +131,7 @@
               :data-postid="item._id"
             >
               <view class="post-item">
-                <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.highlightLines || item.highlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.content" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
-                  <block v-if="item.isExpanded">
-                    {{ item.content }}
-                  </block>
-                  <block v-else>
-                    <block v-if="item.highlightLines && item.highlightLines.length > 0">
-                      <text v-for="(highlightLine, hlIndex) in item.highlightLines" :key="hlIndex" style="font-weight: 700; display: block;">{{ highlightLine }}</text>
-                    </block>
-                    <block v-else>
-                      {{ item.content }}
-                    </block>
-                  </block>
-                </view>
+                <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.displayHighlightLines || item.displayHighlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.displayContent" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }"><block v-if="item.isExpanded">{{ item.displayContent }}</block><block v-else><block v-if="item.displayHighlightLines && item.displayHighlightLines.length > 0"><text v-for="(highlightLine, hlIndex) in item.displayHighlightLines" :key="hlIndex" style="font-weight: 700; display: block;">{{ highlightLine }}</text></block><block v-else>{{ item.displayContent }}</block></block></view>
 
                 <!-- 作者签名 - 展开时显示大签名（匿名帖子不显示签名） -->
                 <view v-if="item.isExpanded && item.authorSignature && !item.isAnonymous" class="user-signature">
@@ -230,6 +218,7 @@ import fileUrlCache from '@/cache/core/file-url';
 import { updateTabBarStatus } from '@/utils/tabBarCompatibility.js';
 import activityBadge from '@/cache/stores/activity-badge.js';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
+import { attachPoemDisplayFields } from '@/utils/poemDisplay.js';
 
 const PAGE_SIZE = 10;
 
@@ -600,6 +589,8 @@ export default {
         console.log('🔍 [poem-square-cache] 过滤匿名后的数量:', visibleList.length);
         
         visibleList.forEach((p) => {
+          this.normalizePoemCardPost(p);
+          return;
           if (!p) return;
           p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
           p.textColor = p.textColor || '#222';
@@ -734,6 +725,29 @@ export default {
       this.lastUsedColorIndex = result.index;
       return result.color;
     },
+    normalizePoemCardPost(post) {
+      if (!post) return post;
+
+      post.backgroundColor = post.backgroundColor || this.generateRandomBackgroundColor();
+      post.textColor = post.textColor || '#222';
+      post.isExpanded = false;
+      post.authorSignature = post.authorSignature || '';
+      post.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(post.votes || 0, !!post.isVoted) : '';
+
+      const normalized = attachPoemDisplayFields(post);
+      post.displayContent = normalized.displayContent;
+      post.displayHighlightLines = normalized.displayHighlightLines;
+
+      if (post.isSeries) {
+        post.seriesExpanded = false;
+        post.currentSeriesIndex = 0;
+        post.seriesPoems = Array.isArray(normalized.displaySeriesPoems) ? normalized.displaySeriesPoems : [];
+      } else if (!Array.isArray(post.seriesPoems)) {
+        post.seriesPoems = [];
+      }
+
+      return post;
+    },
     async getPostList(cb) {
       // 双重检查：防止重复调用（首次加载时isLoading为true是正常的）
       const isFirstLoad = this.page === 0;
@@ -766,6 +780,8 @@ export default {
                 try {
                   const visibleList = newPosts.filter(p => p && !p.isAnonymous);
                   visibleList.forEach((p) => {
+                    this.normalizePoemCardPost(p);
+                    return;
                     if (!p) return;
                     p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
                     p.textColor = p.textColor || '#222';
@@ -824,6 +840,8 @@ export default {
               try {
                 const visibleList = newPosts.filter(p => p && !p.isAnonymous);
                 visibleList.forEach((p) => {
+                  this.normalizePoemCardPost(p);
+                  return;
                   if (!p) return;
                   p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
                   p.textColor = p.textColor || '#222';
@@ -884,6 +902,8 @@ export default {
       const visibleList = list.filter(p => p && !p.isAnonymous);
       
       visibleList.forEach((p) => {
+        this.normalizePoemCardPost(p);
+        return;
         if (!p) return;
         p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
         p.textColor = p.textColor || '#222';
@@ -989,10 +1009,9 @@ export default {
         if (!seriesPoems || !Array.isArray(seriesPoems) || seriesPoems.length === 0) {
           // 从 seriesBlocks 转换
           if (Array.isArray(item.seriesBlocks) && item.seriesBlocks.length > 0) {
-            seriesPoems = item.seriesBlocks.map(block => ({
-              content: block.content || '',
-              subtitle: block.subtitle || ''
-            }));
+            seriesPoems = attachPoemDisplayFields({
+              seriesBlocks: item.seriesBlocks
+            }).displaySeriesPoems || [];
           } else {
             seriesPoems = [];
           }
@@ -1585,8 +1604,8 @@ export default {
 }
 
 .activity-entry-text {
-  margin-top: -8rpx;
-  font-size: 22rpx;
+    margin-top: 4rpx;
+    font-size: 22rpx;
   line-height: 1.2;
   color: #9b9b9b;
   text-align: center;

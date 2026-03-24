@@ -30,7 +30,7 @@
 
                             <view class="portfolio-info">
                                 <view class="portfolio-name">{{ item.name }}</view>
-                                <view class="portfolio-count">{{ item.itemCount === 0 ? '空空如也~' : item.itemCount + '个作品' }}</view>
+                                <view class="portfolio-count">{{ getPortfolioItemCount(item) === 0 ? '空空如也~' : getPortfolioItemCount(item) + '个作品' }}</view>
                             </view>
 
                             <view class="portfolio-meta">
@@ -99,6 +99,7 @@
 <script>
 // components/portfolio-selector/portfolio-selector.js
 const { cloudCall } = require('../../utils/cloudCall.js');
+const { notifyPortfolioUpdated } = require('../../api-cache/portfolio.js');
 export default {
     data() {
         return {
@@ -140,6 +141,13 @@ export default {
     },
 
     methods: {
+        getPortfolioItemCount(item = {}) {
+            return Number(
+                item.itemCount !== undefined && item.itemCount !== null
+                    ? item.itemCount
+                    : item.postCount
+            ) || 0;
+        },
         // 统一云函数调用方法
         callCloudFunction(name, data = {}, extraOptions = {}) {
             return cloudCall(name, data, Object.assign({ pageTag: 'portfolio-selector', context: this, requireAuth: true }, extraOptions));
@@ -264,6 +272,12 @@ export default {
                         }, 1500);
 
                         // 触发成功事件
+                        notifyPortfolioUpdated({
+                            source: 'portfolio-selector:add',
+                            folderId: portfolioId,
+                            postId: postId,
+                            delta: 1
+                        });
                         this.$emit('portfolioSuccess');
                     } else {
                         uni.showToast({
@@ -321,6 +335,12 @@ export default {
                             }, 1500);
 
                             // 触发成功事件
+                            notifyPortfolioUpdated({
+                                source: 'portfolio-selector:add',
+                                folderId: selectedPortfolioId,
+                                postId: postId,
+                                delta: 1
+                            });
                             this.$emit('portfolioSuccess');
                         } else {
                             console.error('添加到作品集业务失败:', res.result);

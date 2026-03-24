@@ -1,5 +1,3 @@
-// 从作品集中移除项目的云函数
-// 基于removeFromFavorite逻辑修改
 const cloud = require('wx-server-sdk');
 
 cloud.init({
@@ -8,8 +6,24 @@ cloud.init({
 
 const db = cloud.database();
 
-// 云函数入口函数
-exports.main = async (event, context) => {
+async function syncFolderCount(folderId) {
+  if (!folderId) return;
+
+  const countResult = await db.collection('portfolio_items').where({
+    folderId
+  }).count();
+  const exactCount = Number(countResult.total) || 0;
+
+  await db.collection('portfolio_folders').doc(folderId).update({
+    data: {
+      itemCount: exactCount,
+      postCount: exactCount,
+      updateTime: new Date()
+    }
+  });
+}
+
+exports.main = async (event) => {
   const wxContext = cloud.getWXContext();
   const openid = wxContext.OPENID || event.openid;
   const { portfolioId } = event;
@@ -30,7 +44,6 @@ exports.main = async (event, context) => {
       };
     }
 
-    // 首先获取作品集项目信息，以便更新作品集计数
     const portfolioItem = await db.collection('portfolio_items').doc(portfolioId).get();
     if (!portfolioItem.data) {
       return {
@@ -41,18 +54,8 @@ exports.main = async (event, context) => {
 
     const folderId = portfolioItem.data.folderId;
 
-    // 删除作品集项目
     await db.collection('portfolio_items').doc(portfolioId).remove();
-
-    // 更新作品集的项目数量
-    if (folderId) {
-      await db.collection('portfolio_folders').doc(folderId).update({
-        data: {
-          itemCount: db.command.inc(-1),
-          updateTime: new Date()
-        }
-      });
-    }
+    await syncFolderCount(folderId);
 
     return {
       success: true,

@@ -73,16 +73,26 @@ function generateUploadCloudPath(userId, fileName, folder = 'portfolio') {
  * @param {Array} folders - 原始作品集数据
  * @returns {Array} 处理后的作品集数据
  */
+function getFolderCount(folder = {}) {
+    return Number(
+        folder.itemCount !== undefined && folder.itemCount !== null
+            ? folder.itemCount
+            : folder.postCount
+    ) || 0;
+}
+
 function processPortfolioFolders(folders) {
     if (!Array.isArray(folders)) {
         return [];
     }
 
     return folders.map(folder => {
+        const count = getFolderCount(folder);
         return {
             ...folder,
             displayName: folder.name || '未命名作品集',
-            postCount: folder.postCount || 0,
+            itemCount: count,
+            postCount: count,
             createdAt: folder.createTime || Date.now(),
             updatedAt: folder.updateTime || folder.createTime || Date.now(),
             coverUrl: folder.coverUrl || '',
@@ -206,6 +216,7 @@ function createDefaultPortfolioData(name, coverUrl = '') {
     return {
         name: name || '新作品集',
         coverUrl: coverUrl,
+        itemCount: 0,
         postCount: 0,
         isDefault: false,
         createTime: Date.now(),
@@ -234,10 +245,12 @@ function canDeleteFolder(folder) {
         };
     }
 
-    if (folder.postCount > 0) {
+    const count = getFolderCount(folder);
+
+    if (count > 0) {
         return {
             canDelete: true,
-            message: `删除后将同时删除作品集中的 ${folder.postCount} 个帖子`
+            message: `删除后将同时删除作品集中的 ${count} 个帖子`
         };
     }
 

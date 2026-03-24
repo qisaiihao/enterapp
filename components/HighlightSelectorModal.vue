@@ -64,6 +64,10 @@ export default {
         return {
             // 内部维护选中状态
             selectedIndices: [],
+            touchStartX: 0,
+            touchStartY: 0,
+            touchCurrentX: 0,
+            touchCurrentY: 0,
             // 自定义提示
             showTip: false,
             tipText: '',
@@ -88,6 +92,33 @@ export default {
         }
     },
     methods: {
+        onTouchStart(e) {
+            const touch = e && e.touches && e.touches[0];
+            if (!touch) return;
+
+            this.touchStartX = touch.pageX || touch.clientX || 0;
+            this.touchStartY = touch.pageY || touch.clientY || 0;
+            this.touchCurrentX = this.touchStartX;
+            this.touchCurrentY = this.touchStartY;
+        },
+
+        onTouchMove(e) {
+            const touch = e && e.touches && e.touches[0];
+            if (!touch) return;
+
+            this.touchCurrentX = touch.pageX || touch.clientX || 0;
+            this.touchCurrentY = touch.pageY || touch.clientY || 0;
+        },
+
+        onTouchEnd() {
+            const deltaX = this.touchCurrentX - this.touchStartX;
+            const deltaY = Math.abs(this.touchCurrentY - this.touchStartY);
+
+            if (Math.abs(deltaX) > deltaY && Math.abs(deltaX) > 30) {
+                this.onClose();
+            }
+        },
+
         // 关闭弹窗
         onClose() {
             this.$emit('close');

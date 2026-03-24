@@ -36,20 +36,7 @@
         <view v-for="(item, index) in postList" :key="index" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
           <view class="post-content-navigator" @tap="togglePostExpansion" @longpress="onLongPressCard" :data-index="index" :data-postid="item._id">
             <view class="post-item">
-              <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.highlightLines || item.highlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.content" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
-                <block v-if="item.isExpanded">
-                  {{ item.content }}
-                </block>
-                <block v-else>
-                  <!-- 折叠状态下只显示高光行 -->
-                  <block v-if="item.highlightLines && item.highlightLines.length > 0">
-                    <text v-for="(highlightLine, index) in item.highlightLines" :key="index" style="font-weight: 700; display: block;">{{ highlightLine }}</text>
-                  </block>
-                  <block v-else>
-                    {{ item.content }}
-                  </block>
-                </block>
-              </view>
+              <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.displayHighlightLines || item.displayHighlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.displayContent" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }"><block v-if="item.isExpanded">{{ item.displayContent }}</block><block v-else><block v-if="item.displayHighlightLines && item.displayHighlightLines.length > 0"><text v-for="(highlightLine, index) in item.displayHighlightLines" :key="index" style="font-weight: 700; display: block;">{{ highlightLine }}</text></block><block v-else>{{ item.displayContent }}</block></block></view>
 
             </view>
           </view>
@@ -107,6 +94,7 @@ import { togglePostLike } from '@/utils/likeService.js';
 import { syncLikeStatusForPosts, getLatestLikeStatus } from '@/utils/likeStatusSync.js';
 import { updateTabBarStatus } from '@/utils/tabBarCompatibility.js';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
+import { attachPoemDisplayFields } from '@/utils/poemDisplay.js';
 
 const PAGE_SIZE = 10;
 
@@ -357,6 +345,21 @@ export default {
       this.lastUsedColorIndex = result.index;
       return result.color;
     },
+    normalizePoemCardPost(post) {
+      if (!post) return post;
+
+      post.backgroundColor = post.backgroundColor || this.generateRandomBackgroundColor();
+      post.textColor = post.textColor || '#222';
+      post.isExpanded = false;
+      post.authorSignature = post.authorSignature || '';
+      post.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(post.votes || 0, !!post.isVoted) : '';
+
+      const normalized = attachPoemDisplayFields(post);
+      post.displayContent = normalized.displayContent;
+      post.displayHighlightLines = normalized.displayHighlightLines;
+
+      return post;
+    },
     async getPostList(cb) {
       console.log('【mountain】getPostList 开始，isLoadingMore:', this.isLoadingMore, 'isLoading:', this.isLoading, 'page:', this.page, '_loadingLock:', this._loadingLock, 'callback:', typeof cb);
       // 双重检查：防止重复调用（首次加载时isLoading为true是正常的）
@@ -389,6 +392,8 @@ export default {
             try {
               const visibleList = newPosts.filter(p => p && !p.isAnonymous);
               visibleList.forEach((p) => {
+                this.normalizePoemCardPost(p);
+                return;
                 if (!p) return;
                 p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
                 p.textColor = p.textColor || '#222';
@@ -416,6 +421,8 @@ export default {
         const visibleList = list.filter(p => !p.isAnonymous);
         
         visibleList.forEach((p) => {
+          this.normalizePoemCardPost(p);
+          return;
           // 优先使用数据库中保存的背景颜色，如果没有则随机生成
           p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
           p.textColor = p.textColor || '#222';
@@ -683,4 +690,3 @@ export default {
         if (changed) this.setData({ postList: next });
       } catch (err) { console.warn('[mountain] syncLikeStatusFromCache failed', err); }
     },
-
