@@ -2,6 +2,7 @@
  * 评论相关 API 封装
  */
 const { callCloudAndUnwrap } = require('./_shared/cloud-wrapper.js');
+const { invalidatePostDetail } = require('./post.js');
 
 function getComments(postId, options = {}) {
   if (!postId) {
@@ -58,7 +59,10 @@ function submitComment(commentData, options = {}) {
       requireAuth: true
     }, options),
     '评论失败'
-  );
+  ).then((result) => {
+    invalidatePostDetail(postId);
+    return result;
+  });
 }
 
 function deleteComment(commentId, postId, parentId = null, options = {}) {
@@ -77,7 +81,10 @@ function deleteComment(commentId, postId, parentId = null, options = {}) {
       requireAuth: true
     }, options),
     '删除评论失败'
-  );
+  ).then((result) => {
+    invalidatePostDetail(postId);
+    return result;
+  });
 }
 
 function likeComment(commentId, postId, isLiked, options = {}) {
@@ -158,4 +165,3 @@ module.exports = {
   reportComment,
   getCommentReplies
 };
-

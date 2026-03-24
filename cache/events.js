@@ -27,7 +27,7 @@ export function setupCacheEventBridges() {
         const homePosts = requireApiCache('home-posts');
         const postList = requireApiCache('post-list');
         const discover = requireApiCache('discover');
-        
+
         homePosts?.invalidateHomePosts?.({});
         postList?.invalidatePostList?.({});
         discover?.clearDiscoverCache?.();
@@ -38,13 +38,13 @@ export function setupCacheEventBridges() {
     uni.$on(EVENTS.AVATAR_UPDATED, (payload = {}) => {
       const uid = payload.userId || payload.userID || payload.uid;
       if (!uid) return;
-      
+
       try {
         const userProfile = requireApiCache('user-profile');
         const homePosts = requireApiCache('home-posts');
         const postList = requireApiCache('post-list');
         const discover = requireApiCache('discover');
-        
+
         userProfile?.invalidateUserInfo?.(uid);
         userProfile?.invalidateUserPosts?.(uid);
         homePosts?.invalidateHomePosts?.({});
@@ -57,7 +57,7 @@ export function setupCacheEventBridges() {
     uni.$on(EVENTS.LIKE_CHANGED, (payload = {}) => {
       const { postId, votes, isLiked } = payload;
       if (!postId) return;
-      
+
       try {
         const likeStatusCache = require('./stores/like-status');
         likeStatusCache.updateLikeStatus(postId, votes, isLiked);
@@ -69,7 +69,7 @@ export function setupCacheEventBridges() {
     uni.$on(EVENTS.COMMENT_LIKE_CHANGED, (payload = {}) => {
       const { commentId, likes, liked } = payload;
       if (!commentId) return;
-      
+
       try {
         const commentLikeSync = require('@/utils/commentLikeStatusSync.js');
         commentLikeSync.updateCommentLikeCache?.(commentId, likes, liked);
@@ -81,14 +81,17 @@ export function setupCacheEventBridges() {
     uni.$on(EVENTS.COMMENT_COUNT_CHANGED, (payload = {}) => {
       const { postId, commentCount } = payload;
       if (!postId || typeof commentCount !== 'number') return;
-      
+
       try {
+        const postApi = requireApiCache('post');
         const cacheManager = require('./core/manager');
         const nsStats = cacheManager.getStats?.() || {};
         const targets = Object.keys(nsStats).filter((n) => (
           n === 'posts:list' || n.startsWith('posts:') || n.startsWith('me:posts') || n.startsWith('userPosts:')
         ));
-        
+
+        postApi?.syncPostDetailCommentCount?.(postId, commentCount);
+
         targets.forEach((nsName) => {
           try {
             const ns = cacheManager.namespace(nsName);
@@ -124,14 +127,14 @@ export function setupCacheEventBridges() {
     uni.$on(EVENTS.POST_VISIBILITY_CHANGED, (payload = {}) => {
       const { postId, isHidden } = payload;
       if (!postId) return;
-      
+
       try {
         const cacheManager = require('./core/manager');
         const nsStats = cacheManager.getStats?.() || {};
         const targets = Object.keys(nsStats).filter((n) => (
           n === 'posts:list' || n.startsWith('posts:') || n.startsWith('userPosts:')
         ));
-        
+
         if (isHidden) {
           targets.forEach((nsName) => {
             try {
@@ -148,7 +151,7 @@ export function setupCacheEventBridges() {
           const homePosts = requireApiCache('home-posts');
           const postList = requireApiCache('post-list');
           const discover = requireApiCache('discover');
-          
+
           homePosts?.invalidateHomePosts?.({});
           postList?.invalidatePostList?.({});
           discover?.clearDiscoverCache?.();

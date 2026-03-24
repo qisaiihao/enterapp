@@ -5,9 +5,9 @@ const { formatRelativeTime } = require('./time.js');
 const { getLikeIcon } = require('./likeIcon.js');
 
 /**
- * 处理评论数据，添加格式化时间和其他必要字段
- * @param {Object|Array} comments - 评论数据（单个评论或评论数组）
- * @returns {Object|Array} 处理后的评论数据
+ * 处理评论数据，补齐时间、点赞图标和响应式字段
+ * @param {Object|Array} comments - 评论数据
+ * @returns {Object|Array}
  */
 function processComments(comments) {
     if (!comments) return comments;
@@ -22,11 +22,9 @@ function processComments(comments) {
             imageUrls: Array.isArray(comment.imageUrls) ? comment.imageUrls : [],
             originalImageUrls: Array.isArray(comment.originalImageUrls) ? comment.originalImageUrls : [],
             _openid: comment._openid || '',
-            // ensure reply folding flag is reactive on first render
-            showAllReplies: false
+            showAllReplies: typeof comment.showAllReplies === 'boolean' ? comment.showAllReplies : false
         };
 
-        // 处理回复
         if (comment.replies && Array.isArray(comment.replies)) {
             processedComment.replies = comment.replies.map(reply => processComment(reply));
         }
@@ -36,16 +34,64 @@ function processComments(comments) {
 
     if (Array.isArray(comments)) {
         return comments.map(processComment);
-    } else {
-        return processComment(comments);
     }
+    return processComment(comments);
+}
+
+function buildCommentUiStateMap(comments, stateMap = new Map()) {
+    if (!Array.isArray(comments)) {
+        return stateMap;
+    }
+
+    comments.forEach((comment) => {
+        if (!comment) return;
+
+        if (comment._id) {
+            stateMap.set(comment._id, {
+                showAllReplies: typeof comment.showAllReplies === 'boolean' ? comment.showAllReplies : false
+            });
+        }
+
+        if (Array.isArray(comment.replies) && comment.replies.length > 0) {
+            buildCommentUiStateMap(comment.replies, stateMap);
+        }
+    });
+
+    return stateMap;
+}
+
+function mergeCommentUiState(comments, previousComments = []) {
+    if (!Array.isArray(comments)) {
+        return comments;
+    }
+
+    const stateMap = buildCommentUiStateMap(previousComments);
+
+    const applyUiState = (comment) => {
+        if (!comment) return comment;
+
+        const nextComment = { ...comment };
+        const savedState = nextComment._id ? stateMap.get(nextComment._id) : null;
+
+        if (savedState && typeof savedState.showAllReplies === 'boolean') {
+            nextComment.showAllReplies = savedState.showAllReplies;
+        }
+
+        if (Array.isArray(nextComment.replies) && nextComment.replies.length > 0) {
+            nextComment.replies = nextComment.replies.map(applyUiState);
+        }
+
+        return nextComment;
+    };
+
+    return comments.map(applyUiState);
 }
 
 /**
  * 验证评论输入内容
  * @param {string} content - 评论内容
  * @param {Array} images - 评论图片数组
- * @returns {Object} 验证结果 { isValid: boolean, message: string }
+ * @returns {Object}
  */
 function validateCommentInput(content, images = []) {
     const hasContent = content && content.trim().length > 0;
@@ -79,10 +125,10 @@ function validateCommentInput(content, images = []) {
 }
 
 /**
- * 处理评论图片，添加必要的属性
+ * 处理评论图片，添加必要属性
  * @param {Array} images - 图片数组
  * @param {string} openid - 用户ID
- * @returns {Array} 处理后的图片数组
+ * @returns {Array}
  */
 function processCommentImages(images, openid) {
     if (!Array.isArray(images) || !openid) {
@@ -104,15 +150,14 @@ function processCommentImages(images, openid) {
 /**
  * 在评论列表中查找指定评论
  * @param {Array} comments - 评论列表
- * @param {string} commentId - 要查找的评论ID
- * @returns {Object} 查找结果 { comment: Object, parentIndex: number, replyIndex: number }
+ * @param {string} commentId - 评论ID
+ * @returns {Object}
  */
 function findComment(comments, commentId) {
     if (!Array.isArray(comments) || !commentId) {
         return { comment: null, parentIndex: -1, replyIndex: -1 };
     }
 
-    // 查找主评论
     for (let i = 0; i < comments.length; i++) {
         if (comments[i]._id === commentId) {
             return {
@@ -122,7 +167,6 @@ function findComment(comments, commentId) {
             };
         }
 
-        // 查找回复
         if (comments[i].replies && Array.isArray(comments[i].replies)) {
             for (let j = 0; j < comments[i].replies.length; j++) {
                 if (comments[i].replies[j]._id === commentId) {
@@ -140,10 +184,10 @@ function findComment(comments, commentId) {
 }
 
 /**
- * 计算评论的剩余字符数
+ * 计算评论剩余字符数
  * @param {string} content - 当前内容
  * @param {number} maxLength - 最大长度
- * @returns {number} 剩余字符数
+ * @returns {number}
  */
 function calculateRemainingChars(content, maxLength = 1000) {
     return maxLength - (content ? content.length : 0);
@@ -151,6 +195,7 @@ function calculateRemainingChars(content, maxLength = 1000) {
 
 module.exports = {
     processComments,
+    mergeCommentUiState,
     validateCommentInput,
     processCommentImages,
     findComment,

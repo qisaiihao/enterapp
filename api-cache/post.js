@@ -102,6 +102,28 @@ function invalidatePostDetail(postId) {
   }
 }
 
+function syncPostDetailCommentCount(postId, commentCount) {
+  if (!postId || typeof commentCount !== 'number') {
+    return false;
+  }
+
+  return nsDetail.update(postId, (detail) => {
+    if (!detail || typeof detail !== 'object') {
+      return detail;
+    }
+
+    const nextPost = detail.post && typeof detail.post === 'object'
+      ? { ...detail.post, commentCount }
+      : detail.post;
+
+    return {
+      ...detail,
+      post: nextPost,
+      commentCount
+    };
+  });
+}
+
 /**
  * 更新帖子内容
  * @param {string} postId 帖子 ID
@@ -253,6 +275,7 @@ module.exports = {
   getPostDetail,
   prefillPostDetail,
   invalidatePostDetail,
+  syncPostDetailCommentCount,
   updatePostContent,
   deletePost,
   togglePostFavorite,
