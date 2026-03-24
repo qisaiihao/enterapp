@@ -53,7 +53,7 @@ if (typeof document !== 'undefined') {
 // App端字体预加载
 console.log('🔤 [字体预加载] App端开始预加载汇文明朝字体');
 try {
-  const fontPath = plus.io.convertLocalFileSystemURL('_www/static/fonts/Huiwen-mincho.otf');
+  const fontPath = plus.io.convertLocalFileSystemURL('_www/static/fonts/Huiwen-mincho-compressed.woff2');
   console.log('📍 [字体预加载] App端字体路径:', fontPath);
   
   // 使用 uni.loadFontFace 加载字体

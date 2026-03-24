@@ -22,6 +22,21 @@ function getDefaultLocalFileName(config, platform = platformDetector.getCurrentP
     return config ? config.filename : '';
 }
 
+function isLegacyBuiltinFontCache(fontFamily, cacheData, config) {
+    if (!fontFamily || !cacheData || !config) return false;
+    if (fontFamily !== '汇文明朝') return false;
+
+    const expectedCloudUrl = config.mpWeixinUrl || '';
+    const cachedCloudUrl = cacheData.cloudUrl || '';
+    const cachedPath = cacheData.path || '';
+
+    return (
+        cachedCloudUrl.endsWith('.otf') ||
+        cachedPath.endsWith('.otf') ||
+        (expectedCloudUrl && cachedCloudUrl && cachedCloudUrl !== expectedCloudUrl)
+    );
+}
+
 /**
  * 生成安全的文件名（避免中文字符导致的加载问题）
  */
@@ -40,13 +55,13 @@ const FONT_CONFIG = {
         filename: 'Huiwen-mincho-compressed.woff2',
         localFileNameByPlatform: {
             h5: 'Huiwen-mincho-compressed.woff2',
-            app: 'Huiwen-mincho.otf'
+            app: 'Huiwen-mincho-compressed.woff2'
         },
-        cloudPath: 'cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/fonts/Huiwen-mincho.otf',
+        cloudPath: 'cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/fonts/Huiwen-mincho-compressed.woff2',
         // 小程序端使用 WOFF2 格式的 HTTPS 链接（直接使用 TCB 域名，避免云函数超时）
         mpWeixinUrl: 'https://636c-cloud1-5gb0pbyl400845f5-1378788263.tcb.qcloud.la/fonts/Huiwen-mincho-compressed.woff2',
         size: 7993880, // 7.9MB
-        version: '1.0.0',
+        version: '1.1.0',
         // 小程序端使用 wx.loadFontFace 加载，App/H5 使用本地文件
         isDefault: platformDetector.getCurrentPlatform() !== 'mp-weixin',
     },
@@ -156,6 +171,14 @@ class FontManager {
             uni.setStorageSync(FONT_STORAGE_KEY, this.cacheInfo);
         } catch (e) {
             console.warn('【FontManager】保存缓存信息失败:', e);
+        }
+    }
+
+    purgeFontCache(fontFamily) {
+        if (!fontFamily || !this.cacheInfo || !this.cacheInfo.fonts) return;
+        if (this.cacheInfo.fonts[fontFamily]) {
+            delete this.cacheInfo.fonts[fontFamily];
+            this.saveCacheInfo();
         }
     }
 
@@ -469,8 +492,14 @@ class FontManager {
             console.log('【FontManager】❌ 无缓存数据');
             return false;
         }
+        if (isLegacyBuiltinFontCache(fontFamily, cacheData, config)) {
+            console.log('【FontManager】⚠️ 检测到旧版字体缓存，准备清理:', cacheData);
+            this.purgeFontCache(fontFamily);
+            return false;
+        }
         if (cacheData.version !== config.version) {
             console.log('【FontManager】⚠️ 版本不匹配，缓存:', cacheData.version, '配置:', config.version);
+            this.purgeFontCache(fontFamily);
             return false;
         }
 
@@ -530,6 +559,10 @@ class FontManager {
         
         const cacheData = this.cacheInfo.fonts[fontFamily];
         if (!cacheData) return false;
+        if (isLegacyBuiltinFontCache(fontFamily, cacheData, config)) {
+            this.purgeFontCache(fontFamily);
+            return false;
+        }
         if (cacheData.version !== config.version) return false;
         
         return !!(cacheData.storageType === 'indexedDB' || cacheData.cloudUrl || cacheData.path);
@@ -549,6 +582,11 @@ class FontManager {
         
         // 【关键修复】小程序端优先使用云存储链接（需要配置 CORS）
         if (platform === 'mp-weixin') {
+            if (cacheData && isLegacyBuiltinFontCache(fontFamily, cacheData, config)) {
+                console.log('【FontManager】⚠️ 检测到旧版小程序字体链接，已清理缓存');
+                this.purgeFontCache(fontFamily);
+                return null;
+            }
             if (cacheData && cacheData.cloudUrl) {
                 console.log('【FontManager】小程序端使用云存储链接:', cacheData.cloudUrl);
                 return cacheData.cloudUrl;

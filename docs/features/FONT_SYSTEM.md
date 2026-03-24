@@ -25,18 +25,18 @@
 ### 2. 平台差异化处理
 
 #### 小程序
-- 从云端下载字体: `cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/fonts/Huiwen-mincho.otf`
+- 从云端下载字体: `cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/fonts/Huiwen-mincho-compressed.woff2`
 - 首次启动: 使用系统字体 → 1-2秒后切换到汇文明朝
 - 后续启动: 直接使用已缓存的汇文明朝字体
 - 包大小: 0 KB（不占用小程序包）
 
 #### App
-- 本地打包: `/static/fonts/Huiwen-mincho.otf`
+- 本地打包: `/static/fonts/Huiwen-mincho-compressed.woff2`
 - 启动即可使用汇文明朝字体
 - 包大小: +15 KB
 
 #### H5
-- 本地打包: `/static/fonts/Huiwen-mincho.otf`
+- 本地打包: `/static/fonts/Huiwen-mincho-compressed.woff2`
 - 启动即可使用汇文明朝字体
 - 包大小: +15 KB
 
@@ -118,7 +118,7 @@
 /* #ifndef MP-WEIXIN */
 @font-face {
   font-family: 'Huiwen-mincho';
-  src: url('/static/fonts/Huiwen-mincho.otf') format('opentype');
+  src: url('/static/fonts/Huiwen-mincho-compressed.woff2') format('woff2');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -304,7 +304,7 @@ npm run dev:h5
 
 1. **检查字体文件是否存在**
    ```bash
-   ls -la static/fonts/Huiwen-mincho.otf
+   ls -la static/fonts/Huiwen-mincho-compressed.woff2
    ```
 
 2. **检查编译输出**

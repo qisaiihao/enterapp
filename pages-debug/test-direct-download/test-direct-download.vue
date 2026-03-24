@@ -106,7 +106,7 @@ export default {
       
       try {
         // #ifdef MP-WEIXIN
-        const testUrl = 'https://636c-cloud1-5gb0pbyl400845f5-1378788263.tcb.qcloud.la/fonts/Huiwen-mincho.otf';
+        const testUrl = 'https://636c-cloud1-5gb0pbyl400845f5-1378788263.tcb.qcloud.la/fonts/Huiwen-mincho-compressed.woff2';
         this.addLog(`测试URL: ${testUrl}`);
         
         // 1. 测试 uni.request
@@ -128,7 +128,7 @@ export default {
         // 2. 测试 wx.cloud.getTempFileURL
         this.addLog('2️⃣ 测试 wx.cloud.getTempFileURL...');
         try {
-          const cloudPath = 'cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/fonts/Huiwen-mincho.otf';
+          const cloudPath = 'cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/fonts/Huiwen-mincho-compressed.woff2';
           const tempRes = await wx.cloud.getTempFileURL({
             fileList: [cloudPath]
           });

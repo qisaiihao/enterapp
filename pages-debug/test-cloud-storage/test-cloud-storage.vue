@@ -24,10 +24,8 @@ export default {
     return {
       logs: [],
       fontFiles: [
-        'Huiwen-mincho.otf',
         'Huiwen-mincho-compressed.woff2',
         'Huiwen-mincho.woff2',
-        '汇文明朝.otf',
         '汇文明朝.woff2'
       ]
     };

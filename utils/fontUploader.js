@@ -21,8 +21,8 @@ const CLOUD_CONFIG = {
 async function uploadFontFiles() {
     const fontFiles = [
         {
-            localPath: '/static/fonts/Huiwen-mincho.otf',
-            cloudPath: 'fonts/Huiwen-mincho.otf'
+            localPath: '/static/fonts/Huiwen-mincho-compressed.woff2',
+            cloudPath: 'fonts/Huiwen-mincho-compressed.woff2'
         },
         {
             localPath: '/static/fonts/文楷.ttf',
@@ -112,7 +112,7 @@ function generateFontMetadata(uploadResults) {
     
     uploadResults.forEach(result => {
         if (result.success) {
-            const fontName = result.cloudPath.split('/').pop().replace(/\.(ttf|otf)$/, '');
+            const fontName = result.cloudPath.split('/').pop().replace(/\.(ttf|otf|woff|woff2)$/, '');
             metadata.fonts[fontName] = {
                 url: result.downloadUrl,
                 fileID: result.fileID,
