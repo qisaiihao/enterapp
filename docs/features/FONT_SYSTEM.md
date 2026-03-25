@@ -201,8 +201,8 @@ fontManager.ensureFontAvailable('汇文明朝', (progress) => {
 
 | 平台 | 字体来源 | 注册方式 | CSS使用 | 启动体验 |
 |------|---------|---------|---------|---------|
-| 小程序 | 云端下载 | `uni.loadFontFace` | `font-family: '汇文明朝'` | 首次使用系统字体→下载后切换 |
-| App | 本地打包 | `@font-face` | `font-family: '汇文明朝', 'Huiwen-mincho'` | 立即显示汇文明朝 |
+| 小程序 | 远程候选源（`woff2 / woff / ttf`） | `uni.loadFontFace` | `font-family: '汇文明朝'` | 首次使用系统字体→注册完成后切换 |
+| App | 本地候选源（`ttf / woff / woff2`） | `@font-face` + `uni.loadFontFace` | `font-family: '汇文明朝', 'Huiwen-mincho'` | 启动即注册，失败自动切换候选源 |
 | H5 | 本地打包 | `@font-face` | `font-family: 'Huiwen-mincho', '汇文明朝'` | 立即显示汇文明朝 |
 
 ### 测试步骤
@@ -220,7 +220,9 @@ npm run dev:mp-weixin
 - [ ] 首次启动时，诗歌内容使用系统默认字体
 - [ ] 控制台显示字体下载进度
 - [ ] 下载完成后，诗歌内容自动切换到汇文明朝
-- [ ] 再次启动时，直接使用汇文明朝字体（无需下载）
+- [ ] 首个 `woff2` 源失败时，仍会继续尝试 `woff / ttf`
+- [ ] 再次点击字体选择器时，不会因为旧状态误判“已加载”
+- [ ] 分享卡片导出前会等待字体注册完成，失败时仅本次回退系统字体
 - [ ] 访问 `pages/test-font-loading` 查看字体状态
 
 **验证页面：**
