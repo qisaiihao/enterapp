@@ -52,13 +52,44 @@ if (typeof document !== 'undefined') {
 // #ifdef APP-PLUS
 // App端字体预加载
 console.log('🔤 [字体预加载] App端开始预加载汇文明朝字体');
-const appFontManager = require('./utils/fontManager.js');
-appFontManager.ensureFontAvailable('汇文明朝').then(function() {
-  emitBuiltinFontLoaded();
-  console.log('✅ [字体预加载] App端汇文明朝字体加载成功');
-}).catch(function(err) {
-  console.error('❌ [字体预加载] App端汇文明朝字体加载失败:', err);
-});
+const appFontManagerModule = require('./utils/fontManager.js');
+const appFontManager = appFontManagerModule && appFontManagerModule.default
+  ? appFontManagerModule.default
+  : appFontManagerModule;
+
+function preloadBuiltinAppFont() {
+  if (!appFontManager || typeof appFontManager.ensureFontAvailable !== 'function') {
+    console.error('[font preload] app font manager unavailable');
+    return;
+  }
+
+  appFontManager.ensureFontAvailable('汇文明朝').then(function() {
+    emitBuiltinFontLoaded();
+    console.log('✅ [字体预加载] App端汇文明朝字体加载成功');
+  }).catch(function(err) {
+    console.error('❌ [字体预加载] App端汇文明朝字体加载失败:', err);
+  });
+}
+
+if (typeof plus !== 'undefined') {
+  preloadBuiltinAppFont();
+} else {
+  let appFontRetryCount = 0;
+  const MAX_APP_FONT_RETRIES = 200;
+  const appFontRetryTimer = setInterval(function() {
+    if (typeof plus !== 'undefined') {
+      clearInterval(appFontRetryTimer);
+      preloadBuiltinAppFont();
+      return;
+    }
+
+    appFontRetryCount += 1;
+    if (appFontRetryCount >= MAX_APP_FONT_RETRIES) {
+      clearInterval(appFontRetryTimer);
+      console.warn('[font preload] plus runtime not ready, skip app font preload');
+    }
+  }, 50);
+}
 // #endif
 
 // #ifdef MP-WEIXIN

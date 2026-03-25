@@ -12,7 +12,9 @@
 		"lib": ["es2019", "dom"],
 		"jsx": "preserve",
 		"baseUrl": ".",
-		"paths": {}
+		"paths": {
+			"@/*": ["./*"]
+		}
 	},
 	"vueCompilerOptions": {
 		"globalTypesPath": "./.vscode/vue-global-types.d.ts"

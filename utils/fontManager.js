@@ -15,6 +15,35 @@ const CUSTOM_FONTS_KEY = 'custom_fonts';
 const FONT_CACHE_DIR = 'fonts';
 const MAX_CACHE_SIZE = 100 * 1024 * 1024; // 100MB缓存限制
 
+function getPlusSafe() {
+    return typeof plus !== 'undefined' ? plus : null;
+}
+
+function waitForPlusReady(timeout = 10000) {
+    return new Promise((resolve) => {
+        const plusInstance = getPlusSafe();
+        if (plusInstance && plusInstance.io) {
+            resolve(plusInstance);
+            return;
+        }
+
+        const start = Date.now();
+        const timer = setInterval(() => {
+            const runtimePlus = getPlusSafe();
+            if (runtimePlus && runtimePlus.io) {
+                clearInterval(timer);
+                resolve(runtimePlus);
+                return;
+            }
+
+            if (Date.now() - start >= timeout) {
+                clearInterval(timer);
+                resolve(null);
+            }
+        }, 50);
+    });
+}
+
 function getDefaultLocalFileName(config, platform = platformDetector.getCurrentPlatform()) {
     if (config && config.localFileNameByPlatform && config.localFileNameByPlatform[platform]) {
         return config.localFileNameByPlatform[platform];
@@ -139,7 +168,7 @@ const FONT_CONFIG = {
         filename: 'Huiwen-mincho-compressed.woff2',
         localFileNameByPlatform: {
             h5: 'Huiwen-mincho-compressed.woff2',
-            app: 'Huiwen-mincho-compressed.ttf'
+            app: 'Huiwen-mincho-compressed.woff2'
         },
         h5LocalSources: [
             {
@@ -148,14 +177,6 @@ const FONT_CONFIG = {
             }
         ],
         appLocalSources: [
-            {
-                path: 'Huiwen-mincho-compressed.ttf',
-                format: 'ttf'
-            },
-            {
-                path: 'Huiwen-mincho-compressed.woff',
-                format: 'woff'
-            },
             {
                 path: 'Huiwen-mincho-compressed.woff2',
                 format: 'woff2'
@@ -169,14 +190,6 @@ const FONT_CONFIG = {
             {
                 url: 'https://636c-cloud1-5gb0pbyl400845f5-1378788263.tcb.qcloud.la/fonts/Huiwen-mincho-compressed.woff2',
                 format: 'woff2'
-            },
-            {
-                url: 'https://636c-cloud1-5gb0pbyl400845f5-1378788263.tcb.qcloud.la/fonts/Huiwen-mincho-compressed.woff',
-                format: 'woff'
-            },
-            {
-                url: 'https://636c-cloud1-5gb0pbyl400845f5-1378788263.tcb.qcloud.la/fonts/Huiwen-mincho-compressed.ttf',
-                format: 'ttf'
             }
         ],
         version: '1.3.0',
@@ -231,33 +244,51 @@ class FontManager {
         this.downloadingFonts = new Map();
         this.customFonts = this.getCustomFonts();
         this.cacheInfo = this.getCacheInfo();
-        this.initializeFontDir();
+        this._fontDirReadyPromise = null;
     }
 
     getPlatformStoragePath() {
         const platform = platformDetector.getCurrentPlatform();
         if (platform === 'h5') return 'h5-temp-cache';
-        if (platform === 'app') return plus.io.convertLocalFileSystemURL('_doc/fonts/');
+        if (platform === 'app') return '_doc/fonts/';
         if (platform === 'mp-weixin') return `${wx.env.USER_DATA_PATH}/${FONT_CACHE_DIR}`;
         return `temp/${FONT_CACHE_DIR}`;
     }
 
     initializeFontDir() {
         const platform = platformDetector.getCurrentPlatform();
-        if (platform === 'h5') return;
+        if (platform === 'h5') return Promise.resolve(true);
         
         // App 端使用 plus.io 创建目录
         if (platform === 'app') {
-            // #ifdef APP-PLUS
-            plus.io.resolveLocalFileSystemURL('_doc/', (entry) => {
-                entry.getDirectory('fonts', { create: true }, () => {
-                    console.log('【FontManager】字体目录创建成功');
-                }, (err) => {
-                    console.warn('【FontManager】创建字体目录失败:', err);
+            if (this._fontDirReadyPromise) {
+                return this._fontDirReadyPromise;
+            }
+
+            this._fontDirReadyPromise = (async () => {
+                const plusInstance = await waitForPlusReady();
+                if (!plusInstance || !plusInstance.io) {
+                    console.warn('【FontManager】plus runtime unavailable, skip font dir init');
+                    return false;
+                }
+
+                return new Promise((resolve) => {
+                    plusInstance.io.resolveLocalFileSystemURL('_doc/', (entry) => {
+                        entry.getDirectory('fonts', { create: true }, () => {
+                            console.log('【FontManager】字体目录创建成功');
+                            resolve(true);
+                        }, (err) => {
+                            console.warn('【FontManager】创建字体目录失败:', err);
+                            resolve(false);
+                        });
+                    }, (err) => {
+                        console.warn('【FontManager】访问_doc失败:', err);
+                        resolve(false);
+                    });
                 });
-            });
-            // #endif
-            return;
+            })();
+
+            return this._fontDirReadyPromise;
         }
         
         // 小程序端使用 FileSystemManager
@@ -272,8 +303,19 @@ class FontManager {
             }
         } catch (error) {
             console.error('【FontManager】初始化字体缓存目录失败:', error);
+            return Promise.resolve(false);
         }
+        return Promise.resolve(true);
         // #endif
+    }
+
+    async getPlusInstance() {
+        const plusInstance = await waitForPlusReady();
+        if (!plusInstance || !plusInstance.io) {
+            console.warn('【FontManager】plus runtime unavailable');
+            return null;
+        }
+        return plusInstance;
     }
 
     getCacheInfo() {
@@ -462,41 +504,54 @@ class FontManager {
         });
     }
 
-    _readFileAsArrayBuffer(filePath) {
-        return new Promise((resolve, reject) => {
-            // #ifdef APP-PLUS
-            plus.io.resolveLocalFileSystemURL(filePath, (entry) => {
-                entry.file((file) => {
-                    const reader = new plus.io.FileReader();
-                    reader.onloadend = (e) => resolve(e.target.result);
-                    reader.onerror = reject;
-                    reader.readAsArrayBuffer(file);
+    async _readFileAsArrayBuffer(filePath) {
+        // #ifdef APP-PLUS
+        const plusInstance = await this.getPlusInstance();
+        if (plusInstance && plusInstance.io) {
+            return new Promise((resolve, reject) => {
+                plusInstance.io.resolveLocalFileSystemURL(filePath, (entry) => {
+                    entry.file((file) => {
+                        const reader = new plusInstance.io.FileReader();
+                        reader.onloadend = (e) => resolve(e.target.result);
+                        reader.onerror = reject;
+                        reader.readAsArrayBuffer(file);
+                    }, reject);
                 }, reject);
-            }, reject);
-            // #endif
-            
-            // #ifdef MP-WEIXIN
+            });
+        }
+        throw new Error('plus runtime unavailable');
+        // #endif
+        
+        // #ifdef MP-WEIXIN
+        return new Promise((resolve, reject) => {
             const fs = uni.getFileSystemManager();
             fs.readFile({
                 filePath,
                 success: (res) => resolve(res.data),
                 fail: reject
             });
-            // #endif
         });
+        // #endif
     }
 
-    _copyFile(srcPath, destPath) {
-        return new Promise((resolve, reject) => {
-            // #ifdef APP-PLUS
-            plus.io.resolveLocalFileSystemURL(srcPath, (srcEntry) => {
-                plus.io.resolveLocalFileSystemURL(destPath.substring(0, destPath.lastIndexOf('/')), (destDir) => {
-                    srcEntry.copyTo(destDir, destPath.substring(destPath.lastIndexOf('/') + 1), resolve, reject);
+    async _copyFile(srcPath, destPath) {
+        // #ifdef APP-PLUS
+        const plusInstance = await this.getPlusInstance();
+        if (plusInstance && plusInstance.io) {
+            await this.initializeFontDir();
+            return new Promise((resolve, reject) => {
+                plusInstance.io.resolveLocalFileSystemURL(srcPath, (srcEntry) => {
+                    plusInstance.io.resolveLocalFileSystemURL(destPath.substring(0, destPath.lastIndexOf('/')), (destDir) => {
+                        srcEntry.copyTo(destDir, destPath.substring(destPath.lastIndexOf('/') + 1), resolve, reject);
+                    }, reject);
                 }, reject);
-            }, reject);
-            // #endif
-            
-            // #ifdef MP-WEIXIN
+            });
+        }
+        throw new Error('plus runtime unavailable');
+        // #endif
+        
+        // #ifdef MP-WEIXIN
+        return new Promise((resolve, reject) => {
             const fs = uni.getFileSystemManager();
             fs.copyFile({
                 srcPath,
@@ -504,8 +559,8 @@ class FontManager {
                 success: resolve,
                 fail: reject
             });
-            // #endif
         });
+        // #endif
     }
 
     /**
@@ -659,8 +714,12 @@ class FontManager {
         if (platform === 'app') {
             if (cacheData.path) {
                 try {
+                    const plusInstance = await this.getPlusInstance();
+                    if (!plusInstance || !plusInstance.io) {
+                        return false;
+                    }
                     await new Promise((resolve, reject) => {
-                        plus.io.resolveLocalFileSystemURL(cacheData.path, resolve, reject);
+                        plusInstance.io.resolveLocalFileSystemURL(cacheData.path, resolve, reject);
                     });
                     return true;
                 } catch (e) {
@@ -986,6 +1045,8 @@ class FontManager {
      * App 端专用下载方法
      */
     async _downloadForApp(fontFamily, downloadUrl, config, safeFileName, onProgress) {
+        await this.initializeFontDir();
+
         return new Promise((resolve, reject) => {
             const downloadTask = uni.downloadFile({
                 url: downloadUrl,
@@ -1048,35 +1109,42 @@ class FontManager {
      * App 端：将文件保存到 _doc 目录
      */
     _saveFileToDoc(tempFilePath, targetPath) {
-        return new Promise((resolve, reject) => {
+        return (async () => {
             // #ifdef APP-PLUS
-            plus.io.resolveLocalFileSystemURL(tempFilePath, (tempEntry) => {
-                plus.io.resolveLocalFileSystemURL('_doc/', (docEntry) => {
-                    // 确保 fonts 目录存在
-                    docEntry.getDirectory('fonts', { create: true }, (fontsDir) => {
-                        const fileName = targetPath.split('/').pop();
-                        tempEntry.copyTo(fontsDir, fileName, (newEntry) => {
-                            const savedPath = newEntry.fullPath;
-                            console.log('【FontManager】文件复制成功:', savedPath);
-                            resolve(savedPath);
-                        }, (copyErr) => {
-                            console.error('【FontManager】文件复制失败:', copyErr);
-                            reject(copyErr);
+            const plusInstance = await this.getPlusInstance();
+            if (!plusInstance || !plusInstance.io) {
+                throw new Error('plus runtime unavailable');
+            }
+
+            await this.initializeFontDir();
+            return new Promise((resolve, reject) => {
+                plusInstance.io.resolveLocalFileSystemURL(tempFilePath, (tempEntry) => {
+                    plusInstance.io.resolveLocalFileSystemURL('_doc/', (docEntry) => {
+                        docEntry.getDirectory('fonts', { create: true }, (fontsDir) => {
+                            const fileName = targetPath.split('/').pop();
+                            tempEntry.copyTo(fontsDir, fileName, (newEntry) => {
+                                const savedPath = newEntry.fullPath;
+                                console.log('【FontManager】文件复制成功:', savedPath);
+                                resolve(savedPath);
+                            }, (copyErr) => {
+                                console.error('【FontManager】文件复制失败:', copyErr);
+                                reject(copyErr);
+                            });
+                        }, (dirErr) => {
+                            console.error('【FontManager】创建目录失败:', dirErr);
+                            reject(dirErr);
                         });
-                    }, (dirErr) => {
-                        console.error('【FontManager】创建目录失败:', dirErr);
-                        reject(dirErr);
+                    }, (docErr) => {
+                        console.error('【FontManager】访问_doc失败:', docErr);
+                        reject(docErr);
                     });
-                }, (docErr) => {
-                    console.error('【FontManager】访问_doc失败:', docErr);
-                    reject(docErr);
+                }, (tempErr) => {
+                    console.error('【FontManager】访问临时文件失败:', tempErr);
+                    reject(tempErr);
                 });
-            }, (tempErr) => {
-                console.error('【FontManager】访问临时文件失败:', tempErr);
-                reject(tempErr);
             });
             // #endif
-        });
+        })();
     }
 
     cleanupCacheIfNeeded() {
@@ -1101,7 +1169,11 @@ class FontManager {
                 // App 端使用 plus.io
                 if (platform === 'app') {
                     // #ifdef APP-PLUS
-                    plus.io.resolveLocalFileSystemURL(fontData.path, (entry) => {
+                    const plusInstance = getPlusSafe();
+                    if (!plusInstance || !plusInstance.io) {
+                        continue;
+                    }
+                    plusInstance.io.resolveLocalFileSystemURL(fontData.path, (entry) => {
                         entry.remove();
                     });
                     // #endif
@@ -1285,14 +1357,18 @@ class FontManager {
 
         let sourcePath = fontPath;
         // #ifdef APP-PLUS
+        const plusInstance = getPlusSafe();
+        if (!plusInstance || !plusInstance.io) {
+            return null;
+        }
         if (fontPath.startsWith('/static/')) {
             try {
-                sourcePath = plus.io.convertLocalFileSystemURL(`_www${fontPath}`);
+                sourcePath = plusInstance.io.convertLocalFileSystemURL(`_www${fontPath}`);
             } catch (e) {
-                sourcePath = plus.io.convertLocalFileSystemURL(fontPath);
+                sourcePath = plusInstance.io.convertLocalFileSystemURL(fontPath);
             }
         } else if (!fontPath.startsWith('http') && !fontPath.startsWith('file://')) {
-            sourcePath = plus.io.convertLocalFileSystemURL(fontPath);
+            sourcePath = plusInstance.io.convertLocalFileSystemURL(fontPath);
         }
         // #endif
 
@@ -1300,6 +1376,12 @@ class FontManager {
     }
 
     async _loadAppFontFace(fontFamily, config, displayName, fontPath) {
+        const plusInstance = await this.getPlusInstance();
+        if (!plusInstance || !plusInstance.io) {
+            this.loadedFonts.delete(fontFamily);
+            return false;
+        }
+
         const candidateSources = [];
         const seenSources = new Set();
         const appendSource = (source) => {

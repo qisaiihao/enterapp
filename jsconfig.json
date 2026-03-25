@@ -6,7 +6,9 @@
 		"lib": ["es2019", "dom"],
 		"jsx": "preserve",
 		"baseUrl": ".",
-		"paths": {},
+		"paths": {
+			"@/*": ["./*"]
+		},
 		"allowJs": true,
 		"checkJs": false,
 		"skipLibCheck": true
