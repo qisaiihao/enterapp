@@ -1,12 +1,12 @@
 <template>
     <view>
-
+        
         <!-- pages/post-detail/post-detail.wxml -->
-        <!-- 鑷畾涔夎繑鍥炴寜閽?-->
+        <!-- 自定义返回按钮 -->
         <view class="custom-back-btn" @tap="goBack">
             <image class="back-icon" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
         </view>
-
+        
         <view class="container">
             <block v-if="isLoading">
                 <post-detail-skeleton :comment-count="commentSkeletonCount" />
@@ -27,11 +27,11 @@
                                 :data-is-anonymous="post.isAnonymous"
                                 style="pointer-events: auto; cursor: pointer;"
                             ></image>
-                            <text class="author-name">{{ post.isAnonymous ? '鍖垮悕鐢ㄦ埛' : post.authorName }}</text>
+                            <text class="author-name">{{ post.isAnonymous ? '匿名用户' : post.authorName }}</text>
                         </view>
                         <view class="author-right-actions">
-                            <view v-if="!post.isAnonymous && isMutualFollow" class="mutual-tag">浜掔浉鍏虫敞</view>
-                            <view v-else-if="!post.isAnonymous && isFollowedByAuthor && !isMutualFollow" class="followed-tag">TA鍏虫敞浜嗕綘</view>
+                            <view v-if="!post.isAnonymous && isMutualFollow" class="mutual-tag">互相关注</view>
+                            <view v-else-if="!post.isAnonymous && isFollowedByAuthor && !isMutualFollow" class="followed-tag">TA关注了你</view>
                             <button
                                 v-if="showFollowButton && !post.isAnonymous && !isMutualFollow"
                                 :class="'follow-btn ' + (isFollowing ? 'following' : '')"
@@ -39,17 +39,17 @@
                                 :loading="followPending"
                                 :disabled="followPending"
                             >
-                                {{ isFollowing ? '???' : '??' }}
+                                {{ isFollowing ? '已关注' : '关注' }}
                             </button>
                         </view>
                     </view>
                     <view class="post-title">{{ post.title }}</view>
                     <view v-if="post.isPoem && post.author" class="poem-author" :class="{ 'poem-author-clickable': canGoToPoetProfile }" @tap="onPoetNameTap">{{ post.author }}</view>
-
-                    <!-- 璁ㄨ绫诲瀷甯栧瓙鐗规畩娓叉煋锛氫粎褰撳瓨鍦ㄦ湁鏁堝彞瀛愭垨璇勮鏃跺睍绀猴紝鍚﹀垯鍥為€€鍒版鏂?-->
+                    
+                    <!-- 讨论类型帖子特殊渲染：仅当存在有效句子或评论时展示，否则回退到正文 -->
                     <view v-if="post.isDiscussion && hasValidDiscussionGroups(post)" class="discussion-content">
                         <view v-for="(sentenceGroup, groupIndex) in post.sentenceGroups" :key="groupIndex" class="discussion-sentence-group">
-                            <!-- 鍙ュ瓙鍗＄墖锛氫粎鍦ㄦ湁鏈夋晥鍙ュ瓙鏃舵樉绀猴紝閬垮厤绌虹伆妗?-->
+                            <!-- 句子卡片：仅在有有效句子时显示，避免空灰框 -->
                             <view v-if="hasDiscussionSentences(sentenceGroup)" class="discussion-sentence-card">
                                 <view class="discussion-sentence-content">
                                     <text v-for="(line, lineIndex) in sentenceGroup.sentences" :key="lineIndex" class="discussion-sentence-line">
@@ -57,26 +57,28 @@
                                     </text>
                                 </view>
                             </view>
-
-                            <!-- 璇勮鍐呭 -->
+                            
+                            <!-- 评论内容 -->
                             <view v-if="sentenceGroup.comment" class="discussion-comment">
                                 {{ sentenceGroup.comment }}
                             </view>
                         </view>
                     </view>
-                    <!-- 缁勮瘲鍐呭 -->
+                    <!-- 组诗内容 -->
                     <view v-else-if="post.isSeries && post.seriesBlocks && post.seriesBlocks.length > 0" class="series-simple-display">
                         <view v-for="(block, idx) in post.seriesBlocks" :key="idx" class="series-poem-block">
                             <view v-if="block.subtitle" class="series-poem-subtitle">{{ block.subtitle }}</view>
                             <view class="post-content">{{ block.content }}</view>
                         </view>
                     </view>
-
-                    <!-- 鏅€氬笘瀛愬唴瀹?-->
+                    
+                    <!-- 普通帖子内容 -->
                     <view class="post-content" v-else-if="post.content">{{ post.content }}</view>
+
                     <view v-if="post.tags && post.tags.length > 0" class="post-tags">
                         <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="item" v-for="(item, index) in post.tags" :key="index">#{{ item }}</text>
                     </view>
+
                     <view v-if="post.imageUrl || (post.imageUrls && post.imageUrls.length > 0)" class="image-container" id="detail-image-container">
                         <block v-if="post.imageUrls && post.imageUrls.length === 1">
                             <image
@@ -100,6 +102,7 @@
                                 :lazy-load="true"
                             />
                         </block>
+
                         <block v-else-if="post.imageUrls && post.imageUrls.length > 1">
                             <swiper
                                 :id="'swiper-' + (post && post._id ? post._id : '')"
@@ -130,28 +133,30 @@
                             </swiper>
                         </block>
                     </view>
+
                     <view class="post-meta">
                         <text class="post-time">{{ post.formattedCreateTime }}</text>
                     </view>
                     <view class="vote-section" @tap.stop.prevent="preventBubble">
                         <view class="actions-left">
-                            <!-- 宸︿晶鎸夐挳鍖哄煙淇濈暀涓虹┖锛屾垨鑰呭彲浠ユ斁鍏朵粬鎸夐挳 -->
+                            <!-- 左侧按钮区域保留为空，或者可以放其他按钮 -->
                         </view>
                         <view class="button-group">
                             <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="post && post._id ? post._id : ''">
                                 <image class="like-icon" :src="post.likeIcon" mode="aspectFit"></image>
                             </view>
-                            <!-- 浣滃搧闆嗘寜閽?- 鍙湁鍘熷垱璇椾笖鏄嚜宸辩殑甯栧瓙鎵嶆樉绀?-->
+                            <!-- 作品集按钮 - 只有原创诗且是自己的帖子才显示 -->
                             <view v-if="post.isOriginal && post.isPoem && isOwnPost" class="portfolio-icon-container" @tap.stop.prevent="onAddToPortfolio">
                                 <image class="portfolio-icon" src="/static/images/newicons/library.png" mode="aspectFit"></image>
                             </view>
-                              <!-- 鍒嗕韩鎸夐挳锛堜粎璇楁瓕甯栧瓙鏄剧ず锛?-->
+                              <!-- 分享按钮（仅诗歌帖子显示） -->
                             <view v-if="post && post.isPoem" class="share-icon-container" @tap.stop.prevent="onShare">
                                 <image class="share-icon" src="/static/images/newicons/save_share.png" mode="aspectFit"></image>
                             </view>
                         </view>
                     </view>
                 </view>
+
                 <!-- Comment Section -->
                 <comment-list
                     :comments="comments"
@@ -170,28 +175,34 @@
             <block v-else>
                 <view class="error-container">
                     <view class="error-icon">❌</view>
-                    <view class="error-text">甯栧瓙鍔犺浇失败鎴栦笉瀛樺湪</view>
+                    <view class="error-text">帖子加载失败或不存在</view>
                 </view>
             </block>
         </view>
-        <!-- 閬僵灞傦細褰撹緭鍏ユ灞曞紑鏃舵樉绀?-->
+
+        <!-- 遮罩层：当输入框展开时显示 -->
         <view :class="'input-overlay ' + (isInputExpanded ? 'show' : '')" @tap="collapseInput"></view>
-        <!-- 杈撳叆妗嗗鍣細淇濇寔鍦ㄩ〉闈㈠簳閮?-->
+
+        <!-- 输入框容器：保持在页面底部 -->
         <view v-if="isInputExpanded" class="comment-input-area" :style="'bottom: ' + keyboardHeight + 'px;'">
-            <!-- 灞曞紑鐘舵€侊細鐪熸鐨勮緭鍏ュ尯鍩?-->
+
+            <!-- 展开状态：真正的输入区域 -->
             <view v-if="isInputExpanded" class="expanded-container">
-                <!-- 濡傛灉鏄洖澶嶏紝鏄剧ず鎻愮ず -->
+
+                <!-- 如果是回复，显示提示 -->
                 <view v-if="replyToComment" class="reply-prompt">
                     <text class="reply-prompt-text">回复 {{ replyToAuthor }}：</text>
                     <view class="cancel-reply" @tap="cancelReply">
                         <text class="cancel-text">取消</text>
                     </view>
                 </view>
-                <!-- 澶氳鏂囨湰杈撳叆妗?-->
+
+
+                <!-- 多行文本输入框 -->
                 <textarea
                     class="expanded-textarea"
                     :style="'height: ' + commentTextareaHeight + 'px;'"
-                    placeholder="鐣欎笅浣犵殑绮惧僵璇勮..."
+                    placeholder="留下你的精彩评论..."
                     :value="newComment"
                     @input="onCommentInput"
                     @linechange="onCommentLineChange"
@@ -203,6 +214,7 @@
                     :show-confirm-bar="false"
                     :cursor-spacing="0"
                 ></textarea>
+
                 <!-- 评论图片显示 -->
                 <view v-if="commentImages.length" class="selected-comment-images">
                     <view class="selected-image-item" :data-index="index" v-for="(item, index) in commentImages" :key="index">
@@ -210,7 +222,8 @@
                         <view class="remove-image-btn" @tap="removeCommentImage" :data-index="index">✕</view>
                     </view>
                 </view>
-                <!-- 搴曢儴鎿嶄綔鏍忥紝鍖呭惈鍙戦€佹寜閽?-->
+
+                <!-- 底部操作栏，包含发送按钮 -->
                 <view class="expanded-actions">
                     <view class="action-icons">
                         <view class="action-icon" @tap="chooseImages">
@@ -223,12 +236,13 @@
                 </view>
             </view>
         </view>
-        <!-- 搴曢儴鎿嶄綔鏍?-->
+
+        <!-- 底部操作栏 -->
         <view class="bottom-action-bar" v-if="!isInputExpanded">
             <view class="comment-input-container">
-                <input
-                    class="comment-input"
-                    placeholder="璇勮..."
+                <input 
+                    class="comment-input" 
+                    placeholder="评论..." 
                     :value="quickCommentText"
                     :adjust-position="false"
                     @input="onQuickCommentInput"
@@ -245,20 +259,24 @@
                 </view>
             </view>
         </view>
+
         <!-- Cloud Tip Modal -->
         <cloud-tip-modal :showUploadTip="showUploadTip"></cloud-tip-modal>
-        <!-- 鏀惰棌澶归€夋嫨鍣?-->
+
+        <!-- 收藏夹选择器 -->
         <folder-selector :show="showFavoriteModal" :post-id="post && post._id ? post._id : ''" @hide="hideFavoriteModal" @favoriteSuccess="onFavoriteSuccess" />
-        <!-- 浣滃搧闆嗛€夋嫨鍣?-->
+
+        <!-- 作品集选择器 -->
         <portfolio-selector :show="showPortfolioModal" :post-id="post && post._id ? post._id : ''" @hide="hidePortfolioModal" @portfolioSuccess="onPortfolioSuccess" />
-        <!-- 鍒嗕韩寮圭獥锛堜粎璇楁瓕甯栧瓙鏄剧ず锛?-->
+
+        <!-- 分享弹窗（仅诗歌帖子显示） -->
         <share-modal
             v-if="post && post.isPoem"
             :show="showShareModal"
             :image-url="shareImageUrl"
             :longpress-menu-enabled="shareLongpressMenuEnabled"
             :share-config="shareConfig"
-            :preview-text="post.content ? (post.content.split('\n')[0] || '春花秋月何时了') : '春花秋月何时了'"
+            :preview-text="post.content ? post.content.split('\n')[0] || '春花秋月何时了' : '春花秋月何时了'"
             :color-palettes="colorPalettes"
             :poem-lines="poemLines"
             @hide="hideShareModal"
@@ -272,22 +290,24 @@
             @color-change="onColorChange"
             @force-regenerate="forceRegenerateCanvas"
         />
-        <!-- 隐藏的 canvas 用于生成分享图片，增加 id 便于 H5 兜底导出 -->
+
+        <!-- 隐藏的canvas用于生成分享图片（增加 id 便于 H5 兜底导出） -->
         <canvas id="shareCanvas" canvas-id="shareCanvas" style="position: fixed; top: -9999px; left: -9999px; width: 750px; border-radius: 15px; overflow: hidden;" :style="{ height: shareCanvasHeight + 'px' }"></canvas>
-      <!-- 璇勮鍖恒€佸叾瀹冨唴瀹?-->
+      <!-- 评论区、其它内容 --> 
     <view v-if="showEditModal" class="edit-modal-mask">
         <view class="edit-modal">
-            <view class="edit-modal-title">缂栬緫甯栧瓙</view>
-            <input class="edit-title-input" :value="editForm.title" data-field="title" @input="onEditInput" placeholder="璇疯緭鍏ユ爣棰? />
-            <textarea class="edit-content-textarea" :value="editForm.content" data-field="content" @input="onEditInput" placeholder="璇疯緭鍏ユ鏂? />
+            <view class="edit-modal-title">编辑帖子</view>
+            <input class="edit-title-input" :value="editForm.title" data-field="title" @input="onEditInput" placeholder="请输入标题" />
+            <textarea class="edit-content-textarea" :value="editForm.content" data-field="content" @input="onEditInput" placeholder="请输入正文" />
             <view class="edit-modal-actions">
                 <button class="modal-cancel" @tap="onCancelEdit">取消</button>
-                <button class="modal-confirm" @tap="onSaveEdit">淇濆瓨</button>
+                <button class="modal-confirm" @tap="onSaveEdit">保存</button>
             </view>
         </view>
     </view>
     </view>
 </template>
+
 <script>
 import cloudTipModal from '@/components/cloudTipModal/index';
 import folderSelector from '@/components/folder-selector/folder-selector';
@@ -295,7 +315,8 @@ import portfolioSelector from '@/components/portfolio-selector/portfolio-selecto
 import PostDetailSkeleton from '@/components/PostDetailSkeleton.vue';
 import CommentList from '@/components/CommentList.vue';
 import ShareModal from '@/components/ShareModal.vue';
-// 宸ュ叿鍑芥暟瀵煎叆
+
+// 工具函数导入
 import { hydrateTempUrls, warmTempUrlsFromPosts } from '@/_utils/hydrate-temp-urls';
 import fileUrlCache from '@/_utils/file-url-cache';
 import likeIcon from '@/utils/likeIcon';
@@ -310,7 +331,7 @@ import postGalleryMixin from '@/mixins/postGallery.js';
 import { getCurrentUserId } from '@/utils/auth.js';
 import { calculateActualLines as calcCanvasLines, wrapText, clampText } from '@/utils/canvasText.js';
 import { drawImageAsync, calculateActualLines as calcLines, wrapText as wrapCanvasText, calculateShareCardHeight, drawShareCardContent, exportShareCanvas } from '@/utils/shareCanvas.js';
-import { processComments, mergeCommentUiState, validateCommentInput, processCommentImages, findComment, calculateRemainingChars } from '@/utils/commentUtils.js';
+import { processComments, validateCommentInput, processCommentImages, findComment, calculateRemainingChars } from '@/utils/commentUtils.js';
 import { generateShareImageName, isValidImageDataUrl, base64ToArrayBuffer, saveImageToAlbum, createTempFilePath, compressImage, getImageInfo } from '@/utils/shareImage.js';
 import { syncLikeStatusForPosts, getLatestLikeStatus } from '@/utils/likeStatusSync.js';
 import { flushViewQueue } from '@/utils/viewEvents.js';
@@ -319,13 +340,15 @@ import { poemLines } from '@/utils/poemLines.js';
 import { getCurrentPlatform } from '@/utils/platformDetector.js';
 import { requestAndroidStoragePermission } from '@/utils/permissions.js';
 import { emitCommentCountChanged, emitPostUpdated } from '@/utils/events.js';
-import fontManager from '@/utils/fontManager.js'; // 娣诲姞fontManager瀵煎叆
+import fontManager from '@/utils/fontManager.js'; // 添加fontManager导入
 import { checkContentSafe, checkTextSafe, shouldModerate } from '@/utils/contentModeration.js';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
-// API鍑芥暟瀵煎叆
+
+// API函数导入
 import { getPostDetail, updatePostContent, togglePostFavorite, recordPostView } from '@/api-cache/post.js';
 import { getComments, submitComment, deleteComment, likeComment } from '@/api-cache/comment.js';
 import { checkFollowStatus, toggleFollowStatus } from '@/api-cache/following.js';
+
 // pages/post-detail/post-detail.js
 const app = getApp();
 export default {
@@ -339,7 +362,7 @@ export default {
     },
     mixins: [postGalleryMixin],
     computed: {
-        // 鏄惁鍙互璺宠浆鍒拌瘲浜轰富椤碉紙闈炲師鍒涜瘲涓斾綔鑰呭悕涓庡彂甯冪敤鎴锋樀绉颁笉鍚岋級
+        // 是否可以跳转到诗人主页（非原创诗且作者名与发布用户昵称不同）
         canGoToPoetProfile() {
             if (!this.post || !this.post.author) return false;
             if (this.post.isOriginal) return false;
@@ -376,9 +399,9 @@ export default {
             shareConfig: {
                 fontSize: 38,
                 titleFontSize: 46,
-                fontFamily: '姹囨枃鏄庢湞',
-                backgroundColor: '#FFFFFF',
-                textColor: '#000000',
+                fontFamily: '汇文明朝',
+                backgroundColor: '#FFFFFF', // 将在onShare时更新为帖子的实际颜色
+                textColor: '#000000',       // 将在onShare时更新为帖子的实际颜色
                 fontScale: 1.0
             },
             regenerateTimeout: null,
@@ -391,7 +414,7 @@ export default {
             viewStartTime: 0,
             currentPostId: null,
             isFavorited: false,
-            favoriteButtonText: '鏀惰棌',
+            favoriteButtonText: '收藏',
             favoriteButtonClass: 'favorite-button',
             showFollowButton: false,
             isFollowing: false,
@@ -413,38 +436,42 @@ export default {
             commentTextareaHeight: 90,
             // 是否启用原生长按菜单（仅小程序有效）
             shareLongpressMenuEnabled: false,
-            fontManager: null
+            fontManager: null // 添加fontManager初始化
         };
     },
     onLoad: function (options) {
         this.initializeCommentTextareaMetrics();
+
         const postId = options.id;
         if (postId) {
             this.setData({
                 currentPostId: postId
             });
             this.loadPostDetail(postId);
-            // 鐩戝惉鍏ㄥ眬鐐硅禐鍙樻洿锛屽疄鏃跺悓姝ュ綋鍓嶅笘瀛愮殑鐐硅禐鐘舵€?
+            // 监听全局点赞变更，实时同步当前帖子的点赞状态
             try { uni.$on && uni.$on('like-changed', this.onGlobalLikeChanged); } catch (_) {}
-            // 鐩戝惉璇勮鐐硅禐鍙樻洿
+            // 监听评论点赞变更
             try { uni.$on && uni.$on('comment-like-changed', this.onGlobalCommentLikeChanged); } catch (_) {}
+            // 监听全局点赞变更，实时同步当前帖子的点赞状态
         } else {
             this.setData({
                 isLoading: false,
                 isCommentLoading: false
             });
             uni.showToast({
-                title: '鏃犳晥鐨勫笘瀛怚D',
+                title: '无效的帖子ID',
                 icon: 'none'
             });
         }
-        // 骞冲彴寮€鍏筹細浠呭皬绋嬪簭鍚敤绯荤粺闀挎寜鑿滃崟
+
+        // 平台开关：仅小程序启用系统长按菜单
         try {
             // #ifdef MP-WEIXIN
             this.shareLongpressMenuEnabled = true;
             // #endif
         } catch (e) {}
-        // 娉ㄥ唽閿洏楂樺害鐩戝惉
+
+        // 注册键盘高度监听
         // #ifdef MP-WEIXIN || APP-PLUS
         try {
             this.keyboardHeightChangeHandler = (res) => {
@@ -455,26 +482,29 @@ export default {
             };
             uni.onKeyboardHeightChange(this.keyboardHeightChangeHandler);
         } catch (e) {
-            console.warn('閿洏楂樺害鐩戝惉璁剧疆失败:', e);
+            console.warn('键盘高度监听设置失败:', e);
         }
         // #endif
-        // 鍒濆鍖栧瓧浣撶鐞嗗櫒
+
+        // 初始化字体管理器
         this.fontManager = fontManager;
     },
     onShow: function () {
         this.setData({
             viewStartTime: Date.now()
         });
-        // 鍚屾褰撳墠甯栧瓙鐨勭偣璧炵姸鎬?
+
+        // 同步当前帖子的点赞状态
         this.syncCurrentPostLikeStatus();
     },
     onPageScroll: function(e) {
-        // 鎸佺画璁板綍褰撳墠婊氬姩浣嶇疆
+        // 持续记录当前滚动位置
         this.currentScrollTop = e.scrollTop || 0;
     },
     onUnload: function () {
         try { flushViewQueue(); } catch (e) {}
         try { uni.$off && this.onGlobalCommentLikeChanged && uni.$off('comment-like-changed', this.onGlobalCommentLikeChanged); } catch (_) {}
+
         // 取消键盘高度监听
         // #ifdef MP-WEIXIN || APP-PLUS
         try {
@@ -494,7 +524,7 @@ export default {
         try { flushViewQueue(); } catch (e) {}
     },
     methods: {
-        // 澶勭悊鍖垮悕澶村儚鐐瑰嚮浜嬩欢鐨勫嚱鏁?
+        // 处理匿名头像点击事件的函数
         handleAnonymousAvatarClick(e) {
             if (e && e.preventDefault) {
                 e.preventDefault();
@@ -502,13 +532,14 @@ export default {
             if (e && e.stopPropagation) {
                 e.stopPropagation();
             }
-            // 鏄剧ず鎻愮ず淇℃伅
+            // 显示提示信息
             uni.showToast({
-                title: '??????????',
+                title: '匿名用户无法查看主页',
                 icon: 'none'
             });
         },
-        // 鍒ゆ柇璁ㄨ鍙ュ瓙缁勬槸鍚︽湁鏈夋晥鍙ュ瓙锛岄伩鍏嶆覆鏌撶┖鐏板崱鐗?
+
+        // 判断讨论句子组是否有有效句子，避免渲染空灰卡片
         hasDiscussionSentences(group) {
             return (
                 group &&
@@ -516,7 +547,7 @@ export default {
                 group.sentences.some((line) => (line || '').trim().length > 0)
             );
         },
-        // 鍒ゆ柇鏁翠釜甯栧瓙鏄惁鏈夋湁鏁堢殑璁ㄨ鍐呭锛堝彞瀛愭垨璇勮锛夛紝鐢ㄤ簬鍐冲畾鏄惁灞曠ず璁ㄨ鍧?
+        // 判断整个帖子是否有有效的讨论内容（句子或评论），用于决定是否展示讨论块
         hasValidDiscussionGroups(post) {
             if (!post || !Array.isArray(post.sentenceGroups)) return false;
             return post.sentenceGroups.some(g => {
@@ -525,7 +556,7 @@ export default {
                 return hasLines || hasComment;
             });
         },
-        // 璺ㄩ〉鍚屾锛氱洃鍚?like-changed 鐨勫鐞?
+        // 跨页同步：监听 like-changed 的处理
         onGlobalLikeChanged: function (e = {}) {
             try {
                 const postId = e.postId;
@@ -540,7 +571,7 @@ export default {
                 });
             } catch (_) {}
         },
-        // 鎺ユ敹澶栭儴璇勮鐐硅禐浜嬩欢杩涜鏈〉鍚屾
+        // 接收外部评论点赞事件进行本页同步
         onGlobalCommentLikeChanged: function (e = {}) {
             try {
                 const { commentId, likes, liked } = e || {};
@@ -554,20 +585,25 @@ export default {
                 this.setData({ comments });
             } catch (_) {}
         },
-        // 鍚屾褰撳墠甯栧瓙鐨勭偣璧炵姸鎬?
+        // 同步当前帖子的点赞状态
         syncCurrentPostLikeStatus: function () {
             try {
                 if (!this.post || !this.post._id) {
                     return;
                 }
+
                 const postId = this.post._id;
-                // 浣跨敤鍚屾宸ュ叿鍚屾褰撳墠甯栧瓙鐨勭偣璧炵姸鎬?
+
+                // 使用同步工具同步当前帖子的点赞状态
                 const syncResult = syncLikeStatusForPosts([postId]);
+
                 if (syncResult.success && syncResult.updated > 0) {
-                    // 鏇存柊褰撳墠甯栧瓙鐨勬樉绀虹姸鎬?
+                    // 更新当前帖子的显示状态
                     const latestStatus = getLatestLikeStatus(postId);
+
                     if (latestStatus) {
                         const newLikeIcon = likeIcon.getLikeIcon(latestStatus.votes, latestStatus.isVoted);
+
                         this.setData({
                             'post.votes': latestStatus.votes,
                             'post.isVoted': latestStatus.isVoted,
@@ -575,27 +611,28 @@ export default {
                         });
                     }
                 } else if (syncResult.errors.length > 0) {
-                    console.warn('銆愬笘瀛愯鎯呫€戠偣璧炵姸鎬佸悓姝ュ嚭鐜伴敊璇?', syncResult.errors);
+                    console.warn('【帖子详情】点赞状态同步出现错误:', syncResult.errors);
                 }
             } catch (err) {
-                console.error('銆愬笘瀛愯鎯呫€戝悓姝ュ綋鍓嶅笘瀛愮偣璧炵姸鎬佸け璐?', err);
+                console.error('【帖子详情】同步当前帖子点赞状态失败:', err);
             }
         },
+
         loadPostDetail: function (postId) {
             this.setData({
                 isCommentLoading: true
             });
+
             getPostDetail(postId)
                 .then(async (detail) => {
                     if (detail && detail.post) {
                         let post = detail.post;
                         post.formattedCreateTime = this.formatTime(post.createTime);
                         post.likeIcon = likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false);
-                        // 灏?cloud:// 鏄犲皠涓哄彲璁块棶 URL锛屽苟棰勭儹
+                        // 将 cloud:// 映射为可访问 URL，并预热
                         await hydrateTempUrls([post]);
                         warmTempUrlsFromPosts([post]);
                         const finalCommentCount = detail.commentCount || post.commentCount || 0;
-                        post.commentCount = finalCommentCount;
                         this.setData({
                             post: post,
                             commentCount: finalCommentCount
@@ -607,7 +644,7 @@ export default {
                             isCommentLoading: false
                         });
                         uni.showToast({
-                            title: '甯栧瓙鍔犺浇失败',
+                            title: '帖子加载失败',
                             icon: 'none'
                         });
                     }
@@ -618,7 +655,7 @@ export default {
                         isCommentLoading: false
                     });
                     uni.showToast({
-                        title: '缃戠粶閿欒',
+                        title: '网络错误',
                         icon: 'none'
                     });
                 })
@@ -628,26 +665,28 @@ export default {
                     });
                 });
         },
+
         getComments: function (postId) {
             this.setData({
                 isCommentLoading: true
             });
+
             getComments(postId)
                 .then(async (result) => {
                     if (result && result.comments) {
-                        // 浣跨敤鏂扮殑璇勮澶勭悊宸ュ叿鍑芥暟
-                        const comments = mergeCommentUiState(processComments(result.comments), this.comments || []);
+                        // 使用新的评论处理工具函数
+                        const comments = processComments(result.comments);
                         const newCommentCount = result.commentCount || comments.length;
                         const shouldUpdateCount = newCommentCount > this.commentCount;
-                        const resolvedCommentCount = shouldUpdateCount ? newCommentCount : this.commentCount;
+
+                        // 使用setData确保响应式更新
                         this.setData({
                             comments: comments,
-                            commentCount: resolvedCommentCount,
-                            'post.commentCount': resolvedCommentCount
+                            commentCount: shouldUpdateCount ? newCommentCount : this.commentCount
                         });
                     } else {
                         uni.showToast({
-                            title: '璇勮鍔犺浇失败',
+                            title: '评论加载失败',
                             icon: 'none'
                         });
                     }
@@ -655,7 +694,7 @@ export default {
                 .catch((err) => {
                     console.error('Failed to get comments', err);
                     uni.showToast({
-                        title: '缃戠粶閿欒',
+                        title: '网络错误',
                         icon: 'none'
                     });
                 })
@@ -665,77 +704,7 @@ export default {
                     });
                 });
         },
-        getCurrentUserInfo: function () {
-            if (app && app.globalData && app.globalData.userInfo) {
-                return app.globalData.userInfo;
-            }
-            try {
-                return uni.getStorageSync('userInfo') || null;
-            } catch (_) {
-                return null;
-            }
-        },
-        buildSubmittedComment: function (submittedComment, fallback = {}) {
-            const userInfo = this.getCurrentUserInfo() || {};
-            const isAnonymous = typeof (submittedComment && submittedComment.isAnonymous) === 'boolean'
-                ? submittedComment.isAnonymous
-                : !!(this.post && this.post.isAnonymous);
-            const fallbackImageUrls = Array.isArray(fallback.imageUrls) ? fallback.imageUrls.filter(Boolean) : [];
-            const fallbackOriginalImageUrls = Array.isArray(fallback.originalImageUrls)
-                ? fallback.originalImageUrls.filter(Boolean)
-                : fallbackImageUrls;
-            const nextComment = {
-                _id: submittedComment && submittedComment._id ? submittedComment._id : `comment_${Date.now()}`,
-                postId: submittedComment && submittedComment.postId ? submittedComment.postId : (fallback.postId || ''),
-                parentId: submittedComment && Object.prototype.hasOwnProperty.call(submittedComment, 'parentId')
-                    ? submittedComment.parentId
-                    : (fallback.parentId || null),
-                replyToAuthorName: submittedComment && Object.prototype.hasOwnProperty.call(submittedComment, 'replyToAuthorName')
-                    ? submittedComment.replyToAuthorName
-                    : (fallback.replyToAuthorName || null),
-                _openid: submittedComment && submittedComment._openid ? submittedComment._openid : (this.getCurrentUserId() || ''),
-                content: submittedComment && typeof submittedComment.content === 'string' ? submittedComment.content : (fallback.content || ''),
-                createTime: submittedComment && submittedComment.createTime ? submittedComment.createTime : new Date(),
-                imageUrls: Array.isArray(submittedComment && submittedComment.imageUrls) && submittedComment.imageUrls.length > 0
-                    ? submittedComment.imageUrls
-                    : fallbackImageUrls,
-                originalImageUrls: Array.isArray(submittedComment && submittedComment.originalImageUrls) && submittedComment.originalImageUrls.length > 0
-                    ? submittedComment.originalImageUrls
-                    : fallbackOriginalImageUrls,
-                likes: submittedComment && typeof submittedComment.likes === 'number' ? submittedComment.likes : 0,
-                liked: !!(submittedComment && submittedComment.liked),
-                canDelete: submittedComment && typeof submittedComment.canDelete === 'boolean' ? submittedComment.canDelete : true,
-                isAnonymous: isAnonymous,
-                authorName: submittedComment && submittedComment.authorName
-                    ? submittedComment.authorName
-                    : (isAnonymous ? '鍖垮悕鐢ㄦ埛' : (userInfo.nickName || '寰俊鐢ㄦ埛')),
-                authorAvatar: submittedComment && submittedComment.authorAvatar
-                    ? submittedComment.authorAvatar
-                    : (isAnonymous ? '/static/images/avatar.png' : (userInfo.avatarUrl || '/static/images/avatar.png')),
-                replies: Array.isArray(submittedComment && submittedComment.replies) ? submittedComment.replies : []
-            };
-            return processComments(nextComment);
-        },
-        appendSubmittedComment: function (submittedComment, fallback = {}) {
-            const nextComment = this.buildSubmittedComment(submittedComment, fallback);
-            const comments = (this.comments || []).map((comment) => ({
-                ...comment,
-                replies: Array.isArray(comment.replies) ? comment.replies.slice() : []
-            }));
-            if (nextComment.parentId) {
-                const parentComment = comments.find((comment) => comment && comment._id === nextComment.parentId);
-                if (!parentComment) {
-                    return { comments, inserted: false };
-                }
-                const replies = Array.isArray(parentComment.replies) ? parentComment.replies.slice() : [];
-                replies.push(nextComment);
-                parentComment.replies = replies;
-                parentComment.showAllReplies = true;
-                return { comments, inserted: true };
-            }
-            comments.push(nextComment);
-            return { comments, inserted: true };
-        },
+
         onVote: function (event) {
             const postId = event.currentTarget.dataset.postid;
             if (this.votingInProgress) {
@@ -747,7 +716,7 @@ export default {
             const newVotes = originalIsVoted ? originalVotes - 1 : originalVotes + 1;
             const newIsVoted = !originalIsVoted;
             const newLikeIcon = likeIcon.getLikeIcon(newVotes, newIsVoted);
-            // 鎵归噺鏇存柊锛氭爣璁版姇绁ㄨ繘琛屼腑 + 涔愯鏇存柊甯栧瓙鐘舵€?
+            // 批量更新：标记投票进行中 + 乐观更新帖子状态
             this.setData({
                 votingInProgress: true,
                 'post.votes': newVotes,
@@ -769,6 +738,7 @@ export default {
                     });
                     return;
                 }
+
                 const rollback = result.rollback || {
                     votes: originalVotes,
                     isLiked: originalIsVoted,
@@ -780,7 +750,7 @@ export default {
                     'post.likeIcon': rollback.likeIcon
                 });
             }).catch((error) => {
-                console.error('銆愬笘瀛愯鎯呯偣璧炪€戣皟鐢?likeService 失败', error);
+                console.error('【帖子详情点赞】调用 likeService 失败', error);
                 this.setData({
                     'post.votes': originalVotes,
                     'post.isVoted': originalIsVoted,
@@ -792,10 +762,11 @@ export default {
                 });
             });
         },
+
         onFavorite: function () {
             if (this.isFavorited) {
                 uni.showToast({
-                    title: '??????',
+                    title: '已经收藏过了',
                     icon: 'none'
                 });
                 return;
@@ -804,34 +775,39 @@ export default {
                 showFavoriteModal: true
             });
         },
+
         onAddToPortfolio: function () {
             if (!this.post || !this.post._id) {
                 uni.showToast({
-                    title: '??????',
+                    title: '帖子信息无效',
                     icon: 'none'
                 });
                 return;
             }
-            // 鏄剧ず浣滃搧闆嗛€夋嫨鍣?
+
+            // 显示作品集选择器
             this.setData({
                 showPortfolioModal: true
             });
-            // 寤惰繜涓€涓嬬‘淇濇暟鎹凡璁剧疆
+
+            // 延迟一下确保数据已设置
         },
+
         hideFavoriteModal: function () {
             this.setData({
                 showFavoriteModal: false
             });
         },
+
         onFavoriteSuccess: function () {
             this.hideFavoriteModal();
             this.setData({
                 isFavorited: true,
-                favoriteButtonText: '???',
+                favoriteButtonText: '已收藏',
                 favoriteButtonClass: 'favorite-button favorited'
             });
             uni.showToast({
-                title: '????',
+                title: '收藏成功',
                 icon: 'success'
             });
             try {
@@ -843,31 +819,35 @@ export default {
                 }
             } catch (e) {}
         },
+
         hidePortfolioModal: function () {
             this.setData({
                 showPortfolioModal: false
             });
         },
-        // 鍒嗕韩鐩稿叧鏂规硶
+
+        // 分享相关方法
         onShare: function () {
             if (!this.post || !this.post._id) {
                 uni.showToast({
-                    title: '??????',
+                    title: '帖子信息无效',
                     icon: 'none'
                 });
                 return;
             }
             if (!this.post.isPoem) {
                 uni.showToast({
-                    title: '?????????',
+                    title: '仅诗歌帖子支持分享',
                     icon: 'none'
                 });
                 return;
             }
-            // 鍒濆鍖杝hareConfig浣跨敤甯栧瓙鐨勫疄闄呴鑹?
+
+            // 初始化shareConfig使用帖子的实际颜色
             this.shareConfig.backgroundColor = this.post.backgroundColor || '#FFFFFF';
             this.shareConfig.textColor = this.post.textColor || '#000000';
-            // 鏄剧ず鍒嗕韩寮圭獥锛岄噸缃浘鐗嘦RL锛屽苟绔嬪嵆寮€濮嬬敓鎴愬浘鐗?
+
+            // 显示分享弹窗，重置图片URL，并立即开始生成图片
             this.setData({
                 showShareModal: true,
                 shareImageUrl: '',
@@ -875,10 +855,11 @@ export default {
                 shareImageRetryCount: 0,
                 shareCanvasHeight: 4000
             });
-
-            // 绔嬪嵆寮€濮嬬敓鎴愬浘鐗?
+            
+            // 立即开始生成图片
             this.generateShareImage();
         },
+
         hideShareModal: function () {
             this.shareRenderToken += 1;
             this.setData({
@@ -886,77 +867,86 @@ export default {
                 shareImageFilePath: ''
             });
         },
+
         generateShareImage: function () {
-            // 鍏堝姞杞藉瓧浣擄紝鐒跺悗缁樺埗Canvas
+            // 先加载字体，然后绘制Canvas
             const renderToken = (this.shareRenderToken || 0) + 1;
             this.shareRenderToken = renderToken;
             this.loadFontAndDraw(renderToken);
         },
+
         loadFontAndDraw: async function (renderToken) {
-            const fontFamily = this.shareConfig.fontFamily || '姹囨枃鏄庢湞';
-            console.log('銆恜ost-detail銆戝紑濮嬪姞杞藉瓧浣?', fontFamily);
+            const fontFamily = this.shareConfig.fontFamily || '汇文明朝';
+
+            console.log('【post-detail】开始加载字体:', fontFamily);
+
             if (fontFamily === 'system') {
                 this.shareConfig.fontScale = 1.0;
                 await new Promise(r => setTimeout(r, 50));
                 this.drawCanvas(renderToken);
                 return;
             }
+
             try {
-                // 浣跨敤fontManager纭繚瀛椾綋鍙敤锛堣嚜鍔ㄤ笅杞藉拰缂撳瓨锛?
+                // 使用fontManager确保字体可用（自动下载和缓存）
                 await this.fontManager.ensureFontAvailable(fontFamily, (progress, loaded, total) => {
-                    console.log(`銆恜ost-detail銆戝瓧浣撲笅杞借繘搴? ${progress}% (${loaded}/${total})`);
-                    // 鍙互鍦ㄨ繖閲屾樉绀轰笅杞借繘搴︾粰鐢ㄦ埛
+                    console.log(`【post-detail】字体下载进度: ${progress}% (${loaded}/${total})`);
+                    // 可以在这里显示下载进度给用户
                 });
-
-                console.log('銆恜ost-detail銆戝瓧浣撳姞杞芥垚鍔?', fontFamily);
-
-                // 瀛椾綋缂╂斁绯绘暟鏄犲皠琛?- 瑙ｅ喅涓嶅悓瀛椾綋鍦ㄧ浉鍚屽瓧鍙蜂笅澶у皬宸紓闂
+                
+                console.log('【post-detail】字体加载成功:', fontFamily);
+                
+                // 字体缩放系数映射表 - 解决不同字体在相同字号下大小差异问题
                 const fontScaleMap = {
-                    '姹囨枃鏄庢湞': 1.0,
-                    '?????': 1.0,
-                    '榫欒棌浣?': 1.0,
-                    '灏忓皬鐨撲綋': 1.0,
-                    '鍗楄タ闆呰嚧榛?': 1.0,
-                    '瀛椾綋鍦堟鎰忓悏绁ュ畫': 1.0
+                    '汇文明朝': 1.0,
+                    '文楷': 1.0,
+                    '龙藏体': 1.0,
+                    '小小皓体': 1.0,
+                    '南西雅致黑': 1.0,
+                    '字体圈欣意吉祥宋': 1.0
                 };
-
-                // 搴旂敤瀛椾綋缂╂斁绯绘暟鍒皊hareConfig
+                
+                // 应用字体缩放系数到shareConfig
                 const fontScale = fontScaleMap[fontFamily] || 1.0;
                 this.shareConfig.fontScale = fontScale;
-
-                // 銆愬叧閿€戠瓑寰呭瓧浣撴覆鏌撳氨缁紝App绔渶瑕佹洿闀挎椂闂?
+                
+                // 【关键】等待字体渲染就绪，App端需要更长时间
                 await new Promise(r => setTimeout(r, 150));
-
+                
                 this.drawCanvas(renderToken);
-
+                
             } catch (error) {
-                console.error('銆恜ost-detail銆戝瓧浣撳姞杞藉け璐?', fontFamily, error);
-
-                // 鍥為€€鍒伴粯璁ゅ瓧浣?
+                console.error('【post-detail】字体加载失败:', fontFamily, error);
+                
+                // 回退到默认字体
                 this.shareConfig.fontFamily = 'system';
                 this.shareConfig.fontScale = 1.0;
                 uni.showToast({
-                    title: '??????????????',
+                    title: '字体加载失败，已回退默认字体',
                     icon: 'none',
                     duration: 2000
                 });
-                // 鍗充娇瀛椾綋鍔犺浇失败锛屼篃缁х画缁樺埗
+
+                // 即使字体加载失败，也继续绘制
                 await new Promise(r => setTimeout(r, 150));
                 this.drawCanvas(renderToken);
             }
         },
 
+  
 
 
-
+        
+        
+        
         drawCanvas: async function (renderToken) {
             try {
                 if (renderToken !== this.shareRenderToken) return;
                 const canvasWidth = 750;
-                // 绛惧悕URL宸蹭粠浜戝嚱鏁拌繑鍥烇紝鐩存帴浣跨敤post.authorSignature锛堝尶鍚嶅笘瀛愭垨闈炲師鍒涜瘲姝屼笉鏄剧ず绛惧悕锛?
+                // 签名URL已从云函数返回，直接使用post.authorSignature（匿名帖子或非原创诗歌不显示签名）
                 const shouldShowSignature = (!!this.post && !this.post.isAnonymous && !(this.post.isPoem && this.post.isOriginal === false));
-
-                // 銆愪紭鍖栥€戜娇鐢ㄧ嫭绔嬫ā鍧楄绠桟anvas楂樺害
+                
+                // 【优化】使用独立模块计算Canvas高度
                 const measureCtx = uni.createCanvasContext('shareCanvas', this);
                 const heightResult = await calculateShareCardHeight({
                     measureCtx,
@@ -965,27 +955,30 @@ export default {
                     canvasWidth,
                     shouldShowSignature
                 });
-
+                
                 const canvasHeight = heightResult.canvasHeight;
                 if (renderToken !== this.shareRenderToken) return;
-                console.log('銆恉rawCanvas銆戣绠楅珮搴?', canvasHeight);
-                // 銆愬叧閿慨澶嶃€戝厛鏇存柊Canvas楂樺害锛岀瓑寰匘OM鏇存柊瀹屾垚
+                console.log('【drawCanvas】计算高度:', canvasHeight);
+
+                // 【关键修复】先更新Canvas高度，等待DOM更新完成
                 try { this.setData && this.setData({ shareCanvasHeight: canvasHeight }); } catch(_) { this.shareCanvasHeight = canvasHeight; }
                 if (this.$nextTick) { await new Promise(r => this.$nextTick(r)); }
-                // 棰濆绛夊緟纭繚Canvas灏哄宸叉洿鏂帮紙App绔渶瑕佹洿闀挎椂闂达級
+                // 额外等待确保Canvas尺寸已更新（App端需要更长时间）
                 await new Promise(r => setTimeout(r, 100));
                 if (renderToken !== this.shareRenderToken) return;
-
-                // 銆愬叧閿慨澶嶃€慍anvas楂樺害鏇存柊鍚庯紝閲嶆柊鍒涘缓涓婁笅鏂囪繘琛岀粯鍒?
+                
+                // 【关键修复】Canvas高度更新后，重新创建上下文进行绘制
                 const ctx = uni.createCanvasContext('shareCanvas', this);
                 if (!ctx) {
-                    console.error('[post-detail] failed to create canvas context');
-                    uni.showToast({ title: 'Canvas????', icon: 'none' });
+                    console.error('【post-detail】Canvas上下文创建失败');
+                    uni.showToast({ title: 'Canvas创建失败', icon: 'none' });
                     return;
                 }
-                // 銆愪慨澶嶃€戝厛娓呯┖Canvas锛岄伩鍏嶆畫鐣?
+
+                // 【修复】先清空Canvas，避免残留
                 ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-                // 銆愪紭鍖栥€戜娇鐢ㄧ嫭绔嬫ā鍧楃粯鍒跺垎浜崱鐗囧唴瀹?
+
+                // 【优化】使用独立模块绘制分享卡片内容
                 await drawShareCardContent({
                     ctx,
                     post: this.post,
@@ -995,26 +988,32 @@ export default {
                     shouldShowSignature,
                     ...heightResult
                 });
-                console.log('銆恜ost-detail銆戝紑濮嬫墽琛宒raw');
+
+                console.log('【post-detail】开始执行draw');
+
+
                 ctx.draw(false, () => {
                     if (renderToken !== this.shareRenderToken) return;
-                    console.log('[post-detail] canvas draw complete, exporting image');
-
-                    // 鍐嶆寤惰繜纭繚缁樺埗瀹屾垚
+                    console.log('【post-detail】Canvas绘制完成，开始导出图片');
+                    
+                    // 再次延迟确保绘制完成
                     setTimeout(() => {
                         if (renderToken !== this.shareRenderToken) return;
                         this.exportCanvas(canvasWidth, canvasHeight, renderToken);
-                    }, 150); // 澧炲姞涓€涓井灏忓欢杩燂紝搴斿浣庢€ц兘璁惧
+                    }, 150); // 增加一个微小延迟，应对低性能设备
                 });
+
             } catch (error) {
-                console.error('銆恜ost-detail銆戠粯鍒惰繃绋嬩腑鍑虹幇涓ラ噸閿欒:', error);
+                console.error('【post-detail】绘制过程中出现严重错误:', error);
                 uni.showToast({ title: '图片生成失败，请重试', icon: 'none' });
             }
         },
-        // 鐙珛鐨勫鍑哄嚱鏁?
+
+        // 独立的导出函数
         exportCanvas: async function(canvasWidth, canvasHeight, renderToken) {
             if (renderToken !== this.shareRenderToken) return;
             console.log('[Canvas] export start', { canvasWidth, canvasHeight });
+
             try {
                 const exportResult = await exportShareCanvas({
                     canvasId: 'shareCanvas',
@@ -1026,16 +1025,20 @@ export default {
                     scales: [2, 2, 1.5, 1],
                     retryDelayMs: 120
                 });
+
                 if (renderToken !== this.shareRenderToken) return;
+
                 const raw = (exportResult && exportResult.tempFilePath) || '';
                 let imageUrl = raw;
-                // H5 绔睍绀烘椂杩藉姞鏃堕棿鎴抽伩鍏嶅浘鐗囩紦瀛橈紱灏忕▼搴?APP 闇€淇濈暀鍘熷涓存椂鏂囦欢璺緞鐢ㄤ簬淇濆瓨銆?
+
+                // H5 端展示时追加时间戳避免图片缓存；小程序/APP 需保留原始临时文件路径用于保存。
                 // #ifdef H5
                 if (raw && !raw.startsWith('data:') && !/^blob:/i.test(raw)) {
                     const cacheBuster = Date.now();
                     imageUrl = raw + ((raw.indexOf('?') > -1 ? '&' : '?') + '_' + cacheBuster);
                 }
                 // #endif
+
                 uni.hideLoading();
                 this.setData({
                     shareImageUrl: imageUrl,
@@ -1049,36 +1052,38 @@ export default {
                 uni.showToast({ title: '图片导出失败', icon: 'none' });
             }
         },
+
         onImageLongPress: function () {
-            console.log('[post-detail] user long pressed image');
-            // App 绔病鏈夌郴缁熼暱鎸夎彍鍗曪紝杩欓噷鐩存帴瑙﹀彂淇濆瓨
+            console.log('【post-detail】用户长按图片');
+            // App 端没有系统长按菜单，这里直接触发保存
             // #ifdef APP-PLUS
             this.saveShareImage();
             // #endif
             // #ifndef APP-PLUS
-            uni.showToast({ title: '?????', icon: 'none' });
+            uni.showToast({ title: '长按可保存', icon: 'none' });
             // #endif
         },
-        onShareImageLoad: function () {
-            console.log('[post-detail] share image loaded');
 
+        onShareImageLoad: function () {
+            console.log('【post-detail】分享图片加载成功');
+            
             // 延迟检查，确保图片完全渲染
             setTimeout(() => {
                 this.checkImageDOMState();
             }, 100);
         },
-
-        // 妫€鏌ュ浘鐗嘍OM鐘舵€?
+        
+        // 检查图片DOM状态
         checkImageDOMState: function () {
             if (this.$refs.shareImage) {
                 const img = this.$refs.shareImage;
-
-                // 妫€鏌OM鍏冪礌鏄惁鏈夋晥
+                
+                // 检查DOM元素是否有效
                 if (!img || typeof img !== 'object') {
                     this.refreshCommentListIfNeeded();
                 }
-
-                console.log('銆恜ost-detail銆戝浘鐗嘍OM鐘舵€佹鏌?', {
+                
+                console.log('【post-detail】图片DOM状态检查:', {
                     src: img.src ? img.src.substring(0, 50) + '...' : 'N/A',
                     width: img.width,
                     height: img.height,
@@ -1089,18 +1094,18 @@ export default {
                     naturalWidth: img.naturalWidth,
                     naturalHeight: img.naturalHeight
                 });
-
-                // 濡傛灉灏哄閮芥槸undefined锛屽皾璇曞绉嶈В鍐虫柟妗?
+                
+                // 如果尺寸都是undefined，尝试多种解决方案
                 if (!img.offsetWidth || !img.offsetHeight) {
-                    console.log('[post-detail] image size unavailable, trying fallback strategies');
-
-                    // 鏂规1锛氶€氳繃CSS绫诲己鍒惰缃浘鐗囨牱寮忥紝閬垮厤鐩存帴淇敼DOM
+                    console.log('【post-detail】检测到图片尺寸为undefined，尝试多种解决方案');
+                    
+                    // 方案1：通过CSS类强制设置图片样式，避免直接修改DOM
                     if (img.classList && typeof img.classList.add === 'function') {
                         img.classList.add('force-image-display');
-                        console.log('[post-detail] added force-image-display class');
+                        console.log('【post-detail】添加force-image-display类');
                     } else {
-                        // 濡傛灉classList涓嶅彲鐢紝瀹夊叏鍦拌缃牱寮?
-                        console.log('[post-detail] classList unavailable, applying safe styles');
+                        // 如果classList不可用，安全地设置样式
+                        console.log('【post-detail】classList不可用，安全设置样式');
                         try {
                             if (img.style) {
                                 img.style.width = '100%';
@@ -1112,22 +1117,22 @@ export default {
                                 img.style.opacity = '1';
                                 img.style.backgroundColor = '#f0f0f0';
                                 img.style.border = '2px solid #007aff';
-                                console.log('[post-detail] image style fallback applied');
+                                console.log('【post-detail】样式设置成功');
                             } else {
-                                console.log('[post-detail] img.style unavailable, skipping style fallback');
+                                console.log('【post-detail】img.style不可用，跳过样式设置');
                             }
                         } catch (error) {
-                            console.error('銆恜ost-detail銆戣缃牱寮忔椂鍑洪敊:', error);
+                            console.error('【post-detail】设置样式时出错:', error);
                         }
                     }
-
-                    // 鏂规2锛氭鏌ase64鏁版嵁鏄惁鏈夋晥
+                    
+                    // 方案2：检查base64数据是否有效
                     if (img.src && img.src.startsWith('data:image/')) {
-                        console.log('銆恜ost-detail銆慴ase64鏁版嵁闀垮害:', img.src.length);
-                        console.log('銆恜ost-detail銆慴ase64鏁版嵁鍓嶇紑:', img.src.substring(0, 100));
-
-                        // 鏂规3锛氫笉鐩存帴淇敼img.src锛岃€屾槸閫氳繃Vue鐨勫搷搴斿紡绯荤粺
-                        console.log('銆恜ost-detail銆戞娴嬪埌base64鏁版嵁锛屽噯澶囬噸鏂拌缃畇hareImageUrl');
+                        console.log('【post-detail】base64数据长度:', img.src.length);
+                        console.log('【post-detail】base64数据前缀:', img.src.substring(0, 100));
+                        
+                        // 方案3：不直接修改img.src，而是通过Vue的响应式系统
+                        console.log('【post-detail】检测到base64数据，准备重新设置shareImageUrl');
                         const originalSrc = this.shareImageUrl;
                         this.setData({
                             shareImageUrl: ''
@@ -1136,39 +1141,40 @@ export default {
                             this.setData({
                                 shareImageUrl: originalSrc
                             });
-                            console.log('[post-detail] reset shareImageUrl via Vue and rechecking size');
+                            console.log('【post-detail】通过Vue重新设置shareImageUrl后检查尺寸');
                         }, 100);
                     }
-
-                    // 鏂规4锛氬鏋滆繕鏄笉琛岋紝灏濊瘯浣跨敤涓存椂鏂囦欢璺緞
+                    
+                    // 方案4：如果还是不行，尝试使用临时文件路径
                     setTimeout(() => {
                         if (!img.offsetWidth || !img.offsetHeight) {
-                            console.log('[post-detail] size still unavailable after fallback, trying temp file conversion');
+                            console.log('【post-detail】强制设置后尺寸仍为undefined，尝试转换为临时文件');
                             this.tryConvertToTempFile();
                         }
                     }, 200);
                 }
-
-                // 鍏煎鎬ф鏌ワ細鍙湪鏀寔closest鏂规硶鐨勭幆澧冧腑浣跨敤
+                
+                // 兼容性检查：只在支持closest方法的环境中使用
                 try {
                     if (typeof img.closest === 'function') {
                         const modal = img.closest('.share-modal');
                         const overlay = img.closest('.share-modal-overlay');
-
-                        console.log('銆恜ost-detail銆戝鍣ㄥ昂瀵告鏌?', {
+                        
+                        console.log('【post-detail】容器尺寸检查:', {
                             modalWidth: modal ? modal.offsetWidth : 'N/A',
                             modalHeight: modal ? modal.offsetHeight : 'N/A',
                             overlayWidth: overlay ? overlay.offsetWidth : 'N/A',
                             overlayHeight: overlay ? overlay.offsetHeight : 'N/A'
                         });
                     } else {
-                        console.log('[post-detail] closest is unavailable, skipping container size check');
+                        console.log('【post-detail】当前环境不支持closest方法，跳过容器尺寸检查');
                     }
                 } catch (error) {
-                    console.log('銆恜ost-detail銆戝鍣ㄥ昂瀵告鏌ュけ璐?', error.message);
+                    console.log('【post-detail】容器尺寸检查失败:', error.message);
                 }
             }
         },
+
         // 跨端保存分享图片
         saveShareImage: function () {
             const url = this.shareImageUrl;
@@ -1181,17 +1187,19 @@ export default {
                     || (!isRemoteUrl(value) && !isDataUrl(value));
             };
             if (!url) {
-                uni.showToast({ title: '??????', icon: 'none' });
+                uni.showToast({ title: '图片生成中…', icon: 'none' });
                 return;
             }
-            const toastOK = (msg) => uni.showToast({ title: msg || '???', icon: 'success' });
-            const toastFail = (msg) => uni.showToast({ title: msg || '????', icon: 'none' });
-            // 鏉冮檺寮曞锛堝皬绋嬪簭/APP锛?
+
+            const toastOK = (msg) => uni.showToast({ title: msg || '已保存', icon: 'success' });
+            const toastFail = (msg) => uni.showToast({ title: msg || '保存失败', icon: 'none' });
+
+            // 权限引导（小程序/APP）
             const handlePermissionFail = () => {
                 uni.showModal({
-                    title: '??????',
-                    content: '??????????????????',
-                    confirmText: '???',
+                    title: '需要相册权限',
+                    content: '请在设置中开启保存到相册权限后重试。',
+                    confirmText: '去设置',
                     success: (r) => {
                         if (r.confirm && uni.openSetting) {
                             uni.openSetting({});
@@ -1199,36 +1207,39 @@ export default {
                     }
                 });
             };
-            // 鐪熸鎵ц淇濆瓨锛堝皬绋嬪簭/APP锛?
+
+            // 真正执行保存（小程序/APP）
             const saveFromPath = (filePath) => {
                 // #ifdef MP-WEIXIN || APP-PLUS
                 uni.saveImageToPhotosAlbum({
                     filePath,
-                    success: () => toastOK('宸蹭繚瀛樺埌鐩稿唽'),
+                    success: () => toastOK('已保存到相册'),
                     fail: (err) => {
                         console.error('saveImageToPhotosAlbum 失败:', err);
                         const msg = (err && err.errMsg) || '';
                         if (/auth|authorize|denied|permission/i.test(msg)) {
                             handlePermissionFail();
                         } else {
-                            toastFail('????');
+                            toastFail('保存失败');
                         }
                     }
                 });
                 // #endif
             };
-            // H5锛氫笅杞藉埌鏈湴
+
+            // H5：下载到本地
             // #ifdef MP-WEIXIN || APP-PLUS
             if (filePath && isLocalFilePath(filePath)) {
                 saveFromPath(filePath);
                 return;
             }
             // #endif
+
             const saveOnH5 = (finalUrl) => {
                 // #ifdef H5
                 try {
                     if (finalUrl.startsWith('data:')) {
-                        // dataURL 鈫?blob 鈫?a[download]
+                        // dataURL → blob → a[download]
                         const arr = finalUrl.split(',');
                         const mime = arr[0].match(/:(.*?);/)[1] || 'image/png';
                         const bstr = atob(arr[1]);
@@ -1244,7 +1255,7 @@ export default {
                         a.click();
                         document.body.removeChild(a);
                         URL.revokeObjectURL(urlObj);
-                        toastOK('?????');
+                        toastOK('已开始下载');
                     } else {
                         const a = document.createElement('a');
                         a.href = finalUrl;
@@ -1252,17 +1263,18 @@ export default {
                         document.body.appendChild(a);
                         a.click();
                         document.body.removeChild(a);
-                        toastOK('?????');
+                        toastOK('已开始下载');
                     }
                 } catch (e) {
-                    console.error('H5 淇濆瓨失败锛屽皾璇曟墦寮€鏂扮獥鍙?', e);
+                    console.error('H5 保存失败，尝试打开新窗口:', e);
                     window.open(finalUrl, '_blank');
                 }
                 // #endif
             };
-            // 缁熶竴鍏ュ彛锛氭牴鎹?URL 褰㈡€佸垎鏀?
+
+            // 统一入口：根据 URL 形态分支
             if (url.startsWith('data:')) {
-                // base64 鈫?涓存椂鏂囦欢
+                // base64 → 临时文件
                 // #ifdef MP-WEIXIN || APP-PLUS
                 uni.base64ToTempFilePath({
                     base64Data: url,
@@ -1280,7 +1292,7 @@ export default {
                 saveOnH5(url);
                 // #endif
             } else if (/^https?:\/\//i.test(url)) {
-                // 杩滅▼ URL 鍏堜笅杞?
+                // 远程 URL 先下载
                 // #ifdef MP-WEIXIN || APP-PLUS
                 uni.downloadFile({
                     url,
@@ -1295,13 +1307,13 @@ export default {
                                     toastFail('save failed');
                                 }
                         } else {
-                            console.error('downloadFile 闈?00:', res.statusCode);
-                            toastFail('????');
+                            console.error('downloadFile 非200:', res.statusCode);
+                            toastFail('下载失败');
                         }
                     },
                     fail: (err) => {
                         console.error('downloadFile 失败:', err);
-                        toastFail('????');
+                        toastFail('下载失败');
                     }
                 });
                 // #endif
@@ -1309,7 +1321,7 @@ export default {
                 saveOnH5(url);
                 // #endif
             } else {
-                // 璁や负鏄湰鍦颁复鏃惰矾寰?
+                // 认为是本地临时路径
                 // #ifdef MP-WEIXIN || APP-PLUS
                 if (url && isLocalFilePath(url)) {
                     this.setData({ shareImageFilePath: url });
@@ -1321,71 +1333,73 @@ export default {
                 // #endif
             }
         },
-        onShareImageError: function (e) {
-            console.error('銆恜ost-detail銆戝垎浜浘鐗囧姞杞藉け璐?', e);
-            console.log('銆恜ost-detail銆戝綋鍓峴hareImageUrl:', this.shareImageUrl);
-            console.log('銆恜ost-detail銆戝浘鐗嘦RL绫诲瀷:', typeof this.shareImageUrl);
-            console.log('銆恜ost-detail銆戝浘鐗嘦RL闀垮害:', this.shareImageUrl ? this.shareImageUrl.length : 0);
 
-            // 濡傛灉鏄痓ase64 URI锛屾鏌ユ牸寮?
+        onShareImageError: function (e) {
+            console.error('【post-detail】分享图片加载失败:', e);
+            console.log('【post-detail】当前shareImageUrl:', this.shareImageUrl);
+            console.log('【post-detail】图片URL类型:', typeof this.shareImageUrl);
+            console.log('【post-detail】图片URL长度:', this.shareImageUrl ? this.shareImageUrl.length : 0);
+            
+            // 如果是base64 URI，检查格式
             if (this.shareImageUrl && this.shareImageUrl.startsWith('data:')) {
-                console.log('銆恜ost-detail銆戞娴嬪埌base64 URI锛屾鏌ユ牸寮?..');
+                console.log('【post-detail】检测到base64 URI，检查格式...');
                 const isValidBase64 = this.shareImageUrl.match(/^data:image\/[a-zA-Z]*;base64,/);
                 if (!isValidBase64) {
-                    console.error('銆恜ost-detail銆慴ase64 URI鏍煎紡鏃犳晥');
+                    console.error('【post-detail】base64 URI格式无效');
                 } else {
-                    console.log('[post-detail] base64 URI format valid');
+                    console.log('【post-detail】base64 URI格式正确');
                 }
             }
-
-            // 妫€鏌ユ槸鍚﹀彲浠ラ噸璇?
+            
+            // 检查是否可以重试
             if (this.shareImageRetryCount < 2) {
-                console.log('銆恜ost-detail銆戝皾璇曢噸鏂扮敓鎴愬浘鐗囷紝閲嶈瘯娆℃暟:', this.shareImageRetryCount + 1);
+                console.log('【post-detail】尝试重新生成图片，重试次数:', this.shareImageRetryCount + 1);
                 this.setData({
                     shareImageRetryCount: this.shareImageRetryCount + 1
                 });
-
-                // 寤惰繜閲嶈瘯
+                
+                // 延迟重试
                 setTimeout(() => {
                     this.generateShareImage();
                 }, 1000);
             } else {
-                // 濡傛灉閲嶈瘯失败锛屽皾璇曚娇鐢ㄤ笉鍚岀殑鏄剧ず鏂瑰紡
-                console.log('[post-detail] retry exhausted, trying alternative display');
+                // 如果重试失败，尝试使用不同的显示方式
+                console.log('【post-detail】重试失败，尝试使用备用方案');
                 this.tryAlternativeDisplay();
             }
         },
-        // 澶囩敤鏄剧ず鏂规
+
+        // 备用显示方案
         tryAlternativeDisplay: function () {
-            console.log('[post-detail] trying alternative image display');
-
-            // 濡傛灉褰撳墠鏄痓ase64 URI锛屾牴鎹钩鍙颁娇鐢ㄤ笉鍚岀殑澶勭悊鏂瑰紡
+            console.log('【post-detail】尝试备用显示方案');
+            
+            // 如果当前是base64 URI，根据平台使用不同的处理方式
             if (this.shareImageUrl && this.shareImageUrl.startsWith('data:')) {
-                console.log('[post-detail] detected base64 URI, using alternative display strategy');
-
+                console.log('【post-detail】检测到base64 URI，使用跨平台备用方案');
+                
                 // #ifdef H5
-                // H5骞冲彴锛氱洿鎺ヤ娇鐢╞ase64 URI
-                console.log('銆恜ost-detail銆慔5澶囩敤鏂规锛氱洿鎺ヤ娇鐢╞ase64 URI');
-                // 鍦℉5骞冲彴锛宐ase64 URI搴旇鑳界洿鎺ユ樉绀猴紝濡傛灉杩樻槸失败锛岃鏄庢湁鍏朵粬闂
+                // H5平台：直接使用base64 URI
+                console.log('【post-detail】H5备用方案：直接使用base64 URI');
+                // 在H5平台，base64 URI应该能直接显示，如果还是失败，说明有其他问题
                 uni.showToast({
                     title: '图片显示失败，请重试',
                     icon: 'none'
                 });
                 // #endif
-
+                
                 // #ifndef H5
-                // 闈濰5骞冲彴锛氫娇鐢╱ni.base64ToTempFilePath()杞崲
-                console.log('[post-detail] non-H5 fallback: uni.base64ToTempFilePath');
+                // 非H5平台：使用uni.base64ToTempFilePath()转换
+                console.log('【post-detail】非H5备用方案：使用uni.base64ToTempFilePath()转换');
                 uni.base64ToTempFilePath({
                     base64Data: this.shareImageUrl,
                     success: (res) => {
-                        console.log('銆恜ost-detail銆戝鐢ㄦ柟妗坆ase64杞崲鎴愬姛:', res.filePath);
+                        console.log('【post-detail】备用方案base64转换成功:', res.filePath);
                         this.setData({
                             shareImageUrl: res.filePath
                         });
                     },
                     fail: (err) => {
-                        console.error('銆恜ost-detail銆戝鐢ㄦ柟妗坆ase64杞崲失败:', err);
+                        console.error('【post-detail】备用方案base64转换失败:', err);
                         uni.showToast({
                             title: '图片显示失败，请重试',
                             icon: 'none'
@@ -1394,53 +1408,59 @@ export default {
                 });
                 // #endif
             } else {
-                // 濡傛灉涓嶆槸base64锛屾樉绀洪敊璇俊鎭?
+                // 如果不是base64，显示错误信息
                 uni.showToast({
                     title: '图片显示失败，请重试',
                     icon: 'none'
                 });
             }
         },
-        // 瀛椾綋璁剧疆鐩稿叧浜嬩欢澶勭悊
+
+        // 字体设置相关事件处理
         onFontSizePreview: function(fontSize) {
-            // 瀹炴椂棰勮瀛楀彿鍙樺寲锛屼娇鐢ㄩ槻鎶?            // 纭繚fontScale涔熻姝ｇ‘璁剧疆
-            const fontFamily = this.shareConfig.fontFamily || '姹囨枃鏄庢湞';
+            // 实时预览字号变化，使用防抖
+            // 确保fontScale也被正确设置
+            const fontFamily = this.shareConfig.fontFamily || '汇文明朝';
             const fontScaleMap = {
-                '姹囨枃鏄庢湞': 1.0,
-                '?????': 1.0,
-                '榫欒棌浣?': 1.0,
-                '灏忓皬鐨撲綋': 1.0,
-                '鍗楄タ闆呰嚧榛?': 1.0,
-                '瀛椾綋鍦堟鎰忓悏绁ュ畫': 1.0
+                '汇文明朝': 1.0,
+                '文楷': 1.0,
+                '龙藏体': 1.0,
+                '小小皓体': 1.0,
+                '南西雅致黑': 1.0,
+                '字体圈欣意吉祥宋': 1.0
             };
             const fontScale = fontScaleMap[fontFamily] || 1.0;
-
+            
             this.debouncedRegenerateImage({
                 ...this.shareConfig,
                 fontSize: fontSize,
-                titleFontSize: Math.round(fontSize * 1.21), // 鏍囬瀛楀彿姣旀鏂囧ぇ21%
-                fontScale: fontScale
+                titleFontSize: Math.round(fontSize * 1.21), // 标题字号比正文大21%
+                fontScale: fontScale // 确保fontScale被正确设置
             });
         },
+
         onFontFamilyPreview: function(fontFamily) {
-            // 瀹炴椂棰勮瀛椾綋鍙樺寲锛屼娇鐢ㄩ槻鎶?            // 纭繚fontScale涔熻姝ｇ‘璁剧疆
+            // 实时预览字体变化，使用防抖
+            // 确保fontScale也被正确设置
             const fontScaleMap = {
-                '姹囨枃鏄庢湞': 1.0,
-                '?????': 1.0,
-                '榫欒棌浣?': 1.0,
-                '灏忓皬鐨撲綋': 1.0,
-                '鍗楄タ闆呰嚧榛?': 1.0,
-                '瀛椾綋鍦堟鎰忓悏绁ュ畫': 1.0
+                '汇文明朝': 1.0,
+                '文楷': 1.0,
+                '龙藏体': 1.0,
+                '小小皓体': 1.0,
+                '南西雅致黑': 1.0,
+                '字体圈欣意吉祥宋': 1.0
             };
             const fontScale = fontScaleMap[fontFamily] || 1.0;
-
+            
             this.debouncedRegenerateImage({
                 ...this.shareConfig,
                 fontFamily: fontFamily,
-                fontScale: fontScale
+                fontScale: fontScale // 确保fontScale被正确设置
             });
         },
+
         onFontSettingsChange: function(settings) {
+            // 确认字体设置变化
             this.shareConfig = {
                 ...this.shareConfig,
                 fontSize: settings.fontSize,
@@ -1449,7 +1469,9 @@ export default {
             };
             this.regenerateShareImage();
         },
+
         onColorChange: function(colorConfig) {
+            // 颜色变化
             this.shareConfig = {
                 ...this.shareConfig,
                 backgroundColor: colorConfig.backgroundColor,
@@ -1457,113 +1479,138 @@ export default {
             };
             this.regenerateShareImage();
         },
+
+        // 防抖重新生成图片（300ms延迟）
         debouncedRegenerateImage: function(tempConfig) {
             clearTimeout(this.regenerateTimeout);
             this.regenerateTimeout = setTimeout(() => {
+                const oldConfig = { ...this.shareConfig };
                 this.shareConfig = tempConfig;
                 this.regenerateShareImage();
+                // 预览完成后可以选择是否恢复原配置，这里保持新配置用于实时预览
             }, 300);
         },
+
+        // 重新生成分享图片
         regenerateShareImage: function() {
-            console.log('?????????????:', this.shareConfig);
+            console.log('【post-detail】重新生成分享图片，新配置:', this.shareConfig);
             this.shareImageUrl = '';
             this.shareImageFilePath = '';
             this.shareImageRetryCount = 0;
+            // 重置Canvas高度，强制重新计算
             this.shareCanvasHeight = 1000;
+            // 延迟一下确保UI更新和配置生效
             this.$nextTick(() => {
+                // 再次延迟确保所有状态都已更新
                 setTimeout(() => {
                     this.generateShareImage();
                 }, 50);
             });
         },
+
+        // 强制重新生成Canvas（弹窗关闭后）
         forceRegenerateCanvas: function() {
-            console.log('?????? Canvas???????');
+            console.log('【post-detail】强制重新生成Canvas，确保无遮挡渲染');
+            // 清除当前图片，重置状态
             this.shareImageUrl = '';
             this.shareImageFilePath = '';
             this.shareImageRetryCount = 0;
             this.shareCanvasHeight = 1000;
+
+            // 延迟重新生成，确保DOM完全更新
             this.$nextTick(() => {
                 setTimeout(() => {
                     this.generateShareImage();
-                }, 200);
+                }, 200); // 增加延迟确保所有动画完成
             });
         },
+
+        // 尝试将base64转换为临时文件
         tryConvertToTempFile: function () {
-            if (!this.shareImageUrl || !this.shareImageUrl.startsWith('data:')) {
-                return;
-            }
-            console.log('[post-detail] converting base64 to temp file');
-            // #ifndef H5
-            uni.base64ToTempFilePath({
-                base64Data: this.shareImageUrl,
-                success: (res) => {
-                    console.log('[post-detail] base64 converted to temp file:', res.filePath);
+            if (this.shareImageUrl && this.shareImageUrl.startsWith('data:')) {
+                console.log('【post-detail】尝试将base64转换为临时文件');
+                
+                // #ifndef H5
+                // 非H5平台：使用uni.base64ToTempFilePath()转换
+                uni.base64ToTempFilePath({
+                    base64Data: this.shareImageUrl,
+                    success: (res) => {
+                        console.log('【post-detail】base64转临时文件成功:', res.filePath);
+                        this.setData({
+                            shareImageUrl: res.filePath
+                        });
+                    },
+                    fail: (err) => {
+                        console.error('【post-detail】base64转临时文件失败:', err);
+                        // 如果转换失败，显示错误信息
+                        uni.showToast({
+                            title: '图片显示失败，请重试',
+                            icon: 'none'
+                        });
+                    }
+                });
+                // #endif
+                
+                // #ifdef H5
+                // H5平台：尝试使用blob URL
+                try {
+                    const base64Data = this.shareImageUrl.split(',')[1];
+                    const binaryString = atob(base64Data);
+                    const bytes = new Uint8Array(binaryString.length);
+                    for (let i = 0; i < binaryString.length; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
+                    }
+                    const blob = new Blob([bytes], { type: 'image/png' });
+                    const blobUrl = URL.createObjectURL(blob);
+                    
+                    console.log('【post-detail】H5环境blob URL生成成功:', blobUrl);
                     this.setData({
-                        shareImageUrl: res.filePath
+                        shareImageUrl: blobUrl
                     });
-                },
-                fail: (err) => {
-                    console.error('[post-detail] base64 to temp file failed:', err);
+                } catch (error) {
+                    console.error('【post-detail】H5环境blob URL生成失败:', error);
                     uni.showToast({
-                        title: '??????????',
+                        title: '图片显示失败，请重试',
                         icon: 'none'
                     });
                 }
-            });
-            // #endif
-            // #ifdef H5
-            try {
-                const base64Data = this.shareImageUrl.split(',')[1];
-                const binaryString = atob(base64Data);
-                const bytes = new Uint8Array(binaryString.length);
-                for (let i = 0; i < binaryString.length; i++) {
-                    bytes[i] = binaryString.charCodeAt(i);
-                }
-                const blob = new Blob([bytes], { type: 'image/png' });
-                const blobUrl = URL.createObjectURL(blob);
-                console.log('[post-detail] blob URL created:', blobUrl);
-                this.setData({
-                    shareImageUrl: blobUrl
-                });
-            } catch (error) {
-                console.error('[post-detail] blob URL creation failed:', error);
-                uni.showToast({
-                    title: '??????????',
-                    icon: 'none'
-                });
+                // #endif
             }
-            // #endif
         },
+
         onPortfolioSuccess: function () {
             this.hidePortfolioModal();
             uni.showToast({
-                title: '娣诲姞鎴愬姛',
+                title: '添加成功',
                 icon: 'success'
             });
         },
+
         onCreateDiscussion: function () {
             if (!this.post || !this.post._id) {
                 uni.showToast({
-                    title: '??????',
+                    title: '帖子信息无效',
                     icon: 'none'
                 });
                 return;
             }
-            console.log('銆恜ost-detail銆戣烦杞埌鍒涘缓璁ㄨ椤甸潰锛宲ostId:', this.post._id);
+
+            console.log('【post-detail】跳转到创建讨论页面，postId:', this.post._id);
             uni.navigateTo({
                 url: `/pages-tools/create-discussion/create-discussion?postId=${this.post._id}`,
                 success: () => {
-                    console.log('[post-detail] navigate to create discussion page success');
+                    console.log('【post-detail】跳转到创建讨论页面成功');
                 },
                 fail: (err) => {
-                    console.error('銆恜ost-detail銆戣烦杞埌鍒涘缓璁ㄨ椤甸潰失败:', err);
+                    console.error('【post-detail】跳转到创建讨论页面失败:', err);
                     uni.showToast({
-                        title: '????',
+                        title: '跳转失败',
                         icon: 'none'
                     });
                 }
             });
         },
+
         handlePreview: function (event) {
             const result = previewImage(event, { fallbackToast: false });
             if (!result) {
@@ -1574,9 +1621,12 @@ export default {
             }
             return result;
         },
+
+
         onAvatarError: function (e) {
-            console.error('澶村儚鍔犺浇失败', e);
+            console.error('头像加载失败', e);
         },
+
         updateSubmitState: function () {
                 const hasText = (this.newComment || '').trim().length > 0;
                 const hasImages = Array.isArray(this.commentImages) && this.commentImages.length > 0;
@@ -1587,12 +1637,14 @@ export default {
                     });
             }
         },
+
         initializeCommentTextareaMetrics: function () {
             try {
                 const systemInfo = uni.getSystemInfoSync ? uni.getSystemInfoSync() : null;
                 const rpxToPx = systemInfo && systemInfo.windowWidth ? systemInfo.windowWidth / 750 : 0.5;
                 const minHeight = Math.round(180 * rpxToPx);
                 const maxHeight = Math.round(350 * rpxToPx);
+
                 this.setData({
                     commentTextareaMinHeight: minHeight,
                     commentTextareaMaxHeight: maxHeight,
@@ -1602,6 +1654,7 @@ export default {
                 console.warn('Failed to initialize comment textarea height:', error);
             }
         },
+
         resetCommentTextareaHeight: function () {
             const minHeight = this.commentTextareaMinHeight || 90;
             if (this.commentTextareaHeight !== minHeight) {
@@ -1610,20 +1663,29 @@ export default {
                 });
             }
         },
+
         onCommentLineChange: function (e) {
             const nextHeight = e && e.detail ? Number(e.detail.height) : NaN;
             if (!Number.isFinite(nextHeight)) {
                 return;
             }
+
             const minHeight = this.commentTextareaMinHeight || 90;
             const maxHeight = this.commentTextareaMaxHeight || 175;
             const clampedHeight = Math.max(minHeight, Math.min(nextHeight, maxHeight));
+
             if (Math.abs((this.commentTextareaHeight || 0) - clampedHeight) > 1) {
                 this.setData({
                     commentTextareaHeight: clampedHeight
                 });
             }
         },
+
+
+
+
+
+
         onCommentInput: function (e) {
             this.setData(
                 {
@@ -1634,22 +1696,27 @@ export default {
                 }
             );
         },
+
+
         chooseImages: function () {
             const existingImages = this.commentImages ? this.commentImages.length : 0;
             const maxImages = this.maxCommentImages;
             const remaining = maxImages - existingImages;
+
             if (remaining <= 0) {
                 uni.showToast({
-                    title: '????3???',
+                    title: '最多选择3张图片',
                     icon: 'none'
                 });
                 return;
             }
-            // 纭繚杈撳叆妗嗕繚鎸佸睍寮€鐘舵€?
+
+            // 确保输入框保持展开状态
             if (!this.isInputExpanded) {
                 this.expandInput();
             }
-            // 鍦ˋPP绔厛璇锋眰璇诲彇瀛樺偍鏉冮檺
+
+            // 在APP端先请求读取存储权限
             const startChoose = () => {
                 uni.chooseImage({
                 count: remaining,
@@ -1662,13 +1729,16 @@ export default {
                             tempFilePath: path,
                             size: 0
                         }));
+
                     const tasks = tempFiles.map((file) => this.prepareCommentImage(file));
+
                     Promise.all(tasks)
                         .then((processedImages) => {
                             const validImages = processedImages.filter((item) => !!item);
                             if (validImages.length === 0) {
                                 return;
                             }
+
                                 const updatedImages = (this.commentImages || []).concat(validImages);
                                 this.setData(
                                     {
@@ -1702,6 +1772,7 @@ export default {
                 }
             });
             };
+
             try {
                 const platform = getCurrentPlatform();
                 if (platform === 'app') {
@@ -1713,11 +1784,14 @@ export default {
                     return;
                 }
             } catch (e) {}
+
             startChoose();
         },
+
         chooseCommentImages: function () {
             this.chooseImages();
         },
+
         prepareCommentImage: function (file) {
             return new Promise((resolve) => {
                 const tempPath = file.tempFilePath || file.path || (Array.isArray(file.tempFilePaths) ? file.tempFilePaths[0] : '');
@@ -1726,7 +1800,7 @@ export default {
                     return;
                 }
                 const sizeInBytes = file.size || 0;
-                // 璺宠繃鍘嬬缉锛岀洿鎺ヤ娇鐢ㄥ師鍥?
+                // 跳过压缩，直接使用原图
                 const imageInfo = {
                     id: 'comment_' + Date.now() + '_' + Math.floor(Math.random() * 100000),
                     originalPath: tempPath,
@@ -1738,34 +1812,36 @@ export default {
                 resolve(imageInfo);
             });
         },
+
         compressCommentImage: function (imageInfo) {
             return new Promise((resolve) => {
-                // 浣跨敤鏇存縺杩涚殑鍘嬬缉鍙傛暟锛岀‘淇濇枃浠跺ぇ灏忎笉瓒呰繃200KB
+                // 使用更激进的压缩参数，确保文件大小不超过200KB
                 const compressWithQuality = (quality) => {
                     uni.compressImage({
                         src: imageInfo.originalPath,
                         quality: quality,
                         success: (res) => {
-                            // 妫€鏌ュ帇缂╁悗鐨勬枃浠跺ぇ灏?
+                            // 检查压缩后的文件大小
                             uni.getFileInfo({
                                 filePath: res.tempFilePath,
                                 success: (fileInfo) => {
                                     const compressedSize = fileInfo.size;
-                                    console.log(`鍘嬬缉璐ㄩ噺${quality}%锛屾枃浠跺ぇ灏? ${(compressedSize / 1024).toFixed(2)}KB`);
-                                    // 濡傛灉鏂囦欢澶у皬瓒呰繃200KB涓旇川閲忚繕鍙互缁х画闄嶄綆锛屽垯缁х画鍘嬬缉
+                                    console.log(`压缩质量${quality}%，文件大小: ${(compressedSize / 1024).toFixed(2)}KB`);
+
+                                    // 如果文件大小超过200KB且质量还可以继续降低，则继续压缩
                                     if (compressedSize > 204800 && quality > 30) {
-                                        console.log(`鏂囦欢澶у皬${(compressedSize / 1024).toFixed(2)}KB瓒呰繃200KB锛岀户缁帇缂?..`);
+                                        console.log(`文件大小${(compressedSize / 1024).toFixed(2)}KB超过200KB，继续压缩...`);
                                         compressWithQuality(quality - 10);
                                     } else {
                                         imageInfo.compressedPath = res.tempFilePath;
                                         imageInfo.previewUrl = res.tempFilePath;
                                         imageInfo.compressedSize = compressedSize;
-                                        console.log(`鏈€缁堝帇缂╄川閲?{quality}%锛屾枃浠跺ぇ灏? ${(compressedSize / 1024).toFixed(2)}KB`);
+                                        console.log(`最终压缩质量${quality}%，文件大小: ${(compressedSize / 1024).toFixed(2)}KB`);
                                         resolve(imageInfo);
                                     }
                                 },
                                 fail: () => {
-                                    // 濡傛灉无法鑾峰彇鏂囦欢淇℃伅锛岀洿鎺ヤ娇鐢ㄥ帇缂╃粨鏋?
+                                    // 如果无法获取文件信息，直接使用压缩结果
                                     imageInfo.compressedPath = res.tempFilePath;
                                     imageInfo.previewUrl = res.tempFilePath;
                                     resolve(imageInfo);
@@ -1773,12 +1849,12 @@ export default {
                             });
                         },
                         fail: (err) => {
-                            console.warn(`鍘嬬缉璐ㄩ噺${quality}%失败:`, err);
+                            console.warn(`压缩质量${quality}%失败:`, err);
                             if (quality > 30) {
-                                // 濡傛灉鍘嬬缉失败涓旇川閲忚繕鍙互闄嶄綆锛屽皾璇曟洿浣庣殑璐ㄩ噺
+                                // 如果压缩失败且质量还可以降低，尝试更低的质量
                                 compressWithQuality(quality - 10);
                             } else {
-                                // 濡傛灉鎵€鏈夊帇缂╅兘失败锛屼娇鐢ㄥ師鍥?
+                                // 如果所有压缩都失败，使用原图
                                 imageInfo.compressedPath = imageInfo.originalPath;
                                 imageInfo.previewUrl = imageInfo.originalPath;
                                 imageInfo.needCompression = false;
@@ -1787,10 +1863,13 @@ export default {
                         }
                     });
                 };
-                // 浠?0%璐ㄩ噺寮€濮嬪帇缂╋紝閫愭闄嶄綆鐩村埌鏂囦欢澶у皬绗﹀悎瑕佹眰
+
+                // 从60%质量开始压缩，逐步降低直到文件大小符合要求
                 compressWithQuality(60);
             });
         },
+
+
         removeCommentImage: function (e) {
             const index = e.currentTarget.dataset.index;
             if (index === undefined) {
@@ -1807,6 +1886,7 @@ export default {
                 }
             );
         },
+
         previewSelectedCommentImage: function (e) {
             const index = e.currentTarget.dataset.index || 0;
             const images = this.commentImages || [];
@@ -1820,22 +1900,23 @@ export default {
             const current = urls[index] || urls[0];
             return previewImage({ current, urls }, { fallbackToast: false });
         },
+
         uploadCommentImages: function () {
             const images = this.commentImages || [];
-
+            
             if (!images.length) {
                 return Promise.resolve([]);
             }
             const openid = this.getCurrentUserId() || 'guest';
             const timestamp = Date.now();
-
-            // 浣跨敤閫氱敤鐨勬枃浠朵笂浼犳柟娉?
+            
+            // 使用通用的文件上传方法
             return Promise.all(
                 images.map((image, index) => {
                     const uniqueKey = (openid || 'guest') + '_' + timestamp + '_' + index;
                     const compressedCloudPath = 'comment_images/' + uniqueKey + '_compressed.jpg';
-
-                    // 浣跨敤閫氱敤鐨勬枃浠朵笂浼犳柟娉曪紙uploadFile 杩斿洖 fileID 瀛楃涓诧級
+                    
+                    // 使用通用的文件上传方法（uploadFile 返回 fileID 字符串）
                     return uploadFile(compressedCloudPath, image.compressedPath || image.previewUrl || image.originalPath)
                         .then((compressedFileID) => {
                             if (image.needCompression) {
@@ -1856,6 +1937,7 @@ export default {
                 })
             );
         },
+
         previewCommentImageFromList: function (e) {
             const commentIndex = Number(e.currentTarget.dataset.commentIndex);
             const replyIndexRaw = e.currentTarget.dataset.replyIndex;
@@ -1895,12 +1977,14 @@ export default {
             const current = filteredImages[imageIndex] || filteredImages[0];
             return previewImage({ current, urls: filteredImages }, { fallbackToast: false });
         },
+
         onSubmitComment: async function () {
             if (this.isSubmitDisabled || this.isSubmittingComment) {
                 return;
             }
             const trimmedContent = (this.newComment || '').trim();
-            // 浣跨敤鏂扮殑楠岃瘉宸ュ叿鍑芥暟
+
+            // 使用新的验证工具函数
             const validationResult = validateCommentInput(trimmedContent, this.commentImages);
             if (!validationResult.isValid) {
                 uni.showToast({
@@ -1912,22 +1996,24 @@ export default {
             const postId = this.post && this.post._id ? this.post._id : '';
             if (!postId) {
                 uni.showToast({
-                    title: '??????',
+                    title: '帖子信息缺失',
                     icon: 'none'
                 });
                 return;
             }
-            // 銆愬唴瀹瑰鏍搞€戝鏍歌瘎璁哄唴瀹癸紙浠呭皬绋嬪簭绔級
+
+            // 【内容审核】审核评论内容（仅小程序端）
             const moderationResult = await this.moderateCommentContent(trimmedContent, this.commentImages);
             if (!moderationResult.passed) {
                 uni.showModal({
-                    title: '鍐呭瀹℃牳鏈€氳繃',
-                    content: moderationResult.message || '???????????????????',
+                    title: '内容审核未通过',
+                    content: moderationResult.message || '您的评论包含不适当的信息，请修改后重试',
                     showCancel: false,
-                    confirmText: '???'
+                    confirmText: '知道了'
                 });
                 return;
             }
+
             const parentId = this.replyToComment;
             const replyToAuthor = this.replyToAuthor;
             this.setData({
@@ -1935,13 +2021,13 @@ export default {
             });
             this.updateSubmitState();
             uni.showLoading({
-                title: '鎻愪氦涓?..'
+                title: '提交中...'
             });
             try {
                 const imageUploadResults = await this.uploadCommentImages();
                 const imageUrls = imageUploadResults.map((item) => item.compressedUrl);
                 const originalImageUrls = imageUploadResults.map((item) => item.originalUrl);
-
+                
                 const commentData = {
                     postId: postId,
                     content: trimmedContent,
@@ -1954,37 +2040,23 @@ export default {
                     replyToAuthorName: replyToAuthor,
                     isAnonymous: this.post.isAnonymous || false
                 };
-                const localPreviewImages = (this.commentImages || [])
-                    .map((item) => item.previewUrl || item.path || '')
-                    .filter(Boolean);
+
                 const result = await submitComment(commentData);
                 uni.hideLoading();
                 if (result) {
                     uni.showToast({
-                        title: '璇勮鎴愬姛'
+                        title: '评论成功'
                     });
                     const newCommentCount = this.commentCount + 1;
-                    const { comments: nextComments, inserted } = this.appendSubmittedComment(result.comment, {
-                        postId,
-                        parentId,
-                        replyToAuthorName: replyToAuthor || null,
-                        content: trimmedContent,
-                        imageUrls: localPreviewImages,
-                        originalImageUrls: localPreviewImages
-                    });
                     try { emitCommentCountChanged({ postId, commentCount: newCommentCount }); } catch (_) {}
                     this.setData({
-                        comments: nextComments,
                         newComment: '',
                         commentImages: [],
-                        commentCount: newCommentCount,
-                        'post.commentCount': newCommentCount
+                        commentCount: newCommentCount
                     });
                     this.updateSubmitState();
                     this.collapseInput();
-                    if (!inserted) {
-                        this.getComments(postId);
-                    }
+                    this.getComments(postId);
                     const pages = getCurrentPages();
                     if (pages.length > 1) {
                         const prePage = pages[pages.length - 2];
@@ -1999,7 +2071,7 @@ export default {
                 uni.hideLoading();
                 console.error('Failed to add comment with media:', error);
                 uni.showToast({
-                    title: '????',
+                    title: '评论失败',
                     icon: 'none'
                 });
             } finally {
@@ -2009,23 +2081,26 @@ export default {
                 this.updateSubmitState();
             }
         },
-        // 銆愬唴瀹瑰鏍搞€戝鏍歌瘎璁哄唴瀹癸紙浠呭皬绋嬪簭绔級
+
+        // 【内容审核】审核评论内容（仅小程序端）
         async moderateCommentContent(content, images) {
-            console.log('[PostDetail] start comment moderation');
+            console.log('🔍 [PostDetail] 开始审核评论');
+
             if (!shouldModerate()) {
-                console.log('[PostDetail] moderation skipped in current environment');
+                console.log('🔍 [PostDetail] 当前环境无需审核，直接放行评论');
                 return {
                     passed: true,
-                    message: '?????'
+                    message: '审核已跳过'
                 };
             }
-
+            
             try {
                 uni.showLoading({
-                    title: '瀹℃牳涓?..',
+                    title: '审核中...',
                     mask: true
                 });
-                // 提取图片 URL
+
+                // 提取图片URL
                 const imageUrls = [];
                 if (images && Array.isArray(images)) {
                     images.forEach(img => {
@@ -2036,81 +2111,89 @@ export default {
                         }
                     });
                 }
-                // 璋冪敤瀹℃牳
+
+                // 调用审核
                 const result = await checkContentSafe({
                     text: content,
                     images: imageUrls
                 }, {
-                    scene: 2 // 鍦烘櫙2-璇勮
+                    scene: 2 // 场景2-评论
                 });
+
                 uni.hideLoading();
-                console.log('[PostDetail] moderation result:', result);
+                console.log('🔍 [PostDetail] 评论审核结果:', result);
                 return result;
+
             } catch (error) {
                 uni.hideLoading();
-                console.error('鉂?[PostDetail] 璇勮瀹℃牳失败:', error);
-
-                // 瀹℃牳失败鏃惰繑鍥為€氳繃
+                console.error('❌ [PostDetail] 评论审核失败:', error);
+                
+                // 审核失败时返回通过
                 return {
                     passed: true,
-                    message: '?????????'
+                    message: '审核服务暂时不可用'
                 };
             }
         },
+
         showReplyInput: function (e) {
             console.log('--- showReplyInput function triggered ---');
-            console.log('鏀跺埌鐨?data- attributes:', e.currentTarget.dataset);
+            console.log('收到的 data- attributes:', e.currentTarget.dataset);
             const commentId = e.currentTarget.dataset.commentId;
             const authorName = e.currentTarget.dataset.authorName;
-            const replyId = e.currentTarget.dataset.replyId; // 琚洖澶嶇殑浜岀骇璇勮ID锛堝鏋滃瓨鍦級
-
-            // 濡傛灉瀛樺湪 replyId锛岃鏄庢槸鍥炲浜岀骇璇勮锛涘惁鍒欐槸鍥炲涓€绾ц瘎璁?
+            const replyId = e.currentTarget.dataset.replyId; // 被回复的二级评论ID（如果存在）
+            
+            // 如果存在 replyId，说明是回复二级评论；否则是回复一级评论
             this.setData({
-                replyToComment: commentId, // 鐖惰瘎璁篒D锛屼綔涓?parentId
-                replyToAuthor: authorName  // 琚洖澶嶇殑鐢ㄦ埛鍚嶏紝浣滀负 replyToAuthorName
+                replyToComment: commentId, // 父评论ID，作为 parentId
+                replyToAuthor: authorName  // 被回复的用户名，作为 replyToAuthorName
             });
-            console.log('璁剧疆鍚庣殑鍥炲鐘舵€?', {
+            console.log('设置后的回复状态:', {
                 replyToComment: this.replyToComment,
                 replyToAuthor: this.replyToAuthor,
-                replyId: replyId // 璁板綍琚洖澶嶇殑浜岀骇璇勮ID锛堢敤浜庢棩蹇楋級
+                replyId: replyId // 记录被回复的二级评论ID（用于日志）
             });
             this.expandInput();
         },
+
         cancelReply: function () {
             this.setData({
                 replyToComment: null,
                 replyToAuthor: ''
             });
-            console.log('[post-detail] reply state cleared');
+            console.log('回复状态已被取消');
         },
+
         onDeleteComment: function (e) {
             const { commentId, parentId } = e.currentTarget.dataset;
             if (!commentId) {
                 return;
             }
+
             const postId = this.post && this.post._id ? this.post._id : '';
             if (!postId) {
                 uni.showToast({
-                    title: '??????',
+                    title: '帖子信息缺失',
                     icon: 'none'
                 });
                 return;
             }
+
             uni.showModal({
-                title: '鍒犻櫎璇勮',
-                content: '???????????',
+                title: '删除评论',
+                content: '确定要删除这条评论吗？',
                 confirmColor: '#ff4d4f',
                 success: (res) => {
                     if (!res.confirm) {
                         return;
                     }
                     uni.showLoading({
-                        title: '姝ｅ湪鍒犻櫎',
+                        title: '正在删除',
                         mask: true
                     });
                     deleteComment(commentId, postId, parentId).then((result) => {
-                            if (result && result.success) {
-                                const deletedCount = Math.max(1, result.deletedCount || 1);
+                            if (result.result && result.result.success) {
+                                const deletedCount = Math.max(1, result.result.deletedCount || 1);
                                 let updatedComments;
                                 if (parentId) {
                                     updatedComments = this.comments.map((comment) => ({
@@ -2128,8 +2211,7 @@ export default {
                                 try { emitCommentCountChanged({ postId: this.post && this.post._id ? this.post._id : '', commentCount: newCommentCount }); } catch (_) {}
                                 this.setData({
                                     comments: updatedComments,
-                                    commentCount: newCommentCount,
-                                    'post.commentCount': newCommentCount
+                                    commentCount: newCommentCount
                                 });
                                 const pages = getCurrentPages();
                                 if (pages.length > 1) {
@@ -2139,19 +2221,19 @@ export default {
                                     }
                                 }
                                 uni.showToast({
-                                    title: '???',
+                                    title: '已删除',
                                     icon: 'success'
                                 });
                             } else {
                                 uni.showToast({
-                                    title: (result && result.message) || '????',
+                                    title: (result.result && result.result.message) || '删除失败',
                                     icon: 'none'
                                 });
                             }
                         }).catch((err) => {
                             console.error('Failed to delete comment', err);
                             uni.showToast({
-                                title: '????',
+                                title: '删除失败',
                                 icon: 'none'
                             });
                         }).finally(() => {
@@ -2160,18 +2242,19 @@ export default {
                 }
             });
         },
+
         toggleLikeComment: function (e) {
             const { commentId } = e.currentTarget.dataset;
             const postId = this.post && this.post._id ? this.post._id : '';
             const { comment, isReply, commentIndex, replyIndex } = this.findCommentWithIndex(this.comments, commentId);
             if (!comment) return;
-
+            
             const newLikeState = !comment.liked;
             const oldLikes = comment.likes || 0;
             const newLikes = oldLikes + (newLikeState ? 1 : -1);
             const newLikeIcon = likeIcon.getLikeIcon(newLikes, newLikeState);
-
-            // 浣跨敤 Vue 鍝嶅簲寮忔柟寮忔洿鏂?
+            
+            // 使用 Vue 响应式方式更新
             if (isReply) {
                 this.$set(this.comments[commentIndex].replies[replyIndex], 'liked', newLikeState);
                 this.$set(this.comments[commentIndex].replies[replyIndex], 'likes', newLikes);
@@ -2181,7 +2264,7 @@ export default {
                 this.$set(this.comments[commentIndex], 'likes', newLikes);
                 this.$set(this.comments[commentIndex], 'likeIcon', newLikeIcon);
             }
-
+            
             likeComment(commentId, postId, newLikeState).then((result) => {
                     if (result && result.success) {
                         if (newLikes !== result.likes) {
@@ -2189,13 +2272,14 @@ export default {
                         }
                     } else {
                         this.updateCommentLikeStatus(commentId, !newLikeState, oldLikes);
-                        uni.showToast({ title: '????', icon: 'none' });
+                        uni.showToast({ title: '操作失败', icon: 'none' });
                     }
                 }).catch((err) => {
                     this.updateCommentLikeStatus(commentId, !newLikeState, oldLikes);
-                    uni.showToast({ title: '缃戠粶閿欒', icon: 'none' });
+                    uni.showToast({ title: '网络错误', icon: 'none' });
                 });
         },
+
         updateCommentLikeStatus: function (commentId, newLikeState, finalLikes) {
             const { comment, isReply, commentIndex, replyIndex } = this.findCommentWithIndex(this.comments, commentId);
             if (comment) {
@@ -2211,10 +2295,8 @@ export default {
                 }
             }
         },
-        // 鏌ユ壘璇勮骞惰繑鍥炵储寮曪紙鐢ㄤ簬 Vue 鍝嶅簲寮忔洿鏂帮級
-        findComment: function (comments, commentId) {
-            return findComment(comments, commentId);
-        },
+
+        // 查找评论并返回索引（用于 Vue 响应式更新）
         findCommentWithIndex: function (comments, commentId) {
             for (let i = 0; i < comments.length; i++) {
                 if (comments[i]._id === commentId) {
@@ -2245,6 +2327,7 @@ export default {
                 replyIndex: -1
             };
         },
+
         toggleShowAllReplies: function (e) {
             const commentId = e.currentTarget.dataset.commentId;
             let comments = this.comments;
@@ -2259,8 +2342,9 @@ export default {
                 });
             }
         },
-        // ========== CommentItem 缁勪欢浜嬩欢閫傞厤鏂规硶 ==========
 
+        // ========== CommentItem 组件事件适配方法 ==========
+        
         handleCommentNavigateToUser: function (data) {
             const fakeEvent = {
                 currentTarget: {
@@ -2273,6 +2357,7 @@ export default {
             };
             this.navigateToUserProfile(fakeEvent);
         },
+
         handleReplyClick: function (data) {
             const fakeEvent = {
                 currentTarget: {
@@ -2285,6 +2370,7 @@ export default {
             };
             this.showReplyInput(fakeEvent);
         },
+
         handleCommentLike: function (data) {
             this.toggleLikeComment({
                 currentTarget: {
@@ -2292,6 +2378,7 @@ export default {
                 }
             });
         },
+
         handleCommentDelete: function (data) {
             const fakeEvent = {
                 currentTarget: {
@@ -2303,12 +2390,14 @@ export default {
             };
             this.onDeleteComment(fakeEvent);
         },
+
         handleCommentPreviewImage: function (data) {
             const { imageUrls, imageIndex } = data;
             if (imageUrls && imageUrls.length > 0) {
                 previewImage(imageUrls[imageIndex], imageUrls);
             }
         },
+
         handleToggleReplies: function (data) {
             const fakeEvent = {
                 currentTarget: {
@@ -2319,23 +2408,27 @@ export default {
             };
             this.toggleShowAllReplies(fakeEvent);
         },
+
         formatTime: function (dateString) {
             return formatRelativeTime(dateString);
         },
+
         prepareFollowState: function (authorOpenid) {
             const currentUserId = this.getCurrentUserId();
             const isSameUser = authorOpenid === currentUserId;
-            console.log('銆愬叧娉ㄧ姸鎬併€憄repareFollowState璋冪敤:', {
+            console.log('【关注状态】prepareFollowState调用:', {
                 authorOpenid,
                 currentUserId,
                 isSameUser: isSameUser
             });
-            // 璁剧疆鏄惁鏄嚜宸辩殑甯栧瓙
+
+            // 设置是否是自己的帖子
             this.setData({
                 isOwnPost: isSameUser
             });
+
             if (!authorOpenid || !currentUserId || isSameUser) {
-                console.log('[follow] hide follow button for self or invalid user');
+                console.log('【关注状态】不显示关注按钮 - 自己或无效用户');
                 this.setData({
                     showFollowButton: false,
                     isFollowing: false,
@@ -2344,7 +2437,7 @@ export default {
                 });
                 return;
             }
-            console.log('[follow] show follow button');
+            console.log('【关注状态】显示关注按钮');
             this.setData({
                 showFollowButton: true,
                 isFollowing: false,
@@ -2353,6 +2446,7 @@ export default {
             });
             this.fetchFollowStatusWithCache(authorOpenid);
         },
+
         fetchFollowStatusWithCache: function (targetOpenid) {
             if (!targetOpenid) {
                 return;
@@ -2361,7 +2455,8 @@ export default {
             if (!currentUserId) {
                 return;
             }
-            // 浣跨敤缂撳瓨鑾峰彇鍏虫敞鐘舵€?
+
+            // 使用缓存获取关注状态
             followCache.getFollowStatus(currentUserId, targetOpenid).then((followData) => {
                 if (followData) {
                     this.setData({
@@ -2372,10 +2467,12 @@ export default {
                 }
             });
         },
+
         fetchFollowStatus: function (targetOpenid) {
             if (!targetOpenid) {
                 return;
             }
+
             checkFollowStatus(targetOpenid).then((res) => {
                     if (res && res.success) {
                         this.setData({
@@ -2384,12 +2481,13 @@ export default {
                             isMutualFollow: !!res.isMutual
                         });
                     } else {
-                        console.warn('检查关注状态失败:', res);
+                        console.warn('检查关注状态失败', res);
                     }
                 }).catch((err) => {
-                    console.error('妫€鏌ュ叧娉ㄧ姸鎬佽皟鐢ㄥけ璐?', err);
+                    console.error('检查关注状态调用失败:', err);
                 });
         },
+
         onFollowTap: function () {
             if (this.followPending || !this.post) {
                 return;
@@ -2401,7 +2499,7 @@ export default {
             const currentUserId = this.getCurrentUserId();
             if (!currentUserId) {
                 uni.showToast({
-                    title: '璇峰厛鐧诲綍',
+                    title: '请先登录',
                     icon: 'none'
                 });
                 return;
@@ -2409,7 +2507,8 @@ export default {
             this.setData({
                 followPending: true
             });
-            // 浣跨敤缂撳瓨鍒囨崲鍏虫敞鐘舵€?
+
+            // 使用缓存切换关注状态
             followCache
                 .toggleFollowStatus(currentUserId, targetOpenid)
                 .then((followData) => {
@@ -2420,20 +2519,20 @@ export default {
                             isMutualFollow: followData.isMutualFollow
                         });
                         uni.showToast({
-                            title: followData.isFollowing ? '????' : '?????',
+                            title: followData.isFollowing ? '关注成功' : '已取消关注',
                             icon: 'success'
                         });
                     } else {
                         uni.showToast({
-                            title: '????',
+                            title: '操作失败',
                             icon: 'none'
                         });
                     }
                 })
                 .catch((err) => {
-                    console.error('鍒囨崲鍏虫敞鐘舵€佸け璐?', err);
+                    console.error('切换关注状态失败:', err);
                     uni.showToast({
-                        title: '缃戠粶閿欒',
+                        title: '网络错误',
                         icon: 'none'
                     });
                 })
@@ -2443,9 +2542,11 @@ export default {
                     });
                 });
         },
+
         getCurrentUserId: function () {
             return getCurrentUserId(this);
         },
+
         retryLoad: function () {
             if (this.currentPostId) {
                 this.setData({
@@ -2455,52 +2556,59 @@ export default {
                 this.loadPostDetail(this.currentPostId);
             }
         },
-        // 鐐瑰嚮璇椾汉鍚嶈烦杞埌璇椾汉涓婚〉锛堜粎闈炲師鍒涜瘲锛?
+
+        // 点击诗人名跳转到诗人主页（仅非原创诗）
         onPoetNameTap: function () {
             if (!this.post || !this.post.author) return;
-
-            // 鍙湁闈炲師鍒涜瘲鎵嶈烦杞?
+            
+            // 只有非原创诗才跳转
             if (this.post.isOriginal) {
                 return;
             }
-
-            // 濡傛灉浣滆€呭悕鍜屽彂甯冪敤鎴锋樀绉扮浉鍚岋紝鍙兘鏄敤鎴蜂笂浼犻敊璇紝涓嶅垱寤鸿瘲浜轰富椤?
+            
+            // 如果作者名和发布用户昵称相同，可能是用户上传错误，不创建诗人主页
             const poetName = this.post.author;
             const authorName = this.post.authorName || this.post.authorNameSnapshot || '';
             if (poetName.trim() === authorName.trim()) {
                 return;
             }
-
+            
             uni.navigateTo({
                 url: `/pages-user/poet-profile/poet-profile?poetName=${encodeURIComponent(poetName)}`
             });
         },
+
         navigateToUserProfile: function (e) {
             try {
-                console.log('銆愯鎯呴〉澶村儚鐐瑰嚮銆戝嚱鏁拌璋冪敤锛屼簨浠跺璞?', e);
+                console.log('【详情页头像点击】函数被调用，事件对象:', e);
                 const currentTarget = e.currentTarget || e.target || {};
                 const dataset = currentTarget.dataset || {};
                 const isAnonymous = dataset.isAnonymous === 'true' || dataset.isAnonymous === true;
                 const userId = dataset.userId || dataset.userid || dataset.user || '';
-                console.log('銆愯鎯呴〉澶村儚鐐瑰嚮銆戝畬鏁磀ataset:', dataset);
-                console.log('銆愯鎯呴〉澶村儚鐐瑰嚮銆慽sAnonymous:', isAnonymous);
-                console.log('銆愯鎯呴〉澶村儚鐐瑰嚮銆憉serId:', userId);
-                console.log('銆愯鎯呴〉澶村儚鐐瑰嚮銆慶urrentTarget:', currentTarget);
-                // 濡傛灉鏄尶鍚嶈瘎璁猴紝涓嶈烦杞?
-                if (isAnonymous || (dataset.authorName === '鍖垮悕鐢ㄦ埛' && userId.includes('anonymous'))) {
-                    console.log('[post-detail] anonymous comment profile navigation skipped');
+
+                console.log('【详情页头像点击】完整dataset:', dataset);
+                console.log('【详情页头像点击】isAnonymous:', isAnonymous);
+                console.log('【详情页头像点击】userId:', userId);
+                console.log('【详情页头像点击】currentTarget:', currentTarget);
+
+                // 如果是匿名评论，不跳转
+                if (isAnonymous || (dataset.authorName === '匿名用户' && userId.includes('anonymous'))) {
+                    console.log('【详情页头像点击】匿名评论，不跳转');
                     uni.showToast({
-                        title: '??????????',
+                        title: '匿名用户无法查看主页',
                         icon: 'none'
                     });
                     return;
                 }
+
                 if (!userId) {
-                    console.error('銆愬ご鍍忕偣鍑汇€憉serId涓虹┖锛宒ataset:', dataset);
+                    console.error('【头像点击】userId为空，dataset:', dataset);
                     return;
                 }
+
                 const currentUserOpenid = this.openid || this.getCurrentUserId();
-                // 妫€鏌ユ槸鍚︾偣鍑荤殑鏄嚜宸辩殑澶村儚
+
+                // 检查是否点击的是自己的头像
                 if (userId === currentUserOpenid) {
                     uni.switchTab({
                         url: '/pages/profile/profile'
@@ -2511,38 +2619,45 @@ export default {
                     });
                 }
             } catch (err) {
-                console.error('銆愬ご鍍忕偣鍑汇€戝嚱鏁版墽琛屽嚭閿?', err);
+                console.error('【头像点击】函数执行出错:', err);
                 uni.showToast({
-                    title: '璺宠浆寮傚父',
+                    title: '跳转异常',
                     icon: 'none'
                 });
             }
         },
+
         preventBubble: function () {
-            // 绌哄嚱鏁帮紝浠呯敤浜庨樆姝簨浠跺啋娉?        },
+            // 空函数，仅用于阻止事件冒泡
         },
+
         expandInput: function () {
-            // 鍏堥噸缃敭鐩橀珮搴︼紝纭繚寮圭獥鍦ㄥ簳閮ㄦ樉绀?            // 鐩存帴鍚屾椂璁剧疆鎵€鏈夌姸鎬侊紝涓嶉渶瑕佸欢杩燂紝璁╁脊绐楃珛鍗虫樉绀?
+            // 先重置键盘高度，确保弹窗在底部显示
+            // 直接同时设置所有状态，不需要延迟，让弹窗立即显示
             this.setData({
                 keyboardHeight: 0,
                 isInputExpanded: true,
-                isFocus: true, // 鐩存帴鑱氱劍锛岃閿洏鍜屽脊绐楀悓姝ュ搷搴?            });
+                isFocus: true, // 直接聚焦，让键盘和弹窗同步响应
             });
         },
+
         onInputFocus: function (e) {
-            // 杈撳叆妗嗚幏寰楃劍鐐规椂鐨勫鐞?            // 浠?focus 浜嬩欢涓幏鍙栭敭鐩橀珮搴︿綔涓哄鐢紙濡傛灉 uni.onKeyboardHeightChange 鍝嶅簲鎱級
+            // 输入框获得焦点时的处理
+            // 从 focus 事件中获取键盘高度作为备用（如果 uni.onKeyboardHeightChange 响应慢）
             if (e && e.detail && typeof e.detail.height === 'number' && e.detail.height > 0) {
                 this.setData({
                     keyboardHeight: e.detail.height
                 });
             }
         },
+
         onInputBlur: function () {
             this.setData({
                 isFocus: false,
-                keyboardHeight: 0 // 閿洏鏀惰捣鏃堕噸缃珮搴?            });
+                keyboardHeight: 0 // 键盘收起时重置高度
             });
         },
+
         collapseInput: function () {
             this.resetCommentTextareaHeight();
             this.setData({
@@ -2552,94 +2667,105 @@ export default {
                 replyToAuthor: '',
             });
         },
+
+
         onTagClick: function (e) {
             const tag = e.currentTarget.dataset.tag;
-            console.log('鐐瑰嚮鏍囩:', tag);
+            console.log('点击标签:', tag);
             uni.navigateTo({
                 url: `/pages-tools/tag-filter/tag-filter?tag=${encodeURIComponent(tag)}`,
                 success: () => {
-                    console.log('跳转到标签筛选页成功');
+                    console.log('跳转到标签筛选页面成功');
                 },
                 fail: (err) => {
-                    console.error('跳转到标签筛选页失败:', err);
+                    console.error('跳转到标签筛选页面失败', err);
                     uni.showToast({
-                        title: '????',
+                        title: '跳转失败',
                         icon: 'none'
                     });
                 }
             });
         },
-        // 杩斿洖鎸夐挳鏂规硶
-        goBack: function () {
-            // 鑾峰彇椤甸潰鏍?
-            const pages = getCurrentPages();
-            console.log('褰撳墠椤甸潰鏍堥暱搴?', pages.length);
 
+        // 返回按钮方法
+        goBack: function () {
+            // 获取页面栈
+            const pages = getCurrentPages();
+            console.log('当前页面栈长度:', pages.length);
+            
             if (pages.length > 1) {
-                // 鏈変笂涓€椤碉紝姝ｅ父杩斿洖
+                // 有上一页，正常返回
                 uni.navigateBack({
                     delta: 1,
                     fail: () => {
-                        console.log('navigateBack失败锛屽皾璇晄witchTab');
-                        // 濡傛灉杩斿洖失败锛屽皾璇曡烦杞埌棣栭〉
+                        console.log('navigateBack失败，尝试switchTab');
+                        // 如果返回失败，尝试跳转到首页
                         uni.switchTab({
                             url: '/pages/index/index'
                         });
                     }
                 });
             } else {
-                // 娌℃湁涓婁竴椤碉紝璺宠浆鍒伴椤?
-                console.log('[post-detail] no previous page, switching to home tab');
+                // 没有上一页，跳转到首页
+                console.log('没有上一页，跳转到首页');
                 uni.switchTab({
                     url: '/pages/index/index'
                 });
             }
         },
-        // 搴曢儴鏍忓揩閫熻瘎璁鸿緭鍏?
+
+        // 底部栏快速评论输入
         onQuickCommentInput: function(e) {
             this.quickCommentText = e.detail.value;
         },
-        // 搴曢儴鏍忓揩閫熻瘎璁烘彁浜?
+
+        // 底部栏快速评论提交
         onQuickCommentSubmit: function() {
             const text = this.quickCommentText.trim();
             if (!text) {
                 return;
             }
-
-            // 浣跨敤鐜版湁鐨勮瘎璁烘彁浜ら€昏緫
+            
+            // 使用现有的评论提交逻辑
             this.newComment = text;
             this.quickCommentText = '';
             this.onSubmitComment();
         },
-        // 鏄剧ず璁ㄨ妯℃€佹
+
+        // 显示讨论模态框
         showDiscussionModal: function() {
-            // 杩欓噷鍙互璺宠浆鍒板啓璁ㄨ椤甸潰鎴栨樉绀鸿璁烘ā鎬佹
+            // 这里可以跳转到写讨论页面或显示讨论模态框
             uni.navigateTo({
                 url: '/pages-tools/create-discussion/create-discussion?postId=' + (this.post && this.post._id ? this.post._id : '')
             });
         },
-        // 鍒囨崲鏀惰棌鐘舵€?
+
+        // 切换收藏状态
         toggleFavorite: function() {
             if (!this.post || !this.post._id) {
                 return;
             }
-
-            // 浣跨敤鐜版湁鐨勬敹钘忛€昏緫
+            
+            // 使用现有的收藏逻辑
             this.showFavoriteModal = true;
         },
+
+
         // 图片加载事件处理
         onImageLoad: function(e) {
         },
+
         onImageError: function(e) {
-            // 鏄剧ず閿欒淇℃伅
+            // 显示错误信息
             uni.showToast({
                 title: '图片加载失败',
                 icon: 'none',
                 duration: 2000
             });
         },
+
         onEditPost() {
-            // 鎵撳紑寮圭獥锛屽洖濉綋鍓嶅唴瀹?
+            // 打开弹窗，回填当前内容
             this.showEditModal = true;
             this.editForm = {
                 title: this.post.title || '',
@@ -2654,39 +2780,39 @@ export default {
             this.editForm[field] = e.detail.value;
         },
         onSaveEdit() {
-            // 楠岃瘉杈撳叆
+            // 验证输入
             if (!this.editForm.title || !this.editForm.title.trim()) {
-                uni.showToast({ title: '?????', icon: 'none' });
+                uni.showToast({ title: '请输入标题', icon: 'none' });
                 return;
             }
             if (!this.editForm.content || !this.editForm.content.trim()) {
-                uni.showToast({ title: '?????', icon: 'none' });
+                uni.showToast({ title: '请输入正文', icon: 'none' });
                 return;
             }
-
-            // 妫€鏌ユ槸鍚︽湁鏉冮檺缂栬緫
+            
+            // 检查是否有权限编辑
             if (!this.post || !this.post._id) {
-                uni.showToast({ title: '??????', icon: 'none' });
+                uni.showToast({ title: '帖子信息无效', icon: 'none' });
                 return;
             }
-
-            uni.showLoading({ title: '淇濆瓨涓?..' });
-
-            // 璋冪敤鏇存柊鎺ュ彛
+            
+            uni.showLoading({ title: '保存中...' });
+            
+            // 调用更新接口
             updatePostContent(this.post._id, {
                 title: this.editForm.title.trim(),
                 content: this.editForm.content.trim()
             })
             .then(() => {
                 uni.hideLoading();
-                uni.showToast({ title: '淇濆瓨鎴愬姛', icon: 'success' });
-                // 鏇存柊鏈湴甯栧瓙鏁版嵁
+                uni.showToast({ title: '保存成功', icon: 'success' });
+                // 更新本地帖子数据
                 this.setData({
                     'post.title': this.editForm.title.trim(),
                     'post.content': this.editForm.content.trim(),
                     showEditModal: false
                 });
-                // 鍙戦€佹洿鏂颁簨浠堕€氱煡鍏朵粬椤甸潰
+                // 发送更新事件通知其他页面
                 try {
                     emitPostUpdated(this.post._id);
                 } catch (e) {
@@ -2697,56 +2823,58 @@ export default {
             })
             .catch((err) => {
                 uni.hideLoading();
-                console.error('淇濆瓨失败:', err);
-                uni.showToast({
-                    title: err.message || '????',
-                    icon: 'none'
+                console.error('保存失败:', err);
+                uni.showToast({ 
+                    title: err.message || '保存失败', 
+                    icon: 'none' 
                 });
             });
         },
-
-        // 鍒嗕韩鍒板ソ鍙?缇よ亰
+        
+        // 分享到好友/群聊
         onShareAppMessage(res) {
             const postId = this.post?._id;
-            // 浼樺厛浣跨敤鏍囬锛屽鏋滄病鏈夋爣棰樺垯浣跨敤鍐呭鍓?0涓瓧绗?
+            // 优先使用标题，如果没有标题则使用内容前20个字符
             let title = 'poementer';
             if (this.post?.title) {
                 title = this.post.title;
             } else if (this.post?.content) {
                 title = this.post.content.substring(0, 20) + (this.post.content.length > 20 ? '...' : '');
             }
-
+            
             return getShareAppMessageConfig({
                 title: title,
                 path: postId ? `/pages/post-detail/post-detail?id=${postId}` : '/pages/poem-square/poem-square'
             });
         },
-
-        // 鍒嗕韩鍒版湅鍙嬪湀
+        
+        // 分享到朋友圈
         onShareTimeline() {
             const postId = this.post?._id;
-            // 浼樺厛浣跨敤鏍囬锛屽鏋滄病鏈夋爣棰樺垯浣跨敤鍐呭鍓?0涓瓧绗?
+            // 优先使用标题，如果没有标题则使用内容前20个字符
             let title = 'poementer';
             if (this.post?.title) {
                 title = this.post.title;
             } else if (this.post?.content) {
                 title = this.post.content.substring(0, 20) + (this.post.content.length > 20 ? '...' : '');
             }
-
+            
             return getShareTimelineConfig({
                 title: title,
                 query: postId ? `id=${postId}` : ''
             });
         }
+
     }
 };
 </script>
 <style>
 /* pages/post-detail/post-detail.wxss */
-/* 鑷畾涔夎繑鍥炴寜閽?*/
+
+/* 自定义返回按钮 */
 .custom-back-btn {
     position: absolute;
-    top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px))); /* 娣诲姞瀹夊叏鍖哄煙鍋忕Щ */
+    top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px))); /* 添加安全区域偏移 */
     left: 40rpx;
     width: 100rpx;
     height: 100rpx;
@@ -2757,40 +2885,47 @@ export default {
     transition: all 0.2s ease;
     box-sizing: border-box;
 }
+
 .custom-back-btn:active {
     transform: scale(0.95);
 }
+
 .custom-back-btn .back-icon {
     width: 100rpx;
     height: 100rpx;
     display: block;
     object-fit: contain;
 }
-/* 纭繚 page 鍏冪礌鏈夐珮搴?*/
+
+/* 确保 page 元素有高度 */
 page {
     height: 100vh;
 }
+
 .container {
     background-color: #ffffff;
     /* min-height: 100vh; */
     padding-bottom: 140rpx;
-    padding-top: calc(160rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px))); /* 娣诲姞瀹夊叏鍖哄煙涓婅竟璺?*/
-    position: relative; /* 涓鸿繑鍥炴寜閽彁渚涘畾浣嶄笂涓嬫枃 */
-    /* 鏂板锛岀‘淇濆湪鍐呭涓嶈冻鏃朵篃鑳芥拺婊′竴灞?*/
+    padding-top: calc(160rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px))); /* 添加安全区域上边距 */
+    position: relative; /* 为返回按钮提供定位上下文 */
+    /* 新增，确保在内容不足时也能撑满一屏 */
     display: flex;
     flex-direction: column;
-    min-height: 100%; /* 浣跨敤鐧惧垎姣旂户鎵?page 鐨勯珮搴?*/
-    box-sizing: border-box; /* 鍔犱笂杩欎釜濂戒範鎯?*/
+    min-height: 100%; /* 使用百分比继承 page 的高度 */
+    box-sizing: border-box; /* 加上这个好习惯 */
 }
+
 .post-detail-skeleton {
     padding: 0;
 }
+
 .skeleton-wrapper {
     background: #fff;
     padding: 40rpx 40rpx 20rpx 40rpx;
     border-bottom: 1rpx solid #f0f0f0;
     margin-bottom: 0;
 }
+
 .comment-skeleton-item {
     display: flex;
     align-items: flex-start;
@@ -2798,42 +2933,52 @@ page {
     padding: 20rpx 40rpx;
     border-bottom: 1rpx solid #f5f5f5;
 }
+
 .skeleton-header {
     display: flex;
     align-items: center;
     margin-bottom: 24rpx;
 }
+
 .skeleton-avatar {
     width: 88rpx;
     height: 88rpx;
     border-radius: 50%;
     background-color: #e9edf3;
 }
+
 .skeleton-header-text {
     flex: 1;
     margin-left: 24rpx;
 }
+
 .skeleton-line {
     height: 24rpx;
     background-color: #e9edf3;
     border-radius: 999rpx;
     margin-bottom: 16rpx;
 }
+
 .skeleton-line:last-child {
     margin-bottom: 0;
 }
+
 .skeleton-line.long {
     width: 100%;
 }
+
 .skeleton-line.medium {
     width: 70%;
 }
+
 .skeleton-line.short {
     width: 45%;
 }
+
 .skeleton-line.xshort {
     width: 30%;
 }
+
 .skeleton-image {
     width: 100%;
     height: 340rpx;
@@ -2841,6 +2986,7 @@ page {
     background-color: #e9edf3;
     margin: 30rpx 0;
 }
+
 .skeleton-section-title {
     width: 50%;
     height: 28rpx;
@@ -2848,11 +2994,13 @@ page {
     background-color: #e9edf3;
     margin: 10rpx 0 30rpx;
 }
+
 .comment-skeleton-list {
     display: flex;
     flex-direction: column;
     gap: 24rpx;
 }
+
 .comment-skeleton-item {
     display: flex;
     align-items: flex-start;
@@ -2861,17 +3009,21 @@ page {
     padding: 24rpx;
     box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
 }
+
 .comment-skeleton-body {
     flex: 1;
     margin-left: 24rpx;
 }
+
 .comment-skeleton-body .skeleton-line {
     height: 20rpx;
 }
+
 .skeleton-animate {
     position: relative;
     overflow: hidden;
 }
+
 .skeleton-animate::after {
     content: '';
     position: absolute;
@@ -2882,6 +3034,7 @@ page {
     background: linear-gradient(90deg, rgba(233, 237, 243, 0) 0%, rgba(255, 255, 255, 0.9) 50%, rgba(233, 237, 243, 0) 100%);
     animation: skeletonPulse 1.2s ease-in-out infinite;
 }
+
 @keyframes skeletonPulse {
     0% {
         left: -150%;
@@ -2890,6 +3043,7 @@ page {
         left: 100%;
     }
 }
+
 .error-container {
     display: flex;
     flex-direction: column;
@@ -2898,15 +3052,18 @@ page {
     padding: 100rpx 40rpx;
     text-align: center;
 }
+
 .error-icon {
     font-size: 120rpx;
     margin-bottom: 30rpx;
     opacity: 0.6;
 }
+
 .error-text {
     font-size: 32rpx;
     color: #666;
 }
+
 .post-detail-wrapper {
     background: #fff;
     padding: 40rpx 40rpx 20rpx 40rpx;
@@ -2914,14 +3071,17 @@ page {
     margin-bottom: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
 }
+
 .post-detail-wrapper.original-post {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 90%, rgba(235, 200, 141, 0.05) 95%, rgba(235, 200, 141, 0.08) 100%);
     border-left: 3rpx solid #ebc88d;
     position: relative;
 }
+
 .post-detail-wrapper.poem-post {
     background: #ffffff !important;
 }
+
 .author-info {
     display: flex;
     align-items: center;
@@ -2929,6 +3089,7 @@ page {
     margin-bottom: 20rpx;
     gap: 20rpx;
 }
+
 .author-basic {
     display: flex;
     align-items: center;
@@ -2937,6 +3098,7 @@ page {
     gap: 12rpx;
     flex-wrap: wrap;
 }
+
 .author-right-actions {
     display: flex;
     align-items: center;
@@ -2944,6 +3106,7 @@ page {
     margin-left: auto;
     gap: 12rpx;
 }
+
 .follow-btn {
     padding: 0 28rpx;
     height: 60rpx;
@@ -2955,16 +3118,20 @@ page {
     font-size: 26rpx;
     flex-shrink: 0;
 }
+
 .follow-btn.following {
     background-color: #f0f0f0;
     color: #666666;
 }
+
 .follow-btn::after {
     border: none;
 }
+
 .follow-btn[disabled] {
     opacity: 0.7;
 }
+
 .author-avatar {
     width: 60rpx;
     height: 60rpx;
@@ -2976,11 +3143,13 @@ page {
     z-index: 10;
     position: relative;
 }
+
 .author-name {
     font-weight: bold;
     font-size: 28rpx;
     color: #333;
 }
+
 .post-title {
     font-size: 36rpx;
     font-weight: bold;
@@ -2995,6 +3164,7 @@ page {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
 }
+
 .poem-author {
     font-size: 28rpx;
     color: #333;
@@ -3003,9 +3173,11 @@ page {
     font-weight: bold;
     letter-spacing: 2rpx;
 }
+
 .poem-author-clickable:active {
     opacity: 0.7;
 }
+
 .post-content {
     font-size: 28rpx;
     line-height: 1.6;
@@ -3015,12 +3187,14 @@ page {
     word-break: break-word;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
 }
+
 .image-container {
     position: relative;
     width: 100%;
     margin: 20rpx 0;
     background-color: #f5f5f5;
 }
+
 .post-image {
     width: 100%;
     height: auto;
@@ -3028,15 +3202,18 @@ page {
     background-color: #f5f5f5;
     transition: transform 0.3s ease;
 }
+
 .post-image:active {
     transform: scale(1.05);
 }
+
 .post-image.single-image {
     width: 100% !important;
     height: auto !important;
     display: block !important;
     background-color: #f5f5f5;
 }
+
 .image-count-indicator {
     position: absolute;
     top: 20rpx;
@@ -3049,14 +3226,17 @@ page {
     z-index: 10;
     backdrop-filter: blur(10rpx);
 }
+
 .post-meta {
     margin-bottom: 15rpx;
 }
+
 .post-time {
     font-size: 24rpx;
     color: #999;
     opacity: 0.8;
 }
+
 .vote-section {
     display: flex;
     justify-content: flex-end;
@@ -3064,10 +3244,12 @@ page {
     margin-top: 10rpx;
     padding: 10rpx 0rpx 0 40rpx;
 }
+
 .actions-left {
     display: flex;
     align-items: center;
 }
+
 .vote-count,
 .comment-count {
     display: flex;
@@ -3077,14 +3259,17 @@ page {
     margin-left: 10rpx;
     transition: color 0.2s ease;
 }
+
 .action-emoji {
     font-size: 28rpx;
     margin-right: 8rpx;
 }
+
 .action-text {
     font-size: 28rpx;
     color: inherit;
 }
+
 .like-icon-container {
     display: flex;
     align-items: center;
@@ -3096,16 +3281,21 @@ page {
     height: 60rpx;
     margin-right: 12rpx;
 }
+
 .like-icon-container:active {
     transform: scale(0.95);
 }
+
 .vote-count.voted {
     color: #ff4757;
 }
+
 .button-group {
     display: flex;
     align-items: center;
 }
+
+
 .portfolio-icon-container {
     margin-right: 12rpx;
     display: flex;
@@ -3117,13 +3307,16 @@ page {
     width: 60rpx;
     height: 60rpx;
 }
+
 .portfolio-icon-container:active {
     transform: scale(0.95);
 }
+
 .portfolio-icon {
     width: 56rpx;
     height: 56rpx;
 }
+
 .share-icon-container {
     margin-right: 12rpx;
     display: flex;
@@ -3135,22 +3328,28 @@ page {
     width: 60rpx;
     height: 60rpx;
 }
+
 .share-icon-container:active {
     transform: scale(0.95);
 }
+
 .share-icon {
     width: 56rpx;
     height: 56rpx;
 }
+
+
 .like-icon {
     width: 56rpx;
     height: 56rpx;
 }
+
 .comment-section {
     background: #fff;
     padding: 30rpx 40rpx;
     border-bottom: 1rpx solid #f0f0f0;
 }
+
 .section-title {
     font-size: 26rpx;
     font-weight: normal;
@@ -3161,7 +3360,9 @@ page {
     margin-left: 0;
     text-align: left;
 }
-/* 璇勮鐩稿叧鏍峰紡宸茬Щ鍏?CommentItem.vue 鍜?CommentList.vue */
+
+/* 评论相关样式已移入 CommentItem.vue 和 CommentList.vue */
+
 .no-comment-tip {
     display: flex;
     flex-direction: column;
@@ -3170,15 +3371,18 @@ page {
     padding: 60rpx 40rpx;
     text-align: center;
 }
+
 .empty-icon {
     font-size: 80rpx;
     margin-bottom: 20rpx;
     opacity: 0.6;
 }
+
 .empty-text {
     font-size: 28rpx;
     color: #999;
 }
+
 .input-overlay {
     position: fixed;
     top: 0;
@@ -3195,6 +3399,7 @@ page {
     opacity: 1;
     pointer-events: auto;
 }
+
 .comment-input-area {
     position: fixed;
     left: 0;
@@ -3204,9 +3409,10 @@ page {
     z-index: 100;
     padding-bottom: constant(safe-area-inset-bottom);
     padding-bottom: env(safe-area-inset-bottom);
-    transition: none; /* 绂佺敤鍔ㄧ敾锛岀洿鎺ユ樉绀哄埌浣?*/
-    will-change: bottom; /* 浼樺寲鎬ц兘 */
+    transition: none; /* 禁用动画，直接显示到位 */
+    will-change: bottom; /* 优化性能 */
 }
+
 .collapsed-bar {
     padding: 16rpx 40rpx;
     display: flex;
@@ -3223,12 +3429,14 @@ page {
     font-size: 28rpx;
     color: #999;
 }
+
 .expanded-container {
     padding: 20rpx 40rpx;
     display: flex;
     flex-direction: column;
     border-top: 1rpx solid #f0f0f0;
 }
+
 .expanded-textarea {
     width: 100%;
     min-height: 180rpx;
@@ -3253,6 +3461,7 @@ page {
     resize: none;
     display: block;
 }
+
 .expanded-actions {
     display: flex;
     justify-content: space-between;
@@ -3264,6 +3473,7 @@ page {
     display: flex;
     gap: 24rpx;
 }
+
 .action-icon {
     width: 100rpx;
     height: 100rpx;
@@ -3274,23 +3484,28 @@ page {
     justify-content: center;
     transition: transform 0.2s ease;
 }
+
 .action-icon:active {
     transform: scale(0.92);
     background: transparent;
 }
+
 .action-icon-text {
     font-size: 36rpx;
 }
+
 .action-icon-image {
     width: 80rpx;
     height: 80rpx;
 }
+
 .selected-comment-images {
     display: flex;
     flex-wrap: wrap;
     gap: 12rpx;
     margin-top: 16rpx;
 }
+
 .selected-image-item {
     position: relative;
     width: 150rpx;
@@ -3298,12 +3513,14 @@ page {
     border-radius: 12rpx;
     overflow: hidden;
 }
+
 .selected-image-thumb {
     width: 100%;
     height: 100%;
     background-color: #f2f2f2;
     display: block;
 }
+
 .remove-image-btn {
     position: absolute;
     top: 6rpx;
@@ -3318,6 +3535,7 @@ page {
     align-items: center;
     justify-content: center;
 }
+
 .emoji-panel {
     margin-top: 16rpx;
     padding: 20rpx 18rpx;
@@ -3327,10 +3545,12 @@ page {
     flex-wrap: wrap;
     gap: 18rpx;
 }
+
 .emoji-item {
     font-size: 36rpx;
     padding: 6rpx 10rpx;
 }
+
 .reply-prompt {
     display: flex;
     justify-content: flex-start;
@@ -3346,6 +3566,7 @@ page {
     font-size: 26rpx;
     color: #9ed7ee;
 }
+
 .submit-button {
     width: 80rpx !important;
     height: 80rpx !important;
@@ -3370,16 +3591,19 @@ page {
 .submit-button::after {
     border: none;
 }
+
 .swiper-wrapper {
     position: relative;
     width: 100%;
 }
+
 .image-swiper {
     width: 100%;
     background-color: #f0f0f0;
     border-radius: 12rpx;
     overflow: hidden;
 }
+
 .swiper-item {
     width: 100%;
     height: 100%;
@@ -3387,10 +3611,12 @@ page {
     align-items: center;
     justify-content: center;
 }
+
 .post-image {
     max-width: 100%;
     max-height: 100%;
 }
+
 .image-count-indicator {
     position: absolute;
     bottom: 20rpx;
@@ -3403,10 +3629,12 @@ page {
     z-index: 10;
     backdrop-filter: blur(10rpx);
 }
+
 .post-tags {
     margin: 30rpx 0 10rpx 0;
     line-height: 1.5;
 }
+
 .post-tag {
     color: #24375f;
     font-size: 26rpx;
@@ -3414,10 +3642,12 @@ page {
     transition: all 0.2s ease;
     cursor: pointer;
 }
+
 .post-tag:active {
     color: #1a2a4a;
     opacity: 0.8;
 }
+
 .mutual-tag {
     font-size: 24rpx;
     padding: 0 16rpx;
@@ -3431,6 +3661,7 @@ page {
     align-items: center;
     justify-content: center;
 }
+
 .followed-tag {
     font-size: 24rpx;
     padding: 4rpx 16rpx;
@@ -3439,7 +3670,8 @@ page {
     color: #7c55c7;
     flex-shrink: 0;
 }
-/* 妯″紡鍒囨崲鏍峰紡 */
+
+/* 模式切换样式 */
 .mode-switcher {
     display: flex;
     background: #f7f8fa;
@@ -3448,6 +3680,7 @@ page {
     margin-bottom: 20rpx;
     border: 2rpx solid #e9ecef;
 }
+
 .mode-item {
     flex: 1;
     text-align: center;
@@ -3456,26 +3689,31 @@ page {
     transition: all 0.3s ease;
     position: relative;
 }
+
 .mode-item.active {
     background: #9ed7ee;
     box-shadow: 0 2rpx 8rpx rgba(158, 215, 238, 0.3);
 }
+
 .mode-text {
     font-size: 28rpx;
     font-weight: 500;
     color: #666;
     transition: color 0.3s ease;
 }
+
 .mode-item.active .mode-text {
     color: #fff;
     font-weight: 600;
 }
-/* 璁ㄨ鏍囬杈撳叆鏍峰紡 */
+
+/* 讨论标题输入样式 */
 .discussion-title-wrapper {
     margin-bottom: 15rpx;
     border-bottom: 1rpx solid #f0f0f0;
     padding-bottom: 15rpx;
 }
+
 .discussion-title-input {
     width: 100%;
     height: 80rpx;
@@ -3488,19 +3726,23 @@ page {
     color: #333;
     box-sizing: border-box;
 }
+
 .discussion-title-input::placeholder {
     color: #999;
 }
-/* 璁ㄨ绫诲瀷甯栧瓙鏍峰紡 */
+
+/* 讨论类型帖子样式 */
 .discussion-content {
     margin: 20rpx 0;
 }
+
 .discussion-sentence-group {
     margin-bottom: 30rpx;
 }
+
 .discussion-sentence-card {
-    background: #f5f5f5; /* 娣诲姞鐏拌壊鑳屾櫙 */
-    border-radius: 12rpx; /* 娣诲姞鍦嗚 */
+    background: #f5f5f5; /* 添加灰色背景 */
+    border-radius: 12rpx; /* 添加圆角 */
     padding: 30rpx;
     margin-bottom: 20rpx;
     width: 100%;
@@ -3509,6 +3751,7 @@ page {
     box-sizing: border-box;
     max-width: 100%;
 }
+
 .discussion-sentence-content {
     position: relative;
     width: 100%;
@@ -3519,6 +3762,7 @@ page {
     box-sizing: border-box;
     max-width: 100%;
 }
+
 .discussion-sentence-line {
     font-family: 'Inter', sans-serif;
     font-style: italic;
@@ -3535,9 +3779,11 @@ page {
     box-sizing: border-box;
     overflow-wrap: break-word;
 }
+
 .discussion-sentence-line:last-child {
     margin-bottom: 0;
 }
+
 .discussion-comment {
     font-family: 'Inter', sans-serif;
     font-weight: 600;
@@ -3545,9 +3791,9 @@ page {
     line-height: 38rpx;
     color: #000000;
     margin-top: 20rpx;
-    padding: 20rpx 0; /* 绉婚櫎宸﹀彸padding锛屽彧淇濈暀涓婁笅padding */
-    background: transparent; /* 绉婚櫎鐏拌壊鑳屾櫙 */
-    border-radius: 0; /* 绉婚櫎鍦嗚 */
+    padding: 20rpx 0; /* 移除左右padding，只保留上下padding */
+    background: transparent; /* 移除灰色背景 */
+    border-radius: 0; /* 移除圆角 */
     word-wrap: break-word;
     word-break: break-all;
     width: 100%;
@@ -3555,9 +3801,12 @@ page {
     box-sizing: border-box;
     overflow-wrap: break-word;
 }
-/* 鍒嗕韩寮圭獥鏍峰紡宸茬Щ鍏?ShareModal.vue */
-/* 璇楁瓕鍐呭浣跨敤姹囨枃鏄庢湞瀛椾綋锛屽叾浠栧湴鏂逛娇鐢ㄧ郴缁熼粯璁ゅ瓧浣?*/
-/* 搴曢儴鎿嶄綔鏍忔牱寮?*/
+
+/* 分享弹窗样式已移入 ShareModal.vue */
+
+/* 诗歌内容使用汇文明朝字体，其他地方使用系统默认字体 */
+
+/* 底部操作栏样式 */
 .bottom-action-bar {
     position: fixed;
     bottom: 0;
@@ -3572,10 +3821,12 @@ page {
     justify-content: space-between;
     z-index: 50;
 }
+
 .comment-input-container {
     flex: 1;
     margin-right: 30rpx;
 }
+
 .comment-input {
     width: 100%;
     height: 60rpx;
@@ -3587,14 +3838,17 @@ page {
     border: none;
     box-sizing: border-box;
 }
+
 .comment-input::placeholder {
     color: #999;
 }
+
 .bottom-action-bar .action-icons {
     display: flex;
     gap: 30rpx;
     align-items: center;
 }
+
 .bottom-action-bar .action-icon {
     width: 60rpx;
     height: 60rpx;
@@ -3603,14 +3857,17 @@ page {
     justify-content: center;
     transition: transform 0.2s ease;
 }
+
 .bottom-action-bar .action-icon:active {
     transform: scale(0.95);
 }
+
 .bottom-action-bar .action-icon-image {
     width: 60rpx;
     height: 60rpx;
 }
-/* 璋冩暣椤甸潰搴曢儴闂磋窛锛岄伩鍏嶈搴曢儴鏍忛伄鎸?*/
+
+/* 调整页面底部间距，避免被底部栏遮挡 */
 .container {
     padding-bottom: 140rpx;
 }
@@ -3631,11 +3888,14 @@ page {
 .edit-modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .modal-cancel { background: #eee; }
 .modal-confirm { background: #3797ff; color: #fff; }
-/* ========== 杩囨浮鍔ㄧ敾 ========== */
-/* 甯栧瓙璇︽儏鍐呭娣″叆鍔ㄧ敾 */
+
+/* ========== 过渡动画 ========== */
+
+/* 帖子详情内容淡入动画 */
 .post-detail-wrapper {
     animation: detailFadeIn 0.4s ease-out;
 }
+
 @keyframes detailFadeIn {
     from {
         opacity: 0;
@@ -3646,10 +3906,12 @@ page {
         transform: translateY(0);
     }
 }
+
 /* 图片加载淡入动画 */
 .post-image {
     animation: imageFadeIn 0.5s ease-out;
 }
+
 @keyframes imageFadeIn {
     from {
         opacity: 0;
@@ -3660,10 +3922,12 @@ page {
         transform: scale(1);
     }
 }
-/* 鐐硅禐鎸夐挳鐐瑰嚮寮硅烦鍔ㄧ敾 */
+
+/* 点赞按钮点击弹跳动画 */
 .like-icon-container.liked-animation {
     animation: likeBouncePop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.6);
 }
+
 @keyframes likeBouncePop {
     0% { transform: scale(1); }
     25% { transform: scale(0.8); }
@@ -3671,19 +3935,23 @@ page {
     75% { transform: scale(0.95); }
     100% { transform: scale(1); }
 }
-/* 鐐硅禐鏁板瓧鍙樺寲鍔ㄧ敾 */
+
+/* 点赞数字变化动画 */
 .vote-count.vote-changed {
     animation: voteNumberPop 0.3s ease;
 }
+
 @keyframes voteNumberPop {
     0% { transform: scale(1); }
     50% { transform: scale(1.2); }
     100% { transform: scale(1); }
 }
-/* 璇勮鍖烘贰鍏ュ姩鐢?*/
+
+/* 评论区淡入动画 */
 .comment-section {
     animation: commentFadeIn 0.4s ease-out 0.1s both;
 }
+
 @keyframes commentFadeIn {
     from {
         opacity: 0;
@@ -3694,10 +3962,12 @@ page {
         transform: translateY(0);
     }
 }
-/* 鍗曟潯璇勮娣″叆鍔ㄧ敾 */
+
+/* 单条评论淡入动画 */
 .comment-item {
     animation: commentItemFadeIn 0.3s ease-out both;
 }
+
 @keyframes commentItemFadeIn {
     from {
         opacity: 0;
@@ -3708,10 +3978,12 @@ page {
         transform: translateX(0);
     }
 }
-/* 搴曢儴鎿嶄綔鏍忔粦鍏ュ姩鐢?*/
+
+/* 底部操作栏滑入动画 */
 .bottom-action-bar {
     animation: bottomBarSlideIn 0.3s ease-out;
 }
+
 @keyframes bottomBarSlideIn {
     from {
         opacity: 0;
@@ -3722,10 +3994,13 @@ page {
         transform: translateY(0);
     }
 }
-/* 鏍囩娣″叆鍔ㄧ敾 */
+
+
+/* 标签淡入动画 */
 .tags-section {
     animation: tagsFadeIn 0.4s ease-out 0.15s both;
 }
+
 @keyframes tagsFadeIn {
     from {
         opacity: 0;
@@ -3734,7 +4009,8 @@ page {
         opacity: 1;
     }
 }
-/* 缁勮瘲绠€鍗曟樉绀?*/
+
+/* 组诗简单显示 */
 .series-simple-display {
     margin-top: 16rpx;
 }
@@ -3751,4 +4027,5 @@ page {
     margin-bottom: 20rpx;
     opacity: 0.8;
 }
+
 </style>
