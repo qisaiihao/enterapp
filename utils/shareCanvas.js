@@ -2,6 +2,11 @@
  * 分享图片 Canvas 绘制工具函数
  */
 
+const fontManagerModule = require('./fontManager.js');
+const fontManager = fontManagerModule && fontManagerModule.default
+    ? fontManagerModule.default
+    : fontManagerModule;
+
 // 兼容旧的 fontFamily ID 到 displayName 的映射
 const LEGACY_FONT_MAP = {
     'Huiwen-mincho': '汇文明朝'
@@ -187,6 +192,38 @@ function getFontDisplayName(fontFamily) {
     return LEGACY_FONT_MAP[fontFamily] || fontFamily;
 }
 
+function quoteFontFamily(fontFamily) {
+    if (!fontFamily) return '';
+    return `"${String(fontFamily).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+}
+
+function getRuntimeFontFamily(fontFamily) {
+    if (fontManager && typeof fontManager.getRuntimeFontFamily === 'function') {
+        return fontManager.getRuntimeFontFamily(fontFamily);
+    }
+    return LEGACY_FONT_MAP[fontFamily] || fontFamily;
+}
+
+async function ensureShareFontReady(fontFamily) {
+    if (!fontFamily || fontFamily === 'system') {
+        return 'sans-serif';
+    }
+
+    const fontDisplayName = getFontDisplayName(fontFamily);
+    const runtimeFamily = getRuntimeFontFamily(fontFamily);
+
+    try {
+        await fontManager.ensureFontAvailable(fontFamily);
+        if (isMiniProgramEnv()) {
+            await sleep(80);
+        }
+        return quoteFontFamily(runtimeFamily || fontDisplayName);
+    } catch (error) {
+        console.warn('[shareCanvas] font unavailable, fallback to sans-serif', { fontFamily, error });
+        return 'sans-serif';
+    }
+}
+
 /**
  * 异步绘制网络图片到 Canvas
  * @param {Object} ctx - Canvas 上下文
@@ -238,7 +275,7 @@ function drawImageAsync(ctx, url, x, y, fixedWidth) {
  * @param {string} fontFamily - 字体
  * @returns {number}
  */
-function calculateActualLines(ctx, text, maxWidth, fontSize, fontFamily = '汇文明朝, sans-serif') {
+function calculateActualLines(ctx, text, maxWidth, fontSize, fontFamily = '"Huiwen-mincho"') {
     ctx.font = `${fontSize}px ${fontFamily}`;
     const lines = text.split('\n');
     let actualLineCount = 0;
@@ -268,7 +305,7 @@ function calculateActualLines(ctx, text, maxWidth, fontSize, fontFamily = '汇�
  * @param {string} fontFamily - 字体
  * @returns {string[]}
  */
-function wrapText(ctx, text, maxWidth, fontSize, fontFamily = '汇文明朝, sans-serif') {
+function wrapText(ctx, text, maxWidth, fontSize, fontFamily = '"Huiwen-mincho"') {
     ctx.font = `${fontSize}px ${fontFamily}`;
     const optimizedText = preventShortLineBreak(text);
     const originalLines = optimizedText.split('\n');
@@ -505,7 +542,7 @@ function drawCornerWatermark(ctx, canvasWidth, canvasHeight) {
             const inset = 12;
             if (ctx.setFillStyle) ctx.setFillStyle(textColor); else ctx.fillStyle = textColor;
             const fontPx = 18;
-            try { ctx.font = fontPx + 'px 汇文明朝, sans-serif'; } catch (_) {}
+            try { ctx.font = `${fontPx}px "Huiwen-mincho"`; } catch (_) {}
             if (ctx.setFontSize) ctx.setFontSize(fontPx);
             if (ctx.setTextAlign) ctx.setTextAlign('left'); else ctx.textAlign = 'left';
             ctx.fillText('poementer', x0 + inset, y0 + h - inset);
@@ -533,9 +570,7 @@ async function calculateShareCardHeight(options) {
     const lineHeight = Math.round(fontSize * 1.26);
     const fontFamily = shareConfig.fontFamily || '汇文明朝';
     
-    // 将字体 ID 转换为显示名称，用于 Canvas 绑定
-    const fontDisplayName = getFontDisplayName(fontFamily);
-    const actualFontFamily = fontFamily === 'system' ? 'sans-serif' : fontDisplayName + ', sans-serif';
+    const actualFontFamily = await ensureShareFontReady(fontFamily);
     console.log('【shareCanvas】当前端使用字体:', actualFontFamily);
 
     const textPadding = 60;

@@ -396,6 +396,8 @@ export default {
             shareCanvasHeight: 1000,
             shareImageRetryCount: 0,
             shareRenderToken: 0,
+            shareRenderFontFamily: '汇文明朝',
+            shareRenderFontScale: 1.0,
             shareConfig: {
                 fontSize: 38,
                 titleFontSize: 46,
@@ -846,6 +848,8 @@ export default {
             // 初始化shareConfig使用帖子的实际颜色
             this.shareConfig.backgroundColor = this.post.backgroundColor || '#FFFFFF';
             this.shareConfig.textColor = this.post.textColor || '#000000';
+            this.shareRenderFontFamily = this.shareConfig.fontFamily || '汇文明朝';
+            this.shareRenderFontScale = this.shareConfig.fontScale || 1.0;
 
             // 显示分享弹窗，重置图片URL，并立即开始生成图片
             this.setData({
@@ -877,11 +881,20 @@ export default {
 
         loadFontAndDraw: async function (renderToken) {
             const fontFamily = this.shareConfig.fontFamily || '汇文明朝';
+            const fontScaleMap = {
+                '汇文明朝': 1.0,
+                '文楷': 1.0,
+                '龙藏体': 1.0,
+                '小小皓体': 1.0,
+                '南西雅致黑': 1.0,
+                '字体圈欣意吉祥宋': 1.0
+            };
 
             console.log('【post-detail】开始加载字体:', fontFamily);
 
             if (fontFamily === 'system') {
-                this.shareConfig.fontScale = 1.0;
+                this.shareRenderFontFamily = 'system';
+                this.shareRenderFontScale = 1.0;
                 await new Promise(r => setTimeout(r, 50));
                 this.drawCanvas(renderToken);
                 return;
@@ -896,19 +909,9 @@ export default {
                 
                 console.log('【post-detail】字体加载成功:', fontFamily);
                 
-                // 字体缩放系数映射表 - 解决不同字体在相同字号下大小差异问题
-                const fontScaleMap = {
-                    '汇文明朝': 1.0,
-                    '文楷': 1.0,
-                    '龙藏体': 1.0,
-                    '小小皓体': 1.0,
-                    '南西雅致黑': 1.0,
-                    '字体圈欣意吉祥宋': 1.0
-                };
-                
-                // 应用字体缩放系数到shareConfig
                 const fontScale = fontScaleMap[fontFamily] || 1.0;
-                this.shareConfig.fontScale = fontScale;
+                this.shareRenderFontFamily = fontFamily;
+                this.shareRenderFontScale = fontScale;
                 
                 // 【关键】等待字体渲染就绪，App端需要更长时间
                 await new Promise(r => setTimeout(r, 150));
@@ -918,9 +921,9 @@ export default {
             } catch (error) {
                 console.error('【post-detail】字体加载失败:', fontFamily, error);
                 
-                // 回退到默认字体
-                this.shareConfig.fontFamily = 'system';
-                this.shareConfig.fontScale = 1.0;
+                // 仅本次渲染回退到系统字体，不覆盖用户配置
+                this.shareRenderFontFamily = 'system';
+                this.shareRenderFontScale = 1.0;
                 uni.showToast({
                     title: '字体加载失败，已回退默认字体',
                     icon: 'none',
@@ -943,6 +946,11 @@ export default {
             try {
                 if (renderToken !== this.shareRenderToken) return;
                 const canvasWidth = 750;
+                const effectiveShareConfig = {
+                    ...this.shareConfig,
+                    fontFamily: this.shareRenderFontFamily || this.shareConfig.fontFamily || '汇文明朝',
+                    fontScale: this.shareRenderFontScale || this.shareConfig.fontScale || 1.0
+                };
                 // 签名URL已从云函数返回，直接使用post.authorSignature（匿名帖子或非原创诗歌不显示签名）
                 const shouldShowSignature = (!!this.post && !this.post.isAnonymous && !(this.post.isPoem && this.post.isOriginal === false));
                 
@@ -951,7 +959,7 @@ export default {
                 const heightResult = await calculateShareCardHeight({
                     measureCtx,
                     post: this.post,
-                    shareConfig: this.shareConfig,
+                    shareConfig: effectiveShareConfig,
                     canvasWidth,
                     shouldShowSignature
                 });
@@ -982,7 +990,7 @@ export default {
                 await drawShareCardContent({
                     ctx,
                     post: this.post,
-                    shareConfig: this.shareConfig,
+                    shareConfig: effectiveShareConfig,
                     canvasWidth,
                     canvasHeight,
                     shouldShowSignature,
