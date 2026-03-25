@@ -2192,8 +2192,8 @@ export default {
                         mask: true
                     });
                     deleteComment(commentId, postId, parentId).then((result) => {
-                            if (result.result && result.result.success) {
-                                const deletedCount = Math.max(1, result.result.deletedCount || 1);
+                            if (result && result.success) {
+                                const deletedCount = Math.max(1, result.deletedCount || 1);
                                 let updatedComments;
                                 if (parentId) {
                                     updatedComments = this.comments.map((comment) => ({
@@ -2226,7 +2226,7 @@ export default {
                                 });
                             } else {
                                 uni.showToast({
-                                    title: (result.result && result.result.message) || '删除失败',
+                                    title: (result && result.message) || '删除失败',
                                     icon: 'none'
                                 });
                             }

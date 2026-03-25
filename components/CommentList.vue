@@ -18,7 +18,7 @@
             <block v-if="comments.length > 0">
                 <comment-item
                     v-for="(item, commentIndex) in comments"
-                    :key="commentIndex"
+                    :key="item._id || commentIndex"
                     :item="item"
                     :comment-index="commentIndex"
                     @avatar-error="$emit('avatar-error', $event)"
