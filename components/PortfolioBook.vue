@@ -1,5 +1,5 @@
 <template>
-    <view class="books-container">
+    <view class="books-container" @tap="navigateToPortfolio">
         <view class="books-shelf">
             <!-- 动态显示作品集书籍 -->
             <view

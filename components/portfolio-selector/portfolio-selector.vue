@@ -99,7 +99,7 @@
 <script>
 // components/portfolio-selector/portfolio-selector.js
 const { cloudCall } = require('../../utils/cloudCall.js');
-const { notifyPortfolioUpdated } = require('../../api-cache/portfolio.js');
+const { getPortfolioFolders, notifyPortfolioUpdated } = require('../../api-cache/portfolio.js');
 export default {
     data() {
         return {
@@ -131,7 +131,7 @@ export default {
                 if (newVal && !oldVal) { // 从false变为true时
                     setTimeout(() => {
                         if (this.showClone) {
-                            this.loadPortfolios();
+                            this.loadPortfolios(true);
                         }
                     }, 100); // 延迟一点时间确保DOM渲染完成
                 }
@@ -148,6 +148,56 @@ export default {
                     : item.postCount
             ) || 0;
         },
+        // 同步本地作品集数量
+        applyPortfolioDelta(folderId, delta) {
+            if (!folderId || !delta || !Array.isArray(this.portfolios) || this.portfolios.length === 0) {
+                return;
+            }
+
+            const portfolios = this.portfolios.map((portfolio) => {
+                if (!portfolio || portfolio._id !== folderId) {
+                    return portfolio;
+                }
+
+                const currentCount = this.getPortfolioItemCount(portfolio);
+                const nextCount = Math.max(0, currentCount + delta);
+                return {
+                    ...portfolio,
+                    itemCount: nextCount,
+                    postCount: nextCount
+                };
+            });
+
+            this.setData({
+                portfolios
+            });
+        },
+        schedulePortfolioRefresh(forceRefresh = true) {
+            if (this._portfolioRefreshTimer) {
+                clearTimeout(this._portfolioRefreshTimer);
+            }
+
+            this._portfolioRefreshTimer = setTimeout(() => {
+                this._portfolioRefreshTimer = null;
+                if (this.showClone) {
+                    this.loadPortfolios(forceRefresh);
+                }
+            }, 80);
+        },
+        handlePortfolioUpdated(event = {}) {
+            if (!this.showClone) {
+                return;
+            }
+
+            const folderId = event.folderId || '';
+            const delta = Number(event.delta || 0);
+
+            if (folderId && delta) {
+                this.applyPortfolioDelta(folderId, delta);
+            }
+
+            this.schedulePortfolioRefresh(true);
+        },
         // 统一云函数调用方法
         callCloudFunction(name, data = {}, extraOptions = {}) {
             return cloudCall(name, data, Object.assign({ pageTag: 'portfolio-selector', context: this, requireAuth: true }, extraOptions));
@@ -163,49 +213,43 @@ export default {
             return `${year}-${month}-${day}`;
         },
 
-        // 加载作品集列表
-        loadPortfolios: function () {
+        loadPortfolios: async function (forceRefresh = false) {
             this.setData({
                 isLoading: true
             });
-            this.callCloudFunction('getPortfolioFolders').then((res) => {
-                if (res.result && res.result.success) {
-                    const portfolios = res.result.folders || [];
 
-                    // 如果当前选中的作品集不存在了，清空选择
-                    const currentSelectedId = this.selectedPortfolioId;
-                    if (currentSelectedId && !portfolios.some((p) => p._id === currentSelectedId)) {
-                        this.setData({
-                            selectedPortfolioId: ''
-                        });
-                    }
+            try {
+                const portfolios = await getPortfolioFolders({
+                    forceRefresh,
+                    context: this
+                });
+
+                const currentSelectedId = this.selectedPortfolioId;
+                if (currentSelectedId && !portfolios.some((p) => p._id === currentSelectedId)) {
                     this.setData({
-                        portfolios: portfolios,
-                        isLoading: false
+                        selectedPortfolioId: ''
                     });
-                } else {
-                    this.setData({
-                        isLoading: false,
-                        portfolios: [],
-                        selectedPortfolioId: '' // 加载失败时清空选择
-                    });
-                    // 如果获取失败，尝试重新加载一次
-                    setTimeout(() => {
-                        if (this.showClone) { // 如果弹窗还在显示中
-                            this.loadPortfolios();
-                        }
-                    }, 1000);
                 }
-            }).catch(() => {
+
+                this.setData({
+                    portfolios,
+                    isLoading: false
+                });
+            } catch (error) {
+                console.error('【portfolio-selector】加载作品集失败:', error);
                 this.setData({
                     isLoading: false,
                     portfolios: [],
-                    selectedPortfolioId: '' // 网络错误时清空选择
+                    selectedPortfolioId: ''
                 });
-            });
+                setTimeout(() => {
+                    if (this.showClone) {
+                        this.loadPortfolios(true);
+                    }
+                }, 1000);
+            }
         },
 
-        // 选择作品集
         selectPortfolio: function (e) {
             const portfolioId = e.currentTarget.dataset.portfolioId;
             const postId = this.postId;
@@ -612,7 +656,7 @@ export default {
                         });
                         // 延迟重新加载，确保状态同步
                         setTimeout(() => {
-                            this.loadPortfolios();
+                            this.loadPortfolios(true);
                         }, 300);
                     } else {
                         console.error('【portfolio-selector】组件创建作品集业务失败:', res.result);
@@ -668,11 +712,32 @@ export default {
 
     created: function () {},
 
+    beforeDestroy: function () {
+        try {
+            if (this.onPortfolioUpdated) {
+                uni.$off('portfolio-updated', this.onPortfolioUpdated);
+            }
+        } catch (error) {
+            console.error('【portfolio-selector】移除作品集监听失败:', error);
+        }
+
+        if (this._portfolioRefreshTimer) {
+            clearTimeout(this._portfolioRefreshTimer);
+            this._portfolioRefreshTimer = null;
+        }
+    },
+
     mounted: function () {
+        this.onPortfolioUpdated = this.handlePortfolioUpdated.bind(this);
+        try {
+            uni.$on('portfolio-updated', this.onPortfolioUpdated);
+        } catch (error) {
+            console.error('【portfolio-selector】监听作品集更新失败:', error);
+        }
         console.log('【portfolio-selector】组件mounted');
         if (this.show) {
             console.log('【portfolio-selector】mounted时show为true，开始加载作品集');
-            this.loadPortfolios();
+            this.loadPortfolios(true);
         }
     }
 };

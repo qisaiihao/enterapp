@@ -24,17 +24,17 @@
           <view v-for="(item, index) in postList" :key="index" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
             <view class="post-content-navigator" @tap="togglePostExpansion" @longpress="onLongPressCard" :data-index="index" :data-postid="item._id">
               <view class="post-item">
-                <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.highlightLines || item.highlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.content" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
+                <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.displayHighlightLines || item.displayHighlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.displayContent" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
                   <block v-if="item.isExpanded">
-                    {{ item.content }}
+                    {{ item.displayContent }}
                   </block>
                   <block v-else>
                     <!-- 折叠状态下只显示高光行 -->
-                    <block v-if="item.highlightLines && item.highlightLines.length > 0">
-                      <text v-for="(highlightLine, index) in item.highlightLines" :key="index" style="font-weight: 700; display: block;">{{ highlightLine }}</text>
+                    <block v-if="item.displayHighlightLines && item.displayHighlightLines.length > 0">
+                      <text v-for="(highlightLine, index) in item.displayHighlightLines" :key="index" style="font-weight: 700; display: block;">{{ highlightLine }}</text>
                     </block>
                     <block v-else>
-                      {{ item.content }}
+                      {{ item.displayContent }}
                     </block>
                   </block>
                 </view>
@@ -85,6 +85,7 @@ const { formatRelativeTime } = require('../../utils/time.js');
 const { previewImage } = require('../../utils/imagePreview.js');
 const { togglePostLike } = require('../../utils/likeService.js');
 const likeIcon = require('../../utils/likeIcon.js');
+const { attachPoemDisplayFields } = require('../../utils/poemDisplay.js');
 // authorSignature已从云函数返回，不再需要signatureCache
 // Temporary placeholder for hydrateTempUrls
 const hydrateTempUrls = async (posts) => posts;
@@ -218,6 +219,9 @@ export default {
             post.isExpanded = false;
             // authorSignature已从云函数返回，保留原始值（如果没有则为空字符串）
             post.authorSignature = post.authorSignature || '';
+            const normalized = attachPoemDisplayFields(post);
+            post.displayContent = normalized.displayContent;
+            post.displayHighlightLines = normalized.displayHighlightLines;
             
             // 尝试从本地缓存获取点赞状态
             const cachedStatus = getLatestLikeStatus(post._id);

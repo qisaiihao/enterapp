@@ -28,17 +28,17 @@
             :data-postid="item._id"
           >
               <view class="post-item">
-                <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.highlightLines || item.highlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.content" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
+                <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.displayHighlightLines || item.displayHighlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.displayContent" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">
                   <block v-if="item.isExpanded">
-                    {{ item.content }}
+                    {{ item.displayContent }}
                   </block>
                   <block v-else>
                     <!-- 折叠状态下只显示高光行 -->
-                    <block v-if="item.highlightLines && item.highlightLines.length > 0">
-                      <text v-for="(highlightLine, index) in item.highlightLines" :key="index" style="font-weight: 700; display: block;">{{ highlightLine }}</text>
+                    <block v-if="item.displayHighlightLines && item.displayHighlightLines.length > 0">
+                      <text v-for="(highlightLine, index) in item.displayHighlightLines" :key="index" style="font-weight: 700; display: block;">{{ highlightLine }}</text>
                     </block>
                     <block v-else>
-                      {{ item.content }}
+                      {{ item.displayContent }}
                     </block>
                   </block>
                 </view>
@@ -135,6 +135,7 @@ const { cloudCall } = require('@/utils/cloudCall.js');
 const likeIcon = require('@/utils/likeIcon.js');
 const { togglePostLike } = require('../../utils/likeService.js');
 const { notifyPortfolioUpdated } = require('../../api-cache/portfolio.js');
+const { attachPoemDisplayFields } = require('../../utils/poemDisplay.js');
 // authorSignature已从云函数返回，不再需要signatureCache
 
 const PAGE_SIZE = 10;
@@ -277,6 +278,9 @@ export default {
           p.isExpanded = false;
           // authorSignature已从云函数返回，保留原始值（如果没有则为空字符串）
           p.authorSignature = p.authorSignature || '';
+          const normalized = attachPoemDisplayFields(p);
+          p.displayContent = normalized.displayContent;
+          p.displayHighlightLines = normalized.displayHighlightLines;
           
           // 尝试从本地缓存获取点赞状态
           const cachedStatus = getLatestLikeStatus(p._id);
