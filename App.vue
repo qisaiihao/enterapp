@@ -161,8 +161,8 @@ export default {
                 lastProgress = progress;
             }
         }).then(() => {
-            console.log('✅ [App.vue] 汇文明朝字体预加载完成，已缓存到本地');
-            console.log('✅ [App.vue] 后续启动将直接使用缓存，无需重新下载');
+            console.log('✅ [App.vue] 汇文明朝字体预注册完成，可直接用于页面渲染');
+            console.log('✅ [App.vue] 小程序重启后会重新注册字体，但不会再误判为已加载');
             // 字体加载完成后，可以触发全局事件通知页面刷新
             try {
                 uni.$emit && uni.$emit('font-loaded', { fontFamily: '汇文明朝' });
@@ -571,14 +571,42 @@ export default {
 
 <style>
 /* 全局字体预加载 - 仅用于诗歌内容 */
-/* 小程序不支持 CSS @font-face 加载本地字体，只在 H5 和 APP 环境使用 */
-/* #ifndef MP-WEIXIN */
+/* 小程序不支持 CSS @font-face 加载本地字体 */
+/* #ifdef H5 */
+@font-face {
+  font-family: 'Huiwen-mincho';
+  src: url('/static/fonts/Huiwen-mincho-compressed.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 @font-face {
   font-family: '汇文明朝';
   src: url('/static/fonts/Huiwen-mincho-compressed.woff2') format('woff2');
   font-weight: normal;
   font-style: normal;
   font-display: swap; /* 优化字体加载性能 */
+}
+/* #endif */
+
+/* #ifdef APP-PLUS */
+@font-face {
+  font-family: 'Huiwen-mincho';
+  src: url('/static/fonts/Huiwen-mincho-compressed.ttf') format('truetype'),
+       url('/static/fonts/Huiwen-mincho-compressed.woff') format('woff'),
+       url('/static/fonts/Huiwen-mincho-compressed.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: '汇文明朝';
+  src: url('/static/fonts/Huiwen-mincho-compressed.ttf') format('truetype'),
+       url('/static/fonts/Huiwen-mincho-compressed.woff') format('woff'),
+       url('/static/fonts/Huiwen-mincho-compressed.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
 }
 /* #endif */
 

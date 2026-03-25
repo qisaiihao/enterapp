@@ -51,14 +51,14 @@
                             @tap="onFontFamilyChange(font.value)"
                         >
                             <view class="font-option-content">
-                                <text class="font-option-text" :style="{ fontFamily: font.isLoaded ? font.name : 'inherit' }">
+                                <text class="font-option-text" :style="{ fontFamily: font.isLoaded ? (font.previewFamily || font.name) : 'inherit' }">
                                     {{ font.name }}
                                 </text>
                                 <view class="font-option-meta">
                                     <text v-if="font.isCustom" class="font-status-text custom">自定义</text>
                                     <text v-if="!font.isDefault" class="font-size-text">{{ font.sizeFormatted }}</text>
-                                    <text v-if="font.isCached && !font.isDefault && !font.isCustom" class="font-status-text">已缓存</text>
-                                    <text v-else-if="!font.isDefault && !font.isCustom" class="font-status-text">需下载</text>
+                                    <text v-if="font.isLoaded && !font.isDefault && !font.isCustom" class="font-status-text">已加载</text>
+                                    <text v-else-if="font.needsLoad && !font.isDefault && !font.isCustom" class="font-status-text">待加载</text>
                                 </view>
                             </view>
                             
@@ -160,18 +160,11 @@ export default {
         },
         
         async onFontFamilyChange(fontFamily) {
-            const fontOption = this.fontOptions.find(opt => opt.value === fontFamily);
-            
-            // 默认字体直接切换，无需下载
-            if (fontOption.isDefault) {
-                this.currentFontFamily = fontFamily;
-                // 传递 displayName 用于 CSS 渲染
-                this.$emit('font-family-preview', fontOption.name);
-                return;
-            }
-            
-            // 非默认字体且未缓存，需要下载
-            if (!fontOption.isCached) {
+            let fontOption = this.fontOptions.find(opt => opt.value === fontFamily);
+            if (!fontOption) return;
+
+            // 内置字体未注册时，先确保字体可用
+            if (!fontOption.isCustom && !fontOption.isLoaded) {
                 try {
                     this.downloadingFont = fontFamily;
                     this.downloadProgress = 0;
@@ -182,20 +175,21 @@ export default {
                     
                     // 更新字体选项状态
                     await this.loadFontOptions();
+                    fontOption = this.fontOptions.find(opt => opt.value === fontFamily) || fontOption;
                     
                     uni.showToast({
-                        title: '字体下载完成',
+                        title: '字体加载完成',
                         icon: 'success',
                         duration: 1000
                     });
                 } catch (error) {
-                    console.error('字体下载失败:', error);
+                    console.error('字体加载失败:', error);
                     uni.showToast({
-                        title: '字体下载失败',
+                        title: '字体加载失败',
                         icon: 'none',
                         duration: 2000
                     });
-                    return; // 下载失败时不切换字体
+                    return; // 加载失败时不切换字体
                 } finally {
                     this.downloadingFont = '';
                     this.downloadProgress = 0;
@@ -223,11 +217,13 @@ export default {
                 this.fontOptions = availableFonts.map(font => ({
                     name: font.displayName,
                     value: font.fontFamily,
+                    previewFamily: font.previewFamily,
                     size: font.size,
                     isDefault: font.isDefault,
                     isCustom: font.isCustom,
                     isCached: font.isCached,
                     isLoaded: font.isLoaded,
+                    needsLoad: font.needsLoad,
                     sizeFormatted: fontManager.formatFileSize(font.size)
                 }));
             } catch (error) {

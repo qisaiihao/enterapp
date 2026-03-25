@@ -52,26 +52,13 @@ if (typeof document !== 'undefined') {
 // #ifdef APP-PLUS
 // App端字体预加载
 console.log('🔤 [字体预加载] App端开始预加载汇文明朝字体');
-try {
-  const fontPath = plus.io.convertLocalFileSystemURL('_www/static/fonts/Huiwen-mincho-compressed.woff2');
-  console.log('📍 [字体预加载] App端字体路径:', fontPath);
-  
-  // 使用 uni.loadFontFace 加载字体
-  uni.loadFontFace({
-    family: '汇文明朝',
-    source: `url("${fontPath}")`,
-    global: true,
-    success: function() {
-      emitBuiltinFontLoaded();
-      console.log('✅ [字体预加载] App端汇文明朝字体加载成功');
-    },
-    fail: function(err) {
-      console.error('❌ [字体预加载] App端汇文明朝字体加载失败:', err);
-    }
-  });
-} catch (e) {
-  console.warn('❌ [字体预加载] App端字体预加载失败:', e);
-}
+const appFontManager = require('./utils/fontManager.js');
+appFontManager.ensureFontAvailable('汇文明朝').then(function() {
+  emitBuiltinFontLoaded();
+  console.log('✅ [字体预加载] App端汇文明朝字体加载成功');
+}).catch(function(err) {
+  console.error('❌ [字体预加载] App端汇文明朝字体加载失败:', err);
+});
 // #endif
 
 // #ifdef MP-WEIXIN
