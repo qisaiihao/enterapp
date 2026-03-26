@@ -119,6 +119,23 @@ export default {
     async created() {
         await this.loadFontOptions();
         this.initCurrentFont();
+        this._fontLoadedHandler = async (payload = {}) => {
+            try {
+                const loadedFontFamily = payload && payload.fontFamily ? payload.fontFamily : '';
+                if (loadedFontFamily && loadedFontFamily !== '汇文明朝') return;
+                await this.loadFontOptions();
+                if (this.show) {
+                    this.initCurrentFont();
+                }
+            } catch (error) {
+                console.warn('[FontSelectorModal] refresh after font-loaded failed', error);
+            }
+        };
+        try { uni.$on && uni.$on('font-loaded', this._fontLoadedHandler); } catch (_) {}
+    },
+    beforeDestroy() {
+        try { uni.$off && this._fontLoadedHandler && uni.$off('font-loaded', this._fontLoadedHandler); } catch (_) {}
+        this._fontLoadedHandler = null;
     },
     watch: {
         fontSize(val) {
@@ -128,9 +145,10 @@ export default {
             this.initCurrentFont();
         },
         // 当弹窗关闭时重置状态
-        show(val) {
+        async show(val) {
             if (val) {
                 this.currentFontSize = this.fontSize;
+                await this.loadFontOptions();
                 this.initCurrentFont();
             }
         }

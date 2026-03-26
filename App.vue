@@ -22,7 +22,7 @@ export default {
     onLaunch: function (options) {
         // 小程序环境：在 App.vue 中初始化云开发（确保最早执行）
         // #ifdef MP-WEIXIN
-        if (typeof wx !== 'undefined' && wx.cloud) {
+        if (typeof uni !== 'undefined' && uni.$tcb) { this.$tcb = uni.$tcb; } else if (typeof wx !== 'undefined' && wx.cloud) {
             console.log('☁️ [App.vue] 检测到微信小程序环境，开始初始化云开发...');
             try {
                 wx.cloud.init({
@@ -52,12 +52,14 @@ export default {
         
         // #ifdef APP-PLUS
         // 处理 URL Scheme 启动（GitHub OAuth 回调）
-        const args = plus.runtime.arguments;
-        console.log('🚀 [App] onLaunch 启动参数:', args);
-        if (args && args.includes('github-callback')) {
-            console.log('🔗 [URL Scheme] 检测到 GitHub 回调（onLaunch）');
-            this.handleUrlScheme({ path: args });
-        }
+        this.runWhenPlusReady((plusInstance) => {
+            const args = this.getPlusRuntimeArguments(plusInstance);
+            console.log('🚀 [App] onLaunch 启动参数:', args);
+            if (args && args.includes('github-callback')) {
+                console.log('🔗 [URL Scheme] 检测到 GitHub 回调（onLaunch）');
+                this.handleUrlScheme({ path: args });
+            }
+        }, 'handle launch args');
         // #endif
         
         // 清理缓存是好习惯，予以保留
@@ -65,47 +67,46 @@ export default {
         
         // #ifdef APP-PLUS
         console.log('📱 [热更新] 当前为 APP-PLUS 环境，准备获取版本信息...');
-        try {
-            const systemInfo = uni.getSystemInfoSync();
-            const appId = systemInfo.appId;
-            console.log('📱 [热更新] App ID:', appId);
-            
-            plus.runtime.getProperty(plus.runtime.appid, function(widgetInfo) {
-                console.log('📱 [热更新] plus.runtime.getProperty 回调已执行');
-                if (widgetInfo) {
-                    // 使用 widgetInfo.versionCode 获取版本号
-                    const appVersion = widgetInfo.versionCode || 0;
-                    const wgtVersion = widgetInfo.version || '';
-                    console.log('📱 [热更新] App 版本号 :', appVersion);
-                    console.log('📱 [热更新] WGT 资源包版本号 :', wgtVersion);
-                    console.log('📱 [热更新] 当前完整版本信息:', {
-                        appId: appId,
-                        appVersion: appVersion,
-                        wgtVersion: wgtVersion
-                    });
-                    // 使用自定义热更新逻辑
-                    try {
-                        checkAndUpdate({ silent: true, showConfirm: true }).then((result) => {
-                            console.log('✅ [热更新] 检查完成:', result);
-                        }).catch((err) => {
-                            // 区分不同类型的错误，提供更友好的提示
-                            const errorMsg = err?.errMsg || err?.message || String(err);
-                            if (errorMsg.includes('resource exhausted') || errorMsg.includes('ResourceExhausted') || (err?.code === -999)) {
-                                console.warn('⚠️ [热更新] 检查失败：云服务资源已耗尽，请稍后重试');
-                            } else {
-                                console.warn('⚠️ [热更新] 检查失败（已忽略）:', err);
-                            }
+        this.runWhenPlusReady((plusInstance) => {
+            try {
+                const systemInfo = uni.getSystemInfoSync();
+                const appId = systemInfo.appId;
+                console.log('📱 [热更新] App ID:', appId);
+                
+                plusInstance.runtime.getProperty(plusInstance.runtime.appid, function(widgetInfo) {
+                    console.log('📱 [热更新] plus.runtime.getProperty 回调已执行');
+                    if (widgetInfo) {
+                        const appVersion = widgetInfo.versionCode || 0;
+                        const wgtVersion = widgetInfo.version || '';
+                        console.log('📱 [热更新] App 版本号 :', appVersion);
+                        console.log('📱 [热更新] WGT 资源包版本号 :', wgtVersion);
+                        console.log('📱 [热更新] 当前完整版本信息:', {
+                            appId: appId,
+                            appVersion: appVersion,
+                            wgtVersion: wgtVersion
                         });
-                    } catch (e) {
-                        console.warn('⚠️ [热更新] 调用异常（已忽略）:', e);
+                        try {
+                            checkAndUpdate({ silent: true, showConfirm: true }).then((result) => {
+                                console.log('✅ [热更新] 检查完成:', result);
+                            }).catch((err) => {
+                                const errorMsg = err?.errMsg || err?.message || String(err);
+                                if (errorMsg.includes('resource exhausted') || errorMsg.includes('ResourceExhausted') || (err?.code === -999)) {
+                                    console.warn('⚠️ [热更新] 检查失败：云服务资源已耗尽，请稍后重试');
+                                } else {
+                                    console.warn('⚠️ [热更新] 检查失败（已忽略）:', err);
+                                }
+                            });
+                        } catch (e) {
+                            console.warn('⚠️ [热更新] 调用异常（已忽略）:', e);
+                        }
+                    } else {
+                        console.error('❌ [热更新] 获取 WGT 版本信息失败，请检查 manifest.json 配置或运行环境。');
                     }
-                } else {
-                    console.error('❌ [热更新] 获取 WGT 版本信息失败，请检查 manifest.json 配置或运行环境。');
-                }
-            });
-        } catch (error) {
-            console.warn('⚠️ [热更新] 读取版本信息失败（已忽略）:', error);
-        }
+                });
+            } catch (error) {
+                console.warn('⚠️ [热更新] 读取版本信息失败（已忽略）:', error);
+            }
+        }, 'check hot update');
         // #endif
 
         // #ifdef H5
@@ -114,7 +115,7 @@ export default {
         
         // 【关键修复】在所有操作之前初始化云开发
         console.log('🔍 [App.vue] onLaunch 开始执行');
-        if (typeof wx !== 'undefined' && wx.cloud) {
+        if (typeof uni !== 'undefined' && uni.$tcb) { this.$tcb = uni.$tcb; } else if (typeof wx !== 'undefined' && wx.cloud) {
             console.log('☁️ [App.vue] 检测到 wx.cloud，立即初始化');
             try {
                 wx.cloud.init({
@@ -153,6 +154,10 @@ export default {
         console.log('🔤 [App.vue] 小程序环境，开始预加载汇文明朝字体');
         console.log('🔤 [App.vue] 字体文件大小: 7.9MB，预计需要 10-30 秒');
         
+        if (!this.globalData._mpBuiltinFontPreloadStarted) {
+            this.globalData._mpBuiltinFontPreloadStarted = true;
+            try { uni.setStorageSync('__builtin_font_huiwen_ready__', false); } catch (e) {}
+            setTimeout(() => {
         let lastProgress = 0;
         fontManager.ensureFontAvailable('汇文明朝', (progress) => {
             // 每 10% 输出一次日志，避免刷屏
@@ -165,9 +170,11 @@ export default {
             console.log('✅ [App.vue] 小程序重启后会重新注册字体，但不会再误判为已加载');
             // 字体加载完成后，可以触发全局事件通知页面刷新
             try {
+                uni.setStorageSync('__builtin_font_huiwen_ready__', true);
                 uni.$emit && uni.$emit('font-loaded', { fontFamily: '汇文明朝' });
             } catch (e) {}
         }).catch(err => {
+            try { uni.setStorageSync('__builtin_font_huiwen_ready__', false); } catch (e) {}
             console.warn('⚠️ [App.vue] 汇文明朝字体预加载失败，将使用系统默认字体:', err);
             console.warn('⚠️ [App.vue] 可能原因：');
             console.warn('   1. 网络连接不稳定');
@@ -175,6 +182,8 @@ export default {
             console.warn('   3. 字体文件较大，加载超时');
             console.warn('   4. 系统默认字体仍可正常使用');
         });
+            }, 0);
+        }
         // #endif
         
         // 【性能优化】使用 nextTick 延迟执行非关键任务，让页面先渲染
@@ -190,37 +199,71 @@ export default {
         
         // #ifdef APP-PLUS
         // 获取启动参数（URL Scheme）
-        const args = plus.runtime.arguments;
-        console.log(' [URL Scheme] 启动参数:', args);
-        
-        // 如果有 URL Scheme 参数，则处理
-        if (args && args.includes('github-callback')) {
-            console.log(' [URL Scheme] 检测到 GitHub 回调');
-            this.handleUrlScheme({ path: args });
-        }
-        
-        // 监听新的 intent 事件（Android 特有）
-        // 当 App 已在后台运行时，通过 URL Scheme 唤起会触发此事件
-        // 注意：避免重复添加监听器
-        if (!this._newintentListenerAdded) {
-            plus.globalEvent.addEventListener('newintent', (e) => {
-                console.log(' [newintent] 收到新的 intent 事件');
-                
-                // 获取启动参数
-                const newArgs = plus.runtime.arguments;
-                if (newArgs) {
-                    console.log(' [newintent] 启动参数:', newArgs);
-                    // 将参数转换为 options 格式
-                    this.handleUrlScheme({ path: newArgs });
-                }
-            });
-            this._newintentListenerAdded = true;
-        }
+        this.runWhenPlusReady((plusInstance) => {
+            const args = this.getPlusRuntimeArguments(plusInstance);
+            console.log(' [URL Scheme] 启动参数:', args);
+            
+            if (args && args.includes('github-callback')) {
+                console.log(' [URL Scheme] 检测到 GitHub 回调');
+                this.handleUrlScheme({ path: args });
+            }
+            
+            if (!this._newintentListenerAdded && plusInstance.globalEvent && plusInstance.globalEvent.addEventListener) {
+                plusInstance.globalEvent.addEventListener('newintent', () => {
+                    console.log(' [newintent] 收到新的 intent 事件');
+                    const newArgs = this.getPlusRuntimeArguments(plusInstance);
+                    if (newArgs) {
+                        console.log(' [newintent] 启动参数:', newArgs);
+                        this.handleUrlScheme({ path: newArgs });
+                    }
+                });
+                this._newintentListenerAdded = true;
+            }
+        }, 'handle app show');
         // #endif
     },
 
     // 【重构】3. 将所有方法都放入 methods 对象中，这是 Vue 的标准做法
     methods: {
+        runWhenPlusReady(handler, taskLabel) {
+            // #ifdef APP-PLUS
+            const execute = (plusInstance) => {
+                try {
+                    handler && handler(plusInstance);
+                } catch (error) {
+                    console.warn(`[App] ${taskLabel || 'app-plus task'} failed`, error);
+                }
+            };
+
+            if (typeof plus !== 'undefined' && plus && plus.runtime) {
+                execute(plus);
+                return;
+            }
+
+            const start = Date.now();
+            const maxWait = 10000;
+            const timer = setInterval(() => {
+                if (typeof plus !== 'undefined' && plus && plus.runtime) {
+                    clearInterval(timer);
+                    execute(plus);
+                    return;
+                }
+
+                if (Date.now() - start >= maxWait) {
+                    clearInterval(timer);
+                    console.warn(`[App] ${taskLabel || 'app-plus task'} skipped: plus not ready`);
+                }
+            }, 50);
+            // #endif
+        },
+        getPlusRuntimeArguments(plusInstance) {
+            try {
+                return plusInstance && plusInstance.runtime ? (plusInstance.runtime.arguments || '') : '';
+            } catch (error) {
+                console.warn('[App] read plus runtime arguments failed', error);
+                return '';
+            }
+        },
         /**
          * 处理 URL Scheme 启动（GitHub OAuth 回调）
          */
@@ -593,18 +636,14 @@ export default {
 /* #ifdef APP-PLUS */
 @font-face {
   font-family: 'Huiwen-mincho';
-  src: url('/static/fonts/Huiwen-mincho-compressed.ttf') format('truetype'),
-       url('/static/fonts/Huiwen-mincho-compressed.woff') format('woff'),
-       url('/static/fonts/Huiwen-mincho-compressed.woff2') format('woff2');
+  src: url('/static/fonts/Huiwen-mincho-compressed.woff2') format('woff2');
   font-weight: normal;
   font-style: normal;
 }
 
 @font-face {
   font-family: '汇文明朝';
-  src: url('/static/fonts/Huiwen-mincho-compressed.ttf') format('truetype'),
-       url('/static/fonts/Huiwen-mincho-compressed.woff') format('woff'),
-       url('/static/fonts/Huiwen-mincho-compressed.woff2') format('woff2');
+  src: url('/static/fonts/Huiwen-mincho-compressed.woff2') format('woff2');
   font-weight: normal;
   font-style: normal;
 }

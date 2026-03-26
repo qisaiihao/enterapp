@@ -1,5 +1,6 @@
 <template>
   <view
+    :key="'activity-poem-font-' + fontRenderTick + '-' + (item && item._id ? item._id : index)"
     :class="['activity-poem-card', isSeries && !seriesExpanded ? 'stacked-series-card' : '']"
     :style="{ backgroundColor: safeBackgroundColor }"
   >
@@ -141,8 +142,27 @@ export default {
       expanded: false,
       seriesExpanded: false,
       currentSeriesIndex: 0,
-      signatureHidden: false
+      signatureHidden: false,
+      fontRenderTick: 0
     };
+  },
+  created() {
+    // #ifdef MP-WEIXIN
+    this._fontLoadedHandler = (payload) => {
+      try {
+        this.onBuiltinFontLoaded(payload);
+      } catch (error) {
+        console.warn('[ActivityPoemCard] font-loaded handler failed', error);
+      }
+    };
+    try { uni.$on && uni.$on('font-loaded', this._fontLoadedHandler); } catch (_) {}
+    // #endif
+  },
+  beforeDestroy() {
+    // #ifdef MP-WEIXIN
+    try { uni.$off && this._fontLoadedHandler && uni.$off('font-loaded', this._fontLoadedHandler); } catch (_) {}
+    this._fontLoadedHandler = null;
+    // #endif
   },
   computed: {
     safeBackgroundColor() {
@@ -198,6 +218,18 @@ export default {
     }
   },
   methods: {
+    onBuiltinFontLoaded(payload = {}) {
+      const loadedFontFamily = payload && payload.fontFamily ? payload.fontFamily : '';
+      if (loadedFontFamily && loadedFontFamily !== '汇文明朝') return;
+      if (this._poemFontRenderApplied) return;
+
+      this._poemFontRenderApplied = true;
+      this.fontRenderTick += 1;
+      console.log('[ActivityPoemCard] font-loaded rerender', {
+        loadedFontFamily,
+        fontRenderTick: this.fontRenderTick
+      });
+    },
     resetState() {
       this.expanded = false;
       this.seriesExpanded = false;
