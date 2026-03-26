@@ -290,6 +290,14 @@
             @color-change="onColorChange"
             @force-regenerate="forceRegenerateCanvas"
         />
+        <!-- #ifdef APP-PLUS -->
+        <view
+            v-if="showShareModal && (shareConfig.fontFamily || '汇文明朝') === '汇文明朝'"
+            class="app-share-font-activator"
+        >
+            <text class="app-share-font-activator-text">汇文明朝Aa</text>
+        </view>
+        <!-- #endif -->
 
         <!-- 隐藏的canvas用于生成分享图片（增加 id 便于 H5 兜底导出） -->
         <!-- #ifdef MP-WEIXIN -->
@@ -1046,9 +1054,14 @@ export default {
                 shareImageRetryCount: 0,
                 shareCanvasHeight: 4000
             });
-            
-            // 立即开始生成图片
-            this.generateShareImage();
+            const initialShareRenderDelay = getCurrentPlatform() === 'app' ? 180 : 0;
+            this.$nextTick(() => {
+                setTimeout(() => {
+                    if (!this.showShareModal) return;
+                    this.generateShareImage();
+                }, initialShareRenderDelay);
+            });
+            return;
         },
 
         hideShareModal: function () {
@@ -1115,6 +1128,11 @@ export default {
             }
 
             const isAppBuiltinFont = platform === 'app' && fontFamily === '汇文明朝';
+            const wasFontLoadedBeforeRender = isAppBuiltinFont
+                ? !!this._appBuiltinShareFontPrimed
+                : !!(this.fontManager
+                    && typeof this.fontManager.isFontLoaded === 'function'
+                    && this.fontManager.isFontLoaded(fontFamily));
             const maxAttempts = isAppBuiltinFont ? 2 : 1;
             let lastError = null;
 
@@ -1134,14 +1152,35 @@ export default {
                     console.log('【post-detail】字体加载成功:', fontFamily);
                     
                     const fontScale = fontScaleMap[fontFamily] || 1.0;
+                    const needsAppFontActivationDelay = isAppBuiltinFont && !wasFontLoadedBeforeRender;
+                    const fontReadyDelay = needsAppFontActivationDelay
+                        ? 520
+                        : (platform === 'app' ? 220 : (platform === 'mp-weixin' ? 180 : 100));
                     this.shareRenderFontFamily = fontFamily;
                     this.shareRenderFontScale = fontScale;
                     this.shareRenderFontPending = false;
                     const sourceTag = platform === 'mp-weixin' ? 'mp-downloaded-local-woff2' : (platform === 'app' ? 'app-local-woff2' : 'h5-local-woff2');
-                    console.log('[share-card-font] ready', { sourceTag, platform, fontFamily, fontPath, attempt: attempt + 1 });
+                    console.log('[share-card-font] ready', {
+                        sourceTag,
+                        platform,
+                        fontFamily,
+                        fontPath,
+                        attempt: attempt + 1,
+                        wasFontLoadedBeforeRender,
+                        fontReadyDelay
+                    });
                     
-                    await new Promise(r => setTimeout(r, platform === 'app' ? 220 : (platform === 'mp-weixin' ? 180 : 100)));
+                    if (needsAppFontActivationDelay && this.$nextTick) {
+                        await new Promise(r => this.$nextTick(r));
+                        if (renderToken !== this.shareRenderToken) return;
+                    }
+
+                    await new Promise(r => setTimeout(r, fontReadyDelay));
                     if (renderToken !== this.shareRenderToken) return;
+
+                    if (isAppBuiltinFont) {
+                        this._appBuiltinShareFontPrimed = true;
+                    }
                     
                     this.drawCanvas(renderToken);
                     return;
@@ -4200,6 +4239,23 @@ page {
 .container {
     padding-bottom: 140rpx;
 }
+
+.app-share-font-activator {
+    position: fixed;
+    left: -9999px;
+    top: -9999px;
+    opacity: 0;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.app-share-font-activator-text {
+    font-family: 'Huiwen-mincho', '汇文明朝', serif;
+    font-size: 96rpx;
+    line-height: 1;
+    white-space: nowrap;
+}
+
 .edit-modal-mask {
   position: fixed; left: 0; top: 0; right: 0; bottom: 0;
   background: rgba(0,0,0,0.35); z-index: 9999;

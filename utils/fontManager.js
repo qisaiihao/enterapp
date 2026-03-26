@@ -1373,6 +1373,14 @@ class FontManager {
         }
 
         console.log('【FontManager】🔤 字体未加载到内存，开始加载...');
+        const cssManagedAppBuiltinPath = await this._verifyCssManagedAppBuiltinFont(normalizedName, fontPath);
+        if (cssManagedAppBuiltinPath) {
+            this.loadedFonts.add(normalizedName);
+            console.log('[FontManager] App builtin font ready via CSS-managed local woff2:', normalizedName, cssManagedAppBuiltinPath);
+            if (onProgress) onProgress(100);
+            return fontPath;
+        }
+
         const loaded = await this._loadFontFace(normalizedName, fontPath);
         if (!loaded) {
             this.loadedFonts.delete(normalizedName);
@@ -1381,6 +1389,31 @@ class FontManager {
 
         if (onProgress) onProgress(100);
         return fontPath;
+    }
+
+    async _verifyCssManagedAppBuiltinFont(fontFamily, fontPath) {
+        if (platformDetector.getCurrentPlatform() !== 'app') return null;
+        if (fontFamily !== '汇文明朝') return null;
+
+        const plusInstance = await this.getPlusInstance();
+        if (!plusInstance || !plusInstance.io) {
+            return null;
+        }
+
+        const resolvedPath = this._resolveAppFontSourcePath(fontPath);
+        if (!resolvedPath) {
+            return null;
+        }
+
+        try {
+            await new Promise((resolve, reject) => {
+                plusInstance.io.resolveLocalFileSystemURL(resolvedPath, resolve, reject);
+            });
+            return resolvedPath;
+        } catch (error) {
+            console.warn('[FontManager] App builtin woff2 path unresolved, keep runtime fallback path:', fontFamily, fontPath, error);
+            return null;
+        }
     }
 
     async _loadFontFaceWithRetry(displayName, sourcePath, retryCount = 0, options = {}) {
