@@ -104,6 +104,28 @@ exports.main = async (event, context) => {
 
     const user = usersResult.data.length > 0 ? usersResult.data[0] : null;
 
+    // 清理引用已删除帖子的孤儿记录，并同步文件夹计数
+    const orphanItems = portfolioItems.filter(item => !postsMap.has(item.postId));
+    if (orphanItems.length > 0) {
+      console.log(`【getPortfolioItems】发现 ${orphanItems.length} 条孤儿记录（帖子已删除），开始清理`);
+      await Promise.all(orphanItems.map(item =>
+        db.collection('portfolio_items').doc(item._id).remove().catch(err => {
+          console.error('清理孤儿记录失败:', item._id, err);
+        })
+      ));
+      // 重新统计并回写正确的数量到 portfolio_folders
+      const validCount = portfolioItems.length - orphanItems.length;
+      await db.collection('portfolio_folders').doc(folderId).update({
+        data: {
+          itemCount: validCount,
+          postCount: validCount,
+          updateTime: new Date()
+        }
+      }).catch(err => {
+        console.error('【getPortfolioItems】回写文件夹计数失败:', err);
+      });
+    }
+
     // 构建完整的作品集数据
     const completePortfolioItems = portfolioItems.map(portfolioItem => {
       const post = postsMap.get(portfolioItem.postId);

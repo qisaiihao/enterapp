@@ -12,7 +12,7 @@
     <scroll-view class="portfolio-list" scroll-y="true" @scrolltolower="loadMore">
       <view class="portfolio-content" :style="{ paddingTop: contentTopPadding }">
         <view v-if="folders.length === 0" class="empty-state">
-          <text class="empty-icon">📁</text>
+          <image class="empty-icon-img" src="/static/images/newicons/library.png" mode="aspectFit"></image>
           <text class="empty-text">暂无作品集</text>
           <text class="empty-subtext">创建您的第一个作品集吧</text>
         </view>
@@ -43,7 +43,7 @@
               <view class="folder-content">
                 <view class="folder-icon">
                   <image v-if="folder.coverUrl" class="folder-cover-image" :src="folder.coverUrl" mode="aspectFill"></image>
-                  <view v-else class="folder-default-icon">📚</view>
+                  <image v-else class="folder-default-icon-img" src="/static/images/newicons/library.png" mode="aspectFit"></image>
                 </view>
                 <view class="folder-info">
                   <text class="folder-name">{{ folder.name }}</text>
@@ -79,7 +79,7 @@
               <view class="form-label">作品集封面</view>
               <view class="cover-upload-section">
                 <view v-if="!newFolderCover" class="cover-upload-btn" @tap="chooseNewCoverImage">
-                  <view class="upload-icon">📷</view>
+                  <image class="upload-icon-img" src="/static/images/newicons/image.png" mode="aspectFit"></image>
                   <view class="upload-text">选择封面</view>
                 </view>
                 <view v-else class="cover-preview" @tap="chooseNewCoverImage">
@@ -93,8 +93,8 @@
           </view>
         </view>
         <view class="modal-footer">
-          <button class="modal-btn cancel" @tap="hideCreateModal">取消</button>
-          <button class="modal-btn confirm" @tap="createFolder" :disabled="!newFolderName.trim()">创建</button>
+          <button class="modal-btn outline" @tap="hideCreateModal">取消</button>
+          <button class="modal-btn outline" @tap="createFolder" :disabled="!newFolderName.trim()">创建</button>
         </view>
       </view>
     </view>
@@ -122,7 +122,7 @@
               <view class="form-label">作品集封面</view>
               <view class="cover-upload-section">
                 <view v-if="!editingFolderCover" class="cover-upload-btn" @tap="chooseEditCoverImage">
-                  <view class="upload-icon">📷</view>
+                  <image class="upload-icon-img" src="/static/images/newicons/image.png" mode="aspectFit"></image>
                   <view class="upload-text">选择封面</view>
                 </view>
                 <view v-else class="cover-preview" @tap="chooseEditCoverImage">
@@ -136,8 +136,8 @@
           </view>
         </view>
         <view class="modal-footer">
-          <button class="modal-btn cancel" @tap="hideEditModal">取消</button>
-          <button class="modal-btn confirm" @tap="saveFolderName" :disabled="!editingFolderName.trim()">保存</button>
+          <button class="modal-btn outline" @tap="hideEditModal">取消</button>
+          <button class="modal-btn outline" @tap="saveFolderName" :disabled="!editingFolderName.trim()">保存</button>
         </view>
       </view>
     </view>
@@ -185,7 +185,7 @@ export default {
 
   computed: {
     contentTopPadding() {
-      return `calc(${this.safeAreaTop}px + 150rpx)`;
+      return `calc(${this.safeAreaTop}px + 100rpx)`;
     }
   },
 
@@ -196,7 +196,6 @@ export default {
     } catch (error) {
       console.error('【portfolio】监听作品集更新事件失败:', error);
     }
-    this.loadFolders();
   },
 
   onShow() {
@@ -258,6 +257,19 @@ export default {
       uni.navigateBack();
     },
 
+    _applyFolders(folders) {
+      console.log('【portfolio】_applyFolders 原始数据:', JSON.stringify((folders || []).map(f => ({ _id: f._id, name: f.name, itemCount: f.itemCount, postCount: f.postCount }))));
+      this.folders = (folders || []).map(f => {
+        const normalizedFolder = normalizePortfolioFolder(f || {});
+        return {
+          ...normalizedFolder,
+          isSwipeOpen: false,
+          itemCount: normalizedFolder.itemCount,
+          postCount: normalizedFolder.postCount
+        };
+      });
+    },
+
     async loadFolders(callback, forceRefresh = false) {
       if (this.loading) {
         if (typeof callback === 'function') callback();
@@ -266,20 +278,17 @@ export default {
 
       this.loading = true;
       try {
+        const self = this;
         const folders = await getPortfolioFolders({
           forceRefresh: forceRefresh,
-          context: this
+          context: this,
+          onBackgroundUpdate(newFolders) {
+            console.log('【portfolio】SWR后台更新完成，刷新UI');
+            self._applyFolders(newFolders);
+          }
         });
 
-        this.folders = (folders || []).map(f => {
-          const normalizedFolder = normalizePortfolioFolder(f || {});
-          return {
-            ...normalizedFolder,
-          isSwipeOpen: false,
-            itemCount: normalizedFolder.itemCount,
-            postCount: normalizedFolder.postCount
-          };
-        });
+        this._applyFolders(folders);
         console.log('【portfolio】作品集加载成功，数量:', this.folders.length);
       } catch (error) {
         console.error('加载作品集失败:', error);
@@ -289,7 +298,6 @@ export default {
         });
       } finally {
         this.loading = false;
-        // 执行回调函数（用于下拉刷新完成后停止动画）
         if (typeof callback === 'function') {
           callback();
         }
@@ -856,10 +864,11 @@ export default {
   padding: 120rpx 0;
 }
 
-.empty-icon {
-  font-size: 120rpx;
+.empty-icon-img {
+  width: 120rpx;
+  height: 120rpx;
   margin-bottom: 30rpx;
-  display: block;
+  opacity: 0.5;
 }
 
 .empty-text {
@@ -952,7 +961,7 @@ export default {
 .folder-icon {
   width: 88rpx;
   height: 88rpx;
-  background: #D9D9D9;
+  background: #FFFFFF;
   border-radius: 20rpx;
   display: flex;
   align-items: center;
@@ -967,8 +976,9 @@ export default {
   border-radius: 20rpx;
 }
 
-.folder-default-icon {
-  font-size: 40rpx;
+.folder-default-icon-img {
+  width: 60rpx;
+  height: 60rpx;
 }
 
 .folder-info {
@@ -1075,19 +1085,17 @@ export default {
   border: none;
 }
 
-.modal-btn.cancel {
-  background: #f8f9fa;
-  color: #666;
+.modal-btn.outline {
+  background: #FFFFFF;
+  color: #000000;
+  border: 2rpx solid #000000;
+  font-weight: 400;
 }
 
-.modal-btn.confirm {
-  background: #9ed7ee;
-  color: #fff;
-}
-
-.modal-btn.confirm[disabled] {
-  background: #ccc;
-  color: #999;
+.modal-btn.outline[disabled] {
+  background: #FFFFFF;
+  color: #ccc;
+  border: 2rpx solid #ccc;
 }
 
 /* 封面上传样式 */
@@ -1128,10 +1136,11 @@ export default {
   background: #f8f9fa;
 }
 
-.upload-icon {
-  font-size: 48rpx;
-  color: #999;
+.upload-icon-img {
+  width: 48rpx;
+  height: 48rpx;
   margin-bottom: 8rpx;
+  opacity: 0.6;
 }
 
 .upload-text {

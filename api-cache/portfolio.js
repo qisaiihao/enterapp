@@ -34,7 +34,7 @@ function extractFoldersFromResult(result = {}) {
 /**
  * 获取作品集文件夹列表
  */
-async function getPortfolioFolders({ forceRefresh = false, context } = {}) {
+async function getPortfolioFolders({ forceRefresh = false, context, onBackgroundUpdate } = {}) {
   const fetchFolders = async () => {
     const result = await callCloudAndGetResult(
       'getPortfolioFolders',
@@ -55,7 +55,7 @@ async function getPortfolioFolders({ forceRefresh = false, context } = {}) {
   return ns.getOrFetch(
     'folders',
     fetchFolders,
-    { ttlMs: 5 * 60 * 1000, swrMs: 60 * 1000 }
+    { ttlMs: 5 * 60 * 1000, swrMs: 60 * 1000, onBackgroundUpdate }
   );
 }
 

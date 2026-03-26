@@ -37,7 +37,7 @@
                                       :data-index="index">
                                     <view class="folder-icon">
                                         <image v-if="item.coverUrl" class="folder-cover-image" :src="item.coverUrl" mode="aspectFill"></image>
-                                        <view v-else class="folder-default-icon">📁</view>
+                                        <image v-else class="folder-default-icon-img" src="/static/images/newicons/collection.png" mode="aspectFit"></image>
                                     </view>
 
                                     <view class="folder-info">
@@ -55,7 +55,7 @@
 
                         <!-- 空状态 -->
                         <view v-else class="empty-state">
-                            <view class="empty-icon">📁</view>
+                            <image class="empty-icon-img" src="/static/images/newicons/collection.png" mode="aspectFit"></image>
                             <view class="empty-text">还没有收藏夹</view>
                             <view class="empty-subtext">先创建一个收藏夹吧</view>
                         </view>
@@ -86,7 +86,7 @@
                                 <view class="form-label">收藏夹封面</view>
                                 <view class="cover-upload-section">
                                     <view v-if="!newFolderCover" class="cover-upload-btn" @tap="chooseCoverImage">
-                                        <view class="upload-icon">📷</view>
+                                        <image class="upload-icon-img" src="/static/images/newicons/image.png" mode="aspectFit"></image>
                                         <view class="upload-text">选择封面</view>
                                     </view>
                                     <view v-else class="cover-preview" @tap="chooseCoverImage">
@@ -100,9 +100,9 @@
                         </view>
                     </view>
 
-                    <view class="modal-footer">
-                        <button class="modal-btn secondary-btn" @tap="hideCreateModal">取消</button>
-                        <button class="modal-btn primary-btn" @tap="createNewFolder" :disabled="!newFolderName">创建</button>
+                    <view class="modal-footer create-footer">
+                        <button class="modal-btn outline-btn" @tap="hideCreateModal">取消</button>
+                        <button class="modal-btn outline-btn" @tap="createNewFolder" :disabled="!newFolderName">创建</button>
                     </view>
                 </view>
             </view>
@@ -840,7 +840,7 @@ export default {
 .folder-icon {
     width: 88rpx;
     height: 88rpx;
-    background: #D9D9D9;
+    background: #FFFFFF;
     border-radius: 20rpx;
     display: flex;
     align-items: center;
@@ -857,8 +857,9 @@ export default {
     border-radius: 20rpx;
 }
 
-.folder-default-icon {
-    font-size: 40rpx;
+.folder-default-icon-img {
+    width: 60rpx;
+    height: 60rpx;
 }
 
 .folder-info {
@@ -919,8 +920,9 @@ export default {
     padding: 40rpx;
 }
 
-.empty-icon {
-    font-size: 60rpx;
+.empty-icon-img {
+    width: 80rpx;
+    height: 80rpx;
     margin-bottom: 16rpx;
     opacity: 0.5;
 }
@@ -944,6 +946,11 @@ export default {
     border-top: none;
 }
 
+.modal-footer.create-footer {
+    justify-content: center;
+    gap: 30rpx;
+}
+
 .modal-btn {
     width: 132rpx;
     height: 52rpx;
@@ -965,6 +972,19 @@ export default {
     font-weight: normal;
     margin-left: auto !important;
     margin-right: 0 !important;
+}
+
+.outline-btn {
+    background: #FFFFFF;
+    color: #000000;
+    border: 2rpx solid #000000 !important;
+    font-weight: 400;
+}
+
+.outline-btn:disabled {
+    background: #FFFFFF;
+    color: #ccc;
+    border: 2rpx solid #ccc !important;
 }
 
 .primary-btn {
@@ -1018,8 +1038,9 @@ export default {
     cursor: pointer;
 }
 
-.upload-icon {
-    font-size: 60rpx;
+.upload-icon-img {
+    width: 60rpx;
+    height: 60rpx;
     margin-bottom: 16rpx;
     opacity: 0.6;
 }

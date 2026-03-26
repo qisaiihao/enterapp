@@ -25,7 +25,7 @@
                         >
                             <view class="portfolio-icon">
                                 <image v-if="item.coverUrl" class="portfolio-cover-image" :src="item.coverUrl" mode="aspectFill"></image>
-                                <view v-else class="portfolio-default-icon">📚</view>
+                                <image v-else class="portfolio-default-icon-img" src="/static/images/newicons/library.png" mode="aspectFit"></image>
                             </view>
 
                             <view class="portfolio-info">
@@ -42,7 +42,7 @@
 
                     <!-- 空状态 -->
                     <view v-else class="empty-state">
-                        <view class="empty-icon">📚</view>
+                        <image class="empty-icon-img" src="/static/images/newicons/library.png" mode="aspectFit"></image>
                         <view class="empty-text">还没有作品集</view>
                         <view class="empty-subtext">点击下方按钮创建一个作品集</view>
                     </view>
@@ -59,7 +59,7 @@
             <view class="modal-content create-modal" @tap.stop>
                 <view class="modal-header">
                     <view class="modal-title">创建作品集</view>
-                    <button class="close-btn" @tap="hideCreateModal">×</button>
+                    <view class="close-btn" @tap="hideCreateModal" @tap.stop.prevent="trueFun">×</view>
                 </view>
 
                 <view class="modal-body">
@@ -73,7 +73,7 @@
                             <view class="form-label">作品集封面</view>
                             <view class="cover-upload-section">
                                 <view v-if="!newPortfolioCover" class="cover-upload-btn" @tap="choosePortfolioCoverImage">
-                                    <view class="upload-icon">📷</view>
+                                    <image class="upload-icon-img" src="/static/images/newicons/image.png" mode="aspectFit"></image>
                                     <view class="upload-text">选择封面</view>
                                 </view>
                                 <view v-else class="cover-preview" @tap="choosePortfolioCoverImage">
@@ -87,9 +87,9 @@
                     </view>
                 </view>
 
-                <view class="modal-footer">
-                    <button class="modal-btn secondary-btn" @tap="hideCreateModal">取消</button>
-                    <button class="modal-btn primary-btn" @tap="createNewPortfolio" :disabled="!newPortfolioName">创建</button>
+                <view class="modal-footer create-footer">
+                    <button class="modal-btn outline-btn" @tap="hideCreateModal">取消</button>
+                    <button class="modal-btn outline-btn" @tap="createNewPortfolio" :disabled="!newPortfolioName">创建</button>
                 </view>
             </view>
         </view>
@@ -846,7 +846,7 @@ export default {
 .portfolio-icon {
     width: 88rpx;
     height: 88rpx;
-    background: #D9D9D9;
+    background: #FFFFFF;
     border-radius: 20rpx;
     display: flex;
     align-items: center;
@@ -862,8 +862,9 @@ export default {
     border-radius: 20rpx;
 }
 
-.portfolio-default-icon {
-    font-size: 40rpx;
+.portfolio-default-icon-img {
+    width: 60rpx;
+    height: 60rpx;
 }
 
 .portfolio-info {
@@ -916,8 +917,9 @@ export default {
     padding: 40rpx;
 }
 
-.empty-icon {
-    font-size: 60rpx;
+.empty-icon-img {
+    width: 80rpx;
+    height: 80rpx;
     margin-bottom: 16rpx;
     opacity: 0.5;
 }
@@ -934,10 +936,16 @@ export default {
 }
 
 .modal-footer {
+    display: flex;
     justify-content: flex-end;
     padding: 20rpx 40rpx calc(20rpx + env(safe-area-inset-bottom));
     border-top: none;
     align-items: center;
+}
+
+.modal-footer.create-footer {
+    justify-content: center;
+    gap: 30rpx;
 }
 
 .modal-btn {
@@ -961,6 +969,19 @@ export default {
     font-weight: normal;
     margin-left: auto !important;
     margin-right: 0 !important;
+}
+
+.outline-btn {
+    background: #FFFFFF;
+    color: #000000;
+    border: 2rpx solid #000000 !important;
+    font-weight: 400;
+}
+
+.outline-btn:disabled {
+    background: #FFFFFF;
+    color: #ccc;
+    border: 2rpx solid #ccc !important;
 }
 
 /* 滑入动画 */
@@ -1035,10 +1056,11 @@ export default {
     background: #f8f9fa;
 }
 
-.upload-icon {
-    font-size: 48rpx;
-    color: #999;
+.upload-icon-img {
+    width: 48rpx;
+    height: 48rpx;
     margin-bottom: 8rpx;
+    opacity: 0.6;
 }
 
 .upload-text {

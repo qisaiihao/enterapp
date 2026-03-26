@@ -9,11 +9,43 @@ const db = cloud.database();
 async function getExactFolderCount(folderId) {
   if (!folderId) return 0;
 
-  const countResult = await db.collection('portfolio_items').where({
+  // 获取该文件夹下的所有 portfolio_items（最多100条）
+  const itemsResult = await db.collection('portfolio_items').where({
     folderId
-  }).count();
+  }).limit(100).field({ _id: true, postId: true }).get();
 
-  return Number(countResult.total) || 0;
+  const items = itemsResult.data || [];
+  if (items.length === 0) return 0;
+
+  // 提取所有 postId，验证帖子是否仍然存在
+  const postIds = [...new Set(items.map(item => item.postId).filter(Boolean))];
+  if (postIds.length === 0) {
+    // 所有记录都没有 postId，全部清理
+    await Promise.all(items.map(item =>
+      db.collection('portfolio_items').doc(item._id).remove().catch(() => {})
+    ));
+    return 0;
+  }
+
+  // 批量检查帖子是否存在（db.command.in 最多支持约500个）
+  const postsResult = await db.collection('posts').where({
+    _id: db.command.in(postIds)
+  }).field({ _id: true }).get();
+
+  const existingPostIds = new Set((postsResult.data || []).map(p => p._id));
+
+  // 找出引用已删除帖子的孤儿记录并清理
+  const orphanItems = items.filter(item => !item.postId || !existingPostIds.has(item.postId));
+  if (orphanItems.length > 0) {
+    console.log(`【getPortfolioFolders】清理孤儿记录 ${orphanItems.length} 条，folderId: ${folderId}`);
+    await Promise.all(orphanItems.map(item =>
+      db.collection('portfolio_items').doc(item._id).remove().catch(err => {
+        console.error('清理孤儿记录失败:', item._id, err);
+      })
+    ));
+  }
+
+  return items.length - orphanItems.length;
 }
 
 function normalizeFolderCount(folder = {}, exactCount = null) {
