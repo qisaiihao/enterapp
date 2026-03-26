@@ -16,7 +16,7 @@
         <scroll-view class="folders-list" scroll-y="true">
             <view class="folders-content">
                 <view v-if="folders.length === 0" class="empty-state">
-                    <text class="empty-icon">📁</text>
+                    <image class="empty-icon-img" src="/static/images/newicons/collection.png" mode="aspectFit"></image>
                     <text class="empty-text">暂无收藏夹</text>
                     <text class="empty-subtext">创建您的第一个收藏夹吧</text>
                 </view>
@@ -47,7 +47,7 @@
                             <view class="folder-content">
                                 <view class="folder-icon">
                                     <image v-if="folder.coverUrl" class="folder-cover-image" :src="folder.coverUrl" mode="aspectFill"></image>
-                                    <view v-else class="folder-default-icon">📁</view>
+                                    <image v-else class="folder-default-icon-img" src="/static/images/newicons/collection.png" mode="aspectFit"></image>
                                 </view>
                                 <view class="folder-info">
                                     <text class="folder-name">{{ folder.name }}</text>
@@ -825,10 +825,11 @@ export default {
     padding: 120rpx 0;
 }
 
-.empty-icon {
-    font-size: 120rpx;
+.empty-icon-img {
+    width: 120rpx;
+    height: 120rpx;
     margin-bottom: 30rpx;
-    display: block;
+    opacity: 0.5;
 }
 
 .empty-text {
@@ -921,7 +922,7 @@ export default {
 .folder-icon {
     width: 88rpx;
     height: 88rpx;
-    background: #D9D9D9;
+    background: #FFFFFF;
     border-radius: 20rpx;
     display: flex;
     align-items: center;
@@ -936,8 +937,9 @@ export default {
     border-radius: 20rpx;
 }
 
-.folder-default-icon {
-    font-size: 40rpx;
+.folder-default-icon-img {
+    width: 60rpx;
+    height: 60rpx;
 }
 
 .folder-info {
