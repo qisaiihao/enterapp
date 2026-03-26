@@ -32,7 +32,7 @@
         <view class="empty-subtext">去广场看看先吧</view>
       </view>
 
-      <view id="post-list-container">
+      <view :key="'mountain-font-' + poemFontRenderTick" id="post-list-container">
         <view v-for="(item, index) in postList" :key="index" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
           <view class="post-content-navigator" @tap="togglePostExpansion" @longpress="onLongPressCard" :data-index="index" :data-postid="item._id">
             <view class="post-item">
@@ -144,12 +144,26 @@ export default {
   },
   onLoad() {
     try { uni.$on && uni.$on('like-changed', this.onGlobalLikeChanged); } catch (_) {}
+    // #ifdef MP-WEIXIN
+    this._fontLoadedHandler = (payload) => {
+      try {
+        this.onBuiltinFontLoaded(payload);
+      } catch (error) {
+        console.warn('[mountain] font-loaded handler failed', error);
+      }
+    };
+    try { uni.$on && uni.$on('font-loaded', this._fontLoadedHandler); } catch (_) {}
+    // #endif
     // 初始化
     this.debugSafeArea();
     this.getIndexData();
   },
   onUnload() {
     try { uni.$off && this.onGlobalLikeChanged && uni.$off('like-changed', this.onGlobalLikeChanged); } catch (_) {}
+    // #ifdef MP-WEIXIN
+    try { uni.$off && this._fontLoadedHandler && uni.$off('font-loaded', this._fontLoadedHandler); } catch (_) {}
+    this._fontLoadedHandler = null;
+    // #endif
   },
   components: {
     skeleton,
@@ -174,7 +188,8 @@ export default {
       // 安全区域高度
       safeAreaTop: 0,
       // 加载锁定标志，防止重复触发加载
-      _loadingLock: false
+      _loadingLock: false,
+      poemFontRenderTick: 0
     };
   },
   onPullDownRefresh() {
@@ -229,6 +244,18 @@ export default {
     }, 300); // 增加防抖时间到300ms
   },
   methods: {
+    onBuiltinFontLoaded(payload = {}) {
+      const loadedFontFamily = payload && payload.fontFamily ? payload.fontFamily : '';
+      if (loadedFontFamily && loadedFontFamily !== '汇文明朝') return;
+      if (this._poemFontRenderApplied) return;
+
+      this._poemFontRenderApplied = true;
+      this.poemFontRenderTick += 1;
+      console.log('[mountain] font-loaded rerender', {
+        loadedFontFamily,
+        poemFontRenderTick: this.poemFontRenderTick
+      });
+    },
     // 选择诗人筛选
     onPoetSelect(poetName) {
       console.log('【mountain】选择诗人:', poetName);

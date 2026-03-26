@@ -204,24 +204,14 @@ function getRuntimeFontFamily(fontFamily) {
     return LEGACY_FONT_MAP[fontFamily] || fontFamily;
 }
 
-async function ensureShareFontReady(fontFamily) {
+function resolveShareCanvasFontFamily(fontFamily) {
     if (!fontFamily || fontFamily === 'system') {
         return 'sans-serif';
     }
 
     const fontDisplayName = getFontDisplayName(fontFamily);
     const runtimeFamily = getRuntimeFontFamily(fontFamily);
-
-    try {
-        await fontManager.ensureFontAvailable(fontFamily);
-        if (isMiniProgramEnv()) {
-            await sleep(80);
-        }
-        return quoteFontFamily(runtimeFamily || fontDisplayName);
-    } catch (error) {
-        console.warn('[shareCanvas] font unavailable, fallback to sans-serif', { fontFamily, error });
-        return 'sans-serif';
-    }
+    return quoteFontFamily(runtimeFamily || fontDisplayName) || 'sans-serif';
 }
 
 /**
@@ -425,8 +415,40 @@ function canvasToTempFile(canvasId, context, width, height, options = {}) {
     const destScale = Math.max(1, Number(options.destScale || 2));
     const fileType = options.fileType || 'jpg';
     const quality = typeof options.quality === 'number' ? options.quality : 0.9;
+    const canvas = options.canvas || null;
 
     return new Promise((resolve, reject) => {
+        if (canvas) {
+            const exportOptions = {
+                x: 0,
+                y: 0,
+                width,
+                height,
+                destWidth: Math.max(1, Math.round(width * destScale)),
+                destHeight: Math.max(1, Math.round(height * destScale)),
+                fileType,
+                quality,
+                success: (res) => resolve((res && (res.tempFilePath || res.filePath)) || ''),
+                fail: (err) => reject(err)
+            };
+
+            if (typeof canvas.toTempFilePath === 'function') {
+                canvas.toTempFilePath(exportOptions);
+                return;
+            }
+
+            if (typeof wx !== 'undefined' && wx.canvasToTempFilePath) {
+                wx.canvasToTempFilePath({
+                    canvas,
+                    ...exportOptions
+                });
+                return;
+            }
+
+            reject(new Error('canvas node export unavailable'));
+            return;
+        }
+
         uni.canvasToTempFilePath({
             canvasId,
             x: 0,
@@ -452,6 +474,7 @@ async function exportShareCanvas(options) {
     const {
         canvasId,
         context,
+        canvas,
         width,
         height,
         fileType = 'jpg',
@@ -465,6 +488,7 @@ async function exportShareCanvas(options) {
         const scale = scales[i];
         try {
             const tempFilePath = await canvasToTempFile(canvasId, context, width, height, {
+                canvas,
                 destScale: scale,
                 fileType,
                 quality
@@ -570,7 +594,7 @@ async function calculateShareCardHeight(options) {
     const lineHeight = Math.round(fontSize * 1.26);
     const fontFamily = shareConfig.fontFamily || '汇文明朝';
     
-    const actualFontFamily = await ensureShareFontReady(fontFamily);
+    const actualFontFamily = resolveShareCanvasFontFamily(fontFamily);
     console.log('【shareCanvas】当前端使用字体:', actualFontFamily);
 
     const textPadding = 60;

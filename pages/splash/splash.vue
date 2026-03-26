@@ -379,11 +379,14 @@ export default {
 
             // 暂时直接使用本地开屏图
             this.setData({
-                preloadedImagePath: '/static/images/splash.png'
+                preloadedImagePath: '/static/images/splash.png',
+                preloadCompleted: true
             });
 
-            // 无论云端加载是否成功，都开始预加载流程
-            this.executeOriginalPreloadTasks();
+            // 无论云端加载是否成功，都开始后台预加载流程，但不阻塞进入
+            setTimeout(() => {
+                this.executeOriginalPreloadTasks();
+            }, 0);
         },
 
         /**

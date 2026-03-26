@@ -13,7 +13,7 @@
             </block>
             <block v-else-if="post && post._id">
                 <!-- Post Content -->
-                <view :class="'post-detail-wrapper ' + (post.isOriginal ? 'original-post' : '') + (post.isPoem ? ' poem-post' : '')">
+                <view :key="'detail-poem-font-' + poemFontRenderTick" :class="'post-detail-wrapper ' + (post.isOriginal ? 'original-post' : '') + (post.isPoem ? ' poem-post' : '')">
                     <view class="author-info">
                         <view class="author-basic">
                             <image
@@ -292,7 +292,12 @@
         />
 
         <!-- 隐藏的canvas用于生成分享图片（增加 id 便于 H5 兜底导出） -->
+        <!-- #ifdef MP-WEIXIN -->
+        <canvas id="shareCanvas" type="2d" style="position: fixed; top: -9999px; left: -9999px; width: 750px; border-radius: 15px; overflow: hidden;" :style="{ height: shareCanvasHeight + 'px' }"></canvas>
+        <!-- #endif -->
+        <!-- #ifndef MP-WEIXIN -->
         <canvas id="shareCanvas" canvas-id="shareCanvas" style="position: fixed; top: -9999px; left: -9999px; width: 750px; border-radius: 15px; overflow: hidden;" :style="{ height: shareCanvasHeight + 'px' }"></canvas>
+        <!-- #endif -->
       <!-- 评论区、其它内容 --> 
     <view v-if="showEditModal" class="edit-modal-mask">
         <view class="edit-modal">
@@ -351,6 +356,93 @@ import { checkFollowStatus, toggleFollowStatus } from '@/api-cache/following.js'
 
 // pages/post-detail/post-detail.js
 const app = getApp();
+
+function updateCanvas2DFontSize(ctx, fontSize) {
+    if (!ctx || !fontSize) return;
+
+    const currentFont = String(ctx.font || '').trim();
+    const familyMatch = currentFont.match(/\d+(?:\.\d+)?px\s+(.+)$/);
+    const family = familyMatch && familyMatch[1] ? familyMatch[1] : 'sans-serif';
+    ctx.font = `${fontSize}px ${family}`;
+}
+
+function createCanvas2DCompatContext(nativeCtx) {
+    if (!nativeCtx) return null;
+
+    return {
+        get font() {
+            return nativeCtx.font;
+        },
+        set font(value) {
+            nativeCtx.font = value;
+        },
+        clearRect(...args) {
+            return nativeCtx.clearRect(...args);
+        },
+        drawImage(...args) {
+            return nativeCtx.drawImage(...args);
+        },
+        measureText(...args) {
+            return nativeCtx.measureText(...args);
+        },
+        fillText(...args) {
+            return nativeCtx.fillText(...args);
+        },
+        beginPath(...args) {
+            return nativeCtx.beginPath(...args);
+        },
+        moveTo(...args) {
+            return nativeCtx.moveTo(...args);
+        },
+        lineTo(...args) {
+            return nativeCtx.lineTo(...args);
+        },
+        arcTo(...args) {
+            return nativeCtx.arcTo(...args);
+        },
+        quadraticCurveTo(...args) {
+            return nativeCtx.quadraticCurveTo(...args);
+        },
+        closePath(...args) {
+            return nativeCtx.closePath(...args);
+        },
+        fill(...args) {
+            return nativeCtx.fill(...args);
+        },
+        stroke(...args) {
+            return nativeCtx.stroke(...args);
+        },
+        save(...args) {
+            return nativeCtx.save(...args);
+        },
+        restore(...args) {
+            return nativeCtx.restore(...args);
+        },
+        clip(...args) {
+            return nativeCtx.clip(...args);
+        },
+        setFillStyle(value) {
+            nativeCtx.fillStyle = value;
+        },
+        setStrokeStyle(value) {
+            nativeCtx.strokeStyle = value;
+        },
+        setLineWidth(value) {
+            nativeCtx.lineWidth = value;
+        },
+        setTextAlign(value) {
+            nativeCtx.textAlign = value;
+        },
+        setFontSize(value) {
+            updateCanvas2DFontSize(nativeCtx, value);
+        },
+        draw(reserve, callback) {
+            if (typeof callback === 'function') {
+                callback();
+            }
+        }
+    };
+}
 export default {
     components: {
         cloudTipModal,
@@ -398,6 +490,8 @@ export default {
             shareRenderToken: 0,
             shareRenderFontFamily: '汇文明朝',
             shareRenderFontScale: 1.0,
+            shareRequestedFontFamily: '汇文明朝',
+            shareRenderFontPending: false,
             shareConfig: {
                 fontSize: 38,
                 titleFontSize: 46,
@@ -436,6 +530,7 @@ export default {
             commentTextareaMinHeight: 90,
             commentTextareaMaxHeight: 175,
             commentTextareaHeight: 90,
+            poemFontRenderTick: 0,
             // 是否启用原生长按菜单（仅小程序有效）
             shareLongpressMenuEnabled: false,
             fontManager: null // 添加fontManager初始化
@@ -490,6 +585,14 @@ export default {
 
         // 初始化字体管理器
         this.fontManager = fontManager;
+        this._fontLoadedHandler = (payload) => {
+            try {
+                this.onBuiltinFontLoaded(payload);
+            } catch (e) {
+                console.warn('[share-card-font] font-loaded handler failed', e);
+            }
+        };
+        try { uni.$on && uni.$on('font-loaded', this._fontLoadedHandler); } catch (_) {}
     },
     onShow: function () {
         this.setData({
@@ -506,6 +609,9 @@ export default {
     onUnload: function () {
         try { flushViewQueue(); } catch (e) {}
         try { uni.$off && this.onGlobalCommentLikeChanged && uni.$off('comment-like-changed', this.onGlobalCommentLikeChanged); } catch (_) {}
+        try { uni.$off && this._fontLoadedHandler && uni.$off('font-loaded', this._fontLoadedHandler); } catch (_) {}
+        this._fontLoadedHandler = null;
+        this._shareCanvasRuntime = null;
 
         // 取消键盘高度监听
         // #ifdef MP-WEIXIN || APP-PLUS
@@ -526,6 +632,84 @@ export default {
         try { flushViewQueue(); } catch (e) {}
     },
     methods: {
+        createShareMeasureContext(logicalWidth = 750) {
+            // #ifdef MP-WEIXIN
+            if (typeof wx !== 'undefined' && typeof wx.createOffscreenCanvas === 'function') {
+                try {
+                    const measureCanvas = wx.createOffscreenCanvas({
+                        type: '2d',
+                        width: Math.max(1, Math.round(logicalWidth)),
+                        height: 64
+                    });
+                    const measureCtx = measureCanvas && measureCanvas.getContext && measureCanvas.getContext('2d');
+                    if (measureCtx) {
+                        return measureCtx;
+                    }
+                } catch (error) {
+                    console.warn('[share-card-canvas] offscreen measure canvas unavailable', error);
+                }
+            }
+            // #endif
+
+            return uni.createCanvasContext('shareCanvas', this);
+        },
+
+        getShareCanvasRuntime(logicalWidth, logicalHeight) {
+            return new Promise((resolve, reject) => {
+                // #ifdef MP-WEIXIN
+                try {
+                    const query = (typeof wx !== 'undefined' && wx.createSelectorQuery
+                        ? wx.createSelectorQuery()
+                        : uni.createSelectorQuery()
+                    ).in(this);
+
+                    query.select('#shareCanvas').fields({ node: true, size: true }, (res) => {
+                        const canvas = res && res.node;
+                        if (!canvas) {
+                            reject(new Error('share canvas node unavailable'));
+                            return;
+                        }
+
+                        const nativeCtx = canvas.getContext && canvas.getContext('2d');
+                        if (!nativeCtx) {
+                            reject(new Error('share canvas 2d context unavailable'));
+                            return;
+                        }
+
+                        const systemInfo = typeof uni.getSystemInfoSync === 'function'
+                            ? (uni.getSystemInfoSync() || {})
+                            : {};
+                        const pixelRatio = Math.max(1, Number(systemInfo.pixelRatio || 1));
+                        canvas.width = Math.max(1, Math.round(logicalWidth * pixelRatio));
+                        canvas.height = Math.max(1, Math.round(logicalHeight * pixelRatio));
+                        if (typeof nativeCtx.setTransform === 'function') {
+                            nativeCtx.setTransform(1, 0, 0, 1, 0, 0);
+                        }
+                        if (typeof nativeCtx.scale === 'function') {
+                            nativeCtx.scale(pixelRatio, pixelRatio);
+                        }
+
+                        const runtime = {
+                            canvas,
+                            nativeCtx,
+                            ctx: createCanvas2DCompatContext(nativeCtx),
+                            logicalWidth,
+                            logicalHeight,
+                            pixelRatio
+                        };
+                        this._shareCanvasRuntime = runtime;
+                        resolve(runtime);
+                    }).exec();
+                    return;
+                } catch (error) {
+                    reject(error);
+                    return;
+                }
+                // #endif
+
+                resolve(null);
+            });
+        },
         // 处理匿名头像点击事件的函数
         handleAnonymousAvatarClick(e) {
             if (e && e.preventDefault) {
@@ -850,6 +1034,9 @@ export default {
             this.shareConfig.textColor = this.post.textColor || '#000000';
             this.shareRenderFontFamily = this.shareConfig.fontFamily || '汇文明朝';
             this.shareRenderFontScale = this.shareConfig.fontScale || 1.0;
+            this.shareRequestedFontFamily = this.shareConfig.fontFamily || '汇文明朝';
+            this.shareRenderFontPending = false;
+            this._fontLoadedRegeneratePending = false;
 
             // 显示分享弹窗，重置图片URL，并立即开始生成图片
             this.setData({
@@ -866,6 +1053,9 @@ export default {
 
         hideShareModal: function () {
             this.shareRenderToken += 1;
+            this.shareRenderFontPending = false;
+            this._fontLoadedRegeneratePending = false;
+            this._shareCanvasRuntime = null;
             this.setData({
                 showShareModal: false,
                 shareImageFilePath: ''
@@ -876,11 +1066,14 @@ export default {
             // 先加载字体，然后绘制Canvas
             const renderToken = (this.shareRenderToken || 0) + 1;
             this.shareRenderToken = renderToken;
+            this.shareRenderFontPending = false;
             this.loadFontAndDraw(renderToken);
         },
 
         loadFontAndDraw: async function (renderToken) {
             const fontFamily = this.shareConfig.fontFamily || '汇文明朝';
+            const platform = getCurrentPlatform();
+            this.shareRequestedFontFamily = fontFamily;
             const fontScaleMap = {
                 '汇文明朝': 1.0,
                 '文楷': 1.0,
@@ -895,45 +1088,135 @@ export default {
             if (fontFamily === 'system') {
                 this.shareRenderFontFamily = 'system';
                 this.shareRenderFontScale = 1.0;
+                this.shareRenderFontPending = false;
+                console.log('[share-card-font] system-fallback', { platform, fontFamily });
                 await new Promise(r => setTimeout(r, 50));
+                if (renderToken !== this.shareRenderToken) return;
                 this.drawCanvas(renderToken);
                 return;
             }
 
-            try {
-                // 使用fontManager确保字体可用（自动下载和缓存）
-                await this.fontManager.ensureFontAvailable(fontFamily, (progress, loaded, total) => {
-                    console.log(`【post-detail】字体下载进度: ${progress}% (${loaded}/${total})`);
-                    // 可以在这里显示下载进度给用户
-                });
-                
-                console.log('【post-detail】字体加载成功:', fontFamily);
-                
-                const fontScale = fontScaleMap[fontFamily] || 1.0;
+            const mpBuiltinFontReady = platform === 'mp-weixin'
+                && fontFamily === '汇文明朝'
+                && (
+                    (this.fontManager && typeof this.fontManager.isFontLoaded === 'function' && this.fontManager.isFontLoaded(fontFamily))
+                    || !!uni.getStorageSync('__builtin_font_huiwen_ready__')
+                );
+
+            if (mpBuiltinFontReady) {
                 this.shareRenderFontFamily = fontFamily;
-                this.shareRenderFontScale = fontScale;
-                
-                // 【关键】等待字体渲染就绪，App端需要更长时间
-                await new Promise(r => setTimeout(r, 150));
-                
+                this.shareRenderFontScale = fontScaleMap[fontFamily] || 1.0;
+                this.shareRenderFontPending = false;
+                console.log('[share-card-font] mp-ready-reuse', { platform, fontFamily });
+                await new Promise(r => setTimeout(r, 260));
+                if (renderToken !== this.shareRenderToken) return;
                 this.drawCanvas(renderToken);
-                
-            } catch (error) {
-                console.error('【post-detail】字体加载失败:', fontFamily, error);
+                return;
+            }
+
+            const isAppBuiltinFont = platform === 'app' && fontFamily === '汇文明朝';
+            const maxAttempts = isAppBuiltinFont ? 2 : 1;
+            let lastError = null;
+
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                try {
+                    if (isAppBuiltinFont && !this.fontManager.isFontLoaded(fontFamily)) {
+                        console.log('[share-card-font] startup-retry wait', { attempt: attempt + 1, platform, fontFamily });
+                        await new Promise(r => setTimeout(r, 120 + attempt * 80));
+                        if (renderToken !== this.shareRenderToken) return;
+                    }
+
+                    const fontPath = await this.fontManager.ensureFontAvailable(fontFamily, (progress, loaded, total) => {
+                        console.log(`【post-detail】字体下载进度: ${progress}% (${loaded}/${total})`);
+                    });
+                    if (renderToken !== this.shareRenderToken) return;
+                    
+                    console.log('【post-detail】字体加载成功:', fontFamily);
+                    
+                    const fontScale = fontScaleMap[fontFamily] || 1.0;
+                    this.shareRenderFontFamily = fontFamily;
+                    this.shareRenderFontScale = fontScale;
+                    this.shareRenderFontPending = false;
+                    const sourceTag = platform === 'mp-weixin' ? 'mp-downloaded-local-woff2' : (platform === 'app' ? 'app-local-woff2' : 'h5-local-woff2');
+                    console.log('[share-card-font] ready', { sourceTag, platform, fontFamily, fontPath, attempt: attempt + 1 });
+                    
+                    await new Promise(r => setTimeout(r, platform === 'app' ? 220 : (platform === 'mp-weixin' ? 180 : 100)));
+                    if (renderToken !== this.shareRenderToken) return;
+                    
+                    this.drawCanvas(renderToken);
+                    return;
+                } catch (error) {
+                    lastError = error;
+                    if (!isAppBuiltinFont || attempt >= maxAttempts - 1) {
+                        break;
+                    }
+                    console.warn('[share-card-font] startup-retry', { attempt: attempt + 1, platform, requestedFontFamily: fontFamily, error });
+                    await new Promise(r => setTimeout(r, 180));
+                    if (renderToken !== this.shareRenderToken) return;
+                }
+            }
+
+            if (lastError) {
+                console.error('【post-detail】字体加载失败:', fontFamily, lastError);
+
+                if (platform === 'mp-weixin' && fontFamily === '汇文明朝') {
+                    this.shareRenderFontFamily = fontFamily;
+                    this.shareRenderFontScale = fontScaleMap[fontFamily] || 1.0;
+                    this.shareRenderFontPending = true;
+                    console.warn('[share-card-font] mp-font-pending', { platform, requestedFontFamily: fontFamily, error: lastError });
+                    await new Promise(r => setTimeout(r, 220));
+                    if (renderToken !== this.shareRenderToken) return;
+                    this.drawCanvas(renderToken);
+                    return;
+                }
                 
                 // 仅本次渲染回退到系统字体，不覆盖用户配置
                 this.shareRenderFontFamily = 'system';
                 this.shareRenderFontScale = 1.0;
+                this.shareRenderFontPending = false;
                 uni.showToast({
                     title: '字体加载失败，已回退默认字体',
                     icon: 'none',
                     duration: 2000
                 });
+                console.warn('[share-card-font] system-fallback final', { platform, requestedFontFamily: fontFamily, error: lastError });
 
                 // 即使字体加载失败，也继续绘制
-                await new Promise(r => setTimeout(r, 150));
+                await new Promise(r => setTimeout(r, 80));
+                if (renderToken !== this.shareRenderToken) return;
                 this.drawCanvas(renderToken);
             }
+        },
+
+        onBuiltinFontLoaded: function(payload = {}) {
+            const loadedFontFamily = payload && payload.fontFamily ? payload.fontFamily : '';
+            // #ifdef MP-WEIXIN
+            this.refreshPoemContentFontRendering(loadedFontFamily);
+            // #endif
+            const requestedFontFamily = this.shareRequestedFontFamily || this.shareConfig.fontFamily || '汇文明朝';
+            if (loadedFontFamily && loadedFontFamily !== '汇文明朝') return;
+            if (!this.showShareModal) return;
+            if (requestedFontFamily !== '汇文明朝') return;
+            if (this.shareRenderFontFamily !== 'system' && !this.shareRenderFontPending) return;
+            if (this._fontLoadedRegeneratePending) return;
+
+            this._fontLoadedRegeneratePending = true;
+            console.log('[share-card-font] event-regenerate after font-loaded', {
+                loadedFontFamily,
+                requestedFontFamily,
+                currentRenderFontFamily: this.shareRenderFontFamily,
+                shareRenderFontPending: this.shareRenderFontPending
+            });
+
+            setTimeout(() => {
+                this._fontLoadedRegeneratePending = false;
+                if (!this.showShareModal) return;
+                const nextRequestedFontFamily = this.shareRequestedFontFamily || this.shareConfig.fontFamily || '汇文明朝';
+                if (nextRequestedFontFamily !== '汇文明朝') return;
+                if (this.shareRenderFontFamily !== 'system' && !this.shareRenderFontPending) return;
+                this.shareRenderFontPending = false;
+                this.regenerateShareImage();
+            }, 60);
         },
 
   
@@ -942,10 +1225,24 @@ export default {
         
         
         
+        refreshPoemContentFontRendering: function(loadedFontFamily = '') {
+            if (loadedFontFamily && loadedFontFamily !== '汇文明朝') return;
+            if (this._poemFontRenderApplied) return;
+            if (!this.post || !this.post.isPoem) return;
+
+            this._poemFontRenderApplied = true;
+            this.poemFontRenderTick += 1;
+            console.log('[post-detail] font-loaded rerender', {
+                loadedFontFamily,
+                poemFontRenderTick: this.poemFontRenderTick
+            });
+        },
+
         drawCanvas: async function (renderToken) {
             try {
                 if (renderToken !== this.shareRenderToken) return;
                 const canvasWidth = 750;
+                const platform = getCurrentPlatform();
                 const effectiveShareConfig = {
                     ...this.shareConfig,
                     fontFamily: this.shareRenderFontFamily || this.shareConfig.fontFamily || '汇文明朝',
@@ -955,7 +1252,9 @@ export default {
                 const shouldShowSignature = (!!this.post && !this.post.isAnonymous && !(this.post.isPoem && this.post.isOriginal === false));
                 
                 // 【优化】使用独立模块计算Canvas高度
-                const measureCtx = uni.createCanvasContext('shareCanvas', this);
+                const measureCtx = platform === 'mp-weixin'
+                    ? this.createShareMeasureContext(canvasWidth)
+                    : uni.createCanvasContext('shareCanvas', this);
                 const heightResult = await calculateShareCardHeight({
                     measureCtx,
                     post: this.post,
@@ -976,7 +1275,19 @@ export default {
                 if (renderToken !== this.shareRenderToken) return;
                 
                 // 【关键修复】Canvas高度更新后，重新创建上下文进行绘制
-                const ctx = uni.createCanvasContext('shareCanvas', this);
+                let canvasRuntime = null;
+                let ctx = null;
+                if (platform === 'mp-weixin') {
+                    try {
+                        canvasRuntime = await this.getShareCanvasRuntime(canvasWidth, canvasHeight);
+                        ctx = canvasRuntime && canvasRuntime.ctx;
+                    } catch (canvasError) {
+                        console.warn('[share-card-canvas] 2d canvas unavailable, fallback to legacy canvas', canvasError);
+                    }
+                }
+                if (!ctx) {
+                    ctx = uni.createCanvasContext('shareCanvas', this);
+                }
                 if (!ctx) {
                     console.error('【post-detail】Canvas上下文创建失败');
                     uni.showToast({ title: 'Canvas创建失败', icon: 'none' });
@@ -1000,6 +1311,13 @@ export default {
                 console.log('【post-detail】开始执行draw');
 
 
+                if (canvasRuntime && canvasRuntime.canvas) {
+                    await new Promise(r => setTimeout(r, 60));
+                    if (renderToken !== this.shareRenderToken) return;
+                    this.exportCanvas(canvasWidth, canvasHeight, renderToken, canvasRuntime);
+                    return;
+                }
+
                 ctx.draw(false, () => {
                     if (renderToken !== this.shareRenderToken) return;
                     console.log('【post-detail】Canvas绘制完成，开始导出图片');
@@ -1018,20 +1336,23 @@ export default {
         },
 
         // 独立的导出函数
-        exportCanvas: async function(canvasWidth, canvasHeight, renderToken) {
+        exportCanvas: async function(canvasWidth, canvasHeight, renderToken, canvasRuntime = null) {
             if (renderToken !== this.shareRenderToken) return;
-            console.log('[Canvas] export start', { canvasWidth, canvasHeight });
+            const exportWidth = canvasRuntime && canvasRuntime.canvas ? canvasRuntime.canvas.width : canvasWidth;
+            const exportHeight = canvasRuntime && canvasRuntime.canvas ? canvasRuntime.canvas.height : canvasHeight;
+            console.log('[Canvas] export start', { canvasWidth, canvasHeight, exportWidth, exportHeight, hasCanvasNode: !!(canvasRuntime && canvasRuntime.canvas) });
 
             try {
                 const exportResult = await exportShareCanvas({
                     canvasId: 'shareCanvas',
                     context: this,
-                    width: canvasWidth,
-                    height: canvasHeight,
+                    canvas: canvasRuntime && canvasRuntime.canvas ? canvasRuntime.canvas : null,
+                    width: exportWidth,
+                    height: exportHeight,
                     fileType: 'jpg',
                     quality: 0.9,
-                    scales: [2, 2, 1.5, 1],
-                    retryDelayMs: 120
+                    scales: canvasRuntime && canvasRuntime.canvas ? [1] : [2, 2, 1.5, 1],
+                    retryDelayMs: canvasRuntime && canvasRuntime.canvas ? 60 : 120
                 });
 
                 if (renderToken !== this.shareRenderToken) return;

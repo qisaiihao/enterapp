@@ -49,7 +49,7 @@
         <view class="empty-subtext">{{ showFollowingOnly ? '去关注更多有趣的诗人吧！' : '去广场看看吧～' }}</view>
       </view>
 
-      <view id="post-list-container">
+      <view :key="'poem-font-' + poemFontRenderTick" id="post-list-container">
         <view
           v-for="(item, index) in postList"
           v-if="item"
@@ -314,7 +314,8 @@ export default {
       // 加载锁定标志，防止重复触发加载
       _loadingLock: false,
       hasNewActivity: false,
-      _activityBadgeUnsubscribe: null
+      _activityBadgeUnsubscribe: null,
+      poemFontRenderTick: 0
     };
   },
     onLoad(options) {
@@ -347,6 +348,16 @@ export default {
     // 注册全局点赞变更事件（跨页实时更新）
     // replaced invalid registration
     try { uni.$on && uni.$on('like-changed', this.onGlobalLikeChanged); } catch (_) {}
+    // #ifdef MP-WEIXIN
+    this._fontLoadedHandler = (payload) => {
+      try {
+        this.onBuiltinFontLoaded(payload);
+      } catch (error) {
+        console.warn('[poem-square] font-loaded handler failed', error);
+      }
+    };
+    try { uni.$on && uni.$on('font-loaded', this._fontLoadedHandler); } catch (_) {}
+    // #endif
     try { this.hasNewActivity = !!activityBadge.getHasNewActivity(); } catch (_) {}
     try {
       this._activityBadgeUnsubscribe = activityBadge.subscribe((hasNew) => {
@@ -365,6 +376,10 @@ export default {
   },
   onUnload() {
     try { uni.$off && uni.$off('like-changed', this.onGlobalLikeChanged); } catch (_) {}
+    // #ifdef MP-WEIXIN
+    try { uni.$off && this._fontLoadedHandler && uni.$off('font-loaded', this._fontLoadedHandler); } catch (_) {}
+    this._fontLoadedHandler = null;
+    // #endif
     try {
       if (typeof this._activityBadgeUnsubscribe === 'function') {
         this._activityBadgeUnsubscribe();
@@ -419,6 +434,18 @@ export default {
     }, 300); // 增加防抖时间到300ms
   },
   methods: {
+    onBuiltinFontLoaded(payload = {}) {
+      const loadedFontFamily = payload && payload.fontFamily ? payload.fontFamily : '';
+      if (loadedFontFamily && loadedFontFamily !== '汇文明朝') return;
+      if (this._poemFontRenderApplied) return;
+
+      this._poemFontRenderApplied = true;
+      this.poemFontRenderTick += 1;
+      console.log('[poem-square] font-loaded rerender', {
+        loadedFontFamily,
+        poemFontRenderTick: this.poemFontRenderTick
+      });
+    },
     // 调试安全区域
     debugSafeArea() {
       try {
@@ -1604,8 +1631,8 @@ export default {
 }
 
 .activity-entry-text {
-    margin-top: 4rpx;
-    font-size: 22rpx;
+  margin-top: -4rpx;
+  font-size: 22rpx;
   line-height: 1.2;
   color: #9b9b9b;
   text-align: center;

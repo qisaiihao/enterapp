@@ -22,7 +22,7 @@ export default {
     onLaunch: function (options) {
         // 小程序环境：在 App.vue 中初始化云开发（确保最早执行）
         // #ifdef MP-WEIXIN
-        if (typeof wx !== 'undefined' && wx.cloud) {
+        if (typeof uni !== 'undefined' && uni.$tcb) { this.$tcb = uni.$tcb; } else if (typeof wx !== 'undefined' && wx.cloud) {
             console.log('☁️ [App.vue] 检测到微信小程序环境，开始初始化云开发...');
             try {
                 wx.cloud.init({
@@ -115,7 +115,7 @@ export default {
         
         // 【关键修复】在所有操作之前初始化云开发
         console.log('🔍 [App.vue] onLaunch 开始执行');
-        if (typeof wx !== 'undefined' && wx.cloud) {
+        if (typeof uni !== 'undefined' && uni.$tcb) { this.$tcb = uni.$tcb; } else if (typeof wx !== 'undefined' && wx.cloud) {
             console.log('☁️ [App.vue] 检测到 wx.cloud，立即初始化');
             try {
                 wx.cloud.init({
@@ -154,6 +154,10 @@ export default {
         console.log('🔤 [App.vue] 小程序环境，开始预加载汇文明朝字体');
         console.log('🔤 [App.vue] 字体文件大小: 7.9MB，预计需要 10-30 秒');
         
+        if (!this.globalData._mpBuiltinFontPreloadStarted) {
+            this.globalData._mpBuiltinFontPreloadStarted = true;
+            try { uni.setStorageSync('__builtin_font_huiwen_ready__', false); } catch (e) {}
+            setTimeout(() => {
         let lastProgress = 0;
         fontManager.ensureFontAvailable('汇文明朝', (progress) => {
             // 每 10% 输出一次日志，避免刷屏
@@ -166,9 +170,11 @@ export default {
             console.log('✅ [App.vue] 小程序重启后会重新注册字体，但不会再误判为已加载');
             // 字体加载完成后，可以触发全局事件通知页面刷新
             try {
+                uni.setStorageSync('__builtin_font_huiwen_ready__', true);
                 uni.$emit && uni.$emit('font-loaded', { fontFamily: '汇文明朝' });
             } catch (e) {}
         }).catch(err => {
+            try { uni.setStorageSync('__builtin_font_huiwen_ready__', false); } catch (e) {}
             console.warn('⚠️ [App.vue] 汇文明朝字体预加载失败，将使用系统默认字体:', err);
             console.warn('⚠️ [App.vue] 可能原因：');
             console.warn('   1. 网络连接不稳定');
@@ -176,6 +182,8 @@ export default {
             console.warn('   3. 字体文件较大，加载超时');
             console.warn('   4. 系统默认字体仍可正常使用');
         });
+            }, 0);
+        }
         // #endif
         
         // 【性能优化】使用 nextTick 延迟执行非关键任务，让页面先渲染
