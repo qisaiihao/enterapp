@@ -1114,17 +1114,26 @@ export default {
         },
 
         // 打开作品集
-        openPortfolio(portfolio) {
+        openPortfolio(portfolio = {}) {
             try {
-                console.log('Opening portfolio:', portfolio);
-                if (!portfolio || !portfolio._id) {
+                const folderId = portfolio.folderId || portfolio._id || '';
+                const folderName = portfolio.folderName || portfolio.name || '未命名作品集';
+                const ownerId = portfolio._openid || this.targetUserId || '';
+                console.log('Opening portfolio:', { folderId, folderName, ownerId, portfolio });
+                if (!folderId) {
                     uni.showToast({ title: '作品集信息获取失败', icon: 'none' });
                     return;
                 }
-                // 跳转到他人作品集页面：优先携带该作品集真实 owner 的 openid，避免 userId 来源不一致
-                const ownerId = portfolio._openid || this.targetUserId;
+                if (!ownerId) {
+                    uni.showToast({ title: '用户信息获取失败', icon: 'none' });
+                    return;
+                }
                 uni.navigateTo({
-                    url: `/pages-content/other-portfolio/other-portfolio?folderId=${portfolio._id}&folderName=${encodeURIComponent(portfolio.name || '未命名作品集')}&userId=${ownerId}`
+                    url: `/pages-content/other-portfolio/other-portfolio?folderId=${folderId}&folderName=${encodeURIComponent(folderName)}&userId=${ownerId}`,
+                    fail: (error) => {
+                        console.error('[openPortfolio] navigate failed:', error);
+                        uni.showToast({ title: '跳转失败', icon: 'none' });
+                    }
                 });
             } catch (err) {
                 console.error('[openPortfolio] failed:', err);
