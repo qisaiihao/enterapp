@@ -69,7 +69,7 @@
             </view>
 
 
-            <view v-else-if="!hasMore && feedbackList.length > 0" class="no-more">
+            <view v-if="!hasMore && feedbackList.length > 0" class="no-more">
                 <text>--- 没有更多了 ---</text>
             </view>
         </view>

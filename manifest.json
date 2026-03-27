@@ -152,5 +152,21 @@
         "devServer" : {
             "port" : 8081
         }
+    },
+    "app-harmony" : {
+        "distribute" : {
+            "bundleName" : "com.example.poementer",
+            "signingConfigs" : {
+                "default" : {
+                    "certpath" : "C:/Users/qisaihao/Desktop/回车键资料/auto_debug_350086000303996707.cer.cer",
+                    "keyAlias" : "testalias",
+                    "keyPassword" : "0000001B5EBC68B78EBC1F86C9BADB2EF687F9D3B230EADAD2D9DFF8848C0970EE272433A0D96305D0F76F",
+                    "profile" : "C:/Users/qisaihao/Desktop/回车键资料/poementerDebug.p7b",
+                    "signAlg" : "SHA256withECDSA",
+                    "storeFile" : "C:/Users/qisaihao/Desktop/回车键资料/poementer_harmony.p12",
+                    "storePassword" : "0000001BD4CDFD395D3F2F70CC3AB215A6DC48D65F197D9C13A18580DE6ACF527C3E51BF7CF61576DEF5AC"
+                }
+            }
+        }
     }
 }

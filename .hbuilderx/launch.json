@@ -2,6 +2,11 @@
     "version" : "1.0",
     "configurations" : [
         {
+            "distPathBuild" : "C:/harmony-project-build",
+            "distPathDev" : "C:/harmony-project-dev",
+            "type" : "uni-app:app-harmony"
+        },
+        {
             "customPlaygroundType" : "local",
             "playground" : "standard",
             "type" : "uni-app:app-android"
@@ -9,6 +14,9 @@
         {
             "app" : {
                 "launchtype" : "remote"
+            },
+            "app-harmony" : {
+                "launchtype" : "local"
             },
             "default" : {
                 "launchtype" : "local"
