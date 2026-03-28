@@ -219,7 +219,7 @@
           "path": "activity-list/activity-list",
           "style": {
             "usingComponents": {},
-            "navigationBarTitleText": "近期活动",
+            "navigationStyle": "custom",
             "enablePullDownRefresh": true,
             "onReachBottomDistance": 50
           }
@@ -228,7 +228,7 @@
           "path": "activity-detail/activity-detail",
           "style": {
             "usingComponents": {},
-            "navigationBarTitleText": "活动详情",
+            "navigationStyle": "custom",
             "enablePullDownRefresh": true,
             "onReachBottomDistance": 50
           }

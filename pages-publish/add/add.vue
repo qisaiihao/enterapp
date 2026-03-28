@@ -540,6 +540,17 @@ export default {
                 activityTitle = options.activityTitle;
             }
         }
+        const joinActivityId = typeof options.joinActivityId === 'string' ? options.joinActivityId.trim() : '';
+        let joinActivityTitle = '';
+        if (typeof options.joinActivityTitle === 'string') {
+            try {
+                joinActivityTitle = decodeURIComponent(options.joinActivityTitle);
+            } catch (error) {
+                joinActivityTitle = options.joinActivityTitle;
+            }
+        }
+        const composeMode = typeof options.composeMode === 'string' ? options.composeMode.trim() : '';
+        const openSeriesCompose = composeMode === 'series';
         const fromAdminActivity = options.fromAdminActivity === '1' || options.fromAdminActivity === 'true';
         const isActivityMode = !!activityId;
 
@@ -581,6 +592,31 @@ export default {
         if (!isActivityMode && !(options.mode === 'edit' && options.postId) && !restoredDraft) {
             this.setDefaultPublishMode();
         } else {
+            this.updatePlaceholder();
+            this.checkCanPublish();
+        }
+
+        if (joinActivityId) {
+            this.setData({
+                joinActivityEnabled: true,
+                joinedActivityId: joinActivityId,
+                joinedActivityTitle: joinActivityTitle || ''
+            });
+        }
+
+        if (openSeriesCompose) {
+            const safeSeriesBlocks = Array.isArray(this.seriesBlocks) && this.seriesBlocks.length > 0
+                ? this.seriesBlocks
+                : [{ id: Date.now(), subtitle: '', content: '', highlightSentence: '' }];
+            this.setData({
+                publishMode: 'poem',
+                isOriginal: true,
+                isDiscussion: false,
+                isSeries: true,
+                maxImageCount: 1,
+                imageList: this.imageList.length > 1 ? [this.imageList[0]] : this.imageList,
+                seriesBlocks: safeSeriesBlocks
+            });
             this.updatePlaceholder();
             this.checkCanPublish();
         }

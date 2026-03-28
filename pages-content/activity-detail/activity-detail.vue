@@ -1,6 +1,14 @@
 <template>
   <view class="activity-detail-page">
-    <view class="activity-header">
+    <view class="detail-top-bar" :style="{ paddingTop: safeAreaTop + 'px' }">
+      <view class="detail-top-inner">
+        <view class="back-btn" @tap="goBack"></view>
+        <text class="detail-top-title">{{ activityTitle || '活动标题巴拉巴拉' }}</text>
+      </view>
+    </view>
+
+    <view class="detail-content" :style="{ paddingTop: (safeAreaTop + 64) + 'px' }">
+      <view class="activity-header">
       <image
         v-if="activityCover"
         class="header-cover"
@@ -12,7 +20,7 @@
       </view>
       <view class="header-mask"></view>
       <view class="header-content">
-        <text class="header-title">{{ activityTitle || '活动详情' }}</text>
+        <text class="header-title">海报</text>
         <text v-if="activitySummary" class="header-summary">{{ activitySummary }}</text>
         <view class="header-meta">
           <text class="meta-item">{{ formatRange(activityStartTime, activityEndTime) }}</text>
@@ -22,66 +30,76 @@
           </text>
         </view>
       </view>
-    </view>
+      </view>
 
-    <view v-if="activityRules" class="rules-card">
-      <view class="rules-head">
-        <text class="rules-title">活动细则</text>
-        <text
-          v-if="showRulesToggle"
-          class="rules-toggle"
-          @tap="toggleRulesExpanded"
+      <view v-if="activityRules" class="rules-card">
+        <view class="rules-head">
+          <text class="rules-title">活动详情介绍</text>
+          <text
+            v-if="showRulesToggle"
+            class="rules-toggle"
+            @tap="toggleRulesExpanded"
+          >
+            {{ rulesExpanded ? '收起' : '展开' }}
+          </text>
+        </view>
+        <text :class="['rules-text', (!rulesExpanded && showRulesToggle) ? 'collapsed' : '']">{{ activityRules }}</text>
+      </view>
+
+      <view v-if="isLoading && displayPostList.length === 0" class="state-box">
+        <text class="state-text">加载帖子中...</text>
+      </view>
+
+      <view v-else-if="displayPostList.length === 0" class="state-box">
+        <text class="state-title">活动里还没有帖子</text>
+        <text class="state-subtitle">参与活动后的作品会显示在这里</text>
+      </view>
+
+      <view v-else class="post-list">
+        <view
+          v-for="(item, index) in displayPostList"
+          :key="`${item && item._id ? item._id : index}-${fontRenderToken}`"
         >
-          {{ rulesExpanded ? '收起' : '展开' }}
-        </text>
+          <activity-poem-card
+            v-if="isPoemCard(item)"
+            :item="item"
+            :index="index"
+            @vote="handleVote"
+            @comment-click="handleCommentClick"
+            @longpress="handleCardLongPress"
+          />
+          <post-item
+            v-else
+            :item="item"
+            :index="index"
+            :show-vote-section="true"
+            list-type="activity"
+            @avatar-error="onAvatarError"
+            @navigate-to-user="handleNavigateToUser"
+            @preview-image="handlePreviewImage"
+            @image-error="onImageError"
+            @tag-click="handleTagClick"
+            @vote="handleVote"
+            @comment-click="handleCommentClick"
+          />
+        </view>
       </view>
-      <text :class="['rules-text', (!rulesExpanded && showRulesToggle) ? 'collapsed' : '']">{{ activityRules }}</text>
-    </view>
 
-    <view v-if="isLoading && displayPostList.length === 0" class="state-box">
-      <text class="state-text">加载帖子中...</text>
-    </view>
-
-    <view v-else-if="displayPostList.length === 0" class="state-box">
-      <text class="state-title">活动里还没有帖子</text>
-      <text class="state-subtitle">参与活动后的作品会显示在这里</text>
-    </view>
-
-    <view v-else class="post-list">
-      <view
-        v-for="(item, index) in displayPostList"
-        :key="`${item && item._id ? item._id : index}-${fontRenderToken}`"
-      >
-        <activity-poem-card
-          v-if="isPoemCard(item)"
-          :item="item"
-          :index="index"
-          @vote="handleVote"
-          @comment-click="handleCommentClick"
-          @longpress="handleCardLongPress"
-        />
-        <post-item
-          v-else
-          :item="item"
-          :index="index"
-          :show-vote-section="true"
-          list-type="activity"
-          @avatar-error="onAvatarError"
-          @navigate-to-user="handleNavigateToUser"
-          @preview-image="handlePreviewImage"
-          @image-error="onImageError"
-          @tag-click="handleTagClick"
-          @vote="handleVote"
-          @comment-click="handleCommentClick"
-        />
+      <view v-if="isLoadingMore" class="footer-tip">
+        <text>加载中...</text>
+      </view>
+      <view v-if="!hasMore && displayPostList.length > 0" class="footer-tip">
+        <text>没有更多帖子了</text>
       </view>
     </view>
 
-    <view v-if="isLoadingMore" class="footer-tip">
-      <text>加载中...</text>
-    </view>
-    <view v-if="!hasMore && displayPostList.length > 0" class="footer-tip">
-      <text>没有更多帖子了</text>
+    <view class="action-bar" :style="{ paddingBottom: safeAreaBottom + 'px' }">
+      <button class="action-btn action-btn-light" @tap="goSeriesEditor" :disabled="!canContribute">
+        组诗编辑
+      </button>
+      <button class="action-btn action-btn-dark" @tap="goSubmit" :disabled="!canContribute">
+        我要投稿
+      </button>
     </view>
   </view>
 </template>
@@ -137,6 +155,9 @@ export default {
         return this.displayPostList.length;
       }
       return this.postCount;
+    },
+    canContribute() {
+      return this.allowUserSubmission !== false && this.isOngoing === true;
     }
   },
   data() {
@@ -162,7 +183,9 @@ export default {
       isLoadingMore: false,
       fontRenderToken: 0,
       votingInProgress: {},
-      poemBackgroundColors: ['#a4c4bd', '#c9cfcf', '#906161', '#909388']
+      poemBackgroundColors: ['#a4c4bd', '#c9cfcf', '#906161', '#909388'],
+      safeAreaTop: 0,
+      safeAreaBottom: 0
     };
   },
   onLoad(options) {
@@ -183,6 +206,7 @@ export default {
     this.activityEndTime = decodeParamSafe(options.endTime);
     this.postCount = Number(decodeParamSafe(options.postCount)) || 0;
     this.isOngoing = isActivityOngoing(this.activityStartTime, this.activityEndTime);
+    this.initSafeArea();
 
     this.hydrateActivityCover();
     this.loadActivityDetail({ forceRefresh: true })
@@ -217,6 +241,61 @@ export default {
     this.loadMore();
   },
   methods: {
+    initSafeArea() {
+      try {
+        const info = uni.getSystemInfoSync();
+        this.safeAreaTop = Number(info.statusBarHeight) || 0;
+        if (info.safeArea && info.windowHeight && info.screenHeight) {
+          const bottomInset = Number(info.screenHeight - info.safeArea.bottom);
+          this.safeAreaBottom = bottomInset > 0 ? bottomInset : 0;
+        } else {
+          this.safeAreaBottom = 0;
+        }
+      } catch (error) {
+        console.warn('[activity-detail] init safe area failed:', error);
+        this.safeAreaTop = 0;
+        this.safeAreaBottom = 0;
+      }
+    },
+
+    goBack() {
+      uni.navigateBack({
+        fail: () => {
+          uni.navigateTo({ url: '/pages-content/activity-list/activity-list' });
+        }
+      });
+    },
+
+    ensureCanContribute() {
+      if (this.allowUserSubmission === false) {
+        uni.showToast({ title: '该活动暂不支持用户投稿', icon: 'none' });
+        return false;
+      }
+      if (!this.isOngoing) {
+        uni.showToast({ title: '活动不在进行中', icon: 'none' });
+        return false;
+      }
+      return true;
+    },
+
+    goSubmit() {
+      if (!this.ensureCanContribute()) return;
+      const joinActivityId = encodeURIComponent(this.activityId || '');
+      const joinActivityTitle = encodeURIComponent(this.activityTitle || '');
+      uni.navigateTo({
+        url: `/pages-publish/add/add?joinActivityId=${joinActivityId}&joinActivityTitle=${joinActivityTitle}`
+      });
+    },
+
+    goSeriesEditor() {
+      if (!this.ensureCanContribute()) return;
+      const joinActivityId = encodeURIComponent(this.activityId || '');
+      const joinActivityTitle = encodeURIComponent(this.activityTitle || '');
+      uni.navigateTo({
+        url: `/pages-publish/add/add?joinActivityId=${joinActivityId}&joinActivityTitle=${joinActivityTitle}&composeMode=series`
+      });
+    },
+
     bindGlobalEvents() {
       if (!this._fontLoadedHandler) {
         this._fontLoadedHandler = () => {
@@ -602,6 +681,45 @@ export default {
 .activity-detail-page {
   min-height: 100vh;
   background: #f5f6f8;
+  position: relative;
+}
+
+.detail-top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: #fff;
+}
+
+.detail-top-inner {
+  position: relative;
+  height: 96rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.detail-top-title {
+  font-size: 34rpx;
+  color: #111;
+  font-weight: 600;
+}
+
+.back-btn {
+  position: absolute;
+  left: 26rpx;
+  top: 50%;
+  width: 22rpx;
+  height: 22rpx;
+  border-left: 4rpx solid #111;
+  border-bottom: 4rpx solid #111;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.detail-content {
+  padding-bottom: 170rpx;
 }
 
 .activity-header {
@@ -643,8 +761,8 @@ export default {
 
 .header-title {
   display: block;
-  font-size: 38rpx;
-  font-weight: 600;
+  font-size: 80rpx;
+  font-weight: 400;
 }
 
 .header-summary {
@@ -699,7 +817,7 @@ export default {
 }
 
 .rules-title {
-  font-size: 30rpx;
+  font-size: 26rpx;
   color: #1f2937;
   font-weight: 600;
 }
@@ -756,5 +874,47 @@ export default {
   color: #999;
   font-size: 24rpx;
   padding: 26rpx 0;
+}
+
+.action-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 35;
+  display: flex;
+  gap: 20rpx;
+  padding: 14rpx 34rpx 14rpx;
+  background: #f5f6f8;
+  box-sizing: border-box;
+}
+
+.action-btn {
+  flex: 1;
+  height: 86rpx;
+  line-height: 86rpx;
+  border-radius: 44rpx;
+  border: 0;
+  font-size: 34rpx;
+  font-weight: 500;
+  padding: 0;
+}
+
+.action-btn::after {
+  border: 0;
+}
+
+.action-btn-light {
+  background: #d9d9d9;
+  color: #626060;
+}
+
+.action-btn-dark {
+  background: #3d3333;
+  color: #fff;
+}
+
+.action-btn[disabled] {
+  opacity: 0.55;
 }
 </style>
