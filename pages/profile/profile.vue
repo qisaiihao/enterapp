@@ -286,24 +286,24 @@ const PROFILE_BACKGROUND_THEME_VARS = Object.freeze({
     '--app-surface-divider': 'rgba(17, 17, 17, 0.18)',
     '--app-surface-shadow': '0 8rpx 24rpx rgba(0, 0, 0, 0.08)',
     '--app-surface-border-line': '1rpx solid rgba(255, 255, 255, 0.30)',
-    '--app-surface-title-color': 'rgba(17, 17, 17, 0.88)',
-    '--app-surface-text-color': 'rgba(17, 17, 17, 0.74)',
-    '--app-surface-meta-color': 'rgba(17, 17, 17, 0.56)',
+    '--app-surface-title-color': 'rgba(17, 17, 17, 0.96)',
+    '--app-surface-text-color': 'rgba(17, 17, 17, 0.84)',
+    '--app-surface-meta-color': 'rgba(17, 17, 17, 0.70)',
     '--app-surface-accent-color': '#6f8065',
     '--app-post-discussion-quote-bg': 'transparent',
-    '--app-post-author-color': 'rgba(17, 17, 17, 0.84)',
-    '--app-post-title-color': 'rgba(17, 17, 17, 0.94)',
-    '--app-post-content-color': 'rgba(17, 17, 17, 0.76)',
-    '--app-post-time-color': 'rgba(17, 17, 17, 0.56)',
-    '--app-post-discussion-color': 'rgba(17, 17, 17, 0.68)',
-    '--app-post-meta-color': 'rgba(17, 17, 17, 0.56)',
-    '--app-post-poem-author-color': 'rgba(17, 17, 17, 0.84)',
+    '--app-post-author-color': 'rgba(17, 17, 17, 0.92)',
+    '--app-post-title-color': 'rgba(17, 17, 17, 0.98)',
+    '--app-post-content-color': 'rgba(17, 17, 17, 0.86)',
+    '--app-post-time-color': 'rgba(17, 17, 17, 0.70)',
+    '--app-post-discussion-color': 'rgba(17, 17, 17, 0.80)',
+    '--app-post-meta-color': 'rgba(17, 17, 17, 0.70)',
+    '--app-post-poem-author-color': 'rgba(17, 17, 17, 0.92)',
     '--app-post-menu-dot-color': 'rgba(17, 17, 17, 0.50)',
-    '--app-post-original-accent-color': 'rgba(17, 17, 17, 0.84)',
-    '--profile-poemid-color': 'rgba(17, 17, 17, 0.56)',
-    '--profile-meta-color': 'rgba(17, 17, 17, 0.56)',
-    '--profile-name-color': 'rgba(17, 17, 17, 0.94)',
-    '--profile-bio-color': 'rgba(17, 17, 17, 0.84)',
+    '--app-post-original-accent-color': 'rgba(17, 17, 17, 0.90)',
+    '--profile-poemid-color': 'rgba(17, 17, 17, 0.70)',
+    '--profile-meta-color': 'rgba(17, 17, 17, 0.74)',
+    '--profile-name-color': 'rgba(17, 17, 17, 0.98)',
+    '--profile-bio-color': 'rgba(17, 17, 17, 0.92)',
     '--app-fixed-bar-bg': 'rgba(255, 255, 255, 0.78)',
     '--app-fixed-bar-shadow': '0 -6rpx 20rpx rgba(0, 0, 0, 0.08)',
     '--app-tab-icon-wrap-bg': 'rgba(255, 255, 255, 0.66)',
@@ -313,30 +313,30 @@ const PROFILE_BACKGROUND_THEME_VARS = Object.freeze({
     '--profile-button-active-bg': 'rgba(255, 255, 255, 0.90)',
     '--profile-button-border': '1.5rpx solid rgba(17, 17, 17, 0.35)',
     '--profile-button-shadow': '0 6rpx 18rpx rgba(0, 0, 0, 0.08)',
-    '--profile-button-text-color': '#2a2a2a',
+    '--profile-button-text-color': '#111111',
     '--profile-icon-button-bg': 'transparent',
     '--profile-icon-button-active-bg': 'transparent',
     '--profile-icon-button-border': 'none',
     '--profile-icon-button-shadow': 'none',
-    '--profile-upload-icon-opacity': '0.90',
-    '--profile-upload-icon-filter': 'grayscale(1) brightness(0.18)',
-    '--profile-menu-icon-opacity': '0.84',
-    '--profile-menu-icon-filter': 'grayscale(1) brightness(0.24)',
+    '--profile-upload-icon-opacity': '1',
+    '--profile-upload-icon-filter': 'grayscale(1) brightness(0.12)',
+    '--profile-menu-icon-opacity': '1',
+    '--profile-menu-icon-filter': 'grayscale(1) brightness(0.16)',
     '--profile-tab-nav-bg': 'transparent',
     '--profile-tab-nav-border': 'transparent',
     '--profile-tab-nav-shadow': 'none',
     '--profile-tab-item-bg': 'transparent',
     '--profile-tab-item-active-bg': 'transparent',
-    '--profile-tab-indicator-color': 'rgba(17, 17, 17, 0.78)',
-    '--profile-tab-icon-filter': 'grayscale(0.45) brightness(0.72)',
-    '--profile-tab-icon-opacity': '0.88',
+    '--profile-tab-indicator-color': 'rgba(17, 17, 17, 0.88)',
+    '--profile-tab-icon-filter': 'grayscale(0.35) brightness(0.60)',
+    '--profile-tab-icon-opacity': '0.96',
     '--profile-tab-icon-active-filter': 'grayscale(0) brightness(0.98) contrast(1.02)',
     '--profile-tab-icon-active-opacity': '1',
     '--profile-empty-surface-bg': 'rgba(255, 255, 255, 0.72)',
     '--profile-empty-surface-border': '1rpx solid rgba(255, 255, 255, 0.30)',
     '--profile-empty-surface-shadow': '0 8rpx 24rpx rgba(0, 0, 0, 0.08)',
-    '--profile-empty-text-color': 'rgba(17, 17, 17, 0.56)',
-    '--profile-loading-footer-color': 'rgba(17, 17, 17, 0.56)'
+    '--profile-empty-text-color': 'rgba(17, 17, 17, 0.70)',
+    '--profile-loading-footer-color': 'rgba(17, 17, 17, 0.70)'
 });
 const PROFILE_HEADER_THEME_VARS = Object.freeze({
     '--profile-poemid-color': 'rgba(255, 255, 255, 0.76)',
@@ -2441,7 +2441,7 @@ export default {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(255, 255, 255, 0.48);
+    background: rgba(255, 255, 255, 0.1);
     z-index: 1;
     pointer-events: none;
 }
@@ -2507,6 +2507,15 @@ export default {
     background: transparent !important;
 }
 
+.main-content--with-background .profile-name-center,
+.main-content--with-background .profile-poemid,
+.main-content--with-background .profile-bio-center,
+.main-content--with-background .profile-followers,
+.main-content--with-background .growth-count,
+.main-content--with-background .edit-profile-btn text {
+    text-shadow: 0 2rpx 12rpx rgba(255, 255, 255, 0.45);
+}
+
 .profile-hero-section {
     position: relative;
     overflow: hidden;
@@ -2561,10 +2570,10 @@ export default {
     top: 0;
     left: 0;
     right: 0;
-    height: 12rpx;
-    transform: translateY(-10rpx);
+    height: 16rpx;
+    transform: translateY(-14rpx);
     background-color: #ffffff;
-    border-radius: 40rpx 40rpx 0 0;
+    border-radius: 68rpx 68rpx 0 0;
 }
 
 .profile-body-shell--header-background {
