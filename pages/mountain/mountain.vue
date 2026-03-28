@@ -102,7 +102,6 @@ export default {
   onShow() {
     // #ifndef MP-WEIXIN
     try { uni.hideTabBar({ animation: false }); } catch (e) {}
-    try { this.$refs.customTabBar && this.$refs.customTabBar.syncSelected && this.$refs.customTabBar.syncSelected(); } catch (e) {}
     // #endif
     updateTabBarStatus(this, 2);
 

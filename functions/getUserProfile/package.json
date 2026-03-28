@@ -1,7 +1,7 @@
 {
   "name": "getUserProfile",
   "version": "1.0.0",
-  "description": "获取用户公开信息和帖子列表",
+  "description": "Get public profile data and posts for a user.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

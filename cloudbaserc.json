@@ -169,6 +169,26 @@
           "config": "0 */10 * * * * *"
         }
       ]
+    },
+    {
+      "name": "getMyProfileData",
+      "timeout": 3,
+      "memory": 128,
+      "runtime": "Nodejs10.15",
+      "handler": "index.main",
+      "root": "./functions/getMyProfileData",
+      "installDependency": false,
+      "params": {}
+    },
+    {
+      "name": "updateUserProfile",
+      "timeout": 3,
+      "memory": 128,
+      "runtime": "Nodejs16.13",
+      "handler": "index.main",
+      "root": "./functions/updateUserProfile",
+      "installDependency": false,
+      "params": {}
     }
   ],
   "framework": {
@@ -409,7 +429,9 @@
               "name": "getMyProfileData",
               "root": "./functions/getMyProfileData",
               "timeout": 3,
-              "memory": 128
+              "memory": 128,
+              "runtime": "Nodejs16.13",
+              "installDependency": false
             },
             {
               "name": "getOpenId",
@@ -680,7 +702,9 @@
               "name": "updateUserProfile",
               "root": "./functions/updateUserProfile",
               "timeout": 3,
-              "memory": 128
+              "memory": 128,
+              "runtime": "Nodejs16.13",
+              "installDependency": false
             },
             {
               "name": "upload",

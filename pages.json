@@ -33,8 +33,14 @@
       "path": "pages/index/index",
       "style": {
         "navigationStyle": "custom",
+        "backgroundColor": "#ffffff",
         "usingComponents": {
           "skeleton": "/components/skeleton/skeleton"
+        },
+        "app-plus": {
+          "backgroundColorTop": "#ffffff",
+          "background": "#ffffff",
+          "bounce": "none"
         }
       }
     },
@@ -42,9 +48,21 @@
       "path": "pages/mountain/mountain",
       "style": {
         "navigationStyle": "custom",
+        "backgroundColor": "#ffffff",
         "usingComponents": {
           "skeleton": "/components/skeleton/skeleton",
           "folder-selector": "/components/folder-selector/folder-selector"
+        },
+        "app-plus": {
+          "backgroundColorTop": "#ffffff",
+          "background": "#ffffff",
+          "bounce": "none",
+          "pullToRefresh": {
+            "support": true,
+            "style": "circle",
+            "color": "#999999",
+            "offset": "88px"
+          }
         },
         "enablePullDownRefresh": true
       }
@@ -54,8 +72,20 @@
       "style": {
         "navigationStyle": "custom",
         "enablePullDownRefresh": true,
+        "backgroundColor": "#ffffff",
         "backgroundTextStyle": "dark",
-        "usingComponents": {}
+        "usingComponents": {},
+        "app-plus": {
+          "backgroundColorTop": "#ffffff",
+          "background": "#ffffff",
+          "bounce": "none",
+          "pullToRefresh": {
+            "support": true,
+            "style": "circle",
+            "color": "#999999",
+            "offset": "88px"
+          }
+        }
       }
     },
     {
@@ -76,8 +106,20 @@
       "style": {
         "navigationStyle": "custom",
         "enablePullDownRefresh": true,
+        "backgroundColor": "#ffffff",
         "usingComponents": {
           "skeleton": "/components/skeleton/skeleton"
+        },
+        "app-plus": {
+          "backgroundColorTop": "#ffffff",
+          "background": "#ffffff",
+          "bounce": "none",
+          "pullToRefresh": {
+            "support": true,
+            "style": "circle",
+            "color": "#999999",
+            "offset": "88px"
+          }
         }
       }
     },
@@ -514,25 +556,25 @@
         "pagePath": "pages/index/index",
         "text": "广场",
         "iconPath": "static/images/market.png",
-        "selectedIconPath": "static/images/market.png"
+        "selectedIconPath": "static/images/marketplus.png"
       },
       {
         "pagePath": "pages/poem-square/poem-square",
-        "text": "路",
+        "text": "原创",
         "iconPath": "static/images/road.png",
-        "selectedIconPath": "static/images/road.png"
+        "selectedIconPath": "static/images/roadplus.png"
       },
       {
         "pagePath": "pages/mountain/mountain",
-        "text": "山",
+        "text": "读诗",
         "iconPath": "static/images/mountain.png",
-        "selectedIconPath": "static/images/mountain.png"
+        "selectedIconPath": "static/images/mountainplus.png"
       },
       {
         "pagePath": "pages/profile/profile",
-        "text": "湖",
+        "text": "我",
         "iconPath": "static/images/pools.png",
-        "selectedIconPath": "static/images/pools.png"
+        "selectedIconPath": "static/images/poolsplus.png"
       }
     ]
   },

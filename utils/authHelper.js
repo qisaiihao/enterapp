@@ -2,6 +2,7 @@
  * 认证辅助工具
  * 提供统一的登录检查和提示功能
  */
+import { applyUserInfoWithAppBackground } from '@/utils/appBackground.js';
 
 /**
  * 检查用户是否已登录
@@ -22,10 +23,14 @@ export function isUserLoggedIn() {
             // 更新全局状态
             if (app) {
                 app.globalData = app.globalData || {};
-                app.globalData.userInfo = cachedUserInfo;
                 app.globalData.openid = cachedUserInfo._openid || app.globalData.openid;
                 app.globalData.isLoggedIn = true;
             }
+            applyUserInfoWithAppBackground(cachedUserInfo, {
+                emit: false,
+                writeStorage: true,
+                writeGlobal: true
+            }).catch(() => {});
             return true;
         }
         

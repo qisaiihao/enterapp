@@ -30,36 +30,54 @@ export function updateTabBarStatus(pageInstance, selectedIndex) {
         return false;
     }
 
+    let updated = false;
+
     const tabBar = getNativeTabBar(pageInstance);
     if (tabBar) {
         try {
             if (typeof tabBar.updateSelected === 'function') {
                 tabBar.updateSelected(normalizedIndex);
                 console.log(`TabBar updated by updateSelected: selected=${normalizedIndex}`);
-                return true;
-            }
-
-            if (typeof tabBar.setData === 'function') {
+                updated = true;
+            } else if (typeof tabBar.setData === 'function') {
                 tabBar.setData({ selected: normalizedIndex });
                 console.log(`TabBar updated by setData: selected=${normalizedIndex}`);
-                return true;
+                updated = true;
+            } else {
+                console.warn('TabBar instance has no updateSelected/setData method');
             }
-
-            console.warn('TabBar instance has no updateSelected/setData method');
         } catch (e) {
             console.log('Native TabBar update failed:', e.message);
         }
     }
 
     try {
+        const customTabBar = pageInstance?.$refs?.customTabBar;
+        if (customTabBar) {
+            if (typeof customTabBar.updateSelected === 'function') {
+                customTabBar.updateSelected(normalizedIndex);
+                console.log(`Custom TabBar ref updated by updateSelected: selected=${normalizedIndex}`);
+                updated = true;
+            } else if ('selected' in customTabBar) {
+                customTabBar.selected = normalizedIndex;
+                console.log(`Custom TabBar ref updated by assignment: selected=${normalizedIndex}`);
+                updated = true;
+            }
+        }
+    } catch (e) {
+        console.log('Custom TabBar ref update failed:', e.message);
+    }
+
+    let cached = false;
+    try {
         uni.setStorageSync('currentTabIndex', normalizedIndex);
         console.log(`TabBar state cached: selected=${normalizedIndex}`);
-        return true;
+        cached = true;
     } catch (e) {
         console.log('TabBar cache fallback unavailable:', e.message);
     }
 
-    return false;
+    return updated || cached;
 }
 
 /**

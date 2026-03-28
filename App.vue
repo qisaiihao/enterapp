@@ -20,6 +20,9 @@ export default {
 
     // 【重构】2. onLaunch 是 Vue 的生命周期函数，保持不变
     onLaunch: function (options) {
+        // #ifdef H5
+        try { uni.hideTabBar({ animation: false }); } catch (e) {}
+        // #endif
         // 小程序环境：在 App.vue 中初始化云开发（确保最早执行）
         // #ifdef MP-WEIXIN
         if (typeof uni !== 'undefined' && uni.$tcb) { this.$tcb = uni.$tcb; } else if (typeof wx !== 'undefined' && wx.cloud) {
@@ -196,6 +199,9 @@ export default {
     // 【新增】onShow 生命周期：处理 App 从后台唤醒的情况
     onShow: function(options) {
         console.log(' [App] onShow 触发');
+        // #ifdef H5
+        try { uni.hideTabBar({ animation: false }); } catch (e) {}
+        // #endif
         
         // #ifdef APP-PLUS
         // 获取启动参数（URL Scheme）

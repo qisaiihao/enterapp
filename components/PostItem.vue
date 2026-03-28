@@ -426,12 +426,14 @@ export default {
 /* 帖子项包装器样式 */
 .post-item-wrapper {
     position: relative;
-    background: #fff;
-    margin-bottom: 20rpx;
+    background: var(--app-post-wrapper-bg, #fff);
+    margin: var(--app-post-wrapper-margin, 0 0 20rpx 0);
     padding: 0;
-    box-shadow: none;
-    border-radius: 0;
-    border-bottom: 1rpx solid #f0f0f0;
+    box-shadow: var(--app-post-wrapper-shadow, none);
+    border-radius: var(--app-post-wrapper-radius, 0);
+    border: var(--app-post-wrapper-border, none);
+    border-bottom: var(--app-post-wrapper-divider, 1rpx solid #f0f0f0);
+    overflow: hidden;
     /* 列表项淡入动画 */
     animation: postFadeIn 0.35s ease-out;
     transform-origin: center top;
@@ -451,7 +453,7 @@ export default {
 /* 原创帖子特殊样式 */
 .post-item-wrapper.original-post {
     background: linear-gradient(90deg, rgba(235, 200, 141, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
-    border-left: 3rpx solid #ebc88d;
+    border-left: 3rpx solid var(--app-post-original-accent-color, #ebc88d);
     position: relative;
 }
 
@@ -485,7 +487,7 @@ export default {
     width: 8rpx;
     height: 8rpx;
     border-radius: 50%;
-    background-color: #666;
+    background-color: var(--app-post-menu-dot-color, #666);
 }
 
 /* 外部作者信息样式 */
@@ -493,7 +495,7 @@ export default {
     display: flex;
     align-items: center;
     padding: 20rpx 40rpx 10rpx 40rpx;
-    background: #fff;
+    background: var(--app-post-section-bg, #fff);
     border-radius: 0;
     box-shadow: none;
 }
@@ -509,7 +511,7 @@ export default {
 
 .author-info-outside .author-name {
     font-size: 28rpx;
-    color: #333;
+    color: var(--app-post-author-color, #333);
     font-weight: 500;
 }
 
@@ -539,7 +541,7 @@ export default {
 
 .post-item {
     width: 100%;
-    background: #fff;
+    background: var(--app-post-section-bg, #fff);
     border-radius: 0;
     box-shadow: none;
     box-sizing: border-box;
@@ -549,7 +551,7 @@ export default {
 .post-title {
     font-size: 36rpx;
     font-weight: bold;
-    color: #333333;
+    color: var(--app-post-title-color, #333333);
     margin-bottom: 15rpx;
     line-height: 1.4;
     word-break: break-word;
@@ -564,7 +566,7 @@ export default {
 /* 诗歌作者样式 */
 .poem-author {
     font-size: 32rpx;
-    color: #000;
+    color: var(--app-post-poem-author-color, #000);
     text-align: center;
     margin: 5rpx 0 15rpx 0;
     letter-spacing: 2rpx;
@@ -649,7 +651,7 @@ export default {
 
 .post-content {
     font-size: 28rpx;
-    color: #666666;
+    color: var(--app-post-content-color, #666666);
     line-height: 1.6;
     margin-top: 15rpx;
     word-break: break-word;
@@ -688,6 +690,7 @@ export default {
     align-items: center;
     margin-top: 20rpx;
     padding: 0 40rpx 0 40rpx;
+    background: var(--app-post-section-bg, transparent);
 }
 
 /* 左侧时间区域 */
@@ -702,7 +705,7 @@ export default {
 
 .post-time {
     font-size: 24rpx;
-    color: #999;
+    color: var(--app-post-time-color, #999);
 }
 
 /* 取消收藏按钮 */
@@ -734,6 +737,7 @@ export default {
     /* 上移一点：收紧与内容的垂直间距 */
     margin-top: -8rpx;
     padding: 10rpx 60rpx 15rpx 60rpx;
+    background: var(--app-post-section-bg, transparent);
 }
 
 .vote-count,
@@ -741,7 +745,7 @@ export default {
     display: flex;
     align-items: center;
     font-size: 28rpx;
-    color: #999;
+    color: var(--app-post-meta-color, #999);
     margin-left: 10rpx;
     transition: color 0.2s ease;
 }
@@ -825,7 +829,7 @@ export default {
 .series-meta-tag {
     margin-top: 16rpx;
     font-size: 24rpx;
-    color: #999;
+    color: var(--app-post-meta-color, #999);
     font-style: italic;
 }
 
@@ -839,7 +843,7 @@ export default {
 }
 
 .discussion-sentence-card {
-    background: #f5f5f5;
+    background: var(--app-subtle-surface-bg, #f5f5f5);
     border-radius: 12rpx;
     padding: 30rpx;
     margin-bottom: 20rpx;
@@ -867,7 +871,7 @@ export default {
     font-weight: 600;
     font-size: 40rpx;
     line-height: 48rpx;
-    color: #989090;
+    color: var(--app-post-discussion-color, #989090);
     display: block;
     margin-bottom: 8rpx;
     word-wrap: break-word;
@@ -885,7 +889,7 @@ export default {
 /* 讨论评论预览样式 - 与普通帖子正文保持一致 */
 .discussion-comment-preview {
     font-size: 28rpx;
-    color: #666666;
+    color: var(--app-post-content-color, #666666);
     line-height: 1.6;
     margin-top: 15rpx;
     word-break: break-word;

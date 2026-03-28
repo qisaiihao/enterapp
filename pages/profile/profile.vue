@@ -1,15 +1,22 @@
 <template>
-    <view>
+    <view class="profile-page-root" :style="profileForegroundStyle">
+        <!-- 主页背景图层 -->
+        <view
+            v-if="hasAppBackground"
+            class="profile-bg-image"
+            :style="appBackgroundPageStyle"
+        ></view>
+        <view v-if="hasAppBackground" class="profile-bg-overlay"></view>
 
         <!-- pages/profile/profile.wxml -->
         <view class="container">
             <!-- 骨架屏：当 isLoading 为 true 时，显示骨架屏，其他所有内容都不渲染 -->
-            <view v-if="isLoading">
+            <view v-if="!hasInitialSnapshot && isLoading">
                 <skeleton pageType="profile" />
             </view>
 
             <!-- 真实内容：当 isLoading 为 false 时，显示真实页面 -->
-            <view class="scroll-container">
+            <view v-else class="scroll-container">
                 <!-- Sidebar Component -->
                 <Sidebar
                     :isVisible="isSidebarOpen"
@@ -20,7 +27,7 @@
                 />
 
                 <!-- Main Content -->
-                <view class="main-content">
+                <view class="main-content" :class="{ 'main-content--with-background': hasAppBackground }">
                     <!-- User Profile Card -->
                     <ProfileCard
                         :user-info="userInfo"
@@ -32,6 +39,7 @@
                         @edit-profile="navigateToEditProfile"
                         @toggle-sidebar="toggleSidebar"
                         @navigate-fans="navigateToFans"
+                        @manage-background="handleManageBackground"
                     />
                     <!-- Tab Navigation -->
                     <view class="tab-navigation">
@@ -145,7 +153,7 @@
         <!-- 这是一个<view class="container"> 添加的结束标签 -->
 
         <!-- #ifndef MP-WEIXIN -->
-        <app-tab-bar ref="customTabBar" />
+        <app-tab-bar ref="customTabBar" :style="tabBarStyle" />
         <!-- #endif -->
         
         <!-- 底部操作菜单 -->
@@ -185,7 +193,7 @@ import ActionMenu from '@/components/ActionMenu.vue';
 import DeleteModal from '@/components/DeleteModal.vue';
 import { getMyPosts, getMyFavorites, invalidateMyFavorites, invalidateMyPosts, invalidateMyInfo, getMyInfo } from '@/api-cache/my.js';
 import { togglePostVisibility, deletePost as deletePostApi, saveDraft, getPostDetail, removeFavorite as removeFavoriteApi, getFollowerCount, updateUserInfo, logout } from '@/api-cache/profile-actions.js';
-import { getPortfolioFolders, notifyPortfolioUpdated } from '@/api-cache/portfolio.js';
+import { getPortfolioFolders, notifyPortfolioUpdated, invalidatePortfolioCache } from '@/api-cache/portfolio.js';
 import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
 import { navigateToUserProfile } from '@/utils/navigation.js';
 import { calculateAge } from '@/utils/ageCalculator.js';
@@ -203,13 +211,75 @@ import { extractGrowthStats } from '@/utils/growthStats.js';
 import { formatRelativeTime } from '@/utils/time.js';
 import { previewImage } from '@/utils/imagePreview.js';
 import postGalleryMixin from '@/mixins/postGallery.js';
+import appBackgroundPageMixin from '@/mixins/appBackgroundPage.js';
 import { updateTabBarStatus } from '@/utils/tabBarCompatibility.js';
 import { invalidateMyProfile } from '@/api-cache/profile.js';
 import { emitPostVisibilityChanged, emitFavoriteChanged } from '@/utils/events.js';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
+import { applyUserInfoWithAppBackground, updateCurrentUserAppBackground } from '@/utils/appBackground.js';
+const { uploadFile } = require('../../utils/uploader.js');
+const { cloudCall } = require('../../utils/cloudCall.js');
 
 const app = getApp();
 const PAGE_SIZE = 5;
+const PROFILE_BACKGROUND_THEME_VARS = Object.freeze({
+    '--app-post-wrapper-bg': 'rgba(255, 255, 255, 0.68)',
+    '--app-post-wrapper-shadow': '0 8rpx 24rpx rgba(0, 0, 0, 0.10)',
+    '--app-post-wrapper-radius': '20rpx',
+    '--app-post-section-bg': 'transparent',
+    '--app-subtle-surface-bg': 'rgba(255, 255, 255, 0.58)',
+    '--app-surface-bg': 'rgba(255, 255, 255, 0.72)',
+    '--app-surface-shadow': '0 8rpx 24rpx rgba(0, 0, 0, 0.08)',
+    '--app-surface-border-line': '1rpx solid rgba(255, 255, 255, 0.30)',
+    '--app-surface-title-color': 'rgba(17, 17, 17, 0.88)',
+    '--app-surface-text-color': 'rgba(17, 17, 17, 0.74)',
+    '--app-surface-meta-color': 'rgba(17, 17, 17, 0.56)',
+    '--app-surface-accent-color': '#6f8065',
+    '--app-post-author-color': 'rgba(17, 17, 17, 0.84)',
+    '--app-post-title-color': 'rgba(17, 17, 17, 0.94)',
+    '--app-post-content-color': 'rgba(17, 17, 17, 0.76)',
+    '--app-post-time-color': 'rgba(17, 17, 17, 0.56)',
+    '--app-post-discussion-color': 'rgba(17, 17, 17, 0.68)',
+    '--app-post-meta-color': 'rgba(17, 17, 17, 0.56)',
+    '--app-post-poem-author-color': 'rgba(17, 17, 17, 0.84)',
+    '--app-post-menu-dot-color': 'rgba(17, 17, 17, 0.50)',
+    '--app-post-original-accent-color': 'rgba(17, 17, 17, 0.84)',
+    '--profile-poemid-color': 'rgba(17, 17, 17, 0.56)',
+    '--profile-meta-color': 'rgba(17, 17, 17, 0.56)',
+    '--app-fixed-bar-bg': 'rgba(255, 255, 255, 0.78)',
+    '--app-fixed-bar-shadow': '0 -6rpx 20rpx rgba(0, 0, 0, 0.08)',
+    '--app-tab-icon-wrap-bg': 'rgba(255, 255, 255, 0.66)',
+    '--app-tab-icon-inner-bg': 'rgba(255, 255, 255, 0.88)',
+    '--app-tab-icon-wrap-shadow': '0 12rpx 24rpx rgba(0, 0, 0, 0.12)',
+    '--profile-button-bg': 'rgba(255, 255, 255, 0.82)',
+    '--profile-button-active-bg': 'rgba(255, 255, 255, 0.90)',
+    '--profile-button-border': '1rpx solid rgba(255, 255, 255, 0.40)',
+    '--profile-button-shadow': '0 6rpx 18rpx rgba(0, 0, 0, 0.08)',
+    '--profile-button-text-color': '#2a2a2a',
+    '--profile-icon-button-bg': 'rgba(255, 255, 255, 0.74)',
+    '--profile-icon-button-active-bg': 'rgba(255, 255, 255, 0.86)',
+    '--profile-icon-button-border': '1rpx solid rgba(255, 255, 255, 0.32)',
+    '--profile-icon-button-shadow': '0 6rpx 16rpx rgba(0, 0, 0, 0.08)',
+    '--profile-upload-icon-opacity': '0.90',
+    '--profile-upload-icon-filter': 'grayscale(1) brightness(0.18)',
+    '--profile-menu-icon-opacity': '0.84',
+    '--profile-menu-icon-filter': 'grayscale(1) brightness(0.24)',
+    '--profile-tab-nav-bg': 'rgba(255, 255, 255, 0.72)',
+    '--profile-tab-nav-border': 'rgba(255, 255, 255, 0.30)',
+    '--profile-tab-nav-shadow': '0 8rpx 24rpx rgba(0, 0, 0, 0.08)',
+    '--profile-tab-item-bg': 'transparent',
+    '--profile-tab-item-active-bg': 'rgba(255, 255, 255, 0.18)',
+    '--profile-tab-indicator-color': 'rgba(17, 17, 17, 0.78)',
+    '--profile-tab-icon-filter': 'grayscale(0.45) brightness(0.72)',
+    '--profile-tab-icon-opacity': '0.88',
+    '--profile-tab-icon-active-filter': 'grayscale(0) brightness(0.98) contrast(1.02)',
+    '--profile-tab-icon-active-opacity': '1',
+    '--profile-empty-surface-bg': 'rgba(255, 255, 255, 0.72)',
+    '--profile-empty-surface-border': '1rpx solid rgba(255, 255, 255, 0.30)',
+    '--profile-empty-surface-shadow': '0 8rpx 24rpx rgba(0, 0, 0, 0.08)',
+    '--profile-empty-text-color': 'rgba(17, 17, 17, 0.56)',
+    '--profile-loading-footer-color': 'rgba(17, 17, 17, 0.56)'
+});
 export default {
     components: {
         Sidebar,
@@ -223,10 +293,13 @@ export default {
         AppTabBar
         // #endif
     },
-    mixins: [postGalleryMixin],
+    mixins: [postGalleryMixin, appBackgroundPageMixin],
     data() {
         return {
             isLoading: true,
+            hasInitialSnapshot: false,
+            isAtomicRefreshing: false,
+            pendingRefreshToken: 0,
 
             // 默认显示骨架屏
             userInfo: {
@@ -303,6 +376,23 @@ export default {
             collapsedMonths: {} // 存储每个月份的折叠状态
         };
     },
+    computed: {
+        profileForegroundStyle() {
+            return this.hasAppBackground ? PROFILE_BACKGROUND_THEME_VARS : {};
+        },
+        tabBarStyle() {
+            if (!this.hasAppBackground) {
+                return {};
+            }
+            return {
+                '--app-fixed-bar-bg': '#ffffff',
+                '--app-fixed-bar-shadow': 'none',
+                '--app-tab-icon-wrap-bg': '#f8f8f8',
+                '--app-tab-icon-inner-bg': '#ffffff',
+                '--app-tab-icon-wrap-shadow': '0 18rpx 32rpx rgba(0, 0, 0, 0.16)'
+            };
+        }
+    },
     async onLoad(options) {
         // 使用新的登录检查工具
         const isLoggedIn = await checkLoginOrPrompt({
@@ -333,11 +423,10 @@ export default {
         // 监听作品集更新事件
         try {
             uni.$on('portfolio-updated', (e) => {
-                // 刷新作品集数据
-                this.setData({
-                    portfolioList: []
-                });
-                this.loadPortfolios();
+                try { invalidatePortfolioCache(); } catch (_) {}
+                if (this.currentTab === 'portfolio' && this.hasInitialSnapshot) {
+                    this.refreshProfileAtomically({ reason: 'portfolio-updated', forceRefresh: true }).catch(() => {});
+                }
             });
         } catch (error) {
             console.error('【profile】监听作品集更新事件失败:', error);
@@ -346,29 +435,28 @@ export default {
     onShow: function () {
         // #ifndef MP-WEIXIN
         try { uni.hideTabBar({ animation: false }); } catch (e) {}
-        try { this.$refs.customTabBar && this.$refs.customTabBar.syncSelected && this.$refs.customTabBar.syncSelected(); } catch (e) {}
         // #endif
         // TabBar 状态更新，使用兼容性处理
         updateTabBarStatus(this, 3);
 
         // 每次进入页面时主动刷新数据（但避免首次加载时重复调用）
-        if (this._hasFirstShow) {
-            this.refreshProfileData();
-        } else {
-            this.setData({
-                hasFirstShow_var: true
-            });
+        if (this.hasInitialSnapshot) {
+            const shouldForce = !!(
+                uni.getStorageSync('shouldRefreshIndex') ||
+                uni.getStorageSync('shouldRefreshProfile') ||
+                uni.getStorageSync('shouldRefreshPoem') ||
+                uni.getStorageSync('shouldRefreshMountain')
+            );
+            if (shouldForce) {
+                uni.removeStorageSync('shouldRefreshIndex');
+                uni.removeStorageSync('shouldRefreshProfile');
+                uni.removeStorageSync('shouldRefreshPoem');
+                uni.removeStorageSync('shouldRefreshMountain');
+            }
+            this.refreshProfileAtomically({ reason: 'onShow', forceRefresh: shouldForce }).catch(() => {});
         }
     },
     onPullDownRefresh: function () {
-        // 清除缓存
-        try {
-            invalidateMyInfo();
-            invalidateMyProfile();
-        } catch (e) {
-            console.error('【profile】清除缓存失败:', e);
-        }
-
         // 超时保护：最多10秒后自动停止刷新动画
         const refreshTimeout = setTimeout(() => {
             console.warn('【profile】下拉刷新超时，强制停止');
@@ -379,64 +467,15 @@ export default {
             clearTimeout(refreshTimeout);
             uni.stopPullDownRefresh();
         };
-
-        if (this.currentTab === 'posts') {
-            this.setData({
-                myPosts: [],
-                page: 0,
-                hasMore: true,
-                swiperHeights: {},
-                imageClampHeights: {}
-            });
-            this.updateGrowthStats([]);
-
-            this.loadMyPosts(() => {
-                stopRefresh();
-            }, true); // 强制从云端获取
-        } else if (this.currentTab === 'favorites') {
-            this.setData({
-                favoriteList: [],
-                favoritePage: 0,
-                favoriteHasMore: true,
-                swiperHeights: {},
-                imageClampHeights: {}
-            });
-
-            this.loadFavorites(() => {
-                stopRefresh();
-            });
-        } else if (this.currentTab === 'portfolio') {
-            this.setData({
-                portfolioList: [],
-                timelinePosts: [],
-                timelineGroups: {},
-                timelineLoading: false,
-                timelineError: false,
-                collapsedMonths: {}
-            });
-            // 并行加载作品集和时间轴数据
-            Promise.all([
-                new Promise((resolve) => {
-                    this.loadPortfolios(() => {
-                        resolve();
-                    }, true); // 下拉刷新强制更新缓存
-                }),
-                new Promise((resolve) => {
-                    this.loadTimelineData();
-                    // 等待时间轴数据加载完成
-                    const checkInterval = setInterval(() => {
-                        if (!this.timelineLoading) {
-                            clearInterval(checkInterval);
-                            resolve();
-                        }
-                    }, 100);
-                })
-            ]).then(() => {
-                stopRefresh();
-            });
-        }
+        this.refreshProfileAtomically({
+            reason: 'pull-down',
+            forceRefresh: true
+        }).finally(stopRefresh);
     },
     onReachBottom: function () {
+        if (this.isAtomicRefreshing) {
+            return;
+        }
         if (this.currentTab === 'posts') {
             if (!this.hasMore || this.isLoading) {
                 return;
@@ -652,81 +691,308 @@ export default {
         },
 
         // 新增：刷新个人资料数据的方法（使用与下拉刷新相同的逻辑）
+        getCurrentProfileOpenid: function () {
+            const appInstance = getApp();
+            return (
+                (appInstance && appInstance.globalData && appInstance.globalData.openid) ||
+                (this.userInfo && (this.userInfo._openid || this.userInfo.openid)) ||
+                ''
+            );
+        },
+
+        normalizeProfileUserInfo: function (user) {
+            const sessionUser =
+                (app && app.globalData && app.globalData.userInfo) ||
+                this.userInfo ||
+                {};
+            const nextUser = user ? { ...sessionUser, ...user } : { ...sessionUser };
+            if (nextUser && nextUser.birthday) {
+                nextUser.age = this.calculateAge(nextUser.birthday);
+            } else if (nextUser) {
+                nextUser.age = '';
+            }
+            return nextUser;
+        },
+
+        formatPostsForDisplay: function (posts = [], currentUserInfo = {}, openid = '') {
+            return (posts || []).map((post = {}, index) => {
+                const nextPost = { ...post };
+                if (nextPost.createTime) {
+                    nextPost.formattedCreateTime = this.formatTime(nextPost.createTime);
+                }
+                if (nextPost.imageUrls && nextPost.imageUrls.length > 0) {
+                    nextPost.imageStyle = 'height: 0; padding-bottom: 75%;';
+                }
+                if (!nextPost._openid && openid) {
+                    nextPost._openid = openid;
+                }
+                if (currentUserInfo.nickName) {
+                    nextPost.authorName = currentUserInfo.nickName;
+                } else if (!nextPost.authorName || !String(nextPost.authorName).trim()) {
+                    nextPost.authorName = nextPost.authorNameSnapshot || '我';
+                }
+                if (currentUserInfo.avatarUrl) {
+                    nextPost.authorAvatar = currentUserInfo.avatarUrl;
+                } else if (!nextPost.authorAvatar || !String(nextPost.authorAvatar).trim()) {
+                    nextPost.authorAvatar = nextPost.authorAvatarSnapshot || '/static/images/avatar.png';
+                }
+                console.log(`【profile】📦 原子刷新帖子${index + 1}:`, {
+                    id: nextPost._id,
+                    _openid: nextPost._openid,
+                    authorName: nextPost.authorName
+                });
+                return nextPost;
+            });
+        },
+
+        formatFavoritesForDisplay: function (favorites = []) {
+            return (favorites || []).map((favorite = {}) => {
+                const nextFavorite = { ...favorite };
+                if (nextFavorite.favoriteTime) {
+                    nextFavorite.formattedFavoriteTime = this.formatTime(nextFavorite.favoriteTime);
+                }
+                if (nextFavorite.imageUrls && nextFavorite.imageUrls.length > 0) {
+                    nextFavorite.imageStyle = 'height: 0; padding-bottom: 75%;';
+                }
+                return nextFavorite;
+            });
+        },
+
+        buildTimelineCollapsedMonths: function (groups = {}) {
+            const nextCollapsed = {};
+            const currentCollapsed = this.collapsedMonths || {};
+            Object.keys(groups || {}).forEach((key) => {
+                if (currentCollapsed[key]) {
+                    nextCollapsed[key] = true;
+                }
+            });
+            return nextCollapsed;
+        },
+
+        async fetchProfileHeaderSnapshot({ forceRefresh = false } = {}) {
+            if (forceRefresh) {
+                try {
+                    invalidateMyInfo();
+                    invalidateMyProfile();
+                } catch (_) {}
+            }
+
+            const [user, followerCount] = await Promise.all([
+                getMyInfo(this),
+                getFollowerCount(this).catch((error) => {
+                    console.warn('[profile] follower count refresh failed', error);
+                    return this.followerCount || 0;
+                })
+            ]);
+
+            const nextUser = this.normalizeProfileUserInfo(user);
+            return {
+                userInfo: nextUser,
+                followerCount,
+                growthStats: extractGrowthStats(nextUser),
+                appBackgroundResolvedUrl: (nextUser && nextUser.appBackgroundUrl) || ''
+            };
+        },
+
+        async fetchPostsTabRaw({ forceRefresh = false } = {}) {
+            if (forceRefresh) {
+                try { invalidateMyPosts(); } catch (_) {}
+            }
+            return await getMyPosts({
+                page: 0,
+                pageSize: PAGE_SIZE,
+                context: this,
+                forceRefresh
+            });
+        },
+
+        async fetchFavoritesTabRaw({ forceRefresh = false } = {}) {
+            if (forceRefresh) {
+                try { invalidateMyFavorites(); } catch (_) {}
+            }
+            return await getMyFavorites({
+                page: 0,
+                pageSize: PAGE_SIZE,
+                context: this
+            });
+        },
+
+        async fetchPortfolioTabRaw({ forceRefresh = false, openid = '' } = {}) {
+            const [portfolioList, timeline] = await Promise.all([
+                getPortfolioFolders({ context: this, forceRefresh }),
+                fetchTimelineData(this.$tcb, {
+                    openid,
+                    formatTimeFn: this.formatTime
+                })
+            ]);
+
+            return {
+                portfolioList: portfolioList || [],
+                timeline: timeline || { posts: [], groups: {} }
+            };
+        },
+
+        async buildAtomicSnapshot({ tab = this.currentTab, forceRefresh = false } = {}) {
+            const openid = this.getCurrentProfileOpenid();
+            if (!openid) {
+                throw new Error('无法获取用户openid');
+            }
+
+            const headerPromise = this.fetchProfileHeaderSnapshot({ forceRefresh });
+            let tabPromise;
+
+            if (tab === 'favorites') {
+                tabPromise = this.fetchFavoritesTabRaw({ forceRefresh });
+            } else if (tab === 'portfolio') {
+                if (forceRefresh) {
+                    try { invalidatePortfolioCache(); } catch (_) {}
+                }
+                tabPromise = this.fetchPortfolioTabRaw({ forceRefresh, openid });
+            } else {
+                tabPromise = this.fetchPostsTabRaw({ forceRefresh });
+            }
+
+            const [header, tabRaw] = await Promise.all([headerPromise, tabPromise]);
+            const updates = {
+                userInfo: header.userInfo || {},
+                followerCount: header.followerCount,
+                growthStats: header.growthStats,
+                appBackgroundResolvedUrl: header.appBackgroundResolvedUrl,
+                hasInitialSnapshot: true,
+                isLoading: false
+            };
+
+            if (tab === 'favorites') {
+                const favoriteList = this.formatFavoritesForDisplay(tabRaw);
+                Object.assign(updates, {
+                    favoriteList,
+                    favoritePage: 1,
+                    favoriteHasMore: favoriteList.length === PAGE_SIZE,
+                    favoriteLoading: false,
+                    swiperHeights: {},
+                    imageClampHeights: {}
+                });
+            } else if (tab === 'portfolio') {
+                const timelinePosts = (tabRaw && tabRaw.timeline && tabRaw.timeline.posts) || [];
+                const timelineGroups = (tabRaw && tabRaw.timeline && tabRaw.timeline.groups) || {};
+                Object.assign(updates, {
+                    portfolioList: (tabRaw && tabRaw.portfolioList) || [],
+                    portfolioLoading: false,
+                    timelinePosts,
+                    timelineGroups,
+                    timelineLoading: false,
+                    timelineError: false,
+                    collapsedMonths: this.buildTimelineCollapsedMonths(timelineGroups)
+                });
+            } else {
+                const myPosts = this.formatPostsForDisplay(tabRaw, header.userInfo, openid);
+                Object.assign(updates, {
+                    myPosts,
+                    page: 1,
+                    hasMore: myPosts.length === PAGE_SIZE,
+                    swiperHeights: {},
+                    imageClampHeights: {},
+                    growthStats: extractGrowthStats(header.userInfo, myPosts)
+                });
+            }
+
+            return {
+                updates,
+                userInfo: header.userInfo
+            };
+        },
+
+        syncAtomicUserSession: async function (userInfo) {
+            if (!userInfo) {
+                return;
+            }
+            try {
+                await applyUserInfoWithAppBackground(userInfo, {
+                    emit: false,
+                    writeStorage: true,
+                    writeGlobal: true
+                });
+            } catch (error) {
+                console.warn('[profile] sync atomic user session failed', error);
+            }
+        },
+
+        refreshProfileAtomically: async function ({ reason = 'manual', forceRefresh = false } = {}) {
+            const token = (this.pendingRefreshToken || 0) + 1;
+            this.pendingRefreshToken = token;
+            this.isAtomicRefreshing = true;
+
+            const isInitialLoad = !this.hasInitialSnapshot;
+            if (isInitialLoad) {
+                this.setData({ isLoading: true });
+            }
+
+            try {
+                console.log('【profile】⚡ 开始原子刷新:', { reason, forceRefresh, tab: this.currentTab, token });
+                const snapshot = await this.buildAtomicSnapshot({
+                    tab: this.currentTab,
+                    forceRefresh
+                });
+
+                if (token !== this.pendingRefreshToken) {
+                    return false;
+                }
+
+                await this.syncAtomicUserSession(snapshot.userInfo);
+
+                if (token !== this.pendingRefreshToken) {
+                    return false;
+                }
+
+                this.setData(snapshot.updates);
+                this._hasFirstShow = true;
+                return true;
+            } catch (error) {
+                if (token !== this.pendingRefreshToken) {
+                    return false;
+                }
+
+                console.error('【profile】❌ 原子刷新失败:', reason, error);
+
+                if (isInitialLoad) {
+                    const storedUserInfo = uni.getStorageSync('userInfo');
+                    if (storedUserInfo) {
+                        const nextUser = this.normalizeProfileUserInfo(storedUserInfo);
+                        await this.syncAtomicUserSession(nextUser);
+                        if (token === this.pendingRefreshToken) {
+                            this.setData({
+                                userInfo: nextUser,
+                                followerCount: this.followerCount || 0,
+                                growthStats: extractGrowthStats(nextUser),
+                                appBackgroundResolvedUrl: nextUser.appBackgroundUrl || '',
+                                hasInitialSnapshot: true,
+                                isLoading: false
+                            });
+                        }
+                    } else {
+                        this.setData({
+                            hasInitialSnapshot: true,
+                            isLoading: false
+                        });
+                        uni.showToast({ title: '获取数据失败', icon: 'none' });
+                    }
+                } else {
+                    uni.showToast({ title: '刷新失败', icon: 'none' });
+                }
+
+                return false;
+            } finally {
+                if (token === this.pendingRefreshToken) {
+                    this.isAtomicRefreshing = false;
+                    if (!this.hasInitialSnapshot && !this.isLoading) {
+                        this.hasInitialSnapshot = true;
+                    }
+                }
+            }
+        },
+
         refreshProfileData: function () {
-            console.log('【profile】🔄 开始刷新个人资料数据，当前标签:', this.currentTab);
-
-            // 检查是否需要刷新数据（检查多个可能的标记）
-            const shouldRefreshIndex = uni.getStorageSync('shouldRefreshIndex');
-            const shouldRefreshProfile = uni.getStorageSync('shouldRefreshProfile');
-            const shouldRefreshPoem = uni.getStorageSync('shouldRefreshPoem');
-            const shouldRefreshMountain = uni.getStorageSync('shouldRefreshMountain');
-
-            console.log('【profile】🔍 检查刷新标记:', {
-                shouldRefreshIndex,
-                shouldRefreshProfile,
-                shouldRefreshPoem,
-                shouldRefreshMountain
-            });
-
-            if (shouldRefreshIndex || shouldRefreshProfile || shouldRefreshPoem || shouldRefreshMountain) {
-                console.log('【profile】✅ 检测到需要刷新标记，开始刷新个人主页数据');
-
-                // 清除所有刷新标记
-                uni.removeStorageSync('shouldRefreshIndex');
-                uni.removeStorageSync('shouldRefreshProfile');
-                uni.removeStorageSync('shouldRefreshPoem');
-                uni.removeStorageSync('shouldRefreshMountain');
-
-                console.log('【profile】🗑️ 已清除所有刷新标记');
-
-                // 清除个人主页缓存并重新加载
-                this.invalidateProfileCacheAndReload();
-            } else {
-                console.log('【profile】⏭️ 无刷新标记，跳过缓存清理');
-            }
-
-            // 刷新用户信息（只在有用户信息时刷新，避免重复调用）
-            if (this.userInfo && this.userInfo._openid) {
-                this.fetchUserProfileFast();
-                this.fetchFollowCounts();
-            } else {
-                // 如果没有用户信息，也要尝试获取关注数
-                this.fetchFollowCounts();
-            }
-
-            // 使用与下拉刷新完全相同的逻辑，并强制从云端获取
-            if (this.currentTab === 'posts') {
-                this.setData({
-                    myPosts: [],
-                    page: 0,
-                    hasMore: true,
-                    swiperHeights: {},
-                    imageClampHeights: {}
-                });
-                this.loadMyPosts(() => {
-                    console.log('【profile】🔄 onShow刷新帖子数据完成（强制云端）');
-                }, true); // 强制从云端获取
-            } else if (this.currentTab === 'favorites') {
-                this.setData({
-                    favoriteList: [],
-                    favoritePage: 0,
-                    favoriteHasMore: true,
-                    swiperHeights: {},
-                    imageClampHeights: {}
-                });
-                this.loadFavorites(() => {
-                    console.log('【profile】🔄 onShow刷新收藏数据完成');
-                });
-            }
-
-            // 检查未读消息数量
-
-            // 无论如何都要刷新作品集数据，确保新创建的作品集能及时显示
-            console.log('【profile】onShow刷新作品集数据');
-            this.setData({
-                portfolioList: []
-            });
-            this.loadPortfolios(null, true);
+            this.refreshProfileAtomically({ reason: 'refresh', forceRefresh: true }).catch(() => {});
         },
 
         // 强制刷新数据
@@ -755,7 +1021,7 @@ export default {
                         const oid = app && app.globalData && app.globalData.openid;
                         if (e && e.userId === oid) {
                             invalidateMyInfo();
-                            getMyInfo(this).then((info) => this.setData({ userInfo: info || {} })).catch(() => {});
+                            this.fetchUserProfileFast();
                         }
                     });
                     uni.$on && uni.$on('post-created', (e) => {
@@ -763,9 +1029,7 @@ export default {
                         const oid = app && app.globalData && app.globalData.openid;
                         if (e && e.userId === oid) {
                             invalidateMyPosts();
-                            this.setData({ myPosts: [], page: 0, hasMore: true });
-                            this.updateGrowthStats([]);
-                            this.loadMyPosts();
+                            this.refreshProfileAtomically({ reason: 'post-created', forceRefresh: true }).catch(() => {});
                         }
                     });
                     uni.$on && uni.$on('favorite-changed', (e) => {
@@ -774,8 +1038,7 @@ export default {
                         if (e && e.userId === oid) {
                             invalidateMyFavorites();
                             if (this.currentTab === 'favorites') {
-                                this.setData({ favoriteList: [], favoritePage: 0, favoriteHasMore: true });
-                                this.loadFavorites();
+                                this.refreshProfileAtomically({ reason: 'favorite-changed', forceRefresh: true }).catch(() => {});
                             }
                         }
                     });
@@ -794,10 +1057,7 @@ export default {
             
             if (userInfo && userInfo._openid) {
                 this.setData({ isViewingSelf: true });
-                this.fetchUserProfileFast();
-                this.fetchFollowCounts(); // 首次加载时也要获取关注数
-                // 首次加载时也要加载帖子数据
-                this.loadMyPosts();
+                this.refreshProfileAtomically({ reason: 'initial', forceRefresh: false }).catch(() => {});
             } else if (loginProcessCompleted) {
                 // 登录流程已完成但没有用户信息，说明用户未登录
                 this.setData({
@@ -839,8 +1099,14 @@ export default {
                 .then((user) => {
                     console.log('【profile】获取到的用户数据:', user);
                     console.log('【profile】growthCounts数据:', user?.growthCounts);
-                    if (user && user.birthday) user.age = this.calculateAge(user.birthday); else if (user) user.age = '';
-                    this.setData({ userInfo: user || {}, isLoading: false });
+                    const sessionUser =
+                        (app && app.globalData && app.globalData.userInfo) ||
+                        this.userInfo ||
+                        {};
+                    const nextUser = user ? { ...sessionUser, ...user } : { ...sessionUser };
+                    if (nextUser && nextUser.birthday) nextUser.age = this.calculateAge(nextUser.birthday); else if (nextUser) nextUser.age = '';
+                    this.appBackgroundResolvedUrl = (nextUser && nextUser.appBackgroundUrl) || '';
+                    this.setData({ userInfo: nextUser || {}, isLoading: false });
                     // 立即更新成长统计
                     this.updateGrowthStats();
                 })
@@ -850,6 +1116,7 @@ export default {
                     const storedUserInfo = uni.getStorageSync('userInfo');
                     if (storedUserInfo) {
                         if (storedUserInfo.birthday) storedUserInfo.age = this.calculateAge(storedUserInfo.birthday);
+                        this.appBackgroundResolvedUrl = storedUserInfo.appBackgroundUrl || '';
                         this.setData({ userInfo: storedUserInfo });
                     } else {
                         uni.showToast({ title: '获取数据失败', icon: 'none' });
@@ -1458,6 +1725,88 @@ export default {
                 url: '/pages-user/profile-edit/profile-edit'
             });
         },
+
+        // 主页背景管理菜单
+        handleManageBackground: async function () {
+            const hasBackground = !!(this.appBackgroundResolvedUrl || (this.userInfo && this.userInfo.appBackgroundUrl));
+            const itemList = hasBackground ? ['更换背景', '移除背景'] : ['上传背景', '移除背景'];
+
+            uni.showActionSheet({
+                itemList,
+                success: ({ tapIndex }) => {
+                    if (tapIndex === 0) {
+                        this.handleReplaceBackground();
+                        return;
+                    }
+                    if (tapIndex === 1) {
+                        this.handleClearBackground();
+                    }
+                },
+                fail: (err) => {
+                    if (!err || err.errMsg !== 'showActionSheet:fail cancel') {
+                        console.warn('[profile] background action sheet failed', err);
+                    }
+                }
+            });
+        },
+        handleReplaceBackground: function () {
+            uni.chooseImage({
+                count: 1,
+                sizeType: ['compressed'],
+                sourceType: ['album', 'camera'],
+                success: async (res) => {
+                    const filePath = res.tempFilePaths[0];
+                    uni.showLoading({ title: '上传中...' });
+                    try {
+                        const fileID = await uploadFile(
+                            `user_backgrounds/${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`,
+                            filePath
+                        );
+                        await cloudCall('updateUserProfile', { appBackgroundUrl: fileID });
+                        invalidateMyInfo();
+                        await this.refreshProfileAtomically({ reason: 'background-changed', forceRefresh: true });
+                        await updateCurrentUserAppBackground(this.appBackgroundResolvedUrl, { emit: true }).catch(() => {});
+                        uni.showToast({ title: '背景已更新', icon: 'success' });
+                    } catch (err) {
+                        console.error('[profile] background upload failed', err);
+                        uni.showToast({ title: '上传失败', icon: 'none' });
+                    } finally {
+                        uni.hideLoading();
+                    }
+                }
+            });
+        },
+        handleClearBackground: function () {
+            const hasBackground = !!(this.appBackgroundResolvedUrl || (this.userInfo && this.userInfo.appBackgroundUrl));
+            if (!hasBackground) {
+                uni.showToast({ title: '当前没有背景图', icon: 'none' });
+                return;
+            }
+
+            uni.showModal({
+                title: '移除背景',
+                content: '确定要移除当前背景图吗？',
+                success: async (res) => {
+                    if (!res.confirm) {
+                        return;
+                    }
+
+                    uni.showLoading({ title: '移除中...' });
+                    try {
+                        await cloudCall('updateUserProfile', { clearAppBackground: true });
+                        invalidateMyInfo();
+                        await this.refreshProfileAtomically({ reason: 'background-cleared', forceRefresh: true });
+                        await updateCurrentUserAppBackground(this.appBackgroundResolvedUrl, { emit: true }).catch(() => {});
+                        uni.showToast({ title: '背景已移除', icon: 'success' });
+                    } catch (err) {
+                        console.error('[profile] clear background failed', err);
+                        uni.showToast({ title: '移除失败', icon: 'none' });
+                    } finally {
+                        uni.hideLoading();
+                    }
+                }
+            });
+        },
         goToSeriesCompose: function () {
             uni.navigateTo({ url: '/pages-publish/series-compose/series-compose' });
         },
@@ -1909,15 +2258,47 @@ export default {
 </script>
 <style>
 /* pages/profile/profile.wxss */
+.profile-page-root {
+    min-height: 100vh;
+    background-color: #ffffff;
+}
+
+.profile-bg-image {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: var(--app-background-image);
+    background-size: cover;
+    background-position: center top;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.profile-bg-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.48);
+    z-index: 1;
+    pointer-events: none;
+}
+
 .container {
     width: 100%;
     height: 100vh;
+    position: relative;
+    z-index: 2;
     background-color: #ffffff;
 }
 
 .scroll-container {
     width: 100%;
     height: 100%;
+    background-color: #ffffff;
 }
 
 
@@ -1927,6 +2308,13 @@ export default {
     background-color: #ffffff;
     /* overflow-y: auto; */
     padding-bottom: 100rpx; /* 为底部TabBar留出空间 */
+}
+
+.main-content--with-background {
+    background-color: transparent;
+    --app-post-wrapper-margin: 0 24rpx 20rpx 24rpx;
+    --app-post-wrapper-border: none;
+    --app-post-wrapper-divider: none;
 }
 
 .header {
@@ -2051,17 +2439,18 @@ export default {
 .tab-navigation {
     margin: 0 30rpx 20rpx 30rpx;
     display: flex;
-    background: #fff;
-    border: 1rpx solid #fff;
+    background: var(--profile-tab-nav-bg, #fff);
+    border: 1rpx solid var(--profile-tab-nav-border, #fff);
     border-radius: 16rpx;
     overflow: hidden;
+    box-shadow: var(--profile-tab-nav-shadow, none);
 }
 
 .tab-item {
     flex: 1;
     padding: 20rpx 10rpx;
     text-align: center;
-    background: #fff;
+    background: var(--profile-tab-item-bg, #fff);
     transition: all 0.3s ease;
     position: relative;
     display: flex;
@@ -2077,24 +2466,24 @@ export default {
     transform: translateX(-50%);
     width: 200rpx;
     height: 6rpx;
-    background: #333;
+    background: var(--profile-tab-indicator-color, #333);
     border-radius: 3rpx;
 }
 
 .tab-item:active {
-    background: #f5f5f5;
+    background: var(--profile-tab-item-active-bg, #f5f5f5);
 }
 
 .tab-icon {
     width: 110rpx;
     height: 110rpx;
-    filter: grayscale(1) brightness(0.5);
-    opacity: 0.7;
+    filter: var(--profile-tab-icon-filter, grayscale(1) brightness(0.5));
+    opacity: var(--profile-tab-icon-opacity, 0.7);
 }
 
 .tab-item.active .tab-icon {
-    filter: grayscale(0) brightness(1);
-    opacity: 1;
+    filter: var(--profile-tab-icon-active-filter, grayscale(0) brightness(1));
+    opacity: var(--profile-tab-icon-active-opacity, 1);
 }
 
 /* My Posts Section */
@@ -2146,13 +2535,14 @@ export default {
 
 .empty-tip {
     text-align: center;
-    color: #bbb;
+    color: var(--profile-empty-text-color, #bbb);
     font-size: 28rpx;
     margin: 40rpx 0;
     padding: 60rpx 0;
-    background-color: #fff;
+    background-color: var(--profile-empty-surface-bg, #fff);
     border-radius: 16rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    box-shadow: var(--profile-empty-surface-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
+    border: var(--profile-empty-surface-border, none);
 }
 
 .series-entry {
@@ -2238,7 +2628,7 @@ export default {
 .loading-footer {
     text-align: center;
     padding: 20rpx 0;
-    color: #999;
+    color: var(--profile-loading-footer-color, #999);
     font-size: 14px;
 }
 
@@ -2311,4 +2701,5 @@ export default {
     font-weight: 600;
     color: #333;
 }
+
 </style>

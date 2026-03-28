@@ -361,7 +361,6 @@ export default {
         
         // #ifndef MP-WEIXIN
         try { uni.hideTabBar({ animation: false }); } catch (e) {}
-        try { this.$refs.customTabBar && this.$refs.customTabBar.syncSelected && this.$refs.customTabBar.syncSelected(); } catch (e) {}
         // #endif
 
         // TabBar 状态更新，使用兼容性处理
@@ -2166,6 +2165,7 @@ export default {
     left: 0;
     right: 0;
     bottom: 0;
+    background-color: #ffffff;
 }
 
 .container {
@@ -2442,6 +2442,7 @@ export default {
     height: 100%;
     position: relative;
     z-index: 100;
+    background-color: #ffffff;
 }
 
 .swiper-page > view:first-child {
@@ -2467,6 +2468,6 @@ export default {
 
 .swiper-page .uni-pull-refresh,
 .swiper-page .wx-pull-refresh {
-    background: transparent;
+    background: #ffffff;
 }
 </style>

@@ -226,8 +226,8 @@ export default {
   onShow() {
     // #ifndef MP-WEIXIN
     try { uni.hideTabBar({ animation: false }); } catch (e) {}
-    try { this.$refs.customTabBar && this.$refs.customTabBar.syncSelected && this.$refs.customTabBar.syncSelected(); } catch (e) {}
     // #endif
+    updateTabBarStatus(this, 1);
 
     try { activityBadge.refreshActivityBadge({ forceRefresh: true, context: this }); } catch (_) {}
 
@@ -265,8 +265,6 @@ export default {
       });
       return;
     }
-    updateTabBarStatus(this, 1);
-    
     // 检查缓存新鲜度：从其他页面返回时触发SWR检查
     try {
       if (this.hasEverLoaded && this.postList.length > 0) {

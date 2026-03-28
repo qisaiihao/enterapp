@@ -1,5 +1,6 @@
 export const EVENTS = {
   AVATAR_UPDATED: 'avatar-updated',
+  APP_BACKGROUND_UPDATED: 'app-background-updated',
   POST_CREATED: 'post-created',
   POST_UPDATED: 'post-updated', // { postId }
   FAVORITE_CHANGED: 'favorite-changed', // { userId, postId?, favored }
@@ -13,6 +14,14 @@ export const EVENTS = {
 
 export function emitAvatarUpdated(userId) {
   try { if (userId && uni && uni.$emit) uni.$emit(EVENTS.AVATAR_UPDATED, { userId }); } catch (_) {}
+}
+
+export function emitAppBackgroundUpdated(payload = {}) {
+  try {
+    if (typeof uni !== 'undefined' && uni.$emit) {
+      uni.$emit(EVENTS.APP_BACKGROUND_UPDATED, payload || {});
+    }
+  } catch (_) {}
 }
 
 export function emitPostCreated(userId) {
@@ -73,6 +82,7 @@ export function emitUnreadChanged({ count, delta } = {}) {
 export default {
   EVENTS,
   emitAvatarUpdated,
+  emitAppBackgroundUpdated,
   emitPostCreated,
   emitPostUpdated,
   emitFavoriteChanged,

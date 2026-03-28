@@ -58,7 +58,19 @@ exports.main = async (event, context) => {
     };
   }
 
-  const { avatarUrl, nickName, birthday, bio, signatureUrl, occupation, region, poemId, password } = event;
+  const {
+    avatarUrl,
+    nickName,
+    birthday,
+    bio,
+    signatureUrl,
+    occupation,
+    region,
+    poemId,
+    password,
+    appBackgroundUrl,
+    clearAppBackground
+  } = event;
 
   console.log('🔍 [updateUserProfile] 收到的参数:', {
     nickName,
@@ -113,6 +125,14 @@ exports.main = async (event, context) => {
     if (password) {
       updateData.password = password;
       console.log('🔍 [updateUserProfile] 将更新password');
+    }
+
+    if (clearAppBackground) {
+      updateData.appBackgroundUrl = '';
+      console.log('馃攳 [updateUserProfile] 灏嗘竻闄ppBackgroundUrl');
+    } else if (appBackgroundUrl !== undefined) {
+      updateData.appBackgroundUrl = appBackgroundUrl || '';
+      console.log('馃攳 [updateUserProfile] 灏嗘洿鏂皁ppBackgroundUrl');
     }
 
     // Check if there is anything to update

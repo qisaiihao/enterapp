@@ -29,6 +29,13 @@ export async function getMyInfo(context) {
         }
       } catch (_) {}
 
+      try {
+        const bg = user && user.appBackgroundUrl;
+        if (typeof bg === 'string' && bg.startsWith('cloud://')) {
+          user.appBackgroundUrl = await fileUrlCache.getTempUrl(bg);
+        }
+      } catch (_) {}
+
       return user;
     },
     { ttlMs: PROFILE_TTL_MS, swrMs: PROFILE_SWR_MS }
@@ -98,4 +105,3 @@ export function invalidateMyFavorites(page, pageSize = 10) {
   }
   ns.clear();
 }
-
