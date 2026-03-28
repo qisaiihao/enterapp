@@ -433,6 +433,7 @@ export default {
     border-radius: var(--app-post-wrapper-radius, 0);
     border: var(--app-post-wrapper-border, none);
     border-bottom: var(--app-post-wrapper-divider, 1rpx solid #f0f0f0);
+    border-left: 3rpx solid var(--app-post-original-accent-color, transparent);
     overflow: hidden;
     /* 列表项淡入动画 */
     animation: postFadeIn 0.35s ease-out;
@@ -843,7 +844,7 @@ export default {
 }
 
 .discussion-sentence-card {
-    background: var(--app-subtle-surface-bg, #f5f5f5);
+    background: var(--app-post-discussion-quote-bg, var(--app-subtle-surface-bg, #f5f5f5));
     border-radius: 12rpx;
     padding: 30rpx;
     margin-bottom: 20rpx;

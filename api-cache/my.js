@@ -1,5 +1,6 @@
 import cacheManager from '@/_utils/cache-manager';
 import fileUrlCache from '@/_utils/file-url-cache';
+import { normalizeAppBackgroundMode } from '@/utils/appBackground.js';
 
 const { callCloudAndUnwrap } = require('./_shared/cloud-wrapper.js');
 
@@ -35,6 +36,10 @@ export async function getMyInfo(context) {
           user.appBackgroundUrl = await fileUrlCache.getTempUrl(bg);
         }
       } catch (_) {}
+
+      if (user) {
+        user.appBackgroundMode = normalizeAppBackgroundMode(user.appBackgroundMode, user.appBackgroundUrl);
+      }
 
       return user;
     },

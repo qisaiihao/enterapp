@@ -20,8 +20,20 @@ export function normalizeAppBackgroundUrl(url) {
     return typeof url === 'string' ? url.trim() : '';
 }
 
+export function normalizeAppBackgroundMode(mode, backgroundUrl = '') {
+    const normalizedUrl = normalizeAppBackgroundUrl(backgroundUrl);
+    if (!normalizedUrl) {
+        return '';
+    }
+    return typeof mode === 'string' && mode.trim().toLowerCase() === 'header' ? 'header' : 'full';
+}
+
 export function getRawAppBackgroundUrl(userInfo = null) {
     return normalizeAppBackgroundUrl(userInfo && userInfo.appBackgroundUrl);
+}
+
+export function getRawAppBackgroundMode(userInfo = null) {
+    return normalizeAppBackgroundMode(userInfo && userInfo.appBackgroundMode, getRawAppBackgroundUrl(userInfo));
 }
 
 export function getCachedAppBackgroundUrl() {
@@ -62,16 +74,18 @@ export async function resolveAppBackgroundUrl(url) {
 
 export async function syncAppBackgroundFromUserInfo(userInfo, { emit = false } = {}) {
     const rawUrl = getRawAppBackgroundUrl(userInfo);
+    const mode = getRawAppBackgroundMode(userInfo);
     if (!rawUrl) {
         setCachedAppBackgroundUrl('');
         if (emit) {
             emitAppBackgroundUpdated({
                 url: '',
                 rawUrl: '',
+                mode: '',
                 cleared: true
             });
         }
-        return '';
+        return { url: '', mode: '' };
     }
     const resolvedUrl = await resolveAppBackgroundUrl(rawUrl);
     setCachedAppBackgroundUrl(resolvedUrl);
@@ -79,14 +93,22 @@ export async function syncAppBackgroundFromUserInfo(userInfo, { emit = false } =
         emitAppBackgroundUpdated({
             url: resolvedUrl,
             rawUrl,
+            mode,
             cleared: !resolvedUrl
         });
     }
-    return resolvedUrl;
+    return {
+        url: resolvedUrl,
+        mode
+    };
 }
 
 export async function applyUserInfoWithAppBackground(userInfo, { emit = true, writeStorage = true, writeGlobal = true } = {}) {
     const normalizedUserInfo = cloneUserInfo(userInfo);
+    if (normalizedUserInfo) {
+        normalizedUserInfo.appBackgroundUrl = getRawAppBackgroundUrl(normalizedUserInfo);
+        normalizedUserInfo.appBackgroundMode = getRawAppBackgroundMode(normalizedUserInfo);
+    }
     const app = getAppInstance();
 
     if (writeGlobal && app) {
@@ -110,7 +132,7 @@ export async function applyUserInfoWithAppBackground(userInfo, { emit = true, wr
     if (!normalizedUserInfo) {
         setCachedAppBackgroundUrl('');
         if (emit) {
-            emitAppBackgroundUpdated({ url: '', rawUrl: '', cleared: true });
+            emitAppBackgroundUpdated({ url: '', rawUrl: '', mode: '', cleared: true });
         }
         return null;
     }
@@ -162,17 +184,18 @@ export async function applyAuthenticatedUserSession(
     };
 }
 
-export async function updateCurrentUserAppBackground(rawUrl, { emit = true } = {}) {
+export async function updateCurrentUserAppBackground(rawUrl, { emit = true, mode } = {}) {
     const app = getAppInstance();
     let nextUserInfo = null;
+    const normalizedRawUrl = normalizeAppBackgroundUrl(rawUrl);
 
     if (app && app.globalData && app.globalData.userInfo) {
-        nextUserInfo = { ...app.globalData.userInfo, appBackgroundUrl: normalizeAppBackgroundUrl(rawUrl) };
+        nextUserInfo = { ...app.globalData.userInfo, appBackgroundUrl: normalizedRawUrl };
     } else {
         try {
             const storedUserInfo = uni.getStorageSync('userInfo');
             if (storedUserInfo && typeof storedUserInfo === 'object') {
-                nextUserInfo = { ...storedUserInfo, appBackgroundUrl: normalizeAppBackgroundUrl(rawUrl) };
+                nextUserInfo = { ...storedUserInfo, appBackgroundUrl: normalizedRawUrl };
             }
         } catch (_) {}
     }
@@ -180,10 +203,12 @@ export async function updateCurrentUserAppBackground(rawUrl, { emit = true } = {
     if (!nextUserInfo) {
         setCachedAppBackgroundUrl('');
         if (emit) {
-            emitAppBackgroundUpdated({ url: '', rawUrl: '', cleared: true });
+            emitAppBackgroundUpdated({ url: '', rawUrl: '', mode: '', cleared: true });
         }
         return null;
     }
+
+    nextUserInfo.appBackgroundMode = normalizeAppBackgroundMode(mode || nextUserInfo.appBackgroundMode, normalizedRawUrl);
 
     return applyUserInfoWithAppBackground(nextUserInfo, { emit, writeStorage: true, writeGlobal: true });
 }

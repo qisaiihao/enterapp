@@ -224,7 +224,7 @@ export default {
 
 .timeline-post-item {
     padding: 20rpx 0;
-    border-bottom: 1rpx solid #f8f8f8;
+    border-bottom: 1rpx solid var(--app-surface-divider, #f8f8f8);
     cursor: pointer;
     transition: background-color 0.2s ease;
     position: relative;

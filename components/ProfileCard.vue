@@ -174,7 +174,7 @@ export default {
 .growth-count {
     font-size: 30rpx;
     font-weight: 600;
-    color: #333;
+    color: var(--profile-meta-color, #333);
 }
 
 .profile-avatar-large {
@@ -204,7 +204,7 @@ export default {
     font-weight: 600;
     font-size: 30rpx;
     line-height: 36rpx;
-    color: #000000;
+    color: var(--profile-name-color, #000000);
     margin-bottom: 20rpx;
     text-align: left;
 }
@@ -223,7 +223,7 @@ export default {
     font-weight: 600;
     font-size: 24rpx;
     line-height: 30rpx;
-    color: #000000;
+    color: var(--profile-bio-color, #000000);
     text-align: left;
     margin-bottom: 20rpx;
     cursor: pointer;

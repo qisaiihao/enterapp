@@ -22,6 +22,20 @@ const { createFavoriteHandlers } = require('./handlers/favorites');
 const draftHandlers = createDraftHandlers({ db });
 const favoriteHandlers = createFavoriteHandlers({ db, cloud });
 
+function normalizeAppBackgroundUrl(url) {
+  return typeof url === 'string' ? url.trim() : '';
+}
+
+function normalizeAppBackgroundMode(mode, backgroundUrl = '') {
+  const normalizedUrl = normalizeAppBackgroundUrl(backgroundUrl);
+  if (!normalizedUrl) {
+    return '';
+  }
+  return typeof mode === 'string' && mode.trim().toLowerCase() === 'header'
+    ? 'header'
+    : 'full';
+}
+
 // 云函数入口函数
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
@@ -99,6 +113,7 @@ exports.main = async (event, context) => {
         region: 1,
         signatureUrl: 1,
         appBackgroundUrl: 1,
+        appBackgroundMode: 1,
         poemId: 1,
         password: 1,
         phoneNumber: 1,
@@ -121,6 +136,7 @@ exports.main = async (event, context) => {
       region: result.region,
       signatureUrl: result.signatureUrl,
       appBackgroundUrl: result.appBackgroundUrl,
+      appBackgroundMode: normalizeAppBackgroundMode(result.appBackgroundMode, result.appBackgroundUrl),
       poemId: result.poemId,
       password: result.password,
       phoneNumber: result.phoneNumber,
@@ -225,6 +241,8 @@ exports.main = async (event, context) => {
     }));
 
     console.log('【profile云函数】最终返回 posts 数量:', posts.length);
+
+    userInfo.appBackgroundMode = normalizeAppBackgroundMode(userInfo.appBackgroundMode, userInfo.appBackgroundUrl);
 
     return {
       success: true,

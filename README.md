@@ -614,7 +614,7 @@ export function optimizeImage(url, options = {}) {
 <image :src="optimizeImage(post.imageUrl, { width: 375, quality: 75 })" />
 ```
 
-## � 多端适配
+## 📱 多端适配
 
 ### 微信小程序
 - **登录方式**：微信授权登录

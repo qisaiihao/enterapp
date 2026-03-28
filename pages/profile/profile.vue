@@ -1,22 +1,37 @@
 <template>
-    <view class="profile-page-root" :style="profileForegroundStyle">
-        <!-- 主页背景图层 -->
+    <view
+        class="profile-page-root"
+        :class="{ 'profile-page-root--with-background': isFullBackground || isHeaderBackground }"
+        :style="profileForegroundStyle"
+    >
+        <!-- 主页背景图层 - 全屏模式 -->
         <view
-            v-if="hasAppBackground"
+            v-if="isFullBackground"
             class="profile-bg-image"
             :style="appBackgroundPageStyle"
         ></view>
-        <view v-if="hasAppBackground" class="profile-bg-overlay"></view>
+        <view v-if="isFullBackground" class="profile-bg-overlay"></view>
+
+        <!-- 主页背景图层 - 顶部图片模式 -->
+        <view
+            v-if="isHeaderBackground"
+            class="profile-bg-image profile-bg-image--header"
+            :style="appBackgroundPageStyle"
+        ></view>
+        <view v-if="isHeaderBackground" class="profile-bg-overlay profile-bg-overlay--header"></view>
 
         <!-- pages/profile/profile.wxml -->
-        <view class="container">
+        <view :class="['container', { 'container--with-background': isFullBackground || isHeaderBackground }]">
             <!-- 骨架屏：当 isLoading 为 true 时，显示骨架屏，其他所有内容都不渲染 -->
             <view v-if="!hasInitialSnapshot && isLoading">
                 <skeleton pageType="profile" />
             </view>
 
             <!-- 真实内容：当 isLoading 为 false 时，显示真实页面 -->
-            <view v-else class="scroll-container">
+            <view
+                v-else
+                :class="['scroll-container', { 'scroll-container--with-background': isFullBackground || isHeaderBackground }]"
+            >
                 <!-- Sidebar Component -->
                 <Sidebar
                     :isVisible="isSidebarOpen"
@@ -27,20 +42,38 @@
                 />
 
                 <!-- Main Content -->
-                <view class="main-content" :class="{ 'main-content--with-background': hasAppBackground }">
-                    <!-- User Profile Card -->
-                    <ProfileCard
-                        :user-info="userInfo"
-                        :follower-count="followerCount"
-                        :growth-stats="growthStats"
-                        :is-self="isViewingSelf"
-                        :show-growth-stats="false"
-                        @avatar-error="onAvatarError"
-                        @edit-profile="navigateToEditProfile"
-                        @toggle-sidebar="toggleSidebar"
-                        @navigate-fans="navigateToFans"
-                        @manage-background="handleManageBackground"
-                    />
+                <view
+                    class="main-content"
+                    :class="{
+                        'main-content--with-background': isFullBackground,
+                        'main-content--header-background': isHeaderBackground
+                    }"
+                >
+                    <view
+                        class="profile-hero-section"
+                        :class="{ 'profile-hero-section--with-background': isHeaderBackground }"
+                        :style="profileHeroStyle"
+                    >
+                        <view v-if="isHeaderBackground" class="profile-hero-bg-image"></view>
+                        <view v-if="isHeaderBackground" class="profile-hero-bg-overlay"></view>
+                        <ProfileCard
+                            :user-info="userInfo"
+                            :follower-count="followerCount"
+                            :growth-stats="growthStats"
+                            :is-self="isViewingSelf"
+                            :show-growth-stats="false"
+                            @avatar-error="onAvatarError"
+                            @edit-profile="navigateToEditProfile"
+                            @toggle-sidebar="toggleSidebar"
+                            @navigate-fans="navigateToFans"
+                            @manage-background="handleManageBackground"
+                        />
+                    </view>
+                    <view v-if="isHeaderBackground" class="profile-body-shell-cap"></view>
+                    <view
+                        class="profile-body-shell"
+                        :class="{ 'profile-body-shell--header-background': isHeaderBackground }"
+                    >
                     <!-- Tab Navigation -->
                     <view class="tab-navigation">
                         <view :class="'tab-item ' + (currentTab === 'posts' ? 'active' : '')" data-tab="posts" @tap="switchTab">
@@ -147,10 +180,31 @@
                             @retry="loadTimelineData"
                         />
                     </view>
+                    </view>
                 </view>
             </view>
         </view>
         <!-- 这是一个<view class="container"> 添加的结束标签 -->
+
+        <view
+            v-if="backgroundActionSheet.visible"
+            class="background-action-sheet-mask"
+            @tap="handleBackgroundActionSheetCancel"
+        ></view>
+        <view
+            v-if="backgroundActionSheet.visible"
+            class="background-action-sheet-panel"
+            @tap.stop
+        >
+            <view
+                v-for="(item, index) in backgroundActionSheet.items"
+                :key="`${item}-${index}`"
+                class="background-action-sheet-item"
+                @tap="handleBackgroundActionSheetSelect(index)"
+            >
+                <text class="background-action-sheet-text">{{ item }}</text>
+            </view>
+        </view>
 
         <!-- #ifndef MP-WEIXIN -->
         <app-tab-bar ref="customTabBar" :style="tabBarStyle" />
@@ -216,25 +270,27 @@ import { updateTabBarStatus } from '@/utils/tabBarCompatibility.js';
 import { invalidateMyProfile } from '@/api-cache/profile.js';
 import { emitPostVisibilityChanged, emitFavoriteChanged } from '@/utils/events.js';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
-import { applyUserInfoWithAppBackground, updateCurrentUserAppBackground } from '@/utils/appBackground.js';
+import { applyUserInfoWithAppBackground, normalizeAppBackgroundMode } from '@/utils/appBackground.js';
 const { uploadFile } = require('../../utils/uploader.js');
 const { cloudCall } = require('../../utils/cloudCall.js');
 
 const app = getApp();
 const PAGE_SIZE = 5;
 const PROFILE_BACKGROUND_THEME_VARS = Object.freeze({
-    '--app-post-wrapper-bg': 'rgba(255, 255, 255, 0.68)',
+    '--app-post-wrapper-bg': 'linear-gradient(90deg, rgba(235, 200, 141, 0.05) 0%, rgba(255, 255, 255, 0) 100%)',
     '--app-post-wrapper-shadow': '0 8rpx 24rpx rgba(0, 0, 0, 0.10)',
     '--app-post-wrapper-radius': '20rpx',
     '--app-post-section-bg': 'transparent',
     '--app-subtle-surface-bg': 'rgba(255, 255, 255, 0.58)',
-    '--app-surface-bg': 'rgba(255, 255, 255, 0.72)',
+    '--app-surface-bg': 'transparent',
+    '--app-surface-divider': 'rgba(17, 17, 17, 0.18)',
     '--app-surface-shadow': '0 8rpx 24rpx rgba(0, 0, 0, 0.08)',
     '--app-surface-border-line': '1rpx solid rgba(255, 255, 255, 0.30)',
     '--app-surface-title-color': 'rgba(17, 17, 17, 0.88)',
     '--app-surface-text-color': 'rgba(17, 17, 17, 0.74)',
     '--app-surface-meta-color': 'rgba(17, 17, 17, 0.56)',
     '--app-surface-accent-color': '#6f8065',
+    '--app-post-discussion-quote-bg': 'transparent',
     '--app-post-author-color': 'rgba(17, 17, 17, 0.84)',
     '--app-post-title-color': 'rgba(17, 17, 17, 0.94)',
     '--app-post-content-color': 'rgba(17, 17, 17, 0.76)',
@@ -246,29 +302,31 @@ const PROFILE_BACKGROUND_THEME_VARS = Object.freeze({
     '--app-post-original-accent-color': 'rgba(17, 17, 17, 0.84)',
     '--profile-poemid-color': 'rgba(17, 17, 17, 0.56)',
     '--profile-meta-color': 'rgba(17, 17, 17, 0.56)',
+    '--profile-name-color': 'rgba(17, 17, 17, 0.94)',
+    '--profile-bio-color': 'rgba(17, 17, 17, 0.84)',
     '--app-fixed-bar-bg': 'rgba(255, 255, 255, 0.78)',
     '--app-fixed-bar-shadow': '0 -6rpx 20rpx rgba(0, 0, 0, 0.08)',
     '--app-tab-icon-wrap-bg': 'rgba(255, 255, 255, 0.66)',
     '--app-tab-icon-inner-bg': 'rgba(255, 255, 255, 0.88)',
     '--app-tab-icon-wrap-shadow': '0 12rpx 24rpx rgba(0, 0, 0, 0.12)',
-    '--profile-button-bg': 'rgba(255, 255, 255, 0.82)',
+    '--profile-button-bg': 'transparent',
     '--profile-button-active-bg': 'rgba(255, 255, 255, 0.90)',
-    '--profile-button-border': '1rpx solid rgba(255, 255, 255, 0.40)',
+    '--profile-button-border': '1.5rpx solid rgba(17, 17, 17, 0.35)',
     '--profile-button-shadow': '0 6rpx 18rpx rgba(0, 0, 0, 0.08)',
     '--profile-button-text-color': '#2a2a2a',
-    '--profile-icon-button-bg': 'rgba(255, 255, 255, 0.74)',
-    '--profile-icon-button-active-bg': 'rgba(255, 255, 255, 0.86)',
-    '--profile-icon-button-border': '1rpx solid rgba(255, 255, 255, 0.32)',
-    '--profile-icon-button-shadow': '0 6rpx 16rpx rgba(0, 0, 0, 0.08)',
+    '--profile-icon-button-bg': 'transparent',
+    '--profile-icon-button-active-bg': 'transparent',
+    '--profile-icon-button-border': 'none',
+    '--profile-icon-button-shadow': 'none',
     '--profile-upload-icon-opacity': '0.90',
     '--profile-upload-icon-filter': 'grayscale(1) brightness(0.18)',
     '--profile-menu-icon-opacity': '0.84',
     '--profile-menu-icon-filter': 'grayscale(1) brightness(0.24)',
-    '--profile-tab-nav-bg': 'rgba(255, 255, 255, 0.72)',
-    '--profile-tab-nav-border': 'rgba(255, 255, 255, 0.30)',
-    '--profile-tab-nav-shadow': '0 8rpx 24rpx rgba(0, 0, 0, 0.08)',
+    '--profile-tab-nav-bg': 'transparent',
+    '--profile-tab-nav-border': 'transparent',
+    '--profile-tab-nav-shadow': 'none',
     '--profile-tab-item-bg': 'transparent',
-    '--profile-tab-item-active-bg': 'rgba(255, 255, 255, 0.18)',
+    '--profile-tab-item-active-bg': 'transparent',
     '--profile-tab-indicator-color': 'rgba(17, 17, 17, 0.78)',
     '--profile-tab-icon-filter': 'grayscale(0.45) brightness(0.72)',
     '--profile-tab-icon-opacity': '0.88',
@@ -279,6 +337,25 @@ const PROFILE_BACKGROUND_THEME_VARS = Object.freeze({
     '--profile-empty-surface-shadow': '0 8rpx 24rpx rgba(0, 0, 0, 0.08)',
     '--profile-empty-text-color': 'rgba(17, 17, 17, 0.56)',
     '--profile-loading-footer-color': 'rgba(17, 17, 17, 0.56)'
+});
+const PROFILE_HEADER_THEME_VARS = Object.freeze({
+    '--profile-poemid-color': 'rgba(255, 255, 255, 0.76)',
+    '--profile-meta-color': 'rgba(255, 255, 255, 0.82)',
+    '--profile-name-color': '#ffffff',
+    '--profile-bio-color': 'rgba(255, 255, 255, 0.92)',
+    '--profile-button-bg': 'rgba(255, 255, 255, 0.16)',
+    '--profile-button-active-bg': 'rgba(255, 255, 255, 0.24)',
+    '--profile-button-border': '1.5rpx solid rgba(255, 255, 255, 0.34)',
+    '--profile-button-shadow': '0 10rpx 24rpx rgba(0, 0, 0, 0.18)',
+    '--profile-button-text-color': '#ffffff',
+    '--profile-icon-button-bg': 'rgba(255, 255, 255, 0.12)',
+    '--profile-icon-button-active-bg': 'rgba(255, 255, 255, 0.20)',
+    '--profile-icon-button-border': '1.5rpx solid rgba(255, 255, 255, 0.28)',
+    '--profile-icon-button-shadow': '0 10rpx 24rpx rgba(0, 0, 0, 0.12)',
+    '--profile-upload-icon-opacity': '1',
+    '--profile-upload-icon-filter': 'brightness(0) invert(1)',
+    '--profile-menu-icon-opacity': '0.94',
+    '--profile-menu-icon-filter': 'brightness(0) invert(1)'
 });
 export default {
     components: {
@@ -361,6 +438,10 @@ export default {
                 isHidden: false
             },
             // 花草成长统计
+            backgroundActionSheet: {
+                visible: false,
+                items: []
+            },
             growthStats: {
                 seed: 0,
                 leaf: 0,
@@ -378,10 +459,13 @@ export default {
     },
     computed: {
         profileForegroundStyle() {
-            return this.hasAppBackground ? PROFILE_BACKGROUND_THEME_VARS : {};
+            return this.isFullBackground ? PROFILE_BACKGROUND_THEME_VARS : {};
+        },
+        profileHeroStyle() {
+            return this.isHeaderBackground ? { ...PROFILE_HEADER_THEME_VARS, ...this.appBackgroundPageStyle } : {};
         },
         tabBarStyle() {
-            if (!this.hasAppBackground) {
+            if (!this.isFullBackground) {
                 return {};
             }
             return {
@@ -389,7 +473,8 @@ export default {
                 '--app-fixed-bar-shadow': 'none',
                 '--app-tab-icon-wrap-bg': '#f8f8f8',
                 '--app-tab-icon-inner-bg': '#ffffff',
-                '--app-tab-icon-wrap-shadow': '0 18rpx 32rpx rgba(0, 0, 0, 0.16)'
+                '--app-tab-icon-wrap-shadow': '0 18rpx 32rpx rgba(0, 0, 0, 0.16)',
+                '--app-tab-text-color': 'rgba(17, 17, 17, 0.65)'
             };
         }
     },
@@ -490,10 +575,47 @@ export default {
     },
     onUnload: function () {
         try { uni.$off && uni.$off('comment-count-changed'); } catch (_) {}
+        this.finishBackgroundActionSheet({ cancelled: true, silent: true });
     },
     methods: {
         calcBookHeight(name) {
           return calcBookHeightUtil(name);
+        },
+        showBackgroundActionSheet: function (items = []) {
+            this.finishBackgroundActionSheet({ cancelled: true, silent: true });
+            this.backgroundActionSheet = {
+                visible: true,
+                items: Array.isArray(items) ? items.slice() : []
+            };
+            return new Promise((resolve, reject) => {
+                this._backgroundActionSheetResolve = resolve;
+                this._backgroundActionSheetReject = reject;
+            });
+        },
+        finishBackgroundActionSheet: function ({ tapIndex = -1, cancelled = false, silent = false } = {}) {
+            const resolve = this._backgroundActionSheetResolve;
+            const reject = this._backgroundActionSheetReject;
+            this._backgroundActionSheetResolve = null;
+            this._backgroundActionSheetReject = null;
+            this.backgroundActionSheet = {
+                visible: false,
+                items: []
+            };
+            if (cancelled) {
+                if (!silent && typeof reject === 'function') {
+                    reject({ errMsg: 'showActionSheet:fail cancel' });
+                }
+                return;
+            }
+            if (typeof resolve === 'function') {
+                resolve({ tapIndex });
+            }
+        },
+        handleBackgroundActionSheetSelect: function (index) {
+            this.finishBackgroundActionSheet({ tapIndex: index });
+        },
+        handleBackgroundActionSheetCancel: function () {
+            this.finishBackgroundActionSheet({ cancelled: true });
         },
         // 处理匿名头像点击事件的函数
         handleAnonymousAvatarClick(e) {
@@ -706,6 +828,7 @@ export default {
                 this.userInfo ||
                 {};
             const nextUser = user ? { ...sessionUser, ...user } : { ...sessionUser };
+            nextUser.appBackgroundMode = normalizeAppBackgroundMode(nextUser.appBackgroundMode, nextUser.appBackgroundUrl);
             if (nextUser && nextUser.birthday) {
                 nextUser.age = this.calculateAge(nextUser.birthday);
             } else if (nextUser) {
@@ -790,7 +913,8 @@ export default {
                 userInfo: nextUser,
                 followerCount,
                 growthStats: extractGrowthStats(nextUser),
-                appBackgroundResolvedUrl: (nextUser && nextUser.appBackgroundUrl) || ''
+                appBackgroundResolvedUrl: (nextUser && nextUser.appBackgroundUrl) || '',
+                appBackgroundMode: (nextUser && nextUser.appBackgroundMode) || ''
             };
         },
 
@@ -858,6 +982,7 @@ export default {
                 followerCount: header.followerCount,
                 growthStats: header.growthStats,
                 appBackgroundResolvedUrl: header.appBackgroundResolvedUrl,
+                appBackgroundMode: header.appBackgroundMode,
                 hasInitialSnapshot: true,
                 isLoading: false
             };
@@ -965,6 +1090,7 @@ export default {
                                 followerCount: this.followerCount || 0,
                                 growthStats: extractGrowthStats(nextUser),
                                 appBackgroundResolvedUrl: nextUser.appBackgroundUrl || '',
+                                appBackgroundMode: nextUser.appBackgroundMode || '',
                                 hasInitialSnapshot: true,
                                 isLoading: false
                             });
@@ -1104,8 +1230,10 @@ export default {
                         this.userInfo ||
                         {};
                     const nextUser = user ? { ...sessionUser, ...user } : { ...sessionUser };
+                    nextUser.appBackgroundMode = normalizeAppBackgroundMode(nextUser.appBackgroundMode, nextUser.appBackgroundUrl);
                     if (nextUser && nextUser.birthday) nextUser.age = this.calculateAge(nextUser.birthday); else if (nextUser) nextUser.age = '';
                     this.appBackgroundResolvedUrl = (nextUser && nextUser.appBackgroundUrl) || '';
+                    this.appBackgroundMode = (nextUser && nextUser.appBackgroundMode) || '';
                     this.setData({ userInfo: nextUser || {}, isLoading: false });
                     // 立即更新成长统计
                     this.updateGrowthStats();
@@ -1115,8 +1243,10 @@ export default {
                     this.setData({ isLoading: false });
                     const storedUserInfo = uni.getStorageSync('userInfo');
                     if (storedUserInfo) {
+                        storedUserInfo.appBackgroundMode = normalizeAppBackgroundMode(storedUserInfo.appBackgroundMode, storedUserInfo.appBackgroundUrl);
                         if (storedUserInfo.birthday) storedUserInfo.age = this.calculateAge(storedUserInfo.birthday);
                         this.appBackgroundResolvedUrl = storedUserInfo.appBackgroundUrl || '';
+                        this.appBackgroundMode = storedUserInfo.appBackgroundMode || '';
                         this.setData({ userInfo: storedUserInfo });
                     } else {
                         uni.showToast({ title: '获取数据失败', icon: 'none' });
@@ -1729,27 +1859,49 @@ export default {
         // 主页背景管理菜单
         handleManageBackground: async function () {
             const hasBackground = !!(this.appBackgroundResolvedUrl || (this.userInfo && this.userInfo.appBackgroundUrl));
-            const itemList = hasBackground ? ['更换背景', '移除背景'] : ['上传背景', '移除背景'];
-
-            uni.showActionSheet({
-                itemList,
-                success: ({ tapIndex }) => {
-                    if (tapIndex === 0) {
-                        this.handleReplaceBackground();
-                        return;
-                    }
-                    if (tapIndex === 1) {
-                        this.handleClearBackground();
-                    }
-                },
-                fail: (err) => {
-                    if (!err || err.errMsg !== 'showActionSheet:fail cancel') {
-                        console.warn('[profile] background action sheet failed', err);
-                    }
+            const itemList = hasBackground
+                ? ['\u66f4\u6362\u80cc\u666f', '\u79fb\u9664\u80cc\u666f']
+                : ['\u4e0a\u4f20\u80cc\u666f', '\u79fb\u9664\u80cc\u666f'];
+            try {
+                const { tapIndex } = await this.showBackgroundActionSheet(itemList);
+                if (tapIndex === 0) {
+                    setTimeout(() => this.handleReplaceBackground(), 120);
+                    return;
                 }
-            });
+                if (tapIndex === 1) {
+                    this.handleClearBackground();
+                }
+            } catch (err) {
+                if (!err || err.errMsg !== 'showActionSheet:fail cancel') {
+                    console.warn('[profile] background action sheet failed', err);
+                }
+            }
         },
-        handleReplaceBackground: function () {
+        selectBackgroundMode: async function () {
+            try {
+                const { tapIndex } = await this.showBackgroundActionSheet([
+                    '\u5168\u5c4f\u80cc\u666f',
+                    '\u56fe\u7247\u80cc\u666f'
+                ]);
+                return tapIndex === 1 ? 'header' : 'full';
+            } catch (err) {
+                if (err && err.errMsg === 'showActionSheet:fail cancel') {
+                    return '';
+                }
+                throw err;
+            }
+        },
+        handleReplaceBackground: async function () {
+            let backgroundMode = '';
+            try {
+                backgroundMode = await this.selectBackgroundMode();
+            } catch (err) {
+                console.warn('[profile] background mode action sheet failed', err);
+                return;
+            }
+            if (!backgroundMode) {
+                return;
+            }
             uni.chooseImage({
                 count: 1,
                 sizeType: ['compressed'],
@@ -1762,10 +1914,13 @@ export default {
                             `user_backgrounds/${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`,
                             filePath
                         );
-                        await cloudCall('updateUserProfile', { appBackgroundUrl: fileID });
+                        await cloudCall('updateUserProfile', {
+                            appBackgroundUrl: fileID,
+                            appBackgroundMode: backgroundMode
+                        });
                         invalidateMyInfo();
                         await this.refreshProfileAtomically({ reason: 'background-changed', forceRefresh: true });
-                        await updateCurrentUserAppBackground(this.appBackgroundResolvedUrl, { emit: true }).catch(() => {});
+                        await this.refreshAppBackground();
                         uni.showToast({ title: '背景已更新', icon: 'success' });
                     } catch (err) {
                         console.error('[profile] background upload failed', err);
@@ -1796,7 +1951,6 @@ export default {
                         await cloudCall('updateUserProfile', { clearAppBackground: true });
                         invalidateMyInfo();
                         await this.refreshProfileAtomically({ reason: 'background-cleared', forceRefresh: true });
-                        await updateCurrentUserAppBackground(this.appBackgroundResolvedUrl, { emit: true }).catch(() => {});
                         uni.showToast({ title: '背景已移除', icon: 'success' });
                     } catch (err) {
                         console.error('[profile] clear background failed', err);
@@ -2259,8 +2413,13 @@ export default {
 <style>
 /* pages/profile/profile.wxss */
 .profile-page-root {
+    position: relative;
     min-height: 100vh;
     background-color: #ffffff;
+}
+
+.profile-page-root--with-background {
+    background-color: transparent;
 }
 
 .profile-bg-image {
@@ -2287,6 +2446,16 @@ export default {
     pointer-events: none;
 }
 
+.profile-bg-image--header {
+    height: 44vh;
+    position: fixed;
+}
+
+.profile-bg-overlay--header {
+    height: 44vh;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.20) 50%, rgba(255, 255, 255, 0.92) 85%, rgba(255, 255, 255, 1) 100%);
+}
+
 .container {
     width: 100%;
     height: 100vh;
@@ -2295,10 +2464,22 @@ export default {
     background-color: #ffffff;
 }
 
+.container--with-background {
+    min-height: 100vh;
+    height: auto;
+    background-color: transparent;
+}
+
 .scroll-container {
     width: 100%;
     height: 100%;
     background-color: #ffffff;
+}
+
+.scroll-container--with-background {
+    min-height: 100vh;
+    height: auto;
+    background-color: transparent;
 }
 
 
@@ -2312,9 +2493,92 @@ export default {
 
 .main-content--with-background {
     background-color: transparent;
+    --app-post-discussion-quote-bg: transparent;
     --app-post-wrapper-margin: 0 24rpx 20rpx 24rpx;
     --app-post-wrapper-border: none;
     --app-post-wrapper-divider: none;
+}
+
+.main-content--header-background {
+    background-color: transparent;
+}
+
+.main-content--with-background .discussion-content .discussion-sentence-card {
+    background: transparent !important;
+}
+
+.profile-hero-section {
+    position: relative;
+    overflow: hidden;
+}
+
+.profile-hero-section--with-background {
+    min-height: 560rpx;
+    background-color: #0f0f0f;
+}
+
+.profile-hero-bg-image,
+.profile-hero-bg-overlay {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    pointer-events: none;
+}
+
+.profile-hero-bg-image {
+    background-image: var(--app-background-image);
+    background-size: cover;
+    background-position: center top;
+    z-index: 0;
+}
+
+.profile-hero-bg-overlay {
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.16) 0%, rgba(0, 0, 0, 0.42) 100%);
+    z-index: 1;
+}
+
+.profile-hero-section .profile-card-center {
+    position: relative;
+    z-index: 2;
+}
+
+.profile-body-shell {
+    width: 100%;
+}
+
+.profile-body-shell-cap {
+    position: relative;
+    height: 0;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.profile-body-shell-cap::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 12rpx;
+    transform: translateY(-10rpx);
+    background-color: #ffffff;
+    border-radius: 40rpx 40rpx 0 0;
+}
+
+.profile-body-shell--header-background {
+    position: relative;
+    background-color: #ffffff;
+    margin-top: 0;
+    border-radius: 0;
+    padding-top: 0;
+    overflow: hidden;
+    z-index: 2;
+}
+
+.profile-body-shell--header-background .tab-item {
+    padding: 8rpx 10rpx 12rpx;
 }
 
 .header {
@@ -2700,6 +2964,55 @@ export default {
     font-size: 30rpx;
     font-weight: 600;
     color: #333;
+}
+
+.background-action-sheet-mask {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: rgba(0, 0, 0, 0.18);
+    z-index: 1200;
+}
+
+.background-action-sheet-panel {
+    position: fixed;
+    left: 24rpx;
+    right: 24rpx;
+    bottom: 144rpx;
+    bottom: calc(144rpx + constant(safe-area-inset-bottom));
+    bottom: calc(144rpx + env(safe-area-inset-bottom));
+    background: rgba(255, 255, 255, 0.96);
+    border-radius: 24rpx;
+    box-shadow: 0 18rpx 40rpx rgba(0, 0, 0, 0.14);
+    overflow: hidden;
+    z-index: 1201;
+    backdrop-filter: blur(14rpx);
+}
+
+.background-action-sheet-item {
+    min-height: 104rpx;
+    padding: 0 36rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1rpx solid #f0f0f0;
+}
+
+.background-action-sheet-item:last-child {
+    border-bottom: none;
+}
+
+.background-action-sheet-item:active {
+    background: #f5f5f5;
+}
+
+.background-action-sheet-text {
+    font-size: 32rpx;
+    font-weight: 500;
+    color: #333;
+    line-height: 1.4;
 }
 
 </style>

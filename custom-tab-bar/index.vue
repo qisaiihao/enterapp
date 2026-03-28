@@ -6,7 +6,7 @@
                     <image class="icon-img" :src="selected === index ? (item.selectedIconPath || item.iconPath) : item.iconPath" mode="aspectFill" />
                 </view>
             </view>
-            <text class="tab-bar-text" :style="'color: ' + (selected === index ? selectedColor : color)">{{ item.text }}</text>
+            <text class="tab-bar-text" :style="selected === index ? ('color: ' + selectedColor) : ''">{{ item.text }}</text>
         </view>
     </view>
 </template>
@@ -191,7 +191,7 @@ export default {
   align-items: center !important;
   justify-content: center !important;
   z-index: 1000 !important;
-  background: #ffffff !important;
+  background: var(--app-fixed-bar-bg, #ffffff) !important;
   box-sizing: border-box !important;
 }
 
@@ -242,6 +242,7 @@ export default {
   font-size: 22rpx;
   margin-top: 4rpx;
   transition: all 0.3s ease;
+  color: var(--app-tab-text-color, #999999);
 }
 
 /* 响应式间距调整 */

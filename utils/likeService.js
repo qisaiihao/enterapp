@@ -207,7 +207,7 @@ async function togglePostLike(postId, options = {}) {
         likeStatusCache.updateLikeStatus(postId, finalVotes, finalIsLiked);
     }
 
-    // ���¼�����, ͬ����ҳ�ĵ���״̬
+    // 触发点赞变更事件，同步各页面的点赞状态
     try { emitLikeChanged({ postId, votes: finalVotes, isLiked: finalIsLiked, pageTag }); } catch (_) {}
 
     return {

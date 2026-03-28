@@ -8,27 +8,12 @@ cloud.init({
 const db = cloud.database();
 const $ = db.command.aggregate;
 
-function normalizeAppBackgroundUrl(url) {
-  return typeof url === 'string' ? url.trim() : '';
-}
-
-function normalizeAppBackgroundMode(mode, backgroundUrl = '') {
-  const normalizedUrl = normalizeAppBackgroundUrl(backgroundUrl);
-  if (!normalizedUrl) {
-    return '';
-  }
-  return typeof mode === 'string' && mode.trim().toLowerCase() === 'header'
-    ? 'header'
-    : 'full';
-}
-
 // 云函数入口函数
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
   const currentOpenid = wxContext.OPENID || event.openid;
 
   if (!currentOpenid) {
-
     return {
       success: false,
       message: '无法获取用户 openid，请重新登录',
@@ -67,7 +52,7 @@ exports.main = async (event, context) => {
     // 获取被屏蔽的用户ID列表（用于过滤帖子，使用缓存）
     let blockedUserIds = [];
     try {
-      const getBlockedUserIds = require('./_lib/get-blocked-user-ids');
+      const getBlockedUserIds = require('../_lib/get-blocked-user-ids');
       blockedUserIds = await getBlockedUserIds(currentOpenid, db);
     } catch (blockError) {
       console.error('获取屏蔽列表失败:', blockError);
@@ -88,8 +73,6 @@ exports.main = async (event, context) => {
           occupation: 1,
           region: 1,
           signatureUrl: 1,
-          appBackgroundUrl: 1,
-          appBackgroundMode: 1,
           poemId: 1,
           growthCounts: 1
         })
@@ -132,8 +115,6 @@ exports.main = async (event, context) => {
           occupation: 1,
           region: 1,
           signatureUrl: 1,
-          appBackgroundUrl: 1,
-          appBackgroundMode: 1,
           poemId: 1,
           growthCounts: 1,
           // 不返回隐私信息（生日、年龄等）
@@ -147,11 +128,6 @@ exports.main = async (event, context) => {
     }
 
     const userInfo = profileData.list[0];
-    const canViewAppBackground = String(currentOpenid) === String(userId);
-    if (!canViewAppBackground) {
-      userInfo.appBackgroundUrl = '';
-      userInfo.appBackgroundMode = '';
-    }
     let posts = onlyProfile ? [] : (userInfo.posts || []);
     
     // 只有在非轻量级模式下才处理帖子
@@ -211,9 +187,6 @@ exports.main = async (event, context) => {
       if (userInfo.signatureUrl && userInfo.signatureUrl.startsWith('cloud://')) {
         fileIDs.push(userInfo.signatureUrl);
       }
-      if (userInfo.appBackgroundUrl && userInfo.appBackgroundUrl.startsWith('cloud://')) {
-        fileIDs.push(userInfo.appBackgroundUrl);
-      }
 
       if (fileIDs.length > 0) {
         try {
@@ -252,11 +225,6 @@ exports.main = async (event, context) => {
             userInfo.signatureUrl = urlMap.get(userInfo.signatureUrl);
           } else if (userInfo.signatureUrl && userInfo.signatureUrl.startsWith('cloud://')) {
             userInfo.signatureUrl = null;
-          }
-          if (userInfo.appBackgroundUrl && urlMap.has(userInfo.appBackgroundUrl)) {
-            userInfo.appBackgroundUrl = urlMap.get(userInfo.appBackgroundUrl);
-          } else if (userInfo.appBackgroundUrl && userInfo.appBackgroundUrl.startsWith('cloud://')) {
-            userInfo.appBackgroundUrl = '';
           }
         } catch (fileError) {
           console.error('文件URL转换失败:', fileError);
@@ -329,9 +297,6 @@ exports.main = async (event, context) => {
       if (userInfo.signatureUrl && userInfo.signatureUrl.startsWith('cloud://')) {
         fileIDs.push(userInfo.signatureUrl);
       }
-      if (userInfo.appBackgroundUrl && userInfo.appBackgroundUrl.startsWith('cloud://')) {
-        fileIDs.push(userInfo.appBackgroundUrl);
-      }
       
       if (fileIDs.length > 0) {
         try {
@@ -349,16 +314,11 @@ exports.main = async (event, context) => {
           if (userInfo.signatureUrl && urlMap.has(userInfo.signatureUrl)) {
             userInfo.signatureUrl = urlMap.get(userInfo.signatureUrl);
           }
-          if (userInfo.appBackgroundUrl && urlMap.has(userInfo.appBackgroundUrl)) {
-            userInfo.appBackgroundUrl = urlMap.get(userInfo.appBackgroundUrl);
-          }
         } catch (fileError) {
           console.error('文件URL转换失败:', fileError);
         }
       }
     }
-
-    userInfo.appBackgroundMode = normalizeAppBackgroundMode(userInfo.appBackgroundMode, userInfo.appBackgroundUrl);
 
     return {
       success: true,
@@ -370,8 +330,6 @@ exports.main = async (event, context) => {
         region: userInfo.region || '',
         bio: userInfo.bio || '这个人很懒，什么都没有写...',
         signatureUrl: userInfo.signatureUrl || '',
-        appBackgroundUrl: userInfo.appBackgroundUrl || '',
-        appBackgroundMode: userInfo.appBackgroundMode || '',
         poemId: userInfo.poemId || '',
         growthCounts: userInfo.growthCounts || { seed: 0, leaf: 0, flower: 0, peach: 0 }
       },

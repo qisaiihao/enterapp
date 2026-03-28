@@ -1284,7 +1284,7 @@ export default {
         // 模式切换现在通过底部tabBar实现，不再需要手动切换
 
         // 同步点赞状态：从缓存中获取最新的点赞状态
-                // ͬ������״̬���ӻ����л�ȡ���µĵ���״̬ + ���µ�ǰ�б�UI
+                // 同步点赞状态，减少切换后重新拉取，并更新当前列表 UI
         syncLikeStatusFromCache: function () {
             try {
                 const allPostIds = [];
@@ -1330,7 +1330,7 @@ export default {
                     this.setData(updates);
                 }
             } catch (err) {
-                console.error('����ҳ��ͬ������״̬ʧ��:', err);
+                console.error('首页同步点赞状态失败:', err);
             }
         },
 

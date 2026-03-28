@@ -1,7 +1,9 @@
 import { EVENTS } from '@/utils/events.js';
 import {
     getCachedAppBackgroundUrl,
+    getRawAppBackgroundMode,
     getRawAppBackgroundUrl,
+    normalizeAppBackgroundMode,
     normalizeAppBackgroundUrl,
     setCachedAppBackgroundUrl,
     syncAppBackgroundFromUserInfo
@@ -30,12 +32,19 @@ function readCurrentUserInfo() {
 export default {
     data() {
         return {
-            appBackgroundResolvedUrl: ''
+            appBackgroundResolvedUrl: '',
+            appBackgroundMode: ''
         };
     },
     computed: {
         hasAppBackground() {
-            return !!this.appBackgroundResolvedUrl;
+            return !!this.appBackgroundResolvedUrl && !!this.appBackgroundMode;
+        },
+        isFullBackground() {
+            return this.hasAppBackground && this.appBackgroundMode === 'full';
+        },
+        isHeaderBackground() {
+            return this.hasAppBackground && this.appBackgroundMode === 'header';
         },
         appBackgroundPageStyle() {
             if (!this.hasAppBackground) {
@@ -58,12 +67,15 @@ export default {
         if (typeof uni !== 'undefined' && typeof uni.$on === 'function') {
             this._appBackgroundHandler = (payload = {}) => {
                 const nextUrl = normalizeAppBackgroundUrl(payload.url);
+                const nextMode = normalizeAppBackgroundMode(payload.mode, nextUrl);
                 if (!nextUrl && payload.cleared) {
                     this.appBackgroundResolvedUrl = '';
+                    this.appBackgroundMode = '';
                     return;
                 }
                 if (nextUrl) {
                     this.appBackgroundResolvedUrl = nextUrl;
+                    this.appBackgroundMode = nextMode;
                     return;
                 }
                 this.refreshAppBackground();
@@ -82,11 +94,13 @@ export default {
             const requestId = ++this._appBackgroundRequestId;
             const currentUserInfo = readCurrentUserInfo();
             const rawUrl = getRawAppBackgroundUrl(currentUserInfo);
+            const rawMode = getRawAppBackgroundMode(currentUserInfo);
 
             if (!currentUserInfo || !(currentUserInfo._openid || currentUserInfo.openid)) {
                 if (requestId === this._appBackgroundRequestId) {
                     setCachedAppBackgroundUrl('');
                     this.appBackgroundResolvedUrl = '';
+                    this.appBackgroundMode = '';
                 }
                 return;
             }
@@ -95,19 +109,26 @@ export default {
                 if (requestId === this._appBackgroundRequestId) {
                     setCachedAppBackgroundUrl('');
                     this.appBackgroundResolvedUrl = '';
+                    this.appBackgroundMode = '';
                 }
                 return;
             }
 
             try {
-                const resolvedUrl = await syncAppBackgroundFromUserInfo(currentUserInfo, { emit: false });
+                const backgroundState = await syncAppBackgroundFromUserInfo(currentUserInfo, { emit: false });
                 if (requestId === this._appBackgroundRequestId) {
-                    this.appBackgroundResolvedUrl = normalizeAppBackgroundUrl(resolvedUrl) || getCachedAppBackgroundUrl();
+                    const resolvedUrl = normalizeAppBackgroundUrl(backgroundState && backgroundState.url);
+                    this.appBackgroundResolvedUrl = resolvedUrl || getCachedAppBackgroundUrl();
+                    this.appBackgroundMode = normalizeAppBackgroundMode(
+                        backgroundState && backgroundState.mode,
+                        this.appBackgroundResolvedUrl
+                    );
                 }
             } catch (error) {
                 console.warn('[appBackgroundPage] refresh failed', error);
                 if (requestId === this._appBackgroundRequestId) {
                     this.appBackgroundResolvedUrl = getCachedAppBackgroundUrl();
+                    this.appBackgroundMode = normalizeAppBackgroundMode(rawMode, this.appBackgroundResolvedUrl);
                 }
             }
         }

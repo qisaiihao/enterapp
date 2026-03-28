@@ -71,15 +71,15 @@ exports.main = async (event, context) => {
       updateData.originalImageUrl = originalFileIDs[0] || input.fileIDs[0];
       updateData.originalImageUrls = originalFileIDs;
       
-      // 濡傛灉鏄瘲姝屾ā寮忥紝绗竴寮犲浘鐗囦綔涓鸿儗鏅浘
+      // 如果是诗歌模式，第一张图片作为背景图
       // 娉ㄦ剰锛氳繖閲岄渶瑕佷粠鍘熷笘瀛愯幏鍙?isPoem 瀛楁锛屽洜涓虹紪杈戞椂涓嶄細浼犻€掕繖涓瓧娈?
     } else {
-      // 濡傛灉fileIDs涓虹┖鏁扮粍锛屾竻绌哄浘鐗囧瓧娈?
+      // 如果 fileIDs 为空数组，清空图片字段
       updateData.imageUrl = '';
       updateData.imageUrls = [];
       updateData.originalImageUrl = '';
       updateData.originalImageUrls = [];
-      updateData.poemBgImage = ''; // 娓呯┖璇楁瓕鑳屾櫙鍥?
+      updateData.poemBgImage = ''; // 清空诗歌背景图
     }
   }
   
@@ -101,7 +101,7 @@ exports.main = async (event, context) => {
       return { success: false, code: 'FORBIDDEN', message: '官方活动帖不允许修改参与活动' };
     }
 
-    // 鏍￠獙骞惰鑼冨寲鍙備笌娲诲姩瀛楁
+    // 校验并规范化参与活动字段
     if (input.joinedActivityId !== undefined) {
       const nextJoinedActivityId = String(input.joinedActivityId || '').trim();
       const currentJoinedActivityId = String(post.joinedActivityId || '').trim();
@@ -148,11 +148,11 @@ exports.main = async (event, context) => {
       }
     }
     
-    // 濡傛灉鏄瘲姝屾ā寮忎笖鏈夊浘鐗囷紝鏇存柊璇楁瓕鑳屾櫙鍥?
+    // 如果是诗歌模式且有图片，更新诗歌背景图
     if (post.isPoem && updateData.imageUrls && updateData.imageUrls.length > 0) {
       updateData.poemBgImage = updateData.imageUrls[0];
     } else if (post.isPoem && (!updateData.imageUrls || updateData.imageUrls.length === 0)) {
-      // 濡傛灉娓呯┖浜嗗浘鐗囷紝涔熸竻绌鸿瘲姝岃儗鏅浘
+      // 如果清空了图片，也清空诗歌背景图
       updateData.poemBgImage = '';
     }
     
@@ -160,7 +160,7 @@ exports.main = async (event, context) => {
       ? String(post.activityId || '')
       : String(post.joinedActivityId || '');
 
-    // 鎵ц鏇存柊锛堝彧鏇存柊鎸囧畾瀛楁锛屼繚鐣欏叾浠栧瓧娈靛 votes, commentCount 绛夛級
+    // 执行更新：只更新指定字段，保留 votes、commentCount 等其他字段
     await db.collection('posts').doc(postId).update({ data: updateData });
 
     const newActivityId = post.isActivityPost === true
@@ -171,7 +171,7 @@ exports.main = async (event, context) => {
             : (post.joinedActivityId || '')
         );
 
-    // 娲诲姩鍙備笌鍏崇郴鍙樺寲鏃讹紝缁存姢娲诲姩甯栧瓙缁熻
+    // 活动参与关系变化时，维护活动帖子统计
     if (oldActivityId !== newActivityId) {
       const now = new Date();
       try {
