@@ -2411,51 +2411,44 @@ export default {
 .home-filter-trigger {
     width: 64rpx;
     height: 64rpx;
-    border-radius: 32rpx;
+    border-radius: 18rpx;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.82);
-    box-shadow: 0 10rpx 28rpx rgba(74, 63, 60, 0.12);
-    transition: background-color 0.2s ease, transform 0.2s ease;
-}
-
-.home-filter-trigger:active {
-    transform: scale(0.95);
+    background: transparent;
 }
 
 .home-filter-trigger--active {
-    background: rgba(109, 101, 101, 0.16);
+    background: rgba(109, 101, 101, 0.08);
 }
 
 .home-filter-trigger-icon {
-    width: 38rpx;
-    height: 38rpx;
+    width: 40rpx;
+    height: 40rpx;
 }
 
 .home-filter-panel {
     position: absolute;
-    top: 92rpx;
+    top: 74rpx;
     right: 30rpx;
-    min-width: 220rpx;
-    padding: 16rpx;
-    border-radius: 22rpx;
-    background: rgba(255, 255, 255, 0.98);
-    box-shadow: 0 16rpx 40rpx rgba(74, 63, 60, 0.16);
-    display: flex;
-    flex-direction: column;
+    width: 332rpx;
+    padding: 24rpx;
+    border-radius: 20rpx;
+    background: #ffffff;
+    box-shadow: 0 16rpx 40rpx rgba(0, 0, 0, 0.12);
+    box-sizing: border-box;
 }
 
 .home-filter-option {
-    min-height: 64rpx;
-    padding: 0 22rpx;
-    border-radius: 16rpx;
-    display: flex;
-    align-items: center;
-    font-size: 26rpx;
-    color: #6d6565;
-    line-height: 1.4;
-    background: #f4efea;
+    min-width: 92rpx;
+    padding: 10rpx 18rpx;
+    border-radius: 999rpx;
+    background: #f1efed;
+    font-size: 24rpx;
+    line-height: 34rpx;
+    color: #5a524e;
+    text-align: center;
+    box-sizing: border-box;
 }
 
 .home-filter-option + .home-filter-option {
