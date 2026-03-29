@@ -4,7 +4,7 @@
         <!-- 顶部导航栏 -->
         <view class="header">
             <view class="header-left" @tap="goBack">
-                <image class="back-icon-image" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
+                <image class="back-icon-image" src="/static/images/left_exit.png" mode="aspectFit"></image>
             </view>
             <text class="header-title">我的点赞</text>
         </view>
@@ -286,9 +286,8 @@ export default {
 }
 
 .back-icon-image {
-    width: 72rpx;
-    height: 72rpx;
-    margin-top: 4rpx;
+    width: 22rpx;
+    height: 38rpx;
 }
 
 .header-title {

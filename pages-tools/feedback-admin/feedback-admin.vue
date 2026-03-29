@@ -4,7 +4,7 @@
         <!-- 头部 -->
         <view class="header" :style="'top: ' + statusBarHeight + 'px;'">
             <view class="header-left" @tap="goBack">
-                <text class="back-icon">←</text>
+                <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
             </view>
             <text class="header-title">反馈管理</text>
             <view class="header-right" @tap="refreshFeedbackList">
@@ -369,7 +369,11 @@ export default {
     justify-content: center;
 }
 
-.back-icon,
+.back-icon {
+    width: 22rpx;
+    height: 38rpx;
+}
+
 .refresh-icon {
     font-size: 36rpx;
     color: #333;

@@ -2,7 +2,7 @@
     <view class="create-discussion-container" @tap="onPageTap">
         <!-- 返回按钮 -->
         <view class="back-button" @tap.stop="goBack">
-            <image class="back-icon" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
+            <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
         </view>
         <!-- 右上角退出 -->
         <view class="exit-button" @tap.stop="goBack">
@@ -672,8 +672,8 @@ export default {
 }
 
 .back-icon {
-    width: 100rpx;
-    height: 100rpx;
+    width: 22rpx;
+    height: 38rpx;
 }
 
 .exit-button {

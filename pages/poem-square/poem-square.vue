@@ -3,10 +3,31 @@
     <!-- 顶部栏 -->
     <top-bar />
 
-    <!-- 只看关注切换按钮 - 只在非关注模式下显示 -->
-    <view v-if="!showFollowingOnly" class="filter-toggle-container" :style="{ top: (safeAreaTop * 2 + 160) + 'rpx' }">
-      <view class="filter-toggle-btn" @tap="toggleFollowingFilter">
-        <text class="filter-toggle-text">只看关注</text>
+    <view v-if="showPoemFilterPanel" class="poem-filter-mask" @tap="closePoemFilterPanel"></view>
+
+    <view class="poem-filter-container" :style="{ top: (safeAreaTop * 2 + 160) + 'rpx' }">
+      <view
+        class="poem-filter-trigger"
+        :class="{ 'poem-filter-trigger--active': showPoemFilterPanel || showFollowingOnly }"
+        @tap.stop="togglePoemFilterPanel"
+      >
+        <image class="poem-filter-trigger-icon" src="/static/images/filter.png" mode="aspectFit" />
+      </view>
+      <view v-if="showPoemFilterPanel" class="poem-filter-panel" @tap.stop>
+        <view
+          class="poem-filter-option"
+          :class="{ 'poem-filter-option--active': !showFollowingOnly }"
+          @tap="setFollowingFilterMode(false)"
+        >
+          全部诗歌
+        </view>
+        <view
+          class="poem-filter-option"
+          :class="{ 'poem-filter-option--active': showFollowingOnly }"
+          @tap="setFollowingFilterMode(true)"
+        >
+          只看关注
+        </view>
       </view>
     </view>
 
@@ -307,6 +328,7 @@ export default {
       safeAreaTop: 0,
       // 只看关注模式
       showFollowingOnly: false,
+      showPoemFilterPanel: false,
       // 关注头像栏选中的用户ID
       followingSelectedUserId: null,
       // 加载锁定标志，防止重复触发加载
@@ -684,11 +706,42 @@ export default {
       }
     },
     // 切换只看关注模式
+    togglePoemFilterPanel() {
+      this.setData({
+        showPoemFilterPanel: !this.showPoemFilterPanel
+      });
+    },
+
+    closePoemFilterPanel() {
+      if (!this.showPoemFilterPanel) {
+        return;
+      }
+
+      this.setData({
+        showPoemFilterPanel: false
+      });
+    },
+
+    setFollowingFilterMode(onlyFollowing) {
+      if (onlyFollowing === this.showFollowingOnly) {
+        this.closePoemFilterPanel();
+        return;
+      }
+
+      if (onlyFollowing) {
+        this.toggleFollowingFilter();
+        return;
+      }
+
+      this.exitFollowingMode();
+    },
+
     toggleFollowingFilter() {
       console.log('【poem-square】进入只看关注模式');
       
       this.setData({
         showFollowingOnly: true,
+        showPoemFilterPanel: false,
         postList: [],
         page: 0,
         hasMore: true,
@@ -715,6 +768,7 @@ export default {
       
       this.setData({
         showFollowingOnly: false,
+        showPoemFilterPanel: false,
         postList: [],
         page: 0,
         hasMore: true,
@@ -1551,45 +1605,81 @@ export default {
 .page-indicator { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,.7); color: #fff; padding: 20rpx 40rpx; border-radius: 40rpx; z-index: 1000; font-size: 28rpx; }
 .page-indicator-text { text-align: center; }
 
-/* 只看关注切换按钮 - 在写作入口下方 */
-.filter-toggle-container {
-  position: absolute;
-  top: calc(var(--safe-area-top, 44px) + 160rpx); /* 使用动态变量的安全区域高度，增加40rpx */
-  right: 30rpx; /* 改为右对齐 */
-  z-index: 1;
-}
-
-.filter-toggle-btn {
-  padding: 12rpx 32rpx;
-  border-radius: 50rpx;
+/* 顶部筛选按钮 */
+.poem-filter-mask {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 29;
   background: transparent;
-  border: 2rpx solid #e0e0e0;
-  transition: all 0.3s ease;
-  cursor: pointer;
-  box-shadow: none;
-  min-width: 140rpx;
-  text-align: center;
 }
 
-.filter-toggle-btn:active {
+.poem-filter-container {
+  position: absolute;
+  top: calc(var(--safe-area-top, 44px) + 160rpx);
+  right: 30rpx;
+  z-index: 30;
+}
+
+.poem-filter-trigger {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 10rpx 28rpx rgba(74, 63, 60, 0.12);
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.poem-filter-trigger:active {
   transform: scale(0.95);
 }
 
-.filter-toggle-btn.active {
-  background: transparent;
-  border: 2rpx solid #e0e0e0;
-  box-shadow: none;
+.poem-filter-trigger--active {
+  background: rgba(109, 101, 101, 0.16);
 }
 
-.filter-toggle-text {
+.poem-filter-trigger-icon {
+  width: 38rpx;
+  height: 38rpx;
+}
+
+.poem-filter-panel {
+  position: absolute;
+  top: 84rpx;
+  right: 0;
+  min-width: 220rpx;
+  padding: 16rpx;
+  border-radius: 22rpx;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 16rpx 40rpx rgba(74, 63, 60, 0.16);
+  display: flex;
+  flex-direction: column;
+}
+
+.poem-filter-option {
+  min-height: 64rpx;
+  padding: 0 22rpx;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
   font-size: 26rpx;
-  color: #666;
-  font-weight: 600;
-  line-height: 1.2;
+  color: #6d6565;
+  line-height: 1.4;
+  background: #f4efea;
 }
 
-.filter-toggle-btn.active .filter-toggle-text {
-  color: #666;
+.poem-filter-option + .poem-filter-option {
+  margin-top: 12rpx;
+}
+
+.poem-filter-option--active {
+  background: #6d6565;
+  color: #ffffff;
 }
 
 .activity-entry-container {

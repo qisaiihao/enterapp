@@ -3,7 +3,7 @@
     <view class="container">
         <!-- 自定义返回按钮 -->
         <view class="custom-back-btn" @tap="goBack">
-            <image class="back-icon" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
+            <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
         </view>
 
         <!-- 操作按钮区域 -->
@@ -882,19 +882,21 @@ export default {
 .container {
     min-height: 100vh;
     background-color: #ffffff;
-    padding-top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px))); /* 为返回按钮留出空间 */
+    padding-top: 0;
 }
 
 /* 自定义返回按钮 */
 .custom-back-btn {
     position: absolute;
-    top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px))); /* 添加安全区域偏移 */
-    left: 40rpx;
-    width: 100rpx;
-    height: 100rpx;
+    top: calc(env(safe-area-inset-top, var(--safe-area-inset-top, 0px)) + 18rpx);
+    left: 30rpx;
+    width: 56rpx;
+    height: 56rpx;
     background: transparent;
     border: none;
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     z-index: 100;
     transition: all 0.2s ease;
 }
@@ -904,8 +906,8 @@ export default {
 }
 
 .custom-back-btn .back-icon {
-    width: 100rpx;
-    height: 100rpx;
+    width: 22rpx;
+    height: 38rpx;
     display: block;
     object-fit: contain;
 }
@@ -941,7 +943,7 @@ export default {
 /* 操作按钮区域 */
 .filter-section {
     background-color: #ffffff;
-    padding: 20rpx 30rpx;
+    padding: calc(env(safe-area-inset-top, var(--safe-area-inset-top, 0px)) + 16rpx) 30rpx 14rpx;
     border-bottom: 1rpx solid #f0f0f0;
     position: relative;
 }
@@ -950,12 +952,14 @@ export default {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    min-height: 60rpx;
 }
 
 .filter-left {
     display: flex;
     align-items: center;
     gap: 20rpx;
+    flex: 0 0 60rpx;
 }
 
 .filter-right {
@@ -965,12 +969,12 @@ export default {
 }
 
 .clear-btn {
-    padding: 8rpx 16rpx;
+    padding: 0 16rpx;
     background-color: #D9D9D9;
     border: none;
     border-radius: 10rpx;
-    min-width: 100rpx;
-    height: 32rpx;
+    min-width: 96rpx;
+    height: 48rpx;
     display: flex;
     align-items: center;
     justify-content: center;

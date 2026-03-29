@@ -24,7 +24,7 @@ export default {
   props: {
     leftIcon: {
       type: String,
-      default: '/static/images/newicons/back.png'
+      default: '/static/images/left_exit.png'
     },
     rightIcon: {
       type: String,
@@ -160,8 +160,8 @@ export default {
 }
 
 .dual-action-top-bar__icon--left {
-  width: 60rpx;
-  height: 60rpx;
+  width: 22rpx;
+  height: 38rpx;
 }
 
 .dual-action-top-bar__icon--right {

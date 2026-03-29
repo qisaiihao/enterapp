@@ -400,7 +400,8 @@
         {
           "path": "series-compose/series-compose",
           "style": {
-            "navigationBarTitleText": "组诗合成",
+            "navigationStyle": "custom",
+            "navigationBarTitleText": "组诗编辑",
             "enablePullDownRefresh": false
           }
         }
