@@ -77,7 +77,7 @@
                     <!-- Tab Navigation -->
                     <view class="tab-navigation">
                         <view :class="'tab-item ' + (currentTab === 'posts' ? 'active' : '')" data-tab="posts" @tap="switchTab">
-                            <image class="tab-icon" src="/static/images/my_posts.png" mode="aspectFit"></image>
+                            <image class="tab-icon tab-icon--writing" src="/static/images/writing.png" mode="aspectFit"></image>
                         </view>
                         <view :class="'tab-item ' + (currentTab === 'portfolio' ? 'active' : '')" data-tab="portfolio" @tap="switchTab">
                             <image class="tab-icon" src="/static/images/newicons/library.png" mode="aspectFit"></image>
@@ -2752,6 +2752,12 @@ export default {
     height: 110rpx;
     filter: var(--profile-tab-icon-filter, grayscale(1) brightness(0.5));
     opacity: var(--profile-tab-icon-opacity, 0.7);
+}
+
+.tab-icon--writing {
+    width: 76rpx;
+    height: 76rpx;
+    transform: translateY(0);
 }
 
 .tab-item.active .tab-icon {

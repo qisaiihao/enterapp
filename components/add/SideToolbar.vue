@@ -114,8 +114,8 @@ export default {
 }
 
 .series-toggle-btn .side-tool-icon {
-    width: 68rpx;
-    height: 68rpx;
+    width: 60rpx;
+    height: 60rpx;
 }
 
 .side-tool-text {
@@ -143,8 +143,8 @@ export default {
 }
 
 .side-toolbar--series-compose .series-toggle-btn .side-tool-icon {
-    width: 62rpx;
-    height: 62rpx;
+    width: 56rpx;
+    height: 56rpx;
 }
 
 /* 移除组诗按钮的 active 状态样式 */
