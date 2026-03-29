@@ -1,4 +1,4 @@
-﻿const cloud = require('wx-server-sdk');
+const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
@@ -41,7 +41,7 @@ exports.main = async (event, context) => {
     };
   }
 
-  // 鍙娊鍙栨敮鎸佷慨鏀圭殑key
+  // 只抽取支持修改的 key
   const updateData = {};
   EDITABLE_KEYS.forEach(key => {
     if (input[key] !== undefined) {
@@ -61,18 +61,18 @@ exports.main = async (event, context) => {
     }
   }
   
-  // 澶勭悊fileIDs锛氬鏋滄彁渚涗簡fileIDs锛岄渶瑕佹洿鏂癷mageUrl鍜宨mageUrls瀛楁
+  // 处理 fileIDs：如果提供了 fileIDs，需要同步更新 imageUrl 和 imageUrls 字段
   if (input.fileIDs !== undefined) {
     if (Array.isArray(input.fileIDs) && input.fileIDs.length > 0) {
       updateData.imageUrl = input.fileIDs[0];
       updateData.imageUrls = input.fileIDs;
-      // 澶勭悊鍘熷浘锛氬鏋滄湁originalFileIDs鍒欎娇鐢紝鍚﹀垯浣跨敤fileIDs锛堝悜鍚庡吋瀹癸級
+      // 处理原图：如果有 originalFileIDs 则使用，否则使用 fileIDs（向后兼容）
       const originalFileIDs = input.originalFileIDs || input.fileIDs;
       updateData.originalImageUrl = originalFileIDs[0] || input.fileIDs[0];
       updateData.originalImageUrls = originalFileIDs;
       
       // 如果是诗歌模式，第一张图片作为背景图
-      // 娉ㄦ剰锛氳繖閲岄渶瑕佷粠鍘熷笘瀛愯幏鍙?isPoem 瀛楁锛屽洜涓虹紪杈戞椂涓嶄細浼犻€掕繖涓瓧娈?
+      // 注意：这里需要从原帖子里读取 isPoem 字段，因为编辑时不会传这个字段
     } else {
       // 如果 fileIDs 为空数组，清空图片字段
       updateData.imageUrl = '';
@@ -86,7 +86,7 @@ exports.main = async (event, context) => {
   updateData.updateTime = new Date();
 
   try {
-    // 鍙兘浣滆€呮湰浜轰慨鏀?
+    // 只能作者本人修改
     const oldRes = await db.collection('posts').doc(postId).get();
     const post = oldRes.data;
     if (!post) {
@@ -184,7 +184,7 @@ exports.main = async (event, context) => {
           });
         }
       } catch (decError) {
-        console.warn('[updatePostContent] 鏃ф椿鍔ㄨ鏁伴€掑噺澶辫触:', decError);
+        console.warn('[updatePostContent] 旧活动计数递减失败:', decError);
       }
 
       try {
@@ -198,13 +198,13 @@ exports.main = async (event, context) => {
           });
         }
       } catch (incError) {
-        console.warn('[updatePostContent] 鏂版椿鍔ㄨ鏁伴€掑澶辫触:', incError);
+        console.warn('[updatePostContent] 新活动计数递增失败:', incError);
       }
     }
     
     return { success: true, postId, updateFields: Object.keys(updateData) };
   } catch (e) {
-    console.error('銆恥pdatePostContent銆戞洿鏂板け璐?', e);
+    console.error('【updatePostContent】更新失败:', e);
     return { success: false, code: 'ERROR', message: e.message };
   }
 };

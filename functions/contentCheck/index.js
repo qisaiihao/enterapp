@@ -1,9 +1,9 @@
-﻿// 寮曞叆鑵捐浜慡DK鍜屼簯寮€鍙慡DK
+// 引入云开发 SDK
 // 注意：内容审核 SDK 当前未启用，不能在模块加载阶段强依赖它，
 // 否则仅做“审核直通”时也会因为缺少依赖导致整个云函数启动失败。
 const cloud = require('wx-server-sdk');
 
-// 鍒濆鍖栦簯寮€鍙?
+// 初始化云开发
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
@@ -12,7 +12,7 @@ const db = cloud.database();
 const _ = db.command;
 const ADMIN_POEM_IDS = ['qisaihao', 'jingmikun'];
 
-// 鎷垮埌鍐呭瀹夊叏锛坈ms锛夌殑 client
+// 校验当前用户是否为管理员
 async function isAdmin(openid) {
   try {
     const result = await db.collection('users').where({
@@ -21,14 +21,14 @@ async function isAdmin(openid) {
     }).limit(1).get();
     return result.data.length > 0;
   } catch (error) {
-    console.error('[contentCheck] 鏍￠獙绠＄悊鍛樻潈闄愬け璐?', error);
+    console.error('[contentCheck] 校验管理员权限失败:', error);
     return false;
   }
 }
 
-// 浜戝嚱鏁板叆鍙ｅ嚱鏁?
-// TODO: 姝や簯鍑芥暟宸叉殏鏃剁鐢紝鍥犱负鑵捐浜戝唴瀹瑰鏍告湇鍔℃湭缁垂
-// 鏈潵缁垂鍚庡彲浠ラ噸鏂板惎鐢ㄦ浜戝嚱鏁?
+// 云函数入口函数
+// TODO: 此云函数已暂时禁用，因为腾讯云内容审核服务未续费
+// 未来续费后可以重新启用此云函数
 function buildFailure({ code, msg, errorCode, extra = {} }) {
   const result = {
     code,
@@ -72,7 +72,7 @@ exports.main = async (event, context) => {
   console.log('=== contentCheck started ===');
   console.log('[contentCheck] received event:', JSON.stringify(event, null, 2));
   
-  // 鏆傛椂璺宠繃瀹℃牳锛岀洿鎺ユ墽琛屽笘瀛愬垱寤洪€昏緫
+  // 暂时跳过审核，直接执行帖子创建逻辑
   const moderationOnly = isModerationOnlyRequest(event);
   console.log('[contentCheck] request mode:', moderationOnly ? 'moderation-only' : 'legacy-create-post');
 
@@ -96,7 +96,7 @@ exports.main = async (event, context) => {
     });
   }
 
-  // 浠?event 涓幏鍙栬瀹℃煡鐨勬枃鏈拰鍥剧墖fileID
+  // 从 event 中获取要审查的文本和图片 fileID
   let {
     text,
     fileIDs,
@@ -155,7 +155,7 @@ exports.main = async (event, context) => {
       const activityRes = await db.collection('activities').doc(activityId).get();
       activityDoc = activityRes.data || null;
     } catch (err) {
-      console.error('[contentCheck] 鏌ヨ娲诲姩澶辫触:', err);
+      console.error('[contentCheck] 查询活动失败:', err);
       return buildFailure({
         code: -1103,
         msg: '活动不存在',
@@ -173,7 +173,7 @@ exports.main = async (event, context) => {
 
     activityTitleSnapshot = activityTitleSnapshot || activityDoc.title || '';
 
-    // 娲诲姩甯栧瓙寮哄埗涓烘櫘閫氬笘妯″紡
+    // 活动帖子强制为普通帖子模式
     publishMode = 'normal';
     isDiscussion = false;
     isSeries = false;
@@ -220,7 +220,7 @@ exports.main = async (event, context) => {
       }
       joinActivityTitleSnapshot = joinActivityTitleSnapshot || joinActivityDoc.title || '';
     } catch (err) {
-      console.error('[contentCheck] 鏌ヨ鍙備笌娲诲姩澶辫触:', err);
+      console.error('[contentCheck] 查询参与活动失败:', err);
       return buildFailure({
           code: -1104,
           msg: '参与的活动不存在',
@@ -229,13 +229,13 @@ exports.main = async (event, context) => {
     }
   }
   
-  console.log('鎺ユ敹鍒扮殑fileIDs:', fileIDs);
-  console.log('鎺ユ敹鍒扮殑originalFileIDs:', originalFileIDs);
-  console.log('fileIDs绫诲瀷:', typeof fileIDs);
-  console.log('fileIDs闀垮害:', fileIDs ? fileIDs.length : 'undefined');
-  console.log('originalFileIDs闀垮害:', originalFileIDs ? originalFileIDs.length : 'undefined');
-  console.log('鍖垮悕鍙戝笘鍙傛暟:', { isAnonymous, anonymousAuthorName, realAuthorOpenid });
-  console.log('璁ㄨ鍙傛暟:', {
+  console.log('接收到的fileIDs:', fileIDs);
+  console.log('接收到的originalFileIDs:', originalFileIDs);
+  console.log('fileIDs类型:', typeof fileIDs);
+  console.log('fileIDs长度:', fileIDs ? fileIDs.length : 'undefined');
+  console.log('originalFileIDs长度:', originalFileIDs ? originalFileIDs.length : 'undefined');
+  console.log('匿名发帖参数:', { isAnonymous, anonymousAuthorName, realAuthorOpenid });
+  console.log('讨论参数:', {
     isDiscussion,
     sentenceGroupsLength: Array.isArray(sentenceGroups) ? sentenceGroups.length : 0,
     discussionSentencesLength: Array.isArray(discussionSentences) ? discussionSentences.length : 0,
@@ -244,7 +244,7 @@ exports.main = async (event, context) => {
   content = content || '';
   title = title || '';
 
-  // 缁熶竴澶勭悊楂樺厜琛岋紝渚夸簬鍚庣画鍐欏簱锛堜繚鎸佺敤鎴烽€夋嫨鐨勯『搴忥紝鍙寘鍚噸澶嶅彞锛屼絾鏈€澶氫笁鍙ワ級
+  // 统一处理高光行，便于后续写库（保持用户选择的顺序，可包含重复句，但最多三句）
 const clampTop3 = (lines = []) =>
   (lines || [])
     .map(l => (l || '').trim())
@@ -295,7 +295,7 @@ const dedupeTop3 = (lines = []) => {
       highlightSentenceValue = effectiveHighlightLines[0];
     }
   }
-  // 缁勮瘲妯″紡锛氳鑼冨寲鍒嗗潡骞剁敓鎴愰珮鍏変笌鍚堝苟鍐呭
+  // 组诗模式：规范化分块并生成高光与合并内容
   let normalizedSeriesBlocks = [];
   if (isSeries) {
     normalizedSeriesBlocks = Array.isArray(seriesBlocks)
@@ -355,27 +355,27 @@ const dedupeTop3 = (lines = []) => {
       }
     }
   }
-  // 鍏滃簳闄愰噺锛屼繚璇佹渶缁堝啓搴撲笉瓒呰繃涓夊彞锛堜繚鐣欏彲鑳界殑閲嶅锛岀鍚堢敤鎴烽€夋嫨锛?
+  // 兜底限量，保证最终写库不超过三句（保留可能的重复，符合用户选择）
   effectiveHighlightLines = clampTop3(effectiveHighlightLines);
   if (!highlightSentenceValue && effectiveHighlightLines.length > 0) {
     highlightSentenceValue = effectiveHighlightLines[0];
   }
   
-  /* 
-  // 浠ヤ笅鏄師鏉ョ殑鍐呭瀹℃牳閫昏緫锛屾殏鏃舵敞閲婃帀锛屾湭鏉ョ画璐瑰悗鍙互閲嶆柊鍚敤
-  // 绛栫暐ID閰嶇疆 - 浣跨敤榛樿绛栫暐ID锛堟暟瀛楃被鍨嬶級
-  // 娉ㄦ剰锛欱izType 鍙傛暟闇€瑕佹槸鏁板瓧绫诲瀷锛屼笉鏄瓧绗︿覆
-  const TEXT_BIZ_TYPE = 0; // 鏂囨湰瀹℃牳绛栫暐ID锛屼娇鐢ㄩ粯璁ょ瓥鐣?
-  const IMAGE_BIZ_TYPE = 0; // 鍥剧墖瀹℃牳绛栫暐ID锛屼娇鐢ㄩ粯璁ょ瓥鐣?
-  
-  // 璋冭瘯妯″紡锛氳缃负true鍙互璺宠繃瀹℃牳锛堜粎鐢ㄤ簬娴嬭瘯锛?
+  /*
+  // 以下是原来的内容审核逻辑，暂时注释掉，未来续费后可以重新启用
+  // 策略 ID 配置 - 使用默认策略 ID（数字类型）
+  // 注意：BizType 参数需要是数字类型，不是字符串
+  const TEXT_BIZ_TYPE = 0; // 文本审核策略ID，使用默认策略
+  const IMAGE_BIZ_TYPE = 0; // 图片审核策略ID，使用默认策略
+
+  // 调试模式：设置为 true 可以跳过审核（仅用于测试）
   const DEBUG_SKIP_AUDIT = false;
 
-  // 妫€鏌ョ幆澧冨彉閲?
-  console.log('鐜鍙橀噺妫€鏌?');
-  console.log('TENCENT_SECRET_ID:', process.env.TENCENT_SECRET_ID ? '宸茶缃? : '鏈缃?);
-  console.log('TENCENT_SECRET_KEY:', process.env.TENCENT_SECRET_KEY ? '宸茶缃? : '鏈缃?);
-  
+  // 检查环境变量
+  console.log('环境变量检查:');
+  console.log('TENCENT_SECRET_ID:', process.env.TENCENT_SECRET_ID ? '已设置' : '未设置');
+  console.log('TENCENT_SECRET_KEY:', process.env.TENCENT_SECRET_KEY ? '已设置' : '未设置');
+
   if (!process.env.TENCENT_SECRET_ID || !process.env.TENCENT_SECRET_KEY) {
     console.error('环境变量未正确设置');
     return buildFailure({
@@ -385,116 +385,116 @@ const dedupeTop3 = (lines = []) => {
     });
   }
 
-  // ------------------- 瀹夊叏閰嶇疆 -------------------
-  // 浠庣幆澧冨彉閲忎腑瀹夊叏鍦拌鍙栧瘑閽?
+  // ------------------- 安全配置 -------------------
+  // 从环境变量中安全地读取密钥
   const clientConfig = {
     credential: {
       secretId: process.env.TENCENT_SECRET_ID,
       secretKey: process.env.TENCENT_SECRET_KEY,
     },
-    region: "ap-guangzhou", // 鎺ㄨ崘浣跨敤骞垮窞鍦板煙锛岄€熷害杈冨揩
+    region: "ap-guangzhou", // 推荐使用广州地域，速度较快
     profile: {
       httpProfile: {
         endpoint: "cms.tencentcloudapi.com",
       },
     },
   };
-  
-  console.log('鍒涘缓鑵捐浜戝鎴风...');
+
+  console.log('创建腾讯云客户端...');
   const client = new CmsClient(clientConfig);
   */
 
   /*
-  // ------------------- 1. 鏂囨湰瀹℃牳 -------------------
+  // ------------------- 1. 文本审核 -------------------
   if (DEBUG_SKIP_AUDIT) {
-    console.log('璋冭瘯妯″紡锛氳烦杩囨枃鏈鏍?);
+    console.log('调试模式：跳过文本审核');
   } else if (text || title || content) {
     try {
-      // 鍚堝苟鎵€鏈夋枃鏈唴瀹硅繘琛屽鏍?
+      // 合并所有文本内容进行审核
       const fullText = [title, content, text].filter(t => t && t.trim()).join(' ');
-      console.log('鍑嗗瀹℃牳鐨勬枃鏈唴瀹?', fullText);
-      
+      console.log('准备审核的文本内容:', fullText);
+
       const textParams = {
         Content: Buffer.from(fullText).toString('base64')
-        // 绉婚櫎BizType鍙傛暟锛屼娇鐢ㄩ粯璁ょ瓥鐣?
+        // 移除BizType参数，使用默认策略
       };
-      
-      console.log('璋冪敤鏂囨湰瀹℃牳API...');
-      console.log('瀹℃牳鍙傛暟:', { 
+
+      console.log('调用文本审核API...');
+      console.log('审核参数:', {
         Content: textParams.Content.substring(0, 50) + '...'
       });
-      
+
       const { Data } = await client.TextModeration(textParams);
-      console.log('鏂囨湰瀹℃牳缁撴灉:', Data);
-      
+      console.log('文本审核结果:', Data);
+
       if (Data.Suggestion !== 'Pass') {
-        // 鏂囨湰瀹℃牳涓嶉€氳繃锛岃褰曡缁嗕俊鎭?
-        console.log('鏂囨湰瀹℃牳涓嶉€氳繃锛岃缁嗕俊鎭?', {
+        // 文本审核不通过，记录详细信息
+        console.log('文本审核不通过，详细信息:', {
           suggestion: Data.Suggestion,
           labels: Data.Labels || [],
           subLabel: Data.SubLabel || '',
           confidence: Data.Confidence || 0
         });
-        
+
         return {
           code: -1,
-          msg: '鏂囨湰鍐呭涓嶅悎瑙?,
+          msg: '文本内容不合规',
           suggestion: Data.Suggestion,
           details: Data.Labels || []
         };
       }
-      console.log('鏂囨湰瀹℃牳閫氳繃');
+      console.log('文本审核通过');
     } catch (error) {
-      console.error("鏂囨湰瀹℃牳API璋冪敤澶辫触:", error);
-      console.error("閿欒璇︽儏:", {
+      console.error('文本审核API调用失败:', error);
+      console.error('错误详情:', {
         message: error.message,
         code: error.code,
         stack: error.stack
       });
-      return { code: -2, msg: '鏂囨湰瀹℃牳鏈嶅姟寮傚父: ' + error.message };
+      return { code: -2, msg: '文本审核服务异常: ' + error.message };
     }
   }
 
-  // ------------------- 2. 鍥剧墖瀹℃牳 -------------------
+  // ------------------- 2. 图片审核 -------------------
   if (DEBUG_SKIP_AUDIT) {
-    console.log('璋冭瘯妯″紡锛氳烦杩囧浘鐗囧鏍?);
+    console.log('调试模式：跳过图片审核');
   } else if (fileIDs && fileIDs.length > 0) {
     try {
-      // 1. 鐢?fileID 鎹㈠彇涓存椂鐨勫浘鐗囦笅杞介摼鎺?
+      // 1. 用 fileID 换取临时的图片下载链接
       const fileList = fileIDs;
       const result = await cloud.getTempFileURL({ fileList });
-      
-      // 2. 瀵规瘡寮犲浘鐗囪繘琛屽鏍?
+
+      // 2. 对每张图片进行审核
       for (let i = 0; i < result.fileList.length; i++) {
         const fileItem = result.fileList[i];
-        if (fileItem.status === 0) { // 鎴愬姛鑾峰彇涓存椂URL
+        if (fileItem.status === 0) { // 成功获取临时 URL
           const imageParams = {
             FileUrl: fileItem.tempFileURL
-            // 绉婚櫎BizType鍙傛暟锛屼娇鐢ㄩ粯璁ょ瓥鐣?
+            // 移除BizType参数，使用默认策略
           };
           const { Data } = await client.ImageModeration(imageParams);
-          console.log('鍥剧墖瀹℃牳缁撴灉:', Data);
-          
-          // 鍥剧墖瀹℃牳鐨勫垽鏂€昏緫锛氭鏌ュ悇涓娴嬫ā鍧楃殑HitFlag
-          const hasViolation = Data.PornDetect?.HitFlag > 0 || 
-                              Data.HotDetect?.HitFlag > 0 || 
-                              Data.PolityDetect?.HitFlag > 0 || 
-                              Data.IllegalDetect?.HitFlag > 0 || 
+          console.log('图片审核结果:', Data);
+
+          // 图片审核的判断逻辑：检查各个检测模块的 HitFlag
+          const hasViolation = Data.PornDetect?.HitFlag > 0 ||
+                              Data.HotDetect?.HitFlag > 0 ||
+                              Data.PolityDetect?.HitFlag > 0 ||
+                              Data.IllegalDetect?.HitFlag > 0 ||
                               Data.TerrorDetect?.HitFlag > 0;
-          
+
           if (hasViolation) {
-            // 鍥剧墖瀹℃牳涓嶉€氳繃锛岃褰曡缁嗕俊鎭?
-            console.log('鍥剧墖瀹℃牳涓嶉€氳繃锛岃缁嗕俊鎭?', {
+            // 图片审核不通过，记录详细信息
+            console.log('图片审核不通过，详细信息:', {
               pornDetect: Data.PornDetect,
               hotDetect: Data.HotDetect,
               polityDetect: Data.PolityDetect,
               illegalDetect: Data.IllegalDetect,
               terrorDetect: Data.TerrorDetect
             });
-            
+
             return {
               code: -1,
-              msg: '鍥剧墖鍐呭涓嶅悎瑙?,
+              msg: '图片内容不合规',
               details: {
                 pornDetect: Data.PornDetect,
                 hotDetect: Data.HotDetect,
@@ -507,51 +507,51 @@ const dedupeTop3 = (lines = []) => {
         }
       }
     } catch (error) {
-      console.error("鍥剧墖瀹℃牳API璋冪敤澶辫触:", error);
-      return { code: -2, msg: '鍥剧墖瀹℃牳鏈嶅姟寮傚父' };
+      console.error('图片审核API调用失败:', error);
+      return { code: -2, msg: '图片审核服务异常' };
     }
   }
   */
   
-  // ------------------- 3. 瀹℃牳鍏ㄩ儴閫氳繃锛屽啓鍏ユ暟鎹簱 -------------------
+  // ------------------- 3. 审核全部通过，写入数据库 -------------------
   try {
-    // 鑾峰彇褰撳墠鐢ㄦ埛淇℃伅
+    // 获取当前用户信息
     // Use resolved openid above (event.openid preferred), fallback to context if missing
     const currentOpenid = openid || cloud.getWXContext().OPENID;
-    console.log('褰撳墠鐢ㄦ埛openid:', currentOpenid);
+    console.log('当前用户openid:', currentOpenid);
     
     const userInfo = await db.collection('users').where({
       _openid: currentOpenid
     }).get();
-    const userNickName = userInfo.data.length > 0 ? userInfo.data[0].nickName : '鍖垮悕鐢ㄦ埛';
+    const userNickName = userInfo.data.length > 0 ? userInfo.data[0].nickName : '匿名用户';
     const userAvatar = userInfo.data.length > 0 ? (userInfo.data[0].avatarUrl || '') : '';
     const userSignatureUrl = userInfo.data.length > 0 ? (userInfo.data[0].signatureUrl || '') : '';
-    console.log('鐢ㄦ埛鏄电О:', userNickName);
+    console.log('用户昵称:', userNickName);
     
-    // 纭畾浣滆€呬俊鎭?
+    // 确定作者信息
     let authorName = '';
     let displayAuthorName = '';
     let displayAuthorAvatar = '';
     
     if (isAnonymous) {
-      // 鍖垮悕鍙戝笘锛氭樉绀哄尶鍚嶄俊鎭?
-      console.log('鎵ц鍖垮悕鍙戝笘閫昏緫');
-      authorName = anonymousAuthorName || '鍖垮悕鐢ㄦ埛';
-      displayAuthorName = anonymousAuthorName || '鍖垮悕鐢ㄦ埛';
-      displayAuthorAvatar = '/static/images/avatar.png'; // 浣跨敤榛樿澶村儚
-      console.log('鍖垮悕鍙戝笘璁剧疆:', { authorName, displayAuthorName, displayAuthorAvatar });
+      // 匿名发帖：显示匿名信息
+      console.log('执行匿名发帖逻辑');
+      authorName = anonymousAuthorName || '匿名用户';
+      displayAuthorName = anonymousAuthorName || '匿名用户';
+      displayAuthorAvatar = '/static/images/avatar.png'; // 使用默认头像
+      console.log('匿名发帖设置:', { authorName, displayAuthorName, displayAuthorAvatar });
     } else {
-      // 姝ｅ父鍙戝笘
+      // 正常发帖
       if (publishMode === 'poem' || isSeries) {
         if (isOriginal) {
-          // 鍘熷垱璇楁瓕锛氬鏋滃～鍐欎簡浣滆€呭氨鐢ㄥ～鍐欑殑锛屽惁鍒欎娇鐢ㄧ敤鎴锋樀绉?
+          // 原创诗歌：如果填写了作者就用填写的，否则使用用户昵称
           authorName = author && author.trim() ? author.trim() : userNickName;
         } else {
-          // 闈炲師鍒涜瘲姝岋細蹇呴』浣跨敤濉啓鐨勪綔鑰?
+          // 非原创诗歌：必须使用填写的作者
           authorName = author && author.trim() ? author.trim() : '';
         }
       } else {
-        // 鏅€氬笘瀛愶細浣跨敤鐢ㄦ埛鏄电О
+        // 普通帖子：使用用户昵称
         authorName = userNickName;
       }
       displayAuthorName = userNickName;
@@ -560,13 +560,13 @@ const dedupeTop3 = (lines = []) => {
 
     const ownerOpenid = isAnonymous ? '123456' : currentOpenid;
     const postData = {
-      _openid: currentOpenid, // 娣诲姞openid瀛楁
+      _openid: currentOpenid, // 添加openid字段
       title: title || '',
       content: content || '',
       createTime: new Date(),
       votes: 0,
       commentCount: 0,
-      // 鏂板璇楁瓕鐩稿叧瀛楁
+      // 新增诗歌相关字段
       isPoem: publishMode === 'poem' || isSeries,
       isSeries: Boolean(isSeries),
       publishMode: publishMode || (isSeries ? 'poem' : 'normal'),
@@ -575,7 +575,7 @@ const dedupeTop3 = (lines = []) => {
       seriesCoverImage: normalizedSeriesBlocks[0]?.imageUrl || '',
       seriesCoverHighlight: highlightSentenceValue || '',
       isOriginal: isOriginal || false,
-      // 鏂板璁ㄨ鐩稿叧瀛楁
+      // 新增讨论相关字段
       isDiscussion: isDiscussion || false,
       parentPostId: parentPostId || '',
       quotedPostId: quotedPostId || '',
@@ -584,19 +584,20 @@ const dedupeTop3 = (lines = []) => {
         sentences: g.sentences,
         comment: g.comment
       })),
-      // 鏂板浣滆€呭瓧娈?      author: authorName,
+      // 新增作者字段
+      author: authorName,
       authorName: displayAuthorName,
       authorAvatar: displayAuthorAvatar,
       authorNameSnapshot: displayAuthorName,
       authorAvatarSnapshot: displayAuthorAvatar,
-      authorSignature: isAnonymous ? '' : (userSignatureUrl || ''), // 绛惧悕URL锛堝尶鍚嶅笘瀛愪笉瀛樺偍绛惧悕锛?
-      // 鍖垮悕鍙戝笘鐩稿叧瀛楁
+      authorSignature: isAnonymous ? '' : (userSignatureUrl || ''), // 签名URL（匿名帖子不存储签名）
+      // 匿名发帖相关字段
       isAnonymous: isAnonymous || false,
-      anonymousAuthorName: anonymousAuthorName || '鍖垮悕鐢ㄦ埛',
+      anonymousAuthorName: anonymousAuthorName || '匿名用户',
       realAuthorOpenid: realAuthorOpenid || null,
-      // 鏂板鏍囩瀛楁
+      // 新增标签字段
       tags: tags || [],
-      // 娲诲姩甯栧瓙瀛楁
+      // 活动帖子字段
       isActivityPost: Boolean(activityId),
       activityId: activityId || '',
       activityTitleSnapshot: activityTitleSnapshot || '',
@@ -604,13 +605,14 @@ const dedupeTop3 = (lines = []) => {
       joinedActivityId: joinActivityId || '',
       joinedActivityTitleSnapshot: joinActivityTitleSnapshot || '',
       joinedActivityAt: joinActivityId ? new Date() : null,
-      // 瀹℃牳鐘舵€?      // UI 瀹氬埗锛氳儗鏅壊 + 楂樺厜鍙ワ紙鍙€夛級
+      // 审核状态
+      // UI 定制：背景色 + 高光句（可选）
       backgroundColor: backgroundColor || '',
       textColor: textColor || '#000000',
       highlightSentence: highlightSentenceValue || '',
       highlightLines: Array.isArray(effectiveHighlightLines) ? dedupeTop3(effectiveHighlightLines) : [],
       _openid: ownerOpenid,
-      auditStatus: 'approved', // 瀹℃牳閫氳繃
+      auditStatus: 'approved', // 审核通过
       auditTime: new Date()
     };
 
@@ -637,11 +639,11 @@ const dedupeTop3 = (lines = []) => {
     }
     
     if (fileIDs && fileIDs.length > 0) {
-      // 杩囨护鎺夋棤鏁堢殑fileID
+      // 过滤掉无效的 fileID
       const validFileIDs = fileIDs.filter(id => id && typeof id === 'string' && id.trim() !== '');
       const validOriginalFileIDs = originalFileIDs ? originalFileIDs.filter(id => id && typeof id === 'string' && id.trim() !== '') : [];
       
-      console.log('璁剧疆鍥剧墖URL鍒板笘瀛愭暟鎹?', {
+      console.log('设置图片URL到帖子数据:', {
         originalFileIDs: fileIDs,
         validFileIDs: validFileIDs,
         originalOriginalFileIDs: originalFileIDs,
@@ -657,17 +659,17 @@ const dedupeTop3 = (lines = []) => {
         postData.imageUrl = validFileIDs[0];
         postData.imageUrls = validFileIDs;
         
-        // 璁剧疆鍘熷浘URL
+        // 设置原图URL
         if (validOriginalFileIDs.length > 0) {
           postData.originalImageUrl = validOriginalFileIDs[0];
           postData.originalImageUrls = validOriginalFileIDs;
         } else {
-          // 濡傛灉娌℃湁鍘熷浘锛屼娇鐢ㄥ帇缂╁浘浣滀负鍘熷浘
+          // 如果没有原图，使用压缩图作为原图
           postData.originalImageUrl = validFileIDs[0];
           postData.originalImageUrls = validFileIDs;
         }
         
-        // 濡傛灉鏄瘲姝屾ā寮忥紝绗竴寮犲浘鐗囦綔涓鸿儗鏅浘
+        // 如果是诗歌模式，第一张图片作为背景图
         if (publishMode === 'poem' || isSeries) {
           postData.poemBgImage = validFileIDs[0];
         }
@@ -676,39 +678,39 @@ const dedupeTop3 = (lines = []) => {
       }
     }
 
-    // 鏁版嵁楠岃瘉
+    // 数据验证
     const hasSeriesBlocks = postData.isSeries && Array.isArray(postData.seriesBlocks) && postData.seriesBlocks.length > 0;
     if (!postData.title && !postData.content && !hasSeriesBlocks) {
       throw new Error('标题和内容不能同时为空');
     }
     
     if (!postData._openid) {
-      throw new Error('鐢ㄦ埛openid缂哄け');
+      throw new Error('用户openid缺失');
     }
     
-    console.log('鍑嗗鍐欏叆鏁版嵁搴撶殑甯栧瓙鏁版嵁:', JSON.stringify(postData, null, 2));
-    console.log('鏈€缁堜綔鑰呬俊鎭?', { 
+    console.log('准备写入数据库的帖子数据:', JSON.stringify(postData, null, 2));
+    console.log('最终作者信息:', { 
       author: postData.author, 
       authorName: postData.authorName, 
       authorAvatar: postData.authorAvatar,
       isAnonymous: postData.isAnonymous 
     });
     
-    // 娴嬭瘯鏁版嵁搴撹繛鎺?
+    // 测试数据库连接
     try {
-      console.log('娴嬭瘯鏁版嵁搴撹繛鎺?..');
+      console.log('测试数据库连接...');
       const testResult = await db.collection('posts').limit(1).get();
-      console.log('鏁版嵁搴撹繛鎺ユ甯革紝娴嬭瘯鏌ヨ缁撴灉:', testResult);
+      console.log('数据库连接正常，测试查询结果:', testResult);
     } catch (testError) {
-      console.error('鏁版嵁搴撹繛鎺ユ祴璇曞け璐?', testError);
-      throw new Error(`鏁版嵁搴撹繛鎺ュけ璐? ${testError.message}`);
+      console.error('数据库连接测试失败:', testError);
+      throw new Error(`数据库连接失败: ${testError.message}`);
     }
     
     const result = await db.collection('posts').add({
       data: postData
     });
 
-    // 鍥炲啓娲诲姩缁熻锛堝畼鏂规椿鍔ㄥ笘鎴栫敤鎴峰弬涓庢椿鍔級
+    // 回写活动统计（官方活动帖或用户参与活动）
     const targetActivityId = activityId || joinActivityId;
     if (targetActivityId) {
       try {
@@ -720,11 +722,11 @@ const dedupeTop3 = (lines = []) => {
           }
         });
       } catch (activityUpdateError) {
-        console.warn('[contentCheck] 娲诲姩缁熻鏇存柊澶辫触锛堜笉褰卞搷鍙戝竷锛?', activityUpdateError);
+        console.warn('[contentCheck] 活动统计更新失败（不影响发布）:', activityUpdateError);
       }
     }
 
-    // 杩藉姞鍐欏叆锛氶鑹?楂樺厜鍙ワ紙涓庣幇鏈夊瓧娈佃В鑰︼紝閬垮厤鏃х増鏈璞＄粨鏋勫奖鍝嶏級
+    // 追加写入：颜色/高光句（与现有字段解耦，避免旧版本对象结构影响）
     try {
       await db.collection('posts').doc(result._id).update({
         data: {
@@ -734,7 +736,7 @@ const dedupeTop3 = (lines = []) => {
         }
       });
 
-      // 鍏煎鍐欏叆锛氶珮鍏夎鏁扮粍
+      // 兼容写入：高光行数组
       try {
         await db.collection('posts').doc(result._id).update({
           data: {
@@ -742,61 +744,61 @@ const dedupeTop3 = (lines = []) => {
           }
         });
       } catch (e) {
-        console.warn('[contentCheck] 鍐欏叆 highlightLines 澶辫触锛堝拷鐣ワ級:', e);
+        console.warn('[contentCheck] 写入 highlightLines 失败（忽略）:', e);
       }
     } catch (e) {
-      console.warn('[contentCheck] 杩藉姞鍐欏叆棰滆壊/楂樺厜鍙ュけ璐ワ紝涓嶅奖鍝嶅彂甯?', e);
+      console.warn('[contentCheck] 追加写入颜色/高光句失败，不影响发布:', e);
     }
 
-    console.log('鏁版嵁搴撳啓鍏ユ垚鍔燂紝杩斿洖缁撴灉:', {
+    console.log('数据库写入成功，返回结果:', {
       postId: result._id,
       insertedCount: result.stats?.inserted || 1
     });
 
-    // ------------------- 4. 闈炲師鍒涜瘲姝岃嚜鍔ㄥ垱寤鸿瘲浜轰富椤?-------------------
+    // ------------------- 4. 非原创诗歌自动创建诗人主页 -------------------
     if ((publishMode === 'poem' || isSeries) && !isOriginal && authorName && authorName.trim()) {
       try {
         const poetName = authorName.trim();
-        console.log('妫€鏌ヨ瘲浜轰富椤垫槸鍚﹀瓨鍦?', poetName);
+        console.log('检查诗人主页是否存在:', poetName);
         
-        // 鏌ヨ璇椾汉鏄惁宸插瓨鍦?
+        // 查询诗人是否已存在
         const poetResult = await db.collection('poets')
           .where({ name: poetName })
           .limit(1)
           .get();
         
         if (!poetResult.data || poetResult.data.length === 0) {
-          // 璇椾汉涓嶅瓨鍦紝鑷姩鍒涘缓
-          console.log('璇椾汉涓婚〉涓嶅瓨鍦紝鑷姩鍒涘缓:', poetName);
+          // 诗人不存在，自动创建
+          console.log('诗人主页不存在，自动创建:', poetName);
           const newPoet = {
             name: poetName,
-            avatar: '',  // 榛樿鏃犲ご鍍?
-            bio: '',     // 榛樿鏃犵畝浠?
+            avatar: '',  // 默认无头像
+            bio: '',     // 默认无简介
             createTime: db.serverDate(),
             updateTime: db.serverDate(),
-            creatorOpenid: currentOpenid  // 璁板綍璋侀娆¤Е鍙戝垱寤?
+            creatorOpenid: currentOpenid  // 记录谁首次触发创建
           };
           
           const poetAddResult = await db.collection('poets').add({ data: newPoet });
-          console.log('璇椾汉涓婚〉鍒涘缓鎴愬姛:', poetAddResult._id);
+          console.log('诗人主页创建成功:', poetAddResult._id);
         } else {
-          console.log('璇椾汉涓婚〉宸插瓨鍦紝鏃犻渶鍒涘缓:', poetName);
+          console.log('诗人主页已存在，无需创建:', poetName);
         }
       } catch (poetError) {
-        // 璇椾汉涓婚〉鍒涘缓澶辫触涓嶅奖鍝嶅笘瀛愬彂甯?
-        console.warn('鑷姩鍒涘缓璇椾汉涓婚〉澶辫触锛堜笉褰卞搷鍙戝笘锛?', poetError);
+        // 诗人主页创建失败不影响帖子发布
+        console.warn('自动创建诗人主页失败（不影响发帖）:', poetError);
       }
     }
 
-    // 鍏ㄩ儴鎴愬姛锛岃繑鍥炴垚鍔熺姸鎬?
+    // 全部成功，返回成功状态
     return buildSuccess({
       postId: result._id,
       msg: '发布成功'
     });
 
   } catch (dbError) {
-    console.error("鏁版嵁搴撳啓鍏ュけ璐?", dbError);
-    console.error("鏁版嵁搴撻敊璇鎯?", {
+    console.error('数据库写入失败:', dbError);
+    console.error('数据库错误详情:', {
       message: dbError.message,
       code: dbError.code,
       stack: dbError.stack
