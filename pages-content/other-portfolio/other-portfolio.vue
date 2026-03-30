@@ -2,7 +2,7 @@
   <view class="other-portfolio-page" @touchstart="touchStart" @touchend="touchEnd">
     <!-- 自定义返回按钮 -->
     <view class="custom-back-btn" @tap="goBack">
-      <image class="back-icon" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
+      <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
     </view>
     
     <view class="container">
@@ -508,13 +508,15 @@ export default {
 /* 自定义返回按钮 */
 .custom-back-btn {
   position: absolute;
-  top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px))); /* 添加安全区域偏移 */
+  top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px))); /* 添加安全区域偏移 */
   left: 40rpx;
   width: 100rpx;
   height: 100rpx;
   background: transparent;
   border: none;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 100;
   transition: all 0.2s ease;
   box-sizing: border-box;
@@ -525,8 +527,8 @@ export default {
 }
 
 .custom-back-btn .back-icon {
-  width: 100rpx;
-  height: 100rpx;
+  width: 22rpx;
+  height: 38rpx;
   display: block;
   object-fit: contain;
 }

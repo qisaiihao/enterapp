@@ -6,6 +6,20 @@ cloud.init({
 
 const db = cloud.database();
 
+function normalizeAppBackgroundUrl(url) {
+  return typeof url === 'string' ? url.trim() : '';
+}
+
+function normalizeAppBackgroundMode(mode, backgroundUrl = '') {
+  const normalizedUrl = normalizeAppBackgroundUrl(backgroundUrl);
+  if (!normalizedUrl) {
+    return '';
+  }
+  return typeof mode === 'string' && mode.trim().toLowerCase() === 'header'
+    ? 'header'
+    : 'full';
+}
+
 // 平台检测和兼容性处理
 function getDatabaseAndContext() {
   // 检查是否是TCB调用（H5/APP环境）
@@ -58,7 +72,20 @@ exports.main = async (event, context) => {
     };
   }
 
-  const { avatarUrl, nickName, birthday, bio, signatureUrl, occupation, region, poemId, password } = event;
+  const {
+    avatarUrl,
+    nickName,
+    birthday,
+    bio,
+    signatureUrl,
+    occupation,
+    region,
+    poemId,
+    password,
+    appBackgroundUrl,
+    appBackgroundMode,
+    clearAppBackground
+  } = event;
 
   console.log('🔍 [updateUserProfile] 收到的参数:', {
     nickName,
@@ -113,6 +140,17 @@ exports.main = async (event, context) => {
     if (password) {
       updateData.password = password;
       console.log('🔍 [updateUserProfile] 将更新password');
+    }
+
+    if (clearAppBackground) {
+      updateData.appBackgroundUrl = '';
+      updateData.appBackgroundMode = '';
+      console.log('🔍 [updateUserProfile] 将清空 appBackgroundUrl 和 appBackgroundMode');
+    } else if (appBackgroundUrl !== undefined) {
+      const normalizedBackgroundUrl = normalizeAppBackgroundUrl(appBackgroundUrl);
+      updateData.appBackgroundUrl = normalizedBackgroundUrl;
+      updateData.appBackgroundMode = normalizeAppBackgroundMode(appBackgroundMode, normalizedBackgroundUrl);
+      console.log('🔍 [updateUserProfile] 将更新 appBackgroundUrl 和 appBackgroundMode');
     }
 
     // Check if there is anything to update

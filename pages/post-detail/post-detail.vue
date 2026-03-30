@@ -4,7 +4,7 @@
         <!-- pages/post-detail/post-detail.wxml -->
         <!-- 自定义返回按钮 -->
         <view class="custom-back-btn" @tap="goBack">
-            <image class="back-icon" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
+            <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
         </view>
         
         <view class="container">
@@ -18,7 +18,7 @@
                         <view class="author-basic">
                             <image
                                 class="author-avatar"
-                                :src="post.isAnonymous ? '/static/images/avatar.png' : (post.authorAvatar || '/static/images/avatar.png')"
+                                :src="postAuthorAvatarSrc"
                                 mode="aspectFill"
                                 @error="onAvatarError"
                                 @click="navigateToUserProfile"
@@ -356,6 +356,7 @@ import { emitCommentCountChanged, emitPostUpdated } from '@/utils/events.js';
 import fontManager from '@/utils/fontManager.js'; // 添加fontManager导入
 import { checkContentSafe, checkTextSafe, shouldModerate } from '@/utils/contentModeration.js';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
+import { resolvePostAuthorAvatar } from '@/utils/defaultAvatar.js';
 
 // API函数导入
 import { getPostDetail, updatePostContent, togglePostFavorite, recordPostView } from '@/api-cache/post.js';
@@ -462,6 +463,9 @@ export default {
     },
     mixins: [postGalleryMixin],
     computed: {
+        postAuthorAvatarSrc() {
+            return resolvePostAuthorAvatar(this.post);
+        },
         // 是否可以跳转到诗人主页（非原创诗且作者名与发布用户昵称不同）
         canGoToPoetProfile() {
             if (!this.post || !this.post.author) return false;
@@ -3242,13 +3246,15 @@ export default {
 /* 自定义返回按钮 */
 .custom-back-btn {
     position: absolute;
-    top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px))); /* 添加安全区域偏移 */
+    top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px))); /* 添加安全区域偏移 */
     left: 40rpx;
     width: 100rpx;
     height: 100rpx;
     background: transparent;
     border: none;
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     z-index: 100;
     transition: all 0.2s ease;
     box-sizing: border-box;
@@ -3259,8 +3265,8 @@ export default {
 }
 
 .custom-back-btn .back-icon {
-    width: 100rpx;
-    height: 100rpx;
+    width: 22rpx;
+    height: 38rpx;
     display: block;
     object-fit: contain;
 }
@@ -3274,7 +3280,7 @@ page {
     background-color: #ffffff;
     /* min-height: 100vh; */
     padding-bottom: 140rpx;
-    padding-top: calc(160rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px))); /* 添加安全区域上边距 */
+    padding-top: calc(160rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px))); /* 添加安全区域上边距 */
     position: relative; /* 为返回按钮提供定位上下文 */
     /* 新增，确保在内容不足时也能撑满一屏 */
     display: flex;

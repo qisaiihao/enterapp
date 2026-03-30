@@ -36,6 +36,8 @@ exports.main = async (event, context) => {
         content: 1,
         highlightSentence: 1,
         highlightLines: 1,
+        backgroundColor: 1,
+        textColor: 1,
         isSeries: 1,
         mergedToSeriesId: 1,
         isHidden: 1,

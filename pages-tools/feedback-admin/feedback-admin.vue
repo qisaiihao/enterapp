@@ -4,7 +4,7 @@
         <!-- 头部 -->
         <view class="header" :style="'top: ' + statusBarHeight + 'px;'">
             <view class="header-left" @tap="goBack">
-                <text class="back-icon">←</text>
+                <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
             </view>
             <text class="header-title">反馈管理</text>
             <view class="header-right" @tap="refreshFeedbackList">
@@ -81,6 +81,7 @@
 const { formatRelativeTime } = require('../../utils/time.js');
 const { previewImage: previewImageUtil } = require('../../utils/imagePreview.js');
 const { cloudCall } = require('../../utils/cloudCall.js');
+const { getCurrentUserInfo, isAdminUser } = require('../../utils/admin.js');
 const {
     getFeedbackList: getFeedbackListApi,
     updateFeedbackStatus,
@@ -160,7 +161,8 @@ export default {
                 if (openIdResult.result && openIdResult.result.openid) {
                     const currentOpenid = openIdResult.result.openid;
                     const adminOpenids = ['ojYBd1_A3uCbQ1LGcHxWxOAeA5SE', 'ojYBd14JG3-ghYuGCI2WHmkMc9nE']; // 管理员openid列表
-                    const isAdmin = adminOpenids.includes(currentOpenid);
+                    const currentUser = getCurrentUserInfo() || {};
+                    const isAdmin = isAdminUser(currentUser);
                     console.log('反馈管理页面 - 当前用户:', currentOpenid);
                     console.log('反馈管理页面 - 是否为管理员:', isAdmin);
                     this.setData({
@@ -369,7 +371,11 @@ export default {
     justify-content: center;
 }
 
-.back-icon,
+.back-icon {
+    width: 22rpx;
+    height: 38rpx;
+}
+
 .refresh-icon {
     font-size: 36rpx;
     color: #333;

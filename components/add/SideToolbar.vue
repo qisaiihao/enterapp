@@ -1,5 +1,5 @@
 <template>
-    <view class="side-toolbar">
+    <view class="side-toolbar" :class="toolbarClassName">
         <view class="side-tool-btn" @tap.stop="$emit('toggle-tags')">
             <image class="side-tool-icon" src="/static/images/newicons/tag.png" mode="aspectFit" />
         </view>
@@ -17,7 +17,7 @@
             class="side-tool-btn series-toggle-btn"
             @tap.stop="$emit('toggle-series')"
         >
-            <image class="side-tool-icon" src="/static/images/zushi.png" mode="aspectFit" />
+            <image class="side-tool-icon" src="/static/images/zushi_new.png" mode="aspectFit" />
         </view>
 
         <view v-if="publishMode === 'poem'" class="side-tool-btn" @tap.stop="$emit('toggle-highlight')">
@@ -41,6 +41,17 @@ export default {
         isSeries: {
             type: Boolean,
             default: false
+        },
+        layoutVariant: {
+            type: String,
+            default: 'default'
+        }
+    },
+    computed: {
+        toolbarClassName() {
+            return this.layoutVariant && this.layoutVariant !== 'default'
+                ? `side-toolbar--${this.layoutVariant}`
+                : '';
         }
     }
 };
@@ -78,7 +89,7 @@ export default {
     margin-right: 0rpx;
 }
 
-.side-tool-btn:active { 
+.side-tool-btn:active {
     transform: scale(0.95);
 }
 
@@ -92,7 +103,7 @@ export default {
     box-shadow: none;
 }
 
-.side-tool-icon { 
+.side-tool-icon {
     width: 110rpx;
     height: 110rpx;
     display: flex;
@@ -102,11 +113,38 @@ export default {
     color: #333;
 }
 
+.series-toggle-btn .side-tool-icon {
+    width: 60rpx;
+    height: 60rpx;
+}
+
 .side-tool-text {
     font-size: 36rpx;
     font-weight: 700;
     color: #444;
     line-height: 90rpx;
+}
+
+.side-toolbar--series-compose {
+    top: 8rpx;
+    width: 96rpx;
+    padding: 0;
+}
+
+.side-toolbar--series-compose .side-tool-btn {
+    width: 76rpx;
+    height: 76rpx;
+    margin-bottom: 18rpx;
+}
+
+.side-toolbar--series-compose .side-tool-icon {
+    width: 76rpx;
+    height: 76rpx;
+}
+
+.side-toolbar--series-compose .series-toggle-btn .side-tool-icon {
+    width: 56rpx;
+    height: 56rpx;
 }
 
 /* 移除组诗按钮的 active 状态样式 */

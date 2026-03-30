@@ -1,9 +1,9 @@
-﻿<template>
+<template>
   <view class="white-page">
     <view class="container">
       <view class="avatar-top">
         <view class="avatar-preview" @tap="onChooseAvatar">
-          <image :src="localAvatarTempPath || '/static/images/avatar.png'" mode="aspectFill"></image>
+          <image :src="defaultRegisterAvatar" mode="aspectFill"></image>
         </view>
         <text class="avatar-cta">点击更换头像</text>
       </view>
@@ -115,6 +115,8 @@
 // pages/register/register.js
 import { cloudCall } from '@/utils/cloudCall.js';
 import { getCurrentPlatform } from '@/utils/platformDetector.js';
+import { applyAuthenticatedUserSession } from '@/utils/appBackground.js';
+import { resolveUserAvatar } from '@/utils/defaultAvatar.js';
 
 const app = getApp();
 
@@ -200,6 +202,12 @@ export default {
                    this.confirmPassword.trim() && 
                    this.nickName.trim() &&
                    this.password === this.confirmPassword;
+        },
+        defaultRegisterAvatar() {
+            return resolveUserAvatar(
+                this.localAvatarTempPath,
+                this.poemId.trim() || this.nickName.trim() || 'register-default-avatar'
+            );
         },
         // 判断是否为 APP 端
         isApp() {
@@ -535,17 +543,11 @@ export default {
                     _openid: targetOpenid  // 使用查询到的用户的 openid
                 };
                 
-                uni.setStorageSync('userInfo', updatedUserInfo);
                 uni.setStorageSync('github_access_token', this.githubData.accessToken);
-                
-                // 4. 更新全局状态
-                const app = getApp();
-                if (app) {
-                    app.globalData = app.globalData || {};
-                    app.globalData.userInfo = updatedUserInfo;
-                    app.globalData.openid = targetOpenid;  // 使用查询到的用户的 openid
-                    app.globalData._loginProcessCompleted = true;
-                }
+
+                await applyAuthenticatedUserSession(updatedUserInfo, {
+                    openid: targetOpenid
+                });
                 
                 uni.hideLoading();
                 uni.showToast({
@@ -613,14 +615,9 @@ export default {
                 if (registerRes.result && registerRes.result.success) {
                     const userInfo = registerRes.result.userInfo;
                     const returnedOpenid = registerRes.result.openid;
-                    const app = getApp();
-                    app.globalData.userInfo = userInfo;
-                    app.globalData.openid = returnedOpenid;
-                    app.globalData._loginProcessCompleted = true;
-                    // 【关键修复】设置登录状态标记
-                    app.globalData.isLoggedIn = true;
-                    uni.setStorageSync('userInfo', userInfo);
-                    uni.setStorageSync('userOpenId', returnedOpenid);
+                    await applyAuthenticatedUserSession(userInfo, {
+                        openid: returnedOpenid
+                    });
                     uni.showToast({ title: '注册成功', icon: 'success' });
                     setTimeout(() => { uni.switchTab({ url: '/pages/poem-square/poem-square' }); }, 1000);
                 } else {

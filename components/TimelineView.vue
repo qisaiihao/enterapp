@@ -138,16 +138,17 @@ export default {
 /* 时间轴样式 */
 .timeline-container {
     margin: 30rpx;
-    background: #fff;
+    background: var(--app-surface-bg, #fff);
     border-radius: 16rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    box-shadow: var(--app-surface-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
+    border: var(--app-surface-border-line, none);
     padding: 30rpx;
 }
 
 .timeline-title {
     font-size: 32rpx;
     font-weight: 600;
-    color: #333;
+    color: var(--app-surface-title-color, #333);
     margin-bottom: 30rpx;
     text-align: center;
 }
@@ -163,7 +164,7 @@ export default {
     top: 20rpx;
     bottom: 0;
     width: 4rpx;
-    background: #809076;
+    background: var(--app-surface-accent-color, #809076);
     z-index: 1;
 }
 
@@ -195,7 +196,7 @@ export default {
     left: -45rpx;
     width: 20rpx;
     height: 4rpx;
-    background: #809076;
+    background: var(--app-surface-accent-color, #809076);
 }
 
 .timeline-month-marker.first-month {
@@ -206,7 +207,7 @@ export default {
 .timeline-month-label {
     font-size: 28rpx;
     font-weight: 600;
-    color: #809076;
+    color: var(--app-surface-accent-color, #809076);
     flex-shrink: 0;
     cursor: pointer;
     -webkit-user-select: none;
@@ -223,7 +224,7 @@ export default {
 
 .timeline-post-item {
     padding: 20rpx 0;
-    border-bottom: 1rpx solid #f8f8f8;
+    border-bottom: 1rpx solid var(--app-surface-divider, #f8f8f8);
     cursor: pointer;
     transition: background-color 0.2s ease;
     position: relative;
@@ -239,7 +240,7 @@ export default {
 
 .timeline-post-date {
     font-size: 24rpx;
-    color: #999;
+    color: var(--app-surface-meta-color, #999);
     margin-bottom: 10rpx;
 }
 
@@ -249,7 +250,7 @@ export default {
 
 .timeline-post-title {
     font-size: 28rpx;
-    color: #333;
+    color: var(--app-surface-text-color, #333);
     line-height: 1.5;
     word-break: break-word;
 }
@@ -280,9 +281,10 @@ export default {
 /* 时间轴空状态 */
 .timeline-empty {
     margin: 30rpx;
-    background: #fff;
+    background: var(--app-surface-bg, #fff);
     border-radius: 16rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    box-shadow: var(--app-surface-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
+    border: var(--app-surface-border-line, none);
     padding: 60rpx 30rpx;
     text-align: center;
 }
@@ -294,22 +296,23 @@ export default {
 
 .timeline-empty-text {
     font-size: 28rpx;
-    color: #666;
+    color: var(--app-surface-text-color, #666);
     margin-bottom: 10rpx;
 }
 
 .timeline-empty-subtext {
     font-size: 24rpx;
-    color: #999;
+    color: var(--app-surface-meta-color, #999);
     line-height: 1.4;
 }
 
 /* 时间轴加载状态 */
 .timeline-loading {
     margin: 30rpx;
-    background: #fff;
+    background: var(--app-surface-bg, #fff);
     border-radius: 16rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    box-shadow: var(--app-surface-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
+    border: var(--app-surface-border-line, none);
     padding: 60rpx 30rpx;
     text-align: center;
 }
@@ -322,7 +325,7 @@ export default {
 
 .timeline-loading-text {
     font-size: 28rpx;
-    color: #666;
+    color: var(--app-surface-text-color, #666);
 }
 
 @keyframes rotate {
@@ -333,9 +336,10 @@ export default {
 /* 时间轴错误状态 */
 .timeline-error {
     margin: 30rpx;
-    background: #fff;
+    background: var(--app-surface-bg, #fff);
     border-radius: 16rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    box-shadow: var(--app-surface-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
+    border: var(--app-surface-border-line, none);
     padding: 60rpx 30rpx;
     text-align: center;
 }
@@ -353,7 +357,7 @@ export default {
 
 .timeline-error-subtext {
     font-size: 24rpx;
-    color: #999;
+    color: var(--app-surface-meta-color, #999);
     margin-bottom: 30rpx;
     line-height: 1.4;
 }
@@ -361,7 +365,7 @@ export default {
 .timeline-retry-btn {
     display: inline-block;
     padding: 20rpx 40rpx;
-    background: #809076;
+    background: var(--app-surface-accent-color, #809076);
     color: #fff;
     border-radius: 8rpx;
     font-size: 26rpx;
@@ -370,6 +374,6 @@ export default {
 }
 
 .timeline-retry-btn:active {
-    background-color: #6d7a64;
+    background-color: var(--app-surface-accent-color, #6d7a64);
 }
 </style>

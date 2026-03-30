@@ -9,12 +9,78 @@
         '<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0' +
         (coverSupport ? ', viewport-fit=cover' : '') + '" />')
     </script>
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        background: #ffffff;
+      }
+
+      body {
+        min-height: 100%;
+        overscroll-behavior-y: none;
+      }
+
+      #app {
+        min-height: 100%;
+        background: #ffffff;
+      }
+
+      uni-tabbar,
+      uni-tabbar .uni-tabbar,
+      uni-tabbar .uni-placeholder {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
+
+      #app-loading-mask {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483647;
+        background: #ffffff;
+      }
+    </style>
     <title></title>
     <!--preload-links-->
     <!--app-context-->
   </head>
   <body>
     <div id="app"><!--app-html--></div>
+    <div id="app-loading-mask"></div>
+    <script>
+      ;(function () {
+        var isHidden = false
+        function removeMask() {
+          if (isHidden) {
+            return
+          }
+          isHidden = true
+          var mask = document.getElementById('app-loading-mask')
+          if (mask && mask.parentNode) {
+            mask.parentNode.removeChild(mask)
+          }
+        }
+
+        function hideMask() {
+          if (typeof window.requestAnimationFrame === 'function') {
+            window.requestAnimationFrame(function () {
+              window.requestAnimationFrame(removeMask)
+            })
+            return
+          }
+          window.setTimeout(removeMask, 0)
+        }
+
+        window.__ENTERAPP_HIDE_BOOT_MASK__ = hideMask
+        window.addEventListener('enterapp-ready', hideMask)
+        window.addEventListener('load', hideMask)
+        window.setTimeout(hideMask, 4000)
+      })()
+    </script>
     <script type="module" src="/main.js"></script>
   </body>
 </html>

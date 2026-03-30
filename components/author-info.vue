@@ -3,7 +3,7 @@
     <view class="author-basic">
       <image
         class="author-avatar"
-        :src="post.isAnonymous ? '/static/images/avatar.png' : (post.authorAvatar || '/static/images/avatar.png')"
+        :src="authorAvatarSrc"
         mode="aspectFill"
         @error="$emit('avatar-error')"
         @click="$emit('navigateToUserProfile')"
@@ -21,12 +21,19 @@
   </view>
 </template>
 <script>
+import { resolvePostAuthorAvatar } from '@/utils/defaultAvatar.js';
+
 export default {
   name: 'AuthorInfo',
   props: {
     post: { type: Object, required: true },
     isMutualFollow: Boolean,
     isFollowedByAuthor: Boolean
+  },
+  computed: {
+    authorAvatarSrc() {
+      return resolvePostAuthorAvatar(this.post);
+    }
   }
 };
 </script>

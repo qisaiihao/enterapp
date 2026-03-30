@@ -161,7 +161,7 @@ let adminManagerApi = null;
 adminManagerApi = require('../../api-cache/admin-manager.js');
 // #endif
 
-const ADMIN_POEM_IDS = ['qisaihao', 'jingmikun', 'qwertyuiop'];
+const { isCurrentUserAdmin } = require('../../utils/admin.js');
 const COLLECTION_NAME_REGEXP = /^[A-Za-z0-9_-]+$/;
 const FIELD_NAME_REGEXP = /^[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*$/;
 
@@ -233,9 +233,7 @@ export default {
       uni.navigateTo({ url });
     },
     ensureAdminAccess() {
-      const userInfo = uni.getStorageSync('userInfo') || {};
-      const poemId = String(userInfo.poemId || '').trim().toLowerCase();
-      if (poemId && ADMIN_POEM_IDS.includes(poemId)) {
+      if (isCurrentUserAdmin()) {
         return true;
       }
 

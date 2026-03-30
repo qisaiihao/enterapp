@@ -107,6 +107,7 @@ import zpMixins from '@/uni_modules/zp-mixins/index.js';
 
 // #ifndef VUE3
 import Vue from 'vue';
+import AppBackgroundPageRoot from '@/components/AppBackgroundPageRoot.vue';
 
 // --- TCB 初始化开始 (这是我们新加的部分) ---
 // 1. 引入新的、正确的 tencent-cloudbase SDK
@@ -393,6 +394,19 @@ tcbApp.callFunction = function (options = {}) {
 // #endif
 
 Vue.use(zpMixins); // 保留这行
+Vue.component('app-background-page-root', AppBackgroundPageRoot);
+
+// #ifdef H5
+const notifyH5AppReady = () => {
+    if (typeof window === 'undefined') {
+        return;
+    }
+    if (typeof window.__ENTERAPP_HIDE_BOOT_MASK__ === 'function') {
+        window.__ENTERAPP_HIDE_BOOT_MASK__();
+    }
+    window.dispatchEvent(new Event('enterapp-ready'));
+};
+// #endif
 
 Vue.config.productionTip = false;
 App.mpType = 'app';
@@ -400,6 +414,9 @@ const app = new Vue({
     ...App
 });
 app.$mount();
+// #ifdef H5
+notifyH5AppReady();
+// #endif
 // #endif
 
 // #ifdef VUE3
@@ -508,6 +525,7 @@ export function createApp() {
     // --- TCB 初始化结束 ---
     
     app.mixin(zpMixins); // 保留这行
+    app.component('app-background-page-root', AppBackgroundPageRoot);
     return {
         app
     };

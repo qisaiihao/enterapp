@@ -94,9 +94,10 @@ export default {
   left: 0;
   right: 0;
   height: 88rpx;
-  background: #ffffff;
+  background: var(--app-fixed-bar-bg, #ffffff);
   /* 仅需略高于内容，避免过高遮挡；top-bar 本身更高 */
   z-index: 1050;
+  box-shadow: var(--app-fixed-bar-shadow, none);
 }
 
 .tabs-list {

@@ -7,10 +7,6 @@ cloud.init({
 
 const db = cloud.database()
 const _ = db.command
-const ADMIN_POEM_IDS = ['qisaihao', 'jingmikun', 'ZOUHE', 'qwertyuiop']
-const NORMALIZED_ADMIN_POEM_IDS = new Set(
-  ADMIN_POEM_IDS.map((item) => String(item || '').trim().toLowerCase()).filter(Boolean)
-)
 const ACTIVITY_SUMMARY_MAX_LENGTH = 200
 const ACTIVITY_RULES_MAX_LENGTH = 5000
 const BATCH_REPLACE_SAMPLE_LIMIT = 10
@@ -69,21 +65,9 @@ const {
   normalizeAllowUserSubmission,
   buildAdminActivityView
 } = require('./_lib/activity')
+const { isAdminByPoemId } = require('../_lib/admin-auth')
 
 // 验证管理员权限（通过poemId）
-async function isAdmin(openid) {
-  try {
-    const result = await db.collection('users').where({
-      _openid: openid
-    }).limit(1).get()
-    const user = Array.isArray(result.data) && result.data.length ? result.data[0] : null
-    const poemId = String((user && user.poemId) || '').trim().toLowerCase()
-    return !!poemId && NORMALIZED_ADMIN_POEM_IDS.has(poemId)
-  } catch (error) {
-    console.error('验证管理员权限失败:', error)
-    return false
-  }
-}
 
 const actionHandlers = {
   getAllPosts: (event) => getAllPosts(event),
@@ -124,7 +108,7 @@ exports.main = async (event, context) => {
     }
 
     // 验证管理员权限
-    const hasAdminPermission = await isAdmin(openid)
+    const hasAdminPermission = await isAdminByPoemId({ db, command: _, openid, loggerPrefix: 'adminManager' })
     if (!hasAdminPermission) {
       return {
         success: false,

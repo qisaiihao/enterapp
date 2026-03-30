@@ -6,7 +6,7 @@
                     <image class="icon-img" :src="selected === index ? (item.selectedIconPath || item.iconPath) : item.iconPath" mode="aspectFill" />
                 </view>
             </view>
-            <text class="tab-bar-text" :style="'color: ' + (selected === index ? selectedColor : color)">{{ item.text }}</text>
+            <text class="tab-bar-text" :style="selected === index ? ('color: ' + selectedColor) : ''">{{ item.text }}</text>
         </view>
     </view>
 </template>
@@ -52,18 +52,54 @@ export default {
         };
     },
     created() {
-        this.syncSelected();
+        this.syncSelected({ preferCache: true });
+    },
+    mounted() {
+        this.$nextTick(() => {
+            this.syncSelected({ preferCache: true });
+        });
     },
     methods: {
-        syncSelected() {
+        getCachedSelected() {
+            try {
+                const cached = uni.getStorageSync('currentTabIndex');
+                if (typeof cached === 'number') return cached;
+                const parsed = parseInt(cached, 10);
+                return Number.isNaN(parsed) ? null : parsed;
+            } catch (_) {
+                return null;
+            }
+        },
+        updateSelected(index) {
+            const nextIndex = typeof index === 'number' ? index : parseInt(index, 10);
+            if (Number.isNaN(nextIndex) || this.selected === nextIndex) return;
+            this.selected = nextIndex;
+        },
+        syncSelected(options = {}) {
+            const { preferCache = false } = options;
+            const cachedIndex = this.getCachedSelected();
+
+            if (preferCache && cachedIndex !== null) {
+                this.updateSelected(cachedIndex);
+                return;
+            }
+
             try {
                 const pages = getCurrentPages();
                 const current = pages && pages.length ? pages[pages.length - 1] : null;
                 const route = current && (current.route || (current.$page && current.$page.fullPath) || '');
-                if (!route) return;
+                if (!route) {
+                    if (!preferCache) this.updateSelected(cachedIndex);
+                    return;
+                }
                 const idx = this.list.findIndex(i => route.indexOf(i.pagePath.replace(/^\//,'')) >= 0);
-                if (idx >= 0) this.setData({ selected: idx });
+                if (idx >= 0) {
+                    this.updateSelected(idx);
+                    return;
+                }
             } catch (_) {}
+
+            if (!preferCache) this.updateSelected(cachedIndex);
         },
         switchTab(e) {
             const data = e.currentTarget.dataset;
@@ -107,6 +143,8 @@ export default {
                 return;
             }
 
+            this.updateSelected(index);
+            try { uni.setStorageSync('currentTabIndex', typeof index === 'number' ? index : parseInt(index, 10)); } catch (_) {}
             const targetUrl = url.startsWith('/') ? url : `/${url}`;
             uni.switchTab({ url: targetUrl });
         },
@@ -153,7 +191,7 @@ export default {
   align-items: center !important;
   justify-content: center !important;
   z-index: 1000 !important;
-  background: #ffffff !important;
+  background: var(--app-fixed-bar-bg, #ffffff) !important;
   box-sizing: border-box !important;
 }
 
@@ -204,6 +242,7 @@ export default {
   font-size: 22rpx;
   margin-top: 4rpx;
   transition: all 0.3s ease;
+  color: var(--app-tab-text-color, #999999);
 }
 
 /* 响应式间距调整 */
@@ -232,4 +271,3 @@ export default {
   }
 }
 </style>
-

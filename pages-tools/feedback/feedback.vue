@@ -4,7 +4,7 @@
         <!-- 头部 -->
         <view class="header" :style="'top: ' + statusBarHeight + 'px;'">
             <view class="header-left" @tap="goBack">
-                <image class="back-icon-image" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
+                <image class="back-icon-image" src="/static/images/left_exit.png" mode="aspectFit"></image>
             </view>
             <text class="header-title">意见反馈</text>
             <view class="header-right"></view>
@@ -293,9 +293,8 @@ export default {
 }
 
 .back-icon-image {
-    width: 72rpx;
-    height: 72rpx;
-    margin-top: 4rpx;
+    width: 22rpx;
+    height: 38rpx;
 }
 
 .header-title {

@@ -1,6 +1,13 @@
 <template>
     <!-- pages/user-profile/user-profile.wxml -->
-    <view class="container">
+    <view
+        class="user-profile-page-root"
+        :class="{ 'user-profile-page-root--with-background': isFullBackground }"
+        :style="userProfileRootStyle"
+    >
+        <view v-if="isFullBackground" class="user-profile-bg-image"></view>
+        <view v-if="isFullBackground" class="user-profile-bg-overlay"></view>
+        <view class="container" :class="{ 'container--with-background': hasAppBackground }">
 
         <!-- 骨架屏：当 isLoading 为 true 时显示 -->
         <view v-if="isLoading">
@@ -8,8 +15,15 @@
         </view>
 
         <!-- 主要内容 -->
-        <view v-else class="main-content">
+        <view v-else class="main-content" :class="{ 'main-content--with-background': hasAppBackground }">
             <!-- User Profile Card -->
+            <view
+                class="profile-hero-section"
+                :class="{ 'profile-hero-section--with-background': isHeaderBackground }"
+                :style="profileHeroStyle"
+            >
+                <view v-if="isHeaderBackground" class="profile-hero-bg-image"></view>
+                <view v-if="isHeaderBackground" class="profile-hero-bg-overlay"></view>
             <view class="profile-card profile-card-center">
                 <view class="profile-growth-stats" style="display: none;">
                     <view class="growth-item">
@@ -27,10 +41,10 @@
                     <view class="growth-item">
                         <image class="growth-icon" src="/static/images/peachplus.png" mode="aspectFit"></image>
                         <text class="growth-count">{{ growthStats.peach }}</text>
-                    </view>
-                </view>
-                <view class="profile-avatar-large">
-                    <image :src="userInfo.avatarUrl || '/static/images/avatar.png'" mode="aspectFill" @error="onAvatarError"></image>
+	                </view>
+	            </view>
+	                <view class="profile-avatar-large">
+                    <image :src="getProfileAvatar(userInfo)" mode="aspectFill" @error="onAvatarError"></image>
                 </view>
                 <view class="profile-info-center">
                     <text class="profile-name-center">{{ userInfo.nickName || '微信用户' }}</text>
@@ -71,6 +85,8 @@
             <!-- </view> -->
 
             <!-- 切换栏：帖子 / 作品集 / 收藏 -->
+            </view>
+            <view class="profile-body-shell" :class="{ 'profile-body-shell--with-background': hasAppBackground }">
             <view class="tab-navigation">
                 <view :class="'tab-item ' + (currentTab === 'posts' ? 'active' : '')" data-tab="posts" @tap="switchTab">
                     <image class="tab-icon" src="/static/images/my_posts.png" mode="aspectFit"></image>
@@ -90,7 +106,7 @@
                         <view class="author-info-outside">
                             <image
                                 class="author-avatar"
-                                :src="item.authorAvatar || '/static/images/avatar.png'"
+                                :src="getPostAvatar(item)"
                                 mode="aspectFill"
                                 @error="onAvatarError"
                                 :data-postindex="index"
@@ -219,7 +235,7 @@
                         <view class="author-info-outside">
                             <image
                                 class="author-avatar"
-                                :src="item.authorAvatar || '/static/images/avatar.png'"
+                                :src="getPostAvatar(item)"
                                 mode="aspectFill"
                                 @error="onAvatarError"
                                 :data-postindex="index"
@@ -400,8 +416,10 @@
                 <view v-else class="empty-tip">
                     <text>TA还没有发布过帖子</text>
                 </view>
+	            </view>
             </view>
-        </view>
+	        </view>
+	    </view>
     </view>
 </template>
 
@@ -414,6 +432,8 @@ import { extractGrowthStats } from '@/utils/growthStats.js';
 import skeleton from '@/components/skeleton/skeleton';
 import TimelineView from '@/components/TimelineView.vue';
 import PortfolioBook from '@/components/PortfolioBook.vue';
+import { normalizeAppBackgroundMode, normalizeAppBackgroundUrl } from '@/utils/appBackground.js';
+import { resolvePostAuthorAvatar, resolveUserObjectAvatar } from '@/utils/defaultAvatar.js';
 import {
     checkFollowRelation,
     checkBlockRelation,
@@ -427,6 +447,26 @@ const followCache = require('../../utils/followCache');
 const { previewImage } = require('../../utils/imagePreview.js');
 const postGalleryMixin = require('../../mixins/postGallery.js');
 const fileUrlCache = require('../../_utils/file-url-cache.js').default;
+const USER_PROFILE_BACKGROUND_THEME_VARS = Object.freeze({
+    '--user-profile-name-color': '#ffffff',
+    '--user-profile-poemid-color': 'rgba(255, 255, 255, 0.78)',
+    '--user-profile-bio-color': 'rgba(255, 255, 255, 0.92)',
+    '--user-profile-meta-color': 'rgba(255, 255, 255, 0.82)',
+    '--user-profile-pill-bg': 'rgba(255, 255, 255, 0.18)',
+    '--user-profile-pill-text': '#ffffff',
+    '--user-profile-pill-border': '1rpx solid rgba(255, 255, 255, 0.32)',
+    '--user-profile-pill-shadow': '0 10rpx 24rpx rgba(0, 0, 0, 0.14)',
+    '--user-profile-muted-pill-bg': 'rgba(255, 255, 255, 0.14)',
+    '--user-profile-muted-pill-text': 'rgba(255, 255, 255, 0.86)',
+    '--user-profile-muted-pill-border': '1rpx solid rgba(255, 255, 255, 0.28)',
+    '--user-profile-accent-pill-bg': 'rgba(255, 255, 255, 0.16)',
+    '--user-profile-accent-pill-text': '#ffffff',
+    '--user-profile-accent-pill-border': '1rpx solid rgba(255, 255, 255, 0.3)'
+});
+
+function escapeCssUrl(url) {
+    return String(url || '').replace(/"/g, '\\"');
+}
 export default {
     components: {
         skeleton,
@@ -503,6 +543,41 @@ export default {
             favoritesHasEverLoaded: false
         };
     },
+    computed: {
+        resolvedAppBackgroundUrl() {
+            return normalizeAppBackgroundUrl(this.userInfo && this.userInfo.appBackgroundUrl);
+        },
+        backgroundMode() {
+            return normalizeAppBackgroundMode(this.userInfo && this.userInfo.appBackgroundMode, this.resolvedAppBackgroundUrl);
+        },
+        hasAppBackground() {
+            return !!this.resolvedAppBackgroundUrl && !!this.backgroundMode;
+        },
+        isFullBackground() {
+            return this.hasAppBackground && this.backgroundMode === 'full';
+        },
+        isHeaderBackground() {
+            return this.hasAppBackground && this.backgroundMode === 'header';
+        },
+        userProfileRootStyle() {
+            if (!this.isFullBackground) {
+                return {};
+            }
+            return {
+                '--user-profile-background-image': `url("${escapeCssUrl(this.resolvedAppBackgroundUrl)}")`
+            };
+        },
+        profileHeroStyle() {
+            if (!this.hasAppBackground) {
+                return {};
+            }
+            const style = { ...USER_PROFILE_BACKGROUND_THEME_VARS };
+            if (this.isHeaderBackground) {
+                style['--user-profile-background-image'] = `url("${escapeCssUrl(this.resolvedAppBackgroundUrl)}")`;
+            }
+            return style;
+        }
+    },
     onLoad: function (options) {
         const targetUserId = options.userId;
         if (!targetUserId) {
@@ -562,6 +637,12 @@ export default {
         }
     },
     methods: {
+        getProfileAvatar(user = {}) {
+            return resolveUserObjectAvatar(user);
+        },
+        getPostAvatar(post = {}) {
+            return resolvePostAuthorAvatar(post);
+        },
         // 标签切换（他人主页）
         switchTab: function (e) {
             const tab = e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.tab;
@@ -597,6 +678,7 @@ export default {
                 return [];
             });
             Promise.all([infoPromise, postsPromise, portfolioPromise]).then(async ([userInfo, posts, portfolios]) => {
+                userInfo.appBackgroundMode = normalizeAppBackgroundMode(userInfo.appBackgroundMode, userInfo.appBackgroundUrl);
                 posts.forEach((post) => { if (post.createTime) post.formattedCreateTime = this.formatTime(post.createTime); });
 
                 // 处理cloud://协议的URL转换
@@ -1227,9 +1309,47 @@ export default {
 </script>
 <style>
 /* pages/user-profile/user-profile.wxss */
+.user-profile-page-root {
+    position: relative;
+    min-height: 100vh;
+    background-color: #ffffff;
+}
+
+.user-profile-page-root--with-background {
+    background-color: transparent;
+}
+
+.user-profile-bg-image,
+.user-profile-bg-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.user-profile-bg-image {
+    background-image: var(--user-profile-background-image);
+    background-size: cover;
+    background-position: center top;
+    z-index: 0;
+}
+
+.user-profile-bg-overlay {
+    background: rgba(0, 0, 0, 0.16);
+    z-index: 1;
+}
+
 .container {
     min-height: 100vh;
     background-color: #ffffff;
+    position: relative;
+    z-index: 2;
+}
+
+.container--with-background {
+    background-color: transparent;
 }
 
 /* Main Content */
@@ -1237,6 +1357,55 @@ export default {
     width: 100%;
     min-height: 100vh;
     background-color: #ffffff;
+}
+
+.main-content--with-background {
+    background-color: transparent;
+}
+
+.profile-hero-section {
+    position: relative;
+    overflow: hidden;
+}
+
+.profile-hero-section--with-background {
+    min-height: 560rpx;
+    background-color: #0f0f0f;
+}
+
+.profile-hero-bg-image,
+.profile-hero-bg-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.profile-hero-bg-image {
+    background-image: var(--user-profile-background-image);
+    background-size: cover;
+    background-position: center top;
+    z-index: 0;
+}
+
+.profile-hero-bg-overlay {
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.18) 0%, rgba(0, 0, 0, 0.44) 100%);
+    z-index: 1;
+}
+
+.profile-hero-section .profile-card-center {
+    position: relative;
+    z-index: 2;
+}
+
+.profile-body-shell {
+    width: 100%;
+}
+
+.profile-body-shell--with-background {
+    background-color: #ffffff;
+    border-radius: 36rpx 36rpx 0 0;
+    padding-top: 24rpx;
+    box-shadow: 0 -10rpx 28rpx rgba(0, 0, 0, 0.04);
 }
 
 /* User Profile Card */
@@ -1296,7 +1465,7 @@ export default {
     font-weight: 600;
     font-size: 30rpx;
     line-height: 36rpx;
-    color: #000000;
+    color: var(--user-profile-name-color, #000000);
     margin-bottom: 20rpx;
     text-align: left;
 }
@@ -1306,7 +1475,7 @@ export default {
     font-weight: 300;
     font-size: 20rpx;
     line-height: 24rpx;
-    color: #989090;
+    color: var(--user-profile-poemid-color, #989090);
     margin-bottom: 20rpx;
 }
 
@@ -1315,7 +1484,7 @@ export default {
     font-weight: 600;
     font-size: 24rpx;
     line-height: 30rpx;
-    color: #000000;
+    color: var(--user-profile-bio-color, #000000);
     text-align: left;
     margin-bottom: 20rpx;
 }
@@ -1339,14 +1508,15 @@ export default {
     font-weight: 400;
     font-size: 24rpx;
     line-height: 30rpx;
-    color: #666666;
+    color: var(--user-profile-meta-color, #666666);
 }
 
 .follow-btn {
     padding: 6rpx 24rpx;
-    background-color: #d9d9d9;
-    color: #000000;
-    border: 1rpx solid transparent;
+    background-color: var(--user-profile-pill-bg, #d9d9d9);
+    color: var(--user-profile-pill-text, #000000);
+    border: var(--user-profile-pill-border, 1rpx solid transparent);
+    box-shadow: var(--user-profile-pill-shadow, none);
     border-radius: 15rpx;
     font-size: 24rpx;
     font-weight: 500;
@@ -1354,15 +1524,15 @@ export default {
 }
 
 .follow-btn.following {
-    background-color: #f0f0f0;
-    color: #666666;
-    border-color: transparent;
+    background-color: var(--user-profile-muted-pill-bg, #f0f0f0);
+    color: var(--user-profile-muted-pill-text, #666666);
+    border: var(--user-profile-muted-pill-border, 1rpx solid transparent);
 }
 
 .follow-btn.mutual {
-    background-color: #f0f0f0;
-    color: #666666;
-    border: 1rpx solid #d9d9d9;
+    background-color: var(--user-profile-muted-pill-bg, #f0f0f0);
+    color: var(--user-profile-muted-pill-text, #666666);
+    border: var(--user-profile-muted-pill-border, 1rpx solid #d9d9d9);
 }
 
 .follow-btn::after {
@@ -1375,9 +1545,10 @@ export default {
 
 .block-btn {
     padding: 6rpx 24rpx;
-    background-color: #f5f5f5;
-    color: #666666;
-    border: 1rpx solid #e0e0e0;
+    background-color: var(--user-profile-muted-pill-bg, #f5f5f5);
+    color: var(--user-profile-muted-pill-text, #666666);
+    border: var(--user-profile-muted-pill-border, 1rpx solid #e0e0e0);
+    box-shadow: var(--user-profile-pill-shadow, none);
     border-radius: 15rpx;
     font-size: 24rpx;
     font-weight: 500;
@@ -1385,9 +1556,9 @@ export default {
 }
 
 .block-btn.blocked {
-    background-color: #ffebee;
-    color: #c62828;
-    border-color: #ef9a9a;
+    background-color: var(--user-profile-accent-pill-bg, #ffebee);
+    color: var(--user-profile-accent-pill-text, #c62828);
+    border: var(--user-profile-accent-pill-border, 1rpx solid #ef9a9a);
 }
 
 .block-btn::after {
@@ -1403,16 +1574,18 @@ export default {
     padding: 8rpx 20rpx;
     border-radius: 20rpx;
     font-size: 22rpx;
-    background-color: #f0f0f0;
-    color: #666666;
+    background-color: var(--user-profile-muted-pill-bg, #f0f0f0);
+    color: var(--user-profile-muted-pill-text, #666666);
+    border: var(--user-profile-muted-pill-border, none);
 }
 
 .followed-indicator {
     padding: 8rpx 20rpx;
     border-radius: 20rpx;
     font-size: 22rpx;
-    background-color: #f0f8ff;
-    color: #007aff;
+    background-color: var(--user-profile-accent-pill-bg, #f0f8ff);
+    color: var(--user-profile-accent-pill-text, #007aff);
+    border: var(--user-profile-accent-pill-border, none);
 }
 
 /* 帖子部分 */
@@ -1649,7 +1822,7 @@ export default {
 .growth-count {
     font-size: 30rpx;
     font-weight: 600;
-    color: #333333;
+    color: var(--user-profile-meta-color, #333333);
 }
 
 /* 加载提示样式 */

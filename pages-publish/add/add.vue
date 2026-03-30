@@ -1,6 +1,6 @@
 <template>
     <!-- pages/add/add.wxml -->
-    <view class="container" @tap="onPageTap">
+    <view class="container" :class="{ 'container--series-compose': isSeriesComposeLayout }" @tap="onPageTap">
         <!-- 图片预览区域 -->
         <AddImageSection
             v-if="imageList.length > 0"
@@ -76,7 +76,7 @@
                     </scroll-view>
                 </template>
                 <!-- 组诗模式：分块输入 -->
-                <template v-else-if="isSeries && publishMode === 'poem'">
+                <template v-else-if="isSeriesComposeLayout">
                     <scroll-view class="block-scroll" :scroll-y="true" :show-scrollbar="true">
                         <view class="block-editor">
                             <view
@@ -84,13 +84,52 @@
                                 :key="block.id"
                                 class="block-card series-block"
                             >
-                                <input
-                                    class="series-subtitle"
-                                    placeholder-class="subtitle-placeholder"
-                                    :placeholder="`小标题（可选）${idx + 1}`"
-                                    :value="block.subtitle"
-                                    @input="onSeriesSubtitleInput(idx, $event)"
-                                />
+                                <view class="series-block-header">
+                                    <view class="series-block-title-row">
+                                        <text class="series-order-label">第{{ idx + 1 }}首 - </text>
+                                        <input
+                                            class="series-subtitle"
+                                            placeholder-class="subtitle-placeholder"
+                                            placeholder="（添加标题）"
+                                            :value="block.subtitle"
+                                            @input="onSeriesSubtitleInput(idx, $event)"
+                                        />
+                                    </view>
+                                    <view class="block-actions series-block-actions">
+                                        <view class="icon-btn icon-btn--series" @tap.stop="moveSeriesBlock(idx, -1)" :class="{ disabled: idx === 0 }">
+                                            <image
+                                                class="series-action-image series-action-image--up"
+                                                :class="{ 'series-action-image--muted': idx === 0 }"
+                                                :src="idx === 0 ? '/static/images/up.png' : '/static/images/up_black.png'"
+                                                mode="aspectFit"
+                                            />
+                                        </view>
+                                        <view class="icon-btn icon-btn--series" @tap.stop="moveSeriesBlock(idx, 1)" :class="{ disabled: idx === seriesBlocks.length - 1 }">
+                                            <image
+                                                class="series-action-image series-action-image--down"
+                                                :class="{ 'series-action-image--muted': idx === seriesBlocks.length - 1 }"
+                                                src="/static/images/down.png"
+                                                mode="aspectFit"
+                                            />
+                                        </view>
+                                        <view class="icon-btn icon-btn--series" @tap.stop="confirmRemoveSeriesBlock(idx)" :class="{ disabled: seriesBlocks.length === 1 }">
+                                            <image
+                                                class="series-action-image series-action-image--delete"
+                                                :class="{ 'series-action-image--muted': seriesBlocks.length === 1 }"
+                                                src="/static/images/newicons/delete.png"
+                                                mode="aspectFit"
+                                            />
+                                        </view>
+                                        <view class="icon-btn icon-btn--series" @tap.stop="addSeriesBlock(idx)" :class="{ disabled: seriesBlocks.length >= maxSeriesBlocks }">
+                                            <image
+                                                class="series-action-image series-action-image--add"
+                                                :class="{ 'series-action-image--muted': seriesBlocks.length >= maxSeriesBlocks }"
+                                                src="/static/images/add_zushi.png"
+                                                mode="aspectFit"
+                                            />
+                                        </view>
+                                    </view>
+                                </view>
                                 <textarea
                                     class="content-textarea"
                                     :placeholder="`组诗段落 ${idx + 1}`"
@@ -100,20 +139,6 @@
                                     :show-confirm-bar="false"
                                     :adjust-position="false"
                                 ></textarea>
-                                <view class="block-actions">
-                                    <view class="icon-btn" @tap.stop="moveSeriesBlock(idx, -1)" :class="{ disabled: idx === 0 }">
-                                        <text class="arrow-icon">↑</text>
-                                    </view>
-                                    <view class="icon-btn" @tap.stop="moveSeriesBlock(idx, 1)" :class="{ disabled: idx === seriesBlocks.length - 1 }">
-                                        <text class="arrow-icon">↓</text>
-                                    </view>
-                                    <view class="icon-btn" @tap.stop="confirmRemoveSeriesBlock(idx)" :class="{ disabled: seriesBlocks.length === 1 }">
-                                        <image class="action-icon" src="/static/images/newicons/delete.png" mode="aspectFit" />
-                                    </view>
-                                    <view class="icon-btn" @tap.stop="addSeriesBlock(idx)" :class="{ disabled: seriesBlocks.length >= maxSeriesBlocks }">
-                                        <image class="action-icon" src="/static/images/select_more.png" mode="aspectFit" />
-                                    </view>
-                                </view>
                             </view>
                         </view>
                     </scroll-view>
@@ -144,6 +169,7 @@
                 <SideToolbar
                     :publishMode="publishMode"
                     :isSeries="isSeries"
+                    :layoutVariant="sideToolbarLayoutVariant"
                     @toggle-tags="toggleTagSelector"
                     @choose-image="handleChooseImage"
                     @switch-mode="switchMode"
@@ -162,13 +188,16 @@
         </view>
 
         <!-- 左下角返回按钮 -->
-        <view class="back-btn" @tap.stop="goBack">
+        <view v-if="!isSeriesComposeLayout" class="back-btn" @tap.stop="goBack">
             <image class="back-icon" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
         </view>
 
         <!-- 右下角浮动操作按钮 -->
-        <view class="floating-action-btn" @tap.stop="goToPreview">
-            <image class="fab-icon" src="/static/images/enter_key.png" mode="aspectFit"></image>
+        <view class="floating-action-btn" :class="{ 'floating-action-btn--series-compose': isSeriesComposeLayout }" @tap.stop="goToPreview">
+            <view v-if="isSeriesComposeLayout" class="series-compose-preview-btn">
+                <view class="series-compose-preview-arrow"></view>
+            </view>
+            <image v-else class="fab-icon" src="/static/images/enter_key.png" mode="aspectFit"></image>
         </view>
 
         <!-- 模式选择器 -->
@@ -403,6 +432,12 @@ export default {
         };
     },
     computed: {
+        isSeriesComposeLayout() {
+            return this.publishMode === 'poem' && this.isSeries;
+        },
+        sideToolbarLayoutVariant() {
+            return this.isSeriesComposeLayout ? 'series-compose' : 'default';
+        },
         highlightSelectionLines() {
             // 组诗：拼所有段落
             if (this.isSeries && Array.isArray(this.seriesBlocks)) {
@@ -2552,6 +2587,46 @@ page {
     box-sizing: border-box;
 }
 
+.container--series-compose .floating-action-btn {
+    right: 56rpx;
+    bottom: calc(74rpx + env(safe-area-inset-bottom));
+    width: 132rpx;
+    height: 98rpx;
+}
+
+.container--series-compose .series-compose-preview-btn {
+    position: relative;
+    width: 132rpx;
+    height: 98rpx;
+    border-radius: 28rpx;
+    background: rgba(0, 0, 0, 0.8);
+    box-shadow: 0 8rpx 12rpx rgba(0, 0, 0, 0.25);
+}
+
+.container--series-compose .series-compose-preview-arrow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 74rpx;
+    height: 11rpx;
+    background: #ffffff;
+    border-radius: 999rpx;
+    transform: translate(-58%, -50%);
+}
+
+.container--series-compose .series-compose-preview-arrow::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 0;
+    width: 34rpx;
+    height: 34rpx;
+    border-top: 11rpx solid #ffffff;
+    border-right: 11rpx solid #ffffff;
+    transform: translateY(-50%) rotate(45deg);
+    box-sizing: border-box;
+}
+
 /* 让正文为右侧工具栏预留空间及计数避让 */
 .content-input-wrapper { 
     padding-right: 0rpx; /* 减少右边距，让输入框更宽 */
@@ -2857,6 +2932,68 @@ page {
     color: #d0d0d0;
 }
 
+.container--series-compose .content-section {
+    padding-left: 24rpx;
+    padding-right: 24rpx;
+}
+
+.container--series-compose .main-input-area {
+    padding-left: 18rpx;
+    padding-right: 0;
+}
+
+.container--series-compose .block-scroll {
+    max-height: none;
+    margin-right: 108rpx;
+    padding-bottom: 240rpx;
+}
+
+.container--series-compose .block-editor {
+    gap: 28rpx;
+}
+
+.container--series-compose .series-block {
+    padding-top: 8rpx;
+}
+
+.container--series-compose .series-block-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20rpx;
+    margin-bottom: 18rpx;
+}
+
+.container--series-compose .series-block-title-row {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+}
+
+.container--series-compose .series-order-label {
+    flex-shrink: 0;
+    font-size: 30rpx;
+    line-height: 44rpx;
+    color: #4a4a4a;
+}
+
+.container--series-compose .series-block .series-subtitle {
+    flex: 1;
+    min-width: 0;
+    margin-bottom: 0;
+    padding: 0;
+    font-size: 30rpx;
+    line-height: 44rpx;
+    color: #6a6a6a;
+    font-weight: 400;
+}
+
+.container--series-compose .subtitle-placeholder {
+    color: #8c8c8c !important;
+    font-weight: 400 !important;
+}
+
 .series-block .series-highlight {
     width: 100%;
     border: 1rpx solid #e0e0e0;
@@ -2899,6 +3036,68 @@ page {
     box-sizing: border-box;
     outline: none;
     -webkit-overflow-scrolling: touch;
+}
+
+.container--series-compose .series-block .content-textarea {
+    min-height: 540rpx;
+    height: 540rpx;
+    padding: 52rpx 46rpx;
+    border-radius: 22rpx;
+    background: #e8e8e8;
+    color: #9b9b9b;
+}
+
+.container--series-compose .series-block-actions {
+    flex-shrink: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    gap: 14rpx;
+    flex-wrap: nowrap;
+    align-items: center;
+}
+
+.container--series-compose .icon-btn--series {
+    width: 60rpx;
+    height: 60rpx;
+    background: transparent;
+    border-radius: 14rpx;
+}
+
+.container--series-compose .icon-btn--series:active {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.container--series-compose .icon-btn--series.disabled {
+    opacity: 1;
+    pointer-events: none;
+}
+
+.container--series-compose .series-action-image {
+    display: block;
+    flex-shrink: 0;
+}
+
+.container--series-compose .series-action-image--muted {
+    opacity: 0.32;
+}
+
+.container--series-compose .series-action-image--up,
+.container--series-compose .series-action-image--down {
+    width: 44rpx;
+    height: 22rpx;
+    transform: translateY(-1rpx);
+}
+
+.container--series-compose .series-action-image--delete {
+    width: 60rpx;
+    height: 74rpx;
+    transform: translateY(-4rpx);
+}
+
+.container--series-compose .series-action-image--add {
+    width: 32rpx;
+    height: 42rpx;
+    transform: translateY(-1rpx);
 }
 
 .discussion-preview {
@@ -2979,6 +3178,13 @@ page {
     .fab-icon {
         font-size: 20rpx;
     }
+
+    .container--series-compose .floating-action-btn {
+        right: 50rpx;
+        bottom: calc(68rpx + env(safe-area-inset-bottom));
+        width: 124rpx;
+        height: 92rpx;
+    }
 }
 
 /* 响应式设计 - 大屏幕适配 */
@@ -2996,6 +3202,11 @@ page {
     
     .fab-icon {
         font-size: 26rpx;
+    }
+
+    .container--series-compose .floating-action-btn {
+        width: 138rpx;
+        height: 104rpx;
     }
 }
 
@@ -3016,6 +3227,16 @@ page {
         right: 50rpx;
         width: 200rpx;
         height: 200rpx;
+    }
+
+    .container--series-compose .block-scroll {
+        margin-right: 0;
+        padding-bottom: 280rpx;
+    }
+
+    .container--series-compose .floating-action-btn {
+        right: 44rpx;
+        bottom: calc(64rpx + env(safe-area-inset-bottom));
     }
 }
 

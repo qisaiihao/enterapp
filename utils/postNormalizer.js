@@ -1,4 +1,5 @@
 const { formatRelativeTime } = require('./time.js');
+const { resolvePostAuthorAvatar } = require('./defaultAvatar.js');
 
 const DEFAULT_AUTHOR_NAME = '匿名用户';
 const DEFAULT_AVATAR = '';
@@ -44,7 +45,7 @@ const normalizePost = (post = {}, options = {}) => {
         imageUrls,
         originalImageUrls,
         authorName: post.authorName || DEFAULT_AUTHOR_NAME,
-        authorAvatar: typeof post.authorAvatar === 'string' ? post.authorAvatar : DEFAULT_AVATAR
+        authorAvatar: resolvePostAuthorAvatar(post)
     };
 
     if (!normalized.imageStyle && imageUrls.length > 0) {

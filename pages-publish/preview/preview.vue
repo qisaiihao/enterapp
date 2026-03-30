@@ -406,6 +406,8 @@ import { updatePostContent } from '@/api-cache/post.js';
 
 import { checkDuplicatePoem as checkDuplicatePoemApi, contentAudit, saveDraft as saveDraftApi } from '@/api-cache/publish.js';
 
+import { cloudCall } from '@/utils/cloudCall.js';
+
 import { uploadPreviewFile, uploadPreviewFileViaCloudFunction } from './preview-upload.js';
 
 const { formatDateYmd, formatRange: formatActivityRangeUtil } = require('@/utils/activity.js');
@@ -2144,6 +2146,54 @@ export default {
 
       // 如果是编辑模式，调用更新接口
 
+      if (!isEditMode && addData.isSeries && addData.seriesSourceMode === 'existing-posts') {
+
+        const payload = {
+
+          title: addData.title || '组诗',
+
+          blocks: seriesBlocks.map((block, order) => ({
+
+            postId: block.postId || block.id || '',
+
+            subtitle: block.subtitle || `第${order + 1}首`,
+
+            order
+
+          })).filter((block) => block.postId)
+
+        };
+
+        return cloudCall('createSeriesFromSingles', payload, { pageTag: 'preview', context: this }).then((res) => {
+
+          const result = res && res.result ? res.result : res;
+
+          if (result && result.code === 0 && result.postId) {
+
+            this.publishSuccess({
+
+              _id: result.postId,
+
+              redirectToPostDetail: true
+
+            });
+
+            return;
+
+          }
+
+          throw new Error((result && result.msg) || '发布失败');
+
+        }).catch((err) => {
+
+          console.error('【Preview】发布已选诗歌组诗失败:', err);
+
+          this.publishFail(err);
+
+        });
+
+      }
+
       if (isEditMode) {
 
         console.log('【Preview】进入编辑模式，准备更新帖子');
@@ -2612,6 +2662,8 @@ export default {
 
         }
 
+        uni.removeStorageSync('preview_post');
+
       } catch (e) {
 
         console.error('清除草稿失败:', e);
@@ -2655,6 +2707,28 @@ export default {
 
 
       // 返回首页
+
+      if (res && res.redirectToPostDetail && res._id) {
+
+        uni.redirectTo({
+
+          url: `/pages/post-detail/post-detail?id=${res._id}`,
+
+          fail: () => {
+
+            uni.navigateTo({
+
+              url: `/pages/post-detail/post-detail?id=${res._id}`
+
+            });
+
+          }
+
+        });
+
+        return;
+
+      }
 
       uni.switchTab({
 

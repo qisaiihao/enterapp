@@ -1,5 +1,6 @@
 // 云函数入口文件
 const cloud = require('wx-server-sdk');
+const { getUserDefaultAvatar, needsDefaultAvatar } = require('../_lib/default-avatar');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
@@ -74,12 +75,13 @@ exports.main = async (event, context) => {
     if (existingOpenidRes.data.length > 0) {
       // 用户已存在，更新信息
       console.log('🔍 [registerUser] 用户已存在，更新信息');
+      const existingUser = existingOpenidRes.data[0] || {};
+      const resolvedAvatarUrl = avatarFileID || (needsDefaultAvatar(existingUser.avatarUrl) ? getUserDefaultAvatar(openid) : existingUser.avatarUrl);
       const updateData = {
         poemId: poemId,
         password: password,
         nickName: nickName,
-        // 可选：注册时一并设置头像
-        ...(avatarFileID ? { avatarUrl: avatarFileID } : {}),
+        avatarUrl: resolvedAvatarUrl,
         updateTime: new Date()
       };
       
@@ -122,7 +124,7 @@ exports.main = async (event, context) => {
         poemId: poemId,
         password: password,
         nickName: nickName,
-        ...(avatarFileID ? { avatarUrl: avatarFileID } : {}),
+        avatarUrl: avatarFileID || getUserDefaultAvatar(openid),
         growthCounts: { seed: 0, leaf: 0, flower: 0 },
         growthUpdatedAt: db.serverDate(),
         createTime: new Date()

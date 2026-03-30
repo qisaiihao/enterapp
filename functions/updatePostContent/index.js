@@ -1,4 +1,4 @@
-﻿const cloud = require('wx-server-sdk');
+const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const _ = db.command;
@@ -41,7 +41,7 @@ exports.main = async (event, context) => {
     };
   }
 
-  // 鍙娊鍙栨敮鎸佷慨鏀圭殑key
+  // 只抽取支持修改的 key
   const updateData = {};
   EDITABLE_KEYS.forEach(key => {
     if (input[key] !== undefined) {
@@ -61,32 +61,32 @@ exports.main = async (event, context) => {
     }
   }
   
-  // 澶勭悊fileIDs锛氬鏋滄彁渚涗簡fileIDs锛岄渶瑕佹洿鏂癷mageUrl鍜宨mageUrls瀛楁
+  // 处理 fileIDs：如果提供了 fileIDs，需要同步更新 imageUrl 和 imageUrls 字段
   if (input.fileIDs !== undefined) {
     if (Array.isArray(input.fileIDs) && input.fileIDs.length > 0) {
       updateData.imageUrl = input.fileIDs[0];
       updateData.imageUrls = input.fileIDs;
-      // 澶勭悊鍘熷浘锛氬鏋滄湁originalFileIDs鍒欎娇鐢紝鍚﹀垯浣跨敤fileIDs锛堝悜鍚庡吋瀹癸級
+      // 处理原图：如果有 originalFileIDs 则使用，否则使用 fileIDs（向后兼容）
       const originalFileIDs = input.originalFileIDs || input.fileIDs;
       updateData.originalImageUrl = originalFileIDs[0] || input.fileIDs[0];
       updateData.originalImageUrls = originalFileIDs;
       
-      // 濡傛灉鏄瘲姝屾ā寮忥紝绗竴寮犲浘鐗囦綔涓鸿儗鏅浘
-      // 娉ㄦ剰锛氳繖閲岄渶瑕佷粠鍘熷笘瀛愯幏鍙?isPoem 瀛楁锛屽洜涓虹紪杈戞椂涓嶄細浼犻€掕繖涓瓧娈?
+      // 如果是诗歌模式，第一张图片作为背景图
+      // 注意：这里需要从原帖子里读取 isPoem 字段，因为编辑时不会传这个字段
     } else {
-      // 濡傛灉fileIDs涓虹┖鏁扮粍锛屾竻绌哄浘鐗囧瓧娈?
+      // 如果 fileIDs 为空数组，清空图片字段
       updateData.imageUrl = '';
       updateData.imageUrls = [];
       updateData.originalImageUrl = '';
       updateData.originalImageUrls = [];
-      updateData.poemBgImage = ''; // 娓呯┖璇楁瓕鑳屾櫙鍥?
+      updateData.poemBgImage = ''; // 清空诗歌背景图
     }
   }
   
   updateData.updateTime = new Date();
 
   try {
-    // 鍙兘浣滆€呮湰浜轰慨鏀?
+    // 只能作者本人修改
     const oldRes = await db.collection('posts').doc(postId).get();
     const post = oldRes.data;
     if (!post) {
@@ -101,7 +101,7 @@ exports.main = async (event, context) => {
       return { success: false, code: 'FORBIDDEN', message: '官方活动帖不允许修改参与活动' };
     }
 
-    // 鏍￠獙骞惰鑼冨寲鍙備笌娲诲姩瀛楁
+    // 校验并规范化参与活动字段
     if (input.joinedActivityId !== undefined) {
       const nextJoinedActivityId = String(input.joinedActivityId || '').trim();
       const currentJoinedActivityId = String(post.joinedActivityId || '').trim();
@@ -148,11 +148,11 @@ exports.main = async (event, context) => {
       }
     }
     
-    // 濡傛灉鏄瘲姝屾ā寮忎笖鏈夊浘鐗囷紝鏇存柊璇楁瓕鑳屾櫙鍥?
+    // 如果是诗歌模式且有图片，更新诗歌背景图
     if (post.isPoem && updateData.imageUrls && updateData.imageUrls.length > 0) {
       updateData.poemBgImage = updateData.imageUrls[0];
     } else if (post.isPoem && (!updateData.imageUrls || updateData.imageUrls.length === 0)) {
-      // 濡傛灉娓呯┖浜嗗浘鐗囷紝涔熸竻绌鸿瘲姝岃儗鏅浘
+      // 如果清空了图片，也清空诗歌背景图
       updateData.poemBgImage = '';
     }
     
@@ -160,7 +160,7 @@ exports.main = async (event, context) => {
       ? String(post.activityId || '')
       : String(post.joinedActivityId || '');
 
-    // 鎵ц鏇存柊锛堝彧鏇存柊鎸囧畾瀛楁锛屼繚鐣欏叾浠栧瓧娈靛 votes, commentCount 绛夛級
+    // 执行更新：只更新指定字段，保留 votes、commentCount 等其他字段
     await db.collection('posts').doc(postId).update({ data: updateData });
 
     const newActivityId = post.isActivityPost === true
@@ -171,7 +171,7 @@ exports.main = async (event, context) => {
             : (post.joinedActivityId || '')
         );
 
-    // 娲诲姩鍙備笌鍏崇郴鍙樺寲鏃讹紝缁存姢娲诲姩甯栧瓙缁熻
+    // 活动参与关系变化时，维护活动帖子统计
     if (oldActivityId !== newActivityId) {
       const now = new Date();
       try {
@@ -184,7 +184,7 @@ exports.main = async (event, context) => {
           });
         }
       } catch (decError) {
-        console.warn('[updatePostContent] 鏃ф椿鍔ㄨ鏁伴€掑噺澶辫触:', decError);
+        console.warn('[updatePostContent] 旧活动计数递减失败:', decError);
       }
 
       try {
@@ -198,13 +198,13 @@ exports.main = async (event, context) => {
           });
         }
       } catch (incError) {
-        console.warn('[updatePostContent] 鏂版椿鍔ㄨ鏁伴€掑澶辫触:', incError);
+        console.warn('[updatePostContent] 新活动计数递增失败:', incError);
       }
     }
     
     return { success: true, postId, updateFields: Object.keys(updateData) };
   } catch (e) {
-    console.error('銆恥pdatePostContent銆戞洿鏂板け璐?', e);
+    console.error('【updatePostContent】更新失败:', e);
     return { success: false, code: 'ERROR', message: e.message };
   }
 };

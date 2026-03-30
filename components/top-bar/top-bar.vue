@@ -140,10 +140,10 @@ export default {
   top: 0;
   left: 0;
   right: 0;
-  background: #ffffff;
+  background: var(--app-fixed-bar-bg, #ffffff);
   z-index: 1000;
   border-bottom: none;
-  box-shadow: none;
+  box-shadow: var(--app-fixed-bar-shadow, none);
   /* 添加伪元素作为状态栏区域的白色背景 */
 }
 
@@ -154,7 +154,7 @@ export default {
   left: 0;
   right: 0;
   height: 100vh;
-  background: #ffffff;
+  background: var(--app-fixed-bar-bg, #ffffff);
   z-index: -1;
 }
 
@@ -172,9 +172,9 @@ export default {
   padding-left: 40rpx;
   /* #endif */
   align-items: center;
-  background: #fff;
+  background: var(--app-fixed-bar-bg, #fff);
   border-bottom: none;
-  box-shadow: none;
+  box-shadow: var(--app-fixed-bar-shadow, none);
 }
 
 .top-left {

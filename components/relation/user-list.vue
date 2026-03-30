@@ -6,7 +6,7 @@
           <view class="user-info" @tap="onUserTap(index)">
             <image
               class="avatar"
-              :src="item.avatarUrl || defaultAvatar"
+              :src="resolveItemAvatar(item)"
               mode="aspectFill"
               @error="onAvatarError(index)"
             ></image>
@@ -35,6 +35,8 @@
 </template>
 
 <script>
+import { resolveUserAvatar } from '@/utils/defaultAvatar.js';
+
 export default {
   props: {
     users: {
@@ -80,6 +82,10 @@ export default {
     }
   },
   methods: {
+    resolveItemAvatar(item) {
+      const avatarUrl = item && item.avatarUrl ? item.avatarUrl : this.defaultAvatar;
+      return resolveUserAvatar(avatarUrl, item && (item._openid || item.userId || item.poemId || item.nickName));
+    },
     resolveActionText(item) {
       if (item && Object.prototype.hasOwnProperty.call(item, '_resolvedActionText')) {
         return item._resolvedActionText;

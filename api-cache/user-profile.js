@@ -1,4 +1,5 @@
 import cacheManager from '@/cache/core/manager';
+import { normalizeAppBackgroundMode } from '@/utils/appBackground.js';
 
 const { callCloudAndUnwrap } = require('./_shared/cloud-wrapper.js');
 
@@ -19,7 +20,9 @@ export async function getUserInfo(userId, context) {
         { pageTag: 'user-profile:info', context, injectOpenId: true },
         '获取用户信息失败'
       );
-      return result.userInfo || {};
+      const userInfo = result.userInfo || {};
+      userInfo.appBackgroundMode = normalizeAppBackgroundMode(userInfo.appBackgroundMode, userInfo.appBackgroundUrl);
+      return userInfo;
     },
     { ttlMs: USER_PROFILE_TTL, swrMs: USER_PROFILE_SWR }
   );
@@ -115,4 +118,3 @@ export function invalidateUserFavorites(userId, page, pageSize = 10) {
   }
   ns.clear();
 }
-

@@ -55,20 +55,30 @@
                             @touch-end="onTouchEnd"
                         >
                             <template #filter>
-                                <view class="filter-toggle-container">
+                                <view v-if="showHomeFilterPanel" class="home-filter-mask" @tap="closeHomeFilterPanel"></view>
+                                <view class="home-filter-container">
                                     <view
-                                        :class="'filter-toggle-btn ' + (showNormalPostsOnly ? 'active' : '')"
-                                        @tap="toggleNormalPostsFilter"
+                                        class="home-filter-trigger"
+                                        :class="{ 'home-filter-trigger--active': showHomeFilterPanel || showNormalPostsOnly }"
+                                        @tap.stop="toggleHomeFilterPanel"
                                     >
-                                        <text class="filter-toggle-text">{{ showNormalPostsOnly ? '显示全部' : '只看普通帖子' }}</text>
+                                        <image class="home-filter-trigger-icon" src="/static/images/filter.png" mode="aspectFit" />
                                     </view>
-                                    <!-- TODO: AI推荐算法暂时停用，隐藏推荐按钮 -->
-                                    <view
-                                        v-if="false"
-                                        :class="'filter-toggle-btn ' + (useRecommendFeed ? 'active' : '')"
-                                        @tap="toggleRecommendFeed"
-                                    >
-                                        <text class="filter-toggle-text">{{ useRecommendFeed ? '推荐中' : '推荐' }}</text>
+                                    <view v-if="showHomeFilterPanel" class="home-filter-panel" @tap.stop>
+                                        <view
+                                            class="home-filter-option"
+                                            :class="{ 'home-filter-option--active': !showNormalPostsOnly }"
+                                            @tap="setNormalPostsFilter(false)"
+                                        >
+                                            显示全部
+                                        </view>
+                                        <view
+                                            class="home-filter-option"
+                                            :class="{ 'home-filter-option--active': showNormalPostsOnly }"
+                                            @tap="setNormalPostsFilter(true)"
+                                        >
+                                            只看普通帖子
+                                        </view>
                                     </view>
                                 </view>
                             </template>
@@ -268,6 +278,7 @@ export default {
             swiperTouchStartTime: null,
             easeOutCubic: 'cubic-bezier(0.33, 1, 0.68, 1)',
             showNormalPostsOnly: false,
+            showHomeFilterPanel: false,
             useRecommendFeed: false,
             isTouchScrolling: false,
             touchStartX: 0,
@@ -361,7 +372,6 @@ export default {
         
         // #ifndef MP-WEIXIN
         try { uni.hideTabBar({ animation: false }); } catch (e) {}
-        try { this.$refs.customTabBar && this.$refs.customTabBar.syncSelected && this.$refs.customTabBar.syncSelected(); } catch (e) {}
         // #endif
 
         // TabBar 状态更新，使用兼容性处理
@@ -742,7 +752,8 @@ export default {
                 this.setData({
                     swiperCurrent: current,
                     currentPage: pageType,
-                    currentTab: tabValue
+                    currentTab: tabValue,
+                    showHomeFilterPanel: false
                 });
 
                 // 如果页面还没有数据，加载数据
@@ -788,7 +799,8 @@ export default {
             this.setData({
                 currentTab: tabValue,
                 swiperCurrent: swiperIndex,
-                currentPage: pageType
+                currentPage: pageType,
+                showHomeFilterPanel: false
             });
 
             // 后续操作（数据加载、状态同步）
@@ -1285,7 +1297,7 @@ export default {
         // 模式切换现在通过底部tabBar实现，不再需要手动切换
 
         // 同步点赞状态：从缓存中获取最新的点赞状态
-                // ͬ������״̬���ӻ����л�ȡ���µĵ���״̬ + ���µ�ǰ�б�UI
+                // 同步点赞状态，减少切换后重新拉取，并更新当前列表 UI
         syncLikeStatusFromCache: function () {
             try {
                 const allPostIds = [];
@@ -1331,49 +1343,62 @@ export default {
                     this.setData(updates);
                 }
             } catch (err) {
-                console.error('����ҳ��ͬ������״̬ʧ��:', err);
+                console.error('首页同步点赞状态失败:', err);
             }
         },
 
-        // 切换只看普通帖子模式
-        toggleNormalPostsFilter: function () {
-                        if (this.tapDisabled && this.tapDisabled()) { return; }
-            const newMode = !this.showNormalPostsOnly;
-            console.log('【首页】切换只看普通帖子模式:', newMode);
-            
-            // 清除新模式的缓存，确保强制从云端刷新
+        toggleHomeFilterPanel: function () {
+            if (this.tapDisabled && this.tapDisabled()) { return; }
+            this.setData({
+                showHomeFilterPanel: !this.showHomeFilterPanel
+            });
+        },
+
+        closeHomeFilterPanel: function () {
+            if (!this.showHomeFilterPanel) { return; }
+            this.setData({
+                showHomeFilterPanel: false
+            });
+        },
+
+        setNormalPostsFilter: function (nextMode) {
+            if (this.tapDisabled && this.tapDisabled()) { return; }
+            const normalizedMode = !!nextMode;
+
+            if (normalizedMode === this.showNormalPostsOnly) {
+                this.closeHomeFilterPanel();
+                return;
+            }
+
+            console.log('【首页】切换只看普通帖子模式:', normalizedMode);
+
             try {
-                if (newMode) {
-                    // 切换到"只看普通帖子"模式，清除普通帖子模式的缓存
+                if (normalizedMode) {
                     invalidateHomePosts({ isPoem: false, isDiscussion: false });
                 } else {
-                    // 切换到"显示全部"模式，清除全部模式的缓存
                     invalidateHomePosts({});
                 }
                 console.log('✅ [首页] 已清除新模式缓存，准备强制刷新');
             } catch (e) {
                 console.error('❌ [首页] 清除缓存失败:', e);
             }
-            
-            // 准备筛选参数（基于新状态）
-            const filterParams = newMode ? {
-                isPoem: false,
-                isDiscussion: false
-            } : {};
-            
-            // 先更新状态，使用setData的回调确保状态更新后再加载数据
-            // 注意：不要设置 isLoading: true，让 getPostList 自己设置，否则会被防重入检查阻止
+
             this.setData({
-                showNormalPostsOnly: newMode,
+                showNormalPostsOnly: normalizedMode,
+                showHomeFilterPanel: false,
                 postList: [],
                 page: 0,
                 hasMore: true,
                 isLoading: false,
                 isLoadingMore: false
             }, () => {
-                // 状态更新完成后再强制从云端刷新数据
                 this.getPostList();
             });
+        },
+
+        // 切换只看普通帖子模式
+        toggleNormalPostsFilter: function () {
+            this.setNormalPostsFilter(!this.showNormalPostsOnly);
         },
 
         // 切换推荐流
@@ -2166,6 +2191,7 @@ export default {
     left: 0;
     right: 0;
     bottom: 0;
+    background-color: #ffffff;
 }
 
 .container {
@@ -2297,7 +2323,8 @@ export default {
 }
 .is-scrolling .post-image:active,
 .is-scrolling .post-tag:active,
-.is-scrolling .filter-toggle-btn:active,
+.is-scrolling .home-filter-trigger:active,
+.is-scrolling .home-filter-option:active,
 .is-scrolling .like-icon-container:active {
     transform: none !important;
     opacity: 1 !important;
@@ -2311,7 +2338,8 @@ export default {
 .is-scrolling .post-image,
 .is-scrolling .like-icon,
 .is-scrolling .like-icon-container,
-.is-scrolling .filter-toggle-btn,
+.is-scrolling .home-filter-trigger,
+.is-scrolling .home-filter-option,
 .is-scrolling .post-item-wrapper,
 .is-scrolling .post-content-navigator {
     transition: none !important;
@@ -2362,47 +2390,74 @@ export default {
     font-size: 14px;
 }
 
-.filter-toggle-container {
+.home-filter-mask {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 29;
+    background: transparent;
+}
+
+.home-filter-container {
     padding: 20rpx 30rpx;
     position: relative;
-    z-index: 1;
+    z-index: 30;
     display: flex;
     justify-content: flex-end;
-    gap: 16rpx;
 }
 
-.filter-toggle-btn {
-    padding: 12rpx 32rpx;
-    border-radius: 50rpx;
+.home-filter-trigger {
+    width: 64rpx;
+    height: 64rpx;
+    border-radius: 18rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: transparent;
-    border: 2rpx solid #e0e0e0;
-    transition: all 0.3s ease;
-    cursor: pointer;
-    box-shadow: none;
-    min-width: 140rpx;
+}
+
+.home-filter-trigger--active {
+    background: rgba(109, 101, 101, 0.08);
+}
+
+.home-filter-trigger-icon {
+    width: 40rpx;
+    height: 40rpx;
+}
+
+.home-filter-panel {
+    position: absolute;
+    top: 74rpx;
+    right: 30rpx;
+    width: 332rpx;
+    padding: 24rpx;
+    border-radius: 20rpx;
+    background: #ffffff;
+    box-shadow: 0 16rpx 40rpx rgba(0, 0, 0, 0.12);
+    box-sizing: border-box;
+}
+
+.home-filter-option {
+    min-width: 92rpx;
+    padding: 10rpx 18rpx;
+    border-radius: 999rpx;
+    background: #f1efed;
+    font-size: 24rpx;
+    line-height: 34rpx;
+    color: #5a524e;
     text-align: center;
-    display: inline-block;
+    box-sizing: border-box;
 }
 
-.filter-toggle-btn:active {
-    transform: scale(0.95);
+.home-filter-option + .home-filter-option {
+    margin-top: 12rpx;
 }
 
-.filter-toggle-btn.active {
-    background: transparent;
-    border: 2rpx solid #e0e0e0;
-    box-shadow: none;
-}
-
-.filter-toggle-text {
-    font-size: 26rpx;
-    color: #666;
-    font-weight: 600;
-    line-height: 1.2;
-}
-
-.filter-toggle-btn.active .filter-toggle-text {
-    color: #666;
+.home-filter-option--active {
+    background: #6d6565;
+    color: #ffffff;
 }
 
 .end-tip {
@@ -2442,6 +2497,7 @@ export default {
     height: 100%;
     position: relative;
     z-index: 100;
+    background-color: #ffffff;
 }
 
 .swiper-page > view:first-child {
@@ -2467,6 +2523,6 @@ export default {
 
 .swiper-page .uni-pull-refresh,
 .swiper-page .wx-pull-refresh {
-    background: transparent;
+    background: #ffffff;
 }
 </style>

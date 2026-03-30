@@ -21,7 +21,25 @@ async function isAdminByPoemId({ db, command, openid, loggerPrefix = 'admin-auth
   }
 }
 
+async function listAdminUsersByPoemId({ db, command, loggerPrefix = 'admin-auth' } = {}) {
+  if (!db || !command) {
+    return [];
+  }
+
+  try {
+    const result = await db.collection('users').where({
+      poemId: command.in(ADMIN_POEM_IDS)
+    }).get();
+
+    return Array.isArray(result.data) ? result.data : [];
+  } catch (error) {
+    console.error(`[${loggerPrefix}] 查询管理员用户失败:`, error);
+    return [];
+  }
+}
+
 module.exports = {
   ADMIN_POEM_IDS,
-  isAdminByPoemId
+  isAdminByPoemId,
+  listAdminUsersByPoemId
 };

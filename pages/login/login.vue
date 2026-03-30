@@ -236,6 +236,7 @@
 // pages/login/login.js
 import { cloudCall } from '@/utils/cloudCall.js';
 import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
+import { applyAuthenticatedUserSession } from '@/utils/appBackground.js';
 
 const app = getApp();
 
@@ -505,7 +506,7 @@ export default {
         },
 
         // 处理 GitHub 回调（云函数直接处理并重定向回来的模式）
-        handleGitHubRedirectCallback() {
+        async handleGitHubRedirectCallback() {
             // #ifdef H5
             // 小程序不支持 GitHub 登录，只在 H5 环境处理
             if (typeof window === 'undefined' || !window.location) {
@@ -526,14 +527,11 @@ export default {
 
                     if (result.user) {
                         // 更新全局数据
-                        const app = getApp();
-                        app.globalData.userInfo = result.user;
-                        app.globalData.openid = result.user.openid;
-                        app.globalData._loginProcessCompleted = true;
+                        await applyAuthenticatedUserSession(result.user, {
+                            openid: result.user && (result.user._openid || result.user.openid)
+                        });
 
                         // 缓存用户信息
-                        uni.setStorageSync('userInfo', result.user);
-                        uni.setStorageSync('userOpenId', result.user.openid);
 
                         if (result.needPhoneBinding) {
                             // 需要绑定手机号
@@ -623,14 +621,11 @@ export default {
 
                     if (result.success) {
                         // 更新全局数据
-                        const app = getApp();
-                        app.globalData.userInfo = result.user;
-                        app.globalData.openid = result.user.openid;
-                        app.globalData._loginProcessCompleted = true;
+                        await applyAuthenticatedUserSession(result.user, {
+                            openid: result.user && (result.user._openid || result.user.openid)
+                        });
 
                         // 缓存用户信息
-                        uni.setStorageSync('userInfo', result.user);
-                        uni.setStorageSync('userOpenId', result.user.openid);
 
                         if (result.needPhoneBinding) {
                             // 需要绑定手机号
@@ -668,7 +663,7 @@ export default {
         },
 
         // 已有本地登录信息则自动跳转
-        tryAutoRedirect: function () {
+        tryAutoRedirect: async function () {
             try {
                 const cachedUserInfo = uni.getStorageSync('userInfo');
                 const cachedOpenId = uni.getStorageSync('userOpenId');
@@ -678,6 +673,9 @@ export default {
                     app.globalData.userInfo = cachedUserInfo;
                     app.globalData.openid = cachedUserInfo._openid || cachedOpenId;
                     app.globalData._loginProcessCompleted = true;
+                    await applyAuthenticatedUserSession(cachedUserInfo, {
+                        openid: cachedUserInfo._openid || cachedOpenId
+                    });
                     // 【关键修复】设置登录状态标记
                     app.globalData.isLoggedIn = true;
                     console.log('✅ [登录页面] 检测到已登录用户，自动跳转');
@@ -940,6 +938,9 @@ export default {
                 app.globalData.userInfo = result.userInfo;
                 app.globalData.openid = result.openid;
                 app.globalData._loginProcessCompleted = true;
+                await applyAuthenticatedUserSession(result.userInfo, {
+                    openid: result.openid
+                });
                 // 【关键修复】设置登录状态标记
                 app.globalData.isLoggedIn = true;
 
@@ -1160,6 +1161,9 @@ export default {
             app.globalData.userInfo = result.userInfo;
             app.globalData.openid = result.openid;
             app.globalData._loginProcessCompleted = true;
+            applyAuthenticatedUserSession(result.userInfo, {
+                openid: result.openid
+            }).catch(() => {});
             app.globalData.isLoggedIn = true;
 
             uni.setStorageSync('userInfo', result.userInfo);
@@ -1208,6 +1212,9 @@ export default {
 
                 if (bindResult.result && bindResult.result.success) {
                     // 绑定成功
+                    applyAuthenticatedUserSession(result.userInfo, {
+                        openid: result.openid
+                    }).catch(() => {});
                     this.completeBindWechat(result);
                 } else if (bindResult.result && bindResult.result.code === 'OPENID_CONFLICT') {
                     // 微信 openid 已被用作其他账号的 _openid
@@ -1265,6 +1272,9 @@ export default {
                     // 重新绑定成功
                     this.showRebindConfirmModal = false;
                     this.boundAccountInfo = null;
+                    applyAuthenticatedUserSession(result.userInfo, {
+                        openid: result.openid
+                    }).catch(() => {});
                     this.completeBindWechat(result);
                 } else {
                     throw new Error(bindResult.result?.message || '重新绑定失败');
@@ -1318,6 +1328,9 @@ export default {
                     // 绑定成功
                     this.showOpenidConflictModal = false;
                     this.conflictAccountInfo = null;
+                    applyAuthenticatedUserSession(result.userInfo, {
+                        openid: result.openid
+                    }).catch(() => {});
                     this.completeBindWechat(result);
                 } else {
                     throw new Error(bindResult.result?.message || '绑定失败');

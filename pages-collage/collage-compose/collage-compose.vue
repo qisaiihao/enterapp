@@ -1,7 +1,7 @@
 <template>
   <view class="page">
     <view class="custom-back-btn" @tap="goBack">
-      <image class="back-icon" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
+      <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
     </view>
 
     <view class="header">
@@ -281,18 +281,21 @@ export default {
 }
 .custom-back-btn {
   position: absolute;
-  top: calc(60rpx + env(safe-area-inset-top, 44px));
+  top: calc(60rpx + env(safe-area-inset-top, 0px));
   left: 30rpx;
   width: 80rpx;
   height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 10;
 }
 .back-icon {
-  width: 100%;
-  height: 100%;
+  width: 22rpx;
+  height: 38rpx;
 }
 .header {
-  padding: calc(70rpx + env(safe-area-inset-top, 44px)) 20rpx 6rpx;
+  padding: calc(70rpx + env(safe-area-inset-top, 0px)) 20rpx 6rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;

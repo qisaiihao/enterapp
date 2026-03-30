@@ -1,5 +1,6 @@
 import cacheManager from '@/_utils/cache-manager';
 import fileUrlCache from '@/_utils/file-url-cache';
+import { normalizeAppBackgroundMode } from '@/utils/appBackground.js';
 
 const { callCloudAndUnwrap } = require('./_shared/cloud-wrapper.js');
 
@@ -28,6 +29,17 @@ export async function getMyInfo(context) {
           user.avatarUrl = ver ? `${url}?v=${encodeURIComponent(ver)}` : url;
         }
       } catch (_) {}
+
+      try {
+        const bg = user && user.appBackgroundUrl;
+        if (typeof bg === 'string' && bg.startsWith('cloud://')) {
+          user.appBackgroundUrl = await fileUrlCache.getTempUrl(bg);
+        }
+      } catch (_) {}
+
+      if (user) {
+        user.appBackgroundMode = normalizeAppBackgroundMode(user.appBackgroundMode, user.appBackgroundUrl);
+      }
 
       return user;
     },
@@ -98,4 +110,3 @@ export function invalidateMyFavorites(page, pageSize = 10) {
   }
   ns.clear();
 }
-

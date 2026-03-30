@@ -4,13 +4,13 @@
         <scroll-view class="container" scroll-y="true">
             <!-- 返回按钮在滚动容器内部 -->
             <view class="custom-back-btn" @tap="goBack">
-                <image class="back-icon" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
+                <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
             </view>
 
             <!-- 头像区域 -->
             <view class="avatar-section">
                 <view class="avatar-container" @tap="onChooseAvatar">
-                    <image class="main-avatar" :src="avatarUrl || '/static/images/avatar.png'" mode="aspectFill"></image>
+                    <image class="main-avatar" :src="avatarPreviewSrc" mode="aspectFill"></image>
                 </view>
             </view>
 
@@ -168,6 +168,51 @@
                 </view>
             </view>
         </view>
+
+        <view
+            v-if="showAvatarActionSheet"
+            class="avatar-action-sheet-mask"
+            @tap="closeAvatarActionSheet"
+        ></view>
+        <view
+            v-if="showAvatarActionSheet"
+            class="avatar-action-sheet-panel"
+            @tap.stop
+        >
+            <view
+                class="avatar-action-sheet-item"
+                @tap="handleAvatarActionSheetSelect('upload')"
+            >
+                <text class="avatar-action-sheet-text">上传自定义头像</text>
+            </view>
+            <view
+                class="avatar-action-sheet-item"
+                @tap="handleAvatarActionSheetSelect('preset')"
+            >
+                <text class="avatar-action-sheet-text">从默认头像中选择</text>
+            </view>
+        </view>
+
+        <view v-if="showStickerPicker" class="sticker-picker-modal" @tap="closeStickerPicker">
+            <view class="modal-mask"></view>
+            <view class="sticker-picker-panel" @tap.stop>
+                <view class="sticker-picker-header">
+                    <text class="sticker-picker-title">选择默认头像</text>
+                    <text class="sticker-picker-close" @tap="closeStickerPicker">×</text>
+                </view>
+                <view class="sticker-picker-grid">
+                    <view
+                        v-for="avatar in defaultAvatarOptions"
+                        :key="avatar"
+                        class="sticker-picker-item"
+                        :class="{ 'sticker-picker-item--selected': avatarUrl === avatar }"
+                        @tap="selectDefaultAvatar(avatar)"
+                    >
+                        <image class="sticker-picker-image" :src="avatar" mode="aspectFill"></image>
+                    </view>
+                </view>
+            </view>
+        </view>
     </view>
 </template>
 
@@ -177,6 +222,7 @@ const app = getApp();
 const { cloudCall } = require('../../utils/cloudCall.js');
 const { uploadFile } = require('../../utils/uploader.js');
 const { checkContentSafe, checkImageSafe, checkTextSafe } = require('../../utils/contentModeration.js');
+const { STICKER_AVATAR_PATHS, isStickerAvatar, resolveUserAvatar } = require('../../utils/defaultAvatar.js');
 export default {
     data() {
         return {
@@ -191,6 +237,10 @@ export default {
             endDate: '',
             isSaving: false,
             tempAvatarPath: null,
+            showAvatarActionSheet: false,
+            showStickerPicker: false,
+            defaultAvatarOptions: STICKER_AVATAR_PATHS,
+            currentUserSeed: '',
             signatureUrl: '',
             signaturePreview: '',
             signatureTempPath: null,
@@ -247,6 +297,12 @@ export default {
             }
             // 其他情况直接显示
             return this.phoneNumber;
+        },
+        avatarPreviewSrc() {
+            return resolveUserAvatar(
+                this.avatarUrl || this.tempAvatarPath || '',
+                this.currentUserSeed || this.poemId || this.nickName || (app && app.globalData && app.globalData.openid) || 'profile-edit-avatar'
+            );
         }
     },
     onLoad: function (options) {
@@ -316,7 +372,8 @@ export default {
                             phoneNumber: user.phoneNumber || '', // 手机号（只读显示）
                             signatureUrl: user.signatureUrl || '',
                             signaturePreview: user.signatureUrl || '',
-                            signatureTempPath: null
+                            signatureTempPath: null,
+                            currentUserSeed: (app && app.globalData && app.globalData.openid) || user._openid || user.poemId || user.nickName || ''
                         });
                         
                         // 保存原始数据用于对比
@@ -350,41 +407,80 @@ export default {
                 });
         },
 
-        onChooseAvatar(e) {
-            console.log('🔍 [ProfileEdit] 开始选择头像...');
-            
-            // 检查运行环境
-            const { getCurrentPlatform } = require('../../utils/platformDetector.js');
-            const platform = getCurrentPlatform();
-            
-            console.log(`🔍 [ProfileEdit] 当前平台: ${platform}`);
-            
-            if (platform === 'mp-weixin' && e.detail && e.detail.avatarUrl) {
-                // 微信小程序环境，使用 chooseAvatar API
-                const originalPath = e.detail.avatarUrl;
-                console.log('🔍 [ProfileEdit] 微信小程序选择头像，原始路径:', originalPath);
-                this.processAvatar(originalPath);
-            } else {
-                // H5和App环境，使用 uni.chooseImage
-                console.log('🔍 [ProfileEdit] H5/App环境，使用uni.chooseImage选择头像');
-                uni.chooseImage({
-                    count: 1,
-                    sizeType: ['compressed'],
-                    sourceType: ['album', 'camera'],
-                    success: (res) => {
-                        const originalPath = res.tempFilePaths[0];
-                        console.log('🔍 [ProfileEdit] 选择头像成功，原始路径:', originalPath);
-                        this.processAvatar(originalPath);
-                    },
-                    fail: (err) => {
-                        console.error('🔍 [ProfileEdit] 选择头像失败:', err);
-                        uni.showToast({
-                            title: '选择头像失败',
-                            icon: 'none'
-                        });
-                    }
-                });
+        onChooseAvatar() {
+            this.setData({
+                showAvatarActionSheet: true
+            });
+        },
+
+        closeAvatarActionSheet(callback) {
+            this.setData({
+                showAvatarActionSheet: false
+            });
+            if (typeof callback === 'function') {
+                setTimeout(callback, 80);
             }
+        },
+
+        handleAvatarActionSheetSelect(action) {
+            this.closeAvatarActionSheet(() => {
+                if (action === 'upload') {
+                    this.chooseCustomAvatar();
+                    return;
+                }
+                this.openStickerPicker();
+            });
+        },
+
+        chooseCustomAvatar() {
+            console.log('🔍 [ProfileEdit] 开始选择自定义头像...');
+            uni.chooseImage({
+                count: 1,
+                sizeType: ['compressed'],
+                sourceType: ['album', 'camera'],
+                success: (res) => {
+                    const originalPath = res.tempFilePaths[0];
+                    console.log('🔍 [ProfileEdit] 选择头像成功，原始路径:', originalPath);
+                    this.processAvatar(originalPath);
+                },
+                fail: (err) => {
+                    if (err && err.errMsg && err.errMsg.includes('cancel')) {
+                        return;
+                    }
+                    console.error('🔍 [ProfileEdit] 选择头像失败:', err);
+                    uni.showToast({
+                        title: '选择头像失败',
+                        icon: 'none'
+                    });
+                }
+            });
+        },
+
+        openStickerPicker() {
+            this.setData({
+                showAvatarActionSheet: false,
+                showStickerPicker: true
+            });
+        },
+
+        closeStickerPicker() {
+            this.setData({
+                showStickerPicker: false
+            });
+        },
+
+        selectDefaultAvatar(avatarPath) {
+            this.setData({
+                avatarUrl: avatarPath,
+                tempAvatarPath: null,
+                showStickerPicker: false
+            });
+
+            uni.showToast({
+                title: '默认头像已选择',
+                icon: 'success',
+                duration: 1500
+            });
         },
         
         processAvatar(originalPath) {
@@ -393,7 +489,8 @@ export default {
             // 简化处理：直接使用原图，参考注册页面的逻辑
             this.setData({
                 avatarUrl: originalPath,
-                tempAvatarPath: originalPath
+                tempAvatarPath: originalPath,
+                showStickerPicker: false
             });
 
             uni.showToast({
@@ -1253,7 +1350,7 @@ export default {
                 poemId: this.poemId
             });
 
-            const avatarUpload = this.tempAvatarPath
+            const avatarUpload = this.tempAvatarPath && !isStickerAvatar(this.tempAvatarPath)
                 ? uploadFile(`user_avatars/${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`, this.tempAvatarPath)
                 : Promise.resolve(null);
             const signatureUpload = this.signatureTempPath
@@ -1261,8 +1358,9 @@ export default {
                 : Promise.resolve(null);
             Promise.all([avatarUpload, signatureUpload])
                 .then(([avatarFileID, signatureFileID]) => {
+                    const resolvedAvatarUrl = avatarFileID || (isStickerAvatar(this.avatarUrl) ? this.avatarUrl : '');
+                    const shouldUpdateAvatar = this.tempAvatarPath !== null || this.avatarUrl !== this.originalData.avatarUrl;
                     const updateData = {
-                        avatarUrl: avatarFileID || '',
                         nickName: this.nickName,
                         birthday: this.birthday,
                         bio: this.bio,
@@ -1271,6 +1369,9 @@ export default {
                         poemId: this.poemId,  // 新增：保存poemId
                         signatureUrl: signatureFileID || ''
                     };
+                    if (shouldUpdateAvatar && resolvedAvatarUrl) {
+                        updateData.avatarUrl = resolvedAvatarUrl;
+                    }
                     console.log('【profile-edit】📤 发送到云函数的数据:', updateData);
                     return this.callCloudFunction('updateUserProfile', updateData);
                 })
@@ -1395,13 +1496,15 @@ export default {
 
 .custom-back-btn {
     position: absolute;
-    top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 44px))); /* 添加安全区域偏移 */
+    top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px))); /* 添加安全区域偏移 */
     left: 40rpx;
     width: 100rpx;
     height: 100rpx;
     background: transparent;
     border: none;
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     z-index: 100;
     transition: all 0.2s ease;
 }
@@ -1411,8 +1514,8 @@ export default {
 }
 
 .custom-back-btn .back-icon {
-    width: 100rpx;
-    height: 100rpx;
+    width: 22rpx;
+    height: 38rpx;
     display: block;
     object-fit: contain;
 }
@@ -1919,5 +2022,134 @@ export default {
     box-sizing: border-box;
     margin: 0;
     padding: 0 24rpx;
+}
+
+.sticker-picker-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.sticker-picker-panel {
+    position: relative;
+    width: 100%;
+    background: #fff;
+    border-radius: 32rpx 32rpx 0 0;
+    padding: 32rpx;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.sticker-picker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24rpx;
+}
+
+.sticker-picker-title {
+    font-size: 34rpx;
+    font-weight: 600;
+    color: #333;
+}
+
+.sticker-picker-close {
+    font-size: 44rpx;
+    color: #999;
+    line-height: 1;
+}
+
+.sticker-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24rpx;
+}
+
+.sticker-picker-item {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 24rpx;
+    padding: 10rpx;
+    background: #f7f7f7;
+    border: 2rpx solid transparent;
+    box-sizing: border-box;
+}
+
+.sticker-picker-item--selected {
+    border-color: #333;
+}
+
+.sticker-picker-image {
+    width: 100%;
+    height: 100%;
+    border-radius: 18rpx;
+    display: block;
+}
+
+.avatar-action-sheet-mask {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: rgba(0, 0, 0, 0.18);
+    z-index: 1200;
+}
+
+.avatar-action-sheet-panel {
+    position: fixed;
+    left: 24rpx;
+    right: 24rpx;
+    bottom: 72rpx;
+    bottom: calc(72rpx + constant(safe-area-inset-bottom));
+    bottom: calc(72rpx + env(safe-area-inset-bottom));
+    background: rgba(255, 255, 255, 0.96);
+    border-radius: 24rpx;
+    box-shadow: 0 18rpx 40rpx rgba(0, 0, 0, 0.14);
+    overflow: hidden;
+    z-index: 1201;
+    backdrop-filter: blur(14rpx);
+    -webkit-backdrop-filter: blur(14rpx);
+    animation: avatarActionSheetSlideUp 0.22s ease-out;
+}
+
+.avatar-action-sheet-item {
+    min-height: 104rpx;
+    padding: 0 36rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1rpx solid #f0f0f0;
+    transition: background-color 0.2s ease;
+}
+
+.avatar-action-sheet-item:last-child {
+    border-bottom: none;
+}
+
+.avatar-action-sheet-item:active {
+    background: #f5f5f5;
+}
+
+.avatar-action-sheet-text {
+    font-size: 32rpx;
+    font-weight: 500;
+    color: #333;
+    line-height: 1.4;
+    letter-spacing: 0.5rpx;
+}
+
+@keyframes avatarActionSheetSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(18rpx);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 </style>

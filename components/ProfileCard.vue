@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <view class="profile-card profile-card-center">
         <view v-if="showGrowthStats" class="profile-growth-stats">
             <view class="growth-item" v-for="(value, key) in displayGrowthStats" :key="key">
@@ -23,6 +23,13 @@
                     <view class="edit-profile-btn" @tap="$emit('edit-profile')">
                         <text>编辑主页</text>
                     </view>
+                    <view
+                        class="background-upload-btn"
+                        @tap="openBackgroundMenu"
+                        @longpress="openBackgroundMenu"
+                    >
+                        <image src="/static/images/upload.png" class="background-upload-icon" mode="aspectFit" />
+                    </view>
                     <image
                         src="/static/images/icons/menu-icon.svg"
                         class="menu-btn-small"
@@ -35,8 +42,15 @@
 </template>
 
 <script>
+import { resolveUserObjectAvatar } from '@/utils/defaultAvatar.js';
+
 export default {
     name: 'ProfileCard',
+    data() {
+        return {
+            lastBackgroundMenuAt: 0
+        };
+    },
     props: {
         userInfo: {
             type: Object,
@@ -61,7 +75,7 @@ export default {
     },
     computed: {
         avatarSrc() {
-            return this.userInfo?.avatarUrl || '/static/images/avatar.png';
+            return resolveUserObjectAvatar(this.userInfo);
         },
         displayName() {
             return this.userInfo?.nickName || '微信用户';
@@ -101,6 +115,14 @@ export default {
         }
     },
     methods: {
+        openBackgroundMenu() {
+            const now = Date.now();
+            if (now - this.lastBackgroundMenuAt < 300) {
+                return;
+            }
+            this.lastBackgroundMenuAt = now;
+            this.$emit('manage-background');
+        },
         handleAvatarError(event) {
             this.$emit('avatar-error', event);
         }
@@ -154,7 +176,7 @@ export default {
 .growth-count {
     font-size: 30rpx;
     font-weight: 600;
-    color: #333;
+    color: var(--profile-meta-color, #333);
 }
 
 .profile-avatar-large {
@@ -184,7 +206,7 @@ export default {
     font-weight: 600;
     font-size: 30rpx;
     line-height: 36rpx;
-    color: #000000;
+    color: var(--profile-name-color, #000000);
     margin-bottom: 20rpx;
     text-align: left;
 }
@@ -194,7 +216,7 @@ export default {
     font-weight: 300;
     font-size: 20rpx;
     line-height: 24rpx;
-    color: #989090;
+    color: var(--profile-poemid-color, #989090);
     margin-bottom: 20rpx;
 }
 
@@ -203,7 +225,7 @@ export default {
     font-weight: 600;
     font-size: 24rpx;
     line-height: 30rpx;
-    color: #000000;
+    color: var(--profile-bio-color, #000000);
     text-align: left;
     margin-bottom: 20rpx;
     cursor: pointer;
@@ -233,7 +255,7 @@ export default {
     font-weight: 300;
     font-size: 24rpx;
     line-height: 30rpx;
-    color: #989090;
+    color: var(--profile-meta-color, #989090);
     margin: 0;
 }
 
@@ -241,8 +263,10 @@ export default {
     position: relative;
     width: 246rpx;
     height: 54rpx;
-    background: #d9d9d9;
+    background: var(--profile-button-bg, #d9d9d9);
     border-radius: 10rpx;
+    border: var(--profile-button-border, none);
+    box-shadow: var(--profile-button-shadow, none);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -251,7 +275,7 @@ export default {
 }
 
 .edit-profile-btn:active {
-    background-color: #c0c0c0;
+    background-color: var(--profile-button-active-bg, #c0c0c0);
 }
 
 .edit-profile-btn text {
@@ -259,7 +283,32 @@ export default {
     font-weight: 800;
     font-size: 28rpx;
     line-height: 34rpx;
-    color: #ffffff;
+    color: var(--profile-button-text-color, #ffffff);
+}
+
+.background-upload-btn {
+    width: 58rpx;
+    height: 58rpx;
+    border-radius: 50%;
+    background: var(--profile-icon-button-bg, rgba(217, 217, 217, 0.92));
+    border: var(--profile-icon-button-border, none);
+    box-shadow: var(--profile-icon-button-shadow, none);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.background-upload-btn:active {
+    transform: scale(0.94);
+    background-color: var(--profile-icon-button-active-bg, rgba(192, 192, 192, 0.96));
+}
+
+.background-upload-icon {
+    width: 28rpx;
+    height: 28rpx;
+    opacity: var(--profile-upload-icon-opacity, 0.78);
+    filter: var(--profile-upload-icon-filter, grayscale(1) brightness(0.35));
 }
 
 .menu-btn-small {
@@ -267,8 +316,8 @@ export default {
     height: 40rpx;
     cursor: pointer;
     transition: transform 0.2s ease;
-    filter: grayscale(1) brightness(0.5);
-    opacity: 0.7;
+    filter: var(--profile-menu-icon-filter, grayscale(1) brightness(0.5));
+    opacity: var(--profile-menu-icon-opacity, 0.7);
 }
 
 .menu-btn-small:active {
@@ -295,5 +344,3 @@ export default {
     white-space: nowrap;
 }
 </style>
-
-

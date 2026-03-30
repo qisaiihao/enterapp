@@ -8,7 +8,7 @@
     <view v-else class="comment-list">
       <block v-if="comments.length > 0">
         <view class="comment-item" v-for="(item, idx) in comments" :key="item._id || idx">
-          <image class="comment-avatar" :src="item.isAnonymous ? '/static/images/avatar.png' : (item.authorAvatar || '/static/images/avatar.png')" mode="aspectFill"/>
+          <image class="comment-avatar" :src="resolveAvatar(item)" mode="aspectFill"/>
           <view class="comment-main">
             <view class="cmt-header">
               <text class="comment-author">{{ item.isAnonymous ? '匿名用户' : item.authorName }}</text>
@@ -23,12 +23,19 @@
   </view>
 </template>
 <script>
+import { resolveCommentAuthorAvatar } from '@/utils/defaultAvatar.js';
+
 export default {
   name: 'CommentSection',
   props: {
     commentCount: { type: Number, required: false, default: 0 },
     comments: { type: Array, required: true },
     isCommentLoading: Boolean
+  },
+  methods: {
+    resolveAvatar(item) {
+      return resolveCommentAuthorAvatar(item);
+    }
   }
 };
 </script>
