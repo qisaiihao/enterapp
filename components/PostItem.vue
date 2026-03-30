@@ -17,7 +17,7 @@
         <view class="author-info-outside">
             <image
                 class="author-avatar"
-                :src="item.isAnonymous ? '/static/images/avatar.png' : (item.authorAvatar || '/static/images/avatar.png')"
+                :src="authorAvatarSrc"
                 mode="aspectFill"
                 @error="onAvatarError"
                 @load="onAvatarLoad"
@@ -163,6 +163,8 @@
 </template>
 
 <script>
+import { resolvePostAuthorAvatar } from '@/utils/defaultAvatar.js';
+
 export default {
     name: 'PostItem',
     props: {
@@ -220,6 +222,9 @@ export default {
     computed: {
         displayTime() {
             return this.item[this.timeField] || '未知时间';
+        },
+        authorAvatarSrc() {
+            return resolvePostAuthorAvatar(this.item);
         }
     },
     methods: {

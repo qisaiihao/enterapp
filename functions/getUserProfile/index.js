@@ -1,5 +1,6 @@
 // 云函数入口文件
 const cloud = require('wx-server-sdk');
+const { ensureUserDefaultAvatar } = require('../_lib/default-avatar');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
@@ -147,6 +148,7 @@ exports.main = async (event, context) => {
     }
 
     const userInfo = profileData.list[0];
+    userInfo.avatarUrl = await ensureUserDefaultAvatar({ db, openid: userId, user: userInfo });
     const canViewAppBackground = String(currentOpenid) === String(userId);
     if (!canViewAppBackground) {
       userInfo.appBackgroundUrl = '';

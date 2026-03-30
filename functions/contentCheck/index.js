@@ -10,21 +10,9 @@ cloud.init({
 
 const db = cloud.database();
 const _ = db.command;
-const ADMIN_POEM_IDS = ['qisaihao', 'jingmikun'];
+const { isAdminByPoemId } = require('../_lib/admin-auth');
 
 // 校验当前用户是否为管理员
-async function isAdmin(openid) {
-  try {
-    const result = await db.collection('users').where({
-      _openid: openid,
-      poemId: _.in(ADMIN_POEM_IDS)
-    }).limit(1).get();
-    return result.data.length > 0;
-  } catch (error) {
-    console.error('[contentCheck] 校验管理员权限失败:', error);
-    return false;
-  }
-}
 
 // 云函数入口函数
 // TODO: 此云函数已暂时禁用，因为腾讯云内容审核服务未续费
@@ -142,7 +130,7 @@ exports.main = async (event, context) => {
   }
 
   if (activityId) {
-    const admin = await isAdmin(openid);
+    const admin = await isAdminByPoemId({ db, command: _, openid, loggerPrefix: 'contentCheck' });
     if (!admin) {
       return buildFailure({
         code: -1102,

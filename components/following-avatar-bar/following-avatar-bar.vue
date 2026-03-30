@@ -29,7 +29,7 @@
                     <view class="avatar-wrapper">
                         <image 
                             class="avatar-image" 
-                            :src="user.avatarUrl || defaultAvatar"
+                            :src="resolveAvatar(user)"
                             mode="aspectFill"
                             lazy-load
                             @error="onAvatarError(user)"
@@ -47,6 +47,7 @@
 
 <script>
 import { getFollowingUsers, invalidateFollowingUsers } from '@/api-cache/following-users.js';
+import { resolveUserAvatar } from '@/utils/defaultAvatar.js';
 
 export default {
     name: 'FollowingAvatarBar',
@@ -98,6 +99,9 @@ export default {
         this.loadUsers();
     },
     methods: {
+        resolveAvatar(user) {
+            return resolveUserAvatar(user && user.avatarUrl, user && (user._openid || user.poemId || user.nickName));
+        },
         // 加载关注用户列表
         async loadUsers(forceRefresh = false) {
             if (this.isLoading) return;

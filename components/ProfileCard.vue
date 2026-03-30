@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <view class="profile-card profile-card-center">
         <view v-if="showGrowthStats" class="profile-growth-stats">
             <view class="growth-item" v-for="(value, key) in displayGrowthStats" :key="key">
@@ -42,6 +42,8 @@
 </template>
 
 <script>
+import { resolveUserObjectAvatar } from '@/utils/defaultAvatar.js';
+
 export default {
     name: 'ProfileCard',
     data() {
@@ -73,7 +75,7 @@ export default {
     },
     computed: {
         avatarSrc() {
-            return this.userInfo?.avatarUrl || '/static/images/avatar.png';
+            return resolveUserObjectAvatar(this.userInfo);
         },
         displayName() {
             return this.userInfo?.nickName || '微信用户';

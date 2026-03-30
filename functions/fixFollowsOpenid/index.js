@@ -6,7 +6,7 @@ cloud.init({
 
 const db = cloud.database();
 
-const ADMIN_POEM_IDS = ['qisaihao', 'jingmikun'];
+const { isAdminByPoemId } = require('../_lib/admin-auth');
 const DEFAULT_SOURCE_OPENID = 'anonymous_1760806464645';
 const DEFAULT_TARGET_OPENID = 'ojYBd1zhoZmBs4XrvqaBHXQoetYw';
 const QUERY_LIMIT = 100;
@@ -157,17 +157,7 @@ function getOperatorOpenid(event, wxContext) {
 }
 
 async function isAdmin(openid) {
-  try {
-    const adminRes = await db.collection('users').where({
-      _openid: openid,
-      poemId: db.command.in(ADMIN_POEM_IDS)
-    }).limit(1).get();
-
-    return adminRes.data.length > 0;
-  } catch (error) {
-    console.error('fixFollowsOpenid 校验管理员失败:', error);
-    return false;
-  }
+  return isAdminByPoemId({ db, command: db.command, openid, loggerPrefix: 'fixFollowsOpenid' });
 }
 
 async function previewFieldReplacement(fieldName, sourceOpenid) {

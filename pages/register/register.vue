@@ -1,9 +1,9 @@
-﻿<template>
+<template>
   <view class="white-page">
     <view class="container">
       <view class="avatar-top">
         <view class="avatar-preview" @tap="onChooseAvatar">
-          <image :src="localAvatarTempPath || '/static/images/avatar.png'" mode="aspectFill"></image>
+          <image :src="defaultRegisterAvatar" mode="aspectFill"></image>
         </view>
         <text class="avatar-cta">点击更换头像</text>
       </view>
@@ -116,6 +116,7 @@
 import { cloudCall } from '@/utils/cloudCall.js';
 import { getCurrentPlatform } from '@/utils/platformDetector.js';
 import { applyAuthenticatedUserSession } from '@/utils/appBackground.js';
+import { resolveUserAvatar } from '@/utils/defaultAvatar.js';
 
 const app = getApp();
 
@@ -201,6 +202,12 @@ export default {
                    this.confirmPassword.trim() && 
                    this.nickName.trim() &&
                    this.password === this.confirmPassword;
+        },
+        defaultRegisterAvatar() {
+            return resolveUserAvatar(
+                this.localAvatarTempPath,
+                this.poemId.trim() || this.nickName.trim() || 'register-default-avatar'
+            );
         },
         // 判断是否为 APP 端
         isApp() {

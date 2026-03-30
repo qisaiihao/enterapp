@@ -271,6 +271,7 @@ import { invalidateMyProfile } from '@/api-cache/profile.js';
 import { emitPostVisibilityChanged, emitFavoriteChanged } from '@/utils/events.js';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
 import { applyUserInfoWithAppBackground, normalizeAppBackgroundMode } from '@/utils/appBackground.js';
+import { getUserAvatarSeed, resolveUserAvatar } from '@/utils/defaultAvatar.js';
 const { uploadFile } = require('../../utils/uploader.js');
 const { cloudCall } = require('../../utils/cloudCall.js');
 
@@ -828,6 +829,7 @@ export default {
                 this.userInfo ||
                 {};
             const nextUser = user ? { ...sessionUser, ...user } : { ...sessionUser };
+            nextUser.avatarUrl = resolveUserAvatar(nextUser.avatarUrl, getUserAvatarSeed(nextUser));
             nextUser.appBackgroundMode = normalizeAppBackgroundMode(nextUser.appBackgroundMode, nextUser.appBackgroundUrl);
             if (nextUser && nextUser.birthday) {
                 nextUser.age = this.calculateAge(nextUser.birthday);
@@ -857,7 +859,7 @@ export default {
                 if (currentUserInfo.avatarUrl) {
                     nextPost.authorAvatar = currentUserInfo.avatarUrl;
                 } else if (!nextPost.authorAvatar || !String(nextPost.authorAvatar).trim()) {
-                    nextPost.authorAvatar = nextPost.authorAvatarSnapshot || '/static/images/avatar.png';
+                    nextPost.authorAvatar = resolveUserAvatar(nextPost.authorAvatar || nextPost.authorAvatarSnapshot || '', openid || nextPost._openid);
                 }
                 console.log(`【profile】📦 原子刷新帖子${index + 1}:`, {
                     id: nextPost._id,
@@ -1225,13 +1227,7 @@ export default {
                 .then((user) => {
                     console.log('【profile】获取到的用户数据:', user);
                     console.log('【profile】growthCounts数据:', user?.growthCounts);
-                    const sessionUser =
-                        (app && app.globalData && app.globalData.userInfo) ||
-                        this.userInfo ||
-                        {};
-                    const nextUser = user ? { ...sessionUser, ...user } : { ...sessionUser };
-                    nextUser.appBackgroundMode = normalizeAppBackgroundMode(nextUser.appBackgroundMode, nextUser.appBackgroundUrl);
-                    if (nextUser && nextUser.birthday) nextUser.age = this.calculateAge(nextUser.birthday); else if (nextUser) nextUser.age = '';
+                    const nextUser = this.normalizeProfileUserInfo(user);
                     this.appBackgroundResolvedUrl = (nextUser && nextUser.appBackgroundUrl) || '';
                     this.appBackgroundMode = (nextUser && nextUser.appBackgroundMode) || '';
                     this.setData({ userInfo: nextUser || {}, isLoading: false });
@@ -1316,7 +1312,7 @@ export default {
                             if (currentUserInfo.avatarUrl) {
                                 post.authorAvatar = currentUserInfo.avatarUrl;
                             } else if (!post.authorAvatar || post.authorAvatar.trim() === '') {
-                                post.authorAvatar = post.authorAvatarSnapshot || '/static/images/avatar.png';
+                                post.authorAvatar = resolveUserAvatar(post.authorAvatar || post.authorAvatarSnapshot || '', currentOpenid || post._openid);
                             }
                             
                             console.log(`【profile】📝 缓存帖子${index + 1}:`, {
@@ -1414,7 +1410,7 @@ export default {
                     if (currentUserInfo.avatarUrl) {
                         post.authorAvatar = currentUserInfo.avatarUrl;
                     } else if (!post.authorAvatar || post.authorAvatar.trim() === '') {
-                        post.authorAvatar = post.authorAvatarSnapshot || '/static/images/avatar.png';
+                        post.authorAvatar = resolveUserAvatar(post.authorAvatar || post.authorAvatarSnapshot || '', currentOpenid || post._openid);
                         console.log(`【profile】⚠️ 帖子${index + 1}个人资料无头像，使用备选`);
                     }
 

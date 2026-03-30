@@ -44,7 +44,7 @@
 	                </view>
 	            </view>
 	                <view class="profile-avatar-large">
-                    <image :src="userInfo.avatarUrl || '/static/images/avatar.png'" mode="aspectFill" @error="onAvatarError"></image>
+                    <image :src="getProfileAvatar(userInfo)" mode="aspectFill" @error="onAvatarError"></image>
                 </view>
                 <view class="profile-info-center">
                     <text class="profile-name-center">{{ userInfo.nickName || '微信用户' }}</text>
@@ -106,7 +106,7 @@
                         <view class="author-info-outside">
                             <image
                                 class="author-avatar"
-                                :src="item.authorAvatar || '/static/images/avatar.png'"
+                                :src="getPostAvatar(item)"
                                 mode="aspectFill"
                                 @error="onAvatarError"
                                 :data-postindex="index"
@@ -235,7 +235,7 @@
                         <view class="author-info-outside">
                             <image
                                 class="author-avatar"
-                                :src="item.authorAvatar || '/static/images/avatar.png'"
+                                :src="getPostAvatar(item)"
                                 mode="aspectFill"
                                 @error="onAvatarError"
                                 :data-postindex="index"
@@ -433,6 +433,7 @@ import skeleton from '@/components/skeleton/skeleton';
 import TimelineView from '@/components/TimelineView.vue';
 import PortfolioBook from '@/components/PortfolioBook.vue';
 import { normalizeAppBackgroundMode, normalizeAppBackgroundUrl } from '@/utils/appBackground.js';
+import { resolvePostAuthorAvatar, resolveUserObjectAvatar } from '@/utils/defaultAvatar.js';
 import {
     checkFollowRelation,
     checkBlockRelation,
@@ -636,6 +637,12 @@ export default {
         }
     },
     methods: {
+        getProfileAvatar(user = {}) {
+            return resolveUserObjectAvatar(user);
+        },
+        getPostAvatar(post = {}) {
+            return resolvePostAuthorAvatar(post);
+        },
         // 标签切换（他人主页）
         switchTab: function (e) {
             const tab = e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.tab;

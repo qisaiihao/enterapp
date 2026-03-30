@@ -18,7 +18,7 @@
                         <view class="author-basic">
                             <image
                                 class="author-avatar"
-                                :src="post.isAnonymous ? '/static/images/avatar.png' : (post.authorAvatar || '/static/images/avatar.png')"
+                                :src="postAuthorAvatarSrc"
                                 mode="aspectFill"
                                 @error="onAvatarError"
                                 @click="navigateToUserProfile"
@@ -356,6 +356,7 @@ import { emitCommentCountChanged, emitPostUpdated } from '@/utils/events.js';
 import fontManager from '@/utils/fontManager.js'; // 添加fontManager导入
 import { checkContentSafe, checkTextSafe, shouldModerate } from '@/utils/contentModeration.js';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
+import { resolvePostAuthorAvatar } from '@/utils/defaultAvatar.js';
 
 // API函数导入
 import { getPostDetail, updatePostContent, togglePostFavorite, recordPostView } from '@/api-cache/post.js';
@@ -462,6 +463,9 @@ export default {
     },
     mixins: [postGalleryMixin],
     computed: {
+        postAuthorAvatarSrc() {
+            return resolvePostAuthorAvatar(this.post);
+        },
         // 是否可以跳转到诗人主页（非原创诗且作者名与发布用户昵称不同）
         canGoToPoetProfile() {
             if (!this.post || !this.post.author) return false;

@@ -17,7 +17,7 @@
                     <!-- Author Info -->
 
                     <view class="author-info">
-                        <image class="author-avatar" :src="item.authorAvatar || '/static/images/icons/avatar.png'" mode="aspectFill" @error="onAvatarError"></image>
+                        <image class="author-avatar" :src="resolvePostAvatar(item)" mode="aspectFill" @error="onAvatarError"></image>
                         <text class="author-name">{{ item.authorName }}</text>
                     </view>
 
@@ -106,6 +106,7 @@ const { normalizePostList } = require('../../utils/postNormalizer.js');
 const { cloudCall } = require('../../utils/cloudCall.js');
 const postGalleryMixin = require('../../mixins/postGallery.js');
 const paginationMixin = require('../../mixins/pagination.js');
+const { resolvePostAuthorAvatar } = require('../../utils/defaultAvatar.js');
 const PAGE_SIZE = 5;
 export default {
     mixins: [paginationMixin, postGalleryMixin],
@@ -126,6 +127,9 @@ export default {
         this.initPagination(this.loadLikedPosts, { pageSize: PAGE_SIZE });
     },
     methods: {
+        resolvePostAvatar(post) {
+            return resolvePostAuthorAvatar(post);
+        },
         // 统一云函数调用
         callCloudFunction(name, data = {}, extraOptions = {}) {
             return cloudCall(name, data, Object.assign({ pageTag: 'my-likes', context: this, requireAuth: true }, extraOptions));

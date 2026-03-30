@@ -18,6 +18,7 @@ const $ = db.command.aggregate;
 const { resolveOpenId, buildNoOpenIdResponse } = require('./_lib/request-context');
 const { createDraftHandlers } = require('./handlers/drafts');
 const { createFavoriteHandlers } = require('./handlers/favorites');
+const { ensureUserDefaultAvatar } = require('../_lib/default-avatar');
 
 const draftHandlers = createDraftHandlers({ db });
 const favoriteHandlers = createFavoriteHandlers({ db, cloud });
@@ -142,6 +143,7 @@ exports.main = async (event, context) => {
       phoneNumber: result.phoneNumber,
       growthCounts: result.growthCounts || { seed: 0, leaf: 0, flower: 0, peach: 0 }
     };
+    userInfo.avatarUrl = await ensureUserDefaultAvatar({ db, openid, user: userInfo });
 
     let posts = result.posts || [];
     console.log('【profile云函数】聚合后 posts 数量:', posts.length);

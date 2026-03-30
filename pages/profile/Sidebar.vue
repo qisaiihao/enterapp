@@ -6,7 +6,7 @@
         <!-- Sidebar -->
         <view :class="'sidebar ' + (isVisible ? 'open' : '')">
             <view class="sidebar-header">
-                <image class="sidebar-avatar" :src="userInfo.avatarUrl || '/static/images/avatar.png'" mode="aspectFill" @error="onAvatarError"></image>
+                <image class="sidebar-avatar" :src="avatarSrc" mode="aspectFill" @error="onAvatarError"></image>
                 <text class="sidebar-nickname">{{ userInfo.nickName || '微信用户' }}</text>
             </view>
             <view class="sidebar-menu">
@@ -45,6 +45,9 @@
 </template>
 
 <script>
+import { resolveUserObjectAvatar } from '@/utils/defaultAvatar.js';
+const { isAdminUser } = require('@/utils/admin.js');
+
 export default {
     name: 'Sidebar',
     props: {
@@ -62,10 +65,12 @@ export default {
         }
     },
     computed: {
+        avatarSrc() {
+            return resolveUserObjectAvatar(this.userInfo);
+        },
         // 判断是否为管理员
         isAdmin() {
-            const adminPoemIds = ['qisaihao', 'jingmikun'];
-            return this.userInfo && adminPoemIds.includes(this.userInfo.poemId);
+            return isAdminUser(this.userInfo);
         }
     },
     methods: {

@@ -2,7 +2,7 @@
     <view :class="isReply ? 'reply-item' : 'comment-item'">
         <image
             :class="isReply ? 'reply-avatar' : 'comment-avatar'"
-            :src="item.isAnonymous ? '/static/images/avatar.png' : (item.authorAvatar || '/static/images/avatar.png')"
+            :src="avatarSrc"
             mode="aspectFill"
             @error="onAvatarError"
             @click="onNavigateToUser"
@@ -84,6 +84,8 @@
 </template>
 
 <script>
+import { resolveCommentAuthorAvatar } from '@/utils/defaultAvatar.js';
+
 export default {
     name: 'CommentItem',
     props: {
@@ -109,6 +111,9 @@ export default {
         }
     },
     computed: {
+        avatarSrc() {
+            return resolveCommentAuthorAvatar(this.item);
+        },
         visibleReplies() {
             if (!this.item.replies) return [];
             return this.item.showAllReplies 
