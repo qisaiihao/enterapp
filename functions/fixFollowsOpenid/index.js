@@ -6,7 +6,7 @@ cloud.init({
 
 const db = cloud.database();
 
-const { isAdminByPoemId } = require('../_lib/admin-auth');
+const { isAdminByPoemId } = require('./_lib/admin-auth');
 const DEFAULT_SOURCE_OPENID = 'anonymous_1760806464645';
 const DEFAULT_TARGET_OPENID = 'ojYBd1zhoZmBs4XrvqaBHXQoetYw';
 const QUERY_LIMIT = 100;

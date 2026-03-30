@@ -65,7 +65,7 @@ const {
   normalizeAllowUserSubmission,
   buildAdminActivityView
 } = require('./_lib/activity')
-const { isAdminByPoemId } = require('../_lib/admin-auth')
+const { isAdminByPoemId } = require('./_lib/admin-auth')
 
 // 验证管理员权限（通过poemId）
 

@@ -10,7 +10,7 @@ cloud.init({
 
 const db = cloud.database();
 const _ = db.command;
-const { isAdminByPoemId } = require('../_lib/admin-auth');
+const { isAdminByPoemId } = require('./_lib/admin-auth');
 
 // 校验当前用户是否为管理员
 

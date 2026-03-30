@@ -5,7 +5,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 const _ = db.command
-const { isAdminByPoemId, listAdminUsersByPoemId } = require('../_lib/admin-auth')
+const { isAdminByPoemId, listAdminUsersByPoemId } = require('./_lib/admin-auth')
 
 // 验证管理员权限（通过poemId）
 
