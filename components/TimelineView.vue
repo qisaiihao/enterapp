@@ -1,8 +1,17 @@
 <template>
     <view>
-        <!-- 时间轴部分 -->
         <view class="timeline-container" v-if="timelinePosts.length > 0">
-            <view class="timeline-title">创作时间轴</view>
+            <view class="timeline-heading">
+                <view class="timeline-title">{{ title }}</view>
+                <view
+                    v-if="showExportButton && timelinePosts.length > 0"
+                    class="timeline-export-btn"
+                    @tap.stop="onExport"
+                >
+                    {{ exportButtonText }}
+                </view>
+            </view>
+
             <view class="timeline-wrapper">
                 <view class="timeline-vertical-line"></view>
                 <view class="timeline-content">
@@ -17,14 +26,14 @@
                                 {{ formatMonthLabel(monthKey) }}
                             </view>
                         </view>
+
                         <view class="timeline-posts" v-if="!collapsedMonths[monthKey]">
                             <view
-                                v-for="(post, postIndex) in group"
+                                v-for="post in group"
                                 :key="post._id"
                                 class="timeline-post-item"
                                 @tap="navigateToPostDetail(post._id)"
                             >
-                                <!-- 日期显示在帖子上面，同一天只显示一次 -->
                                 <view v-if="post.showDate" class="timeline-post-date">
                                     {{ formatDateLabel(post.dateStr) }}
                                 </view>
@@ -38,13 +47,11 @@
             </view>
         </view>
 
-        <!-- 时间轴加载状态 -->
         <view class="timeline-loading" v-if="showLoading">
             <view class="timeline-loading-icon">⏳</view>
             <view class="timeline-loading-text">正在加载时间轴...</view>
         </view>
 
-        <!-- 时间轴错误状态 -->
         <view class="timeline-error" v-if="showError">
             <view class="timeline-error-icon">⚠️</view>
             <view class="timeline-error-text">加载失败</view>
@@ -52,7 +59,6 @@
             <view class="timeline-retry-btn" @tap="onRetry">重试</view>
         </view>
 
-        <!-- 时间轴空状态 -->
         <view class="timeline-empty" v-if="showEmpty">
             <view class="timeline-empty-icon">📝</view>
             <view class="timeline-empty-text">还没有发布原创诗歌</view>
@@ -87,10 +93,17 @@ export default {
             type: Boolean,
             default: false
         },
-        // 可选的标题配置
         title: {
             type: String,
             default: '创作时间轴'
+        },
+        showExportButton: {
+            type: Boolean,
+            default: false
+        },
+        exportButtonText: {
+            type: String,
+            default: '导出'
         }
     },
     computed: {
@@ -105,37 +118,30 @@ export default {
         }
     },
     methods: {
-        // 格式化月份标签
         formatMonthLabel(monthKey) {
             return formatMonthLabel(monthKey);
         },
-
-        // 格式化日期标签
         formatDateLabel(dateKey) {
             return formatDateLabel(dateKey);
         },
-
-        // 切换月份折叠状态
         toggleMonthCollapse(monthKey) {
             const newCollapsed = toggleMonthCollapse(this.collapsedMonths, monthKey);
             this.$emit('update:collapsed-months', newCollapsed);
         },
-
-        // 导航到帖子详情
         navigateToPostDetail(postId) {
             this.$emit('navigate-to-post', postId);
         },
-
-        // 重试加载
         onRetry() {
             this.$emit('retry');
+        },
+        onExport() {
+            this.$emit('export');
         }
     }
 };
 </script>
 
 <style scoped>
-/* 时间轴样式 */
 .timeline-container {
     margin: 30rpx;
     background: var(--app-surface-bg, #fff);
@@ -145,12 +151,30 @@ export default {
     padding: 30rpx;
 }
 
+.timeline-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20rpx;
+    margin-bottom: 30rpx;
+}
+
 .timeline-title {
     font-size: 32rpx;
     font-weight: 600;
     color: var(--app-surface-title-color, #333);
-    margin-bottom: 30rpx;
     text-align: center;
+    flex: 1;
+}
+
+.timeline-export-btn {
+    flex-shrink: 0;
+    padding: 10rpx 24rpx;
+    border-radius: 999rpx;
+    font-size: 24rpx;
+    line-height: 1.2;
+    color: #ffffff;
+    background: var(--app-surface-accent-color, #809076);
 }
 
 .timeline-wrapper {
@@ -189,6 +213,7 @@ export default {
     align-items: center;
     margin-bottom: 20rpx;
     position: relative;
+    cursor: pointer;
 }
 
 .timeline-month-marker {
@@ -209,13 +234,8 @@ export default {
     font-weight: 600;
     color: var(--app-surface-accent-color, #809076);
     flex-shrink: 0;
-    cursor: pointer;
     -webkit-user-select: none;
     user-select: none;
-}
-
-.timeline-month-header {
-    cursor: pointer;
 }
 
 .timeline-posts {
@@ -225,7 +245,6 @@ export default {
 .timeline-post-item {
     padding: 20rpx 0;
     border-bottom: 1rpx solid var(--app-surface-divider, #f8f8f8);
-    cursor: pointer;
     transition: background-color 0.2s ease;
     position: relative;
 }
@@ -244,10 +263,6 @@ export default {
     margin-bottom: 10rpx;
 }
 
-.timeline-post-content {
-    margin-left: 0;
-}
-
 .timeline-post-title {
     font-size: 28rpx;
     color: var(--app-surface-text-color, #333);
@@ -255,7 +270,6 @@ export default {
     word-break: break-word;
 }
 
-/* 响应式适配 */
 @media (max-width: 750rpx) {
     .timeline-container {
         margin: 20rpx;
@@ -272,14 +286,11 @@ export default {
     .timeline-post-title {
         font-size: 26rpx;
     }
-
-    .timeline-post-time {
-        font-size: 22rpx;
-    }
 }
 
-/* 时间轴空状态 */
-.timeline-empty {
+.timeline-empty,
+.timeline-loading,
+.timeline-error {
     margin: 30rpx;
     background: var(--app-surface-bg, #fff);
     border-radius: 16rpx;
@@ -294,38 +305,37 @@ export default {
     margin-bottom: 20rpx;
 }
 
-.timeline-empty-text {
+.timeline-empty-text,
+.timeline-loading-text,
+.timeline-error-text {
     font-size: 28rpx;
-    color: var(--app-surface-text-color, #666);
-    margin-bottom: 10rpx;
 }
 
-.timeline-empty-subtext {
+.timeline-empty-text,
+.timeline-loading-text {
+    color: var(--app-surface-text-color, #666);
+}
+
+.timeline-empty-subtext,
+.timeline-error-subtext {
     font-size: 24rpx;
     color: var(--app-surface-meta-color, #999);
     line-height: 1.4;
 }
 
-/* 时间轴加载状态 */
-.timeline-loading {
-    margin: 30rpx;
-    background: var(--app-surface-bg, #fff);
-    border-radius: 16rpx;
-    box-shadow: var(--app-surface-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
-    border: var(--app-surface-border-line, none);
-    padding: 60rpx 30rpx;
-    text-align: center;
+.timeline-empty-subtext,
+.timeline-error-subtext {
+    margin-top: 10rpx;
+}
+
+.timeline-loading-icon,
+.timeline-error-icon {
+    font-size: 60rpx;
+    margin-bottom: 20rpx;
 }
 
 .timeline-loading-icon {
-    font-size: 60rpx;
-    margin-bottom: 20rpx;
     animation: rotate 2s linear infinite;
-}
-
-.timeline-loading-text {
-    font-size: 28rpx;
-    color: var(--app-surface-text-color, #666);
 }
 
 @keyframes rotate {
@@ -333,44 +343,18 @@ export default {
     to { transform: rotate(360deg); }
 }
 
-/* 时间轴错误状态 */
-.timeline-error {
-    margin: 30rpx;
-    background: var(--app-surface-bg, #fff);
-    border-radius: 16rpx;
-    box-shadow: var(--app-surface-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
-    border: var(--app-surface-border-line, none);
-    padding: 60rpx 30rpx;
-    text-align: center;
-}
-
-.timeline-error-icon {
-    font-size: 60rpx;
-    margin-bottom: 20rpx;
-}
-
 .timeline-error-text {
-    font-size: 28rpx;
     color: #ff6b6b;
-    margin-bottom: 10rpx;
-}
-
-.timeline-error-subtext {
-    font-size: 24rpx;
-    color: var(--app-surface-meta-color, #999);
-    margin-bottom: 30rpx;
-    line-height: 1.4;
 }
 
 .timeline-retry-btn {
     display: inline-block;
+    margin-top: 30rpx;
     padding: 20rpx 40rpx;
     background: var(--app-surface-accent-color, #809076);
     color: #fff;
     border-radius: 8rpx;
     font-size: 26rpx;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
 }
 
 .timeline-retry-btn:active {

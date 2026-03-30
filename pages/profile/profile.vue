@@ -175,9 +175,12 @@
                             :collapsed-months="collapsedMonths"
                             :is-loading="timelineLoading"
                             :has-error="timelineError"
+                            :show-export-button="true"
+                            export-button-text="导出卡片"
                             @update:collapsed-months="updateCollapsedMonths"
                             @navigate-to-post="navigateToPostDetail"
                             @retry="loadTimelineData"
+                            @export="onTimelineExport"
                         />
                     </view>
                     </view>
@@ -230,6 +233,50 @@
             @save-draft="saveToDraft"
             @confirm="confirmDelete"
         />
+
+        <share-modal
+            :show="showTimelineShareModal"
+            :image-urls="timelineShareImageUrls"
+            :longpress-menu-enabled="timelineShareLongpressMenuEnabled"
+            :share-config="timelineShareConfig"
+            :preview-text="timelineSharePreviewText"
+            :color-palettes="colorPalettes"
+            :poem-lines="poemLines"
+            @hide="hideTimelineShareModal"
+            @save="saveTimelineShareImages"
+            @longpress="saveTimelineShareImages"
+            @font-size-preview="onTimelineFontSizePreview"
+            @font-family-preview="onTimelineFontFamilyPreview"
+            @font-settings-change="onTimelineFontSettingsChange"
+            @color-change="onTimelineColorChange"
+            @force-regenerate="forceRegenerateTimelineCanvas"
+        />
+
+        <!-- #ifdef APP-PLUS -->
+        <view
+            v-if="showTimelineShareModal && (timelineShareConfig.fontFamily || '汇文明朝') === '汇文明朝'"
+            style="position: fixed; top: -9999px; left: -9999px; opacity: 0; pointer-events: none;"
+        >
+            <text>汇文明朝Aa</text>
+        </view>
+        <!-- #endif -->
+
+        <!-- #ifdef MP-WEIXIN -->
+        <canvas
+            id="timelineShareCanvas"
+            type="2d"
+            style="position: fixed; top: -9999px; left: -9999px; width: 750px; overflow: hidden;"
+            :style="{ height: timelineShareCanvasHeight + 'px' }"
+        ></canvas>
+        <!-- #endif -->
+        <!-- #ifndef MP-WEIXIN -->
+        <canvas
+            id="timelineShareCanvas"
+            canvas-id="timelineShareCanvas"
+            style="position: fixed; top: -9999px; left: -9999px; width: 750px; overflow: hidden;"
+            :style="{ height: timelineShareCanvasHeight + 'px' }"
+        ></canvas>
+        <!-- #endif -->
     </view>
 
 </template>
@@ -245,6 +292,7 @@ import PostItem from '@/components/PostItem.vue';
 import ProfileCard from '@/components/ProfileCard.vue';
 import ActionMenu from '@/components/ActionMenu.vue';
 import DeleteModal from '@/components/DeleteModal.vue';
+import ShareModal from '@/components/ShareModal.vue';
 import { getMyPosts, getMyFavorites, invalidateMyFavorites, invalidateMyPosts, invalidateMyInfo, getMyInfo } from '@/api-cache/my.js';
 import { togglePostVisibility, deletePost as deletePostApi, saveDraft, getPostDetail, removeFavorite as removeFavoriteApi, getFollowerCount, updateUserInfo, logout } from '@/api-cache/profile-actions.js';
 import { getPortfolioFolders, notifyPortfolioUpdated, invalidatePortfolioCache } from '@/api-cache/portfolio.js';
@@ -272,8 +320,14 @@ import { emitPostVisibilityChanged, emitFavoriteChanged } from '@/utils/events.j
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
 import { applyUserInfoWithAppBackground, normalizeAppBackgroundMode } from '@/utils/appBackground.js';
 import { getUserAvatarSeed, resolveUserAvatar } from '@/utils/defaultAvatar.js';
+import { colorPalettes } from '@/utils/colorPalettes.js';
+import { poemLines } from '@/utils/poemLines.js';
+import fontManager from '@/utils/fontManager.js';
 const { uploadFile } = require('../../utils/uploader.js');
 const { cloudCall } = require('../../utils/cloudCall.js');
+const { getCurrentPlatform } = require('../../utils/platformDetector.js');
+const { saveImagesToAlbum } = require('../../utils/shareImage.js');
+const { generateTimelineShareImages } = require('../../utils/timelineShareCanvas.js');
 
 const app = getApp();
 const PAGE_SIZE = 5;
@@ -358,6 +412,104 @@ const PROFILE_HEADER_THEME_VARS = Object.freeze({
     '--profile-menu-icon-opacity': '0.94',
     '--profile-menu-icon-filter': 'brightness(0) invert(1)'
 });
+
+const TIMELINE_SHARE_FONT_SCALE_MAP = Object.freeze({
+    '汇文明朝': 1.0,
+    '文艺体': 1.0,
+    '龙藏体': 1.0,
+    '小小的楷体': 1.0,
+    '南西雅致黑': 1.0,
+    '字体圈欣意吉祥宋': 1.0,
+    system: 1.0
+});
+
+function updateCanvas2DFontSize(ctx, fontSize) {
+    if (!ctx || !fontSize) return;
+
+    const currentFont = String(ctx.font || '').trim();
+    const familyMatch = currentFont.match(/\d+(?:\.\d+)?px\s+(.+)$/);
+    const family = familyMatch && familyMatch[1] ? familyMatch[1] : 'sans-serif';
+    ctx.font = `${fontSize}px ${family}`;
+}
+
+function createCanvas2DCompatContext(nativeCtx) {
+    if (!nativeCtx) return null;
+
+    return {
+        get font() {
+            return nativeCtx.font;
+        },
+        set font(value) {
+            nativeCtx.font = value;
+        },
+        clearRect(...args) {
+            return nativeCtx.clearRect(...args);
+        },
+        drawImage(...args) {
+            return nativeCtx.drawImage(...args);
+        },
+        measureText(...args) {
+            return nativeCtx.measureText(...args);
+        },
+        fillText(...args) {
+            return nativeCtx.fillText(...args);
+        },
+        beginPath(...args) {
+            return nativeCtx.beginPath(...args);
+        },
+        moveTo(...args) {
+            return nativeCtx.moveTo(...args);
+        },
+        lineTo(...args) {
+            return nativeCtx.lineTo(...args);
+        },
+        arcTo(...args) {
+            return nativeCtx.arcTo(...args);
+        },
+        quadraticCurveTo(...args) {
+            return nativeCtx.quadraticCurveTo(...args);
+        },
+        closePath(...args) {
+            return nativeCtx.closePath(...args);
+        },
+        fill(...args) {
+            return nativeCtx.fill(...args);
+        },
+        stroke(...args) {
+            return nativeCtx.stroke(...args);
+        },
+        save(...args) {
+            return nativeCtx.save(...args);
+        },
+        restore(...args) {
+            return nativeCtx.restore(...args);
+        },
+        clip(...args) {
+            return nativeCtx.clip(...args);
+        },
+        setFillStyle(value) {
+            nativeCtx.fillStyle = value;
+        },
+        setStrokeStyle(value) {
+            nativeCtx.strokeStyle = value;
+        },
+        setLineWidth(value) {
+            nativeCtx.lineWidth = value;
+        },
+        setTextAlign(value) {
+            nativeCtx.textAlign = value;
+        },
+        setFontSize(value) {
+            updateCanvas2DFontSize(nativeCtx, value);
+        },
+        draw(reserve, callback) { // eslint-disable-line no-unused-vars
+            if (typeof callback === 'function') {
+                callback();
+            }
+        }
+    };
+}
+
 export default {
     components: {
         Sidebar,
@@ -367,6 +519,7 @@ export default {
         ProfileCard,
         ActionMenu,
         DeleteModal,
+        ShareModal,
         // #ifndef MP-WEIXIN
         AppTabBar
         // #endif
@@ -402,6 +555,31 @@ export default {
             hasFirstShow_var: false,
 
             currentTab: 'posts',
+            timelinePosts: [],
+            timelineGroups: {},
+            timelineLoading: false,
+            timelineError: false,
+            collapsedMonths: {},
+            showTimelineShareModal: false,
+            timelineShareGenerating: false,
+            timelineShareCanvasHeight: 1200,
+            timelineShareImagePages: [],
+            timelineShareRenderToken: 0,
+            timelineShareRenderFontFamily: '汇文明朝',
+            timelineShareRenderFontScale: 1.0,
+            timelineShareConfig: {
+                fontSize: 38,
+                titleFontSize: 46,
+                fontFamily: '汇文明朝',
+                backgroundColor: '#FFFFFF',
+                textColor: '#000000',
+                fontScale: 1.0
+            },
+            timelineShareRegenerateTimeout: null,
+            timelineShareLongpressMenuEnabled: false,
+            colorPalettes,
+            poemLines,
+            timelineFontManager: fontManager,
 
             // 'posts' | 'favorites'
             favoriteList: [],
@@ -451,11 +629,6 @@ export default {
             },
             
             // 时间轴相关数据
-            timelinePosts: [],
-            timelineGroups: {},
-            timelineLoading: false,
-            timelineError: false,
-            collapsedMonths: {} // 存储每个月份的折叠状态
         };
     },
     computed: {
@@ -464,6 +637,17 @@ export default {
         },
         profileHeroStyle() {
             return this.isHeaderBackground ? { ...PROFILE_HEADER_THEME_VARS, ...this.appBackgroundPageStyle } : {};
+        },
+        timelineShareImageUrls() {
+            return (this.timelineShareImagePages || [])
+                .map((item) => item && item.imageUrl)
+                .filter(Boolean);
+        },
+        timelineSharePreviewText() {
+            const firstPost = (this.timelinePosts || [])[0] || {};
+            const firstSeriesBlock = Array.isArray(firstPost.seriesBlocks) ? firstPost.seriesBlocks[0] : null;
+            const excerpt = (firstPost.content || (firstSeriesBlock && firstSeriesBlock.content) || firstPost.title || '').trim();
+            return excerpt || '我的创作时间轴';
         },
         tabBarStyle() {
             if (!this.isFullBackground) {
@@ -501,6 +685,11 @@ export default {
         this.setData({
             swiperFixedHeight: fixedHeight
         });
+        try {
+            // #ifdef MP-WEIXIN
+            this.timelineShareLongpressMenuEnabled = true;
+            // #endif
+        } catch (_) {}
 
         // onLoad 只负责触发异步请求，然后立即结束
         this.getProfileData();
@@ -576,9 +765,327 @@ export default {
     },
     onUnload: function () {
         try { uni.$off && uni.$off('comment-count-changed'); } catch (_) {}
+        if (this.timelineShareRegenerateTimeout) {
+            clearTimeout(this.timelineShareRegenerateTimeout);
+            this.timelineShareRegenerateTimeout = null;
+        }
+        this.timelineShareRenderToken += 1;
+        this._timelineShareCanvasRuntime = null;
         this.finishBackgroundActionSheet({ cancelled: true, silent: true });
     },
     methods: {
+        createTimelineShareMeasureContext(logicalWidth = 750) {
+            // #ifdef MP-WEIXIN
+            if (typeof wx !== 'undefined' && typeof wx.createOffscreenCanvas === 'function') {
+                try {
+                    const measureCanvas = wx.createOffscreenCanvas({
+                        type: '2d',
+                        width: Math.max(1, Math.round(logicalWidth)),
+                        height: 64
+                    });
+                    const measureCtx = measureCanvas && measureCanvas.getContext && measureCanvas.getContext('2d');
+                    if (measureCtx) {
+                        return measureCtx;
+                    }
+                } catch (error) {
+                    console.warn('[timeline-share] offscreen measure canvas unavailable', error);
+                }
+            }
+            // #endif
+
+            return uni.createCanvasContext('timelineShareCanvas', this);
+        },
+        getTimelineShareCanvasRuntime(logicalWidth, logicalHeight) {
+            return new Promise((resolve, reject) => {
+                // #ifdef MP-WEIXIN
+                try {
+                    const query = (typeof wx !== 'undefined' && wx.createSelectorQuery
+                        ? wx.createSelectorQuery()
+                        : uni.createSelectorQuery()
+                    ).in(this);
+
+                    query.select('#timelineShareCanvas').fields({ node: true, size: true }, (res) => {
+                        const canvas = res && res.node;
+                        if (!canvas) {
+                            reject(new Error('timeline share canvas node unavailable'));
+                            return;
+                        }
+
+                        const nativeCtx = canvas.getContext && canvas.getContext('2d');
+                        if (!nativeCtx) {
+                            reject(new Error('timeline share canvas 2d context unavailable'));
+                            return;
+                        }
+
+                        const systemInfo = typeof uni.getSystemInfoSync === 'function'
+                            ? (uni.getSystemInfoSync() || {})
+                            : {};
+                        const pixelRatio = Math.max(1, Number(systemInfo.pixelRatio || 1));
+                        canvas.width = Math.max(1, Math.round(logicalWidth * pixelRatio));
+                        canvas.height = Math.max(1, Math.round(logicalHeight * pixelRatio));
+                        if (typeof nativeCtx.setTransform === 'function') {
+                            nativeCtx.setTransform(1, 0, 0, 1, 0, 0);
+                        }
+                        if (typeof nativeCtx.scale === 'function') {
+                            nativeCtx.scale(pixelRatio, pixelRatio);
+                        }
+
+                        const runtime = {
+                            canvas,
+                            nativeCtx,
+                            ctx: createCanvas2DCompatContext(nativeCtx),
+                            logicalWidth,
+                            logicalHeight,
+                            pixelRatio
+                        };
+                        this._timelineShareCanvasRuntime = runtime;
+                        resolve(runtime);
+                    }).exec();
+                    return;
+                } catch (error) {
+                    reject(error);
+                    return;
+                }
+                // #endif
+
+                resolve(null);
+            });
+        },
+        updateTimelineShareCanvasHeight: async function (height) {
+            const nextHeight = Math.max(800, Math.round(height || 1200));
+            try {
+                this.setData && this.setData({ timelineShareCanvasHeight: nextHeight });
+            } catch (_) {
+                this.timelineShareCanvasHeight = nextHeight;
+            }
+            this.timelineShareCanvasHeight = nextHeight;
+            if (this.$nextTick) {
+                await new Promise((resolve) => this.$nextTick(resolve));
+            }
+            await new Promise((resolve) => setTimeout(resolve, 80));
+        },
+        onTimelineExport: function () {
+            if (!Array.isArray(this.timelinePosts) || this.timelinePosts.length === 0) {
+                uni.showToast({
+                    title: '暂无可导出的时间轴',
+                    icon: 'none'
+                });
+                return;
+            }
+
+            if (this.timelineShareGenerating) {
+                uni.showToast({
+                    title: '正在生成中',
+                    icon: 'none'
+                });
+                return;
+            }
+
+            this.showTimelineShareModal = true;
+            this.timelineShareImagePages = [];
+            this.timelineShareGenerating = true;
+            this.timelineShareCanvasHeight = 1200;
+            this.timelineShareRenderToken += 1;
+
+            const renderToken = this.timelineShareRenderToken;
+            this.$nextTick(() => {
+                setTimeout(() => {
+                    if (!this.showTimelineShareModal || renderToken !== this.timelineShareRenderToken) return;
+                    this.generateTimelineShareCard(renderToken);
+                }, getCurrentPlatform() === 'app' ? 180 : 0);
+            });
+        },
+        hideTimelineShareModal: function () {
+            this.timelineShareRenderToken += 1;
+            this.timelineShareGenerating = false;
+            this.timelineShareImagePages = [];
+            this._timelineShareCanvasRuntime = null;
+            if (this.timelineShareRegenerateTimeout) {
+                clearTimeout(this.timelineShareRegenerateTimeout);
+                this.timelineShareRegenerateTimeout = null;
+            }
+            this.showTimelineShareModal = false;
+        },
+        ensureTimelineShareFont: async function (renderToken) {
+            const requestedFontFamily = this.timelineShareConfig.fontFamily || '汇文明朝';
+            const platform = getCurrentPlatform();
+
+            if (requestedFontFamily === 'system') {
+                this.timelineShareRenderFontFamily = 'system';
+                this.timelineShareRenderFontScale = 1.0;
+                return true;
+            }
+
+            try {
+                await this.timelineFontManager.ensureFontAvailable(requestedFontFamily);
+                if (renderToken !== this.timelineShareRenderToken) return false;
+
+                const fontReadyDelay = platform === 'app'
+                    ? 220
+                    : (platform === 'mp-weixin' ? 180 : 100);
+                await new Promise((resolve) => setTimeout(resolve, fontReadyDelay));
+                if (renderToken !== this.timelineShareRenderToken) return false;
+
+                this.timelineShareRenderFontFamily = requestedFontFamily;
+                this.timelineShareRenderFontScale = TIMELINE_SHARE_FONT_SCALE_MAP[requestedFontFamily] || 1.0;
+                return true;
+            } catch (error) {
+                console.warn('[timeline-share] font fallback to system', { requestedFontFamily, error });
+                this.timelineShareRenderFontFamily = 'system';
+                this.timelineShareRenderFontScale = 1.0;
+                uni.showToast({
+                    title: '字体加载失败，已回退默认字体',
+                    icon: 'none'
+                });
+                return renderToken === this.timelineShareRenderToken;
+            }
+        },
+        generateTimelineShareCard: async function (renderToken) {
+            const activeToken = typeof renderToken === 'number'
+                ? renderToken
+                : (++this.timelineShareRenderToken);
+
+            this.timelineShareGenerating = true;
+            this.timelineShareImagePages = [];
+
+            try {
+                const fontReady = await this.ensureTimelineShareFont(activeToken);
+                if (!fontReady || activeToken !== this.timelineShareRenderToken) {
+                    return;
+                }
+
+                const effectiveShareConfig = {
+                    ...this.timelineShareConfig,
+                    fontFamily: this.timelineShareRenderFontFamily || this.timelineShareConfig.fontFamily || '汇文明朝',
+                    fontScale: this.timelineShareRenderFontScale || this.timelineShareConfig.fontScale || 1.0
+                };
+
+                const pages = await generateTimelineShareImages({
+                    posts: this.timelinePosts,
+                    userInfo: this.userInfo,
+                    shareConfig: effectiveShareConfig,
+                    canvasRuntime: {
+                        context: this,
+                        canvasId: 'timelineShareCanvas',
+                        createMeasureContext: (logicalWidth) => this.createTimelineShareMeasureContext(logicalWidth),
+                        ensureCanvasRuntime: (logicalWidth, logicalHeight) => this.getTimelineShareCanvasRuntime(logicalWidth, logicalHeight),
+                        setCanvasHeight: (height) => this.updateTimelineShareCanvasHeight(height)
+                    }
+                });
+
+                if (activeToken !== this.timelineShareRenderToken) {
+                    return;
+                }
+
+                this.timelineShareImagePages = Array.isArray(pages) ? pages : [];
+            } catch (error) {
+                console.error('[timeline-share] generate failed', error);
+                if (activeToken === this.timelineShareRenderToken) {
+                    uni.showToast({
+                        title: '时间轴卡片生成失败',
+                        icon: 'none'
+                    });
+                }
+            } finally {
+                if (activeToken === this.timelineShareRenderToken) {
+                    this.timelineShareGenerating = false;
+                }
+            }
+        },
+        saveTimelineShareImages: async function () {
+            const imagePaths = (this.timelineShareImagePages || [])
+                .map((item) => item && (item.filePath || item.imageUrl))
+                .filter(Boolean);
+
+            if (!imagePaths.length) {
+                uni.showToast({
+                    title: this.timelineShareGenerating ? '正在生成图片' : '暂无可保存图片',
+                    icon: 'none'
+                });
+                return;
+            }
+
+            try {
+                await saveImagesToAlbum(imagePaths, {
+                    fileNamePrefix: 'timeline_share'
+                });
+            } catch (error) {
+                console.error('[timeline-share] save failed', error);
+                uni.showToast({
+                    title: error && error.message ? error.message : '保存失败',
+                    icon: 'none'
+                });
+            }
+        },
+        onTimelineFontSizePreview: function (fontSize) {
+            const fontFamily = this.timelineShareConfig.fontFamily || '汇文明朝';
+            this.debouncedRegenerateTimelineShareImages({
+                ...this.timelineShareConfig,
+                fontSize,
+                titleFontSize: Math.round(fontSize * 1.21),
+                fontScale: TIMELINE_SHARE_FONT_SCALE_MAP[fontFamily] || 1.0
+            });
+        },
+        onTimelineFontFamilyPreview: function (fontFamily) {
+            this.debouncedRegenerateTimelineShareImages({
+                ...this.timelineShareConfig,
+                fontFamily,
+                fontScale: TIMELINE_SHARE_FONT_SCALE_MAP[fontFamily] || 1.0
+            });
+        },
+        onTimelineFontSettingsChange: function (settings) {
+            this.timelineShareConfig = {
+                ...this.timelineShareConfig,
+                fontSize: settings.fontSize,
+                titleFontSize: Math.round(settings.fontSize * 1.21),
+                fontFamily: settings.fontFamily,
+                fontScale: TIMELINE_SHARE_FONT_SCALE_MAP[settings.fontFamily] || 1.0
+            };
+            this.regenerateTimelineShareImages();
+        },
+        onTimelineColorChange: function (colorConfig) {
+            this.timelineShareConfig = {
+                ...this.timelineShareConfig,
+                backgroundColor: colorConfig.backgroundColor,
+                textColor: colorConfig.textColor
+            };
+            this.regenerateTimelineShareImages();
+        },
+        debouncedRegenerateTimelineShareImages: function (nextConfig) {
+            if (this.timelineShareRegenerateTimeout) {
+                clearTimeout(this.timelineShareRegenerateTimeout);
+            }
+            this.timelineShareRegenerateTimeout = setTimeout(() => {
+                this.timelineShareConfig = nextConfig;
+                this.regenerateTimelineShareImages();
+            }, 300);
+        },
+        regenerateTimelineShareImages: function () {
+            if (!this.showTimelineShareModal) return;
+            this.timelineShareImagePages = [];
+            this.timelineShareCanvasHeight = 1200;
+            this.timelineShareRenderToken += 1;
+            const renderToken = this.timelineShareRenderToken;
+            this.$nextTick(() => {
+                setTimeout(() => {
+                    if (!this.showTimelineShareModal || renderToken !== this.timelineShareRenderToken) return;
+                    this.generateTimelineShareCard(renderToken);
+                }, 60);
+            });
+        },
+        forceRegenerateTimelineCanvas: function () {
+            if (!this.showTimelineShareModal) return;
+            this.timelineShareImagePages = [];
+            this.timelineShareCanvasHeight = 1200;
+            this.timelineShareRenderToken += 1;
+            const renderToken = this.timelineShareRenderToken;
+            this.$nextTick(() => {
+                setTimeout(() => {
+                    if (!this.showTimelineShareModal || renderToken !== this.timelineShareRenderToken) return;
+                    this.generateTimelineShareCard(renderToken);
+                }, 200);
+            });
+        },
         calcBookHeight(name) {
           return calcBookHeightUtil(name);
         },
