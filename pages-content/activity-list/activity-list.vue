@@ -214,7 +214,8 @@ export default {
         `coverImage=${encodeURIComponent(item.coverImage || '')}`,
         `startTime=${encodeURIComponent(item.startTime || '')}`,
         `endTime=${encodeURIComponent(item.endTime || '')}`,
-        `postCount=${encodeURIComponent(String(this.getDisplayPostCount(item)))}`
+        `postCount=${encodeURIComponent(String(this.getDisplayPostCount(item)))}`,
+        `allowUserSubmission=${encodeURIComponent(String(item.allowUserSubmission !== false))}`
       ].join('&');
 
       uni.navigateTo({

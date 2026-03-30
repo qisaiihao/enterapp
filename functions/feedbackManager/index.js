@@ -5,7 +5,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 const _ = db.command
-const ADMIN_POEM_IDS = ['qisaihao', 'jingmikun']
+const ADMIN_POEM_IDS = ['qisaihao', 'jingmikun', 'qwertyuiop']
 
 // 验证管理员权限（通过poemId）
 async function isAdmin(openid) {

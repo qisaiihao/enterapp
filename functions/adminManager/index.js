@@ -7,7 +7,10 @@ cloud.init({
 
 const db = cloud.database()
 const _ = db.command
-const ADMIN_POEM_IDS = ['qisaihao', 'jingmikun', 'ZOUHE']
+const ADMIN_POEM_IDS = ['qisaihao', 'jingmikun', 'ZOUHE', 'qwertyuiop']
+const NORMALIZED_ADMIN_POEM_IDS = new Set(
+  ADMIN_POEM_IDS.map((item) => String(item || '').trim().toLowerCase()).filter(Boolean)
+)
 const ACTIVITY_SUMMARY_MAX_LENGTH = 200
 const ACTIVITY_RULES_MAX_LENGTH = 5000
 const BATCH_REPLACE_SAMPLE_LIMIT = 10
@@ -71,11 +74,11 @@ const {
 async function isAdmin(openid) {
   try {
     const result = await db.collection('users').where({
-      _openid: openid,
-      poemId: _.in(ADMIN_POEM_IDS)
-    }).get()
-    
-    return result.data.length > 0
+      _openid: openid
+    }).limit(1).get()
+    const user = Array.isArray(result.data) && result.data.length ? result.data[0] : null
+    const poemId = String((user && user.poemId) || '').trim().toLowerCase()
+    return !!poemId && NORMALIZED_ADMIN_POEM_IDS.has(poemId)
   } catch (error) {
     console.error('验证管理员权限失败:', error)
     return false
@@ -107,7 +110,11 @@ exports.main = async (event, context) => {
     console.log('adminManager 云函数收到操作:', action)
 
     // 从 context 或 event 中获取 openid
-    const openid = (event.userInfo && event.userInfo.openId) || event.openid
+    const wxContext = cloud.getWXContext()
+    const openid =
+      wxContext.OPENID ||
+      (event.userInfo && (event.userInfo.openId || event.userInfo.openid)) ||
+      event.openid
 
     if (!openid) {
       return {

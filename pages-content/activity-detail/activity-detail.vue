@@ -93,7 +93,11 @@
       </view>
     </view>
 
-    <view class="action-bar" :style="{ paddingBottom: safeAreaBottom + 'px' }">
+    <view
+      v-if="allowUserSubmission !== false"
+      class="action-bar"
+      :style="{ paddingBottom: safeAreaBottom + 'px' }"
+    >
       <button class="action-btn action-btn-light" @tap="goSeriesEditor" :disabled="!canContribute">
         组诗编辑
       </button>
@@ -205,6 +209,10 @@ export default {
     this.activityStartTime = decodeParamSafe(options.startTime);
     this.activityEndTime = decodeParamSafe(options.endTime);
     this.postCount = Number(decodeParamSafe(options.postCount)) || 0;
+    this.allowUserSubmission = this.normalizeAllowUserSubmission(
+      decodeParamSafe(options.allowUserSubmission),
+      true
+    );
     this.isOngoing = isActivityOngoing(this.activityStartTime, this.activityEndTime);
     this.initSafeArea();
 
@@ -264,6 +272,16 @@ export default {
           uni.navigateTo({ url: '/pages-content/activity-list/activity-list' });
         }
       });
+    },
+
+    normalizeAllowUserSubmission(value, fallback = true) {
+      if (value === undefined || value === null || value === '') return fallback;
+      if (typeof value === 'boolean') return value;
+      if (typeof value === 'number') return value !== 0;
+      const normalized = String(value).trim().toLowerCase();
+      if (['false', '0', 'off', 'no'].includes(normalized)) return false;
+      if (['true', '1', 'on', 'yes'].includes(normalized)) return true;
+      return fallback;
     },
 
     ensureCanContribute() {

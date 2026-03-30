@@ -10,7 +10,7 @@ cloud.init({
 
 const db = cloud.database();
 const _ = db.command;
-const ADMIN_POEM_IDS = ['qisaihao', 'jingmikun'];
+const ADMIN_POEM_IDS = ['qisaihao', 'jingmikun', 'qwertyuiop'];
 
 // 鎷垮埌鍐呭瀹夊叏锛坈ms锛夌殑 client
 async function isAdmin(openid) {

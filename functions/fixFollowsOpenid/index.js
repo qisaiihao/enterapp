@@ -6,7 +6,7 @@ cloud.init({
 
 const db = cloud.database();
 
-const ADMIN_POEM_IDS = ['qisaihao', 'jingmikun'];
+const ADMIN_POEM_IDS = ['qisaihao', 'jingmikun', 'qwertyuiop'];
 const DEFAULT_SOURCE_OPENID = 'anonymous_1760806464645';
 const DEFAULT_TARGET_OPENID = 'ojYBd1zhoZmBs4XrvqaBHXQoetYw';
 const QUERY_LIMIT = 100;

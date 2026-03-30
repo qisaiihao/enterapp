@@ -64,8 +64,9 @@ export default {
     computed: {
         // 判断是否为管理员
         isAdmin() {
-            const adminPoemIds = ['qisaihao', 'jingmikun'];
-            return this.userInfo && adminPoemIds.includes(this.userInfo.poemId);
+            const adminPoemIds = ['qisaihao', 'jingmikun', 'qwertyuiop'];
+            const poemId = String((this.userInfo && this.userInfo.poemId) || '').trim().toLowerCase();
+            return !!poemId && adminPoemIds.includes(poemId);
         }
     },
     methods: {

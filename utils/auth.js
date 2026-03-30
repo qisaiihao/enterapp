@@ -15,6 +15,15 @@ function readOpenIdFromStorage() {
     if (typeof uni === 'undefined' || typeof uni.getStorageSync !== 'function') {
         return null;
     }
+    try {
+        const userInfo = uni.getStorageSync('userInfo');
+        const userOpenId = userInfo && (userInfo._openid || userInfo.openid);
+        if (userOpenId) {
+            return userOpenId;
+        }
+    } catch (error) {
+        console.warn('[auth] 读取本地 userInfo.openid 失败', error);
+    }
     for (const key of OPENID_KEYS) {
         try {
             const value = uni.getStorageSync(key);
@@ -48,6 +57,14 @@ function cacheOpenId(openid) {
 
 async function getOpenId() {
     const app = getAppInstance();
+    const fromGlobalUserInfo = app && app.globalData && app.globalData.userInfo
+        ? (app.globalData.userInfo._openid || app.globalData.userInfo.openid)
+        : null;
+    if (fromGlobalUserInfo) {
+        cacheOpenId(fromGlobalUserInfo);
+        return fromGlobalUserInfo;
+    }
+
     const fromGlobal = app && app.globalData && app.globalData.openid;
     if (fromGlobal) {
         return fromGlobal;

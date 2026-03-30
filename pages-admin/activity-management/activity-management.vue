@@ -26,6 +26,7 @@
           <text>时间：{{ formatRange(item.startTime, item.endTime) }}</text>
           <text>帖子：{{ item.postCount || 0 }}</text>
           <text>权重：{{ item.sortWeight || 0 }}</text>
+          <text>投稿开关：{{ submissionStatusText(item) }}</text>
         </view>
 
         <view class="card-actions">
@@ -245,6 +246,10 @@ export default {
 
     statusText(status) {
       return getActivityStatusLabel(status);
+    },
+
+    submissionStatusText(item) {
+      return item && item.allowUserSubmission === false ? '关' : '开';
     },
 
     formatRange(startTime, endTime) {

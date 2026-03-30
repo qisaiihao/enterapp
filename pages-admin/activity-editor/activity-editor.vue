@@ -96,6 +96,11 @@
             @change="onAllowSubmissionChange"
           />
         </view>
+        <text class="helper-text submission-hint">
+          {{ normalizeAllowUserSubmission(form.allowUserSubmission, true)
+            ? '已开启：用户可投稿，活动详情会显示“组诗编辑 / 我要投稿”'
+            : '已关闭：用户不可投稿，活动详情不显示投稿按钮' }}
+        </text>
         <text class="helper-text">关闭后活动仍会展示，但不会出现在投稿活动选择器中。</text>
       </view>
 
@@ -495,6 +500,10 @@ export default {
   font-size: 24rpx;
   line-height: 1.6;
   color: #8a94a6;
+}
+
+.submission-hint {
+  color: #5f6b7c;
 }
 
 .input,
