@@ -155,13 +155,8 @@
 </template>
 
 <script>
-let adminManagerApi = null;
-
-// #ifdef MP-WEIXIN
-adminManagerApi = require('../../api-cache/admin-manager.js');
-// #endif
-
-const { isCurrentUserAdmin } = require('../../utils/admin.js');
+import adminManagerApi from '../../api-cache/admin-manager.js';
+import { isCurrentUserAdmin } from '../../utils/admin.js';
 const COLLECTION_NAME_REGEXP = /^[A-Za-z0-9_-]+$/;
 const FIELD_NAME_REGEXP = /^[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*$/;
 

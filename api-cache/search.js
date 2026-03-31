@@ -1,7 +1,7 @@
 /**
  * 搜索相关 API 封装
  */
-const { callCloudAndUnwrap } = require('./_shared/cloud-wrapper.js');
+import { callCloudAndUnwrap } from './_shared/cloud-wrapper.js';
 
 function getSearchSuggestions(keyword, limit = 8, options = {}) {
   if (!keyword || !keyword.trim()) {
@@ -159,7 +159,7 @@ function clearSearchHistory(options = {}) {
   );
 }
 
-module.exports = {
+const searchApi = {
   getSearchSuggestions,
   searchPosts,
   recordSearchStats,
@@ -169,3 +169,21 @@ module.exports = {
   getSearchHistory,
   clearSearchHistory
 };
+
+export {
+  getSearchSuggestions,
+  searchPosts,
+  recordSearchStats,
+  getHotSearches,
+  advancedSearch,
+  searchUsers,
+  getSearchHistory,
+  clearSearchHistory
+};
+
+export default searchApi;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = searchApi;
+  module.exports.default = searchApi;
+}

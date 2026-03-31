@@ -22,6 +22,7 @@
 <script>
 export default {
     name: 'DeleteModal',
+    emits: ['close', 'save-draft', 'confirm'],
     props: {
         visible: {
             type: Boolean,

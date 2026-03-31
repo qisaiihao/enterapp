@@ -1,7 +1,6 @@
-import cacheManager from '@/_utils/cache-manager';
+import cacheManager from '@/cache/core/manager.js';
 import { buildCacheKey } from './cache-key-builder.js';
-
-const { callCloudAndUnwrap } = require('./_shared/cloud-wrapper.js');
+import { callCloudAndUnwrap } from './_shared/cloud-wrapper.js';
 
 // 通用帖子列表缓存：TTL 90s + SWR 45s
 const TTL_MS = 90 * 1000;
@@ -94,4 +93,3 @@ export function invalidatePostList({ page, pageSize = 10, isPoem, isOriginal, is
 export function invalidateAllPostList() {
   ns.clear();
 }
-

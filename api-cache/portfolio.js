@@ -1,12 +1,12 @@
 /**
  * 作品集相关 API 缓存层
  */
-const cacheManager = require('@/_utils/cache-manager');
-const {
+import cacheManager from '@/cache/core/manager';
+import {
   callCloudAndUnwrap,
   callCloudAndGetResult,
   isSuccessResult
-} = require('./_shared/cloud-wrapper.js');
+} from './_shared/cloud-wrapper.js';
 
 const ns = cacheManager.namespace('portfolio', { persistent: true, maxItems: 32 });
 
@@ -190,7 +190,7 @@ function notifyPortfolioUpdated(payload = {}) {
   }
 }
 
-module.exports = {
+const portfolioApi = {
   getPortfolioFolders,
   createPortfolioFolder,
   updatePortfolioFolder,
@@ -202,3 +202,23 @@ module.exports = {
   notifyPortfolioUpdated,
   normalizePortfolioFolder
 };
+
+export {
+  getPortfolioFolders,
+  createPortfolioFolder,
+  updatePortfolioFolder,
+  deletePortfolio,
+  uploadFile,
+  getPortfolioDetail,
+  updatePortfolioPostOrder,
+  invalidatePortfolioCache,
+  notifyPortfolioUpdated,
+  normalizePortfolioFolder
+};
+
+export default portfolioApi;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = portfolioApi;
+  module.exports.default = portfolioApi;
+}

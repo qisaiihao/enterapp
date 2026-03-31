@@ -54,10 +54,28 @@ function attachPoemDisplayFields(item = {}) {
   };
 }
 
-module.exports = {
+export {
   normalizePoemDisplayLine,
   normalizePoemDisplayText,
   normalizePoemDisplayLines,
   normalizeSeriesBlocksForDisplay,
   attachPoemDisplayFields
 };
+
+export default {
+  normalizePoemDisplayLine,
+  normalizePoemDisplayText,
+  normalizePoemDisplayLines,
+  normalizeSeriesBlocksForDisplay,
+  attachPoemDisplayFields
+};
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    normalizePoemDisplayLine,
+    normalizePoemDisplayText,
+    normalizePoemDisplayLines,
+    normalizeSeriesBlocksForDisplay,
+    attachPoemDisplayFields
+  };
+}

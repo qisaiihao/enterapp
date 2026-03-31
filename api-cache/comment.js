@@ -1,8 +1,8 @@
 /**
  * 评论相关 API 封装
  */
-const { callCloudAndUnwrap } = require('./_shared/cloud-wrapper.js');
-const { invalidatePostDetail } = require('./post.js');
+import { callCloudAndUnwrap } from './_shared/cloud-wrapper.js';
+import { invalidatePostDetail } from './post.js';
 
 function getComments(postId, options = {}) {
   if (!postId) {
@@ -156,7 +156,7 @@ function getCommentReplies(commentId, options = {}) {
   );
 }
 
-module.exports = {
+const commentApi = {
   getComments,
   submitComment,
   deleteComment,
@@ -165,3 +165,20 @@ module.exports = {
   reportComment,
   getCommentReplies
 };
+
+export {
+  getComments,
+  submitComment,
+  deleteComment,
+  likeComment,
+  getCommentDetail,
+  reportComment,
+  getCommentReplies
+};
+
+export default commentApi;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = commentApi;
+  module.exports.default = commentApi;
+}

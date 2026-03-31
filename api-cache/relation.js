@@ -1,4 +1,4 @@
-const { createActionCaller } = require('./_shared/cloud-wrapper.js');
+import { createActionCaller } from './_shared/cloud-wrapper.js';
 
 const callFollowAction = createActionCaller({
   functionName: 'follow',
@@ -163,7 +163,7 @@ async function checkBlockRelation({ targetOpenid, context, pageTag } = {}) {
   };
 }
 
-module.exports = {
+const relationApi = {
   getFollowingList,
   getFollowerList,
   toggleFollowRelation,
@@ -174,3 +174,22 @@ module.exports = {
   toggleBlockRelation,
   checkBlockRelation
 };
+
+export {
+  getFollowingList,
+  getFollowerList,
+  toggleFollowRelation,
+  checkFollowRelation,
+  markFollowNotificationsRead,
+  getFollowCounts,
+  getBlockedList,
+  toggleBlockRelation,
+  checkBlockRelation
+};
+
+export default relationApi;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = relationApi;
+  module.exports.default = relationApi;
+}

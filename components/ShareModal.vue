@@ -106,6 +106,7 @@ export default {
         FontSelectorModal,
         ColorPickerModal
     },
+    emits: ['save', 'force-regenerate', 'hide', 'longpress', 'load', 'error', 'font-size-preview', 'font-family-preview', 'font-settings-change', 'color-change'],
     props: {
         show: {
             type: Boolean,

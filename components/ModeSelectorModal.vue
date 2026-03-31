@@ -30,6 +30,7 @@
 <script>
 export default {
     name: 'ModeSelectorModal',
+    emits: ['close', 'select'],
     props: {
         show: {
             type: Boolean,

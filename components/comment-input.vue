@@ -35,6 +35,7 @@
 <script>
 export default {
   name: 'CommentInput',
+  emits: ['cancel-reply', 'comment-input', 'preview-image', 'remove-image', 'choose-images', 'submit-comment'],
   props: {
     isInputExpanded: Boolean,
     newComment: String,

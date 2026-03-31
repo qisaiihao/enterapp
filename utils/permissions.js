@@ -1,15 +1,17 @@
-// Android storage permission helper for APP-PLUS
-// Provides a Promise-based API to request external storage/media image read permissions
+import { getCurrentPlatform } from './platformDetector.js';
 
 function requestAndroidStoragePermission() {
     return new Promise((resolve) => {
-        if (typeof plus === 'undefined' || !plus.android || !plus.android.requestPermissions) {
-            // Not in APP-PLUS or API unavailable
+        if (getCurrentPlatform() === 'app-harmony') {
             resolve(true);
             return;
         }
 
-        // Android 13+ uses READ_MEDIA_IMAGES; older versions use READ_EXTERNAL_STORAGE
+        if (typeof plus === 'undefined' || !plus.android || !plus.android.requestPermissions) {
+            resolve(true);
+            return;
+        }
+
         const permissions = [
             'android.permission.READ_MEDIA_IMAGES',
             'android.permission.READ_EXTERNAL_STORAGE'
@@ -18,10 +20,9 @@ function requestAndroidStoragePermission() {
         try {
             plus.android.requestPermissions(
                 permissions,
-                function (result) {
-                    // granted: array of granted permissions
+                (result) => {
                     const ok = Array.isArray(result.granted) && result.granted.length > 0;
-                    if (!ok) {
+                    if (!ok && typeof uni !== 'undefined' && typeof uni.showModal === 'function') {
                         uni.showModal({
                             title: '权限请求',
                             content: '需要读取存储权限以上传图片，请在系统设置中开启后重试。',
@@ -30,24 +31,34 @@ function requestAndroidStoragePermission() {
                     }
                     resolve(ok);
                 },
-                function () {
-                    uni.showModal({
-                        title: '权限请求',
-                        content: '请求存储权限失败，请在系统设置中开启后重试。',
-                        showCancel: false
-                    });
+                () => {
+                    if (typeof uni !== 'undefined' && typeof uni.showModal === 'function') {
+                        uni.showModal({
+                            title: '权限请求',
+                            content: '请求存储权限失败，请在系统设置中开启后重试。',
+                            showCancel: false
+                        });
+                    }
                     resolve(false);
                 }
             );
-        } catch (e) {
-            // Fail open to avoid blocking other platforms
+        } catch (error) {
             resolve(true);
         }
     });
 }
 
-module.exports = {
+const permissions = {
     requestAndroidStoragePermission
 };
 
+export {
+    requestAndroidStoragePermission
+};
 
+export default permissions;
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = permissions;
+    module.exports.default = permissions;
+}

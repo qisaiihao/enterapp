@@ -1,9 +1,9 @@
-import cacheManager from '@/_utils/cache-manager';
+import cacheManager from '@/cache/core/manager.js';
 import { buildCacheKey } from './cache-key-builder.js';
 import fileUrlCache from '@/_utils/file-url-cache';
 import { hydrateTempUrls } from '@/cache/core/hydrate.js';
-const { cloudCall } = require('@/utils/cloudCall.js');
-const likeStatusCache = require('@/cache/stores/like-status.js');
+import { cloudCall } from '@/utils/cloudCall.js';
+import likeStatusCache from '@/cache/stores/like-status.js';
 
 const LIST_TTL_MS = 60 * 1000;
 const LIST_SWR_MS = 30 * 1000;

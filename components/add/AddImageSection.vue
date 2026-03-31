@@ -17,6 +17,7 @@
 <script>
 export default {
     name: 'AddImageSection',
+    emits: ['error', 'remove', 'choose'],
     props: {
         imageList: {
             type: Array,

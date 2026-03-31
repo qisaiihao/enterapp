@@ -63,10 +63,10 @@
 </template>
 
 <script>
-// 用户反馈页面
-const { previewImage: previewImageUtil } = require('../../utils/imagePreview.js');
-const { submitFeedback: submitFeedbackApi } = require('../../api-cache/feedback.js');
-const { uploadFileCompat } = require('../../utils/upload-compat.js');
+// ?????????
+import { previewImage as previewImageUtil } from '../../utils/imagePreview.js';
+import { submitFeedback as submitFeedbackApi } from '../../api-cache/feedback.js';
+import { uploadFileCompat } from '../../utils/upload-compat.js';
 
 export default {
     data() {

@@ -171,7 +171,7 @@ async function runLoader(ctx, { isRefresh, extra = {}, fromPullDown = false } = 
     return result;
 }
 
-module.exports = {
+const paginationMixin = {
     data() {
         return {
             pagination: { ...DEFAULT_STATE },
@@ -250,3 +250,10 @@ module.exports = {
         }
     }
 };
+
+export default paginationMixin;
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = paginationMixin;
+    module.exports.default = paginationMixin;
+}

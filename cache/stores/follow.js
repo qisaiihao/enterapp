@@ -5,8 +5,8 @@
  * TTL: 1小时
  * 持久化: 是
  */
-const cacheManager = require('../core/manager');
-const { cloudCall } = require('@/utils/cloudCall.js');
+import cacheManager from '../core/manager';
+import { cloudCall } from '@/utils/cloudCall.js';
 
 const FOLLOW_TTL_MS = 60 * 60 * 1000; // 1小时
 
@@ -194,4 +194,9 @@ class FollowCache {
 }
 
 const followCache = new FollowCache();
-module.exports = followCache;
+export default followCache;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = followCache;
+  module.exports.default = followCache;
+}

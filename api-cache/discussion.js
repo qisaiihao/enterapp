@@ -1,6 +1,6 @@
-import cacheManager from '@/_utils/cache-manager';
+import cacheManager from '@/cache/core/manager.js';
 import { buildCacheKey } from './cache-key-builder.js';
-const { cloudCall } = require('@/utils/cloudCall.js');
+import { cloudCall } from '@/utils/cloudCall.js';
 
 // 讨论页帖子：TTL 120s + SWR 60s（讨论内容更新相对较慢，缓存时间可以较长）
 const TTL_MS = 120 * 1000;

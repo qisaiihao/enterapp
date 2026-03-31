@@ -72,8 +72,6 @@
     </view>
   </view>
 </template>
-  </view>
-</template>
 
 <script>
 import { getCollageWords } from '@/api-cache/collage';

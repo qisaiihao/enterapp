@@ -21,6 +21,7 @@
 <script>
 export default {
   name: 'DualActionTopBar',
+  emits: ['safe-area-ready', 'left-click', 'right-click'],
   props: {
     leftIcon: {
       type: String,

@@ -1,8 +1,7 @@
-import cacheManager from '@/_utils/cache-manager';
+import cacheManager from '@/cache/core/manager.js';
 import fileUrlCache from '@/_utils/file-url-cache';
 import { normalizeAppBackgroundMode } from '@/utils/appBackground.js';
-
-const { callCloudAndUnwrap } = require('./_shared/cloud-wrapper.js');
+import { callCloudAndUnwrap } from './_shared/cloud-wrapper.js';
 
 // 我的资料缓存
 const nsMyInfo = cacheManager.namespace('me:info', { persistent: true, maxItems: 8 });

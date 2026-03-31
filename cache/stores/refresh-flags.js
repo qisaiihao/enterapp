@@ -10,7 +10,7 @@
  * 
  * 注意：这是一个过渡方案，后续应该迁移到纯事件驱动
  */
-const cacheManager = require('../core/manager');
+import cacheManager from '../core/manager.js';
 
 const NS = cacheManager.namespace('refresh:flags', { persistent: false, maxItems: 50 });
 
@@ -101,7 +101,7 @@ function onProfileUpdated() {
   setMultipleRefreshFlags([FLAGS.INDEX, FLAGS.PROFILE, FLAGS.POEM, FLAGS.MOUNTAIN, FLAGS.DISCOVER]);
 }
 
-module.exports = {
+const refreshFlags = {
   FLAGS,
   setRefreshFlag,
   consumeRefreshFlag,
@@ -112,3 +112,22 @@ module.exports = {
   onPostCreated,
   onProfileUpdated,
 };
+
+export {
+  FLAGS,
+  setRefreshFlag,
+  consumeRefreshFlag,
+  getRefreshFlag,
+  clearRefreshFlag,
+  setMultipleRefreshFlags,
+  clearAllRefreshFlags,
+  onPostCreated,
+  onProfileUpdated,
+};
+
+export default refreshFlags;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = refreshFlags;
+  module.exports.default = refreshFlags;
+}

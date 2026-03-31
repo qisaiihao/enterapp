@@ -1,0 +1,27 @@
+{
+  app: {
+    signingConfigs: [
+      {
+        name: 'default',
+        type: 'HarmonyOS',
+        material: {
+          certpath: './signing/example.cer',
+          storeFile: './signing/example.p12',
+          storePassword: '${STORE_PASSWORD}',
+          keyAlias: 'default',
+          keyPassword: '${KEY_PASSWORD}',
+          profile: './signing/example.p7b',
+          signAlg: 'SHA256withECDSA'
+        }
+      }
+    ],
+    products: [
+      {
+        name: 'default',
+        signingConfig: 'default',
+        compatibleSdkVersion: '5.1.0(12)',
+        runtimeOS: 'HarmonyOS'
+      }
+    ]
+  }
+}

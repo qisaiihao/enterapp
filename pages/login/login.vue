@@ -237,8 +237,7 @@
 import { cloudCall } from '@/utils/cloudCall.js';
 import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
 import { applyAuthenticatedUserSession } from '@/utils/appBackground.js';
-
-const app = getApp();
+import { getAppState, getOpenid, patchAppState, setUserSession } from '@/utils/app-state.js';
 
 // #ifdef APP-PLUS
 // 调用 uniCloud 云函数（仅 APP 环境支持，用于一键登录）
@@ -353,6 +352,31 @@ export default {
         this.handleGitHubRedirectCallback();
     },
     methods: {
+        applyUserSession(userInfo, openid, extraState = {}) {
+            const resolvedOpenid = openid || (userInfo && (userInfo._openid || userInfo.openid)) || null;
+            setUserSession(userInfo, resolvedOpenid);
+            patchAppState(Object.assign({
+                _loginProcessStarted: true,
+                _loginProcessCompleted: true
+            }, extraState));
+            if (userInfo) {
+                uni.setStorageSync('userInfo', userInfo);
+            }
+            if (resolvedOpenid) {
+                uni.setStorageSync('userOpenId', resolvedOpenid);
+            }
+            return resolvedOpenid;
+        },
+        updateStoredUserInfo(patch) {
+            const state = getAppState();
+            if (!state.userInfo) {
+                return null;
+            }
+            const nextUserInfo = Object.assign({}, state.userInfo, patch);
+            setUserSession(nextUserInfo, state.openid);
+            uni.setStorageSync('userInfo', nextUserInfo);
+            return nextUserInfo;
+        },
         // 微信授权登录
         async loginWithWechat() {
             // #ifdef MP-WEIXIN
@@ -439,6 +463,14 @@ export default {
         
         // GitHub 登录
         async loginWithGitHub() {
+            // #ifdef APP-HARMONY
+            uni.showToast({
+                title: 'Harmony 暂不支持 GitHub 登录',
+                icon: 'none',
+                duration: 3000
+            });
+            return;
+            // #endif
             try {
                 uni.showLoading({
                     title: '正在跳转...',
@@ -668,16 +700,9 @@ export default {
                 const cachedUserInfo = uni.getStorageSync('userInfo');
                 const cachedOpenId = uni.getStorageSync('userOpenId');
                 if (cachedUserInfo && (cachedUserInfo._openid || cachedOpenId)) {
-                    const app = getApp();
-                    app.globalData = app.globalData || {};
-                    app.globalData.userInfo = cachedUserInfo;
-                    app.globalData.openid = cachedUserInfo._openid || cachedOpenId;
-                    app.globalData._loginProcessCompleted = true;
-                    await applyAuthenticatedUserSession(cachedUserInfo, {
-                        openid: cachedUserInfo._openid || cachedOpenId
+                    this.applyUserSession(cachedUserInfo, cachedUserInfo._openid || cachedOpenId, {
+                        isLoggedIn: true
                     });
-                    // 【关键修复】设置登录状态标记
-                    app.globalData.isLoggedIn = true;
                     console.log('✅ [登录页面] 检测到已登录用户，自动跳转');
                     uni.switchTab({ url: '/pages/poem-square/poem-square' });
                 }
@@ -689,14 +714,13 @@ export default {
         checkAndInitializeOpenid: function () {
             console.log('🔍 [登录页面] 检查openid状态');
             
-            const app = getApp();
-            const hasOpenid = app && app.globalData && app.globalData.openid;
+            const openid = getOpenid();
             
-            if (!hasOpenid) {
+            if (!openid) {
                 console.log('⚠️ [登录页面] 未检测到openid，尝试重新初始化');
                 this.initializeAnonymousOpenid();
             } else {
-                console.log('✅ [登录页面] openid已存在:', app.globalData.openid);
+                console.log('✅ [登录页面] openid已存在:', openid);
             }
         },
 
@@ -722,14 +746,8 @@ export default {
                     }
                     
                     if (openid) {
-                        // 更新全局数据
-                        const app = getApp();
-                        if (app && app.globalData) {
-                            app.globalData.openid = openid;
-                            console.log('✅ [登录页面] 匿名openid已设置:', openid);
-                        }
-                        
-                        // 缓存openid
+                        patchAppState({ openid: openid });
+                        console.log('✅ [登录页面] 匿名openid已设置:', openid);
                         uni.setStorageSync('userOpenId', openid);
                     } else {
                         console.error('❌ [登录页面] 无法获取匿名openid');
@@ -933,20 +951,9 @@ export default {
                 }
                 // #endif
 
-                // 更新全局数据
-                const app = getApp();
-                app.globalData.userInfo = result.userInfo;
-                app.globalData.openid = result.openid;
-                app.globalData._loginProcessCompleted = true;
-                await applyAuthenticatedUserSession(result.userInfo, {
-                    openid: result.openid
+                this.applyUserSession(result.userInfo, result.openid, {
+                    isLoggedIn: true
                 });
-                // 【关键修复】设置登录状态标记
-                app.globalData.isLoggedIn = true;
-
-                // 缓存用户信息
-                uni.setStorageSync('userInfo', result.userInfo);
-                uni.setStorageSync('userOpenId', result.openid);
 
                 // 检查是否需要绑定手机号
                 // #ifndef MP-WEIXIN
@@ -1022,8 +1029,7 @@ export default {
                     const { access_token, openid: univerifyOpenid } = loginRes.authResult;
 
                     // 获取当前用户在腾讯云开发中的 openid
-                    const app = getApp();
-                    const userOpenid = app.globalData && app.globalData.openid ? app.globalData.openid : null;
+                    const userOpenid = getOpenid();
                     if (!userOpenid) {
                         throw new Error('未获取到用户标识，请先登录');
                     }
@@ -1045,11 +1051,10 @@ export default {
                     }
 
                     // 更新本地用户信息
-                    if (app.globalData.userInfo) {
-                        app.globalData.userInfo.phoneNumber = phoneNumber;
-                        app.globalData.userInfo.isPhoneVerified = true;
-                        uni.setStorageSync('userInfo', app.globalData.userInfo);
-                    }
+                    this.updateStoredUserInfo({
+                        phoneNumber: phoneNumber,
+                        isPhoneVerified: true
+                    });
                     // #endif
 
                 } else if (this.bindPhoneMethod === 'sms') {
@@ -1070,8 +1075,7 @@ export default {
 
                     if (verifyRes.result && verifyRes.result.success === true) {
                         // 验证成功，更新用户手机号
-                        const app = getApp();
-                        const userOpenid = app.globalData && app.globalData.openid ? app.globalData.openid : null;
+                        const userOpenid = getOpenid();
 
                         if (!userOpenid) {
                             throw new Error('未获取到用户标识');
@@ -1085,11 +1089,10 @@ export default {
 
                         if (updateRes.result && updateRes.result.success) {
                             // 更新本地用户信息
-                            if (app.globalData.userInfo) {
-                                app.globalData.userInfo.phoneNumber = this.smsPhoneNumber;
-                                app.globalData.userInfo.isPhoneVerified = true;
-                                uni.setStorageSync('userInfo', app.globalData.userInfo);
-                            }
+                            this.updateStoredUserInfo({
+                                phoneNumber: this.smsPhoneNumber,
+                                isPhoneVerified: true
+                            });
                         } else {
                             throw new Error(updateRes.result && updateRes.result.message ? updateRes.result.message : '更新用户信息失败');
                         }
@@ -1157,17 +1160,9 @@ export default {
             
             // 使用原有的 openid 完成登录
             const result = this.pendingLoginResult;
-            const app = getApp();
-            app.globalData.userInfo = result.userInfo;
-            app.globalData.openid = result.openid;
-            app.globalData._loginProcessCompleted = true;
-            applyAuthenticatedUserSession(result.userInfo, {
-                openid: result.openid
-            }).catch(() => {});
-            app.globalData.isLoggedIn = true;
-
-            uni.setStorageSync('userInfo', result.userInfo);
-            uni.setStorageSync('userOpenId', result.openid);
+            this.applyUserSession(result.userInfo, result.openid, {
+                isLoggedIn: true
+            });
 
             this.showBindWechatModal = false;
             this.pendingLoginResult = null;
@@ -1212,9 +1207,6 @@ export default {
 
                 if (bindResult.result && bindResult.result.success) {
                     // 绑定成功
-                    applyAuthenticatedUserSession(result.userInfo, {
-                        openid: result.openid
-                    }).catch(() => {});
                     this.completeBindWechat(result);
                 } else if (bindResult.result && bindResult.result.code === 'OPENID_CONFLICT') {
                     // 微信 openid 已被用作其他账号的 _openid
@@ -1272,9 +1264,6 @@ export default {
                     // 重新绑定成功
                     this.showRebindConfirmModal = false;
                     this.boundAccountInfo = null;
-                    applyAuthenticatedUserSession(result.userInfo, {
-                        openid: result.openid
-                    }).catch(() => {});
                     this.completeBindWechat(result);
                 } else {
                     throw new Error(bindResult.result?.message || '重新绑定失败');
@@ -1328,9 +1317,6 @@ export default {
                     // 绑定成功
                     this.showOpenidConflictModal = false;
                     this.conflictAccountInfo = null;
-                    applyAuthenticatedUserSession(result.userInfo, {
-                        openid: result.openid
-                    }).catch(() => {});
                     this.completeBindWechat(result);
                 } else {
                     throw new Error(bindResult.result?.message || '绑定失败');
@@ -1359,15 +1345,12 @@ export default {
         // 完成绑定微信（公共方法）
         completeBindWechat(result) {
             // 绑定成功，更新本地用户信息
-            const app = getApp();
-            result.userInfo.wechatOpenId = result.currentOpenid;
-            app.globalData.userInfo = result.userInfo;
-            app.globalData.openid = result.openid; // 保持原有 openid
-            app.globalData._loginProcessCompleted = true;
-            app.globalData.isLoggedIn = true;
-
-            uni.setStorageSync('userInfo', result.userInfo);
-            uni.setStorageSync('userOpenId', result.openid);
+            const nextUserInfo = Object.assign({}, result.userInfo, {
+                wechatOpenId: result.currentOpenid
+            });
+            this.applyUserSession(nextUserInfo, result.openid, {
+                isLoggedIn: true
+            });
 
             this.showBindWechatModal = false;
             this.showRebindConfirmModal = false;

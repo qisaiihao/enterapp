@@ -1,4 +1,4 @@
-const { cloudCall } = require('../../utils/cloudCall.js');
+import { cloudCall } from '../../utils/cloudCall.js';
 
 function getResult(res) {
   return (res && res.result) || {};
@@ -75,7 +75,7 @@ function createActionCaller({
   };
 }
 
-module.exports = {
+const cloudWrapper = {
   getResult,
   isSuccessResult,
   unwrapResult,
@@ -84,3 +84,20 @@ module.exports = {
   callActionAndUnwrap,
   createActionCaller
 };
+
+export {
+  getResult,
+  isSuccessResult,
+  unwrapResult,
+  callCloudAndGetResult,
+  callCloudAndUnwrap,
+  callActionAndUnwrap,
+  createActionCaller
+};
+
+export default cloudWrapper;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = cloudWrapper;
+  module.exports.default = cloudWrapper;
+}

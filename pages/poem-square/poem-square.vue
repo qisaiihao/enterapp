@@ -71,10 +71,9 @@
       </view>
 
       <view :key="'poem-font-' + poemFontRenderTick" id="post-list-container">
+        <block v-for="(item, index) in postList" :key="item && item._id ? item._id : index">
         <view
-          v-for="(item, index) in postList"
           v-if="item"
-          :key="index"
           class="post-item-wrapper"
           :class="item.isSeries && !item.seriesExpanded ? 'stacked-series-card' : ''"
           :style="{ backgroundColor: item.backgroundColor }"
@@ -196,6 +195,7 @@
             </view>
           </block>
         </view>
+        </block>
       </view>
 
       <!-- 底部加载/结束提示 -->
@@ -233,13 +233,14 @@ import {
 } from '@/utils/uiHelpers.js';
 import { navigateToPostDetail } from '@/utils/navigation.js';
 import { togglePostLike } from '@/utils/likeService.js';
-import cacheManager from '@/_utils/cache-manager.js';
+import cacheManager from '@/cache/core/manager.js';
 import { syncLikeStatusForPosts, getLatestLikeStatus } from '@/utils/likeStatusSync.js';
 import fileUrlCache from '@/cache/core/file-url';
 import { updateTabBarStatus } from '@/utils/tabBarCompatibility.js';
 import activityBadge from '@/cache/stores/activity-badge.js';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
 import { attachPoemDisplayFields } from '@/utils/poemDisplay.js';
+import { patchAppState, setUserSession } from '@/utils/app-state.js';
 
 const PAGE_SIZE = 10;
 
@@ -273,7 +274,7 @@ export default {
       invalidatePostList({ isPoem: true, isOriginal: true, excludeAnonymous: true });
       invalidateFollowingPoems();
 
-      this.setData({
+      this.applyLocalState({
         page: 0,
         hasMore: true,
         isLoading: true,
@@ -282,7 +283,7 @@ export default {
       });
 
       this.getIndexData(() => {
-        this.setData({ isLoading: false });
+        this.applyLocalState({ isLoading: false });
       });
       return;
     }
@@ -345,11 +346,11 @@ export default {
         const loginData = JSON.parse(decodeURIComponent(options.loginData));
         console.log('✅ [poem-square] GitHub 登录成功，用户信息:', loginData.user);
         
-        // 更新全局数据
-        const app = getApp();
-        app.globalData.userInfo = loginData.user;
-        app.globalData.openid = loginData.user._openid || loginData.user.openid;
-        app.globalData._loginProcessCompleted = true;
+        setUserSession(loginData.user, loginData.user._openid || loginData.user.openid);
+        patchAppState({
+          isLoggedIn: true,
+          _loginProcessCompleted: true
+        });
         
         // 缓存用户信息
         uni.setStorageSync('userInfo', loginData.user);
@@ -382,7 +383,7 @@ export default {
     try {
       this._activityBadgeUnsubscribe = activityBadge.subscribe((hasNew) => {
         try {
-          this.setData({ hasNewActivity: !!hasNew });
+          this.applyLocalState({ hasNewActivity: !!hasNew });
         } catch (_) {
           this.hasNewActivity = !!hasNew;
         }
@@ -454,6 +455,27 @@ export default {
     }, 300); // 增加防抖时间到300ms
   },
   methods: {
+    applyLocalState(partial = {}) {
+      Object.keys(partial).forEach((path) => {
+        const value = partial[path];
+        if (!path.includes('.')) {
+          this[path] = value;
+          return;
+        }
+
+        const segments = path.split('.');
+        let target = this;
+        for (let index = 0; index < segments.length - 1; index += 1) {
+          const key = segments[index];
+          if (!target[key] || typeof target[key] !== 'object') {
+            target[key] = {};
+          }
+          target = target[key];
+        }
+        target[segments[segments.length - 1]] = value;
+      });
+    },
+
     onBuiltinFontLoaded(payload = {}) {
       const loadedFontFamily = payload && payload.fontFamily ? payload.fontFamily : '';
       if (loadedFontFamily && loadedFontFamily !== '汇文明朝') return;
@@ -503,7 +525,7 @@ export default {
         // #endif
 
         // 设置页面数据
-        this.setData({
+        this.applyLocalState({
           safeAreaTop: safeAreaTop
         });
 
@@ -544,7 +566,7 @@ export default {
       } catch (error) {
         console.error('【poem-square】安全区域调试失败:', error);
         // 使用默认值
-        this.setData({
+        this.applyLocalState({
           safeAreaTop: 44
         });
       }
@@ -559,7 +581,7 @@ export default {
       if (isUserFiltering) {
         // 用户筛选时：立即清空列表，显示加载状态
         console.log('🔍 [poem-square] 用户筛选模式，立即清空列表');
-        this.setData({
+        this.applyLocalState({
           postList: [],
           page: 0,
           hasMore: true,
@@ -569,7 +591,7 @@ export default {
         });
         this.getPostList(() => {
           console.log('【poem-square】用户筛选 getPostList 完成，设置 isLoading: false');
-          this.setData({ isLoading: false });
+          this.applyLocalState({ isLoading: false });
           if (typeof callback === 'function') {
             callback();
           }
@@ -662,7 +684,7 @@ export default {
         });
         
         // 立即显示缓存数据
-        this.setData({ 
+        this.applyLocalState({ 
           postList: visibleList,
           page: 1,  // 缓存数据已经显示第一页，下一页是第1页
           hasMore: true,
@@ -675,7 +697,7 @@ export default {
         // 然后异步刷新数据（会使用SWR策略，如果缓存未过期就不会调用云函数）
         setTimeout(() => {
           console.log('🔍 [poem-square-cache] 开始后台刷新，重置页码为0');
-          this.setData({ page: 0 }); // 重置页码，让getPostList从第一页开始
+          this.applyLocalState({ page: 0 }); // 重置页码，让getPostList从第一页开始
           this.getPostList((newData) => { 
             console.log('🔍 [poem-square-cache] 后台刷新完成，新数据:', newData ? newData.length : 0);
             // processPostList 已经处理了合并逻辑，这里只需要执行回调
@@ -687,7 +709,7 @@ export default {
       } else {
         // 没有缓存，正常加载
         console.log('⚠️ [poem-square-cache] 没有找到缓存数据，正常加载');
-        this.setData({ 
+        this.applyLocalState({ 
           postList: [], 
           page: 0, 
           hasMore: true,
@@ -697,7 +719,7 @@ export default {
         });
         this.getPostList(() => { 
           console.log('【poem-square】getPostList 完成，设置 isLoading: false');
-          this.setData({ isLoading: false });
+          this.applyLocalState({ isLoading: false });
           if (typeof callback === 'function') {
             console.log('【poem-square】执行回调函数');
             callback();
@@ -707,7 +729,7 @@ export default {
     },
     // 切换只看关注模式
     togglePoemFilterPanel() {
-      this.setData({
+      this.applyLocalState({
         showPoemFilterPanel: !this.showPoemFilterPanel
       });
     },
@@ -717,7 +739,7 @@ export default {
         return;
       }
 
-      this.setData({
+      this.applyLocalState({
         showPoemFilterPanel: false
       });
     },
@@ -739,7 +761,7 @@ export default {
     toggleFollowingFilter() {
       console.log('【poem-square】进入只看关注模式');
       
-      this.setData({
+      this.applyLocalState({
         showFollowingOnly: true,
         showPoemFilterPanel: false,
         postList: [],
@@ -766,7 +788,7 @@ export default {
     exitFollowingMode() {
       console.log('【poem-square】退出只看关注模式');
       
-      this.setData({
+      this.applyLocalState({
         showFollowingOnly: false,
         showPoemFilterPanel: false,
         postList: [],
@@ -790,7 +812,7 @@ export default {
       }
 
       // 更新选中状态并重新加载帖子
-      this.setData({
+      this.applyLocalState({
         followingSelectedUserId: userId,
         page: 0,
         hasMore: true,
@@ -838,7 +860,7 @@ export default {
       // 设置加载锁定（首次加载时isLoading已经设置为true）
       if (!isFirstLoad) {
         this._loadingLock = true;
-        this.setData({ isLoadingMore: true });
+        this.applyLocalState({ isLoadingMore: true });
       }
       try {
         // 根据模式选择不同的云函数
@@ -892,7 +914,7 @@ export default {
                   const newPostIds = visibleList.map(p => p._id).join(',');
                   if (currentPostIds !== newPostIds) {
                     const existingLaterPosts = this.postList.slice(PAGE_SIZE);
-                    this.setData({
+                    this.applyLocalState({
                       postList: [...visibleList, ...existingLaterPosts]
                     });
                     console.log(' [SWR-PoemSquare-Following] 页面数据已后台更新');
@@ -952,7 +974,7 @@ export default {
                 const newPostIds = visibleList.map(p => p._id).join(',');
                 if (currentPostIds !== newPostIds) {
                   const existingLaterPosts = this.postList.slice(PAGE_SIZE);
-                  this.setData({
+                  this.applyLocalState({
                     postList: [...visibleList, ...existingLaterPosts]
                   });
                   console.log(' [SWR-PoemSquare-Original] 页面数据已后台更新');
@@ -970,7 +992,7 @@ export default {
         uni.showToast({ title: '加载失败', icon: 'none' });
         // 只有非首次加载时才设置isLoadingMore
         if (this.page !== 0) {
-          this.setData({ isLoadingMore: false });
+          this.applyLocalState({ isLoadingMore: false });
         }
         this._loadingLock = false;
         if (typeof cb === 'function') cb();
@@ -1048,7 +1070,7 @@ export default {
         console.log('【poem-square】去重：新帖子', visibleList.length, '去重后', uniqueNewPosts.length);
       }
       
-      this.setData({
+      this.applyLocalState({
         postList: newPostList,
         page: this.page + 1,
         hasMore: list.length === PAGE_SIZE
@@ -1059,7 +1081,7 @@ export default {
       
       // 只有非首次加载时才设置isLoadingMore
       if (this.page !== 0) {
-        this.setData({ isLoadingMore: false });
+        this.applyLocalState({ isLoadingMore: false });
       }
       this._loadingLock = false;
       if (typeof cb === 'function') {
@@ -1105,13 +1127,13 @@ export default {
           currentSeriesIndex: 0,
           seriesPoems: seriesPoems
         };
-        this.setData({ postList: newPostList });
+        this.applyLocalState({ postList: newPostList });
         return;
       }
       
       // 普通卡片的展开/折叠
       const newPostList = toggleArrayItemExpansion(this.postList, index);
-      this.setData({ postList: newPostList });
+      this.applyLocalState({ postList: newPostList });
     },
     
     // 组诗卡片点击处理
@@ -1134,7 +1156,7 @@ export default {
           seriesExpanded: false,
           currentSeriesIndex: 0
         };
-        this.setData({ postList: newPostList });
+        this.applyLocalState({ postList: newPostList });
         return;
       }
       
@@ -1144,7 +1166,7 @@ export default {
         ...item,
         currentSeriesIndex: nextIndex
       };
-      this.setData({ postList: newPostList });
+      this.applyLocalState({ postList: newPostList });
     },
     
     // 计算组诗卡片的变换效果（已废弃，保留以防其他地方调用）
@@ -1241,7 +1263,7 @@ export default {
       const optimisticList = list.slice();
       optimisticList[index] = optimisticItem;
       // 批量更新：标记投票进行中 + 乐观更新列表
-      this.setData({ 
+      this.applyLocalState({ 
         [`votingInProgress.${postId}`]: true,
         postList: optimisticList 
       });
@@ -1266,7 +1288,7 @@ export default {
             };
             const newList = currentList.slice();
             newList[currentIndex] = updatedItem;
-            this.setData({ postList: newList });
+            this.applyLocalState({ postList: newList });
           }
           console.log('【poem-square】服务调用成功，数据已同步');
           return;
@@ -1289,7 +1311,7 @@ export default {
           };
           const rollbackList = currentList.slice();
           rollbackList[currentIndex] = rollbackItem;
-          this.setData({ postList: rollbackList });
+          this.applyLocalState({ postList: rollbackList });
         }
         uni.showToast({ title: result?.message || '点赞失败', icon: 'none' });
       }).catch((err) => {
@@ -1305,11 +1327,11 @@ export default {
           };
           const rollbackList = currentList.slice();
           rollbackList[currentIndex] = rollbackItem;
-          this.setData({ postList: rollbackList });
+          this.applyLocalState({ postList: rollbackList });
         }
         uni.showToast({ title: '操作失败', icon: 'none' });
       }).finally(() => {
-        this.setData({ [`votingInProgress.${postId}`]: false });
+        this.applyLocalState({ [`votingInProgress.${postId}`]: false });
       });
     },
 
@@ -1327,7 +1349,7 @@ export default {
           updates[`postList[${idx}].votes`] = votes;
           updates[`postList[${idx}].isVoted`] = isLiked;
           updates[`postList[${idx}].likeIcon`] = likeIcon.getLikeIcon(votes, isLiked);
-          this.setData(updates);
+          this.applyLocalState(updates);
         }
       } catch (_) {}
     },
@@ -1356,7 +1378,7 @@ export default {
             changed = true;
           }
         }
-        if (changed) this.setData({ postList: next });
+        if (changed) this.applyLocalState({ postList: next });
       } catch (err) { console.warn('[poem-square] syncLikeStatusFromCache failed', err); }
     },
     

@@ -5,7 +5,7 @@
  * TTL: 10分钟
  * 持久化: 是
  */
-const cacheManager = require('../cache/core/manager');
+import cacheManager from '../cache/core/manager.js';
 
 const NS = cacheManager.namespace('comment:like:status', { persistent: true, maxItems: 2000 });
 const TTL_MS = 10 * 60 * 1000; // 10分钟
@@ -68,11 +68,26 @@ function clearCommentLikeCache(commentId) {
   try { NS.delete(String(commentId)); } catch (_) {}
 }
 
-module.exports = {
+const commentLikeStatusSync = {
   updateCommentLikeCache,
   getLatestCommentLike,
   persistToStorage,
   getBatchCommentLikes,
   clearCommentLikeCache,
 };
+
+export {
+  updateCommentLikeCache,
+  getLatestCommentLike,
+  persistToStorage,
+  getBatchCommentLikes,
+  clearCommentLikeCache,
+};
+
+export default commentLikeStatusSync;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = commentLikeStatusSync;
+  module.exports.default = commentLikeStatusSync;
+}
 

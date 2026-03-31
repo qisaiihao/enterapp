@@ -1,5 +1,5 @@
-const platformDetector = require('./platformDetector.js');
-const auth = require('./auth.js');
+import platformDetector from './platformDetector.js';
+import auth from './auth.js';
 
 const DEFAULT_RETRY_DELAY = 300;
 
@@ -67,7 +67,7 @@ async function invokeCloudFunction(method, payload) {
     throw createError('NO_CLOUD_METHOD', '当前环境不支持云函数调用');
 }
 
-async function cloudCall(name, data = {}, options = {}) {
+export async function cloudCall(name, data = {}, options = {}) {
     if (!name || typeof name !== 'string') {
         return Promise.reject(createError('INVALID_NAME', '云函数名称无效'));
     }
@@ -173,6 +173,6 @@ async function cloudCall(name, data = {}, options = {}) {
     throw createError('CLOUD_CALL_FAILED', '云函数调用失败');
 }
 
-module.exports = {
+export default {
     cloudCall
 };

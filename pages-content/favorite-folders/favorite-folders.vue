@@ -129,7 +129,7 @@
 
 <script>
 // pages/favorite-folders/favorite-folders.js
-const { cloudCall } = require('../../utils/cloudCall.js');
+import { cloudCall } from '../../utils/cloudCall.js';
 import { checkLoginOrPrompt } from '@/utils/authHelper.js';
 
 export default {

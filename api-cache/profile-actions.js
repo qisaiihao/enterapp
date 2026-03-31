@@ -1,15 +1,14 @@
-import cacheManager from '@/_utils/cache-manager';
-const { cloudCall } = require('@/utils/cloudCall.js');
-const { callCloudAndUnwrap, getResult } = require('./_shared/cloud-wrapper.js');
+import { cloudCall } from '@/utils/cloudCall.js';
+import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
+import { callCloudAndUnwrap, getResult } from './_shared/cloud-wrapper.js';
+import {
+  invalidateMyFavorites,
+  invalidateMyInfo,
+  invalidateMyPosts
+} from './my.js';
 
-// 帖子操作相关缓存
-const nsPostActions = cacheManager.namespace('post-actions', { persistent: true, maxItems: 100 });
-
-/**
- * 切换帖子可见性
- */
 export async function togglePostVisibility(postId, context) {
-  console.log('【profile-actions】切换帖子可见性:', postId);
+  console.log('[profile-actions] toggle post visibility', postId);
 
   const result = await callCloudAndUnwrap(
     'getMyProfileData',
@@ -22,10 +21,9 @@ export async function togglePostVisibility(postId, context) {
       context,
       requireAuth: true
     },
-    '操作失败'
+    'Toggle post visibility failed'
   );
 
-  const { invalidateMyPosts } = require('./my.js');
   invalidateMyPosts();
 
   return {
@@ -34,11 +32,8 @@ export async function togglePostVisibility(postId, context) {
   };
 }
 
-/**
- * 删除帖子
- */
 export async function deletePost(postId, context) {
-  console.log('【profile-actions】删除帖子:', postId);
+  console.log('[profile-actions] delete post', postId);
 
   await callCloudAndUnwrap(
     'deletePost',
@@ -48,20 +43,16 @@ export async function deletePost(postId, context) {
       context,
       requireAuth: true
     },
-    '删除失败'
+    'Delete post failed'
   );
 
-  const { invalidateMyPosts } = require('./my.js');
   invalidateMyPosts();
 
   return { success: true };
 }
 
-/**
- * 保存草稿
- */
 export async function saveDraft(draftData, context) {
-  console.log('【profile-actions】保存草稿:', draftData);
+  console.log('[profile-actions] save draft', draftData);
 
   const result = await callCloudAndUnwrap(
     'getMyProfileData',
@@ -74,7 +65,7 @@ export async function saveDraft(draftData, context) {
       context,
       requireAuth: true
     },
-    '保存草稿失败'
+    'Save draft failed'
   );
 
   return {
@@ -83,18 +74,17 @@ export async function saveDraft(draftData, context) {
   };
 }
 
-/**
- * 获取帖子详情
- */
 export async function getPostDetail(postId, context) {
-  console.log('【profile-actions】获取帖子详情:', postId);
+  console.log('[profile-actions] get post detail', postId);
 
-  const res = await cloudCall('getPostDetail', {
-    postId
-  }, {
-    pageTag: 'profile:post-detail',
-    context
-  });
+  const res = await cloudCall(
+    'getPostDetail',
+    { postId },
+    {
+      pageTag: 'profile:post-detail',
+      context
+    }
+  );
 
   const result = getResult(res);
   if (result.post) {
@@ -104,14 +94,11 @@ export async function getPostDetail(postId, context) {
     };
   }
 
-  throw new Error(result.message || '获取帖子详情失败');
+  throw new Error(result.message || 'Get post detail failed');
 }
 
-/**
- * 取消收藏
- */
 export async function removeFavorite(favoriteId, context) {
-  console.log('【profile-actions】取消收藏:', favoriteId);
+  console.log('[profile-actions] remove favorite', favoriteId);
 
   await callCloudAndUnwrap(
     'getMyProfileData',
@@ -124,20 +111,16 @@ export async function removeFavorite(favoriteId, context) {
       context,
       requireAuth: true
     },
-    '取消收藏失败'
+    'Remove favorite failed'
   );
 
-  const { invalidateMyFavorites } = require('./my.js');
   invalidateMyFavorites();
 
   return { success: true };
 }
 
-/**
- * 获取关注者数量
- */
 export async function getFollowerCount(context) {
-  console.log('【profile-actions】获取关注者数量');
+  console.log('[profile-actions] get follower count');
 
   const result = await callCloudAndUnwrap(
     'follow',
@@ -151,17 +134,14 @@ export async function getFollowerCount(context) {
       context,
       requireAuth: true
     },
-    '获取关注者数量失败'
+    'Get follower count failed'
   );
 
   return typeof result.total === 'number' ? result.total : 0;
 }
 
-/**
- * 更新用户信息
- */
 export async function updateUserInfo(userInfo, context) {
-  console.log('【profile-actions】更新用户信息:', userInfo);
+  console.log('[profile-actions] update user info', userInfo);
 
   await callCloudAndUnwrap(
     'getMyProfileData',
@@ -174,29 +154,28 @@ export async function updateUserInfo(userInfo, context) {
       context,
       requireAuth: true
     },
-    '更新用户信息失败'
+    'Update user info failed'
   );
 
-  const { invalidateMyInfo } = require('./my.js');
   invalidateMyInfo();
 
   return { success: true };
 }
 
-/**
- * 退出登录
- */
 export async function logout(context) {
-  console.log('【profile-actions】退出登录');
+  console.log('[profile-actions] logout');
 
-  const res = await cloudCall('login', {}, {
-    pageTag: 'profile:logout',
-    context
-  });
+  const res = await cloudCall(
+    'login',
+    {},
+    {
+      pageTag: 'profile:logout',
+      context
+    }
+  );
 
   const result = getResult(res);
   if (result.openid) {
-    const { resetAllCachesOnAccountChange } = require('@/utils/accountCacheReset.js');
     resetAllCachesOnAccountChange();
 
     return {
@@ -205,5 +184,5 @@ export async function logout(context) {
     };
   }
 
-  throw new Error('退出登录失败');
+  throw new Error('Logout failed');
 }

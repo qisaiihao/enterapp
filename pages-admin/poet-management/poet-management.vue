@@ -51,10 +51,7 @@
 </template>
 
 <script>
-const {
-    listAdminPoets,
-    deleteAdminPoet
-} = require('../../api-cache/admin-manager.js');
+import { listAdminPoets, deleteAdminPoet } from '../../api-cache/admin-manager.js';
 
 export default {
     data() {

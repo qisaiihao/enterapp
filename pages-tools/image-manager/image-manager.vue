@@ -60,11 +60,11 @@
 </template>
 
 <script>
-// 图片管理页面逻辑
-const { imageManager } = require('../../utils/imageManager.js');
-const { formatRelativeTime } = require('../../utils/time.js');
-const { cloudCall } = require('../../utils/cloudCall.js');
-const { getCurrentUserInfo, isAdminUser } = require('../../utils/admin.js');
+import { imageManager } from '../../utils/imageManager.js';
+import { formatRelativeTime } from '../../utils/time.js';
+import { cloudCall } from '../../utils/cloudCall.js';
+import { getCurrentUserInfo, isAdminUser } from '../../utils/admin.js';
+
 export default {
     data() {
         return {

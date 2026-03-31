@@ -4,7 +4,7 @@
  * 
  * 此文件为兼容层，重定向到新的缓存模块
  */
-const likeStatusCache = require('../cache/stores/like-status');
+import likeStatusCache from '../cache/stores/like-status.js';
 
 /**
  * 从所有相关缓存中同步帖子的点赞状态
@@ -44,9 +44,25 @@ function cleanupExpiredLikeStatus() {
     console.log('[likeStatusSync] 过期清理由 CacheManager 自动处理');
 }
 
-module.exports = {
+export {
     syncLikeStatusForPosts,
     updateLikeStatus,
     getLatestLikeStatus,
     cleanupExpiredLikeStatus
 };
+
+export default {
+    syncLikeStatusForPosts,
+    updateLikeStatus,
+    getLatestLikeStatus,
+    cleanupExpiredLikeStatus
+};
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        syncLikeStatusForPosts,
+        updateLikeStatus,
+        getLatestLikeStatus,
+        cleanupExpiredLikeStatus
+    };
+}

@@ -1,6 +1,17 @@
 import _set from '../utils/_set'
 import debounce from '../utils/debounce'
 
+function safeForceUpdate(vm) {
+    if (!vm || typeof vm.$forceUpdate !== 'function') {
+        return
+    }
+    const instance = vm.$
+    if (!instance || !instance.isMounted || !instance.effect) {
+        return
+    }
+    vm.$forceUpdate()
+}
+
 /**
  * 老setData polyfill
  * 用于转换后的uniapp的项目能直接使用this.setData()函数
@@ -45,7 +56,7 @@ function oldSetData (obj, callback) {
                 },
                 set (newValue) {
                     front.$data[after] = newValue
-                    that.hasOwnProperty("$forceUpdate") && that.$forceUpdate()
+                    safeForceUpdate(that)
                 },
                 enumerable: true,
                 configurable: true
@@ -85,6 +96,6 @@ export function setData (obj, callback = null) {
         }
     })
 
-    this.$forceUpdate();
+    safeForceUpdate(this)
     if (typeof callback == 'function') this.$nextTick(callback)
 }

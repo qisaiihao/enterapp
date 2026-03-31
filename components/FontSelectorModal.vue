@@ -88,6 +88,7 @@ import fontManager from '@/utils/fontManager.js';
 
 export default {
     name: 'FontSelectorModal',
+    emits: ['close', 'font-size-preview', 'font-family-preview', 'confirm'],
     props: {
         show: {
             type: Boolean,
@@ -133,7 +134,7 @@ export default {
         };
         try { uni.$on && uni.$on('font-loaded', this._fontLoadedHandler); } catch (_) {}
     },
-    beforeDestroy() {
+    beforeUnmount() {
         try { uni.$off && this._fontLoadedHandler && uni.$off('font-loaded', this._fontLoadedHandler); } catch (_) {}
         this._fontLoadedHandler = null;
     },

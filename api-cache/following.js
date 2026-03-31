@@ -1,7 +1,6 @@
-import cacheManager from '@/_utils/cache-manager';
 import { buildCacheKey } from './cache-key-builder.js';
-
-const { callCloudAndUnwrap, callActionAndUnwrap } = require('./_shared/cloud-wrapper.js');
+import cacheManager from '@/cache/core/manager';
+import { callCloudAndUnwrap, callActionAndUnwrap } from './_shared/cloud-wrapper.js';
 
 // Following feed cache: TTL 60s + SWR 30s
 const TTL_MS = 60 * 1000;
@@ -160,10 +159,28 @@ function toggleFollow(targetOpenid, options = {}) {
   }));
 }
 
-module.exports = {
+export {
   getFollowingPosts,
   invalidateFollowingPosts,
   checkFollowStatus,
   toggleFollowStatus,
   toggleFollow
 };
+
+export default {
+  getFollowingPosts,
+  invalidateFollowingPosts,
+  checkFollowStatus,
+  toggleFollowStatus,
+  toggleFollow
+};
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    getFollowingPosts,
+    invalidateFollowingPosts,
+    checkFollowStatus,
+    toggleFollowStatus,
+    toggleFollow
+  };
+}

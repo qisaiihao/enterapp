@@ -1,4 +1,4 @@
-const { callActionAndUnwrap } = require('./_shared/cloud-wrapper.js');
+import { callActionAndUnwrap } from './_shared/cloud-wrapper.js';
 
 async function callAdminActivity(action, payload = {}, { pageTag, context, fallbackMessage } = {}) {
   return callActionAndUnwrap({
@@ -66,7 +66,7 @@ async function deleteAdminActivity({ activityId, context } = {}) {
   );
 }
 
-module.exports = {
+const adminActivitiesApi = {
   callAdminActivity,
   listAdminActivities,
   getAdminActivityDetail,
@@ -75,3 +75,20 @@ module.exports = {
   setAdminActivityStatus,
   deleteAdminActivity
 };
+
+export {
+  callAdminActivity,
+  listAdminActivities,
+  getAdminActivityDetail,
+  createAdminActivity,
+  updateAdminActivity,
+  setAdminActivityStatus,
+  deleteAdminActivity
+};
+
+export default adminActivitiesApi;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = adminActivitiesApi;
+  module.exports.default = adminActivitiesApi;
+}

@@ -1,4 +1,4 @@
-const { cloudCall } = require('./cloudCall.js');
+import { cloudCall } from './cloudCall.js';
 
 let queue = [];
 let started = false;
@@ -47,9 +47,24 @@ function start() {
   try { if (typeof uni !== 'undefined' && typeof uni.onHide === 'function') { uni.onHide(() => { flush(); }); } } catch (_) {}
 }
 
-module.exports = {
+const flushViewQueue = flush;
+const startViewEventAutoFlush = start;
+const viewEvents = {
   enqueueView,
-  flushViewQueue: flush,
-  startViewEventAutoFlush: start
+  flushViewQueue,
+  startViewEventAutoFlush
 };
+
+export {
+  enqueueView,
+  flushViewQueue,
+  startViewEventAutoFlush
+};
+
+export default viewEvents;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = viewEvents;
+  module.exports.default = viewEvents;
+}
 

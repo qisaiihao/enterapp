@@ -105,7 +105,7 @@ function resolveCommentAuthorAvatar(comment = {}) {
     );
 }
 
-module.exports = {
+export {
     STICKER_AVATAR_PATHS,
     LEGACY_DEFAULT_AVATAR_PATHS,
     isStickerAvatar,
@@ -120,3 +120,37 @@ module.exports = {
     resolvePostAuthorAvatar,
     resolveCommentAuthorAvatar
 };
+
+export default {
+    STICKER_AVATAR_PATHS,
+    LEGACY_DEFAULT_AVATAR_PATHS,
+    isStickerAvatar,
+    isLegacyDefaultAvatar,
+    needsDefaultAvatar,
+    hashAvatarSeed,
+    pickStickerAvatar,
+    getUserAvatarSeed,
+    resolveUserAvatar,
+    resolveUserObjectAvatar,
+    resolveAnonymousAvatar,
+    resolvePostAuthorAvatar,
+    resolveCommentAuthorAvatar
+};
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        STICKER_AVATAR_PATHS,
+        LEGACY_DEFAULT_AVATAR_PATHS,
+        isStickerAvatar,
+        isLegacyDefaultAvatar,
+        needsDefaultAvatar,
+        hashAvatarSeed,
+        pickStickerAvatar,
+        getUserAvatarSeed,
+        resolveUserAvatar,
+        resolveUserObjectAvatar,
+        resolveAnonymousAvatar,
+        resolvePostAuthorAvatar,
+        resolveCommentAuthorAvatar
+    };
+}

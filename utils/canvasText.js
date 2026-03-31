@@ -84,8 +84,21 @@ function clampText(ctx, text, maxWidth, maxLines) {
     return result;
 }
 
-module.exports = {
+const canvasText = {
     calculateActualLines,
     wrapText,
     clampText
 };
+
+export {
+    calculateActualLines,
+    wrapText,
+    clampText
+};
+
+export default canvasText;
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = canvasText;
+    module.exports.default = canvasText;
+}

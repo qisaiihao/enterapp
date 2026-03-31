@@ -1,5 +1,5 @@
-import cacheManager from '@/_utils/cache-manager';
-const { callCloudAndUnwrap } = require('./_shared/cloud-wrapper.js');
+import cacheManager from '@/cache/core/manager.js';
+import { callCloudAndUnwrap } from './_shared/cloud-wrapper.js';
 
 // 消息列表缓存：TTL 90s + SWR 45s
 const TTL_MS = 90 * 1000;

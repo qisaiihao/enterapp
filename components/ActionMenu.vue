@@ -23,6 +23,7 @@
 <script>
 export default {
     name: 'ActionMenu',
+    emits: ['close', 'edit', 'compose-series', 'toggle-visibility', 'delete'],
     props: {
         visible: {
             type: Boolean,

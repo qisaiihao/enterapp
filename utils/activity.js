@@ -45,7 +45,7 @@ function getActivityStatusLabel(status, fallback = '未知') {
   return option ? option.label : fallback;
 }
 
-module.exports = {
+const activityUtils = {
   ACTIVITY_STATUS_OPTIONS,
   decodeParamSafe,
   formatDateYmd,
@@ -54,3 +54,18 @@ module.exports = {
   getActivityStatusLabel
 };
 
+export {
+  ACTIVITY_STATUS_OPTIONS,
+  decodeParamSafe,
+  formatDateYmd,
+  formatRange,
+  isActivityOngoing,
+  getActivityStatusLabel
+};
+
+export default activityUtils;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = activityUtils;
+  module.exports.default = activityUtils;
+}

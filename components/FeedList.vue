@@ -75,6 +75,7 @@ export default {
         skeleton,
         PostItem
     },
+    emits: ['avatar-error', 'avatar-load', 'navigate-to-user', 'preview-image', 'image-error', 'image-load', 'tag-click', 'vote', 'comment-click', 'like-icon-error', 'refresh', 'load-more', 'touch-start', 'touch-move', 'touch-end'],
     props: {
         // 帖子列表
         posts: {
@@ -256,7 +257,7 @@ export default {
             this.$emit('touch-end', e);
         }
     },
-    beforeDestroy() {
+    beforeUnmount() {
         if (this.scrollTimer) {
             clearTimeout(this.scrollTimer);
             this.scrollTimer = null;

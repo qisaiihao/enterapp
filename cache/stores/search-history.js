@@ -7,7 +7,7 @@
  * 
  * 存储结构：单个键 'list' 存储历史数组
  */
-const cacheManager = require('../core/manager');
+import cacheManager from '../core/manager.js';
 
 const NS = cacheManager.namespace('search:history', { persistent: true, maxItems: 100 });
 const HISTORY_KEY = 'list';
@@ -103,7 +103,7 @@ function getStats() {
   };
 }
 
-module.exports = {
+const searchHistoryStore = {
   getSearchHistory,
   getDisplayHistory,
   addSearchHistory,
@@ -115,3 +115,21 @@ module.exports = {
   MAX_HISTORY,
   MAX_DISPLAY
 };
+
+export {
+  getSearchHistory,
+  getDisplayHistory,
+  addSearchHistory,
+  removeSearchHistory,
+  clearSearchHistory,
+  getStats,
+  MAX_HISTORY,
+  MAX_DISPLAY
+};
+
+export default searchHistoryStore;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = searchHistoryStore;
+  module.exports.default = searchHistoryStore;
+}

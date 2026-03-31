@@ -193,19 +193,19 @@
 
 <script>
 import skeleton from '@/components/skeleton/skeleton';
-// pages/search/search.js
-// 修复：移除全局数据库实例，改为在方法中动态获取
-const { previewImage } = require('../../utils/imagePreview.js');
-const { normalizePostList } = require('../../utils/postNormalizer.js');
-const { searchCache } = require('../../utils/searchCache.js');
-const SearchHighlighter = require('../../utils/searchHighlighter.js');
-const searchHistoryCache = require('../../cache/stores/search-history.js');
-const {
-    getSearchSuggestions: getSearchSuggestionsApi,
+import { previewImage } from '../../utils/imagePreview.js';
+import { normalizePostList } from '../../utils/postNormalizer.js';
+import { searchCache } from '../../utils/searchCache.js';
+import SearchHighlighter from '../../utils/searchHighlighter.js';
+import searchHistoryCache from '../../cache/stores/search-history.js';
+import {
+    getSearchSuggestions as getSearchSuggestionsApi,
     searchPosts,
-    recordSearchStats: recordSearchStatsApi,
-    getHotSearches: getHotSearchesApi
-} = require('../../api-cache/search.js');
+    recordSearchStats as recordSearchStatsApi,
+    getHotSearches as getHotSearchesApi
+} from '../../api-cache/search.js';
+// pages/search/search.js
+// ????????????????????????????????????
 
 export default {
     components: {

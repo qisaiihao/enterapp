@@ -131,7 +131,8 @@
 
 <script>
 // components/folder-selector/folder-selector.js
-const { cloudCall } = require('../../utils/cloudCall.js');
+import { cloudCall } from '../../utils/cloudCall.js';
+import { emitFavoriteChanged } from '@/utils/events.js';
 export default {
     data() {
         return {
@@ -153,7 +154,7 @@ export default {
             deleteFolderInfo: null
         };
     },
-
+    emits: ['favoriteSuccess', 'hide'],
     props: {
         show: {
             type: Boolean,
@@ -414,7 +415,6 @@ export default {
                         try {
                             const appInstance = getApp();
                             const userId = appInstance && appInstance.globalData && appInstance.globalData.openid;
-                            const { emitFavoriteChanged } = require('@/utils/events.js');
                             emitFavoriteChanged({ userId, postId, favored: true });
                         } catch (e) {}
                     } else {

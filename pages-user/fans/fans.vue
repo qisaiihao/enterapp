@@ -57,14 +57,15 @@
 
 <script>
 import RelationUserList from '@/components/relation/user-list.vue';
-const { formatRelativeTime } = require('../../utils/time.js');
-const {
+import { formatRelativeTime } from '../../utils/time.js';
+import {
     getFollowingList,
     getFollowerList,
     toggleFollowRelation,
     checkFollowRelation,
     markFollowNotificationsRead
-} = require('../../api-cache/relation.js');
+} from '../../api-cache/relation.js';
+
 export default {
     components: {
         RelationUserList

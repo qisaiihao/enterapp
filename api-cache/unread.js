@@ -1,7 +1,6 @@
 import cacheManager from '@/cache/core/manager';
-
-const { emitUnreadChanged } = require('@/utils/events.js');
-const { callCloudAndUnwrap } = require('./_shared/cloud-wrapper.js');
+import { emitUnreadChanged } from '@/utils/events.js';
+import { callCloudAndUnwrap } from './_shared/cloud-wrapper.js';
 
 const ns = cacheManager.namespace('unread', { persistent: false, maxItems: 64 });
 const KEY = 'count';
@@ -63,4 +62,3 @@ export function getCachedUnreadCount() {
   const v = ns.get(KEY);
   return typeof v === 'number' ? v : 0;
 }
-

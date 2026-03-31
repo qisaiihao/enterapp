@@ -620,6 +620,7 @@ export default {
     },
     onUnload: function () {
         try { flushViewQueue(); } catch (e) {}
+        try { uni.$off && this.onGlobalLikeChanged && uni.$off('like-changed', this.onGlobalLikeChanged); } catch (_) {}
         try { uni.$off && this.onGlobalCommentLikeChanged && uni.$off('comment-like-changed', this.onGlobalCommentLikeChanged); } catch (_) {}
         try { uni.$off && this._fontLoadedHandler && uni.$off('font-loaded', this._fontLoadedHandler); } catch (_) {}
         this._fontLoadedHandler = null;
@@ -2626,16 +2627,11 @@ export default {
             const newLikes = oldLikes + (newLikeState ? 1 : -1);
             const newLikeIcon = likeIcon.getLikeIcon(newLikes, newLikeState);
             
-            // 使用 Vue 响应式方式更新
-            if (isReply) {
-                this.$set(this.comments[commentIndex].replies[replyIndex], 'liked', newLikeState);
-                this.$set(this.comments[commentIndex].replies[replyIndex], 'likes', newLikes);
-                this.$set(this.comments[commentIndex].replies[replyIndex], 'likeIcon', newLikeIcon);
-            } else {
-                this.$set(this.comments[commentIndex], 'liked', newLikeState);
-                this.$set(this.comments[commentIndex], 'likes', newLikes);
-                this.$set(this.comments[commentIndex], 'likeIcon', newLikeIcon);
-            }
+            this.patchCommentAtIndex(commentIndex, isReply ? replyIndex : -1, {
+                liked: newLikeState,
+                likes: newLikes,
+                likeIcon: newLikeIcon
+            });
             
             likeComment(commentId, postId, newLikeState).then((result) => {
                     if (result && result.success) {
@@ -2656,19 +2652,48 @@ export default {
             const { comment, isReply, commentIndex, replyIndex } = this.findCommentWithIndex(this.comments, commentId);
             if (comment) {
                 const newLikeIcon = likeIcon.getLikeIcon(finalLikes, newLikeState);
-                if (isReply) {
-                    this.$set(this.comments[commentIndex].replies[replyIndex], 'liked', newLikeState);
-                    this.$set(this.comments[commentIndex].replies[replyIndex], 'likes', finalLikes);
-                    this.$set(this.comments[commentIndex].replies[replyIndex], 'likeIcon', newLikeIcon);
-                } else {
-                    this.$set(this.comments[commentIndex], 'liked', newLikeState);
-                    this.$set(this.comments[commentIndex], 'likes', finalLikes);
-                    this.$set(this.comments[commentIndex], 'likeIcon', newLikeIcon);
-                }
+                this.patchCommentAtIndex(commentIndex, isReply ? replyIndex : -1, {
+                    liked: newLikeState,
+                    likes: finalLikes,
+                    likeIcon: newLikeIcon
+                });
             }
         },
 
         // 查找评论并返回索引（用于 Vue 响应式更新）
+        patchCommentAtIndex: function (commentIndex, replyIndex, patch) {
+            if (commentIndex < 0) {
+                return;
+            }
+            const nextComments = (this.comments || []).slice();
+            const currentComment = nextComments[commentIndex];
+            if (!currentComment) {
+                return;
+            }
+
+            if (replyIndex > -1) {
+                const replies = Array.isArray(currentComment.replies) ? currentComment.replies.slice() : [];
+                if (!replies[replyIndex]) {
+                    return;
+                }
+                replies[replyIndex] = {
+                    ...replies[replyIndex],
+                    ...patch
+                };
+                nextComments[commentIndex] = {
+                    ...currentComment,
+                    replies: replies
+                };
+            } else {
+                nextComments[commentIndex] = {
+                    ...currentComment,
+                    ...patch
+                };
+            }
+
+            this.comments = nextComments;
+        },
+
         findCommentWithIndex: function (comments, commentId) {
             for (let i = 0; i < comments.length; i++) {
                 if (comments[i]._id === commentId) {
@@ -2702,15 +2727,11 @@ export default {
 
         toggleShowAllReplies: function (e) {
             const commentId = e.currentTarget.dataset.commentId;
-            let comments = this.comments;
-            const comment = comments.find((c) => c._id === commentId);
-            if (comment) {
-                const nextVal = !comment.showAllReplies;
-                // keep reactivity even if the flag was not pre-defined
-                this.$set(comment, 'showAllReplies', nextVal);
-                // trigger view update
-                this.setData({
-                    comments: comments
+            const commentIndex = (this.comments || []).findIndex((comment) => comment._id === commentId);
+            if (commentIndex > -1) {
+                const comment = this.comments[commentIndex];
+                this.patchCommentAtIndex(commentIndex, -1, {
+                    showAllReplies: !comment.showAllReplies
                 });
             }
         },

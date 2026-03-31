@@ -1,9 +1,9 @@
 // 点赞服务：封装 vote 云函数调用，统一缓存同步与错误提示。
-const { cloudCall } = require('./cloudCall.js');
-const likeIcon = require('./likeIcon.js');
-const cacheManager = require('../cache/core/manager');
-const likeStatusCache = require('../cache/stores/like-status');
-const { emitLikeChanged } = require('./events.js');
+import { cloudCall } from './cloudCall.js';
+import likeIcon from './likeIcon.js';
+import cacheManager from '../cache/core/manager.js';
+import likeStatusCache from '../cache/stores/like-status.js';
+import { emitLikeChanged } from './events.js';
 
 const DEFAULT_ERROR_MESSAGE = '操作失败，请稍后重试';
 
@@ -219,6 +219,14 @@ async function togglePostLike(postId, options = {}) {
     };
 }
 
-module.exports = {
+export { togglePostLike };
+
+export default {
     togglePostLike
 };
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        togglePostLike
+    };
+}

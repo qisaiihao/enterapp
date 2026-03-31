@@ -80,4 +80,11 @@ class SearchHighlighter {
   }
 }
 
-module.exports = SearchHighlighter;
+export { SearchHighlighter };
+
+export default SearchHighlighter;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = SearchHighlighter;
+  module.exports.default = SearchHighlighter;
+}

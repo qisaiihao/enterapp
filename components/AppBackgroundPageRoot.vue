@@ -4,7 +4,6 @@
         :class="{ 'has-app-background-page': hasAppBackground }"
         :style="appBackgroundPageStyle"
         v-bind="$attrs"
-        v-on="forwardedListeners"
     >
         <view v-if="hasAppBackground" class="app-background-image"></view>
         <view v-if="hasAppBackground" class="app-background-overlay"></view>
@@ -21,7 +20,7 @@ export default {
     inheritAttrs: false,
     computed: {
         forwardedListeners() {
-            return this.$listeners || {};
+            return {};
         }
     },
     data() {
@@ -37,7 +36,7 @@ export default {
             this.$parent.$on('hook:onShow', this._pageShowHook);
         }
     },
-    beforeDestroy() {
+    beforeUnmount() {
         if (this._pageShowHook && this.$parent && this.$parent.$off) {
             this.$parent.$off('hook:onShow', this._pageShowHook);
         }

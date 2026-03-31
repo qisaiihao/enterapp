@@ -67,11 +67,7 @@
 </template>
 
 <script>
-const {
-    listAdminPosts,
-    updateAdminPostType,
-    deleteAdminPost
-} = require('../../api-cache/admin-manager.js');
+import { listAdminPosts, updateAdminPostType, deleteAdminPost } from '../../api-cache/admin-manager.js';
 
 export default {
     data() {

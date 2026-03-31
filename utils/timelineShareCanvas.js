@@ -1,16 +1,10 @@
-const shareCanvasModule = require('./shareCanvas.js');
-const fontManagerModule = require('./fontManager.js');
-
-const {
+import {
     wrapText,
     drawRoundedRect,
     exportShareCanvas,
     drawCornerWatermark
-} = shareCanvasModule || {};
-
-const fontManager = fontManagerModule && fontManagerModule.default
-    ? fontManagerModule.default
-    : fontManagerModule;
+} from './shareCanvas.js';
+import fontManager from './fontManager.js';
 
 const CANVAS_WIDTH = 750;
 const MAX_PAGE_HEIGHT = 6000;
@@ -717,6 +711,17 @@ async function generateTimelineShareImages(options = {}) {
     return images;
 }
 
-module.exports = {
+const timelineShareCanvas = {
     generateTimelineShareImages
 };
+
+export {
+    generateTimelineShareImages
+};
+
+export default timelineShareCanvas;
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = timelineShareCanvas;
+    module.exports.default = timelineShareCanvas;
+}

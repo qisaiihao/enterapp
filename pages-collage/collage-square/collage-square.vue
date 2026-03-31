@@ -89,9 +89,9 @@
 
 <script>
 import { getCollageList } from '@/api-cache/collage.js';
-const { togglePostLike } = require('../../utils/likeService.js');
-const likeIcon = require('../../utils/likeIcon.js');
-const { getLatestLikeStatus } = require('@/utils/likeStatusSync.js');
+import { togglePostLike } from '../../utils/likeService.js';
+import likeIcon from '../../utils/likeIcon.js';
+import { getLatestLikeStatus } from '@/utils/likeStatusSync.js';
 
 const PAGE_SIZE = 10;
 
@@ -481,7 +481,7 @@ export default {
       const current = this.currentCollage || this.collageList.find(item => item && item._id === postId)
       if (!current) return
 
-      this.$set(this.votingInProgress, postId, true)
+      this.votingInProgress[postId] = true
 
       const originalVotes = Number(current.votes) || 0
       const originalIsVoted = !!current.isVoted
@@ -518,7 +518,7 @@ export default {
           isLiked: originalIsVoted
         })
       } finally {
-        this.$set(this.votingInProgress, postId, false)
+        this.votingInProgress[postId] = false
       }
     },
     

@@ -1,6 +1,6 @@
-import cacheManager from '@/_utils/cache-manager';
+import cacheManager from '@/cache/core/manager.js';
 import { buildCacheKey } from './cache-key-builder.js';
-const { cloudCall } = require('@/utils/cloudCall.js');
+import { cloudCall } from '@/utils/cloudCall.js';
 
 // 标签页分页：TTL 90s + SWR 45s
 // 【优化】统一使用 posts:list 命名空间，实现跨页面缓存复用

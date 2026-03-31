@@ -104,20 +104,23 @@
 </template>
 
 <script>
-// pages/messages/messages.js
-const app = getApp();
-const { formatTimeAgo } = require('../../utils/time');
-const { getUnreadCount, invalidateUnread } = require('../../api-cache/unread.js');
-const {
-    getMessages: getMessagesWithCache,
-    markMessagesAsRead: markMessagesAsReadApi,
+import { formatTimeAgo } from '../../utils/time.js';
+import { getUnreadCount, invalidateUnread } from '../../api-cache/unread.js';
+import {
+    getMessages as getMessagesWithCache,
+    markMessagesAsRead as markMessagesAsReadApi,
     deleteMessageById,
     clearMessages,
     invalidateMessages
-} = require('../../api-cache/messages.js');
-const { toggleFollow } = require('../../api-cache/following.js');
-const fileUrlCache = require('../../cache/core/file-url.js').default;
-const unreadBadge = require('../../cache/stores/unread-badge.js');
+} from '../../api-cache/messages.js';
+import { toggleFollow } from '../../api-cache/following.js';
+import fileUrlCache from '../../cache/core/file-url.js';
+import unreadBadge from '../../cache/stores/unread-badge.js';
+import followCache from '../../utils/followCache.js';
+import { emitUnreadChanged } from '../../utils/events.js';
+// pages/messages/messages.js
+const app = getApp();
+
 export default {
     data() {
         return {
@@ -177,7 +180,7 @@ export default {
     watch: {
         // 本页未读数更新时，广播给全局（驱动小红点即时消失）
         unreadCount(n) {
-            try { const { emitUnreadChanged } = require('../../utils/events.js'); emitUnreadChanged({ count: typeof n === 'number' ? n : 0 }); } catch (_) {}
+            try { emitUnreadChanged({ count: typeof n === 'number' ? n : 0 }); } catch (_) {}
         }
     },
     methods: {
@@ -832,7 +835,6 @@ export default {
             }
 
             // 使用关注缓存批量查询，避免频繁调用云函数
-            const followCache = require('../../utils/followCache.js');
             const currentUserId = this.getCurrentUserId();
             if (!currentUserId) {
                 return;

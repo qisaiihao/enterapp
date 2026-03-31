@@ -43,10 +43,10 @@
 </template>
 
 <script>
-import { imageManager } from '@/utils/imageManager.js';
 import { cloudCall } from '@/utils/cloudCall.js';
 import { getPostList as getPostListWithCache } from '@/api-cache/post-list.js';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
+import { getAppState, getOpenid, patchAppState, setUserSession } from '@/utils/app-state.js';
 
 export default {
     data() {
@@ -113,6 +113,11 @@ export default {
         this.loadSplashImage();
     },
     methods: {
+        applyLocalState(partial = {}) {
+            Object.keys(partial).forEach((key) => {
+                this[key] = partial[key];
+            });
+        },
         // 统一云函数调用方法
         callCloudFunction(name, data = {}, extraOptions = {}) {
             return cloudCall(name, data, Object.assign({ pageTag: 'splash', context: this }, extraOptions));
@@ -166,14 +171,14 @@ export default {
                     return;
                 }
 
-                if (!app || !app.globalData || app.globalData._loginProcessCompleted) {
+                if (!app || getAppState()._loginProcessCompleted) {
                     resolve();
                     return;
                 }
 
                 const start = Date.now();
                 const timer = setInterval(() => {
-                    const done = app && app.globalData && app.globalData._loginProcessCompleted;
+                    const done = !!getAppState()._loginProcessCompleted;
                     if (done || Date.now() - start >= maxWait) {
                         clearInterval(timer);
                         resolve();
@@ -183,8 +188,7 @@ export default {
         },
 
         hasAuthenticatedUser() {
-            const app = getApp();
-            const globalData = (app && app.globalData) || {};
+            const globalData = getAppState();
             if (globalData.isLoggedIn && globalData.userInfo) {
                 return true;
             }
@@ -195,12 +199,11 @@ export default {
             } catch (e) {}
 
             if (cachedUserInfo && (cachedUserInfo.poemId || cachedUserInfo._openid)) {
-                if (app) {
-                    app.globalData = app.globalData || {};
-                    app.globalData.userInfo = cachedUserInfo;
-                    app.globalData.openid = cachedUserInfo._openid || app.globalData.openid;
-                    app.globalData.isLoggedIn = true;
-                }
+                setUserSession(cachedUserInfo, cachedUserInfo._openid || getOpenid());
+                patchAppState({
+                    isLoggedIn: true,
+                    _loginProcessCompleted: true
+                });
                 return true;
             }
 
@@ -236,7 +239,7 @@ export default {
             const typeNextChar = () => {
                 if (charIndex < textToType.length) {
                     // 1. 更新 typedText：将当前已显示的文本加上下一个要显示的字符
-                    this.setData({
+                    this.applyLocalState({
                         typedText: this.typedText + textToType[charIndex]
                     });
 
@@ -251,7 +254,7 @@ export default {
                 } else {
                     // 所有字符都已显示完毕，延迟后显示"进入"按钮
                     setTimeout(() => {
-                        this.setData({
+                        this.applyLocalState({
                             showEnterButton: true,
                             textMoveUp: true // 触发文字上移动画
                         });
@@ -307,7 +310,7 @@ export default {
             // 检查预加载是否完成
             if (!this.preloadCompleted) {
                 // 记录用户已点击，等待加载完成后自动跳转
-                this.setData({
+                this.applyLocalState({
                     userClickedEnter: true
                 });
                 uni.showToast({
@@ -327,7 +330,7 @@ export default {
          */
         proceedToNavigate: function () {
             // 隐藏按钮，显示换行后的光标
-            this.setData({
+            this.applyLocalState({
                 showEnterButton: false,
                 showNewLineCursor: true
             });
@@ -362,13 +365,13 @@ export default {
             //
             //   if (splashUrl && splashUrl !== '/static/images/splash.png') {
             //     console.log('成功获取云端开屏图URL:', splashUrl)
-            //     this.setData({
+            //     this.applyLocalState({
             //       splashImageUrl: splashUrl,
             //       preloadedImagePath: splashUrl
             //     })
             //   } else {
             //     console.log('使用默认本地开屏图')
-            //     this.setData({
+            //     this.applyLocalState({
             //       preloadedImagePath: '/static/images/splash.png'
             //     })
             //   }
@@ -378,7 +381,7 @@ export default {
             // }
 
             // 暂时直接使用本地开屏图
-            this.setData({
+            this.applyLocalState({
                 preloadedImagePath: '/static/images/splash.png',
                 preloadCompleted: true
             });
@@ -473,7 +476,7 @@ export default {
             const { app, openid } = await this.waitForOpenId();
 
             if (!openid) {
-                this.setData({
+                this.applyLocalState({
                     preloadCompleted: true
                 });
                 // 如果没有openid，也需要检查用户是否已点击过
@@ -486,11 +489,8 @@ export default {
                 return;
             }
 
-            if (app) {
-                app.globalData = app.globalData || {};
-                if (!app.globalData.openid) {
-                    app.globalData.openid = openid;
-                }
+            if (!getOpenid()) {
+                patchAppState({ openid });
             }
 
             // 创建一个数组来存放所有的预加载任务 (Promise)
@@ -506,7 +506,7 @@ export default {
                 console.error('预加载任务执行过程中出现错误:', error);
             } finally {
                 // 预加载完成后，设置标志位
-                this.setData({
+                this.applyLocalState({
                     preloadCompleted: true
                 });
                 console.log('预加载任务完成');
@@ -528,7 +528,7 @@ export default {
         preloadPoemData: function () {
             // Promise 的执行函数本身也可以是 async 函数
             return new Promise(async (resolve, reject) => {
-                this.setData({
+                this.applyLocalState({
                     isPreloading: true
                 });
                 // 使用缓存接口，复用 poem-square 等页面的缓存
@@ -557,7 +557,7 @@ export default {
                     console.error('诗歌数据预加载失败:', err);
                     reject(err);
                 }).finally(() => {
-                    this.setData({
+                    this.applyLocalState({
                         preloadProgress: 100,
                         isPreloading: false
                     });
@@ -844,7 +844,7 @@ export default {
 
         startFadeOut: function () {
             // 添加淡出和缩放动画类
-            this.setData({
+            this.applyLocalState({
                 fadeOut: true,
                 zoomOut: true
             });

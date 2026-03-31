@@ -5,7 +5,7 @@
  * TTL: 5分钟
  * 持久化: 否
  */
-const cacheManager = require('../core/manager');
+import cacheManager from '../core/manager.js';
 
 const NS_BLOCKED = cacheManager.namespace('blockedUsers', { persistent: false, maxItems: 500 });
 const BLOCKED_TTL_MS = 5 * 60 * 1000; // 5分钟
@@ -82,10 +82,25 @@ function getCacheStats() {
   };
 }
 
-module.exports = {
+const blockedUsersCache = {
   getCachedBlockedIds,
   setCachedBlockedIds,
   clearCache,
   updateCache,
   getCacheStats
 };
+
+export {
+  getCachedBlockedIds,
+  setCachedBlockedIds,
+  clearCache,
+  updateCache,
+  getCacheStats
+};
+
+export default blockedUsersCache;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = blockedUsersCache;
+  module.exports.default = blockedUsersCache;
+}

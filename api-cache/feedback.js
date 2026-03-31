@@ -1,7 +1,7 @@
 /**
  * 反馈相关 API 封装
  */
-const { callActionAndUnwrap } = require('./_shared/cloud-wrapper.js');
+import { callActionAndUnwrap } from './_shared/cloud-wrapper.js';
 
 async function callFeedbackManager(action, payload = {}, options = {}) {
   const {
@@ -128,7 +128,7 @@ function getFeedbackDetail(feedbackId, options = {}) {
   }, options));
 }
 
-module.exports = {
+const feedbackApi = {
   callFeedbackManager,
   submitFeedback,
   getFeedbackList,
@@ -136,3 +136,19 @@ module.exports = {
   deleteFeedback,
   getFeedbackDetail
 };
+
+export {
+  callFeedbackManager,
+  submitFeedback,
+  getFeedbackList,
+  updateFeedbackStatus,
+  deleteFeedback,
+  getFeedbackDetail
+};
+
+export default feedbackApi;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = feedbackApi;
+  module.exports.default = feedbackApi;
+}

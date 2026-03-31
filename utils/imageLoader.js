@@ -230,8 +230,12 @@ class ImageLoader {
 
 // 创建单例
 const imageLoader = new ImageLoader();
-module.exports = imageLoader;
+export default imageLoader;
 
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = imageLoader;
+    module.exports.default = imageLoader;
+}
 
 
 

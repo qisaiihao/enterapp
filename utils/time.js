@@ -55,8 +55,21 @@ const formatTimeAgo = (timestamp) => {
     }
 };
 
-module.exports = {
+const timeUtils = {
     formatTimeAgo,
     formatRelativeTime,
     formatDate
 };
+
+export {
+    formatTimeAgo,
+    formatRelativeTime,
+    formatDate
+};
+
+export default timeUtils;
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = timeUtils;
+    module.exports.default = timeUtils;
+}

@@ -48,6 +48,7 @@ export default {
     components: {
         CommentItem
     },
+    emits: ['avatar-error', 'navigate-to-user', 'reply-click', 'like', 'delete', 'preview-image', 'toggle-replies'],
     props: {
         comments: {
             type: Array,

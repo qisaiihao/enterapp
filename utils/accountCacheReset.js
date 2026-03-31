@@ -1,9 +1,9 @@
 // 账号切换/重新登录后的缓存清理与预热
 // 使用处：登录成功、从设置里切换账号后
 
-import cacheManager from '@/_utils/cache-manager';
+import cacheManager from '@/cache/core/manager';
 import fileUrlCache from '@/_utils/file-url-cache';
-const followCache = require('./followCache.js');
+import followCache from './followCache.js';
 import { getMyInfo } from '@/api-cache/my.js';
 
 function clearAllNamespaces() {

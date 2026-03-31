@@ -1,5 +1,5 @@
-import cacheManager from '@/_utils/cache-manager';
-const { cloudCall } = require('@/utils/cloudCall.js');
+import cacheManager from '@/cache/core/manager';
+import { cloudCall } from '@/utils/cloudCall.js';
 
 // 关注用户列表：TTL 5分钟 + SWR 2分钟
 const TTL_MS = 5 * 60 * 1000;
@@ -16,7 +16,7 @@ const ns = cacheManager.namespace('following:users', { persistent: true, maxItem
  * @param {boolean} options.forceRefresh - 是否强制刷新
  * @param {Function} options.onBackgroundUpdate - SWR后台更新回调
  */
-async function getFollowingUsers({
+export async function getFollowingUsers({
   limit = 50,
   context,
   forceRefresh = false,
@@ -68,12 +68,12 @@ async function getFollowingUsers({
 /**
  * 清除关注用户列表缓存
  */
-function invalidateFollowingUsers() {
+export function invalidateFollowingUsers() {
   ns.clear();
   console.log('🔍 [following-users] 清除所有缓存');
 }
 
-module.exports = {
+export default {
   getFollowingUsers,
   invalidateFollowingUsers
 };

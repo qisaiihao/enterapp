@@ -80,13 +80,14 @@
 </template>
 
 <script>
-const { cloudCall } = require('../../utils/cloudCall.js');
-const { formatRelativeTime } = require('../../utils/time.js');
-const { previewImage } = require('../../utils/imagePreview.js');
-const { togglePostLike } = require('../../utils/likeService.js');
-const likeIcon = require('../../utils/likeIcon.js');
-const { attachPoemDisplayFields } = require('../../utils/poemDisplay.js');
-// authorSignature已从云函数返回，不再需要signatureCache
+import { cloudCall } from '../../utils/cloudCall.js';
+import { formatRelativeTime } from '../../utils/time.js';
+import { previewImage } from '../../utils/imagePreview.js';
+import { togglePostLike } from '../../utils/likeService.js';
+import likeIcon from '../../utils/likeIcon.js';
+import { attachPoemDisplayFields } from '../../utils/poemDisplay.js';
+import { syncLikeStatusForPosts, getLatestLikeStatus } from '../../utils/likeStatusSync.js';
+// authorSignature???????????????????ignatureCache
 // Temporary placeholder for hydrateTempUrls
 const hydrateTempUrls = async (posts) => posts;
 
@@ -208,9 +209,7 @@ export default {
           const processedPosts = await hydrateTempUrls(newPosts);
           
           // 优先使用本地缓存中的点赞状态，如果没有缓存则使用云函数返回的状态
-          const likeSync = require('../../utils/likeStatusSync.js');
-          const getLatestLikeStatus = likeSync.getLatestLikeStatus;
-          
+                    
           // 处理背景色、文字颜色和展开状态
           processedPosts.forEach(post => {
             // 优先使用数据库中保存的背景颜色，如果没有则随机生成
@@ -284,7 +283,9 @@ export default {
       const index = e.currentTarget.dataset.index;
       const post = this.postList[index];
       if (post) {
-        this.$set(this.postList, index, { ...post, isExpanded: !post.isExpanded });
+        const nextPostList = this.postList.slice();
+        nextPostList[index] = { ...post, isExpanded: !post.isExpanded };
+        this.postList = nextPostList;
         // authorSignature已从云函数返回，无需额外获取
       }
     },
@@ -311,7 +312,7 @@ export default {
         return;
       }
       
-      this.$set(this.votingInProgress, postId, true);
+      this.votingInProgress[postId] = true;
       const list = this.postList;
       const originalVotes = Number(list[index].votes) || 0;
       const wasVoted = !!list[index].isVoted;
@@ -378,7 +379,7 @@ export default {
         this.postList = rollbackList;
         uni.showToast({ title: '操作失败', icon: 'none' });
       } finally {
-        this.$set(this.votingInProgress, postId, false);
+        this.votingInProgress[postId] = false;
       }
     },
 
@@ -412,10 +413,8 @@ export default {
         const ids = list.map(p => p && p._id).filter(Boolean);
         if (!ids.length) return;
         try { 
-          const { syncLikeStatusForPosts } = require('../../utils/likeStatusSync.js'); 
           syncLikeStatusForPosts(ids); 
         } catch (_) {}
-        const { getLatestLikeStatus } = require('../../utils/likeStatusSync.js');
         let changed = false;
         const next = list.slice();
         for (let i = 0; i < next.length; i += 1) {

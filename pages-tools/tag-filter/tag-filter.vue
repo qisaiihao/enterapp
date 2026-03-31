@@ -45,18 +45,19 @@
 <script>
 import skeleton from '@/components/skeleton/skeleton';
 import PostItem from '@/components/PostItem.vue';
-// pages/tag-filter/tag-filter.js
-// 修复：移除全局数据库实例，改为在方法中动态获取
-const PAGE_SIZE = 10;
-const { previewImage } = require('../../utils/imagePreview.js');
-const likeIcon = require('../../utils/likeIcon');
-const { togglePostLike } = require('../../utils/likeService.js');
-const likeSync = require('../../utils/likeStatusSync.js');
-const { normalizePostList } = require('../../utils/postNormalizer.js');
-const { cloudCall } = require('../../utils/cloudCall.js');
+import { previewImage } from '../../utils/imagePreview.js';
+import likeIcon from '../../utils/likeIcon.js';
+import { togglePostLike } from '../../utils/likeService.js';
+import { getLatestLikeStatus, updateLikeStatus } from '../../utils/likeStatusSync.js';
+import { normalizePostList } from '../../utils/postNormalizer.js';
+import { cloudCall } from '../../utils/cloudCall.js';
 import { getTagPosts } from '@/api-cache/tag-posts.js';
 import { hydrateTempUrls, warmTempUrlsFromPosts } from '@/_utils/hydrate-temp-urls';
-const paginationMixin = require('../../mixins/pagination.js');
+import paginationMixin from '../../mixins/pagination.js';
+// pages/tag-filter/tag-filter.js
+// ????????????????????????????????????
+const PAGE_SIZE = 10;
+
 export default {
     components: {
         skeleton,
@@ -104,7 +105,6 @@ export default {
                 warmTempUrlsFromPosts(posts);
 
                 // 优先使用本地缓存中的点赞状态，添加 likeIcon
-                const getLatestLikeStatus = likeSync.getLatestLikeStatus;
                 posts = posts.map((post) => {
                     const cachedStatus = getLatestLikeStatus(post._id);
                     const finalVotes = cachedStatus ? cachedStatus.votes : (post.votes || 0);
@@ -119,7 +119,6 @@ export default {
 
                 // 将云函数返回的点赞状态更新到缓存
                 try {
-                    const updateLikeStatus = likeSync.updateLikeStatus;
                     raw.forEach((post) => {
                         if (post._id && (post.isVoted !== undefined || post.votes !== undefined)) {
                             updateLikeStatus(post._id, post.votes || 0, post.isVoted || false);

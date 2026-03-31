@@ -253,7 +253,7 @@ function processUploadResults(uploadResults) {
     });
 }
 
-module.exports = {
+const publishUtils = {
     validatePublishData,
     canPublish,
     generateDraftData,
@@ -261,3 +261,19 @@ module.exports = {
     generatePublishData,
     processUploadResults
 };
+
+export {
+    validatePublishData,
+    canPublish,
+    generateDraftData,
+    cleanDraftData,
+    generatePublishData,
+    processUploadResults
+};
+
+export default publishUtils;
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = publishUtils;
+    module.exports.default = publishUtils;
+}

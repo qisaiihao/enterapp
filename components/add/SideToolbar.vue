@@ -33,6 +33,7 @@
 <script>
 export default {
     name: 'SideToolbar',
+    emits: ['toggle-tags', 'choose-image', 'switch-mode', 'toggle-series', 'toggle-highlight', 'select-color'],
     props: {
         publishMode: {
             type: String,

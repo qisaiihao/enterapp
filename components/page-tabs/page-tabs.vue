@@ -29,6 +29,7 @@ export default {
   components: {
     topBar
   },
+  emits: ['tab-change'],
   props: {
     currentTab: {
       type: String,

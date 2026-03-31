@@ -1,9 +1,9 @@
 // TODO: AI推荐算法暂时停用
 // 以下代码已注释，等待后续完善
 
-import cacheManager from '@/_utils/cache-manager';
+import cacheManager from '@/cache/core/manager.js';
 import { buildCacheKey } from './cache-key-builder.js';
-const { cloudCall } = require('@/utils/cloudCall.js');
+import { cloudCall } from '@/utils/cloudCall.js';
 
 // 内容推荐：诗歌专用
 // TTL/SWR 取轻量值，避免旧画像长时间生效

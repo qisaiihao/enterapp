@@ -2,10 +2,7 @@
  * 分享图片 Canvas 绘制工具函数
  */
 
-const fontManagerModule = require('./fontManager.js');
-const fontManager = fontManagerModule && fontManagerModule.default
-    ? fontManagerModule.default
-    : fontManagerModule;
+import fontManager from './fontManager.js';
 
 // 兼容旧的 fontFamily ID 到 displayName 的映射
 const LEGACY_FONT_MAP = {
@@ -804,7 +801,7 @@ async function drawShareCardContent(options) {
     try { drawCornerWatermark(ctx, canvasWidth, canvasHeight); } catch (e) { console.warn('draw watermark failed', e); }
 }
 
-module.exports = {
+const shareCanvas = {
     drawImageAsync,
     calculateActualLines,
     wrapText,
@@ -820,3 +817,27 @@ module.exports = {
     calculateShareCardHeight,
     drawShareCardContent
 };
+
+export {
+    drawImageAsync,
+    calculateActualLines,
+    wrapText,
+    preventShortLineBreak,
+    drawRoundRect,
+    drawRoundedRect,
+    drawMultiLineText,
+    loadFont,
+    canvasToTempFile,
+    exportShareCanvas,
+    prepareSignatureForCard,
+    drawCornerWatermark,
+    calculateShareCardHeight,
+    drawShareCardContent
+};
+
+export default shareCanvas;
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = shareCanvas;
+    module.exports.default = shareCanvas;
+}

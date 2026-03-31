@@ -47,10 +47,9 @@
 </template>
 
 <script>
-// 引入云函数调用工具
-const { cloudCall } = require('../../utils/cloudCall.js');
-const platformDetector = require('../../utils/platformDetector.js');
-const { requestAndroidStoragePermission } = require('../../utils/permissions.js');
+import { cloudCall } from '../../utils/cloudCall.js';
+import platformDetector from '../../utils/platformDetector.js';
+import { requestAndroidStoragePermission } from '../../utils/permissions.js';
 
 export default {
   data() {

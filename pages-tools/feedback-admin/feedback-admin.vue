@@ -69,7 +69,7 @@
             </view>
 
 
-            <view v-else-if="!hasMore && feedbackList.length > 0" class="no-more">
+            <view v-if="!hasMore && feedbackList.length > 0" class="no-more">
                 <text>--- 没有更多了 ---</text>
             </view>
         </view>
@@ -77,16 +77,16 @@
 </template>
 
 <script>
-// 管理员反馈查看页面
-const { formatRelativeTime } = require('../../utils/time.js');
-const { previewImage: previewImageUtil } = require('../../utils/imagePreview.js');
-const { cloudCall } = require('../../utils/cloudCall.js');
-const { getCurrentUserInfo, isAdminUser } = require('../../utils/admin.js');
-const {
-    getFeedbackList: getFeedbackListApi,
+import { formatRelativeTime } from '../../utils/time.js';
+import { previewImage as previewImageUtil } from '../../utils/imagePreview.js';
+import { cloudCall } from '../../utils/cloudCall.js';
+import { getCurrentUserInfo, isAdminUser } from '../../utils/admin.js';
+import {
+    getFeedbackList as getFeedbackListApi,
     updateFeedbackStatus,
-    deleteFeedback: deleteFeedbackApi
-} = require('../../api-cache/feedback.js');
+    deleteFeedback as deleteFeedbackApi
+} from '../../api-cache/feedback.js';
+
 export default {
     data() {
         return {

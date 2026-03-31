@@ -146,4 +146,13 @@ logs/
 .npm/
 
 
+# HarmonyOS local signing/build overrides
+harmony-configs/build-profile.json5
+harmony-configs/**/*.p12
+harmony-configs/**/*.p7b
+harmony-configs/**/*.cer
+harmony-configs/**/*.pem
+harmony-configs/**/*.keystore
+
+
 # ------------

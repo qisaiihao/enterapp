@@ -1,14 +1,20 @@
+import * as appState from './app-state.js';
+
 const OPENID_KEYS = ['userOpenId', 'openid'];
 
 function getAppInstance() {
-    if (typeof getApp === 'function') {
-        try {
-            return getApp();
-        } catch (error) {
-            console.warn('[auth] 获取 App 实例失败', error);
-        }
+    if (typeof getApp !== 'function') {
+        return null;
     }
-    return null;
+    try {
+        return getApp();
+    } catch (error) {
+        return null;
+    }
+}
+
+function getAppStateModule() {
+    return appState && typeof appState === 'object' ? appState : {};
 }
 
 function readOpenIdFromStorage() {
@@ -21,86 +27,132 @@ function readOpenIdFromStorage() {
             if (value) {
                 return value;
             }
-        } catch (error) {
-            console.warn(`[auth] 读取本地 openid(${key}) 失败`, error);
-        }
+        } catch (error) {}
     }
     return null;
+}
+
+function patchFallbackState(partial = {}) {
+    const app = getAppInstance();
+    if (!app) {
+        return {};
+    }
+    app.globalData = app.globalData || {};
+    Object.keys(partial).forEach((key) => {
+        app.globalData[key] = partial[key];
+    });
+    return app.globalData;
+}
+
+function patchAppStateSafe(partial = {}) {
+    const appState = getAppStateModule();
+    if (typeof appState.patchAppState === 'function') {
+        try {
+            return appState.patchAppState(partial);
+        } catch (error) {}
+    }
+    return patchFallbackState(partial);
+}
+
+function setUserSessionSafe(userInfo = null, openid = null) {
+    const appState = getAppStateModule();
+    if (typeof appState.setUserSession === 'function') {
+        try {
+            return appState.setUserSession(userInfo, openid);
+        } catch (error) {}
+    }
+    return patchFallbackState({
+        userInfo: userInfo || null,
+        openid: openid || null,
+        isLoggedIn: !!userInfo
+    });
+}
+
+function getOpenIdFromState() {
+    const appState = getAppStateModule();
+    if (typeof appState.getOpenid === 'function') {
+        try {
+            return appState.getOpenid();
+        } catch (error) {}
+    }
+    if (typeof appState.getAppState === 'function') {
+        try {
+            const state = appState.getAppState();
+            return state && state.openid;
+        } catch (error) {}
+    }
+    const app = getAppInstance();
+    return app && app.globalData ? app.globalData.openid : null;
 }
 
 function cacheOpenId(openid) {
     if (!openid) {
         return;
     }
-    const app = getAppInstance();
-    if (app) {
-        app.globalData = app.globalData || {};
-        app.globalData.openid = openid;
-    }
+    patchAppStateSafe({ openid });
     if (typeof uni !== 'undefined' && typeof uni.setStorageSync === 'function') {
         try {
             uni.setStorageSync('userOpenId', openid);
-        } catch (error) {
-            console.warn('[auth] 缓存 openid 失败', error);
-        }
+        } catch (error) {}
     }
 }
 
 async function getOpenId() {
-    const app = getAppInstance();
-    const fromGlobal = app && app.globalData && app.globalData.openid;
-    if (fromGlobal) {
-        return fromGlobal;
+    const fromState = getOpenIdFromState();
+    if (fromState) {
+        return fromState;
     }
 
-    const fromCache = readOpenIdFromStorage();
-    if (fromCache) {
-        cacheOpenId(fromCache);
-        return fromCache;
-    }
-
-    return null;
-}
-
-function setLoginState(userInfo = null, openid = null) {
-    const app = getAppInstance();
-    if (!app) {
-        return;
-    }
-    app.globalData = app.globalData || {};
-    if (openid) {
-        app.globalData.openid = openid;
-        cacheOpenId(openid);
-    }
-    if (userInfo) {
-        app.globalData.userInfo = Object.assign({}, app.globalData.userInfo || {}, userInfo);
-    }
-    app.globalData._loginProcessCompleted = true;
-}
-
-function getCurrentUserId(context = null) {
-    // 优先从context获取
-    if (context && context.openid) {
-        return context.openid;
-    }
-
-    // 从全局App实例获取
-    const app = getAppInstance();
-    if (app && app.globalData && app.globalData.openid) {
-        return app.globalData.openid;
-    }
-
-    // 从本地存储获取
     const fromStorage = readOpenIdFromStorage();
     if (fromStorage) {
+        cacheOpenId(fromStorage);
         return fromStorage;
     }
 
     return null;
 }
 
-module.exports = {
+function setLoginState(userInfo = null, openid = null) {
+    const resolvedOpenid = openid || (userInfo && (userInfo._openid || userInfo.openid)) || null;
+    if (resolvedOpenid) {
+        cacheOpenId(resolvedOpenid);
+    }
+    setUserSessionSafe(userInfo, resolvedOpenid);
+    patchAppStateSafe({
+        _loginProcessStarted: true,
+        _loginProcessCompleted: true,
+        isLoggedIn: !!userInfo
+    });
+}
+
+function getCurrentUserId(context = null) {
+    if (context && context.openid) {
+        return context.openid;
+    }
+
+    const fromState = getOpenIdFromState();
+    if (fromState) {
+        return fromState;
+    }
+
+    return readOpenIdFromStorage();
+}
+
+const authUtils = {
     getOpenId,
     setLoginState,
     getCurrentUserId
 };
+
+export {
+    getOpenId,
+    setLoginState,
+    getCurrentUserId
+};
+
+export default authUtils;
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = authUtils;
+    module.exports.default = authUtils;
+}

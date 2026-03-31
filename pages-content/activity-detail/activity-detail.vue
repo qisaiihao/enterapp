@@ -91,16 +91,16 @@ import PostItem from '@/components/PostItem.vue';
 import ActivityPoemCard from '@/components/activity/ActivityPoemCard.vue';
 import { getActivityPosts, getActivityDetail, invalidateActivityPosts } from '@/api-cache/activities.js';
 import fileUrlCache from '@/_utils/file-url-cache';
-const { attachPoemDisplayFields } = require('@/utils/poemDisplay.js');
-const { previewImage } = require('@/utils/imagePreview.js');
-const likeIcon = require('@/utils/likeIcon.js');
-const { togglePostLike } = require('@/utils/likeService.js');
-const { getLatestLikeStatus } = require('@/utils/likeStatusSync.js');
-const {
+import { attachPoemDisplayFields } from '@/utils/poemDisplay.js';
+import { previewImage } from '@/utils/imagePreview.js';
+import likeIcon from '@/utils/likeIcon.js';
+import { togglePostLike } from '@/utils/likeService.js';
+import { getLatestLikeStatus } from '@/utils/likeStatusSync.js';
+import {
   decodeParamSafe,
-  formatRange: formatActivityRange,
+  formatRange as formatActivityRange,
   isActivityOngoing
-} = require('@/utils/activity.js');
+} from '@/utils/activity.js';
 
 function buildSeriesPoems(post = {}) {
   const rawBlocks = Array.isArray(post.seriesBlocks) ? post.seriesBlocks : [];
@@ -522,11 +522,11 @@ export default {
       const postId = data && data.postId;
       if (!postId) return;
       if (this.votingInProgress[postId]) return;
-      this.$set(this.votingInProgress, postId, true);
+      this.votingInProgress[postId] = true;
 
       const index = this.postList.findIndex(item => item && item._id === postId);
       if (index < 0) {
-        this.$set(this.votingInProgress, postId, false);
+        this.votingInProgress[postId] = false;
         return;
       }
 
@@ -579,7 +579,7 @@ export default {
           this.postList = rollback;
         }
       }).finally(() => {
-        this.$set(this.votingInProgress, postId, false);
+        this.votingInProgress[postId] = false;
       });
     },
 

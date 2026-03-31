@@ -1,7 +1,7 @@
 /**
  * 草稿相关API缓存层
  */
-const { cloudCall } = require('../utils/cloudCall.js');
+import { cloudCall } from '../utils/cloudCall.js';
 
 /**
  * 获取我的草稿列表
@@ -84,9 +84,23 @@ function clearAllDrafts(options = {}) {
   }));
 }
 
-module.exports = {
+const draftApi = {
   getMyDrafts,
   saveDraft,
   deleteDraft,
   clearAllDrafts
 };
+
+export {
+  getMyDrafts,
+  saveDraft,
+  deleteDraft,
+  clearAllDrafts
+};
+
+export default draftApi;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = draftApi;
+  module.exports.default = draftApi;
+}

@@ -72,6 +72,7 @@ import { formatMonthLabel, formatDateLabel, toggleMonthCollapse } from '@/utils/
 
 export default {
     name: 'TimelineView',
+    emits: ['update:collapsed-months', 'navigate-to-post', 'retry', 'export'],
     props: {
         timelinePosts: {
             type: Array,

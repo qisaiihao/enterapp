@@ -25,6 +25,7 @@ import { resolvePostAuthorAvatar } from '@/utils/defaultAvatar.js';
 
 export default {
   name: 'AuthorInfo',
+  emits: ['avatar-error', 'navigateToUserProfile'],
   props: {
     post: { type: Object, required: true },
     isMutualFollow: Boolean,

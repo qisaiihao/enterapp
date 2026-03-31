@@ -122,7 +122,7 @@
 </template>
 
 <script>
-const { cloudCall } = require('../../utils/cloudCall.js');
+import { cloudCall } from '../../utils/cloudCall.js';
 
 export default {
     data() {

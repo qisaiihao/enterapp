@@ -218,13 +218,12 @@
                 <TimelineView
                     :timelinePosts="timelinePosts"
                     :timelineGroups="timelineGroups"
-                    :collapsedMonths.sync="collapsedMonths"
+                    v-model:collapsed-months="collapsedMonths"
                     :isLoading="timelineLoading"
                     :hasError="timelineError"
                     :title="'TA的创作时间轴'"
                     @navigate-to-post="navigateToPostDetail"
                     @retry="loadTimelineData"
-                    @update:collapsed-months="updateCollapsedMonths"
                 />
             </view>
 
@@ -440,13 +439,15 @@ import {
     toggleBlockRelation,
     getFollowCounts
 } from '@/api-cache/relation.js';
+import { formatRelativeTime } from '../../utils/time.js';
+import avatarCache from '../../utils/avatarCache';
+import followCache from '../../utils/followCache';
+import { previewImage } from '../../utils/imagePreview.js';
+import postGalleryMixin from '../../mixins/postGallery.js';
+import fileUrlCache from '../../_utils/file-url-cache.js';
+import { invalidateHomePosts } from '../../api-cache/home-posts.js';
+import { clearDiscoverCache } from '../../api-cache/discover.js';
 const PAGE_SIZE = 5;
-const { formatRelativeTime } = require('../../utils/time.js');
-const avatarCache = require('../../utils/avatarCache');
-const followCache = require('../../utils/followCache');
-const { previewImage } = require('../../utils/imagePreview.js');
-const postGalleryMixin = require('../../mixins/postGallery.js');
-const fileUrlCache = require('../../_utils/file-url-cache.js').default;
 const USER_PROFILE_BACKGROUND_THEME_VARS = Object.freeze({
     '--user-profile-name-color': '#ffffff',
     '--user-profile-poemid-color': 'rgba(255, 255, 255, 0.78)',
@@ -982,8 +983,6 @@ export default {
 
                                 // 屏蔽/取消屏蔽后，清除相关缓存
                                 try {
-                                    const { invalidateHomePosts } = require('../../api-cache/home-posts.js');
-                                    const { clearDiscoverCache } = require('../../api-cache/discover.js');
                                     invalidateHomePosts({}); // 清除首页缓存
                                     clearDiscoverCache(); // 清除发现页缓存
 

@@ -46,6 +46,7 @@
 <script>
 export default {
     name: 'HighlightSelectorModal',
+    emits: ['close', 'update', 'confirm'],
     props: {
         show: {
             type: Boolean,
@@ -164,7 +165,7 @@ export default {
             this.$emit('confirm', this.selectedIndices);
         }
     },
-    beforeDestroy() {
+    beforeUnmount() {
         if (this.tipTimer) {
             clearTimeout(this.tipTimer);
             this.tipTimer = null;

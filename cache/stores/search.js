@@ -5,7 +5,7 @@
  * TTL: 5分钟
  * 持久化: 否
  */
-const cacheManager = require('../core/manager');
+import cacheManager from '../core/manager.js';
 
 const NS_SEARCH = cacheManager.namespace('search', { persistent: false, maxItems: 50 });
 const SEARCH_TTL_MS = 5 * 60 * 1000; // 5分钟
@@ -55,7 +55,19 @@ class SearchCache {
 
 const searchCache = new SearchCache();
 
-module.exports = {
+const searchStore = {
   searchCache,
   SearchCache
 };
+
+export {
+  searchCache,
+  SearchCache
+};
+
+export default searchStore;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = searchStore;
+  module.exports.default = searchStore;
+}

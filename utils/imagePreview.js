@@ -85,6 +85,14 @@ function safeToast(title) {
     }
 }
 
-module.exports = {
+export { previewImage };
+
+export default {
     previewImage
 };
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        previewImage
+    };
+}

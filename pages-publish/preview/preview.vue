@@ -410,9 +410,9 @@ import { cloudCall } from '@/utils/cloudCall.js';
 
 import { uploadPreviewFile, uploadPreviewFileViaCloudFunction } from './preview-upload.js';
 
-const { formatDateYmd, formatRange: formatActivityRangeUtil } = require('@/utils/activity.js');
+import { formatDateYmd, formatRange as formatActivityRangeUtil } from '@/utils/activity.js';
 
-const { attachPoemDisplayFields } = require('@/utils/poemDisplay.js');
+import { attachPoemDisplayFields } from '@/utils/poemDisplay.js';
 
 
 

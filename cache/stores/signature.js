@@ -5,9 +5,9 @@
  * TTL: 24小时
  * 持久化: 是
  */
-const cacheManager = require('../core/manager');
-const fileUrlCache = require('../core/file-url').default || require('../core/file-url');
-const { cloudCall } = require('@/utils/cloudCall.js');
+import cacheManager from '../core/manager.js';
+import fileUrlCache from '../core/file-url.js';
+import { cloudCall } from '@/utils/cloudCall.js';
 
 const NS_SIGNATURE = cacheManager.namespace('signatures', { persistent: true, maxItems: 2048 });
 const SIGNATURE_TTL_MS = 6 * 60 * 60 * 1000; // 6h（平衡实时性和性能）
@@ -134,4 +134,10 @@ class SignatureCache {
 }
 
 const signatureCache = new SignatureCache();
-module.exports = signatureCache;
+
+export default signatureCache;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = signatureCache;
+  module.exports.default = signatureCache;
+}

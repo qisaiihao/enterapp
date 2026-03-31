@@ -46,6 +46,7 @@ import { resolveUserObjectAvatar } from '@/utils/defaultAvatar.js';
 
 export default {
     name: 'ProfileCard',
+    emits: ['edit-profile', 'navigate-fans', 'toggle-sidebar', 'manage-background', 'avatar-error'],
     data() {
         return {
             lastBackgroundMenuAt: 0

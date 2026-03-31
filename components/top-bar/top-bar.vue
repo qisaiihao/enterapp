@@ -22,6 +22,7 @@
 import unreadBadge from '@/cache/stores/unread-badge.js';
 
 export default {
+  emits: ['safe-area-ready'],
   props: {
     leftIcon: {
       type: String,
@@ -43,7 +44,7 @@ export default {
       this.unreadMessageCount = count;
     });
   },
-  beforeDestroy() {
+  beforeUnmount() {
     // 取消订阅
     if (this._unsubscribe) {
       this._unsubscribe();

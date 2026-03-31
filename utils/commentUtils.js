@@ -1,8 +1,8 @@
 /**
  * 评论处理工具函数
  */
-const { formatRelativeTime } = require('./time.js');
-const { getLikeIcon } = require('./likeIcon.js');
+import { formatRelativeTime } from './time.js';
+import { getLikeIcon } from './likeIcon.js';
 
 /**
  * 处理评论数据，补齐时间、点赞图标和响应式字段
@@ -193,7 +193,7 @@ function calculateRemainingChars(content, maxLength = 1000) {
     return maxLength - (content ? content.length : 0);
 }
 
-module.exports = {
+const commentUtils = {
     processComments,
     mergeCommentUiState,
     validateCommentInput,
@@ -201,3 +201,19 @@ module.exports = {
     findComment,
     calculateRemainingChars
 };
+
+export {
+    processComments,
+    mergeCommentUiState,
+    validateCommentInput,
+    processCommentImages,
+    findComment,
+    calculateRemainingChars
+};
+
+export default commentUtils;
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = commentUtils;
+    module.exports.default = commentUtils;
+}

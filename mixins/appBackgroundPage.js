@@ -83,7 +83,7 @@ export default {
             uni.$on(EVENTS.APP_BACKGROUND_UPDATED, this._appBackgroundHandler);
         }
     },
-    beforeDestroy() {
+    beforeUnmount() {
         if (this._appBackgroundHandler && typeof uni !== 'undefined' && typeof uni.$off === 'function') {
             uni.$off(EVENTS.APP_BACKGROUND_UPDATED, this._appBackgroundHandler);
         }

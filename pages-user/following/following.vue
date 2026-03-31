@@ -57,11 +57,12 @@
 
 <script>
 import RelationUserList from '@/components/relation/user-list.vue';
-const {
+import {
     getFollowingList,
     getFollowerList,
     toggleFollowRelation
-} = require('../../api-cache/relation.js');
+} from '../../api-cache/relation.js';
+
 export default {
     components: {
         RelationUserList

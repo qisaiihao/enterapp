@@ -47,6 +47,7 @@ import { getPoetList, invalidatePoetList } from '@/api-cache/poet.js';
 
 export default {
     name: 'PoetAvatarBar',
+    emits: ['select'],
     props: {
         // 当前选中的诗人名字，null表示全部
         selectedPoetName: {

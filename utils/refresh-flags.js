@@ -49,7 +49,7 @@ function setAdminActivityRefreshFlag(key) {
   setRefreshFlag(key, true);
 }
 
-module.exports = {
+const refreshFlags = {
   FEED_REFRESH_KEYS,
   ADMIN_ACTIVITY_REFRESH_KEYS,
   setRefreshFlag,
@@ -58,3 +58,20 @@ module.exports = {
   consumeFeedRefreshFlags,
   setAdminActivityRefreshFlag
 };
+
+export {
+  FEED_REFRESH_KEYS,
+  ADMIN_ACTIVITY_REFRESH_KEYS,
+  setRefreshFlag,
+  consumeRefreshFlag,
+  setFeedRefreshFlags,
+  consumeFeedRefreshFlags,
+  setAdminActivityRefreshFlag
+};
+
+export default refreshFlags;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = refreshFlags;
+  module.exports.default = refreshFlags;
+}

@@ -1,6 +1,7 @@
-import cacheManager from '@/_utils/cache-manager';
+import cacheManager from '@/cache/core/manager.js';
 import { buildCacheKey } from './cache-key-builder.js';
-const { cloudCall } = require('@/utils/cloudCall.js');
+import { cloudCall } from '@/utils/cloudCall.js';
+import { getPostList } from './post-list.js';
 
 // 诗歌相关API缓存：TTL 75s + SWR 30s (诗歌更新频率适中)
 const TTL_MS = 75 * 1000;
@@ -131,8 +132,6 @@ async function getOriginalPoems({
   forceRefresh = false,
   onBackgroundUpdate
 } = {}) {
-  const { getPostList } = require('./post-list.js');
-
   return getPostList({
     page,
     pageSize,
@@ -164,8 +163,6 @@ async function getMountainPoems({
   onBackgroundUpdate,
   filterByPoet
 } = {}) {
-  const { getPostList } = require('./post-list.js');
-
   return getPostList({
     page,
     pageSize,
@@ -179,9 +176,25 @@ async function getMountainPoems({
   });
 }
 
-module.exports = {
+export {
   getFollowingPoems,
   invalidateFollowingPoems,
   getOriginalPoems,
   getMountainPoems
 };
+
+export default {
+  getFollowingPoems,
+  invalidateFollowingPoems,
+  getOriginalPoems,
+  getMountainPoems
+};
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    getFollowingPoems,
+    invalidateFollowingPoems,
+    getOriginalPoems,
+    getMountainPoems
+  };
+}

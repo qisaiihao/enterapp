@@ -32,10 +32,10 @@
 
 <script>
 import RelationUserList from '@/components/relation/user-list.vue';
-const {
-    getBlockedList,
-    toggleBlockRelation
-} = require('../../api-cache/relation.js');
+import { getBlockedList, toggleBlockRelation } from '../../api-cache/relation.js';
+import { invalidateHomePosts } from '../../api-cache/home-posts.js';
+import { clearDiscoverCache } from '../../api-cache/discover.js';
+
 export default {
     components: {
         RelationUserList
@@ -159,8 +159,6 @@ export default {
                                 }
                                 // 清除相关缓存
                                 try {
-                                    const { invalidateHomePosts } = require('../../api-cache/home-posts.js');
-                                    const { clearDiscoverCache } = require('../../api-cache/discover.js');
                                     invalidateHomePosts({});
                                     clearDiscoverCache();
                                 } catch (cacheError) {

@@ -39,7 +39,7 @@
 </template>
 
 <script>
-const { getAdminUserPassword } = require('../../api-cache/admin-manager.js');
+import { getAdminUserPassword } from '../../api-cache/admin-manager.js';
 
 export default {
     data() {

@@ -43,7 +43,19 @@ function getLikeIconDescription(votes) {
         return '果实';
     }
 }
-module.exports = {
+export {
     getLikeIcon,
     getLikeIconDescription
 };
+
+export default {
+    getLikeIcon,
+    getLikeIconDescription
+};
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        getLikeIcon,
+        getLikeIconDescription
+    };
+}

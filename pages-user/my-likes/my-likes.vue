@@ -100,14 +100,14 @@
 </template>
 
 <script>
-const app = getApp();
-const { previewImage } = require('../../utils/imagePreview.js');
-const { normalizePostList } = require('../../utils/postNormalizer.js');
-const { cloudCall } = require('../../utils/cloudCall.js');
-const postGalleryMixin = require('../../mixins/postGallery.js');
-const paginationMixin = require('../../mixins/pagination.js');
-const { resolvePostAuthorAvatar } = require('../../utils/defaultAvatar.js');
+import { previewImage } from '../../utils/imagePreview.js';
+import { normalizePostList } from '../../utils/postNormalizer.js';
+import { cloudCall } from '../../utils/cloudCall.js';
+import postGalleryMixin from '../../mixins/postGallery.js';
+import paginationMixin from '../../mixins/pagination.js';
+import { resolvePostAuthorAvatar } from '../../utils/defaultAvatar.js';
 const PAGE_SIZE = 5;
+
 export default {
     mixins: [paginationMixin, postGalleryMixin],
     data() {

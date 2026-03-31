@@ -58,6 +58,7 @@
 <script>
 export default {
     name: 'ColorPickerModal',
+    emits: ['close', 'select'],
     props: {
         show: {
             type: Boolean,

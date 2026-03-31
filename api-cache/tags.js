@@ -1,5 +1,5 @@
-const cacheManager = require('@/_utils/cache-manager');
-const { callCloudAndUnwrap } = require('./_shared/cloud-wrapper.js');
+import cacheManager from '@/cache/core/manager.js';
+import { callCloudAndUnwrap } from './_shared/cloud-wrapper.js';
 
 const ns = cacheManager.namespace('tags', { persistent: true, maxItems: 128 });
 
@@ -23,8 +23,19 @@ function invalidateAllTags() {
   ns.delete('all');
 }
 
-module.exports = {
+const tagsApi = {
   getAllTags,
   invalidateAllTags
 };
 
+export {
+  getAllTags,
+  invalidateAllTags
+};
+
+export default tagsApi;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = tagsApi;
+  module.exports.default = tagsApi;
+}

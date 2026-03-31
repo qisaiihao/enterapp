@@ -1,8 +1,8 @@
 /**
  * 我的点赞相关API缓存层
  */
-const cacheManager = require('@/_utils/cache-manager');
-const { cloudCall } = require('../utils/cloudCall.js');
+import cacheManager from '@/cache/core/manager.js';
+import { cloudCall } from '../utils/cloudCall.js';
 
 // 使用独立的 myLikes 命名空间
 const ns = cacheManager.namespace('myLikes', { persistent: true, maxItems: 64 });
@@ -125,10 +125,25 @@ function getLikeStats(options = {}) {
   }));
 }
 
-module.exports = {
+const myLikesApi = {
   getMyLikedPosts,
   invalidateMyLikedPosts,
   unlikePost,
   batchUnlikePosts,
   getLikeStats
 };
+
+export {
+  getMyLikedPosts,
+  invalidateMyLikedPosts,
+  unlikePost,
+  batchUnlikePosts,
+  getLikeStats
+};
+
+export default myLikesApi;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = myLikesApi;
+  module.exports.default = myLikesApi;
+}

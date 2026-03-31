@@ -151,6 +151,18 @@ export default {
             }
         },
 
+        updateFontAt(index, patch) {
+            if (index < 0 || index >= this.fontList.length) {
+                return;
+            }
+            const nextFontList = this.fontList.slice();
+            nextFontList[index] = {
+                ...nextFontList[index],
+                ...patch
+            };
+            this.fontList = nextFontList;
+        },
+
         async downloadFont(font) {
             if (font.isLoading) return;
             
@@ -158,7 +170,7 @@ export default {
                 // 更新UI状态
                 const fontIndex = this.fontList.findIndex(f => f.fontFamily === font.fontFamily);
                 if (fontIndex !== -1) {
-                    this.$set(this.fontList[fontIndex], 'isLoading', true);
+                    this.updateFontAt(fontIndex, { isLoading: true });
                 }
 
                 uni.showLoading({ title: '下载中...' });
@@ -187,7 +199,7 @@ export default {
                 // 重置加载状态
                 const fontIndex = this.fontList.findIndex(f => f.fontFamily === font.fontFamily);
                 if (fontIndex !== -1) {
-                    this.$set(this.fontList[fontIndex], 'isLoading', false);
+                    this.updateFontAt(fontIndex, { isLoading: false });
                 }
             }
         },

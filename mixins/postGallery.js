@@ -58,7 +58,7 @@ function clampRatio(ratio, minRatio, maxRatio) {
     return ratio;
 }
 
-module.exports = {
+const postGalleryMixin = {
     data() {
         return {
             __galleryImageMeta: {}
@@ -160,3 +160,9 @@ module.exports = {
         }
     }
 };
+
+export default postGalleryMixin;
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = postGalleryMixin;
+}

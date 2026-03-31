@@ -1,12 +1,12 @@
 /**
  * 帖子相关 API 缓存层
  */
-const cacheManager = require('@/cache/core/manager');
-const {
+import cacheManager from '@/cache/core/manager';
+import {
   callCloudAndGetResult,
   callCloudAndUnwrap,
   isSuccessResult
-} = require('./_shared/cloud-wrapper.js');
+} from './_shared/cloud-wrapper.js';
 
 // 帖子详情缓存：TTL 2min + SWR 1min
 const POST_DETAIL_TTL = 2 * 60 * 1000;
@@ -271,7 +271,7 @@ async function getRelatedPosts(postId, options = {}) {
   return Array.isArray(result.posts) ? result.posts : [];
 }
 
-module.exports = {
+const postApi = {
   getPostDetail,
   prefillPostDetail,
   invalidatePostDetail,
@@ -283,3 +283,23 @@ module.exports = {
   batchGetPosts,
   getRelatedPosts
 };
+
+export {
+  getPostDetail,
+  prefillPostDetail,
+  invalidatePostDetail,
+  syncPostDetailCommentCount,
+  updatePostContent,
+  deletePost,
+  togglePostFavorite,
+  recordPostView,
+  batchGetPosts,
+  getRelatedPosts
+};
+
+export default postApi;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = postApi;
+  module.exports.default = postApi;
+}

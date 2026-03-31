@@ -88,6 +88,7 @@ import { resolveCommentAuthorAvatar } from '@/utils/defaultAvatar.js';
 
 export default {
     name: 'CommentItem',
+    emits: ['avatar-error', 'navigate-to-user', 'reply-click', 'like', 'delete', 'preview-image', 'image-error', 'image-load', 'toggle-replies'],
     props: {
         item: {
             type: Object,

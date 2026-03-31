@@ -1,6 +1,6 @@
-import cacheManager from '@/_utils/cache-manager';
+import cacheManager from '@/cache/core/manager.js';
 import { buildCacheKey } from './cache-key-builder.js';
-const { cloudCall } = require('@/utils/cloudCall.js');
+import { cloudCall } from '@/utils/cloudCall.js';
 
 // 首页广场分页：TTL 90s + SWR 45s
 // 【优化】统一使用 posts:list 命名空间，实现跨页面缓存复用
@@ -91,4 +91,3 @@ export function invalidateHomePosts({ page, pageSize = 10, isPoem, isOriginal, i
     console.log(`🔍 [home-posts] 清除缓存 - prefix: ${prefixWithoutPage}, 清除数量: ${keys.filter(k => k.includes(prefixWithoutPage)).length}`);
   }
 }
-

@@ -7,7 +7,7 @@
  * 这样 uni.loadFontFace 注册的名称和 Canvas ctx.font 使用的名称一致
  */
 
-const platformDetector = require('./platformDetector.js');
+import platformDetector from './platformDetector.js';
 import fileUrlCache from '@/cache/core/file-url.js';
 
 const FONT_STORAGE_KEY = 'cached_fonts';

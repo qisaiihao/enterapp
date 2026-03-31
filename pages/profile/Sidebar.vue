@@ -46,7 +46,7 @@
 
 <script>
 import { resolveUserObjectAvatar } from '@/utils/defaultAvatar.js';
-const { isAdminUser } = require('@/utils/admin.js');
+import { isAdminUser } from '@/utils/admin.js';
 
 export default {
     name: 'Sidebar',

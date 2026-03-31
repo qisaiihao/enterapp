@@ -1,5 +1,5 @@
-const { formatRelativeTime } = require('./time.js');
-const { resolvePostAuthorAvatar } = require('./defaultAvatar.js');
+import { formatRelativeTime } from './time.js';
+import { resolvePostAuthorAvatar } from './defaultAvatar.js';
 
 const DEFAULT_AUTHOR_NAME = '匿名用户';
 const DEFAULT_AVATAR = '';
@@ -73,7 +73,19 @@ const normalizePostList = (posts, options = {}) => {
     return posts.map((post) => normalizePost(post, options));
 };
 
-module.exports = {
+export {
     normalizePost,
     normalizePostList
 };
+
+export default {
+    normalizePost,
+    normalizePostList
+};
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        normalizePost,
+        normalizePostList
+    };
+}

@@ -1,15 +1,12 @@
-/**
- * Activity badge store.
- * Shows a red dot when a newer activity appears than the last seen one.
- */
+import { getRecentActivities } from '@/api-cache/activities.js';
 
 const EVENT_NAME = 'activity-badge-changed';
 const STORAGE_LAST_SEEN = 'activityBadge:lastSeenToken';
 const STORAGE_LATEST = 'activityBadge:latestToken';
 
-let _hasNewActivity = false;
-let _latestToken = '';
-let _initialized = false;
+let hasNewActivity = false;
+let latestToken = '';
+let initialized = false;
 
 function getStorageString(key, fallback = '') {
   try {
@@ -53,26 +50,26 @@ function buildActivityToken(activity) {
   if (createdAtToken) {
     return id ? `createdAt:${createdAtToken}|id:${id}` : `createdAt:${createdAtToken}`;
   }
+
   return id ? `id:${id}` : '';
 }
 
-function broadcast(hasNew) {
+function broadcast(nextHasNew) {
   try {
     if (typeof uni !== 'undefined' && uni.$emit) {
-      uni.$emit(EVENT_NAME, { hasNew: !!hasNew });
+      uni.$emit(EVENT_NAME, { hasNew: !!nextHasNew });
     }
   } catch (_) {}
 }
 
 function getHasNewActivity() {
-  return _hasNewActivity;
+  return hasNewActivity;
 }
 
 async function refreshActivityBadge({ forceRefresh = false, context } = {}) {
   try {
-    const { getRecentActivities } = require('@/api-cache/activities.js');
     if (typeof getRecentActivities !== 'function') {
-      return _hasNewActivity;
+      return hasNewActivity;
     }
 
     const result = await getRecentActivities({
@@ -86,71 +83,69 @@ async function refreshActivityBadge({ forceRefresh = false, context } = {}) {
     const activities = Array.isArray(result && result.activities) ? result.activities : [];
     const latestActivity = activities[0] || null;
     const nextLatestToken = buildActivityToken(latestActivity);
-    _latestToken = nextLatestToken || '';
-    setStorageString(STORAGE_LATEST, _latestToken);
+    latestToken = nextLatestToken || '';
+    setStorageString(STORAGE_LATEST, latestToken);
 
     const lastSeenToken = getStorageString(STORAGE_LAST_SEEN, '');
-
-    // First install/no history: mark current latest as seen to avoid false-positive red dot.
     if (!lastSeenToken) {
-      if (_latestToken) {
-        setStorageString(STORAGE_LAST_SEEN, _latestToken);
+      if (latestToken) {
+        setStorageString(STORAGE_LAST_SEEN, latestToken);
       }
-      if (_hasNewActivity) {
-        _hasNewActivity = false;
+      if (hasNewActivity) {
+        hasNewActivity = false;
         broadcast(false);
       }
-      _initialized = true;
-      return _hasNewActivity;
+      initialized = true;
+      return hasNewActivity;
     }
 
-    const hasNew = !!_latestToken && _latestToken !== lastSeenToken;
-    if (_hasNewActivity !== hasNew) {
-      _hasNewActivity = hasNew;
-      broadcast(_hasNewActivity);
+    const nextHasNew = !!latestToken && latestToken !== lastSeenToken;
+    if (hasNewActivity !== nextHasNew) {
+      hasNewActivity = nextHasNew;
+      broadcast(hasNewActivity);
     }
-    _initialized = true;
-    return _hasNewActivity;
+    initialized = true;
+    return hasNewActivity;
   } catch (error) {
     console.warn('[activity-badge] refresh failed:', error);
-    return _hasNewActivity;
+    return hasNewActivity;
   }
 }
 
 async function initActivityBadge() {
-  if (_initialized) return _hasNewActivity;
+  if (initialized) return hasNewActivity;
 
   const lastSeenToken = getStorageString(STORAGE_LAST_SEEN, '');
-  _latestToken = getStorageString(STORAGE_LATEST, '');
-  _hasNewActivity = !!(_latestToken && lastSeenToken && _latestToken !== lastSeenToken);
-  _initialized = true;
+  latestToken = getStorageString(STORAGE_LATEST, '');
+  hasNewActivity = !!(latestToken && lastSeenToken && latestToken !== lastSeenToken);
+  initialized = true;
 
   try {
     await refreshActivityBadge({ forceRefresh: false });
   } catch (_) {}
 
-  return _hasNewActivity;
+  return hasNewActivity;
 }
 
 function markActivitySeen() {
-  if (!_latestToken) {
-    _latestToken = getStorageString(STORAGE_LATEST, '');
+  if (!latestToken) {
+    latestToken = getStorageString(STORAGE_LATEST, '');
   }
-  if (_latestToken) {
-    setStorageString(STORAGE_LAST_SEEN, _latestToken);
+  if (latestToken) {
+    setStorageString(STORAGE_LAST_SEEN, latestToken);
   }
-  if (_hasNewActivity) {
-    _hasNewActivity = false;
+  if (hasNewActivity) {
+    hasNewActivity = false;
     broadcast(false);
   }
-  return _hasNewActivity;
+  return hasNewActivity;
 }
 
 function subscribe(callback) {
   if (typeof callback !== 'function') return () => {};
 
   try {
-    callback(_hasNewActivity);
+    callback(hasNewActivity);
   } catch (_) {}
 
   const handler = (payload = {}) => {
@@ -174,10 +169,25 @@ function subscribe(callback) {
   };
 }
 
-module.exports = {
+const activityBadge = {
   initActivityBadge,
   getHasNewActivity,
   subscribe,
   refreshActivityBadge,
   markActivitySeen
 };
+
+export {
+  initActivityBadge,
+  getHasNewActivity,
+  subscribe,
+  refreshActivityBadge,
+  markActivitySeen
+};
+
+export default activityBadge;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = activityBadge;
+  module.exports.default = activityBadge;
+}

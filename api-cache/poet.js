@@ -1,10 +1,9 @@
 /**
  * 诗人相关 API 缓存层
  */
-import cacheManager from '@/cache/core/manager';
-
-const { uploadFile } = require('@/utils/uploader.js');
-const { callCloudAndUnwrap } = require('./_shared/cloud-wrapper.js');
+import cacheManager from '@/cache/core/manager.js';
+import { uploadFile } from '@/utils/uploader.js';
+import { callCloudAndUnwrap } from './_shared/cloud-wrapper.js';
 
 // 诗人信息缓存：TTL 10min + SWR 5min
 const POET_INFO_TTL = 10 * 60 * 1000;
@@ -160,4 +159,3 @@ export async function updatePoetInfo({ poetName, bio, avatarPath, context }) {
     };
   }
 }
-

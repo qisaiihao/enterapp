@@ -38,6 +38,7 @@
 import { resolveUserAvatar } from '@/utils/defaultAvatar.js';
 
 export default {
+  emits: ['user-tap', 'action-tap', 'avatar-error'],
   props: {
     users: {
       type: Array,

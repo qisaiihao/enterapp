@@ -1,4 +1,4 @@
-const { callActionAndUnwrap } = require('./_shared/cloud-wrapper.js');
+import { callActionAndUnwrap } from './_shared/cloud-wrapper.js';
 
 async function callAdminManager(action, payload = {}, { pageTag, context, fallbackMessage } = {}) {
   return callActionAndUnwrap({
@@ -84,7 +84,7 @@ function executeAdminFieldReplace({ collectionName, fieldName, findValue, replac
   );
 }
 
-module.exports = {
+const adminManagerApi = {
   callAdminManager,
   listAdminPosts,
   updateAdminPostType,
@@ -96,3 +96,23 @@ module.exports = {
   previewAdminFieldReplace,
   executeAdminFieldReplace
 };
+
+export {
+  callAdminManager,
+  listAdminPosts,
+  updateAdminPostType,
+  deleteAdminPost,
+  listAdminPoets,
+  deleteAdminPoet,
+  getAdminUserPassword,
+  getBatchReplaceConfig,
+  previewAdminFieldReplace,
+  executeAdminFieldReplace
+};
+
+export default adminManagerApi;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = adminManagerApi;
+  module.exports.default = adminManagerApi;
+}

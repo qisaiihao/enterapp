@@ -1,10 +1,10 @@
 // 图片管理工具类
 
-const { cloudCall } = require('./cloudCall.js');
+import { cloudCall } from './cloudCall.js';
 
 class ImageManager {
     constructor() {
-        this.cloudEnv = wx.cloud; // 云开发环境
+        this.cloudEnv = typeof wx !== 'undefined' && wx && wx.cloud ? wx.cloud : null; // 云开发环境
     }
 
     // 兼容性云函数调用方法
@@ -235,7 +235,19 @@ class ImageManager {
 const imageManager = new ImageManager();
 
 // 导出工具类供页面使用
-module.exports = {
+const imageManagerApi = {
     ImageManager,
     imageManager
 };
+
+export {
+    ImageManager,
+    imageManager
+};
+
+export default imageManagerApi;
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = imageManagerApi;
+    module.exports.default = imageManagerApi;
+}

@@ -217,12 +217,15 @@
 </template>
 
 <script>
+import { cloudCall } from '../../utils/cloudCall.js';
+import { uploadFile } from '../../utils/uploader.js';
+import { checkContentSafe, checkImageSafe, checkTextSafe } from '../../utils/contentModeration.js';
+import { STICKER_AVATAR_PATHS, isStickerAvatar, resolveUserAvatar } from '../../utils/defaultAvatar.js';
+import { getCurrentPlatform } from '../../utils/platformDetector.js';
+import { emitAvatarUpdated } from '@/utils/events.js';
 // pages/profile-edit/profile-edit.js
 const app = getApp();
-const { cloudCall } = require('../../utils/cloudCall.js');
-const { uploadFile } = require('../../utils/uploader.js');
-const { checkContentSafe, checkImageSafe, checkTextSafe } = require('../../utils/contentModeration.js');
-const { STICKER_AVATAR_PATHS, isStickerAvatar, resolveUserAvatar } = require('../../utils/defaultAvatar.js');
+
 export default {
     data() {
         return {
@@ -610,8 +613,7 @@ export default {
             /* 
             // 注释掉的canvas处理逻辑
             // 检查平台兼容性
-            const { getCurrentPlatform } = require('../../utils/platformDetector.js');
-            const platform = getCurrentPlatform();
+                        const platform = getCurrentPlatform();
             
             // 尝试使用node()方法（H5和部分App支持）
             const tryNodeMethod = () => {
@@ -854,8 +856,7 @@ export default {
         },
 
         async removeWhiteBackground(filePath) {
-            const { getCurrentPlatform } = require('../../utils/platformDetector.js');
-            const platform = getCurrentPlatform();
+                        const platform = getCurrentPlatform();
 
             const sampleBackgroundColor = (pixels, width, height) => {
                 const samplePoints = [
@@ -1384,7 +1385,6 @@ export default {
                         try {
                             const appInstance = getApp();
                             const userId = appInstance && appInstance.globalData && appInstance.globalData.openid;
-                            const { emitAvatarUpdated } = require('@/utils/events.js');
                             emitAvatarUpdated(userId);
                         } catch (e) {}
                         const pages = getCurrentPages();

@@ -70,11 +70,7 @@
 </template>
 
 <script>
-const {
-    getFeedbackList,
-    updateFeedbackStatus,
-    deleteFeedback
-} = require('../../api-cache/feedback.js');
+import { getFeedbackList, updateFeedbackStatus, deleteFeedback } from '../../api-cache/feedback.js';
 
 export default {
     data() {

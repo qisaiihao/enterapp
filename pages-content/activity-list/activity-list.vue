@@ -56,10 +56,10 @@
 <script>
 import { getRecentActivities, invalidateRecentActivities } from '@/api-cache/activities.js';
 import activityBadge from '@/cache/stores/activity-badge.js';
-const {
+import {
   isActivityOngoing,
-  formatRange: formatActivityRange
-} = require('@/utils/activity.js');
+  formatRange as formatActivityRange
+} from '@/utils/activity.js';
 
 export default {
   data() {

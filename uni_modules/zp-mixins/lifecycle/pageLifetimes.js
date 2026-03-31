@@ -4,8 +4,10 @@
  * @param {Object} lifeName
  */
 function handlePageLifetime(node, lifeName) {
-	node.$children.map(child => {
-		if (typeof child[lifeName] == 'function') child[lifeName]()
+	if (!node) return
+	const children = Array.isArray(node.$children) ? node.$children : []
+	children.forEach((child) => {
+		if (child && typeof child[lifeName] === 'function') child[lifeName]()
 		handlePageLifetime(child, lifeName)
 	})
 }

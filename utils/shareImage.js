@@ -331,7 +331,7 @@ async function saveImagesToAlbum(imagePaths, options = {}) {
     return summary;
 }
 
-module.exports = {
+const shareImageUtils = {
     generateShareImageName,
     isValidImageDataUrl,
     base64ToArrayBuffer,
@@ -342,3 +342,22 @@ module.exports = {
     getImageInfo,
     isLocalImagePath
 };
+
+export {
+    generateShareImageName,
+    isValidImageDataUrl,
+    base64ToArrayBuffer,
+    saveImageToAlbum,
+    saveImagesToAlbum,
+    createTempFilePath,
+    compressImage,
+    getImageInfo,
+    isLocalImagePath
+};
+
+export default shareImageUtils;
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = shareImageUtils;
+    module.exports.default = shareImageUtils;
+}

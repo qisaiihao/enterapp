@@ -114,19 +114,11 @@
 </template>
 
 <script>
-const { uploadFile } = require('@/utils/uploader.js');
+import { uploadFile } from '@/utils/uploader.js';
 import fileUrlCache from '@/_utils/file-url-cache';
 import { invalidateRecentActivities, invalidateActivityPosts } from '@/api-cache/activities.js';
-const {
-  getAdminActivityDetail,
-  createAdminActivity,
-  updateAdminActivity
-} = require('@/api-cache/admin-activities.js');
-const {
-  ACTIVITY_STATUS_OPTIONS,
-  decodeParamSafe,
-  formatDateYmd
-} = require('@/utils/activity.js');
+import { getAdminActivityDetail, createAdminActivity, updateAdminActivity } from '@/api-cache/admin-activities.js';
+import { ACTIVITY_STATUS_OPTIONS, decodeParamSafe, formatDateYmd } from '@/utils/activity.js';
 
 export default {
   data() {

@@ -48,16 +48,8 @@
 
 <script>
 import { invalidateRecentActivities, invalidateActivityPosts } from '@/api-cache/activities.js';
-const {
-  listAdminActivities,
-  setAdminActivityStatus,
-  deleteAdminActivity
-} = require('@/api-cache/admin-activities.js');
-const {
-  ACTIVITY_STATUS_OPTIONS,
-  getActivityStatusLabel,
-  formatRange: formatActivityRange
-} = require('@/utils/activity.js');
+import { listAdminActivities, setAdminActivityStatus, deleteAdminActivity } from '@/api-cache/admin-activities.js';
+import { ACTIVITY_STATUS_OPTIONS, getActivityStatusLabel, formatRange as formatActivityRange } from '@/utils/activity.js';
 
 export default {
   data() {

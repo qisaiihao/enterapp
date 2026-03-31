@@ -5,9 +5,9 @@
  * TTL: 24小时
  * 持久化: 是
  */
-const cacheManager = require('../core/manager');
-const fileUrlCache = require('../core/file-url').default || require('../core/file-url');
-const { cloudCall } = require('@/utils/cloudCall.js');
+import cacheManager from '../core/manager';
+import fileUrlCache from '../core/file-url';
+import { cloudCall } from '@/utils/cloudCall.js';
 
 const NS_AVATAR = cacheManager.namespace('avatars', { persistent: true, maxItems: 2048 });
 const AVATAR_TTL_MS = 6 * 60 * 60 * 1000; // 6h（平衡实时性和性能）
@@ -163,4 +163,9 @@ class AvatarCache {
 }
 
 const avatarCache = new AvatarCache();
-module.exports = avatarCache;
+export default avatarCache;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = avatarCache;
+  module.exports.default = avatarCache;
+}

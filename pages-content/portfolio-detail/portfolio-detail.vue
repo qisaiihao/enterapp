@@ -131,12 +131,13 @@
 <script>
 import skeleton from '@/components/skeleton/skeleton';
 import dualActionTopBar from '@/components/dual-action-top-bar/dual-action-top-bar.vue';
-const { cloudCall } = require('@/utils/cloudCall.js');
-const likeIcon = require('@/utils/likeIcon.js');
-const { togglePostLike } = require('../../utils/likeService.js');
-const { notifyPortfolioUpdated } = require('../../api-cache/portfolio.js');
-const { attachPoemDisplayFields } = require('../../utils/poemDisplay.js');
-// authorSignature已从云函数返回，不再需要signatureCache
+import { cloudCall } from '@/utils/cloudCall.js';
+import likeIcon from '@/utils/likeIcon.js';
+import { togglePostLike } from '../../utils/likeService.js';
+import { notifyPortfolioUpdated } from '../../api-cache/portfolio.js';
+import { attachPoemDisplayFields } from '../../utils/poemDisplay.js';
+import { syncLikeStatusForPosts, getLatestLikeStatus } from '../../utils/likeStatusSync.js';
+// authorSignature???????????????????ignatureCache
 
 const PAGE_SIZE = 10;
 
@@ -268,9 +269,7 @@ export default {
         console.log('【portfolio-detail】获取到作品数量:', list.length);
         
         // 优先使用本地缓存中的点赞状态，如果没有缓存则使用云函数返回的状态
-        const likeSync = require('../../utils/likeStatusSync.js');
-        const getLatestLikeStatus = likeSync.getLatestLikeStatus;
-        
+                
         list.forEach((p) => {
           // 优先使用数据库中保存的背景颜色，如果没有则随机生成
           p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
@@ -418,10 +417,8 @@ export default {
         const ids = list.map(p => p && p._id).filter(Boolean);
         if (!ids.length) return;
         try { 
-          const { syncLikeStatusForPosts } = require('../../utils/likeStatusSync.js'); 
           syncLikeStatusForPosts(ids); 
         } catch (_) {}
-        const { getLatestLikeStatus } = require('../../utils/likeStatusSync.js');
         let changed = false;
         const next = list.slice();
         for (let i = 0; i < next.length; i += 1) {

@@ -13,27 +13,6 @@ import { selectComponent as zpSelectComponent,
 import { setData } from './methods/setData';
 
 export default {
-	// #ifndef VUE3
-	install(Vue, option) {
-		Vue.mixin({
-			...pageLifetimes,
-			methods: {
-				clone,
-				handleDataset,
-				escape2Html,
-				html2Escape,
-				parseEventDynamicCode,
-				getTabBar,
-				getRelationNodes,
-				zpSelectComponent,
-				zpSelectAllComponents,
-				setData
-			}
-		})
-	}
-	// #endif
-
-	// #ifdef VUE3
 	...pageLifetimes,
 	methods: {
 		clone,
@@ -46,7 +25,25 @@ export default {
 		zpSelectComponent,
 		zpSelectAllComponents,
 		setData
+	},
+	install(appOrVue) {
+		if (appOrVue && typeof appOrVue.mixin === 'function') {
+			appOrVue.mixin({
+				...pageLifetimes,
+				methods: {
+					clone,
+					handleDataset,
+					escape2Html,
+					html2Escape,
+					parseEventDynamicCode,
+					getTabBar,
+					getRelationNodes,
+					zpSelectComponent,
+					zpSelectAllComponents,
+					setData
+				}
+			});
+		}
 	}
-	// #endif
 }
 

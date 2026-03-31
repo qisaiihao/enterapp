@@ -50,9 +50,10 @@
 
 <script>
 // pages/draft-box/draft-box.js
-const { formatRelativeTime, formatDate } = require('../../utils/time.js');
-const { getMyDrafts, deleteDraft: deleteDraftApi } = require('../../api-cache/draft.js');
-// 修复：移除全局数据库实例，改为在方法中动态获取
+import { formatRelativeTime, formatDate } from '../../utils/time.js';
+import { getMyDrafts, deleteDraft as deleteDraftApi } from '../../api-cache/draft.js';
+// ????????????????????????????????????
+
 export default {
     data() {
         return {
@@ -255,6 +256,18 @@ export default {
         },
 
         // 触摸开始
+        updateDraftAt: function(index, patch) {
+            if (index < 0 || index >= this.drafts.length) {
+                return;
+            }
+            const nextDrafts = this.drafts.slice();
+            nextDrafts[index] = {
+                ...nextDrafts[index],
+                ...patch
+            };
+            this.drafts = nextDrafts;
+        },
+
         onTouchStart: function(e) {
             this.touchStartX = e.touches[0].clientX;
             this.touchStartY = e.touches[0].clientY;
@@ -274,17 +287,20 @@ export default {
             
             const index = parseInt(e.currentTarget.dataset.index);
             const draft = this.drafts[index];
+            if (!draft) {
+                return;
+            }
             
             if (deltaX < 0) { // 左滑
                 const translateX = Math.max(deltaX, -160); // 限制最大滑动距离
-                this.$set(this.drafts, index, {
+                this.updateDraftAt(index, {
                     ...draft,
                     translateX: translateX,
                     showDelete: translateX < -80
                 });
             } else { // 右滑
                 const translateX = Math.min(deltaX, 0);
-                this.$set(this.drafts, index, {
+                this.updateDraftAt(index, {
                     ...draft,
                     translateX: translateX,
                     showDelete: false
@@ -296,10 +312,13 @@ export default {
         onTouchEnd: function(e) {
             const index = parseInt(e.currentTarget.dataset.index);
             const draft = this.drafts[index];
+            if (!draft) {
+                return;
+            }
             
             if (draft.translateX < -80) {
                 // 显示删除按钮
-                this.$set(this.drafts, index, {
+                this.updateDraftAt(index, {
                     ...draft,
                     translateX: -160,
                     showDelete: true
@@ -307,7 +326,7 @@ export default {
                 this.currentSwipeIndex = index;
             } else {
                 // 隐藏删除按钮
-                this.$set(this.drafts, index, {
+                this.updateDraftAt(index, {
                     ...draft,
                     translateX: 0,
                     showDelete: false
@@ -318,15 +337,18 @@ export default {
 
         // 关闭所有删除按钮
         closeAllDeleteActions: function() {
-            this.drafts.forEach((draft, index) => {
-                if (draft.showDelete) {
-                    this.$set(this.drafts, index, {
+            if (this.drafts.some(draft => draft.showDelete)) {
+                this.drafts = this.drafts.map((draft) => {
+                    if (!draft.showDelete) {
+                        return draft;
+                    }
+                    return {
                         ...draft,
                         translateX: 0,
                         showDelete: false
-                    });
-                }
-            });
+                    };
+                });
+            }
             this.currentSwipeIndex = -1;
         }
     }

@@ -1,7 +1,7 @@
 /**
  * 收藏内容相关API缓存层
  */
-const { cloudCall } = require('../utils/cloudCall.js');
+import { cloudCall } from '../utils/cloudCall.js';
 
 /**
  * 获取我的收藏内容
@@ -200,7 +200,7 @@ function syncFavoriteStatus(postId, isFavorited, ...options) {
   }));
 }
 
-module.exports = {
+const favoritesApi = {
   getMyFavorites,
   addToFavorites,
   removeFromFavorites,
@@ -211,3 +211,22 @@ module.exports = {
   exportFavorites,
   syncFavoriteStatus
 };
+
+export {
+  getMyFavorites,
+  addToFavorites,
+  removeFromFavorites,
+  batchAddToFavorites,
+  batchRemoveFromFavorites,
+  getFavoriteStats,
+  checkIsFavorited,
+  exportFavorites,
+  syncFavoriteStatus
+};
+
+export default favoritesApi;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = favoritesApi;
+  module.exports.default = favoritesApi;
+}

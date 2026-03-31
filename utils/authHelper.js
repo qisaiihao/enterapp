@@ -3,6 +3,7 @@
  * 提供统一的登录检查和提示功能
  */
 import { applyUserInfoWithAppBackground } from '@/utils/appBackground.js';
+import { getAppState, getOpenid, patchAppState } from '@/utils/app-state.js';
 
 /**
  * 检查用户是否已登录
@@ -10,8 +11,8 @@ import { applyUserInfoWithAppBackground } from '@/utils/appBackground.js';
  */
 export function isUserLoggedIn() {
     try {
-        const app = getApp();
-        const isLoggedIn = app && app.globalData && app.globalData.isLoggedIn;
+        const state = getAppState();
+        const isLoggedIn = !!state.isLoggedIn;
         
         if (isLoggedIn) {
             return true;
@@ -20,12 +21,10 @@ export function isUserLoggedIn() {
         // 检查本地缓存
         const cachedUserInfo = uni.getStorageSync('userInfo');
         if (cachedUserInfo && (cachedUserInfo.poemId || cachedUserInfo._openid)) {
-            // 更新全局状态
-            if (app) {
-                app.globalData = app.globalData || {};
-                app.globalData.openid = cachedUserInfo._openid || app.globalData.openid;
-                app.globalData.isLoggedIn = true;
-            }
+            patchAppState({
+                openid: cachedUserInfo._openid || getOpenid(),
+                isLoggedIn: true
+            });
             applyUserInfoWithAppBackground(cachedUserInfo, {
                 emit: false,
                 writeStorage: true,
@@ -47,9 +46,9 @@ export function isUserLoggedIn() {
  */
 export function getCurrentUser() {
     try {
-        const app = getApp();
-        if (app && app.globalData && app.globalData.userInfo) {
-            return app.globalData.userInfo;
+        const state = getAppState();
+        if (state.userInfo) {
+            return state.userInfo;
         }
         
         // 从缓存获取

@@ -1,5 +1,5 @@
-import cacheManager from '@/_utils/cache-manager';
-const { cloudCall } = require('@/utils/cloudCall.js');
+import cacheManager from '@/cache/core/manager.js';
+import { cloudCall } from '@/utils/cloudCall.js';
 
 // 发现页推荐：TTL 90s + SWR 45s（范围内可调整）
 const TTL_MS = 90 * 1000;

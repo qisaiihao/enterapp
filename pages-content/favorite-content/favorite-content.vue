@@ -128,12 +128,13 @@
 
 <script>
 // pages/favorite-content/favorite-content.js
-const { formatRelativeTime } = require('../../utils/time.js');
-const { previewImage } = require('../../utils/imagePreview.js');
-const { getMyFavorites, removeFromFavorites: removeFromFavoritesApi } = require('../../api-cache/favorites.js');
-const postGalleryMixin = require('../../mixins/postGallery.js');
-const paginationMixin = require('../../mixins/pagination.js');
-const { normalizePostList } = require('../../utils/postNormalizer.js');
+import { formatRelativeTime } from '../../utils/time.js';
+import { previewImage } from '../../utils/imagePreview.js';
+import { getMyFavorites, removeFromFavorites as removeFromFavoritesApi } from '../../api-cache/favorites.js';
+import postGalleryMixin from '../../mixins/postGallery.js';
+import paginationMixin from '../../mixins/pagination.js';
+import { normalizePostList } from '../../utils/postNormalizer.js';
+
 export default {
     mixins: [paginationMixin, postGalleryMixin],
     data() {

@@ -1,7 +1,6 @@
-import cacheManager from '@/cache/core/manager';
+import cacheManager from '@/cache/core/manager.js';
 import { normalizeAppBackgroundMode } from '@/utils/appBackground.js';
-
-const { callCloudAndUnwrap } = require('./_shared/cloud-wrapper.js');
+import { callCloudAndUnwrap } from './_shared/cloud-wrapper.js';
 
 // 用户资料缓存：TTL 5min + SWR 2min
 const USER_PROFILE_TTL = 5 * 60 * 1000;

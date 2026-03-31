@@ -1,6 +1,5 @@
 import cacheManager from '@/cache/core/manager';
-
-const { callCloudAndUnwrap } = require('./_shared/cloud-wrapper.js');
+import { callCloudAndUnwrap } from './_shared/cloud-wrapper.js';
 
 const ns = cacheManager.namespace('profiles', { persistent: true, maxItems: 256 });
 
@@ -12,7 +11,7 @@ export async function getMyProfile(context) {
         'getMyProfileData',
         {},
         { pageTag: 'profiles', context, injectOpenId: true },
-        '获取个人资料失败'
+        'Get profile failed'
       );
       return result.profile || result.data || {};
     },
@@ -23,4 +22,3 @@ export async function getMyProfile(context) {
 export function invalidateMyProfile() {
   ns.delete('me');
 }
-

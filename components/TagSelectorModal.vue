@@ -80,6 +80,7 @@
 <script>
 export default {
     name: 'TagSelectorModal',
+    emits: ['close', 'update'],
     props: {
         show: {
             type: Boolean,

@@ -51,6 +51,7 @@ import { resolveUserAvatar } from '@/utils/defaultAvatar.js';
 
 export default {
     name: 'FollowingAvatarBar',
+    emits: ['select-user', 'back'],
     props: {
         // 当前选中的用户ID，null表示全部
         selectedUserId: {

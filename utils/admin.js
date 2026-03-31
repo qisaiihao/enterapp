@@ -45,10 +45,25 @@ function isCurrentUserAdmin() {
     return isAdminUser(getCurrentUserInfo());
 }
 
-module.exports = {
+const adminUtils = {
     ADMIN_POEM_IDS,
     getCurrentUserInfo,
     isAdminPoemId,
     isAdminUser,
     isCurrentUserAdmin
 };
+
+export {
+    ADMIN_POEM_IDS,
+    getCurrentUserInfo,
+    isAdminPoemId,
+    isAdminUser,
+    isCurrentUserAdmin
+};
+
+export default adminUtils;
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = adminUtils;
+    module.exports.default = adminUtils;
+}

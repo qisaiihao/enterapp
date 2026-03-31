@@ -1,15 +1,18 @@
 import fileUrlCache from '@/cache/core/file-url';
 import { emitAppBackgroundUpdated } from '@/utils/events.js';
+import { patchAppState, setUserSession } from '@/utils/app-state.js';
 
 const APP_BACKGROUND_STORAGE_KEY = 'appBackgroundUrlCache';
 
 function getAppInstance() {
-    if (typeof getApp === 'function') {
-        try {
-            return getApp();
-        } catch (_) {}
+    if (typeof getApp !== 'function') {
+        return null;
     }
-    return null;
+    try {
+        return getApp();
+    } catch (_) {
+        return null;
+    }
 }
 
 function cloneUserInfo(userInfo) {
@@ -87,6 +90,7 @@ export async function syncAppBackgroundFromUserInfo(userInfo, { emit = false } =
         }
         return { url: '', mode: '' };
     }
+
     const resolvedUrl = await resolveAppBackgroundUrl(rawUrl);
     setCachedAppBackgroundUrl(resolvedUrl);
     if (emit) {
@@ -109,13 +113,15 @@ export async function applyUserInfoWithAppBackground(userInfo, { emit = true, wr
         normalizedUserInfo.appBackgroundUrl = getRawAppBackgroundUrl(normalizedUserInfo);
         normalizedUserInfo.appBackgroundMode = getRawAppBackgroundMode(normalizedUserInfo);
     }
-    const app = getAppInstance();
 
-    if (writeGlobal && app) {
-        app.globalData = app.globalData || {};
-        app.globalData.userInfo = normalizedUserInfo;
+    if (writeGlobal) {
         if (normalizedUserInfo) {
-            app.globalData.openid = normalizedUserInfo._openid || normalizedUserInfo.openid || app.globalData.openid || null;
+            setUserSession(normalizedUserInfo, normalizedUserInfo._openid || normalizedUserInfo.openid || null);
+        } else {
+            patchAppState({
+                userInfo: null,
+                isLoggedIn: false
+            });
         }
     }
 
@@ -161,13 +167,13 @@ export async function applyAuthenticatedUserSession(
         (normalizedUserInfo && (normalizedUserInfo._openid || normalizedUserInfo.openid)) ||
         '';
 
-    const app = getAppInstance();
-    if (app) {
-        app.globalData = app.globalData || {};
-        app.globalData.userInfo = normalizedUserInfo || null;
-        app.globalData.openid = resolvedOpenid || null;
-        app.globalData._loginProcessCompleted = true;
-        app.globalData.isLoggedIn = !!normalizedUserInfo;
+    if (writeGlobal) {
+        setUserSession(normalizedUserInfo, resolvedOpenid || null);
+        patchAppState({
+            _loginProcessStarted: true,
+            _loginProcessCompleted: true,
+            isLoggedIn: !!normalizedUserInfo
+        });
     }
 
     try {
@@ -209,6 +215,5 @@ export async function updateCurrentUserAppBackground(rawUrl, { emit = true, mode
     }
 
     nextUserInfo.appBackgroundMode = normalizeAppBackgroundMode(mode || nextUserInfo.appBackgroundMode, normalizedRawUrl);
-
     return applyUserInfoWithAppBackground(nextUserInfo, { emit, writeStorage: true, writeGlobal: true });
 }

@@ -98,8 +98,8 @@
 
 <script>
 // components/portfolio-selector/portfolio-selector.js
-const { cloudCall } = require('../../utils/cloudCall.js');
-const { getPortfolioFolders, notifyPortfolioUpdated } = require('../../api-cache/portfolio.js');
+import { cloudCall } from '../../utils/cloudCall.js';
+import { getPortfolioFolders, notifyPortfolioUpdated } from '../../api-cache/portfolio.js';
 export default {
     data() {
         return {
@@ -112,7 +112,7 @@ export default {
             showClone: false
         };
     },
-
+    emits: ['portfolioSuccess', 'hide'],
     props: {
         show: {
             type: Boolean,
@@ -712,7 +712,7 @@ export default {
 
     created: function () {},
 
-    beforeDestroy: function () {
+    beforeUnmount: function () {
         try {
             if (this.onPortfolioUpdated) {
                 uni.$off('portfolio-updated', this.onPortfolioUpdated);

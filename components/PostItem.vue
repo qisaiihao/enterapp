@@ -167,6 +167,7 @@ import { resolvePostAuthorAvatar } from '@/utils/defaultAvatar.js';
 
 export default {
     name: 'PostItem',
+    emits: ['show-action-menu', 'avatar-error', 'avatar-load', 'navigate-to-user', 'preview-image', 'image-error', 'image-load', 'tag-click', 'remove-favorite', 'vote', 'comment-click', 'like-icon-error'],
     props: {
         // 帖子数据
         item: {

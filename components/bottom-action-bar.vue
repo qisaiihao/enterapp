@@ -23,6 +23,7 @@
 <script>
 export default {
   name: 'BottomActionBar',
+  emits: ['quick-comment-input', 'quick-comment-submit', 'expand-input', 'show-discussion-modal', 'toggle-favorite'],
   props: {
     quickCommentText: String,
     post: Object

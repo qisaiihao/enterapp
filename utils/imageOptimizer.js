@@ -1,5 +1,5 @@
 // 图片优化工具
-const imageLoader = require('./imageLoader');
+import imageLoader from './imageLoader';
 
 class ImageOptimizer {
     constructor() {
@@ -69,4 +69,9 @@ class ImageOptimizer {
 
 // 创建单例
 const imageOptimizer = new ImageOptimizer();
-module.exports = imageOptimizer;
+export default imageOptimizer;
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = imageOptimizer;
+    module.exports.default = imageOptimizer;
+}

@@ -212,7 +212,7 @@
         <!-- #ifndef MP-WEIXIN -->
         <app-tab-bar ref="customTabBar" :style="tabBarStyle" />
         <!-- #endif -->
-        
+
         <!-- 底部操作菜单 -->
         <ActionMenu
             :visible="isActionMenuVisible"
@@ -319,17 +319,17 @@ import { invalidateMyProfile } from '@/api-cache/profile.js';
 import { emitPostVisibilityChanged, emitFavoriteChanged } from '@/utils/events.js';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
 import { applyUserInfoWithAppBackground, normalizeAppBackgroundMode } from '@/utils/appBackground.js';
+import { clearUserSession, getAppState, getOpenid, patchAppState } from '@/utils/app-state.js';
 import { getUserAvatarSeed, resolveUserAvatar } from '@/utils/defaultAvatar.js';
 import { colorPalettes } from '@/utils/colorPalettes.js';
 import { poemLines } from '@/utils/poemLines.js';
 import fontManager from '@/utils/fontManager.js';
-const { uploadFile } = require('../../utils/uploader.js');
-const { cloudCall } = require('../../utils/cloudCall.js');
-const { getCurrentPlatform } = require('../../utils/platformDetector.js');
-const { saveImagesToAlbum } = require('../../utils/shareImage.js');
-const { generateTimelineShareImages } = require('../../utils/timelineShareCanvas.js');
+import { uploadFile } from '../../utils/uploader.js';
+import { cloudCall } from '../../utils/cloudCall.js';
+import { getCurrentPlatform } from '../../utils/platformDetector.js';
+import { saveImagesToAlbum } from '../../utils/shareImage.js';
+import { generateTimelineShareImages } from '../../utils/timelineShareCanvas.js';
 
-const app = getApp();
 const PAGE_SIZE = 5;
 const PROFILE_BACKGROUND_THEME_VARS = Object.freeze({
     '--app-post-wrapper-bg': 'linear-gradient(90deg, rgba(235, 200, 141, 0.05) 0%, rgba(255, 255, 255, 0) 100%)',
@@ -604,7 +604,7 @@ export default {
             followerCount: 0,
             // 作品集数据
             portfolioList: [],
-            
+
             // 删除弹窗相关状态
             showDeleteModal: false,
             deletePostId: '',
@@ -627,7 +627,7 @@ export default {
                 flower: 0,
                 peach: 0
             },
-            
+
             // 时间轴相关数据
         };
     },
@@ -674,11 +674,11 @@ export default {
                 });
             }
         });
-        
+
         if (!isLoggedIn) {
             return;
         }
-        
+
         // 计算3:4比例高度（宽3高4，竖屏）
         const windowWidth = uni.getSystemInfoSync().windowWidth;
         const fixedHeight = Math.round((windowWidth * 4) / 3);
@@ -691,21 +691,10 @@ export default {
             // #endif
         } catch (_) {}
 
+        this.ensureGlobalEventBindings();
+
         // onLoad 只负责触发异步请求，然后立即结束
         this.getProfileData();
-        try { uni.$on && uni.$on('comment-count-changed', (e) => { try { this.updatePostCommentCount(e.postId, e.commentCount); } catch (_) {} }); } catch (_) {}
-
-        // 监听作品集更新事件
-        try {
-            uni.$on('portfolio-updated', (e) => {
-                try { invalidatePortfolioCache(); } catch (_) {}
-                if (this.currentTab === 'portfolio' && this.hasInitialSnapshot) {
-                    this.refreshProfileAtomically({ reason: 'portfolio-updated', forceRefresh: true }).catch(() => {});
-                }
-            });
-        } catch (error) {
-            console.error('【profile】监听作品集更新事件失败:', error);
-        }
     },
     onShow: function () {
         // #ifndef MP-WEIXIN
@@ -764,7 +753,8 @@ export default {
         }
     },
     onUnload: function () {
-        try { uni.$off && uni.$off('comment-count-changed'); } catch (_) {}
+        this.releaseGlobalEventBindings();
+        this.clearLoginWaitTimers();
         if (this.timelineShareRegenerateTimeout) {
             clearTimeout(this.timelineShareRegenerateTimeout);
             this.timelineShareRegenerateTimeout = null;
@@ -774,6 +764,84 @@ export default {
         this.finishBackgroundActionSheet({ cancelled: true, silent: true });
     },
     methods: {
+        ensureGlobalEventBindings: function () {
+            if (this._globalEventsBound) {
+                return;
+            }
+            if (!this._commentCountChangedHandler) {
+                this._commentCountChangedHandler = (e = {}) => {
+                    try {
+                        if (e.postId) {
+                            this.updatePostCommentCount(e.postId, e.commentCount);
+                        }
+                    } catch (_) {}
+                };
+            }
+            if (!this._portfolioUpdatedHandler) {
+                this._portfolioUpdatedHandler = () => {
+                    try { invalidatePortfolioCache(); } catch (_) {}
+                    if (this.currentTab === 'portfolio' && this.hasInitialSnapshot) {
+                        this.refreshProfileAtomically({ reason: 'portfolio-updated', forceRefresh: true }).catch(() => {});
+                    }
+                };
+            }
+            if (!this._avatarUpdatedHandler) {
+                this._avatarUpdatedHandler = (e = {}) => {
+                    const openid = getOpenid();
+                    if (e && e.userId === openid) {
+                        invalidateMyInfo();
+                        this.fetchUserProfileFast();
+                    }
+                };
+            }
+            if (!this._postCreatedHandler) {
+                this._postCreatedHandler = (e = {}) => {
+                    const openid = getOpenid();
+                    if (e && e.userId === openid) {
+                        invalidateMyPosts();
+                        this.refreshProfileAtomically({ reason: 'post-created', forceRefresh: true }).catch(() => {});
+                    }
+                };
+            }
+            if (!this._favoriteChangedHandler) {
+                this._favoriteChangedHandler = (e = {}) => {
+                    const openid = getOpenid();
+                    if (e && e.userId === openid) {
+                        invalidateMyFavorites();
+                        if (this.currentTab === 'favorites') {
+                            this.refreshProfileAtomically({ reason: 'favorite-changed', forceRefresh: true }).catch(() => {});
+                        }
+                    }
+                };
+            }
+            try { uni.$on && uni.$on('comment-count-changed', this._commentCountChangedHandler); } catch (_) {}
+            try { uni.$on && uni.$on('portfolio-updated', this._portfolioUpdatedHandler); } catch (_) {}
+            try { uni.$on && uni.$on('avatar-updated', this._avatarUpdatedHandler); } catch (_) {}
+            try { uni.$on && uni.$on('post-created', this._postCreatedHandler); } catch (_) {}
+            try { uni.$on && uni.$on('favorite-changed', this._favoriteChangedHandler); } catch (_) {}
+            this._globalEventsBound = true;
+        },
+        releaseGlobalEventBindings: function () {
+            if (!this._globalEventsBound) {
+                return;
+            }
+            try { uni.$off && this._commentCountChangedHandler && uni.$off('comment-count-changed', this._commentCountChangedHandler); } catch (_) {}
+            try { uni.$off && this._portfolioUpdatedHandler && uni.$off('portfolio-updated', this._portfolioUpdatedHandler); } catch (_) {}
+            try { uni.$off && this._avatarUpdatedHandler && uni.$off('avatar-updated', this._avatarUpdatedHandler); } catch (_) {}
+            try { uni.$off && this._postCreatedHandler && uni.$off('post-created', this._postCreatedHandler); } catch (_) {}
+            try { uni.$off && this._favoriteChangedHandler && uni.$off('favorite-changed', this._favoriteChangedHandler); } catch (_) {}
+            this._globalEventsBound = false;
+        },
+        clearLoginWaitTimers: function () {
+            if (this._loginWaitInterval) {
+                clearInterval(this._loginWaitInterval);
+                this._loginWaitInterval = null;
+            }
+            if (this._loginWaitTimeout) {
+                clearTimeout(this._loginWaitTimeout);
+                this._loginWaitTimeout = null;
+            }
+        },
         createTimelineShareMeasureContext(logicalWidth = 750) {
             // #ifdef MP-WEIXIN
             if (typeof wx !== 'undefined' && typeof wx.createOffscreenCanvas === 'function') {
@@ -1145,12 +1213,12 @@ export default {
             const postId = e.currentTarget.dataset.postid;
             const index = parseInt(e.currentTarget.dataset.index);
             const isHidden = !!e.currentTarget.dataset.hidden;
-            
+
             if (!postId || typeof index === 'undefined') {
                 console.error('【profile】showActionMenu: 参数缺失', { postId, index });
                 return;
             }
-            
+
             this.setData({
                 isActionMenuVisible: true,
                 actionMenuData: {
@@ -1160,7 +1228,7 @@ export default {
                 }
             });
         },
-        
+
         // 隐藏底部操作菜单
         hideActionMenu: function () {
             this.setData({
@@ -1172,7 +1240,7 @@ export default {
                 }
             });
         },
-        
+
         // 从菜单中处理隐藏/取消隐藏
         handleToggleVisibility: function () {
             const { postId, index, isHidden } = this.actionMenuData;
@@ -1214,7 +1282,7 @@ export default {
                     this.hideActionMenu();
                 });
         },
-        
+
         // 从菜单中处理编辑
         handleEditPost: function () {
             const { postId, index } = this.actionMenuData;
@@ -1223,7 +1291,7 @@ export default {
                 this.hideActionMenu();
                 return;
             }
-            
+
             // 获取当前帖子数据
             const post = this.myPosts[index];
             if (!post) {
@@ -1231,9 +1299,9 @@ export default {
                 this.hideActionMenu();
                 return;
             }
-            
+
             this.hideActionMenu();
-            
+
             // 跳转到编辑页面，传递帖子ID
             uni.navigateTo({
                 url: `/pages-publish/add/add?mode=edit&postId=${postId}`,
@@ -1249,7 +1317,7 @@ export default {
                 }
             });
         },
-        
+
         // 从菜单中处理删除
         handleDeleteFromMenu: function () {
             const { postId, index } = this.actionMenuData;
@@ -1258,7 +1326,7 @@ export default {
                 this.hideActionMenu();
                 return;
             }
-            
+
             this.hideActionMenu();
             this.setData({
                 showDeleteModal: true,
@@ -1266,7 +1334,7 @@ export default {
                 deletePostIndex: index
             });
         },
-        
+
         // 隐藏/取消隐藏帖子（使用API封装）
         onToggleVisibility: function (e) {
             const postId = e.currentTarget.dataset.postid;
@@ -1322,17 +1390,17 @@ export default {
 
         // 新增：刷新个人资料数据的方法（使用与下拉刷新相同的逻辑）
         getCurrentProfileOpenid: function () {
-            const appInstance = getApp();
             return (
-                (appInstance && appInstance.globalData && appInstance.globalData.openid) ||
+                getOpenid() ||
                 (this.userInfo && (this.userInfo._openid || this.userInfo.openid)) ||
                 ''
             );
         },
 
         normalizeProfileUserInfo: function (user) {
+            const state = getAppState();
             const sessionUser =
-                (app && app.globalData && app.globalData.userInfo) ||
+                state.userInfo ||
                 this.userInfo ||
                 {};
             const nextUser = user ? { ...sessionUser, ...user } : { ...sessionUser };
@@ -1647,50 +1715,23 @@ export default {
         },
 
         checkLoginAndFetchData: function () {
-            // 绑定缓存事件（我的主页）：头像更换/发帖/收藏时失效对应缓存
-            if (!this._cacheEventsBound) {
-                this._cacheEventsBound = true;
-                try {
-                    uni.$on && uni.$on('avatar-updated', (e) => {
-                        const app = getApp();
-                        const oid = app && app.globalData && app.globalData.openid;
-                        if (e && e.userId === oid) {
-                            invalidateMyInfo();
-                            this.fetchUserProfileFast();
-                        }
-                    });
-                    uni.$on && uni.$on('post-created', (e) => {
-                        const app = getApp();
-                        const oid = app && app.globalData && app.globalData.openid;
-                        if (e && e.userId === oid) {
-                            invalidateMyPosts();
-                            this.refreshProfileAtomically({ reason: 'post-created', forceRefresh: true }).catch(() => {});
-                        }
-                    });
-                    uni.$on && uni.$on('favorite-changed', (e) => {
-                        const app = getApp();
-                        const oid = app && app.globalData && app.globalData.openid;
-                        if (e && e.userId === oid) {
-                            invalidateMyFavorites();
-                            if (this.currentTab === 'favorites') {
-                                this.refreshProfileAtomically({ reason: 'favorite-changed', forceRefresh: true }).catch(() => {});
-                            }
-                        }
-                    });
-                } catch (err) {}
+            this.ensureGlobalEventBindings();
+            const state = getAppState();
+            const userInfo = state.userInfo;
+            const currentOpenid = (userInfo && (userInfo._openid || userInfo.openid)) || state.openid;
+            const loginProcessCompleted = !!state._loginProcessCompleted;
+
+            if (currentOpenid && state.openid !== currentOpenid) {
+                patchAppState({ openid: currentOpenid });
             }
-            // 检查登录状态
-            const app = getApp();
-            const userInfo = app.globalData && app.globalData.userInfo;
-            const loginProcessCompleted = app.globalData && app.globalData._loginProcessCompleted;
-            
+
             console.log('🔍 [profile] 检查登录状态:', {
                 hasUserInfo: !!userInfo,
-                hasOpenid: !!(userInfo && userInfo._openid),
+                hasOpenid: !!currentOpenid,
                 loginProcessCompleted: loginProcessCompleted
             });
-            
-            if (userInfo && userInfo._openid) {
+
+            if (userInfo && currentOpenid) {
                 this.setData({ isViewingSelf: true });
                 this.refreshProfileAtomically({ reason: 'initial', forceRefresh: false }).catch(() => {});
             } else if (loginProcessCompleted) {
@@ -1709,20 +1750,20 @@ export default {
 
         // 等待登录流程完成
         waitForLoginProcess: function () {
-            const checkInterval = setInterval(() => {
-                const app = getApp();
-                const loginProcessCompleted = app.globalData && app.globalData._loginProcessCompleted;
-                
+            this.clearLoginWaitTimers();
+            this._loginWaitInterval = setInterval(() => {
+                const loginProcessCompleted = !!getAppState()._loginProcessCompleted;
+
                 if (loginProcessCompleted) {
-                    clearInterval(checkInterval);
+                    this.clearLoginWaitTimers();
                     console.log('✅ [profile] 登录流程已完成，重新检查登录状态');
                     this.checkLoginAndFetchData();
                 }
             }, 100); // 每100ms检查一次
-            
+
             // 设置超时，避免无限等待
-            setTimeout(() => {
-                clearInterval(checkInterval);
+            this._loginWaitTimeout = setTimeout(() => {
+                this.clearLoginWaitTimers();
                 console.log('⚠️ [profile] 等待登录流程超时，继续执行');
                 this.checkLoginAndFetchData();
             }, 5000); // 5秒超时
@@ -1779,8 +1820,7 @@ export default {
             }
 
             // 获取当前用户openid用于调试
-            const app = getApp();
-            const currentOpenid = app && app.globalData && app.globalData.openid;
+            const currentOpenid = getOpenid();
             console.log('【profile】👤 当前用户openid:', currentOpenid);
 
             // 如果是下拉刷新（page === 0）或强制刷新，直接从云端获取数据
@@ -1802,26 +1842,26 @@ export default {
                         posts.forEach((post, index) => {
                             if (post.createTime) post.formattedCreateTime = this.formatTime(post.createTime);
                             if (post.imageUrls && post.imageUrls.length > 0) post.imageStyle = `height: 0; padding-bottom: 75%;`;
-                            
+
                             // 【关键修复】确保帖子有 _openid 字段（我的帖子都是当前用户的）
                             if (!post._openid && currentOpenid) {
                                 post._openid = currentOpenid;
                             }
-                            
+
                             // 【关键修复】直接使用个人资料的昵称填充帖子的authorName
                             if (currentUserInfo.nickName) {
                                 post.authorName = currentUserInfo.nickName;
                             } else if (!post.authorName || post.authorName.trim() === '') {
                                 post.authorName = post.authorNameSnapshot || '我';
                             }
-                            
+
                             // 同样处理头像
                             if (currentUserInfo.avatarUrl) {
                                 post.authorAvatar = currentUserInfo.avatarUrl;
                             } else if (!post.authorAvatar || post.authorAvatar.trim() === '') {
                                 post.authorAvatar = resolveUserAvatar(post.authorAvatar || post.authorAvatarSnapshot || '', currentOpenid || post._openid);
                             }
-                            
+
                             console.log(`【profile】📝 缓存帖子${index + 1}:`, {
                                 id: post._id,
                                 _openid: post._openid,
@@ -1886,8 +1926,7 @@ export default {
                 console.log('【profile】📋 API封装返回的帖子ID列表:', posts.map(p => p._id));
 
                 // 格式化帖子数据并确保作者信息完整
-                const app = getApp();
-                const currentOpenid = app && app.globalData && app.globalData.openid;
+                const currentOpenid = getOpenid();
                 posts.forEach((post, index) => {
                     if (post.createTime) {
                         post.formattedCreateTime = this.formatTime(post.createTime);
@@ -1896,7 +1935,7 @@ export default {
                     if (post.imageUrls && post.imageUrls.length > 0) {
                         post.imageStyle = `height: 0; padding-bottom: 75%;`; // 4:3 宽高比占位
                     }
-                    
+
                     // 【关键修复】确保帖子有 _openid 字段（我的帖子都是当前用户的）
                     if (!post._openid && currentOpenid) {
                         post._openid = currentOpenid;
@@ -2000,7 +2039,7 @@ export default {
             });
         },
 
-        
+
         // 格式化帖子时间
         formatPostTime: function (createTime) {
             if (!createTime) return '';
@@ -2034,8 +2073,7 @@ export default {
                 timelineError: false
             });
 
-            const app = getApp();
-            const currentOpenid = app.globalData.openid;
+            const currentOpenid = getOpenid();
 
             if (!currentOpenid) {
                 console.error('【profile】时间轴加载失败：无法获取用户openid');
@@ -2068,9 +2106,9 @@ export default {
         onDelete: function (event) {
             const postId = event.currentTarget.dataset.postid;
             const index = event.currentTarget.dataset.index;
-            
+
             console.log('【profile】onDelete调用:', { postId, index, event: event.currentTarget.dataset });
-            
+
             if (!postId) {
                 console.error('【profile】onDelete: postId未定义');
                 uni.showToast({
@@ -2079,7 +2117,7 @@ export default {
                 });
                 return;
             }
-            
+
             this.setData({
                 showDeleteModal: true,
                 deletePostId: postId,
@@ -2102,17 +2140,17 @@ export default {
             console.log('【profile】this对象:', this);
             console.log('【profile】this.data:', this.data);
             console.log('【profile】this.$data:', this.$data);
-            
+
             // 使用最安全的方式获取数据
-            const postId = (this && this.data && this.data.deletePostId) || 
-                          (this && this.$data && this.$data.deletePostId) || 
+            const postId = (this && this.data && this.data.deletePostId) ||
+                          (this && this.$data && this.$data.deletePostId) ||
                           (this && this.deletePostId);
-            const index = (this && this.data && this.data.deletePostIndex) || 
-                         (this && this.$data && this.$data.deletePostIndex) || 
+            const index = (this && this.data && this.data.deletePostIndex) ||
+                         (this && this.$data && this.$data.deletePostIndex) ||
                          (this && this.deletePostIndex);
-            
+
             console.log('【profile】最终获取的数据:', { postId, index });
-            
+
             if (!postId) {
                 console.error('【profile】deletePostId未定义');
                 uni.showToast({
@@ -2122,7 +2160,7 @@ export default {
                 this.hideDeleteModal();
                 return;
             }
-            
+
             this.hideDeleteModal();
             this.deletePost(postId, index);
         },
@@ -2130,17 +2168,17 @@ export default {
         // 保存到草稿箱
         saveToDraft: function () {
             console.log('【profile】saveToDraft调用开始');
-            
+
             // 使用最安全的方式获取数据
-            const postId = (this && this.data && this.data.deletePostId) || 
-                          (this && this.$data && this.$data.deletePostId) || 
+            const postId = (this && this.data && this.data.deletePostId) ||
+                          (this && this.$data && this.$data.deletePostId) ||
                           (this && this.deletePostId);
-            const index = (this && this.data && this.data.deletePostIndex) || 
-                         (this && this.$data && this.$data.deletePostIndex) || 
+            const index = (this && this.data && this.data.deletePostIndex) ||
+                         (this && this.$data && this.$data.deletePostIndex) ||
                          (this && this.deletePostIndex);
-            
+
             console.log('【profile】saveToDraft最终获取的数据:', { postId, index });
-            
+
             if (!postId) {
                 console.error('【profile】saveToDraft: deletePostId未定义');
                 uni.showToast({
@@ -2150,7 +2188,7 @@ export default {
                 this.hideDeleteModal();
                 return;
             }
-            
+
             this.hideDeleteModal();
             this.saveToDraftBox(postId, index);
         },
@@ -2339,7 +2377,7 @@ export default {
             });
         },
 
-        
+
         navigateToFollowing: function () {
             uni.navigateTo({
                 url: '/pages-user/following/following'
@@ -2467,7 +2505,7 @@ export default {
         goToSeriesCompose: function () {
             uni.navigateTo({ url: '/pages-publish/series-compose/series-compose' });
         },
-        
+
         // 从菜单中处理组诗合成
         handleComposeSeries: function () {
             this.hideActionMenu();
@@ -2481,7 +2519,7 @@ export default {
             });
         },
 
-        
+
         // 跳转到消息通知页面
         navigateToMessages: function () {
             uni.navigateTo({
@@ -2502,21 +2540,21 @@ export default {
         switchTab: function (e) {
             const tab = e.currentTarget.dataset.tab;
             console.log('【profile】切换到标签:', tab);
-            
+
             // 如果点击的是收藏页且当前已经在收藏页，则跳转到收藏夹页面
             if (tab === 'favorites' && this.currentTab === 'favorites') {
                 console.log('【profile】已在收藏页，跳转到收藏夹页面');
                 this.navigateToFavoriteFolders();
                 return;
             }
-            
+
             // 如果点击的是作品集页且当前已经在作品集页，则跳转到作品集管理页面
             if (tab === 'portfolio' && this.currentTab === 'portfolio') {
                 console.log('【profile】已在作品集页，跳转到作品集管理页面');
                 this.navigateToPortfolio();
                 return;
             }
-            
+
             if (tab === this.currentTab) {
                 return;
             } // 如果是当前标签，不做任何操作
@@ -2615,8 +2653,7 @@ export default {
                                 favoriteList: newList
                             });
                             try {
-                                const appInstance = getApp();
-                                const userId = appInstance && appInstance.globalData && appInstance.globalData.openid;
+                                const userId = getOpenid();
                                 const removed = that.favoriteList[index];
                                 const postId = removed && (removed._id || removed.postId);
                                 emitFavoriteChanged({ userId, postId, favored: false });
@@ -2645,7 +2682,7 @@ export default {
             });
         },
 
-        
+
         // 跳转到反馈管理页面（管理员）
         navigateToFeedbackAdmin: function () {
             uni.navigateTo({
@@ -2681,14 +2718,8 @@ export default {
                 // 清除本地存储的用户信息
                 uni.removeStorageSync('userInfo');
                 uni.removeStorageSync('userOpenId');
-
-                // 清除全局数据
-                const app = getApp();
-                if (app && app.globalData) {
-                    app.globalData.userInfo = null;
-                    app.globalData.openid = null;
-                    app.globalData._loginProcessCompleted = false; // 重置登录流程标记
-                }
+                uni.removeStorageSync('openid');
+                clearUserSession();
 
                 // 清除当前页面的用户数据
                 this.setData({
@@ -2746,12 +2777,8 @@ export default {
                 }
 
                 if (openid) {
-                    // 更新全局数据
-                    const app = getApp();
-                    if (app && app.globalData) {
-                        app.globalData.openid = openid;
-                        console.log('✅ [退出登录] 匿名openid已设置:', openid);
-                    }
+                    patchAppState({ openid: openid });
+                    console.log('✅ [退出登录] 匿名openid已设置:', openid);
 
                     // 缓存openid
                     uni.setStorageSync('userOpenId', openid);
@@ -2777,7 +2804,7 @@ export default {
         },
 
         // === PostItem 组件事件处理方法 ===
-        
+
         // 处理帖子操作菜单
         handlePostActionMenu(data) {
             this.setData({
@@ -2789,12 +2816,11 @@ export default {
                 }
             });
         },
-        
+
         // 处理跳转用户主页
         handleNavigateToUser(data) {
             // 获取当前用户ID
-            const app = getApp();
-            const currentUserId = (app && app.globalData && app.globalData.openid) || uni.getStorageSync('openid') || uni.getStorageSync('userOpenId');
+            const currentUserId = getOpenid();
             // 直接调用 navigateToUserProfile，传入正确的参数格式
             navigateToUserProfile({
                 userId: data.userId,
@@ -2803,7 +2829,7 @@ export default {
                 currentUserId: currentUserId
             });
         },
-        
+
         // 处理预览图片
         handlePreviewImage(data) {
             previewImage({
@@ -2811,7 +2837,7 @@ export default {
                 urls: data.urls
             });
         },
-        
+
         // 处理标签点击
         handleTagClick(data) {
             console.log('标签点击:', data.tag);
@@ -2820,7 +2846,7 @@ export default {
             //     url: `/pages-tools/search/search?tag=${encodeURIComponent(data.tag)}`
             // });
         },
-        
+
         // 处理取消收藏
         handleRemoveFavorite(data) {
             // 构造兼容原有 removeFavorite 方法的事件对象
@@ -2894,7 +2920,7 @@ export default {
                     }
                 });
         },
-        
+
         // 分享到好友/群聊
         onShareAppMessage(res) {
             return getShareAppMessageConfig({
@@ -2902,7 +2928,7 @@ export default {
                 path: '/pages/profile/profile'
             });
         },
-        
+
         // 分享到朋友圈
         onShareTimeline() {
             return getShareTimelineConfig({
@@ -3437,7 +3463,7 @@ export default {
     cursor: pointer;
 }
 
-.visibility-btn:active { 
+.visibility-btn:active {
     transform: scale(0.9);
 }
 
@@ -3446,13 +3472,13 @@ export default {
     height: 60rpx;
 }
 
-.hidden-tag { 
-    font-size: 22rpx; 
-    color: #ff6b6b; 
-    margin-left: 8rpx; 
-    padding: 2rpx 8rpx; 
-    border: 1rpx solid #ffadb0; 
-    border-radius: 6rpx; 
+.hidden-tag {
+    font-size: 22rpx;
+    color: #ff6b6b;
+    margin-left: 8rpx;
+    padding: 2rpx 8rpx;
+    border: 1rpx solid #ffadb0;
+    border-radius: 6rpx;
 }
 
 

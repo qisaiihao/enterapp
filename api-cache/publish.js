@@ -1,7 +1,7 @@
 /**
  * 发布内容相关 API 封装
  */
-const { callCloudAndUnwrap } = require('./_shared/cloud-wrapper.js');
+import { callCloudAndUnwrap } from './_shared/cloud-wrapper.js';
 
 function checkDuplicatePoem(title, author, isOriginal, options = {}) {
   if (!title || !title.trim()) {
@@ -144,7 +144,7 @@ function publishPost(postData, options = {}) {
   );
 }
 
-module.exports = {
+const publishApi = {
   checkDuplicatePoem,
   contentAudit,
   uploadFile,
@@ -153,3 +153,20 @@ module.exports = {
   deleteDraft,
   publishPost
 };
+
+export {
+  checkDuplicatePoem,
+  contentAudit,
+  uploadFile,
+  saveDraft,
+  getDrafts,
+  deleteDraft,
+  publishPost
+};
+
+export default publishApi;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = publishApi;
+  module.exports.default = publishApi;
+}

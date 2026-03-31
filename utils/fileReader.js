@@ -132,6 +132,17 @@ async function readFileAsBase64(filePath) {
     return readViaUniFs(filePath);
 }
 
-module.exports = {
+const fileReader = {
     readFileAsBase64
 };
+
+export {
+    readFileAsBase64
+};
+
+export default fileReader;
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = fileReader;
+    module.exports.default = fileReader;
+}

@@ -119,14 +119,15 @@
 </template>
 
 <script>
-const {
+import {
   normalizePoemDisplayText,
   normalizePoemDisplayLines,
   normalizeSeriesBlocksForDisplay
-} = require('@/utils/poemDisplay.js');
+} from '@/utils/poemDisplay.js';
 
 export default {
   name: 'ActivityPoemCard',
+  emits: ['vote', 'comment-click', 'longpress'],
   props: {
     item: {
       type: Object,
@@ -158,7 +159,7 @@ export default {
     try { uni.$on && uni.$on('font-loaded', this._fontLoadedHandler); } catch (_) {}
     // #endif
   },
-  beforeDestroy() {
+  beforeUnmount() {
     // #ifdef MP-WEIXIN
     try { uni.$off && this._fontLoadedHandler && uni.$off('font-loaded', this._fontLoadedHandler); } catch (_) {}
     this._fontLoadedHandler = null;

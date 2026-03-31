@@ -1,6 +1,6 @@
-const { cloudCall } = require('./cloudCall.js');
-const { getCloudFunctionMethod, getCurrentPlatform } = require('./platformDetector.js');
-const { readFileAsBase64 } = require('./fileReader.js');
+import { cloudCall } from './cloudCall.js';
+import { getCloudFunctionMethod, getCurrentPlatform } from './platformDetector.js';
+import { readFileAsBase64 } from './fileReader.js';
 
 function getTcbInstance(context) {
   if (context && context.$tcb && typeof context.$tcb.uploadFile === 'function') {
@@ -141,7 +141,19 @@ async function uploadFileCompat({
   }
 }
 
-module.exports = {
+const uploadCompat = {
   uploadFileCompat,
   uploadViaCloudFunction
 };
+
+export {
+  uploadFileCompat,
+  uploadViaCloudFunction
+};
+
+export default uploadCompat;
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = uploadCompat;
+  module.exports.default = uploadCompat;
+}

@@ -44,6 +44,7 @@ import { calcBookHeight as calcBookHeightUtil, calcShelfLineWidth } from '@/util
 
 export default {
     name: 'PortfolioBook',
+    emits: ['navigate-to-portfolio', 'open-portfolio'],
     props: {
         portfolioList: {
             type: Array,

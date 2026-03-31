@@ -155,11 +155,11 @@ import { getPoetInfo, getPoetPosts, updatePoetInfo, invalidatePoetInfo, invalida
 import { hydrateTempUrls, warmTempUrlsFromPosts } from '../../_utils/hydrate-temp-urls';
 import fileUrlCache from '@/cache/core/file-url';
 import skeleton from '@/components/skeleton/skeleton';
-const { formatRelativeTime } = require('../../utils/time.js');
-const { previewImage } = require('../../utils/imagePreview.js');
-const { cloudCall } = require('../../utils/cloudCall.js');
-const postGalleryMixin = require('../../mixins/postGallery.js');
-const { checkImageSafe, checkTextSafe } = require('../../utils/contentModeration.js');
+import { formatRelativeTime } from '../../utils/time.js';
+import { previewImage } from '../../utils/imagePreview.js';
+import { cloudCall } from '../../utils/cloudCall.js';
+import postGalleryMixin from '../../mixins/postGallery.js';
+import { checkImageSafe, checkTextSafe } from '../../utils/contentModeration.js';
 
 const PAGE_SIZE = 10;
 

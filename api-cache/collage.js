@@ -1,10 +1,9 @@
-import cacheManager from '@/_utils/cache-manager';
+import cacheManager from '@/cache/core/manager.js';
 import { buildCacheKey } from './cache-key-builder.js';
 import { hydrateTempUrls } from '@/cache/core/hydrate.js';
-import { cloudCall } from '@/utils/cloudCall';
-
-const likeStatusCache = require('@/cache/stores/like-status.js');
-const { callCloudAndUnwrap } = require('./_shared/cloud-wrapper.js');
+import { cloudCall } from '@/utils/cloudCall.js';
+import likeStatusCache from '@/cache/stores/like-status.js';
+import { callCloudAndUnwrap } from './_shared/cloud-wrapper.js';
 
 const TTL_MS = 60 * 1000;
 const SWR_MS = 30 * 1000;
