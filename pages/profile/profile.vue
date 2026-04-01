@@ -324,6 +324,7 @@ import { getUserAvatarSeed, resolveUserAvatar } from '@/utils/defaultAvatar.js';
 import { colorPalettes } from '@/utils/colorPalettes.js';
 import { poemLines } from '@/utils/poemLines.js';
 import fontManager from '@/utils/fontManager.js';
+import { getWindowInfoCompat } from '@/utils/system-info.js';
 import { uploadFile } from '../../utils/uploader.js';
 import { cloudCall } from '../../utils/cloudCall.js';
 import { getCurrentPlatform } from '../../utils/platformDetector.js';
@@ -680,7 +681,7 @@ export default {
         }
 
         // 计算3:4比例高度（宽3高4，竖屏）
-        const windowWidth = uni.getSystemInfoSync().windowWidth;
+        const windowWidth = getWindowInfoCompat().windowWidth;
         const fixedHeight = Math.round((windowWidth * 4) / 3);
         this.setData({
             swiperFixedHeight: fixedHeight
@@ -885,9 +886,7 @@ export default {
                             return;
                         }
 
-                        const systemInfo = typeof uni.getSystemInfoSync === 'function'
-                            ? (uni.getSystemInfoSync() || {})
-                            : {};
+                        const systemInfo = getWindowInfoCompat();
                         const pixelRatio = Math.max(1, Number(systemInfo.pixelRatio || 1));
                         canvas.width = Math.max(1, Math.round(logicalWidth * pixelRatio));
                         canvas.height = Math.max(1, Math.round(logicalHeight * pixelRatio));

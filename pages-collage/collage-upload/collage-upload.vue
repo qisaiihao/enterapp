@@ -48,8 +48,13 @@
 
 <script>
 import { cloudCall } from '../../utils/cloudCall.js';
-import platformDetector from '../../utils/platformDetector.js';
+import { getCloudFunctionMethod, getCurrentPlatform } from '../../utils/platformDetector.js';
 import { requestAndroidStoragePermission } from '../../utils/permissions.js';
+
+const platformDetector = {
+  getCurrentPlatform,
+  getCloudFunctionMethod
+};
 
 export default {
   data() {

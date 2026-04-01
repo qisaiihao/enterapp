@@ -7,8 +7,12 @@
  * 这样 uni.loadFontFace 注册的名称和 Canvas ctx.font 使用的名称一致
  */
 
-import platformDetector from './platformDetector.js';
+import { getCurrentPlatform } from './platformDetector.js';
 import fileUrlCache from '@/cache/core/file-url.js';
+
+const platformDetector = {
+    getCurrentPlatform
+};
 
 const FONT_STORAGE_KEY = 'cached_fonts';
 const CUSTOM_FONTS_KEY = 'custom_fonts';
@@ -232,14 +236,6 @@ const FONT_CONFIG = {
             {
                 url: 'https://636c-cloud1-5gb0pbyl400845f5-1378788263.tcb.qcloud.la/fonts/Huiwen-mincho-compressed.woff2',
                 format: 'woff2'
-            },
-            {
-                url: 'https://636c-cloud1-5gb0pbyl400845f5-1378788263.tcb.qcloud.la/fonts/Huiwen-mincho-compressed.woff',
-                format: 'woff'
-            },
-            {
-                url: 'https://636c-cloud1-5gb0pbyl400845f5-1378788263.tcb.qcloud.la/fonts/Huiwen-mincho-compressed.ttf',
-                format: 'ttf'
             }
         ],
         version: '1.4.0',

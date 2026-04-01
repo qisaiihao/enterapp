@@ -3,7 +3,7 @@
 
 import cacheManager from '@/cache/core/manager';
 import fileUrlCache from '@/_utils/file-url-cache';
-import followCache from './followCache.js';
+import followCache from '@/cache/stores/follow.js';
 import { getMyInfo } from '@/api-cache/my.js';
 
 function clearAllNamespaces() {

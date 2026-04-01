@@ -170,6 +170,7 @@ const likeStatusCache = {
 };
 
 export {
+  likeStatusCache,
   getLikeStatus,
   updateLikeStatus,
   getBatchLikeStatus,
@@ -183,8 +184,3 @@ export {
 };
 
 export default likeStatusCache;
-
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = likeStatusCache;
-  module.exports.default = likeStatusCache;
-}

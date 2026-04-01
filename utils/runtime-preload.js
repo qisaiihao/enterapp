@@ -1,18 +1,36 @@
 import fileUrlCache from '@/_utils/file-url-cache';
 import { getMyInfo } from '@/api-cache/my.js';
 import { getAppState } from '@/utils/app-state.js';
+import { formatErrorForLog } from '@/utils/error-log.js';
 
 let resolverReady = false;
 let badgesScheduled = false;
 let prewarmReady = false;
 
-function getCurrentTcb() {
+function getCachedAppInstance() {
+  if (typeof uni === 'undefined') {
+    return null;
+  }
+  return uni.$appInstance || null;
+}
+
+async function ensureGlobalTcbAuthenticated(instance = null) {
   try {
-    const app = typeof getApp === 'function' ? getApp() : null;
-    if (app && app.$tcb && typeof app.$tcb.callFunction === 'function') {
-      return app.$tcb;
+    const authEnsurer = typeof uni !== 'undefined' ? uni.$ensureTcbAuthenticated : null;
+    if (typeof authEnsurer === 'function') {
+      await authEnsurer(instance || getCurrentTcb());
     }
-  } catch (error) {}
+  } catch (error) {
+    console.warn(`[runtime-preload] ensure auth failed: ${formatErrorForLog(error)}`);
+    throw error;
+  }
+}
+
+function getCurrentTcb() {
+  const app = getCachedAppInstance();
+  if (app && app.$tcb && typeof app.$tcb.callFunction === 'function') {
+    return app.$tcb;
+  }
 
   if (typeof uni !== 'undefined' && uni.$tcb && typeof uni.$tcb.callFunction === 'function') {
     return uni.$tcb;
@@ -48,6 +66,7 @@ export function setupFileUrlResolver() {
 
     const tcb = getCurrentTcb();
     if (tcb && typeof tcb.getTempFileURL === 'function') {
+      await ensureGlobalTcbAuthenticated(tcb);
       const response = await tcb.getTempFileURL({ fileList: ids });
       return buildTempFileMap(response);
     }
@@ -77,17 +96,21 @@ export function initRuntimeBadges() {
       import('@/cache/stores/unread-badge.js'),
       import('@/cache/stores/activity-badge.js')
     ]).then(([unreadBadgeResult, activityBadgeResult]) => {
-      try {
-        unreadBadgeResult.value?.default?.initUnreadCount?.();
-      } catch (error) {
-        console.warn('unreadBadge init failed', error);
-      }
+      ensureGlobalTcbAuthenticated().then(() => {
+        try {
+          unreadBadgeResult.value?.default?.initUnreadCount?.();
+        } catch (error) {
+          console.warn(`unreadBadge init failed: ${formatErrorForLog(error)}`);
+        }
 
-      try {
-        activityBadgeResult.value?.default?.initActivityBadge?.();
-      } catch (error) {
-        console.warn('activityBadge init failed', error);
-      }
+        try {
+          activityBadgeResult.value?.default?.initActivityBadge?.();
+        } catch (error) {
+          console.warn(`activityBadge init failed: ${formatErrorForLog(error)}`);
+        }
+      }).catch((error) => {
+        console.warn(`[runtime-preload] badge init skipped before auth ready: ${formatErrorForLog(error)}`);
+      });
     });
   }, 1000);
 }
@@ -113,9 +136,10 @@ export function prewarmAfterLogin() {
         return;
       }
       try {
+        await ensureGlobalTcbAuthenticated(tcb);
         await getMyInfo({ $tcb: tcb });
       } catch (error) {
-        console.warn('[prewarm] getMyInfo failed', error);
+        console.warn(`[prewarm] getMyInfo failed: ${formatErrorForLog(error)}`);
       }
     } catch (error) {
       clearInterval(timer);

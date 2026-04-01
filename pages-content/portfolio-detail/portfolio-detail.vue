@@ -137,6 +137,7 @@ import { togglePostLike } from '../../utils/likeService.js';
 import { notifyPortfolioUpdated } from '../../api-cache/portfolio.js';
 import { attachPoemDisplayFields } from '../../utils/poemDisplay.js';
 import { syncLikeStatusForPosts, getLatestLikeStatus } from '../../utils/likeStatusSync.js';
+import { getWindowInfoCompat } from '@/utils/system-info.js';
 // authorSignature???????????????????ignatureCache
 
 const PAGE_SIZE = 10;
@@ -202,7 +203,7 @@ export default {
     this._scrollTimer = setTimeout(() => {
       if (!this.hasMore || this.isLoadingMore || this.isLoading) return;
       try {
-        const info = uni.getSystemInfoSync();
+        const info = getWindowInfoCompat();
         const winH = info.windowHeight;
         uni.createSelectorQuery().in(this).select('#post-list-container').boundingClientRect((rect) => {
           if (!rect || !rect.height) return;

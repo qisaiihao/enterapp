@@ -1,6 +1,6 @@
 <template>
     <!-- pages/messages/messages.wxml -->
-    <view class="container">
+    <view class="container" :style="pageInlineStyle">
         <!-- 自定义返回按钮 -->
         <view class="custom-back-btn" @tap="goBack">
             <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
@@ -64,7 +64,7 @@
                       :data-index="index">
                     <!-- 用户头像 -->
                     <image class="user-avatar"
-                           :src="item.fromUserAvatar || '/static/images/avatar.png'"
+                           :src="getMessageAvatar(item)"
                            mode="aspectFill"
                            @tap.stop.prevent="navigateToUserProfile"
                            :data-user-id="item.fromUserId" />
@@ -116,8 +116,10 @@ import {
 import { toggleFollow } from '../../api-cache/following.js';
 import fileUrlCache from '../../cache/core/file-url.js';
 import unreadBadge from '../../cache/stores/unread-badge.js';
-import followCache from '../../utils/followCache.js';
+import followCache from '../../cache/stores/follow.js';
 import { emitUnreadChanged } from '../../utils/events.js';
+import { resolveUserAvatar } from '../../utils/defaultAvatar.js';
+import { getSystemInfoCompat } from '@/utils/system-info.js';
 // pages/messages/messages.js
 const app = getApp();
 
@@ -132,6 +134,7 @@ export default {
             activeTab: 'all',
             // all, like, comment, favorite, follow
             unreadCount: 0,
+            pageInlineStyle: '',
             filterSectionInlineStyle: '',
             // 触摸相关数据
             touchStartX: 0,
@@ -144,7 +147,7 @@ export default {
         };
     },
     onLoad: function (options) {
-        this.setupMpHeaderLayout();
+        this.setupHeaderLayout();
         this.loadMessages();
     },
     onShow: function () {
@@ -184,10 +187,27 @@ export default {
         }
     },
     methods: {
-        setupMpHeaderLayout() {
+        setupHeaderLayout() {
+            try {
+                const systemInfo = getSystemInfoCompat();
+                let safeAreaTop = 0;
+
+                if (systemInfo.safeAreaInsets && systemInfo.safeAreaInsets.top > 0) {
+                    safeAreaTop = systemInfo.safeAreaInsets.top;
+                } else if (systemInfo.statusBarHeight) {
+                    safeAreaTop = systemInfo.statusBarHeight;
+                }
+
+                if (safeAreaTop > 0) {
+                    this.pageInlineStyle = `--messages-safe-area-top: ${safeAreaTop}px;`;
+                }
+            } catch (err) {
+                console.warn('[messages] setupHeaderLayout safe area failed:', err);
+            }
+
             // #ifdef MP-WEIXIN
             try {
-                const systemInfo = uni.getSystemInfoSync ? uni.getSystemInfoSync() : {};
+                const systemInfo = getSystemInfoCompat();
                 const menuButton = wx.getMenuButtonBoundingClientRect ? wx.getMenuButtonBoundingClientRect() : null;
 
                 if (!menuButton) {
@@ -199,7 +219,7 @@ export default {
 
                 this.filterSectionInlineStyle = `padding-right: ${rightInset}px;`;
             } catch (err) {
-                console.warn('[messages] setupMpHeaderLayout failed:', err);
+                console.warn('[messages] setupHeaderLayout failed:', err);
             }
             // #endif
         },
@@ -228,6 +248,23 @@ export default {
             const appInstance = getApp();
             const openid = appInstance && appInstance.globalData && appInstance.globalData.openid;
             return openid || uni.getStorageSync('openid') || uni.getStorageSync('userOpenId');
+        },
+
+        normalizeMessageAvatar(message) {
+            const resolvedAvatar = resolveUserAvatar(
+                message && message.fromUserAvatar,
+                message && (message.fromUserId || message._openid || message.userId || message.fromUserName || message._id)
+            );
+
+            if (message && typeof message === 'object') {
+                message.fromUserAvatar = resolvedAvatar;
+            }
+
+            return resolvedAvatar;
+        },
+
+        getMessageAvatar(message) {
+            return this.normalizeMessageAvatar(message);
         },
 
         // 触摸开始
@@ -461,7 +498,7 @@ export default {
                                     if (convertedUrl) {
                                         msg.fromUserAvatar = convertedUrl;
                                     } else {
-                                        msg.fromUserAvatar = '/static/images/avatar.png';
+                                        msg.fromUserAvatar = '';
                                     }
                                 }
                             });
@@ -474,7 +511,7 @@ export default {
                             // 转换失败时使用默认头像
                             newMessages.forEach((msg) => {
                                 if (msg.fromUserAvatar && msg.fromUserAvatar.startsWith('cloud://')) {
-                                    msg.fromUserAvatar = '/static/images/avatar.png';
+                                    msg.fromUserAvatar = '';
                                 }
                             });
 
@@ -518,6 +555,7 @@ export default {
         processMessagesAfterAvatarConversion: function (newMessages, page, PAGE_SIZE, unreadCount, callback) {
             // 格式化时间和消息内容
             newMessages.forEach((msg) => {
+                this.normalizeMessageAvatar(msg);
                 if (msg.createTime) {
                     const timeAgo = formatTimeAgo(msg.createTime);
                     msg.formattedTime = timeAgo;
@@ -890,7 +928,7 @@ export default {
 /* 自定义返回按钮 */
 .custom-back-btn {
     position: absolute;
-    top: calc(env(safe-area-inset-top, var(--safe-area-inset-top, 0px)) + 18rpx);
+    top: calc(var(--messages-safe-area-top, 0px) + 28rpx);
     left: 30rpx;
     width: 56rpx;
     height: 56rpx;
@@ -945,7 +983,7 @@ export default {
 /* 操作按钮区域 */
 .filter-section {
     background-color: #ffffff;
-    padding: calc(env(safe-area-inset-top, var(--safe-area-inset-top, 0px)) + 16rpx) 30rpx 14rpx;
+    padding: calc(var(--messages-safe-area-top, 0px) + 28rpx) 30rpx 18rpx;
     border-bottom: 1rpx solid #f0f0f0;
     position: relative;
 }
@@ -990,7 +1028,7 @@ export default {
 
 /* 消息列表 */
 .message-list {
-    height: calc(100vh - 200rpx);
+    height: calc(100vh - 200rpx - var(--messages-safe-area-top, 0px));
     background-color: #ffffff;
 }
 
@@ -1093,17 +1131,30 @@ export default {
     align-items: center;
     gap: 10rpx;
     margin-bottom: 16rpx;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .sender-name {
     font-size: 30rpx;
     color: #000000;
     font-weight: 500;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 40%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .action-text {
     font-size: 30rpx;
     color: #000000;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .message-time {
@@ -1113,6 +1164,8 @@ export default {
     padding: 4rpx 12rpx;
     border-radius: 12rpx;
     margin-left: auto;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .content-preview {
@@ -1138,11 +1191,13 @@ export default {
     border-radius: 16rpx;
     margin-left: 10rpx;
     margin-right: 10rpx;
+    flex-shrink: 0;
 }
 
 .follow-btn text {
     font-size: 24rpx;
     color: #000000;
+    white-space: nowrap;
 }
 
 .follow-btn.following {

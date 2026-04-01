@@ -3,7 +3,7 @@ import App from './App';
 import AppBackgroundPageRoot from '@/components/AppBackgroundPageRoot.vue';
 import cacheManager from '@/cache/core/manager.js';
 import { getAppState, getOpenid } from '@/utils/app-state.js';
-import { ensureRuntimeOpenid, ensureTcbReady, installRuntimeBindings, setupRuntimeSideEffects } from '@/utils/runtime-bootstrap.js';
+import { ensureRuntimeOpenid, ensureTcbAuthenticated, ensureTcbReady, installRuntimeBindings, setupRuntimeSideEffects } from '@/utils/runtime-bootstrap.js';
 import zpMixins from '@/uni_modules/zp-mixins/index.js';
 import appFontManager from './utils/fontManager.js';
 
@@ -161,7 +161,7 @@ if (typeof uniCloud !== 'undefined' && typeof uniCloud.callFunction === 'functio
 }
 // #endif
 
-// #ifdef H5 || APP-PLUS
+// #ifdef H5 || APP-PLUS || APP-HARMONY
 if (runtimeTcb && typeof runtimeTcb.callFunction === 'function') {
   const originalTcbCallFunction = runtimeTcb.callFunction.bind(runtimeTcb);
   runtimeTcb.callFunction = async function(options = {}) {
@@ -170,6 +170,8 @@ if (runtimeTcb && typeof runtimeTcb.callFunction === 'function') {
     if (!name || options.__skipOpenidGuard) {
       return originalTcbCallFunction(normalizedOptions);
     }
+
+    await ensureTcbAuthenticated(runtimeTcb);
 
     const { openid, allowed } = await resolveOpenidForCall(name);
     if (!allowed) {

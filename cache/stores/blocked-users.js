@@ -95,12 +95,8 @@ export {
   setCachedBlockedIds,
   clearCache,
   updateCache,
-  getCacheStats
+  getCacheStats,
+  blockedUsersCache
 };
 
 export default blockedUsersCache;
-
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = blockedUsersCache;
-  module.exports.default = blockedUsersCache;
-}

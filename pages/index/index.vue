@@ -202,8 +202,8 @@ import { syncLikeStatusForPosts, getLatestLikeStatus } from '@/utils/likeStatusS
 import imageOptimizer from '@/utils/imageOptimizer';
 import likeIcon from '@/utils/likeIcon';
 import { togglePostLike } from '@/utils/likeService.js';
-import avatarCache from '@/utils/avatarCache';
-import followCache from '@/utils/followCache';
+import avatarCache from '@/cache/stores/avatar.js';
+import followCache from '@/cache/stores/follow.js';
 import { previewImage } from '@/utils/imagePreview.js';
 import { normalizePostList } from '@/utils/postNormalizer.js';
 import { processPostList } from '@/utils/postProcessor.js';
@@ -212,6 +212,7 @@ import postGalleryMixin from '@/mixins/postGallery.js';
 import cacheManager from '@/cache/core/manager.js';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
 import { getOpenid } from '@/utils/app-state.js';
+import { getSystemInfoCompat, getWindowInfoCompat } from '@/utils/system-info.js';
 
 // 常量定义
 const PAGE_SIZE = 10;
@@ -594,7 +595,7 @@ export default {
                 }
                 
                 try {
-                    const info = uni.getSystemInfoSync();
+                    const info = getWindowInfoCompat();
                     const winH = info.windowHeight;
                     
                     let containerId = '';
@@ -660,7 +661,7 @@ export default {
             debugSafeArea() {
             console.log('📏 [debugSafeArea] 开始获取安全区域高度');
             try {
-                const systemInfo = uni.getSystemInfoSync();
+                const systemInfo = getSystemInfoCompat();
                 console.log('📏 [debugSafeArea] systemInfo:', systemInfo);
                 console.log('📏 [debugSafeArea] statusBarHeight:', systemInfo.statusBarHeight);
                 

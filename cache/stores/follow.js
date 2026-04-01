@@ -194,9 +194,6 @@ class FollowCache {
 }
 
 const followCache = new FollowCache();
-export default followCache;
 
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = followCache;
-  module.exports.default = followCache;
-}
+export { followCache };
+export default followCache;

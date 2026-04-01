@@ -95,6 +95,7 @@ import { syncLikeStatusForPosts, getLatestLikeStatus } from '@/utils/likeStatusS
 import { updateTabBarStatus } from '@/utils/tabBarCompatibility.js';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
 import { attachPoemDisplayFields } from '@/utils/poemDisplay.js';
+import { getSystemInfoCompat, getWindowInfoCompat } from '@/utils/system-info.js';
 
 const PAGE_SIZE = 10;
 
@@ -216,7 +217,7 @@ export default {
       }
       
       try {
-        const info = uni.getSystemInfoSync();
+        const info = getWindowInfoCompat();
         const winH = info.windowHeight;
         uni.createSelectorQuery().in(this).select('#post-list-container').boundingClientRect((rect) => {
           if (!rect || !rect.height) return;
@@ -267,7 +268,7 @@ export default {
     debugSafeArea() {
       try {
         // 获取系统信息
-        const systemInfo = uni.getSystemInfoSync();
+        const systemInfo = getSystemInfoCompat();
         console.log('【mountain】系统信息:', {
           statusBarHeight: systemInfo.statusBarHeight,
           safeAreaInsets: systemInfo.safeAreaInsets,

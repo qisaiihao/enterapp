@@ -68,6 +68,7 @@
 <script>
 import skeleton from '@/components/skeleton/skeleton';
 import PostItem from '@/components/PostItem.vue';
+import { getWindowInfoCompat } from '@/utils/system-info.js';
 
 export default {
     name: 'FeedList',
@@ -208,7 +209,7 @@ export default {
             }
 
             try {
-                const info = uni.getSystemInfoSync();
+                const info = getWindowInfoCompat();
                 const winH = info.windowHeight;
 
                 uni.createSelectorQuery()

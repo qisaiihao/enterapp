@@ -100,6 +100,7 @@
 // components/portfolio-selector/portfolio-selector.js
 import { cloudCall } from '../../utils/cloudCall.js';
 import { getPortfolioFolders, notifyPortfolioUpdated } from '../../api-cache/portfolio.js';
+import { readFileAsBase64 } from '../../utils/fileReader.js';
 export default {
     data() {
         return {
@@ -495,86 +496,27 @@ export default {
                     title: '上传封面中...'
                 });
 
-                // 检查运行环境
-                // #ifdef H5
-                // H5环境：使用fetch获取blob，然后转换为base64
-                fetch(this.newPortfolioCover)
-                    .then(response => response.blob())
-                    .then(blob => {
-                        return new Promise((resolve, reject) => {
-                            const reader = new FileReader();
-                            reader.onload = () => resolve(reader.result);
-                            reader.onerror = reject;
-                            reader.readAsDataURL(blob);
-                        });
-                    })
-                    .then(base64 => {
-                        // 移除data:image/jpeg;base64,前缀
-                        const base64Data = base64.split(',')[1];
-                        console.log('H5环境封面图片base64转换成功');
-                        
-                        // 调用云函数上传
-                        this.callCloudFunction('upload', {
-                            fileContent: base64Data,
-                            cloudPath: cloudPath
-                        }).then((uploadRes) => {
-                            uni.hideLoading();
-                            console.log('【portfolio-selector】H5环境封面图片上传结果:', uploadRes);
-                            if (uploadRes && uploadRes.result && uploadRes.result.success && uploadRes.result.fileID) {
-                                resolve(uploadRes.result.fileID);
-                            } else {
-                                const errorMsg = uploadRes?.result?.message || uploadRes?.result?.error || '上传失败';
-                                console.error('【portfolio-selector】H5环境封面图片上传失败:', uploadRes);
-                                reject(new Error(errorMsg));
-                            }
-                        }).catch((uploadErr) => {
-                            uni.hideLoading();
-                            console.error('【portfolio-selector】H5环境封面图片上传云函数调用失败:', uploadErr);
-                            reject(new Error(uploadErr.message || '上传失败'));
-                        });
-                    })
-                    .catch((err) => {
+                readFileAsBase64(this.newPortfolioCover).then((base64Data) => {
+                    this.callCloudFunction('upload', {
+                        fileContent: base64Data,
+                        cloudPath: cloudPath
+                    }).then((uploadRes) => {
                         uni.hideLoading();
-                        console.error('H5环境封面图片base64转换失败:', err);
-                        reject(err);
+                        console.log('【portfolio-selector】封面图片上传结果:', uploadRes);
+                        if (uploadRes && uploadRes.result && uploadRes.result.success && uploadRes.result.fileID) {
+                            resolve(uploadRes.result.fileID);
+                        } else {
+                            const errorMsg = uploadRes?.result?.message || uploadRes?.result?.error || '上传失败';
+                            reject(new Error(errorMsg));
+                        }
+                    }).catch((uploadErr) => {
+                        uni.hideLoading();
+                        reject(new Error(uploadErr.message || '上传失败'));
                     });
-                // #endif
-
-                // #ifndef H5
-                // 非H5环境（如小程序）：使用uni.getFileSystemManager
-                uni.getFileSystemManager().readFile({
-                    filePath: this.newPortfolioCover,
-                    encoding: 'base64',
-                    success: (readRes) => {
-                        console.log('非H5环境封面图片base64读取成功');
-                        
-                        // 调用云函数上传
-                        this.callCloudFunction('upload', {
-                            fileContent: readRes.data,
-                            cloudPath: cloudPath
-                        }).then((uploadRes) => {
-                            uni.hideLoading();
-                            console.log('【portfolio-selector】非H5环境封面图片上传结果:', uploadRes);
-                            if (uploadRes && uploadRes.result && uploadRes.result.success && uploadRes.result.fileID) {
-                                resolve(uploadRes.result.fileID);
-                            } else {
-                                const errorMsg = uploadRes?.result?.message || uploadRes?.result?.error || '上传失败';
-                                console.error('【portfolio-selector】非H5环境封面图片上传失败:', uploadRes);
-                                reject(new Error(errorMsg));
-                            }
-                        }).catch((uploadErr) => {
-                            uni.hideLoading();
-                            console.error('【portfolio-selector】非H5环境封面图片上传云函数调用失败:', uploadErr);
-                            reject(new Error(uploadErr.message || '上传失败'));
-                        });
-                    },
-                    fail: (readErr) => {
-                        uni.hideLoading();
-                        console.error('非H5环境封面图片base64读取失败:', readErr);
-                        reject(readErr);
-                    }
+                }).catch((err) => {
+                    uni.hideLoading();
+                    reject(err);
                 });
-                // #endif
             });
         },
 

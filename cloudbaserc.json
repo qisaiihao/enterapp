@@ -181,6 +181,16 @@
       "params": {}
     },
     {
+      "name": "getMessages",
+      "timeout": 3,
+      "memory": 128,
+      "runtime": "Nodejs16.13",
+      "handler": "index.main",
+      "root": "./functions/getMessages",
+      "installDependency": true,
+      "params": {}
+    },
+    {
       "name": "updateUserProfile",
       "timeout": 3,
       "memory": 128,

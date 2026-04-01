@@ -336,8 +336,8 @@ import likeIcon from '@/utils/likeIcon';
 import { togglePostLike } from '@/utils/likeService.js';
 import { previewImage } from '@/utils/imagePreview.js';
 import { formatRelativeTime } from '@/utils/time.js';
-import avatarCache from '@/utils/avatarCache';
-import followCache from '@/utils/followCache';
+import avatarCache from '@/cache/stores/avatar.js';
+import followCache from '@/cache/stores/follow.js';
 import { cloudCall } from '@/utils/cloudCall.js';
 import { uploadFile } from '@/utils/uploader.js';
 import postGalleryMixin from '@/mixins/postGallery.js';
@@ -357,6 +357,7 @@ import fontManager from '@/utils/fontManager.js'; // 添加fontManager导入
 import { checkContentSafe, checkTextSafe, shouldModerate } from '@/utils/contentModeration.js';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
 import { resolvePostAuthorAvatar } from '@/utils/defaultAvatar.js';
+import { getWindowInfoCompat } from '@/utils/system-info.js';
 
 // API函数导入
 import { getPostDetail, updatePostContent, togglePostFavorite, recordPostView } from '@/api-cache/post.js';
@@ -689,9 +690,7 @@ export default {
                             return;
                         }
 
-                        const systemInfo = typeof uni.getSystemInfoSync === 'function'
-                            ? (uni.getSystemInfoSync() || {})
-                            : {};
+                        const systemInfo = getWindowInfoCompat();
                         const pixelRatio = Math.max(1, Number(systemInfo.pixelRatio || 1));
                         canvas.width = Math.max(1, Math.round(logicalWidth * pixelRatio));
                         canvas.height = Math.max(1, Math.round(logicalHeight * pixelRatio));
@@ -2013,7 +2012,7 @@ export default {
 
         initializeCommentTextareaMetrics: function () {
             try {
-                const systemInfo = uni.getSystemInfoSync ? uni.getSystemInfoSync() : null;
+                const systemInfo = getWindowInfoCompat();
                 const rpxToPx = systemInfo && systemInfo.windowWidth ? systemInfo.windowWidth / 750 : 0.5;
                 const minHeight = Math.round(180 * rpxToPx);
                 const maxHeight = Math.round(350 * rpxToPx);

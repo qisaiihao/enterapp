@@ -163,9 +163,6 @@ class AvatarCache {
 }
 
 const avatarCache = new AvatarCache();
-export default avatarCache;
 
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = avatarCache;
-  module.exports.default = avatarCache;
-}
+export { avatarCache };
+export default avatarCache;

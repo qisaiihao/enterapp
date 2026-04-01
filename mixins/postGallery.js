@@ -161,8 +161,5 @@ const postGalleryMixin = {
     }
 };
 
+export { postGalleryMixin };
 export default postGalleryMixin;
-
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = postGalleryMixin;
-}

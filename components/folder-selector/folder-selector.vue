@@ -133,6 +133,7 @@
 // components/folder-selector/folder-selector.js
 import { cloudCall } from '../../utils/cloudCall.js';
 import { emitFavoriteChanged } from '@/utils/events.js';
+import { readFileAsBase64 } from '../../utils/fileReader.js';
 export default {
     data() {
         return {
@@ -618,96 +619,30 @@ export default {
                     title: '上传封面中...'
                 });
 
-                // 检查环境并使用相应的文件读取方式
-                if (typeof window !== 'undefined' && typeof FileReader !== 'undefined') {
-                    // H5环境：使用fetch获取blob，然后转换为base64
-                    fetch(this.newFolderCover)
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error(`HTTP error! status: ${response.status}`);
-                            }
-                            return response.blob();
-                        })
-                        .then(blob => {
-                            const reader = new FileReader();
-                            reader.onload = () => {
-                                const result = reader.result;
-                                if (!result || typeof result !== 'string') {
-                                    console.error('FileReader结果无效:', result);
-                                    reject(new Error('文件读取失败'));
-                                    return;
-                                }
-                                const base64 = result.split(',')[1];
-                                console.log('图片转换为base64完成，长度:', base64.length);
-                                
-                                // 使用云函数上传
-                                this.callCloudFunction('upload', {
-                                    cloudPath: cloudPath,
-                                    fileContent: base64
-                                }).then((uploadRes) => {
-                                    uni.hideLoading();
-                                    console.log('上传云函数返回结果:', uploadRes);
-                                    
-                                    if (uploadRes && uploadRes.result && uploadRes.result.success) {
-                                        console.log('封面图片上传成功:', uploadRes.result.fileID);
-                                        resolve(uploadRes.result.fileID);
-                                    } else {
-                                        console.error('上传云函数返回格式错误:', uploadRes);
-                                        reject(new Error('上传失败'));
-                                    }
-                                }).catch((err) => {
-                                    uni.hideLoading();
-                                    console.error('上传封面图片失败:', err);
-                                    reject(err);
-                                });
-                            };
-                            reader.onerror = () => {
-                                uni.hideLoading();
-                                reject(new Error('文件读取失败'));
-                            };
-                            reader.readAsDataURL(blob);
-                        })
-                        .catch((err) => {
-                            uni.hideLoading();
-                            console.error('获取图片失败:', err);
-                            reject(new Error('获取图片失败'));
-                        });
-                } else {
-                    // 小程序环境：使用getFileSystemManager
-                    uni.getFileSystemManager().readFile({
-                        filePath: this.newFolderCover,
-                        encoding: 'base64',
-                        success: (res) => {
-                            console.log('图片转换为base64成功');
-                            
-                            // 使用云函数上传
-                            this.callCloudFunction('upload', {
-                                cloudPath: cloudPath,
-                                fileContent: res.data
-                            }).then((uploadRes) => {
-                                uni.hideLoading();
-                                console.log('上传云函数返回结果:', uploadRes);
-                                
-                                if (uploadRes && uploadRes.result && uploadRes.result.success) {
-                                    console.log('封面图片上传成功:', uploadRes.result.fileID);
-                                    resolve(uploadRes.result.fileID);
-                                } else {
-                                    console.error('上传云函数返回格式错误:', uploadRes);
-                                    reject(new Error('上传失败'));
-                                }
-                            }).catch((err) => {
-                                uni.hideLoading();
-                                console.error('上传封面图片失败:', err);
-                                reject(err);
-                            });
-                        },
-                        fail: (err) => {
-                            uni.hideLoading();
-                            console.error('读取图片文件失败:', err);
-                            reject(new Error('读取图片失败'));
+                readFileAsBase64(this.newFolderCover).then((base64) => {
+                    this.callCloudFunction('upload', {
+                        cloudPath: cloudPath,
+                        fileContent: base64
+                    }).then((uploadRes) => {
+                        uni.hideLoading();
+                        console.log('上传云函数返回结果:', uploadRes);
+
+                        if (uploadRes && uploadRes.result && uploadRes.result.success) {
+                            console.log('封面图片上传成功:', uploadRes.result.fileID);
+                            resolve(uploadRes.result.fileID);
+                        } else {
+                            reject(new Error('上传失败'));
                         }
+                    }).catch((err) => {
+                        uni.hideLoading();
+                        console.error('上传封面图片失败:', err);
+                        reject(err);
                     });
-                }
+                }).catch((err) => {
+                    uni.hideLoading();
+                    console.error('读取图片文件失败:', err);
+                    reject(new Error('读取图片失败'));
+                });
             });
         }
     },

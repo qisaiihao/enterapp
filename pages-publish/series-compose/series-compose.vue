@@ -127,6 +127,7 @@
 
 <script>
 import { cloudCall } from '@/utils/cloudCall.js';
+import { getWindowInfoCompat } from '@/utils/system-info.js';
 
 const DEFAULT_BACKGROUND_COLOR = '#a4c4bd';
 const DEFAULT_TEXT_COLOR = '#333333';
@@ -167,7 +168,7 @@ export default {
   methods: {
     initNavMetrics() {
       try {
-        const systemInfo = uni.getSystemInfoSync();
+        const systemInfo = getWindowInfoCompat();
         const safeAreaTop = systemInfo.statusBarHeight || 0;
         const navBarHeight = systemInfo.windowWidth ? (systemInfo.windowWidth / 750) * 100 : 50;
         this.safeAreaTop = safeAreaTop;

@@ -81,6 +81,7 @@ import { formatRelativeTime } from '../../utils/time.js';
 import { previewImage as previewImageUtil } from '../../utils/imagePreview.js';
 import { cloudCall } from '../../utils/cloudCall.js';
 import { getCurrentUserInfo, isAdminUser } from '../../utils/admin.js';
+import { getStatusBarHeightCompat } from '@/utils/system-info.js';
 import {
     getFeedbackList as getFeedbackListApi,
     updateFeedbackStatus,
@@ -119,9 +120,8 @@ export default {
     },
     onLoad: function () {
         // 获取状态栏高度
-        const systemInfo = uni.getSystemInfoSync();
         this.setData({
-            statusBarHeight: systemInfo.statusBarHeight
+            statusBarHeight: getStatusBarHeightCompat()
         });
 
         // 设置CSS变量

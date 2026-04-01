@@ -1,9 +1,8 @@
+import { getSystemInfoCompat } from './system-info.js';
+
 function safeGetSystemInfo() {
-    if (typeof uni === 'undefined' || typeof uni.getSystemInfoSync !== 'function') {
-        return {};
-    }
     try {
-        return uni.getSystemInfoSync() || {};
+        return getSystemInfoCompat();
     } catch (error) {
         return {};
     }
@@ -71,11 +70,13 @@ function getPlatformInfo() {
         }
 
         const platform = String(systemInfo.platform || '').toLowerCase();
-        if (typeof plus !== 'undefined' || platform === 'android' || platform === 'ios') {
+        const isHarmonyPlatform = platform === 'harmony' || platform === 'hongmeng' || platform === 'ohos';
+        if (typeof plus !== 'undefined' || platform === 'android' || platform === 'ios' || isHarmonyPlatform) {
             info.platform = 'app';
             info.isApp = true;
             info.isAndroid = platform === 'android';
             info.isIOS = platform === 'ios';
+            info.isHarmony = info.isHarmony || isHarmonyPlatform;
             return info;
         }
     } catch (error) {

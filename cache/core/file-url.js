@@ -18,6 +18,15 @@ const EXPIRY_SKEW_MS = 60 * 1000;       // 1 分钟安全裕量
 
 function now() { return Date.now(); }
 function isCloudId(str) { return typeof str === 'string' && str.startsWith('cloud://'); }
+async function ensureTcbAuthIfNeeded(tcb) {
+  if (!tcb) return;
+  try {
+    const authEnsurer = typeof uni !== 'undefined' ? uni.$ensureTcbAuthenticated : null;
+    if (typeof authEnsurer === 'function') {
+      await authEnsurer(tcb);
+    }
+  } catch (_) {}
+}
 
 class FileUrlCache {
   constructor() {
@@ -154,6 +163,7 @@ class FileUrlCache {
       const app = (typeof getApp === 'function') ? getApp() : null;
       const tcb = app && app.$tcb;
       if (tcb && typeof tcb.getTempFileURL === 'function') {
+        await ensureTcbAuthIfNeeded(tcb);
         const res = await tcb.getTempFileURL({ fileList: ids });
         const map = {};
         if (res && Array.isArray(res.fileList)) {

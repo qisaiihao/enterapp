@@ -1,17 +1,60 @@
 import { cloudCall } from '../../utils/cloudCall.js';
 
 function getResult(res) {
-  return (res && res.result) || {};
+  if (res && typeof res === 'object') {
+    if (res.result && typeof res.result === 'object') {
+      return res.result;
+    }
+    return res;
+  }
+  return {};
 }
 
 function isSuccessResult(result) {
   return !!result && (result.success === true || result.code === 0);
 }
 
+function extractErrorMessage(value) {
+  if (!value) {
+    return '';
+  }
+  if (value instanceof Error) {
+    return value.message || String(value);
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (typeof value === 'object') {
+    if (typeof value.message === 'string' && value.message) {
+      return value.message;
+    }
+    if (typeof value.msg === 'string' && value.msg) {
+      return value.msg;
+    }
+    if (typeof value.errMsg === 'string' && value.errMsg) {
+      return value.errMsg;
+    }
+    try {
+      return JSON.stringify(value);
+    } catch (_) {
+      return String(value);
+    }
+  }
+  return String(value);
+}
+
 function unwrapResult(res, fallbackMessage = '操作失败') {
   const result = getResult(res);
   if (!isSuccessResult(result)) {
-    throw new Error(result.error || result.message || result.msg || fallbackMessage);
+    const message =
+      extractErrorMessage(result.error) ||
+      extractErrorMessage(result.message) ||
+      extractErrorMessage(result.msg) ||
+      extractErrorMessage(result.errMsg) ||
+      fallbackMessage;
+    const error = new Error(message);
+    error.result = result;
+    throw error;
   }
   return result;
 }

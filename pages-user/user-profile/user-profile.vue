@@ -440,8 +440,8 @@ import {
     getFollowCounts
 } from '@/api-cache/relation.js';
 import { formatRelativeTime } from '../../utils/time.js';
-import avatarCache from '../../utils/avatarCache';
-import followCache from '../../utils/followCache';
+import avatarCache from '../../cache/stores/avatar.js';
+import followCache from '../../cache/stores/follow.js';
 import { previewImage } from '../../utils/imagePreview.js';
 import postGalleryMixin from '../../mixins/postGallery.js';
 import fileUrlCache from '../../_utils/file-url-cache.js';

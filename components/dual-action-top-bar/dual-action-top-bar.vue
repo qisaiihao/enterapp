@@ -19,6 +19,8 @@
 </template>
 
 <script>
+import { getStatusBarHeightCompat } from '@/utils/system-info.js';
+
 export default {
   name: 'DualActionTopBar',
   emits: ['safe-area-ready', 'left-click', 'right-click'],
@@ -55,8 +57,7 @@ export default {
   methods: {
     initSafeAreaTop() {
       try {
-        const systemInfo = uni.getSystemInfoSync();
-        const safeAreaTop = systemInfo.statusBarHeight || 0;
+        const safeAreaTop = getStatusBarHeightCompat();
 
         this.safeAreaTop = safeAreaTop;
         this.$emit('safe-area-ready', safeAreaTop);

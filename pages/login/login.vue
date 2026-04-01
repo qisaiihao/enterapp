@@ -238,6 +238,7 @@ import { cloudCall } from '@/utils/cloudCall.js';
 import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
 import { applyAuthenticatedUserSession } from '@/utils/appBackground.js';
 import { getAppState, getOpenid, patchAppState, setUserSession } from '@/utils/app-state.js';
+import { ensureRuntimeOpenid } from '@/utils/runtime-bootstrap.js';
 
 // #ifdef APP-PLUS
 // 调用 uniCloud 云函数（仅 APP 环境支持，用于一键登录）
@@ -727,37 +728,18 @@ export default {
         // 初始化匿名openid
         initializeAnonymousOpenid: function () {
             console.log('🔄 [登录页面] 初始化匿名openid');
-            
-            // 使用TCB调用login云函数获取匿名openid
-            if (this.$tcb && this.$tcb.callFunction) {
-                this.$tcb.callFunction({
-                    name: 'login'
-                }).then((loginRes) => {
-                    console.log('✅ [登录页面] 匿名openid初始化成功:', loginRes);
-                    
-                    // 获取openid
-                    let openid = null;
-                    if (loginRes.result && loginRes.result.openid) {
-                        openid = loginRes.result.openid;
-                    } else if (loginRes.openid) {
-                        openid = loginRes.openid;
-                    } else if (loginRes.result && loginRes.result.uid) {
-                        openid = loginRes.result.uid;
-                    }
-                    
-                    if (openid) {
-                        patchAppState({ openid: openid });
-                        console.log('✅ [登录页面] 匿名openid已设置:', openid);
-                        uni.setStorageSync('userOpenId', openid);
-                    } else {
-                        console.error('❌ [登录页面] 无法获取匿名openid');
-                    }
-                }).catch((error) => {
-                    console.error('❌ [登录页面] 匿名openid初始化失败:', error);
-                });
-            } else {
-                console.error('❌ [登录页面] TCB实例不可用，无法初始化openid');
-            }
+
+            ensureRuntimeOpenid({ force: true }).then((openid) => {
+                if (openid) {
+                    patchAppState({ openid });
+                    console.log('✅ [登录页面] 匿名openid已设置:', openid);
+                    uni.setStorageSync('userOpenId', openid);
+                } else {
+                    console.error('❌ [登录页面] 无法获取匿名openid');
+                }
+            }).catch((error) => {
+                console.error('❌ [登录页面] 匿名openid初始化失败:', error);
+            });
         },
 
         // 统一云函数调用方法

@@ -241,6 +241,8 @@ import activityBadge from '@/cache/stores/activity-badge.js';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
 import { attachPoemDisplayFields } from '@/utils/poemDisplay.js';
 import { patchAppState, setUserSession } from '@/utils/app-state.js';
+import { formatErrorForLog } from '@/utils/error-log.js';
+import { getSystemInfoCompat, getWindowInfoCompat } from '@/utils/system-info.js';
 
 const PAGE_SIZE = 10;
 
@@ -362,7 +364,7 @@ export default {
           duration: 2000
         });
       } catch (error) {
-        console.error('❌ [poem-square] GitHub 登录数据解析失败:', error);
+        console.error(`[poem-square] GitHub login payload parse failed: ${formatErrorForLog(error)}`);
       }
     }
     
@@ -374,7 +376,7 @@ export default {
       try {
         this.onBuiltinFontLoaded(payload);
       } catch (error) {
-        console.warn('[poem-square] font-loaded handler failed', error);
+        console.warn(`[poem-square] font-loaded handler failed: ${formatErrorForLog(error)}`);
       }
     };
     try { uni.$on && uni.$on('font-loaded', this._fontLoadedHandler); } catch (_) {}
@@ -432,7 +434,7 @@ export default {
       }
       
       try {
-        const info = uni.getSystemInfoSync();
+        const info = getWindowInfoCompat();
         const winH = info.windowHeight;
         uni.createSelectorQuery().in(this).select('#post-list-container').boundingClientRect((rect) => {
           if (!rect || !rect.height) return;
@@ -492,7 +494,7 @@ export default {
     debugSafeArea() {
       try {
         // 获取系统信息
-        const systemInfo = uni.getSystemInfoSync();
+        const systemInfo = getSystemInfoCompat();
         console.log('【poem-square】系统信息:', {
           statusBarHeight: systemInfo.statusBarHeight,
           safeAreaInsets: systemInfo.safeAreaInsets,
@@ -564,7 +566,7 @@ export default {
         } catch (_) {}
 
       } catch (error) {
-        console.error('【poem-square】安全区域调试失败:', error);
+        console.error(`[poem-square] safe area setup failed: ${formatErrorForLog(error)}`);
         // 使用默认值
         this.applyLocalState({
           safeAreaTop: 44
@@ -642,7 +644,7 @@ export default {
           }
         }
       } catch (e) {
-        console.error('❌ [poem-square-cache] 读取缓存失败:', e);
+        console.error(`[poem-square-cache] cache read failed: ${formatErrorForLog(e)}`);
       }
       
       console.log('🔍 [poem-square-cache] 缓存读取结果:', { 
@@ -920,7 +922,7 @@ export default {
                     console.log(' [SWR-PoemSquare-Following] 页面数据已后台更新');
                   }
                 } catch (error) {
-                  console.error(' [SWR-PoemSquare-Following] 处理后台更新数据失败:', error);
+                  console.error(`[SWR-PoemSquare-Following] background update processing failed: ${formatErrorForLog(error)}`);
                 }
               }
             }
@@ -980,7 +982,7 @@ export default {
                   console.log(' [SWR-PoemSquare-Original] 页面数据已后台更新');
                 }
               } catch (error) {
-                console.error(' [SWR-PoemSquare-Original] 处理后台更新数据失败:', error);
+                console.error(`[SWR-PoemSquare-Original] background update processing failed: ${formatErrorForLog(error)}`);
               }
             }
           }
@@ -988,7 +990,7 @@ export default {
         
         await this.processPostList(list, cb);
       } catch (e) {
-        console.error('【poem-square】获取帖子列表失败:', e);
+        console.error(`[poem-square] getPostList failed: ${formatErrorForLog(e)}`);
         uni.showToast({ title: '加载失败', icon: 'none' });
         // 只有非首次加载时才设置isLoadingMore
         if (this.page !== 0) {
@@ -1188,7 +1190,7 @@ export default {
 
     // 签名图片加载失败
     onSignatureError(e) {
-      console.error('【poem-square】签名图片加载失败:', e);
+      console.error(`[poem-square] signature image load failed: ${formatErrorForLog(e)}`);
     },
     
     // 客户端转换 cloud:// URLs 为 HTTP URLs（安全网）
@@ -1226,7 +1228,7 @@ export default {
         
         console.log('【poem-square】cloud:// URLs 转换完成');
       } catch (error) {
-        console.error('【poem-square】cloud:// URLs 转换失败:', error);
+        console.error(`[poem-square] cloud URL conversion failed: ${formatErrorForLog(error)}`);
       }
     },
     
@@ -1315,7 +1317,7 @@ export default {
         }
         uni.showToast({ title: result?.message || '点赞失败', icon: 'none' });
       }).catch((err) => {
-        console.error('【poem-square】点赞异常:', err);
+        console.error(`[poem-square] vote request failed: ${formatErrorForLog(err)}`);
         const currentList = this.postList || [];
         const currentIndex = currentList.findIndex((p) => p._id === postId);
         if (currentIndex > -1) {
@@ -1379,7 +1381,7 @@ export default {
           }
         }
         if (changed) this.applyLocalState({ postList: next });
-      } catch (err) { console.warn('[poem-square] syncLikeStatusFromCache failed', err); }
+      } catch (err) { console.warn(`[poem-square] syncLikeStatusFromCache failed: ${formatErrorForLog(err)}`); }
     },
     
     // 分享到好友/群聊

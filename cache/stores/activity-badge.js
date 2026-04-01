@@ -1,4 +1,5 @@
 import { getRecentActivities } from '@/api-cache/activities.js';
+import { formatErrorForLog } from '@/utils/error-log.js';
 
 const EVENT_NAME = 'activity-badge-changed';
 const STORAGE_LAST_SEEN = 'activityBadge:lastSeenToken';
@@ -7,6 +8,18 @@ const STORAGE_LATEST = 'activityBadge:latestToken';
 let hasNewActivity = false;
 let latestToken = '';
 let initialized = false;
+
+async function ensureRuntimeAuthReady() {
+  try {
+    const authEnsurer = typeof uni !== 'undefined' ? uni.$ensureTcbAuthenticated : null;
+    if (typeof authEnsurer === 'function') {
+      await authEnsurer();
+    }
+  } catch (error) {
+    console.warn(`[activity-badge] auth not ready: ${formatErrorForLog(error)}`);
+    throw error;
+  }
+}
 
 function getStorageString(key, fallback = '') {
   try {
@@ -68,6 +81,7 @@ function getHasNewActivity() {
 
 async function refreshActivityBadge({ forceRefresh = false, context } = {}) {
   try {
+    await ensureRuntimeAuthReady();
     if (typeof getRecentActivities !== 'function') {
       return hasNewActivity;
     }
@@ -107,7 +121,7 @@ async function refreshActivityBadge({ forceRefresh = false, context } = {}) {
     initialized = true;
     return hasNewActivity;
   } catch (error) {
-    console.warn('[activity-badge] refresh failed:', error);
+    console.warn(`[activity-badge] refresh failed: ${formatErrorForLog(error)}`);
     return hasNewActivity;
   }
 }

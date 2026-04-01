@@ -44,18 +44,14 @@ function getLikeIconDescription(votes) {
     }
 }
 export {
+    likeIcon,
     getLikeIcon,
     getLikeIconDescription
 };
 
-export default {
+const likeIcon = {
     getLikeIcon,
     getLikeIconDescription
 };
 
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        getLikeIcon,
-        getLikeIconDescription
-    };
-}
+export default likeIcon;

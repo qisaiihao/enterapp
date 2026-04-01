@@ -9,8 +9,8 @@ import {
     patchAppState,
     setUserSession
 } from '@/utils/app-state.js';
-import fontManager from '@/utils/fontManager.js';
-import { ensureRuntimeOpenid, installRuntimeBindings } from '@/utils/runtime-bootstrap.js';
+import { formatErrorForLog } from '@/utils/error-log.js';
+import { ensureRuntimeOpenid, ensureTcbAuthenticated, installRuntimeBindings } from '@/utils/runtime-bootstrap.js';
 
 export default {
     data() {
@@ -46,12 +46,12 @@ export default {
                     checkAndUpdate({ silent: true, showConfirm: true }).catch((error) => {
                         const message = error && (error.errMsg || error.message || String(error));
                         if (!message || (!message.includes('resource exhausted') && !message.includes('ResourceExhausted'))) {
-                            console.warn('[App] hot update check skipped', error);
+                            console.warn(`[App] hot update check skipped: ${formatErrorForLog(error)}`);
                         }
                     });
                 });
             } catch (error) {
-                console.warn('[App] hot update bootstrap failed', error);
+                console.warn(`[App] hot update bootstrap failed: ${formatErrorForLog(error)}`);
             }
         }, 'check hot update');
         // #endif
@@ -63,22 +63,6 @@ export default {
         if (!this.appState._mpBuiltinFontPreloadStarted) {
             this.applyAppState({ _mpBuiltinFontPreloadStarted: true });
             try { uni.setStorageSync('__builtin_font_huiwen_ready__', false); } catch (_) {}
-            setTimeout(() => {
-                let lastProgress = 0;
-                fontManager.ensureFontAvailable('汇文明朝', (progress) => {
-                    if (progress - lastProgress >= 10 || progress === 100) {
-                        lastProgress = progress;
-                    }
-                }).then(() => {
-                    try {
-                        uni.setStorageSync('__builtin_font_huiwen_ready__', true);
-                        uni.$emit && uni.$emit('font-loaded', { fontFamily: '汇文明朝' });
-                    } catch (_) {}
-                }).catch((error) => {
-                    try { uni.setStorageSync('__builtin_font_huiwen_ready__', false); } catch (_) {}
-                    console.warn('[App] preload builtin font failed', error);
-                });
-            }, 0);
         }
         // #endif
 
@@ -140,7 +124,7 @@ export default {
                 try {
                     handler && handler(plusInstance);
                 } catch (error) {
-                    console.warn(`[App] ${taskLabel || 'app-plus task'} failed`, error);
+                    console.warn(`[App] ${taskLabel || 'app-plus task'} failed: ${formatErrorForLog(error)}`);
                 }
             };
 
@@ -169,7 +153,7 @@ export default {
             try {
                 return plusInstance && plusInstance.runtime ? (plusInstance.runtime.arguments || '') : '';
             } catch (error) {
-                console.warn('[App] read plus runtime arguments failed', error);
+                console.warn(`[App] read plus runtime arguments failed: ${formatErrorForLog(error)}`);
                 return '';
             }
         },
@@ -197,7 +181,7 @@ export default {
                     try {
                         uni.setStorageSync('github_temp_data', JSON.parse(data));
                     } catch (error) {
-                        console.warn('[App] parse github register payload failed', error);
+                        console.warn(`[App] parse github register payload failed: ${formatErrorForLog(error)}`);
                     }
 
                     uni.showToast({ title: '欢迎！请完成注册', icon: 'none', duration: 2000 });
@@ -241,7 +225,7 @@ export default {
                     });
                 }
             } catch (error) {
-                console.error('[App] handle github callback failed', error);
+                console.error(`[App] handle github callback failed: ${formatErrorForLog(error)}`);
                 uni.showToast({
                     title: '授权失败，请重试',
                     icon: 'none',
@@ -259,7 +243,7 @@ export default {
                     return currentPage.route || currentPage.$page?.fullPath || '';
                 }
             } catch (error) {
-                console.warn('[App] get current page failed', error);
+                console.warn(`[App] get current page failed: ${formatErrorForLog(error)}`);
             }
             return '';
         },
@@ -278,23 +262,19 @@ export default {
             }
 
             try {
+                await ensureTcbAuthenticated(this.$tcb);
                 const bootstrappedOpenid = await ensureRuntimeOpenid();
                 if (bootstrappedOpenid) {
                     this.applyAppState({ openid: bootstrappedOpenid });
                 }
             } catch (error) {
-                console.warn('[App] bootstrap openid failed', error);
+                console.warn(`[App] bootstrap openid failed: ${formatErrorForLog(error)}`);
             }
 
             const cachedUserInfo = uni.getStorageSync('userInfo');
             if (cachedUserInfo && cachedUserInfo._openid) {
                 try {
-                    // #ifdef H5 || APP-PLUS || APP-HARMONY
-                    const currentUser = this.$tcb.auth && this.$tcb.auth().currentUser;
-                    if (!currentUser && this.$tcb.auth) {
-                        await this.$tcb.auth().signInAnonymously();
-                    }
-                    // #endif
+                    await ensureTcbAuthenticated(this.$tcb);
 
                     const verifyRes = await this.$tcb.callFunction({
                         name: 'getUserProfile',
@@ -313,18 +293,13 @@ export default {
 
                     uni.removeStorageSync('userInfo');
                 } catch (error) {
-                    console.error('[App] verify cached user failed', error);
+                    console.error(`[App] verify cached user failed: ${formatErrorForLog(error)}`);
                     uni.removeStorageSync('userInfo');
                 }
             }
 
             try {
-                // #ifdef H5 || APP-PLUS || APP-HARMONY
-                const currentUser = this.$tcb.auth && this.$tcb.auth().currentUser;
-                if (!currentUser && this.$tcb.auth) {
-                    await this.$tcb.auth().signInAnonymously();
-                }
-                // #endif
+                await ensureTcbAuthenticated(this.$tcb);
 
                 let openid = this.appState.openid;
                 if (!openid) {
@@ -366,7 +341,7 @@ export default {
                     isLoggedIn: !!this.appState.userInfo
                 });
             } catch (error) {
-                console.error('[App] login bootstrap failed', error);
+                console.error(`[App] login bootstrap failed: ${formatErrorForLog(error)}`);
                 this.finishLoginProcess();
                 uni.showToast({
                     icon: 'none',

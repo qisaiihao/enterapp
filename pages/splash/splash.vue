@@ -47,6 +47,8 @@ import { cloudCall } from '@/utils/cloudCall.js';
 import { getPostList as getPostListWithCache } from '@/api-cache/post-list.js';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
 import { getAppState, getOpenid, patchAppState, setUserSession } from '@/utils/app-state.js';
+import { formatErrorForLog } from '@/utils/error-log.js';
+import { ensureTcbAuthenticated } from '@/utils/runtime-bootstrap.js';
 
 export default {
     data() {
@@ -118,6 +120,14 @@ export default {
                 this[key] = partial[key];
             });
         },
+        getRuntimeApp() {
+            const app = typeof uni !== 'undefined' ? uni.$appInstance : null;
+            if (!app) {
+                return null;
+            }
+            app.globalData = app.globalData || {};
+            return app;
+        },
         // 统一云函数调用方法
         callCloudFunction(name, data = {}, extraOptions = {}) {
             return cloudCall(name, data, Object.assign({ pageTag: 'splash', context: this }, extraOptions));
@@ -136,7 +146,7 @@ export default {
                 
                 return (now - lastVisit) < tenMinutes;
             } catch (e) {
-                console.warn('检查开屏访问时间失败:', e);
+                console.warn(`[splash] splash visit check failed: ${formatErrorForLog(e)}`);
                 return false;
             }
         },
@@ -148,7 +158,7 @@ export default {
             try {
                 uni.setStorageSync('lastSplashVisitTime', Date.now());
             } catch (e) {
-                console.warn('记录开屏访问时间失败:', e);
+                console.warn(`[splash] splash visit record failed: ${formatErrorForLog(e)}`);
             }
         },
 
@@ -163,14 +173,7 @@ export default {
 
         waitForLoginBootstrap(maxWait = 2500) {
             return new Promise((resolve) => {
-                let app = null;
-                try {
-                    app = getApp();
-                } catch (e) {
-                    resolve();
-                    return;
-                }
-
+                const app = this.getRuntimeApp();
                 if (!app || getAppState()._loginProcessCompleted) {
                     resolve();
                     return;
@@ -399,18 +402,7 @@ export default {
             const start = Date.now();
 
             const readOpenId = () => {
-                let appInstance = null;
-                if (typeof getApp === 'function') {
-                    try {
-                        appInstance = getApp();
-                    } catch (error) {
-                        console.warn('获取全局 App 实例失败:', error);
-                    }
-                }
-
-                if (appInstance) {
-                    appInstance.globalData = appInstance.globalData || {};
-                }
+                const appInstance = this.getRuntimeApp();
 
                 let currentOpenId = appInstance && appInstance.globalData && appInstance.globalData.openid;
                 if (!currentOpenId && typeof uni !== 'undefined' && typeof uni.getStorageSync === 'function') {
@@ -420,7 +412,7 @@ export default {
                             appInstance.globalData.openid = currentOpenId;
                         }
                     } catch (error) {
-                        console.warn('读取本地 openid 失败:', error);
+                        console.warn(`[splash] local openid read failed: ${formatErrorForLog(error)}`);
                     }
                 }
                 return {
@@ -452,16 +444,13 @@ export default {
         async ensureTcbAuth() {
             // #ifdef H5 || APP-PLUS
             try {
-                const tcbInstance = this.$tcb || (typeof getApp === 'function' && getApp().$tcb);
-                if (tcbInstance && tcbInstance.auth) {
-                    const currentUser = tcbInstance.auth().currentUser;
-                    if (!currentUser) {
-                        await tcbInstance.auth().signInAnonymously();
-                    } else {
-                    }
+                const runtimeApp = this.getRuntimeApp();
+                const tcbInstance = this.$tcb || (runtimeApp && runtimeApp.$tcb);
+                if (tcbInstance) {
+                    await ensureTcbAuthenticated(tcbInstance);
                 }
             } catch (error) {
-                console.warn('⚠️ [splash] TCB 认证检查失败（可能已在 main.js 中完成）:', error);
+                console.warn(`[splash] tcb auth check failed: ${formatErrorForLog(error)}`);
             }
             // #endif
         },
@@ -503,7 +492,7 @@ export default {
             try {
                 await Promise.all(preloadTasks);
             } catch (error) {
-                console.error('预加载任务执行过程中出现错误:', error);
+                console.error(`[splash] preload task failed: ${formatErrorForLog(error)}`);
             } finally {
                 // 预加载完成后，设置标志位
                 this.applyLocalState({
@@ -542,8 +531,10 @@ export default {
                         // <-- success 回调也变成 async
                         try {
                             if (posts && Array.isArray(posts) && posts.length > 0) {
-                                const app = getApp();
-                                app.globalData.preloadedPoemData = posts;
+                                const app = this.getRuntimeApp();
+                                if (app) {
+                                    app.globalData.preloadedPoemData = posts;
+                                }
                                 if (posts.length > 0) {
                                     // 关键改动：等待图片下载任务完成！
                                     await this.preloadFirstPostImages(posts[0]);
@@ -554,7 +545,7 @@ export default {
                             reject(e); // 捕获内部错误
                         }
                 }).catch((err) => {
-                    console.error('诗歌数据预加载失败:', err);
+                    console.error(`[splash] poem data preload failed: ${formatErrorForLog(err)}`);
                     reject(err);
                 }).finally(() => {
                     this.applyLocalState({
@@ -578,8 +569,10 @@ export default {
                 }).then(async (posts) => {
                         try {
                             if (posts && Array.isArray(posts) && posts.length > 0) {
-                                const app = getApp();
-                                app.globalData.preloadedMountainData = posts;
+                                const app = this.getRuntimeApp();
+                                if (app) {
+                                    app.globalData.preloadedMountainData = posts;
+                                }
                                 if (posts.length > 0) {
                                     // 预加载第一张图片
                                     await this.preloadFirstMountainImages(posts[0]);
@@ -590,7 +583,7 @@ export default {
                             reject(e);
                         }
                 }).catch((err) => {
-                    console.error('山页面数据预加载失败:', err);
+                    console.error(`[splash] mountain data preload failed: ${formatErrorForLog(err)}`);
                     reject(err);
                 });
             });
@@ -598,7 +591,10 @@ export default {
 
         // 预加载山页面第一张图片
         preloadFirstMountainImages: function (post) {
-            const app = getApp();
+            const app = this.getRuntimeApp();
+            if (!app) {
+                return Promise.resolve();
+            }
             if (!app.globalData.preloadedImages) {
                 app.globalData.preloadedImages = {};
             }
@@ -633,7 +629,7 @@ export default {
                                 }
                             },
                             fail: (err) => {
-                                console.error('山页面背景图预加载失败:', bgImageUrl, err);
+                                console.error(`[splash] mountain background image preload failed: ${bgImageUrl} | ${formatErrorForLog(err)}`);
                                 if (isH5 || isCloudFile) {
                                     app.globalData.preloadedImages[bgImageUrl] = bgImageUrl;
                                 }
@@ -673,7 +669,7 @@ export default {
                                 }
                             },
                             fail: (err) => {
-                                console.error('山页面作者头像预加载失败:', post.authorAvatar, err);
+                                console.error(`[splash] mountain author avatar preload failed: ${post.authorAvatar} | ${formatErrorForLog(err)}`);
                                 if (isH5 || isCloudFile) {
                                     app.globalData.preloadedImages[post.authorAvatar] = post.authorAvatar;
                                 }
@@ -721,7 +717,10 @@ export default {
 
         // 这个函数现在需要返回一个 Promise，它包裹了所有图片下载任务
         preloadFirstPostImages: function (post) {
-            const app = getApp();
+            const app = this.getRuntimeApp();
+            if (!app) {
+                return Promise.resolve();
+            }
             if (!app.globalData.preloadedImages) {
                 app.globalData.preloadedImages = {};
             }
@@ -759,7 +758,7 @@ export default {
                                 }
                             },
                             fail: (err) => {
-                                console.error('首张背景图预加载失败:', bgImageUrl, err);
+                                console.error(`[splash] first poem background preload failed: ${bgImageUrl} | ${formatErrorForLog(err)}`);
                                 if (isH5 || isCloudFile) {
                                     app.globalData.preloadedImages[bgImageUrl] = bgImageUrl;
                                 }
@@ -800,7 +799,7 @@ export default {
                             },
                             fail: (err) => {
                                 if (isH5 || isCloudFile) {
-                                    console.error('作者头像预加载失败(已使用原URL):', err);
+                                    console.error(`[splash] poem author avatar preload failed, using original URL: ${formatErrorForLog(err)}`);
                                     app.globalData.preloadedImages[post.authorAvatar] = post.authorAvatar;
                                 }
                             },

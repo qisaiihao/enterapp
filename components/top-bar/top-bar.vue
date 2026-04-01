@@ -20,6 +20,7 @@
 
 <script>
 import unreadBadge from '@/cache/stores/unread-badge.js';
+import { getStatusBarHeightCompat } from '@/utils/system-info.js';
 
 export default {
   emits: ['safe-area-ready'],
@@ -57,10 +58,8 @@ export default {
     // 获取安全区域高度
     getSafeAreaTop() {
       try {
-        const systemInfo = uni.getSystemInfoSync();
-        
         // 使用状态栏高度作为安全区域
-        const safeAreaTop = systemInfo.statusBarHeight || 0;
+        const safeAreaTop = getStatusBarHeightCompat();
         
         this.safeAreaTop = safeAreaTop;
         try {

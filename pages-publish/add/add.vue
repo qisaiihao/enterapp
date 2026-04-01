@@ -244,6 +244,7 @@ import { getAllTags } from '@/api-cache/tags.js';
 import { getPostDetail, updatePostContent } from '@/api-cache/post.js';
 import { checkDuplicatePoem as checkDuplicatePoemApi, contentAudit, saveDraft as saveDraftApi } from '@/api-cache/publish.js';
 import { validatePublishData, canPublish, generateDraftData, generatePublishData, processUploadResults } from '@/utils/publishUtils.js';
+import { getWindowInfoCompat } from '@/utils/system-info.js';
 
 // 导入静态配置数据
 import { colorPalettes } from '@/utils/colorPalettes.js';
@@ -1226,7 +1227,7 @@ export default {
             // 如果键盘高度为0，可能是开发者工具的问题，设置一个合理的默认值
             if (!keyboardHeight || keyboardHeight === 0) {
                 // 获取系统信息来设置合适的键盘高度
-                const systemInfo = uni.getSystemInfoSync();
+                const systemInfo = getWindowInfoCompat();
                 console.log('系统信息:', systemInfo);
                 // 根据屏幕高度设置键盘高度，通常是屏幕高度的1/3到1/2
                 keyboardHeight = Math.min(systemInfo.windowHeight * 0.4, 300);

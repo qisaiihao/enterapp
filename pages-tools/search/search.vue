@@ -316,7 +316,7 @@ export default {
                         searchSuggestions: result.suggestions || []
                     });
             }).catch((err) => {
-                console.error('获取搜索建议失败:', err);
+                console.error('获取搜索建议失败:', err && err.message ? err.message : err, err && err.result ? err.result : '');
             });
         },
 
@@ -666,7 +666,7 @@ export default {
                         hotSearches: hotSearches.length > 0 ? hotSearches : this.hotSearches
                     });
             }).catch((err) => {
-                console.error('获取热门搜索词失败:', err);
+                console.error('获取热门搜索词失败:', err && err.message ? err.message : err, err && err.result ? err.result : '');
             });
         }
     }

@@ -11,6 +11,7 @@
 // #ifdef APP-PLUS
 import checkOfficialUpdate from '@/uni_modules/uni-upgrade-center-app/utils/check-update';
 // #endif
+import { getDeviceInfoCompat } from '@/utils/system-info.js';
 
 // 固定 appid，与 manifest.json 一致
 const APP_ID = '__UNI__E0A1A41';
@@ -23,8 +24,7 @@ function getAppVersionInfo() {
     return new Promise((resolve, reject) => {
         // #ifdef APP-PLUS
         console.log('📱 [hotUpdate] -------- 获取版本信息 --------');
-        const systemInfo = uni.getSystemInfoSync();
-        const platform = systemInfo.platform; // android 或 ios
+        const platform = getDeviceInfoCompat().platform; // android 或 ios
         console.log('📱 [hotUpdate] 当前平台:', platform);
         
         const runtimeAppId = plus.runtime.appid;

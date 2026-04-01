@@ -145,14 +145,10 @@ const authUtils = {
 };
 
 export {
+    authUtils,
     getOpenId,
     setLoginState,
     getCurrentUserId
 };
 
 export default authUtils;
-
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = authUtils;
-    module.exports.default = authUtils;
-}

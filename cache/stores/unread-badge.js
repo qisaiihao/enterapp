@@ -3,20 +3,34 @@ import {
   getUnreadCount as fetchUnreadCount,
   invalidateUnread
 } from '@/api-cache/unread.js';
+import { formatErrorForLog } from '@/utils/error-log.js';
 
 let globalUnreadCount = 0;
 let initialized = false;
+
+async function ensureRuntimeAuthReady() {
+  try {
+    const authEnsurer = typeof uni !== 'undefined' ? uni.$ensureTcbAuthenticated : null;
+    if (typeof authEnsurer === 'function') {
+      await authEnsurer();
+    }
+  } catch (error) {
+    console.warn(`[unread-badge] auth not ready: ${formatErrorForLog(error)}`);
+    throw error;
+  }
+}
 
 async function initUnreadCount() {
   if (initialized) return globalUnreadCount;
 
   try {
+    await ensureRuntimeAuthReady();
     const count = await fetchUnreadCount();
     globalUnreadCount = count || 0;
     initialized = true;
     console.log('[unread-badge] initialized:', globalUnreadCount);
   } catch (error) {
-    console.warn('[unread-badge] init failed:', error);
+    console.warn(`[unread-badge] init failed: ${formatErrorForLog(error)}`);
   }
 
   return globalUnreadCount;
@@ -53,12 +67,13 @@ function clearUnread() {
 
 async function refreshUnreadCount() {
   try {
+    await ensureRuntimeAuthReady();
     invalidateUnread();
     const count = await fetchUnreadCount();
     setUnreadCount(count || 0);
     return globalUnreadCount;
   } catch (error) {
-    console.warn('[unread-badge] refresh failed:', error);
+    console.warn(`[unread-badge] refresh failed: ${formatErrorForLog(error)}`);
     return globalUnreadCount;
   }
 }

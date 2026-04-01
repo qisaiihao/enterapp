@@ -135,9 +135,5 @@ class SignatureCache {
 
 const signatureCache = new SignatureCache();
 
+export { signatureCache };
 export default signatureCache;
-
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = signatureCache;
-  module.exports.default = signatureCache;
-}

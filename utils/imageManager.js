@@ -1,6 +1,7 @@
 // 图片管理工具类
 
 import { cloudCall } from './cloudCall.js';
+import { readFileAsBase64 } from './fileReader.js';
 
 class ImageManager {
     constructor() {
@@ -23,9 +24,7 @@ class ImageManager {
      */
     async uploadImage(filePath, options = {}) {
         try {
-            // 读取文件内容
-            const fileSystem = uni.getFileSystemManager();
-            const fileContent = fileSystem.readFileSync(filePath, 'base64');
+            const fileContent = await readFileAsBase64(filePath);
 
             // 生成云端路径
             const timestamp = Date.now();

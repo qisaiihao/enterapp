@@ -15,8 +15,9 @@ exports.main = async (event, context) => {
   const eventOpenid = event.openid;
   const openid = eventOpenid || wxCtxOpenid;
   const { keyword = '', action = 'record' } = event;
+  const requiresOpenid = action === 'record';
 
-  if (!openid) {
+  if (requiresOpenid && !openid) {
     return {
       success: false,
       message: '无法获取用户 openid，请重新登录',
@@ -96,7 +97,7 @@ exports.main = async (event, context) => {
           date: _.gte(today)
         })
         .orderBy('count', 'desc')
-        .limit(20)
+        .limit(event.limit || 20)
         .get();
 
       const hotSearches = hotSearchesResult.data.map(item => ({

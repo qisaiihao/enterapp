@@ -117,6 +117,7 @@ import { cloudCall } from '@/utils/cloudCall.js';
 import { getCurrentPlatform } from '@/utils/platformDetector.js';
 import { applyAuthenticatedUserSession } from '@/utils/appBackground.js';
 import { resolveUserAvatar } from '@/utils/defaultAvatar.js';
+import { readFileAsBase64 } from '@/utils/fileReader.js';
 
 const app = getApp();
 
@@ -282,53 +283,18 @@ export default {
         // 通过云函数上传（H5: fetch -> blob -> base64；小程序/App：FileSystemManager 读为 base64）
         uploadAvatarViaCloudFunction(filePath) {
             return new Promise((resolve, reject) => {
-                // H5: 使用 fetch + FileReader
-                if (typeof window !== 'undefined' && typeof FileReader !== 'undefined') {
-                    fetch(filePath)
-                        .then((resp) => {
-                            if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                            return resp.blob();
-                        })
-                        .then((blob) => {
-                            const reader = new FileReader();
-                            reader.onload = () => {
-                                const result = reader.result;
-                                if (!result || typeof result !== 'string') return reject(new Error('读取失败'));
-                                const base64 = result.split(',')[1];
-                                this.callCloudFunction('upload', {
-                                    cloudPath: `user_avatars/${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`,
-                                    fileContent: base64
-                                }).then((res) => {
-                                    if (res && res.result && res.result.success) resolve(res.result.fileID); else reject(new Error('上传失败'));
-                                }).catch(reject);
-                            };
-                            reader.onerror = () => reject(new Error('读取失败'));
-                            reader.readAsDataURL(blob);
-                        })
-                        .catch(reject);
-                    return;
-                }
-                // 小程序/App: FileSystemManager 读取为 base64
-                try {
-                    const fsm = uni.getFileSystemManager && uni.getFileSystemManager();
-                    if (!fsm) return reject(new Error('不支持的环境'));
-                    fsm.readFile({
-                        filePath,
-                        encoding: 'base64',
-                        success: (r) => {
-                            const base64 = r.data;
-                            this.callCloudFunction('upload', {
-                                cloudPath: `user_avatars/${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`,
-                                fileContent: base64
-                            }).then((res) => {
-                                if (res && res.result && res.result.success) resolve(res.result.fileID); else reject(new Error('上传失败'));
-                            }).catch(reject);
-                        },
-                        fail: (err) => reject(err)
-                    });
-                } catch (e) {
-                    reject(e);
-                }
+                readFileAsBase64(filePath).then((base64) => {
+                    this.callCloudFunction('upload', {
+                        cloudPath: `user_avatars/${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`,
+                        fileContent: base64
+                    }).then((res) => {
+                        if (res && res.result && res.result.success) {
+                            resolve(res.result.fileID);
+                            return;
+                        }
+                        reject(new Error('上传失败'));
+                    }).catch(reject);
+                }).catch(reject);
             });
         },
 
@@ -372,21 +338,26 @@ export default {
                 if (platform === 'h5' || platform === 'app') {
                     // H5和App环境使用TCB认证
                     if (this.$tcb && this.$tcb.auth) {
-                        const currentUser = this.$tcb.auth().currentUser;
-                        if (!currentUser) {
-                            console.log('🔐 [注册] 尝试匿名登录...');
-                            this.$tcb.auth().signInAnonymously().then((authResult) => {
-                                console.log('✅ [注册] 匿名登录成功:', authResult);
-                                resolve(authResult);
-                            }).catch(reject);
+                        const authEnsurer = this.$ensureTcbAuthenticated || this.$tcb.$ensureTcbAuthenticated || uni.$ensureTcbAuthenticated;
+                        if (typeof authEnsurer === 'function') {
+                            authEnsurer(this.$tcb).then(resolve).catch(reject);
                         } else {
-                            console.log('✅ [注册] 用户已登录，跳过匿名登录');
-                            resolve(currentUser);
+                            const currentUser = this.$tcb.auth().currentUser;
+                            if (!currentUser) {
+                                console.log('🔐 [注册] 尝试匿名登录...');
+                                this.$tcb.auth().signInAnonymously().then((authResult) => {
+                                    console.log('✅ [注册] 匿名登录成功:', authResult);
+                                    resolve(authResult);
+                                }).catch(reject);
+                            } else {
+                                console.log('✅ [注册] 用户已登录，跳过匿名登录');
+                                resolve(currentUser);
+                            }
                         }
                     } else {
                         reject(new Error('TCB认证不可用'));
                     }
-                } else if (platform === 'miniprogram') {
+                } else if (platform === 'mp-weixin') {
                     // 小程序环境使用微信云开发认证
                     if (wx.cloud && wx.cloud.auth) {
                         const currentUser = wx.cloud.auth().currentUser;

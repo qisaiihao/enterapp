@@ -1,7 +1,19 @@
-import platformDetector from './platformDetector.js';
+import { getCloudFunctionMethod } from './platformDetector.js';
 import auth from './auth.js';
+import { formatErrorForLog } from './error-log.js';
+
+const platformDetector = {
+    getCloudFunctionMethod
+};
 
 const DEFAULT_RETRY_DELAY = 300;
+
+function getCachedAppInstance() {
+    if (typeof uni === 'undefined') {
+        return null;
+    }
+    return uni.$appInstance || null;
+}
 
 function ensureObject(value) {
     if (!value || typeof value !== 'object') {
@@ -26,11 +38,9 @@ function getTcbInstance(context) {
     if (context && context.$tcb && typeof context.$tcb.callFunction === 'function') {
         return context.$tcb;
     }
-    if (typeof getApp === 'function') {
-        const app = getApp();
-        if (app && app.$tcb && typeof app.$tcb.callFunction === 'function') {
-            return app.$tcb;
-        }
+    const app = getCachedAppInstance();
+    if (app && app.$tcb && typeof app.$tcb.callFunction === 'function') {
+        return app.$tcb;
     }
     if (typeof uni !== 'undefined' && uni.$tcb && typeof uni.$tcb.callFunction === 'function') {
         return uni.$tcb;
@@ -38,25 +48,64 @@ function getTcbInstance(context) {
     return null;
 }
 
+function getTcbAuthEnsurer(context) {
+    if (context && typeof context.$ensureTcbAuthenticated === 'function') {
+        return context.$ensureTcbAuthenticated;
+    }
+    const app = getCachedAppInstance();
+    if (app && typeof app.$ensureTcbAuthenticated === 'function') {
+        return app.$ensureTcbAuthenticated;
+    }
+    if (typeof uni !== 'undefined' && typeof uni.$ensureTcbAuthenticated === 'function') {
+        return uni.$ensureTcbAuthenticated;
+    }
+    return null;
+}
+
+async function ensureTcbCallReady(instance, context) {
+    if (!instance || instance.__skipAuth || typeof instance.auth !== 'function') {
+        return instance;
+    }
+
+    const authEnsurer = getTcbAuthEnsurer(context);
+    if (typeof authEnsurer === 'function') {
+        await authEnsurer(instance);
+        return instance;
+    }
+
+    const authClient = instance.auth();
+    if (!authClient || authClient.currentUser || typeof authClient.signInAnonymously !== 'function') {
+        return instance;
+    }
+
+    await authClient.signInAnonymously();
+    return instance;
+}
+
 async function invokeCloudFunction(method, payload) {
-    console.log(`🔍 [invokeCloudFunction] 调用方式: ${method}`);
-    
+    console.log(`[invokeCloudFunction] method: ${method}`);
+
     if (method === 'tcb') {
         const instance = getTcbInstance(payload.context);
-        console.log(`🔍 [invokeCloudFunction] TCB实例:`, instance ? '可用' : '不可用');
+        console.log('[invokeCloudFunction] TCB instance:', instance ? 'available' : 'missing');
         if (!instance) {
-            throw createError('TCB_NOT_AVAILABLE', 'TCB 实例不可用');
+            throw createError('TCB_NOT_AVAILABLE', 'TCB instance unavailable');
+        }
+        try {
+            await ensureTcbCallReady(instance, payload.context);
+        } catch (error) {
+            throw createError('TCB_AUTH_FAILED', 'TCB auth unavailable', error);
         }
         return instance.callFunction(payload.options, undefined, payload.customReqOpts);
     }
 
     if (method === 'wx-cloud') {
-        console.log(`🔍 [invokeCloudFunction] 使用 wx.cloud 调用云函数`);
+        console.log('[invokeCloudFunction] using wx.cloud');
         if (typeof wx === 'undefined' || !wx.cloud) {
-            throw createError('WX_CLOUD_NOT_AVAILABLE', 'wx.cloud 不可用');
+            throw createError('WX_CLOUD_NOT_AVAILABLE', 'wx.cloud unavailable');
         }
-        
-        console.log(`🔍 [invokeCloudFunction] wx.cloud 可用，调用云函数:`, payload.options.name);
+
+        console.log('[invokeCloudFunction] wx.cloud function:', payload.options.name);
         return wx.cloud.callFunction(payload.options);
     }
 
@@ -64,12 +113,12 @@ async function invokeCloudFunction(method, payload) {
         return uniCloud.callFunction(payload.options);
     }
 
-    throw createError('NO_CLOUD_METHOD', '当前环境不支持云函数调用');
+    throw createError('NO_CLOUD_METHOD', 'No supported cloud function method');
 }
 
 export async function cloudCall(name, data = {}, options = {}) {
     if (!name || typeof name !== 'string') {
-        return Promise.reject(createError('INVALID_NAME', '云函数名称无效'));
+        return Promise.reject(createError('INVALID_NAME', 'Invalid cloud function name'));
     }
 
     const {
@@ -90,49 +139,46 @@ export async function cloudCall(name, data = {}, options = {}) {
         try {
             openid = await auth.getOpenId();
         } catch (error) {
-            console.error(`[cloudCall][${pageTag}] 获取 openid 失败`, error);
-            throw createError('NO_OPENID', '获取 openid 失败', error);
+            console.error(`[cloudCall][${pageTag}] failed to get openid: ${formatErrorForLog(error)}`);
+            throw createError('NO_OPENID', '\u83B7\u53D6 openid \u5931\u8D25', error);
         }
 
         if (!openid) {
             if (requireAuth) {
-                const error = createError('NO_OPENID', '用户未登录或 openid 缺失');
-                
-                // 使用统一的登录提示
+                const error = createError('NO_OPENID', '\u7528\u6237\u672A\u767B\u5F55\u6216 openid \u7F3A\u5931');
+
                 if (typeof uni !== 'undefined') {
                     try {
-                        // 动态导入authHelper，避免循环依赖
                         const authHelper = await import('./authHelper.js');
                         await authHelper.requireLogin({
-                            content: '此操作需要登录，请先登录'
+                            content: '\u6B64\u64CD\u4F5C\u9700\u8981\u767B\u5F55\uFF0C\u8BF7\u5148\u767B\u5F55'
                         });
                     } catch (importError) {
-                        // 降级到简单的toast提示
                         if (uni.showToast) {
                             uni.showToast({
-                                title: '请先登录',
+                                title: '\u8BF7\u5148\u767B\u5F55',
                                 icon: 'none'
                             });
                         }
                     }
                 }
-                
-                console.warn(`[cloudCall][${pageTag}] openid 缺失，调用 "${name}" 失败`);
+
+                console.warn(`[cloudCall][${pageTag}] openid missing, "${name}" requires auth`);
                 throw error;
             }
-            console.warn(`[cloudCall][${pageTag}] openid 缺失，调用 "${name}" 将不注入 openid`);
+            console.warn(`[cloudCall][${pageTag}] openid missing, "${name}" will run without injection`);
         } else if (!payload.openid) {
             payload.openid = openid;
         }
     }
 
     const method = platformDetector.getCloudFunctionMethod();
-    console.log(`🔍 [cloudCall] 云函数调用方式: ${method}, 函数名: ${name}`);
+    console.log(`[cloudCall] method=${method}, name=${name}`);
     const totalAttempts = Math.max(0, parseInt(retry, 10)) + 1;
 
     for (let attempt = 1; attempt <= totalAttempts; attempt += 1) {
         try {
-            console.log(`[cloudCall][${pageTag}] 调用云函数 "${name}"（尝试 ${attempt}/${totalAttempts}）`, payload);
+            console.log(`[cloudCall][${pageTag}] calling "${name}" (${attempt}/${totalAttempts})`, payload);
             const result = await invokeCloudFunction(method, {
                 context,
                 options: {
@@ -141,23 +187,23 @@ export async function cloudCall(name, data = {}, options = {}) {
                 },
                 customReqOpts: typeof timeoutMs === 'number' && timeoutMs > 0 ? { timeout: timeoutMs } : undefined
             });
-            console.log(`[cloudCall][${pageTag}] 云函数 "${name}" 调用成功`, result);
+            console.log(`[cloudCall][${pageTag}] "${name}" succeeded`, result);
             return result;
         } catch (error) {
             const isLastAttempt = attempt === totalAttempts;
             const errorCode = error && error.code ? error.code : error?.errCode;
 
-            console.error(`[cloudCall][${pageTag}] 云函数 "${name}" 调用失败（尝试 ${attempt}/${totalAttempts}）`, error);
+            console.error(`[cloudCall][${pageTag}] "${name}" failed (${attempt}/${totalAttempts}): ${formatErrorForLog(error)}`);
 
             if (errorCode === 'NO_OPENID') {
-                throw createError('NO_OPENID', '用户未登录或 openid 缺失', error);
+                throw createError('NO_OPENID', '\u7528\u6237\u672A\u767B\u5F55\u6216 openid \u7F3A\u5931', error);
             }
 
             if (isLastAttempt) {
-                const finalError = createError(errorCode || 'CLOUD_CALL_FAILED', '云函数调用失败', error);
+                const finalError = createError(errorCode || 'CLOUD_CALL_FAILED', '\u4E91\u51FD\u6570\u8C03\u7528\u5931\u8D25', error);
                 if (typeof uni !== 'undefined' && uni.showToast) {
                     uni.showToast({
-                        title: '网络异常，请稍后再试',
+                        title: '\u7F51\u7EDC\u5F02\u5E38\uFF0C\u8BF7\u7A0D\u540E\u518D\u8BD5',
                         icon: 'none'
                     });
                 }
@@ -170,7 +216,7 @@ export async function cloudCall(name, data = {}, options = {}) {
         }
     }
 
-    throw createError('CLOUD_CALL_FAILED', '云函数调用失败');
+    throw createError('CLOUD_CALL_FAILED', '\u4E91\u51FD\u6570\u8C03\u7528\u5931\u8D25');
 }
 
 export default {

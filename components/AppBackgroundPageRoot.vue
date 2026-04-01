@@ -3,7 +3,6 @@
         class="app-background-page-root"
         :class="{ 'has-app-background-page': hasAppBackground }"
         :style="appBackgroundPageStyle"
-        v-bind="$attrs"
     >
         <view v-if="hasAppBackground" class="app-background-image"></view>
         <view v-if="hasAppBackground" class="app-background-overlay"></view>
@@ -17,12 +16,6 @@ import appBackgroundPageMixin from '@/mixins/appBackgroundPage.js';
 export default {
     name: 'AppBackgroundPageRoot',
     mixins: [appBackgroundPageMixin],
-    inheritAttrs: false,
-    computed: {
-        forwardedListeners() {
-            return {};
-        }
-    },
     data() {
         return {
             _pageShowHook: null

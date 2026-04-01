@@ -67,6 +67,7 @@
 import { previewImage as previewImageUtil } from '../../utils/imagePreview.js';
 import { submitFeedback as submitFeedbackApi } from '../../api-cache/feedback.js';
 import { uploadFileCompat } from '../../utils/upload-compat.js';
+import { getStatusBarHeightCompat } from '@/utils/system-info.js';
 
 export default {
     data() {
@@ -80,9 +81,8 @@ export default {
     },
     onLoad: function () {
         // 获取状态栏高度
-        const systemInfo = uni.getSystemInfoSync();
         this.setData({
-            statusBarHeight: systemInfo.statusBarHeight
+            statusBarHeight: getStatusBarHeightCompat()
         });
     },
     methods: {
