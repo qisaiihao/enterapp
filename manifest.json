@@ -155,7 +155,17 @@
     },
     "app-harmony" : {
         "distribute" : {
-            "bundleName" : "com.poementer.app"
+            "bundleName" : "com.example.poementer",
+            "signingConfigs" : {
+                "default" : {
+                    "storeFile" : "./cert/poementer_harmony.p12",
+                    "storePassword" : "lhh20040712",
+                    "keyAlias" : "debugKey",
+                    "keyPassword" : "lhh20040712",
+                    "profile" : "./cert/poementerDebug.p7b",
+                    "signAlg" : "SHA256withECDSA"
+                }
+            }
         }
     }
 }
