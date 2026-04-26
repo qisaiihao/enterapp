@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="760" viewBox="0 0 390 760">
+  <rect width="390" height="760" fill="#ffffff"/>
+  <rect x="21" y="18" width="348" height="724" rx="28" fill="#ffffff" stroke="#111111" stroke-width="2"/>
+  <rect x="154" y="30" width="82" height="5" rx="2.5" fill="#111111"/>
+  <text x="195" y="70" text-anchor="middle" font-family="SimSun, Songti SC, serif" font-size="19" font-weight="700" fill="#111111">发布编辑</text>
+  
+  <rect x="58" y="112" width="274" height="290" rx="12" fill="#ffffff" stroke="#111111" stroke-width="1.5"/>
+  <text x="78" y="149" font-family="SimSun, Songti SC, serif" font-size="15" fill="#777777">在这里写下诗歌或讨论内容...</text>
+  <line x1="78" y1="183" x2="312" y2="183" stroke="#dddddd"/>
+  <line x1="78" y1="222" x2="312" y2="222" stroke="#dddddd"/>
+  <line x1="78" y1="261" x2="312" y2="261" stroke="#dddddd"/>
+  <rect x="318" y="160" width="34" height="192" rx="17" fill="#ffffff" stroke="#111111"/>
+  <text x="335" y="193" text-anchor="middle" font-family="SimSun, Songti SC, serif" font-size="12" fill="#111111">标签</text>
+  <text x="335" y="231" text-anchor="middle" font-family="SimSun, Songti SC, serif" font-size="12" fill="#111111">图片</text>
+  <text x="335" y="269" text-anchor="middle" font-family="SimSun, Songti SC, serif" font-size="12" fill="#111111">模式</text>
+  <text x="335" y="307" text-anchor="middle" font-family="SimSun, Songti SC, serif" font-size="12" fill="#111111">颜色</text>
+  <rect x="68" y="438" width="86" height="31" rx="15" fill="#ffffff" stroke="#111111"/>
+  <text x="111" y="459" text-anchor="middle" font-family="SimSun, Songti SC, serif" font-size="13" fill="#111111">诗歌</text>
+  <rect x="168" y="438" width="86" height="31" rx="15" fill="#ffffff" stroke="#111111"/>
+  <text x="211" y="459" text-anchor="middle" font-family="SimSun, Songti SC, serif" font-size="13" fill="#111111">讨论</text>
+  <rect x="247" y="575" width="90" height="52" rx="8" fill="#ffffff" stroke="#111111" stroke-width="2"/>
+  <text x="292" y="608" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#111111">Next</text>
+
+</svg>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="720" viewBox="0 0 390 720">
+  <rect width="390" height="720" fill="#ffffff"/>
+  <rect x="21" y="18" width="348" height="684" rx="28" fill="#ffffff" stroke="#111111" stroke-width="2"/>
+  <rect x="154" y="30" width="82" height="5" rx="2.5" fill="#111111"/>
+  <text x="195" y="70" text-anchor="middle" font-family="SimSun, Songti SC, serif" font-size="19" font-weight="700" fill="#111111">启动页</text>
+  
+  <text x="195" y="260" text-anchor="middle" font-family="Georgia, serif" font-size="34" fill="#111111">poementer</text>
+  <line x1="246" y1="235" x2="246" y2="271" stroke="#111111" stroke-width="3"/>
+  <rect x="244" y="458" width="83" height="48" rx="8" fill="#ffffff" stroke="#111111" stroke-width="2"/>
+  <path d="M286 469 L306 469 L306 486 L295 486" fill="none" stroke="#111111" stroke-width="3"/>
+  <text x="286" y="491" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#111111">Enter</text>
+  <text x="195" y="556" text-anchor="middle" font-family="SimSun, Songti SC, serif" font-size="16" fill="#555555">加载完成后点击进入</text>
+
+</svg>

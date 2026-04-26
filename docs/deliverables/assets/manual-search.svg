@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="760" viewBox="0 0 390 760">
+  <rect width="390" height="760" fill="#ffffff"/>
+  <rect x="21" y="18" width="348" height="724" rx="28" fill="#ffffff" stroke="#111111" stroke-width="2"/>
+  <rect x="154" y="30" width="82" height="5" rx="2.5" fill="#111111"/>
+  <text x="195" y="70" text-anchor="middle" font-family="SimSun, Songti SC, serif" font-size="19" font-weight="700" fill="#111111">搜索</text>
+  
+  <rect x="55" y="102" width="280" height="44" rx="22" fill="#ffffff" stroke="#111111"/>
+  <text x="82" y="130" font-family="SimSun, Songti SC, serif" font-size="14" fill="#777777">搜索作品、作者、标签</text>
+  <text x="58" y="190" font-family="SimSun, Songti SC, serif" font-size="16" font-weight="700" fill="#111111">搜索历史</text>
+  <rect x="58" y="214" width="84" height="30" rx="15" fill="#ffffff" stroke="#111111"/>
+  <text x="100" y="235" text-anchor="middle" font-family="SimSun, Songti SC, serif" font-size="13" fill="#111111">春夜</text>
+  <rect x="152" y="214" width="84" height="30" rx="15" fill="#ffffff" stroke="#111111"/>
+  <text x="194" y="235" text-anchor="middle" font-family="SimSun, Songti SC, serif" font-size="13" fill="#111111">远方</text>
+  <text x="58" y="304" font-family="SimSun, Songti SC, serif" font-size="16" font-weight="700" fill="#111111">搜索结果</text>
+  <rect x="58" y="332" width="274" height="88" rx="10" fill="#ffffff" stroke="#111111"/>
+  <text x="78" y="366" font-family="SimSun, Songti SC, serif" font-size="15" fill="#111111">作品标题或摘录</text>
+  <text x="78" y="395" font-family="SimSun, Songti SC, serif" font-size="13" fill="#555555">作者、标签、互动数</text>
+  <rect x="58" y="446" width="274" height="88" rx="10" fill="#ffffff" stroke="#111111"/>
+  <text x="78" y="480" font-family="SimSun, Songti SC, serif" font-size="15" fill="#111111">用户或诗人结果</text>
+  <text x="78" y="509" font-family="SimSun, Songti SC, serif" font-size="13" fill="#555555">进入主页查看作品</text>
+
+</svg>

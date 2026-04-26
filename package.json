@@ -15,6 +15,8 @@
 		"check:encoding": "node scripts/check-encoding.js",
 		"check:syntax": "node scripts/check-syntax.js",
 		"check:quality": "npm run check:encoding && npm run check:syntax",
+		"capture:h5": "node scripts/capture-h5-screenshots.mjs",
+		"export:manual": "node scripts/export-manual-pdf.mjs",
 		"export:doc": "node scripts/export-doc-pdf.mjs",
 		"export:source": "node scripts/export-source-pdf.mjs"
 	},

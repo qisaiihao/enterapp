@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="760" viewBox="0 0 390 760">
+  <rect width="390" height="760" fill="#ffffff"/>
+  <rect x="21" y="18" width="348" height="724" rx="28" fill="#ffffff" stroke="#111111" stroke-width="2"/>
+  <rect x="154" y="30" width="82" height="5" rx="2.5" fill="#111111"/>
+  <text x="195" y="70" text-anchor="middle" font-family="SimSun, Songti SC, serif" font-size="19" font-weight="700" fill="#111111">登录</text>
+  
+  <text x="195" y="130" text-anchor="middle" font-family="Georgia, serif" font-size="28" fill="#111111">poementer</text>
+  <rect x="62" y="205" width="266" height="48" rx="8" fill="#ffffff" stroke="#111111" stroke-width="1.5"/>
+  <text x="82" y="235" font-family="SimSun, Songti SC, serif" font-size="15" fill="#777777">请输入 Poem ID</text>
+  <rect x="62" y="274" width="266" height="48" rx="8" fill="#ffffff" stroke="#111111" stroke-width="1.5"/>
+  <text x="82" y="304" font-family="SimSun, Songti SC, serif" font-size="15" fill="#777777">请输入密码</text>
+  <text x="304" y="354" text-anchor="end" font-family="SimSun, Songti SC, serif" font-size="15" fill="#111111">注册</text>
+  <rect x="247" y="575" width="90" height="52" rx="8" fill="#ffffff" stroke="#111111" stroke-width="2"/>
+  <path d="M294 588 L317 588 L317 608 L305 608" fill="none" stroke="#111111" stroke-width="3"/>
+  <text x="292" y="611" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#111111">Enter</text>
+  <text x="195" y="665" text-anchor="middle" font-family="SimSun, Songti SC, serif" font-size="14" fill="#666666">输入账号密码后点击右下角 Enter</text>
+
+</svg>

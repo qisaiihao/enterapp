@@ -412,25 +412,12 @@ function renderRow(row, slot) {
 }
 
 function renderPage(page, totalFullPages, submissionTotalPages) {
-  const meta = summarizePage(page, totalFullPages, submissionTotalPages);
   const rowsHtml = page.rows
     .map((row, index) => renderRow(row, index + 1))
     .join('\n');
 
   return `
     <section class="page">
-      <div class="page-meta">
-        <div class="meta-line">
-          <span>提交页：${meta.submissionPageNumber} / ${meta.submissionTotalPages}</span>
-          <span>完整序列页：${meta.fullPageNumber} / ${meta.totalFullPages}</span>
-        </div>
-        <div class="meta-line">
-          <span>涉及文件：${escapeHtml(meta.fileDisplay)}</span>
-        </div>
-        <div class="meta-line">
-          <span>源码范围：${escapeHtml(meta.rangeDisplay)}</span>
-        </div>
-      </div>
       <table class="code-grid">
         <colgroup>
           <col class="slot-col">
@@ -458,8 +445,8 @@ function buildHtml(pages, totalFullPages) {
   <title>回车键Poementer软件源程序登记提交版</title>
   <style>
     @page {
-      size: A4 landscape;
-      margin: 0;
+      size: A4 portrait;
+      margin: 12mm;
     }
 
     * {
@@ -471,21 +458,21 @@ function buildHtml(pages, totalFullPages) {
       margin: 0;
       padding: 0;
       background: #ffffff;
-      color: #16202a;
+      color: #000000;
       font-family: "Consolas", "Courier New", monospace;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
 
     body {
-      font-size: 7.1pt;
+      font-size: 6.45pt;
     }
 
     .page {
-      width: 277mm;
-      height: 186mm;
+      width: 186mm;
+      height: 273mm;
       margin: 0 auto;
-      padding: 2mm 0;
+      padding: 0;
       break-after: page;
       page-break-after: always;
       overflow: hidden;
@@ -496,42 +483,20 @@ function buildHtml(pages, totalFullPages) {
       page-break-after: auto;
     }
 
-    .page-meta {
-      height: 13mm;
-      margin-bottom: 1.4mm;
-      padding: 1.2mm 2mm;
-      border: 0.2mm solid #9fb4c9;
-      background: #f6f9fc;
-      font-family: "SimSun", "Songti SC", serif;
-      font-size: 8pt;
-      line-height: 1.22;
-    }
-
-    .meta-line {
-      display: flex;
-      justify-content: space-between;
-      gap: 6mm;
-      margin: 0 0 0.7mm;
-      white-space: nowrap;
-    }
-
-    .meta-line:last-child {
-      margin-bottom: 0;
-    }
-
     .code-grid {
       width: 100%;
+      height: 273mm;
       border-collapse: collapse;
       table-layout: fixed;
-      border: 0.25mm solid #6e859c;
+      border: 0.2mm solid #000000;
     }
 
     .slot-col {
-      width: 9mm;
+      width: 8.5mm;
     }
 
     .line-col {
-      width: 14mm;
+      width: 13.5mm;
     }
 
     .code-col {
@@ -539,18 +504,19 @@ function buildHtml(pages, totalFullPages) {
     }
 
     .code-grid tr {
-      height: 3.34mm;
+      height: 5.46mm;
     }
 
     .code-grid td {
-      border-right: 0.18mm solid #ccd7e2;
-      border-bottom: 0.18mm solid #d7e0ea;
-      padding: 0.28mm 0.9mm;
+      border-right: 0.12mm solid #000000;
+      border-bottom: 0.12mm solid #000000;
+      padding: 0.15mm 0.75mm;
       vertical-align: middle;
       overflow: hidden;
       white-space: pre;
       text-overflow: clip;
-      line-height: 1.05;
+      line-height: 1;
+      background: #ffffff;
     }
 
     .code-grid tr:last-child td {
@@ -563,23 +529,23 @@ function buildHtml(pages, totalFullPages) {
 
     .slot-cell,
     .line-cell {
-      color: #5a6b7b;
+      color: #000000;
       text-align: right;
     }
 
     .code-cell {
-      color: #102030;
+      color: #000000;
     }
 
     .divider-row td {
-      background: #eef3f8;
-      color: #14395d;
+      background: #ffffff;
+      color: #000000;
       font-weight: 700;
     }
 
     .filler-row td {
-      color: #a7b3bf;
-      background: #fbfcfd;
+      color: #000000;
+      background: #ffffff;
     }
   </style>
 </head>
@@ -625,7 +591,8 @@ function buildIndexMarkdown(items, totalFullPages, selectedPages) {
     '## 3. 说明',
     '',
     '- “视觉行数”包含文件标识行、源码续行和实际源码显示行，用于固定 50 行源码网格分页。',
-    '- 最终 PDF 页脚显示提交页码，页内元数据显示其在完整源程序序列中的页码。',
+    '- 最终 PDF 采用 A4 竖版、白底黑字、每页固定 50 行源码网格，页脚按 1-60 编排。',
+    '- HTML 版可作为导入 Word 后继续调整页眉、页码和打印边距的源文件。',
     '- 当前清单按功能主链排序：启动与调用链 -> 身份主流程 -> 内容主链前端 -> 内容主链云函数。'
   );
 
@@ -659,15 +626,15 @@ async function exportPdf() {
     await page.pdf({
       path: outputPdfPath,
       format: 'A4',
-      landscape: true,
+      landscape: false,
       printBackground: true,
       preferCSSPageSize: true,
       displayHeaderFooter: true,
       margin: {
         top: '12mm',
         bottom: '12mm',
-        left: '10mm',
-        right: '10mm'
+        left: '12mm',
+        right: '12mm'
       },
       headerTemplate: `
         <div style="width:100%;font-size:9px;color:#1d2f40;text-align:center;padding-top:4px;font-family:SimSun, Songti SC, STSong, serif;">
@@ -676,7 +643,7 @@ async function exportPdf() {
       `,
       footerTemplate: `
         <div style="width:100%;font-size:8px;color:#566371;text-align:center;padding-bottom:4px;font-family:SimSun, Songti SC, STSong, serif;">
-          提交页 <span class="pageNumber"></span> / <span class="totalPages"></span>
+          第 <span class="pageNumber"></span> 页 / 共 <span class="totalPages"></span> 页
         </div>
       `
     });

@@ -3,7 +3,7 @@
 ## 1. 总体说明
 
 - 选编文件数量：16
-- 完整源程序序列页数：285
+- 完整源程序序列页数：335
 - 最终提交页数：60
 - 提交策略：完整序列前 30 页与后 30 页
 - 每页固定源码行数：50
@@ -12,25 +12,26 @@
 
 | 顺序 | 源码路径 | 说明 | 原始行数 | 视觉行数 | 完整序列页码区间 | 入选区段 |
 | --- | --- | --- | ---: | ---: | --- | --- |
-| 1 | `main.js` | 启动入口与云环境初始化 | 492 | 503 | 1-11 | 前30页 |
-| 2 | `App.vue` | 应用级生命周期与全局逻辑 | 665 | 678 | 11-24 | 前30页 |
-| 3 | `utils/cloudCall.js` | 统一云函数调用封装 | 178 | 185 | 24-28 | 前30页 |
-| 4 | `api-cache/_shared/cloud-wrapper.js` | 语义 API 解包与错误归一 | 86 | 87 | 28-30 | 前30页 |
-| 5 | `functions/login/index.js` | 登录云函数入口 | 55 | 56 | 30-31 | 前30页 |
-| 6 | `functions/getUserProfile/index.js` | 用户资料查询云函数 | 349 | 350 | 31-38 | 未入选 |
-| 7 | `pages/login/login.vue` | 登录页面 | 1744 | 1798 | 38-74 | 未入选 |
-| 8 | `pages/index/index.vue` | 首页主内容流 | 2472 | 2536 | 74-124 | 未入选 |
-| 9 | `pages/post-detail/post-detail.vue` | 帖子详情与互动页面 | 3945 | 4070 | 124-206 | 未入选 |
-| 10 | `pages-publish/preview/preview.vue` | 发布预览与提交页面 | 1739 | 1799 | 206-242 | 未入选 |
-| 11 | `functions/contentCheck/index.js` | 内容审核云函数 | 786 | 808 | 242-258 | 后30页 |
-| 12 | `functions/createPost/index.js` | 创建帖子云函数 | 119 | 120 | 258-260 | 后30页 |
-| 13 | `functions/getPostList/index.js` | 帖子列表云函数 | 607 | 633 | 260-273 | 后30页 |
-| 14 | `functions/getPostDetail/index.js` | 帖子详情云函数 | 202 | 205 | 273-277 | 后30页 |
-| 15 | `functions/vote/index.js` | 点赞云函数 | 193 | 194 | 277-281 | 后30页 |
-| 16 | `functions/addComment/index.js` | 评论云函数 | 199 | 201 | 281-285 | 后30页 |
+| 1 | `main.js` | 启动入口与云环境初始化 | 221 | 225 | 1-5 | 前30页 |
+| 2 | `App.vue` | 应用级生命周期与全局逻辑 | 442 | 458 | 5-14 | 前30页 |
+| 3 | `utils/cloudCall.js` | 统一云函数调用封装 | 224 | 236 | 14-19 | 前30页 |
+| 4 | `api-cache/_shared/cloud-wrapper.js` | 语义 API 解包与错误归一 | 146 | 147 | 19-22 | 前30页 |
+| 5 | `functions/login/index.js` | 登录云函数入口 | 55 | 56 | 22-23 | 前30页 |
+| 6 | `functions/getUserProfile/index.js` | 用户资料查询云函数 | 393 | 396 | 23-31 | 前30页 |
+| 7 | `pages/login/login.vue` | 登录页面 | 1722 | 1776 | 31-66 | 未入选 |
+| 8 | `pages/index/index.vue` | 首页主内容流 | 2558 | 2621 | 66-119 | 未入选 |
+| 9 | `pages/post-detail/post-detail.vue` | 帖子详情与互动页面 | 4442 | 4588 | 119-211 | 未入选 |
+| 10 | `pages-publish/preview/preview.vue` | 发布预览与提交页面 | 3927 | 4005 | 211-291 | 未入选 |
+| 11 | `functions/contentCheck/index.js` | 内容审核云函数 | 801 | 822 | 291-307 | 后30页 |
+| 12 | `functions/createPost/index.js` | 创建帖子云函数 | 119 | 120 | 307-309 | 后30页 |
+| 13 | `functions/getPostList/index.js` | 帖子列表云函数 | 633 | 649 | 310-322 | 后30页 |
+| 14 | `functions/getPostDetail/index.js` | 帖子详情云函数 | 202 | 205 | 322-327 | 后30页 |
+| 15 | `functions/vote/index.js` | 点赞云函数 | 193 | 194 | 327-330 | 后30页 |
+| 16 | `functions/addComment/index.js` | 评论云函数 | 235 | 238 | 330-335 | 后30页 |
 
 ## 3. 说明
 
 - “视觉行数”包含文件标识行、源码续行和实际源码显示行，用于固定 50 行源码网格分页。
-- 最终 PDF 页脚显示提交页码，页内元数据显示其在完整源程序序列中的页码。
+- 最终 PDF 采用 A4 竖版、白底黑字、每页固定 50 行源码网格，页脚按 1-60 编排。
+- HTML 版可作为导入 Word 后继续调整页眉、页码和打印边距的源文件。
 - 当前清单按功能主链排序：启动与调用链 -> 身份主流程 -> 内容主链前端 -> 内容主链云函数。
