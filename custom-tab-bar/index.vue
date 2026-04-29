@@ -3,10 +3,14 @@
         <view class="tab-bar-item" v-for="(item, index) in list" :key="index" :data-index="index" :data-path="item.pagePath" @tap="switchTab">
             <view :class="['icon-wrap', selected === index ? 'pressed' : '']">
                 <view :class="['icon-inner', selected === index ? 'active' : '']">
-                    <image class="icon-img" :src="selected === index ? (item.selectedIconPath || item.iconPath) : item.iconPath" mode="aspectFill" />
+                    <image
+                        :class="['icon-img', selected === index ? 'icon-img--active' : '']"
+                        :src="resolveIconPath(item, index)"
+                        mode="aspectFill"
+                    />
                 </view>
             </view>
-            <text class="tab-bar-text" :style="selected === index ? ('color: ' + selectedColor) : ''">{{ item.text }}</text>
+            <text class="tab-bar-text" :style="selected === index ? 'color: var(--app-tab-active-text-color, #000000)' : ''">{{ item.text }}</text>
         </view>
     </view>
 </template>
@@ -28,25 +32,33 @@ export default {
                     pagePath: 'pages/index/index',
                     text: '广场',
                     iconPath: '/static/images/market.png',
-                    selectedIconPath: '/static/images/marketplus.png'
+                    selectedIconPath: '/static/images/marketplus.png',
+                    darkIconPath: '/static/images/tab-dark/market-dark.png',
+                    darkSelectedIconPath: '/static/images/tab-dark/marketplus-dark.png'
                 },
                 {
                     pagePath: 'pages/poem-square/poem-square',
                     text: '原创',
                     iconPath: '/static/images/road.png',
-                    selectedIconPath: '/static/images/roadplus.png'
+                    selectedIconPath: '/static/images/roadplus.png',
+                    darkIconPath: '/static/images/tab-dark/road-dark.png',
+                    darkSelectedIconPath: '/static/images/tab-dark/roadplus-dark.png'
                 },
                 {
                     pagePath: 'pages/mountain/mountain',
                     text: '读诗',
                     iconPath: '/static/images/mountain.png',
-                    selectedIconPath: '/static/images/mountainplus.png'
+                    selectedIconPath: '/static/images/mountainplus.png',
+                    darkIconPath: '/static/images/tab-dark/mountain-dark.png',
+                    darkSelectedIconPath: '/static/images/tab-dark/mountainplus-dark.png'
                 },
                 {
                     pagePath: 'pages/profile/profile',
                     text: '我',
                     iconPath: '/static/images/pools.png',
-                    selectedIconPath: '/static/images/poolsplus.png'
+                    selectedIconPath: '/static/images/poolsplus.png',
+                    darkIconPath: '/static/images/tab-dark/pools-dark.png',
+                    darkSelectedIconPath: '/static/images/tab-dark/poolsplus-dark.png'
                 }
             ]
         };
@@ -74,6 +86,15 @@ export default {
             const nextIndex = typeof index === 'number' ? index : parseInt(index, 10);
             if (Number.isNaN(nextIndex) || this.selected === nextIndex) return;
             this.selected = nextIndex;
+        },
+        resolveIconPath(item, index) {
+            const isSelected = this.selected === index;
+            if (this.appThemeMode === 'dark') {
+                return isSelected
+                    ? (item.darkSelectedIconPath || item.darkIconPath || item.selectedIconPath || item.iconPath)
+                    : (item.darkIconPath || item.iconPath);
+            }
+            return isSelected ? (item.selectedIconPath || item.iconPath) : item.iconPath;
         },
         syncSelected(options = {}) {
             const { preferCache = false } = options;
@@ -209,21 +230,26 @@ export default {
   width: 88rpx;
   height: 88rpx;
   border-radius: 24rpx;
-  background: #f8f8f8;
+  background: var(--app-tab-icon-wrap-bg, #f8f8f8);
+  border: 1rpx solid var(--app-tab-icon-border-color, transparent);
   overflow: hidden;
-  box-shadow: 0 18rpx 32rpx rgba(0, 0, 0, 0.16);
-  transition: box-shadow 0.22s ease;
+  box-shadow: var(--app-tab-icon-wrap-shadow, 0 18rpx 32rpx rgba(0, 0, 0, 0.16));
+  transition: border-color 0.22s ease, box-shadow 0.22s ease;
+  box-sizing: border-box;
 }
 
 .icon-wrap.pressed {
-  box-shadow: 0 6rpx 12rpx rgba(0, 0, 0, 0.08);
+  border-color: var(--app-tab-icon-active-border-color, var(--app-tab-icon-border-color, transparent));
+  box-shadow: var(--app-tab-icon-active-shadow, 0 6rpx 12rpx rgba(0, 0, 0, 0.08));
 }
 
 .icon-inner {
+  position: relative;
   width: 100%;
   height: 100%;
-  background: #ffffff;
+  background: var(--app-tab-icon-inner-bg, #ffffff);
   box-shadow: none;
+  overflow: hidden;
   transition: transform 0.22s ease, box-shadow 0.22s ease;
 }
 
@@ -236,6 +262,15 @@ export default {
   width: 100%;
   height: 100%;
   display: block;
+  filter: var(--app-tabbar-icon-filter, none);
+  opacity: var(--app-tabbar-icon-opacity, 1);
+  transition: filter 0.22s ease, opacity 0.22s ease, transform 0.22s ease;
+}
+
+.icon-img--active {
+  filter: var(--app-tabbar-icon-active-filter, var(--app-tabbar-icon-filter, none));
+  opacity: var(--app-tabbar-icon-active-opacity, var(--app-tabbar-icon-opacity, 1));
+  transform: scale(1.02);
 }
 
 .tab-bar-text {

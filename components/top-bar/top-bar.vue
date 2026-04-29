@@ -218,7 +218,7 @@ export default {
 .top-icon {
   width: 80rpx;
   height: 80rpx;
-  filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1));
+  filter: var(--app-icon-filter, drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1)));
 }
 
 /* 未读消息红点 */

@@ -354,6 +354,20 @@ export default {
 </script>
 
 <style>
+page,
+body,
+#app,
+uni-page,
+uni-page-body {
+    background: var(--app-page-bg, #ffffff);
+    color: var(--app-primary-text, #111111);
+}
+
+view,
+text {
+    box-sizing: border-box;
+}
+
 /* 全局字体预加载 - 仅用于诗歌内容 */
 /* 小程序不支持 CSS @font-face 加载本地字体，只在 H5 和 APP 环境使用 */
 /* #ifndef MP-WEIXIN */
@@ -439,4 +453,109 @@ export default {
     color: #000000 !important;
     border-color: #000000 !important;
 }
+
+[data-app-theme="dark"] .uni-pull-refresh,
+[data-app-theme="dark"] .wx-pull-refresh,
+[data-app-theme="dark"] .pull-refresh,
+[data-app-theme="dark"] .uni-pull-refresh-indicator,
+[data-app-theme="dark"] .wx-pull-refresh-indicator {
+    color: #f4f1ea !important;
+    background: var(--app-page-bg, #0f1115) !important;
+}
+
+[data-app-theme="dark"] .uni-pull-refresh .uni-pull-refresh-spinner,
+[data-app-theme="dark"] .wx-pull-refresh .wx-pull-refresh-spinner,
+[data-app-theme="dark"] .pull-refresh .pull-refresh-spinner,
+[data-app-theme="dark"] .uni-pull-refresh-indicator .uni-pull-refresh-spinner,
+[data-app-theme="dark"] .wx-pull-refresh-indicator .wx-pull-refresh-spinner {
+    color: #f4f1ea !important;
+    border-color: #f4f1ea !important;
+}
+
+/* #ifdef H5 */
+[data-app-theme="dark"] .uni-page-head {
+    background: var(--app-page-bg, #0f1115) !important;
+    border-bottom-color: var(--app-border-color, rgba(255,255,255,0.12)) !important;
+    color: var(--app-primary-text, #f4f1ea) !important;
+}
+
+[data-app-theme="dark"] .uni-page-head__title,
+[data-app-theme="dark"] .uni-page-head .uni-page-head__title {
+    color: var(--app-primary-text, #f4f1ea) !important;
+}
+
+[data-app-theme="dark"] .uni-page-head-btn,
+[data-app-theme="dark"] .uni-page-head-btn i,
+[data-app-theme="dark"] .uni-page-head .uni-btn-icon {
+    color: var(--app-primary-text, #f4f1ea) !important;
+}
+
+[data-app-theme="dark"] .uni-page-head svg,
+[data-app-theme="dark"] .uni-page-head path {
+    fill: var(--app-primary-text, #f4f1ea) !important;
+    stroke: var(--app-primary-text, #f4f1ea) !important;
+}
+
+html[data-app-theme="dark"],
+body[data-app-theme="dark"],
+[data-app-theme="dark"] {
+    scrollbar-color: rgba(255, 255, 255, 0.24) var(--app-page-bg, #0f1115);
+}
+
+html[data-app-theme="dark"]::-webkit-scrollbar,
+body[data-app-theme="dark"]::-webkit-scrollbar,
+[data-app-theme="dark"] ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+html[data-app-theme="dark"]::-webkit-scrollbar-track,
+body[data-app-theme="dark"]::-webkit-scrollbar-track,
+[data-app-theme="dark"] ::-webkit-scrollbar-track {
+    background: var(--app-page-bg, #0f1115);
+}
+
+html[data-app-theme="dark"]::-webkit-scrollbar-thumb,
+body[data-app-theme="dark"]::-webkit-scrollbar-thumb,
+[data-app-theme="dark"] ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.24);
+    border-radius: 999px;
+}
+
+html[data-app-theme="dark"]::-webkit-scrollbar-corner,
+body[data-app-theme="dark"]::-webkit-scrollbar-corner,
+[data-app-theme="dark"] ::-webkit-scrollbar-corner {
+    background: var(--app-page-bg, #0f1115);
+}
+
+[data-app-theme="dark"] .uni-modal {
+    background: var(--app-elevated-bg, rgba(24, 28, 36, 0.96)) !important;
+    color: var(--app-primary-text, #f4f1ea) !important;
+    border: 1rpx solid var(--app-border-color, rgba(255,255,255,0.12)) !important;
+}
+
+[data-app-theme="dark"] .uni-modal__title {
+    color: var(--app-primary-text, #f4f1ea) !important;
+}
+
+[data-app-theme="dark"] .uni-modal__bd {
+    color: var(--app-secondary-text, #c9ced8) !important;
+}
+
+[data-app-theme="dark"] .uni-modal__ft {
+    border-top-color: var(--app-border-color, rgba(255,255,255,0.12)) !important;
+}
+
+[data-app-theme="dark"] .uni-modal__btn {
+    color: var(--app-primary-text, #f4f1ea) !important;
+}
+
+[data-app-theme="dark"] .uni-modal__btn::after {
+    border-color: var(--app-border-color, rgba(255,255,255,0.12)) !important;
+}
+
+[data-app-theme="dark"] .uni-modal__btn_primary {
+    color: var(--app-accent-color, #c9ad73) !important;
+}
+/* #endif */
 </style>

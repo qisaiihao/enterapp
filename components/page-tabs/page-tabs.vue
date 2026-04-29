@@ -119,19 +119,19 @@ export default {
 }
 
 .tab-item:active {
-  background-color: rgba(0, 0, 0, 0.03);
+  background-color: var(--app-subtle-surface-bg, rgba(0, 0, 0, 0.03));
   transform: scale(0.97);
 }
 
 .tab-text {
   font-size: 30rpx;
-  color: #333;
+  color: var(--app-secondary-text, #333);
   font-weight: 500;
   transition: color 0.2s ease, transform 0.2s ease;
 }
 
 .tab-item.active .tab-text {
-  color: #000;
+  color: var(--app-primary-text, #000);
   font-weight: 600;
   transform: scale(1.02);
 }
@@ -141,7 +141,7 @@ export default {
   bottom: 8rpx;
   width: 60rpx;
   height: 6rpx;
-  background: #333;
+  background: var(--app-primary-text, #333);
   border-radius: 3rpx;
   z-index: 10;
   /* 使用更丝滑的缓动函数 */

@@ -49,8 +49,8 @@ export default {
 };
 </script>
 <style scoped>
-.comment-input-area { position: fixed; left: 0; right: 0; background: #fff; z-index: 2000; box-shadow: 0 -2px 10px #eee; }
-.expanded-textarea { width: 100%; min-height: 80px; margin-bottom: 18rpx; }
+.comment-input-area { position: fixed; left: 0; right: 0; background: var(--app-fixed-bar-bg, #fff); z-index: 2000; box-shadow: var(--app-fixed-bar-shadow, 0 -2px 10px #eee); }
+.expanded-textarea { width: 100%; min-height: 80px; margin-bottom: 18rpx; color: var(--app-primary-text, #111); background: var(--app-surface-bg, #fff); }
 .selected-comment-images { display: flex; gap: 8px; margin-bottom: 10px; }
 .selected-image-item { position: relative; }
 .selected-image-thumb { width: 70rpx; height: 70rpx; border-radius: 6rpx; }
@@ -60,7 +60,6 @@ export default {
 .submit-button.disabled { opacity: 0.5; pointer-events: none; }
 .submit-icon { width: 50rpx; height: 50rpx; }
 </style>
-
 
 
 

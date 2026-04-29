@@ -2221,7 +2221,7 @@ export default {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: #ffffff;
+    background-color: var(--app-page-bg, #ffffff);
 }
 
 .container {
@@ -2235,7 +2235,7 @@ export default {
     padding-top: 0;
     /* #endif */
     padding-bottom: 100rpx;
-    background-color: #ffffff;
+    background-color: var(--app-page-bg, #ffffff);
     min-height: 100vh;
     position: relative;
     overflow: hidden;
@@ -2325,17 +2325,17 @@ export default {
 }
 
 .post-item-wrapper {
-    background: #fff;
+    background: var(--app-post-wrapper-bg, var(--app-surface-bg, #fff));
     margin-bottom: 20rpx;
     padding: 0;
     box-shadow: none;
     border-radius: 0;
-    border-bottom: 1rpx solid #f0f0f0;
+    border-bottom: var(--app-post-wrapper-divider, 1rpx solid #f0f0f0);
 }
 
 .post-item-wrapper.original-post {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 90%, rgba(235, 200, 141, 0.05) 95%, rgba(235, 200, 141, 0.08) 100%);
-    border-left: 3rpx solid #ebc88d;
+    background: var(--app-post-original-bg, linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 90%, rgba(235, 200, 141, 0.05) 95%, rgba(235, 200, 141, 0.08) 100%));
+    border-left: 3rpx solid var(--app-post-original-accent-color, #ebc88d);
     position: relative;
 }
 
@@ -2345,7 +2345,7 @@ export default {
 }
 
 .navigator-hover {
-    background-color: rgba(0, 0, 0, 0.02);
+    background-color: var(--app-subtle-surface-bg, rgba(0, 0, 0, 0.02));
 }
 
 .is-scrolling .navigator-hover {
@@ -2392,13 +2392,13 @@ export default {
 
 .empty-text {
     font-size: 32rpx;
-    color: #666;
+    color: var(--app-secondary-text, #666);
     margin-bottom: 15rpx;
 }
 
 .empty-subtext {
     font-size: 28rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 
 .loading-more {
@@ -2410,13 +2410,13 @@ export default {
 
 .loading-text {
     font-size: 28rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 
 .loading-footer {
     text-align: center;
     padding: 20rpx 0;
-    color: #999;
+    color: var(--app-muted-text, #999);
     font-size: 14px;
 }
 
@@ -2436,6 +2436,7 @@ export default {
     z-index: 30;
     display: flex;
     justify-content: flex-end;
+    background: var(--app-page-bg, transparent);
 }
 
 .home-filter-trigger {
@@ -2449,12 +2450,13 @@ export default {
 }
 
 .home-filter-trigger--active {
-    background: rgba(109, 101, 101, 0.08);
+    background: var(--app-subtle-surface-bg, rgba(109, 101, 101, 0.08));
 }
 
 .home-filter-trigger-icon {
     width: 40rpx;
     height: 40rpx;
+    filter: var(--app-filter-icon-filter, none);
 }
 
 .home-filter-panel {
@@ -2464,8 +2466,9 @@ export default {
     width: 332rpx;
     padding: 24rpx;
     border-radius: 20rpx;
-    background: #ffffff;
-    box-shadow: 0 16rpx 40rpx rgba(0, 0, 0, 0.12);
+    background: var(--app-elevated-bg, #ffffff);
+    box-shadow: var(--app-surface-shadow, 0 16rpx 40rpx rgba(0, 0, 0, 0.12));
+    border: var(--app-surface-border-line, none);
     box-sizing: border-box;
 }
 
@@ -2473,10 +2476,10 @@ export default {
     min-width: 92rpx;
     padding: 10rpx 18rpx;
     border-radius: 999rpx;
-    background: #f1efed;
+    background: var(--app-subtle-surface-bg, #f1efed);
     font-size: 24rpx;
     line-height: 34rpx;
-    color: #5a524e;
+    color: var(--app-secondary-text, #5a524e);
     text-align: center;
     box-sizing: border-box;
 }
@@ -2486,7 +2489,7 @@ export default {
 }
 
 .home-filter-option--active {
-    background: #6d6565;
+    background: var(--app-accent-color, #6d6565);
     color: #ffffff;
 }
 
@@ -2496,12 +2499,12 @@ export default {
     align-items: center;
     justify-content: center;
     padding: 40rpx 20rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 
 .end-text {
     font-size: 28rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
     text-align: center;
 }
 
@@ -2527,7 +2530,7 @@ export default {
     height: 100%;
     position: relative;
     z-index: 100;
-    background-color: #ffffff;
+    background-color: var(--app-page-bg, #ffffff);
 }
 
 .swiper-page > view:first-child {
@@ -2547,12 +2550,12 @@ export default {
 
 .swiper-page .uni-pull-refresh-spinner,
 .swiper-page .wx-pull-refresh-spinner {
-    color: #999999 !important;
-    border-color: #999999 !important;
+    color: var(--app-muted-text, #999999) !important;
+    border-color: var(--app-muted-text, #999999) !important;
 }
 
 .swiper-page .uni-pull-refresh,
 .swiper-page .wx-pull-refresh {
-    background: #ffffff;
+    background: var(--app-page-bg, #ffffff);
 }
 </style>

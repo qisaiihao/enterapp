@@ -9,9 +9,9 @@
         :refresher-enabled="refresherEnabled"
         :refresher-triggered="refresherTriggered"
         :refresher-threshold="90"
-        refresher-background="#ffffff"
-        refresher-default-style="black"
-        refresher-background-style="#ffffff"
+        :refresher-background="appThemeMode === 'dark' ? '#0f1115' : '#ffffff'"
+        :refresher-default-style="appThemeMode === 'dark' ? 'white' : 'black'"
+        :refresher-background-style="appThemeMode === 'dark' ? '#0f1115' : '#ffffff'"
         @refresherrefresh="onRefresherRefresh"
     >
         <!-- 顶部筛选按钮插槽 -->
@@ -271,7 +271,7 @@ export default {
 .feed-list-scroll {
     height: 100%;
     width: 100%;
-    background-color: #ffffff;
+    background-color: var(--app-page-bg, #ffffff);
 }
 
 .empty-state {
@@ -310,13 +310,13 @@ export default {
 
 .empty-text {
     font-size: 32rpx;
-    color: #333;
+    color: var(--app-primary-text, #333);
     margin-bottom: 10rpx;
 }
 
 .empty-subtext {
     font-size: 26rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 
 .loading-more {
@@ -334,7 +334,7 @@ export default {
 
 .loading-text {
     font-size: 26rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 
 /* 加载点动画 */
@@ -342,8 +342,8 @@ export default {
     content: '';
     width: 28rpx;
     height: 28rpx;
-    border: 3rpx solid #e0e0e0;
-    border-top-color: #333;
+    border: 3rpx solid var(--app-border-color, #e0e0e0);
+    border-top-color: var(--app-primary-text, #333);
     border-radius: 50%;
     margin-right: 16rpx;
     animation: loadingSpin 0.8s linear infinite;
@@ -362,6 +362,6 @@ export default {
 
 .end-text {
     font-size: 24rpx;
-    color: #ccc;
+    color: var(--app-muted-text, #ccc);
 }
 </style>

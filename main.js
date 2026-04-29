@@ -6,8 +6,10 @@ import { getAppState, getOpenid } from '@/utils/app-state.js';
 import { ensureRuntimeOpenid, ensureTcbAuthenticated, ensureTcbReady, installRuntimeBindings, setupRuntimeSideEffects } from '@/utils/runtime-bootstrap.js';
 import zpMixins from '@/uni_modules/zp-mixins/index.js';
 import appFontManager from './utils/fontManager.js';
+import { THEME_CHANGED_EVENT, applyThemeMode, getThemeMode } from '@/utils/theme.js';
 
 silenceConsoleInProduction();
+applyThemeMode(getThemeMode());
 
 function emitBuiltinFontLoaded() {
   try {
@@ -213,7 +215,32 @@ export function createApp() {
   const app = createSSRApp(App);
   installRuntimeBindings(app);
   app.use(zpMixins);
+  app.mixin({
+    data() {
+      return {
+        appThemeMode: getThemeMode()
+      };
+    },
+    created() {
+      if (typeof uni === 'undefined' || typeof uni.$on !== 'function') {
+        return;
+      }
+      this._appThemeChangedHandler = (payload = {}) => {
+        const mode = payload.mode || getThemeMode();
+        this.appThemeMode = mode;
+        applyThemeMode(mode);
+      };
+      uni.$on(THEME_CHANGED_EVENT, this._appThemeChangedHandler);
+    },
+    beforeUnmount() {
+      if (this._appThemeChangedHandler && typeof uni !== 'undefined' && typeof uni.$off === 'function') {
+        uni.$off(THEME_CHANGED_EVENT, this._appThemeChangedHandler);
+      }
+      this._appThemeChangedHandler = null;
+    }
+  });
   app.component('app-background-page-root', AppBackgroundPageRoot);
+  applyThemeMode(getThemeMode());
   notifyH5AppReady();
   return {
     app

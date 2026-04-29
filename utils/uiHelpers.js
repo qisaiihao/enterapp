@@ -126,3 +126,107 @@ export function mergePostLists(existingList, newList, prepend = false) {
     return [...existingList, ...uniqueNewPosts];
   }
 }
+
+function parseColorValue(value) {
+  if (!value) return null;
+  const color = String(value).trim();
+  const hex = color.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (hex) {
+    let raw = hex[1];
+    if (raw.length === 3) {
+      raw = raw.split('').map(ch => ch + ch).join('');
+    }
+    return {
+      r: parseInt(raw.slice(0, 2), 16),
+      g: parseInt(raw.slice(2, 4), 16),
+      b: parseInt(raw.slice(4, 6), 16)
+    };
+  }
+
+  const rgb = color.match(/^rgba?\(([^)]+)\)$/i);
+  if (rgb) {
+    const parts = rgb[1].split(',').map(part => Number.parseFloat(part.trim()));
+    if (parts.length >= 3 && parts.every((part, index) => index >= 3 || Number.isFinite(part))) {
+      return { r: parts[0], g: parts[1], b: parts[2] };
+    }
+  }
+
+  return null;
+}
+
+function relativeLuminance(color) {
+  const channels = [color.r, color.g, color.b].map((value) => {
+    const normalized = Math.max(0, Math.min(255, value)) / 255;
+    return normalized <= 0.03928
+      ? normalized / 12.92
+      : Math.pow((normalized + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+}
+
+function contrastRatio(foreground, background) {
+  const first = relativeLuminance(foreground);
+  const second = relativeLuminance(background);
+  return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
+}
+
+function colorToHex(color) {
+  const toHex = (value) => {
+    const clamped = Math.max(0, Math.min(255, Math.round(value)));
+    return clamped.toString(16).padStart(2, '0');
+  };
+
+  return `#${toHex(color.r)}${toHex(color.g)}${toHex(color.b)}`;
+}
+
+function mixColors(color, target, amount) {
+  const ratio = Math.max(0, Math.min(1, amount));
+  return {
+    r: color.r + (target.r - color.r) * ratio,
+    g: color.g + (target.g - color.g) * ratio,
+    b: color.b + (target.b - color.b) * ratio
+  };
+}
+
+export function getThemedCardBackgroundColor(backgroundColor, mode = 'light') {
+  if (mode !== 'dark') {
+    return backgroundColor;
+  }
+
+  const background = parseColorValue(backgroundColor);
+  if (!background) {
+    return backgroundColor || '#171a20';
+  }
+
+  const luminance = relativeLuminance(background);
+  const maxChannel = Math.max(background.r, background.g, background.b);
+  let mixAmount = 0.08;
+
+  if (luminance > 0.62 || maxChannel > 215) {
+    mixAmount = 0.34;
+  } else if (luminance > 0.38 || maxChannel > 175) {
+    mixAmount = 0.26;
+  } else if (luminance > 0.2 || maxChannel > 140) {
+    mixAmount = 0.18;
+  }
+
+  return colorToHex(mixColors(background, { r: 23, g: 26, b: 32 }, mixAmount));
+}
+
+export function getReadableTextColor(backgroundColor, preferredTextColor = '#222', minimumRatio = 4.5) {
+  const background = parseColorValue(backgroundColor);
+  const preferred = parseColorValue(preferredTextColor);
+  if (!background) {
+    return preferredTextColor || '#222';
+  }
+
+  if (preferred && contrastRatio(preferred, background) >= minimumRatio) {
+    return preferredTextColor;
+  }
+
+  const darkText = parseColorValue('#111A1B');
+  const lightText = parseColorValue('#F8F4EA');
+  return contrastRatio(darkText, background) >= contrastRatio(lightText, background)
+    ? '#111A1B'
+    : '#F8F4EA';
+}

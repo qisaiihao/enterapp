@@ -921,8 +921,9 @@ export default {
 /* pages/messages/messages.wxss */
 .container {
     min-height: 100vh;
-    background-color: #ffffff;
+    background-color: var(--app-page-bg, #ffffff);
     padding-top: 0;
+    color: var(--app-primary-text, #000000);
 }
 
 /* 自定义返回按钮 */
@@ -950,14 +951,15 @@ export default {
     height: 38rpx;
     display: block;
     object-fit: contain;
+    filter: var(--app-icon-filter, none);
 }
 
 /* 消息类型标签 */
 .tab-container {
     display: flex;
-    background-color: #ffffff;
+    background-color: var(--app-surface-bg, #ffffff);
     padding: 0 30rpx;
-    border-bottom: 1rpx solid #f0f0f0;
+    border-bottom: var(--app-surface-border-line, 1rpx solid #f0f0f0);
 }
 
 .tab-item {
@@ -971,20 +973,20 @@ export default {
 
 .tab-item text {
     font-size: 30rpx;
-    color: #000000;
+    color: var(--app-secondary-text, #000000);
     transition: color 0.3s;
 }
 
 .tab-item.active text {
-    color: #000000;
+    color: var(--app-primary-text, #000000);
     font-weight: 500;
 }
 
 /* 操作按钮区域 */
 .filter-section {
-    background-color: #ffffff;
+    background-color: var(--app-surface-bg, #ffffff);
     padding: calc(var(--messages-safe-area-top, 0px) + 28rpx) 30rpx 18rpx;
-    border-bottom: 1rpx solid #f0f0f0;
+    border-bottom: var(--app-surface-border-line, 1rpx solid #f0f0f0);
     position: relative;
 }
 
@@ -1010,7 +1012,7 @@ export default {
 
 .clear-btn {
     padding: 0 16rpx;
-    background-color: #D9D9D9;
+    background-color: var(--app-subtle-surface-bg, #D9D9D9);
     border: none;
     border-radius: 10rpx;
     min-width: 96rpx;
@@ -1022,14 +1024,14 @@ export default {
 
 .clear-btn text {
     font-size: 24rpx;
-    color: #989090;
+    color: var(--app-secondary-text, #989090);
     font-weight: 500;
 }
 
 /* 消息列表 */
 .message-list {
     height: calc(100vh - 200rpx - var(--messages-safe-area-top, 0px));
-    background-color: #ffffff;
+    background-color: var(--app-page-bg, #ffffff);
 }
 
 /* 空状态 */
@@ -1050,7 +1052,7 @@ export default {
 
 .empty-text {
     font-size: 30rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 
 /* 消息项包装器 */
@@ -1094,9 +1096,9 @@ export default {
 /* 消息项 */
 .message-item {
     position: relative;
-    background-color: #ffffff;
+    background-color: var(--app-surface-bg, #ffffff);
     padding: 30rpx;
-    border-bottom: 1rpx solid #f0f0f0;
+    border-bottom: var(--app-surface-border-line, 1rpx solid #f0f0f0);
     display: flex;
     align-items: flex-start;
     gap: 30rpx;
@@ -1110,7 +1112,7 @@ export default {
 }
 
 .message-item.unread {
-    background-color: #f8f9fa;
+    background-color: var(--app-subtle-surface-bg, #f8f9fa);
 }
 
 .user-avatar {
@@ -1118,7 +1120,7 @@ export default {
     height: 80rpx;
     border-radius: 50%;
     flex-shrink: 0;
-    border: 2rpx solid #f0f0f0;
+    border: 2rpx solid var(--app-border-color, #f0f0f0);
 }
 
 .message-body {
@@ -1137,7 +1139,7 @@ export default {
 
 .sender-name {
     font-size: 30rpx;
-    color: #000000;
+    color: var(--app-primary-text, #000000);
     font-weight: 500;
     flex: 0 1 auto;
     min-width: 0;
@@ -1149,7 +1151,7 @@ export default {
 
 .action-text {
     font-size: 30rpx;
-    color: #000000;
+    color: var(--app-primary-text, #000000);
     flex: 1 1 auto;
     min-width: 0;
     overflow: hidden;
@@ -1159,8 +1161,8 @@ export default {
 
 .message-time {
     font-size: 24rpx;
-    color: #999999;
-    background-color: #f5f5f5;
+    color: var(--app-muted-text, #999999);
+    background-color: var(--app-subtle-surface-bg, #f5f5f5);
     padding: 4rpx 12rpx;
     border-radius: 12rpx;
     margin-left: auto;
@@ -1169,7 +1171,7 @@ export default {
 }
 
 .content-preview {
-    background-color: #f5f5f5;
+    background-color: var(--app-subtle-surface-bg, #f5f5f5);
     padding: 16rpx;
     border-radius: 8rpx;
     margin-top: 10rpx;
@@ -1177,7 +1179,7 @@ export default {
 
 .preview-text {
     font-size: 28rpx;
-    color: #333333;
+    color: var(--app-secondary-text, #333333);
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
@@ -1187,7 +1189,7 @@ export default {
 
 .follow-btn {
     padding: 8rpx 16rpx;
-    background-color: #f0f0f0;
+    background-color: var(--app-subtle-surface-bg, #f0f0f0);
     border-radius: 16rpx;
     margin-left: 10rpx;
     margin-right: 10rpx;
@@ -1196,16 +1198,16 @@ export default {
 
 .follow-btn text {
     font-size: 24rpx;
-    color: #000000;
+    color: var(--app-primary-text, #000000);
     white-space: nowrap;
 }
 
 .follow-btn.following {
-    background-color: #f0f0f0;
+    background-color: var(--app-subtle-surface-bg, #f0f0f0);
 }
 
 .follow-btn.following text {
-    color: #666666;
+    color: var(--app-secondary-text, #666666);
 }
 
 .unread-dot {
@@ -1225,7 +1227,7 @@ export default {
     text-align: center;
     padding: 40rpx;
     font-size: 28rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 
 /* 响应式设计 */

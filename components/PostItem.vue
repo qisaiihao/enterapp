@@ -459,7 +459,7 @@ export default {
 
 /* 原创帖子特殊样式 */
 .post-item-wrapper.original-post {
-    background: linear-gradient(90deg, rgba(235, 200, 141, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
+    background: var(--app-post-original-bg, linear-gradient(90deg, rgba(235, 200, 141, 0.05) 0%, rgba(255, 255, 255, 0) 100%));
     border-left: 3rpx solid var(--app-post-original-accent-color, #ebc88d);
     position: relative;
 }
@@ -512,7 +512,7 @@ export default {
     height: 60rpx;
     border-radius: 50%;
     margin-right: 15rpx;
-    background-color: #f5f5f5;
+    background-color: var(--app-subtle-surface-bg, #f5f5f5);
     cursor: pointer;
 }
 
@@ -541,7 +541,7 @@ export default {
 
 /* 导航器点击效果 - 更明显的反馈 */
 .navigator-hover {
-    background-color: rgba(0, 0, 0, 0.04);
+    background-color: var(--app-subtle-surface-bg, rgba(0, 0, 0, 0.04));
     transform: scale(0.995);
     transition: all 0.12s ease;
 }
@@ -593,7 +593,7 @@ export default {
 .image-container-wrapper {
     position: relative;
     width: 100%;
-    background-color: #f0f0f0;
+    background-color: var(--app-subtle-surface-bg, #f0f0f0);
     overflow: hidden;
     border-radius: 8px;
     margin: 20rpx 0;
@@ -612,7 +612,7 @@ export default {
 /* 多张图片的swiper样式 */
 .image-swiper {
     width: 100%;
-    background-color: #fff;
+    background-color: var(--app-post-section-bg, #fff);
 }
 
 .swiper-item {

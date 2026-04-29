@@ -182,7 +182,7 @@ export default {
     left: 0;
     right: 0;
     bottom: 0;
-    background: #fff;
+    background: var(--app-page-bg, #fff);
     z-index: 99999;
     display: flex;
     flex-direction: column;
@@ -194,7 +194,7 @@ export default {
 .highlight-modal-content {
     width: 100%;
     height: 100%;
-    background: #fff;
+    background: var(--app-surface-bg, #fff);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -208,8 +208,8 @@ export default {
     align-items: center;
     justify-content: space-between;
     padding: 30rpx 40rpx;
-    border-bottom: 1rpx solid #f0f0f0;
-    background: #fff;
+    border-bottom: var(--app-surface-border-line, 1rpx solid #f0f0f0);
+    background: var(--app-surface-bg, #fff);
 }
 
 /* #ifdef MP-WEIXIN */
@@ -221,7 +221,7 @@ export default {
 .highlight-modal-title {
     font-size: 32rpx;
     font-weight: 600;
-    color: #333;
+    color: var(--app-primary-text, #333);
 }
 
 .highlight-modal-close {
@@ -231,9 +231,9 @@ export default {
     align-items: center;
     justify-content: center;
     font-size: 40rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
     border-radius: 50%;
-    background: #f5f5f5;
+    background: var(--app-subtle-surface-bg, #f5f5f5);
 }
 
 /* #ifdef MP-WEIXIN */
@@ -246,7 +246,7 @@ export default {
     flex: 1;
     height: 0;
     padding: 40rpx;
-    background: #fff;
+    background: var(--app-surface-bg, #fff);
     box-sizing: border-box;
 }
 
@@ -260,7 +260,7 @@ export default {
     margin-bottom: 16rpx;
     padding: 12rpx 16rpx;
     border-radius: 8rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
     transition: all 0.2s ease;
 }
 

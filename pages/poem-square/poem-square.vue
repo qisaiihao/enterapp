@@ -76,13 +76,13 @@
           v-if="item"
           class="post-item-wrapper"
           :class="item.isSeries && !item.seriesExpanded ? 'stacked-series-card' : ''"
-          :style="{ backgroundColor: item.backgroundColor }"
+          :style="{ backgroundColor: resolvePostCardBackground(item) }"
         >
           <!-- 组诗叠层的底层卡片（同色） - 未展开时显示 -->
           <view
             v-if="item.isSeries && !item.seriesExpanded"
             class="series-layer layer-1"
-            :style="{ backgroundColor: item.backgroundColor }"
+            :style="{ backgroundColor: resolvePostCardBackground(item) }"
           ></view>
 
           <!-- 组诗展开态：单卡片显示，右侧显示翻页提示 -->
@@ -98,12 +98,12 @@
                 <!-- 当前显示的诗 -->
                 <view class="post-item">
                   <!-- 显示副标题（如果有） -->
-                  <view v-if="item.seriesPoems[item.currentSeriesIndex || 0].subtitle" class="series-subtitle" :style="{ color: item.textColor }">
+                  <view v-if="item.seriesPoems[item.currentSeriesIndex || 0].subtitle" class="series-subtitle" :style="{ color: resolvePostTextColor(item) }">
                     {{ item.seriesPoems[item.currentSeriesIndex || 0].subtitle }}
                   </view>
                   
                   <!-- 显示内容 -->
-                  <view class="post-content expanded" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }">{{ item.seriesPoems[item.currentSeriesIndex || 0].content }}</view>
+                  <view class="post-content expanded" :style="{ color: resolvePostTextColor(item), whiteSpace: 'pre-wrap' }">{{ item.seriesPoems[item.currentSeriesIndex || 0].content }}</view>
                   
                   <!-- 作者签名 -->
                   <view v-if="item.authorSignature && !item.isAnonymous" class="user-signature">
@@ -126,7 +126,7 @@
               </view>
               
               <!-- 交互区 -->
-              <view class="vote-section" :style="{ backgroundColor: item.backgroundColor }">
+              <view class="vote-section" :style="{ backgroundColor: resolvePostCardBackground(item) }">
                 <view class="actions-left"><!-- 预留左侧空间 --></view>
                 <view class="button-group">
                   <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="item._id" :data-index="index">
@@ -151,7 +151,7 @@
               :data-postid="item._id"
             >
               <view class="post-item">
-                <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.displayHighlightLines || item.displayHighlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.displayContent" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }"><block v-if="item.isExpanded">{{ item.displayContent }}</block><block v-else><block v-if="item.displayHighlightLines && item.displayHighlightLines.length > 0"><text v-for="(highlightLine, hlIndex) in item.displayHighlightLines" :key="hlIndex" style="font-weight: 700; display: block;">{{ highlightLine }}</text></block><block v-else>{{ item.displayContent }}</block></block></view>
+                <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.displayHighlightLines || item.displayHighlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.displayContent" :style="{ color: resolvePostTextColor(item), whiteSpace: 'pre-wrap' }"><block v-if="item.isExpanded">{{ item.displayContent }}</block><block v-else><block v-if="item.displayHighlightLines && item.displayHighlightLines.length > 0"><text v-for="(highlightLine, hlIndex) in item.displayHighlightLines" :key="hlIndex" style="font-weight: 700; display: block;">{{ highlightLine }}</text></block><block v-else>{{ item.displayContent }}</block></block></view>
 
                 <!-- 作者签名 - 展开时显示大签名（匿名帖子不显示签名） -->
                 <view v-if="item.isExpanded && item.authorSignature && !item.isAnonymous" class="user-signature">
@@ -182,7 +182,7 @@
             </view>
 
             <!-- 交互区（展开时显示 - 仅非组诗） -->
-            <view class="vote-section" v-if="item.isExpanded && !item.isSeries" :style="{ backgroundColor: item.backgroundColor }">
+            <view class="vote-section" v-if="item.isExpanded && !item.isSeries" :style="{ backgroundColor: resolvePostCardBackground(item) }">
               <view class="actions-left"><!-- 预留左侧空间 --></view>
               <view class="button-group">
                 <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="item._id" :data-index="index">
@@ -227,6 +227,8 @@ import { getFollowingPoems, invalidateFollowingPoems, getOriginalPoems } from '@
 import likeIcon from '@/utils/likeIcon.js';
 import {
   generateRandomBackgroundColor,
+  getReadableTextColor,
+  getThemedCardBackgroundColor,
   toggleArrayItemExpansion,
   updatePostsUIProperties,
     mergePostLists
@@ -828,6 +830,12 @@ export default {
       this.lastUsedColorIndex = result.index;
       return result.color;
     },
+    resolvePostCardBackground(post = {}) {
+      return getThemedCardBackgroundColor(post.backgroundColor, this.appThemeMode);
+    },
+    resolvePostTextColor(post = {}) {
+      return getReadableTextColor(this.resolvePostCardBackground(post), post.textColor || '#222');
+    },
     normalizePoemCardPost(post) {
       if (!post) return post;
 
@@ -1405,9 +1413,9 @@ export default {
 <style>
 /* 字体已在App.vue中全局预加载，这里不再需要重复定义 */
 
-.white-bg { 
-  background: #fff; 
-  min-height: 100vh; 
+.white-bg {
+  background: var(--app-page-bg, #fff);
+  min-height: 100vh;
   padding-top: env(safe-area-inset-top, var(--safe-area-inset-top, 44px)); /* 添加状态栏安全区域，备选方案 */
 }
 .square-mode-container {
@@ -1422,10 +1430,10 @@ export default {
   flex-direction: column;
   align-items: stretch;
 }
-.empty-state { text-align: center; padding: 100rpx 0; color: #999; }
+.empty-state { text-align: center; padding: 100rpx 0; color: var(--app-muted-text, #999); }
 .empty-icon { font-size: 80rpx; margin-bottom: 20rpx; }
-.empty-text { font-size: 32rpx; margin-bottom: 10rpx; color: #666; }
-.empty-subtext { font-size: 24rpx; color: #999; }
+.empty-text { font-size: 32rpx; margin-bottom: 10rpx; color: var(--app-secondary-text, #666); }
+.empty-subtext { font-size: 24rpx; color: var(--app-muted-text, #999); }
 
 /* poem.css inspired card styles */
 .post-item-wrapper {
@@ -1513,7 +1521,7 @@ export default {
   padding: 0;
   background: transparent;
   border: none;
-  color: #333;
+  color: var(--app-secondary-text, #333);
   font-size: 24rpx;
   text-align: center;
   width: fit-content;
@@ -1563,7 +1571,7 @@ export default {
 }
 .post-content.expanded { display: block; overflow: visible; }
 .comment-emoji{ font-size: 40rpx; }
-.comment-icon { width: 60rpx; height: 60rpx; }
+.comment-icon { width: 60rpx; height: 60rpx; filter: var(--app-post-action-icon-filter, none); opacity: var(--app-post-action-icon-opacity, 1); }
 .vote-section { 
   display: flex; 
   justify-content: space-between; 
@@ -1573,10 +1581,10 @@ export default {
 }
 .actions-left { flex: 1; display: flex; align-items: center; gap: 20rpx; }
 .button-group { display: flex; align-items: center; gap: 30rpx; }
-.comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; }
-.vote-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; border-radius: 20rpx; background: rgba(255,255,255,.9); box-shadow: 0 2rpx 8rpx rgba(0,0,0,.1); }
-.comment-icon { width: 60rpx; height: 60rpx; }
-.like-icon { width: 60rpx; height: 60rpx; margin-top: 5px; }
+.comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; color: var(--app-post-action-color, #999); }
+.vote-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; border-radius: 20rpx; background: var(--app-subtle-surface-bg, rgba(255,255,255,.9)); box-shadow: 0 2rpx 8rpx rgba(0,0,0,.1); color: var(--app-post-action-color, #999); }
+.comment-icon { width: 60rpx; height: 60rpx; filter: var(--app-post-action-icon-filter, none); opacity: var(--app-post-action-icon-opacity, 1); }
+.like-icon { width: 60rpx; height: 60rpx; margin-top: 5px; filter: var(--app-post-action-icon-filter, none); opacity: var(--app-post-action-icon-opacity, 1); }
 
 /* 用户签名样式 */
 .user-signature {
@@ -1625,7 +1633,7 @@ export default {
   /* #endif */
 }
 
-.loading-footer { text-align: center; color: #666; padding: 30rpx 0 120rpx; }
+.loading-footer { text-align: center; color: var(--app-secondary-text, #666); padding: 30rpx 0 120rpx; }
 .page-indicator { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,.7); color: #fff; padding: 20rpx 40rpx; border-radius: 40rpx; z-index: 1000; font-size: 28rpx; }
 .page-indicator-text { text-align: center; }
 
@@ -1658,12 +1666,13 @@ export default {
 }
 
 .poem-filter-trigger--active {
-  background: rgba(109, 101, 101, 0.08);
+  background: var(--app-subtle-surface-bg, rgba(109, 101, 101, 0.08));
 }
 
 .poem-filter-trigger-icon {
   width: 40rpx;
   height: 40rpx;
+  filter: var(--app-filter-icon-filter, none);
 }
 
 .poem-filter-panel {

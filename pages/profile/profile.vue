@@ -56,6 +56,13 @@
                     >
                         <view v-if="isHeaderBackground" class="profile-hero-bg-image"></view>
                         <view v-if="isHeaderBackground" class="profile-hero-bg-overlay"></view>
+                        <view
+                            :class="['theme-toggle-btn', isDarkTheme ? 'theme-toggle-btn--dark' : '']"
+                            @tap.stop="toggleTheme"
+                            aria-label="toggle dark mode"
+                        >
+                            <view class="theme-toggle-moon"></view>
+                        </view>
                         <ProfileCard
                             :user-info="userInfo"
                             :follower-count="followerCount"
@@ -330,6 +337,7 @@ import { cloudCall } from '../../utils/cloudCall.js';
 import { getCurrentPlatform } from '../../utils/platformDetector.js';
 import { saveImagesToAlbum } from '../../utils/shareImage.js';
 import { generateTimelineShareImages } from '../../utils/timelineShareCanvas.js';
+import { getThemeMode, toggleThemeMode } from '@/utils/theme.js';
 
 const PAGE_SIZE = 5;
 const PROFILE_BACKGROUND_THEME_VARS = Object.freeze({
@@ -364,7 +372,10 @@ const PROFILE_BACKGROUND_THEME_VARS = Object.freeze({
     '--app-fixed-bar-shadow': '0 -6rpx 20rpx rgba(0, 0, 0, 0.08)',
     '--app-tab-icon-wrap-bg': 'rgba(255, 255, 255, 0.66)',
     '--app-tab-icon-inner-bg': 'rgba(255, 255, 255, 0.88)',
+    '--app-tab-icon-border-color': 'transparent',
+    '--app-tab-icon-active-border-color': 'transparent',
     '--app-tab-icon-wrap-shadow': '0 12rpx 24rpx rgba(0, 0, 0, 0.12)',
+    '--app-tab-icon-active-shadow': '0 6rpx 12rpx rgba(0, 0, 0, 0.08)',
     '--profile-button-bg': 'transparent',
     '--profile-button-active-bg': 'rgba(255, 255, 255, 0.90)',
     '--profile-button-border': '1.5rpx solid rgba(17, 17, 17, 0.35)',
@@ -393,6 +404,73 @@ const PROFILE_BACKGROUND_THEME_VARS = Object.freeze({
     '--profile-empty-surface-shadow': '0 8rpx 24rpx rgba(0, 0, 0, 0.08)',
     '--profile-empty-text-color': 'rgba(17, 17, 17, 0.70)',
     '--profile-loading-footer-color': 'rgba(17, 17, 17, 0.70)'
+});
+const PROFILE_BACKGROUND_DARK_THEME_VARS = Object.freeze({
+    '--app-post-wrapper-bg': 'rgba(15, 17, 21, 0.68)',
+    '--app-post-wrapper-shadow': '0 10rpx 30rpx rgba(0, 0, 0, 0.34)',
+    '--app-post-wrapper-radius': '20rpx',
+    '--app-post-section-bg': 'transparent',
+    '--app-subtle-surface-bg': 'rgba(255, 255, 255, 0.08)',
+    '--app-surface-bg': 'rgba(15, 17, 21, 0.72)',
+    '--app-surface-divider': 'rgba(255, 255, 255, 0.14)',
+    '--app-surface-shadow': '0 10rpx 30rpx rgba(0, 0, 0, 0.30)',
+    '--app-surface-border-line': '1rpx solid rgba(255, 255, 255, 0.14)',
+    '--app-surface-title-color': '#f4f1ea',
+    '--app-surface-text-color': '#d9dde6',
+    '--app-surface-meta-color': '#9ea6b2',
+    '--app-surface-accent-color': '#c9ad73',
+    '--app-post-discussion-quote-bg': 'rgba(255, 255, 255, 0.08)',
+    '--app-post-author-color': '#f4f1ea',
+    '--app-post-title-color': '#f4f1ea',
+    '--app-post-content-color': '#d9dde6',
+    '--app-post-time-color': '#9ea6b2',
+    '--app-post-discussion-color': '#e6d6ad',
+    '--app-post-meta-color': '#9ea6b2',
+    '--app-post-poem-author-color': '#f4f1ea',
+    '--app-post-menu-dot-color': '#c9ced8',
+    '--app-post-original-accent-color': '#c9ad73',
+    '--profile-poemid-color': '#c9ced8',
+    '--profile-meta-color': '#d9dde6',
+    '--profile-name-color': '#ffffff',
+    '--profile-bio-color': '#f4f1ea',
+    '--app-fixed-bar-bg': 'rgba(15, 17, 21, 0.92)',
+    '--app-fixed-bar-shadow': '0 -6rpx 20rpx rgba(0, 0, 0, 0.24)',
+    '--app-tab-text-color': '#9ea6b2',
+    '--app-tab-active-text-color': '#f4f1ea',
+    '--app-tab-icon-wrap-bg': 'rgba(255, 255, 255, 0.07)',
+    '--app-tab-icon-inner-bg': 'rgba(255, 255, 255, 0.06)',
+    '--app-tab-icon-border-color': 'rgba(255, 255, 255, 0.10)',
+    '--app-tab-icon-active-border-color': 'rgba(255, 255, 255, 0.34)',
+    '--app-tab-icon-wrap-shadow': '0 10rpx 24rpx rgba(0, 0, 0, 0.30)',
+    '--app-tab-icon-active-shadow': '0 10rpx 22rpx rgba(0, 0, 0, 0.28)',
+    '--profile-button-bg': 'rgba(255, 255, 255, 0.10)',
+    '--profile-button-active-bg': 'rgba(255, 255, 255, 0.16)',
+    '--profile-button-border': '1.5rpx solid rgba(255, 255, 255, 0.26)',
+    '--profile-button-shadow': '0 8rpx 22rpx rgba(0, 0, 0, 0.26)',
+    '--profile-button-text-color': '#ffffff',
+    '--profile-icon-button-bg': 'rgba(255, 255, 255, 0.10)',
+    '--profile-icon-button-active-bg': 'rgba(255, 255, 255, 0.16)',
+    '--profile-icon-button-border': '1.5rpx solid rgba(255, 255, 255, 0.20)',
+    '--profile-icon-button-shadow': '0 8rpx 22rpx rgba(0, 0, 0, 0.24)',
+    '--profile-upload-icon-opacity': '1',
+    '--profile-upload-icon-filter': 'brightness(0) invert(1)',
+    '--profile-menu-icon-opacity': '0.94',
+    '--profile-menu-icon-filter': 'brightness(0) invert(1)',
+    '--profile-tab-nav-bg': 'rgba(15, 17, 21, 0.40)',
+    '--profile-tab-nav-border': 'rgba(255, 255, 255, 0.10)',
+    '--profile-tab-nav-shadow': 'none',
+    '--profile-tab-item-bg': 'transparent',
+    '--profile-tab-item-active-bg': 'rgba(255, 255, 255, 0.08)',
+    '--profile-tab-indicator-color': '#ffffff',
+    '--profile-tab-icon-filter': 'grayscale(1) invert(1) brightness(0.82) contrast(1.12)',
+    '--profile-tab-icon-opacity': '0.92',
+    '--profile-tab-icon-active-filter': 'grayscale(1) invert(1) brightness(1.02) contrast(1.16)',
+    '--profile-tab-icon-active-opacity': '1',
+    '--profile-empty-surface-bg': 'rgba(15, 17, 21, 0.72)',
+    '--profile-empty-surface-border': '1rpx solid rgba(255, 255, 255, 0.12)',
+    '--profile-empty-surface-shadow': '0 8rpx 24rpx rgba(0, 0, 0, 0.28)',
+    '--profile-empty-text-color': '#c9ced8',
+    '--profile-loading-footer-color': '#c9ced8'
 });
 const PROFILE_HEADER_THEME_VARS = Object.freeze({
     '--profile-poemid-color': 'rgba(255, 255, 255, 0.76)',
@@ -532,6 +610,7 @@ export default {
             hasInitialSnapshot: false,
             isAtomicRefreshing: false,
             pendingRefreshToken: 0,
+            themeMode: getThemeMode(),
 
             // 默认显示骨架屏
             userInfo: {
@@ -633,8 +712,14 @@ export default {
         };
     },
     computed: {
+        isDarkTheme() {
+            return this.themeMode === 'dark' || this.appThemeMode === 'dark';
+        },
         profileForegroundStyle() {
-            return this.isFullBackground ? PROFILE_BACKGROUND_THEME_VARS : {};
+            if (!this.isFullBackground) {
+                return {};
+            }
+            return this.isDarkTheme ? PROFILE_BACKGROUND_DARK_THEME_VARS : PROFILE_BACKGROUND_THEME_VARS;
         },
         profileHeroStyle() {
             return this.isHeaderBackground ? { ...PROFILE_HEADER_THEME_VARS, ...this.appBackgroundPageStyle } : {};
@@ -651,6 +736,20 @@ export default {
             return excerpt || '我的创作时间轴';
         },
         tabBarStyle() {
+            if (this.isDarkTheme) {
+                return {
+                    '--app-fixed-bar-bg': 'rgba(15, 17, 21, 0.96)',
+                    '--app-fixed-bar-shadow': '0 -6rpx 20rpx rgba(0, 0, 0, 0.24)',
+                    '--app-tab-icon-wrap-bg': 'rgba(255, 255, 255, 0.07)',
+                    '--app-tab-icon-inner-bg': 'rgba(255, 255, 255, 0.06)',
+                    '--app-tab-icon-border-color': 'rgba(255, 255, 255, 0.10)',
+                    '--app-tab-icon-active-border-color': 'rgba(255, 255, 255, 0.34)',
+                    '--app-tab-icon-wrap-shadow': '0 10rpx 24rpx rgba(0, 0, 0, 0.30)',
+                    '--app-tab-icon-active-shadow': '0 10rpx 22rpx rgba(0, 0, 0, 0.28)',
+                    '--app-tab-text-color': '#9ea6b2',
+                    '--app-tab-active-text-color': '#f4f1ea'
+                };
+            }
             if (!this.isFullBackground) {
                 return {};
             }
@@ -659,7 +758,10 @@ export default {
                 '--app-fixed-bar-shadow': 'none',
                 '--app-tab-icon-wrap-bg': '#f8f8f8',
                 '--app-tab-icon-inner-bg': '#ffffff',
+                '--app-tab-icon-border-color': 'transparent',
+                '--app-tab-icon-active-border-color': 'transparent',
                 '--app-tab-icon-wrap-shadow': '0 18rpx 32rpx rgba(0, 0, 0, 0.16)',
+                '--app-tab-icon-active-shadow': '0 6rpx 12rpx rgba(0, 0, 0, 0.08)',
                 '--app-tab-text-color': 'rgba(17, 17, 17, 0.65)'
             };
         }
@@ -765,6 +867,9 @@ export default {
         this.finishBackgroundActionSheet({ cancelled: true, silent: true });
     },
     methods: {
+        toggleTheme() {
+            this.themeMode = toggleThemeMode();
+        },
         ensureGlobalEventBindings: function () {
             if (this._globalEventsBound) {
                 return;
@@ -2943,7 +3048,7 @@ export default {
 .profile-page-root {
     position: relative;
     min-height: 100vh;
-    background-color: #ffffff;
+    background-color: var(--app-page-bg, #ffffff);
 }
 
 .profile-page-root--with-background {
@@ -2974,6 +3079,10 @@ export default {
     pointer-events: none;
 }
 
+[data-app-theme="dark"] .profile-bg-overlay {
+    background: rgba(0, 0, 0, 0.36);
+}
+
 .profile-bg-image--header {
     height: 44vh;
     position: fixed;
@@ -2984,12 +3093,16 @@ export default {
     background: linear-gradient(to bottom, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.20) 50%, rgba(255, 255, 255, 0.92) 85%, rgba(255, 255, 255, 1) 100%);
 }
 
+[data-app-theme="dark"] .profile-bg-overlay--header {
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.24) 0%, rgba(0, 0, 0, 0.42) 52%, rgba(15, 17, 21, 0.90) 86%, #0f1115 100%);
+}
+
 .container {
     width: 100%;
     height: 100vh;
     position: relative;
     z-index: 2;
-    background-color: #ffffff;
+    background-color: var(--app-page-bg, #ffffff);
 }
 
 .container--with-background {
@@ -3001,7 +3114,7 @@ export default {
 .scroll-container {
     width: 100%;
     height: 100%;
-    background-color: #ffffff;
+    background-color: var(--app-page-bg, #ffffff);
 }
 
 .scroll-container--with-background {
@@ -3014,7 +3127,7 @@ export default {
 .main-content {
     width: 100%;
     /* height: 100vh; */
-    background-color: #ffffff;
+    background-color: var(--app-page-bg, #ffffff);
     /* overflow-y: auto; */
     padding-bottom: 100rpx; /* 为底部TabBar留出空间 */
 }
@@ -3047,6 +3160,7 @@ export default {
 .profile-hero-section {
     position: relative;
     overflow: hidden;
+    background-color: var(--app-page-bg, #ffffff);
 }
 
 .profile-hero-section--with-background {
@@ -3081,6 +3195,60 @@ export default {
     z-index: 2;
 }
 
+.theme-toggle-btn {
+    position: absolute;
+    top: 28rpx;
+    right: 28rpx;
+    z-index: 6;
+    width: 64rpx;
+    height: 64rpx;
+    border-radius: 50%;
+    background: var(--app-elevated-bg, rgba(255, 255, 255, 0.92));
+    border: 1rpx solid var(--app-border-color, rgba(0, 0, 0, 0.08));
+    box-shadow: 0 8rpx 20rpx rgba(0, 0, 0, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.theme-toggle-btn:active {
+    transform: scale(0.94);
+}
+
+.theme-toggle-moon {
+    position: relative;
+    width: 34rpx;
+    height: 34rpx;
+    border-radius: 50%;
+    background: #222733;
+}
+
+.theme-toggle-moon::after {
+    content: '';
+    position: absolute;
+    top: -3rpx;
+    left: 10rpx;
+    width: 34rpx;
+    height: 34rpx;
+    border-radius: 50%;
+    background: var(--app-elevated-bg, #ffffff);
+}
+
+.theme-toggle-btn--dark {
+    background: #242934;
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.28);
+}
+
+.theme-toggle-btn--dark .theme-toggle-moon {
+    background: #f1d17a;
+}
+
+.theme-toggle-btn--dark .theme-toggle-moon::after {
+    background: #242934;
+}
+
 .profile-body-shell {
     width: 100%;
 }
@@ -3100,13 +3268,13 @@ export default {
     right: 0;
     height: 16rpx;
     transform: translateY(-14rpx);
-    background-color: #ffffff;
+    background-color: var(--app-page-bg, #ffffff);
     border-radius: 68rpx 68rpx 0 0;
 }
 
 .profile-body-shell--header-background {
     position: relative;
-    background-color: #ffffff;
+    background-color: var(--app-page-bg, #ffffff);
     margin-top: 0;
     border-radius: 0;
     padding-top: 0;
@@ -3122,8 +3290,8 @@ export default {
     display: flex;
     align-items: center;
     padding: 20rpx 30rpx;
-    background-color: #fff;
-    border-bottom: 1rpx solid #eee;
+    background-color: var(--app-surface-bg, #fff);
+    border-bottom: 1rpx solid var(--app-border-color, #eee);
     padding-top: calc(20rpx + var(--status-bar-height, 0px));
 }
 

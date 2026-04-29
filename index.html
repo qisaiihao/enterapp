@@ -10,12 +10,24 @@
         (coverSupport ? ', viewport-fit=cover' : '') + '" />')
     </script>
     <style>
+      :root {
+        --app-page-bg: #ffffff;
+        --app-primary-text: #111111;
+      }
+
+      :root[data-app-theme="dark"] {
+        --app-page-bg: #0f1115;
+        --app-primary-text: #f4f1ea;
+        color-scheme: dark;
+      }
+
       html,
       body {
         margin: 0;
         width: 100%;
         height: 100%;
-        background: #ffffff;
+        background: var(--app-page-bg, #ffffff);
+        color: var(--app-primary-text, #111111);
       }
 
       body {
@@ -25,7 +37,7 @@
 
       #app {
         min-height: 100%;
-        background: #ffffff;
+        background: var(--app-page-bg, #ffffff);
       }
 
       uni-tabbar,
@@ -41,9 +53,19 @@
         position: fixed;
         inset: 0;
         z-index: 2147483647;
-        background: #ffffff;
+        background: var(--app-page-bg, #ffffff);
       }
     </style>
+    <script>
+      ;(function () {
+        try {
+          var mode = window.localStorage && window.localStorage.getItem('poementerThemeMode')
+          if (mode === 'dark') {
+            document.documentElement.setAttribute('data-app-theme', 'dark')
+          }
+        } catch (error) {}
+      })()
+    </script>
     <title></title>
     <!--preload-links-->
     <!--app-context-->

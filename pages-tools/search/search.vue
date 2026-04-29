@@ -676,8 +676,9 @@ export default {
 /* pages/search/search.wxss */
 .container {
     padding: 20rpx;
-    background-color: #f7f8fa;
+    background-color: var(--app-page-bg, #f7f8fa);
     min-height: 100vh;
+    color: var(--app-primary-text, #333);
 }
 
 /* 搜索头部 */
@@ -692,28 +693,28 @@ export default {
     flex: 1;
     display: flex;
     align-items: center;
-    background-color: #fff;
+    background-color: var(--app-surface-bg, #fff);
     border-radius: 16rpx;
     padding: 20rpx 30rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
-    border: 1rpx solid rgba(0, 0, 0, 0.05);
+    box-shadow: var(--app-surface-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
+    border: var(--app-surface-border-line, 1rpx solid rgba(0, 0, 0, 0.05));
 }
 
 .search-icon {
     font-size: 32rpx;
     margin-right: 20rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 
 .search-input {
     flex: 1;
     font-size: 28rpx;
-    color: #333;
+    color: var(--app-primary-text, #333);
 }
 
 .clear-btn {
     font-size: 40rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
     margin-left: 20rpx;
     padding: 10rpx;
 }
@@ -733,7 +734,7 @@ export default {
 }
 
 .filter-item {
-    background-color: #f5f5f5;
+    background-color: var(--app-subtle-surface-bg, #f5f5f5);
     border-radius: 20rpx;
     padding: 12rpx 20rpx;
     transition: all 0.2s ease;
@@ -746,7 +747,7 @@ export default {
 
 .filter-text {
     font-size: 26rpx;
-    color: #333;
+    color: var(--app-secondary-text, #333);
 }
 
 .filter-item.active .filter-text {
@@ -767,7 +768,7 @@ export default {
 
 .results-count {
     font-size: 24rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 
 .sort-options {
@@ -777,7 +778,7 @@ export default {
 
 .sort-item {
     font-size: 24rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
     padding: 8rpx 16rpx;
     border-radius: 12rpx;
     transition: all 0.2s ease;
@@ -794,10 +795,11 @@ export default {
 }
 
 .post-item-wrapper {
-    background-color: #fff;
+    background-color: var(--app-post-wrapper-bg, var(--app-surface-bg, #fff));
     border-radius: 16rpx;
     margin-bottom: 20rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    box-shadow: var(--app-post-wrapper-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
+    border: var(--app-post-wrapper-border, none);
     overflow: hidden;
 }
 
@@ -818,7 +820,7 @@ export default {
 
 .author-name {
     font-size: 28rpx;
-    color: #333;
+    color: var(--app-post-author-color, #333);
     font-weight: 500;
 }
 
@@ -830,14 +832,14 @@ export default {
 .post-title {
     font-size: 32rpx;
     font-weight: bold;
-    color: #333;
+    color: var(--app-post-title-color, #333);
     margin-bottom: 15rpx;
     line-height: 1.4;
 }
 
 .post-content {
     font-size: 28rpx;
-    color: #666;
+    color: var(--app-post-content-color, #666);
     line-height: 1.6;
     margin-bottom: 15rpx;
 }
@@ -847,7 +849,7 @@ export default {
     position: relative;
     width: 100%;
     margin-bottom: 15rpx;
-    background-color: #f0f0f0;
+    background-color: var(--app-subtle-surface-bg, #f0f0f0);
     overflow: hidden;
     border-radius: 12rpx;
 }
@@ -899,7 +901,7 @@ export default {
     justify-content: space-between;
     align-items: center;
     padding: 15rpx 20rpx 20rpx 20rpx;
-    border-top: 1rpx solid #f0f0f0;
+    border-top: var(--app-surface-border-line, 1rpx solid #f0f0f0);
 }
 
 .actions-left {
@@ -923,7 +925,7 @@ export default {
 
 .action-text {
     font-size: 24rpx;
-    color: #999;
+    color: var(--app-post-action-color, #999);
 }
 
 /* 空状态 */
@@ -933,10 +935,11 @@ export default {
     align-items: center;
     justify-content: center;
     height: 400rpx;
-    background-color: #fff;
+    background-color: var(--app-surface-bg, #fff);
     border-radius: 16rpx;
     margin: 30rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    box-shadow: var(--app-surface-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
+    border: var(--app-surface-border-line, none);
 }
 
 .empty-icon {
@@ -946,21 +949,22 @@ export default {
 
 .empty-text {
     font-size: 32rpx;
-    color: #333;
+    color: var(--app-primary-text, #333);
     margin-bottom: 10rpx;
 }
 
 .empty-subtext {
     font-size: 28rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 
 /* 搜索建议 */
 .search-suggestions {
-    background-color: #fff;
+    background-color: var(--app-surface-bg, #fff);
     border-radius: 16rpx;
     padding: 30rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    box-shadow: var(--app-surface-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
+    border: var(--app-surface-border-line, none);
     margin-bottom: 20rpx;
 }
 
@@ -970,7 +974,7 @@ export default {
 
 .suggestions-title {
     font-size: 28rpx;
-    color: #333;
+    color: var(--app-primary-text, #333);
     font-weight: 500;
 }
 
@@ -981,14 +985,14 @@ export default {
 }
 
 .suggestion-item {
-    background-color: #f0f8ff;
+    background-color: var(--app-subtle-surface-bg, #f0f8ff);
     border-radius: 20rpx;
     padding: 12rpx 20rpx;
     transition: all 0.2s ease;
 }
 
 .suggestion-item:active {
-    background-color: #e0f0ff;
+    background-color: var(--app-subtle-surface-bg, #e0f0ff);
     transform: scale(0.95);
 }
 
@@ -999,10 +1003,11 @@ export default {
 
 /* 搜索历史 */
 .search-history {
-    background-color: #fff;
+    background-color: var(--app-surface-bg, #fff);
     border-radius: 16rpx;
     padding: 30rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    box-shadow: var(--app-surface-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
+    border: var(--app-surface-border-line, none);
     margin-bottom: 20rpx;
 }
 
@@ -1015,13 +1020,13 @@ export default {
 
 .history-title {
     font-size: 28rpx;
-    color: #333;
+    color: var(--app-primary-text, #333);
     font-weight: 500;
 }
 
 .clear-history {
     font-size: 24rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 
 .history-list {
@@ -1031,28 +1036,29 @@ export default {
 }
 
 .history-item {
-    background-color: #f5f5f5;
+    background-color: var(--app-subtle-surface-bg, #f5f5f5);
     border-radius: 20rpx;
     padding: 12rpx 20rpx;
     transition: all 0.2s ease;
 }
 
 .history-item:active {
-    background-color: #e8e8e8;
+    background-color: var(--app-subtle-surface-bg, #e8e8e8);
     transform: scale(0.95);
 }
 
 .history-text {
     font-size: 26rpx;
-    color: #333;
+    color: var(--app-secondary-text, #333);
 }
 
 /* 热门搜索 */
 .hot-searches {
-    background-color: #fff;
+    background-color: var(--app-surface-bg, #fff);
     border-radius: 16rpx;
     padding: 30rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    box-shadow: var(--app-surface-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
+    border: var(--app-surface-border-line, none);
 }
 
 .hot-header {
@@ -1061,7 +1067,7 @@ export default {
 
 .hot-title {
     font-size: 28rpx;
-    color: #333;
+    color: var(--app-primary-text, #333);
     font-weight: 500;
 }
 
@@ -1072,14 +1078,14 @@ export default {
 }
 
 .hot-item {
-    background-color: #f0f8ff;
+    background-color: var(--app-subtle-surface-bg, #f0f8ff);
     border-radius: 20rpx;
     padding: 12rpx 20rpx;
     transition: all 0.2s ease;
 }
 
 .hot-item:active {
-    background-color: #e0f0ff;
+    background-color: var(--app-subtle-surface-bg, #e0f0ff);
     transform: scale(0.95);
 }
 
@@ -1104,14 +1110,15 @@ export default {
     align-items: center;
     padding: 30rpx;
     margin: 20rpx 0;
-    background-color: #fff;
+    background-color: var(--app-surface-bg, #fff);
     border-radius: 16rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    box-shadow: var(--app-surface-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
+    border: var(--app-surface-border-line, none);
     transition: all 0.2s ease;
 }
 
 .load-more:active {
-    background-color: #f5f5f5;
+    background-color: var(--app-subtle-surface-bg, #f5f5f5);
     transform: scale(0.98);
 }
 
@@ -1130,6 +1137,6 @@ export default {
 
 .loading-text {
     font-size: 28rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 </style>

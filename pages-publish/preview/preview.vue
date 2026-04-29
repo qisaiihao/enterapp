@@ -2870,7 +2870,7 @@ export default {
 
 .white-bg {
 
-  background: #fff;
+  background: var(--app-page-bg, #fff);
 
   min-height: 100vh;
 
@@ -2908,7 +2908,7 @@ export default {
 
   right: 0 !important;
 
-  background: #fff !important;
+  background: var(--app-fixed-bar-bg, #fff) !important;
 
   padding: 30rpx 20rpx calc(10rpx + env(safe-area-inset-bottom)) 20rpx !important;
 
@@ -2938,7 +2938,7 @@ export default {
 
   right: 0;
 
-  background: #fff;
+  background: var(--app-fixed-bar-bg, #fff);
 
   padding: 30rpx 20rpx calc(80rpx + env(safe-area-inset-bottom)) 20rpx;
 
@@ -3014,13 +3014,13 @@ export default {
 
 }
 
-.empty-state { text-align: center; padding: 100rpx 0; color: #999; }
+.empty-state { text-align: center; padding: 100rpx 0; color: var(--app-muted-text, #999); }
 
 .empty-icon { font-size: 80rpx; margin-bottom: 20rpx; }
 
-.empty-text { font-size: 32rpx; color: #666; }
+.empty-text { font-size: 32rpx; color: var(--app-secondary-text, #666); }
 
-.post-item-wrapper { border-radius: 40rpx; overflow: hidden; border: 1rpx solid #e9ecef; box-shadow: 0 12rpx 15rpx rgba(0,0,0,0.20); transition: transform .3s ease; }
+.post-item-wrapper { border-radius: 40rpx; overflow: hidden; border: var(--app-surface-border-line, 1rpx solid #e9ecef); box-shadow: 0 12rpx 15rpx rgba(0,0,0,0.20); transition: transform .3s ease; }
 
 .post-item-wrapper:active { transform: scale(0.98); }
 
@@ -3064,9 +3064,9 @@ export default {
 
   border-radius: 12rpx;
 
-  background: #f3f7ff;
+  background: var(--app-subtle-surface-bg, #f3f7ff);
 
-  border: 1rpx solid #d6e4ff;
+  border: 1rpx solid var(--app-border-color, #d6e4ff);
 
 }
 
@@ -3076,7 +3076,7 @@ export default {
 
   font-size: 24rpx;
 
-  color: #4f5f7f;
+  color: var(--app-secondary-text, #4f5f7f);
 
 }
 
@@ -3086,7 +3086,7 @@ export default {
 
   font-size: 24rpx;
 
-  color: #1d2d4d;
+  color: var(--app-primary-text, #1d2d4d);
 
   font-weight: 600;
 
@@ -3106,9 +3106,9 @@ export default {
 
 .title-input-wrapper {
 
-  background: #fff;
+  background: transparent;
 
-  border-bottom: 2rpx solid #333;
+  border-bottom: 2rpx solid var(--app-primary-text, #333);
 
   padding: 0 0 0rpx 0;
 
@@ -3136,7 +3136,7 @@ export default {
 
   outline: none;
 
-  color: #333;
+  color: var(--app-primary-text, #333);
 
   line-height: 1;
 
@@ -3166,9 +3166,9 @@ export default {
 
 .author-input-wrapper {
 
-  background: #fff;
+  background: transparent;
 
-  border-bottom: 2rpx solid #333;
+  border-bottom: 2rpx solid var(--app-primary-text, #333);
 
   padding: 0 0 8rpx 0;
 
@@ -3196,7 +3196,7 @@ export default {
 
   outline: none;
 
-  color: #333;
+  color: var(--app-primary-text, #333);
 
   line-height: 1;
 
@@ -3240,9 +3240,9 @@ export default {
 
   border-radius: 12rpx;
 
-  border: 2rpx solid #999;
+  border: 2rpx solid var(--app-border-color, #999);
 
-  background: #fff;
+  background: var(--app-surface-bg, #fff);
 
   transition: all 0.3s ease;
 
@@ -3252,9 +3252,9 @@ export default {
 
 .activity-btn.selected {
 
-  background: #e0e0e0;
+  background: var(--app-subtle-surface-bg, #e0e0e0);
 
-  border-color: #999;
+  border-color: var(--app-border-color, #999);
 
 }
 
@@ -3264,7 +3264,7 @@ export default {
 
   font-size: 28rpx;
 
-  color: #333;
+  color: var(--app-primary-text, #333);
 
   line-height: 1.4;
 
@@ -3294,9 +3294,9 @@ export default {
 
   border-radius: 24rpx;
 
-  background: #f7f8fa;
+  background: var(--app-surface-bg, #f7f8fa);
 
-  border: 1rpx solid #eceef2;
+  border: 1rpx solid var(--app-border-color, #eceef2);
 
 }
 
@@ -3308,7 +3308,7 @@ export default {
 
   font-size: 22rpx;
 
-  color: #8b9098;
+  color: var(--app-muted-text, #8b9098);
 
   margin-bottom: 12rpx;
 
@@ -3326,7 +3326,7 @@ export default {
 
   display: block;
 
-  color: #1f2329;
+  color: var(--app-secondary-text, #1f2329);
 
   line-height: 1.6;
 
@@ -3352,9 +3352,9 @@ export default {
 
   border-radius: 999rpx;
 
-  background: #fff;
+  background: var(--app-subtle-surface-bg, #fff);
 
-  color: #445;
+  color: var(--app-secondary-text, #445);
 
   font-size: 24rpx;
 
@@ -3368,7 +3368,7 @@ export default {
 
   padding-top: 16rpx;
 
-  border-top: 1rpx solid #e7e9ee;
+  border-top: 1rpx solid var(--app-border-color, #e7e9ee);
 
 }
 
@@ -3534,7 +3534,7 @@ export default {
 
 .post-item-wrapper.normal-mode {
 
-  background: #fff;
+  background: var(--app-post-wrapper-bg, var(--app-surface-bg, #fff));
 
   margin-bottom: 20rpx;
 
@@ -3544,7 +3544,7 @@ export default {
 
   border-radius: 0;
 
-  border-bottom: 1rpx solid #f0f0f0;
+  border-bottom: var(--app-post-wrapper-divider, 1rpx solid #f0f0f0);
 
 }
 
@@ -3558,7 +3558,7 @@ export default {
 
   padding: 20rpx 40rpx 10rpx 40rpx;
 
-  background: #fff;
+  background: var(--app-post-wrapper-bg, var(--app-surface-bg, #fff));
 
 }
 
@@ -3574,7 +3574,7 @@ export default {
 
   margin-right: 15rpx;
 
-  background-color: #f5f5f5;
+  background-color: var(--app-subtle-surface-bg, #f5f5f5);
 
 }
 
@@ -3584,7 +3584,7 @@ export default {
 
   font-size: 28rpx;
 
-  color: #333;
+  color: var(--app-post-author-color, #333);
 
   font-weight: 500;
 
@@ -3596,7 +3596,7 @@ export default {
 
   width: 100%;
 
-  background: #fff;
+  background: var(--app-post-wrapper-bg, var(--app-surface-bg, #fff));
 
   box-shadow: none;
 
@@ -3614,7 +3614,7 @@ export default {
 
   font-weight: bold;
 
-  color: #333333;
+  color: var(--app-post-title-color, #333333);
 
   margin-bottom: 15rpx;
 
@@ -3642,7 +3642,7 @@ export default {
 
   font-size: 32rpx;
 
-  color: #000;
+  color: var(--app-primary-text, #000);
 
   text-align: center;
 
@@ -3658,7 +3658,7 @@ export default {
 
   font-size: 28rpx;
 
-  color: #666666;
+  color: var(--app-post-content-color, #666666);
 
   line-height: 1.6;
 
@@ -3726,7 +3726,7 @@ export default {
 
   font-size: 28rpx;
 
-  color: #999;
+  color: var(--app-post-action-color, #999);
 
   margin-left: 10rpx;
 
@@ -3802,7 +3802,7 @@ export default {
 
   font-size: 28rpx;
 
-  color: #999;
+  color: var(--app-post-action-color, #999);
 
   margin-left: 10rpx;
 
@@ -3818,7 +3818,7 @@ export default {
 
   width: 100%;
 
-  background-color: #f0f0f0;
+  background-color: var(--app-subtle-surface-bg, #f0f0f0);
 
   overflow: hidden;
 
@@ -3852,7 +3852,7 @@ export default {
 
   width: 100%;
 
-  background-color: #fff;
+  background-color: var(--app-post-wrapper-bg, var(--app-surface-bg, #fff));
 
 }
 
@@ -3902,7 +3902,7 @@ export default {
 
 .post-tag {
 
-  color: #24375f;
+  color: var(--app-accent-color, #24375f);
 
   font-size: 26rpx;
 
@@ -3916,7 +3916,7 @@ export default {
 
 .post-tag:active {
 
-  color: #1a2a4a;
+  color: var(--app-accent-color, #1a2a4a);
 
   opacity: 0.8;
 

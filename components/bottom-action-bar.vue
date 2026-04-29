@@ -31,14 +31,13 @@ export default {
 };
 </script>
 <style scoped>
-.bottom-action-bar { display: flex; align-items: center; background: #fff; box-shadow: 0 -2px 10px #eee; }
+.bottom-action-bar { display: flex; align-items: center; background: var(--app-fixed-bar-bg, #fff); box-shadow: var(--app-fixed-bar-shadow, 0 -2px 10px #eee); }
 .comment-input-container { flex: 1; padding: 0 16rpx; }
-.comment-input { width: 100%; border-radius: 4rpx; border: 1px solid #ddd; padding: 20rpx 28rpx; }
+.comment-input { width: 100%; border-radius: 4rpx; border: 1px solid var(--app-border-color, #ddd); padding: 20rpx 28rpx; color: var(--app-primary-text, #111); background: var(--app-surface-bg, #fff); }
 .action-icons { display: flex; gap: 12rpx; }
 .action-icon { display: flex; align-items: center; justify-content: center; width: 60rpx; height: 60rpx; }
 .action-icon-image { width: 60rpx; height: 60rpx; }
 </style>
-
 
 
 

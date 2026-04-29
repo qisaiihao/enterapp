@@ -39,7 +39,7 @@ export default {
 <style scoped>
 .image-section {
     padding: 30rpx;
-    background: #f8f9fa;
+    background: var(--app-surface-bg, #f8f9fa);
 }
 
 .image-preview-scroll {
@@ -93,18 +93,18 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #fff;
+    background: var(--app-elevated-bg, #fff);
     transition: all 0.3s ease;
     flex-shrink: 0;
 }
 
 .add-image-btn:active {
-    background: #f5f5f5;
+    background: var(--app-subtle-surface-bg, #f5f5f5);
     border-color: #9ed7ee;
 }
 
 .add-icon {
     font-size: 60rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 </style>

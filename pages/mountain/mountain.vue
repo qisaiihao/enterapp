@@ -33,16 +33,16 @@
       </view>
 
       <view :key="'mountain-font-' + poemFontRenderTick" id="post-list-container">
-        <view v-for="(item, index) in postList" :key="index" class="post-item-wrapper" :style="{ backgroundColor: item.backgroundColor }">
+        <view v-for="(item, index) in postList" :key="index" class="post-item-wrapper" :style="{ backgroundColor: resolvePostCardBackground(item) }">
           <view class="post-content-navigator" @tap="togglePostExpansion" @longpress="onLongPressCard" :data-index="index" :data-postid="item._id">
             <view class="post-item">
-              <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.displayHighlightLines || item.displayHighlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.displayContent" :style="{ color: item.textColor, whiteSpace: 'pre-wrap' }"><block v-if="item.isExpanded">{{ item.displayContent }}</block><block v-else><block v-if="item.displayHighlightLines && item.displayHighlightLines.length > 0"><text v-for="(highlightLine, index) in item.displayHighlightLines" :key="index" style="font-weight: 700; display: block;">{{ highlightLine }}</text></block><block v-else>{{ item.displayContent }}</block></block></view>
+              <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.displayHighlightLines || item.displayHighlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.displayContent" :style="{ color: resolvePostTextColor(item), whiteSpace: 'pre-wrap' }"><block v-if="item.isExpanded">{{ item.displayContent }}</block><block v-else><block v-if="item.displayHighlightLines && item.displayHighlightLines.length > 0"><text v-for="(highlightLine, index) in item.displayHighlightLines" :key="index" style="font-weight: 700; display: block;">{{ highlightLine }}</text></block><block v-else>{{ item.displayContent }}</block></block></view>
 
             </view>
           </view>
 
           <!-- 交互区（展开时显示） -->
-          <view class="vote-section" v-if="item.isExpanded" :style="{ backgroundColor: item.backgroundColor }">
+          <view class="vote-section" v-if="item.isExpanded" :style="{ backgroundColor: resolvePostCardBackground(item) }">
             <view class="actions-left"><!-- 预留左侧空间 --></view>
             <view class="button-group">
               <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="item._id" :data-index="index">
@@ -86,6 +86,8 @@ import { getMountainPoems } from '@/api-cache/poems.js';
 import likeIcon from '@/utils/likeIcon.js';
 import {
   generateRandomBackgroundColor,
+  getReadableTextColor,
+  getThemedCardBackgroundColor,
   toggleArrayItemExpansion,
   updatePostsUIProperties
 } from '@/utils/uiHelpers.js';
@@ -372,6 +374,12 @@ export default {
       this.lastUsedColorIndex = result.index;
       return result.color;
     },
+    resolvePostCardBackground(post = {}) {
+      return getThemedCardBackgroundColor(post.backgroundColor, this.appThemeMode);
+    },
+    resolvePostTextColor(post = {}) {
+      return getReadableTextColor(this.resolvePostCardBackground(post), post.textColor || '#222');
+    },
     normalizePoemCardPost(post) {
       if (!post) return post;
 
@@ -609,9 +617,9 @@ export default {
 <style>
 /* 诗歌内容使用汇文明朝字体，其他地方使用系统默认字体 */
 
-.white-bg { 
-  background: #fff; 
-  min-height: 100vh; 
+.white-bg {
+  background: var(--app-page-bg, #fff);
+  min-height: 100vh;
   padding-top: env(safe-area-inset-top, var(--safe-area-inset-top, 44px)); /* 添加状态栏安全区域，备选方案 */
 }
 .square-mode-container {
@@ -622,10 +630,10 @@ export default {
   flex-direction: column;
   align-items: stretch; /* 居中卡片 */
 }
-.empty-state { text-align: center; padding: 100rpx 0; color: #999; }
+.empty-state { text-align: center; padding: 100rpx 0; color: var(--app-muted-text, #999); }
 .empty-icon { font-size: 80rpx; margin-bottom: 20rpx; }
-.empty-text { font-size: 32rpx; margin-bottom: 10rpx; color: #666; }
-.empty-subtext { font-size: 24rpx; color: #999; }
+.empty-text { font-size: 32rpx; margin-bottom: 10rpx; color: var(--app-secondary-text, #666); }
+.empty-subtext { font-size: 24rpx; color: var(--app-muted-text, #999); }
 /* poem.css inspired card styles */
 .post-item-wrapper {
   width: 100%;
@@ -669,17 +677,17 @@ export default {
 }
 .post-content.expanded { display: block; overflow: visible; }
 .comment-emoji{ font-size: 40rpx; }
-.comment-icon { width: 60rpx; height: 60rpx; }
+.comment-icon { width: 60rpx; height: 60rpx; filter: var(--app-post-action-icon-filter, none); opacity: var(--app-post-action-icon-opacity, 1); }
 .vote-section { display: flex; justify-content: space-between; align-items: center; padding: 25rpx 50rpx; }
 .actions-left { flex: 1; display: flex; align-items: center; gap: 20rpx; }
 .button-group { display: flex; align-items: center; gap: 30rpx; }
-.comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; }
-.vote-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; border-radius: 20rpx; background: rgba(255,255,255,.9); box-shadow: 0 2rpx 8rpx rgba(0,0,0,.1); }
-.comment-icon { width: 80rpx; height: 80rpx; }
-.like-icon { width: 60rpx; height: 60rpx; margin-top: 5px; }
+.comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; color: var(--app-post-action-color, #999); }
+.vote-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; border-radius: 20rpx; background: var(--app-subtle-surface-bg, rgba(255,255,255,.9)); box-shadow: 0 2rpx 8rpx rgba(0,0,0,.1); color: var(--app-post-action-color, #999); }
+.comment-icon { width: 80rpx; height: 80rpx; filter: var(--app-post-action-icon-filter, none); opacity: var(--app-post-action-icon-opacity, 1); }
+.like-icon { width: 60rpx; height: 60rpx; margin-top: 5px; filter: var(--app-post-action-icon-filter, none); opacity: var(--app-post-action-icon-opacity, 1); }
 
 
-.loading-footer { text-align: center; color: #666; padding: 30rpx 0 120rpx; }
+.loading-footer { text-align: center; color: var(--app-secondary-text, #666); padding: 30rpx 0 120rpx; }
 .page-indicator { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,.7); color: #fff; padding: 20rpx 40rpx; border-radius: 40rpx; z-index: 1000; font-size: 28rpx; }
 .page-indicator-text { text-align: center; }
 

@@ -247,7 +247,7 @@ export default {
 
 .tag-selector {
     width: 100%;
-    background: #fff;
+    background: var(--app-elevated-bg, #fff);
     border-top-left-radius: 24rpx;
     border-top-right-radius: 24rpx;
     padding: 40rpx 20rpx calc(40rpx + env(safe-area-inset-bottom));
@@ -265,12 +265,12 @@ export default {
 .selected-tags-section {
     margin-bottom: 20rpx;
     padding-bottom: 15rpx;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--app-border-color, #eee);
 }
 
 .selected-tags-title {
     font-size: 26rpx;
-    color: #666;
+    color: var(--app-secondary-text, #666);
     margin-bottom: 10rpx;
     font-weight: 500;
 }
@@ -308,7 +308,7 @@ export default {
 /* 分类选择器样式 */
 .category-selector {
     margin-bottom: 20rpx;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--app-border-color, #eee);
     padding-bottom: 15rpx;
 }
 
@@ -332,7 +332,7 @@ export default {
     align-items: center;
     padding: 15rpx 12rpx;
     border-radius: 12rpx;
-    background: #f5f5f5;
+    background: var(--app-subtle-surface-bg, #f5f5f5);
     transition: all 0.3s ease;
     flex-shrink: 0;
 }
@@ -372,7 +372,7 @@ export default {
     border: 1px solid #ddd;
     border-radius: 20rpx;
     font-size: 24rpx;
-    color: #666;
+    color: var(--app-secondary-text, #666);
     transition: all 0.3s ease;
 }
 
@@ -412,14 +412,14 @@ export default {
 .matched-tags {
     margin-top: 15rpx;
     padding: 15rpx;
-    background: #f8f9fa;
+    background: var(--app-subtle-surface-bg, #f8f9fa);
     border-radius: 8rpx;
     border: 1px solid #e9ecef;
 }
 
 .matched-tags-title {
     font-size: 24rpx;
-    color: #666;
+    color: var(--app-secondary-text, #666);
     margin-bottom: 10rpx;
 }
 

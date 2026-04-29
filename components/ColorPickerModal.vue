@@ -160,7 +160,7 @@ export default {
 
 .color-picker {
     width: 100%;
-    background: #fff;
+    background: var(--app-elevated-bg, #fff);
     border-top-left-radius: 24rpx;
     border-top-right-radius: 24rpx;
     padding: 24rpx 28rpx calc(24rpx + env(safe-area-inset-bottom));
@@ -169,12 +169,13 @@ export default {
     display: flex;
     flex-direction: column;
     animation: slideUp 0.3s ease;
+    border-top: var(--app-surface-border-line, none);
 }
 
 .color-picker-title {
     font-size: 32rpx;
     font-weight: 600;
-    color: #333;
+    color: var(--app-primary-text, #333);
     flex: 1;
     text-align: center;
 }

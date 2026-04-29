@@ -74,10 +74,11 @@ export default {
 
 .mode-selector {
     width: 100%;
-    background: #fff;
+    background: var(--app-elevated-bg, #fff);
     border-top-left-radius: 24rpx;
     border-top-right-radius: 24rpx;
     padding: 24rpx 28rpx calc(24rpx + env(safe-area-inset-bottom));
+    border-top: var(--app-surface-border-line, none);
 }
 
 .mode-switch-modal-icon {
@@ -89,7 +90,7 @@ export default {
 
 .mode-title {
     font-size: 30rpx;
-    color: #333;
+    color: var(--app-primary-text, #333);
     text-align: center;
     margin-bottom: 24rpx;
     font-weight: 500;
@@ -106,7 +107,7 @@ export default {
     align-items: center;
     justify-content: space-between;
     padding: 24rpx 0;
-    border-bottom: 1rpx solid #f0f0f0;
+    border-bottom: var(--app-surface-border-line, 1rpx solid #f0f0f0);
     transition: all 0.2s ease;
 }
 
@@ -115,12 +116,12 @@ export default {
 }
 
 .mode-option:active {
-    background: #f8f9fa;
+    background: var(--app-subtle-surface-bg, #f8f9fa);
 }
 
 .mode-text {
     font-size: 28rpx;
-    color: #333;
+    color: var(--app-primary-text, #333);
     flex: 1;
 }
 

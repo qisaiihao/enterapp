@@ -24,8 +24,20 @@
             <image class="side-tool-icon" src="/static/images/newicons/highlight.png" mode="aspectFit" />
         </view>
 
-        <view v-if="publishMode === 'poem'" class="side-tool-btn" @tap.stop="$emit('select-color')">
-            <image class="side-tool-icon" src="/static/images/select_color.png" mode="aspectFit" />
+        <view v-if="publishMode === 'poem'" class="side-tool-btn color-tool-btn" @tap.stop="$emit('select-color')">
+            <view class="side-tool-icon color-tool-icon">
+                <view class="color-swatch color-swatch--blue"></view>
+                <view class="color-swatch color-swatch--brown"></view>
+                <view class="color-swatch color-swatch--lime"></view>
+                <view class="color-swatch color-swatch--green"></view>
+                <view class="color-swatch color-swatch--red"></view>
+                <view class="color-swatch color-swatch--cream"></view>
+                <view class="color-swatch color-swatch--black">
+                    <view class="color-dot"></view>
+                    <view class="color-dot"></view>
+                    <view class="color-dot"></view>
+                </view>
+            </view>
         </view>
     </view>
 </template>
@@ -111,12 +123,82 @@ export default {
     align-items: center;
     justify-content: center;
     font-size: 30rpx;
-    color: #333;
+    color: var(--app-primary-text, #333);
+    filter: var(--app-add-action-icon-filter, none);
+    opacity: var(--app-add-action-icon-opacity, 1);
 }
 
 .series-toggle-btn .side-tool-icon {
     width: 60rpx;
     height: 60rpx;
+}
+
+.color-tool-icon {
+    position: relative;
+    width: 58rpx;
+    height: 92rpx;
+    display: block;
+    filter: none;
+    opacity: 1;
+}
+
+.color-swatch {
+    position: absolute;
+    left: 50%;
+    width: 58rpx;
+    height: 28rpx;
+    border-radius: 999rpx 999rpx 18rpx 18rpx;
+    transform: translateX(-50%);
+    box-shadow: 0 0 0 2rpx rgba(0, 0, 0, 0.08);
+}
+
+.color-swatch--blue {
+    top: 0;
+    background: #7fa7ed;
+}
+
+.color-swatch--brown {
+    top: 10rpx;
+    background: #403126;
+}
+
+.color-swatch--lime {
+    top: 20rpx;
+    background: #cfe977;
+}
+
+.color-swatch--green {
+    top: 30rpx;
+    background: #4f7f18;
+}
+
+.color-swatch--red {
+    top: 40rpx;
+    background: #8b1f18;
+}
+
+.color-swatch--cream {
+    top: 50rpx;
+    background: #fff1a8;
+}
+
+.color-swatch--black {
+    top: 60rpx;
+    height: 32rpx;
+    background: #050505;
+    border-radius: 999rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8rpx;
+    box-shadow: 0 0 0 2rpx rgba(255, 255, 255, 0.18);
+}
+
+.color-dot {
+    width: 6rpx;
+    height: 6rpx;
+    border-radius: 50%;
+    background: #ffffff;
 }
 
 .side-tool-text {

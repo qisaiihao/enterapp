@@ -2331,10 +2331,11 @@ export default {
 page {
     height: 100vh;
     overflow: hidden; /* 页面级别禁止滚动 */
+    background: var(--app-page-bg, #fff);
 }
 
 .container {
-    background: #fff;
+    background: var(--app-page-bg, #fff);
     height: 100vh; /* 改为固定高度，确保在iOS下正确计算 */
     display: flex;
     flex-direction: column;
@@ -2351,7 +2352,7 @@ page {
 .content-section {
     padding: 30rpx;
     padding-bottom: 30rpx;
-    background: #fff;
+    background: var(--app-page-bg, #fff);
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -2389,7 +2390,7 @@ page {
     font-size: 32rpx; /* 对应16px */
     line-height: 1.5; /* 对应19px行高 */
     padding: 60rpx; /* 对应30px内边距 */
-    background: #E8E8E8;
+    background: var(--app-subtle-surface-bg, #E8E8E8);
     resize: none;
     overflow-y: auto;
     overflow-x: hidden;
@@ -2404,7 +2405,7 @@ page {
     outline: none;
     -webkit-overflow-scrolling: touch;
     position: relative;
-    color: #989090; /* 使用CSS中定义的文字颜色 */
+    color: var(--app-secondary-text, #989090); /* 使用CSS中定义的文字颜色 */
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     font-weight: 300;
     /* 精确尺寸：314px宽，383px高 */
@@ -2422,8 +2423,8 @@ page {
     bottom: 10rpx; /* 移到textarea外面，给文字留出空间 */
     right: 110rpx; /* leave space for side toolbar */
     font-size: 24rpx;
-    color: #666;
-    background: #fdfdfd;
+    color: var(--app-secondary-text, #666);
+    background: var(--app-elevated-bg, #fdfdfd);
     padding: 8rpx 12rpx;
     border-radius: 6rpx;
     box-shadow: none;
@@ -2439,7 +2440,7 @@ page {
     bottom: 120rpx; /* 初始位置在工具栏上方 */
     left: 0;
     right: 100rpx; /* 为右侧工具栏预留空间 */
-    background: #f8f9fa;
+    background: var(--app-elevated-bg, #f8f9fa);
     border-radius: 12rpx;
     padding: 20rpx;
     z-index: 90; /* z-index 比工具栏低，但比内容高 */
@@ -2451,19 +2452,19 @@ page {
     justify-content: space-between;
     align-items: center;
     padding: 10rpx 0rpx;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--app-border-color, #eee);
     margin-bottom: 20rpx;
 }
 
 .tag-title {
     font-size: 30rpx;
     font-weight: bold;
-    color: #333;
+    color: var(--app-primary-text, #333);
 }
 
 .tag-count {
     font-size: 24rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 
 .tag-toggle {
@@ -2521,6 +2522,8 @@ page {
     height: 100px;
     display: block;
     object-fit: contain;
+    filter: var(--app-add-action-icon-filter, none);
+    opacity: var(--app-add-action-icon-opacity, 1);
 }
 
 /* 浮动操作按钮 */
@@ -2550,6 +2553,8 @@ page {
     object-position: center;
     border: none;
     box-sizing: border-box;
+    filter: var(--app-add-action-icon-filter, none);
+    opacity: var(--app-add-action-icon-opacity, 1);
 }
 
 .container--series-compose .floating-action-btn {
@@ -2649,7 +2654,8 @@ page {
     /* 适度留白避免覆盖退出/Enter 按钮 */
     margin-bottom: 160rpx;
     padding: 24rpx;
-    background: #f8f9fa;
+    background: var(--app-surface-bg, #f8f9fa);
+    border: var(--app-surface-border-line, none);
     border-radius: 16rpx;
     box-sizing: border-box;
 }
@@ -2657,27 +2663,27 @@ page {
 .section-title {
     font-size: 30rpx;
     font-weight: 600;
-    color: #333;
+    color: var(--app-primary-text, #333);
     margin-bottom: 12rpx;
 }
 
 .quote-textarea {
     width: 100%;
     min-height: 120rpx;
-    border: 1rpx solid #e0e0e0;
+    border: 1rpx solid var(--app-border-color, #e0e0e0);
     border-radius: 16rpx;
     padding: 20rpx;
     box-sizing: border-box;
     font-size: 30rpx;
     line-height: 1.6;
-    color: #333;
-    background: #fff;
+    color: var(--app-primary-text, #333);
+    background: var(--app-subtle-surface-bg, #fff);
 }
 
 .quote-count {
     text-align: right;
     font-size: 24rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
     margin-top: 8rpx;
 }
 
@@ -2687,9 +2693,10 @@ page {
     right: 40rpx;
     bottom: 200rpx;
     width: 440rpx;
-    background: #ffffff;
+    background: var(--app-elevated-bg, #ffffff);
     border-radius: 16rpx;
-    box-shadow: 0 16rpx 40rpx rgba(0, 0, 0, 0.12);
+    box-shadow: var(--app-surface-shadow, 0 16rpx 40rpx rgba(0, 0, 0, 0.12));
+    border: var(--app-surface-border-line, none);
     padding: 24rpx;
     z-index: 1100;
     box-sizing: border-box;
@@ -2705,26 +2712,26 @@ page {
 .quote-popup-title {
     font-size: 30rpx;
     font-weight: 700;
-    color: #333;
+    color: var(--app-primary-text, #333);
 }
 
 .quote-popup-close {
     font-size: 32rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
     padding: 8rpx;
 }
 
 .quote-popup-textarea {
     width: 100%;
     min-height: 150rpx;
-    border: 1rpx solid #e0e0e0;
+    border: 1rpx solid var(--app-border-color, #e0e0e0);
     border-radius: 12rpx;
     padding: 16rpx;
     box-sizing: border-box;
     font-size: 30rpx;
     line-height: 1.6;
-    color: #333;
-    background: #fafafa;
+    color: var(--app-primary-text, #333);
+    background: var(--app-subtle-surface-bg, #fafafa);
 }
 
 .quote-popup-footer {
@@ -2736,7 +2743,7 @@ page {
 
 .quote-popup-count {
     font-size: 24rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 
 .quote-block {
@@ -2784,8 +2791,8 @@ page {
 }
 
 .block-card.quote {
-    border-color: #cde8ff;
-    background: #f7fbff;
+    border-color: var(--app-border-color, #cde8ff);
+    background: var(--app-subtle-surface-bg, #f7fbff);
 }
 
 .block-actions,
@@ -2808,7 +2815,7 @@ page {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #f5f5f5;
+    background: var(--app-subtle-surface-bg, #f5f5f5);
     border-radius: 50%;
     transition: all 0.2s ease;
     cursor: pointer;
@@ -2816,7 +2823,7 @@ page {
 
 .icon-btn:active {
     transform: scale(0.9);
-    background: #e0e0e0;
+    background: var(--app-subtle-surface-bg, #e0e0e0);
 }
 
 .icon-btn.disabled {
@@ -2826,7 +2833,7 @@ page {
 
 .arrow-icon {
     font-size: 32rpx;
-    color: #333;
+    color: var(--app-primary-text, #333);
     font-weight: bold;
     line-height: 1;
 }
@@ -2834,6 +2841,7 @@ page {
 .action-icon {
     width: 40rpx;
     height: 40rpx;
+    filter: var(--app-add-action-icon-filter, none);
 }
 
 .block-scroll {
@@ -2865,7 +2873,7 @@ page {
     font-size: 32rpx; /* 与正文一致 */
     background: transparent;
     line-height: 1.5;
-    color: #989090; /* 与正文颜色一致 */
+    color: var(--app-secondary-text, #989090); /* 与正文颜色一致 */
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     font-weight: 700; /* 加粗 */
     height: auto;
@@ -2940,7 +2948,7 @@ page {
     flex-shrink: 0;
     font-size: 30rpx;
     line-height: 44rpx;
-    color: #4a4a4a;
+    color: var(--app-secondary-text, #4a4a4a);
 }
 
 .container--series-compose .series-block .series-subtitle {
@@ -2950,7 +2958,7 @@ page {
     padding: 0;
     font-size: 30rpx;
     line-height: 44rpx;
-    color: #6a6a6a;
+    color: var(--app-secondary-text, #6a6a6a);
     font-weight: 400;
 }
 
@@ -2961,14 +2969,14 @@ page {
 
 .series-block .series-highlight {
     width: 100%;
-    border: 1rpx solid #e0e0e0;
+    border: 1rpx solid var(--app-border-color, #e0e0e0);
     border-radius: 12rpx;
     padding: 12rpx 16rpx;
     margin-bottom: 12rpx;
     font-size: 28rpx;
-    background: #f7f9fb;
+    background: var(--app-subtle-surface-bg, #f7f9fb);
     line-height: 1.5;
-    color: #333;
+    color: var(--app-primary-text, #333);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     font-weight: 300;
     box-sizing: border-box;
@@ -2987,9 +2995,9 @@ page {
     border-radius: 20rpx; /* 与普通诗歌一致 */
     padding: 60rpx; /* 与普通诗歌一致 */
     font-size: 32rpx; /* 与普通诗歌一致 */
-    background: #E8E8E8; /* 与普通诗歌一致 */
+    background: var(--app-subtle-surface-bg, #E8E8E8); /* 与普通诗歌一致 */
     line-height: 1.5;
-    color: #989090;
+    color: var(--app-secondary-text, #989090);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     font-weight: 300;
     height: 450rpx; /* 固定高度 */
@@ -3008,8 +3016,8 @@ page {
     height: 540rpx;
     padding: 52rpx 46rpx;
     border-radius: 22rpx;
-    background: #e8e8e8;
-    color: #9b9b9b;
+    background: var(--app-subtle-surface-bg, #e8e8e8);
+    color: var(--app-secondary-text, #9b9b9b);
 }
 
 .container--series-compose .series-block-actions {
@@ -3040,6 +3048,8 @@ page {
 .container--series-compose .series-action-image {
     display: block;
     flex-shrink: 0;
+    filter: var(--app-add-action-icon-filter, none);
+    opacity: var(--app-add-action-icon-opacity, 1);
 }
 
 .container--series-compose .series-action-image--muted {
@@ -3070,7 +3080,7 @@ page {
 }
 
 .discussion-sentence-card {
-    background: #f5f5f5;
+    background: var(--app-subtle-surface-bg, #f5f5f5);
     border-radius: 12rpx;
     padding: 24rpx;
 }
@@ -3087,7 +3097,7 @@ page {
     font-weight: 600;
     font-size: 32rpx;
     line-height: 42rpx;
-    color: #6b6b6b;
+    color: var(--app-secondary-text, #6b6b6b);
     word-break: break-word;
 }
 
@@ -3096,26 +3106,26 @@ page {
     margin-bottom: 8rpx;
     padding: 14rpx 18rpx;
     border-radius: 12rpx;
-    background: #f3f7ff;
-    border: 1rpx solid #d6e4ff;
+    background: var(--app-subtle-surface-bg, #f3f7ff);
+    border: 1rpx solid var(--app-border-color, #d6e4ff);
     text-align: center;
 }
 
 .activity-mode-label {
     font-size: 24rpx;
-    color: #4f5f7f;
+    color: var(--app-secondary-text, #4f5f7f);
 }
 
 .activity-mode-title {
     font-size: 24rpx;
-    color: #1d2d4d;
+    color: var(--app-primary-text, #1d2d4d);
     font-weight: 600;
 }
 
 .helper-text {
     margin-top: 12rpx;
     font-size: 24rpx;
-    color: #888;
+    color: var(--app-muted-text, #888);
     text-align: center;
     opacity: 1;
     transition: opacity 1s ease-out;
