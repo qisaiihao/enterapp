@@ -171,7 +171,7 @@ export default {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.56);
     z-index: 999;
 }
 
@@ -182,8 +182,9 @@ export default {
     left: -70%; /* Start off-screen */
     width: 70%;
     height: 100%;
-    background-color: #ffffff;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    background-color: var(--app-surface-bg, #ffffff);
+    box-shadow: var(--profile-sidebar-shadow, 8rpx 0 28rpx rgba(0, 0, 0, 0.16));
+    border-right: 1rpx solid var(--app-border-color, rgba(0, 0, 0, 0.06));
     transition: left 0.3s ease;
     z-index: 1000;
     display: flex;
@@ -198,7 +199,7 @@ export default {
 /* 侧边栏头部 */
 .sidebar-header {
     padding: 40rpx 30rpx;
-    border-bottom: 1rpx solid #eee;
+    border-bottom: 1rpx solid var(--app-border-color, #eee);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -210,11 +211,13 @@ export default {
     height: 120rpx;
     border-radius: 50%;
     margin-bottom: 20rpx;
+    background-color: var(--app-subtle-surface-bg, #f5f5f5);
 }
 
 .sidebar-nickname {
     font-size: 32rpx;
     font-weight: bold;
+    color: var(--app-primary-text, #111111);
 }
 
 /* 侧边栏菜单 */
@@ -227,9 +230,9 @@ export default {
 
 .sidebar-item {
     padding: 30rpx;
-    border-bottom: 1rpx solid #f0f0f0;
+    border-bottom: 1rpx solid var(--app-border-color, #f0f0f0);
     font-size: 32rpx;
-    color: #333;
+    color: var(--app-primary-text, #333);
     position: relative;
     display: flex;
     justify-content: space-between;
@@ -237,18 +240,18 @@ export default {
 }
 
 .sidebar-item:active {
-    background-color: #f5f5f5;
+    background-color: var(--app-subtle-surface-bg, #f5f5f5);
 }
 
 /* 退出登录项特殊样式 */
 .logout-item {
-    border-top: 2rpx solid #f0f0f0;
+    border-top: 2rpx solid var(--app-border-color, #f0f0f0);
     margin-top: 20rpx;
-    color: #ff6b6b !important;
+    color: var(--profile-sidebar-danger-color, #ff6b6b) !important;
     font-weight: 500;
 }
 
 .logout-item:active {
-    background-color: #fff5f5 !important;
+    background-color: var(--profile-sidebar-danger-active-bg, rgba(255, 107, 107, 0.10)) !important;
 }
 </style>

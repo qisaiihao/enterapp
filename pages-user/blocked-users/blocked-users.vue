@@ -230,7 +230,8 @@ export default {
 </script>
 <style>
 .container {
-    background-color: #fff;
+    background-color: var(--app-page-bg, #fff);
+    color: var(--app-primary-text, #111111);
     min-height: 100vh;
 }
 
@@ -240,8 +241,8 @@ export default {
     justify-content: center;
     position: relative;
     padding: 20rpx 30rpx;
-    background: #fff;
-    border-bottom: 1rpx solid #e9ecef;
+    background: var(--app-fixed-bar-bg, #fff);
+    border-bottom: 1rpx solid var(--app-border-color, #e9ecef);
 }
 
 .header-left {
@@ -257,12 +258,13 @@ export default {
 .back-icon-image {
     width: 22rpx;
     height: 38rpx;
+    filter: var(--app-icon-filter, none);
 }
 
 .header-title {
     font-size: 36rpx;
     font-weight: 600;
-    color: #333;
+    color: var(--app-primary-text, #333);
 }
 
 /* 用户列表 */
@@ -276,7 +278,7 @@ export default {
     align-items: center;
     justify-content: space-between;
     padding: 40rpx 30rpx;
-    border-bottom: 1rpx solid #f0f0f0;
+    border-bottom: 1rpx solid var(--app-border-color, #f0f0f0);
 }
 
 .user-info {
@@ -291,7 +293,7 @@ export default {
     height: 80rpx;
     border-radius: 50%;
     margin-right: 20rpx;
-    background-color: #f0f0f0;
+    background-color: var(--app-subtle-surface-bg, #f0f0f0);
 }
 
 .info-text {
@@ -303,13 +305,13 @@ export default {
 
 .name {
     font-size: 30rpx;
-    color: #333;
+    color: var(--app-primary-text, #333);
     font-weight: 600;
 }
 
 .bio {
     font-size: 26rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
     line-height: 1.4;
     white-space: nowrap;
     overflow: hidden;
@@ -338,15 +340,15 @@ export default {
 }
 
 .unblock-btn {
-    background-color: #f5f5f5;
-    color: #333;
+    background-color: var(--app-subtle-surface-bg, #f5f5f5);
+    color: var(--app-primary-text, #333);
 }
 
 /* 空状态 */
 .empty {
     margin-top: 200rpx;
     text-align: center;
-    color: #999;
+    color: var(--app-muted-text, #999);
     font-size: 28rpx;
 }
 

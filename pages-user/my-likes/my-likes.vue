@@ -264,7 +264,8 @@ export default {
 /* pages/my-likes/my-likes.wxss */
 .container {
     padding: 20rpx;
-    background-color: #f7f8fa;
+    background-color: var(--app-page-bg, #f7f8fa);
+    color: var(--app-primary-text, #111111);
     min-height: 100vh;
 }
 
@@ -274,8 +275,8 @@ export default {
     justify-content: center;
     position: relative;
     padding: 20rpx 30rpx;
-    background: #fff;
-    border-bottom: 1rpx solid #e9ecef;
+    background: var(--app-fixed-bar-bg, #fff);
+    border-bottom: 1rpx solid var(--app-border-color, #e9ecef);
     margin-bottom: 20rpx;
 }
 
@@ -292,12 +293,13 @@ export default {
 .back-icon-image {
     width: 22rpx;
     height: 38rpx;
+    filter: var(--app-icon-filter, none);
 }
 
 .header-title {
     font-size: 36rpx;
     font-weight: 600;
-    color: #333;
+    color: var(--app-primary-text, #333);
 }
 
 .loading-indicator {
@@ -305,7 +307,7 @@ export default {
     justify-content: center;
     align-items: center;
     height: 400rpx;
-    background-color: #fff;
+    background-color: var(--app-elevated-bg, #fff);
     border-radius: 16rpx;
     margin: 30rpx;
     box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
@@ -313,7 +315,7 @@ export default {
 
 .loading-indicator text {
     font-size: 28rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 
 .post-list {
@@ -324,7 +326,8 @@ export default {
     width: 100%;
     padding: 30rpx;
     margin-bottom: 20rpx;
-    background-color: #ffffff;
+    background-color: var(--app-elevated-bg, #ffffff);
+    border: 1rpx solid var(--app-border-color, transparent);
     border-radius: 16rpx;
     box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
     box-sizing: border-box;
@@ -351,14 +354,14 @@ export default {
 
 .author-name {
     font-size: 28rpx;
-    color: #333;
+    color: var(--app-primary-text, #333);
     font-weight: 500;
 }
 
 .post-title {
     font-size: 32rpx;
     font-weight: bold;
-    color: #333333;
+    color: var(--app-primary-text, #333333);
     margin-bottom: 10rpx;
     line-height: 1.4;
     word-break: break-word;
@@ -372,7 +375,7 @@ export default {
 
 .post-content-preview {
     font-size: 26rpx;
-    color: #666666;
+    color: var(--app-secondary-text, #666666);
     line-height: 1.5;
     margin-bottom: 15rpx;
     word-break: break-word;
@@ -425,7 +428,7 @@ export default {
 
 .post-time {
     font-size: 24rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
     opacity: 0.8;
 }
 
@@ -446,17 +449,17 @@ export default {
 
 .empty-text {
     font-size: 32rpx;
-    color: #666;
+    color: var(--app-secondary-text, #666);
     margin-bottom: 15rpx;
 }
 
 .empty-subtext {
     font-size: 28rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 
 /* 多图轮播白色背景 */
 .swiper-bg-white {
-    background: #fff !important;
+    background: var(--app-subtle-surface-bg, #fff) !important;
 }
 </style>

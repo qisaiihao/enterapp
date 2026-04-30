@@ -143,10 +143,10 @@ export default {
 
 <style scoped>
 .avatar-bar-container {
-    background-color: #fff;
+    background-color: var(--app-page-bg, #fff);
     padding: 20rpx 0 28rpx 0;
     margin-bottom: 24rpx;
-    border-bottom: 1rpx solid #f0f0f0;
+    border-bottom: var(--app-surface-border-line, 1rpx solid #f0f0f0);
 }
 
 .avatar-scroll {
@@ -181,7 +181,7 @@ export default {
 }
 
 .avatar-item.selected .avatar-wrapper {
-    border: 3rpx solid #24375f;
+    border: 3rpx solid var(--app-accent-color, #24375f);
 }
 
 .avatar-wrapper {
@@ -189,7 +189,7 @@ export default {
     height: 88rpx;
     border-radius: 50%;
     overflow: hidden;
-    background-color: #f5f5f5;
+    background-color: var(--app-subtle-surface-bg, #f5f5f5);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -208,12 +208,13 @@ export default {
     width: 48rpx;
     height: 48rpx;
     opacity: 0.7;
+    filter: var(--app-icon-filter, none);
 }
 
 .avatar-name {
     margin-top: 16rpx;
     font-size: 22rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
     text-align: center;
     width: 100%;
     overflow: hidden;
@@ -223,7 +224,7 @@ export default {
 }
 
 .avatar-name.name-selected {
-    color: #333;
+    color: var(--app-primary-text, #333);
     font-weight: 500;
 }
 </style>

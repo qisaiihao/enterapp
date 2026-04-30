@@ -152,7 +152,12 @@
                     class="like-icon-container"
                     @tap.stop.prevent="onVote"
                 >
-                    <image class="like-icon" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError"></image>
+                    <image
+                        :class="['like-icon', item.isVoted ? 'like-icon--voted' : '']"
+                        :src="item.likeIcon || '/static/images/seed.png'"
+                        mode="aspectFit"
+                        @error="onLikeIconError"
+                    ></image>
                 </view>
                 <view :class="'vote-count ' + (item.isVoted ? 'voted' : '')">
                     <text class="action-text">{{ item.votes || 0 }}</text>
@@ -752,7 +757,7 @@ export default {
     display: flex;
     align-items: center;
     font-size: 28rpx;
-    color: var(--app-post-meta-color, #999);
+    color: var(--app-post-action-color, #999);
     margin-left: 10rpx;
     transition: color 0.2s ease;
 }
@@ -761,6 +766,8 @@ export default {
     width: 40rpx;
     height: 40rpx;
     margin-right: 8rpx;
+    filter: var(--app-post-action-icon-filter, none);
+    opacity: var(--app-post-action-icon-opacity, 1);
 }
 
 .vote-count {
@@ -807,7 +814,14 @@ export default {
 .like-icon {
     width: 48rpx;
     height: 48rpx;
+    filter: var(--app-post-action-icon-filter, none);
+    opacity: var(--app-post-action-icon-opacity, 1);
     transition: transform 0.2s ease;
+}
+
+.like-icon--voted {
+    filter: none;
+    opacity: 1;
 }
 
 /* 点赞数字变化动画 */

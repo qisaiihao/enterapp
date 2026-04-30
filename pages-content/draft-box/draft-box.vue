@@ -357,7 +357,8 @@ export default {
 <style>
 /* pages/draft-box/draft-box.wxss */
 .container {
-    background-color: #fff;
+    background-color: var(--app-page-bg, #fff);
+    color: var(--app-primary-text, #111111);
     min-height: 100vh;
 }
 
@@ -367,8 +368,8 @@ export default {
     justify-content: center;
     position: relative;
     padding: 20rpx 30rpx;
-    background: #fff;
-    border-bottom: 1rpx solid #e9ecef;
+    background: var(--app-fixed-bar-bg, #fff);
+    border-bottom: 1rpx solid var(--app-border-color, #e9ecef);
 }
 
 .header-left {
@@ -384,12 +385,13 @@ export default {
 .back-icon-image {
     width: 22rpx;
     height: 38rpx;
+    filter: var(--app-icon-filter, none);
 }
 
 .header-title {
     font-size: 36rpx;
     font-weight: 600;
-    color: #333;
+    color: var(--app-primary-text, #333);
 }
 
 .draft-list {
@@ -399,11 +401,11 @@ export default {
 
 .draft-item-wrapper {
     position: relative;
-    border-bottom: 1rpx solid #f0f0f0;
+    border-bottom: 1rpx solid var(--app-border-color, #f0f0f0);
 }
 
 .draft-item {
-    background: #fff;
+    background: var(--app-page-bg, #fff);
     padding: 30rpx;
     transition: transform 0.3s ease;
     position: relative;
@@ -417,7 +419,7 @@ export default {
 .draft-title {
     font-size: 32rpx;
     font-weight: 600;
-    color: #333;
+    color: var(--app-primary-text, #333);
     margin-bottom: 15rpx;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -426,7 +428,7 @@ export default {
 
 .draft-preview {
     font-size: 28rpx;
-    color: #666;
+    color: var(--app-secondary-text, #666);
     line-height: 1.6;
     margin-bottom: 20rpx;
     overflow: hidden;
@@ -444,8 +446,8 @@ export default {
 }
 
 .draft-tag {
-    background: #f5f5f5;
-    color: #666;
+    background: var(--app-subtle-surface-bg, #f5f5f5);
+    color: var(--app-secondary-text, #666);
     padding: 6rpx 16rpx;
     border-radius: 20rpx;
     font-size: 24rpx;
@@ -454,7 +456,7 @@ export default {
 
 .draft-time {
     font-size: 24rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 
 .delete-action {
@@ -495,13 +497,13 @@ export default {
 
 .empty-text {
     font-size: 32rpx;
-    color: #666;
+    color: var(--app-secondary-text, #666);
     margin-bottom: 15rpx;
 }
 
 .empty-subtext {
     font-size: 28rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
     margin-bottom: 40rpx;
 }
 

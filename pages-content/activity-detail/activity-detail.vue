@@ -601,7 +601,8 @@ export default {
 <style scoped>
 .activity-detail-page {
   min-height: 100vh;
-  background: #f5f6f8;
+  background: var(--app-page-bg, #f5f6f8);
+  color: var(--app-primary-text, #333);
 }
 
 .activity-header {
@@ -613,7 +614,7 @@ export default {
 .header-cover {
   width: 100%;
   height: 100%;
-  background: #e8ebef;
+  background: var(--app-subtle-surface-bg, #e8ebef);
 }
 
 .header-cover.placeholder {
@@ -623,7 +624,7 @@ export default {
 }
 
 .placeholder-text {
-  color: #a6adbb;
+  color: var(--app-muted-text, #a6adbb);
   font-size: 34rpx;
 }
 
@@ -687,8 +688,10 @@ export default {
 .rules-card {
   margin: 20rpx 24rpx 0;
   padding: 22rpx 24rpx;
-  background: #fff;
+  background: var(--app-surface-bg, #fff);
   border-radius: 16rpx;
+  border: var(--app-surface-border-line, none);
+  box-shadow: var(--app-surface-shadow, none);
 }
 
 .rules-head {
@@ -700,7 +703,7 @@ export default {
 
 .rules-title {
   font-size: 30rpx;
-  color: #1f2937;
+  color: var(--app-primary-text, #1f2937);
   font-weight: 600;
 }
 
@@ -715,7 +718,7 @@ export default {
   margin-top: 14rpx;
   font-size: 26rpx;
   line-height: 1.75;
-  color: #2f3a4a;
+  color: var(--app-secondary-text, #2f3a4a);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -731,13 +734,13 @@ export default {
 .state-box {
   text-align: center;
   padding: 120rpx 40rpx;
-  color: #999;
+  color: var(--app-muted-text, #999);
 }
 
 .state-title {
   display: block;
   font-size: 32rpx;
-  color: #333;
+  color: var(--app-primary-text, #333);
   margin-bottom: 10rpx;
 }
 
@@ -753,7 +756,7 @@ export default {
 
 .footer-tip {
   text-align: center;
-  color: #999;
+  color: var(--app-muted-text, #999);
   font-size: 24rpx;
   padding: 26rpx 0;
 }

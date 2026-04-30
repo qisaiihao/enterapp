@@ -182,7 +182,7 @@ export default {
     display: flex;
     margin-bottom: 0;
     padding: 20rpx 0;
-    border-bottom: 1rpx solid #f0f0f0;
+    border-bottom: 1rpx solid var(--app-border-color, #f0f0f0);
 }
 .comment-item:last-child {
     border-bottom: none;
@@ -195,7 +195,7 @@ export default {
     border-radius: 50%;
     margin-right: 15rpx;
     flex-shrink: 0;
-    background-color: #f5f5f5;
+    background-color: var(--app-subtle-surface-bg, #f5f5f5);
     pointer-events: auto;
     cursor: pointer;
 }
@@ -209,14 +209,14 @@ export default {
 
 .comment-author {
     font-size: 28rpx;
-    color: #333;
+    color: var(--app-primary-text, #333);
     font-weight: bold;
     margin-bottom: 8rpx;
 }
 
 .comment-content {
     font-size: 28rpx;
-    color: #666;
+    color: var(--app-secondary-text, #666);
     line-height: 1.5;
     word-break: break-word;
     margin-bottom: 10rpx;
@@ -242,10 +242,10 @@ export default {
     min-height: 200rpx;
     max-height: 800rpx;
     border-radius: 12rpx;
-    background-color: #f2f2f2;
+    background-color: var(--app-subtle-surface-bg, #f2f2f2);
     display: block;
     object-fit: contain;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--app-border-color, #e0e0e0);
 }
 
 .reply-image-grid {
@@ -262,7 +262,7 @@ export default {
 
 .comment-time {
     font-size: 24rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
     opacity: 0.8;
 }
 
@@ -290,7 +290,7 @@ export default {
 
 .like-count {
     font-size: 26rpx;
-    color: #666;
+    color: var(--app-post-action-color, #666);
 }
 
 .delete-btn {
@@ -306,6 +306,8 @@ export default {
 .delete-icon {
     width: 60rpx;
     height: 60rpx;
+    filter: var(--app-post-action-icon-filter, none);
+    opacity: var(--app-post-action-icon-opacity, 1);
 }
 
 /* 回复容器 */
@@ -313,7 +315,7 @@ export default {
     margin-top: 15rpx;
     margin-left: 10rpx;
     padding-left: 10rpx;
-    border-left: 2rpx solid #f0f0f0;
+    border-left: 2rpx solid var(--app-border-color, #f0f0f0);
 }
 
 .reply-item {
@@ -327,7 +329,7 @@ export default {
     border-radius: 50%;
     margin-right: 10rpx;
     flex-shrink: 0;
-    background-color: #f5f5f5;
+    background-color: var(--app-subtle-surface-bg, #f5f5f5);
     pointer-events: auto;
     cursor: pointer;
 }
@@ -341,14 +343,14 @@ export default {
 
 .reply-author {
     font-size: 24rpx;
-    color: #333;
+    color: var(--app-primary-text, #333);
     font-weight: bold;
     margin-bottom: 4rpx;
 }
 
 .reply-content {
     font-size: 26rpx;
-    color: #666;
+    color: var(--app-secondary-text, #666);
     line-height: 1.4;
     word-break: break-word;
     cursor: pointer;
@@ -372,7 +374,7 @@ export default {
 
 .reply-time {
     font-size: 22rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
     opacity: 0.8;
 }
 

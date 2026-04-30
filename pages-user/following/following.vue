@@ -365,7 +365,7 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.9);
+    background: var(--app-elevated-bg, rgba(255, 255, 255, 0.9));
     border-radius: 50%;
     box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
     transition: all 0.3s ease;
@@ -380,10 +380,12 @@ export default {
     height: 38rpx;
     display: block;
     object-fit: contain;
+    filter: var(--app-icon-filter, none);
 }
 
 .container {
-    background-color: #fff;
+    background-color: var(--app-page-bg, #fff);
+    color: var(--app-primary-text, #111111);
     min-height: 100vh;
     padding-top: calc(120rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
 }
@@ -391,8 +393,8 @@ export default {
 /* 分段控制器 */
 .segmented-control {
     display: flex;
-    background-color: #fff;
-    border-bottom: 1rpx solid #f0f0f0;
+    background-color: var(--app-fixed-bar-bg, #fff);
+    border-bottom: 1rpx solid var(--app-border-color, #f0f0f0);
     padding: 0 40rpx;
 }
 
@@ -406,12 +408,12 @@ export default {
 }
 
 .segment-item.active .segment-text {
-    color: #333;
+    color: var(--app-primary-text, #333);
     font-weight: 600;
 }
 
 .segment-item:not(.active) .segment-text {
-    color: #999;
+    color: var(--app-muted-text, #999);
     font-weight: 400;
 }
 
@@ -431,7 +433,7 @@ export default {
     align-items: center;
     justify-content: space-between;
     padding: 40rpx 30rpx;
-    border-bottom: 1rpx solid #f0f0f0;
+    border-bottom: 1rpx solid var(--app-border-color, #f0f0f0);
 }
 
 .user-info {
@@ -446,7 +448,7 @@ export default {
     height: 80rpx;
     border-radius: 50%;
     margin-right: 20rpx;
-    background-color: #f0f0f0;
+    background-color: var(--app-subtle-surface-bg, #f0f0f0);
 }
 
 .info-text {
@@ -458,13 +460,13 @@ export default {
 
 .name {
     font-size: 30rpx;
-    color: #333;
+    color: var(--app-primary-text, #333);
     font-weight: 600;
 }
 
 .bio {
     font-size: 26rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
     line-height: 1.4;
     white-space: nowrap;
     overflow: hidden;
@@ -493,20 +495,20 @@ export default {
 }
 
 .follow-btn {
-    background-color: #f5f5f5;
-    color: #333;
+    background-color: var(--app-subtle-surface-bg, #f5f5f5);
+    color: var(--app-primary-text, #333);
 }
 
 .unfollow-btn {
-    background-color: #f5f5f5;
-    color: #333;
+    background-color: var(--app-subtle-surface-bg, #f5f5f5);
+    color: var(--app-primary-text, #333);
 }
 
 /* 空状态 */
 .empty {
     margin-top: 200rpx;
     text-align: center;
-    color: #999;
+    color: var(--app-muted-text, #999);
     font-size: 28rpx;
 }
 
@@ -518,7 +520,7 @@ export default {
 
 .loading-more {
     text-align: center;
-    color: #999;
+    color: var(--app-muted-text, #999);
     font-size: 26rpx;
     padding: 20rpx 0;
 }

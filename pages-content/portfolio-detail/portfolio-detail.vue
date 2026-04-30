@@ -701,7 +701,8 @@ export default {
 /* 诗歌内容使用汇文明朝字体，其他地方使用系统默认字体 */
 
 .portfolio-detail-page {
-  background: #fff;
+  background: var(--app-page-bg, #fff);
+  color: var(--app-primary-text, #111111);
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -732,10 +733,10 @@ export default {
   flex-direction: column;
   align-items: stretch; /* 让卡片撑满容器 */
 }
-.empty-state { text-align: center; padding: 100rpx 0; color: #999; }
+.empty-state { text-align: center; padding: 100rpx 0; color: var(--app-muted-text, #999); }
 .empty-icon { font-size: 80rpx; margin-bottom: 20rpx; }
-.empty-text { font-size: 32rpx; margin-bottom: 10rpx; color: #666; }
-.empty-subtext { font-size: 24rpx; color: #999; }
+.empty-text { font-size: 32rpx; margin-bottom: 10rpx; color: var(--app-secondary-text, #666); }
+.empty-subtext { font-size: 24rpx; color: var(--app-muted-text, #999); }
 
 /* poem.css inspired card styles */
 .post-item-wrapper {
@@ -810,7 +811,12 @@ export default {
 .comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; }
 .vote-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; border-radius: 20rpx; background: rgba(255,255,255,.9); box-shadow: 0 2rpx 8rpx rgba(0,0,0,.1); }
 .comment-icon { width: 60rpx; height: 60rpx; }
-.delete-icon { width: 80rpx; height: 80rpx; }
+.delete-icon {
+  width: 80rpx;
+  height: 80rpx;
+  filter: var(--app-post-action-icon-filter, none);
+  opacity: var(--app-post-action-icon-opacity, 1);
+}
 
 /* 用户签名样式 */
 .user-signature {
@@ -850,7 +856,7 @@ export default {
 
 .loading-footer { 
   text-align: center; 
-  color: #666; 
+  color: var(--app-muted-text, #666);
   padding: 40rpx 0 60rpx; 
   font-size: 28rpx;
 }
@@ -873,7 +879,9 @@ export default {
 }
 
 .modal-content {
-  background: #fff;
+  background: var(--app-elevated-bg, #fff);
+  border: 1rpx solid var(--app-border-color, transparent);
+  box-shadow: var(--app-surface-shadow, 0 10rpx 30rpx rgba(0, 0, 0, 0.12));
   border-radius: 20rpx;
   width: 90%;
   max-width: 600rpx;
@@ -887,18 +895,18 @@ export default {
   align-items: center;
   justify-content: space-between;
   padding: 40rpx 40rpx 30rpx;
-  border-bottom: 1rpx solid #f0f0f0;
+  border-bottom: 1rpx solid var(--app-border-color, #f0f0f0);
 }
 
 .modal-title {
   font-size: 32rpx;
   font-weight: 600;
-  color: #333;
+  color: var(--app-primary-text, #333);
 }
 
 .close-btn {
   font-size: 40rpx;
-  color: #999;
+  color: var(--app-muted-text, #999);
   width: 60rpx;
   height: 60rpx;
   display: flex;
@@ -916,7 +924,7 @@ export default {
 
 .tip-text {
   font-size: 28rpx;
-  color: #666;
+  color: var(--app-secondary-text, #666);
   margin-bottom: 30rpx;
 }
 
@@ -929,7 +937,7 @@ export default {
 .section-title {
   font-size: 30rpx;
   font-weight: 600;
-  color: #333;
+  color: var(--app-primary-text, #333);
   margin-bottom: 20rpx;
 }
 
@@ -943,7 +951,7 @@ export default {
 .loading-small, .empty-small {
   text-align: center;
   padding: 60rpx 0;
-  color: #999;
+  color: var(--app-muted-text, #999);
   font-size: 28rpx;
 }
 
@@ -955,10 +963,10 @@ export default {
 }
 
 .post-item-simple {
-  background: #f8f9fa;
+  background: var(--app-subtle-surface-bg, #f8f9fa);
   border-radius: 12rpx;
   padding: 24rpx;
-  border: 2rpx solid transparent;
+  border: 2rpx solid var(--app-border-color, transparent);
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
@@ -979,14 +987,14 @@ export default {
 
 .post-title-simple {
   font-size: 30rpx;
-  color: #333;
+  color: var(--app-primary-text, #333);
   font-weight: 500;
   line-height: 1.4;
 }
 
 .post-date-simple {
   font-size: 24rpx;
-  color: #999;
+  color: var(--app-muted-text, #999);
 }
 
 .selected-check-simple {
@@ -1007,7 +1015,7 @@ export default {
   display: flex;
   gap: 20rpx;
   padding: 30rpx 40rpx 40rpx;
-  border-top: 1rpx solid #f0f0f0;
+  border-top: 1rpx solid var(--app-border-color, #f0f0f0);
 }
 
 .modal-btn {
@@ -1020,8 +1028,8 @@ export default {
 }
 
 .modal-btn.cancel {
-  background: #f8f9fa;
-  color: #666;
+  background: var(--app-subtle-surface-bg, #f8f9fa);
+  color: var(--app-secondary-text, #666);
 }
 
 .modal-btn.confirm {
@@ -1030,7 +1038,7 @@ export default {
 }
 
 .modal-btn.confirm[disabled] {
-  background: #ccc;
-  color: #999;
+  background: var(--app-subtle-surface-bg, #ccc);
+  color: var(--app-muted-text, #999);
 }
 </style>

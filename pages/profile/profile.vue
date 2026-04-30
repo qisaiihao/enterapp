@@ -3320,7 +3320,7 @@ export default {
     justify-content: center;
     align-items: center;
     height: 400rpx;
-    background-color: #fff;
+    background-color: var(--app-surface-bg, #fff);
     border-radius: 16rpx;
     margin: 30rpx;
     box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
@@ -3328,16 +3328,17 @@ export default {
 
 .loading-text {
     font-size: 28rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 
 /* User Profile Card */
 .profile-card {
     margin: 30rpx;
     padding: 40rpx;
-    background-color: #fff;
+    background-color: var(--profile-empty-surface-bg, var(--app-surface-bg, #fff));
     border-radius: 16rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    box-shadow: var(--profile-empty-surface-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
+    border: var(--profile-empty-surface-border, none);
     display: flex;
     align-items: flex-start;
     transition: box-shadow 0.2s ease;

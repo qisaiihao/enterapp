@@ -76,7 +76,7 @@ export default {
 
 <style scoped>
 .comment-section {
-    background: #fff;
+    background: var(--app-surface-bg, #fff);
     padding: 30rpx 40rpx;
     margin-top: 20rpx;
 }
@@ -84,7 +84,7 @@ export default {
 .section-title {
     font-size: 32rpx;
     font-weight: bold;
-    color: #333;
+    color: var(--app-primary-text, #333);
     margin-bottom: 20rpx;
 }
 
@@ -102,9 +102,9 @@ export default {
 .comment-skeleton-item {
     display: flex;
     align-items: flex-start;
-    background-color: #fff;
+    background-color: var(--app-surface-bg, #fff);
     padding: 20rpx 0;
-    border-bottom: 1rpx solid #f5f5f5;
+    border-bottom: 1rpx solid var(--app-border-color, #f5f5f5);
 }
 
 .comment-skeleton-item:last-child {
@@ -115,7 +115,7 @@ export default {
     width: 60rpx;
     height: 60rpx;
     border-radius: 50%;
-    background-color: #e9edf3;
+    background-color: var(--app-subtle-surface-bg, #e9edf3);
     flex-shrink: 0;
 }
 
@@ -126,7 +126,7 @@ export default {
 
 .skeleton-line {
     height: 20rpx;
-    background-color: #e9edf3;
+    background-color: var(--app-subtle-surface-bg, #e9edf3);
     border-radius: 999rpx;
     margin-bottom: 12rpx;
 }
@@ -155,7 +155,7 @@ export default {
     left: -150%;
     width: 150%;
     height: 100%;
-    background: linear-gradient(90deg, rgba(233, 237, 243, 0) 0%, rgba(255, 255, 255, 0.9) 50%, rgba(233, 237, 243, 0) 100%);
+    background: var(--app-skeleton-shimmer-bg, linear-gradient(90deg, rgba(233, 237, 243, 0) 0%, rgba(255, 255, 255, 0.9) 50%, rgba(233, 237, 243, 0) 100%));
     animation: skeletonPulse 1.2s ease-in-out infinite;
 }
 
@@ -186,6 +186,6 @@ export default {
 
 .empty-text {
     font-size: 28rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 </style>

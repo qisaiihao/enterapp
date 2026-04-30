@@ -293,7 +293,7 @@ export default {
     align-items: center;
     padding: 250rpx 20rpx 40rpx 20rpx; /* 增加上边距，避免被tab挡住 */
     box-sizing: border-box;
-    background: #fff;
+    background: var(--app-page-bg, #fff);
 }
 
 /* 诗歌广场骨架屏容器 */
@@ -407,10 +407,10 @@ export default {
 }
 
 .skeleton-post-card {
-    background: #fff;
+    background: var(--app-surface-bg, #fff);
     margin-bottom: 20rpx;
     border-radius: 0;
-    border-bottom: 1rpx solid #f0f0f0;
+    border-bottom: 1rpx solid var(--app-border-color, #f0f0f0);
     padding: 0;
 }
 
@@ -418,7 +418,7 @@ export default {
     display: flex;
     align-items: center;
     padding: 20rpx 40rpx 10rpx 40rpx;
-    background: #fff;
+    background: var(--app-surface-bg, #fff);
 }
 
 .skeleton-avatar {
@@ -426,26 +426,26 @@ export default {
     height: 60rpx;
     border-radius: 50%;
     margin-right: 15rpx;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
 }
 
 .skeleton-author-name {
     height: 28rpx;
     width: 120rpx;
     border-radius: 14rpx;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
 }
 
 .skeleton-post-content {
     padding: 20rpx 40rpx 30rpx 40rpx;
-    background: #fff;
+    background: var(--app-surface-bg, #fff);
 }
 
 .skeleton-title {
     height: 36rpx;
     width: 100%;
     border-radius: 18rpx;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
     margin-bottom: 15rpx;
 }
 
@@ -453,7 +453,7 @@ export default {
     height: 200rpx;
     width: 100%;
     border-radius: 8rpx;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
     margin: 20rpx 0;
 }
 
@@ -461,7 +461,7 @@ export default {
     height: 28rpx;
     width: 100%;
     border-radius: 14rpx;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
     margin-bottom: 10rpx;
 }
 
@@ -475,7 +475,7 @@ export default {
     height: 26rpx;
     width: 60rpx;
     border-radius: 13rpx;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
 }
 
 .skeleton-post-actions {
@@ -484,21 +484,21 @@ export default {
     align-items: center;
     gap: 30rpx;
     padding: 10rpx 60rpx 15rpx 60rpx;
-    background: #fff;
+    background: var(--app-surface-bg, #fff);
 }
 
 .skeleton-action-button {
     width: 40rpx;
     height: 40rpx;
     border-radius: 50%;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
 }
 
 /* ========== 个人主页骨架屏样式 ========== */
 .skeleton-profile-container {
     width: 100%;
     min-height: 100vh;
-    background: #fff;
+    background: var(--app-page-bg, #fff);
 }
 
 .skeleton-profile-card {
@@ -523,14 +523,14 @@ export default {
     width: 48rpx;
     height: 48rpx;
     border-radius: 24rpx;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
 }
 
 .skeleton-avatar-large {
     width: 175rpx;
     height: 175rpx;
     border-radius: 50%;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
     margin: 70rpx 0 40rpx 0;
 }
 
@@ -546,7 +546,7 @@ export default {
     height: 30rpx;
     width: 200rpx;
     border-radius: 15rpx;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
     margin-bottom: 20rpx;
 }
 
@@ -554,7 +554,7 @@ export default {
     height: 20rpx;
     width: 150rpx;
     border-radius: 10rpx;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
     margin-bottom: 20rpx;
 }
 
@@ -562,7 +562,7 @@ export default {
     height: 24rpx;
     width: 100%;
     border-radius: 12rpx;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
     margin-bottom: 10rpx;
 }
 
@@ -578,20 +578,20 @@ export default {
     height: 24rpx;
     width: 120rpx;
     border-radius: 12rpx;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
 }
 
 .skeleton-follow-button {
     height: 40rpx;
     width: 80rpx;
     border-radius: 20rpx;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
 }
 
 .skeleton-detail-card {
     margin: 0 30rpx 30rpx 30rpx;
     padding: 30rpx 40rpx;
-    background: #fff;
+    background: var(--app-surface-bg, #fff);
     border-radius: 16rpx;
     display: flex;
     gap: 40rpx;
@@ -601,13 +601,13 @@ export default {
     height: 28rpx;
     width: 120rpx;
     border-radius: 14rpx;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
 }
 
 .skeleton-tab-navigation {
     margin: 0 30rpx 20rpx 30rpx;
     display: flex;
-    background: #fff;
+    background: var(--profile-tab-nav-bg, var(--app-surface-bg, #fff));
     border-radius: 16rpx;
     overflow: hidden;
 }
@@ -615,7 +615,7 @@ export default {
 .skeleton-tab-item {
     flex: 1;
     height: 80rpx;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
     margin: 1rpx;
 }
 
@@ -624,16 +624,16 @@ export default {
 }
 
 .skeleton-post-item {
-    background: #fff;
+    background: var(--app-surface-bg, #fff);
     margin-bottom: 20rpx;
-    border-bottom: 1rpx solid #f0f0f0;
+    border-bottom: 1rpx solid var(--app-border-color, #f0f0f0);
 }
 
 .skeleton-post-time {
     height: 24rpx;
     width: 120rpx;
     border-radius: 12rpx;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
     margin: 20rpx 40rpx;
 }
 
@@ -641,7 +641,7 @@ export default {
 .skeleton-user-profile-container {
     width: 100%;
     min-height: 100vh;
-    background: #fff;
+    background: var(--app-page-bg, #fff);
 }
 
 .skeleton-profile-card {
@@ -666,14 +666,14 @@ export default {
     width: 48rpx;
     height: 48rpx;
     border-radius: 24rpx;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
 }
 
 .skeleton-avatar-large {
     width: 175rpx;
     height: 175rpx;
     border-radius: 50%;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
     margin: 70rpx 0 40rpx 0;
 }
 
@@ -689,7 +689,7 @@ export default {
     height: 30rpx;
     width: 200rpx;
     border-radius: 15rpx;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
     margin-bottom: 20rpx;
 }
 
@@ -697,7 +697,7 @@ export default {
     height: 20rpx;
     width: 150rpx;
     border-radius: 10rpx;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
     margin-bottom: 20rpx;
 }
 
@@ -705,7 +705,7 @@ export default {
     height: 24rpx;
     width: 100%;
     border-radius: 12rpx;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
     margin-bottom: 10rpx;
 }
 
@@ -721,20 +721,20 @@ export default {
     height: 24rpx;
     width: 120rpx;
     border-radius: 12rpx;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
 }
 
 .skeleton-follow-button {
     height: 40rpx;
     width: 80rpx;
     border-radius: 20rpx;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
 }
 
 .skeleton-tab-navigation {
     margin: 0 30rpx 20rpx 30rpx;
     display: flex;
-    background: #fff;
+    background: var(--profile-tab-nav-bg, var(--app-surface-bg, #fff));
     border-radius: 16rpx;
     overflow: hidden;
 }
@@ -742,7 +742,7 @@ export default {
 .skeleton-tab-item {
     flex: 1;
     height: 80rpx;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
     margin: 1rpx;
 }
 
@@ -751,16 +751,16 @@ export default {
 }
 
 .skeleton-post-item {
-    background: #fff;
+    background: var(--app-surface-bg, #fff);
     margin-bottom: 20rpx;
-    border-bottom: 1rpx solid #f0f0f0;
+    border-bottom: 1rpx solid var(--app-border-color, #f0f0f0);
 }
 
 .skeleton-post-time {
     height: 24rpx;
     width: 120rpx;
     border-radius: 12rpx;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
     margin: 20rpx 40rpx;
 }
 
@@ -770,7 +770,7 @@ export default {
 }
 
 .skeleton-detail-wrapper {
-    background: #fff;
+    background: var(--app-surface-bg, #fff);
     padding: 30rpx;
     border-radius: 16rpx;
     margin-bottom: 30rpx;
@@ -780,12 +780,12 @@ export default {
     height: 36rpx;
     width: 150rpx;
     border-radius: 8rpx;
-    background: #f0f0f0;
+    background: var(--app-subtle-surface-bg, #f0f0f0);
     margin-bottom: 20rpx;
 }
 
 .skeleton-comment-list {
-    background: #fff;
+    background: var(--app-surface-bg, #fff);
     padding: 20rpx 30rpx;
     border-radius: 16rpx;
 }
@@ -793,7 +793,7 @@ export default {
 .skeleton-comment-item {
     display: flex;
     padding: 20rpx 0;
-    border-bottom: 1rpx solid #f5f5f5;
+    border-bottom: 1rpx solid var(--app-border-color, #f5f5f5);
 }
 
 .skeleton-comment-item:last-child {

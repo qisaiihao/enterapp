@@ -3012,6 +3012,10 @@ export default {
 
   height: 90rpx;
 
+  filter: var(--app-add-action-icon-filter, none);
+
+  opacity: var(--app-add-action-icon-opacity, 1);
+
 }
 
 .empty-state { text-align: center; padding: 100rpx 0; color: var(--app-muted-text, #999); }

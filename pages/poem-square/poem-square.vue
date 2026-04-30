@@ -1682,8 +1682,9 @@ export default {
   width: 332rpx;
   padding: 24rpx;
   border-radius: 20rpx;
-  background: #ffffff;
-  box-shadow: 0 16rpx 40rpx rgba(0, 0, 0, 0.12);
+  background: var(--app-elevated-bg, #ffffff);
+  box-shadow: var(--app-surface-shadow, 0 16rpx 40rpx rgba(0, 0, 0, 0.12));
+  border: var(--app-surface-border-line, none);
   box-sizing: border-box;
 }
 
@@ -1691,10 +1692,10 @@ export default {
   min-width: 92rpx;
   padding: 10rpx 18rpx;
   border-radius: 999rpx;
-  background: #f1efed;
+  background: var(--app-subtle-surface-bg, #f1efed);
   font-size: 24rpx;
   line-height: 34rpx;
-  color: #5a524e;
+  color: var(--app-secondary-text, #5a524e);
   text-align: center;
   box-sizing: border-box;
 }
@@ -1704,7 +1705,7 @@ export default {
 }
 
 .poem-filter-option--active {
-  background: #6d6565;
+  background: var(--app-accent-color, #6d6565);
   color: #ffffff;
 }
 
@@ -1742,13 +1743,15 @@ export default {
   width: 100%;
   height: 100%;
   display: block;
+  filter: var(--app-activity-entry-icon-filter, none);
+  opacity: var(--app-activity-entry-icon-opacity, 1);
 }
 
 .activity-entry-text {
   margin-top: -4rpx;
   font-size: 22rpx;
   line-height: 1.2;
-  color: #9b9b9b;
+  color: var(--app-activity-entry-text-color, #9b9b9b);
   text-align: center;
 }
 

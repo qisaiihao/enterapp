@@ -1311,7 +1311,7 @@ export default {
 .user-profile-page-root {
     position: relative;
     min-height: 100vh;
-    background-color: #ffffff;
+    background-color: var(--app-page-bg, #ffffff);
 }
 
 .user-profile-page-root--with-background {
@@ -1342,7 +1342,7 @@ export default {
 
 .container {
     min-height: 100vh;
-    background-color: #ffffff;
+    background-color: var(--app-page-bg, #ffffff);
     position: relative;
     z-index: 2;
 }
@@ -1355,7 +1355,7 @@ export default {
 .main-content {
     width: 100%;
     min-height: 100vh;
-    background-color: #ffffff;
+    background-color: var(--app-page-bg, #ffffff);
 }
 
 .main-content--with-background {
@@ -1401,7 +1401,7 @@ export default {
 }
 
 .profile-body-shell--with-background {
-    background-color: #ffffff;
+    background-color: var(--app-page-bg, #ffffff);
     border-radius: 36rpx 36rpx 0 0;
     padding-top: 24rpx;
     box-shadow: 0 -10rpx 28rpx rgba(0, 0, 0, 0.04);
@@ -1411,9 +1411,10 @@ export default {
 .profile-card {
     margin: 30rpx;
     padding: 40rpx;
-    background-color: #fff;
+    background-color: var(--profile-empty-surface-bg, var(--app-surface-bg, #fff));
     border-radius: 16rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    box-shadow: var(--profile-empty-surface-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
+    border: var(--profile-empty-surface-border, none);
     display: flex;
     align-items: flex-start;
     transition: box-shadow 0.2s ease;
@@ -1464,7 +1465,7 @@ export default {
     font-weight: 600;
     font-size: 30rpx;
     line-height: 36rpx;
-    color: var(--user-profile-name-color, #000000);
+    color: var(--user-profile-name-color, var(--profile-name-color, #000000));
     margin-bottom: 20rpx;
     text-align: left;
 }
@@ -1474,7 +1475,7 @@ export default {
     font-weight: 300;
     font-size: 20rpx;
     line-height: 24rpx;
-    color: var(--user-profile-poemid-color, #989090);
+    color: var(--user-profile-poemid-color, var(--profile-poemid-color, #989090));
     margin-bottom: 20rpx;
 }
 
@@ -1483,7 +1484,7 @@ export default {
     font-weight: 600;
     font-size: 24rpx;
     line-height: 30rpx;
-    color: var(--user-profile-bio-color, #000000);
+    color: var(--user-profile-bio-color, var(--profile-bio-color, #000000));
     text-align: left;
     margin-bottom: 20rpx;
 }
@@ -1507,31 +1508,30 @@ export default {
     font-weight: 400;
     font-size: 24rpx;
     line-height: 30rpx;
-    color: var(--user-profile-meta-color, #666666);
+    color: var(--user-profile-meta-color, var(--profile-meta-color, #666666));
 }
 
 .follow-btn {
-    padding: 6rpx 24rpx;
-    background-color: var(--user-profile-pill-bg, #d9d9d9);
-    color: var(--user-profile-pill-text, #000000);
-    border: var(--user-profile-pill-border, 1rpx solid transparent);
-    box-shadow: var(--user-profile-pill-shadow, none);
-    border-radius: 15rpx;
-    font-size: 24rpx;
-    font-weight: 500;
-    min-width: 80rpx;
+    padding: 0 28rpx;
+    height: 60rpx;
+    line-height: 60rpx;
+    background-color: #4a4a4a;
+    color: #ffffff;
+    border: none;
+    border-radius: 999rpx;
+    font-size: 26rpx;
+    flex-shrink: 0;
+    min-width: 96rpx;
 }
 
 .follow-btn.following {
-    background-color: var(--user-profile-muted-pill-bg, #f0f0f0);
-    color: var(--user-profile-muted-pill-text, #666666);
-    border: var(--user-profile-muted-pill-border, 1rpx solid transparent);
+    background-color: var(--app-subtle-surface-bg, #f0f0f0);
+    color: var(--app-secondary-text, #666666);
 }
 
 .follow-btn.mutual {
-    background-color: var(--user-profile-muted-pill-bg, #f0f0f0);
-    color: var(--user-profile-muted-pill-text, #666666);
-    border: var(--user-profile-muted-pill-border, 1rpx solid #d9d9d9);
+    background-color: var(--app-subtle-surface-bg, #f0f0f0);
+    color: var(--app-secondary-text, #666666);
 }
 
 .follow-btn::after {
@@ -1543,21 +1543,22 @@ export default {
 }
 
 .block-btn {
-    padding: 6rpx 24rpx;
-    background-color: var(--user-profile-muted-pill-bg, #f5f5f5);
-    color: var(--user-profile-muted-pill-text, #666666);
-    border: var(--user-profile-muted-pill-border, 1rpx solid #e0e0e0);
-    box-shadow: var(--user-profile-pill-shadow, none);
-    border-radius: 15rpx;
-    font-size: 24rpx;
-    font-weight: 500;
-    min-width: 80rpx;
+    padding: 0 28rpx;
+    height: 60rpx;
+    line-height: 60rpx;
+    background-color: var(--app-subtle-surface-bg, #f5f5f5);
+    color: var(--app-secondary-text, #666666);
+    border: 1rpx solid var(--app-border-color, #e0e0e0);
+    border-radius: 999rpx;
+    font-size: 26rpx;
+    flex-shrink: 0;
+    min-width: 96rpx;
 }
 
 .block-btn.blocked {
-    background-color: var(--user-profile-accent-pill-bg, #ffebee);
-    color: var(--user-profile-accent-pill-text, #c62828);
-    border: var(--user-profile-accent-pill-border, 1rpx solid #ef9a9a);
+    background-color: var(--user-profile-accent-pill-bg, rgba(255, 92, 92, 0.14));
+    color: var(--user-profile-accent-pill-text, #ff6b6b);
+    border: var(--user-profile-accent-pill-border, 1rpx solid rgba(255, 92, 92, 0.38));
 }
 
 .block-btn::after {
@@ -1573,18 +1574,18 @@ export default {
     padding: 8rpx 20rpx;
     border-radius: 20rpx;
     font-size: 22rpx;
-    background-color: var(--user-profile-muted-pill-bg, #f0f0f0);
-    color: var(--user-profile-muted-pill-text, #666666);
-    border: var(--user-profile-muted-pill-border, none);
+    background-color: var(--app-subtle-surface-bg, #f0f0f0);
+    color: var(--app-secondary-text, #666666);
+    border: 1rpx solid var(--app-border-color, transparent);
 }
 
 .followed-indicator {
     padding: 8rpx 20rpx;
     border-radius: 20rpx;
     font-size: 22rpx;
-    background-color: var(--user-profile-accent-pill-bg, #f0f8ff);
-    color: var(--user-profile-accent-pill-text, #007aff);
-    border: var(--user-profile-accent-pill-border, none);
+    background-color: var(--app-subtle-surface-bg, #f0f8ff);
+    color: var(--app-secondary-text, #007aff);
+    border: 1rpx solid var(--app-border-color, transparent);
 }
 
 /* 帖子部分 */
@@ -1595,13 +1596,13 @@ export default {
 .section-title {
     font-size: 32rpx;
     font-weight: bold;
-    color: #333;
+    color: var(--app-primary-text, #333);
     margin-bottom: 20rpx;
     padding: 0 10rpx;
 }
 
 .post-card {
-    background: #fff;
+    background: var(--app-surface-bg, #fff);
     border-radius: 16rpx;
     box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
     margin-bottom: 20rpx;
@@ -1622,7 +1623,7 @@ export default {
 .post-title {
     font-size: 32rpx;
     font-weight: bold;
-    color: #333;
+    color: var(--app-post-title-color, #333);
     line-height: 1.4;
     word-break: break-word;
     overflow: hidden;
@@ -1641,7 +1642,7 @@ export default {
 
 .image-swiper {
     width: 100%;
-    background-color: #fff;
+    background-color: var(--app-subtle-surface-bg, #fff);
     border-radius: 12rpx;
     overflow: hidden;
 }
@@ -1656,7 +1657,7 @@ export default {
 
 .post-content {
     font-size: 28rpx;
-    color: #666;
+    color: var(--app-post-content-color, #666);
     line-height: 1.5;
     margin: 15rpx 0;
     word-break: break-word;
@@ -1674,7 +1675,7 @@ export default {
     align-items: center;
     margin-top: 20rpx;
     padding-top: 20rpx;
-    border-top: 1rpx solid #f0f0f0;
+    border-top: 1rpx solid var(--app-border-color, #f0f0f0);
 }
 
 .post-stats {
@@ -1685,31 +1686,32 @@ export default {
 
 .stat-item {
     font-size: 26rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 
 .post-time {
     font-size: 24rpx;
-    color: #ccc;
+    color: var(--app-muted-text, #ccc);
 }
 
 .empty-tip {
     text-align: center;
-    color: #bbb;
+    color: var(--profile-empty-text-color, #bbb);
     font-size: 28rpx;
     margin: 40rpx 0;
     padding: 60rpx 0;
-    background-color: #fff;
+    background-color: var(--profile-empty-surface-bg, #fff);
     border-radius: 16rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    box-shadow: var(--profile-empty-surface-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
+    border: var(--profile-empty-surface-border, none);
 }
 
 /* —— 与个人主页统一的切换栏与帖子展示样式 —— */
 .tab-navigation {
     margin: 0 30rpx 20rpx 30rpx;
     display: flex;
-    background: #fff;
-    border: 1rpx solid #fff;
+    background: var(--profile-tab-nav-bg, #fff);
+    border: 1rpx solid var(--profile-tab-nav-border, #fff);
     border-radius: 16rpx;
     overflow: hidden;
 }
@@ -1717,7 +1719,7 @@ export default {
     flex: 1;
     padding: 20rpx 10rpx;
     text-align: center;
-    background: #fff;
+    background: var(--profile-tab-item-bg, #fff);
     transition: all 0.3s ease;
     position: relative;
     display: flex;
@@ -1732,50 +1734,51 @@ export default {
     transform: translateX(-50%);
     width: 200rpx;
     height: 6rpx;
-    background: #333;
+    background: var(--profile-tab-indicator-color, #333);
     border-radius: 3rpx;
 }
-.tab-item:active { background: #f5f5f5; }
-.tab-icon { width: 110rpx; height: 110rpx; filter: grayscale(1) brightness(0.5); opacity: 0.7; }
-.tab-item.active .tab-icon { filter: grayscale(0) brightness(1); opacity: 1; }
+.tab-item:active { background: var(--profile-tab-item-active-bg, #f5f5f5); }
+.tab-icon { width: 110rpx; height: 110rpx; filter: var(--profile-tab-icon-filter, grayscale(1) brightness(0.5)); opacity: var(--profile-tab-icon-opacity, 0.7); }
+.tab-item.active .tab-icon { filter: var(--profile-tab-icon-active-filter, grayscale(0) brightness(1)); opacity: var(--profile-tab-icon-active-opacity, 1); }
 
 .my-posts-section, .portfolio-section, .favorites-section { margin: 0 0 30rpx 0; }
 
-.post-item-wrapper { background: #fff; margin-bottom: 20rpx; padding: 0; box-shadow: none; border-radius: 0; border-bottom: 1rpx solid #f0f0f0; }
-.post-item-wrapper.original-post { background: linear-gradient(90deg, rgba(235,200,141,0.05) 0%, rgba(255,255,255,0) 100%); border-left: 3rpx solid #ebc88d; position: relative; }
+.post-item-wrapper { background: var(--app-post-wrapper-bg, var(--app-surface-bg, #fff)); margin-bottom: 20rpx; padding: 0; box-shadow: none; border-radius: 0; border-bottom: var(--app-post-wrapper-divider, 1rpx solid #f0f0f0); }
+.post-item-wrapper.original-post { background: var(--app-post-original-bg, linear-gradient(90deg, rgba(235,200,141,0.05) 0%, rgba(255,255,255,0) 100%)); border-left: 3rpx solid var(--app-post-original-accent-color, #ebc88d); position: relative; }
 .post-content-navigator { display: block; background: transparent; }
-.navigator-hover { background-color: rgba(0,0,0,0.02); }
+.navigator-hover { background-color: var(--app-subtle-surface-bg, rgba(0,0,0,0.02)); }
 
-.author-info-outside { display: flex; align-items: flex-start; padding: 20rpx 40rpx 10rpx 40rpx; background: #fff; }
-.author-info-outside .author-avatar { width: 60rpx; height: 60rpx; border-radius: 50%; margin-right: 15rpx; background-color: #f5f5f5; }
-.author-info-outside .author-name { font-size: 28rpx; color: #333; font-weight: 500; }
+.author-info-outside { display: flex; align-items: flex-start; padding: 20rpx 40rpx 10rpx 40rpx; background: var(--app-surface-bg, #fff); }
+.author-info-outside .author-avatar { width: 60rpx; height: 60rpx; border-radius: 50%; margin-right: 15rpx; background-color: var(--app-subtle-surface-bg, #f5f5f5); }
+.author-info-outside .author-name { font-size: 28rpx; color: var(--app-post-author-color, #333); font-weight: 500; }
 
-.post-item { width: 100%; background: #fff; border-radius: 0; box-shadow: none; box-sizing: border-box; padding: 20rpx 40rpx 30rpx 40rpx; }
-.post-title { font-size: 36rpx; font-weight: bold; color: #333333; margin-bottom: 15rpx; line-height: 1.4; word-break: break-word; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
-.poem-author { font-size: 32rpx; color: #000; text-align: center; margin: 5rpx 0 15rpx 0; letter-spacing: 2rpx; }
+.post-item { width: 100%; background: var(--app-surface-bg, #fff); border-radius: 0; box-shadow: none; box-sizing: border-box; padding: 20rpx 40rpx 30rpx 40rpx; }
+.post-title { font-size: 36rpx; font-weight: bold; color: var(--app-post-title-color, #333333); margin-bottom: 15rpx; line-height: 1.4; word-break: break-word; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
+.poem-author { font-size: 32rpx; color: var(--app-post-poem-author-color, #000); text-align: center; margin: 5rpx 0 15rpx 0; letter-spacing: 2rpx; }
 
-.image-container-wrapper { position: relative; width: 100%; background-color: #f0f0f0; overflow: hidden; border-radius: 8px; margin: 20rpx 0; }
+.image-container-wrapper { position: relative; width: 100%; background-color: var(--app-subtle-surface-bg, #f0f0f0); overflow: hidden; border-radius: 8px; margin: 20rpx 0; }
 .image-container-wrapper .post-image, .image-container-wrapper .image-swiper { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-.image-swiper { width: 100%; background-color: #fff; }
+.image-swiper { width: 100%; background-color: var(--app-subtle-surface-bg, #fff); }
 .post-image { width: 100%; height: 100%; display: block; object-fit: contain; }
 
-.post-content { font-size: 28rpx; color: #666666; line-height: 1.6; margin-top: 15rpx; word-break: break-word; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; }
+.post-content { font-size: 28rpx; color: var(--app-post-content-color, #666666); line-height: 1.6; margin-top: 15rpx; word-break: break-word; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; }
 .delete-section { display: flex; justify-content: space-between; align-items: center; margin-top: 20rpx; padding: 0 40rpx 0 40rpx; }
-.time-left .post-time { font-size: 24rpx; color: #999; }
+.time-left .post-time { font-size: 24rpx; color: var(--app-post-time-color, #999); }
 .post-tags { margin-top: 30rpx; margin-bottom: 10rpx; line-height: 1.5; }
-.post-tag { color: #24375f; font-size: 26rpx; margin-right: 10rpx; transition: all 0.2s ease; }
-.loading-footer { text-align: center; padding: 20rpx 0; color: #999; font-size: 14px; }
+.post-tag { color: var(--app-post-tag-color, #24375f); font-size: 26rpx; margin-right: 10rpx; transition: all 0.2s ease; }
+.loading-footer { text-align: center; padding: 20rpx 0; color: var(--profile-loading-footer-color, #999); font-size: 14px; }
 
 /* 作品集样式 */
 .loading-tip {
     text-align: center;
-    color: #999;
+    color: var(--profile-loading-footer-color, #999);
     font-size: 28rpx;
     margin: 40rpx 0;
     padding: 60rpx 0;
-    background-color: #fff;
+    background-color: var(--profile-empty-surface-bg, #fff);
     border-radius: 16rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    box-shadow: var(--profile-empty-surface-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
+    border: var(--profile-empty-surface-border, none);
 }
 
 
@@ -1783,15 +1786,16 @@ export default {
 .profile-detail-card {
     margin: 0 30rpx 20rpx 30rpx;
     padding: 20rpx 24rpx;
-    background: #fff;
+    background: var(--profile-empty-surface-bg, #fff);
     border-radius: 16rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    box-shadow: var(--profile-empty-surface-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
+    border: var(--profile-empty-surface-border, none);
     display: flex;
     flex-wrap: wrap;
     gap: 16rpx 24rpx;
 }
 .detail-item-inline {
-    color: #666;
+    color: var(--app-secondary-text, #666);
     font-size: 28rpx;
     margin-right: 24rpx;
 }
@@ -1821,7 +1825,7 @@ export default {
 .growth-count {
     font-size: 30rpx;
     font-weight: 600;
-    color: var(--user-profile-meta-color, #333333);
+    color: var(--user-profile-meta-color, var(--profile-meta-color, #333333));
 }
 
 /* 加载提示样式 */
@@ -1830,7 +1834,7 @@ export default {
     justify-content: center;
     align-items: center;
     padding: 60rpx 40rpx;
-    color: #999;
+    color: var(--profile-loading-footer-color, #999);
     font-size: 28rpx;
 }
 
@@ -1839,7 +1843,7 @@ export default {
     justify-content: center;
     align-items: center;
     padding: 60rpx 40rpx;
-    color: #666;
+    color: var(--profile-empty-text-color, #666);
     font-size: 28rpx;
 }
 </style>

@@ -179,21 +179,22 @@ export default {
 <style scoped>
 .activity-list-page {
   min-height: 100vh;
-  background: #f5f6f8;
+  background: var(--app-page-bg, #f5f6f8);
   padding: 24rpx;
   box-sizing: border-box;
+  color: var(--app-primary-text, #333);
 }
 
 .state-box {
   padding: 140rpx 40rpx;
   text-align: center;
-  color: #999;
+  color: var(--app-muted-text, #999);
 }
 
 .state-title {
   display: block;
   font-size: 32rpx;
-  color: #333;
+  color: var(--app-primary-text, #333);
   margin-bottom: 16rpx;
 }
 
@@ -209,16 +210,17 @@ export default {
 }
 
 .activity-card {
-  background: #fff;
+  background: var(--app-surface-bg, #fff);
   border-radius: 20rpx;
   overflow: hidden;
-  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.05);
+  box-shadow: var(--app-surface-shadow, 0 8rpx 24rpx rgba(0, 0, 0, 0.05));
+  border: var(--app-surface-border-line, none);
 }
 
 .activity-cover {
   width: 100%;
   height: 260rpx;
-  background: #eceff3;
+  background: var(--app-subtle-surface-bg, #eceff3);
 }
 
 .activity-cover.placeholder {
@@ -229,7 +231,7 @@ export default {
 
 .placeholder-text {
   font-size: 36rpx;
-  color: #9aa3ad;
+  color: var(--app-muted-text, #9aa3ad);
 }
 
 .activity-content {
@@ -246,7 +248,7 @@ export default {
 .activity-title {
   font-size: 32rpx;
   font-weight: 600;
-  color: #222;
+  color: var(--app-primary-text, #222);
   flex: 1;
 }
 
@@ -262,15 +264,15 @@ export default {
 }
 
 .status-tag.ended {
-  background: #f2f4f7;
-  color: #667085;
+  background: var(--app-subtle-surface-bg, #f2f4f7);
+  color: var(--app-secondary-text, #667085);
 }
 
 .activity-summary {
   display: block;
   margin-top: 14rpx;
   font-size: 26rpx;
-  color: #666;
+  color: var(--app-secondary-text, #666);
   line-height: 1.5;
 }
 
@@ -283,12 +285,12 @@ export default {
 
 .meta-text {
   font-size: 24rpx;
-  color: #8a8a8a;
+  color: var(--app-muted-text, #8a8a8a);
 }
 
 .footer-tip {
   text-align: center;
-  color: #999;
+  color: var(--app-muted-text, #999);
   font-size: 24rpx;
   padding: 28rpx 0 20rpx;
 }

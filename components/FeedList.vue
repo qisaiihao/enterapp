@@ -274,6 +274,11 @@ export default {
     background-color: var(--app-page-bg, #ffffff);
 }
 
+.feed-list-scroll :deep(.skeleton-wrapper) {
+    min-height: 100%;
+    padding-top: 0;
+}
+
 .empty-state {
     display: flex;
     flex-direction: column;

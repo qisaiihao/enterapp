@@ -834,7 +834,8 @@ export default {
 <style>
 .portfolio-page {
   min-height: 100vh;
-  background: #fff;
+  background: var(--app-page-bg, #fff);
+  color: var(--app-primary-text, #111111);
   display: flex;
   flex-direction: column;
   /* #ifdef APP-PLUS */
@@ -855,7 +856,7 @@ export default {
 .loading {
   text-align: center;
   padding: 60rpx 0;
-  color: #666;
+  color: var(--app-muted-text, #666);
   font-size: 28rpx;
 }
 
@@ -869,18 +870,19 @@ export default {
   height: 120rpx;
   margin-bottom: 30rpx;
   opacity: 0.5;
+  filter: var(--app-icon-filter, none);
 }
 
 .empty-text {
   font-size: 32rpx;
-  color: #333;
+  color: var(--app-primary-text, #333);
   margin-bottom: 20rpx;
   display: block;
 }
 
 .empty-subtext {
   font-size: 28rpx;
-  color: #666;
+  color: var(--app-muted-text, #666);
   display: block;
 }
 
@@ -936,13 +938,13 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1rpx solid #f0f0f0;
+  border-bottom: 1rpx solid var(--app-border-color, #f0f0f0);
   width: 100%;
   box-sizing: border-box;
   margin-right: 0;
   padding-right: 0;
   position: relative;
-  background-color: #ffffff;
+  background-color: var(--app-page-bg, #ffffff);
   z-index: 2;
   transition: transform 0.3s ease;
 }
@@ -961,7 +963,7 @@ export default {
 .folder-icon {
   width: 88rpx;
   height: 88rpx;
-  background: #FFFFFF;
+  background: var(--app-subtle-surface-bg, #FFFFFF);
   border-radius: 20rpx;
   display: flex;
   align-items: center;
@@ -979,6 +981,7 @@ export default {
 .folder-default-icon-img {
   width: 60rpx;
   height: 60rpx;
+  filter: var(--app-icon-filter, none);
 }
 
 .folder-info {
@@ -990,19 +993,19 @@ export default {
 .folder-name {
   font-size: 32rpx;
   font-weight: 600;
-  color: #333;
+  color: var(--app-primary-text, #333);
 }
 
 .folder-count {
   font-size: 26rpx;
-  color: #666;
+  color: var(--app-muted-text, #666);
 }
 
 
 .load-more {
   text-align: center;
   padding: 40rpx 0;
-  color: #666;
+  color: var(--app-muted-text, #666);
   font-size: 28rpx;
 }
 
@@ -1021,7 +1024,9 @@ export default {
 }
 
 .modal-content {
-  background: #fff;
+  background: var(--app-elevated-bg, #fff);
+  border: 1rpx solid var(--app-border-color, transparent);
+  box-shadow: var(--app-surface-shadow, 0 10rpx 30rpx rgba(0, 0, 0, 0.12));
   border-radius: 20rpx;
   width: 600rpx;
   padding: 0;
@@ -1032,18 +1037,18 @@ export default {
   align-items: center;
   justify-content: space-between;
   padding: 40rpx 40rpx 30rpx;
-  border-bottom: 1rpx solid #f0f0f0;
+  border-bottom: 1rpx solid var(--app-border-color, #f0f0f0);
 }
 
 .modal-title {
   font-size: 32rpx;
   font-weight: 600;
-  color: #333;
+  color: var(--app-primary-text, #333);
 }
 
 .close-btn {
   font-size: 40rpx;
-  color: #999;
+  color: var(--app-muted-text, #999);
   width: 60rpx;
   height: 60rpx;
   display: flex;
@@ -1058,11 +1063,12 @@ export default {
 .folder-name-input {
   width: 100%;
   height: 80rpx;
-  border: 2rpx solid #e9ecef;
+  border: 2rpx solid var(--app-border-color, #e9ecef);
   border-radius: 12rpx;
   padding: 0 20rpx;
   font-size: 28rpx;
-  color: #333;
+  color: var(--app-primary-text, #333);
+  background: var(--app-subtle-surface-bg, #ffffff);
   box-sizing: border-box;
 }
 
@@ -1086,16 +1092,16 @@ export default {
 }
 
 .modal-btn.outline {
-  background: #FFFFFF;
-  color: #000000;
-  border: 2rpx solid #000000;
+  background: var(--app-elevated-bg, #FFFFFF);
+  color: var(--app-primary-text, #000000);
+  border: 2rpx solid var(--app-primary-text, #000000);
   font-weight: 400;
 }
 
 .modal-btn.outline[disabled] {
-  background: #FFFFFF;
-  color: #ccc;
-  border: 2rpx solid #ccc;
+  background: var(--app-elevated-bg, #FFFFFF);
+  color: var(--app-muted-text, #ccc);
+  border: 2rpx solid var(--app-muted-text, #ccc);
 }
 
 /* 封面上传样式 */
@@ -1114,7 +1120,7 @@ export default {
 
 .form-label {
   font-size: 26rpx;
-  color: #333333;
+  color: var(--app-primary-text, #333333);
   font-weight: 500;
 }
 
@@ -1127,13 +1133,13 @@ export default {
 .cover-upload-btn {
   width: 200rpx;
   height: 200rpx;
-  border: 2rpx dashed #e0e0e0;
+  border: 2rpx dashed var(--app-border-color, #e0e0e0);
   border-radius: 12rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #f8f9fa;
+  background: var(--app-subtle-surface-bg, #f8f9fa);
 }
 
 .upload-icon-img {
@@ -1141,11 +1147,12 @@ export default {
   height: 48rpx;
   margin-bottom: 8rpx;
   opacity: 0.6;
+  filter: var(--app-icon-filter, none);
 }
 
 .upload-text {
   font-size: 24rpx;
-  color: #666;
+  color: var(--app-secondary-text, #666);
 }
 
 .cover-preview {

@@ -18,6 +18,8 @@
 <script>
 import { lightImpact } from '@/utils/haptics.js';
 
+const DARK_TAB_ICON_VERSION = '20260429-toned-white';
+
 export default {
     data() {
         return {
@@ -90,11 +92,20 @@ export default {
         resolveIconPath(item, index) {
             const isSelected = this.selected === index;
             if (this.appThemeMode === 'dark') {
-                return isSelected
+                const iconPath = isSelected
                     ? (item.darkSelectedIconPath || item.darkIconPath || item.selectedIconPath || item.iconPath)
                     : (item.darkIconPath || item.iconPath);
+                return this.withDarkIconVersion(iconPath);
             }
             return isSelected ? (item.selectedIconPath || item.iconPath) : item.iconPath;
+        },
+        withDarkIconVersion(iconPath) {
+            if (!iconPath || iconPath.indexOf('/static/images/tab-dark/') !== 0) return iconPath;
+            // #ifdef H5
+            const separator = iconPath.indexOf('?') >= 0 ? '&' : '?';
+            return `${iconPath}${separator}v=${DARK_TAB_ICON_VERSION}`;
+            // #endif
+            return iconPath;
         },
         syncSelected(options = {}) {
             const { preferCache = false } = options;

@@ -143,7 +143,11 @@
                         </view>
                         <view class="button-group">
                             <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="post && post._id ? post._id : ''">
-                                <image class="like-icon" :src="post.likeIcon" mode="aspectFit"></image>
+                                <image
+                                    :class="['like-icon', post && post.isVoted ? 'like-icon--voted' : '']"
+                                    :src="post.likeIcon"
+                                    mode="aspectFit"
+                                ></image>
                             </view>
                             <!-- 作品集按钮 - 只有原创诗且是自己的帖子才显示 -->
                             <view v-if="post.isOriginal && post.isPoem && isOwnPost" class="portfolio-icon-container" @tap.stop.prevent="onAddToPortfolio">
@@ -3289,15 +3293,19 @@ export default {
     height: 38rpx;
     display: block;
     object-fit: contain;
+    filter: var(--app-icon-filter, none);
 }
 
 /* 确保 page 元素有高度 */
 page {
     height: 100vh;
+    background-color: var(--app-page-bg, #ffffff);
+    color: var(--app-primary-text, #111111);
 }
 
 .container {
-    background-color: #ffffff;
+    background-color: var(--app-page-bg, #ffffff);
+    color: var(--app-primary-text, #111111);
     /* min-height: 100vh; */
     padding-bottom: 140rpx;
     padding-top: calc(160rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px))); /* 添加安全区域上边距 */
@@ -3314,18 +3322,18 @@ page {
 }
 
 .skeleton-wrapper {
-    background: #fff;
+    background: var(--app-surface-bg, #fff);
     padding: 40rpx 40rpx 20rpx 40rpx;
-    border-bottom: 1rpx solid #f0f0f0;
+    border-bottom: 1rpx solid var(--app-border-color, #f0f0f0);
     margin-bottom: 0;
 }
 
 .comment-skeleton-item {
     display: flex;
     align-items: flex-start;
-    background-color: #fff;
+    background-color: var(--app-surface-bg, #fff);
     padding: 20rpx 40rpx;
-    border-bottom: 1rpx solid #f5f5f5;
+    border-bottom: 1rpx solid var(--app-border-color, #f5f5f5);
 }
 
 .skeleton-header {
@@ -3398,7 +3406,7 @@ page {
 .comment-skeleton-item {
     display: flex;
     align-items: flex-start;
-    background-color: #fff;
+    background-color: var(--app-surface-bg, #fff);
     border-radius: 16rpx;
     padding: 24rpx;
     box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
@@ -3455,25 +3463,25 @@ page {
 
 .error-text {
     font-size: 32rpx;
-    color: #666;
+    color: var(--app-secondary-text, #666);
 }
 
 .post-detail-wrapper {
-    background: #fff;
+    background: var(--app-post-wrapper-bg, #fff);
     padding: 40rpx 40rpx 20rpx 40rpx;
-    border-bottom: 1rpx solid #f0f0f0;
+    border-bottom: var(--app-post-wrapper-divider, 1rpx solid #f0f0f0);
     margin-bottom: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
 }
 
 .post-detail-wrapper.original-post {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 90%, rgba(235, 200, 141, 0.05) 95%, rgba(235, 200, 141, 0.08) 100%);
+    background: var(--app-post-original-bg, linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 90%, rgba(235, 200, 141, 0.05) 95%, rgba(235, 200, 141, 0.08) 100%));
     border-left: 3rpx solid #ebc88d;
     position: relative;
 }
 
 .post-detail-wrapper.poem-post {
-    background: #ffffff !important;
+    background: var(--app-post-wrapper-bg, #ffffff) !important;
 }
 
 .author-info {
@@ -3514,8 +3522,8 @@ page {
 }
 
 .follow-btn.following {
-    background-color: #f0f0f0;
-    color: #666666;
+    background-color: var(--app-subtle-surface-bg, #f0f0f0);
+    color: var(--app-secondary-text, #666666);
 }
 
 .follow-btn::after {
@@ -3531,7 +3539,7 @@ page {
     height: 60rpx;
     border-radius: 50%;
     margin-right: 15rpx;
-    background-color: #f5f5f5;
+    background-color: var(--app-subtle-surface-bg, #f5f5f5);
     pointer-events: auto;
     cursor: pointer;
     z-index: 10;
@@ -3541,7 +3549,7 @@ page {
 .author-name {
     font-weight: bold;
     font-size: 28rpx;
-    color: #333;
+    color: var(--app-post-author-color, #333);
 }
 
 .post-title {
@@ -3549,7 +3557,7 @@ page {
     font-weight: bold;
     margin-bottom: 15rpx;
     line-height: 1.4;
-    color: #333;
+    color: var(--app-post-title-color, #333);
     word-break: break-word;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -3561,7 +3569,7 @@ page {
 
 .poem-author {
     font-size: 28rpx;
-    color: #333;
+    color: var(--app-post-poem-author-color, #333);
     text-align: left;
     margin: 10rpx 0 15rpx 0;
     font-weight: bold;
@@ -3577,7 +3585,7 @@ page {
     line-height: 1.6;
     margin-bottom: 20rpx;
     white-space: pre-wrap;
-    color: #666;
+    color: var(--app-post-content-color, #666);
     word-break: break-word;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
 }
@@ -3586,14 +3594,14 @@ page {
     position: relative;
     width: 100%;
     margin: 20rpx 0;
-    background-color: #f5f5f5;
+    background-color: var(--app-subtle-surface-bg, #f5f5f5);
 }
 
 .post-image {
     width: 100%;
     height: auto;
     display: block;
-    background-color: #f5f5f5;
+    background-color: var(--app-subtle-surface-bg, #f5f5f5);
     transition: transform 0.3s ease;
 }
 
@@ -3605,7 +3613,7 @@ page {
     width: 100% !important;
     height: auto !important;
     display: block !important;
-    background-color: #f5f5f5;
+    background-color: var(--app-subtle-surface-bg, #f5f5f5);
 }
 
 .image-count-indicator {
@@ -3627,7 +3635,7 @@ page {
 
 .post-time {
     font-size: 24rpx;
-    color: #999;
+    color: var(--app-post-time-color, #999);
     opacity: 0.8;
 }
 
@@ -3649,7 +3657,7 @@ page {
     display: flex;
     align-items: center;
     font-size: 28rpx;
-    color: #999;
+    color: var(--app-post-action-color, #999);
     margin-left: 10rpx;
     transition: color 0.2s ease;
 }
@@ -3709,6 +3717,8 @@ page {
 .portfolio-icon {
     width: 56rpx;
     height: 56rpx;
+    filter: var(--app-post-action-icon-filter, none);
+    opacity: var(--app-post-action-icon-opacity, 1);
 }
 
 .share-icon-container {
@@ -3730,18 +3740,27 @@ page {
 .share-icon {
     width: 56rpx;
     height: 56rpx;
+    filter: var(--app-post-action-icon-filter, none);
+    opacity: var(--app-post-action-icon-opacity, 1);
 }
 
 
 .like-icon {
     width: 56rpx;
     height: 56rpx;
+    filter: var(--app-post-action-icon-filter, none);
+    opacity: var(--app-post-action-icon-opacity, 1);
+}
+
+.like-icon--voted {
+    filter: none;
+    opacity: 1;
 }
 
 .comment-section {
-    background: #fff;
+    background: var(--app-surface-bg, #fff);
     padding: 30rpx 40rpx;
-    border-bottom: 1rpx solid #f0f0f0;
+    border-bottom: 1rpx solid var(--app-border-color, #f0f0f0);
 }
 
 .section-title {
@@ -3749,8 +3768,8 @@ page {
     font-weight: normal;
     margin-bottom: 20rpx;
     padding-bottom: 15rpx;
-    border-bottom: 1rpx solid #f0f0f0;
-    color: #999;
+    border-bottom: 1rpx solid var(--app-border-color, #f0f0f0);
+    color: var(--app-muted-text, #999);
     margin-left: 0;
     text-align: left;
 }
@@ -3774,7 +3793,7 @@ page {
 
 .empty-text {
     font-size: 28rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 
 .input-overlay {
@@ -3799,7 +3818,7 @@ page {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: #ffffff;
+    background-color: var(--app-fixed-bar-bg, #ffffff);
     z-index: 100;
     padding-bottom: constant(safe-area-inset-bottom);
     padding-bottom: env(safe-area-inset-bottom);
@@ -3811,24 +3830,24 @@ page {
     padding: 16rpx 40rpx;
     display: flex;
     align-items: center;
-    border-top: 1rpx solid #f0f0f0;
+    border-top: 1rpx solid var(--app-border-color, #f0f0f0);
 }
 .collapsed-input-placeholder {
     flex: 1;
     height: 68rpx;
     line-height: 68rpx;
     padding: 0 24rpx;
-    background-color: #f7f8fa;
+    background-color: var(--app-subtle-surface-bg, #f7f8fa);
     border-radius: 34rpx;
     font-size: 28rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 
 .expanded-container {
     padding: 20rpx 40rpx;
     display: flex;
     flex-direction: column;
-    border-top: 1rpx solid #f0f0f0;
+    border-top: 1rpx solid var(--app-border-color, #f0f0f0);
 }
 
 .expanded-textarea {
@@ -3838,7 +3857,8 @@ page {
     overflow-y: auto;
     overflow-x: hidden;
     padding: 20rpx 24rpx;
-    background-color: #ffffff;
+    background-color: var(--app-surface-bg, #ffffff);
+    color: var(--app-primary-text, #111111);
     border-radius: 0;
     font-size: 30rpx;
     line-height: 1.6;
@@ -3891,6 +3911,8 @@ page {
 .action-icon-image {
     width: 80rpx;
     height: 80rpx;
+    filter: var(--app-post-action-icon-filter, none);
+    opacity: var(--app-post-action-icon-opacity, 1);
 }
 
 .selected-comment-images {
@@ -3911,7 +3933,7 @@ page {
 .selected-image-thumb {
     width: 100%;
     height: 100%;
-    background-color: #f2f2f2;
+    background-color: var(--app-subtle-surface-bg, #f2f2f2);
     display: block;
 }
 
@@ -3933,7 +3955,7 @@ page {
 .emoji-panel {
     margin-top: 16rpx;
     padding: 20rpx 18rpx;
-    background: #f6f7f9;
+    background: var(--app-subtle-surface-bg, #f6f7f9);
     border-radius: 16rpx;
     display: flex;
     flex-wrap: wrap;
@@ -3954,7 +3976,7 @@ page {
 }
 .reply-prompt-text {
     font-size: 26rpx;
-    color: #666;
+    color: var(--app-secondary-text, #666);
 }
 .cancel-reply .cancel-text {
     font-size: 26rpx;
@@ -3981,6 +4003,8 @@ page {
 .submit-icon {
     width: 80rpx;
     height: 80rpx;
+    filter: var(--app-post-action-icon-filter, none);
+    opacity: var(--app-post-action-icon-opacity, 1);
 }
 .submit-button::after {
     border: none;
@@ -3993,7 +4017,7 @@ page {
 
 .image-swiper {
     width: 100%;
-    background-color: #f0f0f0;
+    background-color: var(--app-subtle-surface-bg, #f0f0f0);
     border-radius: 12rpx;
     overflow: hidden;
 }
@@ -4030,7 +4054,7 @@ page {
 }
 
 .post-tag {
-    color: #24375f;
+    color: var(--app-surface-accent-color, #24375f);
     font-size: 26rpx;
     margin-right: 10rpx;
     transition: all 0.2s ease;
@@ -4068,11 +4092,11 @@ page {
 /* 模式切换样式 */
 .mode-switcher {
     display: flex;
-    background: #f7f8fa;
+    background: var(--app-subtle-surface-bg, #f7f8fa);
     border-radius: 25rpx;
     padding: 6rpx;
     margin-bottom: 20rpx;
-    border: 2rpx solid #e9ecef;
+    border: 2rpx solid var(--app-border-color, #e9ecef);
 }
 
 .mode-item {
@@ -4092,7 +4116,7 @@ page {
 .mode-text {
     font-size: 28rpx;
     font-weight: 500;
-    color: #666;
+    color: var(--app-secondary-text, #666);
     transition: color 0.3s ease;
 }
 
@@ -4104,7 +4128,7 @@ page {
 /* 讨论标题输入样式 */
 .discussion-title-wrapper {
     margin-bottom: 15rpx;
-    border-bottom: 1rpx solid #f0f0f0;
+    border-bottom: 1rpx solid var(--app-border-color, #f0f0f0);
     padding-bottom: 15rpx;
 }
 
@@ -4113,16 +4137,16 @@ page {
     height: 80rpx;
     line-height: 80rpx;
     padding: 0 24rpx;
-    background-color: #ffffff;
-    border: 1rpx solid #e9ecef;
+    background-color: var(--app-surface-bg, #ffffff);
+    border: 1rpx solid var(--app-border-color, #e9ecef);
     border-radius: 12rpx;
     font-size: 30rpx;
-    color: #333;
+    color: var(--app-primary-text, #333);
     box-sizing: border-box;
 }
 
 .discussion-title-input::placeholder {
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 
 /* 讨论类型帖子样式 */
@@ -4135,7 +4159,7 @@ page {
 }
 
 .discussion-sentence-card {
-    background: #f5f5f5; /* 添加灰色背景 */
+    background: var(--app-subtle-surface-bg, #f5f5f5); /* 添加灰色背景 */
     border-radius: 12rpx; /* 添加圆角 */
     padding: 30rpx;
     margin-bottom: 20rpx;
@@ -4163,7 +4187,7 @@ page {
     font-weight: 600;
     font-size: 40rpx;
     line-height: 48rpx;
-    color: #989090;
+    color: var(--app-muted-text, #989090);
     display: block;
     margin-bottom: 8rpx;
     word-wrap: break-word;
@@ -4183,7 +4207,7 @@ page {
     font-weight: 600;
     font-size: 32rpx;
     line-height: 38rpx;
-    color: #000000;
+    color: var(--app-primary-text, #000000);
     margin-top: 20rpx;
     padding: 20rpx 0; /* 移除左右padding，只保留上下padding */
     background: transparent; /* 移除灰色背景 */
@@ -4206,7 +4230,7 @@ page {
     bottom: 0;
     left: 0;
     right: 0;
-    background-color: #ffffff;
+    background-color: var(--app-fixed-bar-bg, #ffffff);
     padding: 20rpx 30rpx;
     padding-bottom: calc(20rpx + constant(safe-area-inset-bottom));
     padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
@@ -4224,17 +4248,17 @@ page {
 .comment-input {
     width: 100%;
     height: 60rpx;
-    background-color: #f5f5f5;
+    background-color: var(--app-subtle-surface-bg, #f5f5f5);
     border-radius: 30rpx;
     padding: 0 30rpx;
     font-size: 28rpx;
-    color: #333;
+    color: var(--app-primary-text, #333);
     border: none;
     box-sizing: border-box;
 }
 
 .comment-input::placeholder {
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 
 .bottom-action-bar .action-icons {
@@ -4259,6 +4283,8 @@ page {
 .bottom-action-bar .action-icon-image {
     width: 60rpx;
     height: 60rpx;
+    filter: var(--app-post-action-icon-filter, none);
+    opacity: var(--app-post-action-icon-opacity, 1);
 }
 
 /* 调整页面底部间距，避免被底部栏遮挡 */
@@ -4288,16 +4314,16 @@ page {
   display: flex; align-items: center; justify-content: center;
 }
 .edit-modal {
-  background: #fff; border-radius: 10px; padding: 24px; width: 80vw; max-width: 400px;
+  background: var(--app-elevated-bg, #fff); color: var(--app-primary-text, #111111); border-radius: 10px; padding: 24px; width: 80vw; max-width: 400px;
   box-shadow: 0 4px 40px #0002;
 }
 .edit-modal-title { font-weight: bold; font-size: 18px; margin-bottom: 12px; }
 .edit-title-input, .edit-content-textarea {
-  width: 100%; margin-bottom: 16px; border: 1px solid #eee; padding: 8px; border-radius: 6px; font-size: 16px;
+  width: 100%; margin-bottom: 16px; border: 1px solid var(--app-border-color, #eee); background: var(--app-surface-bg, #fff); color: var(--app-primary-text, #111111); padding: 8px; border-radius: 6px; font-size: 16px;
 }
 .edit-content-textarea { min-height: 80px; resize: vertical; }
 .edit-modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
-.modal-cancel { background: #eee; }
+.modal-cancel { background: var(--app-subtle-surface-bg, #eee); color: var(--app-primary-text, #111111); }
 .modal-confirm { background: #3797ff; color: #fff; }
 
 /* ========== 过渡动画 ========== */
@@ -4434,7 +4460,7 @@ page {
 .series-poem-subtitle {
     font-size: 28rpx;
     font-weight: 600;
-    color: #666;
+    color: var(--app-secondary-text, #666);
     margin-bottom: 20rpx;
     opacity: 0.8;
 }

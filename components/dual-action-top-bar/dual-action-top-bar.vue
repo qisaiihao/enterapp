@@ -90,11 +90,12 @@ export default {
 .dual-action-top-bar__inner {
   pointer-events: auto;
   position: relative;
-  background: #fff;
+  background: var(--app-fixed-bar-bg, #fff);
+  box-shadow: var(--app-fixed-bar-shadow, none);
 }
 
 .dual-action-top-bar__inner--divider {
-  border-bottom: 1rpx solid #e9ecef;
+  border-bottom: 1rpx solid var(--app-border-color, #e9ecef);
 }
 
 .dual-action-top-bar__title {
@@ -109,7 +110,7 @@ export default {
   pointer-events: none;
   font-size: 36rpx;
   font-weight: 600;
-  color: #333;
+  color: var(--app-primary-text, #333);
 }
 
 .dual-action-top-bar__actions {
@@ -159,6 +160,7 @@ export default {
 .dual-action-top-bar__icon {
   display: block;
   object-fit: contain;
+  filter: var(--app-icon-filter, none);
 }
 
 .dual-action-top-bar__icon--left {

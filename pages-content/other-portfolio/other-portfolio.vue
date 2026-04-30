@@ -56,7 +56,7 @@
               <view class="actions-left"><!-- 预留左侧空间 --></view>
               <view class="button-group">
                 <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="item._id" :data-index="index">
-                  <image class="like-icon" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError" />
+                  <image :class="['like-icon', item.isVoted ? 'like-icon--voted' : '']" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError" />
                 </view>
                 <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
                   <image class="comment-icon" src="/static/images/newicons/comment.png" mode="aspectFit" />
@@ -494,7 +494,8 @@ export default {
 /* 诗歌内容使用汇文明朝字体，其他地方使用系统默认字体 */
 
 .other-portfolio-page {
-  background: #fff;
+  background: var(--app-page-bg, #fff);
+  color: var(--app-primary-text, #111111);
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -530,6 +531,7 @@ export default {
   height: 38rpx;
   display: block;
   object-fit: contain;
+  filter: var(--app-icon-filter, none);
 }
 
 .container {
@@ -561,7 +563,7 @@ export default {
 .empty-state { 
   text-align: center; 
   padding: 100rpx 0; 
-  color: #999; 
+  color: var(--app-muted-text, #999);
 }
 
 .empty-icon { 
@@ -572,12 +574,12 @@ export default {
 .empty-text { 
   font-size: 32rpx; 
   margin-bottom: 10rpx; 
-  color: #666; 
+  color: var(--app-secondary-text, #666);
 }
 
 .empty-subtext { 
   font-size: 24rpx; 
-  color: #999; 
+  color: var(--app-muted-text, #999);
 }
 
 /* poem.css inspired card styles */
@@ -646,6 +648,8 @@ export default {
 .comment-icon { 
   width: 60rpx; 
   height: 60rpx; 
+  filter: var(--app-post-action-icon-filter, none);
+  opacity: var(--app-post-action-icon-opacity, 1);
 }
 
 .vote-section { 
@@ -694,6 +698,13 @@ export default {
   width: 60rpx; 
   height: 60rpx; 
   margin-top: 5px; 
+  filter: var(--app-post-action-icon-filter, none);
+  opacity: var(--app-post-action-icon-opacity, 1);
+}
+
+.like-icon--voted {
+  filter: none;
+  opacity: 1;
 }
 
 /* 用户签名样式 */
@@ -734,7 +745,7 @@ export default {
 
 .loading-footer { 
   text-align: center; 
-  color: #666; 
+  color: var(--app-muted-text, #666);
   padding: 40rpx 0 60rpx; 
   font-size: 28rpx;
 }

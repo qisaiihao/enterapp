@@ -148,7 +148,7 @@ export default {
   align-items: center;
   justify-content: space-between;
   padding: 30rpx;
-  border-bottom: 1rpx solid #f0f0f0;
+  border-bottom: 1rpx solid var(--app-border-color, #f0f0f0);
 }
 
 .user-info {
@@ -163,7 +163,7 @@ export default {
   height: 80rpx;
   border-radius: 50%;
   margin-right: 20rpx;
-  background-color: #f0f0f0;
+  background-color: var(--app-subtle-surface-bg, #f0f0f0);
 }
 
 .info-text {
@@ -175,13 +175,13 @@ export default {
 
 .name {
   font-size: 30rpx;
-  color: #333;
+  color: var(--app-primary-text, #333);
   font-weight: 600;
 }
 
 .bio {
   font-size: 26rpx;
-  color: #999;
+  color: var(--app-muted-text, #999);
   line-height: 1.4;
   white-space: nowrap;
   overflow: hidden;
@@ -208,24 +208,24 @@ export default {
 }
 
 .follow-btn {
-  background-color: #f5f5f5;
-  color: #333;
+  background-color: var(--app-subtle-surface-bg, #f5f5f5);
+  color: var(--app-primary-text, #333);
 }
 
 .unfollow-btn {
-  background-color: #d9d9d9;
-  color: #fff;
+  background-color: var(--app-subtle-surface-bg, #d9d9d9);
+  color: var(--app-primary-text, #fff);
 }
 
 .unblock-btn {
-  background-color: #f5f5f5;
-  color: #333;
+  background-color: var(--app-subtle-surface-bg, #f5f5f5);
+  color: var(--app-primary-text, #333);
 }
 
 .empty {
   margin-top: 200rpx;
   text-align: center;
-  color: #999;
+  color: var(--app-muted-text, #999);
   font-size: 28rpx;
 }
 </style>
