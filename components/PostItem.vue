@@ -701,7 +701,7 @@ export default {
     justify-content: space-between;
     align-items: center;
     margin-top: 20rpx;
-    padding: 0 40rpx 0 40rpx;
+    padding: 0 40rpx 30rpx 40rpx;
     background: var(--app-post-section-bg, transparent);
 }
 
@@ -771,7 +771,7 @@ export default {
 }
 
 .vote-count {
-    margin-left: 10rpx;
+    margin-left: 8rpx;
 }
 
 .actions-left {
@@ -830,7 +830,11 @@ export default {
 }
 
 .vote-count.voted {
-    color: #e74c3c;
+    color: #111111;
+}
+
+[data-app-theme="dark"] .vote-count.voted {
+    color: #ffffff;
 }
 
 .vote-count.vote-changed {

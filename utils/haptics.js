@@ -1,4 +1,9 @@
 function vibrateShortSafe() {
+    // #ifdef APP-HARMONY
+    // 鸿蒙端暂不支持振动API，直接跳过
+    return false;
+    // #endif
+    
     try {
         if (typeof uni !== 'undefined' && typeof uni.vibrateShort === 'function') {
             uni.vibrateShort();
@@ -22,6 +27,11 @@ function vibrateShortSafe() {
 }
 
 function vibrateLongSafe() {
+    // #ifdef APP-HARMONY
+    // 鸿蒙端暂不支持振动API，直接跳过
+    return false;
+    // #endif
+    
     try {
         if (typeof uni !== 'undefined' && typeof uni.vibrateLong === 'function') {
             uni.vibrateLong();

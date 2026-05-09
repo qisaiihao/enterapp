@@ -98,6 +98,7 @@ import { updateTabBarStatus } from '@/utils/tabBarCompatibility.js';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
 import { attachPoemDisplayFields } from '@/utils/poemDisplay.js';
 import { getSystemInfoCompat, getWindowInfoCompat } from '@/utils/system-info.js';
+import { isUserLoggedIn, requireLogin } from '@/utils/authHelper.js';
 
 const PAGE_SIZE = 10;
 
@@ -283,8 +284,8 @@ export default {
         // 动态设置安全区域 - 优先使用safeAreaInsets.top，其次使用statusBarHeight
         let safeAreaTop = 0;
 
-        // #ifdef APP-PLUS
-        // 在app端，优先使用safeAreaInsets.top
+        // #ifdef APP-PLUS || APP-HARMONY
+        // 在app端和鸿蒙端，优先使用safeAreaInsets.top
         if (systemInfo.safeAreaInsets && systemInfo.safeAreaInsets.top > 0) {
           safeAreaTop = systemInfo.safeAreaInsets.top;
           console.log('【mountain】使用safeAreaInsets.top作为安全区域:', safeAreaTop);
@@ -294,7 +295,7 @@ export default {
         }
         // #endif
 
-        // #ifndef APP-PLUS
+        // #ifdef H5
         // 在H5端，使用statusBarHeight
         if (systemInfo.statusBarHeight) {
           safeAreaTop = systemInfo.statusBarHeight;
@@ -316,14 +317,14 @@ export default {
           }
           // #endif
 
-          // #ifdef APP-PLUS
-          // 在app端，通过page的style设置CSS变量
+          // #ifdef APP-PLUS || APP-HARMONY
+          // 在app端和鸿蒙端，通过page的style设置CSS变量
           const pages = getCurrentPages();
           if (pages.length > 0) {
             const currentPage = pages[pages.length - 1];
             if (currentPage && currentPage.$el) {
               currentPage.$el.style.setProperty('--safe-area-top', safeAreaTop + 'px');
-              console.log('【mountain】APP端CSS变量设置成功: --safe-area-top =', safeAreaTop + 'px');
+              console.log('【mountain】APP/鸿蒙端CSS变量设置成功: --safe-area-top =', safeAreaTop + 'px');
             }
           }
           // #endif
@@ -333,7 +334,7 @@ export default {
 
         // 备用方案：直接修改页面根元素样式
         try {
-          // #ifdef APP-PLUS
+          // #ifdef APP-PLUS || APP-HARMONY
           const app = getApp();
           if (app.globalData) {
             app.globalData.safeAreaTop = safeAreaTop;
@@ -517,6 +518,11 @@ export default {
     onLikeIconError() {},
 
     async onVote(e) {
+      // 未登录不能点赞，提示去登录
+      if (!isUserLoggedIn()) {
+        await requireLogin({ content: '点赞需要登录，请先登录' });
+        return;
+      }
       const postId = e.currentTarget.dataset.postid;
       const index = e.currentTarget.dataset.index;
       if (this.votingInProgress[postId]) return;
@@ -623,9 +629,11 @@ export default {
   padding-top: env(safe-area-inset-top, var(--safe-area-inset-top, 44px)); /* 添加状态栏安全区域，备选方案 */
 }
 .square-mode-container {
-  padding: 100rpx;
+  padding-left: 100rpx;
+  padding-right: 100rpx;
+  padding-bottom: 100rpx;
   margin-bottom: 200rpx;
-  padding-top: 250rpx; /* 增加上边距：100rpx(top-bar高度) + 150rpx(额外间距) */
+  /* paddingTop 通过内联样式动态设置 */
   display: flex;
   flex-direction: column;
   align-items: stretch; /* 居中卡片 */

@@ -562,6 +562,25 @@ export default {
                 return;
             }
 
+            // 压缩签名图片：签名显示区域很小（约1/4屏幕宽度），限制最大边长为600px
+            // 原图可能达几MB，压缩后大幅减小文件体积，节省云存储空间
+            uni.showLoading({ title: '压缩中...', mask: true });
+            uni.compressImage({
+                src: filePath,
+                quality: 80,
+                maxSide: 600,
+                success: (compressResult) => {
+                    const compressedPath = compressResult.tempFilePath || filePath;
+                    this._processCompressedSignature(compressedPath);
+                },
+                fail: (err) => {
+                    console.warn('[signature] compressImage failed, use original:', err);
+                    this._processCompressedSignature(filePath);
+                }
+            });
+        },
+
+        _processCompressedSignature(filePath) {
             // 记录原始签名图，便于开关切换时回退/重处理
             if (this.signatureOriginalPath !== filePath) {
                 this.setData({ signatureOriginalPath: filePath });
@@ -573,6 +592,7 @@ export default {
                     signatureTempPath: filePath,
                     signatureUrl: ''
                 });
+                uni.hideLoading();
                 return;
             }
 
@@ -954,8 +974,9 @@ export default {
                 throw new Error('无法获取图片尺寸');
             }
 
-            const maxSide = 1200;
-            const scale = Math.min(1, maxSide / Math.max(baseWidth, baseHeight));
+            // 签名显示区域很小（max-height: 200rpx, 约1/4屏幕宽度），600px足够
+            const MAX_SIGNATURE_SIDE = 600;
+            const scale = Math.min(1, MAX_SIGNATURE_SIDE / Math.max(baseWidth, baseHeight));
             const width = Math.max(1, Math.round(baseWidth * scale));
             const height = Math.max(1, Math.round(baseHeight * scale));
 
@@ -1028,7 +1049,7 @@ export default {
                     destWidth: width,
                     destHeight: height,
                     fileType: 'png',
-                    quality: 1,
+                    quality: 0.85,
                     success: (res) => resolve(res.tempFilePath),
                     fail: (err) => reject(err)
                 };

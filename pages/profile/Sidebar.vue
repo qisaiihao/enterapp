@@ -10,6 +10,9 @@
                 <text class="sidebar-nickname">{{ userInfo.nickName || '微信用户' }}</text>
             </view>
             <view class="sidebar-menu">
+                <view class="sidebar-item" @tap="handleToggleTheme">
+                    <text>{{ isDarkTheme ? '日间模式' : '黑夜模式' }}</text>
+                </view>
                 <view class="sidebar-item" @tap="navigateToMyLikes">
                     <text>我的点赞</text>
                 </view>
@@ -62,6 +65,10 @@ export default {
                 nickName: '',
                 poemId: ''
             })
+        },
+        isDarkTheme: {
+            type: Boolean,
+            default: false
         }
     },
     computed: {
@@ -74,6 +81,11 @@ export default {
         }
     },
     methods: {
+        // 切换主题
+        handleToggleTheme() {
+            this.$emit('toggle-theme');
+        },
+
         // 处理遮罩点击
         handleMaskTap() {
             this.$emit('close');

@@ -42,9 +42,12 @@ export default function () : Promise<UniUpgradeCenterResult> {
 		const appId = '__UNI__E0A1A41'
 		console.log('📱 [热更新] call-check-version: 使用固定 App ID:', appId)
 		console.log('📱 [热更新] call-check-version: systemInfo.appId:', systemInfo.appId, '(仅供参考)')
+		// #ifdef APP-PLUS
 		console.log('📱 [热更新] call-check-version: plus.runtime.appid:', plus.runtime.appid, '(仅供参考)')
-		// #ifndef UNI-APP-X 
+		// #endif
+		// #ifndef UNI-APP-X
 		if (typeof appId === 'string' && appId.length > 0) {
+			// #ifdef APP-PLUS
 			// 获取 WGT 版本信息
 			// 始终使用 plus.runtime.appid，即使在开发环境中它可能是 "HBuilder"，也能正确获取版本信息
 			const runtimeAppId = plus.runtime.appid
@@ -54,7 +57,7 @@ export default function () : Promise<UniUpgradeCenterResult> {
 				return
 			}
 			console.log('📱 [热更新] call-check-version: 使用 plus.runtime.appid 获取版本信息:', runtimeAppId)
-			
+
 			plus.runtime.getProperty(runtimeAppId, function (widgetInfo) {
 				console.log('📱 [热更新] call-check-version: plus.runtime.getProperty 回调，widgetInfo:', widgetInfo)
 				// 使用 widgetInfo.versionCode 获取版本号
@@ -134,6 +137,39 @@ export default function () : Promise<UniUpgradeCenterResult> {
 					}
 				})
 			})
+			// #endif
+			// #ifdef APP-HARMONY
+			// 鸿蒙端使用 uni.getAppBaseInfo 获取版本信息
+			try {
+				const appBaseInfo = uni.getAppBaseInfo()
+				const appVersion = appBaseInfo.appVersionCode || 0
+				const appVersionStr = String(appVersion || '')
+				const wgtVersion = '0.0.0.0.0.1'
+				console.log('📱 [热更新] call-check-version(Harmony): App 版本号:', appVersion)
+				console.log('📱 [热更新] call-check-version(Harmony): 准备调用云函数检查更新')
+				let data = {
+					action: 'checkVersion',
+					appid: appId,
+					appVersion: appVersionStr,
+					wgtVersion: wgtVersion
+				}
+				uniCloud.callFunction({
+					name: 'uni-upgrade-center',
+					data,
+					success: (e) => {
+						console.log('📱 [热更新] call-check-version(Harmony): 云函数调用成功:', e.result)
+						resolve(e.result as UniUpgradeCenterResult)
+					},
+					fail: (error) => {
+						console.error('❌ [热更新] call-check-version(Harmony): 云函数调用失败:', error)
+						reject(error)
+					}
+				})
+			} catch (e) {
+				console.error('❌ [热更新] call-check-version(Harmony): 获取版本信息失败:', e)
+				reject(e.message || '获取版本信息失败')
+			}
+			// #endif
 		} else {
 			reject('appId is invalid')
 		}

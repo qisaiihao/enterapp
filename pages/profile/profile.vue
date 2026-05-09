@@ -36,9 +36,11 @@
                 <Sidebar
                     :isVisible="isSidebarOpen"
                     :userInfo="userInfo"
+                    :isDarkTheme="isDarkTheme"
                     @close="toggleSidebar"
                     @avatar-error="onAvatarError"
                     @logout-confirm="showLogoutConfirm"
+                    @toggle-theme="toggleTheme"
                 />
 
                 <!-- Main Content -->
@@ -56,13 +58,7 @@
                     >
                         <view v-if="isHeaderBackground" class="profile-hero-bg-image"></view>
                         <view v-if="isHeaderBackground" class="profile-hero-bg-overlay"></view>
-                        <view
-                            :class="['theme-toggle-btn', isDarkTheme ? 'theme-toggle-btn--dark' : '']"
-                            @tap.stop="toggleTheme"
-                            aria-label="toggle dark mode"
-                        >
-                            <view class="theme-toggle-moon"></view>
-                        </view>
+                        <view class="profile-tap-area" @tap="handleManageBackground">
                         <ProfileCard
                             :user-info="userInfo"
                             :follower-count="followerCount"
@@ -73,8 +69,9 @@
                             @edit-profile="navigateToEditProfile"
                             @toggle-sidebar="toggleSidebar"
                             @navigate-fans="navigateToFans"
-                            @manage-background="handleManageBackground"
+                            @avatar-click="handleAvatarPreview"
                         />
+                        </view>
                     </view>
                     <view v-if="isHeaderBackground" class="profile-body-shell-cap"></view>
                     <view
@@ -259,7 +256,7 @@
             @force-regenerate="forceRegenerateTimelineCanvas"
         />
 
-        <!-- #ifdef APP-PLUS -->
+        <!-- #ifdef APP-PLUS || APP-HARMONY -->
         <view
             v-if="showTimelineShareModal && (timelineShareConfig.fontFamily || '汇文明朝') === '汇文明朝'"
             style="position: fixed; top: -9999px; left: -9999px; opacity: 0; pointer-events: none;"
@@ -406,10 +403,10 @@ const PROFILE_BACKGROUND_THEME_VARS = Object.freeze({
     '--profile-loading-footer-color': 'rgba(17, 17, 17, 0.70)'
 });
 const PROFILE_BACKGROUND_DARK_THEME_VARS = Object.freeze({
-    '--app-post-wrapper-bg': 'rgba(15, 17, 21, 0.68)',
-    '--app-post-wrapper-shadow': '0 10rpx 30rpx rgba(0, 0, 0, 0.34)',
-    '--app-post-wrapper-radius': '20rpx',
-    '--app-post-section-bg': 'transparent',
+    '--app-post-wrapper-bg': '#0f1115',
+    '--app-post-wrapper-shadow': 'none',
+    '--app-post-wrapper-radius': '0',
+    '--app-post-section-bg': '#0f1115',
     '--app-subtle-surface-bg': 'rgba(255, 255, 255, 0.08)',
     '--app-surface-bg': 'rgba(15, 17, 21, 0.72)',
     '--app-surface-divider': 'rgba(255, 255, 255, 0.14)',
@@ -456,8 +453,8 @@ const PROFILE_BACKGROUND_DARK_THEME_VARS = Object.freeze({
     '--profile-upload-icon-filter': 'brightness(0) invert(1)',
     '--profile-menu-icon-opacity': '0.94',
     '--profile-menu-icon-filter': 'brightness(0) invert(1)',
-    '--profile-tab-nav-bg': 'rgba(15, 17, 21, 0.40)',
-    '--profile-tab-nav-border': 'rgba(255, 255, 255, 0.10)',
+    '--profile-tab-nav-bg': '#0f1115',
+    '--profile-tab-nav-border': 'transparent',
     '--profile-tab-nav-shadow': 'none',
     '--profile-tab-item-bg': 'transparent',
     '--profile-tab-item-active-bg': 'rgba(255, 255, 255, 0.08)',
@@ -2504,9 +2501,13 @@ export default {
         // 主页背景管理菜单
         handleManageBackground: async function () {
             const hasBackground = !!(this.appBackgroundResolvedUrl || (this.userInfo && this.userInfo.appBackgroundUrl));
-            const itemList = hasBackground
-                ? ['\u66f4\u6362\u80cc\u666f', '\u79fb\u9664\u80cc\u666f']
-                : ['\u4e0a\u4f20\u80cc\u666f', '\u79fb\u9664\u80cc\u666f'];
+            // 无背景图：直接进入图片选择（不弹窗）
+            if (!hasBackground) {
+                setTimeout(() => this.handleReplaceBackground(), 120);
+                return;
+            }
+            // 有背景图：弹窗显示"更换背景"和"移除背景"
+            const itemList = ['\u66f4\u6362\u80cc\u666f', '\u79fb\u9664\u80cc\u666f'];
             try {
                 const { tapIndex } = await this.showBackgroundActionSheet(itemList);
                 if (tapIndex === 0) {
@@ -2537,22 +2538,33 @@ export default {
             }
         },
         handleReplaceBackground: async function () {
-            let backgroundMode = '';
-            try {
-                backgroundMode = await this.selectBackgroundMode();
-            } catch (err) {
-                console.warn('[profile] background mode action sheet failed', err);
-                return;
-            }
-            if (!backgroundMode) {
-                return;
-            }
+            // 直接进入图片选择，默认使用 header 模式（顶部图片）
             uni.chooseImage({
                 count: 1,
                 sizeType: ['compressed'],
                 sourceType: ['album', 'camera'],
                 success: async (res) => {
-                    const filePath = res.tempFilePaths[0];
+                    let filePath = res.tempFilePaths[0];
+                    uni.showLoading({ title: '压缩中...' });
+                    // 压缩背景图：按1080px宽度压缩，节省云存储空间
+                    try {
+                        const compressResult = await new Promise((resolve, reject) => {
+                            uni.compressImage({
+                                src: filePath,
+                                quality: 60,
+                                width: 1080,
+                                success: (r) => resolve(r),
+                                fail: (err) => {
+                                    console.warn('[profile] background compressImage failed, use original:', err);
+                                    resolve({ tempFilePath: filePath });
+                                }
+                            });
+                        });
+                        filePath = compressResult.tempFilePath;
+                        console.log('[profile] background compressed, path:', filePath);
+                    } catch (compressErr) {
+                        console.warn('[profile] background compress exception, use original:', compressErr);
+                    }
                     uni.showLoading({ title: '上传中...' });
                     try {
                         const fileID = await uploadFile(
@@ -2561,7 +2573,7 @@ export default {
                         );
                         await cloudCall('updateUserProfile', {
                             appBackgroundUrl: fileID,
-                            appBackgroundMode: backgroundMode
+                            appBackgroundMode: 'header'
                         });
                         invalidateMyInfo();
                         await this.refreshProfileAtomically({ reason: 'background-changed', forceRefresh: true });
@@ -2942,6 +2954,21 @@ export default {
             });
         },
 
+        // 处理头像预览大图
+        handleAvatarPreview(avatarUrl) {
+            if (!avatarUrl) {
+                uni.showToast({
+                    title: '头像加载中',
+                    icon: 'none'
+                });
+                return;
+            }
+            uni.previewImage({
+                current: avatarUrl,
+                urls: [avatarUrl]
+            });
+        },
+
         // 处理标签点击
         handleTagClick(data) {
             console.log('标签点击:', data.tag);
@@ -3144,6 +3171,10 @@ export default {
     background-color: transparent;
 }
 
+[data-app-theme="dark"] .main-content--with-background {
+    --app-post-wrapper-divider: 1rpx solid rgba(255,255,255,0.10);
+}
+
 .main-content--with-background .discussion-content .discussion-sentence-card {
     background: transparent !important;
 }
@@ -3284,6 +3315,11 @@ export default {
 
 .profile-body-shell--header-background .tab-item {
     padding: 8rpx 10rpx 12rpx;
+}
+
+/* 点击头像附近空白区域触发背景上传/管理 */
+.profile-tap-area {
+    cursor: pointer;
 }
 
 .header {

@@ -4,9 +4,9 @@
             <page-tabs ref="pageTabs" :current-tab="currentTab" @tab-change="onTabChange"></page-tabs>
 
             <view class="square-mode-container" :style="squareContainerStyle">
-                <swiper 
-                    class="page-swiper" 
-                    :current="swiperCurrent" 
+                <swiper
+                    class="page-swiper"
+                    :current="swiperCurrent"
                     @change="onSwiperChange"
                     @touchstart="onSwiperTouchStart"
                     @touchmove="onSwiperTouchMove"
@@ -101,7 +101,7 @@
                             empty-icon="👥"
                             empty-text="关注的人还没有发帖"
                             empty-subtext="去关注更多有趣的人吧！"
-                            end-text="--- 没有更多了 ---"
+                            end-text="--- 没有更多了呢 ---"
                             :scroll-enabled="!isSwiping"
                             :refresher-enabled="!isSwiping"
                             @refresh="onFollowingRefresh"
@@ -213,6 +213,7 @@ import cacheManager from '@/cache/core/manager.js';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
 import { getOpenid } from '@/utils/app-state.js';
 import { getSystemInfoCompat, getWindowInfoCompat } from '@/utils/system-info.js';
+import { isUserLoggedIn, requireLogin } from '@/utils/authHelper.js';
 
 // 常量定义
 const PAGE_SIZE = 10;
@@ -315,7 +316,7 @@ export default {
         squareContainerStyle() {
             console.log('🎨 [squareContainerStyle] 开始计算样式');
             console.log('🎨 [squareContainerStyle] safeAreaTop:', this.safeAreaTop);
-            
+
             // #ifdef MP-WEIXIN
             // 小程序端：safeAreaTop + top-bar(100rpx) + tabs(88rpx) + 额外间距(20rpx)
             // safeAreaTop 需要从 px 转换为 rpx（px * 2 = rpx，基于 iPhone 6 基准）
@@ -333,7 +334,7 @@ export default {
             console.log('🎨 [MP-WEIXIN] 返回样式:', style);
             return style;
             // #endif
-            
+
             // #ifndef MP-WEIXIN
             // APP 和 H5 端：使用原来的固定值（已在 .container 中设置）
             console.log('🎨 [APP/H5] 返回空样式对象');
@@ -356,7 +357,7 @@ export default {
     },
     onShow() {
         console.log('🎬 [onShow] 页面显示');
-        
+
         // 【临时修复】如果 onLoad 没有执行，在 onShow 中初始化
         if (!this.pageLoadStartTime) {
             console.log('⚠️ [onShow] 检测到 onLoad 未执行，在 onShow 中初始化');
@@ -369,7 +370,7 @@ export default {
             this.waitForLoginThenInit();
             this.ensureGlobalEventBindings();
         }
-        
+
         // #ifndef MP-WEIXIN
         try { uni.hideTabBar({ animation: false }); } catch (e) {}
         // #endif
@@ -397,9 +398,9 @@ export default {
                     filterParams.isPoem = false;
                     filterParams.isDiscussion = false;
                 }
-                getHomePosts({ 
-                    page: 0, 
-                    pageSize: PAGE_SIZE, 
+                getHomePosts({
+                    page: 0,
+                    pageSize: PAGE_SIZE,
                     context: this,
                     ...filterParams,
                     onBackgroundUpdate: async (newPosts) => {
@@ -593,11 +594,11 @@ export default {
                 if (!hasMore || loadingFlag) {
                     return;
                 }
-                
+
                 try {
                     const info = getWindowInfoCompat();
                     const winH = info.windowHeight;
-                    
+
                     let containerId = '';
                     if (isHome) {
                         containerId = '#post-list-container';
@@ -606,11 +607,11 @@ export default {
                     } else if (isDiscussion) {
                         containerId = '#discussion-list-container';
                     }
-                    
+
                     if (!containerId) {
                         return;
                     }
-                    
+
                     uni.createSelectorQuery()
                         .in(this)
                         .select(containerId)
@@ -618,14 +619,14 @@ export default {
                             if (!rect || !rect.height) {
                                 return;
                             }
-                            
+
                             const rectBottom = rect.top + rect.height;
                             let distanceToBottom = rectBottom - winH;
-                            
+
                             if (distanceToBottom < 0) {
                                 distanceToBottom = 0;
                             }
-                            
+
                             const preloadThreshold = winH * 2;
 
                             if (distanceToBottom < preloadThreshold) {
@@ -664,7 +665,7 @@ export default {
                 const systemInfo = getSystemInfoCompat();
                 console.log('📏 [debugSafeArea] systemInfo:', systemInfo);
                 console.log('📏 [debugSafeArea] statusBarHeight:', systemInfo.statusBarHeight);
-                
+
                 if (systemInfo.statusBarHeight) {
                     const safeAreaTop = systemInfo.statusBarHeight;
                     console.log('📏 [debugSafeArea] 设置 safeAreaTop:', safeAreaTop);
@@ -672,7 +673,7 @@ export default {
                         safeAreaTop: safeAreaTop
                     });
                     console.log('📏 [debugSafeArea] setData 完成，当前 this.safeAreaTop:', this.safeAreaTop);
-                    
+
                     try {
                         if (typeof document !== 'undefined' && document.documentElement) {
                             document.documentElement.style.setProperty('--safe-area-inset-top', safeAreaTop + 'px');
@@ -700,12 +701,12 @@ export default {
             // 如果已经确定方向，不再判断
             if (this.swipeDirectionDecided) return;
             if (!this.swiperTouchStartX || !this.swiperTouchStartY) return;
-            
+
             const touchX = e.touches[0].clientX;
             const touchY = e.touches[0].clientY;
             const deltaX = Math.abs(touchX - this.swiperTouchStartX);
             const deltaY = Math.abs(touchY - this.swiperTouchStartY);
-            
+
             // 移动超过 3px 就判断方向
             if (deltaX > 3 || deltaY > 3) {
                 this.swipeDirectionDecided = true;
@@ -718,11 +719,11 @@ export default {
 
                 onSwiperTouchEnd(e) {
             if (!this.swiperTouchStartX) return;
-            
+
             const touchEndX = e.changedTouches[0].clientX;
             const deltaX = touchEndX - this.swiperTouchStartX;
             const deltaTime = Date.now() - this.swiperTouchStartTime;
-            
+
             this.swiperTouchStartX = null;
             this.swiperTouchStartY = null;
             this.swiperTouchStartTime = null;
@@ -731,7 +732,7 @@ export default {
             if (Math.abs(deltaX) < 30 || deltaTime < 50) {
                 return;
             }
-            
+
             const currentIndex = this.swiperCurrent;
             const isLeftSwipe = deltaX < 0;
             const isRightSwipe = deltaX > 0;
@@ -756,11 +757,11 @@ export default {
               onSwiperChange(e) {
             const current = e.detail.current;
             console.log('swiper切换到:', current);
-            
+
               if (this.swiperChangeTimer) {
                 clearTimeout(this.swiperChangeTimer);
             }
-            
+
             this.swiperChangeTimer = setTimeout(() => {
                 // 根据swiper索引映射到页面类型和标签
                 let pageType, tabValue;
@@ -793,7 +794,7 @@ export default {
                 } else if (pageType === 'discussion' && this.discussionPostList.length === 0) {
                     this.loadDiscussionPosts();
                 }
-                
+
                 // 切换到关注页时，主动同步点赞状态（参考广场页实现）
                 if (pageType === 'following') {
                     try {
@@ -808,7 +809,7 @@ export default {
         // 标签切换处理
         onTabChange(tabValue) {
             console.log('切换标签页:', tabValue);
-            
+
             // 根据标签值映射到swiper索引和页面类型
             let swiperIndex, pageType;
             switch(tabValue) {
@@ -859,16 +860,16 @@ export default {
         },
         getIndexData: function () {
             console.log('🔍 [getIndexData] 开始加载首页数据');
-            
+
             // 清理永不过期缓存（修复旧的错误缓存）
             try {
                 const ns = cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 });
                 if (ns.clearInfiniteCache) ns.clearInfiniteCache();
             } catch (_) {}
-            
+
             this.setData({ isLoading: true, postList: [], page: 0, hasMore: true, homeHasEverLoaded: false });
             console.log('🔍 [getIndexData] 初始状态设置完成');
-            
+
             // 根据showNormalPostsOnly状态决定筛选参数
             const filterParams = {};
             if (this.showNormalPostsOnly) {
@@ -876,10 +877,10 @@ export default {
                 filterParams.isPoem = false;
                 filterParams.isDiscussion = false;
             }
-            
-            getHomePosts({ 
-                page: 0, 
-                pageSize: PAGE_SIZE, 
+
+            getHomePosts({
+                page: 0,
+                pageSize: PAGE_SIZE,
                 context: this,
                 ...filterParams,
                 // SWR后台更新回调
@@ -904,7 +905,7 @@ export default {
                     const posts = await processPostList(postsRaw);
                     console.log('🔍 [getIndexData] 帖子数据处理完成:', posts.length, '条');
                     console.log('🔍 [getIndexData] 第一条帖子:', posts[0]);
-                    
+
                     // 【关键修复】确保数据正确设置
                     this.setData({
                         postList: posts,
@@ -913,14 +914,14 @@ export default {
                         hasMore: posts.length === PAGE_SIZE,
                         homeHasEverLoaded: true
                     });
-                    
+
                     console.log('🔍 [getIndexData] setData 完成，当前状态:');
                     console.log('   - postList.length:', this.postList?.length || 0);
                     console.log('   - isLoading:', this.isLoading);
                     console.log('   - homeHasEverLoaded:', this.homeHasEverLoaded);
                     console.log('   - homeFeedPosts.length:', this.homeFeedPosts?.length || 0);
                     console.log('   - homeFeedHasEverLoaded:', this.homeFeedHasEverLoaded);
-                    
+
                     const self = this;
                     setTimeout(() => {
                         if (self.preloadUserData && typeof self.preloadUserData === 'function') {
@@ -965,6 +966,11 @@ export default {
 
         onVote: function (event) {
                         if (this.tapDisabled && this.tapDisabled()) { return; }
+            // 未登录不能点赞，提示去登录
+            if (!isUserLoggedIn()) {
+                requireLogin({ content: '点赞需要登录，请先登录' });
+                return;
+            }
             // 注意：小程序中不需要手动stopPropagation，因为使用了catch:tap绑定
             console.log('【点赞】onVote事件触发', event.currentTarget.dataset);
             const postId = event.currentTarget.dataset.postid;
@@ -1209,7 +1215,7 @@ export default {
                 page: this.page,
                 postListLength: this.postList.length
             });
-            
+
             // 【修复】同时检查 isLoading 和 isLoadingMore，确保只有一个请求在进行
             if (this.isLoading || this.isLoadingMore || !this.hasMore) {
                 console.log('【首页】getPostList被阻止：正在加载中或没有更多数据');
@@ -1220,7 +1226,7 @@ export default {
             }
             const skip = this.page * PAGE_SIZE;
             const isFirstLoad = this.page === 0;
-            
+
             console.log('🔍 [首页] 请求参数:', {
                 skip,
                 page: this.page,
@@ -1249,9 +1255,9 @@ export default {
                 filterParams.isDiscussion = false;
             }
             // 使用缓存封装的首页分页数据，SWR + TTL
-            getHomePosts({ 
-                page: this.page, 
-                pageSize: PAGE_SIZE, 
+            getHomePosts({
+                page: this.page,
+                pageSize: PAGE_SIZE,
                 context: this,
                 // 首次加载强制刷新，确保最新的组诗分块
                 forceRefresh: isFirstLoad,
@@ -1295,14 +1301,14 @@ export default {
                         newPostsCount
                     });
                     this.setData(updateData);
-                    
+
                     // 【调试】验证 setData 后的状态
                     console.log('✅ [首页] setData 后验证:');
                     console.log('   - this.postList.length:', this.postList?.length || 0);
                     console.log('   - this.homeFeedPosts.length:', this.homeFeedPosts?.length || 0);
                     console.log('   - this.isLoading:', this.isLoading);
                     console.log('   - this.homeHasEverLoaded:', this.homeHasEverLoaded);
-                    
+
                     if (isFirstLoad) {
                         this.preloadImages(posts);
                     }
@@ -1454,7 +1460,7 @@ export default {
             //         });
             //     }
             // });
-            
+
             // 暂时禁用推荐功能
             uni.showToast({
                 title: '推荐功能暂时停用',
@@ -1475,7 +1481,7 @@ export default {
         },
 
         // ========== PostItem 组件事件适配方法 ==========
-        
+
         // 处理用户头像点击（适配 PostItem 组件）
         handleNavigateToUser: function (data) {
             if (this.tapDisabled && this.tapDisabled()) { return; }
@@ -1589,7 +1595,7 @@ export default {
             console.log('开始加载发现页推荐数据 - 已停用AI推荐');
             // 发现页只使用推荐算法，不再加载更多
             // this.loadRecommendationPosts();
-            
+
             // 暂时显示空状态
             this.setData({
                 discoverPostList: [],
@@ -1914,7 +1920,7 @@ export default {
             this.getIndexData();
         },
 
-        
+
         // 空函数，用于阻止匿名帖子的头像点击事件
         noop() {},
 
@@ -2187,13 +2193,13 @@ export default {
                 }, 350);
             } catch (_) {}
         },
-        
+
         // 临时方法：强制加载数据
         forceLoadData() {
             console.log('🔴 [forceLoadData] 手动触发数据加载');
             this.getIndexData();
         },
-        
+
         // 分享到好友/群聊
         onShareAppMessage(res) {
             return getShareAppMessageConfig({
@@ -2201,7 +2207,7 @@ export default {
                 path: '/pages/index/index'
             });
         },
-        
+
         // 分享到朋友圈
         onShareTimeline() {
             return getShareTimelineConfig({
@@ -2225,7 +2231,7 @@ export default {
 }
 
 .container {
-    /* #ifdef APP-PLUS */
+    /* #ifdef APP-PLUS || APP-HARMONY */
     padding-top: 276rpx;
     /* #endif */
     /* #ifdef H5 */
@@ -2316,7 +2322,7 @@ export default {
 }
 
 .swiper-page .empty-state {
-    /* #ifdef APP-PLUS */
+    /* #ifdef APP-PLUS || APP-HARMONY */
     margin-top: 160rpx;
     /* #endif */
     /* #ifdef H5 */
@@ -2509,7 +2515,7 @@ export default {
 }
 
 .page-swiper {
-    /* #ifdef APP-PLUS */
+    /* #ifdef APP-PLUS || APP-HARMONY */
     height: calc(100vh - 276rpx - 100rpx);
     /* #endif */
     /* #ifdef H5 */
@@ -2534,7 +2540,7 @@ export default {
 }
 
 .swiper-page > view:first-child {
-    /* #ifdef APP-PLUS */
+    /* #ifdef APP-PLUS || APP-HARMONY */
     margin-top: 40rpx;
     /* #endif */
     /* #ifdef H5 */

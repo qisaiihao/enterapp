@@ -8,32 +8,25 @@
         </view>
 
         <view class="profile-avatar-large">
-            <image :src="avatarSrc" mode="aspectFill" @error="handleAvatarError" />
+            <image :src="avatarSrc" mode="aspectFill" @error="handleAvatarError" @tap.stop.prevent="onAvatarClick" />
         </view>
 
         <view class="profile-info-center">
             <text class="profile-name-center">{{ displayName }}</text>
             <text class="profile-poemid">poemid：{{ poemIdText }}</text>
-            <text class="profile-bio-center" @tap="$emit('edit-profile')">{{ bioText }}</text>
+            <text class="profile-bio-center" @tap.stop="$emit('edit-profile')">{{ bioText }}</text>
             <view class="profile-bottom-row">
-                <text class="profile-followers" @tap="$emit('navigate-fans')">
+                <text class="profile-followers" @tap.stop="$emit('navigate-fans')">
                     被关注数：{{ followerCountText }}
                 </text>
                 <view class="profile-buttons">
-                    <view class="edit-profile-btn" @tap="$emit('edit-profile')">
+                    <view class="edit-profile-btn" @tap.stop="$emit('edit-profile')">
                         <text>编辑主页</text>
-                    </view>
-                    <view
-                        class="background-upload-btn"
-                        @tap="openBackgroundMenu"
-                        @longpress="openBackgroundMenu"
-                    >
-                        <image src="/static/images/upload.png" class="background-upload-icon" mode="aspectFit" />
                     </view>
                     <image
                         src="/static/images/icons/menu-icon.svg"
                         class="menu-btn-small"
-                        @tap="$emit('toggle-sidebar')"
+                        @tap.stop="$emit('toggle-sidebar')"
                     />
                 </view>
             </view>
@@ -46,12 +39,7 @@ import { resolveUserObjectAvatar } from '@/utils/defaultAvatar.js';
 
 export default {
     name: 'ProfileCard',
-    emits: ['edit-profile', 'navigate-fans', 'toggle-sidebar', 'manage-background', 'avatar-error'],
-    data() {
-        return {
-            lastBackgroundMenuAt: 0
-        };
-    },
+    emits: ['edit-profile', 'navigate-fans', 'toggle-sidebar', 'avatar-error', 'avatar-click'],
     props: {
         userInfo: {
             type: Object,
@@ -116,16 +104,11 @@ export default {
         }
     },
     methods: {
-        openBackgroundMenu() {
-            const now = Date.now();
-            if (now - this.lastBackgroundMenuAt < 300) {
-                return;
-            }
-            this.lastBackgroundMenuAt = now;
-            this.$emit('manage-background');
-        },
         handleAvatarError(event) {
             this.$emit('avatar-error', event);
+        },
+        onAvatarClick() {
+            this.$emit('avatar-click', this.userInfo?.avatarUrl || '');
         }
     }
 };
@@ -285,31 +268,6 @@ export default {
     font-size: 28rpx;
     line-height: 34rpx;
     color: var(--profile-button-text-color, #ffffff);
-}
-
-.background-upload-btn {
-    width: 58rpx;
-    height: 58rpx;
-    border-radius: 50%;
-    background: var(--profile-icon-button-bg, rgba(217, 217, 217, 0.92));
-    border: var(--profile-icon-button-border, none);
-    box-shadow: var(--profile-icon-button-shadow, none);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.2s ease, background-color 0.2s ease;
-}
-
-.background-upload-btn:active {
-    transform: scale(0.94);
-    background-color: var(--profile-icon-button-active-bg, rgba(192, 192, 192, 0.96));
-}
-
-.background-upload-icon {
-    width: 28rpx;
-    height: 28rpx;
-    opacity: var(--profile-upload-icon-opacity, 0.78);
-    filter: var(--profile-upload-icon-filter, grayscale(1) brightness(0.35));
 }
 
 .menu-btn-small {

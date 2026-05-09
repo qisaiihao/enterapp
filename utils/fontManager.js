@@ -321,6 +321,7 @@ class FontManager {
         if (platform === 'h5') return 'h5-temp-cache';
         if (platform === 'app') return '_doc/fonts/';
         if (platform === 'mp-weixin') return `${wx.env.USER_DATA_PATH}/${FONT_CACHE_DIR}`;
+        if (platform === 'app-harmony') return `${uni.env.USER_DATA_PATH}/${FONT_CACHE_DIR}`;
         return `temp/${FONT_CACHE_DIR}`;
     }
 
@@ -359,7 +360,33 @@ class FontManager {
 
             return this._fontDirReadyPromise;
         }
-        
+
+        // 鸿蒙端使用 FileSystemManager
+        if (platform === 'app-harmony') {
+            if (this._fontDirReadyPromise) {
+                return this._fontDirReadyPromise;
+            }
+
+            this._fontDirReadyPromise = (async () => {
+                try {
+                    const fs = uni.getFileSystemManager();
+                    const dirPath = this.getPlatformStoragePath();
+                    try {
+                        fs.accessSync(dirPath);
+                    } catch (e) {
+                        fs.mkdirSync(dirPath, true);
+                    }
+                    console.log('【FontManager】HarmonyOS字体目录创建成功:', dirPath);
+                    return true;
+                } catch (error) {
+                    console.error('【FontManager】HarmonyOS初始化字体缓存目录失败:', error);
+                    return false;
+                }
+            })();
+
+            return this._fontDirReadyPromise;
+        }
+
         // 小程序端使用 FileSystemManager
         // #ifdef MP
         try {
@@ -591,7 +618,7 @@ class FontManager {
         throw new Error('plus runtime unavailable');
         // #endif
         
-        // #ifdef MP-WEIXIN
+        // #ifdef MP-WEIXIN || APP-HARMONY
         return new Promise((resolve, reject) => {
             const fs = uni.getFileSystemManager();
             fs.readFile({
@@ -618,8 +645,8 @@ class FontManager {
         }
         throw new Error('plus runtime unavailable');
         // #endif
-        
-        // #ifdef MP-WEIXIN
+
+        // #ifdef MP-WEIXIN || APP-HARMONY
         return new Promise((resolve, reject) => {
             const fs = uni.getFileSystemManager();
             fs.copyFile({
@@ -1226,37 +1253,52 @@ class FontManager {
         return (async () => {
             // #ifdef APP-PLUS
             const plusInstance = await this.getPlusInstance();
-            if (!plusInstance || !plusInstance.io) {
-                throw new Error('plus runtime unavailable');
-            }
-
-            await this.initializeFontDir();
-            return new Promise((resolve, reject) => {
-                plusInstance.io.resolveLocalFileSystemURL(tempFilePath, (tempEntry) => {
-                    plusInstance.io.resolveLocalFileSystemURL('_doc/', (docEntry) => {
-                        docEntry.getDirectory('fonts', { create: true }, (fontsDir) => {
-                            const fileName = targetPath.split('/').pop();
-                            tempEntry.copyTo(fontsDir, fileName, (newEntry) => {
-                                const savedPath = newEntry.fullPath;
-                                console.log('【FontManager】文件复制成功:', savedPath);
-                                resolve(savedPath);
-                            }, (copyErr) => {
-                                console.error('【FontManager】文件复制失败:', copyErr);
-                                reject(copyErr);
+            if (plusInstance && plusInstance.io) {
+                await this.initializeFontDir();
+                return new Promise((resolve, reject) => {
+                    plusInstance.io.resolveLocalFileSystemURL(tempFilePath, (tempEntry) => {
+                        plusInstance.io.resolveLocalFileSystemURL('_doc/', (docEntry) => {
+                            docEntry.getDirectory('fonts', { create: true }, (fontsDir) => {
+                                const fileName = targetPath.split('/').pop();
+                                tempEntry.copyTo(fontsDir, fileName, (newEntry) => {
+                                    const savedPath = newEntry.fullPath;
+                                    console.log('【FontManager】文件复制成功:', savedPath);
+                                    resolve(savedPath);
+                                }, (copyErr) => {
+                                    console.error('【FontManager】文件复制失败:', copyErr);
+                                    reject(copyErr);
+                                });
+                            }, (dirErr) => {
+                                console.error('【FontManager】创建目录失败:', dirErr);
+                                reject(dirErr);
                             });
-                        }, (dirErr) => {
-                            console.error('【FontManager】创建目录失败:', dirErr);
-                            reject(dirErr);
+                        }, (docErr) => {
+                            console.error('【FontManager】访问_doc失败:', docErr);
+                            reject(docErr);
                         });
-                    }, (docErr) => {
-                        console.error('【FontManager】访问_doc失败:', docErr);
-                        reject(docErr);
+                    }, (tempErr) => {
+                        console.error('【FontManager】访问临时文件失败:', tempErr);
+                        reject(tempErr);
                     });
-                }, (tempErr) => {
-                    console.error('【FontManager】访问临时文件失败:', tempErr);
-                    reject(tempErr);
                 });
-            });
+            }
+            throw new Error('plus runtime unavailable');
+            // #endif
+
+            // #ifdef APP-HARMONY
+            await this.initializeFontDir();
+            try {
+                const fs = uni.getFileSystemManager();
+                const destDir = this.getPlatformStoragePath();
+                const fileName = targetPath.split('/').pop();
+                const destPath = `${destDir}/${fileName}`;
+                fs.copyFileSync(tempFilePath, destPath);
+                console.log('【FontManager】HarmonyOS文件复制成功:', destPath);
+                return destPath;
+            } catch (e) {
+                console.error('【FontManager】HarmonyOS文件复制失败:', e);
+                throw e;
+            }
             // #endif
         })();
     }
@@ -1514,17 +1556,22 @@ class FontManager {
         let sourcePath = fontPath;
         // #ifdef APP-PLUS
         const plusInstance = getPlusSafe();
-        if (!plusInstance || !plusInstance.io) {
-            return null;
-        }
-        if (fontPath.startsWith('/static/')) {
-            try {
-                sourcePath = plusInstance.io.convertLocalFileSystemURL(`_www${fontPath}`);
-            } catch (e) {
+        if (plusInstance && plusInstance.io) {
+            if (fontPath.startsWith('/static/')) {
+                try {
+                    sourcePath = plusInstance.io.convertLocalFileSystemURL(`_www${fontPath}`);
+                } catch (e) {
+                    sourcePath = plusInstance.io.convertLocalFileSystemURL(fontPath);
+                }
+            } else if (!fontPath.startsWith('http') && !fontPath.startsWith('file://')) {
                 sourcePath = plusInstance.io.convertLocalFileSystemURL(fontPath);
             }
-        } else if (!fontPath.startsWith('http') && !fontPath.startsWith('file://')) {
-            sourcePath = plusInstance.io.convertLocalFileSystemURL(fontPath);
+        }
+        // #endif
+        // #ifdef APP-HARMONY
+        // 鸿蒙端无需路径转换，直接使用原路径
+        if (fontPath.startsWith('/static/')) {
+            sourcePath = fontPath;
         }
         // #endif
 

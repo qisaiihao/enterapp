@@ -361,4 +361,11 @@ export default {
 .timeline-retry-btn:active {
     background-color: var(--app-surface-accent-color, #6d7a64);
 }
+
+[data-app-theme="dark"] .timeline-container,
+[data-app-theme="dark"] .timeline-empty,
+[data-app-theme="dark"] .timeline-loading,
+[data-app-theme="dark"] .timeline-error {
+    background: #0f1115;
+}
 </style>

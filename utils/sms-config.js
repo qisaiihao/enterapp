@@ -57,7 +57,7 @@ async function sendSmsCode(phone, scene = 'binding') {
   
   console.log(`📱 [SMS] 使用 ${funcInfo.provider} 发送短信`);
   
-  // #ifdef APP-PLUS
+  // #ifdef APP-PLUS || APP-HARMONY
   if (funcInfo.provider === 'unicloud') {
     // 调用 uniCloud 云函数（仅 APP 环境支持）
     return await uniCloud.callFunction({
@@ -96,7 +96,7 @@ async function verifySmsCode(phone, code, scene = 'binding') {
   
   console.log(`🔍 [SMS] 使用 ${funcInfo.provider} 验证短信`);
   
-  // #ifdef APP-PLUS
+  // #ifdef APP-PLUS || APP-HARMONY
   if (funcInfo.provider === 'unicloud') {
     // 调用 uniCloud 云函数（仅 APP 环境支持）
     return await uniCloud.callFunction({

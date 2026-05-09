@@ -433,7 +433,14 @@ export default {
             } else if (href.includes('://')) {
               // 打开外链
               if (this.copyLink) {
-                plus.runtime.openWeb(href)
+                if (typeof plus !== 'undefined' && plus.runtime && plus.runtime.openWeb) {
+                  plus.runtime.openWeb(href)
+                } else {
+                  uni.setClipboardData({
+                    data: href,
+                    success: () => uni.showToast({ title: '链接已复制', icon: 'none' })
+                  })
+                }
               }
             } else {
               uni.navigateTo({

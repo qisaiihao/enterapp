@@ -245,6 +245,7 @@ import { attachPoemDisplayFields } from '@/utils/poemDisplay.js';
 import { patchAppState, setUserSession } from '@/utils/app-state.js';
 import { formatErrorForLog } from '@/utils/error-log.js';
 import { getSystemInfoCompat, getWindowInfoCompat } from '@/utils/system-info.js';
+import { isUserLoggedIn, requireLogin } from '@/utils/authHelper.js';
 
 const PAGE_SIZE = 10;
 
@@ -509,8 +510,8 @@ export default {
         // 动态设置安全区域 - 优先使用safeAreaInsets.top，其次使用statusBarHeight
         let safeAreaTop = 0;
 
-        // #ifdef APP-PLUS
-        // 在app端，优先使用safeAreaInsets.top
+        // #ifdef APP-PLUS || APP-HARMONY
+        // 在app端和鸿蒙端，优先使用safeAreaInsets.top
         if (systemInfo.safeAreaInsets && systemInfo.safeAreaInsets.top > 0) {
           safeAreaTop = systemInfo.safeAreaInsets.top;
           console.log('【poem-square】使用safeAreaInsets.top作为安全区域:', safeAreaTop);
@@ -520,7 +521,19 @@ export default {
         }
         // #endif
 
-        // #ifndef APP-PLUS
+        // #ifdef H5
+        // 在H5端，使用statusBarHeight
+        if (systemInfo.statusBarHeight) {
+          safeAreaTop = systemInfo.statusBarHeight;
+          console.log('【poem-square】使用statusBarHeight作为安全区域:', safeAreaTop);
+        }
+        // #endif
+
+        console.log('【poem-square】最终safeAreaTop值:', safeAreaTop);
+        console.log('【poem-square】计算的paddingTop:', (safeAreaTop * 2 + 250) + 'rpx');
+        // #endif
+
+        // #ifdef H5
         // 在H5端，使用statusBarHeight
         if (systemInfo.statusBarHeight) {
           safeAreaTop = systemInfo.statusBarHeight;
@@ -542,14 +555,14 @@ export default {
           }
           // #endif
 
-          // #ifdef APP-PLUS
-          // 在app端，通过page的style设置CSS变量
+          // #ifdef APP-PLUS || APP-HARMONY
+          // 在app端和鸿蒙端，通过page的style设置CSS变量
           const pages = getCurrentPages();
           if (pages.length > 0) {
             const currentPage = pages[pages.length - 1];
             if (currentPage && currentPage.$el) {
               currentPage.$el.style.setProperty('--safe-area-top', safeAreaTop + 'px');
-              console.log('【poem-square】APP端CSS变量设置成功: --safe-area-top =', safeAreaTop + 'px');
+              console.log('【poem-square】APP/鸿蒙端CSS变量设置成功: --safe-area-top =', safeAreaTop + 'px');
             }
           }
           // #endif
@@ -559,7 +572,7 @@ export default {
 
         // 备用方案：直接修改页面根元素样式
         try {
-          // #ifdef APP-PLUS
+          // #ifdef APP-PLUS || APP-HARMONY
           const app = getApp();
           if (app.globalData) {
             app.globalData.safeAreaTop = safeAreaTop;
@@ -578,6 +591,14 @@ export default {
 
         getIndexData(callback) {
       console.log('【poem-square】开始获取数据，callback:', typeof callback);
+      console.log('【poem-square】当前状态:', {
+        isLoading: this.isLoading,
+        postListLength: this.postList.length,
+        page: this.page,
+        hasMore: this.hasMore,
+        showFollowingOnly: this.showFollowingOnly,
+        safeAreaTop: this.safeAreaTop
+      });
 
       // 判断是否是用户筛选操作
       const isUserFiltering = this.showFollowingOnly && this.followingSelectedUserId;
@@ -1241,10 +1262,15 @@ export default {
     },
     
     onVote(e) {
+      // 未登录不能点赞，提示去登录
+      if (!isUserLoggedIn()) {
+        requireLogin({ content: '点赞需要登录，请先登录' });
+        return;
+      }
       console.log('【poem-square】点赞事件触发', e.currentTarget.dataset);
       const postId = e.currentTarget.dataset.postid;
       const index = e.currentTarget.dataset.index;
-      
+
       if (!postId) {
         console.error('【poem-square】点赞失败：postId为空');
         uni.showToast({ title: '点赞失败：帖子ID缺失', icon: 'none' });
@@ -1419,13 +1445,15 @@ export default {
   padding-top: env(safe-area-inset-top, var(--safe-area-inset-top, 44px)); /* 添加状态栏安全区域，备选方案 */
 }
 .square-mode-container {
-  padding: 100rpx;
+  padding-left: 100rpx;
+  padding-right: 100rpx;
+  padding-bottom: 100rpx;
   margin-bottom: 200rpx;
-  padding-top: calc(var(--safe-area-top, 44px) + 250rpx); /* 动态计算：安全区域 + 基础间距 */
+  /* paddingTop 通过内联样式动态设置 */
 }
 
 .square-mode-container.with-avatar-bar {
-  padding-top: calc(var(--safe-area-top, 44px) + 360rpx); /* 动态计算：安全区域 + 头像栏高度 */
+  /* paddingTop 通过内联样式动态设置 */
   display: flex;
   flex-direction: column;
   align-items: stretch;

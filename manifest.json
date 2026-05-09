@@ -158,12 +158,13 @@
             "bundleName" : "com.example.poementer",
             "signingConfigs" : {
                 "default" : {
-                    "storeFile" : "./cert/poementer_harmony.p12",
-                    "storePassword" : "lhh20040712",
-                    "keyAlias" : "debugKey",
-                    "keyPassword" : "lhh20040712",
-                    "profile" : "./cert/poementerDebug.p7b",
-                    "signAlg" : "SHA256withECDSA"
+                    "certpath" : "C:/Users/qisaihao/Desktop/enterkeydocs/dev.cer",
+                    "keyAlias" : "testalias",
+                    "keyPassword" : "0000001B0E5F7B21AAC3478692CB4AA17E816F146C136B2B635C9F80AB7EE8B0F41D13C8691917AC7676BA",
+                    "profile" : "C:/Users/qisaihao/Desktop/enterkeydocs/poementerDebug.p7b",
+                    "signAlg" : "SHA256withECDSA",
+                    "storeFile" : "C:/Users/qisaihao/Desktop/enterkeydocs/poementer_harmony.p12",
+                    "storePassword" : "0000001B15205A16540A3A84639C245229C648CFCFDAD4689253C1CF716E1638F10614D941B525C57F7B85"
                 }
             }
         }

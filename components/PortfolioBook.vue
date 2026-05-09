@@ -245,4 +245,8 @@ export default {
     font-size: 28rpx;
     color: var(--app-surface-meta-color, #999);
 }
+
+[data-app-theme="dark"] .books-container {
+    background: #0f1115;
+}
 </style>

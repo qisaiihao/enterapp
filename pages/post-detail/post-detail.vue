@@ -182,6 +182,8 @@
                     <view class="error-text">帖子加载失败或不存在</view>
                 </view>
             </block>
+            <!-- 底部间隔，确保固定底栏不遮挡内容 -->
+            <view class="bottom-spacer"></view>
         </view>
 
         <!-- 遮罩层：当输入框展开时显示 -->
@@ -294,7 +296,7 @@
             @color-change="onColorChange"
             @force-regenerate="forceRegenerateCanvas"
         />
-        <!-- #ifdef APP-PLUS -->
+        <!-- #ifdef APP-PLUS || APP-HARMONY -->
         <view
             v-if="showShareModal && (shareConfig.fontFamily || '汇文明朝') === '汇文明朝'"
             class="app-share-font-activator"
@@ -586,7 +588,7 @@ export default {
         } catch (e) {}
 
         // 注册键盘高度监听
-        // #ifdef MP-WEIXIN || APP-PLUS
+        // #ifdef MP-WEIXIN || APP-PLUS || APP-HARMONY
         try {
             this.keyboardHeightChangeHandler = (res) => {
                 const height = res.height || 0;
@@ -632,7 +634,7 @@ export default {
         this._shareCanvasRuntime = null;
 
         // 取消键盘高度监听
-        // #ifdef MP-WEIXIN || APP-PLUS
+        // #ifdef MP-WEIXIN || APP-PLUS || APP-HARMONY
         try {
             if (this.keyboardHeightChangeHandler) {
                 uni.offKeyboardHeightChange(this.keyboardHeightChangeHandler);
@@ -1432,10 +1434,10 @@ export default {
         onImageLongPress: function () {
             console.log('【post-detail】用户长按图片');
             // App 端没有系统长按菜单，这里直接触发保存
-            // #ifdef APP-PLUS
+            // #ifdef APP-PLUS || APP-HARMONY
             this.saveShareImage();
             // #endif
-            // #ifndef APP-PLUS
+            // #ifdef H5 || MP-WEIXIN
             uni.showToast({ title: '长按可保存', icon: 'none' });
             // #endif
         },
@@ -1586,7 +1588,7 @@ export default {
 
             // 真正执行保存（小程序/APP）
             const saveFromPath = (filePath) => {
-                // #ifdef MP-WEIXIN || APP-PLUS
+                // #ifdef MP-WEIXIN || APP-PLUS || APP-HARMONY
                 uni.saveImageToPhotosAlbum({
                     filePath,
                     success: () => toastOK('已保存到相册'),
@@ -1604,7 +1606,7 @@ export default {
             };
 
             // H5：下载到本地
-            // #ifdef MP-WEIXIN || APP-PLUS
+            // #ifdef MP-WEIXIN || APP-PLUS || APP-HARMONY
             if (filePath && isLocalFilePath(filePath)) {
                 saveFromPath(filePath);
                 return;
@@ -1651,7 +1653,7 @@ export default {
             // 统一入口：根据 URL 形态分支
             if (url.startsWith('data:')) {
                 // base64 → 临时文件
-                // #ifdef MP-WEIXIN || APP-PLUS
+                // #ifdef MP-WEIXIN || APP-PLUS || APP-HARMONY
                 uni.base64ToTempFilePath({
                     base64Data: url,
                     success: (res) => {
@@ -1669,7 +1671,7 @@ export default {
                 // #endif
             } else if (/^https?:\/\//i.test(url)) {
                 // 远程 URL 先下载
-                // #ifdef MP-WEIXIN || APP-PLUS
+                // #ifdef MP-WEIXIN || APP-PLUS || APP-HARMONY
                 uni.downloadFile({
                     url,
                     success: (res) => {
@@ -1698,7 +1700,7 @@ export default {
                 // #endif
             } else {
                 // 认为是本地临时路径
-                // #ifdef MP-WEIXIN || APP-PLUS
+                // #ifdef MP-WEIXIN || APP-PLUS || APP-HARMONY
                 if (url && isLocalFilePath(url)) {
                     this.setData({ shareImageFilePath: url });
                 }
@@ -3270,7 +3272,7 @@ export default {
 /* 自定义返回按钮 */
 .custom-back-btn {
     position: absolute;
-    top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px))); /* 添加安全区域偏移 */
+    top: calc(30rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px))); /* 添加安全区域偏移 */
     left: 40rpx;
     width: 100rpx;
     height: 100rpx;
@@ -3307,8 +3309,8 @@ page {
     background-color: var(--app-page-bg, #ffffff);
     color: var(--app-primary-text, #111111);
     /* min-height: 100vh; */
-    padding-bottom: 140rpx;
-    padding-top: calc(160rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px))); /* 添加安全区域上边距 */
+    padding-bottom: 20rpx;
+    padding-top: calc(100rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px))); /* 添加安全区域上边距，为状态栏留空间 */
     position: relative; /* 为返回按钮提供定位上下文 */
     /* 新增，确保在内容不足时也能撑满一屏 */
     display: flex;
@@ -4287,9 +4289,16 @@ page {
     opacity: var(--app-post-action-icon-opacity, 1);
 }
 
-/* 调整页面底部间距，避免被底部栏遮挡 */
+/* 调整页面底部间距，避免被底部栏遮挡（由 .bottom-spacer 提供实际撑开） */
 .container {
-    padding-bottom: 140rpx;
+    padding-bottom: 20rpx;
+}
+
+/* 底部间隔：实际撑开页面，确保固定底栏不遮挡内容 */
+.bottom-spacer {
+    height: calc(200rpx + env(safe-area-inset-bottom));
+    flex-shrink: 0;
+    width: 100%;
 }
 
 .app-share-font-activator {

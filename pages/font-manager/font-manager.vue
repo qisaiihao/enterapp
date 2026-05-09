@@ -34,8 +34,8 @@
             </view>
 
             <view class="font-items">
-                <view 
-                    v-for="font in fontList" 
+                <view
+                    v-for="font in fontList"
                     :key="font.fontFamily"
                     class="font-item"
                     :class="{ 'cached': font.isCached, 'loading': font.isLoading }"
@@ -72,7 +72,7 @@
 
         <view class="page-footer">
             <view class="footer-info">
-                <text class="info-text">字体文件将自动缓存到本地，提升使用体验</text>
+                <text class="info-text">字体文件将自动缓存到本地</text>
                 <text class="info-text">缓存上限: {{ cacheStats.maxCacheSizeFormatted }}</text>
             </view>
         </view>
@@ -110,7 +110,7 @@ export default {
         async loadFontData() {
             try {
                 this.isLoading = true;
-                
+
                 // 获取字体列表
                 const availableFonts = fontManager.getAvailableFonts();
                 this.fontList = availableFonts.map(font => ({
@@ -121,7 +121,7 @@ export default {
 
                 // 获取缓存统计
                 this.cacheStats = fontManager.getCacheStats();
-                
+
             } catch (error) {
                 console.error('加载字体数据失败:', error);
                 uni.showToast({
@@ -165,7 +165,7 @@ export default {
 
         async downloadFont(font) {
             if (font.isLoading) return;
-            
+
             try {
                 // 更新UI状态
                 const fontIndex = this.fontList.findIndex(f => f.fontFamily === font.fontFamily);
@@ -174,7 +174,7 @@ export default {
                 }
 
                 uni.showLoading({ title: '下载中...' });
-                
+
                 await fontManager.ensureFontAvailable(font.fontFamily, (progress) => {
                     console.log(`字体下载进度: ${progress}%`);
                 });
@@ -186,7 +186,7 @@ export default {
 
                 // 刷新数据
                 await this.loadFontData();
-                
+
             } catch (error) {
                 console.error('下载字体失败:', error);
                 uni.showToast({
@@ -195,7 +195,7 @@ export default {
                 });
             } finally {
                 uni.hideLoading();
-                
+
                 // 重置加载状态
                 const fontIndex = this.fontList.findIndex(f => f.fontFamily === font.fontFamily);
                 if (fontIndex !== -1) {
@@ -231,7 +231,7 @@ export default {
 
                 // 刷新数据
                 await this.loadFontData();
-                
+
             } catch (error) {
                 console.error('删除字体失败:', error);
                 uni.showToast({
@@ -267,7 +267,7 @@ export default {
 
                 // 刷新数据
                 await this.loadFontData();
-                
+
             } catch (error) {
                 console.error('清空缓存失败:', error);
                 uni.showToast({

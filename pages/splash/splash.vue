@@ -49,6 +49,7 @@ import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareH
 import { getAppState, getOpenid, patchAppState, setUserSession } from '@/utils/app-state.js';
 import { formatErrorForLog } from '@/utils/error-log.js';
 import { ensureTcbAuthenticated } from '@/utils/runtime-bootstrap.js';
+import { lightImpact } from '@/utils/haptics.js';
 
 export default {
     data() {
@@ -308,7 +309,7 @@ export default {
          */
         handleEnterButtonClick: function () {
             // 添加按钮点击反馈
-            uni.vibrateShort();
+            lightImpact();
 
             // 检查预加载是否完成
             if (!this.preloadCompleted) {

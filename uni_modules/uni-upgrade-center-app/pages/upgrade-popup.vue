@@ -286,9 +286,14 @@ export default {
 					.reduce((promise, cur, curIndex) => {
 						openSchemePromise = (promise || (promise = Promise.reject())).catch(() => {
 							return new Promise((resolve, reject) => {
+								// #ifdef APP-PLUS
 								plus.runtime.openURL(cur, (err) => {
 									reject(err);
 								});
+								// #endif
+								// #ifdef APP-HARMONY
+								reject(new Error('HarmonyOS暂不支持应用商店跳转'));
+								// #endif
 							});
 						});
 						return openSchemePromise;
@@ -520,7 +525,15 @@ export default {
 			});
 		},
 		jumpToApplicationStore() {
+			// #ifdef APP-PLUS
 			plus.runtime.openURL(this.url);
+			// #endif
+			// #ifdef APP-HARMONY
+			uni.showToast({
+				title: '请手动前往应用商店更新',
+				icon: 'none'
+			});
+			// #endif
 		}
 	}
 };
