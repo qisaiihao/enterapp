@@ -16,11 +16,12 @@
                     :circular="false"
                     :indicator-dots="false"
                     :autoplay="false"
-                    :skip-hidden-item-layout="true"
+                    :skip-hidden-item-layout="false"
                     :easing-function="easeOutCubic"
                 >
                     <swiper-item>
                         <feed-list
+                            :key="'home-feed-' + homeFeedRenderKey"
                             class="swiper-page"
                             :posts="homeFeedPosts"
                             :is-loading="homeFeedIsLoading"
@@ -53,36 +54,7 @@
                             @touch-start="onTouchStart"
                             @touch-move="onTouchMove"
                             @touch-end="onTouchEnd"
-                        >
-                            <template #filter>
-                                <view v-if="showHomeFilterPanel" class="home-filter-mask" @tap="closeHomeFilterPanel"></view>
-                                <view class="home-filter-container">
-                                    <view
-                                        class="home-filter-trigger"
-                                        :class="{ 'home-filter-trigger--active': showHomeFilterPanel || showNormalPostsOnly }"
-                                        @tap.stop="toggleHomeFilterPanel"
-                                    >
-                                        <image class="home-filter-trigger-icon" src="/static/images/filter.png" mode="aspectFit" />
-                                    </view>
-                                    <view v-if="showHomeFilterPanel" class="home-filter-panel" @tap.stop>
-                                        <view
-                                            class="home-filter-option"
-                                            :class="{ 'home-filter-option--active': !showNormalPostsOnly }"
-                                            @tap="setNormalPostsFilter(false)"
-                                        >
-                                            显示全部
-                                        </view>
-                                        <view
-                                            class="home-filter-option"
-                                            :class="{ 'home-filter-option--active': showNormalPostsOnly }"
-                                            @tap="setNormalPostsFilter(true)"
-                                        >
-                                            只看普通帖子
-                                        </view>
-                                    </view>
-                                </view>
-                            </template>
-                        </feed-list>
+                        />
                     </swiper-item>
 
                     <swiper-item>
@@ -122,6 +94,7 @@
                         >
                             <template #filter>
                                 <following-avatar-bar
+                                    v-if="swiperCurrent === 1"
                                     ref="followingAvatarBar"
                                     :selected-user-id="followingSelectedUserId"
                                     @select-user="onFollowingUserSelect"
@@ -167,6 +140,38 @@
                         />
                     </swiper-item>
                 </swiper>
+                <view
+                    v-if="swiperCurrent === 0"
+                    class="home-filter-layer"
+                    :style="{ top: (safeAreaTop * 2 + 220) + 'rpx' }"
+                >
+                    <view v-if="showHomeFilterPanel" class="home-filter-mask" @tap="closeHomeFilterPanel"></view>
+                    <view class="home-filter-container">
+                        <view
+                            class="home-filter-trigger"
+                            :class="{ 'home-filter-trigger--active': showHomeFilterPanel || showNormalPostsOnly }"
+                            @tap.stop="toggleHomeFilterPanel"
+                        >
+                            <image class="home-filter-trigger-icon" src="/static/images/filter.png" mode="aspectFit" />
+                        </view>
+                        <view v-if="showHomeFilterPanel" class="home-filter-panel" @tap.stop>
+                            <view
+                                class="home-filter-option"
+                                :class="{ 'home-filter-option--active': !showNormalPostsOnly }"
+                                @tap="setNormalPostsFilter(false)"
+                            >
+                                显示全部
+                            </view>
+                            <view
+                                class="home-filter-option"
+                                :class="{ 'home-filter-option--active': showNormalPostsOnly }"
+                                @tap="setNormalPostsFilter(true)"
+                            >
+                                只看普通帖子
+                            </view>
+                        </view>
+                    </view>
+                </view>
             </view>
 
             <app-tab-bar ref="customTabBar" />
@@ -280,6 +285,7 @@ export default {
             swiperTouchStartY: null,
             swiperTouchStartTime: null,
             easeOutCubic: 'cubic-bezier(0.33, 1, 0.68, 1)',
+            homeFeedRenderKey: 0,
             showNormalPostsOnly: false,
             showHomeFilterPanel: false,
             useRecommendFeed: false,
@@ -756,6 +762,7 @@ export default {
 
               onSwiperChange(e) {
             const current = e.detail.current;
+            const wasHome = this.swiperCurrent === 0;
             console.log('swiper切换到:', current);
 
               if (this.swiperChangeTimer) {
@@ -781,12 +788,18 @@ export default {
                 }
 
                 // 批量更新状态，减少渲染次数
-                this.setData({
+                const updateData = {
                     swiperCurrent: current,
                     currentPage: pageType,
                     currentTab: tabValue,
-                    showHomeFilterPanel: false
-                });
+                    showHomeFilterPanel: false,
+                    isSwiping: false,
+                    swipeDirectionDecided: false
+                };
+                if (current === 0 && !wasHome) {
+                    updateData.homeFeedRenderKey = this.homeFeedRenderKey + 1;
+                }
+                this.setData(updateData);
 
                 // 如果页面还没有数据，加载数据
                 if (pageType === 'following' && this.followingPostList.length === 0) {
@@ -808,6 +821,7 @@ export default {
 
         // 标签切换处理
         onTabChange(tabValue) {
+            const wasHome = this.swiperCurrent === 0;
             console.log('切换标签页:', tabValue);
 
             // 根据标签值映射到swiper索引和页面类型
@@ -828,12 +842,18 @@ export default {
             }
 
             // 批量更新状态，减少渲染次数
-            this.setData({
+            const updateData = {
                 currentTab: tabValue,
                 swiperCurrent: swiperIndex,
                 currentPage: pageType,
-                showHomeFilterPanel: false
-            });
+                showHomeFilterPanel: false,
+                isSwiping: false,
+                swipeDirectionDecided: false
+            };
+            if (swiperIndex === 0 && !wasHome) {
+                updateData.homeFeedRenderKey = this.homeFeedRenderKey + 1;
+            }
+            this.setData(updateData);
 
             // 后续操作（数据加载、状态同步）
             if (tabValue === 'following') {
@@ -2305,6 +2325,12 @@ export default {
     height: 100%;
     overflow: hidden;
     position: relative;
+    --app-post-wrapper-bg: var(--app-surface-bg, #ffffff);
+    --app-post-wrapper-margin: 0 0 20rpx 0;
+    --app-post-wrapper-shadow: none;
+    --app-post-wrapper-radius: 0;
+    --app-post-wrapper-border: none;
+    --app-post-wrapper-divider: 1rpx solid var(--app-surface-divider, #f0f0f0);
     /* #ifdef MP-WEIXIN */
     z-index: 100; /* 小程序端：高于 top-bar::before，但低于 top-bar 和 tabs */
     padding-top: 280rpx; /* 增加上边距，避免内容被 top-bar 和 tabs 遮挡 */
@@ -2432,17 +2458,25 @@ export default {
     right: 0;
     bottom: 0;
     left: 0;
-    z-index: 29;
+    z-index: 1055;
     background: transparent;
 }
 
+.home-filter-layer {
+    position: fixed;
+    right: 30rpx;
+    z-index: 1200;
+    pointer-events: none;
+}
+
 .home-filter-container {
-    padding: 20rpx 30rpx;
     position: relative;
-    z-index: 30;
+    z-index: 1;
     display: flex;
-    justify-content: flex-end;
-    background: var(--app-page-bg, transparent);
+    flex-direction: column;
+    align-items: flex-end;
+    background: transparent;
+    pointer-events: auto;
 }
 
 .home-filter-trigger {
@@ -2453,10 +2487,16 @@ export default {
     align-items: center;
     justify-content: center;
     background: transparent;
+    transition: all 0.3s ease;
+}
+
+.home-filter-trigger:active {
+    transform: scale(0.92);
+    opacity: 0.7;
 }
 
 .home-filter-trigger--active {
-    background: var(--app-subtle-surface-bg, rgba(109, 101, 101, 0.08));
+    background: transparent;
 }
 
 .home-filter-trigger-icon {
@@ -2466,10 +2506,8 @@ export default {
 }
 
 .home-filter-panel {
-    position: absolute;
-    top: 74rpx;
-    right: 30rpx;
     width: 332rpx;
+    margin-top: 12rpx;
     padding: 24rpx;
     border-radius: 20rpx;
     background: var(--app-elevated-bg, #ffffff);

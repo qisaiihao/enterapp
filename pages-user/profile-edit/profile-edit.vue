@@ -1496,7 +1496,7 @@ export default {
         }
 };
 </script>
-<style>
+<style scoped>
 /* pages/profile-edit/profile-edit.wxss */
 
 /* 外层容器 */
@@ -1517,7 +1517,7 @@ export default {
 
 .custom-back-btn {
     position: absolute;
-    top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px))); /* 添加安全区域偏移 */
+    top: calc(42rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px))); /* 添加安全区域偏移 */
     left: 40rpx;
     width: 100rpx;
     height: 100rpx;
@@ -1546,7 +1546,7 @@ export default {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 220rpx 30rpx 120rpx 30rpx;
+    padding: calc(128rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px))) 30rpx 56rpx 30rpx;
 }
 
 .avatar-container {

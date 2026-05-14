@@ -620,7 +620,7 @@ export default {
 };
 </script>
 
-<style>
+<style scoped>
 /* 诗歌内容使用汇文明朝字体，其他地方使用系统默认字体 */
 
 .white-bg {

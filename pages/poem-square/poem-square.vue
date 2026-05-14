@@ -1436,7 +1436,7 @@ export default {
 };
 </script>
 
-<style>
+<style scoped>
 /* 字体已在App.vue中全局预加载，这里不再需要重复定义 */
 
 .white-bg {
@@ -1599,20 +1599,20 @@ export default {
 }
 .post-content.expanded { display: block; overflow: visible; }
 .comment-emoji{ font-size: 40rpx; }
-.comment-icon { width: 60rpx; height: 60rpx; filter: var(--app-post-action-icon-filter, none); opacity: var(--app-post-action-icon-opacity, 1); }
-.vote-section { 
-  display: flex; 
-  justify-content: space-between; 
-  align-items: center; 
-  padding: 25rpx 50rpx; 
+.comment-icon { width: 60rpx; height: 60rpx; }
+.vote-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 25rpx 50rpx;
   border-radius: 0 0 30rpx 30rpx; /* 添加下方圆角 */
 }
 .actions-left { flex: 1; display: flex; align-items: center; gap: 20rpx; }
 .button-group { display: flex; align-items: center; gap: 30rpx; }
+.like-icon-container { display: flex; align-items: center; justify-content: center; padding: 8rpx; }
 .comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; color: var(--app-post-action-color, #999); }
 .vote-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; border-radius: 20rpx; background: var(--app-subtle-surface-bg, rgba(255,255,255,.9)); box-shadow: 0 2rpx 8rpx rgba(0,0,0,.1); color: var(--app-post-action-color, #999); }
-.comment-icon { width: 60rpx; height: 60rpx; filter: var(--app-post-action-icon-filter, none); opacity: var(--app-post-action-icon-opacity, 1); }
-.like-icon { width: 60rpx; height: 60rpx; margin-top: 5px; filter: var(--app-post-action-icon-filter, none); opacity: var(--app-post-action-icon-opacity, 1); }
+.like-icon { width: 60rpx; height: 60rpx; margin-top: 5px; }
 
 /* 用户签名样式 */
 .user-signature {
@@ -1680,7 +1680,7 @@ export default {
   position: absolute;
   top: calc(var(--safe-area-top, 44px) + 160rpx);
   right: 30rpx;
-  z-index: 30;
+  z-index: 1200;
 }
 
 .poem-filter-trigger {
@@ -1691,10 +1691,16 @@ export default {
   align-items: center;
   justify-content: center;
   background: transparent;
+  transition: all 0.3s ease;
+}
+
+.poem-filter-trigger:active {
+  transform: scale(0.92);
+  opacity: 0.7;
 }
 
 .poem-filter-trigger--active {
-  background: var(--app-subtle-surface-bg, rgba(109, 101, 101, 0.08));
+  background: transparent;
 }
 
 .poem-filter-trigger-icon {

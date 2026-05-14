@@ -12,16 +12,8 @@
         ></view>
         <view v-if="isFullBackground" class="profile-bg-overlay"></view>
 
-        <!-- 主页背景图层 - 顶部图片模式 -->
-        <view
-            v-if="isHeaderBackground"
-            class="profile-bg-image profile-bg-image--header"
-            :style="appBackgroundPageStyle"
-        ></view>
-        <view v-if="isHeaderBackground" class="profile-bg-overlay profile-bg-overlay--header"></view>
-
         <!-- pages/profile/profile.wxml -->
-        <view :class="['container', { 'container--with-background': isFullBackground || isHeaderBackground }]">
+        <view :class="['profile-container', { 'profile-container--with-background': isFullBackground || isHeaderBackground }]">
             <!-- 骨架屏：当 isLoading 为 true 时，显示骨架屏，其他所有内容都不渲染 -->
             <view v-if="!hasInitialSnapshot && isLoading">
                 <skeleton pageType="profile" />
@@ -30,7 +22,7 @@
             <!-- 真实内容：当 isLoading 为 false 时，显示真实页面 -->
             <view
                 v-else
-                :class="['scroll-container', { 'scroll-container--with-background': isFullBackground || isHeaderBackground }]"
+                :class="['profile-scroll-container', { 'profile-scroll-container--with-background': isFullBackground || isHeaderBackground }]"
             >
                 <!-- Sidebar Component -->
                 <Sidebar
@@ -45,10 +37,10 @@
 
                 <!-- Main Content -->
                 <view
-                    class="main-content"
+                    class="profile-main-content"
                     :class="{
-                        'main-content--with-background': isFullBackground,
-                        'main-content--header-background': isHeaderBackground
+                        'profile-main-content--with-background': isFullBackground,
+                        'profile-main-content--header-background': isHeaderBackground
                     }"
                 >
                     <view
@@ -403,10 +395,10 @@ const PROFILE_BACKGROUND_THEME_VARS = Object.freeze({
     '--profile-loading-footer-color': 'rgba(17, 17, 17, 0.70)'
 });
 const PROFILE_BACKGROUND_DARK_THEME_VARS = Object.freeze({
-    '--app-post-wrapper-bg': '#0f1115',
-    '--app-post-wrapper-shadow': 'none',
-    '--app-post-wrapper-radius': '0',
-    '--app-post-section-bg': '#0f1115',
+    '--app-post-wrapper-bg': 'rgba(15, 17, 21, 0.68)',
+    '--app-post-wrapper-shadow': '0 10rpx 30rpx rgba(0, 0, 0, 0.34)',
+    '--app-post-wrapper-radius': '20rpx',
+    '--app-post-section-bg': 'transparent',
     '--app-subtle-surface-bg': 'rgba(255, 255, 255, 0.08)',
     '--app-surface-bg': 'rgba(15, 17, 21, 0.72)',
     '--app-surface-divider': 'rgba(255, 255, 255, 0.14)',
@@ -3110,21 +3102,7 @@ export default {
     background: rgba(0, 0, 0, 0.36);
 }
 
-.profile-bg-image--header {
-    height: 44vh;
-    position: fixed;
-}
-
-.profile-bg-overlay--header {
-    height: 44vh;
-    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.20) 50%, rgba(255, 255, 255, 0.92) 85%, rgba(255, 255, 255, 1) 100%);
-}
-
-[data-app-theme="dark"] .profile-bg-overlay--header {
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.24) 0%, rgba(0, 0, 0, 0.42) 52%, rgba(15, 17, 21, 0.90) 86%, #0f1115 100%);
-}
-
-.container {
+.profile-container {
     width: 100%;
     height: 100vh;
     position: relative;
@@ -3132,34 +3110,34 @@ export default {
     background-color: var(--app-page-bg, #ffffff);
 }
 
-.container--with-background {
+.profile-container--with-background {
     min-height: 100vh;
     height: auto;
     background-color: transparent;
 }
 
-.scroll-container {
+.profile-scroll-container {
     width: 100%;
     height: 100%;
     background-color: var(--app-page-bg, #ffffff);
 }
 
-.scroll-container--with-background {
+.profile-scroll-container--with-background {
     min-height: 100vh;
     height: auto;
     background-color: transparent;
 }
 
 
-.main-content {
+.profile-main-content {
     width: 100%;
     /* height: 100vh; */
     background-color: var(--app-page-bg, #ffffff);
     /* overflow-y: auto; */
-    padding-bottom: 100rpx; /* 为底部TabBar留出空间 */
+    padding-bottom: 220rpx; /* 为底部 fixed TabBar 留出足够空间 */
 }
 
-.main-content--with-background {
+.profile-main-content--with-background {
     background-color: transparent;
     --app-post-discussion-quote-bg: transparent;
     --app-post-wrapper-margin: 0 24rpx 20rpx 24rpx;
@@ -3167,24 +3145,24 @@ export default {
     --app-post-wrapper-divider: none;
 }
 
-.main-content--header-background {
+.profile-main-content--header-background {
     background-color: transparent;
 }
 
-[data-app-theme="dark"] .main-content--with-background {
+[data-app-theme="dark"] .profile-main-content--with-background {
     --app-post-wrapper-divider: 1rpx solid rgba(255,255,255,0.10);
 }
 
-.main-content--with-background .discussion-content .discussion-sentence-card {
+.profile-main-content--with-background .discussion-content .discussion-sentence-card {
     background: transparent !important;
 }
 
-.main-content--with-background .profile-name-center,
-.main-content--with-background .profile-poemid,
-.main-content--with-background .profile-bio-center,
-.main-content--with-background .profile-followers,
-.main-content--with-background .growth-count,
-.main-content--with-background .edit-profile-btn text {
+.profile-main-content--with-background .profile-name-center,
+.profile-main-content--with-background .profile-poemid,
+.profile-main-content--with-background .profile-bio-center,
+.profile-main-content--with-background .profile-followers,
+.profile-main-content--with-background .growth-count,
+.profile-main-content--with-background .edit-profile-btn text {
     text-shadow: 0 2rpx 12rpx rgba(255, 255, 255, 0.45);
 }
 
@@ -3195,7 +3173,7 @@ export default {
 }
 
 .profile-hero-section--with-background {
-    min-height: 560rpx;
+    min-height: 0;
     background-color: #0f0f0f;
 }
 
@@ -3309,7 +3287,7 @@ export default {
     margin-top: 0;
     border-radius: 0;
     padding-top: 0;
-    overflow: hidden;
+    overflow: visible;
     z-index: 2;
 }
 
@@ -3506,6 +3484,7 @@ export default {
 /* Portfolio Section */
 .portfolio-section {
     margin: 0 0 30rpx 0;
+    padding-bottom: 220rpx;
 }
 
 /* Favorites Section */

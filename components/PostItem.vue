@@ -763,8 +763,8 @@ export default {
 }
 
 .comment-icon {
-    width: 40rpx;
-    height: 40rpx;
+    width: 60rpx;
+    height: 60rpx;
     margin-right: 8rpx;
     filter: var(--app-post-action-icon-filter, none);
     opacity: var(--app-post-action-icon-opacity, 1);
