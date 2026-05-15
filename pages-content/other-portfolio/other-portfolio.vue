@@ -56,7 +56,7 @@
               <view class="actions-left"><!-- 预留左侧空间 --></view>
               <view class="button-group">
                 <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="item._id" :data-index="index">
-                  <image :class="['like-icon', item.isVoted ? 'like-icon--voted' : '']" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError" />
+                  <image :class="['like-icon', getLikeIconVariantClass(item.likeIcon), item.isVoted ? 'like-icon--voted' : '']" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError" />
                 </view>
                 <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
                   <image class="comment-icon" src="/static/images/newicons/comment.png" mode="aspectFit" />
@@ -157,6 +157,18 @@ export default {
   },
 
   methods: {
+    getLikeIconVariantClass(iconSrc) {
+      const src = String(iconSrc || '/static/images/seed.png').toLowerCase();
+      if (src.includes('seedplus.png')) return 'like-icon--seedplus';
+      if (src.includes('seed.png')) return 'like-icon--seed';
+      if (src.includes('leafplus.png')) return 'like-icon--leafplus';
+      if (src.includes('leaf.png')) return 'like-icon--leaf';
+      if (src.includes('flowerplus.png')) return 'like-icon--flowerplus';
+      if (src.includes('flower.png')) return 'like-icon--flower';
+      if (src.includes('peachplus.png')) return 'like-icon--peachplus';
+      if (src.includes('peach.png')) return 'like-icon--peach';
+      return '';
+    },
     // 统一云函数调用方法
     callCloudFunction(name, data = {}, extraOptions = {}) {
       return cloudCall(name, data, Object.assign({ pageTag: 'other-portfolio', context: this, requireAuth: true }, extraOptions));
@@ -705,6 +717,14 @@ export default {
 .like-icon--voted {
   filter: none;
   opacity: 1;
+}
+
+.like-icon--seed:not(.like-icon--voted),
+.like-icon--leaf:not(.like-icon--voted),
+.like-icon--flower:not(.like-icon--voted),
+.like-icon--peach:not(.like-icon--voted) {
+  filter: var(--app-post-action-icon-filter, none);
+  opacity: var(--app-post-action-icon-opacity, 1);
 }
 
 /* 用户签名样式 */

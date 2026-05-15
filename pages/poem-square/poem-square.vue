@@ -131,7 +131,7 @@
                 <view class="actions-left"><!-- 预留左侧空间 --></view>
                 <view class="button-group">
                   <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="item._id" :data-index="index">
-                    <image class="like-icon" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError" />
+                    <image :class="['like-icon', getLikeIconVariantClass(item.likeIcon), item.isVoted ? 'like-icon--voted' : '']" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError" />
                   </view>
                   <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
                     <image class="comment-icon" src="/static/images/newicons/comment.png" mode="aspectFit" />
@@ -188,7 +188,7 @@
               <view class="actions-left"><!-- 预留左侧空间 --></view>
               <view class="button-group">
                 <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="item._id" :data-index="index">
-                  <image class="like-icon" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError" />
+                  <image :class="['like-icon', getLikeIconVariantClass(item.likeIcon), item.isVoted ? 'like-icon--voted' : '']" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError" />
                 </view>
                 <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
                   <image class="comment-icon" src="/static/images/newicons/comment.png" mode="aspectFit" />
@@ -1211,6 +1211,18 @@ export default {
       navigateToPostDetail(postId);
     },
     onLikeIconError() {},
+    getLikeIconVariantClass(iconSrc) {
+      const src = String(iconSrc || '/static/images/seed.png').toLowerCase();
+      if (src.includes('seedplus.png')) return 'like-icon--seedplus';
+      if (src.includes('seed.png')) return 'like-icon--seed';
+      if (src.includes('leafplus.png')) return 'like-icon--leafplus';
+      if (src.includes('leaf.png')) return 'like-icon--leaf';
+      if (src.includes('flowerplus.png')) return 'like-icon--flowerplus';
+      if (src.includes('flower.png')) return 'like-icon--flower';
+      if (src.includes('peachplus.png')) return 'like-icon--peachplus';
+      if (src.includes('peach.png')) return 'like-icon--peach';
+      return '';
+    },
 
     // authorSignature已从云函数返回，不再需要fetchAuthorSignature函数
 
@@ -1615,6 +1627,14 @@ export default {
 .comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 0 10rpx 4rpx; color: var(--app-post-action-color, #999); }
 .vote-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; border-radius: 20rpx; background: var(--app-subtle-surface-bg, rgba(255,255,255,.9)); box-shadow: 0 2rpx 8rpx rgba(0,0,0,.1); color: var(--app-post-action-color, #999); }
 .like-icon { width: 60rpx; height: 60rpx; }
+.like-icon--voted { filter: none; opacity: 1; }
+.like-icon--seed:not(.like-icon--voted),
+.like-icon--leaf:not(.like-icon--voted),
+.like-icon--flower:not(.like-icon--voted),
+.like-icon--peach:not(.like-icon--voted) {
+  filter: var(--app-post-action-icon-filter, none);
+  opacity: var(--app-post-action-icon-opacity, 1);
+}
 
 /* 用户签名样式 */
 .user-signature {

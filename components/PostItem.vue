@@ -847,6 +847,14 @@ export default {
     transform: translateY(-1rpx);
 }
 
+.like-icon--seed:not(.like-icon--voted),
+.like-icon--leaf:not(.like-icon--voted),
+.like-icon--flower:not(.like-icon--voted),
+.like-icon--peach:not(.like-icon--voted) {
+    filter: var(--app-post-action-icon-filter, none);
+    opacity: var(--app-post-action-icon-opacity, 1);
+}
+
 .like-icon--seedplus {
     width: 56rpx;
     height: 56rpx;

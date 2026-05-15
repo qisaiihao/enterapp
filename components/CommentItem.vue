@@ -36,7 +36,10 @@
                 <view :class="isReply ? 'reply-time' : 'comment-time'">{{ item.formattedCreateTime }}</view>
                 <view :class="isReply ? 'reply-actions' : 'comment-actions'">
                     <view class="like-section" @tap="onLike">
-                        <image class="like-icon" :src="item.likeIcon"></image>
+                        <image
+                            :class="['like-icon', getLikeIconVariantClass(item.likeIcon), item.liked ? 'like-icon--voted' : '']"
+                            :src="item.likeIcon || '/static/images/seed.png'"
+                        ></image>
                         <text class="like-count">{{ item.likes || 0 }}</text>
                     </view>
                     <view v-if="item.canDelete" class="delete-btn" @tap="onDelete">
@@ -146,6 +149,18 @@ export default {
                 liked: this.item.liked,
                 parentId: this.isReply ? this.parentCommentId : null
             });
+        },
+        getLikeIconVariantClass(iconSrc) {
+            const src = String(iconSrc || '/static/images/seed.png').toLowerCase();
+            if (src.includes('seedplus.png')) return 'like-icon--seedplus';
+            if (src.includes('seed.png')) return 'like-icon--seed';
+            if (src.includes('leafplus.png')) return 'like-icon--leafplus';
+            if (src.includes('leaf.png')) return 'like-icon--leaf';
+            if (src.includes('flowerplus.png')) return 'like-icon--flowerplus';
+            if (src.includes('flower.png')) return 'like-icon--flower';
+            if (src.includes('peachplus.png')) return 'like-icon--peachplus';
+            if (src.includes('peach.png')) return 'like-icon--peach';
+            return '';
         },
         onDelete() {
             this.$emit('delete', {
@@ -286,6 +301,14 @@ export default {
     width: 32rpx;
     height: 32rpx;
     margin-right: 4rpx;
+}
+
+.like-section .like-icon--seed:not(.like-icon--voted),
+.like-section .like-icon--leaf:not(.like-icon--voted),
+.like-section .like-icon--flower:not(.like-icon--voted),
+.like-section .like-icon--peach:not(.like-icon--voted) {
+    filter: var(--app-post-action-icon-filter, none);
+    opacity: var(--app-post-action-icon-opacity, 1);
 }
 
 .like-count {

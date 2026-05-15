@@ -144,8 +144,8 @@
                         <view class="button-group">
                             <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="post && post._id ? post._id : ''">
                                 <image
-                                    :class="['like-icon', post && post.isVoted ? 'like-icon--voted' : '']"
-                                    :src="post.likeIcon"
+                                    :class="['like-icon', getLikeIconVariantClass(post && post.likeIcon), post && post.isVoted ? 'like-icon--voted' : '']"
+                                    :src="post.likeIcon || '/static/images/seed.png'"
                                     mode="aspectFit"
                                 ></image>
                             </view>
@@ -652,6 +652,18 @@ export default {
         try { flushViewQueue(); } catch (e) {}
     },
     methods: {
+        getLikeIconVariantClass(iconSrc) {
+            const src = String(iconSrc || '/static/images/seed.png').toLowerCase();
+            if (src.includes('seedplus.png')) return 'like-icon--seedplus';
+            if (src.includes('seed.png')) return 'like-icon--seed';
+            if (src.includes('leafplus.png')) return 'like-icon--leafplus';
+            if (src.includes('leaf.png')) return 'like-icon--leaf';
+            if (src.includes('flowerplus.png')) return 'like-icon--flowerplus';
+            if (src.includes('flower.png')) return 'like-icon--flower';
+            if (src.includes('peachplus.png')) return 'like-icon--peachplus';
+            if (src.includes('peach.png')) return 'like-icon--peach';
+            return '';
+        },
         createShareMeasureContext(logicalWidth = 750) {
             // #ifdef MP-WEIXIN
             if (typeof wx !== 'undefined' && typeof wx.createOffscreenCanvas === 'function') {
@@ -3757,6 +3769,14 @@ page {
 .like-icon--voted {
     filter: none;
     opacity: 1;
+}
+
+.like-icon--seed:not(.like-icon--voted),
+.like-icon--leaf:not(.like-icon--voted),
+.like-icon--flower:not(.like-icon--voted),
+.like-icon--peach:not(.like-icon--voted) {
+    filter: var(--app-post-action-icon-filter, none);
+    opacity: var(--app-post-action-icon-opacity, 1);
 }
 
 .comment-section {

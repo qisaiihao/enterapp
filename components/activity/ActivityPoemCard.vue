@@ -47,7 +47,7 @@
           <view class="actions-left"></view>
           <view class="button-group">
             <view class="like-icon-container" @tap.stop.prevent="onVote">
-              <image class="like-icon" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" />
+              <image :class="['like-icon', getLikeIconVariantClass(item.likeIcon), item.isVoted ? 'like-icon--voted' : '']" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" />
             </view>
             <view class="comment-count" @tap.stop.prevent="onCommentClick">
               <image class="comment-icon" src="/static/images/newicons/comment.png" mode="aspectFit" />
@@ -107,7 +107,7 @@
         <view class="actions-left"></view>
         <view class="button-group">
           <view class="like-icon-container" @tap.stop.prevent="onVote">
-            <image class="like-icon" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" />
+            <image :class="['like-icon', getLikeIconVariantClass(item.likeIcon), item.isVoted ? 'like-icon--voted' : '']" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" />
           </view>
           <view class="comment-count" @tap.stop.prevent="onCommentClick">
             <image class="comment-icon" src="/static/images/newicons/comment.png" mode="aspectFit" />
@@ -219,6 +219,18 @@ export default {
     }
   },
   methods: {
+    getLikeIconVariantClass(iconSrc) {
+      const src = String(iconSrc || '/static/images/seed.png').toLowerCase();
+      if (src.includes('seedplus.png')) return 'like-icon--seedplus';
+      if (src.includes('seed.png')) return 'like-icon--seed';
+      if (src.includes('leafplus.png')) return 'like-icon--leafplus';
+      if (src.includes('leaf.png')) return 'like-icon--leaf';
+      if (src.includes('flowerplus.png')) return 'like-icon--flowerplus';
+      if (src.includes('flower.png')) return 'like-icon--flower';
+      if (src.includes('peachplus.png')) return 'like-icon--peachplus';
+      if (src.includes('peach.png')) return 'like-icon--peach';
+      return '';
+    },
     onBuiltinFontLoaded(payload = {}) {
       const loadedFontFamily = payload && payload.fontFamily ? payload.fontFamily : '';
       if (loadedFontFamily && loadedFontFamily !== '汇文明朝') return;
@@ -401,6 +413,14 @@ export default {
 .comment-icon,
 .like-icon { width: 60rpx; height: 60rpx; }
 .like-icon { margin-top: 5px; }
+.like-icon--voted { filter: none; opacity: 1; }
+.like-icon--seed:not(.like-icon--voted),
+.like-icon--leaf:not(.like-icon--voted),
+.like-icon--flower:not(.like-icon--voted),
+.like-icon--peach:not(.like-icon--voted) {
+  filter: var(--app-post-action-icon-filter, none);
+  opacity: var(--app-post-action-icon-opacity, 1);
+}
 
 .user-signature {
   position: absolute;
