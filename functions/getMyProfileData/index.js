@@ -18,7 +18,7 @@ const $ = db.command.aggregate;
 const { resolveOpenId, buildNoOpenIdResponse } = require('./_lib/request-context');
 const { createDraftHandlers } = require('./handlers/drafts');
 const { createFavoriteHandlers } = require('./handlers/favorites');
-const { ensureUserDefaultAvatar } = require('../_lib/default-avatar');
+const { ensureUserDefaultAvatar } = require('./_lib/default-avatar');
 
 const draftHandlers = createDraftHandlers({ db });
 const favoriteHandlers = createFavoriteHandlers({ db, cloud });
@@ -118,6 +118,7 @@ exports.main = async (event, context) => {
         poemId: 1,
         password: 1,
         phoneNumber: 1,
+        showGrowthStats: 1,
         growthCounts: 1,
         posts: '$userPosts'
       })
@@ -141,6 +142,7 @@ exports.main = async (event, context) => {
       poemId: result.poemId,
       password: result.password,
       phoneNumber: result.phoneNumber,
+      showGrowthStats: result.showGrowthStats === true,
       growthCounts: result.growthCounts || { seed: 0, leaf: 0, flower: 0, peach: 0 }
     };
     userInfo.avatarUrl = await ensureUserDefaultAvatar({ db, openid, user: userInfo });

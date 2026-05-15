@@ -179,6 +179,7 @@ exports.main = async (event, context) => {
         _openid: openid,
         nickName,
         avatarUrl,
+        showGrowthStats: false,
         createdAt: new Date()
       };
 

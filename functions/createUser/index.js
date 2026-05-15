@@ -44,6 +44,7 @@ exports.main = async (event, context) => {
         _openid: openid,
         nickName: nickName,
         avatarUrl: avatarFileID,
+        showGrowthStats: false,
         createTime: new Date()
       };
       

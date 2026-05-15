@@ -72,6 +72,16 @@
                         </picker>
                     </view>
                 </view>
+
+                <view class="form-row">
+                    <view class="form-label">
+                        <text>成长统计</text>
+                    </view>
+                    <view class="form-input form-input--switch">
+                        <text class="switch-label">显示在主页右上角</text>
+                        <switch class="profile-option-switch" :checked="showGrowthStats" @change="onShowGrowthStatsChange" />
+                    </view>
+                </view>
             </view>
 
             <!-- 个性描述区域 -->
@@ -223,6 +233,7 @@ import { checkContentSafe, checkImageSafe, checkTextSafe } from '../../utils/con
 import { STICKER_AVATAR_PATHS, isStickerAvatar, resolveUserAvatar } from '../../utils/defaultAvatar.js';
 import { getCurrentPlatform } from '../../utils/platformDetector.js';
 import { emitAvatarUpdated } from '@/utils/events.js';
+import { resolveGrowthStatsVisibility, writeLocalGrowthStatsVisibility } from '@/utils/profileGrowthStatsVisibility.js';
 // pages/profile-edit/profile-edit.js
 const app = getApp();
 
@@ -250,6 +261,7 @@ export default {
             signatureOriginalPath: '',
             isProcessingSignature: false,
             autoRemoveSignatureBg: true,
+            showGrowthStats: false,
             signatureCanvasWidth: 1,
             signatureCanvasHeight: 1,
             // 修改手机号相关
@@ -269,6 +281,7 @@ export default {
                 occupation: '',
                 region: '',
                 poemId: '',
+                showGrowthStats: false,
                 signatureUrl: ''
             }
         };
@@ -284,6 +297,7 @@ export default {
                 this.occupation !== this.originalData.occupation ||
                 this.region !== this.originalData.region ||
                 this.poemId !== this.originalData.poemId ||
+                this.showGrowthStats !== this.originalData.showGrowthStats ||
                 this.signatureUrl !== this.originalData.signatureUrl ||
                 this.tempAvatarPath !== null ||
                 this.signatureTempPath !== null
@@ -364,6 +378,8 @@ export default {
                         console.log('【profile-edit】👤 用户数据:', user);
                         console.log('【profile-edit】💼 职业:', user.occupation);
                         console.log('【profile-edit】📍 地区:', user.region);
+                        const profileOpenid = (app && app.globalData && app.globalData.openid) || user._openid || user.openid || '';
+                        const showGrowthStats = resolveGrowthStatsVisibility(user, profileOpenid, { allowLocalFallback: true });
                         this.setData({
                             avatarUrl: user.avatarUrl || '',
                             nickName: user.nickName || '',
@@ -373,6 +389,7 @@ export default {
                             region: user.region || '',
                             poemId: user.poemId || '',          // 新增：设置poemId
                             phoneNumber: user.phoneNumber || '', // 手机号（只读显示）
+                            showGrowthStats,
                             signatureUrl: user.signatureUrl || '',
                             signaturePreview: user.signatureUrl || '',
                             signatureTempPath: null,
@@ -388,6 +405,7 @@ export default {
                             occupation: user.occupation || '',
                             region: user.region || '',
                             poemId: user.poemId || '',
+                            showGrowthStats,
                             signatureUrl: user.signatureUrl || ''
                         };
                         console.log('【profile-edit】✅ 设置后的数据:', {
@@ -1093,6 +1111,12 @@ export default {
             });
         },
 
+        onShowGrowthStatsChange(e) {
+            this.setData({
+                showGrowthStats: e && e.detail ? e.detail.value === true : false
+            });
+        },
+
 
         goBack: function () {
             uni.navigateBack();
@@ -1389,6 +1413,7 @@ export default {
                         occupation: this.occupation,
                         region: this.region,
                         poemId: this.poemId,  // 新增：保存poemId
+                        showGrowthStats: this.showGrowthStats === true,
                         signatureUrl: signatureFileID || ''
                     };
                     if (shouldUpdateAvatar && resolvedAvatarUrl) {
@@ -1404,8 +1429,15 @@ export default {
                             title: '保存成功'
                         });
                         try {
+                            uni.setStorageSync('shouldRefreshProfile', true);
                             const appInstance = getApp();
                             const userId = appInstance && appInstance.globalData && appInstance.globalData.openid;
+                            const showGrowthStats = this.showGrowthStats === true;
+                            writeLocalGrowthStatsVisibility(userId || this.currentUserSeed || '', showGrowthStats);
+                            if (appInstance && appInstance.globalData && appInstance.globalData.userInfo) {
+                                appInstance.globalData.userInfo.showGrowthStats = showGrowthStats;
+                                uni.setStorageSync('userInfo', appInstance.globalData.userInfo);
+                            }
                             emitAvatarUpdated(userId);
                         } catch (e) {}
                         const pages = getCurrentPages();
@@ -1635,6 +1667,23 @@ export default {
 .form-input {
     flex: 1;
     margin: 0 20rpx;
+}
+
+.form-input--switch {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16rpx;
+}
+
+.switch-label {
+    font-size: 28rpx;
+    color: #999999;
+}
+
+.profile-option-switch {
+    transform: scale(0.8);
+    flex-shrink: 0;
 }
 
 .input-field {

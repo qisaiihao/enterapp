@@ -56,7 +56,7 @@
                             :follower-count="followerCount"
                             :growth-stats="growthStats"
                             :is-self="isViewingSelf"
-                            :show-growth-stats="false"
+                            :show-growth-stats="shouldShowGrowthStats"
                             @avatar-error="onAvatarError"
                             @edit-profile="navigateToEditProfile"
                             @toggle-sidebar="toggleSidebar"
@@ -327,6 +327,7 @@ import { getCurrentPlatform } from '../../utils/platformDetector.js';
 import { saveImagesToAlbum } from '../../utils/shareImage.js';
 import { generateTimelineShareImages } from '../../utils/timelineShareCanvas.js';
 import { getThemeMode, toggleThemeMode } from '@/utils/theme.js';
+import { resolveGrowthStatsVisibility } from '@/utils/profileGrowthStatsVisibility.js';
 
 const PAGE_SIZE = 5;
 const PROFILE_BACKGROUND_THEME_VARS = Object.freeze({
@@ -723,6 +724,11 @@ export default {
             const firstSeriesBlock = Array.isArray(firstPost.seriesBlocks) ? firstPost.seriesBlocks[0] : null;
             const excerpt = (firstPost.content || (firstSeriesBlock && firstSeriesBlock.content) || firstPost.title || '').trim();
             return excerpt || '我的创作时间轴';
+        },
+        shouldShowGrowthStats() {
+            return resolveGrowthStatsVisibility(this.userInfo, this.getCurrentProfileOpenid(), {
+                allowLocalFallback: true
+            });
         },
         tabBarStyle() {
             if (this.isDarkTheme) {

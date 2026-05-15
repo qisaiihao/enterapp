@@ -84,7 +84,8 @@ exports.main = async (event, context) => {
     password,
     appBackgroundUrl,
     appBackgroundMode,
-    clearAppBackground
+    clearAppBackground,
+    showGrowthStats
   } = event;
 
   console.log('🔍 [updateUserProfile] 收到的参数:', {
@@ -140,6 +141,10 @@ exports.main = async (event, context) => {
     if (password) {
       updateData.password = password;
       console.log('🔍 [updateUserProfile] 将更新password');
+    }
+    if (showGrowthStats !== undefined) {
+      updateData.showGrowthStats = showGrowthStats === true;
+      console.log('🔍 [updateUserProfile] 将更新showGrowthStats');
     }
 
     if (clearAppBackground) {

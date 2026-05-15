@@ -40,6 +40,7 @@ async function updateAuthorGrowthCounts(authorOpenid, oldVotes, newVotes) {
             flower: to === 'flower' ? 1 : 0,
             peach: to === 'peach' ? 1 : 0,
           },
+          showGrowthStats: false,
           growthUpdatedAt: db.serverDate(),
           createTime: new Date(),
           updateTime: new Date(),

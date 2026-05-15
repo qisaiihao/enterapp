@@ -27,20 +27,65 @@
                 <view class="main-input-area" @tap.stop="noop">
                 <!-- 讨论模式：块级编辑器，直接交错正文/引用 -->
                 <template v-if="publishMode === 'discussion'">
-                    <scroll-view class="block-scroll" :scroll-y="true" :show-scrollbar="true">
+                    <scroll-view class="block-scroll" :scroll-y="true" :show-scrollbar="true" @tap.stop="closeDiscussionInsertMenu">
                         <view class="block-editor">
                             <view
                                 v-for="(block, idx) in blocks"
                                 :key="idx"
-                                class="block-card"
+                                class="block-card discussion-block"
                                 :class="block.type"
                             >
+                                <view class="discussion-block-header">
+                                    <view class="discussion-block-title-row">
+                                        <text class="discussion-order-label">{{ getDiscussionBlockLabel(block, idx) }}</text>
+                                    </view>
+                                    <view class="block-actions discussion-block-actions">
+                                        <view class="icon-btn icon-btn--discussion" @tap.stop="moveBlock(idx, -1)" :class="{ disabled: idx === 0 }">
+                                            <image
+                                                class="discussion-action-image discussion-action-image--up"
+                                                :class="{ 'discussion-action-image--muted': idx === 0 }"
+                                                :src="idx === 0 ? '/static/images/up.png' : '/static/images/up_black.png'"
+                                                mode="aspectFit"
+                                            />
+                                        </view>
+                                        <view class="icon-btn icon-btn--discussion" @tap.stop="moveBlock(idx, 1)" :class="{ disabled: idx === blocks.length - 1 }">
+                                            <image
+                                                class="discussion-action-image discussion-action-image--down"
+                                                :class="{ 'discussion-action-image--muted': idx === blocks.length - 1 }"
+                                                src="/static/images/down.png"
+                                                mode="aspectFit"
+                                            />
+                                        </view>
+                                        <view class="icon-btn icon-btn--discussion" @tap.stop="confirmRemoveDiscussionBlock(idx)" :class="{ disabled: blocks.length === 1 && block.type === 'content' }">
+                                            <image
+                                                class="discussion-action-image discussion-action-image--delete"
+                                                :class="{ 'discussion-action-image--muted': blocks.length === 1 && block.type === 'content' }"
+                                                src="/static/images/newicons/delete.png"
+                                                mode="aspectFit"
+                                            />
+                                        </view>
+                                        <view class="discussion-insert-anchor">
+                                            <view class="icon-btn icon-btn--discussion" @tap.stop="toggleDiscussionInsertMenu(idx)">
+                                                <image
+                                                    class="discussion-action-image discussion-action-image--add"
+                                                    src="/static/images/add_zushi.png"
+                                                    mode="aspectFit"
+                                                />
+                                            </view>
+                                            <view v-if="discussionInsertMenuIndex === idx" class="discussion-insert-menu" @tap.stop>
+                                                <view class="discussion-insert-option" @tap.stop="addDiscussionBlockFromMenu('content')">正文</view>
+                                                <view class="discussion-insert-option" @tap.stop="addDiscussionBlockFromMenu('quote')">引用</view>
+                                            </view>
+                                        </view>
+                                    </view>
+                                </view>
                                 <textarea
                                     v-if="block.type === 'content'"
                                     class="content-textarea"
-                                    :placeholder="`正文段 ${idx + 1}`"
+                                    :placeholder="getDiscussionBlockLabel(block, idx)"
                                     :value="block.text"
                                     @input="onBlockInput(idx, $event)"
+                                    @tap.stop="closeDiscussionInsertMenu"
                                     auto-height
                                     maxlength="1500"
                                     :show-confirm-bar="false"
@@ -49,28 +94,15 @@
                                 <textarea
                                     v-else
                                     class="quote-textarea"
-                                    :placeholder="`引用段 ${idx + 1}：每行一句`"
+                                    :placeholder="`${getDiscussionBlockLabel(block, idx)}：每行一句`"
                                     :value="block.text"
                                     @input="onBlockInput(idx, $event)"
+                                    @tap.stop="closeDiscussionInsertMenu"
                                     auto-height
                                     maxlength="500"
                                     :show-confirm-bar="false"
                                     :adjust-position="false"
                                 ></textarea>
-
-                                <view class="block-actions">
-                                    <button size="mini" @tap.stop="moveBlock(idx, -1)" :disabled="idx === 0">上移</button>
-                                    <button size="mini" @tap.stop="moveBlock(idx, 1)" :disabled="idx === blocks.length - 1">下移</button>
-                                    <button size="mini" @tap.stop="removeBlock(idx)" :disabled="blocks.length === 1 && block.type === 'content'">删除</button>
-                                </view>
-                                <view class="insert-actions">
-                                    <button size="mini" plain @tap.stop="addBlock(idx, 'quote')">在后插入引用</button>
-                                    <button size="mini" plain @tap.stop="addBlock(idx, 'content')">在后插入正文</button>
-                                </view>
-                            </view>
-                            <view class="block-add-tail">
-                                <button size="mini" type="default" plain @tap.stop="addBlock(blocks.length - 1, 'quote')">末尾添加引用</button>
-                                <button size="mini" type="default" plain @tap.stop="addBlock(blocks.length - 1, 'content')">末尾添加正文</button>
                             </view>
                         </view>
                     </scroll-view>
@@ -372,6 +404,7 @@ export default {
         // 讨论模式相关
         isDiscussion: false,
         showQuotePopup: false,
+        discussionInsertMenuIndex: -1,
         parentPostId: '',
         parentPostInfo: null,
         canPublish: false,
@@ -675,6 +708,7 @@ export default {
         // 页面点击事件 - 点击外部区域退出键盘
         onPageTap() {
             uni.hideKeyboard();
+            this.closeDiscussionInsertMenu();
         },
 
         // 空函数，用于阻止事件冒泡
@@ -1305,13 +1339,57 @@ export default {
         toggleQuotePopup() {},
         closeQuotePopup() {},
         addBlock(afterIndex, type) {
+            this.closeDiscussionInsertMenu();
             discussionAddBlock(this, afterIndex, type);
         },
         removeBlock(idx) {
+            this.closeDiscussionInsertMenu();
             discussionRemoveBlock(this, idx);
         },
         moveBlock(idx, direction) {
+            this.closeDiscussionInsertMenu();
             discussionMoveBlock(this, idx, direction);
+        },
+        toggleDiscussionInsertMenu(idx) {
+            this.setData({
+                discussionInsertMenuIndex: this.discussionInsertMenuIndex === idx ? -1 : idx
+            });
+        },
+        closeDiscussionInsertMenu() {
+            if (this.discussionInsertMenuIndex !== -1) {
+                this.setData({ discussionInsertMenuIndex: -1 });
+            }
+        },
+        addDiscussionBlockFromMenu(type) {
+            const afterIndex = this.discussionInsertMenuIndex;
+            if (afterIndex < 0) return;
+            this.addBlock(afterIndex, type);
+        },
+        confirmRemoveDiscussionBlock(idx) {
+            const block = (this.blocks || [])[idx] || {};
+            if ((this.blocks || []).length === 1 && block.type === 'content') {
+                return;
+            }
+            this.closeDiscussionInsertMenu();
+            uni.showModal({
+                title: '确认删除',
+                content: '确定要删除这个段落吗？',
+                confirmText: '删除',
+                cancelText: '取消',
+                success: (res) => {
+                    if (res.confirm) {
+                        this.removeBlock(idx);
+                    }
+                }
+            });
+        },
+        getDiscussionBlockLabel(block, idx) {
+            const type = block && block.type === 'quote' ? 'quote' : 'content';
+            const count = (this.blocks || [])
+                .slice(0, idx + 1)
+                .filter(item => (item && item.type === 'quote' ? 'quote' : 'content') === type)
+                .length;
+            return `${type === 'quote' ? '引用段' : '正文段'} ${count}`;
         },
         // 组诗：同步段落列表并更新高光
         syncSeriesBlocks(blocks, manualSeriesHighlights = null) {
@@ -2796,7 +2874,8 @@ page {
 }
 
 .block-actions,
-.insert-actions {
+.insert-actions,
+.block-add-tail {
     display: flex;
     gap: 12rpx;
     flex-wrap: wrap;
@@ -2804,7 +2883,8 @@ page {
     justify-content: flex-end; /* 靠右对齐 */
 }
 
-.insert-actions {
+.insert-actions,
+.block-add-tail {
     justify-content: center;
 }
 
@@ -2861,6 +2941,164 @@ page {
 
 .block-card .quote-textarea {
     min-height: 220rpx;
+}
+
+.discussion-block {
+    position: relative;
+    padding-top: 8rpx;
+    background: transparent;
+}
+
+.discussion-block.quote {
+    background: transparent;
+    border-color: transparent;
+}
+
+.discussion-block-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20rpx;
+    margin-bottom: 18rpx;
+}
+
+.discussion-block-title-row {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+}
+
+.discussion-order-label {
+    flex-shrink: 0;
+    font-size: 30rpx;
+    line-height: 44rpx;
+    color: var(--app-secondary-text, #4a4a4a);
+}
+
+.discussion-block-actions {
+    position: relative;
+    flex-shrink: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    gap: 14rpx;
+    flex-wrap: nowrap;
+    align-items: center;
+}
+
+.icon-btn--discussion {
+    width: 60rpx;
+    height: 60rpx;
+    background: transparent;
+    border-radius: 14rpx;
+}
+
+.icon-btn--discussion:active {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.icon-btn--discussion.disabled {
+    opacity: 1;
+    pointer-events: none;
+}
+
+.discussion-action-image {
+    display: block;
+    flex-shrink: 0;
+    filter: var(--app-add-action-icon-filter, none);
+    opacity: var(--app-add-action-icon-opacity, 1);
+}
+
+.discussion-action-image--muted {
+    opacity: 0.32;
+}
+
+.discussion-action-image--up,
+.discussion-action-image--down {
+    width: 44rpx;
+    height: 22rpx;
+    transform: translateY(-1rpx);
+}
+
+.discussion-action-image--delete {
+    width: 60rpx;
+    height: 74rpx;
+    transform: translateY(-4rpx);
+}
+
+.discussion-action-image--add {
+    width: 32rpx;
+    height: 42rpx;
+    transform: translateY(-1rpx);
+}
+
+.discussion-insert-anchor {
+    position: relative;
+    width: 60rpx;
+    height: 60rpx;
+    flex-shrink: 0;
+}
+
+.discussion-insert-menu {
+    position: absolute;
+    top: 64rpx;
+    right: 0;
+    min-width: 144rpx;
+    padding: 8rpx;
+    border-radius: 14rpx;
+    background: var(--app-elevated-bg, #ffffff);
+    border: var(--app-surface-border-line, 1rpx solid rgba(0, 0, 0, 0.08));
+    box-shadow: var(--app-surface-shadow, 0 12rpx 32rpx rgba(0, 0, 0, 0.14));
+    z-index: 20;
+    box-sizing: border-box;
+}
+
+.discussion-insert-option {
+    height: 58rpx;
+    padding: 0 20rpx;
+    border-radius: 10rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28rpx;
+    color: var(--app-primary-text, #222);
+    white-space: nowrap;
+}
+
+.discussion-insert-option:active {
+    background: var(--app-subtle-surface-bg, #f0f0f0);
+}
+
+.discussion-block .content-textarea,
+.discussion-block .quote-textarea {
+    width: 100%;
+    height: auto;
+    max-height: none;
+    border: none;
+    border-radius: 22rpx;
+    padding: 52rpx 46rpx;
+    background: var(--app-subtle-surface-bg, #e8e8e8);
+    color: var(--app-secondary-text, #9b9b9b);
+    font-size: 32rpx;
+    line-height: 1.5;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 300;
+    resize: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-appearance: none;
+    appearance: none;
+    box-sizing: border-box;
+    outline: none;
+    -webkit-overflow-scrolling: touch;
+}
+
+.discussion-block .content-textarea {
+    min-height: 300rpx;
+}
+
+.discussion-block .quote-textarea {
+    min-height: 240rpx;
 }
 
 /* 组诗样式 */

@@ -1,6 +1,6 @@
 // 云函数入口文件
 const cloud = require('wx-server-sdk');
-const { getUserDefaultAvatar, needsDefaultAvatar } = require('../_lib/default-avatar');
+const { getUserDefaultAvatar, needsDefaultAvatar } = require('./_lib/default-avatar');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
@@ -125,7 +125,8 @@ exports.main = async (event, context) => {
         password: password,
         nickName: nickName,
         avatarUrl: avatarFileID || getUserDefaultAvatar(openid),
-        growthCounts: { seed: 0, leaf: 0, flower: 0 },
+        growthCounts: { seed: 0, leaf: 0, flower: 0, peach: 0 },
+        showGrowthStats: false,
         growthUpdatedAt: db.serverDate(),
         createTime: new Date()
       };

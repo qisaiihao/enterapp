@@ -25,7 +25,7 @@
                 <view v-if="isHeaderBackground" class="profile-hero-bg-image"></view>
                 <view v-if="isHeaderBackground" class="profile-hero-bg-overlay"></view>
             <view class="profile-card profile-card-center">
-                <view class="profile-growth-stats" style="display: none;">
+                <view v-if="userInfo && userInfo.showGrowthStats === true" class="profile-growth-stats">
                     <view class="growth-item">
                         <image class="growth-icon" src="/static/images/seedplus.png" mode="aspectFit"></image>
                         <text class="growth-count">{{ growthStats.seed }}</text>
@@ -1805,6 +1805,7 @@ export default {
     position: absolute;
     top: 120rpx;
     right: 40rpx;
+    z-index: 3;
     display: flex;
     flex-direction: column;
     align-items: flex-end;

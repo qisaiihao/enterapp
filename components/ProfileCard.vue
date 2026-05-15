@@ -140,6 +140,7 @@ export default {
     position: absolute;
     top: 120rpx;
     right: 40rpx;
+    z-index: 3;
     display: flex;
     flex-direction: column;
     align-items: flex-end;

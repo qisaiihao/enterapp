@@ -109,6 +109,7 @@ exports.main = async (event, context) => {
         signature: '',
         isPhoneVerified: false,
         phoneNumber: '',
+        showGrowthStats: false,
         createdAt: new Date(),
         updatedAt: new Date(),
         // 其他默认字段

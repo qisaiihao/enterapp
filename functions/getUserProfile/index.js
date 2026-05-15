@@ -1,6 +1,6 @@
 // 云函数入口文件
 const cloud = require('wx-server-sdk');
-const { ensureUserDefaultAvatar } = require('../_lib/default-avatar');
+const { ensureUserDefaultAvatar } = require('./_lib/default-avatar');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
@@ -92,6 +92,7 @@ exports.main = async (event, context) => {
           appBackgroundUrl: 1,
           appBackgroundMode: 1,
           poemId: 1,
+          showGrowthStats: 1,
           growthCounts: 1
         })
         .limit(1)
@@ -136,6 +137,7 @@ exports.main = async (event, context) => {
           appBackgroundUrl: 1,
           appBackgroundMode: 1,
           poemId: 1,
+          showGrowthStats: 1,
           growthCounts: 1,
           // 不返回隐私信息（生日、年龄等）
           posts: 1
@@ -148,6 +150,7 @@ exports.main = async (event, context) => {
     }
 
     const userInfo = profileData.list[0];
+    userInfo.showGrowthStats = userInfo.showGrowthStats === true;
     userInfo.avatarUrl = await ensureUserDefaultAvatar({ db, openid: userId, user: userInfo });
     const canViewAppBackground = String(currentOpenid) === String(userId);
     if (!canViewAppBackground) {
@@ -375,6 +378,7 @@ exports.main = async (event, context) => {
         appBackgroundUrl: userInfo.appBackgroundUrl || '',
         appBackgroundMode: userInfo.appBackgroundMode || '',
         poemId: userInfo.poemId || '',
+        showGrowthStats: userInfo.showGrowthStats === true,
         growthCounts: userInfo.growthCounts || { seed: 0, leaf: 0, flower: 0, peach: 0 }
       },
       posts: posts
