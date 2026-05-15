@@ -2367,7 +2367,7 @@ export default {
 
 .post-item-wrapper.original-post {
     background: var(--app-post-original-bg, linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 90%, rgba(235, 200, 141, 0.05) 95%, rgba(235, 200, 141, 0.08) 100%));
-    border-left: 3rpx solid var(--app-post-original-accent-color, #ebc88d);
+    border-left: none;
     position: relative;
 }
 

@@ -364,7 +364,7 @@
 
       <view class="button-item" @tap.stop="deletePost">
 
-        <image class="button-icon" src="/static/images/delete.png" mode="aspectFit"></image>
+        <image class="button-icon" src="/static/images/newicons/delete.png" mode="aspectFit"></image>
 
       </view>
 

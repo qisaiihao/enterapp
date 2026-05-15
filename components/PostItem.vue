@@ -153,7 +153,7 @@
                     @tap.stop.prevent="onVote"
                 >
                     <image
-                        :class="['like-icon', item.isVoted ? 'like-icon--voted' : '']"
+                        :class="['like-icon', getLikeIconVariantClass(item.likeIcon), item.isVoted ? 'like-icon--voted' : '']"
                         :src="item.likeIcon || '/static/images/seed.png'"
                         mode="aspectFit"
                         @error="onLikeIconError"
@@ -425,6 +425,18 @@ export default {
                 postId: this.item._id
             });
         },
+        getLikeIconVariantClass(iconSrc) {
+            const src = String(iconSrc || '/static/images/seed.png').toLowerCase();
+            if (src.includes('seedplus.png')) return 'like-icon--seedplus';
+            if (src.includes('seed.png')) return 'like-icon--seed';
+            if (src.includes('leafplus.png')) return 'like-icon--leafplus';
+            if (src.includes('leaf.png')) return 'like-icon--leaf';
+            if (src.includes('flowerplus.png')) return 'like-icon--flowerplus';
+            if (src.includes('flower.png')) return 'like-icon--flower';
+            if (src.includes('peachplus.png')) return 'like-icon--peachplus';
+            if (src.includes('peach.png')) return 'like-icon--peach';
+            return '';
+        },
         // 点赞图标加载失败
         onLikeIconError(e) {
             this.$emit('like-icon-error', e);
@@ -444,7 +456,7 @@ export default {
     border-radius: var(--app-post-wrapper-radius, 0);
     border: var(--app-post-wrapper-border, none);
     border-bottom: var(--app-post-wrapper-divider, 1rpx solid #f0f0f0);
-    border-left: 3rpx solid var(--app-post-original-accent-color, transparent);
+    border-left: none;
     overflow: hidden;
     /* 列表项淡入动画 */
     animation: postFadeIn 0.35s ease-out;
@@ -465,7 +477,7 @@ export default {
 /* 原创帖子特殊样式 */
 .post-item-wrapper.original-post {
     background: var(--app-post-original-bg, linear-gradient(90deg, rgba(235, 200, 141, 0.05) 0%, rgba(255, 255, 255, 0) 100%));
-    border-left: 3rpx solid var(--app-post-original-accent-color, #ebc88d);
+    border-left: none;
     position: relative;
 }
 
@@ -765,13 +777,15 @@ export default {
 .comment-icon {
     width: 60rpx;
     height: 60rpx;
+    flex: 0 0 60rpx;
+    display: block;
     margin-right: 8rpx;
     filter: var(--app-post-action-icon-filter, none);
     opacity: var(--app-post-action-icon-opacity, 1);
 }
 
 .vote-count {
-    margin-left: 8rpx;
+    margin-left: 2rpx;
 }
 
 .actions-left {
@@ -788,7 +802,9 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 8rpx;
+    width: 60rpx;
+    height: 68rpx;
+    padding: 0;
     border-radius: 8rpx;
     margin-left: 20rpx;
     transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -812,16 +828,54 @@ export default {
 }
 
 .like-icon {
-    width: 48rpx;
-    height: 48rpx;
-    filter: var(--app-post-action-icon-filter, none);
-    opacity: var(--app-post-action-icon-opacity, 1);
+    width: 52rpx;
+    height: 52rpx;
+    display: block;
+    filter: none;
+    opacity: 1;
     transition: transform 0.2s ease;
 }
 
 .like-icon--voted {
     filter: none;
     opacity: 1;
+}
+
+.like-icon--seed {
+    width: 60rpx;
+    height: 60rpx;
+    transform: translateY(-1rpx);
+}
+
+.like-icon--seedplus {
+    width: 56rpx;
+    height: 56rpx;
+    transform: translateY(1rpx);
+}
+
+.like-icon--leaf,
+.like-icon--leafplus {
+    width: 48rpx;
+    height: 48rpx;
+}
+
+.like-icon--flower,
+.like-icon--flowerplus {
+    width: 44rpx;
+    height: 44rpx;
+    transform: translateY(2rpx);
+}
+
+.like-icon--peach {
+    width: 44rpx;
+    height: 44rpx;
+    transform: translateY(-2rpx);
+}
+
+.like-icon--peachplus {
+    width: 48rpx;
+    height: 48rpx;
+    transform: translateY(-1rpx);
 }
 
 /* 点赞数字变化动画 */

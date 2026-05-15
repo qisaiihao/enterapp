@@ -35,7 +35,7 @@
 }
 
 .icon-wrap.pressed {
-  box-shadow: 0 6rpx 12rpx rgba(0, 0, 0, 0.08);
+  box-shadow: 0 12rpx 24rpx rgba(0, 0, 0, 0.14), 0 3rpx 8rpx rgba(0, 0, 0, 0.08);
 }
 
 .icon-inner {

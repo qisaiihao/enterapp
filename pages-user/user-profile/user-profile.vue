@@ -1744,15 +1744,15 @@ export default {
 .my-posts-section, .portfolio-section, .favorites-section { margin: 0 0 30rpx 0; }
 
 .post-item-wrapper { background: var(--app-post-wrapper-bg, var(--app-surface-bg, #fff)); margin-bottom: 20rpx; padding: 0; box-shadow: none; border-radius: 0; border-bottom: var(--app-post-wrapper-divider, 1rpx solid #f0f0f0); }
-.post-item-wrapper.original-post { background: var(--app-post-original-bg, linear-gradient(90deg, rgba(235,200,141,0.05) 0%, rgba(255,255,255,0) 100%)); border-left: 3rpx solid var(--app-post-original-accent-color, #ebc88d); position: relative; }
+.post-item-wrapper.original-post { background: var(--app-post-original-bg, linear-gradient(90deg, rgba(235,200,141,0.05) 0%, rgba(255,255,255,0) 100%)); border-left: none; position: relative; }
 .post-content-navigator { display: block; background: transparent; }
 .navigator-hover { background-color: var(--app-subtle-surface-bg, rgba(0,0,0,0.02)); }
 
-.author-info-outside { display: flex; align-items: flex-start; padding: 20rpx 40rpx 10rpx 40rpx; background: var(--app-surface-bg, #fff); }
+.author-info-outside { display: flex; align-items: flex-start; padding: 20rpx 40rpx 10rpx 40rpx; background: var(--app-post-section-bg, var(--app-surface-bg, #fff)); }
 .author-info-outside .author-avatar { width: 60rpx; height: 60rpx; border-radius: 50%; margin-right: 15rpx; background-color: var(--app-subtle-surface-bg, #f5f5f5); }
 .author-info-outside .author-name { font-size: 28rpx; color: var(--app-post-author-color, #333); font-weight: 500; }
 
-.post-item { width: 100%; background: var(--app-surface-bg, #fff); border-radius: 0; box-shadow: none; box-sizing: border-box; padding: 20rpx 40rpx 30rpx 40rpx; }
+.post-item { width: 100%; background: var(--app-post-section-bg, var(--app-surface-bg, #fff)); border-radius: 0; box-shadow: none; box-sizing: border-box; padding: 20rpx 40rpx 30rpx 40rpx; }
 .post-title { font-size: 36rpx; font-weight: bold; color: var(--app-post-title-color, #333333); margin-bottom: 15rpx; line-height: 1.4; word-break: break-word; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
 .poem-author { font-size: 32rpx; color: var(--app-post-poem-author-color, #000); text-align: center; margin: 5rpx 0 15rpx 0; letter-spacing: 2rpx; }
 

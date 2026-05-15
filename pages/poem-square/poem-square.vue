@@ -94,6 +94,7 @@
                 @longpress="onLongPressCard"
                 :data-index="index"
                 :data-postid="item._id"
+                :style="{ backgroundColor: resolvePostCardBackground(item) }"
               >
                 <!-- 当前显示的诗 -->
                 <view class="post-item">
@@ -149,6 +150,7 @@
               @longpress="onLongPressCard" 
               :data-index="index" 
               :data-postid="item._id"
+              :style="{ backgroundColor: resolvePostCardBackground(item) }"
             >
               <view class="post-item">
                 <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.displayHighlightLines || item.displayHighlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.displayContent" :style="{ color: resolvePostTextColor(item), whiteSpace: 'pre-wrap' }"><block v-if="item.isExpanded">{{ item.displayContent }}</block><block v-else><block v-if="item.displayHighlightLines && item.displayHighlightLines.length > 0"><text v-for="(highlightLine, hlIndex) in item.displayHighlightLines" :key="hlIndex" style="font-weight: 700; display: block;">{{ highlightLine }}</text></block><block v-else>{{ item.displayContent }}</block></block></view>
@@ -1608,11 +1610,11 @@ export default {
   border-radius: 0 0 30rpx 30rpx; /* 添加下方圆角 */
 }
 .actions-left { flex: 1; display: flex; align-items: center; gap: 20rpx; }
-.button-group { display: flex; align-items: center; gap: 30rpx; }
-.like-icon-container { display: flex; align-items: center; justify-content: center; padding: 8rpx; }
-.comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; color: var(--app-post-action-color, #999); }
+.button-group { display: flex; align-items: center; gap: 10rpx; }
+.like-icon-container { display: flex; align-items: center; justify-content: center; }
+.comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 0 10rpx 4rpx; color: var(--app-post-action-color, #999); }
 .vote-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; border-radius: 20rpx; background: var(--app-subtle-surface-bg, rgba(255,255,255,.9)); box-shadow: 0 2rpx 8rpx rgba(0,0,0,.1); color: var(--app-post-action-color, #999); }
-.like-icon { width: 60rpx; height: 60rpx; margin-top: 5px; }
+.like-icon { width: 60rpx; height: 60rpx; }
 
 /* 用户签名样式 */
 .user-signature {

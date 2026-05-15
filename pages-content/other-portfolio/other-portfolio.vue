@@ -698,8 +698,8 @@ export default {
   width: 60rpx; 
   height: 60rpx; 
   margin-top: 5px; 
-  filter: var(--app-post-action-icon-filter, none);
-  opacity: var(--app-post-action-icon-opacity, 1);
+  filter: none;
+  opacity: 1;
 }
 
 .like-icon--voted {

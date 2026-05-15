@@ -363,8 +363,8 @@ const PROFILE_BACKGROUND_THEME_VARS = Object.freeze({
     '--app-tab-icon-inner-bg': 'rgba(255, 255, 255, 0.88)',
     '--app-tab-icon-border-color': 'transparent',
     '--app-tab-icon-active-border-color': 'transparent',
-    '--app-tab-icon-wrap-shadow': '0 12rpx 24rpx rgba(0, 0, 0, 0.12)',
-    '--app-tab-icon-active-shadow': '0 6rpx 12rpx rgba(0, 0, 0, 0.08)',
+    '--app-tab-icon-wrap-shadow': '0 9px 17px rgba(0, 0, 0, 0.16), 0 2px 5px rgba(0, 0, 0, 0.08)',
+    '--app-tab-icon-active-shadow': '0 6px 13px rgba(0, 0, 0, 0.14), 0 2px 4px rgba(0, 0, 0, 0.08)',
     '--profile-button-bg': 'transparent',
     '--profile-button-active-bg': 'rgba(255, 255, 255, 0.90)',
     '--profile-button-border': '1.5rpx solid rgba(17, 17, 17, 0.35)',
@@ -430,8 +430,8 @@ const PROFILE_BACKGROUND_DARK_THEME_VARS = Object.freeze({
     '--app-tab-icon-inner-bg': 'rgba(255, 255, 255, 0.06)',
     '--app-tab-icon-border-color': 'rgba(255, 255, 255, 0.10)',
     '--app-tab-icon-active-border-color': 'rgba(255, 255, 255, 0.34)',
-    '--app-tab-icon-wrap-shadow': '0 10rpx 24rpx rgba(0, 0, 0, 0.30)',
-    '--app-tab-icon-active-shadow': '0 10rpx 22rpx rgba(0, 0, 0, 0.28)',
+    '--app-tab-icon-wrap-shadow': '0 7px 16px rgba(0, 0, 0, 0.45), 0 1px 4px rgba(255, 255, 255, 0.06)',
+    '--app-tab-icon-active-shadow': '0 6px 14px rgba(0, 0, 0, 0.40), 0 1px 4px rgba(255, 255, 255, 0.05)',
     '--profile-button-bg': 'rgba(255, 255, 255, 0.10)',
     '--profile-button-active-bg': 'rgba(255, 255, 255, 0.16)',
     '--profile-button-border': '1.5rpx solid rgba(255, 255, 255, 0.26)',
@@ -733,8 +733,8 @@ export default {
                     '--app-tab-icon-inner-bg': 'rgba(255, 255, 255, 0.06)',
                     '--app-tab-icon-border-color': 'rgba(255, 255, 255, 0.10)',
                     '--app-tab-icon-active-border-color': 'rgba(255, 255, 255, 0.34)',
-                    '--app-tab-icon-wrap-shadow': '0 10rpx 24rpx rgba(0, 0, 0, 0.30)',
-                    '--app-tab-icon-active-shadow': '0 10rpx 22rpx rgba(0, 0, 0, 0.28)',
+                    '--app-tab-icon-wrap-shadow': '0 7px 16px rgba(0, 0, 0, 0.45), 0 1px 4px rgba(255, 255, 255, 0.06)',
+                    '--app-tab-icon-active-shadow': '0 6px 14px rgba(0, 0, 0, 0.40), 0 1px 4px rgba(255, 255, 255, 0.05)',
                     '--app-tab-text-color': '#9ea6b2',
                     '--app-tab-active-text-color': '#f4f1ea'
                 };
@@ -749,8 +749,8 @@ export default {
                 '--app-tab-icon-inner-bg': '#ffffff',
                 '--app-tab-icon-border-color': 'transparent',
                 '--app-tab-icon-active-border-color': 'transparent',
-                '--app-tab-icon-wrap-shadow': '0 18rpx 32rpx rgba(0, 0, 0, 0.16)',
-                '--app-tab-icon-active-shadow': '0 6rpx 12rpx rgba(0, 0, 0, 0.08)',
+                '--app-tab-icon-wrap-shadow': '0 9px 17px rgba(0, 0, 0, 0.16), 0 2px 5px rgba(0, 0, 0, 0.08)',
+                '--app-tab-icon-active-shadow': '0 6px 13px rgba(0, 0, 0, 0.14), 0 2px 4px rgba(0, 0, 0, 0.08)',
                 '--app-tab-text-color': 'rgba(17, 17, 17, 0.65)'
             };
         }

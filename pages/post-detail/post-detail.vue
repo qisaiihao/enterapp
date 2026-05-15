@@ -3478,7 +3478,7 @@ page {
 
 .post-detail-wrapper.original-post {
     background: var(--app-post-original-bg, linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0) 90%, rgba(235, 200, 141, 0.05) 95%, rgba(235, 200, 141, 0.08) 100%));
-    border-left: 3rpx solid #ebc88d;
+    border-left: none;
     position: relative;
 }
 
@@ -3678,11 +3678,11 @@ page {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 12rpx;
+    padding: 0;
     border-radius: 12rpx;
     transition: all 0.2s ease;
-    width: 60rpx;
-    height: 60rpx;
+    width: 80rpx;
+    height: 80rpx;
     margin-right: 12rpx;
 }
 
@@ -3705,11 +3705,11 @@ page {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 12rpx;
+    padding: 0;
     border-radius: 12rpx;
     transition: all 0.2s ease;
-    width: 60rpx;
-    height: 60rpx;
+    width: 80rpx;
+    height: 80rpx;
 }
 
 .portfolio-icon-container:active {
@@ -3717,8 +3717,8 @@ page {
 }
 
 .portfolio-icon {
-    width: 56rpx;
-    height: 56rpx;
+    width: 64rpx;
+    height: 64rpx;
     filter: var(--app-post-action-icon-filter, none);
     opacity: var(--app-post-action-icon-opacity, 1);
 }
@@ -3728,11 +3728,11 @@ page {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 12rpx;
+    padding: 0;
     border-radius: 12rpx;
     transition: all 0.2s ease;
-    width: 60rpx;
-    height: 60rpx;
+    width: 80rpx;
+    height: 80rpx;
 }
 
 .share-icon-container:active {
@@ -3740,18 +3740,18 @@ page {
 }
 
 .share-icon {
-    width: 56rpx;
-    height: 56rpx;
+    width: 64rpx;
+    height: 64rpx;
     filter: var(--app-post-action-icon-filter, none);
     opacity: var(--app-post-action-icon-opacity, 1);
 }
 
 
 .like-icon {
-    width: 56rpx;
-    height: 56rpx;
-    filter: var(--app-post-action-icon-filter, none);
-    opacity: var(--app-post-action-icon-opacity, 1);
+    width: 64rpx;
+    height: 64rpx;
+    filter: none;
+    opacity: 1;
 }
 
 .like-icon--voted {

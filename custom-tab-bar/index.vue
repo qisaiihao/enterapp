@@ -251,7 +251,7 @@ export default {
 
 .icon-wrap.pressed {
   border-color: var(--app-tab-icon-active-border-color, var(--app-tab-icon-border-color, transparent));
-  box-shadow: var(--app-tab-icon-active-shadow, 0 6rpx 12rpx rgba(0, 0, 0, 0.08));
+  box-shadow: var(--app-tab-icon-active-shadow, 0 12rpx 24rpx rgba(0, 0, 0, 0.14), 0 3rpx 8rpx rgba(0, 0, 0, 0.08));
 }
 
 .icon-inner {
