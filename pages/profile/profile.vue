@@ -2,7 +2,8 @@
     <view
         class="profile-page-root"
         :class="{ 'profile-page-root--with-background': isFullBackground || isHeaderBackground }"
-        :style="profileForegroundStyle"
+        :data-app-theme="appThemeMode"
+        :style="profilePageStyle"
     >
         <!-- 主页背景图层 - 全屏模式 -->
         <view
@@ -704,6 +705,12 @@ export default {
     computed: {
         isDarkTheme() {
             return this.themeMode === 'dark' || this.appThemeMode === 'dark';
+        },
+        profilePageStyle() {
+            return {
+                ...this.appThemeVars,
+                ...this.profileForegroundStyle
+            };
         },
         profileForegroundStyle() {
             if (!this.isFullBackground) {

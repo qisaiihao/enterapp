@@ -1,5 +1,5 @@
 <template>
-  <view class="mountain white-bg" @touchstart="touchStart" @touchend="touchEnd">
+  <view class="mountain white-bg" :data-app-theme="appThemeMode" :style="appThemeVars" @touchstart="touchStart" @touchend="touchEnd">
     <!-- 顶部栏 -->
     <top-bar />
 

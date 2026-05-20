@@ -1,5 +1,5 @@
 <template>
-    <view class="page-wrapper" :class="{ 'is-scrolling': isTouchScrolling }">
+    <view class="page-wrapper" :class="{ 'is-scrolling': isTouchScrolling }" :data-app-theme="appThemeMode" :style="appThemeVars">
         <view class="container">
             <page-tabs ref="pageTabs" :current-tab="currentTab" @tab-change="onTabChange"></page-tabs>
 

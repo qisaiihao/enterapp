@@ -188,6 +188,43 @@ function getThemeTargets() {
   ].filter(Boolean);
 }
 
+function applyNativeThemeChrome(mode) {
+  const isDark = normalizeThemeMode(mode) === DARK_MODE;
+  const backgroundColor = isDark ? DARK_THEME_VARS['--app-page-bg'] : LIGHT_THEME_VARS['--app-page-bg'];
+  const foregroundColor = isDark ? '#ffffff' : '#000000';
+
+  try {
+    if (typeof uni !== 'undefined' && typeof uni.setNavigationBarColor === 'function') {
+      uni.setNavigationBarColor({
+        frontColor: foregroundColor,
+        backgroundColor,
+        animation: { duration: 0, timingFunc: 'linear' }
+      });
+    }
+  } catch (error) {}
+
+  try {
+    if (typeof uni !== 'undefined' && typeof uni.setBackgroundColor === 'function') {
+      uni.setBackgroundColor({
+        backgroundColor,
+        backgroundColorTop: backgroundColor,
+        backgroundColorBottom: backgroundColor
+      });
+    }
+  } catch (error) {}
+
+  try {
+    if (typeof plus !== 'undefined' && plus && plus.navigator) {
+      if (typeof plus.navigator.setStatusBarStyle === 'function') {
+        plus.navigator.setStatusBarStyle(isDark ? 'light' : 'dark');
+      }
+      if (typeof plus.navigator.setStatusBarBackground === 'function') {
+        plus.navigator.setStatusBarBackground(backgroundColor);
+      }
+    }
+  } catch (error) {}
+}
+
 export function getThemeVars(mode = getThemeMode()) {
   return normalizeThemeMode(mode) === DARK_MODE ? DARK_THEME_VARS : LIGHT_THEME_VARS;
 }
@@ -216,6 +253,8 @@ export function applyThemeMode(mode = getThemeMode()) {
       }
     });
   });
+
+  applyNativeThemeChrome(nextMode);
 
   return nextMode;
 }

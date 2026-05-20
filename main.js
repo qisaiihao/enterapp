@@ -6,7 +6,7 @@ import { getAppState, getOpenid } from '@/utils/app-state.js';
 import { ensureRuntimeOpenid, ensureTcbAuthenticated, ensureTcbReady, installRuntimeBindings, setupRuntimeSideEffects } from '@/utils/runtime-bootstrap.js';
 import zpMixins from '@/uni_modules/zp-mixins/index.js';
 import appFontManager from './utils/fontManager.js';
-import { THEME_CHANGED_EVENT, applyThemeMode, getThemeMode } from '@/utils/theme.js';
+import { THEME_CHANGED_EVENT, applyThemeMode, getThemeMode, getThemeVars } from '@/utils/theme.js';
 
 silenceConsoleInProduction();
 applyThemeMode(getThemeMode());
@@ -220,6 +220,11 @@ export function createApp() {
       return {
         appThemeMode: getThemeMode()
       };
+    },
+    computed: {
+      appThemeVars() {
+        return getThemeVars(this.appThemeMode);
+      }
     },
     created() {
       if (typeof uni === 'undefined' || typeof uni.$on !== 'function') {

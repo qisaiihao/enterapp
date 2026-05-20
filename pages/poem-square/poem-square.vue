@@ -1,5 +1,5 @@
 <template>
-  <view class="poem-square white-bg" @touchstart="touchStart" @touchend="touchEnd">
+  <view class="poem-square white-bg" :data-app-theme="appThemeMode" :style="appThemeVars" @touchstart="touchStart" @touchend="touchEnd">
     <!-- 顶部栏 -->
     <top-bar />
 
@@ -533,15 +533,6 @@ export default {
 
         console.log('【poem-square】最终safeAreaTop值:', safeAreaTop);
         console.log('【poem-square】计算的paddingTop:', (safeAreaTop * 2 + 250) + 'rpx');
-        // #endif
-
-        // #ifdef H5
-        // 在H5端，使用statusBarHeight
-        if (systemInfo.statusBarHeight) {
-          safeAreaTop = systemInfo.statusBarHeight;
-          console.log('【poem-square】使用statusBarHeight作为安全区域:', safeAreaTop);
-        }
-        // #endif
 
         // 设置页面数据
         this.applyLocalState({

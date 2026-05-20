@@ -1,5 +1,5 @@
 <template>
-    <view>
+    <view class="post-detail-page" :data-app-theme="appThemeMode" :style="appThemeVars">
         
         <!-- pages/post-detail/post-detail.wxml -->
         <!-- 自定义返回按钮 -->
@@ -3330,6 +3330,16 @@ page {
     min-height: 100%; /* 使用百分比继承 page 的高度 */
     box-sizing: border-box; /* 加上这个好习惯 */
 }
+
+/* #ifdef APP-PLUS || APP-HARMONY */
+.custom-back-btn {
+    top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
+}
+
+.container {
+    padding-top: calc(160rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
+}
+/* #endif */
 
 .post-detail-skeleton {
     padding: 0;
