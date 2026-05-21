@@ -333,7 +333,7 @@ export default {
       showPageIndicator: false,
       votingInProgress: {},
       // 安全区域高度
-      safeAreaTop: 0,
+      safeAreaTop: 44,
       // 只看关注模式
       showFollowingOnly: false,
       showPoemFilterPanel: false,
@@ -535,6 +535,14 @@ export default {
         console.log('【poem-square】计算的paddingTop:', (safeAreaTop * 2 + 250) + 'rpx');
 
         // 设置页面数据
+        if (!safeAreaTop) {
+          safeAreaTop = Number(
+            (systemInfo.safeAreaInsets && systemInfo.safeAreaInsets.top) ||
+            systemInfo.statusBarHeight ||
+            0
+          ) || 44;
+        }
+
         this.applyLocalState({
           safeAreaTop: safeAreaTop
         });

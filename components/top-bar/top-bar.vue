@@ -1,7 +1,7 @@
 <template>
-  <view class="top-bar-container">
+  <view class="top-bar-container" :style="{ top: safeAreaTop + 'px' }">
     <!-- 自定义顶部栏 -->
-    <view class="custom-top-bar" :style="{ paddingTop: safeAreaTop + 'px' }">
+    <view class="custom-top-bar">
       <view class="top-left" @tap="navigateToAdd">
         <image class="top-icon" :src="leftIcon" mode="aspectFit"></image>
       </view>
@@ -22,6 +22,8 @@
 import unreadBadge from '@/cache/stores/unread-badge.js';
 import { getStatusBarHeightCompat } from '@/utils/system-info.js';
 
+const DEFAULT_STATUS_BAR_HEIGHT = 44;
+
 export default {
   emits: ['safe-area-ready'],
   props: {
@@ -33,7 +35,7 @@ export default {
   data() {
     return {
       unreadMessageCount: 0,
-      safeAreaTop: 0,
+      safeAreaTop: DEFAULT_STATUS_BAR_HEIGHT,
       _unsubscribe: null
     };
   },
@@ -59,7 +61,7 @@ export default {
     getSafeAreaTop() {
       try {
         // 使用状态栏高度作为安全区域
-        const safeAreaTop = getStatusBarHeightCompat();
+        const safeAreaTop = Number(getStatusBarHeightCompat() || 0) || DEFAULT_STATUS_BAR_HEIGHT;
         
         this.safeAreaTop = safeAreaTop;
         try {
@@ -68,9 +70,8 @@ export default {
           }
         } catch (_) {}
       } catch (error) {
+        this.safeAreaTop = DEFAULT_STATUS_BAR_HEIGHT;
         console.error('【top-bar】获取安全区域失败:', error);
-        // 使用默认值
-        this.safeAreaTop = 44; // iOS 默认状态栏高度
         try {
           if (this.$emit) {
             this.$emit('safe-area-ready', this.safeAreaTop);
@@ -137,7 +138,6 @@ export default {
 <style>
 .top-bar-container {
   position: fixed;
-  top: 0;
   left: 0;
   right: 0;
   background: var(--app-fixed-bar-bg, #ffffff);
@@ -171,6 +171,8 @@ export default {
   padding-right: 40rpx;
   padding-left: 40rpx;
   /* #endif */
+  justify-content: space-between;
+  padding: 20rpx 40rpx 0 40rpx;
   align-items: center;
   background: var(--app-fixed-bar-bg, #fff);
   border-bottom: none;
@@ -186,6 +188,7 @@ export default {
   /* #ifdef MP-WEIXIN */
   margin-right: 40rpx; /* 小程序端：与右侧按钮保持间距 */
   /* #endif */
+  margin-right: 0;
 }
 
 .top-left:active {
