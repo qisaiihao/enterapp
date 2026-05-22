@@ -1,7 +1,7 @@
 <template>
   <view class="mountain white-bg" :data-app-theme="appThemeMode" :style="appThemeVars" @touchstart="touchStart" @touchend="touchEnd">
     <!-- 顶部栏 -->
-    <top-bar />
+    <top-bar @safe-area-ready="onSafeAreaReady" />
 
     <!-- 诗人筛选栏 -->
     <view class="poet-avatar-bar-wrapper" :style="{ top: (safeAreaTop * 2 + 140) + 'rpx' }">
@@ -99,6 +99,7 @@ import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareH
 import { attachPoemDisplayFields } from '@/utils/poemDisplay.js';
 import { getSystemInfoCompat, getWindowInfoCompat } from '@/utils/system-info.js';
 import { isUserLoggedIn, requireLogin } from '@/utils/authHelper.js';
+import { replayBuiltinHuiwenFontReady } from '@/utils/builtinFontReady.js';
 
 const PAGE_SIZE = 10;
 
@@ -156,6 +157,7 @@ export default {
       }
     };
     try { uni.$on && uni.$on('font-loaded', this._fontLoadedHandler); } catch (_) {}
+    replayBuiltinHuiwenFontReady(this, 'onBuiltinFontLoaded', '[mountain]');
     // #endif
     // 初始化
     this.debugSafeArea();
@@ -189,7 +191,7 @@ export default {
       showPageIndicator: false,
       votingInProgress: {},
       // 安全区域高度
-      safeAreaTop: 0,
+      safeAreaTop: 44,
       // 加载锁定标志，防止重复触发加载
       _loadingLock: false,
       poemFontRenderTick: 0
@@ -247,6 +249,14 @@ export default {
     }, 300); // 增加防抖时间到300ms
   },
   methods: {
+    onSafeAreaReady(height) {
+      const safeAreaTop = Number(height || 0) || 44;
+      if (this.safeAreaTop === safeAreaTop) return;
+      this.setData({
+        safeAreaTop
+      });
+    },
+
     onBuiltinFontLoaded(payload = {}) {
       const loadedFontFamily = payload && payload.fontFamily ? payload.fontFamily : '';
       if (loadedFontFamily && loadedFontFamily !== '汇文明朝') return;
@@ -302,6 +312,20 @@ export default {
           console.log('【mountain】使用statusBarHeight作为安全区域:', safeAreaTop);
         }
         // #endif
+
+        if (!safeAreaTop) {
+          // #ifdef H5
+          safeAreaTop = 0;
+          // #endif
+
+          // #ifndef H5
+          safeAreaTop = Number(
+            (systemInfo.safeAreaInsets && systemInfo.safeAreaInsets.top) ||
+            systemInfo.statusBarHeight ||
+            0
+          ) || 44;
+          // #endif
+        }
 
         // 设置页面数据
         this.setData({

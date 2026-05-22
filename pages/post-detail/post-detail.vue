@@ -360,6 +360,7 @@ import { getCurrentPlatform } from '@/utils/platformDetector.js';
 import { requestAndroidStoragePermission } from '@/utils/permissions.js';
 import { emitCommentCountChanged, emitPostUpdated } from '@/utils/events.js';
 import fontManager from '@/utils/fontManager.js'; // 添加fontManager导入
+import { replayBuiltinHuiwenFontReady } from '@/utils/builtinFontReady.js';
 import { checkContentSafe, checkTextSafe, shouldModerate } from '@/utils/contentModeration.js';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
 import { resolvePostAuthorAvatar } from '@/utils/defaultAvatar.js';
@@ -612,6 +613,9 @@ export default {
             }
         };
         try { uni.$on && uni.$on('font-loaded', this._fontLoadedHandler); } catch (_) {}
+        // #ifdef MP-WEIXIN
+        replayBuiltinHuiwenFontReady(this, 'onBuiltinFontLoaded', '[share-card-font]');
+        // #endif
     },
     onShow: function () {
         this.setData({
@@ -3313,6 +3317,13 @@ export default {
 /* 确保 page 元素有高度 */
 page {
     height: 100vh;
+    min-height: 100vh;
+    background-color: var(--app-page-bg, #ffffff);
+    color: var(--app-primary-text, #111111);
+}
+
+.post-detail-page {
+    min-height: 100vh;
     background-color: var(--app-page-bg, #ffffff);
     color: var(--app-primary-text, #111111);
 }
@@ -3327,7 +3338,7 @@ page {
     /* 新增，确保在内容不足时也能撑满一屏 */
     display: flex;
     flex-direction: column;
-    min-height: 100%; /* 使用百分比继承 page 的高度 */
+    min-height: 100vh; /* 内容不足时也覆盖整屏背景 */
     box-sizing: border-box; /* 加上这个好习惯 */
 }
 
@@ -3343,6 +3354,8 @@ page {
 
 .post-detail-skeleton {
     padding: 0;
+    min-height: 100vh;
+    background: var(--app-page-bg, transparent);
 }
 
 .skeleton-wrapper {
@@ -3370,7 +3383,7 @@ page {
     width: 88rpx;
     height: 88rpx;
     border-radius: 50%;
-    background-color: #e9edf3;
+    background-color: var(--app-skeleton-block-bg, var(--app-subtle-surface-bg, #e9edf3));
 }
 
 .skeleton-header-text {
@@ -3380,7 +3393,7 @@ page {
 
 .skeleton-line {
     height: 24rpx;
-    background-color: #e9edf3;
+    background-color: var(--app-skeleton-block-bg, var(--app-subtle-surface-bg, #e9edf3));
     border-radius: 999rpx;
     margin-bottom: 16rpx;
 }
@@ -3409,7 +3422,7 @@ page {
     width: 100%;
     height: 340rpx;
     border-radius: 20rpx;
-    background-color: #e9edf3;
+    background-color: var(--app-skeleton-block-bg, var(--app-subtle-surface-bg, #e9edf3));
     margin: 30rpx 0;
 }
 
@@ -3417,7 +3430,7 @@ page {
     width: 50%;
     height: 28rpx;
     border-radius: 999rpx;
-    background-color: #e9edf3;
+    background-color: var(--app-skeleton-block-bg, var(--app-subtle-surface-bg, #e9edf3));
     margin: 10rpx 0 30rpx;
 }
 
@@ -3433,7 +3446,7 @@ page {
     background-color: var(--app-surface-bg, #fff);
     border-radius: 16rpx;
     padding: 24rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    box-shadow: var(--app-surface-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
 }
 
 .comment-skeleton-body {
@@ -3457,7 +3470,7 @@ page {
     left: -150%;
     width: 150%;
     height: 100%;
-    background: linear-gradient(90deg, rgba(233, 237, 243, 0) 0%, rgba(255, 255, 255, 0.9) 50%, rgba(233, 237, 243, 0) 100%);
+    background: var(--app-skeleton-shimmer-bg, linear-gradient(90deg, rgba(233, 237, 243, 0) 0%, rgba(255, 255, 255, 0.9) 50%, rgba(233, 237, 243, 0) 100%));
     animation: skeletonPulse 1.2s ease-in-out infinite;
 }
 
@@ -3790,7 +3803,7 @@ page {
 }
 
 .comment-section {
-    background: var(--app-surface-bg, #fff);
+    background: var(--app-post-section-bg, var(--app-post-wrapper-bg, var(--app-surface-bg, #fff)));
     padding: 30rpx 40rpx;
     border-bottom: 1rpx solid var(--app-border-color, #f0f0f0);
 }
@@ -3850,10 +3863,11 @@ page {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: var(--app-fixed-bar-bg, #ffffff);
+    background-color: var(--app-fixed-bar-bg, var(--app-page-bg, #ffffff));
     z-index: 100;
+    padding-bottom: var(--safe-area-inset-bottom, 0px);
     padding-bottom: constant(safe-area-inset-bottom);
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: env(safe-area-inset-bottom, var(--safe-area-inset-bottom, 0px));
     transition: none; /* 禁用动画，直接显示到位 */
     will-change: bottom; /* 优化性能 */
 }
@@ -4262,14 +4276,16 @@ page {
     bottom: 0;
     left: 0;
     right: 0;
-    background-color: var(--app-fixed-bar-bg, #ffffff);
+    background-color: var(--app-fixed-bar-bg, var(--app-page-bg, #ffffff));
     padding: 20rpx 30rpx;
+    padding-bottom: calc(20rpx + var(--safe-area-inset-bottom, 0px));
     padding-bottom: calc(20rpx + constant(safe-area-inset-bottom));
-    padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+    padding-bottom: calc(20rpx + env(safe-area-inset-bottom, var(--safe-area-inset-bottom, 0px)));
     display: flex;
     align-items: center;
     justify-content: space-between;
     z-index: 50;
+    box-shadow: var(--app-fixed-bar-shadow, none);
 }
 
 .comment-input-container {
@@ -4326,10 +4342,26 @@ page {
 
 /* 底部间隔：实际撑开页面，确保固定底栏不遮挡内容 */
 .bottom-spacer {
-    height: calc(200rpx + env(safe-area-inset-bottom));
+    height: calc(120rpx + var(--safe-area-inset-bottom, 0px));
+    height: calc(120rpx + env(safe-area-inset-bottom, var(--safe-area-inset-bottom, 0px)));
     flex-shrink: 0;
     width: 100%;
+    background-color: var(--app-page-bg, #ffffff);
 }
+
+/* #ifdef APP-PLUS || APP-HARMONY */
+.comment-input-area {
+    padding-bottom: var(--safe-area-inset-bottom, 0px);
+}
+
+.bottom-action-bar {
+    padding-bottom: calc(20rpx + var(--safe-area-inset-bottom, 0px));
+}
+
+.bottom-spacer {
+    height: calc(120rpx + var(--safe-area-inset-bottom, 0px));
+}
+/* #endif */
 
 .app-share-font-activator {
     position: fixed;

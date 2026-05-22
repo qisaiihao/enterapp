@@ -1,3 +1,35 @@
+const THEME_STORAGE_KEY = 'poementerThemeMode';
+
+const LIGHT_TAB_THEME = {
+  color: '#999999',
+  selectedColor: '#000000',
+  backgroundColor: '#ffffff',
+  iconWrapStyle: 'background: #f8f8f8; border-color: transparent; box-shadow: 0 18rpx 32rpx rgba(0, 0, 0, 0.16);',
+  iconWrapActiveStyle: 'background: #f8f8f8; border-color: transparent; box-shadow: 0 12rpx 24rpx rgba(0, 0, 0, 0.14), 0 3rpx 8rpx rgba(0, 0, 0, 0.08);',
+  iconInnerStyle: 'background: #ffffff;'
+};
+
+const DARK_TAB_THEME = {
+  color: '#9ea6b2',
+  selectedColor: '#f4f1ea',
+  backgroundColor: 'rgba(15, 17, 21, 0.96)',
+  iconWrapStyle: 'background: rgba(255, 255, 255, 0.07); border-color: rgba(255, 255, 255, 0.10); box-shadow: 0 7px 16px rgba(0, 0, 0, 0.45), 0 1px 4px rgba(255, 255, 255, 0.06);',
+  iconWrapActiveStyle: 'background: rgba(255, 255, 255, 0.07); border-color: rgba(255, 255, 255, 0.34); box-shadow: 0 6px 14px rgba(0, 0, 0, 0.40), 0 1px 4px rgba(255, 255, 255, 0.05);',
+  iconInnerStyle: 'background: rgba(255, 255, 255, 0.06);'
+};
+
+function normalizeRoutePath(path) {
+  return String(path || '')
+    .split('?')[0]
+    .replace(/^\/+/, '')
+    .replace(/\/+$/, '');
+}
+
+function normalizeTabIndex(index) {
+  const nextIndex = typeof index === 'number' ? index : parseInt(index, 10);
+  return Number.isNaN(nextIndex) ? null : nextIndex;
+}
+
 Component({
   data: {
     selected: 0,
@@ -6,30 +38,43 @@ Component({
     lastTapTime: 0,
     lastTapIndex: -1,
     doubleTapThreshold: 300,
+    tabBarStyle: '',
+    isDark: false,
+    iconWrapStyle: LIGHT_TAB_THEME.iconWrapStyle,
+    iconWrapActiveStyle: LIGHT_TAB_THEME.iconWrapActiveStyle,
+    iconInnerStyle: LIGHT_TAB_THEME.iconInnerStyle,
     list: [
       {
         pagePath: '/pages/index/index',
         text: '广场',
         iconPath: '/static/images/market.png',
-        selectedIconPath: '/static/images/marketplus.png'
+        selectedIconPath: '/static/images/marketplus.png',
+        darkIconPath: '/static/images/tab-dark/market-dark.png',
+        darkSelectedIconPath: '/static/images/tab-dark/marketplus-dark.png'
       },
       {
         pagePath: '/pages/poem-square/poem-square',
         text: '原创',
         iconPath: '/static/images/road.png',
-        selectedIconPath: '/static/images/roadplus.png'
+        selectedIconPath: '/static/images/roadplus.png',
+        darkIconPath: '/static/images/tab-dark/road-dark.png',
+        darkSelectedIconPath: '/static/images/tab-dark/roadplus-dark.png'
       },
       {
         pagePath: '/pages/mountain/mountain',
         text: '读诗',
         iconPath: '/static/images/mountain.png',
-        selectedIconPath: '/static/images/mountainplus.png'
+        selectedIconPath: '/static/images/mountainplus.png',
+        darkIconPath: '/static/images/tab-dark/mountain-dark.png',
+        darkSelectedIconPath: '/static/images/tab-dark/mountainplus-dark.png'
       },
       {
         pagePath: '/pages/profile/profile',
         text: '我',
         iconPath: '/static/images/pools.png',
-        selectedIconPath: '/static/images/poolsplus.png'
+        selectedIconPath: '/static/images/poolsplus.png',
+        darkIconPath: '/static/images/tab-dark/pools-dark.png',
+        darkSelectedIconPath: '/static/images/tab-dark/poolsplus-dark.png'
       }
     ]
   },
@@ -37,6 +82,8 @@ Component({
   attached() {
     console.log('=== Custom TabBar attached ===');
     console.log('TabBar initial selected:', this.data.selected);
+    this.updateTheme();
+    this.updateSafeAreaBottom();
     // 初始化时同步当前页面
     this.syncSelectedFromCurrentPage();
   },
@@ -45,29 +92,92 @@ Component({
     show() {
       // 页面显示时同步选中状态
       console.log('=== TabBar pageLifetimes.show ===');
+      this.updateTheme();
+      this.updateSafeAreaBottom();
       this.syncSelectedFromCurrentPage();
     }
   },
   
   methods: {
-    // 根据当前页面路径同步选中状态
-    syncSelectedFromCurrentPage() {
-      const pages = getCurrentPages();
-      if (pages.length === 0) return;
-      
-      const currentPage = pages[pages.length - 1];
-      const currentRoute = currentPage.route;
-      console.log('当前页面路由:', currentRoute);
-      
-      // 查找匹配的 tab 索引
-      const index = this.data.list.findIndex(item => {
-        const pagePath = item.pagePath.replace(/^\//, '');
-        return pagePath === currentRoute;
+    getCachedSelected() {
+      try {
+        return normalizeTabIndex(wx.getStorageSync('currentTabIndex'));
+      } catch (error) {
+        return null;
+      }
+    },
+
+    resolveSelectedFromCurrentPage() {
+      try {
+        const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : [];
+        if (!pages || pages.length === 0) return null;
+
+        const currentPage = pages[pages.length - 1];
+        const currentRoute = normalizeRoutePath(
+          currentPage && (currentPage.route || currentPage.__route__ || (currentPage.$page && currentPage.$page.fullPath))
+        );
+        if (!currentRoute) return null;
+
+        const index = this.data.list.findIndex(item => {
+          const pagePath = normalizeRoutePath(item.pagePath);
+          return pagePath === currentRoute || currentRoute.indexOf(pagePath) >= 0;
+        });
+
+        return index >= 0 ? index : null;
+      } catch (error) {
+        return null;
+      }
+    },
+
+    updateTheme() {
+      let mode = 'light';
+      try {
+        mode = wx.getStorageSync(THEME_STORAGE_KEY) || 'light';
+      } catch (error) {}
+
+      const isDark = mode === 'dark';
+      const theme = isDark ? DARK_TAB_THEME : LIGHT_TAB_THEME;
+      this.setData({
+        isDark,
+        color: theme.color,
+        selectedColor: theme.selectedColor,
+        iconWrapStyle: theme.iconWrapStyle,
+        iconWrapActiveStyle: theme.iconWrapActiveStyle,
+        iconInnerStyle: theme.iconInnerStyle
+      }, () => {
+        this.updateSafeAreaBottom();
       });
-      
-      if (index !== -1 && index !== this.data.selected) {
-        console.log('同步 TabBar selected 从', this.data.selected, '到', index);
-        this.setData({ selected: index });
+    },
+
+    updateSafeAreaBottom() {
+      try {
+        const theme = this.data.isDark ? DARK_TAB_THEME : LIGHT_TAB_THEME;
+        const tabBarStyle = `background: ${theme.backgroundColor};`;
+
+        if (tabBarStyle !== this.data.tabBarStyle) {
+          this.setData({ tabBarStyle });
+        }
+      } catch (error) {
+        if (this.data.tabBarStyle) {
+          this.setData({ tabBarStyle: '' });
+        }
+      }
+    },
+
+    // 根据当前页面路径同步选中状态
+    syncSelectedFromCurrentPage(options = {}) {
+      const routeIndex = this.resolveSelectedFromCurrentPage();
+      const cachedIndex = this.getCachedSelected();
+      const nextIndex = routeIndex !== null ? routeIndex : cachedIndex;
+
+      if (nextIndex !== null && nextIndex !== this.data.selected) {
+        this.setData({ selected: nextIndex });
+      }
+
+      if (routeIndex === null && !options.retry) {
+        setTimeout(() => {
+          this.syncSelectedFromCurrentPage({ retry: true });
+        }, 0);
       }
     },
     
@@ -78,9 +188,9 @@ Component({
       console.log('当前 selected:', this.data.selected);
       
       // 确保 index 是数字类型
-      const newIndex = typeof index === 'number' ? index : parseInt(index, 10);
+      const newIndex = normalizeTabIndex(index);
       
-      if (isNaN(newIndex)) {
+      if (newIndex === null) {
         console.error('updateSelected 参数无效:', index);
         return;
       }
@@ -98,10 +208,14 @@ Component({
     switchTab(e) {
       const data = e.currentTarget.dataset;
       const url = data.path;
-      const index = data.index;
+      const index = normalizeTabIndex(data.index);
       const currentTime = Date.now();
       
       console.log('=== TabBar switchTab ===');
+      if (index === null) {
+        console.error('TabBar switchTab index invalid:', data.index);
+        return;
+      }
       console.log('点击 index:', index, 'url:', url);
       
       // 【小程序审核优化】点击"我"时检查登录状态
@@ -155,6 +269,7 @@ Component({
       // 立即更新选中状态（在切换前）
       console.log('立即更新 selected 为:', index);
       this.setData({ selected: index });
+      try { wx.setStorageSync('currentTabIndex', index); } catch (error) {}
       
       // 切换tab
       wx.switchTab({ 

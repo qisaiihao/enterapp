@@ -1,6 +1,6 @@
 <template>
     <!-- pages/my-likes/my-likes.wxml -->
-    <view class="container">
+    <view class="container" :data-app-theme="appThemeMode" :style="appThemeVars">
         <!-- 顶部导航栏 -->
         <view class="header">
             <view class="header-left" @tap="goBack">
@@ -39,7 +39,7 @@
                                     (imageClampHeights[item._id] ? imageClampHeights[item._id] + 'px' : 'auto') +
                                     '; object-fit: ' +
                                     (imageClampHeights[item._id] ? 'cover' : 'contain') +
-                                    '; background-color: #f0f0f0;'
+                                    '; background-color: var(--app-subtle-surface-bg, #f0f0f0);'
                                 "
                                 @load="onImageLoad"
                                 :data-postid="item._id"
@@ -75,7 +75,7 @@
                                             :data-src="img"
                                             :data-original-image-urls="item.originalImageUrls || item.imageUrls"
                                             :lazy-load="true"
-                                            style="width: 100%; height: 100%; object-fit: cover; background-color: #f0f0f0"
+                                            style="width: 100%; height: 100%; object-fit: cover; background-color: var(--app-subtle-surface-bg, #f0f0f0)"
                                         />
                                     </swiper-item>
                                 </block>
@@ -274,7 +274,7 @@ export default {
     align-items: center;
     justify-content: center;
     position: relative;
-    padding: 20rpx 30rpx;
+    padding: calc(var(--app-safe-area-top, 0px) + 20rpx) 30rpx 20rpx;
     background: var(--app-fixed-bar-bg, #fff);
     border-bottom: 1rpx solid var(--app-border-color, #e9ecef);
     margin-bottom: 20rpx;
@@ -349,7 +349,7 @@ export default {
     height: 60rpx;
     border-radius: 50%;
     margin-right: 15rpx;
-    background-color: #f5f5f5;
+    background-color: var(--app-subtle-surface-bg, #f5f5f5);
 }
 
 .author-name {

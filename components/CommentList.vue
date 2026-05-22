@@ -76,7 +76,7 @@ export default {
 
 <style scoped>
 .comment-section {
-    background: var(--app-surface-bg, #fff);
+    background: var(--app-post-section-bg, var(--app-post-wrapper-bg, var(--app-surface-bg, #fff)));
     padding: 30rpx 40rpx;
     margin-top: 20rpx;
 }
@@ -102,7 +102,7 @@ export default {
 .comment-skeleton-item {
     display: flex;
     align-items: flex-start;
-    background-color: var(--app-surface-bg, #fff);
+    background-color: var(--app-post-section-bg, var(--app-post-wrapper-bg, var(--app-surface-bg, #fff)));
     padding: 20rpx 0;
     border-bottom: 1rpx solid var(--app-border-color, #f5f5f5);
 }

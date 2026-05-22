@@ -1,6 +1,6 @@
 <template>
     <view>
-        <view class="container">
+        <view class="container" :data-app-theme="appThemeMode" :style="appThemeVars">
             <!-- 顶部导航栏 -->
             <view class="header">
                 <view class="header-left" @tap="goBack">
@@ -240,7 +240,7 @@ export default {
     align-items: center;
     justify-content: center;
     position: relative;
-    padding: 20rpx 30rpx;
+    padding: calc(var(--app-safe-area-top, 0px) + 20rpx) 30rpx 20rpx;
     background: var(--app-fixed-bar-bg, #fff);
     border-bottom: 1rpx solid var(--app-border-color, #e9ecef);
 }

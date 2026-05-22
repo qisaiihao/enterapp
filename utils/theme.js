@@ -18,7 +18,14 @@ const DARK_THEME_VARS = Object.freeze({
   '--app-surface-divider': 'rgba(255, 255, 255, 0.12)',
   '--app-surface-shadow': '0 10rpx 30rpx rgba(0, 0, 0, 0.28)',
   '--app-surface-border-line': '1rpx solid rgba(255,255,255,0.12)',
+  '--app-skeleton-block-bg': 'rgba(255, 255, 255, 0.08)',
+  '--app-skeleton-inline-shimmer-bg': 'linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.14) 20%, rgba(255,255,255,0.24) 50%, rgba(255,255,255,0.14) 80%, rgba(255,255,255,0.06) 100%)',
   '--app-skeleton-shimmer-bg': 'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.16) 50%, rgba(255,255,255,0) 100%)',
+  '--app-skeleton-poem-card-bg': '#171a20',
+  '--app-skeleton-poem-card-secondary-bg': '#20252d',
+  '--app-skeleton-poem-card-tertiary-bg': '#252017',
+  '--app-skeleton-poem-card-shadow': '0 8rpx 18rpx rgba(0, 0, 0, 0.32)',
+  '--app-skeleton-mountain-card-shadow': '0 6rpx 16rpx rgba(0, 0, 0, 0.32)',
   '--app-surface-title-color': '#f4f1ea',
   '--app-surface-text-color': '#d9dde6',
   '--app-surface-meta-color': '#9ea6b2',
@@ -111,6 +118,14 @@ const LIGHT_THEME_VARS = Object.freeze({
   '--app-fixed-bar-shadow': '0 -2rpx 16rpx rgba(0, 0, 0, 0.10)',
   '--app-post-wrapper-shadow': '0 4rpx 16rpx rgba(0, 0, 0, 0.08)',
   '--app-surface-shadow': '0 8rpx 24rpx rgba(0, 0, 0, 0.10)',
+  '--app-skeleton-block-bg': '#e9edf3',
+  '--app-skeleton-inline-shimmer-bg': 'linear-gradient(90deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.30) 20%, rgba(255,255,255,0.50) 50%, rgba(255,255,255,0.30) 80%, rgba(255,255,255,0.10) 100%)',
+  '--app-skeleton-shimmer-bg': 'linear-gradient(90deg, rgba(233,237,243,0) 0%, rgba(255,255,255,0.90) 50%, rgba(233,237,243,0) 100%)',
+  '--app-skeleton-poem-card-bg': '#a4c4bd',
+  '--app-skeleton-poem-card-secondary-bg': '#c9cfcf',
+  '--app-skeleton-poem-card-tertiary-bg': '#906161',
+  '--app-skeleton-poem-card-shadow': '0 8rpx 8rpx rgba(0, 0, 0, 0.25)',
+  '--app-skeleton-mountain-card-shadow': '0 4rpx 4rpx rgba(0, 0, 0, 0.25)',
   '--profile-button-shadow': '0 6rpx 18rpx rgba(0, 0, 0, 0.10)',
   '--profile-icon-button-shadow': 'none',
   '--profile-empty-surface-shadow': '0 6rpx 18rpx rgba(0, 0, 0, 0.08)',
@@ -213,6 +228,7 @@ function applyNativeThemeChrome(mode) {
     }
   } catch (error) {}
 
+  // #ifndef MP-WEIXIN
   try {
     if (typeof uni !== 'undefined' && typeof uni.setTabBarStyle === 'function') {
       uni.setTabBarStyle({
@@ -223,6 +239,7 @@ function applyNativeThemeChrome(mode) {
       });
     }
   } catch (error) {}
+  // #endif
 
   try {
     if (typeof plus !== 'undefined' && plus && plus.navigator) {
@@ -234,6 +251,19 @@ function applyNativeThemeChrome(mode) {
       }
     }
   } catch (error) {}
+}
+
+function updateCustomTabBarTheme() {
+  // #ifdef MP-WEIXIN
+  try {
+    const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : [];
+    const currentPage = pages && pages.length ? pages[pages.length - 1] : null;
+    const tabBar = currentPage && typeof currentPage.getTabBar === 'function' ? currentPage.getTabBar() : null;
+    if (tabBar && typeof tabBar.updateTheme === 'function') {
+      tabBar.updateTheme();
+    }
+  } catch (error) {}
+  // #endif
 }
 
 export function getThemeVars(mode = getThemeMode()) {
@@ -266,6 +296,7 @@ export function applyThemeMode(mode = getThemeMode()) {
   });
 
   applyNativeThemeChrome(nextMode);
+  updateCustomTabBarTheme();
 
   return nextMode;
 }

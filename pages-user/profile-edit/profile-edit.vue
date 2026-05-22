@@ -1,5 +1,5 @@
 <template>
-    <view>
+    <view class="profile-edit-page" :data-app-theme="appThemeMode" :style="appThemeVars">
         <!-- 滚动容器 -->
         <scroll-view class="container" scroll-y="true">
             <!-- 返回按钮在滚动容器内部 -->
@@ -1532,9 +1532,40 @@ export default {
 /* pages/profile-edit/profile-edit.wxss */
 
 /* 外层容器 */
+.profile-edit-page {
+    min-height: 100vh;
+    background-color: var(--app-page-bg, #ffffff);
+    color: var(--app-primary-text, #111111);
+    --profile-edit-label-bg: #cccccc;
+    --profile-edit-label-border: #cccccc;
+    --profile-edit-label-text: #ffffff;
+    --profile-edit-enter-border-bg: #333333;
+    --profile-edit-enter-fill-bg: #ffffff;
+    --profile-edit-enter-text-color: #333333;
+    --profile-edit-enter-inactive-border-bg: #cccccc;
+    --profile-edit-enter-inactive-fill-bg: #f5f5f5;
+    --profile-edit-enter-inactive-text-color: #999999;
+    --profile-edit-signature-grid-color: #e6e6e6;
+    --profile-edit-sheet-bg: rgba(255, 255, 255, 0.96);
+}
+
+.profile-edit-page[data-app-theme="dark"] {
+    --profile-edit-label-bg: rgba(255, 255, 255, 0.10);
+    --profile-edit-label-border: rgba(255, 255, 255, 0.16);
+    --profile-edit-label-text: #f4f1ea;
+    --profile-edit-enter-border-bg: #f4f1ea;
+    --profile-edit-enter-fill-bg: #0f1115;
+    --profile-edit-enter-text-color: #f4f1ea;
+    --profile-edit-enter-inactive-border-bg: rgba(255, 255, 255, 0.20);
+    --profile-edit-enter-inactive-fill-bg: rgba(255, 255, 255, 0.08);
+    --profile-edit-enter-inactive-text-color: #8e96a3;
+    --profile-edit-signature-grid-color: rgba(255, 255, 255, 0.14);
+    --profile-edit-sheet-bg: rgba(24, 28, 36, 0.96);
+}
+
 .container {
     height: 100vh;
-    background-color: #ffffff;
+    background-color: var(--app-page-bg, #ffffff);
     width: 100%;
     box-sizing: border-box;
 }
@@ -1571,6 +1602,7 @@ export default {
     height: 38rpx;
     display: block;
     object-fit: contain;
+    filter: var(--app-icon-filter, none);
 }
 
 /* 头像区域 */
@@ -1592,22 +1624,23 @@ export default {
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    border: 4rpx solid #f0f0f0;
+    border: 4rpx solid var(--app-border-color, #f0f0f0);
 }
 
 
 /* 表单区域 */
 .form-section {
-    background-color: #ffffff;
+    background-color: var(--app-surface-bg, #ffffff);
     margin: 0 30rpx;
     border-radius: 16rpx;
     overflow: hidden;
+    border: 1rpx solid var(--app-border-color, transparent);
 }
 
 .form-divider {
     width: 100%;
     height: 1rpx;
-    background-color: #f0f0f0;
+    background-color: var(--app-border-color, #f0f0f0);
     margin: 0;
 }
 
@@ -1625,7 +1658,7 @@ export default {
     left: 200rpx; /* 从标签宽度(160rpx) + 右边距(20rpx) + 左边距(20rpx)开始 */
     right: 20rpx; /* 右边留出20rpx间距 */
     height: 1rpx;
-    background-color: #f0f0f0;
+    background-color: var(--app-border-color, #f0f0f0);
 }
 
 /* 手机号表单行特殊样式 - 增强H5端点击体验 */
@@ -1635,17 +1668,17 @@ export default {
 }
 
 .phone-row:hover {
-    background-color: rgba(0, 0, 0, 0.02);
+    background-color: var(--app-subtle-surface-bg, rgba(0, 0, 0, 0.02));
 }
 
 .phone-row:active {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: var(--app-subtle-surface-bg, rgba(0, 0, 0, 0.05));
 }
 
 .form-label {
     flex-shrink: 0;
-    background-color: #cccccc;
-    border: 1rpx solid #cccccc;
+    background-color: var(--profile-edit-label-bg, #cccccc);
+    border: 1rpx solid var(--profile-edit-label-border, #cccccc);
     padding: 12rpx 20rpx;
     border-radius: 20rpx;
     text-align: center;
@@ -1660,7 +1693,7 @@ export default {
 
 .form-label text {
     font-size: 28rpx;
-    color: #ffffff;
+    color: var(--profile-edit-label-text, #ffffff);
     font-weight: 500;
 }
 
@@ -1678,7 +1711,7 @@ export default {
 
 .switch-label {
     font-size: 28rpx;
-    color: #999999;
+    color: var(--app-muted-text, #999999);
 }
 
 .profile-option-switch {
@@ -1689,14 +1722,14 @@ export default {
 .input-field {
     width: 100%;
     font-size: 30rpx;
-    color: #000000;
+    color: var(--app-primary-text, #000000);
     background: transparent;
     border: none;
 }
 
  .input-field[disabled] {
-     color: #999999;
-     background-color: #f5f5f5;
+     color: var(--app-muted-text, #999999);
+     background-color: var(--app-subtle-surface-bg, #f5f5f5);
      opacity: 1;
      outline: none;
      pointer-events: none;
@@ -1705,27 +1738,28 @@ export default {
 
 .picker-display {
     font-size: 30rpx;
-    color: #000000;
+    color: var(--app-primary-text, #000000);
 }
 
 
 /* 个性描述区域 */
 .personality-section {
     padding: 30rpx;
-    background-color: #ffffff;
+    background-color: var(--app-surface-bg, #ffffff);
     margin: 10rpx 30rpx 0rpx 30rpx;
     border-radius: 16rpx;
+    border: 1rpx solid var(--app-border-color, transparent);
 }
 
 .personality-title {
     font-size: 30rpx;
-    color: #999999;
+    color: var(--app-muted-text, #999999);
     margin-bottom: 40rpx;
     display: block;
 }
 
 .poem-input-container {
-    background-color: #f5f5f5;
+    background-color: var(--app-subtle-surface-bg, #f5f5f5);
     border-radius: 12rpx;
     padding: 20rpx;
     width: 500rpx;
@@ -1737,7 +1771,7 @@ export default {
     height:120rpx;
     min-height: 60rpx;
     font-size: 28rpx;
-    color: #333333;
+    color: var(--app-primary-text, #333333);
     background: transparent;
     border: none;
     outline: none;
@@ -1748,9 +1782,10 @@ export default {
 /* 签名区域 */
 .signature-section {
     padding: 30rpx;
-    background-color: #ffffff;
+    background-color: var(--app-surface-bg, #ffffff);
     margin: 0rpx 30rpx;
     border-radius: 16rpx;
+    border: 1rpx solid var(--app-border-color, transparent);
 }
 
 .signature-header {
@@ -1763,7 +1798,7 @@ export default {
 
 .signature-title {
     font-size: 30rpx;
-    color: #999999;
+    color: var(--app-muted-text, #999999);
 }
 
 .signature-options {
@@ -1774,7 +1809,7 @@ export default {
 
 .signature-option-label {
     font-size: 24rpx;
-    color: #999999;
+    color: var(--app-muted-text, #999999);
 }
 
 .signature-option-switch {
@@ -1789,12 +1824,12 @@ export default {
     align-items: flex-start;
     padding: 10rpx;
     border-radius: 12rpx;
-    background-color: #ffffff;
+    background-color: var(--app-surface-bg, #ffffff);
     background-image:
-        linear-gradient(45deg, #e6e6e6 25%, transparent 25%),
-        linear-gradient(-45deg, #e6e6e6 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, #e6e6e6 75%),
-        linear-gradient(-45deg, transparent 75%, #e6e6e6 75%);
+        linear-gradient(45deg, var(--profile-edit-signature-grid-color, #e6e6e6) 25%, transparent 25%),
+        linear-gradient(-45deg, var(--profile-edit-signature-grid-color, #e6e6e6) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, var(--profile-edit-signature-grid-color, #e6e6e6) 75%),
+        linear-gradient(-45deg, transparent 75%, var(--profile-edit-signature-grid-color, #e6e6e6) 75%);
     background-size: 24rpx 24rpx;
     background-position: 0 0, 0 12rpx, 12rpx -12rpx, -12rpx 0px;
 }
@@ -1816,6 +1851,7 @@ export default {
 .upload-icon {
     width: 50rpx;
     height: 50rpx;
+    filter: var(--app-icon-filter, none);
 }
 
 .signature-preview {
@@ -1861,14 +1897,14 @@ export default {
 
 /* L 形剪裁：右侧竖条 + 底部横条 */
 .enter-key-btn .ek-border { 
-    background: #333; 
+    background: var(--profile-edit-enter-border-bg, #333);
     filter: drop-shadow(0 6rpx 12rpx rgba(0,0,0,.18)); 
     clip-path: polygon(55% 0,100% 0,100% 100%,0 100%,0 60%,55% 60%,55% 0); 
     border-radius: 24rpx; 
 }
 
 .enter-key-btn .ek-fill { 
-    background: #fff; 
+    background: var(--profile-edit-enter-fill-bg, #fff);
     clip-path: polygon(57% 2%,100% 2%,100% 100%,2% 100%,2% 62%,57% 62%,57% 2%); 
     border-radius: 22rpx; 
 }
@@ -1878,22 +1914,22 @@ export default {
     bottom: 24rpx; 
     left: 24rpx; 
     font-size: 28rpx; 
-    color: #333; 
+    color: var(--profile-edit-enter-text-color, #333);
     font-weight: 500; 
 }
 
 /* 灰色状态样式 */
 .enter-key-btn .ek-border-inactive {
-    background: #cccccc !important;
+    background: var(--profile-edit-enter-inactive-border-bg, #cccccc) !important;
     filter: none !important;
 }
 
 .enter-key-btn .ek-fill-inactive {
-    background: #f5f5f5 !important;
+    background: var(--profile-edit-enter-inactive-fill-bg, #f5f5f5) !important;
 }
 
 .enter-key-btn .ek-text-inactive {
-    color: #999999 !important;
+    color: var(--profile-edit-enter-inactive-text-color, #999999) !important;
 }
 
 /* 响应式设计 */
@@ -1932,10 +1968,12 @@ export default {
 .modal-content {
     position: relative;
     width: 100%;
-    background: #fff;
+    background: var(--app-surface-bg, #fff);
     border-radius: 32rpx 32rpx 0 0;
     padding: 40rpx;
     animation: slideUp 0.3s ease-out;
+    border: 1rpx solid var(--app-border-color, transparent);
+    box-sizing: border-box;
 }
 
 @keyframes slideUp {
@@ -1957,12 +1995,12 @@ export default {
 .modal-title {
     font-size: 36rpx;
     font-weight: 600;
-    color: #333;
+    color: var(--app-primary-text, #333);
 }
 
 .modal-close {
     font-size: 48rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
     line-height: 1;
     width: 48rpx;
     height: 48rpx;
@@ -1977,7 +2015,7 @@ export default {
 
 .modal-text {
     font-size: 28rpx;
-    color: #666;
+    color: var(--app-secondary-text, #666);
     line-height: 1.6;
     margin-bottom: 32rpx;
     display: block;
@@ -1999,13 +2037,13 @@ export default {
 }
 
 .cancel-btn {
-    background: #f5f6f7;
-    color: #666;
+    background: var(--app-subtle-surface-bg, #f5f6f7);
+    color: var(--app-secondary-text, #666);
 }
 
 .confirm-btn {
-    background: #333;
-    color: #fff;
+    background: var(--app-primary-text, #333);
+    color: var(--app-page-bg, #fff);
 }
 
 .confirm-btn.disabled {
@@ -2036,7 +2074,7 @@ export default {
     height: 88rpx;
     width: 220rpx;
     padding: 0 20rpx;
-    background: #999999;
+    background: var(--app-muted-text, #999999);
     border-radius: 44rpx;
     display: flex;
     align-items: center;
@@ -2050,7 +2088,7 @@ export default {
 }
 
 .code-send-btn.disabled {
-    background: #ccc;
+    background: var(--app-border-color, #ccc);
     pointer-events: none;
 }
 
@@ -2073,12 +2111,12 @@ export default {
 .modal-content .input-field {
     width: 100%;
     height: 88rpx;
-    border: 1rpx solid #e0e0e0;
+    border: 1rpx solid var(--app-border-color, #e0e0e0);
     border-radius: 12rpx;
     padding: 0 24rpx;
     font-size: 30rpx;
-    color: #333;
-    background: #f8f8f8;
+    color: var(--app-primary-text, #333);
+    background: var(--app-subtle-surface-bg, #f8f8f8);
 }
 /* 无边框输入：仅作用于"修改手机号"弹窗的两个输入框 */
 .edit-phone-modal .input-field {
@@ -2106,11 +2144,13 @@ export default {
 .sticker-picker-panel {
     position: relative;
     width: 100%;
-    background: #fff;
+    background: var(--app-surface-bg, #fff);
     border-radius: 32rpx 32rpx 0 0;
     padding: 32rpx;
     max-height: 70vh;
     overflow-y: auto;
+    border: 1rpx solid var(--app-border-color, transparent);
+    box-sizing: border-box;
 }
 
 .sticker-picker-header {
@@ -2123,12 +2163,12 @@ export default {
 .sticker-picker-title {
     font-size: 34rpx;
     font-weight: 600;
-    color: #333;
+    color: var(--app-primary-text, #333);
 }
 
 .sticker-picker-close {
     font-size: 44rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
     line-height: 1;
 }
 
@@ -2143,13 +2183,13 @@ export default {
     aspect-ratio: 1 / 1;
     border-radius: 24rpx;
     padding: 10rpx;
-    background: #f7f7f7;
+    background: var(--app-subtle-surface-bg, #f7f7f7);
     border: 2rpx solid transparent;
     box-sizing: border-box;
 }
 
 .sticker-picker-item--selected {
-    border-color: #333;
+    border-color: var(--app-primary-text, #333);
 }
 
 .sticker-picker-image {
@@ -2176,7 +2216,7 @@ export default {
     bottom: 72rpx;
     bottom: calc(72rpx + constant(safe-area-inset-bottom));
     bottom: calc(72rpx + env(safe-area-inset-bottom));
-    background: rgba(255, 255, 255, 0.96);
+    background: var(--profile-edit-sheet-bg, rgba(255, 255, 255, 0.96));
     border-radius: 24rpx;
     box-shadow: 0 18rpx 40rpx rgba(0, 0, 0, 0.14);
     overflow: hidden;
@@ -2192,7 +2232,7 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    border-bottom: 1rpx solid #f0f0f0;
+    border-bottom: 1rpx solid var(--app-border-color, #f0f0f0);
     transition: background-color 0.2s ease;
 }
 
@@ -2201,13 +2241,13 @@ export default {
 }
 
 .avatar-action-sheet-item:active {
-    background: #f5f5f5;
+    background: var(--app-subtle-surface-bg, #f5f5f5);
 }
 
 .avatar-action-sheet-text {
     font-size: 32rpx;
     font-weight: 500;
-    color: #333;
+    color: var(--app-primary-text, #333);
     line-height: 1.4;
     letter-spacing: 0.5rpx;
 }

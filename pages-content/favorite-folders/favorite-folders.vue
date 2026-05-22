@@ -1,6 +1,6 @@
 <template>
     <!-- pages/favorite-folders/favorite-folders.wxml -->
-    <view class="favorite-folders-page">
+    <view class="favorite-folders-page" :data-app-theme="appThemeMode" :style="appThemeVars">
         <!-- 顶部导航栏 -->
         <view class="header">
             <view class="header-left" @tap="goBack">
@@ -750,10 +750,11 @@ export default {
 /* pages/favorite-folders/favorite-folders.wxss */
 .favorite-folders-page {
     min-height: 100vh;
-    background: #fff;
+    background: var(--app-page-bg, #fff);
+    color: var(--app-primary-text, #111111);
     display: flex;
     flex-direction: column;
-    padding-top: calc(var(--status-bar-height) + env(safe-area-inset-top));
+    padding-top: var(--app-safe-area-top, 0px);
 }
 
 .header {
@@ -762,8 +763,8 @@ export default {
     justify-content: center;
     position: relative;
     padding: 20rpx 30rpx;
-    background: #fff;
-    border-bottom: 1rpx solid #e9ecef;
+    background: var(--app-fixed-bar-bg, #fff);
+    border-bottom: 1rpx solid var(--app-border-color, #e9ecef);
 }
 
 .header-left {
@@ -779,12 +780,13 @@ export default {
 .back-icon-image {
     width: 22rpx;
     height: 38rpx;
+    filter: var(--app-icon-filter, none);
 }
 
 .header-title {
     font-size: 36rpx;
     font-weight: 600;
-    color: #333;
+    color: var(--app-primary-text, #333);
 }
 
 .header-right {
@@ -800,6 +802,7 @@ export default {
     width: 72rpx;
     height: 72rpx;
     margin-top: 4rpx;
+    filter: var(--app-icon-filter, none);
 }
 
 .folders-list {
@@ -815,7 +818,7 @@ export default {
 .loading {
     text-align: center;
     padding: 60rpx 0;
-    color: #666;
+    color: var(--app-secondary-text, #666);
     font-size: 28rpx;
 }
 
@@ -829,18 +832,19 @@ export default {
     height: 120rpx;
     margin-bottom: 30rpx;
     opacity: 0.5;
+    filter: var(--app-icon-filter, none);
 }
 
 .empty-text {
     font-size: 32rpx;
-    color: #333;
+    color: var(--app-primary-text, #333);
     margin-bottom: 20rpx;
     display: block;
 }
 
 .empty-subtext {
     font-size: 28rpx;
-    color: #666;
+    color: var(--app-secondary-text, #666);
     display: block;
 }
 
@@ -896,13 +900,13 @@ export default {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1rpx solid #f0f0f0;
+    border-bottom: 1rpx solid var(--app-border-color, #f0f0f0);
     width: 100%;
     box-sizing: border-box;
     margin-right: 0;
     padding-right: 0;
     position: relative;
-    background-color: #ffffff;
+    background-color: var(--app-page-bg, #ffffff);
     z-index: 2;
     transition: transform 0.3s ease;
 }
@@ -921,7 +925,7 @@ export default {
 .folder-icon {
     width: 88rpx;
     height: 88rpx;
-    background: #FFFFFF;
+    background: var(--app-subtle-surface-bg, #ffffff);
     border-radius: 20rpx;
     display: flex;
     align-items: center;
@@ -939,6 +943,7 @@ export default {
 .folder-default-icon-img {
     width: 60rpx;
     height: 60rpx;
+    filter: var(--app-icon-filter, none);
 }
 
 .folder-info {
@@ -950,19 +955,19 @@ export default {
 .folder-name {
     font-size: 32rpx;
     font-weight: 600;
-    color: #333;
+    color: var(--app-primary-text, #333);
 }
 
 .folder-count {
     font-size: 26rpx;
-    color: #666;
+    color: var(--app-secondary-text, #666);
 }
 
 
 .load-more {
     text-align: center;
     padding: 40rpx 0;
-    color: #666;
+    color: var(--app-secondary-text, #666);
     font-size: 28rpx;
 }
 
@@ -981,10 +986,11 @@ export default {
 }
 
 .modal-content {
-    background: #fff;
+    background: var(--app-surface-bg, #fff);
     border-radius: 20rpx;
     width: 600rpx;
     padding: 0;
+    border: 1rpx solid var(--app-border-color, transparent);
 }
 
 .modal-header {
@@ -992,18 +998,18 @@ export default {
     align-items: center;
     justify-content: space-between;
     padding: 40rpx 40rpx 30rpx;
-    border-bottom: 1rpx solid #f0f0f0;
+    border-bottom: 1rpx solid var(--app-border-color, #f0f0f0);
 }
 
 .modal-title {
     font-size: 32rpx;
     font-weight: 600;
-    color: #333;
+    color: var(--app-primary-text, #333);
 }
 
 .close-btn {
     font-size: 40rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
     width: 60rpx;
     height: 60rpx;
     display: flex;
@@ -1018,11 +1024,12 @@ export default {
 .folder-name-input {
     width: 100%;
     height: 80rpx;
-    border: 2rpx solid #e9ecef;
+    border: 2rpx solid var(--app-border-color, #e9ecef);
     border-radius: 12rpx;
     padding: 0 20rpx;
     font-size: 28rpx;
-    color: #333;
+    color: var(--app-primary-text, #333);
+    background: var(--app-subtle-surface-bg, #ffffff);
     box-sizing: border-box;
 }
 
@@ -1041,7 +1048,7 @@ export default {
 
 .form-label {
     font-size: 26rpx;
-    color: #333333;
+    color: var(--app-primary-text, #333333);
     margin-bottom: 16rpx;
     font-weight: 500;
 }
@@ -1056,24 +1063,24 @@ export default {
 .cover-upload-btn {
     width: 200rpx;
     height: 200rpx;
-    border: 2rpx dashed #e0e0e0;
+    border: 2rpx dashed var(--app-border-color, #e0e0e0);
     border-radius: 12rpx;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: #f8f9fa;
+    background: var(--app-subtle-surface-bg, #f8f9fa);
 }
 
 .upload-icon {
     font-size: 48rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
     margin-bottom: 8rpx;
 }
 
 .upload-text {
     font-size: 24rpx;
-    color: #666;
+    color: var(--app-secondary-text, #666);
 }
 
 .cover-preview {
@@ -1129,8 +1136,8 @@ export default {
 }
 
 .modal-btn.cancel {
-    background: #f8f9fa;
-    color: #666;
+    background: var(--app-subtle-surface-bg, #f8f9fa);
+    color: var(--app-secondary-text, #666);
 }
 
 .modal-btn.confirm {
@@ -1139,7 +1146,7 @@ export default {
 }
 
 .modal-btn.confirm[disabled] {
-    background: #ccc;
-    color: #999;
+    background: var(--app-border-color, #ccc);
+    color: var(--app-muted-text, #999);
 }
 </style>

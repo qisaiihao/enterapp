@@ -155,6 +155,20 @@ function getStatusBarHeightCompat() {
     return Number(info.safeAreaInsets?.top || info.statusBarHeight || 0);
 }
 
+function getMenuButtonBoundingClientRectCompat() {
+    const uniResult = typeof uni !== 'undefined' ? callSyncMethod(uni, 'getMenuButtonBoundingClientRect') : null;
+    if (hasKeys(uniResult)) {
+        return uniResult;
+    }
+
+    const wxResult = typeof wx !== 'undefined' ? callSyncMethod(wx, 'getMenuButtonBoundingClientRect') : null;
+    if (hasKeys(wxResult)) {
+        return wxResult;
+    }
+
+    return uniResult || wxResult || null;
+}
+
 export {
     getWindowInfoCompat,
     getDeviceInfoCompat,
@@ -162,7 +176,8 @@ export {
     getSystemSettingCompat,
     getAppAuthorizeSettingCompat,
     getSystemInfoCompat,
-    getStatusBarHeightCompat
+    getStatusBarHeightCompat,
+    getMenuButtonBoundingClientRectCompat
 };
 
 export default {
@@ -172,7 +187,8 @@ export default {
     getSystemSettingCompat,
     getAppAuthorizeSettingCompat,
     getSystemInfoCompat,
-    getStatusBarHeightCompat
+    getStatusBarHeightCompat,
+    getMenuButtonBoundingClientRectCompat
 };
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -183,6 +199,7 @@ if (typeof module !== 'undefined' && module.exports) {
         getSystemSettingCompat,
         getAppAuthorizeSettingCompat,
         getSystemInfoCompat,
-        getStatusBarHeightCompat
+        getStatusBarHeightCompat,
+        getMenuButtonBoundingClientRectCompat
     };
 }

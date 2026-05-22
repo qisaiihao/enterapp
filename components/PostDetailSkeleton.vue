@@ -43,12 +43,15 @@ export default {
 <style scoped>
 .post-detail-skeleton {
     padding: 0;
+    min-height: 100vh;
+    background: var(--app-page-bg, transparent);
+    color: var(--app-primary-text, #111111);
 }
 
 .skeleton-wrapper {
-    background: #fff;
+    background: var(--app-post-wrapper-bg, var(--app-surface-bg, #fff));
     padding: 40rpx 40rpx 20rpx 40rpx;
-    border-bottom: 1rpx solid #f0f0f0;
+    border-bottom: var(--app-post-wrapper-divider, 1rpx solid var(--app-border-color, #f0f0f0));
     margin-bottom: 0;
 }
 
@@ -62,7 +65,7 @@ export default {
     width: 88rpx;
     height: 88rpx;
     border-radius: 50%;
-    background-color: #e9edf3;
+    background-color: var(--app-skeleton-block-bg, var(--app-subtle-surface-bg, #e9edf3));
 }
 
 .skeleton-header-text {
@@ -72,7 +75,7 @@ export default {
 
 .skeleton-line {
     height: 24rpx;
-    background-color: #e9edf3;
+    background-color: var(--app-skeleton-block-bg, var(--app-subtle-surface-bg, #e9edf3));
     border-radius: 999rpx;
     margin-bottom: 16rpx;
 }
@@ -97,7 +100,7 @@ export default {
     width: 100%;
     height: 340rpx;
     border-radius: 20rpx;
-    background-color: #e9edf3;
+    background-color: var(--app-skeleton-block-bg, var(--app-subtle-surface-bg, #e9edf3));
     margin: 30rpx 0;
 }
 
@@ -105,7 +108,7 @@ export default {
     width: 50%;
     height: 28rpx;
     border-radius: 999rpx;
-    background-color: #e9edf3;
+    background-color: var(--app-skeleton-block-bg, var(--app-subtle-surface-bg, #e9edf3));
     margin: 10rpx 40rpx 30rpx 40rpx;
 }
 
@@ -118,9 +121,9 @@ export default {
 .comment-skeleton-item {
     display: flex;
     align-items: flex-start;
-    background-color: #fff;
+    background-color: var(--app-surface-bg, #fff);
     padding: 20rpx 40rpx;
-    border-bottom: 1rpx solid #f5f5f5;
+    border-bottom: 1rpx solid var(--app-border-color, #f5f5f5);
 }
 
 .comment-skeleton-body {
@@ -144,7 +147,7 @@ export default {
     left: -150%;
     width: 150%;
     height: 100%;
-    background: linear-gradient(90deg, rgba(233, 237, 243, 0) 0%, rgba(255, 255, 255, 0.9) 50%, rgba(233, 237, 243, 0) 100%);
+    background: var(--app-skeleton-shimmer-bg, linear-gradient(90deg, rgba(233, 237, 243, 0) 0%, rgba(255, 255, 255, 0.9) 50%, rgba(233, 237, 243, 0) 100%));
     animation: skeletonPulse 1.2s ease-in-out infinite;
 }
 

@@ -1,6 +1,6 @@
 <template>
     <!-- pages/favorite-content/favorite-content.wxml -->
-    <view class="container">
+    <view class="container" :data-app-theme="appThemeMode" :style="appThemeVars">
 
         <!-- 收藏内容列表 -->
         <view v-if="favorites.length > 0" class="favorites-container">
@@ -115,7 +115,7 @@
             <view class="empty-icon">📖</view>
             <view class="empty-text">收藏夹是空的</view>
             <view class="empty-subtext">去发现一些好诗收藏起来吧</view>
-            <button @tap="manualLoad" style="margin-top: 20rpx; padding: 15rpx 30rpx; background: #9ed7ee; color: white; border-radius: 8rpx; font-size: 26rpx">刷新</button>
+            <button @tap="manualLoad" class="empty-refresh-btn">刷新</button>
         </view>
 
 
@@ -458,7 +458,8 @@ export default {
 /* pages/favorite-content/favorite-content.wxss */
 .container {
     padding: 20rpx;
-    background-color: #f7f8fa;
+    background-color: var(--app-page-bg, #f7f8fa);
+    color: var(--app-primary-text, #111111);
     min-height: 100vh;
 }
 
@@ -467,14 +468,14 @@ export default {
     justify-content: center;
     align-items: center;
     height: 400rpx;
-    background-color: #fff;
+    background-color: var(--app-elevated-bg, #fff);
     border-radius: 16rpx;
     margin: 30rpx;
     box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
 }
 
 .loading-text {
-    color: #999;
+    color: var(--app-muted-text, #999);
     font-size: 28rpx;
 }
 
@@ -484,7 +485,8 @@ export default {
 
 /* 新增：帖子项包装器样式 */
 .post-item-wrapper {
-    background: #fff;
+    background: var(--app-elevated-bg, #fff);
+    border: 1rpx solid var(--app-border-color, transparent);
     border-radius: 16rpx;
     margin-bottom: 20rpx;
     padding: 30rpx;
@@ -536,19 +538,19 @@ export default {
     height: 60rpx;
     border-radius: 50%;
     margin-right: 15rpx;
-    background-color: #f5f5f5;
+    background-color: var(--app-subtle-surface-bg, #f5f5f5);
 }
 
 .author-name {
     font-size: 28rpx;
-    color: #333;
+    color: var(--app-primary-text, #333);
     font-weight: 500;
 }
 
 .post-title {
     font-size: 32rpx;
     font-weight: bold;
-    color: #333333;
+    color: var(--app-primary-text, #333333);
     margin-bottom: 10rpx;
     line-height: 1.4;
     word-break: break-word;
@@ -562,14 +564,14 @@ export default {
 /* 诗歌作者信息 */
 .poem-author {
     font-size: 26rpx;
-    color: #666;
+    color: var(--app-secondary-text, #666);
     font-style: italic;
     margin-bottom: 10rpx;
 }
 
 .post-content {
     font-size: 26rpx;
-    color: #666666;
+    color: var(--app-secondary-text, #666666);
     line-height: 1.5;
     margin-bottom: 15rpx;
     word-break: break-word;
@@ -585,7 +587,7 @@ export default {
 .image-container-wrapper {
     position: relative;
     width: 100%;
-    background-color: #f0f0f0; /* 占位时的背景色，很重要 */
+    background-color: var(--app-subtle-surface-bg, #f0f0f0); /* 占位时的背景色，很重要 */
     overflow: hidden;
     border-radius: 8px; /* 可以加个圆角，让占位块更好看 */
     margin: 20rpx 0; /* 图片和下方内容的间距 */
@@ -624,7 +626,7 @@ export default {
 }
 
 .post-tag {
-    color: #24375f;
+    color: var(--app-accent-color, #24375f);
     font-size: 26rpx;
     margin-right: 10rpx;
     transition: all 0.2s ease;
@@ -632,7 +634,6 @@ export default {
 }
 
 .post-tag:active {
-    color: #1a2a4a;
     opacity: 0.8;
 }
 
@@ -643,7 +644,7 @@ export default {
     align-items: center;
     margin-top: 20rpx;
     padding-top: 20rpx;
-    border-top: 1rpx solid #f0f0f0;
+    border-top: 1rpx solid var(--app-border-color, #f0f0f0);
 }
 
 .time-left {
@@ -652,7 +653,7 @@ export default {
 
 .favorite-time {
     font-size: 24rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 
 .button-group {
@@ -679,7 +680,7 @@ export default {
     justify-content: center;
     align-items: center;
     padding: 30rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
     font-size: 28rpx;
 }
 
@@ -688,7 +689,7 @@ export default {
     justify-content: center;
     align-items: center;
     padding: 30rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
     font-size: 28rpx;
 }
 
@@ -710,12 +711,21 @@ export default {
 
 .empty-text {
     font-size: 32rpx;
-    color: #666;
+    color: var(--app-secondary-text, #666);
     margin-bottom: 10rpx;
 }
 
 .empty-subtext {
     font-size: 26rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
+}
+
+.empty-refresh-btn {
+    margin-top: 20rpx;
+    padding: 15rpx 30rpx;
+    background: var(--app-accent-color, #9ed7ee);
+    color: #ffffff;
+    border-radius: 8rpx;
+    font-size: 26rpx;
 }
 </style>

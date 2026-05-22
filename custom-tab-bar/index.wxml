@@ -1,4 +1,4 @@
-<view class="tab-bar">
+<view class="tab-bar" style="{{tabBarStyle}}">
   <view 
     class="tab-bar-item"
     wx:for="{{list}}"
@@ -7,11 +7,11 @@
     data-path="{{item.pagePath}}"
     bindtap="switchTab"
   >
-    <view class="icon-wrap {{selected === index ? 'pressed' : ''}}">
-      <view class="icon-inner {{selected === index ? 'active' : ''}}">
+    <view class="icon-wrap {{selected === index ? 'pressed' : ''}}" style="{{selected === index ? iconWrapActiveStyle : iconWrapStyle}}">
+      <view class="icon-inner {{selected === index ? 'active' : ''}}" style="{{iconInnerStyle}}">
         <image 
           class="icon-img" 
-          src="{{selected === index ? item.selectedIconPath : item.iconPath}}" 
+          src="{{isDark ? (selected === index ? item.darkSelectedIconPath : item.darkIconPath) : (selected === index ? item.selectedIconPath : item.iconPath)}}"
           mode="aspectFill"
         />
       </view>

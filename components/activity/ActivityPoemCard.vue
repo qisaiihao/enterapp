@@ -124,6 +124,7 @@ import {
   normalizePoemDisplayLines,
   normalizeSeriesBlocksForDisplay
 } from '@/utils/poemDisplay.js';
+import { replayBuiltinHuiwenFontReady } from '@/utils/builtinFontReady.js';
 
 export default {
   name: 'ActivityPoemCard',
@@ -157,6 +158,7 @@ export default {
       }
     };
     try { uni.$on && uni.$on('font-loaded', this._fontLoadedHandler); } catch (_) {}
+    replayBuiltinHuiwenFontReady(this, 'onBuiltinFontLoaded', '[ActivityPoemCard]');
     // #endif
   },
   beforeUnmount() {

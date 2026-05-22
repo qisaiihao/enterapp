@@ -315,9 +315,9 @@ export default {
     flex-direction: column;
     padding: 30rpx 60rpx 30rpx 80rpx;
     box-sizing: border-box;
-    background: #a4c4bd;
+    background: var(--app-skeleton-poem-card-bg, #a4c4bd);
     border-radius: 30rpx;
-    box-shadow: 0 8rpx 8rpx rgba(0, 0, 0, 0.25);
+    box-shadow: var(--app-skeleton-poem-card-shadow, 0 8rpx 8rpx rgba(0, 0, 0, 0.25));
     position: relative;
     margin-bottom: 40rpx;
 }
@@ -327,19 +327,19 @@ export default {
     padding: 40rpx;
     border-radius: 20rpx;
     margin-bottom: 30rpx;
-    box-shadow: 0 4rpx 4rpx rgba(0, 0, 0, 0.25);
+    box-shadow: var(--app-skeleton-mountain-card-shadow, 0 4rpx 4rpx rgba(0, 0, 0, 0.25));
 }
 
 /* 第二个卡片样式 */
 .skeleton-poem-card.skeleton-secondary {
-    background: #c9cfcf;
+    background: var(--app-skeleton-poem-card-secondary-bg, #c9cfcf);
     opacity: 0.8;
     transform: scale(0.98);
 }
 
 /* 第三个卡片样式 */
 .skeleton-poem-card.skeleton-tertiary {
-    background: #906161;
+    background: var(--app-skeleton-poem-card-tertiary-bg, #906161);
     opacity: 0.6;
     transform: scale(0.96);
 }
@@ -378,12 +378,13 @@ export default {
 
 /* 动画效果 - 更柔和的微光效果 */
 .skeleton-animate {
-    background: linear-gradient(90deg, 
+    background-color: var(--app-skeleton-block-bg, var(--app-subtle-surface-bg, #f0f0f0));
+    background-image: var(--app-skeleton-inline-shimmer-bg, linear-gradient(90deg,
         rgba(255, 255, 255, 0.1) 0%, 
         rgba(255, 255, 255, 0.3) 20%, 
         rgba(255, 255, 255, 0.5) 50%, 
         rgba(255, 255, 255, 0.3) 80%, 
-        rgba(255, 255, 255, 0.1) 100%);
+        rgba(255, 255, 255, 0.1) 100%));
     background-size: 400% 100%;
     animation: skeleton-shimmer 1.8s ease-in-out infinite;
 }

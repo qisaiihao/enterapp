@@ -1,7 +1,7 @@
 <template>
   <view class="top-bar-container" :style="{ top: safeAreaTop + 'px' }">
     <!-- 自定义顶部栏 -->
-    <view class="custom-top-bar">
+    <view class="custom-top-bar" :style="customTopBarStyle">
       <view class="top-left" @tap="navigateToAdd">
         <image class="top-icon" :src="leftIcon" mode="aspectFit"></image>
       </view>
@@ -20,7 +20,7 @@
 
 <script>
 import unreadBadge from '@/cache/stores/unread-badge.js';
-import { getStatusBarHeightCompat } from '@/utils/system-info.js';
+import { getMenuButtonBoundingClientRectCompat, getStatusBarHeightCompat, getWindowInfoCompat } from '@/utils/system-info.js';
 
 function getDefaultStatusBarHeight() {
   // #ifdef H5
@@ -44,12 +44,25 @@ export default {
     return {
       unreadMessageCount: 0,
       safeAreaTop: DEFAULT_STATUS_BAR_HEIGHT,
+      capsuleAvoidRight: 40,
       _unsubscribe: null
     };
+  },
+  computed: {
+    customTopBarStyle() {
+      // #ifdef MP-WEIXIN
+      return {
+        paddingRight: this.capsuleAvoidRight + 'px'
+      };
+      // #endif
+
+      return {};
+    }
   },
   mounted() {
     // 获取安全区域高度
     this.getSafeAreaTop();
+    this.updateCapsuleAvoidance();
     // 订阅未读数变化（会立即用当前值回调一次）
     this._unsubscribe = unreadBadge.subscribe((count) => {
       this.unreadMessageCount = count;
@@ -86,6 +99,25 @@ export default {
           }
         } catch (_) {}
       }
+    },
+
+    updateCapsuleAvoidance() {
+      // #ifdef MP-WEIXIN
+      try {
+        const menuRect = getMenuButtonBoundingClientRectCompat();
+        const windowInfo = getWindowInfoCompat();
+        const windowWidth = Number(windowInfo.windowWidth || windowInfo.screenWidth || 0);
+        const menuLeft = Number(menuRect && menuRect.left);
+        const menuWidth = Number(menuRect && menuRect.width);
+        if (windowWidth > 0 && menuLeft > 0 && menuWidth > 0) {
+          this.capsuleAvoidRight = Math.max(40, windowWidth - menuLeft + 12);
+          return;
+        }
+      } catch (error) {
+        console.warn('【top-bar】获取小程序胶囊区域失败:', error);
+      }
+      this.capsuleAvoidRight = typeof uni !== 'undefined' && typeof uni.upx2px === 'function' ? uni.upx2px(200) : 100;
+      // #endif
     },
 
     // 跳转到写诗页面
@@ -179,8 +211,8 @@ export default {
   padding-right: 40rpx;
   padding-left: 40rpx;
   /* #endif */
-  justify-content: space-between;
-  padding: 20rpx 40rpx 0 40rpx;
+  padding-top: 20rpx;
+  padding-bottom: 0;
   align-items: center;
   background: var(--app-fixed-bar-bg, #fff);
   border-bottom: none;
@@ -196,7 +228,9 @@ export default {
   /* #ifdef MP-WEIXIN */
   margin-right: 40rpx; /* 小程序端：与右侧按钮保持间距 */
   /* #endif */
+  /* #ifndef MP-WEIXIN */
   margin-right: 0;
+  /* #endif */
 }
 
 .top-left:active {

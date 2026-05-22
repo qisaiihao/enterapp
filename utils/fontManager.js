@@ -9,6 +9,10 @@
 
 import { getCurrentPlatform } from './platformDetector.js';
 import fileUrlCache from '@/cache/core/file-url.js';
+import {
+    BUILTIN_HUIWEN_FONT_FAMILY,
+    markBuiltinHuiwenFontReady
+} from '@/utils/builtinFontReady.js';
 
 const platformDetector = {
     getCurrentPlatform
@@ -1457,6 +1461,7 @@ class FontManager {
     async _loadFontFaceWithRetry(displayName, sourcePath, retryCount = 0, options = {}) {
         const MAX_RETRIES = typeof options.maxRetries === 'number' ? options.maxRetries : 2;
         const TIMEOUT_MS = typeof options.timeoutMs === 'number' ? options.timeoutMs : 30000;
+        const onSuccess = typeof options.onSuccess === 'function' ? options.onSuccess : null;
 
         console.log('【FontManager】准备加载字体:', displayName, '路径:', sourcePath);
         if (retryCount > 0) {
@@ -1471,6 +1476,19 @@ class FontManager {
                 if (settled) return;
                 settled = true;
                 resolve(result);
+            };
+            const notifySuccess = () => {
+                if (!onSuccess) return;
+                try {
+                    onSuccess({
+                        displayName,
+                        sourcePath,
+                        retryCount,
+                        late: settled
+                    });
+                } catch (error) {
+                    console.warn('【FontManager】字体成功回调失败:', displayName, error);
+                }
             };
 
             const scheduleRetry = () => {
@@ -1499,6 +1517,7 @@ class FontManager {
                 global: true,
                 success: () => {
                     clearTimeout(timeout);
+                    notifySuccess();
                     console.log(`【FontManager】✅ 字体加载成功:`, displayName, sourcePath);
                     finish(true);
                 },
@@ -1537,7 +1556,16 @@ class FontManager {
             console.log('[FontManager] MP trying HTTPS font source:', candidate.format || 'unknown', candidate.url);
             const loaded = await this._loadFontFaceWithRetry(displayName, candidate.url, 0, {
                 maxRetries: 0,
-                timeoutMs: 12000
+                timeoutMs: 45000,
+                onSuccess: () => {
+                    this.loadedFonts.add(fontFamily);
+                    if (fontFamily === BUILTIN_HUIWEN_FONT_FAMILY) {
+                        markBuiltinHuiwenFontReady({
+                            source: 'font-manager-mp',
+                            runtimeFamily: displayName
+                        });
+                    }
+                }
             });
             if (loaded) {
                 this.loadedFonts.add(fontFamily);

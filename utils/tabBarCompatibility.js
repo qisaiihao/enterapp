@@ -2,7 +2,7 @@
  * TabBar compatibility helpers.
  */
 
-function getNativeTabBar(pageInstance) {
+function getTabBarFromPage(pageInstance) {
     try {
         if (typeof pageInstance?.getTabBar === 'function') {
             const tabBar = pageInstance.getTabBar();
@@ -11,6 +11,31 @@ function getNativeTabBar(pageInstance) {
     } catch (e) {
         console.log('getTabBar unavailable:', e.message);
     }
+    return null;
+}
+
+function getCurrentNativePage() {
+    try {
+        const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : [];
+        return pages && pages.length ? pages[pages.length - 1] : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function getNativeTabBar(pageInstance) {
+    const candidates = [
+        pageInstance,
+        pageInstance?.$scope,
+        pageInstance?.$mp?.page,
+        getCurrentNativePage()
+    ];
+
+    for (let i = 0; i < candidates.length; i += 1) {
+        const tabBar = getTabBarFromPage(candidates[i]);
+        if (tabBar) return tabBar;
+    }
+
     return null;
 }
 

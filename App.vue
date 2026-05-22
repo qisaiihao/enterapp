@@ -62,7 +62,6 @@ export default {
         // #ifdef MP-WEIXIN
         if (!this.appState._mpBuiltinFontPreloadStarted) {
             this.applyAppState({ _mpBuiltinFontPreloadStarted: true });
-            try { uni.setStorageSync('__builtin_font_huiwen_ready__', false); } catch (_) {}
         }
         // #endif
 

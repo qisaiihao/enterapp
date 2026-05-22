@@ -1,5 +1,5 @@
 <template>
-  <view class="portfolio-page">
+  <view class="portfolio-page" :data-app-theme="appThemeMode" :style="appThemeVars">
     <dual-action-top-bar
       title="作品集"
       :show-divider="true"

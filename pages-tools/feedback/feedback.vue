@@ -1,6 +1,6 @@
 <template>
     <!-- 用户反馈页面 -->
-    <view class="container" :style="'padding-top: ' + statusBarHeight + 'px;'">
+    <view class="container" :data-app-theme="appThemeMode" :style="containerStyle">
         <!-- 头部 -->
         <view class="header" :style="'top: ' + statusBarHeight + 'px;'">
             <view class="header-left" @tap="goBack">
@@ -78,6 +78,13 @@ export default {
             maxImages: 3,
             statusBarHeight: 0
         };
+    },
+    computed: {
+        containerStyle() {
+            return Object.assign({}, this.appThemeVars, {
+                paddingTop: this.statusBarHeight + 'px'
+            });
+        }
     },
     onLoad: function () {
         // 获取状态栏高度
@@ -267,7 +274,7 @@ export default {
 /* Feedback page styles */
 .container {
     min-height: 100vh;
-    background-color: #f5f5f5;
+    background-color: var(--app-page-bg, #f5f5f5);
     padding-bottom: 40rpx;
 }
 
@@ -278,8 +285,8 @@ export default {
     justify-content: center;
     position: relative;
     padding: 20rpx 30rpx;
-    background-color: #fff;
-    border-bottom: 1rpx solid #e9ecef;
+    background-color: var(--app-fixed-bar-bg, #fff);
+    border-bottom: 1rpx solid var(--app-border-color, #e9ecef);
 }
 
 .header-left {
@@ -295,12 +302,13 @@ export default {
 .back-icon-image {
     width: 22rpx;
     height: 38rpx;
+    filter: var(--app-icon-filter, none);
 }
 
 .header-title {
     font-size: 36rpx;
     font-weight: 600;
-    color: #333;
+    color: var(--app-primary-text, #333);
 }
 
 .header-right {
@@ -314,16 +322,17 @@ export default {
 
 /* Content section */
 .content-section {
-    background-color: #fff;
+    background-color: var(--app-surface-bg, #fff);
     margin: 20rpx 30rpx;
     border-radius: 16rpx;
     padding: 30rpx;
+    border: 1rpx solid var(--app-border-color, transparent);
 }
 
 .section-title {
     font-size: 28rpx;
     font-weight: 600;
-    color: #333;
+    color: var(--app-primary-text, #333);
     margin-bottom: 20rpx;
 }
 
@@ -331,9 +340,9 @@ export default {
     width: 100%;
     min-height: 200rpx;
     font-size: 28rpx;
-    color: #333;
+    color: var(--app-primary-text, #333);
     line-height: 1.6;
-    background-color: #f8f8f8;
+    background-color: var(--app-subtle-surface-bg, #f8f8f8);
     border-radius: 12rpx;
     padding: 20rpx;
     box-sizing: border-box;
@@ -342,16 +351,17 @@ export default {
 .char-count {
     text-align: right;
     font-size: 24rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
     margin-top: 10rpx;
 }
 
 /* Image upload section */
 .image-section {
-    background-color: #fff;
+    background-color: var(--app-surface-bg, #fff);
     margin: 20rpx 30rpx;
     border-radius: 16rpx;
     padding: 30rpx;
+    border: 1rpx solid var(--app-border-color, transparent);
 }
 
 .image-upload-area {
@@ -399,29 +409,29 @@ export default {
 .add-image-btn {
     width: 160rpx;
     height: 160rpx;
-    border: 2rpx dashed #ddd;
+    border: 2rpx dashed var(--app-border-color, #ddd);
     border-radius: 12rpx;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background-color: #fafafa;
+    background-color: var(--app-subtle-surface-bg, #fafafa);
 }
 
 .add-icon {
     font-size: 48rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
     margin-bottom: 10rpx;
 }
 
 .add-text {
     font-size: 24rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
 }
 
 .image-tip {
     font-size: 24rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
     text-align: center;
 }
 
@@ -433,12 +443,12 @@ export default {
 .submit-btn {
     width: 100%;
     height: 88rpx;
-    background: #fff;
-    color: #333;
+    background: var(--app-surface-bg, #fff);
+    color: var(--app-primary-text, #333);
     font-size: 32rpx;
     font-weight: 600;
     border-radius: 44rpx;
-    border: 1rpx solid #e0e0e0;
+    border: 1rpx solid var(--app-border-color, #e0e0e0);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -446,14 +456,14 @@ export default {
 }
 
 .submit-btn:active {
-    background: #f5f5f5;
+    background: var(--app-subtle-surface-bg, #f5f5f5);
     transform: scale(0.98);
 }
 
 .submit-btn.submitting {
-    background: #f5f5f5;
-    color: #999;
-    border-color: #e0e0e0;
+    background: var(--app-subtle-surface-bg, #f5f5f5);
+    color: var(--app-muted-text, #999);
+    border-color: var(--app-border-color, #e0e0e0);
 }
 
 .submit-btn::after {
@@ -468,7 +478,7 @@ export default {
 
 .tip-text {
     font-size: 24rpx;
-    color: #999;
+    color: var(--app-muted-text, #999);
     line-height: 1.5;
 }
 </style>

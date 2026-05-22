@@ -20,6 +20,18 @@ import { lightImpact } from '@/utils/haptics.js';
 
 const DARK_TAB_ICON_VERSION = '20260429-toned-white';
 
+function normalizeRoutePath(path) {
+    return String(path || '')
+        .split('?')[0]
+        .replace(/^\/+/, '')
+        .replace(/\/+$/, '');
+}
+
+function normalizeTabIndex(index) {
+    const nextIndex = typeof index === 'number' ? index : parseInt(index, 10);
+    return Number.isNaN(nextIndex) ? null : nextIndex;
+}
+
 export default {
     data() {
         return {
@@ -66,27 +78,24 @@ export default {
         };
     },
     created() {
-        this.syncSelected({ preferCache: true });
+        this.syncSelected();
     },
     mounted() {
         this.$nextTick(() => {
-            this.syncSelected({ preferCache: true });
+            this.syncSelected();
         });
     },
     methods: {
         getCachedSelected() {
             try {
-                const cached = uni.getStorageSync('currentTabIndex');
-                if (typeof cached === 'number') return cached;
-                const parsed = parseInt(cached, 10);
-                return Number.isNaN(parsed) ? null : parsed;
+                return normalizeTabIndex(uni.getStorageSync('currentTabIndex'));
             } catch (_) {
                 return null;
             }
         },
         updateSelected(index) {
-            const nextIndex = typeof index === 'number' ? index : parseInt(index, 10);
-            if (Number.isNaN(nextIndex) || this.selected === nextIndex) return;
+            const nextIndex = normalizeTabIndex(index);
+            if (nextIndex === null || this.selected === nextIndex) return;
             this.selected = nextIndex;
         },
         resolveIconPath(item, index) {
@@ -108,36 +117,38 @@ export default {
             return iconPath;
         },
         syncSelected(options = {}) {
-            const { preferCache = false } = options;
             const cachedIndex = this.getCachedSelected();
-
-            if (preferCache && cachedIndex !== null) {
-                this.updateSelected(cachedIndex);
-                return;
-            }
 
             try {
                 const pages = getCurrentPages();
                 const current = pages && pages.length ? pages[pages.length - 1] : null;
-                const route = current && (current.route || (current.$page && current.$page.fullPath) || '');
+                const route = normalizeRoutePath(current && (current.route || current.__route__ || (current.$page && current.$page.fullPath) || ''));
                 if (!route) {
-                    if (!preferCache) this.updateSelected(cachedIndex);
+                    if (cachedIndex !== null) this.updateSelected(cachedIndex);
+                    if (!options.retry) {
+                        setTimeout(() => this.syncSelected({ retry: true }), 0);
+                    }
                     return;
                 }
-                const idx = this.list.findIndex(i => route.indexOf(i.pagePath.replace(/^\//,'')) >= 0);
+                const idx = this.list.findIndex(i => {
+                    const pagePath = normalizeRoutePath(i.pagePath);
+                    return route === pagePath || route.indexOf(pagePath) >= 0;
+                });
                 if (idx >= 0) {
                     this.updateSelected(idx);
                     return;
                 }
             } catch (_) {}
 
-            if (!preferCache) this.updateSelected(cachedIndex);
+            if (cachedIndex !== null) this.updateSelected(cachedIndex);
         },
         switchTab(e) {
             const data = e.currentTarget.dataset;
             const url = data.path;
-            const index = data.index;
+            const index = normalizeTabIndex(data.index);
             const currentTime = Date.now();
+
+            if (index === null) return;
 
             // 【小程序审核优化】点击"我"时检查登录状态
             if (index === 3) { // "我"的索引是3
@@ -176,7 +187,7 @@ export default {
             }
 
             this.updateSelected(index);
-            try { uni.setStorageSync('currentTabIndex', typeof index === 'number' ? index : parseInt(index, 10)); } catch (_) {}
+            try { uni.setStorageSync('currentTabIndex', index); } catch (_) {}
             const targetUrl = url.startsWith('/') ? url : `/${url}`;
             uni.switchTab({ url: targetUrl });
         },

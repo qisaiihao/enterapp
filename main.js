@@ -7,14 +7,39 @@ import { ensureRuntimeOpenid, ensureTcbAuthenticated, ensureTcbReady, installRun
 import zpMixins from '@/uni_modules/zp-mixins/index.js';
 import appFontManager from './utils/fontManager.js';
 import { THEME_CHANGED_EVENT, applyThemeMode, getThemeMode, getThemeVars } from '@/utils/theme.js';
+import { getStatusBarHeightCompat, getWindowInfoCompat } from '@/utils/system-info.js';
+import {
+  BUILTIN_HUIWEN_FONT_FAMILY,
+  markBuiltinHuiwenFontPending,
+  markBuiltinHuiwenFontReady
+} from '@/utils/builtinFontReady.js';
 
 silenceConsoleInProduction();
 applyThemeMode(getThemeMode());
 
 function emitBuiltinFontLoaded() {
-  try {
-    uni.$emit && uni.$emit('font-loaded', { fontFamily: '汇文明朝' });
-  } catch (error) {}
+  markBuiltinHuiwenFontReady();
+}
+
+function markBuiltinFontPending() {
+  markBuiltinHuiwenFontPending();
+}
+
+function preloadBuiltinManagedFont(logPrefix = 'font preload') {
+  if (!appFontManager || typeof appFontManager.ensureFontAvailable !== 'function') {
+    return Promise.resolve(false);
+  }
+
+  markBuiltinFontPending();
+  return appFontManager.ensureFontAvailable(BUILTIN_HUIWEN_FONT_FAMILY).then(() => {
+    emitBuiltinFontLoaded();
+    console.log(`[${logPrefix}] builtin font loaded`);
+    return true;
+  }).catch((error) => {
+    markBuiltinFontPending();
+    console.warn(`[${logPrefix}] builtin font load failed`, error);
+    return false;
+  });
 }
 
 // #ifdef H5
@@ -53,14 +78,7 @@ if (typeof document !== 'undefined') {
 
 // #ifdef APP-PLUS
 function preloadBuiltinAppFont() {
-  if (!appFontManager || typeof appFontManager.ensureFontAvailable !== 'function') {
-    return;
-  }
-  appFontManager.ensureFontAvailable('汇文明朝').then(() => {
-    emitBuiltinFontLoaded();
-  }).catch((error) => {
-    console.warn('[font preload] app plus load failed', error);
-  });
+  preloadBuiltinManagedFont('font preload app plus');
 }
 
 if (typeof plus !== 'undefined') {
@@ -73,7 +91,7 @@ console.log('[font preload] harmony uses bundled/static font fallback');
 // #endif
 
 // #ifdef MP-WEIXIN
-console.log('[font preload] mp-weixin skips builtin preload');
+preloadBuiltinManagedFont('font preload mp-weixin');
 // #endif
 
 const runtimeTcb = ensureTcbReady();
@@ -209,6 +227,25 @@ function notifyH5AppReady() {
   // #endif
 }
 
+function getGlobalStyleVars(mode) {
+  const themeVars = getThemeVars(mode);
+  let safeAreaTop = 0;
+  let safeAreaBottom = 0;
+  try {
+    const windowInfo = getWindowInfoCompat() || {};
+    safeAreaTop = Number(windowInfo.safeAreaInsets?.top || windowInfo.statusBarHeight || getStatusBarHeightCompat() || 0) || 0;
+    safeAreaBottom = Number(windowInfo.safeAreaInsets?.bottom || 0) || 0;
+  } catch (error) {}
+
+  return Object.assign({}, themeVars, {
+    '--app-safe-area-top': `${safeAreaTop}px`,
+    '--app-safe-area-bottom': `${safeAreaBottom}px`,
+    '--safe-area-inset-top': `${safeAreaTop}px`,
+    '--safe-area-inset-bottom': `${safeAreaBottom}px`,
+    '--status-bar-height': `${safeAreaTop}px`
+  });
+}
+
 import { createSSRApp } from 'vue';
 
 export function createApp() {
@@ -223,7 +260,7 @@ export function createApp() {
     },
     computed: {
       appThemeVars() {
-        return getThemeVars(this.appThemeMode);
+        return getGlobalStyleVars(this.appThemeMode);
       }
     },
     created() {

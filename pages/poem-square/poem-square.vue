@@ -1,7 +1,7 @@
 <template>
   <view class="poem-square white-bg" :data-app-theme="appThemeMode" :style="appThemeVars" @touchstart="touchStart" @touchend="touchEnd">
     <!-- 顶部栏 -->
-    <top-bar />
+    <top-bar @safe-area-ready="onSafeAreaReady" />
 
     <view v-if="showPoemFilterPanel" class="poem-filter-mask" @tap="closePoemFilterPanel"></view>
 
@@ -114,6 +114,9 @@
                       mode="aspectFit" 
                       :webp="true"
                       :show-menu-by-longpress="false"
+                      :data-index="index"
+                      :data-postid="item._id"
+                      :data-signature="item.authorSignature"
                       @error="onSignatureError" 
                       @load="onSignatureLoad"
                     ></image>
@@ -163,6 +166,9 @@
                     mode="aspectFit" 
                     :webp="true"
                     :show-menu-by-longpress="false"
+                    :data-index="index"
+                    :data-postid="item._id"
+                    :data-signature="item.authorSignature"
                     @error="onSignatureError" 
                     @load="onSignatureLoad"
                   ></image>
@@ -176,6 +182,9 @@
                     mode="aspectFit" 
                     :webp="true"
                     :show-menu-by-longpress="false"
+                    :data-index="index"
+                    :data-postid="item._id"
+                    :data-signature="item.authorSignature"
                     @error="onSignatureError" 
                     @load="onSignatureLoad"
                   ></image>
@@ -248,6 +257,7 @@ import { patchAppState, setUserSession } from '@/utils/app-state.js';
 import { formatErrorForLog } from '@/utils/error-log.js';
 import { getSystemInfoCompat, getWindowInfoCompat } from '@/utils/system-info.js';
 import { isUserLoggedIn, requireLogin } from '@/utils/authHelper.js';
+import { replayBuiltinHuiwenFontReady } from '@/utils/builtinFontReady.js';
 
 const PAGE_SIZE = 10;
 
@@ -385,6 +395,7 @@ export default {
       }
     };
     try { uni.$on && uni.$on('font-loaded', this._fontLoadedHandler); } catch (_) {}
+    replayBuiltinHuiwenFontReady(this, 'onBuiltinFontLoaded', '[poem-square]');
     // #endif
     try { this.hasNewActivity = !!activityBadge.getHasNewActivity(); } catch (_) {}
     try {
@@ -480,6 +491,14 @@ export default {
           target = target[key];
         }
         target[segments[segments.length - 1]] = value;
+      });
+    },
+
+    onSafeAreaReady(height) {
+      const safeAreaTop = Number(height || 0) || 44;
+      if (this.safeAreaTop === safeAreaTop) return;
+      this.applyLocalState({
+        safeAreaTop
       });
     },
 
@@ -870,7 +889,7 @@ export default {
       post.backgroundColor = post.backgroundColor || this.generateRandomBackgroundColor();
       post.textColor = post.textColor || '#222';
       post.isExpanded = false;
-      post.authorSignature = post.authorSignature || '';
+      post.authorSignature = this.isBrokenSignatureUrl(post.authorSignature) ? '' : (post.authorSignature || '');
       post.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(post.votes || 0, !!post.isVoted) : '';
 
       const normalized = attachPoemDisplayFields(post);
@@ -1231,6 +1250,68 @@ export default {
 
     // authorSignature已从云函数返回，不再需要fetchAuthorSignature函数
 
+    isBrokenSignatureUrl(url) {
+      return !!(url && this._brokenSignatureUrls && this._brokenSignatureUrls.has(url));
+    },
+
+    rememberBrokenSignatureUrl(url) {
+      if (!url) return;
+      if (!this._brokenSignatureUrls) {
+        this._brokenSignatureUrls = new Set();
+      }
+      this._brokenSignatureUrls.add(url);
+    },
+
+    getSignatureErrorUrl(e = {}) {
+      const dataset = (e.currentTarget && e.currentTarget.dataset) || (e.target && e.target.dataset) || {};
+      if (dataset.signature) {
+        return String(dataset.signature);
+      }
+
+      const detailMsg = e.detail && e.detail.errMsg ? String(e.detail.errMsg) : '';
+      const targetMsg = e.target && e.target.errMsg ? String(e.target.errMsg) : '';
+      const message = detailMsg || targetMsg;
+      const match = message.match(/GET\s+(\S+)\s+(?:404|\(Not Found\))/i);
+      return match ? match[1] : '';
+    },
+
+    hideBrokenSignature(e = {}) {
+      const dataset = (e.currentTarget && e.currentTarget.dataset) || (e.target && e.target.dataset) || {};
+      const failedUrl = this.getSignatureErrorUrl(e);
+      const postId = dataset.postid ? String(dataset.postid) : '';
+      const rawIndex = dataset.index;
+      const index = rawIndex !== undefined && rawIndex !== null ? Number(rawIndex) : -1;
+
+      this.rememberBrokenSignatureUrl(failedUrl);
+
+      const currentList = Array.isArray(this.postList) ? this.postList : [];
+      let changed = false;
+      const nextList = currentList.map((post, currentIndex) => {
+        if (!post || !post.authorSignature) return post;
+
+        const matchesIndex = Number.isInteger(index) && index >= 0 && currentIndex === index;
+        const matchesPostId = postId && String(post._id || post.id || '') === postId;
+        const matchesUrl = failedUrl && post.authorSignature === failedUrl;
+
+        if (!matchesIndex && !matchesPostId && !matchesUrl) return post;
+        if (failedUrl && post.authorSignature !== failedUrl) return post;
+
+        changed = true;
+        return {
+          ...post,
+          authorSignature: ''
+        };
+      });
+
+      if (changed) {
+        this.applyLocalState({
+          postList: nextList
+        });
+      }
+
+      return { postId, failedUrl, changed };
+    },
+
     // 签名图片加载成功
     onSignatureLoad(e) {
       console.log('【poem-square】签名图片加载成功:', e);
@@ -1238,7 +1319,8 @@ export default {
 
     // 签名图片加载失败
     onSignatureError(e) {
-      console.error(`[poem-square] signature image load failed: ${formatErrorForLog(e)}`);
+      const result = this.hideBrokenSignature(e);
+      console.warn('[poem-square] hidden broken signature image', result);
     },
     
     // 客户端转换 cloud:// URLs 为 HTTP URLs（安全网）
