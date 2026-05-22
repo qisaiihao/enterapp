@@ -672,8 +672,13 @@ export default {
                 console.log('📏 [debugSafeArea] systemInfo:', systemInfo);
                 console.log('📏 [debugSafeArea] statusBarHeight:', systemInfo.statusBarHeight);
 
-                if (systemInfo.statusBarHeight) {
-                    const safeAreaTop = systemInfo.statusBarHeight;
+                const safeAreaTop = Number(
+                    (systemInfo.safeAreaInsets && systemInfo.safeAreaInsets.top) ||
+                    systemInfo.statusBarHeight ||
+                    0
+                ) || 0;
+
+                if (safeAreaTop) {
                     console.log('📏 [debugSafeArea] 设置 safeAreaTop:', safeAreaTop);
                     this.setData({
                         safeAreaTop: safeAreaTop

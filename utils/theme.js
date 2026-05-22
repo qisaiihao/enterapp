@@ -214,6 +214,17 @@ function applyNativeThemeChrome(mode) {
   } catch (error) {}
 
   try {
+    if (typeof uni !== 'undefined' && typeof uni.setTabBarStyle === 'function') {
+      uni.setTabBarStyle({
+        color: isDark ? DARK_THEME_VARS['--app-tab-text-color'] : LIGHT_THEME_VARS['--app-tab-text-color'],
+        selectedColor: isDark ? DARK_THEME_VARS['--app-tab-active-text-color'] : LIGHT_THEME_VARS['--app-tab-active-text-color'],
+        backgroundColor,
+        borderStyle: 'black'
+      });
+    }
+  } catch (error) {}
+
+  try {
     if (typeof plus !== 'undefined' && plus && plus.navigator) {
       if (typeof plus.navigator.setStatusBarStyle === 'function') {
         plus.navigator.setStatusBarStyle(isDark ? 'light' : 'dark');

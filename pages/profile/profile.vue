@@ -1,7 +1,7 @@
 <template>
     <view
         class="profile-page-root"
-        :class="{ 'profile-page-root--with-background': isFullBackground || isHeaderBackground }"
+        :class="{ 'profile-page-root--with-background': isFullBackground }"
         :data-app-theme="appThemeMode"
         :style="profilePageStyle"
     >
@@ -14,7 +14,7 @@
         <view v-if="isFullBackground" class="profile-bg-overlay"></view>
 
         <!-- pages/profile/profile.wxml -->
-        <view :class="['profile-container', { 'profile-container--with-background': isFullBackground || isHeaderBackground }]">
+        <view :class="['profile-container', { 'profile-container--with-background': isFullBackground }]">
             <!-- 骨架屏：当 isLoading 为 true 时，显示骨架屏，其他所有内容都不渲染 -->
             <view v-if="!hasInitialSnapshot && isLoading">
                 <skeleton pageType="profile" />
@@ -23,7 +23,7 @@
             <!-- 真实内容：当 isLoading 为 false 时，显示真实页面 -->
             <view
                 v-else
-                :class="['profile-scroll-container', { 'profile-scroll-container--with-background': isFullBackground || isHeaderBackground }]"
+                :class="['profile-scroll-container', { 'profile-scroll-container--with-background': isFullBackground }]"
             >
                 <!-- Sidebar Component -->
                 <Sidebar
@@ -112,7 +112,7 @@
                                     <text>--- 我是有底线的 ---</text>
                                 </block>
                             </view>
-                            <view style="height: 200rpx"></view>
+                            <view class="profile-bottom-spacer"></view>
                         </block>
                         <view v-else class="empty-tip">
                             <text>你还没有发布过帖子哦～</text>
@@ -148,7 +148,7 @@
                                     <text>--- 我是有底线的 ---</text>
                                 </block>
                             </view>
-                            <view style="height: 200rpx"></view>
+                            <view class="profile-bottom-spacer"></view>
                         </block>
                         <view v-else class="empty-tip">
                             <text>你还没有收藏过内容哦～</text>
@@ -327,7 +327,7 @@ import { cloudCall } from '../../utils/cloudCall.js';
 import { getCurrentPlatform } from '../../utils/platformDetector.js';
 import { saveImagesToAlbum } from '../../utils/shareImage.js';
 import { generateTimelineShareImages } from '../../utils/timelineShareCanvas.js';
-import { getThemeMode, toggleThemeMode } from '@/utils/theme.js';
+import { applyThemeMode, getThemeMode, toggleThemeMode } from '@/utils/theme.js';
 import { resolveGrowthStatsVisibility } from '@/utils/profileGrowthStatsVisibility.js';
 
 const PAGE_SIZE = 5;
@@ -741,6 +741,7 @@ export default {
             if (this.isDarkTheme) {
                 return {
                     '--app-fixed-bar-bg': 'rgba(15, 17, 21, 0.96)',
+                    '--app-page-bg': '#0f1115',
                     '--app-fixed-bar-shadow': '0 -6rpx 20rpx rgba(0, 0, 0, 0.24)',
                     '--app-tab-icon-wrap-bg': 'rgba(255, 255, 255, 0.07)',
                     '--app-tab-icon-inner-bg': 'rgba(255, 255, 255, 0.06)',
@@ -757,6 +758,7 @@ export default {
             }
             return {
                 '--app-fixed-bar-bg': '#ffffff',
+                '--app-page-bg': '#ffffff',
                 '--app-fixed-bar-shadow': 'none',
                 '--app-tab-icon-wrap-bg': '#f8f8f8',
                 '--app-tab-icon-inner-bg': '#ffffff',
@@ -802,6 +804,7 @@ export default {
         this.getProfileData();
     },
     onShow: function () {
+        applyThemeMode(this.appThemeMode || getThemeMode());
         // #ifndef MP-WEIXIN
         try { uni.hideTabBar({ animation: false }); } catch (e) {}
         // #endif
@@ -3159,7 +3162,7 @@ export default {
 }
 
 .profile-main-content--header-background {
-    background-color: transparent;
+    background-color: var(--app-page-bg, #ffffff);
 }
 
 [data-app-theme="dark"] .profile-main-content--with-background {
@@ -3503,6 +3506,11 @@ export default {
 /* Favorites Section */
 .favorites-section {
     margin: 0 0 30rpx 0;
+}
+
+.profile-bottom-spacer {
+    height: 200rpx;
+    background-color: var(--app-page-bg, #ffffff);
 }
 
 .section-title {

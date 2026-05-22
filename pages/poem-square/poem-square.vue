@@ -536,11 +536,17 @@ export default {
 
         // 设置页面数据
         if (!safeAreaTop) {
+          // #ifdef H5
+          safeAreaTop = 0;
+          // #endif
+
+          // #ifndef H5
           safeAreaTop = Number(
             (systemInfo.safeAreaInsets && systemInfo.safeAreaInsets.top) ||
             systemInfo.statusBarHeight ||
             0
           ) || 44;
+          // #endif
         }
 
         this.applyLocalState({
@@ -1621,11 +1627,11 @@ export default {
   border-radius: 0 0 30rpx 30rpx; /* 添加下方圆角 */
 }
 .actions-left { flex: 1; display: flex; align-items: center; gap: 20rpx; }
-.button-group { display: flex; align-items: center; gap: 10rpx; }
-.like-icon-container { display: flex; align-items: center; justify-content: center; }
-.comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 0 10rpx 4rpx; color: var(--app-post-action-color, #999); }
+.button-group { display: flex; align-items: center; gap: 30rpx; }
+.like-icon-container { display: flex; align-items: center; justify-content: center; padding: 8rpx; }
+.comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; color: var(--app-post-action-color, #999); }
 .vote-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; border-radius: 20rpx; background: var(--app-subtle-surface-bg, rgba(255,255,255,.9)); box-shadow: 0 2rpx 8rpx rgba(0,0,0,.1); color: var(--app-post-action-color, #999); }
-.like-icon { width: 60rpx; height: 60rpx; }
+.like-icon { width: 60rpx; height: 60rpx; margin-top: 5px; }
 .like-icon--voted { filter: none; opacity: 1; }
 .like-icon--seed:not(.like-icon--voted),
 .like-icon--leaf:not(.like-icon--voted),

@@ -22,7 +22,15 @@
 import unreadBadge from '@/cache/stores/unread-badge.js';
 import { getStatusBarHeightCompat } from '@/utils/system-info.js';
 
-const DEFAULT_STATUS_BAR_HEIGHT = 44;
+function getDefaultStatusBarHeight() {
+  // #ifdef H5
+  return 0;
+  // #endif
+
+  return 44;
+}
+
+const DEFAULT_STATUS_BAR_HEIGHT = getDefaultStatusBarHeight();
 
 export default {
   emits: ['safe-area-ready'],
@@ -143,7 +151,7 @@ export default {
   background: var(--app-fixed-bar-bg, #ffffff);
   z-index: 1000;
   border-bottom: none;
-  box-shadow: var(--app-fixed-bar-shadow, none);
+  box-shadow: none;
   /* 添加伪元素作为状态栏区域的白色背景 */
 }
 
@@ -176,7 +184,7 @@ export default {
   align-items: center;
   background: var(--app-fixed-bar-bg, #fff);
   border-bottom: none;
-  box-shadow: var(--app-fixed-bar-shadow, none);
+  box-shadow: none;
 }
 
 .top-left {

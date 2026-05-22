@@ -23,6 +23,17 @@
 
 <script>
 import topBar from '@/components/top-bar/top-bar.vue';
+import { getWindowInfoCompat } from '@/utils/system-info.js';
+
+const TOP_BAR_HEIGHT_RPX = 120;
+
+function getDefaultStatusBarHeight() {
+  // #ifdef H5
+  return 0;
+  // #endif
+
+  return 44;
+}
 
 export default {
   name: 'PageTabs',
@@ -38,7 +49,7 @@ export default {
   },
   data() {
     return {
-      safeAreaTop: 0,
+      safeAreaTop: getDefaultStatusBarHeight(),
       tabs: [
         { label: '广场', value: 'square' },
         { label: '关注', value: 'following' },
@@ -56,9 +67,7 @@ export default {
     },
     // 计算 tabs 的 top 位置
     tabsTopPosition() {
-      // top-bar 高度 = safeAreaTop(px) + 100rpx
-      // 需要将 rpx 转换为 px：100rpx ≈ 50px (iPhone 6 基准)
-      const topBarHeightPx = this.safeAreaTop + 50; // safeAreaTop(px) + 100rpx转px
+      const topBarHeightPx = this.safeAreaTop + this.rpxToPx(TOP_BAR_HEIGHT_RPX);
       console.log('📍 [page-tabs] safeAreaTop:', this.safeAreaTop);
       console.log('📍 [page-tabs] topBarHeightPx:', topBarHeightPx);
       console.log('📍 [page-tabs] tabsTopPosition:', topBarHeightPx + 'px');
@@ -78,6 +87,16 @@ export default {
       console.log('📍 [page-tabs] 接收到 safeAreaTop:', height);
       this.safeAreaTop = height;
       console.log('📍 [page-tabs] 设置后 this.safeAreaTop:', this.safeAreaTop);
+    },
+
+    rpxToPx(value) {
+      if (typeof uni !== 'undefined' && typeof uni.upx2px === 'function') {
+        return uni.upx2px(value);
+      }
+
+      const info = getWindowInfoCompat();
+      const width = Number(info.windowWidth || info.screenWidth || 375) || 375;
+      return value * width / 750;
     }
   }
 };
@@ -97,8 +116,8 @@ export default {
   height: 88rpx;
   background: var(--app-fixed-bar-bg, #ffffff);
   /* 仅需略高于内容，避免过高遮挡；top-bar 本身更高 */
-  z-index: 1050;
-  box-shadow: var(--app-fixed-bar-shadow, none);
+  z-index: 999;
+  box-shadow: none;
 }
 
 .tabs-list {
