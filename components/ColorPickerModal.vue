@@ -1,6 +1,6 @@
 <template>
     <!-- 颜色选择弹层 -->
-    <view v-if="show" class="color-picker-mask" @tap.stop="$emit('close')">
+    <view v-if="show" class="color-picker-mask" :class="{ 'color-picker-mask--dark': isDark }" @tap.stop="$emit('close')">
         <view class="color-picker" @tap.stop>
             <!-- 色卡选择界面 -->
             <view v-if="step === 'palette'" class="color-palette-step">
@@ -75,6 +75,10 @@ export default {
         selectedColorCombination: {
             type: Object,
             default: null
+        },
+        isDark: {
+            type: Boolean,
+            default: false
         }
     },
     data() {
@@ -306,6 +310,20 @@ export default {
     font-size: 32rpx; 
     font-weight: bold;
     text-shadow: 0 1rpx 2rpx rgba(0,0,0,.3); 
+}
+
+.color-picker-mask--dark .color-picker {
+    background: rgba(24, 28, 36, 0.96);
+    border-top: 1rpx solid rgba(255, 255, 255, 0.12);
+}
+
+.color-picker-mask--dark .color-picker-title {
+    color: #f4f1ea;
+}
+
+.color-picker-mask--dark .color-picker-back-icon {
+    filter: brightness(0) invert(1);
+    opacity: 0.92;
 }
 
 @keyframes slideUp {

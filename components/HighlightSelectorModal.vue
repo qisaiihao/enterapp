@@ -1,6 +1,7 @@
 <template>
     <!-- 高光选择全屏弹窗 -->
     <view v-if="show" class="highlight-selection-modal" 
+          :class="{ 'highlight-selection-modal--dark': isDark }"
           @tap="onClose"
           @touchstart="onTouchStart"
           @touchmove="onTouchMove"
@@ -59,6 +60,10 @@ export default {
         selectedLineIndices: {
             type: Array,
             default: () => []
+        },
+        isDark: {
+            type: Boolean,
+            default: false
         }
     },
     data() {
@@ -337,5 +342,42 @@ export default {
     color: #fff;
     font-size: 28rpx;
     white-space: nowrap;
+}
+
+.highlight-selection-modal--dark {
+    background: #0f1115;
+}
+
+.highlight-selection-modal--dark .highlight-modal-content,
+.highlight-selection-modal--dark .highlight-modal-header,
+.highlight-selection-modal--dark .highlight-content-wrapper {
+    background: #171a20;
+}
+
+.highlight-selection-modal--dark .highlight-modal-header {
+    border-bottom: 1rpx solid rgba(255, 255, 255, 0.12);
+}
+
+.highlight-selection-modal--dark .highlight-modal-title {
+    color: #f4f1ea;
+}
+
+.highlight-selection-modal--dark .highlight-modal-close {
+    color: #c9ced8;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.highlight-selection-modal--dark .highlight-content-line {
+    color: #c9ced8;
+}
+
+.highlight-selection-modal--dark .highlight-content-line.selected-line {
+    background: rgba(201, 173, 115, 0.18);
+    color: #f4f1ea;
+}
+
+.highlight-selection-modal--dark .highlight-action-icon {
+    filter: brightness(0) invert(1);
+    opacity: 0.92;
 }
 </style>

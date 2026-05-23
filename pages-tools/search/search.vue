@@ -1,6 +1,6 @@
 <template>
     <!-- pages/search/search.wxml -->
-    <view class="container">
+    <view class="container" :class="{ 'container--dark': appThemeMode === 'dark' }" :data-app-theme="appThemeMode" :style="appThemeVars">
         <!-- 搜索框 -->
         <view class="search-header">
             <view class="search-input-container">
@@ -8,6 +8,7 @@
                 <input
                     class="search-input"
                     placeholder="搜索帖子..."
+                    placeholder-class="search-input-placeholder"
                     :value="searchKeyword"
                     @input="onSearchInput"
                     @confirm="onSearchConfirm"
@@ -204,6 +205,7 @@ import {
     recordSearchStats as recordSearchStatsApi,
     getHotSearches as getHotSearchesApi
 } from '../../api-cache/search.js';
+import { applyThemeMode, getThemeMode } from '@/utils/theme.js';
 // pages/search/search.js
 // ????????????????????????????????????
 
@@ -241,6 +243,10 @@ export default {
         this.loadSearchHistory();
         // 获取热门搜索词
         this.getHotSearches();
+    },
+    onShow: function () {
+        const mode = applyThemeMode(getThemeMode());
+        this.appThemeMode = mode;
     },
     methods: {
         // 搜索输入处理
@@ -721,7 +727,7 @@ export default {
 
 .cancel-btn {
     font-size: 28rpx;
-    color: #9ed7ee;
+    color: var(--app-link-color, #9ed7ee);
     padding: 20rpx;
 }
 
@@ -741,8 +747,8 @@ export default {
 }
 
 .filter-item.active {
-    background-color: #9ed7ee;
-    color: #fff;
+    background-color: var(--app-control-accent-bg, #9ed7ee);
+    color: var(--app-control-accent-text, #fff);
 }
 
 .filter-text {
@@ -751,7 +757,7 @@ export default {
 }
 
 .filter-item.active .filter-text {
-    color: #fff;
+    color: var(--app-control-accent-text, #fff);
 }
 
 /* 搜索结果 */
@@ -785,8 +791,8 @@ export default {
 }
 
 .sort-item.active {
-    background-color: #9ed7ee;
-    color: #fff;
+    background-color: var(--app-control-accent-bg, #9ed7ee);
+    color: var(--app-control-accent-text, #fff);
 }
 
 /* 文章列表样式 */
@@ -883,7 +889,7 @@ export default {
 }
 
 .post-tag {
-    color: #24375f;
+    color: var(--app-tag-text-color, #24375f);
     font-size: 26rpx;
     margin-right: 10rpx;
     transition: all 0.2s ease;
@@ -891,7 +897,7 @@ export default {
 }
 
 .post-tag:active {
-    color: #1a2a4a;
+    color: var(--app-tag-active-color, #1a2a4a);
     opacity: 0.8;
 }
 
@@ -998,7 +1004,7 @@ export default {
 
 .suggestion-text {
     font-size: 26rpx;
-    color: #9ed7ee;
+    color: var(--app-link-color, #9ed7ee);
 }
 
 /* 搜索历史 */
@@ -1091,13 +1097,13 @@ export default {
 
 .hot-text {
     font-size: 26rpx;
-    color: #9ed7ee;
+    color: var(--app-link-color, #9ed7ee);
 }
 
 /* 搜索高亮 */
 .search-highlight {
-    background-color: #ffeb3b;
-    color: #333;
+    background-color: var(--app-search-highlight-bg, #ffeb3b);
+    color: var(--app-search-highlight-text, #333);
     padding: 2rpx 4rpx;
     border-radius: 4rpx;
     font-weight: bold;
@@ -1124,7 +1130,7 @@ export default {
 
 .load-more-text {
     font-size: 28rpx;
-    color: #9ed7ee;
+    color: var(--app-link-color, #9ed7ee);
 }
 
 /* 加载状态 */
@@ -1138,5 +1144,103 @@ export default {
 .loading-text {
     font-size: 28rpx;
     color: var(--app-muted-text, #999);
+}
+
+.search-input-placeholder {
+    color: var(--app-input-placeholder, #999);
+}
+
+.container--dark {
+    background-color: #0f1115;
+    color: #f4f1ea;
+}
+
+.container--dark .search-input-container,
+.container--dark .empty-state,
+.container--dark .search-suggestions,
+.container--dark .search-history,
+.container--dark .hot-searches,
+.container--dark .load-more {
+    background-color: #171a20;
+    border: 1rpx solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.28);
+}
+
+.container--dark .search-input,
+.container--dark .empty-text,
+.container--dark .suggestions-title,
+.container--dark .history-title,
+.container--dark .hot-title {
+    color: #f4f1ea;
+}
+
+.container--dark .search-icon,
+.container--dark .clear-btn,
+.container--dark .results-count,
+.container--dark .sort-item,
+.container--dark .empty-subtext,
+.container--dark .clear-history,
+.container--dark .loading-text {
+    color: #8e96a3;
+}
+
+.container--dark .cancel-btn,
+.container--dark .suggestion-text,
+.container--dark .hot-text,
+.container--dark .load-more-text,
+.container--dark .post-tag {
+    color: #d8bf82;
+}
+
+.container--dark .filter-item,
+.container--dark .suggestion-item,
+.container--dark .history-item,
+.container--dark .hot-item,
+.container--dark .image-container-wrapper,
+.container--dark .load-more:active {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.container--dark .filter-item.active,
+.container--dark .sort-item.active {
+    background-color: #c9ad73;
+    color: #111318;
+}
+
+.container--dark .filter-text,
+.container--dark .history-text {
+    color: #c9ced8;
+}
+
+.container--dark .filter-item.active .filter-text {
+    color: #111318;
+}
+
+.container--dark .post-item-wrapper {
+    background-color: #0f1115;
+    border-bottom: 1rpx solid rgba(255, 255, 255, 0.10);
+    box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.26);
+}
+
+.container--dark .author-name,
+.container--dark .post-title {
+    color: #f4f1ea;
+}
+
+.container--dark .post-content {
+    color: #d9dde6;
+}
+
+.container--dark .vote-section {
+    border-top: 1rpx solid rgba(255, 255, 255, 0.12);
+}
+
+.container--dark .action-text {
+    color: #ffffff;
+}
+
+.container--dark .search-highlight {
+    background-color: #5a4617;
+    color: #fff3c4;
 }
 </style>

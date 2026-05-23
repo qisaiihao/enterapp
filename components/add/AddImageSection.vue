@@ -1,5 +1,5 @@
 <template>
-    <view class="image-section">
+    <view class="image-section" :class="{ 'image-section--dark': isDark }">
         <scroll-view class="image-preview-scroll" :scroll-x="true" :show-scrollbar="false">
             <view class="image-preview-container">
                 <view class="image-preview-item" v-for="(item, index) in imageList" :key="index">
@@ -26,6 +26,10 @@ export default {
         maxImageCount: {
             type: Number,
             default: 9
+        },
+        isDark: {
+            type: Boolean,
+            default: false
         }
     },
     computed: {
@@ -40,6 +44,7 @@ export default {
 .image-section {
     padding: 30rpx;
     background: var(--app-surface-bg, #f8f9fa);
+    border-bottom: var(--app-surface-border-line, none);
 }
 
 .image-preview-scroll {
@@ -74,8 +79,8 @@ export default {
     right: -8rpx;
     width: 40rpx;
     height: 40rpx;
-    background: #ff4444;
-    color: white;
+    background: var(--app-danger-strong-color, #ff4444);
+    color: #ffffff;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -88,7 +93,7 @@ export default {
 .add-image-btn {
     width: 200rpx;
     height: 200rpx;
-    border: 2rpx dashed #ddd;
+    border: 2rpx dashed var(--app-image-add-border-color, #ddd);
     border-radius: 12rpx;
     display: flex;
     align-items: center;
@@ -100,11 +105,30 @@ export default {
 
 .add-image-btn:active {
     background: var(--app-subtle-surface-bg, #f5f5f5);
-    border-color: #9ed7ee;
+    border-color: var(--app-link-color, #9ed7ee);
 }
 
 .add-icon {
     font-size: 60rpx;
     color: var(--app-muted-text, #999);
+}
+
+.image-section--dark {
+    background: #171a20;
+    border-bottom: 1rpx solid rgba(255, 255, 255, 0.12);
+}
+
+.image-section--dark .add-image-btn {
+    background: rgba(24, 28, 36, 0.96);
+    border-color: rgba(255, 255, 255, 0.22);
+}
+
+.image-section--dark .add-image-btn:active {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: #d8bf82;
+}
+
+.image-section--dark .add-icon {
+    color: #8e96a3;
 }
 </style>

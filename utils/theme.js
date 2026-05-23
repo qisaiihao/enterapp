@@ -12,6 +12,23 @@ const DARK_THEME_VARS = Object.freeze({
   '--app-muted-text': '#8e96a3',
   '--app-border-color': 'rgba(255,255,255,0.12)',
   '--app-accent-color': '#c9ad73',
+  '--app-link-color': '#d8bf82',
+  '--app-control-accent-bg': '#c9ad73',
+  '--app-control-accent-text': '#111318',
+  '--app-control-active-bg': 'rgba(255,255,255,0.14)',
+  '--app-control-press-bg': 'rgba(255,255,255,0.10)',
+  '--app-input-bg': '#20252d',
+  '--app-input-text': '#d9dde6',
+  '--app-input-placeholder': '#737c89',
+  '--app-tag-text-color': '#d8bf82',
+  '--app-tag-active-color': '#f0d99a',
+  '--app-search-highlight-bg': '#5a4617',
+  '--app-search-highlight-text': '#fff3c4',
+  '--app-danger-color': '#bf616a',
+  '--app-danger-strong-color': '#d45c5c',
+  '--app-message-unread-bg': 'rgba(255,255,255,0.10)',
+  '--app-primary-action-bg': 'linear-gradient(135deg, #c9ad73, #e6d6ad)',
+  '--app-image-add-border-color': 'rgba(255,255,255,0.22)',
   '--app-icon-filter': 'brightness(0) invert(1)',
   '--app-filter-icon-filter': 'brightness(0) invert(1)',
   '--app-subtle-surface-bg': 'rgba(255, 255, 255, 0.08)',
@@ -112,6 +129,23 @@ const LIGHT_THEME_VARS = Object.freeze({
   '--app-muted-text': '#999999',
   '--app-border-color': 'rgba(0,0,0,0.08)',
   '--app-accent-color': '#809076',
+  '--app-link-color': '#9ed7ee',
+  '--app-control-accent-bg': '#9ed7ee',
+  '--app-control-accent-text': '#ffffff',
+  '--app-control-active-bg': '#e8e8e8',
+  '--app-control-press-bg': 'rgba(0,0,0,0.06)',
+  '--app-input-bg': '#e8e8e8',
+  '--app-input-text': '#989090',
+  '--app-input-placeholder': '#d0d0d0',
+  '--app-tag-text-color': '#24375f',
+  '--app-tag-active-color': '#1a2a4a',
+  '--app-search-highlight-bg': '#ffeb3b',
+  '--app-search-highlight-text': '#333333',
+  '--app-danger-color': '#cc9090',
+  '--app-danger-strong-color': '#ff4444',
+  '--app-message-unread-bg': '#f8f9fa',
+  '--app-primary-action-bg': 'linear-gradient(135deg, #2ab2ff, #4cc9ff)',
+  '--app-image-add-border-color': '#dddddd',
   '--app-icon-filter': 'drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1))',
   '--app-filter-icon-filter': 'none',
   '--app-fixed-bar-bg': '#ffffff',
@@ -203,7 +237,7 @@ function getThemeTargets() {
   ].filter(Boolean);
 }
 
-function applyNativeThemeChrome(mode) {
+export function applyNativeThemeChrome(mode = getThemeMode()) {
   const isDark = normalizeThemeMode(mode) === DARK_MODE;
   const backgroundColor = isDark ? DARK_THEME_VARS['--app-page-bg'] : LIGHT_THEME_VARS['--app-page-bg'];
   const foregroundColor = isDark ? '#ffffff' : '#000000';

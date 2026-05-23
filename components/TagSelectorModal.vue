@@ -1,6 +1,6 @@
 <template>
     <!-- 标签选择器弹窗 -->
-    <view v-if="show" class="tag-selector-mask" @tap="$emit('close')">
+    <view v-if="show" class="tag-selector-mask" :class="{ 'tag-selector-mask--dark': isDark }" @tap="$emit('close')">
         <view class="tag-selector" @tap.stop>
             <!-- 已选标签显示区域 -->
             <view v-if="selectedTags.length > 0" class="selected-tags-section">
@@ -97,6 +97,10 @@ export default {
         allExistingTags: {
             type: Array,
             default: () => []
+        },
+        isDark: {
+            type: Boolean,
+            default: false
         }
     },
     data() {
@@ -445,6 +449,54 @@ export default {
 .matched-tag:active {
     background: #bbdefb;
     transform: scale(0.95);
+}
+
+.tag-selector-mask--dark .tag-selector {
+    background: rgba(24, 28, 36, 0.96);
+    border-top: 1rpx solid rgba(255, 255, 255, 0.12);
+}
+
+.tag-selector-mask--dark .selected-tags-section,
+.tag-selector-mask--dark .category-selector {
+    border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+.tag-selector-mask--dark .selected-tags-title,
+.tag-selector-mask--dark .matched-tags-title {
+    color: #c9ced8;
+}
+
+.tag-selector-mask--dark .category-item,
+.tag-selector-mask--dark .matched-tags {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.tag-selector-mask--dark .category-item.active,
+.tag-selector-mask--dark .selected-tag,
+.tag-selector-mask--dark .preset-tag.selected,
+.tag-selector-mask--dark .custom-tag-input button {
+    background: #c9ad73;
+    border-color: #c9ad73;
+    color: #111318;
+}
+
+.tag-selector-mask--dark .category-name,
+.tag-selector-mask--dark .preset-tag {
+    color: #f4f1ea;
+}
+
+.tag-selector-mask--dark .preset-tag,
+.tag-selector-mask--dark .custom-tag-input input {
+    background: #20252d;
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #d9dde6;
+}
+
+.tag-selector-mask--dark .matched-tag {
+    background: rgba(201, 173, 115, 0.18);
+    border-color: rgba(201, 173, 115, 0.42);
+    color: #e6d6ad;
 }
 
 @keyframes slideUp {

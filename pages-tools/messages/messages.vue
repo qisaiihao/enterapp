@@ -1,6 +1,6 @@
 <template>
     <!-- pages/messages/messages.wxml -->
-    <view class="container" :style="pageInlineStyle">
+    <view class="container" :class="{ 'container--dark': appThemeMode === 'dark' }" :data-app-theme="appThemeMode" :style="messagePageStyle">
         <!-- 自定义返回按钮 -->
         <view class="custom-back-btn" @tap="goBack">
             <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
@@ -120,6 +120,7 @@ import followCache from '../../cache/stores/follow.js';
 import { emitUnreadChanged } from '../../utils/events.js';
 import { resolveUserAvatar } from '../../utils/defaultAvatar.js';
 import { getSystemInfoCompat } from '@/utils/system-info.js';
+import { applyThemeMode, getThemeMode } from '@/utils/theme.js';
 // pages/messages/messages.js
 const app = getApp();
 
@@ -146,11 +147,18 @@ export default {
             longPressGuardTimer: null,
         };
     },
+    computed: {
+        messagePageStyle() {
+            return Object.assign({}, this.appThemeVars || {}, this.pageInlineStyle || {});
+        }
+    },
     onLoad: function (options) {
         this.setupHeaderLayout();
         this.loadMessages();
     },
     onShow: function () {
+        const mode = applyThemeMode(getThemeMode());
+        this.appThemeMode = mode;
         // 页面显示时刷新消息
         if (this.messages.length === 0) {
             this.loadMessages();
@@ -199,7 +207,9 @@ export default {
                 }
 
                 if (safeAreaTop > 0) {
-                    this.pageInlineStyle = `--messages-safe-area-top: ${safeAreaTop}px;`;
+                    this.pageInlineStyle = {
+                        '--messages-safe-area-top': `${safeAreaTop}px`
+                    };
                 }
             } catch (err) {
                 console.warn('[messages] setupHeaderLayout safe area failed:', err);
@@ -1013,7 +1023,7 @@ export default {
 .clear-btn {
     padding: 0 16rpx;
     background-color: var(--app-subtle-surface-bg, #D9D9D9);
-    border: none;
+    border: var(--app-surface-border-line, none);
     border-radius: 10rpx;
     min-width: 96rpx;
     height: 48rpx;
@@ -1048,6 +1058,7 @@ export default {
     height: 200rpx;
     margin-bottom: 30rpx;
     opacity: 0.5;
+    filter: var(--app-icon-filter, none);
 }
 
 .empty-text {
@@ -1090,7 +1101,7 @@ export default {
 }
 
 .delete-btn {
-    background-color: #cc9090;
+    background-color: var(--app-danger-color, #cc9090);
 }
 
 /* 消息项 */
@@ -1112,7 +1123,7 @@ export default {
 }
 
 .message-item.unread {
-    background-color: var(--app-subtle-surface-bg, #f8f9fa);
+    background-color: var(--app-message-unread-bg, #f8f9fa);
 }
 
 .user-avatar {
@@ -1216,7 +1227,7 @@ export default {
     left: 30rpx;
     width: 16rpx;
     height: 16rpx;
-    background-color: #ff6b6b;
+    background-color: var(--app-danger-strong-color, #ff6b6b);
     border-radius: 50%;
 }
 
@@ -1245,4 +1256,74 @@ export default {
         font-size: 28rpx;
     }
 }
+.container--dark {
+    background-color: #0f1115;
+    color: #f4f1ea;
+}
+
+.container--dark .filter-section,
+.container--dark .tab-container,
+.container--dark .message-item {
+    background-color: #171a20;
+    border-bottom: 1rpx solid rgba(255, 255, 255, 0.12);
+}
+
+.container--dark .message-list {
+    background-color: #0f1115;
+}
+
+.container--dark .back-icon,
+.container--dark .empty-icon {
+    filter: brightness(0) invert(1);
+}
+
+.container--dark .tab-item text,
+.container--dark .sender-name,
+.container--dark .action-text,
+.container--dark .follow-btn text {
+    color: #f4f1ea;
+}
+
+.container--dark .tab-item.active text {
+    color: #ffffff;
+}
+
+.container--dark .clear-btn,
+.container--dark .message-time,
+.container--dark .content-preview,
+.container--dark .follow-btn,
+.container--dark .follow-btn.following,
+.container--dark .message-item.unread {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.container--dark .clear-btn {
+    border: 1rpx solid rgba(255, 255, 255, 0.12);
+}
+
+.container--dark .clear-btn text,
+.container--dark .preview-text,
+.container--dark .follow-btn.following text {
+    color: #c9ced8;
+}
+
+.container--dark .message-time,
+.container--dark .empty-text,
+.container--dark .loading-more,
+.container--dark .no-more {
+    color: #8e96a3;
+}
+
+.container--dark .user-avatar {
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.container--dark .delete-btn {
+    background-color: #bf616a;
+}
+
+.container--dark .unread-dot {
+    background-color: #d45c5c;
+}
+
 </style>

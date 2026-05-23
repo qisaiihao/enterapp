@@ -1,11 +1,18 @@
 <template>
     <!-- pages/add/add.wxml -->
-    <view class="container" :class="{ 'container--series-compose': isSeriesComposeLayout }" @tap="onPageTap">
+    <view
+        class="container"
+        :class="{ 'container--series-compose': isSeriesComposeLayout, 'container--dark': appThemeMode === 'dark' }"
+        :data-app-theme="appThemeMode"
+        :style="appThemeVars"
+        @tap="onPageTap"
+    >
         <!-- 图片预览区域 -->
         <AddImageSection
             v-if="imageList.length > 0"
             :imageList="imageList"
             :maxImageCount="maxImageCount"
+            :isDark="appThemeMode === 'dark'"
             @choose="handleChooseImage"
             @remove="removeImage"
             @error="onImageError"
@@ -17,6 +24,7 @@
             :colorPalettes="colorPalettes"
             :poemLines="poemLines"
             :selectedColorCombination="selectedColorCombination"
+            :isDark="appThemeMode === 'dark'"
             @close="showColorPicker = false"
             @select="onColorSelect"
         />
@@ -82,6 +90,7 @@
                                 <textarea
                                     v-if="block.type === 'content'"
                                     class="content-textarea"
+                                    placeholder-class="publish-input-placeholder"
                                     :placeholder="getDiscussionBlockLabel(block, idx)"
                                     :value="block.text"
                                     @input="onBlockInput(idx, $event)"
@@ -94,6 +103,7 @@
                                 <textarea
                                     v-else
                                     class="quote-textarea"
+                                    placeholder-class="publish-input-placeholder"
                                     :placeholder="`${getDiscussionBlockLabel(block, idx)}：每行一句`"
                                     :value="block.text"
                                     @input="onBlockInput(idx, $event)"
@@ -164,6 +174,7 @@
                                 </view>
                                 <textarea
                                     class="content-textarea"
+                                    placeholder-class="publish-input-placeholder"
                                     :placeholder="`组诗段落 ${idx + 1}`"
                                     :value="block.content"
                                     @input="onSeriesContentInput(idx, $event)"
@@ -180,6 +191,7 @@
                     <view class="content-input-wrapper">
                         <textarea
                             class="content-textarea"
+                            placeholder-class="publish-input-placeholder"
                             :placeholder="currentPlaceholder"
                             @input="onContentInput"
                             @tap.stop="onTextareaTap"
@@ -202,6 +214,7 @@
                     :publishMode="publishMode"
                     :isSeries="isSeries"
                     :layoutVariant="sideToolbarLayoutVariant"
+                    :isDark="appThemeMode === 'dark'"
                     @toggle-tags="toggleTagSelector"
                     @choose-image="handleChooseImage"
                     @switch-mode="switchMode"
@@ -238,6 +251,7 @@
             :publishMode="publishMode"
             :isOriginal="isOriginal"
             :isSeries="isSeries"
+            :isDark="appThemeMode === 'dark'"
             @close="showModeSelector = false"
             @select="onModeSelect"
         />
@@ -248,6 +262,7 @@
             :tagCategories="tagCategories"
             :selectedTags="selectedTags"
             :allExistingTags="allExistingTags"
+            :isDark="appThemeMode === 'dark'"
             @close="showTagSelector = false"
             @update="onTagsUpdate"
         />
@@ -257,6 +272,7 @@
             :show="highlightSelecting"
             :contentLines="highlightSourceLines && highlightSourceLines.length ? highlightSourceLines : highlightSelectionLines"
             :selectedLineIndices="highlightSelectedLineIndices"
+            :isDark="appThemeMode === 'dark'"
             @close="highlightSelecting = false"
             @update="onHighlightUpdate"
             @confirm="onHighlightConfirm"
@@ -277,6 +293,7 @@ import { getPostDetail, updatePostContent } from '@/api-cache/post.js';
 import { checkDuplicatePoem as checkDuplicatePoemApi, contentAudit, saveDraft as saveDraftApi } from '@/api-cache/publish.js';
 import { validatePublishData, canPublish, generateDraftData, generatePublishData, processUploadResults } from '@/utils/publishUtils.js';
 import { getWindowInfoCompat } from '@/utils/system-info.js';
+import { applyThemeMode, getThemeMode } from '@/utils/theme.js';
 
 // 导入静态配置数据
 import { colorPalettes } from '@/utils/colorPalettes.js';
@@ -658,6 +675,8 @@ export default {
     },
 
     onShow: function () {
+        const mode = applyThemeMode(getThemeMode());
+        this.appThemeMode = mode;
         // 每次显示页面时都确保页面不会滚动
         this.preventPageScroll();
     },
@@ -2468,7 +2487,7 @@ page {
     font-size: 32rpx; /* 对应16px */
     line-height: 1.5; /* 对应19px行高 */
     padding: 60rpx; /* 对应30px内边距 */
-    background: var(--app-subtle-surface-bg, #E8E8E8);
+    background: var(--app-input-bg, #E8E8E8);
     resize: none;
     overflow-y: auto;
     overflow-x: hidden;
@@ -2483,7 +2502,7 @@ page {
     outline: none;
     -webkit-overflow-scrolling: touch;
     position: relative;
-    color: var(--app-secondary-text, #989090); /* 使用CSS中定义的文字颜色 */
+    color: var(--app-input-text, #989090); /* 使用CSS中定义的文字颜色 */
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     font-weight: 300;
     /* 精确尺寸：314px宽，383px高 */
@@ -2547,7 +2566,7 @@ page {
 
 .tag-toggle {
     font-size: 26rpx;
-    color: #9ed7ee;
+    color: var(--app-link-color, #9ed7ee);
 }
 
 .selected-tags {
@@ -2560,8 +2579,8 @@ page {
 .selected-tag {
     display: flex;
     align-items: center;
-    background: #9ed7ee;
-    color: white;
+    background: var(--app-control-accent-bg, #9ed7ee);
+    color: var(--app-control-accent-text, white);
     padding: 8rpx 16rpx;
     border-radius: 20rpx;
     font-size: 24rpx;
@@ -2694,13 +2713,13 @@ page {
 }
 
 .hl-done {
-    background: #9ed7ee;
-    color: #fff;
+    background: var(--app-control-accent-bg, #9ed7ee);
+    color: var(--app-control-accent-text, #fff);
 }
 
 .hl-clear {
-    background: #666;
-    color: #fff;
+    background: var(--app-control-active-bg, #666);
+    color: var(--app-primary-text, #fff);
 }
 
 /* 新的覆盖层样式 */
@@ -2754,8 +2773,8 @@ page {
     box-sizing: border-box;
     font-size: 30rpx;
     line-height: 1.6;
-    color: var(--app-primary-text, #333);
-    background: var(--app-subtle-surface-bg, #fff);
+    color: var(--app-input-text, #333);
+    background: var(--app-input-bg, #fff);
 }
 
 .quote-count {
@@ -2808,8 +2827,8 @@ page {
     box-sizing: border-box;
     font-size: 30rpx;
     line-height: 1.6;
-    color: var(--app-primary-text, #333);
-    background: var(--app-subtle-surface-bg, #fafafa);
+    color: var(--app-input-text, #333);
+    background: var(--app-input-bg, #fafafa);
 }
 
 .quote-popup-footer {
@@ -2847,8 +2866,8 @@ page {
     height: 64rpx;
     line-height: 64rpx;
     border-radius: 12rpx;
-    background: linear-gradient(135deg, #2ab2ff, #4cc9ff);
-    color: #fff;
+    background: var(--app-primary-action-bg, linear-gradient(135deg, #2ab2ff, #4cc9ff));
+    color: var(--app-control-accent-text, #fff);
     font-size: 26rpx;
 }
 
@@ -2903,7 +2922,7 @@ page {
 
 .icon-btn:active {
     transform: scale(0.9);
-    background: var(--app-subtle-surface-bg, #e0e0e0);
+    background: var(--app-control-active-bg, #e0e0e0);
 }
 
 .icon-btn.disabled {
@@ -2994,7 +3013,7 @@ page {
 }
 
 .icon-btn--discussion:active {
-    background: rgba(0, 0, 0, 0.06);
+    background: var(--app-control-press-bg, rgba(0, 0, 0, 0.06));
 }
 
 .icon-btn--discussion.disabled {
@@ -3066,7 +3085,7 @@ page {
 }
 
 .discussion-insert-option:active {
-    background: var(--app-subtle-surface-bg, #f0f0f0);
+    background: var(--app-control-active-bg, #f0f0f0);
 }
 
 .discussion-block .content-textarea,
@@ -3077,8 +3096,8 @@ page {
     border: none;
     border-radius: 22rpx;
     padding: 52rpx 46rpx;
-    background: var(--app-subtle-surface-bg, #e8e8e8);
-    color: var(--app-secondary-text, #9b9b9b);
+    background: var(--app-input-bg, #e8e8e8);
+    color: var(--app-input-text, #9b9b9b);
     font-size: 32rpx;
     line-height: 1.5;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -3111,7 +3130,7 @@ page {
     font-size: 32rpx; /* 与正文一致 */
     background: transparent;
     line-height: 1.5;
-    color: var(--app-secondary-text, #989090); /* 与正文颜色一致 */
+    color: var(--app-input-text, #989090); /* 与正文颜色一致 */
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     font-weight: 700; /* 加粗 */
     height: auto;
@@ -3123,24 +3142,24 @@ page {
 
 /* 小标题的 placeholder 样式 */
 .subtitle-placeholder {
-    color: #d0d0d0 !important; /* 更浅的颜色 */
+    color: var(--app-input-placeholder, #d0d0d0) !important; /* 更浅的颜色 */
     font-weight: 400 !important; /* placeholder 不加粗 */
 }
 
 .series-block .series-subtitle::-webkit-input-placeholder {
-    color: #d0d0d0; /* 更浅的颜色 */
+    color: var(--app-input-placeholder, #d0d0d0); /* 更浅的颜色 */
 }
 
 .series-block .series-subtitle::-moz-placeholder {
-    color: #d0d0d0;
+    color: var(--app-input-placeholder, #d0d0d0);
 }
 
 .series-block .series-subtitle:-ms-input-placeholder {
-    color: #d0d0d0;
+    color: var(--app-input-placeholder, #d0d0d0);
 }
 
 .series-block .series-subtitle::placeholder {
-    color: #d0d0d0;
+    color: var(--app-input-placeholder, #d0d0d0);
 }
 
 .container--series-compose .content-section {
@@ -3196,12 +3215,12 @@ page {
     padding: 0;
     font-size: 30rpx;
     line-height: 44rpx;
-    color: var(--app-secondary-text, #6a6a6a);
+    color: var(--app-input-text, #6a6a6a);
     font-weight: 400;
 }
 
 .container--series-compose .subtitle-placeholder {
-    color: #8c8c8c !important;
+    color: var(--app-input-placeholder, #8c8c8c) !important;
     font-weight: 400 !important;
 }
 
@@ -3212,7 +3231,7 @@ page {
     padding: 12rpx 16rpx;
     margin-bottom: 12rpx;
     font-size: 28rpx;
-    background: var(--app-subtle-surface-bg, #f7f9fb);
+    background: var(--app-input-bg, #f7f9fb);
     line-height: 1.5;
     color: var(--app-primary-text, #333);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -3233,9 +3252,9 @@ page {
     border-radius: 20rpx; /* 与普通诗歌一致 */
     padding: 60rpx; /* 与普通诗歌一致 */
     font-size: 32rpx; /* 与普通诗歌一致 */
-    background: var(--app-subtle-surface-bg, #E8E8E8); /* 与普通诗歌一致 */
+    background: var(--app-input-bg, #E8E8E8); /* 与普通诗歌一致 */
     line-height: 1.5;
-    color: var(--app-secondary-text, #989090);
+    color: var(--app-input-text, #989090);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     font-weight: 300;
     height: 450rpx; /* 固定高度 */
@@ -3254,8 +3273,8 @@ page {
     height: 540rpx;
     padding: 52rpx 46rpx;
     border-radius: 22rpx;
-    background: var(--app-subtle-surface-bg, #e8e8e8);
-    color: var(--app-secondary-text, #9b9b9b);
+    background: var(--app-input-bg, #e8e8e8);
+    color: var(--app-input-text, #9b9b9b);
 }
 
 .container--series-compose .series-block-actions {
@@ -3275,7 +3294,7 @@ page {
 }
 
 .container--series-compose .icon-btn--series:active {
-    background: rgba(0, 0, 0, 0.06);
+    background: var(--app-control-press-bg, rgba(0, 0, 0, 0.06));
 }
 
 .container--series-compose .icon-btn--series.disabled {
@@ -3451,6 +3470,112 @@ page {
         right: 44rpx;
         bottom: calc(64rpx + env(safe-area-inset-bottom));
     }
+}
+
+.publish-input-placeholder {
+    color: var(--app-input-placeholder, #d0d0d0);
+}
+
+.container--dark {
+    background: #0f1115;
+    color: #f4f1ea;
+}
+
+.container--dark .content-section {
+    background: #0f1115;
+}
+
+.container--dark .content-textarea,
+.container--dark .quote-textarea,
+.container--dark .quote-popup-textarea,
+.container--dark .discussion-block .content-textarea,
+.container--dark .discussion-block .quote-textarea,
+.container--dark .series-block .content-textarea,
+.container--dark .series-highlight {
+    background: #20252d;
+    color: #d9dde6;
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.container--dark .series-subtitle,
+.container--dark.container--series-compose .series-block .series-subtitle {
+    color: #d9dde6;
+}
+
+.container--dark .subtitle-placeholder,
+.container--dark .publish-input-placeholder {
+    color: #737c89 !important;
+}
+
+.container--dark .discussion-editor,
+.container--dark .tag-section,
+.container--dark .quote-popup,
+.container--dark .discussion-insert-menu {
+    background: rgba(24, 28, 36, 0.96);
+    border: 1rpx solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.28);
+}
+
+.container--dark .tag-header {
+    border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+.container--dark .tag-title,
+.container--dark .section-title,
+.container--dark .quote-popup-title,
+.container--dark .discussion-insert-option,
+.container--dark .activity-mode-title,
+.container--dark .discussion-order-label,
+.container--dark .series-order-label {
+    color: #f4f1ea;
+}
+
+.container--dark .tag-count,
+.container--dark .quote-count,
+.container--dark .quote-popup-close,
+.container--dark .quote-popup-count,
+.container--dark .helper-text,
+.container--dark .activity-mode-label {
+    color: #8e96a3;
+}
+
+.container--dark .tag-toggle {
+    color: #d8bf82;
+}
+
+.container--dark .selected-tag,
+.container--dark .hl-done,
+.container--dark .quote-popup-btn {
+    background: #c9ad73;
+    color: #111318;
+}
+
+.container--dark .hl-clear,
+.container--dark .icon-btn,
+.container--dark .discussion-insert-option:active,
+.container--dark .icon-btn:active {
+    background: rgba(255, 255, 255, 0.10);
+    color: #f4f1ea;
+}
+
+.container--dark .discussion-action-image,
+.container--dark .series-action-image,
+.container--dark .back-icon,
+.container--dark .fab-icon,
+.container--dark .action-icon {
+    filter: brightness(0) invert(1);
+    opacity: 0.92;
+}
+
+.container--dark .activity-mode-banner,
+.container--dark .discussion-sentence-card,
+.container--dark .block-card.quote {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.container--dark .discussion-sentence-line {
+    color: #c9ced8;
 }
 
 </style>

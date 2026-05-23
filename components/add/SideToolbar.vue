@@ -1,5 +1,5 @@
 <template>
-    <view class="side-toolbar" :class="toolbarClassName">
+    <view class="side-toolbar" :class="[toolbarClassName, { 'side-toolbar--dark': isDark }]">
         <view class="side-tool-btn" @tap.stop="$emit('toggle-tags')">
             <image class="side-tool-icon" src="/static/images/newicons/tag.png" mode="aspectFit" />
         </view>
@@ -58,6 +58,10 @@ export default {
         layoutVariant: {
             type: String,
             default: 'default'
+        },
+        isDark: {
+            type: Boolean,
+            default: false
         }
     },
     computed: {
@@ -104,6 +108,7 @@ export default {
 
 .side-tool-btn:active {
     transform: scale(0.95);
+    background: var(--app-control-press-bg, transparent);
 }
 
 .mode-switch-btn {
@@ -149,7 +154,7 @@ export default {
     height: 28rpx;
     border-radius: 999rpx 999rpx 18rpx 18rpx;
     transform: translateX(-50%);
-    box-shadow: 0 0 0 2rpx rgba(0, 0, 0, 0.08);
+    box-shadow: 0 0 0 2rpx var(--app-border-color, rgba(0, 0, 0, 0.08));
 }
 
 .color-swatch--blue {
@@ -228,6 +233,25 @@ export default {
 .side-toolbar--series-compose .series-toggle-btn .side-tool-icon {
     width: 56rpx;
     height: 56rpx;
+}
+
+.side-toolbar--dark .side-tool-btn:active {
+    background: rgba(255, 255, 255, 0.10);
+}
+
+.side-toolbar--dark .side-tool-icon {
+    color: #f4f1ea;
+    filter: brightness(0) invert(1);
+    opacity: 0.92;
+}
+
+.side-toolbar--dark .color-tool-icon {
+    filter: none;
+    opacity: 1;
+}
+
+.side-toolbar--dark .color-swatch {
+    box-shadow: 0 0 0 2rpx rgba(255, 255, 255, 0.12);
 }
 
 /* 移除组诗按钮的 active 状态样式 */

@@ -1719,8 +1719,8 @@ export default {
 .like-icon--leaf:not(.like-icon--voted),
 .like-icon--flower:not(.like-icon--voted),
 .like-icon--peach:not(.like-icon--voted) {
-  filter: var(--app-post-action-icon-filter, none);
-  opacity: var(--app-post-action-icon-opacity, 1);
+  filter: none;
+  opacity: 1;
 }
 
 /* 用户签名样式 */

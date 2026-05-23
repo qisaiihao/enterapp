@@ -307,8 +307,8 @@ export default {
 .like-section .like-icon--leaf:not(.like-icon--voted),
 .like-section .like-icon--flower:not(.like-icon--voted),
 .like-section .like-icon--peach:not(.like-icon--voted) {
-    filter: var(--app-post-action-icon-filter, none);
-    opacity: var(--app-post-action-icon-opacity, 1);
+    filter: none;
+    opacity: 1;
 }
 
 .like-count {

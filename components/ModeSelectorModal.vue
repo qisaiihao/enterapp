@@ -1,6 +1,6 @@
 <template>
     <!-- 模式选择器弹窗 -->
-    <view v-if="show" class="mode-selector-mask" @tap="$emit('close')">
+    <view v-if="show" class="mode-selector-mask" :class="{ 'mode-selector-mask--dark': isDark }" @tap="$emit('close')">
         <view class="mode-selector" @tap.stop>
             <image class="mode-switch-modal-icon" src="/static/images/newicons/switch_publish.png" mode="aspectFit" alt="切换发布模式"></image>
             <view class="mode-title">选择发布模式</view>
@@ -45,6 +45,10 @@ export default {
             default: false
         },
         isSeries: {
+            type: Boolean,
+            default: false
+        },
+        isDark: {
             type: Boolean,
             default: false
         }
@@ -129,5 +133,27 @@ export default {
     color: #1c9bd6;
     font-size: 28rpx;
     font-weight: bold;
+}
+
+.mode-selector-mask--dark .mode-selector {
+    background: rgba(24, 28, 36, 0.96);
+    border-top: 1rpx solid rgba(255, 255, 255, 0.12);
+}
+
+.mode-selector-mask--dark .mode-title,
+.mode-selector-mask--dark .mode-text {
+    color: #f4f1ea;
+}
+
+.mode-selector-mask--dark .mode-option {
+    border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+.mode-selector-mask--dark .mode-option:active {
+    background: rgba(255, 255, 255, 0.10);
+}
+
+.mode-selector-mask--dark .mode-check {
+    color: #c9ad73;
 }
 </style>
