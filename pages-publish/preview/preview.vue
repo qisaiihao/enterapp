@@ -1,6 +1,12 @@
 <template>
 
-  <view class="preview-page white-bg" @tap="onPageTap">
+  <view
+    class="preview-page white-bg"
+    :class="{ 'preview-page--dark': appThemeMode === 'dark' }"
+    :data-app-theme="appThemeMode"
+    :style="appThemeVars"
+    @tap="onPageTap"
+  >
 
     <view class="square-mode-container">
 
@@ -233,6 +239,7 @@
             <input
 
               class="title-input"
+              placeholder-class="preview-input-placeholder"
 
               placeholder="想个标题..."
 
@@ -261,6 +268,7 @@
             <input
 
               class="author-input"
+              placeholder-class="preview-input-placeholder"
 
               :placeholder="post.editData.isOriginal ? '作者（默认使用昵称）' : '作者（必填）'"
 
@@ -413,6 +421,8 @@ import { uploadPreviewFile, uploadPreviewFileViaCloudFunction } from './preview-
 import { formatDateYmd, formatRange as formatActivityRangeUtil } from '@/utils/activity.js';
 
 import { attachPoemDisplayFields } from '@/utils/poemDisplay.js';
+
+import { applyThemeMode, getThemeMode } from '@/utils/theme.js';
 
 
 
@@ -649,6 +659,12 @@ export default {
       console.log('【Preview】图片URLs:', this.post.imageUrls);
 
     }
+
+  },
+
+  onShow() {
+
+    this.appThemeMode = applyThemeMode(getThemeMode());
 
   },
 
@@ -2864,6 +2880,40 @@ export default {
 
 <style>
 
+page {
+
+  background: var(--app-page-bg, #fff);
+
+}
+
+.preview-page {
+
+  background: var(--app-page-bg, #fff);
+
+  color: var(--app-primary-text, #111);
+
+}
+
+.preview-page--dark {
+
+  background: #0f1115;
+
+  color: #f4f1ea;
+
+}
+
+.preview-input-placeholder {
+
+  color: var(--app-input-placeholder, #999) !important;
+
+}
+
+.preview-page--dark .preview-input-placeholder {
+
+  color: #737c89 !important;
+
+}
+
 /* 诗歌内容使用汇文明朝字体，其他地方使用系统默认字体 */
 
 
@@ -3015,6 +3065,22 @@ export default {
   filter: var(--app-add-action-icon-filter, none);
 
   opacity: var(--app-add-action-icon-opacity, 1);
+
+}
+
+.preview-page--dark .bottom-buttons {
+
+  background: #0f1115 !important;
+
+  box-shadow: 0 -8rpx 24rpx rgba(0, 0, 0, 0.35) !important;
+
+}
+
+.preview-page--dark .button-icon {
+
+  filter: brightness(0) invert(1);
+
+  opacity: 0.92;
 
 }
 
@@ -3923,6 +3989,120 @@ export default {
   color: var(--app-accent-color, #1a2a4a);
 
   opacity: 0.8;
+
+}
+
+.preview-page--dark .white-bg,
+.preview-page--dark .square-mode-container,
+.preview-page--dark .normal-mode,
+.preview-page--dark .author-info-outside,
+.preview-page--dark .post-item {
+
+  background: #0f1115;
+
+}
+
+.preview-page.white-bg.preview-page--dark {
+
+  background: #0f1115;
+
+}
+
+.preview-page--dark .post-item-wrapper.normal-mode {
+
+  background: #0f1115;
+
+  border-bottom-color: rgba(255, 255, 255, 0.10);
+
+}
+
+.preview-page--dark .title-input-wrapper,
+.preview-page--dark .author-input-wrapper {
+
+  border-bottom-color: rgba(244, 241, 234, 0.82);
+
+}
+
+.preview-page--dark .title-input,
+.preview-page--dark .author-input,
+.preview-page--dark .author-info-outside .author-name,
+.preview-page--dark .post-title,
+.preview-page--dark .poem-author {
+
+  color: #f4f1ea;
+
+}
+
+.title-input::placeholder,
+.author-input::placeholder {
+
+  color: var(--app-input-placeholder, #999);
+
+}
+
+.preview-page--dark .title-input::placeholder,
+.preview-page--dark .author-input::placeholder {
+
+  color: #737c89;
+
+}
+
+.preview-page--dark .post-content,
+.preview-page--dark .preview-meta-value,
+.preview-page--dark .preview-meta-line,
+.preview-page--dark .preview-series-title,
+.preview-page--dark .preview-series-content,
+.preview-page--dark .activity-btn-text {
+
+  color: #d9dde6;
+
+}
+
+.preview-page--dark .preview-meta-label,
+.preview-page--dark .empty-state,
+.preview-page--dark .empty-text,
+.preview-page--dark .activity-mode-label {
+
+  color: #8e96a3;
+
+}
+
+.preview-page--dark .activity-mode-title,
+.preview-page--dark .post-tag,
+.preview-page--dark .preview-meta-tag {
+
+  color: #d8bf82;
+
+}
+
+.preview-page--dark .preview-meta-card,
+.preview-page--dark .activity-btn,
+.preview-page--dark .activity-mode-banner {
+
+  background: rgba(255, 255, 255, 0.08);
+
+  border-color: rgba(255, 255, 255, 0.12);
+
+}
+
+.preview-page--dark .activity-btn.selected,
+.preview-page--dark .preview-meta-tag {
+
+  background: rgba(201, 173, 115, 0.18);
+
+}
+
+.preview-page--dark .preview-series-item + .preview-series-item {
+
+  border-top-color: rgba(255, 255, 255, 0.12);
+
+}
+
+.preview-page--dark .image-container-wrapper,
+.preview-page--dark .image-swiper,
+.preview-page--dark .author-info-outside .author-avatar {
+
+  background-color: rgba(255, 255, 255, 0.08);
 
 }
 
