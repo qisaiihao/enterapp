@@ -99,12 +99,15 @@ export default {
     onLoad: function () {
         console.log('🔍 [splash] 页面加载');
         
+        // App 端需要每次冷启动都展示自定义开屏动画，避免只看到原生 splash 转圈后直接进首页。
+        // #ifndef APP-PLUS
         // 检查是否在10分钟内重复进入，如果是则跳过开屏动画
         if (this.shouldSkipSplash()) {
             console.log('⏭️ [splash] 10分钟内重复进入，跳过开屏动画');
             this.skipToMainPage();
             return;
         }
+        // #endif
         
         // 记录本次访问时间
         this.recordSplashVisit();
