@@ -208,6 +208,9 @@ function resolveShareCanvasFontFamily(fontFamily) {
 
     const fontDisplayName = getFontDisplayName(fontFamily);
     const runtimeFamily = getRuntimeFontFamily(fontFamily);
+    // Canvas 绘制统一使用 runtimeFamily（如 "Huiwen-mincho"），
+    // 该字体名由 fontManager 通过 FontFace API 从本地静态文件加载，
+    // 而非从云存储下载。小程序也通过 uni.loadFontFace 加载同名。
     return quoteFontFamily(runtimeFamily || fontDisplayName) || 'sans-serif';
 }
 

@@ -1170,13 +1170,16 @@ export default {
                         if (renderToken !== this.shareRenderToken) return;
                     }
 
+                    // ensureFontAvailable for "汇文明朝" on H5/App uses the LOCAL static font file
+                    // (config.isDefault = true for non-MP, so downloadFont returns local path directly,
+                    // never downloads from cloud storage). Only mini-program downloads from CDN.
                     const fontPath = await this.fontManager.ensureFontAvailable(fontFamily, (progress, loaded, total) => {
-                        console.log(`【post-detail】字体下载进度: ${progress}% (${loaded}/${total})`);
+                        console.log(`【post-detail】字体加载进度: ${progress}% (${loaded}/${total})`);
                     });
                     if (renderToken !== this.shareRenderToken) return;
-                    
+
                     console.log('【post-detail】字体加载成功:', fontFamily);
-                    
+
                     const fontScale = fontScaleMap[fontFamily] || 1.0;
                     const needsAppFontActivationDelay = isAppBuiltinFont && !wasFontLoadedBeforeRender;
                     const fontReadyDelay = needsAppFontActivationDelay
@@ -1185,7 +1188,7 @@ export default {
                     this.shareRenderFontFamily = fontFamily;
                     this.shareRenderFontScale = fontScale;
                     this.shareRenderFontPending = false;
-                    const sourceTag = platform === 'mp-weixin' ? 'mp-downloaded-local-woff2' : (platform === 'app' ? 'app-local-woff2' : 'h5-local-woff2');
+                    const sourceTag = platform === 'mp-weixin' ? 'mp-cloud-font' : 'app-local-font';
                     console.log('[share-card-font] ready', {
                         sourceTag,
                         platform,
@@ -1195,7 +1198,7 @@ export default {
                         wasFontLoadedBeforeRender,
                         fontReadyDelay
                     });
-                    
+
                     if (needsAppFontActivationDelay && this.$nextTick) {
                         await new Promise(r => this.$nextTick(r));
                         if (renderToken !== this.shareRenderToken) return;
@@ -1207,7 +1210,7 @@ export default {
                     if (isAppBuiltinFont) {
                         this._appBuiltinShareFontPrimed = true;
                     }
-                    
+
                     this.drawCanvas(renderToken);
                     return;
                 } catch (error) {
