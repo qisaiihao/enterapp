@@ -75,17 +75,23 @@ export default function () : Promise<UniUpgradeCenterResult> {
           /**
            * 提示升级二
            * 官方适配的升级弹窗，可自行替换资源适配UI风格
+           *
+           * 注意：WGT 热更新由自定义 hotUpdate.js 处理（系统 uni.showModal 弹窗），
+           * 不跳转到蓝色弹窗，避免与 hotUpdate.js 的弹窗重复弹出。
+           * 只有整包更新 (native_app) 才跳转到官方蓝色弹窗。
            */
           // #ifndef UNI-APP-X
           // #ifdef APP-PLUS
-          uni.setStorageSync(PACKAGE_INFO_KEY, uniUpgradeCenterResult)
-          uni.navigateTo({
-            url: `/uni_modules/uni-upgrade-center-app/pages/upgrade-popup?local_storage_key=${PACKAGE_INFO_KEY}`,
-            fail: (err) => {
-              console.error('更新弹框跳转失败', err)
-              uni.removeStorageSync(PACKAGE_INFO_KEY)
-            }
-          })
+          if (uniUpgradeCenterResult.type !== 'wgt') {
+            uni.setStorageSync(PACKAGE_INFO_KEY, uniUpgradeCenterResult)
+            uni.navigateTo({
+              url: `/uni_modules/uni-upgrade-center-app/pages/upgrade-popup?local_storage_key=${PACKAGE_INFO_KEY}`,
+              fail: (err) => {
+                console.error('更新弹框跳转失败', err)
+                uni.removeStorageSync(PACKAGE_INFO_KEY)
+              }
+            })
+          }
           // #endif
           // #ifdef APP-HARMONY
           if (component) {

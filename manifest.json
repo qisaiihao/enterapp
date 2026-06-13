@@ -2,8 +2,8 @@
     "name" : "poementer",
     "appid" : "__UNI__E0A1A41",
     "description" : "S",
-    "versionName" : "1.6.0",
-    "versionCode" : 160,
+    "versionName" : "1.6.3",
+    "versionCode" : 163,
     "transformPx" : false,
     "app-plus" : {
         "usingComponents" : true,
@@ -158,7 +158,7 @@
             "bundleName" : "com.example.poementer",
             "signingConfigs" : {
                 "default" : {
-                    "certpath" : "C:/Users/qisaihao/Desktop/enterkeydocs/dev.cer",
+                    "certpath" : "C:/Users/qisaihao/Desktop/enterkeydocs/poementer_dev.cer",
                     "keyAlias" : "testalias",
                     "keyPassword" : "0000001B0E5F7B21AAC3478692CB4AA17E816F146C136B2B635C9F80AB7EE8B0F41D13C8691917AC7676BA",
                     "profile" : "C:/Users/qisaihao/Desktop/enterkeydocs/poementerDebug.p7b",
@@ -166,6 +166,13 @@
                     "storeFile" : "C:/Users/qisaihao/Desktop/enterkeydocs/poementer_harmony.p12",
                     "storePassword" : "0000001B15205A16540A3A84639C245229C648CFCFDAD4689253C1CF716E1638F10614D941B525C57F7B85"
                 }
+            },
+            "icons" : {
+                "foreground" : "C:/Users/qisaihao/Desktop/enterkeydocs/1024x1024.png",
+                "background" : "C:/Users/qisaihao/Desktop/enterkeydocs/1024x1024.png"
+            },
+            "splashScreens" : {
+                "startWindowIcon" : "C:/Users/qisaihao/Desktop/enterkeydocs/1024x1024.png"
             }
         }
     }

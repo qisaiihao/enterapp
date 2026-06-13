@@ -35,7 +35,9 @@
       "Bash(find:*)",
       "Bash(npm run dev:h5:*)",
       "Bash(for:*)",
-      "Bash(do echo:*)"
+      "Bash(do echo:*)",
+      "Bash(npm run check:syntax:*)",
+      "Bash(npm run build:h5)"
     ],
     "deny": [],
     "ask": []

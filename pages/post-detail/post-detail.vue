@@ -383,23 +383,10 @@ function updateCanvas2DFontSize(ctx, fontSize) {
     ctx.font = `${fontSize}px ${family}`;
 }
 
-function createCanvas2DCompatContext(nativeCtx, canvas) {
+function createCanvas2DCompatContext(nativeCtx) {
     if (!nativeCtx) return null;
 
     return {
-        get canvas() {
-            return canvas || nativeCtx.canvas || null;
-        },
-        createImage() {
-            const targetCanvas = canvas || nativeCtx.canvas;
-            if (targetCanvas && typeof targetCanvas.createImage === 'function') {
-                return targetCanvas.createImage();
-            }
-            if (typeof Image !== 'undefined') {
-                return new Image();
-            }
-            return null;
-        },
         get font() {
             return nativeCtx.font;
         },
@@ -739,7 +726,7 @@ export default {
                         const runtime = {
                             canvas,
                             nativeCtx,
-                            ctx: createCanvas2DCompatContext(nativeCtx, canvas),
+                            ctx: createCanvas2DCompatContext(nativeCtx),
                             logicalWidth,
                             logicalHeight,
                             pixelRatio
@@ -1150,9 +1137,10 @@ export default {
 
             const mpBuiltinFontReady = platform === 'mp-weixin'
                 && fontFamily === '汇文明朝'
-                && this.fontManager
-                && typeof this.fontManager.isFontLoaded === 'function'
-                && this.fontManager.isFontLoaded(fontFamily);
+                && (
+                    (this.fontManager && typeof this.fontManager.isFontLoaded === 'function' && this.fontManager.isFontLoaded(fontFamily))
+                    || !!uni.getStorageSync('__builtin_font_huiwen_ready__')
+                );
 
             if (mpBuiltinFontReady) {
                 this.shareRenderFontFamily = fontFamily;
@@ -1182,13 +1170,16 @@ export default {
                         if (renderToken !== this.shareRenderToken) return;
                     }
 
+                    // ensureFontAvailable for "汇文明朝" on H5/App uses the LOCAL static font file
+                    // (config.isDefault = true for non-MP, so downloadFont returns local path directly,
+                    // never downloads from cloud storage). Only mini-program downloads from CDN.
                     const fontPath = await this.fontManager.ensureFontAvailable(fontFamily, (progress, loaded, total) => {
-                        console.log(`【post-detail】字体下载进度: ${progress}% (${loaded}/${total})`);
+                        console.log(`【post-detail】字体加载进度: ${progress}% (${loaded}/${total})`);
                     });
                     if (renderToken !== this.shareRenderToken) return;
-                    
+
                     console.log('【post-detail】字体加载成功:', fontFamily);
-                    
+
                     const fontScale = fontScaleMap[fontFamily] || 1.0;
                     const needsAppFontActivationDelay = isAppBuiltinFont && !wasFontLoadedBeforeRender;
                     const fontReadyDelay = needsAppFontActivationDelay
@@ -1197,7 +1188,7 @@ export default {
                     this.shareRenderFontFamily = fontFamily;
                     this.shareRenderFontScale = fontScale;
                     this.shareRenderFontPending = false;
-                    const sourceTag = platform === 'mp-weixin' ? 'mp-registered-https-font' : (platform === 'app' ? 'app-local-woff2' : 'h5-local-woff2');
+                    const sourceTag = platform === 'mp-weixin' ? 'mp-cloud-font' : 'app-local-font';
                     console.log('[share-card-font] ready', {
                         sourceTag,
                         platform,
@@ -1207,7 +1198,7 @@ export default {
                         wasFontLoadedBeforeRender,
                         fontReadyDelay
                     });
-                    
+
                     if (needsAppFontActivationDelay && this.$nextTick) {
                         await new Promise(r => this.$nextTick(r));
                         if (renderToken !== this.shareRenderToken) return;
@@ -1219,7 +1210,7 @@ export default {
                     if (isAppBuiltinFont) {
                         this._appBuiltinShareFontPrimed = true;
                     }
-                    
+
                     this.drawCanvas(renderToken);
                     return;
                 } catch (error) {
