@@ -69,6 +69,60 @@ function dataUrlToTempFilePath(dataUrl) {
     });
 }
 
+function getCanvasImageFactory(target) {
+    if (!target) return null;
+    if (typeof target.createImage === 'function') {
+        return () => target.createImage();
+    }
+    const canvas = target.canvas || target._canvas;
+    if (canvas && typeof canvas.createImage === 'function') {
+        return () => canvas.createImage();
+    }
+    if (isH5BrowserEnv() && typeof Image !== 'undefined') {
+        return () => new Image();
+    }
+    return null;
+}
+
+function loadCanvasImage(target, src) {
+    return new Promise((resolve, reject) => {
+        const createImage = getCanvasImageFactory(target);
+        if (!createImage) {
+            reject(new Error('canvas image factory unavailable'));
+            return;
+        }
+
+        let image = null;
+        try {
+            image = createImage();
+        } catch (error) {
+            reject(error);
+            return;
+        }
+
+        if (!image) {
+            reject(new Error('canvas image unavailable'));
+            return;
+        }
+
+        image.onload = () => resolve(image);
+        image.onerror = (error) => reject(error || new Error('canvas image load failed'));
+        if (isH5BrowserEnv() && typeof image.crossOrigin !== 'undefined' && /^https?:\/\//i.test(src) && !isCanvasSafeUrl(src)) {
+            image.crossOrigin = 'anonymous';
+        }
+        image.src = src;
+    });
+}
+
+async function drawImageSource(ctx, src, x, y, width, height) {
+    if (getCanvasImageFactory(ctx)) {
+        const image = await loadCanvasImage(ctx, src);
+        ctx.drawImage(image, x, y, width, height);
+        return;
+    }
+    ctx.drawImage(src, x, y, width, height);
+}
+
 async function removeWhiteBackgroundFromSignature(localPath, imageInfo, options) {
     if (!isMiniProgramEnv() || !wx.createOffscreenCanvas) return null;
     if (!localPath) return null;
@@ -91,7 +145,8 @@ async function removeWhiteBackgroundFromSignature(localPath, imageInfo, options)
 
     try {
         ctx.clearRect(0, 0, targetWidth, targetHeight);
-        ctx.drawImage(localPath, 0, 0, targetWidth, targetHeight);
+        const signatureImage = await loadCanvasImage(canvas, localPath);
+        ctx.drawImage(signatureImage, 0, 0, targetWidth, targetHeight);
         const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
         const data = imageData && imageData.data;
         if (!data || !data.length) return null;
@@ -220,37 +275,29 @@ function resolveShareCanvasFontFamily(fontFamily) {
  * @param {number} fixedWidth - 固定宽度
  * @returns {Promise<{width: number, height: number}>}
  */
-function drawImageAsync(ctx, url, x, y, fixedWidth) {
-    return new Promise((resolve, reject) => {
-        if (!url || typeof url !== 'string') {
-            reject(new Error('无效的图片URL'));
-            return;
-        }
-        
+async function drawImageAsync(ctx, url, x, y, fixedWidth) {
+    if (!url || typeof url !== 'string') {
+        throw new Error('invalid image url');
+    }
+
+    const res = await new Promise((resolve, reject) => {
         uni.getImageInfo({
             src: url,
-            success: (res) => {
-                try {
-                    const drawPath = res.path || res.tempFilePath || url;
-                    if (isH5BrowserEnv() && !isCanvasSafeUrl(drawPath)) {
-                        reject(new Error('H5跨域图片会污染Canvas，已跳过图片绘制'));
-                        return;
-                    }
-
-                    const scale = fixedWidth / res.width;
-                    const drawWidth = fixedWidth;
-                    const drawHeight = res.height * scale;
-                    ctx.drawImage(drawPath, x, y, drawWidth, drawHeight);
-                    resolve({ width: drawWidth, height: drawHeight });
-                } catch (e) {
-                    reject(e);
-                }
-            },
-            fail: (err) => {
-                reject(err);
-            }
+            success: resolve,
+            fail: reject
         });
     });
+
+    const drawPath = res.path || res.tempFilePath || url;
+    if (isH5BrowserEnv() && !isCanvasSafeUrl(drawPath)) {
+        throw new Error('H5 cross-origin image would taint canvas');
+    }
+
+    const scale = fixedWidth / res.width;
+    const drawWidth = fixedWidth;
+    const drawHeight = res.height * scale;
+    await drawImageSource(ctx, drawPath, x, y, drawWidth, drawHeight);
+    return { width: drawWidth, height: drawHeight };
 }
 
 /**
@@ -645,7 +692,9 @@ async function calculateShareCardHeight(options) {
             } else {
                 signatureDrawHeight = Math.round(fixedSignatureWidth * 0.42);
             }
-        } catch (_) {}
+        } catch (_) {
+            signatureDrawHeight = Math.round(fixedSignatureWidth * 0.42);
+        }
     }
 
     // 计算最终高度
@@ -766,7 +815,7 @@ async function drawShareCardContent(options) {
         ctx.font = signatureTextFontSize + 'px ' + actualFontFamily;
         const textMargin = 48;
         const sigTextX = canvasWidth - textMargin;
-        const sigTextY = Math.max(canvasHeight - textMargin, y + signatureTopGap);
+        const sigTextY = Math.min(y + signatureTopGap + signatureTextFontSize, canvasHeight - textMargin);
         ctx.fillText(finalName, sigTextX, sigTextY);
         ctx.setTextAlign('left');
     };

@@ -199,6 +199,16 @@
       "root": "./functions/updateUserProfile",
       "installDependency": false,
       "params": {}
+    },
+    {
+      "name": "syncUserPostsMetadata",
+      "timeout": 10,
+      "memory": 128,
+      "runtime": "Nodejs16.13",
+      "handler": "index.main",
+      "root": "./functions/syncUserPostsMetadata",
+      "installDependency": true,
+      "params": {}
     }
   ],
   "framework": {
@@ -715,6 +725,14 @@
               "memory": 128,
               "runtime": "Nodejs16.13",
               "installDependency": false
+            },
+            {
+              "name": "syncUserPostsMetadata",
+              "root": "./functions/syncUserPostsMetadata",
+              "timeout": 10,
+              "memory": 128,
+              "runtime": "Nodejs16.13",
+              "installDependency": true
             },
             {
               "name": "upload",

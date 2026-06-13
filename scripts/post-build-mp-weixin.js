@@ -3,6 +3,7 @@
  * 1. 在 vendor.js 开头注入 wx.cloud 初始化代码
  * 2. 复制自定义 tabBar 原生组件到编译输出目录（custom-tab-bar 作为唯一源码）
  * 3. 删除小程序打包后的字体文件（小程序使用云端字体）
+ * 4. 删除小程序打包后的 sticker 默认头像文件（小程序使用云端图片）
  */
 
 const fs = require('fs');
@@ -10,6 +11,72 @@ const path = require('path');
 
 // 支持 dev 和 build 两种模式
 const modes = ['dev', 'build'];
+
+function formatBytes(bytes) {
+  if (!bytes) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let value = bytes;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex++;
+  }
+  return `${value.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+}
+
+function assertPathInsideOutput(outputDir, targetDir) {
+  const resolvedOutputDir = path.resolve(outputDir);
+  const resolvedTargetDir = path.resolve(targetDir);
+  const relativePath = path.relative(resolvedOutputDir, resolvedTargetDir);
+
+  if (!relativePath || relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+    throw new Error(`拒绝删除输出目录外的路径: ${resolvedTargetDir}`);
+  }
+}
+
+function collectFilesRecursive(dir) {
+  const files = [];
+  if (!fs.existsSync(dir)) return files;
+
+  fs.readdirSync(dir).forEach((entryName) => {
+    const entryPath = path.join(dir, entryName);
+    const stat = fs.statSync(entryPath);
+    if (stat.isDirectory()) {
+      files.push(...collectFilesRecursive(entryPath));
+      return;
+    }
+    if (stat.isFile()) {
+      files.push({
+        path: entryPath,
+        size: stat.size
+      });
+    }
+  });
+
+  return files;
+}
+
+function removePackedDirectory(outputDir, targetDir, label) {
+  if (!fs.existsSync(outputDir)) {
+    console.log(`ℹ️ 输出目录不存在，跳过 ${label} 删除`);
+    return;
+  }
+  if (!fs.existsSync(targetDir)) {
+    console.log(`ℹ️ ${label}目录不存在，跳过删除`);
+    return;
+  }
+
+  assertPathInsideOutput(outputDir, targetDir);
+
+  const files = collectFilesRecursive(targetDir);
+  const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
+  files.forEach((file) => {
+    console.log(`🗑️  已删除 ${label} 文件: ${path.relative(targetDir, file.path)}`);
+  });
+
+  fs.rmSync(targetDir, { recursive: true, force: true });
+  console.log(`✅ 已删除 ${files.length} 个 ${label} 文件，节省 ${formatBytes(totalBytes)}`);
+}
 
 modes.forEach(mode => {
   console.log(`\n=== 处理 ${mode} 模式 ===`);
@@ -165,6 +232,15 @@ if (typeof wx !== 'undefined' && wx.cloud && !wx.cloud._kiroInitialized) {
     }
   } catch (error) {
     console.error('❌ 删除字体文件失败:', error);
+  }
+
+  // 4. 删除小程序打包后的 sticker 默认头像文件
+  const stickerDir = path.join(outputDir, 'static/sticker');
+
+  try {
+    removePackedDirectory(outputDir, stickerDir, 'sticker 默认头像');
+  } catch (error) {
+    console.error('❌ 删除 sticker 默认头像文件失败:', error);
   }
 });
 

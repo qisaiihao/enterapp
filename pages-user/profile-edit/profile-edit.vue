@@ -215,10 +215,10 @@
                         v-for="avatar in defaultAvatarOptions"
                         :key="avatar"
                         class="sticker-picker-item"
-                        :class="{ 'sticker-picker-item--selected': avatarUrl === avatar }"
+                        :class="{ 'sticker-picker-item--selected': isDefaultAvatarSelected(avatar) }"
                         @tap="selectDefaultAvatar(avatar)"
                     >
-                        <image class="sticker-picker-image" :src="avatar" mode="aspectFill"></image>
+                        <image class="sticker-picker-image" :src="getDefaultAvatarOptionSrc(avatar)" mode="aspectFill"></image>
                     </view>
                 </view>
             </view>
@@ -230,7 +230,13 @@
 import { cloudCall } from '../../utils/cloudCall.js';
 import { uploadFile } from '../../utils/uploader.js';
 import { checkContentSafe, checkImageSafe, checkTextSafe } from '../../utils/contentModeration.js';
-import { STICKER_AVATAR_PATHS, isStickerAvatar, resolveUserAvatar } from '../../utils/defaultAvatar.js';
+import {
+    STICKER_AVATAR_PATHS,
+    isStickerAvatar,
+    normalizeStickerAvatarPath,
+    resolveStickerAvatarSource,
+    resolveUserAvatar
+} from '../../utils/defaultAvatar.js';
 import { getCurrentPlatform } from '../../utils/platformDetector.js';
 import { emitAvatarUpdated } from '@/utils/events.js';
 import { resolveGrowthStatsVisibility, writeLocalGrowthStatsVisibility } from '@/utils/profileGrowthStatsVisibility.js';
@@ -490,9 +496,17 @@ export default {
             });
         },
 
+        getDefaultAvatarOptionSrc(avatarPath) {
+            return resolveStickerAvatarSource(avatarPath);
+        },
+
+        isDefaultAvatarSelected(avatarPath) {
+            return normalizeStickerAvatarPath(this.avatarUrl) === normalizeStickerAvatarPath(avatarPath);
+        },
+
         selectDefaultAvatar(avatarPath) {
             this.setData({
-                avatarUrl: avatarPath,
+                avatarUrl: normalizeStickerAvatarPath(avatarPath),
                 tempAvatarPath: null,
                 showStickerPicker: false
             });
@@ -1396,16 +1410,22 @@ export default {
                 poemId: this.poemId
             });
 
+            const normalizedAvatarUrl = normalizeStickerAvatarPath(this.avatarUrl);
+            const normalizedOriginalAvatarUrl = normalizeStickerAvatarPath(this.originalData.avatarUrl);
+            const shouldUpdateSignature = this.signatureTempPath !== null || this.signatureUrl !== this.originalData.signatureUrl;
             const avatarUpload = this.tempAvatarPath && !isStickerAvatar(this.tempAvatarPath)
                 ? uploadFile(`user_avatars/${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`, this.tempAvatarPath)
                 : Promise.resolve(null);
-            const signatureUpload = this.signatureTempPath
+            const signatureUpload = shouldUpdateSignature && this.signatureTempPath
                 ? uploadFile(`user_signatures/${Date.now()}_${Math.floor(Math.random() * 1000)}.png`, this.signatureTempPath)
                 : Promise.resolve(null);
             Promise.all([avatarUpload, signatureUpload])
                 .then(([avatarFileID, signatureFileID]) => {
-                    const resolvedAvatarUrl = avatarFileID || (isStickerAvatar(this.avatarUrl) ? this.avatarUrl : '');
-                    const shouldUpdateAvatar = this.tempAvatarPath !== null || this.avatarUrl !== this.originalData.avatarUrl;
+                    if (shouldUpdateSignature && this.signatureTempPath && !signatureFileID) {
+                        throw new Error('签名上传失败');
+                    }
+                    const resolvedAvatarUrl = avatarFileID || (isStickerAvatar(normalizedAvatarUrl) ? normalizedAvatarUrl : '');
+                    const shouldUpdateAvatar = this.tempAvatarPath !== null || normalizedAvatarUrl !== normalizedOriginalAvatarUrl;
                     const updateData = {
                         nickName: this.nickName,
                         birthday: this.birthday,
@@ -1413,11 +1433,13 @@ export default {
                         occupation: this.occupation,
                         region: this.region,
                         poemId: this.poemId,  // 新增：保存poemId
-                        showGrowthStats: this.showGrowthStats === true,
-                        signatureUrl: signatureFileID || ''
+                        showGrowthStats: this.showGrowthStats === true
                     };
                     if (shouldUpdateAvatar && resolvedAvatarUrl) {
                         updateData.avatarUrl = resolvedAvatarUrl;
+                    }
+                    if (shouldUpdateSignature) {
+                        updateData.signatureUrl = this.signatureTempPath ? signatureFileID : (this.signatureUrl || '');
                     }
                     console.log('【profile-edit】📤 发送到云函数的数据:', updateData);
                     return this.callCloudFunction('updateUserProfile', updateData);

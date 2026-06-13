@@ -120,8 +120,8 @@ exports.main = async (event, context) => {
       updateData.bio = bio;
       console.log('🔍 [updateUserProfile] 将更新bio');
     }
-    if (signatureUrl) {
-      updateData.signatureUrl = signatureUrl;
+    if (signatureUrl !== undefined) {
+      updateData.signatureUrl = signatureUrl || '';
       console.log('🔍 [updateUserProfile] 将更新signatureUrl');
     }
     if (occupation !== undefined) {

@@ -43,6 +43,7 @@ exports.main = async (event, context) => {
       _openid: openid,
       authorName: event.isAnonymous ? event.anonymousAuthorName : user.nickName,
       authorAvatar: event.isAnonymous ? '/static/images/avatar.png' : user.avatarUrl,
+      authorSignature: event.isAnonymous ? '' : (user.signatureUrl || ''),
       title: event.title || '',
       content: event.content || '',
       createTime: db.serverDate(),

@@ -71,7 +71,8 @@ exports.main = async (event, context) => {
     // If author is not found, provide a default object for robustness
     const author = userRes.data[0] || { 
         nickName: '匿名用户', 
-        avatarUrl: '' 
+        avatarUrl: '',
+        signatureUrl: ''
     };
 
     // 3. 获取当前用户的点赞记录
@@ -86,7 +87,7 @@ exports.main = async (event, context) => {
       ...post,
       authorName: post.authorName || post.authorNameSnapshot || author.nickName || '匿名用户',
       authorAvatar: post.authorAvatar || post.authorAvatarSnapshot || author.avatarUrl || '',
-      authorSignature: post.authorSignature || '', // 签名URL（优先使用帖子中存储的值）
+      authorSignature: post.isAnonymous ? '' : (post.authorSignature || author.signatureUrl || ''),
       isAuthor: post._openid === openid,
       isVoted: voteRes.data.length > 0,
       tags: post.tags || [] // 确保标签字段存在

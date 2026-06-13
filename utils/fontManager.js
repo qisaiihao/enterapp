@@ -1004,11 +1004,28 @@ class FontManager {
         
         if (platform === 'mp-weixin') {
             const primarySource = getPrimaryMiniProgramFontSource(config);
-            if (!primarySource || !primarySource.url) {
+            let mpSource = primarySource;
+
+            if ((!mpSource || !mpSource.url) && config.cloudPath) {
+                console.log('[FontManager] MP resolving cloudPath font source:', fontFamily, config.cloudPath);
+                try {
+                    const tempUrl = await fileUrlCache.getTempUrl(config.cloudPath);
+                    if (tempUrl && tempUrl !== config.cloudPath && isRemoteFontSourcePath(tempUrl)) {
+                        mpSource = {
+                            url: tempUrl,
+                            format: (getFileExtension(config.filename) || '').replace(/^\./, '')
+                        };
+                    }
+                } catch (error) {
+                    console.error('[FontManager] MP resolve cloudPath font source failed:', fontFamily, error);
+                }
+            }
+
+            if (!mpSource || !mpSource.url) {
                 throw new Error('小程序端字体链接未配置');
             }
             
-            console.log('[FontManager] MP registering remote font source:', primarySource.url);
+            console.log('[FontManager] MP registering remote font source:', mpSource.url);
             console.log('【FontManager】⚠️ 请确保云存储 CORS 配置正确：');
             console.log('【FontManager】   Access-Control-Allow-Origin: *');
             
@@ -1019,7 +1036,7 @@ class FontManager {
                 setTimeout(() => onProgress(100), 360);
             }
             
-            return primarySource.url;
+            return mpSource.url;
         }
         
         // 其他平台（H5/App）使用云存储路径获取临时链接

@@ -383,10 +383,23 @@ function updateCanvas2DFontSize(ctx, fontSize) {
     ctx.font = `${fontSize}px ${family}`;
 }
 
-function createCanvas2DCompatContext(nativeCtx) {
+function createCanvas2DCompatContext(nativeCtx, canvas) {
     if (!nativeCtx) return null;
 
     return {
+        get canvas() {
+            return canvas || nativeCtx.canvas || null;
+        },
+        createImage() {
+            const targetCanvas = canvas || nativeCtx.canvas;
+            if (targetCanvas && typeof targetCanvas.createImage === 'function') {
+                return targetCanvas.createImage();
+            }
+            if (typeof Image !== 'undefined') {
+                return new Image();
+            }
+            return null;
+        },
         get font() {
             return nativeCtx.font;
         },
@@ -726,7 +739,7 @@ export default {
                         const runtime = {
                             canvas,
                             nativeCtx,
-                            ctx: createCanvas2DCompatContext(nativeCtx),
+                            ctx: createCanvas2DCompatContext(nativeCtx, canvas),
                             logicalWidth,
                             logicalHeight,
                             pixelRatio
@@ -1137,10 +1150,9 @@ export default {
 
             const mpBuiltinFontReady = platform === 'mp-weixin'
                 && fontFamily === '汇文明朝'
-                && (
-                    (this.fontManager && typeof this.fontManager.isFontLoaded === 'function' && this.fontManager.isFontLoaded(fontFamily))
-                    || !!uni.getStorageSync('__builtin_font_huiwen_ready__')
-                );
+                && this.fontManager
+                && typeof this.fontManager.isFontLoaded === 'function'
+                && this.fontManager.isFontLoaded(fontFamily);
 
             if (mpBuiltinFontReady) {
                 this.shareRenderFontFamily = fontFamily;
@@ -1185,7 +1197,7 @@ export default {
                     this.shareRenderFontFamily = fontFamily;
                     this.shareRenderFontScale = fontScale;
                     this.shareRenderFontPending = false;
-                    const sourceTag = platform === 'mp-weixin' ? 'mp-downloaded-local-woff2' : (platform === 'app' ? 'app-local-woff2' : 'h5-local-woff2');
+                    const sourceTag = platform === 'mp-weixin' ? 'mp-registered-https-font' : (platform === 'app' ? 'app-local-woff2' : 'h5-local-woff2');
                     console.log('[share-card-font] ready', {
                         sourceTag,
                         platform,

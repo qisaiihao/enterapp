@@ -477,6 +477,31 @@ exports.main = async (event, context) => {
     
     // 确保返回的帖子数量不超过 limit
     posts = posts.slice(0, limit);
+
+    // 历史帖子可能没有 authorSignature 快照，列表返回前从用户资料补齐
+    let authorSignatureMap = new Map();
+    if (posts.length > 0) {
+      const missingSignatureAuthorIds = [...new Set(
+        posts
+          .filter(post => post && !post.isAnonymous && !post.authorSignature && post._openid)
+          .map(post => post._openid)
+      )];
+
+      if (missingSignatureAuthorIds.length > 0) {
+        try {
+          const authorRes = await db.collection('users')
+            .where({ _openid: _.in(missingSignatureAuthorIds) })
+            .field({ _openid: true, signatureUrl: true })
+            .get();
+          authorSignatureMap = new Map((authorRes.data || []).map(user => [
+            user._openid,
+            user.signatureUrl || ''
+          ]));
+        } catch (authorError) {
+          console.error('❌ [getPostList] 批量查询作者签名失败:', authorError);
+        }
+      }
+    }
     
     // 批量查询点赞状态
     let voterMap = new Set();
@@ -501,7 +526,7 @@ exports.main = async (event, context) => {
     let processedPosts = posts.map(post => {
       const authorName = post.authorName || post.authorNameSnapshot || '匿名用户';
       const authorAvatar = post.authorAvatar || post.authorAvatarSnapshot || '';
-      const authorSignature = post.authorSignature || ''; // 签名URL（匿名帖子可能为空）
+      const authorSignature = post.isAnonymous ? '' : (post.authorSignature || authorSignatureMap.get(post._openid) || '');
       const commentCount = post.commentCount || 0;
       const isVoted = voterMap.has(post._id);
 

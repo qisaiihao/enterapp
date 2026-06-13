@@ -1,0 +1,9 @@
+{
+  "name": "syncUserPostsMetadata",
+  "version": "1.0.0",
+  "description": "同步用户资料快照到历史帖子",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
