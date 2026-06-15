@@ -165,6 +165,15 @@
                     "signAlg" : "SHA256withECDSA",
                     "storeFile" : "C:/Users/qisaihao/Desktop/enterkeydocs/poementer_harmony.p12",
                     "storePassword" : "0000001B15205A16540A3A84639C245229C648CFCFDAD4689253C1CF716E1638F10614D941B525C57F7B85"
+                },
+                "release" : {
+                    "certpath" : "C:/Users/qisaihao/Desktop/enterkeydocs/poementer_release.cer",
+                    "keyAlias" : "testalias",
+                    "keyPassword" : "0000001BEFC14B4A5497DF6CB2931FD8ABD65788255BE93EF3C33A31220DB5FA1775C7912747131753EA2C",
+                    "profile" : "C:/Users/qisaihao/Desktop/enterkeydocs/poementer_releaseRelease.p7b",
+                    "signAlg" : "SHA256withECDSA",
+                    "storeFile" : "C:/Users/qisaihao/Desktop/enterkeydocs/poementer_harmony.p12",
+                    "storePassword" : "0000001B0FCAEA6E84F9ACED80B59F7BEFACC0511AADA8DE3A1409717969BE07907AD27946B33CD8CC5B8A"
                 }
             },
             "icons" : {
@@ -173,7 +182,8 @@
             },
             "splashScreens" : {
                 "startWindowIcon" : "C:/Users/qisaihao/Desktop/enterkeydocs/1024x1024.png"
-            }
+            },
+            "deviceTypes" : [ "phone", "tablet" ]
         }
     }
 }

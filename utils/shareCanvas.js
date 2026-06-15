@@ -3,6 +3,7 @@
  */
 
 import fontManager from './fontManager.js';
+import fileUrlCache from '@/cache/core/file-url.js';
 
 // 兼容旧的 fontFamily ID 到 displayName 的映射
 const LEGACY_FONT_MAP = {
@@ -41,14 +42,30 @@ function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function isCloudUrl(src) {
+    return typeof src === 'string' && src.startsWith('cloud://');
+}
+
 function getImageInfoSafe(src) {
+    // 【防御】cloud:// 协议 URL 在 H5 环境下无法被 uni.getImageInfo 处理，
+    // 直接返回 null 避免框架内部抛出 filePath.indexOf 错误
+    if (isCloudUrl(src)) {
+        console.warn('[shareCanvas] getImageInfoSafe called with cloud:// URL, returning null', src);
+        return Promise.resolve(null);
+    }
     return new Promise((resolve) => {
-        uni.getImageInfo({
-            src,
-            success: (res) => resolve(res || null),
-            fail: () => resolve(null)
-        });
-    });
+        try {
+            uni.getImageInfo({
+                src,
+                success: (res) => resolve(res || null),
+                fail: () => resolve(null)
+            });
+        } catch (syncError) {
+            // 防御 uni.getImageInfo 同步抛出异常（如框架内部对非标准 URL 调用 filePath.indexOf）
+            console.warn('[shareCanvas] getImageInfoSafe sync error:', syncError);
+            resolve(null);
+        }
+    }).catch(() => null);
 }
 
 function dataUrlToTempFilePath(dataUrl) {
@@ -114,7 +131,25 @@ function loadCanvasImage(target, src) {
     });
 }
 
+/**
+ * 检测是否为传统 uni-app CanvasContext（有 draw() 缓冲方法但无原生 createImage）
+ * H5 传统 CanvasContext 不支持直接传入 Image 元素绘制，
+ * 否则框架在 ctx.draw() 冲刷缓冲区时会尝试从 Image 提取 path 并调用 indexOf 导致 TypeError
+ */
+function isLegacyCanvasContext(ctx) {
+    if (!ctx) return false;
+    // 原生 CanvasRenderingContext2D（小程序 2D canvas）有 createImage 方法
+    // 传统 uni-app CanvasContext 有 draw() 缓冲方法但无 createImage
+    return typeof ctx.draw === 'function' && typeof ctx.createImage !== 'function';
+}
+
 async function drawImageSource(ctx, src, x, y, width, height) {
+    // 传统 uni-app CanvasContext：只能传入字符串路径，由框架内部加载图片
+    if (isLegacyCanvasContext(ctx)) {
+        ctx.drawImage(src, x, y, width, height);
+        return;
+    }
+    // 原生 Canvas 上下文（小程序 2D canvas）：需手动加载 Image 后绘制
     if (getCanvasImageFactory(ctx)) {
         const image = await loadCanvasImage(ctx, src);
         ctx.drawImage(image, x, y, width, height);
@@ -193,32 +228,56 @@ async function removeWhiteBackgroundFromSignature(localPath, imageInfo, options)
     return null;
 }
 
+async function resolveCloudUrl(url) {
+    if (typeof url !== 'string' || !url.startsWith('cloud://')) return url;
+    try {
+        const tempUrl = await fileUrlCache.getTempUrl(url);
+        if (tempUrl && tempUrl !== url) return tempUrl;
+    } catch (_) {}
+    return url;
+}
+
 async function prepareSignatureForCard(signatureUrl, rawOptions = {}) {
     if (!signatureUrl || typeof signatureUrl !== 'string') return signatureUrl;
+
+    // 【修复】将 cloud:// 签名 URL 转换为可访问的 HTTP 临时 URL，
+    // 避免 uni.getImageInfo 在 H5 环境下因无法处理 cloud:// 协议而抛出 filePath.indexOf 错误
+    const resolvedUrl = await resolveCloudUrl(signatureUrl);
 
     const options = {
         ...DEFAULT_SIGNATURE_OPTIONS,
         ...rawOptions
     };
 
-    const cacheKey = `${signatureUrl}|${options.threshold}|${options.neutralTolerance}|${options.targetWidth}`;
+    const cacheKey = `${resolvedUrl}|${options.threshold}|${options.neutralTolerance}|${options.targetWidth}`;
     if (signaturePreprocessCache.has(cacheKey)) {
         return signaturePreprocessCache.get(cacheKey);
     }
 
     const task = (async () => {
         if (isH5BrowserEnv()) {
-            if (isCanvasSafeUrl(signatureUrl) || typeof fetch !== 'function' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
-                return signatureUrl;
+            if (isCanvasSafeUrl(resolvedUrl) || typeof fetch !== 'function') {
+                return resolvedUrl;
             }
             try {
-                const response = await fetch(signatureUrl, { mode: 'cors', cache: 'no-store' });
-                if (!response || !response.ok) return signatureUrl;
+                const response = await fetch(resolvedUrl, { mode: 'cors', cache: 'no-store' });
+                if (!response || !response.ok) return resolvedUrl;
                 const blob = await response.blob();
-                if (!blob) return signatureUrl;
-                return URL.createObjectURL(blob);
+                if (!blob) return resolvedUrl;
+                // 【修复】H5 使用 data URL 替代 blob URL，
+                // blob URL 在 uni-app 传统 CanvasContext 中会导致 ctx.drawImage()
+                // 内部渲染时序异常，使之前绘制的背景色被覆盖为白色。
+                // data URL 对所有 Canvas/Image/getImageInfo 原生支持，无 CORS/时序问题。
+                const dataUrl = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+                console.log('[shareCanvas] H5 签名已转为 data URL，长度:', dataUrl ? dataUrl.length : 0);
+                return dataUrl;
             } catch (_) {
-                return signatureUrl;
+                return resolvedUrl;
             }
         }
 
@@ -283,6 +342,11 @@ async function drawImageAsync(ctx, url, x, y, fixedWidth) {
         throw new Error('invalid image url');
     }
 
+    // 【防御】cloud:// 协议 URL 无法被 uni.getImageInfo 处理（H5 环境），提前拒绝
+    if (isCloudUrl(url)) {
+        throw new Error('cloud:// URL is not supported for canvas drawing, use a resolved HTTP URL instead');
+    }
+
     const res = await new Promise((resolve, reject) => {
         uni.getImageInfo({
             src: url,
@@ -291,7 +355,12 @@ async function drawImageAsync(ctx, url, x, y, fixedWidth) {
         });
     });
 
-    const drawPath = res.path || res.tempFilePath || url;
+    // 【防御】确保 drawPath 是字符串，防止框架内部因非字符串路径抛出 filePath.indexOf 错误
+    const rawPath = res.path || res.tempFilePath;
+    const drawPath = (typeof rawPath === 'string' ? rawPath : url);
+    if (!drawPath || typeof drawPath !== 'string') {
+        throw new Error('invalid draw path');
+    }
     if (isH5BrowserEnv() && !isCanvasSafeUrl(drawPath)) {
         throw new Error('H5 cross-origin image would taint canvas');
     }
@@ -774,13 +843,27 @@ async function drawShareCardContent(options) {
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
     // 绘制圆角背景
-    const bgColor = shareConfig.backgroundColor || post.backgroundColor || '#FFFFFF';
+    // 【修复】优先使用 post 的背景颜色（原始数据），然后才是 shareConfig（可能被用户修改）
+    // 空字符串被视为无效值，会回退到下一个选项
+    // 【调试】打印背景颜色来源，追踪颜色丢失问题
+    const postBgColor = (post.backgroundColor && post.backgroundColor.trim()) || '';
+    const configBgColor = (shareConfig.backgroundColor && shareConfig.backgroundColor.trim()) || '';
+    const bgColor = postBgColor || configBgColor || '#a4c4bd';
+    console.log('[shareCanvas] 背景颜色调试:', {
+        postBgColorRaw: post.backgroundColor,
+        postBgColor: postBgColor,
+        shareConfigBgColorRaw: shareConfig.backgroundColor,
+        configBgColor: configBgColor,
+        finalBgColor: bgColor
+    });
     ctx.setFillStyle(bgColor);
     drawRoundedRect(ctx, 0, 0, canvasWidth, canvasHeight, 15);
     ctx.fill();
 
     // 绘制文字内容
-    const textColor = shareConfig.textColor || post.textColor || '#000000';
+    const postTextColor = (post.textColor && post.textColor.trim()) || '';
+    const configTextColor = (shareConfig.textColor && shareConfig.textColor.trim()) || '';
+    const textColor = postTextColor || configTextColor || '#333333';
     ctx.setFillStyle(textColor);
     ctx.setTextAlign('left');
 

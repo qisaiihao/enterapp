@@ -214,8 +214,8 @@ function normalizeShareConfig(shareConfig = {}) {
     const titleFontSize = Math.round((Number(shareConfig.titleFontSize || Math.round(baseFontSize * 1.21))) * fontScale);
     const fontFamily = shareConfig.fontFamily || '汇文明朝';
     const canvasFontFamily = resolveCanvasFontFamily(fontFamily);
-    const textColor = shareConfig.textColor || '#000000';
-    const backgroundColor = shareConfig.backgroundColor || '#FFFFFF';
+    const textColor = shareConfig.textColor || '#333333';
+    const backgroundColor = shareConfig.backgroundColor || '#a4c4bd';
 
     return {
         ...shareConfig,

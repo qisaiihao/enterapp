@@ -383,8 +383,10 @@ function updateCanvas2DFontSize(ctx, fontSize) {
     ctx.font = `${fontSize}px ${family}`;
 }
 
-function createCanvas2DCompatContext(nativeCtx) {
+function createCanvas2DCompatContext(nativeCtx, canvasNode) {
     if (!nativeCtx) return null;
+    // canvasNode: 小程序 2D canvas 节点，用于 createImage 等操作
+    const cv = canvasNode || (nativeCtx.canvas && nativeCtx.canvas);
 
     return {
         get font() {
@@ -392,6 +394,15 @@ function createCanvas2DCompatContext(nativeCtx) {
         },
         set font(value) {
             nativeCtx.font = value;
+        },
+        // 暴露 canvas 和 createImage，使 shareCanvas.js 的 getCanvasImageFactory
+        // 和 isLegacyCanvasContext 能正确识别为原生 Canvas 上下文（非旧版 uni-app CanvasContext），
+        // 从而在 drawImageSource 中走 loadCanvasImage + ctx.drawImage(Image) 路径
+        get canvas() {
+            return cv || null;
+        },
+        createImage() {
+            return cv && typeof cv.createImage === 'function' ? cv.createImage() : null;
         },
         clearRect(...args) {
             return nativeCtx.clearRect(...args);
@@ -516,8 +527,8 @@ export default {
                 fontSize: 38,
                 titleFontSize: 46,
                 fontFamily: '汇文明朝',
-                backgroundColor: '#FFFFFF', // 将在onShare时更新为帖子的实际颜色
-                textColor: '#000000',       // 将在onShare时更新为帖子的实际颜色
+                backgroundColor: '#a4c4bd', // 将在onShare时更新为帖子的实际颜色
+                textColor: '#333333',       // 将在onShare时更新为帖子的实际颜色
                 fontScale: 1.0
             },
             regenerateTimeout: null,
@@ -726,7 +737,7 @@ export default {
                         const runtime = {
                             canvas,
                             nativeCtx,
-                            ctx: createCanvas2DCompatContext(nativeCtx),
+                            ctx: createCanvas2DCompatContext(nativeCtx, canvas),
                             logicalWidth,
                             logicalHeight,
                             pixelRatio
@@ -847,6 +858,31 @@ export default {
                 .then(async (detail) => {
                     if (detail && detail.post) {
                         let post = detail.post;
+                        // 【调试】检查API返回的原始帖子数据中是否包含背景颜色
+                        console.log('[post-detail] loadPostDetail 原始数据:', {
+                            postId: post._id,
+                            hasBackgroundColor: 'backgroundColor' in post,
+                            backgroundColor: post.backgroundColor,
+                            hasTextColor: 'textColor' in post,
+                            textColor: post.textColor
+                        });
+                        
+                        // 【修复】确保帖子有背景颜色和文字颜色（与 poem-square 保持一致）
+                        // 如果数据库中没有保存颜色或为空字符串，使用默认值
+                        if (!post.backgroundColor || post.backgroundColor.trim() === '') {
+                            post.backgroundColor = '#a4c4bd'; // 使用应用默认背景色
+                            console.log('[post-detail] backgroundColor 为空，使用默认值');
+                        }
+                        if (!post.textColor || post.textColor.trim() === '') {
+                            post.textColor = '#333333'; // 使用默认文字颜色
+                            console.log('[post-detail] textColor 为空，使用默认值');
+                        }
+                        
+                        console.log('[post-detail] loadPostDetail 修复后:', {
+                            backgroundColor: post.backgroundColor,
+                            textColor: post.textColor
+                        });
+                        
                         post.formattedCreateTime = this.formatTime(post.createTime);
                         post.likeIcon = likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false);
                         // 将 cloud:// 映射为可访问 URL，并预热
@@ -1064,8 +1100,15 @@ export default {
             }
 
             // 初始化shareConfig使用帖子的实际颜色
-            this.shareConfig.backgroundColor = this.post.backgroundColor || '#FFFFFF';
-            this.shareConfig.textColor = this.post.textColor || '#000000';
+            // 使用应用默认背景色 #a4c4bd 替代白色作为回退值
+            console.log('[post-detail] onShare 设置背景颜色:', {
+                postBgColor: this.post.backgroundColor,
+                postTextColor: this.post.textColor,
+                将设置为: (this.post.backgroundColor && this.post.backgroundColor.trim()) || '#a4c4bd'
+            });
+            // 【修复】空字符串也被视为无效值
+            this.shareConfig.backgroundColor = (this.post.backgroundColor && this.post.backgroundColor.trim()) || '#a4c4bd';
+            this.shareConfig.textColor = (this.post.textColor && this.post.textColor.trim()) || '#333333';
             this.shareRenderFontFamily = this.shareConfig.fontFamily || '汇文明朝';
             this.shareRenderFontScale = this.shareConfig.fontScale || 1.0;
             this.shareRequestedFontFamily = this.shareConfig.fontFamily || '汇文明朝';
@@ -1313,9 +1356,19 @@ export default {
                 const platform = getCurrentPlatform();
                 const effectiveShareConfig = {
                     ...this.shareConfig,
+                    // 【修复】显式传递背景颜色和文字颜色，优先使用 post 的原始值
+                    backgroundColor: this.post.backgroundColor || this.shareConfig.backgroundColor || '#a4c4bd',
+                    textColor: this.post.textColor || this.shareConfig.textColor || '#333333',
                     fontFamily: this.shareRenderFontFamily || this.shareConfig.fontFamily || '汇文明朝',
                     fontScale: this.shareRenderFontScale || this.shareConfig.fontScale || 1.0
                 };
+                // 【调试】打印有效配置，追踪颜色是否正确传递
+                console.log('[post-detail] drawCanvas effectiveShareConfig:', {
+                    backgroundColor: effectiveShareConfig.backgroundColor,
+                    textColor: effectiveShareConfig.textColor,
+                    postBgColor: this.post.backgroundColor,
+                    postTextColor: this.post.textColor
+                });
                 // 签名URL已从云函数返回，直接使用post.authorSignature（匿名帖子或非原创诗歌不显示签名）
                 const shouldShowSignature = (!!this.post && !this.post.isAnonymous && !(this.post.isPoem && this.post.isOriginal === false));
                 

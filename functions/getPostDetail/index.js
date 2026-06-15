@@ -187,6 +187,15 @@ exports.main = async (event, context) => {
     
     console.log('最终返回的评论数量:', commentCount);
     
+    // 【调试】打印返回的帖子数据中的背景颜色
+    console.log('🎨 [getPostDetail] 返回的背景颜色:', {
+      postId: resultPost._id,
+      backgroundColor: resultPost.backgroundColor,
+      textColor: resultPost.textColor,
+      hasBackgroundColor: 'backgroundColor' in resultPost,
+      hasTextColor: 'textColor' in resultPost
+    });
+    
     return {
       post: resultPost,
       commentCount: commentCount, // 添加评论数量

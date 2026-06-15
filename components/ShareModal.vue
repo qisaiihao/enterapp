@@ -130,8 +130,8 @@ export default {
                 fontSize: 38,
                 titleFontSize: 46,
                 fontFamily: '汇文明朝',
-                backgroundColor: '#FFFFFF',
-                textColor: '#000000'
+                backgroundColor: '#a4c4bd',
+                textColor: '#333333'
             })
         },
         previewText: {
@@ -174,7 +174,7 @@ export default {
             return this.normalizedImageUrls.length > 1;
         },
         currentBackgroundColor() {
-            return this.shareConfig.backgroundColor || '#FFFFFF';
+            return this.shareConfig.backgroundColor || '#a4c4bd';
         },
         currentColorCombination() {
             return {

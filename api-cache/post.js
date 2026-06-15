@@ -18,13 +18,84 @@ function normalizePostDetailResult(result = {}) {
   if (!result.post) {
     throw new Error(result.error || result.message || '获取帖子详情失败');
   }
+  
+  const post = result.post;
+  
+  // 【调试】打印云函数返回的原始数据
+  console.log('[api-cache/post] normalizePostDetailResult 原始数据:', {
+    postId: post._id,
+    hasBackgroundColor: 'backgroundColor' in post,
+    backgroundColor: post.backgroundColor,
+    backgroundColorType: typeof post.backgroundColor,
+    hasTextColor: 'textColor' in post,
+    textColor: post.textColor
+  });
+  
+  // 【修复】如果详情中的 backgroundColor 缺失或为空，尝试从列表缓存中获取
+  // 这是因为云函数 getPostDetail 可能没有返回颜色字段，但 getPostList 有
+  if (!post.backgroundColor || post.backgroundColor.trim() === '') {
+    console.log('[api-cache/post] backgroundColor 为空，尝试从列表缓存获取');
+    // 尝试从列表缓存中查找该帖子并复用其颜色
+    const postFromList = findPostInListCache(post._id);
+    if (postFromList && postFromList.backgroundColor) {
+      console.log('[api-cache/post] 从列表缓存复用 backgroundColor:', postFromList.backgroundColor);
+      post.backgroundColor = postFromList.backgroundColor;
+    } else {
+      // 如果列表缓存也没有，使用默认颜色
+      post.backgroundColor = '#a4c4bd';
+      console.log('[api-cache/post] 使用默认 backgroundColor');
+    }
+  } else {
+    console.log('[api-cache/post] backgroundColor 正常:', post.backgroundColor);
+  }
+  
+  if (!post.textColor || post.textColor.trim() === '') {
+    const postFromList = findPostInListCache(post._id);
+    if (postFromList && postFromList.textColor) {
+      post.textColor = postFromList.textColor;
+    } else {
+      post.textColor = '#333333';
+    }
+  }
+  
+  console.log('[api-cache/post] normalizePostDetailResult 处理后:', {
+    backgroundColor: post.backgroundColor,
+    textColor: post.textColor
+  });
+  
   return {
-    post: result.post,
+    post: post,
     commentCount: typeof result.commentCount === 'number'
       ? result.commentCount
       : (result.post.commentCount || 0),
     comments: Array.isArray(result.comments) ? result.comments : []
   };
+}
+
+/**
+ * 从列表缓存中查找帖子
+ * @param {string} postId 帖子ID
+ * @returns {Object|null} 找到的帖子对象或null
+ */
+function findPostInListCache(postId) {
+  if (!postId) return null;
+  
+  // 导入列表缓存的命名空间
+  const listNs = cacheManager.namespace('posts:list', { persistent: true });
+  const keys = listNs.keys();
+  
+  // 遍历所有列表缓存，查找包含该帖子的列表
+  for (const key of keys) {
+    const posts = listNs.get(key);
+    if (Array.isArray(posts)) {
+      const found = posts.find(p => p && p._id === postId);
+      if (found) {
+        return found;
+      }
+    }
+  }
+  
+  return null;
 }
 
 function buildUpdatePayload(postId, updateData) {

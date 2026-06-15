@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Read(//c/Users/qisaihao/回车键_uni/**)"
+      "Read(//c/Users/qisaihao/回车键_uni/**)",
+      "Read(//c/Users/qisaihao/enterkey_uni/pages/post-detail/**)",
+      "Read(//c/Users/qisaihao/enterkey_uni/utils/**)",
+      "Read(//c/Users/qisaihao/enterkey_uni/api-cache/**)"
     ],
     "deny": [],
     "ask": []

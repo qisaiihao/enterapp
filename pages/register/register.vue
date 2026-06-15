@@ -170,6 +170,8 @@ export default {
             localAvatarTempPath: '',
             avatarFileID: '',
             isUploadingAvatar: false,
+            // 随机种子用于默认头像
+            randomAvatarSeed: `register-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             // 手机号相关
             phoneNumber: '',
             isGettingPhone: false,
@@ -207,7 +209,7 @@ export default {
         defaultRegisterAvatar() {
             return resolveUserAvatar(
                 this.localAvatarTempPath,
-                this.poemId.trim() || this.nickName.trim() || 'register-default-avatar'
+                this.poemId.trim() || this.nickName.trim() || this.randomAvatarSeed
             );
         },
         // 判断是否为 APP 端

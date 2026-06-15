@@ -37,7 +37,14 @@
       "Bash(for:*)",
       "Bash(do echo:*)",
       "Bash(npm run check:syntax:*)",
-      "Bash(npm run build:h5)"
+      "Bash(npm run build:h5)",
+      "WebFetch(domain:uniapp.dcloud.net.cn)",
+      "Bash(if not exist \"C:\\Users\\qisaihao\\enterkey_uni\\harmony-configs\\entry\\src\\main\" mkdir \"C:\\Users\\qisaihao\\enterkey_uni\\harmony-configs\\entry\\src\\main\")",
+      "Bash(cmd.exe //c \"\"\"运行小程序构建脚本.bat\"\"\")",
+      "Bash(xxd:*)",
+      "Bash(cmd.exe //c \"运行小程序构建脚本.bat\")",
+      "Read(//c/**)",
+      "Bash(git -C \"C:\\Users\\qisaihao\\enterkey_uni\" diff --stat)"
     ],
     "deny": [],
     "ask": []
