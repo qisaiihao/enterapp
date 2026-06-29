@@ -82,6 +82,7 @@
                     <view v-if="post.imageUrl || (post.imageUrls && post.imageUrls.length > 0)" class="image-container" id="detail-image-container">
                         <block v-if="post.imageUrls && post.imageUrls.length === 1">
                             <image
+                                class="post-image"
                                 :id="'single-image-' + (post && post._id ? post._id : '')"
                                 :src="post.imageUrls[0]"
                                 :mode="(post && post._id && imageClampHeights[post._id]) ? 'aspectFill' : 'widthFix'"
@@ -114,6 +115,7 @@
                                 <block v-for="(img, imgindex) in post.imageUrls" :key="imgindex">
                                     <swiper-item>
                                         <image
+                                            class="post-image"
                                             :src="img"
                                             mode="aspectFill"
                                             @load="onImageLoad"
@@ -134,20 +136,24 @@
                         </block>
                     </view>
 
-                    <view class="post-meta">
-                        <text class="post-time">{{ post.formattedCreateTime }}</text>
-                    </view>
                     <view class="vote-section" @tap.stop.prevent="preventBubble">
-                        <view class="actions-left">
-                            <!-- 左侧按钮区域保留为空，或者可以放其他按钮 -->
+                        <view class="time-left">
+                            <text class="post-time">{{ post.formattedCreateTime }}</text>
                         </view>
                         <view class="button-group">
+                            <view class="comment-count" @tap.stop.prevent="expandInput">
+                                <image class="comment-icon" src="/static/images/newicons/comment.png" mode="aspectFit"></image>
+                                <text class="action-text">{{ commentCount || 0 }}</text>
+                            </view>
                             <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="post && post._id ? post._id : ''">
                                 <image
                                     :class="['like-icon', getLikeIconVariantClass(post && post.likeIcon), post && post.isVoted ? 'like-icon--voted' : '']"
                                     :src="post.likeIcon || '/static/images/seed.png'"
                                     mode="aspectFit"
                                 ></image>
+                            </view>
+                            <view :class="'vote-count ' + (post && post.isVoted ? 'voted' : '')">
+                                <text class="action-text">{{ post && post.votes ? post.votes : 0 }}</text>
                             </view>
                             <!-- 作品集按钮 - 只有原创诗且是自己的帖子才显示 -->
                             <view v-if="post.isOriginal && post.isPoem && isOwnPost" class="portfolio-icon-container" @tap.stop.prevent="onAddToPortfolio">
@@ -3344,12 +3350,13 @@ export default {
 /* 自定义返回按钮 */
 .custom-back-btn {
     position: absolute;
-    top: calc(30rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px))); /* 添加安全区域偏移 */
-    left: 40rpx;
-    width: 100rpx;
-    height: 100rpx;
-    background: transparent;
+    top: calc(18rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
+    left: 24rpx;
+    width: 64rpx;
+    height: 64rpx;
+    background: var(--app-elevated-bg, rgba(255, 255, 255, 0.82));
     border: none;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3363,8 +3370,8 @@ export default {
 }
 
 .custom-back-btn .back-icon {
-    width: 22rpx;
-    height: 38rpx;
+    width: 18rpx;
+    height: 32rpx;
     display: block;
     object-fit: contain;
     filter: var(--app-icon-filter, none);
@@ -3389,7 +3396,7 @@ page {
     color: var(--app-primary-text, #111111);
     /* min-height: 100vh; */
     padding-bottom: 20rpx;
-    padding-top: calc(100rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px))); /* 添加安全区域上边距，为状态栏留空间 */
+    padding-top: calc(88rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
     position: relative; /* 为返回按钮提供定位上下文 */
     /* 新增，确保在内容不足时也能撑满一屏 */
     display: flex;
@@ -3400,11 +3407,11 @@ page {
 
 /* #ifdef APP-PLUS || APP-HARMONY */
 .custom-back-btn {
-    top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
+    top: calc(30rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
 }
 
 .container {
-    padding-top: calc(160rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
+    padding-top: calc(104rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
 }
 /* #endif */
 
@@ -3560,11 +3567,14 @@ page {
 }
 
 .post-detail-wrapper {
-    background: var(--app-post-wrapper-bg, #fff);
-    padding: 40rpx 40rpx 20rpx 40rpx;
+    background: var(--app-post-wrapper-bg, var(--app-surface-bg, #fff));
+    padding: 0;
     border-bottom: var(--app-post-wrapper-divider, 1rpx solid #f0f0f0);
     margin-bottom: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    border-radius: var(--app-post-wrapper-radius, 0);
+    box-shadow: var(--app-post-wrapper-shadow, none);
+    overflow: hidden;
 }
 
 .post-detail-wrapper.original-post {
@@ -3574,15 +3584,17 @@ page {
 }
 
 .post-detail-wrapper.poem-post {
-    background: var(--app-post-wrapper-bg, #ffffff) !important;
+    background: var(--app-post-wrapper-bg, var(--app-surface-bg, #ffffff));
 }
 
 .author-info {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
-    margin-bottom: 20rpx;
+    justify-content: space-between;
+    margin-bottom: 0;
+    padding: 20rpx 40rpx 10rpx 40rpx;
     gap: 20rpx;
+    background: var(--app-post-section-bg, var(--app-surface-bg, #fff));
 }
 
 .author-basic {
@@ -3590,8 +3602,8 @@ page {
     align-items: center;
     flex: 1;
     min-width: 0;
-    gap: 12rpx;
-    flex-wrap: wrap;
+    gap: 0;
+    flex-wrap: nowrap;
 }
 
 .author-right-actions {
@@ -3640,15 +3652,18 @@ page {
 }
 
 .author-name {
-    font-weight: bold;
+    font-weight: 500;
     font-size: 28rpx;
     color: var(--app-post-author-color, #333);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .post-title {
     font-size: 36rpx;
     font-weight: bold;
-    margin-bottom: 15rpx;
+    margin: 20rpx 40rpx 15rpx 40rpx;
     line-height: 1.4;
     color: var(--app-post-title-color, #333);
     word-break: break-word;
@@ -3661,11 +3676,11 @@ page {
 }
 
 .poem-author {
-    font-size: 28rpx;
-    color: var(--app-post-poem-author-color, #333);
-    text-align: left;
-    margin: 10rpx 0 15rpx 0;
-    font-weight: bold;
+    font-size: 32rpx;
+    color: var(--app-post-poem-author-color, #000);
+    text-align: center;
+    margin: 5rpx 40rpx 15rpx 40rpx;
+    font-weight: 400;
     letter-spacing: 2rpx;
 }
 
@@ -3676,7 +3691,7 @@ page {
 .post-content {
     font-size: 28rpx;
     line-height: 1.6;
-    margin-bottom: 20rpx;
+    margin: 15rpx 40rpx 20rpx 40rpx;
     white-space: pre-wrap;
     color: var(--app-post-content-color, #666);
     word-break: break-word;
@@ -3685,9 +3700,11 @@ page {
 
 .image-container {
     position: relative;
-    width: 100%;
-    margin: 20rpx 0;
+    width: auto;
+    margin: 20rpx 40rpx;
     background-color: var(--app-subtle-surface-bg, #f5f5f5);
+    overflow: hidden;
+    border-radius: 8px;
 }
 
 .post-image {
@@ -3734,15 +3751,16 @@ page {
 
 .vote-section {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
-    margin-top: 10rpx;
-    padding: 10rpx 0rpx 0 40rpx;
+    margin-top: 20rpx;
+    padding: 0 40rpx 30rpx 40rpx;
+    background: var(--app-post-section-bg, transparent);
 }
 
-.actions-left {
-    display: flex;
-    align-items: center;
+.time-left {
+    flex: 1;
+    min-width: 0;
 }
 
 .vote-count,
@@ -3772,8 +3790,8 @@ page {
     padding: 0;
     border-radius: 12rpx;
     transition: all 0.2s ease;
-    width: 80rpx;
-    height: 80rpx;
+    width: 64rpx;
+    height: 64rpx;
     margin-right: 12rpx;
 }
 
@@ -3799,8 +3817,8 @@ page {
     padding: 0;
     border-radius: 12rpx;
     transition: all 0.2s ease;
-    width: 80rpx;
-    height: 80rpx;
+    width: 64rpx;
+    height: 64rpx;
 }
 
 .portfolio-icon-container:active {
@@ -3808,8 +3826,8 @@ page {
 }
 
 .portfolio-icon {
-    width: 64rpx;
-    height: 64rpx;
+    width: 56rpx;
+    height: 56rpx;
     filter: var(--app-post-action-icon-filter, none);
     opacity: var(--app-post-action-icon-opacity, 1);
 }
@@ -3822,8 +3840,8 @@ page {
     padding: 0;
     border-radius: 12rpx;
     transition: all 0.2s ease;
-    width: 80rpx;
-    height: 80rpx;
+    width: 64rpx;
+    height: 64rpx;
 }
 
 .share-icon-container:active {
@@ -3831,16 +3849,16 @@ page {
 }
 
 .share-icon {
-    width: 64rpx;
-    height: 64rpx;
+    width: 56rpx;
+    height: 56rpx;
     filter: var(--app-post-action-icon-filter, none);
     opacity: var(--app-post-action-icon-opacity, 1);
 }
 
 
 .like-icon {
-    width: 64rpx;
-    height: 64rpx;
+    width: 56rpx;
+    height: 56rpx;
     filter: none;
     opacity: 1;
 }
@@ -4590,6 +4608,225 @@ page {
     color: var(--app-secondary-text, #666);
     margin-bottom: 20rpx;
     opacity: 0.8;
+}
+
+/* Align post detail with profile post list visuals. */
+.custom-back-btn {
+    top: calc(24rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
+    width: 64rpx;
+    height: 64rpx;
+    background: var(--app-elevated-bg, rgba(255, 255, 255, 0.92));
+    border: 1rpx solid var(--app-border-color, rgba(0, 0, 0, 0.08));
+    box-shadow: 0 8rpx 20rpx rgba(0, 0, 0, 0.12);
+    transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.custom-back-btn:active {
+    transform: scale(0.94);
+}
+
+.container {
+    padding-top: calc(104rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
+    padding-bottom: 20rpx;
+}
+
+.post-detail-wrapper {
+    position: relative;
+    background: var(--app-post-wrapper-bg, var(--app-surface-bg, #fff));
+    margin: var(--app-post-wrapper-margin, 0 0 20rpx 0);
+    padding: 0;
+    box-shadow: var(--app-post-wrapper-shadow, none);
+    border: var(--app-post-wrapper-border, none);
+    border-bottom: var(--app-post-wrapper-divider, 1rpx solid #f0f0f0);
+    border-left: none;
+    border-radius: var(--app-post-wrapper-radius, 0);
+    overflow: hidden;
+    transform-origin: center top;
+}
+
+.post-detail-wrapper.original-post,
+.post-detail-wrapper.original-post.poem-post {
+    background: var(--app-post-original-bg, linear-gradient(90deg, rgba(235, 200, 141, 0.05) 0%, rgba(255, 255, 255, 0) 100%));
+    border-left: none;
+}
+
+.post-detail-wrapper.poem-post:not(.original-post) {
+    background: var(--app-post-wrapper-bg, var(--app-surface-bg, #fff));
+}
+
+.author-info {
+    padding: 20rpx 40rpx 10rpx 40rpx;
+    background: var(--app-post-section-bg, #fff);
+}
+
+.post-title {
+    margin: 20rpx 40rpx 15rpx 40rpx;
+}
+
+.poem-author {
+    margin: 5rpx 40rpx 15rpx 40rpx;
+}
+
+.post-content {
+    margin: 15rpx 40rpx 20rpx 40rpx;
+}
+
+.image-container {
+    width: auto;
+    margin: 20rpx 40rpx;
+    border-radius: 8px;
+    background-color: var(--app-subtle-surface-bg, #f0f0f0);
+    overflow: hidden;
+}
+
+.image-container .post-image,
+.image-container .image-swiper {
+    width: 100%;
+    display: block;
+}
+
+.image-container .post-image {
+    max-width: 100%;
+    max-height: none;
+    background-color: var(--app-subtle-surface-bg, #f0f0f0);
+}
+
+.post-tags {
+    margin: 30rpx 40rpx 10rpx 40rpx;
+    line-height: 1.5;
+}
+
+.post-tag {
+    color: var(--app-post-tag-color, #24375f);
+}
+
+.vote-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: -8rpx;
+    padding: 10rpx 40rpx 15rpx 40rpx;
+    background: var(--app-post-section-bg, transparent);
+}
+
+.time-left {
+    flex: 1;
+    min-width: 0;
+    padding-right: 20rpx;
+}
+
+.button-group {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.comment-count,
+.vote-count {
+    display: flex;
+    align-items: center;
+    font-size: 28rpx;
+    color: var(--app-post-action-color, #999);
+    margin-left: 10rpx;
+    transition: color 0.2s ease;
+}
+
+.comment-icon {
+    width: 60rpx;
+    height: 60rpx;
+    flex: 0 0 60rpx;
+    display: block;
+    margin-right: 8rpx;
+    filter: var(--app-post-action-icon-filter, none);
+    opacity: var(--app-post-action-icon-opacity, 1);
+}
+
+.like-icon-container,
+.portfolio-icon-container,
+.share-icon-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60rpx;
+    height: 68rpx;
+    padding: 0;
+    border-radius: 8rpx;
+    margin-left: 20rpx;
+    margin-right: 0;
+    transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.like-icon-container:active,
+.portfolio-icon-container:active,
+.share-icon-container:active {
+    transform: scale(0.85);
+}
+
+.like-icon {
+    width: 52rpx;
+    height: 52rpx;
+    display: block;
+}
+
+.like-icon--seed {
+    width: 60rpx;
+    height: 60rpx;
+    transform: translateY(-1rpx);
+}
+
+.like-icon--seedplus {
+    width: 56rpx;
+    height: 56rpx;
+    transform: translateY(1rpx);
+}
+
+.like-icon--leaf,
+.like-icon--leafplus {
+    width: 48rpx;
+    height: 48rpx;
+}
+
+.like-icon--flower,
+.like-icon--flowerplus {
+    width: 44rpx;
+    height: 44rpx;
+    transform: translateY(2rpx);
+}
+
+.like-icon--peach {
+    width: 44rpx;
+    height: 44rpx;
+    transform: translateY(-2rpx);
+}
+
+.like-icon--peachplus {
+    width: 48rpx;
+    height: 48rpx;
+    transform: translateY(-1rpx);
+}
+
+.vote-count {
+    margin-left: 2rpx;
+}
+
+.vote-count.voted {
+    color: #111111;
+}
+
+[data-app-theme="dark"] .vote-count.voted {
+    color: #ffffff;
+}
+
+.portfolio-icon,
+.share-icon {
+    width: 56rpx;
+    height: 56rpx;
+    filter: var(--app-post-action-icon-filter, none);
+    opacity: var(--app-post-action-icon-opacity, 1);
+}
+
+.comment-section {
+    margin-top: 0;
 }
 
 </style>

@@ -67,9 +67,13 @@
         <view class="post-item">
           <view
             v-if="displayContent"
-            :class="['post-content', expanded ? 'expanded' : 'collapsed', !expanded && safeHighlightLines.length === 0 ? 'no-highlight' : '']"
+            :class="['post-content', expanded ? 'expanded' : 'collapsed', !expanded && collapsedPreviewLines.length === 0 && safeHighlightLines.length === 0 ? 'no-highlight' : '']"
             :style="{ color: safeTextColor, whiteSpace: 'pre-wrap' }"
-          ><block v-if="expanded">{{ displayContent }}</block><block v-else><block v-if="safeHighlightLines.length > 0"><text
+          ><block v-if="expanded">{{ displayContent }}</block><block v-else><block v-if="collapsedPreviewLines.length > 0"><text
+                  v-for="(highlightLine, highlightIndex) in collapsedPreviewLines"
+                  :key="highlightIndex"
+                  class="highlight-line"
+                >{{ highlightLine }}</text></block><block v-else-if="safeHighlightLines.length > 0"><text
                   v-for="(highlightLine, highlightIndex) in safeHighlightLines"
                   :key="highlightIndex"
                   class="highlight-line"
@@ -137,6 +141,10 @@ export default {
     index: {
       type: Number,
       default: 0
+    },
+    collapsedMaxLines: {
+      type: Number,
+      default: 0
     }
   },
   data() {
@@ -185,6 +193,29 @@ export default {
         ? this.item.displayHighlightLines
         : normalizePoemDisplayLines(this.item && this.item.highlightLines);
       return rawLines.filter(line => (line || '').trim());
+    },
+    normalizedCollapsedMaxLines() {
+      const maxLines = Number(this.collapsedMaxLines);
+      return Number.isFinite(maxLines) && maxLines > 0 ? Math.floor(maxLines) : 0;
+    },
+    collapsedPreviewLines() {
+      const maxLines = this.normalizedCollapsedMaxLines;
+      if (maxLines <= 0 || this.expanded) return [];
+
+      const sourceLines = this.safeHighlightLines.length > 0
+        ? this.safeHighlightLines
+        : String(this.displayContent || '')
+          .split(/\r?\n/)
+          .map(line => line.trim())
+          .filter(Boolean);
+
+      const previewLines = sourceLines.slice(0, maxLines);
+      if (sourceLines.length > maxLines && previewLines.length > 0) {
+        const lastIndex = previewLines.length - 1;
+        const lastLine = String(previewLines[lastIndex] || '').trimEnd();
+        previewLines[lastIndex] = /(\.\.\.|…)$/.test(lastLine) ? lastLine : `${lastLine}...`;
+      }
+      return previewLines;
     },
     seriesPoems() {
       const rawSeries = Array.isArray(this.item && this.item.displaySeriesPoems) && this.item.displaySeriesPoems.length > 0

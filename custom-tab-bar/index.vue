@@ -230,6 +230,10 @@ export default {
   right: 0 !important;
   width: 100% !important;
   height: 120rpx !important;
+  height: calc(120rpx + constant(safe-area-inset-bottom)) !important;
+  height: calc(120rpx + env(safe-area-inset-bottom, var(--safe-area-inset-bottom, 0px))) !important;
+  padding-bottom: constant(safe-area-inset-bottom) !important;
+  padding-bottom: env(safe-area-inset-bottom, var(--safe-area-inset-bottom, 0px)) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;

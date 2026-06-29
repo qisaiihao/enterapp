@@ -150,6 +150,7 @@
           "path": "user-profile/user-profile",
           "style": {
             "usingComponents": {},
+            "navigationStyle": "custom",
             "navigationBarTitleText": "用户主页",
             "enablePullDownRefresh": true,
             "onReachBottomDistance": 50
@@ -261,9 +262,51 @@
           "path": "activity-list/activity-list",
           "style": {
             "usingComponents": {},
-            "navigationBarTitleText": "近期活动",
+            "navigationStyle": "custom",
             "enablePullDownRefresh": true,
             "onReachBottomDistance": 50
+          }
+        },
+        {
+          "path": "weekly-home/weekly-home",
+          "style": {
+            "usingComponents": {},
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "weekly-selection/weekly-selection",
+          "style": {
+            "usingComponents": {},
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "weekly-selection-detail/weekly-selection-detail",
+          "style": {
+            "usingComponents": {},
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "weekly-ranking/weekly-ranking",
+          "style": {
+            "usingComponents": {},
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "weekly-topic-submission/weekly-topic-submission",
+          "style": {
+            "usingComponents": {},
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "weekly-topic-detail/weekly-topic-detail",
+          "style": {
+            "usingComponents": {},
+            "navigationStyle": "custom"
           }
         },
         {
@@ -500,6 +543,24 @@
           "path": "activity-editor/activity-editor",
           "style": {
             "navigationBarTitleText": "编辑活动",
+            "backgroundColor": "#f5f5f5",
+            "usingComponents": {}
+          }
+        },
+        {
+          "path": "activity-notice-management/activity-notice-management",
+          "style": {
+            "navigationBarTitleText": "活动公告",
+            "backgroundColor": "#f5f5f5",
+            "enablePullDownRefresh": true,
+            "onReachBottomDistance": 50,
+            "usingComponents": {}
+          }
+        },
+        {
+          "path": "weekly-management/weekly-management",
+          "style": {
+            "navigationStyle": "custom",
             "backgroundColor": "#f5f5f5",
             "usingComponents": {}
           }

@@ -11,6 +11,7 @@ function collectCloudIdsFromPost(post) {
     if (typeof v === 'string' && v.startsWith('cloud://')) out.push(v); 
   };
   pushIfCloud(post.imageUrl);
+  pushIfCloud(post.coverImage);
   pushIfCloud(post.originalImageUrl);
   pushIfCloud(post.authorAvatar);
   pushIfCloud(post.authorSignature);
@@ -37,6 +38,7 @@ export async function hydrateTempUrls(posts = []) {
   
   posts.forEach(p => {
     if (p.imageUrl) p.imageUrl = convert(p.imageUrl);
+    if (p.coverImage) p.coverImage = convert(p.coverImage);
     if (p.originalImageUrl) p.originalImageUrl = convert(p.originalImageUrl);
     if (p.authorAvatar) p.authorAvatar = convert(p.authorAvatar);
     if (p.authorSignature) p.authorSignature = convert(p.authorSignature);

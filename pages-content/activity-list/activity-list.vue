@@ -1,46 +1,37 @@
 <template>
-  <view class="activity-list-page">
-    <view v-if="loading && activities.length === 0" class="state-box">
-      <text class="state-text">加载中...</text>
+  <view class="activity-list-page" :style="pageInlineStyle">
+    <view class="custom-activity-header">
+      <view class="activity-back-btn" @tap="goBack">
+        <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
+      </view>
+      <text class="activity-header-title">全部活动</text>
     </view>
 
-    <view v-else-if="activities.length === 0" class="state-box">
-      <text class="state-title">暂无近期活动</text>
-      <text class="state-subtitle">这里会展示进行中和近30天结束的活动</text>
-    </view>
+    <activity-notice-carousel :notices="displayNoticeItems" />
 
-    <view v-else class="activity-list">
-      <view
-        v-for="item in activities"
-        :key="item._id"
-        class="activity-card"
-        @tap="openActivity(item)"
-      >
-        <image
-          v-if="item.coverImage"
-          class="activity-cover"
-          :src="item.coverImage"
-          mode="aspectFill"
+    <activity-category-bar
+      :categories="activityCategories"
+      :active-value="activeCategory"
+      @change="handleCategoryChange"
+    />
+
+    <view class="content-area">
+      <view v-if="loading && activities.length === 0" class="state-box">
+        <text class="state-text">加载中...</text>
+      </view>
+
+      <view v-else-if="activities.length === 0" class="state-box">
+        <text class="state-title">暂无近期活动</text>
+        <text class="state-subtitle">这里会展示进行中和近期结束的活动</text>
+      </view>
+
+      <view v-else class="activity-list">
+        <activity-poster-card
+          v-for="item in activities"
+          :key="item._id"
+          :item="item"
+          @select="openActivity"
         />
-        <view v-else class="activity-cover placeholder">
-          <text class="placeholder-text">活动</text>
-        </view>
-
-        <view class="activity-content">
-          <view class="title-row">
-            <text class="activity-title">{{ item.title }}</text>
-            <text :class="['status-tag', isOngoing(item) ? 'ongoing' : 'ended']">
-              {{ isOngoing(item) ? '进行中' : '已结束' }}
-            </text>
-          </view>
-
-          <text v-if="item.summary" class="activity-summary">{{ item.summary }}</text>
-
-          <view class="meta-row">
-            <text class="meta-text">{{ formatRange(item.startTime, item.endTime) }}</text>
-            <text class="meta-text">{{ getDisplayPostCount(item) }} 帖</text>
-          </view>
-        </view>
       </view>
     </view>
 
@@ -54,14 +45,20 @@
 </template>
 
 <script>
+import ActivityCategoryBar from '@/components/activity/ActivityCategoryBar.vue';
+import ActivityNoticeCarousel from '@/components/activity/ActivityNoticeCarousel.vue';
+import ActivityPosterCard from '@/components/activity/ActivityPosterCard.vue';
+import { getActivityNotices, invalidateActivityNotices } from '@/api-cache/activity-notices.js';
 import { getRecentActivities, invalidateRecentActivities } from '@/api-cache/activities.js';
 import activityBadge from '@/cache/stores/activity-badge.js';
-import {
-  isActivityOngoing,
-  formatRange as formatActivityRange
-} from '@/utils/activity.js';
+import { getSystemInfoCompat } from '@/utils/system-info.js';
 
 export default {
+  components: {
+    ActivityCategoryBar,
+    ActivityNoticeCarousel,
+    ActivityPosterCard
+  },
   data() {
     return {
       activities: [],
@@ -69,10 +66,51 @@ export default {
       pageSize: 10,
       hasMore: true,
       loading: false,
-      loadingMore: false
+      loadingMore: false,
+      pageInlineStyle: {},
+      activeCategory: 'publish',
+      noticeItems: [],
+      defaultNoticeItems: [
+        {
+          value: 'cooperation',
+          kicker: '合作联系',
+          title: '活动与出版合作',
+          summary: '诗社联名、征稿共创、刊物推荐开放联系',
+          mark: '合',
+          tone: 'cooperation'
+        },
+        {
+          value: 'weekly',
+          kicker: '周刊上新',
+          title: '本周诗歌周刊',
+          summary: '新一期精选内容整理中，敬请期待',
+          mark: '刊',
+          tone: 'weekly'
+        },
+        {
+          value: 'market',
+          kicker: '商城上新',
+          title: '出版与周边预告',
+          summary: '刊物、诗集与周边商品后续将在这里通知',
+          mark: '新',
+          tone: 'market'
+        }
+      ],
+      activityCategories: [
+        { value: 'weekly', label: '周刊' },
+        { value: 'campus', label: '高校诗社' },
+        { value: 'market', label: '商城' },
+        { value: 'publish', label: '出版？暂没想到' }
+      ]
     };
   },
+  computed: {
+    displayNoticeItems() {
+      return this.noticeItems.length > 0 ? this.noticeItems : this.defaultNoticeItems;
+    }
+  },
   onLoad() {
+    this.setupHeaderLayout();
     try { activityBadge.markActivitySeen(); } catch (_) {}
     this.refresh();
   },
@@ -83,12 +121,68 @@ export default {
     this.loadMore();
   },
   methods: {
+    setupHeaderLayout() {
+      try {
+        const systemInfo = getSystemInfoCompat();
+        let safeAreaTop = 0;
+
+        if (systemInfo.safeAreaInsets && systemInfo.safeAreaInsets.top > 0) {
+          safeAreaTop = systemInfo.safeAreaInsets.top;
+        } else if (systemInfo.statusBarHeight) {
+          safeAreaTop = systemInfo.statusBarHeight;
+        }
+
+        if (safeAreaTop > 0) {
+          this.pageInlineStyle = {
+            '--activity-safe-area-top': `${safeAreaTop}px`
+          };
+        }
+      } catch (error) {
+        console.warn('[activity-list] setup header layout failed:', error);
+      }
+    },
+
+    goBack() {
+      try {
+        const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : [];
+        if (pages && pages.length > 1) {
+          uni.navigateBack({
+            delta: 1,
+            fail: () => {
+              uni.switchTab({ url: '/pages/poem-square/poem-square' });
+            }
+          });
+          return;
+        }
+      } catch (_) {}
+
+      uni.switchTab({ url: '/pages/poem-square/poem-square' });
+    },
+
     async refresh(fromPullDown = false) {
       invalidateRecentActivities();
+      invalidateActivityNotices();
       this.page = 0;
       this.hasMore = true;
       this.activities = [];
+      this.fetchNotices(true);
       await this.fetchActivities({ refresh: true, fromPullDown });
+    },
+
+    async fetchNotices(forceRefresh = false) {
+      try {
+        const result = await getActivityNotices({
+          limit: 6,
+          context: this,
+          forceRefresh
+        });
+        const notices = Array.isArray(result && result.notices) ? result.notices : [];
+        if (notices.length > 0) {
+          this.noticeItems = notices;
+        }
+      } catch (error) {
+        console.warn('[activity-list] load notices failed:', error);
+      }
     },
 
     async loadMore() {
@@ -138,7 +232,18 @@ export default {
       }
     },
 
+    handleCategoryChange(value) {
+      if (value === 'weekly') {
+        uni.navigateTo({
+          url: '/pages-content/weekly-home/weekly-home'
+        });
+        return;
+      }
+      this.activeCategory = value;
+    },
+
     openActivity(item) {
+      if (!item) return;
       const query = [
         `activityId=${encodeURIComponent(item._id || '')}`,
         `title=${encodeURIComponent(item.title || '')}`,
@@ -152,15 +257,6 @@ export default {
       uni.navigateTo({
         url: `/pages-content/activity-detail/activity-detail?${query}`
       });
-    },
-
-    isOngoing(item) {
-      if (typeof item.isOngoing === 'boolean') return item.isOngoing;
-      return isActivityOngoing(item && item.startTime, item && item.endTime);
-    },
-
-    formatRange(startTime, endTime) {
-      return formatActivityRange(startTime, endTime);
     },
 
     getDisplayPostCount(item) {
@@ -179,14 +275,68 @@ export default {
 <style scoped>
 .activity-list-page {
   min-height: 100vh;
-  background: var(--app-page-bg, #f5f6f8);
-  padding: 24rpx;
+  background: var(--app-page-bg, #ffffff);
+  padding: 0 0 24rpx;
   box-sizing: border-box;
   color: var(--app-primary-text, #333);
 }
 
+.custom-activity-header {
+  position: relative;
+  height: calc(var(--activity-safe-area-top, 0px) + 88rpx);
+  padding-top: var(--activity-safe-area-top, 0px);
+  background: var(--app-surface-bg, #ffffff);
+  box-sizing: border-box;
+}
+
+.activity-back-btn {
+  position: absolute;
+  left: 30rpx;
+  bottom: 16rpx;
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  z-index: 2;
+  transition: transform 0.2s ease;
+}
+
+.activity-back-btn:active {
+  transform: scale(0.95);
+}
+
+.back-icon {
+  width: 22rpx;
+  height: 38rpx;
+  display: block;
+  filter: var(--app-icon-filter, none);
+}
+
+.activity-header-title {
+  position: absolute;
+  left: 120rpx;
+  right: 120rpx;
+  bottom: 24rpx;
+  font-size: 30rpx;
+  line-height: 40rpx;
+  font-weight: 600;
+  color: var(--app-primary-text, #000000);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.content-area {
+  margin-top: 38rpx;
+  padding: 0 24rpx;
+  box-sizing: border-box;
+}
+
 .state-box {
-  padding: 140rpx 40rpx;
+  padding: 120rpx 40rpx;
   text-align: center;
   color: var(--app-muted-text, #999);
 }
@@ -206,86 +356,7 @@ export default {
 .activity-list {
   display: flex;
   flex-direction: column;
-  gap: 20rpx;
-}
-
-.activity-card {
-  background: var(--app-surface-bg, #fff);
-  border-radius: 20rpx;
-  overflow: hidden;
-  box-shadow: var(--app-surface-shadow, 0 8rpx 24rpx rgba(0, 0, 0, 0.05));
-  border: var(--app-surface-border-line, none);
-}
-
-.activity-cover {
-  width: 100%;
-  height: 260rpx;
-  background: var(--app-subtle-surface-bg, #eceff3);
-}
-
-.activity-cover.placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.placeholder-text {
-  font-size: 36rpx;
-  color: var(--app-muted-text, #9aa3ad);
-}
-
-.activity-content {
-  padding: 24rpx;
-}
-
-.title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16rpx;
-}
-
-.activity-title {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: var(--app-primary-text, #222);
-  flex: 1;
-}
-
-.status-tag {
-  font-size: 22rpx;
-  padding: 6rpx 14rpx;
-  border-radius: 999rpx;
-}
-
-.status-tag.ongoing {
-  background: #e8f8ef;
-  color: #1f9d55;
-}
-
-.status-tag.ended {
-  background: var(--app-subtle-surface-bg, #f2f4f7);
-  color: var(--app-secondary-text, #667085);
-}
-
-.activity-summary {
-  display: block;
-  margin-top: 14rpx;
-  font-size: 26rpx;
-  color: var(--app-secondary-text, #666);
-  line-height: 1.5;
-}
-
-.meta-row {
-  margin-top: 16rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.meta-text {
-  font-size: 24rpx;
-  color: var(--app-muted-text, #8a8a8a);
+  gap: 48rpx;
 }
 
 .footer-tip {

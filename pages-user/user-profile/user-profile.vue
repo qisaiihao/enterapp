@@ -15,7 +15,14 @@
         </view>
 
         <!-- 主要内容 -->
-        <view v-else class="main-content" :class="{ 'main-content--with-background': hasAppBackground }">
+        <view
+            v-else
+            class="main-content"
+            :class="{
+                'main-content--with-background': isFullBackground,
+                'main-content--header-background': isHeaderBackground
+            }"
+        >
             <!-- User Profile Card -->
             <view
                 class="profile-hero-section"
@@ -24,6 +31,9 @@
             >
                 <view v-if="isHeaderBackground" class="profile-hero-bg-image"></view>
                 <view v-if="isHeaderBackground" class="profile-hero-bg-overlay"></view>
+                <view class="profile-back-btn" @tap="navigateBack">
+                    <text class="profile-back-icon">‹</text>
+                </view>
             <view class="profile-card profile-card-center">
                 <view v-if="userInfo && userInfo.showGrowthStats === true" class="profile-growth-stats">
                     <view class="growth-item">
@@ -86,10 +96,17 @@
 
             <!-- 切换栏：帖子 / 作品集 / 收藏 -->
             </view>
-            <view class="profile-body-shell" :class="{ 'profile-body-shell--with-background': hasAppBackground }">
+            <view v-if="isHeaderBackground" class="profile-body-shell-cap"></view>
+            <view
+                class="profile-body-shell"
+                :class="{
+                    'profile-body-shell--header-background': isHeaderBackground,
+                    'profile-body-shell--full-background': isFullBackground
+                }"
+            >
             <view class="tab-navigation">
                 <view :class="'tab-item ' + (currentTab === 'posts' ? 'active' : '')" data-tab="posts" @tap="switchTab">
-                    <image class="tab-icon" src="/static/images/my_posts.png" mode="aspectFit"></image>
+                    <image class="tab-icon tab-icon--writing" src="/static/images/writing.png" mode="aspectFit"></image>
                 </view>
                 <view :class="'tab-item ' + (currentTab === 'portfolio' ? 'active' : '')" data-tab="portfolio" @tap="switchTab">
                     <image class="tab-icon" src="/static/images/newicons/library.png" mode="aspectFit"></image>
@@ -102,88 +119,25 @@
             <!-- 他人帖子（与个人主页一致的样式） -->
             <view class="my-posts-section" v-if="currentTab === 'posts'">
                 <block v-if="userPosts.length > 0">
-                    <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" v-for="(item, index) in userPosts" :key="index">
-                        <view class="author-info-outside">
-                            <image
-                                class="author-avatar"
-                                :src="getPostAvatar(item)"
-                                mode="aspectFill"
-                                @error="onAvatarError"
-                                :data-postindex="index"
-                                @tap.stop.prevent="navigateToUserProfile"
-                                :data-user-id="item._openid"
-                            ></image>
-                            <text class="author-name">{{ item.authorName }}</text>
-                        </view>
-
-                        <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item._id" hover-class="navigator-hover">
-                            <view class="post-item">
-                                <view class="post-title">{{ item.title }}</view>
-                                <view
-                                    v-if="item.imageUrls && item.imageUrls.length > 0"
-                                    class="image-container-wrapper"
-                                    :style="item.imageStyle"
-                                    @tap.stop.prevent="handlePreview"
-                                    :data-src="item.imageUrls[0]"
-                                    :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                >
-                                    <block v-if="item.imageUrls.length === 1">
-                                        <image
-                                            :id="'single-image-' + item._id"
-                                            class="post-image"
-                                            :src="item.imageUrls[0]"
-                                            mode="aspectFill"
-                                            :lazy-load="true"
-                                            @error="onImageError"
-                                            @load="onImageLoad"
-                                            :data-postid="item._id"
-                                            :data-postindex="index"
-                                            data-imgindex="0"
-                                            data-type="single"
-                                        />
-                                    </block>
-                                    <block v-else-if="item.imageUrls.length > 1">
-                                        <swiper
-                                            :id="'swiper-' + item._id"
-                                            class="image-swiper"
-                                            :indicator-dots="true"
-                                            :circular="true"
-                                            :style="'height: ' + (swiperHeights[index] ? swiperHeights[index] + 'px' : '220px') + ';'"
-                                        >
-                                            <block v-for="(img, imgindex) in item.imageUrls" :key="imgindex">
-                                                <swiper-item>
-                                                    <image
-                                                        class="post-image"
-                                                        :src="img"
-                                                        mode="aspectFill"
-                                                        :lazy-load="true"
-                                                        @error="onImageError"
-                                                        @load="onImageLoad"
-                                                        @tap.stop.prevent="handlePreview"
-                                                        :data-src="img"
-                                                        :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                                        :data-postid="item._id"
-                                                        :data-postindex="index"
-                                                        :data-imgindex="imgindex"
-                                                        data-type="multi"
-                                                    />
-                                                </swiper-item>
-                                            </block>
-                                        </swiper>
-                                    </block>
-                                </view>
-                                <view class="post-content" v-if="item.content" style="white-space: pre-wrap">{{ item.content }}</view>
-                                <view v-if="item.tags && item.tags.length > 0" class="post-tags">
-                                    <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="item" v-for="(item, index1) in item.tags" :key="index1">#{{ item }}</text>
-                                </view>
-                            </view>
-                        </navigator>
-                        <view class="delete-section">
-                            <view class="time-left">
-                                <text class="post-time">发布于{{ item.formattedCreateTime || '未知时间' }}</text>
-                            </view>
-                        </view>
-                    </view>
+                    <PostItem
+                        v-for="(item, index) in userPosts"
+                        :key="item._id || index"
+                        :item="item"
+                        :index="index"
+                        :swiper-height="swiperHeights[item._id] || swiperHeights[index]"
+                        :show-menu="false"
+                        :show-poem-author="false"
+                        :profile-preview="true"
+                        time-label="发布于"
+                        time-field="formattedCreateTime"
+                        @avatar-error="onAvatarError"
+                        @avatar-load="onAvatarLoad"
+                        @navigate-to-user="handleNavigateToUser"
+                        @preview-image="handlePreview"
+                        @image-error="onImageError"
+                        @image-load="onImageLoad"
+                        @tag-click="onTagClick"
+                    />
                     <view class="loading-footer">
                         <block v-if="!hasMore && userPosts.length > 0">
                             <text>--- 我是有底线的 ---</text>
@@ -230,78 +184,25 @@
             <!-- 他人收藏 -->
             <view class="favorites-section" v-if="currentTab === 'favorites'">
                 <block v-if="favoriteList.length > 0">
-                    <view :class="'post-item-wrapper'" v-for="(item, index) in favoriteList" :key="index">
-                        <view class="author-info-outside">
-                            <image
-                                class="author-avatar"
-                                :src="getPostAvatar(item)"
-                                mode="aspectFill"
-                                @error="onAvatarError"
-                                :data-postindex="index"
-                                @tap.stop.prevent="navigateToUserProfile"
-                                :data-user-id="item._openid"
-                            ></image>
-                            <text class="author-name">{{ item.authorName }}</text>
-                        </view>
-
-                        <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item.postId" hover-class="navigator-hover">
-                            <view class="post-item">
-                                <view class="post-title">{{ item.title }}</view>
-                                <view
-                                    v-if="item.imageUrls && item.imageUrls.length > 0"
-                                    class="image-container-wrapper"
-                                    :style="item.imageStyle"
-                                    @tap.stop.prevent="handlePreview"
-                                    :data-src="item.imageUrls[0]"
-                                    :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                >
-                                    <block v-if="item.imageUrls.length === 1">
-                                        <image
-                                            class="post-image"
-                                            :src="item.imageUrls[0]"
-                                            mode="aspectFill"
-                                            :lazy-load="true"
-                                            @error="onImageError"
-                                            @load="onImageLoad"
-                                        />
-                                    </block>
-                                    <block v-else-if="item.imageUrls.length > 1">
-                                        <swiper
-                                            class="image-swiper"
-                                            :indicator-dots="true"
-                                            :circular="true"
-                                            :style="'height: 220px;'"
-                                        >
-                                            <block v-for="(img, imgindex) in item.imageUrls" :key="imgindex">
-                                                <swiper-item>
-                                                    <image
-                                                        class="post-image"
-                                                        :src="img"
-                                                        mode="aspectFill"
-                                                        :lazy-load="true"
-                                                        @error="onImageError"
-                                                        @load="onImageLoad"
-                                                        @tap.stop.prevent="handlePreview"
-                                                        :data-src="img"
-                                                        :data-original-image-urls="item.originalImageUrls || item.imageUrls"
-                                                    />
-                                                </swiper-item>
-                                            </block>
-                                        </swiper>
-                                    </block>
-                                </view>
-                                <view class="post-content" v-if="item.content" style="white-space: pre-wrap">{{ item.content }}</view>
-                                <view v-if="item.tags && item.tags.length > 0" class="post-tags">
-                                    <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="item" v-for="(item, index1) in item.tags" :key="index1">#{{ item }}</text>
-                                </view>
-                            </view>
-                        </navigator>
-                        <view class="delete-section">
-                            <view class="time-left">
-                                <text class="post-time">收藏于{{ item.formattedFavoriteTime || '未知时间' }}</text>
-                            </view>
-                        </view>
-                    </view>
+                    <PostItem
+                        v-for="(item, index) in favoriteList"
+                        :key="item._id || item.postId || index"
+                        :item="item"
+                        :index="index"
+                        :swiper-height="swiperHeights[item._id] || swiperHeights[index]"
+                        :show-menu="false"
+                        :show-poem-author="true"
+                        :profile-preview="true"
+                        time-label="收藏于"
+                        time-field="formattedFavoriteTime"
+                        @avatar-error="onAvatarError"
+                        @avatar-load="onAvatarLoad"
+                        @navigate-to-user="handleNavigateToUser"
+                        @preview-image="handlePreview"
+                        @image-error="onImageError"
+                        @image-load="onImageLoad"
+                        @tag-click="onTagClick"
+                    />
                     <view class="loading-footer">
                         <block v-if="!favoriteHasMore && favoriteList.length > 0">
                             <text>--- 我是有底线的 ---</text>
@@ -431,6 +332,7 @@ import { extractGrowthStats } from '@/utils/growthStats.js';
 import skeleton from '@/components/skeleton/skeleton';
 import TimelineView from '@/components/TimelineView.vue';
 import PortfolioBook from '@/components/PortfolioBook.vue';
+import PostItem from '@/components/PostItem.vue';
 import { normalizeAppBackgroundMode, normalizeAppBackgroundUrl } from '@/utils/appBackground.js';
 import { resolvePostAuthorAvatar, resolveUserObjectAvatar } from '@/utils/defaultAvatar.js';
 import {
@@ -448,7 +350,51 @@ import fileUrlCache from '../../_utils/file-url-cache.js';
 import { invalidateHomePosts } from '../../api-cache/home-posts.js';
 import { clearDiscoverCache } from '../../api-cache/discover.js';
 const PAGE_SIZE = 5;
+const USER_PROFILE_FULL_BACKGROUND_THEME_VARS = Object.freeze({
+    '--app-post-wrapper-bg': 'linear-gradient(90deg, rgba(235, 200, 141, 0.05) 0%, rgba(255, 255, 255, 0) 100%)',
+    '--app-post-wrapper-shadow': '0 8rpx 24rpx rgba(0, 0, 0, 0.10)',
+    '--app-post-wrapper-radius': '20rpx',
+    '--app-post-section-bg': 'transparent',
+    '--app-subtle-surface-bg': 'rgba(255, 255, 255, 0.58)',
+    '--app-surface-bg': 'transparent',
+    '--app-surface-divider': 'rgba(17, 17, 17, 0.18)',
+    '--app-surface-shadow': '0 8rpx 24rpx rgba(0, 0, 0, 0.08)',
+    '--app-surface-border-line': '1rpx solid rgba(255, 255, 255, 0.30)',
+    '--app-surface-title-color': 'rgba(17, 17, 17, 0.96)',
+    '--app-surface-text-color': 'rgba(17, 17, 17, 0.84)',
+    '--app-surface-meta-color': 'rgba(17, 17, 17, 0.70)',
+    '--app-surface-accent-color': '#6f8065',
+    '--app-post-author-color': 'rgba(17, 17, 17, 0.92)',
+    '--app-post-title-color': 'rgba(17, 17, 17, 0.98)',
+    '--app-post-content-color': 'rgba(17, 17, 17, 0.86)',
+    '--app-post-time-color': 'rgba(17, 17, 17, 0.70)',
+    '--app-post-poem-author-color': 'rgba(17, 17, 17, 0.92)',
+    '--app-post-menu-dot-color': 'rgba(17, 17, 17, 0.50)',
+    '--profile-poemid-color': 'rgba(17, 17, 17, 0.70)',
+    '--profile-meta-color': 'rgba(17, 17, 17, 0.74)',
+    '--profile-name-color': 'rgba(17, 17, 17, 0.98)',
+    '--profile-bio-color': 'rgba(17, 17, 17, 0.92)',
+    '--profile-tab-nav-bg': 'transparent',
+    '--profile-tab-nav-border': 'transparent',
+    '--profile-tab-nav-shadow': 'none',
+    '--profile-tab-item-bg': 'transparent',
+    '--profile-tab-item-active-bg': 'transparent',
+    '--profile-tab-indicator-color': 'rgba(17, 17, 17, 0.88)',
+    '--profile-tab-icon-filter': 'grayscale(0.35) brightness(0.60)',
+    '--profile-tab-icon-opacity': '0.96',
+    '--profile-tab-icon-active-filter': 'grayscale(0) brightness(0.98) contrast(1.02)',
+    '--profile-tab-icon-active-opacity': '1',
+    '--profile-empty-surface-bg': 'rgba(255, 255, 255, 0.72)',
+    '--profile-empty-surface-border': '1rpx solid rgba(255, 255, 255, 0.30)',
+    '--profile-empty-surface-shadow': '0 8rpx 24rpx rgba(0, 0, 0, 0.08)',
+    '--profile-empty-text-color': 'rgba(17, 17, 17, 0.70)',
+    '--profile-loading-footer-color': 'rgba(17, 17, 17, 0.70)'
+});
 const USER_PROFILE_BACKGROUND_THEME_VARS = Object.freeze({
+    '--profile-poemid-color': 'rgba(255, 255, 255, 0.76)',
+    '--profile-meta-color': 'rgba(255, 255, 255, 0.82)',
+    '--profile-name-color': '#ffffff',
+    '--profile-bio-color': 'rgba(255, 255, 255, 0.92)',
     '--user-profile-name-color': '#ffffff',
     '--user-profile-poemid-color': 'rgba(255, 255, 255, 0.78)',
     '--user-profile-bio-color': 'rgba(255, 255, 255, 0.92)',
@@ -472,7 +418,8 @@ export default {
     components: {
         skeleton,
         TimelineView,
-        PortfolioBook
+        PortfolioBook,
+        PostItem
     },
     mixins: [postGalleryMixin],
     data() {
@@ -565,18 +512,17 @@ export default {
                 return {};
             }
             return {
+                ...USER_PROFILE_FULL_BACKGROUND_THEME_VARS,
                 '--user-profile-background-image': `url("${escapeCssUrl(this.resolvedAppBackgroundUrl)}")`
             };
         },
         profileHeroStyle() {
-            if (!this.hasAppBackground) {
-                return {};
-            }
-            const style = { ...USER_PROFILE_BACKGROUND_THEME_VARS };
-            if (this.isHeaderBackground) {
-                style['--user-profile-background-image'] = `url("${escapeCssUrl(this.resolvedAppBackgroundUrl)}")`;
-            }
-            return style;
+            return this.isHeaderBackground
+                ? {
+                    ...USER_PROFILE_BACKGROUND_THEME_VARS,
+                    '--user-profile-background-image': `url("${escapeCssUrl(this.resolvedAppBackgroundUrl)}")`
+                }
+                : {};
         }
     },
     onLoad: function (options) {
@@ -644,6 +590,62 @@ export default {
         getPostAvatar(post = {}) {
             return resolvePostAuthorAvatar(post);
         },
+        normalizeDisplayText(value) {
+            if (value === undefined || value === null) {
+                return '';
+            }
+            return String(value).trim();
+        },
+        isGeneratedDiscussionTitle(title) {
+            const normalizedTitle = this.normalizeDisplayText(title);
+            return /^关于[「"][\s\S]+[」"]的讨论$/.test(normalizedTitle) || /^关于[\s\S]+的讨论$/.test(normalizedTitle);
+        },
+        isTitleDuplicatedByContent(title, content) {
+            const normalizedTitle = this.normalizeDisplayText(title);
+            const normalizedContent = this.normalizeDisplayText(content);
+            if (!normalizedTitle || !normalizedContent) {
+                return false;
+            }
+            const firstLine = this.normalizeDisplayText(normalizedContent.split(/\r?\n/).find(line => this.normalizeDisplayText(line)) || '');
+            return normalizedTitle === firstLine;
+        },
+        normalizePostListDisplayFields(post = {}) {
+            const nextPost = { ...post };
+            nextPost.title = this.normalizeDisplayText(nextPost.title);
+            nextPost.content = this.normalizeDisplayText(nextPost.content);
+            if (nextPost.isDiscussion && this.isGeneratedDiscussionTitle(nextPost.title)) {
+                nextPost.title = '';
+            }
+            if (nextPost.isPoem && this.isTitleDuplicatedByContent(nextPost.title, nextPost.content)) {
+                nextPost.title = '';
+            }
+            return nextPost;
+        },
+        formatPostsForDisplay: function (posts = [], currentUserInfo = {}, openid = '') {
+            return (posts || []).map((post = {}) => {
+                const nextPost = this.normalizePostListDisplayFields(post);
+                if (nextPost.createTime) {
+                    nextPost.formattedCreateTime = this.formatTime(nextPost.createTime);
+                }
+                if (nextPost.imageUrls && nextPost.imageUrls.length > 0) {
+                    nextPost.imageStyle = 'height: 0; padding-bottom: 75%;';
+                }
+                if (!nextPost._openid && openid) {
+                    nextPost._openid = openid;
+                }
+                if (currentUserInfo.nickName) {
+                    nextPost.authorName = currentUserInfo.nickName;
+                } else if (!nextPost.authorName || !String(nextPost.authorName).trim()) {
+                    nextPost.authorName = nextPost.authorNameSnapshot || '';
+                }
+                if (currentUserInfo.avatarUrl) {
+                    nextPost.authorAvatar = currentUserInfo.avatarUrl;
+                } else if (!nextPost.authorAvatar || !String(nextPost.authorAvatar).trim()) {
+                    nextPost.authorAvatar = resolvePostAuthorAvatar(nextPost);
+                }
+                return nextPost;
+            });
+        },
         // 标签切换（他人主页）
         switchTab: function (e) {
             const tab = e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.tab;
@@ -686,6 +688,7 @@ export default {
                 posts = await hydrateTempUrls(posts);
                 warmTempUrlsFromPosts(posts);
 
+                posts = this.formatPostsForDisplay(posts, userInfo, this.targetUserId);
                 const growthStats = extractGrowthStats(userInfo, posts);
                 const normalizedPortfolios = await this.transformPortfolioList(portfolios);
                 this.setData({
@@ -733,6 +736,7 @@ export default {
                     warmTempUrlsFromPosts(posts);
                     
                     // 处理分页数据，避免重复
+                    posts = this.formatPostsForDisplay(posts, this.userInfo, this.targetUserId);
                     const existingIds = new Set(this.userPosts.map(p => p._id));
                     const uniqueNewList = posts.filter(p => p && p._id && !existingIds.has(p._id));
                     const newPosts = this.userPosts.concat(uniqueNewList);
@@ -1045,6 +1049,41 @@ export default {
             return previewImage(event, { fallbackToast: false });
         },
 
+        onAvatarLoad: function () {
+        },
+
+        navigateBack: function () {
+            const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : [];
+            if (pages.length > 1) {
+                uni.navigateBack();
+                return;
+            }
+            uni.switchTab({
+                url: '/pages/index/index',
+                fail: () => {
+                    uni.reLaunch({ url: '/pages/index/index' });
+                }
+            });
+        },
+
+        handleNavigateToUser: function (payload = {}) {
+            if (payload.isAnonymous) {
+                uni.showToast({ title: '匿名用户不可查看主页', icon: 'none' });
+                return;
+            }
+            const userId = payload.userId || payload._openid || '';
+            if (!userId) {
+                uni.showToast({ title: '用户ID缺失', icon: 'none' });
+                return;
+            }
+            if (userId === this.targetUserId) {
+                return;
+            }
+            uni.navigateTo({
+                url: `/pages-user/user-profile/user-profile?userId=${encodeURIComponent(userId)}`
+            });
+        },
+
         // 图片加载处理
         // 格式化时间
         formatTime: function (dateString) {
@@ -1232,10 +1271,11 @@ export default {
                 .then(async (favorites) => {
                     // 将 { postId, favoriteTime, post: {...} } 规范化为贴合模板的数据结构
                     let normalized = (favorites || []).map((fav) => {
-                        const post = fav && fav.post ? fav.post : {};
+                        const post = fav && fav.post ? fav.post : (fav || {});
                         const mapped = Object.assign({}, post, {
+                            _id: post._id || fav.postId,
                             postId: fav.postId,
-                            favoriteTime: fav.favoriteTime,
+                            favoriteTime: fav.favoriteTime || fav.createTime,
                             authorName: post.authorName || post.author || '',
                             authorAvatar: post.authorAvatar || '',
                             _openid: post._openid || '',
@@ -1247,7 +1287,7 @@ export default {
                         });
                         if (mapped.favoriteTime) mapped.formattedFavoriteTime = this.formatTime(mapped.favoriteTime);
                         if (mapped.imageUrls && mapped.imageUrls.length > 0) mapped.imageStyle = `height: 0; padding-bottom: 75%;`;
-                        return mapped;
+                        return this.normalizePostListDisplayFields(mapped);
                     });
 
                     // cloud:// 临时链接水合
@@ -1340,75 +1380,158 @@ export default {
     z-index: 1;
 }
 
-.container {
+.user-profile-page-root .container {
     min-height: 100vh;
     background-color: var(--app-page-bg, #ffffff);
     position: relative;
     z-index: 2;
 }
 
-.container--with-background {
+.user-profile-page-root .container--with-background {
     background-color: transparent;
 }
 
 /* Main Content */
-.main-content {
+.user-profile-page-root .main-content {
     width: 100%;
     min-height: 100vh;
     background-color: var(--app-page-bg, #ffffff);
 }
 
-.main-content--with-background {
+.user-profile-page-root .main-content--with-background {
     background-color: transparent;
+    --app-post-discussion-quote-bg: transparent;
+    --app-post-wrapper-margin: 0 24rpx 20rpx 24rpx;
+    --app-post-wrapper-border: none;
+    --app-post-wrapper-divider: none;
 }
 
-.profile-hero-section {
+.user-profile-page-root .main-content--header-background {
+    background-color: var(--app-page-bg, #ffffff);
+}
+
+.user-profile-page-root .main-content--with-background .profile-name-center,
+.user-profile-page-root .main-content--with-background .profile-poemid,
+.user-profile-page-root .main-content--with-background .profile-bio-center,
+.user-profile-page-root .main-content--with-background .profile-followers,
+.user-profile-page-root .main-content--with-background .growth-count {
+    text-shadow: 0 2rpx 12rpx rgba(255, 255, 255, 0.45);
+}
+
+.user-profile-page-root .profile-hero-section {
     position: relative;
     overflow: hidden;
 }
 
-.profile-hero-section--with-background {
-    min-height: 560rpx;
+.user-profile-page-root .profile-hero-section--with-background {
+    min-height: 0;
     background-color: #0f0f0f;
 }
 
-.profile-hero-bg-image,
-.profile-hero-bg-overlay {
+.user-profile-page-root .profile-hero-bg-image,
+.user-profile-page-root .profile-hero-bg-overlay {
     position: absolute;
     inset: 0;
     pointer-events: none;
 }
 
-.profile-hero-bg-image {
+.user-profile-page-root .profile-hero-bg-image {
     background-image: var(--user-profile-background-image);
     background-size: cover;
     background-position: center top;
     z-index: 0;
 }
 
-.profile-hero-bg-overlay {
+.user-profile-page-root .profile-hero-bg-overlay {
     background: linear-gradient(180deg, rgba(0, 0, 0, 0.18) 0%, rgba(0, 0, 0, 0.44) 100%);
     z-index: 1;
 }
 
-.profile-hero-section .profile-card-center {
+.user-profile-page-root .profile-hero-section .profile-card-center {
     position: relative;
     z-index: 2;
 }
 
-.profile-body-shell {
+.user-profile-page-root .profile-back-btn {
+    position: absolute;
+    top: calc(24rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
+    left: 24rpx;
+    z-index: 6;
+    width: 64rpx;
+    height: 64rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--user-profile-back-bg, rgba(0, 0, 0, 0.08));
+    color: var(--user-profile-back-color, #333333);
+    transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.user-profile-page-root .profile-back-btn:active {
+    transform: scale(0.94);
+    background: rgba(0, 0, 0, 0.16);
+}
+
+.user-profile-page-root .profile-hero-section--with-background .profile-back-btn {
+    background: rgba(0, 0, 0, 0.18);
+    color: #ffffff;
+}
+
+.user-profile-page-root .main-content--with-background .profile-back-btn {
+    background: rgba(0, 0, 0, 0.18);
+    color: #ffffff;
+}
+
+.user-profile-page-root .profile-back-icon {
+    font-size: 56rpx;
+    line-height: 56rpx;
+    transform: translateY(-2rpx);
+}
+
+.user-profile-page-root .profile-body-shell {
     width: 100%;
 }
 
-.profile-body-shell--with-background {
+.user-profile-page-root .profile-body-shell-cap {
+    position: relative;
+    height: 0;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.user-profile-page-root .profile-body-shell-cap::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 16rpx;
+    transform: translateY(-14rpx);
     background-color: var(--app-page-bg, #ffffff);
-    border-radius: 36rpx 36rpx 0 0;
-    padding-top: 24rpx;
-    box-shadow: 0 -10rpx 28rpx rgba(0, 0, 0, 0.04);
+    border-radius: 68rpx 68rpx 0 0;
+}
+
+.user-profile-page-root .profile-body-shell--header-background {
+    position: relative;
+    background-color: var(--app-page-bg, #ffffff);
+    margin-top: 0;
+    border-radius: 0;
+    padding-top: 0;
+    overflow: visible;
+    z-index: 2;
+}
+
+.user-profile-page-root .profile-body-shell--header-background .tab-item {
+    padding: 8rpx 10rpx 12rpx;
+}
+
+.user-profile-page-root .profile-body-shell--full-background {
+    background-color: transparent;
 }
 
 /* User Profile Card */
-.profile-card {
+.user-profile-page-root .profile-card {
     margin: 30rpx;
     padding: 40rpx;
     background-color: var(--profile-empty-surface-bg, var(--app-surface-bg, #fff));
@@ -1420,11 +1543,11 @@ export default {
     transition: box-shadow 0.2s ease;
 }
 
-.profile-card:active {
+.user-profile-page-root .profile-card:active {
     box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
 }
 
-.profile-card-center {
+.user-profile-page-root .profile-card-center {
     position: relative;
     margin: 0;
     padding: 40rpx 40rpx 20rpx 40rpx;
@@ -1438,21 +1561,21 @@ export default {
 }
 
 
-.profile-avatar-large {
+.user-profile-page-root .profile-avatar-large {
     display: flex;
     justify-content: center;
     align-items: center;
     margin: 70rpx 0 40rpx 0;
 }
 
-.profile-avatar-large image {
+.user-profile-page-root .profile-avatar-large image {
     width: 175rpx;
     height: 175rpx;
     border-radius: 50%;
     display: block;
 }
 
-.profile-info-center {
+.user-profile-page-root .profile-info-center {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -1460,7 +1583,7 @@ export default {
     width: 100%;
 }
 
-.profile-name-center {
+.user-profile-page-root .profile-name-center {
     font-family: 'Inter', sans-serif;
     font-weight: 600;
     font-size: 30rpx;
@@ -1470,7 +1593,7 @@ export default {
     text-align: left;
 }
 
-.profile-poemid {
+.user-profile-page-root .profile-poemid {
     font-family: 'Inter', sans-serif;
     font-weight: 300;
     font-size: 20rpx;
@@ -1479,7 +1602,7 @@ export default {
     margin-bottom: 20rpx;
 }
 
-.profile-bio-center {
+.user-profile-page-root .profile-bio-center {
     font-family: 'Inter', sans-serif;
     font-weight: 600;
     font-size: 24rpx;
@@ -1489,7 +1612,7 @@ export default {
     margin-bottom: 20rpx;
 }
 
-.profile-bottom-row {
+.user-profile-page-root .profile-bottom-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -1497,13 +1620,13 @@ export default {
     margin-bottom: 10rpx;
 }
 
-.profile-buttons {
+.user-profile-page-root .profile-buttons {
     display: flex;
     align-items: center;
     gap: 10rpx;
 }
 
-.profile-followers {
+.user-profile-page-root .profile-followers {
     font-family: 'Inter', sans-serif;
     font-weight: 400;
     font-size: 24rpx;
@@ -1511,7 +1634,7 @@ export default {
     color: var(--user-profile-meta-color, var(--profile-meta-color, #666666));
 }
 
-.follow-btn {
+.user-profile-page-root .follow-btn {
     padding: 0 28rpx;
     height: 60rpx;
     line-height: 60rpx;
@@ -1524,25 +1647,25 @@ export default {
     min-width: 96rpx;
 }
 
-.follow-btn.following {
+.user-profile-page-root .follow-btn.following {
     background-color: var(--app-subtle-surface-bg, #f0f0f0);
     color: var(--app-secondary-text, #666666);
 }
 
-.follow-btn.mutual {
+.user-profile-page-root .follow-btn.mutual {
     background-color: var(--app-subtle-surface-bg, #f0f0f0);
     color: var(--app-secondary-text, #666666);
 }
 
-.follow-btn::after {
+.user-profile-page-root .follow-btn::after {
     border: none;
 }
 
-.follow-btn[disabled] {
+.user-profile-page-root .follow-btn[disabled] {
     opacity: 0.7;
 }
 
-.block-btn {
+.user-profile-page-root .block-btn {
     padding: 0 28rpx;
     height: 60rpx;
     line-height: 60rpx;
@@ -1555,22 +1678,22 @@ export default {
     min-width: 96rpx;
 }
 
-.block-btn.blocked {
+.user-profile-page-root .block-btn.blocked {
     background-color: var(--user-profile-accent-pill-bg, rgba(255, 92, 92, 0.14));
     color: var(--user-profile-accent-pill-text, #ff6b6b);
     border: var(--user-profile-accent-pill-border, 1rpx solid rgba(255, 92, 92, 0.38));
 }
 
-.block-btn::after {
+.user-profile-page-root .block-btn::after {
     border: none;
 }
 
-.block-btn[disabled] {
+.user-profile-page-root .block-btn[disabled] {
     opacity: 0.7;
 }
 
 
-.mutual-indicator {
+.user-profile-page-root .mutual-indicator {
     padding: 8rpx 20rpx;
     border-radius: 20rpx;
     font-size: 22rpx;
@@ -1579,7 +1702,7 @@ export default {
     border: 1rpx solid var(--app-border-color, transparent);
 }
 
-.followed-indicator {
+.user-profile-page-root .followed-indicator {
     padding: 8rpx 20rpx;
     border-radius: 20rpx;
     font-size: 22rpx;
@@ -1589,11 +1712,11 @@ export default {
 }
 
 /* 帖子部分 */
-.posts-section {
+.user-profile-page-root .posts-section {
     margin: 20rpx 30rpx 30rpx 30rpx;
 }
 
-.section-title {
+.user-profile-page-root .section-title {
     font-size: 32rpx;
     font-weight: bold;
     color: var(--app-primary-text, #333);
@@ -1601,7 +1724,7 @@ export default {
     padding: 0 10rpx;
 }
 
-.post-card {
+.user-profile-page-root .post-card {
     background: var(--app-surface-bg, #fff);
     border-radius: 16rpx;
     box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
@@ -1611,16 +1734,16 @@ export default {
     transition: transform 0.2s ease;
 }
 
-.post-card:active {
+.user-profile-page-root .post-card:active {
     transform: translateY(2rpx);
     box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
 }
 
-.post-header {
+.user-profile-page-root .post-header {
     margin-bottom: 15rpx;
 }
 
-.post-title {
+.user-profile-page-root .post-title {
     font-size: 32rpx;
     font-weight: bold;
     color: var(--app-post-title-color, #333);
@@ -1635,19 +1758,19 @@ export default {
 }
 
 /* 图片容器 */
-.image-container {
+.user-profile-page-root .image-container {
     width: 100%;
     margin: 15rpx 0;
 }
 
-.image-swiper {
+.user-profile-page-root .image-swiper {
     width: 100%;
     background-color: var(--app-subtle-surface-bg, #fff);
     border-radius: 12rpx;
     overflow: hidden;
 }
 
-.post-image {
+.user-profile-page-root .post-image {
     width: 100%;
     height: 100%;
     display: block;
@@ -1655,7 +1778,7 @@ export default {
     border-radius: 12rpx;
 }
 
-.post-content {
+.user-profile-page-root .post-content {
     font-size: 28rpx;
     color: var(--app-post-content-color, #666);
     line-height: 1.5;
@@ -1669,7 +1792,7 @@ export default {
     -webkit-box-orient: vertical;
 }
 
-.post-footer {
+.user-profile-page-root .post-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -1678,23 +1801,23 @@ export default {
     border-top: 1rpx solid var(--app-border-color, #f0f0f0);
 }
 
-.post-stats {
+.user-profile-page-root .post-stats {
     display: flex;
     align-items: center;
     gap: 20rpx;
 }
 
-.stat-item {
+.user-profile-page-root .stat-item {
     font-size: 26rpx;
     color: var(--app-muted-text, #999);
 }
 
-.post-time {
+.user-profile-page-root .post-time {
     font-size: 24rpx;
     color: var(--app-muted-text, #ccc);
 }
 
-.empty-tip {
+.user-profile-page-root .empty-tip {
     text-align: center;
     color: var(--profile-empty-text-color, #bbb);
     font-size: 28rpx;
@@ -1707,15 +1830,16 @@ export default {
 }
 
 /* —— 与个人主页统一的切换栏与帖子展示样式 —— */
-.tab-navigation {
+.user-profile-page-root .tab-navigation {
     margin: 0 30rpx 20rpx 30rpx;
     display: flex;
     background: var(--profile-tab-nav-bg, #fff);
     border: 1rpx solid var(--profile-tab-nav-border, #fff);
     border-radius: 16rpx;
     overflow: hidden;
+    box-shadow: var(--profile-tab-nav-shadow, none);
 }
-.tab-item {
+.user-profile-page-root .tab-item {
     flex: 1;
     padding: 20rpx 10rpx;
     text-align: center;
@@ -1726,7 +1850,7 @@ export default {
     align-items: center;
     justify-content: center;
 }
-.tab-item.active::after {
+.user-profile-page-root .tab-item.active::after {
     content: '';
     position: absolute;
     bottom: 8rpx;
@@ -1737,39 +1861,75 @@ export default {
     background: var(--profile-tab-indicator-color, #333);
     border-radius: 3rpx;
 }
-.tab-item:active { background: var(--profile-tab-item-active-bg, #f5f5f5); }
-.tab-icon { width: 110rpx; height: 110rpx; filter: var(--profile-tab-icon-filter, grayscale(1) brightness(0.5)); opacity: var(--profile-tab-icon-opacity, 0.7); }
-.tab-item.active .tab-icon { filter: var(--profile-tab-icon-active-filter, grayscale(0) brightness(1)); opacity: var(--profile-tab-icon-active-opacity, 1); }
+.user-profile-page-root .tab-item:active { background: var(--profile-tab-item-active-bg, #f5f5f5); }
+.user-profile-page-root .tab-icon { width: 110rpx; height: 110rpx; filter: var(--profile-tab-icon-filter, grayscale(1) brightness(0.5)); opacity: var(--profile-tab-icon-opacity, 0.7); }
+.user-profile-page-root .tab-icon--writing { width: 76rpx; height: 76rpx; transform: translateY(0); }
+.user-profile-page-root .tab-item.active .tab-icon { filter: var(--profile-tab-icon-active-filter, grayscale(0) brightness(1)); opacity: var(--profile-tab-icon-active-opacity, 1); }
 
-.my-posts-section, .portfolio-section, .favorites-section { margin: 0 0 30rpx 0; }
+.user-profile-page-root .my-posts-section,
+.user-profile-page-root .portfolio-section,
+.user-profile-page-root .favorites-section { margin: 0 0 30rpx 0; }
+.user-profile-page-root .my-posts-section,
+.user-profile-page-root .favorites-section {
+    --app-post-wrapper-margin: 0 24rpx 24rpx 24rpx;
+    --app-post-wrapper-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
+    --app-post-wrapper-radius: 20rpx;
+    --app-post-wrapper-border: none;
+    --app-post-wrapper-divider: none;
+}
 
-.post-item-wrapper { background: var(--app-post-wrapper-bg, var(--app-surface-bg, #fff)); margin-bottom: 20rpx; padding: 0; box-shadow: none; border-radius: 0; border-bottom: var(--app-post-wrapper-divider, 1rpx solid #f0f0f0); }
-.post-item-wrapper.original-post { background: var(--app-post-original-bg, linear-gradient(90deg, rgba(235,200,141,0.05) 0%, rgba(255,255,255,0) 100%)); border-left: none; position: relative; }
-.post-content-navigator { display: block; background: transparent; }
-.navigator-hover { background-color: var(--app-subtle-surface-bg, rgba(0,0,0,0.02)); }
+.user-profile-page-root .portfolio-section {
+    padding-bottom: 220rpx;
+    --app-surface-bg: #ffffff;
+    --app-surface-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
+    --app-surface-border-line: none;
+}
 
-.author-info-outside { display: flex; align-items: flex-start; padding: 20rpx 40rpx 10rpx 40rpx; background: var(--app-post-section-bg, var(--app-surface-bg, #fff)); }
-.author-info-outside .author-avatar { width: 60rpx; height: 60rpx; border-radius: 50%; margin-right: 15rpx; background-color: var(--app-subtle-surface-bg, #f5f5f5); }
-.author-info-outside .author-name { font-size: 28rpx; color: var(--app-post-author-color, #333); font-weight: 500; }
+.user-profile-page-root .main-content--with-background .portfolio-section {
+    --app-surface-bg: rgba(255, 255, 255, 0.86);
+    --app-surface-shadow: 0 10rpx 28rpx rgba(0, 0, 0, 0.12);
+    --app-surface-border-line: 1rpx solid rgba(255, 255, 255, 0.30);
+}
 
-.post-item { width: 100%; background: var(--app-post-section-bg, var(--app-surface-bg, #fff)); border-radius: 0; box-shadow: none; box-sizing: border-box; padding: 20rpx 40rpx 30rpx 40rpx; }
-.post-title { font-size: 36rpx; font-weight: bold; color: var(--app-post-title-color, #333333); margin-bottom: 15rpx; line-height: 1.4; word-break: break-word; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
-.poem-author { font-size: 32rpx; color: var(--app-post-poem-author-color, #000); text-align: center; margin: 5rpx 0 15rpx 0; letter-spacing: 2rpx; }
+.user-profile-page-root .portfolio-section .books-container,
+.user-profile-page-root .portfolio-section .timeline-container,
+.user-profile-page-root .portfolio-section .timeline-empty,
+.user-profile-page-root .portfolio-section .timeline-loading,
+.user-profile-page-root .portfolio-section .timeline-error {
+    margin: 0 24rpx 24rpx 24rpx;
+    border-radius: 20rpx;
+    box-shadow: var(--app-surface-shadow, 0 8rpx 24rpx rgba(0, 0, 0, 0.08));
+    border: var(--app-surface-border-line, none);
+    overflow: hidden;
+}
 
-.image-container-wrapper { position: relative; width: 100%; background-color: var(--app-subtle-surface-bg, #f0f0f0); overflow: hidden; border-radius: 8px; margin: 20rpx 0; }
-.image-container-wrapper .post-image, .image-container-wrapper .image-swiper { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-.image-swiper { width: 100%; background-color: var(--app-subtle-surface-bg, #fff); }
-.post-image { width: 100%; height: 100%; display: block; object-fit: contain; }
+.user-profile-page-root .post-item-wrapper { background: var(--app-post-wrapper-bg, var(--app-surface-bg, #fff)); margin: var(--app-post-wrapper-margin, 0 24rpx 24rpx 24rpx); padding: 0; box-shadow: var(--app-post-wrapper-shadow, 0 8rpx 24rpx rgba(0, 0, 0, 0.08)); border-radius: var(--app-post-wrapper-radius, 20rpx); border-bottom: var(--app-post-wrapper-divider, none); overflow: hidden; }
+.user-profile-page-root .post-item-wrapper.original-post { background: var(--app-post-original-bg, linear-gradient(90deg, rgba(235,200,141,0.05) 0%, rgba(255,255,255,0) 100%)); border-left: none; position: relative; }
+.user-profile-page-root .post-content-navigator { display: block; background: transparent; }
+.user-profile-page-root .navigator-hover { background-color: var(--app-subtle-surface-bg, rgba(0,0,0,0.02)); }
 
-.post-content { font-size: 28rpx; color: var(--app-post-content-color, #666666); line-height: 1.6; margin-top: 15rpx; word-break: break-word; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; }
-.delete-section { display: flex; justify-content: space-between; align-items: center; margin-top: 20rpx; padding: 0 40rpx 0 40rpx; }
-.time-left .post-time { font-size: 24rpx; color: var(--app-post-time-color, #999); }
-.post-tags { margin-top: 30rpx; margin-bottom: 10rpx; line-height: 1.5; }
-.post-tag { color: var(--app-post-tag-color, #24375f); font-size: 26rpx; margin-right: 10rpx; transition: all 0.2s ease; }
-.loading-footer { text-align: center; padding: 20rpx 0; color: var(--profile-loading-footer-color, #999); font-size: 14px; }
+.user-profile-page-root .author-info-outside { display: flex; align-items: center; padding: 20rpx 40rpx 10rpx 40rpx; background: var(--app-post-section-bg, #fff); border-radius: 0; box-shadow: none; }
+.user-profile-page-root .author-info-outside .author-avatar { width: 60rpx; height: 60rpx; border-radius: 50%; margin-right: 15rpx; background-color: var(--app-subtle-surface-bg, #f5f5f5); }
+.user-profile-page-root .author-info-outside .author-name { font-size: 28rpx; color: var(--app-post-author-color, #333); font-weight: 500; }
+
+.user-profile-page-root .post-item { width: 100%; background: var(--app-post-section-bg, var(--app-surface-bg, #fff)); border-radius: 0; box-shadow: none; box-sizing: border-box; padding: 20rpx 40rpx 30rpx 40rpx; }
+.user-profile-page-root .post-title { font-size: 36rpx; font-weight: bold; color: var(--app-post-title-color, #333333); margin-bottom: 15rpx; line-height: 1.4; word-break: break-word; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
+.user-profile-page-root .poem-author { font-size: 32rpx; color: var(--app-post-poem-author-color, #000); text-align: center; margin: 5rpx 0 15rpx 0; letter-spacing: 2rpx; }
+
+.user-profile-page-root .image-container-wrapper { position: relative; width: 100%; background-color: var(--app-subtle-surface-bg, #f0f0f0); overflow: hidden; border-radius: 8px; margin: 20rpx 0; }
+.user-profile-page-root .image-container-wrapper .post-image, .user-profile-page-root .image-container-wrapper .image-swiper { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+.user-profile-page-root .image-swiper { width: 100%; background-color: var(--app-subtle-surface-bg, #fff); }
+.user-profile-page-root .post-image { width: 100%; height: 100%; display: block; object-fit: contain; }
+
+.user-profile-page-root .post-content { font-size: 28rpx; color: var(--app-post-content-color, #666666); line-height: 1.6; margin-top: 15rpx; word-break: break-word; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; }
+.user-profile-page-root .delete-section { display: flex; justify-content: space-between; align-items: center; margin-top: 20rpx; padding: 0 40rpx 30rpx 40rpx; background: var(--app-post-section-bg, transparent); }
+.user-profile-page-root .time-left .post-time { font-size: 24rpx; color: var(--app-post-time-color, #999); }
+.user-profile-page-root .post-tags { margin-top: 30rpx; margin-bottom: 10rpx; line-height: 1.5; }
+.user-profile-page-root .post-tag { color: var(--app-post-tag-color, #24375f); font-size: 26rpx; margin-right: 10rpx; transition: all 0.2s ease; }
+.user-profile-page-root .loading-footer { text-align: center; padding: 20rpx 0; color: var(--profile-loading-footer-color, #999); font-size: 14px; }
 
 /* 作品集样式 */
-.loading-tip {
+.user-profile-page-root .loading-tip {
     text-align: center;
     color: var(--profile-loading-footer-color, #999);
     font-size: 28rpx;
@@ -1783,7 +1943,7 @@ export default {
 
 
 /* 资料详情（与我的主页风格一致） */
-.profile-detail-card {
+.user-profile-page-root .profile-detail-card {
     margin: 0 30rpx 20rpx 30rpx;
     padding: 20rpx 24rpx;
     background: var(--profile-empty-surface-bg, #fff);
@@ -1794,14 +1954,14 @@ export default {
     flex-wrap: wrap;
     gap: 16rpx 24rpx;
 }
-.detail-item-inline {
+.user-profile-page-root .detail-item-inline {
     color: var(--app-secondary-text, #666);
     font-size: 28rpx;
     margin-right: 24rpx;
 }
 
 /* 成长统计样式 */
-.profile-growth-stats {
+.user-profile-page-root .profile-growth-stats {
     position: absolute;
     top: 120rpx;
     right: 40rpx;
@@ -1812,25 +1972,25 @@ export default {
     gap: 18rpx;
 }
 
-.growth-item {
+.user-profile-page-root .growth-item {
     display: flex;
     align-items: center;
     gap: 12rpx;
 }
 
-.growth-icon {
+.user-profile-page-root .growth-icon {
     width: 48rpx;
     height: 48rpx;
 }
 
-.growth-count {
+.user-profile-page-root .growth-count {
     font-size: 30rpx;
     font-weight: 600;
     color: var(--user-profile-meta-color, var(--profile-meta-color, #333333));
 }
 
 /* 加载提示样式 */
-.loading-tip {
+.user-profile-page-root .loading-tip {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -1839,12 +1999,82 @@ export default {
     font-size: 28rpx;
 }
 
-.empty-tip {
+.user-profile-page-root .empty-tip {
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 60rpx 40rpx;
     color: var(--profile-empty-text-color, #666);
     font-size: 28rpx;
+}
+
+/* Final PostItem alignment with personal profile. */
+.user-profile-page-root .my-posts-section .post-item-wrapper,
+.user-profile-page-root .favorites-section .post-item-wrapper {
+    background: var(--app-post-wrapper-bg, #fff);
+    margin: var(--app-post-wrapper-margin, 0 24rpx 24rpx 24rpx);
+    padding: 0;
+    box-shadow: var(--app-post-wrapper-shadow, 0 8rpx 24rpx rgba(0, 0, 0, 0.08));
+    border-radius: var(--app-post-wrapper-radius, 20rpx);
+    border: var(--app-post-wrapper-border, none);
+    border-bottom: var(--app-post-wrapper-divider, none);
+    border-left: none;
+    overflow: hidden;
+}
+
+.user-profile-page-root .my-posts-section .post-item-wrapper.original-post,
+.user-profile-page-root .favorites-section .post-item-wrapper.original-post {
+    background: var(--app-post-original-bg, linear-gradient(90deg, rgba(235, 200, 141, 0.05) 0%, rgba(255, 255, 255, 0) 100%));
+    border-left: none;
+}
+
+.user-profile-page-root .my-posts-section .author-info-outside,
+.user-profile-page-root .favorites-section .author-info-outside {
+    align-items: center;
+    background: var(--app-post-section-bg, #fff);
+}
+
+.user-profile-page-root .my-posts-section .post-item,
+.user-profile-page-root .favorites-section .post-item {
+    background: var(--app-post-section-bg, #fff);
+    padding: 20rpx 40rpx 30rpx 40rpx;
+}
+
+.user-profile-page-root .my-posts-section .post-title,
+.user-profile-page-root .favorites-section .post-title {
+    font-size: 36rpx;
+    font-weight: bold;
+    color: var(--app-post-title-color, #333333);
+    margin-bottom: 15rpx;
+    line-height: 1.4;
+    word-break: break-word;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.user-profile-page-root .my-posts-section .post-content,
+.user-profile-page-root .favorites-section .post-content {
+    font-size: 28rpx;
+    color: var(--app-post-content-color, #666666);
+    line-height: 1.6;
+    margin-top: 15rpx;
+    word-break: break-word;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+
+.user-profile-page-root .my-posts-section .delete-section,
+.user-profile-page-root .favorites-section .delete-section {
+    margin-top: 20rpx;
+    padding: 0 40rpx 30rpx 40rpx;
+    background: var(--app-post-section-bg, transparent);
 }
 </style>

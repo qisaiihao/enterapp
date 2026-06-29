@@ -128,7 +128,8 @@ export async function cloudCall(name, data = {}, options = {}) {
         context,
         injectOpenId,
         requireAuth = false,
-        timeoutMs
+        timeoutMs,
+        silent = false
     } = options;
     const shouldInjectOpenId = typeof injectOpenId === 'boolean' ? injectOpenId : !['login', 'getOpenId', 'github-auth'].includes(name);
 
@@ -193,7 +194,9 @@ export async function cloudCall(name, data = {}, options = {}) {
             const isLastAttempt = attempt === totalAttempts;
             const errorCode = error && error.code ? error.code : error?.errCode;
 
-            console.error(`[cloudCall][${pageTag}] "${name}" failed (${attempt}/${totalAttempts}): ${formatErrorForLog(error)}`);
+            if (!silent) {
+                console.error(`[cloudCall][${pageTag}] "${name}" failed (${attempt}/${totalAttempts}): ${formatErrorForLog(error)}`);
+            }
 
             if (errorCode === 'NO_OPENID') {
                 throw createError('NO_OPENID', '\u7528\u6237\u672A\u767B\u5F55\u6216 openid \u7F3A\u5931', error);
@@ -201,7 +204,7 @@ export async function cloudCall(name, data = {}, options = {}) {
 
             if (isLastAttempt) {
                 const finalError = createError(errorCode || 'CLOUD_CALL_FAILED', '\u4E91\u51FD\u6570\u8C03\u7528\u5931\u8D25', error);
-                if (typeof uni !== 'undefined' && uni.showToast) {
+                if (!silent && typeof uni !== 'undefined' && uni.showToast) {
                     uni.showToast({
                         title: '\u7F51\u7EDC\u5F02\u5E38\uFF0C\u8BF7\u7A0D\u540E\u518D\u8BD5',
                         icon: 'none'

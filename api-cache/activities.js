@@ -11,6 +11,12 @@ const POSTS_TTL_MS = 60 * 1000;
 const POSTS_SWR_MS = 30 * 1000;
 const DETAIL_TTL_MS = 60 * 1000;
 const DETAIL_SWR_MS = 30 * 1000;
+const ACTIVITY_ASSET_PUBLIC_BASE_URL = 'https://636c-cloud1-5gb0pbyl400845f5-1378788263.tcb.qcloud.la';
+const ACTIVITY_ASSET_AUTHORITIES = new Set([
+  'cloud1-5gb0pbyl400845f5-1378788263',
+  'cloud1-5gb0pbyl400845f5.cloud1-5gb0pbyl400845f5-1378788263',
+  'cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263'
+]);
 
 const listNs = cacheManager.namespace('activities:list', { persistent: true, maxItems: 128 });
 const detailNs = cacheManager.namespace('activities:detail', { persistent: true, maxItems: 128 });
@@ -19,6 +25,35 @@ function getSuccessResult(res) {
   const result = res && res.result ? res.result : null;
   if (!result || !result.success) return null;
   return result;
+}
+
+function resolveActivityAssetUrl(fileId) {
+  if (typeof fileId !== 'string' || !fileId.startsWith('cloud://')) {
+    return '';
+  }
+
+  const match = fileId.trim().match(/^cloud:\/\/([^/]+)\/(.+)$/);
+  if (!match) {
+    return '';
+  }
+
+  const authority = match[1];
+  const filePath = match[2].replace(/^\/+/, '');
+  if (!ACTIVITY_ASSET_AUTHORITIES.has(authority) || !filePath.startsWith('activities/')) {
+    return '';
+  }
+
+  return `${ACTIVITY_ASSET_PUBLIC_BASE_URL}/${filePath}`;
+}
+
+function buildFallbackCoverUrlMap(fileIds = []) {
+  return fileIds.reduce((map, fileId) => {
+    const publicUrl = resolveActivityAssetUrl(fileId);
+    if (publicUrl) {
+      map[fileId] = publicUrl;
+    }
+    return map;
+  }, {});
 }
 
 async function hydrateActivitiesCover(activities = []) {
@@ -40,8 +75,10 @@ async function hydrateActivitiesCover(activities = []) {
     urlMap = await fileUrlCache.getTempUrls(fileIds);
   } catch (error) {
     console.warn('[activities cache] cover url hydrate failed:', error);
-    return list;
   }
+
+  const fallbackMap = buildFallbackCoverUrlMap(fileIds);
+  urlMap = { ...fallbackMap, ...urlMap };
 
   return list.map((item) => {
     if (!item || typeof item.coverImage !== 'string' || !item.coverImage.startsWith('cloud://')) {

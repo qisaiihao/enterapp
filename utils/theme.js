@@ -237,6 +237,12 @@ function getThemeTargets() {
   ].filter(Boolean);
 }
 
+function ignoreNativeChromeFailure(result) {
+  if (result && typeof result.catch === 'function') {
+    result.catch(() => {});
+  }
+}
+
 export function applyNativeThemeChrome(mode = getThemeMode()) {
   const isDark = normalizeThemeMode(mode) === DARK_MODE;
   const backgroundColor = isDark ? DARK_THEME_VARS['--app-page-bg'] : LIGHT_THEME_VARS['--app-page-bg'];
@@ -244,33 +250,33 @@ export function applyNativeThemeChrome(mode = getThemeMode()) {
 
   try {
     if (typeof uni !== 'undefined' && typeof uni.setNavigationBarColor === 'function') {
-      uni.setNavigationBarColor({
+      ignoreNativeChromeFailure(uni.setNavigationBarColor({
         frontColor: foregroundColor,
         backgroundColor,
         animation: { duration: 0, timingFunc: 'linear' }
-      });
+      }));
     }
   } catch (error) {}
 
   try {
     if (typeof uni !== 'undefined' && typeof uni.setBackgroundColor === 'function') {
-      uni.setBackgroundColor({
+      ignoreNativeChromeFailure(uni.setBackgroundColor({
         backgroundColor,
         backgroundColorTop: backgroundColor,
         backgroundColorBottom: backgroundColor
-      });
+      }));
     }
   } catch (error) {}
 
   // #ifndef MP-WEIXIN
   try {
     if (typeof uni !== 'undefined' && typeof uni.setTabBarStyle === 'function') {
-      uni.setTabBarStyle({
+      ignoreNativeChromeFailure(uni.setTabBarStyle({
         color: isDark ? DARK_THEME_VARS['--app-tab-text-color'] : LIGHT_THEME_VARS['--app-tab-text-color'],
         selectedColor: isDark ? DARK_THEME_VARS['--app-tab-active-text-color'] : LIGHT_THEME_VARS['--app-tab-active-text-color'],
         backgroundColor,
         borderStyle: 'black'
-      });
+      }));
     }
   } catch (error) {}
   // #endif

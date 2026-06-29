@@ -7,6 +7,49 @@ const _ = db.command
 const $ = _.aggregate
 const { buildPublicActivityView } = require('./_lib/activity')
 
+function normalizeNoticeTone(value) {
+  const tone = String(value || 'default').trim()
+  return ['default', 'cooperation', 'weekly', 'market'].includes(tone) ? tone : 'default'
+}
+
+function buildPublicNoticeView(notice = {}) {
+  return {
+    _id: notice._id,
+    value: notice._id || '',
+    kicker: notice.kicker || '公告',
+    title: notice.title || '',
+    summary: notice.summary || '',
+    mark: notice.mark || '',
+    tone: normalizeNoticeTone(notice.tone),
+    sortWeight: Number(notice.sortWeight) || 0
+  }
+}
+
+async function getActivityNotices(limit = 6) {
+  const safeLimit = Math.min(10, Math.max(1, Number(limit) || 6))
+  try {
+    const res = await db.collection('activity_notices')
+      .where({
+        status: 'published',
+        isDeleted: _.neq(true)
+      })
+      .orderBy('sortWeight', 'desc')
+      .orderBy('updatedAt', 'desc')
+      .limit(safeLimit)
+      .get()
+
+    return (res.data || [])
+      .map((notice) => buildPublicNoticeView(notice))
+      .filter((notice) => notice.title)
+  } catch (error) {
+    const message = String((error && (error.errMsg || error.message)) || '')
+    if (error && (error.errCode === -502005 || message.includes('collection not exists'))) {
+      return []
+    }
+    throw error
+  }
+}
+
 async function getVisibleActivityPostCount(activityId) {
   if (!activityId) return 0
 
@@ -78,6 +121,8 @@ async function getActivityDetail(activityId) {
 
 exports.main = async (event, context) => {
   const activityId = typeof event.activityId === 'string' ? event.activityId.trim() : ''
+  const noticeOnly = event && event.noticeOnly === true
+  const includeNotices = event && event.includeNotices === true
   const skip = Math.max(0, Number(event.skip) || 0)
   const limit = Math.min(50, Math.max(1, Number(event.limit) || 10))
   const scene = typeof event.scene === 'string' ? event.scene.trim() : 'recent'
@@ -85,6 +130,14 @@ exports.main = async (event, context) => {
   const recentCutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
 
   try {
+    if (noticeOnly) {
+      const notices = await getActivityNotices(event.noticeLimit)
+      return {
+        success: true,
+        notices
+      }
+    }
+
     if (activityId) {
       return await getActivityDetail(activityId)
     }
@@ -100,7 +153,6 @@ exports.main = async (event, context) => {
       : {
           status: 'published',
           isDeleted: _.neq(true),
-          startTime: _.lte(now),
           endTime: _.gte(recentCutoff)
         }
 
@@ -109,6 +161,7 @@ exports.main = async (event, context) => {
       db.collection('activities').aggregate()
         .match(baseMatch)
         .addFields({
+          isUpcoming: $.gt(['$startTime', now]),
           isOngoing: $.and([
             $.lte(['$startTime', now]),
             $.gte(['$endTime', now])
@@ -117,6 +170,7 @@ exports.main = async (event, context) => {
         .sort({
           sortWeight: -1,
           isOngoing: -1,
+          isUpcoming: -1,
           startTime: -1
         })
         .skip(skip)
@@ -137,6 +191,7 @@ exports.main = async (event, context) => {
           createdAt: '$createdAt',
           updatedAt: '$updatedAt',
           isDeleted: '$isDeleted',
+          isUpcoming: '$isUpcoming',
           isOngoing: '$isOngoing'
         })
         .end()
@@ -150,6 +205,7 @@ exports.main = async (event, context) => {
     return {
       success: true,
       activities: list,
+      notices: includeNotices ? await getActivityNotices(event.noticeLimit) : undefined,
       total,
       hasMore: skip + list.length < total
     }

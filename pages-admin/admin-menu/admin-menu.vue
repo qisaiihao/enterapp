@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <view class="admin-menu-container">
         <view class="admin-header">
             <text class="admin-title">管理中心</text>
@@ -37,6 +37,24 @@
                 <view class="menu-info">
                     <text class="menu-title">活动管理</text>
                     <text class="menu-desc">创建活动并发布活动帖</text>
+                </view>
+                <text class="menu-arrow">→</text>
+            </view>
+
+            <view class="menu-item" @tap="navigateTo" data-url="/pages-admin/activity-notice-management/activity-notice-management">
+                <view class="menu-icon">📣</view>
+                <view class="menu-info">
+                    <text class="menu-title">活动公告</text>
+                    <text class="menu-desc">管理活动页顶部公告轮播</text>
+                </view>
+                <text class="menu-arrow">→</text>
+            </view>
+
+            <view class="menu-item" @tap="navigateTo" data-url="/pages-admin/weekly-management/weekly-management">
+                <view class="menu-icon">🗞️</view>
+                <view class="menu-info">
+                    <text class="menu-title">周刊管理</text>
+                    <text class="menu-desc">发布周刊、主题精选和热榜快照</text>
                 </view>
                 <text class="menu-arrow">→</text>
             </view>

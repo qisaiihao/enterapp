@@ -30,7 +30,11 @@
         <!-- 可点击的内容区域 - 跳转到详情页 -->
         <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item._id" hover-class="none">
             <view class="post-item">
-                <view class="post-title">{{ item.title }} <text v-if="item.isHidden" class="hidden-tag">已隐藏</text></view>
+                <view v-if="!profilePreview" class="post-title">{{ item.title }} <text v-if="item.isHidden" class="hidden-tag">已隐藏</text></view>
+                <view v-else-if="hasDisplayTitle || item.isHidden" class="post-title">
+                    <text v-if="hasDisplayTitle">{{ displayTitle }}</text>
+                    <text v-if="item.isHidden" class="hidden-tag">已隐藏</text>
+                </view>
                 <!-- 诗歌作者信息 -->
                 <view v-if="showPoemAuthor && item.isPoem && item.author" class="poem-author">{{ item.author }}</view>
 
@@ -91,9 +95,13 @@
                 </view>
 
                 <!-- 讨论帖子优先展示引用句子块，其次正文 -->
-                <view v-if="item.isDiscussion && hasValidDiscussionGroups(item)" class="discussion-content">
+                <view v-if="item.isDiscussion && hasValidDiscussionGroups(item)" :class="'discussion-content ' + (profilePreview ? 'discussion-content--profile-preview' : '')">
+                    <view v-if="profilePreview" class="profile-discussion-preview">
+                        <view v-if="discussionPreviewSentence" class="post-content post-content--discussion-quote" style="white-space: pre-wrap">{{ discussionPreviewSentence }}</view>
+                        <view v-if="discussionPreviewComment" class="post-content post-content--discussion-comment" style="white-space: pre-wrap">{{ discussionPreviewComment }}</view>
+                    </view>
                     <!-- 只显示第一个有效的引用句子组 -->
-                    <view v-if="getFirstValidDiscussionGroup(item)" class="discussion-sentence-group">
+                    <view v-else-if="getFirstValidDiscussionGroup(item)" class="discussion-sentence-group">
                         <view v-if="hasDiscussionSentences(getFirstValidDiscussionGroup(item))" class="discussion-sentence-card">
                             <view class="discussion-sentence-content">
                                 <!-- 只显示第一句 -->
@@ -223,6 +231,11 @@ export default {
         listType: {
             type: String,
             default: 'home'
+        },
+        // 个人/他人主页列表摘要态，避免讨论和诗歌按详情页视觉展开
+        profilePreview: {
+            type: Boolean,
+            default: false
         }
     },
     computed: {
@@ -231,9 +244,57 @@ export default {
         },
         authorAvatarSrc() {
             return resolvePostAuthorAvatar(this.item);
+        },
+        displayTitle() {
+            const title = this.normalizeText(this.item && this.item.title);
+            if (!title) {
+                return '';
+            }
+            if (this.profilePreview && this.item && this.item.isDiscussion && this.isGeneratedDiscussionTitle(title)) {
+                return '';
+            }
+            if (this.profilePreview && this.item && this.item.isPoem && this.isTitleDuplicatedByContent(title, this.item.content)) {
+                return '';
+            }
+            return title;
+        },
+        hasDisplayTitle() {
+            return this.displayTitle.length > 0;
+        },
+        discussionPreviewGroup() {
+            return this.getFirstValidDiscussionGroup(this.item);
+        },
+        discussionPreviewSentence() {
+            const group = this.discussionPreviewGroup;
+            if (!group || !Array.isArray(group.sentences)) {
+                return '';
+            }
+            return this.normalizeText(group.sentences.find(line => this.normalizeText(line).length > 0));
+        },
+        discussionPreviewComment() {
+            const group = this.discussionPreviewGroup;
+            return this.normalizeText(group && group.comment);
         }
     },
     methods: {
+        normalizeText(value) {
+            if (value === undefined || value === null) {
+                return '';
+            }
+            return String(value).trim();
+        },
+        isGeneratedDiscussionTitle(title) {
+            return /^关于[「"][\s\S]+[」"]的讨论$/.test(title) || /^关于[\s\S]+的讨论$/.test(title);
+        },
+        isTitleDuplicatedByContent(title, content) {
+            const normalizedTitle = this.normalizeText(title);
+            const normalizedContent = this.normalizeText(content);
+            if (!normalizedTitle || !normalizedContent) {
+                return false;
+            }
+            const firstLine = this.normalizeText(normalizedContent.split(/\r?\n/).find(line => this.normalizeText(line)) || '');
+            return firstLine === normalizedTitle;
+        },
         hasDiscussionSentences(group) {
             return group && Array.isArray(group.sentences) && group.sentences.some(line => (line || '').trim().length > 0);
         },
@@ -923,6 +984,14 @@ export default {
 /* 讨论类型帖子样式 */
 .discussion-content {
     margin: 20rpx 0;
+}
+
+.discussion-content--profile-preview {
+    margin: 0;
+}
+
+.profile-discussion-preview .post-content:first-child {
+    margin-top: 15rpx;
 }
 
 .discussion-sentence-group {

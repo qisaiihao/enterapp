@@ -152,11 +152,6 @@ exports.main = async (event, context) => {
     const userInfo = profileData.list[0];
     userInfo.showGrowthStats = userInfo.showGrowthStats === true;
     userInfo.avatarUrl = await ensureUserDefaultAvatar({ db, openid: userId, user: userInfo });
-    const canViewAppBackground = String(currentOpenid) === String(userId);
-    if (!canViewAppBackground) {
-      userInfo.appBackgroundUrl = '';
-      userInfo.appBackgroundMode = '';
-    }
     let posts = onlyProfile ? [] : (userInfo.posts || []);
     
     // 只有在非轻量级模式下才处理帖子
