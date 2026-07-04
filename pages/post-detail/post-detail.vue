@@ -82,7 +82,6 @@
                     <view v-if="post.imageUrl || (post.imageUrls && post.imageUrls.length > 0)" class="image-container" id="detail-image-container">
                         <block v-if="post.imageUrls && post.imageUrls.length === 1">
                             <image
-                                class="post-image"
                                 :id="'single-image-' + (post && post._id ? post._id : '')"
                                 :src="post.imageUrls[0]"
                                 :mode="(post && post._id && imageClampHeights[post._id]) ? 'aspectFill' : 'widthFix'"
@@ -115,7 +114,6 @@
                                 <block v-for="(img, imgindex) in post.imageUrls" :key="imgindex">
                                     <swiper-item>
                                         <image
-                                            class="post-image"
                                             :src="img"
                                             mode="aspectFill"
                                             @load="onImageLoad"
@@ -136,24 +134,20 @@
                         </block>
                     </view>
 
+                    <view class="post-meta">
+                        <text class="post-time">{{ post.formattedCreateTime }}</text>
+                    </view>
                     <view class="vote-section" @tap.stop.prevent="preventBubble">
-                        <view class="time-left">
-                            <text class="post-time">{{ post.formattedCreateTime }}</text>
+                        <view class="actions-left">
+                            <!-- 左侧按钮区域保留为空，或者可以放其他按钮 -->
                         </view>
                         <view class="button-group">
-                            <view class="comment-count" @tap.stop.prevent="expandInput">
-                                <image class="comment-icon" src="/static/images/newicons/comment.png" mode="aspectFit"></image>
-                                <text class="action-text">{{ commentCount || 0 }}</text>
-                            </view>
                             <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="post && post._id ? post._id : ''">
                                 <image
                                     :class="['like-icon', getLikeIconVariantClass(post && post.likeIcon), post && post.isVoted ? 'like-icon--voted' : '']"
                                     :src="post.likeIcon || '/static/images/seed.png'"
                                     mode="aspectFit"
                                 ></image>
-                            </view>
-                            <view :class="'vote-count ' + (post && post.isVoted ? 'voted' : '')">
-                                <text class="action-text">{{ post && post.votes ? post.votes : 0 }}</text>
                             </view>
                             <!-- 作品集按钮 - 只有原创诗且是自己的帖子才显示 -->
                             <view v-if="post.isOriginal && post.isPoem && isOwnPost" class="portfolio-icon-container" @tap.stop.prevent="onAddToPortfolio">
@@ -389,10 +383,8 @@ function updateCanvas2DFontSize(ctx, fontSize) {
     ctx.font = `${fontSize}px ${family}`;
 }
 
-function createCanvas2DCompatContext(nativeCtx, canvasNode) {
+function createCanvas2DCompatContext(nativeCtx) {
     if (!nativeCtx) return null;
-    // canvasNode: 小程序 2D canvas 节点，用于 createImage 等操作
-    const cv = canvasNode || (nativeCtx.canvas && nativeCtx.canvas);
 
     return {
         get font() {
@@ -400,15 +392,6 @@ function createCanvas2DCompatContext(nativeCtx, canvasNode) {
         },
         set font(value) {
             nativeCtx.font = value;
-        },
-        // 暴露 canvas 和 createImage，使 shareCanvas.js 的 getCanvasImageFactory
-        // 和 isLegacyCanvasContext 能正确识别为原生 Canvas 上下文（非旧版 uni-app CanvasContext），
-        // 从而在 drawImageSource 中走 loadCanvasImage + ctx.drawImage(Image) 路径
-        get canvas() {
-            return cv || null;
-        },
-        createImage() {
-            return cv && typeof cv.createImage === 'function' ? cv.createImage() : null;
         },
         clearRect(...args) {
             return nativeCtx.clearRect(...args);
@@ -533,8 +516,8 @@ export default {
                 fontSize: 38,
                 titleFontSize: 46,
                 fontFamily: '汇文明朝',
-                backgroundColor: '#a4c4bd', // 将在onShare时更新为帖子的实际颜色
-                textColor: '#333333',       // 将在onShare时更新为帖子的实际颜色
+                backgroundColor: '#FFFFFF', // 将在onShare时更新为帖子的实际颜色
+                textColor: '#000000',       // 将在onShare时更新为帖子的实际颜色
                 fontScale: 1.0
             },
             regenerateTimeout: null,
@@ -743,7 +726,7 @@ export default {
                         const runtime = {
                             canvas,
                             nativeCtx,
-                            ctx: createCanvas2DCompatContext(nativeCtx, canvas),
+                            ctx: createCanvas2DCompatContext(nativeCtx),
                             logicalWidth,
                             logicalHeight,
                             pixelRatio
@@ -864,31 +847,6 @@ export default {
                 .then(async (detail) => {
                     if (detail && detail.post) {
                         let post = detail.post;
-                        // 【调试】检查API返回的原始帖子数据中是否包含背景颜色
-                        console.log('[post-detail] loadPostDetail 原始数据:', {
-                            postId: post._id,
-                            hasBackgroundColor: 'backgroundColor' in post,
-                            backgroundColor: post.backgroundColor,
-                            hasTextColor: 'textColor' in post,
-                            textColor: post.textColor
-                        });
-                        
-                        // 【修复】确保帖子有背景颜色和文字颜色（与 poem-square 保持一致）
-                        // 如果数据库中没有保存颜色或为空字符串，使用默认值
-                        if (!post.backgroundColor || post.backgroundColor.trim() === '') {
-                            post.backgroundColor = '#a4c4bd'; // 使用应用默认背景色
-                            console.log('[post-detail] backgroundColor 为空，使用默认值');
-                        }
-                        if (!post.textColor || post.textColor.trim() === '') {
-                            post.textColor = '#333333'; // 使用默认文字颜色
-                            console.log('[post-detail] textColor 为空，使用默认值');
-                        }
-                        
-                        console.log('[post-detail] loadPostDetail 修复后:', {
-                            backgroundColor: post.backgroundColor,
-                            textColor: post.textColor
-                        });
-                        
                         post.formattedCreateTime = this.formatTime(post.createTime);
                         post.likeIcon = likeIcon.getLikeIcon(post.votes || 0, post.isVoted || false);
                         // 将 cloud:// 映射为可访问 URL，并预热
@@ -1106,15 +1064,8 @@ export default {
             }
 
             // 初始化shareConfig使用帖子的实际颜色
-            // 使用应用默认背景色 #a4c4bd 替代白色作为回退值
-            console.log('[post-detail] onShare 设置背景颜色:', {
-                postBgColor: this.post.backgroundColor,
-                postTextColor: this.post.textColor,
-                将设置为: (this.post.backgroundColor && this.post.backgroundColor.trim()) || '#a4c4bd'
-            });
-            // 【修复】空字符串也被视为无效值
-            this.shareConfig.backgroundColor = (this.post.backgroundColor && this.post.backgroundColor.trim()) || '#a4c4bd';
-            this.shareConfig.textColor = (this.post.textColor && this.post.textColor.trim()) || '#333333';
+            this.shareConfig.backgroundColor = this.post.backgroundColor || '#FFFFFF';
+            this.shareConfig.textColor = this.post.textColor || '#000000';
             this.shareRenderFontFamily = this.shareConfig.fontFamily || '汇文明朝';
             this.shareRenderFontScale = this.shareConfig.fontScale || 1.0;
             this.shareRequestedFontFamily = this.shareConfig.fontFamily || '汇文明朝';
@@ -1219,16 +1170,13 @@ export default {
                         if (renderToken !== this.shareRenderToken) return;
                     }
 
-                    // ensureFontAvailable for "汇文明朝" on H5/App uses the LOCAL static font file
-                    // (config.isDefault = true for non-MP, so downloadFont returns local path directly,
-                    // never downloads from cloud storage). Only mini-program downloads from CDN.
                     const fontPath = await this.fontManager.ensureFontAvailable(fontFamily, (progress, loaded, total) => {
-                        console.log(`【post-detail】字体加载进度: ${progress}% (${loaded}/${total})`);
+                        console.log(`【post-detail】字体下载进度: ${progress}% (${loaded}/${total})`);
                     });
                     if (renderToken !== this.shareRenderToken) return;
-
+                    
                     console.log('【post-detail】字体加载成功:', fontFamily);
-
+                    
                     const fontScale = fontScaleMap[fontFamily] || 1.0;
                     const needsAppFontActivationDelay = isAppBuiltinFont && !wasFontLoadedBeforeRender;
                     const fontReadyDelay = needsAppFontActivationDelay
@@ -1237,7 +1185,7 @@ export default {
                     this.shareRenderFontFamily = fontFamily;
                     this.shareRenderFontScale = fontScale;
                     this.shareRenderFontPending = false;
-                    const sourceTag = platform === 'mp-weixin' ? 'mp-cloud-font' : 'app-local-font';
+                    const sourceTag = platform === 'mp-weixin' ? 'mp-downloaded-local-woff2' : (platform === 'app' ? 'app-local-woff2' : 'h5-local-woff2');
                     console.log('[share-card-font] ready', {
                         sourceTag,
                         platform,
@@ -1247,7 +1195,7 @@ export default {
                         wasFontLoadedBeforeRender,
                         fontReadyDelay
                     });
-
+                    
                     if (needsAppFontActivationDelay && this.$nextTick) {
                         await new Promise(r => this.$nextTick(r));
                         if (renderToken !== this.shareRenderToken) return;
@@ -1259,7 +1207,7 @@ export default {
                     if (isAppBuiltinFont) {
                         this._appBuiltinShareFontPrimed = true;
                     }
-
+                    
                     this.drawCanvas(renderToken);
                     return;
                 } catch (error) {
@@ -1362,19 +1310,9 @@ export default {
                 const platform = getCurrentPlatform();
                 const effectiveShareConfig = {
                     ...this.shareConfig,
-                    // 【修复】显式传递背景颜色和文字颜色，优先使用 post 的原始值
-                    backgroundColor: this.post.backgroundColor || this.shareConfig.backgroundColor || '#a4c4bd',
-                    textColor: this.post.textColor || this.shareConfig.textColor || '#333333',
                     fontFamily: this.shareRenderFontFamily || this.shareConfig.fontFamily || '汇文明朝',
                     fontScale: this.shareRenderFontScale || this.shareConfig.fontScale || 1.0
                 };
-                // 【调试】打印有效配置，追踪颜色是否正确传递
-                console.log('[post-detail] drawCanvas effectiveShareConfig:', {
-                    backgroundColor: effectiveShareConfig.backgroundColor,
-                    textColor: effectiveShareConfig.textColor,
-                    postBgColor: this.post.backgroundColor,
-                    postTextColor: this.post.textColor
-                });
                 // 签名URL已从云函数返回，直接使用post.authorSignature（匿名帖子或非原创诗歌不显示签名）
                 const shouldShowSignature = (!!this.post && !this.post.isAnonymous && !(this.post.isPoem && this.post.isOriginal === false));
                 
@@ -3350,13 +3288,12 @@ export default {
 /* 自定义返回按钮 */
 .custom-back-btn {
     position: absolute;
-    top: calc(18rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
-    left: 24rpx;
-    width: 64rpx;
-    height: 64rpx;
-    background: var(--app-elevated-bg, rgba(255, 255, 255, 0.82));
+    top: calc(30rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px))); /* 添加安全区域偏移 */
+    left: 40rpx;
+    width: 100rpx;
+    height: 100rpx;
+    background: transparent;
     border: none;
-    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3370,8 +3307,8 @@ export default {
 }
 
 .custom-back-btn .back-icon {
-    width: 18rpx;
-    height: 32rpx;
+    width: 22rpx;
+    height: 38rpx;
     display: block;
     object-fit: contain;
     filter: var(--app-icon-filter, none);
@@ -3396,7 +3333,7 @@ page {
     color: var(--app-primary-text, #111111);
     /* min-height: 100vh; */
     padding-bottom: 20rpx;
-    padding-top: calc(88rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
+    padding-top: calc(100rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px))); /* 添加安全区域上边距，为状态栏留空间 */
     position: relative; /* 为返回按钮提供定位上下文 */
     /* 新增，确保在内容不足时也能撑满一屏 */
     display: flex;
@@ -3407,11 +3344,11 @@ page {
 
 /* #ifdef APP-PLUS || APP-HARMONY */
 .custom-back-btn {
-    top: calc(30rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
+    top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
 }
 
 .container {
-    padding-top: calc(104rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
+    padding-top: calc(160rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
 }
 /* #endif */
 
@@ -3567,14 +3504,11 @@ page {
 }
 
 .post-detail-wrapper {
-    background: var(--app-post-wrapper-bg, var(--app-surface-bg, #fff));
-    padding: 0;
+    background: var(--app-post-wrapper-bg, #fff);
+    padding: 40rpx 40rpx 20rpx 40rpx;
     border-bottom: var(--app-post-wrapper-divider, 1rpx solid #f0f0f0);
     margin-bottom: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-    border-radius: var(--app-post-wrapper-radius, 0);
-    box-shadow: var(--app-post-wrapper-shadow, none);
-    overflow: hidden;
 }
 
 .post-detail-wrapper.original-post {
@@ -3584,17 +3518,15 @@ page {
 }
 
 .post-detail-wrapper.poem-post {
-    background: var(--app-post-wrapper-bg, var(--app-surface-bg, #ffffff));
+    background: var(--app-post-wrapper-bg, #ffffff) !important;
 }
 
 .author-info {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    margin-bottom: 0;
-    padding: 20rpx 40rpx 10rpx 40rpx;
+    justify-content: flex-start;
+    margin-bottom: 20rpx;
     gap: 20rpx;
-    background: var(--app-post-section-bg, var(--app-surface-bg, #fff));
 }
 
 .author-basic {
@@ -3602,8 +3534,8 @@ page {
     align-items: center;
     flex: 1;
     min-width: 0;
-    gap: 0;
-    flex-wrap: nowrap;
+    gap: 12rpx;
+    flex-wrap: wrap;
 }
 
 .author-right-actions {
@@ -3652,18 +3584,15 @@ page {
 }
 
 .author-name {
-    font-weight: 500;
+    font-weight: bold;
     font-size: 28rpx;
     color: var(--app-post-author-color, #333);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 .post-title {
     font-size: 36rpx;
     font-weight: bold;
-    margin: 20rpx 40rpx 15rpx 40rpx;
+    margin-bottom: 15rpx;
     line-height: 1.4;
     color: var(--app-post-title-color, #333);
     word-break: break-word;
@@ -3676,11 +3605,11 @@ page {
 }
 
 .poem-author {
-    font-size: 32rpx;
-    color: var(--app-post-poem-author-color, #000);
-    text-align: center;
-    margin: 5rpx 40rpx 15rpx 40rpx;
-    font-weight: 400;
+    font-size: 28rpx;
+    color: var(--app-post-poem-author-color, #333);
+    text-align: left;
+    margin: 10rpx 0 15rpx 0;
+    font-weight: bold;
     letter-spacing: 2rpx;
 }
 
@@ -3691,7 +3620,7 @@ page {
 .post-content {
     font-size: 28rpx;
     line-height: 1.6;
-    margin: 15rpx 40rpx 20rpx 40rpx;
+    margin-bottom: 20rpx;
     white-space: pre-wrap;
     color: var(--app-post-content-color, #666);
     word-break: break-word;
@@ -3700,11 +3629,9 @@ page {
 
 .image-container {
     position: relative;
-    width: auto;
-    margin: 20rpx 40rpx;
+    width: 100%;
+    margin: 20rpx 0;
     background-color: var(--app-subtle-surface-bg, #f5f5f5);
-    overflow: hidden;
-    border-radius: 8px;
 }
 
 .post-image {
@@ -3751,16 +3678,15 @@ page {
 
 .vote-section {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
-    margin-top: 20rpx;
-    padding: 0 40rpx 30rpx 40rpx;
-    background: var(--app-post-section-bg, transparent);
+    margin-top: 10rpx;
+    padding: 10rpx 0rpx 0 40rpx;
 }
 
-.time-left {
-    flex: 1;
-    min-width: 0;
+.actions-left {
+    display: flex;
+    align-items: center;
 }
 
 .vote-count,
@@ -3790,8 +3716,8 @@ page {
     padding: 0;
     border-radius: 12rpx;
     transition: all 0.2s ease;
-    width: 64rpx;
-    height: 64rpx;
+    width: 80rpx;
+    height: 80rpx;
     margin-right: 12rpx;
 }
 
@@ -3817,8 +3743,8 @@ page {
     padding: 0;
     border-radius: 12rpx;
     transition: all 0.2s ease;
-    width: 64rpx;
-    height: 64rpx;
+    width: 80rpx;
+    height: 80rpx;
 }
 
 .portfolio-icon-container:active {
@@ -3826,8 +3752,8 @@ page {
 }
 
 .portfolio-icon {
-    width: 56rpx;
-    height: 56rpx;
+    width: 64rpx;
+    height: 64rpx;
     filter: var(--app-post-action-icon-filter, none);
     opacity: var(--app-post-action-icon-opacity, 1);
 }
@@ -3840,8 +3766,8 @@ page {
     padding: 0;
     border-radius: 12rpx;
     transition: all 0.2s ease;
-    width: 64rpx;
-    height: 64rpx;
+    width: 80rpx;
+    height: 80rpx;
 }
 
 .share-icon-container:active {
@@ -3849,16 +3775,16 @@ page {
 }
 
 .share-icon {
-    width: 56rpx;
-    height: 56rpx;
+    width: 64rpx;
+    height: 64rpx;
     filter: var(--app-post-action-icon-filter, none);
     opacity: var(--app-post-action-icon-opacity, 1);
 }
 
 
 .like-icon {
-    width: 56rpx;
-    height: 56rpx;
+    width: 64rpx;
+    height: 64rpx;
     filter: none;
     opacity: 1;
 }
@@ -4608,225 +4534,6 @@ page {
     color: var(--app-secondary-text, #666);
     margin-bottom: 20rpx;
     opacity: 0.8;
-}
-
-/* Align post detail with profile post list visuals. */
-.custom-back-btn {
-    top: calc(24rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
-    width: 64rpx;
-    height: 64rpx;
-    background: var(--app-elevated-bg, rgba(255, 255, 255, 0.92));
-    border: 1rpx solid var(--app-border-color, rgba(0, 0, 0, 0.08));
-    box-shadow: 0 8rpx 20rpx rgba(0, 0, 0, 0.12);
-    transition: transform 0.2s ease, background-color 0.2s ease;
-}
-
-.custom-back-btn:active {
-    transform: scale(0.94);
-}
-
-.container {
-    padding-top: calc(104rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
-    padding-bottom: 20rpx;
-}
-
-.post-detail-wrapper {
-    position: relative;
-    background: var(--app-post-wrapper-bg, var(--app-surface-bg, #fff));
-    margin: var(--app-post-wrapper-margin, 0 0 20rpx 0);
-    padding: 0;
-    box-shadow: var(--app-post-wrapper-shadow, none);
-    border: var(--app-post-wrapper-border, none);
-    border-bottom: var(--app-post-wrapper-divider, 1rpx solid #f0f0f0);
-    border-left: none;
-    border-radius: var(--app-post-wrapper-radius, 0);
-    overflow: hidden;
-    transform-origin: center top;
-}
-
-.post-detail-wrapper.original-post,
-.post-detail-wrapper.original-post.poem-post {
-    background: var(--app-post-original-bg, linear-gradient(90deg, rgba(235, 200, 141, 0.05) 0%, rgba(255, 255, 255, 0) 100%));
-    border-left: none;
-}
-
-.post-detail-wrapper.poem-post:not(.original-post) {
-    background: var(--app-post-wrapper-bg, var(--app-surface-bg, #fff));
-}
-
-.author-info {
-    padding: 20rpx 40rpx 10rpx 40rpx;
-    background: var(--app-post-section-bg, #fff);
-}
-
-.post-title {
-    margin: 20rpx 40rpx 15rpx 40rpx;
-}
-
-.poem-author {
-    margin: 5rpx 40rpx 15rpx 40rpx;
-}
-
-.post-content {
-    margin: 15rpx 40rpx 20rpx 40rpx;
-}
-
-.image-container {
-    width: auto;
-    margin: 20rpx 40rpx;
-    border-radius: 8px;
-    background-color: var(--app-subtle-surface-bg, #f0f0f0);
-    overflow: hidden;
-}
-
-.image-container .post-image,
-.image-container .image-swiper {
-    width: 100%;
-    display: block;
-}
-
-.image-container .post-image {
-    max-width: 100%;
-    max-height: none;
-    background-color: var(--app-subtle-surface-bg, #f0f0f0);
-}
-
-.post-tags {
-    margin: 30rpx 40rpx 10rpx 40rpx;
-    line-height: 1.5;
-}
-
-.post-tag {
-    color: var(--app-post-tag-color, #24375f);
-}
-
-.vote-section {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: -8rpx;
-    padding: 10rpx 40rpx 15rpx 40rpx;
-    background: var(--app-post-section-bg, transparent);
-}
-
-.time-left {
-    flex: 1;
-    min-width: 0;
-    padding-right: 20rpx;
-}
-
-.button-group {
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
-}
-
-.comment-count,
-.vote-count {
-    display: flex;
-    align-items: center;
-    font-size: 28rpx;
-    color: var(--app-post-action-color, #999);
-    margin-left: 10rpx;
-    transition: color 0.2s ease;
-}
-
-.comment-icon {
-    width: 60rpx;
-    height: 60rpx;
-    flex: 0 0 60rpx;
-    display: block;
-    margin-right: 8rpx;
-    filter: var(--app-post-action-icon-filter, none);
-    opacity: var(--app-post-action-icon-opacity, 1);
-}
-
-.like-icon-container,
-.portfolio-icon-container,
-.share-icon-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 60rpx;
-    height: 68rpx;
-    padding: 0;
-    border-radius: 8rpx;
-    margin-left: 20rpx;
-    margin-right: 0;
-    transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.like-icon-container:active,
-.portfolio-icon-container:active,
-.share-icon-container:active {
-    transform: scale(0.85);
-}
-
-.like-icon {
-    width: 52rpx;
-    height: 52rpx;
-    display: block;
-}
-
-.like-icon--seed {
-    width: 60rpx;
-    height: 60rpx;
-    transform: translateY(-1rpx);
-}
-
-.like-icon--seedplus {
-    width: 56rpx;
-    height: 56rpx;
-    transform: translateY(1rpx);
-}
-
-.like-icon--leaf,
-.like-icon--leafplus {
-    width: 48rpx;
-    height: 48rpx;
-}
-
-.like-icon--flower,
-.like-icon--flowerplus {
-    width: 44rpx;
-    height: 44rpx;
-    transform: translateY(2rpx);
-}
-
-.like-icon--peach {
-    width: 44rpx;
-    height: 44rpx;
-    transform: translateY(-2rpx);
-}
-
-.like-icon--peachplus {
-    width: 48rpx;
-    height: 48rpx;
-    transform: translateY(-1rpx);
-}
-
-.vote-count {
-    margin-left: 2rpx;
-}
-
-.vote-count.voted {
-    color: #111111;
-}
-
-[data-app-theme="dark"] .vote-count.voted {
-    color: #ffffff;
-}
-
-.portfolio-icon,
-.share-icon {
-    width: 56rpx;
-    height: 56rpx;
-    filter: var(--app-post-action-icon-filter, none);
-    opacity: var(--app-post-action-icon-opacity, 1);
-}
-
-.comment-section {
-    margin-top: 0;
 }
 
 </style>

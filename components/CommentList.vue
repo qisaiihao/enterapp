@@ -78,22 +78,18 @@ export default {
 .comment-section {
     background: var(--app-post-section-bg, var(--app-post-wrapper-bg, var(--app-surface-bg, #fff)));
     padding: 30rpx 40rpx;
-    margin-top: 0;
-    border-bottom: var(--app-post-wrapper-divider, 1rpx solid #f0f0f0);
-    box-sizing: border-box;
+    margin-top: 20rpx;
 }
 
 .section-title {
-    font-size: 26rpx;
-    font-weight: normal;
-    color: var(--app-muted-text, #999);
+    font-size: 32rpx;
+    font-weight: bold;
+    color: var(--app-primary-text, #333);
     margin-bottom: 20rpx;
-    padding-bottom: 15rpx;
-    border-bottom: 1rpx solid var(--app-border-color, #f0f0f0);
 }
 
 .comment-list {
-    margin-top: 0;
+    margin-top: 20rpx;
 }
 
 /* 评论骨架屏 */
