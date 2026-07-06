@@ -5,7 +5,7 @@
 
     <view v-if="showPoemFilterPanel" class="poem-filter-mask" @tap="closePoemFilterPanel"></view>
 
-    <view class="poem-filter-container" :style="{ top: (safeAreaTop * 2 + 160) + 'rpx' }">
+    <view v-if="!showFollowingOnly" class="poem-filter-container" :style="{ top: (safeAreaTop * 2 + 160) + 'rpx' }">
       <view
         class="poem-filter-trigger"
         :class="{ 'poem-filter-trigger--active': showPoemFilterPanel || showFollowingOnly }"
@@ -42,7 +42,7 @@
     </view>
 
     <!-- 关注头像栏 - 只在关注模式下显示 -->
-    <view v-if="showFollowingOnly" class="following-avatar-bar-wrapper" :style="{ top: (safeAreaTop * 2 + 140) + 'rpx' }">
+    <view v-if="showFollowingOnly" class="following-avatar-bar-wrapper" :style="{ top: (safeAreaTop * 2 + 100) + 'rpx' }">
       <following-avatar-bar
         ref="followingAvatarBar"
         mode="poem-square"
@@ -63,7 +63,7 @@
     </view>
 
     <!-- 内容列表 -->
-    <view v-else :class="['square-mode-container', showFollowingOnly ? 'with-avatar-bar' : '']" :style="{ paddingTop: showFollowingOnly ? ((safeAreaTop * 2 + 360) + 'rpx') : ((safeAreaTop * 2 + 250) + 'rpx') }">
+    <view v-else :class="['square-mode-container', showFollowingOnly ? 'with-avatar-bar' : '']" :style="{ paddingTop: showFollowingOnly ? ((safeAreaTop * 2 + 300) + 'rpx') : ((safeAreaTop * 2 + 250) + 'rpx') }">
       <view v-if="postList.length === 0" class="empty-state">
         <view class="empty-icon">😶</view>
         <view class="empty-text">{{ showFollowingOnly ? '关注的人还没有发布诗歌哦～' : '还没刷出来，再等等~' }}</view>
@@ -495,7 +495,8 @@ export default {
     },
 
     onSafeAreaReady(height) {
-      const safeAreaTop = Number(height || 0) || 44;
+      const parsedHeight = Number(height);
+      const safeAreaTop = Number.isFinite(parsedHeight) && parsedHeight >= 0 ? parsedHeight : 44;
       if (this.safeAreaTop === safeAreaTop) return;
       this.applyLocalState({
         safeAreaTop
@@ -1929,9 +1930,13 @@ export default {
 /* 关注头像栏定位 */
 .following-avatar-bar-wrapper {
   position: absolute;
-  top: calc(var(--safe-area-top, 44px) + 140rpx); /* 使用动态变量的安全区域高度 */
+  top: calc(var(--safe-area-top, 44px) + 100rpx); /* 使用动态变量的安全区域高度 */
   left: 0;
   right: 0;
   z-index: 10;
+}
+
+.following-avatar-bar-wrapper :deep(.avatar-bar-container) {
+  padding-top: 0;
 }
 </style>

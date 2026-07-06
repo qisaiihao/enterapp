@@ -4,7 +4,7 @@
     <top-bar @safe-area-ready="onSafeAreaReady" />
 
     <!-- 诗人筛选栏 -->
-    <view class="poet-avatar-bar-wrapper" :style="{ top: (safeAreaTop * 2 + 140) + 'rpx' }">
+    <view class="poet-avatar-bar-wrapper" :style="{ top: (safeAreaTop * 2 + 100) + 'rpx' }">
       <poet-avatar-bar
         ref="poetAvatarBar"
         :selectedPoetName="selectedPoetName"
@@ -13,7 +13,7 @@
     </view>
 
     <!-- 内容列表 -->
-    <view class="square-mode-container with-avatar-bar" :style="{ paddingTop: (safeAreaTop * 2 + 340) + 'rpx' }">
+    <view class="square-mode-container with-avatar-bar" :style="{ paddingTop: (safeAreaTop * 2 + 300) + 'rpx' }">
       <!-- 加载中骨架 - 嵌入到内容容器中，而不是覆盖整个页面 -->
       <!-- 在存在诗人筛选组件时正常显示骨架屏 -->
       <view v-if="isLoading">
@@ -250,7 +250,8 @@ export default {
   },
   methods: {
     onSafeAreaReady(height) {
-      const safeAreaTop = Number(height || 0) || 44;
+      const parsedHeight = Number(height);
+      const safeAreaTop = Number.isFinite(parsedHeight) && parsedHeight >= 0 ? parsedHeight : 44;
       if (this.safeAreaTop === safeAreaTop) return;
       this.setData({
         safeAreaTop
@@ -746,7 +747,7 @@ export default {
 /* 诗人筛选栏定位 */
 .poet-avatar-bar-wrapper {
   position: absolute;
-  top: calc(var(--safe-area-top, 44px) + 140rpx); /* 使用动态变量的安全区域高度 */
+  top: calc(var(--safe-area-top, 44px) + 100rpx); /* 使用动态变量的安全区域高度 */
   left: 0;
   right: 0;
   z-index: 10;
@@ -754,7 +755,11 @@ export default {
 
 /* 内容列表有头像栏时的上边距 */
 .square-mode-container.with-avatar-bar {
-  padding-top: calc(var(--safe-area-top, 44px) + 340rpx); /* 动态计算：安全区域 + 头像栏高度 */
+  padding-top: calc(var(--safe-area-top, 44px) + 300rpx); /* 动态计算：安全区域 + 头像栏高度 */
+}
+
+.poet-avatar-bar-wrapper :deep(.avatar-bar-container) {
+  padding-top: 0;
 }
 </style>
     // 从 like:status 缓存对齐当前列表的点赞状态（兜底：跨页返回时也能更新）
