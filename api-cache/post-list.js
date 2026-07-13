@@ -53,7 +53,10 @@ export async function getPostList({
 
   // 第一页强刷直接请求
   if (page === 0 && forceRefresh) {
-    return fetchPosts();
+    ns.delete(key);
+    const posts = await fetchPosts();
+    ns.set(key, posts, { ttlMs: TTL_MS });
+    return posts;
   }
 
   return ns.getOrFetch(

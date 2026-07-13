@@ -1628,6 +1628,12 @@ export default {
 
       const selectedJoinActivityTitle = this.joinedActivityTitle || addData.joinedActivityTitle || '';
 
+      const normalizedPublishMode = (addData.isSeries || addData.isPoem || addData.publishMode === 'poem') ? 'poem' : (addData.publishMode || 'normal');
+      const normalizedIsSeries = !!addData.isSeries;
+      const normalizedIsDiscussion = normalizedPublishMode === 'discussion' && !normalizedIsSeries;
+      const normalizedIsPoem = normalizedPublishMode === 'poem' || normalizedIsSeries;
+      const normalizedIsOriginal = normalizedIsPoem ? !!addData.isOriginal : false;
+
 
 
       const publishData = {
@@ -1642,7 +1648,15 @@ export default {
 
         imageList: addData.imageList || [], // 确保imageList字段存在
 
-        isSeries: addData.isSeries || false,
+        publishMode: normalizedPublishMode,
+
+        isPoem: normalizedIsPoem,
+
+        isOriginal: normalizedIsOriginal,
+
+        isDiscussion: normalizedIsDiscussion,
+
+        isSeries: normalizedIsSeries,
 
         seriesBlocks: Array.isArray(addData.seriesBlocks) ? addData.seriesBlocks : [],
 
@@ -2158,6 +2172,12 @@ export default {
 
       this.lastSubmitActivityId = addData.activityId || addData.joinActivityId || '';
 
+      const normalizedPublishMode = (addData.isSeries || addData.isPoem || addData.publishMode === 'poem') ? 'poem' : (addData.publishMode || 'normal');
+      const normalizedIsSeries = !!addData.isSeries;
+      const normalizedIsDiscussion = normalizedPublishMode === 'discussion' && !normalizedIsSeries;
+      const normalizedIsPoem = normalizedPublishMode === 'poem' || normalizedIsSeries;
+      const normalizedIsOriginal = normalizedIsPoem ? !!addData.isOriginal : false;
+
 
 
       // 如果是编辑模式，调用更新接口
@@ -2274,11 +2294,17 @@ export default {
 
           originalFileIDs: originalImageUrls.length > 0 ? originalImageUrls : (imageUrls.length > 0 ? imageUrls : []),
 
-          isDiscussion: addData.publishMode === 'discussion' || false,
+          publishMode: normalizedPublishMode,
 
-          sentenceGroups: addData.publishMode === 'discussion' ? discussionSentenceGroups : undefined,
+          isPoem: normalizedIsPoem,
 
-          discussionSentences: addData.publishMode === 'discussion' ? discussionSentenceGroups.map(g => ({
+          isOriginal: normalizedIsOriginal,
+
+          isDiscussion: normalizedIsDiscussion,
+
+          sentenceGroups: normalizedIsDiscussion ? discussionSentenceGroups : undefined,
+
+          discussionSentences: normalizedIsDiscussion ? discussionSentenceGroups.map(g => ({
 
             sentences: g.sentences || [],
 
@@ -2286,11 +2312,11 @@ export default {
 
           })) : undefined,
 
-          isSeries: addData.isSeries || false,
+          isSeries: normalizedIsSeries,
 
-          seriesBlocks: addData.isSeries ? seriesBlocks : undefined,
+          seriesBlocks: normalizedIsSeries ? seriesBlocks : undefined,
 
-          seriesBlockCount: addData.isSeries ? seriesBlocks.length : undefined
+          seriesBlockCount: normalizedIsSeries ? seriesBlocks.length : undefined
 
         };
 
@@ -2380,13 +2406,15 @@ export default {
 
         votes: 0,
 
-        isPoem: addData.publishMode === 'poem' || addData.isSeries,
+        publishMode: normalizedPublishMode,
 
-        isSeries: addData.isSeries || false,
+        isPoem: normalizedIsPoem,
 
-        isOriginal: addData.isOriginal,
+        isSeries: normalizedIsSeries,
 
-        isDiscussion: addData.publishMode === 'discussion',
+        isOriginal: normalizedIsOriginal,
+
+        isDiscussion: normalizedIsDiscussion,
 
         author: authorName,
 
@@ -2484,15 +2512,17 @@ export default {
 
         originalFileIDs: uploadResults.map(r => r.originalUrl).filter(url => url),
 
-        publishMode: addData.publishMode,
+        publishMode: normalizedPublishMode,
 
-        isOriginal: addData.isOriginal,
+        isPoem: normalizedIsPoem,
 
-        isDiscussion: addData.isDiscussion || addData.publishMode === 'discussion' || false,
+        isOriginal: normalizedIsOriginal,
 
-        isSeries: addData.isSeries || false,
+        isDiscussion: normalizedIsDiscussion,
 
-        seriesBlocks: addData.isSeries ? seriesBlocks : [],
+        isSeries: normalizedIsSeries,
+
+        seriesBlocks: normalizedIsSeries ? seriesBlocks : [],
 
         author: addData.author,
 

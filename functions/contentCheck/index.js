@@ -99,6 +99,7 @@ exports.main = async (event, context) => {
     textColor,
     highlightSentence,
     highlightLines,
+    isPoem,
     isDiscussion,
     parentPostId,
     isAnonymous,
@@ -120,6 +121,7 @@ exports.main = async (event, context) => {
   let joinActivityId = typeof rawJoinActivityId === 'string' ? rawJoinActivityId.trim() : '';
   let joinActivityTitleSnapshot = typeof rawJoinActivityTitleSnapshot === 'string' ? rawJoinActivityTitleSnapshot.trim() : '';
   let activityDoc = null;
+  const normalizeBoolean = (value) => value === true || value === 'true';
 
   if (activityId && joinActivityId) {
     return buildFailure({
@@ -229,6 +231,14 @@ exports.main = async (event, context) => {
     discussionSentencesLength: Array.isArray(discussionSentences) ? discussionSentences.length : 0,
     quotedPostId
   });
+  isSeries = normalizeBoolean(isSeries);
+  isDiscussion = normalizeBoolean(isDiscussion);
+  isPoem = normalizeBoolean(isPoem);
+  publishMode = (isSeries || isPoem || publishMode === 'poem') ? 'poem' : (publishMode || 'normal');
+  isPoem = publishMode === 'poem' || isSeries;
+  isDiscussion = publishMode === 'discussion' && !isSeries;
+  isOriginal = isPoem ? normalizeBoolean(isOriginal) : false;
+
   content = content || '';
   title = title || '';
 
@@ -555,16 +565,16 @@ const dedupeTop3 = (lines = []) => {
       votes: 0,
       commentCount: 0,
       // 新增诗歌相关字段
-      isPoem: publishMode === 'poem' || isSeries,
-      isSeries: Boolean(isSeries),
-      publishMode: publishMode || (isSeries ? 'poem' : 'normal'),
+      isPoem: isPoem,
+      isSeries: isSeries,
+      publishMode: publishMode,
       seriesBlocks: normalizedSeriesBlocks,
       seriesBlockCount: normalizedSeriesBlocks.length,
       seriesCoverImage: normalizedSeriesBlocks[0]?.imageUrl || '',
       seriesCoverHighlight: highlightSentenceValue || '',
-      isOriginal: isOriginal || false,
+      isOriginal: isOriginal,
       // 新增讨论相关字段
-      isDiscussion: isDiscussion || false,
+      isDiscussion: isDiscussion,
       parentPostId: parentPostId || '',
       quotedPostId: quotedPostId || '',
       sentenceGroups: normalizedSentenceGroups,

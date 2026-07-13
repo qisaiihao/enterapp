@@ -7,6 +7,65 @@ cloud.init({
 
 const db = cloud.database();
 const _ = db.command;
+const SEARCH_LOGS_COLLECTION = 'search_logs';
+const SEARCH_STATS_COLLECTION = 'search_stats';
+const ensuredCollections = new Set();
+
+function getErrorText(error) {
+  return String((error && (error.errMsg || error.message || error.code || error.errCode)) || '');
+}
+
+function isMissingCollectionError(error) {
+  const text = getErrorText(error);
+  return (
+    (error && error.errCode === -502005) ||
+    text.includes('DATABASE_COLLECTION_NOT_EXIST') ||
+    text.includes('collection not exists') ||
+    text.includes('Db or Table not exist') ||
+    text.includes('ResourceNotFound')
+  );
+}
+
+function isCollectionExistsError(error) {
+  const text = getErrorText(error);
+  return (
+    (error && error.errCode === -501001) ||
+    text.includes('already exists') ||
+    text.includes('collection exists') ||
+    text.includes('duplicate')
+  );
+}
+
+async function ensureCollection(name) {
+  if (ensuredCollections.has(name)) {
+    return;
+  }
+
+  try {
+    await db.collection(name).limit(1).get();
+    ensuredCollections.add(name);
+    return;
+  } catch (error) {
+    if (!isMissingCollectionError(error)) {
+      throw error;
+    }
+  }
+
+  try {
+    await db.createCollection(name);
+    console.log('[searchStats] created collection:', name);
+  } catch (error) {
+    if (!isCollectionExistsError(error)) {
+      throw error;
+    }
+  }
+  ensuredCollections.add(name);
+}
+
+async function ensureSearchCollections() {
+  await ensureCollection(SEARCH_LOGS_COLLECTION);
+  await ensureCollection(SEARCH_STATS_COLLECTION);
+}
 
 // 云函数入口函数
 exports.main = async (event, context) => {
@@ -27,6 +86,8 @@ exports.main = async (event, context) => {
 
   try {
     if (action === 'record') {
+      await ensureSearchCollections();
+
       // 记录搜索
       if (!keyword.trim()) {
         return {
@@ -38,7 +99,7 @@ exports.main = async (event, context) => {
       console.log('记录搜索:', keyword, '用户:', openid);
 
       // 记录搜索历史
-      await db.collection('search_logs').add({
+      await db.collection(SEARCH_LOGS_COLLECTION).add({
         data: {
           keyword: keyword.trim(),
           openid: openid,
@@ -51,7 +112,7 @@ exports.main = async (event, context) => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
-      const searchStatsResult = await db.collection('search_stats')
+      const searchStatsResult = await db.collection(SEARCH_STATS_COLLECTION)
         .where({
           keyword: keyword.trim(),
           date: today
@@ -60,7 +121,7 @@ exports.main = async (event, context) => {
 
       if (searchStatsResult.data.length > 0) {
         // 更新现有统计
-        await db.collection('search_stats')
+        await db.collection(SEARCH_STATS_COLLECTION)
           .doc(searchStatsResult.data[0]._id)
           .update({
             data: {
@@ -70,7 +131,7 @@ exports.main = async (event, context) => {
           });
       } else {
         // 创建新统计
-        await db.collection('search_stats').add({
+        await db.collection(SEARCH_STATS_COLLECTION).add({
           data: {
             keyword: keyword.trim(),
             count: 1,
@@ -88,11 +149,13 @@ exports.main = async (event, context) => {
       };
 
     } else if (action === 'getHotSearches') {
+      await ensureCollection(SEARCH_STATS_COLLECTION);
+
       // 获取热门搜索词
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
-      const hotSearchesResult = await db.collection('search_stats')
+      const hotSearchesResult = await db.collection(SEARCH_STATS_COLLECTION)
         .where({
           date: _.gte(today)
         })
@@ -111,12 +174,14 @@ exports.main = async (event, context) => {
       };
 
     } else if (action === 'getSearchTrends') {
+      await ensureCollection(SEARCH_STATS_COLLECTION);
+
       // 获取搜索趋势
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       sevenDaysAgo.setHours(0, 0, 0, 0);
 
-      const trendsResult = await db.collection('search_stats')
+      const trendsResult = await db.collection(SEARCH_STATS_COLLECTION)
         .where({
           date: _.gte(sevenDaysAgo)
         })
@@ -147,6 +212,13 @@ exports.main = async (event, context) => {
       return {
         success: true,
         trends: trends
+      };
+
+    } else if (action === 'ensureCollections') {
+      await ensureSearchCollections();
+      return {
+        success: true,
+        collections: [SEARCH_LOGS_COLLECTION, SEARCH_STATS_COLLECTION]
       };
 
     } else {

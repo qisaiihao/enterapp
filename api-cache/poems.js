@@ -57,7 +57,10 @@ async function getFollowingPoems({
     );
     console.log('🔍 [poems] 云函数返回 - success:', res?.result?.success, 'posts数量:', res?.result?.posts?.length);
     if (res && res.result && res.result.success) {
-      return res.result.posts || [];
+      const posts = res.result.posts || [];
+      followingNs.delete(key);
+      followingNs.set(key, posts, { ttlMs: TTL_MS });
+      return posts;
     }
     return [];
   }

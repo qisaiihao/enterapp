@@ -19,6 +19,8 @@
                 class="author-avatar"
                 :src="authorAvatarSrc"
                 mode="aspectFill"
+                :alt="(item.authorName || '作者') + '头像'"
+                :title="(item.authorName || '作者') + '头像'"
                 @error="onAvatarError"
                 @load="onAvatarLoad"
                 @tap.stop.prevent="onNavigateToUser"
@@ -55,6 +57,8 @@
                             :src="item.imageUrls[0]"
                             mode="aspectFill"
                             :lazy-load="true"
+                            :alt="displayTitle || item.content || '帖子图片'"
+                            :title="displayTitle || item.content || '帖子图片'"
                             @error="onImageError"
                             @load="onImageLoad"
                             :data-postid="item._id"
@@ -79,6 +83,8 @@
                                         :src="img"
                                         mode="aspectFill"
                                         :lazy-load="true"
+                                        :alt="displayTitle || item.content || '帖子图片'"
+                                        :title="displayTitle || item.content || '帖子图片'"
                                         @error="onImageError"
                                         @load="onImageLoad"
                                         @tap.stop.prevent="onPreviewImageMulti"
@@ -153,7 +159,7 @@
             </view>
             <view class="button-group">
                 <view class="comment-count" @tap.stop.prevent="onCommentClick">
-                    <image class="comment-icon" src="/static/images/newicons/comment.png" mode="aspectFit" />
+                    <image class="comment-icon" src="/static/images/newicons/comment.png" mode="aspectFit" alt="评论" title="评论" />
                     <text class="action-text">{{ item.commentCount || 0 }}</text>
                 </view>
                 <view
@@ -164,6 +170,8 @@
                         :class="['like-icon', getLikeIconVariantClass(item.likeIcon), item.isVoted ? 'like-icon--voted' : '']"
                         :src="item.likeIcon || '/static/images/seed.png'"
                         mode="aspectFit"
+                        alt="点赞"
+                        title="点赞"
                         @error="onLikeIconError"
                     ></image>
                 </view>

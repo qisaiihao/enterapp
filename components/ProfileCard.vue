@@ -2,13 +2,20 @@
     <view class="profile-card profile-card-center">
         <view v-if="showGrowthStats" class="profile-growth-stats">
             <view class="growth-item" v-for="(value, key) in displayGrowthStats" :key="key">
-                <image class="growth-icon" :src="growthIcons[key]" mode="aspectFit" />
+                <image class="growth-icon" :src="growthIcons[key]" mode="aspectFit" :alt="growthLabels[key]" :title="growthLabels[key]" />
                 <text class="growth-count">{{ value }}</text>
             </view>
         </view>
 
         <view class="profile-avatar-large">
-            <image :src="avatarSrc" mode="aspectFill" @error="handleAvatarError" @tap.stop.prevent="onAvatarClick" />
+            <image
+                :src="avatarSrc"
+                mode="aspectFill"
+                :alt="displayName + '头像'"
+                :title="displayName + '头像'"
+                @error="handleAvatarError"
+                @tap.stop.prevent="onAvatarClick"
+            />
         </view>
 
         <view class="profile-info-center">
@@ -26,6 +33,8 @@
                     <image
                         src="/static/images/icons/menu-icon.svg"
                         class="menu-btn-small"
+                        alt="菜单"
+                        title="菜单"
                         @tap.stop="$emit('toggle-sidebar')"
                     />
                 </view>
@@ -100,6 +109,14 @@ export default {
                 leaf: '/static/images/leafplus.png',
                 flower: '/static/images/flowerplus.png',
                 peach: '/static/images/peachplus.png'
+            };
+        },
+        growthLabels() {
+            return {
+                seed: '种子',
+                leaf: '叶子',
+                flower: '花',
+                peach: '桃子'
             };
         }
     },

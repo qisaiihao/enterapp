@@ -1106,6 +1106,9 @@ export default {
                         const joinedActivityId = post.joinedActivityId || '';
                         const joinedActivityTitle = post.joinedActivityTitleSnapshot || '';
 
+                        const isPoemPost = post.isPoem === true || post.publishMode === 'poem' || post.isSeries === true;
+                        const editPublishMode = isPoemPost ? 'poem' : (post.isDiscussion ? 'discussion' : 'normal');
+
                         this.setData({
                             content: post.content || '',
                             title: post.title || '',
@@ -1121,9 +1124,9 @@ export default {
                             highlightSelectedLineIndices: highlightSelectedLineIndices,
                             highlightSentence: highlightLines[0] || '',
                             imageList: imageList,
-                            publishMode: post.isPoem ? 'poem' : (post.isDiscussion ? 'discussion' : 'normal'),
+                            publishMode: editPublishMode,
                             isOriginal: post.isOriginal || false,
-                            maxImageCount: post.isPoem ? 1 : 9,
+                            maxImageCount: isPoemPost ? 1 : 9,
                             editingPost: post,
                             isActivityMode: isOfficialActivityPost,
                             activityId: isOfficialActivityPost ? (post.activityId || '') : '',
@@ -1686,12 +1689,19 @@ export default {
         },
 
         submitToDatabase: function (uploadResults) {
+            const normalizedPublishMode = (this.isSeries || this.isPoem || this.publishMode === 'poem') ? 'poem' : (this.publishMode || 'normal');
+            const normalizedIsSeries = !!this.isSeries;
+            const normalizedIsDiscussion = normalizedPublishMode === 'discussion' && !normalizedIsSeries;
+            const normalizedIsPoem = normalizedPublishMode === 'poem' || normalizedIsSeries;
+            const normalizedIsOriginal = normalizedIsPoem ? !!this.isOriginal : false;
+
             console.log('提交到数据库:', {
                 uploadResults: uploadResults,
                 title: this.title,
                 content: this.content,
-                publishMode: this.publishMode,
-                isOriginal: this.isOriginal,
+                publishMode: normalizedPublishMode,
+                isPoem: normalizedIsPoem,
+                isOriginal: normalizedIsOriginal,
                 isEditMode: this.isEditMode
             });
             console.log('uploadResults详细信息:', uploadResults);
@@ -1758,9 +1768,13 @@ export default {
                     author: authorName,
                     isAnonymous: this.editingPost && this.editingPost.isAnonymous || false,
                     anonymousAuthorName: this.editingPost && this.editingPost.anonymousAuthorName || '',
-                    isDiscussion: this.publishMode === 'discussion' || false,
-                    sentenceGroups: this.publishMode === 'discussion' ? discussionSentenceGroups : undefined,
-                    discussionSentences: this.publishMode === 'discussion' ? discussionSentenceGroups.map(g => ({
+                    publishMode: normalizedPublishMode,
+                    isPoem: normalizedIsPoem,
+                    isOriginal: normalizedIsOriginal,
+                    isDiscussion: normalizedIsDiscussion,
+                    isSeries: normalizedIsSeries,
+                    sentenceGroups: normalizedIsDiscussion ? discussionSentenceGroups : undefined,
+                    discussionSentences: normalizedIsDiscussion ? discussionSentenceGroups.map(g => ({
                         sentences: g.sentences,
                         comment: (g.comment || '').trim()
                     })) : undefined
@@ -1820,10 +1834,12 @@ export default {
                 createTime: new Date(),
                 votes: 0,
                 // 新增诗歌相关字段
-                isPoem: this.publishMode === 'poem',
-                isOriginal: this.isOriginal,
+                publishMode: normalizedPublishMode,
+                isPoem: normalizedIsPoem,
+                isOriginal: normalizedIsOriginal,
+                isSeries: normalizedIsSeries,
                 // 讨论模式字段
-                isDiscussion: this.publishMode === 'discussion',
+                isDiscussion: normalizedIsDiscussion,
                 // 新增作者字段
                 author: authorName,
                 // 新增标签字段
@@ -1834,7 +1850,7 @@ export default {
                 highlightLines: this.highlightLines || []
             };
             
-            if (this.publishMode === 'discussion' && discussionSentenceGroups.length > 0) {
+            if (normalizedIsDiscussion && discussionSentenceGroups.length > 0) {
                 postData.sentenceGroups = discussionSentenceGroups;
                 postData.discussionSentences = discussionSentenceGroups.map(g => ({
                     sentences: g.sentences,
@@ -1856,7 +1872,7 @@ export default {
                 postData.originalImageUrls = originalImageUrls;
 
                 // 如果是诗歌模式，第一张图片作为背景图
-                if (this.publishMode === 'poem' && imageUrls.length > 0) {
+                if (normalizedIsPoem && imageUrls.length > 0) {
                     postData.poemBgImage = imageUrls[0];
                 }
             }
@@ -1877,14 +1893,16 @@ export default {
                 content: finalContent,
                 fileIDs: fileIDs,
                 originalFileIDs: originalFileIDs, // 添加原图URL数组
-                publishMode: this.publishMode,
-                isOriginal: this.isOriginal,
+                publishMode: normalizedPublishMode,
+                isPoem: normalizedIsPoem,
+                isOriginal: normalizedIsOriginal,
                 author: this.author,
                 tags: this.selectedTags || [],
-                isDiscussion: this.isDiscussion || false,
+                isDiscussion: normalizedIsDiscussion,
+                isSeries: normalizedIsSeries,
                 parentPostId: this.parentPostId || '',
-                sentenceGroups: this.publishMode === 'discussion' ? discussionSentenceGroups : [],
-                discussionSentences: this.publishMode === 'discussion' ? discussionSentenceGroups.map(g => ({
+                sentenceGroups: normalizedIsDiscussion ? discussionSentenceGroups : [],
+                discussionSentences: normalizedIsDiscussion ? discussionSentenceGroups.map(g => ({
                     sentences: g.sentences,
                     comment: (g.comment || '').trim()
                 })) : [],

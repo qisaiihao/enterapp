@@ -653,45 +653,20 @@ export default {
 
       // 非筛选模式：先尝试从缓存获取第一页数据，立即显示给用户
       const ns = cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 });
+      try { if (ns.clearInfiniteCache) ns.clearInfiniteCache(); } catch (_) {}
       const cacheKey = 'page:0:size:10:poem:true:orig:true:exclAnon:true';
       
       console.log('🔍 [poem-square-cache] 开始读取缓存，key:', cacheKey);
       
-      // 直接读取持久化存储，不通过get方法（避免过期检查）
+      // 只读取仍在有效期内的第一页缓存，避免旧分页和新分页混在一起。
       let cachedData = null;
       let cacheSource = 'none';
       try {
-        if (ns.persistent) {
-          console.log('🔍 [poem-square-cache] 检查持久化存储');
-          // 直接从持久化存储读取，不检查过期时间
-          const keys = ns.keys();
-          console.log('🔍 [poem-square-cache] 所有缓存键:', keys);
-          const matchedKey = keys.find(k => k.includes('page:0:size:10:poem:true:orig:true:exclAnon:true'));
-          console.log('🔍 [poem-square-cache] 匹配到的键:', matchedKey);
-          
-          if (matchedKey) {
-            const rec = ns._readPersist(matchedKey);
-            console.log('🔍 [poem-square-cache] 从持久化读取的记录:', rec ? { hasValue: !!rec.v, isArray: Array.isArray(rec.v), length: rec.v?.length, expireAt: rec.e } : null);
-            if (rec && rec.v && Array.isArray(rec.v) && rec.v.length > 0) {
-              cachedData = rec.v;
-              cacheSource = 'persistent';
-              console.log('✅ [poem-square-cache] 从持久化存储读取到缓存数据，数量:', cachedData.length);
-              // 恢复到内存缓存
-              ns.mem.set(matchedKey, rec);
-              console.log('✅ [poem-square-cache] 已恢复到内存缓存');
-            }
-          }
-        }
-        // 如果持久化没找到，尝试从内存读取
-        if (!cachedData) {
-          console.log('🔍 [poem-square-cache] 从内存缓存读取');
-          const rec = ns.mem.get(cacheKey);
-          console.log('🔍 [poem-square-cache] 内存缓存记录:', rec ? { hasValue: !!rec.v, isArray: Array.isArray(rec.v), length: rec.v?.length, expireAt: rec.e } : null);
-          if (rec && rec.v && Array.isArray(rec.v) && rec.v.length > 0) {
-            cachedData = rec.v;
-            cacheSource = 'memory';
-            console.log('✅ [poem-square-cache] 从内存缓存读取到数据，数量:', cachedData.length);
-          }
+        const cached = ns.get(cacheKey);
+        if (Array.isArray(cached) && cached.length > 0) {
+          cachedData = cached;
+          cacheSource = 'cache';
+          console.log('[poem-square-cache] fresh cache hit:', cachedData.length);
         }
       } catch (e) {
         console.error(`[poem-square-cache] cache read failed: ${formatErrorForLog(e)}`);
@@ -756,7 +731,7 @@ export default {
             if (typeof callback === 'function') {
               callback();
             }
-          });
+          }, { forceRefresh: true });
         }, 100);
       } else {
         // 没有缓存，正常加载
@@ -907,7 +882,8 @@ export default {
 
       return post;
     },
-    async getPostList(cb) {
+    async getPostList(cb, options = {}) {
+      const { forceRefresh = false } = options || {};
       // 双重检查：防止重复调用（首次加载时isLoading为true是正常的）
       const isFirstLoad = this.page === 0;
       if (!isFirstLoad && (this.isLoadingMore || this._loadingLock)) {
@@ -931,6 +907,7 @@ export default {
             page: this.page,
             pageSize: PAGE_SIZE,
             context: this,
+            forceRefresh,
             filterByUserId: this.followingSelectedUserId || undefined,
             // SWR后台更新回调：关注诗歌后台更新完成时调用
             onBackgroundUpdate: async (newPosts) => {
@@ -992,6 +969,7 @@ export default {
           page: this.page,
           pageSize: PAGE_SIZE,
           context: this,
+          forceRefresh,
           // SWR后台更新回调：原创诗歌后台更新完成时调用
           onBackgroundUpdate: async (newPosts) => {
             console.log(' [SWR-PoemSquare-Original] 后台更新完成', newPosts?.length);
@@ -1092,34 +1070,8 @@ export default {
       
       let newPostList;
       if (this.page === 0) {
-        // 第一页：判断是否是用户筛选操作
-        const isUserFiltering = this.showFollowingOnly && this.followingSelectedUserId;
-
-        if (isUserFiltering) {
-          // 用户筛选时直接替换列表
-          newPostList = visibleList;
-        } else if (this.postList.length > 0) {
-          // 第一页刷新：合并缓存数据
-          // 检查是否有新帖子
-          const existingIds = new Set(this.postList.map(post => post._id).filter(Boolean));
-          const newPosts = visibleList.filter(post => post && post._id && !existingIds.has(post._id));
-
-          if (newPosts.length > 0) {
-            // 有新帖子，补充到列表前面（最新的在前面）
-            newPostList = [...newPosts, ...this.postList];
-            console.log('✅ 【poem-square】合并后的列表长度:', newPostList.length);
-          } else {
-            // 没有新帖子，保持现有列表，但更新现有帖子的数据（可能有更新）
-            const updatedList = this.postList.map(existingPost => {
-              const updated = visibleList.find(p => p._id === existingPost._id);
-              return updated || existingPost;
-            });
-            newPostList = updatedList;
-          }
-        } else {
-          // 没有现有列表，直接使用新数据
-          newPostList = visibleList;
-        }
+        // 第一页必须以服务端返回为准，避免缓存里的旧分页混入当前列表。
+        newPostList = visibleList;
       } else {
         // 加载更多：合并并去重
         const existingIds = new Set(this.postList.map(post => post._id).filter(Boolean));

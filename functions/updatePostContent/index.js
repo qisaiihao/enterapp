@@ -16,6 +16,8 @@ const EDITABLE_KEYS = [
   'isAnonymous',
   'anonymousAuthorName',
   'author',
+  'isPoem',
+  'isOriginal',
   'isDiscussion',
   'isSeries',
   'seriesBlocks',
@@ -102,6 +104,33 @@ exports.main = async (event, context) => {
     }
 
     // 校验并规范化参与活动字段
+    const nextIsSeries = updateData.isSeries !== undefined ? updateData.isSeries === true : post.isSeries === true;
+    let nextPublishMode = updateData.publishMode || post.publishMode || (post.isPoem === true ? 'poem' : 'normal');
+    const requestedPoem = updateData.isPoem === true || nextPublishMode === 'poem' || nextIsSeries;
+
+    if (requestedPoem) {
+      nextPublishMode = 'poem';
+    } else if (nextPublishMode !== 'discussion') {
+      nextPublishMode = 'normal';
+    }
+
+    const nextIsPoem = nextPublishMode === 'poem' || nextIsSeries;
+    updateData.publishMode = nextPublishMode;
+    updateData.isPoem = nextIsPoem;
+    updateData.isSeries = nextIsSeries;
+    updateData.isDiscussion = nextPublishMode === 'discussion' && !nextIsSeries;
+    updateData.isOriginal = nextIsPoem
+      ? (updateData.isOriginal !== undefined ? updateData.isOriginal === true : post.isOriginal === true)
+      : false;
+
+    if (post.isActivityPost === true) {
+      updateData.publishMode = 'normal';
+      updateData.isPoem = false;
+      updateData.isSeries = false;
+      updateData.isOriginal = false;
+      updateData.isDiscussion = false;
+    }
+
     if (input.joinedActivityId !== undefined) {
       const nextJoinedActivityId = String(input.joinedActivityId || '').trim();
       const currentJoinedActivityId = String(post.joinedActivityId || '').trim();
@@ -149,9 +178,9 @@ exports.main = async (event, context) => {
     }
     
     // 如果是诗歌模式且有图片，更新诗歌背景图
-    if (post.isPoem && updateData.imageUrls && updateData.imageUrls.length > 0) {
+    if (nextIsPoem && updateData.imageUrls && updateData.imageUrls.length > 0) {
       updateData.poemBgImage = updateData.imageUrls[0];
-    } else if (post.isPoem && (!updateData.imageUrls || updateData.imageUrls.length === 0)) {
+    } else if (nextIsPoem && updateData.imageUrls && updateData.imageUrls.length === 0) {
       // 如果清空了图片，也清空诗歌背景图
       updateData.poemBgImage = '';
     }

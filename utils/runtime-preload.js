@@ -131,6 +131,15 @@ export function prewarmAfterLogin() {
       }
 
       clearInterval(timer);
+      const readyState = getAppState();
+      const hasAuthenticatedUser =
+        !!readyState.isLoggedIn &&
+        !!readyState.userInfo &&
+        !!(readyState.userInfo._openid || readyState.userInfo.openid || readyState.openid);
+      if (!hasAuthenticatedUser) {
+        return;
+      }
+
       const tcb = getCurrentTcb();
       if (!tcb) {
         return;

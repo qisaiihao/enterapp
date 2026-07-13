@@ -208,8 +208,14 @@ class NamespaceHandle {
   clearInfiniteCache() {
     let clearedCount = 0;
     // 清理内存缓存
-    for (const [key, rec] of this.mem.entries()) {
-      if (rec.e === 0) {
+    const keys = new Set(this.mem.keys());
+    try {
+      this._listPersistKeys().forEach((key) => keys.add(key));
+    } catch (_) {}
+
+    for (const key of keys) {
+      const rec = this.mem.get(key) || this._readPersist(key);
+      if (rec && rec.e === 0) {
         console.log(`🧹 [Cache-Cleanup] 清除永不过期缓存 - key: ${key.substring(0, 50)}...`);
         this.mem.delete(key);
         this._removePersist(key);

@@ -3328,7 +3328,7 @@ page {
     color: var(--app-primary-text, #111111);
 }
 
-.container {
+.post-detail-page > .container {
     background-color: var(--app-page-bg, #ffffff);
     color: var(--app-primary-text, #111111);
     /* min-height: 100vh; */
@@ -3347,7 +3347,7 @@ page {
     top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
 }
 
-.container {
+.post-detail-page > .container {
     padding-top: calc(160rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
 }
 /* #endif */
@@ -4336,7 +4336,7 @@ page {
 }
 
 /* 调整页面底部间距，避免被底部栏遮挡（由 .bottom-spacer 提供实际撑开） */
-.container {
+.post-detail-page > .container {
     padding-bottom: 20rpx;
 }
 

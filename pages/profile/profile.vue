@@ -74,13 +74,13 @@
                     <!-- Tab Navigation -->
                     <view class="tab-navigation">
                         <view :class="'tab-item ' + (currentTab === 'posts' ? 'active' : '')" data-tab="posts" @tap="switchTab">
-                            <image class="tab-icon tab-icon--writing" src="/static/images/writing.png" mode="aspectFit"></image>
+                            <image class="tab-icon tab-icon--writing" src="/static/images/writing.png" mode="aspectFit" alt="帖子" title="帖子"></image>
                         </view>
                         <view :class="'tab-item ' + (currentTab === 'portfolio' ? 'active' : '')" data-tab="portfolio" @tap="switchTab">
-                            <image class="tab-icon" src="/static/images/newicons/library.png" mode="aspectFit"></image>
+                            <image class="tab-icon" src="/static/images/newicons/library.png" mode="aspectFit" alt="作品集" title="作品集"></image>
                         </view>
                         <view :class="'tab-item ' + (currentTab === 'favorites' ? 'active' : '')" data-tab="favorites" @tap="switchTab">
-                            <image class="tab-icon" src="/static/images/newicons/collection.png" mode="aspectFit"></image>
+                            <image class="tab-icon" src="/static/images/newicons/collection.png" mode="aspectFit" alt="收藏" title="收藏"></image>
                         </view>
                     </view>
 

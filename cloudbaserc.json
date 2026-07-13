@@ -87,7 +87,7 @@
       "runtime": "Nodejs10.15",
       "handler": "index.main",
       "root": "./functions/searchPosts",
-      "installDependency": false,
+      "installDependency": true,
       "params": {}
     },
     {
@@ -97,7 +97,17 @@
       "runtime": "Nodejs10.15",
       "handler": "index.main",
       "root": "./functions/getSearchSuggestions",
-      "installDependency": false,
+      "installDependency": true,
+      "params": {}
+    },
+    {
+      "name": "searchStats",
+      "timeout": 3,
+      "memory": 256,
+      "runtime": "Nodejs10.15",
+      "handler": "index.main",
+      "root": "./functions/searchStats",
+      "installDependency": true,
       "params": {}
     },
     {
@@ -584,7 +594,8 @@
               "name": "getSearchSuggestions",
               "root": "./functions/getSearchSuggestions",
               "timeout": 3,
-              "memory": 256
+              "memory": 256,
+              "installDependency": true
             },
             {
               "name": "getUnreadMessageCount",
@@ -680,13 +691,15 @@
               "name": "searchPosts",
               "root": "./functions/searchPosts",
               "timeout": 3,
-              "memory": 256
+              "memory": 256,
+              "installDependency": true
             },
             {
               "name": "searchStats",
               "root": "./functions/searchStats",
               "timeout": 3,
-              "memory": 256
+              "memory": 256,
+              "installDependency": true
             },
             {
               "name": "sendSmsCode",

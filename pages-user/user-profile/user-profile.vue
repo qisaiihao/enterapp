@@ -4,13 +4,14 @@
         class="user-profile-page-root"
         :class="{ 'user-profile-page-root--with-background': isFullBackground }"
         :style="userProfileRootStyle"
+        :data-layout-recovery-tick="layoutRecoveryTick"
     >
         <view v-if="isFullBackground" class="user-profile-bg-image"></view>
         <view v-if="isFullBackground" class="user-profile-bg-overlay"></view>
         <view class="container" :class="{ 'container--with-background': hasAppBackground }">
 
         <!-- 骨架屏：当 isLoading 为 true 时显示 -->
-        <view v-if="isLoading">
+        <view v-if="isLoading" class="user-profile-loading-state">
             <skeleton pageType="user-profile" />
         </view>
 
@@ -37,24 +38,30 @@
             <view class="profile-card profile-card-center">
                 <view v-if="userInfo && userInfo.showGrowthStats === true" class="profile-growth-stats">
                     <view class="growth-item">
-                        <image class="growth-icon" src="/static/images/seedplus.png" mode="aspectFit"></image>
+                        <image class="growth-icon" src="/static/images/seedplus.png" mode="aspectFit" alt="种子" title="种子"></image>
                         <text class="growth-count">{{ growthStats.seed }}</text>
                     </view>
                     <view class="growth-item">
-                        <image class="growth-icon" src="/static/images/leafplus.png" mode="aspectFit"></image>
+                        <image class="growth-icon" src="/static/images/leafplus.png" mode="aspectFit" alt="叶子" title="叶子"></image>
                         <text class="growth-count">{{ growthStats.leaf }}</text>
                     </view>
                     <view class="growth-item">
-                        <image class="growth-icon" src="/static/images/flowerplus.png" mode="aspectFit"></image>
+                        <image class="growth-icon" src="/static/images/flowerplus.png" mode="aspectFit" alt="花" title="花"></image>
                         <text class="growth-count">{{ growthStats.flower }}</text>
                     </view>
                     <view class="growth-item">
-                        <image class="growth-icon" src="/static/images/peachplus.png" mode="aspectFit"></image>
+                        <image class="growth-icon" src="/static/images/peachplus.png" mode="aspectFit" alt="桃子" title="桃子"></image>
                         <text class="growth-count">{{ growthStats.peach }}</text>
 	                </view>
 	            </view>
 	                <view class="profile-avatar-large">
-                    <image :src="getProfileAvatar(userInfo)" mode="aspectFill" @error="onAvatarError"></image>
+                    <image
+                        :src="getProfileAvatar(userInfo)"
+                        mode="aspectFill"
+                        :alt="(userInfo.nickName || '用户') + '头像'"
+                        :title="(userInfo.nickName || '用户') + '头像'"
+                        @error="onAvatarError"
+                    ></image>
                 </view>
                 <view class="profile-info-center">
                     <text class="profile-name-center">{{ userInfo.nickName || '微信用户' }}</text>
@@ -106,13 +113,13 @@
             >
             <view class="tab-navigation">
                 <view :class="'tab-item ' + (currentTab === 'posts' ? 'active' : '')" data-tab="posts" @tap="switchTab">
-                    <image class="tab-icon tab-icon--writing" src="/static/images/writing.png" mode="aspectFit"></image>
+                    <image class="tab-icon tab-icon--writing" src="/static/images/writing.png" mode="aspectFit" alt="帖子" title="帖子"></image>
                 </view>
                 <view :class="'tab-item ' + (currentTab === 'portfolio' ? 'active' : '')" data-tab="portfolio" @tap="switchTab">
-                    <image class="tab-icon" src="/static/images/newicons/library.png" mode="aspectFit"></image>
+                    <image class="tab-icon" src="/static/images/newicons/library.png" mode="aspectFit" alt="作品集" title="作品集"></image>
                 </view>
                 <view :class="'tab-item ' + (currentTab === 'favorites' ? 'active' : '')" data-tab="favorites" @tap="switchTab">
-                    <image class="tab-icon" src="/static/images/newicons/collection.png" mode="aspectFit"></image>
+                    <image class="tab-icon" src="/static/images/newicons/collection.png" mode="aspectFit" alt="收藏" title="收藏"></image>
                 </view>
             </view>
 
@@ -260,6 +267,8 @@
                                                 :data-postindex="index"
                                                 :data-imgindex="imgindex"
                                                 data-type="multi"
+                                                :alt="item.title || item.content || '帖子图片'"
+                                                :title="item.title || item.content || '帖子图片'"
                                                 :lazy-load="true"
                                                 style="width: 100%; height: 100%; object-fit: cover; background-color: #f0f0f0"
                                             ></image>
@@ -283,6 +292,8 @@
                                     :data-postindex="index"
                                     data-imgindex="0"
                                     data-type="single"
+                                    :alt="item.title || item.content || '帖子图片'"
+                                    :title="item.title || item.content || '帖子图片'"
                                     :lazy-load="true"
                                     :style="
                                         'width: 100%; height: ' +
@@ -488,7 +499,19 @@ export default {
             // 各个部分的加载完成标识符
             postsHasEverLoaded: false,
             portfolioHasEverLoaded: false,
-            favoritesHasEverLoaded: false
+            favoritesHasEverLoaded: false,
+
+            // 返回恢复与异步请求保护
+            hasReturnedFromChildPage: false,
+            layoutRecoveryTick: 0,
+            activeLoadToken: 0,
+            postsLoadToken: 0,
+            portfolioLoadToken: 0,
+            favoritesLoadToken: 0,
+            timelineLoadToken: 0,
+            followStatusToken: 0,
+            blockStatusToken: 0,
+            followCountsToken: 0
         };
     },
     computed: {
@@ -508,10 +531,15 @@ export default {
             return this.hasAppBackground && this.backgroundMode === 'header';
         },
         userProfileRootStyle() {
+            const baseStyle = {
+                ...(this.appThemeVars || {}),
+                '--user-profile-layout-recovery-tick': String(this.layoutRecoveryTick || 0)
+            };
             if (!this.isFullBackground) {
-                return {};
+                return baseStyle;
             }
             return {
+                ...baseStyle,
                 ...USER_PROFILE_FULL_BACKGROUND_THEME_VARS,
                 '--user-profile-background-image': `url("${escapeCssUrl(this.resolvedAppBackgroundUrl)}")`
             };
@@ -538,7 +566,20 @@ export default {
         this.setData({
             targetUserId
         });
+        this.recoverUserProfileLayout({ resetGallery: false });
         this.loadUserProfile();
+    },
+    onShow: function () {
+        const shouldResetGallery = this.hasReturnedFromChildPage && (this.postsHasEverLoaded || this.favoritesHasEverLoaded);
+        this.recoverUserProfileLayout({ resetGallery: shouldResetGallery });
+        this.hasReturnedFromChildPage = false;
+    },
+    onHide: function () {
+        this.hasReturnedFromChildPage = true;
+    },
+    onUnload: function () {
+        this.cancelGuardedRequests();
+        this.clearH5PageShellRecoveryTimers();
     },
     onPullDownRefresh: function () {
         // 清除用户信息缓存
@@ -584,6 +625,169 @@ export default {
         }
     },
     methods: {
+        beginGuardedRequest(tokenKey, targetUserId = this.targetUserId) {
+            const token = (Number(this[tokenKey]) || 0) + 1;
+            this[tokenKey] = token;
+            return {
+                token,
+                targetUserId
+            };
+        },
+        isGuardedRequestCurrent(tokenKey, request) {
+            return !!request && this[tokenKey] === request.token && this.targetUserId === request.targetUserId;
+        },
+        cancelGuardedRequests() {
+            [
+                'activeLoadToken',
+                'postsLoadToken',
+                'portfolioLoadToken',
+                'favoritesLoadToken',
+                'timelineLoadToken',
+                'followStatusToken',
+                'blockStatusToken',
+                'followCountsToken'
+            ].forEach((tokenKey) => {
+                this[tokenKey] = (Number(this[tokenKey]) || 0) + 1;
+            });
+        },
+        cancelChildContentRequests() {
+            [
+                'postsLoadToken',
+                'portfolioLoadToken',
+                'favoritesLoadToken',
+                'timelineLoadToken',
+                'followStatusToken',
+                'blockStatusToken',
+                'followCountsToken'
+            ].forEach((tokenKey) => {
+                this[tokenKey] = (Number(this[tokenKey]) || 0) + 1;
+            });
+        },
+        recoverUserProfileLayout({ resetGallery = false } = {}) {
+            const nextState = {
+                layoutRecoveryTick: (Number(this.layoutRecoveryTick) || 0) + 1
+            };
+            if (resetGallery) {
+                nextState.swiperHeights = {};
+                nextState.imageClampHeights = {};
+                this.__galleryImageMeta = {};
+                this.imageCache = {};
+            }
+            this.setData(nextState);
+            this.scheduleH5PageShellRecovery();
+        },
+        clearH5PageShellRecoveryTimers() {
+            if (!Array.isArray(this._h5PageShellRecoveryTimers)) {
+                this._h5PageShellRecoveryTimers = [];
+                return;
+            }
+            this._h5PageShellRecoveryTimers.forEach((timer) => {
+                clearTimeout(timer);
+            });
+            this._h5PageShellRecoveryTimers = [];
+        },
+        scheduleH5PageShellRecovery() {
+            this.clearH5PageShellRecoveryTimers();
+            if (typeof document === 'undefined') {
+                return;
+            }
+            this.recoverH5PageShell();
+            this._h5PageShellRecoveryTimers = [0, 80, 240].map((delay) => {
+                return setTimeout(() => {
+                    this.recoverH5PageShell();
+                }, delay);
+            });
+        },
+        recoverH5PageShell() {
+            if (typeof document === 'undefined') {
+                return;
+            }
+            const rootEl = this.$el && this.$el.nodeType === 1
+                ? this.$el
+                : document.querySelector('.user-profile-page-root');
+            if (!rootEl) {
+                return;
+            }
+
+            let pageEl = null;
+            if (typeof rootEl.closest === 'function') {
+                pageEl = rootEl.closest('uni-page');
+            }
+            if (!pageEl) {
+                const pages = Array.from(document.querySelectorAll('uni-page'));
+                pageEl = pages.find((page) => page && page.contains && page.contains(rootEl)) || null;
+            }
+
+            const resetShellEl = (el) => {
+                if (!el || !el.style) {
+                    return;
+                }
+                el.style.width = '100%';
+                el.style.minWidth = '0';
+                el.style.maxWidth = 'none';
+                el.style.margin = '0';
+                el.style.paddingTop = '0';
+                el.style.borderRadius = '0';
+                el.style.boxShadow = 'none';
+                el.style.overflowX = 'hidden';
+            };
+
+            resetShellEl(pageEl);
+            resetShellEl(rootEl);
+            const containerEl = rootEl.querySelector && rootEl.querySelector('.container');
+            const mainContentEl = rootEl.querySelector && rootEl.querySelector('.main-content');
+            resetShellEl(containerEl);
+            resetShellEl(mainContentEl);
+            if (containerEl && containerEl.style) {
+                containerEl.style.display = 'block';
+                containerEl.style.flexDirection = '';
+                containerEl.style.paddingBottom = '0';
+            }
+            if (mainContentEl && mainContentEl.style) {
+                mainContentEl.style.display = 'block';
+                mainContentEl.style.paddingTop = '0';
+            }
+
+            if (pageEl) {
+                const pageBody = pageEl.querySelector('uni-page-body');
+                const pageWrapper = pageEl.querySelector('.uni-page-wrapper, uni-page-wrapper');
+                const pageHead = pageEl.querySelector('.uni-page-head, uni-page-head');
+
+                resetShellEl(pageBody);
+                resetShellEl(pageWrapper);
+
+                if (pageEl.style) {
+                    pageEl.style.background = 'var(--app-page-bg, #ffffff)';
+                }
+                if (pageBody && pageBody.style) {
+                    pageBody.style.background = 'var(--app-page-bg, #ffffff)';
+                    pageBody.style.minHeight = '100vh';
+                    pageBody.style.paddingTop = '0';
+                }
+                if (pageWrapper && pageWrapper.style) {
+                    pageWrapper.style.top = '0';
+                    pageWrapper.style.paddingTop = '0';
+                }
+                if (pageHead && pageHead.style) {
+                    pageHead.style.display = 'none';
+                    pageHead.style.height = '0';
+                    pageHead.style.minHeight = '0';
+                    pageHead.style.padding = '0';
+                    pageHead.style.margin = '0';
+                    pageHead.style.opacity = '0';
+                    pageHead.style.overflow = 'hidden';
+                    pageHead.style.pointerEvents = 'none';
+                }
+            }
+        },
+        setUserProfileNavigationTitle(title) {
+            if (typeof document !== 'undefined') {
+                return;
+            }
+            if (typeof uni !== 'undefined' && typeof uni.setNavigationBarTitle === 'function') {
+                uni.setNavigationBarTitle({ title });
+            }
+        },
         getProfileAvatar(user = {}) {
             return resolveUserObjectAvatar(user);
         },
@@ -674,23 +878,39 @@ export default {
         },
         // 加载用户信息和帖子
         loadUserProfile: function (cb) {
-            this.setData({ isLoading: true, portfolioLoading: true });
-            const infoPromise = getUserInfo(this.targetUserId, this);
-            const postsPromise = getUserPosts({ userId: this.targetUserId, page: 0, pageSize: this.PAGE_SIZE, context: this });
-            const portfolioPromise = getUserPortfolios(this.targetUserId, this).catch((error) => {
+            this.cancelChildContentRequests();
+            const request = this.beginGuardedRequest('activeLoadToken');
+            this.setData({
+                isLoading: true,
+                portfolioLoading: true,
+                favoriteLoading: false,
+                timelineLoading: false
+            });
+            const infoPromise = getUserInfo(request.targetUserId, this);
+            const postsPromise = getUserPosts({ userId: request.targetUserId, page: 0, pageSize: this.PAGE_SIZE, context: this });
+            const portfolioPromise = getUserPortfolios(request.targetUserId, this).catch((error) => {
                 return [];
             });
             Promise.all([infoPromise, postsPromise, portfolioPromise]).then(async ([userInfo, posts, portfolios]) => {
+                if (!this.isGuardedRequestCurrent('activeLoadToken', request)) {
+                    return;
+                }
                 userInfo.appBackgroundMode = normalizeAppBackgroundMode(userInfo.appBackgroundMode, userInfo.appBackgroundUrl);
                 posts.forEach((post) => { if (post.createTime) post.formattedCreateTime = this.formatTime(post.createTime); });
 
                 // 处理cloud://协议的URL转换
                 posts = await hydrateTempUrls(posts);
+                if (!this.isGuardedRequestCurrent('activeLoadToken', request)) {
+                    return;
+                }
                 warmTempUrlsFromPosts(posts);
 
-                posts = this.formatPostsForDisplay(posts, userInfo, this.targetUserId);
+                posts = this.formatPostsForDisplay(posts, userInfo, request.targetUserId);
                 const growthStats = extractGrowthStats(userInfo, posts);
                 const normalizedPortfolios = await this.transformPortfolioList(portfolios);
+                if (!this.isGuardedRequestCurrent('activeLoadToken', request)) {
+                    return;
+                }
                 this.setData({
                     userInfo,
                     userPosts: posts,
@@ -702,18 +922,25 @@ export default {
                     postsHasEverLoaded: true,
                     portfolioHasEverLoaded: true
                 });
-                avatarCache.updateUserAvatar(this.targetUserId, userInfo);
+                avatarCache.updateUserAvatar(request.targetUserId, userInfo);
                 this.prepareFollowStateWithCache();
                 this.prepareBlockState();
                 this.fetchFollowCounts();
-                uni.setNavigationBarTitle({ title: userInfo.nickName || '用户主页' });
+                this.setUserProfileNavigationTitle(userInfo.nickName || '用户主页');
             }).catch((err) => {
+                if (!this.isGuardedRequestCurrent('activeLoadToken', request)) {
+                    return;
+                }
                 uni.showToast({ title: '网络异常，请稍后重试', icon: 'none' });
                 this.setData({ 
                     postsHasEverLoaded: true,
                     portfolioHasEverLoaded: true
                 });
             }).finally(() => {
+                if (!this.isGuardedRequestCurrent('activeLoadToken', request)) {
+                    if (typeof cb === 'function') cb();
+                    return;
+                }
                 this.setData({ isLoading: false, portfolioLoading: false });
                 if (typeof cb === 'function') cb();
             });
@@ -723,20 +950,27 @@ export default {
         loadUserPosts: function () {
             if (this.isLoading) return;
             const { page, PAGE_SIZE } = this;
+            const request = this.beginGuardedRequest('postsLoadToken');
             // 只在首次加载时显示全屏加载状态，触底加载时不显示
             if (page === 0) {
                 this.setData({ isLoading: true });
             }
-            getUserPosts({ userId: this.targetUserId, page, pageSize: PAGE_SIZE, context: this })
+            getUserPosts({ userId: request.targetUserId, page, pageSize: PAGE_SIZE, context: this })
                 .then(async (posts) => {
+                    if (!this.isGuardedRequestCurrent('postsLoadToken', request)) {
+                        return;
+                    }
                     posts.forEach((post) => { if (post.createTime) post.formattedCreateTime = this.formatTime(post.createTime); });
                     
                     // 处理cloud://协议的URL转换
                     posts = await hydrateTempUrls(posts);
+                    if (!this.isGuardedRequestCurrent('postsLoadToken', request)) {
+                        return;
+                    }
                     warmTempUrlsFromPosts(posts);
                     
                     // 处理分页数据，避免重复
-                    posts = this.formatPostsForDisplay(posts, this.userInfo, this.targetUserId);
+                    posts = this.formatPostsForDisplay(posts, this.userInfo, request.targetUserId);
                     const existingIds = new Set(this.userPosts.map(p => p._id));
                     const uniqueNewList = posts.filter(p => p && p._id && !existingIds.has(p._id));
                     const newPosts = this.userPosts.concat(uniqueNewList);
@@ -747,8 +981,15 @@ export default {
                         growthStats: extractGrowthStats(this.userInfo, newPosts)
                     });
                 })
-                .catch((err) => { console.error('加载更多帖子失败', err); })
+                .catch((err) => {
+                    if (this.isGuardedRequestCurrent('postsLoadToken', request)) {
+                        console.error('加载更多帖子失败', err);
+                    }
+                })
                 .finally(() => { 
+                    if (!this.isGuardedRequestCurrent('postsLoadToken', request)) {
+                        return;
+                    }
                     // 只在首次加载时隐藏全屏加载状态
                     if (page === 0) {
                         this.setData({ isLoading: false }); 
@@ -805,6 +1046,7 @@ export default {
             if (!targetOpenid) {
                 return;
             }
+            const request = this.beginGuardedRequest('followStatusToken', targetOpenid);
             const currentUserId = this.getCurrentUserId();
             if (!currentUserId) {
                 return;
@@ -812,6 +1054,9 @@ export default {
 
             // 使用缓存获取关注状态
             followCache.getFollowStatus(currentUserId, targetOpenid).then((followData) => {
+                if (!this.isGuardedRequestCurrent('followStatusToken', request) || targetOpenid !== request.targetUserId) {
+                    return;
+                }
                 if (followData) {
                     this.setData({
                         isFollowing: followData.isFollowing,
@@ -826,18 +1071,24 @@ export default {
             if (!targetOpenid) {
                 return;
             }
+            const request = this.beginGuardedRequest('followStatusToken', targetOpenid);
             checkFollowRelation({
                 targetOpenid,
                 context: this,
                 pageTag: 'user-profile:check-follow'
             }).then((result) => {
+                if (!this.isGuardedRequestCurrent('followStatusToken', request) || targetOpenid !== request.targetUserId) {
+                    return;
+                }
                 this.setData({
                     isFollowing: !!result.isFollowing,
                     isFollowedByTarget: !!result.isFollower,
                     isMutualFollow: !!result.isMutual
                 });
             }).catch((err) => {
-                console.error('检查关注状态调用失败:', err);
+                if (this.isGuardedRequestCurrent('followStatusToken', request)) {
+                    console.error('检查关注状态调用失败:', err);
+                }
             });
         },
 
@@ -923,6 +1174,7 @@ export default {
             if (!targetOpenid) {
                 return;
             }
+            const request = this.beginGuardedRequest('blockStatusToken', targetOpenid);
             const currentUserId = this.getCurrentUserId();
             if (!currentUserId) {
                 return;
@@ -933,11 +1185,16 @@ export default {
                 context: this,
                 pageTag: 'user-profile:check-block'
             }).then((result) => {
+                if (!this.isGuardedRequestCurrent('blockStatusToken', request) || targetOpenid !== request.targetUserId) {
+                    return;
+                }
                 this.setData({
                     isBlocked: !!result.isBlocked
                 });
             }).catch((err) => {
-                console.error('检查屏蔽状态调用失败:', err);
+                if (this.isGuardedRequestCurrent('blockStatusToken', request)) {
+                    console.error('检查屏蔽状态调用失败:', err);
+                }
             });
         },
 
@@ -1104,12 +1361,13 @@ export default {
 
         // 独立加载时间轴数据
         loadTimelineData: function () {
+            const request = this.beginGuardedRequest('timelineLoadToken');
             this.setData({
                 timelineLoading: true,
                 timelineError: false
             });
 
-            const targetUserId = this.targetUserId;
+            const targetUserId = request.targetUserId;
 
             if (!targetUserId) {
                 this.setData({
@@ -1126,6 +1384,9 @@ export default {
                 pageSize: 1000,
                 context: this
             }).then((allPosts) => {
+                if (!this.isGuardedRequestCurrent('timelineLoadToken', request)) {
+                    return;
+                }
                 const posts = Array.isArray(allPosts) ? allPosts : [];
 
                 // 只筛选原创诗歌类型的帖子
@@ -1148,6 +1409,9 @@ export default {
                     timelineError: false
                 });
             }).catch((err) => {
+                if (!this.isGuardedRequestCurrent('timelineLoadToken', request)) {
+                    return;
+                }
                 this.setData({
                     timelineLoading: false,
                     timelineError: true
@@ -1185,14 +1449,27 @@ export default {
 
         // 加载用户作品集
         async loadUserPortfolios(cb) {
+            const request = this.beginGuardedRequest('portfolioLoadToken');
             try {
                 this.setData({ portfolioLoading: true });
-                let portfolios = await getUserPortfolios(this.targetUserId, this);
+                let portfolios = await getUserPortfolios(request.targetUserId, this);
+                if (!this.isGuardedRequestCurrent('portfolioLoadToken', request)) {
+                    return;
+                }
                 portfolios = await this.transformPortfolioList(portfolios);
+                if (!this.isGuardedRequestCurrent('portfolioLoadToken', request)) {
+                    return;
+                }
                 this.setData({ portfolioList: portfolios });
             } catch (error) {
-                console.error('加载用户作品集失败:', error);
+                if (this.isGuardedRequestCurrent('portfolioLoadToken', request)) {
+                    console.error('加载用户作品集失败:', error);
+                }
             } finally {
+                if (!this.isGuardedRequestCurrent('portfolioLoadToken', request)) {
+                    if (typeof cb === 'function') cb();
+                    return;
+                }
                 this.setData({ portfolioLoading: false });
                 if (typeof cb === 'function') cb();
             }
@@ -1266,9 +1543,14 @@ export default {
             if (this.favoriteLoading) return;
 
             const { favoritePage, PAGE_SIZE } = this;
+            const request = this.beginGuardedRequest('favoritesLoadToken');
+            this.setData({ favoriteLoading: true });
             // 调用云函数获取收藏数据
-            getUserFavorites({ userId: this.targetUserId, page: favoritePage, pageSize: PAGE_SIZE, context: this })
+            getUserFavorites({ userId: request.targetUserId, page: favoritePage, pageSize: PAGE_SIZE, context: this })
                 .then(async (favorites) => {
+                    if (!this.isGuardedRequestCurrent('favoritesLoadToken', request)) {
+                        return;
+                    }
                     // 将 { postId, favoriteTime, post: {...} } 规范化为贴合模板的数据结构
                     let normalized = (favorites || []).map((fav) => {
                         const post = fav && fav.post ? fav.post : (fav || {});
@@ -1293,6 +1575,9 @@ export default {
                     // cloud:// 临时链接水合
                     try {
                         normalized = await hydrateTempUrls(normalized);
+                        if (!this.isGuardedRequestCurrent('favoritesLoadToken', request)) {
+                            return;
+                        }
                         warmTempUrlsFromPosts(normalized);
                     } catch (_) {}
 
@@ -1310,11 +1595,17 @@ export default {
                     });
                 })
                 .catch((err) => {
-                    console.error('【用户主页】获取收藏失败:', err);
-                    uni.showToast({ title: '网络异常', icon: 'none' });
-                    this.setData({ favoritesHasEverLoaded: true });
+                    if (this.isGuardedRequestCurrent('favoritesLoadToken', request)) {
+                        console.error('【用户主页】获取收藏失败:', err);
+                        uni.showToast({ title: '网络异常', icon: 'none' });
+                        this.setData({ favoritesHasEverLoaded: true });
+                    }
                 })
                 .finally(() => {
+                    if (!this.isGuardedRequestCurrent('favoritesLoadToken', request)) {
+                        if (typeof cb === 'function') cb();
+                        return;
+                    }
                     this.setData({ favoriteLoading: false });
                     if (typeof cb === 'function') cb();
                 });
@@ -1325,22 +1616,28 @@ export default {
             if (!this.targetUserId) {
                 return;
             }
+            const request = this.beginGuardedRequest('followCountsToken');
 
             getFollowCounts({
-                targetOpenid: this.targetUserId,
+                targetOpenid: request.targetUserId,
                 context: this,
                 pageTag: 'user-profile:follow-counts'
             }).then((result) => {
+                if (!this.isGuardedRequestCurrent('followCountsToken', request)) {
+                    return;
+                }
                 this.setData({
                     followingCount: result.followingCount || 0,
                     followerCount: result.followerCount || 0
                 });
             }).catch((err) => {
-                console.error('获取关注数调用失败:', err);
-                this.setData({
-                    followingCount: 0,
-                    followerCount: 0
-                });
+                if (this.isGuardedRequestCurrent('followCountsToken', request)) {
+                    console.error('获取关注数调用失败:', err);
+                    this.setData({
+                        followingCount: 0,
+                        followerCount: 0
+                    });
+                }
             });
         }
     }
@@ -1351,12 +1648,50 @@ export default {
 .user-profile-page-root {
     position: relative;
     min-height: 100vh;
+    width: 100%;
+    max-width: none;
+    margin: 0;
     background-color: var(--app-page-bg, #ffffff);
+    border-radius: 0;
+    box-shadow: none;
+    overflow-x: hidden;
 }
 
 .user-profile-page-root--with-background {
     background-color: transparent;
 }
+
+/* #ifdef H5 */
+uni-page:has(.user-profile-page-root),
+uni-page:has(.user-profile-page-root) uni-page-body,
+uni-page:has(.user-profile-page-root) .uni-page-wrapper {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow-x: hidden !important;
+    background: var(--app-page-bg, #ffffff) !important;
+}
+
+uni-page:has(.user-profile-page-root) uni-page-body,
+uni-page:has(.user-profile-page-root) .uni-page-wrapper {
+    min-height: 100vh !important;
+    padding-top: 0 !important;
+    top: 0 !important;
+}
+
+uni-page:has(.user-profile-page-root) .uni-page-head {
+    display: none !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    opacity: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+}
+/* #endif */
 
 .user-profile-bg-image,
 .user-profile-bg-overlay {
@@ -1385,10 +1720,42 @@ export default {
     background-color: var(--app-page-bg, #ffffff);
     position: relative;
     z-index: 2;
+    display: block;
+    padding-top: 0;
+    padding-bottom: 0;
+    flex-direction: initial;
+    box-sizing: border-box;
 }
 
 .user-profile-page-root .container--with-background {
     background-color: transparent;
+}
+
+/* #ifdef H5 */
+uni-page:has(.user-profile-page-root) .user-profile-page-root .container {
+    display: block !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    flex-direction: initial !important;
+}
+/* #endif */
+
+.user-profile-page-root .user-profile-loading-state .skeleton-wrapper {
+    padding: 0 0 40rpx 0;
+    align-items: stretch;
+    background: transparent;
+}
+
+.user-profile-page-root .user-profile-loading-state .skeleton-wrapper :deep(.skeleton-user-profile-container) {
+    width: 100%;
+    min-height: 100vh;
+    background: transparent;
+    background-color: transparent;
+}
+
+.user-profile-page-root .user-profile-loading-state .skeleton-wrapper :deep(.skeleton-profile-card) {
+    width: 100%;
+    box-sizing: border-box;
 }
 
 /* Main Content */
@@ -1431,7 +1798,10 @@ export default {
 .user-profile-page-root .profile-hero-bg-image,
 .user-profile-page-root .profile-hero-bg-overlay {
     position: absolute;
-    inset: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     pointer-events: none;
 }
 
@@ -1743,7 +2113,7 @@ export default {
     margin-bottom: 15rpx;
 }
 
-.user-profile-page-root .post-title {
+.user-profile-page-root .posts-section .post-title {
     font-size: 32rpx;
     font-weight: bold;
     color: var(--app-post-title-color, #333);
@@ -1763,14 +2133,14 @@ export default {
     margin: 15rpx 0;
 }
 
-.user-profile-page-root .image-swiper {
+.user-profile-page-root .posts-section .image-swiper {
     width: 100%;
     background-color: var(--app-subtle-surface-bg, #fff);
     border-radius: 12rpx;
     overflow: hidden;
 }
 
-.user-profile-page-root .post-image {
+.user-profile-page-root .posts-section .post-image {
     width: 100%;
     height: 100%;
     display: block;
@@ -1778,7 +2148,7 @@ export default {
     border-radius: 12rpx;
 }
 
-.user-profile-page-root .post-content {
+.user-profile-page-root .posts-section .post-content {
     font-size: 28rpx;
     color: var(--app-post-content-color, #666);
     line-height: 1.5;
@@ -1812,7 +2182,7 @@ export default {
     color: var(--app-muted-text, #999);
 }
 
-.user-profile-page-root .post-time {
+.user-profile-page-root .posts-section .post-time {
     font-size: 24rpx;
     color: var(--app-muted-text, #ccc);
 }
@@ -1871,11 +2241,11 @@ export default {
 .user-profile-page-root .favorites-section { margin: 0 0 30rpx 0; }
 .user-profile-page-root .my-posts-section,
 .user-profile-page-root .favorites-section {
-    --app-post-wrapper-margin: 0 24rpx 24rpx 24rpx;
-    --app-post-wrapper-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
-    --app-post-wrapper-radius: 20rpx;
+    --app-post-wrapper-margin: 0 0 20rpx 0;
+    --app-post-wrapper-shadow: none;
+    --app-post-wrapper-radius: 0;
     --app-post-wrapper-border: none;
-    --app-post-wrapper-divider: none;
+    --app-post-wrapper-divider: 1rpx solid #f0f0f0;
 }
 
 .user-profile-page-root .portfolio-section {
@@ -1903,29 +2273,6 @@ export default {
     overflow: hidden;
 }
 
-.user-profile-page-root .post-item-wrapper { background: var(--app-post-wrapper-bg, var(--app-surface-bg, #fff)); margin: var(--app-post-wrapper-margin, 0 24rpx 24rpx 24rpx); padding: 0; box-shadow: var(--app-post-wrapper-shadow, 0 8rpx 24rpx rgba(0, 0, 0, 0.08)); border-radius: var(--app-post-wrapper-radius, 20rpx); border-bottom: var(--app-post-wrapper-divider, none); overflow: hidden; }
-.user-profile-page-root .post-item-wrapper.original-post { background: var(--app-post-original-bg, linear-gradient(90deg, rgba(235,200,141,0.05) 0%, rgba(255,255,255,0) 100%)); border-left: none; position: relative; }
-.user-profile-page-root .post-content-navigator { display: block; background: transparent; }
-.user-profile-page-root .navigator-hover { background-color: var(--app-subtle-surface-bg, rgba(0,0,0,0.02)); }
-
-.user-profile-page-root .author-info-outside { display: flex; align-items: center; padding: 20rpx 40rpx 10rpx 40rpx; background: var(--app-post-section-bg, #fff); border-radius: 0; box-shadow: none; }
-.user-profile-page-root .author-info-outside .author-avatar { width: 60rpx; height: 60rpx; border-radius: 50%; margin-right: 15rpx; background-color: var(--app-subtle-surface-bg, #f5f5f5); }
-.user-profile-page-root .author-info-outside .author-name { font-size: 28rpx; color: var(--app-post-author-color, #333); font-weight: 500; }
-
-.user-profile-page-root .post-item { width: 100%; background: var(--app-post-section-bg, var(--app-surface-bg, #fff)); border-radius: 0; box-shadow: none; box-sizing: border-box; padding: 20rpx 40rpx 30rpx 40rpx; }
-.user-profile-page-root .post-title { font-size: 36rpx; font-weight: bold; color: var(--app-post-title-color, #333333); margin-bottom: 15rpx; line-height: 1.4; word-break: break-word; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
-.user-profile-page-root .poem-author { font-size: 32rpx; color: var(--app-post-poem-author-color, #000); text-align: center; margin: 5rpx 0 15rpx 0; letter-spacing: 2rpx; }
-
-.user-profile-page-root .image-container-wrapper { position: relative; width: 100%; background-color: var(--app-subtle-surface-bg, #f0f0f0); overflow: hidden; border-radius: 8px; margin: 20rpx 0; }
-.user-profile-page-root .image-container-wrapper .post-image, .user-profile-page-root .image-container-wrapper .image-swiper { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-.user-profile-page-root .image-swiper { width: 100%; background-color: var(--app-subtle-surface-bg, #fff); }
-.user-profile-page-root .post-image { width: 100%; height: 100%; display: block; object-fit: contain; }
-
-.user-profile-page-root .post-content { font-size: 28rpx; color: var(--app-post-content-color, #666666); line-height: 1.6; margin-top: 15rpx; word-break: break-word; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; }
-.user-profile-page-root .delete-section { display: flex; justify-content: space-between; align-items: center; margin-top: 20rpx; padding: 0 40rpx 30rpx 40rpx; background: var(--app-post-section-bg, transparent); }
-.user-profile-page-root .time-left .post-time { font-size: 24rpx; color: var(--app-post-time-color, #999); }
-.user-profile-page-root .post-tags { margin-top: 30rpx; margin-bottom: 10rpx; line-height: 1.5; }
-.user-profile-page-root .post-tag { color: var(--app-post-tag-color, #24375f); font-size: 26rpx; margin-right: 10rpx; transition: all 0.2s ease; }
 .user-profile-page-root .loading-footer { text-align: center; padding: 20rpx 0; color: var(--profile-loading-footer-color, #999); font-size: 14px; }
 
 /* 作品集样式 */
@@ -2008,73 +2355,4 @@ export default {
     font-size: 28rpx;
 }
 
-/* Final PostItem alignment with personal profile. */
-.user-profile-page-root .my-posts-section .post-item-wrapper,
-.user-profile-page-root .favorites-section .post-item-wrapper {
-    background: var(--app-post-wrapper-bg, #fff);
-    margin: var(--app-post-wrapper-margin, 0 24rpx 24rpx 24rpx);
-    padding: 0;
-    box-shadow: var(--app-post-wrapper-shadow, 0 8rpx 24rpx rgba(0, 0, 0, 0.08));
-    border-radius: var(--app-post-wrapper-radius, 20rpx);
-    border: var(--app-post-wrapper-border, none);
-    border-bottom: var(--app-post-wrapper-divider, none);
-    border-left: none;
-    overflow: hidden;
-}
-
-.user-profile-page-root .my-posts-section .post-item-wrapper.original-post,
-.user-profile-page-root .favorites-section .post-item-wrapper.original-post {
-    background: var(--app-post-original-bg, linear-gradient(90deg, rgba(235, 200, 141, 0.05) 0%, rgba(255, 255, 255, 0) 100%));
-    border-left: none;
-}
-
-.user-profile-page-root .my-posts-section .author-info-outside,
-.user-profile-page-root .favorites-section .author-info-outside {
-    align-items: center;
-    background: var(--app-post-section-bg, #fff);
-}
-
-.user-profile-page-root .my-posts-section .post-item,
-.user-profile-page-root .favorites-section .post-item {
-    background: var(--app-post-section-bg, #fff);
-    padding: 20rpx 40rpx 30rpx 40rpx;
-}
-
-.user-profile-page-root .my-posts-section .post-title,
-.user-profile-page-root .favorites-section .post-title {
-    font-size: 36rpx;
-    font-weight: bold;
-    color: var(--app-post-title-color, #333333);
-    margin-bottom: 15rpx;
-    line-height: 1.4;
-    word-break: break-word;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-}
-
-.user-profile-page-root .my-posts-section .post-content,
-.user-profile-page-root .favorites-section .post-content {
-    font-size: 28rpx;
-    color: var(--app-post-content-color, #666666);
-    line-height: 1.6;
-    margin-top: 15rpx;
-    word-break: break-word;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
-    -webkit-box-orient: vertical;
-}
-
-.user-profile-page-root .my-posts-section .delete-section,
-.user-profile-page-root .favorites-section .delete-section {
-    margin-top: 20rpx;
-    padding: 0 40rpx 30rpx 40rpx;
-    background: var(--app-post-section-bg, transparent);
-}
 </style>
