@@ -33,27 +33,17 @@
       </view>
 
       <view :key="'mountain-font-' + poemFontRenderTick" id="post-list-container">
-        <view v-for="(item, index) in postList" :key="index" class="post-item-wrapper" :style="{ backgroundColor: resolvePostCardBackground(item) }">
-          <view class="post-content-navigator" @tap="togglePostExpansion" @longpress="onLongPressCard" :data-index="index" :data-postid="item._id">
-            <view class="post-item">
-              <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.displayHighlightLines || item.displayHighlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.displayContent" :style="{ color: resolvePostTextColor(item), whiteSpace: 'pre-wrap' }"><block v-if="item.isExpanded">{{ item.displayContent }}</block><block v-else><block v-if="item.displayHighlightLines && item.displayHighlightLines.length > 0"><text v-for="(highlightLine, index) in item.displayHighlightLines" :key="index" style="font-weight: 700; display: block;">{{ highlightLine }}</text></block><block v-else>{{ item.displayContent }}</block></block></view>
-
-            </view>
-          </view>
-
-          <!-- 交互区（展开时显示） -->
-          <view class="vote-section" v-if="item.isExpanded" :style="{ backgroundColor: resolvePostCardBackground(item) }">
-            <view class="actions-left"><!-- 预留左侧空间 --></view>
-            <view class="button-group">
-              <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="item._id" :data-index="index">
-                <image :class="['like-icon', getLikeIconVariantClass(item.likeIcon), item.isVoted ? 'like-icon--voted' : '']" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError" />
-              </view>
-              <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
-                <image class="comment-icon" src="/static/images/newicons/comment.png" mode="aspectFit" />
-              </view>
-            </view>
-          </view>
-        </view>
+        <block v-for="(item, index) in postList" :key="item && item._id ? item._id : index">
+          <poem-card
+            v-if="item"
+            :post="item"
+            :index="index"
+            @card-tap="togglePostExpansion"
+            @vote="onVote"
+            @comment="onCommentClick"
+            @longpress="onLongPressCard"
+          />
+        </block>
       </view>
 
       <!-- 底部加载/结束提示 -->
@@ -80,14 +70,13 @@ import AppTabBar from '@/custom-tab-bar/index.vue';
 import skeleton from '@/components/skeleton/skeleton';
 import topBar from '@/components/top-bar/top-bar.vue';
 import poetAvatarBar from '@/components/poet-avatar-bar/poet-avatar-bar.vue';
+import PoemCard from '@/components/poem/PoemCard.vue';
 import { cloudCall } from '@/utils/cloudCall.js';
 import { getPostList as getPostListWithCache, invalidatePostList } from '@/api-cache/post-list.js';
 import { getMountainPoems } from '@/api-cache/poems.js';
 import likeIcon from '@/utils/likeIcon.js';
 import {
   generateRandomBackgroundColor,
-  getReadableTextColor,
-  getThemedCardBackgroundColor,
   toggleArrayItemExpansion,
   updatePostsUIProperties
 } from '@/utils/uiHelpers.js';
@@ -174,6 +163,7 @@ export default {
     skeleton,
     topBar,
     poetAvatarBar,
+    PoemCard,
     // #ifndef MP-WEIXIN
     AppTabBar
     // #endif
@@ -400,12 +390,6 @@ export default {
       this.lastUsedColorIndex = result.index;
       return result.color;
     },
-    resolvePostCardBackground(post = {}) {
-      return getThemedCardBackgroundColor(post.backgroundColor, this.appThemeMode);
-    },
-    resolvePostTextColor(post = {}) {
-      return getReadableTextColor(this.resolvePostCardBackground(post), post.textColor || '#222');
-    },
     normalizePoemCardPost(post) {
       if (!post) return post;
 
@@ -454,13 +438,6 @@ export default {
               const visibleList = newPosts.filter(p => p && !p.isAnonymous);
               visibleList.forEach((p) => {
                 this.normalizePoemCardPost(p);
-                return;
-                if (!p) return;
-                p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
-                p.textColor = p.textColor || '#222';
-                p.isExpanded = false;
-                p.authorSignature = p.authorSignature || '';
-                p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
               });
               
               const currentPostIds = this.postList.slice(0, PAGE_SIZE).map(p => p._id).join(',');
@@ -483,12 +460,6 @@ export default {
         
         visibleList.forEach((p) => {
           this.normalizePoemCardPost(p);
-          return;
-          // 优先使用数据库中保存的背景颜色，如果没有则随机生成
-          p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
-          p.textColor = p.textColor || '#222';
-          p.isExpanded = false;
-          p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
         });
         
         // 【修复】首次加载时直接替换，加载更多时合并并去重，避免重复key
@@ -531,37 +502,23 @@ export default {
         }
       }
     },
-    togglePostExpansion(e) {
-      const index = e.currentTarget.dataset.index;
+    togglePostExpansion(payload = {}) {
+      const index = Number(payload.index);
       const newPostList = toggleArrayItemExpansion(this.postList, index);
       this.setData({ postList: newPostList });
     },
-    onCommentClick(e) {
-      const postId = e.currentTarget.dataset.postid;
+    onCommentClick(payload = {}) {
+      const postId = payload.postId;
       navigateToPostDetail(postId);
     },
-    onLikeIconError() {},
-    getLikeIconVariantClass(iconSrc) {
-      const src = String(iconSrc || '/static/images/seed.png').toLowerCase();
-      if (src.includes('seedplus.png')) return 'like-icon--seedplus';
-      if (src.includes('seed.png')) return 'like-icon--seed';
-      if (src.includes('leafplus.png')) return 'like-icon--leafplus';
-      if (src.includes('leaf.png')) return 'like-icon--leaf';
-      if (src.includes('flowerplus.png')) return 'like-icon--flowerplus';
-      if (src.includes('flower.png')) return 'like-icon--flower';
-      if (src.includes('peachplus.png')) return 'like-icon--peachplus';
-      if (src.includes('peach.png')) return 'like-icon--peach';
-      return '';
-    },
-
-    async onVote(e) {
+    async onVote(payload = {}) {
       // 未登录不能点赞，提示去登录
       if (!isUserLoggedIn()) {
         await requireLogin({ content: '点赞需要登录，请先登录' });
         return;
       }
-      const postId = e.currentTarget.dataset.postid;
-      const index = e.currentTarget.dataset.index;
+      const postId = payload.postId;
+      const index = Number(payload.index);
       if (this.votingInProgress[postId]) return;
       const list = this.postList;
       const originalVotes = Number(list[index].votes) || 0;
@@ -630,8 +587,8 @@ export default {
         }
       } catch (_) {}
     },
-    onLongPressCard(e) {
-      const postId = e.currentTarget.dataset.postid;
+    onLongPressCard(payload = {}) {
+      const postId = payload.postId;
       if (postId) {
         uni.navigateTo({ url: `/pages/post-detail/post-detail?id=${postId}` });
       }
@@ -679,67 +636,6 @@ export default {
 .empty-icon { font-size: 80rpx; margin-bottom: 20rpx; }
 .empty-text { font-size: 32rpx; margin-bottom: 10rpx; color: var(--app-secondary-text, #666); }
 .empty-subtext { font-size: 24rpx; color: var(--app-muted-text, #999); }
-/* poem.css inspired card styles */
-.post-item-wrapper {
-  width: 100%;
-  border-radius: 30rpx; /* 15px * 2 */
-  margin-bottom: 40rpx; /* 减少间距，让卡片更紧凑 */
-  overflow: hidden;
-  box-shadow: 0 8rpx 8rpx rgba(0, 0, 0, 0.25); /* 0px 4px 4px * 2 */
-  transition: transform .3s ease;
-  border: none;
-}
-
-/* 背景颜色现在通过内联样式动态设置，不再使用固定的CSS类 */
-.post-item-wrapper:active { transform: scale(0.98); }
-.post-content-navigator { display: block; }
-.post-item { padding: 30rpx 60rpx 30rpx 80rpx; position: relative; } /* 进一步减少上下padding，文字往左移动 */
-/* Typography inspired by poem.css */
-.post-content {
-  font-family: 'Huiwen-mincho', '汇文明朝', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-  font-style: normal;
-  font-weight: 500;
-  font-size: 28rpx; /* 调小字体：14px * 2 */
-  line-height: 38rpx; /* 调整行距：19px * 2 */
-  margin: 30rpx 0;
-  width: 100%;
-  color: #FFFFFF;
-  overflow-wrap: break-word;
-}
-
-/* 文字颜色现在通过内联样式动态设置 */
-/* 折叠态：当没有高光行时显示前三行，有高光行时显示高光行 */
-.post-content.collapsed {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* 当没有高光行时，使用三行裁切 */
-.post-content.collapsed.no-highlight {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-}
-.post-content.expanded { display: block; overflow: visible; }
-.comment-emoji{ font-size: 40rpx; }
-.comment-icon { width: 60rpx; height: 60rpx; filter: var(--app-post-action-icon-filter, none); opacity: var(--app-post-action-icon-opacity, 1); }
-.vote-section { display: flex; justify-content: space-between; align-items: center; padding: 25rpx 50rpx; }
-.actions-left { flex: 1; display: flex; align-items: center; gap: 20rpx; }
-.button-group { display: flex; align-items: center; gap: 30rpx; }
-.comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; color: var(--app-post-action-color, #999); }
-.vote-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; border-radius: 20rpx; background: var(--app-subtle-surface-bg, rgba(255,255,255,.9)); box-shadow: 0 2rpx 8rpx rgba(0,0,0,.1); color: var(--app-post-action-color, #999); }
-.comment-icon { width: 80rpx; height: 80rpx; filter: var(--app-post-action-icon-filter, none); opacity: var(--app-post-action-icon-opacity, 1); }
-.like-icon { width: 60rpx; height: 60rpx; margin-top: 5px; filter: none; opacity: 1; }
-.like-icon--voted { filter: none; opacity: 1; }
-.like-icon--seed:not(.like-icon--voted),
-.like-icon--leaf:not(.like-icon--voted),
-.like-icon--flower:not(.like-icon--voted),
-.like-icon--peach:not(.like-icon--voted) {
-  filter: none;
-  opacity: 1;
-}
-
-
 .loading-footer { text-align: center; color: var(--app-secondary-text, #666); padding: 30rpx 0 120rpx; }
 .page-indicator { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,.7); color: #fff; padding: 20rpx 40rpx; border-radius: 40rpx; z-index: 1000; font-size: 28rpx; }
 .page-indicator-text { text-align: center; }

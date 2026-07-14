@@ -72,140 +72,19 @@
 
       <view :key="'poem-font-' + poemFontRenderTick" id="post-list-container">
         <block v-for="(item, index) in postList" :key="item && item._id ? item._id : index">
-        <view
-          v-if="item"
-          class="post-item-wrapper"
-          :class="item.isSeries && !item.seriesExpanded ? 'stacked-series-card' : ''"
-          :style="{ backgroundColor: resolvePostCardBackground(item) }"
-        >
-          <!-- 组诗叠层的底层卡片（同色） - 未展开时显示 -->
-          <view
-            v-if="item.isSeries && !item.seriesExpanded"
-            class="series-layer layer-1"
-            :style="{ backgroundColor: resolvePostCardBackground(item) }"
-          ></view>
-
-          <!-- 组诗展开态：单卡片显示，右侧显示翻页提示 -->
-          <block v-if="item.isSeries && item.seriesExpanded && item.seriesPoems && item.seriesPoems.length > 0">
-            <view class="series-expanded-wrapper">
-              <view 
-                class="series-single-card"
-                @tap="onSeriesCardTap"
-                @longpress="onLongPressCard"
-                :data-index="index"
-                :data-postid="item._id"
-                :style="{ backgroundColor: resolvePostCardBackground(item) }"
-              >
-                <!-- 当前显示的诗 -->
-                <view class="post-item">
-                  <!-- 显示副标题（如果有） -->
-                  <view v-if="item.seriesPoems[item.currentSeriesIndex || 0].subtitle" class="series-subtitle" :style="{ color: resolvePostTextColor(item) }">
-                    {{ item.seriesPoems[item.currentSeriesIndex || 0].subtitle }}
-                  </view>
-                  
-                  <!-- 显示内容 -->
-                  <view class="post-content expanded" :style="{ color: resolvePostTextColor(item), whiteSpace: 'pre-wrap' }">{{ item.seriesPoems[item.currentSeriesIndex || 0].content }}</view>
-                  
-                  <!-- 作者签名 -->
-                  <view v-if="item.authorSignature && !item.isAnonymous" class="user-signature">
-                    <image 
-                      class="signature-image" 
-                      :src="item.authorSignature" 
-                      mode="aspectFit" 
-                      :webp="true"
-                      :show-menu-by-longpress="false"
-                      :data-index="index"
-                      :data-postid="item._id"
-                      :data-signature="item.authorSignature"
-                      @error="onSignatureError" 
-                      @load="onSignatureLoad"
-                    ></image>
-                  </view>
-                </view>
-              </view>
-              
-              <!-- 组诗页码指示 -->
-              <view class="series-page-indicator">
-                {{ (item.currentSeriesIndex || 0) + 1 }} / {{ item.seriesPoems.length }}
-              </view>
-              
-              <!-- 交互区 -->
-              <view class="vote-section" :style="{ backgroundColor: resolvePostCardBackground(item) }">
-                <view class="actions-left"><!-- 预留左侧空间 --></view>
-                <view class="button-group">
-                  <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="item._id" :data-index="index">
-                    <image :class="['like-icon', getLikeIconVariantClass(item.likeIcon), item.isVoted ? 'like-icon--voted' : '']" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError" />
-                  </view>
-                  <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
-                    <image class="comment-icon" src="/static/images/newicons/comment.png" mode="aspectFit" />
-                  </view>
-                </view>
-              </view>
-            </view>
-          </block>
-
-          <!-- 普通卡片或组诗折叠态 -->
-          <block v-if="!item.seriesExpanded">
-            <view 
-              class="post-content-navigator" 
-              :class="{ 'has-vote-section': item.isExpanded && !item.isSeries }"
-              @tap="togglePostExpansion" 
-              @longpress="onLongPressCard" 
-              :data-index="index" 
-              :data-postid="item._id"
-              :style="{ backgroundColor: resolvePostCardBackground(item) }"
-            >
-              <view class="post-item">
-                <view :class="'post-content ' + (item.isExpanded ? 'expanded' : 'collapsed') + (!item.isExpanded && (!item.displayHighlightLines || item.displayHighlightLines.length === 0) ? ' no-highlight' : '')" v-if="item.displayContent" :style="{ color: resolvePostTextColor(item), whiteSpace: 'pre-wrap' }"><block v-if="item.isExpanded">{{ item.displayContent }}</block><block v-else><block v-if="item.displayHighlightLines && item.displayHighlightLines.length > 0"><text v-for="(highlightLine, hlIndex) in item.displayHighlightLines" :key="hlIndex" style="font-weight: 700; display: block;">{{ highlightLine }}</text></block><block v-else>{{ item.displayContent }}</block></block></view>
-
-                <!-- 作者签名 - 展开时显示大签名（匿名帖子不显示签名） -->
-                <view v-if="item.isExpanded && item.authorSignature && !item.isAnonymous" class="user-signature">
-                  <image 
-                    class="signature-image" 
-                    :src="item.authorSignature" 
-                    mode="aspectFit" 
-                    :webp="true"
-                    :show-menu-by-longpress="false"
-                    :data-index="index"
-                    :data-postid="item._id"
-                    :data-signature="item.authorSignature"
-                    @error="onSignatureError" 
-                    @load="onSignatureLoad"
-                  ></image>
-                </view>
-
-                <!-- 作者签名 - 折叠时显示小签名（匿名帖子不显示签名） -->
-                <view v-if="!item.isExpanded && item.authorSignature && !item.isAnonymous" class="user-signature-small">
-                  <image 
-                    class="signature-image-small" 
-                    :src="item.authorSignature" 
-                    mode="aspectFit" 
-                    :webp="true"
-                    :show-menu-by-longpress="false"
-                    :data-index="index"
-                    :data-postid="item._id"
-                    :data-signature="item.authorSignature"
-                    @error="onSignatureError" 
-                    @load="onSignatureLoad"
-                  ></image>
-                </view>
-              </view>
-            </view>
-
-            <!-- 交互区（展开时显示 - 仅非组诗） -->
-            <view class="vote-section" v-if="item.isExpanded && !item.isSeries" :style="{ backgroundColor: resolvePostCardBackground(item) }">
-              <view class="actions-left"><!-- 预留左侧空间 --></view>
-              <view class="button-group">
-                <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="item._id" :data-index="index">
-                  <image :class="['like-icon', getLikeIconVariantClass(item.likeIcon), item.isVoted ? 'like-icon--voted' : '']" :src="item.likeIcon || '/static/images/seed.png'" mode="aspectFit" @error="onLikeIconError" />
-                </view>
-                <view class="comment-count" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
-                  <image class="comment-icon" src="/static/images/newicons/comment.png" mode="aspectFit" />
-                </view>
-              </view>
-            </view>
-          </block>
-        </view>
+          <poem-card
+            v-if="item"
+            :post="item"
+            :index="index"
+            enable-series
+            show-signature
+            @card-tap="onPoemCardTap"
+            @vote="onVote"
+            @comment="onCommentClick"
+            @longpress="onLongPressCard"
+            @signature-error="onSignatureError"
+            @signature-load="onSignatureLoad"
+          />
         </block>
       </view>
 
@@ -232,14 +111,13 @@ import AppTabBar from '@/custom-tab-bar/index.vue';
 import skeleton from '@/components/skeleton/skeleton';
 import topBar from '@/components/top-bar/top-bar.vue';
 import FollowingAvatarBar from '@/components/following-avatar-bar/following-avatar-bar.vue';
+import PoemCard from '@/components/poem/PoemCard.vue';
 import { cloudCall } from '@/utils/cloudCall.js';
 import { getPostList as getPostListWithCache, invalidatePostList } from '@/api-cache/post-list.js';
 import { getFollowingPoems, invalidateFollowingPoems, getOriginalPoems } from '@/api-cache/poems.js';
 import likeIcon from '@/utils/likeIcon.js';
 import {
   generateRandomBackgroundColor,
-  getReadableTextColor,
-  getThemedCardBackgroundColor,
   toggleArrayItemExpansion,
   updatePostsUIProperties,
     mergePostLists
@@ -327,6 +205,7 @@ export default {
     skeleton,
     topBar,
     FollowingAvatarBar,
+    PoemCard,
     // #ifndef MP-WEIXIN
     AppTabBar
     // #endif
@@ -686,28 +565,6 @@ export default {
         
         visibleList.forEach((p) => {
           this.normalizePoemCardPost(p);
-          return;
-          if (!p) return;
-          p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
-          p.textColor = p.textColor || '#222';
-          p.isExpanded = false;
-          p.authorSignature = '';
-          p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
-          
-          // 初始化组诗相关属性
-          if (p.isSeries) {
-            p.seriesExpanded = false;
-            p.currentSeriesIndex = 0;
-            // 将 seriesBlocks 转换为 seriesPoems 数组
-            if (Array.isArray(p.seriesBlocks) && p.seriesBlocks.length > 0) {
-              p.seriesPoems = p.seriesBlocks.map(block => ({
-                content: block.content || '',
-                subtitle: block.subtitle || ''
-              }));
-            } else {
-              p.seriesPoems = [];
-            }
-          }
         });
         
         // 立即显示缓存数据
@@ -853,12 +710,6 @@ export default {
       this.lastUsedColorIndex = result.index;
       return result.color;
     },
-    resolvePostCardBackground(post = {}) {
-      return getThemedCardBackgroundColor(post.backgroundColor, this.appThemeMode);
-    },
-    resolvePostTextColor(post = {}) {
-      return getReadableTextColor(this.resolvePostCardBackground(post), post.textColor || '#222');
-    },
     normalizePoemCardPost(post) {
       if (!post) return post;
 
@@ -917,28 +768,6 @@ export default {
                   const visibleList = newPosts.filter(p => p && !p.isAnonymous);
                   visibleList.forEach((p) => {
                     this.normalizePoemCardPost(p);
-                    return;
-                    if (!p) return;
-                    p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
-                    p.textColor = p.textColor || '#222';
-                    p.isExpanded = false;
-                    p.authorSignature = p.authorSignature || '';
-                    p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
-                    
-                    // 初始化组诗相关属性
-                    if (p.isSeries) {
-                      p.seriesExpanded = false;
-                      p.currentSeriesIndex = 0;
-                      // 将 seriesBlocks 转换为 seriesPoems 数组
-                      if (Array.isArray(p.seriesBlocks) && p.seriesBlocks.length > 0) {
-                        p.seriesPoems = p.seriesBlocks.map(block => ({
-                          content: block.content || '',
-                          subtitle: block.subtitle || ''
-                        }));
-                      } else {
-                        p.seriesPoems = [];
-                      }
-                    }
                   });
                   
                   // 转换 cloud:// URLs
@@ -978,28 +807,6 @@ export default {
                 const visibleList = newPosts.filter(p => p && !p.isAnonymous);
                 visibleList.forEach((p) => {
                   this.normalizePoemCardPost(p);
-                  return;
-                  if (!p) return;
-                  p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
-                  p.textColor = p.textColor || '#222';
-                  p.isExpanded = false;
-                  p.authorSignature = p.authorSignature || '';
-                  p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
-                  
-                  // 初始化组诗相关属性
-                  if (p.isSeries) {
-                    p.seriesExpanded = false;
-                    p.currentSeriesIndex = 0;
-                    // 将 seriesBlocks 转换为 seriesPoems 数组
-                    if (Array.isArray(p.seriesBlocks) && p.seriesBlocks.length > 0) {
-                      p.seriesPoems = p.seriesBlocks.map(block => ({
-                        content: block.content || '',
-                        subtitle: block.subtitle || ''
-                      }));
-                    } else {
-                      p.seriesPoems = [];
-                    }
-                  }
                 });
                 
                 // 转换 cloud:// URLs
@@ -1040,29 +847,6 @@ export default {
       
       visibleList.forEach((p) => {
         this.normalizePoemCardPost(p);
-        return;
-        if (!p) return;
-        p.backgroundColor = p.backgroundColor || this.generateRandomBackgroundColor();
-        p.textColor = p.textColor || '#222';
-        p.isExpanded = false;
-        // authorSignature已从云函数返回，保留原始值（如果没有则为空字符串）
-        p.authorSignature = p.authorSignature || '';
-        p.likeIcon = likeIcon && likeIcon.getLikeIcon ? likeIcon.getLikeIcon(p.votes || 0, !!p.isVoted) : '';
-        
-        // 初始化组诗相关属性
-        if (p.isSeries) {
-          p.seriesExpanded = false;
-          p.currentSeriesIndex = 0;
-          // 将 seriesBlocks 转换为 seriesPoems 数组
-          if (Array.isArray(p.seriesBlocks) && p.seriesBlocks.length > 0) {
-            p.seriesPoems = p.seriesBlocks.map(block => ({
-              content: block.content || '',
-              subtitle: block.subtitle || ''
-            }));
-          } else {
-            p.seriesPoems = [];
-          }
-        }
       });
       
       // 客户端安全网：转换任何未转换的 cloud:// URLs
@@ -1099,8 +883,17 @@ export default {
         cb(newPostList); // 传递新列表数据给回调
       }
     },
-    togglePostExpansion(e) {
-      const index = e.currentTarget.dataset.index;
+    onPoemCardTap(payload = {}) {
+      const index = Number(payload.index);
+      const item = this.postList[index];
+      if (item && item.isSeries && item.seriesExpanded) {
+        this.onSeriesCardTap(payload);
+        return;
+      }
+      this.togglePostExpansion(payload);
+    },
+    togglePostExpansion(payload = {}) {
+      const index = Number(payload.index);
       const item = this.postList[index];
       
       if (!item) return;
@@ -1147,8 +940,8 @@ export default {
     },
     
     // 组诗卡片点击处理
-    onSeriesCardTap(e) {
-      const index = e.currentTarget.dataset.index;
+    onSeriesCardTap(payload = {}) {
+      const index = Number(payload.index);
       const item = this.postList[index];
       
       if (!item || !item.isSeries || !item.seriesExpanded) return;
@@ -1183,22 +976,9 @@ export default {
     getSeriesCardTransform(poemIndex, currentIndex) {
       return 'translateY(0) scale(1)';
     },
-    onCommentClick(e) {
-      const postId = e.currentTarget.dataset.postid;
+    onCommentClick(payload = {}) {
+      const postId = payload.postId;
       navigateToPostDetail(postId);
-    },
-    onLikeIconError() {},
-    getLikeIconVariantClass(iconSrc) {
-      const src = String(iconSrc || '/static/images/seed.png').toLowerCase();
-      if (src.includes('seedplus.png')) return 'like-icon--seedplus';
-      if (src.includes('seed.png')) return 'like-icon--seed';
-      if (src.includes('leafplus.png')) return 'like-icon--leafplus';
-      if (src.includes('leaf.png')) return 'like-icon--leaf';
-      if (src.includes('flowerplus.png')) return 'like-icon--flowerplus';
-      if (src.includes('flower.png')) return 'like-icon--flower';
-      if (src.includes('peachplus.png')) return 'like-icon--peachplus';
-      if (src.includes('peach.png')) return 'like-icon--peach';
-      return '';
     },
 
     // authorSignature已从云函数返回，不再需要fetchAuthorSignature函数
@@ -1215,7 +995,11 @@ export default {
       this._brokenSignatureUrls.add(url);
     },
 
-    getSignatureErrorUrl(e = {}) {
+    getSignatureErrorUrl(payload = {}) {
+      if (payload.signature) {
+        return String(payload.signature);
+      }
+      const e = payload.nativeEvent || payload;
       const dataset = (e.currentTarget && e.currentTarget.dataset) || (e.target && e.target.dataset) || {};
       if (dataset.signature) {
         return String(dataset.signature);
@@ -1228,9 +1012,16 @@ export default {
       return match ? match[1] : '';
     },
 
-    hideBrokenSignature(e = {}) {
-      const dataset = (e.currentTarget && e.currentTarget.dataset) || (e.target && e.target.dataset) || {};
-      const failedUrl = this.getSignatureErrorUrl(e);
+    hideBrokenSignature(payload = {}) {
+      const nativeEvent = payload.nativeEvent || payload;
+      const nativeDataset = (nativeEvent.currentTarget && nativeEvent.currentTarget.dataset) || (nativeEvent.target && nativeEvent.target.dataset) || {};
+      const dataset = {
+        ...nativeDataset,
+        signature: payload.signature || nativeDataset.signature,
+        postid: payload.postId || nativeDataset.postid,
+        index: payload.index !== undefined ? payload.index : nativeDataset.index
+      };
+      const failedUrl = this.getSignatureErrorUrl(payload);
       const postId = dataset.postid ? String(dataset.postid) : '';
       const rawIndex = dataset.index;
       const index = rawIndex !== undefined && rawIndex !== null ? Number(rawIndex) : -1;
@@ -1266,13 +1057,13 @@ export default {
     },
 
     // 签名图片加载成功
-    onSignatureLoad(e) {
-      console.log('【poem-square】签名图片加载成功:', e);
+    onSignatureLoad(payload) {
+      console.log('【poem-square】签名图片加载成功:', payload);
     },
 
     // 签名图片加载失败
-    onSignatureError(e) {
-      const result = this.hideBrokenSignature(e);
+    onSignatureError(payload) {
+      const result = this.hideBrokenSignature(payload);
       console.warn('[poem-square] hidden broken signature image', result);
     },
     
@@ -1315,15 +1106,15 @@ export default {
       }
     },
     
-    onVote(e) {
+    onVote(payload = {}) {
       // 未登录不能点赞，提示去登录
       if (!isUserLoggedIn()) {
         requireLogin({ content: '点赞需要登录，请先登录' });
         return;
       }
-      console.log('【poem-square】点赞事件触发', e.currentTarget.dataset);
-      const postId = e.currentTarget.dataset.postid;
-      const index = e.currentTarget.dataset.index;
+      console.log('【poem-square】点赞事件触发', payload);
+      const postId = payload.postId;
+      const index = Number(payload.index);
 
       if (!postId) {
         console.error('【poem-square】点赞失败：postId为空');
@@ -1443,8 +1234,8 @@ export default {
         }
       } catch (_) {}
     },
-    onLongPressCard(e) {
-      const postId = e.currentTarget.dataset.postid;
+    onLongPressCard(payload = {}) {
+      const postId = payload.postId;
       if (postId) {
         uni.navigateTo({ url: `/pages/post-detail/post-detail?id=${postId}` });
       }
@@ -1516,212 +1307,6 @@ export default {
 .empty-icon { font-size: 80rpx; margin-bottom: 20rpx; }
 .empty-text { font-size: 32rpx; margin-bottom: 10rpx; color: var(--app-secondary-text, #666); }
 .empty-subtext { font-size: 24rpx; color: var(--app-muted-text, #999); }
-
-/* poem.css inspired card styles */
-.post-item-wrapper {
-  width: 100%;
-  border-radius: 30rpx; /* 15px * 2 */
-  margin-bottom: 40rpx; /* 减少间距，让卡片更紧凑 */
-  overflow: visible; /* 允许叠层露出 */
-  box-shadow: 0 8rpx 8rpx rgba(0, 0, 0, 0.25); /* 0px 4px 4px * 2 */
-  transition: transform .3s ease;
-  border: none;
-  position: relative; /* 为叠层添加定位 */
-  padding: 0; /* 避免额外占位 */
-}
-
-
-
-/* 背景颜色现在通过内联样式动态设置，不再使用固定的CSS类 */
-
-.post-item-wrapper:active { transform: scale(0.98); }
-.post-content-navigator { 
-  display: block; 
-  border-radius: 30rpx; /* 默认完整圆角（折叠态） */
-  overflow: hidden;
-}
-
-/* 展开态时，post-content-navigator 只保留上方圆角 */
-.post-content-navigator.has-vote-section {
-  border-radius: 30rpx 30rpx 0 0;
-}
-.post-item { padding: 26rpx 50rpx 26rpx 60rpx; position: relative; } /* 缩小内边距匹配普通卡 */
-
-/* 组诗外层叠层（同色卡片） - 两张卡片，后一张向左上平移12rpx */
-.stacked-series-card { 
-  position: relative;
-}
-.series-layer.layer-1 {
-  position: absolute;
-  top: -12rpx;
-  left: -12rpx;
-  right: 12rpx;
-  bottom: 12rpx;
-  border-radius: 30rpx;
-  box-shadow: 0 6rpx 12rpx rgba(0,0,0,0.14);
-  z-index: 1;
-}
-.stacked-series-card .post-content-navigator {
-  position: relative;
-  z-index: 2; /* 主卡片在最上层 */
-}
-
-/* 组诗展开态外层容器 */
-.series-expanded-wrapper {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-/* 组诗单卡片 */
-.series-single-card {
-  position: relative;
-  width: 100%;
-  border-radius: 30rpx 30rpx 0 0; /* 只保留上方圆角 */
-  overflow: visible;
-  min-height: auto;
-}
-
-/* 组诗单卡片的 post-content-navigator 覆盖普通卡片的圆角设置 */
-.series-single-card .post-content-navigator {
-  border-radius: 30rpx 30rpx 0 0; /* 组诗卡片只保留上方圆角 */
-}
-
-/* 组诗展开态的 vote-section 添加下方圆角 */
-.series-expanded-wrapper .vote-section {
-  border-radius: 0 0 30rpx 30rpx; /* 只保留下方圆角 */
-}
-
-/* 组诗展开态的 post-item 调整上下边距 */
-.series-single-card .post-item {
-  padding: 60rpx 50rpx 60rpx 60rpx; /* 上下边距一致，都是60rpx */
-}
-
-/* 组诗页码指示器 */
-.series-page-indicator {
-  margin: 0 auto 10rpx;
-  padding: 0;
-  background: transparent;
-  border: none;
-  color: var(--app-secondary-text, #333);
-  font-size: 24rpx;
-  text-align: center;
-  width: fit-content;
-  align-self: center;
-  font-weight: 500;
-}
-
-/* Typography inspired by poem.css */
-.post-content {
-  font-family: 'Huiwen-mincho', '汇文明朝', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-  font-style: normal;
-  font-weight: 500;
-  font-size: 28rpx; /* 调小字体：14px * 2 */
-  line-height: 38rpx; /* 调整行距：19px * 2 */
-  margin: 30rpx 0;
-  width: 100%;
-  color: #FFFFFF;
-  overflow-wrap: break-word; 
-}
-
-/* 组诗展开态的内容边距调整 */
-.series-single-card .post-content {
-  margin: 20rpx 0 20rpx 0; /* 上下边距一致 */
-}
-
-/* 组诗副标题样式 */
-.series-subtitle {
-  font-family: 'Huiwen-mincho', '汇文明朝', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-  font-size: 24rpx;
-  font-weight: 600;
-  margin-bottom: 20rpx;
-  opacity: 0.8;
-}
-
-/* 文字颜色现在通过内联样式动态设置 */
-/* 折叠态：当没有高光行时显示前三行，有高光行时显示高光行 */
-.post-content.collapsed {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* 当没有高光行时，使用三行裁切 */
-.post-content.collapsed.no-highlight {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-}
-.post-content.expanded { display: block; overflow: visible; }
-.comment-emoji{ font-size: 40rpx; }
-.comment-icon { width: 60rpx; height: 60rpx; }
-.vote-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 25rpx 50rpx;
-  border-radius: 0 0 30rpx 30rpx; /* 添加下方圆角 */
-}
-.actions-left { flex: 1; display: flex; align-items: center; gap: 20rpx; }
-.button-group { display: flex; align-items: center; gap: 30rpx; }
-.like-icon-container { display: flex; align-items: center; justify-content: center; padding: 8rpx; }
-.comment-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; color: var(--app-post-action-color, #999); }
-.vote-count { display: flex; align-items: center; gap: 8rpx; padding: 10rpx 15rpx; border-radius: 20rpx; background: var(--app-subtle-surface-bg, rgba(255,255,255,.9)); box-shadow: 0 2rpx 8rpx rgba(0,0,0,.1); color: var(--app-post-action-color, #999); }
-.like-icon { width: 60rpx; height: 60rpx; margin-top: 5px; }
-.like-icon--voted { filter: none; opacity: 1; }
-.like-icon--seed:not(.like-icon--voted),
-.like-icon--leaf:not(.like-icon--voted),
-.like-icon--flower:not(.like-icon--voted),
-.like-icon--peach:not(.like-icon--voted) {
-  filter: none;
-  opacity: 1;
-}
-
-/* 用户签名样式 */
-.user-signature {
-  position: absolute;
-  bottom: 10rpx; /* 从-25rpx调整到10rpx，让签名在内容区域内 */
-  right: 60rpx;
-  z-index: 10;
-  pointer-events: none; /* 防止签名影响点击事件 */
-}
-
-.signature-image {
-  width: 180rpx;
-  height: 90rpx;
-  opacity: 0.8; /* 稍微透明，不抢夺主要内容的注意力 */
-  filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1)); /* 添加轻微阴影 */
-  display: block; /* 确保图片正确显示 */
-  background: transparent; /* 确保背景透明 */
-  /* #ifdef MP-WEIXIN */
-  image-rendering: -webkit-optimize-contrast; /* 优化小程序图片渲染 */
-  /* #endif */
-}
-
-/* 组诗展开态的签名位置调整 */
-.series-single-card .user-signature {
-  bottom: 20rpx; /* 组诗展开态签名位置 */
-}
-
-/* 小签名样式 - 折叠状态下显示 */
-.user-signature-small {
-  position: absolute;
-  bottom: 30rpx;
-  right: 60rpx;
-  z-index: 10;
-  pointer-events: none; /* 防止签名影响点击事件 */
-}
-
-.signature-image-small {
-  width: 100rpx;
-  height: 50rpx;
-  opacity: 0.6; /* 更透明，不抢夺主要内容的注意力 */
-  filter: drop-shadow(0 1rpx 2rpx rgba(0, 0, 0, 0.1)); /* 添加轻微阴影 */
-  display: block; /* 确保图片正确显示 */
-  background: transparent; /* 确保背景透明 */
-  /* #ifdef MP-WEIXIN */
-  image-rendering: -webkit-optimize-contrast; /* 优化小程序图片渲染 */
-  /* #endif */
-}
 
 .loading-footer { text-align: center; color: var(--app-secondary-text, #666); padding: 30rpx 0 120rpx; }
 .page-indicator { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,.7); color: #fff; padding: 20rpx 40rpx; border-radius: 40rpx; z-index: 1000; font-size: 28rpx; }
