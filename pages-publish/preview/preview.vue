@@ -1618,6 +1618,12 @@ export default {
 
         ...addData,
 
+        // Vue 实例展开可能遗漏响应式字段，显式保留用户选择
+        selectedBackgroundColor: addData.selectedBackgroundColor || this.post.backgroundColor || '',
+        selectedTextColor: addData.selectedTextColor || this.post.textColor || '#000000',
+        highlightLines: [...(Array.isArray(addData.highlightLines) ? addData.highlightLines : this.post.highlightLines || [])],
+        highlightSentence: addData.highlightSentence || '',
+
         title: addData.title || (this.post && this.post.title) || '',
 
         author: addData.author || (this.post && this.post.author) || '',
