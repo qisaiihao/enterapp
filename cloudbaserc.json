@@ -2,6 +2,16 @@
   "envId": "cloud1-5gb0pbyl400845f5",
   "functions": [
     {
+      "name": "getContactConfig",
+      "timeout": 3,
+      "memory": 128,
+      "runtime": "Nodejs18.15",
+      "handler": "index.main",
+      "root": "./functions/getContactConfig",
+      "installDependency": true,
+      "params": {}
+    },
+    {
       "name": "contentCheck",
       "timeout": 3,
       "memory": 256,
@@ -17,6 +27,16 @@
       "runtime": "Nodejs16.13",
       "handler": "index.main",
       "root": "./functions/adminManager",
+      "installDependency": true,
+      "params": {}
+    },
+    {
+      "name": "checkAdmin",
+      "timeout": 3,
+      "memory": 128,
+      "runtime": "Nodejs16.13",
+      "handler": "index.main",
+      "root": "./functions/checkAdmin",
       "installDependency": true,
       "params": {}
     },
@@ -47,7 +67,37 @@
       "runtime": "Nodejs10.15",
       "handler": "index.main",
       "root": "./functions/getPostList",
-      "installDependency": false,
+      "installDependency": true,
+      "params": {}
+    },
+    {
+      "name": "getHotFeed",
+      "timeout": 3,
+      "memory": 256,
+      "runtime": "Nodejs16.13",
+      "handler": "index.main",
+      "root": "./functions/getHotFeed",
+      "installDependency": true,
+      "params": {}
+    },
+    {
+      "name": "getPersonalizedFeed",
+      "timeout": 3,
+      "memory": 256,
+      "runtime": "Nodejs16.13",
+      "handler": "index.main",
+      "root": "./functions/getPersonalizedFeed",
+      "installDependency": true,
+      "params": {}
+    },
+    {
+      "name": "getPoetPosts",
+      "timeout": 3,
+      "memory": 256,
+      "runtime": "Nodejs10.15",
+      "handler": "index.main",
+      "root": "./functions/getPoetPosts",
+      "installDependency": true,
       "params": {}
     },
     {
@@ -57,7 +107,7 @@
       "runtime": "Nodejs10.15",
       "handler": "index.main",
       "root": "./functions/updatePostContent",
-      "installDependency": false,
+      "installDependency": true,
       "params": {}
     },
     {
@@ -197,7 +247,7 @@
       "runtime": "Nodejs10.15",
       "handler": "index.main",
       "root": "./functions/getMyProfileData",
-      "installDependency": false,
+      "installDependency": true,
       "params": {}
     },
     {
@@ -217,7 +267,7 @@
       "runtime": "Nodejs16.13",
       "handler": "index.main",
       "root": "./functions/updateUserProfile",
-      "installDependency": false,
+      "installDependency": true,
       "params": {}
     },
     {
@@ -265,6 +315,14 @@
               "memory": 128
             },
             {
+              "name": "checkAdmin",
+              "root": "./functions/checkAdmin",
+              "timeout": 3,
+              "memory": 128,
+              "runtime": "Nodejs16.13",
+              "installDependency": true
+            },
+            {
               "name": "checkDuplicatePoem",
               "root": "./functions/checkDuplicatePoem",
               "timeout": 3,
@@ -296,7 +354,7 @@
               "timeout": 5,
               "memory": 256,
               "runtime": "Nodejs16.13",
-              "installDependency": false
+              "installDependency": true
             },
             {
               "name": "createDefaultPortfolios",
@@ -321,7 +379,7 @@
               "root": "./functions/createPortfolio",
               "timeout": 3,
               "memory": 256,
-              "installDependency": false
+              "installDependency": true
             },
             {
               "name": "createPortfolioFolder",
@@ -471,7 +529,7 @@
               "timeout": 3,
               "memory": 128,
               "runtime": "Nodejs16.13",
-              "installDependency": false
+              "installDependency": true
             },
             {
               "name": "getOpenId",
@@ -554,7 +612,7 @@
               "root": "./functions/getPortfolios",
               "timeout": 3,
               "memory": 256,
-              "installDependency": false
+              "installDependency": true
             },
             {
               "name": "getPostDetail",
@@ -755,7 +813,7 @@
               "timeout": 3,
               "memory": 128,
               "runtime": "Nodejs16.13",
-              "installDependency": false
+              "installDependency": true
             },
             {
               "name": "syncUserPostsMetadata",

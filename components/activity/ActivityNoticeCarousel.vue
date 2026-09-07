@@ -14,14 +14,24 @@
         :key="notice.value"
       >
         <view :class="['notice-card', notice.tone || 'default']">
-          <view class="notice-copy">
-            <text class="notice-kicker">{{ notice.kicker }}</text>
-            <text class="notice-title">{{ notice.title }}</text>
-            <text class="notice-summary">{{ notice.summary }}</text>
-          </view>
-          <view class="notice-art">
-            <text class="notice-art-mark">{{ notice.mark }}</text>
-          </view>
+          <image
+            v-if="notice.image"
+            class="notice-image"
+            :src="notice.image"
+            mode="aspectFill"
+            :lazy-load="true"
+            @error="onImageError(notice)"
+          />
+          <template v-else>
+            <view class="notice-copy">
+              <text class="notice-kicker">{{ notice.kicker }}</text>
+              <text class="notice-title">{{ notice.title }}</text>
+              <text class="notice-summary">{{ notice.summary }}</text>
+            </view>
+            <view class="notice-art">
+              <text class="notice-art-mark">{{ notice.mark }}</text>
+            </view>
+          </template>
         </view>
       </swiper-item>
     </swiper>
@@ -47,26 +57,41 @@ export default {
   },
   data() {
     return {
-      activeIndex: 0
+      activeIndex: 0,
+      failedImages: {}
     };
   },
   computed: {
     safeNotices() {
       return (Array.isArray(this.notices) ? this.notices : [])
         .filter(item => item && item.value && item.title)
-        .map(item => ({
-          kicker: '公告',
-          summary: '',
-          mark: '',
-          tone: 'default',
-          ...item
-        }));
+        .map(item => {
+          const base = {
+            kicker: '公告',
+            summary: '',
+            mark: '',
+            tone: 'default',
+            image: '',
+            ...item
+          };
+          if (base.image && this.failedImages[item.value]) {
+            base.image = '';
+          }
+          return base;
+        });
     }
   },
   methods: {
     handleChange(event) {
       const current = event && event.detail ? Number(event.detail.current) : 0;
       this.activeIndex = Number.isFinite(current) ? current : 0;
+    },
+    onImageError(notice) {
+      if (!notice || !notice.value) return;
+      this.failedImages = {
+        ...this.failedImages,
+        [notice.value]: true
+      };
     }
   }
 };
@@ -123,6 +148,15 @@ export default {
 
 .notice-card.market {
   background: #dde5ee;
+}
+
+.notice-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #efe7d6;
 }
 
 .notice-copy {

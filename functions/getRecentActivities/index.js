@@ -20,8 +20,33 @@ function buildPublicNoticeView(notice = {}) {
     title: notice.title || '',
     summary: notice.summary || '',
     mark: notice.mark || '',
+    image: notice.image || '',
     tone: normalizeNoticeTone(notice.tone),
     sortWeight: Number(notice.sortWeight) || 0
+  }
+}
+
+async function resolveNoticeImages(notices) {
+  const fileIDs = (notices || [])
+    .map((notice) => notice.image)
+    .filter((fileID) => typeof fileID === 'string' && fileID.startsWith('cloud://'))
+  if (fileIDs.length === 0) return notices
+  try {
+    const res = await cloud.getTempFileURL({ fileList: fileIDs })
+    const urlMap = new Map()
+    ;(res.fileList || []).forEach((item) => {
+      if (item && item.status === 0 && item.tempFileURL) {
+        urlMap.set(item.fileID, item.tempFileURL)
+      }
+    })
+    return (notices || []).map((notice) => {
+      if (notice.image && urlMap.has(notice.image)) {
+        return { ...notice, image: urlMap.get(notice.image) }
+      }
+      return notice
+    })
+  } catch (error) {
+    return notices
   }
 }
 
@@ -38,9 +63,10 @@ async function getActivityNotices(limit = 6) {
       .limit(safeLimit)
       .get()
 
-    return (res.data || [])
+    const notices = (res.data || [])
       .map((notice) => buildPublicNoticeView(notice))
       .filter((notice) => notice.title)
+    return resolveNoticeImages(notices)
   } catch (error) {
     const message = String((error && (error.errMsg || error.message)) || '')
     if (error && (error.errCode === -502005 || message.includes('collection not exists'))) {

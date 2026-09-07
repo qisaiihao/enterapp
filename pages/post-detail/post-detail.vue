@@ -1,5 +1,5 @@
 <template>
-    <view class="post-detail-page" :data-app-theme="appThemeMode" :style="appThemeVars">
+    <view class="post-detail-page" :data-app-theme="appThemeMode" :style="[appThemeVars, readFontVars]">
         
         <!-- pages/post-detail/post-detail.wxml -->
         <!-- 自定义返回按钮 -->
@@ -27,7 +27,7 @@
                                 :data-is-anonymous="post.isAnonymous"
                                 style="pointer-events: auto; cursor: pointer;"
                             ></image>
-                            <text class="author-name">{{ post.isAnonymous ? '匿名用户' : post.authorName }}</text>
+                            <text class="author-name" selectable :user-select="true">{{ post.isAnonymous ? '匿名用户' : post.authorName }}</text>
                         </view>
                         <view class="author-right-actions">
                             <view v-if="!post.isAnonymous && isMutualFollow" class="mutual-tag">互相关注</view>
@@ -43,8 +43,8 @@
                             </button>
                         </view>
                     </view>
-                    <view class="post-title">{{ post.title }}</view>
-                    <view v-if="post.isPoem && post.author" class="poem-author" :class="{ 'poem-author-clickable': canGoToPoetProfile }" @tap="onPoetNameTap">{{ post.author }}</view>
+                    <view class="post-title"><text selectable :user-select="true">{{ post.title }}</text></view>
+                    <view v-if="post.isPoem && post.author" class="poem-author" :class="{ 'poem-author-clickable': canGoToPoetProfile }" @tap="onPoetNameTap"><text selectable :user-select="true">{{ post.author }}</text></view>
                     
                     <!-- 讨论类型帖子特殊渲染：仅当存在有效句子或评论时展示，否则回退到正文 -->
                     <view v-if="post.isDiscussion && hasValidDiscussionGroups(post)" class="discussion-content">
@@ -52,7 +52,7 @@
                             <!-- 句子卡片：仅在有有效句子时显示，避免空灰框 -->
                             <view v-if="hasDiscussionSentences(sentenceGroup)" class="discussion-sentence-card">
                                 <view class="discussion-sentence-content">
-                                    <text v-for="(line, lineIndex) in sentenceGroup.sentences" :key="lineIndex" class="discussion-sentence-line">
+                                    <text v-for="(line, lineIndex) in sentenceGroup.sentences" :key="lineIndex" class="discussion-sentence-line" selectable :user-select="true">
                                         {{ line }}
                                     </text>
                                 </view>
@@ -60,20 +60,20 @@
                             
                             <!-- 评论内容 -->
                             <view v-if="sentenceGroup.comment" class="discussion-comment">
-                                {{ sentenceGroup.comment }}
+                                <text selectable :user-select="true">{{ sentenceGroup.comment }}</text>
                             </view>
                         </view>
                     </view>
                     <!-- 组诗内容 -->
                     <view v-else-if="post.isSeries && post.seriesBlocks && post.seriesBlocks.length > 0" class="series-simple-display">
                         <view v-for="(block, idx) in post.seriesBlocks" :key="idx" class="series-poem-block">
-                            <view v-if="block.subtitle" class="series-poem-subtitle">{{ block.subtitle }}</view>
-                            <view class="post-content">{{ block.content }}</view>
+                            <view v-if="block.subtitle" class="series-poem-subtitle"><text selectable :user-select="true">{{ block.subtitle }}</text></view>
+                            <view class="post-content"><text selectable :user-select="true">{{ block.content }}</text></view>
                         </view>
                     </view>
                     
                     <!-- 普通帖子内容 -->
-                    <view class="post-content" v-else-if="post.content">{{ post.content }}</view>
+                    <view class="post-content" v-else-if="post.content"><text selectable :user-select="true">{{ post.content }}</text></view>
 
                     <view v-if="post.tags && post.tags.length > 0" class="post-tags">
                         <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="item" v-for="(item, index) in post.tags" :key="index">#{{ item }}</text>
@@ -3587,6 +3587,9 @@ page {
     font-weight: bold;
     font-size: 28rpx;
     color: var(--app-post-author-color, #333);
+    user-select: text;
+    -webkit-user-select: text;
+    -webkit-touch-callout: default;
 }
 
 .post-title {
@@ -3602,6 +3605,9 @@ page {
     line-clamp: 2;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+    user-select: text;
+    -webkit-user-select: text;
+    -webkit-touch-callout: default;
 }
 
 .poem-author {
@@ -3611,6 +3617,9 @@ page {
     margin: 10rpx 0 15rpx 0;
     font-weight: bold;
     letter-spacing: 2rpx;
+    user-select: text;
+    -webkit-user-select: text;
+    -webkit-touch-callout: default;
 }
 
 .poem-author-clickable:active {
@@ -3625,6 +3634,9 @@ page {
     color: var(--app-post-content-color, #666);
     word-break: break-word;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    user-select: text;
+    -webkit-user-select: text;
+    -webkit-touch-callout: default;
 }
 
 .image-container {
@@ -4242,6 +4254,9 @@ page {
     max-width: 100%;
     box-sizing: border-box;
     overflow-wrap: break-word;
+    user-select: text;
+    -webkit-user-select: text;
+    -webkit-touch-callout: default;
 }
 
 .discussion-sentence-line:last-child {
@@ -4264,6 +4279,9 @@ page {
     max-width: 100%;
     box-sizing: border-box;
     overflow-wrap: break-word;
+    user-select: text;
+    -webkit-user-select: text;
+    -webkit-touch-callout: default;
 }
 
 /* 分享弹窗样式已移入 ShareModal.vue */

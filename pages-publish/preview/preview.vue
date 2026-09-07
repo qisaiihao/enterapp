@@ -4,7 +4,7 @@
     class="preview-page white-bg"
     :class="{ 'preview-page--dark': appThemeMode === 'dark' }"
     :data-app-theme="appThemeMode"
-    :style="appThemeVars"
+    :style="[appThemeVars, readFontVars]"
     @tap="onPageTap"
   >
 

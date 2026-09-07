@@ -227,7 +227,7 @@ exports.main = async (event, context) => {
     // 屏蔽列表
     let blockedUserIds = [];
     try {
-      const getBlockedUserIds = require('../_lib/get-blocked-user-ids');
+      const getBlockedUserIds = require('./_lib/get-blocked-user-ids');
       blockedUserIds = await getBlockedUserIds(openid, db);
     } catch (err) {
       console.error('[getPoemContentFeed] blocked list failed', err);

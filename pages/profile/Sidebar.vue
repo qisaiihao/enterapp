@@ -22,8 +22,14 @@
                 <view class="sidebar-item" @tap="navigateToDraftBox">
                     <text>草稿箱</text>
                 </view>
+                <view class="sidebar-item" @tap="navigateToSettings">
+                    <text>设置</text>
+                </view>
                 <view class="sidebar-item" @tap="navigateToFeedback">
                     <text>意见反馈</text>
+                </view>
+                <view class="sidebar-item" @tap="navigateToContact">
+                    <text>联系我们</text>
                 </view>
                 <view class="sidebar-item" @tap="navigateToCollage">
                     <text>拼贴诗</text>
@@ -129,7 +135,20 @@ export default {
             });
         },
 
+        // 跳转到设置页面
+        navigateToSettings() {
+            this.$emit('close');
+            uni.navigateTo({
+                url: '/pages/settings/settings'
+            });
+        },
+
         // 跳转到拼贴诗页面
+        navigateToContact() {
+            this.$emit('close');
+            uni.navigateTo({ url: '/pages-tools/contact/contact' });
+        },
+
         navigateToCollage() {
             this.$emit('close');
             uni.navigateTo({

@@ -1,10 +1,10 @@
 <template>
-  <view class="mountain white-bg" :data-app-theme="appThemeMode" :style="appThemeVars" @touchstart="touchStart" @touchend="touchEnd">
+  <view class="mountain white-bg" :data-app-theme="appThemeMode" :style="[appThemeVars, readFontVars]" @touchstart="touchStart" @touchend="touchEnd">
     <!-- 顶部栏 -->
     <top-bar @safe-area-ready="onSafeAreaReady" />
 
     <!-- 诗人筛选栏 -->
-    <view class="poet-avatar-bar-wrapper" :style="{ top: (safeAreaTop * 2 + 100) + 'rpx' }">
+    <view class="poet-avatar-bar-wrapper" :style="{ top: (safeAreaTop * 2 + 140) + 'rpx' }">
       <poet-avatar-bar
         ref="poetAvatarBar"
         :selectedPoetName="selectedPoetName"
@@ -12,20 +12,13 @@
       />
     </view>
 
-    <!-- 内容列表 -->
-    <view class="square-mode-container with-avatar-bar" :style="{ paddingTop: (safeAreaTop * 2 + 300) + 'rpx' }">
-      <!-- 加载中骨架 - 嵌入到内容容器中，而不是覆盖整个页面 -->
-      <!-- 在存在诗人筛选组件时正常显示骨架屏 -->
-      <view v-if="isLoading">
-        <skeleton
-          pageType="mountain"
-          :hasFilterBar="false"
-          filterBarType=""
-        />
-      </view>
+    <!-- 加载中骨架 - 与诗歌广场一致，下方避开诗人头像选择栏 -->
+    <view v-if="isLoading" :style="{ paddingTop: (safeAreaTop * 2 + 90) + 'rpx' }">
+      <skeleton pageType="poem" :hasFilterBar="false" filterBarType="" />
+    </view>
 
-      <!-- 真实内容 -->
-      <view v-else>
+    <!-- 内容列表 -->
+    <view v-else class="square-mode-container with-avatar-bar" :style="{ paddingTop: (safeAreaTop * 2 + 340) + 'rpx' }">
       <view v-if="postList.length === 0" class="empty-state">
         <view class="empty-icon">⛰️</view>
         <view class="empty-text">还没刷出来，等一下~</view>
@@ -47,10 +40,9 @@
       </view>
 
       <!-- 底部加载/结束提示 -->
-        <view class="loading-footer">
-          <block v-if="!hasMore && postList.length > 0"><text>—— 到底啦 ——</text></block>
-        </view>
-      </view>  <!-- 关闭 v-else -->
+      <view class="loading-footer">
+        <block v-if="!hasMore && postList.length > 0"><text>—— 到底啦 ——</text></block>
+      </view>
     </view>
 
     <!-- 顶部提示（用于调试滑动预加载阈值） -->
@@ -593,6 +585,28 @@ export default {
         uni.navigateTo({ url: `/pages/post-detail/post-detail?id=${postId}` });
       }
     },
+
+    // 从 like:status 缓存对齐当前列表的点赞状态（兜底：跨页返回时也能更新）
+    syncLikeStatusFromCache() {
+      try {
+        const list = Array.isArray(this.postList) ? this.postList : [];
+        const ids = list.map(p => p && p._id).filter(Boolean);
+        if (!ids.length) return;
+        try { syncLikeStatusForPosts(ids); } catch (_) {}
+        let changed = false;
+        const next = list.slice();
+        for (let i = 0; i < next.length; i += 1) {
+          const p = next[i]; if (!p || !p._id) continue;
+          const s = getLatestLikeStatus(p._id);
+          if (s && ((p.votes || 0) !== s.votes || !!p.isVoted !== !!s.isVoted)) {
+            p.votes = s.votes; p.isVoted = s.isVoted; p.likeIcon = likeIcon.getLikeIcon(s.votes, s.isVoted);
+            changed = true;
+          }
+        }
+        if (changed) this.setData({ postList: next });
+      } catch (err) { console.warn('[mountain] syncLikeStatusFromCache failed', err); }
+    },
+
     touchStart() {},
     touchEnd() {},
     
@@ -643,7 +657,7 @@ export default {
 /* 诗人筛选栏定位 */
 .poet-avatar-bar-wrapper {
   position: absolute;
-  top: calc(var(--safe-area-top, 44px) + 100rpx); /* 使用动态变量的安全区域高度 */
+  top: calc(var(--safe-area-top, 44px) + 140rpx); /* 使用动态变量的安全区域高度 */
   left: 0;
   right: 0;
   z-index: 10;
@@ -651,30 +665,10 @@ export default {
 
 /* 内容列表有头像栏时的上边距 */
 .square-mode-container.with-avatar-bar {
-  padding-top: calc(var(--safe-area-top, 44px) + 300rpx); /* 动态计算：安全区域 + 头像栏高度 */
+  padding-top: calc(var(--safe-area-top, 44px) + 340rpx); /* 动态计算：安全区域 + 头像栏高度 */
 }
 
 .poet-avatar-bar-wrapper :deep(.avatar-bar-container) {
   padding-top: 0;
 }
 </style>
-    // 从 like:status 缓存对齐当前列表的点赞状态（兜底：跨页返回时也能更新）
-    syncLikeStatusFromCache() {
-      try {
-        const list = Array.isArray(this.postList) ? this.postList : [];
-        const ids = list.map(p => p && p._id).filter(Boolean);
-        if (!ids.length) return;
-        try { syncLikeStatusForPosts(ids); } catch (_) {}
-        let changed = false;
-        const next = list.slice();
-        for (let i = 0; i < next.length; i += 1) {
-          const p = next[i]; if (!p || !p._id) continue;
-          const s = getLatestLikeStatus(p._id);
-          if (s && ((p.votes || 0) !== s.votes || !!p.isVoted !== !!s.isVoted)) {
-            p.votes = s.votes; p.isVoted = s.isVoted; p.likeIcon = likeIcon.getLikeIcon(s.votes, s.isVoted);
-            changed = true;
-          }
-        }
-        if (changed) this.setData({ postList: next });
-      } catch (err) { console.warn('[mountain] syncLikeStatusFromCache failed', err); }
-    },

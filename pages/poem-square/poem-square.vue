@@ -1,5 +1,5 @@
 <template>
-  <view class="poem-square white-bg" :data-app-theme="appThemeMode" :style="appThemeVars" @touchstart="touchStart" @touchend="touchEnd">
+  <view class="poem-square white-bg" :data-app-theme="appThemeMode" :style="[appThemeVars, readFontVars]" @touchstart="touchStart" @touchend="touchEnd">
     <!-- 顶部栏 -->
     <top-bar @safe-area-ready="onSafeAreaReady" />
 

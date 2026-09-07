@@ -1,5 +1,5 @@
 <template>
-  <view class="other-portfolio-page" @touchstart="touchStart" @touchend="touchEnd">
+  <view class="other-portfolio-page" :style="readFontVars" @touchstart="touchStart" @touchend="touchEnd">
     <!-- 自定义返回按钮 -->
     <view class="custom-back-btn" @tap="goBack">
       <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>

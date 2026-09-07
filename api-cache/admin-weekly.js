@@ -68,10 +68,26 @@ function generateAdminWeeklyRanking({ issueId = '', periodStart = '', periodEnd 
   );
 }
 
-function listAdminWeeklyCandidatePosts({ skip = 0, limit = 20, keyword = '', context } = {}) {
+function listAdminWeeklyFeaturedIssues({ context } = {}) {
+  return callAdminWeekly(
+    'getWeeklyFeaturedIssueIds',
+    {},
+    { pageTag: 'admin-weekly-featured-list', context, fallbackMessage: '加载精选周刊失败' }
+  );
+}
+
+function updateAdminWeeklyFeaturedIssues(issueIds = [], { context } = {}) {
+  return callAdminWeekly(
+    'setWeeklyFeaturedIssueIds',
+    { issueIds },
+    { pageTag: 'admin-weekly-featured-save', context, fallbackMessage: '保存精选周刊失败' }
+  );
+}
+
+function listAdminWeeklyCandidatePosts({ skip = 0, limit = 20, keyword = '', periodStart = '', periodEnd = '', context } = {}) {
   return callAdminWeekly(
     'listWeeklyCandidatePosts',
-    { skip, limit, keyword },
+    { skip, limit, keyword, periodStart, periodEnd },
     { pageTag: 'admin-weekly-candidates', context, fallbackMessage: '加载候选作品失败' }
   );
 }
@@ -126,6 +142,8 @@ const adminWeeklyApi = {
   deleteAdminWeeklyIssue,
   generateAdminWeeklyRanking,
   listAdminWeeklyCandidatePosts,
+  listAdminWeeklyFeaturedIssues,
+  updateAdminWeeklyFeaturedIssues,
   listAdminWeeklyTopics,
   createAdminWeeklyTopic,
   updateAdminWeeklyTopic,
@@ -143,6 +161,8 @@ export {
   deleteAdminWeeklyIssue,
   generateAdminWeeklyRanking,
   listAdminWeeklyCandidatePosts,
+  listAdminWeeklyFeaturedIssues,
+  updateAdminWeeklyFeaturedIssues,
   listAdminWeeklyTopics,
   createAdminWeeklyTopic,
   updateAdminWeeklyTopic,

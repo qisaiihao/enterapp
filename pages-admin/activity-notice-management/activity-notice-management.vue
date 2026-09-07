@@ -26,6 +26,20 @@
         <textarea class="textarea" maxlength="80" v-model="form.summary" placeholder="公告摘要，最多 80 字" />
       </view>
 
+      <view class="form-item">
+        <text class="label">公告图片（可选，裁剪为 16:7）</text>
+        <view class="image-picker" @tap="chooseAndCropImage">
+          <image v-if="imagePreviewUrl" class="image-preview" :src="imagePreviewUrl" mode="aspectFill" />
+          <view v-else class="image-placeholder">
+            <text class="placeholder-icon">🖼️</text>
+            <text class="placeholder-text">{{ uploadingImage ? '上传图片中...' : '选择图片并裁剪为 16:7' }}</text>
+          </view>
+        </view>
+        <view v-if="imagePreviewUrl && !uploadingImage" class="image-remove-row">
+          <button class="mini-btn image-remove-btn" @tap.stop="clearImage">移除图片</button>
+        </view>
+      </view>
+
       <view class="form-row">
         <view class="form-item half">
           <text class="label">右侧标记</text>
@@ -74,6 +88,7 @@
           <text :class="['status-tag', item.status || 'draft']">{{ statusText(item.status) }}</text>
         </view>
         <text v-if="item.summary" class="card-summary">{{ item.summary }}</text>
+        <image v-if="item.imagePreviewUrl" class="card-image" :src="item.imagePreviewUrl" mode="aspectFill" />
         <view class="card-meta">
           <text>小标题：{{ item.kicker || '公告' }}</text>
           <text>标记：{{ item.mark || '-' }} / 色调：{{ toneText(item.tone) }}</text>
@@ -105,6 +120,8 @@ import {
   deleteAdminActivityNotice
 } from '@/api-cache/admin-activity-notices.js';
 import { invalidateActivityNotices } from '@/api-cache/activity-notices.js';
+import { uploadFile } from '@/utils/uploader.js';
+import fileUrlCache from '@/_utils/file-url-cache';
 
 const STATUS_OPTIONS = [
   { value: 'draft', label: '草稿' },
@@ -126,6 +143,7 @@ function createEmptyForm() {
     title: '',
     summary: '',
     mark: '',
+    image: '',
     tone: 'cooperation',
     sortWeight: 0,
     status: 'draft'
@@ -147,11 +165,17 @@ export default {
       statusIndex: 0,
       toneIndex: 0,
       statusLabels: STATUS_OPTIONS.map(item => item.label),
-      toneLabels: TONE_OPTIONS.map(item => item.label)
+      toneLabels: TONE_OPTIONS.map(item => item.label),
+      imagePreviewUrl: '',
+      uploadingImage: false
     };
   },
   onLoad() {
     this.refreshList();
+    uni.$on('notice-image-cropped', this.onImageCropped);
+  },
+  onUnload() {
+    uni.$off('notice-image-cropped', this.onImageCropped);
   },
   onPullDownRefresh() {
     this.refreshList(true);
@@ -193,6 +217,7 @@ export default {
         }
         this.hasMore = typeof result.hasMore === 'boolean' ? result.hasMore : incoming.length === this.pageSize;
         this.page = targetPage + 1;
+        this.resolveNoticePreviews(incoming);
       } catch (error) {
         uni.showToast({ title: error.message || '加载失败', icon: 'none' });
       } finally {
@@ -206,6 +231,7 @@ export default {
       this.form = createEmptyForm();
       this.statusIndex = 0;
       this.toneIndex = 0;
+      this.imagePreviewUrl = '';
       this.editing = true;
     },
 
@@ -217,18 +243,22 @@ export default {
         title: item.title || '',
         summary: item.summary || '',
         mark: item.mark || '',
+        image: item.image || '',
         tone: item.tone || 'default',
         sortWeight: Number(item.sortWeight) || 0,
         status: item.status || 'draft'
       };
       this.statusIndex = Math.max(0, STATUS_OPTIONS.findIndex(option => option.value === this.form.status));
       this.toneIndex = Math.max(0, TONE_OPTIONS.findIndex(option => option.value === this.form.tone));
+      this.imagePreviewUrl = '';
+      this.loadImagePreview(this.form.image);
       this.editing = true;
     },
 
     closeForm() {
       this.editing = false;
       this.form = createEmptyForm();
+      this.imagePreviewUrl = '';
     },
 
     onSortWeightInput(event) {
@@ -270,6 +300,7 @@ export default {
         title: String(this.form.title || '').trim(),
         summary: String(this.form.summary || '').trim(),
         mark: String(this.form.mark || '').trim(),
+        image: String(this.form.image || '').trim(),
         tone: this.form.tone || 'default',
         sortWeight: Number(this.form.sortWeight) || 0,
         status: this.form.status || 'draft'
@@ -349,6 +380,96 @@ export default {
           }
         }
       });
+    },
+
+    chooseAndCropImage() {
+      if (this.uploadingImage) return;
+      uni.chooseImage({
+        count: 1,
+        sizeType: ['compressed'],
+        sourceType: ['album', 'camera'],
+        success: (res) => {
+          const path = (res && res.tempFilePaths && res.tempFilePaths[0]) || '';
+          if (!path) return;
+          uni.navigateTo({
+            url: `/pages-admin/activity-notice-management/notice-cropper?src=${encodeURIComponent(path)}`
+          });
+        }
+      });
+    },
+
+    async onImageCropped({ path } = {}) {
+      if (!path || this.uploadingImage) return;
+      this.uploadingImage = true;
+      this.imagePreviewUrl = path;
+      uni.showLoading({ title: '上传图片中...' });
+      try {
+        const cloudPath = this.buildImageCloudPath();
+        const fileID = await uploadFile(cloudPath, path, { context: this });
+        if (!fileID) {
+          throw new Error('上传失败');
+        }
+        this.form = {
+          ...this.form,
+          image: fileID
+        };
+        uni.showToast({ title: '图片已上传', icon: 'success' });
+      } catch (error) {
+        this.imagePreviewUrl = '';
+        uni.showToast({ title: error.message || '上传失败', icon: 'none' });
+      } finally {
+        this.uploadingImage = false;
+        uni.hideLoading();
+      }
+    },
+
+    buildImageCloudPath() {
+      const timestamp = Date.now();
+      const random = Math.floor(Math.random() * 100000);
+      return `activity-notices/${timestamp}_${random}.jpg`;
+    },
+
+    clearImage() {
+      this.imagePreviewUrl = '';
+      this.form = {
+        ...this.form,
+        image: ''
+      };
+    },
+
+    async loadImagePreview(fileID) {
+      if (!fileID) {
+        this.imagePreviewUrl = '';
+        return;
+      }
+      if (String(fileID).startsWith('cloud://')) {
+        try {
+          const url = await fileUrlCache.getTempUrl(fileID);
+          this.imagePreviewUrl = url || '';
+        } catch (error) {
+          this.imagePreviewUrl = '';
+        }
+        return;
+      }
+      this.imagePreviewUrl = fileID;
+    },
+
+    async resolveNoticePreviews(items) {
+      const pending = (items || []).filter(item => item && item.image && String(item.image).startsWith('cloud://'));
+      if (pending.length === 0) return;
+      const ids = Array.from(new Set(pending.map(item => item.image)));
+      let urlMap = {};
+      try {
+        urlMap = await fileUrlCache.getTempUrls(ids);
+      } catch (error) {
+        return;
+      }
+      const next = this.notices.map(item => {
+        if (!item || !item.image || item.imagePreviewUrl) return item;
+        const url = urlMap[item.image];
+        return url ? { ...item, imagePreviewUrl: url } : item;
+      });
+      this.notices = next;
     },
 
     statusText(status) {
@@ -481,6 +602,61 @@ export default {
 
 .textarea {
   min-height: 140rpx;
+}
+
+.image-picker {
+  width: 100%;
+  box-sizing: border-box;
+  border: 2rpx dashed #c8ccd4;
+  border-radius: 10rpx;
+  overflow: hidden;
+  background: #f7f8fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180rpx;
+}
+
+.image-preview {
+  width: 100%;
+  height: 300rpx;
+  display: block;
+}
+
+.image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10rpx;
+  padding: 40rpx 20rpx;
+}
+
+.placeholder-icon {
+  font-size: 56rpx;
+  line-height: 64rpx;
+}
+
+.placeholder-text {
+  font-size: 24rpx;
+  color: #8a8a8a;
+}
+
+.image-remove-row {
+  margin-top: 12rpx;
+  display: flex;
+  justify-content: center;
+}
+
+.image-remove-btn {
+  width: 200rpx;
+}
+
+.card-image {
+  width: 100%;
+  height: 220rpx;
+  border-radius: 8rpx;
+  margin-top: 12rpx;
+  background: #f2f4f7;
 }
 
 .submit-btn {

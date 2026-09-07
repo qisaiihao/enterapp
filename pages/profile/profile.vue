@@ -294,6 +294,7 @@ import { getMyPosts, getMyFavorites, invalidateMyFavorites, invalidateMyPosts, i
 import { togglePostVisibility, deletePost as deletePostApi, saveDraft, getPostDetail, removeFavorite as removeFavoriteApi, getFollowerCount, updateUserInfo, logout } from '@/api-cache/profile-actions.js';
 import { getPortfolioFolders, notifyPortfolioUpdated, invalidatePortfolioCache } from '@/api-cache/portfolio.js';
 import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
+import { clearCachedAdminFlag } from '@/utils/admin.js';
 import { navigateToUserProfile } from '@/utils/navigation.js';
 import { calculateAge } from '@/utils/ageCalculator.js';
 import { fetchTimelineData } from '@/utils/profileTimeline.js';
@@ -709,7 +710,8 @@ export default {
         profilePageStyle() {
             return {
                 ...this.appThemeVars,
-                ...this.profileForegroundStyle
+                ...this.profileForegroundStyle,
+                ...this.readFontVars
             };
         },
         profileForegroundStyle() {
@@ -2844,6 +2846,7 @@ export default {
                 uni.removeStorageSync('userOpenId');
                 uni.removeStorageSync('openid');
                 clearUserSession();
+                clearCachedAdminFlag();
 
                 // 清除当前页面的用户数据
                 this.setData({

@@ -83,19 +83,13 @@ async function submitFeedback(openid, data) {
     
     // === 新增：通知管理员有新反馈 ===
     try {
-      const adminOpenids = ['ojYBd1_A3uCbQ1LGcHxWxOAeA5SE', 'ojYBd14JG3-ghYuGCI2WHmkMc9nE'] // 管理员openid列表
-      
-      // 为每个管理员发送通知
+      // 管理员名单统一从 adminConfig 数据库配置读取
       const adminUsers = await listAdminUsersByPoemId({ db, command: _, loggerPrefix: 'feedbackManager' })
-      adminOpenids.splice(
-        0,
-        adminOpenids.length,
-        ...Array.from(new Set(
-          adminUsers
-            .map((user) => user && user._openid)
-            .filter(Boolean)
-        ))
-      )
+      const adminOpenids = Array.from(new Set(
+        adminUsers
+          .map((user) => user && user._openid)
+          .filter(Boolean)
+      ))
 
       for (const adminOpenid of adminOpenids) {
         await db.collection('messages').add({

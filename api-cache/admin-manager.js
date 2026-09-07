@@ -84,6 +84,22 @@ function executeAdminFieldReplace({ collectionName, fieldName, findValue, replac
   );
 }
 
+function getAdminConfig({ context } = {}) {
+  return callAdminManager(
+    'getAdminConfig',
+    {},
+    { pageTag: 'admin-list:config', context, fallbackMessage: '获取管理员配置失败' }
+  );
+}
+
+function updateAdminConfig({ adminPoemIds, context } = {}) {
+  return callAdminManager(
+    'updateAdminConfig',
+    { adminPoemIds },
+    { pageTag: 'admin-list:update', context, fallbackMessage: '保存管理员配置失败' }
+  );
+}
+
 const adminManagerApi = {
   callAdminManager,
   listAdminPosts,
@@ -94,7 +110,9 @@ const adminManagerApi = {
   getAdminUserPassword,
   getBatchReplaceConfig,
   previewAdminFieldReplace,
-  executeAdminFieldReplace
+  executeAdminFieldReplace,
+  getAdminConfig,
+  updateAdminConfig
 };
 
 export {
@@ -107,7 +125,9 @@ export {
   getAdminUserPassword,
   getBatchReplaceConfig,
   previewAdminFieldReplace,
-  executeAdminFieldReplace
+  executeAdminFieldReplace,
+  getAdminConfig,
+  updateAdminConfig
 };
 
 export default adminManagerApi;

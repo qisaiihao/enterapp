@@ -1,5 +1,5 @@
 <template>
-  <view class="portfolio-detail-page" @touchstart="touchStart" @touchend="touchEnd">
+  <view class="portfolio-detail-page" :style="readFontVars" @touchstart="touchStart" @touchend="touchEnd">
     <dual-action-top-bar @left-click="goBack" @right-click="openAddModal" />
     
     <view class="container">

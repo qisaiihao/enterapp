@@ -31,7 +31,7 @@ exports.main = async (event, context) => {
     let blockedUserIds = [];
     if (currentOpenid) {
       try {
-        const getBlockedUserIds = require('../_lib/get-blocked-user-ids');
+        const getBlockedUserIds = require('./_lib/get-blocked-user-ids');
         blockedUserIds = await getBlockedUserIds(currentOpenid, db);
       } catch (blockError) {
         console.error('获取屏蔽列表失败:', blockError);

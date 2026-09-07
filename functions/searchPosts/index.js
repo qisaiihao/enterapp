@@ -36,7 +36,7 @@ exports.main = async (event, context) => {
     // 获取被屏蔽的用户ID列表（使用缓存）
     let blockedUserIds = [];
     try {
-      const getBlockedUserIds = require('../_lib/get-blocked-user-ids');
+      const getBlockedUserIds = require('./_lib/get-blocked-user-ids');
       blockedUserIds = await getBlockedUserIds(openid, db);
       console.log('🔍 [searchPosts] 被屏蔽的用户数量:', blockedUserIds.length);
     } catch (blockError) {

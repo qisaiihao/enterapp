@@ -1,6 +1,6 @@
 <template>
     <!-- pages/search/search.wxml -->
-    <view class="container" :class="{ 'container--dark': appThemeMode === 'dark' }" :data-app-theme="appThemeMode" :style="appThemeVars">
+    <view class="container" :class="{ 'container--dark': appThemeMode === 'dark' }" :data-app-theme="appThemeMode" :style="[appThemeVars, readFontVars]">
         <!-- 搜索框 -->
         <view class="search-header">
             <view class="search-input-container">

@@ -11,6 +11,7 @@ import {
 } from '@/utils/app-state.js';
 import { formatErrorForLog } from '@/utils/error-log.js';
 import { ensureRuntimeOpenid, ensureTcbAuthenticated, installRuntimeBindings } from '@/utils/runtime-bootstrap.js';
+import { refreshAdminStatus } from '@/utils/admin.js';
 
 export default {
     data() {
@@ -203,6 +204,7 @@ export default {
 
                     uni.setStorageSync('userInfo', userInfo);
                     uni.setStorageSync('github_access_token', loginData.accessToken);
+                    refreshAdminStatus().catch(() => {});
 
                     uni.showToast({ title: '登录成功！', icon: 'success', duration: 2000 });
                     setTimeout(() => {
@@ -287,6 +289,7 @@ export default {
                             isLoggedIn: true
                         });
                         uni.setStorageSync('userInfo', latestUserInfo);
+                        refreshAdminStatus().catch(() => {});
                         return;
                     }
 
@@ -339,6 +342,7 @@ export default {
                     openid: this.appState.openid,
                     isLoggedIn: !!this.appState.userInfo
                 });
+                refreshAdminStatus().catch(() => {});
             } catch (error) {
                 console.error(`[App] login bootstrap failed: ${formatErrorForLog(error)}`);
                 this.finishLoginProcess();
@@ -426,6 +430,34 @@ text {
 .wx-pull-refresh,
 .pull-refresh {
     color: #000000 !important;
+}
+
+/* ========== 阅读字号缩放 ========== */
+/* 字号/行高由页面根注入的 CSS 变量控制（utils/fontSize.js 按档位预计算），
+   行高随字号同步放大，避免放大后文字行间挤压。 */
+.post-content {
+    font-size: var(--app-read-post-size, 28rpx) !important;
+    line-height: var(--app-read-post-line, 38rpx) !important;
+}
+
+.highlight-line {
+    font-size: var(--app-read-post-size, 28rpx) !important;
+    line-height: var(--app-read-post-line, 38rpx) !important;
+}
+
+.stack-poem-copy {
+    font-size: var(--app-read-copy-size, 26rpx) !important;
+    line-height: var(--app-read-copy-line, 44rpx) !important;
+}
+
+.discussion-sentence-line {
+    font-size: var(--app-read-sentence-size, 28rpx) !important;
+    line-height: var(--app-read-sentence-line, 40rpx) !important;
+}
+
+.timeline-post-content {
+    font-size: var(--app-read-timeline-size, 28rpx) !important;
+    line-height: var(--app-read-timeline-line, 38rpx) !important;
 }
 
 .uni-pull-refresh .uni-pull-refresh-spinner,

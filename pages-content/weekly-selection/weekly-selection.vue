@@ -1,5 +1,5 @@
 <template>
-  <view class="weekly-selection-page" :style="pageInlineStyle">
+  <view class="weekly-selection-page" :style="[pageInlineStyle, readFontVars]">
     <view class="header">
       <view class="back-btn" @tap="goBack">
         <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>

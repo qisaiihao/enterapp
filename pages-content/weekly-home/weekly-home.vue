@@ -1,5 +1,5 @@
 <template>
-  <view class="weekly-page" :style="pageInlineStyle">
+  <view class="weekly-page" :style="[pageInlineStyle, readFontVars]">
     <view class="weekly-header">
       <view class="weekly-back-btn" @tap="goBack">
         <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
@@ -18,7 +18,8 @@
         @change="handleHeroChange"
       >
         <swiper-item v-for="item in heroSlides" :key="item.value">
-          <view class="hero-slide" @tap="handleHeroTap(item)">
+          <view class="hero-slide" :class="{ 'has-cover': item.cover }" @tap="handleHeroTap(item)">
+            <image v-if="item.cover" class="hero-cover" :src="item.cover" mode="aspectFill"></image>
             <text class="hero-title">{{ item.title }}</text>
             <text v-if="item.text" class="hero-copy">{{ item.text }}</text>
           </view>
@@ -134,24 +135,30 @@ export default {
   },
   computed: {
     heroSlides() {
+      const currentIssueId = this.currentIssue ? (this.currentIssue.id || this.currentIssue._id || '') : '';
+      const currentCover = this.currentIssue ? (this.currentIssue.coverImage || '') : '';
       const explicitSlides = this.heroItems
         .map((item, index) => ({
           value: item.value || item.id || `hero-${index + 1}`,
           title: item.title || '',
           text: item.text || item.summary || '',
-          issueId: item.issueId || item.id || ''
+          cover: item.coverImage || item.imageUrl || currentCover,
+          issueId: item.issueId || item.id || currentIssueId
         }))
         .filter(item => item.title || item.text);
 
       if (explicitSlides.length) return explicitSlides;
       if (!this.currentIssue) return [];
 
-      return [{
+      // 未配置首页轮播文案时：有封面则仅展示封面，否则什么都不显示
+      const fallbackSlide = {
         value: this.currentIssue.id || this.currentIssue._id || 'current-issue',
-        title: this.currentIssue.title || '本期精选',
-        text: this.currentIssue.summary || this.currentIssue.dateRange || '',
-        issueId: this.currentIssue.id || this.currentIssue._id || ''
-      }];
+        title: '',
+        text: '',
+        cover: currentCover,
+        issueId: currentIssueId
+      };
+      return fallbackSlide.cover ? [fallbackSlide] : [];
     },
 
     displayIssues() {
@@ -346,7 +353,8 @@ export default {
 
 .weekly-hero {
   position: relative;
-  height: 286rpx;
+  width: 100%;
+  height: 1000rpx;
   background: #6f6f6f;
 }
 
@@ -356,15 +364,39 @@ export default {
 }
 
 .hero-slide {
+  position: relative;
   height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   padding: 0 48rpx;
   box-sizing: border-box;
+  overflow: hidden;
+}
+
+.hero-cover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.hero-slide.has-cover::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.05));
+  pointer-events: none;
 }
 
 .hero-title {
+  position: relative;
+  z-index: 1;
   color: #111111;
   font-size: 28rpx;
   line-height: 38rpx;
@@ -375,6 +407,8 @@ export default {
 }
 
 .hero-copy {
+  position: relative;
+  z-index: 1;
   width: 82%;
   margin-top: 14rpx;
   color: #111111;
@@ -384,6 +418,14 @@ export default {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+
+.hero-slide.has-cover .hero-title {
+  color: #ffffff;
+}
+
+.hero-slide.has-cover .hero-copy {
+  color: rgba(255, 255, 255, 0.88);
 }
 
 .hero-dots {

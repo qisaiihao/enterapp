@@ -1,6 +1,6 @@
 <template>
     <!-- pages/my-likes/my-likes.wxml -->
-    <view class="container" :data-app-theme="appThemeMode" :style="appThemeVars">
+    <view class="container" :data-app-theme="appThemeMode" :style="[appThemeVars, readFontVars]">
         <!-- 顶部导航栏 -->
         <view class="header">
             <view class="header-left" @tap="goBack">

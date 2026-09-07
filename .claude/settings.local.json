@@ -44,7 +44,17 @@
       "Bash(xxd:*)",
       "Bash(cmd.exe //c \"运行小程序构建脚本.bat\")",
       "Read(//c/**)",
-      "Bash(git -C \"C:\\Users\\qisaihao\\enterkey_uni\" diff --stat)"
+      "Bash(git -C \"C:\\Users\\qisaihao\\enterkey_uni\" diff --stat)",
+      "Bash(sed -n '125,145p' \"C:\\Users\\qisaihao\\enterkey_uni\\utils\\platformDetector.js\")",
+      "Bash(sed -n '168,195p' \"C:\\Users\\qisaihao\\enterkey_uni\\utils\\system-info.js\")",
+      "Bash(npm run build:mp-weixin)",
+      "Bash(ls -lt \"$TEMP\")",
+      "Bash(python -c \"import json;d=json.load(open(''manifest.json'',encoding=''utf-8''));print(json.dumps(d.get(''h5'',{}),ensure_ascii=False,indent=2))\")",
+      "Bash(python -c \"from PIL import Image; im=Image.open(''Snipaste_2026-09-04_14-44-21.png''); print(im.size)\")",
+      "Bash(git -C \"C:\\Users\\qisaihao\\enterkey_uni\" status)",
+      "Bash(where tesseract)",
+      "Bash(python -c \"import pytesseract\")",
+      "Bash(python -c \"import easyocr\")"
     ],
     "deny": [],
     "ask": []

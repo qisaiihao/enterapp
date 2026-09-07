@@ -1,5 +1,5 @@
 <template>
-    <view class="container">
+    <view class="container" :style="readFontVars">
         <!-- 骨架屏：当 isLoading 为 true 时显示 -->
         <view v-if="isLoading">
             <skeleton pageType="user-profile" />

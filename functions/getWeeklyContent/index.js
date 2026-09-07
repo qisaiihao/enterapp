@@ -9,6 +9,8 @@ const $ = _.aggregate
 const ISSUE_COLLECTION = 'weekly_issues'
 const TOPIC_COLLECTION = 'weekly_topics'
 const ISSUE_VIEW_COLLECTION = 'weekly_issue_views'
+const WEEKLY_CONFIG_COLLECTION = 'weekly_configs'
+const WEEKLY_FEATURED_CONFIG_DOC_ID = 'featured_issues'
 const WEEKLY_RANKING_LIMIT = 10
 const WEEKLY_RANKING_CANDIDATE_LIMIT = 500
 
@@ -604,7 +606,7 @@ async function listPublishedIssues({ skip = 0, limit = 20 } = {}) {
         status: 'published',
         isDeleted: _.neq(true)
       })
-      .orderBy('sortWeight', 'desc')
+      .orderBy('publishedAt', 'desc')
       .orderBy('periodEnd', 'desc')
       .skip(Math.max(0, Number(skip) || 0))
       .limit(Math.min(50, Math.max(1, Number(limit) || 20)))
@@ -616,6 +618,44 @@ async function listPublishedIssues({ skip = 0, limit = 20 } = {}) {
   }
 }
 
+async function getConfiguredFeaturedIssueIds() {
+  try {
+    const res = await db.collection(WEEKLY_CONFIG_COLLECTION).doc(WEEKLY_FEATURED_CONFIG_DOC_ID).get()
+    const issueIds = res && res.data && Array.isArray(res.data.issueIds) ? res.data.issueIds : []
+    return issueIds.map((id) => String(id || '').trim()).filter(Boolean)
+  } catch (error) {
+    const message = String((error && (error.errMsg || error.message)) || '')
+    const docMissing = error && (error.errCode === -502004 || message.includes('document not exists') || message.includes('document does not exist'))
+    if (isCollectionMissing(error) || docMissing) return []
+    console.warn('[getWeeklyContent] load featured config failed:', error)
+    return []
+  }
+}
+
+async function fetchPublishedIssuesByIds(ids = []) {
+  const list = (Array.isArray(ids) ? ids : []).map((id) => String(id || '').trim()).filter(Boolean)
+  if (!list.length) return []
+  const byId = new Map()
+  try {
+    for (let index = 0; index < list.length; index += 100) {
+      const chunk = list.slice(index, index + 100)
+      const res = await db.collection(ISSUE_COLLECTION)
+        .where({
+          _id: _.in(chunk),
+          status: 'published',
+          isDeleted: _.neq(true)
+        })
+        .get()
+      ;(res.data || []).forEach((issue) => {
+        if (issue && issue._id) byId.set(issue._id, issue)
+      })
+    }
+  } catch (error) {
+    console.warn('[getWeeklyContent] fetch published issues by ids failed:', error)
+  }
+  return list.map((id) => byId.get(id)).filter(Boolean)
+}
+
 async function listPublishedTopics({ skip = 0, limit = 20 } = {}) {
   try {
     const res = await db.collection(TOPIC_COLLECTION)
@@ -623,7 +663,7 @@ async function listPublishedTopics({ skip = 0, limit = 20 } = {}) {
         status: 'published',
         isDeleted: _.neq(true)
       })
-      .orderBy('sortWeight', 'desc')
+      .orderBy('publishedAt', 'desc')
       .orderBy('periodEnd', 'desc')
       .skip(Math.max(0, Number(skip) || 0))
       .limit(Math.min(50, Math.max(1, Number(limit) || 20)))
@@ -771,6 +811,93 @@ async function buildDetailFromTopic(topic) {
   }
 }
 
+// ====== 当前用户对快照的点赞状态（已点赞的 postId 集合） ======
+
+function collectSnapshotPostIds(snapshotArrays = []) {
+  return Array.from(new Set((Array.isArray(snapshotArrays) ? snapshotArrays : []).reduce((acc, list) => {
+    if (Array.isArray(list)) {
+      list.forEach((snapshot) => {
+        const postId = getSnapshotPostId(snapshot)
+        if (postId) acc.push(postId)
+      })
+    }
+    return acc
+  }, [])))
+}
+
+// 与 vote 云函数保持一致：点赞记录存于 votes_log，字段 _openid/postId/type='post'
+async function getLikedPostIdsMap(postIds = [], openid = '') {
+  const likedMap = new Map()
+  if (!openid) return likedMap
+  const ids = normalizePostIds(postIds)
+  if (!ids.length) return likedMap
+  try {
+    for (let index = 0; index < ids.length; index += 100) {
+      const chunk = ids.slice(index, index + 100)
+      const res = await db.collection('votes_log')
+        .where({
+          _openid: openid,
+          postId: _.in(chunk),
+          type: 'post'
+        })
+        .field({ postId: true })
+        .get()
+      ;(res.data || []).forEach((item) => {
+        if (item && item.postId) likedMap.set(item.postId, true)
+      })
+    }
+  } catch (error) {
+    if (!isCollectionMissing(error)) {
+      console.warn('[getWeeklyContent] fetch caller liked posts failed:', error)
+    }
+  }
+  return likedMap
+}
+
+// 仅给“已点赞”的快照补 isVoted:true；未点赞/未知的保持原样，便于前端结合本地缓存叠加
+function attachLikedToSnapshots(snapshots = [], likedMap = new Map()) {
+  const list = Array.isArray(snapshots) ? snapshots : []
+  if (!list.length || !likedMap.size) return list
+  return list.map((snapshot) => {
+    const postId = getSnapshotPostId(snapshot)
+    return postId && likedMap.has(postId) ? { ...snapshot, isVoted: true } : snapshot
+  })
+}
+
+// 给 detail 对象里的 posts/featuredSnapshots/selectedSnapshots/rankingSnapshot 统一补点赞状态
+async function attachLikedStateToDetail(detail = {}, openid = '') {
+  if (!detail || !openid) return detail
+  const arrays = [
+    detail.posts,
+    detail.featuredSnapshots,
+    detail.selectedSnapshots,
+    detail.rankingSnapshot
+  ].filter(Array.isArray)
+  if (!arrays.length) return detail
+  const likedMap = await getLikedPostIdsMap(collectSnapshotPostIds(arrays), openid)
+  if (!likedMap.size) return detail
+  if (Array.isArray(detail.posts)) detail.posts = attachLikedToSnapshots(detail.posts, likedMap)
+  if (Array.isArray(detail.featuredSnapshots)) detail.featuredSnapshots = attachLikedToSnapshots(detail.featuredSnapshots, likedMap)
+  if (Array.isArray(detail.selectedSnapshots)) detail.selectedSnapshots = attachLikedToSnapshots(detail.selectedSnapshots, likedMap)
+  if (Array.isArray(detail.rankingSnapshot)) detail.rankingSnapshot = attachLikedToSnapshots(detail.rankingSnapshot, likedMap)
+  return detail
+}
+
+// 给单独的榜单快照列表补点赞状态
+async function attachLikedToSnapshotList(list = [], openid = '') {
+  if (!openid || !Array.isArray(list) || !list.length) return list
+  const likedMap = await getLikedPostIdsMap(collectSnapshotPostIds([list]), openid)
+  return likedMap.size ? attachLikedToSnapshots(list, likedMap) : list
+}
+
+function getCallerOpenid(event = {}) {
+  try {
+    const wxContext = cloud.getWXContext()
+    if (wxContext && wxContext.OPENID) return wxContext.OPENID
+  } catch (_) {}
+  return event.openid || ''
+}
+
 exports.main = async (event = {}) => {
   const mode = String(event.mode || 'home').trim()
   const skip = Math.max(0, Number(event.skip) || 0)
@@ -796,9 +923,11 @@ exports.main = async (event = {}) => {
       const issue = await getPublishedIssue(id)
       const issueViewCountMap = issue ? await getIssueViewCountMap([issue._id || id]) : new Map()
       const freshIssue = issue ? await applyFreshIssueStats(issue, { issueViewCountMap }) : null
+      const detail = freshIssue ? await buildDetailFromIssue(freshIssue) : null
+      await attachLikedStateToDetail(detail, getCallerOpenid(event))
       return {
         success: true,
-        detail: freshIssue ? await buildDetailFromIssue(freshIssue) : null
+        detail
       }
     }
 
@@ -815,9 +944,11 @@ exports.main = async (event = {}) => {
     if (mode === 'topicDetail') {
       const topic = await getPublishedTopic(id)
       const freshTopic = topic ? await applyFreshTopicStats(topic) : null
+      const detail = freshTopic ? await buildDetailFromTopic(freshTopic) : null
+      await attachLikedStateToDetail(detail, getCallerOpenid(event))
       return {
         success: true,
-        detail: freshTopic ? await buildDetailFromTopic(freshTopic) : null
+        detail
       }
     }
 
@@ -831,32 +962,46 @@ exports.main = async (event = {}) => {
             resolveIssueRankingItems(current, { limit: 20 })
           ])
         : [null, []]
+      const callerOpenid = getCallerOpenid(event)
+      const rankingItemsLiked = await attachLikedToSnapshotList(rankingItems, callerOpenid)
       return {
         success: true,
         issue: freshCurrent ? buildIssueView(freshCurrent) : null,
-        rankingItems
+        rankingItems: rankingItemsLiked
       }
     }
 
-    const [issues, topics] = await Promise.all([
+    const [latestIssues, topics] = await Promise.all([
       listPublishedIssues({ skip: 0, limit: 6 }),
       listPublishedTopics({ skip: 0, limit: 6 })
     ])
-    const current = issues[0] || null
+    const configuredIds = await getConfiguredFeaturedIssueIds()
+    let issues
+    if (configuredIds.length) {
+      issues = await fetchPublishedIssuesByIds(configuredIds)
+    } else {
+      issues = latestIssues
+    }
+    const current = latestIssues[0] || null
     const issueViewCountMap = await getIssueViewCountMap(issues.map(issue => issue && issue._id).filter(Boolean))
     const [freshIssues, freshTopics, rankingItems] = await Promise.all([
       Promise.all(issues.map(issue => applyFreshIssueStats(issue, { issueViewCountMap }))),
       Promise.all(topics.map(topic => applyFreshTopicStats(topic))),
       current ? resolveIssueRankingItems(current, { limit: WEEKLY_RANKING_LIMIT }) : []
     ])
-    const freshCurrent = freshIssues[0] || null
+    const currentIndex = issues.findIndex(issue => issue && issue._id && current && issue._id === current._id)
+    const freshCurrent = currentIndex > -1 ? freshIssues[currentIndex] : (freshIssues[0] || null)
+    const callerOpenid = getCallerOpenid(event)
+    const currentIssue = freshCurrent ? buildIssueView(freshCurrent, { includeDetail: true }) : null
+    await attachLikedStateToDetail(currentIssue, callerOpenid)
+    const rankingItemsLiked = await attachLikedToSnapshotList(rankingItems, callerOpenid)
     return {
       success: true,
-      currentIssue: freshCurrent ? buildIssueView(freshCurrent, { includeDetail: true }) : null,
+      currentIssue,
       heroItems: current && Array.isArray(current.heroItems) ? current.heroItems : [],
       issues: freshIssues.map(issue => buildIssueView(issue)),
       topics: freshTopics.map(topic => buildTopicView(topic)),
-      rankingItems
+      rankingItems: rankingItemsLiked
     }
   } catch (error) {
     console.error('[getWeeklyContent] failed:', error)

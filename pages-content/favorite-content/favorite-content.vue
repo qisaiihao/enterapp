@@ -1,6 +1,6 @@
 <template>
     <!-- pages/favorite-content/favorite-content.wxml -->
-    <view class="container" :data-app-theme="appThemeMode" :style="appThemeVars">
+    <view class="container" :data-app-theme="appThemeMode" :style="[appThemeVars, readFontVars]">
 
         <!-- 收藏内容列表 -->
         <view v-if="favorites.length > 0" class="favorites-container">

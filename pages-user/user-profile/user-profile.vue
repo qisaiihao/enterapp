@@ -533,6 +533,7 @@ export default {
         userProfileRootStyle() {
             const baseStyle = {
                 ...(this.appThemeVars || {}),
+                ...(this.readFontVars || {}),
                 '--user-profile-layout-recovery-tick': String(this.layoutRecoveryTick || 0)
             };
             if (!this.isFullBackground) {

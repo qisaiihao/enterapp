@@ -1,4 +1,4 @@
-﻿// 绠＄悊鍛樺姛鑳戒簯鍑芥暟
+// 绠＄悊鍛樺姛鑳戒簯鍑芥暟
 const cloud = require('wx-server-sdk')
 
 cloud.init({
@@ -22,6 +22,8 @@ const WEEKLY_HERO_TEXT_MAX_LENGTH = 120
 const WEEKLY_STATUSES = ['draft', 'published', 'archived']
 const WEEKLY_COLLECTION_ISSUES = 'weekly_issues'
 const WEEKLY_COLLECTION_TOPICS = 'weekly_topics'
+const WEEKLY_CONFIG_COLLECTION = 'weekly_configs'
+const WEEKLY_FEATURED_CONFIG_DOC_ID = 'featured_issues'
 const WEEKLY_RANKING_LIMIT = 10
 const WEEKLY_RANKING_CANDIDATE_LIMIT = 500
 const BATCH_REPLACE_SAMPLE_LIMIT = 10
@@ -84,6 +86,7 @@ const { isAdminByPoemId } = require('./_lib/admin-auth')
 
 // 楠岃瘉绠＄悊鍛樻潈闄愶紙閫氳繃poemId锛?
 const actionHandlers = {
+  updateContactConfig: (event, openid) => updateContactConfig(event, openid),
   getAllPosts: (event) => getAllPosts(event),
   updatePostType: (event) => updatePostType(event),
   deletePost: (event) => deletePost(event),
@@ -93,6 +96,8 @@ const actionHandlers = {
   getBatchReplaceConfig: () => getBatchReplaceConfig(),
   previewFieldReplace: (event) => previewFieldReplace(event),
   executeFieldReplace: (event) => executeFieldReplace(event),
+  getAdminConfig: () => getAdminConfig(),
+  updateAdminConfig: (event) => updateAdminConfig(event),
   listActivities: (event) => listActivities(event),
   createActivity: (event, openid) => createActivity(event, openid),
   updateActivity: (event, openid) => updateActivity(event, openid),
@@ -110,6 +115,8 @@ const actionHandlers = {
   publishWeeklyIssue: (event, openid) => publishWeeklyIssue(event, openid),
   archiveWeeklyIssue: (event, openid) => setWeeklyIssueStatus(event, openid, 'archived'),
   deleteWeeklyIssue: (event, openid) => deleteWeeklyIssue(event, openid),
+  getWeeklyFeaturedIssueIds: () => getWeeklyFeaturedIssueIds(),
+  setWeeklyFeaturedIssueIds: (event) => setWeeklyFeaturedIssueIds(event),
   generateWeeklyRanking: (event) => generateWeeklyRanking(event),
   listWeeklyCandidatePosts: (event) => listWeeklyCandidatePosts(event),
   listWeeklyTopics: (event) => listWeeklyTopics(event),
@@ -170,6 +177,96 @@ function getBatchReplaceConfig() {
       '褰撳墠宸ュ叿鎸夊瓧绗︿覆鍊艰繘琛屾煡鎵句笌鏇挎崲',
       'preview before executing replacement'
     ]
+  }
+}
+
+const ADMIN_CONFIG_COLLECTION = 'adminConfig'
+async function updateContactConfig(event, openid) {
+  if (typeof event.qrCode !== 'string' || typeof event.contactText !== 'string') {
+    return { success: false, error: '联系方式参数无效' }
+  }
+  const qrCode = event.qrCode.trim()
+  const contactText = event.contactText.trim()
+  if (!qrCode.startsWith('cloud://') || qrCode.length > 1024) {
+    return { success: false, error: '请先上传微信群二维码' }
+  }
+  if (!contactText || contactText.length > 2000) {
+    return { success: false, error: '请填写联系方式，最多 2000 字' }
+  }
+  await db.collection(ADMIN_CONFIG_COLLECTION).doc('contact').set({
+    data: { qrCode, contactText, updatedAt: db.serverDate(), updatedBy: openid }
+  })
+  return { success: true }
+}
+
+const ADMIN_CONFIG_DOC_ID = 'admin'
+const ADMIN_LIST_MAX_LENGTH = 50
+
+async function getAdminConfig() {
+  try {
+    let config
+    try {
+      const res = await db.collection(ADMIN_CONFIG_COLLECTION).doc(ADMIN_CONFIG_DOC_ID).get()
+      config = res && res.data
+    } catch (e) {
+      config = null
+    }
+    if (!config || !Array.isArray(config.adminPoemIds)) {
+      config = { adminPoemIds: [], version: 0 }
+    }
+    const adminPoemIds = config.adminPoemIds
+    let admins = []
+    if (adminPoemIds.length > 0) {
+      const userRes = await db.collection('users').where({
+        poemId: _.in(adminPoemIds)
+      }).get()
+      const userMap = {}
+      ;(userRes.data || []).forEach((u) => {
+        if (u && u.poemId && !userMap[u.poemId]) {
+          userMap[u.poemId] = u
+        }
+      })
+      admins = adminPoemIds.map((poemId) => {
+        const u = userMap[poemId]
+        return {
+          poemId,
+          _openid: u ? u._openid : null,
+          nickName: u ? u.nickName : '',
+          avatarUrl: u ? u.avatarUrl : ''
+        }
+      })
+    }
+    return { success: true, adminPoemIds, admins, version: config.version || 0 }
+  } catch (error) {
+    console.error('[adminManager] getAdminConfig failed:', error)
+    return { success: false, error: `get admin config failed: ${error.message}` }
+  }
+}
+
+async function updateAdminConfig(event) {
+  const adminPoemIds = Array.isArray(event && event.adminPoemIds)
+    ? event.adminPoemIds.map((id) => String(id).trim()).filter(Boolean)
+    : null
+  if (!adminPoemIds) {
+    return { success: false, error: 'adminPoemIds param invalid' }
+  }
+  if (adminPoemIds.length > ADMIN_LIST_MAX_LENGTH) {
+    return { success: false, error: `admin count exceeds limit ${ADMIN_LIST_MAX_LENGTH}` }
+  }
+  try {
+    const current = await getAdminConfig()
+    const nextVersion = (current.version || 0) + 1
+    await db.collection(ADMIN_CONFIG_COLLECTION).doc(ADMIN_CONFIG_DOC_ID).set({
+      data: {
+        adminPoemIds,
+        version: nextVersion,
+        updatedAt: new Date()
+      }
+    })
+    return { success: true, adminPoemIds, version: nextVersion }
+  } catch (error) {
+    console.error('[adminManager] updateAdminConfig failed:', error)
+    return { success: false, error: `save admin config failed: ${error.message}` }
   }
 }
 
@@ -895,6 +992,7 @@ function buildActivityNoticeView(notice = {}) {
     title: notice.title || '',
     summary: notice.summary || '',
     mark: notice.mark || '',
+    image: notice.image || '',
     tone: normalizeActivityNoticeTone(notice.tone),
     status: notice.status || 'draft',
     sortWeight: Number(notice.sortWeight) || 0,
@@ -942,6 +1040,11 @@ function buildActivityNoticePayload(data = {}, current = {}) {
   }
   if (Object.prototype.hasOwnProperty.call(data, 'mark')) {
     payload.mark = String(data.mark || '').trim().slice(0, ACTIVITY_NOTICE_MARK_MAX_LENGTH)
+  }
+  if (Object.prototype.hasOwnProperty.call(data, 'image')) {
+    const image = String(data.image || '').trim()
+    if (image && !image.startsWith('cloud://')) return { error: 'invalid notice image' }
+    payload.image = image
   }
   if (Object.prototype.hasOwnProperty.call(data, 'tone')) {
     payload.tone = normalizeActivityNoticeTone(data.tone)
@@ -1012,6 +1115,7 @@ async function createActivityNotice(data, openid) {
     title: data && data.title,
     summary: data && data.summary,
     mark: data && data.mark,
+    image: data && data.image,
     tone: data && data.tone,
     sortWeight: data && data.sortWeight,
     status: data && (data.status || 'draft')
@@ -1027,6 +1131,7 @@ async function createActivityNotice(data, openid) {
       title: payload.title,
       summary: payload.summary || '',
       mark: payload.mark || '',
+      image: payload.image || '',
       tone: payload.tone || 'default',
       status: payload.status || 'draft',
       sortWeight: Number(payload.sortWeight) || 0,
@@ -1261,6 +1366,7 @@ function buildWeeklyIssueView(issue = {}) {
   return {
     _id: issue._id || '',
     title: issue.title || '',
+    coverImage: issue.coverImage || '',
     shelfTitle: issue.shelfTitle || '',
     periodStart: issue.periodStart || null,
     periodEnd: issue.periodEnd || null,
@@ -1299,7 +1405,7 @@ function buildWeeklyTopicView(topic = {}) {
 }
 
 async function ensureWeeklyCollections() {
-  for (const name of [WEEKLY_COLLECTION_ISSUES, WEEKLY_COLLECTION_TOPICS]) {
+  for (const name of [WEEKLY_COLLECTION_ISSUES, WEEKLY_COLLECTION_TOPICS, WEEKLY_CONFIG_COLLECTION]) {
     try {
       await db.createCollection(name)
     } catch (error) {
@@ -1334,7 +1440,7 @@ async function listWeeklyIssues(data = {}) {
       db.collection(WEEKLY_COLLECTION_ISSUES).where(where).count(),
       db.collection(WEEKLY_COLLECTION_ISSUES)
         .where(where)
-        .orderBy('sortWeight', 'desc')
+        .orderBy('publishedAt', 'desc')
         .orderBy('periodEnd', 'desc')
         .skip(skip)
         .limit(limit)
@@ -1449,6 +1555,45 @@ async function setWeeklyIssueStatus(data = {}, openid, status) {
   }
 }
 
+async function getWeeklyFeaturedIssueIds() {
+  try {
+    await ensureWeeklyCollections()
+    let issueIds = []
+    try {
+      const res = await db.collection(WEEKLY_CONFIG_COLLECTION).doc(WEEKLY_FEATURED_CONFIG_DOC_ID).get()
+      issueIds = res && res.data && Array.isArray(res.data.issueIds) ? res.data.issueIds : []
+    } catch (_) {
+      issueIds = []
+    }
+    return {
+      success: true,
+      issueIds: issueIds.map((id) => String(id || '').trim()).filter(Boolean)
+    }
+  } catch (error) {
+    console.error('[adminManager] getWeeklyFeaturedIssueIds failed:', error)
+    return { success: false, error: 'failed to load featured issues' }
+  }
+}
+
+async function setWeeklyFeaturedIssueIds(data = {}) {
+  const issueIds = Array.isArray(data && data.issueIds)
+    ? data.issueIds.map((id) => String(id || '').trim()).filter(Boolean).slice(0, 20)
+    : []
+  try {
+    await ensureWeeklyCollections()
+    await db.collection(WEEKLY_CONFIG_COLLECTION).doc(WEEKLY_FEATURED_CONFIG_DOC_ID).set({
+      data: {
+        issueIds,
+        updatedAt: new Date()
+      }
+    })
+    return { success: true, issueIds }
+  } catch (error) {
+    console.error('[adminManager] setWeeklyFeaturedIssueIds failed:', error)
+    return { success: false, error: 'failed to save featured issues' }
+  }
+}
+
 async function deleteWeeklyIssue(data = {}, openid) {
   const issueId = data.issueId || data._id
   if (!issueId) return { success: false, error: '缂哄皯鍛ㄥ垔ID' }
@@ -1477,6 +1622,10 @@ async function buildWeeklyIssuePayload(data = {}, { current = {}, requireTitle =
   }
   if (Object.prototype.hasOwnProperty.call(data, 'shelfTitle')) {
     payload.shelfTitle = String(data.shelfTitle || '').trim().slice(0, WEEKLY_SHELF_TITLE_MAX_LENGTH)
+  }
+  if (Object.prototype.hasOwnProperty.call(data, 'coverImage')) {
+    const coverImage = String(data.coverImage || '').trim()
+    payload.coverImage = coverImage.length <= 200 ? coverImage : ''
   }
   if (Object.prototype.hasOwnProperty.call(data, 'periodStart')) {
     const periodStart = normalizeWeeklyDate(data.periodStart)
@@ -1525,7 +1674,7 @@ async function buildWeeklyIssuePayload(data = {}, { current = {}, requireTitle =
 
 async function listWeeklyCandidatePosts(data = {}) {
   const skip = Math.max(0, Number(data.skip) || 0)
-  const limit = Math.min(50, Math.max(1, Number(data.limit) || 20))
+  const limit = Math.min(200, Math.max(1, Number(data.limit) || 20))
   const keyword = String(data.keyword || '').trim()
   const where = {
     isPoem: true,
@@ -1537,6 +1686,12 @@ async function listWeeklyCandidatePosts(data = {}) {
       regexp: keyword,
       options: 'i'
     })
+  }
+  if (data.periodStart && data.periodEnd) {
+    const bounds = getWeeklyPeriodBounds(data.periodStart, data.periodEnd)
+    if (bounds) {
+      where.createTime = _.gte(bounds.start).and(_.lte(bounds.end))
+    }
   }
   try {
     const [countRes, listRes] = await Promise.all([
@@ -1712,7 +1867,7 @@ async function listWeeklyTopics(data = {}) {
       db.collection(WEEKLY_COLLECTION_TOPICS).where(where).count(),
       db.collection(WEEKLY_COLLECTION_TOPICS)
         .where(where)
-        .orderBy('sortWeight', 'desc')
+        .orderBy('publishedAt', 'desc')
         .orderBy('periodEnd', 'desc')
         .skip(skip)
         .limit(limit)
@@ -1862,4 +2017,3 @@ async function buildWeeklyTopicPayload(data = {}, { current = {}, requireTitle =
   }
   return { data: payload }
 }
-

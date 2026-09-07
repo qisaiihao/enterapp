@@ -5,6 +5,15 @@
         </view>
 
         <view class="menu-list">
+            <view class="menu-item" @tap="navigateTo" data-url="/pages-admin/admin-list/admin-list">
+                <view class="menu-icon">👤</view>
+                <view class="menu-info">
+                    <text class="menu-title">管理员管理</text>
+                    <text class="menu-desc">查看和添加管理员</text>
+                </view>
+                <text class="menu-arrow">→</text>
+            </view>
+
             <view class="menu-item" @tap="navigateTo" data-url="/pages-admin/admin-posts/admin-posts">
                 <view class="menu-icon">📝</view>
                 <view class="menu-info">
@@ -55,6 +64,15 @@
                 <view class="menu-info">
                     <text class="menu-title">周刊管理</text>
                     <text class="menu-desc">发布周刊、主题精选和热榜快照</text>
+                </view>
+                <text class="menu-arrow">→</text>
+            </view>
+
+            <view class="menu-item" @tap="navigateTo" data-url="/pages-admin/contact-management/contact-management">
+                <view class="menu-icon">✉️</view>
+                <view class="menu-info">
+                    <text class="menu-title">联系我们</text>
+                    <text class="menu-desc">上传微信群二维码和修改联系方式</text>
                 </view>
                 <text class="menu-arrow">→</text>
             </view>

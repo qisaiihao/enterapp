@@ -247,6 +247,12 @@ function getGlobalStyleVars(mode) {
 }
 
 import { createSSRApp } from 'vue';
+import {
+  READ_FONT_SIZE_CHANGED_EVENT,
+  getReadFontSizeLevel,
+  getReadFontVars,
+  applyReadFontSize
+} from '@/utils/fontSize.js';
 
 export function createApp() {
   const app = createSSRApp(App);
@@ -255,12 +261,16 @@ export function createApp() {
   app.mixin({
     data() {
       return {
-        appThemeMode: getThemeMode()
+        appThemeMode: getThemeMode(),
+        readFontLevel: getReadFontSizeLevel()
       };
     },
     computed: {
       appThemeVars() {
         return getGlobalStyleVars(this.appThemeMode);
+      },
+      readFontVars() {
+        return getReadFontVars(this.readFontLevel);
       }
     },
     created() {
@@ -272,17 +282,26 @@ export function createApp() {
         this.appThemeMode = mode;
         applyThemeMode(mode);
       };
+      this._appReadFontChangedHandler = (payload = {}) => {
+        this.readFontLevel = payload.level || getReadFontSizeLevel();
+      };
       uni.$on(THEME_CHANGED_EVENT, this._appThemeChangedHandler);
+      uni.$on(READ_FONT_SIZE_CHANGED_EVENT, this._appReadFontChangedHandler);
     },
     beforeUnmount() {
       if (this._appThemeChangedHandler && typeof uni !== 'undefined' && typeof uni.$off === 'function') {
         uni.$off(THEME_CHANGED_EVENT, this._appThemeChangedHandler);
       }
+      if (this._appReadFontChangedHandler && typeof uni !== 'undefined' && typeof uni.$off === 'function') {
+        uni.$off(READ_FONT_SIZE_CHANGED_EVENT, this._appReadFontChangedHandler);
+      }
       this._appThemeChangedHandler = null;
+      this._appReadFontChangedHandler = null;
     }
   });
   app.component('app-background-page-root', AppBackgroundPageRoot);
   applyThemeMode(getThemeMode());
+  applyReadFontSize(getReadFontSizeLevel());
   notifyH5AppReady();
   return {
     app

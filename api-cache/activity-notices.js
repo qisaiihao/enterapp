@@ -22,6 +22,7 @@ function normalizeNotice(item = {}) {
     title,
     summary: item.summary || '',
     mark: item.mark || '',
+    image: item.image || '',
     tone: item.tone || 'default',
     sortWeight: Number(item.sortWeight) || 0
   };

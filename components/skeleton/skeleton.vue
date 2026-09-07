@@ -496,7 +496,7 @@ export default {
 
 .skeleton-profile-card {
     position: relative;
-    padding: 40rpx 40rpx 20rpx 40rpx;
+    padding: 10rpx 40rpx 20rpx 40rpx;
     background: transparent;
     display: flex;
     flex-direction: column;
@@ -524,7 +524,7 @@ export default {
     height: 175rpx;
     border-radius: 50%;
     background: var(--app-subtle-surface-bg, #f0f0f0);
-    margin: 70rpx 0 40rpx 0;
+    margin: 0 0 40rpx 0;
 }
 
 .skeleton-user-info {
@@ -639,7 +639,7 @@ export default {
 
 .skeleton-profile-card {
     position: relative;
-    padding: 40rpx 40rpx 20rpx 40rpx;
+    padding: 10rpx 40rpx 20rpx 40rpx;
     background: transparent;
     display: flex;
     flex-direction: column;
@@ -667,7 +667,7 @@ export default {
     height: 175rpx;
     border-radius: 50%;
     background: var(--app-subtle-surface-bg, #f0f0f0);
-    margin: 70rpx 0 40rpx 0;
+    margin: 0 0 40rpx 0;
 }
 
 .skeleton-user-info {
