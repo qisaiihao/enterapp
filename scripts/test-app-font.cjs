@@ -32,7 +32,9 @@ function createRuntime(platform = 'app') {
     },
     plus: { io: { convertLocalFileSystemURL: () => state.converted } }
   };
-  vm.runInNewContext(source, sandbox);
+  const loaderSource = fs.readFileSync(path.join(__dirname, '../utils/appFontLoader.js'), 'utf8')
+    .replace(/^export /gm, '');
+  vm.runInNewContext(`${loaderSource}\n${source}`, sandbox);
   return { manager: sandbox.manager, state };
 }
 
@@ -72,5 +74,24 @@ function createRuntime(platform = 'app') {
   state.fail = false;
   await manager.ensureFontAvailable('汇文明朝');
   assert.equal(manager.isFontLoaded('汇文明朝'), true, 'Failed tasks must allow another attempt');
+  // A completion from an old page must never mark a new page as ready.
+  state.page = {};
+  let finishRegistration;
+  let started;
+  const registrationStarted = new Promise(resolve => { started = resolve; });
+  manager._loadFontFaceWithRetry = () => new Promise(resolve => {
+    finishRegistration = resolve;
+    started();
+  });
+  const pending = manager.ensureFontAvailable('汇文明朝');
+  await registrationStarted;
+  state.page = {};
+  finishRegistration(true);
+  await assert.rejects(pending, /页面已切换/);
+  assert.equal(manager.isFontLoaded('汇文明朝'), false);
+  // Protect the package resource contract as well as the JavaScript behavior.
+  const font = fs.readFileSync(path.join(__dirname, '../static/fonts/Huiwen-mincho-compressed.woff2'));
+  assert.equal(font.subarray(0, 4).toString(), 'wOF2', 'Bundled font must be a WOFF2 file');
+  assert.equal(font.readUInt32BE(8), font.length, 'Bundled font must not be truncated');
   console.log('App font tests passed: local paths, aliases, no cloud, page scope, deduplication, retry');
 })().catch(error => { console.error(error); process.exitCode = 1; });

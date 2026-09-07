@@ -8,6 +8,7 @@
  */
 
 import { getCurrentPlatform } from './platformDetector.js';
+import { AppFontLoader, APP_BUILTIN_FONT, getCurrentAppPage, resolveAppFontSource } from './appFontLoader.js';
 import fileUrlCache from '@/cache/core/file-url.js';
 import {
     BUILTIN_HUIWEN_FONT_FAMILY,
@@ -25,12 +26,6 @@ const MAX_CACHE_SIZE = 100 * 1024 * 1024; // 100MB缓存限制
 
 function getPlusSafe() {
     return typeof plus !== 'undefined' ? plus : null;
-}
-
-function getCurrentAppPage() {
-    if (typeof getCurrentPages !== 'function') return null;
-    const pages = getCurrentPages();
-    return pages[pages.length - 1] || null;
 }
 
 function waitForPlusReady(timeout = 10000) {
@@ -220,7 +215,7 @@ function isLegacyBuiltinFontCache(fontFamily, cacheData, config) {
 const FONT_CONFIG = {
     '汇文明朝': {
         displayName: '汇文明朝',
-        runtimeFamily: 'Huiwen-mincho',
+        runtimeFamily: APP_BUILTIN_FONT.family,
         filename: 'Huiwen-mincho-compressed.woff2',
         localFileNameByPlatform: {
             h5: 'Huiwen-mincho-compressed.woff2',
@@ -299,7 +294,13 @@ class FontManager {
         this.loadedFonts = new Set();
         this.loadingFonts = new Map();
         this.downloadingFonts = new Map();
-        this.appPageFonts = new WeakMap();
+        this.appFontLoader = new AppFontLoader({
+            getPlus: () => this.getPlusInstance(),
+            register: (...args) => this._loadFontFaceWithRetry(...args),
+            onBuiltinReady: () => markBuiltinHuiwenFontReady({
+                source: 'font-manager-app', runtimeFamily: APP_BUILTIN_FONT.family
+            })
+        });
         this.customFonts = this.getCustomFonts();
         this.cacheInfo = this.getCacheInfo();
         this._sanitizeMiniProgramCacheInfo();
@@ -767,9 +768,7 @@ class FontManager {
     isFontLoaded(fontFamily) {
         const normalizedName = this.normalizeFontName(fontFamily);
         if (platformDetector.getCurrentPlatform() === 'app') {
-            const page = getCurrentAppPage();
-            const state = page && this.appPageFonts.get(page);
-            return !!(state && state.loaded.has(normalizedName));
+            return this.appFontLoader.isLoaded(normalizedName);
         }
         return this.loadedFonts.has(normalizedName);
     }
@@ -921,8 +920,7 @@ class FontManager {
         if (!config) return null;
 
         if (platformDetector.getCurrentPlatform() === 'app' && normalizedName === BUILTIN_HUIWEN_FONT_FAMILY) {
-            const source = getPrimaryLocalFontSource(config, 'app');
-            return source ? source.path : null;
+            return APP_BUILTIN_FONT.path;
         }
 
         if (config.isDefault) {
@@ -1403,29 +1401,8 @@ class FontManager {
         }
 
         if (platformDetector.getCurrentPlatform() === 'app') {
-            const page = getCurrentAppPage();
-            if (!page) throw new Error('App 页面尚未就绪，无法注册字体');
-            let state = this.appPageFonts.get(page);
-            if (!state) {
-                state = { loaded: new Set(), loading: new Map() };
-                this.appPageFonts.set(page, state);
-            }
-            if (state.loaded.has(normalizedName)) {
-                if (onProgress) onProgress(100);
-                return (await this.getFontPath(normalizedName)) || normalizedName;
-            }
-            if (state.loading.has(normalizedName)) return state.loading.get(normalizedName);
-            const task = this._ensureFontAvailableInternal(normalizedName, onProgress, page).then((fontPath) => {
-                if (getCurrentAppPage() !== page) throw new Error('字体加载期间页面已切换');
-                state.loaded.add(normalizedName);
-                if (normalizedName === BUILTIN_HUIWEN_FONT_FAMILY) {
-                    markBuiltinHuiwenFontReady({ source: 'font-manager-app', runtimeFamily: this.getRuntimeFontFamily(normalizedName) });
-                }
-                return fontPath;
-            });
-            state.loading.set(normalizedName, task);
-            try { return await task; }
-            finally { state.loading.delete(normalizedName); }
+            return this.appFontLoader.ensure(normalizedName,
+                (page) => this._ensureFontAvailableInternal(normalizedName, onProgress, page), onProgress);
         }
 
         if (this.loadedFonts.has(normalizedName)) {
@@ -1455,15 +1432,6 @@ class FontManager {
     }
 
     async _ensureFontAvailableInternal(normalizedName, onProgress, appPage = null) {
-        // App 内置字体直接读取安装包，不受旧云端缓存或 isDefault 初始化时机影响。
-        if (appPage && normalizedName === BUILTIN_HUIWEN_FONT_FAMILY) {
-            const source = getPrimaryLocalFontSource(this.getFontConfig(normalizedName), 'app');
-            if (!source || !source.path) throw new Error('汇文明朝缺少包内字体资源');
-            const loaded = await this._loadFontFace(normalizedName, source.path, appPage);
-            if (!loaded) throw new Error('汇文明朝本地字体注册失败');
-            if (onProgress) onProgress(100);
-            return source.path;
-        }
         const cached = await this.isFontCached(normalizedName);
         console.log('【FontManager】📦 字体缓存状态:', cached);
 
@@ -1615,89 +1583,15 @@ class FontManager {
     }
 
     _resolveAppFontSourcePath(fontPath) {
-        if (!fontPath) return null;
-
-        let sourcePath = fontPath;
-        // #ifdef APP-PLUS
-        const plusInstance = getPlusSafe();
-        if (plusInstance && plusInstance.io) {
-            if (fontPath.startsWith('/static/')) {
-                try {
-                    sourcePath = plusInstance.io.convertLocalFileSystemURL(`_www${fontPath}`);
-                } catch (e) {
-                    sourcePath = plusInstance.io.convertLocalFileSystemURL(fontPath);
-                }
-            } else if (!fontPath.startsWith('http') && !fontPath.startsWith('file://')) {
-                sourcePath = plusInstance.io.convertLocalFileSystemURL(fontPath);
-            }
-            // 显式 file:// 防止视图层再次将平台绝对路径拼到 _www 下。
-            if (!sourcePath) return null;
-            if (!/^(https?:|file:|data:)/i.test(sourcePath)) {
-                sourcePath = sourcePath.replace(/^\/?apps\//, '/android_asset/apps/');
-                if (!sourcePath.startsWith('/')) return null;
-                sourcePath = `file://${sourcePath}`;
-            }
-        }
-        // #endif
-        // #ifdef APP-HARMONY
-        // 鸿蒙端无需路径转换，直接使用原路径
-        if (fontPath.startsWith('/static/')) {
-            sourcePath = fontPath;
-        }
-        // #endif
-
-        return sourcePath;
+        return resolveAppFontSource(fontPath, getPlusSafe());
     }
 
     async _loadAppFontFace(fontFamily, config, displayName, fontPath, appPage) {
-        const plusInstance = await this.getPlusInstance();
-        if (!plusInstance || !plusInstance.io) {
-            this.loadedFonts.delete(fontFamily);
-            return false;
-        }
-        if (!appPage || getCurrentAppPage() !== appPage) return false;
-
-        const candidateSources = [];
-        const seenSources = new Set();
-        const appendSource = (source) => {
-            if (!source) return;
-
-            const rawPath = typeof source === 'string' ? source : source.path;
-            const format = typeof source === 'string' ? '' : (source.format || '');
-            const resolvedPath = this._resolveAppFontSourcePath(rawPath);
-            if (!resolvedPath || seenSources.has(resolvedPath)) return;
-
-            seenSources.add(resolvedPath);
-            candidateSources.push({
-                path: resolvedPath,
-                format,
-                originalPath: rawPath
-            });
-        };
-
-        appendSource(fontPath);
+        const sources = [fontPath];
         if (!config.isCustom) {
-            getPlatformLocalFontSources(config, 'app').forEach(appendSource);
+            getPlatformLocalFontSources(config, 'app').forEach(source => sources.push(source.path));
         }
-
-        if (!candidateSources.length) {
-            console.error('【FontManager】❌ App端没有可用的字体源:', fontFamily);
-            this.loadedFonts.delete(fontFamily);
-            return false;
-        }
-
-        for (const candidate of candidateSources) {
-            if (getCurrentAppPage() !== appPage) return false;
-            console.log('【FontManager】📱 App端尝试字体源:', candidate.format || 'unknown', candidate.originalPath, '->', candidate.path);
-            const loaded = await this._loadFontFaceWithRetry(displayName, candidate.path, 0, { maxRetries: 0, timeoutMs: 10000 });
-            if (loaded) {
-                return true;
-            }
-        }
-
-        console.error('【FontManager】⚠️ App端字体加载失败，已尝试所有本地候选源:', fontFamily);
-        this.loadedFonts.delete(fontFamily);
-        return false;
+        return this.appFontLoader.load(displayName, sources, appPage);
     }
 
     async _loadFontFace(fontFamily, fontPath, appPage = getCurrentAppPage()) {

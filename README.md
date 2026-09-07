@@ -85,7 +85,7 @@
 - **状态管理**：全局 `globalData` + 本地存储 + 少量 Pinia/Vuex 兼容依赖
 - **样式**：rpx 响应式 + CSS 变量主题系统（`utils/theme.js`），条件编译适配多端
 - **缓存系统**：`cache/`（核心管理器）+ `api-cache/`（业务接口缓存层）
-- **字体系统**：内置 `Huiwen-mincho`（汇文明朝）字体包，`fontManager` 预加载/动态加载
+- **字体系统**：`fontManager` 提供跨端加载入口；App 的汇文明朝由独立 `appFontLoader` 加载包内字体并按页面注册，模块拆分已通过用户真机验证。修改前阅读[字体模块约定](docs/app-font-contract.md)，平台差异见[字体系统指南](docs/features/FONT_SYSTEM.md)
 - **运行时**：`utils/runtime-bootstrap.js` 统一初始化 TCB / wx.cloud，注入 openid 与全局事件
 
 ### 后端技术栈
