@@ -76,16 +76,6 @@ if (typeof document !== 'undefined') {
 }
 // #endif
 
-// #ifdef APP-PLUS
-function preloadBuiltinAppFont() {
-  preloadBuiltinManagedFont('font preload app plus');
-}
-
-if (typeof plus !== 'undefined') {
-  preloadBuiltinAppFont();
-}
-// #endif
-
 // #ifdef APP-HARMONY
 console.log('[font preload] harmony uses bundled/static font fallback');
 // #endif
@@ -259,6 +249,14 @@ export function createApp() {
   installRuntimeBindings(app);
   app.use(zpMixins);
   app.mixin({
+    // App 的 loadFontFace 注册到当前页面，必须等页面视图就绪。
+    // #ifdef APP-PLUS
+    onReady() {
+      appFontManager.ensureFontAvailable(BUILTIN_HUIWEN_FONT_FAMILY).catch((error) => {
+        console.warn('[font preload app page] local font load failed', error);
+      });
+    },
+    // #endif
     data() {
       return {
         appThemeMode: getThemeMode(),
