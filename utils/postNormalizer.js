@@ -82,10 +82,3 @@ export default {
     normalizePost,
     normalizePostList
 };
-
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        normalizePost,
-        normalizePostList
-    };
-}

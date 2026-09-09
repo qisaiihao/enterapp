@@ -1,4 +1,4 @@
-﻿const cloud = require('wx-server-sdk')
+const cloud = require('wx-server-sdk')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
@@ -12,7 +12,7 @@ const ISSUE_VIEW_COLLECTION = 'weekly_issue_views'
 const WEEKLY_CONFIG_COLLECTION = 'weekly_configs'
 const WEEKLY_FEATURED_CONFIG_DOC_ID = 'featured_issues'
 const WEEKLY_RANKING_LIMIT = 10
-const WEEKLY_RANKING_CANDIDATE_LIMIT = 500
+const WEEKLY_RANKING_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 
 function isCollectionMissing(error) {
   const message = String((error && (error.errMsg || error.message)) || '')
@@ -82,11 +82,12 @@ function normalizeSnapshot(post = {}, index = 0) {
 
   return {
     postId: post.postId || post._id || '',
+    isOriginal: post.isOriginal !== false,
     rank: safeNumber(post.rank, index + 1),
     title: post.title || 'Untitled',
     content,
     copy,
-    authorName: post.authorName || post.author || '鍖垮悕鐢ㄦ埛',
+    authorName: post.authorName || post.author || '匿名用户',
     authorAvatar: post.authorAvatar || '',
     authorSignature: post.authorSignature || '',
     backgroundColor: post.backgroundColor || '',
@@ -397,25 +398,20 @@ async function applyFreshIssueStats(issue = {}, { issueViewCountMap = new Map() 
   }
 }
 
-async function listWeeklyRankingCandidatePosts(issue = {}, { candidateLimit = WEEKLY_RANKING_CANDIDATE_LIMIT } = {}) {
-  const bounds = getWeeklyPeriodBounds(issue.periodStart, issue.periodEnd)
-  if (!bounds) return null
-
+async function listWeeklyRankingCandidatePosts(bounds) {
   const posts = []
   const pageSize = 100
-  const maxCount = Math.min(1000, Math.max(WEEKLY_RANKING_LIMIT, Number(candidateLimit) || WEEKLY_RANKING_CANDIDATE_LIMIT))
-
-  for (let skip = 0; posts.length < maxCount; skip += pageSize) {
+  for (let skip = 0; ; skip += pageSize) {
     const res = await db.collection('posts')
       .where({
         isPoem: true,
-        isOriginal: true,
         isHidden: _.neq(true),
         createTime: _.gte(bounds.start).and(_.lte(bounds.end))
       })
       .orderBy('createTime', 'desc')
       .skip(skip)
-      .limit(Math.min(pageSize, maxCount - posts.length))
+      .orderBy('_id', 'desc')
+      .limit(pageSize)
       .get()
 
     const batch = res.data || []
@@ -426,13 +422,19 @@ async function listWeeklyRankingCandidatePosts(issue = {}, { candidateLimit = WE
   return posts
 }
 
-async function computeIssuePeriodRanking(issue = {}, { limit = WEEKLY_RANKING_LIMIT } = {}) {
-  const posts = await listWeeklyRankingCandidatePosts(issue)
-  if (!Array.isArray(posts)) return null
+async function computeRecentWeeklyRanking({ limit = WEEKLY_RANKING_LIMIT, now = new Date() } = {}) {
+  const end = new Date(now)
+  const bounds = { start: new Date(end.getTime() - WEEKLY_RANKING_WINDOW_MS), end }
+  const posts = await listWeeklyRankingCandidatePosts(bounds)
   if (!posts.length) return []
 
   const ids = posts.map(post => post && post._id).filter(Boolean)
-  const statsMap = await getPostStatsMap(ids)
+  // 按批次统计全部候选，避免统计工具的单次 200 个 ID 上限漏算。
+  const statsMap = new Map()
+  for (let index = 0; index < ids.length; index += 100) {
+    const batchStats = await getPostStatsMap(ids.slice(index, index + 100))
+    batchStats.forEach((stats, id) => statsMap.set(id, stats))
+  }
   const rankingLimit = Math.min(20, Math.max(1, Number(limit) || WEEKLY_RANKING_LIMIT))
 
   return posts
@@ -458,18 +460,11 @@ async function computeIssuePeriodRanking(issue = {}, { limit = WEEKLY_RANKING_LI
     .sort((left, right) => {
       const scoreDiff = safeNumber(right.score) - safeNumber(left.score)
       if (scoreDiff !== 0) return scoreDiff
-      return new Date(right.createTime || 0).getTime() - new Date(left.createTime || 0).getTime()
+      const timeDiff = new Date(right.createTime || 0).getTime() - new Date(left.createTime || 0).getTime()
+      return timeDiff || String(left.postId).localeCompare(String(right.postId))
     })
     .slice(0, rankingLimit)
     .map((item, index) => ({ ...item, rank: index + 1 }))
-}
-
-async function resolveIssueRankingItems(issue = {}, { limit = WEEKLY_RANKING_LIMIT } = {}) {
-  const periodRanking = await computeIssuePeriodRanking(issue, { limit })
-  if (Array.isArray(periodRanking)) return periodRanking
-  return Array.isArray(issue.rankingSnapshot)
-    ? issue.rankingSnapshot.map(normalizeSnapshot).slice(0, limit)
-    : []
 }
 
 async function applyFreshIssuesStats(issues = []) {
@@ -953,20 +948,12 @@ exports.main = async (event = {}) => {
     }
 
     if (mode === 'ranking') {
-      const issues = await listPublishedIssues({ skip: 0, limit: 1 })
-      const current = issues[0] || null
-      const issueViewCountMap = current ? await getIssueViewCountMap([current._id]) : new Map()
-      const [freshCurrent, rankingItems] = current
-        ? await Promise.all([
-            applyFreshIssueStats(current, { issueViewCountMap }),
-            resolveIssueRankingItems(current, { limit: 20 })
-          ])
-        : [null, []]
+      const rankingItems = await computeRecentWeeklyRanking({ limit: 20 })
       const callerOpenid = getCallerOpenid(event)
       const rankingItemsLiked = await attachLikedToSnapshotList(rankingItems, callerOpenid)
       return {
         success: true,
-        issue: freshCurrent ? buildIssueView(freshCurrent) : null,
+        issue: null,
         rankingItems: rankingItemsLiked
       }
     }
@@ -979,18 +966,24 @@ exports.main = async (event = {}) => {
     let issues
     if (configuredIds.length) {
       issues = await fetchPublishedIssuesByIds(configuredIds)
+      if (!issues.length) issues = latestIssues
     } else {
       issues = latestIssues
     }
     const current = latestIssues[0] || null
-    const issueViewCountMap = await getIssueViewCountMap(issues.map(issue => issue && issue._id).filter(Boolean))
+    const issueViewCountMap = await getIssueViewCountMap(Array.from(new Set([
+      ...issues.map(issue => issue && issue._id),
+      current && current._id
+    ].filter(Boolean))))
     const [freshIssues, freshTopics, rankingItems] = await Promise.all([
       Promise.all(issues.map(issue => applyFreshIssueStats(issue, { issueViewCountMap }))),
       Promise.all(topics.map(topic => applyFreshTopicStats(topic))),
-      current ? resolveIssueRankingItems(current, { limit: WEEKLY_RANKING_LIMIT }) : []
+      computeRecentWeeklyRanking({ limit: WEEKLY_RANKING_LIMIT })
     ])
     const currentIndex = issues.findIndex(issue => issue && issue._id && current && issue._id === current._id)
-    const freshCurrent = currentIndex > -1 ? freshIssues[currentIndex] : (freshIssues[0] || null)
+    const freshCurrent = currentIndex > -1
+      ? freshIssues[currentIndex]
+      : (current ? await applyFreshIssueStats(current, { issueViewCountMap }) : null)
     const callerOpenid = getCallerOpenid(event)
     const currentIssue = freshCurrent ? buildIssueView(freshCurrent, { includeDetail: true }) : null
     await attachLikedStateToDetail(currentIssue, callerOpenid)
@@ -1007,9 +1000,8 @@ exports.main = async (event = {}) => {
     console.error('[getWeeklyContent] failed:', error)
     return {
       success: false,
-      message: '鑾峰彇鍛ㄥ垔鍐呭澶辫触',
+      message: '获取周刊内容失败',
       error: error.message
     }
   }
 }
-

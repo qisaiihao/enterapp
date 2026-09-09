@@ -252,8 +252,3 @@ const paginationMixin = {
 };
 
 export default paginationMixin;
-
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = paginationMixin;
-    module.exports.default = paginationMixin;
-}

@@ -1,393 +1,86 @@
-# 字体系统完整指南
+# 字体系统指南
 
-## 概述
+最后更新：2026-09-09。
 
-本文档整合了回车键项目的字体系统实现、使用策略和跨平台测试指南。
+本指南说明当前字体加载流程。App 本地字体的修改约束与验收记录以[字体模块约定](../app-font-contract.md)为准。
 
-## 设计原则
+## 验证状态
 
-**只在诗歌内容区域使用汇文明朝字体，其他地方使用系统默认字体**
+App 本地汇文明朝修复、独立模块拆分和自动检查接入后，用户已确认真机实测正常。质量检查、App 构建及小程序构建均通过。用户未提供具体机型、系统版本或逐项验收结果，不据此宣称所有平台和场景均完成真机测试。
 
-这样做的好处：
-1. 突出诗歌内容的特殊性和艺术感
-2. 保持界面其他部分的现代感和可读性
-3. 减少字体加载对性能的影响
-4. 符合用户对不同内容区域的视觉预期
+## 使用与命名
 
----
+- 诗歌内容默认使用汇文明朝，导航、按钮、表单等界面元素使用系统字体。
+- 卡片可选字体还包括小小皓体、字体圈欣意吉祥宋、南西雅致黑、文楷、龙藏体。
+- `汇文明朝` 是配置和显示名；`Huiwen-mincho` 是注册与 Canvas 绘制名。
+- 旧名称输入通过 `normalizeFontName()` 兼容；Canvas 通过 `getRuntimeFontFamily()` 取得名称，不在业务代码中另建映射。
+- CSS 声明不能代替卡片绘制前的字体注册检查。
 
-## 已完成的工作
+## 模块职责
 
-### 1. 字体使用策略
-- **诗歌内容**: 使用汇文明朝字体（明朝体，优雅有笔锋）
-- **其他界面**: 使用系统默认字体（黑体，现代简洁）
+| 文件 | 职责 |
+| --- | --- |
+| `utils/appFontLoader.js` | 固定 App 本地字体源、转换 file URL、按页面注册与合并任务 |
+| `utils/fontManager.js` | 跨端入口、名称兼容、其他字体的下载和缓存 |
+| `utils/builtinFontReady.js` | 汇文明朝就绪状态和 font-loaded 通知 |
+| `main.js` | 各端预加载；App 在页面 onReady 执行 |
+| `App.vue` | 非微信小程序端的中文字体名 CSS 声明 |
+| `components/FontSelectorModal.vue` | 字体选择、加载状态与预览事件 |
+| `pages/post-detail/post-detail.vue` | 卡片加载字体、绘制、降级与重绘调度 |
+| `components/weekly/WeeklyShareCardModal.vue` | 周刊卡片加载与绘制调度 |
+| `utils/shareCanvas.js`、`utils/timelineShareCanvas.js` | 使用运行时名称测量、排版和绘制 |
 
-### 2. 平台差异化处理
+## 平台差异
 
-#### 小程序
-- 从云端下载字体: `cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/fonts/Huiwen-mincho-compressed.woff2`
-- 首次启动: 使用系统字体 → 1-2秒后切换到汇文明朝
-- 后续启动: 直接使用已缓存的汇文明朝字体
-- 包大小: 0 KB（不占用小程序包）
+### App（App-vue）
 
-#### App
-- 本地打包: `/static/fonts/Huiwen-mincho-compressed.woff2`
-- 启动即可使用汇文明朝字体
-- 包大小: +15 KB
+汇文明朝固定读取 `/static/fonts/Huiwen-mincho-compressed.woff2`，当前文件为 7,993,880 字节，约 7.62 MiB。此分支不经过云端地址解析或旧云端字体缓存。
 
-#### H5
-- 本地打包: `/static/fonts/Huiwen-mincho-compressed.woff2`
-- 启动即可使用汇文明朝字体
-- 包大小: +15 KB
+页面 onReady → fontManager.ensureFontAvailable → AppFontLoader → 将包内路径转换为完整 file:// URL → uni.loadFontFace 注册 Huiwen-mincho → 当前页面标记就绪。
 
-### 3. 修改的文件
+同页并发请求共用任务，新页面重新注册，返回仍存在的页面可复用。加载期间切换页面，旧结果不能标记新页面已加载；失败后允许重试。
 
-#### 核心配置
-- `utils/fontManager.js` - 字体管理器，配置汇文明朝从云端下载
-- `App.vue` - 全局字体声明（仅声明，不全局应用）
-- `uni.scss` - 移除全局字体变量
+本地打包避免网络下载，但仍需异步读取和注册，不能理解成“启动瞬间即可使用”。其他字体通过通用管理器下载或读取缓存，再注册到当前页面。
 
-#### 页面样式清理
-- `pages/poem-square/poem-square.vue` - 只在诗歌内容使用汇文明朝
-- `pages/mountain/mountain.vue` - 只在诗歌内容使用汇文明朝
-- `pages/post-detail/post-detail.vue` - 只在诗歌内容使用汇文明朝
-- `pages/preview/preview.vue` - 只在诗歌内容使用汇文明朝
-- `pages-content/portfolio-detail/portfolio-detail.vue` - 只在诗歌内容使用汇文明朝
-- `pages-content/other-portfolio/other-portfolio.vue` - 只在诗歌内容使用汇文明朝
-- `components/ShareModal.vue` - 分享卡片使用汇文明朝
+### 微信小程序
 
----
+main.js 在启动时调用管理器预加载。汇文明朝使用配置的云存储 HTTPS WOFF2 地址，交给 uni.loadFontFace 注册；其他字体先将云文件 ID 转为 HTTPS 地址。
 
-## 字体应用范围
+当前远程加载分支没有主动保存本地持久字体文件。当前运行中已加载可以复用，但不能承诺重启后直接可用。加载耗时取决于网络和运行环境，不承诺固定 1–2 秒。进度包含定时模拟值，不是字节级下载进度。
 
-### 使用汇文明朝的地方
+### H5
 
-1. **诗歌内容** (`.post-content`)
-   - poem-square（诗歌广场）
-   - mountain（山）
-   - post-detail（帖子详情）
-   - preview（预览页面）
-   - portfolio-detail（作品集详情）
-   - other-portfolio（他人作品集）
+使用站点静态资源 `/static/fonts/Huiwen-mincho-compressed.woff2`。启动代码包含 preload、CSS 声明和中文名称 FontFace 预加载；卡片的运行时名称由管理器注册，并等待 document.fonts.ready。
 
-2. **组诗副标题** (`.series-subtitle`)
-   - 所有显示组诗的页面
+站点静态资源仍可能需要首次网络下载。其他字体优先下载到 IndexedDB 缓存，再通过 FontFace 注册。
 
-3. **分享卡片生成**
-   - Canvas 绘制的分享图片
-   - ShareModal 组件
+## 卡片制作与降级
 
-### 使用系统默认字体的地方
+生成图片前先调用 ensureFontAvailable，等待注册及平台生效延迟，再用 Canvas 测量、排版并导出。选择未加载字体时，成功后才切换选择；失败保留原选择。预览变更使用防抖减少重复绘制。
 
-1. **导航栏和标题栏**
-   - top-bar（顶部栏）
-   - 页面标题
-   - 返回按钮
+- 一般加载失败时，本次卡片回退系统字体，不覆盖用户选择的字体配置。
+- 小程序汇文明朝有特殊等待分支：保持字体名称先绘制，实际可能使用替代字体；随后收到就绪通知且弹窗和状态仍匹配时，重新生成。
+- isFontCached 只说明文件资源状态，不能代替 isFontLoaded。App 不应直接查看全局 loadedFonts 集合判断当前页面是否可绘制。
 
-2. **按钮和交互元素**
-   - 点赞按钮
-   - 评论按钮
-   - 分享按钮
-   - 收藏按钮
-
-3. **表单和输入框**
-   - 登录/注册表单
-   - 评论输入框
-   - 搜索框
-
-4. **列表和卡片元数据**
-   - 作者名称
-   - 发布时间
-   - 点赞数
-   - 评论数
-
-5. **提示和说明文字**
-   - Toast 提示
-   - Modal 对话框
-   - 空状态提示
-   - 加载提示
-
----
-
-## 技术实现
-
-### 1. 全局字体声明（App.vue）
-
-```css
-/* 只声明字体，不全局应用 */
-/* #ifndef MP-WEIXIN */
-@font-face {
-  font-family: 'Huiwen-mincho';
-  src: url('/static/fonts/Huiwen-mincho-compressed.woff2') format('woff2');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-/* #endif */
-```
-
-### 2. 诗歌内容样式
-
-```css
-/* 只在诗歌内容区域应用汇文明朝 */
-.post-content {
-  font-family: '汇文明朝', -apple-system, BlinkMacSystemFont, 
-               'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 
-               'Microsoft YaHei', sans-serif;
-  font-style: normal;
-  font-weight: 500;
-  font-size: 28rpx;
-  line-height: 38rpx;
-}
-
-.series-subtitle {
-  font-family: '汇文明朝', -apple-system, BlinkMacSystemFont, 
-               'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 
-               'Microsoft YaHei', sans-serif;
-  font-size: 24rpx;
-  font-weight: 600;
-}
-```
-
-### 3. 系统默认字体（其他地方）
-
-```css
-/* 不指定 font-family，使用系统默认 */
-.button {
-  /* 自动使用系统默认字体 */
-}
-
-/* 或者显式指定系统字体栈 */
-.title {
-  font-family: -apple-system, BlinkMacSystemFont, 
-               'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 
-               'Microsoft YaHei', sans-serif;
-}
-```
-
----
-
-## 字体预加载策略
-
-### 小程序环境
-
-```javascript
-// App.vue onLaunch
-// #ifdef MP-WEIXIN
-fontManager.ensureFontAvailable('汇文明朝', (progress) => {
-    console.log(`字体下载进度: ${progress}%`);
-}).then(() => {
-    console.log('字体加载完成');
-    // 触发全局事件通知页面刷新
-    uni.$emit('font-loaded', { fontFamily: '汇文明朝' });
-}).catch(err => {
-    console.warn('字体加载失败，使用系统默认字体');
-});
-// #endif
-```
-
-### App/H5 环境
-
-不需要预加载，字体文件已打包在应用中，通过 `@font-face` 自动加载。
-
----
-
-## 跨平台测试
-
-### 测试目标
-验证汇文明朝字体在小程序、App、H5 三个平台上都能正常显示。
-
-### 平台差异
-
-| 平台 | 字体来源 | 注册方式 | CSS使用 | 启动体验 |
-|------|---------|---------|---------|---------|
-| 小程序 | 远程源（`woff2`） | `uni.loadFontFace` | `font-family: '汇文明朝'` | 首次使用系统字体→注册完成后切换 |
-| App | 本地源（`woff2`） | `@font-face` + `uni.loadFontFace` | `font-family: '汇文明朝', 'Huiwen-mincho'` | 启动即注册 |
-| H5 | 本地打包 | `@font-face` | `font-family: 'Huiwen-mincho', '汇文明朝'` | 立即显示汇文明朝 |
-
-### 测试步骤
-
-#### 1. 小程序测试
+## 检查命令
 
 ```bash
-# 编译小程序
-npm run dev:mp-weixin
-
-# 在微信开发者工具中打开
+npm run test:app-font
+npm run check:quality
+npm run build:app
+npm run build:mp-weixin
 ```
 
-**测试点：**
-- [ ] 首次启动时，诗歌内容使用系统默认字体
-- [ ] 控制台显示字体下载进度
-- [ ] 下载完成后，诗歌内容自动切换到汇文明朝
-- [ ] 仅请求 `woff2` 字体资源
-- [ ] 再次点击字体选择器时，不会因为旧状态误判“已加载”
-- [ ] 分享卡片导出前会等待字体注册完成，失败时仅本次回退系统字体
-- [ ] 访问 `pages/test-font-loading` 查看字体状态
+check:quality 已包含字体测试，build:app 通过 prebuild:app 先执行字体测试。回归覆盖本地路径、名称兼容、旧云端缓存隔离、同页请求合并、页面切换、失败重试及 WOFF2 文件存在性与长度。
 
-**验证页面：**
-- poem-square（诗歌广场）
-- post-detail（帖子详情）
-- preview（预览页面）
-- portfolio-detail（作品集详情）
+开发命令为 `npm run dev:app`、`npm run dev:mp-weixin`、`npm run dev:h5`。CLI 构建输出位于 `dist/build/app`、`dist/build/mp-weixin`、`dist/build/h5`；HBuilderX 运行输出以其配置为准。
 
-#### 2. App 测试
+## 排查与维护
 
-```bash
-# 编译 App
-npm run dev:app-plus
+1. App 先检查包内 WOFF2 是否存在、转换后是否为正确 file:// 地址、调用时页面是否就绪。不要通过改回云端掩盖本地路径问题。
+2. 通过 `fontManager.isFontLoaded('汇文明朝')` 查询当前状态，并核对注册与 Canvas 使用的运行时名称。
+3. 小程序检查 HTTPS 请求和注册回调；H5 检查静态资源请求、FontFace 注册和 Canvas 名称。
+4. 修改字体、资源或生命周期时，同步维护模块约定和测试；业务页面不另写下载、路径转换或注册逻辑。
+5. 自动测试不模拟真实 WebView 渲染。相关行为变化后，按[真机验收清单](../app-font-contract.md#自动保护与验证)复查预览、导出及页面切换，并记录实际验证范围。
 
-# 在 HBuilderX 中运行到手机/模拟器
-```
-
-**测试点：**
-- [ ] 启动时立即显示汇文明朝字体
-- [ ] 无需等待下载
-- [ ] 所有诗歌内容都使用汇文明朝字体
-
-#### 3. H5 测试
-
-```bash
-# 编译 H5
-npm run dev:h5
-
-# 在浏览器中打开 http://localhost:8080
-```
-
-**测试点：**
-- [ ] 启动时立即显示汇文明朝字体
-- [ ] 无需等待下载
-- [ ] 所有诗歌内容都使用汇文明朝字体
-- [ ] 浏览器开发者工具 Network 面板显示字体文件已加载
-
----
-
-## 字体显示特征
-
-### 汇文明朝字体特征
-- 明朝体风格，笔画优雅
-- 横细竖粗，有明显的笔锋
-- 字形端正，适合诗歌排版
-
-### 系统默认字体特征
-- 黑体风格，笔画均匀
-- 无明显笔锋
-- 字形较为现代
-
----
-
-## 故障排查
-
-### 小程序字体未生效
-
-1. **检查下载状态**
-   ```javascript
-   // 在控制台执行
-   const isCached = await fontManager.isFontCached('汇文明朝');
-   console.log('字体已缓存:', isCached);
-   ```
-
-2. **检查字体加载**
-   ```javascript
-   // 在控制台执行
-   console.log('已加载字体:', fontManager.loadedFonts);
-   ```
-
-3. **手动触发下载**
-   - 访问 `pages/test-font-loading`
-   - 点击"重新加载字体"按钮
-
-4. **清除缓存重试**
-   - 访问 `pages/test-font-loading`
-   - 点击"清除缓存"按钮
-   - 重启小程序
-
-### App/H5 字体未生效
-
-1. **检查字体文件是否存在**
-   ```bash
-   ls -la static/fonts/Huiwen-mincho-compressed.woff2
-   ```
-
-2. **检查编译输出**
-   - 确认字体文件被正确打包到 `unpackage/dist/` 目录
-
-3. **检查浏览器控制台**（H5）
-   - 查看是否有字体加载错误
-   - 检查 Network 面板中字体文件的加载状态
-
-4. **检查 CSS**
-   - 确认 `@font-face` 规则存在
-   - 确认 `font-family` 属性正确设置
-
----
-
-## 性能对比
-
-| 平台 | 首次启动 | 字体加载时间 | 包大小影响 | 后续启动 |
-|------|---------|------------|-----------|---------|
-| 小程序 | 系统字体 | ~1-2秒 | 0 KB | 汇文明朝 |
-| App | 汇文明朝 | 0秒（已打包） | +15 KB | 汇文明朝 |
-| H5 | 汇文明朝 | ~100ms | +15 KB | 汇文明朝 |
-
----
-
-## 维护指南
-
-### 添加新的诗歌展示页面
-
-1. 不要在页面中重复声明 `@font-face`（App.vue 已全局声明）
-2. 只在诗歌内容区域使用汇文明朝：
-
-```css
-.post-content {
-  font-family: '汇文明朝', -apple-system, BlinkMacSystemFont, 
-               'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 
-               'Microsoft YaHei', sans-serif;
-}
-```
-
-3. 其他元素不指定 font-family，或使用系统字体栈
-
-### 修改字体
-
-如果需要更换字体：
-
-1. 更新 `fontManager.js` 中的字体配置
-2. 更新 App.vue 中的 `@font-face` 声明
-3. 更新云存储中的字体文件
-4. 清除小程序缓存重新测试
-
----
-
-## 降级方案
-
-所有平台都有完善的降级方案：
-
-```css
-font-family: '汇文明朝',           /* 优先使用汇文明朝 */
-             -apple-system,        /* iOS 系统字体 */
-             BlinkMacSystemFont,   /* macOS 系统字体 */
-             'Segoe UI',           /* Windows 系统字体 */
-             'PingFang SC',        /* 中文黑体 */
-             'Hiragino Sans GB',   /* 中文黑体 */
-             'Microsoft YaHei',    /* 微软雅黑 */
-             sans-serif;           /* 通用无衬线字体 */
-```
-
-如果汇文明朝加载失败，会自动使用系统字体，不影响正常使用。
-
----
-
-## 优势总结
-
-1. **包大小优化**: 小程序不占用包大小
-2. **用户体验**: 诗歌内容更有艺术感
-3. **性能优化**: 按需加载，不影响首屏
-4. **降级保护**: 加载失败时自动使用系统字体
-5. **跨平台兼容**: 三端统一体验
-6. **维护简单**: 字体配置集中管理
-
----
-
-*最后更新: 2026-03-07*
+历史文档中的“字体包 +15 KB”“App/H5 不需要预加载”“小程序后续启动一定直接复用字体”等描述已不适用于当前实现。

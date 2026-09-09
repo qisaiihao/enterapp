@@ -39,6 +39,11 @@
         </view>
         <text class="activity-entry-text">活动</text>
       </view>
+      <SquareSpeechBubble
+        v-if="squareBubble.enabled && squareBubble.text"
+        :text="squareBubble.text"
+        @tap="openSquareBubble"
+      />
     </view>
 
     <!-- 关注头像栏 - 只在关注模式下显示 -->
@@ -129,6 +134,8 @@ import { syncLikeStatusForPosts, getLatestLikeStatus } from '@/utils/likeStatusS
 import fileUrlCache from '@/cache/core/file-url';
 import { updateTabBarStatus } from '@/utils/tabBarCompatibility.js';
 import activityBadge from '@/cache/stores/activity-badge.js';
+import SquareSpeechBubble from '@/components/SquareSpeechBubble.vue';
+import { getSquareBubbleConfig, SQUARE_BUBBLE_TARGETS } from '@/api-cache/square-bubble.js';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
 import { attachPoemDisplayFields } from '@/utils/poemDisplay.js';
 import { patchAppState, setUserSession } from '@/utils/app-state.js';
@@ -145,6 +152,7 @@ export default {
     try { uni.hideTabBar({ animation: false }); } catch (e) {}
     // #endif
     updateTabBarStatus(this, 1);
+    this.loadSquareBubble();
 
     try { activityBadge.refreshActivityBadge({ forceRefresh: true, context: this }); } catch (_) {}
 
@@ -206,6 +214,7 @@ export default {
     topBar,
     FollowingAvatarBar,
     PoemCard,
+    SquareSpeechBubble,
     // #ifndef MP-WEIXIN
     AppTabBar
     // #endif
@@ -231,6 +240,7 @@ export default {
       // 加载锁定标志，防止重复触发加载
       _loadingLock: false,
       hasNewActivity: false,
+      squareBubble: { enabled: false, text: '', target: 'weekly' },
       _activityBadgeUnsubscribe: null,
       poemFontRenderTick: 0
     };
@@ -352,6 +362,22 @@ export default {
     }, 300); // 增加防抖时间到300ms
   },
   methods: {
+    async loadSquareBubble() {
+      try {
+        this.squareBubble = await getSquareBubbleConfig(this);
+      } catch (error) {
+        console.warn('[poem-square] 气泡配置加载失败:', error);
+      }
+    },
+    openSquareBubble() {
+      const target = SQUARE_BUBBLE_TARGETS.find(item => item.value === this.squareBubble.target);
+      if (!target) return;
+      if (target.value === 'activities') {
+        this.navigateToActivityList();
+        return;
+      }
+      uni.navigateTo({ url: target.url });
+    },
     applyLocalState(partial = {}) {
       Object.keys(partial).forEach((path) => {
         const value = partial[path];
@@ -1395,9 +1421,14 @@ export default {
   top: calc(var(--safe-area-top, 44px) + 118rpx);
   left: 30rpx;
   z-index: 5;
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+  max-width: 530rpx;
 }
 
 .activity-entry-btn {
+  flex-shrink: 0;
   width: 120rpx;
   min-height: 114rpx;
   position: relative;

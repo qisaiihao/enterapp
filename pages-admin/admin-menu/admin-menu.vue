@@ -68,6 +68,15 @@
                 <text class="menu-arrow">→</text>
             </view>
 
+            <view class="menu-item" @tap="navigateTo" data-url="/pages-admin/square-bubble-management/square-bubble-management">
+                <view class="menu-icon">💬</view>
+                <view class="menu-info">
+                    <text class="menu-title">广场气泡</text>
+                    <text class="menu-desc">设置乌鸦的文案和跳转页面</text>
+                </view>
+                <text class="menu-arrow">→</text>
+            </view>
+
             <view class="menu-item" @tap="navigateTo" data-url="/pages-admin/contact-management/contact-management">
                 <view class="menu-icon">✉️</view>
                 <view class="menu-info">

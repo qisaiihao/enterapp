@@ -499,6 +499,10 @@
       "root": "pages-admin",
       "pages": [
         {
+          "path": "square-bubble-management/square-bubble-management",
+          "style": { "navigationBarTitleText": "广场气泡", "navigationStyle": "default" }
+        },
+        {
           "path": "contact-management/contact-management",
           "style": { "navigationBarTitleText": "联系我们管理" }
         },

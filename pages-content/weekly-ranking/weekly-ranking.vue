@@ -8,6 +8,7 @@
     </view>
 
     <view class="ranking-list">
+      <text v-if="!rankingLoading && !rankingItems.length">最近七天暂无上榜诗歌</text>
       <poem-card
         v-for="(item, index) in rankingItems"
         :key="item._id || item.postId || index"
@@ -37,15 +38,6 @@ import { toggleArrayItemExpansion } from '@/utils/uiHelpers.js';
 
 const CARD_COLORS = ['#ae7476', '#9fa599', '#e4eeee', '#a4c4bd', '#c9cfcf', '#906161', '#909388'];
 const CARD_TEXT_COLORS = ['#ffffff', '#ffffff', '#111111', '#111111', '#111111', '#ffffff', '#ffffff'];
-const FALLBACK_RANKING = [
-  {
-    postId: 'rank-1',
-    content: '当我听到河哗哗作响\n岸上的声音自然就隐去了\n我转身消入河水\n想趁分流前，牵住你的手',
-    authorName: 'Noah'
-  },
-  { postId: 'rank-2', content: '一扇没开的门\n一次偶然的相遇', authorName: '白告' },
-  { postId: 'rank-3', content: '雨落在窗台\n像一封没有寄出的信', authorName: 'Noah' }
-];
 
 function normalizeRankingItems(items = []) {
   return (Array.isArray(items) ? items : [])
@@ -60,7 +52,7 @@ function normalizeRankingItems(items = []) {
         title: item.title || '',
         content,
         isPoem: true,
-        isOriginal: true,
+        isOriginal: item.isOriginal !== false,
         isAnonymous: item.isAnonymous === true,
         authorName: item.authorName || item.author || '匿名',
         author: item.author || item.authorName || '',
@@ -85,16 +77,17 @@ export default {
   data() {
     return {
       pageInlineStyle: {},
-      rankingItems: normalizeRankingItems(FALLBACK_RANKING),
+      rankingItems: [],
+      rankingLoading: true,
       votingInProgress: {}
     };
   },
   onLoad() {
     this.setupHeaderLayout();
-    this.loadRanking();
     this.bindGlobalLikeEvents();
   },
   onShow() {
+    this.loadRanking();
     this.syncLikeStatusFromCache();
   },
   onUnload() {
@@ -102,11 +95,15 @@ export default {
   },
   methods: {
     async loadRanking() {
-      const result = await getWeeklyRanking({ context: this, forceRefresh: true });
-      const rankingItems = Array.isArray(result.rankingItems) ? result.rankingItems : [];
-      if (!rankingItems.length) return;
-      this.rankingItems = normalizeRankingItems(rankingItems);
-      this.syncLikeStatusFromCache();
+      this.rankingLoading = true;
+      try {
+        const result = await getWeeklyRanking({ context: this, forceRefresh: true });
+        const rankingItems = Array.isArray(result.rankingItems) ? result.rankingItems : [];
+        this.rankingItems = normalizeRankingItems(rankingItems);
+        this.syncLikeStatusFromCache();
+      } finally {
+        this.rankingLoading = false;
+      }
     },
 
     onCommentClick(payload = {}) {

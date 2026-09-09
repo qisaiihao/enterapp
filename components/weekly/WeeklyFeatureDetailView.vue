@@ -83,6 +83,7 @@
       :like-icon-src="selectedLikeIcon"
       :is-voted="selectedIsVoted"
       @like="handleVote"
+      @favorite="openFavoriteModal"
       @save="openShareCard"
       @comment="openCommentComposer"
     />
@@ -165,6 +166,13 @@
       </view>
     </view>
 
+    <FolderSelector
+      :show="showFavoriteModal"
+      :post-id="favoritePostId"
+      @hide="hideFavoriteModal"
+      @favoriteSuccess="hideFavoriteModal"
+    />
+
     <!-- 分享/保存卡片弹窗 -->
     <WeeklyShareCardModal
       v-if="showShareCardModal"
@@ -177,6 +185,8 @@
 <script>
 import WeeklyFeatureActionBar from '@/components/weekly/WeeklyFeatureActionBar.vue';
 import WeeklyShareCardModal from '@/components/weekly/WeeklyShareCardModal.vue';
+import FolderSelector from '@/components/folder-selector/folder-selector.vue';
+import { isUserLoggedIn, requireLogin } from '@/utils/authHelper.js';
 import { getComments, submitComment } from '@/api-cache/comment.js';
 import { getSystemInfoCompat, getWindowInfoCompat } from '@/utils/system-info.js';
 import { resolvePostAuthorAvatar, resolveCommentAuthorAvatar } from '@/utils/defaultAvatar.js';
@@ -199,7 +209,8 @@ export default {
   name: 'WeeklyFeatureDetailView',
   components: {
     WeeklyFeatureActionBar,
-    WeeklyShareCardModal
+    WeeklyShareCardModal,
+    FolderSelector
   },
   props: {
     detail: {
@@ -227,6 +238,8 @@ export default {
       likeOverrides: {},
       votingInProgress: {},
       showShareCardModal: false,
+      showFavoriteModal: false,
+      favoritePostId: '',
       // 评论输入框
       newComment: '',
       commentImages: [],
@@ -757,6 +770,21 @@ export default {
         }
       });
       this.likeOverrides = nextOverrides;
+    },
+
+    openFavoriteModal() {
+      if (!this.selectedPostId) return;
+      if (!isUserLoggedIn()) {
+        requireLogin({ content: '收藏需要登录，请先登录' });
+        return;
+      }
+      // 固定打开时的作品，避免切换卡片后收藏到另一首。
+      this.favoritePostId = this.selectedPostId;
+      this.showFavoriteModal = true;
+    },
+
+    hideFavoriteModal() {
+      this.showFavoriteModal = false;
     },
 
     async handleVote() {

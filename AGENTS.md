@@ -2,7 +2,7 @@
 
 ## App 诗歌卡片字体
 
-App 汇文明朝加载修复及独立模块拆分均已通过用户真机验证（2026-09-07）。修改字体管理、应用生命周期、卡片绘制或字体资源时，先阅读 [字体模块约定](docs/app-font-contract.md)。
+App 汇文明朝加载修复及独立模块拆分均已通过用户真机验证（验收记录于 2026-09-09 更新）。修改字体管理、应用生命周期、卡片绘制或字体资源时，先阅读 [字体模块约定](docs/app-font-contract.md)。
 
 - `utils/appFontLoader.js` 负责 App 路径转换和按页面注册；业务页面通过 `fontManager.ensureFontAvailable()` / `isFontLoaded()` 调用，不另写字体下载和注册逻辑。
 - App 汇文明朝只读取安装包内 `static/fonts/Huiwen-mincho-compressed.woff2`，不得因通用缓存、平台初始化或重构而改走云端。

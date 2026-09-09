@@ -383,17 +383,6 @@ export default {
   display: block;
 }
 
-.hero-slide.has-cover::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.05));
-  pointer-events: none;
-}
-
 .hero-title {
   position: relative;
   z-index: 1;

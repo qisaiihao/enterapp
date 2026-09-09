@@ -2,6 +2,16 @@
   "envId": "cloud1-5gb0pbyl400845f5",
   "functions": [
     {
+      "name": "squareBubbleConfig",
+      "timeout": 10,
+      "memory": 128,
+      "runtime": "Nodejs18.15",
+      "handler": "index.main",
+      "root": "./functions/squareBubbleConfig",
+      "installDependency": true,
+      "params": {}
+    },
+    {
       "name": "getContactConfig",
       "timeout": 3,
       "memory": 128,

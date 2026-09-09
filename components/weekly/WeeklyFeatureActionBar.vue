@@ -13,6 +13,14 @@
       ></image>
     </view>
 
+    <view class="weekly-action-item" @tap.stop="emitFavorite">
+      <image
+        class="weekly-action-icon"
+        src="/static/images/newicons/collection.png"
+        mode="aspectFit"
+      ></image>
+    </view>
+
     <view class="weekly-action-item" @tap.stop="emitSave">
       <image
         class="weekly-action-icon weekly-download-icon"
@@ -44,13 +52,16 @@ export default {
       default: false
     }
   },
-  emits: ['like', 'save', 'comment'],
+  emits: ['like', 'favorite', 'save', 'comment'],
   methods: {
     emitLike() {
       this.$emit('like');
     },
     emitSave() {
       this.$emit('save');
+    },
+    emitFavorite() {
+      this.$emit('favorite');
     },
     emitComment() {
       this.$emit('comment');
@@ -82,14 +93,15 @@ export default {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  background-color: var(--app-fixed-bar-bg, var(--app-page-bg, #ffffff));
-  box-shadow: var(--app-fixed-bar-shadow, none);
+  background-color: #ffffff;
+  border: none;
+  box-shadow: none;
   z-index: 50;
 }
 
 .weekly-action-item {
-  width: 144rpx;
-  height: 124rpx;
+  width: 80rpx;
+  height: 80rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -102,8 +114,8 @@ export default {
 }
 
 .weekly-action-icon {
-  width: 112rpx;
-  height: 112rpx;
+  width: 64rpx;
+  height: 64rpx;
   display: block;
   transition: transform 0.2s ease, opacity 0.2s ease;
 }
@@ -114,8 +126,8 @@ export default {
 }
 
 .weekly-download-icon {
-  filter: var(--app-post-action-icon-filter, none);
-  opacity: var(--app-post-action-icon-opacity, 1);
+  filter: none;
+  opacity: 1;
 }
 
 .weekly-comment-icon {
