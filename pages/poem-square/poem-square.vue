@@ -739,6 +739,11 @@ export default {
     normalizePoemCardPost(post) {
       if (!post) return post;
 
+      const latestLike = getLatestLikeStatus(post._id);
+      if (latestLike) {
+        post.votes = latestLike.votes;
+        post.isVoted = latestLike.isVoted;
+      }
       post.backgroundColor = post.backgroundColor || this.generateRandomBackgroundColor();
       post.textColor = post.textColor || '#222';
       post.isExpanded = false;
@@ -895,6 +900,8 @@ export default {
         page: this.page + 1,
         hasMore: list.length === PAGE_SIZE
       });
+      // URL 转换期间也可能收到其他页面的点赞事件。
+      this.syncLikeStatusFromCache();
       
       // authorSignature已从云函数返回，无需额外获取
       console.log('【poem-square】数据处理完成');
@@ -1252,11 +1259,14 @@ export default {
         if (idx > -1) {
           const votes = typeof e.votes === 'number' ? e.votes : (list[idx].votes || 0);
           const isLiked = typeof e.isLiked === 'boolean' ? e.isLiked : !!list[idx].isVoted;
-          const updates = {};
-          updates[`postList[${idx}].votes`] = votes;
-          updates[`postList[${idx}].isVoted`] = isLiked;
-          updates[`postList[${idx}].likeIcon`] = likeIcon.getLikeIcon(votes, isLiked);
-          this.applyLocalState(updates);
+          const next = list.slice();
+          next[idx] = {
+            ...list[idx],
+            votes,
+            isVoted: isLiked,
+            likeIcon: likeIcon.getLikeIcon(votes, isLiked)
+          };
+          this.applyLocalState({ postList: next });
         }
       } catch (_) {}
     },

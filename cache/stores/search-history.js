@@ -128,8 +128,3 @@ export {
 };
 
 export default searchHistoryStore;
-
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = searchHistoryStore;
-  module.exports.default = searchHistoryStore;
-}

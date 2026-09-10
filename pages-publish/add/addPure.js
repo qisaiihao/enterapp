@@ -21,21 +21,29 @@ export function computePlaceholder(publishMode = 'normal', isOriginal = false) {
 }
 
 /**
- * 是否存在正文/块/组诗文本内容（不包含图片）
+ * 当前编辑模式是否存在文本，忽略其他模式保留的隐藏内容。
  */
-export function hasAnyContent({ content = '', blocks = [], seriesBlocks = [] } = {}) {
-    const mainContent = (content || '').trim();
-    if (mainContent) return true;
-
-    if (Array.isArray(blocks) && blocks.some(b => (b.text || '').trim())) {
-        return true;
+export function hasAnyContent({ content = '', blocks = [], seriesBlocks = [], publishMode = 'normal', isSeries = false } = {}) {
+    if (publishMode === 'poem' && isSeries) {
+        return Array.isArray(seriesBlocks) && seriesBlocks.some(block => block &&
+            ((block.content || '').trim() || (block.subtitle || '').trim()));
     }
-
-    if (Array.isArray(seriesBlocks) && seriesBlocks.some(b => ((b.content || b.subtitle || '').trim()))) {
-        return true;
+    if (publishMode === 'discussion') {
+        return Array.isArray(blocks) && blocks.some(block => block && (block.text || '').trim());
     }
+    return !!(content || '').trim();
+}
 
-    return false;
+/**
+ * 保存提醒和自动草稿共用的内容判断；类型、配色、标签和活动选择不算内容。
+ */
+export function hasDraftContent(state = {}) {
+    return !!(
+        (state.title || '').trim() ||
+        (state.author || '').trim() ||
+        (Array.isArray(state.imageList) && state.imageList.length > 0) ||
+        hasAnyContent(state)
+    );
 }
 
 /**
@@ -172,4 +180,3 @@ export function deriveHighlightIndices(lines = [], highlightLines = []) {
     });
     return indices;
 }
-

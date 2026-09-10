@@ -66,8 +66,3 @@ export {
 };
 
 export default searchStore;
-
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = searchStore;
-  module.exports.default = searchStore;
-}

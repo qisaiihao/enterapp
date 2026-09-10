@@ -36,6 +36,10 @@
             </view>
         </view>
 
+        <view v-if="isSearching" class="loading-state">
+            <text class="loading-text">正在搜索...</text>
+        </view>
+
         <!-- 搜索结果 -->
         <view v-if="searchKeyword && !isSearching && searchResults.length > 0" class="search-results">
             <view class="results-header">
@@ -247,6 +251,10 @@ export default {
     onShow: function () {
         const mode = applyThemeMode(getThemeMode());
         this.appThemeMode = mode;
+    },
+    onUnload() {
+        clearTimeout(this.searchTimer);
+        clearTimeout(this.suggestionTimer);
     },
     methods: {
         // 搜索输入处理

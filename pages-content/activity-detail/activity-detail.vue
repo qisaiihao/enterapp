@@ -38,6 +38,10 @@
       <text :class="['rules-text', (!rulesExpanded && showRulesToggle) ? 'collapsed' : '']">{{ activityRules }}</text>
     </view>
 
+    <view v-if="activityDetailLoaded && allowUserSubmission" class="submission-entry">
+      <button class="submission-button" :disabled="!isOngoing" @tap="handleSubmitPoem">投稿</button>
+    </view>
+
     <view v-if="isLoading && displayPostList.length === 0" class="state-box">
       <text class="state-text">加载帖子中...</text>
     </view>
@@ -51,14 +55,19 @@
       <view
         v-for="(item, index) in displayPostList"
         :key="`${item && item._id ? item._id : index}-${fontRenderToken}`"
+        :class="{ 'poem-card-wrapper': isPoemCard(item) }"
       >
-        <activity-poem-card
+        <poem-card
           v-if="isPoemCard(item)"
-          :item="item"
+          :post="item"
           :index="index"
+          :enable-series="true"
+          :show-signature="true"
+          @card-tap="handlePoemCardTap"
           @vote="handleVote"
-          @comment-click="handleCommentClick"
+          @comment="handleCommentClick"
           @longpress="handleCardLongPress"
+          @signature-error="handleSignatureError"
         />
         <post-item
           v-else
@@ -88,7 +97,7 @@
 
 <script>
 import PostItem from '@/components/PostItem.vue';
-import ActivityPoemCard from '@/components/activity/ActivityPoemCard.vue';
+import PoemCard from '@/components/poem/PoemCard.vue';
 import { getActivityPosts, getActivityDetail, invalidateActivityPosts } from '@/api-cache/activities.js';
 import fileUrlCache from '@/_utils/file-url-cache';
 import { attachPoemDisplayFields } from '@/utils/poemDisplay.js';
@@ -96,6 +105,7 @@ import { previewImage } from '@/utils/imagePreview.js';
 import likeIcon from '@/utils/likeIcon.js';
 import { togglePostLike } from '@/utils/likeService.js';
 import { getLatestLikeStatus } from '@/utils/likeStatusSync.js';
+import { replayBuiltinHuiwenFontReady } from '@/utils/builtinFontReady.js';
 import {
   decodeParamSafe,
   formatRange as formatActivityRange,
@@ -122,7 +132,7 @@ function buildSeriesPoems(post = {}) {
 export default {
   components: {
     PostItem,
-    ActivityPoemCard
+    PoemCard
   },
   computed: {
     displayPostList() {
@@ -151,6 +161,7 @@ export default {
       postCount: 0,
       visiblePostCount: null,
       allowUserSubmission: true,
+      activityDetailLoaded: false,
       isOngoing: false,
       rulesExpanded: false,
       showRulesToggle: false,
@@ -230,6 +241,9 @@ export default {
       }
       try { uni.$on && uni.$on('font-loaded', this._fontLoadedHandler); } catch (_) {}
       try { uni.$on && uni.$on('like-changed', this._likeChangedHandler); } catch (_) {}
+      // #ifdef MP-WEIXIN
+      replayBuiltinHuiwenFontReady(this, 'handleFontLoaded', '[activity-detail]');
+      // #endif
     },
 
     unbindGlobalEvents() {
@@ -379,6 +393,7 @@ export default {
           ? visiblePostCount
           : null;
         this.isOngoing = isActivityOngoing(this.activityStartTime, this.activityEndTime);
+        this.activityDetailLoaded = true;
 
         const nextPostCount = Number(activity.postCount) || 0;
         this.postCount = Math.max(this.postCount, nextPostCount);
@@ -387,6 +402,20 @@ export default {
       } catch (error) {
         console.warn('[activity-detail] load activity detail failed:', error);
       }
+    },
+
+    handleSubmitPoem() {
+      if (!this.activityDetailLoaded || !this.activityId || !this.allowUserSubmission) return;
+      if (!isActivityOngoing(this.activityStartTime, this.activityEndTime)) {
+        this.isOngoing = false;
+        uni.showToast({ title: '当前不在活动投稿时间内', icon: 'none' });
+        return;
+      }
+      const query = [
+        `joinActivityId=${encodeURIComponent(this.activityId)}`,
+        `joinActivityTitle=${encodeURIComponent(this.activityTitle || '')}`
+      ].join('&');
+      uni.navigateTo({ url: `/pages-publish/add/add?${query}` });
     },
 
     async refreshPosts(fromPullDown = false) {
@@ -461,24 +490,53 @@ export default {
       const seriesPoems = buildSeriesPoems(post);
       const isSeries = !!(post && (post.isSeries === true || seriesPoems.length > 0));
 
-      return attachPoemDisplayFields({
+      const normalized = attachPoemDisplayFields({
         ...post,
         votes,
         isVoted,
         highlightLines,
         isSeries,
         seriesPoems,
+        isExpanded: false,
+        seriesExpanded: false,
+        currentSeriesIndex: 0,
         authorSignature: post && post.authorSignature ? post.authorSignature : '',
         backgroundColor: (post && post.backgroundColor) || defaultBg,
         textColor: (post && post.textColor) || '#222',
         likeIcon: likeIcon.getLikeIcon(votes, isVoted)
       });
+      normalized.seriesPoems = normalized.displaySeriesPoems;
+      return normalized;
     },
 
     isPoemCard(item) {
       if (!item) return false;
       if (item.isDiscussion) return false;
       return item.isPoem === true || item.publishMode === 'poem' || item.isSeries === true;
+    },
+
+    handlePoemCardTap(data = {}) {
+      // 活动展示列表会排序，使用帖子 ID 定位原始列表。
+      const index = this.postList.findIndex(item => item && item._id === data.postId);
+      if (index < 0) return;
+      const current = this.postList[index];
+      let patch;
+      if (current.isSeries && current.seriesPoems.length > 0) {
+        const nextIndex = current.seriesExpanded ? current.currentSeriesIndex + 1 : 0;
+        const seriesExpanded = nextIndex < current.seriesPoems.length;
+        patch = { seriesExpanded, currentSeriesIndex: seriesExpanded ? nextIndex : 0 };
+      } else {
+        patch = { isExpanded: !current.isExpanded };
+      }
+      const next = this.postList.slice();
+      next[index] = { ...current, ...patch };
+      this.postList = next;
+    },
+
+    handleSignatureError(data = {}) {
+      this.postList = this.postList.map(item => item && item._id === data.postId
+        ? { ...item, authorSignature: '' }
+        : item);
     },
 
     handlePreviewImage(data) {
@@ -731,6 +789,36 @@ export default {
   overflow: hidden;
 }
 
+.submission-entry {
+  display: flex;
+  justify-content: flex-end;
+  margin: 24rpx;
+}
+
+.submission-button {
+  width: calc(140rpx + 2px);
+  box-sizing: border-box;
+  text-align: center;
+  margin: 0;
+  padding: 10rpx 22rpx;
+  color: #000;
+  background: #fff;
+  border: 1px solid #000;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
+.submission-button::after {
+  border: none;
+}
+
+.submission-button[disabled] {
+  background: #fff;
+  color: #000;
+  opacity: 0.45;
+}
+
 .state-box {
   text-align: center;
   padding: 120rpx 40rpx;
@@ -752,6 +840,11 @@ export default {
 .post-list {
   margin-top: 16rpx;
   padding: 0 20rpx 24rpx;
+}
+
+.poem-card-wrapper {
+  /* 加上列表的 20rpx，与诗歌广场的左右 100rpx 留白一致。 */
+  padding: 0 80rpx;
 }
 
 .footer-tip {

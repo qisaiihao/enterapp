@@ -6,8 +6,3 @@ import searchStore from '../cache/stores/search.js';
 
 export const { searchCache, SearchCache } = searchStore;
 export default searchStore;
-
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = searchStore;
-  module.exports.default = searchStore;
-}

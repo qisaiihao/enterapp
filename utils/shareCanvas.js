@@ -843,12 +843,12 @@ async function drawShareCardContent(options) {
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
     // 绘制圆角背景
-    // 【修复】优先使用 post 的背景颜色（原始数据），然后才是 shareConfig（可能被用户修改）
+    // 优先使用当前分享配置中的颜色，未设置时回退到帖子的原始颜色
     // 空字符串被视为无效值，会回退到下一个选项
     // 【调试】打印背景颜色来源，追踪颜色丢失问题
     const postBgColor = (post.backgroundColor && post.backgroundColor.trim()) || '';
     const configBgColor = (shareConfig.backgroundColor && shareConfig.backgroundColor.trim()) || '';
-    const bgColor = postBgColor || configBgColor || '#a4c4bd';
+    const bgColor = configBgColor || postBgColor || '#a4c4bd';
     console.log('[shareCanvas] 背景颜色调试:', {
         postBgColorRaw: post.backgroundColor,
         postBgColor: postBgColor,
@@ -863,7 +863,7 @@ async function drawShareCardContent(options) {
     // 绘制文字内容
     const postTextColor = (post.textColor && post.textColor.trim()) || '';
     const configTextColor = (shareConfig.textColor && shareConfig.textColor.trim()) || '';
-    const textColor = postTextColor || configTextColor || '#333333';
+    const textColor = configTextColor || postTextColor || '#333333';
     ctx.setFillStyle(textColor);
     ctx.setTextAlign('left');
 

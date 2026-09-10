@@ -1638,7 +1638,8 @@ export default {
 
       const publishData = {
 
-        ...addData,
+        // Vue 生产模式不枚举页面实例的数据字段，必须从 $data 复制发布状态。
+        ...addData.$data,
 
         title: addData.title || (this.post && this.post.title) || '',
 

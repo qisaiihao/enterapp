@@ -48,7 +48,7 @@ Component({
         pagePath: '/pages/index/index',
         text: '广场',
         iconPath: '/static/images/market.png',
-        selectedIconPath: '/static/images/marketplus.png',
+        selectedIconPath: '/static/images/market.png',
         darkIconPath: '/static/images/tab-dark/market-dark.png',
         darkSelectedIconPath: '/static/images/tab-dark/marketplus-dark.png'
       },
@@ -56,7 +56,7 @@ Component({
         pagePath: '/pages/poem-square/poem-square',
         text: '原创',
         iconPath: '/static/images/road.png',
-        selectedIconPath: '/static/images/roadplus.png',
+        selectedIconPath: '/static/images/road.png',
         darkIconPath: '/static/images/tab-dark/road-dark.png',
         darkSelectedIconPath: '/static/images/tab-dark/roadplus-dark.png'
       },
@@ -64,7 +64,7 @@ Component({
         pagePath: '/pages/mountain/mountain',
         text: '读诗',
         iconPath: '/static/images/mountain.png',
-        selectedIconPath: '/static/images/mountainplus.png',
+        selectedIconPath: '/static/images/mountain.png',
         darkIconPath: '/static/images/tab-dark/mountain-dark.png',
         darkSelectedIconPath: '/static/images/tab-dark/mountainplus-dark.png'
       },
@@ -72,7 +72,7 @@ Component({
         pagePath: '/pages/profile/profile',
         text: '我',
         iconPath: '/static/images/pools.png',
-        selectedIconPath: '/static/images/poolsplus.png',
+        selectedIconPath: '/static/images/pools.png',
         darkIconPath: '/static/images/tab-dark/pools-dark.png',
         darkSelectedIconPath: '/static/images/tab-dark/poolsplus-dark.png'
       }

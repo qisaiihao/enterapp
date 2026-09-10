@@ -330,6 +330,7 @@ import {
 import {
     computePlaceholder,
     hasAnyContent as hasAnyContentFn,
+    hasDraftContent,
     buildDiscussionSentenceGroups,
     mergeDiscussionContent,
     normalizeSeriesBlocks,
@@ -343,6 +344,8 @@ import {
     uploadFile as imagesUploadFile,
     uploadFileViaCloudFunction as imagesUploadFileViaCF
 } from './useImages.js';
+
+import { decodeParamSafe } from '@/utils/activity.js';
 
 const WORKING_DRAFT_KEY = 'publish_working_draft_v1';
 const LEGACY_DRAFT_KEY = 'publish_draft';
@@ -551,7 +554,9 @@ export default {
             return hasAnyContentFn({
                 content: this.content,
                 blocks: this.blocks,
-                seriesBlocks: this.seriesBlocks
+                seriesBlocks: this.seriesBlocks,
+                publishMode: this.publishMode,
+                isSeries: this.isSeries
             });
         }
     },
@@ -664,7 +669,16 @@ export default {
             });
         }
 
-        if (!isActivityMode && !(options.mode === 'edit' && options.postId) && !restoredDraft) {
+        const joinActivityId = decodeParamSafe(options.joinActivityId).trim();
+        if (joinActivityId && !isActivityMode && options.mode !== 'edit') {
+            // 显式投稿入口优先于草稿类型和上次参加的活动。
+            this.setData({
+                joinActivityEnabled: true,
+                joinedActivityId: joinActivityId,
+                joinedActivityTitle: decodeParamSafe(options.joinActivityTitle)
+            });
+            this.onModeSelect({ mode: 'poem', isOriginal: true });
+        } else if (!isActivityMode && !(options.mode === 'edit' && options.postId) && !restoredDraft) {
             this.setDefaultPublishMode();
         } else {
             this.updatePlaceholder();
@@ -810,18 +824,7 @@ export default {
         },
 
         hasWorkingDraftState(draftData = {}) {
-            return !!(
-                (draftData.title && draftData.title.trim()) ||
-                (draftData.author && draftData.author.trim()) ||
-                (draftData.content && draftData.content.trim()) ||
-                (Array.isArray(draftData.imageList) && draftData.imageList.length > 0) ||
-                (Array.isArray(draftData.selectedTags) && draftData.selectedTags.length > 0) ||
-                (Array.isArray(draftData.blocks) && draftData.blocks.some(block => (block.text || '').trim())) ||
-                (Array.isArray(draftData.seriesBlocks) && draftData.seriesBlocks.some(block => ((block.content || '').trim() || (block.subtitle || '').trim()))) ||
-                draftData.joinActivityEnabled ||
-                draftData.joinedActivityId ||
-                draftData.activityId
-            );
+            return hasDraftContent(draftData);
         },
 
         getStoredWorkingDraft(matchOptions = {}) {
@@ -979,8 +982,7 @@ export default {
 
         // 检查是否有内容
         hasContent() {
-            const hasImages = this.imageList && this.imageList.length > 0;
-            return hasImages || this.hasAnyContent;
+            return hasDraftContent(this);
         },
 
         // 讨论模式：生成句子组数据（内容/引用交错）

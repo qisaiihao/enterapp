@@ -182,8 +182,3 @@ export {
 };
 
 export default searchApi;
-
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = searchApi;
-  module.exports.default = searchApi;
-}
