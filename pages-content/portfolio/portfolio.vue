@@ -142,10 +142,12 @@
       </view>
     </view>
   </view>
+    <app-overlay-host />
 </template>
 
 <script>
 import dualActionTopBar from '@/components/dual-action-top-bar/dual-action-top-bar.vue';
+import { readFileAsBase64 } from '@/utils/fileReader.js';
 import {
   getPortfolioFolders,
   createPortfolioFolder,
@@ -447,56 +449,34 @@ export default {
     },
 
     // 上传新建作品集封面图片
-    async uploadNewCoverImage() {
-      if (!this.newFolderCover) {
+    uploadNewCoverImage() {
+      return this.uploadCoverImage(this.newFolderCover, 'new');
+    },
+
+    async uploadCoverImage(filePath, action) {
+      if (!filePath) {
         return null;
       }
 
       const timestamp = new Date().getTime();
-      const cloudPath = `portfolio_covers/${timestamp}_new_cover.jpg`;
+      const cloudPath = `portfolio_covers/${timestamp}_${action}_cover.jpg`;
 
       try {
         uni.showLoading({
           title: '上传封面中...'
         });
 
-        let fileContent;
-
-        // 检查运行环境
-        // #ifdef H5
-        // H5环境：使用fetch获取blob，然后转换为base64
-        const response = await fetch(this.newFolderCover);
-        const blob = await response.blob();
-        fileContent = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-        // 移除data:image/jpeg;base64,前缀
-        fileContent = fileContent.split(',')[1];
-        // #endif
-
-        // #ifndef H5
-        // 非H5环境（如小程序）：使用uni.getFileSystemManager
-        fileContent = await new Promise((resolve, reject) => {
-          uni.getFileSystemManager().readFile({
-            filePath: this.newFolderCover,
-            encoding: 'base64',
-            success: (readRes) => resolve(readRes.data),
-            fail: reject
-          });
-        });
-        // #endif
-
+        const fileContent = await readFileAsBase64(filePath);
         const uploadRes = await uploadFile(cloudPath, fileContent, { context: this });
-
-        uni.hideLoading();
-        return uploadRes.fileID || uploadRes;
+        if (!uploadRes || !uploadRes.fileID) {
+          throw new Error('封面上传未返回文件ID，请重试');
+        }
+        return uploadRes.fileID;
       } catch (error) {
-        uni.hideLoading();
         console.error('上传封面图片失败:', error);
         throw error;
+      } finally {
+        uni.hideLoading();
       }
     },
 
@@ -717,56 +697,11 @@ export default {
 
     // 上传编辑作品集封面图片
     async uploadEditCoverImage() {
-      if (!this.editingFolderCover) {
-        return null;
+      // 只改名称时保留已保存的封面，cloud:// 地址不能当作本地图片读取。
+      if (this.editingFolder && this.editingFolderCover === this.editingFolder.coverUrl) {
+        return this.editingFolderCover;
       }
-
-      const timestamp = new Date().getTime();
-      const cloudPath = `portfolio_covers/${timestamp}_edit_cover.jpg`;
-
-      try {
-        uni.showLoading({
-          title: '上传封面中...'
-        });
-
-        let fileContent;
-
-        // 检查运行环境
-        // #ifdef H5
-        // H5环境：使用fetch获取blob，然后转换为base64
-        const response = await fetch(this.editingFolderCover);
-        const blob = await response.blob();
-        fileContent = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-        // 移除data:image/jpeg;base64,前缀
-        fileContent = fileContent.split(',')[1];
-        // #endif
-
-        // #ifndef H5
-        // 非H5环境（如小程序）：使用uni.getFileSystemManager
-        fileContent = await new Promise((resolve, reject) => {
-          uni.getFileSystemManager().readFile({
-            filePath: this.editingFolderCover,
-            encoding: 'base64',
-            success: (readRes) => resolve(readRes.data),
-            fail: reject
-          });
-        });
-        // #endif
-
-        const uploadRes = await uploadFile(cloudPath, fileContent, { context: this });
-
-        uni.hideLoading();
-        return uploadRes.fileID || uploadRes;
-      } catch (error) {
-        uni.hideLoading();
-        console.error('上传封面图片失败:', error);
-        throw error;
-      }
+      return this.uploadCoverImage(this.editingFolderCover, 'edit');
     },
 
     async deleteFolder(folder) {

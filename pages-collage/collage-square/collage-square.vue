@@ -85,6 +85,7 @@
       </view>
     </view>
   </view>
+    <app-overlay-host />
 </template>
 
 <script>
@@ -155,7 +156,7 @@ export default {
         imageUrls: Array.isArray(post.imageUrls) ? post.imageUrls : (post.imageUrls ? [post.imageUrls] : []),
         votes,
         isVoted,
-        likeIcon: post.likeIcon || likeIcon.getLikeIcon(votes, isVoted)
+        likeIcon: likeIcon.getLikeIcon(votes, isVoted)
       }
     },
 
@@ -181,7 +182,8 @@ export default {
         if (!cached) return item
         const votes = Number(cached.votes) || 0
         const isVoted = !!cached.isVoted
-        if (votes === Number(item.votes || 0) && isVoted === !!item.isVoted) {
+        const nextLikeIcon = likeIcon.getLikeIcon(votes, isVoted)
+        if (votes === Number(item.votes || 0) && isVoted === !!item.isVoted && item.likeIcon === nextLikeIcon) {
           return item
         }
         changed = true
@@ -189,7 +191,7 @@ export default {
           ...item,
           votes,
           isVoted,
-          likeIcon: likeIcon.getLikeIcon(votes, isVoted)
+          likeIcon: nextLikeIcon
         }
       })
 

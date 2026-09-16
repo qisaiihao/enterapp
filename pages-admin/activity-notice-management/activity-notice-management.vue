@@ -27,17 +27,34 @@
       </view>
 
       <view class="form-item">
-        <text class="label">公告图片（可选，裁剪为 16:7）</text>
+        <text class="label">公告图片（可选，裁剪为 16:9）</text>
         <view class="image-picker" @tap="chooseAndCropImage">
-          <image v-if="imagePreviewUrl" class="image-preview" :src="imagePreviewUrl" mode="aspectFill" />
-          <view v-else class="image-placeholder">
-            <text class="placeholder-icon">🖼️</text>
-            <text class="placeholder-text">{{ uploadingImage ? '上传图片中...' : '选择图片并裁剪为 16:7' }}</text>
+          <view class="image-frame">
+            <image v-if="imagePreviewUrl" class="image-preview" :src="imagePreviewUrl" mode="aspectFill" />
+            <view v-else class="image-placeholder">
+              <text class="placeholder-icon">🖼️</text>
+              <text class="placeholder-text">{{ uploadingImage ? '上传图片中...' : '选择图片并裁剪为 16:9' }}</text>
+            </view>
           </view>
         </view>
         <view v-if="imagePreviewUrl && !uploadingImage" class="image-remove-row">
           <button class="mini-btn image-remove-btn" @tap.stop="clearImage">移除图片</button>
         </view>
+      </view>
+
+      <view class="form-item">
+        <text class="label">海报点击跳转地址（可选）</text>
+        <input class="input" maxlength="2048" v-model="form.linkUrl" placeholder="https://… 或站内页面地址" />
+        <view class="link-actions">
+          <picker class="link-picker" mode="selector" :range="linkOptions" range-key="label" @change="onQuickLinkChange">
+            <view class="picker-value">选择常用页面</view>
+          </picker>
+          <button v-if="form.linkUrl" class="mini-btn" @tap="form.linkUrl = ''">清除</button>
+        </view>
+        <text class="link-help">留空时不跳转，支持网页链接和以 /pages 开头的站内地址。</text>
+        <!-- #ifdef MP-WEIXIN -->
+        <text class="link-help">外部网页的域名需在微信后台配置为业务域名。</text>
+        <!-- #endif -->
       </view>
 
       <view class="form-row">
@@ -88,11 +105,14 @@
           <text :class="['status-tag', item.status || 'draft']">{{ statusText(item.status) }}</text>
         </view>
         <text v-if="item.summary" class="card-summary">{{ item.summary }}</text>
-        <image v-if="item.imagePreviewUrl" class="card-image" :src="item.imagePreviewUrl" mode="aspectFill" />
+        <view v-if="item.imagePreviewUrl" class="image-frame card-image-frame">
+          <image class="card-image" :src="item.imagePreviewUrl" mode="aspectFill" />
+        </view>
         <view class="card-meta">
           <text>小标题：{{ item.kicker || '公告' }}</text>
           <text>标记：{{ item.mark || '-' }} / 色调：{{ toneText(item.tone) }}</text>
           <text>权重：{{ item.sortWeight || 0 }}</text>
+          <text class="notice-link-summary">跳转：{{ item.linkUrl || '不跳转' }}</text>
         </view>
         <view class="card-actions">
           <button class="mini-btn edit-btn" @tap="openEdit(item)">编辑</button>
@@ -109,6 +129,7 @@
       <text>没有更多公告了</text>
     </view>
   </view>
+    <app-overlay-host />
 </template>
 
 <script>
@@ -122,6 +143,7 @@ import {
 import { invalidateActivityNotices } from '@/api-cache/activity-notices.js';
 import { uploadFile } from '@/utils/uploader.js';
 import fileUrlCache from '@/_utils/file-url-cache';
+import { ACTIVITY_NOTICE_LINK_OPTIONS, normalizeActivityNoticeLink } from '@/utils/activityNoticeLink.js';
 
 const STATUS_OPTIONS = [
   { value: 'draft', label: '草稿' },
@@ -144,6 +166,7 @@ function createEmptyForm() {
     summary: '',
     mark: '',
     image: '',
+    linkUrl: '',
     tone: 'cooperation',
     sortWeight: 0,
     status: 'draft'
@@ -166,6 +189,7 @@ export default {
       toneIndex: 0,
       statusLabels: STATUS_OPTIONS.map(item => item.label),
       toneLabels: TONE_OPTIONS.map(item => item.label),
+      linkOptions: ACTIVITY_NOTICE_LINK_OPTIONS,
       imagePreviewUrl: '',
       uploadingImage: false
     };
@@ -244,6 +268,7 @@ export default {
         summary: item.summary || '',
         mark: item.mark || '',
         image: item.image || '',
+        linkUrl: item.linkUrl || '',
         tone: item.tone || 'default',
         sortWeight: Number(item.sortWeight) || 0,
         status: item.status || 'draft'
@@ -291,7 +316,13 @@ export default {
 
     validateForm() {
       if (!String(this.form.title || '').trim()) return '请输入公告标题';
+      if (String(this.form.linkUrl || '').trim() && !normalizeActivityNoticeLink(this.form.linkUrl)) return '请填写有效的网页链接或站内页面地址';
       return '';
+    },
+
+    onQuickLinkChange(event) {
+      const option = this.linkOptions[Number(event.detail.value)];
+      if (option) this.form.linkUrl = option.url;
     },
 
     buildPayload() {
@@ -301,6 +332,7 @@ export default {
         summary: String(this.form.summary || '').trim(),
         mark: String(this.form.mark || '').trim(),
         image: String(this.form.image || '').trim(),
+        linkUrl: normalizeActivityNoticeLink(this.form.linkUrl),
         tone: this.form.tone || 'default',
         sortWeight: Number(this.form.sortWeight) || 0,
         status: this.form.status || 'draft'
@@ -564,6 +596,30 @@ export default {
   margin-bottom: 18rpx;
 }
 
+.link-actions {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-top: 12rpx;
+}
+
+.link-picker {
+  flex: 1;
+}
+
+.link-help {
+  display: block;
+  margin-top: 10rpx;
+  color: #888;
+  font-size: 22rpx;
+  line-height: 32rpx;
+}
+
+.notice-link-summary {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
 .form-row {
   display: flex;
   gap: 16rpx;
@@ -611,22 +667,32 @@ export default {
   border-radius: 10rpx;
   overflow: hidden;
   background: #f7f8fa;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 180rpx;
 }
 
-.image-preview {
+.image-frame {
+  position: relative;
   width: 100%;
-  height: 300rpx;
+  padding-top: 56.25%;
+}
+
+.image-preview,
+.card-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   display: block;
 }
 
 .image-placeholder {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 10rpx;
   padding: 40rpx 20rpx;
 }
@@ -651,9 +717,8 @@ export default {
   width: 200rpx;
 }
 
-.card-image {
-  width: 100%;
-  height: 220rpx;
+.card-image-frame {
+  overflow: hidden;
   border-radius: 8rpx;
   margin-top: 12rpx;
   background: #f2f4f7;

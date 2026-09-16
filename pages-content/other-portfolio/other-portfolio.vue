@@ -77,6 +77,7 @@
     <!-- 顶部提示（用于调试滑动预加载阈值） -->
     <view v-if="showPageIndicator" class="page-indicator"></view>
   </view>
+    <app-overlay-host />
 </template>
 
 <script>

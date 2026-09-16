@@ -1,4 +1,4 @@
-// 绠＄悊鍛樺姛鑳戒簯鍑芥暟
+// 管理员功能云函数
 const cloud = require('wx-server-sdk')
 
 cloud.init({
@@ -84,7 +84,7 @@ const {
 } = require('./_lib/activity')
 const { isAdminByPoemId } = require('./_lib/admin-auth')
 
-// 楠岃瘉绠＄悊鍛樻潈闄愶紙閫氳繃poemId锛?
+// 验证管理员权限（通过 poemId）
 const actionHandlers = {
   updateContactConfig: (event, openid) => updateContactConfig(event, openid),
   getAllPosts: (event) => getAllPosts(event),
@@ -300,7 +300,7 @@ async function previewFieldReplace(event) {
     console.error('[adminManager] previewFieldReplace failed:', error)
     return {
       success: false,
-      error: `棰勮澶辫触锛?{error.message}`
+      error: `预览失败`
     }
   }
 }
@@ -360,7 +360,7 @@ async function executeFieldReplace(event) {
     console.error('[adminManager] executeFieldReplace failed:', error)
     return {
       success: false,
-      error: `鎵ц鏇挎崲澶辫触锛?{error.message}`
+      error: `执行替换失败`
     }
   }
 }
@@ -432,23 +432,40 @@ function normalizeReplaceValue(value, { allowEmpty = false } = {}) {
 }
 
 async function getAllPosts(data) {
-  const { page = 0, pageSize = 20 } = data
+  const { page = 0, pageSize = 20, postType = 'all' } = data
+  const safePage = Number.isFinite(Number(page)) ? Math.max(0, Math.floor(Number(page))) : 0
+  const safePageSize = Number.isFinite(Number(pageSize)) ? Math.min(50, Math.max(1, Math.floor(Number(pageSize)))) : 20
+  if (!['all', 'normal', 'original', 'non-original', 'discussion'].includes(postType)) {
+    return { success: false, error: '帖子类型无效' }
+  }
+  // 与下方展示分类一致：讨论优先，其次按诗歌/原创标志分类。
+  // neq(true) 同时兼容旧帖缺少布尔字段的情况。
+  const filters = {}
+  if (postType === 'discussion') {
+    filters.isDiscussion = true
+  } else if (postType !== 'all') {
+    filters.isDiscussion = _.neq(true)
+    filters.isPoem = postType === 'normal' ? _.neq(true) : true
+    if (postType === 'original') filters.isOriginal = true
+    if (postType === 'non-original') filters.isOriginal = _.neq(true)
+  }
   
   try {
     const result = await db.collection('posts')
+      .where(filters)
       .orderBy('createTime', 'desc')
-      .skip(page * pageSize)
-      .limit(pageSize)
+      .skip(safePage * safePageSize)
+      .limit(safePageSize + 1)
       .get()
     
     // Add postType for frontend display.
-    const posts = result.data.map(post => {
+    const posts = result.data.slice(0, safePageSize).map(post => {
       let postType = 'normal'
       
-      if (post.isDiscussion) {
+      if (post.isDiscussion === true) {
         postType = 'discussion'
-      } else if (post.isPoem) {
-        if (post.isOriginal) {
+      } else if (post.isPoem === true) {
+        if (post.isOriginal === true) {
           postType = 'original'
         } else {
           postType = 'non-original'
@@ -463,13 +480,14 @@ async function getAllPosts(data) {
     
     return {
       success: true,
-      posts
+      posts,
+      hasMore: result.data.length > safePageSize
     }
   } catch (error) {
-    console.error('鑾峰彇甯栧瓙鍒楄〃澶辫触:', error)
+    console.error('获取帖子列表失败:', error)
     return {
       success: false,
-      error: '鑾峰彇甯栧瓙鍒楄〃澶辫触'
+      error: '获取帖子列表失败'
     }
   }
 }
@@ -527,10 +545,10 @@ async function updatePostType(data) {
       message: '甯栧瓙绫诲瀷鏇存柊鎴愬姛'
     }
   } catch (error) {
-    console.error('鏇存柊甯栧瓙绫诲瀷澶辫触:', error)
+    console.error('更新帖子类型失败:', error)
     return {
       success: false,
-      error: '鏇存柊甯栧瓙绫诲瀷澶辫触'
+      error: '更新帖子类型失败'
     }
   }
 }
@@ -565,10 +583,10 @@ async function deletePost(data) {
       message: '甯栧瓙鍒犻櫎鎴愬姛'
     }
   } catch (error) {
-    console.error('鍒犻櫎甯栧瓙澶辫触:', error)
+    console.error('删除帖子失败:', error)
     return {
       success: false,
-      error: '鍒犻櫎甯栧瓙澶辫触'
+      error: '删除帖子失败'
     }
   }
 }
@@ -615,10 +633,10 @@ async function getUserPassword(data) {
       }
     }
   } catch (error) {
-    console.error('鏌ヨ鐢ㄦ埛澶辫触:', error)
+    console.error('查询用户失败:', error)
     return {
       success: false,
-      error: '鏌ヨ鐢ㄦ埛澶辫触'
+      error: '查询用户失败'
     }
   }
 }
@@ -663,10 +681,10 @@ async function getPoetList(data) {
       poets
     }
   } catch (error) {
-    console.error('鑾峰彇璇椾汉鍒楄〃澶辫触:', error)
+    console.error('获取诗人列表失败:', error)
     return {
       success: false,
-      error: '鑾峰彇璇椾汉鍒楄〃澶辫触'
+      error: '获取诗人列表失败'
     }
   }
 }
@@ -691,10 +709,10 @@ async function deletePoet(data) {
       message: '璇椾汉鍒犻櫎鎴愬姛'
     }
   } catch (error) {
-    console.error('鍒犻櫎璇椾汉澶辫触:', error)
+    console.error('删除诗人失败:', error)
     return {
       success: false,
-      error: '鍒犻櫎璇椾汉澶辫触'
+      error: '删除诗人失败'
     }
   }
 }
@@ -743,10 +761,10 @@ async function listActivities(data) {
       hasMore: safeSkip + activities.length < total
     }
   } catch (error) {
-    console.error('鑾峰彇娲诲姩鍒楄〃澶辫触:', error)
+    console.error('获取活动列表失败:', error)
     return {
       success: false,
-      error: '鑾峰彇娲诲姩鍒楄〃澶辫触'
+      error: '获取活动列表失败'
     }
   }
 }
@@ -809,10 +827,10 @@ async function createActivity(data, openid) {
       activity: buildAdminActivityView({ _id: addRes._id, ...payload })
     }
   } catch (error) {
-    console.error('鍒涘缓娲诲姩澶辫触:', error)
+    console.error('创建活动失败:', error)
     return {
       success: false,
-      error: '鍒涘缓娲诲姩澶辫触'
+      error: '创建活动失败'
     }
   }
 }
@@ -891,10 +909,10 @@ async function updateActivity(data, openid) {
       message: '娲诲姩鏇存柊鎴愬姛'
     }
   } catch (error) {
-    console.error('鏇存柊娲诲姩澶辫触:', error)
+    console.error('更新活动失败:', error)
     return {
       success: false,
-      error: '鏇存柊娲诲姩澶辫触'
+      error: '更新活动失败'
     }
   }
 }
@@ -944,10 +962,10 @@ async function deleteActivity(data) {
       message: '娲诲姩鍒犻櫎鎴愬姛'
     }
   } catch (error) {
-    console.error('鍒犻櫎娲诲姩澶辫触:', error)
+    console.error('删除活动失败:', error)
     return {
       success: false,
-      error: '鍒犻櫎娲诲姩澶辫触'
+      error: '删除活动失败'
     }
   }
 }
@@ -967,10 +985,10 @@ async function getActivityDetail(data) {
       activity: buildAdminActivityView(res.data)
     }
   } catch (error) {
-    console.error('鑾峰彇娲诲姩璇︽儏澶辫触:', error)
+    console.error('获取活动详情失败:', error)
     return {
       success: false,
-      error: '鑾峰彇娲诲姩璇︽儏澶辫触'
+      error: '获取活动详情失败'
     }
   }
 }
@@ -993,6 +1011,7 @@ function buildActivityNoticeView(notice = {}) {
     summary: notice.summary || '',
     mark: notice.mark || '',
     image: notice.image || '',
+    linkUrl: notice.linkUrl || '',
     tone: normalizeActivityNoticeTone(notice.tone),
     status: notice.status || 'draft',
     sortWeight: Number(notice.sortWeight) || 0,
@@ -1045,6 +1064,15 @@ function buildActivityNoticePayload(data = {}, current = {}) {
     const image = String(data.image || '').trim()
     if (image && !image.startsWith('cloud://')) return { error: 'invalid notice image' }
     payload.image = image
+  }
+  if (Object.prototype.hasOwnProperty.call(data, 'linkUrl')) {
+    const url = typeof data.linkUrl === 'string' ? data.linkUrl.trim() : ''
+    const valid = url.length <= 2048 && !/[\s\\\u0000-\u001f\u007f]/.test(url) && (
+      /^https?:\/\/[^/?#@]+(?:[/?#].*)?$/i.test(url) ||
+      /^\/(?:pages|pages-[a-z-]+)\/[a-zA-Z0-9_/-]+(?:\?[^#]*)?$/.test(url)
+    )
+    if (url && !valid) return { error: '请填写有效的网页链接或站内页面地址' }
+    payload.linkUrl = url
   }
   if (Object.prototype.hasOwnProperty.call(data, 'tone')) {
     payload.tone = normalizeActivityNoticeTone(data.tone)
@@ -1101,10 +1129,10 @@ async function listActivityNotices(data) {
       hasMore: safeSkip + notices.length < (countRes.total || 0)
     }
   } catch (error) {
-    console.error('鑾峰彇娲诲姩鍏憡鍒楄〃澶辫触:', error)
+    console.error('获取活动公告列表失败:', error)
     return {
       success: false,
-      error: '鑾峰彇娲诲姩鍏憡鍒楄〃澶辫触'
+      error: '获取活动公告列表失败'
     }
   }
 }
@@ -1116,6 +1144,7 @@ async function createActivityNotice(data, openid) {
     summary: data && data.summary,
     mark: data && data.mark,
     image: data && data.image,
+    linkUrl: data && data.linkUrl,
     tone: data && data.tone,
     sortWeight: data && data.sortWeight,
     status: data && (data.status || 'draft')
@@ -1132,6 +1161,7 @@ async function createActivityNotice(data, openid) {
       summary: payload.summary || '',
       mark: payload.mark || '',
       image: payload.image || '',
+      linkUrl: payload.linkUrl || '',
       tone: payload.tone || 'default',
       status: payload.status || 'draft',
       sortWeight: Number(payload.sortWeight) || 0,
@@ -1147,10 +1177,10 @@ async function createActivityNotice(data, openid) {
       notice: buildActivityNoticeView({ _id: addRes._id, ...doc })
     }
   } catch (err) {
-    console.error('鍒涘缓娲诲姩鍏憡澶辫触:', err)
+    console.error('创建活动公告失败:', err)
     return {
       success: false,
-      error: '鍒涘缓娲诲姩鍏憡澶辫触'
+      error: '创建活动公告失败'
     }
   }
 }
@@ -1181,10 +1211,10 @@ async function updateActivityNotice(data, openid) {
       message: '鍏憡鏇存柊鎴愬姛'
     }
   } catch (err) {
-    console.error('鏇存柊娲诲姩鍏憡澶辫触:', err)
+    console.error('更新活动公告失败:', err)
     return {
       success: false,
-      error: '鏇存柊娲诲姩鍏憡澶辫触'
+      error: '更新活动公告失败'
     }
   }
 }
@@ -1234,10 +1264,10 @@ async function deleteActivityNotice(data) {
       message: '鍏憡鍒犻櫎鎴愬姛'
     }
   } catch (err) {
-    console.error('鍒犻櫎娲诲姩鍏憡澶辫触:', err)
+    console.error('删除活动公告失败:', err)
     return {
       success: false,
-      error: '鍒犻櫎娲诲姩鍏憡澶辫触'
+      error: '删除活动公告失败'
     }
   }
 }
@@ -1456,7 +1486,7 @@ async function listWeeklyIssues(data = {}) {
     }
   } catch (error) {
     console.error('[adminManager] listWeeklyIssues failed:', error)
-    return { success: false, error: '鑾峰彇鍛ㄥ垔鍒楄〃澶辫触' }
+    return { success: false, error: '获取周刊列表失败' }
   }
 }
 
@@ -1483,7 +1513,7 @@ async function createWeeklyIssue(data = {}, openid) {
     }
   } catch (error) {
     console.error('[adminManager] createWeeklyIssue failed:', error)
-    return { success: false, error: '鍒涘缓鍛ㄥ垔澶辫触' }
+    return { success: false, error: '创建周刊失败' }
   }
 }
 
@@ -1507,7 +1537,7 @@ async function updateWeeklyIssue(data = {}, openid) {
     return { success: true, message: 'weekly issue updated' }
   } catch (error) {
     console.error('[adminManager] updateWeeklyIssue failed:', error)
-    return { success: false, error: '鏇存柊鍛ㄥ垔澶辫触' }
+    return { success: false, error: '更新周刊失败' }
   }
 }
 
@@ -1533,7 +1563,7 @@ async function publishWeeklyIssue(data = {}, openid) {
     return { success: true, message: 'weekly issue published', rankingSnapshot, featuredSnapshots }
   } catch (error) {
     console.error('[adminManager] publishWeeklyIssue failed:', error)
-    return { success: false, error: '鍙戝竷鍛ㄥ垔澶辫触' }
+    return { success: false, error: '发布周刊失败' }
   }
 }
 
@@ -1609,7 +1639,7 @@ async function deleteWeeklyIssue(data = {}, openid) {
     return { success: true, message: 'weekly issue deleted' }
   } catch (error) {
     console.error('[adminManager] deleteWeeklyIssue failed:', error)
-    return { success: false, error: '鍒犻櫎鍛ㄥ垔澶辫触' }
+    return { success: false, error: '删除周刊失败' }
   }
 }
 
@@ -1851,7 +1881,7 @@ async function generateWeeklyRanking(data = {}) {
     return { success: true, ranking }
   } catch (error) {
     console.error('[adminManager] generateWeeklyRanking failed:', error)
-    return { success: false, error: '鐢熸垚鐑澶辫触' }
+    return { success: false, error: '生成热榜失败' }
   }
 }
 
@@ -1882,7 +1912,7 @@ async function listWeeklyTopics(data = {}) {
     }
   } catch (error) {
     console.error('[adminManager] listWeeklyTopics failed:', error)
-    return { success: false, error: '鑾峰彇涓婚鍒楄〃澶辫触' }
+    return { success: false, error: '获取主题列表失败' }
   }
 }
 
@@ -1908,7 +1938,7 @@ async function createWeeklyTopic(data = {}, openid) {
     }
   } catch (error) {
     console.error('[adminManager] createWeeklyTopic failed:', error)
-    return { success: false, error: '鍒涘缓涓婚澶辫触' }
+    return { success: false, error: '创建主题失败' }
   }
 }
 
@@ -1927,7 +1957,7 @@ async function updateWeeklyTopic(data = {}, openid) {
     return { success: true, message: 'topic updated' }
   } catch (error) {
     console.error('[adminManager] updateWeeklyTopic failed:', error)
-    return { success: false, error: '鏇存柊涓婚澶辫触' }
+    return { success: false, error: '更新主题失败' }
   }
 }
 
@@ -1950,7 +1980,7 @@ async function publishWeeklyTopic(data = {}, openid) {
     return { success: true, message: 'topic published', selectedSnapshots }
   } catch (error) {
     console.error('[adminManager] publishWeeklyTopic failed:', error)
-    return { success: false, error: '鍙戝竷涓婚澶辫触' }
+    return { success: false, error: '发布主题失败' }
   }
 }
 

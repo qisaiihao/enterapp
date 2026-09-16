@@ -36,7 +36,7 @@ exports.main = async (event, context) => {
 
   try {
     // 检查用户是否已有同名作品集
-    const existingResult = await db.collection('portfolios').where({
+    const existingResult = await db.collection('portfolio_folders').where({
       _openid: openid,
       name: name.trim()
     }).get();
@@ -52,12 +52,13 @@ exports.main = async (event, context) => {
 
     // 创建新作品集
     console.log('【createPortfolio】创建新作品集');
-    const result = await db.collection('portfolios').add({
+    const result = await db.collection('portfolio_folders').add({
       data: {
         _openid: openid,
         name: name.trim(),
         description: description ? description.trim() : '',
         itemCount: 0,
+        postCount: 0,
         items: [],
         createTime: new Date(),
         updateTime: new Date(),
@@ -76,6 +77,7 @@ exports.main = async (event, context) => {
         name: name.trim(),
         description: description ? description.trim() : '',
         itemCount: 0,
+        postCount: 0,
         items: [],
         createTime: new Date(),
         updateTime: new Date(),

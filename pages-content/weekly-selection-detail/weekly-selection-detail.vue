@@ -3,6 +3,7 @@
     :detail="detail"
     fallback-url="/pages-content/weekly-selection/weekly-selection"
   />
+    <app-overlay-host />
 </template>
 
 <script>

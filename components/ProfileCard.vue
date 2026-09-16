@@ -30,13 +30,11 @@
                     <view class="edit-profile-btn" @tap.stop="$emit('edit-profile')">
                         <text>编辑主页</text>
                     </view>
-                    <image
-                        src="/static/images/icons/menu-icon.svg"
-                        class="menu-btn-small"
-                        alt="菜单"
-                        title="菜单"
-                        @tap.stop="$emit('toggle-sidebar')"
-                    />
+                    <view class="menu-btn-small" role="button" aria-label="打开侧边栏" @tap.stop="$emit('toggle-sidebar')">
+                        <view class="menu-line"></view>
+                        <view class="menu-line"></view>
+                        <view class="menu-line"></view>
+                    </view>
                 </view>
             </view>
         </view>
@@ -160,7 +158,7 @@ export default {
     z-index: 3;
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: flex-start;
     gap: 18rpx;
 }
 
@@ -265,7 +263,7 @@ export default {
     position: relative;
     width: 246rpx;
     height: 54rpx;
-    background: var(--profile-button-bg, #d9d9d9);
+    background: var(--profile-button-bg, #4c4c4c);
     border-radius: 10rpx;
     border: var(--profile-button-border, none);
     box-shadow: var(--profile-button-shadow, none);
@@ -277,7 +275,7 @@ export default {
 }
 
 .edit-profile-btn:active {
-    background-color: var(--profile-button-active-bg, #c0c0c0);
+    background-color: var(--profile-button-active-bg, #000000);
 }
 
 .edit-profile-btn text {
@@ -291,14 +289,29 @@ export default {
 .menu-btn-small {
     width: 40rpx;
     height: 40rpx;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5rpx;
+    color: var(--profile-menu-icon-color, #202020);
     cursor: pointer;
-    transition: transform 0.2s ease;
-    filter: var(--profile-menu-icon-filter, grayscale(1) brightness(0.5));
-    opacity: var(--profile-menu-icon-opacity, 0.7);
+    transition: color 0.2s ease;
+    opacity: var(--profile-menu-icon-opacity, 1);
+}
+
+.menu-line {
+    width: 30rpx;
+    height: 3rpx;
+    flex-shrink: 0;
+    border-radius: 1rpx;
+    background-color: currentColor;
 }
 
 .menu-btn-small:active {
-    transform: scale(0.9);
+    color: var(--profile-menu-icon-active-color, #000000);
+    opacity: 1;
 }
 
 .profile-detail-card {

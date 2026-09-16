@@ -1,5 +1,6 @@
 import cacheManager from '@/cache/core/manager.js';
 import { cloudCall } from '@/utils/cloudCall.js';
+import { normalizeActivityNoticeLink } from '@/utils/activityNoticeLink.js';
 
 const NOTICE_TTL_MS = 60 * 1000;
 const NOTICE_SWR_MS = 30 * 1000;
@@ -23,6 +24,7 @@ function normalizeNotice(item = {}) {
     summary: item.summary || '',
     mark: item.mark || '',
     image: item.image || '',
+    linkUrl: normalizeActivityNoticeLink(item.linkUrl),
     tone: item.tone || 'default',
     sortWeight: Number(item.sortWeight) || 0
   };

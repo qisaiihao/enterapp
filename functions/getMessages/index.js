@@ -78,7 +78,9 @@ exports.main = async (event, context) => {
     };
     
     // 如果指定了消息类型，添加类型过滤
-    if (type && ['like', 'comment', 'favorite', 'follow', 'feedback', 'feedback_processed'].includes(type)) {
+    if (type === 'feedback_all') {
+      whereCondition.type = _.in(['feedback', 'feedback_reply', 'feedback_detail_requested', 'feedback_processed']);
+    } else if (type && ['like', 'comment', 'favorite', 'follow', 'feedback', 'feedback_processed', 'feedback_reply', 'feedback_detail_requested'].includes(type)) {
       whereCondition.type = type;
     }
     
@@ -141,10 +143,10 @@ exports.main = async (event, context) => {
     // 补充发送者信息
     const messages = messagesResult.data.map(msg => {
       const userInfo = userInfoMap[msg.fromUserId] || {};
-      const rawAvatarUrl = userInfo.avatarUrl || '';
+      const rawAvatarUrl = userInfo.avatarUrl || msg.fromUserAvatar || '';
       return {
         ...msg,
-        fromUserName: userInfo.nickName || '微信用户',
+        fromUserName: userInfo.nickName || msg.fromUserName || '微信用户',
         fromUserAvatar: needsDefaultAvatar(rawAvatarUrl) ? getUserDefaultAvatar(msg.fromUserId) : rawAvatarUrl
       };
     });

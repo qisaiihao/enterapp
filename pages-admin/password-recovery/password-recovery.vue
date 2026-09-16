@@ -36,6 +36,7 @@
             <text>未找到该用户</text>
         </view>
     </view>
+    <app-overlay-host />
 </template>
 
 <script>

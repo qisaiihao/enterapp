@@ -1,7 +1,7 @@
 <template>
     <!-- 字号字体选择弹窗 -->
-    <view v-if="show" class="font-selector-mask" @tap.stop="$emit('close')">
-        <view class="font-selector" @tap.stop>
+    <AppActionSheet :visible="show" title="字体设置" cancel-text="完成" @cancel="$emit('close')">
+        <view class="font-selector">
             <view class="font-selector-title">字体设置</view>
             
             <!-- 字号调整 -->
@@ -17,8 +17,8 @@
                         :step="1"
                         @changing="onFontSizeChanging"
                         @change="onFontSizeChange"
-                        activeColor="#333333"
-                        backgroundColor="#E5E5E5"
+                        :activeColor="appThemeMode === 'dark' ? '#d6d6d8' : '#333333'"
+                        :backgroundColor="appThemeMode === 'dark' ? '#444449' : '#E5E5E5'"
                         block-size="24"
                         block-color="#FFFFFF"
                     />
@@ -80,14 +80,16 @@
                 </scroll-view>
             </view>
         </view>
-    </view>
+    </AppActionSheet>
 </template>
 
 <script>
+import AppActionSheet from '@/components/overlay/AppActionSheet.vue';
 import fontManager from '@/utils/fontManager.js';
 
 export default {
     name: 'FontSelectorModal',
+    components: { AppActionSheet },
     emits: ['close', 'font-size-preview', 'font-family-preview', 'confirm'],
     props: {
         show: {
@@ -312,36 +314,19 @@ export default {
 </script>
 
 <style scoped>
-/* 弹窗遮罩 */
-.font-selector-mask { 
-    position: fixed; 
-    left: 0; 
-    right: 0; 
-    top: 0; 
-    bottom: 0; 
-    background: rgba(0,0,0,.35); 
-    z-index: 9999; 
-    display: flex; 
-    align-items: flex-end; 
-}
-
 .font-selector {
     width: 100%;
-    background: #fff;
-    border-top-left-radius: 24rpx;
-    border-top-right-radius: 24rpx;
-    padding: 32rpx 32rpx env(safe-area-inset-bottom);
-    height: 65vh;
-    max-height: 65vh;
+    padding: 32rpx;
+    box-sizing: border-box;
+    height: 60vh;
     display: flex;
     flex-direction: column;
-    animation: slideUp 0.3s ease;
 }
 
 .font-selector-title {
     font-size: 36rpx;
     font-weight: 600;
-    color: #333;
+    color: var(--overlay-text);
     text-align: center;
     margin-bottom: 40rpx;
 }
@@ -353,7 +338,7 @@ export default {
 
 .section-title {
     font-size: 28rpx;
-    color: #666;
+    color: var(--overlay-muted);
     margin-bottom: 24rpx;
     font-weight: 500;
 }
@@ -367,7 +352,7 @@ export default {
 
 .size-label {
     font-size: 28rpx;
-    color: #999;
+    color: var(--overlay-muted);
     font-weight: 500;
 }
 
@@ -384,7 +369,7 @@ export default {
 .font-size-value {
     text-align: center;
     font-size: 24rpx;
-    color: #333333;
+    color: var(--overlay-text);
     font-weight: 500;
 }
 
@@ -409,24 +394,24 @@ export default {
     align-items: center;
     gap: 8rpx;
     padding: 12rpx 20rpx;
-    background: #F5F5F5;
+    background: var(--overlay-control-bg);
     border-radius: 8rpx;
     transition: all 0.2s ease;
 }
 
 .add-font-btn:active {
-    background: #E8E8E8;
+    background: var(--overlay-gap);
 }
 
 .add-font-icon {
     font-size: 28rpx;
-    color: #333;
+    color: var(--overlay-text);
     font-weight: bold;
 }
 
 .add-font-text {
     font-size: 24rpx;
-    color: #333;
+    color: var(--overlay-text);
 }
 
 .font-options-scroll {
@@ -442,7 +427,7 @@ export default {
 }
 
 .font-option {
-    background: #F8F8F8;
+    background: var(--overlay-control-bg);
     border-radius: 8rpx;
     padding: 20rpx 24rpx;
     position: relative;
@@ -467,36 +452,36 @@ export default {
 }
 
 .font-option:active {
-    background: #E8E8E8;
+    background: var(--overlay-gap);
 }
 
 .font-option.selected {
-    background: #F0F0F0;
-    border: 2rpx solid #333333;
+    background: var(--overlay-control-bg);
+    border: 2rpx solid var(--overlay-text);
 }
 
 .font-option.downloading {
-    background: #F0F0F0;
-    border: 2rpx solid #333333;
+    background: var(--overlay-control-bg);
+    border: 2rpx solid var(--overlay-text);
 }
 
 
 .font-option-text {
     font-size: 26rpx;
-    color: #333;
+    color: var(--overlay-text);
     font-weight: 500;
 }
 
 .font-check {
     font-size: 24rpx;
-    color: #333;
+    color: var(--overlay-text);
     font-weight: bold;
 }
 
 .font-size-text {
     font-size: 20rpx;
-    color: #999;
-    background: #F0F0F0;
+    color: var(--overlay-muted);
+    background: var(--overlay-control-bg);
     padding: 4rpx 8rpx;
     border-radius: 4rpx;
 }
@@ -506,8 +491,8 @@ export default {
     padding: 4rpx 8rpx;
     border-radius: 4rpx;
     font-weight: 500;
-    color: #999;
-    background: #F0F0F0;
+    color: var(--overlay-muted);
+    background: var(--overlay-control-bg);
 }
 
 .font-status-text.custom {
@@ -517,7 +502,7 @@ export default {
 
 .font-delete {
     font-size: 22rpx;
-    color: #ef4444;
+    color: var(--overlay-danger);
     padding: 8rpx 16rpx;
 }
 
@@ -533,7 +518,7 @@ export default {
 .progress-bar {
     width: 60rpx;
     height: 6rpx;
-    background: #F0F0F0;
+    background: var(--overlay-control-bg);
     border-radius: 3rpx;
     overflow: hidden;
 }
@@ -547,19 +532,8 @@ export default {
 
 .progress-text {
     font-size: 20rpx;
-    color: #999;
+    color: var(--overlay-muted);
     font-weight: 500;
-}
-
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(100%);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
 }
 
 @keyframes pulse {

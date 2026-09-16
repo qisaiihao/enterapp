@@ -48,6 +48,7 @@
             <text>--- 我是有底线的 ---</text>
         </view>
     </view>
+    <app-overlay-host />
 </template>
 
 <script>

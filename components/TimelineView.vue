@@ -145,10 +145,10 @@ export default {
 <style scoped>
 .timeline-container {
     margin: 30rpx;
-    background: var(--app-surface-bg, #fff);
-    border-radius: 16rpx;
-    box-shadow: var(--app-surface-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
-    border: var(--app-surface-border-line, none);
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
     padding: 30rpx;
 }
 
@@ -293,10 +293,10 @@ export default {
 .timeline-loading,
 .timeline-error {
     margin: 30rpx;
-    background: var(--app-surface-bg, #fff);
-    border-radius: 16rpx;
-    box-shadow: var(--app-surface-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
-    border: var(--app-surface-border-line, none);
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
     padding: 60rpx 30rpx;
     text-align: center;
 }
@@ -362,10 +362,4 @@ export default {
     background-color: var(--app-surface-accent-color, #6d7a64);
 }
 
-[data-app-theme="dark"] .timeline-container,
-[data-app-theme="dark"] .timeline-empty,
-[data-app-theme="dark"] .timeline-loading,
-[data-app-theme="dark"] .timeline-error {
-    background: #0f1115;
-}
 </style>

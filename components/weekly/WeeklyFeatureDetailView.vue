@@ -1,8 +1,8 @@
 <template>
   <view class="feature-page" :data-app-theme="appThemeMode" :style="featurePageStyle">
     <view class="feature-header">
-      <view class="back-btn" @tap="goBack">
-        <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
+      <view class="feature-back-btn" @tap="goBack">
+        <image class="feature-back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
       </view>
       <text class="feature-title">{{ detail.title }}</text>
     </view>
@@ -12,7 +12,7 @@
       <text class="feature-empty-sub">编辑正在挑选诗歌，请稍后再来看看</text>
     </view>
 
-    <view v-if="postItems.length" class="poem-stack-wrap">
+    <view v-if="postItems.length" class="poem-stack-wrap" @touchmove.stop.prevent>
       <view
         class="poem-stack"
         @touchstart="handleStackTouchStart"
@@ -31,7 +31,7 @@
         >
           <view v-if="stackIndex === 0" class="poem-stack-content">
             <text class="stack-poem-title" :style="getCardTextStyle(card, stackIndex)">{{ card.title || '未命名作品' }}</text>
-            <text class="stack-poem-copy" :style="getCardTextStyle(card, stackIndex)">{{ card.copy || card.content || '' }}</text>
+            <text class="stack-poem-copy" :style="getCardTextStyle(card, stackIndex)">{{ getCardCopy(card) }}</text>
           </view>
         </view>
       </view>
@@ -43,6 +43,7 @@
           class="author-avatar avatar-image"
           :src="currentAuthorAvatar"
           mode="aspectFill"
+          @tap.stop="openAuthorProfile"
         ></image>
         <view class="author-copy">
           <text class="author-name">{{ currentAuthorName }}</text>
@@ -52,8 +53,8 @@
       <text v-if="currentSignatureText" class="signature-text">{{ currentSignatureText }}</text>
     </view>
 
-    <view v-if="postItems.length" class="comment-preview-slot">
-      <view v-if="selectedPostComments.length" class="comment-preview">
+    <view v-if="postItems.length && selectedPostComments.length" class="comment-preview-slot">
+      <view class="comment-preview">
         <view
           v-for="(comment, index) in selectedPostComments"
           :key="comment._id || index"
@@ -64,6 +65,7 @@
             class="comment-avatar"
             :src="resolveCommentAvatar(comment)"
             mode="aspectFill"
+            @tap.stop="openUserProfile(comment)"
           ></image>
           <view class="comment-bubble">
             <text class="comment-text">{{ comment.content }}</text>
@@ -73,6 +75,7 @@
             class="comment-avatar"
             :src="resolveCommentAvatar(comment)"
             mode="aspectFill"
+            @tap.stop="openUserProfile(comment)"
           ></image>
         </view>
       </view>
@@ -188,11 +191,12 @@ import WeeklyShareCardModal from '@/components/weekly/WeeklyShareCardModal.vue';
 import FolderSelector from '@/components/folder-selector/folder-selector.vue';
 import { isUserLoggedIn, requireLogin } from '@/utils/authHelper.js';
 import { getComments, submitComment } from '@/api-cache/comment.js';
+import { getPostDetail } from '@/api-cache/post.js';
 import { getSystemInfoCompat, getWindowInfoCompat } from '@/utils/system-info.js';
 import { resolvePostAuthorAvatar, resolveCommentAuthorAvatar } from '@/utils/defaultAvatar.js';
 import { getReadableTextColor, getThemedCardBackgroundColor } from '@/utils/uiHelpers.js';
 import { getThemeMode, getThemeVars, THEME_CHANGED_EVENT } from '@/utils/theme.js';
-import { navigateToPostDetail } from '@/utils/navigation.js';
+import { navigateToPostDetail, navigateToUserProfile } from '@/utils/navigation.js';
 import likeIcon from '@/utils/likeIcon.js';
 import { togglePostLike } from '@/utils/likeService.js';
 import { getLatestLikeStatus, updateLikeStatus } from '@/utils/likeStatusSync.js';
@@ -231,6 +235,7 @@ export default {
       commentLoadingByPostId: {},
       commentRequestKey: '',
       currentPostIndex: 0,
+      authorProfileLoading: false,
       stackAnimating: false,
       stackTouchStartX: 0,
       stackTouchStartY: 0,
@@ -266,7 +271,7 @@ export default {
     },
 
     postItems() {
-      return Array.isArray(this.detail.posts) ? this.detail.posts.slice(0, 8) : [];
+      return Array.isArray(this.detail.posts) ? this.detail.posts : [];
     },
 
     selectedPost() {
@@ -481,6 +486,55 @@ export default {
       return resolveCommentAuthorAvatar(comment);
     },
 
+    async openAuthorProfile() {
+      let post = this.selectedPost;
+      if (!post || this.authorProfileLoading) return;
+      const postId = this.getPostId(post);
+      const isAnonymous = post.isAnonymous === true || post.isAnonymous === 'true';
+
+      // 历史周刊快照只保存作者昵称和头像，从原帖补齐主页需要的用户标识。
+      if (!post._openid && !post.authorOpenid && !isAnonymous) {
+        this.authorProfileLoading = true;
+        uni.showLoading({ title: '加载中' });
+        try {
+          const result = await getPostDetail(postId, {
+            context: this,
+            pageTag: 'weekly-author-profile',
+            injectOpenId: true,
+            forceRefresh: true,
+            silent: true
+          });
+          post = result.post;
+        } catch (error) {
+          console.warn('[WeeklyFeatureDetailView] load author profile failed:', error);
+          post = null;
+        } finally {
+          this.authorProfileLoading = false;
+          uni.hideLoading();
+        }
+        if (!post) {
+          uni.showToast({ title: '获取作者信息失败，请重试', icon: 'none' });
+          return;
+        }
+        // 请求期间切换了诗歌时，不再跳转到上一首的作者。
+        if (this.selectedPostId !== postId) return;
+      }
+      this.openUserProfile(post);
+    },
+
+    openUserProfile(user = {}) {
+      const userId = user._openid || user.authorOpenid || '';
+      if (user.isAnonymous === true || user.isAnonymous === 'true' || userId === '123456') {
+        uni.showToast({ title: '匿名用户无法查看主页', icon: 'none' });
+        return;
+      }
+      navigateToUserProfile({
+        userId,
+        authorName: user.authorName,
+        currentUserId: getCurrentUserId(this)
+      });
+    },
+
     resolveCardBackground(card) {
       const sourceColor = card && card.backgroundColor ? card.backgroundColor : this.resolvePostFallbackColor(card);
       return getThemedCardBackgroundColor(sourceColor, this.appThemeMode);
@@ -491,6 +545,20 @@ export default {
         this.resolveCardBackground(card),
         (card && card.textColor) || '#222'
       );
+    },
+
+    getCardCopy(card = {}) {
+      const lines = Array.isArray(card.highlightLines)
+        ? card.highlightLines.filter(line => typeof line === 'string' && line.trim()).map(line => line.trim())
+        : [];
+      const highlight = lines.join('\n') || (typeof card.highlightSentence === 'string' ? card.highlightSentence.trim() : '');
+      if (highlight) return highlight;
+      return String(card.content || card.copy || '')
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(Boolean)
+        .slice(0, 4)
+        .join('\n');
     },
 
     getCardInlineStyle(card, stackIndex = 0) {
@@ -1203,7 +1271,7 @@ export default {
   box-sizing: border-box;
   background: #ffffff;
   color: #111111;
-  padding-bottom: calc(180rpx + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(130rpx + env(safe-area-inset-bottom, 0px));
 }
 
 .feature-header {
@@ -1214,7 +1282,7 @@ export default {
   background: #ffffff;
 }
 
-.back-btn {
+.feature-back-btn {
   position: absolute;
   left: 30rpx;
   bottom: 16rpx;
@@ -1223,9 +1291,10 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+  background: transparent;
 }
 
-.back-icon {
+.feature-back-icon {
   width: 22rpx;
   height: 38rpx;
   display: block;
@@ -1269,11 +1338,12 @@ export default {
 
 .poem-stack-wrap {
   padding-top: 44rpx;
+  touch-action: none;
 }
 
 .poem-stack {
   position: relative;
-  width: 610rpx;
+  width: 550rpx;
   height: 650rpx;
   margin: 0 auto;
 }
@@ -1283,7 +1353,7 @@ export default {
   border-radius: 14rpx;
   box-sizing: border-box;
   overflow: hidden;
-  transition: right 0.18s ease, bottom 0.18s ease, transform 0.18s ease;
+  transition: left 0.18s ease, bottom 0.18s ease, width 0.18s ease, height 0.18s ease, transform 0.18s ease;
 }
 
 .poem-stack-card.is-shuffling {
@@ -1291,7 +1361,7 @@ export default {
 }
 
 .poem-stack-card-1 {
-  right: 104rpx;
+  left: 0;
   bottom: 0;
   z-index: 5;
   width: 484rpx;
@@ -1302,31 +1372,31 @@ export default {
 }
 
 .poem-stack-card-2 {
-  right: 58rpx;
-  bottom: 34rpx;
+  left: 40rpx;
+  bottom: 52rpx;
   z-index: 4;
-  width: 500rpx;
-  height: 554rpx;
+  width: 466rpx;
+  height: 516rpx;
   background: #f5dfba;
   border: 10rpx solid #f5dfba;
 }
 
 .poem-stack-card-3 {
-  right: 28rpx;
-  bottom: 68rpx;
+  left: 80rpx;
+  bottom: 104rpx;
   z-index: 3;
-  width: 516rpx;
-  height: 572rpx;
+  width: 448rpx;
+  height: 496rpx;
   background: #71805c;
   border: 10rpx solid #71805c;
 }
 
 .poem-stack-card-4 {
-  right: 0;
-  bottom: 96rpx;
+  left: 120rpx;
+  bottom: 156rpx;
   z-index: 2;
-  width: 532rpx;
-  height: 590rpx;
+  width: 430rpx;
+  height: 476rpx;
   background: #7d2f2a;
   border: 10rpx solid #bfe9ee;
 }
@@ -1339,12 +1409,12 @@ export default {
   flex-direction: column;
   justify-content: center;
   box-sizing: border-box;
-  font-family: 'Huiwen-mincho', '姹囨枃鏄庢湞', 'Songti SC', 'STSong', serif;
+  font-family: 'Huiwen-mincho', '汇文明朝', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
 }
 
 .stack-poem-title {
   color: #ffffff;
-  font-family: 'Huiwen-mincho', '姹囨枃鏄庢湞', 'Songti SC', 'STSong', serif;
+  font-family: 'Huiwen-mincho', '汇文明朝', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   font-size: 34rpx;
   line-height: 44rpx;
   font-weight: 700;
@@ -1357,7 +1427,8 @@ export default {
 .stack-poem-copy {
   margin-top: 28rpx;
   color: rgba(255, 255, 255, 0.88);
-  font-family: 'Huiwen-mincho', '姹囨枃鏄庢湞', 'Songti SC', 'STSong', serif;
+  font-family: 'Huiwen-mincho', '汇文明朝', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  font-weight: 500;
   font-size: 26rpx;
   line-height: 44rpx;
   text-align: center;
@@ -1432,11 +1503,6 @@ export default {
 
 .comment-preview-slot {
   margin: 30rpx 38rpx 0;
-  min-height: 342rpx;
-}
-
-.comment-preview {
-  min-height: 342rpx;
 }
 
 .comment-preview-row {

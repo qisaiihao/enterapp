@@ -398,6 +398,7 @@
 
   </view>
 
+    <app-overlay-host />
 </template>
 
 
@@ -2139,7 +2140,9 @@ export default {
 
           : []);
 
-      const seriesBlocks = addData.isSeries ? (addData.seriesBlocks || []) : [];
+      const seriesBlocks = addData.isSeries && Array.isArray(addData.seriesBlocks)
+        ? addData.seriesBlocks.filter(block => block && ((block.content || '').trim() || (block.subtitle || '').trim()))
+        : [];
 
       const mergedSeriesContent = addData.isSeries
 
@@ -2174,7 +2177,9 @@ export default {
       this.lastSubmitActivityId = addData.activityId || addData.joinActivityId || '';
 
       const normalizedPublishMode = (addData.isSeries || addData.isPoem || addData.publishMode === 'poem') ? 'poem' : (addData.publishMode || 'normal');
-      const normalizedIsSeries = !!addData.isSeries;
+      // 发布时至少有两首非空诗歌才标记为组诗，正文和高光仍从编辑分块中提取。
+      const normalizedIsSeries = seriesBlocks.length > 1;
+      const normalizedTitle = addData.title || (seriesBlocks.length === 1 ? seriesBlocks[0].subtitle : '') || '';
       const normalizedIsDiscussion = normalizedPublishMode === 'discussion' && !normalizedIsSeries;
       const normalizedIsPoem = normalizedPublishMode === 'poem' || normalizedIsSeries;
       const normalizedIsOriginal = normalizedIsPoem ? !!addData.isOriginal : false;
@@ -2184,6 +2189,15 @@ export default {
       // 如果是编辑模式，调用更新接口
 
       if (!isEditMode && addData.isSeries && addData.seriesSourceMode === 'existing-posts') {
+
+        // 只选了一首已发布诗歌时直接打开原帖，无需创建组诗。
+        if (seriesBlocks.length === 1) {
+          this.publishSuccess({
+            _id: seriesBlocks[0].postId || seriesBlocks[0].id,
+            redirectToPostDetail: true
+          });
+          return;
+        }
 
         const payload = {
 
@@ -2271,7 +2285,7 @@ export default {
 
         const updateData = {
 
-          title: addData.title,
+          title: normalizedTitle,
 
           content: addData.isSeries ? mergedSeriesContent : addData.content,
 
@@ -2315,9 +2329,9 @@ export default {
 
           isSeries: normalizedIsSeries,
 
-          seriesBlocks: normalizedIsSeries ? seriesBlocks : undefined,
+          seriesBlocks: normalizedIsSeries ? seriesBlocks : [],
 
-          seriesBlockCount: normalizedIsSeries ? seriesBlocks.length : undefined
+          seriesBlockCount: normalizedIsSeries ? seriesBlocks.length : 0
 
         };
 
@@ -2399,7 +2413,7 @@ export default {
 
       const postData = {
 
-        title: addData.title,
+        title: normalizedTitle,
 
         content: addData.isSeries ? mergedSeriesContent : addData.content,
 
@@ -2457,7 +2471,7 @@ export default {
 
       }
 
-      if (addData.isSeries) {
+      if (normalizedIsSeries) {
 
         postData.seriesBlocks = seriesBlocks;
 
@@ -2505,7 +2519,7 @@ export default {
 
       return contentAudit({
 
-        title: addData.title,
+        title: normalizedTitle,
 
         content: addData.isSeries ? mergedSeriesContent : addData.content,
 

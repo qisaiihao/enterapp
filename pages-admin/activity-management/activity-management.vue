@@ -2,6 +2,7 @@
   <view class="activity-admin-page">
     <view class="top-actions">
       <button class="action-btn create-btn" @tap="openCreate">新建活动</button>
+      <button class="action-btn refresh-btn" @tap="openNoticeManagement">轮播海报</button>
       <button class="action-btn refresh-btn" @tap="refreshList">刷新</button>
     </view>
 
@@ -44,6 +45,7 @@
       <text>没有更多活动了</text>
     </view>
   </view>
+    <app-overlay-host />
 </template>
 
 <script>
@@ -85,6 +87,9 @@ export default {
     this.loadMore();
   },
   methods: {
+    openNoticeManagement() {
+      uni.navigateTo({ url: '/pages-admin/activity-notice-management/activity-notice-management' });
+    },
     async refreshList(fromPullDown = false) {
       invalidateRecentActivities();
       this.page = 0;
@@ -262,6 +267,8 @@ export default {
 
 .action-btn {
   flex: 1;
+  min-width: 0;
+  padding: 0 8rpx;
   height: 72rpx;
   line-height: 72rpx;
   border-radius: 12rpx;

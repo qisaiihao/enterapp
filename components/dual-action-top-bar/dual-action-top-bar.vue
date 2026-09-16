@@ -31,7 +31,7 @@ export default {
     },
     rightIcon: {
       type: String,
-      default: '/static/images/select_more.png'
+      default: '/static/images/newicons/add.png'
     },
     showRight: {
       type: Boolean,
@@ -127,6 +127,8 @@ export default {
   /* #endif */
   /* #ifndef MP-WEIXIN */
   justify-content: space-between;
+  /* 加号右侧有 22rpx 透明留白，补 8rpx 后与返回箭头的 30rpx 边距一致。 */
+  padding-right: 8rpx;
   /* #endif */
 }
 
@@ -145,6 +147,9 @@ export default {
 
 .dual-action-top-bar__button--right {
   width: 100rpx;
+  /* #ifndef MP-WEIXIN */
+  justify-content: flex-end;
+  /* #endif */
 }
 
 /* #ifdef MP-WEIXIN */
@@ -169,7 +174,7 @@ export default {
 }
 
 .dual-action-top-bar__icon--right {
-  width: 100rpx;
-  height: 100rpx;
+  width: 80rpx;
+  height: 80rpx;
 }
 </style>

@@ -1,0 +1,14 @@
+{
+  "envId": "cloud1-5gb0pbyl400845f5",
+  "functionRoot": "./cloudfunctions",
+  "functions": [
+    {
+      "name": "webReader",
+      "runtime": "Nodejs18.15",
+      "handler": "index.main",
+      "timeout": 20,
+      "memorySize": 256,
+      "installDependency": true
+    }
+  ]
+}

@@ -53,6 +53,7 @@
     <!-- #endif -->
   </view>
 
+    <app-overlay-host />
 </template>
 
 <script>

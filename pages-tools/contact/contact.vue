@@ -21,6 +21,7 @@
       </view>
     </template>
   </view>
+    <app-overlay-host />
 </template>
 
 <script>

@@ -2,14 +2,14 @@
     <!-- pages/favorite-folders/favorite-folders.wxml -->
     <view class="favorite-folders-page" :data-app-theme="appThemeMode" :style="appThemeVars">
         <!-- 顶部导航栏 -->
-        <view class="header">
-            <view class="header-left" @tap="goBack">
-                <image class="back-icon-image" src="/static/images/left_exit.png" mode="aspectFit"></image>
-            </view>
-            <text class="header-title">我的收藏</text>
-            <view class="header-right">
-                <image class="create-btn-icon" src="/static/images/select_more.png" mode="aspectFit" @tap="showCreateFolder"></image>
-            </view>
+        <view class="favorite-folders-header" :style="{ paddingTop: safeAreaTop + 'px' }">
+            <dual-action-top-bar
+                title="我的收藏"
+                :show-divider="true"
+                @left-click="goBack"
+                @right-click="showCreateFolder"
+                @safe-area-ready="onSafeAreaReady"
+            />
         </view>
 
         <!-- 收藏夹列表 -->
@@ -125,16 +125,22 @@
             </view>
         </view>
     </view>
+    <app-overlay-host />
 </template>
 
 <script>
 // pages/favorite-folders/favorite-folders.js
 import { cloudCall } from '../../utils/cloudCall.js';
 import { checkLoginOrPrompt } from '@/utils/authHelper.js';
+import dualActionTopBar from '@/components/dual-action-top-bar/dual-action-top-bar.vue';
 
 export default {
+    components: {
+        dualActionTopBar
+    },
     data() {
         return {
+            safeAreaTop: 0,
             folders: [],
             isLoading: true,
             showCreateModal: false,
@@ -173,6 +179,10 @@ export default {
         this.loadFolders();
     },
     methods: {
+        onSafeAreaReady(height) {
+            this.safeAreaTop = height || 0;
+        },
+
         // 统一云函数调用方法
         callCloudFunction(name, data = {}, extraOptions = {}) {
             return cloudCall(name, data, Object.assign({ pageTag: 'favorite-folders', context: this, requireAuth: true }, extraOptions));
@@ -754,55 +764,12 @@ export default {
     color: var(--app-primary-text, #111111);
     display: flex;
     flex-direction: column;
-    padding-top: var(--app-safe-area-top, 0px);
 }
 
-.header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    padding: 20rpx 30rpx;
-    background: var(--app-fixed-bar-bg, #fff);
-    border-bottom: 1rpx solid var(--app-border-color, #e9ecef);
-}
-
-.header-left {
-    position: absolute;
-    left: 30rpx;
-    width: 60rpx;
-    height: 60rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.back-icon-image {
-    width: 22rpx;
-    height: 38rpx;
-    filter: var(--app-icon-filter, none);
-}
-
-.header-title {
-    font-size: 36rpx;
-    font-weight: 600;
-    color: var(--app-primary-text, #333);
-}
-
-.header-right {
-    position: absolute;
-    right: 30rpx;
-    width: 100rpx;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-}
-
-.create-btn-icon {
-    width: 72rpx;
-    height: 72rpx;
-    margin-top: 4rpx;
-    filter: var(--app-icon-filter, none);
+.favorite-folders-header {
+    height: 100rpx;
+    flex-shrink: 0;
+    box-sizing: content-box;
 }
 
 .folders-list {

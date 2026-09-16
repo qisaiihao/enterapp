@@ -42,6 +42,7 @@ exports.main = async (event, context) => {
   if (!userId) {
     return { success: false, message: '用户ID不能为空' };
   }
+  const isOwner = String(currentOpenid) === String(userId);
 
   try {
     // 检查是否屏蔽了目标用户
@@ -102,6 +103,15 @@ exports.main = async (event, context) => {
       profileData = { list: profileData.data };
     } else {
       // 完整模式：获取用户信息和帖子
+      // 可见性过滤必须在分页之前，否则隐藏帖会占用分页名额。
+      const postMatch = {
+        $expr: { $eq: ['$_openid', '$$user_openid'] },
+        isActivityPost: { $ne: true }
+      };
+      if (!isOwner) {
+        postMatch.isHidden = { $ne: true };
+        if (blockedUserIds.length > 0) postMatch._openid = { $nin: blockedUserIds };
+      }
       profileData = await db.collection('users').aggregate()
         .match({ _openid: userId })
         .limit(1)
@@ -109,16 +119,7 @@ exports.main = async (event, context) => {
           from: 'posts',
           let: { user_openid: '$_openid' },
           pipeline: [
-            { 
-              $match: { 
-                $expr: { 
-                  $and: [
-                    { $eq: ['$_openid', '$$user_openid'] },
-                    { $ne: ['$isActivityPost', true] }
-                  ]
-                } 
-              } 
-            },
+            { $match: postMatch },
             { $sort: { createTime: -1 } },
             { $skip: skip },
             { $limit: limit }
@@ -158,7 +159,6 @@ exports.main = async (event, context) => {
     if (!onlyProfile) {
       // 非本人访问时，过滤掉隐藏帖和被屏蔽用户的帖子
       try {
-        const isOwner = String(currentOpenid) === String(userId);
         if (!isOwner && Array.isArray(posts)) {
           posts = posts.filter((p) => {
             if (!p || p.isHidden === true) return false;
@@ -387,6 +387,5 @@ exports.main = async (event, context) => {
     };
   }
 };
-
 
 

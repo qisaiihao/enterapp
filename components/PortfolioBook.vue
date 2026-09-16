@@ -149,11 +149,11 @@ export default {
 /* 书籍样式作品集 */
 .books-container {
     padding: 40rpx 30rpx 0 30rpx;
-    background: var(--app-surface-bg, #fff);
+    background: transparent;
     margin: 0 30rpx 30rpx 30rpx;
-    border-radius: 16rpx;
-    box-shadow: var(--app-surface-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
-    border: var(--app-surface-border-line, none);
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
 }
 
 .books-container-inline {
@@ -461,7 +461,4 @@ export default {
     color: var(--app-surface-meta-color, #999);
 }
 
-[data-app-theme="dark"] .books-container {
-    background: #0f1115;
-}
 </style>

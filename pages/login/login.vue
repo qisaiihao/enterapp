@@ -91,101 +91,51 @@
 
     <!-- 绑定微信弹窗（小程序专属） -->
     <!-- #ifdef MP-WEIXIN -->
-    <view class="bind-phone-modal" v-if="showBindWechatModal" @tap.stop>
-      <view class="modal-mask" @tap="closeBindWechatModal"></view>
-      <view class="modal-content">
-        <view class="modal-header">
-          <text class="modal-title">绑定微信账号</text>
-          <text class="modal-close" @tap="closeBindWechatModal">×</text>
-        </view>
-        <view class="modal-body">
+    <AppDialog :visible="showBindWechatModal" :busy="isBindingWechat" :close-on-mask="true" title="绑定微信账号" :confirm-text="isBindingWechat ? '绑定中...' : '确认绑定'" cancel-text="跳过" @confirm="handleBindWechat" @cancel="skipBindWechat">
           <text class="modal-text">检测到您使用 Poem ID 登录，是否将此账号绑定到当前微信？</text>
-          <text class="modal-text" style="margin-top: 20rpx; color: #999; font-size: 26rpx;">绑定后，下次可直接使用微信登录此账号，数据更安全且可跨端共享。</text>
-        </view>
-        <view class="modal-footer">
-          <view class="modal-btn cancel-btn" @tap="skipBindWechat">跳过</view>
-          <view class="modal-btn confirm-btn" @tap="handleBindWechat" :class="{ disabled: isBindingWechat }">
-            {{ isBindingWechat ? '绑定中...' : '确认绑定' }}
-          </view>
-        </view>
-      </view>
-    </view>
+          <text class="modal-text" style="margin-top: 20rpx; color: var(--app-secondary-text, #666); font-size: 26rpx;">绑定后，下次可直接使用微信登录此账号，数据更安全且可跨端共享。</text>
+
+    </AppDialog>
 
     <!-- 解绑确认弹窗（小程序专属） -->
-    <view class="bind-phone-modal" v-if="showRebindConfirmModal" @tap.stop>
-      <view class="modal-mask" @tap="cancelRebind"></view>
-      <view class="modal-content">
-        <view class="modal-header">
-          <text class="modal-title">微信已绑定其他账号</text>
-          <text class="modal-close" @tap="cancelRebind">×</text>
-        </view>
-        <view class="modal-body">
+    <AppDialog :visible="showRebindConfirmModal" :busy="isBindingWechat" :close-on-mask="true" title="微信已绑定其他账号" :confirm-text="isBindingWechat ? '处理中...' : '确认解绑并重新绑定'" :danger="true" @confirm="confirmRebind" @cancel="cancelRebind">
           <text class="modal-text">当前微信已绑定到账号：</text>
           <view class="bound-account-info">
             <text class="bound-account-text">Poem ID: {{ boundAccountPoemId }}</text>
             <text class="bound-account-text">昵称: {{ boundAccountNickName }}</text>
           </view>
           <text class="modal-text" style="margin-top: 20rpx; color: #ff6b6b; font-size: 26rpx;">是否解绑该账号，并绑定到当前登录的账号？</text>
-          <text class="modal-text" style="margin-top: 10rpx; color: #999; font-size: 24rpx;">注意：解绑后，原账号将无法使用微信登录。</text>
-        </view>
-        <view class="modal-footer">
-          <view class="modal-btn cancel-btn" @tap="cancelRebind">取消</view>
-          <view class="modal-btn confirm-btn warning-btn" @tap="confirmRebind" :class="{ disabled: isBindingWechat }">
-            {{ isBindingWechat ? '处理中...' : '确认解绑并重新绑定' }}
-          </view>
-        </view>
-      </view>
-    </view>
+          <text class="modal-text" style="margin-top: 10rpx; color: var(--app-secondary-text, #666); font-size: 24rpx;">注意：解绑后，原账号将无法使用微信登录。</text>
+
+    </AppDialog>
 
     <!-- _openid 冲突确认弹窗（小程序专属） -->
-    <view class="bind-phone-modal" v-if="showOpenidConflictModal" @tap.stop>
-      <view class="modal-mask" @tap="cancelOpenidConflict"></view>
-      <view class="modal-content">
-        <view class="modal-header">
-          <text class="modal-title">⚠️ 重要提示</text>
-          <text class="modal-close" @tap="cancelOpenidConflict">×</text>
-        </view>
-        <view class="modal-body">
+    <AppDialog :visible="showOpenidConflictModal" :busy="isBindingWechat" :close-on-mask="true" title="重要提示" :confirm-text="isBindingWechat ? '处理中...' : (!conflictAccountCanLogin ? '我知道风险，继续绑定' : '我知道了，继续绑定')" :danger="true" @confirm="confirmOpenidConflict" @cancel="cancelOpenidConflict">
           <text class="modal-text">当前微信已被用于注册账号：</text>
           <view class="bound-account-info">
             <text class="bound-account-text">Poem ID: {{ conflictAccountPoemId }}</text>
             <text class="bound-account-text">昵称: {{ conflictAccountNickName }}</text>
           </view>
-          
+
           <!-- 如果冲突账号没有设置 Poem ID，显示数据丢失警告 -->
           <view v-if="!conflictAccountCanLogin">
             <text class="modal-text" style="margin-top: 20rpx; color: #ff4444; font-size: 28rpx; font-weight: bold;">⚠️ 该账号未设置 Poem ID 和密码！</text>
             <text class="modal-text" style="margin-top: 10rpx; color: #ff6b6b; font-size: 26rpx;">如果继续绑定，该账号的数据将永久丢失，无法找回！</text>
-            <text class="modal-text" style="margin-top: 15rpx; color: #333; font-size: 26rpx; font-weight: bold;">建议操作：</text>
-            <text class="modal-text" style="margin-top: 5rpx; color: #666; font-size: 24rpx;">1. 点击"取消"</text>
-            <text class="modal-text" style="margin-top: 5rpx; color: #666; font-size: 24rpx;">2. 使用微信登录原账号</text>
-            <text class="modal-text" style="margin-top: 5rpx; color: #666; font-size: 24rpx;">3. 在个人资料中设置 Poem ID 和密码</text>
-            <text class="modal-text" style="margin-top: 5rpx; color: #666; font-size: 24rpx;">4. 再回来绑定当前账号</text>
+            <text class="modal-text" style="margin-top: 15rpx; color: var(--app-primary-text, #333); font-size: 26rpx; font-weight: bold;">建议操作：</text>
+            <text class="modal-text" style="margin-top: 5rpx; color: var(--app-secondary-text, #666); font-size: 24rpx;">1. 点击"取消"</text>
+            <text class="modal-text" style="margin-top: 5rpx; color: var(--app-secondary-text, #666); font-size: 24rpx;">2. 使用微信登录原账号</text>
+            <text class="modal-text" style="margin-top: 5rpx; color: var(--app-secondary-text, #666); font-size: 24rpx;">3. 在个人资料中设置 Poem ID 和密码</text>
+            <text class="modal-text" style="margin-top: 5rpx; color: var(--app-secondary-text, #666); font-size: 24rpx;">4. 再回来绑定当前账号</text>
           </view>
-          
+
           <!-- 如果冲突账号已设置 Poem ID，显示普通警告 -->
           <view v-else>
             <text class="modal-text" style="margin-top: 20rpx; color: #ff6b6b; font-size: 28rpx; font-weight: bold;">如果继续绑定，该账号将无法通过微信登录！</text>
-            <text class="modal-text" style="margin-top: 10rpx; color: #666; font-size: 24rpx;">该账号可以继续通过 Poem ID + 密码登录。</text>
-            <text class="modal-text" style="margin-top: 10rpx; color: #666; font-size: 24rpx;">建议：如果您想使用该账号，请点击"取消"，然后使用微信登录。</text>
+            <text class="modal-text" style="margin-top: 10rpx; color: var(--app-secondary-text, #666); font-size: 24rpx;">该账号可以继续通过 Poem ID + 密码登录。</text>
+            <text class="modal-text" style="margin-top: 10rpx; color: var(--app-secondary-text, #666); font-size: 24rpx;">建议：如果您想使用该账号，请点击"取消"，然后使用微信登录。</text>
           </view>
-        </view>
-        <view class="modal-footer">
-          <view class="modal-btn cancel-btn" @tap="cancelOpenidConflict">取消</view>
-          <view class="modal-btn confirm-btn" 
-                :class="{ 
-                  'warning-btn': true, 
-                  'danger-btn': !conflictAccountCanLogin,
-                  'disabled': isBindingWechat 
-                }" 
-                @tap="confirmOpenidConflict">
-            <text v-if="isBindingWechat">处理中...</text>
-            <text v-else-if="!conflictAccountCanLogin">我知道风险，继续绑定</text>
-            <text v-else>我知道了，继续绑定</text>
-          </view>
-        </view>
-      </view>
-    </view>
+
+    </AppDialog>
     <!-- #endif -->
 
     <!-- 底部绑定手机号弹窗 -->
@@ -230,9 +180,11 @@
     </view>
     <!-- #endif -->
   </view>
+    <app-overlay-host />
 </template>
 
 <script>
+import AppDialog from '@/components/overlay/AppDialog.vue';
 // pages/login/login.js
 import { cloudCall } from '@/utils/cloudCall.js';
 import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
@@ -277,6 +229,7 @@ async function callUniCloudFunction(name, data) {
 // #endif
 
 export default {
+    components: { AppDialog },
     data() {
         return {
             poemId: '',

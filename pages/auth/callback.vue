@@ -5,6 +5,7 @@
 			<text class="loading-text">{{ loadingText }}</text>
 		</view>
 	</view>
+    <app-overlay-host />
 </template>
 
 <script>

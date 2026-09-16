@@ -1,7 +1,12 @@
 <template>
-    <view class="admin-container">
+    <view class="admin-container" :data-app-theme="appThemeMode" :style="appThemeVars">
         <view class="admin-header">
             <text class="admin-title">管理帖子</text>
+        </view>
+
+        <view class="type-filters">
+            <view class="filter-option" :class="{ active: activePostType === 'all' }" @tap="selectPostType('all')">全部</view>
+            <view v-for="type in postTypes" :key="type.value" class="filter-option" :class="{ active: activePostType === type.value }" @tap="selectPostType(type.value)">{{ type.label }}</view>
         </view>
 
         <!-- 帖子列表 -->
@@ -36,9 +41,12 @@
             <text>加载中...</text>
         </view>
 
-        <view v-else class="empty-tip">
-            <text>暂无帖子</text>
+        <view v-else-if="!loadError" class="empty-tip">
+            <text>{{ activePostType === 'all' ? '暂无帖子' : '该类型下暂无帖子' }}</text>
         </view>
+        <view v-if="loadError" class="loading-tip" @tap="loadPosts(posts.length === 0)">{{ loadError }} · 点击重试</view>
+        <view v-else-if="posts.length && loading" class="loading-tip">加载中...</view>
+        <view v-else-if="posts.length && !hasMore" class="loading-tip">没有更多帖子了</view>
 
         <!-- 类型选择器弹窗 -->
         <view v-if="showTypePicker" class="modal-mask" @tap="hideTypeSelector">
@@ -64,6 +72,7 @@
             </view>
         </view>
     </view>
+    <app-overlay-host />
 </template>
 
 <script>
@@ -77,6 +86,9 @@ export default {
             page: 0,
             pageSize: 20,
             hasMore: true,
+            activePostType: 'all',
+            loadRequestId: 0,
+            loadError: '',
             showTypePicker: false,
             selectedPostIndex: null,
             postTypes: [
@@ -95,29 +107,56 @@ export default {
             this.loadPosts();
         }
     },
+    onPullDownRefresh() {
+        return this.loadPosts(true);
+    },
+    onUnload() {
+        this.loadRequestId++;
+    },
     methods: {
-        async loadPosts() {
-            if (this.loading) return;
+        selectPostType(type) {
+            if (this.activePostType === type) return;
+            this.activePostType = type;
+            return this.loadPosts(true);
+        },
+        async loadPosts(reset = false) {
+            if (this.loading && !reset) return;
+            if (reset) {
+                this.hideTypeSelector();
+                this.posts = [];
+                this.page = 0;
+                this.hasMore = true;
+            }
+            const requestId = ++this.loadRequestId;
+            const page = this.page;
 
             this.loading = true;
+            this.loadError = '';
             try {
                 const result = await listAdminPosts({
-                    page: this.page,
+                    page,
                     pageSize: this.pageSize,
+                    postType: this.activePostType,
                     context: this
                 });
+                if (requestId !== this.loadRequestId) return;
                 const newPosts = result.posts || [];
-                this.posts = [...this.posts, ...newPosts];
-                this.page++;
-                this.hasMore = newPosts.length === this.pageSize;
+                this.posts = page === 0 ? newPosts : [...this.posts, ...newPosts];
+                this.page = page + 1;
+                this.hasMore = typeof result.hasMore === 'boolean' ? result.hasMore : newPosts.length === this.pageSize;
             } catch (err) {
+                if (requestId !== this.loadRequestId) return;
+                this.loadError = err.message || '加载失败';
                 console.error('加载帖子失败:', err);
                 uni.showToast({
                     title: err.message || '加载失败',
                     icon: 'none'
                 });
             } finally {
-                this.loading = false;
+                if (requestId === this.loadRequestId) {
+                    this.loading = false;
+                    uni.stopPullDownRefresh();
+                }
             }
         },
         
@@ -142,6 +181,7 @@ export default {
         async changePostType(e) {
             const newType = e.currentTarget.dataset.type;
             const post = this.posts[this.selectedPostIndex];
+            if (!post) return;
             
             uni.showLoading({ title: '更新中...' });
 
@@ -151,13 +191,12 @@ export default {
                     postType: newType,
                     context: this
                 });
-                this.posts[this.selectedPostIndex].postType = newType;
-                this.$forceUpdate();
                 uni.showToast({
                     title: '更新成功',
                     icon: 'success'
                 });
                 this.hideTypeSelector();
+                await this.loadPosts(true);
             } catch (err) {
                 console.error('更新帖子类型失败:', err);
                 uni.showToast({
@@ -195,7 +234,7 @@ export default {
                     postId,
                     context: this
                 });
-                this.posts.splice(index, 1);
+                await this.loadPosts(true);
                 uni.showToast({
                     title: '删除成功',
                     icon: 'success'
@@ -231,6 +270,9 @@ export default {
 </script>
 
 <style scoped>
+.type-filters { display: flex; flex-wrap: wrap; gap: 16rpx; margin-bottom: 24rpx; }
+.filter-option { padding: 14rpx 22rpx; border-radius: 28rpx; font-size: 26rpx; background: var(--app-surface-bg, #fff); color: var(--app-secondary-text, #666); border: 1rpx solid var(--app-border-color, #ddd); }
+.filter-option.active { background: var(--app-primary-text, #333); color: var(--app-surface-bg, #fff); border-color: var(--app-primary-text, #333); }
 .admin-container {
     min-height: 100vh;
     background-color: #f5f5f5;

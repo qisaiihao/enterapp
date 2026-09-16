@@ -57,6 +57,7 @@
             <text class="tips-item">3. 云端图片有缓存，修改后可能需要重新编译小程序</text>
         </view>
     </view>
+    <app-overlay-host />
 </template>
 
 <script>

@@ -26,10 +26,11 @@
       :style="{ width: outputW + 'px', height: outputH + 'px' }"
     ></canvas>
   </view>
+    <app-overlay-host />
 </template>
 
 <script>
-const DEFAULT_CROP_RATIO = 16 / 7;
+const DEFAULT_CROP_RATIO = 16 / 9;
 const OUTPUT_W = 1600;
 const OUTPUT_H = Math.round(OUTPUT_W / DEFAULT_CROP_RATIO);
 const MIN_ZOOM = 1;

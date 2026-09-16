@@ -46,6 +46,7 @@
             <button class="create-btn" @tap="goToPublish">开始创作</button>
         </view>
     </view>
+    <app-overlay-host />
 </template>
 
 <script>

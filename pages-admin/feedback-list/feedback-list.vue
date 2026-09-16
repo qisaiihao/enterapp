@@ -1,5 +1,5 @@
 <template>
-    <view class="feedback-container">
+    <view class="feedback-container" :data-app-theme="appThemeMode" :style="appThemeVars">
         <view class="feedback-header">
             <text class="feedback-title">反馈建议</text>
         </view>
@@ -13,11 +13,12 @@
                         <text class="feedback-time">{{ formatTime(item.createTime) }}</text>
                     </view>
                     <view class="status-badge" :class="item.isProcessed ? 'processed' : 'pending'">
-                        {{ item.isProcessed ? '已处理' : '待处理' }}
+                        {{ feedbackStatusLabel(item) }}
                     </view>
                 </view>
 
                 <view class="feedback-content">{{ item.content }}</view>
+                <view v-if="item.lastReply" class="feedback-content">最新回复：{{ item.lastReply }}</view>
 
                 <!-- 反馈图片 -->
                 <view v-if="item.imageUrls && item.imageUrls.length > 0" class="feedback-images">
@@ -25,23 +26,22 @@
                         v-for="(img, imgIndex) in item.imageUrls" 
                         :key="imgIndex"
                         class="feedback-image"
-                        :src="img"
+                        :src="item.displayImages[imgIndex]"
                         mode="aspectFill"
                         @tap="previewImage"
-                        :data-urls="item.imageUrls"
-                        :data-current="img"
+                        :data-urls="item.displayImages"
+                        :data-current="item.displayImages[imgIndex]"
                     />
                 </view>
 
                 <view class="feedback-actions">
                     <button 
-                        v-if="!item.isProcessed"
                         class="action-btn process-btn" 
-                        @tap="markAsProcessed" 
+                        @tap="openDetail(item._id)"
                         :data-id="item._id"
                         :data-index="index"
                     >
-                        标记已处理
+                        查看与回复
                     </button>
                     <button 
                         class="action-btn delete-btn" 
@@ -67,10 +67,13 @@
             <text>--- 我是有底线的 ---</text>
         </view>
     </view>
+    <app-overlay-host />
 </template>
 
 <script>
-import { getFeedbackList, updateFeedbackStatus, deleteFeedback } from '../../api-cache/feedback.js';
+import { getFeedbackList, deleteFeedback } from '../../api-cache/feedback.js';
+import { feedbackStatusLabel, feedbackDetailUrl } from '../../utils/feedback.js';
+import fileUrlCache from '../../cache/core/file-url.js';
 
 export default {
     data() {
@@ -82,8 +85,8 @@ export default {
             hasMore: true
         };
     },
-    onLoad() {
-        this.loadFeedback();
+    onShow() {
+        this.refreshFeedback();
     },
     onReachBottom() {
         if (this.hasMore && !this.loading) {
@@ -91,14 +94,17 @@ export default {
         }
     },
     onPullDownRefresh() {
-        this.feedbackList = [];
-        this.skip = 0;
-        this.hasMore = true;
-        this.loadFeedback(() => {
-            uni.stopPullDownRefresh();
-        });
+        this.refreshFeedback();
     },
     methods: {
+        feedbackStatusLabel,
+        openDetail(id) { uni.navigateTo({ url: feedbackDetailUrl(id) }); },
+        refreshFeedback() {
+            if (this.loading) { uni.stopPullDownRefresh(); return; }
+            this.skip = 0;
+            this.hasMore = true;
+            return this.loadFeedback(() => uni.stopPullDownRefresh());
+        },
         async loadFeedback(callback) {
             if (this.loading) return;
             
@@ -110,7 +116,9 @@ export default {
                     context: this
                 });
                 const newFeedback = result.feedbackList || [];
-                this.feedbackList = [...this.feedbackList, ...newFeedback];
+                const imageMap = await fileUrlCache.getTempUrls(newFeedback.flatMap(item => item.imageUrls || []));
+                newFeedback.forEach(item => { item.displayImages = (item.imageUrls || []).map(id => imageMap[id] || id); });
+                this.feedbackList = this.skip === 0 ? newFeedback : [...this.feedbackList, ...newFeedback];
                 this.skip += newFeedback.length;
                 this.hasMore = newFeedback.length === this.limit;
             } catch (err) {
@@ -132,34 +140,6 @@ export default {
                 urls: urls,
                 current: current
             });
-        },
-
-        async markAsProcessed(e) {
-            const feedbackId = e.currentTarget.dataset.id;
-            const index = e.currentTarget.dataset.index;
-
-            uni.showLoading({ title: '处理中...' });
-
-            try {
-                await updateFeedbackStatus(feedbackId, 'processed', '', {
-                    context: this
-                });
-                this.feedbackList[index].isProcessed = true;
-                this.feedbackList[index].processedTime = new Date();
-                this.$forceUpdate();
-                uni.showToast({
-                    title: '已标记为处理',
-                    icon: 'success'
-                });
-            } catch (err) {
-                console.error('标记处理失败:', err);
-                uni.showToast({
-                    title: err.message || '操作失败',
-                    icon: 'none'
-                });
-            } finally {
-                uni.hideLoading();
-            }
         },
 
         confirmDelete(e) {
@@ -187,7 +167,7 @@ export default {
                 await deleteFeedback(feedbackId, {
                     context: this
                 });
-                this.feedbackList.splice(index, 1);
+                this.refreshFeedback();
                 uni.showToast({
                     title: '删除成功',
                     icon: 'success'
@@ -360,4 +340,8 @@ export default {
     color: #999;
     font-size: 24rpx;
 }
+.feedback-container { background: var(--app-page-bg, #f5f5f5); color: var(--app-primary-text, #333); }
+.feedback-header, .feedback-item { background: var(--app-surface-bg, #fff); }
+.feedback-title, .user-name { color: var(--app-primary-text, #333); }
+.feedback-content { color: var(--app-secondary-text, #666); }
 </style>

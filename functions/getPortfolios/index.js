@@ -27,10 +27,10 @@ exports.main = async (event, context) => {
   }
 
   try {
-    console.log('【getPortfolios】查询portfolios集合...');
+    console.log('【getPortfolios】查询portfolio_folders集合...');
 
     // 构建查询条件
-    const query = db.collection('portfolios').where({
+    const query = db.collection('portfolio_folders').where({
       _openid: openid
     });
 
@@ -53,26 +53,28 @@ exports.main = async (event, context) => {
           // 统计该作品集中的项目数量
           const itemsCount = await db.collection('portfolio_items')
             .where({
-              portfolioId: portfolio._id
+              folderId: portfolio._id
             })
             .count();
 
           return {
             ...portfolio,
-            itemCount: itemsCount.total || 0
+            itemCount: itemsCount.total || 0,
+            postCount: itemsCount.total || 0
           };
         } catch (countError) {
           console.error('【getPortfolios】统计作品数量失败:', portfolio._id, countError);
           return {
             ...portfolio,
-            itemCount: 0
+            itemCount: 0,
+            postCount: 0
           };
         }
       }));
     }
 
     // 查询总数
-    const totalCount = await db.collection('portfolios')
+    const totalCount = await db.collection('portfolio_folders')
       .where({
         _openid: openid
       })

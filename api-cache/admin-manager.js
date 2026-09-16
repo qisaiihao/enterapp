@@ -12,10 +12,10 @@ async function callAdminManager(action, payload = {}, { pageTag, context, fallba
   });
 }
 
-function listAdminPosts({ page = 0, pageSize = 20, context } = {}) {
+function listAdminPosts({ page = 0, pageSize = 20, postType = 'all', context } = {}) {
   return callAdminManager(
     'getAllPosts',
-    { page, pageSize },
+    { page, pageSize, postType },
     { pageTag: 'admin-posts', context, fallbackMessage: '加载失败' }
   );
 }

@@ -22,9 +22,10 @@
         <SquareSpeechBubble v-if="form.enabled && form.text.trim()" :text="form.text.trim()" />
       </view>
       <button class="save-button" :disabled="saving" :loading="saving" @tap="save">保存</button>
-      <text class="hint">保存后重新进入诗歌广场即可看到更新。关闭气泡不会隐藏活动入口。</text>
+      <text class="hint">气泡点击后会在本机记为已读，不再重复显示；修改文案或跳转页面后会重新显示。关闭气泡不会隐藏活动入口。</text>
     </view>
   </view>
+    <app-overlay-host />
 </template>
 
 <script>

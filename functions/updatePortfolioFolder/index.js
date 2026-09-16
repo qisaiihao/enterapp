@@ -28,8 +28,8 @@ exports.main = async (event, context) => {
 
     const trimmedName = name.trim();
 
-    // 检查是否与默认作品集名称冲突
-    if (trimmedName === '我的作品集') {
+    // 默认作品集保留原名更新封面时，不应被保留名称校验拦截。
+    if (trimmedName === '我的作品集' && folder.data.name !== trimmedName) {
       return { success: false, message: '该名称已被系统使用，请选择其他名称' };
     }
 

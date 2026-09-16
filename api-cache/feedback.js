@@ -120,7 +120,7 @@ function getFeedbackDetail(feedbackId, options = {}) {
   }
 
   return callFeedbackManager('getFeedbackDetail', {
-    feedbackId
+    feedbackId, skip: options.skip || 0, limit: options.limit || 20
   }, Object.assign({
     pageTag: 'feedback-admin',
     requireAuth: true,
@@ -128,7 +128,17 @@ function getFeedbackDetail(feedbackId, options = {}) {
   }, options));
 }
 
+function getMyFeedbackList({ skip = 0, limit = 20, ...options } = {}) {
+  return callFeedbackManager('getMyFeedbackList', { skip, limit }, { requireAuth: true, ...options });
+}
+
+function replyFeedback(payload, options = {}) {
+  return callFeedbackManager('replyFeedback', payload, { requireAuth: true, ...options });
+}
+
 const feedbackApi = {
+  getMyFeedbackList,
+  replyFeedback,
   callFeedbackManager,
   submitFeedback,
   getFeedbackList,
@@ -138,6 +148,8 @@ const feedbackApi = {
 };
 
 export {
+  getMyFeedbackList,
+  replyFeedback,
   callFeedbackManager,
   submitFeedback,
   getFeedbackList,

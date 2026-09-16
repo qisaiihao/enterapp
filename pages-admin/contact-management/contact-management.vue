@@ -23,6 +23,7 @@
       <text class="hint">保存后将显示在“联系我们”页面</text>
     </template>
   </view>
+    <app-overlay-host />
 </template>
 
 <script>

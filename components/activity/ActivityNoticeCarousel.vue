@@ -1,40 +1,42 @@
 <template>
   <view class="activity-notice-carousel">
-    <swiper
-      class="notice-swiper"
-      :current="activeIndex"
-      :autoplay="true"
-      :interval="4200"
-      :duration="450"
-      :circular="true"
-      @change="handleChange"
-    >
-      <swiper-item
-        v-for="notice in safeNotices"
-        :key="notice.value"
+    <view class="notice-viewport">
+      <swiper
+        class="notice-swiper"
+        :current="activeIndex"
+        :autoplay="true"
+        :interval="4200"
+        :duration="450"
+        :circular="true"
+        @change="handleChange"
       >
-        <view :class="['notice-card', notice.tone || 'default']">
-          <image
-            v-if="notice.image"
-            class="notice-image"
-            :src="notice.image"
-            mode="aspectFill"
-            :lazy-load="true"
-            @error="onImageError(notice)"
-          />
-          <template v-else>
-            <view class="notice-copy">
-              <text class="notice-kicker">{{ notice.kicker }}</text>
-              <text class="notice-title">{{ notice.title }}</text>
-              <text class="notice-summary">{{ notice.summary }}</text>
-            </view>
-            <view class="notice-art">
-              <text class="notice-art-mark">{{ notice.mark }}</text>
-            </view>
-          </template>
-        </view>
-      </swiper-item>
-    </swiper>
+        <swiper-item
+          v-for="notice in safeNotices"
+          :key="notice.value"
+        >
+          <view :class="['notice-card', notice.tone || 'default', { 'is-linked': !!notice.linkUrl }]" @tap="handleSelect(notice)">
+            <image
+              v-if="notice.image"
+              class="notice-image"
+              :src="notice.image"
+              mode="aspectFill"
+              :lazy-load="true"
+              @error="onImageError(notice)"
+            />
+            <template v-else>
+              <view class="notice-copy">
+                <text class="notice-kicker">{{ notice.kicker }}</text>
+                <text class="notice-title">{{ notice.title }}</text>
+                <text class="notice-summary">{{ notice.summary }}</text>
+              </view>
+              <view class="notice-art">
+                <text class="notice-art-mark">{{ notice.mark }}</text>
+              </view>
+            </template>
+          </view>
+        </swiper-item>
+      </swiper>
+    </view>
 
     <view class="notice-dots" aria-hidden="true">
       <view
@@ -47,8 +49,11 @@
 </template>
 
 <script>
+import { normalizeActivityNoticeLink } from '@/utils/activityNoticeLink.js';
+
 export default {
   name: 'ActivityNoticeCarousel',
+  emits: ['select'],
   props: {
     notices: {
       type: Array,
@@ -74,6 +79,7 @@ export default {
             image: '',
             ...item
           };
+          base.linkUrl = normalizeActivityNoticeLink(item.linkUrl);
           if (base.image && this.failedImages[item.value]) {
             base.image = '';
           }
@@ -82,6 +88,9 @@ export default {
     }
   },
   methods: {
+    handleSelect(notice) {
+      if (notice && notice.linkUrl) this.$emit('select', notice);
+    },
     handleChange(event) {
       const current = event && event.detail ? Number(event.detail.current) : 0;
       this.activeIndex = Number.isFinite(current) ? current : 0;
@@ -103,14 +112,23 @@ export default {
   box-sizing: border-box;
 }
 
-.notice-swiper {
+.notice-viewport {
+  position: relative;
   width: 100%;
-  height: 342rpx;
+  padding-top: 56.25%;
+}
+
+.notice-swiper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .notice-card {
   position: relative;
-  height: 308rpx;
+  height: 100%;
   overflow: hidden;
   border-radius: 8rpx;
   background: #efe7d6;
@@ -125,6 +143,14 @@ export default {
     linear-gradient(115deg, rgba(255, 255, 255, 0.18) 0 26%, transparent 26% 100%),
     linear-gradient(90deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0));
   pointer-events: none;
+}
+
+.notice-card.is-linked {
+  cursor: pointer;
+}
+
+.notice-card.is-linked:active {
+  opacity: 0.88;
 }
 
 .notice-card::after {

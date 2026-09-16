@@ -74,7 +74,8 @@
                     <!-- Tab Navigation -->
                     <view class="tab-navigation">
                         <view :class="'tab-item ' + (currentTab === 'posts' ? 'active' : '')" data-tab="posts" @tap="switchTab">
-                            <image class="tab-icon tab-icon--writing" src="/static/images/writing.png" mode="aspectFit" alt="帖子" title="帖子"></image>
+                            <image class="tab-icon tab-icon--writing" src="/static/images/writing.png" mode="aspectFit" :alt="postsOriginalOnly ? '仅原创' : '全部帖子'" :title="postsOriginalOnly ? '仅原创，再次点击显示全部' : '全部帖子，再次点击仅看原创'"></image>
+                            <text v-if="currentTab === 'posts' && postsOriginalOnly" class="posts-original-label">原创</text>
                         </view>
                         <view :class="'tab-item ' + (currentTab === 'portfolio' ? 'active' : '')" data-tab="portfolio" @tap="switchTab">
                             <image class="tab-icon" src="/static/images/newicons/library.png" mode="aspectFit" alt="作品集" title="作品集"></image>
@@ -82,6 +83,7 @@
                         <view :class="'tab-item ' + (currentTab === 'favorites' ? 'active' : '')" data-tab="favorites" @tap="switchTab">
                             <image class="tab-icon" src="/static/images/newicons/collection.png" mode="aspectFit" alt="收藏" title="收藏"></image>
                         </view>
+                        <view class="profile-tab-indicator" :style="profileTabIndicatorStyle"></view>
                     </view>
 
                     <!-- My Posts Section -->
@@ -89,7 +91,7 @@
                         <block v-if="myPosts.length > 0">
                             <PostItem
                                 v-for="(item, index) in myPosts"
-                                :key="index"
+                                :key="item._id"
                                 :item="item"
                                 :index="index"
                                 :swiper-height="swiperHeights[index]"
@@ -108,14 +110,17 @@
                             />
                             <!-- 加载更多提示 -->
                             <view class="loading-footer">
-                                <block v-if="!hasMore && myPosts.length > 0">
+                                <block v-if="isLoading">
+                                    <text>加载中…</text>
+                                </block>
+                                <block v-else-if="!hasMore && myPosts.length > 0">
                                     <text>--- 我是有底线的 ---</text>
                                 </block>
                             </view>
                             <view class="profile-bottom-spacer"></view>
                         </block>
                         <view v-else class="empty-tip">
-                            <text>你还没有发布过帖子哦～</text>
+                            <text>{{ isLoading || isAtomicRefreshing ? '加载中…' : postsLoadError ? '加载失败，请下拉重试' : postsOriginalOnly ? '你还没有发布过原创帖子哦～' : '你还没有发布过帖子哦～' }}</text>
                         </view>
                     </view>
 
@@ -186,25 +191,9 @@
         </view>
         <!-- 这是一个<view class="container"> 添加的结束标签 -->
 
-        <view
-            v-if="backgroundActionSheet.visible"
-            class="background-action-sheet-mask"
-            @tap="handleBackgroundActionSheetCancel"
-        ></view>
-        <view
-            v-if="backgroundActionSheet.visible"
-            class="background-action-sheet-panel"
-            @tap.stop
-        >
-            <view
-                v-for="(item, index) in backgroundActionSheet.items"
-                :key="`${item}-${index}`"
-                class="background-action-sheet-item"
-                @tap="handleBackgroundActionSheetSelect(index)"
-            >
-                <text class="background-action-sheet-text">{{ item }}</text>
-            </view>
-        </view>
+        <AppActionSheet :visible="backgroundActionSheet.visible" title="背景设置"
+            :items="backgroundActionSheet.items" @cancel="handleBackgroundActionSheetCancel"
+            @select="handleBackgroundActionSheetSelect" />
 
         <!-- #ifndef MP-WEIXIN -->
         <app-tab-bar ref="customTabBar" :style="tabBarStyle" />
@@ -224,10 +213,11 @@
         <!-- 删除帖子弹窗 -->
         <DeleteModal
             :visible="showDeleteModal"
+            :is-hidden="deletePostIsHidden"
             title="删除帖子"
-            message="您确定要删除这条帖子吗？"
             @close="hideDeleteModal"
             @save-draft="saveToDraft"
+            @hide="hidePostFromDelete"
             @confirm="confirmDelete"
         />
 
@@ -276,6 +266,7 @@
         <!-- #endif -->
     </view>
 
+    <app-overlay-host />
 </template>
 
 <script>
@@ -288,6 +279,7 @@ import PortfolioBook from '@/components/PortfolioBook.vue';
 import PostItem from '@/components/PostItem.vue';
 import ProfileCard from '@/components/ProfileCard.vue';
 import ActionMenu from '@/components/ActionMenu.vue';
+import AppActionSheet from '@/components/overlay/AppActionSheet.vue';
 import DeleteModal from '@/components/DeleteModal.vue';
 import ShareModal from '@/components/ShareModal.vue';
 import { getMyPosts, getMyFavorites, invalidateMyFavorites, invalidateMyPosts, invalidateMyInfo, getMyInfo } from '@/api-cache/my.js';
@@ -380,7 +372,8 @@ const PROFILE_BACKGROUND_THEME_VARS = Object.freeze({
     '--profile-upload-icon-opacity': '1',
     '--profile-upload-icon-filter': 'grayscale(1) brightness(0.12)',
     '--profile-menu-icon-opacity': '1',
-    '--profile-menu-icon-filter': 'grayscale(1) brightness(0.16)',
+    '--profile-menu-icon-color': '#202020',
+    '--profile-menu-icon-active-color': '#000000',
     '--profile-tab-nav-bg': 'transparent',
     '--profile-tab-nav-border': 'transparent',
     '--profile-tab-nav-shadow': 'none',
@@ -447,7 +440,8 @@ const PROFILE_BACKGROUND_DARK_THEME_VARS = Object.freeze({
     '--profile-upload-icon-opacity': '1',
     '--profile-upload-icon-filter': 'brightness(0) invert(1)',
     '--profile-menu-icon-opacity': '0.94',
-    '--profile-menu-icon-filter': 'brightness(0) invert(1)',
+    '--profile-menu-icon-color': '#ffffff',
+    '--profile-menu-icon-active-color': '#ffffff',
     '--profile-tab-nav-bg': '#0f1115',
     '--profile-tab-nav-border': 'transparent',
     '--profile-tab-nav-shadow': 'none',
@@ -481,7 +475,8 @@ const PROFILE_HEADER_THEME_VARS = Object.freeze({
     '--profile-upload-icon-opacity': '1',
     '--profile-upload-icon-filter': 'brightness(0) invert(1)',
     '--profile-menu-icon-opacity': '0.94',
-    '--profile-menu-icon-filter': 'brightness(0) invert(1)'
+    '--profile-menu-icon-color': '#ffffff',
+    '--profile-menu-icon-active-color': '#ffffff'
 });
 
 const TIMELINE_SHARE_FONT_SCALE_MAP = Object.freeze({
@@ -583,6 +578,7 @@ function createCanvas2DCompatContext(nativeCtx) {
 
 export default {
     components: {
+        AppActionSheet,
         Sidebar,
         TimelineView,
         PortfolioBook,
@@ -615,6 +611,9 @@ export default {
 
             isSidebarOpen: false,
             myPosts: [],
+            postsOriginalOnly: false,
+            postsRequestToken: 0,
+            postsLoadError: false,
             page: 0,
             hasMore: true,
             PAGE_SIZE: PAGE_SIZE,
@@ -704,6 +703,14 @@ export default {
         };
     },
     computed: {
+        profileTabIndicatorStyle() {
+            const index = this.currentTab === 'portfolio' ? 1 : (this.currentTab === 'favorites' ? 2 : 0);
+            return { left: `${(index + 0.5) * 100 / 3}%` };
+        },
+        deletePostIsHidden() {
+            const post = this.myPosts.find(item => item._id === this.deletePostId);
+            return !!(post && post.isHidden);
+        },
         isDarkTheme() {
             return this.themeMode === 'dark' || this.appThemeMode === 'dark';
         },
@@ -863,6 +870,8 @@ export default {
         }
     },
     onUnload: function () {
+        this.postsRequestToken += 1;
+        this.pendingRefreshToken += 1;
         this.releaseGlobalEventBindings();
         this.clearLoginWaitTimers();
         if (this.timelineShareRegenerateTimeout) {
@@ -1353,8 +1362,8 @@ export default {
         },
 
         // 从菜单中处理隐藏/取消隐藏
-        handleToggleVisibility: function () {
-            const { postId, index, isHidden } = this.actionMenuData;
+        handleToggleVisibility: function (postData = this.actionMenuData) {
+            const { postId, index, isHidden } = postData;
             if (!postId || typeof index === 'undefined') {
                 console.error('【profile】handleToggleVisibility: 参数缺失');
                 this.hideActionMenu();
@@ -1365,7 +1374,7 @@ export default {
 
             uni.showLoading({ title: targetHidden ? '隐藏中...' : '取消隐藏中...' });
 
-            togglePostVisibility(postId, this)
+            return togglePostVisibility(postId, this)
                 .then((result) => {
                     const path = `myPosts[${index}].isHidden`;
                     const updates = {};
@@ -1613,6 +1622,7 @@ export default {
             return await getMyPosts({
                 page: 0,
                 pageSize: PAGE_SIZE,
+                originalOnly: this.postsOriginalOnly,
                 context: this,
                 forceRefresh
             });
@@ -1703,6 +1713,7 @@ export default {
                     myPosts,
                     page: 1,
                     hasMore: myPosts.length === PAGE_SIZE,
+                    postsLoadError: false,
                     swiperHeights: {},
                     imageClampHeights: {},
                     growthStats: extractGrowthStats(header.userInfo, myPosts)
@@ -1734,6 +1745,13 @@ export default {
             const token = (this.pendingRefreshToken || 0) + 1;
             this.pendingRefreshToken = token;
             this.isAtomicRefreshing = true;
+            const tab = this.currentTab;
+            if (tab === 'posts') {
+                // 刷新或切换筛选后，旧的分页结果不能再写入当前列表。
+                this.postsRequestToken += 1;
+                this.isLoading = false;
+                this.postsLoadError = false;
+            }
 
             const isInitialLoad = !this.hasInitialSnapshot;
             if (isInitialLoad) {
@@ -1743,7 +1761,7 @@ export default {
             try {
                 console.log('【profile】⚡ 开始原子刷新:', { reason, forceRefresh, tab: this.currentTab, token });
                 const snapshot = await this.buildAtomicSnapshot({
-                    tab: this.currentTab,
+                    tab,
                     forceRefresh
                 });
 
@@ -1766,6 +1784,7 @@ export default {
                 }
 
                 console.error('【profile】❌ 原子刷新失败:', reason, error);
+                if (tab === 'posts') this.postsLoadError = true;
 
                 if (isInitialLoad) {
                     const storedUserInfo = uni.getStorageSync('userInfo');
@@ -1910,213 +1929,43 @@ export default {
         },
 
 
-        loadMyPosts: function (cb, forceRefresh = false) {
-            const { page, PAGE_SIZE } = this;
-            console.log('【profile】🔍 开始loadMyPosts, 页面信息:', {
-                page,
-                PAGE_SIZE,
-                skip: page * PAGE_SIZE,
-                limit: PAGE_SIZE,
-                isPullDownRefresh: page === 0,
-                forceRefresh: forceRefresh,
-                currentMyPostsLength: this.myPosts.length
-            });
+        loadMyPosts: async function (cb, forceRefresh = false) {
+            if (this.isLoading || this.isAtomicRefreshing) return;
+            const { page, PAGE_SIZE, postsOriginalOnly } = this;
+            const token = ++this.postsRequestToken;
+            this.setData({ isLoading: true, postsLoadError: false });
 
-            // 只有在首次加载时才显示骨架屏
-            if (page === 0) {
-                console.log('【profile】📱 重置数据状态', forceRefresh ? '(强制刷新模式)' : '(正常模式)');
-                this.setData({
-                    isLoading: true
-                });
-            }
-
-            // 获取当前用户openid用于调试
-            const currentOpenid = getOpenid();
-            console.log('【profile】👤 当前用户openid:', currentOpenid);
-
-            // 如果是下拉刷新（page === 0）或强制刷新，直接从云端获取数据
-            if (page === 0 || forceRefresh) {
-                console.log('【profile】🔥 下拉刷新/强制刷新，直接从云端获取最新数据');
-                return this.loadMyPostsDirectly(page, PAGE_SIZE, currentOpenid, cb);
-            }
-
-            // 否则使用缓存API
-            console.log('【profile】🚀 使用缓存API获取帖子（分页加载）');
             try {
-                return getMyPosts({ page, pageSize: PAGE_SIZE, context: this, forceRefresh: forceRefresh })
-                    .then((posts) => {
-                        console.log('【profile】✅ 缓存API成功返回帖子数量:', posts.length);
-                        console.log('【profile】📋 缓存API返回的帖子ID列表:', posts.map(p => p._id));
+                const posts = await getMyPosts({
+                    page,
+                    pageSize: PAGE_SIZE,
+                    originalOnly: postsOriginalOnly,
+                    context: this,
+                    forceRefresh
+                });
+                if (token !== this.postsRequestToken) return;
 
-                        // 格式化帖子数据并确保使用个人资料昵称
-                        const currentUserInfo = this.userInfo || {};
-                        posts.forEach((post, index) => {
-                            if (post.createTime) post.formattedCreateTime = this.formatTime(post.createTime);
-                            if (post.imageUrls && post.imageUrls.length > 0) post.imageStyle = `height: 0; padding-bottom: 75%;`;
-
-                            // 【关键修复】确保帖子有 _openid 字段（我的帖子都是当前用户的）
-                            if (!post._openid && currentOpenid) {
-                                post._openid = currentOpenid;
-                            }
-
-                            // 【关键修复】直接使用个人资料的昵称填充帖子的authorName
-                            if (currentUserInfo.nickName) {
-                                post.authorName = currentUserInfo.nickName;
-                            } else if (!post.authorName || post.authorName.trim() === '') {
-                                post.authorName = post.authorNameSnapshot || '我';
-                            }
-
-                            // 同样处理头像
-                            if (currentUserInfo.avatarUrl) {
-                                post.authorAvatar = currentUserInfo.avatarUrl;
-                            } else if (!post.authorAvatar || post.authorAvatar.trim() === '') {
-                                post.authorAvatar = resolveUserAvatar(post.authorAvatar || post.authorAvatarSnapshot || '', currentOpenid || post._openid);
-                            }
-
-                            console.log(`【profile】📝 缓存帖子${index + 1}:`, {
-                                id: post._id,
-                                _openid: post._openid,
-                                title: post.title,
-                                createTime: post.createTime,
-                                formattedTime: post.formattedCreateTime,
-                                authorName: post.authorName
-                            });
-                        });
-
-                        // 处理分页数据，避免重复
-                        const newMyPosts = page === 0 ? posts : (() => {
-                            const existingIds = new Set(this.myPosts.map(p => p._id));
-                            const uniqueNewList = posts.filter(p => p && p._id && !existingIds.has(p._id));
-                            return this.myPosts.concat(uniqueNewList);
-                        })();
-                        console.log('【profile】📊 缓存API更新myPosts数据:', {
-                            beforeLength: this.myPosts.length,
-                            afterLength: newMyPosts.length,
-                            page: page + 1,
-                            hasMore: posts.length === PAGE_SIZE
-                        });
-
-                        this.setData({
-                            myPosts: newMyPosts,
-                            page: page + 1,
-                            hasMore: posts.length === PAGE_SIZE
-                        });
-                        this.updateGrowthStats(newMyPosts);
-
-                        console.log('【profile】✅ 缓存API加载完成');
-                        return posts;
-                    })
-                    .catch((err) => {
-                        console.error('【profile】❌ 缓存API获取帖子失败，回退到云函数:', err);
-                        // 回退到云函数
-                        return this.loadMyPostsDirectly(page, PAGE_SIZE, currentOpenid, cb);
-                    })
-                    .finally(() => {
-                        this.setData({ isLoading: false });
-                        if (typeof cb === 'function') {
-                            console.log('【profile】🎯 缓存API loadMyPosts完成，调用回调');
-                            cb();
-                        }
-                    });
-            } catch (e) {
-                console.error('【profile】❌ 缓存API调用异常，回退到云函数:', e);
-                return this.loadMyPostsDirectly(page, PAGE_SIZE, currentOpenid, cb);
+                const formattedPosts = this.formatPostsForDisplay(posts, this.userInfo || {}, this.getCurrentProfileOpenid());
+                const existingIds = new Set(this.myPosts.map(post => post._id));
+                const myPosts = page === 0
+                    ? formattedPosts
+                    : this.myPosts.concat(formattedPosts.filter(post => post._id && !existingIds.has(post._id)));
+                this.setData({
+                    myPosts,
+                    page: page + 1,
+                    hasMore: posts.length === PAGE_SIZE
+                });
+                this.updateGrowthStats(myPosts);
+                return posts;
+            } catch (error) {
+                if (token !== this.postsRequestToken) return;
+                this.postsLoadError = true;
+                console.error('[profile] load posts failed:', error);
+                uni.showToast({ title: '加载失败，请重试', icon: 'none' });
+            } finally {
+                if (token === this.postsRequestToken) this.setData({ isLoading: false });
+                if (typeof cb === 'function') cb();
             }
-        },
-
-        // 新增：直接使用API封装加载帖子的方法
-        loadMyPostsDirectly: function (page, pageSize, openid, cb) {
-            console.log('【profile】🔥 使用API封装getMyPosts');
-            getMyPosts({
-                page,
-                pageSize,
-                context: this,
-                forceRefresh: true
-            }).then((posts) => {
-                console.log('【profile】✅ API封装成功返回帖子数量:', posts.length);
-                console.log('【profile】📋 API封装返回的帖子ID列表:', posts.map(p => p._id));
-
-                // 格式化帖子数据并确保作者信息完整
-                const currentOpenid = getOpenid();
-                posts.forEach((post, index) => {
-                    if (post.createTime) {
-                        post.formattedCreateTime = this.formatTime(post.createTime);
-                    }
-                    // 为每个帖子设置默认的图片样式
-                    if (post.imageUrls && post.imageUrls.length > 0) {
-                        post.imageStyle = `height: 0; padding-bottom: 75%;`; // 4:3 宽高比占位
-                    }
-
-                    // 【关键修复】确保帖子有 _openid 字段（我的帖子都是当前用户的）
-                    if (!post._openid && currentOpenid) {
-                        post._openid = currentOpenid;
-                    }
-
-                    // 【关键修复】直接使用个人资料的昵称（userInfo.nickName）填充帖子的authorName
-                    // 个人资料页面显示的昵称就是 userInfo.nickName，这里也直接用这个
-                    const currentUserInfo = this.userInfo || {};
-                    if (currentUserInfo.nickName) {
-                        post.authorName = currentUserInfo.nickName;
-                        console.log(`【profile】✅ 帖子${index + 1}使用个人资料昵称:`, post.authorName);
-                    } else if (!post.authorName || post.authorName.trim() === '') {
-                        post.authorName = post.authorNameSnapshot || '我';
-                        console.log(`【profile】⚠️ 帖子${index + 1}个人资料无昵称，使用备选:`, post.authorName);
-                    }
-
-                    // 同样处理头像
-                    if (currentUserInfo.avatarUrl) {
-                        post.authorAvatar = currentUserInfo.avatarUrl;
-                    } else if (!post.authorAvatar || post.authorAvatar.trim() === '') {
-                        post.authorAvatar = resolveUserAvatar(post.authorAvatar || post.authorAvatarSnapshot || '', currentOpenid || post._openid);
-                        console.log(`【profile】⚠️ 帖子${index + 1}个人资料无头像，使用备选`);
-                    }
-
-                    console.log(`【profile】📝 API封装帖子${index + 1}:`, {
-                        id: post._id,
-                        _openid: post._openid,
-                        title: post.title,
-                        createTime: post.createTime,
-                        formattedTime: post.formattedCreateTime,
-                        authorName: post.authorName, // 使用个人资料昵称
-                        userInfoNickName: currentUserInfo.nickName, // 个人资料中的昵称
-                        hasAuthorAvatar: !!post.authorAvatar
-                    });
-                });
-
-                // 处理分页数据，避免重复
-                const newMyPosts = page === 0 ? posts : (() => {
-                    const existingIds = new Set(this.myPosts.map(p => p._id));
-                    const uniqueNewList = posts.filter(p => p && p._id && !existingIds.has(p._id));
-                    return this.myPosts.concat(uniqueNewList);
-                })();
-                console.log('【profile】📊 API封装更新myPosts数据:', {
-                    beforeLength: this.myPosts.length,
-                    afterLength: newMyPosts.length,
-                    page: page + 1,
-                    hasMore: posts.length === pageSize
-                });
-
-                this.setData({
-                    myPosts: newMyPosts,
-                    page: page + 1,
-                    hasMore: posts.length === pageSize
-                });
-                this.updateGrowthStats(newMyPosts);
-            }).catch((err) => {
-                console.error('【profile】❌ API封装调用失败:', err);
-                uni.showToast({
-                    title: '网络错误',
-                    icon: 'none'
-                });
-            }).finally(() => {
-                this.setData({
-                    isLoading: false
-                });
-                if (typeof cb === 'function') {
-                    console.log('【profile】🎯 API封装loadMyPosts完成，调用回调');
-                    cb();
-                }
-            });
         },
 
         updateGrowthStats(postList = this.myPosts) {
@@ -2243,6 +2092,16 @@ export default {
                 deletePostId: '',
                 deletePostIndex: -1
             });
+        },
+
+        // 删除面板的“仅自己可见”只执行隐藏，已隐藏的帖子不反向公开。
+        hidePostFromDelete: function () {
+            const postId = this.deletePostId;
+            const index = this.myPosts.findIndex(post => post._id === postId);
+            const post = this.myPosts[index];
+            this.hideDeleteModal();
+            if (!post || post.isHidden) return;
+            return this.handleToggleVisibility({ postId, index, isHidden: false });
         },
 
         // 确认删除帖子
@@ -2667,6 +2526,18 @@ export default {
             const tab = e.currentTarget.dataset.tab;
             console.log('【profile】切换到标签:', tab);
 
+            if (tab === 'posts' && this.currentTab === 'posts') {
+                this.setData({
+                    postsOriginalOnly: !this.postsOriginalOnly,
+                    myPosts: [],
+                    page: 0,
+                    hasMore: true,
+                    swiperHeights: {},
+                    imageClampHeights: {}
+                });
+                return this.refreshProfileAtomically({ reason: 'posts-filter' });
+            }
+
             // 如果点击的是收藏页且当前已经在收藏页，则跳转到收藏夹页面
             if (tab === 'favorites' && this.currentTab === 'favorites') {
                 console.log('【profile】已在收藏页，跳转到收藏夹页面');
@@ -2812,7 +2683,7 @@ export default {
         // 跳转到反馈管理页面（管理员）
         navigateToFeedbackAdmin: function () {
             uni.navigateTo({
-                url: '/pages-tools/feedback-admin/feedback-admin'
+                url: '/pages-admin/feedback-list/feedback-list'
             });
         },
 
@@ -2838,6 +2709,8 @@ export default {
         // 执行退出登录
         performLogout: function () {
             console.log('🔍 [退出登录] 开始执行退出登录流程');
+            this.postsRequestToken += 1;
+            this.pendingRefreshToken += 1;
 
             // 先清空所有缓存（包含 me:favorites 等命名空间与 fileUrlCache）
             resetAllCachesOnAccountChange({}).then(() => {
@@ -2852,6 +2725,8 @@ export default {
                 this.setData({
                     userInfo: null,
                     myPosts: [],
+                    postsOriginalOnly: false,
+                    postsLoadError: false,
                     favoriteList: [],
                     isLoading: false,
                     isSidebarOpen: false
@@ -3440,6 +3315,7 @@ export default {
 
 /* Tab Navigation */
 .tab-navigation {
+    position: relative;
     margin: 0 30rpx 20rpx 30rpx;
     display: flex;
     background: var(--profile-tab-nav-bg, #fff);
@@ -3461,16 +3337,16 @@ export default {
     justify-content: center;
 }
 
-.tab-item.active::after {
-    content: '';
+.profile-tab-indicator {
     position: absolute;
     bottom: 8rpx;
-    left: 50%;
     transform: translateX(-50%);
     width: 200rpx;
     height: 6rpx;
     background: var(--profile-tab-indicator-color, #333);
     border-radius: 3rpx;
+    pointer-events: none;
+    transition: left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .tab-item:active {
@@ -3488,6 +3364,15 @@ export default {
     width: 76rpx;
     height: 76rpx;
     transform: translateY(0);
+}
+
+.posts-original-label {
+    position: absolute;
+    right: 16rpx;
+    bottom: 22rpx;
+    color: var(--profile-tab-indicator-color, #333);
+    font-size: 20rpx;
+    line-height: 28rpx;
 }
 
 .tab-item.active .tab-icon {
@@ -3605,19 +3490,6 @@ export default {
     align-items: center;
     overflow: visible;
 }
-.menu-btn-small {
-    width: 40rpx;
-    height: 40rpx;
-    cursor: pointer;
-    transition: transform 0.2s ease;
-    filter: grayscale(1) brightness(0.5);
-    opacity: 0.7;
-}
-
-.menu-btn-small:active {
-    transform: scale(0.9);
-}
-
 .back-btn {
     position: absolute;
     top: 24rpx;
@@ -3696,7 +3568,7 @@ export default {
     right: 40rpx;
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: flex-start;
     gap: 18rpx;
 }
 
@@ -3717,53 +3589,10 @@ export default {
     color: #333;
 }
 
-.background-action-sheet-mask {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    background: rgba(0, 0, 0, 0.18);
-    z-index: 1200;
-}
 
-.background-action-sheet-panel {
-    position: fixed;
-    left: 24rpx;
-    right: 24rpx;
-    bottom: 144rpx;
-    bottom: calc(144rpx + constant(safe-area-inset-bottom));
-    bottom: calc(144rpx + env(safe-area-inset-bottom));
-    background: rgba(255, 255, 255, 0.96);
-    border-radius: 24rpx;
-    box-shadow: 0 18rpx 40rpx rgba(0, 0, 0, 0.14);
-    overflow: hidden;
-    z-index: 1201;
-    backdrop-filter: blur(14rpx);
-}
 
-.background-action-sheet-item {
-    min-height: 104rpx;
-    padding: 0 36rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-bottom: 1rpx solid #f0f0f0;
-}
 
-.background-action-sheet-item:last-child {
-    border-bottom: none;
-}
 
-.background-action-sheet-item:active {
-    background: #f5f5f5;
-}
 
-.background-action-sheet-text {
-    font-size: 32rpx;
-    font-weight: 500;
-    color: #333;
-    line-height: 1.4;
-}
 
 </style>

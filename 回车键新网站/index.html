@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#faf9f6" />
+    <meta name="application-name" content="poementer-web" />
+    <meta
+      name="description"
+      content="回车键 POEMENTER — 读一首诗，留一刻给自己。在这里阅读每个人的诗，也看见自己的创作历程。"
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>回车键 · POEMENTER</title>
+  </head>
+  <body>
+    <section
+      id="local-file-help"
+      hidden
+      style="
+        max-width: 540px;
+        margin: 15vh auto;
+        padding: 32px;
+        color: #344132;
+        background: #faf9f6;
+        font-family: sans-serif;
+        line-height: 2;
+      "
+    >
+      <p style="font-size: 12px; letter-spacing: 2px">POEMENTER · 回车键</p>
+      <h1 style="font-size: 26px; font-weight: 400">
+        从这里打开你的诗歌书架。
+      </h1>
+      <p>网站需要通过本地服务打开，不能直接双击 HTML 文件。</p>
+      <p>
+        请双击项目文件夹中的「启动网站.cmd」，它会自动启动服务并打开浏览器。
+      </p>
+      <p>
+        <a href="http://127.0.0.1:5173/" style="color: #536b55"
+          >服务已经启动？点击进入网站 ↗</a
+        >
+      </p>
+    </section>
+    <script>
+      if (window.location.protocol === "file:") {
+        document.getElementById("local-file-help").hidden = false;
+        document.body.style.background = "#faf9f6";
+      }
+    </script>
+    <noscript
+      >请启用浏览器 JavaScript，然后通过「启动网站.cmd」打开网站。</noscript
+    >
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

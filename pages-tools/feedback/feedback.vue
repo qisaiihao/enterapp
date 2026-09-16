@@ -7,7 +7,7 @@
                 <image class="back-icon-image" src="/static/images/left_exit.png" mode="aspectFit"></image>
             </view>
             <text class="header-title">意见反馈</text>
-            <view class="header-right"></view>
+            <view class="history-link" @tap="openMyFeedback">我的反馈</view>
         </view>
 
         <!-- 反馈内容输入 -->
@@ -60,6 +60,7 @@
             <text class="tip-text">我们会认真对待每一条反馈，感谢您的支持！</text>
         </view>
     </view>
+    <app-overlay-host />
 </template>
 
 <script>
@@ -93,6 +94,9 @@ export default {
         });
     },
     methods: {
+        openMyFeedback() {
+            uni.navigateTo({ url: '/pages-tools/my-feedback/my-feedback' });
+        },
         // 输入反馈内容
         onContentInput: function (e) {
             this.setData({
@@ -199,7 +203,7 @@ export default {
                 });
 
                 setTimeout(() => {
-                    uni.navigateBack();
+                    uni.navigateTo({ url: '/pages-tools/my-feedback/my-feedback' });
                 }, 1500);
             } catch (error) {
                 console.error('提交反馈失败:', error);
@@ -271,6 +275,7 @@ export default {
 </script>
 
 <style>
+.history-link { position: absolute; right: 30rpx; font-size: 26rpx; color: var(--app-primary-text, #333); padding: 16rpx 0; }
 /* Feedback page styles */
 .container {
     min-height: 100vh;

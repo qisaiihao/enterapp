@@ -40,6 +40,7 @@
         <!-- 原有的加载指示器（保留作为备用） -->
         <view class="loading-indicator" v-if="isPreloading">正在加载内容...</view>
     </view>
+    <app-overlay-host />
 </template>
 
 <script>

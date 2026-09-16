@@ -1,4 +1,5 @@
 const cloud = require('wx-server-sdk');
+const { ensureDefaultPortfolio } = require('./_lib/ensure-default-portfolio');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
@@ -87,31 +88,11 @@ exports.main = async (event) => {
 
     if (dataList.length === 0) {
       try {
-        const now = new Date();
-        const defaultFolder = await db.collection('portfolio_folders').add({
-          data: {
-            _openid: openid,
-            name: '我的作品集',
-            itemCount: 0,
-            postCount: 0,
-            createTime: now,
-            updateTime: now,
-            isDefault: true
-          }
-        });
+        const { folder } = await ensureDefaultPortfolio(db, openid);
 
         return {
           success: true,
-          folders: [normalizeFolderCount({
-            _id: defaultFolder._id,
-            _openid: openid,
-            name: '我的作品集',
-            itemCount: 0,
-            postCount: 0,
-            createTime: now,
-            updateTime: now,
-            isDefault: true
-          })]
+          folders: [normalizeFolderCount(folder)]
         };
       } catch (createError) {
         const createErrDetail = createError.errMsg || createError.message || (typeof createError === 'object' ? JSON.stringify(createError) : String(createError));

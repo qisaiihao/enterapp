@@ -179,6 +179,7 @@
         </view>
 
     </view>
+    <app-overlay-host />
 </template>
 
 <script>
@@ -224,6 +225,7 @@ import { isUserLoggedIn, requireLogin } from '@/utils/authHelper.js';
 const PAGE_SIZE = 10;
 const DISCOVER_PAGE_SIZE = 5;
 const MAX_DISCOVER_EXCLUDE_IDS = 200;
+const HOME_NORMAL_POSTS_FILTER_KEY = 'homeShowNormalPostsOnly';
 export default {
     components: {
         skeleton,
@@ -237,6 +239,15 @@ export default {
     },
     mixins: [postGalleryMixin],
     data() {
+        let showNormalPostsOnly = true;
+        try {
+            const savedFilter = uni.getStorageSync(HOME_NORMAL_POSTS_FILTER_KEY);
+            if (typeof savedFilter === 'boolean') {
+                showNormalPostsOnly = savedFilter;
+            }
+        } catch (error) {
+            console.warn('【首页】读取帖子筛选偏好失败:', error);
+        }
         return {
             postList: [],
             votingInProgress: {},
@@ -286,7 +297,7 @@ export default {
             swiperTouchStartTime: null,
             easeOutCubic: 'cubic-bezier(0.33, 1, 0.68, 1)',
             homeFeedRenderKey: 0,
-            showNormalPostsOnly: false,
+            showNormalPostsOnly,
             showHomeFilterPanel: false,
             useRecommendFeed: false,
             isTouchScrolling: false,
@@ -1425,6 +1436,12 @@ export default {
         setNormalPostsFilter: function (nextMode) {
             if (this.tapDisabled && this.tapDisabled()) { return; }
             const normalizedMode = !!nextMode;
+
+            try {
+                uni.setStorageSync(HOME_NORMAL_POSTS_FILTER_KEY, normalizedMode);
+            } catch (error) {
+                console.warn('【首页】保存帖子筛选偏好失败:', error);
+            }
 
             if (normalizedMode === this.showNormalPostsOnly) {
                 this.closeHomeFilterPanel();

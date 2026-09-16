@@ -7,7 +7,7 @@
       <text class="activity-header-title">全部活动</text>
     </view>
 
-    <activity-notice-carousel :notices="displayNoticeItems" />
+    <activity-notice-carousel :notices="displayNoticeItems" @select="openNotice" />
 
     <activity-category-bar
       :categories="activityCategories"
@@ -42,6 +42,7 @@
       <text>没有更多活动了</text>
     </view>
   </view>
+    <app-overlay-host />
 </template>
 
 <script>
@@ -52,6 +53,7 @@ import { getActivityNotices, invalidateActivityNotices } from '@/api-cache/activ
 import { getRecentActivities, invalidateRecentActivities } from '@/api-cache/activities.js';
 import activityBadge from '@/cache/stores/activity-badge.js';
 import { getSystemInfoCompat } from '@/utils/system-info.js';
+import { openActivityNoticeLink } from '@/utils/activityNoticeLink.js';
 
 export default {
   components: {
@@ -70,6 +72,7 @@ export default {
       pageInlineStyle: {},
       activeCategory: 'publish',
       noticeItems: [],
+      openingNotice: false,
       defaultNoticeItems: [
         {
           value: 'cooperation',
@@ -117,10 +120,23 @@ export default {
   onPullDownRefresh() {
     this.refresh(true);
   },
+  onShow() {
+    if (this._hasShownActivityNotices) this.fetchNotices(true);
+    this._hasShownActivityNotices = true;
+  },
   onReachBottom() {
     this.loadMore();
   },
   methods: {
+    async openNotice(notice) {
+      if (this.openingNotice || !notice || !notice.linkUrl) return;
+      this.openingNotice = true;
+      try {
+        await openActivityNoticeLink(notice.linkUrl);
+      } finally {
+        this.openingNotice = false;
+      }
+    },
     setupHeaderLayout() {
       try {
         const systemInfo = getSystemInfoCompat();
@@ -177,9 +193,7 @@ export default {
           forceRefresh
         });
         const notices = Array.isArray(result && result.notices) ? result.notices : [];
-        if (notices.length > 0) {
-          this.noticeItems = notices;
-        }
+        this.noticeItems = notices;
       } catch (error) {
         console.warn('[activity-list] load notices failed:', error);
       }

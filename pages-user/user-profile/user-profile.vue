@@ -121,6 +121,7 @@
                 <view :class="'tab-item ' + (currentTab === 'favorites' ? 'active' : '')" data-tab="favorites" @tap="switchTab">
                     <image class="tab-icon" src="/static/images/newicons/collection.png" mode="aspectFit" alt="收藏" title="收藏"></image>
                 </view>
+                <view class="profile-tab-indicator" :style="profileTabIndicatorStyle"></view>
             </view>
 
             <!-- 他人帖子（与个人主页一致的样式） -->
@@ -332,6 +333,7 @@
 	        </view>
 	    </view>
     </view>
+    <app-overlay-host />
 </template>
 
 <script>
@@ -515,6 +517,10 @@ export default {
         };
     },
     computed: {
+        profileTabIndicatorStyle() {
+            const index = this.currentTab === 'portfolio' ? 1 : (this.currentTab === 'favorites' ? 2 : 0);
+            return { left: `${(index + 0.5) * 100 / 3}%` };
+        },
         resolvedAppBackgroundUrl() {
             return normalizeAppBackgroundUrl(this.userInfo && this.userInfo.appBackgroundUrl);
         },
@@ -2202,6 +2208,7 @@ uni-page:has(.user-profile-page-root) .user-profile-page-root .container {
 
 /* —— 与个人主页统一的切换栏与帖子展示样式 —— */
 .user-profile-page-root .tab-navigation {
+    position: relative;
     margin: 0 30rpx 20rpx 30rpx;
     display: flex;
     background: var(--profile-tab-nav-bg, #fff);
@@ -2221,16 +2228,16 @@ uni-page:has(.user-profile-page-root) .user-profile-page-root .container {
     align-items: center;
     justify-content: center;
 }
-.user-profile-page-root .tab-item.active::after {
-    content: '';
+.user-profile-page-root .profile-tab-indicator {
     position: absolute;
     bottom: 8rpx;
-    left: 50%;
     transform: translateX(-50%);
     width: 200rpx;
     height: 6rpx;
     background: var(--profile-tab-indicator-color, #333);
     border-radius: 3rpx;
+    pointer-events: none;
+    transition: left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .user-profile-page-root .tab-item:active { background: var(--profile-tab-item-active-bg, #f5f5f5); }
 .user-profile-page-root .tab-icon { width: 110rpx; height: 110rpx; filter: var(--profile-tab-icon-filter, grayscale(1) brightness(0.5)); opacity: var(--profile-tab-icon-opacity, 0.7); }
@@ -2251,15 +2258,6 @@ uni-page:has(.user-profile-page-root) .user-profile-page-root .container {
 
 .user-profile-page-root .portfolio-section {
     padding-bottom: 220rpx;
-    --app-surface-bg: #ffffff;
-    --app-surface-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
-    --app-surface-border-line: none;
-}
-
-.user-profile-page-root .main-content--with-background .portfolio-section {
-    --app-surface-bg: rgba(255, 255, 255, 0.86);
-    --app-surface-shadow: 0 10rpx 28rpx rgba(0, 0, 0, 0.12);
-    --app-surface-border-line: 1rpx solid rgba(255, 255, 255, 0.30);
 }
 
 .user-profile-page-root .portfolio-section .books-container,
@@ -2268,9 +2266,9 @@ uni-page:has(.user-profile-page-root) .user-profile-page-root .container {
 .user-profile-page-root .portfolio-section .timeline-loading,
 .user-profile-page-root .portfolio-section .timeline-error {
     margin: 0 24rpx 24rpx 24rpx;
-    border-radius: 20rpx;
-    box-shadow: var(--app-surface-shadow, 0 8rpx 24rpx rgba(0, 0, 0, 0.08));
-    border: var(--app-surface-border-line, none);
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
     overflow: hidden;
 }
 
@@ -2283,10 +2281,10 @@ uni-page:has(.user-profile-page-root) .user-profile-page-root .container {
     font-size: 28rpx;
     margin: 40rpx 0;
     padding: 60rpx 0;
-    background-color: var(--profile-empty-surface-bg, #fff);
-    border-radius: 16rpx;
-    box-shadow: var(--profile-empty-surface-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
-    border: var(--profile-empty-surface-border, none);
+    background-color: transparent;
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
 }
 
 
@@ -2316,7 +2314,7 @@ uni-page:has(.user-profile-page-root) .user-profile-page-root .container {
     z-index: 3;
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: flex-start;
     gap: 18rpx;
 }
 

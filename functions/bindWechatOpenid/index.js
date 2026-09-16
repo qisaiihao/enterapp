@@ -57,6 +57,7 @@ exports.main = async (event, context) => {
       votes_log: 0,
       follows: 0,
       portfolios: 0,
+      portfolio_items: 0,
       blocks: 0
     };
     
@@ -338,12 +339,12 @@ exports.main = async (event, context) => {
     }
     updateResults.follows = followsUpdated;
     
-    // 9. 批量更新 portfolios 表
-    console.log('📝 [bindWechatOpenid] 更新 portfolios 表');
+    // 9. 更新当前作品集表；保留返回字段 portfolios 兼容旧调用方。
+    console.log('📝 [bindWechatOpenid] 更新 portfolio_folders 表');
     let portfoliosUpdated = 0;
     let hasMorePortfolios = true;
     while (hasMorePortfolios) {
-      const portfoliosRes = await db.collection('portfolios')
+      const portfoliosRes = await db.collection('portfolio_folders')
         .where({ _openid: oldOpenid })
         .limit(MAX_LIMIT)
         .get();
@@ -354,7 +355,7 @@ exports.main = async (event, context) => {
       }
       
       const updatePromises = portfoliosRes.data.map(portfolio => 
-        db.collection('portfolios').doc(portfolio._id).update({
+        db.collection('portfolio_folders').doc(portfolio._id).update({
           data: { _openid: newOpenid }
         })
       );
@@ -367,6 +368,23 @@ exports.main = async (event, context) => {
       }
     }
     updateResults.portfolios = portfoliosUpdated;
+
+    // 项目按 _openid + folderId 查询，必须同步归属，否则绑定后作品集会变空。
+    while (true) {
+      const itemsRes = await db.collection('portfolio_items')
+        .where({ _openid: oldOpenid })
+        .limit(MAX_LIMIT)
+        .get();
+      if (itemsRes.data.length === 0) break;
+
+      await Promise.all(itemsRes.data.map(item =>
+        db.collection('portfolio_items').doc(item._id).update({
+          data: { _openid: newOpenid }
+        })
+      ));
+      updateResults.portfolio_items += itemsRes.data.length;
+      if (itemsRes.data.length < MAX_LIMIT) break;
+    }
     
     // 10. 批量更新 blocks 表（作为屏蔽者和被屏蔽者）
     console.log('📝 [bindWechatOpenid] 更新 blocks 表');

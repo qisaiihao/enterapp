@@ -293,7 +293,10 @@
           "path": "weekly-selection-detail/weekly-selection-detail",
           "style": {
             "usingComponents": {},
-            "navigationStyle": "custom"
+            "navigationStyle": "custom",
+            "app-plus": {
+              "bounce": "none"
+            }
           }
         },
         {
@@ -314,7 +317,10 @@
           "path": "weekly-topic-detail/weekly-topic-detail",
           "style": {
             "usingComponents": {},
-            "navigationStyle": "custom"
+            "navigationStyle": "custom",
+            "app-plus": {
+              "bounce": "none"
+            }
           }
         },
         {
@@ -331,6 +337,13 @@
     {
       "root": "pages-tools",
       "pages": [
+        {
+          "path": "web-link/web-link",
+          "style": {
+            "navigationBarTitleText": "网页",
+            "navigationStyle": "default"
+          }
+        },
         {
           "path": "search/search",
           "style": {
@@ -379,13 +392,19 @@
           }
         },
         {
-          "path": "feedback-admin/feedback-admin",
+          "path": "my-feedback/my-feedback",
           "style": {
-            "navigationBarTitleText": "反馈管理",
-            "navigationStyle": "custom",
+            "navigationBarTitleText": "我的反馈",
             "backgroundColor": "#f5f5f5",
             "enablePullDownRefresh": true,
             "usingComponents": {}
+          }
+        },
+        {
+          "path": "feedback-detail/feedback-detail",
+          "style": {
+            "navigationBarTitleText": "反馈详情",
+            "enablePullDownRefresh": true
           }
         },
         {
@@ -528,7 +547,7 @@
           "style": {
             "navigationStyle": "custom",
             "backgroundColor": "#f5f5f5",
-            "enablePullDownRefresh": false,
+            "enablePullDownRefresh": true,
             "onReachBottomDistance": 50,
             "usingComponents": {}
           }

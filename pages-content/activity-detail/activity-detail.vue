@@ -93,6 +93,7 @@
       <text>没有更多帖子了</text>
     </view>
   </view>
+    <app-overlay-host />
 </template>
 
 <script>
@@ -665,7 +666,8 @@ export default {
 
 .activity-header {
   position: relative;
-  height: 360rpx;
+  width: 100%;
+  aspect-ratio: 16 / 9;
   overflow: hidden;
 }
 

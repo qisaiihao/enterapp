@@ -3,6 +3,7 @@
     :detail="detail"
     fallback-url="/pages-content/weekly-topic-submission/weekly-topic-submission"
   />
+    <app-overlay-host />
 </template>
 
 <script>

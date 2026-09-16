@@ -52,7 +52,7 @@ exports.main = async (event, context) => {
     return buildNoOpenIdResponse('无法获取用户 openid，请重新登录');
   }
 
-  const { skip = 0, limit = 20, action } = event;
+  const { skip = 0, limit = 20, action, originalOnly = false } = event;
   console.log('【profile云函数】收到参数:', { skip, limit, action });
   console.log('【profile云函数】将查询用户帖子，包括匿名帖子，用户openid:', openid);
 
@@ -90,6 +90,7 @@ exports.main = async (event, context) => {
         pipeline: [
           {
             $match: {
+              ...(originalOnly === true ? { isOriginal: true } : {}),
               $expr: {
                 $or: [
                   { $eq: ['$_openid', '$$user_openid'] },

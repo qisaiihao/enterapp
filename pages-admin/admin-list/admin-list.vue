@@ -63,6 +63,7 @@
             </view>
         </view>
     </view>
+    <app-overlay-host />
 </template>
 
 <script>

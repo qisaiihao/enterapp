@@ -21,35 +21,27 @@ const bucketOf = (v) => {
   return null
 }
 
-async function updateAuthorGrowthCounts(authorOpenid, oldVotes, newVotes) {
+function getAuthorOpenid(post) {
+  if (post.isAnonymous && post.realAuthorOpenid) return post.realAuthorOpenid
+  // 旧匿名帖可能没有真实作者，不能把通知和统计写到公共匿名账号。
+  return post._openid === '123456' ? '' : post._openid
+}
+
+async function updateAuthorGrowthCounts(transaction, authorOpenid, oldVotes, newVotes) {
   const from = bucketOf(oldVotes)
   const to = bucketOf(newVotes)
-  if (from === to) return
+  if (!authorOpenid || from === to) return
+
+  // 事务不支持 where：先定位用户文档，再在事务内更新该文档。
+  const authorResult = await db.collection('users').where({ _openid: authorOpenid }).limit(1).get()
+  const author = authorResult.data[0]
+  // 点赞不负责创建账号，缺失作者时也不能产生只有成长统计的用户记录。
+  if (!author) return
+
   const data = { growthUpdatedAt: db.serverDate() }
   if (from) data[`growthCounts.${from}`] = _.inc(-1)
   if (to) data[`growthCounts.${to}`] = _.inc(1)
-  const upd = await db.collection('users').where({ _openid: authorOpenid }).update({ data })
-  if (!upd.stats || upd.stats.updated === 0) {
-    try {
-      await db.collection('users').add({
-        data: {
-          _openid: authorOpenid,
-          growthCounts: {
-            seed: to === 'seed' ? 1 : 0,
-            leaf: to === 'leaf' ? 1 : 0,
-            flower: to === 'flower' ? 1 : 0,
-            peach: to === 'peach' ? 1 : 0,
-          },
-          showGrowthStats: false,
-          growthUpdatedAt: db.serverDate(),
-          createTime: new Date(),
-          updateTime: new Date(),
-        },
-      })
-    } catch (e) {
-      // ignore race
-    }
-  }
+  await transaction.collection('users').doc(author._id).update({ data })
 }
 
 // 云函数入口函数
@@ -62,15 +54,6 @@ exports.main = async (event, context) => {
     const eventOpenid = event.openid
     const openid = eventOpenid || wxCtxOpenid
 
-    // 读取帖子，拿作者与当前票数（用于分段迁移）
-    const postSnapBefore = await db.collection('posts').doc(postId).get()
-    const postBefore = postSnapBefore.data
-    if (!postBefore) {
-      return { success: false, message: 'POST_NOT_FOUND' }
-    }
-    const authorOpenid = postBefore._openid
-    const oldVotes = postBefore.votes || 0
-
     if (!openid) {
       console.error('❌ [vote] 无法获取用户 openid');
       return {
@@ -79,103 +62,91 @@ exports.main = async (event, context) => {
         code: 'NO_OPENID'
       }
     }
+    if (!postId) return { success: false, message: '缺少帖子ID' }
 
-    // 1. 查找 votes_log 表，精确查找 type 为 'post' 的记录
-    const log = await db.collection('votes_log').where({
-      _openid: openid,
-      postId: postId,
-      type: 'post'
-    }).get()
+    const committed = await db.runTransaction(async transaction => {
+      const postRef = transaction.collection('posts').doc(postId)
+      const postResult = await postRef.get()
+      const post = postResult.data
+      if (!post) return { success: false, message: 'POST_NOT_FOUND' }
 
+      // 必须先在事务中读帖子，再查询旧点赞记录；保留随机 ID 的历史记录兼容。
+      // 所有点赞都更新同一帖子文档，并发冲突时整个回调重跑，重新读取点赞状态。
+      const log = await db.collection('votes_log').where({
+        _openid: openid,
+        postId,
+        type: 'post'
+      }).limit(1).get()
+      const isLiked = log.data.length === 0
+      const oldVotes = Math.max(0, post.votes || 0)
+      const votes = Math.max(0, oldVotes + (isLiked ? 1 : -1))
+      const authorOpenid = getAuthorOpenid(post)
 
-    let updatedPost;
-    let isLiked = false;
+      if (isLiked) {
+        await transaction.collection('votes_log').add({
+          data: { _openid: openid, postId, type: 'post', createTime: new Date() }
+        })
+      } else {
+        await transaction.collection('votes_log').doc(log.data[0]._id).remove()
+      }
+      await postRef.update({ data: { votes } })
+      await updateAuthorGrowthCounts(transaction, authorOpenid, oldVotes, votes)
+      return { success: true, post, authorOpenid, votes, isLiked }
+    })
+    if (!committed.success) return committed
 
-    if (log.data.length > 0) {
-      // 2. 如果找到了记录，说明是"取消点赞"
-      await db.collection('votes_log').doc(log.data[0]._id).remove()
-      await db.collection('posts').doc(postId).update({ data: { votes: _.inc(-1) } })
-      const postSnapAfter = await db.collection('posts').doc(postId).get()
-      const newVotes = (postSnapAfter.data && postSnapAfter.data.votes) || (oldVotes - 1)
-      await updateAuthorGrowthCounts(authorOpenid, oldVotes, newVotes)
-      isLiked = false
-    } else {
-      // 3. 如果没找到记录，说明是"点赞"
-      await db.collection('votes_log').add({
-        data: {
-          _openid: openid,
-          postId: postId,
-          type: 'post',
-          createTime: new Date()
-        }
-      })
-      await db.collection('posts').doc(postId).update({ data: { votes: _.inc(1) } })
-      const postSnapAfter = await db.collection('posts').doc(postId).get()
-      const newVotes = (postSnapAfter.data && postSnapAfter.data.votes) || (oldVotes + 1)
-      await updateAuthorGrowthCounts(authorOpenid, oldVotes, newVotes)
-      isLiked = true
-
+    const { post, authorOpenid, votes, isLiked } = committed
+    // 通知只在事务提交后发送，避免冲突重试产生重复通知。
+    if (isLiked && authorOpenid && authorOpenid !== openid) {
       // === 新增：创建点赞消息通知 ===
       try {
-        // 获取帖子信息
-        const postResult = await db.collection('posts').doc(postId).get()
-        const post = postResult.data
-        
         // 获取点赞者信息
         const userResult = await db.collection('users').where({
           _openid: openid
         }).limit(1).get()
         const user = userResult.data[0]
         
-        // 如果给自己点赞，不发送通知
-        if (post._openid !== openid) {
-          // 根据帖子实际字段确定内容类型
-          let contentType = 'post';
-          let contentTypeText = '帖子';
-          
-          if (post.isDiscussion) {
-            contentType = 'discussion';
-            contentTypeText = '讨论';
-          } else if (post.isPoem) {
-            if (post.isOriginal) {
-              contentType = 'original';
-              contentTypeText = '原创诗歌';
-            } else {
-              contentType = 'non-original';
-              contentTypeText = '诗歌';
-            }
+        // 根据帖子实际字段确定内容类型
+        let contentType = 'post';
+        let contentTypeText = '帖子';
+
+        if (post.isDiscussion) {
+          contentType = 'discussion';
+          contentTypeText = '讨论';
+        } else if (post.isPoem) {
+          if (post.isOriginal) {
+            contentType = 'original';
+            contentTypeText = '原创诗歌';
+          } else {
+            contentType = 'non-original';
+            contentTypeText = '诗歌';
           }
-          
-          await db.collection('messages').add({
-            data: {
-              fromUserId: openid,
-              fromUserName: user ? user.nickName : '微信用户',
-              fromUserAvatar: user ? user.avatarUrl : '',
-              toUserId: post._openid,
-              type: 'like',
-              postId: postId,
-              postTitle: post.title || '无标题',
-              contentType: contentType,
-              content: `${user ? user.nickName : '微信用户'} 点赞了你的${contentTypeText}`,
-              isRead: false,
-              createTime: new Date()
-            }
-          })
         }
+
+        await db.collection('messages').add({
+          data: {
+            fromUserId: openid,
+            fromUserName: user ? user.nickName : '微信用户',
+            fromUserAvatar: user ? user.avatarUrl : '',
+            toUserId: authorOpenid,
+            type: 'like',
+            postId: postId,
+            postTitle: post.title || '无标题',
+            contentType: contentType,
+            content: `${user ? user.nickName : '微信用户'} 点赞了你的${contentTypeText}`,
+            isRead: false,
+            createTime: new Date()
+          }
+        })
       } catch (msgError) {
         console.error('创建点赞消息失败:', msgError)
         // 不影响主流程，只是记录错误
       }
     }
 
-    // 4. 无论点赞还是取消，都重新获取文章的最新数据
-    updatedPost = await db.collection('posts').doc(postId).get();
-
-    const finalVotes = updatedPost.data.votes || 0;
-
     const result = {
       success: true,
-      votes: finalVotes, // 返回最新的点赞数
+      votes, // 返回本次事务提交的点赞数
       isLiked: isLiked
     };
 

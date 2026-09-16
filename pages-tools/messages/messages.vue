@@ -37,6 +37,9 @@
             <view :class="'tab-item ' + (activeTab === 'follow' ? 'active' : '')" @tap="switchTab" data-tab="follow">
                 <text>关注</text>
             </view>
+            <view :class="'tab-item ' + (activeTab === 'feedback_all' ? 'active' : '')" @tap="switchTab" data-tab="feedback_all">
+                <text>反馈</text>
+            </view>
         </view>
 
         <!-- 消息列表 -->
@@ -83,8 +86,8 @@
                         </view>
 
                         <!-- 内容预览 -->
-                        <view v-if="(item.postTitle || item.content) && item.type !== 'follow'" class="content-preview">
-                            <text class="preview-text">{{ item.postTitle || item.content || '标题' }}</text>
+                        <view v-if="(item.feedbackContent || item.postTitle || item.content) && item.type !== 'follow'" class="content-preview">
+                            <text class="preview-text">{{ item.replyContent || item.feedbackContent || item.postTitle || item.content || '标题' }}</text>
                         </view>
                     </view>
 
@@ -101,6 +104,7 @@
         </scroll-view>
 
     </view>
+    <app-overlay-host />
 </template>
 
 <script>
@@ -121,6 +125,7 @@ import { emitUnreadChanged } from '../../utils/events.js';
 import { resolveUserAvatar } from '../../utils/defaultAvatar.js';
 import { getSystemInfoCompat } from '@/utils/system-info.js';
 import { applyThemeMode, getThemeMode } from '@/utils/theme.js';
+import { feedbackDetailUrl } from '../../utils/feedback.js';
 // pages/messages/messages.js
 const app = getApp();
 
@@ -154,16 +159,15 @@ export default {
     },
     onLoad: function (options) {
         this.setupHeaderLayout();
-        this.loadMessages();
     },
     onShow: function () {
         const mode = applyThemeMode(getThemeMode());
         this.appThemeMode = mode;
         // 页面显示时刷新消息
-        if (this.messages.length === 0) {
-            this.loadMessages();
-        } else {
-            this.checkUnreadCount();
+        if (!this.isLoading) {
+            this.page = 0;
+            this.hasMore = true;
+            this.loadMessages(undefined, true);
         }
         
         // 清除未读消息缓存，确保其他页面的小红点能及时更新
@@ -387,6 +391,20 @@ export default {
 
             if (message._id && !message.isRead) {
                 this.markMessagesAsRead([message._id]);
+            }
+
+            if (['feedback', 'feedback_reply', 'feedback_detail_requested', 'feedback_processed'].includes(message.type) && message.feedbackId) {
+                uni.navigateTo({ url: feedbackDetailUrl(message.feedbackId) });
+                return;
+            }
+            if (message.type === 'feedback_processed') {
+                uni.showModal({
+                    title: '反馈已解决',
+                    content: message.feedbackContent || message.content || '您反馈的问题已解决',
+                    showCancel: false,
+                    confirmText: '知道了'
+                });
+                return;
             }
 
             if (message.postId) {
@@ -613,7 +631,11 @@ export default {
                     } else if (msg.type === 'feedback') {
                         msg.content = `${userName} ${timeAgo}提交了新的意见反馈`;
                     } else if (msg.type === 'feedback_processed') {
-                        msg.content = `管理员 ${timeAgo}处理了您的意见反馈`;
+                        msg.content = msg.replyContent ? `${userName}办结了您的反馈` : `${userName}解决了您反馈的问题`;
+                    } else if (msg.type === 'feedback_reply') {
+                        msg.content = `${userName}${msg.feedbackRole === 'user' ? '补充了反馈信息' : '回复了您的反馈'}`;
+                    } else if (msg.type === 'feedback_detail_requested') {
+                        msg.content = `${userName}请您补充反馈细节`;
                     } else if (msg.type === 'follow') {
                         msg.content = `${userName} ${timeAgo}关注了你`;
                         // 对于关注消息，需要检查是否已经互相关注
@@ -835,7 +857,11 @@ export default {
                 'like': `点赞了你的${contentTypeText}`,
                 'comment': `评论了你的${contentTypeText}`,
                 'favorite': `收藏了你的${contentTypeText}`,
-                'follow': '关注了你'
+                'follow': '关注了你',
+                'feedback': '提交了新的意见反馈',
+                'feedback_reply': msg.feedbackRole === 'user' ? '补充了反馈信息' : '回复了您的反馈',
+                'feedback_detail_requested': '请您补充反馈细节',
+                'feedback_processed': msg.replyContent ? '办结了您的反馈' : '解决了您反馈的问题'
             };
             return actionMap[type] || '通知了你';
         },

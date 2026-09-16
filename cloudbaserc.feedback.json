@@ -1,0 +1,23 @@
+{
+  "envId": "cloud1-5gb0pbyl400845f5",
+  "functions": [
+    {
+      "name": "feedbackManager",
+      "root": "./functions/feedbackManager",
+      "runtime": "Nodejs18.15",
+      "handler": "index.main",
+      "timeout": 15,
+      "memory": 128,
+      "installDependency": true
+    },
+    {
+      "name": "getMessages",
+      "root": "./functions/getMessages",
+      "runtime": "Nodejs18.15",
+      "handler": "index.main",
+      "timeout": 10,
+      "memory": 128,
+      "installDependency": true
+    }
+  ]
+}

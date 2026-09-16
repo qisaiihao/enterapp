@@ -13,7 +13,8 @@ exports.main = async (event, context) => {
   console.log('context:', JSON.stringify(context, null, 2))
   
   const wxContext = cloud.getWXContext();
-  const openid = wxContext.OPENID || event.openid;
+  // 与 vote、getPostDetail 保持一致，使用当前登录账号查询点赞记录。
+  const openid = event.openid || wxContext.OPENID;
   const { page = 0, pageSize = 10, mode } = event
 
   // ========== mode: words（返回拼贴词库）==========
@@ -234,11 +235,9 @@ exports.main = async (event, context) => {
 
 // 获取点赞图标
 function getLikeIcon(votes, isVoted) {
-  if (votes >= 100) return '/static/images/peachplus.png'
-  if (votes >= 50) return '/static/images/flowerplus.png'
-  if (votes >= 20) return '/static/images/leafplus.png'
-  if (votes >= 10) return '/static/images/seedplus.png'
-  return '/static/images/seed.png'
+  // 与 utils/likeIcon.js 的成长阶段和点赞选中状态保持一致。
+  const stage = votes <= 3 ? 'seed' : votes <= 7 ? 'leaf' : votes <= 15 ? 'flower' : 'peach'
+  return `/static/images/${stage}${isVoted ? 'plus' : ''}.png`
 }
 
 // 默认词库

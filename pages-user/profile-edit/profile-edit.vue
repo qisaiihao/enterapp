@@ -16,7 +16,6 @@
 
             <!-- 信息表单区域 -->
             <view class="form-section">
-                <view class="form-divider"></view>
                 <!-- 昵称 -->
                 <view class="form-row">
                     <view class="form-label">
@@ -98,7 +97,7 @@
                     <text class="signature-title">签个名吧~</text>
                     <view class="signature-options">
                         <text class="signature-option-label">自动去白底</text>
-                        <switch class="signature-option-switch" :checked="autoRemoveSignatureBg" @change="onToggleSignatureBg" />
+                        <switch class="signature-option-switch" :checked="signaturePendingRemoveBg === null ? autoRemoveSignatureBg : signaturePendingRemoveBg" @change="onToggleSignatureBg" />
                     </view>
                     <view class="signature-upload-btn" @tap="onChooseSignature">
                         <image class="upload-icon" src="/static/images/upload.png" mode="aspectFit"></image>
@@ -110,7 +109,7 @@
                 <canvas
                     id="signatureCanvas"
                     canvas-id="signatureCanvas"
-                    type="2d"
+                    :type="signatureCanvasType"
                     class="signature-canvas"
                     :style="{ width: signatureCanvasWidth + 'px', height: signatureCanvasHeight + 'px' }"
                 ></canvas>
@@ -121,7 +120,7 @@
         </scroll-view>
 
         <!-- 保存按钮在滚动容器之外，固定在屏幕右下角 -->
-        <view class="enter-key-btn" @tap="onSaveChanges" :class="{ disabled: isSaving || !hasChanges }">
+        <view class="enter-key-btn" @tap="onSaveChanges" :class="{ disabled: isSaving || isProcessingSignature || signatureCandidate || !hasChanges }">
             <view class="ek-layer ek-border" :class="{ 'ek-border-inactive': !hasChanges }"></view>
             <view class="ek-layer ek-fill" :class="{ 'ek-fill-inactive': !hasChanges }">
                 <text class="ek-text" :class="{ 'ek-text-inactive': !hasChanges }">enter ↵</text>
@@ -179,54 +178,52 @@
             </view>
         </view>
 
-        <view
-            v-if="showAvatarActionSheet"
-            class="avatar-action-sheet-mask"
-            @tap="closeAvatarActionSheet"
-        ></view>
-        <view
-            v-if="showAvatarActionSheet"
-            class="avatar-action-sheet-panel"
-            @tap.stop
-        >
-            <view
-                class="avatar-action-sheet-item"
-                @tap="handleAvatarActionSheetSelect('upload')"
-            >
-                <text class="avatar-action-sheet-text">上传自定义头像</text>
-            </view>
-            <view
-                class="avatar-action-sheet-item"
-                @tap="handleAvatarActionSheetSelect('preset')"
-            >
-                <text class="avatar-action-sheet-text">从默认头像中选择</text>
-            </view>
-        </view>
-
-        <view v-if="showStickerPicker" class="sticker-picker-modal" @tap="closeStickerPicker">
-            <view class="modal-mask"></view>
-            <view class="sticker-picker-panel" @tap.stop>
-                <view class="sticker-picker-header">
-                    <text class="sticker-picker-title">选择默认头像</text>
-                    <text class="sticker-picker-close" @tap="closeStickerPicker">×</text>
+        <AppDialog :visible="!!signatureCandidate" title="签名预览" confirm-text="使用签名" cancel-text="取消"
+            @confirm="confirmSignaturePreview" @cancel="cancelSignaturePreview">
+            <view v-if="signatureCandidate" class="signature-confirm-content">
+                <text class="signature-confirm-label">原图</text>
+                <view class="signature-confirm-original">
+                    <image class="signature-confirm-image" :src="signatureCandidate.originalPath" mode="aspectFit" />
                 </view>
+                <text class="signature-confirm-label">{{ signatureCandidate.removeBackground ? '去白底效果' : '保留背景' }}</text>
+                <view class="signature-confirm-result">
+                    <image :key="signatureCandidate.filePath" class="signature-confirm-image" :src="signatureCandidate.filePath"
+                        mode="aspectFit" @error="onSignaturePreviewError" />
+                </view>
+                <text v-if="signatureCandidate.reason === 'failed'" class="signature-confirm-note">处理未成功，当前显示原图。你可以使用原图或取消后重新选择。</text>
+                <text v-else-if="signatureCandidate.reason === 'unsupported-background'" class="signature-confirm-note">未能自动去除背景，当前保留原图效果。</text>
+                <text class="signature-confirm-note">使用后，点击页面的 enter 保存上传。</text>
+            </view>
+        </AppDialog>
+
+        <AppActionSheet :visible="showAvatarActionSheet" title="更换头像"
+            :items="['上传自定义头像', '从默认头像中选择']" @cancel="closeAvatarActionSheet"
+            @select="handleAvatarActionSheetSelect($event === 0 ? 'upload' : 'preset')" />
+
+        <AppActionSheet :visible="showStickerPicker" title="选择默认头像" @cancel="closeStickerPicker" @select="selectDefaultAvatar">
+            <template #default="{ select }">
+            <view class="sticker-picker-panel">
                 <view class="sticker-picker-grid">
                     <view
                         v-for="avatar in defaultAvatarOptions"
                         :key="avatar"
                         class="sticker-picker-item"
                         :class="{ 'sticker-picker-item--selected': isDefaultAvatarSelected(avatar) }"
-                        @tap="selectDefaultAvatar(avatar)"
+                        @tap="select(avatar)"
                     >
                         <image class="sticker-picker-image" :src="getDefaultAvatarOptionSrc(avatar)" mode="aspectFill"></image>
                     </view>
                 </view>
             </view>
-        </view>
+            </template>
+        </AppActionSheet>
     </view>
+    <app-overlay-host />
 </template>
 
 <script>
+import AppActionSheet from '@/components/overlay/AppActionSheet.vue';
+import AppDialog from '@/components/overlay/AppDialog.vue';
 import { cloudCall } from '../../utils/cloudCall.js';
 import { uploadFile } from '../../utils/uploader.js';
 import { checkContentSafe, checkImageSafe, checkTextSafe } from '../../utils/contentModeration.js';
@@ -238,12 +235,14 @@ import {
     resolveUserAvatar
 } from '../../utils/defaultAvatar.js';
 import { getCurrentPlatform } from '../../utils/platformDetector.js';
+import { processSignatureFile } from '../../utils/signatureImage.js';
 import { emitAvatarUpdated } from '@/utils/events.js';
 import { resolveGrowthStatsVisibility, writeLocalGrowthStatsVisibility } from '@/utils/profileGrowthStatsVisibility.js';
 // pages/profile-edit/profile-edit.js
 const app = getApp();
 
 export default {
+    components: { AppActionSheet, AppDialog },
     data() {
         return {
             avatarUrl: '',
@@ -265,11 +264,15 @@ export default {
             signaturePreview: '',
             signatureTempPath: null,
             signatureOriginalPath: '',
+            signatureCandidate: null,
+            signaturePendingRemoveBg: null,
             isProcessingSignature: false,
             autoRemoveSignatureBg: true,
             showGrowthStats: false,
             signatureCanvasWidth: 1,
             signatureCanvasHeight: 1,
+            signatureCanvasType: getCurrentPlatform() === 'mp-weixin' ? '2d' : undefined,
+            signatureTaskId: 0,
             // 修改手机号相关
             showEditPhoneModal: false,
             newPhoneNumber: '',
@@ -340,6 +343,16 @@ export default {
         // #ifdef H5
         console.log('【profile-edit】H5环境，触摸事件调试已禁用');
         // #endif
+    },
+    onUnload() {
+        this._signatureDisposed = true;
+        this.signatureTaskId += 1;
+        if (this.isProcessingSignature) uni.hideLoading();
+        this.isProcessingSignature = false;
+        this.signatureCandidate = null;
+        this.signaturePendingRemoveBg = null;
+        this._signatureVariants = null;
+        this._signatureAcceptedVariants = null;
     },
     methods: {
         // 统一云函数调用方法
@@ -536,7 +549,7 @@ export default {
         },
 
         onChooseSignature() {
-            if (this.isProcessingSignature) {
+            if (this.isProcessingSignature || this.isSaving || this.signatureCandidate) {
                 return;
             }
             const handleResult = (filePath) => {
@@ -552,6 +565,7 @@ export default {
             const chooseMediaOptions = {
                 count: 1,
                 mediaType: ['image'],
+                sizeType: ['original'],
                 sourceType: ['album', 'camera'],
                 success: (res) => {
                     const file = res.tempFiles && res.tempFiles[0];
@@ -572,7 +586,7 @@ export default {
             } else {
                 uni.chooseImage({
                     count: 1,
-                    sizeType: ['compressed'],
+                    sizeType: ['original'],
                     sourceType: ['album', 'camera'],
                     success: (res) => handleResult(res.tempFilePaths && res.tempFilePaths[0]),
                     fail: (err) => {
@@ -588,505 +602,83 @@ export default {
             }
         },
 
-        processSignatureImage(filePath) {
-            if (!filePath) {
-                uni.showToast({ title: '未选择图片', icon: 'none' });
-                return;
+        processSignatureImage(filePath, removeBackground = this.autoRemoveSignatureBg) {
+            if (!filePath || this.isSaving || this._signatureDisposed) return Promise.resolve();
+            if (this._signatureWorkSource !== filePath) {
+                this._signatureVariants = {};
+                this._signatureWorkSource = filePath;
             }
-
-            // 压缩签名图片：签名显示区域很小（约1/4屏幕宽度），限制最大边长为600px
-            // 原图可能达几MB，压缩后大幅减小文件体积，节省云存储空间
-            uni.showLoading({ title: '压缩中...', mask: true });
-            uni.compressImage({
-                src: filePath,
-                quality: 80,
-                maxSide: 600,
-                success: (compressResult) => {
-                    const compressedPath = compressResult.tempFilePath || filePath;
-                    this._processCompressedSignature(compressedPath);
-                },
-                fail: (err) => {
-                    console.warn('[signature] compressImage failed, use original:', err);
-                    this._processCompressedSignature(filePath);
-                }
-            });
-        },
-
-        _processCompressedSignature(filePath) {
-            // 记录原始签名图，便于开关切换时回退/重处理
-            if (this.signatureOriginalPath !== filePath) {
-                this.setData({ signatureOriginalPath: filePath });
-            }
-
-            if (!this.autoRemoveSignatureBg) {
-                this.setData({
-                    signaturePreview: filePath,
-                    signatureTempPath: filePath,
-                    signatureUrl: ''
-                });
-                uni.hideLoading();
-                return;
-            }
-
+            const taskId = ++this.signatureTaskId;
+            const variant = removeBackground ? 'clean' : 'plain';
+            const isCurrent = () => taskId === this.signatureTaskId;
+            this.setData({ isProcessingSignature: true, signatureCandidate: null, signaturePendingRemoveBg: removeBackground });
             uni.showLoading({ title: '处理中...', mask: true });
-            this.setData({ isProcessingSignature: true });
 
-            this.removeWhiteBackground(filePath)
-                .then((processedPath) => {
-                    uni.hideLoading();
-                    uni.showToast({
-                        title: '签名已优化',
-                        icon: 'success',
-                        duration: 1500
-                    });
+            // 串行使用页面画布；过期结果不得覆盖新的图片/开关状态或关闭新任务的提示。
+            this._signatureTask = Promise.resolve(this._signatureTask).catch(() => {}).then(async () => {
+                if (!isCurrent()) return;
+                try {
+                    const cached = this._signatureVariants && this._signatureVariants[variant];
+                    const result = cached || await processSignatureFile(filePath, { context: this, removeBackground, isCurrent });
+                    if (!isCurrent()) return;
+                    if (!this._signatureVariants) this._signatureVariants = {};
+                    this._signatureVariants[variant] = result;
                     this.setData({
-                        signaturePreview: processedPath || filePath,
-                        signatureTempPath: processedPath || filePath,
-                        signatureUrl: '',
-                        isProcessingSignature: false
+                        signatureCandidate: { ...result, originalPath: filePath, removeBackground }
                     });
-                })
-                .catch((err) => {
-                    console.error('签名去白底失败，回退原图:', err);
-                    uni.hideLoading();
-                    uni.showToast({
-                        title: '去白底失败，已使用原图',
-                        icon: 'none',
-                        duration: 2000
-                    });
+                } catch (error) {
+                    if (!isCurrent()) return;
+                    console.warn('[signature] processing failed:', error);
                     this.setData({
-                        signaturePreview: filePath,
-                        signatureTempPath: filePath,
-                        signatureUrl: '',
-                        isProcessingSignature: false
+                        signatureCandidate: { filePath, originalPath: filePath, removeBackground, changed: false, reason: 'failed' }
                     });
-                });
-            
-            /* 
-            // 注释掉的canvas处理逻辑
-            // 检查平台兼容性
-                        const platform = getCurrentPlatform();
-            
-            // 尝试使用node()方法（H5和部分App支持）
-            const tryNodeMethod = () => {
-                return new Promise((resolve, reject) => {
-                    try {
-                        uni.createSelectorQuery()
-                            .in(uni)
-                            .select('#signatureCanvas')
-                            .node()
-                            .exec((res) => {
-                                const canvasNode = res && res[0] && res[0].node;
-                                if (canvasNode) {
-                                    resolve(canvasNode);
-                                } else {
-                                    reject(new Error('无法获取canvas节点'));
-                                }
-                            });
-                    } catch (error) {
-                        reject(error);
-                    }
-                });
-            };
-            
-            // 降级方案：使用传统canvas API
-            const fallbackMethod = () => {
-                return new Promise((resolve, reject) => {
-                    try {
-                        // 尝试使用备用canvas（canvas-id方式）
-                        const query = uni.createSelectorQuery();
-                        query.select('#signatureCanvasFallback').fields({
-                            node: true,
-                            size: true
-                        }).exec((res) => {
-                            if (res && res[0] && res[0].node) {
-                                resolve(res[0].node);
-                            } else {
-                                // 如果备用canvas也失败，尝试直接获取DOM元素（仅H5环境）
-                                if (typeof document !== 'undefined') {
-                                    const canvasElement = document.getElementById('signatureCanvas') || 
-                                                        document.getElementById('signatureCanvasFallback');
-                                    if (canvasElement) {
-                                        resolve(canvasElement);
-                                    } else {
-                                        reject(new Error('降级方案也无法获取canvas节点'));
-                                    }
-                                } else {
-                                    reject(new Error('非H5环境无法使用DOM API'));
-                                }
-                            }
-                        });
-                    } catch (error) {
-                        // 如果uni API失败，尝试直接获取DOM元素（仅H5环境）
-                        try {
-                            if (typeof document !== 'undefined') {
-                                const canvasElement = document.getElementById('signatureCanvas') || 
-                                                    document.getElementById('signatureCanvasFallback');
-                                if (canvasElement) {
-                                    resolve(canvasElement);
-                                } else {
-                                    reject(new Error('无法获取canvas元素'));
-                                }
-                            } else {
-                                reject(new Error('非H5环境无法使用DOM API: ' + error.message));
-                            }
-                        } catch (domError) {
-                            reject(new Error('所有方案都失败了: ' + error.message));
-                        }
-                    }
-                });
-            };
-            
-            // 根据平台选择合适的方法
-            let canvasPromise;
-            if (platform === 'h5') {
-                // H5环境优先尝试node()方法，失败后使用DOM降级
-                canvasPromise = tryNodeMethod().catch(() => fallbackMethod());
-            } else if (platform === 'app') {
-                // App环境直接使用原图，跳过canvas处理
-                console.log('App环境跳过canvas处理，直接使用原图');
-                canvasPromise = Promise.reject(new Error('App环境跳过canvas处理，直接使用原图'));
-            } else {
-                // 小程序环境直接使用降级方案
-                canvasPromise = fallbackMethod();
-            }
-            
-            canvasPromise.then((canvasNode) => {
-                if (!canvasNode) {
-                    uni.hideLoading();
-                    uni.showToast({
-                        title: '获取画布失败',
-                        icon: 'none'
-                    });
-                    this.setData({
-                        isProcessingSignature: false
-                    });
-                    return;
-                }
-                
-                const canvas = canvasNode;
-                const ctx = canvas.getContext('2d');
-                const img = canvas.createImage();
-                img.src = filePath;
-                img.onload = () => {
-                    const originalWidth = img.width;
-                    const originalHeight = img.height;
-                    const maxSide = 800;
-                    const scale = Math.min(1, maxSide / Math.max(originalWidth, originalHeight));
-                    const width = Math.max(1, Math.round(originalWidth * scale));
-                    const height = Math.max(1, Math.round(originalHeight * scale));
-                    canvas.width = width;
-                    canvas.height = height;
-                    ctx.clearRect(0, 0, width, height);
-                    ctx.drawImage(img, 0, 0, width, height);
-                    try {
-                        const imageData = ctx.getImageData(0, 0, width, height);
-                        const data = imageData.data;
-                        for (let i = 0; i < data.length; i += 4) {
-                            const r = data[i];
-                            const g = data[i + 1];
-                            const b = data[i + 2];
-                            const avg = (r + g + b) / 3;
-                            const diff = Math.max(Math.abs(r - g), Math.abs(r - b), Math.abs(g - b));
-                            if (avg > 235 && diff < 25) {
-                                data[i + 3] = 0;
-                            } else if (avg > 220 && diff < 30) {
-                                data[i + 3] = Math.min(data[i + 3], 120);
-                            }
-                        }
-                        ctx.putImageData(imageData, 0, 0);
-                    } catch (error) {
-                        console.log('CatchClause', error);
-                        console.log('CatchClause', error);
-                        console.error('签名像素处理失败:', error);
+                } finally {
+                    if (isCurrent()) {
+                        this.setData({ isProcessingSignature: false });
                         uni.hideLoading();
-                        uni.showToast({
-                            title: '处理失败',
-                            icon: 'none'
-                        });
-                        this.setData({
-                            isProcessingSignature: false
-                        });
-                        return;
                     }
-                    uni.canvasToTempFilePath({
-                        canvas,
-                        x: 0,
-                        y: 0,
-                        width,
-                        height,
-                        destWidth: width,
-                        destHeight: height,
-                        fileType: 'png',
-                        success: (result) => {
-                            uni.hideLoading();
-                            uni.showToast({
-                                title: '签名已优化',
-                                icon: 'success',
-                                duration: 1500
-                            });
-                            this.setData({
-                                signaturePreview: result.tempFilePath,
-                                signatureTempPath: result.tempFilePath,
-                                signatureUrl: ''
-                            });
-                        },
-                        fail: (err) => {
-                            console.error('导出签名失败:', err);
-                            uni.hideLoading();
-                            uni.showToast({
-                                title: '导出失败',
-                                icon: 'none'
-                            });
-                        },
-                        complete: () => {
-                            this.setData({
-                                isProcessingSignature: false
-                            });
-                        }
-                    });
-                };
-                img.onerror = (error) => {
-                    console.error('签名图片加载失败:', error);
-                    uni.hideLoading();
-                    uni.showToast({
-                        title: '图片加载失败',
-                        icon: 'none'
-                    });
-                    this.setData({
-                        isProcessingSignature: false
-                    });
-                };
-            }).catch((error) => {
-                console.error('获取canvas节点失败:', error);
-                uni.hideLoading();
-                
-                // 根据平台提供不同的提示信息
-                let toastMessage = '使用原图（背景处理不可用）';
-                if (platform === 'app') {
-                    toastMessage = 'App环境使用原图（背景处理功能暂不可用）';
-                } else if (platform === 'mp-weixin') {
-                    toastMessage = '小程序环境使用原图（背景处理功能暂不可用）';
                 }
-                
-                console.log('使用最终降级方案：直接使用原图');
-                uni.showToast({
-                    title: toastMessage,
-                    icon: 'none',
-                    duration: 2000
-                });
-                
-                this.setData({
-                    signaturePreview: filePath,
-                    signatureTempPath: filePath,
-                    signatureUrl: '',
-                    isProcessingSignature: false
-                });
             });
-            */
+            return this._signatureTask;
         },
 
         onToggleSignatureBg(e) {
+            if (this.isSaving) return;
             const enabled = !!(e && e.detail && e.detail.value);
+            // 始终从首次选择的原图生成两个版本，关闭/开启不会累计压缩和抠图。
+            const source = this.signaturePendingRemoveBg !== null ? this._signatureWorkSource : this.signatureOriginalPath;
+            if (source) return this.processSignatureImage(source, enabled);
             this.setData({ autoRemoveSignatureBg: enabled });
-
-            // 切换开关时，如果已有签名图，立即重处理/回退
-            const originalPath = this.signatureOriginalPath || this.signatureTempPath;
-            if (!originalPath) return;
-
-            if (!enabled) {
-                this.setData({
-                    signaturePreview: originalPath,
-                    signatureTempPath: originalPath,
-                    signatureUrl: ''
-                });
-                return;
-            }
-
-            if (this.isProcessingSignature) return;
-            this.processSignatureImage(originalPath);
         },
 
-        async removeWhiteBackground(filePath) {
-                        const platform = getCurrentPlatform();
-
-            const sampleBackgroundColor = (pixels, width, height) => {
-                const samplePoints = [
-                    [2, 2],
-                    [width - 3, 2],
-                    [2, height - 3],
-                    [width - 3, height - 3],
-                    [Math.floor(width / 2), 2],
-                    [Math.floor(width / 2), height - 3]
-                ];
-                let r = 0;
-                let g = 0;
-                let b = 0;
-                let count = 0;
-                samplePoints.forEach(([x, y]) => {
-                    if (x < 0 || y < 0 || x >= width || y >= height) return;
-                    const idx = (y * width + x) * 4;
-                    r += pixels[idx];
-                    g += pixels[idx + 1];
-                    b += pixels[idx + 2];
-                    count += 1;
-                });
-                if (!count) return { r: 255, g: 255, b: 255 };
-                return {
-                    r: Math.round(r / count),
-                    g: Math.round(g / count),
-                    b: Math.round(b / count)
-                };
-            };
-
-            let rawWidth = 0;
-            let rawHeight = 0;
-            try {
-                const imageInfo = await new Promise((resolve, reject) => {
-                    uni.getImageInfo({
-                        src: filePath,
-                        success: resolve,
-                        fail: reject
-                    });
-                });
-                rawWidth = imageInfo && imageInfo.width ? imageInfo.width : 0;
-                rawHeight = imageInfo && imageInfo.height ? imageInfo.height : 0;
-            } catch (infoErr) {
-                // H5/部分平台可能无法获取本地图片信息，降级为后续 img 尺寸
-                rawWidth = 0;
-                rawHeight = 0;
-            }
-
-            const isH5 = platform === 'h5' && typeof document !== 'undefined';
-            let canvas = null;
-            let ctx = null;
-
-            if (isH5) {
-                canvas = document.createElement('canvas');
-                ctx = canvas.getContext('2d');
-                if (!ctx) throw new Error('无法获取 canvas context');
-            } else {
-                canvas = await new Promise((resolve, reject) => {
-                    try {
-                        const query = uni.createSelectorQuery().in(this);
-                        query
-                            .select('#signatureCanvas')
-                            .fields({ node: true, size: true })
-                            .exec((res) => {
-                                const node = res && res[0] && res[0].node;
-                                if (node) {
-                                    resolve(node);
-                                    return;
-                                }
-                                reject(new Error('无法获取 canvas 节点'));
-                            });
-                    } catch (error) {
-                        reject(error);
-                    }
-                });
-                ctx = canvas.getContext('2d');
-                if (!ctx) throw new Error('无法获取 canvas context');
-            }
-
-            const img = canvas.createImage ? canvas.createImage() : (typeof Image !== 'undefined' ? new Image() : null);
-            if (!img) throw new Error('当前环境不支持加载图片');
-            if (isH5 && img && typeof img.crossOrigin !== 'undefined') {
-                img.crossOrigin = 'anonymous';
-            }
-
-            const imgInfo = await new Promise((resolve, reject) => {
-                img.onload = () => resolve({ width: img.width, height: img.height });
-                img.onerror = (e) => reject(e || new Error('图片加载失败'));
-                img.src = filePath;
+        confirmSignaturePreview() {
+            const candidate = this.signatureCandidate;
+            if (!candidate || this.isProcessingSignature || this.isSaving || this._signatureDisposed) return;
+            // 只有用户确认后，候选图才进入资料保存/审核/上传流程。
+            this._signatureAcceptedVariants = this._signatureVariants;
+            this.setData({
+                signaturePreview: candidate.filePath,
+                signatureTempPath: candidate.filePath,
+                signatureUrl: '',
+                signatureOriginalPath: candidate.originalPath,
+                autoRemoveSignatureBg: candidate.removeBackground,
+                signatureCandidate: null,
+                signaturePendingRemoveBg: null
             });
+        },
 
-            const baseWidth = rawWidth || imgInfo.width || 0;
-            const baseHeight = rawHeight || imgInfo.height || 0;
-            if (!baseWidth || !baseHeight) {
-                throw new Error('无法获取图片尺寸');
-            }
+        cancelSignaturePreview() {
+            this.signatureTaskId += 1;
+            if (this.isProcessingSignature) uni.hideLoading();
+            this._signatureWorkSource = this.signatureOriginalPath;
+            this._signatureVariants = this._signatureAcceptedVariants;
+            this.setData({ signatureCandidate: null, signaturePendingRemoveBg: null, isProcessingSignature: false });
+        },
 
-            // 签名显示区域很小（max-height: 200rpx, 约1/4屏幕宽度），600px足够
-            const MAX_SIGNATURE_SIDE = 600;
-            const scale = Math.min(1, MAX_SIGNATURE_SIDE / Math.max(baseWidth, baseHeight));
-            const width = Math.max(1, Math.round(baseWidth * scale));
-            const height = Math.max(1, Math.round(baseHeight * scale));
-
-            canvas.width = width;
-            canvas.height = height;
-            if (!isH5) {
-                this.setData({
-                    signatureCanvasWidth: width,
-                    signatureCanvasHeight: height
-                });
-            }
-            ctx.clearRect(0, 0, width, height);
-            ctx.drawImage(img, 0, 0, width, height);
-
-            const imageData = ctx.getImageData(0, 0, width, height);
-            const data = imageData.data;
-
-            const bg = sampleBackgroundColor(data, width, height);
-            const bgLuma = (bg.r + bg.g + bg.b) / 3;
-            const threshold = Math.max(200, Math.min(250, bgLuma - 2));
-            const softRange = 28;
-            const chromaThreshold = 40;
-            const distanceThreshold = 36;
-
-            for (let i = 0; i < data.length; i += 4) {
-                const r = data[i];
-                const g = data[i + 1];
-                const b = data[i + 2];
-                const max = Math.max(r, g, b);
-                const min = Math.min(r, g, b);
-                const whiteness = (r + g + b) / 3;
-                const chroma = max - min;
-                const dist = Math.max(Math.abs(r - bg.r), Math.abs(g - bg.g), Math.abs(b - bg.b));
-
-                const isBgStrong = dist <= 18 && chroma <= 26;
-                const isBgSoft = dist <= distanceThreshold && chroma <= chromaThreshold;
-
-                if (isBgStrong || (whiteness >= threshold && isBgSoft)) {
-                    data[i + 3] = 0;
-                } else if (whiteness >= threshold - softRange && isBgSoft) {
-                    const t = Math.min(1, Math.max(0, (dist - 18) / (distanceThreshold - 18)));
-                    data[i + 3] = Math.round(data[i + 3] * t);
-                }
-            }
-
-            ctx.putImageData(imageData, 0, 0);
-
-            if (platform === 'h5') {
-                if (typeof canvas.toBlob === 'function') {
-                    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
-                    if (!blob) {
-                        throw new Error('H5 导出失败');
-                    }
-                    return URL.createObjectURL(blob);
-                }
-                // H5 fallback: toDataURL
-                if (typeof canvas.toDataURL === 'function') {
-                    const dataUrl = canvas.toDataURL('image/png');
-                    return dataUrl;
-                }
-            }
-
-            return await new Promise((resolve, reject) => {
-                const exportOptions = {
-                    canvas,
-                    x: 0,
-                    y: 0,
-                    width,
-                    height,
-                    destWidth: width,
-                    destHeight: height,
-                    fileType: 'png',
-                    quality: 0.85,
-                    success: (res) => resolve(res.tempFilePath),
-                    fail: (err) => reject(err)
-                };
-                uni.canvasToTempFilePath(exportOptions, this);
-            });
+        onSignaturePreviewError() {
+            if (!this.signatureCandidate) return;
+            this.cancelSignaturePreview();
+            uni.showToast({ title: '预览加载失败，请重新选择', icon: 'none' });
         },
 
         onNicknameInput(e) {
@@ -1377,12 +969,14 @@ export default {
         },
 
         onSaveChanges: async function () {
-            if (this.isSaving || this.isProcessingSignature || !this.hasChanges) {
+            if (this.isSaving || this.isProcessingSignature || this.signatureCandidate || !this.hasChanges) {
                 return;
             }
 
             // 【内容审核】审核个人资料内容（仅小程序端）
+            const signatureTaskId = this.signatureTaskId;
             const moderationResult = await this.moderateProfileContent();
+            if (this.isSaving || this.isProcessingSignature || this.signatureCandidate || signatureTaskId !== this.signatureTaskId || this._signatureDisposed) return;
             if (!moderationResult.passed) {
                 uni.showModal({
                     title: '内容审核未通过',
@@ -1558,8 +1152,8 @@ export default {
     min-height: 100vh;
     background-color: var(--app-page-bg, #ffffff);
     color: var(--app-primary-text, #111111);
-    --profile-edit-label-bg: #cccccc;
-    --profile-edit-label-border: #cccccc;
+    --profile-edit-label-bg: #808080;
+    --profile-edit-label-border: #808080;
     --profile-edit-label-text: #ffffff;
     --profile-edit-enter-border-bg: #333333;
     --profile-edit-enter-fill-bg: #ffffff;
@@ -1572,9 +1166,6 @@ export default {
 }
 
 .profile-edit-page[data-app-theme="dark"] {
-    --profile-edit-label-bg: rgba(255, 255, 255, 0.10);
-    --profile-edit-label-border: rgba(255, 255, 255, 0.16);
-    --profile-edit-label-text: #f4f1ea;
     --profile-edit-enter-border-bg: #f4f1ea;
     --profile-edit-enter-fill-bg: #0f1115;
     --profile-edit-enter-text-color: #f4f1ea;
@@ -1652,18 +1243,8 @@ export default {
 
 /* 表单区域 */
 .form-section {
-    background-color: var(--app-surface-bg, #ffffff);
     margin: 0 30rpx;
-    border-radius: 16rpx;
     overflow: hidden;
-    border: 1rpx solid var(--app-border-color, transparent);
-}
-
-.form-divider {
-    width: 100%;
-    height: 1rpx;
-    background-color: var(--app-border-color, #f0f0f0);
-    margin: 0;
 }
 
 .form-row {
@@ -1699,8 +1280,8 @@ export default {
 
 .form-label {
     flex-shrink: 0;
-    background-color: var(--profile-edit-label-bg, #cccccc);
-    border: 1rpx solid var(--profile-edit-label-border, #cccccc);
+    background-color: var(--profile-edit-label-bg, #808080);
+    border: 1rpx solid var(--profile-edit-label-border, #808080);
     padding: 12rpx 20rpx;
     border-radius: 20rpx;
     text-align: center;
@@ -1767,10 +1348,7 @@ export default {
 /* 个性描述区域 */
 .personality-section {
     padding: 30rpx;
-    background-color: var(--app-surface-bg, #ffffff);
     margin: 10rpx 30rpx 0rpx 30rpx;
-    border-radius: 16rpx;
-    border: 1rpx solid var(--app-border-color, transparent);
 }
 
 .personality-title {
@@ -1804,10 +1382,7 @@ export default {
 /* 签名区域 */
 .signature-section {
     padding: 30rpx;
-    background-color: var(--app-surface-bg, #ffffff);
     margin: 0rpx 30rpx;
-    border-radius: 16rpx;
-    border: 1rpx solid var(--app-border-color, transparent);
 }
 
 .signature-header {
@@ -1890,6 +1465,38 @@ export default {
     opacity: 0;
     pointer-events: none;
 }
+
+.signature-confirm-label {
+    display: block;
+    margin: 16rpx 0 12rpx;
+    font-size: 25rpx;
+    color: var(--app-primary-text, #333);
+}
+
+.signature-confirm-label:first-child { margin-top: 0; }
+
+.signature-confirm-original,
+.signature-confirm-result {
+    padding: 12rpx;
+    border: 1px solid #d4d4d4;
+    border-radius: 8rpx;
+    background-color: #fff;
+    overflow: hidden;
+}
+
+.signature-confirm-result {
+    background-image:
+        linear-gradient(45deg, #d4d4d4 25%, transparent 25%),
+        linear-gradient(-45deg, #d4d4d4 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #d4d4d4 75%),
+        linear-gradient(-45deg, transparent 75%, #d4d4d4 75%);
+    background-size: 24rpx 24rpx;
+    background-position: 0 0, 0 12rpx, 12rpx -12rpx, -12rpx 0;
+}
+
+.signature-confirm-image { display: block; width: 100%; height: 150rpx; }
+.signature-confirm-result .signature-confirm-image { height: 190rpx; }
+.signature-confirm-note { display: block; margin-top: 16rpx; font-size: 23rpx; line-height: 1.6; color: var(--app-secondary-text, #666); }
 
 /* 回车键形状按钮 */
 .enter-key-btn {
@@ -2154,44 +1761,10 @@ export default {
     padding: 0 24rpx;
 }
 
-.sticker-picker-modal {
-    position: fixed;
-    inset: 0;
-    z-index: 10000;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-}
-
 .sticker-picker-panel {
-    position: relative;
     width: 100%;
-    background: var(--app-surface-bg, #fff);
-    border-radius: 32rpx 32rpx 0 0;
     padding: 32rpx;
-    max-height: 70vh;
-    overflow-y: auto;
-    border: 1rpx solid var(--app-border-color, transparent);
     box-sizing: border-box;
-}
-
-.sticker-picker-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 24rpx;
-}
-
-.sticker-picker-title {
-    font-size: 34rpx;
-    font-weight: 600;
-    color: var(--app-primary-text, #333);
-}
-
-.sticker-picker-close {
-    font-size: 44rpx;
-    color: var(--app-muted-text, #999);
-    line-height: 1;
 }
 
 .sticker-picker-grid {
@@ -2221,58 +1794,11 @@ export default {
     display: block;
 }
 
-.avatar-action-sheet-mask {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    background: rgba(0, 0, 0, 0.18);
-    z-index: 1200;
-}
 
-.avatar-action-sheet-panel {
-    position: fixed;
-    left: 24rpx;
-    right: 24rpx;
-    bottom: 72rpx;
-    bottom: calc(72rpx + constant(safe-area-inset-bottom));
-    bottom: calc(72rpx + env(safe-area-inset-bottom));
-    background: var(--profile-edit-sheet-bg, rgba(255, 255, 255, 0.96));
-    border-radius: 24rpx;
-    box-shadow: 0 18rpx 40rpx rgba(0, 0, 0, 0.14);
-    overflow: hidden;
-    z-index: 1201;
-    backdrop-filter: blur(14rpx);
-    -webkit-backdrop-filter: blur(14rpx);
-    animation: avatarActionSheetSlideUp 0.22s ease-out;
-}
 
-.avatar-action-sheet-item {
-    min-height: 104rpx;
-    padding: 0 36rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-bottom: 1rpx solid var(--app-border-color, #f0f0f0);
-    transition: background-color 0.2s ease;
-}
 
-.avatar-action-sheet-item:last-child {
-    border-bottom: none;
-}
 
-.avatar-action-sheet-item:active {
-    background: var(--app-subtle-surface-bg, #f5f5f5);
-}
 
-.avatar-action-sheet-text {
-    font-size: 32rpx;
-    font-weight: 500;
-    color: var(--app-primary-text, #333);
-    line-height: 1.4;
-    letter-spacing: 0.5rpx;
-}
 
 @keyframes avatarActionSheetSlideUp {
     from {

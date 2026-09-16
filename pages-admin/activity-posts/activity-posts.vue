@@ -47,6 +47,7 @@
       <text>没有更多帖子了</text>
     </view>
   </view>
+    <app-overlay-host />
 </template>
 
 <script>

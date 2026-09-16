@@ -1,13 +1,9 @@
 <template>
     <view class="portfolio-selector-container">
         <!-- components/portfolio-selector/portfolio-selector.wxml -->
-        <view v-if="showClone" class="modal-overlay" @tap="hideModal">
-            <view class="modal-content" @tap.stop>
-                <view class="modal-header">
-                    <view class="modal-title">添加作品集</view>
-                    <button class="create-btn" @tap="createPortfolio">创建</button>
-                </view>
-
+        <AppActionSheet :visible="showClone && !showCreateModal" title="添加作品集" @cancel="hideModal" @select="createPortfolio">
+            <template #default="{ select }">
+            <view class="collection-sheet">
                 <view class="modal-body">
                     <!-- 加载状态 -->
                     <view v-if="isLoading" class="loading-container">
@@ -48,11 +44,10 @@
                     </view>
                 </view>
 
-                <view class="modal-footer">
-                    <button class="modal-btn secondary-btn" @tap="hideModal">取消</button>
-                </view>
+                <button class="collection-create" @tap="select('create')">创建作品集</button>
             </view>
-        </view>
+            </template>
+        </AppActionSheet>
 
         <!-- 创建作品集弹窗 -->
         <view v-if="showCreateModal" class="modal-overlay" @tap="hideCreateModal">
@@ -97,11 +92,13 @@
 </template>
 
 <script>
+import AppActionSheet from '@/components/overlay/AppActionSheet.vue';
 // components/portfolio-selector/portfolio-selector.js
 import { cloudCall } from '../../utils/cloudCall.js';
 import { getPortfolioFolders, notifyPortfolioUpdated } from '../../api-cache/portfolio.js';
 import { readFileAsBase64 } from '../../utils/fileReader.js';
 export default {
+    components: { AppActionSheet },
     data() {
         return {
             portfolios: [],
@@ -635,13 +632,10 @@ export default {
                 showCreateModal: this.showCreateModal,
                 selectedPortfolioId: this.selectedPortfolioId
             });
-            this.setData({
-                selectedPortfolioId: '',
-                showClone: false,
-                showCreateModal: false,
-                // 确保创建弹窗也关闭
-                newPortfolioName: '' // 清空输入框
-            });
+            this.selectedPortfolioId = '';
+            this.showClone = false;
+            this.showCreateModal = false;
+            this.newPortfolioName = '';
 
             console.log('=== 弹窗已隐藏，状态已重置 ===');
             this.$emit('hide');
@@ -1046,4 +1040,17 @@ export default {
     font-size: 24rpx;
     font-weight: 500;
 }
+/* 选择列表共用底部面板；创建表单继续使用原来的输入弹窗。 */
+.collection-sheet .modal-body { padding: 0; max-height: none; overflow: visible; }
+.collection-sheet .portfolios-list { padding: 0; gap: 0; }
+.collection-sheet .portfolio-item { min-height: 116rpx; padding: 26rpx 32rpx; box-sizing: border-box; border-bottom: 1px solid var(--overlay-divider); background: var(--overlay-bg); }
+.collection-sheet .portfolio-name { font-size: 30rpx; color: var(--overlay-text); }
+.collection-sheet .portfolio-count, .collection-sheet .create-time, .collection-sheet .loading-text, .collection-sheet .empty-subtext { color: var(--overlay-muted); }
+.collection-sheet .empty-text { color: var(--overlay-text); }
+.collection-sheet .portfolio-icon { background: transparent; }
+.collection-sheet .portfolio-default-icon-img, .collection-sheet .empty-icon-img { filter: var(--app-icon-filter, none); }
+.collection-sheet .recent-tag { background: var(--overlay-control-bg); color: var(--overlay-text); }
+.collection-create { width: 100%; min-height: 116rpx; margin: 0; padding: 26rpx 32rpx; box-sizing: border-box; border-radius: 0; background: transparent; color: var(--overlay-text); font-size: 30rpx; line-height: 1.4; display: flex; align-items: center; justify-content: center; }
+.collection-create::after { border: none; }
+.collection-create:active, .collection-sheet .portfolio-item:active { opacity: 0.65; }
 </style>

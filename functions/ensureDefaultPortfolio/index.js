@@ -1,5 +1,6 @@
 // 确保用户有默认作品集的云函数（支持批量回填）
 const cloud = require('wx-server-sdk');
+const { ensureDefaultPortfolio } = require('./_lib/ensure-default-portfolio');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
@@ -42,41 +43,14 @@ exports.main = async (event, context) => {
       // 用户没有作品集，创建默认作品集
       console.log('🔍 [ensureDefaultPortfolio] 用户没有作品集，创建默认作品集');
       
-      const result = await db.collection('portfolio_folders').add({
-        data: {
-          _openid: openid,
-          name: '我的作品集',
-          description: '这是我的默认作品集',
-          itemCount: 0,
-          items: [],
-          createTime: new Date(),
-          updateTime: new Date(),
-          isPublic: false,
-          coverImage: '',
-          tags: [],
-          isDefault: true // 标记为默认作品集
-        }
-      });
+      const { folder } = await ensureDefaultPortfolio(db, openid, { isPublic: false });
 
-      console.log('✅ [ensureDefaultPortfolio] 默认作品集创建成功，ID:', result._id);
+      console.log('✅ [ensureDefaultPortfolio] 默认作品集已就绪，ID:', folder._id);
       
       return {
         success: true,
         message: '已为您创建默认作品集',
-        portfolio: {
-          _id: result._id,
-          _openid: openid,
-          name: '我的作品集',
-          description: '这是我的默认作品集',
-          itemCount: 0,
-          items: [],
-          createTime: new Date(),
-          updateTime: new Date(),
-          isPublic: false,
-          coverImage: '',
-          tags: [],
-          isDefault: true
-        }
+        portfolio: folder
       };
     } else {
       // 用户已有作品集
@@ -141,22 +115,9 @@ async function batchEnsureDefaultPortfolio(batchSize) {
         
         if (existingPortfolios.data.length === 0) {
           // 创建默认作品集
-          await db.collection('portfolio_folders').add({
-            data: {
-              _openid: user._openid,
-              name: '我的作品集',
-              description: '这是我的默认作品集',
-              itemCount: 0,
-              items: [],
-              createTime: new Date(),
-              updateTime: new Date(),
-              isPublic: false,
-              coverImage: '',
-              tags: [],
-              isDefault: true
-            }
-          });
-          created++;
+          const result = await ensureDefaultPortfolio(db, user._openid, { isPublic: false });
+          if (result.created) created++;
+          else alreadyHas++;
           console.log(`✅ [batchEnsureDefaultPortfolio] 为用户 ${user._openid} 创建默认作品集`);
         } else {
           alreadyHas++;

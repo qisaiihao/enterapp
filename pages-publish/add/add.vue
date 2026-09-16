@@ -279,6 +279,7 @@
         />
     </view>
     <!-- 这个 </view> 是用来闭合最外层的 <view class="container"> 的 -->
+    <app-overlay-host />
 </template>
 
 <script>
@@ -346,6 +347,7 @@ import {
 } from './useImages.js';
 
 import { decodeParamSafe } from '@/utils/activity.js';
+import { dismissCurrentOverlay } from '@/utils/appOverlay.js';
 
 const WORKING_DRAFT_KEY = 'publish_working_draft_v1';
 const LEGACY_DRAFT_KEY = 'publish_draft';
@@ -720,7 +722,10 @@ export default {
         this.setData({ isTemporaryHide: false });
     },
     // App/H5：拦截物理返回，优先弹出草稿提示
-    onBackPress: function () {
+    onBackPress: function (event = {}) {
+        // 已处理草稿选择的主动返回不能再被尚未卸载的弹窗拦截。
+        if (event.from === 'navigateBack' && this.isNavigating) return false;
+        if (event.appOverlayHandled || dismissCurrentOverlay()) return true;
         if (this.isNavigating) {
             return false; // 如果正在导航，允许默认返回行为
         }
@@ -1691,8 +1696,13 @@ export default {
         },
 
         submitToDatabase: function (uploadResults) {
+            const seriesBlocks = this.isSeries && Array.isArray(this.seriesBlocks)
+                ? this.seriesBlocks.filter(block => block && ((block.content || '').trim() || (block.subtitle || '').trim()))
+                : [];
             const normalizedPublishMode = (this.isSeries || this.isPoem || this.publishMode === 'poem') ? 'poem' : (this.publishMode || 'normal');
-            const normalizedIsSeries = !!this.isSeries;
+            // 发布时至少有两首非空诗歌才标记为组诗。
+            const normalizedIsSeries = seriesBlocks.length > 1;
+            const normalizedTitle = this.title || (seriesBlocks.length === 1 ? seriesBlocks[0].subtitle : '') || '';
             const normalizedIsDiscussion = normalizedPublishMode === 'discussion' && !normalizedIsSeries;
             const normalizedIsPoem = normalizedPublishMode === 'poem' || normalizedIsSeries;
             const normalizedIsOriginal = normalizedIsPoem ? !!this.isOriginal : false;
@@ -1732,6 +1742,9 @@ export default {
             let finalContent = this.publishMode === 'discussion'
                 ? mergeDiscussionContent(discussionSentenceGroups, this.content)
                 : (this.content || '');
+            if (this.isSeries) {
+                finalContent = seriesBlocks.map(block => (block.content || block.subtitle || '').trim()).filter(Boolean).join('\n\n');
+            }
 
             // 检查编辑模式状态
             console.log('【Add】编辑模式检查:', {
@@ -1760,8 +1773,8 @@ export default {
                 
                 // 准备更新数据
                 const updateData = {
-                    title: this.title,
-                    content: this.content,
+                    title: normalizedTitle,
+                    content: finalContent,
                     tags: this.selectedTags || [],
                     backgroundColor: this.selectedBackgroundColor || '',
                     textColor: this.selectedTextColor || '#000000',
@@ -1775,6 +1788,8 @@ export default {
                     isOriginal: normalizedIsOriginal,
                     isDiscussion: normalizedIsDiscussion,
                     isSeries: normalizedIsSeries,
+                    seriesBlocks: normalizedIsSeries ? seriesBlocks : [],
+                    seriesBlockCount: normalizedIsSeries ? seriesBlocks.length : 0,
                     sentenceGroups: normalizedIsDiscussion ? discussionSentenceGroups : undefined,
                     discussionSentences: normalizedIsDiscussion ? discussionSentenceGroups.map(g => ({
                         sentences: g.sentences,
@@ -1831,7 +1846,7 @@ export default {
             
             // 准备提交数据
             const postData = {
-                title: this.title,
+                title: normalizedTitle,
                 content: finalContent,
                 createTime: new Date(),
                 votes: 0,
@@ -1840,6 +1855,8 @@ export default {
                 isPoem: normalizedIsPoem,
                 isOriginal: normalizedIsOriginal,
                 isSeries: normalizedIsSeries,
+                seriesBlocks: normalizedIsSeries ? seriesBlocks : [],
+                seriesBlockCount: normalizedIsSeries ? seriesBlocks.length : 0,
                 // 讨论模式字段
                 isDiscussion: normalizedIsDiscussion,
                 // 新增作者字段
@@ -1891,7 +1908,7 @@ export default {
             });
             
             const auditParams = {
-                title: this.title,
+                title: normalizedTitle,
                 content: finalContent,
                 fileIDs: fileIDs,
                 originalFileIDs: originalFileIDs, // 添加原图URL数组
@@ -1902,6 +1919,7 @@ export default {
                 tags: this.selectedTags || [],
                 isDiscussion: normalizedIsDiscussion,
                 isSeries: normalizedIsSeries,
+                seriesBlocks: normalizedIsSeries ? seriesBlocks : [],
                 parentPostId: this.parentPostId || '',
                 sentenceGroups: normalizedIsDiscussion ? discussionSentenceGroups : [],
                 discussionSentences: normalizedIsDiscussion ? discussionSentenceGroups.map(g => ({

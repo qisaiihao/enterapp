@@ -107,7 +107,7 @@ export default {
 .poster-frame {
   position: relative;
   width: 100%;
-  height: 288rpx;
+  aspect-ratio: 16 / 9;
   overflow: hidden;
   border-radius: 8rpx;
   background: #d7d7d7;

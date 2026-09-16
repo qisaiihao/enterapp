@@ -21,6 +21,7 @@ function buildPublicNoticeView(notice = {}) {
     summary: notice.summary || '',
     mark: notice.mark || '',
     image: notice.image || '',
+    linkUrl: notice.linkUrl || '',
     tone: normalizeNoticeTone(notice.tone),
     sortWeight: Number(notice.sortWeight) || 0
   }

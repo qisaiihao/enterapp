@@ -124,6 +124,7 @@
             <text>没有更多了</text>
         </view>
     </view>
+    <app-overlay-host />
 </template>
 
 <script>
@@ -202,6 +203,7 @@ export default {
 
             try {
                 const favorites = await getMyFavorites({
+                    folderId: this.folderId,
                     page: page,
                     pageSize: this.pageSize,
                     contentType: 'all',

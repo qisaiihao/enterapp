@@ -55,10 +55,10 @@ function nsMyPosts() {
   return cacheManager.namespace('me:posts', { persistent: true, maxItems: 200 });
 }
 
-export async function getMyPosts({ page = 0, pageSize = 10, context, forceRefresh = false }) { // eslint-disable-line no-unused-vars
+export async function getMyPosts({ page = 0, pageSize = 10, originalOnly = false, context, forceRefresh = false }) { // eslint-disable-line no-unused-vars
   const result = await callCloudAndUnwrap(
     'getMyProfileData',
-    { skip: page * pageSize, limit: pageSize },
+    { skip: page * pageSize, limit: pageSize, originalOnly },
     { pageTag: 'me:posts', context, injectOpenId: true },
     '获取我的帖子失败'
   );

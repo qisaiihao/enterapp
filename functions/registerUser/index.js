@@ -1,12 +1,22 @@
 // 云函数入口文件
 const cloud = require('wx-server-sdk');
 const { getUserDefaultAvatar, needsDefaultAvatar } = require('./_lib/default-avatar');
+const { ensureDefaultPortfolio } = require('./_lib/ensure-default-portfolio');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
 
 const db = cloud.database();
+
+async function ensureUserPortfolio(openid) {
+  try {
+    await ensureDefaultPortfolio(db, openid);
+  } catch (error) {
+    // 账号已保存；作品集暂时不可用时由首次打开列表再次补建。
+    console.error('❌ [registerUser] 初始化默认作品集失败:', error);
+  }
+}
 
 // 云函数入口函数
 exports.main = async (event, context) => {
@@ -102,6 +112,8 @@ exports.main = async (event, context) => {
         data: updateData
       });
 
+      await ensureUserPortfolio(openid);
+
       // 获取更新后的用户信息
       const updatedUserRes = await db.collection('users').where({
         _openid: openid
@@ -146,29 +158,7 @@ exports.main = async (event, context) => {
         data: createData
       });
 
-      // 为新用户创建默认作品集
-      console.log('🔍 [registerUser] 为新用户创建默认作品集');
-      try {
-        await db.collection('portfolios').add({
-          data: {
-            _openid: openid,
-            name: '我的作品集',
-            description: '这是我的默认作品集',
-            itemCount: 0,
-            items: [],
-            createTime: new Date(),
-            updateTime: new Date(),
-            isPublic: false,
-            coverImage: '',
-            tags: [],
-            isDefault: true // 标记为默认作品集
-          }
-        });
-        console.log('✅ [registerUser] 默认作品集创建成功');
-      } catch (portfolioError) {
-        console.error('❌ [registerUser] 创建默认作品集失败:', portfolioError);
-        // 即使创建默认作品集失败，也不影响用户注册流程
-      }
+      await ensureUserPortfolio(openid);
 
       // 获取创建的用户信息
       const newUserRes = await db.collection('users').where({

@@ -40,7 +40,7 @@
         <text class="activity-entry-text">活动</text>
       </view>
       <SquareSpeechBubble
-        v-if="squareBubble.enabled && squareBubble.text"
+        v-if="showSquareBubble"
         :text="squareBubble.text"
         @tap="openSquareBubble"
       />
@@ -107,6 +107,7 @@
     <!-- #endif -->
   </view>
 
+    <app-overlay-host />
 </template>
 
 <script>
@@ -145,6 +146,7 @@ import { isUserLoggedIn, requireLogin } from '@/utils/authHelper.js';
 import { replayBuiltinHuiwenFontReady } from '@/utils/builtinFontReady.js';
 
 const PAGE_SIZE = 10;
+const SQUARE_BUBBLE_READ_KEY = 'squareBubble:lastRead';
 
 export default {
   onShow() {
@@ -241,9 +243,18 @@ export default {
       _loadingLock: false,
       hasNewActivity: false,
       squareBubble: { enabled: false, text: '', target: 'weekly' },
+      squareBubbleReadKey: '',
       _activityBadgeUnsubscribe: null,
       poemFontRenderTick: 0
     };
+  },
+  computed: {
+    squareBubbleKey() {
+      return JSON.stringify([this.squareBubble.text, this.squareBubble.target]);
+    },
+    showSquareBubble() {
+      return !!(this.squareBubble.enabled && this.squareBubble.text && this.squareBubbleKey !== this.squareBubbleReadKey);
+    }
   },
     onLoad(options) {
     // 处理 GitHub 登录回调
@@ -364,14 +375,22 @@ export default {
   methods: {
     async loadSquareBubble() {
       try {
+        const readKey = uni.getStorageSync(SQUARE_BUBBLE_READ_KEY);
+        if (typeof readKey === 'string' && readKey) this.squareBubbleReadKey = readKey;
+      } catch (_) {}
+      try {
         this.squareBubble = await getSquareBubbleConfig(this);
       } catch (error) {
         console.warn('[poem-square] 气泡配置加载失败:', error);
       }
     },
     openSquareBubble() {
+      if (!this.showSquareBubble) return;
       const target = SQUARE_BUBBLE_TARGETS.find(item => item.value === this.squareBubble.target);
       if (!target) return;
+      // 先记录当前气泡，返回页面或重新打开应用时不再重复提醒。
+      this.squareBubbleReadKey = this.squareBubbleKey;
+      try { uni.setStorageSync(SQUARE_BUBBLE_READ_KEY, this.squareBubbleReadKey); } catch (_) {}
       if (target.value === 'activities') {
         this.navigateToActivityList();
         return;

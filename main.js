@@ -1,6 +1,7 @@
 import { silenceConsoleInProduction } from '@/utils/logger.js';
 import App from './App';
 import AppBackgroundPageRoot from '@/components/AppBackgroundPageRoot.vue';
+import { installAppOverlays, appOverlayPageMixin } from '@/utils/appOverlay.js';
 import cacheManager from '@/cache/core/manager.js';
 import { getAppState, getOpenid } from '@/utils/app-state.js';
 import { ensureRuntimeOpenid, ensureTcbAuthenticated, ensureTcbReady, installRuntimeBindings, setupRuntimeSideEffects } from '@/utils/runtime-bootstrap.js';
@@ -248,6 +249,8 @@ export function createApp() {
   const app = createSSRApp(App);
   installRuntimeBindings(app);
   app.use(zpMixins);
+  installAppOverlays();
+  app.mixin(appOverlayPageMixin);
   app.mixin({
     // App 的 loadFontFace 注册到当前页面，必须等页面视图就绪。
     // #ifdef APP-PLUS

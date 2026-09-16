@@ -62,6 +62,30 @@ function getWeeklyPeriodBounds(periodStart, periodEnd) {
   return { start: safeStart, end: safeEnd }
 }
 
+function getSnapshotHighlightLines(post = {}) {
+  const splitLines = value => typeof value === 'string'
+    ? value.split(/\r?\n/).map(line => line.trim()).filter(Boolean)
+    : []
+  const lines = Array.isArray(post.highlightLines) ? post.highlightLines.flatMap(splitLines) : []
+  if (lines.length) return lines
+  const sentence = splitLines(post.highlightSentence)
+  if (sentence.length) return sentence
+  const blocks = Array.isArray(post.seriesBlocks) && post.seriesBlocks.length
+    ? post.seriesBlocks
+    : (Array.isArray(post.seriesPoems) ? post.seriesPoems : [])
+  return blocks.filter(block => block && typeof block === 'object').flatMap(getSnapshotHighlightLines)
+}
+
+function getSnapshotCopy(post = {}, highlightLines = getSnapshotHighlightLines(post)) {
+  if (highlightLines.length) return highlightLines.join('\n')
+  return String(post.content || post.copy || post.title || 'poem content pending')
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean)
+    .slice(0, 4)
+    .join('\n')
+}
+
 function normalizeSnapshot(post = {}, index = 0) {
   const votes = safeNumber(post.votes)
   const comments = safeNumber(post.comments || post.commentCount)
@@ -73,12 +97,8 @@ function normalizeSnapshot(post = {}, index = 0) {
   const originalImageUrls = Array.isArray(post.originalImageUrls)
     ? post.originalImageUrls
     : (post.originalImageUrl ? [post.originalImageUrl] : [])
-  const copy = String(post.copy || content || post.title || 'poem content pending')
-    .split(/\r?\n/)
-    .map(line => line.trim())
-    .filter(Boolean)
-    .slice(0, 6)
-    .join('\n')
+  const highlightLines = getSnapshotHighlightLines(post)
+  const copy = getSnapshotCopy(post, highlightLines)
 
   return {
     postId: post.postId || post._id || '',
@@ -87,6 +107,8 @@ function normalizeSnapshot(post = {}, index = 0) {
     title: post.title || 'Untitled',
     content,
     copy,
+    highlightLines,
+    highlightSentence: highlightLines[0] || '',
     authorName: post.authorName || post.author || '匿名用户',
     authorAvatar: post.authorAvatar || '',
     authorSignature: post.authorSignature || '',
@@ -737,44 +759,57 @@ async function getPublishedTopic(topicId) {
   }
 }
 
-async function hydrateSnapshotColors(snapshots = []) {
+async function hydrateSnapshotCardData(snapshots = []) {
   const list = Array.isArray(snapshots) ? snapshots : []
-  const missingColorIds = list
-    .filter(item => item && item.postId && (!item.backgroundColor || !item.textColor))
+  // Existing weekly snapshots omit highlights, so read the current poem even when colors are present.
+  const postIds = list
+    .filter(item => item && item.postId)
     .map(item => item.postId)
-  const ids = Array.from(new Set(missingColorIds)).slice(0, 100)
+  const ids = Array.from(new Set(postIds))
   if (!ids.length) return list
 
   try {
-    const res = await db.collection('posts')
-      .where({
-        _id: _.in(ids)
-      })
-      .field({
-        _id: true,
-        backgroundColor: true,
-        textColor: true
-      })
-      .get()
-    const colorById = new Map((res.data || []).map(post => [post._id, post]))
+    const sourceById = new Map()
+    for (let index = 0; index < ids.length; index += 100) {
+      const res = await db.collection('posts')
+        .where({
+          _id: _.in(ids.slice(index, index + 100))
+        })
+        .field({
+          _id: true,
+          backgroundColor: true,
+          textColor: true,
+          highlightLines: true,
+          highlightSentence: true,
+          seriesBlocks: true,
+          seriesPoems: true
+        })
+        .limit(100)
+        .get()
+      ;(res.data || []).forEach(post => sourceById.set(post._id, post))
+    }
     return list.map(item => {
-      const source = colorById.get(item.postId)
+      const source = sourceById.get(item.postId)
       if (!source) return item
+      const highlightLines = getSnapshotHighlightLines(source)
       return {
         ...item,
         backgroundColor: item.backgroundColor || source.backgroundColor || '',
-        textColor: item.textColor || source.textColor || ''
+        textColor: item.textColor || source.textColor || '',
+        highlightLines,
+        highlightSentence: highlightLines[0] || '',
+        copy: getSnapshotCopy(item, highlightLines)
       }
     })
   } catch (error) {
-    console.warn('[getWeeklyContent] hydrate snapshot colors failed:', error)
+    console.warn('[getWeeklyContent] hydrate snapshot card data failed:', error)
     return list
   }
 }
 
 async function buildDetailFromIssue(issue) {
   const view = buildIssueView(issue, { includeDetail: true })
-  view.featuredSnapshots = await hydrateSnapshotColors(view.featuredSnapshots)
+  view.featuredSnapshots = await hydrateSnapshotCardData(view.featuredSnapshots)
   const authorFeaturedCountMap = await getAuthorFeaturedCountMap({ excludeIssueId: view._id || view.id || '' })
   view.featuredSnapshots = attachAuthorFeaturedCounts(view.featuredSnapshots, authorFeaturedCountMap)
   const first = view.featuredSnapshots[0] || {}
@@ -791,7 +826,7 @@ async function buildDetailFromIssue(issue) {
 
 async function buildDetailFromTopic(topic) {
   const view = buildTopicView(topic, { includeDetail: true })
-  view.selectedSnapshots = await hydrateSnapshotColors(view.selectedSnapshots)
+  view.selectedSnapshots = await hydrateSnapshotCardData(view.selectedSnapshots)
   const authorFeaturedCountMap = await getAuthorFeaturedCountMap()
   view.selectedSnapshots = attachAuthorFeaturedCounts(view.selectedSnapshots, authorFeaturedCountMap)
   const first = view.selectedSnapshots[0] || {}

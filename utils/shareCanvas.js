@@ -10,12 +10,6 @@ const LEGACY_FONT_MAP = {
     'Huiwen-mincho': '汇文明朝'
 };
 
-const DEFAULT_SIGNATURE_OPTIONS = {
-    threshold: 245,
-    neutralTolerance: 18,
-    targetWidth: 240
-};
-
 const signaturePreprocessCache = new Map();
 
 function isMiniProgramEnv() {
@@ -66,24 +60,6 @@ function getImageInfoSafe(src) {
             resolve(null);
         }
     }).catch(() => null);
-}
-
-function dataUrlToTempFilePath(dataUrl) {
-    return new Promise((resolve, reject) => {
-        if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) {
-            reject(new Error('invalid data url'));
-            return;
-        }
-        if (typeof uni.base64ToTempFilePath !== 'function') {
-            reject(new Error('base64ToTempFilePath unavailable'));
-            return;
-        }
-        uni.base64ToTempFilePath({
-            base64Data: dataUrl,
-            success: (res) => resolve(res.filePath),
-            fail: (err) => reject(err)
-        });
-    });
 }
 
 function getCanvasImageFactory(target) {
@@ -158,76 +134,6 @@ async function drawImageSource(ctx, src, x, y, width, height) {
     ctx.drawImage(src, x, y, width, height);
 }
 
-async function removeWhiteBackgroundFromSignature(localPath, imageInfo, options) {
-    if (!isMiniProgramEnv() || !wx.createOffscreenCanvas) return null;
-    if (!localPath) return null;
-
-    const sourceWidth = imageInfo && imageInfo.width ? imageInfo.width : 0;
-    const sourceHeight = imageInfo && imageInfo.height ? imageInfo.height : 0;
-    if (!sourceWidth || !sourceHeight) return null;
-
-    const targetWidth = Math.max(1, Math.round(Math.min(options.targetWidth || sourceWidth, sourceWidth)));
-    const scale = targetWidth / sourceWidth;
-    const targetHeight = Math.max(1, Math.round(sourceHeight * scale));
-
-    let canvas = null;
-    let ctx = null;
-    try {
-        canvas = wx.createOffscreenCanvas({ type: '2d', width: targetWidth, height: targetHeight });
-        ctx = canvas && canvas.getContext && canvas.getContext('2d');
-    } catch (_) {}
-    if (!canvas || !ctx) return null;
-
-    try {
-        ctx.clearRect(0, 0, targetWidth, targetHeight);
-        const signatureImage = await loadCanvasImage(canvas, localPath);
-        ctx.drawImage(signatureImage, 0, 0, targetWidth, targetHeight);
-        const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
-        const data = imageData && imageData.data;
-        if (!data || !data.length) return null;
-
-        let changed = 0;
-        for (let i = 0; i < data.length; i += 4) {
-            const alpha = data[i + 3];
-            if (!alpha) continue;
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
-            const spread = Math.max(r, g, b) - Math.min(r, g, b);
-            const isNearWhite = r >= options.threshold && g >= options.threshold && b >= options.threshold;
-            if (isNearWhite && spread <= options.neutralTolerance) {
-                data[i + 3] = 0;
-                changed += 1;
-            }
-        }
-
-        if (!changed) return null;
-        ctx.putImageData(imageData, 0, 0);
-
-        if (typeof canvas.toTempFilePath === 'function') {
-            const res = await new Promise((resolve, reject) => {
-                canvas.toTempFilePath({
-                    fileType: 'png',
-                    quality: 1,
-                    success: resolve,
-                    fail: reject
-                });
-            });
-            return (res && (res.tempFilePath || res.filePath)) || null;
-        }
-
-        if (typeof canvas.toDataURL === 'function') {
-            const dataUrl = canvas.toDataURL('image/png');
-            if (!dataUrl) return null;
-            return await dataUrlToTempFilePath(dataUrl);
-        }
-    } catch (e) {
-        console.warn('[shareCanvas] remove signature white background failed', e);
-    }
-
-    return null;
-}
-
 async function resolveCloudUrl(url) {
     if (typeof url !== 'string' || !url.startsWith('cloud://')) return url;
     try {
@@ -237,19 +143,15 @@ async function resolveCloudUrl(url) {
     return url;
 }
 
-async function prepareSignatureForCard(signatureUrl, rawOptions = {}) {
+async function prepareSignatureForCard(signatureUrl) {
     if (!signatureUrl || typeof signatureUrl !== 'string') return signatureUrl;
 
     // 【修复】将 cloud:// 签名 URL 转换为可访问的 HTTP 临时 URL，
     // 避免 uni.getImageInfo 在 H5 环境下因无法处理 cloud:// 协议而抛出 filePath.indexOf 错误
     const resolvedUrl = await resolveCloudUrl(signatureUrl);
 
-    const options = {
-        ...DEFAULT_SIGNATURE_OPTIONS,
-        ...rawOptions
-    };
-
-    const cacheKey = `${resolvedUrl}|${options.threshold}|${options.neutralTolerance}|${options.targetWidth}`;
+    // 去底只在上传时执行：保留用户开关选择和已有透明笔画，分享时不重复抠图。
+    const cacheKey = resolvedUrl;
     if (signaturePreprocessCache.has(cacheKey)) {
         return signaturePreprocessCache.get(cacheKey);
     }
@@ -281,16 +183,13 @@ async function prepareSignatureForCard(signatureUrl, rawOptions = {}) {
             }
         }
 
-        if (!isMiniProgramEnv()) return signatureUrl;
+        if (!isMiniProgramEnv()) return resolvedUrl;
+        const info = await getImageInfoSafe(resolvedUrl);
+        return (info && (info.path || info.tempFilePath)) || resolvedUrl;
+    })().catch(() => resolvedUrl);
 
-        const info = await getImageInfoSafe(signatureUrl);
-        if (!info) return signatureUrl;
-
-        const localPath = info.path || info.tempFilePath || signatureUrl;
-        const processedPath = await removeWhiteBackgroundFromSignature(localPath, info, options);
-        return processedPath || localPath || signatureUrl;
-    })().catch(() => signatureUrl);
-
+    // 仅缓存资源转换，限制长会话占用。
+    if (signaturePreprocessCache.size >= 32) signaturePreprocessCache.delete(signaturePreprocessCache.keys().next().value);
     signaturePreprocessCache.set(cacheKey, task);
     return task;
 }
@@ -754,9 +653,7 @@ async function calculateShareCardHeight(options) {
     
     if (post.authorSignature && shouldShowSignature) {
         try {
-            preparedSignatureUrl = await prepareSignatureForCard(post.authorSignature, {
-                targetWidth: fixedSignatureWidth
-            });
+            preparedSignatureUrl = await prepareSignatureForCard(post.authorSignature);
             const sigInfo = await getImageInfoSafe(preparedSignatureUrl || post.authorSignature);
             if (sigInfo && sigInfo.width > 0) {
                 const scale = fixedSignatureWidth / sigInfo.width;

@@ -1,7 +1,8 @@
 <template>
     <!-- 颜色选择弹层 -->
-    <view v-if="show" class="color-picker-mask" :class="{ 'color-picker-mask--dark': isDark }" @tap.stop="$emit('close')">
-        <view class="color-picker" @tap.stop>
+    <AppActionSheet ref="sheet" :visible="show" title="选择配色" :is-dark="isDark"
+        @cancel="$emit('close')" @select="$emit('select', $event)">
+        <view class="color-picker">
             <!-- 色卡选择界面 -->
             <view v-if="step === 'palette'" class="color-palette-step">
                 <view class="color-picker-title">选择色卡</view>
@@ -52,12 +53,14 @@
                 </scroll-view>
             </view>
         </view>
-    </view>
+    </AppActionSheet>
 </template>
 
 <script>
+import AppActionSheet from '@/components/overlay/AppActionSheet.vue';
 export default {
     name: 'ColorPickerModal',
+    components: { AppActionSheet },
     emits: ['close', 'select'],
     props: {
         show: {
@@ -78,7 +81,7 @@ export default {
         },
         isDark: {
             type: Boolean,
-            default: false
+            default: null
         }
     },
     data() {
@@ -89,9 +92,9 @@ export default {
         };
     },
     watch: {
-        // 当弹窗关闭时重置状态
+        // 下次展开时重置，退出动画期间保留正在查看的色卡。
         show(val) {
-            if (!val) {
+            if (val) {
                 this.step = 'palette';
                 this.currentPalette = null;
                 this.currentPaletteIndex = 0;
@@ -114,7 +117,7 @@ export default {
 
         // 选择颜色
         onChooseColor(color) {
-            this.$emit('select', color);
+            this.$refs.sheet.selectValue(color);
         },
 
         // 获取诗歌句子
@@ -149,37 +152,19 @@ export default {
 </script>
 
 <style scoped>
-/* 颜色选择弹层 */
-.color-picker-mask { 
-    position: fixed; 
-    left: 0; 
-    right: 0; 
-    top: 0; 
-    bottom: 0; 
-    background: rgba(0,0,0,.35); 
-    z-index: 130; 
-    display: flex; 
-    align-items: flex-end; 
-}
-
 .color-picker {
     width: 100%;
-    background: var(--app-elevated-bg, #fff);
-    border-top-left-radius: 24rpx;
-    border-top-right-radius: 24rpx;
-    padding: 24rpx 28rpx calc(24rpx + env(safe-area-inset-bottom));
-    min-height: 50vh;
-    max-height: 70vh;
+    padding: 32rpx;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    animation: slideUp 0.3s ease;
-    border-top: var(--app-surface-border-line, none);
+    color: var(--overlay-text);
 }
 
 .color-picker-title {
     font-size: 32rpx;
     font-weight: 600;
-    color: var(--app-primary-text, #333);
+    color: var(--overlay-text);
     flex: 1;
     text-align: center;
 }
@@ -209,6 +194,7 @@ export default {
 .color-picker-back-icon {
     width: 60rpx;
     height: 60rpx;
+    filter: var(--app-icon-filter, none);
 }
 
 /* 色卡选择界面 */
@@ -223,9 +209,7 @@ export default {
 }
 
 .palette-scroll {
-    flex: 1;
-    min-height: 800rpx;
-    max-height: 1000rpx;
+    height: 48vh;
 }
 
 .palette-grid {
@@ -269,9 +253,7 @@ export default {
 
 /* 具体颜色选择界面 */
 .colors-scroll {
-    flex: 1;
-    min-height: 800rpx;
-    max-height: 1000rpx;
+    height: 48vh;
 }
 
 .colors-grid {
@@ -312,28 +294,4 @@ export default {
     text-shadow: 0 1rpx 2rpx rgba(0,0,0,.3); 
 }
 
-.color-picker-mask--dark .color-picker {
-    background: rgba(24, 28, 36, 0.96);
-    border-top: 1rpx solid rgba(255, 255, 255, 0.12);
-}
-
-.color-picker-mask--dark .color-picker-title {
-    color: #f4f1ea;
-}
-
-.color-picker-mask--dark .color-picker-back-icon {
-    filter: brightness(0) invert(1);
-    opacity: 0.92;
-}
-
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(100%);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
 </style>

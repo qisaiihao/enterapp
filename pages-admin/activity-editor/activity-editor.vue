@@ -111,6 +111,7 @@
       {{ submitting ? '保存中...' : (isEdit ? '保存修改' : '创建活动') }}
     </button>
   </view>
+    <app-overlay-host />
 </template>
 
 <script>

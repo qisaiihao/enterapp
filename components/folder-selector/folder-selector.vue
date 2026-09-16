@@ -3,13 +3,9 @@
         <!-- folder-selector-container -->
         <view class="folder-selector-container">
             <!-- components/folder-selector/folder-selector.wxml -->
-            <view v-if="showClone" class="modal-overlay" @tap="hideModal">
-                <view class="modal-content" @tap.stop="trueFun">
-                    <view class="modal-header">
-                        <view class="modal-title">添加收藏</view>
-                        <view class="create-btn" @tap="createFolder">创建</view>
-                    </view>
-
+            <AppActionSheet :visible="showClone && !showCreateModal" title="添加收藏" @cancel="hideModal" @select="createFolder">
+                <template #default="{ select }">
+                <view class="collection-sheet">
                     <view class="modal-body">
                         <!-- 加载状态 -->
                         <view v-if="isLoading" class="loading-container">
@@ -61,11 +57,10 @@
                         </view>
                     </view>
 
-                    <view class="modal-footer">
-                        <button class="modal-btn secondary-btn" @tap="hideModal">取消</button>
-                    </view>
+                    <button class="collection-create" @tap="select('create')">创建收藏夹</button>
                 </view>
-            </view>
+                </template>
+            </AppActionSheet>
 
             <!-- 创建收藏夹弹窗 -->
             <view v-if="showCreateModal" class="modal-overlay" @tap="hideCreateModal">
@@ -109,32 +104,21 @@
         </view>
 
         <!-- 删除确认弹窗 -->
-        <view v-if="showDeleteConfirm" class="delete-confirm-overlay" @tap="cancelDelete">
-            <view class="delete-confirm-modal" @tap.stop>
-                <view class="delete-confirm-header">
-                    <view class="delete-confirm-title">确认删除</view>
-                </view>
-                <view class="delete-confirm-content">
-                    <view class="delete-confirm-text">
-                        确定要删除收藏夹"{{ deleteFolderInfo && deleteFolderInfo.folder.name }}"吗？
-                    </view>
-                    <view class="delete-confirm-warning">删除后无法恢复</view>
-                </view>
-                <view class="delete-confirm-footer">
-                    <button class="delete-confirm-btn cancel-btn" @tap="cancelDelete">取消</button>
-                    <button class="delete-confirm-btn confirm-btn" @tap="confirmDelete">删除</button>
-                </view>
-            </view>
-        </view>
+        <AppDialog :visible="showDeleteConfirm" title="确认删除" confirm-text="删除"
+            :message="`确定要删除收藏夹“${deleteFolderInfo ? deleteFolderInfo.folder.name : ''}”吗？\n删除后无法恢复。`"
+            :danger="true" :close-on-mask="true" @cancel="cancelDelete" @confirm="confirmDelete" />
     </view>
 </template>
 
 <script>
+import AppDialog from '@/components/overlay/AppDialog.vue';
+import AppActionSheet from '@/components/overlay/AppActionSheet.vue';
 // components/folder-selector/folder-selector.js
 import { cloudCall } from '../../utils/cloudCall.js';
 import { emitFavoriteChanged } from '@/utils/events.js';
 import { readFileAsBase64 } from '../../utils/fileReader.js';
 export default {
+    components: { AppDialog, AppActionSheet },
     data() {
         return {
             folders: [],
@@ -556,12 +540,9 @@ export default {
                 show: this.show,
                 showCreateModal: this.showCreateModal
             });
-            this.setData({
-                showClone: false,
-                showCreateModal: false,
-                // 确保创建弹窗也关闭
-                newFolderName: '' // 清空输入框
-            });
+            this.showClone = false;
+            this.showCreateModal = false;
+            this.newFolderName = '';
 
             console.log('=== 弹窗已隐藏，状态已重置 ===');
             this.$emit('hide');
@@ -1103,101 +1084,17 @@ export default {
     transform: translateX(-150rpx);
 }
 
-/* 删除确认弹窗样式 */
-.delete-confirm-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000; /* 确保在最顶层 */
-}
-
-.delete-confirm-modal {
-    background: #ffffff;
-    border-radius: 20rpx;
-    width: 600rpx;
-    max-width: 90%;
-    overflow: hidden;
-    animation: scaleIn 0.3s ease;
-}
-
-@keyframes scaleIn {
-    from {
-        transform: scale(0.8);
-        opacity: 0;
-    }
-    to {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-.delete-confirm-header {
-    padding: 40rpx 40rpx 20rpx;
-    text-align: center;
-    border-bottom: 1rpx solid #f0f0f0;
-}
-
-.delete-confirm-title {
-    font-size: 32rpx;
-    font-weight: 600;
-    color: #333333;
-}
-
-.delete-confirm-content {
-    padding: 30rpx 40rpx;
-}
-
-.delete-confirm-text {
-    font-size: 28rpx;
-    color: #333333;
-    line-height: 1.5;
-    margin-bottom: 20rpx;
-}
-
-.delete-confirm-warning {
-    font-size: 24rpx;
-    color: #ff4757;
-    text-align: center;
-}
-
-.delete-confirm-footer {
-    display: flex;
-    border-top: 1rpx solid #f0f0f0;
-}
-
-.delete-confirm-btn {
-    flex: 1;
-    height: 88rpx;
-    border: none;
-    background: transparent;
-    font-size: 28rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-}
-
-.cancel-btn {
-    color: #666666;
-    border-right: 1rpx solid #f0f0f0;
-}
-
-.confirm-btn {
-    color: #ff4757;
-    font-weight: 600;
-}
-
-.cancel-btn:active {
-    background: #f8f8f8;
-}
-
-.confirm-btn:active {
-    background: #fff5f5;
-}
+/* 选择列表共用底部面板；创建表单继续使用原来的输入弹窗。 */
+.collection-sheet .modal-body { padding: 0; max-height: none; overflow: visible; }
+.collection-sheet .folders-list { padding: 0; gap: 0; }
+.collection-sheet .folder-item { min-height: 116rpx; padding: 26rpx 32rpx; box-sizing: border-box; border-bottom: 1px solid var(--overlay-divider); background: var(--overlay-bg); }
+.collection-sheet .folder-name { font-size: 30rpx; color: var(--overlay-text); }
+.collection-sheet .folder-count, .collection-sheet .create-time, .collection-sheet .loading-text, .collection-sheet .empty-subtext { color: var(--overlay-muted); }
+.collection-sheet .empty-text { color: var(--overlay-text); }
+.collection-sheet .folder-icon { background: transparent; }
+.collection-sheet .folder-default-icon-img, .collection-sheet .empty-icon-img { filter: var(--app-icon-filter, none); }
+.collection-sheet .recent-tag { background: var(--overlay-control-bg); color: var(--overlay-text); }
+.collection-create { width: 100%; min-height: 116rpx; margin: 0; padding: 26rpx 32rpx; box-sizing: border-box; border-radius: 0; background: transparent; color: var(--overlay-text); font-size: 30rpx; line-height: 1.4; display: flex; align-items: center; justify-content: center; }
+.collection-create::after { border: none; }
+.collection-create:active, .collection-sheet .folder-item:active { opacity: 0.65; }
 </style>

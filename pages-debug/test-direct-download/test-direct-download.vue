@@ -48,6 +48,7 @@
       <text class="log-item" v-for="(log, index) in logs" :key="index">{{ log }}</text>
     </view>
   </view>
+    <app-overlay-host />
 </template>
 
 <script>

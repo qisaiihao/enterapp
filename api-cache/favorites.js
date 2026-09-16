@@ -2,12 +2,14 @@
  * 收藏内容相关API缓存层
  */
 import { cloudCall } from '../utils/cloudCall.js';
+import { callCloudAndUnwrap } from './_shared/cloud-wrapper.js';
 
 /**
  * 获取我的收藏内容
  * @param {Object} options - 查询选项
  * @param {number} options.page - 页码，从0开始
  * @param {number} options.pageSize - 每页数量
+ * @param {string} options.folderId - 收藏夹ID，省略时获取全部收藏
  * @param {string} options.contentType - 内容类型 (all, posts, etc.)
  * @param {Object} options.context - 页面上下文
  * @returns {Promise} 收藏内容列表
@@ -15,20 +17,26 @@ import { cloudCall } from '../utils/cloudCall.js';
 async function getMyFavorites({
   page = 0,
   pageSize = 20,
+  folderId,
   contentType = 'all',
   context,
   ...options
 } = {}) {
-  return cloudCall('getMyProfileData', {
-    action: 'getFavorites',
-    page: page,
-    pageSize: pageSize,
-    contentType: contentType
-  }, Object.assign({
+  const result = await callCloudAndUnwrap('getMyProfileData', {
+    action: folderId ? 'getFavoritesByFolder' : 'getAllFavorites',
+    ...(folderId ? { folderId } : {}),
+    skip: page * pageSize,
+    limit: pageSize
+  }, {
     pageTag: 'favorite-content',
     requireAuth: true,
-    ...options
-  }));
+    ...options,
+    context
+  }, '加载收藏内容失败');
+  if (!Array.isArray(result.favorites)) {
+    throw new Error('收藏内容返回格式异常，请稍后重试');
+  }
+  return result.favorites;
 }
 
 /**
