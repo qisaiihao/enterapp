@@ -75,6 +75,26 @@ try {
     await page.$$eval(".poem-grid .poem-card", (cards) => cards.length),
     18,
   );
+  await page.waitForFunction(() => {
+    const stage = document.querySelector(".poetry-stage");
+    return stage && Math.abs(stage.getBoundingClientRect().top) < 2;
+  });
+  assert.equal(
+    await page.$eval(".reader-toolbar", (el) => getComputedStyle(el).display),
+    "none",
+  );
+  assert.ok(
+    await page.$eval(
+      ".shelf-controls",
+      (el) => el.getBoundingClientRect().bottom <= 0,
+    ),
+  );
+  await page.screenshot({ path: "artifacts/desktop-poems-clean.png" });
+  await page.reload({ waitUntil: "networkidle0" });
+  await page.waitForFunction(() => {
+    const stage = document.querySelector(".poetry-stage");
+    return stage && Math.abs(stage.getBoundingClientRect().top) < 2;
+  });
   await page.click(".poem-grid .poem-card:nth-child(2)");
   await page.waitForFunction(
     () =>
@@ -84,6 +104,14 @@ try {
   await page.keyboard.press("ArrowRight");
   await page.waitForFunction(
     () => document.querySelector(".reader-scroll h2")?.textContent === "留白",
+  );
+  await page.mouse.move(1100, 300);
+  await page.mouse.wheel({ deltaY: -700 });
+  await page.waitForFunction(() => window.scrollY === 0);
+  await page.waitForFunction(
+    () =>
+      getComputedStyle(document.querySelector(".reader-toolbar")).display !==
+      "none",
   );
   await page.click(".text-size");
   assert.ok(await page.$(".large-type"));
@@ -128,11 +156,45 @@ try {
   await page.click('.main-nav a[href="#/me"]');
   await page.waitForSelector(".profile-card");
   await screenshot("desktop-profile");
+  await page.waitForSelector(".library-portfolio .folder-card");
+  await page.waitForSelector(".library-favorite .folder-card");
+  assert.equal(
+    await page.$$eval(
+      ".library-portfolio .folder-card",
+      (items) => items.length,
+    ),
+    2,
+  );
+  await page.click(".library-portfolio .folder-card:nth-child(2)");
+  await page.waitForFunction(() =>
+    document
+      .querySelector(".library-portfolio .folder-content")
+      ?.textContent.includes("这里暂时没有可阅读的诗歌"),
+  );
+  await page.click(".library-favorite .folder-card");
+  await page.waitForSelector(".library-favorite .poem-card");
+  assert.equal(
+    await page.$$eval(".library-favorite .poem-card", (items) => items.length),
+    3,
+  );
+  await screenshot("desktop-library");
+  await page.click(".library-favorite .poem-card");
+  await page.waitForFunction(
+    () =>
+      document.querySelector(".reader-scroll h2")?.textContent === "雨停以后",
+  );
+  assert.ok(page.url().includes("id=sample-2"));
+  await page.click('.main-nav a[href="#/me"]');
+  await page.waitForSelector(".profile-card");
   await page.reload({ waitUntil: "networkidle0" });
   await page.waitForSelector(".profile-card");
   await noOverflow();
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
   await screenshot("mobile-profile");
+  await page.waitForSelector(".library-portfolio .folder-card");
+  await page.click(".library-portfolio .folder-card");
+  await page.waitForSelector(".library-portfolio .poem-card");
+  await screenshot("mobile-library");
   await noOverflow();
   assert.equal(
     await page.$eval(".mobile-calendar", (el) => getComputedStyle(el).display),
@@ -149,6 +211,14 @@ try {
   await page.waitForSelector(".poem-grid .poem-card");
   await screenshot("mobile-poems");
   await noOverflow();
+  await page.click(".poem-grid .poem-card:first-child");
+  await page.waitForFunction(() => {
+    const title = document
+      .querySelector(".reader-scroll h2")
+      .getBoundingClientRect();
+    return title.top >= 50 && title.top <= 60;
+  });
+  await page.click(".mobile-reader-close");
   await page.click(".poem-grid .poem-card:nth-child(2)");
   await page.waitForSelector(".mobile-reading");
   assert.equal(
@@ -156,6 +226,35 @@ try {
     "hidden",
   );
   await screenshot("mobile-reader");
+  await page.waitForFunction(() => {
+    const title = document
+      .querySelector(".reader-scroll h2")
+      .getBoundingClientRect();
+    const toolbar = document
+      .querySelector(".reader-toolbar")
+      .getBoundingClientRect();
+    return title.top >= 50 && title.top <= 60 && toolbar.bottom <= 0;
+  });
+  const touch = await page.createCDPSession();
+  await touch.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [{ x: 180, y: 280 }],
+  });
+  for (let y = 310; y <= 580; y += 30) {
+    await touch.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ x: 180, y }],
+    });
+  }
+  await touch.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
+  await page.waitForFunction(() => {
+    const size = document.querySelector(".text-size").getBoundingClientRect();
+    return size.top >= 0 && size.bottom < innerHeight;
+  });
+  await touch.detach();
   assert.ok(
     await page.$eval(
       ".reader-column",
@@ -178,6 +277,7 @@ try {
   await page.click('.main-nav a[href="#/mine"]');
   await page.waitForSelector(".locked-state");
   assert.equal(await page.$(".profile-card"), null);
+  assert.equal(await page.$(".profile-library"), null);
   await page.goto(`${base}/#/poems?id=missing-sample`, {
     waitUntil: "networkidle0",
   });
@@ -188,7 +288,7 @@ try {
   await noOverflow();
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: desktop/mobile navigation, cards, search, filters, keyboard, font size, demo login, session restoration, calendar drilldown, logout, missing detail, no horizontal overflow or browser exceptions.",
+    "PASS: clean initial reading, wheel-up/touch-down controls, desktop/mobile navigation, cards, search, filters, keyboard, font size, demo login, session restoration, calendar drilldown, logout, missing detail, no horizontal overflow or browser exceptions.",
   );
 } finally {
   await browser.close();

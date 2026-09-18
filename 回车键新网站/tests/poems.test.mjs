@@ -46,6 +46,40 @@ test("malformed remote fields and insecure image URLs have safe fallbacks", () =
   assert.deepEqual(poem.tags, ["诗"]);
   assert.deepEqual(poem.images, ["https://a.com/x"]);
 });
+test("card excerpts prefer all selected highlights while preserving full text", () => {
+  const poem = normalizePoem({
+    content: "正文开头\r\n正文结尾",
+    highlightSentence: "旧的单句高光",
+    highlightLines: [" 高光一\r\n高光二 ", "", null, "高光三"],
+  });
+  assert.equal(poem.excerpt, "高光一\n高光二\n高光三");
+  assert.equal(poem.fullText, "正文开头\n正文结尾");
+});
+
+test("empty or malformed highlights fall back to a legacy sentence, then full text", () => {
+  for (const highlightLines of [undefined, [], [" ", null, 3], "invalid"]) {
+    assert.equal(
+      normalizePoem({ highlightLines, highlightSentence: " 单句高光 " }).excerpt,
+      "单句高光",
+    );
+    assert.equal(
+      normalizePoem({
+        highlightLines,
+        highlightSentence: " \n",
+        content: " 正文 ",
+      }).excerpt,
+      "正文",
+    );
+  }
+  assert.equal(
+    normalizePoem({
+      highlightSentence: {},
+      seriesBlocks: [{ subtitle: "一", content: "组诗正文" }],
+    }).excerpt,
+    "一\n组诗正文",
+  );
+});
+
 test("calendar handles leap days, Monday alignment, padding and future cells", () => {
   const cells = calendarDays(
     2024,

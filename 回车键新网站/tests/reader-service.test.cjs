@@ -71,6 +71,10 @@ function harness() {
       },
     ],
     blocks: [],
+    portfolio_folders: [],
+    portfolio_items: [],
+    favorite_folders: [],
+    favorites: [],
     follows: [],
     web_reader_sessions: [],
     web_reader_limits: [],
@@ -288,6 +292,8 @@ test("openid injection cannot access personal profile, poems or calendar", async
     { action: "profile" },
     { action: "activity", year: 2026 },
     { action: "list", scope: "mine" },
+    { action: "folders", libraryKind: "portfolio" },
+    { action: "folderPoems", libraryKind: "favorite", folderId: "private" },
   ]) {
     assert.equal(
       (await h.main({ ...event, openid: "owner-a" })).code,
@@ -405,4 +411,109 @@ test("blocking, literal search, date filtering and pagination stay server-side",
     (await h.main({ action: "delete", id: "public-a" })).code,
     "INVALID_ACTION",
   );
+});
+
+test("personal folders enforce ownership, paginate past unavailable poems and never mutate App data", async () => {
+  const h = harness();
+  const { token } = await h.main({
+    action: "login",
+    poemId: "poet-a",
+    password: "correct-password",
+  });
+  for (const [libraryKind, folderCollection, itemCollection] of [
+    ["portfolio", "portfolio_folders", "portfolio_items"],
+    ["favorite", "favorite_folders", "favorites"],
+  ]) {
+    h.rows[folderCollection].push(
+      {
+        _id: "own",
+        _openid: "owner-a",
+        name: "我的诗",
+        privateField: "secret",
+        coverUrl: "javascript:alert(1)",
+      },
+      { _id: "empty", _openid: "owner-a", name: "空文件夹" },
+      { _id: "other", _openid: "owner-b", name: "other private folder" },
+    );
+    [
+      "hidden-a",
+      "deleted",
+      "private",
+      "discussion",
+      "missing",
+      "anonymous-a",
+      "public-a",
+      "public-b",
+    ].forEach((postId, i) => {
+      h.rows[itemCollection].push({
+        _id: String(i),
+        _openid: "owner-a",
+        folderId: "own",
+        postId,
+      });
+    });
+    h.rows[itemCollection].push({
+      _id: "foreign",
+      _openid: "owner-b",
+      folderId: "own",
+      postId: "public-b",
+    });
+    h.rows.blocks = [{ blockerId: "owner-a", blockedId: "owner-b" }];
+    const call = (event) =>
+      h.main({ token, libraryKind, openid: "owner-b", ...event });
+    const first = await call({ action: "folders", limit: 1 });
+    assert.equal(first.success, true);
+    assert.equal(first.total, 2);
+    assert.equal(first.hasMore, true);
+    assert.equal(first.folders[0].itemCount, 8);
+    assert.equal(first.folders[0].coverUrl, "");
+    assert.equal(JSON.stringify(first).includes("owner-"), false);
+    assert.equal(JSON.stringify(first).includes("secret"), false);
+    assert.equal(
+      (await call({ action: "folders", skip: 1, limit: 1 })).folders[0].id,
+      "empty",
+    );
+    assert.equal(
+      (await call({ action: "folderPoems", folderId: "other" })).code,
+      "NOT_FOUND",
+    );
+    assert.equal(
+      (await call({ action: "folderPoems", folderId: { $ne: "" } })).code,
+      "INVALID_INPUT",
+    );
+    assert.equal(
+      (await call({ action: "folders", limit: 1000 })).code,
+      "INVALID_INPUT",
+    );
+    assert.equal(
+      (await call({ action: "folders", libraryKind: "users" })).code,
+      "INVALID_INPUT",
+    );
+    const unavailable = await call({
+      action: "folderPoems",
+      folderId: "own",
+      limit: 5,
+    });
+    assert.equal(unavailable.posts.length, 0);
+    assert.equal(unavailable.nextSkip, 5);
+    assert.equal(unavailable.hasMore, true);
+    const visible = await call({
+      action: "folderPoems",
+      folderId: "own",
+      skip: unavailable.nextSkip,
+      limit: 5,
+    });
+    assert.deepEqual(
+      Array.from(visible.posts, (p) => p._id),
+      ["anonymous-a", "public-a"],
+    );
+    assert.equal(visible.posts[0].authorName, "匿名诗人");
+    assert.equal(visible.posts[0].authorSignature, "");
+    assert.equal(visible.hasMore, false);
+    assert.equal(visible.nextSkip, 8);
+    const empty = await call({ action: "folderPoems", folderId: "empty" });
+    assert.equal(empty.posts.length, 0);
+    assert.equal(empty.hasMore, false);
+  }
+  assert.ok(h.mutations.every((name) => name.startsWith("web_reader_")));
 });

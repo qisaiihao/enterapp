@@ -191,3 +191,66 @@ export async function activity(year) {
   }
   return (await call("activity", { year })).counts || {};
 }
+
+const demoFolders = {
+  portfolio: [
+    {
+      id: "demo-portfolio",
+      name: "日常的诗",
+      coverUrl: "",
+      postIds: demoPosts
+        .filter((p) => p.authorName === demoUser.nickName)
+        .map((p) => p._id),
+    },
+    { id: "demo-empty", name: "尚未落笔", coverUrl: "", postIds: [] },
+  ],
+  favorite: [
+    {
+      id: "demo-favorite",
+      name: "值得重读",
+      coverUrl: "",
+      postIds: ["sample-2", "sample-4", "sample-7"],
+    },
+  ],
+};
+
+export async function listFolders(libraryKind, skip = 0) {
+  if (mode === "demo") {
+    if (!demoLoggedIn)
+      throw Object.assign(new Error("请先登录"), { code: "AUTH_REQUIRED" });
+    const folders = demoFolders[libraryKind] || [];
+    return {
+      folders: folders
+        .slice(skip, skip + 12)
+        .map((folder) => ({ ...folder, itemCount: folder.postIds.length })),
+      total: folders.length,
+      hasMore: skip + 12 < folders.length,
+    };
+  }
+  return call("folders", { libraryKind, skip, limit: 12 });
+}
+
+export async function listFolderPoems(libraryKind, folderId, skip = 0) {
+  if (mode === "demo") {
+    if (!demoLoggedIn)
+      throw Object.assign(new Error("请先登录"), { code: "AUTH_REQUIRED" });
+    const folder = demoFolders[libraryKind]?.find(
+      (item) => item.id === folderId,
+    );
+    if (!folder) throw new Error("文件夹不存在或不可访问");
+    return {
+      poems: folder.postIds
+        .slice(skip, skip + 18)
+        .map((id) => normalizePoem(demoPosts.find((p) => p._id === id))),
+      nextSkip: Math.min(skip + 18, folder.postIds.length),
+      hasMore: skip + 18 < folder.postIds.length,
+    };
+  }
+  const result = await call("folderPoems", {
+    libraryKind,
+    folderId,
+    skip,
+    limit: 18,
+  });
+  return { ...result, poems: (result.posts || []).map(normalizePoem) };
+}

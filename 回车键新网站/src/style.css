@@ -107,7 +107,7 @@ a {
   top: 10px;
 }
 .site-shell {
-  max-width: 1800px;
+  max-width: 1920px;
   margin: auto;
   min-height: 100vh;
 }
@@ -116,7 +116,7 @@ a {
   position: fixed;
   top: 0;
   bottom: 0;
-  padding: 43px 31px 25px 40px;
+  padding: 43px 28px 25px;
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--line);
@@ -232,6 +232,13 @@ a {
   border-radius: 50%;
   font-family: var(--serif);
   font-size: 18px;
+  overflow: hidden;
+}
+.avatar-small > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .account-button small {
   display: block;
@@ -245,7 +252,7 @@ a {
 }
 .main-content {
   margin-left: 244px;
-  padding: 0 51px;
+  padding: 0 32px;
   min-height: 100vh;
   outline: none;
 }
@@ -692,6 +699,10 @@ a {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+.poetry-stage {
+  min-height: 100dvh;
+  padding-top: 40px;
+}
 .poetry-workspace {
   display: grid;
   grid-template-columns: minmax(235px, 0.82fr) minmax(0, 1.18fr);
@@ -700,7 +711,7 @@ a {
 }
 .reader-column {
   position: sticky;
-  top: 22px;
+  top: 40px;
   min-width: 0;
 }
 .poem-reader {
@@ -830,6 +841,25 @@ a {
 }
 .reader-navigation .text-link {
   font-size: 9px;
+}
+@media (min-width: 801px) {
+  .quiet-reading .poem-reader {
+    border-color: transparent;
+  }
+  .quiet-reading .reader-toolbar,
+  .quiet-reading .reader-meta,
+  .quiet-reading .reader-footer,
+  .quiet-reading .reader-navigation,
+  .quiet-reading .poem-tags {
+    display: none;
+  }
+  .quiet-reading .reader-scroll {
+    max-height: calc(100dvh - 80px);
+    padding-top: 0;
+  }
+  .quiet-reading .reader-scroll h2 {
+    margin-top: 0;
+  }
 }
 .poem-grid {
   display: grid;
@@ -1506,19 +1536,19 @@ a {
     transform: translateY(0);
   }
 }
-@media (min-width: 1800px) {
+@media (min-width: 1920px) {
   .sidebar {
-    left: calc((100vw - 1800px) / 2);
+    left: calc((100vw - 1920px) / 2);
   }
 }
 @media (min-width: 1450px) {
   .main-content {
-    padding: 0 70px;
+    padding: 0 40px;
   }
   .sidebar {
     width: 260px;
-    padding-left: 48px;
-    padding-right: 38px;
+    padding-left: 32px;
+    padding-right: 32px;
   }
   .main-content {
     margin-left: 260px;
@@ -1554,7 +1584,7 @@ a {
   }
   .main-content {
     margin-left: 202px;
-    padding: 0 32px;
+    padding: 0 24px;
   }
   .topbar {
     height: 86px;
@@ -1631,7 +1661,7 @@ a {
     height: auto;
     bottom: auto;
     top: auto;
-    padding: 21px 24px 0;
+    padding: 21px 20px 0;
     border-right: 0;
     display: block;
   }
@@ -1680,7 +1710,7 @@ a {
   }
   .main-content {
     margin: 0;
-    padding: 0 24px;
+    padding: 0 20px;
   }
   .topbar {
     height: 51px;
@@ -1903,10 +1933,15 @@ a {
   }
   .mobile-reader-close {
     display: block;
+    position: fixed;
+    top: 16px;
+    right: 20px;
+    z-index: 2;
+    background: var(--paper);
+    border-radius: 50%;
   }
   .reader-toolbar {
-    position: sticky;
-    top: -22px;
+    position: relative;
     background: var(--paper);
     z-index: 1;
     border-bottom: 1px solid var(--line);
@@ -1914,7 +1949,7 @@ a {
   }
   .reader-scroll {
     max-height: none;
-    min-height: calc(100dvh - 195px);
+    min-height: 100dvh;
     overflow: visible;
     padding: 25px 0 20px;
   }
@@ -2101,10 +2136,10 @@ a {
 }
 @media (max-width: 520px) {
   .sidebar {
-    padding: 20px 20px 0;
+    padding: 20px 16px 0;
   }
   .main-content {
-    padding: 0 20px;
+    padding: 0 16px;
   }
   .main-nav a {
     padding-left: 0;

@@ -42,15 +42,24 @@ export function normalizePoem(raw) {
         .join("\n\n")
     : content;
   const id = String(raw._id || raw.id || "");
+  const highlightLines = Array.isArray(raw.highlightLines)
+    ? raw.highlightLines
+        .filter((line) => typeof line === "string")
+        .map((line) => line.replace(/\r\n/g, "\n").trim())
+        .filter(Boolean)
+        .join("\n")
+    : "";
+  const highlightSentence =
+    typeof raw.highlightSentence === "string"
+      ? raw.highlightSentence.replace(/\r\n/g, "\n").trim()
+      : "";
   return {
     id,
     title: String(raw.title || "无题"),
     content,
     series,
     fullText,
-    excerpt: String(
-      raw.highlightSentence || raw.highlightLines?.join("\n") || fullText,
-    ).trim(),
+    excerpt: highlightLines || highlightSentence || fullText.trim(),
     author: raw.isAnonymous
       ? "匿名诗人"
       : String(

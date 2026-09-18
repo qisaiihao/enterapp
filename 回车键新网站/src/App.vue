@@ -11,6 +11,7 @@ import PoemCard from "./components/PoemCard.vue";
 import PoemReader from "./components/PoemReader.vue";
 import ActivityCalendar from "./components/ActivityCalendar.vue";
 import LoginDialog from "./components/LoginDialog.vue";
+import ProfileLibrary from "./components/ProfileLibrary.vue";
 import * as api from "./lib/api";
 import { dayKey, summarizeDays } from "./lib/poems";
 
@@ -30,6 +31,14 @@ const route = ref(readRoute());
 const mode = ref(api.currentMode());
 const user = ref(null),
   restoring = ref(false);
+const avatarFailed = ref(false);
+const avatarUrl = computed(() => {
+  const url = user.value?.avatarUrl?.trim() || "";
+  return /^https:\/\//i.test(url) ? url : "";
+});
+watch([user, avatarUrl], () => {
+  avatarFailed.value = false;
+});
 const poems = ref([]),
   selected = ref(null),
   total = ref(0),
@@ -67,6 +76,25 @@ const privatePage = computed(() =>
   ["mine", "journal", "me"].includes(route.value.page),
 );
 const locked = computed(() => privatePage.value && !user.value);
+const poetryPage = computed(
+  () => ["poems", "mine"].includes(route.value.page) && !locked.value,
+);
+const poetryStage = ref(null);
+const readingExtras = ref(false);
+function updateReadingExtras() {
+  readingExtras.value = Boolean(
+    poetryStage.value && poetryStage.value.getBoundingClientRect().top > 24,
+  );
+}
+function enterPoetry() {
+  if (!poetryPage.value || !poetryStage.value) return;
+  // Keep the introduction and controls above the initial reading position.
+  window.scrollTo({
+    top: window.scrollY + poetryStage.value.getBoundingClientRect().top,
+    behavior: "instant",
+  });
+  updateReadingExtras();
+}
 const scope = computed(() => (route.value.page === "mine" ? "mine" : "all"));
 const today = ref(dayKey(new Date()));
 const dateParts = computed(() => today.value.split("-"));
@@ -421,6 +449,9 @@ watch(
   },
 );
 watch(year, loadActivity);
+watch([() => route.value.page, poetryPage], () => nextTick(enterPoetry), {
+  flush: "post",
+});
 watch(
   [mobileReading, selected],
   async ([value]) => {
@@ -428,7 +459,9 @@ watch(
     document.body.classList.toggle("reading-open", value && mobile);
     if (value && mobile) {
       await nextTick();
-      document.querySelector(".mobile-reader-close")?.focus();
+      document
+        .querySelector(".mobile-reader-close")
+        ?.focus({ preventScroll: true });
     }
   },
   { immediate: true },
@@ -436,6 +469,8 @@ watch(
 onMounted(async () => {
   window.addEventListener("hashchange", handleHash);
   window.addEventListener("keydown", keydown);
+  window.addEventListener("scroll", updateReadingExtras, { passive: true });
+  nextTick(enterPoetry);
   const version = ++accountVersion;
   if (api.hasSession()) {
     restoring.value = true;
@@ -456,6 +491,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   window.removeEventListener("hashchange", handleHash);
   window.removeEventListener("keydown", keydown);
+  window.removeEventListener("scroll", updateReadingExtras);
   clearTimeout(toastTimer);
 });
 </script>
@@ -489,9 +525,16 @@ onBeforeUnmount(() => {
           class="account-button"
           @click="user ? navigate('me') : openLogin()"
         >
-          <span class="avatar-small">{{
-            user?.nickName?.slice(0, 1) || "↵"
-          }}</span
+          <span class="avatar-small">
+            <img
+              v-if="avatarUrl && !avatarFailed"
+              :key="avatarUrl"
+              :src="avatarUrl"
+              alt="我的头像"
+              referrerpolicy="no-referrer"
+              @error="avatarFailed = true"
+            />
+            <span v-else>{{ user?.nickName?.slice(0, 1) || "↵" }}</span> </span
           ><span
             >{{ user?.nickName || "登录，找回你的诗"
             }}<small>{{
@@ -505,7 +548,13 @@ onBeforeUnmount(() => {
       id="main-content"
       tabindex="-1"
       class="main-content"
-      :class="[`page-${route.page}`, { 'mobile-reading': mobileReading }]"
+      :class="[
+        `page-${route.page}`,
+        {
+          'mobile-reading': mobileReading,
+          'quiet-reading': poetryPage && !readingExtras,
+        },
+      ]"
     >
       <header class="topbar">
         <span class="topbar-caption">一个写诗的地方，也是一处停留。</span>
@@ -719,132 +768,139 @@ onBeforeUnmount(() => {
               偶遇一首 <span>↗</span>
             </button>
           </div>
-          <div v-if="loading" class="shelf-loading" role="status">
-            <div class="skeleton-reader">
-              <span></span><span></span><span></span><span></span>
+          <div ref="poetryStage" class="poetry-stage">
+            <div v-if="loading" class="shelf-loading" role="status">
+              <div class="skeleton-reader">
+                <span></span><span></span><span></span><span></span>
+              </div>
+              <div class="skeleton-grid">
+                <div v-for="n in 9" :key="n" class="skeleton-card"></div>
+              </div>
+              <span class="sr-only">正在加载诗歌</span>
             </div>
-            <div class="skeleton-grid">
-              <div v-for="n in 9" :key="n" class="skeleton-card"></div>
-            </div>
-            <span class="sr-only">正在加载诗歌</span>
-          </div>
-          <div
-            v-else-if="error && !poems.length"
-            class="empty-state"
-            role="alert"
-          >
-            <span class="empty-symbol">↵</span>
-            <h2>书架暂时还没打开。</h2>
-            <p>{{ error }}</p>
-            <button class="primary-button" @click="loadPoems()">
-              重新连接 <span>↻</span></button
-            ><button
-              v-if="mode === 'cloud'"
-              class="text-link"
-              @click="changeMode"
+            <div
+              v-else-if="error && !poems.length"
+              class="empty-state"
+              role="alert"
             >
-              先看看示例书架 ↗
-            </button>
-          </div>
-          <div
-            v-else-if="!poems.length && !selected && !detailError"
-            class="empty-state"
-          >
-            <span class="empty-symbol">⋯</span>
-            <h2>
-              {{
-                query
-                  ? "还没找到这句回声。"
-                  : route.day
-                    ? "这一天，留给了生活。"
-                    : "这里还留着空白。"
-              }}
-            </h2>
-            <p>
-              {{
-                query
-                  ? "换一个词，或试着搜索作者的名字。"
-                  : route.page === "mine"
-                    ? "在 App 公开发布的诗歌，会在这里与你重逢。"
-                    : "暂时没有这个分类的诗歌。"
-              }}
-            </p>
-            <button
-              v-if="query || route.day || kind !== 'all'"
-              class="text-link"
-              @click="resetFilters"
-            >
-              查看全部诗歌 ↗
-            </button>
-          </div>
-          <div v-else class="poetry-workspace">
-            <div class="reader-column">
-              <div v-if="detailError" class="reader-error" role="alert">
-                <h2>暂时读不到这首诗。</h2>
-                <p>{{ detailError }}</p>
-                <button class="text-link" @click="loadDetail(route.id)">
-                  重试 ↻</button
-                ><button class="text-link" @click="closeReader">
-                  返回书架 ↗
-                </button>
-              </div>
-              <PoemReader
-                v-else-if="selected"
-                :poem="selected"
-                :demo="mode === 'demo'"
-                @notify="notify"
-                @close="closeReader"
-              />
-              <div v-else class="reader-placeholder">选一首诗，慢慢读。</div>
-              <div class="reader-navigation" v-if="selected">
-                <button
-                  class="text-link"
-                  :disabled="poems.findIndex((p) => p.id === selected.id) <= 0"
-                  @click="stepPoem(-1)"
-                >
-                  ← 上一首</button
-                ><span>← → 切换阅读</span
-                ><button
-                  class="text-link"
-                  :disabled="
-                    poems.findIndex((p) => p.id === selected.id) < 0 ||
-                    poems.findIndex((p) => p.id === selected.id) >=
-                      poems.length - 1
-                  "
-                  @click="stepPoem(1)"
-                >
-                  下一首 →
-                </button>
-              </div>
-            </div>
-            <section class="cards-column" aria-label="诗歌卡片">
-              <div class="poem-grid">
-                <PoemCard
-                  v-for="(poem, index) in poems"
-                  :key="poem.id"
-                  :poem="poem"
-                  :index="index"
-                  :selected="selected?.id === poem.id"
-                  @select="choosePoem"
-                />
-              </div>
-              <div v-if="error" class="inline-error" role="alert">
-                {{ error }}
-                <button class="text-link" @click="loadPoems(true)">重试</button>
-              </div>
-              <button
-                v-if="hasMore"
-                class="load-more"
-                :disabled="moreLoading"
-                @click="loadPoems(true)"
+              <span class="empty-symbol">↵</span>
+              <h2>书架暂时还没打开。</h2>
+              <p>{{ error }}</p>
+              <button class="primary-button" @click="loadPoems()">
+                重新连接 <span>↻</span></button
+              ><button
+                v-if="mode === 'cloud'"
+                class="text-link"
+                @click="changeMode"
               >
-                {{ moreLoading ? "正在取来更多诗…" : "再读一些" }}
-                <span>↓</span>
+                先看看示例书架 ↗
               </button>
-              <div v-else class="shelf-end">
-                <span></span>读到这里，也可以歇一会儿。<span></span>
+            </div>
+            <div
+              v-else-if="!poems.length && !selected && !detailError"
+              class="empty-state"
+            >
+              <span class="empty-symbol">⋯</span>
+              <h2>
+                {{
+                  query
+                    ? "还没找到这句回声。"
+                    : route.day
+                      ? "这一天，留给了生活。"
+                      : "这里还留着空白。"
+                }}
+              </h2>
+              <p>
+                {{
+                  query
+                    ? "换一个词，或试着搜索作者的名字。"
+                    : route.page === "mine"
+                      ? "在 App 公开发布的诗歌，会在这里与你重逢。"
+                      : "暂时没有这个分类的诗歌。"
+                }}
+              </p>
+              <button
+                v-if="query || route.day || kind !== 'all'"
+                class="text-link"
+                @click="resetFilters"
+              >
+                查看全部诗歌 ↗
+              </button>
+            </div>
+            <div v-else class="poetry-workspace">
+              <div class="reader-column">
+                <div v-if="detailError" class="reader-error" role="alert">
+                  <h2>暂时读不到这首诗。</h2>
+                  <p>{{ detailError }}</p>
+                  <button class="text-link" @click="loadDetail(route.id)">
+                    重试 ↻</button
+                  ><button class="text-link" @click="closeReader">
+                    返回书架 ↗
+                  </button>
+                </div>
+                <PoemReader
+                  v-else-if="selected"
+                  :poem="selected"
+                  :active="mobileReading"
+                  :demo="mode === 'demo'"
+                  @notify="notify"
+                  @close="closeReader"
+                />
+                <div v-else class="reader-placeholder">选一首诗，慢慢读。</div>
+                <div class="reader-navigation" v-if="selected">
+                  <button
+                    class="text-link"
+                    :disabled="
+                      poems.findIndex((p) => p.id === selected.id) <= 0
+                    "
+                    @click="stepPoem(-1)"
+                  >
+                    ← 上一首</button
+                  ><span>← → 切换阅读</span
+                  ><button
+                    class="text-link"
+                    :disabled="
+                      poems.findIndex((p) => p.id === selected.id) < 0 ||
+                      poems.findIndex((p) => p.id === selected.id) >=
+                        poems.length - 1
+                    "
+                    @click="stepPoem(1)"
+                  >
+                    下一首 →
+                  </button>
+                </div>
               </div>
-            </section>
+              <section class="cards-column" aria-label="诗歌卡片">
+                <div class="poem-grid">
+                  <PoemCard
+                    v-for="(poem, index) in poems"
+                    :key="poem.id"
+                    :poem="poem"
+                    :index="index"
+                    :selected="selected?.id === poem.id"
+                    @select="choosePoem"
+                  />
+                </div>
+                <div v-if="error" class="inline-error" role="alert">
+                  {{ error }}
+                  <button class="text-link" @click="loadPoems(true)">
+                    重试
+                  </button>
+                </div>
+                <button
+                  v-if="hasMore"
+                  class="load-more"
+                  :disabled="moreLoading"
+                  @click="loadPoems(true)"
+                >
+                  {{ moreLoading ? "正在取来更多诗…" : "再读一些" }}
+                  <span>↓</span>
+                </button>
+                <div v-else class="shelf-end">
+                  <span></span>读到这里，也可以歇一会儿。<span></span>
+                </div>
+              </section>
+            </div>
           </div>
         </template>
 
@@ -940,6 +996,8 @@ onBeforeUnmount(() => {
             @retry="loadActivity"
             @day="navigate('mine', { day: $event })"
           />
+          <ProfileLibrary :key="`${mode}:${user.poemId}:portfolio`" kind="portfolio" @error="handleAuth" />
+          <ProfileLibrary :key="`${mode}:${user.poemId}:favorite`" kind="favorite" @error="handleAuth" />
           <div class="profile-footer">
             <p>
               个人资料与回车键 App 同步。<br /><span

@@ -1,9 +1,14 @@
 <script setup>
-import { ref, watch } from "vue";
+import { ref, watch, onMounted } from "vue";
 import { formatDate } from "../lib/poems";
 import { copyText } from "../lib/clipboard";
 import AuthorSignature from "./AuthorSignature.vue";
-const props = defineProps({ poem: Object, compact: Boolean, demo: Boolean });
+const props = defineProps({
+  poem: Object,
+  compact: Boolean,
+  demo: Boolean,
+  active: Boolean,
+});
 const emit = defineEmits(["notify", "close"]);
 function storedSize() {
   try {
@@ -19,14 +24,26 @@ watch(large, (value) => {
   } catch {}
 });
 const body = ref(null);
-watch(
-  () => props.poem?.id,
-  () => {
-    body.value?.scrollTo({ top: 0 });
-    if (window.matchMedia("(max-width: 800px)").matches)
-      body.value?.closest(".reader-column")?.scrollTo({ top: 0 });
-  },
-);
+function resetReadingPosition() {
+  body.value?.scrollTo({ top: 0 });
+  if (!window.matchMedia("(max-width: 800px)").matches) return;
+  const column = body.value?.closest(".reader-column");
+  const title = body.value?.querySelector("h2");
+  if (column && title) {
+    column.scrollTo({
+      top:
+        column.scrollTop +
+        title.getBoundingClientRect().top -
+        column.getBoundingClientRect().top -
+        56,
+      behavior: "instant",
+    });
+  }
+}
+watch([() => props.poem?.id, () => props.active], resetReadingPosition, {
+  flush: "post",
+});
+onMounted(resetReadingPosition);
 async function copyLink() {
   const url = new URL(window.location.href);
   url.hash = `/poems?id=${encodeURIComponent(props.poem.id)}`;
@@ -67,13 +84,13 @@ async function copyLink() {
         </button>
       </div>
     </header>
+    <div class="reader-meta">
+      <span
+        >{{ poem.original ? "原创诗歌" : "诗歌转载"
+        }}<template v-if="poem.series.length"> · 组诗</template></span
+      ><time :datetime="poem.date">{{ formatDate(poem.date) }}</time>
+    </div>
     <div ref="body" class="reader-scroll" :class="{ 'large-type': large }">
-      <div class="reader-meta">
-        <span
-          >{{ poem.original ? "原创诗歌" : "诗歌转载"
-          }}<template v-if="poem.series.length"> · 组诗</template></span
-        ><time :datetime="poem.date">{{ formatDate(poem.date) }}</time>
-      </div>
       <h2 :key="poem.id">{{ poem.title }}</h2>
       <p class="reader-author">{{ poem.author }}</p>
       <div v-if="poem.series.length" class="series-content">

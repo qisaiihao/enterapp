@@ -52,6 +52,14 @@ try {
     } catch (e) {
       results.listError = { code: e.code, message: e.message };
     }
+    for (const kind of ["portfolio", "favorite"]) {
+      try {
+        await api.listFolders(kind);
+        results[kind] = "UNEXPECTED_ACCESS";
+      } catch (e) {
+        results[kind] = e.code;
+      }
+    }
     try {
       await api.profile();
       results.profile = "UNEXPECTED_ACCESS";
@@ -104,6 +112,8 @@ try {
     !result.filters ||
     !result.search ||
     result.profile !== "AUTH_REQUIRED" ||
+    result.portfolio !== "AUTH_REQUIRED" ||
+    result.favorite !== "AUTH_REQUIRED" ||
     result.login?.code !== "INVALID_CREDENTIALS"
   )
     process.exitCode = 1;

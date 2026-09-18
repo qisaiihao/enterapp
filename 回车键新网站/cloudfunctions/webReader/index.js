@@ -220,9 +220,17 @@ async function list(event, owner) {
       .get(),
     db.collection("posts").where(where).count(),
   ]);
+  return {
+    posts: await publicPosts(posts.data),
+    total: count.total,
+    hasMore: skip + posts.data.length < count.total,
+  };
+}
+
+async function publicPosts(posts) {
   const ids = [
     ...new Set(
-      posts.data
+      posts
         .filter((p) => !p.isAnonymous)
         .map((p) => p._openid)
         .filter(Boolean),
@@ -239,13 +247,115 @@ async function list(event, owner) {
       ).data
     : [];
   const names = new Map(authors.map((a) => [a._openid, a]));
-  const data = await resolveImages(
-    posts.data.map((p) => safePost(p, names.get(p._openid))),
+  return resolveImages(posts.map((p) => safePost(p, names.get(p._openid))));
+}
+
+function libraryCollections(kind) {
+  if (kind === "portfolio") return ["portfolio_folders", "portfolio_items"];
+  if (kind === "favorite") return ["favorite_folders", "favorites"];
+  throw fault("INVALID_INPUT", "无效的收藏分类");
+}
+
+async function folders(event, owner) {
+  const { skip, limit } = validateQuery({
+    skip: event.skip,
+    limit: event.limit,
+  });
+  const [folderCollection, itemCollection] = libraryCollections(
+    event.libraryKind,
+  );
+  const [result, count] = await Promise.all([
+    db
+      .collection(folderCollection)
+      .where({ _openid: owner })
+      .orderBy("createTime", "desc")
+      .orderBy("_id", "desc")
+      .skip(skip)
+      .limit(limit)
+      .get(),
+    db.collection(folderCollection).where({ _openid: owner }).count(),
+  ]);
+  const data = await Promise.all(
+    result.data.map(async (folder) => {
+      const items = await db
+        .collection(itemCollection)
+        .where({ _openid: owner, folderId: folder._id })
+        .count();
+      return {
+        id: folder._id,
+        name: String(folder.name || "未命名"),
+        coverUrl:
+          typeof folder.coverUrl === "string" &&
+          /^(https:\/\/|cloud:\/\/)/i.test(folder.coverUrl)
+            ? folder.coverUrl
+            : "",
+        itemCount: items.total,
+      };
+    }),
   );
   return {
-    posts: data,
+    folders: await resolveImages(data),
     total: count.total,
-    hasMore: skip + posts.data.length < count.total,
+    hasMore: skip + data.length < count.total,
+  };
+}
+
+async function folderPoems(event, owner) {
+  const { skip, limit } = validateQuery({
+    skip: event.skip,
+    limit: event.limit,
+  });
+  const [folderCollection, itemCollection] = libraryCollections(
+    event.libraryKind,
+  );
+  if (
+    typeof event.folderId !== "string" ||
+    !event.folderId ||
+    event.folderId.length > 128
+  )
+    throw fault("INVALID_INPUT", "文件夹地址无效");
+  const folder = await db
+    .collection(folderCollection)
+    .where({ _id: event.folderId, _openid: owner })
+    .limit(1)
+    .get();
+  if (!folder.data.length) throw fault("NOT_FOUND", "文件夹不存在或不可访问");
+  const where = { _openid: owner, folderId: event.folderId };
+  const [items, count] = await Promise.all([
+    db
+      .collection(itemCollection)
+      .where(where)
+      .orderBy("createTime", "desc")
+      .orderBy("_id", "desc")
+      .skip(skip)
+      .limit(limit)
+      .get(),
+    db.collection(itemCollection).where(where).count(),
+  ]);
+  const ids = [
+    ...new Set(
+      items.data
+        .map((item) => item.postId)
+        .filter((id) => typeof id === "string" && id),
+    ),
+  ];
+  const visible = await filters({ scope: "all" }, owner);
+  const posts = ids.length
+    ? (
+        await db
+          .collection("posts")
+          .where(_.and([visible, { _id: _.in(ids) }]))
+          .limit(limit)
+          .get()
+      ).data
+    : [];
+  const positions = new Map(ids.map((id, index) => [id, index]));
+  posts.sort((a, b) => positions.get(a._id) - positions.get(b._id));
+  const nextSkip = skip + items.data.length;
+  return {
+    posts: await publicPosts(posts),
+    nextSkip,
+    hasMore: nextSkip < count.total,
   };
 }
 
@@ -290,9 +400,16 @@ exports.main = async (event = {}) => {
   try {
     const action = event.action || "list";
     if (
-      !["list", "detail", "login", "logout", "profile", "activity"].includes(
-        action,
-      )
+      ![
+        "list",
+        "detail",
+        "login",
+        "logout",
+        "profile",
+        "activity",
+        "folders",
+        "folderPoems",
+      ].includes(action)
     )
       throw fault("INVALID_ACTION", "此页面仅提供阅读功能");
     if (action === "login") {
@@ -348,7 +465,9 @@ exports.main = async (event = {}) => {
     }
     let owner = "";
     if (
-      ["logout", "profile", "activity"].includes(action) ||
+      ["logout", "profile", "activity", "folders", "folderPoems"].includes(
+        action,
+      ) ||
       event.scope === "mine" ||
       event.token
     )
@@ -362,6 +481,10 @@ exports.main = async (event = {}) => {
     }
     if (action === "profile")
       return { success: true, user: await ownerProfile(owner) };
+    if (action === "folders")
+      return { success: true, ...(await folders(event, owner)) };
+    if (action === "folderPoems")
+      return { success: true, ...(await folderPoems(event, owner)) };
     if (action === "activity")
       return { success: true, ...(await activity(event, owner)) };
     if (action === "detail") {
