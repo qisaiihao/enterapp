@@ -71,6 +71,16 @@
       "params": {}
     },
     {
+      "name": "getCollageMaterials",
+      "timeout": 3,
+      "memory": 256,
+      "runtime": "Nodejs18.15",
+      "handler": "index.main",
+      "root": "./functions/getCollageMaterials",
+      "installDependency": true,
+      "params": {}
+    },
+    {
       "name": "getPostList",
       "timeout": 20,
       "memory": 256,
@@ -484,6 +494,14 @@
               "root": "./functions/getCollagePoetry",
               "timeout": 3,
               "memory": 256
+            },
+            {
+              "name": "getCollageMaterials",
+              "root": "./functions/getCollageMaterials",
+              "timeout": 3,
+              "memory": 256,
+              "runtime": "Nodejs18.15",
+              "installDependency": true
             },
             {
               "name": "getComments",

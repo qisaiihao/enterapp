@@ -1,5 +1,5 @@
 <template>
-  <view class="collage-main">
+  <view class="collage-main" :style="mpNavStyle">
     <!-- 自定义返回按钮 -->
     <view class="custom-back-btn" @tap="goBack">
       <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
@@ -36,19 +36,33 @@
 </template>
 
 <script>
+import { createCollageLogger } from '@/utils/collage/debug.js';
+import { getCollageNavStyle } from '@/utils/collage/nav.js';
+
+const log = createCollageLogger('main');
+
 export default {
   data() {
     return {
-      
+      mpNavStyle: null
     }
+  },
+  onLoad() {
+    log.info('进入拼贴诗主页');
+    this.mpNavStyle = getCollageNavStyle();
+  },
+  onUnload() {
+    log.debug('离开拼贴诗主页');
   },
   methods: {
     goBack() {
+      log.debug('返回上一页');
       uni.navigateBack()
     },
     
     // 跳转到上传页面
     navigateToUpload() {
+      log.info('打开上传图片页');
       uni.navigateTo({
         url: '/pages-collage/collage-upload/collage-upload'
       })
@@ -56,22 +70,19 @@ export default {
     
     // 跳转到拼贴创作页面
     navigateToCompose() {
-      uni.showToast({
-        title: '内容开发中',
-        icon: 'none'
-      })
+      log.info('打开拼贴创作页');
+      uni.navigateTo({ url: '/pages-collage/collage-studio/collage-studio' })
     },
     
     // 跳转到拼贴页面
     navigateToCollage() {
-      uni.showToast({
-        title: '内容开发中',
-        icon: 'none'
-      })
+      log.info('打开图片拼贴页');
+      uni.navigateTo({ url: '/pages-collage/collage-studio/collage-studio?tab=board' })
     },
     
     // 跳转到拼贴诗广场
     navigateToSquare() {
+      log.info('打开拼贴诗广场');
       uni.navigateTo({
         url: '/pages-collage/collage-square/collage-square'
       })
@@ -104,6 +115,16 @@ export default {
   z-index: 100;
   transition: all 0.2s ease;
 }
+
+/* #ifdef MP-WEIXIN */
+/* 小程序端：与胶囊按钮同一行，紧凑靠左，避开刘海屏 */
+.custom-back-btn {
+  top: var(--collage-nav-top, calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px))));
+  left: 24rpx;
+  width: 80rpx;
+  height: 80rpx;
+}
+/* #endif */
 
 .custom-back-btn:active {
   transform: scale(0.95);

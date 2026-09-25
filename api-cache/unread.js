@@ -12,7 +12,7 @@ export async function getUnreadCount(context) {
       const result = await callCloudAndUnwrap(
         'getUnreadMessageCount',
         {},
-        { pageTag: 'unread', context, injectOpenId: true },
+        { pageTag: 'unread', context, injectOpenId: true, silent: true },
         '获取未读数失败'
       );
       return result.count || 0;
@@ -21,13 +21,14 @@ export async function getUnreadCount(context) {
   );
 }
 
-export function invalidateUnread() {
+export function invalidateUnread({ refresh = true } = {}) {
   ns.delete(KEY);
+  if (!refresh) return;
   try {
     callCloudAndUnwrap(
       'getUnreadMessageCount',
       {},
-      { pageTag: 'unread:refresh', injectOpenId: true },
+      { pageTag: 'unread:refresh', injectOpenId: true, silent: true },
       '获取未读数失败'
     ).then((result) => {
       const n = result.count || 0;

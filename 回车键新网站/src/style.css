@@ -150,6 +150,17 @@ a {
   gap: 25px;
   margin-top: 89px;
 }
+.site-version-link {
+  margin-top: 18px;
+  align-self: flex-start;
+  padding: 6px 0;
+  color: var(--green);
+  font-size: 11px;
+}
+.site-version-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
 .main-nav a {
   position: relative;
   display: flex;
@@ -256,44 +267,6 @@ a {
   min-height: 100vh;
   outline: none;
 }
-.topbar {
-  height: 97px;
-  border-bottom: 1px solid var(--line);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  font-size: 10px;
-  color: #868b80;
-  letter-spacing: 0.5px;
-}
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 26px;
-}
-.source-label {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  white-space: nowrap;
-}
-.source-label i {
-  height: 5px;
-  width: 5px;
-  border-radius: 50%;
-  background: #738369;
-}
-.source-label.demo i {
-  background: #bb9a59;
-}
-.topbar-date {
-  font-size: 10px;
-  letter-spacing: 1px;
-}
-.topbar-login {
-  display: none;
-}
 .eyebrow {
   font-family: Arial, sans-serif;
   font-size: 9px;
@@ -377,23 +350,25 @@ a {
   color: #8c9086;
 }
 .enter-button {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 30px;
-  min-width: 140px;
-  border: 1px solid #aaaf9f;
-  border-radius: 5px;
-  padding: 13px 16px;
-  box-shadow: 0 3px 0 #e3e5db;
-  font-size: 11px;
+  position: relative;
+  display: block;
+  flex-shrink: 0;
+  width: 112px;
+  aspect-ratio: 635 / 549;
+  margin-left: auto;
+  overflow: hidden;
+  transition: transform 0.2s ease;
 }
-.enter-button > span:last-child {
-  font-size: 30px;
-  line-height: 1;
+.enter-button > img {
+  /* Frame the key itself while keeping the original transparent image intact. */
+  position: absolute;
+  width: 171.34%;
+  max-width: none;
+  height: auto;
+  left: -34.17%;
+  top: -36.61%;
 }
 .enter-button:hover {
-  background: #e6ebde;
   transform: translateY(-2px);
 }
 .hero-margin {
@@ -452,6 +427,9 @@ a {
   border-top: 1px solid var(--line);
   padding-top: 28px;
 }
+.home-shelf > .section-heading {
+  justify-content: flex-end;
+}
 .home-cards {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -486,16 +464,12 @@ a {
 .card-top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   min-height: 14px;
   font-size: 8px;
   letter-spacing: 1px;
   color: inherit;
   margin-bottom: 20px;
-}
-.card-arrow {
-  font-size: 20px;
-  line-height: 12px;
 }
 .card-title {
   font-family: var(--serif);
@@ -516,16 +490,6 @@ a {
   -webkit-box-orient: vertical;
   overflow: hidden;
   margin-bottom: 19px;
-}
-.card-author {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 9px;
-  margin-top: auto;
-}
-.card-author > span {
-  font-size: 15px;
 }
 .daily-section {
   display: grid;
@@ -568,8 +532,8 @@ a {
   margin-top: 20px;
 }
 .site-footer {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 3fr) auto;
   align-items: center;
   gap: 16px;
   margin-top: 52px;
@@ -580,9 +544,32 @@ a {
   letter-spacing: 0.5px;
 }
 .site-footer > a {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+  white-space: nowrap;
   font-size: 10px;
   letter-spacing: 1px;
   color: #6f7769;
+}
+.footer-author,
+.footer-highlight {
+  min-width: 0;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.footer-author {
+  grid-column: 1;
+  grid-row: 1;
+}
+.footer-highlight {
+  grid-column: 2;
+  grid-row: 1;
+  text-align: center;
+}
+.site-footer > .mode-switch {
+  grid-column: 1 / -1;
+  justify-self: end;
 }
 .site-footer > a span {
   font-size: 9px;
@@ -607,6 +594,8 @@ a {
   letter-spacing: 1px;
   line-height: 1.5;
   margin: 12px 0 12px;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 .page-heading > p:last-child {
   font-size: 11px;
@@ -879,9 +868,6 @@ a {
 .poem-grid .card-top {
   margin-bottom: 12px;
 }
-.poem-grid .card-author {
-  font-size: 8px;
-}
 .poem-grid .card-excerpt {
   margin-bottom: 14px;
 }
@@ -999,6 +985,15 @@ a {
 .activity-section {
   border-top: 1px solid var(--ink);
   padding: 29px 0 0;
+}
+.mine-activity {
+  border-top: 0;
+  margin-bottom: 36px;
+}
+.filter-tabs .clear-filter {
+  margin: 0;
+  font-size: 9px;
+  white-space: nowrap;
 }
 .year-control select {
   background: transparent;
@@ -1167,31 +1162,6 @@ a {
   color: #9fa691;
   margin-top: 14px;
   line-height: 1.9;
-}
-.journal-reflection {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 35px;
-  margin-top: 58px;
-  padding: 35px 0;
-  border-top: 1px solid var(--line);
-}
-.journal-reflection h2 {
-  font-family: var(--serif);
-  font-weight: 400;
-  font-size: 30px;
-  line-height: 1.8;
-  margin-top: 14px;
-}
-.journal-reflection > p {
-  font-family: var(--serif);
-  font-size: 14px;
-  line-height: 2.2;
-  color: #7b856e;
-  padding-top: 25px;
-}
-.journal-reflection > a {
-  grid-column: 2;
 }
 .profile-card {
   border-top: 1px solid var(--ink);
@@ -1586,12 +1556,6 @@ a {
     margin-left: 202px;
     padding: 0 24px;
   }
-  .topbar {
-    height: 86px;
-  }
-  .topbar-right {
-    gap: 15px;
-  }
   .hero-margin {
     width: 80px;
   }
@@ -1638,9 +1602,6 @@ a {
   .profile-stat-row {
     gap: 35px;
   }
-  .site-footer > span {
-    display: none;
-  }
   .profile-signature {
     max-width: 120px;
   }
@@ -1655,6 +1616,13 @@ a {
   }
 }
 @media (max-width: 800px) {
+  .site-version-link {
+    position: absolute;
+    top: 24px;
+    right: 20px;
+    margin-top: 0;
+    font-size: 10px;
+  }
   .sidebar {
     position: relative;
     width: 100%;
@@ -1712,29 +1680,6 @@ a {
     margin: 0;
     padding: 0 20px;
   }
-  .topbar {
-    height: 51px;
-    border: 0;
-    font-size: 8px;
-  }
-  .topbar-caption {
-    display: none;
-  }
-  .topbar-right {
-    width: 100%;
-    justify-content: space-between;
-  }
-  .topbar-login {
-    display: block;
-    font-size: 10px;
-  }
-  .topbar-date {
-    margin-left: auto;
-    font-size: 9px;
-  }
-  .source-label {
-    font-size: 9px;
-  }
   .home-hero {
     padding: 27px 0 37px;
     gap: 20px;
@@ -1779,8 +1724,7 @@ a {
     font-size: 9px;
   }
   .enter-button {
-    padding: 11px 14px;
-    min-width: 144px;
+    width: 96px;
   }
   .home-cards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1831,11 +1775,18 @@ a {
     font-size: 10px;
   }
   .site-footer {
+    grid-template-columns: minmax(0, 1fr) auto;
     margin-top: 36px;
     padding: 22px 0 28px;
     align-items: flex-start;
   }
+  .site-footer .footer-highlight {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    text-align: left;
+  }
   .site-footer > a {
+    grid-column: 2;
     font-size: 9px;
   }
   .site-footer > a span {
@@ -2016,17 +1967,6 @@ a {
   }
   .calendar-note {
     font-size: 8px;
-  }
-  .journal-reflection {
-    margin-top: 35px;
-    padding-top: 28px;
-    gap: 25px;
-  }
-  .journal-reflection h2 {
-    font-size: 26px;
-  }
-  .journal-reflection > p {
-    font-size: 13px;
   }
   .profile-card {
     gap: 20px;
@@ -2252,24 +2192,6 @@ a {
   }
   .shelf-loading .skeleton-grid {
     grid-template-columns: repeat(2, 1fr);
-  }
-  .journal-reflection {
-    grid-template-columns: 1fr;
-    gap: 15px;
-  }
-  .journal-reflection h2 {
-    font-size: 26px;
-  }
-  .journal-reflection h2 br {
-    display: none;
-  }
-  .journal-reflection > p {
-    padding-top: 5px;
-    font-size: 14px;
-  }
-  .journal-reflection > a {
-    grid-column: 1;
-    margin-top: 8px;
   }
   .activity-section .section-heading h2 {
     font-size: 20px;

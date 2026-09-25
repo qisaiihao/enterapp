@@ -1,5 +1,5 @@
 <template>
-  <view class="collage-upload">
+  <view class="collage-upload" :style="mpNavStyle">
     <!-- 自定义返回按钮 -->
     <view class="custom-back-btn" @tap="goBack">
       <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
@@ -51,7 +51,11 @@
 import { cloudCall } from '../../utils/cloudCall.js';
 import { getCloudFunctionMethod, getCurrentPlatform } from '../../utils/platformDetector.js';
 import { requestAndroidStoragePermission } from '../../utils/permissions.js';
+import { readFileAsBase64 as readImageBase64 } from '../../utils/fileReader.js';
+import { createCollageLogger } from '@/utils/collage/debug.js';
+import { getCollageNavStyle } from '@/utils/collage/nav.js';
 
+const log = createCollageLogger('upload');
 const platformDetector = {
   getCurrentPlatform,
   getCloudFunctionMethod
@@ -62,10 +66,25 @@ export default {
     return {
       selectedImage: '', // 选中的图片路径
       isUploading: false, // 是否正在上传
-      imageInfo: null // 图片信息对象
+      imageInfo: null, // 图片信息对象
+      mpNavStyle: null
     }
   },
-  
+  onLoad() {
+    log.info('进入拼贴诗上传页');
+    this.mpNavStyle = getCollageNavStyle();
+    const channel = this.getOpenerEventChannel && this.getOpenerEventChannel();
+    if (channel && channel.on) channel.on('collageExport', ({ path }) => {
+      if (!path) {
+        log.warn('发布交接未收到图片路径');
+        return;
+      }
+      log.info('收到画布导出的作品图', { path });
+      this.selectedImage = path;
+      this.imageInfo = { originalPath: path, compressedPath: path, previewUrl: path, extension: 'png' };
+    });
+  },
+
   methods: {
     goBack() {
       uni.navigateBack()
@@ -88,15 +107,14 @@ export default {
           });
 
           // 使用包含size的 res.tempFiles
-          console.log('选择图片返回的详细文件信息:', res.tempFiles);
           const file = res.tempFiles[0];
           const tempFilePath = file.path;
           const sizeInBytes = file.size;
-          
-          console.log(`获取到图片 ${tempFilePath} 的原始大小:`, (sizeInBytes / 1024).toFixed(2), 'KB');
+          log.info('选择图片', { path: tempFilePath, kb: (sizeInBytes / 1024).toFixed(2) });
           
           // 检查文件大小限制（5MB）
           if (sizeInBytes > 5 * 1024 * 1024) {
+            log.warn('图片超过 5MB 限制', { path: tempFilePath, mb: (sizeInBytes / 1024 / 1024).toFixed(2) });
             uni.hideLoading();
             uni.showModal({
               title: '错误',
@@ -127,7 +145,7 @@ export default {
               })
               .catch((err) => {
                 uni.hideLoading();
-                console.error('图片压缩失败:', err);
+                log.warn('图片压缩失败，使用原图', err);
                 // 压缩失败，使用原图
                 this.imageInfo.compressedPath = this.imageInfo.originalPath;
                 this.imageInfo.previewUrl = this.imageInfo.originalPath;
@@ -140,7 +158,7 @@ export default {
           }
         },
         fail: (err) => {
-          console.error('选择图片失败:', err)
+          log.warn('选择图片失败', err)
           // 如果是用户取消，不显示错误提示
           if (err.errMsg && err.errMsg.includes('cancel')) {
             return
@@ -168,7 +186,7 @@ export default {
             this.handleSelectedImageResult(res);
           },
           fail: (err) => {
-            console.error('App choose image failed:', err);
+            log.warn('App 选择图片失败', err);
             if (err && err.errMsg && err.errMsg.includes('cancel')) {
               return;
             }
@@ -204,15 +222,12 @@ export default {
           title: '\u5904\u7406\u4e2d...'
         });
 
-        console.log('App selected image file:', file);
         const tempFilePath = file.path;
         const sizeInBytes = file.size || 0;
-
-        if (sizeInBytes > 0) {
-          console.log(`Selected image ${tempFilePath} original size:`, (sizeInBytes / 1024).toFixed(2), 'KB');
-        }
+        log.info('App 选择图片', { path: tempFilePath, kb: sizeInBytes ? (sizeInBytes / 1024).toFixed(2) : 0 });
 
         if (sizeInBytes > 5 * 1024 * 1024) {
+          log.warn('图片超过 5MB 限制', { path: tempFilePath, mb: (sizeInBytes / 1024 / 1024).toFixed(2) });
           uni.hideLoading();
           uni.showModal({
             title: '\u63d0\u793a',
@@ -242,7 +257,7 @@ export default {
             })
             .catch((err) => {
               uni.hideLoading();
-              console.error('Image compression failed:', err);
+              log.warn('图片压缩失败，使用原图', err);
               this.imageInfo.compressedPath = this.imageInfo.originalPath;
               this.imageInfo.previewUrl = this.imageInfo.originalPath;
               this.selectedImage = this.imageInfo.previewUrl;
@@ -253,7 +268,7 @@ export default {
         uni.hideLoading();
         this.selectedImage = this.imageInfo.previewUrl;
       }).catch((err) => {
-        console.error('App image preprocessing failed:', err);
+        log.error('App 图片预处理失败', err);
         uni.hideLoading();
         uni.showToast({
           title: '\u9009\u62e9\u56fe\u7247\u5931\u8d25',
@@ -291,7 +306,7 @@ export default {
             });
           },
           fail: (err) => {
-            console.warn('Get image file size failed:', err);
+            log.warn('读取图片大小失败', err);
             resolve({
               path: filePath,
               size: 0
@@ -308,28 +323,28 @@ export default {
         
         if (platform === 'h5') {
           // H5环境使用Canvas压缩
-          console.log('🔍 [CollageUpload] H5环境使用Canvas压缩图片');
-          this.compressImageWithCanvas(imageInfo).then(resolve).catch(() => {
+          log.debug('H5 环境使用 Canvas 压缩图片');
+          this.compressImageWithCanvas(imageInfo).then(resolve).catch((error) => {
             // Canvas压缩失败，使用原图
-            console.log('Canvas压缩失败，使用原图');
+            log.warn('Canvas 压缩失败，使用原图', error);
             imageInfo.compressedPath = imageInfo.originalPath;
             imageInfo.previewUrl = imageInfo.originalPath;
             resolve(imageInfo);
           });
         } else {
           // App环境使用uni.compressImage
-          console.log('🔍 [CollageUpload] App环境使用uni.compressImage压缩图片');
+          log.debug('App/小程序环境使用 uni.compressImage 压缩图片');
           uni.compressImage({
             src: imageInfo.originalPath,
             quality: 80,
             success: (res) => {
-              console.log('压缩成功:', res);
+              log.debug('压缩成功', { path: res.tempFilePath });
               imageInfo.compressedPath = res.tempFilePath;
               imageInfo.previewUrl = res.tempFilePath;
               resolve(imageInfo);
             },
             fail: (err) => {
-              console.error('压缩失败:', err);
+              log.warn('压缩失败，使用原图', err);
               // 压缩失败，使用原图
               imageInfo.compressedPath = imageInfo.originalPath;
               imageInfo.previewUrl = imageInfo.originalPath;
@@ -416,6 +431,7 @@ export default {
       }
       
       this.isUploading = true
+      log.info('开始发布拼贴诗', { path: this.imageInfo.compressedPath, extension: this.imageInfo.extension || 'jpg' })
       
       try {
         uni.showLoading({
@@ -423,32 +439,25 @@ export default {
         })
         
         // 读取文件内容为base64
-        const fileContent = await this.readFileAsBase64(this.imageInfo.compressedPath)
+        const fileContent = await readImageBase64(this.imageInfo.compressedPath)
         
         if (!fileContent) {
           throw new Error('读取文件失败')
         }
         
-        console.log('文件读取成功，base64长度:', fileContent.length)
+        log.debug('文件读取成功', { base64Length: fileContent.length })
         
         // 调用uploadCollagePoetry云函数，完成上传和创建帖子
-        const cloudPath = `collage-poetry/${Date.now()}.jpg`
-        
-        console.log('准备调用uploadCollagePoetry云函数，参数:', {
-          cloudPath: cloudPath,
-          fileContentLength: fileContent ? fileContent.length : 0
-        })
+        const cloudPath = `collage-poetry/${Date.now()}.${this.imageInfo.extension || 'jpg'}`
         
         const collageResult = await cloudCall('uploadCollagePoetry', {
           cloudPath: cloudPath,
           fileContent: fileContent
         }, { pageTag: 'collage-upload', context: this, requireAuth: true })
         
-        console.log('拼贴诗发布结果:', collageResult)
-        console.log('返回结果详情:', JSON.stringify(collageResult, null, 2))
-        
         // 检查返回结果
         if (collageResult && collageResult.result && collageResult.result.success) {
+          log.info('发布成功', { cloudPath, result: collageResult.result })
           uni.hideLoading()
           uni.showToast({
             title: '发布成功',
@@ -465,13 +474,12 @@ export default {
           }, 1500)
         } else {
           const errorMsg = collageResult?.result?.message || '发布失败'
-          console.error('发布失败，错误信息:', errorMsg)
-          console.error('完整返回结果:', collageResult)
+          log.error('发布失败', { cloudPath, message: errorMsg, result: collageResult })
           throw new Error(errorMsg)
         }
       } catch (error) {
         uni.hideLoading()
-        console.error('上传失败:', error)
+        log.error('上传失败', error)
         uni.showToast({
           title: error.message || '上传失败',
           icon: 'none'
@@ -589,13 +597,13 @@ export default {
                   return;
                 }
                 const base64 = result.split(',')[1];
-                console.log(`🔍 [CollageUpload] 文件转换为base64完成，长度: ${base64.length}`);
+                log.debug('文件转换为 base64 完成', { base64Length: base64.length });
                 
                 cloudCall('upload', {
                   cloudPath: cloudPath,
                   fileContent: base64
                 }, { pageTag: 'collage-upload', context: this, requireAuth: true }).then((uploadRes) => {
-                  console.log('上传云函数返回结果:', uploadRes);
+                  log.debug('上传云函数返回', uploadRes);
                   if (uploadRes && uploadRes.result && uploadRes.result.success) {
                     resolve({
                       success: true,
@@ -608,7 +616,7 @@ export default {
                 }).catch((err) => {
                   // 如果是网络错误且重试次数小于2，则重试
                   if (retryCount < 2 && (err.errMsg === 'request:fail' || err.message?.includes('fail'))) {
-                    console.log(`🔄 [CollageUpload] 上传失败，准备重试 (${retryCount + 1}/2)`);
+                    log.warn(`上传失败，准备重试 (${retryCount + 1}/2)`, err);
                     setTimeout(() => {
                       this.uploadFileViaCloudFunction(imageInfo, retryCount + 1)
                         .then(resolve).catch(reject);
@@ -628,7 +636,7 @@ export default {
             });
         } else {
           // App环境使用uni-app API
-          console.log('🔍 [CollageUpload] App环境使用uni-app API读取文件');
+          log.debug('App/小程序环境使用文件系统读取文件');
           try {
             const fs = uni.getFileSystemManager();
             if (fs && fs.readFile) {
@@ -637,12 +645,12 @@ export default {
                 encoding: 'base64',
                 success: (readRes) => {
                   const base64 = readRes.data;
-                  console.log(`🔍 [CollageUpload] 文件读取完成，base64长度: ${base64.length}`);
+                  log.debug('文件读取完成', { base64Length: base64.length });
                   cloudCall('upload', {
                     cloudPath: cloudPath,
                     fileContent: base64
                   }, { pageTag: 'collage-upload', context: this, requireAuth: true }).then((uploadRes) => {
-                    console.log('App环境上传云函数返回结果:', uploadRes);
+                    log.debug('上传云函数返回', uploadRes);
                     if (uploadRes && uploadRes.result && uploadRes.result.success) {
                       resolve({
                         success: true,
@@ -655,7 +663,7 @@ export default {
                   }).catch(reject);
                 },
                 fail: (readErr) => {
-                  console.error('❌ [CollageUpload] 文件读取失败：', readErr);
+                  log.error('文件读取失败', readErr);
                   reject(new Error(`文件读取失败: ${readErr.errMsg || '未知错误'}`));
                 }
               });
@@ -695,6 +703,16 @@ export default {
   z-index: 100;
   transition: all 0.2s ease;
 }
+
+/* #ifdef MP-WEIXIN */
+/* 小程序端：与胶囊按钮同一行，紧凑靠左，避开刘海屏 */
+.custom-back-btn {
+  top: var(--collage-nav-top, calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px))));
+  left: 24rpx;
+  width: 80rpx;
+  height: 80rpx;
+}
+/* #endif */
 
 .custom-back-btn:active {
   transform: scale(0.95);

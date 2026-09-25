@@ -4,6 +4,7 @@ import {
   dayKey,
   asDate,
   normalizePoem,
+  randomHighlight,
   calendarDays,
   summarizeDays,
 } from "../src/lib/poems.js";
@@ -59,7 +60,8 @@ test("card excerpts prefer all selected highlights while preserving full text", 
 test("empty or malformed highlights fall back to a legacy sentence, then full text", () => {
   for (const highlightLines of [undefined, [], [" ", null, 3], "invalid"]) {
     assert.equal(
-      normalizePoem({ highlightLines, highlightSentence: " 单句高光 " }).excerpt,
+      normalizePoem({ highlightLines, highlightSentence: " 单句高光 " })
+        .excerpt,
       "单句高光",
     );
     assert.equal(
@@ -78,6 +80,102 @@ test("empty or malformed highlights fall back to a legacy sentence, then full te
     }).excerpt,
     "一\n组诗正文",
   );
+});
+
+test("footer randomly chooses saved highlights, excludes body fallbacks and duplicate lines", () => {
+  const poems = [
+    normalizePoem({
+      _id: "poem-a",
+      authorName: "甲",
+      highlightLines: [" 高光一\r\n高光二 ", null, "高光一"],
+      highlightSentence: "旧高光",
+      content: "正文",
+    }),
+    normalizePoem({
+      _id: "poem-b",
+      authorName: "乙",
+      highlightSentence: " 旧格式高光 ",
+    }),
+    normalizePoem({ content: "只有正文，不是高光" }),
+  ];
+  assert.deepEqual(poems[0].highlights, ["高光一", "高光二"]);
+  assert.deepEqual(poems[2].highlights, []);
+  assert.deepEqual(
+    randomHighlight(poems, () => 0),
+    { text: "高光一", author: "甲", poemId: "poem-a" },
+  );
+  assert.deepEqual(
+    randomHighlight(poems, () => 0.5),
+    { text: "高光二", author: "甲", poemId: "poem-a" },
+  );
+  assert.deepEqual(
+    randomHighlight(poems, () => 0.999),
+    { text: "旧格式高光", author: "乙", poemId: "poem-b" },
+  );
+  assert.equal(randomHighlight([poems[2]]), null);
+  assert.equal(randomHighlight([]), null);
+});
+
+test("highlight attribution stays with its source even for identical lines and anonymous poems", () => {
+  const poems = [
+    normalizePoem({
+      _id: "a",
+      authorName: "甲",
+      highlightLines: ["同一句高光"],
+    }),
+    normalizePoem({
+      _id: "b",
+      authorName: "真实姓名",
+      isAnonymous: true,
+      highlightLines: ["同一句高光"],
+    }),
+    normalizePoem({
+      _id: "c",
+      isOriginal: false,
+      author: "原作者",
+      authorName: "转载者",
+      highlightLines: ["转载高光"],
+    }),
+  ];
+  assert.deepEqual(
+    randomHighlight(poems, () => 0.5),
+    { text: "同一句高光", author: "匿名诗人", poemId: "b" },
+  );
+  assert.deepEqual(
+    randomHighlight(poems, () => 0.999),
+    { text: "转载高光", author: "原作者", poemId: "c" },
+  );
+});
+
+test("footer removes trailing author descriptions from reprints without changing stored attribution or nicknames", () => {
+  for (const author of [
+    "Robert Frost（未选择的路作者",
+    "Robert Frost（《未选择的路》作者）",
+    "Robert Frost (未选择的路作者)",
+  ]) {
+    const poem = normalizePoem({
+      isOriginal: false,
+      author,
+      highlightLines: ["高光"],
+    });
+    assert.equal(randomHighlight([poem]).author, "Robert Frost");
+    assert.equal(poem.author, author);
+  }
+  for (const [raw, expected] of [
+    [{ isOriginal: true, authorName: "林间（诗人）" }, "林间（诗人）"],
+    [
+      { isOriginal: false, author: "罗伯特（Robert Frost）" },
+      "罗伯特（Robert Frost）",
+    ],
+    [{ isOriginal: false, author: "（佚名作者）" }, "（佚名作者）"],
+    [{ isAnonymous: true, author: "Robert Frost（未选择的路作者" }, "匿名诗人"],
+  ]) {
+    assert.equal(
+      randomHighlight([normalizePoem({ ...raw, highlightLines: ["高光"] })])
+        .author,
+      expected,
+    );
+  }
 });
 
 test("calendar handles leap days, Monday alignment, padding and future cells", () => {

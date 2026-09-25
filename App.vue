@@ -12,6 +12,7 @@ import {
 import { formatErrorForLog } from '@/utils/error-log.js';
 import { ensureRuntimeOpenid, ensureTcbAuthenticated, installRuntimeBindings } from '@/utils/runtime-bootstrap.js';
 import { refreshAdminStatus } from '@/utils/admin.js';
+import unreadBadge from '@/cache/stores/unread-badge.js';
 
 export default {
     data() {
@@ -72,6 +73,7 @@ export default {
     },
 
     onShow() {
+        unreadBadge.startPolling();
         // #ifdef APP-PLUS
         this.runWhenPlusReady((plusInstance) => {
             const args = this.getPlusRuntimeArguments(plusInstance);
@@ -90,6 +92,10 @@ export default {
             }
         }, 'handle app show');
         // #endif
+    },
+
+    onHide() {
+        unreadBadge.stopPolling();
     },
 
     methods: {

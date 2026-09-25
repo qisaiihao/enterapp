@@ -599,6 +599,7 @@ function buildTopicView(topic = {}, { includeDetail = false } = {}) {
     _id: topic._id || '',
     id: topic._id || '',
     title: topic.title || 'Weekly Topic',
+    coverImage: topic.coverImage || '',
     summary: topic.summary || '',
     periodStart: topic.periodStart || null,
     periodEnd: topic.periodEnd || null,

@@ -228,6 +228,20 @@
             <input v-model="topicForm.title" class="input" placeholder="主题xxx" />
           </view>
           <view class="form-item full">
+            <text class="label">封面图（自动裁剪为 3:4 竖版）</text>
+            <view class="cover-upload-row">
+              <view v-if="topicCoverPreview" class="cover-upload-thumb" @tap="chooseCoverImage('topic')">
+                <image class="cover-thumb-image" :src="topicCoverPreview" mode="aspectFill"></image>
+                <view class="cover-thumb-edit">更换</view>
+              </view>
+              <view v-else class="cover-upload-placeholder" @tap="chooseCoverImage('topic')">
+                <text class="cover-upload-plus">+</text>
+                <text class="cover-upload-tip">上传封面图</text>
+              </view>
+              <text v-if="topicCoverPreview" class="cover-remove-btn" @tap="clearTopicCoverImage">移除</text>
+            </view>
+          </view>
+          <view class="form-item full">
             <text class="label">摘要</text>
             <textarea v-model="topicForm.summary" class="textarea" placeholder="主题说明" />
           </view>
@@ -418,6 +432,7 @@ function createTopicForm() {
   return {
     topicId: '',
     title: '',
+    coverImage: '',
     summary: '',
     periodStart: '',
     periodEnd: '',
@@ -455,6 +470,9 @@ export default {
       featuredSelectedIds: [],
       issueCoverPreview: '',
       issueCoverPendingPath: '',
+      topicCoverPreview: '',
+      topicCoverPendingPath: '',
+      topicSaving: false,
       statusOptions: [
         { value: 'draft', label: '草稿' },
         { value: 'published', label: '已发布' },
@@ -495,6 +513,7 @@ export default {
     this.restoreDraftFromStorage();
     this.refreshAll();
     uni.$on('weekly-cover-cropped', this.onWeeklyCoverCropped);
+    uni.$on('weekly-topic-cover-cropped', this.onTopicCoverCropped);
   },
   onShow() {
     this.restoreDraftFromStorage();
@@ -503,6 +522,7 @@ export default {
     clearTimeout(this.periodSearchTimer);
     ++this.periodRequestId;
     uni.$off('weekly-cover-cropped', this.onWeeklyCoverCropped);
+    uni.$off('weekly-topic-cover-cropped', this.onTopicCoverCropped);
   },
   methods: {
     setupHeaderLayout() {
@@ -601,6 +621,7 @@ export default {
         this.topicForm = {
           topicId: item._id || '',
           title: item.title || '',
+          coverImage: item.coverImage || '',
           summary: item.summary || '',
           periodStart: formatDate(item.periodStart),
           periodEnd: formatDate(item.periodEnd),
@@ -608,6 +629,8 @@ export default {
           selectedPostIds: Array.isArray(item.selectedPostIds) ? [...item.selectedPostIds] : []
         };
       }
+      this.topicCoverPendingPath = '';
+      this.loadCoverPreview(this.topicForm.coverImage, 'topic');
       this.topicFormVisible = true;
       this.activeTab = 'topics';
       this.loadTopicPeriodPosts();
@@ -706,6 +729,7 @@ export default {
       return {
         topicId: this.topicForm.topicId,
         title: this.topicForm.title,
+        coverImage: this.topicForm.coverImage || '',
         summary: this.topicForm.summary,
         periodStart: this.topicForm.periodStart,
         periodEnd: this.topicForm.periodEnd,
@@ -778,7 +802,8 @@ export default {
       this.onPeriodDatesChanged();
     },
 
-    chooseCoverImage() {
+    chooseCoverImage(target) {
+      const event = target === 'topic' ? 'weekly-topic-cover-cropped' : 'weekly-cover-cropped';
       uni.chooseImage({
         count: 1,
         sizeType: ['compressed'],
@@ -787,7 +812,7 @@ export default {
           const path = (res && res.tempFilePaths && res.tempFilePaths[0]) || '';
           if (!path) return;
           uni.navigateTo({
-            url: `/pages-admin/activity-notice-management/notice-cropper?src=${encodeURIComponent(path)}&ratio=3/4&event=weekly-cover-cropped`
+            url: `/pages-admin/activity-notice-management/notice-cropper?src=${encodeURIComponent(path)}&ratio=3/4&event=${event}`
           });
         }
       });
@@ -799,29 +824,40 @@ export default {
       this.issueCoverPreview = path;
     },
 
-    async loadCoverPreview(fileID) {
-      if (!fileID) {
-        this.issueCoverPreview = '';
-        return;
-      }
+    onTopicCoverCropped({ path } = {}) {
+      if (!path) return;
+      this.topicCoverPendingPath = path;
+      this.topicCoverPreview = path;
+    },
+
+    async loadCoverPreview(fileID, target = 'issue') {
+      const form = this[`${target}Form`];
+      const previewKey = `${target}CoverPreview`;
+      this[previewKey] = '';
+      if (!fileID) return;
       if (String(fileID).startsWith('cloud://')) {
         try {
           const url = await fileUrlCache.getTempUrl(fileID);
-          if (url && !String(url).startsWith('cloud://')) {
-            this.issueCoverPreview = url;
-            return;
+          if (this[`${target}Form`] === form && form.coverImage === fileID &&
+              !this[`${target}CoverPendingPath`] && url && !String(url).startsWith('cloud://')) {
+            this[previewKey] = url;
           }
         } catch (_) {}
-        this.issueCoverPreview = '';
         return;
       }
-      this.issueCoverPreview = fileID;
+      this[previewKey] = fileID;
     },
 
     clearCoverImage() {
       this.issueForm.coverImage = '';
       this.issueCoverPendingPath = '';
       this.issueCoverPreview = '';
+    },
+
+    clearTopicCoverImage() {
+      this.topicForm.coverImage = '';
+      this.topicCoverPendingPath = '';
+      this.topicCoverPreview = '';
     },
 
     onPeriodDateInputBlur() {
@@ -997,18 +1033,36 @@ export default {
     },
 
     async saveTopic() {
+      if (this.topicSaving) return;
+      this.topicSaving = true;
       try {
+        if (this.topicCoverPendingPath) {
+          uni.showLoading({ title: '上传封面中...' });
+          try {
+            const cloudPath = `weekly-covers/${Date.now()}_${Math.floor(Math.random() * 100000)}.jpg`;
+            const fileID = await uploadFile(cloudPath, this.topicCoverPendingPath, { context: this });
+            if (!fileID) throw new Error('封面图上传失败');
+            this.topicForm.coverImage = fileID;
+            this.topicCoverPendingPath = '';
+            await this.loadCoverPreview(fileID, 'topic');
+          } finally {
+            uni.hideLoading();
+          }
+        }
         const payload = this.buildTopicPayload();
         if (payload.topicId) {
           await updateAdminWeeklyTopic(payload, { context: this });
         } else {
-          await createAdminWeeklyTopic(payload, { context: this });
+          const result = await createAdminWeeklyTopic(payload, { context: this });
+          if (result && result.topicId) this.topicForm.topicId = result.topicId;
         }
         invalidateWeeklyContent();
         await this.loadTopics();
         uni.showToast({ title: '已保存', icon: 'success' });
       } catch (error) {
         uni.showToast({ title: error.message || '保存失败', icon: 'none' });
+      } finally {
+        this.topicSaving = false;
       }
     },
 

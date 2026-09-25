@@ -13,14 +13,15 @@ import ActivityCalendar from "./components/ActivityCalendar.vue";
 import LoginDialog from "./components/LoginDialog.vue";
 import ProfileLibrary from "./components/ProfileLibrary.vue";
 import * as api from "./lib/api";
-import { dayKey, summarizeDays } from "./lib/poems";
+import { dayKey, summarizeDays, randomHighlight } from "./lib/poems";
 
 function readRoute() {
   const [path, search = ""] = location.hash.slice(1).split("?");
-  const page = (path || "/home").replace(/^\//, "");
+  const requestedPage = (path || "/home").replace(/^\//, "");
+  const page = requestedPage === "journal" ? "mine" : requestedPage;
   const params = new URLSearchParams(search);
   return {
-    page: ["home", "poems", "mine", "journal", "me", "about"].includes(page)
+    page: ["home", "poems", "mine", "me", "about"].includes(page)
       ? page
       : "home",
     id: params.get("id") || "",
@@ -29,6 +30,21 @@ function readRoute() {
 }
 const route = ref(readRoute());
 const mode = ref(api.currentMode());
+const footerHighlight = ref(null);
+let footerHighlightVersion = 0;
+async function loadFooterHighlight() {
+  const version = ++footerHighlightVersion;
+  footerHighlight.value = null;
+  try {
+    const { poems: publicPoems } = await api.listPoems({ scope: "all", limit: 36 });
+    if (version === footerHighlightVersion) {
+      footerHighlight.value = randomHighlight(publicPoems);
+    }
+  } catch {
+    // An optional footer quote must not interrupt reading or login.
+  }
+}
+watch(mode, loadFooterHighlight, { immediate: true });
 const user = ref(null),
   restoring = ref(false);
 const avatarFailed = ref(false);
@@ -69,11 +85,10 @@ const nav = [
   { page: "home", name: "Home", label: "首页" },
   { page: "poems", name: "Poems", label: "所有人的诗" },
   { page: "mine", name: "My poems", label: "我的诗歌" },
-  { page: "journal", name: "Days", label: "创作历程" },
   { page: "me", name: "Me", label: "关于我" },
 ];
 const privatePage = computed(() =>
-  ["mine", "journal", "me"].includes(route.value.page),
+  ["mine", "me"].includes(route.value.page),
 );
 const locked = computed(() => privatePage.value && !user.value);
 const poetryPage = computed(
@@ -104,16 +119,8 @@ const dailyPoem = computed(() =>
     ? poems.value[Number(today.value.replaceAll("-", "")) % poems.value.length]
     : null,
 );
-const pageTitle = computed(
-  () =>
-    ({
-      home: "给日常，一个回车。",
-      poems: "每个人，都是一座诗岛。",
-      mine: "写下的，都是来过。",
-      journal: "日子经过，文字留下。",
-      me: "在文字里，认识自己。",
-      about: "再一次，按下回车键。",
-    })[route.value.page],
+const profileTitle = computed(
+  () => user.value?.bio?.trim() || "文字里，认识自己。",
 );
 const listCaption = computed(() =>
   query.value
@@ -166,7 +173,7 @@ function handleAuth(errorValue) {
   }
 }
 async function loadPoems(append = false) {
-  if (locked.value || ["journal", "me", "about"].includes(route.value.page))
+  if (locked.value || ["me", "about"].includes(route.value.page))
     return;
   const version = ++listVersion;
   if (append) moreLoading.value = true;
@@ -230,7 +237,7 @@ async function loadDetail(id) {
   }
 }
 async function loadActivity() {
-  if (!user.value || !["journal", "me"].includes(route.value.page)) return;
+  if (!user.value || !["mine", "me"].includes(route.value.page)) return;
   const version = ++activityVersion;
   counts.value = {};
   activityLoading.value = true;
@@ -449,7 +456,7 @@ watch(
   },
 );
 watch(year, loadActivity);
-watch([() => route.value.page, poetryPage], () => nextTick(enterPoetry), {
+watch([() => route.value.page, () => route.value.day, poetryPage], () => nextTick(enterPoetry), {
   flush: "post",
 });
 watch(
@@ -506,6 +513,9 @@ onBeforeUnmount(() => {
         ><span class="brand-mark" aria-hidden="true">↵</span
         ><span>POEMENTER<small>回 车 键</small></span></a
       >
+      <a class="site-version-link" href="/classic/?site=classic"
+        >App / 下载官网 ↗</a
+      >
       <nav class="main-nav" aria-label="主要导航">
         <a
           v-for="item in nav"
@@ -556,23 +566,6 @@ onBeforeUnmount(() => {
         },
       ]"
     >
-      <header class="topbar">
-        <span class="topbar-caption">一个写诗的地方，也是一处停留。</span>
-        <div class="topbar-right">
-          <span class="source-label" :class="{ demo: mode === 'demo' }"
-            ><i></i>{{ mode === "demo" ? "示例书架" : "来自回车键 App" }}</span
-          ><span class="topbar-date"
-            >{{ dateParts[0] }}.{{ dateParts[1] }}.{{ dateParts[2] }}</span
-          ><button
-            v-if="!user"
-            class="topbar-login text-link"
-            @click="openLogin"
-          >
-            登录 ↗
-          </button>
-        </div>
-      </header>
-
       <template v-if="route.page === 'home'">
         <section class="home-hero">
           <div class="hero-copy">
@@ -583,13 +576,10 @@ onBeforeUnmount(() => {
               >
             </h1>
             <div class="hero-bottom">
-              <p>
-                再一次，按下回车键。<br /><span
-                  >在别人的诗里相遇，在自己的诗里回来。</span
-                >
-              </p>
+              <p>再一次，按下回车键。</p>
               <a href="#/poems" class="enter-button" aria-label="开始读诗"
-                ><span>开始读诗</span><span aria-hidden="true">↵</span></a
+                ><img src="/images/enter_key.png" alt="" aria-hidden="true"
+              /></a
               >
             </div>
           </div>
@@ -604,10 +594,6 @@ onBeforeUnmount(() => {
         </section>
         <section class="home-shelf">
           <div class="section-heading">
-            <div>
-              <span class="eyebrow">WORDS FIND THEIR WAY</span>
-              <h2>偶然读到，也是一种相遇。</h2>
-            </div>
             <a href="#/poems" class="text-link">去诗歌书架 <span>↗</span></a>
           </div>
           <div v-if="loading" class="skeleton-grid">
@@ -629,19 +615,16 @@ onBeforeUnmount(() => {
           </div>
           <div v-else class="home-cards">
             <PoemCard
-              v-for="(poem, index) in poems.slice(0, 4)"
+              v-for="poem in poems.slice(0, 4)"
               :key="poem.id"
               :poem="poem"
-              :index="index"
               @select="choosePoem"
             />
           </div>
         </section>
         <section v-if="dailyPoem" class="daily-section">
           <div class="daily-intro">
-            <span class="eyebrow">TODAY'S READING</span>
             <h2>今天，<br />留一首诗的时间。</h2>
-            <p>不必匆忙读完。<br />有些句子，适合慢慢抵达。</p>
             <button class="text-link" @click="choosePoem(dailyPoem)">
               读这首诗 ↗
             </button>
@@ -678,29 +661,11 @@ onBeforeUnmount(() => {
       >
 
       <template v-else>
-        <header class="page-heading">
-          <p class="eyebrow">
-            {{
-              {
-                poems: "THE POETRY SHELF",
-                mine: "MY WORDS, MY WORLD",
-                journal: "A RECORD OF CREATING",
-                me: "A PORTRAIT IN WORDS",
-              }[route.page]
-            }}
-          </p>
-          <h1>{{ pageTitle }}</h1>
-          <p>
-            {{
-              route.page === "poems"
-                ? "从一张卡片开始，走进一首诗。"
-                : route.page === "mine"
-                  ? "散落在日常里的句子，在这里重新相聚。"
-                  : route.page === "journal"
-                    ? "不必每天都写。每一次落笔，都值得被记住。"
-                    : "你写的每一行，都在描摹你的模样。"
-            }}
-          </p>
+        <header v-if="route.page === 'poems'" class="page-heading">
+          <h1>每个人，都是一座诗岛。</h1>
+        </header>
+        <header v-if="route.page === 'me'" class="page-heading">
+          <h1>{{ profileTitle }}</h1>
         </header>
         <section v-if="locked" class="locked-state">
           <span class="locked-mark" aria-hidden="true">↵</span>
@@ -718,6 +683,18 @@ onBeforeUnmount(() => {
         </section>
 
         <template v-else-if="route.page === 'poems' || route.page === 'mine'">
+          <ActivityCalendar
+            v-if="route.page === 'mine'"
+            class="mine-activity"
+            :counts="counts"
+            :year="year"
+            :loading="activityLoading"
+            :error="activityError"
+            :selected-day="route.day"
+            @year="year = $event"
+            @retry="loadActivity"
+            @day="navigate('mine', { day: $event })"
+          />
           <div class="shelf-controls">
             <div class="filter-tabs" aria-label="诗歌类型">
               <button
@@ -733,6 +710,13 @@ onBeforeUnmount(() => {
               >
                 {{ item.label }}
               </button>
+              <button
+                v-if="route.page === 'mine' && (query || route.day || kind !== 'all')"
+                class="clear-filter"
+                @click="resetFilters"
+              >
+                清除筛选 ×
+              </button>
             </div>
             <form class="search-form" role="search" @submit.prevent="search">
               <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -747,7 +731,7 @@ onBeforeUnmount(() => {
               /><button type="submit" aria-label="提交搜索">↵</button>
             </form>
           </div>
-          <div class="shelf-status">
+          <div v-if="route.page !== 'mine'" class="shelf-status">
             <span
               >{{ listCaption
               }}<span class="count-label">{{
@@ -873,10 +857,9 @@ onBeforeUnmount(() => {
               <section class="cards-column" aria-label="诗歌卡片">
                 <div class="poem-grid">
                   <PoemCard
-                    v-for="(poem, index) in poems"
+                    v-for="poem in poems"
                     :key="poem.id"
                     :poem="poem"
-                    :index="index"
                     :selected="selected?.id === poem.id"
                     @select="choosePoem"
                   />
@@ -904,28 +887,6 @@ onBeforeUnmount(() => {
           </div>
         </template>
 
-        <template v-else-if="route.page === 'journal'"
-          ><ActivityCalendar
-            :counts="counts"
-            :year="year"
-            :loading="activityLoading"
-            :error="activityError"
-            @year="year = $event"
-            @retry="loadActivity"
-            @day="navigate('mine', { day: $event })"
-          />
-          <section class="journal-reflection">
-            <div>
-              <span class="eyebrow">THE SHAPE OF YOUR DAYS</span>
-              <h2>慢慢写，<br />也慢慢成为自己。</h2>
-            </div>
-            <p>
-              有些日子，写下一整首诗。<br />有些日子，只是在心里换了一行。<br /><br />这里记下你的创作，<br />也尊重那些没有写字的日子。
-            </p>
-            <a href="#/mine" class="text-link">重读我的诗 ↗</a>
-          </section></template
-        >
-
         <template v-else-if="route.page === 'me' && user"
           ><section class="profile-card">
             <div class="profile-avatar">
@@ -947,9 +908,6 @@ onBeforeUnmount(() => {
               <p class="profile-id">
                 Poem ID / {{ user.poemId
                 }}<span v-if="user.region"> · {{ user.region }}</span>
-              </p>
-              <p class="profile-bio">
-                {{ user.bio || "还没有写下自我介绍，诗歌已经替你说了许多。" }}
               </p>
               <div class="profile-social">
                 <span
@@ -1009,12 +967,11 @@ onBeforeUnmount(() => {
         >
       </template>
       <footer class="site-footer">
-        <a href="#/home">POEMENTER <span>回车键</span></a
-        ><span>让文字发生，让生活换行。</span
-        ><button class="mode-switch" :disabled="loginBusy" @click="changeMode">
-          {{
-            mode === "demo" ? "示例内容 · 连接 App 数据 ↗" : "体验示例书架 ↗"
-          }}
+        <span v-if="footerHighlight" class="footer-author">{{ footerHighlight.author }}</span>
+        <span v-if="footerHighlight" class="footer-highlight">{{ footerHighlight.text }}</span>
+        <a href="#/home">POEMENTER <span>回车键</span></a>
+        <button v-if="mode === 'demo'" class="mode-switch" :disabled="loginBusy" @click="changeMode">
+          示例内容 · 返回正式书架 ↗
         </button>
       </footer>
     </main>

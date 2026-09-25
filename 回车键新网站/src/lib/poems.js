@@ -60,6 +60,14 @@ export function normalizePoem(raw) {
     series,
     fullText,
     excerpt: highlightLines || highlightSentence || fullText.trim(),
+    highlights: [
+      ...new Set(
+        (highlightLines || highlightSentence)
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean),
+      ),
+    ],
     author: raw.isAnonymous
       ? "匿名诗人"
       : String(
@@ -85,6 +93,32 @@ export function normalizePoem(raw) {
       : [raw.imageUrl]
     ).filter((u) => typeof u === "string" && /^https:\/\//.test(u)),
   };
+}
+
+function highlightAuthor(poem) {
+  const author = String(poem.author || "未署名").trim();
+  if (poem.original) return author;
+  // Imported author fields sometimes end in an explanatory, unclosed parenthesis.
+  // Only remove recognizable descriptions; preserve names and original-user nicknames.
+  return (
+    author
+      .replace(
+        /\s*[（(][^（）()]*(?:作者|译者|诗人|作家)[^（）()]*[）)]?\s*$/u,
+        "",
+      )
+      .trim() || author
+  );
+}
+
+export function randomHighlight(poems, random = Math.random) {
+  const lines = poems.flatMap((poem) =>
+    [...new Set(poem.highlights || [])].map((text) => ({
+      text,
+      author: highlightAuthor(poem),
+      poemId: poem.id,
+    })),
+  );
+  return lines.length ? lines[Math.floor(random() * lines.length)] : null;
 }
 
 export function calendarDays(year, counts = {}, now = new Date()) {

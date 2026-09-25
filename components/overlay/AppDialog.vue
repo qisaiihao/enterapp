@@ -24,6 +24,7 @@ export default {
   props: {
     visible: Boolean, title: String, message: String, danger: Boolean,
     editable: Boolean, placeholder: String, extraText: String, busy: Boolean,
+    initialValue: { type: String, default: '' },
     showCancel: { type: Boolean, default: true },
     closeOnMask: { type: Boolean, default: false },
     confirmText: { type: String, default: '确定' },
@@ -38,7 +39,7 @@ export default {
         this.releaseDismiss?.();
         this.releaseDismiss = null;
         if (value) {
-          this.inputValue = '';
+          this.inputValue = this.initialValue;
           this.answered = false;
           this.releaseDismiss = registerOverlayDismiss(resolveOverlayOwner(this), () => this.cancel());
         }

@@ -454,6 +454,13 @@
             "navigationStyle": "custom",
             "usingComponents": {}
           }
+        },
+        {
+          "path": "collage-studio/collage-studio",
+          "style": {
+            "navigationStyle": "custom",
+            "usingComponents": {}
+          }
         }
       ]
     },
@@ -631,6 +638,14 @@
             "backgroundColor": "#f5f5f5",
             "enablePullDownRefresh": true,
             "onReachBottomDistance": 50,
+            "usingComponents": {}
+          }
+        },
+        {
+          "path": "collage-material-management/collage-material-management",
+          "style": {
+            "navigationBarTitleText": "拼贴素材管理",
+            "backgroundColor": "#f5f5f5",
             "usingComponents": {}
           }
         }

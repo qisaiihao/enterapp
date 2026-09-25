@@ -116,6 +116,7 @@
 - `pages-admin/poet-management/poet-management.vue`：管理诗人页面
 - `pages-admin/feedback-list/feedback-list.vue`：反馈建议页面
 - `pages-admin/password-recovery/password-recovery.vue`：找回密码页面
+- `pages-admin/collage-material-management/collage-material-management.vue`：拼贴诗官方素材（纸片/背景）上传与删除页面
 
 ### 云函数
 
@@ -126,6 +127,11 @@
   - `getPoetList`：获取诗人列表
   - `deletePoet`：删除诗人
   - `getUserPassword`：查询用户密码
+  - `listCollageMaterials` / `listCollageMaterialGroups`：查看拼贴诗官方素材与分组
+  - `createCollageMaterial` / `createCollageMaterialGroup`：保存上传的官方素材和新建分组
+  - `updateCollageMaterial`：重命名素材或把素材移动到其他分组
+  - `renameCollageMaterialGroup` / `deleteCollageMaterialGroup`：重命名、删除分组（分组非空时拒绝删除）
+  - `deleteCollageMaterial`：删除官方素材并清理云存储文件
 
 - `functions/feedbackManager/index.js`：反馈管理云函数（已有，已更新权限验证）
   - `getFeedbackList`：获取反馈列表

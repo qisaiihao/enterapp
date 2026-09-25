@@ -1,0 +1,20 @@
+{
+  "envId": "cloud1-5gb0pbyl400845f5",
+  "functions": [
+    {
+      "name": "collageOcr",
+      "timeout": 60,
+      "memory": 256,
+      "runtime": "Nodejs18.15",
+      "role": "PoementerCollageOcrRole",
+      "handler": "index.main",
+      "root": "./functions/collageOcr",
+      "installDependency": true,
+      "envVariables": {
+        "COLLAGE_OCR_ENABLED": "true",
+        "COLLAGE_OCR_MONTHLY_LIMIT": "1000",
+        "COLLAGE_OCR_DAILY_LIMIT": "20"
+      }
+    }
+  ]
+}

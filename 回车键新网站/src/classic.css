@@ -1,0 +1,201 @@
+:root {
+  color-scheme: only light;
+  --paper: #ffffff;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--paper);
+  display: grid;
+  place-items: center;
+}
+
+.poster {
+  position: relative;
+  width: min(72vw, calc(80svh * 49 / 32));
+  aspect-ratio: 49 / 32;
+  background: var(--paper);
+  --edge: -14%;
+}
+
+.piece {
+  position: absolute;
+  display: block;
+  height: auto;
+}
+
+.lit-1 {
+  width: 7.5%;
+  left: var(--edge);
+  top: 2.2%;
+}
+
+.lit-2 {
+  width: 6.6%;
+  left: 47%;
+  top: 2%;
+  transform: translateX(-50%);
+}
+
+.lit-3 {
+  width: 7%;
+  right: var(--edge);
+  left: auto;
+  top: 2.2%;
+}
+
+.logo {
+  width: 56%;
+  left: 46%;
+  top: 15%;
+  transform: translateX(-50%);
+}
+
+.mascot {
+  width: 33%;
+  left: 50%;
+  top: 32%;
+  transform: translateX(-50%);
+}
+
+.indicators {
+  width: 33%;
+  left: 48%;
+  top: 65%;
+  transform: translateX(-50%);
+  height: auto;
+}
+
+.indicators-img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.indicator-download {
+  position: absolute;
+  display: block;
+  left: 30.5%;
+  top: 51.5%;
+  width: 22.5%;
+  height: 43.5%;
+  cursor: pointer;
+}
+
+.indicator-web {
+  position: absolute;
+  display: block;
+  left: 56.2%;
+  top: 50.5%;
+  width: 23.7%;
+  height: 45.9%;
+  cursor: pointer;
+}
+
+.lit-4 {
+  width: 20%;
+  left: var(--edge);
+  top: 87%;
+}
+
+.enter {
+  width: 23%;
+  right: var(--edge);
+  left: auto;
+  top: 90%;
+}
+
+@media (max-width: 900px) and (orientation: portrait),
+  (pointer: coarse) and (orientation: portrait) {
+  body {
+    display: block;
+  }
+
+  .poster {
+    width: 100vw;
+    height: 100svh;
+    height: 100dvh;
+    min-height: 540px;
+    aspect-ratio: auto;
+    --edge: 2vw;
+  }
+
+  .lit-2 {
+    left: 50%;
+  }
+
+  .logo {
+    width: 62%;
+    left: 50%;
+    top: 18%;
+  }
+
+  .mascot {
+    width: 40%;
+    top: 30%;
+  }
+
+  .indicators {
+    width: 40%;
+    left: 50%;
+    top: 62%;
+  }
+
+  .lit-4 {
+    width: 28%;
+    left: 3%;
+    top: 86%;
+  }
+
+  .enter {
+    width: 28%;
+    right: 3%;
+    top: 88%;
+  }
+}
+
+.site-links {
+  position: fixed;
+  z-index: 1;
+  bottom: max(8px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 14px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.94);
+  white-space: nowrap;
+  font:
+    12px/1.5 Arial,
+    "PingFang SC",
+    "Microsoft YaHei",
+    sans-serif;
+}
+
+.site-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: #5b5b54;
+  text-decoration: none;
+}
+
+.site-links a:hover {
+  color: #20291f;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+a:focus-visible {
+  outline: 2px solid #536b55;
+  outline-offset: 4px;
+}

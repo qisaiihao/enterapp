@@ -67,6 +67,7 @@ export default {
     this._unsubscribe = unreadBadge.subscribe((count) => {
       this.unreadMessageCount = count;
     });
+    this.refreshUnreadCount();
   },
   beforeUnmount() {
     // 取消订阅
@@ -165,11 +166,12 @@ export default {
     // 刷新未读数（页面 onShow 时调用）
     refreshUnreadCount() {
       this.unreadMessageCount = unreadBadge.getUnreadCount();
+      return unreadBadge.refreshUnreadCount();
     },
     
     // 强制刷新未读数（下拉刷新时调用）
     forceRefreshUnreadCount() {
-      unreadBadge.refreshUnreadCount();
+      return unreadBadge.refreshUnreadCount();
     }
   }
 };

@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="page" :style="mpNavStyle">
     <view class="custom-back-btn" @tap="goBack">
       <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
     </view>
@@ -76,6 +76,10 @@
 
 <script>
 import { getCollageWords } from '@/api-cache/collage';
+import { createCollageLogger } from '@/utils/collage/debug.js';
+import { getCollageNavStyle } from '@/utils/collage/nav.js';
+
+const log = createCollageLogger('compose');
 
 export default {
   data() {
@@ -94,7 +98,8 @@ export default {
       dragWord: '',
       dragPos: { x: 0, y: 0 },
       dropHighlight: false,
-      poolHighlight: false
+      poolHighlight: false,
+      mpNavStyle: null
     };
   },
   computed: {
@@ -116,10 +121,13 @@ export default {
     }
   },
   onLoad() {
+    log.info('进入词句拼贴页');
+    this.mpNavStyle = getCollageNavStyle();
     this.loadWords(false);
     const draft = uni.getStorageSync('collage_poem_draft') || '';
     if (draft) {
       this.poemWords = draft.split(/\s+/).filter(Boolean);
+      log.debug('恢复草稿', { words: this.poemWords.length });
     }
   },
   onReady() {
@@ -135,15 +143,18 @@ export default {
         .select('#editor-drop-zone')
         .boundingClientRect((rect) => {
           if (rect) this.dropRect = rect;
+          log.debug('测量编辑区', rect);
         })
         .select('#pool-zone')
         .boundingClientRect((rect) => {
           if (rect) this.poolRect = rect;
+          log.debug('测量词池区', rect);
         })
         .exec();
     },
     async loadWords(keepExisting = false) {
       this.isLoading = true;
+      log.info('加载词库', { keepExisting, seed: this.seed });
       try {
         const res = await getCollageWords({
           limit: 12,
@@ -160,7 +171,9 @@ export default {
         this.wordsPool = keepExisting
           ? Array.from(new Set([...(this.wordsPool || []), ...flat]))
           : flat;
+        log.info('词库加载完成', { words: this.wordsPool.length, groups: Object.keys(data) });
       } catch (e) {
+        log.error('词库加载失败', e);
         uni.showToast({
           title: e.message || '词库获取失败',
           icon: 'none'
@@ -171,7 +184,11 @@ export default {
     },
     refreshWords() {
       const now = Date.now();
-      if (this.isLoading || now - this.lastRefreshTs < 2000) return;
+      if (this.isLoading || now - this.lastRefreshTs < 2000) {
+        log.debug('换词被忽略', { isLoading: this.isLoading, sinceLast: now - this.lastRefreshTs });
+        return;
+      }
+      log.info('换一批词');
       this.lastRefreshTs = now;
       this.seed = Date.now();
       this.loadWords(false);
@@ -205,6 +222,7 @@ export default {
       const t = e.touches && e.touches[0];
       this.startTouch = t ? { x: t.pageX, y: t.pageY, source, idx } : null;
       this.lastTouch = this.startTouch;
+      log.debug('按住词卡', { word, source, idx, point: t ? { x: t.pageX, y: t.pageY } : null, touches: e.touches?.length });
       if (t) {
         this.dragging = true;
         this.dragWord = word;
@@ -235,6 +253,7 @@ export default {
 
       const inEditor = this.isPointInRect(endPos, this.dropRect);
       const inPool = this.isPointInRect(endPos, this.poolRect);
+      log.debug('松开词卡', { word, source, idx, end: endPos, movedEnough, inEditor, inPool });
 
       if (source === 'pool' && inEditor) {
         this.insertWord(word);
@@ -253,15 +272,20 @@ export default {
     },
     copyText() {
       if (!this.poemWords.length) return;
+      log.debug('复制诗句');
       uni.setClipboardData({
         data: this.poemText,
         success() {
           uni.showToast({ title: '已复制', icon: 'success' });
+        },
+        fail(error) {
+          log.warn('复制失败', error);
         }
       });
     },
     saveDraft() {
       if (!this.poemWords.length) return;
+      log.info('保存诗句草稿', { words: this.poemWords.length });
       uni.setStorageSync('collage_poem_draft', this.poemText);
       uni.showToast({ title: '已保存草稿', icon: 'success' });
     }
@@ -289,6 +313,14 @@ export default {
   justify-content: center;
   z-index: 10;
 }
+
+/* #ifdef MP-WEIXIN */
+/* 小程序端：与胶囊按钮同一行，紧凑靠左，避开刘海屏 */
+.custom-back-btn {
+  top: var(--collage-nav-top, calc(60rpx + env(safe-area-inset-top, 0px)));
+  left: 24rpx;
+}
+/* #endif */
 .back-icon {
   width: 22rpx;
   height: 38rpx;

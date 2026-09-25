@@ -1,0 +1,11 @@
+{
+  "name": "collage-ocr",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "dependencies": {
+    "@cloudbase/node-sdk": "3.18.3",
+    "tencentcloud-sdk-nodejs-ocr": "4.1.317",
+    "image-size": "2.0.2"
+  }
+}

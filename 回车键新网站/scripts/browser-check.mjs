@@ -139,20 +139,33 @@ try {
   await clickText("dialog button", "体验示例账号");
   await page.waitForSelector(".poem-grid .poem-card");
   assert.equal(
-    await page.$$eval(".poem-grid .card-author", (elements) =>
-      elements.every((el) => el.textContent.includes("林间")),
+    await page.$$eval(".poem-grid .poem-card", (elements) =>
+      elements.length > 0 && elements.every((el) => el.getAttribute("aria-label").includes("林间")),
     ),
     true,
   );
-  await page.click('.main-nav a[href="#/journal"]');
+  assert.equal(await page.$(".poem-card .card-author, .poem-card .card-arrow"), null);
+  assert.equal(await page.$('.main-nav a[href="#/journal"]'), null);
+  await page.waitForFunction(() => {
+    const stage = document.querySelector(".poetry-stage");
+    const calendar = document.querySelector(".mine-activity");
+    return Math.abs(stage.getBoundingClientRect().top) < 2 &&
+      calendar.getBoundingClientRect().bottom <= 0;
+  });
   await page.waitForSelector(".heat-cell.level-1");
-  await screenshot("desktop-journal");
+  await page.mouse.move(1100, 300);
+  await page.mouse.wheel({ deltaY: -1000 });
+  await page.waitForFunction(() => window.scrollY === 0);
+  await screenshot("desktop-mine-activity");
   const day = await page.$eval(".heat-cell.level-1", (el) =>
     el.getAttribute("aria-label").slice(0, 10),
   );
   await page.click(".heat-cell.level-1");
   await page.waitForSelector(".poem-grid .poem-card");
   assert.ok(page.url().includes(`day=${day}`));
+  await page.waitForFunction(() =>
+    Math.abs(document.querySelector(".poetry-stage").getBoundingClientRect().top) < 2,
+  );
   await page.click('.main-nav a[href="#/me"]');
   await page.waitForSelector(".profile-card");
   await screenshot("desktop-profile");
@@ -203,6 +216,35 @@ try {
   await page.click(".month-grid button.level-1");
   await page.waitForSelector(".poem-grid .poem-card");
   assert.ok(page.url().includes("day="));
+  await page.click('.main-nav a[href="#/mine"]');
+  await page.waitForFunction(() => {
+    const stage = document.querySelector(".poetry-stage");
+    const calendar = document.querySelector(".mine-activity");
+    return Math.abs(stage.getBoundingClientRect().top) < 2 &&
+      calendar.getBoundingClientRect().bottom <= 0;
+  });
+  const calendarTouch = await page.createCDPSession();
+  await calendarTouch.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [{ x: 180, y: 180 }],
+  });
+  for (let y = 210; y <= 750; y += 30) {
+    await calendarTouch.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ x: 180, y }],
+    });
+  }
+  await calendarTouch.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
+  await page.waitForFunction(() => {
+    const calendar = document.querySelector(".mine-activity .mobile-calendar").getBoundingClientRect();
+    return calendar.bottom > 0 && calendar.top < innerHeight;
+  });
+  await calendarTouch.detach();
+  await screenshot("mobile-mine-activity");
+  await noOverflow();
   await page.click('.main-nav a[href="#/home"]');
   await page.waitForSelector(".home-cards .poem-card");
   await screenshot("mobile-home");

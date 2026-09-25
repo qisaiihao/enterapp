@@ -1,3 +1,4 @@
+import { createCollageLogger } from '@/utils/collage/debug.js';
 import { silenceConsoleInProduction } from '@/utils/logger.js';
 import App from './App';
 import AppBackgroundPageRoot from '@/components/AppBackgroundPageRoot.vue';
@@ -16,6 +17,8 @@ import {
 } from '@/utils/builtinFontReady.js';
 
 silenceConsoleInProduction();
+const collageAppLog = createCollageLogger('app');
+collageAppLog.info('应用启动，拼贴诗日志已就绪');
 applyThemeMode(getThemeMode());
 
 function emitBuiltinFontLoaded() {

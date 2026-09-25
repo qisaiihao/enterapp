@@ -38,7 +38,9 @@
         class="topic-card"
         @tap="goTopicDetail(topic)"
       >
-        <view class="topic-cover"></view>
+        <view class="topic-cover">
+          <image v-if="topic.coverImage" class="topic-cover-image" :src="topic.coverImage" mode="aspectFill"></image>
+        </view>
         <view class="topic-meta">
           <text class="topic-title">{{ topic.title }}</text>
           <text class="topic-date">{{ topic.dateRange }}</text>
@@ -101,6 +103,7 @@ export default {
       this.topics = topics.map((item, index) => ({
         id: item.id || item._id || '',
         title: item.title || item.summary || `主题 ${index + 1}`,
+        coverImage: item.coverImage || '',
         shelfTitle: item.shelfTitle || '',
         dateRange: item.dateRange || '',
         views: Number(item.views) || 0,
@@ -337,6 +340,12 @@ export default {
   padding-top: 4rpx;
   display: flex;
   flex-direction: column;
+}
+
+.topic-cover-image {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .topic-title {

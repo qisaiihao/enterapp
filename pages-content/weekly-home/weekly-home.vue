@@ -83,13 +83,18 @@
           <text class="section-title">主题精选</text>
           <text class="section-action" @tap="goWeeklyTopicSubmission">查看往期主题</text>
         </view>
-        <view class="topic-list">
+        <view class="past-grid">
           <view
             v-for="topic in displayTopics"
             :key="topic.id"
-            class="topic-row"
+            class="topic-card"
             @tap="goTopicDetail(topic)"
           >
+            <view class="past-card">
+              <view class="past-cover">
+                <image v-if="topic.coverImage" class="past-cover-image" :src="topic.coverImage" mode="aspectFill"></image>
+              </view>
+            </view>
             <text class="topic-title">{{ topic.title }}</text>
             <text v-if="topic.dateRange" class="topic-date">{{ topic.dateRange }}</text>
           </view>
@@ -221,6 +226,7 @@ export default {
         .map((item, index) => ({
           id: item.id || item._id || '',
           title: item.title || item.summary || `主题 ${index + 1}`,
+          coverImage: item.coverImage || '',
           dateRange: item.dateRange || ''
         }))
         .filter(item => item.id || item.title);
@@ -510,15 +516,7 @@ export default {
   row-gap: 2rpx;
 }
 
-.topic-list {
-  margin-top: 18rpx;
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
-}
-
-.rank-row,
-.topic-row {
+.rank-row {
   min-height: 38rpx;
   display: flex;
   align-items: center;
@@ -543,14 +541,14 @@ export default {
   white-space: nowrap;
 }
 
-.topic-row {
-  justify-content: space-between;
-  gap: 24rpx;
+.topic-card {
+  min-width: 0;
 }
 
 .topic-title {
+  display: block;
+  margin-top: 12rpx;
   min-width: 0;
-  flex: 1;
   color: #9a9a9a;
   font-size: 28rpx;
   line-height: 36rpx;
@@ -560,9 +558,9 @@ export default {
 }
 
 .topic-date {
+  display: block;
   color: #9a9a9a;
   font-size: 22rpx;
   line-height: 30rpx;
-  white-space: nowrap;
 }
 </style>

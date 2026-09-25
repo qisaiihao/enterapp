@@ -68,6 +68,15 @@
                 <text class="menu-arrow">→</text>
             </view>
 
+            <view class="menu-item" @tap="navigateTo" data-url="/pages-admin/collage-material-management/collage-material-management">
+                <view class="menu-icon">🧩</view>
+                <view class="menu-info">
+                    <text class="menu-title">拼贴素材</text>
+                    <text class="menu-desc">上传和管理拼贴诗官方纸片、背景</text>
+                </view>
+                <text class="menu-arrow">→</text>
+            </view>
+
             <view class="menu-item" @tap="navigateTo" data-url="/pages-admin/square-bubble-management/square-bubble-management">
                 <view class="menu-icon">💬</view>
                 <view class="menu-info">

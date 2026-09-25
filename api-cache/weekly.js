@@ -19,6 +19,9 @@ async function hydrateWeeklyPayload(payload = {}) {
   if (Array.isArray(payload.issues)) {
     await hydrateWeeklyPosts(payload.issues);
   }
+  if (Array.isArray(payload.topics)) {
+    await hydrateWeeklyPosts(payload.topics);
+  }
   if (payload.currentIssue) {
     await hydrateWeeklyPosts([payload.currentIssue]);
   }

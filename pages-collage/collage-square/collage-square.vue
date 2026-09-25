@@ -1,5 +1,5 @@
 <template>
-  <view class="collage-square">
+  <view class="collage-square" :style="mpNavStyle">
     <!-- 自定义返回按钮 -->
     <view class="custom-back-btn" @tap="goBack">
       <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
@@ -93,8 +93,11 @@ import { getCollageList } from '@/api-cache/collage.js';
 import { togglePostLike } from '../../utils/likeService.js';
 import likeIcon from '../../utils/likeIcon.js';
 import { getLatestLikeStatus } from '@/utils/likeStatusSync.js';
+import { createCollageLogger } from '@/utils/collage/debug.js';
+import { getCollageNavStyle } from '@/utils/collage/nav.js';
 
 const PAGE_SIZE = 10;
+const log = typeof createCollageLogger === 'function' ? createCollageLogger('square') : null;
 
 export default {
   data() {
@@ -116,21 +119,26 @@ export default {
       touchEndX: 0,
       touchEndY: 0,
       isTransitioning: false,
-      votingInProgress: {}
+      votingInProgress: {},
+      mpNavStyle: null
     }
   },
 
   onLoad() {
+    log?.info?.('进入拼贴诗广场')
+    this.mpNavStyle = getCollageNavStyle()
     this.bindGlobalEvents()
     this.loadCollageList()
   },
 
   onShow() {
+    log?.debug?.('广场页面显示')
     this.syncLikeStatusFromCache()
     this.syncCurrentCollageFromList()
   },
 
   onUnload() {
+    log?.debug?.('离开拼贴诗广场')
     this.unbindGlobalEvents()
   },
 
@@ -232,6 +240,7 @@ export default {
 
       const isFirstPage = this.page === 0
       this.isLoading = true
+      log?.info?.('加载拼贴诗列表', { page: this.page, pageSize: PAGE_SIZE })
 
       try {
         const result = await getCollageList({
@@ -254,14 +263,15 @@ export default {
         this.page += 1
         this.syncLikeStatusFromCache()
         this.syncCurrentCollageFromList()
+        log?.info?.('列表加载完成', { incoming: incoming.length, total: this.collageList.length, hasMore: this.hasMore })
 
         if (isFirstPage && this.currentCollage) {
           this.updateBackgroundImage(this.currentCollageIndex)
         }
       } catch (error) {
-        console.error('? [?????] ???????:', error)
+        log?.error?.('加载拼贴诗列表失败', error)
         uni.showToast({
-          title: '????',
+          title: '加载失败',
           icon: 'none'
         })
       } finally {
@@ -269,7 +279,7 @@ export default {
       }
     },
     
-    // ??????
+    // 切换背景图层
     updateBackgroundImage(index) {
       const collage = this.collageList[index]
       if (!collage || !collage.imageUrls || !collage.imageUrls[0]) {
@@ -366,7 +376,7 @@ export default {
           })
         }
         img.onerror = () => {
-          console.warn('????????????URL:', imageUrl)
+          log?.warn?.('背景图加载失败', imageUrl)
         }
         img.src = imageUrl
         // #endif
@@ -381,8 +391,8 @@ export default {
               })
             }
           },
-          fail: () => {
-            console.warn('????????????URL:', imageUrl)
+          fail: (error) => {
+            log?.warn?.('背景图加载失败', { imageUrl, error })
             this.setData({
               [`preloadedImages.${imageUrl}`]: imageUrl
             })
@@ -390,7 +400,7 @@ export default {
         })
         // #endif
       } catch (error) {
-        console.warn('????????????URL:', imageUrl)
+        log?.warn?.('背景图预加载异常', { imageUrl, error })
         this.setData({
           [`preloadedImages.${imageUrl}`]: imageUrl
         })
@@ -399,7 +409,7 @@ export default {
     
     onBackgroundImageLoad(e) {
       const layerIndex = e.currentTarget.dataset.layerIndex
-      console.log(`??${layerIndex}??????`)
+      log?.debug?.('背景图层加载完成', layerIndex)
     },
     
     touchStart(e) {
@@ -495,6 +505,7 @@ export default {
         isLiked: !originalIsVoted
       })
 
+      log?.debug?.('点赞', { postId, from: originalIsVoted, votes: originalVotes })
       try {
         const result = await togglePostLike(postId, {
           pageTag: 'collage-square',
@@ -505,7 +516,7 @@ export default {
         })
 
         if (!result || !result.success) {
-          throw new Error('????')
+          throw new Error('点赞失败')
         }
 
         this.onGlobalLikeChanged({
@@ -513,7 +524,9 @@ export default {
           votes: result.votes,
           isLiked: result.isLiked
         })
+        log?.debug?.('点赞成功', { postId, votes: result.votes, isLiked: result.isLiked })
       } catch (error) {
+        log?.warn?.('点赞失败，已回滚', { postId, error })
         this.onGlobalLikeChanged({
           postId,
           votes: originalVotes,
@@ -564,6 +577,16 @@ export default {
   z-index: 100;
   transition: all 0.2s ease;
 }
+
+/* #ifdef MP-WEIXIN */
+/* 小程序端：与胶囊按钮同一行，紧凑靠左，避开刘海屏 */
+.custom-back-btn {
+  top: var(--collage-nav-top, calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px))));
+  left: 24rpx;
+  width: 80rpx;
+  height: 80rpx;
+}
+/* #endif */
 
 .custom-back-btn:active {
   transform: scale(0.95);

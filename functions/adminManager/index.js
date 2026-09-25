@@ -83,6 +83,7 @@ const {
   buildAdminActivityView
 } = require('./_lib/activity')
 const { isAdminByPoemId } = require('./_lib/admin-auth')
+const { normalizeType: normalizeMaterialType, normalizeGroupId, normalizeList: normalizeMaterialList, normalizeGroupList, validateMaterialInput, validateMaterialName, validateGroupInput } = require('./_lib/collage-material')
 
 // 验证管理员权限（通过 poemId）
 const actionHandlers = {
@@ -98,6 +99,14 @@ const actionHandlers = {
   executeFieldReplace: (event) => executeFieldReplace(event),
   getAdminConfig: () => getAdminConfig(),
   updateAdminConfig: (event) => updateAdminConfig(event),
+  listCollageMaterials: (event) => listCollageMaterials(event),
+  createCollageMaterial: (event, openid) => createCollageMaterial(event, openid),
+  updateCollageMaterial: (event) => updateCollageMaterial(event),
+  deleteCollageMaterial: (event) => deleteCollageMaterial(event),
+  listCollageMaterialGroups: (event) => listCollageMaterialGroups(event),
+  createCollageMaterialGroup: (event, openid) => createCollageMaterialGroup(event, openid),
+  renameCollageMaterialGroup: (event) => renameCollageMaterialGroup(event),
+  deleteCollageMaterialGroup: (event) => deleteCollageMaterialGroup(event),
   listActivities: (event) => listActivities(event),
   createActivity: (event, openid) => createActivity(event, openid),
   updateActivity: (event, openid) => updateActivity(event, openid),
@@ -268,6 +277,204 @@ async function updateAdminConfig(event) {
     console.error('[adminManager] updateAdminConfig failed:', error)
     return { success: false, error: `save admin config failed: ${error.message}` }
   }
+}
+
+const COLLAGE_MATERIAL_COLLECTION = 'collage_materials'
+const COLLAGE_MATERIAL_GROUP_COLLECTION = 'collage_material_groups'
+const COLLAGE_MATERIAL_LIST_LIMIT = 200
+
+async function findCollageMaterialGroup(id) {
+  if (!id) return null
+  try {
+    const res = await db.collection(COLLAGE_MATERIAL_GROUP_COLLECTION).doc(id).get()
+    return res && res.data ? res.data : null
+  } catch (error) {
+    return null
+  }
+}
+
+async function collageMaterialGroupNameExists(type, name, excludeId = '') {
+  const result = await db.collection(COLLAGE_MATERIAL_GROUP_COLLECTION).where({ type, name }).limit(10).get()
+  return (result.data || []).some(doc => String(doc._id) !== String(excludeId))
+}
+
+async function listCollageMaterials(event = {}) {
+  const type = normalizeMaterialType(event.type)
+  let query = db.collection(COLLAGE_MATERIAL_COLLECTION)
+  if (type) query = query.where({ type })
+  const result = await query.orderBy('createdAt', 'desc').limit(COLLAGE_MATERIAL_LIST_LIMIT).get()
+  const materials = normalizeMaterialList(result.data)
+  console.log('[adminManager] listCollageMaterials:', { type: type || 'all', count: materials.length })
+  return { success: true, materials }
+}
+
+async function createCollageMaterial(event = {}, openid) {
+  const validation = validateMaterialInput(event)
+  if (!validation.ok) {
+    return { success: false, error: validation.error }
+  }
+  if (validation.value.groupId) {
+    const group = await findCollageMaterialGroup(validation.value.groupId)
+    if (!group || normalizeMaterialType(group.type) !== validation.value.type) {
+      return { success: false, error: '所选分组不存在，请刷新后重试' }
+    }
+  }
+  const now = db.serverDate()
+  const added = await db.collection(COLLAGE_MATERIAL_COLLECTION).add({
+    data: {
+      ...validation.value,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: openid || ''
+    }
+  })
+  console.log('[adminManager] createCollageMaterial:', { id: added._id, type: validation.value.type, name: validation.value.name, groupId: validation.value.groupId })
+  return { success: true, id: added._id, material: { id: added._id, ...validation.value } }
+}
+
+async function updateCollageMaterial(event = {}) {
+  const id = typeof event.id === 'string' ? event.id.trim() : ''
+  if (!id) {
+    return { success: false, error: '缺少素材 ID' }
+  }
+  const hasName = Object.prototype.hasOwnProperty.call(event, 'name')
+  const hasGroupId = Object.prototype.hasOwnProperty.call(event, 'groupId')
+  if (!hasName && !hasGroupId) {
+    return { success: false, error: '没有需要更新的内容' }
+  }
+  let doc = null
+  try {
+    const res = await db.collection(COLLAGE_MATERIAL_COLLECTION).doc(id).get()
+    doc = res && res.data
+  } catch (error) {
+    doc = null
+  }
+  if (!doc) {
+    return { success: false, error: '素材不存在或已删除' }
+  }
+  const data = { updatedAt: db.serverDate() }
+  if (hasName) {
+    const nameCheck = validateMaterialName(event.name)
+    if (!nameCheck.ok) {
+      return { success: false, error: nameCheck.error }
+    }
+    data.name = nameCheck.name
+  }
+  if (hasGroupId) {
+    const groupId = normalizeGroupId(event.groupId)
+    if (groupId) {
+      const group = await findCollageMaterialGroup(groupId)
+      if (!group || normalizeMaterialType(group.type) !== normalizeMaterialType(doc.type)) {
+        return { success: false, error: '所选分组不存在，请刷新后重试' }
+      }
+    }
+    data.groupId = groupId
+  }
+  await db.collection(COLLAGE_MATERIAL_COLLECTION).doc(id).update({ data })
+  console.log('[adminManager] updateCollageMaterial:', { id, name: data.name, groupId: data.groupId })
+  return { success: true, name: data.name, groupId: data.groupId }
+}
+
+async function deleteCollageMaterial(event = {}) {
+  const id = typeof event.id === 'string' ? event.id.trim() : ''
+  if (!id) {
+    return { success: false, error: '缺少素材 ID' }
+  }
+  let doc = null
+  try {
+    const res = await db.collection(COLLAGE_MATERIAL_COLLECTION).doc(id).get()
+    doc = res && res.data
+  } catch (error) {
+    doc = null
+  }
+  if (!doc) {
+    return { success: false, error: '素材不存在或已删除' }
+  }
+  await db.collection(COLLAGE_MATERIAL_COLLECTION).doc(id).remove()
+  if (doc.fileID) {
+    try {
+      await cloud.deleteFile({ fileList: [doc.fileID] })
+    } catch (error) {
+      // 文档已删除，云端文件残留不影响用户端，记录后继续返回成功。
+      console.error('[adminManager] deleteCollageMaterial 云文件删除失败:', error)
+    }
+  }
+  console.log('[adminManager] deleteCollageMaterial:', { id })
+  return { success: true }
+}
+
+async function listCollageMaterialGroups(event = {}) {
+  const type = normalizeMaterialType(event.type)
+  let query = db.collection(COLLAGE_MATERIAL_GROUP_COLLECTION)
+  if (type) query = query.where({ type })
+  const result = await query.orderBy('createdAt', 'asc').limit(COLLAGE_MATERIAL_LIST_LIMIT).get()
+  const groups = normalizeGroupList(result.data)
+  console.log('[adminManager] listCollageMaterialGroups:', { type: type || 'all', count: groups.length })
+  return { success: true, groups }
+}
+
+async function createCollageMaterialGroup(event = {}, openid) {
+  const validation = validateGroupInput(event)
+  if (!validation.ok) {
+    return { success: false, error: validation.error }
+  }
+  if (await collageMaterialGroupNameExists(validation.value.type, validation.value.name)) {
+    return { success: false, error: '已存在同名分组' }
+  }
+  const now = db.serverDate()
+  const added = await db.collection(COLLAGE_MATERIAL_GROUP_COLLECTION).add({
+    data: {
+      ...validation.value,
+      sort: Date.now(),
+      createdAt: now,
+      updatedAt: now,
+      createdBy: openid || ''
+    }
+  })
+  console.log('[adminManager] createCollageMaterialGroup:', { id: added._id, type: validation.value.type, name: validation.value.name })
+  return { success: true, id: added._id, group: { id: added._id, ...validation.value } }
+}
+
+async function renameCollageMaterialGroup(event = {}) {
+  const id = typeof event.id === 'string' ? event.id.trim() : ''
+  if (!id) {
+    return { success: false, error: '缺少分组 ID' }
+  }
+  const group = await findCollageMaterialGroup(id)
+  if (!group) {
+    return { success: false, error: '分组不存在或已删除' }
+  }
+  const validation = validateGroupInput({ type: group.type, name: event.name })
+  if (!validation.ok) {
+    return { success: false, error: validation.error }
+  }
+  if (await collageMaterialGroupNameExists(group.type, validation.value.name, id)) {
+    return { success: false, error: '已存在同名分组' }
+  }
+  await db.collection(COLLAGE_MATERIAL_GROUP_COLLECTION).doc(id).update({
+    data: { name: validation.value.name, updatedAt: db.serverDate() }
+  })
+  console.log('[adminManager] renameCollageMaterialGroup:', { id, name: validation.value.name })
+  return { success: true }
+}
+
+async function deleteCollageMaterialGroup(event = {}) {
+  const id = typeof event.id === 'string' ? event.id.trim() : ''
+  if (!id) {
+    return { success: false, error: '缺少分组 ID' }
+  }
+  const group = await findCollageMaterialGroup(id)
+  if (!group) {
+    return { success: false, error: '分组不存在或已删除' }
+  }
+  const countResult = await db.collection(COLLAGE_MATERIAL_COLLECTION).where({ groupId: id }).count()
+  const total = countResult.total || 0
+  if (total > 0) {
+    return { success: false, error: `分组下还有 ${total} 个素材，请先移动或删除` }
+  }
+  await db.collection(COLLAGE_MATERIAL_GROUP_COLLECTION).doc(id).remove()
+  console.log('[adminManager] deleteCollageMaterialGroup:', { id })
+  return { success: true }
 }
 
 async function previewFieldReplace(event) {
@@ -1419,6 +1626,7 @@ function buildWeeklyTopicView(topic = {}) {
   return {
     _id: topic._id || '',
     title: topic.title || '',
+    coverImage: topic.coverImage || '',
     summary: topic.summary || '',
     periodStart: topic.periodStart || null,
     periodEnd: topic.periodEnd || null,
@@ -2004,6 +2212,10 @@ async function setWeeklyTopicStatus(data = {}, openid, status) {
 
 async function buildWeeklyTopicPayload(data = {}, { current = {}, requireTitle = false } = {}) {
   const payload = {}
+  if (Object.prototype.hasOwnProperty.call(data, 'coverImage')) {
+    const coverImage = String(data.coverImage || '').trim()
+    payload.coverImage = coverImage.length <= 200 ? coverImage : ''
+  }
   if (Object.prototype.hasOwnProperty.call(data, 'title') || requireTitle) {
     const title = String(data.title || '').trim().slice(0, WEEKLY_TITLE_MAX_LENGTH)
     if (!title) return { error: '涓婚鏍囬涓嶈兘涓虹┖' }

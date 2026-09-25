@@ -160,10 +160,9 @@ onBeforeUnmount(() => {
         <p class="library-note">显示仍可公开阅读的诗歌。</p>
         <div v-if="poems.length" class="library-poems">
           <PoemCard
-            v-for="(poem, index) in poems"
+            v-for="poem in poems"
             :key="poem.id"
             :poem="poem"
-            :index="index"
             @select="readPoem"
           />
         </div>

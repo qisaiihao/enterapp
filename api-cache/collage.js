@@ -4,6 +4,9 @@ import { hydrateTempUrls } from '@/cache/core/hydrate.js';
 import { cloudCall } from '@/utils/cloudCall.js';
 import likeStatusCache from '@/cache/stores/like-status.js';
 import { callCloudAndUnwrap } from './_shared/cloud-wrapper.js';
+import { createCollageLogger } from '@/utils/collage/debug.js';
+
+const log = createCollageLogger('list');
 
 const TTL_MS = 60 * 1000;
 const SWR_MS = 30 * 1000;
@@ -27,13 +30,18 @@ export function getCollageWords(options = {}) {
     options
   );
 
+  log.debug('获取词库', payload);
   return cloudCall('getCollagePoetry', payload, {
     pageTag: 'collage',
     injectOpenId: false
+  }).catch(error => {
+    log.error('获取词库失败', { limit: payload.limit, groups: payload.groups, error });
+    throw error;
   });
 }
 
 async function fetchCollageListPage({ page, pageSize, context }) {
+  log.debug('拉取拼贴诗列表', { page, pageSize });
   const result = await callCloudAndUnwrap(
     'getCollagePoetry',
     { page, pageSize },
@@ -47,9 +55,10 @@ async function fetchCollageListPage({ page, pageSize, context }) {
   try {
     likeStatusCache.preloadFromPosts(posts);
   } catch (error) {
-    console.warn('[collage cache] preload like status failed:', error);
+    log.warn('预载点赞状态失败', error);
   }
 
+  log.info('拼贴诗列表返回', { page, pageSize, count: posts.length });
   return posts;
 }
 
@@ -77,16 +86,20 @@ export async function getCollageList({
   );
 
   const safePosts = Array.isArray(posts) ? posts : [];
-  return {
+  const result = {
     posts: safePosts,
     hasMore: safePosts.length === pageSize
   };
+  log.debug('列表结果', { page, pageSize, count: safePosts.length, hasMore: result.hasMore, forceRefresh });
+  return result;
 }
 
 export function invalidateCollageList({ page, pageSize = 10 } = {}) {
   if (typeof page === 'number') {
+    log.debug('清理列表缓存', { page, pageSize });
     listNs.delete(buildCacheKey({ page, pageSize }));
     return;
   }
+  log.debug('清理全部列表缓存');
   listNs.clear();
 }
