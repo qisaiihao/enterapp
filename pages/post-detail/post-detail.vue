@@ -44,7 +44,7 @@
                         </view>
                     </view>
                     <view class="post-title"><text selectable :user-select="true">{{ post.title }}</text></view>
-                    <view v-if="post.isPoem && post.author" class="poem-author" :class="{ 'poem-author-clickable': canGoToPoetProfile }" @tap="onPoetNameTap"><text selectable :user-select="true">{{ post.author }}</text></view>
+                    <view v-if="post.isPoem && post.author" class="poem-author" :class="{ 'poem-author-clickable': canGoToPoetProfile }" @tap="onPoetNameTap"><text selectable :user-select="true">{{ post.isAnonymous ? '匿名用户' : post.author }}</text></view>
                     
                     <!-- 讨论类型帖子特殊渲染：仅当存在有效句子或评论时展示，否则回退到正文 -->
                     <view v-if="post.isDiscussion && hasValidDiscussionGroups(post)" class="discussion-content">
@@ -477,7 +477,7 @@ export default {
         },
         // 是否可以跳转到诗人主页（非原创诗且作者名与发布用户昵称不同）
         canGoToPoetProfile() {
-            if (!this.post || !this.post.author) return false;
+            if (!this.post || this.post.isAnonymous || !this.post.author) return false;
             if (this.post.isOriginal) return false;
             const poetName = this.post.author;
             const authorName = this.post.authorName || this.post.authorNameSnapshot || '';
@@ -2830,7 +2830,8 @@ export default {
 
         prepareFollowState: function (authorOpenid) {
             const currentUserId = this.getCurrentUserId();
-            const isSameUser = authorOpenid === currentUserId;
+            const isAnonymous = !!(this.post && this.post.isAnonymous);
+            const isSameUser = !!currentUserId && ((this.post && this.post.isAuthor === true) || (!isAnonymous && authorOpenid === currentUserId));
             console.log('【关注状态】prepareFollowState调用:', {
                 authorOpenid,
                 currentUserId,
@@ -2842,7 +2843,7 @@ export default {
                 isOwnPost: isSameUser
             });
 
-            if (!authorOpenid || !currentUserId || isSameUser) {
+            if (isAnonymous || !authorOpenid || !currentUserId || isSameUser) {
                 console.log('【关注状态】不显示关注按钮 - 自己或无效用户');
                 this.setData({
                     showFollowButton: false,
@@ -2904,7 +2905,7 @@ export default {
         },
 
         onFollowTap: function () {
-            if (this.followPending || !this.post) {
+            if (this.followPending || !this.post || this.post.isAnonymous) {
                 return;
             }
             const targetOpenid = this.post._openid;
@@ -2974,7 +2975,7 @@ export default {
 
         // 点击诗人名跳转到诗人主页（仅非原创诗）
         onPoetNameTap: function () {
-            if (!this.post || !this.post.author) return;
+            if (!this.post || this.post.isAnonymous || !this.post.author) return;
             
             // 只有非原创诗才跳转
             if (this.post.isOriginal) {

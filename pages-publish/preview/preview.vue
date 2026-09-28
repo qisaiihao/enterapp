@@ -122,7 +122,7 @@
 
             <!-- 诗歌作者信息（如果是诗歌模式但显示为普通帖子） -->
 
-            <view v-if="post.editData && post.editData.publishMode === 'poem' && post.author" class="poem-author">{{ post.author }}</view>
+            <view v-if="post.editData && post.editData.publishMode === 'poem' && post.author" class="poem-author">{{ post.isAnonymous ? '匿名用户' : post.author }}</view>
 
 
 
@@ -716,6 +716,10 @@ export default {
       const post = { ...rawPost };
 
       const editData = post.editData || {};
+
+      const editingPost = editData.isEditMode && this.getAddPageVm()?.editingPost;
+      post.isAnonymous = post.isAnonymous === true || editData.isAnonymous === true || !!(editingPost && editingPost.isAnonymous);
+      post.anonymousAuthorName = post.anonymousAuthorName || (editingPost && editingPost.anonymousAuthorName) || '匿名用户';
 
       post.title = post.title || editData.title || '';
 
@@ -1650,6 +1654,12 @@ export default {
 
         imageList: addData.imageList || [], // 确保imageList字段存在
 
+        // 预览页展示的颜色是最终确认值。显式带回发布数据，避免匿名确认后
+        // 页面实例取值不完整时退回默认颜色。
+        selectedBackgroundColor: addData.selectedBackgroundColor || this.post.backgroundColor || (this.post.editData && this.post.editData.selectedBackgroundColor) || '',
+
+        selectedTextColor: addData.selectedTextColor || this.post.textColor || (this.post.editData && this.post.editData.selectedTextColor) || '#000000',
+
         publishMode: normalizedPublishMode,
 
         isPoem: normalizedIsPoem,
@@ -2183,6 +2193,8 @@ export default {
       const normalizedIsDiscussion = normalizedPublishMode === 'discussion' && !normalizedIsSeries;
       const normalizedIsPoem = normalizedPublishMode === 'poem' || normalizedIsSeries;
       const normalizedIsOriginal = normalizedIsPoem ? !!addData.isOriginal : false;
+      const selectedBackgroundColor = addData.selectedBackgroundColor || (this.post && this.post.backgroundColor) || '';
+      const selectedTextColor = addData.selectedTextColor || (this.post && this.post.textColor) || '#000000';
 
 
 
@@ -2291,9 +2303,9 @@ export default {
 
           tags: addData.selectedTags || [],
 
-          backgroundColor: addData.selectedBackgroundColor || '',
+          backgroundColor: selectedBackgroundColor,
 
-          textColor: addData.selectedTextColor || '#000000',
+          textColor: selectedTextColor,
 
           highlightSentence: (addData.highlightLines && addData.highlightLines.length > 0 ? addData.highlightLines[0] : ((addData.isSeries ? seriesHighlight[0] : mergedDiscussionHighlight[0]) || '')),
 
@@ -2435,6 +2447,10 @@ export default {
 
         tags: addData.selectedTags || [],
 
+        backgroundColor: selectedBackgroundColor,
+
+        textColor: selectedTextColor,
+
         // 匿名发帖相关字段
 
         isAnonymous: this.post.isAnonymous || false,
@@ -2553,9 +2569,9 @@ export default {
 
         // 添加颜色信息
 
-        backgroundColor: addData.selectedBackgroundColor || '',
+        backgroundColor: selectedBackgroundColor,
 
-        textColor: addData.selectedTextColor || '#000000',
+        textColor: selectedTextColor,
 
         // 添加高光行信息
 
@@ -2577,11 +2593,7 @@ export default {
 
         anonymousAuthorName: this.post.anonymousAuthorName || '匿名用户',
 
-        realAuthorOpenid: this.post.isAnonymous ? (uni.getStorageSync('openid') || uni.getStorageSync('userOpenId')) : null,
-
-        // 匿名帖子使用固定openid，指向专用匿名账户
-
-        openid: this.post.isAnonymous ? '123456' : null
+        realAuthorOpenid: this.post.isAnonymous ? (uni.getStorageSync('openid') || uni.getStorageSync('userOpenId')) : null
 
       }, { pageTag: 'preview', context: this }).then((result) => {
 

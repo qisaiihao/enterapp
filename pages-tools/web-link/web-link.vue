@@ -5,6 +5,7 @@
       <text>{{ url ? '网页暂时无法打开' : '链接无效' }}</text>
       <button v-if="url" @tap="copyLink">复制链接</button>
     </view>
+    <app-overlay-host />
   </view>
 </template>
 

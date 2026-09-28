@@ -1,5 +1,5 @@
 <template>
-  <view class="white-page">
+  <view class="white-page" :class="{ 'password-recovery': loginMethod === 'reset' }">
     <view class="container">
       <text class="brand">poementer</text>
       
@@ -17,7 +17,7 @@
           
           <!-- 切换到账号密码登录 -->
           <view class="switch-login-method" @tap="showPasswordLogin = true">
-            <text class="switch-text">使用 Poem ID 登录</text>
+            <text class="switch-text">使用账号密码登录</text>
           </view>
           
           <!-- 取消登录按钮 -->
@@ -38,16 +38,43 @@
         <!-- H5/App 环境 或 小程序切换到密码登录 -->
         <view class="password-login-section">
           <view class="form-wrapper compact">
+            <view v-if="loginMethod === 'reset'" class="recovery-intro">
+              <text class="recovery-title">找回密码</text>
+              <text class="recovery-hint">通过已绑定手机号验证后设置新密码</text>
+            </view>
+            <template v-if="loginMethod === 'password'">
             <view class="input-wrapper">
-              <input class="input-field" type="text" placeholder="请输入 Poem ID" v-model="poemId" />
+              <input class="input-field" type="text" placeholder="用户名 / Poem ID / 手机号" v-model="account" />
             </view>
             <view class="input-wrapper">
               <input class="input-field" type="password" placeholder="请输入密码" v-model="password" />
             </view>
+            </template>
+            <template v-else>
+              <view class="input-wrapper">
+                <input class="input-field" type="number" placeholder="请输入已绑定的手机号" v-model="loginPhoneNumber" maxlength="11" :disabled="isLogging || isSendingLoginSms" />
+              </view>
+              <view class="input-wrapper login-code-row">
+                <input class="input-field" type="number" placeholder="请输入验证码" v-model="loginSmsCode" maxlength="6" :disabled="isLogging" />
+                <button class="login-code-send" :disabled="isLogging || isSendingLoginSms || loginSmsCountdown > 0 || !isLoginPhoneValid" @tap="sendLoginSmsCode">{{ loginSmsCountdown > 0 ? `${loginSmsCountdown}秒后重发` : (isSendingLoginSms ? '发送中…' : '获取验证码') }}</button>
+              </view>
+            </template>
 
-            <!-- 注册入口 -->
-            <view class="register-link" @tap="goToRegister">
-              <text class="register-text">注册</text>
+            <template v-if="loginMethod === 'reset'">
+              <view class="input-wrapper">
+                <input class="input-field" type="password" placeholder="新密码（6–32位）" v-model="resetNewPassword" maxlength="32" :disabled="isLogging" />
+              </view>
+              <view class="input-wrapper">
+                <input class="input-field" type="password" placeholder="请再次输入新密码" v-model="resetConfirmPassword" maxlength="32" :disabled="isLogging" />
+              </view>
+              <button class="reset-password-submit" :disabled="!canResetPassword || isLogging" @tap="submitPasswordReset">{{ isLogging ? '重置中…' : '重置密码' }}</button>
+            </template>
+
+            <!-- 登录方式切换与注册入口 -->
+            <view class="register-link">
+              <text v-if="loginMethod !== 'reset'" class="register-text" @tap="switchLoginMethod('reset')">找回密码</text>
+              <text class="register-text" @tap="switchLoginMethod(loginMethod === 'password' ? 'sms' : 'password')">{{ loginMethod === 'reset' ? '返回登录' : (loginMethod === 'password' ? '验证码登录' : '密码登录') }}</text>
+              <text class="register-text" @tap="goToRegister">注册</text>
             </view>
 
             <!-- GitHub 登录（图标样式）- 暂时隐藏 -->
@@ -73,7 +100,7 @@
 
     <!-- 右下角"回车键"形状按钮：点击登录 -->
     <!-- #ifdef MP-WEIXIN -->
-    <view class="enter-key-btn" v-if="showPasswordLogin" @tap="onLogin" :class="{ disabled: !canLogin || isLogging }">
+    <view class="enter-key-btn" v-if="showPasswordLogin && loginMethod !== 'reset'" @tap="onLogin" :class="{ disabled: !canLogin || isLogging }">
       <view class="ek-layer ek-border"></view>
       <view class="ek-layer ek-fill">
         <text class="ek-text">Enter ↵</text>
@@ -81,7 +108,7 @@
     </view>
     <!-- #endif -->
     <!-- #ifndef MP-WEIXIN -->
-    <view class="enter-key-btn" @tap="onLogin" :class="{ disabled: !canLogin || isLogging }">
+    <view class="enter-key-btn" v-if="loginMethod !== 'reset'" @tap="onLogin" :class="{ disabled: !canLogin || isLogging }">
       <view class="ek-layer ek-border"></view>
       <view class="ek-layer ek-fill">
         <text class="ek-text">Enter ↵</text>
@@ -92,7 +119,7 @@
     <!-- 绑定微信弹窗（小程序专属） -->
     <!-- #ifdef MP-WEIXIN -->
     <AppDialog :visible="showBindWechatModal" :busy="isBindingWechat" :close-on-mask="true" title="绑定微信账号" :confirm-text="isBindingWechat ? '绑定中...' : '确认绑定'" cancel-text="跳过" @confirm="handleBindWechat" @cancel="skipBindWechat">
-          <text class="modal-text">检测到您使用 Poem ID 登录，是否将此账号绑定到当前微信？</text>
+          <text class="modal-text">登录成功，是否将此账号绑定到当前微信？</text>
           <text class="modal-text" style="margin-top: 20rpx; color: var(--app-secondary-text, #666); font-size: 26rpx;">绑定后，下次可直接使用微信登录此账号，数据更安全且可跨端共享。</text>
 
     </AppDialog>
@@ -232,8 +259,18 @@ export default {
     components: { AppDialog },
     data() {
         return {
-            poemId: '',
+            account: '',
             password: '',
+            loginMethod: 'password',
+            resetNewPassword: '',
+            resetConfirmPassword: '',
+            loginPhoneNumber: '',
+            loginSmsCode: '',
+            isSendingLoginSms: false,
+            loginSmsCountdown: 0,
+            loginSmsDeadline: 0,
+            loginSmsTimer: null,
+            loginPageUnloaded: false,
             isLogging: false,
             showPasswordLogin: true, // 小程序环境下控制是否显示密码登录
             enableWechatLogin: true,
@@ -260,13 +297,23 @@ export default {
     },
     
     computed: {
+        canResetPassword() {
+            return this.isLoginPhoneValid && /^\d{6}$/.test(this.loginSmsCode.trim()) &&
+                !!this.resetNewPassword && !!this.resetConfirmPassword && !this.isSendingLoginSms;
+        },
         canLogin() {
             // #ifdef MP-WEIXIN
             if (this.enableWechatLogin && !this.showPasswordLogin) {
                 return true; // 微信登录始终可用
             }
             // #endif
-            return this.poemId.trim() && this.password.trim();
+            if (this.loginMethod === 'sms') {
+                return this.isLoginPhoneValid && /^\d{6}$/.test(this.loginSmsCode.trim()) && !this.isSendingLoginSms;
+            }
+            return this.account.trim() && this.password.trim();
+        },
+        isLoginPhoneValid() {
+            return /^1[3-9]\d{9}$/.test(this.loginPhoneNumber.trim());
         },
         boundAccountPoemId() {
             return this.boundAccountInfo && this.boundAccountInfo.poemId ? this.boundAccountInfo.poemId : '';
@@ -305,7 +352,105 @@ export default {
         // 处理 GitHub 回调（新的云函数直接处理模式）
         this.handleGitHubRedirectCallback();
     },
+    onShow() {
+        this.refreshLoginSmsCountdown();
+    },
+    onUnload() {
+        this.loginPageUnloaded = true;
+        if (this.loginSmsTimer) clearInterval(this.loginSmsTimer);
+        if (this.smsTimer) clearInterval(this.smsTimer);
+        this.loginSmsTimer = null;
+        this.smsTimer = null;
+    },
     methods: {
+        switchLoginMethod(method) {
+            if (this.isLogging || this.isSendingLoginSms) return;
+            if (method !== this.loginMethod) {
+                this.loginSmsCode = '';
+                this.resetNewPassword = '';
+                this.resetConfirmPassword = '';
+            }
+            this.loginMethod = method;
+        },
+        refreshLoginSmsCountdown() {
+            this.loginSmsCountdown = Math.max(0, Math.ceil((this.loginSmsDeadline - Date.now()) / 1000));
+            if (!this.loginSmsCountdown && this.loginSmsTimer) {
+                clearInterval(this.loginSmsTimer);
+                this.loginSmsTimer = null;
+            }
+        },
+        startLoginSmsCountdown(seconds = 60) {
+            if (this.loginPageUnloaded) return;
+            if (this.loginSmsTimer) clearInterval(this.loginSmsTimer);
+            const duration = Number(seconds);
+            this.loginSmsDeadline = Date.now() + (Number.isFinite(duration) && duration > 0 ? duration : 60) * 1000;
+            this.refreshLoginSmsCountdown();
+            this.loginSmsTimer = setInterval(() => this.refreshLoginSmsCountdown(), 1000);
+        },
+        async sendLoginSmsCode() {
+            if (this.isLogging || this.isSendingLoginSms || this.loginSmsCountdown > 0) return;
+            if (!this.isLoginPhoneValid) {
+                uni.showToast({ title: '请输入正确的手机号', icon: 'none' });
+                return;
+            }
+            this.isSendingLoginSms = true;
+            try {
+                const response = await this.callCloudFunction('sendSmsCode', {
+                    phone: this.loginPhoneNumber.trim(), scene: this.loginMethod === 'reset' ? 'resetPassword' : 'login'
+                });
+                if (this.loginPageUnloaded) return;
+                const result = response.result || response;
+                if (result.success) {
+                    this.loginSmsCode = '';
+                    this.startLoginSmsCountdown(result.data?.remainTime || 60);
+                    uni.showToast({ title: '验证码已发送', icon: 'success' });
+                } else {
+                    if (result.code === 'SEND_LIMIT_EXCEEDED' && result.data?.remainTime) {
+                        this.startLoginSmsCountdown(result.data.remainTime);
+                    }
+                    uni.showToast({ title: result.message || '发送失败，请重试', icon: 'none', duration: 3000 });
+                }
+            } catch (error) {
+                if (!this.loginPageUnloaded) uni.showToast({ title: '发送失败，请重试', icon: 'none' });
+            } finally {
+                this.isSendingLoginSms = false;
+            }
+        },
+        async submitPasswordReset() {
+            if (!this.canResetPassword || this.isLogging) return;
+            const newPassword = this.resetNewPassword;
+            if (newPassword.length < 6 || newPassword.length > 32 || newPassword !== newPassword.trim()) {
+                uni.showToast({ title: '新密码需为6–32位，首尾不能有空格', icon: 'none' });
+                return;
+            }
+            if (newPassword !== this.resetConfirmPassword) {
+                uni.showToast({ title: '两次输入的密码不一致', icon: 'none' });
+                return;
+            }
+            this.isLogging = true;
+            uni.showLoading({ title: '重置中...', mask: true });
+            try {
+                const response = await this.callCloudFunction('resetPassword', {
+                    phoneNumber: this.loginPhoneNumber.trim(), code: this.loginSmsCode.trim(), newPassword
+                }, { injectOpenId: false });
+                if (this.loginPageUnloaded) return;
+                const result = response.result || response;
+                if (result.success) {
+                    this.account = this.loginPhoneNumber.trim();
+                    this.password = '';
+                    this.resetNewPassword = '';
+                    this.resetConfirmPassword = '';
+                    this.loginSmsCode = '';
+                    this.loginMethod = 'password';
+                }
+                uni.showToast({ title: result.message || (result.success ? '密码已重置，请使用新密码登录' : '重置失败，请重试'), icon: 'none', duration: 3000 });
+            } catch (error) {
+                if (!this.loginPageUnloaded) uni.showToast({ title: '重置失败，请稍后重试', icon: 'none' });
+            } finally {
+                uni.hideLoading();
+                this.isLogging = false;
+            }
+        },
         applyUserSession(userInfo, openid, extraState = {}) {
             const resolvedOpenid = openid || (userInfo && (userInfo._openid || userInfo.openid)) || null;
             setUserSession(userInfo, resolvedOpenid);
@@ -700,8 +845,9 @@ export default {
             return cloudCall(name, data, Object.assign({ pageTag: 'login', context: this }, extraOptions));
         },
 
-        // 账号密码登录
+        // 密码 / 短信验证码登录共用后续会话与微信绑定流程。
         async onLogin() {
+            if (this.loginMethod === 'reset') return this.submitPasswordReset();
             // #ifdef MP-WEIXIN
             if (this.enableWechatLogin && !this.showPasswordLogin) {
                 // 微信登录
@@ -721,8 +867,13 @@ export default {
 
             try {
                 // 调用登录验证云函数
-                const loginRes = await this.callCloudFunction('loginWithCredentials', {
-                    poemId: this.poemId.trim(),
+                const loginRes = this.loginMethod === 'sms'
+                  ? await this.callCloudFunction('loginWithPhone', {
+                    phoneNumber: this.loginPhoneNumber.trim(),
+                    code: this.loginSmsCode.trim()
+                  })
+                  : await this.callCloudFunction('loginWithCredentials', {
+                    account: this.account.trim(),
                     password: this.password.trim()
                 });
 
@@ -1318,8 +1469,13 @@ export default {
 .input-wrapper { width: 100%; margin-bottom: 36rpx; background: transparent; padding: 0; border: none; box-shadow: none; }
 .input-field { width: 100%; height: 88rpx; border: none; outline: none; background: #f5f6f7; border-radius: 9999rpx; padding: 0 26rpx; font-size: 30rpx; color: #333; box-sizing: border-box; }
 
-/* 注册入口 */
+/* 登录方式切换与注册入口 */
 .register-link {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 32rpx;
   margin-top: 20rpx;
   text-align: right;
   width: 100%;
@@ -1334,6 +1490,15 @@ export default {
 .register-text:active {
   color: #666;
 }
+
+.password-recovery .brand { margin: 10vh 0 40rpx; }
+.password-recovery .center-wrap { position: relative; top: auto; transform: none; }
+.recovery-intro { width: 100%; margin-bottom: 32rpx; }
+.recovery-title { display: block; font-size: 32rpx; color: #333; margin-bottom: 12rpx; }
+.recovery-hint { display: block; font-size: 24rpx; color: #999; line-height: 1.6; }
+.reset-password-submit { width: 100%; margin: 0 0 12rpx; border-radius: 9999rpx; background: #333; color: #fff; font-size: 28rpx; line-height: 88rpx; }
+.reset-password-submit::after { border: none; }
+.reset-password-submit[disabled] { background: #ddd; color: #999; }
 
 /* 微信登录区域 */
 .wechat-login-section {
@@ -1418,6 +1583,36 @@ export default {
   gap: 24rpx;
 }
 
+.login-code-row {
+  display: flex;
+  align-items: center;
+}
+
+.login-code-row .input-field {
+  flex: 1;
+  min-width: 0;
+  width: 0;
+}
+
+.login-code-send {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0 12rpx;
+  font-size: 24rpx;
+  line-height: 64rpx;
+  background: transparent;
+  color: var(--app-text-color, #333);
+}
+
+.login-code-send::after {
+  border: none;
+}
+
+.login-code-send[disabled] {
+  color: #aaa;
+  background: transparent;
+}
+
 /* GitHub 登录 */
 .github-login-wrapper {
   width: 100%;
@@ -1476,6 +1671,9 @@ export default {
 }
 
 .modal-content {
+  max-height: 90vh;
+  overflow-y: auto;
+  box-sizing: border-box;
   position: relative;
   width: 100%;
   background: #fff;

@@ -140,7 +140,6 @@ async function getOriginalPoems({
     pageSize,
     isPoem: true,
     isOriginal: true,
-    excludeAnonymous: true,
     context,
     forceRefresh,
     onBackgroundUpdate

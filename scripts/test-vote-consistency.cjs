@@ -110,6 +110,7 @@ function runtime(seed, { failUpdate, forceConflict = false } = {}) {
   const sandbox = {
     exports: {}, console: { log() {}, warn() {}, error() {} },
     require(name) {
+      if (name === './_lib/posts') return require('../functions/_shared/posts');
       assert.equal(name, 'wx-server-sdk');
       return { init() {}, database: () => db, getWXContext: () => ({ OPENID: 'viewer' }) };
     }

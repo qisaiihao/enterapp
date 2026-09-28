@@ -407,6 +407,9 @@ export default {
 }
 
 .modal-content {
+    max-height: 90vh;
+    overflow-y: auto;
+    box-sizing: border-box;
     background: white;
     width: 80%;
     border-radius: 20rpx;

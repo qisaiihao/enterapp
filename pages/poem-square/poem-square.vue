@@ -156,7 +156,7 @@ export default {
     updateTabBarStatus(this, 1);
     this.loadSquareBubble();
 
-    try { activityBadge.refreshActivityBadge({ forceRefresh: true, context: this }); } catch (_) {}
+    try { activityBadge.refreshActivityBadge({ context: this }); } catch (_) {}
 
     const shouldRefreshIndex = uni.getStorageSync('shouldRefreshIndex');
     const shouldRefreshProfile = uni.getStorageSync('shouldRefreshProfile');
@@ -176,7 +176,7 @@ export default {
       uni.removeStorageSync('shouldRefreshPoem');
       uni.removeStorageSync('shouldRefreshMountain');
 
-      invalidatePostList({ isPoem: true, isOriginal: true, excludeAnonymous: true });
+      invalidatePostList({ isPoem: true, isOriginal: true });
       invalidateFollowingPoems();
 
       this.applyLocalState({
@@ -329,7 +329,7 @@ export default {
   onPullDownRefresh() {
     console.log('【poem-square】📱 下拉刷新，重新获取数据');
     // 清除缓存并强制刷新
-    invalidatePostList({ isPoem: true, isOriginal: true, excludeAnonymous: true });
+    invalidatePostList({ isPoem: true, isOriginal: true });
     invalidateFollowingPoems();
     this.getIndexData(() => {
       console.log('【poem-square】✅ 下拉刷新完成，停止刷新动画');
@@ -578,7 +578,7 @@ export default {
       // 非筛选模式：先尝试从缓存获取第一页数据，立即显示给用户
       const ns = cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 });
       try { if (ns.clearInfiniteCache) ns.clearInfiniteCache(); } catch (_) {}
-      const cacheKey = 'page:0:size:10:poem:true:orig:true:exclAnon:true';
+      const cacheKey = 'page:0:size:10:poem:true:orig:true';
       
       console.log('🔍 [poem-square-cache] 开始读取缓存，key:', cacheKey);
       
@@ -605,8 +605,7 @@ export default {
       if (cachedData && Array.isArray(cachedData) && cachedData.length > 0) {
         console.log('✅ [poem-square-cache] 发现缓存数据，立即显示，数量:', cachedData.length);
         // 处理缓存数据
-        const visibleList = cachedData.filter(p => p && !p.isAnonymous);
-        console.log('🔍 [poem-square-cache] 过滤匿名后的数量:', visibleList.length);
+        const visibleList = cachedData.filter(p => p && (!this.showFollowingOnly || !p.isAnonymous));
         
         visibleList.forEach((p) => {
           this.normalizePoemCardPost(p);
@@ -854,7 +853,7 @@ export default {
             console.log(' [SWR-PoemSquare-Original] 后台更新完成', newPosts?.length);
             if (Array.isArray(newPosts) && newPosts.length > 0 && !this.showFollowingOnly && this.page === 0) {
               try {
-                const visibleList = newPosts.filter(p => p && !p.isAnonymous);
+                const visibleList = newPosts.filter(Boolean);
                 visibleList.forEach((p) => {
                   this.normalizePoemCardPost(p);
                 });
@@ -893,7 +892,7 @@ export default {
     },
     
     async processPostList(list, cb) {
-      const visibleList = list.filter(p => p && !p.isAnonymous);
+      const visibleList = list.filter(p => p && (!this.showFollowingOnly || !p.isAnonymous));
       
       visibleList.forEach((p) => {
         this.normalizePoemCardPost(p);

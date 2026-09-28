@@ -1,0 +1,24 @@
+// 步骤 1：新增正式 1.7.0 迁移整包。此文件会写入线上版本表。
+// 确认空间为阿里云 poementer，在 HBuilderX 按 F5。
+// 前置：线上 schema 必须包含 native_version_code 和 legacy_migration；2026-09-28 已上传并下载复核。
+// 固定 _id 防止重复执行时新增重复记录；若提示重复键，先查询核对，不要更换 _id 重试。
+// 成功后执行 app-update-migrate-02-retire-160.jql，再运行只读审计文件。
+// 2026-09-28 已执行成功且旧接口已部署；保留此脚本用于审计，无需再次运行。
+db.collection('opendb-app-versions').add({
+  _id: 'poementer-android-1.7.0',
+  appid: '__UNI__E0A1A41',
+  name: 'poementer',
+  type: 'native_app',
+  version: '1.7.0',
+  native_version_code: 170,
+  platform: ['Android'],
+  uni_platform: 'android',
+  url: 'https://mp-85244698-6ebe-485e-8f19-2d36212a6ad0.cdn.bspapp.com/__UNI__E0A1A41__20260928092928_1790559130717_0.apk',
+  title: '应用升级',
+  contents: '更新应用，启用新的统一更新服务。请完成本次整包升级。',
+  is_mandatory: true,
+  is_silently: false,
+  stable_publish: true,
+  legacy_migration: true,
+  create_env: 'upgrade-center'
+})

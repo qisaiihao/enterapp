@@ -4,7 +4,8 @@
 
 {
 	"action": "checkVersion",
-	"appid": "__UNI__3584C99",
-	"appVersion": "1.0.0",
-	"wgtVersion": "1.0.0"
+	"appid": "__UNI__E0A1A41",
+	"platform": "android",
+	"appVersion": "168",
+	"wgtVersion": "1.6.8"
 }

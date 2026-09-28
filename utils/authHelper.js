@@ -4,6 +4,9 @@
  */
 import { applyUserInfoWithAppBackground } from '@/utils/appBackground.js';
 import { getAppState, getOpenid, patchAppState } from '@/utils/app-state.js';
+// #ifdef APP-PLUS
+import { showNativeModal } from '@/utils/appOverlay.js';
+// #endif
 
 /**
  * 检查用户是否已登录
@@ -86,7 +89,12 @@ export function requireLogin(options = {}) {
     } = options;
     
     return new Promise((resolve) => {
-        uni.showModal({
+        let showLoginModal = modalOptions => uni.showModal(modalOptions);
+        // #ifdef APP-PLUS
+        // 正式包的登录拦截使用系统弹窗，不依赖页面弹层挂载与渲染时机。
+        showLoginModal = showNativeModal;
+        // #endif
+        showLoginModal({
             title,
             content,
             confirmText,

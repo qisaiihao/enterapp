@@ -1,3 +1,4 @@
+const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 // 云函数入口文件
 const cloud = require('wx-server-sdk');
 
@@ -5,7 +6,7 @@ cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
 
-const db = cloud.database();
+const db = createPostsDatabase(cloud.database());
 const _ = db.command;
 const $ = _.aggregate;
 
@@ -139,7 +140,7 @@ exports.main = async (event, context) => {
   const eventOpenid = event.openid;
   const openid = eventOpenid || wxCtxOpenid;
   // 添加 author 参数用于诗人筛选
-  const { skip = 0, limit = 10, isPoem, isOriginal, isDiscussion, tag = '', author = '', includeActivity = false, activityId = '' } = event;
+  const { skip = 0, limit = 10, isPoem, isOriginal, isDiscussion, tag = '', author = '', excludeAnonymous = false, includeActivity = false, activityId = '' } = event;
   const safeActivityId = typeof activityId === 'string' ? activityId.trim() : '';
   const isActivityQuery = includeActivity === true && !!safeActivityId;
 
@@ -155,6 +156,7 @@ exports.main = async (event, context) => {
     isDiscussion,
     tag,
     author,
+    excludeAnonymous,
     includeActivity,
     activityId: safeActivityId
   });
@@ -270,6 +272,11 @@ exports.main = async (event, context) => {
         matchConditions.isDiscussion = _.neq(true);
       }
       console.log('🔍 [getPostList] 添加isDiscussion筛选条件:', isDiscussion);
+    }
+
+    if (excludeAnonymous === true) {
+      matchConditions.isAnonymous = _.neq(true);
+      console.log('🔍 [getPostList] 排除匿名帖子');
     }
     
     // 按诗人（作者）筛选
@@ -656,3 +663,5 @@ exports.main = async (event, context) => {
     };
   }
 };
+
+exports.main = withPostResponse(exports.main);

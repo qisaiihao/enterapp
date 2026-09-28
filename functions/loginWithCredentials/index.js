@@ -10,28 +10,41 @@ const db = cloud.database();
 // 云函数入口函数
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
-  const { poemId, password } = event;
+  const { account, poemId, password } = event || {};
+  // 旧客户端及 GitHub 绑定仍传 poemId，仅按 Poem ID 验证。
+  const isAccountLogin = account !== undefined;
+  const rawIdentifier = isAccountLogin ? account : poemId;
+  const identifier = typeof rawIdentifier === 'string' ? rawIdentifier.trim() : '';
 
-  console.log('🔍 [loginWithCredentials] 收到登录请求:', { poemId, password: password ? '***' : 'undefined' });
-
-  if (!poemId || !password) {
+  if (!identifier || typeof password !== 'string' || !password.trim()) {
     return {
       success: false,
-      message: 'Poem ID和密码不能为空',
+      message: '账号和密码不能为空',
       code: 'MISSING_CREDENTIALS'
     };
   }
 
   try {
-    // 查询用户是否存在
-    const userRes = await db.collection('users').where({
-      poemId: poemId,
-      password: password
-    }).get();
+    // 先确定账号，再校验密码；不同字段重合时不因密码错误回退到另一用户。
+    const fields = isAccountLogin ? ['poemId', 'phoneNumber', 'nickName'] : ['poemId'];
+    let candidates = [];
+    for (const field of fields) {
+      const userRes = await db.collection('users').where({
+        [field]: identifier
+      }).limit(2).get();
+      candidates = userRes.data;
+      if (candidates.length > 0) break;
+    }
 
-    console.log('🔍 [loginWithCredentials] 查询结果:', userRes);
+    if (candidates.length > 1) {
+      return {
+        success: false,
+        message: '账号存在重名，请使用唯一的 Poem ID 或绑定手机号登录',
+        code: 'AMBIGUOUS_ACCOUNT'
+      };
+    }
 
-    if (userRes.data.length === 0) {
+    if (candidates.length === 0 || candidates[0].password !== password) {
       return {
         success: false,
         message: '账号或密码错误',
@@ -39,7 +52,7 @@ exports.main = async (event, context) => {
       };
     }
 
-    const userInfo = userRes.data[0];
+    const userInfo = candidates[0];
     const currentOpenid = wxContext.OPENID;
     
     console.log('✅ [loginWithCredentials] 登录成功，用户信息:', {

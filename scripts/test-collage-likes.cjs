@@ -117,6 +117,7 @@ async function testBackend() {
   const globals = {
     console: quiet, exports: {},
     require(name) {
+      if (name === './_lib/posts') return require('../functions/_shared/posts');
       if (name === 'wx-server-sdk') return { init() {}, database: () => db, getWXContext: () => ({ OPENID: wxOpenid }) };
       if (name === './_lib/get-blocked-user-ids') return async () => [];
       throw new Error(name);

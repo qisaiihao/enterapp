@@ -20,7 +20,12 @@ export function setupCacheEventBridges() {
         invalidateHomePosts({});
         invalidatePostList({});
         clearDiscoverCache();
+        cacheManager.namespace('me:posts').clear();
       } catch (_) {}
+    });
+
+    uni.$on(EVENTS.POST_UPDATED, () => {
+      cacheManager.namespace('me:posts').clear();
     });
 
     uni.$on(EVENTS.AVATAR_UPDATED, (payload = {}) => {
@@ -100,6 +105,8 @@ export function setupCacheEventBridges() {
     uni.$on(EVENTS.POST_VISIBILITY_CHANGED, (payload = {}) => {
       const { postId, isHidden } = payload;
       if (!postId) return;
+
+      cacheManager.namespace('me:posts').clear();
 
       try {
         const nsStats = cacheManager.getStats?.() || {};

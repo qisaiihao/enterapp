@@ -1,3 +1,4 @@
+const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 const cloud = require("wx-server-sdk");
 const crypto = require("node:crypto");
 const {
@@ -9,7 +10,7 @@ const {
   escapeRegex,
 } = require("./domain");
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
-const db = cloud.database();
+const db = createPostsDatabase(cloud.database());
 const _ = db.command;
 const SESSION_MS = 7 * 86400000;
 
@@ -529,3 +530,5 @@ exports.main = async (event = {}) => {
     };
   }
 };
+
+exports.main = withPostResponse(exports.main);

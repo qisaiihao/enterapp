@@ -1,10 +1,11 @@
+const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 const cloud = require('wx-server-sdk');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
 
-const db = cloud.database();
+const db = createPostsDatabase(cloud.database());
 const _ = db.command;
 
 exports.main = async (event, context) => {
@@ -81,6 +82,7 @@ exports.main = async (event, context) => {
     // 3. 构建查询条件
     const queryConditions = {
       _openid: _.in(followedIds),
+      isAnonymous: _.nin([true, 'true']),
       // 只获取已审核通过的帖子
       auditStatus: 'approved',
       // 不显示隐藏的帖子
@@ -245,3 +247,5 @@ async function enrichCloudUrls(list) {
     console.error('处理云文件URL失败:', error);
   }
 }
+
+exports.main = withPostResponse(exports.main);

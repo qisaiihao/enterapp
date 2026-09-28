@@ -1,3 +1,4 @@
+const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 // 管理员功能云函数
 const cloud = require('wx-server-sdk')
 
@@ -5,7 +6,7 @@ cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 })
 
-const db = cloud.database()
+const db = createPostsDatabase(cloud.database())
 const _ = db.command
 const $ = _.aggregate
 const ACTIVITY_SUMMARY_MAX_LENGTH = 200
@@ -2259,3 +2260,5 @@ async function buildWeeklyTopicPayload(data = {}, { current = {}, requireTitle =
   }
   return { data: payload }
 }
+
+exports.main = withPostResponse(exports.main);

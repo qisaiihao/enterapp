@@ -7,15 +7,18 @@ const pending = new Map();
 
 async function resolveMaterialUrls(materials) {
   const fileIDs = materials.map(item => item.fileID).filter(Boolean);
-  if (!fileIDs.length) return materials;
   let urls = {};
   try {
     urls = await fileUrlCache.getTempUrls(fileIDs);
   } catch (error) {
     urls = {};
   }
-  // 解析失败时保留 cloud:// fileID，微信小程序仍可直接显示。
-  return materials.map(item => ({ ...item, url: urls[item.fileID] || item.fileID }));
+  const resolved = materials.map(item => ({ ...item, url: urls[item.fileID] || item.url || '' }));
+  if (resolved.some(item => !/^https?:\/\//i.test(item.url))) {
+    // 失败列表不能写入缓存，也不能把 cloud:// 交给图片组件或 fetch。
+    throw new Error('素材地址解析失败，请重新打开素材库重试');
+  }
+  return resolved;
 }
 
 async function fetchOfficialGroups({ type, context }) {

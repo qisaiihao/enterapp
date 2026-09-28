@@ -1,7 +1,8 @@
+const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 // 云函数 likeComment 的入口文件 (已更新)
 const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
-const db = cloud.database();
+const db = createPostsDatabase(cloud.database());
 const _ = db.command;
 
 exports.main = async (event, context) => {
@@ -119,3 +120,4 @@ exports.main = async (event, context) => {
     return { success: false, message: '操作失败', error: e.toString() };
   }
 };
+exports.main = withPostResponse(exports.main);

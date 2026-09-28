@@ -1,0 +1,628 @@
+{
+  "batchId": "collage-backgrounds-local-20260928",
+  "environment": "cloud1-5gb0pbyl400845f5",
+  "groups": [
+    {
+      "id": "345cf9926ab9e8900202402d54079a76",
+      "name": "暗调与花影"
+    },
+    {
+      "id": "650815a96ab9e89001281d5a4d29199e",
+      "name": "冷界余音"
+    },
+    {
+      "id": "650815a96ab9e89001281d5d74e0bc96",
+      "name": "古风山水"
+    },
+    {
+      "id": "650815a96ab9e89101281d600e7850f7",
+      "name": "纸张质感"
+    },
+    {
+      "id": "01f3430d6ab9e89100b83d7f3a219d0e",
+      "name": "飞鸟秋山"
+    },
+    {
+      "id": "345cf9926ab9e8910202404a17524eb2",
+      "name": "海市幻象"
+    },
+    {
+      "id": "01f3430d6ab9e89200b83d845118f82d",
+      "name": "铅字蓝"
+    },
+    {
+      "id": "650815a96ab9e89201281d735330b6ba",
+      "name": "闪茵光影"
+    },
+    {
+      "id": "3d00e15d6ab9e89200ab3a7777b73b73",
+      "name": "云霞渐变"
+    },
+    {
+      "id": "3d00e15d6ab9e89300ab3a826ebec34b",
+      "name": "版画光影"
+    }
+  ],
+  "materials": [
+    {
+      "key": "local-79e719522a4dc7908a9f83ec",
+      "name": "绿灯阶影",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-79e719522a4dc7908a9f83ec.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-79e719522a4dc7908a9f83ec.jpg",
+      "id": "345cf9926ab9e8930202409628b2e547",
+      "groupId": "345cf9926ab9e8900202402d54079a76"
+    },
+    {
+      "key": "local-500ce95456a2e385e2f44923",
+      "name": "暮色归巷",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-500ce95456a2e385e2f44923.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-500ce95456a2e385e2f44923.jpg",
+      "id": "345cf9926ab9e894020240a73a69d139",
+      "groupId": "345cf9926ab9e8900202402d54079a76"
+    },
+    {
+      "key": "local-bdbe0126955f72ba948bd1a6",
+      "name": "墨绿金雾",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-bdbe0126955f72ba948bd1a6.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-bdbe0126955f72ba948bd1a6.jpg",
+      "id": "3d00e15d6ab9e89500ab3a8d61d9a858",
+      "groupId": "345cf9926ab9e8900202402d54079a76"
+    },
+    {
+      "key": "local-492ef76b69053ce576600fa9",
+      "name": "粉樱留白",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-492ef76b69053ce576600fa9.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-492ef76b69053ce576600fa9.jpg",
+      "id": "345cf9926ab9e896020240c112af6c41",
+      "groupId": "345cf9926ab9e8900202402d54079a76"
+    },
+    {
+      "key": "local-c9901c39caf7bd38f05e9cfc",
+      "name": "暗窗红花",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-c9901c39caf7bd38f05e9cfc.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-c9901c39caf7bd38f05e9cfc.jpg",
+      "id": "3d00e15d6ab9e89700ab3a9b0594863f",
+      "groupId": "345cf9926ab9e8900202402d54079a76"
+    },
+    {
+      "key": "local-127b1103436ee83dca8dcd30",
+      "name": "燃橘秋树",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-127b1103436ee83dca8dcd30.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-127b1103436ee83dca8dcd30.jpg",
+      "id": "345cf9926ab9e898020240e922fda6d5",
+      "groupId": "345cf9926ab9e8900202402d54079a76"
+    },
+    {
+      "key": "local-99827832a7c473a6a47a48aa",
+      "name": "青窗花影",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-99827832a7c473a6a47a48aa.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-99827832a7c473a6a47a48aa.jpg",
+      "id": "650815a96ab9e89901281ddb0ce20f86",
+      "groupId": "345cf9926ab9e8900202402d54079a76"
+    },
+    {
+      "key": "local-b71175db7547b86319d563d3",
+      "name": "嫩绿枝网",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-b71175db7547b86319d563d3.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-b71175db7547b86319d563d3.jpg",
+      "id": "3d00e15d6ab9e89a00ab3aa64f9d696b",
+      "groupId": "345cf9926ab9e8900202402d54079a76"
+    },
+    {
+      "key": "local-c58ff7970bb43d61ad44088e",
+      "name": "绯色枝影",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-c58ff7970bb43d61ad44088e.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-c58ff7970bb43d61ad44088e.jpg",
+      "id": "3d00e15d6ab9e89a00ab3adf5d26bd88",
+      "groupId": "345cf9926ab9e8900202402d54079a76"
+    },
+    {
+      "key": "local-bbe3a4544362821ccd790466",
+      "name": "青枝夜花",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-bbe3a4544362821ccd790466.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-bbe3a4544362821ccd790466.jpg",
+      "id": "3d00e15d6ab9e89b00ab3aeb14cd2fda",
+      "groupId": "345cf9926ab9e8900202402d54079a76"
+    },
+    {
+      "key": "local-1f37e06dfcb1444a90d7aaf5",
+      "name": "雾山素描",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-1f37e06dfcb1444a90d7aaf5.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-1f37e06dfcb1444a90d7aaf5.jpg",
+      "id": "3d00e15d6ab9e89c00ab3af81f485792",
+      "groupId": "345cf9926ab9e8900202402d54079a76"
+    },
+    {
+      "key": "local-bdee3565aaa6436152ae50bc",
+      "name": "冷蓝水纹",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-bdee3565aaa6436152ae50bc.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-bdee3565aaa6436152ae50bc.jpg",
+      "id": "3d00e15d6ab9e89d00ab3b0624e6f26a",
+      "groupId": "650815a96ab9e89001281d5a4d29199e"
+    },
+    {
+      "key": "local-7f46a7a77acc7a594e11c988",
+      "name": "银光浅漾",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-7f46a7a77acc7a594e11c988.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-7f46a7a77acc7a594e11c988.jpg",
+      "id": "01f3430d6ab9e89f00b83e7f71674534",
+      "groupId": "650815a96ab9e89001281d5a4d29199e"
+    },
+    {
+      "key": "local-5aa1fa6d4ec14ab467c6f68f",
+      "name": "深海碎银",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-5aa1fa6d4ec14ab467c6f68f.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-5aa1fa6d4ec14ab467c6f68f.jpg",
+      "id": "3d00e15d6ab9e8a000ab3b303475acd2",
+      "groupId": "650815a96ab9e89001281d5a4d29199e"
+    },
+    {
+      "key": "local-ec221b0d6b388b99d0b0233a",
+      "name": "水面回环",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-ec221b0d6b388b99d0b0233a.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-ec221b0d6b388b99d0b0233a.jpg",
+      "id": "3d00e15d6ab9e8a100ab3b38746a2746",
+      "groupId": "650815a96ab9e89001281d5a4d29199e"
+    },
+    {
+      "key": "local-3ccaa09c22498a51d3ac6d24",
+      "name": "霜枫远山",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-3ccaa09c22498a51d3ac6d24.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-3ccaa09c22498a51d3ac6d24.jpg",
+      "id": "01f3430d6ab9e8a200b83e9b7f4161c3",
+      "groupId": "650815a96ab9e89001281d5d74e0bc96"
+    },
+    {
+      "key": "local-7a753b0695ddff7721b599b2",
+      "name": "丹枫浅山",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-7a753b0695ddff7721b599b2.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-7a753b0695ddff7721b599b2.jpg",
+      "id": "3d00e15d6ab9e8a300ab3b440b2f8e7b",
+      "groupId": "650815a96ab9e89001281d5d74e0bc96"
+    },
+    {
+      "key": "local-1fb4a0faa2b3768db41ad28c",
+      "name": "古松渔舟",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-1fb4a0faa2b3768db41ad28c.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-1fb4a0faa2b3768db41ad28c.jpg",
+      "id": "3d00e15d6ab9e8a400ab3b483d99eada",
+      "groupId": "650815a96ab9e89001281d5d74e0bc96"
+    },
+    {
+      "key": "local-4a3f6683952042caa226aab7",
+      "name": "松风云岭",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-4a3f6683952042caa226aab7.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-4a3f6683952042caa226aab7.jpg",
+      "id": "01f3430d6ab9e8a500b83ec61631b5ee",
+      "groupId": "650815a96ab9e89001281d5d74e0bc96"
+    },
+    {
+      "key": "local-be03007c1fd87e03c2ddc793",
+      "name": "米色织纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-be03007c1fd87e03c2ddc793.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-be03007c1fd87e03c2ddc793.jpg",
+      "id": "650815a96ab9e8a501281ed6076bac8d",
+      "groupId": "650815a96ab9e89101281d600e7850f7"
+    },
+    {
+      "key": "local-a1f70ae507d5d564629030a1",
+      "name": "雪白纤维纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-a1f70ae507d5d564629030a1.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-a1f70ae507d5d564629030a1.jpg",
+      "id": "345cf9926ab9e8a6020242cc5b390c0c",
+      "groupId": "650815a96ab9e89101281d600e7850f7"
+    },
+    {
+      "key": "local-9cdec5e67cb9aedd62383f90",
+      "name": "乳白细纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-9cdec5e67cb9aedd62383f90.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-9cdec5e67cb9aedd62383f90.jpg",
+      "id": "3d00e15d6ab9e8a700ab3b75442dc55e",
+      "groupId": "650815a96ab9e89101281d600e7850f7"
+    },
+    {
+      "key": "local-68ff0df7ac476dc08e801a9c",
+      "name": "柔白褶纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-68ff0df7ac476dc08e801a9c.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-68ff0df7ac476dc08e801a9c.jpg",
+      "id": "01f3430d6ab9e8a800b83edc0407db88",
+      "groupId": "650815a96ab9e89101281d600e7850f7"
+    },
+    {
+      "key": "local-2a6c5294abe9c507c3d664ba",
+      "name": "浅白揉纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-2a6c5294abe9c507c3d664ba.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-2a6c5294abe9c507c3d664ba.jpg",
+      "id": "345cf9926ab9e8a9020242f10e2961e7",
+      "groupId": "650815a96ab9e89101281d600e7850f7"
+    },
+    {
+      "key": "local-5f0e5071e3d48ff2f73f8f99",
+      "name": "横线信笺",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-5f0e5071e3d48ff2f73f8f99.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-5f0e5071e3d48ff2f73f8f99.jpg",
+      "id": "345cf9926ab9e8aa020242fc0b628bfe",
+      "groupId": "650815a96ab9e89101281d600e7850f7"
+    },
+    {
+      "key": "local-1e67ea928092c3ad50082285",
+      "name": "浅牛皮纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-1e67ea928092c3ad50082285.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-1e67ea928092c3ad50082285.jpg",
+      "id": "01f3430d6ab9e8aa00b83ef501d08097",
+      "groupId": "650815a96ab9e89101281d600e7850f7"
+    },
+    {
+      "key": "local-9f5555924f2876d6299a6246",
+      "name": "柔雾白纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-9f5555924f2876d6299a6246.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-9f5555924f2876d6299a6246.jpg",
+      "id": "650815a96ab9e8ab01281f214dc90116",
+      "groupId": "650815a96ab9e89101281d600e7850f7"
+    },
+    {
+      "key": "local-239652cbb94e1178be185a74",
+      "name": "深牛皮褶纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-239652cbb94e1178be185a74.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-239652cbb94e1178be185a74.jpg",
+      "id": "650815a96ab9e8ac01281f323d0ad760",
+      "groupId": "650815a96ab9e89101281d600e7850f7"
+    },
+    {
+      "key": "local-e758e858db20ec502548c929",
+      "name": "银灰折纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-e758e858db20ec502548c929.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-e758e858db20ec502548c929.jpg",
+      "id": "01f3430d6ab9e8ad00b83f134b8dfbd9",
+      "groupId": "650815a96ab9e89101281d600e7850f7"
+    },
+    {
+      "key": "local-6db8673990bd25aa05352710",
+      "name": "浅米素纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-6db8673990bd25aa05352710.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-6db8673990bd25aa05352710.jpg",
+      "id": "3d00e15d6ab9e8ae00ab3bac2b19d08e",
+      "groupId": "650815a96ab9e89101281d600e7850f7"
+    },
+    {
+      "key": "local-8064002575f8909dc1711718",
+      "name": "暖沙纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-8064002575f8909dc1711718.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-8064002575f8909dc1711718.jpg",
+      "id": "345cf9926ab9e8af0202439a775b1656",
+      "groupId": "650815a96ab9e89101281d600e7850f7"
+    },
+    {
+      "key": "local-b5b79e9bdefd2ff2a393db89",
+      "name": "灰绿旧纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-b5b79e9bdefd2ff2a393db89.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-b5b79e9bdefd2ff2a393db89.jpg",
+      "id": "01f3430d6ab9e8b000b83f422394d2dc",
+      "groupId": "650815a96ab9e89101281d600e7850f7"
+    },
+    {
+      "key": "local-603c63e5f4e111933a80476c",
+      "name": "白纸折痕",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-603c63e5f4e111933a80476c.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-603c63e5f4e111933a80476c.jpg",
+      "id": "650815a96ab9e8b101281f625267911f",
+      "groupId": "650815a96ab9e89101281d600e7850f7"
+    },
+    {
+      "key": "local-b81d2ddc61f1b49e8a9ab872",
+      "name": "乳黄棉纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-b81d2ddc61f1b49e8a9ab872.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-b81d2ddc61f1b49e8a9ab872.jpg",
+      "id": "01f3430d6ab9e8b200b83f55190e9b60",
+      "groupId": "650815a96ab9e89101281d600e7850f7"
+    },
+    {
+      "key": "local-fb69426587ab0c203f9358af",
+      "name": "雪白揉纹",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-fb69426587ab0c203f9358af.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-fb69426587ab0c203f9358af.jpg",
+      "id": "3d00e15d6ab9e8b200ab3bca56bbcd50",
+      "groupId": "650815a96ab9e89101281d600e7850f7"
+    },
+    {
+      "key": "local-6d3e686a3f3a20e37d92c7e2",
+      "name": "细格白布纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-6d3e686a3f3a20e37d92c7e2.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-6d3e686a3f3a20e37d92c7e2.jpg",
+      "id": "345cf9926ab9e8b3020244497569c980",
+      "groupId": "650815a96ab9e89101281d600e7850f7"
+    },
+    {
+      "key": "local-6868cea79be06d67f2d77b7f",
+      "name": "象牙素纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-6868cea79be06d67f2d77b7f.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-6868cea79be06d67f2d77b7f.jpg",
+      "id": "01f3430d6ab9e8b400b83f782199f030",
+      "groupId": "650815a96ab9e89101281d600e7850f7"
+    },
+    {
+      "key": "local-027deba77dee27a6d7fc73ff",
+      "name": "青绯飞鸟",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-027deba77dee27a6d7fc73ff.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-027deba77dee27a6d7fc73ff.jpg",
+      "id": "01f3430d6ab9e8b500b83f877d378624",
+      "groupId": "01f3430d6ab9e89100b83d7f3a219d0e"
+    },
+    {
+      "key": "local-32905ee091e868971a1fb615",
+      "name": "赭霞归雁",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-32905ee091e868971a1fb615.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-32905ee091e868971a1fb615.jpg",
+      "id": "650815a96ab9e8b601281f935a9bebe5",
+      "groupId": "01f3430d6ab9e89100b83d7f3a219d0e"
+    },
+    {
+      "key": "local-8982befca6d4d1432fff829c",
+      "name": "苍绿连山",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-8982befca6d4d1432fff829c.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-8982befca6d4d1432fff829c.jpg",
+      "id": "650815a96ab9e8b701281f9f37028c8a",
+      "groupId": "01f3430d6ab9e89100b83d7f3a219d0e"
+    },
+    {
+      "key": "local-d6dbc24cad4986a43a255356",
+      "name": "浅草群鸟",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-d6dbc24cad4986a43a255356.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-d6dbc24cad4986a43a255356.jpg",
+      "id": "3d00e15d6ab9e8b800ab3be9042f5784",
+      "groupId": "01f3430d6ab9e89100b83d7f3a219d0e"
+    },
+    {
+      "key": "local-1402f0ce8883cab8b3920a6c",
+      "name": "暮蓝远山",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-1402f0ce8883cab8b3920a6c.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-1402f0ce8883cab8b3920a6c.jpg",
+      "id": "345cf9926ab9e8b8020245184bd032d3",
+      "groupId": "01f3430d6ab9e89100b83d7f3a219d0e"
+    },
+    {
+      "key": "local-a9fd1fc7de4c36876b99f2f8",
+      "name": "浅碧秋声",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-a9fd1fc7de4c36876b99f2f8.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-a9fd1fc7de4c36876b99f2f8.jpg",
+      "id": "3d00e15d6ab9e8b900ab3bf307e01da3",
+      "groupId": "01f3430d6ab9e89100b83d7f3a219d0e"
+    },
+    {
+      "key": "local-8bb67c5bf31cd17538530d75",
+      "name": "月相银幕",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-8bb67c5bf31cd17538530d75-318e352cd8.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-8bb67c5bf31cd17538530d75-318e352cd8.jpg",
+      "id": "345cf9926ab9e8ba0202453a24242db9",
+      "groupId": "345cf9926ab9e8910202404a17524eb2",
+      "previousFileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-8bb67c5bf31cd17538530d75.jpg"
+    },
+    {
+      "key": "local-da33a98edfd22b985f6cb595",
+      "name": "灰蓝残页",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-da33a98edfd22b985f6cb595.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-da33a98edfd22b985f6cb595.jpg",
+      "id": "345cf9926ab9e8bb020245473b93618e",
+      "groupId": "345cf9926ab9e8910202404a17524eb2"
+    },
+    {
+      "key": "local-252c6aea57f748093845c3b0",
+      "name": "雾中白鸟",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-252c6aea57f748093845c3b0.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-252c6aea57f748093845c3b0.jpg",
+      "id": "345cf9926ab9e8bc020245511921808b",
+      "groupId": "345cf9926ab9e8910202404a17524eb2"
+    },
+    {
+      "key": "local-0d0bb99ec89ad26f237187a8",
+      "name": "钴蓝铅字",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-0d0bb99ec89ad26f237187a8.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-0d0bb99ec89ad26f237187a8.jpg",
+      "id": "3d00e15d6ab9e90200ab3ed7293b21d7",
+      "groupId": "01f3430d6ab9e89200b83d845118f82d"
+    },
+    {
+      "key": "local-9229c546d6cb9c05b2e7e5d7",
+      "name": "旧页折线",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-9229c546d6cb9c05b2e7e5d7.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-9229c546d6cb9c05b2e7e5d7.jpg",
+      "id": "3d00e15d6ab9e90200ab3edc062aaf64",
+      "groupId": "01f3430d6ab9e89200b83d845118f82d"
+    },
+    {
+      "key": "local-c662d3b5d0ef6d503afba4c3",
+      "name": "蓝色字环",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-c662d3b5d0ef6d503afba4c3.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-c662d3b5d0ef6d503afba4c3.jpg",
+      "id": "3d00e15d6ab9e90300ab3ee20dcf4e36",
+      "groupId": "01f3430d6ab9e89200b83d845118f82d"
+    },
+    {
+      "key": "local-90a0a84a2e64470255e0a9be",
+      "name": "浅灰铅字",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-90a0a84a2e64470255e0a9be.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-90a0a84a2e64470255e0a9be.jpg",
+      "id": "3d00e15d6ab9e90400ab3ee7636faddf",
+      "groupId": "01f3430d6ab9e89200b83d845118f82d"
+    },
+    {
+      "key": "local-868736c1150a897e27b6c3c6",
+      "name": "池光浮影",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-868736c1150a897e27b6c3c6.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-868736c1150a897e27b6c3c6.jpg",
+      "id": "345cf9926ab9e90502024e3d1a06f16f",
+      "groupId": "650815a96ab9e89201281d735330b6ba"
+    },
+    {
+      "key": "local-108a7f2dacab8079f03ddbd8",
+      "name": "浅黄春枝",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-108a7f2dacab8079f03ddbd8.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-108a7f2dacab8079f03ddbd8.jpg",
+      "id": "345cf9926ab9e90602024e4846a9ed45",
+      "groupId": "650815a96ab9e89201281d735330b6ba"
+    },
+    {
+      "key": "local-80e24665d041dbde9cd88c86",
+      "name": "绿叶篱网",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-80e24665d041dbde9cd88c86.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-80e24665d041dbde9cd88c86.jpg",
+      "id": "345cf9926ab9e90702024e5669ad37c6",
+      "groupId": "650815a96ab9e89201281d735330b6ba"
+    },
+    {
+      "key": "local-0ac9f44a227b6114e4d90891",
+      "name": "碧色疏枝",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-0ac9f44a227b6114e4d90891.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-0ac9f44a227b6114e4d90891.jpg",
+      "id": "345cf9926ab9e90802024e6b37c7b7cc",
+      "groupId": "650815a96ab9e89201281d735330b6ba"
+    },
+    {
+      "key": "local-51fb0fab7279a91a9a133652",
+      "name": "水光微澜",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-51fb0fab7279a91a9a133652.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-51fb0fab7279a91a9a133652.jpg",
+      "id": "650815a96ab9e909012824e87821a608",
+      "groupId": "650815a96ab9e89201281d735330b6ba"
+    },
+    {
+      "key": "local-2f1e923fe8f291329867e570",
+      "name": "蓝桃云霞",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-2f1e923fe8f291329867e570.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-2f1e923fe8f291329867e570.jpg",
+      "id": "3d00e15d6ab9e90900ab3f0c1d46718b",
+      "groupId": "3d00e15d6ab9e89200ab3a7777b73b73"
+    },
+    {
+      "key": "local-b387da905d7a11aafa7dff02",
+      "name": "粉绿花雾",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-b387da905d7a11aafa7dff02.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-b387da905d7a11aafa7dff02.jpg",
+      "id": "01f3430d6ab9e90a00b8433c026d605f",
+      "groupId": "3d00e15d6ab9e89200ab3a7777b73b73"
+    },
+    {
+      "key": "local-bca7eb5e57e563dedcad7bc3",
+      "name": "蓝白旧巷",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-bca7eb5e57e563dedcad7bc3.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-bca7eb5e57e563dedcad7bc3.jpg",
+      "id": "650815a96ab9e90b0128250412a0e0be",
+      "groupId": "3d00e15d6ab9e89300ab3a826ebec34b"
+    },
+    {
+      "key": "local-89c7b79c167c45bb11b544c9",
+      "name": "橄榄街角",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-89c7b79c167c45bb11b544c9.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-89c7b79c167c45bb11b544c9.jpg",
+      "id": "01f3430d6ab9e90c00b843772418a522",
+      "groupId": "3d00e15d6ab9e89300ab3a826ebec34b"
+    },
+    {
+      "key": "local-e6440742cd1754a6251272b9",
+      "name": "粉樱骑楼",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-e6440742cd1754a6251272b9.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-e6440742cd1754a6251272b9.jpg",
+      "id": "01f3430d6ab9e90d00b8437c714cad46",
+      "groupId": "3d00e15d6ab9e89300ab3a826ebec34b"
+    },
+    {
+      "key": "local-62e826094da21b0b90f24691",
+      "name": "紫瓦深巷",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-62e826094da21b0b90f24691.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-62e826094da21b0b90f24691.jpg",
+      "id": "3d00e15d6ab9e90e00ab3f3f02ea747c",
+      "groupId": "3d00e15d6ab9e89300ab3a826ebec34b"
+    },
+    {
+      "key": "local-7ac0f09a6b4517b896bf2eca",
+      "name": "碧荷繁花",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-7ac0f09a6b4517b896bf2eca.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-7ac0f09a6b4517b896bf2eca.jpg",
+      "id": "345cf9926ab9e90f02024f1816e4017f",
+      "groupId": "3d00e15d6ab9e89300ab3a826ebec34b"
+    },
+    {
+      "key": "local-5a1798667411787e802ed2b5",
+      "name": "蓝影花窗",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-5a1798667411787e802ed2b5.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-5a1798667411787e802ed2b5.jpg",
+      "id": "3d00e15d6ab9e90f00ab3f4c2bd5b801",
+      "groupId": "3d00e15d6ab9e89300ab3a826ebec34b"
+    },
+    {
+      "key": "local-ee097170f4abe1da4aaaf7e1",
+      "name": "淡紫窗光",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-ee097170f4abe1da4aaaf7e1.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-ee097170f4abe1da4aaaf7e1.jpg",
+      "id": "3d00e15d6ab9e91000ab3f550bd46b2b",
+      "groupId": "3d00e15d6ab9e89300ab3a826ebec34b"
+    },
+    {
+      "key": "local-1456e7b88ea758fa494d929e",
+      "name": "粉荷浅水",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-1456e7b88ea758fa494d929e.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-1456e7b88ea758fa494d929e.jpg",
+      "id": "01f3430d6ab9e91100b843da4577704b",
+      "groupId": "3d00e15d6ab9e89300ab3a826ebec34b"
+    },
+    {
+      "key": "local-3c03b8e7e61c55ba5058cfbd",
+      "name": "青灰古门",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-3c03b8e7e61c55ba5058cfbd.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-3c03b8e7e61c55ba5058cfbd.jpg",
+      "id": "345cf9926ab9e91202024f9a056eed81",
+      "groupId": "3d00e15d6ab9e89300ab3a826ebec34b"
+    },
+    {
+      "key": "local-a4a607b4d3d0de239bc0e8d4",
+      "name": "绯红楼影",
+      "cloudPath": "collage-materials/background/collage-backgrounds-local-20260928/local-a4a607b4d3d0de239bc0e8d4.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-local-20260928/local-a4a607b4d3d0de239bc0e8d4.jpg",
+      "id": "01f3430d6ab9e91300b843f1266c109f",
+      "groupId": "3d00e15d6ab9e89300ab3a826ebec34b"
+    }
+  ],
+  "existingMaterialIds": [
+    "650815a96ab49a3700c92ab22e1da0f7",
+    "01f3430d6ab49a4f0077fab66dd07934",
+    "3d00e15d6ab49a5f0077f80763613c8b",
+    "345cf9926ab4aad4013ad6723031b650",
+    "650815a96ab4aae100cad4e4174fe8fc",
+    "01f3430d6ab4aae90078fb7b4a31f396",
+    "01f3430d6ab4aaf80078fcf905eca93d",
+    "650815a96ab4ab1600cadc8b0c7f4f22",
+    "01f3430d6ab9e22200b69f8430976ca9",
+    "01f3430d6ab9e22300b69f987b496be6",
+    "345cf9926ab9e224020159c71bd2c38d",
+    "345cf9926ab9e225020159d15f1c7393",
+    "650815a96ab9e2260127908b63c66cd5",
+    "3d00e15d6ab9e22700aae9310740da84",
+    "3d00e15d6ab9e22800aae9355241c389",
+    "3d00e15d6ab9e22900aae9454cc9852d",
+    "3d00e15d6ab9e22900aae94f492a4386",
+    "650815a96ab9e22a012790bc02bb2a92",
+    "01f3430d6ab9e22b00b6a0142c5e6754",
+    "01f3430d6ab9e22c00b6a027363d1b40",
+    "650815a96ab9e22d012790d1375b30e2",
+    "345cf9926ab9e22e02015a5a34447972",
+    "01f3430d6ab9e22f00b6a046087ce454",
+    "3d00e15d6ab9e23000aae98e7c759d5c",
+    "345cf9926ab9e23102015a8669e25282",
+    "345cf9926ab9e23202015a8c40efef96",
+    "345cf9926ab9e23402015ab127248359",
+    "345cf9926ab9e23502015abd4b79c375",
+    "650815a96ab9e237012791286f2cbf65",
+    "01f3430d6ab9e23800b6a1197b40f761",
+    "3d00e15d6ab9e23900aae9be6fb34824",
+    "650815a96ab9e23a0127914d2fb50e3c",
+    "345cf9926ab9e23b02015b341e5dbbd8",
+    "01f3430d6ab9e23c00b6a1563e0bc1ff"
+  ],
+  "verifiedAt": "2026-09-28T04:12:04.350Z",
+  "verifiedCount": 67,
+  "totalBackgroundCount": 101,
+  "publicListingVerified": true,
+  "publicListingCount": 101,
+  "browserVerifiedSamples": 10,
+  "finalVerifiedAt": "2026-09-28T04:13:29.524Z"
+}

@@ -1,3 +1,4 @@
+const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 const cloud = require('wx-server-sdk');
 const { ensureDefaultPortfolio } = require('./_lib/ensure-default-portfolio');
 
@@ -5,7 +6,7 @@ cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
 
-const db = cloud.database();
+const db = createPostsDatabase(cloud.database());
 
 async function getExactFolderCount(folderId) {
   if (!folderId) return 0;
@@ -178,3 +179,5 @@ exports.main = async (event) => {
     };
   }
 };
+
+exports.main = withPostResponse(exports.main);

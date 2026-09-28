@@ -203,7 +203,7 @@ export default {
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.56);
-    z-index: 999;
+    z-index: 1001;
 }
 
 /* 侧边栏 */
@@ -217,10 +217,14 @@ export default {
     box-shadow: var(--profile-sidebar-shadow, 8rpx 0 28rpx rgba(0, 0, 0, 0.16));
     border-right: 1rpx solid var(--app-border-color, rgba(0, 0, 0, 0.06));
     transition: left 0.3s ease;
-    z-index: 1000;
+    z-index: 1002;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
+    box-sizing: border-box;
+    padding-bottom: 24rpx;
+    padding-bottom: calc(24rpx + constant(safe-area-inset-bottom));
+    padding-bottom: calc(24rpx + env(safe-area-inset-bottom, var(--safe-area-inset-bottom, 0px)));
 }
 
 .sidebar.open {
@@ -229,6 +233,7 @@ export default {
 
 /* 侧边栏头部 */
 .sidebar-header {
+    flex-shrink: 0;
     padding: 40rpx 30rpx;
     border-bottom: 1rpx solid var(--app-border-color, #eee);
     display: flex;
@@ -256,7 +261,7 @@ export default {
     margin-top: 40rpx;
     display: flex;
     flex-direction: column;
-    height: 100%;
+    flex-shrink: 0;
 }
 
 .sidebar-item {

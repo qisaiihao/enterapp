@@ -13,6 +13,7 @@
 - 收藏夹/作品集的“创建”在列表退出后打开原输入表单；取消创建后回到选择列表，接口失败时列表继续显示以便重试。关闭列表直接更新 Vue 状态并触发 `hide`，避免旧 `setData` 对 `propsData` 的读取中断关闭回调。
 - 帖子删除面板提供“删除并存为草稿”“仅自己可见”“删除帖子”。存草稿仍在保存成功后删除原帖；“仅自己可见”复用隐藏功能，已隐藏时禁用该项，不会再次切换成公开。原有 `close`、`save-draft`、`confirm` 事件保留，新增 `hide` 事件。
 - 头像、背景、收藏夹删除和微信绑定确认继续使用共用确认框。
+- 退出登录确认复用 `AppActionSheet` 的 `plain` 样式，显示红色“退出登录”、确认说明和独立取消区；关闭动画完成后执行退出，取消、遮罩和返回键仅关闭面板。
 - 需要等待接口的受控确认框传入 `busy`；处理中禁用按钮，处理结束后允许重试，避免连续点击重复提交。
 
 ## 页面接入
@@ -22,6 +23,10 @@
 `main.js` 安装 `utils/appOverlay.js` 的适配器与页面生命周期 mixin。现有业务继续调用 `uni.showModal` / `uni.showActionSheet`，不需要重写确认和取消分支。系统权限授权、图片选择等平台功能不拦截。尚无页面的启动阶段和第三方升级页面保留平台弹窗兜底。
 
 适配器支持现有的标题、正文、按钮文字、单按钮提示、输入框和操作列表；普通按钮颜色统一，危险按钮按操作文案标记，不沿用各页面分散的 confirmColor 配色。
+
+网页链接页 `pages-tools/web-link/web-link` 保留挂载点，但 API 确认框和操作菜单使用平台原生实现，避免请求排队后无人展示，以及自绘弹层被原生 `web-view` 遮挡。参见 [web-view 层级说明](https://uniapp.dcloud.net.cn/component/web-view#web-view组件的层级问题解决)。
+
+App 的未登录提示通过 `authHelper.requireLogin()` 调用 `appOverlay.showNativeModal()`，直接使用适配器安装前保留的系统弹窗，避免正式包中自绘登录提示不显示时阻断入口。底栏“我”与发布页“写诗”共用此路径；确认进入登录页，取消保留各入口原有行为。H5 和小程序的提示方式保持原有逻辑。此项为临时兜底，自绘弹层在正式包中的问题仍需真机定位。
 
 ## 交互约定
 
@@ -36,6 +41,7 @@
 
 ## 验证
 
+- `node scripts/test-login-native-modal.cjs`：系统弹窗在适配器安装前后均可用；没有自绘挂载点时也能提示，后续挂载不重复显示；覆盖“我”“写诗”入口、确认跳转、取消返回、失败回调，以及 H5 保留自绘提示。
 - `node scripts/test-app-overlays.cjs`：适配器队列、回调、Promise、页面隔离、返回、重复点击、异步重试和页面接入；运行预览删除、注册去登录、管理页面权限与错误提示等 7 处实际弹窗回调，验证确认/取消与操作菜单回调中的主动返回不会被弹层拦截。
 - `node scripts/test-publish-back.cjs`：真实 Vue 弹窗回调同步触发返回时，验证发布页工具栏与物理返回、不保存、保存完成后返回及退出草稿清理。
 - `node scripts/test-delete-modal.cjs`：删除面板事件映射、隐藏目标、已隐藏保护、草稿保存成功后删除及失败保留原帖。
@@ -43,5 +49,6 @@
 - H5 开发服务启动后执行 `node scripts/test-delete-modal-h5.cjs`：浅色/深色布局、三个操作、已隐藏状态、遮罩与返回键；截图同样保存到系统临时目录的 `enterkey-overlay-review`。
 - H5 开发服务启动后执行 `node scripts/test-app-overlays-h5.cjs`；可设置 `H5_URL`、`PUPPETEER_EXECUTABLE_PATH`。测试实际页面上的点击、深色模式和队列，截图写入系统临时目录的 `enterkey-overlay-review`。
 - `node scripts/test-bottom-sheets-h5.cjs`：实际选择组件在明暗两种模式下的布局、模式/配色/头像返回值、字体预览、收藏/作品集失败重试、创建表单切换、返回和遮罩关闭，并检查验证码与标签输入仍使用原有表单。数据接口用本地测试替身，避免写入真实账号。
+- `node scripts/test-overlay-layouts-h5.cjs`：19 种弹层状态 × 4 种视口（小屏、常见竖屏、横屏、缩小可视高度）× 明暗主题，共 152 项；检查面板边界、遮挡及滚动后底部操作可达。页面数据加载使用本地替身，不提交账号或内容变更。缩小浏览器视口不等同于真机软键盘验证。
 - `npm run check:quality`、`npm run build:app`、`npm run build:mp-weixin`。
 - 真机仍需检查 Android/iOS 返回键、键盘弹出时的位置、长内容滚动，以及微信原生控件覆盖层级。App 字体加载路径与 onReady 注册流程未修改。

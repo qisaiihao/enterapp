@@ -1,6 +1,7 @@
 import { createCollageLogger } from './debug.js';
 import { persistFile, resolveFile } from './storage.js';
 import { imageInfo, displaySize } from './renderer.js';
+import fileUrlCache from '@/cache/core/file-url.js';
 
 const log = createCollageLogger('official');
 
@@ -23,8 +24,19 @@ function downloadToTempFile(url) {
 // 官方素材保存到本机后再使用：导出不依赖临时链接，H5 也不会污染 Canvas。
 // 尺寸以本机文件为准，避免上传时记录的宽高与实际显示方向不一致。
 export async function importOfficialImage(material = {}) {
-  const url = typeof material.url === 'string' ? material.url : '';
-  if (!url) throw new Error('素材地址无效，请刷新后重试');
+  let url = typeof material.url === 'string' ? material.url : '';
+  if (!/^https?:\/\//i.test(url)) {
+    const fileID = material.fileID || url;
+    try {
+      const urls = await fileUrlCache.getTempUrls([fileID]);
+      url = urls[fileID] || '';
+    } catch (_) {
+      url = '';
+    }
+    if (!/^https?:\/\//i.test(url)) {
+      throw new Error('素材地址解析失败，请重新打开素材库重试');
+    }
+  }
 
   let ref;
   let path;

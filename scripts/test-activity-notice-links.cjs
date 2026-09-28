@@ -87,6 +87,7 @@ async function main() {
     }
   };
   const backendGlobals = () => ({ exports: {}, console: quiet, require(name) {
+    if (name === './_lib/posts') return require('../functions/_shared/posts');
     if (name === 'wx-server-sdk') return { init() {}, database: () => db };
     if (name.includes('admin-auth')) return { isAdminByPoemId: async () => admin };
     if (name === './_lib/activity') return require(path.join(root, 'functions/_lib/activity.js'));

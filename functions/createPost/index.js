@@ -1,3 +1,4 @@
+const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 // 云函数：createPost
 // 功能：创建新帖子
 
@@ -7,7 +8,7 @@ cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
 
-const db = cloud.database();
+const db = createPostsDatabase(cloud.database());
 
 exports.main = async (event, context) => {
   console.log('🔍 [createPost] 开始创建帖子');
@@ -37,13 +38,15 @@ exports.main = async (event, context) => {
     }
     
     const user = userResult.data[0];
+    const isAnonymous = event.isAnonymous === true || event.isAnonymous === 'true';
+    const anonymousAuthorName = event.anonymousAuthorName || '匿名用户';
     
     // 准备帖子数据
     const postData = {
-      _openid: openid,
-      authorName: event.isAnonymous ? event.anonymousAuthorName : user.nickName,
-      authorAvatar: event.isAnonymous ? '/static/images/avatar.png' : user.avatarUrl,
-      authorSignature: event.isAnonymous ? '' : (user.signatureUrl || ''),
+      _openid: isAnonymous ? '123456' : openid,
+      authorName: isAnonymous ? anonymousAuthorName : user.nickName,
+      authorAvatar: isAnonymous ? '/static/images/avatar.png' : user.avatarUrl,
+      authorSignature: isAnonymous ? '' : (user.signatureUrl || ''),
       title: event.title || '',
       content: event.content || '',
       createTime: db.serverDate(),
@@ -54,11 +57,11 @@ exports.main = async (event, context) => {
       isSeries: event.isSeries || false,
       isOriginal: event.isOriginal || false,
       isDiscussion: event.isDiscussion || false,
-      author: event.author || '',
+      author: isAnonymous ? anonymousAuthorName : (event.author || ''),
       tags: event.tags || [],
-      isAnonymous: event.isAnonymous || false,
-      anonymousAuthorName: event.anonymousAuthorName || '匿名用户',
-      realAuthorOpenid: event.realAuthorOpenid || null
+      isAnonymous,
+      anonymousAuthorName,
+      realAuthorOpenid: isAnonymous ? openid : null
     };
     
     // 添加颜色信息
@@ -118,3 +121,5 @@ exports.main = async (event, context) => {
     };
   }
 };
+
+exports.main = withPostResponse(exports.main);

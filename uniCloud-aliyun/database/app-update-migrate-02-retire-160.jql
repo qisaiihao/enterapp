@@ -1,0 +1,13 @@
+// 步骤 2：步骤 1 新增 1.7.0 成功后执行。此文件会修改线上旧整包的发布状态。
+// 2026-09-28 用户回传查询已确认旧 160 退出有效列表，无需再次运行。
+// 只下线审计确认的旧整数版本 160，不删除记录，不改 URL 和历史版本。
+// 匹配 ID、应用、类型和原版本，避免改到其他记录；首次执行预期 updated: 1。
+// 成功后运行 app-update-release-audit.jql，应只剩 1.7.0 整包和 1.6.7 WGT 两条有效记录。
+db.collection('opendb-app-versions')
+  .where({
+    _id: '6a11cc13286f7c4eeb439e85',
+    appid: '__UNI__E0A1A41',
+    type: 'native_app',
+    version: '160'
+  })
+  .update({ stable_publish: false })

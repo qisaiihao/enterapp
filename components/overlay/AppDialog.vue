@@ -77,9 +77,10 @@ export default {
   box-sizing: border-box;
 }
 .overlay-dark { --overlay-bg: #171a20; --overlay-text: #f4f1ea; --overlay-muted: #c9ced8; --overlay-border: #c9ced8; }
-.app-dialog { width: 100%; max-width: 580rpx; padding: 32rpx; box-sizing: border-box; border: 1px solid var(--overlay-border); border-radius: 12rpx; background: var(--overlay-bg); color: var(--overlay-text); }
+.app-dialog { width: 100%; max-width: 580rpx; max-height: 100%; display: flex; flex-direction: column; padding: 32rpx; box-sizing: border-box; border: 1px solid var(--overlay-border); border-radius: 12rpx; background: var(--overlay-bg); color: var(--overlay-text); }
 .app-dialog-title { display: block; font-size: 30rpx; font-weight: 500; text-align: center; margin-bottom: 24rpx; }
-.app-dialog-body { max-height: 50vh; }
+.app-dialog-body { max-height: 50vh; min-height: 0; }
+.app-dialog-title, .app-dialog-actions { flex-shrink: 0; }
 .app-dialog-message { display: block; font-size: 27rpx; line-height: 1.7; color: var(--overlay-muted); white-space: pre-wrap; overflow-wrap: anywhere; }
 .app-dialog-actions { display: flex; gap: 16rpx; margin-top: 32rpx; }
 .app-dialog-button { flex: 1; min-width: 0; margin: 0; padding: 16rpx 8rpx; line-height: 1.4; font-size: 25rpx; border: 1px solid var(--overlay-border); border-radius: 8rpx; background: var(--overlay-bg); color: var(--overlay-text); display: flex; align-items: center; justify-content: center; }

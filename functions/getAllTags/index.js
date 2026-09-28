@@ -1,3 +1,4 @@
+const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 // cloudfunctions/getAllTags/index.js
 const cloud = require('wx-server-sdk');
 
@@ -5,7 +6,7 @@ cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
 
-const db = cloud.database();
+const db = createPostsDatabase(cloud.database());
 const _ = db.command;
 
 // 云函数入口函数
@@ -63,3 +64,5 @@ exports.main = async (event, context) => {
     };
   }
 };
+
+exports.main = withPostResponse(exports.main);

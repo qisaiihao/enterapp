@@ -134,7 +134,7 @@
 
 
     {
-      "path": "uni_modules/uni-upgrade-center-app/pages/upgrade-popup",
+      "path": "pages/app-update/app-update",
       "style": {
         "navigationStyle": "custom",
         "disableScroll": true,

@@ -234,15 +234,14 @@
 
         <!-- 左下角返回按钮 -->
         <view v-if="!isSeriesComposeLayout" class="back-btn" @tap.stop="goBack">
-            <image class="back-icon" src="/static/images/back_to_edit.png" mode="aspectFit"></image>
+            <image class="back-icon" src="/static/images/share.svg" mode="aspectFit"></image>
         </view>
 
         <!-- 右下角浮动操作按钮 -->
-        <view class="floating-action-btn" :class="{ 'floating-action-btn--series-compose': isSeriesComposeLayout }" @tap.stop="goToPreview">
-            <view v-if="isSeriesComposeLayout" class="series-compose-preview-btn">
-                <view class="series-compose-preview-arrow"></view>
+        <view class="floating-action-btn" @tap.stop="goToPreview">
+            <view class="preview-btn">
+                <view class="preview-arrow"></view>
             </view>
-            <image v-else class="fab-icon" src="/static/images/enter_key.png" mode="aspectFit"></image>
         </view>
 
         <!-- 模式选择器 -->
@@ -254,6 +253,16 @@
             :isDark="appThemeMode === 'dark'"
             @close="showModeSelector = false"
             @select="onModeSelect"
+        />
+
+        <!-- 图片来源选择器，与发布模式共用底部弹窗 -->
+        <AppActionSheet
+            :visible="showImageSourceSelector"
+            title="上传图片"
+            :items="['拍摄', '选择图片']"
+            :is-dark="appThemeMode === 'dark'"
+            @cancel="showImageSourceSelector = false"
+            @select="onImageSourceSelect"
         />
 
         <!-- 标签选择器 -->
@@ -303,6 +312,7 @@ import { poemLines } from '@/utils/poemLines.js';
 
 // 导入拆分的组件
 import ModeSelectorModal from '../../components/ModeSelectorModal.vue';
+import AppActionSheet from '../../components/overlay/AppActionSheet.vue';
 import ColorPickerModal from '../../components/ColorPickerModal.vue';
 import TagSelectorModal from '../../components/TagSelectorModal.vue';
 import HighlightSelectorModal from '../../components/HighlightSelectorModal.vue';
@@ -357,6 +367,7 @@ const WORKING_DRAFT_SAVE_DELAY = 500;
 export default {
     components: {
         ModeSelectorModal,
+        AppActionSheet,
         ColorPickerModal,
         TagSelectorModal,
         HighlightSelectorModal,
@@ -393,6 +404,7 @@ export default {
             // 新的覆盖层相关状态
             // 高光弹窗触摸相关变量
             imageList: [],
+            showImageSourceSelector: false,
 
             // 图片列表，包含原图和压缩图信息
             maxImageCount: 9,
@@ -1518,11 +1530,28 @@ export default {
         },
 
         handleChooseImage: function () {
+            if (this.imageList.length >= this.maxImageCount) {
+                uni.showToast({
+                    title: `最多只能上传${this.maxImageCount}张图片`,
+                    icon: 'none'
+                });
+                return;
+            }
+            this.setData({ showImageSourceSelector: true });
+        },
+
+        onImageSourceSelect: function (index) {
+            this.setData({ showImageSourceSelector: false });
+            const sourceType = ['camera', 'album'][index];
+            if (sourceType) this.chooseImageFromSource(sourceType);
+        },
+
+        chooseImageFromSource: function (sourceType) {
             const that = this;
             const remainingCount = this.maxImageCount - this.imageList.length;
             if (remainingCount <= 0) {
                 uni.showToast({
-                    title: '最多只能上传9张图片',
+                    title: `最多只能上传${this.maxImageCount}张图片`,
                     icon: 'none'
                 });
                 return;
@@ -1536,7 +1565,7 @@ export default {
                 count: remainingCount,
                 // 关键修改1：强制使用原图，把压缩控制权完全交给自己的代码
                 sizeType: ['compressed'],
-                sourceType: ['album', 'camera'],
+                sourceType: [sourceType],
                 success: (res) => {
                     uni.showLoading({
                         title: '处理中...'
@@ -2165,6 +2194,8 @@ export default {
                 content: previewContent || '',
                 author: this.author || '',
                 title: this.title || '', // 标题（编辑模式下已有值，新建模式下在预览页面输入）
+                isAnonymous: !!(this.isEditMode && this.editingPost && this.editingPost.isAnonymous),
+                anonymousAuthorName: (this.isEditMode && this.editingPost && this.editingPost.anonymousAuthorName) || '匿名用户',
                 textColor: this.selectedTextColor || '#000000',
                 backgroundColor: this.selectedBackgroundColor || '#ffffff',
                 isExpanded: true,
@@ -2633,13 +2664,13 @@ page {
 
 /* 标签选择弹层样式已移至 TagSelectorModal.vue 组件 */
 
-/* 左下角返回按钮 */
-.back-btn {
+/* 底部操作共用尺寸与基线，左右留白对称。 */
+.back-btn,
+.floating-action-btn {
     position: fixed;
-    bottom: 100rpx;
-    left: 30rpx;
-    width: 100rpx;
-    height: 100rpx;
+    bottom: calc(74rpx + env(safe-area-inset-bottom));
+    width: 132rpx;
+    height: 98rpx;
     background: transparent;
     border: none;
     display: block;
@@ -2648,67 +2679,45 @@ page {
     box-sizing: border-box;
 }
 
-.back-btn:active {
+.back-btn {
+    left: 56rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.back-btn:active,
+.floating-action-btn:active {
     transform: scale(0.95);
 }
 
 .back-icon {
-    width: 100px;
-    height: 100px;
+    width: 144rpx;
+    height: 144rpx;
+    flex-shrink: 0;
     display: block;
     object-fit: contain;
+    /* 补偿 SVG 内部留白，让可见笔画贴齐左边距并垂直居中。 */
+    transform: translate(-20%, -7%) scaleX(-1);
     filter: var(--app-add-action-icon-filter, none);
     opacity: var(--app-add-action-icon-opacity, 1);
 }
 
 /* 浮动操作按钮 */
 .floating-action-btn {
-    position: fixed; /* 改为fixed定位，相对于视口定位 */
-    bottom: 30rpx; /* 调整位置 */
-    right: 50rpx; /* 调整位置 */
-    width: 200rpx;
-    height: 200rpx;
-    background: transparent;
-    border: none;
-    display: block;
-    z-index: 10;
-    transition: all 0.2s ease;
-    box-sizing: border-box;
-}
-
-.floating-action-btn:active {
-    transform: scale(0.95);
-}
-
-.fab-icon {
-    width: 200rpx;
-    height: 200rpx;
-    display: block;
-    object-fit: contain;
-    object-position: center;
-    border: none;
-    box-sizing: border-box;
-    filter: var(--app-add-action-icon-filter, none);
-    opacity: var(--app-add-action-icon-opacity, 1);
-}
-
-.container--series-compose .floating-action-btn {
     right: 56rpx;
-    bottom: calc(74rpx + env(safe-area-inset-bottom));
-    width: 132rpx;
-    height: 98rpx;
 }
 
-.container--series-compose .series-compose-preview-btn {
+.preview-btn {
     position: relative;
-    width: 132rpx;
-    height: 98rpx;
+    width: 100%;
+    height: 100%;
     border-radius: 28rpx;
     background: rgba(0, 0, 0, 0.8);
     box-shadow: 0 8rpx 12rpx rgba(0, 0, 0, 0.25);
 }
 
-.container--series-compose .series-compose-preview-arrow {
+.preview-arrow {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -2719,7 +2728,7 @@ page {
     transform: translate(-58%, -50%);
 }
 
-.container--series-compose .series-compose-preview-arrow::before {
+.preview-arrow::before {
     content: '';
     position: absolute;
     top: 50%;
@@ -3438,23 +3447,16 @@ page {
         min-height: 180rpx;
     }
     
+    .back-btn,
     .floating-action-btn {
-        width: 200rpx;
-        height: 200rpx;
-        bottom: 30rpx;
-        right: 50rpx;
-    }
-    
-    .fab-icon {
-        font-size: 20rpx;
-    }
-
-    .container--series-compose .floating-action-btn {
-        right: 50rpx;
         bottom: calc(68rpx + env(safe-area-inset-bottom));
         width: 124rpx;
         height: 92rpx;
     }
+
+    .back-btn { left: 50rpx; }
+    .floating-action-btn { right: 50rpx; }
+    .back-icon { width: 136rpx; height: 136rpx; }
 }
 
 /* 响应式设计 - 大屏幕适配 */
@@ -3465,19 +3467,13 @@ page {
         min-height: 250rpx;
     }
     
+    .back-btn,
     .floating-action-btn {
-        width: 200rpx;
-        height: 200rpx;
-    }
-    
-    .fab-icon {
-        font-size: 26rpx;
-    }
-
-    .container--series-compose .floating-action-btn {
         width: 138rpx;
         height: 104rpx;
     }
+
+    .back-icon { width: 152rpx; height: 152rpx; }
 }
 
 /* 响应式设计 - 超小屏幕适配 */
@@ -3491,23 +3487,18 @@ page {
         margin-bottom: 20rpx;
     }
     
-    .floating-action-btn {
-        position: fixed;
-        bottom: 30rpx;
-        right: 50rpx;
-        width: 200rpx;
-        height: 200rpx;
-    }
-
     .container--series-compose .block-scroll {
         margin-right: 0;
         padding-bottom: 280rpx;
     }
 
-    .container--series-compose .floating-action-btn {
-        right: 44rpx;
+    .back-btn,
+    .floating-action-btn {
         bottom: calc(64rpx + env(safe-area-inset-bottom));
     }
+
+    .back-btn { left: 44rpx; }
+    .floating-action-btn { right: 44rpx; }
 }
 
 .publish-input-placeholder {
@@ -3599,7 +3590,6 @@ page {
 .container--dark .discussion-action-image,
 .container--dark .series-action-image,
 .container--dark .back-icon,
-.container--dark .fab-icon,
 .container--dark .action-icon {
     filter: brightness(0) invert(1);
     opacity: 0.92;

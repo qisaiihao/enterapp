@@ -1,8 +1,9 @@
+const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 const cloud = require('wx-server-sdk');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 
-const db = cloud.database();
+const db = createPostsDatabase(cloud.database());
 const _ = db.command;
 
 const BUCKETS = [
@@ -105,3 +106,5 @@ exports.main = async (event) => {
     return { success: false, error: error.message };
   }
 };
+
+exports.main = withPostResponse(exports.main);

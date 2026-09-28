@@ -28,7 +28,7 @@ function runtime() {
   const listeners = new Map();
   const timers = new Map();
   let nextTimer = 0;
-  const state = { isLoggedIn: true, count: 3, calls: 0, fail: false, pending: null };
+  const state = { isLoggedIn: true, openid: 'user-a', now: 1000, count: 3, calls: 0, fail: false, pending: null };
   const uni = {
     $on(event, handler) {
       if (!listeners.has(event)) listeners.set(event, new Set());
@@ -51,10 +51,11 @@ function runtime() {
     }
   }, ['getUnreadCount', 'invalidateUnread', 'updateUnreadCache', 'getCachedUnreadCount']);
   const store = load('cache/stores/unread-badge.js', {
+    Date: { now: () => state.now },
     uni, EVENTS, fetchUnreadCount: api.getUnreadCount, invalidateUnread: api.invalidateUnread,
     getAppState: () => state, formatErrorForLog: error => error.message,
     setInterval(callback, delay) {
-      assert.equal(delay, 30000);
+      assert.equal(delay, 120000, '前台每两分钟轮询');
       timers.set(++nextTimer, callback);
       return nextTimer;
     },
@@ -74,6 +75,9 @@ async function testStore() {
   assert.equal(state.calls, 1, '启动和多个顶部栏并发刷新只请求一次');
   assert.deepEqual(first, [0, 3], '先挂载的顶部栏在初始化完成时收到未读数');
   assert.deepEqual(second, [0, 3]);
+  await store.refreshUnreadCount({ forceRefresh: false });
+  await store.refreshUnreadCount({ forceRefresh: false });
+  assert.equal(state.calls, 1, '不同时间挂载顶部栏复用近期成功结果');
 
   uni.$emit('unread-changed', { count: 1 });
   assert.equal(store.getUnreadCount(), 1, '消息页事件同步全局状态');
@@ -113,6 +117,7 @@ async function testStore() {
 
   unsubscribe();
   const length = first.length;
+  state.now += 120000;
   state.count = 2;
   store.startPolling();
   store.startPolling();
@@ -120,16 +125,41 @@ async function testStore() {
   assert.equal(timers.size, 1, '重复显示不会创建多个定时器');
   assert.equal(store.getUnreadCount(), 2, '进入前台立即检查未读');
   state.count = 6;
+  state.now += 120000;
   await [...timers.values()][0]();
   assert.equal(store.getUnreadCount(), 6, '停留前台可获取其他用户的新点赞/评论');
   assert.equal(first.length, length, '销毁顶部栏后取消订阅');
   store.stopPolling();
   assert.equal(timers.size, 0, '进入后台停止轮询');
   state.count = 7;
+  const beforeReturn = state.calls;
+  store.startPolling();
+  await flush();
+  assert.equal(state.calls, beforeReturn, '短时间切回前台不重复查询');
+  assert.equal(store.getUnreadCount(), 6);
+  store.stopPolling();
+  state.now += 120000;
   store.startPolling();
   await flush();
   assert.equal(store.getUnreadCount(), 7, '后台返回立即获取新消息');
   store.stopPolling();
+  state.isLoggedIn = true;
+  state.openid = 'user-b';
+  state.count = 9;
+  await store.refreshUnreadCount({ forceRefresh: false });
+  assert.equal(store.getUnreadCount(), 9, '账号切换不能复用上个账号的刷新时间');
+
+  let finishOldRequest;
+  state.pending = new Promise(resolve => { finishOldRequest = resolve; });
+  const oldRequest = store.refreshUnreadCount();
+  await flush();
+  state.openid = 'user-c';
+  state.pending = null;
+  state.count = 1;
+  await store.refreshUnreadCount({ forceRefresh: false });
+  finishOldRequest({ count: 99 });
+  await oldRequest;
+  assert.equal(store.getUnreadCount(), 1, '旧账号的迟到响应不能覆盖当前账号');
   state.isLoggedIn = false;
   const callsBeforeLogout = state.calls;
   store.startPolling();
@@ -148,10 +178,11 @@ async function testStartupRetryAndComponents() {
   assert.equal(store.getUnreadCount(), 3, '首次加载失败后允许重试初始化');
 
   let starts = 0, stops = 0, refreshes = 0, unsubscribed = 0;
+  const optionsSeen = [];
   const unreadBadge = {
     startPolling() { starts++; }, stopPolling() { stops++; },
     getUnreadCount: () => 2,
-    refreshUnreadCount() { refreshes++; return Promise.resolve(2); },
+    refreshUnreadCount(options) { optionsSeen.push(options); refreshes++; return Promise.resolve(2); },
     subscribe(callback) { callback(2); return () => { unsubscribed++; }; }
   };
   const app = load('App.vue', { unreadBadge });
@@ -159,13 +190,17 @@ async function testStartupRetryAndComponents() {
   app.onHide.call({});
   assert.equal(starts, 1);
   assert.equal(stops, 1);
-  const component = load('components/top-bar/top-bar.vue', { unreadBadge });
+  const component = load('components/top-bar/top-bar.vue', { unreadBadge, DEFAULT_STATUS_BAR_HEIGHT: 44 });
   const instance = { ...component.data(), ...component.methods, getSafeAreaTop() {}, updateCapsuleAvoidance() {} };
   component.mounted.call(instance);
   assert.equal(instance.unreadMessageCount, 2);
   assert.equal(refreshes, 1, '挂载顶部栏主动获取未读数');
   await instance.refreshUnreadCount();
   assert.equal(refreshes, 2, '暴露的刷新方法请求新数据');
+  assert.equal(optionsSeen[0].forceRefresh, false, '挂载复用近期结果');
+  assert.equal(optionsSeen[1].forceRefresh, false, '普通刷新复用近期结果');
+  await instance.forceRefreshUnreadCount();
+  assert.equal(optionsSeen[2], undefined, '主动刷新保留强制查询');
   component.beforeUnmount.call(instance);
   assert.equal(unsubscribed, 1);
 }

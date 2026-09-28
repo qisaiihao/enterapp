@@ -1,0 +1,9 @@
+{
+  "name": "resetPassword",
+  "version": "1.0.0",
+  "description": "通过已绑定手机号和短信验证码重设密码",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~3.0.1"
+  }
+}

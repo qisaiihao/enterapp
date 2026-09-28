@@ -1,3 +1,4 @@
+const { createPostsDatabase, withPostResponse, resolveOwner } = require('./_lib/posts');
 // 云函数入口文件
 const cloud = require('wx-server-sdk');
 
@@ -5,7 +6,7 @@ cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
 
-const db = cloud.database();
+const db = createPostsDatabase(cloud.database());
 
 // 云函数入口函数
 exports.main = async (event, context) => {
@@ -41,7 +42,7 @@ exports.main = async (event, context) => {
     const postRes = await db.collection('posts').doc(postId).get();
     const post = postRes.data;
     // 如果帖子被隐藏且当前用户不是作者，禁止访问
-    if (post && post.isHidden === true && post._openid !== openid) {
+    if (post && post.isHidden === true && resolveOwner(post) !== openid) {
       return {
         success: false,
         code: 'POST_HIDDEN',
@@ -88,7 +89,7 @@ exports.main = async (event, context) => {
       authorName: post.authorName || post.authorNameSnapshot || author.nickName || '匿名用户',
       authorAvatar: post.authorAvatar || post.authorAvatarSnapshot || author.avatarUrl || '',
       authorSignature: post.isAnonymous ? '' : (post.authorSignature || author.signatureUrl || ''),
-      isAuthor: post._openid === openid,
+      isAuthor: resolveOwner(post) === openid,
       isVoted: voteRes.data.length > 0,
       tags: post.tags || [] // 确保标签字段存在
     };
@@ -210,3 +211,5 @@ exports.main = async (event, context) => {
     };
   }
 };
+
+exports.main = withPostResponse(exports.main);

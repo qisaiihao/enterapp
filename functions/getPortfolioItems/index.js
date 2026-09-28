@@ -1,3 +1,4 @@
+const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 // 获取指定作品集中的项目列表的云函数
 // 基于getFavoritesByFolder逻辑修改
 const cloud = require('wx-server-sdk');
@@ -6,7 +7,7 @@ cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
 
-const db = cloud.database();
+const db = createPostsDatabase(cloud.database());
 
 // 云函数入口函数
 exports.main = async (event, context) => {
@@ -299,3 +300,5 @@ exports.main = async (event, context) => {
     };
   }
 };
+
+exports.main = withPostResponse(exports.main);

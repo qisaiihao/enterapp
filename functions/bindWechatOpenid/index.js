@@ -1,3 +1,4 @@
+const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 // 云函数：bindWechatOpenid
 // 功能：将用户的旧 openid 批量更新为新的微信 openid
 
@@ -7,7 +8,7 @@ cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
 
-const db = cloud.database();
+const db = createPostsDatabase(cloud.database());
 const MAX_LIMIT = 1000;
 
 exports.main = async (event, context) => {
@@ -461,3 +462,5 @@ exports.main = async (event, context) => {
     };
   }
 };
+
+exports.main = withPostResponse(exports.main);

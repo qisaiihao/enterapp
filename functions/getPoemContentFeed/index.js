@@ -1,9 +1,10 @@
+const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 // TODO: AI推荐算法暂时停用
 // 诗歌内容驱动的推荐（不依赖标签）
 // 复用前后端分离：前端通过 cloudCall 访问本函数
 const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
-const db = cloud.database();
+const db = createPostsDatabase(cloud.database());
 const _ = db.command;
 const $ = _.aggregate;
 
@@ -539,3 +540,5 @@ async function processPostsData(posts) {
 
   return posts;
 }
+
+exports.main = withPostResponse(exports.main);

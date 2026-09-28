@@ -1,6 +1,6 @@
 <script>
 // #ifdef APP-PLUS
-import { checkAndUpdate } from '@/utils/hotUpdate.js';
+import { checkAndUpdate } from '@/utils/appUpdate.js';
 // #endif
 import {
     getAppState,
@@ -42,20 +42,11 @@ export default {
         uni.removeStorageSync('cachedPostList');
 
         // #ifdef APP-PLUS
-        this.runWhenPlusReady((plusInstance) => {
-            try {
-                plusInstance.runtime.getProperty(plusInstance.runtime.appid, () => {
-                    checkAndUpdate({ silent: true, showConfirm: true }).catch((error) => {
-                        const message = error && (error.errMsg || error.message || String(error));
-                        if (!message || (!message.includes('resource exhausted') && !message.includes('ResourceExhausted'))) {
-                            console.warn(`[App] hot update check skipped: ${formatErrorForLog(error)}`);
-                        }
-                    });
-                });
-            } catch (error) {
-                console.warn(`[App] hot update bootstrap failed: ${formatErrorForLog(error)}`);
-            }
-        }, 'check hot update');
+        this.runWhenPlusReady(() => {
+            checkAndUpdate().catch((error) => {
+                console.warn(`[App] update check failed: ${formatErrorForLog(error)}`);
+            });
+        }, 'check app update');
         // #endif
 
         markLoginProcessStarted();

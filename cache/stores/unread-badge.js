@@ -12,7 +12,29 @@ let refreshTask = null;
 let refreshTimer = null;
 let eventsBound = false;
 let countRevision = 0;
+let lastRefreshAt = null;
+let activeUserKey = null;
+const POLL_INTERVAL_MS = 2 * 60 * 1000;
 const subscribers = new Set();
+
+function currentUserKey() {
+  const state = getAppState();
+  if (!state.isLoggedIn) return '';
+  return state.openid || state.userInfo?._openid || state.userInfo?.openid || '';
+}
+
+function syncUser() {
+  const key = currentUserKey();
+  if (activeUserKey !== key) {
+    activeUserKey = key;
+    initialized = false;
+    lastRefreshAt = null;
+    refreshTask = null;
+    invalidateUnread({ refresh: false });
+    clearUnread();
+  }
+  return key;
+}
 
 function applyUnreadCount(count) {
   countRevision += 1;
@@ -50,11 +72,13 @@ async function ensureRuntimeAuthReady() {
 
 async function initUnreadCount() {
   ensureEventBridge();
+  syncUser();
   if (initialized) return globalUnreadCount;
   return refreshUnreadCount();
 }
 
 function getUnreadCount() {
+  syncUser();
   return globalUnreadCount;
 }
 
@@ -85,40 +109,47 @@ function clearUnread() {
   setUnreadCount(0);
 }
 
-function refreshUnreadCount() {
+function refreshUnreadCount({ forceRefresh = true } = {}) {
   ensureEventBridge();
+  const userKey = syncUser();
+  if (!userKey) return Promise.resolve(globalUnreadCount);
   if (refreshTask) return refreshTask;
-  refreshTask = (async () => {
+  // 顶部栏挂载和短时间切回前台复用近期成功结果，手动刷新仍立即请求。
+  if (!forceRefresh && lastRefreshAt !== null && Date.now() - lastRefreshAt < POLL_INTERVAL_MS) {
+    return Promise.resolve(globalUnreadCount);
+  }
+  const task = (async () => {
     try {
       await ensureRuntimeAuthReady();
+      if (currentUserKey() !== userKey) return globalUnreadCount;
       // 只失效缓存，由下面的请求负责刷新，避免一次刷新发出两次云调用。
       invalidateUnread({ refresh: false });
       const revision = countRevision;
       const count = await fetchUnreadCount();
       // 请求期间若已读操作更新了状态，不允许旧响应重新点亮红点。
-      if (revision === countRevision) setUnreadCount(count || 0);
-      initialized = true;
+      if (currentUserKey() === userKey && activeUserKey === userKey) {
+        if (revision === countRevision) setUnreadCount(count || 0);
+        initialized = true;
+        lastRefreshAt = Date.now();
+      }
     } catch (error) {
       console.warn(`[unread-badge] refresh failed: ${formatErrorForLog(error)}`);
     }
     return globalUnreadCount;
-  })().finally(() => { refreshTask = null; });
+  })().finally(() => { if (refreshTask === task) refreshTask = null; });
+  refreshTask = task;
   return refreshTask;
 }
 
 function refreshWhenLoggedIn() {
-  if (!getAppState().isLoggedIn) {
-    clearUnread();
-    return;
-  }
-  return refreshUnreadCount();
+  return refreshUnreadCount({ forceRefresh: false });
 }
 
 function startPolling() {
   if (refreshTimer !== null) return;
   refreshWhenLoggedIn();
   // 其他用户的点赞/评论没有本地事件，前台定期拉取服务器未读数。
-  refreshTimer = setInterval(refreshWhenLoggedIn, 30 * 1000);
+  refreshTimer = setInterval(() => refreshUnreadCount(), POLL_INTERVAL_MS);
 }
 
 function stopPolling() {

@@ -23,12 +23,7 @@ function runtime(caller = 'viewer', blocked = false) {
     throw new Error(`unsupported expression ${JSON.stringify(value)}`);
   }
   function matches(filter, row) {
-    return Object.entries(filter).every(([key, value]) => {
-      if (key === '$expr') return expression(value, row);
-      if (value && typeof value === 'object' && '$ne' in value) return row[key] !== value.$ne;
-      if (value && typeof value === 'object' && '$nin' in value) return !value.$nin.includes(row[key]);
-      return row[key] === value;
-    });
+    return require('./helpers/posts-memory-db.cjs').matches(row, filter, { user_openid: user._openid });
   }
   const db = {
     command: { aggregate: {} },
@@ -58,6 +53,7 @@ function runtime(caller = 'viewer', blocked = false) {
   const sandbox = {
     exports: {}, console: { log() {}, warn() {}, error() {} },
     require(name) {
+      if (name === './_lib/posts') return require('../functions/_shared/posts');
       if (name === 'wx-server-sdk') return { init() {}, database: () => db, getWXContext: () => ({ OPENID: caller }) };
       if (name.includes('default-avatar')) return { ensureUserDefaultAvatar: async () => user.avatarUrl };
       if (name.includes('get-blocked-user-ids')) return async () => blocked ? ['author'] : [];
@@ -83,6 +79,11 @@ async function main() {
   const owner = await runtime('author')({ userId: 'author', skip: 0, limit: 30 });
   assert.equal(owner.posts.length, 23, 'owner still sees hidden posts, excluding official activity posts');
   assert.equal(owner.posts.filter(post => post.isHidden).length, 11);
+  posts.unshift({ _id: 'legacy-anonymous', _openid: 'author', isAnonymous: true, createTime: new Date(2099, 0, 1) });
+  const withoutAnonymous = await read({ userId: 'author', skip: 0, limit: 10 });
+  assert.deepEqual(withoutAnonymous.posts.map(post => post._id), first.posts.map(post => post._id),
+    'Anonymous legacy posts must not reveal their author through profile placement or occupy page slots');
+  posts.shift();
   assert.equal((await runtime('viewer', true)({ userId: 'author' })).code, 'USER_BLOCKED');
 
   const profile = await read({ userId: 'author', onlyProfile: true });

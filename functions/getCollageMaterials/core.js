@@ -6,7 +6,8 @@ const MATERIAL_MAX_DIMENSION = 2560;
 const MATERIAL_FILE_ID_MAX_LENGTH = 1024;
 const GROUP_NAME_MAX_LENGTH = 16;
 const UNGROUPED_NAME = '未分组';
-const DEFAULT_LIST_LIMIT = 100;
+// 官方背景已超过 100 张，默认读取完整的当前容量，避免旧素材被静默截掉。
+const DEFAULT_LIST_LIMIT = 200;
 const MAX_LIST_LIMIT = 200;
 const TYPE_FALLBACK_NAMES = { paper: '官方纸片', background: '官方背景' };
 

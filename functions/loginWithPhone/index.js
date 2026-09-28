@@ -1,93 +1,62 @@
-// 云函数入口文件
 const cloud = require('wx-server-sdk');
+const crypto = require('crypto');
 
-cloud.init({
-  env: cloud.DYNAMIC_CURRENT_ENV
-});
+cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+const db = cloud.database({ throwOnNotFound: false });
+const digest = value => crypto.createHash('sha256').update(value).digest('hex');
+const invalidCode = () => ({ success: false, code: 'CODE_INVALID', message: '验证码错误或已过期，请重新获取' });
 
-const db = cloud.database();
-
-// 云函数入口函数
-exports.main = async (event, context) => {
-  const wxContext = cloud.getWXContext();
-  const { phoneNumber } = event;
-
-  console.log('🔍 [loginWithPhone] 收到手机号登录请求:', { phoneNumber: phoneNumber ? phoneNumber.substring(0, 3) + '****' : 'undefined' });
-
-  if (!phoneNumber) {
-    return {
-      success: false,
-      message: '手机号不能为空',
-      code: 'MISSING_PHONE'
-    };
+exports.main = async (event) => {
+  const { phoneNumber: rawPhone, code: rawCode } = event || {};
+  const phoneNumber = typeof rawPhone === 'string' ? rawPhone.trim().replace(/^\+86/, '') : '';
+  const code = typeof rawCode === 'string' ? rawCode.trim() : '';
+  if (!/^1[3-9]\d{9}$/.test(phoneNumber)) {
+    return { success: false, code: 'INVALID_PHONE', message: '请输入正确的手机号' };
   }
-
-  // 验证手机号格式
-  const phoneRegex = /^1[3-9]\d{9}$/;
-  if (!phoneRegex.test(phoneNumber)) {
-    return {
-      success: false,
-      message: '请输入正确的手机号格式',
-      code: 'INVALID_PHONE'
-    };
+  if (!/^\d{6}$/.test(code)) {
+    return { success: false, code: 'INVALID_CODE', message: '请输入6位短信验证码' };
   }
 
   try {
-    // 根据手机号查询用户
-    const userRes = await db.collection('users').where({
-      phoneNumber: phoneNumber
-    }).get();
-
-    console.log('🔍 [loginWithPhone] 查询结果:', userRes);
-
-    if (userRes.data.length === 0) {
-      return {
-        success: false,
-        message: '该手机号尚未注册，请先注册',
-        code: 'PHONE_NOT_REGISTERED'
-      };
-    }
-
-    const userInfo = userRes.data[0];
-    const currentOpenid = wxContext.OPENID;
-
-    console.log('✅ [loginWithPhone] 登录成功，用户信息:', {
-      _openid: userInfo._openid,
-      nickName: userInfo.nickName,
-      phoneNumber: userInfo.phoneNumber ? userInfo.phoneNumber.substring(0, 3) + '****' : 'none',
-      currentOpenid: currentOpenid
+    // 验证、错误计数与消费在同一事务中，保证并发登录仅成功一次。
+    const verification = await db.runTransaction(async transaction => {
+      const ref = transaction.collection('sms_codes').doc(`login_${digest(phoneNumber)}`);
+      const { data: record } = await ref.get();
+      const now = new Date();
+      if (!record || record.phone !== phoneNumber || record.scene !== 'login' || record.status !== 'sent' ||
+          record.used || !(new Date(record.expiredAt) > now)) return invalidCode();
+      if (record.attempts >= 5) {
+        return { success: false, code: 'CODE_ATTEMPTS_EXCEEDED', message: '验证码错误次数过多，请重新获取' };
+      }
+      const expected = typeof record.codeHash === 'string' ? Buffer.from(record.codeHash, 'hex') : Buffer.alloc(0);
+      const actual = Buffer.from(digest(`${record.requestId}:${code}`), 'hex');
+      if (expected.length !== actual.length || !crypto.timingSafeEqual(expected, actual)) {
+        const attempts = (record.attempts || 0) + 1;
+        await ref.update({ data: { attempts } });
+        return attempts >= 5
+          ? { success: false, code: 'CODE_ATTEMPTS_EXCEEDED', message: '验证码错误次数过多，请重新获取' }
+          : invalidCode();
+      }
+      await ref.update({ data: { used: true, usedAt: now } });
+      return { success: true };
     });
+    if (!verification.success) return verification;
 
-    // 检测 openid 是否不同（但不自动更新）
-    const needBindWechat = currentOpenid && currentOpenid !== userInfo._openid;
-    
-    if (needBindWechat) {
-      console.log('⚠️ [loginWithPhone] 检测到 openid 不同，需要用户确认绑定');
+    const userRes = await db.collection('users').where({ phoneNumber }).limit(2).get();
+    if (userRes.data.length === 0) {
+      return { success: false, code: 'PHONE_NOT_REGISTERED', message: '该手机号尚未注册，请先注册并绑定手机号' };
     }
-
-    // 返回用户信息，但不包含密码
-    const { password: _, ...safeUserInfo } = userInfo;
-
-    // 判断是否已验证手机号（应该为true，因为是手机号登录）
-    const isPhoneVerified = !!(safeUserInfo.phoneNumber && safeUserInfo.phoneNumber.trim());
-
+    if (userRes.data.length > 1) {
+      return { success: false, code: 'AMBIGUOUS_ACCOUNT', message: '手机号绑定多个账号，请使用 Poem ID 和密码登录' };
+    }
+    const { password, ...userInfo } = userRes.data[0];
+    const currentOpenid = cloud.getWXContext().OPENID;
     return {
-      success: true,
-      message: '登录成功',
-      userInfo: safeUserInfo,
-      openid: userInfo._openid, // 返回数据库中的 openid
-      currentOpenid: currentOpenid, // 返回当前微信的 openid
-      needBindWechat: needBindWechat, // 是否需要绑定微信
-      isPhoneVerified: isPhoneVerified
+      success: true, message: '登录成功', userInfo, openid: userInfo._openid, currentOpenid,
+      needBindWechat: !!(currentOpenid && currentOpenid !== userInfo._openid), isPhoneVerified: true
     };
-
   } catch (error) {
-    console.error('❌ [loginWithPhone] 登录失败:', error);
-    return {
-      success: false,
-      message: '登录失败，请重试',
-      code: 'LOGIN_ERROR',
-      error: error.message
-    };
+    console.error('[loginWithPhone] 登录失败:', error);
+    return { success: false, code: 'LOGIN_ERROR', message: '登录失败，请重新获取验证码后重试' };
   }
 };

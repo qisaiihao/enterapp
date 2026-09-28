@@ -36,6 +36,7 @@ class NamespaceHandle {
     this.maxItems = (opts && opts.maxItems) || DEFAULT_MAX_ITEMS;
     this.persistent = !!(opts && opts.persistent);
     this.mem = new Map();
+    this._pending = new Map();
     this._useUni = hasUniStorage();
     this._ls = this._useUni ? null : tryLocalStorage();
     this.stats = { hits: 0, misses: 0, evictions: 0, gets: 0, sets: 0 };
@@ -61,7 +62,7 @@ class NamespaceHandle {
   keys() {
     const memKeys = Array.from(this.mem.keys());
     const idxKeys = this._listPersistKeys();
-    const set = new Set(memKeys.concat(idxKeys));
+    const set = new Set(memKeys.concat(idxKeys, Array.from(this._pending.keys())));
     return Array.from(set);
   }
 
@@ -150,6 +151,8 @@ class NamespaceHandle {
   }
 
   set(key, val, opts) {
+    // 显式写入（如已读/点赞操作）优先于尚未返回的旧请求。
+    this._pending.delete(key);
     const ttlMs = (opts && opts.ttlMs) || 0;
     const nowTs = now();
     const expireAt = ttlMs > 0 ? nowTs + ttlMs : 0;
@@ -180,6 +183,7 @@ class NamespaceHandle {
       const cur = rec.v;
       const next = typeof updater === 'function' ? updater(cur) : cur;
       if (next !== undefined) {
+        this._pending.delete(key);
         // 注意：这里传递的ttlMs应该是绝对值，不是相对值
         // 但update方法的语义应该是保持原有过期设置
         if (rec.e === 0) {
@@ -200,6 +204,7 @@ class NamespaceHandle {
   }
 
   delete(key) {
+    this._pending.delete(key);
     this.mem.delete(key);
     this._removePersist(key);
   }
@@ -217,8 +222,7 @@ class NamespaceHandle {
       const rec = this.mem.get(key) || this._readPersist(key);
       if (rec && rec.e === 0) {
         console.log(`🧹 [Cache-Cleanup] 清除永不过期缓存 - key: ${key.substring(0, 50)}...`);
-        this.mem.delete(key);
-        this._removePersist(key);
+        this.delete(key);
         clearedCount++;
       }
     }
@@ -227,6 +231,7 @@ class NamespaceHandle {
   }
 
   clear() {
+    this._pending.clear();
     this.mem.clear();
     if (!this.persistent) return;
     try {
@@ -242,6 +247,28 @@ class NamespaceHandle {
         this._ls.removeItem(this._idxKey());
       }
     } catch (_) {}
+  }
+
+  _load(key, loader, ttlMs, onBackgroundUpdate) {
+    let task = this._pending.get(key);
+    if (!task) {
+      task = { callbacks: new Set(), promise: null };
+      this._pending.set(key, task);
+      task.promise = Promise.resolve().then(loader).then((val) => {
+        // 失效、账号切换或手动更新之后，旧响应不得写回缓存或通知页面。
+        if (this._pending.get(key) === task) {
+          this.set(key, val, { ttlMs });
+          task.callbacks.forEach((callback) => {
+            try { Promise.resolve(callback(val)).catch(() => {}); } catch (_) {}
+          });
+        }
+        return val;
+      }).finally(() => {
+        if (this._pending.get(key) === task) this._pending.delete(key);
+      });
+    }
+    if (typeof onBackgroundUpdate === 'function') task.callbacks.add(onBackgroundUpdate);
+    return task.promise;
   }
 
   async getOrFetch(key, loader, opts) {
@@ -268,18 +295,11 @@ class NamespaceHandle {
     if (isInSWRWindow) {
       rec.la = nowTs;
       // SWR: 先返回旧数据，后台更新
-      loader().then((val) => {
-        this.set(key, val, { ttlMs });
-        if (onBackgroundUpdate && typeof onBackgroundUpdate === 'function') {
-          try { onBackgroundUpdate(val); } catch (_) {}
-        }
-      }).catch(() => {});
+      this._load(key, loader, ttlMs, onBackgroundUpdate).catch(() => {});
       return rec.v;
     }
 
-    const val = await loader();
-    this.set(key, val, { ttlMs });
-    return val;
+    return this._load(key, loader, ttlMs);
   }
 }
 

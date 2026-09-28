@@ -33,8 +33,14 @@
         <view class="settings-card">
           <view class="settings-row">
             <text class="settings-row-label">版本</text>
-            <text class="settings-row-value">1.6.3</text>
+            <text class="settings-row-value">{{ appVersion }}</text>
           </view>
+          <!-- #ifdef APP-PLUS -->
+          <view class="settings-row" @tap="checkUpdate">
+            <text class="settings-row-label">检查更新</text>
+            <text class="settings-row-value">{{ checkingUpdate ? '正在检查…' : '›' }}</text>
+          </view>
+          <!-- #endif -->
         </view>
       </view>
     </view>
@@ -43,6 +49,10 @@
 </template>
 
 <script>
+import { versionName } from '@/manifest.json';
+// #ifdef APP-PLUS
+import { checkAndUpdate, getAppVersionInfo } from '@/utils/appUpdate.js';
+// #endif
 import { getSystemInfoCompat } from '@/utils/system-info.js';
 import {
   READ_FONT_LEVELS,
@@ -54,6 +64,8 @@ import {
 export default {
   data() {
     return {
+      appVersion: versionName,
+      checkingUpdate: false,
       pageInlineStyle: {},
       activeFontSize: getReadFontSizeLevel(),
       fontSizeOptions: READ_FONT_LEVEL_NAMES.map(value => ({
@@ -64,8 +76,20 @@ export default {
   },
   onLoad() {
     this.setupHeaderLayout();
+    // #ifdef APP-PLUS
+    getAppVersionInfo().then(info => { this.appVersion = info.wgtVersion; }).catch(() => {});
+    // #endif
   },
   methods: {
+    async checkUpdate() {
+      // #ifdef APP-PLUS
+      if (this.checkingUpdate) return;
+      this.checkingUpdate = true;
+      try { await checkAndUpdate({ manual: true }); }
+      catch (_) { /* The update module displays the error. */ }
+      finally { this.checkingUpdate = false; }
+      // #endif
+    },
     setupHeaderLayout() {
       try {
         const systemInfo = getSystemInfoCompat();

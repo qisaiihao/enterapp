@@ -1,3 +1,4 @@
+const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 // 云函数入口文件
 const cloud = require('wx-server-sdk');
 const { ensureUserDefaultAvatar } = require('./_lib/default-avatar');
@@ -6,7 +7,7 @@ cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
 
-const db = cloud.database();
+const db = createPostsDatabase(cloud.database());
 const $ = db.command.aggregate;
 
 function normalizeAppBackgroundUrl(url) {
@@ -110,6 +111,7 @@ exports.main = async (event, context) => {
       };
       if (!isOwner) {
         postMatch.isHidden = { $ne: true };
+        postMatch.isAnonymous = { $nin: [true, 'true'] };
         if (blockedUserIds.length > 0) postMatch._openid = { $nin: blockedUserIds };
       }
       profileData = await db.collection('users').aggregate()
@@ -161,7 +163,7 @@ exports.main = async (event, context) => {
       try {
         if (!isOwner && Array.isArray(posts)) {
           posts = posts.filter((p) => {
-            if (!p || p.isHidden === true) return false;
+            if (!p || p.isHidden === true || p.isAnonymous === true || p.isAnonymous === 'true') return false;
             if (p.isActivityPost === true) return false;
             // 虽然已经检查过是否屏蔽了目标用户，但这里再过滤一次确保安全
             if (blockedUserIds.length > 0 && blockedUserIds.includes(p._openid)) return false;
@@ -389,3 +391,5 @@ exports.main = async (event, context) => {
 };
 
 
+
+exports.main = withPostResponse(exports.main);

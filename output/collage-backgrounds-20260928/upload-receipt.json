@@ -1,0 +1,283 @@
+{
+  "batchId": "collage-backgrounds-20260928",
+  "environment": "cloud1-5gb0pbyl400845f5",
+  "groups": [
+    {
+      "id": "345cf9926ab9e2200201599503adac13",
+      "name": "旧纸与档案"
+    },
+    {
+      "id": "650815a96ab9e22101279058431fafcc",
+      "name": "素色肌理"
+    },
+    {
+      "id": "3d00e15d6ab9e22100aae90265360d14",
+      "name": "褶皱与拼接"
+    },
+    {
+      "id": "3d00e15d6ab9e22100aae9062de0ccb1",
+      "name": "水彩底色"
+    },
+    {
+      "id": "345cf9926ab9e222020159a37fd8adf6",
+      "name": "书页与文具"
+    }
+  ],
+  "materials": [
+    {
+      "key": "pxhere-650847",
+      "name": "旧信纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-650847.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-650847.jpg",
+      "id": "01f3430d6ab9e22200b69f8430976ca9",
+      "groupId": "345cf9926ab9e2200201599503adac13"
+    },
+    {
+      "key": "pxhere-650326",
+      "name": "折痕牛皮纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-650326.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-650326.jpg",
+      "id": "01f3430d6ab9e22300b69f987b496be6",
+      "groupId": "345cf9926ab9e2200201599503adac13"
+    },
+    {
+      "key": "pxhere-650850",
+      "name": "砂金旧纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-650850.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-650850.jpg",
+      "id": "345cf9926ab9e224020159c71bd2c38d",
+      "groupId": "345cf9926ab9e2200201599503adac13"
+    },
+    {
+      "key": "pxhere-650841",
+      "name": "蜂蜜色书页",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-650841.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-650841.jpg",
+      "id": "345cf9926ab9e225020159d15f1c7393",
+      "groupId": "345cf9926ab9e2200201599503adac13"
+    },
+    {
+      "key": "pxhere-650837",
+      "name": "酒红绒纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-650837.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-650837.jpg",
+      "id": "650815a96ab9e2260127908b63c66cd5",
+      "groupId": "650815a96ab9e22101279058431fafcc"
+    },
+    {
+      "key": "pxhere-650329",
+      "name": "砖红纸面",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-650329.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-650329.jpg",
+      "id": "3d00e15d6ab9e22700aae9310740da84",
+      "groupId": "650815a96ab9e22101279058431fafcc"
+    },
+    {
+      "key": "pxhere-650845",
+      "name": "奶油信纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-650845.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-650845.jpg",
+      "id": "3d00e15d6ab9e22800aae9355241c389",
+      "groupId": "650815a96ab9e22101279058431fafcc"
+    },
+    {
+      "key": "pxhere-978331",
+      "name": "纤维和纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-978331.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-978331.jpg",
+      "id": "3d00e15d6ab9e22900aae9454cc9852d",
+      "groupId": "650815a96ab9e22101279058431fafcc"
+    },
+    {
+      "key": "pxhere-1258433",
+      "name": "金黄揉纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-1258433.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-1258433.jpg",
+      "id": "3d00e15d6ab9e22900aae94f492a4386",
+      "groupId": "3d00e15d6ab9e22100aae90265360d14"
+    },
+    {
+      "key": "pxhere-1581409",
+      "name": "胶带纸箱",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-1581409.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-1581409.jpg",
+      "id": "650815a96ab9e22a012790bc02bb2a92",
+      "groupId": "3d00e15d6ab9e22100aae90265360d14"
+    },
+    {
+      "key": "pxhere-1025915",
+      "name": "焦边旧纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-1025915.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-1025915.jpg",
+      "id": "01f3430d6ab9e22b00b6a0142c5e6754",
+      "groupId": "345cf9926ab9e2200201599503adac13"
+    },
+    {
+      "key": "pxhere-813098",
+      "name": "旧布拼接",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-813098.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-813098.jpg",
+      "id": "01f3430d6ab9e22c00b6a027363d1b40",
+      "groupId": "3d00e15d6ab9e22100aae90265360d14"
+    },
+    {
+      "key": "pxhere-699344",
+      "name": "浅杏细格",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-699344.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-699344.jpg",
+      "id": "650815a96ab9e22d012790d1375b30e2",
+      "groupId": "650815a96ab9e22101279058431fafcc"
+    },
+    {
+      "key": "pxhere-689102",
+      "name": "深苔绿肌理",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-689102.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-689102.jpg",
+      "id": "345cf9926ab9e22e02015a5a34447972",
+      "groupId": "650815a96ab9e22101279058431fafcc"
+    },
+    {
+      "key": "pxhere-645030",
+      "name": "湖蓝刷纹",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-645030.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-645030.jpg",
+      "id": "01f3430d6ab9e22f00b6a046087ce454",
+      "groupId": "650815a96ab9e22101279058431fafcc"
+    },
+    {
+      "key": "pxhere-1263439",
+      "name": "浅草绿纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-1263439.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-1263439.jpg",
+      "id": "3d00e15d6ab9e23000aae98e7c759d5c",
+      "groupId": "3d00e15d6ab9e22100aae9062de0ccb1"
+    },
+    {
+      "key": "pxhere-1442985",
+      "name": "薄荷揉纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-1442985.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-1442985.jpg",
+      "id": "345cf9926ab9e23102015a8669e25282",
+      "groupId": "3d00e15d6ab9e22100aae90265360d14"
+    },
+    {
+      "key": "pxhere-1619829",
+      "name": "灰蓝再生纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-1619829.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-1619829.jpg",
+      "id": "345cf9926ab9e23202015a8c40efef96",
+      "groupId": "650815a96ab9e22101279058431fafcc"
+    },
+    {
+      "key": "pxhere-720722",
+      "name": "蓝色墨迹",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-720722.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-720722.jpg",
+      "id": "01f3430d6ab9e23200b6a06d306c5c44",
+      "groupId": "3d00e15d6ab9e22100aae9062de0ccb1"
+    },
+    {
+      "key": "pxhere-1110070",
+      "name": "海盐青绿",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-1110070.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-1110070.jpg",
+      "id": "345cf9926ab9e23302015aa654b1e60b",
+      "groupId": "3d00e15d6ab9e22100aae9062de0ccb1"
+    },
+    {
+      "key": "pxhere-1412537",
+      "name": "粉褐手工纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-1412537.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-1412537.jpg",
+      "id": "345cf9926ab9e23402015ab127248359",
+      "groupId": "650815a96ab9e22101279058431fafcc"
+    },
+    {
+      "key": "pxhere-1201393",
+      "name": "旧书铅字",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-1201393.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-1201393.jpg",
+      "id": "345cf9926ab9e23502015abd4b79c375",
+      "groupId": "345cf9926ab9e222020159a37fd8adf6"
+    },
+    {
+      "key": "pxhere-1436955",
+      "name": "浅粉细纹",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-1436955.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-1436955.jpg",
+      "id": "345cf9926ab9e23602015ac646081edf",
+      "groupId": "650815a96ab9e22101279058431fafcc"
+    },
+    {
+      "key": "pxhere-1459513",
+      "name": "一枚回形针",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-1459513.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-1459513.jpg",
+      "id": "650815a96ab9e237012791286f2cbf65",
+      "groupId": "345cf9926ab9e222020159a37fd8adf6"
+    },
+    {
+      "key": "pxhere-1013999",
+      "name": "蔷薇纸纹",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-1013999.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-1013999.jpg",
+      "id": "01f3430d6ab9e23800b6a1197b40f761",
+      "groupId": "650815a96ab9e22101279058431fafcc"
+    },
+    {
+      "key": "pxhere-1110056",
+      "name": "暖橙水彩",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-1110056.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-1110056.jpg",
+      "id": "3d00e15d6ab9e23900aae9be6fb34824",
+      "groupId": "3d00e15d6ab9e22100aae9062de0ccb1"
+    },
+    {
+      "key": "pxhere-1622102",
+      "name": "浅桃粉纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-1622102.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-1622102.jpg",
+      "id": "3d00e15d6ab9e23a00aae9c76e36c706",
+      "groupId": "650815a96ab9e22101279058431fafcc"
+    },
+    {
+      "key": "pxhere-945512",
+      "name": "空白手记",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/pxhere-945512.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/pxhere-945512.jpg",
+      "id": "650815a96ab9e23a0127914d2fb50e3c",
+      "groupId": "345cf9926ab9e222020159a37fd8adf6"
+    },
+    {
+      "key": "commons-34753833",
+      "name": "橘色旧封纸",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/commons-34753833.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/commons-34753833.jpg",
+      "id": "345cf9926ab9e23b02015b341e5dbbd8",
+      "groupId": "345cf9926ab9e2200201599503adac13"
+    },
+    {
+      "key": "commons-43240888",
+      "name": "橄榄绿古书",
+      "cloudPath": "collage-materials/background/collage-backgrounds-20260928/commons-43240888.jpg",
+      "fileID": "cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/collage-materials/background/collage-backgrounds-20260928/commons-43240888.jpg",
+      "id": "01f3430d6ab9e23c00b6a1563e0bc1ff",
+      "groupId": "345cf9926ab9e222020159a37fd8adf6"
+    }
+  ],
+  "existingMaterialIds": [
+    "650815a96ab49a3700c92ab22e1da0f7",
+    "01f3430d6ab49a4f0077fab66dd07934",
+    "3d00e15d6ab49a5f0077f80763613c8b",
+    "345cf9926ab4aad4013ad6723031b650",
+    "650815a96ab4aae100cad4e4174fe8fc",
+    "01f3430d6ab4aae90078fb7b4a31f396",
+    "01f3430d6ab4aaf80078fcf905eca93d",
+    "650815a96ab4ab1600cadc8b0c7f4f22"
+  ],
+  "verifiedAt": "2026-09-28T03:42:51.870Z",
+  "verifiedCount": 30,
+  "totalBackgroundCount": 38,
+  "publicListingVerified": true,
+  "browserVerifiedSamples": 5
+}

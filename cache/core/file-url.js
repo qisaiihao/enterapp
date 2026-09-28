@@ -13,6 +13,7 @@
 import cacheManager from './manager';
 
 const DEFAULT_BATCH_DELAY_MS = 200;
+const MAX_BATCH_SIZE = 50; // CloudBase 临时链接接口每次最多 50 个文件。
 const DEFAULT_TTL_MS = 55 * 60 * 1000;  // 55 分钟
 const EXPIRY_SKEW_MS = 60 * 1000;       // 1 分钟安全裕量
 
@@ -116,11 +117,16 @@ class FileUrlCache {
     clearTimeout(this._timer); this._timer = null;
     if (ids.length === 0) return;
 
-    let fetched = {};
-    try {
-      fetched = await this._resolve(ids);
-    } catch (e) {
-      fetched = {};
+    // 网络请求期间新加入的调用由下一批处理，不能被本批提前结算。
+    const waiters = this._waiters;
+    this._waiters = [];
+    const fetched = {};
+    for (let i = 0; i < ids.length; i += MAX_BATCH_SIZE) {
+      try {
+        Object.assign(fetched, await this._resolve(ids.slice(i, i + MAX_BATCH_SIZE)));
+      } catch (_) {
+        // 保留其他批次的成功结果，未成功的文件留待调用方重试。
+      }
     }
 
     const nowTs = now();
@@ -137,8 +143,6 @@ class FileUrlCache {
       }
     });
 
-    const waiters = this._waiters;
-    this._waiters = [];
     waiters.forEach(({ ids, resolve }) => {
       const out = {};
       ids.forEach(id => {
@@ -147,7 +151,7 @@ class FileUrlCache {
           const val = this._ns.get(id);
           if (val && typeof val.url === 'string') { entry = val; this._cache.set(id, entry); }
         }
-        if (entry && entry.url) out[id] = entry.url;
+        if (entry && entry.url && entry.expireAt > now()) out[id] = entry.url;
       });
       resolve(out);
     });

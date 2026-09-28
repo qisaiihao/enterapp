@@ -107,13 +107,14 @@ class TencentCloudSmsProvider {
       };
 
       console.log('📱 [TencentCloudSms] 请求参数:', {
-        ...params,
+        SmsSdkAppId: params.SmsSdkAppId,
+        TemplateId: params.TemplateId,
         PhoneNumberSet: [formattedPhone.substring(0, 6) + '****']
       });
 
       const response = await this.client.SendSms(params);
 
-      console.log('📱 [TencentCloudSms] 腾讯云 API 响应:', response);
+      console.log('📱 [TencentCloudSms] 腾讯云请求完成:', response.RequestId);
 
       if (response.SendStatusSet && response.SendStatusSet.length > 0) {
         const status = response.SendStatusSet[0];

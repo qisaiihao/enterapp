@@ -512,8 +512,15 @@ export default {
 
     isPoemCard(item) {
       if (!item) return false;
-      if (item.isDiscussion) return false;
-      return item.isPoem === true || item.publishMode === 'poem' || item.isSeries === true;
+      if (item.isDiscussion || item.publishMode === 'discussion') return false;
+      if (item.isPoem === true || item.publishMode === 'poem' || item.isSeries === true) return true;
+
+      // 普通入口关联活动的纯文字投稿也使用诗歌卡片，仅改变活动页展示。
+      const joinedActivityId = String(item.joinedActivityId || '').trim();
+      if (!this.activityId || joinedActivityId !== this.activityId || this.isPinnedActivityPost(item)) return false;
+      const hasImages = [item.imageUrls, item.imageUrl, item.originalImageUrls, item.originalImageUrl]
+        .some(value => Array.isArray(value) ? value.some(Boolean) : !!value);
+      return !hasImages && typeof item.content === 'string' && !!item.content.trim();
     },
 
     handlePoemCardTap(data = {}) {

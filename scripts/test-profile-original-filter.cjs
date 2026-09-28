@@ -49,6 +49,7 @@ function loadBackend() {
   const globals = {
     exports: {}, console: quiet,
     require(name) {
+      if (name === './_lib/posts') return require('../functions/_shared/posts');
       if (name === 'wx-server-sdk') return { init() {}, database: () => db, getWXContext: () => ({ OPENID: 'me' }) };
       if (name.includes('request-context')) return { resolveOpenId: () => 'me' };
       if (name.includes('handlers/drafts')) return { createDraftHandlers: () => ({}) };
@@ -73,7 +74,13 @@ function stripImports(source, globals) {
 function loadApi(read) {
   const globals = {};
   const source = stripImports(fs.readFileSync(path.join(root, 'api-cache/my.js'), 'utf8'), globals);
-  globals.cacheManager = { namespace: () => ({}) };
+  const cacheGlobals = {};
+  const cacheSource = fs.readFileSync(path.join(root, 'cache/core/manager.js'), 'utf8')
+    .replace('export { singleton as cacheManager };', '')
+    .replace('export default singleton;', 'globalThis.cacheManager = singleton;');
+  vm.runInNewContext(cacheSource, cacheGlobals);
+  globals.cacheManager = cacheGlobals.cacheManager;
+  globals.getOpenid = () => 'me';
   globals.callCloudAndUnwrap = async (name, payload) => {
     assert.equal(name, 'getMyProfileData');
     return read(payload);

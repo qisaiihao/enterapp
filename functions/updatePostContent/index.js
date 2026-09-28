@@ -1,6 +1,7 @@
+const { createPostsDatabase, withPostResponse, resolveOwner } = require('./_lib/posts');
 const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
-const db = cloud.database();
+const db = createPostsDatabase(cloud.database());
 const _ = db.command;
 
 // 可编辑的字段（根据实际需求可拓展）
@@ -13,6 +14,7 @@ const EDITABLE_KEYS = [
   'textColor',
   'highlightSentence',
   'highlightLines',
+  'sentenceGroups',
   'isAnonymous',
   'anonymousAuthorName',
   'author',
@@ -94,8 +96,29 @@ exports.main = async (event, context) => {
     if (!post) {
       return { success: false, code: 'NOT_FOUND', message: '帖子不存在' };
     }
-    if (post._openid !== openid) {
+    if (resolveOwner(post) !== openid) {
       return { success: false, code: 'FORBIDDEN', message: '无权编辑该帖子' };
+    }
+
+    // 已匿名的帖子编辑后继续匿名，兼容旧客户端漏传或默认传 false。
+    // 普通内容编辑不承担公开作者身份的操作。
+    if (post.isAnonymous === true || input.isAnonymous !== undefined) {
+      const anonymous = post.isAnonymous === true || input.isAnonymous === true || input.isAnonymous === 'true';
+      if (anonymous && post.isActivityPost === true) {
+        return { success: false, code: 'INVALID_ANONYMOUS_ACTIVITY', message: '官方活动帖不支持匿名' };
+      }
+      updateData.isAnonymous = anonymous;
+      updateData._openid = anonymous ? '123456' : openid;
+      updateData.realAuthorOpenid = anonymous ? openid : null;
+      if (anonymous) {
+        updateData.authorName = input.anonymousAuthorName || '匿名用户';
+        updateData.anonymousAuthorName = updateData.authorName;
+        updateData.author = updateData.authorName;
+        updateData.authorNameSnapshot = updateData.authorName;
+        updateData.authorAvatar = '/static/images/avatar.png';
+        updateData.authorAvatarSnapshot = updateData.authorAvatar;
+        updateData.authorSignature = '';
+      }
     }
 
         // 官方活动帖不允许改活动归属，避免污染活动官方流
@@ -237,3 +260,5 @@ exports.main = async (event, context) => {
     return { success: false, code: 'ERROR', message: e.message };
   }
 };
+
+exports.main = withPostResponse(exports.main);

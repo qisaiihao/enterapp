@@ -59,7 +59,9 @@ export function saveWorkspace(key, workspace) {
 }
 export async function persistFile(path) {
   // #ifdef H5
-  const response = await fetch(path);
+  // 官方素材预览可能缓存了不带 CORS 响应头的图片（服务端未返回 Vary: Origin）。
+  // 保存时重新发起 CORS 请求，避免复用预览缓存；保留原 URL，兼容签名链接。
+  const response = await fetch(path, { cache: 'no-store' });
   if (!response.ok) throw new Error('读取图片失败');
   const blob = await response.blob();
   const key = `idb:${uid()}`;

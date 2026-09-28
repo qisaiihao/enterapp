@@ -1,8 +1,9 @@
+const { createPostsDatabase, withPostResponse, resolveOwner } = require('./_lib/posts');
 // 更新帖子可见性（隐藏/取消隐藏）
 const cloud = require('wx-server-sdk');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
-const db = cloud.database();
+const db = createPostsDatabase(cloud.database());
 
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
@@ -22,7 +23,7 @@ exports.main = async (event, context) => {
     if (!post) {
       return { success: false, code: 'NOT_FOUND', message: '帖子不存在' };
     }
-    if (post._openid !== openid) {
+    if (resolveOwner(post) !== openid) {
       return { success: false, code: 'FORBIDDEN', message: '无权操作该帖子' };
     }
 
@@ -36,3 +37,5 @@ exports.main = async (event, context) => {
   }
 };
 
+
+exports.main = withPostResponse(exports.main);

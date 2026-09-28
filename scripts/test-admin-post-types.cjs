@@ -30,7 +30,7 @@ async function main() {
     { _id: 'discussion-priority', createTime: 55, isDiscussion: true, isPoem: true, isOriginal: true }
   ];
   const db = {
-    command: { aggregate: {}, neq: value => ({ neq: value }) },
+    command: { aggregate: {}, neq: value => ({ $ne: value }) },
     collection(name) {
       assert.equal(name, 'posts');
       let filter = {}, skip = 0, limit = 100;
@@ -38,8 +38,7 @@ async function main() {
         where(value) { filter = value; return query; }, orderBy() { return query; },
         skip(value) { skip = value; return query; }, limit(value) { limit = value; return query; },
         async get() {
-          const selected = rows.filter(row => Object.entries(filter).every(([key, value]) =>
-            value && typeof value === 'object' && 'neq' in value ? row[key] !== value.neq : row[key] === value));
+          const selected = rows.filter(row => require('./helpers/posts-memory-db.cjs').matches(row, filter));
           return { data: structuredClone(selected.sort((a, b) => b.createTime - a.createTime).slice(skip, skip + limit)) };
         }
       };
@@ -47,6 +46,7 @@ async function main() {
     }
   };
   const globals = { exports: {}, console: quiet, require(name) {
+      if (name === './_lib/posts') return require('../functions/_shared/posts');
     if (name === 'wx-server-sdk') return { init() {}, database: () => db };
     if (name.includes('admin-auth')) return { isAdminByPoemId: async ({ openid }) => openid === 'admin' };
     if (name === './_lib/activity') return require(path.join(root, 'functions/_lib/activity.js'));

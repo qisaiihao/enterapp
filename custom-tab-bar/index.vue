@@ -17,6 +17,7 @@
 
 <script>
 import { lightImpact } from '@/utils/haptics.js';
+import { requireLogin } from '@/utils/authHelper.js';
 
 const DARK_TAB_ICON_VERSION = '20260429-toned-white';
 
@@ -157,19 +158,8 @@ export default {
                 
                 if (!isLoggedIn) {
                     console.log('⚠️ [TabBar] 用户未登录，提示登录');
-                    uni.showModal({
-                        title: '需要登录',
-                        content: '查看个人主页需要登录，请先登录',
-                        confirmText: '去登录',
-                        cancelText: '取消',
-                        success: (res) => {
-                            if (res.confirm) {
-                                // 使用 navigateTo 跳转到登录页
-                                uni.navigateTo({
-                                    url: '/pages/login/login'
-                                });
-                            }
-                        }
+                    requireLogin({
+                        content: '查看个人主页需要登录，请先登录'
                     });
                     return;
                 }

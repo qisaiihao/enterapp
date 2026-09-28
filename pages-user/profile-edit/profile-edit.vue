@@ -1595,6 +1595,8 @@ export default {
 }
 
 .modal-content {
+    max-height: 90vh;
+    overflow-y: auto;
     position: relative;
     width: 100%;
     background: var(--app-surface-bg, #fff);

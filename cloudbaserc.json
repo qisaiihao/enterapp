@@ -768,6 +768,14 @@
               "memory": 128
             },
             {
+              "name": "resetPassword",
+              "root": "./functions/resetPassword",
+              "runtime": "Nodejs16.13",
+              "timeout": 10,
+              "memory": 128,
+              "installDependency": true
+            },
+            {
               "name": "removeFromPortfolio",
               "root": "./functions/removeFromPortfolio",
               "timeout": 3,

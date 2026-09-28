@@ -28,9 +28,7 @@
 		"node_modules",
 		"unpackage",
 		"dist",
-		"**/*.js",
-		"uni_modules/uni-upgrade-center-app/**/*"
+		"**/*.js"
 	]
 }
-
 

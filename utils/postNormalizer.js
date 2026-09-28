@@ -42,11 +42,33 @@ const normalizePost = (post = {}, options = {}) => {
 
     const normalized = {
         ...post,
+        publishMode: post.publishMode || (post.isDiscussion ? 'discussion' : (post.isPoem || post.isSeries ? 'poem' : 'normal')),
+        isPoem: post.schemaVersion === 2 ? post.publishMode === 'poem' : (post.isPoem === true || post.publishMode === 'poem'),
+        isDiscussion: post.schemaVersion === 2 ? post.publishMode === 'discussion' : (post.isDiscussion === true || post.publishMode === 'discussion'),
+        isActivityPost: post.isActivityPost === true || Boolean(post.activityId),
+        tags: toArray(post.tags),
+        sentenceGroups: toArray(post.sentenceGroups).length ? post.sentenceGroups : (post.schemaVersion === 2 ? [] : toArray(post.discussionSentences)),
+        highlightLines: toArray(post.highlightLines).length ? post.highlightLines : (post.schemaVersion === 2 ? [] : toArray(post.highlightSentence)),
+        highlightSentence: toArray(post.highlightLines)[0] || (post.schemaVersion === 2 ? '' : post.highlightSentence) || '',
+        seriesBlocks: toArray(post.seriesBlocks),
+        seriesBlockCount: post.seriesBlockCount || toArray(post.seriesBlocks).length,
         imageUrls,
         originalImageUrls,
-        authorName: post.authorName || DEFAULT_AUTHOR_NAME,
+        authorName: post.authorName || post.authorNameSnapshot || DEFAULT_AUTHOR_NAME,
         authorAvatar: resolvePostAuthorAvatar(post)
     };
+    // 缓存中可能仍有旧接口的作者快照，匿名帖不能显示这些身份字段。
+    normalized.isAnonymous = post.isAnonymous === true || post.isAnonymous === 'true' || post._openid === '123456';
+    delete normalized.realAuthorOpenid;
+    if (normalized.isAnonymous) {
+        normalized._openid = '123456';
+        normalized.authorName = post.anonymousAuthorName || '匿名用户';
+        normalized.authorNameSnapshot = normalized.authorName;
+        if (normalized.author) normalized.author = normalized.authorName;
+        normalized.authorSignature = '';
+        normalized.authorAvatar = resolvePostAuthorAvatar(normalized);
+        normalized.authorAvatarSnapshot = normalized.authorAvatar;
+    }
 
     if (!normalized.imageStyle && imageUrls.length > 0) {
         normalized.imageStyle = DEFAULT_IMAGE_STYLE;

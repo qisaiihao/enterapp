@@ -179,7 +179,11 @@ export async function cloudCall(name, data = {}, options = {}) {
 
     for (let attempt = 1; attempt <= totalAttempts; attempt += 1) {
         try {
-            console.log(`[cloudCall][${pageTag}] calling "${name}" (${attempt}/${totalAttempts})`, payload);
+            const logPayload = Object.assign({}, payload);
+            ['password', 'newPassword', 'confirmPassword', 'code'].forEach(key => {
+                if (Object.prototype.hasOwnProperty.call(logPayload, key)) logPayload[key] = '***';
+            });
+            console.log(`[cloudCall][${pageTag}] calling "${name}" (${attempt}/${totalAttempts})`, logPayload);
             const result = await invokeCloudFunction(method, {
                 context,
                 options: {

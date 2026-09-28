@@ -68,7 +68,8 @@ function main() {
   assert.deepEqual(core.normalizeMaterial(sample), adminLib.normalizeMaterial(sample));
   const groupSample = { _id: 'g1', type: 'paper', name: ' 春日 ', sort: '3' };
   assert.deepEqual(core.normalizeGroup(groupSample), adminLib.normalizeGroup(groupSample));
-  assert.equal(core.DEFAULT_LIST_LIMIT, 100);
+  assert.equal(core.DEFAULT_LIST_LIMIT, 200);
+  assert.ok(core.normalizeLimit(undefined) >= 101, '未指定 limit 的旧客户端仍须读到第 101 张背景');
   assert.equal(core.normalizeLimit(undefined), core.DEFAULT_LIST_LIMIT);
   assert.equal(core.normalizeLimit(0), core.DEFAULT_LIST_LIMIT);
   assert.equal(core.normalizeLimit(20), 20);

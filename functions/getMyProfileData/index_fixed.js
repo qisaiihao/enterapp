@@ -1,3 +1,4 @@
+const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 // 修复后的getMyProfileData云函数
 // 主要修复了：
 // 1. 移除了重复的formattedFavorites变量声明
@@ -13,7 +14,7 @@ cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
 
-const db = cloud.database();
+const db = createPostsDatabase(cloud.database());
 const $ = db.command.aggregate;
 
 // 云函数入口函数
@@ -375,3 +376,4 @@ async function getAllFavorites(openid, skip, limit) {
     };
   }
 }
+exports.main = withPostResponse(exports.main);

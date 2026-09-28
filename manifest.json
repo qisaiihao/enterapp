@@ -2,8 +2,8 @@
     "name" : "poementer",
     "appid" : "__UNI__E0A1A41",
     "description" : "S",
-    "versionName" : "1.6.7",
-    "versionCode" : 167,
+    "versionName" : "1.7.0",
+    "versionCode" : 170,
     "transformPx" : false,
     "app-plus" : {
         "usingComponents" : true,
@@ -30,6 +30,7 @@
                 "schemes" : "poementer",
                 "permissions" : [
                     "<uses-permission android:name=\"android.permission.INTERNET\"/>",
+                    "<uses-permission android:name=\"android.permission.REQUEST_INSTALL_PACKAGES\"/>",
                     "<uses-permission android:name=\"android.permission.CHANGE_NETWORK_STATE\"/>",
                     "<uses-permission android:name=\"android.permission.MOUNT_UNMOUNT_FILESYSTEMS\"/>",
                     "<uses-permission android:name=\"android.permission.VIBRATE\"/>",

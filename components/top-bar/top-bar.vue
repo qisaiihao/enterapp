@@ -166,7 +166,7 @@ export default {
     // 刷新未读数（页面 onShow 时调用）
     refreshUnreadCount() {
       this.unreadMessageCount = unreadBadge.getUnreadCount();
-      return unreadBadge.refreshUnreadCount();
+      return unreadBadge.refreshUnreadCount({ forceRefresh: false });
     },
     
     // 强制刷新未读数（下拉刷新时调用）

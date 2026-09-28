@@ -1,0 +1,606 @@
+{
+  "batchId": "collage-backgrounds-20260928",
+  "createdAt": "2026-09-28T03:42:06.549Z",
+  "materials": [
+    {
+      "key": "pxhere-650847",
+      "name": "旧信纸",
+      "group": "旧纸与档案",
+      "file": "backgrounds/旧纸与档案/01-旧信纸.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 209447,
+      "sha256": "8e66b11ebf4d90ce907120bc657ae4c07dff3e60e84f0fc410be986de43b12c0",
+      "originalWidth": 4567,
+      "originalHeight": 6800,
+      "source": {
+        "page": "https://pxhere.com/en/photo/650847",
+        "image": "https://get.pxhere.com/photo/book-light-wood-antique-texture-floor-old-brush-dry-pattern-brown-tile-grunge-paper-page-material-fabric-blank-textile-raw-handmade-layer-grainy-flooring-650847.jpg",
+        "author": "CC0-Photographers",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-650326",
+      "name": "折痕牛皮纸",
+      "group": "旧纸与档案",
+      "file": "backgrounds/旧纸与档案/02-折痕牛皮纸.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 141830,
+      "sha256": "f2030d508dfee10713619a936b281a7ac38e5ac3c628b156f07a0bdcd3b6228c",
+      "originalWidth": 2052,
+      "originalHeight": 3483,
+      "source": {
+        "page": "https://pxhere.com/en/photo/650326",
+        "image": "https://get.pxhere.com/photo/book-light-wood-antique-texture-floor-old-wall-brush-dry-ceiling-pattern-line-brown-tile-grunge-paper-page-material-fabric-blank-hardwood-beige-wallpaper-raw-handmade-cardboard-layer-grainy-flooring-plywood-wood-flooring-laminate-flooring-wood-stain-650326.jpg",
+        "author": "CC0-Photographers",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-650850",
+      "name": "砂金旧纸",
+      "group": "旧纸与档案",
+      "file": "backgrounds/旧纸与档案/03-砂金旧纸.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 197136,
+      "sha256": "5027ce125f9ab8239ea06a85277ee3d28c5c95a7f180a35a03e957842a209116",
+      "originalWidth": 5064,
+      "originalHeight": 6971,
+      "source": {
+        "page": "https://pxhere.com/en/photo/650850",
+        "image": "https://get.pxhere.com/photo/book-light-wood-antique-texture-floor-old-brush-dry-pattern-brown-tile-grunge-paper-page-material-fabric-blank-beige-raw-handmade-layer-grainy-flooring-laminate-flooring-650850.jpg",
+        "author": "CC0-Photographers",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-650841",
+      "name": "蜂蜜色书页",
+      "group": "旧纸与档案",
+      "file": "backgrounds/旧纸与档案/04-蜂蜜色书页.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 167186,
+      "sha256": "fc244db1bafd172ca8c55add5e4d3e57abf93abfa8b0bd35f7873268a97fb79f",
+      "originalWidth": 4388,
+      "originalHeight": 6581,
+      "source": {
+        "page": "https://pxhere.com/en/photo/650841",
+        "image": "https://get.pxhere.com/photo/book-light-wood-antique-texture-floor-old-wall-brush-dry-pattern-brown-tile-grunge-paper-page-material-fabric-blank-hardwood-raw-handmade-layer-grainy-plaster-flooring-plywood-wood-flooring-laminate-flooring-wood-stain-650841.jpg",
+        "author": "CC0-Photographers",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-650837",
+      "name": "酒红绒纸",
+      "group": "素色肌理",
+      "file": "backgrounds/素色肌理/05-酒红绒纸.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 160177,
+      "sha256": "73d1f9a6e4cf42d588499f8ba80be814be242e01b7c623729ef3bba62dd1e3d4",
+      "originalWidth": 4316,
+      "originalHeight": 3220,
+      "source": {
+        "page": "https://pxhere.com/en/photo/650837",
+        "image": "https://get.pxhere.com/photo/book-light-leather-vintage-antique-texture-floor-old-brush-dry-red-brown-grunge-pink-paper-page-material-tablecloth-fabric-blank-textile-design-rectangle-raw-handmade-magenta-layer-grainy-aged-flooring-650837.jpg",
+        "author": "CC0-Photographers",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-650329",
+      "name": "砖红纸面",
+      "group": "素色肌理",
+      "file": "backgrounds/素色肌理/06-砖红纸面.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 186682,
+      "sha256": "eb5bd50abc014e2e2ec05b275b03319b85c85c51db71780735b2ac25a9481bf8",
+      "originalWidth": 4416,
+      "originalHeight": 3308,
+      "source": {
+        "page": "https://pxhere.com/en/photo/650329",
+        "image": "https://get.pxhere.com/photo/book-light-leather-vintage-antique-texture-floor-old-brush-dry-red-brown-tile-grunge-brick-paper-page-material-fabric-blank-textile-design-raw-handmade-layer-grainy-aged-flooring-wood-stain-650329.jpg",
+        "author": "CC0-Photographers",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-650845",
+      "name": "奶油信纸",
+      "group": "素色肌理",
+      "file": "backgrounds/素色肌理/07-奶油信纸.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 180916,
+      "sha256": "a767594333e994d0475b2a74670ff2d2a80f650baabfbbe7161dfee7507e626e",
+      "originalWidth": 4295,
+      "originalHeight": 6369,
+      "source": {
+        "page": "https://pxhere.com/en/photo/650845",
+        "image": "https://get.pxhere.com/photo/book-light-wood-antique-texture-floor-old-wall-brush-dry-pattern-line-brown-grunge-yellow-paper-page-fabric-butter-blank-beige-wallpaper-raw-handmade-layer-grainy-flooring-plywood-laminate-flooring-650845.jpg",
+        "author": "CC0-Photographers",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-978331",
+      "name": "纤维和纸",
+      "group": "素色肌理",
+      "file": "backgrounds/素色肌理/08-纤维和纸.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 291860,
+      "sha256": "2fed7086493b886dfaeee434889bf8e2c5bc36ddf5cf3b0d4054f9a81d846d90",
+      "originalWidth": 1920,
+      "originalHeight": 1271,
+      "source": {
+        "page": "https://pxhere.com/en/photo/978331",
+        "image": "https://get.pxhere.com/photo/wood-white-antique-texture-floor-old-wall-isolated-asian-pattern-line-natural-brown-soil-asia-tile-japan-paper-material-circle-card-blank-edge-background-crafts-design-japanese-beige-handmade-traditional-flooring-washi-rice-paper-japanese-paper-isolated-white-asian-paper-wasi-978331.jpg",
+        "author": "CC0-Photographers",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-1258433",
+      "name": "金黄揉纸",
+      "group": "褶皱与拼接",
+      "file": "backgrounds/褶皱与拼接/09-金黄揉纸.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 312303,
+      "sha256": "ff53662117eb4e99559a028212d5983bcd4ab4329435856bc10398b74126984e",
+      "originalWidth": 3230,
+      "originalHeight": 2164,
+      "source": {
+        "page": "https://pxhere.com/en/photo/1258433",
+        "image": "https://get.pxhere.com/photo/sand-abstract-wood-vintage-texture-floor-pattern-brown-tile-grunge-yellow-paper-page-material-blank-sheet-textile-background-beige-wallpaper-stationery-poster-cardboard-backdrop-recycled-seamless-flooring-wood-flooring-grass-family-laminate-flooring-1258433.jpg",
+        "author": "CC0-Photographers",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-1581409",
+      "name": "胶带纸箱",
+      "group": "褶皱与拼接",
+      "file": "backgrounds/褶皱与拼接/10-胶带纸箱.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 246442,
+      "sha256": "43a6a86f47480aba0e32bf7de58a9cde94c3230d9b39fe977be72dcc0a61fa57",
+      "originalWidth": 3200,
+      "originalHeight": 2133,
+      "source": {
+        "page": "https://pxhere.com/en/photo/1581409",
+        "image": "https://get.pxhere.com/photo/abstract-antique-background-blank-board-box-brown-card-cardboard-carton-concept-conservation-container-craft-design-environment-green-grunge-handmade-old-package-paper-recyclable-recycle-retro-rough-save-texture-vintage-yellow-wall-tile-line-beige-floor-flooring-Tints-and-shades-wood-pattern-rectangle-1581409.jpg",
+        "author": "icon0com",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-1025915",
+      "name": "焦边旧纸",
+      "group": "旧纸与档案",
+      "file": "backgrounds/旧纸与档案/11-焦边旧纸.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 195730,
+      "sha256": "a11d9235c5c95f6a42fada5bad6256808623a61766527bf02d6580b06928b967",
+      "originalWidth": 3000,
+      "originalHeight": 2005,
+      "source": {
+        "page": "https://pxhere.com/en/photo/1025915",
+        "image": "https://get.pxhere.com/photo/wood-texture-floor-wall-rustic-brown-paper-material-circle-background-shape-flooring-1025915.jpg",
+        "author": "CC0-Photographers",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-813098",
+      "name": "旧布拼接",
+      "group": "褶皱与拼接",
+      "file": "backgrounds/褶皱与拼接/12-旧布拼接.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 342971,
+      "sha256": "80ac092ff9549755ef845634c30663f11fd94f96eca7744544008f2aee3be7bc",
+      "originalWidth": 3192,
+      "originalHeight": 2000,
+      "source": {
+        "page": "https://pxhere.com/en/photo/813098",
+        "image": "https://get.pxhere.com/photo/wood-antique-texture-floor-old-wall-brush-rustic-pattern-artist-paint-tile-cloth-fabric-textile-art-background-design-hardwood-still-raw-style-canvas-flooring-wood-flooring-laminate-flooring-wood-stain-813098.jpg",
+        "author": "CC0-Photographers",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-699344",
+      "name": "浅杏细格",
+      "group": "素色肌理",
+      "file": "backgrounds/素色肌理/13-浅杏细格.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 200804,
+      "sha256": "b9b23d4da61100cba3d314d9024e2d3d234ebc76e12775738852eeaee47f3a68",
+      "originalWidth": 6000,
+      "originalHeight": 4000,
+      "source": {
+        "page": "https://pxhere.com/en/photo/699344",
+        "image": "https://get.pxhere.com/photo/structure-wood-texture-floor-wall-pattern-line-brown-tile-material-circle-textile-design-text-wallpaper-cardboard-flooring-plywood-corrugated-board-laminate-flooring-699344.jpg",
+        "author": "CC0-Photographers",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-689102",
+      "name": "深苔绿肌理",
+      "group": "素色肌理",
+      "file": "backgrounds/素色肌理/14-深苔绿肌理.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 399947,
+      "sha256": "03954ee15abcbff13d27aa2eb11289949cf89f6eda50a3d20cec0edc6118c810",
+      "originalWidth": 4552,
+      "originalHeight": 2956,
+      "source": {
+        "page": "https://pxhere.com/en/photo/689102",
+        "image": "https://get.pxhere.com/photo/grass-structure-plant-field-lawn-texture-leaf-wall-asphalt-decoration-green-soil-paper-close-background-shrub-net-hell-carpet-textures-draw-flooring-road-surface-artificial-turf-grass-family-689102.jpg",
+        "author": "CC0-Photographers",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-645030",
+      "name": "湖蓝刷纹",
+      "group": "素色肌理",
+      "file": "backgrounds/素色肌理/15-湖蓝刷纹.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 275458,
+      "sha256": "18b367bbd4a7bd03aa3f38ebc3d0c4e4cbee062a542940ef696f660bc771d5d4",
+      "originalWidth": 2000,
+      "originalHeight": 1500,
+      "source": {
+        "page": "https://pxhere.com/en/photo/645030",
+        "image": "https://get.pxhere.com/photo/texture-floor-pattern-line-blue-paper-material-card-textile-background-aqua-turquoise-text-message-scratched-cover-content-flooring-645030.jpg",
+        "author": "CC0-Photographers",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-1263439",
+      "name": "浅草绿纸",
+      "group": "水彩底色",
+      "file": "backgrounds/水彩底色/16-浅草绿纸.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 118596,
+      "sha256": "f13261490d8d34449c0aae8b9d009f65f59b135ed12c84f5904804b14199421d",
+      "originalWidth": 3600,
+      "originalHeight": 3600,
+      "source": {
+        "page": "https://pxhere.com/en/photo/1263439",
+        "image": "https://get.pxhere.com/photo/texture-floor-pattern-line-green-tile-grunge-yellow-paper-background-decorative-backdrop-flooring-scrapbook-textured-paper-backgrounds-and-textures-textured-backgrounds-paper-texture-background-design-laminate-flooring-1263439.jpg",
+        "author": "CC0-Photographers",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-1442985",
+      "name": "薄荷揉纸",
+      "group": "褶皱与拼接",
+      "file": "backgrounds/褶皱与拼接/17-薄荷揉纸.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 341853,
+      "sha256": "b83b42cefd20993f94ff1f16a7b9b87528610bc1e1bd39b4bc2885daa63a4597",
+      "originalWidth": 3200,
+      "originalHeight": 2134,
+      "source": {
+        "page": "https://pxhere.com/en/photo/1442985",
+        "image": "https://get.pxhere.com/photo/paper-background-white-crumpled-texture-page-blank-old-wrinkled-sheet-grunge-garbage-textured-abstract-pattern-rough-empty-backdrop-ball-material-vintage-crumple-document-creased-damaged-office-object-surface-trash-grungy-green-leaf-grass-tree-plant-1442985.jpg",
+        "author": "icon0com",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-1619829",
+      "name": "灰蓝再生纸",
+      "group": "素色肌理",
+      "file": "backgrounds/素色肌理/18-灰蓝再生纸.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 315840,
+      "sha256": "5e8ee80ae7fc4deea53bc425a15590920fea8b16212264df9dbfea7a0899a26d",
+      "originalWidth": 3364,
+      "originalHeight": 1893,
+      "source": {
+        "page": "https://pxhere.com/en/photo/1619829",
+        "image": "https://get.pxhere.com/photo/paper-recycled-gray-color-retro-card-banner-blank-artistic-website-texture-background-blue-green-aqua-turquoise-azure-teal-grey-sky-1619829.jpg",
+        "author": "Valery Nosko",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-720722",
+      "name": "蓝色墨迹",
+      "group": "水彩底色",
+      "file": "backgrounds/水彩底色/19-蓝色墨迹.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 382505,
+      "sha256": "8d0a4e4825dd4c6f254b2357265ab9667425b606b14f1a8987318f4a515b2654",
+      "originalWidth": 2553,
+      "originalHeight": 1998,
+      "source": {
+        "page": "https://pxhere.com/en/photo/720722",
+        "image": "https://get.pxhere.com/photo/water-cloud-sky-white-texture-wave-wet-wall-splash-color-paint-blue-paper-painting-watercolor-background-design-spot-modern-art-watercolor-paint-acrylic-paint-720722.jpg",
+        "author": "CC0-Photographers",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-1110070",
+      "name": "海盐青绿",
+      "group": "水彩底色",
+      "file": "backgrounds/水彩底色/20-海盐青绿.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 246400,
+      "sha256": "05a85615a8614a728f4182079ef89e9c6dc8d875af6fa372d51207ace4680ad3",
+      "originalWidth": 4752,
+      "originalHeight": 3168,
+      "source": {
+        "page": "https://pxhere.com/en/photo/1110070",
+        "image": "https://get.pxhere.com/photo/sea-texture-wave-green-color-macro-serene-blue-cheerful-background-turquoise-course-image-fund-watercolour-handmade-paper-wind-wave-painting-technique-soluble-in-water-color-sketch-not-opaque-1110070.jpg",
+        "author": "CC0-Photographers",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-1412537",
+      "name": "粉褐手工纸",
+      "group": "素色肌理",
+      "file": "backgrounds/素色肌理/21-粉褐手工纸.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 227291,
+      "sha256": "0cc3ea0a8cd01eb2d6ce48c1d04b51a3a99b0ff0d0e955cf4c36e603a93855f0",
+      "originalWidth": 8000,
+      "originalHeight": 5422,
+      "source": {
+        "page": "https://pxhere.com/en/photo/1412537",
+        "image": "https://get.pxhere.com/photo/structure-wood-antique-texture-old-arch-pattern-brown-yellow-pink-paper-material-parchment-leaves-background-beige-letters-handmade-thin-papyrus-rau-tinker-plywood-paper-art-old-paper-handmade-paper-untitled-type-of-paper-creative-paper-1412537.jpg",
+        "author": "CC0-Photographers",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-1201393",
+      "name": "旧书铅字",
+      "group": "书页与文具",
+      "file": "backgrounds/书页与文具/22-旧书铅字.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 297781,
+      "sha256": "c526b68e74264cdccde84badc934f2a2a07b2571b5d5cb3128e2d37bd51f56f7",
+      "originalWidth": 3710,
+      "originalHeight": 2802,
+      "source": {
+        "page": "https://pxhere.com/en/photo/1201393",
+        "image": "https://get.pxhere.com/photo/writing-book-read-antique-texture-paper-bible-old-book-book-page-hymnal-font-pages-background-fiction-literature-text-handwriting-calligraphy-document-historically-antiquarian-old-german-song-book-book-printing-1201393.jpg",
+        "author": "CC0-Photographers",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-1436955",
+      "name": "浅粉细纹",
+      "group": "素色肌理",
+      "file": "backgrounds/素色肌理/23-浅粉细纹.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 48609,
+      "sha256": "fc4035d854861f2d1844c531cf42967f6954787fdc6713bd08039637fc427615",
+      "originalWidth": 3264,
+      "originalHeight": 2448,
+      "source": {
+        "page": "https://pxhere.com/en/photo/1436955",
+        "image": "https://get.pxhere.com/photo/abstract-art-artistic-background-concept-creative-decorative-design-element-geometric-geometry-graphic-modern-paper-pattern-seamless-structure-style-texture-textured-vector-wall-wallpaper-white-pink-light-close-up-textile-peach-lip-satin-1436955.jpg",
+        "author": "Supachai Taweerat",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-1459513",
+      "name": "一枚回形针",
+      "group": "书页与文具",
+      "file": "backgrounds/书页与文具/24-一枚回形针.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 112827,
+      "sha256": "6faf2e1ebb7a722848bb150e8f51bb80c3f7ed2308dc0b17982310c0430f058c",
+      "originalWidth": 5000,
+      "originalHeight": 2034,
+      "source": {
+        "page": "https://pxhere.com/en/photo/1459513",
+        "image": "https://get.pxhere.com/photo/attach-attached-file-attachment-backdrop-background-clip-clip-art-decorate-decoration-design-space-equipment-green-objects-office-supply-paper-clip-paperclip-pastel-pattern-pile-pink-stack-stationery-supplies-supply-texture-textured-tools-wallpaper-font-wire-1459513.jpg",
+        "author": "rawpixel.com",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-1013999",
+      "name": "蔷薇纸纹",
+      "group": "素色肌理",
+      "file": "backgrounds/素色肌理/25-蔷薇纸纹.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 500652,
+      "sha256": "f845d8b44479959dffd4dcf763fb5a89fc8db7a282ae728ad3914eb418e98652",
+      "originalWidth": 4752,
+      "originalHeight": 3168,
+      "source": {
+        "page": "https://pxhere.com/en/photo/1013999",
+        "image": "https://get.pxhere.com/photo/structure-wood-texture-floor-line-red-craft-pink-paper-textile-background-gradient-fine-magenta-tradition-creation-metallic-iridescent-reddish-greenish-fund-flooring-plywood-wood-flooring-handmade-paper-laminate-flooring-surface-embossing-design-paper-milling-grain-creative-paper-1013999.jpg",
+        "author": "CC0-Photographers",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-1110056",
+      "name": "暖橙水彩",
+      "group": "水彩底色",
+      "file": "backgrounds/水彩底色/26-暖橙水彩.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 286939,
+      "sha256": "2dd17cf35c75b729f86e23832e9491f31e04738b3aaa51b7d78b5a6ffe563875",
+      "originalWidth": 4752,
+      "originalHeight": 3168,
+      "source": {
+        "page": "https://pxhere.com/en/photo/1110056",
+        "image": "https://get.pxhere.com/photo/texture-leaf-flower-petal-orange-pattern-spring-color-macro-serene-yellow-pink-material-textile-art-background-course-image-fund-flooring-watercolour-handmade-paper-painting-technique-soluble-in-water-color-sketch-not-opaque-1110056.jpg",
+        "author": "CC0-Photographers",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-1622102",
+      "name": "浅桃粉纸",
+      "group": "素色肌理",
+      "file": "backgrounds/素色肌理/27-浅桃粉纸.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 160892,
+      "sha256": "c7c166c9a77237af55d5ec07c1da267c923eec68a71fdf46ca5f6d90dbb2acdc",
+      "originalWidth": 5472,
+      "originalHeight": 3648,
+      "source": {
+        "page": "https://pxhere.com/en/photo/1622102",
+        "image": "https://get.pxhere.com/photo/pink-line-peach-Material-property-paper-Tints-and-shades-1622102.jpg",
+        "author": "CC0-Photographers",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "pxhere-945512",
+      "name": "空白手记",
+      "group": "书页与文具",
+      "file": "backgrounds/书页与文具/28-空白手记.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 25784,
+      "sha256": "2beba33119561aa336949520d411e4e9b0e28224d32497ad0b1ebaaf62ea5d94",
+      "originalWidth": 5760,
+      "originalHeight": 3840,
+      "source": {
+        "page": "https://pxhere.com/en/photo/945512",
+        "image": "https://get.pxhere.com/photo/notebook-diary-gadget-empty-paper-ribbon-brand-blank-product-bookmark-rectangle-945512.jpg",
+        "author": "CC0-Photographers",
+        "license": "CC0 1.0",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "commons-34753833",
+      "name": "橘色旧封纸",
+      "group": "旧纸与档案",
+      "file": "backgrounds/旧纸与档案/29-橘色旧封纸.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 295376,
+      "sha256": "b8dbe53b15955e8be8d726cbe21a2ea80b0e5d23c96fd7bc3ffcebe528883ac2",
+      "originalWidth": 1160,
+      "originalHeight": 1878,
+      "source": {
+        "page": "https://commons.wikimedia.org/wiki/File:Orange_texture_2.jpg",
+        "image": "https://upload.wikimedia.org/wikipedia/commons/2/2c/Orange_texture_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "author": "Bergen Public Library",
+        "license": "No restrictions",
+        "licenseUrl": "https://www.flickr.com/commons/usage/"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    },
+    {
+      "key": "commons-43240888",
+      "name": "橄榄绿古书",
+      "group": "书页与文具",
+      "file": "backgrounds/书页与文具/30-橄榄绿古书.jpg",
+      "width": 900,
+      "height": 1200,
+      "bytes": 271048,
+      "sha256": "537622096b75cb973186133e7afb33a0b73b804b26a300a6bb40fdd5c5d3feab",
+      "originalWidth": 2296,
+      "originalHeight": 2784,
+      "source": {
+        "page": "https://commons.wikimedia.org/wiki/File:L%27esprit_de_l%27homme_de_guerre_ou_essai_moral_-_Upper_cover_(RB23a20815).jpg",
+        "image": "https://upload.wikimedia.org/wikipedia/commons/3/33/L%27esprit_de_l%27homme_de_guerre_ou_essai_moral_-_Upper_cover_%28RB23a20815%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+        "author": "<div class=\"fn value\">\nUnspecified</div>",
+        "license": "CC0",
+        "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "changes": "Portrait 3:4 crop; resized to 900 x 1200; JPEG compression. No generative edits."
+    }
+  ]
+}

@@ -959,6 +959,9 @@ export default {
 }
 
 .modal-content {
+  max-height: 90vh;
+  overflow-y: auto;
+  box-sizing: border-box;
   background: var(--app-elevated-bg, #fff);
   border: 1rpx solid var(--app-border-color, transparent);
   box-shadow: var(--app-surface-shadow, 0 10rpx 30rpx rgba(0, 0, 0, 0.12));

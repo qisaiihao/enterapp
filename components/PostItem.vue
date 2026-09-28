@@ -19,13 +19,13 @@
                 class="author-avatar"
                 :src="authorAvatarSrc"
                 mode="aspectFill"
-                :alt="(item.authorName || '作者') + '头像'"
-                :title="(item.authorName || '作者') + '头像'"
+                :alt="(item.isAnonymous ? '匿名用户' : (item.authorName || '作者')) + '头像'"
+                :title="(item.isAnonymous ? '匿名用户' : (item.authorName || '作者')) + '头像'"
                 @error="onAvatarError"
                 @load="onAvatarLoad"
                 @tap.stop.prevent="onNavigateToUser"
             ></image>
-            <text class="author-name">{{ item.authorName }}</text>
+            <text class="author-name">{{ item.isAnonymous ? '匿名用户' : item.authorName }}</text>
             <view v-if="item.isAnonymous" class="anonymous-tag">匿名</view>
         </view>
 
@@ -38,7 +38,7 @@
                     <text v-if="item.isHidden" class="hidden-tag">已隐藏</text>
                 </view>
                 <!-- 诗歌作者信息 -->
-                <view v-if="showPoemAuthor && item.isPoem && item.author" class="poem-author">{{ item.author }}</view>
+                <view v-if="showPoemAuthor && item.isPoem && item.author" class="poem-author">{{ item.isAnonymous ? '匿名用户' : item.author }}</view>
 
                 <!-- 图片显示逻辑 (已优化，使用 imageStyle 占位) -->
                 <view

@@ -953,6 +953,9 @@ export default {
 }
 
 .modal-content {
+    max-height: 90vh;
+    overflow-y: auto;
+    box-sizing: border-box;
     background: var(--app-surface-bg, #fff);
     border-radius: 20rpx;
     width: 600rpx;

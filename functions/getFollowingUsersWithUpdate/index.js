@@ -1,10 +1,11 @@
+const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 const cloud = require('wx-server-sdk');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
 
-const db = cloud.database();
+const db = createPostsDatabase(cloud.database());
 const _ = db.command;
 const $ = db.command.aggregate;
 
@@ -70,6 +71,7 @@ exports.main = async (event, context) => {
       .aggregate()
       .match({
         _openid: _.in(followedIds),
+        isAnonymous: _.nin([true, 'true']),
         auditStatus: 'approved',
         isHidden: _.neq(true)
       })
@@ -154,3 +156,5 @@ async function enrichAvatarUrls(list) {
     console.error('处理头像URL失败:', error);
   }
 }
+
+exports.main = withPostResponse(exports.main);

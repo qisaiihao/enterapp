@@ -28,6 +28,7 @@ let addPage;
 const storage = new Map();
 const uni = {
   showToast() {},
+  showModal({ success }) { success({ confirm: true }); },
   getStorageSync: key => storage.get(key),
   setStorageSync: (key, value) => storage.set(key, value),
   navigateTo({ url, success }) {
@@ -118,6 +119,23 @@ async function main() {
   await add.onLoad.call(regular, {});
   assert.equal(regular.publishMode, 'normal');
   assert.equal(regular.joinActivityEnabled, false);
+  // 普通发布入口，预览中关联活动后匿名发布，不能丢失匿名标记或活动关联。
+  addPage = regular;
+  regular.content = '《废稿》\n\n我认识他时';
+  regular.goToPreview();
+  const anonymousPreview = createPage(preview, {
+    post: previewPost, isLockedAdminActivityMode: false,
+    joinActivityEnabled: true, joinedActivityId: activity.activityId,
+    joinedActivityTitle: activity.activityTitle,
+    executePublish(data) { this.publishData = data; }
+  });
+  anonymousPreview.publishAnonymously();
+  assert.equal(anonymousPreview.publishData.isAnonymous, true);
+  assert.equal(anonymousPreview.publishData.anonymousAuthorName, '匿名用户');
+  assert.equal(anonymousPreview.publishData.publishMode, 'normal');
+  assert.equal(anonymousPreview.publishData.joinActivityId, activity.activityId);
+  assert.equal(anonymousPreview.publishData.activityId, '');
+
   const admin = createPage(add, { loadDraft: () => false });
   await add.onLoad.call(admin, { ...params, activityId: 'official', fromAdminActivity: '1' });
   assert.equal(admin.isActivityMode, true);

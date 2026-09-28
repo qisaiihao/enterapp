@@ -2,6 +2,8 @@
  * 帖子相关 API 缓存层
  */
 import cacheManager from '@/cache/core/manager';
+import { getOpenid } from '@/utils/app-state.js';
+import { normalizePost } from '@/utils/postNormalizer.js';
 import {
   callCloudAndGetResult,
   callCloudAndUnwrap,
@@ -13,13 +15,18 @@ const POST_DETAIL_TTL = 2 * 60 * 1000;
 const POST_DETAIL_SWR = 60 * 1000;
 
 const nsDetail = cacheManager.namespace('posts:detail', { persistent: true, maxItems: 200 });
+const detailKey = (postId, openid = getOpenid() || '') => JSON.stringify([postId, openid]);
+const detailKeysFor = postId => nsDetail.keys().filter(key => {
+  if (key === postId) return true; // 兼容旧版仅按帖子 ID 缓存的记录。
+  try { return JSON.parse(key)[0] === postId; } catch (_) { return false; }
+});
 
 function normalizePostDetailResult(result = {}) {
   if (!result.post) {
     throw new Error(result.error || result.message || '获取帖子详情失败');
   }
   
-  const post = result.post;
+  const post = normalizePost(result.post, { withTime: false });
   
   // 【调试】打印云函数返回的原始数据
   console.log('[api-cache/post] normalizePostDetailResult 原始数据:', {
@@ -123,18 +130,20 @@ async function getPostDetail(postId, options = {}) {
   }
 
   const { forceRefresh = false, ...cloudOptions } = options;
-  if (forceRefresh) {
-    nsDetail.delete(postId);
+  const openid = getOpenid() || '';
+  const key = detailKey(postId, openid);
+  if (forceRefresh || nsDetail.get(key)?.post?._partialFromList) {
+    nsDetail.delete(key);
   }
 
-  return nsDetail.getOrFetch(
-    postId,
+  const detail = await nsDetail.getOrFetch(
+    key,
     async () => {
       const result = await callCloudAndGetResult(
         'getPostDetail',
-        { postId },
+        { postId, ...(openid ? { openid } : {}) },
         Object.assign({
-          injectOpenId: false,
+          injectOpenId: true,
           pageTag: 'post-detail'
         }, cloudOptions)
       );
@@ -142,6 +151,7 @@ async function getPostDetail(postId, options = {}) {
     },
     { ttlMs: POST_DETAIL_TTL, swrMs: POST_DETAIL_SWR }
   );
+  return normalizePostDetailResult(detail);
 }
 
 /**
@@ -153,9 +163,10 @@ function prefillPostDetail(postFromList) {
     return;
   }
   const postId = postFromList._id;
-  const existing = nsDetail.get(postId);
+  const key = detailKey(postId);
+  const existing = nsDetail.get(key);
   if (!existing) {
-    nsDetail.set(postId, {
+    nsDetail.set(key, {
       post: { ...postFromList, _partialFromList: true },
       commentCount: postFromList.commentCount || 0,
       comments: []
@@ -169,7 +180,7 @@ function prefillPostDetail(postFromList) {
  */
 function invalidatePostDetail(postId) {
   if (postId) {
-    nsDetail.delete(postId);
+    detailKeysFor(postId).forEach(key => nsDetail.delete(key));
   }
 }
 
@@ -178,21 +189,25 @@ function syncPostDetailCommentCount(postId, commentCount) {
     return false;
   }
 
-  return nsDetail.update(postId, (detail) => {
-    if (!detail || typeof detail !== 'object') {
-      return detail;
-    }
+  let updated = false;
+  detailKeysFor(postId).forEach(key => {
+    updated = nsDetail.update(key, (detail) => {
+      if (!detail || typeof detail !== 'object') {
+        return detail;
+      }
 
-    const nextPost = detail.post && typeof detail.post === 'object'
-      ? { ...detail.post, commentCount }
-      : detail.post;
+      const nextPost = detail.post && typeof detail.post === 'object'
+        ? { ...detail.post, commentCount }
+        : detail.post;
 
-    return {
-      ...detail,
-      post: nextPost,
-      commentCount
-    };
+      return {
+        ...detail,
+        post: nextPost,
+        commentCount
+      };
+    }) || updated;
   });
+  return updated;
 }
 
 /**

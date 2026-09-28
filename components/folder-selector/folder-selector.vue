@@ -914,7 +914,12 @@ export default {
 }
 
 /* 创建收藏夹弹窗样式 */
+.create-modal {
+    max-height: 90vh;
+}
+
 .create-modal .modal-body {
+    min-height: 0;
     padding: 40rpx;
 }
 

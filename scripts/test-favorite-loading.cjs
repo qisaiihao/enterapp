@@ -54,6 +54,7 @@ function backend() {
   const cloud = { init() {}, database: () => db, getWXContext: () => ({ OPENID: 'me' }) };
   const favorites = moduleFrom(read('functions/getMyProfileData/handlers/favorites.js'));
   const globals = { exports: {}, console: quiet, require(name) {
+    if (name === './_lib/posts') return require('../functions/_shared/posts');
     if (name === 'wx-server-sdk') return cloud;
     if (name.includes('handlers/favorites')) return favorites;
     if (name.includes('handlers/drafts')) return { createDraftHandlers: () => ({}) };

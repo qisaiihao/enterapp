@@ -1,0 +1,11 @@
+// 只读审计，不写入或下线任何发布记录。
+// 在 HBuilderX 中打开，确认空间为阿里云 poementer，按 F5 运行。
+// 若返回恰好 100 条，把 skip(0) 改为 skip(100)、skip(200) 继续查询。
+// 保留全部输出，用于检查旧整数版本、重复目标和 WGT 原生兼容范围。
+db.collection('opendb-app-versions')
+  .where({ appid: '__UNI__E0A1A41', stable_publish: true })
+  .field('_id,appid,type,version,platform,uni_platform,url,min_uni_version,max_uni_version,stable_publish,legacy_migration,is_mandatory,is_silently,create_date')
+  .orderBy('_id', 'asc')
+  .skip(0)
+  .limit(100)
+  .get()

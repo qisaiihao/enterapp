@@ -1,12 +1,13 @@
 const cloud = require('wx-server-sdk');
 const config = require('./config');
 const { SmsProviderFactory } = require('./sms-providers');
+const sendLoginSms = require('./login-sms');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
 
-const db = cloud.database();
+const db = cloud.database({ throwOnNotFound: false });
 const _ = db.command;
 
 /**
@@ -161,8 +162,10 @@ async function logSms(phone, scene, provider, success, message, clientIP, errorC
 exports.main = async (event, context) => {
   console.log('📱 [sendSmsCode] 开始处理短信发送请求');
 
-  const { phone, scene = 'binding' } = event;
-  const clientIP = getClientIP(context);
+  const { phone: rawPhone, scene = 'binding' } = event || {};
+  const phone = typeof rawPhone === 'string' ? rawPhone.trim() : '';
+  const clientIP = getClientIP(cloud.getWXContext()) !== 'unknown'
+    ? getClientIP(cloud.getWXContext()) : getClientIP(context || {});
 
   console.log('📱 [sendSmsCode] 参数:', { 
     phone: phone ? phone.substring(0, 3) + '****' : '未提供', 
@@ -189,13 +192,18 @@ exports.main = async (event, context) => {
     }
 
     // 2. 场景验证
-    const validScenes = ['binding', 'updatePhone', 'resetPassword'];
+    const validScenes = ['binding', 'updatePhone', 'resetPassword', 'login'];
     if (!validScenes.includes(scene)) {
       return {
         success: false,
         code: 'INVALID_SCENE',
         message: `不支持的场景: ${scene}`
       };
+    }
+
+    if (scene === 'login' || scene === 'resetPassword') {
+      return await sendLoginSms({ db, phone: phone.replace(/^\+86/, ''), clientIP, config, scene,
+        createProvider: settings => SmsProviderFactory.createProvider(settings) });
     }
 
     // 3. 检查发送限制

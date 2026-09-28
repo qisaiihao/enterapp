@@ -1017,6 +1017,9 @@ export default {
 }
 
 .modal-content {
+  max-height: 90vh;
+  overflow-y: auto;
+  box-sizing: border-box;
   position: relative;
   width: 100%;
   background: #fff;

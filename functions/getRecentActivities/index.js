@@ -1,8 +1,9 @@
+const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 const cloud = require('wx-server-sdk')
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
-const db = cloud.database()
+const db = createPostsDatabase(cloud.database())
 const _ = db.command
 const $ = _.aggregate
 const { buildPublicActivityView } = require('./_lib/activity')
@@ -245,3 +246,5 @@ exports.main = async (event, context) => {
     }
   }
 }
+
+exports.main = withPostResponse(exports.main);

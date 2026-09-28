@@ -1,0 +1,6 @@
+{
+  "name": "check-app-update",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": { "app-update": "file:../common/app-update" }
+}

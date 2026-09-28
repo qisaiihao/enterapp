@@ -1,0 +1,18 @@
+{
+  "_id": "poementer-android-1.7.0",
+  "appid": "__UNI__E0A1A41",
+  "name": "poementer",
+  "type": "native_app",
+  "version": "1.7.0",
+  "native_version_code": 170,
+  "platform": ["Android"],
+  "uni_platform": "android",
+  "url": "https://mp-85244698-6ebe-485e-8f19-2d36212a6ad0.cdn.bspapp.com/__UNI__E0A1A41__20260928092928_1790559130717_0.apk",
+  "title": "应用升级",
+  "contents": "更新应用，启用新的统一更新服务。请完成本次整包升级。",
+  "is_mandatory": true,
+  "is_silently": false,
+  "stable_publish": true,
+  "legacy_migration": true,
+  "create_env": "upgrade-center"
+}

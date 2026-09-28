@@ -1,6 +1,7 @@
 import cacheManager from '@/cache/core/manager.js';
 import fileUrlCache from '@/_utils/file-url-cache';
 import { normalizeAppBackgroundMode } from '@/utils/appBackground.js';
+import { getOpenid } from '@/utils/app-state.js';
 import { callCloudAndUnwrap } from './_shared/cloud-wrapper.js';
 
 // 我的资料缓存
@@ -50,25 +51,35 @@ export function invalidateMyInfo() {
   nsMyInfo.delete('me');
 }
 
-// 我的帖子分页（保持当前策略：直接请求，不走缓存）
+// 我的帖子分页：按账号、分页和原创筛选隔离，缓存 60 秒；主动刷新跳过缓存。
 function nsMyPosts() {
   return cacheManager.namespace('me:posts', { persistent: true, maxItems: 200 });
 }
 
-export async function getMyPosts({ page = 0, pageSize = 10, originalOnly = false, context, forceRefresh = false }) { // eslint-disable-line no-unused-vars
-  const result = await callCloudAndUnwrap(
-    'getMyProfileData',
-    { skip: page * pageSize, limit: pageSize, originalOnly },
-    { pageTag: 'me:posts', context, injectOpenId: true },
-    '获取我的帖子失败'
-  );
-  return result.posts || [];
+export async function getMyPosts({ page = 0, pageSize = 10, originalOnly = false, context, forceRefresh = false }) {
+  const openid = getOpenid();
+  const fetchPosts = async () => {
+    const result = await callCloudAndUnwrap(
+      'getMyProfileData',
+      { skip: page * pageSize, limit: pageSize, originalOnly, ...(openid ? { openid } : {}) },
+      { pageTag: 'me:posts', context, injectOpenId: true },
+      '获取我的帖子失败'
+    );
+    return result.posts || [];
+  };
+  // 身份未就绪时不建立可被其他账号复用的缓存。
+  if (!openid) return fetchPosts();
+  const ns = nsMyPosts();
+  const key = `page:${page}:size:${pageSize}:user:${openid}:original:${originalOnly ? 1 : 0}`;
+  if (forceRefresh) ns.delete(key);
+  return ns.getOrFetch(key, fetchPosts, { ttlMs: 60 * 1000 });
 }
 
 export function invalidateMyPosts(page, pageSize = 10) {
   const ns = nsMyPosts();
   if (typeof page === 'number') {
-    ns.delete(`page:${page}:size:${pageSize}`);
+    const prefix = `page:${page}:size:${pageSize}`;
+    ns.keys().filter(key => key === prefix || key.startsWith(`${prefix}:`)).forEach(key => ns.delete(key));
     return;
   }
   ns.clear();

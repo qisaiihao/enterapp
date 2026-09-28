@@ -25,17 +25,6 @@
                 v-else
                 :class="['profile-scroll-container', { 'profile-scroll-container--with-background': isFullBackground }]"
             >
-                <!-- Sidebar Component -->
-                <Sidebar
-                    :isVisible="isSidebarOpen"
-                    :userInfo="userInfo"
-                    :isDarkTheme="isDarkTheme"
-                    @close="toggleSidebar"
-                    @avatar-error="onAvatarError"
-                    @logout-confirm="showLogoutConfirm"
-                    @toggle-theme="toggleTheme"
-                />
-
                 <!-- Main Content -->
                 <view
                     class="profile-main-content"
@@ -191,9 +180,24 @@
         </view>
         <!-- 这是一个<view class="container"> 添加的结束标签 -->
 
+        <!-- 与底部导航同级，避免侧边栏被内容容器的层叠上下文限制 -->
+        <Sidebar
+            :isVisible="isSidebarOpen"
+            :userInfo="userInfo"
+            :isDarkTheme="isDarkTheme"
+            @close="toggleSidebar"
+            @avatar-error="onAvatarError"
+            @logout-confirm="showLogoutConfirm"
+            @toggle-theme="toggleTheme"
+        />
+
         <AppActionSheet :visible="backgroundActionSheet.visible" title="背景设置"
             :items="backgroundActionSheet.items" @cancel="handleBackgroundActionSheetCancel"
             @select="handleBackgroundActionSheetSelect" />
+
+        <AppActionSheet :visible="isLogoutConfirmVisible" title="退出登录" variant="plain"
+            :items="[{ text: '退出登录', description: '确定要退出登录吗？', danger: true }]"
+            @cancel="isLogoutConfirmVisible = false" @select="confirmLogout" />
 
         <!-- #ifndef MP-WEIXIN -->
         <app-tab-bar ref="customTabBar" :style="tabBarStyle" />
@@ -676,6 +680,8 @@ export default {
             // 作品集数据
             portfolioList: [],
 
+            // 退出登录确认面板
+            isLogoutConfirmVisible: false,
             // 删除弹窗相关状态
             showDeleteModal: false,
             deletePostId: '',
@@ -2687,23 +2693,17 @@ export default {
             });
         },
 
-        // 显示退出登录确认对话框
+        // 显示退出登录底部确认面板
         showLogoutConfirm: function () {
-            // 延迟显示对话框，确保侧边栏关闭动画完成
+            // 延迟显示面板，确保侧边栏关闭动画完成
             setTimeout(() => {
-                uni.showModal({
-                    title: '退出登录',
-                    content: '确定要退出登录吗？',
-                    confirmText: '退出',
-                    cancelText: '取消',
-                    confirmColor: '#ff6b6b',
-                    success: (res) => {
-                        if (res.confirm) {
-                            this.performLogout();
-                        }
-                    }
-                });
+                this.isLogoutConfirmVisible = true;
             }, 100);
+        },
+
+        confirmLogout: function () {
+            this.isLogoutConfirmVisible = false;
+            this.performLogout();
         },
 
         // 执行退出登录

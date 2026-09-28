@@ -1,8 +1,9 @@
+const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 // TODO: AI推荐算法暂时停用
 // 混合推荐云函数 - 简化版本，避免云函数间调用
 const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
-const db = cloud.database();
+const db = createPostsDatabase(cloud.database());
 const _ = db.command;
 const $ = _.aggregate;
 
@@ -697,3 +698,5 @@ async function getTagBasedPosts(openId, limit, usedPostIds) {
     return [];
   }
 }
+
+exports.main = withPostResponse(exports.main);

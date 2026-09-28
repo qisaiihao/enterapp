@@ -224,9 +224,14 @@ async function main() {
 
   releaseHost();
   api.closePageOverlays(owner, true);
-  stack = [{ route: 'uni_modules/uni-upgrade-center-app/pages/upgrade-popup', $vm: {} }];
+  stack = [{ route: 'uni_modules/example-plugin/pages/dialog', $vm: {} }];
   uni.showModal({ title: 'external upgrade page' });
   assert.equal(nativeCalls, 2);
+
+  stack = [{ route: 'pages-tools/web-link/web-link', $vm: {} }];
+  uni.showModal({ title: 'web-view notice' });
+  uni.showActionSheet({ itemList: ['复制链接'] });
+  assert.equal(nativeCalls, 4, 'web-view pages use platform overlays above the native web-view');
 
   const config = parseJson(fs.readFileSync(path.join(root, 'pages.json'), 'utf8'));
   const routes = [...config.pages.map(page => page.path), ...config.subPackages.flatMap(group => group.pages.map(page => `${group.root}/${page.path}`))];

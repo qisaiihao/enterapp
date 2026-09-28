@@ -1,10 +1,11 @@
+const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 const cloud = require('wx-server-sdk');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
 
-const db = cloud.database();
+const db = createPostsDatabase(cloud.database());
 
 // 创建讨论帖子
 exports.main = async (event, context) => {
@@ -155,3 +156,4 @@ exports.main = async (event, context) => {
     };
   }
 };
+exports.main = withPostResponse(exports.main);

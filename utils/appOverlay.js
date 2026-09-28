@@ -49,8 +49,10 @@ function requestOverlay(kind, options = {}) {
   const owner = currentOwner();
   const stack = typeof getCurrentPages === 'function' ? getCurrentPages() : [];
   const route = owner?.route || stack[stack.length - 1]?.route || '';
-  // 启动阶段还没有页面视图时，保留平台兜底。
-  if (!owner || route.startsWith('uni_modules/')) return (kind === 'dialog' ? nativeModal : nativeSheet)(options);
+  // web-view 的原生层级高于自绘弹层；网页页与启动、第三方页面使用平台弹窗。
+  if (!owner || route.startsWith('uni_modules/') || route === 'pages-tools/web-link/web-link') {
+    return (kind === 'dialog' ? nativeModal : nativeSheet)(options);
+  }
   const state = pageState(owner);
   const request = { kind, options: { ...options } };
   const hasCallbacks = ['success', 'fail', 'complete'].some(key => typeof options[key] === 'function');
@@ -61,6 +63,12 @@ function requestOverlay(kind, options = {}) {
   state.requests.push(request);
   render(state);
   return promise;
+}
+
+// 显式绕过自绘弹层；保留平台 API 的回调与 Promise 行为。
+export function showNativeModal(options = {}) {
+  if (nativeModal) return nativeModal(options);
+  return uni.showModal(options);
 }
 
 export function installAppOverlays() {

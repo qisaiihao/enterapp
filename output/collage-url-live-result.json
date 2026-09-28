@@ -1,0 +1,27 @@
+{
+  "count": 101,
+  "groups": 18,
+  "batches": [
+    50,
+    50,
+    1
+  ],
+  "allHttps": true,
+  "previewCount": 101,
+  "imported": [
+    {
+      "name": "深海碎银",
+      "width": 900,
+      "height": 1200,
+      "persisted": true,
+      "exported": true
+    },
+    {
+      "name": "深海碎银",
+      "width": 900,
+      "height": 1200,
+      "persisted": true,
+      "exported": true
+    }
+  ]
+}

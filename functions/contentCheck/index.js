@@ -1,3 +1,4 @@
+const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 // 引入云开发 SDK
 // 注意：内容审核 SDK 当前未启用，不能在模块加载阶段强依赖它，
 // 否则仅做“审核直通”时也会因为缺少依赖导致整个云函数启动失败。
@@ -8,7 +9,7 @@ cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
 
-const db = cloud.database();
+const db = createPostsDatabase(cloud.database());
 const _ = db.command;
 const { isAdminByPoemId } = require('./_lib/admin-auth');
 
@@ -73,7 +74,7 @@ exports.main = async (event, context) => {
   console.log('[contentCheck] legacy publish request detected, continue to create post');
 
   const wxContext = cloud.getWXContext();
-  // Prefer event.openid so callers can override (e.g., anonymous posts)
+  // App 身份沿用统一调用层注入；匿名展示身份只在服务端存储时替换。
   const openid = (event && event.openid) || wxContext.OPENID;
 
   if (!openid) {
@@ -122,6 +123,7 @@ exports.main = async (event, context) => {
   let joinActivityTitleSnapshot = typeof rawJoinActivityTitleSnapshot === 'string' ? rawJoinActivityTitleSnapshot.trim() : '';
   let activityDoc = null;
   const normalizeBoolean = (value) => value === true || value === 'true';
+  isAnonymous = normalizeBoolean(isAnonymous);
 
   if (activityId && joinActivityId) {
     return buildFailure({
@@ -521,6 +523,9 @@ const dedupeTop3 = (lines = []) => {
     const userInfo = await db.collection('users').where({
       _openid: currentOpenid
     }).get();
+    if (!userInfo.data.length) {
+      return buildFailure({ code: -1002, msg: '未找到当前账号，请重新登录后发布', errorCode: 'USER_NOT_FOUND' });
+    }
     const userNickName = userInfo.data.length > 0 ? userInfo.data[0].nickName : '匿名用户';
     const userAvatar = userInfo.data.length > 0 ? (userInfo.data[0].avatarUrl || '') : '';
     const userSignatureUrl = userInfo.data.length > 0 ? (userInfo.data[0].signatureUrl || '') : '';
@@ -558,7 +563,7 @@ const dedupeTop3 = (lines = []) => {
 
     const ownerOpenid = isAnonymous ? '123456' : currentOpenid;
     const postData = {
-      _openid: currentOpenid, // 添加openid字段
+      _openid: ownerOpenid,
       title: title || '',
       content: content || '',
       createTime: new Date(),
@@ -592,7 +597,7 @@ const dedupeTop3 = (lines = []) => {
       // 匿名发帖相关字段
       isAnonymous: isAnonymous || false,
       anonymousAuthorName: anonymousAuthorName || '匿名用户',
-      realAuthorOpenid: realAuthorOpenid || null,
+      realAuthorOpenid: isAnonymous ? currentOpenid : null,
       // 新增标签字段
       tags: tags || [],
       // 活动帖子字段
@@ -608,8 +613,7 @@ const dedupeTop3 = (lines = []) => {
       backgroundColor: backgroundColor || '',
       textColor: textColor || '#000000',
       highlightSentence: highlightSentenceValue || '',
-      highlightLines: Array.isArray(effectiveHighlightLines) ? dedupeTop3(effectiveHighlightLines) : [],
-      _openid: ownerOpenid,
+      highlightLines: Array.isArray(effectiveHighlightLines) ? effectiveHighlightLines : [],
       auditStatus: 'approved', // 审核通过
       auditTime: new Date()
     };
@@ -694,16 +698,6 @@ const dedupeTop3 = (lines = []) => {
       isAnonymous: postData.isAnonymous 
     });
     
-    // 测试数据库连接
-    try {
-      console.log('测试数据库连接...');
-      const testResult = await db.collection('posts').limit(1).get();
-      console.log('数据库连接正常，测试查询结果:', testResult);
-    } catch (testError) {
-      console.error('数据库连接测试失败:', testError);
-      throw new Error(`数据库连接失败: ${testError.message}`);
-    }
-    
     const result = await db.collection('posts').add({
       data: postData
     });
@@ -722,30 +716,6 @@ const dedupeTop3 = (lines = []) => {
       } catch (activityUpdateError) {
         console.warn('[contentCheck] 活动统计更新失败（不影响发布）:', activityUpdateError);
       }
-    }
-
-    // 追加写入：颜色/高光句（与现有字段解耦，避免旧版本对象结构影响）
-    try {
-      await db.collection('posts').doc(result._id).update({
-        data: {
-          backgroundColor: backgroundColor || postData.backgroundColor || '',
-          textColor: textColor || postData.textColor || '#000000',
-          highlightSentence: highlightSentenceValue || postData.highlightSentence || ''
-        }
-      });
-
-      // 兼容写入：高光行数组
-      try {
-        await db.collection('posts').doc(result._id).update({
-          data: {
-            highlightLines: Array.isArray(effectiveHighlightLines) ? effectiveHighlightLines : []
-          }
-        });
-      } catch (e) {
-        console.warn('[contentCheck] 写入 highlightLines 失败（忽略）:', e);
-      }
-    } catch (e) {
-      console.warn('[contentCheck] 追加写入颜色/高光句失败，不影响发布:', e);
     }
 
     console.log('数据库写入成功，返回结果:', {
@@ -809,3 +779,5 @@ const dedupeTop3 = (lines = []) => {
     });
   }
 };
+
+exports.main = withPostResponse(exports.main);

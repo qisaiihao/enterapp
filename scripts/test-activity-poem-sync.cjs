@@ -93,6 +93,37 @@ function assertLikes(votes, isVoted) {
 }
 
 async function main() {
+  activity.activityId = 'activity-123';
+  // 截图中的历史帖：普通入口关联活动，作者名为匿名用户，但旧匿名标记为 false。
+  const submission = {
+    _id: 'normal-submission', publishMode: 'normal', isPoem: false,
+    isAnonymous: false, authorName: '匿名用户', content: '《废稿》\n\n我认识他时',
+    joinedActivityId: activity.activityId, backgroundColor: '#a4c4bd', imageUrls: []
+  };
+  for (const isAnonymous of [false, true]) {
+    const card = activity.normalizePost({ ...submission, isAnonymous });
+    assert.equal(activity.isPoemCard(card), true);
+    assert.equal(card.backgroundColor, '#a4c4bd');
+    assert.equal(card.publishMode, 'normal', 'Presentation must not reclassify stored post type');
+    assert.equal(card.isAnonymous, isAnonymous, 'Do not infer anonymity from author name');
+  }
+  for (const patch of [
+    { joinedActivityId: '' }, { joinedActivityId: 'another-activity' },
+    { isActivityPost: true }, { isDiscussion: true }, { publishMode: 'discussion' },
+    { content: '  \n' }, { imageUrls: ['image.jpg'] }, { imageUrl: 'legacy.jpg' },
+    { originalImageUrls: ['original.jpg'] }, { originalImageUrl: 'legacy-original.jpg' }
+  ]) {
+    assert.equal(activity.isPoemCard(activity.normalizePost({ ...submission, ...patch })), false,
+      `Keep normal card for ${JSON.stringify(patch)}`);
+  }
+  assert.equal(activity.isPoemCard({ activityId: activity.activityId, content: '活动公告' }), false);
+  assert.equal(activity.isPoemCard({ publishMode: 'poem', imageUrls: ['poem.jpg'] }), true);
+  assert.equal(activity.isPoemCard({ isSeries: true }), true);
+  const poemCard = loadModule('components/poem/PoemCard.vue', globals);
+  assert.equal(poemCard.computed.canShowSignature.call({
+    showSignature: true, post: { isAnonymous: true, authorSignature: 'private-signature' }
+  }), false);
+
   // 展示顺序与原始顺序不同时，展开及点赞均须命中同一帖子。
   activity.handlePoemCardTap({ postId: 'poem', index: 0 });
   assert.equal(activity.postList[1].isExpanded, true);

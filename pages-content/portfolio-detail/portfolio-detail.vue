@@ -887,8 +887,15 @@ export default {
   width: 90%;
   max-width: 600rpx;
   max-height: 80vh;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
+}
+
+.modal-content > .modal-header,
+.modal-content > .modal-body,
+.modal-content > .modal-footer {
+  flex-shrink: 0;
 }
 
 .modal-header {

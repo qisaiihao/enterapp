@@ -48,6 +48,12 @@
 
 数据表：`collage_materials`（`type`、`name`、`fileID`、`groupId`、`width`、`height`、`createdAt`、`updatedAt`、`createdBy`）和 `collage_material_groups`（`type`、`name`、`sort`、`createdAt`、`updatedAt`、`createdBy`）。客户端不直连数据表（ACL 为仅服务端），上传图片存放在 `collage-materials/<paper|background>/`。云存储需保持“所有用户可读”（默认规则即可），否则普通用户无法换取素材临时链接。
 
+2026-09-28 背景扩充到超过 100 张，`getCollageMaterials` 默认读取数量由 100 调整到 200（与既有最大值一致），兼容不传 `limit` 的已发布客户端。超过 200 张前需实现分页，不应继续依靠一次返回全部素材。
+
+2026-09-28 临时链接批量解析修复：CloudBase `getTempFileURL` [每次最多接收 50 个文件](https://docs.cloudbase.net/en/storage/sdk)，`cache/core/file-url.js` 统一分批处理（包括运行时注入的解析器），并隔离请求期间新加入的等待者。某批失败时保留其他批次的缓存，下一次只重试未成功项。官方素材列表解析失败时不写入 5 分钟缓存，重新打开面板可重试；下载入口也会重新解析旧条目中的 `cloud://`，解析失败时提示用户，禁止将文件 ID 直接交给图片组件或下载接口。本次仅需更新前端。
+
+`npm run test:collage-materials` 已覆盖 101 张素材分批、H5/App 和微信解析器、部分失败重试、并发请求、失败列表不缓存及导入保护。真实 H5 云端验证：18 组共 101 张背景全部转为 HTTPS，实际 SDK 调用数量为 50/50/1，101 张图片均可预览；“深海碎银”的正常条目和旧 `cloud://` 条目均完成 IndexedDB 保存与 900 × 1200 Canvas 导出。App/微信真机流程仍待验收。
+
 管理页限制：单张图片不超过 5 MB，最长边不超过 2560 px，支持 JPG/PNG/WebP；纸片建议使用透明 PNG。素材名称最多 24 字（可在素材卡片上重命名），分组名称最多 16 字且同类型内不能重名。云函数会再次校验类型、名称、尺寸、`cloud://` fileID 和分组归属，客户端校验只用于提前提示。
 
 部署命令（使用本机已登录的 CloudBase CLI）：
@@ -62,6 +68,8 @@ node scripts/manage-collage-materials.cjs inspect
 `setup` 创建两张数据表并设为仅服务端访问。管理员在「管理中心 → 拼贴素材」创建分组、上传素材、移动素材后即可在用户端看到；用户端列表有 5 分钟缓存，管理页增删改后会立即失效本机缓存。
 
 H5 端导入官方素材使用 `fetch` 拉取临时 URL，需要在云存储配置 CORS（见 [云存储 CORS 配置指南](deployment/cors-config-guide.md)）；App 和微信小程序使用 `uni.downloadFile`，不受 CORS 限制，但正式版需把云存储域名加入小程序的 downloadFile 合法域名。用户端每次选择官方素材都会下载并保存到本机，因此官方素材不宜过大。
+
+H5 保存图片时使用 `fetch(url, { cache: 'no-store' })`，防止复用素材选择器预览产生的不带 CORS 响应头的 HTTP 缓存。2026-09-28 排查发现，素材域名在带 `Origin: http://localhost:8081` 的请求中返回正确的 `Access-Control-Allow-Origin`，但普通图片请求不带该响应头，也没有 `Vary: Origin`；浏览器先预览后下载时会因此误用缓存。此修复保持原始 URL（含签名参数），下载后仍将 Blob 存入 IndexedDB，保证草稿恢复和 Canvas 导出。它不能替代服务端 CORS 配置：新请求也缺少允许来源头时，仍需检查云存储及 CDN 的跨域配置，参见 [腾讯云跨域排查](https://cloud.tencent.com/document/product/436/56652)。可运行 `npm run test:collage-cors`（需 Chrome/Edge，或通过 `PUPPETEER_EXECUTABLE_PATH` 指定浏览器），验证预览缓存复现、下载、刷新后恢复、Canvas 导出和真实跨域拒绝；测试仅访问本地服务。
 
 ## OCR 接入与迁移边界
 

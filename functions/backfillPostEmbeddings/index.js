@@ -1,9 +1,10 @@
+const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 // TODO: AI推荐算法暂时停用
 // 定时任务：批量补齐帖子的 embedding 字段
 const cloud = require('wx-server-sdk');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
-const db = cloud.database();
+const db = createPostsDatabase(cloud.database());
 const _ = db.command;
 const STATE_COLLECTION = 'system_config';
 const STATE_DOC_ID = 'embedding_backfill_cursor';
@@ -112,3 +113,5 @@ exports.main = async (event, context) => {
     embedded: writeCount
   };
 };
+
+exports.main = withPostResponse(exports.main);
