@@ -19,7 +19,7 @@ function runtime(users = [user], cryptoOverrides = {}) {
     timingSafeEqual: crypto.timingSafeEqual,
     ...cryptoOverrides
   };
-  let tables = { sms_codes: {}, sms_logs: {}, users: Object.fromEntries(users.map(item => [item._id, item])) };
+  let tables = { wechat_binding_grants: {}, wechat_bindings: {}, sms_codes: {}, sms_logs: {}, users: Object.fromEntries(users.map(item => [item._id, item])) };
   let version = 0, nextId = 0;
   const state = { sent: [], sendFails: false, dbFails: false, beforeSend: null, beforeTransaction: null, failConsume: false };
   const matches = (row, filter) => Object.entries(filter).every(([key, value]) =>
@@ -154,6 +154,12 @@ async function backendTests() {
   assert.equal(success.openid, 'owner');
   assert.equal(success.userInfo.password, undefined);
   assert.equal(success.needBindWechat, true);
+  const grants = Object.values(r.tables.wechat_binding_grants);
+  assert.equal(grants.length, 1);
+  assert.equal(grants[0].userId, 'user');
+  assert.equal(grants[0].wxid, 'wechat');
+  assert.equal(grants[0].used, false);
+  assert.ok(new Date(grants[0].expiresAt) > new Date());
   assert.equal(success.isPhoneVerified, true);
   assert.equal((await r.login({ phoneNumber: phone, code: r.code() })).success, false, 'replay must fail');
 

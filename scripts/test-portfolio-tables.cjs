@@ -210,15 +210,16 @@ async function main() {
     portfolio_items: Array.from({ length: 1001 }, (_, index) => ({ _id: `item-${index}`, _openid: 'old', folderId: 'keep-folder-id', postId: `p-${index}` }))
       .concat({ _id: 'unrelated', _openid: 'other', folderId: 'other-folder', postId: 'other-poem' })
   }, 'wechat');
+  const beforeBinding = structuredClone(binding.tables);
   const bound = await binding.load('bindWechatOpenid')({ oldOpenid: 'old', poemId: 'bind-me' });
-  assert.equal(bound.success, true);
-  assert.equal(bound.updateResults.portfolios, 1);
-  assert.equal(bound.updateResults.portfolio_items, 1001);
+  assert.equal(bound.success, false);
+  assert.equal(bound.code, 'LEGACY_BINDING_DISABLED');
+  assert.deepEqual(binding.tables, beforeBinding, 'retired unauthenticated migration cannot change any account or content');
   assert.equal(binding.tables.portfolio_folders[0]._id, 'keep-folder-id');
   assert.equal(binding.tables.portfolio_folders[0].isPublic, false);
   assert.equal(binding.tables.portfolio_items.find(item => item._id === 'unrelated')._openid, 'other');
-  const first = await binding.load('getPortfolioItems')({ folderId: 'keep-folder-id', idsOnly: true, limit: 1000 });
-  const last = await binding.load('getPortfolioItems')({ folderId: 'keep-folder-id', idsOnly: true, skip: 1000, limit: 1000 });
+  const first = await binding.load('getPortfolioItems')({ openid: 'old', folderId: 'keep-folder-id', idsOnly: true, limit: 1000 });
+  const last = await binding.load('getPortfolioItems')({ openid: 'old', folderId: 'keep-folder-id', idsOnly: true, skip: 1000, limit: 1000 });
   assert.equal(first.postIds.length + last.postIds.length, 1001, 'all saved poems remain reachable after account binding');
   assert.equal(binding.legacyAccesses, 0);
 

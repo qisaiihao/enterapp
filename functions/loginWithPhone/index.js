@@ -1,5 +1,6 @@
 const cloud = require('wx-server-sdk');
 const crypto = require('crypto');
+const { prepareWechatLogin, safeUser } = require('./_lib/wechat-auth');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database({ throwOnNotFound: false });
@@ -49,11 +50,12 @@ exports.main = async (event) => {
     if (userRes.data.length > 1) {
       return { success: false, code: 'AMBIGUOUS_ACCOUNT', message: '手机号绑定多个账号，请使用 Poem ID 和密码登录' };
     }
-    const { password, ...userInfo } = userRes.data[0];
+    const userInfo = safeUser(userRes.data[0]);
     const currentOpenid = cloud.getWXContext().OPENID;
+    const { needBindWechat } = await prepareWechatLogin(db, userRes.data[0], currentOpenid);
     return {
       success: true, message: '登录成功', userInfo, openid: userInfo._openid, currentOpenid,
-      needBindWechat: !!(currentOpenid && currentOpenid !== userInfo._openid), isPhoneVerified: true
+      needBindWechat, isPhoneVerified: true
     };
   } catch (error) {
     console.error('[loginWithPhone] 登录失败:', error);

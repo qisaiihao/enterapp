@@ -1,11 +1,12 @@
 // 云函数入口文件
 const cloud = require('wx-server-sdk');
+const { prepareWechatLogin, safeUser } = require('./_lib/wechat-auth');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
 
-const db = cloud.database();
+const db = cloud.database({ throwOnNotFound: false });
 
 // 云函数入口函数
 exports.main = async (event, context) => {
@@ -55,22 +56,11 @@ exports.main = async (event, context) => {
     const userInfo = candidates[0];
     const currentOpenid = wxContext.OPENID;
     
-    console.log('✅ [loginWithCredentials] 登录成功，用户信息:', {
-      _openid: userInfo._openid,
-      nickName: userInfo.nickName,
-      poemId: userInfo.poemId,
-      currentOpenid: currentOpenid
-    });
-
-    // 检测 openid 是否不同（但不自动更新）
-    const needBindWechat = currentOpenid && currentOpenid !== userInfo._openid;
-    
-    if (needBindWechat) {
-      console.log('⚠️ [loginWithCredentials] 检测到 openid 不同，需要用户确认绑定');
-    }
+    // 仅在当前微信尚未关联此账号时签发短期绑定凭据。
+    const { needBindWechat } = await prepareWechatLogin(db, userInfo, currentOpenid);
 
     // 返回用户信息，但不包含密码
-    const { password: _, ...safeUserInfo } = userInfo;
+    const safeUserInfo = safeUser(userInfo);
 
     // 判断是否已验证手机号：检查 phoneNumber 字段是否存在且不为空
     const isPhoneVerified = !!(safeUserInfo.phoneNumber && safeUserInfo.phoneNumber.trim());

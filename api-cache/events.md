@@ -16,10 +16,10 @@
 触发示例：
   uni.$emit('avatar-updated', { userId })
   uni.$emit('post-created', { userId })
-  uni.$emit('favorite-changed', { userId, postId, favored: true })
+  emitFavoriteChanged({ userId, postId, favored: true }) // 从 utils/events.js 导入；优先由 favorite-actions 触发
 
 监听示例（用户主页页内，可选）：
   onLoad 中：
     uni.$on('avatar-updated', (e) => { if (e.userId === this.targetUserId) { invalidateUserInfo(e.userId); this.loadUserProfile(); } })
     uni.$on('post-created', (e) => { if (e.userId === this.targetUserId) { invalidateUserPosts(e.userId); this.refresh(); } })
-    uni.$on('favorite-changed', (e) => { if (e.userId === this.targetUserId) { invalidateUserPosts(e.userId); this.refresh(); } })
+    收藏列表使用 mixins/favoriteRefresh.js，账号匹配后刷新显示；失效已经由 emitFavoriteChanged 完成，不再调用 invalidateUserPosts。
