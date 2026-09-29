@@ -1,0 +1,13 @@
+{
+  "envId": "cloud1-5gb0pbyl400845f5",
+  "functionRoot": "../../../functions",
+  "functions": [
+    {
+      "name": "getBatchUserProfiles",
+      "runtime": "Nodejs16.13",
+      "handler": "index.main",
+      "installDependency": true,
+      "isWaitInstall": true
+    }
+  ]
+}

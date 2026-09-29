@@ -20,7 +20,6 @@
     <!-- 内容列表 -->
     <view v-else class="square-mode-container with-avatar-bar" :style="{ paddingTop: (safeAreaTop * 2 + 340) + 'rpx' }">
       <view v-if="postList.length === 0" class="empty-state">
-        <view class="empty-icon">⛰️</view>
         <view class="empty-text">还没刷出来，等一下~</view>
         <view class="empty-subtext">去广场看看先吧</view>
       </view>
@@ -66,7 +65,7 @@ import poetAvatarBar from '@/components/poet-avatar-bar/poet-avatar-bar.vue';
 import PoemCard from '@/components/poem/PoemCard.vue';
 import { cloudCall } from '@/utils/cloudCall.js';
 import { getPostList as getPostListWithCache, invalidatePostList } from '@/api-cache/post-list.js';
-import { getMountainPoems } from '@/api-cache/poems.js';
+import { getMountainPoems, peekMountainPoems } from '@/api-cache/poems.js';
 import likeIcon from '@/utils/likeIcon.js';
 import {
   generateRandomBackgroundColor,
@@ -113,6 +112,7 @@ export default {
       uni.removeStorageSync('shouldRefreshMountain');
 
       // 刷新山页面数据和诗人筛选栏
+      invalidatePostList({ isPoem: true, isOriginal: false, excludeAnonymous: true });
       try { this.$refs.poetAvatarBar && this.$refs.poetAvatarBar.refresh(); } catch (_) {}
       this.getIndexData();
       return; // 强制刷新后不再进行缓存检查
@@ -361,6 +361,16 @@ export default {
 
         getIndexData(callback) {
       console.log('【mountain】开始获取数据，callback:', typeof callback);
+      const cached = peekMountainPoems({ pageSize: PAGE_SIZE, filterByPoet: this.selectedPoetName });
+      if (Array.isArray(cached)) {
+        const postList = cached.filter(post => post && !post.isAnonymous)
+          .map(post => this.normalizePoemCardPost({ ...post }));
+        this.setData({ postList, page: 1, hasMore: cached.length === PAGE_SIZE,
+          isLoading: false, isLoadingMore: false, _loadingLock: false });
+        this.syncLikeStatusFromCache();
+        if (typeof callback === 'function') callback();
+        return;
+      }
       this.setData({ 
         postList: [], 
         page: 0, 
@@ -648,7 +658,6 @@ export default {
   align-items: stretch; /* 居中卡片 */
 }
 .empty-state { text-align: center; padding: 100rpx 0; color: var(--app-muted-text, #999); }
-.empty-icon { font-size: 80rpx; margin-bottom: 20rpx; }
 .empty-text { font-size: 32rpx; margin-bottom: 10rpx; color: var(--app-secondary-text, #666); }
 .empty-subtext { font-size: 24rpx; color: var(--app-muted-text, #999); }
 .loading-footer { text-align: center; color: var(--app-secondary-text, #666); padding: 30rpx 0 120rpx; }

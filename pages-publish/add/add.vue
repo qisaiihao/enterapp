@@ -2635,7 +2635,7 @@ page {
 
 .tag-toggle {
     font-size: 26rpx;
-    color: var(--app-link-color, #9ed7ee);
+    color: var(--app-link-color, #333333);
 }
 
 .selected-tags {
@@ -2648,11 +2648,13 @@ page {
 .selected-tag {
     display: flex;
     align-items: center;
-    background: var(--app-control-accent-bg, #9ed7ee);
-    color: var(--app-control-accent-text, white);
-    padding: 8rpx 16rpx;
-    border-radius: 20rpx;
+    background: var(--app-control-accent-bg, #333333);
+    color: var(--app-control-accent-text, #ffffff);
+    padding: 10rpx 20rpx;
+    border-radius: 44rpx;
     font-size: 24rpx;
+    font-weight: 500;
+    box-shadow: none;
 }
 
 .remove-tag {
@@ -2760,13 +2762,18 @@ page {
 }
 
 .hl-done {
-    background: var(--app-control-accent-bg, #9ed7ee);
-    color: var(--app-control-accent-text, #fff);
+    background: var(--app-control-accent-bg, #333333);
+    color: var(--app-control-accent-text, #ffffff);
+    border-radius: 44rpx;
+    font-weight: 500;
+    box-shadow: none;
+    padding: 12rpx 28rpx;
 }
 
 .hl-clear {
-    background: var(--app-control-active-bg, #666);
-    color: var(--app-primary-text, #fff);
+    background: var(--app-control-soft-bg, #f5f6f7);
+    color: var(--app-link-color, #333333);
+    border-radius: 44rpx;
 }
 
 /* 新的覆盖层样式 */
@@ -2912,10 +2919,12 @@ page {
     padding: 0 24rpx;
     height: 64rpx;
     line-height: 64rpx;
-    border-radius: 12rpx;
-    background: var(--app-primary-action-bg, linear-gradient(135deg, #2ab2ff, #4cc9ff));
-    color: var(--app-control-accent-text, #fff);
+    border-radius: 44rpx;
+    background: var(--app-control-accent-bg, #333333);
+    color: var(--app-control-accent-text, #ffffff);
     font-size: 26rpx;
+    font-weight: 500;
+    box-shadow: none;
 }
 
 .block-editor {
@@ -2935,8 +2944,8 @@ page {
 }
 
 .block-card.quote {
-    border-color: var(--app-border-color, #cde8ff);
-    background: var(--app-subtle-surface-bg, #f7fbff);
+    border-color: var(--app-border-color, #dddddd);
+    background: var(--app-subtle-surface-bg, #f5f6f7);
 }
 
 .block-actions,
@@ -3410,19 +3419,19 @@ page {
     margin-bottom: 8rpx;
     padding: 14rpx 18rpx;
     border-radius: 12rpx;
-    background: var(--app-subtle-surface-bg, #f3f7ff);
-    border: 1rpx solid var(--app-border-color, #d6e4ff);
+    background: var(--app-subtle-surface-bg, #f5f6f7);
+    border: 1rpx solid var(--app-border-color, #dddddd);
     text-align: center;
 }
 
 .activity-mode-label {
     font-size: 24rpx;
-    color: var(--app-secondary-text, #4f5f7f);
+    color: var(--app-secondary-text, #666666);
 }
 
 .activity-mode-title {
     font-size: 24rpx;
-    color: var(--app-primary-text, #1d2d4d);
+    color: var(--app-primary-text, #333333);
     font-weight: 600;
 }
 
@@ -3568,15 +3577,11 @@ page {
     color: #8e96a3;
 }
 
-.container--dark .tag-toggle {
-    color: #d8bf82;
-}
-
 .container--dark .selected-tag,
 .container--dark .hl-done,
 .container--dark .quote-popup-btn {
-    background: #c9ad73;
-    color: #111318;
+    background: var(--app-control-accent-bg, #333333);
+    color: var(--app-control-accent-text, #ffffff);
 }
 
 .container--dark .hl-clear,
@@ -3606,4 +3611,5 @@ page {
     color: #c9ced8;
 }
 
+.selected-tag:active, .hl-done:active, .quote-popup-btn:active { opacity: 0.65; }
 </style>

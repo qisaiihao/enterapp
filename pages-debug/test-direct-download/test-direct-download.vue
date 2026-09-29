@@ -22,7 +22,7 @@
         <text>夜来风雨声，花落知多少。</text>
         <text>ABCDEFG abcdefg 1234567890</text>
       </view>
-      <text class="font-status">当前字体: {{ currentFontFamily || '默认' }} {{ fontLoaded ? '✅已加载' : '⏳未加载' }}</text>
+      <text class="font-status">当前字体: {{ currentFontFamily || '默认' }} {{ fontLoaded ? '已加载' : '未加载' }}</text>
     </view>
     
     <!-- 字体列表 -->
@@ -103,7 +103,7 @@ export default {
     async testDomainConfig() {
       this.result = '';
       this.logs = [];
-      this.addLog('🔍 开始测试域名配置...');
+      this.addLog('开始测试域名配置...');
       
       try {
         // #ifdef MP-WEIXIN
@@ -111,7 +111,7 @@ export default {
         this.addLog(`测试URL: ${testUrl}`);
         
         // 1. 测试 uni.request
-        this.addLog('1️⃣ 测试 uni.request (HEAD)...');
+        this.addLog('1 测试 uni.request (HEAD)...');
         try {
           const requestRes = await new Promise((resolve, reject) => {
             uni.request({
@@ -121,13 +121,13 @@ export default {
               fail: reject
             });
           });
-          this.addLog(`✅ uni.request 成功，状态码: ${requestRes.statusCode}`);
+          this.addLog(`uni.request 成功，状态码: ${requestRes.statusCode}`);
         } catch (err) {
-          this.addLog(`❌ uni.request 失败: ${err.errMsg}`);
+          this.addLog(`uni.request 失败: ${err.errMsg}`);
         }
         
         // 2. 测试 wx.cloud.getTempFileURL
-        this.addLog('2️⃣ 测试 wx.cloud.getTempFileURL...');
+        this.addLog('2 测试 wx.cloud.getTempFileURL...');
         try {
           const cloudPath = 'cloud://cloud1-5gb0pbyl400845f5.636c-cloud1-5gb0pbyl400845f5-1378788263/fonts/Huiwen-mincho-compressed.woff2';
           const tempRes = await wx.cloud.getTempFileURL({
@@ -136,49 +136,49 @@ export default {
           
           if (tempRes.fileList && tempRes.fileList[0]) {
             const tempUrl = tempRes.fileList[0].tempFileURL;
-            this.addLog(`✅ 获取临时链接成功`);
+            this.addLog(`获取临时链接成功`);
             this.addLog(`   临时URL: ${tempUrl}`);
             
             // 3. 测试 uni.loadFontFace
-            this.addLog('3️⃣ 测试 uni.loadFontFace...');
+            this.addLog('3 测试 uni.loadFontFace...');
             await new Promise((resolve, reject) => {
               uni.loadFontFace({
                 family: '测试字体',
                 source: `url("${tempUrl}")`,
                 global: true,
                 success: (res) => {
-                  this.addLog(`✅ loadFontFace 成功!`);
+                  this.addLog(`loadFontFace 成功!`);
                   this.addLog(`   结果: ${JSON.stringify(res)}`);
                   resolve(res);
                 },
                 fail: (err) => {
-                  this.addLog(`❌ loadFontFace 失败: ${err.errMsg}`);
+                  this.addLog(`loadFontFace 失败: ${err.errMsg}`);
                   this.addLog(`   状态: ${err.status}`);
                   reject(err);
                 }
               });
             });
             
-            this.result = '✅ 所有测试通过！域名配置正确。';
-            this.addLog('🎉 所有测试通过！');
+            this.result = '所有测试通过！域名配置正确。';
+            this.addLog('所有测试通过！');
             
           } else {
             throw new Error('未获取到临时链接');
           }
         } catch (err) {
-          this.addLog(`❌ 云存储测试失败: ${err.message || err.errMsg}`);
+          this.addLog(`云存储测试失败: ${err.message || err.errMsg}`);
           throw err;
         }
         // #endif
         
         // #ifndef MP-WEIXIN
-        this.result = '⚠️ 此测试仅在微信小程序环境有效';
-        this.addLog('⚠️ 此测试仅在微信小程序环境有效');
+        this.result = '此测试仅在微信小程序环境有效';
+        this.addLog('此测试仅在微信小程序环境有效');
         // #endif
         
       } catch (error) {
-        this.result = `❌ 测试失败\n\n可能原因：\n1. 域名未配置或配置错误\n2. 需要在微信公众平台配置 request 合法域名\n3. 域名：https://636c-cloud1-5gb0pbyl400845f5-1378788263.tcb.qcloud.la\n\n错误信息：${error.message || error.errMsg}`;
-        this.addLog(`❌ 测试失败: ${error.message || error.errMsg}`);
+        this.result = `测试失败\n\n可能原因：\n1. 域名未配置或配置错误\n2. 需要在微信公众平台配置 request 合法域名\n3. 域名：https://636c-cloud1-5gb0pbyl400845f5-1378788263.tcb.qcloud.la\n\n错误信息：${error.message || error.errMsg}`;
+        this.addLog(`测试失败: ${error.message || error.errMsg}`);
       }
     },
     
@@ -207,8 +207,8 @@ export default {
         const cachedAfter = fontManager.isFontCachedSync(fontFamily);
         const isLoaded = fontManager.loadedFonts.has(fontFamily);
         
-        this.result = `✅ 成功!\n耗时: ${duration}ms\n已缓存: ${cachedAfter}\n已加载: ${isLoaded}`;
-        this.addLog(`✅ 完成! 耗时: ${duration}ms`);
+        this.result = `成功!\n耗时: ${duration}ms\n已缓存: ${cachedAfter}\n已加载: ${isLoaded}`;
+        this.addLog(`完成! 耗时: ${duration}ms`);
         
         // 更新示例文字的字体
         const config = fontManager.getAvailableFonts().find(f => f.fontFamily === fontFamily);
@@ -220,8 +220,8 @@ export default {
         this.refreshFontList();
         
       } catch (error) {
-        this.result = `❌ 错误: ${error.message}`;
-        this.addLog(`❌ 错误: ${error.message}`);
+        this.result = `错误: ${error.message}`;
+        this.addLog(`错误: ${error.message}`);
         console.error('字体加载失败:', error);
       }
     },
@@ -232,14 +232,14 @@ export default {
       
       try {
         await fontManager.clearAllCache();
-        this.addLog('✅ 缓存已清除');
-        this.result = '✅ 字体缓存已清除';
+        this.addLog('缓存已清除');
+        this.result = '字体缓存已清除';
         this.currentFontFamily = '';
         this.fontLoaded = false;
         this.refreshFontList();
       } catch (error) {
-        this.addLog(`❌ 清除失败: ${error.message}`);
-        this.result = `❌ 清除失败: ${error.message}`;
+        this.addLog(`清除失败: ${error.message}`);
+        this.result = `清除失败: ${error.message}`;
       }
     },
     
@@ -249,8 +249,8 @@ export default {
       
       try {
         const result = await fontManager.addCustomFont();
-        this.addLog(`✅ 字体添加成功: ${result.displayName}`);
-        this.result = `✅ 自定义字体添加成功!\n字体名: ${result.displayName}\nfontFamily: ${result.fontFamily}`;
+        this.addLog(`字体添加成功: ${result.displayName}`);
+        this.result = `自定义字体添加成功!\n字体名: ${result.displayName}\nfontFamily: ${result.fontFamily}`;
         
         // 应用字体
         this.currentFontFamily = result.displayName;
@@ -258,15 +258,15 @@ export default {
         this.refreshFontList();
         
       } catch (error) {
-        this.addLog(`❌ 添加失败: ${error.message}`);
-        this.result = `❌ 添加失败: ${error.message}`;
+        this.addLog(`添加失败: ${error.message}`);
+        this.result = `添加失败: ${error.message}`;
       }
     },
     
     async deleteCustomFont(fontFamily) {
       try {
         await fontManager.deleteCustomFont(fontFamily);
-        this.addLog(`✅ 已删除自定义字体: ${fontFamily}`);
+        this.addLog(`已删除自定义字体: ${fontFamily}`);
         this.refreshFontList();
         
         if (this.currentFontFamily === fontFamily) {
@@ -274,7 +274,7 @@ export default {
           this.fontLoaded = false;
         }
       } catch (error) {
-        this.addLog(`❌ 删除失败: ${error.message}`);
+        this.addLog(`删除失败: ${error.message}`);
       }
     }
   }

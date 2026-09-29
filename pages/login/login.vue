@@ -22,7 +22,7 @@
           
           <!-- 取消登录按钮 -->
           <view class="logout-link" @tap="handleLogout">
-            <text class="logout-text">取消登录</text>
+            <text class="logout-text" :style="cancelActionStyle('取消登录')">取消登录</text>
           </view>
         </view>
       </view>
@@ -146,7 +146,7 @@
 
           <!-- 如果冲突账号没有设置 Poem ID，显示数据丢失警告 -->
           <view v-if="!conflictAccountCanLogin">
-            <text class="modal-text" style="margin-top: 20rpx; color: #ff4444; font-size: 28rpx; font-weight: bold;">⚠️ 该账号未设置 Poem ID 和密码！</text>
+            <text class="modal-text" style="margin-top: 20rpx; color: #ff4444; font-size: 28rpx; font-weight: bold;">该账号未设置 Poem ID 和密码！</text>
             <text class="modal-text" style="margin-top: 10rpx; color: #ff6b6b; font-size: 26rpx;">如果继续绑定，该账号的数据将永久丢失，无法找回！</text>
             <text class="modal-text" style="margin-top: 15rpx; color: var(--app-primary-text, #333); font-size: 26rpx; font-weight: bold;">建议操作：</text>
             <text class="modal-text" style="margin-top: 5rpx; color: var(--app-secondary-text, #666); font-size: 24rpx;">1. 点击"取消"</text>
@@ -167,12 +167,12 @@
 
     <!-- 底部绑定手机号弹窗 -->
     <!-- #ifndef MP-WEIXIN -->
-    <view class="bind-phone-modal" v-if="showBindPhoneModal" @tap.stop>
-      <view class="modal-mask" @tap="closeBindPhoneModal"></view>
-      <view class="modal-content">
+    <AppMotion mask-class="bind-phone-modal" :visible="showBindPhoneModal" ref="phoneMotion" placement="sheet" @dismiss="closeBindPhoneModal">
+      <view class="modal-mask" @tap="$refs.phoneMotion.dismiss()"></view>
+      <view class="modal-content app-motion-panel">
         <view class="modal-header">
           <text class="modal-title">绑定手机号</text>
-          <text class="modal-close" @tap="closeBindPhoneModal">×</text>
+          <text class="modal-close" @tap="$refs.phoneMotion.dismiss()">×</text>
         </view>
         <view class="modal-body">
           <text class="modal-text">为了您的账户安全，请绑定手机号</text>
@@ -198,19 +198,20 @@
           </view>
         </view>
         <view class="modal-footer">
-          <view class="modal-btn cancel-btn" @tap="closeBindPhoneModal">稍后再说</view>
+          <view class="modal-btn cancel-btn" @tap="$refs.phoneMotion.dismiss()">稍后再说</view>
           <view class="modal-btn confirm-btn" @tap="handleBindPhone" :class="{ disabled: isBindingPhone || (bindPhoneMethod === 'sms' && (!smsCode || !smsPhoneNumber)) }">
             {{ bindPhoneMethod === 'oneclick' ? '一键绑定' : '确认绑定' }}
           </view>
         </view>
       </view>
-    </view>
+    </AppMotion>
     <!-- #endif -->
   </view>
     <app-overlay-host />
 </template>
 
 <script>
+import AppMotion from '@/components/overlay/AppMotion.vue';
 import AppDialog from '@/components/overlay/AppDialog.vue';
 // pages/login/login.js
 import { cloudCall } from '@/utils/cloudCall.js';
@@ -256,7 +257,7 @@ async function callUniCloudFunction(name, data) {
 // #endif
 
 export default {
-    components: { AppDialog },
+    components: { AppMotion, AppDialog },
     data() {
         return {
             account: '',
@@ -918,6 +919,10 @@ export default {
 
         // 关闭绑定手机号弹窗
         closeBindPhoneModal() {
+            if (this.$refs?.phoneMotion?.rendered) {
+                this.$refs.phoneMotion.dismiss(this.closeBindPhoneModal);
+                return;
+            }
             this.showBindPhoneModal = false;
             // 清理短信相关数据
             this.smsPhoneNumber = '';
@@ -927,12 +932,8 @@ export default {
                 this.smsTimer = null;
             }
             this.smsCountdown = 0;
-            // 关闭弹窗后跳转到主页面
-            setTimeout(() => {
-                uni.switchTab({
-                    url: '/pages/poem-square/poem-square'
-                });
-            }, 300);
+            // 动画容器已完成退出，无需再等待额外的导航定时器。
+            uni.switchTab({ url: '/pages/poem-square/poem-square' });
         },
 
         // 登录后绑定 - 发送短信验证码
@@ -1679,17 +1680,10 @@ export default {
   background: #fff;
   border-radius: 32rpx 32rpx 0 0;
   padding: 40rpx;
-  animation: slideUp 0.3s ease-out;
+
 }
 
-@keyframes slideUp {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
+
 
 .modal-header {
   display: flex;

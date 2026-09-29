@@ -28,7 +28,7 @@
                                 :auto-height="true"
                             ></textarea>
                             <view class="bio-edit-actions">
-                                <button class="bio-btn cancel" @tap="cancelEditBio">取消</button>
+                                <button class="bio-btn cancel" @tap="cancelEditBio" :style="cancelActionStyle('取消')">取消</button>
                                 <button class="bio-btn confirm" @tap="saveBio" :loading="savingBio">保存</button>
                             </view>
                         </view>

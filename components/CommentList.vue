@@ -32,7 +32,6 @@
             </block>
             <block v-else>
                 <view class="no-comment-tip">
-                    <view class="empty-icon">💬</view>
                     <view class="empty-text">{{ emptyText }}</view>
                 </view>
             </block>
@@ -176,12 +175,6 @@ export default {
     justify-content: center;
     padding: 60rpx 40rpx;
     text-align: center;
-}
-
-.empty-icon {
-    font-size: 80rpx;
-    margin-bottom: 20rpx;
-    opacity: 0.6;
 }
 
 .empty-text {

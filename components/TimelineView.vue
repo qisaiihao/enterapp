@@ -48,19 +48,16 @@
         </view>
 
         <view class="timeline-loading" v-if="showLoading">
-            <view class="timeline-loading-icon">⏳</view>
             <view class="timeline-loading-text">正在加载时间轴...</view>
         </view>
 
         <view class="timeline-error" v-if="showError">
-            <view class="timeline-error-icon">⚠️</view>
             <view class="timeline-error-text">加载失败</view>
             <view class="timeline-error-subtext">请检查网络连接后重试</view>
             <view class="timeline-retry-btn" @tap="onRetry">重试</view>
         </view>
 
         <view class="timeline-empty" v-if="showEmpty">
-            <view class="timeline-empty-icon">📝</view>
             <view class="timeline-empty-text">还没有发布原创诗歌</view>
             <view class="timeline-empty-subtext">发布原创诗歌后，这里会显示创作时间轴</view>
         </view>
@@ -301,11 +298,6 @@ export default {
     text-align: center;
 }
 
-.timeline-empty-icon {
-    font-size: 80rpx;
-    margin-bottom: 20rpx;
-}
-
 .timeline-empty-text,
 .timeline-loading-text,
 .timeline-error-text {
@@ -327,21 +319,6 @@ export default {
 .timeline-empty-subtext,
 .timeline-error-subtext {
     margin-top: 10rpx;
-}
-
-.timeline-loading-icon,
-.timeline-error-icon {
-    font-size: 60rpx;
-    margin-bottom: 20rpx;
-}
-
-.timeline-loading-icon {
-    animation: rotate 2s linear infinite;
-}
-
-@keyframes rotate {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
 }
 
 .timeline-error-text {

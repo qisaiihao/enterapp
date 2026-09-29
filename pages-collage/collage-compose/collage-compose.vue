@@ -1,5 +1,5 @@
 <template>
-  <view class="page" :style="mpNavStyle">
+  <view class="page" :style="[appThemeVars, mpNavStyle]">
     <view class="custom-back-btn" @tap="goBack">
       <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
     </view>
@@ -295,10 +295,11 @@ export default {
 
 <style scoped>
 .page {
+  color: var(--app-primary-text, #333333);
   position: relative;
   width: 100vw;
   height: 100vh;
-  background: #ffffff;
+  background: var(--app-page-bg, #ffffff);
   display: flex;
   flex-direction: column;
 }
@@ -340,8 +341,10 @@ export default {
   gap: 12rpx;
 }
 .ghost-btn {
-  background: #f5f6f7;
-  color: #333;
+  white-space: nowrap;
+  flex-shrink: 0;
+  background: var(--app-control-soft-bg, #f5f6f7);
+  color: var(--app-link-color, #333333);
   border-radius: 9999rpx;
 }
 .content {
@@ -354,8 +357,8 @@ export default {
 }
 
 .panel {
-  background: #fff;
-  border-radius: 14rpx;
+  background: var(--app-surface-bg, #ffffff);
+  border-radius: 24rpx;
   box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.03);
   padding: 12rpx;
   overflow: hidden;
@@ -382,49 +385,55 @@ export default {
   overflow-y: auto;
 }
 .chip {
-  padding: 9rpx 16rpx;
-  background: #f5f6f7;
+  padding: 12rpx 20rpx;
+  background: var(--app-control-soft-bg, #f5f6f7);
   border-radius: 9999rpx;
   font-size: 24rpx;
-  color: #333;
+  color: var(--app-link-color, #333333);
   transition: all 0.15s ease;
 }
 .chip:active {
   transform: scale(0.96);
 }
 .chip.active {
-  background: #9ed7ee;
-  color: #0b3c4c;
-  box-shadow: 0 6rpx 12rpx rgba(158, 215, 238, 0.45);
+  background: var(--app-control-accent-bg, #333333);
+  color: var(--app-control-accent-text, #ffffff);
+  box-shadow: none;
+  font-weight: 600;
 }
 .editor {
   margin-top: 10rpx;
   padding: 14rpx;
-  background: #f9fbfc;
-  border-radius: 16rpx;
-  box-shadow: 0 6rpx 18rpx rgba(0, 0, 0, 0.04);
+  background: var(--app-control-soft-bg, #f5f6f7);
+  border-radius: 24rpx;
+  box-shadow: none;
 }
 .editor-header {
+  flex-wrap: wrap;
+  gap: 12rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 12rpx;
 }
 .editor-header.highlight {
-  box-shadow: 0 0 0 2rpx #9ed7ee inset;
+  box-shadow: 0 0 0 2rpx var(--app-link-color, #333333) inset;
   border-radius: 12rpx;
   padding: 6rpx 10rpx;
 }
 .editor-actions {
+  flex-wrap: wrap;
   display: flex;
   gap: 12rpx;
 }
 .poem-chips {
+  align-items: flex-start;
+  align-content: flex-start;
   min-height: 160rpx;
   padding: 10rpx;
-  background: #fff;
-  border-radius: 12rpx;
-  border: 1rpx solid #e6e6e6;
+  background: var(--app-surface-bg, #ffffff);
+  border-radius: 20rpx;
+  border: 1rpx solid var(--app-control-border, #dddddd);
   box-sizing: border-box;
   display: flex;
   flex-wrap: wrap;
@@ -433,22 +442,24 @@ export default {
   overflow-y: auto;
 }
 .poem-chips.highlight {
-  border-color: #9ed7ee;
-  box-shadow: 0 0 0 2rpx rgba(158, 215, 238, 0.6);
+  border-color: var(--app-link-color, #333333);
+  box-shadow: var(--app-control-focus-ring, 0 0 0 4rpx rgba(0, 0, 0, 0.08));
 }
 .poem-chip.line-break {
-  background: #ffe9c7;
-  color: #b45b00;
+  background: var(--app-control-soft-bg, #f5f6f7);
+  color: var(--app-link-color, #333333);
+  border: 1rpx dashed var(--app-control-border, #dddddd);
 }
 .drag-ghost {
   position: fixed;
   z-index: 2000;
   padding: 10rpx 18rpx;
-  background: #9ed7ee;
-  color: #0b3c4c;
+  background: var(--app-control-accent-bg, #333333);
+  color: var(--app-control-accent-text, #ffffff);
   border-radius: 9999rpx;
   box-shadow: 0 8rpx 18rpx rgba(0,0,0,0.18);
   pointer-events: none;
   opacity: 0.92;
 }
+.ghost-btn[disabled] { background: var(--app-control-soft-bg, #f5f6f7); color: var(--app-muted-text, #999999); opacity: 0.5; }
 </style>

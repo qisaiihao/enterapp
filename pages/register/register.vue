@@ -49,12 +49,12 @@
     </view>
 
     <!-- 绑定已有账号弹窗 -->
-    <view class="edit-phone-modal" v-if="showBindAccountDialog" @tap.stop>
-      <view class="modal-mask" @tap="closeBindAccountDialog"></view>
-      <view class="modal-content">
+    <AppMotion mask-class="edit-phone-modal" :visible="showBindAccountDialog" ref="accountMotion" placement="sheet" @dismiss="closeBindAccountDialog">
+      <view class="modal-mask" @tap="$refs.accountMotion.dismiss()"></view>
+      <view class="modal-content app-motion-panel">
         <view class="modal-header">
           <text class="modal-title">绑定 GitHub 到已有账号</text>
-          <text class="modal-close" @tap="closeBindAccountDialog">×</text>
+          <text class="modal-close" @tap="$refs.accountMotion.dismiss()">×</text>
         </view>
         <view class="modal-body">
           <text class="modal-text">请输入您已有账号的 Poem ID 和密码</text>
@@ -68,22 +68,22 @@
           </view>
         </view>
         <view class="modal-footer">
-          <view class="modal-btn cancel-btn" @tap="closeBindAccountDialog">取消</view>
+          <view class="modal-btn cancel-btn" @tap="$refs.accountMotion.dismiss()" :style="cancelActionStyle('取消')">取消</view>
           <view class="modal-btn confirm-btn" @tap="handleBindGithubToAccount" :class="{ disabled: isBinding || !bindPoemId || !bindPassword }">
             {{ isBinding ? '绑定中...' : '确认绑定' }}
           </view>
         </view>
       </view>
-    </view>
+    </AppMotion>
 
     <!-- 绑定手机号弹窗（样式对齐个人资料修改页面） -->
     <!-- #ifndef MP-WEIXIN -->
-    <view class="edit-phone-modal" v-if="showBindPhoneModal" @tap.stop>
-      <view class="modal-mask" @tap="closeBindPhoneModal"></view>
-      <view class="modal-content">
+    <AppMotion mask-class="edit-phone-modal" :visible="showBindPhoneModal" ref="phoneMotion" placement="sheet" @dismiss="closeBindPhoneModal">
+      <view class="modal-mask" @tap="$refs.phoneMotion.dismiss()"></view>
+      <view class="modal-content app-motion-panel">
         <view class="modal-header">
           <text class="modal-title">绑定手机号</text>
-          <text class="modal-close" @tap="closeBindPhoneModal">×</text>
+          <text class="modal-close" @tap="$refs.phoneMotion.dismiss()">×</text>
         </view>
         <view class="modal-body">
           <text class="modal-text">为保障账户安全，请先绑定手机号完成注册</text>
@@ -102,17 +102,18 @@
           </view>
         </view>
         <view class="modal-footer">
-          <view class="modal-btn cancel-btn" @tap="skipBindPhoneAndRegister">跳过</view>
+          <view class="modal-btn cancel-btn" @tap="$refs.phoneMotion.dismiss(skipBindPhoneAndRegister)">跳过</view>
           <view class="modal-btn confirm-btn" @tap="handleBindPhoneForRegister" :class="{ disabled: isBindingPhone || (!smsCode || !smsPhoneNumber) }">确认绑定</view>
         </view>
       </view>
-    </view>
+    </AppMotion>
     <!-- #endif -->
   </view>
     <app-overlay-host />
 </template>
 
 <script>
+import AppMotion from '@/components/overlay/AppMotion.vue';
 // pages/register/register.js
 import { cloudCall } from '@/utils/cloudCall.js';
 import { getCurrentPlatform } from '@/utils/platformDetector.js';
@@ -159,6 +160,7 @@ async function callUniCloudFunction(name, data) {
 // #endif
 
 export default {
+    components: { AppMotion },
     data() {
         return {
             poemId: '',
@@ -320,12 +322,12 @@ export default {
                     .finally(() => { this.isUploadingAvatar = false; });
             };
             if (uni.chooseMedia) {
-                uni.chooseMedia({ count: 1, mediaType: ['image'], sourceType: ['album', 'camera'], success: (res) => {
+                uni.chooseMedia({ count: 1, mediaType: ['image'], sizeType: ['original'], sourceType: ['album', 'camera'], success: (res) => {
                     const f = res.tempFiles && res.tempFiles[0];
                     handle(f && (f.tempFilePath || f.filePath));
                 }, fail: (e) => { if (!(e && e.errMsg && e.errMsg.includes('cancel'))) uni.showToast({ title: '选择失败', icon: 'none' }); } });
             } else {
-                uni.chooseImage({ count: 1, sizeType: ['compressed'], sourceType: ['album','camera'], success: (res) => {
+                uni.chooseImage({ count: 1, sizeType: ['original'], sourceType: ['album','camera'], success: (res) => {
                     handle(res.tempFilePaths && res.tempFilePaths[0]);
                 }, fail: (e) => { if (!(e && e.errMsg && e.errMsg.includes('cancel'))) uni.showToast({ title: '选择失败', icon: 'none' }); } });
             }
@@ -453,6 +455,10 @@ export default {
         
         // 关闭绑定账号弹窗
         closeBindAccountDialog() {
+            if (this.$refs?.accountMotion?.rendered) {
+                this.$refs.accountMotion.dismiss(this.closeBindAccountDialog);
+                return;
+            }
             this.showBindAccountDialog = false;
             this.bindPoemId = '';
             this.bindPassword = '';
@@ -752,6 +758,10 @@ export default {
 
         // 打开/关闭绑定手机号弹窗
         closeBindPhoneModal() {
+            if (this.$refs?.phoneMotion?.rendered) {
+                this.$refs.phoneMotion.dismiss(this.closeBindPhoneModal);
+                return;
+            }
             this.showBindPhoneModal = false;
             this.smsPhoneNumber = '';
             this.smsCode = '';
@@ -1025,13 +1035,10 @@ export default {
   background: #fff;
   border-radius: 32rpx 32rpx 0 0;
   padding: 40rpx;
-  animation: slideUp 0.3s ease-out;
+
 }
 
-@keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
+
 
 .modal-header {
   display: flex;

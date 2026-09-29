@@ -40,13 +40,11 @@
 
         <!-- 时间轴加载状态 -->
         <view class="timeline-loading" v-if="showLoading">
-            <view class="timeline-loading-icon">⏳</view>
             <view class="timeline-loading-text">正在加载时间轴...</view>
         </view>
 
         <!-- 时间轴错误状态 -->
         <view class="timeline-error" v-if="showError">
-            <view class="timeline-error-icon">⚠️</view>
             <view class="timeline-error-text">加载失败</view>
             <view class="timeline-error-subtext">请检查网络连接后重试</view>
             <view class="timeline-retry-btn" @tap="onRetry">重试</view>
@@ -54,7 +52,6 @@
 
         <!-- 时间轴空状态 -->
         <view class="timeline-empty" v-if="showEmpty">
-            <view class="timeline-empty-icon">📝</view>
             <view class="timeline-empty-text">还没有发布原创诗歌</view>
             <view class="timeline-empty-subtext">发布原创诗歌后，这里会显示你的创作时间轴</view>
         </view>
@@ -282,11 +279,6 @@ export default {
     text-align: center;
 }
 
-.timeline-empty-icon {
-    font-size: 80rpx;
-    margin-bottom: 20rpx;
-}
-
 .timeline-empty-text {
     font-size: 28rpx;
     color: #666;
@@ -309,20 +301,9 @@ export default {
     text-align: center;
 }
 
-.timeline-loading-icon {
-    font-size: 60rpx;
-    margin-bottom: 20rpx;
-    animation: rotate 2s linear infinite;
-}
-
 .timeline-loading-text {
     font-size: 28rpx;
     color: #666;
-}
-
-@keyframes rotate {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
 }
 
 /* 时间轴错误状态 */
@@ -333,11 +314,6 @@ export default {
     box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
     padding: 60rpx 30rpx;
     text-align: center;
-}
-
-.timeline-error-icon {
-    font-size: 60rpx;
-    margin-bottom: 20rpx;
 }
 
 .timeline-error-text {

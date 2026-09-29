@@ -15,7 +15,6 @@
       <scroll-view v-else class="content-scroll" scroll-y="true" @scrolltolower="loadMore">
       <view class="content-container">
         <view v-if="postList.length === 0" class="empty-state">
-          <view class="empty-icon">😶</view>
           <view class="empty-text">这里还没有内容</view>
           <view class="empty-subtext">作者还没有添加任何作品</view>
         </view>
@@ -577,11 +576,6 @@ export default {
   text-align: center; 
   padding: 100rpx 0; 
   color: var(--app-muted-text, #999);
-}
-
-.empty-icon { 
-  font-size: 80rpx; 
-  margin-bottom: 20rpx; 
 }
 
 .empty-text { 

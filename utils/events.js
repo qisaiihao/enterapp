@@ -12,8 +12,8 @@ export const EVENTS = {
   POST_VISIBILITY_CHANGED: 'post-visibility-changed', // { postId, isHidden }
 };
 
-export function emitAvatarUpdated(userId) {
-  try { if (userId && uni && uni.$emit) uni.$emit(EVENTS.AVATAR_UPDATED, { userId }); } catch (_) {}
+export function emitAvatarUpdated(userId, avatar = {}) {
+  try { if (userId && uni && uni.$emit) uni.$emit(EVENTS.AVATAR_UPDATED, { ...avatar, userId }); } catch (_) {}
 }
 
 export function emitAppBackgroundUpdated(payload = {}) {
@@ -102,4 +102,3 @@ export function emitPostVisibilityChanged({ postId, isHidden }) {
     }
   } catch (_) {}
 }
-

@@ -24,7 +24,6 @@
 
         <!-- 空状态：确认没有数据时才显示 -->
         <view v-else-if="posts.length === 0 && hasEverLoaded && !isLoading" class="empty-state">
-            <view class="empty-icon">{{ emptyIcon }}</view>
             <view class="empty-text">{{ emptyText }}</view>
             <view class="empty-subtext">{{ emptySubtext }}</view>
         </view>
@@ -109,10 +108,6 @@ export default {
             default: 'home'
         },
         // 空状态配置
-        emptyIcon: {
-            type: String,
-            default: '📝'
-        },
         emptyText: {
             type: String,
             default: '还没有帖子哦～'
@@ -297,20 +292,6 @@ export default {
         opacity: 1;
         transform: scale(1);
     }
-}
-
-.empty-icon {
-    animation: emptyIconBounce 2s ease-in-out infinite;
-}
-
-@keyframes emptyIconBounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10rpx); }
-}
-
-.empty-icon {
-    font-size: 80rpx;
-    margin-bottom: 20rpx;
 }
 
 .empty-text {

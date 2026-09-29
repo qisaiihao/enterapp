@@ -1,10 +1,6 @@
 <template>
-    <view>
-        <!-- Sidebar Mask -->
-        <view class="sidebar-mask" v-if="isVisible" @tap="handleMaskTap"></view>
-
-        <!-- Sidebar -->
-        <view :class="'sidebar ' + (isVisible ? 'open' : '')">
+    <AppMotion ref="motion" :visible="isVisible" placement="drawer" mask-class="app-sidebar-mask" close-on-mask @dismiss="$emit('close')">
+        <view class="sidebar app-motion-panel" @tap.stop @touchmove.stop>
             <view class="sidebar-header">
                 <image class="sidebar-avatar" :src="avatarSrc" mode="aspectFill" @error="onAvatarError"></image>
                 <text class="sidebar-nickname">{{ userInfo.nickName || '微信用户' }}</text>
@@ -50,15 +46,18 @@
                 </view>
             </view>
         </view>
-    </view>
+    </AppMotion>
 </template>
 
 <script>
+import AppMotion from '@/components/overlay/AppMotion.vue';
 import { resolveUserObjectAvatar } from '@/utils/defaultAvatar.js';
 import { isAdminUser } from '@/utils/admin.js';
 
 export default {
     name: 'Sidebar',
+    components: { AppMotion },
+    emits: ['close', 'toggle-theme', 'avatar-error', 'logout-confirm'],
     props: {
         isVisible: {
             type: Boolean,
@@ -87,14 +86,15 @@ export default {
         }
     },
     methods: {
+        closeThen(callback) {
+            this.$refs.motion.dismiss(() => {
+                this.$emit('close');
+                if (callback) callback();
+            });
+        },
         // 切换主题
         handleToggleTheme() {
             this.$emit('toggle-theme');
-        },
-
-        // 处理遮罩点击
-        handleMaskTap() {
-            this.$emit('close');
         },
 
         // 头像加载错误处理
@@ -104,119 +104,91 @@ export default {
 
         // 跳转到我的点赞页面
         navigateToMyLikes() {
-            this.$emit('close');
-            uni.navigateTo({
+            this.closeThen(() => uni.navigateTo({
                 url: '/pages-user/my-likes/my-likes'
-            });
+            }));
         },
 
         // 跳转到作品集页面
         navigateToPortfolio() {
-            this.$emit('close');
-            uni.navigateTo({
+            this.closeThen(() => uni.navigateTo({
                 url: '/pages-content/portfolio/portfolio'
-            });
+            }));
         },
 
 
         // 跳转到草稿箱页面
         navigateToDraftBox() {
-            this.$emit('close');
-            uni.navigateTo({
+            this.closeThen(() => uni.navigateTo({
                 url: '/pages-content/draft-box/draft-box'
-            });
+            }));
         },
 
         // 跳转到意见反馈页面
         navigateToFeedback() {
-            this.$emit('close');
-            uni.navigateTo({
+            this.closeThen(() => uni.navigateTo({
                 url: '/pages-tools/feedback/feedback'
-            });
+            }));
         },
 
         // 跳转到设置页面
         navigateToSettings() {
-            this.$emit('close');
-            uni.navigateTo({
+            this.closeThen(() => uni.navigateTo({
                 url: '/pages/settings/settings'
-            });
+            }));
         },
 
         // 跳转到拼贴诗页面
         navigateToContact() {
-            this.$emit('close');
-            uni.navigateTo({ url: '/pages-tools/contact/contact' });
+            this.closeThen(() => uni.navigateTo({ url: '/pages-tools/contact/contact' }));
         },
 
         navigateToCollage() {
-            this.$emit('close');
-            uni.navigateTo({
+            this.closeThen(() => uni.navigateTo({
                 url: '/pages-collage/collage-main/collage-main'
-            });
+            }));
         },
 
         // 跳转到黑名单页面
         navigateToBlockedUsers() {
-            this.$emit('close');
-            uni.navigateTo({
+            this.closeThen(() => uni.navigateTo({
                 url: '/pages-user/blocked-users/blocked-users'
-            });
+            }));
         },
 
         // 跳转到管理页面
         navigateToAdmin() {
-            this.$emit('close');
-            uni.navigateTo({
+            this.closeThen(() => uni.navigateTo({
                 url: '/pages-admin/admin-menu/admin-menu'
-            });
+            }));
         },
 
         // 跳转到测试页面
         navigateToTest() {
-            this.$emit('close');
-            uni.navigateTo({
+            this.closeThen(() => uni.navigateTo({
                 url: '/pages-debug/test-menu/test-menu'
-            });
+            }));
         },
 
         // 显示退出登录确认对话框
         showLogoutConfirm() {
-            // 先关闭侧边栏，避免遮挡确认对话框
-            this.$emit('close');
-
-            // 延迟显示对话框，确保侧边栏关闭动画完成
-            setTimeout(() => {
-                this.$emit('logout-confirm');
-            }, 100);
+            this.closeThen(() => this.$emit('logout-confirm'));
         }
     }
 };
 </script>
 
 <style scoped>
-/* 侧边栏遮罩 */
-.sidebar-mask {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.56);
-    z-index: 1001;
-}
-
 /* 侧边栏 */
 .sidebar {
     position: fixed;
     top: 0;
-    left: -70%; /* Start off-screen */
+    left: 0;
     width: 70%;
     height: 100%;
     background-color: var(--app-surface-bg, #ffffff);
     box-shadow: var(--profile-sidebar-shadow, 8rpx 0 28rpx rgba(0, 0, 0, 0.16));
     border-right: 1rpx solid var(--app-border-color, rgba(0, 0, 0, 0.06));
-    transition: left 0.3s ease;
     z-index: 1002;
     display: flex;
     flex-direction: column;
@@ -225,10 +197,6 @@ export default {
     padding-bottom: 24rpx;
     padding-bottom: calc(24rpx + constant(safe-area-inset-bottom));
     padding-bottom: calc(24rpx + env(safe-area-inset-bottom, var(--safe-area-inset-bottom, 0px)));
-}
-
-.sidebar.open {
-    left: 0; /* Slide in */
 }
 
 /* 侧边栏头部 */

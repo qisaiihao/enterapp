@@ -90,6 +90,7 @@ async function main() {
     }
   });
   const component = loadModule(read('pages-admin/admin-posts/admin-posts.vue').match(/<script>([\s\S]*?)<\/script>/)[1], {
+    AppActionSheet: {},
     listAdminPosts: api.listAdminPosts,
     updateAdminPostType: async ({ postId, postType }) => {
       const row = rows.find(row => row._id === postId);
@@ -120,11 +121,24 @@ async function main() {
   await page.changePostType({ currentTarget: { dataset: { type: 'discussion' } } });
   assert.ok(page.posts.every(post => post.postType === 'original'));
   assert.equal(page.posts[0]._id, 'original-1');
-  await page.deletePost('original-1', 0);
+  page.confirmDelete({ currentTarget: { dataset: { id: 'original-1' } } });
+  assert.equal(page.posts[0]._id, 'original-1', 'opening confirmation does not delete');
+  page.hideDeleteConfirm();
+  await page.handleDeleteConfirm(0);
+  assert.equal(page.posts[0]._id, 'original-1', 'cancelled confirmation cannot delete');
+  page.confirmDelete({ currentTarget: { dataset: { id: 'original-1' } } });
+  await page.handleDeleteConfirm(0);
   assert.equal(page.posts[0]._id, 'original-2');
+  assert.equal(page.deletePostId, '');
+  await page.handleDeleteConfirm(0);
+  assert.equal(page.posts[0]._id, 'original-2', 'repeated confirmation cannot delete another post');
+  page.confirmDelete({ currentTarget: { dataset: { id: 'original-2' } } });
+  component.onHide.call(page);
+  assert.equal(page.deletePostId, '', 'leaving the page dismisses confirmation');
 
   const pending = [];
   const raceComponent = loadModule(read('pages-admin/admin-posts/admin-posts.vue').match(/<script>([\s\S]*?)<\/script>/)[1], {
+    AppActionSheet: {},
     listAdminPosts: options => new Promise((resolve, reject) => pending.push({ options, resolve, reject })),
     uni: { showToast() {}, stopPullDownRefresh() {} }
   });

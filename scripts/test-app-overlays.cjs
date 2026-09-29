@@ -4,7 +4,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const { parse } = require('@babel/parser');
 const { parse: parseJson } = require('jsonc-parser');
-const { createRenderer, nextTick } = require('vue');
+const { createRenderer, nextTick, h, resolveComponent } = require('vue');
 const root = path.join(__dirname, '..');
 let stack = [];
 let nativeCalls = 0;
@@ -25,10 +25,10 @@ const renderer = createRenderer({
   parentNode() {}, nextSibling() {}
 });
 
-function component(file) {
+function component(file, dependencies = {}) {
   let text = fs.readFileSync(path.join(root, file), 'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];
   text = text.replace(/^import .*;\r?$/gm, '').replace('export default', 'module.exports =');
-  const context = { ...api, setTimeout, clearTimeout, module: { exports: {} } };
+  const context = { ...api, ...dependencies, setTimeout, clearTimeout, module: { exports: {} } };
   vm.runInNewContext(text, context);
   return context.module.exports;
 }
@@ -176,7 +176,7 @@ async function main() {
     else uni.showActionSheet(options);
     const request = displayed;
     const callbackApp = renderer.createApp({ ...(kind === 'dialog' ? dialog : sheet), render: () => null }, {
-      visible: true, showCancel: options.showCancel !== false, items: options.itemList || [],
+      visible: true, deferAnswer: kind === 'dialog', showCancel: options.showCancel !== false, items: options.itemList || [],
       onConfirm: () => api.answerOverlay(owner, request, 'confirm'),
       onCancel: () => api.answerOverlay(owner, request, 'cancel'),
       onSelect: index => api.answerOverlay(owner, request, index)
@@ -187,9 +187,9 @@ async function main() {
       assert.equal(displayed, request, `${label}: physical back cannot confirm a mandatory notice`);
       assert.equal(navigationResults.length, 0);
     }
-    // Dialogs answer immediately; sheets release their dismissal listener after sliding out.
+    // Both API dialogs and sheets finish their exit before invoking navigation.
     callbackInstance.answer(action, 0);
-    if (kind === 'sheet') {
+    {
       assert.equal(displayed, request, `${label}: keep request active during the close animation`);
       assert.equal(navigationResults.length, 0, `${label}: navigation waits for the close animation`);
       await new Promise(resolve => setTimeout(resolve, 200));
@@ -232,6 +232,79 @@ async function main() {
   uni.showModal({ title: 'web-view notice' });
   uni.showActionSheet({ itemList: ['复制链接'] });
   assert.equal(nativeCalls, 4, 'web-view pages use platform overlays above the native web-view');
+
+  // 不经过 easycom，使用真实宿主验证显式注册后的页面请求、显示数据与回调。
+  const mainAst = parse(fs.readFileSync(path.join(root, 'main.js'), 'utf8'), { sourceType: 'module' });
+  const hostImport = mainAst.program.body.find(node => node.type === 'ImportDeclaration'
+    && node.source.value === '@/components/app-overlay-host/app-overlay-host.vue');
+  assert.ok(hostImport, 'main.js must explicitly import the host for release builds');
+  let hostRegistered = false;
+  walk(mainAst, node => {
+    if (node.type === 'CallExpression' && node.callee?.object?.name === 'app'
+      && node.callee.property?.name === 'component' && node.arguments[0]?.value === 'app-overlay-host'
+      && node.arguments[1]?.name === hostImport.specifiers[0].local.name) hostRegistered = true;
+  });
+  assert.ok(hostRegistered, 'main.js must register the imported host without depending on easycom');
+  const host = component('components/app-overlay-host/app-overlay-host.vue', { AppDialog: dialog, AppActionSheet: sheet });
+  const hostApp = renderer.createApp({ mpType: 'page', render: () => h(resolveComponent('app-overlay-host')) });
+  hostApp.component('app-overlay-host', { ...host, render: () => null });
+  const hostPage = hostApp.mount({});
+  stack = [{ route: 'pages/login/login', $vm: hostPage }];
+  api.appOverlayPageMixin.onShow.call(hostPage);
+  const hostInstance = hostPage.$.subTree.component.proxy;
+  const hostResult = uni.showModal({ title: '正式包确认框', content: '显式注册后继续流程' });
+  await nextTick();
+  assert.equal(hostInstance.request.options.title, '正式包确认框');
+  hostInstance.confirm('confirmed');
+  assert.equal((await hostResult).confirm, true, 'real host resolves the pending caller');
+  assert.equal(hostInstance.request, null);
+  const hostSheetResult = uni.showActionSheet({ itemList: ['第一项', '第二项'] });
+  assert.equal(hostInstance.sheetItems.length, 2);
+  hostInstance.select(1);
+  assert.equal((await hostSheetResult).tapIndex, 1, 'API action sheets share the registered host');
+  api.appOverlayPageMixin.onUnload.call(hostPage);
+  hostApp.unmount();
+  stack = [];
+
+  // 运行个人页真实背景确认方法：取消不能写接口，确认才清除并刷新。
+  const profileSource = fs.readFileSync(path.join(root, 'pages/profile/profile.vue'), 'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];
+  const profileAst = parse(profileSource, { sourceType: 'module' });
+  const backgroundCalls = [];
+  const backgroundContext = {
+    console,
+    uni: {
+      showModal() { assert.fail('background removal must use the bottom sheet'); },
+      showToast() {}, showLoading() {}, hideLoading() {}
+    },
+    cloudCall: async (name, data) => backgroundCalls.push({ name, data }),
+    invalidateMyInfo() {}
+  };
+  const backgroundPage = {
+    appBackgroundResolvedUrl: '/static/background.jpg',
+    refreshProfileAtomically: async () => backgroundCalls.push('refreshed')
+  };
+  const backgroundMethods = ['handleClearBackground', 'showBackgroundActionSheet', 'finishBackgroundActionSheet',
+    'handleBackgroundActionSheetSelect', 'handleBackgroundActionSheetCancel'];
+  walk(profileAst, node => {
+    if (node.type === 'ObjectProperty' && backgroundMethods.includes(node.key?.name)) {
+      backgroundPage[node.key.name] = vm.runInNewContext(`(${profileSource.slice(node.value.start, node.value.end)})`, backgroundContext);
+    }
+  });
+  const cancelledBackground = backgroundPage.handleClearBackground();
+  assert.equal(backgroundPage.backgroundActionSheet.visible, true);
+  assert.equal(backgroundPage.backgroundActionSheet.items[0].danger, true);
+  assert.equal(backgroundCalls.length, 0, 'opening the confirmation must not remove the background');
+  backgroundPage.handleBackgroundActionSheetCancel();
+  await cancelledBackground;
+  assert.equal(backgroundCalls.length, 0, 'cancelling leaves the background unchanged');
+  const confirmedBackground = backgroundPage.handleClearBackground();
+  backgroundPage.handleBackgroundActionSheetSelect(0);
+  await confirmedBackground;
+  assert.equal(backgroundPage.backgroundActionSheet.visible, false);
+  assert.equal(backgroundCalls[0].name, 'updateUserProfile');
+  assert.equal(backgroundCalls[0].data.clearAppBackground, true);
+  assert.equal(backgroundCalls[1], 'refreshed');
+  assert.equal(backgroundCalls.length, 2);
 
   const config = parseJson(fs.readFileSync(path.join(root, 'pages.json'), 'utf8'));
   const routes = [...config.pages.map(page => page.path), ...config.subPackages.flatMap(group => group.pages.map(page => `${group.root}/${page.path}`))];

@@ -50,14 +50,13 @@
         </AppActionSheet>
 
         <!-- 创建作品集弹窗 -->
-        <view v-if="showCreateModal" class="modal-overlay" @tap="hideCreateModal">
-            <view class="modal-content create-modal" @tap.stop>
-                <view class="modal-header">
-                    <view class="modal-title">创建作品集</view>
-                    <view class="close-btn" @tap="hideCreateModal" @tap.stop.prevent="trueFun">×</view>
+        <AppMotion :visible="showCreateModal" ref="createMotion" @dismiss="hideCreateModal" mask-class="collection-create-dialog" :mask-dark="appThemeMode === 'dark'" close-on-mask>
+            <view class="collection-create-panel app-motion-panel" @tap.stop>
+                <view class="collection-create-header">
+                    <view class="collection-create-title">新建作品集</view>
                 </view>
 
-                <view class="modal-body">
+                <view class="collection-create-body" @touchmove.stop>
                     <view class="create-portfolio-form">
                         <view class="form-item">
                             <view class="form-label">作品集名称</view>
@@ -82,23 +81,24 @@
                     </view>
                 </view>
 
-                <view class="modal-footer create-footer">
-                    <button class="modal-btn outline-btn" @tap="hideCreateModal">取消</button>
-                    <button class="modal-btn outline-btn" @tap="createNewPortfolio" :disabled="!newPortfolioName">创建</button>
+                <view class="collection-create-footer">
+                    <button class="collection-create-button create-cancel" @tap="$refs.createMotion.dismiss()">取消</button>
+                    <button class="collection-create-button create-confirm" @tap="createNewPortfolio" :disabled="!newPortfolioName.trim()">创建</button>
                 </view>
             </view>
-        </view>
+        </AppMotion>
     </view>
 </template>
 
 <script>
+import AppMotion from '@/components/overlay/AppMotion.vue';
 import AppActionSheet from '@/components/overlay/AppActionSheet.vue';
 // components/portfolio-selector/portfolio-selector.js
 import { cloudCall } from '../../utils/cloudCall.js';
 import { getPortfolioFolders, notifyPortfolioUpdated } from '../../api-cache/portfolio.js';
 import { readFileAsBase64 } from '../../utils/fileReader.js';
 export default {
-    components: { AppActionSheet },
+    components: { AppMotion, AppActionSheet },
     data() {
         return {
             portfolios: [],
@@ -419,6 +419,10 @@ export default {
 
         // 隐藏创建作品集弹窗
         hideCreateModal: function () {
+            if (this.$refs?.createMotion?.rendered) {
+                this.$refs.createMotion.dismiss(this.hideCreateModal);
+                return;
+            }
             this.setData({
                 showCreateModal: false,
                 newPortfolioName: '',
@@ -957,7 +961,8 @@ export default {
 }
 
 .portfolio-name-input:focus {
-    border-color: #9ed7ee;
+    border-color: var(--app-link-color, #333333);
+    box-shadow: var(--app-control-focus-ring, 0 0 0 4rpx rgba(0, 0, 0, 0.08));
 }
 
 .close-btn {
@@ -1040,7 +1045,7 @@ export default {
     font-size: 24rpx;
     font-weight: 500;
 }
-/* 选择列表共用底部面板；创建表单继续使用原来的输入弹窗。 */
+/* 选择列表共用底部面板，创建表单共用居中弹窗样式。 */
 .collection-sheet .modal-body { padding: 0; max-height: none; overflow: visible; }
 .collection-sheet .portfolios-list { padding: 0; gap: 0; }
 .collection-sheet .portfolio-item { min-height: 116rpx; padding: 26rpx 32rpx; box-sizing: border-box; border-bottom: 1px solid var(--overlay-divider); background: var(--overlay-bg); }
@@ -1054,3 +1059,5 @@ export default {
 .collection-create::after { border: none; }
 .collection-create:active, .collection-sheet .portfolio-item:active { opacity: 0.65; }
 </style>
+
+<style src="@/styles/collection-create-dialog.css"></style>

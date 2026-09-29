@@ -37,7 +37,7 @@
         <view class="group-create">
           <input v-model="groupName" class="text-input grow" :maxlength="16" :placeholder="editingGroupId ? '修改分组名称' : '新建分组名称（最多 16 字）'" :disabled="busy" />
           <button size="mini" :disabled="busy || !groupName.trim()" :loading="savingGroup" @tap="saveGroup">{{ editingGroupId ? '保存' : '新建' }}</button>
-          <button v-if="editingGroupId" size="mini" :disabled="busy" @tap="cancelGroupEdit">取消</button>
+          <button v-if="editingGroupId" size="mini" :disabled="busy" @tap="cancelGroupEdit" :style="cancelActionStyle('取消')">取消</button>
         </view>
         <view v-if="!groups.length" class="placeholder">还没有分组，素材会放在“未分组”</view>
         <view v-for="group in groups" :key="group.id" class="group-item">

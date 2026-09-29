@@ -31,7 +31,7 @@ function loadModule(relativePath, globals) {
       source = source.slice(0, node.start) + 'module.exports = ' + source.slice(node.declaration.start);
     }
   }
-  const sandbox = { ...globals, module: { exports: {} } };
+  const sandbox = { AppMotion: {}, ...globals, module: { exports: {} } };
   vm.runInNewContext(source, sandbox, { filename: relativePath });
   return sandbox.module.exports;
 }

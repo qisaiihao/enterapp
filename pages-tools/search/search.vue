@@ -4,7 +4,10 @@
         <!-- 搜索框 -->
         <view class="search-header">
             <view class="search-input-container">
-                <view class="search-icon">🔍</view>
+                <view class="search-icon" aria-hidden="true">
+                    <view class="search-icon-ring"></view>
+                    <view class="search-icon-handle"></view>
+                </view>
                 <input
                     class="search-input"
                     placeholder="搜索帖子..."
@@ -17,7 +20,6 @@
                 />
                 <view v-if="searchKeyword" class="clear-btn" @tap="clearSearch">×</view>
             </view>
-            <view class="cancel-btn" @tap="goBack">取消</view>
         </view>
 
         <!-- 搜索过滤 -->
@@ -131,7 +133,7 @@
                         </view>
                         <view class="actions-right">
                             <view class="action-item" @tap.stop.prevent="onCommentClick" :data-postid="item._id">
-                                <text class="action-emoji">💬</text>
+                                <image class="comment-icon" src="/static/images/newicons/comment.png" mode="aspectFit" alt="评论" />
                                 <text class="action-text">{{ item.commentCount || 0 }}</text>
                             </view>
                             <view class="action-item">
@@ -151,7 +153,6 @@
 
         <!-- 空状态 -->
         <view v-if="searchKeyword && !isSearching && searchResults.length === 0" class="empty-state">
-            <view class="empty-icon">🔍</view>
             <view class="empty-text">没有找到相关帖子</view>
             <view class="empty-subtext">试试其他关键词吧</view>
         </view>
@@ -542,11 +543,6 @@ export default {
             }
         },
 
-        // 返回上一页
-        goBack: function () {
-            uni.navigateBack();
-        },
-
         // 帖子点击处理
         onPostTap: function (e) {
             const postId = e.currentTarget.dataset.postid;
@@ -701,11 +697,11 @@ export default {
     display: flex;
     align-items: center;
     margin-bottom: 30rpx;
-    gap: 20rpx;
 }
 
 .search-input-container {
     flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
     background-color: var(--app-surface-bg, #fff);
@@ -716,13 +712,40 @@ export default {
 }
 
 .search-icon {
-    font-size: 32rpx;
+    position: relative;
+    width: 36rpx;
+    height: 36rpx;
+    flex-shrink: 0;
     margin-right: 20rpx;
     color: var(--app-muted-text, #999);
 }
 
+.search-icon-ring {
+    position: absolute;
+    top: 2rpx;
+    left: 2rpx;
+    width: 24rpx;
+    height: 24rpx;
+    box-sizing: border-box;
+    border: 3rpx solid currentColor;
+    border-radius: 50%;
+}
+
+.search-icon-handle {
+    position: absolute;
+    top: 22rpx;
+    left: 22rpx;
+    width: 14rpx;
+    height: 3rpx;
+    border-radius: 3rpx;
+    background: currentColor;
+    transform: rotate(45deg);
+    transform-origin: left center;
+}
+
 .search-input {
     flex: 1;
+    min-width: 0;
     font-size: 28rpx;
     color: var(--app-primary-text, #333);
 }
@@ -732,12 +755,6 @@ export default {
     color: var(--app-muted-text, #999);
     margin-left: 20rpx;
     padding: 10rpx;
-}
-
-.cancel-btn {
-    font-size: 28rpx;
-    color: var(--app-link-color, #9ed7ee);
-    padding: 20rpx;
 }
 
 /* 搜索过滤 */
@@ -750,14 +767,17 @@ export default {
 
 .filter-item {
     background-color: var(--app-subtle-surface-bg, #f5f5f5);
-    border-radius: 20rpx;
-    padding: 12rpx 20rpx;
+    border-radius: 32rpx;
+    padding: 12rpx 24rpx;
     transition: all 0.2s ease;
+    background: var(--app-control-soft-bg, #f5f6f7);
+    color: var(--app-link-color, #333333);
 }
 
 .filter-item.active {
-    background-color: var(--app-control-accent-bg, #9ed7ee);
-    color: var(--app-control-accent-text, #fff);
+    background-color: var(--app-control-accent-bg, #333333);
+    color: var(--app-control-accent-text, #ffffff);
+    font-weight: 600;
 }
 
 .filter-text {
@@ -793,15 +813,17 @@ export default {
 
 .sort-item {
     font-size: 24rpx;
-    color: var(--app-muted-text, #999);
-    padding: 8rpx 16rpx;
-    border-radius: 12rpx;
+    color: var(--app-link-color, #333333);
+    padding: 12rpx 24rpx;
+    border-radius: 32rpx;
     transition: all 0.2s ease;
+    background: var(--app-control-soft-bg, #f5f6f7);
 }
 
 .sort-item.active {
-    background-color: var(--app-control-accent-bg, #9ed7ee);
-    color: var(--app-control-accent-text, #fff);
+    background-color: var(--app-control-accent-bg, #333333);
+    color: var(--app-control-accent-text, #ffffff);
+    font-weight: 600;
 }
 
 /* 文章列表样式 */
@@ -898,7 +920,7 @@ export default {
 }
 
 .post-tag {
-    color: var(--app-tag-text-color, #24375f);
+    color: var(--app-tag-text-color, #555555);
     font-size: 26rpx;
     margin-right: 10rpx;
     transition: all 0.2s ease;
@@ -906,7 +928,7 @@ export default {
 }
 
 .post-tag:active {
-    color: var(--app-tag-active-color, #1a2a4a);
+    color: var(--app-tag-active-color, #333333);
     opacity: 0.8;
 }
 
@@ -934,8 +956,11 @@ export default {
     gap: 8rpx;
 }
 
-.action-emoji {
-    font-size: 24rpx;
+.comment-icon {
+    width: 28rpx;
+    height: 28rpx;
+    flex-shrink: 0;
+    filter: var(--app-post-action-icon-filter, none);
 }
 
 .action-text {
@@ -955,11 +980,6 @@ export default {
     margin: 30rpx;
     box-shadow: var(--app-surface-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
     border: var(--app-surface-border-line, none);
-}
-
-.empty-icon {
-    font-size: 80rpx;
-    margin-bottom: 20rpx;
 }
 
 .empty-text {
@@ -1000,20 +1020,20 @@ export default {
 }
 
 .suggestion-item {
-    background-color: var(--app-subtle-surface-bg, #f0f8ff);
+    background-color: var(--app-control-soft-bg, #f5f6f7);
     border-radius: 20rpx;
     padding: 12rpx 20rpx;
     transition: all 0.2s ease;
 }
 
 .suggestion-item:active {
-    background-color: var(--app-subtle-surface-bg, #e0f0ff);
+    background-color: var(--app-control-active-bg, #e8e8e8);
     transform: scale(0.95);
 }
 
 .suggestion-text {
     font-size: 26rpx;
-    color: var(--app-link-color, #9ed7ee);
+    color: var(--app-link-color, #333333);
 }
 
 /* 搜索历史 */
@@ -1093,28 +1113,26 @@ export default {
 }
 
 .hot-item {
-    background-color: var(--app-subtle-surface-bg, #f0f8ff);
+    background-color: var(--app-control-soft-bg, #f5f6f7);
     border-radius: 20rpx;
     padding: 12rpx 20rpx;
     transition: all 0.2s ease;
 }
 
 .hot-item:active {
-    background-color: var(--app-subtle-surface-bg, #e0f0ff);
+    background-color: var(--app-control-active-bg, #e8e8e8);
     transform: scale(0.95);
 }
 
 .hot-text {
     font-size: 26rpx;
-    color: var(--app-link-color, #9ed7ee);
+    color: var(--app-link-color, #333333);
 }
 
 /* 搜索高亮 */
 .search-highlight {
-    background-color: var(--app-search-highlight-bg, #ffeb3b);
-    color: var(--app-search-highlight-text, #333);
-    padding: 2rpx 4rpx;
-    border-radius: 4rpx;
+    background: transparent;
+    color: inherit;
     font-weight: bold;
 }
 
@@ -1139,7 +1157,7 @@ export default {
 
 .load-more-text {
     font-size: 28rpx;
-    color: var(--app-link-color, #9ed7ee);
+    color: var(--app-link-color, #333333);
 }
 
 /* 加载状态 */
@@ -1193,12 +1211,8 @@ export default {
     color: #8e96a3;
 }
 
-.container--dark .cancel-btn,
-.container--dark .suggestion-text,
-.container--dark .hot-text,
-.container--dark .load-more-text,
 .container--dark .post-tag {
-    color: #d8bf82;
+    color: var(--app-tag-text-color, #555555);
 }
 
 .container--dark .filter-item,
@@ -1212,8 +1226,8 @@ export default {
 
 .container--dark .filter-item.active,
 .container--dark .sort-item.active {
-    background-color: #c9ad73;
-    color: #111318;
+    background-color: var(--app-control-accent-bg, #333333);
+    color: var(--app-control-accent-text, #ffffff);
 }
 
 .container--dark .filter-text,
@@ -1222,7 +1236,7 @@ export default {
 }
 
 .container--dark .filter-item.active .filter-text {
-    color: #111318;
+    color: var(--app-control-accent-text, #ffffff);
 }
 
 .container--dark .post-item-wrapper {
@@ -1248,8 +1262,5 @@ export default {
     color: #ffffff;
 }
 
-.container--dark .search-highlight {
-    background-color: #5a4617;
-    color: #fff3c4;
-}
+.filter-item:active, .sort-item:active { opacity: 0.65; }
 </style>

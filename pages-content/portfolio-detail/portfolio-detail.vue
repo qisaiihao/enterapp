@@ -1,5 +1,5 @@
 <template>
-  <view class="portfolio-detail-page" :style="readFontVars" @touchstart="touchStart" @touchend="touchEnd">
+  <view class="portfolio-detail-page" :style="[appThemeVars, readFontVars]" @touchstart="touchStart" @touchend="touchEnd">
     <dual-action-top-bar @left-click="goBack" @right-click="openAddModal" />
     
     <view class="container">
@@ -12,7 +12,6 @@
       <scroll-view v-else class="content-scroll" scroll-y="true" @scrolltolower="loadMore">
       <view class="content-container">
         <view v-if="postList.length === 0" class="empty-state">
-          <view class="empty-icon">😶</view>
           <view class="empty-text">这里还没有内容</view>
           <view class="empty-subtext">添加你的诗歌吧～</view>
         </view>
@@ -79,17 +78,16 @@
     <view v-if="showPageIndicator" class="page-indicator"></view>
 
     <!-- 批量添加弹窗 -->
-    <view v-if="showAddModal" class="modal-overlay" @tap="hideAddModal">
-      <view class="modal-content" @tap.stop>
-        <view class="modal-header">
-          <text class="modal-title">批量添加作品</text>
-          <text class="close-btn" @tap="hideAddModal">×</text>
+    <AppMotion :visible="showAddModal" ref="addMotion" @dismiss="hideAddModal" mask-class="collection-create-dialog bulk-add-dialog" :mask-dark="appThemeMode === 'dark'" close-on-mask>
+      <view class="collection-create-panel app-motion-panel" @tap.stop>
+        <view class="collection-create-header">
+          <text class="collection-create-title">批量添加作品</text>
         </view>
-        <view class="modal-body">
+        <scroll-view class="collection-create-body" scroll-y @touchmove.stop>
           <text class="tip-text">从您的原创诗歌中选择要添加到作品集的内容</text>
           <view class="my-posts-section">
             <text class="section-title">我的原创诗歌</text>
-            <scroll-view class="posts-list" scroll-y="true">
+            <view class="posts-list">
               <view v-if="myPostsLoading" class="loading-small">
                 <text>加载中...</text>
               </view>
@@ -113,23 +111,24 @@
                   </view>
                 </view>
               </view>
-            </scroll-view>
+            </view>
           </view>
-        </view>
-        <view class="modal-footer">
-          <button class="modal-btn cancel" @tap="hideAddModal">取消</button>
-          <button class="modal-btn confirm" @tap="addToPortfolio" :disabled="selectedPostIds.length === 0">
+        </scroll-view>
+        <view class="collection-create-footer">
+          <button class="collection-create-button create-cancel" @tap="$refs.addMotion.dismiss()">取消</button>
+          <button class="collection-create-button create-confirm" @tap="addToPortfolio" :disabled="selectedPostIds.length === 0">
             添加 ({{ selectedPostIds.length }})
           </button>
         </view>
       </view>
-    </view>
+    </AppMotion>
   </view>
 
     <app-overlay-host />
 </template>
 
 <script>
+import AppMotion from '@/components/overlay/AppMotion.vue';
 import skeleton from '@/components/skeleton/skeleton';
 import dualActionTopBar from '@/components/dual-action-top-bar/dual-action-top-bar.vue';
 import { cloudCall } from '@/utils/cloudCall.js';
@@ -144,7 +143,7 @@ import { getWindowInfoCompat } from '@/utils/system-info.js';
 const PAGE_SIZE = 10;
 
 export default {
-  components: {
+  components: { AppMotion,
     skeleton,
     dualActionTopBar
   },
@@ -476,6 +475,10 @@ export default {
 
     // 隐藏批量添加弹窗
     hideAddModal() {
+        if (this.$refs?.addMotion?.rendered) {
+            this.$refs.addMotion.dismiss(this.hideAddModal);
+            return;
+        }
       this.setData({
         showAddModal: false,
         selectedPostIds: []
@@ -735,7 +738,6 @@ export default {
   align-items: stretch; /* 让卡片撑满容器 */
 }
 .empty-state { text-align: center; padding: 100rpx 0; color: var(--app-muted-text, #999); }
-.empty-icon { font-size: 80rpx; margin-bottom: 20rpx; }
 .empty-text { font-size: 32rpx; margin-bottom: 10rpx; color: var(--app-secondary-text, #666); }
 .empty-subtext { font-size: 24rpx; color: var(--app-muted-text, #999); }
 
@@ -865,75 +867,13 @@ export default {
 .page-indicator-text { text-align: center; }
 
 
-/* 批量添加弹窗样式 */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: var(--app-elevated-bg, #fff);
-  border: 1rpx solid var(--app-border-color, transparent);
-  box-shadow: var(--app-surface-shadow, 0 10rpx 30rpx rgba(0, 0, 0, 0.12));
-  border-radius: 20rpx;
-  width: 90%;
-  max-width: 600rpx;
-  max-height: 80vh;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-content > .modal-header,
-.modal-content > .modal-body,
-.modal-content > .modal-footer {
-  flex-shrink: 0;
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 40rpx 40rpx 30rpx;
-  border-bottom: 1rpx solid var(--app-border-color, #f0f0f0);
-}
-
-.modal-title {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: var(--app-primary-text, #333);
-}
-
-.close-btn {
-  font-size: 40rpx;
-  color: var(--app-muted-text, #999);
-  width: 60rpx;
-  height: 60rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-body {
-  flex: 1;
-  padding: 40rpx;
-  overflow: visible;
-  display: flex;
-  flex-direction: column;
-}
-
+/* 批量选择内容；面板及按钮复用居中弹窗样式。 */
 .tip-text {
+  display: block;
   font-size: 28rpx;
-  color: var(--app-secondary-text, #666);
-  margin-bottom: 30rpx;
+  line-height: 1.6;
+  color: var(--create-muted);
+  margin-bottom: 24rpx;
 }
 
 .my-posts-section {
@@ -945,21 +885,18 @@ export default {
 .section-title {
   font-size: 30rpx;
   font-weight: 600;
-  color: var(--app-primary-text, #333);
+  color: var(--create-text);
   margin-bottom: 20rpx;
 }
 
 .posts-list {
-  flex: 1;
-  max-height: 400rpx;
-  min-height: 200rpx;
-  overflow-y: auto;
+  width: 100%;
 }
 
 .loading-small, .empty-small {
   text-align: center;
   padding: 60rpx 0;
-  color: var(--app-muted-text, #999);
+  color: var(--create-muted);
   font-size: 28rpx;
 }
 
@@ -971,10 +908,10 @@ export default {
 }
 
 .post-item-simple {
-  background: var(--app-subtle-surface-bg, #f8f9fa);
-  border-radius: 12rpx;
+  background: var(--create-input-bg);
+  border-radius: 20rpx;
   padding: 24rpx;
-  border: 2rpx solid var(--app-border-color, transparent);
+  border: none;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
@@ -982,12 +919,12 @@ export default {
 }
 
 .post-item-simple.selected {
-  border-color: #9ed7ee;
-  background: rgba(158, 215, 238, 0.1);
+  background: var(--create-cancel-bg);
 }
 
 .post-content-simple {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 6rpx;
@@ -995,58 +932,39 @@ export default {
 
 .post-title-simple {
   font-size: 30rpx;
-  color: var(--app-primary-text, #333);
+  color: var(--create-text);
   font-weight: 500;
   line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .post-date-simple {
   font-size: 24rpx;
-  color: var(--app-muted-text, #999);
+  color: var(--create-muted);
 }
 
 .selected-check-simple {
   width: 40rpx;
   height: 40rpx;
-  background: #9ed7ee;
+  background: var(--create-confirm-bg);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--create-confirm-text);
   font-size: 24rpx;
   font-weight: bold;
   flex-shrink: 0;
 }
 
-.modal-footer {
-  display: flex;
-  gap: 20rpx;
-  padding: 30rpx 40rpx 40rpx;
-  border-top: 1rpx solid var(--app-border-color, #f0f0f0);
+/* 横屏或可视高度较小时，留出足够空间滚动和点选作品。 */
+@media (max-height: 480px) {
+  .bulk-add-dialog { padding: 16px; }
+  .bulk-add-dialog .collection-create-panel { padding: 20rpx; }
+  .bulk-add-dialog .collection-create-header { margin-bottom: 12rpx; }
+  .bulk-add-dialog .collection-create-footer { margin-top: 16rpx; }
 }
 
-.modal-btn {
-  flex: 1;
-  height: 80rpx;
-  border-radius: 12rpx;
-  font-size: 28rpx;
-  font-weight: 500;
-  border: none;
-}
-
-.modal-btn.cancel {
-  background: var(--app-subtle-surface-bg, #f8f9fa);
-  color: var(--app-secondary-text, #666);
-}
-
-.modal-btn.confirm {
-  background: #9ed7ee;
-  color: #fff;
-}
-
-.modal-btn.confirm[disabled] {
-  background: var(--app-subtle-surface-bg, #ccc);
-  color: var(--app-muted-text, #999);
-}
 </style>
+
+<style src="@/styles/collection-create-dialog.css"></style>

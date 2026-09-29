@@ -8,7 +8,7 @@
             <view class="status-item">
                 <text class="label">字体状态：</text>
                 <text :class="'value ' + (fontLoaded ? 'success' : 'loading')">
-                    {{ fontLoaded ? '✅ 已加载' : '⏳ 加载中...' }}
+                    {{ fontLoaded ? '已加载' : '加载中...' }}
                 </text>
             </view>
             
@@ -19,7 +19,7 @@
             
             <view class="status-item">
                 <text class="label">缓存状态：</text>
-                <text class="value">{{ isCached ? '✅ 已缓存' : '❌ 未缓存' }}</text>
+                <text class="value">{{ isCached ? '已缓存' : '未缓存' }}</text>
             </view>
         </view>
         

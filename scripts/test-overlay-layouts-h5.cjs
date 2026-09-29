@@ -1,5 +1,8 @@
 const assert = require('node:assert/strict');
 const puppeteer = require('puppeteer-core');
+const fs = require('node:fs');
+const path = require('node:path');
+const os = require('node:os');
 
 // Render actual components with local fixtures; never submit account or content changes.
 const cases = [
@@ -7,21 +10,20 @@ const cases = [
   ['register', { showBindAccountDialog: true }, '.modal-content'],
   ['register', { showBindPhoneModal: true }, '.modal-content'],
   ['editor', { showEditPhoneModal: true }, '.modal-content'],
-  ['favorites', { showCreateModal: true }, '.modal-content'],
-  ['favorites', { showEditModal: true }, '.modal-content'],
-  ['portfolio', { showCreateModal: true }, '.modal-content'],
-  ['portfolio', { showEditModal: true }, '.modal-content'],
-  ['detail', { showAddModal: true }, '.modal-content'],
+  ['favorites', { showCreateModal: true }, '.collection-create-panel'],
+  ['favorites', { showEditModal: true }, '.collection-create-panel'],
+  ['portfolio', { showCreateModal: true }, '.collection-create-panel'],
+  ['portfolio', { showEditModal: true }, '.collection-create-panel'],
+  ['detail', { showAddModal: true }, '.collection-create-panel'],
   ['admin', { showTypePicker: true }, '.modal-content'],
-  ['post', { showEditModal: true }, '.edit-modal'],
   ['tag', {}, '.tag-selector'],
   ['highlight', {}, '.highlight-modal-content'],
   ['share', {}, '.share-modal'],
   ['material', {}, '.app-sheet'],
   ['dialog', {}, '.app-dialog'],
   ['sheet', {}, '.app-sheet'],
-  ['folderPicker', { showCreateModal: true }, '.create-modal'],
-  ['portfolioPicker', { showCreateModal: true }, '.create-modal']
+  ['folderPicker', { showCreateModal: true }, '.collection-create-panel'],
+  ['portfolioPicker', { showCreateModal: true }, '.collection-create-panel']
 ];
 
 async function main() {
@@ -41,7 +43,7 @@ async function main() {
         login: '/pages/login/login.vue', register: '/pages/register/register.vue',
         editor: '/pages-user/profile-edit/profile-edit.vue', favorites: '/pages-content/favorite-folders/favorite-folders.vue',
         portfolio: '/pages-content/portfolio/portfolio.vue', detail: '/pages-content/portfolio-detail/portfolio-detail.vue',
-        admin: '/pages-admin/admin-posts/admin-posts.vue', post: '/pages/post-detail/post-detail.vue',
+        admin: '/pages-admin/admin-posts/admin-posts.vue',
         tag: '/components/TagSelectorModal.vue', highlight: '/components/HighlightSelectorModal.vue',
         share: '/components/ShareModal.vue', material: '/components/OfficialMaterialPicker.vue',
         dialog: '/components/overlay/AppDialog.vue', sheet: '/components/overlay/AppActionSheet.vue',
@@ -79,6 +81,10 @@ async function main() {
         render(node, container);
         if (name.endsWith('Picker')) node.component.proxy.showClone = true;
         Object.assign(node.component.proxy, state);
+        if (name === 'detail') {
+          node.component.proxy.myPostsLoading = false;
+          node.component.proxy.myPosts = Array.from({ length: 30 }, (_, index) => ({ _id: `fixture-${index}`, title: `春日诗歌 ${index + 1}`, createTime: '2026-09-29' }));
+        }
         await nextTick();
         await Promise.all(container.getAnimations({ subtree: true }).filter(a => a.effect.getTiming().iterations !== Infinity).map(a => a.finished));
       };
@@ -96,7 +102,7 @@ async function main() {
               const r = el.getBoundingClientRect();
               const hit = document.elementFromPoint(Math.max(1, r.left + r.width / 2), Math.max(1, r.top + Math.min(r.height / 2, 40)));
               el.scrollTop = el.scrollHeight;
-              const action = el.querySelector('.modal-footer > :last-child, .app-dialog-actions > :last-child, .app-sheet-cancel, .modal-cancel-btn, .modal-confirm');
+              const action = el.querySelector('.collection-create-footer > :last-child, .modal-footer > :last-child, .app-dialog-actions > :last-child, .app-sheet-cancel, .modal-cancel-btn, .modal-confirm');
               const a = action?.getBoundingClientRect();
               const actionHit = a && document.elementFromPoint(a.left + a.width / 2, a.top + a.height / 2);
               const actionVisible = !a || (a.top >= 0 && a.bottom <= innerHeight && (action.contains(actionHit) || (getComputedStyle(action).pointerEvents === 'none' && el.contains(actionHit))));
@@ -108,6 +114,32 @@ async function main() {
               'outside viewport: ' + JSON.stringify(result));
             assert.equal(result.covered, false, 'another layer covers the panel');
             assert.equal(result.actionVisible, true, 'bottom action must remain reachable by scrolling the panel: ' + JSON.stringify(result.action));
+            if (name === 'detail') {
+              const base = '#overlay-layout-review .bulk-add-dialog';
+              assert.equal(await page.$eval(base + ' .collection-create-panel', el => getComputedStyle(el).borderWidth), '0px');
+              assert.equal(await page.$eval(base + ' .create-cancel', el => getComputedStyle(el).color), theme === 'dark' ? 'rgb(201, 206, 216)' : 'rgb(102, 102, 102)');
+              assert.equal(await page.$eval(base + ' .create-confirm', el => el.hasAttribute('disabled')), true);
+              await page.$eval(base + ' .post-item-simple', el => el.click());
+              await page.waitForFunction(selector => document.querySelector(selector)?.textContent.includes('(1)'), {}, base + ' .create-confirm');
+              assert.equal(await page.$eval(base + ' .create-confirm', el => el.hasAttribute('disabled')), false);
+              assert.ok(await page.$(base + ' .selected-check-simple'));
+              if (width === 390 && height === 844) {
+                const output = path.join(os.tmpdir(), 'enterkey-overlay-review'); fs.mkdirSync(output, { recursive: true });
+                await page.screenshot({ path: path.join(output, `bulk-add-${theme}.png`) });
+              }
+              // The single scroll area must expose the last item without moving the footer.
+              await page.$eval(base + ' .post-item-simple:last-child', el => el.scrollIntoView({ block: 'nearest' }));
+              const reachable = await page.$eval(base + ' .post-item-simple:last-child', el => {
+                const r = el.getBoundingClientRect(); return el.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
+              });
+              assert.equal(reachable, true, 'last poem must be reachable by scrolling');
+              await page.click(base + ' .post-item-simple:last-child');
+              await page.waitForFunction(selector => document.querySelector(selector)?.textContent.includes('(2)'), {}, base + ' .create-confirm');
+              await page.click(base + ' .post-item-simple:last-child');
+              await page.waitForFunction(selector => document.querySelector(selector)?.textContent.includes('(1)'), {}, base + ' .create-confirm');
+              await page.click(base + ' .create-cancel');
+              await page.waitForSelector(base, { hidden: true });
+            }
             checked++;
           } catch (error) { failures.push(`${label}: ${error.message}`); }
         }

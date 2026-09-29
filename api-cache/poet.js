@@ -4,6 +4,7 @@
 import cacheManager from '@/cache/core/manager.js';
 import { uploadFile } from '@/utils/uploader.js';
 import { callCloudAndUnwrap } from './_shared/cloud-wrapper.js';
+import { withTimeout } from '@/utils/asyncTimeout.js';
 
 // 诗人信息缓存：TTL 10min + SWR 5min
 const POET_INFO_TTL = 10 * 60 * 1000;
@@ -15,17 +16,21 @@ const POET_LIST_TTL = 10 * 60 * 1000;
 const POET_LIST_SWR = 5 * 60 * 1000;
 const nsPoetList = cacheManager.namespace('poet:list', { persistent: true, maxItems: 100 });
 
-export async function getPoetList({ limit = 50, context, onBackgroundUpdate } = {}) {
+export function peekPoetList(limit = 50) {
+  return nsPoetList.get(`list:${limit}`);
+}
+
+export async function getPoetList({ limit = 50, context, onBackgroundUpdate, timeoutMs, silent = false } = {}) {
   const key = `list:${limit}`;
   return nsPoetList.getOrFetch(
     key,
     async () => {
-      const result = await callCloudAndUnwrap(
+      const result = await withTimeout(callCloudAndUnwrap(
         'getPoetList',
         { limit },
-        { pageTag: 'poet:list', context, injectOpenId: true },
+        { pageTag: 'poet:list', context, injectOpenId: true, timeoutMs, silent },
         '加载诗人列表失败'
-      );
+      ), timeoutMs);
       return result.poets || [];
     },
     {

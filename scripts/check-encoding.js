@@ -14,7 +14,6 @@ const IGNORE_DIRS = new Set([
   '.kiro',
   '.claude',
   '.vscode',
-  'cache',
   '.tmp-adminManager-deploy-1772786047',
   '.tmp-getPostList-min-1772786521',
   '.tmp-getPostList-min2-1772786575'

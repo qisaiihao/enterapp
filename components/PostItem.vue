@@ -140,15 +140,10 @@
             </view>
         </navigator>
 
-        <!-- 底部操作区域 - profile模式：时间+取消收藏 -->
+        <!-- 底部区域 - profile模式：时间 -->
         <view v-if="!showVoteSection" class="delete-section">
             <view class="time-left">
                 <text class="post-time">{{ timeLabel }}{{ displayTime }}</text>
-            </view>
-            <view v-if="showRemoveFavoriteBtn" class="button-group">
-                <button class="remove-favorite-btn" size="mini" @tap.stop.prevent="onRemoveFavorite">
-                    取消收藏
-                </button>
             </view>
         </view>
 
@@ -163,7 +158,7 @@
                     <text class="action-text">{{ item.commentCount || 0 }}</text>
                 </view>
                 <view
-                    class="like-icon-container"
+                    class="like-icon-container" :key="'like-' + voteMotionVersion" :class="{ 'app-vote-pop': voteMotionVersion > 0 }"
                     @tap.stop.prevent="onVote"
                 >
                     <image
@@ -175,7 +170,7 @@
                         @error="onLikeIconError"
                     ></image>
                 </view>
-                <view :class="'vote-count ' + (item.isVoted ? 'voted' : '')">
+                <view :key="'votes-' + voteMotionVersion" :class="['vote-count', { voted: item.isVoted, 'app-vote-number-pop': voteMotionVersion > 0 }]">
                     <text class="action-text">{{ item.votes || 0 }}</text>
                 </view>
             </view>
@@ -188,7 +183,8 @@ import { resolvePostAuthorAvatar } from '@/utils/defaultAvatar.js';
 
 export default {
     name: 'PostItem',
-    emits: ['show-action-menu', 'avatar-error', 'avatar-load', 'navigate-to-user', 'preview-image', 'image-error', 'image-load', 'tag-click', 'remove-favorite', 'vote', 'comment-click', 'like-icon-error'],
+    data() { return { voteMotionVersion: 0 }; },
+    emits: ['show-action-menu', 'avatar-error', 'avatar-load', 'navigate-to-user', 'preview-image', 'image-error', 'image-load', 'tag-click', 'vote', 'comment-click', 'like-icon-error'],
     props: {
         // 帖子数据
         item: {
@@ -225,11 +221,6 @@ export default {
             type: String,
             default: 'formattedCreateTime'
         },
-        // 是否显示取消收藏按钮
-        showRemoveFavoriteBtn: {
-            type: Boolean,
-            default: false
-        },
         // 是否显示互动区（评论/点赞）- feed模式
         showVoteSection: {
             type: Boolean,
@@ -246,7 +237,16 @@ export default {
             default: false
         }
     },
+    watch: {
+        voteMotionState(next, previous) {
+            if (!previous || next.id !== previous.id) { this.voteMotionVersion = 0; return; }
+            if (next.id && (next.votes !== previous.votes || next.voted !== previous.voted)) this.voteMotionVersion += 1;
+        }
+    },
     computed: {
+        voteMotionState() {
+            return { id: this.item?._id, votes: this.item?.votes, voted: this.item?.isVoted };
+        },
         displayTime() {
             return this.item[this.timeField] || '未知时间';
         },
@@ -472,13 +472,6 @@ export default {
         onTagClick(e) {
             const tag = e.currentTarget.dataset.tag;
             this.$emit('tag-click', { tag });
-        },
-        // 取消收藏
-        onRemoveFavorite() {
-            this.$emit('remove-favorite', {
-                favoriteId: this.item.favoriteId,
-                index: this.index
-            });
         },
         // 点赞
         onVote() {
@@ -801,27 +794,6 @@ export default {
     color: var(--app-post-time-color, #999);
 }
 
-/* 取消收藏按钮 */
-.remove-favorite-btn {
-    background-color: #f39c12;
-    color: #fff;
-    border: none;
-    border-radius: 8rpx;
-    font-size: 24rpx;
-    padding: 8rpx 16rpx;
-    line-height: 1.2;
-    min-width: 100rpx;
-    transition: background-color 0.2s ease;
-}
-
-.remove-favorite-btn:active {
-    background-color: #e67e22;
-}
-
-.remove-favorite-btn::after {
-    border: none;
-}
-
 /* ========== 互动区样式（feed模式） ========== */
 .vote-section {
     display: flex;
@@ -881,19 +853,6 @@ export default {
 
 .like-icon-container:active {
     transform: scale(0.85);
-}
-
-/* 点赞弹跳动画 */
-.like-icon-container.bouncing {
-    animation: likeBouncePop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.6);
-}
-
-@keyframes likeBouncePop {
-    0% { transform: scale(1); }
-    25% { transform: scale(0.8); }
-    50% { transform: scale(1.25); }
-    75% { transform: scale(0.95); }
-    100% { transform: scale(1); }
 }
 
 .like-icon {
@@ -968,15 +927,7 @@ export default {
     color: #ffffff;
 }
 
-.vote-count.vote-changed {
-    animation: voteNumberPop 0.3s ease;
-}
 
-@keyframes voteNumberPop {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
-}
 
 /* 组诗简单预览 */
 .series-simple-preview {

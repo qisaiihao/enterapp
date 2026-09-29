@@ -239,7 +239,8 @@ export default {
     transition: color 0.2s ease;
 }
 .comment-content:active {
-    color: #9ed7ee;
+    color: var(--app-link-color, #333333);
+    opacity: 0.65;
 }
 
 .comment-image-grid {
@@ -380,11 +381,12 @@ export default {
     transition: color 0.2s ease;
 }
 .reply-content:active {
-    color: #9ed7ee;
+    color: var(--app-link-color, #333333);
+    opacity: 0.65;
 }
 
 .reply-to {
-    color: #9ed7ee;
+    color: var(--app-link-color, #333333);
     font-weight: bold;
 }
 
@@ -417,6 +419,6 @@ export default {
 
 .show-more-text {
     font-size: 24rpx;
-    color: #9ed7ee;
+    color: var(--app-link-color, #333333);
 }
 </style>

@@ -1,0 +1,8 @@
+{
+  "name": "getPostList",
+  "runtime": "Nodejs10.15",
+  "status": "Active",
+  "handler": "index.main",
+  "timeout": 20,
+  "memory": 128
+}

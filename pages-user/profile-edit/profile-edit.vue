@@ -128,12 +128,12 @@
         </view>
 
         <!-- 修改手机号弹窗 -->
-        <view class="edit-phone-modal" v-if="showEditPhoneModal" @tap.stop>
-            <view class="modal-mask" @tap="closeEditPhoneModal"></view>
-            <view class="modal-content">
+        <AppMotion mask-class="edit-phone-modal" :visible="showEditPhoneModal" ref="phoneMotion" placement="sheet" @dismiss="closeEditPhoneModal">
+            <view class="modal-mask" @tap="$refs.phoneMotion.dismiss()"></view>
+            <view class="modal-content app-motion-panel">
                 <view class="modal-header">
                     <text class="modal-title">修改手机号</text>
-                    <text class="modal-close" @tap="closeEditPhoneModal">×</text>
+                    <text class="modal-close" @tap="$refs.phoneMotion.dismiss()">×</text>
                 </view>
                 <view class="modal-body">
                     <text class="modal-text">请输入新手机号并通过短信验证</text>
@@ -170,13 +170,13 @@
                     </view>
                 </view>
                 <view class="modal-footer">
-                    <view class="modal-btn cancel-btn" @tap="closeEditPhoneModal">取消</view>
+                    <view class="modal-btn cancel-btn" @tap="$refs.phoneMotion.dismiss()" :style="cancelActionStyle('取消')">取消</view>
                     <view class="modal-btn confirm-btn" @tap="handleEditPhoneConfirm" :class="{ disabled: isVerifying || (!newPhoneNumber || !smsCode) }">
                         确认修改
                     </view>
                 </view>
             </view>
-        </view>
+        </AppMotion>
 
         <AppDialog :visible="!!signatureCandidate" title="签名预览" confirm-text="使用签名" cancel-text="取消"
             @confirm="confirmSignaturePreview" @cancel="cancelSignaturePreview">
@@ -222,6 +222,7 @@
 </template>
 
 <script>
+import AppMotion from '@/components/overlay/AppMotion.vue';
 import AppActionSheet from '@/components/overlay/AppActionSheet.vue';
 import AppDialog from '@/components/overlay/AppDialog.vue';
 import { cloudCall } from '../../utils/cloudCall.js';
@@ -237,12 +238,14 @@ import {
 import { getCurrentPlatform } from '../../utils/platformDetector.js';
 import { processSignatureFile } from '../../utils/signatureImage.js';
 import { emitAvatarUpdated } from '@/utils/events.js';
+import { getOpenid } from '@/utils/app-state.js';
+import { syncSavedProfileAvatar } from '@/utils/profileAvatarUpdate.js';
 import { resolveGrowthStatsVisibility, writeLocalGrowthStatsVisibility } from '@/utils/profileGrowthStatsVisibility.js';
 // pages/profile-edit/profile-edit.js
 const app = getApp();
 
 export default {
-    components: { AppActionSheet, AppDialog },
+    components: { AppMotion, AppActionSheet, AppDialog },
     data() {
         return {
             avatarUrl: '',
@@ -476,7 +479,8 @@ export default {
             console.log('🔍 [ProfileEdit] 开始选择自定义头像...');
             uni.chooseImage({
                 count: 1,
-                sizeType: ['compressed'],
+                // 头像同时用于主页大图和全屏预览，选图阶段保留原图细节。
+                sizeType: ['original'],
                 sourceType: ['album', 'camera'],
                 success: (res) => {
                     const originalPath = res.tempFilePaths[0];
@@ -749,6 +753,10 @@ export default {
         },
 
         closeEditPhoneModal() {
+            if (this.$refs?.phoneMotion?.rendered) {
+                this.$refs.phoneMotion.dismiss(this.closeEditPhoneModal);
+                return;
+            }
             console.log('📱 [profile-edit] 关闭修改手机号弹窗');
             this.showEditPhoneModal = false;
             this.newPhoneNumber = '';
@@ -974,6 +982,7 @@ export default {
             }
 
             // 【内容审核】审核个人资料内容（仅小程序端）
+            const savingUserId = getOpenid();
             const signatureTaskId = this.signatureTaskId;
             const moderationResult = await this.moderateProfileContent();
             if (this.isSaving || this.isProcessingSignature || this.signatureCandidate || signatureTaskId !== this.signatureTaskId || this._signatureDisposed) return;
@@ -1013,7 +1022,8 @@ export default {
             const signatureUpload = shouldUpdateSignature && this.signatureTempPath
                 ? uploadFile(`user_signatures/${Date.now()}_${Math.floor(Math.random() * 1000)}.png`, this.signatureTempPath)
                 : Promise.resolve(null);
-            Promise.all([avatarUpload, signatureUpload])
+            let savedAvatarUrl = '';
+            return Promise.all([avatarUpload, signatureUpload])
                 .then(([avatarFileID, signatureFileID]) => {
                     if (shouldUpdateSignature && this.signatureTempPath && !signatureFileID) {
                         throw new Error('签名上传失败');
@@ -1031,6 +1041,7 @@ export default {
                     };
                     if (shouldUpdateAvatar && resolvedAvatarUrl) {
                         updateData.avatarUrl = resolvedAvatarUrl;
+                        savedAvatarUrl = resolvedAvatarUrl;
                     }
                     if (shouldUpdateSignature) {
                         updateData.signatureUrl = this.signatureTempPath ? signatureFileID : (this.signatureUrl || '');
@@ -1047,15 +1058,26 @@ export default {
                         try {
                             uni.setStorageSync('shouldRefreshProfile', true);
                             const appInstance = getApp();
-                            const userId = appInstance && appInstance.globalData && appInstance.globalData.openid;
+                            const userId = savingUserId;
+                            if (userId && userId !== getOpenid()) return;
                             const showGrowthStats = this.showGrowthStats === true;
                             writeLocalGrowthStatsVisibility(userId || this.currentUserSeed || '', showGrowthStats);
                             if (appInstance && appInstance.globalData && appInstance.globalData.userInfo) {
                                 appInstance.globalData.userInfo.showGrowthStats = showGrowthStats;
                                 uni.setStorageSync('userInfo', appInstance.globalData.userInfo);
                             }
-                            emitAvatarUpdated(userId);
-                        } catch (e) {}
+                            if (savedAvatarUrl && syncSavedProfileAvatar(userId, savedAvatarUrl)) {
+                                // 本次选图可立即显示，云文件 ID 留给持久缓存和后续资料请求。
+                                emitAvatarUpdated(userId, {
+                                    avatarUrl: this.tempAvatarPath || savedAvatarUrl,
+                                    avatarFileID: savedAvatarUrl.startsWith('cloud://') ? savedAvatarUrl : ''
+                                });
+                            } else {
+                                emitAvatarUpdated(userId);
+                            }
+                        } catch (e) {
+                            console.error('[profile-edit] 保存成功后的资料同步失败:', e);
+                        }
                         const pages = getCurrentPages();
                         if (pages.length > 1) {
                             const prePage = pages[pages.length - 2];
@@ -1602,19 +1624,12 @@ export default {
     background: var(--app-surface-bg, #fff);
     border-radius: 32rpx 32rpx 0 0;
     padding: 40rpx;
-    animation: slideUp 0.3s ease-out;
+
     border: 1rpx solid var(--app-border-color, transparent);
     box-sizing: border-box;
 }
 
-@keyframes slideUp {
-    from {
-        transform: translateY(100%);
-    }
-    to {
-        transform: translateY(0);
-    }
-}
+
 
 .modal-header {
     display: flex;

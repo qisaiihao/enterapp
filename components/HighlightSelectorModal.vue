@@ -278,9 +278,10 @@ export default {
 }
 
 .highlight-content-line.selected-line {
-    color: #000;
+    color: var(--app-link-color, #333333);
     font-weight: 500;
-    background: rgba(158, 215, 238, 0.14);
+    background: var(--app-control-soft-bg, #f5f6f7);
+    box-shadow: inset 4rpx 0 0 var(--app-link-color, #333333);
 }
 
 .highlight-content-line.selected-line .highlight-content-line-text {
@@ -289,7 +290,9 @@ export default {
 
 /* #ifdef MP-WEIXIN */
 .highlight-content-line.selected-line {
-    background: #e6f7ff;
+    background: var(--app-control-soft-bg, #f5f6f7);
+    color: var(--app-link-color, #333333);
+    box-shadow: inset 4rpx 0 0 var(--app-link-color, #333333);
 }
 /* #endif */
 
@@ -345,6 +348,8 @@ export default {
 }
 
 .highlight-selection-modal--dark {
+    --app-control-soft-bg: #343439;
+    --app-link-color: #f4f1ea;
     background: #0f1115;
 }
 
@@ -372,8 +377,8 @@ export default {
 }
 
 .highlight-selection-modal--dark .highlight-content-line.selected-line {
-    background: rgba(201, 173, 115, 0.18);
-    color: #f4f1ea;
+    background: var(--app-control-soft-bg, #f5f6f7);
+    color: var(--app-link-color, #333333);
 }
 
 .highlight-selection-modal--dark .highlight-action-icon {

@@ -1,0 +1,112 @@
+/* 收藏夹/作品集的创建、编辑及批量添加共用，与 AppDialog 的外观保持一致。 */
+.collection-create-dialog {
+  --create-bg: #fff;
+  --create-text: #333;
+  --create-muted: #666;
+  --create-input-bg: #f8f8f8;
+  --create-cancel-bg: #f5f6f7;
+  --create-confirm-bg: #333;
+  --create-confirm-text: #fff;
+  --create-shadow: 0 16rpx 64rpx rgba(0, 0, 0, 0.14);
+  position: fixed;
+  inset: 0;
+  z-index: 1000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40rpx;
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.4);
+}
+.collection-create-dialog.is-dark {
+  --create-bg: #27272c;
+  --create-text: #f4f1ea;
+  --create-muted: #c9ced8;
+  --create-input-bg: #343439;
+  --create-cancel-bg: #343439;
+  --create-confirm-bg: #f4f1ea;
+  --create-confirm-text: #27272c;
+  --create-shadow: 0 16rpx 64rpx rgba(0, 0, 0, 0.3);
+}
+.collection-create-dialog .collection-create-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 580rpx;
+  min-height: 0;
+  max-height: 100%;
+  margin: 0;
+  padding: 40rpx;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: none;
+  border-radius: 32rpx;
+  background: var(--create-bg);
+  color: var(--create-text);
+  box-shadow: var(--create-shadow);
+}
+.collection-create-dialog .collection-create-panel .collection-create-header {
+  flex-shrink: 0;
+  justify-content: center;
+  padding: 0;
+  margin-bottom: 24rpx;
+  border: none;
+  text-align: center;
+}
+.collection-create-dialog .collection-create-panel .collection-create-title { font-size: 36rpx; font-weight: 600; color: var(--create-text); }
+.collection-create-dialog .collection-create-panel .collection-create-body { flex: 0 1 auto; min-height: 0; max-height: 50vh; padding: 0; overflow-y: auto; }
+.collection-create-dialog .collection-create-panel .create-folder-form,
+.collection-create-dialog .collection-create-panel .edit-folder-form,
+.collection-create-dialog .collection-create-panel .create-portfolio-form { display: flex; flex-direction: column; gap: 30rpx; padding: 0; }
+.collection-create-dialog .collection-create-panel .form-item { display: flex; flex-direction: column; gap: 16rpx; margin: 0; }
+.collection-create-dialog .collection-create-panel .form-label { margin: 0; font-size: 28rpx; font-weight: 500; color: var(--create-text); }
+.collection-create-dialog .collection-create-panel .folder-name-input,
+.collection-create-dialog .collection-create-panel .portfolio-name-input {
+  width: 100%;
+  height: 88rpx;
+  padding: 16rpx;
+  box-sizing: border-box;
+  border: none;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  background: var(--create-input-bg);
+  color: var(--create-text);
+}
+.collection-create-dialog .collection-create-panel .cover-upload-btn { border: none; border-radius: 20rpx; background: var(--create-input-bg); }
+.collection-create-dialog .collection-create-panel .cover-preview { border-radius: 20rpx; }
+.collection-create-dialog .collection-create-panel .upload-text { color: var(--create-muted); }
+.collection-create-dialog .collection-create-panel .upload-icon-img { width: 48rpx; height: 48rpx; margin-bottom: 8rpx; filter: none; }
+.collection-create-dialog.is-dark .collection-create-panel .upload-icon-img { filter: invert(1); }
+.collection-create-dialog .collection-create-panel .collection-create-footer {
+  display: flex;
+  flex-shrink: 0;
+  gap: 24rpx;
+  margin-top: 40rpx;
+  padding: 0;
+  border: none;
+}
+.collection-create-dialog .collection-create-panel .collection-create-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  height: auto;
+  min-height: 88rpx;
+  margin: 0;
+  padding: 16rpx;
+  box-sizing: border-box;
+  border: none;
+  border-radius: 44rpx;
+  font-size: 32rpx;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: normal;
+  background: var(--create-cancel-bg);
+  color: var(--create-muted);
+}
+.collection-create-dialog .collection-create-panel .collection-create-button.create-confirm { background: var(--create-confirm-bg); color: var(--create-confirm-text); }
+.collection-create-dialog .collection-create-panel .collection-create-button::after { border: none; }
+.collection-create-dialog .collection-create-panel .collection-create-button:active { opacity: 0.65; }
+.collection-create-dialog .collection-create-panel .collection-create-button[disabled] { opacity: 0.45; }

@@ -4,7 +4,14 @@
 
         <!-- 收藏内容列表 -->
         <view v-if="favorites.length > 0" class="favorites-container">
-            <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" v-for="(item, index) in favorites" :key="index">
+            <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" v-for="(item, index) in favorites" :key="item.favoriteId || item._id">
+                <view class="more-menu-btn-top-right" @tap.stop.prevent="showFavoriteActions(item)">
+                    <view class="more-menu-dots-small">
+                        <view class="dot-small"></view>
+                        <view class="dot-small"></view>
+                        <view class="dot-small"></view>
+                    </view>
+                </view>
                 <!-- 作者信息 -->
 
                 <view class="author-info-outside">
@@ -97,14 +104,11 @@
                     </view>
                 </navigator>
 
-                <!-- 取消收藏按钮区域 -->
+                <!-- 收藏时间 -->
 
                 <view class="delete-section">
                     <view class="time-left">
-                        <text class="favorite-time">收藏于 {{ item.formattedCreateTime || '未知时间' }}</text>
-                    </view>
-                    <view class="button-group">
-                        <button class="remove-favorite-btn" size="mini" @tap.stop.prevent="removeFavorite" :data-favorite-id="item._id" :data-index="index">取消收藏</button>
+                        <text class="favorite-time">收藏于 {{ item.formattedFavoriteTime || item.formattedCreateTime || '未知时间' }}</text>
                     </view>
                 </view>
             </view>
@@ -112,7 +116,6 @@
 
         <!-- 空状态 -->
         <view v-else class="empty-container">
-            <view class="empty-icon">📖</view>
             <view class="empty-text">收藏夹是空的</view>
             <view class="empty-subtext">去发现一些好诗收藏起来吧</view>
             <button @tap="manualLoad" class="empty-refresh-btn">刷新</button>
@@ -124,6 +127,8 @@
             <text>没有更多了</text>
         </view>
     </view>
+    <FavoriteActionMenu :target="favoriteActionTarget" @close="favoriteActionTarget = null"
+        @removed="handleFavoriteRemoved" />
     <app-overlay-host />
 </template>
 
@@ -131,18 +136,21 @@
 // pages/favorite-content/favorite-content.js
 import { formatRelativeTime } from '../../utils/time.js';
 import { previewImage } from '../../utils/imagePreview.js';
-import { getMyFavorites, removeFromFavorites as removeFromFavoritesApi } from '../../api-cache/favorites.js';
+import { getMyFavorites } from '../../api-cache/favorites.js';
+import FavoriteActionMenu from '@/components/FavoriteActionMenu.vue';
 import postGalleryMixin from '../../mixins/postGallery.js';
 import paginationMixin from '../../mixins/pagination.js';
 import { normalizePostList } from '../../utils/postNormalizer.js';
 
 export default {
+    components: { FavoriteActionMenu },
     mixins: [paginationMixin, postGalleryMixin],
     data() {
         return {
             folderId: '',
             folderName: '',
             favorites: [],
+            favoriteActionTarget: null,
             pageSize: 10,
             swiperHeights: {},
 
@@ -301,68 +309,11 @@ export default {
             });
         },
 
-        // 长按收藏项显示操作选项
-        onFavoriteLongPress: function (e) {
-            const favoriteId = e.currentTarget.dataset.favoriteId;
-            const postTitle = e.currentTarget.dataset.postTitle;
-            uni.showActionSheet({
-                itemList: ['取消收藏'],
-                success: (res) => {
-                    if (res.tapIndex === 0) {
-                        this.removeFavorite(favoriteId, postTitle);
-                    }
-                }
-            });
+        showFavoriteActions(item) {
+            this.favoriteActionTarget = { favoriteId: item.favoriteId, postId: item.postId || item._id };
         },
-
-        // 取消收藏
-        async removeFavorite(e) {
-            const favoriteId = e.currentTarget.dataset.favoriteId;
-            const postId = e.currentTarget.dataset.postId;
-            const index = e.currentTarget.dataset.index;
-            const favorite = this.favorites[index];
-            const postTitle = favorite ? favorite.postTitle : '未知标题';
-
-            return new Promise((resolve) => {
-                uni.showModal({
-                    title: '确认取消收藏',
-                    content: `确定要取消收藏"${postTitle}"吗？`,
-                    success: async (res) => {
-                        if (!res.confirm) {
-                            resolve();
-                            return;
-                        }
-
-                        try {
-                            uni.showLoading({
-                                title: '处理中...'
-                            });
-
-                            await removeFromFavoritesApi(postId, 'post', { context: this });
-
-                            uni.hideLoading();
-                            uni.showToast({
-                                title: '取消收藏成功'
-                            });
-
-                            // 从列表中移除该项
-                            const favorites = this.favorites.filter((item) => item._id !== favoriteId);
-                            this.setData({
-                                favorites: favorites
-                            });
-                        } catch (err) {
-                            uni.hideLoading();
-                            console.error('取消收藏失败:', err);
-                            uni.showToast({
-                                title: err.message || '取消收藏失败',
-                                icon: 'none'
-                            });
-                        } finally {
-                            resolve();
-                        }
-                    }
-                });
-            });
+        handleFavoriteRemoved({ favoriteId }) {
+            this.favorites = this.favorites.filter(item => item.favoriteId !== favoriteId);
         },
 
         // 图片预览
@@ -487,6 +438,7 @@ export default {
 
 /* 新增：帖子项包装器样式 */
 .post-item-wrapper {
+    position: relative;
     background: var(--app-elevated-bg, #fff);
     border: 1rpx solid var(--app-border-color, transparent);
     border-radius: 16rpx;
@@ -658,23 +610,10 @@ export default {
     color: var(--app-muted-text, #999);
 }
 
-.button-group {
-    display: flex;
-    gap: 10rpx;
-}
-
-.remove-favorite-btn {
-    background: #ff4757;
-    color: white;
-    border: none;
-    border-radius: 8rpx;
-    font-size: 24rpx;
-    padding: 8rpx 16rpx;
-}
-
-.remove-favorite-btn:active {
-    background: #ff3742;
-}
+.more-menu-btn-top-right { position: absolute; top: 20rpx; right: 20rpx; display: flex; align-items: center; justify-content: center; padding: 8rpx; z-index: 10; }
+.more-menu-btn-top-right:active { transform: scale(0.9); opacity: 0.7; }
+.more-menu-dots-small { display: flex; align-items: center; justify-content: center; gap: 4rpx; }
+.more-menu-dots-small .dot-small { width: 8rpx; height: 8rpx; border-radius: 50%; background-color: var(--app-post-menu-dot-color, #666); }
 
 /* 加载更多样式 */
 .loading-more {
@@ -705,12 +644,6 @@ export default {
     text-align: center;
 }
 
-.empty-icon {
-    font-size: 80rpx;
-    margin-bottom: 20rpx;
-    opacity: 0.5;
-}
-
 .empty-text {
     font-size: 32rpx;
     color: var(--app-secondary-text, #666);
@@ -725,9 +658,14 @@ export default {
 .empty-refresh-btn {
     margin-top: 20rpx;
     padding: 15rpx 30rpx;
-    background: var(--app-accent-color, #9ed7ee);
-    color: #ffffff;
-    border-radius: 8rpx;
+    background: var(--app-control-accent-bg, #333333);
+    color: var(--app-control-accent-text, #ffffff);
+    border-radius: 44rpx;
     font-size: 26rpx;
+    font-weight: 500;
+    box-shadow: none;
+    min-height: 88rpx;
+    box-sizing: border-box;
 }
+.empty-refresh-btn:active { opacity: 0.65; }
 </style>

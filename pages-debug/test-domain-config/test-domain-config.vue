@@ -10,7 +10,7 @@
       <button @click="testCORS" class="test-btn">3. 测试 CORS 配置</button>
       <button @click="testLoadFontCloud" class="test-btn">4. 测试字体加载（云端）</button>
       <button @click="testLoadFontLocal" class="test-btn">5. 测试字体加载（本地）</button>
-      <button @click="testAll" class="test-btn primary">🚀 一键全部测试</button>
+      <button @click="testAll" class="test-btn primary">一键全部测试</button>
       <button @click="clearLog" class="clear-btn">清除日志</button>
     </view>
     
@@ -60,7 +60,7 @@ export default {
           });
         });
         
-        this.addLog(`✅ request 测试成功`);
+        this.addLog(`request 测试成功`);
         this.addLog(`状态码: ${res.statusCode}`);
         this.addLog(`Content-Type: ${res.header['Content-Type'] || res.header['content-type']}`);
         this.addLog(`Content-Length: ${res.header['Content-Length'] || res.header['content-length']}`);
@@ -68,29 +68,29 @@ export default {
         // 检查 CORS 头
         const corsHeader = res.header['Access-Control-Allow-Origin'] || res.header['access-control-allow-origin'];
         if (corsHeader) {
-          this.addLog(`✅ CORS 头存在: ${corsHeader}`);
+          this.addLog(`CORS 头存在: ${corsHeader}`);
         } else {
-          this.addLog(`⚠️ 未检测到 CORS 头（Access-Control-Allow-Origin）`);
+          this.addLog(`未检测到 CORS 头（Access-Control-Allow-Origin）`);
         }
         
         if (res.statusCode === 200) {
-          this.addLog('🎉 request 合法域名配置正确！');
+          this.addLog('request 合法域名配置正确！');
         } else {
-          this.addLog(`⚠️ 状态码异常: ${res.statusCode}`);
+          this.addLog(`状态码异常: ${res.statusCode}`);
         }
         
       } catch (error) {
-        this.addLog(`❌ request 测试失败`);
+        this.addLog(`request 测试失败`);
         this.addLog(`错误信息: ${error.errMsg || error.message}`);
         
         if (error.errMsg && error.errMsg.includes('request:fail')) {
           this.addLog('');
-          this.addLog('💡 可能的原因：');
+          this.addLog('可能的原因：');
           this.addLog('1. request 合法域名未配置');
           this.addLog('2. 域名配置错误（注意是字母l不是数字1）');
           this.addLog('3. 配置后未生效（需要等待几分钟）');
           this.addLog('');
-          this.addLog('📝 需要配置的域名：');
+          this.addLog('需要配置的域名：');
           this.addLog('https://636c-cloud1-5gb0pbyl400845f5-1378788263.tcb.qcloud.la');
         }
       }
@@ -114,12 +114,12 @@ export default {
           });
         });
         
-        this.addLog(`✅ downloadFile 测试成功`);
+        this.addLog(`downloadFile 测试成功`);
         this.addLog(`状态码: ${res.statusCode}`);
         this.addLog(`临时文件路径: ${res.tempFilePath}`);
         
         if (res.statusCode === 200) {
-          this.addLog('🎉 downloadFile 合法域名配置正确！');
+          this.addLog('downloadFile 合法域名配置正确！');
           
           // 检查文件大小
           // #ifdef MP-WEIXIN
@@ -132,21 +132,21 @@ export default {
           }
           // #endif
         } else {
-          this.addLog(`⚠️ 状态码异常: ${res.statusCode}`);
+          this.addLog(`状态码异常: ${res.statusCode}`);
         }
         
       } catch (error) {
-        this.addLog(`❌ downloadFile 测试失败`);
+        this.addLog(`downloadFile 测试失败`);
         this.addLog(`错误信息: ${error.errMsg || error.message}`);
         
         if (error.errMsg && error.errMsg.includes('downloadFile:fail')) {
           this.addLog('');
-          this.addLog('💡 可能的原因：');
+          this.addLog('可能的原因：');
           this.addLog('1. downloadFile 合法域名未配置');
           this.addLog('2. 域名配置错误（注意是字母l不是数字1）');
           this.addLog('3. 配置后未生效（需要等待几分钟）');
           this.addLog('');
-          this.addLog('📝 需要配置的域名：');
+          this.addLog('需要配置的域名：');
           this.addLog('https://636c-cloud1-5gb0pbyl400845f5-1378788263.tcb.qcloud.la');
         }
       }
@@ -172,7 +172,7 @@ export default {
           throw new Error(`下载失败，状态码: ${downloadRes.statusCode}`);
         }
         
-        this.addLog(`✅ 字体文件下载成功`);
+        this.addLog(`字体文件下载成功`);
         this.addLog(`临时路径: ${downloadRes.tempFilePath}`);
         
         // 加载字体
@@ -187,21 +187,21 @@ export default {
           });
         });
         
-        this.addLog(`✅ 字体加载成功`);
+        this.addLog(`字体加载成功`);
         this.addLog(`状态: ${loadRes.status}`);
-        this.addLog('🎉 字体系统配置完全正确！');
+        this.addLog('字体系统配置完全正确！');
         
       } catch (error) {
-        this.addLog(`❌ 字体加载失败`);
+        this.addLog(`字体加载失败`);
         this.addLog(`错误信息: ${error.errMsg || error.message}`);
         
         this.addLog('');
-        this.addLog('💡 完整的配置要求：');
+        this.addLog('完整的配置要求：');
         this.addLog('1. request 合法域名');
         this.addLog('2. downloadFile 合法域名');
         this.addLog('3. 云存储文件访问权限设置为公开读');
         this.addLog('');
-        this.addLog('📝 域名：');
+        this.addLog('域名：');
         this.addLog('https://636c-cloud1-5gb0pbyl400845f5-1378788263.tcb.qcloud.la');
       }
     },
@@ -223,9 +223,9 @@ export default {
           });
         });
         
-        this.addLog(`✅ 请求成功，状态码: ${res.statusCode}`);
+        this.addLog(`请求成功，状态码: ${res.statusCode}`);
         this.addLog('');
-        this.addLog('📋 响应头信息：');
+        this.addLog('响应头信息：');
         
         // 检查所有 CORS 相关的头
         const headers = res.header || {};
@@ -248,21 +248,21 @@ export default {
         
         this.addLog('');
         if (hasCORS) {
-          this.addLog('✅ CORS 配置已启用');
+          this.addLog('CORS 配置已启用');
           
           const allowOrigin = headers['Access-Control-Allow-Origin'] || headers['access-control-allow-origin'];
           if (allowOrigin === '*' || allowOrigin === 'https://servicewechat.com') {
-            this.addLog('🎉 CORS 配置正确！');
+            this.addLog('CORS 配置正确！');
             this.addLog(`允许的来源: ${allowOrigin}`);
           } else {
-            this.addLog(`⚠️ CORS 配置可能不正确`);
+            this.addLog(`CORS 配置可能不正确`);
             this.addLog(`当前: ${allowOrigin}`);
             this.addLog(`建议: * 或 https://servicewechat.com`);
           }
         } else {
-          this.addLog('❌ 未检测到 CORS 配置');
+          this.addLog('未检测到 CORS 配置');
           this.addLog('');
-          this.addLog('💡 需要配置 CORS：');
+          this.addLog('需要配置 CORS：');
           this.addLog('1. 登录腾讯云控制台');
           this.addLog('2. 云开发 > 云存储 > 权限设置');
           this.addLog('3. 添加 CORS 规则：');
@@ -277,7 +277,7 @@ export default {
         }
         
       } catch (error) {
-        this.addLog(`❌ CORS 测试失败`);
+        this.addLog(`CORS 测试失败`);
         this.addLog(`错误: ${error.errMsg || error.message}`);
       }
     },
@@ -286,7 +286,7 @@ export default {
     async testLoadFontCloud() {
       this.addLog('========== 测试字体加载（云端）==========');
       this.addLog(`字体URL: ${this.fontUrl}`);
-      this.addLog('⚠️ 直接使用云端 URL，需要 CORS 配置');
+      this.addLog('直接使用云端 URL，需要 CORS 配置');
       this.addLog('');
       
       try {
@@ -314,20 +314,20 @@ export default {
         });
         
         const loadTime = ((Date.now() - startTime) / 1000).toFixed(2);
-        this.addLog(`✅ 字体加载成功！耗时: ${loadTime}秒`);
+        this.addLog(`字体加载成功！耗时: ${loadTime}秒`);
         this.addLog(`状态: ${loadRes.status}`);
-        this.addLog('🎉 云端字体加载完全正常！');
+        this.addLog('云端字体加载完全正常！');
         
       } catch (error) {
-        this.addLog(`❌ 字体加载失败`);
+        this.addLog(`字体加载失败`);
         this.addLog(`错误: ${error.errMsg || error.message}`);
         this.addLog('');
         
         if (error.errMsg && error.errMsg.includes('network error')) {
-          this.addLog('💡 网络错误 - 可能是 CORS 问题');
+          this.addLog('网络错误 - 可能是 CORS 问题');
           this.addLog('请先运行"测试 CORS 配置"');
         } else if (error.message && error.message.includes('超时')) {
-          this.addLog('💡 加载超时 - 文件较大（7.9MB）');
+          this.addLog('加载超时 - 文件较大（7.9MB）');
         }
       }
     },
@@ -363,7 +363,7 @@ export default {
         }
         
         const localPath = downloadRes.filePath || downloadRes.tempFilePath;
-        this.addLog(`✅ 下载成功: ${localPath}`);
+        this.addLog(`下载成功: ${localPath}`);
         
         // 检查文件
         const fs = uni.getFileSystemManager();
@@ -395,18 +395,18 @@ export default {
         });
         
         const loadTime = ((Date.now() - startTime) / 1000).toFixed(2);
-        this.addLog(`✅ 字体加载成功！耗时: ${loadTime}秒`);
+        this.addLog(`字体加载成功！耗时: ${loadTime}秒`);
         this.addLog(`状态: ${loadRes.status}`);
-        this.addLog('🎉 本地字体加载方案可行！');
+        this.addLog('本地字体加载方案可行！');
         this.addLog('');
-        this.addLog('💡 此方案优点：');
+        this.addLog('此方案优点：');
         this.addLog('  ✓ 不需要 CORS 配置');
         this.addLog('  ✓ 加载速度快（本地文件）');
         this.addLog('  ✓ 可离线使用');
         // #endif
         
       } catch (error) {
-        this.addLog(`❌ 测试失败`);
+        this.addLog(`测试失败`);
         this.addLog(`错误: ${error.errMsg || error.message}`);
       }
     },
@@ -414,7 +414,7 @@ export default {
     // 一键全部测试
     async testAll() {
       this.clearLog();
-      this.addLog('🚀 开始完整测试流程...');
+      this.addLog('开始完整测试流程...');
       this.addLog('');
       
       await this.testRequest();
@@ -440,16 +440,16 @@ export default {
   },
   
   onLoad() {
-    this.addLog('📱 测试页面加载完成');
+    this.addLog('测试页面加载完成');
     this.addLog('');
-    this.addLog('📋 测试说明：');
-    this.addLog('1️⃣ 测试 request 域名（检查域名配置）');
-    this.addLog('2️⃣ 测试 downloadFile 域名（检查下载权限）');
-    this.addLog('3️⃣ 测试 CORS 配置（关键！）');
-    this.addLog('4️⃣ 测试云端字体加载（需要 CORS）');
-    this.addLog('5️⃣ 测试本地字体加载（备选方案）');
+    this.addLog('测试说明：');
+    this.addLog('1 测试 request 域名（检查域名配置）');
+    this.addLog('2 测试 downloadFile 域名（检查下载权限）');
+    this.addLog('3 测试 CORS 配置（关键！）');
+    this.addLog('4 测试云端字体加载（需要 CORS）');
+    this.addLog('5 测试本地字体加载（备选方案）');
     this.addLog('');
-    this.addLog('💡 推荐：点击"一键全部测试"');
+    this.addLog('推荐：点击"一键全部测试"');
     this.addLog('');
   }
 };

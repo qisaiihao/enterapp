@@ -12,7 +12,6 @@
 
       <view v-if="!post" class="empty-state">
 
-        <view class="empty-icon">🕐</view>
 
         <view class="empty-text">正在准备预览…</view>
 
@@ -38,13 +37,17 @@
 
             <view class="post-item" :style="{ backgroundColor: post.backgroundColor }">
 
-              <view :class="'post-content ' + (post.isExpanded ? 'expanded' : 'collapsed') + (!post.isExpanded && (!post.highlightLines || post.highlightLines.length === 0) ? ' no-highlight' : '')" :style="{ color: post.textColor || '#222', whiteSpace: 'pre-wrap' }"><block v-if="post.isExpanded">{{ post.displayContent || post.content }}</block><block v-else><block v-if="getPreviewHighlightLines().length > 0"><text v-for="(highlightLine, index) in getPreviewHighlightLines()" :key="index" style="font-weight: 700; display: block;">{{ highlightLine }}</text></block><block v-else>{{ post.displayContent || post.content }}</block></block></view>
+              <block v-if="currentPreviewSeriesPoem">
+                <view v-if="currentPreviewSeriesPoem.subtitle" class="preview-series-subtitle" :style="{ color: post.textColor || '#222' }">{{ currentPreviewSeriesPoem.subtitle }}</view>
+                <view class="post-content expanded" :style="{ color: post.textColor || '#222', whiteSpace: 'pre-wrap' }">{{ currentPreviewSeriesPoem.content }}</view>
+              </block>
+              <view v-else :class="['post-content', post.isExpanded ? 'expanded' : 'collapsed', !post.isExpanded && getPreviewHighlightLines().length === 0 ? 'no-highlight' : '']" :style="{ color: post.textColor || '#222', whiteSpace: 'pre-wrap' }"><block v-if="post.isExpanded">{{ previewCardContent }}</block><block v-else><block v-if="getPreviewHighlightLines().length > 0"><text v-for="(highlightLine, index) in getPreviewHighlightLines()" :key="index" style="font-weight: 700; display: block;">{{ highlightLine }}</text></block><block v-else>{{ previewCardContent }}</block></block></view>
 
 
 
               <!-- 作者签名 - 匿名不显示 -->
 
-              <view v-if="post.isExpanded && post.authorSignature && !post.isAnonymous" class="user-signature">
+              <view v-if="(post.isExpanded || currentPreviewSeriesPoem) && post.authorSignature && !post.isAnonymous" class="user-signature">
 
                 <image class="signature-image" :src="post.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
 
@@ -55,6 +58,10 @@
           </view>
 
 
+
+          <view v-if="currentPreviewSeriesPoem" class="preview-series-pagination">
+            {{ post.currentSeriesIndex + 1 }} / {{ previewSeriesPoems.length }}
+          </view>
 
           <!-- 交互区（展开时显示） - 预览页面隐藏 -->
 
@@ -330,20 +337,6 @@
 
           </view>
 
-          <view v-if="post.isSeries && getPreviewSeriesBlocks().length > 0" class="preview-meta-card">
-
-            <text class="preview-meta-label">组诗段落</text>
-
-            <view v-for="(block, index) in getPreviewSeriesBlocks()" :key="`series-${index}`" class="preview-series-item">
-
-              <text class="preview-series-title">{{ block.subtitle || `第${index + 1}段` }}</text>
-
-              <text class="preview-series-content">{{ block.content || '' }}</text>
-
-            </view>
-
-          </view>
-
           <view v-if="getPreviewActivityText()" class="preview-meta-card">
 
             <text class="preview-meta-label">活动归属</text>
@@ -458,6 +451,30 @@ export default {
   },
 
   computed: {
+
+    previewSeriesPoems() {
+      return this.getPreviewSeriesBlocks().filter(block => block && (
+        String(block.content || '').trim() || String(block.subtitle || '').trim()
+      ));
+    },
+
+    isPreviewSeries() {
+      return !!this.post && this.post.isSeries && this.previewSeriesPoems.length > 1;
+    },
+
+    currentPreviewSeriesPoem() {
+      if (!this.isPreviewSeries || !this.post.seriesExpanded) return null;
+      return this.previewSeriesPoems[this.post.currentSeriesIndex] || this.previewSeriesPoems[0];
+    },
+
+    previewCardContent() {
+      if (!this.post) return '';
+      if (this.isPreviewSeries) {
+        const firstPoem = this.previewSeriesPoems[0];
+        return firstPoem.content || firstPoem.subtitle || '';
+      }
+      return this.post.displayContent || this.post.content || '';
+    },
 
     isLockedAdminActivityMode() {
 
@@ -789,6 +806,11 @@ export default {
 
       post.displaySeriesPoems = normalized.displaySeriesPoems || [];
 
+      // 两种入口（事件/缓存）都从组诗封面开始，阅读状态不写入编辑数据。
+      post.seriesExpanded = false;
+      post.currentSeriesIndex = 0;
+      if (post.isSeries && post.displaySeriesPoems.length > 1) post.isExpanded = false;
+
       if (typeof post.isExpanded === 'undefined') {
 
         post.isExpanded = false;
@@ -899,15 +921,24 @@ export default {
 
 
 
-    // 切换文章展开/折叠状态
+    // 组诗按封面 → 第一首 → 下一首 → 封面的顺序阅读。
 
     togglePostExpansion() {
 
-      if (this.post) {
-
-        this.post.isExpanded = !this.post.isExpanded;
-
+      if (!this.post) return;
+      if (this.isPreviewSeries) {
+        if (!this.post.seriesExpanded) {
+          this.post.seriesExpanded = true;
+          this.post.currentSeriesIndex = 0;
+        } else if (this.post.currentSeriesIndex + 1 < this.previewSeriesPoems.length) {
+          this.post.currentSeriesIndex += 1;
+        } else {
+          this.post.seriesExpanded = false;
+          this.post.currentSeriesIndex = 0;
+        }
+        return;
       }
+      this.post.isExpanded = !this.post.isExpanded;
 
     },
 
@@ -3143,8 +3174,6 @@ page {
 
 .empty-state { text-align: center; padding: 100rpx 0; color: var(--app-muted-text, #999); }
 
-.empty-icon { font-size: 80rpx; margin-bottom: 20rpx; }
-
 .empty-text { font-size: 32rpx; color: var(--app-secondary-text, #666); }
 
 .post-item-wrapper { border-radius: 40rpx; overflow: hidden; border: var(--app-surface-border-line, 1rpx solid #e9ecef); box-shadow: 0 12rpx 15rpx rgba(0,0,0,0.20); transition: transform .3s ease; }
@@ -3174,6 +3203,20 @@ page {
 }
 
 .post-content.expanded { display: block; overflow: visible; }
+
+.preview-series-subtitle { margin-top: 30rpx; font-size: 30rpx; font-weight: 600; white-space: pre-wrap; }
+.preview-series-pagination {
+  margin: 0 auto 10rpx;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--app-secondary-text, #333);
+  font-size: 24rpx;
+  text-align: center;
+  width: fit-content;
+  align-self: center;
+  font-weight: 500;
+}
 
 .user-signature { position: absolute; bottom: -25rpx; right: 60rpx; z-index: 10; pointer-events: none; }
 

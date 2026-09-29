@@ -61,35 +61,54 @@
         </scroll-view>
 
         <!-- 创建收藏夹弹窗 -->
-        <view v-if="showCreateModal" class="modal-overlay" @tap="hideCreateModal">
-            <view class="modal-content" @tap.stop>
-                <view class="modal-header">
-                    <text class="modal-title">新建收藏夹</text>
-                    <text class="close-btn" @tap="hideCreateModal">×</text>
+        <AppMotion :visible="showCreateModal" :busy="isCreatingFolder" ref="createMotion" @dismiss="hideCreateModal" mask-class="collection-create-dialog" :mask-dark="appThemeMode === 'dark'" close-on-mask>
+            <view class="collection-create-panel app-motion-panel" @tap.stop>
+                <view class="collection-create-header">
+                    <text class="collection-create-title">新建收藏夹</text>
                 </view>
-                <view class="modal-body">
-                    <input
-                        class="folder-name-input"
-                        v-model="newFolderName"
-                        placeholder="请输入收藏夹名称（最多7个字）"
-                        maxlength="7"
-                    />
+                <view class="collection-create-body" @touchmove.stop>
+                    <view class="create-folder-form">
+                        <view class="form-item">
+                            <view class="form-label">收藏夹名称</view>
+                            <input
+                                class="folder-name-input"
+                                v-model="newFolderName"
+                                placeholder="请输入收藏夹名称（最多7个字）"
+                                maxlength="7"
+                                :disabled="isCreatingFolder"
+                            />
+                        </view>
+                        <view class="form-item">
+                            <view class="form-label">收藏夹封面</view>
+                            <view class="cover-upload-section">
+                                <view v-if="!newFolderCover" class="cover-upload-btn" @tap="chooseNewCoverImage">
+                                    <image class="upload-icon-img" src="/static/images/newicons/image.png" mode="aspectFit"></image>
+                                    <view class="upload-text">选择封面</view>
+                                </view>
+                                <view v-else class="cover-preview" @tap="chooseNewCoverImage">
+                                    <image class="cover-image" :src="newFolderCover" mode="aspectFill"></image>
+                                    <view class="cover-overlay">
+                                        <view class="change-text">更换封面</view>
+                                    </view>
+                                </view>
+                            </view>
+                        </view>
+                    </view>
                 </view>
-                <view class="modal-footer">
-                    <button class="modal-btn cancel" @tap="hideCreateModal">取消</button>
-                    <button class="modal-btn confirm" @tap="createFolder" :disabled="!newFolderName.trim()">创建</button>
+                <view class="collection-create-footer">
+                    <button class="collection-create-button create-cancel" @tap="$refs.createMotion.dismiss()" :disabled="isCreatingFolder">取消</button>
+                    <button class="collection-create-button create-confirm" @tap="createFolder" :disabled="isCreatingFolder || !newFolderName.trim()">{{ isCreatingFolder ? '创建中…' : '创建' }}</button>
                 </view>
             </view>
-        </view>
+        </AppMotion>
 
         <!-- 编辑收藏夹弹窗 -->
-        <view v-if="showEditModal" class="modal-overlay" @tap="hideEditModal">
-            <view class="modal-content" @tap.stop>
-                <view class="modal-header">
-                    <text class="modal-title">修改收藏夹名字</text>
-                    <text class="close-btn" @tap="hideEditModal">×</text>
+        <AppMotion :visible="showEditModal" ref="editMotion" @dismiss="hideEditModal" mask-class="collection-create-dialog" :mask-dark="appThemeMode === 'dark'" close-on-mask>
+            <view class="collection-create-panel app-motion-panel" @tap.stop>
+                <view class="collection-create-header">
+                    <text class="collection-create-title">修改收藏夹名字</text>
                 </view>
-                <view class="modal-body">
+                <view class="collection-create-body" @touchmove.stop>
                     <view class="edit-folder-form">
                         <view class="form-item">
                             <view class="form-label">收藏夹名称</view>
@@ -105,7 +124,7 @@
                             <view class="form-label">收藏夹封面</view>
                             <view class="cover-upload-section">
                                 <view v-if="!editingFolderCover" class="cover-upload-btn" @tap="chooseEditCoverImage">
-                                    <view class="upload-icon">📷</view>
+                                    <image class="upload-icon-img" src="/static/images/newicons/image.png" mode="aspectFit"></image>
                                     <view class="upload-text">选择封面</view>
                                 </view>
                                 <view v-else class="cover-preview" @tap="chooseEditCoverImage">
@@ -118,24 +137,26 @@
                         </view>
                     </view>
                 </view>
-                <view class="modal-footer">
-                    <button class="modal-btn cancel" @tap="hideEditModal">取消</button>
-                    <button class="modal-btn confirm" @tap="saveFolderName" :disabled="!editingFolderName.trim()">保存</button>
+                <view class="collection-create-footer">
+                    <button class="collection-create-button create-cancel" @tap="$refs.editMotion.dismiss()">取消</button>
+                    <button class="collection-create-button create-confirm" @tap="saveFolderName" :disabled="!editingFolderName.trim()">保存</button>
                 </view>
             </view>
-        </view>
+        </AppMotion>
     </view>
     <app-overlay-host />
 </template>
 
 <script>
+import AppMotion from '@/components/overlay/AppMotion.vue';
 // pages/favorite-folders/favorite-folders.js
 import { cloudCall } from '../../utils/cloudCall.js';
+import { readFileAsBase64 } from '@/utils/fileReader.js';
 import { checkLoginOrPrompt } from '@/utils/authHelper.js';
 import dualActionTopBar from '@/components/dual-action-top-bar/dual-action-top-bar.vue';
 
 export default {
-    components: {
+    components: { AppMotion,
         dualActionTopBar
     },
     data() {
@@ -145,6 +166,8 @@ export default {
             isLoading: true,
             showCreateModal: false,
             newFolderName: '',
+            newFolderCover: '',
+            isCreatingFolder: false,
             editingFolder: null,
             showEditModal: false,
             editingFolderName: '',
@@ -353,105 +376,62 @@ export default {
         },
 
         // 显示创建收藏夹弹窗
-        showCreateFolder: function () {
-            this.setData({
-                showCreateModal: true,
-                newFolderName: ''
-            });
-        },
-
-        // 隐藏创建收藏夹弹窗
-        hideCreateModal: function () {
-            this.setData({
-                showCreateModal: false
-            });
-        },
-
-        // 输入收藏夹名称
-        onFolderNameInput: function (e) {
-            this.setData({
-                newFolderName: e.detail.value
-            });
-        },
-
-        // 创建收藏夹
-        createFolder: function () {
-            const folderName = this.newFolderName.trim();
-            if (!folderName) {
-                uni.showToast({
-                    title: '请输入收藏夹名称',
-                    icon: 'none'
-                });
-                return;
-            }
-            console.log('开始创建收藏夹，名称:', folderName);
-            uni.showLoading({
-                title: '创建中...'
-            });
-            this.callCloudFunction('getMyProfileData', {
-                    action: 'createFavoriteFolder',
-                    folderName: folderName
-                }).then((res) => {
-                    uni.hideLoading();
-                    console.log('创建收藏夹云函数返回:', res);
-
-                    // 更详细的返回结果检查
-                    if (res && res.result) {
-                        if (res.result.success) {
-                            uni.showToast({
-                                title: '创建成功'
-                            });
-                            // 先清空输入框，再关闭弹窗，避免状态混乱
-                            this.setData({
-                                showCreateModal: false,
-                                newFolderName: '' // 清空输入框
-                            });
-                            // 延迟加载，确保状态更新完成
-                            setTimeout(() => {
-                                this.loadFolders();
-                            }, 300);
-                        } else {
-                            console.error('创建收藏夹业务失败:', res.result);
-                            uni.showToast({
-                                title: res.result.message || '创建失败',
-                                icon: 'none'
-                            });
-                        }
-                    } else {
-                        console.error('创建收藏夹返回格式异常:', res);
-                        uni.showToast({
-                            title: '创建失败：返回格式错误',
-                            icon: 'none'
-                        });
-                    }
-                }).catch((err) => {
-                    uni.hideLoading();
-                    console.error('创建收藏夹云函数调用失败:', err);
-                    uni.showToast({
-                        title: '网络错误：' + (err.errMsg || '未知错误'),
-                        icon: 'none'
-                    });
-                });
-        },
-
-        // 显示创建收藏夹弹窗
         showCreateFolder() {
-            this.setData({
-                showCreateModal: true,
-                newFolderName: ''
-            });
+            if (this.isCreatingFolder) return;
+            this.showCreateModal = true;
+            this.newFolderName = '';
+            this.newFolderCover = '';
         },
 
         // 隐藏创建收藏夹弹窗
         hideCreateModal() {
-            this.setData({
-                showCreateModal: false,
-                newFolderName: ''
+            if (this.isCreatingFolder) return;
+            if (this.$refs?.createMotion?.rendered) {
+                this.$refs.createMotion.dismiss(this.hideCreateModal);
+                return;
+            }
+            this.showCreateModal = false;
+            this.newFolderName = '';
+            this.newFolderCover = '';
+        },
+
+        chooseNewCoverImage() {
+            if (this.isCreatingFolder) return;
+            uni.chooseImage({
+                count: 1,
+                sizeType: ['compressed'],
+                sourceType: ['album', 'camera'],
+                success: (res) => {
+                    if (this.showCreateModal && !this.isCreatingFolder && res.tempFilePaths?.[0]) {
+                        this.newFolderCover = res.tempFilePaths[0];
+                    }
+                },
+                fail: (error) => {
+                    if (!/cancel/i.test(error.errMsg || '')) {
+                        uni.showToast({ title: '选择图片失败', icon: 'none' });
+                    }
+                }
             });
+        },
+
+        async uploadNewCoverImage() {
+            if (!this.newFolderCover) return null;
+            uni.showLoading({ title: '上传封面中...', mask: true });
+            const fileContent = await readFileAsBase64(this.newFolderCover);
+            if (!fileContent) throw new Error('封面读取失败，请重试');
+            const response = await this.callCloudFunction('upload', {
+                cloudPath: `folder_covers/${Date.now()}_new_cover.jpg`,
+                fileContent
+            });
+            if (!response?.result?.success || !response.result.fileID) {
+                throw new Error(response?.result?.message || '封面上传失败，请重试');
+            }
+            return response.result.fileID;
         },
 
         // 创建收藏夹
         async createFolder() {
+            if (this.isCreatingFolder) return;
             const folderName = this.newFolderName.trim();
             if (!folderName) {
                 uni.showToast({
@@ -461,10 +441,13 @@ export default {
                 return;
             }
 
+            this.isCreatingFolder = true;
             try {
-                uni.showLoading({ title: '创建中...' });
+                const coverUrl = await this.uploadNewCoverImage();
+                uni.showLoading({ title: '创建中...', mask: true });
                 const result = await this.callCloudFunction('createFavoriteFolder', {
-                    folderName: folderName
+                    folderName: folderName,
+                    coverUrl
                 });
 
                 if (result.result && result.result.success) {
@@ -472,6 +455,7 @@ export default {
                         title: '创建成功',
                         icon: 'success'
                     });
+                    this.isCreatingFolder = false;
                     this.hideCreateModal();
                     this.loadFolders();
                 } else {
@@ -483,10 +467,11 @@ export default {
             } catch (error) {
                 console.error('创建收藏夹失败:', error);
                 uni.showToast({
-                    title: '创建失败',
+                    title: error.message || '创建失败',
                     icon: 'none'
                 });
             } finally {
+                this.isCreatingFolder = false;
                 uni.hideLoading();
             }
         },
@@ -506,6 +491,10 @@ export default {
 
         // 隐藏编辑弹窗
         hideEditModal() {
+            if (this.$refs?.editMotion?.rendered) {
+                this.$refs.editMotion.dismiss(this.hideEditModal);
+                return;
+            }
             this.setData({
                 showEditModal: false,
                 editingFolder: null,
@@ -1004,7 +993,8 @@ export default {
 }
 
 .folder-name-input:focus {
-    border-color: #9ed7ee;
+    border-color: var(--app-link-color, #333333);
+    box-shadow: var(--app-control-focus-ring, 0 0 0 4rpx rgba(0, 0, 0, 0.08));
 }
 
 /* 编辑表单样式 */
@@ -1111,12 +1101,21 @@ export default {
 }
 
 .modal-btn.confirm {
-    background: #9ed7ee;
-    color: #fff;
+    background: var(--app-control-accent-bg, #333333);
+    color: var(--app-control-accent-text, #ffffff);
+    border-radius: 44rpx;
+    font-weight: 500;
+    box-shadow: none;
+    min-height: 88rpx;
+    box-sizing: border-box;
 }
 
 .modal-btn.confirm[disabled] {
     background: var(--app-border-color, #ccc);
     color: var(--app-muted-text, #999);
 }
+.modal-btn.confirm:active { opacity: 0.65; }
+</style>
+
+<style src="@/styles/collection-create-dialog.css">.modal-btn.confirm:active { opacity: 0.65; }
 </style>

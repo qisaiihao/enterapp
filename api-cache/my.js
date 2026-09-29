@@ -3,6 +3,7 @@ import fileUrlCache from '@/_utils/file-url-cache';
 import { normalizeAppBackgroundMode } from '@/utils/appBackground.js';
 import { getOpenid } from '@/utils/app-state.js';
 import { callCloudAndUnwrap } from './_shared/cloud-wrapper.js';
+import avatarCache from '@/cache/stores/avatar.js';
 
 // 我的资料缓存
 const nsMyInfo = cacheManager.namespace('me:info', { persistent: true, maxItems: 8 });
@@ -10,7 +11,8 @@ const PROFILE_TTL_MS = 30 * 60 * 1000;
 const PROFILE_SWR_MS = 5 * 60 * 1000;
 
 export async function getMyInfo(context) {
-  return nsMyInfo.getOrFetch(
+  const userId = getOpenid();
+  const user = await nsMyInfo.getOrFetch(
     'me',
     async () => {
       const result = await callCloudAndUnwrap(
@@ -45,6 +47,21 @@ export async function getMyInfo(context) {
     },
     { ttlMs: PROFILE_TTL_MS, swrMs: PROFILE_SWR_MS }
   );
+  // 必须在读取缓存/网络之后合并：包含返回主页 onShow 强刷和保存前的迟到响应。
+  // 云文件链接按文件 ID 复用，不为头像再次查询用户资料。
+  while (userId && userId === getOpenid()) {
+    const saved = avatarCache.getSavedAvatar(userId);
+    if (!saved) break;
+    const avatarFileID = saved.avatarUrl.startsWith('cloud://') ? saved.avatarUrl : '';
+    let avatarUrl = saved.avatarUrl;
+    try { if (avatarFileID) avatarUrl = await fileUrlCache.getTempUrl(avatarFileID); } catch (_) {}
+    if (saved !== avatarCache.getSavedAvatar(userId)) continue;
+    if (userId !== getOpenid()) break;
+    // 同步修正已读取的缓存，确认记录过期后也不能重新读出此前缓存的旧头像。
+    nsMyInfo.update('me', cached => ({ ...cached, avatarFileID, avatarUrl }));
+    return { ...user, avatarFileID, avatarUrl };
+  }
+  return user;
 }
 
 export function invalidateMyInfo() {

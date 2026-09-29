@@ -1,7 +1,11 @@
 import { createCollageLogger } from '@/utils/collage/debug.js';
 import { silenceConsoleInProduction } from '@/utils/logger.js';
 import App from './App';
+// #ifdef APP-PLUS
+import { appTabTransitionMixin } from '@/utils/appTabTransition.js';
+// #endif
 import AppBackgroundPageRoot from '@/components/AppBackgroundPageRoot.vue';
+import AppOverlayHost from '@/components/app-overlay-host/app-overlay-host.vue';
 import { installAppOverlays, appOverlayPageMixin } from '@/utils/appOverlay.js';
 import cacheManager from '@/cache/core/manager.js';
 import { getAppState, getOpenid } from '@/utils/app-state.js';
@@ -250,10 +254,15 @@ import {
 
 export function createApp() {
   const app = createSSRApp(App);
+  // 正式包必须保留弹窗宿主，不能仅依赖 easycom 自动扫描。
+  app.component('app-overlay-host', AppOverlayHost);
   installRuntimeBindings(app);
   app.use(zpMixins);
   installAppOverlays();
   app.mixin(appOverlayPageMixin);
+  // #ifdef APP-PLUS
+  app.mixin(appTabTransitionMixin);
+  // #endif
   app.mixin({
     // App 的 loadFontFace 注册到当前页面，必须等页面视图就绪。
     // #ifdef APP-PLUS
@@ -275,6 +284,14 @@ export function createApp() {
       },
       readFontVars() {
         return getReadFontVars(this.readFontLevel);
+      }
+    },
+    methods: {
+      // 只强调操作文案，提示正文以及“完成/跳过”等按钮保持原有配色。
+      cancelActionStyle(text, mode = this.appThemeMode, filled = false) {
+        if (!/^取消/.test(String(text || '').trim())) return {};
+        const dark = mode === 'dark';
+        return { color: filled ? (dark ? '#a52b2b' : '#ffb4b4') : (dark ? '#f08a8a' : '#c43d3d') };
       }
     },
     created() {

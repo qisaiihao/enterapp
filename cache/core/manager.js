@@ -346,7 +346,8 @@ class CacheManager {
   // 清除所有命名空间
   clearAll() {
     this._nss.forEach((ns) => ns.clear());
-    this._nss.clear();
+    // 模块会长期持有 namespace 句柄。保留注册表，避免新旧句柄分裂，
+    // 导致后续清理遗漏旧模块的数据和进行中的请求。
   }
 }
 

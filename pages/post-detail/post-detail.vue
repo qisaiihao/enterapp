@@ -142,7 +142,7 @@
                             <!-- 左侧按钮区域保留为空，或者可以放其他按钮 -->
                         </view>
                         <view class="button-group">
-                            <view class="like-icon-container" @tap.stop.prevent="onVote" :data-postid="post && post._id ? post._id : ''">
+                            <view class="like-icon-container" :key="'like-' + voteMotionVersion" :class="{ 'app-vote-pop': voteMotionVersion > 0 }" @tap.stop.prevent="onVote" :data-postid="post && post._id ? post._id : ''">
                                 <image
                                     :class="['like-icon', getLikeIconVariantClass(post && post.likeIcon), post && post.isVoted ? 'like-icon--voted' : '']"
                                     :src="post.likeIcon || '/static/images/seed.png'"
@@ -178,7 +178,6 @@
             </block>
             <block v-else>
                 <view class="error-container">
-                    <view class="error-icon">❌</view>
                     <view class="error-text">帖子加载失败或不存在</view>
                 </view>
             </block>
@@ -199,7 +198,7 @@
                 <view v-if="replyToComment" class="reply-prompt">
                     <text class="reply-prompt-text">回复 {{ replyToAuthor }}：</text>
                     <view class="cancel-reply" @tap="cancelReply">
-                        <text class="cancel-text">取消</text>
+                        <text class="cancel-text" :style="cancelActionStyle('取消')">取消</text>
                     </view>
                 </view>
 
@@ -312,18 +311,6 @@
         <!-- #ifndef MP-WEIXIN -->
         <canvas id="shareCanvas" canvas-id="shareCanvas" style="position: fixed; top: -9999px; left: -9999px; width: 750px; border-radius: 15px; overflow: hidden;" :style="{ height: shareCanvasHeight + 'px' }"></canvas>
         <!-- #endif -->
-      <!-- 评论区、其它内容 --> 
-    <view v-if="showEditModal" class="edit-modal-mask">
-        <view class="edit-modal">
-            <view class="edit-modal-title">编辑帖子</view>
-            <input class="edit-title-input" :value="editForm.title" data-field="title" @input="onEditInput" placeholder="请输入标题" />
-            <textarea class="edit-content-textarea" :value="editForm.content" data-field="content" @input="onEditInput" placeholder="请输入正文" />
-            <view class="edit-modal-actions">
-                <button class="modal-cancel" @tap="onCancelEdit">取消</button>
-                <button class="modal-confirm" @tap="onSaveEdit">保存</button>
-            </view>
-        </view>
-    </view>
     </view>
     <app-overlay-host />
 </template>
@@ -359,7 +346,7 @@ import { colorPalettes } from '@/utils/colorPalettes.js';
 import { poemLines } from '@/utils/poemLines.js';
 import { getCurrentPlatform } from '@/utils/platformDetector.js';
 import { requestAndroidStoragePermission } from '@/utils/permissions.js';
-import { emitCommentCountChanged, emitPostUpdated } from '@/utils/events.js';
+import { emitCommentCountChanged } from '@/utils/events.js';
 import fontManager from '@/utils/fontManager.js'; // 添加fontManager导入
 import { replayBuiltinHuiwenFontReady } from '@/utils/builtinFontReady.js';
 import { checkContentSafe, checkTextSafe, shouldModerate } from '@/utils/contentModeration.js';
@@ -368,7 +355,7 @@ import { resolvePostAuthorAvatar } from '@/utils/defaultAvatar.js';
 import { getWindowInfoCompat } from '@/utils/system-info.js';
 
 // API函数导入
-import { getPostDetail, updatePostContent, togglePostFavorite, recordPostView } from '@/api-cache/post.js';
+import { getPostDetail, togglePostFavorite, recordPostView } from '@/api-cache/post.js';
 import { getComments, submitComment, deleteComment, likeComment } from '@/api-cache/comment.js';
 import { checkFollowStatus, toggleFollowStatus } from '@/api-cache/following.js';
 
@@ -471,7 +458,16 @@ export default {
         ShareModal
     },
     mixins: [postGalleryMixin],
+    watch: {
+        voteMotionState(next, previous) {
+            if (!previous || next.id !== previous.id) { this.voteMotionVersion = 0; return; }
+            if (next.id && (next.votes !== previous.votes || next.voted !== previous.voted)) this.voteMotionVersion += 1;
+        }
+    },
     computed: {
+        voteMotionState() {
+            return { id: this.post?._id, votes: this.post?.votes, voted: this.post?.isVoted };
+        },
         postAuthorAvatarSrc() {
             return resolvePostAuthorAvatar(this.post);
         },
@@ -498,6 +494,7 @@ export default {
             replyToAuthor: '',
             showUploadTip: false,
             votingInProgress: false,
+            voteMotionVersion: 0,
             imageContainerHeight: null,
             swiperHeights: {},
             imageClampHeights: {},
@@ -539,11 +536,6 @@ export default {
             isFollowedByAuthor: false,
             isMutualFollow: false,
             isOwnPost: false,
-            showEditModal: false,
-            editForm: {
-                title: '',
-                content: '',
-            },
             commentImages: [],
             maxCommentImages: 3,
             isSubmittingComment: false,
@@ -1511,7 +1503,7 @@ export default {
                                 img.style.visibility = 'visible';
                                 img.style.opacity = '1';
                                 img.style.backgroundColor = '#f0f0f0';
-                                img.style.border = '2px solid #007aff';
+                                img.style.border = '1px solid #dddddd';
                                 console.log('【post-detail】样式设置成功');
                             } else {
                                 console.log('【post-detail】img.style不可用，跳过样式设置');
@@ -3180,73 +3172,6 @@ export default {
             });
         },
 
-        onEditPost() {
-            // 打开弹窗，回填当前内容
-            this.showEditModal = true;
-            this.editForm = {
-                title: this.post.title || '',
-                content: this.post.content || '',
-            };
-        },
-        onCancelEdit() {
-            this.showEditModal = false;
-        },
-        onEditInput(e) {
-            const field = e.currentTarget.dataset.field;
-            this.editForm[field] = e.detail.value;
-        },
-        onSaveEdit() {
-            // 验证输入
-            if (!this.editForm.title || !this.editForm.title.trim()) {
-                uni.showToast({ title: '请输入标题', icon: 'none' });
-                return;
-            }
-            if (!this.editForm.content || !this.editForm.content.trim()) {
-                uni.showToast({ title: '请输入正文', icon: 'none' });
-                return;
-            }
-            
-            // 检查是否有权限编辑
-            if (!this.post || !this.post._id) {
-                uni.showToast({ title: '帖子信息无效', icon: 'none' });
-                return;
-            }
-            
-            uni.showLoading({ title: '保存中...' });
-            
-            // 调用更新接口
-            updatePostContent(this.post._id, {
-                title: this.editForm.title.trim(),
-                content: this.editForm.content.trim()
-            })
-            .then(() => {
-                uni.hideLoading();
-                uni.showToast({ title: '保存成功', icon: 'success' });
-                // 更新本地帖子数据
-                this.setData({
-                    'post.title': this.editForm.title.trim(),
-                    'post.content': this.editForm.content.trim(),
-                    showEditModal: false
-                });
-                // 发送更新事件通知其他页面
-                try {
-                    emitPostUpdated(this.post._id);
-                } catch (e) {
-                    if (uni.$emit) {
-                        uni.$emit('post-updated', { postId: this.post._id });
-                    }
-                }
-            })
-            .catch((err) => {
-                uni.hideLoading();
-                console.error('保存失败:', err);
-                uni.showToast({ 
-                    title: err.message || '保存失败', 
-                    icon: 'none' 
-                });
-            });
-        },
-        
         // 分享到好友/群聊
         onShareAppMessage(res) {
             const postId = this.post?._id;
@@ -3492,12 +3417,6 @@ page {
     justify-content: center;
     padding: 100rpx 40rpx;
     text-align: center;
-}
-
-.error-icon {
-    font-size: 120rpx;
-    margin-bottom: 30rpx;
-    opacity: 0.6;
 }
 
 .error-text {
@@ -4040,7 +3959,7 @@ page {
 }
 .cancel-reply .cancel-text {
     font-size: 26rpx;
-    color: #9ed7ee;
+    color: var(--app-link-color, #333333);
 }
 
 .submit-button {
@@ -4163,14 +4082,14 @@ page {
     flex: 1;
     text-align: center;
     padding: 16rpx 24rpx;
-    border-radius: 20rpx;
+    border-radius: 44rpx;
     transition: all 0.3s ease;
     position: relative;
 }
 
 .mode-item.active {
-    background: #9ed7ee;
-    box-shadow: 0 2rpx 8rpx rgba(158, 215, 238, 0.3);
+    background: var(--app-control-accent-bg, #333333);
+    box-shadow: none;
 }
 
 .mode-text {
@@ -4181,7 +4100,7 @@ page {
 }
 
 .mode-item.active .mode-text {
-    color: #fff;
+    color: var(--app-control-accent-text, #ffffff);
     font-weight: 600;
 }
 
@@ -4399,24 +4318,6 @@ page {
     white-space: nowrap;
 }
 
-.edit-modal-mask {
-  position: fixed; left: 0; top: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.35); z-index: 9999;
-  display: flex; align-items: center; justify-content: center;
-}
-.edit-modal {
-  background: var(--app-elevated-bg, #fff); color: var(--app-primary-text, #111111); border-radius: 10px; padding: 24px; width: 80vw; max-width: 400px;
-  box-shadow: 0 4px 40px #0002;
-}
-.edit-modal-title { font-weight: bold; font-size: 18px; margin-bottom: 12px; }
-.edit-title-input, .edit-content-textarea {
-  width: 100%; margin-bottom: 16px; border: 1px solid var(--app-border-color, #eee); background: var(--app-surface-bg, #fff); color: var(--app-primary-text, #111111); padding: 8px; border-radius: 6px; font-size: 16px;
-}
-.edit-content-textarea { min-height: 80px; resize: vertical; }
-.edit-modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
-.modal-cancel { background: var(--app-subtle-surface-bg, #eee); color: var(--app-primary-text, #111111); }
-.modal-confirm { background: #3797ff; color: #fff; }
-
 /* ========== 过渡动画 ========== */
 
 /* 帖子详情内容淡入动画 */
@@ -4449,30 +4350,6 @@ page {
         opacity: 1;
         transform: scale(1);
     }
-}
-
-/* 点赞按钮点击弹跳动画 */
-.like-icon-container.liked-animation {
-    animation: likeBouncePop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.6);
-}
-
-@keyframes likeBouncePop {
-    0% { transform: scale(1); }
-    25% { transform: scale(0.8); }
-    50% { transform: scale(1.25); }
-    75% { transform: scale(0.95); }
-    100% { transform: scale(1); }
-}
-
-/* 点赞数字变化动画 */
-.vote-count.vote-changed {
-    animation: voteNumberPop 0.3s ease;
-}
-
-@keyframes voteNumberPop {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
 }
 
 /* 评论区淡入动画 */
@@ -4525,8 +4402,8 @@ page {
 
 
 /* 标签淡入动画 */
-.tags-section {
-    animation: tagsFadeIn 0.4s ease-out 0.15s both;
+.post-detail-page .post-tags {
+    animation: tagsFadeIn 180ms ease-out both;
 }
 
 @keyframes tagsFadeIn {

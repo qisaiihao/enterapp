@@ -102,7 +102,7 @@ async function main() {
   assert.equal((await api.getMyFavorites(query)).length, 10, 'direct cloud result is unwrapped too');
 
   const component = moduleFrom(read('pages-content/favorite-content/favorite-content.vue').match(/<script>([\s\S]*?)<\/script>/)[1], {
-    getMyFavorites: api.getMyFavorites, paginationMixin: {}, postGalleryMixin: {},
+    getMyFavorites: api.getMyFavorites, paginationMixin: {}, postGalleryMixin: {}, FavoriteActionMenu: {},
     uni: { showToast() {} }
   });
   const page = { ...component.data(), folderId: 'folder-a', pageSize: 10, setData(data) { Object.assign(this, data); }, formatTime() { return '刚刚'; } };
@@ -126,7 +126,76 @@ async function main() {
   await assert.rejects(api.getMyFavorites(query), /连接失败/);
   failure = null;
   assert.equal((await api.getMyFavorites(query)).length, 10, 'failed request can be retried');
+
+  const writes = [], events = [], notices = [];
+  let completeWrite, rejectWrite;
+  const actionsApi = moduleFrom(read('api-cache/profile-actions.js') + '\nexport default { removeFavorite };', {
+    callCloudAndUnwrap(name, data, options) {
+      writes.push({ name, data, options });
+      return new Promise((resolve, reject) => { completeWrite = resolve; rejectWrite = reject; });
+    }, invalidateMyFavorites() {}
+  });
+  const menuComponent = moduleFrom(read('components/FavoriteActionMenu.vue').match(/<script>([\s\S]*?)<\/script>/)[1], {
+    AppActionSheet: {}, FolderSelector: {}, removeFavorite: actionsApi.removeFavorite,
+    getOpenid: () => 'me', emitFavoriteChanged: value => events.push(value),
+    uni: { showLoading() {}, hideLoading() {}, showToast: value => notices.push(value) }
+  });
+  const profileSource = read('pages/profile/profile.vue').match(/<script>([\s\S]*?)<\/script>/)[1];
+  const profileOptions = parse(profileSource, { sourceType: 'module' }).program.body.find(node => node.type === 'ExportDefaultDeclaration').declaration;
+  const profileMethodsNode = profileOptions.properties.find(node => node.key.name === 'methods').value;
+  const profileMethods = vm.runInNewContext(`(${profileSource.slice(profileMethodsNode.start, profileMethodsNode.end)})`, {});
+  for (const [listName, methods, open] of [
+    ['favoriteList', profileMethods, page => page.handleFavoriteActionMenu({ index: 0 })],
+    ['favorites', component.methods, page => page.showFavoriteActions(page.favorites[0])]
+  ]) {
+    const owner = { ...methods, [listName]: [
+      { _id: 'post-target', favoriteId: 'favorite-target' },
+      { _id: 'post-other', favoriteId: 'favorite-other' },
+      { _id: 'post-target', favoriteId: 'same-post-another-folder' }
+    ] };
+    open(owner);
+    const menu = { ...menuComponent.data(), ...menuComponent.methods, target: owner.favoriteActionTarget,
+      $emit(name, value) {
+        if (name === 'close') this.target = owner.favoriteActionTarget = null;
+        if (name === 'removed') owner.handleFavoriteRemoved(value);
+      }
+    };
+    const pending = menu.onSelect(1);
+    assert.equal(writes.at(-1).data.action, 'removeFromFavorite', 'use the supported singular backend action');
+    assert.equal(writes.at(-1).data.favoriteId, 'favorite-target', 'send the collection record ID, not the post ID');
+    assert.equal(writes.at(-1).options.context, menu, 'forward the App component context');
+    const count = writes.length;
+    menu.target = { favoriteId: 'favorite-other', postId: 'post-other' };
+    await menu.onSelect(1);
+    assert.equal(writes.length, count, 'repeated clicks cannot submit a second request');
+    owner[listName].reverse();
+    completeWrite({ success: true });
+    await pending;
+    assert.equal(owner[listName].length, 2);
+    assert.ok(owner[listName].some(item => item.favoriteId === 'same-post-another-folder'), 'other folder records remain');
+    assert.ok(owner[listName].every(item => item.favoriteId !== 'favorite-target'), 'remove by ID even after a list reorder');
+    assert.equal(events.at(-1).postId, 'post-target', 'notify the original post, never the next row');
+
+    open(owner);
+    menu.target = owner.favoriteActionTarget;
+    const beforeFailure = owner[listName].slice();
+    const failed = menu.onSelect(1);
+    rejectWrite(new Error('网络错误'));
+    await failed;
+    assert.deepEqual(owner[listName], beforeFailure, 'failed removal keeps the row available for retry');
+    assert.equal(menu.isRemoving, false);
+    assert.equal(notices.at(-1).title, '网络错误');
+
+    open(owner);
+    menu.target = owner.favoriteActionTarget;
+    const expectedPostId = menu.target.postId;
+    const beforeAdd = writes.length;
+    await menu.onSelect(0);
+    assert.equal(menu.folderPostId, expectedPostId, 'folder selector receives the post ID snapshot');
+    assert.equal(writes.length, beforeAdd, 'opening the folder selector never removes the original favorite');
+  }
   console.log('[test-favorite-loading] PASS: real handler/API/page integration, folder isolation, App context, response shapes, pagination, empty folders, errors and retry');
+  console.log('[test-favorite-actions] PASS: both pages, record/post IDs, reordering, duplicate clicks, failure preservation and folder selection');
 }
 
 main().catch(error => { console.error(error); process.exitCode = 1; });

@@ -6,6 +6,19 @@ import { getPostList } from './post-list.js';
 // 诗歌相关API缓存：TTL 75s + SWR 30s (诗歌更新频率适中)
 const TTL_MS = 75 * 1000;
 const SWR_MS = 30 * 1000;
+export const ORIGINAL_POEMS_PAGE_SIZE = 10;
+
+// 开屏和广场使用完全相同的分页参数与缓存键。
+export function peekOriginalPoems() {
+  const key = buildCacheKey({ page: 0, pageSize: ORIGINAL_POEMS_PAGE_SIZE, isPoem: true, isOriginal: true });
+  return cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 }).get(key);
+}
+
+export function peekMountainPoems({ pageSize = 10, filterByPoet } = {}) {
+  const key = buildCacheKey({ page: 0, pageSize, isPoem: true, isOriginal: false, excludeAnonymous: true })
+    + (filterByPoet ? `:author:${filterByPoet}` : '');
+  return cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 }).get(key);
+}
 
 // 使用独立的 poems:following 命名空间
 const followingNs = cacheManager.namespace('poems:following', { persistent: true, maxItems: 128 });
@@ -130,10 +143,12 @@ function invalidateFollowingPoems({ page, pageSize = 10 } = {}) {
  */
 async function getOriginalPoems({
   page = 0,
-  pageSize = 10,
+  pageSize = ORIGINAL_POEMS_PAGE_SIZE,
   context,
   forceRefresh = false,
-  onBackgroundUpdate
+  onBackgroundUpdate,
+  timeoutMs,
+  silent
 } = {}) {
   return getPostList({
     page,
@@ -142,7 +157,9 @@ async function getOriginalPoems({
     isOriginal: true,
     context,
     forceRefresh,
-    onBackgroundUpdate
+    onBackgroundUpdate,
+    timeoutMs,
+    silent
   });
 }
 
@@ -163,7 +180,9 @@ async function getMountainPoems({
   context,
   forceRefresh = false,
   onBackgroundUpdate,
-  filterByPoet
+  filterByPoet,
+  timeoutMs,
+  silent
 } = {}) {
   return getPostList({
     page,
@@ -174,7 +193,9 @@ async function getMountainPoems({
     author: filterByPoet,
     context,
     forceRefresh,
-    onBackgroundUpdate
+    onBackgroundUpdate,
+    timeoutMs,
+    silent
   });
 }
 
@@ -186,6 +207,8 @@ export {
 };
 
 export default {
+  ORIGINAL_POEMS_PAGE_SIZE,
+  peekOriginalPoems,
   getFollowingPoems,
   invalidateFollowingPoems,
   getOriginalPoems,
@@ -194,6 +217,8 @@ export default {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
+    ORIGINAL_POEMS_PAGE_SIZE,
+    peekOriginalPoems,
     getFollowingPoems,
     invalidateFollowingPoems,
     getOriginalPoems,

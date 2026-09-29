@@ -148,9 +148,9 @@ async function main() {
         await page.screenshot({ path: path.join(output, `${kind}-sheet-${mode}.png`) });
         await page.click(q('.collection-create'));
         await closed();
-        await page.waitForSelector(q('.create-modal input'));
-        await page.$eval(q('.create-modal'), el => Promise.all(el.getAnimations({ subtree: true }).map(a => a.finished)));
-        await page.click(q('.create-footer .outline-btn:first-child'));
+        await page.waitForSelector(q('.collection-create-panel input'));
+        await page.$eval(q('.collection-create-panel'), el => Promise.all(el.getAnimations({ subtree: true }).map(a => a.finished)));
+        await page.click(q('.collection-create-footer .create-cancel'));
         await page.waitForSelector(q('.app-sheet'));
         assert.equal(await page.evaluate(() => window.__bottomSheetReview.back()), true);
         await closed();

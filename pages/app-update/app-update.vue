@@ -16,7 +16,7 @@
       <button class="update-button" :disabled="busy" @tap="startUpdate">
         {{ installed ? '立即重启' : (busy ? '更新中…' : buttonText) }}
       </button>
-      <button v-if="!update.is_mandatory" class="update-later" :disabled="busy && progress >= 100" @tap="leave">{{ busy ? '取消下载' : '稍后再说' }}</button>
+      <button v-if="!update.is_mandatory" class="update-later" :style="cancelActionStyle(busy ? '取消下载' : '稍后再说')" :disabled="busy && progress >= 100" @tap="leave">{{ busy ? '取消下载' : '稍后再说' }}</button>
     </view>
     <app-overlay-host />
   </view>

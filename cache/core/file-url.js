@@ -33,8 +33,8 @@ class FileUrlCache {
   constructor() {
     this._cache = new Map();
     this._ns = null;
-    this._pendingIds = new Set();
-    this._waiters = [];
+    this._pending = new Map();
+    this._queue = [];
     this._timer = null;
     this._resolver = null;
     this._batchDelay = DEFAULT_BATCH_DELAY_MS;
@@ -50,11 +50,13 @@ class FileUrlCache {
 
   invalidate(ids) {
     if (!ids) {
+      this._pending.clear();
       this._cache.clear();
       if (this._ns) try { this._ns.clear(); } catch (_) {}
       return;
     }
     (Array.isArray(ids) ? ids : [ids]).forEach(id => {
+      this._pending.delete(id);
       this._cache.delete(id);
       if (this._ns) try { this._ns.delete(id); } catch (_) {}
     });
@@ -65,45 +67,32 @@ class FileUrlCache {
     return map[id] || id;
   }
 
+  _getEntry(id) {
+    return this._ns ? this._ns.get(id) : this._cache.get(id);
+  }
+
   async getTempUrls(fileIds) {
-    const ids = (fileIds || []).filter(Boolean);
-    if (ids.length === 0) return {};
-
-    const direct = {};
-    const targets = [];
-    const nowTs = now();
-
-    ids.forEach(id => {
-      if (!isCloudId(id)) { direct[id] = id; return; }
-      let entry = this._cache.get(id);
-      if (!entry && this._ns) {
-        const val = this._ns.get(id);
-        if (val && typeof val.url === 'string') { entry = val; this._cache.set(id, entry); }
+    const ids = [...new Set((Array.isArray(fileIds) ? fileIds : []).filter(Boolean))];
+    const entries = await Promise.all(ids.map(async id => {
+      if (!isCloudId(id)) return [id, id];
+      const entry = this._getEntry(id);
+      if (entry?.url && entry.expireAt - EXPIRY_SKEW_MS > now()) return [id, entry.url];
+      let task = this._pending.get(id);
+      if (!task) {
+        task = { id };
+        task.promise = new Promise(resolve => { task.resolve = resolve; });
+        this._pending.set(id, task);
+        this._queue.push(task);
+        this._scheduleFlush();
       }
-      if (entry && entry.url && entry.expireAt - EXPIRY_SKEW_MS > nowTs) {
-        direct[id] = entry.url;
-      } else {
-        targets.push(id);
-      }
-    });
-
-    if (targets.length === 0) return direct;
-
-    targets.forEach(id => this._pendingIds.add(id));
-    const p = new Promise((resolve, reject) => {
-      this._waiters.push({ ids: new Set(ids), resolve, reject });
-    });
-
-    this._scheduleFlush();
-    const batchResult = await p;
-    return { ...direct, ...batchResult };
+      return [id, await task.promise];
+    }));
+    return Object.fromEntries(entries.filter(([, url]) => !!url));
   }
 
   warm(fileIds) {
-    const ids = (fileIds || []).filter(isCloudId);
-    if (ids.length === 0) return;
-    ids.forEach(id => this._pendingIds.add(id));
-    this._scheduleFlush();
+    // 预热和前台读取共享缓存、排队及进行中的请求。
+    this.getTempUrls(fileIds).catch(() => {});
   }
 
   _scheduleFlush() {
@@ -112,49 +101,34 @@ class FileUrlCache {
   }
 
   async _flush() {
-    const ids = Array.from(this._pendingIds);
-    this._pendingIds.clear();
+    const tasks = this._queue;
+    this._queue = [];
     clearTimeout(this._timer); this._timer = null;
-    if (ids.length === 0) return;
-
-    // 网络请求期间新加入的调用由下一批处理，不能被本批提前结算。
-    const waiters = this._waiters;
-    this._waiters = [];
-    const fetched = {};
-    for (let i = 0; i < ids.length; i += MAX_BATCH_SIZE) {
-      try {
-        Object.assign(fetched, await this._resolve(ids.slice(i, i + MAX_BATCH_SIZE)));
-      } catch (_) {
-        // 保留其他批次的成功结果，未成功的文件留待调用方重试。
+    const ids = [...new Set(tasks.map(task => task.id))];
+    for (let offset = 0; offset < ids.length; offset += MAX_BATCH_SIZE) {
+      const chunk = ids.slice(offset, offset + MAX_BATCH_SIZE);
+      let fetched = {};
+      try { fetched = await this._resolve(chunk) || {}; } catch (_) {}
+      const selected = new Set(chunk);
+      for (const task of tasks.filter(item => selected.has(item.id))) {
+        const rec = fetched[task.id];
+        const ttl = Number.isFinite(rec?.maxAgeSec) && rec.maxAgeSec > 0 ? rec.maxAgeSec * 1000 : this._defaultTtl;
+        // 显式失效后旧请求仍可结算原等待者，但不能回填缓存或删除新任务。
+        if (this._pending.get(task.id) === task) {
+          this._pending.delete(task.id);
+          if (rec?.url) {
+            const entry = { url: rec.url, expireAt: now() + ttl };
+            if (this._ns) {
+              try { this._ns.set(task.id, entry, { ttlMs: ttl }); } catch (_) {}
+            } else {
+              this._cache.set(task.id, entry);
+              if (this._cache.size > 2000) this._cache.delete(this._cache.keys().next().value);
+            }
+          }
+        }
+        task.resolve(rec?.url);
       }
     }
-
-    const nowTs = now();
-    ids.forEach(id => {
-      const rec = fetched[id];
-      if (rec && rec.url) {
-        const ttl = (typeof rec.maxAgeSec === 'number' ? rec.maxAgeSec * 1000 : this._defaultTtl);
-        const expireAt = nowTs + Math.max(10_000, ttl);
-        const entry = { url: rec.url, expireAt };
-        this._cache.set(id, entry);
-        if (this._ns) {
-          try { this._ns.set(id, entry, { ttlMs: Math.max(5_000, ttl) }); } catch (_) {}
-        }
-      }
-    });
-
-    waiters.forEach(({ ids, resolve }) => {
-      const out = {};
-      ids.forEach(id => {
-        let entry = this._cache.get(id);
-        if (!entry && this._ns) {
-          const val = this._ns.get(id);
-          if (val && typeof val.url === 'string') { entry = val; this._cache.set(id, entry); }
-        }
-        if (entry && entry.url && entry.expireAt > now()) out[id] = entry.url;
-      });
-      resolve(out);
-    });
   }
 
   async _resolve(ids) {

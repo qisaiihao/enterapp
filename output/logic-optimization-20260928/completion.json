@@ -1,0 +1,16 @@
+{
+  "completedAt": "2026-09-28T15:03:37.597Z",
+  "quality": "passed",
+  "builds": {
+    "app": "passed",
+    "mp-weixin": "passed",
+    "h5": "passed"
+  },
+  "uiTemplateAndStyle": "unchanged",
+  "cloudFunction": "getBatchUserProfiles",
+  "cloudDeployed": true,
+  "cloudLiveVerification": "passed",
+  "clientReleased": false,
+  "deviceVerification": false,
+  "report": "docs/deliverables/project-logic-optimization-2026-09-28.md"
+}

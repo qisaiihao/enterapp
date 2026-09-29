@@ -118,15 +118,15 @@
                         <block v-if="favoriteList.length > 0">
                             <PostItem
                                 v-for="(item, index) in favoriteList"
-                                :key="index"
+                                :key="item.favoriteId || item._id"
                                 :item="item"
                                 :index="index"
                                 :swiper-height="swiperHeights[index]"
-                                :show-menu="false"
+                                :show-menu="true"
                                 :show-poem-author="true"
                                 time-label="收藏于"
                                 time-field="formattedFavoriteTime"
-                                :show-remove-favorite-btn="true"
+                                @show-action-menu="handleFavoriteActionMenu"
                                 @avatar-error="onAvatarError"
                                 @avatar-load="onAvatarLoad"
                                 @navigate-to-user="handleNavigateToUser"
@@ -134,7 +134,6 @@
                                 @image-error="onImageError"
                                 @image-load="onImageLoad"
                                 @tag-click="handleTagClick"
-                                @remove-favorite="handleRemoveFavorite"
                             />
                             <!-- 加载更多提示 -->
                             <view class="loading-footer">
@@ -185,7 +184,7 @@
             :isVisible="isSidebarOpen"
             :userInfo="userInfo"
             :isDarkTheme="isDarkTheme"
-            @close="toggleSidebar"
+            @close="isSidebarOpen = false"
             @avatar-error="onAvatarError"
             @logout-confirm="showLogoutConfirm"
             @toggle-theme="toggleTheme"
@@ -198,6 +197,9 @@
         <AppActionSheet :visible="isLogoutConfirmVisible" title="退出登录" variant="plain"
             :items="[{ text: '退出登录', description: '确定要退出登录吗？', danger: true }]"
             @cancel="isLogoutConfirmVisible = false" @select="confirmLogout" />
+
+        <FavoriteActionMenu :target="favoriteActionTarget" @close="favoriteActionTarget = null"
+            @removed="handleFavoriteRemoved" />
 
         <!-- #ifndef MP-WEIXIN -->
         <app-tab-bar ref="customTabBar" :style="tabBarStyle" />
@@ -283,11 +285,12 @@ import PortfolioBook from '@/components/PortfolioBook.vue';
 import PostItem from '@/components/PostItem.vue';
 import ProfileCard from '@/components/ProfileCard.vue';
 import ActionMenu from '@/components/ActionMenu.vue';
+import FavoriteActionMenu from '@/components/FavoriteActionMenu.vue';
 import AppActionSheet from '@/components/overlay/AppActionSheet.vue';
 import DeleteModal from '@/components/DeleteModal.vue';
 import ShareModal from '@/components/ShareModal.vue';
 import { getMyPosts, getMyFavorites, invalidateMyFavorites, invalidateMyPosts, invalidateMyInfo, getMyInfo } from '@/api-cache/my.js';
-import { togglePostVisibility, deletePost as deletePostApi, saveDraft, getPostDetail, removeFavorite as removeFavoriteApi, getFollowerCount, updateUserInfo, logout } from '@/api-cache/profile-actions.js';
+import { togglePostVisibility, deletePost as deletePostApi, saveDraft, getPostDetail, getFollowerCount, updateUserInfo, logout } from '@/api-cache/profile-actions.js';
 import { getPortfolioFolders, notifyPortfolioUpdated, invalidatePortfolioCache } from '@/api-cache/portfolio.js';
 import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
 import { clearCachedAdminFlag } from '@/utils/admin.js';
@@ -310,7 +313,7 @@ import postGalleryMixin from '@/mixins/postGallery.js';
 import appBackgroundPageMixin from '@/mixins/appBackgroundPage.js';
 import { updateTabBarStatus } from '@/utils/tabBarCompatibility.js';
 import { invalidateMyProfile } from '@/api-cache/profile.js';
-import { emitPostVisibilityChanged, emitFavoriteChanged } from '@/utils/events.js';
+import { emitPostVisibilityChanged } from '@/utils/events.js';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
 import { applyUserInfoWithAppBackground, normalizeAppBackgroundMode } from '@/utils/appBackground.js';
 import { clearUserSession, getAppState, getOpenid, patchAppState } from '@/utils/app-state.js';
@@ -589,6 +592,7 @@ export default {
         PostItem,
         ProfileCard,
         ActionMenu,
+        FavoriteActionMenu,
         DeleteModal,
         ShareModal,
         // #ifndef MP-WEIXIN
@@ -658,6 +662,7 @@ export default {
 
             // 'posts' | 'favorites'
             favoriteList: [],
+            favoriteActionTarget: null,
             favoritePage: 0,
             favoriteHasMore: true,
             favoriteLoading: false,
@@ -875,6 +880,7 @@ export default {
             this.loadFavorites();
         }
     },
+    onHide() { this.isSidebarOpen = false; },
     onUnload: function () {
         this.postsRequestToken += 1;
         this.pendingRefreshToken += 1;
@@ -917,6 +923,17 @@ export default {
                 this._avatarUpdatedHandler = (e = {}) => {
                     const openid = getOpenid();
                     if (e && e.userId === openid) {
+                        this._profileHeaderVersion = (this._profileHeaderVersion || 0) + 1;
+                        // 丢弃保存前已经发起的页面快照，防止旧头像迟到后覆盖新头像。
+                        this.pendingRefreshToken = (this.pendingRefreshToken || 0) + 1;
+                        this.isAtomicRefreshing = false;
+                        if (e.avatarUrl) {
+                            this.setData({ userInfo: {
+                                ...this.userInfo,
+                                avatarUrl: e.avatarUrl,
+                                avatarFileID: e.avatarFileID || ''
+                            } });
+                        }
                         invalidateMyInfo();
                         this.fetchUserProfileFast();
                     }
@@ -1907,8 +1924,11 @@ export default {
 
         // 新增：使用缓存封装的资料拉取，显著降低头像/签名首屏等待
         fetchUserProfileFast: function () {
-            getMyInfo(this)
+            const headerVersion = this._profileHeaderVersion || 0;
+            const userId = getOpenid();
+            return getMyInfo(this)
                 .then((user) => {
+                    if (headerVersion !== (this._profileHeaderVersion || 0) || userId !== getOpenid()) return;
                     console.log('【profile】获取到的用户数据:', user);
                     console.log('【profile】growthCounts数据:', user?.growthCounts);
                     const nextUser = this.normalizeProfileUserInfo(user);
@@ -1919,6 +1939,9 @@ export default {
                     this.updateGrowthStats();
                 })
                 .catch((err) => {
+                    if (headerVersion !== (this._profileHeaderVersion || 0) || userId !== getOpenid()) return;
+                    // 新头像已直接显示时，刷新失败也不能退回旧资料或 cloud:// 图片地址。
+                    if (headerVersion > 0) { this.setData({ isLoading: false }); return; }
                     console.error('获取用户资料失败（缓存封装）:', err);
                     this.setData({ isLoading: false });
                     const storedUserInfo = uni.getStorageSync('userInfo');
@@ -2463,35 +2486,37 @@ export default {
                 }
             });
         },
-        handleClearBackground: function () {
+        handleClearBackground: async function () {
             const hasBackground = !!(this.appBackgroundResolvedUrl || (this.userInfo && this.userInfo.appBackgroundUrl));
             if (!hasBackground) {
                 uni.showToast({ title: '当前没有背景图', icon: 'none' });
                 return;
             }
 
-            uni.showModal({
-                title: '移除背景',
-                content: '确定要移除当前背景图吗？',
-                success: async (res) => {
-                    if (!res.confirm) {
-                        return;
-                    }
-
-                    uni.showLoading({ title: '移除中...' });
-                    try {
-                        await cloudCall('updateUserProfile', { clearAppBackground: true });
-                        invalidateMyInfo();
-                        await this.refreshProfileAtomically({ reason: 'background-cleared', forceRefresh: true });
-                        uni.showToast({ title: '背景已移除', icon: 'success' });
-                    } catch (err) {
-                        console.error('[profile] clear background failed', err);
-                        uni.showToast({ title: '移除失败', icon: 'none' });
-                    } finally {
-                        uni.hideLoading();
-                    }
+            try {
+                const { tapIndex } = await this.showBackgroundActionSheet([
+                    { text: '移除背景', description: '确定要移除当前背景图吗？', danger: true }
+                ]);
+                if (tapIndex !== 0) return;
+            } catch (err) {
+                if (!err || err.errMsg !== 'showActionSheet:fail cancel') {
+                    console.warn('[profile] background confirmation failed', err);
                 }
-            });
+                return;
+            }
+
+            uni.showLoading({ title: '移除中...' });
+            try {
+                await cloudCall('updateUserProfile', { clearAppBackground: true });
+                invalidateMyInfo();
+                await this.refreshProfileAtomically({ reason: 'background-cleared', forceRefresh: true });
+                uni.showToast({ title: '背景已移除', icon: 'success' });
+            } catch (err) {
+                console.error('[profile] clear background failed', err);
+                uni.showToast({ title: '移除失败', icon: 'none' });
+            } finally {
+                uni.hideLoading();
+            }
         },
         goToSeriesCompose: function () {
             uni.navigateTo({ url: '/pages-publish/series-compose/series-compose' });
@@ -2629,47 +2654,6 @@ export default {
             const postId = e.currentTarget.dataset.id;
             uni.navigateTo({
                 url: `/pages/post-detail/post-detail?id=${postId}`
-            });
-        },
-
-        // 新增：取消收藏
-        removeFavorite: function (e) {
-            const favoriteId = e.currentTarget.dataset.favoriteId;
-            const index = e.currentTarget.dataset.index;
-            const that = this;
-            uni.showModal({
-                title: '确认取消收藏',
-                content: '确定要取消收藏这个内容吗？',
-                success: function (res) {
-                    if (res.confirm) {
-                        uni.showLoading({
-                            title: '取消收藏中...'
-                        });
-                        removeFavoriteApi(favoriteId, that).then(() => {
-                            uni.hideLoading();
-                            uni.showToast({
-                                title: '已取消收藏'
-                            });
-                            // 从列表中移除该项
-                            const newList = that.favoriteList.filter((item, i) => i !== index);
-                            that.setData({
-                                favoriteList: newList
-                            });
-                            try {
-                                const userId = getOpenid();
-                                const removed = that.favoriteList[index];
-                                const postId = removed && (removed._id || removed.postId);
-                                emitFavoriteChanged({ userId, postId, favored: false });
-                            } catch (e) {}
-                        }).catch((err) => {
-                            uni.hideLoading();
-                            uni.showToast({
-                                title: '操作失败',
-                                icon: 'none'
-                            });
-                        });
-                    }
-                }
             });
         },
 
@@ -2864,18 +2848,13 @@ export default {
             // });
         },
 
-        // 处理取消收藏
-        handleRemoveFavorite(data) {
-            // 构造兼容原有 removeFavorite 方法的事件对象
-            const fakeEvent = {
-                currentTarget: {
-                    dataset: {
-                        favoriteId: data.favoriteId,
-                        index: data.index
-                    }
-                }
-            };
-            this.removeFavorite(fakeEvent);
+        handleFavoriteActionMenu(data) {
+            const item = this.favoriteList[data.index];
+            if (!item) return;
+            this.favoriteActionTarget = { favoriteId: item.favoriteId, postId: item.postId || item._id };
+        },
+        handleFavoriteRemoved({ favoriteId }) {
+            this.favoriteList = this.favoriteList.filter(item => item.favoriteId !== favoriteId);
         },
 
         // 打开作品集
@@ -3430,8 +3409,6 @@ export default {
     width: 100rpx;
     height: 100rpx;
 }
-
-/* .remove-favorite-btn 已封装到 PostItem 组件 */
 
 .empty-tip {
     text-align: center;

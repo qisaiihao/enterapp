@@ -91,7 +91,6 @@
                 </view>
             </view>
             <view v-else class="empty-tip">
-                <view class="empty-icon">👍</view>
                 <view class="empty-text">你还没有点赞任何帖子哦～</view>
                 <view class="empty-subtext">去首页发现精彩内容吧！</view>
             </view>
@@ -440,12 +439,6 @@ export default {
     justify-content: center;
     padding: 100rpx 40rpx;
     text-align: center;
-}
-
-.empty-icon {
-    font-size: 120rpx;
-    margin-bottom: 30rpx;
-    opacity: 0.6;
 }
 
 .empty-text {

@@ -1,0 +1,61 @@
+/* Shared by dialogs and input sheets. Animate only opacity/transform. */
+.app-motion-root.bind-phone-modal, .app-motion-root.edit-phone-modal {
+  position: fixed; inset: 0; z-index: 9999; display: flex; align-items: flex-end; justify-content: center;
+}
+.app-motion-root.app-motion-enter { animation: app-motion-fade-in 180ms ease-out both; }
+.app-motion-root.app-motion-leave { animation: app-motion-fade-out 120ms ease-in both; }
+.app-motion-center.app-motion-enter .app-motion-panel { animation: app-motion-center-in 180ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.app-motion-center.app-motion-leave .app-motion-panel { animation: app-motion-center-out 120ms ease-in both; }
+.app-motion-sheet.app-motion-enter .app-motion-panel { animation: app-motion-sheet-in 180ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.app-motion-sheet.app-motion-leave .app-motion-panel { animation: app-motion-sheet-out 120ms ease-in both; }
+.app-sidebar-mask { position: fixed; inset: 0; z-index: 1001; background: rgba(0, 0, 0, 0.56); }
+.app-motion-drawer.app-motion-enter .app-motion-panel { animation: app-motion-drawer-in 180ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.app-motion-drawer.app-motion-leave .app-motion-panel { animation: app-motion-drawer-out 120ms ease-in both; }
+.app-motion-popover.app-motion-enter { animation-duration: 150ms; }
+.app-motion-popover.app-motion-enter .app-motion-panel { animation: app-motion-popover-in 150ms ease-out both; }
+.app-motion-popover.app-motion-leave .app-motion-panel { animation: app-motion-popover-out 120ms ease-in both; }
+.app-motion-leave .app-motion-panel { pointer-events: none; }
+@keyframes app-motion-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes app-motion-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes app-motion-center-in { from { transform: scale(0.97); } to { transform: scale(1); } }
+@keyframes app-motion-center-out { from { transform: scale(1); } to { transform: scale(0.98); } }
+@keyframes app-motion-sheet-in { from { transform: translateY(32rpx); } to { transform: translateY(0); } }
+@keyframes app-motion-sheet-out { from { transform: translateY(0); } to { transform: translateY(24rpx); } }
+@keyframes app-motion-drawer-in { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@keyframes app-motion-drawer-out { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+@keyframes app-motion-popover-in { from { transform: translateY(-8rpx); } to { transform: translateY(0); } }
+@keyframes app-motion-popover-out { from { transform: translateY(0); } to { transform: translateY(-6rpx); } }
+.app-vote-pop { animation: app-vote-pop 200ms ease-out; }
+.app-vote-number-pop { animation: app-vote-number-pop 160ms ease-out; }
+@keyframes app-vote-pop { 0% { transform: scale(0.94); } 45% { transform: scale(1.12); } 100% { transform: scale(1); } }
+@keyframes app-vote-number-pop { 0%, 100% { transform: scale(1); } 45% { transform: scale(1.08); } }
+@media (prefers-reduced-motion: reduce) {
+  .app-motion-root.app-motion-enter, .app-motion-root.app-motion-leave,
+  .app-motion-root.app-motion-enter .app-motion-panel, .app-motion-root.app-motion-leave .app-motion-panel { animation-duration: 1ms; }
+  .app-vote-pop, .app-vote-number-pop, .post-detail-page .post-tags { animation: none !important; }
+}
+
+.app-motion-root.tag-selector-mask {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background: rgba(0,0,0,.35);
+    z-index: 130;
+    display: flex;
+    align-items: flex-end;
+    width: 100vw;
+    height: 100vh;
+    box-sizing: border-box;
+}
+
+.app-motion-root.tag-selector-mask--dark {
+    --app-control-accent-bg: #f4f1ea;
+    --app-control-accent-text: #27272c;
+    --app-control-soft-bg: #343439;
+    --app-control-border: #56565c;
+    --app-link-color: #f4f1ea;
+    --app-elevated-bg: #27272c;
+    --app-secondary-text: #c9ced8;
+}

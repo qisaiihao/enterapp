@@ -1,5 +1,5 @@
 <template>
-    <view class="create-discussion-container" @tap="onPageTap">
+    <view class="create-discussion-container" :style="appThemeVars" @tap="onPageTap">
         <!-- 返回按钮 -->
         <view class="back-button" @tap.stop="goBack">
             <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
@@ -695,11 +695,11 @@ export default {
 
 /* 引用帖子区域 */
 .quoted-post {
-    background: #fff;
+    background: var(--app-control-soft-bg, #f5f6f7);
     margin: 180rpx 30rpx 20rpx;
-    border-radius: 16rpx;
+    border-radius: 24rpx;
     padding: 30rpx;
-    border-left: 6rpx solid #9ed7ee;
+    border-left: 4rpx solid var(--app-link-color, #333333);
 }
 
 .quoted-header {

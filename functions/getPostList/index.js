@@ -10,6 +10,9 @@ const db = createPostsDatabase(cloud.database());
 const _ = db.command;
 const $ = _.aggregate;
 
+// 普通帖获得一天的新鲜度加成，不会长期压过更新的诗歌或讨论。
+const HOME_NORMAL_POST_BOOST_MS = 24 * 60 * 60 * 1000;
+
 // 频率限制配置
 const RATE_LIMITS = {
   perMinute: 20,    // 每分钟20次
@@ -140,7 +143,7 @@ exports.main = async (event, context) => {
   const eventOpenid = event.openid;
   const openid = eventOpenid || wxCtxOpenid;
   // 添加 author 参数用于诗人筛选
-  const { skip = 0, limit = 10, isPoem, isOriginal, isDiscussion, tag = '', author = '', excludeAnonymous = false, includeActivity = false, activityId = '' } = event;
+  const { skip = 0, limit = 10, isPoem, isOriginal, isDiscussion, tag = '', author = '', excludeAnonymous = false, includeActivity = false, activityId = '', homeRanking = false } = event;
   const safeActivityId = typeof activityId === 'string' ? activityId.trim() : '';
   const isActivityQuery = includeActivity === true && !!safeActivityId;
 
@@ -322,13 +325,35 @@ exports.main = async (event, context) => {
     // 只有当没有筛选条件时（广场页面），才启用随机混合
     // 有筛选条件时，只返回时间顺序的帖子
     const hasFilter = isPoem !== undefined || isOriginal !== undefined || isDiscussion !== undefined || tag || author || includeActivity === true || !!safeActivityId;
-    const enableRandomMix = !hasFilter;  // 没有筛选条件时启用随机混合
+    const enableHomeRanking = homeRanking === true && !hasFilter;
+    const enableRandomMix = !hasFilter && !enableHomeRanking;
     
     let posts = [];
     let timeOrderedPosts = []; // 在外层声明，便于在日志输出时使用
     let randomPosts = []; // 在外层声明，便于在日志输出时使用
     
-    if (enableRandomMix) {
+    if (enableHomeRanking) {
+      // 在数据库分页之前加权；刷新和翻页保持同一顺序，不再随机打乱。
+      const rankedRes = await query.addFields({
+        homeSortTime: {
+          $add: [
+            { $ifNull: ['$createTime', new Date(0)] },
+            { $cond: [
+              { $and: [
+                { $ne: [{ $ifNull: ['$isPoem', false] }, true] },
+                { $ne: [{ $ifNull: ['$isDiscussion', false] }, true] }
+              ] },
+              HOME_NORMAL_POST_BOOST_MS,
+              0
+            ] }
+          ]
+        }
+      }).sort({ homeSortTime: -1, createTime: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .end();
+      posts = (rankedRes.list || []).map(({ homeSortTime, ...post }) => post);
+    } else if (enableRandomMix) {
       // 广场页面：使用随机混合逻辑（6个时间顺序 + 4个随机）
       const TIME_ORDERED_COUNT = 6;  // 按时间顺序的帖子数量
       const RANDOM_COUNT = 4;        // 随机帖子的数量

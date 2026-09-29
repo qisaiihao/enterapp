@@ -30,7 +30,7 @@
                     <button class="action-btn change-type-btn" @tap="showTypeSelector" :data-index="index">
                         更改类型
                     </button>
-                    <button class="action-btn delete-btn" @tap="confirmDelete" :data-id="post._id" :data-index="index">
+                    <button class="action-btn delete-btn" @tap="confirmDelete" :data-id="post._id">
                         删除
                     </button>
                 </view>
@@ -72,13 +72,17 @@
             </view>
         </view>
     </view>
+    <AppActionSheet :visible="!!deletePostId" title="确认删除" :items="deleteActions"
+        @cancel="hideDeleteConfirm" @select="handleDeleteConfirm" />
     <app-overlay-host />
 </template>
 
 <script>
 import { listAdminPosts, updateAdminPostType, deleteAdminPost } from '../../api-cache/admin-manager.js';
+import AppActionSheet from '@/components/overlay/AppActionSheet.vue';
 
 export default {
+    components: { AppActionSheet },
     data() {
         return {
             posts: [],
@@ -91,6 +95,12 @@ export default {
             loadError: '',
             showTypePicker: false,
             selectedPostIndex: null,
+            deletePostId: '',
+            deleteActions: [{
+                text: '确认删除',
+                description: '确定要删除这篇帖子吗？删除后无法恢复，相关的评论和收藏也会被删除。',
+                danger: true
+            }],
             postTypes: [
                 { label: '普通帖子', value: 'normal' },
                 { label: '原创诗歌', value: 'original' },
@@ -113,6 +123,9 @@ export default {
     onUnload() {
         this.loadRequestId++;
     },
+    onHide() {
+        this.hideDeleteConfirm();
+    },
     methods: {
         selectPostType(type) {
             if (this.activePostType === type) return;
@@ -123,6 +136,7 @@ export default {
             if (this.loading && !reset) return;
             if (reset) {
                 this.hideTypeSelector();
+                this.hideDeleteConfirm();
                 this.posts = [];
                 this.page = 0;
                 this.hasMore = true;
@@ -209,24 +223,21 @@ export default {
         },
         
         confirmDelete(e) {
-            const postId = e.currentTarget.dataset.id;
-            const index = e.currentTarget.dataset.index;
-            
-            uni.showModal({
-                title: '确认删除',
-                content: '确定要删除这篇帖子吗？删除后无法恢复，相关的评论和收藏也会被删除。',
-                confirmText: '确认删除',
-                cancelText: '取消',
-                confirmColor: '#f56c6c',
-                success: (res) => {
-                    if (res.confirm) {
-                        this.deletePost(postId, index);
-                    }
-                }
-            });
+            this.deletePostId = e.currentTarget.dataset.id;
+        },
+
+        hideDeleteConfirm() {
+            this.deletePostId = '';
+        },
+
+        handleDeleteConfirm(index) {
+            if (index !== 0 || !this.deletePostId) return;
+            const postId = this.deletePostId;
+            this.hideDeleteConfirm();
+            return this.deletePost(postId);
         },
         
-        async deletePost(postId, index) {
+        async deletePost(postId) {
             uni.showLoading({ title: '删除中...' });
 
             try {

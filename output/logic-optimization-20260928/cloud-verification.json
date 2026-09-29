@@ -1,0 +1,27 @@
+{
+  "verifiedAt": "2026-09-28T14:58:41.312Z",
+  "envId": "cloud1-5gb0pbyl400845f5",
+  "functionName": "getBatchUserProfiles",
+  "configuration": {
+    "runtime": "Nodejs16.13",
+    "handler": "index.main",
+    "timeout": 3,
+    "memory": 128
+  },
+  "checks": [
+    "unauthenticated rejected",
+    {
+      "mode": "raw",
+      "users": 65,
+      "cloudAvatars": 22,
+      "publicFieldsOnly": true
+    },
+    {
+      "mode": "legacy",
+      "users": 65,
+      "cloudAvatars": 22,
+      "publicFieldsOnly": true
+    },
+    "missing user returns empty; oversized request rejected"
+  ]
+}

@@ -8,7 +8,7 @@
     <view v-if="editing" class="form-card">
       <view class="form-header">
         <text class="form-title">{{ form.noticeId ? '编辑公告' : '新建公告' }}</text>
-        <button class="close-btn" @tap="closeForm">取消</button>
+        <button class="close-btn" @tap="closeForm" :style="cancelActionStyle('取消')">取消</button>
       </view>
 
       <view class="form-item">

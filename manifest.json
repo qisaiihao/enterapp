@@ -2,8 +2,8 @@
     "name" : "poementer",
     "appid" : "__UNI__E0A1A41",
     "description" : "S",
-    "versionName" : "1.7.0",
-    "versionCode" : 170,
+    "versionName" : "1.7.1",
+    "versionCode" : 171,
     "transformPx" : false,
     "app-plus" : {
         "usingComponents" : true,
@@ -25,6 +25,19 @@
             "OAuth" : {}
         },
         "distribute" : {
+            "splashscreen" : {
+                "androidStyle" : "default",
+                "android" : {
+                    "hdpi" : "resources/splash/android-hdpi.png",
+                    "xhdpi" : "resources/splash/android-xhdpi.png",
+                    "xxhdpi" : "resources/splash/android-xxhdpi.png"
+                },
+                "androidNavigationBarColor" : "#ffffff",
+                "iosStyle" : "storyboard",
+                "ios" : {
+                    "storyboard" : "resources/splash/poementer-launch.zip"
+                }
+            },
             "android" : {
                 "packagename" : "com.poementer.app",
                 "schemes" : "poementer",

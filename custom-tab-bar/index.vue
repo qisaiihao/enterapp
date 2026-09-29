@@ -18,6 +18,7 @@
 <script>
 import { lightImpact } from '@/utils/haptics.js';
 import { requireLogin } from '@/utils/authHelper.js';
+import { switchTabSmooth } from '@/utils/appTabTransition.js';
 
 const DARK_TAB_ICON_VERSION = '20260429-toned-white';
 
@@ -176,10 +177,16 @@ export default {
                 return;
             }
 
+            if (this.selected === index) return;
+            const previousIndex = this.selected;
             this.updateSelected(index);
             try { uni.setStorageSync('currentTabIndex', index); } catch (_) {}
             const targetUrl = url.startsWith('/') ? url : `/${url}`;
-            uni.switchTab({ url: targetUrl });
+            const restoreSelected = () => {
+                this.updateSelected(previousIndex);
+                try { uni.setStorageSync('currentTabIndex', previousIndex); } catch (_) {}
+            };
+            if (switchTabSmooth({ url: targetUrl, fail: restoreSelected }) === false) restoreSelected();
         },
         refreshCurrentPage() {
             const currentPage = this.list[this.selected];

@@ -170,8 +170,8 @@ function loadPage(processor, ui, extras = {}) {
     const imports = parse(source, { sourceType: 'module' }).program.body.filter(node => node.type === 'ImportDeclaration');
     for (const node of imports.reverse()) source = source.slice(0, node.start) + source.slice(node.end);
     source = source.replace('export default', 'module.exports =');
-    const sandbox = { module: { exports: {} }, console: { warn() {}, log() {}, error() {} }, getApp: () => ({}), AppActionSheet: {}, AppDialog: {}, processSignatureFile: processor,
-        getCurrentPlatform: () => 'app', STICKER_AVATAR_PATHS: [], uni: ui, ...extras };
+    const sandbox = { module: { exports: {} }, console: { warn() {}, log() {}, error() {} }, getApp: () => ({}), AppMotion: {}, AppActionSheet: {}, AppDialog: {}, processSignatureFile: processor,
+        getCurrentPlatform: () => 'app', getOpenid: () => 'signature-test-user', STICKER_AVATAR_PATHS: [], uni: ui, ...extras };
     vm.runInNewContext(source, sandbox);
     const definition = sandbox.module.exports;
     return Object.assign(definition.data(), definition.methods, { onUnload: definition.onUnload, setData(values) { Object.assign(this, values); } });

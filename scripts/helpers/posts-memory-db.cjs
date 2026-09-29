@@ -17,6 +17,10 @@ function expr(value, row, vars = {}) {
   const [op, args] = Object.entries(value)[0] || [];
   const values = Array.isArray(args) ? args.map(item => expr(item,row,vars)) : [];
   if (op === '$ifNull') return values[0] == null ? values[1] : values[0];
+  if (op === '$add') {
+    const total = values.reduce((sum, item) => sum + Number(item), 0);
+    return values.some(item => item instanceof Date) ? new Date(total) : total;
+  }
   if (op === '$eq') return values[0] === values[1];
   if (op === '$ne') return values[0] !== values[1];
   if (op === '$and') return values.every(Boolean);
@@ -92,7 +96,7 @@ function memoryDb(initial, command) {
         if(op==='match')rows=rows.filter(row=>matches(row,value));
         else if(op==='skip')rows=rows.slice(value);
         else if(op==='limit')rows=rows.slice(0,value);
-        else if(op==='sort')rows.sort((a,b)=>{for(const [key,direction]of Object.entries(value)){if(a[key]!==b[key])return (a[key]>b[key]?1:-1)*direction;}return 0;});
+        else if(op==='sort')rows.sort((a,b)=>{for(const [key,direction]of Object.entries(value)){const left=a[key] instanceof Date?+a[key]:a[key],right=b[key] instanceof Date?+b[key]:b[key];if(left!==right)return (left>right?1:-1)*direction;}return 0;});
         else if(op==='addFields')rows=rows.map(row=>({...row,...Object.fromEntries(Object.entries(value).map(([k,v])=>[k,expr(v,row)]))}));
         else if(op==='project')rows=rows.map(row=>project(row,value));
         else if(op==='count')rows=[{[value]:rows.length}];

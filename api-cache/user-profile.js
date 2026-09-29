@@ -15,7 +15,7 @@ export async function getUserInfo(userId, context) {
     async () => {
       const result = await callCloudAndUnwrap(
         'getUserProfile',
-        { userId, skip: 0, limit: 1 },
+        { userId, onlyProfile: true },
         { pageTag: 'user-profile:info', context, injectOpenId: true },
         '获取用户信息失败'
       );

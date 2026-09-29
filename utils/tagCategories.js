@@ -6,7 +6,6 @@
 export const tagCategories = [
     {
         name: '内容主题',
-        icon: '📝',
         tags: [
             '爱情',
             '亲情',
@@ -44,7 +43,6 @@ export const tagCategories = [
     },
     {
         name: '情感基调',
-        icon: '💭',
         tags: [
             '治愈',
             '温暖',
@@ -74,7 +72,6 @@ export const tagCategories = [
     },
     {
         name: '形式体裁',
-        icon: '📖',
         tags: [
             '古体诗',
             '近体诗',
@@ -102,7 +99,6 @@ export const tagCategories = [
     },
     {
         name: '意象元素',
-        icon: '🌙',
         tags: [
             '月亮',
             '星星',
@@ -146,7 +142,6 @@ export const tagCategories = [
     },
     {
         name: '风格流派',
-        icon: '🎭',
         tags: [
             '唐诗',
             '宋词',
@@ -177,7 +172,6 @@ export const tagCategories = [
     },
     {
         name: '场景用途',
-        icon: '🎯',
         tags: [
             '晚安诗',
             '早安问候',

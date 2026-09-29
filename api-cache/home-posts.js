@@ -1,6 +1,7 @@
 import cacheManager from '@/cache/core/manager.js';
 import { buildCacheKey } from './cache-key-builder.js';
 import { cloudCall } from '@/utils/cloudCall.js';
+import { withTimeout } from '@/utils/asyncTimeout.js';
 
 // 首页广场分页：TTL 90s + SWR 45s
 // 【优化】统一使用 posts:list 命名空间，实现跨页面缓存复用
@@ -10,6 +11,17 @@ const SWR_MS = 45 * 1000;
 
 // 使用统一的 posts:list 命名空间，以便与其他页面共享缓存
 const ns = cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 });
+
+// 全部帖子使用首页加权排序；显式类型/标签筛选仍按时间排序。
+// 排序模式进入缓存键，避免复用其他页面或旧版随机混排的数据。
+function homeQueryParams(params) {
+  const { isPoem, isOriginal, isDiscussion, tag } = params;
+  return { ...params, homeRanking: isPoem === undefined && isOriginal === undefined && isDiscussion === undefined && !tag };
+}
+
+export function peekHomePosts({ page = 0, pageSize = 10, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous } = {}) {
+  return ns.get(buildCacheKey(homeQueryParams({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous })));
+}
 
 /**
  * 获取首页帖子列表（支持筛选条件，复用统一缓存）
@@ -35,10 +47,13 @@ export async function getHomePosts({
   excludeAnonymous,
   context, 
   forceRefresh = false,
-  onBackgroundUpdate
+  onBackgroundUpdate,
+  timeoutMs,
+  silent = false
 } = {}) {
   // 构建统一的缓存键
-  const key = buildCacheKey({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous });
+  const queryParams = homeQueryParams({ isPoem, isOriginal, isDiscussion, tag, excludeAnonymous });
+  const key = buildCacheKey({ page, pageSize, ...queryParams });
 
   if (forceRefresh && page === 0) {
     ns.delete(key);
@@ -47,11 +62,11 @@ export async function getHomePosts({
   return ns.getOrFetch(
     key,
     async () => {
-      const res = await cloudCall(
+      const res = await withTimeout(cloudCall(
         'getPostList',
-        { skip: page * pageSize, limit: pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous },
-        { pageTag: 'home', context }
-      );
+        { skip: page * pageSize, limit: pageSize, ...queryParams },
+        { pageTag: 'home', context, timeoutMs, silent }
+      ), timeoutMs);
       if (res && res.result && res.result.success) {
         return res.result.posts || [];
       }
@@ -75,12 +90,12 @@ export async function getHomePosts({
 export function invalidateHomePosts({ page, pageSize = 10, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous } = {}) {
   if (typeof page === 'number') {
     // 清除特定条件的特定页缓存
-    const key = buildCacheKey({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous });
+    const key = buildCacheKey(homeQueryParams({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous }));
     ns.delete(key);
     console.log(`🔍 [home-posts] 清除缓存 - key: ${key}`);
   } else {
     // 清除所有匹配条件的缓存
-    const prefix = buildCacheKey({ page: 0, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous });
+    const prefix = buildCacheKey(homeQueryParams({ page: 0, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous }));
     const prefixWithoutPage = prefix.replace(/^page:\d+:size:/, '');
     const keys = ns.keys();
     keys.forEach(k => {

@@ -185,11 +185,13 @@ async function testStartupRetryAndComponents() {
     refreshUnreadCount(options) { optionsSeen.push(options); refreshes++; return Promise.resolve(2); },
     subscribe(callback) { callback(2); return () => { unsubscribed++; }; }
   };
-  const app = load('App.vue', { unreadBadge });
+  let cancelledTransitions = 0;
+  const app = load('App.vue', { unreadBadge, cancelTabTransition: () => cancelledTransitions++ });
   app.onShow.call({ runWhenPlusReady() {} });
   app.onHide.call({});
   assert.equal(starts, 1);
   assert.equal(stops, 1);
+  assert.equal(cancelledTransitions, 1, '进入后台同时释放 Tab 过渡画面');
   const component = load('components/top-bar/top-bar.vue', { unreadBadge, DEFAULT_STATUS_BAR_HEIGHT: 44 });
   const instance = { ...component.data(), ...component.methods, getSafeAreaTop() {}, updateCapsuleAvoidance() {} };
   component.mounted.call(instance);

@@ -10,7 +10,6 @@
         <view v-else>
             <!-- 空状态 -->
             <view v-if="postList.length === 0 && !isLoading" class="empty-state">
-                <view class="empty-icon">🏷️</view>
                 <view class="empty-text">还没有 #{{ tag }} 标签的文章</view>
                 <view class="empty-subtext">快去发布相关内容吧！</view>
             </view>
@@ -341,11 +340,6 @@ export default {
     border-radius: 16rpx;
     margin: 30rpx;
     box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
-}
-
-.empty-icon {
-    font-size: 80rpx;
-    margin-bottom: 20rpx;
 }
 
 .empty-text {

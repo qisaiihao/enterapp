@@ -43,7 +43,8 @@
 </template>
 
 <script>
-import { getPoetList, invalidatePoetList } from '@/api-cache/poet.js';
+import { getPoetList, peekPoetList, invalidatePoetList } from '@/api-cache/poet.js';
+import { preparePoetAvatars, forgetPoetAvatar } from '@/utils/poetAvatarPreload.js';
 
 export default {
     name: 'PoetAvatarBar',
@@ -57,7 +58,7 @@ export default {
     },
     data() {
         return {
-            poets: [],
+            poets: preparePoetAvatars(peekPoetList(50) || []),
             isLoading: false,
             scrollLeft: 0,
             defaultAvatar: '/static/images/avatar.png',
@@ -82,12 +83,12 @@ export default {
                     limit: 50,
                     context: this,
                     onBackgroundUpdate: (newPoets) => {
-                        if (Array.isArray(newPoets) && newPoets.length > 0) {
-                            this.poets = newPoets;
+                        if (Array.isArray(newPoets)) {
+                            this.poets = preparePoetAvatars(newPoets);
                         }
                     }
                 });
-                this.poets = poets || [];
+                this.poets = preparePoetAvatars(poets || []);
             } catch (error) {
                 console.error('加载诗人列表失败:', error);
             } finally {
@@ -135,7 +136,10 @@ export default {
 
         // 头像加载错误
         onAvatarError(poet) {
-            poet.avatar = this.defaultAvatar;
+            forgetPoetAvatar(poet.sourceAvatar);
+            // 系统可能清理临时文件，先回退原 URL，再回退默认头像。
+            poet.avatar = poet.sourceAvatar && poet.avatar !== poet.sourceAvatar && poet.avatar !== this.defaultAvatar
+                ? poet.sourceAvatar : this.defaultAvatar;
         }
     }
 };

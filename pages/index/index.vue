@@ -33,7 +33,6 @@
                             :show-poem-author="false"
                             :list-type="homeFeedListType"
                             container-id="post-list-container"
-                            empty-icon="📝"
                             empty-text="还没有帖子哦～"
                             empty-subtext="快来发布第一条帖子吧！"
                             end-text="--- 我是有底线的 ---"
@@ -70,7 +69,6 @@
                             :show-poem-author="false"
                             list-type="following"
                             container-id="following-list-container"
-                            empty-icon="👥"
                             empty-text="关注的人还没有发帖"
                             empty-subtext="去关注更多有趣的人吧！"
                             end-text="--- 没有更多了呢 ---"
@@ -116,7 +114,6 @@
                             :swiper-heights="swiperHeights"
                             list-type="discussion"
                             container-id="discussion-list-container"
-                            empty-icon="💬"
                             empty-text="讨论区暂无内容"
                             empty-subtext="快来发起第一个话题吧！"
                             end-text="--- 没有更多讨论了 ---"
@@ -145,7 +142,7 @@
                     class="home-filter-layer"
                     :style="{ top: (safeAreaTop * 2 + 220) + 'rpx' }"
                 >
-                    <view v-if="showHomeFilterPanel" class="home-filter-mask" @tap="closeHomeFilterPanel"></view>
+
                     <view class="home-filter-container">
                         <view
                             class="home-filter-trigger"
@@ -154,22 +151,25 @@
                         >
                             <image class="home-filter-trigger-icon" src="/static/images/filter.png" mode="aspectFit" />
                         </view>
-                        <view v-if="showHomeFilterPanel" class="home-filter-panel" @tap.stop>
-                            <view
-                                class="home-filter-option"
-                                :class="{ 'home-filter-option--active': !showNormalPostsOnly }"
-                                @tap="setNormalPostsFilter(false)"
-                            >
-                                显示全部
+                        <AppMotion ref="homeFilterMotion" :visible="showHomeFilterPanel" placement="popover" @dismiss="closeHomeFilterPanel">
+                            <view class="home-filter-mask" @tap="$refs.homeFilterMotion.dismiss()"></view>
+                            <view class="home-filter-panel app-motion-panel" @tap.stop>
+                                <view
+                                    class="home-filter-option"
+                                    :class="{ 'home-filter-option--active': !showNormalPostsOnly }"
+                                    @tap="setNormalPostsFilter(false)"
+                                >
+                                    显示全部
+                                </view>
+                                <view
+                                    class="home-filter-option"
+                                    :class="{ 'home-filter-option--active': showNormalPostsOnly }"
+                                    @tap="setNormalPostsFilter(true)"
+                                >
+                                    只看普通帖子
+                                </view>
                             </view>
-                            <view
-                                class="home-filter-option"
-                                :class="{ 'home-filter-option--active': showNormalPostsOnly }"
-                                @tap="setNormalPostsFilter(true)"
-                            >
-                                只看普通帖子
-                            </view>
-                        </view>
+                        </AppMotion>
                     </view>
                 </view>
             </view>
@@ -183,6 +183,7 @@
 </template>
 
 <script>
+import AppMotion from '@/components/overlay/AppMotion.vue';
 // 组件导入
 import skeleton from '@/components/skeleton/skeleton';
 import pageTabs from '@/components/page-tabs/page-tabs';
@@ -196,7 +197,7 @@ import AppTabBar from '@/custom-tab-bar/index.vue';
 // API 缓存导入
 import { getUnreadCount } from '@/api-cache/unread.js';
 import { getContentPoemFeed, invalidateContentPoemFeed } from '@/api-cache/poem-reco.js';
-import { getHomePosts, invalidateHomePosts } from '@/api-cache/home-posts.js';
+import { getHomePosts, peekHomePosts, invalidateHomePosts } from '@/api-cache/home-posts.js';
 import { getFollowingPosts, invalidateFollowingPosts } from '@/api-cache/following.js';
 import { getDiscussionPosts, invalidateDiscussionPosts } from '@/api-cache/discussion.js';
 
@@ -208,11 +209,10 @@ import { syncLikeStatusForPosts, getLatestLikeStatus } from '@/utils/likeStatusS
 import imageOptimizer from '@/utils/imageOptimizer';
 import likeIcon from '@/utils/likeIcon';
 import { togglePostLike } from '@/utils/likeService.js';
-import avatarCache from '@/cache/stores/avatar.js';
 import followCache from '@/cache/stores/follow.js';
 import { previewImage } from '@/utils/imagePreview.js';
 import { normalizePostList } from '@/utils/postNormalizer.js';
-import { processPostList } from '@/utils/postProcessor.js';
+import { processPostList, processPostListSync } from '@/utils/postProcessor.js';
 import { cloudCall } from '@/utils/cloudCall.js';
 import postGalleryMixin from '@/mixins/postGallery.js';
 import cacheManager from '@/cache/core/manager.js';
@@ -227,7 +227,7 @@ const DISCOVER_PAGE_SIZE = 5;
 const MAX_DISCOVER_EXCLUDE_IDS = 200;
 const HOME_NORMAL_POSTS_FILTER_KEY = 'homeShowNormalPostsOnly';
 export default {
-    components: {
+    components: { AppMotion,
         skeleton,
         pageTabs,
         PostItem,
@@ -239,7 +239,7 @@ export default {
     },
     mixins: [postGalleryMixin],
     data() {
-        let showNormalPostsOnly = true;
+        let showNormalPostsOnly = false;
         try {
             const savedFilter = uni.getStorageSync(HOME_NORMAL_POSTS_FILTER_KEY);
             if (typeof savedFilter === 'boolean') {
@@ -441,6 +441,7 @@ export default {
         this.syncLikeStatusFromCache();
 
             },
+    onHide() { this.showHomeFilterPanel = false; },
     onUnload: function () {
         this.releaseGlobalEventBindings();
         if (this.swiperChangeTimer) {
@@ -903,15 +904,21 @@ export default {
                 if (ns.clearInfiniteCache) ns.clearInfiniteCache();
             } catch (_) {}
 
-            this.setData({ isLoading: true, postList: [], page: 0, hasMore: true, homeHasEverLoaded: false });
-            console.log('🔍 [getIndexData] 初始状态设置完成');
-
             // 根据showNormalPostsOnly状态决定筛选参数
             const filterParams = {};
             if (this.showNormalPostsOnly) {
                 // 只看普通帖子：排除诗歌和讨论
                 filterParams.isPoem = false;
                 filterParams.isDiscussion = false;
+            }
+
+            const cached = peekHomePosts({ page: 0, pageSize: PAGE_SIZE, ...filterParams });
+            if (Array.isArray(cached)) {
+                const posts = processPostListSync(cached, { useCachedLikeStatus: true });
+                this.setData({ postList: posts, page: 1, isLoading: false,
+                    hasMore: posts.length === PAGE_SIZE, homeHasEverLoaded: true });
+            } else {
+                this.setData({ isLoading: true, postList: [], page: 0, hasMore: true, homeHasEverLoaded: false });
             }
 
             getHomePosts({
@@ -1192,9 +1199,6 @@ export default {
                 return;
             }
 
-            // 预加载头像
-            avatarCache.preloadAvatarsFromPosts(posts);
-
             // 预加载关注状态
             followCache.preloadFollowStatusFromPosts(posts, currentUserId);
         },
@@ -1433,8 +1437,12 @@ export default {
             });
         },
 
-        setNormalPostsFilter: function (nextMode) {
-            if (this.tapDisabled && this.tapDisabled()) { return; }
+        setNormalPostsFilter: function (nextMode, afterMotion = false) {
+            if (!afterMotion && this.tapDisabled && this.tapDisabled()) { return; }
+            if (this.$refs?.homeFilterMotion?.rendered) {
+                this.$refs.homeFilterMotion.dismiss(() => this.setNormalPostsFilter(nextMode, true));
+                return;
+            }
             const normalizedMode = !!nextMode;
 
             try {
@@ -2480,7 +2488,7 @@ export default {
     right: 0;
     bottom: 0;
     left: 0;
-    z-index: 1055;
+    z-index: 1;
     background: transparent;
 }
 
@@ -2528,6 +2536,8 @@ export default {
 }
 
 .home-filter-panel {
+  z-index: 2;
+  position: relative;
     width: 332rpx;
     margin-top: 12rpx;
     padding: 24rpx;

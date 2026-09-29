@@ -15,6 +15,7 @@
  * @param {boolean} [params.excludeAnonymous] - 是否排除匿名
  * @param {boolean} [params.includeActivity] - 是否查询活动帖子
  * @param {string} [params.activityId] - 活动ID
+ * @param {boolean} [params.homeRanking] - 首页普通帖加权排序
  * @returns {string} 缓存键
  */
 export function buildCacheKey(params) {
@@ -27,7 +28,8 @@ export function buildCacheKey(params) {
     tag,
     excludeAnonymous,
     includeActivity,
-    activityId
+    activityId,
+    homeRanking
   } = params;
   const parts = [];
   
@@ -38,6 +40,7 @@ export function buildCacheKey(params) {
   if (excludeAnonymous) parts.push('exclAnon:true');
   if (includeActivity === true) parts.push('inclAct:true');
   if (activityId) parts.push(`act:${activityId}`);
+  if (homeRanking === true) parts.push('homeRanking:true');
   
   const filterKey = parts.length > 0 ? parts.join(':') : 'all';
   return `page:${page}:size:${pageSize}:${filterKey}`;
@@ -71,6 +74,7 @@ export function parseCacheKey(cacheKey) {
       case 'exclAnon': if (value === 'true') params.excludeAnonymous = true; break;
       case 'inclAct': if (value === 'true') params.includeActivity = true; break;
       case 'act': params.activityId = value; break;
+      case 'homeRanking': if (value === 'true') params.homeRanking = true; break;
     }
   }
   

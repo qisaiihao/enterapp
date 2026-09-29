@@ -1,0 +1,20 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const { createRequire } = require('node:module');
+(async () => {
+  const cli = createRequire(path.join(process.env.APPDATA, 'npm/node_modules/@cloudbase/cli/package.json'));
+  const auth = await cli('./lib/utils/auth.js').authSupevisor.getLoginState();
+  if (!auth || !auth.secretId || !auth.secretKey) throw Error('TCB CLI 未登录');
+  const { envId } = require('../../cloudbaserc.json');
+  const Manager = cli('@cloudbase/manager-node');
+  const manager = new Manager({ envId, secretId: auth.secretId, secretKey: auth.secretKey, token: auth.token });
+  const detail = await manager.functions.getFunctionDetail('getPostList');
+  const metadata = { name: 'getPostList', runtime: detail.Runtime, status: detail.Status, handler: detail.Handler, timeout: detail.Timeout, memory: detail.MemorySize };
+  fs.writeFileSync(path.join(__dirname, 'configuration.json'), JSON.stringify(metadata, null, 2));
+  console.log(JSON.stringify(metadata));
+  const before = path.join(__dirname, 'cloud-before');
+  if (fs.existsSync(before)) throw Error('备份已存在，停止以防覆盖');
+  fs.mkdirSync(before);
+  await manager.functions.downloadFunctionCode({ functionName: 'getPostList', envId, destPath: before });
+  console.log('Cloud source backed up locally.');
+})().catch(error => { console.error(error.code || error.name, error.message); process.exitCode = 1; });

@@ -62,7 +62,7 @@ export default {
     position: relative;
     width: 200rpx;
     height: 200rpx;
-    border-radius: 12rpx;
+    border-radius: 24rpx;
     overflow: hidden;
     flex-shrink: 0;
 }
@@ -104,8 +104,9 @@ export default {
 }
 
 .add-image-btn:active {
+    box-shadow: var(--app-control-focus-ring, 0 0 0 4rpx rgba(0,0,0,0.08));
     background: var(--app-subtle-surface-bg, #f5f5f5);
-    border-color: var(--app-link-color, #9ed7ee);
+    border-color: var(--app-link-color, #333333);
 }
 
 .add-icon {
@@ -125,7 +126,7 @@ export default {
 
 .image-section--dark .add-image-btn:active {
     background: rgba(255, 255, 255, 0.08);
-    border-color: #d8bf82;
+    border-color: var(--app-link-color, #333333);
 }
 
 .image-section--dark .add-icon {

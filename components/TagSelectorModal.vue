@@ -1,7 +1,7 @@
 <template>
     <!-- 标签选择器弹窗 -->
-    <view v-if="show" class="tag-selector-mask" :class="{ 'tag-selector-mask--dark': isDark }" @tap="$emit('close')">
-        <view class="tag-selector" @tap.stop>
+    <AppMotion :visible="show" ref="tagMotion" placement="sheet" @dismiss="$emit('close')" mask-class="tag-selector-mask" :mask-dark="isDark" close-on-mask>
+        <view class="tag-selector app-motion-panel" @tap.stop>
             <!-- 已选标签显示区域 -->
             <view v-if="selectedTags.length > 0" class="selected-tags-section">
                 <view class="selected-tags-title">已选标签：</view>
@@ -28,7 +28,6 @@
                             v-for="(item, index) in tagCategories"
                             :key="index"
                         >
-                            <text class="category-icon">{{ item.icon }}</text>
                             <text class="category-name">{{ item.name }}</text>
                         </view>
                     </view>
@@ -74,11 +73,13 @@
                 </view>
             </view>
         </view>
-    </view>
+    </AppMotion>
 </template>
 
 <script>
+import AppMotion from '@/components/overlay/AppMotion.vue';
 export default {
+    components: { AppMotion },
     name: 'TagSelectorModal',
     emits: ['close', 'update'],
     props: {
@@ -234,20 +235,7 @@ export default {
 
 <style scoped>
 /* 标签选择弹层 */
-.tag-selector-mask {
-    position: fixed;
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    background: rgba(0,0,0,.35);
-    z-index: 130;
-    display: flex;
-    align-items: flex-end;
-    width: 100vw;
-    height: 100vh;
-    box-sizing: border-box;
-}
+
 
 .tag-selector {
     width: 100%;
@@ -259,7 +247,7 @@ export default {
     max-height: 85vh;
     display: flex;
     flex-direction: column;
-    animation: slideUp 0.3s ease;
+
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     box-sizing: border-box;
@@ -288,18 +276,22 @@ export default {
 .selected-tag {
     display: flex;
     align-items: center;
-    background: #9ed7ee;
-    color: white;
-    padding: 6rpx 12rpx;
-    border-radius: 16rpx;
+    background: var(--app-control-accent-bg, #333333);
+    color: var(--app-control-accent-text, #ffffff);
+    padding: 10rpx 18rpx;
+    border-radius: 44rpx;
     font-size: 22rpx;
     position: relative;
     transition: all 0.3s ease;
+    font-weight: 500;
+    box-shadow: none;
+    border-color: var(--app-control-accent-bg, #333333);
 }
 
 .selected-tag:active {
-    background: #7bc4d4;
-    transform: scale(0.95);
+    background: var(--app-control-accent-bg, #333333);
+    transform: none;
+    opacity: 0.65;
 }
 
 .remove-icon {
@@ -334,21 +326,21 @@ export default {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 15rpx 12rpx;
-    border-radius: 12rpx;
-    background: var(--app-subtle-surface-bg, #f5f5f5);
+    padding: 16rpx 20rpx;
+    border-radius: 24rpx;
+    background: var(--app-control-soft-bg, #f5f6f7);
     transition: all 0.3s ease;
     flex-shrink: 0;
+    color: var(--app-link-color, #333333);
 }
 
 .category-item.active {
-    background: #9ed7ee;
-    color: white;
-}
-
-.category-icon {
-    font-size: 24rpx;
-    margin-bottom: 5rpx;
+    background: var(--app-control-accent-bg, #333333);
+    color: var(--app-control-accent-text, #ffffff);
+    border-radius: 24rpx;
+    font-weight: 500;
+    box-shadow: none;
+    border-color: var(--app-control-accent-bg, #333333);
 }
 
 .category-name {
@@ -371,19 +363,22 @@ export default {
 }
 
 .preset-tag {
-    padding: 8rpx 16rpx;
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 20rpx;
+    padding: 12rpx 20rpx;
+    background: var(--app-control-soft-bg, #f5f6f7);
+    border: 1rpx solid var(--app-control-border, #dddddd);
+    border-radius: 32rpx;
     font-size: 24rpx;
-    color: var(--app-secondary-text, #666);
+    color: var(--app-link-color, #333333);
     transition: all 0.3s ease;
 }
 
 .preset-tag.selected {
-    background: #9ed7ee;
-    color: white;
-    border-color: #9ed7ee;
+    background: var(--app-control-accent-bg, #333333);
+    color: var(--app-control-accent-text, #ffffff);
+    border-color: var(--app-control-accent-bg, #333333);
+    border-radius: 44rpx;
+    font-weight: 500;
+    box-shadow: none;
 }
 
 .custom-tag-input {
@@ -394,22 +389,29 @@ export default {
 
 .custom-tag-input input {
     flex: 1;
-    height: 60rpx;
-    border: 1px solid #ddd;
-    border-radius: 8rpx;
+    height: 72rpx;
+    border: none;
+    border-radius: 16rpx;
     padding: 0 15rpx;
     font-size: 26rpx;
+    background: var(--app-control-soft-bg, #f5f6f7);
+    color: var(--app-link-color, #333333);
+    min-width: 0;
 }
 
 .custom-tag-input button {
-    background: #9ed7ee;
-    color: white;
+    background: var(--app-control-accent-bg, #333333);
+    color: var(--app-control-accent-text, #ffffff);
     border: none;
-    border-radius: 8rpx;
-    padding: 0 20rpx;
-    height: 60rpx;
+    border-radius: 44rpx;
+    padding: 0 28rpx;
+    height: 72rpx;
     font-size: 24rpx;
     flex-shrink: 0;
+    font-weight: 500;
+    box-shadow: none;
+    border-color: var(--app-control-accent-bg, #333333);
+    line-height: 72rpx;
 }
 
 /* 匹配标签推荐样式 */
@@ -418,7 +420,7 @@ export default {
     padding: 15rpx;
     background: var(--app-subtle-surface-bg, #f8f9fa);
     border-radius: 8rpx;
-    border: 1px solid #e9ecef;
+    border: 1rpx solid var(--app-control-border, #dddddd);
 }
 
 .matched-tags-title {
@@ -437,76 +439,24 @@ export default {
 }
 
 .matched-tag {
-    background: #e3f2fd;
-    color: #1976d2;
-    padding: 6rpx 12rpx;
-    border-radius: 12rpx;
+    background: var(--app-control-soft-bg, #f5f6f7);
+    color: var(--app-link-color, #333333);
+    padding: 10rpx 18rpx;
+    border-radius: 32rpx;
     font-size: 22rpx;
-    border: 1px solid #bbdefb;
+    border: 1rpx solid var(--app-control-border, #dddddd);
     transition: all 0.2s ease;
 }
 
 .matched-tag:active {
-    background: #bbdefb;
-    transform: scale(0.95);
+    background: var(--app-control-soft-bg, #f5f6f7);
+    transform: none;
+    opacity: 0.65;
 }
 
-.tag-selector-mask--dark .tag-selector {
-    background: rgba(24, 28, 36, 0.96);
-    border-top: 1rpx solid rgba(255, 255, 255, 0.12);
-}
 
-.tag-selector-mask--dark .selected-tags-section,
-.tag-selector-mask--dark .category-selector {
-    border-bottom-color: rgba(255, 255, 255, 0.12);
-}
+.category-item:active, .preset-tag:active, .custom-tag-input button:active { opacity: 0.65; }
+.custom-tag-input button::after { border: none; }
+.category-name { color: inherit; }
 
-.tag-selector-mask--dark .selected-tags-title,
-.tag-selector-mask--dark .matched-tags-title {
-    color: #c9ced8;
-}
-
-.tag-selector-mask--dark .category-item,
-.tag-selector-mask--dark .matched-tags {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.12);
-}
-
-.tag-selector-mask--dark .category-item.active,
-.tag-selector-mask--dark .selected-tag,
-.tag-selector-mask--dark .preset-tag.selected,
-.tag-selector-mask--dark .custom-tag-input button {
-    background: #c9ad73;
-    border-color: #c9ad73;
-    color: #111318;
-}
-
-.tag-selector-mask--dark .category-name,
-.tag-selector-mask--dark .preset-tag {
-    color: #f4f1ea;
-}
-
-.tag-selector-mask--dark .preset-tag,
-.tag-selector-mask--dark .custom-tag-input input {
-    background: #20252d;
-    border-color: rgba(255, 255, 255, 0.12);
-    color: #d9dde6;
-}
-
-.tag-selector-mask--dark .matched-tag {
-    background: rgba(201, 173, 115, 0.18);
-    border-color: rgba(201, 173, 115, 0.42);
-    color: #e6d6ad;
-}
-
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(100%);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
 </style>

@@ -13,7 +13,15 @@ function literal(value) {
   }
   if (Array.isArray(value)) return value.map(literal);
   if (!plain(value) || value._internalType) return value;
-  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, literal(item)]));
+  // 部分已部署函数仍使用旧 Node 运行时，没有 Object.fromEntries。
+  // defineProperty 与 fromEntries 一样创建自有字段，避免 __proto__ 触发 setter。
+  const result = {};
+  for (const key of Object.keys(value)) {
+    Object.defineProperty(result, key, {
+      value: literal(value[key]), enumerable: true, writable: true, configurable: true
+    });
+  }
+  return result;
 }
 
 function booleanMatches(condition, value) {

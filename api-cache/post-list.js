@@ -1,6 +1,7 @@
 import cacheManager from '@/cache/core/manager.js';
 import { buildCacheKey } from './cache-key-builder.js';
 import { callCloudAndUnwrap } from './_shared/cloud-wrapper.js';
+import { withTimeout } from '@/utils/asyncTimeout.js';
 
 // 通用帖子列表缓存：TTL 90s + SWR 45s
 const TTL_MS = 90 * 1000;
@@ -35,19 +36,21 @@ export async function getPostList({
   author,
   context,
   forceRefresh = false,
-  onBackgroundUpdate
+  onBackgroundUpdate,
+  timeoutMs,
+  silent = false
 } = {}) {
   const authorSuffix = author ? `:author:${author}` : '';
   const key = buildCacheKey({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous }) + authorSuffix;
   const cacheKey = forceRefresh && page === 0 ? `${key}:ts:${Date.now()}` : key;
 
   const fetchPosts = async () => {
-    const result = await callCloudAndUnwrap(
+    const result = await withTimeout(callCloudAndUnwrap(
       'getPostList',
       buildCloudParams({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous, author }),
-      { pageTag: 'post-list', context },
+      { pageTag: 'post-list', context, timeoutMs, silent },
       '加载帖子失败'
-    );
+    ), timeoutMs);
     return result.posts || [];
   };
 

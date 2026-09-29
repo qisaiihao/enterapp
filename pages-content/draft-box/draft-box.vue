@@ -40,7 +40,6 @@
 
         <!-- 空状态 -->
         <view v-else class="empty-container">
-            <view class="empty-icon">📝</view>
             <view class="empty-text">草稿箱是空的</view>
             <view class="empty-subtext">去发布一些内容吧</view>
             <button class="create-btn" @tap="goToPublish">开始创作</button>
@@ -490,12 +489,6 @@ export default {
     text-align: center;
 }
 
-.empty-icon {
-    font-size: 120rpx;
-    margin-bottom: 30rpx;
-    opacity: 0.6;
-}
-
 .empty-text {
     font-size: 32rpx;
     color: var(--app-secondary-text, #666);
@@ -509,17 +502,22 @@ export default {
 }
 
 .create-btn {
-    background: #9ed7ee;
-    color: white;
+    background: var(--app-control-accent-bg, #333333);
+    color: var(--app-control-accent-text, #ffffff);
     border: none;
-    border-radius: 50rpx;
+    border-radius: 44rpx;
     padding: 20rpx 40rpx;
     font-size: 28rpx;
     transition: all 0.2s ease;
+    font-weight: 500;
+    box-shadow: none;
+    min-height: 88rpx;
+    box-sizing: border-box;
 }
 
 .create-btn:active {
     background: #06ad56;
     transform: scale(0.95);
 }
+.create-btn:active { opacity: 0.65; }
 </style>

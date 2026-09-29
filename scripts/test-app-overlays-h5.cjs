@@ -68,6 +68,30 @@ async function main() {
     await page.click('.app-dialog-button');
     await page.waitForSelector('.app-dialog', { hidden: true });
 
+    for (const mode of ['light', 'dark']) {
+      const color = mode === 'dark' ? 'rgb(240, 138, 138)' : 'rgb(196, 61, 61)';
+      await page.evaluate(mode => {
+        uni.setStorageSync('poementerThemeMode', mode); uni.$emit('theme:changed', { mode });
+        uni.showModal({ title: '关注操作', confirmText: '取消关注', cancelText: '取消', success() {} });
+      }, mode);
+      await page.waitForSelector('.app-dialog');
+      assert.equal(await page.$eval('.app-dialog-button:first-child', el => getComputedStyle(el).color), mode === 'dark' ? 'rgb(201, 206, 216)' : 'rgb(102, 102, 102)');
+      assert.equal(await page.$eval('.app-dialog-button:last-child', el => getComputedStyle(el).color), mode === 'dark' ? 'rgb(165, 43, 43)' : 'rgb(255, 180, 180)');
+      await page.click('.app-dialog-button:first-child');
+      await page.waitForSelector('.app-dialog', { hidden: true });
+      await page.evaluate(() => uni.showActionSheet({ itemList: ['取消收藏', '取消隐藏', '放入收藏夹'], fail() {} }));
+      await page.waitForSelector('.app-sheet');
+      await page.$eval('.app-sheet-mask', el => Promise.all(el.getAnimations({ subtree: true }).map(animation => animation.finished)));
+      assert.deepEqual(await page.$$eval('.app-sheet-item', els => els.map(el => getComputedStyle(el).color)), [color, color, mode === 'dark' ? 'rgb(214, 214, 216)' : 'rgb(38, 38, 38)']);
+      await page.click('.app-sheet-cancel');
+      await page.waitForSelector('.app-sheet', { hidden: true });
+      await page.evaluate(() => uni.showModal({ title: '可稍后操作', cancelText: '跳过', success() {} }));
+      await page.waitForSelector('.app-dialog');
+      assert.notEqual(await page.$eval('.app-dialog-button:first-child', el => getComputedStyle(el).color), color);
+      await page.click('.app-dialog-button:first-child');
+      await page.waitForSelector('.app-dialog', { hidden: true });
+    }
+
     await page.evaluate(() => uni.showModal({
       title: '即将离开页面',
       fail: result => window.__overlayResults.push(result)

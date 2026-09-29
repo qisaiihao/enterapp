@@ -1,0 +1,37 @@
+{
+  "verifiedAt": "2026-09-29T03:38:49.595Z",
+  "runtime": "Nodejs10.15",
+  "checks": [
+    {
+      "params": {
+        "isPoem": true,
+        "isOriginal": true
+      },
+      "success": true,
+      "count": 3
+    },
+    {
+      "params": {
+        "homeRanking": true
+      },
+      "success": true,
+      "count": 3
+    },
+    {
+      "params": {
+        "homeRanking": true,
+        "skip": 3
+      },
+      "success": true,
+      "count": 3
+    },
+    {
+      "params": {
+        "isPoem": false,
+        "isDiscussion": false
+      },
+      "success": true,
+      "count": 3
+    }
+  ]
+}

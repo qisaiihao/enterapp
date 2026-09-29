@@ -14,8 +14,7 @@ const IGNORE_DIRS = new Set([
   '.hbuilderx',
   '.kiro',
   '.claude',
-  '.vscode',
-  'cache'
+  '.vscode'
 ]);
 
 const TARGET_DIRS = [
@@ -27,6 +26,7 @@ const TARGET_DIRS = [
   'components',
   'utils',
   'api-cache',
+  'cache',
   'functions',
   'scripts'
 ];

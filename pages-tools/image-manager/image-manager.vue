@@ -1,6 +1,6 @@
 <template>
     <!-- 图片上传管理页面 -->
-    <view class="container">
+    <view class="container" :style="appThemeVars">
         <view class="header">
             <text class="title">图片管理</text>
             <text class="subtitle">上传和管理小程序图片</text>
@@ -11,7 +11,7 @@
             <view class="section-title">开屏图管理</view>
             <view class="upload-area" @tap="chooseSplashImage">
                 <view class="upload-content">
-                    <text class="upload-icon">📷</text>
+                    <image class="upload-icon" src="/static/images/newicons/image.png" mode="aspectFit" alt="选择开屏图" />
                     <text class="upload-text">点击选择开屏图</text>
                     <text class="upload-hint">建议选择 750x1334 或类似比例的图片</text>
                 </view>
@@ -24,7 +24,7 @@
                     <button class="btn btn-primary" @tap="uploadSplashImage" :loading="uploading">
                         {{ uploading ? '上传中...' : '确认上传' }}
                     </button>
-                    <button class="btn btn-secondary" @tap="clearSplashPreview">取消</button>
+                    <button class="btn btn-secondary" @tap="clearSplashPreview" :style="cancelActionStyle('取消')">取消</button>
                 </view>
             </view>
         </view>
@@ -319,9 +319,10 @@ export default {
 }
 
 .upload-icon {
-    font-size: 64rpx;
+    width: 64rpx;
+    height: 64rpx;
     margin-bottom: 20rpx;
-    color: #999;
+    opacity: 0.6;
 }
 
 .upload-text {
@@ -365,20 +366,26 @@ export default {
 
 .btn {
     padding: 20rpx 40rpx;
-    border-radius: 8rpx;
+    border-radius: 44rpx;
     font-size: 28rpx;
     border: none;
     min-width: 160rpx;
+    min-height: 88rpx;
 }
 
 .btn-primary {
-    background-color: #9ed7ee;
-    color: white;
+    color: var(--app-control-accent-text, #ffffff);
+    background: var(--app-control-accent-bg, #333333);
+    border-radius: 44rpx;
+    font-weight: 500;
+    box-shadow: none;
+    min-height: 88rpx;
+    box-sizing: border-box;
 }
 
 .btn-secondary {
-    background-color: #f0f0f0;
-    color: #333;
+    background-color: var(--app-control-soft-bg, #f5f6f7);
+    color: var(--app-link-color, #333333);
 }
 
 .history-list {
@@ -466,4 +473,5 @@ export default {
     display: block;
     line-height: 1.5;
 }
+.btn-primary:active { opacity: 0.65; }
 </style>

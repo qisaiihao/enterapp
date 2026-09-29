@@ -18,6 +18,7 @@
           <button
             class="action-btn"
             :class="item._resolvedActionClass"
+            :style="cancelActionStyle(item._resolvedActionText)"
             size="mini"
             @tap.stop.prevent="onActionTap(index)"
             :loading="pendingOpenid === item._openid"

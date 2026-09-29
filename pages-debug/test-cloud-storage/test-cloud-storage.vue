@@ -57,8 +57,8 @@ export default {
     
     async checkFile(filename) {
       const url = `https://636c-cloud1-5gb0pbyl400845f5-1378788263.tcb.qcloud.la/fonts/${filename}`;
-      this.addLog(`📁 检查文件: ${filename}`);
-      this.addLog(`🔗 URL: ${url}`);
+      this.addLog(`检查文件: ${filename}`);
+      this.addLog(`URL: ${url}`);
       
       try {
         // 使用 HEAD 请求获取文件信息
@@ -77,23 +77,23 @@ export default {
           const sizeKB = (parseInt(contentLength) / 1024).toFixed(2);
           const sizeMB = (parseInt(contentLength) / 1024 / 1024).toFixed(2);
           
-          this.addLog(`✅ 文件存在`);
+          this.addLog(`文件存在`);
           this.addLog(`   大小: ${contentLength} 字节 (${sizeKB} KB / ${sizeMB} MB)`);
           this.addLog(`   类型: ${contentType}`);
           
           // 判断文件大小是否合理
           if (sizeMB > 5) {
-            this.addLog(`   ⚠️ 文件较大，可能导致加载超时`);
+            this.addLog(`   文件较大，可能导致加载超时`);
           } else if (sizeMB < 0.1) {
-            this.addLog(`   ✅ 文件大小合理`);
+            this.addLog(`   文件大小合理`);
           }
           
         } else {
-          this.addLog(`⚠️ 状态码: ${res.statusCode}`);
+          this.addLog(`状态码: ${res.statusCode}`);
         }
         
       } catch (error) {
-        this.addLog(`❌ 文件不存在或无法访问`);
+        this.addLog(`文件不存在或无法访问`);
         this.addLog(`   错误: ${error.errMsg || error.message}`);
       }
     }

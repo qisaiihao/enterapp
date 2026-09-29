@@ -1,5 +1,5 @@
 <template>
-  <view class="collage-upload" :style="mpNavStyle">
+  <view class="collage-upload" :style="[appThemeVars, mpNavStyle]">
     <!-- 自定义返回按钮 -->
     <view class="custom-back-btn" @tap="goBack">
       <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
@@ -27,7 +27,7 @@
         
         <!-- 上传按钮区域 -->
         <view class="upload-area" v-else @tap="chooseImage">
-          <view class="upload-icon">📷</view>
+          <image class="upload-icon" src="/static/images/newicons/image.png" mode="aspectFit" alt="选择图片" />
           <text class="upload-text">点击选择图片</text>
           <text class="upload-hint">支持 JPG、PNG 格式，建议小于5MB</text>
         </view>
@@ -684,7 +684,7 @@ export default {
 .collage-upload {
   width: 100vw;
   height: 100vh;
-  background-color: #ffffff;
+  background: var(--app-page-bg, #ffffff);
   position: relative;
 }
 
@@ -726,7 +726,7 @@ export default {
 }
 
 .container {
-  background-color: #ffffff;
+  background: var(--app-page-bg, #ffffff);
   min-height: 100vh;
   padding: 140rpx 20rpx 40rpx 20rpx;
   display: flex;
@@ -776,7 +776,7 @@ export default {
   display: flex;
   justify-content: center;
   padding: 20rpx;
-  background-color: #ffffff;
+  background: var(--app-page-bg, #ffffff);
 }
 
 .action-btn {
@@ -811,30 +811,34 @@ export default {
 .upload-area {
   width: 100%;
   height: 400rpx;
-  border: 2rpx dashed #cccccc;
-  border-radius: 16rpx;
+  border: 2rpx dashed var(--app-control-border, #dddddd);
+  border-radius: 32rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: #fafafa;
+  background-color: var(--app-control-soft-bg, #f5f6f7);
   margin-bottom: 40rpx;
   transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
 .upload-area:active {
-  border-color: #9ed7ee;
-  background-color: #f0f9ff;
+  border-color: var(--app-link-color, #333333);
+  background-color: var(--app-control-soft-bg, #f5f6f7);
+  box-shadow: var(--app-control-focus-ring, 0 0 0 4rpx rgba(0, 0, 0, 0.08));
 }
 
 .upload-icon {
-  font-size: 80rpx;
+  width: 64rpx;
+  height: 64rpx;
   margin-bottom: 20rpx;
+  filter: var(--app-add-action-icon-filter, none);
 }
 
 .upload-text {
   font-size: 32rpx;
-  color: #333333;
+  color: var(--app-link-color, #333333);
   margin-bottom: 10rpx;
 }
 
@@ -866,7 +870,8 @@ export default {
 
 .submit-btn:active {
   transform: scale(0.98);
-  box-shadow: 0 2rpx 10rpx rgba(158, 215, 238, 0.3);
+  box-shadow: none;
+  opacity: 0.65;
 }
 
 .submit-btn.disabled {

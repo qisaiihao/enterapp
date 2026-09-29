@@ -1,0 +1,74 @@
+[
+  {
+    "cloudDelayMs": 0,
+    "manual": false,
+    "firstSquare": {
+      "elapsedMs": 2081,
+      "cards": 10,
+      "skeleton": false
+    },
+    "leaving": {
+      "reason": "ready",
+      "elapsedMs": 1511,
+      "contentReady": true
+    },
+    "buttonSeen": false,
+    "typingDoneMs": 1502,
+    "listCalls": 1,
+    "loading": false
+  },
+  {
+    "cloudDelayMs": 3000,
+    "manual": false,
+    "firstSquare": {
+      "elapsedMs": 3365,
+      "cards": 10,
+      "skeleton": false
+    },
+    "leaving": {
+      "reason": "ready",
+      "elapsedMs": 3015,
+      "contentReady": true
+    },
+    "buttonSeen": true,
+    "typingDoneMs": 1507,
+    "listCalls": 1,
+    "loading": false
+  },
+  {
+    "cloudDelayMs": 15000,
+    "manual": false,
+    "firstSquare": {
+      "elapsedMs": 6143,
+      "cards": 0,
+      "skeleton": false
+    },
+    "leaving": {
+      "reason": "timeout",
+      "elapsedMs": 5805,
+      "contentReady": false
+    },
+    "buttonSeen": true,
+    "typingDoneMs": 1511,
+    "listCalls": 2,
+    "loading": true
+  },
+  {
+    "cloudDelayMs": 15000,
+    "manual": true,
+    "firstSquare": {
+      "elapsedMs": 1780,
+      "cards": 0,
+      "skeleton": false
+    },
+    "leaving": {
+      "reason": "manual",
+      "elapsedMs": 1641,
+      "contentReady": false
+    },
+    "buttonSeen": true,
+    "typingDoneMs": 1501,
+    "listCalls": 1,
+    "loading": true
+  }
+]

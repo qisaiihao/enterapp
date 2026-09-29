@@ -1,6 +1,6 @@
 <template>
   <view>
-    <AppDialog v-if="request && request.kind === 'dialog'" :key="requestId" :visible="true"
+    <AppDialog v-if="request && request.kind === 'dialog'" :key="requestId" :visible="true" defer-answer
       :title="request.options.title || ''" :message="request.options.content || ''"
       :confirm-text="request.options.confirmText || '确定'" :cancel-text="request.options.cancelText || '取消'"
       :show-cancel="request.options.showCancel !== false" :danger="isDanger(request.options.confirmText) || isDanger(request.options.title)"
@@ -16,6 +16,7 @@ import AppDialog from '@/components/overlay/AppDialog.vue';
 import AppActionSheet from '@/components/overlay/AppActionSheet.vue';
 import { registerOverlayHost, resolveOverlayOwner, answerOverlay, isDangerousOverlayAction } from '@/utils/appOverlay.js';
 export default {
+  name: 'AppOverlayHost',
   components: { AppDialog, AppActionSheet },
   data() { return { request: null, requestId: 0 }; },
   computed: {

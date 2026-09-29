@@ -9,6 +9,7 @@
 
         <view class="profile-avatar-large">
             <image
+                :key="avatarSrc"
                 :src="avatarSrc"
                 mode="aspectFill"
                 :alt="displayName + '头像'"

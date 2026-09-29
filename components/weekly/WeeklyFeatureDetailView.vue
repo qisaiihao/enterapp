@@ -106,7 +106,7 @@
         <view v-if="replyToComment" class="weekly-composer-reply-prompt">
           <text class="weekly-composer-reply-prompt-text">回复 {{ replyToAuthor }}：</text>
           <view class="weekly-composer-cancel-reply" @tap="cancelReply">
-            <text class="weekly-composer-cancel-text">取消</text>
+            <text class="weekly-composer-cancel-text" :style="cancelActionStyle('取消')">取消</text>
           </view>
         </view>
 
@@ -1623,7 +1623,7 @@ export default {
 
 .weekly-composer-cancel-text {
   font-size: 26rpx;
-  color: #9ed7ee;
+  color: var(--app-link-color, #333333);
 }
 
 .weekly-composer-textarea {

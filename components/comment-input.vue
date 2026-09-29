@@ -4,7 +4,7 @@
       <view v-if="replyToComment" class="reply-prompt">
         <text class="reply-prompt-text">回复 {{ replyToAuthor }}：</text>
         <view class="cancel-reply" @tap="$emit('cancel-reply')">
-          <text class="cancel-text">取消</text>
+          <text class="cancel-text" :style="cancelActionStyle('取消')">取消</text>
         </view>
       </view>
       <textarea

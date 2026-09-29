@@ -1,6 +1,7 @@
 <script>
 // #ifdef APP-PLUS
 import { checkAndUpdate } from '@/utils/appUpdate.js';
+import { cancelTabTransition } from '@/utils/appTabTransition.js';
 // #endif
 import {
     getAppState,
@@ -86,6 +87,9 @@ export default {
     },
 
     onHide() {
+        // #ifdef APP-PLUS
+        cancelTabTransition();
+        // #endif
         unreadBadge.stopPolling();
     },
 
@@ -354,6 +358,7 @@ export default {
 </script>
 
 <style>
+@import './styles/overlay-motion.css';
 page,
 body,
 #app,

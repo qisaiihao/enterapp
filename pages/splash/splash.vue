@@ -1,5 +1,5 @@
 <template>
-    <view class="container">
+    <view class="container" :style="{ opacity: fadeOut ? 0 : 1, transition: 'opacity 0.2s ease' }">
         <!-- 阶段一：打字机动画 -->
         <view v-if="currentPhase === 'typing'" class="typing-phase-container">
             <!-- 文字层：固定高度，预留光标空间 -->
@@ -16,857 +16,129 @@
             </view>
 
             <!-- 按钮层：独立定位，不影响文字 -->
-            <!--
             <view v-if="showEnterButton" :class="'enter-key-container ' + (preloadCompleted ? '' : 'loading')" @tap="handleEnterButtonClick">
-                <view class=\"enter-key-l-shape\">
-    <view class=\"ek-layer ek-border\"></view>
-    <view class=\"ek-layer ek-fill\">
-        <text class=\"ek-label\">{{ preloadCompleted ? 'Enter' : 'Loading' }}</text>
-        <text class=\"ek-arrow\">{{ preloadCompleted ? '↵' : '⏳' }}</text>
-    </view>
-</view>
-            </view>
-            -->
-            <view v-if="showEnterButton" :class="'enter-key-container ' + (preloadCompleted ? '' : 'loading')" @tap="handleEnterButtonClick">
-                <image class="enter-key-image" :src="preloadCompleted ? '/static/images/enter_key.png' : '/static/images/enter_key.png'" mode="aspectFit"></image>
+                <image class="enter-key-image" src="/static/images/enter_key.png" mode="aspectFit"></image>
             </view>
         </view>
-
-        <!-- 阶段二：显示开屏图（暂时注释掉） -->
-        <!-- <view wx:if="{{currentPhase === 'imageDisplay'}}" class="image-phase-container">
-    <image class="splash-image" src="{{preloadedImagePath}}" mode="aspectFill" />
-  </view> -->
-
-        <!-- 原有的加载指示器（保留作为备用） -->
+        <!-- 网络未完成时沿用现有加载提示 -->
         <view class="loading-indicator" v-if="isPreloading">正在加载内容...</view>
     </view>
     <app-overlay-host />
 </template>
 
 <script>
-import { cloudCall } from '@/utils/cloudCall.js';
-import { getPostList as getPostListWithCache } from '@/api-cache/post-list.js';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
-import { getAppState, getOpenid, patchAppState, setUserSession } from '@/utils/app-state.js';
 import { formatErrorForLog } from '@/utils/error-log.js';
-import { ensureTcbAuthenticated } from '@/utils/runtime-bootstrap.js';
 import { lightImpact } from '@/utils/haptics.js';
+import { createSplashGate, SPLASH_MIN_MS } from '@/utils/splashGate.js';
+import { preloadPoemSquare } from '@/utils/splashPreload.js';
 
 export default {
     data() {
         return {
-            // ---- 新增的状态控制 ----
             currentPhase: 'typing',
-
-            // 'typing', 'imageDisplay', 'done'
-            showEnterButton: false,
-
-            // 控制进入按钮的显示
-            showNewLineCursor: false,
-
-            // 控制换行后光标的显示
-            textMoveUp: false,
-
-            // 控制文字上移动画
-            preloadCompleted: false,
-
-            // 预加载是否完成
-            userClickedEnter: false,
-
-            // 用户是否已经点击过进入按钮（在加载完成前）
-
-            // ---- 打字机动画所需数据 ----
             fullText: 'poementer',
-
             typedText: '',
-
-            // ---- 预加载的开屏图数据 ----
-            preloadedImagePath: '',
-
-            // 存储预加载成功的图片本地路径
-
-            // ---- 原有数据 ----
-            preloadProgress: 0,
-
-            isPreloading: false,
-
-            // 默认本地开屏图
-            splashImageUrl: '/static/images/splash.png',
-
-            fadeOut: false,
-            zoomOut: false
+            typingCompleted: false,
+            showEnterButton: false,
+            showNewLineCursor: false,
+            textMoveUp: false,
+            preloadCompleted: false,
+            isPreloading: true,
+            fadeOut: false
         };
     },
-    onLoad: function () {
-        console.log('🔍 [splash] 页面加载');
-        
-        // App 端需要每次冷启动都展示自定义开屏动画，避免只看到原生 splash 转圈后直接进首页。
-        // #ifndef APP-PLUS
-        // 检查是否在10分钟内重复进入，如果是则跳过开屏动画
-        if (this.shouldSkipSplash()) {
-            console.log('⏭️ [splash] 10分钟内重复进入，跳过开屏动画');
-            this.skipToMainPage();
-            return;
-        }
-        // #endif
-        
-        // 记录本次访问时间
-        this.recordSplashVisit();
-        
-        // 1. 启动打字机动画
+    onLoad() {
+        this._splashDisposed = false;
+        this._splashLeaving = false;
+        this._splashNavigating = false;
+        this._startupStartedAt = Date.now();
+        this._splashGate = createSplashGate({
+            onLeaving: ({ reason, elapsedMs }) => {
+                this._splashLeaving = true;
+                clearTimeout(this._typingTimer);
+                this.showEnterButton = false;
+                this.showNewLineCursor = true;
+                this.isPreloading = false;
+                this.fadeOut = true;
+                console.info('[splash] leaving', { reason, elapsedMs, contentReady: this.preloadCompleted });
+            },
+            onNavigate: () => this.navigateAfterSplash()
+        });
         this.executeTypingAnimation();
-
-        // 2. 并行执行图片预加载和原有的数据预加载
-        this.loadSplashImage();
+        preloadPoemSquare(this).then(() => {
+            if (this._splashDisposed) return;
+            this.preloadCompleted = true;
+            this.isPreloading = false;
+            console.info('[splash] content ready', { elapsedMs: Date.now() - this._startupStartedAt });
+            this.enterWhenReady();
+        }).catch(error => {
+            if (this._splashDisposed) return;
+            console.warn('[splash] preload fallback:', formatErrorForLog(error));
+            // 失败也保留跳过按钮，未点击则由独立的 6 秒截止定时器放行。
+        });
+    },
+    onUnload() {
+        this._splashDisposed = true;
+        clearTimeout(this._typingTimer);
+        this._splashGate?.dispose();
     },
     methods: {
-        applyLocalState(partial = {}) {
-            Object.keys(partial).forEach((key) => {
-                this[key] = partial[key];
-            });
-        },
-        getRuntimeApp() {
-            const app = typeof uni !== 'undefined' ? uni.$appInstance : null;
-            if (!app) {
-                return null;
-            }
-            app.globalData = app.globalData || {};
-            return app;
-        },
-        // 统一云函数调用方法
-        callCloudFunction(name, data = {}, extraOptions = {}) {
-            return cloudCall(name, data, Object.assign({ pageTag: 'splash', context: this }, extraOptions));
-        },
-
-        /**
-         * 检查是否应该跳过开屏动画（10分钟内重复进入）
-         */
-        shouldSkipSplash() {
-            try {
-                const lastVisit = uni.getStorageSync('lastSplashVisitTime');
-                if (!lastVisit) return false;
-                
-                const now = Date.now();
-                const tenMinutes = 10 * 60 * 1000; // 10分钟（毫秒）
-                
-                return (now - lastVisit) < tenMinutes;
-            } catch (e) {
-                console.warn(`[splash] splash visit check failed: ${formatErrorForLog(e)}`);
-                return false;
-            }
-        },
-
-        /**
-         * 记录本次开屏访问时间
-         */
-        recordSplashVisit() {
-            try {
-                uni.setStorageSync('lastSplashVisitTime', Date.now());
-            } catch (e) {
-                console.warn(`[splash] splash visit record failed: ${formatErrorForLog(e)}`);
-            }
-        },
-
-        /**
-         * 跳过开屏动画，直接进入主页面
-         * 【小程序审核优化】允许未登录浏览
-         */
-        async skipToMainPage() {
-            console.log('⚡ [splash] 快速进入模式：跳过预加载，直接使用页面缓存');
-            await this.navigateAfterSplash();
-        },
-
-        waitForLoginBootstrap(maxWait = 2500) {
-            return new Promise((resolve) => {
-                const app = this.getRuntimeApp();
-                if (!app || getAppState()._loginProcessCompleted) {
-                    resolve();
-                    return;
-                }
-
-                const start = Date.now();
-                const timer = setInterval(() => {
-                    const done = !!getAppState()._loginProcessCompleted;
-                    if (done || Date.now() - start >= maxWait) {
-                        clearInterval(timer);
-                        resolve();
-                    }
-                }, 120);
-            });
-        },
-
-        hasAuthenticatedUser() {
-            const globalData = getAppState();
-            if (globalData.isLoggedIn && globalData.userInfo) {
-                return true;
-            }
-
-            let cachedUserInfo = null;
-            try {
-                cachedUserInfo = uni.getStorageSync('userInfo');
-            } catch (e) {}
-
-            if (cachedUserInfo && (cachedUserInfo.poemId || cachedUserInfo._openid)) {
-                setUserSession(cachedUserInfo, cachedUserInfo._openid || getOpenid());
-                patchAppState({
-                    isLoggedIn: true,
-                    _loginProcessCompleted: true
-                });
-                return true;
-            }
-
-            return false;
-        },
-
-        async navigateAfterSplash() {
-            // 【修改】移除强制登录验证，允许未登录用户进入主页面
-            console.log('🚀 [splash] 允许未登录访问，直接进入诗歌广场');
-            
-            // 可选：后台静默尝试登录，但不阻塞用户访问
-            this.waitForLoginBootstrap().then(() => {
-                if (this.hasAuthenticatedUser()) {
-                    console.log('✅ [splash] 后台登录成功');
-                } else {
-                    console.log('ℹ️ [splash] 用户未登录，但允许继续浏览');
-                }
-            });
-
-            uni.switchTab({
-                url: '/pages/poem-square/poem-square'
-            });
-        },
-
-        /**
-         * 函数：执行打字机动画
-         */
-        executeTypingAnimation: function () {
-            const textToType = this.fullText; // 获取要完整显示的文本
-            let charIndex = 0; // 定义一个索引，用于追踪当前应该显示哪个字符
-
-            // 递归函数，模拟人打字的节奏
+        executeTypingAnimation() {
+            const startedAt = Date.now();
+            const interval = SPLASH_MIN_MS / Math.max(1, this.fullText.length);
             const typeNextChar = () => {
-                if (charIndex < textToType.length) {
-                    // 1. 更新 typedText：将当前已显示的文本加上下一个要显示的字符
-                    this.applyLocalState({
-                        typedText: this.typedText + textToType[charIndex]
-                    });
-
-                    // 2. 索引递增，准备显示下一个字符
-                    charIndex++;
-
-                    // 3. 根据字符位置和内容决定下一个字符的延迟时间
-                    let delay = this.getTypingDelay(charIndex, textToType);
-
-                    // 4. 递归调用，继续下一个字符
-                    setTimeout(typeNextChar, delay);
-                } else {
-                    // 所有字符都已显示完毕，延迟后显示"进入"按钮
-                    setTimeout(() => {
-                        this.applyLocalState({
-                            showEnterButton: true,
-                            textMoveUp: true // 触发文字上移动画
-                        });
-                    }, 500);
-                }
-            };
-
-            // 开始打字动画
-            typeNextChar();
-        },
-
-        /**
-         * 获取打字延迟时间，模拟人打字的节奏
-         */
-        getTypingDelay: function (charIndex, text) {
-            const char = text[charIndex - 1]; // 当前字符
-            const nextChar = text[charIndex]; // 下一个字符
-
-            // 基础延迟时间
-            let baseDelay = 100;
-
-            // 根据字符类型调整延迟
-            if (char === ' ') {
-                // 空格后稍微停顿
-                baseDelay = 200;
-            } else if (char === 'e' && nextChar === 'n') {
-                // "poem"后的"enter"开始前，停顿更长时间
-                baseDelay = 600;
-            } else if (char === 'm' && nextChar === 'e') {
-                // "poem"结束后，停顿
-                baseDelay = 400;
-            } else if (char === 't' && nextChar === 'e') {
-                // "enter"中的"te"之间
-                baseDelay = 180;
-            } else if (char === 'e' && nextChar === 'r') {
-                // "enter"中的"er"之间
-                baseDelay = 160;
-            } else {
-                // 其他字符的随机延迟，模拟人打字的自然节奏
-                baseDelay = 120 + Math.random() * 100; // 120-220ms的随机延迟
-            }
-
-            return baseDelay;
-        },
-
-        /**
-         * 响应：用户点击"进入"按钮
-         */
-        handleEnterButtonClick: function () {
-            // 添加按钮点击反馈
-            lightImpact();
-
-            // 检查预加载是否完成
-            if (!this.preloadCompleted) {
-                // 记录用户已点击，等待加载完成后自动跳转
-                this.applyLocalState({
-                    userClickedEnter: true
-                });
-                uni.showToast({
-                    title: '正在加载中...',
-                    icon: 'loading',
-                    duration: 1000
-                });
-                return;
-            }
-
-            // 预加载已完成，执行跳转逻辑
-            this.proceedToNavigate();
-        },
-
-        /**
-         * 执行跳转逻辑（隐藏按钮，显示光标，然后跳转）
-         */
-        proceedToNavigate: function () {
-            // 隐藏按钮，显示换行后的光标
-            this.applyLocalState({
-                showEnterButton: false,
-                showNewLineCursor: true
-            });
-
-            // 闪烁两下后跳转
-            this.blinkNewLineCursorAndNavigate();
-        },
-
-        /**
-         * 换行光标闪烁两下后跳转
-         */
-        blinkNewLineCursorAndNavigate: function () {
-            let blinkCount = 0;
-            const maxBlinks = 2;
-            const blinkInterval = setInterval(() => {
-                blinkCount++;
-                if (blinkCount >= maxBlinks) {
-                    clearInterval(blinkInterval);
-                    // 闪烁完成后跳转
-                    setTimeout(() => {
-                        this.navigateToTarget();
-                    }, 500); // 延迟0.5秒后跳转
-                }
-            }, 600); // 每0.6秒闪烁一次
-        },
-
-        // 加载云端开屏图 - 暂时注释掉
-        async loadSplashImage() {
-            // try {
-            //   console.log('开始加载云端开屏图...')
-            //   const splashUrl = await imageManager.getSplashImageUrl()
-            //
-            //   if (splashUrl && splashUrl !== '/static/images/splash.png') {
-            //     console.log('成功获取云端开屏图URL:', splashUrl)
-            //     this.applyLocalState({
-            //       splashImageUrl: splashUrl,
-            //       preloadedImagePath: splashUrl
-            //     })
-            //   } else {
-            //     console.log('使用默认本地开屏图')
-            //     this.applyLocalState({
-            //       preloadedImagePath: '/static/images/splash.png'
-            //     })
-            //   }
-            // } catch (error) {
-            //   console.error('加载云端开屏图失败:', error)
-            //   // 出错时使用默认本地图片
-            // }
-
-            // 暂时直接使用本地开屏图
-            this.applyLocalState({
-                preloadedImagePath: '/static/images/splash.png',
-                preloadCompleted: true
-            });
-
-            // 无论云端加载是否成功，都开始后台预加载流程，但不阻塞进入
-            setTimeout(() => {
-                this.executeOriginalPreloadTasks();
-            }, 0);
-        },
-
-        /**
-         * 等待登录流程完成，确保获取到 openid
-         */
-        async waitForOpenId(maxWait = 6000) {
-            const start = Date.now();
-
-            const readOpenId = () => {
-                const appInstance = this.getRuntimeApp();
-
-                let currentOpenId = appInstance && appInstance.globalData && appInstance.globalData.openid;
-                if (!currentOpenId && typeof uni !== 'undefined' && typeof uni.getStorageSync === 'function') {
-                    try {
-                        currentOpenId = uni.getStorageSync('userOpenId') || uni.getStorageSync('openid');
-                        if (currentOpenId && appInstance) {
-                            appInstance.globalData.openid = currentOpenId;
-                        }
-                    } catch (error) {
-                        console.warn(`[splash] local openid read failed: ${formatErrorForLog(error)}`);
-                    }
-                }
-                return {
-                    appInstance,
-                    currentOpenId
-                };
-            };
-
-            let { appInstance, currentOpenId } = readOpenId();
-
-            while (!currentOpenId && Date.now() - start < maxWait) {
-                await new Promise((resolve) => setTimeout(resolve, 200));
-                ({ appInstance, currentOpenId } = readOpenId());
-            }
-
-            if (!currentOpenId) {
-                console.warn('等待 openid 超时，预加载将退化为普通加载');
-            }
-
-            return {
-                app: appInstance,
-                openid: currentOpenId
-            };
-        },
-
-        /**
-         * 确保 TCB 匿名认证已完成
-         */
-        async ensureTcbAuth() {
-            // #ifdef H5 || APP-PLUS
-            try {
-                const runtimeApp = this.getRuntimeApp();
-                const tcbInstance = this.$tcb || (runtimeApp && runtimeApp.$tcb);
-                if (tcbInstance) {
-                    await ensureTcbAuthenticated(tcbInstance);
-                }
-            } catch (error) {
-                console.warn(`[splash] tcb auth check failed: ${formatErrorForLog(error)}`);
-            }
-            // #endif
-        },
-
-        /**
-         * 函数：执行原有的其它预加载任务
-         */
-        async executeOriginalPreloadTasks() {
-            // 确保 TCB 认证已完成
-            await this.ensureTcbAuth();
-            
-            const { app, openid } = await this.waitForOpenId();
-
-            if (!openid) {
-                this.applyLocalState({
-                    preloadCompleted: true
-                });
-                // 如果没有openid，也需要检查用户是否已点击过
-                if (this.userClickedEnter) {
-                    console.log('检测到用户之前已点击过进入按钮（无openid情况），自动触发跳转');
-                    setTimeout(() => {
-                        this.proceedToNavigate();
-                    }, 300);
-                }
-                return;
-            }
-
-            if (!getOpenid()) {
-                patchAppState({ openid });
-            }
-
-            // 创建一个数组来存放所有的预加载任务 (Promise)
-            const preloadTasks = [
-                this.preloadTabIcons(),
-                this.preloadPoemData(),
-                this.preloadMountainData()
-            ];
-
-            try {
-                await Promise.all(preloadTasks);
-            } catch (error) {
-                console.error(`[splash] preload task failed: ${formatErrorForLog(error)}`);
-            } finally {
-                // 预加载完成后，设置标志位
-                this.applyLocalState({
-                    preloadCompleted: true
-                });
-                console.log('预加载任务完成');
-                
-                // 如果用户之前已经点击过进入按钮，现在自动触发跳转
-                if (this.userClickedEnter) {
-                    console.log('检测到用户之前已点击过进入按钮，自动触发跳转');
-                    // 延迟一小段时间，确保状态更新完成
-                    setTimeout(() => {
-                        this.proceedToNavigate();
-                    }, 300);
-                } else {
-                    console.log('等待用户点击进入按钮');
-                }
-            }
-        },
-
-        // 使用 async/await 语法来更清晰地处理异步流程
-        preloadPoemData: function () {
-            // Promise 的执行函数本身也可以是 async 函数
-            return new Promise(async (resolve, reject) => {
-                this.applyLocalState({
-                    isPreloading: true
-                });
-                // 使用缓存接口，复用 poem-square 等页面的缓存
-                getPostListWithCache({
-                    page: 0,
-                    pageSize: 5,
-                    isPoem: true,
-                    isOriginal: true,
-                    context: this
-                }).then(async (posts) => {
-                        // <-- success 回调也变成 async
-                        try {
-                            if (posts && Array.isArray(posts) && posts.length > 0) {
-                                const app = this.getRuntimeApp();
-                                if (app) {
-                                    app.globalData.preloadedPoemData = posts;
-                                }
-                                if (posts.length > 0) {
-                                    // 关键改动：等待图片下载任务完成！
-                                    await this.preloadFirstPostImages(posts[0]);
-                                }
-                            }
-                            resolve(); // <-- 成功路径的 resolve 移动到这里
-                        } catch (e) {
-                            reject(e); // 捕获内部错误
-                        }
-                }).catch((err) => {
-                    console.error(`[splash] poem data preload failed: ${formatErrorForLog(err)}`);
-                    reject(err);
-                }).finally(() => {
-                    this.applyLocalState({
-                        preloadProgress: 100,
-                        isPreloading: false
-                    });
-                });
-            });
-        },
-
-        // 预加载山页面数据
-        preloadMountainData: function () {
-            return new Promise(async (resolve, reject) => {
-                // 使用缓存接口，复用 mountain 页面的缓存
-                getPostListWithCache({
-                    page: 0,
-                    pageSize: 5,
-                    isPoem: true,
-                    isOriginal: false,
-                    context: this
-                }).then(async (posts) => {
-                        try {
-                            if (posts && Array.isArray(posts) && posts.length > 0) {
-                                const app = this.getRuntimeApp();
-                                if (app) {
-                                    app.globalData.preloadedMountainData = posts;
-                                }
-                                if (posts.length > 0) {
-                                    // 预加载第一张图片
-                                    await this.preloadFirstMountainImages(posts[0]);
-                                }
-                            }
-                            resolve();
-                        } catch (e) {
-                            reject(e);
-                        }
-                }).catch((err) => {
-                    console.error(`[splash] mountain data preload failed: ${formatErrorForLog(err)}`);
-                    reject(err);
-                });
-            });
-        },
-
-        // 预加载山页面第一张图片
-        preloadFirstMountainImages: function (post) {
-            const app = this.getRuntimeApp();
-            if (!app) {
-                return Promise.resolve();
-            }
-            if (!app.globalData.preloadedImages) {
-                app.globalData.preloadedImages = {};
-            }
-            const imageDownloadTasks = [];
-
-            // 预加载背景图片
-            const bgImageUrl = post.poemBgImage || (post.imageUrls && post.imageUrls[0]);
-            if (bgImageUrl) {
-                imageDownloadTasks.push(
-                    new Promise((resolve) => {
-                        const isH5 = typeof window !== 'undefined';
-                        const isCloudFile = typeof bgImageUrl === 'string' && bgImageUrl.indexOf('cloud://') === 0;
-                        let shouldSkipDownload = false;
-                        if (isH5) {
-                            if (isCloudFile) {
-                                shouldSkipDownload = true;
-                            } else if (/^https?:\/\//.test(bgImageUrl)) {
-                                shouldSkipDownload = !bgImageUrl.startsWith(window.location.origin);
-                            }
-                        }
-                        if (shouldSkipDownload) {
-                            app.globalData.preloadedImages[bgImageUrl] = bgImageUrl;
-                            resolve();
-                            return;
-                        }
-                        
-                        uni.downloadFile({
-                            url: bgImageUrl,
-                            success: (res) => {
-                                if (res.statusCode === 200) {
-                                    app.globalData.preloadedImages[bgImageUrl] = res.tempFilePath;
-                                }
-                            },
-                            fail: (err) => {
-                                console.error(`[splash] mountain background image preload failed: ${bgImageUrl} | ${formatErrorForLog(err)}`);
-                                if (isH5 || isCloudFile) {
-                                    app.globalData.preloadedImages[bgImageUrl] = bgImageUrl;
-                                }
-                            },
-                            complete: () => {
-                                resolve();
-                            }
-                        });
-                    })
-                );
-            }
-
-            // 预加载用户头像
-            if (post.authorAvatar) {
-                imageDownloadTasks.push(
-                    new Promise((resolve) => {
-                        const isH5 = typeof window !== 'undefined';
-                        const isCloudFile = typeof post.authorAvatar === 'string' && post.authorAvatar.indexOf('cloud://') === 0;
-                        let shouldSkipDownload = false;
-                        if (isH5) {
-                            if (isCloudFile) {
-                                shouldSkipDownload = true;
-                            } else if (/^https?:\/\//.test(post.authorAvatar)) {
-                                shouldSkipDownload = !post.authorAvatar.startsWith(window.location.origin);
-                            }
-                        }
-                        if (shouldSkipDownload) {
-                            app.globalData.preloadedImages[post.authorAvatar] = post.authorAvatar;
-                            resolve();
-                            return;
-                        }
-                        uni.downloadFile({
-                            url: post.authorAvatar,
-                            success: (res) => {
-                                if (res.statusCode === 200) {
-                                    app.globalData.preloadedImages[post.authorAvatar] = res.tempFilePath;
-                                }
-                            },
-                            fail: (err) => {
-                                console.error(`[splash] mountain author avatar preload failed: ${post.authorAvatar} | ${formatErrorForLog(err)}`);
-                                if (isH5 || isCloudFile) {
-                                    app.globalData.preloadedImages[post.authorAvatar] = post.authorAvatar;
-                                }
-                            },
-                            complete: () => {
-                                resolve();
-                            }
-                        });
-                    })
-                );
-            }
-            return Promise.all(imageDownloadTasks);
-        },
-
-        preloadTabIcons: function () {
-            return new Promise((resolve) => {
-                const tabIcons = [
-                    '/static/images/icons/home.png',
-                    '/static/images/icons/home-active.png',
-                    '/static/images/icons/examples.png',
-                    '/static/images/icons/examples-active.png',
-                    '/static/images/icons/usercenter.png',
-                    '/static/images/icons/usercenter-active.png'
-                ];
-                let loadedCount = 0;
-                const totalCount = tabIcons.length;
-                if (totalCount === 0) {
-                    resolve(); // 如果没有图标，直接完成
+                if (this._splashDisposed || this._splashLeaving) return;
+                this.typedText = this.fullText.slice(0, this.typedText.length + 1);
+                if (this.typedText.length >= this.fullText.length) {
+                    this.typingCompleted = true;
+                    this.showEnterButton = !this.preloadCompleted;
+                    this.textMoveUp = true;
+                    this.enterWhenReady();
                     return;
                 }
-                tabIcons.forEach((iconPath) => {
-                    uni.getImageInfo({
-                        src: iconPath,
-                        complete: () => {
-                            // 使用 complete 确保无论成功失败都会计数
-                            loadedCount++;
-                            if (loadedCount === totalCount) {
-                                resolve(); // 所有图标都处理完后，完成 Promise
-                            }
-                        }
-                    });
-                });
+                // 以启动时间校准节奏，约 1.5 秒完整打完，不受网络速度影响。
+                this._typingTimer = setTimeout(typeNextChar,
+                    Math.max(0, (this.typedText.length + 1) * interval - (Date.now() - startedAt)));
+            };
+            this._typingTimer = setTimeout(typeNextChar, interval);
+        },
+        enterWhenReady() {
+            if (this._splashDisposed || this._splashLeaving || !this.typingCompleted || !this.preloadCompleted) return;
+            this.showEnterButton = false;
+            this._splashGate.settle('ready');
+        },
+        handleEnterButtonClick() {
+            if (this._splashDisposed || this._splashNavigating || !this.showEnterButton) return;
+            lightImpact();
+            if (this._navigationFailed) this.navigateAfterSplash();
+            else this._splashGate?.skip();
+        },
+        navigateAfterSplash() {
+            if (this._splashDisposed || this._splashNavigating) return;
+            this._splashNavigating = true;
+            this._navigationFailed = false;
+            const url = '/pages/poem-square/poem-square';
+            // switchTab 在 App 上会以 auto 关闭非 Tab 窗口，额外触发右滑。
+            // 开屏已经自行淡出，reLaunch 用 none 切换并清理开屏页面栈。
+            uni.reLaunch({
+                url,
+                fail: () => {
+                    if (this._splashDisposed) return;
+                    this._splashNavigating = false;
+                    this._navigationFailed = true;
+                    this.fadeOut = false;
+                    this.showEnterButton = true;
+                    this.showNewLineCursor = false;
+                    uni.showToast({ title: '进入失败，请点击重试', icon: 'none' });
+                }
             });
         },
-
-        // 这个函数现在需要返回一个 Promise，它包裹了所有图片下载任务
-        preloadFirstPostImages: function (post) {
-            const app = this.getRuntimeApp();
-            if (!app) {
-                return Promise.resolve();
-            }
-            if (!app.globalData.preloadedImages) {
-                app.globalData.preloadedImages = {};
-            }
-
-            // 创建一个数组来收集所有图片下载的 Promise
-            const imageDownloadTasks = [];
-
-            // 预加载背景图片
-            const bgImageUrl = post.poemBgImage || (post.imageUrls && post.imageUrls[0]);
-            if (bgImageUrl) {
-                // 为每个下载任务创建一个 Promise
-                imageDownloadTasks.push(
-                    new Promise((resolve) => {
-                        const isH5 = typeof window !== 'undefined';
-                        const isCloudFile = typeof bgImageUrl === 'string' && bgImageUrl.indexOf('cloud://') === 0;
-                        let shouldSkipDownload = false;
-                        if (isH5) {
-                            if (isCloudFile) {
-                                shouldSkipDownload = true;
-                            } else if (/^https?:\/\//.test(bgImageUrl)) {
-                                shouldSkipDownload = !bgImageUrl.startsWith(window.location.origin);
-                            }
-                        }
-                        if (shouldSkipDownload) {
-                            app.globalData.preloadedImages[bgImageUrl] = bgImageUrl;
-                            resolve();
-                            return;
-                        }
-                        
-                        uni.downloadFile({
-                            url: bgImageUrl,
-                            success: (res) => {
-                                if (res.statusCode === 200) {
-                                    app.globalData.preloadedImages[bgImageUrl] = res.tempFilePath;
-                                }
-                            },
-                            fail: (err) => {
-                                console.error(`[splash] first poem background preload failed: ${bgImageUrl} | ${formatErrorForLog(err)}`);
-                                if (isH5 || isCloudFile) {
-                                    app.globalData.preloadedImages[bgImageUrl] = bgImageUrl;
-                                }
-                            },
-                            complete: () => {
-                                resolve(); // 无论成功失败，都算完成，不阻塞主流程
-                            }
-                        });
-                    })
-                );
-            }
-
-            // 预加载用户头像
-            if (post.authorAvatar) {
-                imageDownloadTasks.push(
-                    new Promise((resolve) => {
-                        const isH5 = typeof window !== 'undefined';
-                        const isCloudFile = typeof post.authorAvatar === 'string' && post.authorAvatar.indexOf('cloud://') === 0;
-                        let shouldSkipDownload = false;
-                        if (isH5) {
-                            if (isCloudFile) {
-                                shouldSkipDownload = true;
-                            } else if (/^https?:\/\//.test(post.authorAvatar)) {
-                                shouldSkipDownload = !post.authorAvatar.startsWith(window.location.origin);
-                            }
-                        }
-                        if (shouldSkipDownload) {
-                            app.globalData.preloadedImages[post.authorAvatar] = post.authorAvatar;
-                            resolve();
-                            return;
-                        }
-                        uni.downloadFile({
-                            url: post.authorAvatar,
-                            success: (res) => {
-                                if (res.statusCode === 200) {
-                                    app.globalData.preloadedImages[post.authorAvatar] = res.tempFilePath;
-                                }
-                            },
-                            fail: (err) => {
-                                if (isH5 || isCloudFile) {
-                                    console.error(`[splash] poem author avatar preload failed, using original URL: ${formatErrorForLog(err)}`);
-                                    app.globalData.preloadedImages[post.authorAvatar] = post.authorAvatar;
-                                }
-                            },
-                            complete: () => {
-                                resolve();
-                            }
-                        });
-                    })
-                );
-            }
-
-            // 预加载其他可能用到的图片（移除svg）
-            const commonImages = ['/static/images/like.png', '/static/images/liked.png'];
-            commonImages.forEach((imagePath) => {
-                imageDownloadTasks.push(
-                    new Promise((resolve) => {
-                        uni.getImageInfo({
-                            src: imagePath,
-                            complete: () => {
-                                console.log('通用图片预加载尝试完毕:', imagePath);
-                                resolve(); // 无论成功失败，都算完成
-                            }
-                        });
-                    })
-                );
-            });
-
-            // 返回一个 Promise.all，它会等待所有图片下载任务都完成
-            return Promise.all(imageDownloadTasks);
+        onShareAppMessage() {
+            return getShareAppMessageConfig({ title: 'poementer', path: '/pages/poem-square/poem-square' });
         },
-
-        navigateToTarget: function () {
-            // 开始淡出动画
-            this.startFadeOut();
-
-            // 延迟跳转，让动画完成
-            setTimeout(async () => {
-                await this.navigateAfterSplash();
-            }, 800);
-        },
-
-        startFadeOut: function () {
-            // 添加淡出和缩放动画类
-            this.applyLocalState({
-                fadeOut: true,
-                zoomOut: true
-            });
-        },
-        
-        // 分享到好友/群聊
-        onShareAppMessage(res) {
-            return getShareAppMessageConfig({
-                title: 'poementer',
-                path: '/pages/poem-square/poem-square'
-            });
-        },
-        
-        // 分享到朋友圈
         onShareTimeline() {
-            return getShareTimelineConfig({
-                title: 'poementer'
-            });
+            return getShareTimelineConfig({ title: 'poementer' });
         }
     }
 };
@@ -954,11 +226,6 @@ page {
 
 .enter-key-container.loading {
     opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.enter-key-container.loading:active {
-    transform: scale(1);
 }
 
 .enter-key-image {

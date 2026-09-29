@@ -79,7 +79,6 @@
       </view>
 
       <view v-if="collageList.length === 0 && !isLoading" class="empty-state">
-        <view class="empty-icon">🎨</view>
         <view class="empty-text">还没有拼贴诗作品</view>
         <view class="empty-subtext">快来创作第一首拼贴诗吧！</view>
       </view>
@@ -788,11 +787,6 @@ export default {
   justify-content: center;
   text-align: center;
   color: rgba(255, 255, 255, 0.8);
-}
-
-.empty-icon {
-  font-size: 120rpx;
-  margin-bottom: 30rpx;
 }
 
 .empty-text {

@@ -1,5 +1,5 @@
 <template>
-    <view class="font-manager-page">
+    <view class="font-manager-page" :style="appThemeVars">
         <view class="page-header">
             <view class="header-title">字体管理</view>
             <view class="header-desc">管理本地字体缓存</view>
@@ -377,17 +377,17 @@ export default {
 }
 
 .action-btn {
+    border-radius: 32rpx;
     font-size: 26rpx;
-    color: #1890ff;
+    color: var(--app-link-color, #333333);
     padding: 12rpx 20rpx;
-    border: 2rpx solid #1890ff;
-    border-radius: 8rpx;
+    border: 1rpx solid var(--app-control-border, #dddddd);
     transition: all 0.2s;
 }
 
 .action-btn:active {
-    background: #1890ff;
-    color: #fff;
+    background: var(--app-control-accent-bg, #333333);
+    color: var(--app-control-accent-text, #ffffff);
 }
 
 .action-btn.danger {
@@ -418,7 +418,7 @@ export default {
 }
 
 .font-item.loading {
-    background: #f0f8ff;
+    background: var(--app-control-soft-bg, #f5f6f7);
 }
 
 .font-info {
@@ -460,8 +460,10 @@ export default {
 }
 
 .font-status.cached {
-    color: #1890ff;
-    background: #e6f7ff;
+    color: var(--app-link-color, #333333);
+    background: var(--app-control-soft-bg, #f5f6f7);
+    border-radius: 20rpx;
+    padding: 6rpx 12rpx;
 }
 
 .font-status.not-cached {
@@ -487,7 +489,7 @@ export default {
     width: 32rpx;
     height: 32rpx;
     border: 4rpx solid #f3f3f3;
-    border-top: 4rpx solid #1890ff;
+    border-top: 4rpx solid var(--app-link-color, #333333);
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -505,13 +507,13 @@ export default {
 }
 
 .download-action .action-text {
-    color: #1890ff;
-    border: 2rpx solid #1890ff;
+    color: var(--app-link-color, #333333);
+    border: 1rpx solid var(--app-control-border, #dddddd);
 }
 
 .download-action .action-text:active {
-    background: #1890ff;
-    color: #fff;
+    background: var(--app-control-accent-bg, #333333);
+    color: var(--app-control-accent-text, #ffffff);
 }
 
 .delete-action .action-text {

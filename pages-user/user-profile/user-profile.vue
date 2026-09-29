@@ -313,8 +313,8 @@
 
                         <view class="post-footer">
                             <view class="post-stats">
-                                <text class="stat-item">❤️ {{ item.votes || 0 }}</text>
-                                <text class="stat-item">💬 {{ item.commentCount || 0 }}</text>
+                                <text class="stat-item">赞 {{ item.votes || 0 }}</text>
+                                <text class="stat-item">评论 {{ item.commentCount || 0 }}</text>
                             </view>
                             <view class="post-time">{{ item.formattedCreateTime }}</view>
                         </view>

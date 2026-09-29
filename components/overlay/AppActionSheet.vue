@@ -7,13 +7,13 @@
       </view>
       <scroll-view class="app-sheet-list" scroll-y @touchmove.stop>
         <slot :select="selectValue">
-        <button v-for="(item, index) in displayItems" :key="index" class="app-sheet-item" :class="{ 'is-danger': item.danger }" :disabled="item.disabled" @tap="answer('select', index)">
+        <button v-for="(item, index) in displayItems" :key="index" class="app-sheet-item" :class="{ 'is-danger': item.danger }" :style="cancelActionStyle(item.text, sheetThemeMode)" :disabled="item.disabled" @tap="answer('select', index)">
           <text class="app-sheet-item-text">{{ item.text }}</text>
           <text v-if="item.description" class="app-sheet-item-description">{{ item.description }}</text>
         </button>
         </slot>
       </scroll-view>
-      <button class="app-sheet-cancel" @tap="answer('cancel')">{{ cancelText }}</button>
+      <button class="app-sheet-cancel" :style="cancelActionStyle(cancelText, sheetThemeMode)" @tap="answer('cancel')">{{ cancelText }}</button>
     </view>
   </view>
 </template>
@@ -33,6 +33,7 @@ export default {
   },
   data() { return { answered: false, rendered: false, motion: '' }; },
   computed: {
+    sheetThemeMode() { return this.isDark === null ? this.appThemeMode : (this.isDark ? 'dark' : 'light'); },
     displayItems() {
       return this.items.map(item => typeof item === 'string'
         ? { text: item, danger: isDangerousOverlayAction(item) }

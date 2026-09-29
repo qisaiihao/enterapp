@@ -60,6 +60,16 @@
 
 ## 验证记录
 
+### 2026-09-29 旧运行时兼容修复
+
+线上 `getPostList` 使用 Nodejs10.15，查询转换中的 `Object.fromEntries` 会导致业务响应失败，即使 TCB 调用本身成功。共享 `query.js` 已改为兼容的自有属性复制，并通过 `npm run sync:posts` 同步全部 45 个部署目录。新增 `scripts/test-posts-runtime.cjs` 在禁用该 API 的隔离环境下验证真实入口的 V1/V2 诗歌列表、普通帖筛选和首页加权排序，纳入 `npm run test:posts`。
+
+其他已部署函数如出现同样错误，需更新各自 `_lib/posts/query.js`；本地副本同步不等于云端已部署。本次 `getPostList` 云端修复备份及验收记录位于 `output/home-runtime-fix-20260929/`。
+
+本轮帖子契约、旧运行时、首页排序、匿名帖子回归通过。完整 `check:quality` 在原有 App 版本号断言处失败（manifest 为 1.7.1，测试要求 1.7.0），未放宽断言。
+
+### 2026-09-28 原始验证
+
 - `npm run check:quality`：通过，保留原断言；现有测试的数据库模拟器已接入共享模块和复合条件匹配。
 - `npm run test:posts`：通过，包括五个实际创建入口及同一次主发布只有一次 posts add 的检查。
 - `npm run build:app`、`npm run build:mp-weixin`、`npm run build:h5`：通过。App/H5 构建存在依赖 sourcemap、静态/动态导入提示，未阻止构建。

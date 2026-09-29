@@ -1,0 +1,8 @@
+{
+  "name": "getBatchUserProfiles",
+  "status": "Active",
+  "runtime": "Nodejs16.13",
+  "handler": "index.main",
+  "timeout": 3,
+  "memory": 128
+}

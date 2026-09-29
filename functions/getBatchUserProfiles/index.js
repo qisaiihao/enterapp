@@ -20,7 +20,7 @@ exports.main = async (event, context) => {
     };
   }
 
-  const { userIds } = event;
+  const { userIds, rawAvatar = false } = event;
 
   if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
     return {
@@ -29,18 +29,38 @@ exports.main = async (event, context) => {
     };
   }
 
+  const ids = [...new Set(userIds.filter(id => typeof id === 'string' && id.trim()))];
+  if (!ids.length || ids.length > 100) {
+    return { success: false, message: '用户ID数量须为 1 到 100' };
+  }
+
   try {
     // 批量获取用户信息
-    const usersRes = await db.collection('users')
-      .where({
-        _openid: _.in(userIds)
-      })
-      .get();
-
-    const userProfiles = usersRes.data || [];
+    // 使用公开字段白名单，禁止整条用户记录（密码、手机号等）离开服务端。
+    // 显式分页，避免数据库默认条数限制让批量结果静默缺失。
+    const publicFields = { _id: 1, _openid: 1, nickName: 1, avatarUrl: 1, bio: 1 };
+    const userProfiles = [];
+    for (let offset = 0; offset < ids.length; offset += 20) {
+      const usersRes = await db.collection('users')
+        .where({ _openid: _.in(ids.slice(offset, offset + 20)) })
+        .field(publicFields)
+        .limit(100)
+        .get();
+      for (const user of usersRes.data || []) {
+        const profile = {};
+        Object.keys(publicFields).forEach(key => {
+          if (Object.prototype.hasOwnProperty.call(user, key)) profile[key] = user[key];
+        });
+        if (typeof profile.avatarUrl === 'string' && profile.avatarUrl.startsWith('cloud://')) {
+          profile.avatarFileID = profile.avatarUrl;
+        }
+        userProfiles.push(profile);
+      }
+    }
 
     // 处理头像URL
-    await enrichAvatarUrls(userProfiles);
+    // 新客户端统一批量换链；旧客户端仍收到可显示的临时 URL。
+    if (rawAvatar !== true) await enrichAvatarUrls(userProfiles);
 
     return {
       success: true,
@@ -69,14 +89,13 @@ async function enrichAvatarUrls(users) {
   }
 
   try {
-    const tempUrls = await cloud.getTempFileURL({ fileList: fileIDs });
     const urlMap = new Map();
-
-    tempUrls.fileList.forEach(file => {
-      if (file.status === 0) {
-        urlMap.set(file.fileID, file.tempFileURL);
-      }
-    });
+    for (let offset = 0; offset < fileIDs.length; offset += 50) {
+      const tempUrls = await cloud.getTempFileURL({ fileList: fileIDs.slice(offset, offset + 50) });
+      (tempUrls.fileList || []).forEach(file => {
+        if (file.status === 0 && file.tempFileURL) urlMap.set(file.fileID, file.tempFileURL);
+      });
+    }
 
     users.forEach(user => {
       if (user.avatarUrl && urlMap.has(user.avatarUrl)) {

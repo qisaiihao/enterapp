@@ -57,13 +57,12 @@
     </scroll-view>
 
     <!-- 创建作品集弹窗 -->
-    <view v-if="showCreateModal" class="modal-overlay" @tap="hideCreateModal">
-      <view class="modal-content" @tap.stop>
-        <view class="modal-header">
-          <text class="modal-title">新建作品集</text>
-          <text class="close-btn" @tap="hideCreateModal">×</text>
+    <AppMotion :visible="showCreateModal" ref="createMotion" @dismiss="hideCreateModal" mask-class="collection-create-dialog" :mask-dark="appThemeMode === 'dark'" close-on-mask>
+      <view class="collection-create-panel app-motion-panel" @tap.stop>
+        <view class="collection-create-header">
+          <text class="collection-create-title">新建作品集</text>
         </view>
-        <view class="modal-body">
+        <view class="collection-create-body" @touchmove.stop>
           <view class="create-folder-form">
             <view class="form-item">
               <view class="form-label">作品集名称</view>
@@ -92,21 +91,20 @@
             </view>
           </view>
         </view>
-        <view class="modal-footer">
-          <button class="modal-btn outline" @tap="hideCreateModal">取消</button>
-          <button class="modal-btn outline" @tap="createFolder" :disabled="!newFolderName.trim()">创建</button>
+        <view class="collection-create-footer">
+          <button class="collection-create-button create-cancel" @tap="$refs.createMotion.dismiss()">取消</button>
+          <button class="collection-create-button create-confirm" @tap="createFolder" :disabled="!newFolderName.trim()">创建</button>
         </view>
       </view>
-    </view>
+    </AppMotion>
 
     <!-- 编辑作品集弹窗 -->
-    <view v-if="showEditModal" class="modal-overlay" @tap="hideEditModal">
-      <view class="modal-content" @tap.stop>
-        <view class="modal-header">
-          <text class="modal-title">修改作品集名字</text>
-          <text class="close-btn" @tap="hideEditModal">×</text>
+    <AppMotion :visible="showEditModal" ref="editMotion" @dismiss="hideEditModal" mask-class="collection-create-dialog" :mask-dark="appThemeMode === 'dark'" close-on-mask>
+      <view class="collection-create-panel app-motion-panel" @tap.stop>
+        <view class="collection-create-header">
+          <text class="collection-create-title">修改作品集名字</text>
         </view>
-        <view class="modal-body">
+        <view class="collection-create-body" @touchmove.stop>
           <view class="edit-folder-form">
             <view class="form-item">
               <view class="form-label">作品集名称</view>
@@ -135,17 +133,18 @@
             </view>
           </view>
         </view>
-        <view class="modal-footer">
-          <button class="modal-btn outline" @tap="hideEditModal">取消</button>
-          <button class="modal-btn outline" @tap="saveFolderName" :disabled="!editingFolderName.trim()">保存</button>
+        <view class="collection-create-footer">
+          <button class="collection-create-button create-cancel" @tap="$refs.editMotion.dismiss()">取消</button>
+          <button class="collection-create-button create-confirm" @tap="saveFolderName" :disabled="!editingFolderName.trim()">保存</button>
         </view>
       </view>
-    </view>
+    </AppMotion>
   </view>
     <app-overlay-host />
 </template>
 
 <script>
+import AppMotion from '@/components/overlay/AppMotion.vue';
 import dualActionTopBar from '@/components/dual-action-top-bar/dual-action-top-bar.vue';
 import { readFileAsBase64 } from '@/utils/fileReader.js';
 import {
@@ -159,7 +158,7 @@ import {
 } from '@/api-cache/portfolio.js';
 
 export default {
-  components: {
+  components: { AppMotion,
     dualActionTopBar
   },
   data() {
@@ -318,6 +317,10 @@ export default {
     },
 
     hideCreateModal() {
+        if (this.$refs?.createMotion?.rendered) {
+            this.$refs.createMotion.dismiss(this.hideCreateModal);
+            return;
+        }
       // 修复：使用 Vue 赋值
       this.showCreateModal = false;
       this.newFolderName = '';
@@ -593,6 +596,10 @@ export default {
 
     // 隐藏编辑弹窗
     hideEditModal() {
+        if (this.$refs?.editMotion?.rendered) {
+            this.$refs.editMotion.dismiss(this.hideEditModal);
+            return;
+        }
       // 修复：使用 Vue 赋值
       this.showEditModal = false;
       this.editingFolder = null;
@@ -1011,7 +1018,8 @@ export default {
 }
 
 .folder-name-input:focus {
-  border-color: #9ed7ee;
+  border-color: var(--app-link-color, #333333);
+  box-shadow: var(--app-control-focus-ring, 0 0 0 4rpx rgba(0, 0, 0, 0.08));
 }
 
 .modal-footer {
@@ -1130,3 +1138,5 @@ export default {
   font-weight: 500;
 }
 </style>
+
+<style src="@/styles/collection-create-dialog.css"></style>
