@@ -38,7 +38,7 @@ export async function getDiscoverFeed({ excludePostIds = [], page = 0, pageSize 
           hasMore: !!res.result.hasMore
         };
       }
-      return { posts: [], hasMore: false };
+      throw new Error(res?.result?.error?.message || res?.result?.message || '加载帖子失败，请重试');
     },
     { 
       ttlMs: TTL_MS, 

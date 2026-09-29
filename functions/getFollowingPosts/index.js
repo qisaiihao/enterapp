@@ -156,7 +156,7 @@ exports.main = async (event, context) => {
     });
 
     // 8. 处理头像URL和签名URL
-    await enrichCloudUrls(posts);
+    if (event.rawImages !== true) await enrichCloudUrls(posts);
 
     // 9. 查询当前用户对这些帖子的点赞状态
     if (posts.length > 0) {

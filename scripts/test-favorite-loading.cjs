@@ -78,7 +78,7 @@ async function main() {
     return direct ? result : { result };
   };
   const wrapper = moduleFrom(read('api-cache/_shared/cloud-wrapper.js'), { cloudCall });
-  const api = moduleFrom(read('api-cache/favorites.js'), { cloudCall, callCloudAndUnwrap: wrapper.callCloudAndUnwrap });
+  const api = moduleFrom(read('api-cache/favorites.js'), { cloudCall, callCloudAndUnwrap: wrapper.callCloudAndUnwrap, captureFavoriteRead: () => () => true });
   const context = { $tcb: { app: true } };
   const query = { folderId: 'folder-a', pageSize: 10, context };
   const first = await api.getMyFavorites(query);
@@ -102,7 +102,7 @@ async function main() {
   assert.equal((await api.getMyFavorites(query)).length, 10, 'direct cloud result is unwrapped too');
 
   const component = moduleFrom(read('pages-content/favorite-content/favorite-content.vue').match(/<script>([\s\S]*?)<\/script>/)[1], {
-    getMyFavorites: api.getMyFavorites, paginationMixin: {}, postGalleryMixin: {}, FavoriteActionMenu: {},
+    captureFavoriteRead: () => () => true, favoriteRefresh: {}, getMyFavorites: api.getMyFavorites, paginationMixin: {}, postGalleryMixin: {}, FavoriteActionMenu: {},
     uni: { showToast() {} }
   });
   const page = { ...component.data(), folderId: 'folder-a', pageSize: 10, setData(data) { Object.assign(this, data); }, formatTime() { return '刚刚'; } };
@@ -129,12 +129,15 @@ async function main() {
 
   const writes = [], events = [], notices = [];
   let completeWrite, rejectWrite;
-  const actionsApi = moduleFrom(read('api-cache/profile-actions.js') + '\nexport default { removeFavorite };', {
+  const mutationApi = moduleFrom(read('api-cache/favorite-actions.js') + '\nexport default { removeFavoriteRecord };', {
+    captureFavoriteSession: () => ({ userId: 'me', isCurrent: () => true }),
+    emitFavoriteChanged: value => events.push(value),
     callCloudAndUnwrap(name, data, options) {
       writes.push({ name, data, options });
       return new Promise((resolve, reject) => { completeWrite = resolve; rejectWrite = reject; });
     }, invalidateMyFavorites() {}
   });
+  const actionsApi = moduleFrom(read('api-cache/profile-actions.js') + '\nexport default { removeFavorite };', { removeFavoriteRecord: mutationApi.removeFavoriteRecord });
   const menuComponent = moduleFrom(read('components/FavoriteActionMenu.vue').match(/<script>([\s\S]*?)<\/script>/)[1], {
     AppActionSheet: {}, FolderSelector: {}, removeFavorite: actionsApi.removeFavorite,
     getOpenid: () => 'me', emitFavoriteChanged: value => events.push(value),

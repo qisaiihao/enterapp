@@ -1,3 +1,5 @@
+import { invalidateFavoriteCaches } from '@/cache/favorites.js';
+
 export const EVENTS = {
   AVATAR_UPDATED: 'avatar-updated',
   APP_BACKGROUND_UPDATED: 'app-background-updated',
@@ -36,8 +38,10 @@ export function emitPostUpdated(postId) {
   } catch (_) {}
 }
 
-export function emitFavoriteChanged({ userId, postId, favored }) {
-  try { if (userId && uni && uni.$emit) uni.$emit(EVENTS.FAVORITE_CHANGED, { userId, postId, favored: !!favored }); } catch (_) {}
+export function emitFavoriteChanged(payload = {}) {
+  if (!payload.userId) return;
+  invalidateFavoriteCaches(payload);
+  try { if (typeof uni !== 'undefined' && uni.$emit) uni.$emit(EVENTS.FAVORITE_CHANGED, payload); } catch (_) {}
 }
 
 export function emitLikeChanged({ postId, votes, isLiked, pageTag }) {

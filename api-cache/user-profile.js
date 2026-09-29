@@ -1,3 +1,4 @@
+import { captureFavoriteRead, staleFavoriteError } from '@/cache/favorites.js';
 import cacheManager from '@/cache/core/manager.js';
 import { normalizeAppBackgroundMode } from '@/utils/appBackground.js';
 import { callCloudAndUnwrap } from './_shared/cloud-wrapper.js';
@@ -93,8 +94,9 @@ function favoritesNs(userId) {
 
 export async function getUserFavorites({ userId, page = 0, pageSize = 10, context }) {
   const ns = favoritesNs(userId);
+  const current = captureFavoriteRead(userId);
   const key = `page:${page}:size:${pageSize}`;
-  return ns.getOrFetch(
+  const favorites = await ns.getOrFetch(
     key,
     async () => {
       const result = await callCloudAndUnwrap(
@@ -107,6 +109,8 @@ export async function getUserFavorites({ userId, page = 0, pageSize = 10, contex
     },
     { ttlMs: USER_FAVORITES_TTL, swrMs: USER_FAVORITES_SWR }
   );
+  if (!current()) throw staleFavoriteError();
+  return favorites;
 }
 
 export function invalidateUserFavorites(userId, page, pageSize = 10) {

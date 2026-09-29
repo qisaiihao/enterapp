@@ -150,12 +150,16 @@
 <script>
 import AppMotion from '@/components/overlay/AppMotion.vue';
 // pages/favorite-folders/favorite-folders.js
+import { captureFavoriteRead } from '@/cache/favorites.js';
+import { getFavoriteFolders, createFavoriteFolder, updateFavoriteFolder, deleteFavoriteFolder, addFavorite } from '@/api-cache/favorite-actions.js';
+import favoriteRefresh from '@/mixins/favoriteRefresh.js';
 import { cloudCall } from '../../utils/cloudCall.js';
 import { readFileAsBase64 } from '@/utils/fileReader.js';
 import { checkLoginOrPrompt } from '@/utils/authHelper.js';
 import dualActionTopBar from '@/components/dual-action-top-bar/dual-action-top-bar.vue';
 
 export default {
+    mixins: [favoriteRefresh],
     components: { AppMotion,
         dualActionTopBar
     },
@@ -195,13 +199,13 @@ export default {
             return;
         }
         
-        this.loadFolders();
-    },
-    onShow: function () {
-        console.log('=== 收藏夹列表页面 onShow ===');
-        this.loadFolders();
+        this._favoriteFoldersReady = true;
+        this.loadFolders().catch(() => {});
     },
     methods: {
+        refreshFavoritesAfterChange() {
+            if (this._favoriteFoldersReady) return this.loadFolders();
+        },
         onSafeAreaReady(height) {
             this.safeAreaTop = height || 0;
         },
@@ -327,52 +331,29 @@ export default {
             }));
             this.folders = updatedFolders;
         },
-        loadFolders: function () {
-            this.setData({
-                isLoading: true
+        loadFolders() {
+            if (this._folderTask && this._folderTask.current()) return this._folderTask.promise;
+            const current = captureFavoriteRead(undefined, 'folders');
+            const request = (this._folderRequest || 0) + 1;
+            this._folderRequest = request;
+            this.isLoading = true;
+            const promise = getFavoriteFolders(this).then(folders => {
+                if (request !== this._folderRequest || !current()) return;
+                this.folders = folders.map(folder => ({ ...folder, isSwipeOpen: false }));
+                this.favoriteRefreshDirty = false;
+            }).catch(error => {
+                if (request !== this._folderRequest) return;
+                if (error.code === 'FAVORITE_STALE') { this.favoriteRefreshDirty = true; return; }
+                uni.showToast({ title: error.message || '加载收藏夹失败', icon: 'none' });
+                throw error;
+            }).finally(() => {
+                if (request === this._folderRequest) {
+                    this._folderTask = null;
+                    this.isLoading = false;
+                }
             });
-            this.callCloudFunction('getMyProfileData', {
-                    action: 'getFavoriteFolders'
-                }).then((res) => {
-                    console.log('获取收藏夹返回数据:', res);
-                    if (res.result && res.result.success) {
-                        const folders = res.result.folders || [];
-                        console.log('收藏夹数据:', folders);
-
-                        // 检查数据结构
-                        folders.forEach((folder, index) => {
-                            console.log(`收藏夹${index}:`, {
-                                _id: folder._id,
-                                name: folder.name,
-                                itemCount: folder.itemCount,
-                                createTime: folder.createTime
-                            });
-                        });
-                        this.setData({
-                            folders: folders,
-                            isLoading: false
-                        });
-                    } else {
-                        console.error('获取收藏夹失败:', res.result);
-                        uni.showToast({
-                            title: res.result?.message || '加载失败',
-                            icon: 'none'
-                        });
-                        this.setData({
-                            isLoading: false,
-                            folders: []
-                        });
-                    }
-                }).catch((err) => {
-                    console.error('获取收藏夹失败:', err);
-                    uni.showToast({
-                        title: '网络错误',
-                        icon: 'none'
-                    });
-                    this.setData({
-                        isLoading: false
-                    });
-                });
+            this._folderTask = { current, promise };
+            return promise;
         },
 
         // 显示创建收藏夹弹窗
@@ -445,26 +426,24 @@ export default {
             try {
                 const coverUrl = await this.uploadNewCoverImage();
                 uni.showLoading({ title: '创建中...', mask: true });
-                const result = await this.callCloudFunction('createFavoriteFolder', {
-                    folderName: folderName,
-                    coverUrl
-                });
+                const result = await createFavoriteFolder(folderName, coverUrl, this);
 
-                if (result.result && result.result.success) {
+                if (result && result.success) {
                     uni.showToast({
                         title: '创建成功',
                         icon: 'success'
                     });
                     this.isCreatingFolder = false;
                     this.hideCreateModal();
-                    this.loadFolders();
+                    this.loadFolders().catch(() => {});
                 } else {
                     uni.showToast({
-                        title: result.result?.message || '创建失败',
+                        title: result?.message || '创建失败',
                         icon: 'none'
                     });
                 }
             } catch (error) {
+                if (error.code === 'FAVORITE_STALE') return;
                 console.error('创建收藏夹失败:', error);
                 uni.showToast({
                     title: error.message || '创建失败',
@@ -659,26 +638,23 @@ export default {
                 // 先上传封面图片（如果有的话）
                 const coverUrl = await this.uploadEditCoverImage();
                 
-                const result = await this.callCloudFunction('updateFavoriteFolder', {
-                    folderId: this.editingFolder._id,
-                    name: folderName,
-                    coverUrl: coverUrl
-                });
+                const result = await updateFavoriteFolder(this.editingFolder._id, folderName, coverUrl, this);
 
-                if (result.result && result.result.success) {
+                if (result && result.success) {
                     uni.showToast({
                         title: '修改成功',
                         icon: 'success'
                     });
                     this.hideEditModal();
-                    this.loadFolders();
+                    this.loadFolders().catch(() => {});
                 } else {
                     uni.showToast({
-                        title: result.result?.message || '修改失败',
+                        title: result?.message || '修改失败',
                         icon: 'none'
                     });
                 }
             } catch (error) {
+                if (error.code === 'FAVORITE_STALE') return;
                 console.error('修改收藏夹名称失败:', error);
                 uni.showToast({
                     title: '修改失败',
@@ -704,28 +680,27 @@ export default {
 
             uni.showModal({
                 title: '确认删除',
-                content: `确定要删除收藏夹"${folder.name}"吗？里面的收藏不会被删除。`,
+                content: `确定要删除收藏夹"${folder.name}"吗？该收藏夹内的收藏记录也会删除，其他收藏夹中的记录不受影响。`,
                 success: async (res) => {
                     if (res.confirm) {
                         try {
                             uni.showLoading({ title: '删除中...' });
-                            const result = await this.callCloudFunction('deleteFavoriteFolder', {
-                                folderId: folder._id
-                            });
+                            const result = await deleteFavoriteFolder(folder._id, this);
 
-                            if (result.result && result.result.success) {
+                            if (result && result.success) {
                                 uni.showToast({
                                     title: '删除成功',
                                     icon: 'success'
                                 });
-                                this.loadFolders();
+                                this.loadFolders().catch(() => {});
                             } else {
                                 uni.showToast({
-                                    title: result.result?.message || '删除失败',
+                                    title: result?.message || '删除失败',
                                     icon: 'none'
                                 });
                             }
                         } catch (error) {
+                if (error.code === 'FAVORITE_STALE') return;
                             console.error('删除收藏夹失败:', error);
                             uni.showToast({
                                 title: '删除失败',

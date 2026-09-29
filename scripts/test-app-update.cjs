@@ -259,8 +259,9 @@ test('non-App environments do not request updates', async () => {
 });
 test('manifest and route use migrated client, old plugin is absent', () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
-  assert.equal(manifest.versionName, '1.7.0');
-  assert.equal(manifest.versionCode, 170);
+  // 当前资源版本已升到 1.7.1；上方 local 仍固定 1.7.0 验证最低支持版本。
+  assert.equal(manifest.versionName, '1.7.1');
+  assert.equal(manifest.versionCode, 171);
   assert.ok(manifest['app-plus'].distribute.android.permissions.some(value => value.includes('REQUEST_INSTALL_PACKAGES')));
   assert.ok(!fs.existsSync(path.join(root, 'uni_modules/uni-upgrade-center-app')));
   assert.ok(!fs.readFileSync(path.join(root, 'pages.json'), 'utf8').includes('uni-upgrade-center-app'));

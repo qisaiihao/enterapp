@@ -366,7 +366,8 @@ async function logRedactionTests() {
   const source = read('utils/cloudCall.js').replace(/^import .*;\r?$/gm, '').replace('export async function cloudCall', 'async function cloudCall').replace('export default', 'const exportedHelpers =');
   const context = {
     module: { exports: {} }, console: { log: (...args) => logs.push(args), warn() {}, error() {} },
-    getCloudFunctionMethod: () => 'tcb'
+    getCloudFunctionMethod: () => 'tcb',
+    prepareCloudPostImages() {}, resolveCloudPostImages: async (_, response) => response
   };
   vm.runInNewContext(source + '\nmodule.exports = cloudCall;', context);
   await context.module.exports('resetPassword', { newPassword: 'private-new-password', code: '654321' }, {

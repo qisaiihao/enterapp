@@ -70,7 +70,7 @@ export async function getHomePosts({
       if (res && res.result && res.result.success) {
         return res.result.posts || [];
       }
-      return [];
+      throw new Error(res?.result?.error?.message || res?.result?.message || '加载帖子失败，请重试');
     },
     { ttlMs: TTL_MS, swrMs: SWR_MS, onBackgroundUpdate }
   );

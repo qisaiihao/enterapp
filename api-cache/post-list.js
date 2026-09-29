@@ -42,7 +42,7 @@ export async function getPostList({
 } = {}) {
   const authorSuffix = author ? `:author:${author}` : '';
   const key = buildCacheKey({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous }) + authorSuffix;
-  const cacheKey = forceRefresh && page === 0 ? `${key}:ts:${Date.now()}` : key;
+  if (forceRefresh && page === 0) ns.delete(key);
 
   const fetchPosts = async () => {
     const result = await withTimeout(callCloudAndUnwrap(
@@ -54,16 +54,8 @@ export async function getPostList({
     return result.posts || [];
   };
 
-  // 第一页强刷直接请求
-  if (page === 0 && forceRefresh) {
-    ns.delete(key);
-    const posts = await fetchPosts();
-    ns.set(key, posts, { ttlMs: TTL_MS });
-    return posts;
-  }
-
   return ns.getOrFetch(
-    cacheKey,
+    key,
     fetchPosts,
     {
       ttlMs: TTL_MS,

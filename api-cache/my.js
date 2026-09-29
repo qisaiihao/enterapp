@@ -3,6 +3,7 @@ import fileUrlCache from '@/_utils/file-url-cache';
 import { normalizeAppBackgroundMode } from '@/utils/appBackground.js';
 import { getOpenid } from '@/utils/app-state.js';
 import { callCloudAndUnwrap } from './_shared/cloud-wrapper.js';
+import { captureFavoriteRead, staleFavoriteError } from '@/cache/favorites.js';
 import avatarCache from '@/cache/stores/avatar.js';
 
 // 我的资料缓存
@@ -109,8 +110,10 @@ function nsFavorites() {
 
 export async function getMyFavorites({ page = 0, pageSize = 10, context }) {
   const ns = nsFavorites();
-  const key = `page:${page}:size:${pageSize}`;
-  return ns.getOrFetch(
+  const userId = getOpenid();
+  const current = captureFavoriteRead();
+  const key = `user:${userId}:page:${page}:size:${pageSize}`;
+  const favorites = await ns.getOrFetch(
     key,
     async () => {
       const result = await callCloudAndUnwrap(
@@ -125,14 +128,16 @@ export async function getMyFavorites({ page = 0, pageSize = 10, context }) {
       );
       return result.favorites || [];
     },
-    { ttlMs: 0, swrMs: 0 }
+    { ttlMs: 60 * 1000, swrMs: 0 }
   );
+  if (!current()) throw staleFavoriteError();
+  return favorites;
 }
 
 export function invalidateMyFavorites(page, pageSize = 10) {
   const ns = nsFavorites();
   if (typeof page === 'number') {
-    ns.delete(`page:${page}:size:${pageSize}`);
+    ns.delete(`user:${getOpenid()}:page:${page}:size:${pageSize}`);
     return;
   }
   ns.clear();

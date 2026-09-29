@@ -59,11 +59,17 @@ function runtime(platform) {
       readAsDataURL(file) { try { this.result = read(file); this.onload(); } catch (error) { this.onerror(error); } }
     };
   }
+  globals.favoriteRefresh = {};
+  globals.createFavoriteFolder = async (folderName, coverUrl, context) => {
+    const response = await globals.cloudCall('createFavoriteFolder', { folderName, coverUrl }, { context, requireAuth: true });
+    if (!response.result.success) throw new Error(response.result.message);
+    return response.result;
+  };
   Object.assign(globals, load('utils/fileReader.js', globals));
   const definition = load('pages-content/favorite-folders/favorite-folders.vue', globals);
   const page = definition.data();
   for (const [name, method] of Object.entries(definition.methods)) page[name] = method.bind(page);
-  page.loadFolders = () => state.refreshes++;
+  page.loadFolders = async () => { state.refreshes++; };
   page.showCreateFolder(); page.newFolderName = ' 春日 ';
   page.newFolderCover = { app: '_doc/uniapp_temp/cover.jpg', 'mp-weixin': 'wxfile://tmp/cover.jpg', h5: 'blob:http://localhost/cover' }[platform];
   return { page, state };

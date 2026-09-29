@@ -139,12 +139,14 @@ import { previewImage } from '../../utils/imagePreview.js';
 import { getMyFavorites } from '../../api-cache/favorites.js';
 import FavoriteActionMenu from '@/components/FavoriteActionMenu.vue';
 import postGalleryMixin from '../../mixins/postGallery.js';
+import favoriteRefresh from '@/mixins/favoriteRefresh.js';
+import { captureFavoriteRead, staleFavoriteError } from '@/cache/favorites.js';
 import paginationMixin from '../../mixins/pagination.js';
 import { normalizePostList } from '../../utils/postNormalizer.js';
 
 export default {
     components: { FavoriteActionMenu },
-    mixins: [paginationMixin, postGalleryMixin],
+    mixins: [paginationMixin, postGalleryMixin, favoriteRefresh],
     data() {
         return {
             folderId: '',
@@ -200,7 +202,18 @@ export default {
         // 不执行任何操作，避免干扰加载
     },
     methods: {
+        acceptFavoriteChange(event) {
+            return event.kind !== 'folder-created' && event.kind !== 'folder-updated';
+        },
+        applyFavoriteChange(event) {
+            if (event.kind === 'folder-deleted' && event.folderId === this.folderId) this.favorites = [];
+            if (event.favoriteId && event.kind === 'removed') {
+                this.favorites = this.favorites.filter(item => item.favoriteId !== event.favoriteId);
+            }
+        },
+        refreshFavoritesAfterChange() { return this.refresh(); },
         async loadFavorites({ page, isRefresh }) {
+            const current = captureFavoriteRead();
             if (isRefresh) {
                 this.setData({
                     favorites: [],
@@ -218,6 +231,7 @@ export default {
                     context: this
                 });
 
+                if (!current()) throw staleFavoriteError();
                 console.log('获取收藏列表结果:', favorites);
 
                 const newFavorites = favorites.map((favorite, index) => {
@@ -280,6 +294,7 @@ export default {
                     hasMore: newFavorites.length === this.pageSize
                 };
             } catch (error) {
+                if (error.code === 'FAVORITE_STALE') throw error;
                 console.error('加载收藏数据失败:', error);
                 uni.showToast({
                     title: error.message || '加载收藏数据失败',
@@ -310,7 +325,7 @@ export default {
         },
 
         showFavoriteActions(item) {
-            this.favoriteActionTarget = { favoriteId: item.favoriteId, postId: item.postId || item._id };
+            this.favoriteActionTarget = { favoriteId: item.favoriteId, postId: item.postId || item._id, folderId: item.folderId || this.folderId };
         },
         handleFavoriteRemoved({ favoriteId }) {
             this.favorites = this.favorites.filter(item => item.favoriteId !== favoriteId);

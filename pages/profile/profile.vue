@@ -289,6 +289,7 @@ import FavoriteActionMenu from '@/components/FavoriteActionMenu.vue';
 import AppActionSheet from '@/components/overlay/AppActionSheet.vue';
 import DeleteModal from '@/components/DeleteModal.vue';
 import ShareModal from '@/components/ShareModal.vue';
+import { captureFavoriteRead } from '@/cache/favorites.js';
 import { getMyPosts, getMyFavorites, invalidateMyFavorites, invalidateMyPosts, invalidateMyInfo, getMyInfo } from '@/api-cache/my.js';
 import { togglePostVisibility, deletePost as deletePostApi, saveDraft, getPostDetail, getFollowerCount, updateUserInfo, logout } from '@/api-cache/profile-actions.js';
 import { getPortfolioFolders, notifyPortfolioUpdated, invalidatePortfolioCache } from '@/api-cache/portfolio.js';
@@ -824,6 +825,7 @@ export default {
         this.getProfileData();
     },
     onShow: function () {
+        this._profileFavoritesVisible = true;
         applyThemeMode(this.appThemeMode || getThemeMode());
         // #ifndef MP-WEIXIN
         try { uni.hideTabBar({ animation: false }); } catch (e) {}
@@ -880,7 +882,7 @@ export default {
             this.loadFavorites();
         }
     },
-    onHide() { this.isSidebarOpen = false; },
+    onHide() { this.isSidebarOpen = false; this._profileFavoritesVisible = false; },
     onUnload: function () {
         this.postsRequestToken += 1;
         this.pendingRefreshToken += 1;
@@ -952,9 +954,14 @@ export default {
                 this._favoriteChangedHandler = (e = {}) => {
                     const openid = getOpenid();
                     if (e && e.userId === openid) {
-                        invalidateMyFavorites();
-                        if (this.currentTab === 'favorites') {
-                            this.refreshProfileAtomically({ reason: 'favorite-changed', forceRefresh: true }).catch(() => {});
+                        if (e.kind === 'folder-created' || e.kind === 'folder-updated') return;
+                        this.favoriteRequestToken = (this.favoriteRequestToken || 0) + 1;
+                        this.favoriteLoading = false;
+                        this.favoritePage = 0;
+                        this.favoriteHasMore = true;
+                        this.favoriteList = [];
+                        if (this.currentTab === 'favorites' && this._profileFavoritesVisible !== false) {
+                            this.loadFavorites();
                         }
                     }
                 };
@@ -1769,6 +1776,7 @@ export default {
             this.pendingRefreshToken = token;
             this.isAtomicRefreshing = true;
             const tab = this.currentTab;
+            const favoriteReadCurrent = tab === 'favorites' ? captureFavoriteRead() : () => true;
             if (tab === 'posts') {
                 // 刷新或切换筛选后，旧的分页结果不能再写入当前列表。
                 this.postsRequestToken += 1;
@@ -1788,13 +1796,13 @@ export default {
                     forceRefresh
                 });
 
-                if (token !== this.pendingRefreshToken) {
+                if (token !== this.pendingRefreshToken || !favoriteReadCurrent()) {
                     return false;
                 }
 
                 await this.syncAtomicUserSession(snapshot.userInfo);
 
-                if (token !== this.pendingRefreshToken) {
+                if (token !== this.pendingRefreshToken || !favoriteReadCurrent()) {
                     return false;
                 }
 
@@ -1802,6 +1810,7 @@ export default {
                 this._hasFirstShow = true;
                 return true;
             } catch (error) {
+                if (error.code === 'FAVORITE_STALE' || !favoriteReadCurrent()) return false;
                 if (token !== this.pendingRefreshToken) {
                     return false;
                 }
@@ -2605,8 +2614,11 @@ export default {
 
         // 新增：加载收藏列表
         loadFavorites: function (cb) {
-            // 移除阻止重复调用的条件判断，允许在onShow时刷新数据
-            // if (this.data.favoriteLoading) return;
+            if (this.favoriteLoading) return;
+            const current = captureFavoriteRead();
+            const token = (this.favoriteRequestToken || 0) + 1;
+            this.favoriteRequestToken = token;
+            const active = () => current() && token === this.favoriteRequestToken;
 
             const { favoritePage, PAGE_SIZE } = this;
             console.log('【profile】请求收藏分页参数:', {
@@ -2622,14 +2634,15 @@ export default {
             try {
                 return getMyFavorites({ page: favoritePage, pageSize: PAGE_SIZE, context: this })
                     .then((favorites) => {
+                        if (!active()) return;
                         (favorites || []).forEach((favorite) => {
                             if (favorite.favoriteTime) favorite.formattedFavoriteTime = this.formatTime(favorite.favoriteTime);
                             if (favorite.imageUrls && favorite.imageUrls.length > 0) favorite.imageStyle = `height: 0; padding-bottom: 75%;`;
                         });
                         // 处理分页数据，避免重复
                         const newFavoriteList = favoritePage === 0 ? favorites : (() => {
-                            const existingIds = new Set(this.favoriteList.map(p => p._id));
-                            const uniqueNewList = (favorites || []).filter(p => p && p._id && !existingIds.has(p._id));
+                            const existingIds = new Set(this.favoriteList.map(p => p.favoriteId || p._id));
+                            const uniqueNewList = (favorites || []).filter(p => p && !existingIds.has(p.favoriteId || p._id));
                             return this.favoriteList.concat(uniqueNewList);
                         })();
                         this.setData({
@@ -2639,10 +2652,12 @@ export default {
                         });
                     })
                     .catch((err) => {
+                        if (!active() || err.code === 'FAVORITE_STALE') return;
                         console.error('profile 获取收藏失败:', err);
                         uni.showToast({ title: '网络异常', icon: 'none' });
                     })
                     .finally(() => {
+                        if (token !== this.favoriteRequestToken) return;
                         this.setData({ favoriteLoading: false });
                         if (typeof cb === 'function') cb();
                     });
@@ -2851,7 +2866,7 @@ export default {
         handleFavoriteActionMenu(data) {
             const item = this.favoriteList[data.index];
             if (!item) return;
-            this.favoriteActionTarget = { favoriteId: item.favoriteId, postId: item.postId || item._id };
+            this.favoriteActionTarget = { favoriteId: item.favoriteId, postId: item.postId || item._id, folderId: item.folderId };
         },
         handleFavoriteRemoved({ favoriteId }) {
             this.favoriteList = this.favoriteList.filter(item => item.favoriteId !== favoriteId);

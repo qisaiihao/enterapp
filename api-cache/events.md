@@ -9,8 +9,9 @@
   - 处理：invalidateUserPosts(userId); 可选刷新首页第一页缓存
 
 - favorite-changed
-  - 参数：{ userId, postId, favored }
-  - 处理：invalidateUserPosts(userId)（或仅失效含该 post 的页键）
+  - 参数：{ userId, kind?, postId?, favoriteId?, folderId?, favored? }
+  - 统一通过 emitFavoriteChanged 发出；发出前先失效收藏缓存。移除单条记录时 favored 省略，同帖仍可能位于其他夹。
+  - 页面仅负责刷新显示，不重复失效。新写入口使用 api-cache/favorite-actions.js。
 
 触发示例：
   uni.$emit('avatar-updated', { userId })
@@ -22,4 +23,3 @@
     uni.$on('avatar-updated', (e) => { if (e.userId === this.targetUserId) { invalidateUserInfo(e.userId); this.loadUserProfile(); } })
     uni.$on('post-created', (e) => { if (e.userId === this.targetUserId) { invalidateUserPosts(e.userId); this.refresh(); } })
     uni.$on('favorite-changed', (e) => { if (e.userId === this.targetUserId) { invalidateUserPosts(e.userId); this.refresh(); } })
-

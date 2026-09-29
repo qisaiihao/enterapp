@@ -358,6 +358,8 @@ import { formatRelativeTime } from '../../utils/time.js';
 import avatarCache from '../../cache/stores/avatar.js';
 import followCache from '../../cache/stores/follow.js';
 import { previewImage } from '../../utils/imagePreview.js';
+import favoriteRefresh from '@/mixins/favoriteRefresh.js';
+import { captureFavoriteRead } from '@/cache/favorites.js';
 import postGalleryMixin from '../../mixins/postGallery.js';
 import fileUrlCache from '../../_utils/file-url-cache.js';
 import { invalidateHomePosts } from '../../api-cache/home-posts.js';
@@ -434,7 +436,7 @@ export default {
         PortfolioBook,
         PostItem
     },
-    mixins: [postGalleryMixin],
+    mixins: [postGalleryMixin, favoriteRefresh],
     data() {
         return {
             userInfo: {
@@ -632,6 +634,19 @@ export default {
         }
     },
     methods: {
+        acceptFavoriteChange(event) {
+            return event.userId === this.targetUserId && event.kind !== 'folder-created' && event.kind !== 'folder-updated';
+        },
+        applyFavoriteChange() {
+            this.favoritesLoadToken += 1;
+            this.favoriteLoading = false;
+            this.favoriteList = [];
+            this.favoritePage = 0;
+            this.favoriteHasMore = true;
+        },
+        refreshFavoritesAfterChange() {
+            if (this.currentTab === 'favorites') return this.loadUserFavorites();
+        },
         beginGuardedRequest(tokenKey, targetUserId = this.targetUserId) {
             const token = (Number(this[tokenKey]) || 0) + 1;
             this[tokenKey] = token;
@@ -1550,12 +1565,13 @@ export default {
             if (this.favoriteLoading) return;
 
             const { favoritePage, PAGE_SIZE } = this;
+            const current = captureFavoriteRead(this.targetUserId);
             const request = this.beginGuardedRequest('favoritesLoadToken');
             this.setData({ favoriteLoading: true });
             // 调用云函数获取收藏数据
-            getUserFavorites({ userId: request.targetUserId, page: favoritePage, pageSize: PAGE_SIZE, context: this })
+            return getUserFavorites({ userId: request.targetUserId, page: favoritePage, pageSize: PAGE_SIZE, context: this })
                 .then(async (favorites) => {
-                    if (!this.isGuardedRequestCurrent('favoritesLoadToken', request)) {
+                    if (!current() || !this.isGuardedRequestCurrent('favoritesLoadToken', request)) {
                         return;
                     }
                     // 将 { postId, favoriteTime, post: {...} } 规范化为贴合模板的数据结构
@@ -1582,7 +1598,7 @@ export default {
                     // cloud:// 临时链接水合
                     try {
                         normalized = await hydrateTempUrls(normalized);
-                        if (!this.isGuardedRequestCurrent('favoritesLoadToken', request)) {
+                        if (!current() || !this.isGuardedRequestCurrent('favoritesLoadToken', request)) {
                             return;
                         }
                         warmTempUrlsFromPosts(normalized);
@@ -1602,6 +1618,7 @@ export default {
                     });
                 })
                 .catch((err) => {
+                    if (!current() || err.code === 'FAVORITE_STALE') return;
                     if (this.isGuardedRequestCurrent('favoritesLoadToken', request)) {
                         console.error('【用户主页】获取收藏失败:', err);
                         uni.showToast({ title: '网络异常', icon: 'none' });
@@ -1609,7 +1626,7 @@ export default {
                     }
                 })
                 .finally(() => {
-                    if (!this.isGuardedRequestCurrent('favoritesLoadToken', request)) {
+                    if ( !this.isGuardedRequestCurrent('favoritesLoadToken', request)) {
                         if (typeof cb === 'function') cb();
                         return;
                     }

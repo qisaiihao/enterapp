@@ -19,6 +19,7 @@ exports.main = async (event, context) => {
     excludePostIds = [] // 排除已显示的帖子ID
   } = event;
   const openId = openid;
+  const rawImages = event.rawImages === true;
   const debug = !!(event && event.debug);
 
   const maskId = (id) => {
@@ -70,7 +71,7 @@ exports.main = async (event, context) => {
     // 1. 获取个性化推荐（基于用户互动记录）
     let remaining = targetCount - allPosts.length;
     if (remaining > 0) {
-      const personalizedPosts = await getPersonalizedPosts(openId, Math.min(personalizedLimit, remaining), usedPostIds);
+      const personalizedPosts = await getPersonalizedPosts(openId, Math.min(personalizedLimit, remaining), usedPostIds, rawImages);
       if (personalizedPosts.length > 0) {
         personalizedPosts.forEach(post => {
           post.recommendationType = 'personalized';
@@ -84,7 +85,7 @@ exports.main = async (event, context) => {
 
     remaining = targetCount - allPosts.length;
     if (remaining > 0) {
-      const tagBasedPosts = await getTagBasedPosts(openId, Math.min(personalizedLimit, remaining), usedPostIds);
+      const tagBasedPosts = await getTagBasedPosts(openId, Math.min(personalizedLimit, remaining), usedPostIds, rawImages);
       if (tagBasedPosts.length > 0) {
         tagBasedPosts.forEach(post => {
           post.recommendationType = 'tag_based';
@@ -98,7 +99,7 @@ exports.main = async (event, context) => {
 
     remaining = targetCount - allPosts.length;
     if (remaining > 0) {
-      const hotPosts = await getHotPosts(Math.min(hotLimit, remaining), Array.from(usedPostIds), openId);
+      const hotPosts = await getHotPosts(Math.min(hotLimit, remaining), Array.from(usedPostIds), openId, rawImages);
       if (hotPosts.length > 0) {
         hotPosts.forEach(post => {
           post.recommendationType = 'hot';
@@ -112,7 +113,7 @@ exports.main = async (event, context) => {
 
     remaining = targetCount - allPosts.length;
     if (remaining > 0) {
-      const additionalHotPosts = await getHotPosts(remaining, Array.from(usedPostIds), openId);
+      const additionalHotPosts = await getHotPosts(remaining, Array.from(usedPostIds), openId, rawImages);
       if (additionalHotPosts.length > 0) {
         additionalHotPosts.forEach(post => {
           post.recommendationType = 'hot';
@@ -127,7 +128,7 @@ exports.main = async (event, context) => {
 
     remaining = targetCount - allPosts.length;
     if (remaining > 0) {
-      const latestPosts = await getLatestPosts(remaining, Array.from(usedPostIds), openId);
+      const latestPosts = await getLatestPosts(remaining, Array.from(usedPostIds), openId, rawImages);
       if (latestPosts.length > 0) {
         latestPosts.forEach(post => {
           post.recommendationType = 'latest';
@@ -191,7 +192,7 @@ exports.main = async (event, context) => {
 };
 
 // 获取个性化推荐帖子
-async function getPersonalizedPosts(openId, limit, usedPostIds) {
+async function getPersonalizedPosts(openId, limit, usedPostIds, rawImages = false) {
   try {
     // 获取用户最近的互动记录
     const BATCH_SIZE = 30; // 减少查询数量
@@ -343,7 +344,7 @@ async function getPersonalizedPosts(openId, limit, usedPostIds) {
       })
       .end();
 
-    return await processPostsData(personalizedResult.list || [], openId);
+    return await processPostsData(personalizedResult.list || [], openId, rawImages);
 
   } catch (error) {
     console.error('获取个性化推荐失败:', error);
@@ -352,7 +353,7 @@ async function getPersonalizedPosts(openId, limit, usedPostIds) {
 }
 
 // 获取热门推荐帖子
-async function getHotPosts(limit, excludePostIds, openId) {
+async function getHotPosts(limit, excludePostIds, openId, rawImages = false) {
   try {
     // 获取被屏蔽的用户ID列表（使用缓存）
     let blockedUserIds = [];
@@ -445,7 +446,7 @@ async function getHotPosts(limit, excludePostIds, openId) {
       })
       .end();
 
-    return await processPostsData(hotResult.list || [], openId);
+    return await processPostsData(hotResult.list || [], openId, rawImages);
 
   } catch (error) {
     console.error('获取热门推荐失败:', error);
@@ -454,7 +455,7 @@ async function getHotPosts(limit, excludePostIds, openId) {
 }
 
 // 获取最新帖子
-async function getLatestPosts(limit, excludePostIds, openId) {
+async function getLatestPosts(limit, excludePostIds, openId, rawImages = false) {
   try {
     // 获取被屏蔽的用户ID列表（使用缓存）
     let blockedUserIds = [];
@@ -494,7 +495,7 @@ async function getLatestPosts(limit, excludePostIds, openId) {
       .limit(limit)
       .get();
 
-    return await processPostsData(latestResult.data || [], openId);
+    return await processPostsData(latestResult.data || [], openId, rawImages);
 
   } catch (error) {
     console.error('获取最新帖子失败:', error);
@@ -504,7 +505,7 @@ async function getLatestPosts(limit, excludePostIds, openId) {
 
 // 数组随机打乱函数
 // 处理帖子数据的通用方法
-async function processPostsData(posts, openId) {
+async function processPostsData(posts, openId, rawImages = false) {
   if (!posts || posts.length === 0) return [];
 
   // 处理图片URL转换
@@ -526,7 +527,7 @@ async function processPostsData(posts, openId) {
     urlsToCheck.forEach(url => fileIDs.add(url));
   });
 
-  if (fileIDs.size > 0) {
+  if (!rawImages && fileIDs.size > 0) {
     try {
       const fileListResult = await cloud.getTempFileURL({ fileList: Array.from(fileIDs) });
       const urlMap = new Map();
@@ -561,7 +562,7 @@ async function processPostsData(posts, openId) {
 }
 
 // 获取按标签推荐的帖子
-async function getTagBasedPosts(openId, limit, usedPostIds) {
+async function getTagBasedPosts(openId, limit, usedPostIds, rawImages = false) {
   try {
     // 1. 获取所有热门标签（包括原创和非原创帖子）
     const tagsResult = await db.collection('posts').aggregate()
@@ -691,7 +692,7 @@ async function getTagBasedPosts(openId, limit, usedPostIds) {
       })
       .end();
     
-    return await processPostsData(tagBasedResult.list || [], openId);
+    return await processPostsData(tagBasedResult.list || [], openId, rawImages);
     
   } catch (error) {
     console.error('获取按标签推荐失败:', error);

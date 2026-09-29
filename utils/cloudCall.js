@@ -1,6 +1,7 @@
 import { getCloudFunctionMethod } from './platformDetector.js';
 import auth from './auth.js';
 import { formatErrorForLog } from './error-log.js';
+import { prepareCloudPostImages, resolveCloudPostImages } from './cloudPostImages.js';
 
 const platformDetector = {
     getCloudFunctionMethod
@@ -134,6 +135,7 @@ export async function cloudCall(name, data = {}, options = {}) {
     const shouldInjectOpenId = typeof injectOpenId === 'boolean' ? injectOpenId : !['login', 'getOpenId', 'github-auth'].includes(name);
 
     const payload = ensureObject(data);
+    prepareCloudPostImages(name, payload);
     let openid = null;
 
     if (shouldInjectOpenId) {
@@ -192,8 +194,8 @@ export async function cloudCall(name, data = {}, options = {}) {
                 },
                 customReqOpts: typeof timeoutMs === 'number' && timeoutMs > 0 ? { timeout: timeoutMs } : undefined
             });
-            console.log(`[cloudCall][${pageTag}] "${name}" succeeded`, result);
-            return result;
+            console.log(`[cloudCall][${pageTag}] "${name}" succeeded`);
+            return await resolveCloudPostImages(name, result);
         } catch (error) {
             const isLastAttempt = attempt === totalAttempts;
             const errorCode = error && error.code ? error.code : error?.errCode;

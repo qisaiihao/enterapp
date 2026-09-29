@@ -625,7 +625,7 @@ exports.main = async (event, context) => {
       urlsToCheck.forEach(url => fileIDs.add(url));
     });
 
-    if (fileIDs.size > 0) {
+    if (event.rawImages !== true && fileIDs.size > 0) {
       try {
         const fileListResult = await cloud.getTempFileURL({ fileList: Array.from(fileIDs) });
         const urlMap = new Map();

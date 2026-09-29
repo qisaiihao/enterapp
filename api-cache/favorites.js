@@ -1,6 +1,7 @@
 /**
  * 收藏内容相关API缓存层
  */
+import { captureFavoriteRead, staleFavoriteError } from '@/cache/favorites.js';
 import { cloudCall } from '../utils/cloudCall.js';
 import { callCloudAndUnwrap } from './_shared/cloud-wrapper.js';
 
@@ -22,6 +23,7 @@ async function getMyFavorites({
   context,
   ...options
 } = {}) {
+  const current = captureFavoriteRead();
   const result = await callCloudAndUnwrap('getMyProfileData', {
     action: folderId ? 'getFavoritesByFolder' : 'getAllFavorites',
     ...(folderId ? { folderId } : {}),
@@ -36,6 +38,7 @@ async function getMyFavorites({
   if (!Array.isArray(result.favorites)) {
     throw new Error('收藏内容返回格式异常，请稍后重试');
   }
+  if (!current()) throw staleFavoriteError();
   return result.favorites;
 }
 

@@ -334,6 +334,7 @@ import avatarCache from '@/cache/stores/avatar.js';
 import followCache from '@/cache/stores/follow.js';
 import { cloudCall } from '@/utils/cloudCall.js';
 import { uploadFile } from '@/utils/uploader.js';
+import favoriteDetail from '@/mixins/favoriteDetail.js';
 import postGalleryMixin from '@/mixins/postGallery.js';
 import { getCurrentUserId } from '@/utils/auth.js';
 import { calculateActualLines as calcCanvasLines, wrapText, clampText } from '@/utils/canvasText.js';
@@ -457,7 +458,7 @@ export default {
         CommentList,
         ShareModal
     },
-    mixins: [postGalleryMixin],
+    mixins: [postGalleryMixin, favoriteDetail],
     watch: {
         voteMotionState(next, previous) {
             if (!previous || next.id !== previous.id) { this.voteMotionVersion = 0; return; }
@@ -1023,14 +1024,7 @@ export default {
                 title: '收藏成功',
                 icon: 'success'
             });
-            try {
-                const appInstance = getApp();
-                const userId = appInstance && appInstance.globalData && appInstance.globalData.openid;
-                const postId = this.post && this.post._id;
-                if (userId && postId && uni.$emit) {
-                    uni.$emit('favorite-changed', { userId, postId, favored: true });
-                }
-            } catch (e) {}
+
         },
 
         hidePortfolioModal: function () {

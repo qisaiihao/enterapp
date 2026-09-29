@@ -1,8 +1,8 @@
 import { cloudCall } from '@/utils/cloudCall.js';
 import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
 import { callCloudAndUnwrap, getResult } from './_shared/cloud-wrapper.js';
+import { removeFavoriteRecord } from './favorite-actions.js';
 import {
-  invalidateMyFavorites,
   invalidateMyInfo,
   invalidateMyPosts
 } from './my.js';
@@ -97,26 +97,8 @@ export async function getPostDetail(postId, context) {
   throw new Error(result.message || 'Get post detail failed');
 }
 
-export async function removeFavorite(favoriteId, context) {
-  console.log('[profile-actions] remove favorite', favoriteId);
-
-  await callCloudAndUnwrap(
-    'getMyProfileData',
-    {
-      action: 'removeFromFavorite',
-      favoriteId
-    },
-    {
-      pageTag: 'profile:remove-favorite',
-      context,
-      requireAuth: true
-    },
-    'Remove favorite failed'
-  );
-
-  invalidateMyFavorites();
-
-  return { success: true };
+export async function removeFavorite(favoriteId, context, target) {
+  return removeFavoriteRecord(favoriteId, context, target);
 }
 
 export async function getFollowerCount(context) {

@@ -188,7 +188,7 @@ exports.main = async (event, context) => {
 
     console.log('🔍 [getDiscussionPosts] 需要转换的图片数量:', fileIDs.size);
 
-    if (fileIDs.size > 0) {
+    if (event.rawImages !== true && fileIDs.size > 0) {
       try {
         console.log('🔍 [getDiscussionPosts] 开始转换图片URL');
         const fileListResult = await cloud.getTempFileURL({ fileList: Array.from(fileIDs) });

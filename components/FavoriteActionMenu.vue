@@ -10,8 +10,6 @@
 import AppActionSheet from '@/components/overlay/AppActionSheet.vue';
 import FolderSelector from '@/components/folder-selector/folder-selector.vue';
 import { removeFavorite } from '@/api-cache/profile-actions.js';
-import { emitFavoriteChanged } from '@/utils/events.js';
-import { getOpenid } from '@/utils/app-state.js';
 
 export default {
     name: 'FavoriteActionMenu',
@@ -36,11 +34,11 @@ export default {
             this.isRemoving = true;
             uni.showLoading({ title: '取消收藏中...', mask: true });
             try {
-                await removeFavorite(target.favoriteId, this);
+                await removeFavorite(target.favoriteId, this, target);
                 this.$emit('removed', target);
-                emitFavoriteChanged({ userId: getOpenid(), postId: target.postId, favored: false });
                 uni.showToast({ title: '已取消收藏', icon: 'success' });
             } catch (error) {
+                if (error.code === 'FAVORITE_STALE') return;
                 uni.showToast({ title: error.message || '取消收藏失败，请重试', icon: 'none' });
             } finally {
                 this.isRemoving = false;
