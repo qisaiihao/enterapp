@@ -127,11 +127,13 @@ exports.main = async (event, context) => {
           return processed;
         }
         
-        // 非匿名评论，使用真实用户信息
-        const author = usersMap.get(comment._openid) || { 
-          nickName: '匿名用户', 
-          avatarUrl: '' // 如果找不到用户信息，提供默认值
-        };
+        // 非匿名评论，使用真实用户信息；已注销账号保留注销标记
+        const author = comment.authorDeleted
+          ? { nickName: '已注销用户', avatarUrl: '/static/images/avatar.png' }
+          : usersMap.get(comment._openid) || {
+            nickName: '匿名用户',
+            avatarUrl: '' // 如果找不到用户信息，提供默认值
+          };
         const processed = {
           ...comment,
           authorName: author.nickName,

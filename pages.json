@@ -110,6 +110,14 @@
     },
 
     {
+      "path": "pages/privacy/privacy",
+      "style": {
+        "navigationStyle": "custom",
+        "usingComponents": {}
+      }
+    },
+
+    {
       "path": "pages/poem-square/poem-square",
       "style": {
         "navigationStyle": "custom",

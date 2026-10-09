@@ -1,6 +1,7 @@
 import { setupCacheEventBridges } from '@/api-cache/events.js';
 import { getAppState, getOpenid, patchAppState } from '@/utils/app-state.js';
 import { formatErrorForLog } from '@/utils/error-log.js';
+import { hasAcceptedPrivacyConsent } from '@/utils/privacyConsent.js';
 import { initWxCloud } from '@/utils/wxCloudInit.js';
 import { initRuntimeBadges, prewarmAfterLogin, setupFileUrlResolver } from '@/utils/runtime-preload.js';
 
@@ -704,6 +705,11 @@ export async function ensureRuntimeOpenid(options = {}) {
   const existingOpenid = getOpenid();
   if (existingOpenid && !options.force) {
     return existingOpenid;
+  }
+
+  // 隐私政策确认前不发起登录云函数，避免提前获取 openid。
+  if (!hasAcceptedPrivacyConsent()) {
+    return null;
   }
 
   const instance = ensureTcbReady();

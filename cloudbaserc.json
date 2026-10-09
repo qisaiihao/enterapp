@@ -750,6 +750,14 @@
               "memory": 128
             },
             {
+              "name": "cancelAccount",
+              "root": "./functions/cancelAccount",
+              "runtime": "Nodejs16.13",
+              "timeout": 20,
+              "memory": 256,
+              "installDependency": true
+            },
+            {
               "name": "recordEventBatch",
               "root": "./functions/recordEventBatch",
               "timeout": 3,

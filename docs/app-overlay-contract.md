@@ -37,6 +37,12 @@
 - 三个页面隐藏时撤销待执行动作，避免切换页面后才跳转或刷新旧列表。所有新效果遵循减少动态效果设置；原字体路径、页面注册时机及绘制名称未改动。
 - `node scripts/test-navigation-motion-h5.cjs` 使用真实组件与页面方法、替代数据加载和导航，验证两种主题下的时长/位置、遮罩和返回、关闭后执行、重复操作、页面隐藏撤销和减少动态效果。截图保存在系统临时目录的 `enterkey-overlay-review`；App/微信真机观感仍需验收。
 
+### 首启隐私确认（2026-10-09）
+
+- `components/PrivacyConsentDialog.vue` 复用 `AppDialog` 的外观与 `defer-answer` 退出时机：取消“不同意”、确认“同意并继续”，正文内《隐私政策》链接打开政策页，遮罩和返回键不静默放行。开屏页在同意前不启动数据预加载和 6 秒放行计时；不同意时 App 退出、微信小程序退出、其余环境提示后重新展示。存储键、版本更新和真机验收项见 [首启隐私政策确认](features/privacy-consent.md)。
+- `scripts/test-splash-startup.cjs` 的 `testPrivacyConsent` 覆盖同意前后、拒绝重弹和弹窗事件/链接，纳入 `npm run test:splash`。
+- 设置页“注销账号”复用 `AppDialog`：说明确认、密码验证（`editable` + 新增 `password` 密文输入）和最终确认最多三步，失败保留弹窗可重试；流程与云端清理矩阵见 [应用内注销账号](features/account-cancellation.md)，测试纳入 `npm run test:cancel-account`。
+
 每个自有路由页面的模板末尾放置一个 `<app-overlay-host />`，由 `main.js` 显式导入并通过 `app.component('app-overlay-host', AppOverlayHost)` 注册，不得仅依赖 easycom 自动扫描。新增页面时也必须添加；`scripts/test-app-overlays.cjs` 检查 pages.json 中的页面是否接入，并验证宿主注册和真实组件的请求回调。
 
 2026-09-29 排查本地 Android 正式包 `unpackage/release/apk/app-release.apk`：包内 `app-service.js` 与 2026-09-28 的发行产物一致，69 处页面保留了 `resolveComponent("app-overlay-host")`，但没有宿主实现或全局注册；调试产物则包含 easycom 引入及宿主实现。由此造成 API 请求进入队列后无人展示，确认流程无法继续；直接引用 `AppActionSheet` 的菜单仍可显示。显式注册保证宿主进入依赖图。尚未据此确定 HBuilderX 自动扫描失效的具体编译器原因；修复后仍需重新发行 APK 真机验收。

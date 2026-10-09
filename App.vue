@@ -11,6 +11,7 @@ import {
     setUserSession
 } from '@/utils/app-state.js';
 import { formatErrorForLog } from '@/utils/error-log.js';
+import { hasAcceptedPrivacyConsent, runAfterPrivacyConsent } from '@/utils/privacyConsent.js';
 import { ensureRuntimeOpenid, ensureTcbAuthenticated, installRuntimeBindings } from '@/utils/runtime-bootstrap.js';
 import { refreshAdminStatus } from '@/utils/admin.js';
 import unreadBadge from '@/cache/stores/unread-badge.js';
@@ -35,20 +36,12 @@ export default {
         this.runWhenPlusReady((plusInstance) => {
             const args = this.getPlusRuntimeArguments(plusInstance);
             if (args && args.includes('github-callback')) {
-                this.handleUrlScheme({ path: args });
+                runAfterPrivacyConsent(() => this.handleUrlScheme({ path: args }));
             }
         }, 'handle launch args');
         // #endif
 
         uni.removeStorageSync('cachedPostList');
-
-        // #ifdef APP-PLUS
-        this.runWhenPlusReady(() => {
-            checkAndUpdate().catch((error) => {
-                console.warn(`[App] update check failed: ${formatErrorForLog(error)}`);
-            });
-        }, 'check app update');
-        // #endif
 
         markLoginProcessStarted();
         this.syncGlobalDataFromAppState();
@@ -60,7 +53,7 @@ export default {
         // #endif
 
         this.$nextTick(() => {
-            this.loginAndCheckUser();
+            this.runPrivacyGatedStartup();
         });
     },
 
@@ -70,14 +63,14 @@ export default {
         this.runWhenPlusReady((plusInstance) => {
             const args = this.getPlusRuntimeArguments(plusInstance);
             if (args && args.includes('github-callback')) {
-                this.handleUrlScheme({ path: args });
+                runAfterPrivacyConsent(() => this.handleUrlScheme({ path: args }));
             }
 
             if (!this._newintentListenerAdded && plusInstance.globalEvent && plusInstance.globalEvent.addEventListener) {
                 plusInstance.globalEvent.addEventListener('newintent', () => {
                     const nextArgs = this.getPlusRuntimeArguments(plusInstance);
                     if (nextArgs) {
-                        this.handleUrlScheme({ path: nextArgs });
+                        runAfterPrivacyConsent(() => this.handleUrlScheme({ path: nextArgs }));
                     }
                 });
                 this._newintentListenerAdded = true;
@@ -109,6 +102,29 @@ export default {
                 patchAppState(extra);
             }
             this.syncGlobalDataFromAppState();
+        },
+
+        // 隐私政策确认前不登录、不检查更新，同意后由事件放行。
+        runPrivacyGatedStartup() {
+            if (hasAcceptedPrivacyConsent()) {
+                this.startConsentedStartup();
+                return;
+            }
+            this._privacyConsentRelease = runAfterPrivacyConsent(() => {
+                this._privacyConsentRelease = null;
+                this.startConsentedStartup();
+            });
+        },
+
+        startConsentedStartup() {
+            this.loginAndCheckUser();
+            // #ifdef APP-PLUS
+            this.runWhenPlusReady(() => {
+                checkAndUpdate().catch((error) => {
+                    console.warn(`[App] update check failed: ${formatErrorForLog(error)}`);
+                });
+            }, 'check app update');
+            // #endif
         },
 
         finishLoginProcess(extra = {}) {

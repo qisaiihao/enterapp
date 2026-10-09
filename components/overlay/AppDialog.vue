@@ -4,7 +4,7 @@
       <text v-if="title" class="app-dialog-title">{{ title }}</text>
       <scroll-view class="app-dialog-body" scroll-y @touchmove.stop>
         <text v-if="message" class="app-dialog-message">{{ message }}</text>
-        <input v-if="editable" v-model="inputValue" class="app-dialog-input" :placeholder="placeholder" :focus="visible" />
+        <input v-if="editable" v-model="inputValue" class="app-dialog-input" :password="password" :placeholder="placeholder" :focus="visible" />
         <slot />
       </scroll-view>
       <view class="app-dialog-actions">
@@ -23,7 +23,7 @@ export default {
   emits: ['cancel', 'confirm', 'extra'],
   props: {
     visible: Boolean, title: String, message: String, danger: Boolean, deferAnswer: Boolean,
-    editable: Boolean, placeholder: String, extraText: String, busy: Boolean,
+    editable: Boolean, password: Boolean, placeholder: String, extraText: String, busy: Boolean,
     initialValue: { type: String, default: '' },
     showCancel: { type: Boolean, default: true },
     closeOnMask: { type: Boolean, default: false },

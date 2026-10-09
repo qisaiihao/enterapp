@@ -392,6 +392,7 @@ async function testSplashLifecycle() {
     const { createSplashGate, SPLASH_MIN_MS } = load('utils/splashGate.js', time.globals, ['createSplashGate', 'SPLASH_MIN_MS']);
     const options = load('pages/splash/splash.vue', {
       ...time.globals, createSplashGate, SPLASH_MIN_MS, preloadPoemSquare: () => network.promise, lightImpact() {}, formatErrorForLog: String,
+      hasAcceptedPrivacyConsent: () => true, acceptPrivacyConsent() {},
       uni: { reLaunch: opt => { navigations.push(time.now() - 10000); if (mode === 'navigation-fail') opt.fail(); },
         showToast: opt => toasts.push(opt.title) }
     });
@@ -450,11 +451,199 @@ async function testSplashLifecycle() {
   }
 }
 
+async function testPrivacyConsent() {
+  function consentRuntime(storage, navigations = []) {
+    return load('utils/privacyConsent.js', {
+      uni: {
+        getStorageSync: key => storage.get(key),
+        setStorageSync: (key, value) => storage.set(key, value),
+        navigateTo: options => navigations.push(options.url)
+      }
+    }, ['hasAcceptedPrivacyConsent', 'acceptPrivacyConsent', 'openPrivacyPolicy', 'PRIVACY_POLICY_VERSION', 'PRIVACY_CONSENT_STORAGE_KEY']);
+  }
+  function splashRuntime(consent, network, navigations, toasts, preloads) {
+    const time = fakeTime();
+    const { createSplashGate, SPLASH_MIN_MS } = load('utils/splashGate.js', time.globals, ['createSplashGate', 'SPLASH_MIN_MS']);
+    const options = load('pages/splash/splash.vue', {
+      ...time.globals, createSplashGate, SPLASH_MIN_MS,
+      preloadPoemSquare: () => { preloads.count += 1; return network.promise; },
+      lightImpact() {}, formatErrorForLog: String,
+      hasAcceptedPrivacyConsent: consent.hasAcceptedPrivacyConsent,
+      acceptPrivacyConsent: consent.acceptPrivacyConsent,
+      uni: {
+        reLaunch: opt => navigations.push(opt.url),
+        showToast: opt => toasts.push(opt.title)
+      }
+    });
+    const page = options.data();
+    for (const [name, method] of Object.entries(options.methods)) page[name] = method.bind(page);
+    return { time, page, options };
+  }
+
+  {
+    const storage = new Map(), navigations = [], toasts = [], preloads = { count: 0 };
+    const consent = consentRuntime(storage, navigations);
+    storage.set(consent.PRIVACY_CONSENT_STORAGE_KEY, consent.PRIVACY_POLICY_VERSION);
+    const network = deferred();
+    const { time, page, options } = splashRuntime(consent, network, navigations, toasts, preloads);
+    options.onLoad.call(page);
+    assert.equal(page.showPrivacyConsent, false, '已同意不弹窗');
+    assert.equal(preloads.count, 1, '已同意直接预加载');
+    network.resolve(); await drain();
+    await time.tick(10000);
+    assert.deepEqual(navigations, ['/pages/poem-square/poem-square']);
+  }
+
+  {
+    const storage = new Map(), navigations = [], toasts = [], preloads = { count: 0 };
+    const consent = consentRuntime(storage, navigations);
+    const network = deferred();
+    const { time, page, options } = splashRuntime(consent, network, navigations, toasts, preloads);
+    options.onLoad.call(page);
+    assert.equal(page.showPrivacyConsent, true, '首次启动展示隐私弹窗');
+    assert.equal(preloads.count, 0, '未同意不预加载');
+    await time.tick(1500);
+    assert.equal(page.typedText, 'poementer', '弹窗期间打字继续');
+    await time.tick(10000);
+    assert.equal(navigations.length, 0, '未同意不进入且不受 6 秒放行影响');
+    assert.equal(preloads.count, 0, '等待确认期间不发起数据请求');
+    page.handlePrivacyConsentAgree();
+    assert.equal(page.showPrivacyConsent, false);
+    assert.equal(storage.get(consent.PRIVACY_CONSENT_STORAGE_KEY), consent.PRIVACY_POLICY_VERSION, '同意后记录政策版本');
+    assert.equal(consent.hasAcceptedPrivacyConsent(), true);
+    assert.equal(preloads.count, 1, '同意后才开始预加载');
+    network.resolve(); await drain();
+    await time.tick(10000);
+    assert.deepEqual(navigations, ['/pages/poem-square/poem-square'], '同意后正常进入');
+  }
+
+  {
+    const storage = new Map(), navigations = [], toasts = [], preloads = { count: 0 };
+    const consent = consentRuntime(storage, navigations);
+    const network = deferred();
+    const { time, page, options } = splashRuntime(consent, network, navigations, toasts, preloads);
+    options.onLoad.call(page);
+    page.handlePrivacyConsentDecline();
+    assert.equal(page.showPrivacyConsent, false);
+    assert.equal(toasts.length, 1, '不同意且无法退出时提示');
+    assert.equal(navigations.length, 0);
+    await time.tick(300);
+    assert.equal(page.showPrivacyConsent, true, '提示后重新展示弹窗');
+    await time.tick(10000);
+    assert.equal(navigations.length, 0, '不同意时不进入');
+    assert.equal(preloads.count, 0);
+    assert.equal(consent.hasAcceptedPrivacyConsent(), false);
+    page.handlePrivacyConsentAgree();
+    network.resolve(); await drain();
+    await time.tick(10000);
+    assert.equal(navigations.length, 1, '重新展示后同意仍可进入');
+  }
+
+  {
+    const storage = new Map();
+    const first = consentRuntime(storage);
+    assert.equal(first.hasAcceptedPrivacyConsent(), false);
+    first.acceptPrivacyConsent();
+    const nextLaunch = consentRuntime(storage);
+    assert.equal(nextLaunch.hasAcceptedPrivacyConsent(), true, '同意后下次启动不再弹窗');
+  }
+
+  {
+    const brokenUni = {
+      getStorageSync() { throw new Error('storage unavailable'); },
+      setStorageSync() { throw new Error('storage unavailable'); }
+    };
+    const consent = load('utils/privacyConsent.js', { uni: brokenUni },
+      ['hasAcceptedPrivacyConsent', 'acceptPrivacyConsent']);
+    assert.equal(consent.hasAcceptedPrivacyConsent(), false);
+    consent.acceptPrivacyConsent();
+    assert.equal(consent.hasAcceptedPrivacyConsent(), true, '存储异常时本次会话不重复弹窗');
+  }
+
+  {
+    const policyNavigations = [];
+    const consent = load('utils/privacyConsent.js', {
+      uni: { navigateTo: options => policyNavigations.push(options.url) }
+    }, ['openPrivacyPolicy']);
+    const dialog = load('components/PrivacyConsentDialog.vue', { openPrivacyPolicy: consent.openPrivacyPolicy, AppDialog: {} });
+    const events = [];
+    dialog.methods.handleConfirm.call({ $emit: event => events.push(event) });
+    dialog.methods.handleCancel.call({ $emit: event => events.push(event) });
+    dialog.methods.openPolicy.call({});
+    assert.deepEqual(events, ['agree', 'decline']);
+    assert.deepEqual(policyNavigations, ['/pages/privacy/privacy'], '弹窗内可打开隐私政策页');
+  }
+}
+
+async function testAppPrivacyGate() {
+  const listeners = new Map();
+  const storage = new Map();
+  const uni = {
+    getStorageSync: key => storage.get(key),
+    setStorageSync: (key, value) => storage.set(key, value),
+    removeStorageSync: key => storage.delete(key),
+    $on(event, handler) {
+      if (!listeners.has(event)) listeners.set(event, new Set());
+      listeners.get(event).add(handler);
+    },
+    $off(event, handler) { listeners.get(event)?.delete(handler); },
+    $emit(event, payload) { listeners.get(event)?.forEach(handler => handler(payload)); }
+  };
+  const consent = load('utils/privacyConsent.js', { uni },
+    ['hasAcceptedPrivacyConsent', 'acceptPrivacyConsent', 'runAfterPrivacyConsent', 'PRIVACY_POLICY_VERSION']);
+  const app = load('App.vue', {
+    uni,
+    hasAcceptedPrivacyConsent: consent.hasAcceptedPrivacyConsent,
+    runAfterPrivacyConsent: consent.runAfterPrivacyConsent,
+    installRuntimeBindings() {}, markLoginProcessStarted() {}, markLoginProcessCompleted() {},
+    getAppState: () => ({}), patchAppState() {}, setUserSession() {},
+    ensureRuntimeOpenid: async () => null, ensureTcbAuthenticated: async () => {},
+    formatErrorForLog: String, unreadBadge: { startPolling() {}, stopPolling() {} },
+    refreshAdminStatus: async () => {}, cancelTabTransition() {}, checkAndUpdate: async () => ({})
+  });
+  function createApp() {
+    const instance = {
+      appState: {}, started: 0,
+      runWhenPlusReady() {}, syncGlobalDataFromAppState() {}, applyAppState() {},
+      $nextTick(callback) { callback(); },
+      startConsentedStartup() { this.started += 1; }
+    };
+    instance.runPrivacyGatedStartup = app.methods.runPrivacyGatedStartup.bind(instance);
+    return instance;
+  }
+
+  const pending = createApp();
+  app.onLaunch.call(pending);
+  assert.equal(pending.started, 0, '未同意前不登录、不检查更新');
+  consent.acceptPrivacyConsent();
+  assert.equal(pending.started, 1, '同意事件放行启动引导');
+  consent.acceptPrivacyConsent();
+  assert.equal(pending.started, 1, '重复同意不重复启动');
+
+  storage.set(consent.PRIVACY_CONSENT_STORAGE_KEY, consent.PRIVACY_POLICY_VERSION);
+  const accepted = createApp();
+  app.onLaunch.call(accepted);
+  assert.equal(accepted.started, 1, '已同意时直接启动引导');
+}
+
+async function testRuntimeOpenidPrivacyGate() {
+  const blocked = load('utils/runtime-bootstrap.js', {
+    getAppState: () => ({}), getOpenid: () => null,
+    hasAcceptedPrivacyConsent: () => false, formatErrorForLog: String
+  }, ['ensureRuntimeOpenid']);
+  assert.equal(await blocked.ensureRuntimeOpenid(), null, '未同意前不获取 openid');
+  const cached = load('utils/runtime-bootstrap.js', {
+    getAppState: () => ({}), getOpenid: () => 'cached-openid',
+    hasAcceptedPrivacyConsent: () => false, formatErrorForLog: String
+  }, ['ensureRuntimeOpenid']);
+  assert.equal(await cached.ensureRuntimeOpenid(), 'cached-openid', '已有 openid 直接复用');
+}
+
 module.exports = { load, fakeTime, deferred, drain };
 
 if (require.main === module) (async () => {
   for (const test of [testGate, testHandoff, testEmptyAndShortPages, testTimeoutAndRetry, testImageAndInvalidation, testSplashLifecycle,
-    testBackgroundTabs, testBackgroundFailures, testPoetImageQueue]) {
+    testPrivacyConsent, testAppPrivacyGate, testRuntimeOpenidPrivacyGate, testBackgroundTabs, testBackgroundFailures, testPoetImageQueue]) {
     await test(); console.log('PASS ' + test.name);
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });

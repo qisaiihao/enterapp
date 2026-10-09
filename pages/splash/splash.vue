@@ -23,17 +23,25 @@
         <!-- 网络未完成时沿用现有加载提示 -->
         <view class="loading-indicator" v-if="isPreloading">正在加载内容...</view>
     </view>
+    <PrivacyConsentDialog
+        :visible="showPrivacyConsent"
+        @agree="handlePrivacyConsentAgree"
+        @decline="handlePrivacyConsentDecline"
+    />
     <app-overlay-host />
 </template>
 
 <script>
+import PrivacyConsentDialog from '@/components/PrivacyConsentDialog.vue';
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
 import { formatErrorForLog } from '@/utils/error-log.js';
 import { lightImpact } from '@/utils/haptics.js';
+import { acceptPrivacyConsent, hasAcceptedPrivacyConsent } from '@/utils/privacyConsent.js';
 import { createSplashGate, SPLASH_MIN_MS } from '@/utils/splashGate.js';
 import { preloadPoemSquare } from '@/utils/splashPreload.js';
 
 export default {
+    components: { PrivacyConsentDialog },
     data() {
         return {
             currentPhase: 'typing',
@@ -45,42 +53,25 @@ export default {
             textMoveUp: false,
             preloadCompleted: false,
             isPreloading: true,
-            fadeOut: false
+            fadeOut: false,
+            showPrivacyConsent: false
         };
     },
     onLoad() {
         this._splashDisposed = false;
         this._splashLeaving = false;
         this._splashNavigating = false;
+        this._splashFlowStarted = false;
         this._startupStartedAt = Date.now();
-        this._splashGate = createSplashGate({
-            onLeaving: ({ reason, elapsedMs }) => {
-                this._splashLeaving = true;
-                clearTimeout(this._typingTimer);
-                this.showEnterButton = false;
-                this.showNewLineCursor = true;
-                this.isPreloading = false;
-                this.fadeOut = true;
-                console.info('[splash] leaving', { reason, elapsedMs, contentReady: this.preloadCompleted });
-            },
-            onNavigate: () => this.navigateAfterSplash()
-        });
         this.executeTypingAnimation();
-        preloadPoemSquare(this).then(() => {
-            if (this._splashDisposed) return;
-            this.preloadCompleted = true;
-            this.isPreloading = false;
-            console.info('[splash] content ready', { elapsedMs: Date.now() - this._startupStartedAt });
-            this.enterWhenReady();
-        }).catch(error => {
-            if (this._splashDisposed) return;
-            console.warn('[splash] preload fallback:', formatErrorForLog(error));
-            // 失败也保留跳过按钮，未点击则由独立的 6 秒截止定时器放行。
-        });
+        // 未确认隐私政策前不启动数据预加载和开屏放行计时，确认后再进入。
+        if (hasAcceptedPrivacyConsent()) this.startSplashFlow();
+        else this.showPrivacyConsent = true;
     },
     onUnload() {
         this._splashDisposed = true;
         clearTimeout(this._typingTimer);
+        clearTimeout(this._privacyReopenTimer);
         this._splashGate?.dispose();
     },
     methods: {
@@ -103,8 +94,71 @@ export default {
             };
             this._typingTimer = setTimeout(typeNextChar, interval);
         },
+        startSplashFlow() {
+            if (this._splashDisposed || this._splashFlowStarted) return;
+            this._splashFlowStarted = true;
+            this._splashGate = createSplashGate({
+                onLeaving: ({ reason, elapsedMs }) => {
+                    this._splashLeaving = true;
+                    clearTimeout(this._typingTimer);
+                    this.showEnterButton = false;
+                    this.showNewLineCursor = true;
+                    this.isPreloading = false;
+                    this.fadeOut = true;
+                    console.info('[splash] leaving', { reason, elapsedMs, contentReady: this.preloadCompleted });
+                },
+                onNavigate: () => this.navigateAfterSplash(),
+                // 隐私确认已占用过开屏展示时间，最短时长只补足剩余部分。
+                minMs: Math.max(0, SPLASH_MIN_MS - (Date.now() - this._startupStartedAt))
+            });
+            preloadPoemSquare(this).then(() => {
+                if (this._splashDisposed) return;
+                this.preloadCompleted = true;
+                this.isPreloading = false;
+                console.info('[splash] content ready', { elapsedMs: Date.now() - this._startupStartedAt });
+                this.enterWhenReady();
+            }).catch(error => {
+                if (this._splashDisposed) return;
+                console.warn('[splash] preload fallback:', formatErrorForLog(error));
+                // 失败也保留跳过按钮，未点击则由独立的 6 秒截止定时器放行。
+            });
+            this.enterWhenReady();
+        },
+        handlePrivacyConsentAgree() {
+            acceptPrivacyConsent();
+            this.showPrivacyConsent = false;
+            this.startSplashFlow();
+        },
+        handlePrivacyConsentDecline() {
+            this.showPrivacyConsent = false;
+            if (this.exitForPrivacyConsent()) return;
+            this.reopenPrivacyConsent();
+        },
+        exitForPrivacyConsent() {
+            // #ifdef APP-PLUS
+            if (typeof plus !== 'undefined' && plus.runtime && typeof plus.runtime.quit === 'function') {
+                plus.runtime.quit();
+                return true;
+            }
+            // #endif
+            // #ifdef MP-WEIXIN
+            if (typeof wx !== 'undefined' && typeof wx.exitMiniProgram === 'function') {
+                wx.exitMiniProgram({ fail: () => this.reopenPrivacyConsent() });
+                return true;
+            }
+            // #endif
+            return false;
+        },
+        reopenPrivacyConsent() {
+            if (this._splashDisposed) return;
+            uni.showToast({ title: '请同意隐私政策后使用本应用', icon: 'none' });
+            clearTimeout(this._privacyReopenTimer);
+            this._privacyReopenTimer = setTimeout(() => {
+                if (!this._splashDisposed) this.showPrivacyConsent = true;
+            }, 300);
+        },
         enterWhenReady() {
-            if (this._splashDisposed || this._splashLeaving || !this.typingCompleted || !this.preloadCompleted) return;
+            if (this._splashDisposed || this._splashLeaving || !this._splashGate || !this.typingCompleted || !this.preloadCompleted) return;
             this.showEnterButton = false;
             this._splashGate.settle('ready');
         },

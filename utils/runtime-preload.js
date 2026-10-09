@@ -2,6 +2,7 @@ import fileUrlCache from '@/_utils/file-url-cache';
 import { getMyInfo } from '@/api-cache/my.js';
 import { getAppState } from '@/utils/app-state.js';
 import { formatErrorForLog } from '@/utils/error-log.js';
+import { runAfterPrivacyConsent } from '@/utils/privacyConsent.js';
 
 let resolverReady = false;
 let badgesScheduled = false;
@@ -91,28 +92,31 @@ export function initRuntimeBadges() {
   // #ifdef H5
   return;
   // #endif
-  setTimeout(() => {
-    Promise.allSettled([
-      import('@/cache/stores/unread-badge.js'),
-      import('@/cache/stores/activity-badge.js')
-    ]).then(([unreadBadgeResult, activityBadgeResult]) => {
-      ensureGlobalTcbAuthenticated().then(() => {
-        try {
-          unreadBadgeResult.value?.default?.initUnreadCount?.();
-        } catch (error) {
-          console.warn(`unreadBadge init failed: ${formatErrorForLog(error)}`);
-        }
+  // 徽标读取活动列表并按登录态取未读数，必须等隐私政策确认后再初始化。
+  runAfterPrivacyConsent(() => {
+    setTimeout(() => {
+      Promise.allSettled([
+        import('@/cache/stores/unread-badge.js'),
+        import('@/cache/stores/activity-badge.js')
+      ]).then(([unreadBadgeResult, activityBadgeResult]) => {
+        ensureGlobalTcbAuthenticated().then(() => {
+          try {
+            unreadBadgeResult.value?.default?.initUnreadCount?.();
+          } catch (error) {
+            console.warn(`unreadBadge init failed: ${formatErrorForLog(error)}`);
+          }
 
-        try {
-          activityBadgeResult.value?.default?.initActivityBadge?.();
-        } catch (error) {
-          console.warn(`activityBadge init failed: ${formatErrorForLog(error)}`);
-        }
-      }).catch((error) => {
-        console.warn(`[runtime-preload] badge init skipped before auth ready: ${formatErrorForLog(error)}`);
+          try {
+            activityBadgeResult.value?.default?.initActivityBadge?.();
+          } catch (error) {
+            console.warn(`activityBadge init failed: ${formatErrorForLog(error)}`);
+          }
+        }).catch((error) => {
+          console.warn(`[runtime-preload] badge init skipped before auth ready: ${formatErrorForLog(error)}`);
+        });
       });
-    });
-  }, 1000);
+    }, 1000);
+  });
 }
 
 export function prewarmAfterLogin() {
@@ -121,37 +125,40 @@ export function prewarmAfterLogin() {
   }
 
   prewarmReady = true;
-  const start = Date.now();
-  const maxWaitMs = 5000;
-  const timer = setInterval(async () => {
-    try {
-      const state = getAppState();
-      if ((!state._loginProcessCompleted || !state.openid) && Date.now() - start <= maxWaitMs) {
-        return;
-      }
-
-      clearInterval(timer);
-      const readyState = getAppState();
-      const hasAuthenticatedUser =
-        !!readyState.isLoggedIn &&
-        !!readyState.userInfo &&
-        !!(readyState.userInfo._openid || readyState.userInfo.openid || readyState.openid);
-      if (!hasAuthenticatedUser) {
-        return;
-      }
-
-      const tcb = getCurrentTcb();
-      if (!tcb) {
-        return;
-      }
+  // 登录引导在隐私政策确认后才开始，预热也要等同一事件。
+  runAfterPrivacyConsent(() => {
+    const start = Date.now();
+    const maxWaitMs = 5000;
+    const timer = setInterval(async () => {
       try {
-        await ensureGlobalTcbAuthenticated(tcb);
-        await getMyInfo({ $tcb: tcb });
+        const state = getAppState();
+        if ((!state._loginProcessCompleted || !state.openid) && Date.now() - start <= maxWaitMs) {
+          return;
+        }
+
+        clearInterval(timer);
+        const readyState = getAppState();
+        const hasAuthenticatedUser =
+          !!readyState.isLoggedIn &&
+          !!readyState.userInfo &&
+          !!(readyState.userInfo._openid || readyState.userInfo.openid || readyState.openid);
+        if (!hasAuthenticatedUser) {
+          return;
+        }
+
+        const tcb = getCurrentTcb();
+        if (!tcb) {
+          return;
+        }
+        try {
+          await ensureGlobalTcbAuthenticated(tcb);
+          await getMyInfo({ $tcb: tcb });
+        } catch (error) {
+          console.warn(`[prewarm] getMyInfo failed: ${formatErrorForLog(error)}`);
+        }
       } catch (error) {
-        console.warn(`[prewarm] getMyInfo failed: ${formatErrorForLog(error)}`);
+        clearInterval(timer);
       }
-    } catch (error) {
-      clearInterval(timer);
-    }
-  }, 120);
+    }, 120);
+  });
 }

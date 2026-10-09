@@ -1,0 +1,9 @@
+{
+  "name": "cancelAccount",
+  "version": "1.0.0",
+  "description": "注销账号：验证身份后删除隐私数据并匿名化公开内容",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

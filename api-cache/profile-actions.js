@@ -144,6 +144,26 @@ export async function updateUserInfo(userInfo, context) {
   return { success: true };
 }
 
+export async function cancelAccount(payload = {}, context) {
+  console.log('[profile-actions] cancel account', { dryRun: !!payload.dryRun });
+
+  const result = await callCloudAndUnwrap(
+    'cancelAccount',
+    {
+      dryRun: payload.dryRun === true,
+      password: payload.password || ''
+    },
+    {
+      pageTag: 'settings:cancel-account',
+      context,
+      requireAuth: true
+    },
+    'Cancel account failed'
+  );
+
+  return result;
+}
+
 export async function logout(context) {
   console.log('[profile-actions] logout');
 

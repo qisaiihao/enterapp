@@ -3,6 +3,7 @@
   "functions/adminManager",
   "functions/backfillPostEmbeddings",
   "functions/bindWechatOpenid",
+  "functions/cancelAccount",
   "functions/checkDuplicatePoem",
   "functions/contentCheck",
   "functions/createDiscussionPost",
