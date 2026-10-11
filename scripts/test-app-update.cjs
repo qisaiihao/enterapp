@@ -188,36 +188,97 @@ test('bad native compatibility response cannot trigger download', async () => {
   await assert.rejects(box.checkAndUpdate());
   assert.equal(calls.downloads, 0);
 });
-test('ordinary update opens own page, not plugin page', async () => {
+test('ordinary update publishes a dialog without leaving the current page', async () => {
   const { box, calls } = clientHarness({ result: updateResponse({}) });
+  const states = [];
+  const unsubscribe = box.subscribeUpdateDialog(state => states.push(state));
   await box.checkAndUpdate();
-  assert.equal(calls.navigation, 1);
+  assert.equal(calls.navigation, 0);
   assert.equal(calls.downloads, 0);
   assert.equal(box.getPendingUpdate().version, '1.7.1');
+  assert.equal(states.at(-1).update.version, '1.7.1');
+  await box.checkAndUpdate();
+  assert.equal(states.at(-1).attempted, false);
   box.releaseUpdatePage();
   assert.equal(box.getPendingUpdate(), null);
+  assert.equal(states.at(-1).update, null);
+  unsubscribe();
 });
-test('silent WGT resolves, installs once, never restarts or opens a page automatically', async () => {
+test('silent WGT installs once and immediately requests one restart', async () => {
   const { box, calls, timers } = clientHarness({ result: updateResponse({ is_silently: true }) });
   assert.equal((await box.checkAndUpdate()).type, 'restart_pending');
+  assert.equal(calls.restart, 1, '安装完成后立即重启，避免旧页面与新资源混用');
   await box.checkAndUpdate();
   assert.equal(calls.downloads, 1);
   assert.equal(calls.installs, 1);
   assert.equal(calls.navigation, 0);
-  assert.equal(calls.restart, 0);
+  assert.equal(calls.restart, 1, '重复检查不会重复请求重启');
   assert.equal(timers.size, 0);
   await box.checkAndUpdate({ manual: true });
-  assert.equal(calls.navigation, 1);
+  assert.equal(calls.navigation, 0);
+  assert.equal(box.getPendingUpdate().version, '1.7.1');
   box.restartAfterUpdate();
   assert.equal(calls.restart, 1);
 });
 test('mandatory update is visible even if record also requests silence', async () => {
   const { box, calls } = clientHarness({ result: updateResponse({ is_silently: true, is_mandatory: true }) });
   await box.checkAndUpdate();
-  assert.equal(calls.navigation, 1);
+  assert.equal(calls.navigation, 0);
   assert.equal(calls.downloads, 0);
   box.releaseUpdatePage();
   assert.equal(box.getPendingUpdate().is_mandatory, true);
+});
+test('dialog starts WGT update only on confirmation and restarts after install', async () => {
+  const { box, calls } = clientHarness({ result: updateResponse({}) });
+  const states = [];
+  box.subscribeUpdateDialog(state => states.push(state));
+  await box.checkAndUpdate();
+  assert.equal(calls.downloads, 0);
+  await box.startPendingUpdate();
+  assert.equal(calls.downloads, 1);
+  assert.equal(calls.installs, 1);
+  assert.equal(states.at(-1).installed, true);
+  assert.equal(states.at(-1).busy, false);
+  assert.equal(calls.restart, 1, '确认安装的 WGT 也不能留下混合版本页面');
+  await box.startPendingUpdate();
+  assert.equal(calls.restart, 1);
+});
+test('failed dialog update can retry without another version check', async () => {
+  const { box, calls } = clientHarness({ result: updateResponse({}), installFail: true });
+  const states = [];
+  box.subscribeUpdateDialog(state => states.push(state));
+  await box.checkAndUpdate();
+  await box.startPendingUpdate();
+  assert.match(states.at(-1).message, /install failed/);
+  assert.equal(states.at(-1).busy, false);
+  await box.startPendingUpdate();
+  assert.equal(calls.downloads, 2);
+  assert.equal(calls.cloud.length, 1);
+});
+test('optional download can be dismissed without reopening or installing', async () => {
+  const { box, calls } = clientHarness({ result: updateResponse({}), downloadHang: true });
+  const states = [];
+  box.subscribeUpdateDialog(state => states.push(state));
+  await box.checkAndUpdate();
+  const running = box.startPendingUpdate();
+  for (let i = 0; i < 10 && !calls.downloads; i++) await Promise.resolve();
+  assert.equal(calls.downloads, 1);
+  await box.checkAndUpdate();
+  assert.equal(states.at(-1).busy, true);
+  box.releaseUpdatePage();
+  await running;
+  assert.equal(box.getPendingUpdate(), null);
+  assert.equal(states.at(-1).update, null);
+  assert.equal(calls.installs, 0);
+});
+test('dismissal during version validation prevents a late download', async () => {
+  const { box, calls } = clientHarness({ result: updateResponse({}) });
+  await box.checkAndUpdate();
+  const running = box.startPendingUpdate();
+  box.releaseUpdatePage();
+  await running;
+  assert.equal(calls.downloads, 0);
+  assert.equal(calls.installs, 0);
 });
 test('download and install errors settle and permit a retry', async () => {
   for (const failure of ['downloadFail', 'installFail']) {
@@ -225,6 +286,7 @@ test('download and install errors settle and permit a retry', async () => {
     await assert.rejects(box.checkAndUpdate());
     await assert.rejects(box.checkAndUpdate());
     assert.equal(calls.downloads, 2);
+    assert.equal(calls.restart, 0, '下载或安装失败时不得重启');
     assert.equal(timers.size, 0);
   }
 });
@@ -259,12 +321,17 @@ test('non-App environments do not request updates', async () => {
 });
 test('manifest and route use migrated client, old plugin is absent', () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
-  // 当前资源版本已升到 1.7.1；上方 local 仍固定 1.7.0 验证最低支持版本。
-  assert.equal(manifest.versionName, '1.7.1');
-  assert.equal(manifest.versionCode, 171);
+  // 上方 local 仍固定 1.7.0 验证最低支持版本；正式包版本以当前 manifest 为准。
+  assert.equal(manifest.versionName, '1.7.2');
+  assert.equal(manifest.versionCode, 172);
   assert.ok(manifest['app-plus'].distribute.android.permissions.some(value => value.includes('REQUEST_INSTALL_PACKAGES')));
   assert.ok(!fs.existsSync(path.join(root, 'uni_modules/uni-upgrade-center-app')));
   assert.ok(!fs.readFileSync(path.join(root, 'pages.json'), 'utf8').includes('uni-upgrade-center-app'));
+  assert.ok(!fs.readFileSync(path.join(root, 'pages.json'), 'utf8').includes('pages/app-update/app-update'));
+  const splash = fs.readFileSync(path.join(root, 'pages/splash/splash.vue'), 'utf8');
+  assert.match(splash, /app-overlay-host :suppress-update="true"/);
+  const host = fs.readFileSync(path.join(root, 'components/app-overlay-host/app-overlay-host.vue'), 'utf8');
+  assert.match(host, /AppUpdateDialog v-if="updateState.update && !suppressUpdate"/);
 });
 
 (async () => {

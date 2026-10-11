@@ -40,6 +40,9 @@
             <view :class="'tab-item ' + (activeTab === 'feedback_all' ? 'active' : '')" @tap="switchTab" data-tab="feedback_all">
                 <text>反馈</text>
             </view>
+            <view :class="'tab-item ' + (activeTab === 'post_report_all' ? 'active' : '')" @tap="switchTab" data-tab="post_report_all">
+                <text>举报</text>
+            </view>
         </view>
 
         <!-- 消息列表 -->
@@ -393,6 +396,20 @@ export default {
                 this.markMessagesAsRead([message._id]);
             }
 
+            if (message.type === 'post_report_new' && message.reportId) {
+                uni.navigateTo({ url: `/pages-admin/post-reports/post-reports?reportId=${encodeURIComponent(message.reportId)}` });
+                return;
+            }
+            if (message.type === 'post_report_handled' || message.type === 'post_report_dismissed') {
+                uni.showModal({
+                    title: message.type === 'post_report_handled' ? '举报已处理' : '举报未通过',
+                    content: `${message.postTitle ? `帖子：${message.postTitle}\n` : ''}举报原因：${message.reportReason || '未填写'}\n${message.type === 'post_report_handled' ? '管理员已删除相关帖子。' : '管理员核查后未删除相关帖子。'}`,
+                    showCancel: false,
+                    confirmText: '知道了'
+                });
+                return;
+            }
+
             if (['feedback', 'feedback_reply', 'feedback_detail_requested', 'feedback_processed'].includes(message.type) && message.feedbackId) {
                 uni.navigateTo({ url: feedbackDetailUrl(message.feedbackId) });
                 return;
@@ -636,6 +653,12 @@ export default {
                         msg.content = `${userName}${msg.feedbackRole === 'user' ? '补充了反馈信息' : '回复了您的反馈'}`;
                     } else if (msg.type === 'feedback_detail_requested') {
                         msg.content = `${userName}请您补充反馈细节`;
+                    } else if (msg.type === 'post_report_new') {
+                        msg.content = `${userName}提交了新的举报`;
+                    } else if (msg.type === 'post_report_handled') {
+                        msg.content = `${userName}处理了您的举报`;
+                    } else if (msg.type === 'post_report_dismissed') {
+                        msg.content = `${userName}没有通过您的举报`;
                     } else if (msg.type === 'follow') {
                         msg.content = `${userName} ${timeAgo}关注了你`;
                         // 对于关注消息，需要检查是否已经互相关注
@@ -861,7 +884,10 @@ export default {
                 'feedback': '提交了新的意见反馈',
                 'feedback_reply': msg.feedbackRole === 'user' ? '补充了反馈信息' : '回复了您的反馈',
                 'feedback_detail_requested': '请您补充反馈细节',
-                'feedback_processed': msg.replyContent ? '办结了您的反馈' : '解决了您反馈的问题'
+                'feedback_processed': msg.replyContent ? '办结了您的反馈' : '解决了您反馈的问题',
+                'post_report_new': '提交了新的举报',
+                'post_report_handled': '处理了您的举报',
+                'post_report_dismissed': '没有通过您的举报'
             };
             return actionMap[type] || '通知了你';
         },
@@ -994,7 +1020,7 @@ export default {
 .tab-container {
     display: flex;
     background-color: var(--app-surface-bg, #ffffff);
-    padding: 0 30rpx;
+    padding: 0 18rpx;
     border-bottom: var(--app-surface-border-line, 1rpx solid #f0f0f0);
 }
 
@@ -1008,7 +1034,7 @@ export default {
 }
 
 .tab-item text {
-    font-size: 30rpx;
+    font-size: 27rpx;
     color: var(--app-secondary-text, #000000);
     transition: color 0.3s;
 }

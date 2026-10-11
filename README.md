@@ -81,7 +81,7 @@
 ```
 
 ### 前端技术栈
-- **框架**：uni-app 3.x（Vue 3.4 + Vite 5），`vue2tovue3.md` / `vue3 dcloud文档.md` 记录了迁移说明
+- **框架**：uni-app 3.x（Vue 3.4 + Vite 5），迁移参考见 `docs/archive/vue2tovue3.md` / `docs/archive/vue3-dcloud-migration-reference.md`
 - **状态管理**：全局 `globalData` + 本地存储 + 少量 Pinia/Vuex 兼容依赖
 - **样式**：rpx 响应式 + CSS 变量主题系统（`utils/theme.js`），条件编译适配多端
 - **缓存系统**：`cache/`（核心管理器）+ `api-cache/`（业务接口缓存层）
@@ -92,7 +92,7 @@
 - **云函数**：Node.js + `wx-server-sdk`，90+ 函数按业务拆分；`adminManager` 承担大部分后台管理聚合
 - **调用封装**：`utils/cloudCall.js` + `api-cache/*` 提供统一鉴权、错误提示与缓存策略
 - **文件**：上传兼容层 `utils/upload-compat.js`，cloud:// 临时 URL 统一由 `file-url` 缓存转换
-- **AI 推荐**：推荐相关云函数与流水线当前已停用（见 `docs/features/AI_RECOMMENDATION_DISABLED.md`）
+- **AI 推荐**：推荐相关云函数与流水线当前已停用（见 `docs/plans/AI_RECOMMENDATION_DISABLED.md`）
 
 ## 🚀 快速开始
 
@@ -236,10 +236,11 @@ tcb framework deploy
 
 ## 📚 文档索引
 
+- [文档总索引](./docs/DOCUMENTATION.md)
 - [系统架构](./docs/ARCHITECTURE.md)（旧版见 `docs/ARCHITECTURE.legacy.md`）
 - [数据库设计](./docs/deployment/database-schema-improved.md)
 - [缓存系统](./cache/README.md)
-- [字体系统](./docs/features/FONT_SYSTEM.md) 与 `小程序字体配置说明.md`
+- [字体系统](./docs/features/FONT_SYSTEM.md) 与 [小程序字体配置](./docs/features/mp-weixin-font-config.md)
 - [GitHub 登录接入](./docs/features/GITHUB_AUTH_GUIDE.md)
 - [管理后台部署与使用](./docs/deployment/admin-deployment-checklist.md) / [管理功能指南](./docs/features/admin-feature-guide.md)
 - [AI 推荐停用说明](./docs/features/AI_RECOMMENDATION_DISABLED.md)

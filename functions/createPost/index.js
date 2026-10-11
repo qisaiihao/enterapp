@@ -1,4 +1,5 @@
 const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
+const { moderateBeforeWrite } = require('./_lib/moderation-gate');
 // 云函数：createPost
 // 功能：创建新帖子
 
@@ -12,7 +13,6 @@ const db = createPostsDatabase(cloud.database());
 
 exports.main = async (event, context) => {
   console.log('🔍 [createPost] 开始创建帖子');
-  console.log('🔍 [createPost] 请求参数:', JSON.stringify(event, null, 2));
   
   const wxContext = cloud.getWXContext();
   const openid = event.openid || wxContext.OPENID;
@@ -38,6 +38,21 @@ exports.main = async (event, context) => {
     }
     
     const user = userResult.data[0];
+    if (userResult.data.some(item => item.postingBanned === true)) {
+      return { code: 'POSTING_BANNED', msg: '账号已被限制发帖，请联系管理员' };
+    }
+    const moderationFailure = await moderateBeforeWrite(cloud, {
+      title: event.title,
+      content: event.content,
+      author: event.author,
+      tags: event.tags,
+      anonymousAuthorName: event.isAnonymous ? event.anonymousAuthorName : '',
+      sentenceGroups: event.sentenceGroups,
+      seriesBlocks: event.seriesBlocks,
+      images: Array.isArray(event.originalFileIDs) && event.originalFileIDs.length
+        ? event.originalFileIDs : event.fileIDs
+    });
+    if (moderationFailure) return moderationFailure;
     const isAnonymous = event.isAnonymous === true || event.isAnonymous === 'true';
     const anonymousAuthorName = event.anonymousAuthorName || '匿名用户';
     

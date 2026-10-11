@@ -7,17 +7,18 @@
 - 需求迭代开发者：在不破坏既有行为的前提下扩展功能。
 - 重构执行者：按统一分层与码风完成可回归改造。
 
-本文件描述的是 2026-03-08 的仓库实际结构，并与以下规范配套使用：
+本文件描述的是 2026-10-11 的仓库实际结构，并与以下规范配套使用：
 - `docs/general-code-style-guide.md`
 - `docs/no-loss-regression-checklist.md`
 - `docs/layered-examples.md`
+- `docs/app-font-contract.md` / `docs/app-overlay-contract.md` / `docs/signature-background-contract.md`（模块约定）
 
 ---
 
 ## 2. 系统总览与运行时边界
 
 ### 2.1 技术栈
-- 前端：`uni-app + Vue2 Options API`（存在少量多端兼容代码）。
+- 前端：`uni-app 3.x + Vue 3.4（Options API 为主，含少量组合式 API）+ Vite 5`（存在少量多端兼容代码）。
 - 云端：腾讯云 CloudBase / 微信云开发（云函数 + 云数据库 + 云存储）。
 - 核心通信：前端通过统一调用层访问云函数，云函数访问数据库集合。
 
@@ -29,7 +30,7 @@
 ### 2.3 不可变约束（无损重构底线）
 - 云函数对外协议保持兼容：函数名/action/入参/返回字段不改。
 - 页面行为保持一致：loading/toast/分页/下拉刷新/回滚语义不改。
-- 框架形态保持一致：维持 Vue2 Options API，不做框架迁移。
+- 框架形态保持一致：以 Vue 3 Options API 编写页面，不引入不必要的新范式。
 
 ---
 
@@ -201,4 +202,5 @@
 
 ## 11. 变更记录
 
+- 2026-10-11：校正技术栈描述（Vue2 → Vue 3.4 + Vite 5），移除已完成的“不做框架迁移”约束；文档整理，过期内容归档至 `docs/archive/`。
 - 2026-03-08：重写为维护版架构文档；旧版归档至 `docs/ARCHITECTURE.legacy.md`。

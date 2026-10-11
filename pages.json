@@ -138,24 +138,6 @@
           }
         }
       }
-    },
-
-
-    {
-      "path": "pages/app-update/app-update",
-      "style": {
-        "navigationStyle": "custom",
-        "disableScroll": true,
-        "app-plus": {
-          "backgroundColorTop": "transparent",
-          "background": "transparent",
-          "titleNView": false,
-          "scrollIndicator": false,
-          "popGesture": "none",
-          "animationType": "fade-in",
-          "animationDuration": 200
-        }
-      }
     }
   ],
   "subPackages": [
@@ -400,6 +382,13 @@
           }
         },
         {
+          "path": "post-report/post-report",
+          "style": {
+            "navigationStyle": "custom",
+            "backgroundColor": "#f5f5f5"
+          }
+        },
+        {
           "path": "my-feedback/my-feedback",
           "style": {
             "navigationBarTitleText": "我的反馈",
@@ -565,6 +554,21 @@
             "enablePullDownRefresh": true,
             "onReachBottomDistance": 50,
             "usingComponents": {}
+          }
+        },
+        {
+          "path": "post-reports/post-reports",
+          "style": {
+            "navigationBarTitleText": "受理举报",
+            "backgroundColor": "#f5f5f5",
+            "enablePullDownRefresh": true,
+            "onReachBottomDistance": 50
+          }
+        },
+        {
+          "path": "posting-ban/posting-ban",
+          "style": {
+            "navigationBarTitleText": "发帖限制"
           }
         },
         {

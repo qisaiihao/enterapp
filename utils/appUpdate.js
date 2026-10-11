@@ -2,15 +2,28 @@ import { appid as APP_ID } from '@/manifest.json';
 import { getDeviceInfoCompat } from '@/utils/system-info.js';
 import { isUpdateVersion, compareUpdateVersion } from '@/utils/updateVersion.js';
 
-const UPDATE_ROUTE = 'pages/app-update/app-update';
 const CACHE_KEY = 'appUpdate.v2.latest';
 const CACHE_MS = 30 * 60 * 1000;
 let checkFlight = null;
 let installFlight = null;
 let pendingUpdate = null;
 let installedWgt = null; // Process-local: clears on restart, including silent installs.
+let restartRequested = false;
 let cancelDownload = null;
 let downloaded = null;
+const updateListeners = new Set();
+let updateDialogState = { update: null, busy: false, installed: false, progress: 0, message: '', attempted: false };
+
+function publishUpdateState(changes) {
+  updateDialogState = { ...updateDialogState, ...changes };
+  updateListeners.forEach(listener => listener(updateDialogState));
+}
+
+export function subscribeUpdateDialog(listener) {
+  updateListeners.add(listener);
+  listener(updateDialogState);
+  return () => updateListeners.delete(listener);
+}
 
 function appRuntime() {
   // #ifdef APP-PLUS
@@ -74,23 +87,46 @@ export function isWgtInstalled(info) {
 }
 
 export function releaseUpdatePage() {
-  if (pendingUpdate && !pendingUpdate.is_mandatory) {
+  if (pendingUpdate && !pendingUpdate.is_mandatory && !(updateDialogState.busy && updateDialogState.progress >= 100)) {
     cancelDownload?.();
     pendingUpdate = null;
+    publishUpdateState({ update: null, busy: false, installed: false, progress: 0, message: '', attempted: false });
   }
 }
 
 function showUpdate(info) {
+  if (pendingUpdate === info) return Promise.resolve();
   pendingUpdate = info;
-  const stack = typeof getCurrentPages === 'function' ? getCurrentPages() : [];
-  if (stack[stack.length - 1]?.route === UPDATE_ROUTE) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    uni.navigateTo({ url: `/${UPDATE_ROUTE}`, success: resolve, fail: reject });
-  });
+  publishUpdateState({ update: info, installed: isWgtInstalled(info), busy: false, progress: 0, message: '', attempted: false });
+  return Promise.resolve();
+}
+
+export async function startPendingUpdate() {
+  const info = pendingUpdate;
+  if (!info || updateDialogState.busy) return;
+  if (isWgtInstalled(info)) { restartAfterUpdate(); return; }
+  publishUpdateState({ busy: true, attempted: true, progress: 0, message: '' });
+  try {
+    const result = await downloadAndInstallUpdate(info, progress => {
+      if (pendingUpdate === info) publishUpdateState({ progress });
+    }, () => pendingUpdate !== info);
+    if (pendingUpdate !== info) return;
+    if (result.type === 'restart_pending') {
+      publishUpdateState({ installed: true });
+      restartAfterUpdate();
+    }
+    if (result.type === 'installation_requested') publishUpdateState({ message: '请在系统安装界面完成更新；若已取消，可点击重试。' });
+    if (result.type === 'store_opened') publishUpdateState({ message: '请在应用商店完成更新。' });
+  } catch (error) {
+    if (pendingUpdate === info) publishUpdateState({ message: error.message || '更新失败，请重试' });
+  } finally {
+    if (pendingUpdate === info) publishUpdateState({ busy: false });
+  }
 }
 
 async function performCheck(manual) {
   if (installedWgt) {
+    restartAfterUpdate();
     if (!manual && installedWgt.is_mandatory) await showUpdate(installedWgt);
     return { type: 'restart_pending' };
   }
@@ -118,6 +154,9 @@ async function performCheck(manual) {
   const update = validateUpdate(info, local);
   if (update.is_silently && !manual) {
     await downloadAndInstallUpdate(update);
+    // Installing WGT replaces files while current WebViews still run old code/CSS.
+    // Restart immediately so the next rendered page uses one resource version.
+    restartAfterUpdate();
     return { type: 'restart_pending' };
   }
   await showUpdate(update);
@@ -177,7 +216,7 @@ function downloadPackage(runtime, info, onProgress) {
   });
 }
 
-export function downloadAndInstallUpdate(info, onProgress) {
+export function downloadAndInstallUpdate(info, onProgress, isCancelled = () => false) {
   if (installFlight) return installFlight;
   installFlight = (async () => {
     const runtime = appRuntime();
@@ -186,12 +225,14 @@ export function downloadAndInstallUpdate(info, onProgress) {
     // Revalidate against actual runtime immediately before installing.
     const local = await getAppVersionInfo();
     info = validateUpdate(info, local);
+    if (isCancelled()) throw new Error('已取消下载');
     if (info.type === 'native_app' && local.platform === 'ios') {
       // openURL has an error callback only; successful dispatch isn't installation.
       runtime.runtime.openURL(info.url, () => uni.showToast({ title: '无法打开商店，请重试', icon: 'none' }));
       return { type: 'store_opened' };
     }
     const path = await downloadPackage(runtime, info, onProgress);
+    if (isCancelled()) throw new Error('已取消下载');
     onProgress?.(100);
     try {
       await withTimeout(new Promise((resolve, reject) => {
@@ -214,5 +255,14 @@ export function downloadAndInstallUpdate(info, onProgress) {
 }
 
 export function restartAfterUpdate() {
-  if (installedWgt) appRuntime()?.runtime.restart();
+  if (!installedWgt || restartRequested) return;
+  const runtime = appRuntime();
+  if (!runtime) return;
+  restartRequested = true;
+  try {
+    runtime.runtime.restart();
+  } catch (error) {
+    restartRequested = false;
+    throw error;
+  }
 }

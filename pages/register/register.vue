@@ -119,6 +119,7 @@ import { cloudCall } from '@/utils/cloudCall.js';
 import { getCurrentPlatform } from '@/utils/platformDetector.js';
 import { applyAuthenticatedUserSession } from '@/utils/appBackground.js';
 import { resolveUserAvatar } from '@/utils/defaultAvatar.js';
+import { uploadFileCompat } from '@/utils/upload-compat.js';
 import { readFileAsBase64 } from '@/utils/fileReader.js';
 
 const app = getApp();
@@ -285,22 +286,25 @@ export default {
             return cloudCall(name, data, Object.assign({ pageTag: 'register', context: this }, extraOptions));
         },
 
-        // 通过云函数上传（H5: fetch -> blob -> base64；小程序/App：FileSystemManager 读为 base64）
-        uploadAvatarViaCloudFunction(filePath) {
-            return new Promise((resolve, reject) => {
-                readFileAsBase64(filePath).then((base64) => {
-                    this.callCloudFunction('upload', {
-                        cloudPath: `user_avatars/${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`,
-                        fileContent: base64
-                    }).then((res) => {
-                        if (res && res.result && res.result.success) {
-                            resolve(res.result.fileID);
-                            return;
-                        }
-                        reject(new Error('上传失败'));
-                    }).catch(reject);
-                }).catch(reject);
-            });
+        async uploadAvatarFile(filePath) {
+            const cloudPath = `user_avatars/${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`;
+            const platform = getCurrentPlatform();
+            if (platform === 'app' || platform === 'app-harmony') {
+                const result = await uploadFileCompat({
+                    cloudPath,
+                    filePath,
+                    context: this,
+                    pageTag: 'register',
+                    requireAuth: true
+                });
+                return result.fileID;
+            }
+            const fileContent = await readFileAsBase64(filePath);
+            const response = await this.callCloudFunction('upload', { cloudPath, fileContent });
+            if (!response?.result?.success || !response.result.fileID) {
+                throw new Error(response?.result?.message || '上传失败');
+            }
+            return response.result.fileID;
         },
 
         onChooseAvatar() {
@@ -309,7 +313,7 @@ export default {
                 if (!p) return;
                 this.isUploadingAvatar = true;
                 this.localAvatarTempPath = p; // 先本地预览
-                this.uploadAvatarViaCloudFunction(p)
+                this.uploadAvatarFile(p)
                     .then((fid) => {
                         this.avatarFileID = fid;
                         uni.showToast({ title: '头像上传成功', icon: 'success' });

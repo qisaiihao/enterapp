@@ -57,8 +57,9 @@ exports.main = async (event, context) => {
   }, []).slice(0, 3);
 
   // 取用户信息
-  const userRes = await db.collection('users').where({ _openid: openid }).limit(1).get();
+  const userRes = await db.collection('users').where({ _openid: openid }).get();
   const userDoc = (userRes && userRes.data && userRes.data[0]) || {};
+  if ((userRes.data || []).some(user => user.postingBanned === true)) return { code: 'POSTING_BANNED', msg: '账号已被限制发帖，请联系管理员' };
   const userNickName = userDoc.nickName || '匿名用户';
   const userAvatar = userDoc.avatarUrl || '';
 

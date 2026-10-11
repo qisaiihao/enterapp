@@ -106,7 +106,7 @@ async function main(){
     const mem=memoryDb({users:[{_openid:'owner',nickName:'昵称',avatarUrl:'avatar'}],posts:[{_id:'source',_openid:'owner',title:'源诗',content:'源句',isPoem:true,isOriginal:true,createTime:new Date()}]},command);
     const filename=path.resolve('functions',name,'index.js'),localRequire=createRequire(filename);
     const sandbox={exports:{},console:{log(){},warn(){},error(){}},process,Buffer,
-      require(module){if(module==='wx-server-sdk')return {init(){},database:()=>mem.db,getWXContext:()=>({OPENID:'owner'}),uploadFile:async()=>({fileID:'cloud://image'})};return localRequire(module);}};
+      require(module){if(module==='wx-server-sdk')return {init(){},database:()=>mem.db,getWXContext:()=>({OPENID:'owner'}),uploadFile:async()=>({fileID:'cloud://image'}),callFunction:async()=>({result:{success:true,passed:true,code:'MODERATION_OFF'}})};return localRequire(module);}};
     vm.runInNewContext(fs.readFileSync(filename,'utf8'),sandbox,{filename});
     process.env.POSTS_WRITE_SCHEMA='2';
     const event=['contentCheck','createPost'].includes(name)?{...base,openid:'owner'}:name==='createDiscussionPost'?{quotedPostId:'source',content:'讨论',sentenceGroups:[{sentences:['源句'],comment:'评论'}]}:name==='uploadCollagePoetry'?{fileContent:'aGVsbG8=',cloudPath:'test/image.png'}:{blocks:[{postId:'source'}],title:'组诗'};
@@ -125,7 +125,7 @@ async function main(){
     const filename=path.resolve('functions',name,'index.js'),localRequire=createRequire(filename);
     const sandbox={exports:{},console:{log(){},warn(){},error(){}},process,Buffer,
       require(module){
-        if(module==='wx-server-sdk')return {init(){},database:()=>editMemory.db,getWXContext:()=>({OPENID:caller})};
+        if(module==='wx-server-sdk')return {init(){},database:()=>editMemory.db,getWXContext:()=>({OPENID:caller}),callFunction:async()=>({result:{success:true,passed:true,code:'MODERATION_OFF'}})};
         if(module==='./_lib/get-blocked-user-ids')return async()=>[];
         return localRequire(module);
       }};

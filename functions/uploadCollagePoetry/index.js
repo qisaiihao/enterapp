@@ -1,4 +1,5 @@
 const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
+const { moderateBeforeWrite } = require('./_lib/moderation-gate');
 // 云函数入口文件
 const cloud = require('wx-server-sdk')
 
@@ -48,6 +49,10 @@ exports.main = async (event, context) => {
   }
 
   try {
+    const accountResult = await db.collection('users').where({ _openid: openid }).get()
+    if ((accountResult.data || []).some(user => user.postingBanned === true)) {
+      return { success: false, code: 'POSTING_BANNED', message: '账号已被限制发帖，请联系管理员' }
+    }
     // 验证输入参数
     if (!fileContent) {
       throw new Error('fileContent 参数缺失')
@@ -99,6 +104,12 @@ exports.main = async (event, context) => {
       }
       
       throw new Error('图片上传失败，未返回 fileID')
+    }
+
+    const moderationFailure = await moderateBeforeWrite(cloud, { images: [fileID] })
+    if (moderationFailure) {
+      try { await cloud.deleteFile({ fileList: [fileID] }) } catch (_) {}
+      return moderationFailure
     }
     
     // 获取用户信息

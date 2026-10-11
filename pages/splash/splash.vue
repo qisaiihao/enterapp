@@ -28,7 +28,7 @@
         @agree="handlePrivacyConsentAgree"
         @decline="handlePrivacyConsentDecline"
     />
-    <app-overlay-host />
+    <app-overlay-host :suppress-update="true" />
 </template>
 
 <script>

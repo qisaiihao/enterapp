@@ -1,4 +1,5 @@
 const { createPostsDatabase, withPostResponse, resolveOwner } = require('./_lib/posts');
+const { moderateBeforeWrite } = require('./_lib/moderation-gate');
 const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = createPostsDatabase(cloud.database());
@@ -211,6 +212,22 @@ exports.main = async (event, context) => {
     const oldActivityId = post.isActivityPost === true
       ? String(post.activityId || '')
       : String(post.joinedActivityId || '');
+
+    const submittedContentKeys = ['title', 'content', 'tags', 'author', 'anonymousAuthorName', 'sentenceGroups', 'discussionSentences', 'seriesBlocks', 'fileIDs'];
+    if (submittedContentKeys.some(key => input[key] !== undefined)) {
+      const moderationFailure = await moderateBeforeWrite(cloud, {
+        title: updateData.title,
+        content: updateData.content,
+        author: updateData.author,
+        anonymousAuthorName: updateData.anonymousAuthorName,
+        tags: updateData.tags,
+        sentenceGroups: updateData.sentenceGroups || updateData.discussionSentences,
+        seriesBlocks: updateData.seriesBlocks,
+        images: Array.isArray(input.originalFileIDs) && input.originalFileIDs.length
+          ? input.originalFileIDs : updateData.imageUrls
+      });
+      if (moderationFailure) return moderationFailure;
+    }
 
     // 执行更新：只更新指定字段，保留 votes、commentCount 等其他字段
     await db.collection('posts').doc(postId).update({ data: updateData });

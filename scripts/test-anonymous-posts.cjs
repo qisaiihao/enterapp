@@ -40,7 +40,8 @@ function backend(mem, name, caller = 'owner') {
   const localRequire = createRequire(filename);
   const sandbox = { exports: {}, process, Buffer, console: quiet, require(id) {
     if (id === 'wx-server-sdk') return {
-      init() {}, database: () => mem.db, getWXContext: () => ({ OPENID: caller })
+      init() {}, database: () => mem.db, getWXContext: () => ({ OPENID: caller }),
+      callFunction: async () => ({ result: { success: true, passed: true, code: 'MODERATION_OFF' } })
     };
     if (id.includes('get-blocked-user-ids')) return async () => [];
     return localRequire(id);

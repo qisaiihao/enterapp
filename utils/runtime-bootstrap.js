@@ -467,7 +467,8 @@ class AppPlusTcbRequest {
     return new Promise((resolve, reject) => {
       const task = uni.uploadFile({
         url: formatRequestUrl(url),
-        name: options.name || 'file',
+        // COS 表单上传的文件字段固定为 file；云端路径已放在 formData.key 中。
+        name: 'file',
         formData: { ...data },
         filePath: file,
         fileType,

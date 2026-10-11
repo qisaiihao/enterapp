@@ -6,6 +6,13 @@
         <view class="custom-back-btn" @tap="goBack">
             <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
         </view>
+        <view class="custom-more-btn" role="button" aria-label="更多操作" @tap.stop="showPostMenu">
+            <view class="more-dots" aria-hidden="true">
+                <view class="more-dot"></view>
+                <view class="more-dot"></view>
+                <view class="more-dot"></view>
+            </view>
+        </view>
         
         <view class="container">
             <block v-if="isLoading">
@@ -268,6 +275,9 @@
         <!-- Cloud Tip Modal -->
         <cloud-tip-modal :showUploadTip="showUploadTip"></cloud-tip-modal>
 
+        <AppActionSheet :visible="showPostActionSheet" title="帖子操作" :items="postMenuItems" variant="plain"
+            @cancel="hidePostMenu" @select="onPostMenuSelect" />
+
         <!-- 收藏夹选择器 -->
         <folder-selector :show="showFavoriteModal" :post-id="post && post._id ? post._id : ''" @hide="hideFavoriteModal" @favoriteSuccess="onFavoriteSuccess" />
 
@@ -322,6 +332,7 @@ import portfolioSelector from '@/components/portfolio-selector/portfolio-selecto
 import PostDetailSkeleton from '@/components/PostDetailSkeleton.vue';
 import CommentList from '@/components/CommentList.vue';
 import ShareModal from '@/components/ShareModal.vue';
+import AppActionSheet from '@/components/overlay/AppActionSheet.vue';
 
 // 工具函数导入
 import { hydrateTempUrls, warmTempUrlsFromPosts } from '@/_utils/hydrate-temp-urls';
@@ -456,7 +467,8 @@ export default {
         portfolioSelector,
         PostDetailSkeleton,
         CommentList,
-        ShareModal
+        ShareModal,
+        AppActionSheet
     },
     mixins: [postGalleryMixin, favoriteDetail],
     watch: {
@@ -501,6 +513,8 @@ export default {
             imageClampHeights: {},
             showFavoriteModal: false,
             showPortfolioModal: false,
+            showPostActionSheet: false,
+            postMenuItems: ['举报'],
             showShareModal: false,
             shareImageUrl: '',
             shareImageFilePath: '',
@@ -644,12 +658,27 @@ export default {
         // #endif
     },
     onHide: function () {
+        this.hidePostMenu();
         if (this.isInputExpanded) {
             this.collapseInput();
         }
         try { flushViewQueue(); } catch (e) {}
     },
     methods: {
+        showPostMenu() {
+            this.showPostActionSheet = true;
+        },
+        hidePostMenu() {
+            this.showPostActionSheet = false;
+        },
+        onPostMenuSelect(index) {
+            this.hidePostMenu();
+            if (index === 0 && this.post && this.post._id) {
+                uni.navigateTo({
+                    url: `/pages-tools/post-report/post-report?id=${encodeURIComponent(this.post._id)}`
+                });
+            }
+        },
         getLikeIconVariantClass(iconSrc) {
             const src = String(iconSrc || '/static/images/seed.png').toLowerCase();
             if (src.includes('seedplus.png')) return 'like-icon--seedplus';
@@ -3206,11 +3235,11 @@ export default {
 <style>
 /* pages/post-detail/post-detail.wxss */
 
-/* 自定义返回按钮 */
-.custom-back-btn {
+/* 自定义导航按钮 */
+.custom-back-btn,
+.custom-more-btn {
     position: absolute;
     top: calc(30rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px))); /* 添加安全区域偏移 */
-    left: 40rpx;
     width: 100rpx;
     height: 100rpx;
     background: transparent;
@@ -3223,8 +3252,30 @@ export default {
     box-sizing: border-box;
 }
 
-.custom-back-btn:active {
+.custom-back-btn {
+    left: 40rpx;
+}
+
+.custom-more-btn {
+    right: 40rpx;
+}
+
+.custom-back-btn:active,
+.custom-more-btn:active {
     transform: scale(0.95);
+}
+
+.more-dots {
+    display: flex;
+    align-items: center;
+    gap: 8rpx;
+}
+
+.more-dot {
+    width: 8rpx;
+    height: 8rpx;
+    border-radius: 50%;
+    background-color: var(--app-primary-text, #111111);
 }
 
 .custom-back-btn .back-icon {
@@ -3264,12 +3315,19 @@ page {
 }
 
 /* #ifdef APP-PLUS || APP-HARMONY */
-.custom-back-btn {
+.custom-back-btn,
+.custom-more-btn {
     top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
 }
 
 .post-detail-page > .container {
     padding-top: calc(160rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
+}
+/* #endif */
+
+/* #ifdef MP-WEIXIN */
+.custom-more-btn {
+    right: 200rpx; /* 避开微信小程序右上角胶囊按钮 */
 }
 /* #endif */
 

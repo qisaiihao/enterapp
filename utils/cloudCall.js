@@ -185,6 +185,10 @@ export async function cloudCall(name, data = {}, options = {}) {
             ['password', 'newPassword', 'confirmPassword', 'code'].forEach(key => {
                 if (Object.prototype.hasOwnProperty.call(logPayload, key)) logPayload[key] = '***';
             });
+            if (name === 'adminManager' && payload.action === 'submitPostReport') {
+                logPayload.description = '[redacted]';
+                logPayload.evidenceImages = '[redacted]';
+            }
             console.log(`[cloudCall][${pageTag}] calling "${name}" (${attempt}/${totalAttempts})`, logPayload);
             const result = await invokeCloudFunction(method, {
                 context,

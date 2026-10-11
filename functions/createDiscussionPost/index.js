@@ -1,4 +1,5 @@
 const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
+const { moderateBeforeWrite } = require('./_lib/moderation-gate');
 const cloud = require('wx-server-sdk');
 
 cloud.init({
@@ -84,11 +85,21 @@ exports.main = async (event, context) => {
     }
 
     const user = userResult.data[0];
+    if (userResult.data.some(item => item.postingBanned === true)) {
+      return { success: false, code: 'POSTING_BANNED', message: '账号已被限制发帖，请联系管理员' };
+    }
 
     // 生成讨论标题
     const discussionTitle = sentenceGroups.length > 1
       ? `关于「${quotedPost.title}」的多句讨论`
       : `关于「${quotedPost.title}」的讨论`;
+
+    const moderationFailure = await moderateBeforeWrite(cloud, {
+      content: content.trim(),
+      sentenceGroups,
+      images: imageUrls
+    });
+    if (moderationFailure) return moderationFailure;
 
     // 创建讨论帖子
     const postResult = await db.collection('posts').add({

@@ -506,111 +506,22 @@ export default {
         },
 
         // 上传编辑封面图片
-        uploadEditCoverImage() {
-            return new Promise((resolve, reject) => {
-                if (!this.editingFolderCover) {
-                    resolve(null);
-                    return;
-                }
+        async uploadEditCoverImage() {
+            if (!this.editingFolderCover) return null;
+            // 只改名称时保留已有封面，不把云端 URL 当作本地文件读取。
+            if (this.editingFolderCover === this.editingFolder?.coverUrl) return this.editingFolderCover;
 
-                const timestamp = new Date().getTime();
-                const cloudPath = `folder_covers/${timestamp}_edit_cover.jpg`;
-                
-                uni.showLoading({
-                    title: '上传封面中...'
-                });
-
-                // 检查环境并使用相应的文件读取方式
-                if (typeof window !== 'undefined' && typeof FileReader !== 'undefined') {
-                    // H5环境：使用fetch获取blob，然后转换为base64
-                    fetch(this.editingFolderCover)
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error(`HTTP error! status: ${response.status}`);
-                            }
-                            return response.blob();
-                        })
-                        .then(blob => {
-                            const reader = new FileReader();
-                            reader.onload = () => {
-                                const result = reader.result;
-                                if (!result || typeof result !== 'string') {
-                                    console.error('FileReader结果无效:', result);
-                                    reject(new Error('文件读取失败'));
-                                    return;
-                                }
-                                const base64 = result.split(',')[1];
-                                console.log('编辑封面图片转换为base64完成，长度:', base64.length);
-                                
-                                // 使用云函数上传
-                                this.callCloudFunction('upload', {
-                                    cloudPath: cloudPath,
-                                    fileContent: base64
-                                }).then((uploadRes) => {
-                                    uni.hideLoading();
-                                    console.log('编辑封面上传云函数返回结果:', uploadRes);
-                                    
-                                    if (uploadRes && uploadRes.result && uploadRes.result.success) {
-                                        console.log('编辑封面图片上传成功:', uploadRes.result.fileID);
-                                        resolve(uploadRes.result.fileID);
-                                    } else {
-                                        console.error('编辑封面上传云函数返回格式错误:', uploadRes);
-                                        reject(new Error('上传失败'));
-                                    }
-                                }).catch((err) => {
-                                    uni.hideLoading();
-                                    console.error('上传编辑封面图片失败:', err);
-                                    reject(err);
-                                });
-                            };
-                            reader.onerror = () => {
-                                uni.hideLoading();
-                                reject(new Error('文件读取失败'));
-                            };
-                            reader.readAsDataURL(blob);
-                        })
-                        .catch((err) => {
-                            uni.hideLoading();
-                            console.error('获取编辑封面图片失败:', err);
-                            reject(new Error('获取图片失败'));
-                        });
-                } else {
-                    // 小程序环境：使用getFileSystemManager
-                    uni.getFileSystemManager().readFile({
-                        filePath: this.editingFolderCover,
-                        encoding: 'base64',
-                        success: (res) => {
-                            console.log('编辑封面图片读取成功，base64长度:', res.data.length);
-                            
-                            // 使用云函数上传
-                            this.callCloudFunction('upload', {
-                                cloudPath: cloudPath,
-                                fileContent: res.data
-                            }).then((uploadRes) => {
-                                uni.hideLoading();
-                                console.log('编辑封面上传云函数返回结果:', uploadRes);
-                                
-                                if (uploadRes && uploadRes.result && uploadRes.result.success) {
-                                    console.log('编辑封面图片上传成功:', uploadRes.result.fileID);
-                                    resolve(uploadRes.result.fileID);
-                                } else {
-                                    console.error('编辑封面上传云函数返回格式错误:', uploadRes);
-                                    reject(new Error('上传失败'));
-                                }
-                            }).catch((err) => {
-                                uni.hideLoading();
-                                console.error('上传编辑封面图片失败:', err);
-                                reject(err);
-                            });
-                        },
-                        fail: (err) => {
-                            uni.hideLoading();
-                            console.error('读取编辑封面图片失败:', err);
-                            reject(new Error('读取图片失败'));
-                        }
-                    });
-                }
+            uni.showLoading({ title: '上传封面中...' });
+            const fileContent = await readFileAsBase64(this.editingFolderCover);
+            if (!fileContent) throw new Error('封面读取失败，请重试');
+            const response = await this.callCloudFunction('upload', {
+                cloudPath: `folder_covers/${Date.now()}_edit_cover.jpg`,
+                fileContent
             });
+            if (!response?.result?.success || !response.result.fileID) {
+                throw new Error(response?.result?.message || '封面上传失败，请重试');
+            }
+            return response.result.fileID;
         },
 
         // 保存收藏夹名称

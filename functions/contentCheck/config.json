@@ -1,12 +1,5 @@
 {
   "permissions": {
     "openapi": []
-  },
-  "env": {
-    "_comment": "环境变量已在云函数控制台配置，无需在此文件中设置",
-    "_required": [
-      "WECHAT_APPID - 微信小程序 AppID",
-      "WECHAT_SECRET - 微信小程序 Secret"
-    ]
   }
 }

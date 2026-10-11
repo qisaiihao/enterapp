@@ -42,6 +42,7 @@
 - `components/PrivacyConsentDialog.vue` 复用 `AppDialog` 的外观与 `defer-answer` 退出时机：取消“不同意”、确认“同意并继续”，正文内《隐私政策》链接打开政策页，遮罩和返回键不静默放行。开屏页在同意前不启动数据预加载和 6 秒放行计时；不同意时 App 退出、微信小程序退出、其余环境提示后重新展示。存储键、版本更新和真机验收项见 [首启隐私政策确认](features/privacy-consent.md)。
 - `scripts/test-splash-startup.cjs` 的 `testPrivacyConsent` 覆盖同意前后、拒绝重弹和弹窗事件/链接，纳入 `npm run test:splash`。
 - 设置页“注销账号”复用 `AppDialog`：说明确认、密码验证（`editable` + 新增 `password` 密文输入）和最终确认最多三步，失败保留弹窗可重试；流程与云端清理矩阵见 [应用内注销账号](features/account-cancellation.md)，测试纳入 `npm run test:cancel-account`。
+- App 热更新与整包更新由 `AppUpdateDialog` 在页面的 `app-overlay-host` 中居中显示，外观与 `AppDialog` 一致。开屏页的宿主暂缓显示更新，进入主页面后展示；普通更新可稍后处理或取消下载，强制更新不可关闭，下载与安装进度、失败重试和 WGT 重启保留在弹窗内。
 
 每个自有路由页面的模板末尾放置一个 `<app-overlay-host />`，由 `main.js` 显式导入并通过 `app.component('app-overlay-host', AppOverlayHost)` 注册，不得仅依赖 easycom 自动扫描。新增页面时也必须添加；`scripts/test-app-overlays.cjs` 检查 pages.json 中的页面是否接入，并验证宿主注册和真实组件的请求回调。
 

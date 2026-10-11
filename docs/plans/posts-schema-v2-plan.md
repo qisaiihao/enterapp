@@ -49,7 +49,7 @@
 | 类型查询散布在列表、管理、推荐、个人页、周刊和网站中 | [getPostList](../../functions/getPostList/index.js)、[adminManager](../../functions/adminManager/index.js)、[webReader](../../回车键新网站/cloudfunctions/webReader/index.js) 等 | 只在返回时补布尔值救不了数据库查询漏项 |
 | 编辑会补回类型布尔值、图片别名、组诗计数 | [updatePostContent](../../functions/updatePostContent/index.js) | 必须同步改编辑、管理改类型及后台更新任务 |
 | 前端归一化目前主要处理图片、头像和时间 | [postNormalizer.js](../../utils/postNormalizer.js)、[postProcessor.js](../../utils/postProcessor.js) | 不能误认为现有 normalizer 已覆盖新旧数据库结构 |
-| 发布重构旧文档与当前主链路不同 | [旧发布文档](../features/post-publishing-refactor.md)、[分类排查记录](../post-publish-classification-review-2026-09-07.md) | 以当前实际调用与部署清单为准，实施时同步修正文档 |
+| 发布重构旧文档与当前主链路不同 | [旧发布文档](../features/post-publishing-refactor.md)、[分类排查记录](../archive/post-publish-classification-review-2026-09-07.md) | 以当前实际调用与部署清单为准，实施时同步修正文档 |
 
 ## 3. V2 数据库存储契约
 

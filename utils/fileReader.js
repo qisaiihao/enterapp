@@ -11,7 +11,7 @@ function stripDataUrlPrefix(value) {
 }
 
 function isH5() {
-    return typeof window !== 'undefined' && typeof document !== 'undefined';
+    return typeof plus === 'undefined' && typeof window !== 'undefined' && typeof document !== 'undefined';
 }
 
 function readViaFetch(filePath) {

@@ -1,4 +1,5 @@
 const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
+const { moderateBeforeWrite } = require('./_lib/moderation-gate');
 const cloud = require('wx-server-sdk');
 
 cloud.init({
@@ -81,6 +82,12 @@ exports.main = async (event, context) => {
   if (!hasContent && !hasImages) {
     return { success: false, message: 'Comment content or images are required.' };
   }
+
+  const moderationFailure = await moderateBeforeWrite(cloud, {
+    content: trimmedContent,
+    images: sanitizedOriginalImageUrls.length ? sanitizedOriginalImageUrls : sanitizedImageUrls
+  });
+  if (moderationFailure) return moderationFailure;
 
   try {
     const userResult = await db.collection('users').where({

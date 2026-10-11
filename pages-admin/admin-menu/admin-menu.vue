@@ -23,6 +23,24 @@
                 <text class="menu-arrow">→</text>
             </view>
 
+            <view class="menu-item" @tap="navigateTo" data-url="/pages-admin/post-reports/post-reports">
+                <view class="menu-icon">🚩</view>
+                <view class="menu-info">
+                    <text class="menu-title">受理举报</text>
+                    <text class="menu-desc">核查举报内容并处理帖子</text>
+                </view>
+                <text class="menu-arrow">→</text>
+            </view>
+
+            <view class="menu-item" @tap="navigateTo" data-url="/pages-admin/posting-ban/posting-ban">
+                <view class="menu-icon">⛔</view>
+                <view class="menu-info">
+                    <text class="menu-title">发帖限制</text>
+                    <text class="menu-desc">按诗号查找用户，限制或恢复发帖</text>
+                </view>
+                <text class="menu-arrow">→</text>
+            </view>
+
             <view class="menu-item" @tap="navigateTo" data-url="/pages-admin/poet-management/poet-management">
                 <view class="menu-icon">✍️</view>
                 <view class="menu-info">

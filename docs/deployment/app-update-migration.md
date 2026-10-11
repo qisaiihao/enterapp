@@ -25,7 +25,7 @@
 | --- | --- |
 | [appUpdate.js](../../utils/appUpdate.js) | 获取原生和资源版本、一次检查、缓存、去重、下载、安装、静默 WGT |
 | [updateVersion.js](../../utils/updateVersion.js) | 客户端严格分段版本比较 |
-| [app-update.vue](../../pages/app-update/app-update.vue) | 自定义升级页、下载进度、失败重试、重启 |
+| [AppUpdateDialog.vue](../../components/AppUpdateDialog.vue) | 居中升级弹窗、下载进度、失败重试、重启 |
 | [settings.vue](../../pages/settings/settings.vue) | 手动检查，绕过无更新缓存 |
 | [checkAppUpdate](../../uniCloud-aliyun/cloudfunctions/checkAppUpdate/index.js) | 新协议入口 |
 | [common/app-update](../../uniCloud-aliyun/cloudfunctions/common/app-update/index.js) | 云端版本选择和旧协议兼容，共享本地依赖，不额外调用其他云函数 |
@@ -91,9 +91,11 @@ manifest 已显式声明 Android `REQUEST_INSTALL_PACKAGES`，用于后续 APK �
 - 自动检查仅缓存成功的无更新结果 30 分钟；缓存按应用、平台、原生与资源版本隔离。
 - 手动检查绕过缓存，并显示无更新或失败信息。
 - 检查与下载安装分别去重；读取版本、云请求、下载和安装均设置等待上限。
-- 普通更新可以稍后处理。下载时离开更新页会取消下载，安装阶段不允许主动离开。
-- 强制更新不可通过更新页返回按钮或系统返回关闭；下载或安装失败后可重试。系统安装本身仍需要用户操作。
-- `is_silently: true` 的非强制 WGT 自动后台安装，不主动重启；下次启动生效。同进程再次检查不重复安装，手动检查可进入重启页。
+- 普通更新可以稍后处理；下载时可在弹窗中取消，安装阶段不可关闭弹窗。
+- 强制更新不可通过遮罩或系统返回关闭；下载或安装失败后可重试。系统安装本身仍需要用户操作。
+- 更新提示在当前页面居中显示；开屏阶段检查到更新时，进入主页面后再显示，避免开屏跳转盖掉提示。下载只在点击“立即更新”后开始。
+- `is_silently: true` 的非强制 WGT 自动后台安装，安装成功后立即请求一次应用重启，避免正在运行的页面继续使用旧 JS/CSS 与新资源混合。同进程重复检查不重复安装或重复请求重启。用户会看到一次自动重启。
+- 手动确认安装的 WGT 同样在安装成功后立即重启；安装失败时留在更新界面供重试。整包安装仍交给系统安装器，不能把安装 API 回调当作完成覆盖安装。
 - `is_mandatory: true` 优先于静默标记。整包永远不走静默安装分支。
 - Android 使用 APK 安装流程；iOS 整包打开记录中的 HTTPS 商店链接。
 - APK 安装 API 回调只代表已请求安装，不等同于已完成覆盖安装。
@@ -217,3 +219,9 @@ manifest 已显式声明 Android `REQUEST_INSTALL_PACKAGES`，用于后续 APK �
 - `git diff --check`。
 
 App 构建仍有 CloudBase sourcemap 和动态 / 静态重复导入的提示，但构建成功。未更改字体路径、注册时机或 Canvas 名称。尚未完成本次迁移的真机验收。
+
+## 2026-10-11 首启排版回归
+
+整包升级后首次打开时，若后台还有更高版本的静默 WGT，旧实现会在页面运行期间安装新资源并等待用户下次手动重启。用户报告首次打开图标放大、排版错乱，重启后恢复。现在 WGT 安装成功后立即请求一次重启；手动确认安装 WGT 也采用相同时机。下载或安装失败不重启，整包仍交给系统安装器。
+
+本次 `npm run check:quality`、`npm run build:app` 已通过。尚未用含此修复的正式安装包在真机验收覆盖安装后的首启画面；编译产物不能代替真机验收。

@@ -100,6 +100,16 @@ function updateAdminConfig({ adminPoemIds, context } = {}) {
   );
 }
 
+function findPostingUser({ poemId, context } = {}) {
+  return callAdminManager('findPostingUser', { poemId },
+    { pageTag: 'admin-posting-ban:find', context, fallbackMessage: '查询用户失败' });
+}
+
+function setPostingBan({ poemId, banned, context } = {}) {
+  return callAdminManager('setPostingBan', { poemId, banned },
+    { pageTag: 'admin-posting-ban:update', context, fallbackMessage: '更新发帖权限失败' });
+}
+
 const adminManagerApi = {
   callAdminManager,
   listAdminPosts,
@@ -112,7 +122,9 @@ const adminManagerApi = {
   previewAdminFieldReplace,
   executeAdminFieldReplace,
   getAdminConfig,
-  updateAdminConfig
+  updateAdminConfig,
+  findPostingUser,
+  setPostingBan
 };
 
 export {
@@ -127,7 +139,9 @@ export {
   previewAdminFieldReplace,
   executeAdminFieldReplace,
   getAdminConfig,
-  updateAdminConfig
+  updateAdminConfig,
+  findPostingUser,
+  setPostingBan
 };
 
 export default adminManagerApi;

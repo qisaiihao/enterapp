@@ -76,7 +76,8 @@ async function uploadWithTcb(instance, cloudPath, filePath) {
     const res = await instance.uploadFile({ cloudPath, file });
     return { fileID: res.fileID || res.fileId };
   }
-  const res = await instance.uploadFile({ cloudPath, filePath });
+  // App 的上传适配器基于 uni.uploadFile（multipart/form-data），须向云存储申请 POST 上传参数。
+  const res = await instance.uploadFile({ cloudPath, filePath, method: 'post' });
   return { fileID: res.fileID || res.fileId };
 }
 

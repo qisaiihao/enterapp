@@ -83,7 +83,8 @@ const {
   normalizeAllowUserSubmission,
   buildAdminActivityView
 } = require('./_lib/activity')
-const { isAdminByPoemId } = require('./_lib/admin-auth')
+const { isAdminByPoemId, listAdminUsersByPoemId } = require('./_lib/admin-auth')
+const { submitPostReport, listPostReports, getPostReport, resolvePostReport } = require('./_lib/post-report')
 const { normalizeType: normalizeMaterialType, normalizeGroupId, normalizeList: normalizeMaterialList, normalizeGroupList, validateMaterialInput, validateMaterialName, validateGroupInput } = require('./_lib/collage-material')
 
 // 验证管理员权限（通过 poemId）
@@ -92,7 +93,12 @@ const actionHandlers = {
   getAllPosts: (event) => getAllPosts(event),
   updatePostType: (event) => updatePostType(event),
   deletePost: (event) => deletePost(event),
+  listPostReports: (event) => listPostReports(db, event),
+  getPostReport: (event) => getPostReport(db, event),
+  resolvePostReport: (event, openid) => resolvePostReport(db, event, openid, deletePost),
   getUserPassword: (event) => getUserPassword(event),
+  findPostingUser: (event) => findPostingUser(event),
+  setPostingBan: (event, openid) => setPostingBan(event, openid),
   getPoetList: (event) => getPoetList(event),
   deletePoet: (event) => deletePoet(event),
   getBatchReplaceConfig: () => getBatchReplaceConfig(),
@@ -143,13 +149,20 @@ exports.main = async (event, context) => {
     console.log('adminManager action:', action)
 
     // Get openid from context or event.
-    const openid = (event.userInfo && event.userInfo.openId) || event.openid
+    const wxContext = typeof cloud.getWXContext === 'function' ? cloud.getWXContext() : null
+    const openid = (wxContext && wxContext.OPENID) || (event.userInfo && event.userInfo.openId) || event.openid
 
     if (!openid) {
       return {
         success: false,
         error: 'unable to get user openid'
       }
+    }
+
+    if (action === 'submitPostReport') {
+      return await submitPostReport(db, event, openid, async () => {
+        return listAdminUsersByPoemId({ db, command: _, loggerPrefix: 'adminManager' })
+      })
     }
 
     // Verify admin permission.
@@ -211,6 +224,37 @@ async function updateContactConfig(event, openid) {
 
 const ADMIN_CONFIG_DOC_ID = 'admin'
 const ADMIN_LIST_MAX_LENGTH = 50
+
+async function findPostingUser(event) {
+  const poemId = typeof event.poemId === 'string' ? event.poemId.trim() : ''
+  if (!poemId || poemId.length > 100) return { success: false, error: '请输入有效的用户诗号' }
+  const result = await db.collection('users').where({ poemId }).limit(2).get()
+  const users = result.data || []
+  if (!users.length) return { success: false, error: '未找到该用户' }
+  if (users.length > 1) return { success: false, error: '该诗号对应多个账号，请先核查用户数据' }
+  const user = users[0]
+  return { success: true, user: {
+    poemId: user.poemId,
+    nickName: user.nickName || '',
+    avatarUrl: user.avatarUrl || '',
+    postingBanned: user.postingBanned === true
+  } }
+}
+
+async function setPostingBan(event, openid) {
+  if (typeof event.banned !== 'boolean') return { success: false, error: '封禁状态无效' }
+  const lookup = await findPostingUser(event)
+  if (!lookup.success) return lookup
+  const result = await db.collection('users').where({ poemId: lookup.user.poemId }).limit(1).get()
+  const user = result.data && result.data[0]
+  if (!user || !user._openid) return { success: false, error: '用户数据无效' }
+  await db.collection('users').where({ _openid: user._openid }).update({ data: {
+    postingBanned: event.banned,
+    postingBanUpdatedAt: db.serverDate(),
+    postingBanUpdatedBy: openid
+  } })
+  return { success: true, user: { ...lookup.user, postingBanned: event.banned } }
+}
 
 async function getAdminConfig() {
   try {

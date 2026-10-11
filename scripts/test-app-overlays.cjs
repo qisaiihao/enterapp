@@ -245,13 +245,20 @@ async function main() {
       && node.arguments[1]?.name === hostImport.specifiers[0].local.name) hostRegistered = true;
   });
   assert.ok(hostRegistered, 'main.js must register the imported host without depending on easycom');
-  const host = component('components/app-overlay-host/app-overlay-host.vue', { AppDialog: dialog, AppActionSheet: sheet });
+  let updateSubscriber;
+  const host = component('components/app-overlay-host/app-overlay-host.vue', {
+    AppDialog: dialog, AppActionSheet: sheet, AppUpdateDialog: {},
+    subscribeUpdateDialog(listener) { updateSubscriber = listener; listener({ update: null }); return () => { updateSubscriber = null; }; }
+  });
   const hostApp = renderer.createApp({ mpType: 'page', render: () => h(resolveComponent('app-overlay-host')) });
   hostApp.component('app-overlay-host', { ...host, render: () => null });
   const hostPage = hostApp.mount({});
   stack = [{ route: 'pages/login/login', $vm: hostPage }];
   api.appOverlayPageMixin.onShow.call(hostPage);
   const hostInstance = hostPage.$.subTree.component.proxy;
+  updateSubscriber({ update: { version: '1.7.2' } });
+  assert.equal(hostInstance.updateState.update.version, '1.7.2', 'host receives app update state');
+  updateSubscriber({ update: null });
   const hostResult = uni.showModal({ title: '正式包确认框', content: '显式注册后继续流程' });
   await nextTick();
   assert.equal(hostInstance.request.options.title, '正式包确认框');
@@ -310,7 +317,7 @@ async function main() {
   const routes = [...config.pages.map(page => page.path), ...config.subPackages.flatMap(group => group.pages.map(page => `${group.root}/${page.path}`))];
   for (const route of routes.filter(route => !route.startsWith('uni_modules/'))) {
     const page = fs.readFileSync(path.join(root, `${route}.vue`), 'utf8');
-    assert.equal((page.match(/<app-overlay-host\s*\/>/g) || []).length, 1, `${route}: one page host`);
+    assert.equal((page.match(/<app-overlay-host(?:\s+[^>]*)?\s*\/>/g) || []).length, 1, `${route}: one page host`);
   }
   console.log('[test-app-overlays] PASS: callbacks, promises, queue, page isolation, back, duplicate actions, hosts, seven page dialogs and sheet navigation');
 }

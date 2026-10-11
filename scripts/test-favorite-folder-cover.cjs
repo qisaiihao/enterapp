@@ -65,6 +65,10 @@ function runtime(platform) {
     if (!response.result.success) throw new Error(response.result.message);
     return response.result;
   };
+  globals.updateFavoriteFolder = async (folderId, folderName, coverUrl, context) => {
+    const response = await globals.cloudCall('updateFavoriteFolder', { folderId, folderName, coverUrl }, { context, requireAuth: true });
+    return response.result;
+  };
   Object.assign(globals, load('utils/fileReader.js', globals));
   const definition = load('pages-content/favorite-folders/favorite-folders.vue', globals);
   const page = definition.data();
@@ -111,6 +115,26 @@ async function main() {
     assert.deepEqual(empty.state.calls.map(c => c.name), ['createFavoriteFolder']);
     assert.equal(empty.state.calls[0].data.coverUrl, null);
     assert.deepEqual(empty.state.reads, []);
+
+    const edit = runtime(platform);
+    const originalCover = 'cloud://fixture/folder_covers/original.jpg';
+    edit.page.editingFolder = { _id: 'folder-1', coverUrl: originalCover };
+    edit.page.editingFolderName = ' 新名字 ';
+    edit.page.editingFolderCover = originalCover;
+    await edit.page.saveFolderName();
+    assert.deepEqual(edit.state.calls.map(c => c.name), ['updateFavoriteFolder']);
+    assert.equal(edit.state.calls[0].data.coverUrl, originalCover);
+    assert.deepEqual(edit.state.reads, [], 'renaming must not read a cloud cover as a local file');
+
+    const replacement = runtime(platform);
+    replacement.page.editingFolder = { _id: 'folder-1', coverUrl: originalCover };
+    replacement.page.editingFolderName = '新名字';
+    replacement.page.editingFolderCover = replacement.page.newFolderCover;
+    await replacement.page.saveFolderName();
+    assert.deepEqual(replacement.state.calls.map(c => c.name), ['upload', 'updateFavoriteFolder']);
+    assert.equal(replacement.state.calls[0].data.fileContent, imageData);
+    assert.equal(replacement.state.calls[1].data.coverUrl, fileID);
+    assert.equal(replacement.state.loading, false);
   }
   const { page, state } = runtime('app');
   page.chooseNewCoverImage();

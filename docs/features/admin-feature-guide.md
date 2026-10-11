@@ -8,6 +8,15 @@
 2. **管理诗人**：删除错误创建的诗人主页
 3. **反馈建议**：查看用户提交的反馈和建议，标记已处理或删除
 4. **找回密码**：通过昵称或 poemId 查询用户密码
+5. **发帖限制**：按诗号查找用户，限制或恢复其发帖权限
+
+## 发帖限制
+
+在“管理中心 → 发帖限制”输入用户的诗号（poemId），确认用户昵称和当前状态后，可限制或解除限制。只有通过 `adminManager` 管理员校验的账号能查询和修改。状态写入 `users.postingBanned`，同时记录操作时间和管理员 openid。
+
+限制生效后，云端会拒绝该账号发布普通帖子、引用讨论、组诗和拼贴诗；旧版 `contentCheck` 发布入口也会拒绝。现有帖子不会删除，评论和编辑现有帖子不受这项发帖限制影响。解除限制后可再次发布。
+
+上线时需要同步部署 `adminManager`、`contentCheck`、`createPost`、`createDiscussionPost`、`createSeriesFromSingles` 和 `uploadCollagePoetry` 云函数，并发布 App/小程序新版本以提供管理页面。
 
 ## 访问入口
 

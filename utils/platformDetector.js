@@ -35,6 +35,25 @@ function getPlatformInfo() {
     };
 
     try {
+        const systemInfo = safeGetSystemInfo();
+        info.details.systemInfo = systemInfo;
+        const systemPlatform = String(systemInfo.platform || '').toLowerCase();
+        const uniPlatform = String(systemInfo.uniPlatform || '').toLowerCase();
+        // App WebView 也可能暴露 window/document，原生标识必须先于 H5 判断。
+        if (typeof plus !== 'undefined') {
+            info.isHarmony = isHarmonySystem(systemInfo);
+            info.platform = info.isHarmony ? 'app-harmony' : 'app';
+            info.isApp = true;
+            info.isAndroid = systemPlatform === 'android';
+            info.isIOS = systemPlatform === 'ios';
+            return info;
+        }
+        if (uniPlatform === 'app-harmony') {
+            info.platform = 'app-harmony';
+            info.isApp = true;
+            info.isHarmony = true;
+            return info;
+        }
         if (typeof window !== 'undefined' && typeof document !== 'undefined') {
             info.platform = 'h5';
             info.isH5 = true;
@@ -45,9 +64,6 @@ function getPlatformInfo() {
             }
             return info;
         }
-
-        const systemInfo = safeGetSystemInfo();
-        info.details.systemInfo = systemInfo;
 
         if (typeof wx !== 'undefined' && typeof wx.getAccountInfoSync === 'function') {
             try {

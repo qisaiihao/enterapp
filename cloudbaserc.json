@@ -23,16 +23,18 @@
     },
     {
       "name": "contentCheck",
-      "timeout": 3,
-      "memory": 256,
-      "runtime": "Nodejs16.13",
+      "timeout": 20,
+      "memory": 512,
+      "runtime": "Nodejs18.15",
       "handler": "index.main",
+      "root": "./functions/contentCheck",
+      "installDependency": true,
       "configPath": "functions/contentCheck/config.json",
       "params": {}
     },
     {
       "name": "adminManager",
-      "timeout": 3,
+      "timeout": 10,
       "memory": 256,
       "runtime": "Nodejs16.13",
       "handler": "index.main",
@@ -317,7 +319,7 @@
             {
               "name": "adminManager",
               "root": "./functions/adminManager",
-              "timeout": 5,
+              "timeout": 10,
               "memory": 256,
               "runtime": "Nodejs16.13"
             },

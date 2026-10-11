@@ -80,7 +80,9 @@ exports.main = async (event, context) => {
     // 如果指定了消息类型，添加类型过滤
     if (type === 'feedback_all') {
       whereCondition.type = _.in(['feedback', 'feedback_reply', 'feedback_detail_requested', 'feedback_processed']);
-    } else if (type && ['like', 'comment', 'favorite', 'follow', 'feedback', 'feedback_processed', 'feedback_reply', 'feedback_detail_requested'].includes(type)) {
+    } else if (type === 'post_report_all') {
+      whereCondition.type = _.in(['post_report_new', 'post_report_handled', 'post_report_dismissed']);
+    } else if (type && ['like', 'comment', 'favorite', 'follow', 'feedback', 'feedback_processed', 'feedback_reply', 'feedback_detail_requested', 'post_report_new', 'post_report_handled', 'post_report_dismissed'].includes(type)) {
       whereCondition.type = type;
     }
     
