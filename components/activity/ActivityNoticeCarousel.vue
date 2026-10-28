@@ -14,7 +14,7 @@
           v-for="notice in safeNotices"
           :key="notice.value"
         >
-          <view :class="['notice-card', notice.tone || 'default', { 'is-linked': !!notice.linkUrl }]" @tap="handleSelect(notice)">
+          <view :class="['notice-card', notice.tone || 'default', { 'is-linked': !!notice.linkUrl, 'has-image': !!notice.image }]" @tap="handleSelect(notice)">
             <image
               v-if="notice.image"
               class="notice-image"
@@ -135,7 +135,7 @@ export default {
   box-sizing: border-box;
 }
 
-.notice-card::before {
+.notice-card:not(.has-image)::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -153,7 +153,7 @@ export default {
   opacity: 0.88;
 }
 
-.notice-card::after {
+.notice-card:not(.has-image)::after {
   content: '';
   position: absolute;
   right: -50rpx;
