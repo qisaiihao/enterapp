@@ -1,16 +1,28 @@
 <template>
     <view class="tab-bar">
-        <view class="tab-bar-item" v-for="(item, index) in list" :key="index" :data-index="index" :data-path="item.pagePath" @tap="switchTab">
-            <view :class="['icon-wrap', selected === index ? 'pressed' : '']">
-                <view :class="['icon-inner', selected === index ? 'active' : '']">
-                    <image
-                        :class="['icon-img', selected === index ? 'icon-img--active' : '']"
-                        :src="resolveIconPath(item, index)"
-                        mode="aspectFill"
-                    />
+        <view
+            class="tab-bar-item"
+            v-for="(item, index) in list"
+            :key="index"
+            :data-index="index"
+            :data-path="item.pagePath"
+            hover-class="tab-bar-item--touching"
+            :hover-start-time="0"
+            :hover-stay-time="80"
+            @tap="switchTab"
+        >
+            <view class="tab-bar-content">
+                <view :class="['icon-wrap', selected === index ? 'is-selected' : '']">
+                    <view class="icon-inner">
+                        <image
+                            :class="['icon-img', selected === index ? 'icon-img--active' : '']"
+                            :src="resolveIconPath(item, index)"
+                            mode="aspectFill"
+                        />
+                    </view>
                 </view>
+                <text class="tab-bar-text" :style="selected === index ? 'color: var(--app-tab-active-text-color, #000000)' : ''">{{ item.text }}</text>
             </view>
-            <text class="tab-bar-text" :style="selected === index ? 'color: var(--app-tab-active-text-color, #000000)' : ''">{{ item.text }}</text>
         </view>
     </view>
 </template>
@@ -150,7 +162,7 @@ export default {
             const index = normalizeTabIndex(data.index);
             const currentTime = Date.now();
 
-            if (index === null) return;
+            if (index === null || this._switchingTab) return;
 
             // 【小程序审核优化】点击"我"时检查登录状态
             if (index === 3) { // "我"的索引是3
@@ -169,24 +181,37 @@ export default {
             // 触觉反馈
             lightImpact();
 
-            const isDoubleTap = currentTime - this.lastTapTime < this.doubleTapThreshold && this.lastTapIndex === index && this.selected === index;
+            const isCurrentTab = this.selected === index;
+            const isDoubleTap = isCurrentTab && currentTime - this.lastTapTime < this.doubleTapThreshold && this.lastTapIndex === index;
 
-            this.setData({ lastTapTime: currentTime, lastTapIndex: index });
+            // 导航本身不计入双击，避免页面尚未切完就触发目标页刷新。
+            this.lastTapTime = isCurrentTab ? currentTime : 0;
+            this.lastTapIndex = isCurrentTab ? index : -1;
             if (isDoubleTap) {
                 this.refreshCurrentPage();
                 return;
             }
 
-            if (this.selected === index) return;
+            if (isCurrentTab) return;
             const previousIndex = this.selected;
+            this._switchingTab = true;
             this.updateSelected(index);
             try { uni.setStorageSync('currentTabIndex', index); } catch (_) {}
             const targetUrl = url.startsWith('/') ? url : `/${url}`;
             const restoreSelected = () => {
+                this._switchingTab = false;
                 this.updateSelected(previousIndex);
                 try { uni.setStorageSync('currentTabIndex', previousIndex); } catch (_) {}
             };
-            if (switchTabSmooth({ url: targetUrl, fail: restoreSelected }) === false) restoreSelected();
+            try {
+                if (switchTabSmooth({
+                    url: targetUrl,
+                    success: () => { this._switchingTab = false; },
+                    fail: restoreSelected
+                }) === false) restoreSelected();
+            } catch (_) {
+                restoreSelected();
+            }
         },
         refreshCurrentPage() {
             const currentPage = this.list[this.selected];
@@ -221,6 +246,8 @@ export default {
 
 <style>
 .tab-bar {
+  --tab-outer-center: 222rpx;
+  --tab-inner-center: 74rpx;
   position: fixed !important;
   bottom: 0 !important;
   left: 0 !important;
@@ -245,40 +272,102 @@ export default {
   align-items: center;
   justify-content: center;
   height: 100%;
-  flex: 1;
-  max-width: 88rpx;
+  flex: 1 1 25%;
+  min-width: 0;
+}
+
+/* 热区覆盖整栏，内容仍保持原先居中的图标间距。 */
+.tab-bar-content {
+  position: relative;
+  z-index: 1;
+  width: 88rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tab-bar-item:nth-child(1) .tab-bar-content {
+  transform: translateX(calc(37.5vw - var(--tab-outer-center)));
+}
+
+.tab-bar-item:nth-child(2) .tab-bar-content {
+  transform: translateX(calc(12.5vw - var(--tab-inner-center)));
+}
+
+.tab-bar-item:nth-child(3) .tab-bar-content {
+  transform: translateX(calc(var(--tab-inner-center) - 12.5vw));
+}
+
+.tab-bar-item:nth-child(4) .tab-bar-content {
+  transform: translateX(calc(var(--tab-outer-center) - 37.5vw));
 }
 
 .icon-wrap {
+  position: relative;
   width: 88rpx;
   height: 88rpx;
   border-radius: 24rpx;
   background: var(--app-tab-icon-wrap-bg, #f8f8f8);
   border: 1rpx solid var(--app-tab-icon-border-color, transparent);
-  overflow: hidden;
-  box-shadow: var(--app-tab-icon-wrap-shadow, 0 18rpx 32rpx rgba(0, 0, 0, 0.16));
-  transition: border-color 0.22s ease, box-shadow 0.22s ease;
+  overflow: visible;
+  transform: translateY(0) scale(1);
+  transform-origin: center;
+  transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
   box-sizing: border-box;
 }
 
-.icon-wrap.pressed {
+.icon-wrap.is-selected {
   border-color: var(--app-tab-icon-active-border-color, var(--app-tab-icon-border-color, transparent));
+}
+
+/* 两层外阴影只切换透明度；选中保持浮起，触摸时才压低。 */
+.icon-wrap::before,
+.icon-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  transition: opacity 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.icon-wrap::before {
+  box-shadow: var(--app-tab-icon-wrap-shadow, 0 18rpx 32rpx rgba(0, 0, 0, 0.16));
+  opacity: 1;
+}
+
+.icon-wrap::after {
   box-shadow: var(--app-tab-icon-active-shadow, 0 12rpx 24rpx rgba(0, 0, 0, 0.14), 0 3rpx 8rpx rgba(0, 0, 0, 0.08));
+  opacity: 0;
+}
+
+.tab-bar-item--touching .icon-wrap {
+  transform: translateY(4rpx) scale(0.96);
+  transition-duration: 80ms;
+}
+
+.tab-bar-item--touching .icon-wrap::before {
+  opacity: 0;
+  transition-duration: 80ms;
+}
+
+.tab-bar-item--touching .icon-wrap::after {
+  opacity: 1;
+  transition-duration: 80ms;
 }
 
 .icon-inner {
   position: relative;
   width: 100%;
   height: 100%;
+  border-radius: inherit;
   background: var(--app-tab-icon-inner-bg, #ffffff);
-  box-shadow: none;
   overflow: hidden;
-  transition: transform 0.22s ease, box-shadow 0.22s ease;
-}
-
-.icon-inner.active {
-  box-shadow: inset 0 10rpx 20rpx rgba(0, 0, 0, 0.22);
-  transform: translateY(3rpx) scale(0.97);
+  transition: none;
 }
 
 .icon-img {
@@ -287,7 +376,7 @@ export default {
   display: block;
   filter: var(--app-tabbar-icon-filter, none);
   opacity: var(--app-tabbar-icon-opacity, 1);
-  transition: filter 0.22s ease, opacity 0.22s ease, transform 0.22s ease;
+  transition: opacity 180ms ease, transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .icon-img--active {
@@ -299,33 +388,49 @@ export default {
 .tab-bar-text {
   font-size: 22rpx;
   margin-top: 4rpx;
-  transition: all 0.3s ease;
+  transition: color 150ms ease;
   color: var(--app-tab-text-color, #999999);
 }
 
-/* 响应式间距调整 */
-/* 所有屏幕尺寸：保持按钮间距，但标签栏填满整个宽度 */
 @media screen and (max-width: 320px) {
-  .tab-bar-item {
-    margin: 0 15rpx;
+  .tab-bar {
+    --tab-outer-center: 177rpx;
+    --tab-inner-center: 59rpx;
   }
 }
 
 @media screen and (min-width: 321px) and (max-width: 375px) {
-  .tab-bar-item {
-    margin: 0 30rpx;
+  .tab-bar {
+    --tab-outer-center: 222rpx;
+    --tab-inner-center: 74rpx;
   }
 }
 
 @media screen and (min-width: 376px) and (max-width: 414px) {
-  .tab-bar-item {
-    margin: 0 35rpx;
+  .tab-bar {
+    --tab-outer-center: 237rpx;
+    --tab-inner-center: 79rpx;
   }
 }
 
 @media screen and (min-width: 415px) {
-  .tab-bar-item {
-    margin: 0 40rpx;
+  .tab-bar {
+    --tab-outer-center: 252rpx;
+    --tab-inner-center: 84rpx;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon-wrap,
+  .icon-wrap::before,
+  .icon-wrap::after,
+  .icon-img,
+  .tab-bar-text {
+    transition: none;
+  }
+
+  .tab-bar-item--touching .icon-wrap {
+    transform: none;
   }
 }
 </style>

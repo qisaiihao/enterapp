@@ -1,5 +1,7 @@
 const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
-const { createModerationService } = require('./moderation');
+const { createModerationService, collectImages } = require('./moderation');
+const { moderateBeforeWrite } = require('./_lib/moderation-gate');
+const { queueModerationReview } = require('./_lib/moderation-review');
 // 引入云开发 SDK
 // 注意：内容审核 SDK 当前未启用，不能在模块加载阶段强依赖它，
 // 否则仅做“审核直通”时也会因为缺少依赖导致整个云函数启动失败。
@@ -46,6 +48,13 @@ function isModerationOnlyRequest(event = {}) {
   return typeof event.type === 'string' && ['text', 'image', 'batch'].includes(event.type);
 }
 
+async function moderateContentInBatches(content) {
+  if (process.env.CONTENT_MODERATION_MODE !== 'enforce') return moderation.moderate(content);
+  const failure = await moderateBeforeWrite(cloud, content);
+  return failure ? { ...failure, passed: false }
+    : { success: true, passed: true, message: '审核通过' };
+}
+
 exports.main = async (event, context) => {
   console.log('=== contentCheck started ===');
   // Do not log UGC payloads or signed image URLs.
@@ -53,6 +62,11 @@ exports.main = async (event, context) => {
   console.log('[contentCheck] request mode:', moderationOnly ? 'moderation-only' : 'legacy-create-post');
 
   if (moderationOnly) {
+    // The gate sends text-only and up to three image-only requests. Those use
+    // the service directly; whole batches are split without recursively publishing.
+    if (event.type === 'batch' || collectImages(event).length > 3) {
+      return moderateContentInBatches(event);
+    }
     return moderation.moderate(event);
   }
 
@@ -334,28 +348,29 @@ const dedupeTop3 = (lines = []) => {
     highlightSentenceValue = effectiveHighlightLines[0];
   }
   
-  const audit = await moderation.moderate({
+  const audit = await moderateContentInBatches({
     title,
     content,
     text,
     author,
     tags,
     anonymousAuthorName: isAnonymous ? anonymousAuthorName : '',
+    highlightSentence: highlightSentenceValue,
+    highlightLines: effectiveHighlightLines,
+    seriesCoverHighlight: highlightSentenceValue,
+    seriesCoverImage: normalizedSeriesBlocks[0] && normalizedSeriesBlocks[0].imageUrl,
     sentenceGroups: normalizedSentenceGroups,
     seriesBlocks: normalizedSeriesBlocks,
     images: Array.isArray(originalFileIDs) && originalFileIDs.length
       ? originalFileIDs : (Array.isArray(fileIDs) ? fileIDs : [])
   });
-  if (!audit.success || !audit.passed) {
+  if ((!audit.success || !audit.passed) && !['CONTENT_BLOCKED', 'REVIEW_REQUIRED'].includes(audit.code)) {
     return buildFailure({
-      code: -1201,
-      msg: audit.message,
-      errorCode: audit.code,
+      code: -1201, msg: audit.message, errorCode: audit.code,
       extra: { passed: false, suggestion: audit.suggestion, requestId: audit.requestId }
     });
   }
-
-  // ------------------- 3. 审核全部通过，写入数据库 -------------------
+  // 准备完整帖子并确认账号；拦截内容保存到复核队列，通过内容再公开写入。
   try {
     // 获取当前用户信息
     // Use resolved openid above (event.openid preferred), fallback to context if missing
@@ -518,6 +533,13 @@ const dedupeTop3 = (lines = []) => {
     
     if (!postData._openid) {
       throw new Error('用户openid缺失');
+    }
+
+    if (!audit.success || !audit.passed) {
+      return await queueModerationReview(db, {
+        openid: currentOpenid, source: 'contentCheck', kind: 'post', audit, data: postData,
+        related: { activityId: activityId || joinActivityId }
+      });
     }
     
     const result = await db.collection('posts').add({

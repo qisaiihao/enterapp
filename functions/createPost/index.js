@@ -1,5 +1,6 @@
 const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 const { moderateBeforeWrite } = require('./_lib/moderation-gate');
+const { queueModerationReview } = require('./_lib/moderation-review');
 // 云函数：createPost
 // 功能：创建新帖子
 
@@ -41,18 +42,6 @@ exports.main = async (event, context) => {
     if (userResult.data.some(item => item.postingBanned === true)) {
       return { code: 'POSTING_BANNED', msg: '账号已被限制发帖，请联系管理员' };
     }
-    const moderationFailure = await moderateBeforeWrite(cloud, {
-      title: event.title,
-      content: event.content,
-      author: event.author,
-      tags: event.tags,
-      anonymousAuthorName: event.isAnonymous ? event.anonymousAuthorName : '',
-      sentenceGroups: event.sentenceGroups,
-      seriesBlocks: event.seriesBlocks,
-      images: Array.isArray(event.originalFileIDs) && event.originalFileIDs.length
-        ? event.originalFileIDs : event.fileIDs
-    });
-    if (moderationFailure) return moderationFailure;
     const isAnonymous = event.isAnonymous === true || event.isAnonymous === 'true';
     const anonymousAuthorName = event.anonymousAuthorName || '匿名用户';
     
@@ -64,7 +53,7 @@ exports.main = async (event, context) => {
       authorSignature: isAnonymous ? '' : (user.signatureUrl || ''),
       title: event.title || '',
       content: event.content || '',
-      createTime: db.serverDate(),
+      createTime: new Date(),
       votes: 0,
       commentCount: 0,
       viewCount: 0,
@@ -115,6 +104,27 @@ exports.main = async (event, context) => {
       postData.seriesBlockCount = (event.seriesBlocks || []).length;
     }
     
+    const moderationFailure = await moderateBeforeWrite(cloud, {
+      title: postData.title,
+      content: postData.content,
+      author: postData.author,
+      tags: postData.tags,
+      anonymousAuthorName: isAnonymous ? anonymousAuthorName : '',
+      highlightSentence: postData.highlightSentence,
+      highlightLines: postData.highlightLines,
+      sentenceGroups: postData.sentenceGroups,
+      discussionSentences: postData.discussionSentences,
+      seriesBlocks: postData.seriesBlocks,
+      images: Array.isArray(event.originalFileIDs) && event.originalFileIDs.length
+        ? event.originalFileIDs : event.fileIDs
+    });
+    if (moderationFailure) {
+      if (!['CONTENT_BLOCKED', 'REVIEW_REQUIRED'].includes(moderationFailure.code)) return moderationFailure;
+      return await queueModerationReview(db, {
+        openid, source: 'createPost', kind: 'post', audit: moderationFailure, data: postData
+      });
+    }
+
     // 创建帖子
     const result = await db.collection('posts').add({
       data: postData

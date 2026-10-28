@@ -2412,17 +2412,7 @@ export default {
                 return;
             }
 
-            // 【内容审核】审核评论内容（仅小程序端）
-            const moderationResult = await this.moderateCommentContent(trimmedContent, this.commentImages);
-            if (!moderationResult.passed) {
-                uni.showModal({
-                    title: '内容审核未通过',
-                    content: moderationResult.message || '您的评论包含不适当的信息，请修改后重试',
-                    showCancel: false,
-                    confirmText: '知道了'
-                });
-                return;
-            }
+            // 服务端统一审核和保存复核内容，评论在管理员通过前不会公开。
 
             const parentId = this.replyToComment;
             const replyToAuthor = this.replyToAuthor;
@@ -2479,6 +2469,20 @@ export default {
                 console.log('CatchClause', error);
                 console.log('CatchClause', error);
                 uni.hideLoading();
+                if (error && error.result && error.result.reviewQueued) {
+                    uni.showModal({
+                        title: '已提交管理员复核',
+                        content: error.result.message || '评论暂未公开，管理员复核通过后会显示。',
+                        showCancel: false,
+                        confirmText: '知道了',
+                        success: () => {
+                            this.setData({ newComment: '', commentImages: [] });
+                            this.updateSubmitState();
+                            this.collapseInput();
+                        }
+                    });
+                    return;
+                }
                 console.error('Failed to add comment with media:', error);
                 uni.showToast({
                     title: '评论失败',

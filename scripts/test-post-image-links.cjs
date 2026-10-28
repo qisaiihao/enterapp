@@ -100,7 +100,8 @@ function esModule(file, globals, names) {
   const request = {}; protocol.prepareCloudPostImages('getPostList', request); assert.equal(request.rawImages, true);
   const rollback = { rawImages: false }; protocol.prepareCloudPostImages('getPostList', rollback); assert.equal(rollback.rawImages, false);
   const unrelated = {}; protocol.prepareCloudPostImages('getFontFile', unrelated); assert.equal(unrelated.rawImages, undefined);
-  const clientBox = { ...protocol, console: quiet, auth: { getOpenId: async () => 'viewer' },
+  const loginClientInfo = esModule('utils/loginClientInfo.js', {}, ['isLoginAuditRequest', 'collectLoginClientInfo']);
+  const clientBox = { ...protocol, ...loginClientInfo, console: quiet, auth: { getOpenId: async () => 'viewer' },
     getCloudFunctionMethod: () => 'tcb', formatErrorForLog: error => error.message };
   const clientSource = read('utils/cloudCall.js').replace(/^import .*;\r?$/gm, '')
     .replace('export async function cloudCall', 'async function cloudCall').replace('export default', 'const helpers =');

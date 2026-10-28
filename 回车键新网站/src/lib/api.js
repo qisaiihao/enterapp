@@ -1,5 +1,6 @@
 import { demoPosts, demoUser, demoActivity } from "./demo";
 import { dayKey, normalizePoem } from "./poems";
+import { collectBrowserLoginClientInfo } from "./login-client-info";
 
 const MODE_KEY = "poementer:mode";
 const SESSION_KEY = "poementer:web-session";
@@ -104,7 +105,11 @@ async function call(action, data = {}) {
 export async function login(poemId, password) {
   if (mode === "demo")
     throw new Error("示例模式不接收账号密码，请使用“体验示例账号”");
-  const result = await call("login", { poemId: poemId.trim(), password });
+  const result = await call("login", {
+    poemId: poemId.trim(),
+    password,
+    clientInfo: collectBrowserLoginClientInfo(),
+  });
   token = result.token;
   storage.set(SESSION_KEY, token);
   return result.user;

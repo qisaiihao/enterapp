@@ -23,6 +23,8 @@ function safePost(post, author = {}) {
     isOriginal: post.isOriginal === true,
     isAnonymous: anonymous,
     author: anonymous ? "" : post.author || "",
+    // The shared public response wrapper keeps this explicit safe pseudonym.
+    ...(anonymous ? { anonymousAuthorName: "匿名诗人" } : {}),
     authorName: anonymous
       ? "匿名诗人"
       : post.authorName ||

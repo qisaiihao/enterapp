@@ -1,5 +1,6 @@
 const { createPostsDatabase, withPostResponse, resolveOwner } = require('./_lib/posts');
 const { moderateBeforeWrite } = require('./_lib/moderation-gate');
+const { queueModerationReview } = require('./_lib/moderation-review');
 const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = createPostsDatabase(cloud.database());
@@ -16,6 +17,7 @@ const EDITABLE_KEYS = [
   'highlightSentence',
   'highlightLines',
   'sentenceGroups',
+  'discussionSentences',
   'isAnonymous',
   'anonymousAuthorName',
   'author',
@@ -88,6 +90,11 @@ exports.main = async (event, context) => {
     }
   }
   
+  if (input.originalFileIDs !== undefined && input.fileIDs === undefined && Array.isArray(input.originalFileIDs)) {
+    updateData.originalImageUrls = input.originalFileIDs.filter(Boolean);
+    updateData.originalImageUrl = updateData.originalImageUrls[0] || '';
+  }
+
   updateData.updateTime = new Date();
 
   try {
@@ -213,7 +220,7 @@ exports.main = async (event, context) => {
       ? String(post.activityId || '')
       : String(post.joinedActivityId || '');
 
-    const submittedContentKeys = ['title', 'content', 'tags', 'author', 'anonymousAuthorName', 'sentenceGroups', 'discussionSentences', 'seriesBlocks', 'fileIDs'];
+    const submittedContentKeys = ['title', 'content', 'tags', 'author', 'anonymousAuthorName', 'highlightSentence', 'highlightLines', 'seriesCoverHighlight', 'sentenceGroups', 'discussionSentences', 'seriesBlocks', 'seriesCoverImage', 'fileIDs', 'originalFileIDs'];
     if (submittedContentKeys.some(key => input[key] !== undefined)) {
       const moderationFailure = await moderateBeforeWrite(cloud, {
         title: updateData.title,
@@ -221,12 +228,26 @@ exports.main = async (event, context) => {
         author: updateData.author,
         anonymousAuthorName: updateData.anonymousAuthorName,
         tags: updateData.tags,
-        sentenceGroups: updateData.sentenceGroups || updateData.discussionSentences,
+        highlightSentence: updateData.highlightSentence,
+        highlightLines: updateData.highlightLines,
+        seriesCoverHighlight: updateData.seriesCoverHighlight,
+        sentenceGroups: updateData.sentenceGroups,
+        discussionSentences: updateData.discussionSentences,
         seriesBlocks: updateData.seriesBlocks,
+        seriesCoverImage: updateData.seriesCoverImage,
         images: Array.isArray(input.originalFileIDs) && input.originalFileIDs.length
           ? input.originalFileIDs : updateData.imageUrls
       });
-      if (moderationFailure) return moderationFailure;
+      if (moderationFailure) {
+        if (!['CONTENT_BLOCKED', 'REVIEW_REQUIRED'].includes(moderationFailure.code)) return moderationFailure;
+        const newActivityId = post.isActivityPost === true
+          ? String(post.activityId || '')
+          : String(updateData.joinedActivityId !== undefined ? updateData.joinedActivityId : (post.joinedActivityId || ''));
+        return await queueModerationReview(db, {
+          openid, source: 'updatePostContent', kind: 'post_edit', audit: moderationFailure,
+          data: updateData, postId, basePost: post, related: { oldActivityId, newActivityId }
+        });
+      }
     }
 
     // 执行更新：只更新指定字段，保留 votes、commentCount 等其他字段

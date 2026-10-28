@@ -10,7 +10,7 @@
             {
               "name": "addComment",
               "root": "./functions/addComment",
-              "timeout": 10,
+              "timeout": 90,
               "memory": 256
             },
             {
@@ -34,7 +34,7 @@
             {
               "name": "contentCheck",
               "root": "./functions/contentCheck",
-              "timeout": 20,
+              "timeout": 60,
               "memory": 512
             },
             {

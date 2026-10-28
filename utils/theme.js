@@ -2,6 +2,9 @@ const STORAGE_KEY = 'poementerThemeMode';
 const THEME_CHANGED_EVENT = 'theme:changed';
 const LIGHT_MODE = 'light';
 const DARK_MODE = 'dark';
+let cachedThemeMode;
+let themeEventsBound = false;
+const appliedTargetModes = new WeakMap();
 
 const DARK_THEME_VARS = Object.freeze({
   '--app-page-bg': '#0f1115',
@@ -318,7 +321,22 @@ export function getThemeVars(mode = getThemeMode()) {
 }
 
 export function getThemeMode() {
-  return normalizeThemeMode(readStorage(STORAGE_KEY));
+  ensureThemeEventBridge();
+  if (cachedThemeMode === undefined) {
+    cachedThemeMode = normalizeThemeMode(readStorage(STORAGE_KEY));
+  }
+  return cachedThemeMode;
+}
+
+function ensureThemeEventBridge() {
+  if (themeEventsBound || typeof uni === 'undefined' || typeof uni.$on !== 'function') return;
+  // 兼容直接更新存储后发出主题事件的调用方；整个运行时只应用一次主题。
+  uni.$on(THEME_CHANGED_EVENT, (payload = {}) => {
+    const nextMode = normalizeThemeMode(payload.mode || readStorage(STORAGE_KEY));
+    if (cachedThemeMode === nextMode) return;
+    applyThemeMode(nextMode);
+  });
+  themeEventsBound = true;
 }
 
 export function isDarkMode(mode = getThemeMode()) {
@@ -326,11 +344,14 @@ export function isDarkMode(mode = getThemeMode()) {
 }
 
 export function applyThemeMode(mode = getThemeMode()) {
+  ensureThemeEventBridge();
   const nextMode = normalizeThemeMode(mode);
+  cachedThemeMode = nextMode;
   const vars = getThemeVars(nextMode);
   const targets = getThemeTargets();
 
   targets.forEach((target) => {
+    if (appliedTargetModes.get(target) === nextMode) return;
     target.setAttribute('data-app-theme', nextMode);
     target.style.colorScheme = nextMode === DARK_MODE ? 'dark' : 'light';
     ALL_THEME_VAR_NAMES.forEach((name) => {
@@ -340,6 +361,7 @@ export function applyThemeMode(mode = getThemeMode()) {
         target.style.removeProperty(name);
       }
     });
+    appliedTargetModes.set(target, nextMode);
   });
 
   applyNativeThemeChrome(nextMode);

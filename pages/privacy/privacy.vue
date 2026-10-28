@@ -9,17 +9,17 @@
 
 
     <view class="privacy-content">
-      <text class="privacy-meta" selectable :user-select="true">更新日期：2026年10月10日</text>
-      <text class="privacy-meta" selectable :user-select="true">生效日期：2026年10月9日</text>
+      <text class="privacy-meta" selectable :user-select="true">更新日期：2026年10月14日</text>
+      <text class="privacy-meta" selectable :user-select="true">生效日期：2026年10月14日</text>
 
       <text class="privacy-paragraph" selectable :user-select="true">广州回车键网络科技有限公司（以下简称“我们”）是“回车键”（英文名 Poementer，以下简称“本应用”）的运营者。我们深知个人信息对您的重要性，将按照《中华人民共和国个人信息保护法》《中华人民共和国网络安全法》等法律法规的要求，采取相应的安全保护措施，尽力保护您的个人信息安全可控。</text>
       <text class="privacy-paragraph" selectable :user-select="true">请您在使用本应用前，仔细阅读并充分理解本隐私政策。本政策将帮助您了解以下内容：我们如何收集和使用您的个人信息、系统权限的调用、信息的共享与披露、信息的存储与保护、您的权利、未成年人保护、第三方服务以及本政策的更新方式。</text>
 
       <text class="privacy-heading" selectable :user-select="true">一、我们如何收集和使用您的个人信息</text>
-      <text class="privacy-paragraph" selectable :user-select="true">1. 账号注册与登录：您使用手机号注册、登录、找回密码时，我们会收集您的手机号；您使用账号密码登录时，我们会收集您的账号标识；您使用第三方登录时，微信会向我们提供您的用户标识（openid），GitHub 会向我们提供您的用户名、头像及公开邮箱等授权信息。上述信息仅用于完成登录与账号绑定。</text>
+      <text class="privacy-paragraph" selectable :user-select="true">1. 账号注册与登录：您使用手机号注册、登录、找回密码时，我们会收集您的手机号；您使用账号密码登录时，我们会收集您的账号标识；您使用第三方登录时，微信会向我们提供您的用户标识（openid），GitHub 会向我们提供您的用户名、头像及公开邮箱等授权信息。上述信息用于完成登录与账号绑定。</text>
       <text class="privacy-paragraph" selectable :user-select="true">2. 个人资料：您可主动填写昵称、头像、生日、个人简介、签名图片等信息，用于展示您的个人主页。</text>
       <text class="privacy-paragraph" selectable :user-select="true">3. 创作内容：您发布的诗歌、讨论、评论、回复、图片、标签，以及作品集、收藏夹等信息，将存储在我们的服务器中，用于向您及平台其他用户展示。</text>
-      <text class="privacy-paragraph" selectable :user-select="true">4. 设备与日志信息：为保障服务正常运行与账号安全，我们可能收集设备型号、操作系统版本、网络状态、应用版本号、异常日志等信息。</text>
+      <text class="privacy-paragraph" selectable :user-select="true">4. 设备与日志信息：为保障服务正常运行与账号安全，我们可能收集设备型号、操作系统版本、网络状态、应用版本号、异常日志等信息。登录成功时，我们会记录账号标识、登录时间、登录方式、使用端、设备和版本信息、浏览器用户代理，以及云平台能够提供的 IP 地址和源端口，用于账号安全、安全审计和网安备案。具体字段以设备环境和云平台实际提供的信息为准。</text>
 
       <text class="privacy-heading" selectable :user-select="true">二、系统权限的调用</text>
       <text class="privacy-paragraph" selectable :user-select="true">在您使用相关功能时，我们可能向您申请以下权限：</text>
@@ -47,13 +47,13 @@
       <text class="privacy-heading" selectable :user-select="true">五、我们如何存储和保护您的个人信息</text>
       <text class="privacy-paragraph" selectable :user-select="true">1. 您的个人信息存储于中华人民共和国境内的云服务器；</text>
       <text class="privacy-paragraph" selectable :user-select="true">2. 我们采用 HTTPS 加密传输、访问权限控制等措施保护您的个人信息；</text>
-      <text class="privacy-paragraph" selectable :user-select="true">3. 我们仅在为您提供服务所必需的期限内保存您的个人信息。账号注销后，我们将删除或匿名化处理您的个人信息，法律法规另有规定的除外。</text>
+      <text class="privacy-paragraph" selectable :user-select="true">3. 我们仅在提供服务、保障账号安全与开展安全审计所必需的期限内保存您的个人信息。账号注销后，我们将删除您的账号资料、发布内容及相关个人信息和上传文件，同时清理本应用内保存的个人资料、草稿及账号缓存。用于安全审计和网安备案的登录日志除外，注销后仍保留，仅授权管理员可在后台访问。</text>
 
       <text class="privacy-heading" selectable :user-select="true">六、您的权利</text>
       <text class="privacy-paragraph" selectable :user-select="true">1. 查询与更正：您可以在“我－编辑资料”中查询和更正您的个人资料；</text>
       <text class="privacy-paragraph" selectable :user-select="true">2. 删除：您可以删除自己发布的作品、评论等内容；</text>
       <text class="privacy-paragraph" selectable :user-select="true">3. 撤回同意：您可以在系统设置中关闭相机、相册等权限；</text>
-      <text class="privacy-paragraph" selectable :user-select="true">4. 注销账号：您可以在“设置－注销账号”中申请注销账号。注销后，您的账号资料、收藏、关注、消息、草稿等数据将被删除，已发布的诗歌、讨论和评论将匿名化保留并显示为“已注销用户”；</text>
+      <text class="privacy-paragraph" selectable :user-select="true">4. 注销账号：您可以在“设置－注销账号”中验证身份并确认注销。注销后，您的账号资料、登录方式、已发布的诗歌和讨论、评论和回复、作品集、收藏、关注、消息、草稿及上传文件等信息将被永久删除且无法恢复。用于安全审计和网安备案的登录日志仍保留，仅授权管理员可在后台访问；同一手机号或 Poem ID 可重新注册；</text>
       <text class="privacy-paragraph" selectable :user-select="true">5. 投诉举报：如您认为您的个人信息权利受到侵害，可以通过下方联系方式联系我们。</text>
 
       <text class="privacy-heading" selectable :user-select="true">七、未成年人保护</text>

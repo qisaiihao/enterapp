@@ -26,8 +26,8 @@
             <view class="menu-item" @tap="navigateTo" data-url="/pages-admin/post-reports/post-reports">
                 <view class="menu-icon">🚩</view>
                 <view class="menu-info">
-                    <text class="menu-title">受理举报</text>
-                    <text class="menu-desc">核查举报内容并处理帖子</text>
+                    <text class="menu-title">举报与复核</text>
+                    <text class="menu-desc">处理举报和被拦截内容的人工复核</text>
                 </view>
                 <text class="menu-arrow">→</text>
             </view>

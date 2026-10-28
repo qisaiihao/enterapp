@@ -2,10 +2,16 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const vm = require("node:vm");
 const fs = require("node:fs");
+const path = require("node:path");
+const { createRequire } = require("node:module");
 const domain = require("../cloudfunctions/webReader/domain.js");
+const cloudFilename = path.resolve(__dirname, "../cloudfunctions/webReader/index.js");
+const localRequire = createRequire(cloudFilename);
 
 function harness() {
   let caller = "browser-a";
+  let nextId = 0;
+  const state = { failAuditWrite: false };
   const now = new Date();
   const rows = {
     users: [
@@ -78,6 +84,7 @@ function harness() {
     follows: [],
     web_reader_sessions: [],
     web_reader_limits: [],
+    login_logs: [],
   };
   const mutations = [];
   function op(predicate) {
@@ -149,6 +156,14 @@ function harness() {
         return {
           total: rows[name].filter((r) => matches(r, condition)).length,
         };
+      },
+      async add({ data }) {
+        if (name === "login_logs" && state.failAuditWrite)
+          throw new Error("injected audit persistence failure");
+        mutations.push(name);
+        const id = `record-${++nextId}`;
+        rows[name].push(structuredClone({ ...data, _id: id }));
+        return { _id: id };
       },
       async remove() {
         mutations.push(name);
@@ -223,29 +238,25 @@ function harness() {
   const cloud = {
     init() {},
     database: () => db,
-    getWXContext: () => ({ TCB_UUID: caller }),
+    getWXContext: () => ({ TCB_UUID: caller, CLIENTIP: "2001:db8::8", CLIENTPORT: 49152 }),
     getTempFileURL: async () => ({ fileList: [] }),
   };
   const sandbox = {
     exports: {},
-    require: (name) =>
-      name === "wx-server-sdk"
-        ? cloud
-        : name === "./domain"
-          ? domain
-          : require(name),
+    require: (name) => name === "wx-server-sdk" ? cloud : localRequire(name),
     process: { env: {} },
     Buffer,
     console: { error() {} },
   };
   vm.runInNewContext(
-    fs.readFileSync("cloudfunctions/webReader/index.js", "utf8"),
+    fs.readFileSync(cloudFilename, "utf8"),
     sandbox,
   );
   return {
     main: sandbox.exports.main,
     rows,
     mutations,
+    state,
     setCaller: (value) => {
       caller = value;
     },
@@ -352,8 +363,8 @@ test("credential login creates a browser-bound session, own anonymous poems rema
     "AUTH_EXPIRED",
   );
   assert.ok(
-    h.mutations.every((name) => name.startsWith("web_reader_")),
-    "No App collection may be modified",
+    h.mutations.every((name) => name.startsWith("web_reader_") || name === "login_logs"),
+    "Only website sessions/limits and append-only login logs may be modified",
   );
 });
 test("login throttling persists between requests and expired sessions fail", async () => {
@@ -515,5 +526,45 @@ test("personal folders enforce ownership, paginate past unavailable poems and ne
     assert.equal(empty.posts.length, 0);
     assert.equal(empty.hasMore, false);
   }
-  assert.ok(h.mutations.every((name) => name.startsWith("web_reader_")));
+  assert.ok(h.mutations.every((name) => name.startsWith("web_reader_") || name === "login_logs"));
+});
+
+test("website credential login leaves one durable login record with trusted identity and network", async () => {
+  const h = harness();
+  const before = Date.now();
+  const login = await h.main({
+    action: "login", poemId: "poet-a", password: "correct-password",
+    clientInfo: { platform: "h5", userAgent: "Test browser", deviceModel: "Test model", token: "private-client-token" },
+    userId: "forged-user", userOpenid: "forged-owner", loginTime: "2000-01-01",
+    clientIp: "192.0.2.99", sourcePort: 9,
+    headers: { "x-forwarded-for": "192.0.2.99", "x-client-port": "9" },
+  }, { request_id: "website-request" });
+  assert.equal(login.success, true);
+  assert.equal(h.rows.login_logs.length, 1);
+  const log = h.rows.login_logs[0];
+  assert.equal(log.userId, "u1");
+  assert.equal(log.userOpenid, "owner-a");
+  assert.equal(log.poemId, "poet-a");
+  assert.equal(log.loginMethod, "password");
+  assert.equal(log.clientInfo.platform, "h5");
+  assert.equal(log.clientInfo.userAgent, "Test browser");
+  assert.equal(log.network.clientIp, "2001:db8::8");
+  assert.equal(log.network.sourcePort, 49152);
+  assert.equal(log.requestId, "website-request");
+  assert.ok(new Date(log.loginTime).getTime() >= before && new Date(log.loginTime).getTime() <= Date.now());
+  for (const secret of ["correct-password", "private-client-token", login.token, "phoneNumber"])
+    assert.ok(!JSON.stringify(h.rows.login_logs).includes(secret));
+});
+
+test("failed website authentication leaves no login record and audit persistence failure blocks login", async () => {
+  const h = harness();
+  assert.equal((await h.main({ action: "login", poemId: "poet-a", password: "wrong" })).code, "INVALID_CREDENTIALS");
+  assert.equal(h.rows.login_logs.length, 0);
+  h.state.failAuditWrite = true;
+  const failed = await h.main({ action: "login", poemId: "poet-a", password: "correct-password" });
+  assert.equal(failed.success, false);
+  assert.equal(failed.code, "LOGIN_AUDIT_UNAVAILABLE");
+  assert.equal(failed.token, undefined);
+  assert.equal(failed.user, undefined);
+  assert.equal(h.rows.login_logs.length, 0);
 });

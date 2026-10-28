@@ -1210,14 +1210,19 @@ export default {
                         try {
                             const p = this.saveDraft && this.saveDraft();
                             if (p && typeof p.finally === 'function') {
-                                p.finally(() => { try { uni.navigateBack(); } catch (e) {} });
+                                p.then((saved) => {
+                                    if (saved === true) {
+                                        this.setData({ discardWorkingDraftOnExit: true });
+                                        this.clearDraft({ resetForm: true });
+                                    }
+                                }).finally(() => { try { uni.navigateBack(); } catch (e) {} });
                             } else {
                                 setTimeout(() => { try { uni.navigateBack(); } catch (e) {} }, 500);
                             }
                         } catch (_) { try { uni.navigateBack(); } catch (e) {} }
                     } else {
                         this.setData({ discardWorkingDraftOnExit: true });
-                        try { this.clearDraft && this.clearDraft(); } catch (_) {}
+                        try { this.clearDraft && this.clearDraft({ resetForm: true }); } catch (_) {}
                         try { uni.navigateBack(); } catch (e) {}
                     }
                 }
@@ -2085,7 +2090,7 @@ export default {
                 isPublished: true
             });
             // 发布成功后清除草稿（编辑模式也清除）
-            this.clearDraft();
+            this.clearDraft({ resetForm: true });
             uni.navigateBack({
                 delta: 1
             });
@@ -2472,7 +2477,7 @@ export default {
         },
 
         // 清除草稿
-        clearDraft: function () {
+        clearDraft: function ({ resetForm = false } = {}) {
             try {
                 if (this.workingDraftSaveTimer) {
                     clearTimeout(this.workingDraftSaveTimer);
@@ -2487,6 +2492,29 @@ export default {
                 console.log('CatchClause', e);
                 console.log('CatchClause', e);
                 console.error('清除草稿失败:', e);
+            }
+            // 仅在结束编辑时清空输入，手动保存草稿后仍可继续编辑。
+            if (resetForm) {
+                this.setData({
+                    content: '',
+                    title: '',
+                    author: '',
+                    imageList: [],
+                    blocks: [{ type: 'content', text: '' }],
+                    seriesBlocks: [{ id: Date.now(), subtitle: '', content: '', highlightSentence: '' }],
+                    selectedTags: [],
+                    customTag: '',
+                    highlightLines: [],
+                    highlightSentence: '',
+                    highlightSelectedLineIndices: [],
+                    highlightSourceLines: [],
+                    highlightSelecting: false,
+                    discussionInsertMenuIndex: -1,
+                    parentPostId: '',
+                    parentPostInfo: null,
+                    editingPost: null,
+                    canPublish: false
+                });
             }
         }
     }

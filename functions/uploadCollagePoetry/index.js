@@ -1,5 +1,6 @@
 const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 const { moderateBeforeWrite } = require('./_lib/moderation-gate');
+const { queueModerationReview } = require('./_lib/moderation-review');
 // 云函数入口文件
 const cloud = require('wx-server-sdk')
 
@@ -36,7 +37,7 @@ function getUserId(wxContext, event, context) {
 }
 
 exports.main = async (event, context) => {
-  const { fileContent, cloudPath } = event
+  let { fileContent, cloudPath } = event
   const wxContext = cloud.getWXContext()
   const openid = getUserId(wxContext, event, context)
 
@@ -53,6 +54,7 @@ exports.main = async (event, context) => {
     if ((accountResult.data || []).some(user => user.postingBanned === true)) {
       return { success: false, code: 'POSTING_BANNED', message: '账号已被限制发帖，请联系管理员' }
     }
+    if (!accountResult.data || !accountResult.data.length) throw new Error('用户不存在')
     // 验证输入参数
     if (!fileContent) {
       throw new Error('fileContent 参数缺失')
@@ -107,21 +109,7 @@ exports.main = async (event, context) => {
     }
 
     const moderationFailure = await moderateBeforeWrite(cloud, { images: [fileID] })
-    if (moderationFailure) {
-      try { await cloud.deleteFile({ fileList: [fileID] }) } catch (_) {}
-      return moderationFailure
-    }
-    
-    // 获取用户信息
-    const userResult = await db.collection('users').where({
-      _openid: openid
-    }).get()
-    
-    if (userResult.data.length === 0) {
-      throw new Error('用户不存在')
-    }
-    
-    const userInfo = userResult.data[0]
+    const userInfo = accountResult.data[0]
     
     // 创建拼贴诗记录
     const currentTime = new Date()
@@ -146,6 +134,26 @@ exports.main = async (event, context) => {
       updatedAt: currentTime
     }
     
+    if (moderationFailure) {
+      let result = moderationFailure
+      if (['CONTENT_BLOCKED', 'REVIEW_REQUIRED'].includes(moderationFailure.code)) {
+        try {
+          result = await queueModerationReview(db, {
+            openid, source: 'uploadCollagePoetry', kind: 'post', audit: moderationFailure, data: postData
+          })
+        } catch (error) {
+          try { await cloud.deleteFile({ fileList: [fileID] }) } catch (_) {}
+          throw error
+        }
+      }
+      const storedForReview = result.reviewStored || result.reviewQueued ||
+        ['REVIEW_ALREADY_APPROVED', 'REVIEW_ALREADY_REJECTED'].includes(result.code)
+      if (!storedForReview) {
+        try { await cloud.deleteFile({ fileList: [fileID] }) } catch (_) {}
+      }
+      return result
+    }
+
     // 保存到数据库
     const insertResult = await db.collection('posts').add({
       data: postData

@@ -85,6 +85,7 @@ const {
 } = require('./_lib/activity')
 const { isAdminByPoemId, listAdminUsersByPoemId } = require('./_lib/admin-auth')
 const { submitPostReport, listPostReports, getPostReport, resolvePostReport } = require('./_lib/post-report')
+const { listModerationReviews, getModerationReview, resolveModerationReview } = require('./_lib/moderation-review')
 const { normalizeType: normalizeMaterialType, normalizeGroupId, normalizeList: normalizeMaterialList, normalizeGroupList, validateMaterialInput, validateMaterialName, validateGroupInput } = require('./_lib/collage-material')
 
 // 验证管理员权限（通过 poemId）
@@ -96,6 +97,9 @@ const actionHandlers = {
   listPostReports: (event) => listPostReports(db, event),
   getPostReport: (event) => getPostReport(db, event),
   resolvePostReport: (event, openid) => resolvePostReport(db, event, openid, deletePost),
+  listModerationReviews: (event) => listModerationReviews(db, event),
+  getModerationReview: (event) => getModerationReview(db, event),
+  resolveModerationReview: (event, openid) => resolveModerationReview(db, event, openid),
   getUserPassword: (event) => getUserPassword(event),
   findPostingUser: (event) => findPostingUser(event),
   setPostingBan: (event, openid) => setPostingBan(event, openid),

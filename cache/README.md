@@ -92,6 +92,8 @@ cache.searchCache.get(keyword);
 | `poems:following` | 诗歌 | 75s | 30s |
 | `messages` | 消息列表 | 90s | 45s |
 | `me:info` | 我的资料 | 30min | 5min |
+| `me:display:v1` | 按账号隔离的个人主页展示快照（资料、首屏帖子、粉丝数） | 24h | - |
+| `me:followers` | 当前账号粉丝数量 | 60s | - |
 | `profiles:user` | 他人资料 | 5min | 2min |
 | `userPosts:<id>` | 他人帖子 | 2min | 1min |
 | `userFavorites:<id>` | 他人收藏 | 2min | 1min |
@@ -100,6 +102,12 @@ cache.searchCache.get(keyword);
 | `portfolio` | 作品集 | 5min | 1min |
 | `unread` | 未读数 | 30s | 30s |
 | `posts:detail` | 帖子详情 | 2min | 1min |
+
+### 个人主页先展示、后刷新
+
+`getCachedMyProfile()` 同步读取当前账号上次成功的展示快照，首次打开可先显示资料、首屏帖子和粉丝数；没有快照时可先显示当前登录资料。快照用于缩短等待，不代表数据仍然新鲜。超过 60 秒后，页面在后台刷新资料和帖子；粉丝数独立更新，不参与首屏等待。短时间返回已有页面保留当前内容；已加载多页帖子时，普通返回只更新资料及粉丝数，避免重置分页。下拉刷新或业务刷新标记仍强制请求新数据。
+
+普通网络刷新失败保留旧展示数据。删除帖子、改变可见性、更新头像等业务操作仍通过 `invalidateMyPosts()` / `invalidateMyInfo()` 清除对应展示快照，避免旧内容重新出现。账号切换统一清除缓存，异步结果须通过账号、页面和请求令牌检查才能更新页面。
 
 ## 缓存空间共用机制
 

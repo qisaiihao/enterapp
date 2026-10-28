@@ -33,9 +33,9 @@
         <view class="settings-card">
           <view class="settings-row" @tap="openCancelAccount">
             <text class="settings-row-label danger">注销账号</text>
-            <text class="settings-row-value">›</text>
+            <text class="settings-row-value">{{ cancelling ? '处理中…' : '›' }}</text>
           </view>
-          <text class="settings-row-desc">注销后账号资料、收藏、关注、消息等数据将被删除，已发布内容将匿名化显示为“已注销用户”，此操作不可恢复。</text>
+          <text class="settings-row-desc">注销后账号资料、已发布的诗歌和讨论、评论、收藏、关注、草稿、消息及上传文件等信息将被永久删除，此操作不可恢复。安全审计与备案登录日志仍保留，仅授权管理员可在后台访问。</text>
         </view>
       </view>
 
@@ -63,9 +63,10 @@
 
   <AppDialog
     :visible="showCancelExplain"
+    :busy="cancelling"
     :danger="true"
     title="注销账号"
-    confirm-text="继续注销"
+    :confirm-text="cancelling ? '正在验证…' : '继续注销'"
     cancel-text="取消"
     @confirm="proceedCancelAccount"
     @cancel="showCancelExplain = false"
@@ -73,8 +74,10 @@
     <view class="cancel-explain">
       <text class="cancel-explain-text">注销后，以下数据将被删除且无法恢复：</text>
       <text class="cancel-explain-text">· 账号资料、登录方式、收藏、关注、草稿、消息等</text>
-      <text class="cancel-explain-text">· 已发布的诗歌、讨论和评论将匿名化保留，作者显示为“已注销用户”</text>
+      <text class="cancel-explain-text">· 已发布的诗歌、讨论、评论、回复和作品集，以及上传的头像、图片等文件</text>
+      <text class="cancel-explain-text">· 本机保存的个人资料、创作草稿及账号缓存</text>
       <text class="cancel-explain-text">· 该账号将无法登录，同一手机号或 Poem ID 可重新注册</text>
+      <text class="cancel-explain-text">安全审计与备案登录日志不在删除范围内，注销后仍保留，仅授权管理员可在后台访问。</text>
     </view>
   </AppDialog>
 
@@ -98,7 +101,7 @@
     :busy="cancelling"
     :danger="true"
     title="确认注销"
-    message="账号注销后无法恢复，确认继续吗？"
+    message="账号资料、发布内容及关联数据将被永久删除且无法恢复。安全审计与备案登录日志仍保留，仅授权管理员可在后台访问。确认继续吗？"
     :confirm-text="cancelling ? '注销中…' : '确认注销'"
     cancel-text="取消"
     @confirm="confirmCancelAccount"
@@ -119,6 +122,7 @@ import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
 import { clearCachedAdminFlag } from '@/utils/admin.js';
 import { clearUserSession, getAppState, patchAppState } from '@/utils/app-state.js';
 import { getSystemInfoCompat } from '@/utils/system-info.js';
+import { removeFile as removeCollageFile } from '@/utils/collage/storage.js';
 import {
   READ_FONT_LEVELS,
   READ_FONT_LEVEL_NAMES,
@@ -186,16 +190,16 @@ export default {
     },
 
     openCancelAccount() {
-      if (this.cancelling) return;
+      if (!this.isLoggedIn || this.cancelling || this.showCancelExplain || this.showCancelPassword || this.showCancelFinal) return;
       this.showCancelExplain = true;
     },
 
     async proceedCancelAccount() {
       if (this.cancelling) return;
-      this.showCancelExplain = false;
       this.cancelling = true;
       try {
         const result = await cancelAccount({ dryRun: true }, this);
+        this.showCancelExplain = false;
         if (result.requiresPassword) this.showCancelPassword = true;
         else this.showCancelFinal = true;
       } catch (error) {
@@ -222,11 +226,7 @@ export default {
         this.showCancelFinal = false;
         await this.performAccountTeardown();
       } catch (error) {
-        const code = error && error.result && error.result.code;
-        const message = code === 'PASSWORD_MISMATCH'
-          ? '密码不正确，请重新输入'
-          : (error && error.message) || '注销失败，请重试';
-        uni.showToast({ title: message, icon: 'none' });
+        uni.showToast({ title: this.cancelErrorMessage(error), icon: 'none' });
       } finally {
         this.cancelling = false;
       }
@@ -234,37 +234,104 @@ export default {
 
     cancelErrorMessage(error) {
       const result = error && error.result;
+      if (result && result.code === 'PASSWORD_MISMATCH') return '密码不正确，请重新输入';
       if (result && result.code === 'IDENTITY_MISMATCH') return '当前微信与账号不匹配，请重新登录';
       if (result && result.code === 'AMBIGUOUS_ACCOUNT') return '账号标识重复，请联系管理员核查';
+      if (result && result.code === 'IDENTITY_REQUIRED') return '请先通过绑定手机号设置密码，或使用微信登录后注销';
+      if (result && result.code === 'CANCEL_INCOMPLETE') return '数据尚未全部删除，请再次确认注销以继续清理';
       return (error && error.message) || '注销失败，请重试';
     },
 
+    async clearPersonalLocalData() {
+      const readStorage = key => {
+        try { return uni.getStorageSync(key); } catch (_) { return null; }
+      };
+      const removeStorage = key => {
+        try { uni.removeStorageSync(key); } catch (error) {
+          console.warn('[注销账号] 清理本机存储失败:', error);
+        }
+      };
+      const state = getAppState();
+      const userInfo = state.userInfo || {};
+      const accountIds = new Set([
+        state.openid, userInfo._openid, userInfo.openid,
+        readStorage('userOpenId'), readStorage('openid')
+      ].filter(value => typeof value === 'string' && value));
+      const files = new Set();
+      accountIds.forEach(accountId => {
+        const workspaceKey = `collage-workspace-v1:${accountId}`;
+        const workspace = readStorage(workspaceKey);
+        if (workspace && typeof workspace === 'object') {
+          const assets = [
+            ...(Array.isArray(workspace.sources) ? workspace.sources : []),
+            ...(Array.isArray(workspace.materials) ? workspace.materials : []),
+            workspace.backgroundImage
+          ];
+          assets.forEach(asset => {
+            if (asset && typeof asset.file === 'string' && asset.file) files.add(asset.file);
+          });
+        }
+        removeStorage(workspaceKey);
+        removeStorage(`profileShowGrowthStats:${accountId}`);
+      });
+      [
+        'userInfo', 'userOpenId', 'openid', 'github_access_token', 'github_temp_data',
+        'publish_working_draft_v1', 'publish_draft', 'editing_draft', 'preview_post',
+        'discussion_drafts', 'collage_poem_draft', 'WEEKLY_ADMIN_ISSUE_DRAFT',
+        'appBackgroundUrlCache', 'sessionId'
+      ].forEach(removeStorage);
+      await Promise.all([...files].map(file => removeCollageFile(file).catch(error => {
+        console.warn('[注销账号] 清理本机拼贴素材失败:', error);
+      })));
+    },
+
+    stopPendingPersonalDraftSaves() {
+      try {
+        const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : [];
+        pages.forEach(page => {
+          if ((page.route || '').replace(/^\//, '') !== 'pages-publish/add/add') return;
+          const publisher = page.$vm || page;
+          // 发布页在隐藏/卸载时会保存草稿；注销后必须阻止其写回已删除内容。
+          publisher.discardWorkingDraftOnExit = true;
+          if (publisher.workingDraftSaveTimer) {
+            clearTimeout(publisher.workingDraftSaveTimer);
+            publisher.workingDraftSaveTimer = null;
+          }
+        });
+      } catch (error) {
+        console.warn('[注销账号] 停止草稿自动保存失败:', error);
+      }
+    },
+
     async performAccountTeardown() {
+      this.stopPendingPersonalDraftSaves();
+      const personalCleanup = this.clearPersonalLocalData().catch(error => {
+        console.warn('[注销账号] 清理本机个人数据失败:', error);
+      });
+      clearUserSession();
+      clearCachedAdminFlag();
+      this.isLoggedIn = false;
       try {
         await resetAllCachesOnAccountChange({});
       } catch (error) {
         console.warn('[注销账号] 清空缓存失败:', error);
       }
-      uni.removeStorageSync('userInfo');
-      uni.removeStorageSync('userOpenId');
-      uni.removeStorageSync('openid');
-      clearUserSession();
-      clearCachedAdminFlag();
-      this.isLoggedIn = false;
+      await personalCleanup;
       console.log('✅ [注销账号] 本地数据清除完成');
 
-      logout(this).then((loginRes) => {
-        if (loginRes && loginRes.anonymousOpenid) {
+      try {
+        const loginRes = await logout(this);
+        if (loginRes && loginRes.anonymousOpenid && !getAppState().isLoggedIn) {
           patchAppState({ openid: loginRes.anonymousOpenid });
           uni.setStorageSync('userOpenId', loginRes.anonymousOpenid);
         }
-      }).catch((error) => {
+      } catch (error) {
         console.warn('[注销账号] 匿名 openid 初始化失败:', error);
-      });
+      }
 
       uni.showToast({ title: '账号已注销', icon: 'success', duration: 1500 });
       setTimeout(() => {
-        uni.redirectTo({ url: '/pages/login/login' });
+        uni.reLaunch({ url: '/pages/login/login' });
       }, 1500);
     },
 

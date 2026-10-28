@@ -1,5 +1,6 @@
 const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 const { moderateBeforeWrite } = require('./_lib/moderation-gate');
+const { queueModerationReview } = require('./_lib/moderation-review');
 const cloud = require('wx-server-sdk');
 
 cloud.init({
@@ -83,13 +84,15 @@ exports.main = async (event, context) => {
     return { success: false, message: 'Comment content or images are required.' };
   }
 
-  const moderationFailure = await moderateBeforeWrite(cloud, {
-    content: trimmedContent,
-    images: sanitizedOriginalImageUrls.length ? sanitizedOriginalImageUrls : sanitizedImageUrls
-  });
-  if (moderationFailure) return moderationFailure;
-
   try {
+    const targetPost = await db.collection('posts').doc(postId).get();
+    if (!targetPost.data) return { success: false, code: 'POST_NOT_FOUND', message: '帖子不存在' };
+    if (parentId) {
+      const parent = await db.collection('comments').doc(parentId).get();
+      if (!parent.data || parent.data.postId !== postId) {
+        return { success: false, code: 'COMMENT_NOT_FOUND', message: '回复的评论不存在' };
+      }
+    }
     const userResult = await db.collection('users').where({
       _openid: openid
     }).limit(1).get();
@@ -116,6 +119,18 @@ exports.main = async (event, context) => {
       if (replyToAuthorName) {
         commentData.replyToAuthorName = replyToAuthorName;
       }
+    }
+
+    const moderationFailure = await moderateBeforeWrite(cloud, {
+      content: commentData.content,
+      images: sanitizedOriginalImageUrls.length ? sanitizedOriginalImageUrls : sanitizedImageUrls
+    });
+    if (moderationFailure) {
+      if (!['CONTENT_BLOCKED', 'REVIEW_REQUIRED'].includes(moderationFailure.code)) return moderationFailure;
+      return await queueModerationReview(db, {
+        openid, source: 'addComment', kind: 'comment', audit: moderationFailure,
+        data: commentData, postId
+      });
     }
 
     const addResult = await db.collection('comments').add({

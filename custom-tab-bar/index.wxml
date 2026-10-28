@@ -5,20 +5,25 @@
     wx:key="index"
     data-index="{{index}}"
     data-path="{{item.pagePath}}"
+    hover-class="tab-bar-item--touching"
+    hover-start-time="0"
+    hover-stay-time="80"
     bindtap="switchTab"
   >
-    <view class="icon-wrap {{selected === index ? 'pressed' : ''}}" style="{{selected === index ? iconWrapActiveStyle : iconWrapStyle}}">
-      <view class="icon-inner {{selected === index ? 'active' : ''}}" style="{{iconInnerStyle}}">
-        <image 
-          class="icon-img" 
-          src="{{isDark ? (selected === index ? item.darkSelectedIconPath : item.darkIconPath) : (selected === index ? item.selectedIconPath : item.iconPath)}}"
-          mode="aspectFill"
-        />
+    <view class="tab-bar-content">
+      <view class="icon-wrap {{selected === index ? 'is-selected' : ''}}" style="{{iconWrapStyle}} {{selected === index ? iconWrapActiveStyle : ''}}">
+        <view class="icon-inner" style="{{iconInnerStyle}}">
+          <image
+            class="icon-img {{selected === index ? 'icon-img--active' : ''}}"
+            src="{{isDark ? (selected === index ? item.darkSelectedIconPath : item.darkIconPath) : (selected === index ? item.selectedIconPath : item.iconPath)}}"
+            mode="aspectFill"
+          />
+        </view>
       </view>
+      <text
+        class="tab-bar-text"
+        style="color: {{selected === index ? selectedColor : color}}"
+      >{{item.text}}</text>
     </view>
-    <text 
-      class="tab-bar-text" 
-      style="color: {{selected === index ? selectedColor : color}}"
-    >{{item.text}}</text>
   </view>
 </view>

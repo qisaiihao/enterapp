@@ -1,0 +1,15 @@
+{
+  "envId": "cloud1-5gb0pbyl400845f5",
+  "verifiedAt": "2026-10-13T02:53:32.656Z",
+  "isolated": true,
+  "legacyCredentialLogin": "passed",
+  "failedAuthenticationNotRecorded": "passed",
+  "clientDirectDatabaseReadWriteDenied": "passed",
+  "websiteLogin": "passed",
+  "websiteTrustedIpAvailable": true,
+  "websiteSourcePortAvailable": false,
+  "cloudbaseSdkDatabaseFormat": "passed",
+  "sensitiveDataExcluded": "passed",
+  "realDeviceVerification": "pending",
+  "testDataCleaned": true
+}

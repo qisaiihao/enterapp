@@ -1,0 +1,17 @@
+{
+  "name": "webReader",
+  "added": 1,
+  "removed": 4,
+  "hunks": [
+    "@@ -1 +0,0 @@",
+    "@@ -13 +12 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });",
+    "@@ -533,2 +531,0 @@ exports.main = async (event = {}) => {"
+  ],
+  "redactedChangedStatements": [
+    "-const { createPostsDatabase, withPostResponse } = require([string]);",
+    "-const db = createPostsDatabase(cloud.database());",
+    "+const db = cloud.database();",
+    "-",
+    "-exports.main = withPostResponse(exports.main);"
+  ]
+}

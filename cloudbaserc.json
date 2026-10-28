@@ -23,7 +23,7 @@
     },
     {
       "name": "contentCheck",
-      "timeout": 20,
+      "timeout": 60,
       "memory": 512,
       "runtime": "Nodejs18.15",
       "handler": "index.main",
@@ -34,7 +34,7 @@
     },
     {
       "name": "adminManager",
-      "timeout": 10,
+      "timeout": 30,
       "memory": 256,
       "runtime": "Nodejs16.13",
       "handler": "index.main",
@@ -124,7 +124,7 @@
     },
     {
       "name": "updatePostContent",
-      "timeout": 3,
+      "timeout": 90,
       "memory": 256,
       "runtime": "Nodejs10.15",
       "handler": "index.main",
@@ -313,13 +313,13 @@
             {
               "name": "addComment",
               "root": "./functions/addComment",
-              "timeout": 3,
+              "timeout": 90,
               "memory": 256
             },
             {
               "name": "adminManager",
               "root": "./functions/adminManager",
-              "timeout": 10,
+              "timeout": 30,
               "memory": 256,
               "runtime": "Nodejs16.13"
             },
@@ -359,7 +359,7 @@
             {
               "name": "contentCheck",
               "root": "./functions/contentCheck",
-              "timeout": 3,
+              "timeout": 60,
               "memory": 256,
               "runtime": "Nodejs18.15"
             },
@@ -387,7 +387,7 @@
             {
               "name": "createDiscussionPost",
               "root": "./functions/createDiscussionPost",
-              "timeout": 3,
+              "timeout": 90,
               "memory": 256
             },
             {
@@ -754,8 +754,8 @@
             {
               "name": "cancelAccount",
               "root": "./functions/cancelAccount",
-              "runtime": "Nodejs16.13",
-              "timeout": 20,
+              "runtime": "Nodejs18.15",
+              "timeout": 60,
               "memory": 256,
               "installDependency": true
             },
@@ -838,7 +838,7 @@
             {
               "name": "updatePostContent",
               "root": "./functions/updatePostContent",
-              "timeout": 3,
+              "timeout": 90,
               "memory": 256
             },
             {
@@ -884,7 +884,7 @@
             {
               "name": "uploadCollagePoetry",
               "root": "./functions/uploadCollagePoetry",
-              "timeout": 3,
+              "timeout": 90,
               "memory": 256
             },
             {

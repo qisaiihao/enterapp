@@ -1,0 +1,99 @@
+{
+  "mode": "dry-run",
+  "envId": "cloud1-5gb0pbyl400845f5",
+  "status": "prepared",
+  "preparedAt": "2026-10-13T02:49:31.895Z",
+  "previousReceiptSha256": "d4de6ddf9e3c1aa40311548131ac7c80758bf064764dd38440907bb1d90df10f",
+  "functions": [
+    {
+      "name": "loginWithCredentials",
+      "status": "prepared",
+      "baselineZipSha256": "5003990189a238b9ba5b27bed58622a4b526b90ddc7edf9caa430423f9d5d92d",
+      "packageSha256": "e7589c2ebd16ae32b1456c2c2e9f063467546c32cd7896e1a00d3cd61042ce5d",
+      "originalFileCount": 5997,
+      "previousVerifiedFiles": {
+        "_lib/login-audit.js": "d6c8c33e1ec03601565630e0b37f5cc9effbb84abcd3273634bd715a18187a49",
+        "index.js": "ce7af6242d45286246bc0308a13225c9cda16a8576bbe6e73a2e1435f8a796a0"
+      },
+      "files": {
+        "_lib/login-audit.js": "145bb56586d80b258bbc804a01be050a8556f6b2b6ad07e6005913e0cf16e0c1",
+        "index.js": "ce7af6242d45286246bc0308a13225c9cda16a8576bbe6e73a2e1435f8a796a0"
+      }
+    },
+    {
+      "name": "loginWithPhone",
+      "status": "prepared",
+      "baselineZipSha256": "35f2f43fac9adfba9f254d710c2a935481ef3319452104c9cadf82719879d4be",
+      "packageSha256": "3e73eca2294701c2b1864d9a227c2dd0c606e7344e862a954be8910e1cf6d9f7",
+      "originalFileCount": 2075,
+      "previousVerifiedFiles": {
+        "_lib/login-audit.js": "d6c8c33e1ec03601565630e0b37f5cc9effbb84abcd3273634bd715a18187a49",
+        "index.js": "2dd5c2940ba045aabe3cb28cfbc81f75912d28d4fb7d7b92f15e711b71fd410e"
+      },
+      "files": {
+        "_lib/login-audit.js": "145bb56586d80b258bbc804a01be050a8556f6b2b6ad07e6005913e0cf16e0c1",
+        "index.js": "2dd5c2940ba045aabe3cb28cfbc81f75912d28d4fb7d7b92f15e711b71fd410e"
+      }
+    },
+    {
+      "name": "loginWithWechat",
+      "status": "prepared",
+      "baselineZipSha256": "cf1bb97dd459e51bf667e553cbd94d10fe7635b4985d1f007d9b543487882048",
+      "packageSha256": "c2862ff830658a0930da53d2cdc95fd198e3782d3fae9278f164871e4f82eb9c",
+      "originalFileCount": 2076,
+      "previousVerifiedFiles": {
+        "_lib/login-audit.js": "d6c8c33e1ec03601565630e0b37f5cc9effbb84abcd3273634bd715a18187a49",
+        "index.js": "0833875b0270c40899c34bd673cac7463cb6b2feef761b1c90d6f66336e71d88"
+      },
+      "files": {
+        "_lib/login-audit.js": "145bb56586d80b258bbc804a01be050a8556f6b2b6ad07e6005913e0cf16e0c1",
+        "index.js": "0833875b0270c40899c34bd673cac7463cb6b2feef761b1c90d6f66336e71d88"
+      }
+    },
+    {
+      "name": "registerUser",
+      "status": "prepared",
+      "baselineZipSha256": "9b3ad058881b3fa122214dc213918f90693eedd57c6f390e5461248b77fe3a5f",
+      "packageSha256": "541300a6e32d0a410c01daac0ee8786a50355875df8892ea6d68317aca99eaad",
+      "originalFileCount": 5973,
+      "previousVerifiedFiles": {
+        "_lib/login-audit.js": "d6c8c33e1ec03601565630e0b37f5cc9effbb84abcd3273634bd715a18187a49",
+        "index.js": "69c7da875b47c1b29d43f4b320f30a09078a596a9334a011151d9cf223f640ff"
+      },
+      "files": {
+        "_lib/login-audit.js": "145bb56586d80b258bbc804a01be050a8556f6b2b6ad07e6005913e0cf16e0c1",
+        "index.js": "69c7da875b47c1b29d43f4b320f30a09078a596a9334a011151d9cf223f640ff"
+      }
+    },
+    {
+      "name": "github-auth",
+      "status": "prepared",
+      "baselineZipSha256": "4fa6d60c72af10f3959ca9095aa345f3174389c148d076f7a48e2038fc268de8",
+      "packageSha256": "734652d2ecc28ca76e7e0a1ecb762bf669225f8b9cb77c88b15bffe421c06e63",
+      "originalFileCount": 1561,
+      "previousVerifiedFiles": {
+        "_lib/login-audit.js": "d6c8c33e1ec03601565630e0b37f5cc9effbb84abcd3273634bd715a18187a49",
+        "index.js": "79329d801579ffc20d3c4249f4e7b059aa0eaba327eb98a8250997e5f626d435"
+      },
+      "files": {
+        "_lib/login-audit.js": "145bb56586d80b258bbc804a01be050a8556f6b2b6ad07e6005913e0cf16e0c1",
+        "index.js": "ec5a8b477218fdfbaf983827bcfed4f4de42e11574788c505b5556fd1cac08c3"
+      }
+    },
+    {
+      "name": "webReader",
+      "status": "prepared",
+      "baselineZipSha256": "80516940b14962fe8eb28f32b9a1f3d907880a8e270fa5eddf02a4dd6f182c9e",
+      "packageSha256": "58de16994a7c675cc875c3191c5e01db3ba6b3e8f01b596b8cbe7c5a4146dfe0",
+      "originalFileCount": 2045,
+      "previousVerifiedFiles": {
+        "_lib/login-audit.js": "d6c8c33e1ec03601565630e0b37f5cc9effbb84abcd3273634bd715a18187a49",
+        "index.js": "5b67d12ef83df9a3b041f893c1e2e8170e71cc43497e5f0c88cef1b214356a77"
+      },
+      "files": {
+        "_lib/login-audit.js": "145bb56586d80b258bbc804a01be050a8556f6b2b6ad07e6005913e0cf16e0c1",
+        "index.js": "5b67d12ef83df9a3b041f893c1e2e8170e71cc43497e5f0c88cef1b214356a77"
+      }
+    }
+  ]
+}

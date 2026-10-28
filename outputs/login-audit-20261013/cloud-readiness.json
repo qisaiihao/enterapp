@@ -1,0 +1,526 @@
+{
+  "envId": "cloud1-5gb0pbyl400845f5",
+  "inspectedAt": "2026-10-13T02:29:41.475Z",
+  "mode": "read-only",
+  "collection": {
+    "name": "login_logs",
+    "exists": false,
+    "inspectError": {
+      "code": "ResourceNotFound"
+    }
+  },
+  "functions": [
+    {
+      "name": "loginWithCredentials",
+      "exists": true,
+      "runtime": "Nodejs10.15",
+      "timeout": 3,
+      "memorySize": 128,
+      "handler": "index.main",
+      "status": "Active",
+      "installDependency": "TRUE",
+      "layerCount": 0,
+      "codeSha256": null,
+      "backup": {
+        "file": "outputs/login-audit-20261013/cloud-before/loginWithCredentials.zip",
+        "bytes": 10642401,
+        "zipSha256": "5003990189a238b9ba5b27bed58622a4b526b90ddc7edf9caa430423f9d5d92d",
+        "entries": 6672,
+        "hasBundledDependencies": true,
+        "indexPath": "index.js"
+      },
+      "dependencies": {
+        "wx-server-sdk": "~2.6.3"
+      },
+      "localDependencies": {
+        "wx-server-sdk": "~2.6.3"
+      },
+      "dependencySpecsEqual": true,
+      "indexComparison": {
+        "baselineAvailable": true,
+        "remoteEqualsGitHead": true,
+        "remoteEqualsCurrentLocal": false,
+        "remoteSha256": "1bc2660f1fd029b2a5330d5c5f9e9f976bbd01538decea57849d44eec668d9cc",
+        "gitHeadSha256": "1bc2660f1fd029b2a5330d5c5f9e9f976bbd01538decea57849d44eec668d9cc",
+        "currentLocalSha256": "4739d738a6adab2bbdf6daaf2e4fcc93f429b62ed44e3fa86d0f5bd283237318",
+        "remoteLines": 87,
+        "gitHeadLines": 87,
+        "currentLocalLines": 91
+      },
+      "sourceMarkers": {
+        "prepareWechatLogin": {
+          "remote": true,
+          "baseline": true,
+          "local": true
+        },
+        "safeUser": {
+          "remote": true,
+          "baseline": true,
+          "local": true
+        },
+        "wechatLogin": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "runTransaction": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "recordLogin": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "login-log": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "loginAudit": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "lastLoginAt": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "clientInfo": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        }
+      }
+    },
+    {
+      "name": "loginWithPhone",
+      "exists": true,
+      "runtime": "Nodejs10.15",
+      "timeout": 3,
+      "memorySize": 128,
+      "handler": "index.main",
+      "status": "Active",
+      "installDependency": "TRUE",
+      "layerCount": 0,
+      "codeSha256": null,
+      "backup": {
+        "file": "outputs/login-audit-20261013/cloud-before/loginWithPhone.zip",
+        "bytes": 4939593,
+        "zipSha256": "35f2f43fac9adfba9f254d710c2a935481ef3319452104c9cadf82719879d4be",
+        "entries": 2470,
+        "hasBundledDependencies": true,
+        "indexPath": "index.js"
+      },
+      "dependencies": {
+        "wx-server-sdk": "~3.0.1"
+      },
+      "localDependencies": {
+        "wx-server-sdk": "~3.0.1"
+      },
+      "dependencySpecsEqual": true,
+      "indexComparison": {
+        "baselineAvailable": true,
+        "remoteEqualsGitHead": true,
+        "remoteEqualsCurrentLocal": false,
+        "remoteSha256": "3d71b1725b9e96d52478385557770da2d0e770d8c336ac6c4a923a99f888a8a9",
+        "gitHeadSha256": "3d71b1725b9e96d52478385557770da2d0e770d8c336ac6c4a923a99f888a8a9",
+        "currentLocalSha256": "ed950c272dac18d885c9a0d5e6a3d0d587b17f5acef543f6b402208feeb096c6",
+        "remoteLines": 64,
+        "gitHeadLines": 64,
+        "currentLocalLines": 67
+      },
+      "sourceMarkers": {
+        "prepareWechatLogin": {
+          "remote": true,
+          "baseline": true,
+          "local": true
+        },
+        "safeUser": {
+          "remote": true,
+          "baseline": true,
+          "local": true
+        },
+        "wechatLogin": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "runTransaction": {
+          "remote": true,
+          "baseline": true,
+          "local": true
+        },
+        "recordLogin": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "login-log": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "loginAudit": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "lastLoginAt": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "clientInfo": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        }
+      }
+    },
+    {
+      "name": "loginWithWechat",
+      "exists": true,
+      "runtime": "Nodejs10.15",
+      "timeout": 3,
+      "memorySize": 256,
+      "handler": "index.main",
+      "status": "Active",
+      "installDependency": "TRUE",
+      "layerCount": 0,
+      "codeSha256": null,
+      "backup": {
+        "file": "outputs/login-audit-20261013/cloud-before/loginWithWechat.zip",
+        "bytes": 4938596,
+        "zipSha256": "cf1bb97dd459e51bf667e553cbd94d10fe7635b4985d1f007d9b543487882048",
+        "entries": 2471,
+        "hasBundledDependencies": true,
+        "indexPath": "index.js"
+      },
+      "dependencies": {
+        "wx-server-sdk": "^3.0.1"
+      },
+      "localDependencies": {
+        "wx-server-sdk": "^3.0.1"
+      },
+      "dependencySpecsEqual": true,
+      "indexComparison": {
+        "baselineAvailable": true,
+        "remoteEqualsGitHead": true,
+        "remoteEqualsCurrentLocal": false,
+        "remoteSha256": "bb42520f31c2677ef2df7d19fe8589fdcaae1b286facc814772e72867cc2de96",
+        "gitHeadSha256": "bb42520f31c2677ef2df7d19fe8589fdcaae1b286facc814772e72867cc2de96",
+        "currentLocalSha256": "0d70b3fa8042bb55edd39431935efce6f6ddd2024a3ce8eb7e40577bacb70a9e",
+        "remoteLines": 14,
+        "gitHeadLines": 14,
+        "currentLocalLines": 19
+      },
+      "sourceMarkers": {
+        "prepareWechatLogin": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "safeUser": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "wechatLogin": {
+          "remote": true,
+          "baseline": true,
+          "local": true
+        },
+        "runTransaction": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "recordLogin": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "login-log": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "loginAudit": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "lastLoginAt": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "clientInfo": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        }
+      }
+    },
+    {
+      "name": "registerUser",
+      "exists": true,
+      "runtime": "Nodejs10.15",
+      "timeout": 3,
+      "memorySize": 128,
+      "handler": "index.main",
+      "status": "Active",
+      "installDependency": "TRUE",
+      "layerCount": 0,
+      "codeSha256": null,
+      "backup": {
+        "file": "outputs/login-audit-20261013/cloud-before/registerUser.zip",
+        "bytes": 10596948,
+        "zipSha256": "9b3ad058881b3fa122214dc213918f90693eedd57c6f390e5461248b77fe3a5f",
+        "entries": 6641,
+        "hasBundledDependencies": true,
+        "indexPath": "index.js"
+      },
+      "dependencies": {
+        "wx-server-sdk": "~2.6.3"
+      },
+      "localDependencies": {
+        "wx-server-sdk": "~2.6.3"
+      },
+      "dependencySpecsEqual": true,
+      "indexComparison": {
+        "baselineAvailable": true,
+        "remoteEqualsGitHead": true,
+        "remoteEqualsCurrentLocal": false,
+        "remoteSha256": "2b119a93bf46ad4aa395a6dd044cf7b2d9b7fd37b7dcc97adcb3fbc1a52117b2",
+        "gitHeadSha256": "2b119a93bf46ad4aa395a6dd044cf7b2d9b7fd37b7dcc97adcb3fbc1a52117b2",
+        "currentLocalSha256": "8e3227db35052c4f844fa64db760f9244627b6c704d94466057f8bcfe03e9869",
+        "remoteLines": 188,
+        "gitHeadLines": 188,
+        "currentLocalLines": 194
+      },
+      "sourceMarkers": {
+        "prepareWechatLogin": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "safeUser": {
+          "remote": true,
+          "baseline": true,
+          "local": true
+        },
+        "wechatLogin": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "runTransaction": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "recordLogin": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "login-log": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "loginAudit": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "lastLoginAt": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "clientInfo": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        }
+      }
+    },
+    {
+      "name": "github-auth",
+      "exists": true,
+      "runtime": "Nodejs10.15",
+      "timeout": 3,
+      "memorySize": 256,
+      "handler": "index.main",
+      "status": "Active",
+      "installDependency": "TRUE",
+      "layerCount": 0,
+      "codeSha256": null,
+      "backup": {
+        "file": "outputs/login-audit-20261013/cloud-before/github-auth.zip",
+        "bytes": 3034893,
+        "zipSha256": "4fa6d60c72af10f3959ca9095aa345f3174389c148d076f7a48e2038fc268de8",
+        "entries": 1859,
+        "hasBundledDependencies": true,
+        "indexPath": "index.js"
+      },
+      "dependencies": {
+        "axios": "^0.21.4",
+        "@cloudbase/node-sdk": "^2.4.0"
+      },
+      "localDependencies": {
+        "axios": "^0.21.4",
+        "@cloudbase/node-sdk": "^2.4.0"
+      },
+      "dependencySpecsEqual": true,
+      "indexComparison": {
+        "baselineAvailable": true,
+        "remoteEqualsGitHead": true,
+        "remoteEqualsCurrentLocal": false,
+        "remoteSha256": "55ba42571508741daa255b08ac2d4ad9c4cd8ab279571faf2be66aa83782b711",
+        "gitHeadSha256": "55ba42571508741daa255b08ac2d4ad9c4cd8ab279571faf2be66aa83782b711",
+        "currentLocalSha256": "5742e1571b51f9b2d8b1e61c27e62dea6b70a5cd831bf802bfd09f680c53ad68",
+        "remoteLines": 310,
+        "gitHeadLines": 310,
+        "currentLocalLines": 314
+      },
+      "sourceMarkers": {
+        "prepareWechatLogin": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "safeUser": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "wechatLogin": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "runTransaction": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "recordLogin": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "login-log": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "loginAudit": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "lastLoginAt": {
+          "remote": true,
+          "baseline": true,
+          "local": true
+        },
+        "clientInfo": {
+          "remote": false,
+          "baseline": false,
+          "local": true
+        }
+      }
+    },
+    {
+      "name": "webReader",
+      "exists": true,
+      "runtime": "Nodejs18.15",
+      "timeout": 20,
+      "memorySize": 256,
+      "handler": "index.main",
+      "status": "Active",
+      "installDependency": "TRUE",
+      "layerCount": 0,
+      "codeSha256": null,
+      "backup": {
+        "file": "outputs/login-audit-20261013/cloud-before/webReader.zip",
+        "bytes": 4841520,
+        "zipSha256": "80516940b14962fe8eb28f32b9a1f3d907880a8e270fa5eddf02a4dd6f182c9e",
+        "entries": 2427,
+        "hasBundledDependencies": true,
+        "indexPath": "index.js"
+      },
+      "dependencies": {
+        "wx-server-sdk": "3.0.1"
+      },
+      "localDependencies": {
+        "wx-server-sdk": "3.0.1"
+      },
+      "dependencySpecsEqual": true,
+      "indexComparison": {
+        "baselineAvailable": true,
+        "remoteEqualsGitHead": false,
+        "remoteEqualsCurrentLocal": false,
+        "remoteSha256": "d06129bc180b2e2a2541438e480bf9d340f6b7d015ed9ede986fc45936fb79e6",
+        "gitHeadSha256": "3e4883e80d2cc63f755e9eeeb20d41a85406a9a876ea0b16671bf7ca22a2ff59",
+        "currentLocalSha256": "a92a02edb354a7bfa69ac4ff28bda87984065f2b40fd7e59b07ecc66cfb21630",
+        "remoteLines": 531,
+        "gitHeadLines": 534,
+        "currentLocalLines": 538
+      },
+      "sourceMarkers": {
+        "prepareWechatLogin": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "safeUser": {
+          "remote": true,
+          "baseline": true,
+          "local": true
+        },
+        "wechatLogin": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "runTransaction": {
+          "remote": true,
+          "baseline": true,
+          "local": true
+        },
+        "recordLogin": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "login-log": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "loginAudit": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "lastLoginAt": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        },
+        "clientInfo": {
+          "remote": false,
+          "baseline": false,
+          "local": false
+        }
+      }
+    }
+  ]
+}

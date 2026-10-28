@@ -4,8 +4,8 @@ const LIGHT_TAB_THEME = {
   color: '#999999',
   selectedColor: '#000000',
   backgroundColor: '#ffffff',
-  iconWrapStyle: 'background: #f8f8f8; border-color: transparent; box-shadow: 0 18rpx 32rpx rgba(0, 0, 0, 0.16);',
-  iconWrapActiveStyle: 'background: #f8f8f8; border-color: transparent; box-shadow: 0 12rpx 24rpx rgba(0, 0, 0, 0.14), 0 3rpx 8rpx rgba(0, 0, 0, 0.08);',
+  iconWrapStyle: 'background: #f8f8f8; border-color: transparent; --app-tab-icon-wrap-shadow: 0 18rpx 32rpx rgba(0, 0, 0, 0.16); --app-tab-icon-active-shadow: 0 12rpx 24rpx rgba(0, 0, 0, 0.14), 0 3rpx 8rpx rgba(0, 0, 0, 0.08);',
+  iconWrapActiveStyle: 'border-color: transparent;',
   iconInnerStyle: 'background: #ffffff;'
 };
 
@@ -13,8 +13,8 @@ const DARK_TAB_THEME = {
   color: '#9ea6b2',
   selectedColor: '#f4f1ea',
   backgroundColor: 'rgba(15, 17, 21, 0.96)',
-  iconWrapStyle: 'background: rgba(255, 255, 255, 0.07); border-color: rgba(255, 255, 255, 0.10); box-shadow: 0 7px 16px rgba(0, 0, 0, 0.45), 0 1px 4px rgba(255, 255, 255, 0.06);',
-  iconWrapActiveStyle: 'background: rgba(255, 255, 255, 0.07); border-color: rgba(255, 255, 255, 0.34); box-shadow: 0 6px 14px rgba(0, 0, 0, 0.40), 0 1px 4px rgba(255, 255, 255, 0.05);',
+  iconWrapStyle: 'background: rgba(255, 255, 255, 0.07); border-color: rgba(255, 255, 255, 0.10); --app-tab-icon-wrap-shadow: 0 7px 16px rgba(0, 0, 0, 0.45), 0 1px 4px rgba(255, 255, 255, 0.06); --app-tab-icon-active-shadow: 0 6px 14px rgba(0, 0, 0, 0.40), 0 1px 4px rgba(255, 255, 255, 0.05);',
+  iconWrapActiveStyle: 'border-color: rgba(255, 255, 255, 0.34);',
   iconInnerStyle: 'background: rgba(255, 255, 255, 0.06);'
 };
 
@@ -216,6 +216,7 @@ Component({
         console.error('TabBar switchTab index invalid:', data.index);
         return;
       }
+      if (this._switchingTab) return;
       console.log('点击 index:', index, 'url:', url);
       
       // 【小程序审核优化】点击"我"时检查登录状态
@@ -249,15 +250,14 @@ Component({
       }
       
       // 检测双击
-      const isDoubleTap = 
+      const isCurrentTab = this.data.selected === index;
+      const isDoubleTap = isCurrentTab &&
         currentTime - this.data.lastTapTime < this.data.doubleTapThreshold && 
-        this.data.lastTapIndex === index && 
-        this.data.selected === index;
+        this.data.lastTapIndex === index;
       
-      this.setData({ 
-        lastTapTime: currentTime, 
-        lastTapIndex: index 
-      });
+      // 导航本身不计入双击，避免页面尚未切完就触发目标页刷新。
+      this.data.lastTapTime = isCurrentTab ? currentTime : 0;
+      this.data.lastTapIndex = isCurrentTab ? index : -1;
       
       // 双击刷新当前页面
       if (isDoubleTap) {
@@ -265,6 +265,10 @@ Component({
         this.refreshCurrentPage();
         return;
       }
+
+      if (isCurrentTab) return;
+      const previousIndex = this.data.selected;
+      this._switchingTab = true;
       
       // 立即更新选中状态（在切换前）
       console.log('立即更新 selected 为:', index);
@@ -272,15 +276,27 @@ Component({
       try { wx.setStorageSync('currentTabIndex', index); } catch (error) {}
       
       // 切换tab
-      wx.switchTab({ 
-        url: url,
-        success: () => {
-          console.log('tabBar切换成功:', url, '当前 selected:', this.data.selected);
-        },
-        fail: (err) => {
-          console.error('tabBar切换失败:', err);
-        }
-      });
+      const restoreSelected = () => {
+        this._switchingTab = false;
+        this.setData({ selected: previousIndex });
+        try { wx.setStorageSync('currentTabIndex', previousIndex); } catch (error) {}
+      };
+      try {
+        wx.switchTab({
+          url,
+          success: () => {
+            this._switchingTab = false;
+            console.log('tabBar切换成功:', url, '当前 selected:', this.data.selected);
+          },
+          fail: (err) => {
+            restoreSelected();
+            console.error('tabBar切换失败:', err);
+          }
+        });
+      } catch (error) {
+        restoreSelected();
+        console.error('tabBar切换失败:', error);
+      }
     },
     
     refreshCurrentPage() {

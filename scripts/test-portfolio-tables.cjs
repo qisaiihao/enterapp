@@ -11,7 +11,7 @@ const helperUsers = ['registerUser', 'createUser', 'getPortfolioFolders', 'ensur
 function runtime(seed = {}, caller = '') {
   const tables = Object.fromEntries([
     'users', 'posts', 'portfolio_folders', 'portfolio_items', 'comments', 'favorites',
-    'messages', 'images', 'votes_log', 'follows', 'blocks'
+    'messages', 'images', 'votes_log', 'follows', 'blocks', 'login_logs'
   ].map(name => [name, structuredClone(seed[name] || [])]));
   let nextId = 0;
   let failedFolderWrites = 0;

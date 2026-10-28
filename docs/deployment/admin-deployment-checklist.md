@@ -1,5 +1,17 @@
 # 管理功能部署清单
 
+## 举报与拦截复核的增量上线（2026-10-11）
+
+2026-10-11 已完成九个相关云函数部署，保留线上审核模式 `enforce`。客户端尚未发布，尚未完成真机验收。完整说明见 [举报与拦截内容复核](../features/post-report.md) 和 [审核开关](../../functions/contentCheck/README.md)。
+
+- [x] 使用已建好的单数 `moderation_review`，禁止客户端直接读写，建立 `status` + `createTime`（降序）及 `submitterOpenid` 索引。
+- [x] 同步共享模块并部署 `contentCheck`、`createPost`、`createDiscussionPost`、`addComment`、`updatePostContent`、`uploadCollagePoetry`、`adminManager`、`getMessages`、`cancelAccount`，逐个比对线上源文件；保留已有依赖和私有环境变量。`adminManager` 超时调整到 30 秒。
+- [x] 云端隔离联调：七条拦截内容入库、重复提交去重、待复核内容不公开、九图分三批审核、第三批故障阻止写入且不入人工队列；测试数据已清理，管理员通知配置已恢复。
+- [ ] 检查 `post_reports` 和 `messages` 的已有查询索引。
+- [ ] 发布客户端，核查「举报与复核」的举报／拦截复核切换、状态筛选、完整文本和图片预览、处理说明、消息定位和通过后的帖子跳转。
+- [ ] 配置审核凭证／套餐，最后开启 `enforce`，用测试账号真机验证待复核不公开、通过后自动发布、拒绝、评论通知、原帖编辑冲突、重复处理和管理员权限。
+- [ ] 记录实际部署版本与真机结果；保留历史复核数据，回滚时协调客户端和云函数版本。
+
 ## 📋 部署前检查
 
 - [ ] 确认当前用户的 poemId 为 `qisaihao`

@@ -1,13 +1,14 @@
 const cloud = require('wx-server-sdk');
 const crypto = require('crypto');
 const { prepareWechatLogin, safeUser } = require('./_lib/wechat-auth');
+const { recordSuccessfulLogin } = require('./_lib/login-audit');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database({ throwOnNotFound: false });
 const digest = value => crypto.createHash('sha256').update(value).digest('hex');
 const invalidCode = () => ({ success: false, code: 'CODE_INVALID', message: '验证码错误或已过期，请重新获取' });
 
-exports.main = async (event) => {
+exports.main = async (event, context) => {
   const { phoneNumber: rawPhone, code: rawCode } = event || {};
   const phoneNumber = typeof rawPhone === 'string' ? rawPhone.trim().replace(/^\+86/, '') : '';
   const code = typeof rawCode === 'string' ? rawCode.trim() : '';
@@ -53,11 +54,13 @@ exports.main = async (event) => {
     const userInfo = safeUser(userRes.data[0]);
     const currentOpenid = cloud.getWXContext().OPENID;
     const { needBindWechat } = await prepareWechatLogin(db, userRes.data[0], currentOpenid);
+    await recordSuccessfulLogin({ db, user: userRes.data[0], event, context, wxContext: cloud.getWXContext(), loginMethod: 'sms' });
     return {
       success: true, message: '登录成功', userInfo, openid: userInfo._openid, currentOpenid,
       needBindWechat, isPhoneVerified: true
     };
   } catch (error) {
+    if (error.code === 'LOGIN_AUDIT_UNAVAILABLE') return { success: false, code: error.code, message: error.message };
     console.error('[loginWithPhone] 登录失败:', error);
     return { success: false, code: 'LOGIN_ERROR', message: '登录失败，请重新获取验证码后重试' };
   }

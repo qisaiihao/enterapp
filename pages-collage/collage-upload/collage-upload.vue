@@ -454,6 +454,22 @@ export default {
           cloudPath: cloudPath,
           fileContent: fileContent
         }, { pageTag: 'collage-upload', context: this, requireAuth: true })
+
+        const publicationResult = collageResult && (collageResult.result || collageResult)
+        if (publicationResult && publicationResult.reviewQueued) {
+          uni.hideLoading()
+          uni.showModal({
+            title: '已提交管理员复核',
+            content: publicationResult.message || '拼贴诗暂未公开，管理员复核通过后会发布。',
+            showCancel: false,
+            confirmText: '知道了',
+            success: () => {
+              this.selectedImage = ''
+              this.imageInfo = null
+            }
+          })
+          return
+        }
         
         // 检查返回结果
         if (collageResult && collageResult.result && collageResult.result.success) {

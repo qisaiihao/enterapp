@@ -102,6 +102,8 @@
 ## 🔒 合规与参考（docs/compliance、docs/reference）
 
 - [compliance/poementer-security-assessment-draft.md](./compliance/poementer-security-assessment-draft.md) - 互联网信息服务安全自评估工作底稿
+- [compliance/poementer-security-assessment-report.md](./compliance/poementer-security-assessment-report.md) - 互联网信息服务安全自评估报告（md/html/pdf）
+- [compliance/poementer-privacy-compliance-report.md](./compliance/poementer-privacy-compliance-report.md) - App 隐私合规检测报告（md/html/pdf）
 - [reference/wechat-content-moderation-api.md](./reference/wechat-content-moderation-api.md) - 微信文本/图片内容安全检测接口参考
 
 ---

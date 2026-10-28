@@ -19,7 +19,7 @@ function runtime(users = [user], cryptoOverrides = {}) {
     timingSafeEqual: crypto.timingSafeEqual,
     ...cryptoOverrides
   };
-  let tables = { wechat_binding_grants: {}, wechat_bindings: {}, sms_codes: {}, sms_logs: {}, users: Object.fromEntries(users.map(item => [item._id, item])) };
+  let tables = { login_logs: {}, wechat_binding_grants: {}, wechat_bindings: {}, sms_codes: {}, sms_logs: {}, users: Object.fromEntries(users.map(item => [item._id, item])) };
   let version = 0, nextId = 0;
   const state = { sent: [], sendFails: false, dbFails: false, beforeSend: null, beforeTransaction: null, failConsume: false };
   const matches = (row, filter) => Object.entries(filter).every(([key, value]) =>
@@ -88,12 +88,13 @@ function runtime(users = [user], cryptoOverrides = {}) {
   function load(file) {
     if (cache[file]) return cache[file];
     const module = { exports: {} };
-    const context = { module, exports: module.exports, console: quiet, Buffer,
+    const context = { module, exports: module.exports, console: quiet, Buffer, process: { env: {} },
       require(name) {
         if (name === 'wx-server-sdk') return cloud;
         if (name === './config') return config;
         if (name === './sms-providers') return { SmsProviderFactory: { createProvider: () => provider } };
         if (name === 'crypto') return legacyCrypto;
+        if (name === 'net') return require('node:net');
         assert.ok(!name.startsWith('node:'), `Cloud runtime does not support ${name}`);
         return load(path.join(path.dirname(file), `${name}.js`));
       }
@@ -375,6 +376,7 @@ async function logRedactionTests() {
     getCloudFunctionMethod: () => 'tcb',
     prepareCloudPostImages() {}, resolveCloudPostImages: async (_, response) => response
   };
+  vm.runInNewContext(read('utils/loginClientInfo.js').replace(/^export /gm, ''), context);
   vm.runInNewContext(source + '\nmodule.exports = cloudCall;', context);
   await context.module.exports('resetPassword', { newPassword: 'private-new-password', code: '654321' }, {
     injectOpenId: false, context: { $tcb: { __skipAuth: true, async callFunction(options) { submitted = options.data; return { result: { success: true } }; } } }

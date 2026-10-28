@@ -205,7 +205,7 @@ import { getDiscussionPosts, invalidateDiscussionPosts } from '@/api-cache/discu
 import { hydrateTempUrls, warmTempUrlsFromPosts } from '@/_utils/hydrate-temp-urls';
 import { navigateToTagFilter, navigateToPostDetail, navigateToUserProfile as navigateToUserProfileUtil, extractDataset } from '@/utils/navigation.js';
 import { updateTabBarStatus } from '@/utils/tabBarCompatibility.js';
-import { syncLikeStatusForPosts, getLatestLikeStatus } from '@/utils/likeStatusSync.js';
+import { getLatestLikeStatus } from '@/utils/likeStatusSync.js';
 import imageOptimizer from '@/utils/imageOptimizer';
 import likeIcon from '@/utils/likeIcon';
 import { togglePostLike } from '@/utils/likeService.js';
@@ -1376,19 +1376,7 @@ export default {
                 // 同步点赞状态，减少切换后重新拉取，并更新当前列表 UI
         syncLikeStatusFromCache: function () {
             try {
-                const allPostIds = [];
-                const collectIds = (list) => {
-                    if (!Array.isArray(list)) return;
-                    list.forEach((p) => { if (p && p._id) allPostIds.push(p._id); });
-                };
-                collectIds(this.postList);
-                collectIds(this.discoverPostList);
-                collectIds(this.discussionPostList);
-                collectIds(this.followingPostList);
-
-                if (allPostIds.length === 0) return;
-
-                try { syncLikeStatusForPosts(allPostIds); } catch (_) {}
+                // 页面显示只对齐当前 UI；列表缓存由实际点赞操作和变更事件同步。
                 const updates = {};
 
                 const patchList = (key) => {

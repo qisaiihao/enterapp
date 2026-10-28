@@ -135,7 +135,7 @@ import {
 import { navigateToPostDetail } from '@/utils/navigation.js';
 import { togglePostLike } from '@/utils/likeService.js';
 import cacheManager from '@/cache/core/manager.js';
-import { syncLikeStatusForPosts, getLatestLikeStatus } from '@/utils/likeStatusSync.js';
+import { getLatestLikeStatus } from '@/utils/likeStatusSync.js';
 import fileUrlCache from '@/cache/core/file-url';
 import { updateTabBarStatus } from '@/utils/tabBarCompatibility.js';
 import activityBadge from '@/cache/stores/activity-badge.js';
@@ -1316,9 +1316,8 @@ export default {
     syncLikeStatusFromCache() {
       try {
         const list = Array.isArray(this.postList) ? this.postList : [];
-        const ids = list.map(p => p && p._id).filter(Boolean);
-        if (!ids.length) return;
-        try { syncLikeStatusForPosts(ids); } catch (_) {}
+        if (!list.length) return;
+        // 页面显示只对齐当前 UI；列表缓存由实际点赞操作和变更事件同步。
         let changed = false;
         const next = list.slice();
         for (let i = 0; i < next.length; i += 1) {

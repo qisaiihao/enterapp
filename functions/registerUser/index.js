@@ -2,6 +2,7 @@
 const cloud = require('wx-server-sdk');
 const { getUserDefaultAvatar, needsDefaultAvatar } = require('./_lib/default-avatar');
 const { ensureDefaultPortfolio } = require('./_lib/ensure-default-portfolio');
+const { recordSuccessfulLogin } = require('./_lib/login-audit');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
@@ -122,6 +123,8 @@ exports.main = async (event, context) => {
       const userInfo = updatedUserRes.data[0];
       const { password: _, ...safeUserInfo } = userInfo;
 
+      await recordSuccessfulLogin({ db, user: userInfo, event, context, wxContext, loginMethod: 'register' });
+
       return {
         success: true,
         message: '账号信息更新成功',
@@ -168,6 +171,8 @@ exports.main = async (event, context) => {
       const userInfo = newUserRes.data[0];
       const { password: _, ...safeUserInfo } = userInfo;
 
+      await recordSuccessfulLogin({ db, user: userInfo, event, context, wxContext, loginMethod: 'register' });
+
       return {
         success: true,
         message: '注册成功',
@@ -177,6 +182,7 @@ exports.main = async (event, context) => {
     }
 
   } catch (error) {
+    if (error.code === 'LOGIN_AUDIT_UNAVAILABLE') return { success: false, code: error.code, message: '账号已保存，登录记录暂时无法保存，请稍后使用账号密码登录' };
     console.error('❌ [registerUser] 注册失败:', error);
     return {
       success: false,

@@ -82,7 +82,9 @@ exports.main = async (event, context) => {
       whereCondition.type = _.in(['feedback', 'feedback_reply', 'feedback_detail_requested', 'feedback_processed']);
     } else if (type === 'post_report_all') {
       whereCondition.type = _.in(['post_report_new', 'post_report_handled', 'post_report_dismissed']);
-    } else if (type && ['like', 'comment', 'favorite', 'follow', 'feedback', 'feedback_processed', 'feedback_reply', 'feedback_detail_requested', 'post_report_new', 'post_report_handled', 'post_report_dismissed'].includes(type)) {
+    } else if (type === 'content_review_all') {
+      whereCondition.type = _.in(['content_review_new', 'content_review_approved', 'content_review_rejected']);
+    } else if (type && ['like', 'comment', 'favorite', 'follow', 'feedback', 'feedback_processed', 'feedback_reply', 'feedback_detail_requested', 'post_report_new', 'post_report_handled', 'post_report_dismissed', 'content_review_new', 'content_review_approved', 'content_review_rejected'].includes(type)) {
       whereCondition.type = type;
     }
     

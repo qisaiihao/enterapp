@@ -43,6 +43,9 @@
             <view :class="'tab-item ' + (activeTab === 'post_report_all' ? 'active' : '')" @tap="switchTab" data-tab="post_report_all">
                 <text>举报</text>
             </view>
+            <view :class="'tab-item ' + (activeTab === 'content_review_all' ? 'active' : '')" @tap="switchTab" data-tab="content_review_all">
+                <text>复核</text>
+            </view>
         </view>
 
         <!-- 消息列表 -->
@@ -129,6 +132,8 @@ import { resolveUserAvatar } from '../../utils/defaultAvatar.js';
 import { getSystemInfoCompat } from '@/utils/system-info.js';
 import { applyThemeMode, getThemeMode } from '@/utils/theme.js';
 import { feedbackDetailUrl } from '../../utils/feedback.js';
+import { refreshAdminStatus } from '../../utils/admin.js';
+import { invalidatePostDetail } from '../../api-cache/post.js';
 // pages/messages/messages.js
 const app = getApp();
 
@@ -370,7 +375,7 @@ export default {
             }, 200);
         },
 
-        handleMessageTap: function (e) {
+        handleMessageTap: async function (e) {
             if (this.justLongPressed) {
                 return;
             }
@@ -394,6 +399,39 @@ export default {
 
             if (message._id && !message.isRead) {
                 this.markMessagesAsRead([message._id]);
+            }
+
+            if (message.type === 'content_review_new') {
+                if (!message.reviewId) {
+                    uni.showToast({ title: '复核记录标识缺失', icon: 'none' });
+                    return;
+                }
+                const isAdmin = await refreshAdminStatus();
+                if (!isAdmin) {
+                    uni.showToast({ title: isAdmin === null ? '暂时无法确认管理员权限，请重试' : '仅管理员可查看复核详情', icon: 'none' });
+                    return;
+                }
+                uni.navigateTo({ url: `/pages-admin/post-reports/post-reports?reviewId=${encodeURIComponent(message.reviewId)}` });
+                return;
+            }
+            if (message.type === 'content_review_approved' || message.type === 'content_review_rejected') {
+                const approved = message.type === 'content_review_approved';
+                const canOpen = approved && !!message.postId;
+                const kindLabel = ({ post: '帖子', post_edit: '帖子修改', comment: '评论' })[message.reviewKind] || '内容';
+                uni.showModal({
+                    title: approved ? '复核已通过' : '复核未通过',
+                    content: `${message.postTitle ? `帖子：${message.postTitle}\n` : ''}${message.content || (approved ? `您的${kindLabel}已通过管理员复核并发布。` : `您的${kindLabel}未通过管理员复核，仍未发布。`)}`,
+                    showCancel: canOpen,
+                    cancelText: '关闭',
+                    confirmText: canOpen ? '查看帖子' : '知道了',
+                    success: result => {
+                        if (result.confirm && canOpen) {
+                            invalidatePostDetail(message.postId);
+                            this.navigateToPost(message.postId);
+                        }
+                    }
+                });
+                return;
             }
 
             if (message.type === 'post_report_new' && message.reportId) {
@@ -887,7 +925,10 @@ export default {
                 'feedback_processed': msg.replyContent ? '办结了您的反馈' : '解决了您反馈的问题',
                 'post_report_new': '提交了新的举报',
                 'post_report_handled': '处理了您的举报',
-                'post_report_dismissed': '没有通过您的举报'
+                'post_report_dismissed': '没有通过您的举报',
+                'content_review_new': '提交了待复核内容',
+                'content_review_approved': '通过了您的内容复核',
+                'content_review_rejected': '未通过您的内容复核'
             };
             return actionMap[type] || '通知了你';
         },

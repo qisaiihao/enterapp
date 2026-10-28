@@ -1,5 +1,5 @@
 // 首启隐私政策确认状态。政策内容更新时同步修改版本号，用户会重新确认。
-export const PRIVACY_POLICY_VERSION = '2026-10-10';
+export const PRIVACY_POLICY_VERSION = '2026-10-14';
 export const PRIVACY_CONSENT_STORAGE_KEY = 'privacyConsentVersion';
 export const PRIVACY_POLICY_PATH = '/pages/privacy/privacy';
 export const PRIVACY_CONSENT_ACCEPTED_EVENT = 'privacyConsentAccepted';

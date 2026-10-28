@@ -559,7 +559,7 @@
         {
           "path": "post-reports/post-reports",
           "style": {
-            "navigationBarTitleText": "受理举报",
+            "navigationBarTitleText": "举报与复核",
             "backgroundColor": "#f5f5f5",
             "enablePullDownRefresh": true,
             "onReachBottomDistance": 50

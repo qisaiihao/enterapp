@@ -32,4 +32,31 @@ function getPostReport({ reportId, context } = {}) {
   });
 }
 
-export { submitPostReport, listPostReports, getPostReport, resolvePostReport };
+function listModerationReviews({ status = 'pending', skip = 0, limit = 20, context } = {}) {
+  return callActionAndUnwrap({
+    functionName: 'adminManager', action: 'listModerationReviews',
+    payload: { status, skip, limit }, pageTag: 'content-review:admin-list',
+    context, requireAuth: true, fallbackMessage: '加载拦截复核失败'
+  });
+}
+
+function getModerationReview({ reviewId, context } = {}) {
+  return callActionAndUnwrap({
+    functionName: 'adminManager', action: 'getModerationReview',
+    payload: { reviewId }, pageTag: 'content-review:admin-detail',
+    context, requireAuth: true, fallbackMessage: '加载复核详情失败'
+  });
+}
+
+function resolveModerationReview({ reviewId, decision, note = '', context } = {}) {
+  return callActionAndUnwrap({
+    functionName: 'adminManager', action: 'resolveModerationReview',
+    payload: { reviewId, decision, note }, pageTag: 'content-review:admin-resolve',
+    context, requireAuth: true, fallbackMessage: '处理拦截复核失败'
+  });
+}
+
+export {
+  submitPostReport, listPostReports, getPostReport, resolvePostReport,
+  listModerationReviews, getModerationReview, resolveModerationReview
+};

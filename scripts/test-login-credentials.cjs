@@ -14,6 +14,7 @@ function loginRuntime(users, failQuery = false) {
     database: () => ({
       collection(name) {
         if (name === 'wechat_binding_grants') return { doc: () => ({ async set() {} }) };
+        if (name === 'login_logs') return { async add() { return { _id: 'audit-record' }; } };
         assert.equal(name, 'users');
         return {
           where(filter) {
@@ -31,7 +32,11 @@ function loginRuntime(users, failQuery = false) {
       }
     })
   };
-  const context = { exports: {}, console: quiet, require(name) { if (name === './_lib/wechat-auth') return require('../functions/_shared/wechat-auth'); assert.equal(name, 'wx-server-sdk'); return cloud; } };
+  const context = { exports: {}, console: quiet, require(name) {
+    if (name === './_lib/wechat-auth') return require('../functions/_shared/wechat-auth');
+    if (name === './_lib/login-audit') return require('../functions/loginWithCredentials/_lib/login-audit');
+    assert.equal(name, 'wx-server-sdk'); return cloud;
+  } };
   vm.runInNewContext(read('functions/loginWithCredentials/index.js'), context);
   return context.exports.main;
 }

@@ -11,13 +11,15 @@ const account = (id, extra = {}) => ({ _id: id, _openid: `owner-${id}`, poemId: 
 // Snapshot transactions retry on conflicts and discard every write on failure.
 // Queries are deliberately unavailable in transactions, matching CloudBase's doc-only API.
 function runtime(users = []) {
-  let tables = { users: Object.fromEntries(users.map(user => [user._id, structuredClone(user)])), wechat_bindings: {}, wechat_binding_grants: {} };
+  let tables = { login_logs: {}, users: Object.fromEntries(users.map(user => [user._id, structuredClone(user)])), wechat_bindings: {}, wechat_binding_grants: {} };
   let version = 0;
+  let nextId = 0;
   const state = { failUserWrite: '', retries: 0 };
   function collection(name, transaction) {
     const rows = () => (transaction ? transaction.tables : tables)[name];
     const write = () => { if (transaction) transaction.dirty = true; else version++; };
     const result = {
+      async add({ data }) { write(); const id = `record-${++nextId}`; rows()[id] = { ...structuredClone(data), _id: id }; return { _id: id }; },
       doc(id) {
         return {
           async get() {
@@ -68,6 +70,7 @@ function runtime(users = []) {
       require(id) {
         if (id === 'wx-server-sdk') return cloud;
         if (id === './_lib/wechat-auth') return require(path.join(root, `functions/${name}/_lib/wechat-auth.js`));
+        if (id === './_lib/login-audit') return require(path.join(root, `functions/${name}/_lib/login-audit.js`));
         throw Error(`unexpected dependency ${id}`);
       }
     });

@@ -10,19 +10,61 @@ import avatarCache from '@/cache/stores/avatar.js';
 const nsMyInfo = cacheManager.namespace('me:info', { persistent: true, maxItems: 8 });
 const PROFILE_TTL_MS = 30 * 60 * 1000;
 const PROFILE_SWR_MS = 5 * 60 * 1000;
+// 展示快照与网络缓存分开：刷新失败仍可先显示上次成功的数据。
+const nsProfileDisplay = cacheManager.namespace('me:display:v1', { persistent: true, maxItems: 40 });
+const nsFollowerCount = cacheManager.namespace('me:followers', { persistent: true, maxItems: 8 });
+const DISPLAY_TTL_MS = 24 * 60 * 60 * 1000;
+const FOLLOWER_TTL_MS = 60 * 1000;
+let infoRevision = 0;
+let postsRevision = 0;
+let followerRevision = 0;
 
-export async function getMyInfo(context) {
+function displayKey(kind, userId, pageSize = 10, originalOnly = false) {
+  return `${kind}:user:${userId}${kind === 'posts' ? `:size:${pageSize}:original:${originalOnly ? 1 : 0}` : ''}`;
+}
+
+export function getCachedMyProfile({ pageSize = 10, originalOnly = false } = {}) {
   const userId = getOpenid();
+  if (!userId) return {};
+  const header = nsProfileDisplay.get(displayKey('header', userId));
+  const posts = nsProfileDisplay.get(displayKey('posts', userId, pageSize, originalOnly));
+  const followers = nsProfileDisplay.get(displayKey('followers', userId));
+  return {
+    userId,
+    userInfo: header && header.userId === userId ? header.value : undefined,
+    posts: posts && posts.userId === userId ? posts.value : undefined,
+    followerCount: followers && followers.userId === userId ? followers.value : undefined,
+    refreshedAt: header && posts && header.userId === userId && posts.userId === userId
+      ? Math.min(header.fetchedAt, posts.fetchedAt) : 0
+  };
+}
+
+function rememberProfileDisplay(kind, userId, value, pageSize, originalOnly) {
+  if (!userId || userId !== getOpenid()) return;
+  nsProfileDisplay.set(displayKey(kind, userId, pageSize, originalOnly), {
+    userId, value, fetchedAt: Date.now()
+  }, { ttlMs: DISPLAY_TTL_MS });
+}
+
+export async function getMyInfo(context, { forceRefresh = false } = {}) {
+  const userId = getOpenid();
+  const key = `user:${userId}`;
+  if (forceRefresh) {
+    infoRevision += 1;
+    nsMyInfo.delete(key);
+  }
+  const revision = infoRevision;
+  let fetched = false;
   const user = await nsMyInfo.getOrFetch(
-    'me',
+    key,
     async () => {
       const result = await callCloudAndUnwrap(
         'getMyProfileData',
-        {},
+        userId ? { openid: userId } : {},
         { pageTag: 'me:info', context, injectOpenId: true },
         '获取个人资料失败'
       );
-      let user = result.userInfo || result.profile || result.data || {};
+      let user = { ...(result.userInfo || result.profile || result.data || {}), ...(userId ? { _openid: userId } : {}) };
 
       try {
         const av = user && user.avatarUrl;
@@ -44,10 +86,13 @@ export async function getMyInfo(context) {
         user.appBackgroundMode = normalizeAppBackgroundMode(user.appBackgroundMode, user.appBackgroundUrl);
       }
 
+      if (userId !== getOpenid()) throw new Error('个人资料账号已切换');
+      fetched = true;
       return user;
     },
     { ttlMs: PROFILE_TTL_MS, swrMs: PROFILE_SWR_MS }
   );
+  if (userId !== getOpenid()) throw new Error('个人资料账号已切换');
   // 必须在读取缓存/网络之后合并：包含返回主页 onShow 强刷和保存前的迟到响应。
   // 云文件链接按文件 ID 复用，不为头像再次查询用户资料。
   while (userId && userId === getOpenid()) {
@@ -59,14 +104,41 @@ export async function getMyInfo(context) {
     if (saved !== avatarCache.getSavedAvatar(userId)) continue;
     if (userId !== getOpenid()) break;
     // 同步修正已读取的缓存，确认记录过期后也不能重新读出此前缓存的旧头像。
-    nsMyInfo.update('me', cached => ({ ...cached, avatarFileID, avatarUrl }));
-    return { ...user, avatarFileID, avatarUrl };
+    nsMyInfo.update(key, cached => ({ ...cached, avatarFileID, avatarUrl }));
+    const confirmedUser = { ...user, avatarFileID, avatarUrl };
+    if (fetched && revision === infoRevision) rememberProfileDisplay('header', userId, confirmedUser);
+    return confirmedUser;
   }
+  if (fetched && revision === infoRevision) rememberProfileDisplay('header', userId, user);
   return user;
 }
 
 export function invalidateMyInfo() {
+  infoRevision += 1;
   nsMyInfo.delete('me');
+  const userId = getOpenid();
+  nsMyInfo.delete(`user:${userId}`);
+  nsProfileDisplay.delete(displayKey('header', userId));
+}
+
+export async function getMyFollowerCount(context, { forceRefresh = false } = {}) {
+  const userId = getOpenid();
+  if (!userId) throw new Error('无法获取用户openid');
+  const key = `user:${userId}`;
+  if (forceRefresh) {
+    followerRevision += 1;
+    nsFollowerCount.delete(key);
+  }
+  const revision = followerRevision;
+  return nsFollowerCount.getOrFetch(key, async () => {
+    const result = await callCloudAndUnwrap('follow', {
+      action: 'getFollowerList', skip: 0, limit: 1, openid: userId
+    }, { pageTag: 'profile:follower-count', context, requireAuth: true }, '获取粉丝数量失败');
+    if (userId !== getOpenid()) throw new Error('粉丝数量账号已切换');
+    const total = typeof result.total === 'number' ? result.total : 0;
+    if (revision === followerRevision) rememberProfileDisplay('followers', userId, total);
+    return total;
+  }, { ttlMs: FOLLOWER_TTL_MS });
 }
 
 // 我的帖子分页：按账号、分页和原创筛选隔离，缓存 60 秒；主动刷新跳过缓存。
@@ -76,6 +148,8 @@ function nsMyPosts() {
 
 export async function getMyPosts({ page = 0, pageSize = 10, originalOnly = false, context, forceRefresh = false }) {
   const openid = getOpenid();
+  if (forceRefresh) postsRevision += 1;
+  const revision = postsRevision;
   const fetchPosts = async () => {
     const result = await callCloudAndUnwrap(
       'getMyProfileData',
@@ -83,7 +157,10 @@ export async function getMyPosts({ page = 0, pageSize = 10, originalOnly = false
       { pageTag: 'me:posts', context, injectOpenId: true },
       '获取我的帖子失败'
     );
-    return result.posts || [];
+    if (openid !== getOpenid()) throw new Error('帖子账号已切换');
+    const posts = result.posts || [];
+    if (page === 0 && revision === postsRevision) rememberProfileDisplay('posts', openid, posts, pageSize, originalOnly);
+    return posts;
   };
   // 身份未就绪时不建立可被其他账号复用的缓存。
   if (!openid) return fetchPosts();
@@ -94,7 +171,12 @@ export async function getMyPosts({ page = 0, pageSize = 10, originalOnly = false
 }
 
 export function invalidateMyPosts(page, pageSize = 10) {
+  postsRevision += 1;
   const ns = nsMyPosts();
+  const userId = getOpenid();
+  if (typeof page !== 'number' || page === 0) {
+    nsProfileDisplay.keys().filter(key => key.startsWith(`posts:user:${userId}:`)).forEach(key => nsProfileDisplay.delete(key));
+  }
   if (typeof page === 'number') {
     const prefix = `page:${page}:size:${pageSize}`;
     ns.keys().filter(key => key === prefix || key.startsWith(`${prefix}:`)).forEach(key => ns.delete(key));

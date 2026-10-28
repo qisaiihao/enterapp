@@ -1,4 +1,6 @@
 .tab-bar {
+  --tab-outer-center: 222rpx;
+  --tab-inner-center: 74rpx;
   position: fixed;
   bottom: 0;
   left: 0;
@@ -23,77 +25,155 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  flex: 1;
-  max-width: 88rpx;
-  margin: 0 30rpx;
+  flex: 1 1 25%;
+  min-width: 0;
+}
+
+/* 热区覆盖整栏，内容仍保持原先居中的图标间距。 */
+.tab-bar-content {
+  position: relative;
+  z-index: 1;
+  width: 88rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tab-bar-item:nth-child(1) .tab-bar-content {
+  transform: translateX(calc(37.5vw - var(--tab-outer-center)));
+}
+
+.tab-bar-item:nth-child(2) .tab-bar-content {
+  transform: translateX(calc(12.5vw - var(--tab-inner-center)));
+}
+
+.tab-bar-item:nth-child(3) .tab-bar-content {
+  transform: translateX(calc(var(--tab-inner-center) - 12.5vw));
+}
+
+.tab-bar-item:nth-child(4) .tab-bar-content {
+  transform: translateX(calc(var(--tab-outer-center) - 37.5vw));
 }
 
 .icon-wrap {
+  position: relative;
   width: 88rpx;
   height: 88rpx;
   border-radius: 24rpx;
   background: #f8f8f8;
   border: 1rpx solid transparent;
-  overflow: hidden;
-  box-shadow: 0 18rpx 32rpx rgba(0, 0, 0, 0.16);
+  overflow: visible;
   box-sizing: border-box;
-  transition: box-shadow 0.22s ease;
+  transform: translateY(0) scale(1);
+  transform-origin: center;
+  transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.icon-wrap.pressed {
-  box-shadow: 0 12rpx 24rpx rgba(0, 0, 0, 0.14), 0 3rpx 8rpx rgba(0, 0, 0, 0.08);
+/* 两层外阴影只切换透明度；选中保持浮起，触摸时才压低。 */
+.icon-wrap::before,
+.icon-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  transition: opacity 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.icon-wrap::before {
+  box-shadow: var(--app-tab-icon-wrap-shadow, 0 18rpx 32rpx rgba(0, 0, 0, 0.16));
+  opacity: 1;
+}
+
+.icon-wrap::after {
+  box-shadow: var(--app-tab-icon-active-shadow, 0 12rpx 24rpx rgba(0, 0, 0, 0.14), 0 3rpx 8rpx rgba(0, 0, 0, 0.08));
+  opacity: 0;
+}
+
+.tab-bar-item--touching .icon-wrap {
+  transform: translateY(4rpx) scale(0.96);
+  transition-duration: 80ms;
+}
+
+.tab-bar-item--touching .icon-wrap::before {
+  opacity: 0;
+  transition-duration: 80ms;
+}
+
+.tab-bar-item--touching .icon-wrap::after {
+  opacity: 1;
+  transition-duration: 80ms;
 }
 
 .icon-inner {
+  position: relative;
   width: 100%;
   height: 100%;
+  border-radius: inherit;
   background: #ffffff;
-  box-shadow: none;
-  transition: transform 0.22s ease, box-shadow 0.22s ease;
-}
-
-.icon-inner.active {
-  box-shadow: inset 0 10rpx 20rpx rgba(0, 0, 0, 0.22);
-  transform: translateY(3rpx) scale(0.97);
+  overflow: hidden;
+  transition: none;
 }
 
 .icon-img {
   width: 100%;
   height: 100%;
   display: block;
+  transition: opacity 180ms ease, transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.icon-img--active {
+  transform: scale(1.02);
 }
 
 .tab-bar-text {
   font-size: 22rpx;
   margin-top: 4rpx;
-  transition: all 0.3s ease;
+  transition: color 150ms ease;
 }
 
-/* 响应式间距调整 - 小程序使用媒体查询需要注意兼容性 */
-/* 小屏幕 */
 @media (max-width: 320px) {
-  .tab-bar-item {
-    margin: 0 15rpx;
+  .tab-bar {
+    --tab-outer-center: 177rpx;
+    --tab-inner-center: 59rpx;
   }
 }
 
-/* 中等屏幕 */
 @media (min-width: 321px) and (max-width: 375px) {
-  .tab-bar-item {
-    margin: 0 30rpx;
+  .tab-bar {
+    --tab-outer-center: 222rpx;
+    --tab-inner-center: 74rpx;
   }
 }
 
-/* 较大屏幕 */
 @media (min-width: 376px) and (max-width: 414px) {
-  .tab-bar-item {
-    margin: 0 35rpx;
+  .tab-bar {
+    --tab-outer-center: 237rpx;
+    --tab-inner-center: 79rpx;
   }
 }
 
-/* 大屏幕 */
 @media (min-width: 415px) {
-  .tab-bar-item {
-    margin: 0 40rpx;
+  .tab-bar {
+    --tab-outer-center: 252rpx;
+    --tab-inner-center: 84rpx;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon-wrap,
+  .icon-wrap::before,
+  .icon-wrap::after,
+  .icon-img,
+  .tab-bar-text {
+    transition: none;
+  }
+
+  .tab-bar-item--touching .icon-wrap {
+    transform: none;
   }
 }

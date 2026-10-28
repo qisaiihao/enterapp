@@ -165,6 +165,7 @@
             <view class="portfolio-section" v-if="currentTab === 'portfolio'">
                 <!-- 作品集书籍组件 -->
                 <PortfolioBook
+                    v-if="!portfolioLoading && !portfolioError"
                     :portfolioList="portfolioList"
                     :emptyText="'TA还没有创建作品集'"
                     @open-portfolio="openPortfolio"
@@ -174,6 +175,9 @@
                 <!-- 加载状态 -->
                 <view v-if="portfolioLoading" class="loading-tip">
                     <text>加载中...</text>
+                </view>
+                <view v-else-if="portfolioError" class="loading-tip" @tap="loadUserPortfolios">
+                    <text>作品集加载失败，点此重试</text>
                 </view>
   
                 <!-- 时间轴组件 -->
@@ -481,6 +485,7 @@ export default {
 
             // 作品集和收藏相关状态
             portfolioLoading: false,
+            portfolioError: false,
             favoriteLoading: false,
             favoritePage: 0,
             favoriteHasMore: true,
@@ -607,9 +612,15 @@ export default {
             swiperHeights: {},
             imageClampHeights: {},
             portfolioList: [],
+            portfolioHasEverLoaded: false,
             favoriteList: [],
             favoritePage: 0,
             favoriteHasMore: true,
+            favoritesHasEverLoaded: false,
+            timelinePosts: [],
+            timelineGroups: {},
+            collapsedMonths: {},
+            timelineError: false,
             growthStats: {
                 seed: 0,
                 leaf: 0,
@@ -617,7 +628,7 @@ export default {
                 peach: 0
             }
         });
-        this.loadUserProfile(() => {
+        return this.loadUserProfile(() => {
             uni.stopPullDownRefresh();
         });
     },
@@ -877,26 +888,31 @@ export default {
             const tab = e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.tab;
             if (!tab || tab === this.currentTab) return;
             this.setData({ currentTab: tab });
+            return this.loadCurrentTabContent();
+        },
 
-            // 根据切换的标签加载相应数据
-            switch (tab) {
+        // 只加载可见标签的数据，避免作品集和时间轴阻塞默认帖子首屏。
+        loadCurrentTabContent() {
+            const pending = [];
+            switch (this.currentTab) {
                 case 'portfolio':
-                    if (!this.portfolioLoading) {
-                        this.loadUserPortfolios();
+                    if (!this.portfolioHasEverLoaded && !this.portfolioLoading) {
+                        pending.push(this.loadUserPortfolios());
                     }
                     // 加载时间轴数据
                     if (this.timelinePosts.length === 0 && !this.timelineLoading) {
-                        this.loadTimelineData();
+                        pending.push(this.loadTimelineData());
                     }
                     break;
                 case 'favorites':
                     if (this.favoriteList.length === 0 && !this.favoriteLoading) {
                         this.setData({ favoritePage: 0 });
                         try { invalidateUserFavorites && invalidateUserFavorites(this.targetUserId); } catch (_) {}
-                        this.loadUserFavorites();
+                        pending.push(this.loadUserFavorites());
                     }
                     break;
             }
+            return Promise.all(pending);
         },
         // 加载用户信息和帖子
         loadUserProfile: function (cb) {
@@ -904,16 +920,16 @@ export default {
             const request = this.beginGuardedRequest('activeLoadToken');
             this.setData({
                 isLoading: true,
-                portfolioLoading: true,
+                portfolioLoading: false,
+                portfolioError: false,
+                portfolioHasEverLoaded: false,
                 favoriteLoading: false,
                 timelineLoading: false
             });
+            let profileLoaded = false;
             const infoPromise = getUserInfo(request.targetUserId, this);
             const postsPromise = getUserPosts({ userId: request.targetUserId, page: 0, pageSize: this.PAGE_SIZE, context: this });
-            const portfolioPromise = getUserPortfolios(request.targetUserId, this).catch((error) => {
-                return [];
-            });
-            Promise.all([infoPromise, postsPromise, portfolioPromise]).then(async ([userInfo, posts, portfolios]) => {
+            return Promise.all([infoPromise, postsPromise]).then(async ([userInfo, posts]) => {
                 if (!this.isGuardedRequestCurrent('activeLoadToken', request)) {
                     return;
                 }
@@ -929,21 +945,15 @@ export default {
 
                 posts = this.formatPostsForDisplay(posts, userInfo, request.targetUserId);
                 const growthStats = extractGrowthStats(userInfo, posts);
-                const normalizedPortfolios = await this.transformPortfolioList(portfolios);
-                if (!this.isGuardedRequestCurrent('activeLoadToken', request)) {
-                    return;
-                }
                 this.setData({
                     userInfo,
                     userPosts: posts,
                     page: 1,
                     hasMore: posts.length === this.PAGE_SIZE,
                     growthStats,
-                    portfolioList: normalizedPortfolios,
-                    portfolioLoading: false,
-                    postsHasEverLoaded: true,
-                    portfolioHasEverLoaded: true
+                    postsHasEverLoaded: true
                 });
+                profileLoaded = true;
                 avatarCache.updateUserAvatar(request.targetUserId, userInfo);
                 this.prepareFollowStateWithCache();
                 this.prepareBlockState();
@@ -955,16 +965,18 @@ export default {
                 }
                 uni.showToast({ title: '网络异常，请稍后重试', icon: 'none' });
                 this.setData({ 
-                    postsHasEverLoaded: true,
-                    portfolioHasEverLoaded: true
+                    postsHasEverLoaded: true
                 });
-            }).finally(() => {
+            }).finally(async () => {
                 if (!this.isGuardedRequestCurrent('activeLoadToken', request)) {
-                    if (typeof cb === 'function') cb();
                     return;
                 }
-                this.setData({ isLoading: false, portfolioLoading: false });
-                if (typeof cb === 'function') cb();
+                this.setData({ isLoading: false });
+                try {
+                    if (profileLoaded) await this.loadCurrentTabContent();
+                } finally {
+                    if (this.isGuardedRequestCurrent('activeLoadToken', request) && typeof cb === 'function') cb();
+                }
             });
         },
 
@@ -1400,7 +1412,7 @@ export default {
             }
 
             // 通过 API 层加载，页面不再解析 res.result 协议
-            getUserPosts({
+            return getUserPosts({
                 userId: targetUserId,
                 page: 0,
                 pageSize: 1000,
@@ -1471,9 +1483,10 @@ export default {
 
         // 加载用户作品集
         async loadUserPortfolios(cb) {
+            if (this.portfolioLoading) return;
             const request = this.beginGuardedRequest('portfolioLoadToken');
             try {
-                this.setData({ portfolioLoading: true });
+                this.setData({ portfolioLoading: true, portfolioError: false });
                 let portfolios = await getUserPortfolios(request.targetUserId, this);
                 if (!this.isGuardedRequestCurrent('portfolioLoadToken', request)) {
                     return;
@@ -1482,10 +1495,11 @@ export default {
                 if (!this.isGuardedRequestCurrent('portfolioLoadToken', request)) {
                     return;
                 }
-                this.setData({ portfolioList: portfolios });
+                this.setData({ portfolioList: portfolios, portfolioHasEverLoaded: true });
             } catch (error) {
                 if (this.isGuardedRequestCurrent('portfolioLoadToken', request)) {
                     console.error('加载用户作品集失败:', error);
+                    this.setData({ portfolioError: true });
                 }
             } finally {
                 if (!this.isGuardedRequestCurrent('portfolioLoadToken', request)) {

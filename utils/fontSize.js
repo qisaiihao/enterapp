@@ -9,6 +9,8 @@
 
 const STORAGE_KEY = 'poementerReadFontSize';
 const READ_FONT_SIZE_CHANGED_EVENT = 'read-font-size:changed';
+let cachedReadFontSizeLevel;
+let readFontEventsBound = false;
 
 const READ_FONT_LEVELS = Object.freeze({
   standard: { label: '标准', scale: 1 },
@@ -51,7 +53,22 @@ function writeStorage(key, value) {
 }
 
 function getReadFontSizeLevel() {
-  return normalizeLevel(readStorage(STORAGE_KEY));
+  ensureReadFontEventBridge();
+  if (cachedReadFontSizeLevel === undefined) {
+    cachedReadFontSizeLevel = normalizeLevel(readStorage(STORAGE_KEY));
+  }
+  return cachedReadFontSizeLevel;
+}
+
+function ensureReadFontEventBridge() {
+  if (readFontEventsBound || typeof uni === 'undefined' || typeof uni.$on !== 'function') return;
+  uni.$on(READ_FONT_SIZE_CHANGED_EVENT, (payload = {}) => {
+    const nextLevel = normalizeLevel(payload.level || readStorage(STORAGE_KEY));
+    if (cachedReadFontSizeLevel === nextLevel) return;
+    cachedReadFontSizeLevel = nextLevel;
+    applyReadFontSize(nextLevel);
+  });
+  readFontEventsBound = true;
 }
 
 function getReadFontScale(level = getReadFontSizeLevel()) {
@@ -86,7 +103,9 @@ function applyReadFontSize(level = getReadFontSizeLevel()) {
 }
 
 function setReadFontSize(level) {
+  ensureReadFontEventBridge();
   const nextLevel = normalizeLevel(level);
+  cachedReadFontSizeLevel = nextLevel;
   writeStorage(STORAGE_KEY, nextLevel);
   applyReadFontSize(nextLevel);
   try {

@@ -41,6 +41,8 @@ function matches(row, input, vars = {}) {
     if (expected instanceof Date) return +actual === +expected;
     if (!expected || typeof expected !== 'object') return Array.isArray(actual) ? actual.includes(expected) : actual === expected;
     return Object.entries(expected).every(([op,value]) => {
+      if (op === '$regex') return typeof actual === 'string' && new RegExp(value, expected.$options || '').test(actual);
+      if (op === '$options') return true;
       if (op === '$eq') return actual === value;
       if (op === '$ne') return actual !== value;
       if (op === '$exists') return (actual !== undefined) === value;
@@ -66,10 +68,10 @@ function project(row, fields) {
   }
   return out;
 }
-function memoryDb(initial, command) {
+function memoryDb(initial, command, options = {}) {
   const tables = clone(initial), calls = [];
   let sequence=0;
-  const db={command, serverDate:()=>new Date(), collection(name) {
+  const db={command, RegExp:({regexp,options=''})=>({$regex:regexp,$options:options}), serverDate:()=>new Date(), collection(name) {
     tables[name] ||= [];
     function query(state={}) {
       const selected=()=>tables[name].filter(row=>matches(row,state.filter || {})).slice().sort((a,b)=> {
@@ -82,8 +84,9 @@ function memoryDb(initial, command) {
         limit(limit){return query({...state,limit});}, skip(skip){return query({...state,skip});}, field(fields){return query({...state,fields});},
         async get(){calls.push({name,op:'get'});const rows=selected().map(row=>state.fields?project(row,state.fields):clone(row));return {data:state.id?(rows[0]||null):rows};},
         async count(){calls.push({name,op:'count'});return {total:selected().length};},
-        async add({data}){calls.push({name,op:'add'});const _id='new-'+(++sequence);tables[name].push({...clone(data),_id});return {_id};},
-        async update({data}){calls.push({name,op:'update'});const rows=selected();for(const row of rows)for(const [key,value]of Object.entries(data)){
+        async add({data}){options.beforeWrite?.({name,op:'add',data});calls.push({name,op:'add'});const _id='new-'+(++sequence);tables[name].push({...clone(data),_id});return {_id};},
+        async set({data}){options.beforeWrite?.({name,op:'set',data});calls.push({name,op:'set'});if(!state.id)throw Error('set requires document id');const index=tables[name].findIndex(row=>row._id===state.id);const row={...clone(data),_id:state.id};if(index<0)tables[name].push(row);else tables[name][index]=row;return {_id:state.id};},
+        async update({data}){options.beforeWrite?.({name,op:'update',data});calls.push({name,op:'update'});const rows=selected();for(const row of rows)for(const [key,value]of Object.entries(data)){
           if(value && value.operator==='remove')delete row[key];else if(value && value.operator==='inc')row[key]=(row[key]||0)+value.operands[0];else row[key]=clone(value);
         }return {stats:{updated:rows.length}};},
         async remove(){const rows=selected();tables[name]=tables[name].filter(row=>!rows.includes(row));return {stats:{removed:rows.length}};},
@@ -107,6 +110,22 @@ function memoryDb(initial, command) {
     }
     return query();
   }};
+  // Serialize commits like conflicting production transactions. A failed callback
+  // restores every table, so tests can prove no content or counters leak on failure.
+  let transactionTail = Promise.resolve();
+  db.runTransaction = callback => {
+    const result = transactionTail.then(async () => {
+      const saved = clone(tables), savedSequence = sequence;
+      try { return await callback(db); }
+      catch (error) {
+        for (const key of Object.keys(tables)) delete tables[key];
+        Object.assign(tables, saved); sequence = savedSequence;
+        throw error;
+      }
+    });
+    transactionTail = result.catch(() => {});
+    return result;
+  };
   return {db,tables,calls};
 }
 module.exports={matches,expr,literal,memoryDb};

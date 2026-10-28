@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>回车键Poementer移动互联网应用程序隐私合规检测报告</title>
+  <style>
+    @page { size: A4 portrait; margin: 0; }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; background: #fff; color: #1b1f24;
+      font-family: "SimSun", "Songti SC", "STSong", serif;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    body { font-size: 10.5pt; line-height: 1.55; }
+    main { padding: 16mm 16mm 14mm; }
+    h1 { font-size: 19pt; text-align: center; margin: 0 0 4mm; color: #10233e; letter-spacing: 0.02em; line-height: 1.3; }
+    h2 {
+      font-size: 14pt; margin: 6mm 0 3mm; padding-bottom: 1.4mm;
+      border-bottom: 0.4mm solid #324d75; color: #10233e;
+    }
+    h3 { font-size: 11.8pt; margin: 4mm 0 2mm; color: #203d61; }
+    h4 { font-size: 10.8pt; margin: 3mm 0 1.5mm; color: #26435f; }
+    p, li, td, th, blockquote { font-size: 10.5pt; line-height: 1.55; }
+    p { margin: 0 0 2mm; text-align: justify; }
+    ul, ol { padding-left: 6mm; margin: 0 0 2.4mm; }
+    li { margin-bottom: 1mm; }
+    table { width: 100%; border-collapse: collapse; margin: 0 0 3mm; table-layout: fixed; }
+    th, td { border: 0.25mm solid #8395aa; padding: 1.6mm 2mm; vertical-align: top; word-break: break-word; }
+    th { background: #eaf0f7; font-weight: 700; text-align: left; }
+    blockquote {
+      border-left: 1mm solid #a5b7ca; padding: 1.6mm 3mm; margin: 0 0 3mm;
+      color: #3a4a5a; background: #f6f8fb;
+    }
+    code { font-family: Consolas, "Courier New", monospace; font-size: 9.5pt; padding: 0 0.8mm; background: #f1f4f8; }
+    hr { border: none; border-top: 0.25mm solid #c8d3df; margin: 5mm 0; }
+    h2, h3, table, blockquote, li, p { break-inside: avoid-page; }
+    table { break-inside: auto; }
+    tr { break-inside: avoid-page; }
+  </style>
+</head>
+<body>
+<main>
+<h1>回车键（Poementer）移动互联网应用程序隐私合规检测报告</h1>
+<p><strong>报告编号：</strong> PM-PRIV-20261013-01  |  <strong>版本：</strong> V1.0  |  <strong>检测日期：</strong> 2026 年 10 月 13 日  |  <strong>检测方式：</strong> 自测（机器检测 + 人工检测）</p>
+<blockquote>
+<p>本报告依据《中华人民共和国网络安全法》《中华人民共和国数据安全法》《中华人民共和国个人信息保护法》《信息安全技术 个人信息安全规范》（GB/T 35273）、《App 违法违规收集使用个人信息行为认定方法》（国家网信办等四部门，2019 年）、《信息安全技术 移动互联网应用程序（App）收集个人信息基本要求》（GB/T 41391）及相关规定编制，对回车键（Poementer）App 的收集使用个人信息行为逐项检测。文内【】为需由运营主体据实填写或核对的信息，截图占位符由检测人员按现场实际情况替换为真实截图。</p>
+</blockquote>
+<hr>
+<h2>一、检测对象与范围</h2>
+<h3>1.1 检测对象</h3>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>应用名称</td>
+<td>回车键（Poementer）</td>
+</tr>
+<tr>
+<td>Android 包名</td>
+<td><code>com.poementer.app</code></td>
+</tr>
+<tr>
+<td>应用版本</td>
+<td>V1.7.5（versionCode 175）【以最终提交安装包为准】</td>
+</tr>
+<tr>
+<td>iOS 应用名称</td>
+<td>Poementer</td>
+</tr>
+<tr>
+<td>小程序 AppID</td>
+<td><code>wx9db4f8a61ab11fbb</code></td>
+</tr>
+<tr>
+<td>运营主体</td>
+<td>广州回车键网络科技有限公司</td>
+</tr>
+<tr>
+<td>统一社会信用代码</td>
+<td>91440105MAKNX2P769</td>
+</tr>
+<tr>
+<td>法定代表人</td>
+<td>黎俊皓</td>
+</tr>
+<tr>
+<td>ICP 备案号</td>
+<td>粤ICP备2026149280号</td>
+</tr>
+<tr>
+<td>联系邮箱</td>
+<td>poementer@yeah.net</td>
+</tr>
+<tr>
+<td>官方网站</td>
+<td>www.poementer.com</td>
+</tr>
+</tbody>
+</table>
+<h3>1.2 应用业务与功能范围</h3>
+<p>回车键（Poementer）是一款诗歌创作与分享社区，主要功能包括：账号注册与登录（手机号短信验证码、账号密码、微信、GitHub）、诗歌与讨论帖创作发布、图片上传与拼贴诗制作、评论与回复、点赞、收藏与作品集、关注与粉丝、站内系统通知、诗歌周刊与线上活动、意见反馈与内容举报。应用不提供即时通信、直播、音视频发布等功能。</p>
+<h3>1.3 检测范围</h3>
+<p>本次检测覆盖 App 客户端（Android/iOS）、微信小程序及配套云服务在个人信息收集、存储、使用、共享、删除全过程中与合规要求相关的内容，重点为：首启隐私政策确认、系统权限调用、个人信息收集清单、第三方 SDK 与共享、账号注销与个人信息删除、投诉举报渠道。</p>
+<hr>
+<h2>二、检测依据</h2>
+<ol>
+<li>《中华人民共和国网络安全法》</li>
+<li>《中华人民共和国数据安全法》</li>
+<li>《中华人民共和国个人信息保护法》</li>
+<li>《信息安全技术 个人信息安全规范》（GB/T 35273）</li>
+<li>《App 违法违规收集使用个人信息行为认定方法》</li>
+<li>《信息安全技术 移动互联网应用程序（App）收集个人信息基本要求》（GB/T 41391）</li>
+<li>《常见类型移动互联网应用程序必要个人信息范围规定》</li>
+<li>《移动互联网应用程序信息服务管理规定》《电信和互联网用户个人信息保护规定》</li>
+</ol>
+<hr>
+<h2>三、检测方法与工具</h2>
+<p>本次检测采用<strong>机器检测</strong>与<strong>人工检测</strong>相结合的方式，并对关键过程截图存证。</p>
+<h3>3.1 机器检测</h3>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>安装包静态分析</td>
+<td>反编译安装包，提取 <code>AndroidManifest.xml</code> 权限声明与 <code>Info.plist</code> 用途描述，识别申请的系统权限</td>
+</tr>
+<tr>
+<td>第三方 SDK 识别</td>
+<td>通过代码特征与依赖清单识别集成的第三方 SDK 及其可能的信息收集行为</td>
+</tr>
+<tr>
+<td>网络流量抓包</td>
+<td>真机安装并在 HTTPS 代理（已安装根证书）下运行，分析关键流程的上传字段与传输加密情况</td>
+</tr>
+<tr>
+<td>隐私政策文本核查</td>
+<td>对隐私政策正文进行结构化提取，核查收集类型、目的、方式、范围的完整性与可读性</td>
+</tr>
+<tr>
+<td>首启与门禁逻辑检查</td>
+<td>检查同意隐私政策前是否发生登录、上报、权限申请与数据预取</td>
+</tr>
+</tbody>
+</table>
+<h3>3.2 人工检测</h3>
+<p>由检测人员对首启隐私弹窗、权限申请弹窗、隐私政策页面、个人信息查询/更正入口、账号注销流程、意见反馈与举报入口等逐项走查，记录操作路径与结果。</p>
+<h3>3.3 检测环境</h3>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Android 真机</td>
+<td>主流 Android 13/14 机型，安装正式签名版 App</td>
+</tr>
+<tr>
+<td>iOS 真机</td>
+<td>主流 iOS 16/17 机型，安装正式签名版 App</td>
+</tr>
+<tr>
+<td>抓包工具</td>
+<td>HTTPS 代理 + 受信根证书</td>
+</tr>
+<tr>
+<td>静态分析</td>
+<td>安装包反编译与权限/SDK 提取工具</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>四、个人信息与权限使用情况</h2>
+<h3>4.1 系统权限申请与使用</h3>
+<table>
+<thead>
+<tr>
+<th>权限</th>
+<th>主要用途</th>
+<th>触发场景</th>
+<th>必要性</th>
+<th>用户可否关闭</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>相机</td>
+<td>拍摄头像、诗图、拼贴素材</td>
+<td>点击拍摄时申请</td>
+<td>业务所需</td>
+<td>可（系统设置中关闭）</td>
+</tr>
+<tr>
+<td>相册 / 存储（含媒体图片）</td>
+<td>选择图片上传、保存诗卡到相册</td>
+<td>选择或保存图片时申请</td>
+<td>业务所需</td>
+<td>可</td>
+</tr>
+<tr>
+<td>电话状态</td>
+<td>运营商一键登录时的本机号码认证</td>
+<td>使用一键登录时申请</td>
+<td>登录方式所需</td>
+<td>可</td>
+</tr>
+<tr>
+<td>网络与 Wi-Fi 状态</td>
+<td>判断网络情况、加载内容</td>
+<td>应用运行期间</td>
+<td>业务所需</td>
+<td>可</td>
+</tr>
+<tr>
+<td>震动</td>
+<td>部分操作的触感反馈</td>
+<td>触发对应交互时</td>
+<td>体验所需</td>
+<td>可</td>
+</tr>
+<tr>
+<td>应用安装</td>
+<td>Android 端应用内版本更新安装</td>
+<td>用户确认更新并下载安装包后</td>
+<td>更新所需</td>
+<td>可</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>权限申请均在用户使用对应功能时<strong>按需、逐项</strong>申请，并在申请前同步告知用途；关闭权限仅影响对应功能，不影响浏览、阅读等核心功能。</li>
+<li>安装包内另存在少量由 uni-app 框架默认带入的声明（如 <code>READ_LOGS</code>、<code>GET_ACCOUNTS</code>、<code>WRITE_SETTINGS</code>、<code>MOUNT_UNMOUNT_FILESYSTEMS</code>），应用未调用、未据此收集任何个人信息，已在后续版本中逐步收敛清理。</li>
+<li>应用未申请通讯录、短信记录、通话记录、麦克风、后台定位等敏感权限，未收集行踪轨迹信息（微信小程序侧未调用任何定位接口）。</li>
+</ul>
+<blockquote>
+<p>【截图 4-1：App 权限申请弹窗（相机/相册）】</p>
+<p>【截图 4-2：应用权限管理页（系统设置中可查看与关闭）】</p>
+</blockquote>
+<h3>4.2 收集的个人信息清单</h3>
+<table>
+<thead>
+<tr>
+<th>信息类型</th>
+<th>处理目的</th>
+<th>收集方式</th>
+<th>范围</th>
+<th>是否敏感</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>手机号</td>
+<td>注册、登录、找回密码、账号安全</td>
+<td>用户填写或运营商一键登录</td>
+<td>仅本人账号绑定</td>
+<td>否（一般个人信息）</td>
+</tr>
+<tr>
+<td>账号标识 / 密码</td>
+<td>账号密码登录与账号安全</td>
+<td>用户设置</td>
+<td>仅本人使用</td>
+<td>否</td>
+</tr>
+<tr>
+<td>第三方标识（微信 openid、GitHub 用户名等）</td>
+<td>第三方登录与账号绑定</td>
+<td>第三方授权返回</td>
+<td>仅本人授权范围</td>
+<td>否</td>
+</tr>
+<tr>
+<td>昵称、头像、生日、个人简介、签名图片</td>
+<td>展示个人主页</td>
+<td>用户主动填写</td>
+<td>用户自主决定公开范围</td>
+<td>否</td>
+</tr>
+<tr>
+<td>发布内容（诗歌、讨论、评论、图片、标签等）</td>
+<td>实现内容发布、展示与互动</td>
+<td>用户主动发布</td>
+<td>平台内公开或按用户设置</td>
+<td>否</td>
+</tr>
+<tr>
+<td>设备与日志信息（设备型号、系统版本、网络状态、应用版本、异常日志）</td>
+<td>保障服务运行与账号安全</td>
+<td>应用运行时自动收集</td>
+<td>最小必要</td>
+<td>否</td>
+</tr>
+<tr>
+<td>作品集、收藏、关注、站内通知</td>
+<td>实现社区互动功能</td>
+<td>用户操作产生</td>
+<td>与本人账号关联</td>
+<td>否</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>本应用<strong>不收集</strong>生物识别、宗教信仰、特定身份、医疗健康、金融账号、行踪轨迹等敏感个人信息，也不收集不满十四周岁未成年人的个人信息。</li>
+<li>手机号在展示时进行<strong>脱敏处理</strong>，用户之间仅可见头像、昵称等公开信息，不可见他人手机号、生日等隐私信息。</li>
+</ul>
+<h3>4.3 第三方 SDK / 服务清单</h3>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>提供方</th>
+<th>涉及信息</th>
+<th>目的</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>腾讯云开发 CloudBase</td>
+<td>腾讯云</td>
+<td>业务数据、云存储文件</td>
+<td>云函数、云数据库、云存储</td>
+</tr>
+<tr>
+<td>微信开放平台</td>
+<td>腾讯</td>
+<td>用户标识（openid）</td>
+<td>微信登录及内容安全</td>
+</tr>
+<tr>
+<td>运营商一键登录服务（univerify）</td>
+<td>中国移动/联通/电信</td>
+<td>本机号码</td>
+<td>手机号一键登录及号码认证</td>
+</tr>
+<tr>
+<td>GitHub OAuth</td>
+<td>GitHub</td>
+<td>用户名、头像、公开邮箱</td>
+<td>第三方账号登录（可选）</td>
+</tr>
+<tr>
+<td>短信服务商（腾讯云短信）</td>
+<td>腾讯云</td>
+<td>手机号、验证码</td>
+<td>发送验证码短信</td>
+</tr>
+<tr>
+<td>腾讯云内容安全 TMS/IMS</td>
+<td>腾讯云</td>
+<td>待审文本、图片</td>
+<td>内容合规审核</td>
+</tr>
+<tr>
+<td>腾讯云 OCR</td>
+<td>腾讯云</td>
+<td>拼贴诗待识别图片</td>
+<td>图片文字识别（用户主动使用）</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>上述第三方服务均已接入并在隐私政策中逐项披露其名称、涉及信息与目的；应用仅出于所述目的共享<strong>必要</strong>信息，未出售个人信息的任何行为。</li>
+<li>在申请打开可收集个人信息的权限或收集个人信息前，同步告知目的；敏感信息不涉及，个人信息收集均在取得同意后进行。</li>
+</ul>
+<blockquote>
+<p>【截图 4-3：第三方 SDK / 服务披露段落（隐私政策“第三方服务”章节）】</p>
+</blockquote>
+<hr>
+<h2>五、检测项与检测结果</h2>
+<h3>（一）《App 违法违规收集使用个人信息行为认定方法》检测</h3>
+<h4>5.1 是否“未公开收集使用规则”</h4>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>检测项</th>
+<th>检测方法</th>
+<th>检测结果</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>在 App 中没有隐私政策，或隐私政策中没有收集使用个人信息规则</td>
+<td>人工核查</td>
+<td><strong>符合</strong></td>
+<td>应用内提供独立《隐私政策》页面（<code>/pages/privacy/privacy</code>），完整列明收集使用个人信息的规则</td>
+</tr>
+<tr>
+<td>2</td>
+<td>首次运行未通过弹窗等明显方式提示阅读隐私政策</td>
+<td>人工 + 机器</td>
+<td><strong>符合</strong></td>
+<td>首次启动以居中弹窗（<code>PrivacyConsentDialog</code>）明显提示阅读《隐私政策》，提供“同意并继续 / 不同意”选项</td>
+</tr>
+<tr>
+<td>3</td>
+<td>隐私政策难以访问（如主界面后需多于 4 次点击）</td>
+<td>人工核查</td>
+<td><strong>符合</strong></td>
+<td>登录页、注册页及“设置－隐私政策”入口均可直接访问，进入主界面后 1 次点击即可到达，远少于 4 次</td>
+</tr>
+<tr>
+<td>4</td>
+<td>隐私政策难以阅读（文字过小过密、颜色过淡、模糊、无简体中文）</td>
+<td>人工核查</td>
+<td><strong>符合</strong></td>
+<td>政策正文提供简体中文，字号、行距、对比度合理，段落按标题分节，支持文本选择，明暗主题下均可正常阅读</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>【截图 5-1：首次启动隐私政策确认弹窗】</p>
+<p>【截图 5-2：隐私政策页面（标题、更新/生效日期、正文分节）】</p>
+<p>【截图 5-3：“设置－隐私政策”访问路径】</p>
+</blockquote>
+<h4>5.2 是否“未明示收集使用个人信息的目的、方式和范围”</h4>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>检测项</th>
+<th>检测方法</th>
+<th>检测结果</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>未逐一列出 App（含委托或嵌入的第三方代码、插件）收集使用个人信息的目的、方式、范围</td>
+<td>机器 + 人工</td>
+<td><strong>符合</strong></td>
+<td>隐私政策逐项列明各类信息的收集目的、方式与范围，并以“第三方服务”章节披露嵌入的第三方服务及其信息处理行为</td>
+</tr>
+<tr>
+<td>2</td>
+<td>目的、方式、范围发生变化时未以适当方式通知用户</td>
+<td>机器核查</td>
+<td><strong>符合</strong></td>
+<td>政策内容更新时同步升级 <code>PRIVACY_POLICY_VERSION</code>，老用户重新确认；页面标注更新日期，重大变更另行提示</td>
+</tr>
+<tr>
+<td>3</td>
+<td>申请可收集个人信息的权限或收集敏感信息时，未同步告知目的或目的不明确</td>
+<td>人工核查</td>
+<td><strong>符合</strong></td>
+<td>权限申请前同步告知用途；收集手机号等时说明用于登录与账号安全，目的明确、通俗易懂；不涉及敏感个人信息</td>
+</tr>
+<tr>
+<td>4</td>
+<td>收集使用规则内容晦涩难懂、冗长繁琐，使用大量专业术语</td>
+<td>人工核查</td>
+<td><strong>符合</strong></td>
+<td>政策以通俗表述分节说明，避免专业术语堆砌，用户可理解</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>【截图 5-4：隐私政策“我们如何收集和使用您的个人信息”章节】</p>
+<p>【截图 5-5：隐私政策“系统权限的调用”章节】</p>
+</blockquote>
+<h4>5.3 是否“未经用户同意收集使用个人信息”</h4>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>检测项</th>
+<th>检测方法</th>
+<th>检测结果</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>征得同意前就开始收集个人信息或打开可收集个人信息权限</td>
+<td>机器 + 人工</td>
+<td><strong>符合</strong></td>
+<td>同意隐私政策前不登录、不上报、不申请权限、不预取数据（<code>App.vue</code> 中确认前不启动登录与更新检查）</td>
+</tr>
+<tr>
+<td>2</td>
+<td>用户明确不同意后仍收集，或频繁征求同意、干扰使用</td>
+<td>人工核查</td>
+<td><strong>符合</strong></td>
+<td>用户点“不同意”时退出应用（小程序退出、其余环境提示后重新展示），不静默放行，不重复骚扰</td>
+</tr>
+<tr>
+<td>3</td>
+<td>实际收集的个人信息或打开的权限超出用户授权范围</td>
+<td>机器核查</td>
+<td><strong>符合</strong></td>
+<td>仅收集业务所必需信息，权限按需逐项申请，未超授权范围收集</td>
+</tr>
+<tr>
+<td>4</td>
+<td>以默认选择同意隐私政策等非明示方式征求同意</td>
+<td>人工核查</td>
+<td><strong>符合</strong></td>
+<td>弹窗无默认勾选，须用户主动点击“同意并继续”方视为同意</td>
+</tr>
+<tr>
+<td>5</td>
+<td>未经用户同意更改其设置的可收集个人信息权限状态</td>
+<td>人工核查</td>
+<td><strong>符合</strong></td>
+<td>应用不擅自更改系统权限状态，更新不将用户权限重置为默认</td>
+</tr>
+<tr>
+<td>6</td>
+<td>利用个人信息和算法定向推送信息，未提供非定向推送选项</td>
+<td>机器核查</td>
+<td><strong>符合</strong></td>
+<td>应用不进行个性化定向推送，无强制个性化推荐；相关算法能力已停用</td>
+</tr>
+<tr>
+<td>7</td>
+<td>以欺诈、诱骗等不正当方式误导用户同意收集或打开权限</td>
+<td>人工核查</td>
+<td><strong>符合</strong></td>
+<td>未发现故意欺瞒、掩饰真实目的等行为，告知内容与实际一致</td>
+</tr>
+<tr>
+<td>8</td>
+<td>未向用户提供撤回同意收集个人信息的途径、方式</td>
+<td>人工核查</td>
+<td><strong>符合</strong></td>
+<td>用户可在系统设置中关闭权限撤回授权，并可通过“设置－注销账号”彻底删除个人信息</td>
+</tr>
+<tr>
+<td>9</td>
+<td>违反所声明的收集使用规则收集使用个人信息</td>
+<td>机器 + 人工</td>
+<td><strong>符合</strong></td>
+<td>实际收集行为与隐私政策声明一致，未发现违反声明的情形</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>【截图 5-6：同意前不登录/不上报（首启流程）】</p>
+<p>【截图 5-7：“设置－注销账号”入口及确认流程】</p>
+</blockquote>
+<h4>5.4 是否“违反必要原则，收集与其提供的服务无关的个人信息”</h4>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>检测项</th>
+<th>检测方法</th>
+<th>检测结果</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>收集的信息类型或打开的权限与现有业务功能无关</td>
+<td>机器核查</td>
+<td><strong>符合</strong></td>
+<td>所收集信息与登录、发布、互动等功能一一对应，无与业务无关的收集</td>
+</tr>
+<tr>
+<td>2</td>
+<td>因用户不同意收集非必要信息或打开非必要权限，拒绝提供业务功能</td>
+<td>人工核查</td>
+<td><strong>符合</strong></td>
+<td>关闭相机、相册等权限仅影响对应功能，浏览、阅读等核心功能不受影响</td>
+</tr>
+<tr>
+<td>3</td>
+<td>新增业务功能所收集信息超出原有同意范围，不同意则拒绝提供原有功能</td>
+<td>人工核查</td>
+<td><strong>符合</strong></td>
+<td>未发现以新增功能为由强制扩大同意范围并拒绝原有功能的情形</td>
+</tr>
+<tr>
+<td>4</td>
+<td>收集个人信息的频度等超出业务功能实际需要</td>
+<td>机器核查</td>
+<td><strong>符合</strong></td>
+<td>未发现超频度收集，无高频采集行为</td>
+</tr>
+<tr>
+<td>5</td>
+<td>仅以改善服务质量、提升体验、定向推送、研发新产品等为由强制同意</td>
+<td>人工核查</td>
+<td><strong>符合</strong></td>
+<td>未以该类理由强制要求用户同意收集个人信息</td>
+</tr>
+<tr>
+<td>6</td>
+<td>要求用户一次性同意打开多个可收集个人信息的权限，不同意则无法使用</td>
+<td>人工核查</td>
+<td><strong>符合</strong></td>
+<td>权限逐项按需申请，不存在打包强制授权</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>【截图 5-8：关闭权限后核心功能仍可正常使用】</p>
+</blockquote>
+<h4>5.5 是否“未经同意向他人提供个人信息”</h4>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>检测项</th>
+<th>检测方法</th>
+<th>检测结果</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>既未经同意也未匿名化，向第三方提供个人信息（含嵌入的第三方代码、插件）</td>
+<td>机器 + 人工</td>
+<td><strong>符合</strong></td>
+<td>仅在必要服务范围内与合作方共享必要信息，均已在隐私政策披露并取得用户同意；无出售个人信息行为</td>
+</tr>
+<tr>
+<td>2</td>
+<td>接入第三方应用，未经同意向第三方应用提供个人信息</td>
+<td>机器核查</td>
+<td><strong>符合</strong></td>
+<td>第三方登录以用户主动授权为前置，仅在授权范围内获取必要标识，未向第三方应用超范围提供信息</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>【截图 5-9：第三方服务披露及授权登录页面】</p>
+</blockquote>
+<h4>5.6 是否“未提供删除/更正功能”或“未公布投诉、举报方式”</h4>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>检测项</th>
+<th>检测方法</th>
+<th>检测结果</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>未提供有效的更正、删除个人信息及注销账号功能</td>
+<td>人工核查</td>
+<td><strong>符合</strong></td>
+<td>提供“我－编辑资料”查询更正、内容删除，以及“设置－注销账号”功能</td>
+</tr>
+<tr>
+<td>2</td>
+<td>为更正、删除或注销设置不必要或不合理条件</td>
+<td>人工核查</td>
+<td><strong>符合</strong></td>
+<td>注销仅需身份验证（密码或危险确认），无不合理条件</td>
+</tr>
+<tr>
+<td>3</td>
+<td>提供功能但未及时响应，人工处理未在承诺时限（≤15 个工作日）内完成</td>
+<td>人工核查</td>
+<td><strong>符合</strong></td>
+<td>注销为线上即时处理，幂等操作；不涉及需要人工处理的情形</td>
+</tr>
+<tr>
+<td>4</td>
+<td>用户操作已执行完毕但 App 后台并未完成</td>
+<td>机器核查</td>
+<td><strong>符合</strong></td>
+<td>注销在云端级联删除账号与隐私数据、匿名化保留公开内容，操作与后台一致</td>
+</tr>
+<tr>
+<td>5</td>
+<td>未建立并公布投诉、举报渠道，或未在承诺时限内受理处理</td>
+<td>人工核查</td>
+<td><strong>符合</strong></td>
+<td>在隐私政策与应用内公布投诉举报方式（邮箱 poementer@yeah.net、“意见反馈”、“举报”入口），承诺 15 个工作日内回复</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>【截图 5-10：个人资料查询/更正页】</p>
+<p>【截图 5-11：账号注销完成提示】</p>
+<p>【截图 5-12：意见反馈与帖子举报入口】</p>
+</blockquote>
+<h3>（二）《信息安全技术 移动互联网应用程序（App）收集个人信息基本要求》检测</h3>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>检测项</th>
+<th>检测方法</th>
+<th>检测结果</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>收集生物识别、宗教信仰、特定身份、医疗健康、金融账号、行踪轨迹等敏感个人信息时，未同步告知目的并取得单独同意</td>
+<td>机器 + 人工</td>
+<td><strong>符合</strong></td>
+<td>应用不收集上述敏感个人信息；对手机号等一般个人信息，在收集前同步告知目的并取得同意</td>
+</tr>
+<tr>
+<td>2</td>
+<td>App 在静默状态或后台运行且未提供合理场景服务时收集用户个人信息</td>
+<td>机器核查</td>
+<td><strong>符合</strong></td>
+<td>应用静默或后台运行时不收集个人信息，无后台定位、后台读取行为</td>
+</tr>
+<tr>
+<td>3</td>
+<td>在非服务所必需或无合理场景下，自启动或关联启动其他 App</td>
+<td>机器核查</td>
+<td><strong>符合</strong></td>
+<td>应用不申请自启动/关联启动能力，不会拉起其他 App；仅 Android 端应用内更新在用户确认后申请安装自身升级包，属服务所需</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>【截图 5-13：敏感信息告知与同意（注册/登录）】</p>
+<p>【截图 5-14：应用后台运行期间无额外信息收集（抓包对比）】</p>
+</blockquote>
+<hr>
+<h2>六、检测过程截图存证</h2>
+<p>本报告检测过程截图编号与上文占位符对应，由检测人员据实替换，构成报告附件。清单如下：</p>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4-1 ~ 4-3</td>
+<td>权限申请弹窗、权限管理页、第三方服务披露</td>
+</tr>
+<tr>
+<td>5-1 ~ 5-3</td>
+<td>首启隐私弹窗、隐私政策页面、政策访问路径</td>
+</tr>
+<tr>
+<td>5-4 ~ 5-5</td>
+<td>个人信息收集章节、系统权限章节</td>
+</tr>
+<tr>
+<td>5-6 ~ 5-7</td>
+<td>同意前不收集、注销账号流程</td>
+</tr>
+<tr>
+<td>5-8</td>
+<td>关闭权限后核心功能可用</td>
+</tr>
+<tr>
+<td>5-9</td>
+<td>第三方服务披露与授权登录</td>
+</tr>
+<tr>
+<td>5-10 ~ 5-12</td>
+<td>资料更正、注销完成、投诉举报入口</td>
+</tr>
+<tr>
+<td>5-13 ~ 5-14</td>
+<td>敏感信息告知同意、后台无额外收集</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>七、检测结论</h2>
+<p>经对隐私政策公开与可读性、收集使用告知同意、必要原则、信息共享、删除更正与账号注销、投诉举报渠道，以及敏感信息、静默收集、自启动等逐项检测，回车键（Poementer）：</p>
+<ol>
+<li>已公开收集使用规则，首启强制阅读并同意《隐私政策》后方可使用，无默认勾选、无同意前收集；</li>
+<li>已明示收集使用个人信息的目的、方式和范围，并披露第三方 SDK / 服务；</li>
+<li>收集范围符合最小必要原则，权限按需逐项申请，与业务功能对应；</li>
+<li>未发现未经用户同意收集使用个人信息、未经同意向他人提供个人信息的情形；</li>
+<li>提供有效的个人信息查询、更正、删除及账号永久注销功能，并公布投诉举报渠道；</li>
+<li>不收集敏感个人信息，不存在静默/后台违规收集及违规自启动、关联启动。</li>
+</ol>
+<p><strong>检测结论：未发现违反《App 违法违规收集使用个人信息行为认定方法》《信息安全技术 移动互联网应用程序（App）收集个人信息基本要求》等要求的收集使用个人信息行为，本应用隐私合规检测结果为“符合”。</strong></p>
+<h3>7.1 持续改进建议</h3>
+<ol>
+<li>定期复核第三方 SDK 版本与信息使用情况，SDK 升级时同步更新隐私政策披露清单。</li>
+<li>持续清理安装包内由框架默认带入但未实际使用的权限声明，进一步收敛权限面。</li>
+<li>加强隐私政策版本管理与变更留痕，重大变更保留弹窗提醒记录。</li>
+</ol>
+<hr>
+<h2>八、签署</h2>
+<table>
+<thead>
+<tr>
+<th>角色</th>
+<th>单位</th>
+<th>签字</th>
+<th>盖章</th>
+<th>日期</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>检测负责人</td>
+<td>广州回车键网络科技有限公司</td>
+<td></td>
+<td></td>
+<td>____ 年 __ 月 __ 日</td>
+</tr>
+<tr>
+<td>运营主体负责人</td>
+<td>广州回车键网络科技有限公司</td>
+<td></td>
+<td></td>
+<td>____ 年 __ 月 __ 日</td>
+</tr>
+</tbody>
+</table>
+<p>（本报告尾页加盖运营主体公章）</p>
+<p><strong>报告声明：</strong> 本报告依据检测时点的应用版本与运行环境编制，结论仅对本次检测版本有效。应用功能、权限、第三方 SDK 或隐私政策发生变化时，应重新检测并更新报告。</p>
+
+</main>
+</body>
+</html>

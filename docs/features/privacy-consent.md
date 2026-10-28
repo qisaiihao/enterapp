@@ -40,7 +40,7 @@
 
 - `main.js` 模块加载时的 `ensureTcbReady()` 仍会初始化 CloudBase SDK 并发起匿名登录；不包含 openid 或用户资料，但严格解读仍应先于同意前初始化，后续可与 SDK 初始化时机一起评估。
 - 微信小程序分享卡片可直达广场/详情页，不经过开屏；对应场景应由微信官方隐私保护指引（`wx.getPrivacySetting` / `wx.onNeedPrivacyAuthorization`）兜底，尚未接入。
-- 设置页内的账号注销流程已于 2026-10-10 接入，见 [应用内注销账号](account-cancellation.md)；隐私政策更新到 2026-10-10 版本，`PRIVACY_POLICY_VERSION` 同步升级，老用户会重新确认一次。
+- 设置页内的账号注销流程已于 2026-10-10 接入，2026-10-13 改为删除账号、发布内容及关联数据，2026-10-14 明确保留安全审计与备案登录日志，见 [应用内注销账号](account-cancellation.md)；隐私政策更新到 2026-10-14 版本，`PRIVACY_POLICY_VERSION` 同步升级，老用户会重新确认一次。
 
 ## 验证
 

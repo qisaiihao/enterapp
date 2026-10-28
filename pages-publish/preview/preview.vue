@@ -2762,7 +2762,10 @@ export default {
 
         if (addVm && addVm.clearDraft) {
 
-          addVm.clearDraft();
+          // 先标记发布完成，避免退出时自动保存再次写回已发布内容。
+          addVm.isPublished = true;
+
+          addVm.clearDraft({ resetForm: true });
 
         }
 
@@ -2849,6 +2852,16 @@ export default {
     publishFail(err) {
 
       uni.hideLoading();
+
+      if (err && err.result && err.result.reviewQueued) {
+        uni.showModal({
+          title: '已提交管理员复核',
+          content: err.result.message || err.result.msg || '内容暂未公开，管理员复核通过后会发布。',
+          showCancel: false,
+          confirmText: '知道了'
+        });
+        return;
+      }
 
       console.error('发布失败:', err);
 

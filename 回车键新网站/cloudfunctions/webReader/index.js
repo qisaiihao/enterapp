@@ -1,5 +1,6 @@
 const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 const cloud = require("wx-server-sdk");
+const { recordSuccessfulLogin } = require("./_lib/login-audit");
 const crypto = require("node:crypto");
 const {
   digest,
@@ -397,7 +398,7 @@ async function activity(event, owner) {
   };
 }
 
-exports.main = async (event = {}) => {
+exports.main = async (event = {}, context) => {
   try {
     const action = event.action || "list";
     if (
@@ -433,7 +434,7 @@ exports.main = async (event = {}) => {
         await db
           .collection("users")
           .where({ poemId })
-          .field({ _openid: true, password: true })
+          .field({ _openid: true, poemId: true, password: true })
           .limit(1)
           .get()
       ).data[0];
@@ -457,11 +458,13 @@ exports.main = async (event = {}) => {
         .set({
           data: { owner: account._openid, caller: callerId(), expiresAt },
         });
+      const profile = await ownerProfile(account._openid);
+      await recordSuccessfulLogin({ db, user: account, event, context, wxContext: cloud.getWXContext(), loginMethod: 'password' });
       return {
         success: true,
         token,
         expiresAt: expiresAt.toISOString(),
-        user: await ownerProfile(account._openid),
+        user: profile,
       };
     }
     let owner = "";
@@ -517,6 +520,7 @@ exports.main = async (event = {}) => {
     }
     return { success: true, ...(await list(event, owner)) };
   } catch (error) {
+    if (error.code === 'LOGIN_AUDIT_UNAVAILABLE') return { success: false, code: error.code, message: error.message };
     // No event, credentials, access tokens, or user documents in logs/errors.
     if (!error.public)
       console.error(

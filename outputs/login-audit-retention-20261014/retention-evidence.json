@@ -1,0 +1,49 @@
+{
+  "mode": "read-only",
+  "envId": "cloud1-5gb0pbyl400845f5",
+  "inspectedAt": "2026-10-14T03:40:43.945Z",
+  "functionName": "cancelAccount",
+  "onlineSourceSha256": "b17ee29ebf75a51fb6b15c28f1b0f3f1702f5abc9a427308860d61d71d62685d",
+  "configurationSha256": "5431fcfad7afb686919a22313878a0521c543c1df9dd8d4320dc2796eb2db082",
+  "firstPartyModules": [
+    {
+      "file": "index.js",
+      "sha256": "b17ee29ebf75a51fb6b15c28f1b0f3f1702f5abc9a427308860d61d71d62685d",
+      "mentionsLoginLogs": false,
+      "mentionsCollectionEnumeration": false
+    },
+    {
+      "file": "_lib/posts/index.js",
+      "sha256": "ef47f176a27d6125fe12db3a14d1799efe9f895933a8d4c08685fd240c1b924e",
+      "mentionsLoginLogs": false,
+      "mentionsCollectionEnumeration": false
+    },
+    {
+      "file": "_lib/posts/query.js",
+      "sha256": "bade9b46ba881907bac75e41a9a04706bc7838bbd2484bff7c42af4a0a04a238",
+      "mentionsLoginLogs": false,
+      "mentionsCollectionEnumeration": false
+    },
+    {
+      "file": "_lib/posts/schema.js",
+      "sha256": "5e172c38706e7a935f4b7d304fdbb230fadaab73da38b105e5b47580c47a3fb7",
+      "mentionsLoginLogs": false,
+      "mentionsCollectionEnumeration": false
+    }
+  ],
+  "activeLoginLogsReferences": [],
+  "collectionEnumerationCalls": [],
+  "reviewedCleanupRange": {
+    "startLine": 174,
+    "endLine": 262
+  },
+  "conclusion": "The deployed cancelAccount entrypoint and its first-party helper modules contain no login_logs reference or collection enumeration. Cleanup targets are explicit collections; the deployed function already leaves login_logs unchanged after account cancellation.",
+  "deploymentNeeded": false,
+  "localSnapshotNote": "The delegated-task snapshot already includes the current turn retention comment; it must not be treated as the original pre-edit local baseline.",
+  "remoteLocalDiff": {
+    "remoteLines": 326,
+    "snapshotLines": 542,
+    "localAddedLines": 466,
+    "localRemovedLines": 250
+  }
+}

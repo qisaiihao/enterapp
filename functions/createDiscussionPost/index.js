@@ -1,5 +1,6 @@
 const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 const { moderateBeforeWrite } = require('./_lib/moderation-gate');
+const { queueModerationReview } = require('./_lib/moderation-review');
 const cloud = require('wx-server-sdk');
 
 cloud.init({
@@ -94,16 +95,7 @@ exports.main = async (event, context) => {
       ? `关于「${quotedPost.title}」的多句讨论`
       : `关于「${quotedPost.title}」的讨论`;
 
-    const moderationFailure = await moderateBeforeWrite(cloud, {
-      content: content.trim(),
-      sentenceGroups,
-      images: imageUrls
-    });
-    if (moderationFailure) return moderationFailure;
-
-    // 创建讨论帖子
-    const postResult = await db.collection('posts').add({
-      data: {
+    const postData = {
         _openid: openid,
         title: discussionTitle,
         content: content.trim(),
@@ -139,8 +131,22 @@ exports.main = async (event, context) => {
         authorNameSnapshot: user.nickName || '匿名用户',
         authorAvatarSnapshot: user.avatarUrl || '',
         authorSignature: user.signatureUrl || '' // 签名URL
-      }
+    };
+
+    const moderationFailure = await moderateBeforeWrite(cloud, {
+      title: postData.title, content: postData.content,
+      sentenceGroups: postData.sentenceGroups, images: postData.originalImageUrls
     });
+    if (moderationFailure) {
+      if (!['CONTENT_BLOCKED', 'REVIEW_REQUIRED'].includes(moderationFailure.code)) return moderationFailure;
+      return await queueModerationReview(db, {
+        openid, source: 'createDiscussionPost', kind: 'post', audit: moderationFailure,
+        data: postData, related: { quotedPostId }
+      });
+    }
+
+    // 创建讨论帖子
+    const postResult = await db.collection('posts').add({ data: postData });
 
     console.log('【createDiscussionPost】创建讨论成功，ID:', postResult._id);
 

@@ -156,7 +156,9 @@ export async function cancelAccount(payload = {}, context) {
     {
       pageTag: 'settings:cancel-account',
       context,
-      requireAuth: true
+      requireAuth: true,
+      timeoutMs: payload.dryRun === true ? 10000 : 70000,
+      silent: true
     },
     'Cancel account failed'
   );

@@ -12,7 +12,7 @@ import { getAppState, getOpenid } from '@/utils/app-state.js';
 import { ensureRuntimeOpenid, ensureTcbAuthenticated, ensureTcbReady, installRuntimeBindings, setupRuntimeSideEffects } from '@/utils/runtime-bootstrap.js';
 import zpMixins from '@/uni_modules/zp-mixins/index.js';
 import appFontManager from './utils/fontManager.js';
-import { THEME_CHANGED_EVENT, applyThemeMode, getThemeMode, getThemeVars } from '@/utils/theme.js';
+import { THEME_CHANGED_EVENT, applyNativeThemeChrome, applyThemeMode, getThemeMode, getThemeVars } from '@/utils/theme.js';
 import { getStatusBarHeightCompat, getWindowInfoCompat } from '@/utils/system-info.js';
 import {
   BUILTIN_HUIWEN_FONT_FAMILY,
@@ -264,6 +264,10 @@ export function createApp() {
   app.mixin(appTabTransitionMixin);
   // #endif
   app.mixin({
+    onShow() {
+      // App 页面拥有独立 WebView；原生栏在页面显示时同步一次。
+      applyNativeThemeChrome(this.appThemeMode || getThemeMode());
+    },
     // App 的 loadFontFace 注册到当前页面，必须等页面视图就绪。
     // #ifdef APP-PLUS
     onReady() {
@@ -301,7 +305,6 @@ export function createApp() {
       this._appThemeChangedHandler = (payload = {}) => {
         const mode = payload.mode || getThemeMode();
         this.appThemeMode = mode;
-        applyThemeMode(mode);
       };
       this._appReadFontChangedHandler = (payload = {}) => {
         this.readFontLevel = payload.level || getReadFontSizeLevel();

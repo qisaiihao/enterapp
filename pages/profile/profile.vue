@@ -290,8 +290,8 @@ import AppActionSheet from '@/components/overlay/AppActionSheet.vue';
 import DeleteModal from '@/components/DeleteModal.vue';
 import ShareModal from '@/components/ShareModal.vue';
 import { captureFavoriteRead } from '@/cache/favorites.js';
-import { getMyPosts, getMyFavorites, invalidateMyFavorites, invalidateMyPosts, invalidateMyInfo, getMyInfo } from '@/api-cache/my.js';
-import { togglePostVisibility, deletePost as deletePostApi, saveDraft, getPostDetail, getFollowerCount, updateUserInfo, logout } from '@/api-cache/profile-actions.js';
+import { getMyPosts, getMyFavorites, invalidateMyFavorites, invalidateMyPosts, invalidateMyInfo, getMyInfo, getCachedMyProfile, getMyFollowerCount } from '@/api-cache/my.js';
+import { togglePostVisibility, deletePost as deletePostApi, saveDraft, getPostDetail, updateUserInfo, logout } from '@/api-cache/profile-actions.js';
 import { getPortfolioFolders, notifyPortfolioUpdated, invalidatePortfolioCache } from '@/api-cache/portfolio.js';
 import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
 import { clearCachedAdminFlag } from '@/utils/admin.js';
@@ -792,6 +792,7 @@ export default {
         }
     },
     async onLoad(options) {
+        this._profileUnloaded = false;
         // 使用新的登录检查工具
         const isLoggedIn = await checkLoginOrPrompt({
             content: '查看个人主页需要登录，请先登录',
@@ -803,7 +804,7 @@ export default {
             }
         });
 
-        if (!isLoggedIn) {
+        if (!isLoggedIn || this._profileUnloaded) {
             return;
         }
 
@@ -834,7 +835,9 @@ export default {
         updateTabBarStatus(this, 3);
 
         // 每次进入页面时主动刷新数据（但避免首次加载时重复调用）
-        if (this.hasInitialSnapshot) {
+        if (this._profileLoadedUserId && this._profileLoadedUserId !== getOpenid()) {
+            this.checkLoginAndFetchData();
+        } else if (this.hasInitialSnapshot) {
             const shouldForce = !!(
                 uni.getStorageSync('shouldRefreshIndex') ||
                 uni.getStorageSync('shouldRefreshProfile') ||
@@ -884,6 +887,8 @@ export default {
     },
     onHide() { this.isSidebarOpen = false; this._profileFavoritesVisible = false; },
     onUnload: function () {
+        this._profileUnloaded = true;
+        this._followerRequestToken = (this._followerRequestToken || 0) + 1;
         this.postsRequestToken += 1;
         this.pendingRefreshToken += 1;
         this.releaseGlobalEventBindings();
@@ -1547,12 +1552,60 @@ export default {
             );
         },
 
+        resetProfileView: function () {
+            this.pendingRefreshToken += 1;
+            this.postsRequestToken += 1;
+            this._followerRequestToken = (this._followerRequestToken || 0) + 1;
+            this._profileRefreshedAt = 0;
+            this.setData({
+                userInfo: {}, followerCount: 0, myPosts: [], favoriteList: [], portfolioList: [],
+                timelinePosts: [], timelineGroups: {}, page: 0, favoritePage: 0,
+                growthStats: { seed: 0, leaf: 0, flower: 0, peach: 0 }, collapsedMonths: {}, isSidebarOpen: false,
+                hasMore: true, favoriteHasMore: true, hasInitialSnapshot: false,
+                isLoading: true, isAtomicRefreshing: false, currentTab: 'posts',
+                swiperHeights: {}, imageClampHeights: {}, appBackgroundResolvedUrl: '', appBackgroundMode: ''
+            });
+        },
+
+        showCachedProfile: function () {
+            const openid = getOpenid();
+            if (this._profileUnloaded) return false;
+            if (this._profileLoadedUserId && this._profileLoadedUserId !== openid) this.resetProfileView();
+            this._profileLoadedUserId = openid || '';
+            if (!openid) return false;
+            const state = getAppState();
+            const session = state.userInfo;
+            const sessionId = session && (session._openid || session.openid);
+            // Session 与显式账号配对；不接受带有其他账号 ID 的遗留资料。
+            const currentSession = session && (sessionId ? sessionId === openid : state.openid === openid) ? session : null;
+            const cached = getCachedMyProfile({ pageSize: PAGE_SIZE, originalOnly: this.postsOriginalOnly });
+            const user = cached.userInfo || currentSession;
+            if (!user) return false;
+            const nextUser = this.normalizeProfileUserInfo({ ...user, _openid: openid });
+            const updates = {
+                userInfo: nextUser, isViewingSelf: true, hasInitialSnapshot: true,
+                appBackgroundResolvedUrl: nextUser.appBackgroundUrl || '',
+                appBackgroundMode: nextUser.appBackgroundMode || '',
+                growthStats: extractGrowthStats(nextUser)
+            };
+            if (typeof cached.followerCount === 'number') updates.followerCount = cached.followerCount;
+            if (this.currentTab === 'posts' && Array.isArray(cached.posts)) {
+                updates.myPosts = this.formatPostsForDisplay(cached.posts, nextUser, openid);
+                updates.page = 1;
+                updates.hasMore = cached.posts.length === PAGE_SIZE;
+                updates.isLoading = false;
+                this._profileRefreshedAt = cached.refreshedAt || 0;
+            }
+            this.setData(updates);
+            return true;
+        },
+
         normalizeProfileUserInfo: function (user) {
             const state = getAppState();
-            const sessionUser =
-                state.userInfo ||
-                this.userInfo ||
-                {};
+            const openid = getOpenid();
+            const session = state.userInfo || {};
+            const sessionId = session._openid || session.openid;
+            const sessionUser = (!sessionId || sessionId === openid) && state.openid === openid ? session : {};
             const nextUser = user ? { ...sessionUser, ...user } : { ...sessionUser };
             nextUser.avatarUrl = resolveUserAvatar(nextUser.avatarUrl, getUserAvatarSeed(nextUser));
             nextUser.appBackgroundMode = normalizeAppBackgroundMode(nextUser.appBackgroundMode, nextUser.appBackgroundUrl);
@@ -1622,23 +1675,15 @@ export default {
         async fetchProfileHeaderSnapshot({ forceRefresh = false } = {}) {
             if (forceRefresh) {
                 try {
-                    invalidateMyInfo();
                     invalidateMyProfile();
                 } catch (_) {}
             }
 
-            const [user, followerCount] = await Promise.all([
-                getMyInfo(this),
-                getFollowerCount(this).catch((error) => {
-                    console.warn('[profile] follower count refresh failed', error);
-                    return this.followerCount || 0;
-                })
-            ]);
+            const user = await getMyInfo(this, { forceRefresh });
 
             const nextUser = this.normalizeProfileUserInfo(user);
             return {
                 userInfo: nextUser,
-                followerCount,
                 growthStats: extractGrowthStats(nextUser),
                 appBackgroundResolvedUrl: (nextUser && nextUser.appBackgroundUrl) || '',
                 appBackgroundMode: (nextUser && nextUser.appBackgroundMode) || ''
@@ -1646,9 +1691,6 @@ export default {
         },
 
         async fetchPostsTabRaw({ forceRefresh = false } = {}) {
-            if (forceRefresh) {
-                try { invalidateMyPosts(); } catch (_) {}
-            }
             return await getMyPosts({
                 page: 0,
                 pageSize: PAGE_SIZE,
@@ -1707,7 +1749,6 @@ export default {
             const [header, tabRaw] = await Promise.all([headerPromise, tabPromise]);
             const updates = {
                 userInfo: header.userInfo || {},
-                followerCount: header.followerCount,
                 growthStats: header.growthStats,
                 appBackgroundResolvedUrl: header.appBackgroundResolvedUrl,
                 appBackgroundMode: header.appBackgroundMode,
@@ -1772,12 +1813,30 @@ export default {
         },
 
         refreshProfileAtomically: async function ({ reason = 'manual', forceRefresh = false } = {}) {
+            const userId = getOpenid();
+            if (!userId || this._profileUnloaded) return false;
+            const isPageEntry = reason === 'initial' || reason === 'onShow';
+            const preservePagedPosts = reason === 'onShow' && !forceRefresh && this.currentTab === 'posts' && this.page > 1;
+            // 回到已显示的页面不重置分页、图片测量或滚动内容。
+            if (isPageEntry && !forceRefresh) {
+                if (this.isAtomicRefreshing && this._profileRefreshUserId === userId) return false;
+                if (this._profileRefreshedAt && Date.now() - this._profileRefreshedAt < 60000) {
+                    this.fetchFollowCounts();
+                    return true;
+                }
+                forceRefresh = true;
+            }
+            this._profileRefreshUserId = userId;
+            this._profileLoadedUserId = userId;
             const token = (this.pendingRefreshToken || 0) + 1;
             this.pendingRefreshToken = token;
             this.isAtomicRefreshing = true;
+            // 粉丝数可以晚到，不能阻塞头部及列表的展示。
+            this.fetchFollowCounts({ forceRefresh });
             const tab = this.currentTab;
             const favoriteReadCurrent = tab === 'favorites' ? captureFavoriteRead() : () => true;
-            if (tab === 'posts') {
+            const isCurrent = () => !this._profileUnloaded && userId === getOpenid() && token === this.pendingRefreshToken;
+            if (tab === 'posts' && !preservePagedPosts) {
                 // 刷新或切换筛选后，旧的分页结果不能再写入当前列表。
                 this.postsRequestToken += 1;
                 this.isLoading = false;
@@ -1791,39 +1850,49 @@ export default {
 
             try {
                 console.log('【profile】⚡ 开始原子刷新:', { reason, forceRefresh, tab: this.currentTab, token });
-                const snapshot = await this.buildAtomicSnapshot({
-                    tab,
-                    forceRefresh
-                });
+                let snapshot;
+                if (preservePagedPosts) {
+                    // 已翻页的普通返回只更新资料，避免改变 offset 分页边界及滚动内容。
+                    const header = await this.fetchProfileHeaderSnapshot({ forceRefresh });
+                    snapshot = { userInfo: header.userInfo, updates: {
+                        userInfo: header.userInfo, growthStats: header.growthStats,
+                        appBackgroundResolvedUrl: header.appBackgroundResolvedUrl,
+                        appBackgroundMode: header.appBackgroundMode
+                    } };
+                } else {
+                    snapshot = await this.buildAtomicSnapshot({ tab, forceRefresh });
+                }
 
-                if (token !== this.pendingRefreshToken || !favoriteReadCurrent()) {
+                if (!isCurrent() || !favoriteReadCurrent()) {
                     return false;
                 }
 
                 await this.syncAtomicUserSession(snapshot.userInfo);
 
-                if (token !== this.pendingRefreshToken || !favoriteReadCurrent()) {
+                if (!isCurrent() || !favoriteReadCurrent()) {
                     return false;
                 }
 
                 this.setData(snapshot.updates);
+                this._profileRefreshedAt = Date.now();
                 this._hasFirstShow = true;
                 return true;
             } catch (error) {
                 if (error.code === 'FAVORITE_STALE' || !favoriteReadCurrent()) return false;
-                if (token !== this.pendingRefreshToken) {
+                if (!isCurrent()) {
                     return false;
                 }
 
                 console.error('【profile】❌ 原子刷新失败:', reason, error);
-                if (tab === 'posts') this.postsLoadError = true;
+                if (tab === 'posts' && !preservePagedPosts) this.postsLoadError = true;
 
                 if (isInitialLoad) {
                     const storedUserInfo = uni.getStorageSync('userInfo');
-                    if (storedUserInfo) {
+                    const storedUserId = storedUserInfo && (storedUserInfo._openid || storedUserInfo.openid);
+                    if (storedUserInfo && storedUserId === userId) {
                         const nextUser = this.normalizeProfileUserInfo(storedUserInfo);
                         await this.syncAtomicUserSession(nextUser);
-                        if (token === this.pendingRefreshToken) {
+                        if (isCurrent()) {
                             this.setData({
                                 userInfo: nextUser,
                                 followerCount: this.followerCount || 0,
@@ -1847,8 +1916,9 @@ export default {
 
                 return false;
             } finally {
-                if (token === this.pendingRefreshToken) {
+                if (isCurrent()) {
                     this.isAtomicRefreshing = false;
+                    if (!preservePagedPosts) this.isLoading = false;
                     if (!this.hasInitialSnapshot && !this.isLoading) {
                         this.hasInitialSnapshot = true;
                     }
@@ -1862,26 +1932,19 @@ export default {
 
         // 强制刷新数据
         forceRefresh: function () {
-            console.log('强制刷新数据');
-            // 清除缓存
-            this.setData({
-                userInfo: {},
-                myPosts: [],
-                isLoading: true,
-                swiperHeights: {},
-                imageClampHeights: {}
-            });
-            this.updateGrowthStats([]);
-            // 重新获取数据
-            this.checkLoginAndFetchData();
+            return this.refreshProfileAtomically({ reason: 'force', forceRefresh: true });
         },
 
         checkLoginAndFetchData: function () {
             this.ensureGlobalEventBindings();
             const state = getAppState();
             const userInfo = state.userInfo;
-            const currentOpenid = (userInfo && (userInfo._openid || userInfo.openid)) || state.openid;
+            const currentOpenid = getOpenid() || (userInfo && (userInfo._openid || userInfo.openid));
             const loginProcessCompleted = !!state._loginProcessCompleted;
+
+            if (this._profileLoadedUserId && this._profileLoadedUserId !== currentOpenid) {
+                this.showCachedProfile();
+            }
 
             if (currentOpenid && state.openid !== currentOpenid) {
                 patchAppState({ openid: currentOpenid });
@@ -1894,9 +1957,14 @@ export default {
             });
 
             if (userInfo && currentOpenid) {
+                this.showCachedProfile();
                 this.setData({ isViewingSelf: true });
-                this.refreshProfileAtomically({ reason: 'initial', forceRefresh: false }).catch(() => {});
+                return this.refreshProfileAtomically({ reason: 'initial', forceRefresh: false }).catch(() => {});
             } else if (loginProcessCompleted) {
+                if (this._profileLoadedUserId) {
+                    this.resetProfileView();
+                    this._profileLoadedUserId = '';
+                }
                 // 登录流程已完成但没有用户信息，说明用户未登录
                 this.setData({
                     isLoading: false
@@ -1937,7 +2005,7 @@ export default {
             const userId = getOpenid();
             return getMyInfo(this)
                 .then((user) => {
-                    if (headerVersion !== (this._profileHeaderVersion || 0) || userId !== getOpenid()) return;
+                    if (this._profileUnloaded || headerVersion !== (this._profileHeaderVersion || 0) || userId !== getOpenid()) return;
                     console.log('【profile】获取到的用户数据:', user);
                     console.log('【profile】growthCounts数据:', user?.growthCounts);
                     const nextUser = this.normalizeProfileUserInfo(user);
@@ -1948,13 +2016,13 @@ export default {
                     this.updateGrowthStats();
                 })
                 .catch((err) => {
-                    if (headerVersion !== (this._profileHeaderVersion || 0) || userId !== getOpenid()) return;
+                    if (this._profileUnloaded || headerVersion !== (this._profileHeaderVersion || 0) || userId !== getOpenid()) return;
                     // 新头像已直接显示时，刷新失败也不能退回旧资料或 cloud:// 图片地址。
                     if (headerVersion > 0) { this.setData({ isLoading: false }); return; }
                     console.error('获取用户资料失败（缓存封装）:', err);
                     this.setData({ isLoading: false });
                     const storedUserInfo = uni.getStorageSync('userInfo');
-                    if (storedUserInfo) {
+                    if (storedUserInfo && (storedUserInfo._openid || storedUserInfo.openid) === userId) {
                         storedUserInfo.appBackgroundMode = normalizeAppBackgroundMode(storedUserInfo.appBackgroundMode, storedUserInfo.appBackgroundUrl);
                         if (storedUserInfo.birthday) storedUserInfo.age = this.calculateAge(storedUserInfo.birthday);
                         this.appBackgroundResolvedUrl = storedUserInfo.appBackgroundUrl || '';
@@ -1968,7 +2036,8 @@ export default {
 
 
         loadMyPosts: async function (cb, forceRefresh = false) {
-            if (this.isLoading || this.isAtomicRefreshing) return;
+            if (this.isLoading || this.isAtomicRefreshing || this._profileUnloaded) return;
+            const userId = getOpenid();
             const { page, PAGE_SIZE, postsOriginalOnly } = this;
             const token = ++this.postsRequestToken;
             this.setData({ isLoading: true, postsLoadError: false });
@@ -1981,7 +2050,7 @@ export default {
                     context: this,
                     forceRefresh
                 });
-                if (token !== this.postsRequestToken) return;
+                if (this._profileUnloaded || userId !== getOpenid() || token !== this.postsRequestToken) return;
 
                 const formattedPosts = this.formatPostsForDisplay(posts, this.userInfo || {}, this.getCurrentProfileOpenid());
                 const existingIds = new Set(this.myPosts.map(post => post._id));
@@ -1996,12 +2065,12 @@ export default {
                 this.updateGrowthStats(myPosts);
                 return posts;
             } catch (error) {
-                if (token !== this.postsRequestToken) return;
+                if (this._profileUnloaded || userId !== getOpenid() || token !== this.postsRequestToken) return;
                 this.postsLoadError = true;
                 console.error('[profile] load posts failed:', error);
                 uni.showToast({ title: '加载失败，请重试', icon: 'none' });
             } finally {
-                if (token === this.postsRequestToken) this.setData({ isLoading: false });
+                if (!this._profileUnloaded && userId === getOpenid() && token === this.postsRequestToken) this.setData({ isLoading: false });
                 if (typeof cb === 'function') cb();
             }
         },
@@ -2555,10 +2624,20 @@ export default {
         // 检查未读消息数量
 
         // fetch follow/fan counters for current user (使用API封装)
-        fetchFollowCounts: function () {
-            getFollowerCount(this).then((followerTotal) => {
-                this.setData({ followerCount: followerTotal });
-            }).catch((e) => {});
+        fetchFollowCounts: async function ({ forceRefresh = false } = {}) {
+            const userId = getOpenid();
+            if (!userId || this._profileUnloaded) return;
+            const token = (this._followerRequestToken || 0) + 1;
+            this._followerRequestToken = token;
+            try {
+                const followerTotal = await getMyFollowerCount(this, { forceRefresh });
+                if (this._profileUnloaded || userId !== getOpenid() || token !== this._followerRequestToken) return;
+                if (typeof followerTotal === 'number' && followerTotal !== this.followerCount) {
+                    this.setData({ followerCount: followerTotal });
+                }
+            } catch (_) {
+                // 计数刷新失败保留已显示的缓存，不影响列表加载。
+            }
         },
 
         // 新增：标签切换方法

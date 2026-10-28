@@ -1,6 +1,7 @@
 // 云函数入口文件
 const cloud = require('wx-server-sdk');
 const { prepareWechatLogin, safeUser } = require('./_lib/wechat-auth');
+const { recordSuccessfulLogin } = require('./_lib/login-audit');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
@@ -65,6 +66,8 @@ exports.main = async (event, context) => {
     // 判断是否已验证手机号：检查 phoneNumber 字段是否存在且不为空
     const isPhoneVerified = !!(safeUserInfo.phoneNumber && safeUserInfo.phoneNumber.trim());
 
+    await recordSuccessfulLogin({ db, user: userInfo, event, context, wxContext, loginMethod: 'password' });
+
     return {
       success: true,
       message: '登录成功',
@@ -76,6 +79,7 @@ exports.main = async (event, context) => {
     };
 
   } catch (error) {
+    if (error.code === 'LOGIN_AUDIT_UNAVAILABLE') return { success: false, code: error.code, message: error.message };
     console.error('❌ [loginWithCredentials] 登录失败:', error);
     return {
       success: false,

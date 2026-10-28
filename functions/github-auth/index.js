@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { recordSuccessfulLogin } = require('./_lib/login-audit');
 
 // GitHub OAuth 配置
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID;
@@ -21,7 +22,7 @@ exports.main = async (event, context) => {
     // 1. 优先检查是否是 GitHub 的 HTTP 回调（有 queryStringParameters 且包含 code）
     const query = event.queryStringParameters || {};
     if (query.code) {
-      return await handleCallback(query.code, query.state, event);
+      return await handleCallback(query.code, query.state, event, context);
     }
 
     // 2. 处理函数调用（区分 SDK 调用和 HTTP 调用）
@@ -93,7 +94,7 @@ async function getAuthUrl(eventBody = {}) {
 }
 
 // 处理 GitHub 回调
-async function handleCallback(code, state, event) {
+async function handleCallback(code, state, event, context) {
   try {
     // 从 state 中解析出平台信息
     const platform = state && state.includes('::') ? state.split('::')[0] : 'app';
@@ -192,6 +193,9 @@ async function handleCallback(code, state, event) {
       
       // 确保返回的用户对象包含 openid 字段（兼容前端）
       user.openid = user._openid || openid;
+      // Only an existing application account is a completed login; new OAuth users still register.
+      // The OAuth callback runs in a browser even when it returns to the App.
+      await recordSuccessfulLogin({ db, user, event: { clientInfo: { platform: 'unknown' } }, context, loginMethod: 'github', databaseApi: 'cloudbase' });
     } else {
       // 新用户，不创建记录，而是重定向到注册页面
       console.log('[GitHub Auth] 未找到用户，标记为新用户');

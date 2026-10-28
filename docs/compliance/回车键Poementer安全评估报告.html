@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>回车键Poementer移动互联网应用程序安全自评估报告</title>
+  <style>
+    @page { size: A4 portrait; margin: 0; }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; background: #fff; color: #1b1f24;
+      font-family: "SimSun", "Songti SC", "STSong", serif;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    body { font-size: 10.5pt; line-height: 1.55; }
+    main { padding: 16mm 16mm 14mm; }
+    h1 { font-size: 19pt; text-align: center; margin: 0 0 4mm; color: #10233e; letter-spacing: 0.02em; }
+    h2 {
+      font-size: 14pt; margin: 6mm 0 3mm; padding-bottom: 1.4mm;
+      border-bottom: 0.4mm solid #324d75; color: #10233e;
+    }
+    h3 { font-size: 11.8pt; margin: 4mm 0 2mm; color: #203d61; }
+    h4 { font-size: 10.8pt; margin: 3mm 0 1.5mm; color: #26435f; }
+    p, li, td, th, blockquote { font-size: 10.5pt; line-height: 1.55; }
+    p { margin: 0 0 2mm; text-align: justify; }
+    ul, ol { padding-left: 6mm; margin: 0 0 2.4mm; }
+    li { margin-bottom: 1mm; }
+    table { width: 100%; border-collapse: collapse; margin: 0 0 3mm; table-layout: fixed; }
+    th, td { border: 0.25mm solid #8395aa; padding: 1.6mm 2mm; vertical-align: top; word-break: break-word; }
+    th { background: #eaf0f7; font-weight: 700; text-align: left; }
+    blockquote {
+      border-left: 1mm solid #a5b7ca; padding: 1.6mm 3mm; margin: 0 0 3mm;
+      color: #3a4a5a; background: #f6f8fb;
+    }
+    code { font-family: Consolas, "Courier New", monospace; font-size: 9.5pt; padding: 0 0.8mm; background: #f1f4f8; }
+    hr { border: none; border-top: 0.25mm solid #c8d3df; margin: 5mm 0; }
+    h2, h3, table, blockquote, li, p { break-inside: avoid-page; }
+  </style>
+</head>
+<body>
+<main>
+<h1>回车键（Poementer）移动互联网应用程序安全自评估报告</h1>
+<p><strong>版本：</strong> V1.0  |  <strong>编制日期：</strong> 2026 年 10 月 __ 日  |  <strong>评估方法：</strong> 自评估</p>
+<blockquote>
+<p>本报告依据《具有舆论属性或社会动员能力的互联网信息服务安全评估规定》（国家网信办、公安部，2018 年 11 月 15 日施行）第五条、第六条编制，用于通过&quot;全国互联网安全管理服务平台&quot;提交安全评估。文内【】为需由运营主体据实填写或核对的信息。</p>
+</blockquote>
+<hr>
+<h2>一、服务基本情况</h2>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>服务名称</td>
+<td>回车键（Poementer）</td>
+</tr>
+<tr>
+<td>运营及自评估单位</td>
+<td>广州回车键网络科技有限公司</td>
+</tr>
+<tr>
+<td>开办主体负责人</td>
+<td>黎俊皓（法定代表人）</td>
+</tr>
+<tr>
+<td>统一社会信用代码</td>
+<td>91440105MAKNX2P769</td>
+</tr>
+<tr>
+<td>应用包名 / 版本</td>
+<td>Android：<code>com.poementer.app</code>，V1.7.2（versionCode 172）；iOS 名称：Poementer</td>
+</tr>
+<tr>
+<td>服务形态</td>
+<td>移动互联网应用程序（APP），并同步提供微信小程序、H5 网页、HarmonyOS 端</td>
+</tr>
+<tr>
+<td>下载 / 访问地址</td>
+<td>www.poementer.com</td>
+</tr>
+<tr>
+<td>联系邮箱</td>
+<td>poementer@yeah.net</td>
+</tr>
+<tr>
+<td>服务内容</td>
+<td>诗歌创作、发布与分享；帖子、评论、点评、收藏、关注、站内通知；拼贴诗制作；诗歌周刊与线上活动</td>
+</tr>
+<tr>
+<td>是否具有舆论属性 / 社会动员能力</td>
+<td>是。用户可公开发布诗歌、帖子与评论，具备公众表达和信息传播功能</td>
+</tr>
+</tbody>
+</table>
+<h3>1.1 功能与服务范围</h3>
+<p>回车键是一款诗歌创作与分享社区，主要功能模块包括：</p>
+<ol>
+<li><strong>账号与登录</strong>：手机号短信验证码登录/注册、账号（Poem ID）+ 密码登录、微信登录、GitHub 授权登录。</li>
+<li><strong>内容创作与发布</strong>：单篇诗歌、组诗、讨论帖、拼贴诗，支持图片上传、背景与文字配色；发布后编辑、草稿保存。</li>
+<li><strong>社区互动</strong>：帖子详情、评论与回复、点赞（分级）、收藏/作品集、关注与粉丝、站内系统通知。</li>
+<li><strong>内容运营</strong>：诗歌周刊（特刊、热榜、主题征稿）、线上活动与公告。</li>
+<li><strong>管理与审核</strong>：内容审核、举报受理、帖子删除、发帖禁言、意见反馈处理。</li>
+</ol>
+<p>本应用<strong>不提供</strong>即时通信、点对点私信、群组/通讯群组聊天、直播、音视频发布等即时通信类功能；用户之间的互动限于帖子、评论/回复、关注及平台系统通知。</p>
+<h3>1.2 软硬件设施与部署位置</h3>
+<table>
+<thead>
+<tr>
+<th>层次</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>客户端</td>
+<td>uni-app（Vue 3 + Vite 5）开发的 APP / 微信小程序 / H5 / HarmonyOS 客户端</td>
+</tr>
+<tr>
+<td>服务端</td>
+<td>腾讯云开发（CloudBase）云函数（Node.js），约 90+ 个业务云函数</td>
+</tr>
+<tr>
+<td>数据存储</td>
+<td>腾讯云开发云数据库（文档型）：<code>users</code>、<code>posts</code>、<code>comments</code>、<code>votes_log</code>、<code>messages</code>、<code>follows</code>、<code>favorites</code>、<code>portfolios</code>、<code>activities</code>、<code>weekly_*</code>、<code>moderation_logs</code>、<code>post_reports</code> 等</td>
+</tr>
+<tr>
+<td>文件存储</td>
+<td>腾讯云开发云存储（云文件 ID，<code>cloud://</code> 前缀），用于头像、诗图、封面、拼贴素材、字体包</td>
+</tr>
+<tr>
+<td>部署地域</td>
+<td>中国大陆，腾讯云广州地域（<code>ap-guangzhou</code>）</td>
+</tr>
+<tr>
+<td>网络传输</td>
+<td>全链路 HTTPS/TLS</td>
+</tr>
+</tbody>
+</table>
+<h3>1.3 证照取得情况</h3>
+<table>
+<thead>
+<tr>
+<th>证照</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>营业执照</td>
+<td>已取得（广州回车键网络科技有限公司）</td>
+</tr>
+<tr>
+<td>计算机软件著作权登记证书</td>
+<td>已取得，软件名称 Poementer，著作权人即运营主体</td>
+</tr>
+<tr>
+<td>APP 备案 / ICP 备案</td>
+<td>粤ICP备2026149280号（审核通过日期：2026-10-08）</td>
+</tr>
+<tr>
+<td>其他前置审批</td>
+<td>本应用不含新闻、出版、视听节目、网络文化、直播等需前置审批的业务</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>二、评估依据与方法</h2>
+<h3>2.1 评估依据</h3>
+<ul>
+<li>《中华人民共和国网络安全法》</li>
+<li>《中华人民共和国数据安全法》</li>
+<li>《中华人民共和国个人信息保护法》</li>
+<li>《具有舆论属性或社会动员能力的互联网信息服务安全评估规定》</li>
+<li>《互联网信息服务管理办法》《计算机信息网络国际联网安全保护管理办法》</li>
+<li>《移动互联网应用程序信息服务管理规定》</li>
+<li>《APP 违法违规收集使用个人信息行为认定方法》《信息安全技术 个人信息安全规范》（GB/T 35273）</li>
+</ul>
+<h3>2.2 评估方法</h3>
+<p>采用<strong>自评估</strong>方式，通过源代码核查、安全配置检查、功能流程抽测、后台管理能力验证及线上运行记录抽查，对安全管理负责人与机构、真实身份核验、日志留存、违法有害信息防范处置、个人信息保护、投诉举报、协助监管等逐项评估。</p>
+<hr>
+<h2>三、安全评估逐项情况</h2>
+<h3>（一）安全管理负责人、信息审核人员及安全管理机构设立情况</h3>
+<p>运营主体设立内容安全管理小组，实行&quot;负责人负责制 + 审核值守&quot;：</p>
+<ul>
+<li>安全管理负责人：<strong>黎俊皓</strong>（法定代表人/公司负责人），联系电话 <strong>19928929591</strong>，全面负责内容安全、信息安全与应急处置，为监管对接第一责任人。</li>
+<li>信息审核人员：由运营团队承担内容审核岗，联系电话 <strong>19928929591</strong>，负责用户发布内容的日常巡查、人工复核与举报受理。</li>
+<li>安全运维人员：由技术团队承担运维岗，联系电话 <strong>19928929591</strong>，负责服务器与云环境、审核日志、权限与数据安全。</li>
+</ul>
+<p>公司建立并执行《内容审核管理制度》《用户举报与投诉处理制度》《安全事件应急预案》《日志留存与协助监管流程》，明确审核范围（帖子、评论、昵称、简介、头像、图片、活动投稿等全部用户可写入口）、处置时限（工作日 12 小时内响应、24 小时内处理）与升级机制（重大违规内容即时下线并留存证据，涉嫌违法犯罪的依法向主管部门报告）。</p>
+<h3>（二）用户真实身份核验及注册信息留存措施</h3>
+<p>平台对用户实行<strong>手机号强制绑定</strong>的实名核验：</p>
+<ol>
+<li><strong>强制绑定</strong>：新用户注册及使用发布、评论、点赞等核心功能前，必须完成手机号绑定；未绑定手机号的账号不能发布内容。</li>
+<li><strong>短信核验</strong>：手机号绑定与登录均通过短信验证码校验，验证码为 6 位、具备有效期与错误次数限制，验证码与手机号在服务端以事务方式核验并一次性消费，防止重放与暴力猜测。</li>
+<li><strong>注册信息留存</strong>：系统在注册事件中记录并长期留存手机号（脱敏存储与展示）、Poem ID、昵称、头像、注册时间、微信/GitHub 等第三方标识及相关设备与网络信息，写入 <code>users</code> 等数据表；账号注销时按隐私政策删除或匿名化处理。</li>
+<li>同一手机号仅允许绑定一个账号，重复绑定被拒绝，保证身份与账号一一对应。</li>
+</ol>
+<h3>（三）用户账号、操作时间、操作类型、网络源地址与目标地址、网络源端口、客户端硬件特征等日志信息，以及发布信息记录的留存措施</h3>
+<p>平台依托腾讯云开发云函数网关访问日志与业务数据表实现日志留存：</p>
+<ol>
+<li><strong>访问与操作日志</strong>：云函数网关对每次调用记录调用者身份（openid）、请求时间、请求类型/操作类型、调用来源 IP 与端口、目标云函数及返回状态，日志留存不少于 6 个月。</li>
+<li><strong>业务行为记录</strong>：用户的注册、登录、发帖、编辑、评论、点赞、收藏、关注、举报、反馈等操作均落库并记录操作时间与操作主体（如 <code>posts</code>、<code>comments</code>、<code>votes_log</code>、<code>view_log</code>、<code>moderation_logs</code>、<code>post_reports</code> 等集合）。</li>
+<li><strong>发布内容留存</strong>：用户发布的帖子、评论、图片等，即使被管理员屏蔽或删除，原始记录仍在数据库中留存，可追溯发布人、发布时间与内容版本。</li>
+<li><strong>终端特征</strong>：客户端在授权范围内采集并上报设备型号、操作系统、网络类型等用于安全风控的特征信息。</li>
+<li>上述日志仅授权安全运维与审核人员在必要范围内查询，并支持按时间、账号、内容 ID 进行检索与提取。</li>
+</ol>
+<h3>（四）对用户账号与通讯群组名称、昵称、简介、备注、标识，信息发布、转发、评论等服务功能中违法有害信息的防范处置和有关记录保存措施</h3>
+<ol>
+<li><strong>审核入口全覆盖</strong>：发帖、编辑、评论、回复、用户昵称/简介/签名、头像、拼贴图片、活动投稿等全部用户可写入口统一接入内容审核，审核不通过时阻止写入。</li>
+<li><strong>机器审核</strong>：接入腾讯云内容安全服务，对文本调用<strong>文本内容安全（TMS）</strong>、对图片调用**图片内容安全（IMS）**进行检测；命中违规（Block）直接拦截并提示用户，命中疑似（Review）转人工复核，接口异常时按策略阻断写入并告警。</li>
+<li><strong>人工审核与处置</strong>：管理员后台可查看全部帖子与评论，对违规内容执行删除/屏蔽，对违规账号执行<strong>发帖禁言</strong>（<code>postingBanned</code>）直至恢复；处置动作与操作管理员、时间一并留痕。</li>
+<li><strong>记录保存</strong>：内容审核结果写入 <code>moderation_logs</code>（记录审核类型、命中标签、置信度、请求标识、时间及脱敏文本），举报与处置写入 <code>post_reports</code>；用户发布与评论记录永久保存，后台屏蔽仅前端不可见、后台仍可核查。</li>
+<li><strong>通讯群组</strong>：本应用不含用户自建群组/通讯群组功能，不存在群名称、群标识等场景；昵称、简介、备注等资料字段同样纳入审核。</li>
+</ol>
+<h3>（五）个人信息保护以及防范违法有害信息传播扩散、社会动员功能失控风险的技术措施</h3>
+<ol>
+<li><strong>个人信息保护</strong>：
+<ul>
+<li>首次启动强制阅读并同意《隐私政策》后方可进入应用，同意前不登录、不上传、不采集，不默认勾选；政策版本更新后老用户需重新确认。</li>
+<li>坚持最小必要原则，仅在实现登录、发布、互动等功能所必需的范围内收集手机号、昵称、头像、发布内容等；手机号脱敏展示，用户之间仅可见头像、昵称等公开信息，不可见他人手机号、生日等隐私信息。</li>
+<li>全链路 HTTPS 加密传输；敏感字段加密存储；数据库与云存储按最小权限配置访问规则，绑定凭据等敏感集合禁止客户端读写。</li>
+<li>提供完整的<strong>账号注销</strong>与个人信息查询、更正、删除路径；注销时删除账号与隐私数据、匿名化保留公开内容。</li>
+</ul>
+</li>
+<li><strong>防范违法有害信息传播扩散与社会动员失控</strong>：
+<ul>
+<li>全入口接入腾讯云内容审核，违规内容&quot;先审后发、命中即拦&quot;。</li>
+<li>提供<strong>用户举报</strong>入口，用户可就&quot;对他人造成困扰或危害&quot;&quot;侵犯权益&quot;等分类举报帖子，举报经服务端去重并推送管理员，管理员在后台受理并选择删帖处理或不处理，处置结果与理由通知举报人。</li>
+<li>管理员可对违规账号禁言、屏蔽或删除违规内容；对涉嫌违法犯罪的信息及时固定证据并向主管部门报告。</li>
+<li>应用不含即时通信、群组传播、打赏/资金支付等易被用于社会动员的功能，传播路径限于公开帖子与评论，风险可控。</li>
+</ul>
+</li>
+</ol>
+<h3>（六）建立投诉、举报制度，公布投诉、举报方式等信息，及时受理并处理有关投诉和举报的情况</h3>
+<ol>
+<li><strong>公布渠道</strong>：在《隐私政策》及应用内公布投诉举报方式，包括联系邮箱 <strong>poementer@yeah.net</strong>、&quot;意见反馈&quot;入口及帖内&quot;举报&quot;入口。</li>
+<li><strong>制度与流程</strong>：建立《用户举报与投诉处理制度》，对举报与投诉进行分类登记、专人受理、限时处置（一般 12 小时内响应、24 小时内处理完毕）并回复处理结果。</li>
+<li><strong>受理与留痕</strong>：用户举报在应用内提交后，系统即时通知管理员；管理员的受理、删帖处理或不处理结果、处理时间与处理人一并写入 <code>post_reports</code> 并通知举报人，形成可核查台账。</li>
+<li><strong>反馈闭环</strong>：对个人信息相关投诉，承诺在十五个工作日内予以回复。</li>
+</ol>
+<h3>（七）建立为监管部门和执法部门依法履职提供技术、数据支持和协助的工作机制的情况</h3>
+<ol>
+<li><strong>对接机制</strong>：由安全管理负责人作为监管对接第一责任人，接到网信、公安等主管部门依法履职的要求后，核验法律文书与工作证件，履行内部审批后予以配合。</li>
+<li><strong>技术支持</strong>：可按账号、手机号（核验后）、内容 ID、时间范围等条件，从云数据库、<code>moderation_logs</code>、<code>post_reports</code>、访问与操作日志中提取用户注册信息、发布信息与行为记录，并按要求以安全方式提供。</li>
+<li><strong>内容处置</strong>：可通过管理员后台对违法有害信息及时屏蔽、删除，对违规账号禁言或处置，并在监管要求下提供处置记录。</li>
+<li><strong>数据安全</strong>：对外提供数据遵循最小必要与安全交付原则，做好交接记录与保密管理，涉及个人信息的依法依规处理。</li>
+<li>相关工作由安全运维小组负责落实，确保技术、数据支持渠道畅通。</li>
+</ol>
+<hr>
+<h2>四、安全管理制度与技术措施落实情况及风险防控效果</h2>
+<table>
+<thead>
+<tr>
+<th>评估项</th>
+<th>落实措施</th>
+<th>落实情况</th>
+<th>风险防控效果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>人员与机构</td>
+<td>设立内容安全管理小组，明确负责人、审核与运维岗</td>
+<td>已落实</td>
+<td>责任到人，审核与应急有明确流程</td>
+</tr>
+<tr>
+<td>真实身份核验</td>
+<td>手机号强制绑定 + 短信验证码</td>
+<td>已落实</td>
+<td>用户身份可核验、可追溯</td>
+</tr>
+<tr>
+<td>日志留存</td>
+<td>云函数访问日志 + 业务数据表长期留存</td>
+<td>已落实</td>
+<td>操作与发布行为可追溯、可提取</td>
+</tr>
+<tr>
+<td>违法有害信息防范</td>
+<td>腾讯云 TMS/IMS + 人工审核 + 全入口接入</td>
+<td>已落实</td>
+<td>违规内容先审后发，命中即拦</td>
+</tr>
+<tr>
+<td>个人信息保护</td>
+<td>首启隐私同意、最小必要、加密传输、账号注销</td>
+<td>已落实</td>
+<td>个人信息全生命周期可控</td>
+</tr>
+<tr>
+<td>投诉举报</td>
+<td>应用内举报/反馈 + 邮箱，限时受理并留痕</td>
+<td>已落实</td>
+<td>用户诉求可闭环处理</td>
+</tr>
+<tr>
+<td>协助监管</td>
+<td>专人对接、核验审批、安全交付</td>
+<td>已落实</td>
+<td>可依法依规提供技术与数据支持</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2>五、安全评估结论</h2>
+<p>经对服务功能、安全管理机构、真实身份核验、日志留存、违法有害信息防范处置、个人信息保护、投诉举报及协助监管等逐项自评估，回车键（Poementer）已落实《具有舆论属性或社会动员能力的互联网信息服务安全评估规定》所要求的安全管理制度与技术措施，具备相应的内容安全防控能力，未发现重大安全隐患。</p>
+<p><strong>评估结论：符合安全评估要求。</strong></p>
+<hr>
+<h2>六、签署</h2>
+<table>
+<thead>
+<tr>
+<th>角色</th>
+<th>签字</th>
+<th>盖章</th>
+<th>日期</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>开办主体负责人</td>
+<td></td>
+<td></td>
+<td>____ 年 __ 月 __ 日</td>
+</tr>
+<tr>
+<td>评估单位负责人</td>
+<td></td>
+<td></td>
+<td>____ 年 __ 月 __ 日</td>
+</tr>
+</tbody>
+</table>
+<p>（尾页加盖开办主体公章与法人章）</p>
+
+</main>
+</body>
+</html>

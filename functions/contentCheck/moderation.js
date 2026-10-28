@@ -8,10 +8,13 @@ function collectText(input = {}) {
   const add = (value) => {
     if (typeof value === 'string' && value.trim()) fragments.push(value.trim());
   };
-  for (const key of ['title', 'content', 'text', 'author', 'nickname', 'signature', 'anonymousAuthorName']) add(input[key]);
+  for (const key of ['title', 'content', 'text', 'author', 'nickname', 'signature', 'anonymousAuthorName', 'highlightSentence', 'seriesCoverHighlight']) add(input[key]);
+  for (const line of (Array.isArray(input.highlightLines) ? input.highlightLines : [])) add(line);
   for (const tag of (Array.isArray(input.tags) ? input.tags : [])) add(tag);
-  const groups = Array.isArray(input.sentenceGroups) ? input.sentenceGroups
-    : (Array.isArray(input.discussionSentences) ? input.discussionSentences : []);
+  const groups = [
+    ...(Array.isArray(input.sentenceGroups) ? input.sentenceGroups : []),
+    ...(Array.isArray(input.discussionSentences) ? input.discussionSentences : [])
+  ];
   for (const group of groups) {
     add(group && group.comment);
     for (const sentence of (group && Array.isArray(group.sentences) ? group.sentences : [])) add(sentence);
@@ -19,6 +22,8 @@ function collectText(input = {}) {
   for (const block of (Array.isArray(input.seriesBlocks) ? input.seriesBlocks : [])) {
     add(block && block.subtitle);
     add(block && block.content);
+    add(block && block.highlightSentence);
+    for (const line of (block && Array.isArray(block.highlightLines) ? block.highlightLines : [])) add(line);
   }
   return [...new Set(fragments)].join('\n');
 }
@@ -32,6 +37,7 @@ function collectImages(input = {}) {
     ...((Array.isArray(input.seriesBlocks) ? input.seriesBlocks : []).map(block => block && block.imageUrl))
   ];
   if (input.imageUrl) values.push(input.imageUrl);
+  if (input.seriesCoverImage) values.push(input.seriesCoverImage);
   return [...new Set(values.filter(value => typeof value === 'string' && value.trim()).map(value => value.trim()))];
 }
 

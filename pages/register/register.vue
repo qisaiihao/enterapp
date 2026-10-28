@@ -78,7 +78,7 @@
 
     <!-- 绑定手机号弹窗（样式对齐个人资料修改页面） -->
     <!-- #ifndef MP-WEIXIN -->
-    <AppMotion mask-class="edit-phone-modal" :visible="showBindPhoneModal" ref="phoneMotion" placement="sheet" @dismiss="closeBindPhoneModal">
+    <AppMotion mask-class="edit-phone-modal" :visible="showBindPhoneModal" :busy="isApp && isBindingPhone" ref="phoneMotion" placement="sheet" @dismiss="closeBindPhoneModal">
       <view class="modal-mask" @tap="$refs.phoneMotion.dismiss()"></view>
       <view class="modal-content app-motion-panel">
         <view class="modal-header">
@@ -89,11 +89,11 @@
           <text class="modal-text">为保障账户安全，请先绑定手机号完成注册</text>
           <view class="sms-bind-form">
             <view class="input-wrapper">
-              <input class="input-field" type="number" placeholder="请输入手机号" v-model="smsPhoneNumber" maxlength="11" />
+              <input class="input-field" type="number" placeholder="请输入手机号" v-model="smsPhoneNumber" maxlength="11" :disabled="isApp && isBindingPhone" />
             </view>
             <view class="code-wrapper">
               <view class="input-wrapper code-input-wrapper">
-                <input class="input-field" type="number" placeholder="请输入验证码" v-model="smsCode" maxlength="6" />
+                <input class="input-field" type="number" placeholder="请输入验证码" v-model="smsCode" maxlength="6" :disabled="isApp && isBindingPhone" />
               </view>
               <view class="code-send-btn" @tap="sendBindSmsCodeForRegister" :class="{ disabled: isSendingSms || smsCountdown > 0 || !smsPhoneNumber }">
                 <text class="code-send-text">{{ smsCountdown > 0 ? `${smsCountdown}秒后重发` : (isSendingSms ? '发送中...' : '获取验证码') }}</text>
@@ -102,7 +102,8 @@
           </view>
         </view>
         <view class="modal-footer">
-          <view class="modal-btn cancel-btn" @tap="$refs.phoneMotion.dismiss(skipBindPhoneAndRegister)">跳过</view>
+          <view v-if="!isApp" class="modal-btn cancel-btn" @tap="$refs.phoneMotion.dismiss(skipBindPhoneAndRegister)">跳过</view>
+          <view v-else class="modal-btn cancel-btn" @tap="$refs.phoneMotion.dismiss()">取消</view>
           <view class="modal-btn confirm-btn" @tap="handleBindPhoneForRegister" :class="{ disabled: isBindingPhone || (!smsCode || !smsPhoneNumber) }">确认绑定</view>
         </view>
       </view>
@@ -116,6 +117,7 @@
 import AppMotion from '@/components/overlay/AppMotion.vue';
 // pages/register/register.js
 import { cloudCall } from '@/utils/cloudCall.js';
+import { collectLoginClientInfo } from '@/utils/loginClientInfo.js';
 import { getCurrentPlatform } from '@/utils/platformDetector.js';
 import { applyAuthenticatedUserSession } from '@/utils/appBackground.js';
 import { resolveUserAvatar } from '@/utils/defaultAvatar.js';
@@ -218,11 +220,13 @@ export default {
         },
         // 判断是否为 APP 端
         isApp() {
-            // #ifdef APP-PLUS
+            // #ifdef APP-PLUS || APP-HARMONY
             return true;
             // #endif
             // #ifndef APP-PLUS
+            // #ifndef APP-HARMONY
             return false;
+            // #endif
             // #endif
         }
     },
@@ -421,7 +425,7 @@ export default {
             }
 
             // #ifndef MP-WEIXIN
-            // 必须先绑定手机号（非小程序端）
+            // App 新账号必须绑定手机号；网页仍可在弹窗中跳过。
             if (!this.phoneNumber) {
                 if (this.isApp) {
                     // App 先拉起一键登录弹窗，用户可选择其它方式切换到短信
@@ -481,7 +485,8 @@ export default {
                     name: 'loginWithCredentials',
                     data: {
                         poemId: this.bindPoemId,
-                        password: this.bindPassword
+                        password: this.bindPassword,
+                        clientInfo: collectLoginClientInfo()
                     }
                 });
                 
@@ -560,9 +565,14 @@ export default {
             }
         },
         
-        // 提交注册（要求 phoneNumber 已有值）
+        // 提交注册：App 必须完成手机号绑定，网页和小程序沿用原规则。
         async submitRegister() {
             if (this.isRegistering) return;
+            if (this.isApp && !this.phoneNumber) {
+                this.showBindPhoneModal = true;
+                uni.showToast({ title: '请先绑定手机号完成注册', icon: 'none' });
+                return;
+            }
             this.isRegistering = true;
             uni.showLoading({ title: '注册中...', mask: true });
 
@@ -726,14 +736,16 @@ export default {
             }
 
             this.isBindingPhone = true;
+            const verifiedPhoneNumber = this.smsPhoneNumber;
+            const verificationCode = this.smsCode;
             uni.showLoading({ title: '验证中...', mask: true });
 
             try {
                 const result = await this.$tcb.callFunction({
                     name: 'verifySmsCode',
                     data: {
-                        phone: this.smsPhoneNumber,
-                        code: this.smsCode,
+                        phone: verifiedPhoneNumber,
+                        code: verificationCode,
                         scene: 'binding'
                     }
                 });
@@ -742,7 +754,8 @@ export default {
 
                 if (result.result && result.result.success === true) {
                     // 绑定成功
-                    this.phoneNumber = this.smsPhoneNumber;
+                    this.phoneNumber = verifiedPhoneNumber;
+                    this.isBindingPhone = false;
                     this.closeBindPhoneModal();
                     uni.showToast({ title: '绑定成功', icon: 'success' });
                     // 继续注册
@@ -775,6 +788,11 @@ export default {
 
         // 跳过手机号绑定并继续注册
         async skipBindPhoneAndRegister() {
+            if (this.isApp) {
+                this.showBindPhoneModal = true;
+                uni.showToast({ title: '请先绑定手机号完成注册', icon: 'none' });
+                return;
+            }
             console.log('📱 [注册] 用户选择跳过手机号绑定');
             this.closeBindPhoneModal();
             // 不设置手机号，直接提交注册
