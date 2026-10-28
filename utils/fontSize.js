@@ -1,9 +1,10 @@
 /**
  * 阅读字号设置
- * 通过 CSS 变量 --app-read-font-scale 控制诗歌正文等阅读文本的字号倍率。
+ * 按档位预计算 CSS 变量，统一阅读文本的字号和行高。
  * 多端生效方式：
- *  - 页面根节点统一绑定 readFontVars（由 main.js 全局 mixin 提供），
- *  - App.vue 全局样式中正文用 calc(基准rpx * var(--app-read-font-scale, 1)) 缩放，
+ *  - 页面及可复用卡片根节点绑定 readFontVars（由 main.js 全局 mixin 提供），
+ *  - PoemCard / ActivityPoemCard / PostItem 自行注入，避免新入口漏绑页面变量，
+ *  - App.vue 全局样式与组件正文使用相同的字号、行高变量，
  *  - H5 端额外写入 documentElement 以保证覆盖。
  */
 

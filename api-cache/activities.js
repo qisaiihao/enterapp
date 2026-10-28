@@ -100,7 +100,7 @@ async function hydrateSingleActivityCover(activity) {
   return list[0] || activity;
 }
 
-async function fetchRecentActivitiesPage({ page, pageSize, scene, context }) {
+async function fetchRecentActivitiesPage({ page, pageSize, scene, context, silent }) {
   const res = await cloudCall(
     'getRecentActivities',
     {
@@ -108,7 +108,7 @@ async function fetchRecentActivitiesPage({ page, pageSize, scene, context }) {
       limit: pageSize,
       scene
     },
-    { pageTag: 'activities:list', context, injectOpenId: true }
+    { pageTag: 'activities:list', context, injectOpenId: true, silent }
   );
 
   const result = getSuccessResult(res);
@@ -166,11 +166,12 @@ export async function getRecentActivities({
   scene = 'recent',
   context,
   forceRefresh = false,
-  onBackgroundUpdate
+  onBackgroundUpdate,
+  silent = false
 } = {}) {
   const safeScene = scene === 'join' ? 'join' : 'recent';
   const key = `page:${page}:size:${pageSize}:scene:${safeScene}`;
-  const fetcher = () => fetchRecentActivitiesPage({ page, pageSize, scene: safeScene, context });
+  const fetcher = () => fetchRecentActivitiesPage({ page, pageSize, scene: safeScene, context, silent });
 
   if (forceRefresh && page === 0) {
     listNs.delete(key);

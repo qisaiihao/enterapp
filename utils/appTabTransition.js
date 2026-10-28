@@ -1,3 +1,7 @@
+// #ifdef H5
+import { switchTabH5, cancelH5TabTransition } from '@/utils/h5TabTransition.js';
+// #endif
+
 // App-vue 首次 switchTab 会创建新的 WebView，用原生快照覆盖交接间隙。
 // 已确认就绪的页面直接切换，避免再次截图冻结按钮动画。
 // Native View.show 显示于所有 WebView 之上，不能 append 到即将隐藏的源页面。
@@ -44,6 +48,9 @@ function dispose(state) {
 }
 
 export function cancelTabTransition() {
+  // #ifdef H5
+  if (typeof window !== 'undefined' && typeof document !== 'undefined') cancelH5TabTransition();
+  // #endif
   active?.abort({ errMsg: 'switchTab:fail cancelled' });
 }
 
@@ -120,6 +127,9 @@ export const appTabTransitionMixin = {
 };
 
 export function switchTabSmooth(options) {
+  // #ifdef H5
+  if (typeof window !== 'undefined' && typeof document !== 'undefined') return switchTabH5(options);
+  // #endif
   // #ifdef APP-PLUS
   const native = typeof plus !== 'undefined' && plus.nativeObj;
   const source = currentPage();

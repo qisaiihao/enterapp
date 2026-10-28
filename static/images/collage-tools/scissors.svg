@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" aria-label="继续裁切">
+  <g fill="none" stroke="#222222" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M36 63 74 17c2 11-14 30-29 49M59 63 22 18c-1 11 14 30 29 49"/>
+    <path d="M40 72c.5 14-22 16-23 2-.8-14 22-17 23-2m14 0c-.4 14 22 16 23 2 .7-14-22-17-23-2"/>
+  </g>
+  <path d="M47 45c4 0 4 6 0 6s-4-6 0-6" fill="#222222"/>
+</svg>

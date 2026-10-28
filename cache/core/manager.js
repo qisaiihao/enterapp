@@ -37,6 +37,7 @@ class NamespaceHandle {
     this.persistent = !!(opts && opts.persistent);
     this.mem = new Map();
     this._pending = new Map();
+    this._versions = new Map();
     this._useUni = hasUniStorage();
     this._ls = this._useUni ? null : tryLocalStorage();
     this.stats = { hits: 0, misses: 0, evictions: 0, gets: 0, sets: 0 };
@@ -44,6 +45,13 @@ class NamespaceHandle {
 
   _k(key) { return `__cm__:${this.name}:${key}`; }
   _idxKey() { return `__cm__:${this.name}:__keys__`; }
+
+  // 只为需要跨页面交接的读者保留版本。自然过期/内存淘汰不撤销已读取的快照，
+  // 显式写入或失效则更换版本；token 不写入持久化缓存。
+  getVersion(key) {
+    if (!this._versions.has(key)) this._versions.set(key, {});
+    return this._versions.get(key);
+  }
 
   _listPersistKeys() {
     if (!this.persistent) return [];
@@ -62,7 +70,7 @@ class NamespaceHandle {
   keys() {
     const memKeys = Array.from(this.mem.keys());
     const idxKeys = this._listPersistKeys();
-    const set = new Set(memKeys.concat(idxKeys, Array.from(this._pending.keys())));
+    const set = new Set(memKeys.concat(idxKeys, Array.from(this._pending.keys()), Array.from(this._versions.keys())));
     return Array.from(set);
   }
 
@@ -153,6 +161,7 @@ class NamespaceHandle {
   set(key, val, opts) {
     // 显式写入（如已读/点赞操作）优先于尚未返回的旧请求。
     this._pending.delete(key);
+    this._versions.delete(key);
     const ttlMs = (opts && opts.ttlMs) || 0;
     const nowTs = now();
     const expireAt = ttlMs > 0 ? nowTs + ttlMs : 0;
@@ -184,6 +193,7 @@ class NamespaceHandle {
       const next = typeof updater === 'function' ? updater(cur) : cur;
       if (next !== undefined) {
         this._pending.delete(key);
+        this._versions.delete(key);
         // 注意：这里传递的ttlMs应该是绝对值，不是相对值
         // 但update方法的语义应该是保持原有过期设置
         if (rec.e === 0) {
@@ -205,6 +215,7 @@ class NamespaceHandle {
 
   delete(key) {
     this._pending.delete(key);
+    this._versions.delete(key);
     this.mem.delete(key);
     this._removePersist(key);
   }
@@ -232,6 +243,7 @@ class NamespaceHandle {
 
   clear() {
     this._pending.clear();
+    this._versions.clear();
     this.mem.clear();
     if (!this.persistent) return;
     try {

@@ -45,3 +45,13 @@
 密码保存沿用现有 `users.password` 字段，兼容现有密码登录接口；本次不迁移全站密码存储格式，也不撤销其他设备已有的本地登录状态。无法接收已绑定手机号短信的账号，需通过已有可用登录方式或管理员处理，不能只凭昵称或 Poem ID 重置。
 
 上线先部署更新后的 `sendSmsCode`（含 `login-sms.js`），再部署新增 `resetPassword`（安装依赖），最后发布客户端。`cloudbaserc.json` 已加入新函数。验证命令仍为 `npm run test:login`，包含重置后新旧密码登录、跨场景拒绝、事务回滚、并发消费、重名手机号、前端确认密码及日志脱敏测试。真实短信和真机流程需部署后验证。
+
+## 编辑主页设置和修改密码（2026-10-28）
+
+编辑主页的 POEM ID 行最右侧提供带下划线的“修改密码”入口。打开时调用 `updateUserProfile({ action: 'getPasswordStatus' })` 查询当前账号的密码状态，仅返回 `hasPassword`。无密码时填写新密码、确认密码直接设置；已有密码时还需填写并验证原密码。新密码要求 6–32 位且首尾不能有空格，两次输入必须一致。密码单独保存，不提交或清除尚未保存的主页资料。
+
+提交调用 `updateUserProfile({ action: 'updatePassword', mode: 'set' | 'change', oldPassword?, newPassword })`。云函数沿用当前跨端资料接口的账号标识方式，事务内重新读取当前状态；首次设置不能覆盖其他请求刚设置的密码，修改必须验证数据库中的原密码。状态冲突时切换对应表单并清空密码，由用户重新输入。密码状态加载失败时禁止提交，关闭或卸载页面后忽略迟到响应；保存期间防止重复提交和关闭弹窗。原密码、新密码均在通用调用日志中脱敏。
+
+普通 `updateUserProfile` 资料保存不再接受 `password` 等密码字段，返回 `PASSWORD_ACTION_REQUIRED`，需使用上述专用 action。密码存储继续兼容 `users.password`；仅有未知 `passwordHash` 的账号需使用登录页短信找回，不能当作无密码直接覆盖。
+
+发布时先部署 `functions/updateUserProfile`（包含新增的 `password.js`），再发布客户端，无需新增云函数或数据库集合。验证命令：`npm run test:profile-password`，同时已纳入 `npm run test:login` 和 `npm run check:quality`。自动测试包含前端两种表单、失败重试与请求失效、服务端原密码校验、首次并发设置和日志脱敏；真机设置、修改及新旧密码登录仍需部署后验证。

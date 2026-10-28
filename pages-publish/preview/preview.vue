@@ -418,6 +418,8 @@ import { attachPoemDisplayFields } from '@/utils/poemDisplay.js';
 
 import { applyThemeMode, getThemeMode } from '@/utils/theme.js';
 
+import { clearPublishDraftStorage } from '@/utils/publishDraft.js';
+
 
 
 export default {
@@ -493,6 +495,9 @@ export default {
   },
 
   onLoad() {
+
+    // 发布结果返回时页面栈可能已变化，提前保留本次预览的编辑来源。
+    this.getAddPageVm();
 
     try {
 
@@ -706,13 +711,19 @@ export default {
 
     getAddPageVm() {
 
+      if (this._sourceAddPageVm) return this._sourceAddPageVm;
+
       try {
 
         const pages = getCurrentPages();
 
-        const addPage = pages[pages.length - 2];
+        const previewIndex = pages.findIndex(page => page.$vm === this);
 
-        return addPage && addPage.$vm ? addPage.$vm : null;
+        const addPage = pages[(previewIndex >= 0 ? previewIndex : pages.length - 1) - 1];
+
+        this._sourceAddPageVm = addPage && addPage.$vm ? addPage.$vm : null;
+
+        return this._sourceAddPageVm;
 
       } catch (_) {
 
@@ -1825,6 +1836,12 @@ export default {
 
       // 执行发布逻辑
 
+      if (typeof addData.flushWorkingDraft === 'function') addData.flushWorkingDraft();
+
+      this._submittedDraftSessionId = addData.draftSessionId || '';
+
+      this._submittedDraftRevision = addData.draftRevision || 0;
+
       this.executePublish(publishData);
 
     },
@@ -2668,17 +2685,57 @@ export default {
 
       // 检查是否是编辑模式（从addData获取）
 
-      const pages = getCurrentPages();
+      const addVm = this.getAddPageVm();
 
-      const addPage = pages[pages.length - 2];
+      const editData = (this.post && this.post.editData) || {};
 
-      const addVm = addPage && addPage.$vm ? addPage.$vm : null;
+      const sourceData = addVm || editData;
 
-      const isEditMode = !!(addVm && addVm.isEditMode && addVm.editingPostId);
+      const isEditMode = !!(sourceData.isEditMode && sourceData.editingPostId);
 
-      const isActivityMode = !!(addVm && addVm.isActivityMode);
+      const isActivityMode = !!sourceData.isActivityMode;
 
-      const fromAdminActivity = !!(addVm && addVm.fromAdminActivity);
+      const fromAdminActivity = !!sourceData.fromAdminActivity;
+
+      const sessionId = this._submittedDraftSessionId || editData.draftSessionId || (addVm && addVm.draftSessionId) || '';
+
+      const revision = this._submittedDraftRevision ?? editData.draftRevision ?? (addVm && addVm.draftRevision) ?? 0;
+
+      // 在刷新事件和页面跳转前结束原编辑会话，防止生命周期再次保存已发布内容。
+      try {
+
+        if (sessionId) {
+
+          // 同一份待发布内容可能已在新页面恢复；继续输入后的新版本应保留。
+          const editors = new Set([addVm, ...getCurrentPages().map(page => page.$vm)]);
+
+          for (const editor of editors) {
+
+            if (!editor || typeof editor.syncWorkingDraftSession !== 'function') continue;
+
+            if (editor.syncWorkingDraftSession() !== sessionId) continue;
+
+            if (editor.draftRevision > revision) continue;
+
+            editor.isPublished = true;
+
+            editor.clearDraft({ resetForm: true, sessionId, revision });
+
+          }
+
+          clearPublishDraftStorage(sessionId, revision);
+
+        } else {
+
+          uni.removeStorageSync('preview_post');
+
+        }
+
+      } catch (e) {
+
+        console.error('清除草稿失败:', e);
+
+      }
 
 
 
@@ -2751,29 +2808,6 @@ export default {
       } catch (e) {
 
         console.error('设置刷新标记失败:', e);
-
-      }
-
-
-
-      // 清除发布页面的草稿
-
-      try {
-
-        if (addVm && addVm.clearDraft) {
-
-          // 先标记发布完成，避免退出时自动保存再次写回已发布内容。
-          addVm.isPublished = true;
-
-          addVm.clearDraft({ resetForm: true });
-
-        }
-
-        uni.removeStorageSync('preview_post');
-
-      } catch (e) {
-
-        console.error('清除草稿失败:', e);
 
       }
 

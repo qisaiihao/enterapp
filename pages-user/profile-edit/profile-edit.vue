@@ -31,9 +31,10 @@
                     <view class="form-label">
                         <text>POEM ID</text>
                     </view>
-                    <view class="form-input">
+                    <view class="form-input poem-id-input">
                         <input class="input-field" type="text" placeholder="请输入POEM ID" :value="poemId" @input="onPoemIdInput" />
                     </view>
+                    <text class="password-edit-link" role="button" @tap.stop="onEditPassword">修改密码</text>
                 </view>
 
                 <!-- 手机号（可修改） -->
@@ -126,6 +127,44 @@
                 <text class="ek-text" :class="{ 'ek-text-inactive': !hasChanges }">enter ↵</text>
             </view>
         </view>
+
+        <AppMotion mask-class="edit-password-modal" :visible="showEditPasswordModal" :busy="isUpdatingPassword"
+            ref="passwordMotion" placement="sheet" @dismiss="closeEditPasswordModal">
+            <view class="modal-mask" @tap="$refs.passwordMotion.dismiss()"></view>
+            <view class="modal-content app-motion-panel" @tap.stop>
+                <view class="modal-header">
+                    <text class="modal-title">{{ hasPassword === false ? '设置密码' : '修改密码' }}</text>
+                    <text class="modal-close" @tap="$refs.passwordMotion.dismiss()">×</text>
+                </view>
+                <view class="modal-body">
+                    <text v-if="isCheckingPassword" class="modal-text">正在读取密码状态…</text>
+                    <template v-else-if="hasPassword !== null">
+                        <text class="modal-text">{{ hasPassword ? '验证原密码后设置新密码' : '设置后可使用 POEM ID、手机号或昵称和密码登录' }}</text>
+                        <view v-if="hasPassword" class="input-wrapper">
+                            <input class="input-field" type="text" :password="true" v-model="oldPassword"
+                                :disabled="isUpdatingPassword" :maxlength="-1" placeholder="请输入原密码" />
+                        </view>
+                        <view class="input-wrapper">
+                            <input class="input-field" type="text" :password="true" v-model="newPassword"
+                                :disabled="isUpdatingPassword" :maxlength="32" placeholder="请输入新密码（6–32位）" />
+                        </view>
+                        <view class="input-wrapper">
+                            <input class="input-field" type="text" :password="true" v-model="confirmPassword"
+                                :disabled="isUpdatingPassword" :maxlength="32" placeholder="请再次输入新密码" />
+                        </view>
+                    </template>
+                    <text v-if="passwordError" class="password-error">{{ passwordError }}</text>
+                    <text v-if="!isCheckingPassword && hasPassword === null" class="password-edit-link" @tap="loadPasswordStatus">重新加载</text>
+                </view>
+                <view class="modal-footer">
+                    <view class="modal-btn cancel-btn" @tap="$refs.passwordMotion.dismiss()">取消</view>
+                    <view class="modal-btn confirm-btn" @tap="submitPasswordChange"
+                        :class="{ disabled: isCheckingPassword || isUpdatingPassword || hasPassword === null }">
+                        {{ isUpdatingPassword ? '保存中…' : (hasPassword === false ? '确认设置' : '确认修改') }}
+                    </view>
+                </view>
+            </view>
+        </AppMotion>
 
         <!-- 修改手机号弹窗 -->
         <AppMotion mask-class="edit-phone-modal" :visible="showEditPhoneModal" ref="phoneMotion" placement="sheet" @dismiss="closeEditPhoneModal">
@@ -284,6 +323,16 @@ export default {
             isVerifying: false,
             smsCountdown: 0,
             smsTimer: null,
+            showEditPasswordModal: false,
+            hasPassword: null,
+            oldPassword: '',
+            newPassword: '',
+            confirmPassword: '',
+            isCheckingPassword: false,
+            isUpdatingPassword: false,
+            passwordError: '',
+            passwordRequestId: 0,
+            passwordOwnerOpenid: '',
             // 原始数据用于对比
             originalData: {
                 avatarUrl: '',
@@ -348,6 +397,9 @@ export default {
         // #endif
     },
     onUnload() {
+        this._passwordDisposed = true;
+        this.passwordRequestId += 1;
+        this.resetPasswordFields();
         this._signatureDisposed = true;
         this.signatureTaskId += 1;
         if (this.isProcessingSignature) uni.hideLoading();
@@ -730,6 +782,116 @@ export default {
 
         goBack: function () {
             uni.navigateBack();
+        },
+
+        resetPasswordFields() {
+            this.oldPassword = '';
+            this.newPassword = '';
+            this.confirmPassword = '';
+            this.passwordError = '';
+        },
+
+        onEditPassword() {
+            if (this.showEditPasswordModal || this._passwordDisposed) return;
+            this.resetPasswordFields();
+            this.hasPassword = null;
+            this.passwordOwnerOpenid = getOpenid();
+            this.showEditPasswordModal = true;
+            return this.loadPasswordStatus();
+        },
+
+        isPasswordRequestCurrent(requestId, openid) {
+            return !this._passwordDisposed && this.showEditPasswordModal &&
+                this.passwordRequestId === requestId && this.passwordOwnerOpenid === openid && getOpenid() === openid;
+        },
+
+        async loadPasswordStatus() {
+            if (!this.showEditPasswordModal || this.isCheckingPassword || this.isUpdatingPassword || this._passwordDisposed) return;
+            if (getOpenid() !== this.passwordOwnerOpenid) {
+                this.closeEditPasswordModal();
+                return;
+            }
+            const requestId = ++this.passwordRequestId;
+            const openid = this.passwordOwnerOpenid;
+            this.isCheckingPassword = true;
+            this.passwordError = '';
+            try {
+                const response = await this.callCloudFunction('updateUserProfile', { action: 'getPasswordStatus' }, { silent: true });
+                if (!this.isPasswordRequestCurrent(requestId, openid)) return;
+                const result = response && response.result;
+                if (!result || !result.success || typeof result.hasPassword !== 'boolean') {
+                    this.passwordError = (result && result.message) || '读取密码状态失败，请重试';
+                    return;
+                }
+                this.hasPassword = result.hasPassword;
+            } catch (_) {
+                if (this.isPasswordRequestCurrent(requestId, openid)) this.passwordError = '读取密码状态失败，请重试';
+            } finally {
+                if (this.passwordRequestId === requestId && !this._passwordDisposed) {
+                    this.isCheckingPassword = false;
+                    if (getOpenid() !== openid) this.closeEditPasswordModal();
+                }
+            }
+        },
+
+        closeEditPasswordModal() {
+            if (this.isUpdatingPassword) return;
+            this.showEditPasswordModal = false;
+            this.passwordRequestId += 1;
+            this.isCheckingPassword = false;
+            this.hasPassword = null;
+            this.passwordOwnerOpenid = '';
+            this.resetPasswordFields();
+        },
+
+        async submitPasswordChange() {
+            if (!this.showEditPasswordModal || this.isCheckingPassword || this.isUpdatingPassword || this.hasPassword === null || this._passwordDisposed) return;
+            if (getOpenid() !== this.passwordOwnerOpenid) {
+                this.closeEditPasswordModal();
+                return;
+            }
+            if (this.hasPassword && !this.oldPassword.trim()) {
+                this.passwordError = '请输入原密码';
+                return;
+            }
+            if (this.newPassword.length < 6 || this.newPassword.length > 32 || this.newPassword !== this.newPassword.trim()) {
+                this.passwordError = '新密码需为6–32位，首尾不能有空格';
+                return;
+            }
+            if (this.newPassword !== this.confirmPassword) {
+                this.passwordError = '两次输入的密码不一致';
+                return;
+            }
+            const mode = this.hasPassword ? 'change' : 'set';
+            const requestId = ++this.passwordRequestId;
+            const openid = getOpenid();
+            this.isUpdatingPassword = true;
+            this.passwordError = '';
+            try {
+                const payload = { action: 'updatePassword', mode, newPassword: this.newPassword };
+                if (this.hasPassword) payload.oldPassword = this.oldPassword;
+                const response = await this.callCloudFunction('updateUserProfile', payload, { silent: true });
+                if (!this.isPasswordRequestCurrent(requestId, openid)) return;
+                const result = response && response.result;
+                if (result && result.success) {
+                    this.isUpdatingPassword = false;
+                    this.closeEditPasswordModal();
+                    uni.showToast({ title: mode === 'set' ? '密码设置成功' : '密码修改成功', icon: 'success' });
+                } else {
+                    if (result && ['PASSWORD_ALREADY_SET', 'PASSWORD_NOT_SET'].includes(result.code) && typeof result.hasPassword === 'boolean') {
+                        this.hasPassword = result.hasPassword;
+                        this.resetPasswordFields();
+                    }
+                    this.passwordError = (result && result.message) || '密码保存失败，请重试';
+                }
+            } catch (_) {
+                if (this.isPasswordRequestCurrent(requestId, openid)) this.passwordError = '密码保存失败，请稍后重试';
+            } finally {
+                if (this.passwordRequestId === requestId) {
+                    this.isUpdatingPassword = false;
+                    if (!this._passwordDisposed && getOpenid() !== openid) this.closeEditPasswordModal();
+                }
+            }
         },
 
         // 修改手机号相关方法
@@ -1327,6 +1489,28 @@ export default {
     margin: 0 20rpx;
 }
 
+.poem-id-input {
+    min-width: 0;
+}
+
+.password-edit-link {
+    flex-shrink: 0;
+    margin-right: 10rpx;
+    font-size: 26rpx;
+    color: var(--app-secondary-text, #666);
+    text-decoration: underline;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.password-error {
+    display: block;
+    margin-bottom: 24rpx;
+    font-size: 26rpx;
+    line-height: 1.6;
+    color: var(--app-danger-text, #c45a5a);
+}
+
 .form-input--switch {
     display: flex;
     align-items: center;
@@ -1595,7 +1779,8 @@ export default {
 }
 
 /* 修改手机号弹窗 - 仅弹窗样式，不影响原有表单 */
-.edit-phone-modal {
+.edit-phone-modal,
+.edit-password-modal {
     position: fixed;
     top: 0;
     left: 0;
@@ -1767,6 +1952,12 @@ export default {
 /* 无边框输入：仅作用于"修改手机号"弹窗的两个输入框 */
 .edit-phone-modal .input-field {
     border: none !important;
+}
+
+.edit-password-modal .input-field {
+    border: none;
+    border-radius: 12rpx;
+    box-sizing: border-box;
 }
 
 /* 验证码输入框对齐样式 */

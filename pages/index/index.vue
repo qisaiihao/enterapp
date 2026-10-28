@@ -1,4 +1,7 @@
 <template>
+    <!-- #ifdef MP-WEIXIN -->
+    <page-meta :page-style="'background-color: ' + appThemeVars['--app-page-bg'] + ';'" />
+    <!-- #endif -->
     <view class="page-wrapper" :class="{ 'is-scrolling': isTouchScrolling }" :data-app-theme="appThemeMode" :style="[appThemeVars, readFontVars]">
         <view class="container">
             <page-tabs ref="pageTabs" :current-tab="currentTab" @tab-change="onTabChange"></page-tabs>

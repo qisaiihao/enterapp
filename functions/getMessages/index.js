@@ -78,7 +78,11 @@ exports.main = async (event, context) => {
     };
     
     // 如果指定了消息类型，添加类型过滤
-    if (type === 'feedback_all') {
+    if (type === 'like_all') {
+      whereCondition.type = _.in(['like', 'favorite']);
+    } else if (type === 'feedback_report_all') {
+      whereCondition.type = _.in(['feedback', 'feedback_reply', 'feedback_detail_requested', 'feedback_processed', 'post_report_new', 'post_report_handled', 'post_report_dismissed']);
+    } else if (type === 'feedback_all') {
       whereCondition.type = _.in(['feedback', 'feedback_reply', 'feedback_detail_requested', 'feedback_processed']);
     } else if (type === 'post_report_all') {
       whereCondition.type = _.in(['post_report_new', 'post_report_handled', 'post_report_dismissed']);

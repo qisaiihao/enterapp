@@ -1,0 +1,284 @@
+{
+  "@platforms": [
+    "android",
+    "iPhone",
+    "iPad"
+  ],
+  "id": "__UNI__E0A1A41",
+  "name": "poementer",
+  "version": {
+    "name": "1.7.5",
+    "code": 175
+  },
+  "description": "S",
+  "developer": {
+    "name": "",
+    "email": "",
+    "url": ""
+  },
+  "permissions": {
+    "Camera": {},
+    "File": {},
+    "IO": {},
+    "OAuth": {},
+    "UniNView": {
+      "description": "UniNView原生渲染"
+    }
+  },
+  "plus": {
+    "useragent": {
+      "value": "uni-app",
+      "concatenate": true
+    },
+    "splashscreen": {
+      "target": "id:1",
+      "autoclose": true,
+      "waiting": false,
+      "delay": 0
+    },
+    "popGesture": "close",
+    "launchwebview": {
+      "id": "1",
+      "kernel": "WKWebview"
+    },
+    "usingComponents": true,
+    "softinput": {
+      "mode": "adjustResize"
+    },
+    "nvueStyleCompiler": "uni-app",
+    "compilerVersion": 3,
+    "distribute": {
+      "splashscreen": {
+        "androidStyle": "default",
+        "android": {
+          "hdpi": "resources/splash/android-hdpi.png",
+          "xhdpi": "resources/splash/android-xhdpi.png",
+          "xxhdpi": "resources/splash/android-xxhdpi.png"
+        },
+        "androidNavigationBarColor": "#ffffff",
+        "iosStyle": "storyboard",
+        "ios": {
+          "storyboard": "resources/splash/poementer-launch.zip"
+        }
+      },
+      "icons": {
+        "android": {
+          "hdpi": "unpackage/res/icons/72x72.png",
+          "xhdpi": "unpackage/res/icons/96x96.png",
+          "xxhdpi": "unpackage/res/icons/144x144.png",
+          "xxxhdpi": "unpackage/res/icons/192x192.png"
+        },
+        "ios": {
+          "appstore": "unpackage/res/icons/1024x1024.png",
+          "ipad": {
+            "app": "unpackage/res/icons/76x76.png",
+            "app@2x": "unpackage/res/icons/152x152.png",
+            "notification": "unpackage/res/icons/20x20.png",
+            "notification@2x": "unpackage/res/icons/40x40.png",
+            "proapp@2x": "unpackage/res/icons/167x167.png",
+            "settings": "unpackage/res/icons/29x29.png",
+            "settings@2x": "unpackage/res/icons/58x58.png",
+            "spotlight": "unpackage/res/icons/40x40.png",
+            "spotlight@2x": "unpackage/res/icons/80x80.png"
+          },
+          "iphone": {
+            "app@2x": "unpackage/res/icons/120x120.png",
+            "app@3x": "unpackage/res/icons/180x180.png",
+            "notification@2x": "unpackage/res/icons/40x40.png",
+            "notification@3x": "unpackage/res/icons/60x60.png",
+            "settings@2x": "unpackage/res/icons/58x58.png",
+            "settings@3x": "unpackage/res/icons/87x87.png",
+            "spotlight@2x": "unpackage/res/icons/80x80.png",
+            "spotlight@3x": "unpackage/res/icons/120x120.png"
+          }
+        }
+      },
+      "google": {
+        "packagename": "com.poementer.app",
+        "schemes": "poementer",
+        "targetSdkVersion": 33,
+        "permissions": [
+          "<uses-permission android:name=\"android.permission.INTERNET\"/>",
+          "<uses-permission android:name=\"android.permission.REQUEST_INSTALL_PACKAGES\"/>",
+          "<uses-permission android:name=\"android.permission.CHANGE_NETWORK_STATE\"/>",
+          "<uses-permission android:name=\"android.permission.MOUNT_UNMOUNT_FILESYSTEMS\"/>",
+          "<uses-permission android:name=\"android.permission.VIBRATE\"/>",
+          "<uses-permission android:name=\"android.permission.READ_LOGS\"/>",
+          "<uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\"/>",
+          "<uses-feature android:name=\"android.hardware.camera.autofocus\"/>",
+          "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>",
+          "<uses-permission android:name=\"android.permission.CAMERA\"/>",
+          "<uses-permission android:name=\"android.permission.GET_ACCOUNTS\"/>",
+          "<uses-permission android:name=\"android.permission.READ_PHONE_STATE\"/>",
+          "<uses-permission android:name=\"android.permission.CHANGE_WIFI_STATE\"/>",
+          "<uses-permission android:name=\"android.permission.WAKE_LOCK\"/>",
+          "<uses-permission android:name=\"android.permission.FLASHLIGHT\"/>",
+          "<uses-feature android:name=\"android.hardware.camera\"/>",
+          "<uses-permission android:name=\"android.permission.WRITE_SETTINGS\"/>",
+          "<uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\"/>",
+          "<uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\"/>",
+          "<uses-permission android:name=\"android.permission.READ_MEDIA_IMAGES\"/>"
+        ],
+        "abiFilters": [
+          "armeabi-v7a",
+          "arm64-v8a"
+        ]
+      },
+      "apple": {
+        "dSYMs": false,
+        "urltypes": [
+          {
+            "urlschemes": [
+              "poementer"
+            ],
+            "id": "com.poementer.app",
+            "urlidentifier": "com.poementer.app"
+          }
+        ],
+        "urlschemewhitelist": [
+          "poementer"
+        ],
+        "privacyDescription": {
+          "NSPhotoLibraryAddUsageDescription": "保存分享图片到相册",
+          "NSPhotoLibraryUsageDescription": "保存分享图片到相册"
+        }
+      },
+      "plugins": {
+        "oauth": {
+          "univerify": {}
+        },
+        "audio": {
+          "mp3": {
+            "description": "Android平台录音支持MP3格式文件"
+          }
+        }
+      }
+    },
+    "uniStatistics": {
+      "enable": false,
+      "version": "1"
+    },
+    "uniCloud": {
+      "service": "poementer",
+      "version": "1.0.0"
+    },
+    "statusbar": {
+      "immersed": "supportedDevice",
+      "style": "dark",
+      "background": "#F6F6F6"
+    },
+    "allowsInlineMediaPlayback": true,
+    "safearea": {
+      "background": "#ffffff",
+      "bottom": {
+        "offset": "auto"
+      }
+    },
+    "uni-app": {
+      "control": "uni-v3",
+      "vueVersion": "3",
+      "compilerVersion": "5.01",
+      "nvueCompiler": "uni-app",
+      "renderer": "auto",
+      "nvue": {
+        "flex-direction": "column"
+      },
+      "nvueLaunchMode": "normal",
+      "webView": {
+        "minUserAgentVersion": "49.0"
+      }
+    },
+    "tabBar": {
+      "position": "bottom",
+      "color": "#999999",
+      "selectedColor": "#000000",
+      "borderStyle": "rgba(0,0,0,0.4)",
+      "blurEffect": "none",
+      "fontSize": "10px",
+      "iconWidth": "24px",
+      "spacing": "3px",
+      "height": "50px",
+      "list": [
+        {
+          "pagePath": "pages/index/index",
+          "text": "广场",
+          "iconPath": "/static/images/market.png",
+          "selectedIconPath": "/static/images/market.png"
+        },
+        {
+          "pagePath": "pages/poem-square/poem-square",
+          "text": "原创",
+          "iconPath": "/static/images/road.png",
+          "selectedIconPath": "/static/images/road.png"
+        },
+        {
+          "pagePath": "pages/mountain/mountain",
+          "text": "读诗",
+          "iconPath": "/static/images/mountain.png",
+          "selectedIconPath": "/static/images/mountain.png"
+        },
+        {
+          "pagePath": "pages/profile/profile",
+          "text": "我",
+          "iconPath": "/static/images/pools.png",
+          "selectedIconPath": "/static/images/pools.png"
+        }
+      ],
+      "custom": true,
+      "backgroundColor": "#ffffff",
+      "selectedIndex": 0,
+      "shown": true
+    }
+  },
+  "app-harmony": {
+    "useragent": {
+      "value": "uni-app",
+      "concatenate": true
+    },
+    "distribute": {
+      "bundleName": "com.example.poementer",
+      "signingConfigs": {
+        "default": {
+          "certpath": "C:/Users/qisaihao/Desktop/enterkeydocs/poementer_dev.cer",
+          "keyAlias": "testalias",
+          "keyPassword": "0000001B0E5F7B21AAC3478692CB4AA17E816F146C136B2B635C9F80AB7EE8B0F41D13C8691917AC7676BA",
+          "profile": "C:/Users/qisaihao/Desktop/enterkeydocs/poementerDebug.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:/Users/qisaihao/Desktop/enterkeydocs/poementer_harmony.p12",
+          "storePassword": "0000001B15205A16540A3A84639C245229C648CFCFDAD4689253C1CF716E1638F10614D941B525C57F7B85"
+        },
+        "release": {
+          "certpath": "C:/Users/qisaihao/Desktop/enterkeydocs/poementer_release.cer",
+          "keyAlias": "testalias",
+          "keyPassword": "0000001BEFC14B4A5497DF6CB2931FD8ABD65788255BE93EF3C33A31220DB5FA1775C7912747131753EA2C",
+          "profile": "C:/Users/qisaihao/Desktop/enterkeydocs/poementer_releaseRelease.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:/Users/qisaihao/Desktop/enterkeydocs/poementer_harmony.p12",
+          "storePassword": "0000001B0FCAEA6E84F9ACED80B59F7BEFACC0511AADA8DE3A1409717969BE07907AD27946B33CD8CC5B8A"
+        }
+      },
+      "icons": {
+        "foreground": "C:/Users/qisaihao/Desktop/enterkeydocs/1024x1024.png",
+        "background": "C:/Users/qisaihao/Desktop/enterkeydocs/1024x1024.png"
+      },
+      "splashScreens": {
+        "startWindowIcon": "C:/Users/qisaihao/Desktop/enterkeydocs/1024x1024.png"
+      },
+      "deviceTypes": [
+        "phone",
+        "tablet"
+      ]
+    },
+    "uniStatistics": {
+      "enable": false,
+      "version": "1"
+    },
+    "safearea": {
+      "background": "#ffffff",
+      "bottom": {
+        "offset": "auto"
+      }
+    }
+  },
+  "launch_path": "__uniappview.html"
+}

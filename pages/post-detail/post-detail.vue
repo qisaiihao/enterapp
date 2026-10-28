@@ -638,6 +638,9 @@ export default {
         this.currentScrollTop = e.scrollTop || 0;
     },
     onUnload: function () {
+        clearTimeout(this.regenerateTimeout);
+        this.regenerateTimeout = null;
+        this.shareRenderToken += 1;
         try { flushViewQueue(); } catch (e) {}
         try { uni.$off && this.onGlobalLikeChanged && uni.$off('like-changed', this.onGlobalLikeChanged); } catch (_) {}
         try { uni.$off && this.onGlobalCommentLikeChanged && uni.$off('comment-like-changed', this.onGlobalCommentLikeChanged); } catch (_) {}
@@ -1107,6 +1110,8 @@ export default {
         },
 
         hideShareModal: function () {
+            clearTimeout(this.regenerateTimeout);
+            this.regenerateTimeout = null;
             this.shareRenderToken += 1;
             this.shareRenderFontPending = false;
             this._fontLoadedRegeneratePending = false;
@@ -1374,6 +1379,7 @@ export default {
                     uni.showToast({ title: 'Canvas创建失败', icon: 'none' });
                     return;
                 }
+                if (renderToken !== this.shareRenderToken) return;
 
                 // 【修复】先清空Canvas，避免残留
                 ctx.clearRect(0, 0, canvasWidth, canvasHeight);
@@ -1388,6 +1394,7 @@ export default {
                     shouldShowSignature,
                     ...heightResult
                 });
+                if (renderToken !== this.shareRenderToken) return;
 
                 console.log('【post-detail】开始执行draw');
 
@@ -1842,7 +1849,6 @@ export default {
             const fontScale = fontScaleMap[fontFamily] || 1.0;
             
             this.debouncedRegenerateImage({
-                ...this.shareConfig,
                 fontSize: fontSize,
                 titleFontSize: Math.round(fontSize * 1.21), // 标题字号比正文大21%
                 fontScale: fontScale // 确保fontScale被正确设置
@@ -1863,7 +1869,6 @@ export default {
             const fontScale = fontScaleMap[fontFamily] || 1.0;
             
             this.debouncedRegenerateImage({
-                ...this.shareConfig,
                 fontFamily: fontFamily,
                 fontScale: fontScale // 确保fontScale被正确设置
             });
@@ -1892,17 +1897,22 @@ export default {
 
         // 防抖重新生成图片（300ms延迟）
         debouncedRegenerateImage: function(tempConfig) {
+            // 配置立即更新，防抖只延迟绘制，避免旧字体预览覆盖之后选择的配色。
+            this.shareConfig = { ...this.shareConfig, ...tempConfig };
             clearTimeout(this.regenerateTimeout);
             this.regenerateTimeout = setTimeout(() => {
-                const oldConfig = { ...this.shareConfig };
-                this.shareConfig = tempConfig;
+                this.regenerateTimeout = null;
                 this.regenerateShareImage();
-                // 预览完成后可以选择是否恢复原配置，这里保持新配置用于实时预览
             }, 300);
         },
 
         // 重新生成分享图片
-        regenerateShareImage: function() {
+        regenerateShareImage: function(delay = 50) {
+            clearTimeout(this.regenerateTimeout);
+            this.regenerateTimeout = null;
+            // 请求重绘时立即使旧任务失效；等待 UI 更新期间也不能提交旧图片。
+            const renderToken = (this.shareRenderToken || 0) + 1;
+            this.shareRenderToken = renderToken;
             console.log('【post-detail】重新生成分享图片，新配置:', this.shareConfig);
             this.shareImageUrl = '';
             this.shareImageFilePath = '';
@@ -1913,26 +1923,16 @@ export default {
             this.$nextTick(() => {
                 // 再次延迟确保所有状态都已更新
                 setTimeout(() => {
+                    if (!this.showShareModal || renderToken !== this.shareRenderToken) return;
                     this.generateShareImage();
-                }, 50);
+                }, delay);
             });
         },
 
         // 强制重新生成Canvas（弹窗关闭后）
         forceRegenerateCanvas: function() {
             console.log('【post-detail】强制重新生成Canvas，确保无遮挡渲染');
-            // 清除当前图片，重置状态
-            this.shareImageUrl = '';
-            this.shareImageFilePath = '';
-            this.shareImageRetryCount = 0;
-            this.shareCanvasHeight = 1000;
-
-            // 延迟重新生成，确保DOM完全更新
-            this.$nextTick(() => {
-                setTimeout(() => {
-                    this.generateShareImage();
-                }, 200); // 增加延迟确保所有动画完成
-            });
+            this.regenerateShareImage(200);
         },
 
         // 尝试将base64转换为临时文件

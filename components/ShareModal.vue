@@ -275,11 +275,6 @@ export default {
         onColorSelect(colorConfig) {
             this.showColorPicker = false;
             this.$emit('color-change', colorConfig);
-            this.$nextTick(() => {
-                setTimeout(() => {
-                    this.$emit('force-regenerate');
-                }, 100);
-            });
         },
         onFontSelectorClose() {
             this.showFontSelector = false;

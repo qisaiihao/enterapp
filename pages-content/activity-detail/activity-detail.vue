@@ -1,5 +1,5 @@
 <template>
-  <view class="activity-detail-page">
+  <view class="activity-detail-page" :style="readFontVars">
     <view class="activity-header">
       <image
         v-if="activityCover"
@@ -674,7 +674,7 @@ export default {
 .activity-header {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 3 / 4;
   overflow: hidden;
 }
 

@@ -5,7 +5,8 @@ const DEFAULT_STATE = {
   openid: null,
   isLoggedIn: false,
   _loginProcessStarted: false,
-  _loginProcessCompleted: false
+  _loginProcessCompleted: false,
+  _loginProcessFailed: false
 };
 
 function getAppInstance() {
@@ -64,7 +65,8 @@ export function setUserSession(userInfo, openid = null) {
   const resolvedOpenid = openid || (userInfo && (userInfo._openid || userInfo.openid)) || null;
   const nextState = {
     userInfo: userInfo || null,
-    isLoggedIn: !!userInfo
+    isLoggedIn: !!userInfo,
+    _loginProcessFailed: false
   };
   if (resolvedOpenid) {
     nextState.openid = resolvedOpenid;
@@ -78,12 +80,15 @@ export function clearUserSession() {
     openid: null,
     isLoggedIn: false,
     _loginProcessStarted: false,
-    _loginProcessCompleted: false
+    _loginProcessCompleted: false,
+    _loginProcessFailed: false
   });
 }
 
 export function markLoginProcessStarted() {
   return patchAppState({
+    _loginProcessCompleted: false,
+    _loginProcessFailed: false,
     _loginProcessStarted: true
   });
 }

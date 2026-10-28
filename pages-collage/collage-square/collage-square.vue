@@ -564,7 +564,7 @@ export default {
 /* 自定义返回按钮 */
 .custom-back-btn {
   position: absolute;
-  top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
+  top: calc(90rpx + var(--collage-safe-top, env(safe-area-inset-top, var(--safe-area-inset-top, 0px))));
   left: 40rpx;
   width: 100rpx;
   height: 100rpx;
@@ -638,7 +638,7 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 140rpx 20rpx 40rpx 20rpx;
+  padding: calc(140rpx + var(--collage-safe-top, 0px)) 20rpx 40rpx 20rpx;
   box-sizing: border-box;
 }
 

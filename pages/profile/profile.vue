@@ -1,4 +1,7 @@
 <template>
+    <!-- #ifdef MP-WEIXIN -->
+    <page-meta :page-style="'background-color: ' + appThemeVars['--app-page-bg'] + ';'" />
+    <!-- #endif -->
     <view
         class="profile-page-root"
         :class="{ 'profile-page-root--with-background': isFullBackground }"

@@ -4,6 +4,9 @@ import App from './App';
 // #ifdef APP-PLUS
 import { appTabTransitionMixin } from '@/utils/appTabTransition.js';
 // #endif
+// #ifdef H5
+import { h5TabTransitionMixin } from '@/utils/h5TabTransition.js';
+// #endif
 import AppBackgroundPageRoot from '@/components/AppBackgroundPageRoot.vue';
 import AppOverlayHost from '@/components/app-overlay-host/app-overlay-host.vue';
 import { installAppOverlays, appOverlayPageMixin } from '@/utils/appOverlay.js';
@@ -263,7 +266,14 @@ export function createApp() {
   // #ifdef APP-PLUS
   app.mixin(appTabTransitionMixin);
   // #endif
+  // #ifdef H5
+  app.mixin(h5TabTransitionMixin);
+  // #endif
   app.mixin({
+    onLoad() {
+      // 首次页面在 onShow 前就同步窗口底色，避免原生白底参与首帧。
+      applyNativeThemeChrome(this.appThemeMode || getThemeMode());
+    },
     onShow() {
       // App 页面拥有独立 WebView；原生栏在页面显示时同步一次。
       applyNativeThemeChrome(this.appThemeMode || getThemeMode());

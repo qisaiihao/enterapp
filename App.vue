@@ -1,6 +1,8 @@
 <script>
 // #ifdef APP-PLUS
 import { checkAndUpdate } from '@/utils/appUpdate.js';
+// #endif
+// #ifdef APP-PLUS || H5
 import { cancelTabTransition } from '@/utils/appTabTransition.js';
 // #endif
 import {
@@ -24,7 +26,8 @@ export default {
                 openid: null,
                 isLoggedIn: false,
                 _loginProcessStarted: false,
-                _loginProcessCompleted: false
+                _loginProcessCompleted: false,
+                _loginProcessFailed: false
             }
         };
     },
@@ -80,7 +83,7 @@ export default {
     },
 
     onHide() {
-        // #ifdef APP-PLUS
+        // #ifdef APP-PLUS || H5
         cancelTabTransition();
         // #endif
         unreadBadge.stopPolling();
@@ -128,10 +131,9 @@ export default {
         },
 
         finishLoginProcess(extra = {}) {
+            // 最终会话先写入，再发布完成状态，入口不能把恢复中的用户当作访客。
+            patchAppState({ ...extra, _loginProcessFailed: !!(extra && extra._loginProcessFailed) });
             markLoginProcessCompleted();
-            if (extra && Object.keys(extra).length > 0) {
-                patchAppState(extra);
-            }
             this.syncGlobalDataFromAppState();
         },
 
@@ -275,7 +277,7 @@ export default {
 
             if (!this.$tcb) {
                 console.error('[App] runtime tcb unavailable');
-                this.finishLoginProcess();
+                this.finishLoginProcess({ _loginProcessFailed: true });
                 return;
             }
 
@@ -301,11 +303,9 @@ export default {
 
                     if (verifyRes.result && verifyRes.result.success && verifyRes.result.userInfo) {
                         const latestUserInfo = verifyRes.result.userInfo;
-                        this.applyUserSession(latestUserInfo, latestUserInfo._openid, {
-                            _loginProcessCompleted: true,
-                            isLoggedIn: true
-                        });
+                        this.applyUserSession(latestUserInfo, latestUserInfo._openid);
                         uni.setStorageSync('userInfo', latestUserInfo);
+                        this.finishLoginProcess();
                         refreshAdminStatus().catch(() => {});
                         return;
                     }
@@ -313,7 +313,10 @@ export default {
                     uni.removeStorageSync('userInfo');
                 } catch (error) {
                     console.error(`[App] verify cached user failed: ${formatErrorForLog(error)}`);
-                    uni.removeStorageSync('userInfo');
+                    // 临时网络失败不等于退出登录，沿用之前已保存的会话。
+                    this.applyUserSession(cachedUserInfo, cachedUserInfo._openid);
+                    this.finishLoginProcess();
+                    return;
                 }
             }
 
@@ -362,7 +365,7 @@ export default {
                 refreshAdminStatus().catch(() => {});
             } catch (error) {
                 console.error(`[App] login bootstrap failed: ${formatErrorForLog(error)}`);
-                this.finishLoginProcess();
+                this.finishLoginProcess({ _loginProcessFailed: true });
                 uni.showToast({
                     icon: 'none',
                     title: '登录失败，请稍后重试'
@@ -417,6 +420,11 @@ text {
 /* #endif */
 
 /* #ifdef H5 */
+/* uni 大图预览默认层级为 999，需要覆盖自定义底部栏的 1000。 */
+#u-a-p > div {
+    z-index: 10000 !important;
+}
+
 .uni-pull-refresh {
     color: #000000 !important;
 }

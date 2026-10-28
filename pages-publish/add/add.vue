@@ -304,6 +304,7 @@ import { checkDuplicatePoem as checkDuplicatePoemApi, contentAudit, saveDraft as
 import { validatePublishData, canPublish, generateDraftData, generatePublishData, processUploadResults } from '@/utils/publishUtils.js';
 import { getWindowInfoCompat } from '@/utils/system-info.js';
 import { applyThemeMode, getThemeMode } from '@/utils/theme.js';
+import { createPublishDraftSessionId, clearPublishDraftStorage } from '@/utils/publishDraft.js';
 
 // 导入静态配置数据
 import { colorPalettes } from '@/utils/colorPalettes.js';
@@ -495,6 +496,8 @@ export default {
             tagCategories: tagCategories,
 
             tags: [],
+            draftSessionId: createPublishDraftSessionId(),
+            draftRevision: 0,
             workingDraftSaveTimer: null,
             draftStateRestoring: false
         };
@@ -804,6 +807,8 @@ export default {
         buildWorkingDraftData() {
             return {
                 version: 1,
+                draftSessionId: this.draftSessionId,
+                draftRevision: this.draftRevision,
                 title: this.title || '',
                 content: this.content || '',
                 imageList: Array.isArray(this.imageList) ? this.imageList : [],
@@ -842,6 +847,16 @@ export default {
 
         hasWorkingDraftState(draftData = {}) {
             return hasDraftContent(draftData);
+        },
+
+        syncWorkingDraftSession() {
+            const { draftSessionId, draftRevision, updatedAt, saveTime, ...state } = this.buildWorkingDraftData();
+            const stateKey = JSON.stringify(state);
+            if (this._workingDraftStateKey && this._workingDraftStateKey !== stateKey) {
+                this.draftRevision += 1;
+            }
+            this._workingDraftStateKey = stateKey;
+            return this.draftSessionId;
         },
 
         getStoredWorkingDraft(matchOptions = {}) {
@@ -895,6 +910,7 @@ export default {
                 return false;
             }
 
+            this.syncWorkingDraftSession();
             const draftData = this.buildWorkingDraftData();
             if (!this.hasWorkingDraftState(draftData)) {
                 try {
@@ -951,6 +967,8 @@ export default {
 
             this.draftStateRestoring = true;
             this.setData({
+                draftSessionId: draftData.draftSessionId || this.draftSessionId,
+                draftRevision: Number(draftData.draftRevision || 0),
                 title: draftData.title || '',
                 content,
                 imageList: Array.isArray(draftData.imageList) ? draftData.imageList : [],
@@ -984,6 +1002,9 @@ export default {
                 maxImageCount: draftData.maxImageCount || (publishMode === 'poem' ? 1 : 9)
             });
             this.draftStateRestoring = false;
+            // 恢复未改动的内容延续原版本，迟到的发布结果仍能正确结束这份草稿。
+            this._workingDraftStateKey = null;
+            this.syncWorkingDraftSession();
 
             this.updatePlaceholder();
             this.checkCanPublish();
@@ -2090,7 +2111,7 @@ export default {
                 isPublished: true
             });
             // 发布成功后清除草稿（编辑模式也清除）
-            this.clearDraft({ resetForm: true });
+            this.clearDraft({ resetForm: true, sessionId: this.draftSessionId, revision: this.draftRevision });
             uni.navigateBack({
                 delta: 1
             });
@@ -2213,6 +2234,8 @@ export default {
                     : (this.isSeries ? seriesHighlight : previewHighlight),
                 // 传递当前编辑的数据供预览页面使用
                 editData: {
+                    draftSessionId: this.draftSessionId,
+                    draftRevision: this.draftRevision,
                     selectedBackgroundColor: this.selectedBackgroundColor,
                     selectedTextColor: this.selectedTextColor,
                     selectedColorCombination: this.selectedColorCombination,
@@ -2477,17 +2500,13 @@ export default {
         },
 
         // 清除草稿
-        clearDraft: function ({ resetForm = false } = {}) {
+        clearDraft: function ({ resetForm = false, sessionId = '', revision = Infinity } = {}) {
             try {
                 if (this.workingDraftSaveTimer) {
                     clearTimeout(this.workingDraftSaveTimer);
                     this.workingDraftSaveTimer = null;
                 }
-                uni.removeStorageSync(WORKING_DRAFT_KEY);
-                uni.removeStorageSync(LEGACY_DRAFT_KEY);
-                uni.removeStorageSync('editing_draft');
-                uni.removeStorageSync('preview_post');
-                uni.removeStorageSync('publish_draft');
+                clearPublishDraftStorage(sessionId, revision);
             } catch (e) {
                 console.log('CatchClause', e);
                 console.log('CatchClause', e);

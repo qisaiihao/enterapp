@@ -1,8 +1,12 @@
+import fileUrlCache from '@/cache/core/file-url.js';
+
+const isCloudUrl = url => typeof url === 'string' && url.startsWith('cloud://');
+
 /**
  * 图片预览工具，兼容事件与显式参数调用
  * @param {Object|Event} input 事件对象或参数对象
  * @param {Object} [options]
- * @param {boolean} [options.fallbackToast=true] 是否在信息不足时给出提示
+ * @param {boolean} [options.fallbackToast=true] 是否在无法预览时给出提示
  * @returns {Promise|false} 返回 uni.previewImage 的 Promise，失败时返回 false
  */
 function previewImage(input, options = {}) {
@@ -16,7 +20,7 @@ function previewImage(input, options = {}) {
     }
 
     const urls = payload.urls.length ? payload.urls : [payload.current];
-    const current = payload.current || urls[0];
+    const current = urls.includes(payload.current) ? payload.current : urls[0];
 
     if (!current || urls.length === 0) {
         if (fallbackToast) {
@@ -25,10 +29,25 @@ function previewImage(input, options = {}) {
         return false;
     }
 
-    return uni.previewImage({
-        current,
-        urls
-    });
+    const fileIDs = urls.filter(isCloudUrl);
+    if (!fileIDs.length) {
+        return uni.previewImage({ current, urls });
+    }
+
+    // 旧个人主页快照可能保留云文件 ID，预览前通过统一缓存转换。
+    const fail = () => {
+        if (fallbackToast) safeToast('图片加载失败，请稍后重试');
+        return false;
+    };
+    return fileUrlCache.getTempUrls(fileIDs).then(map => {
+        const resolve = url => (map && map[url]) || url;
+        const resolvedCurrent = resolve(current);
+        if (isCloudUrl(resolvedCurrent)) return fail();
+        return uni.previewImage({
+            current: resolvedCurrent,
+            urls: urls.map(resolve).filter(url => !isCloudUrl(url))
+        });
+    }, fail);
 }
 
 /**

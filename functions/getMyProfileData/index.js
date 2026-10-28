@@ -188,13 +188,11 @@ exports.main = async (event, context) => {
         post.originalImageUrls = post.originalImageUrls ? [post.originalImageUrls] : [];
       }
 
-      if (post.imageUrls.length > 0) {
-        post.imageUrls.forEach(url => {
-          if (url && url.startsWith('cloud://')) {
-            fileIDSet.add(url);
-          }
-        });
-      }
+      [...post.imageUrls, ...post.originalImageUrls].forEach(url => {
+        if (url && url.startsWith('cloud://')) {
+          fileIDSet.add(url);
+        }
+      });
     });
 
     if (userInfo.avatarUrl && userInfo.avatarUrl.startsWith('cloud://')) {
@@ -223,6 +221,9 @@ exports.main = async (event, context) => {
         posts.forEach((post) => {
           if (Array.isArray(post.imageUrls)) {
             post.imageUrls = post.imageUrls.map(url => (urlMap.has(url) ? urlMap.get(url) : url));
+          }
+          if (Array.isArray(post.originalImageUrls)) {
+            post.originalImageUrls = post.originalImageUrls.map(url => (urlMap.has(url) ? urlMap.get(url) : url));
           }
         });
 

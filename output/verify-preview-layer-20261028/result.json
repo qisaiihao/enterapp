@@ -1,0 +1,213 @@
+{
+  "previews": [
+    {
+      "current": "http://127.0.0.1:8081/__profile-preview/original-single.png",
+      "urls": [
+        "http://127.0.0.1:8081/__profile-preview/original-single.png"
+      ]
+    },
+    {
+      "current": "http://127.0.0.1:8081/__profile-preview/original-second.png",
+      "urls": [
+        "http://127.0.0.1:8081/__profile-preview/original-first.png",
+        "http://127.0.0.1:8081/__profile-preview/original-second.png"
+      ]
+    }
+  ],
+  "conversions": [
+    [
+      "cloud://preview-fixture/original-single.png"
+    ],
+    [
+      "cloud://preview-fixture/original-first.png",
+      "cloud://preview-fixture/original-second.png"
+    ]
+  ],
+  "fixturesLoaded": [
+    "thumb-single.png",
+    "thumb-first.png",
+    "thumb-second.png",
+    "original-single.png",
+    "original-first.png",
+    "original-second.png"
+  ],
+  "layerReports": [
+    {
+      "name": "single-original",
+      "route": "#/pages/profile/profile",
+      "previewZIndex": 10000,
+      "tabs": [
+        {
+          "text": "广场",
+          "x": 48.75,
+          "y": 812.8046875,
+          "hitTag": "UNI-MOVABLE-VIEW",
+          "inPreview": true,
+          "inTabBar": false,
+          "barZIndex": 1000
+        },
+        {
+          "text": "原创",
+          "x": 146.25,
+          "y": 812.8046875,
+          "hitTag": "UNI-MOVABLE-VIEW",
+          "inPreview": true,
+          "inTabBar": false,
+          "barZIndex": 1000
+        },
+        {
+          "text": "读诗",
+          "x": 243.75,
+          "y": 812.8046875,
+          "hitTag": "UNI-MOVABLE-VIEW",
+          "inPreview": true,
+          "inTabBar": false,
+          "barZIndex": 1000
+        },
+        {
+          "text": "我",
+          "x": 341.25,
+          "y": 812.8046875,
+          "hitTag": "UNI-MOVABLE-VIEW",
+          "inPreview": true,
+          "inTabBar": false,
+          "barZIndex": 1000
+        }
+      ]
+    },
+    {
+      "name": "restored-bottom-buttons",
+      "route": "#/pages/profile/profile",
+      "previewZIndex": null,
+      "tabs": [
+        {
+          "text": "广场",
+          "x": 48.75,
+          "y": 812.8046875,
+          "hitTag": "UNI-VIEW",
+          "inPreview": false,
+          "inTabBar": true,
+          "barZIndex": 1000
+        },
+        {
+          "text": "原创",
+          "x": 146.25,
+          "y": 812.8046875,
+          "hitTag": "IMG",
+          "inPreview": false,
+          "inTabBar": true,
+          "barZIndex": 1000
+        },
+        {
+          "text": "读诗",
+          "x": 243.75,
+          "y": 812.8046875,
+          "hitTag": "IMG",
+          "inPreview": false,
+          "inTabBar": true,
+          "barZIndex": 1000
+        },
+        {
+          "text": "我",
+          "x": 341.25,
+          "y": 812.8046875,
+          "hitTag": "UNI-VIEW",
+          "inPreview": false,
+          "inTabBar": true,
+          "barZIndex": 1000
+        }
+      ]
+    },
+    {
+      "name": "second-original",
+      "route": "#/pages/profile/profile",
+      "previewZIndex": 10000,
+      "tabs": [
+        {
+          "text": "广场",
+          "x": 48.75,
+          "y": 812.8046875,
+          "hitTag": "UNI-MOVABLE-VIEW",
+          "inPreview": true,
+          "inTabBar": false,
+          "barZIndex": 1000
+        },
+        {
+          "text": "原创",
+          "x": 146.25,
+          "y": 812.8046875,
+          "hitTag": "UNI-MOVABLE-VIEW",
+          "inPreview": true,
+          "inTabBar": false,
+          "barZIndex": 1000
+        },
+        {
+          "text": "读诗",
+          "x": 243.75,
+          "y": 812.8046875,
+          "hitTag": "UNI-MOVABLE-VIEW",
+          "inPreview": true,
+          "inTabBar": false,
+          "barZIndex": 1000
+        },
+        {
+          "text": "我",
+          "x": 341.25,
+          "y": 812.8046875,
+          "hitTag": "UNI-MOVABLE-VIEW",
+          "inPreview": true,
+          "inTabBar": false,
+          "barZIndex": 1000
+        }
+      ]
+    },
+    {
+      "name": "restored-bottom-buttons",
+      "route": "#/pages/profile/profile",
+      "previewZIndex": null,
+      "tabs": [
+        {
+          "text": "广场",
+          "x": 48.75,
+          "y": 812.8046875,
+          "hitTag": "UNI-VIEW",
+          "inPreview": false,
+          "inTabBar": true,
+          "barZIndex": 1000
+        },
+        {
+          "text": "原创",
+          "x": 146.25,
+          "y": 812.8046875,
+          "hitTag": "IMG",
+          "inPreview": false,
+          "inTabBar": true,
+          "barZIndex": 1000
+        },
+        {
+          "text": "读诗",
+          "x": 243.75,
+          "y": 812.8046875,
+          "hitTag": "IMG",
+          "inPreview": false,
+          "inTabBar": true,
+          "barZIndex": 1000
+        },
+        {
+          "text": "我",
+          "x": 341.25,
+          "y": 812.8046875,
+          "hitTag": "UNI-VIEW",
+          "inPreview": false,
+          "inTabBar": true,
+          "barZIndex": 1000
+        }
+      ]
+    },
+    {
+      "name": "normal-tab-switch",
+      "route": "#/pages/index/index"
+    }
+  ],
+  "errors": []
+}

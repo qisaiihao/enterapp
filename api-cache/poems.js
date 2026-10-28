@@ -14,6 +14,11 @@ export function peekOriginalPoems() {
   return cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 }).get(key);
 }
 
+export function getOriginalPoemsVersion() {
+  const key = buildCacheKey({ page: 0, pageSize: ORIGINAL_POEMS_PAGE_SIZE, isPoem: true, isOriginal: true });
+  return cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 }).getVersion(key);
+}
+
 export function peekMountainPoems({ pageSize = 10, filterByPoet } = {}) {
   const key = buildCacheKey({ page: 0, pageSize, isPoem: true, isOriginal: false, excludeAnonymous: true })
     + (filterByPoet ? `:author:${filterByPoet}` : '');
@@ -209,6 +214,7 @@ export {
 export default {
   ORIGINAL_POEMS_PAGE_SIZE,
   peekOriginalPoems,
+  getOriginalPoemsVersion,
   getFollowingPoems,
   invalidateFollowingPoems,
   getOriginalPoems,
@@ -219,6 +225,7 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     ORIGINAL_POEMS_PAGE_SIZE,
     peekOriginalPoems,
+    getOriginalPoemsVersion,
     getFollowingPoems,
     invalidateFollowingPoems,
     getOriginalPoems,

@@ -1,5 +1,5 @@
 <template>
-    <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')">
+    <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" :style="readFontVars">
         <!-- 右上角三个点菜单按钮 -->
         <view 
             v-if="showMenu" 
@@ -422,20 +422,24 @@ export default {
         },
         // 预览图片（单图/外层容器点击）
         onPreviewImage(e) {
+            const originals = Array.isArray(this.item.originalImageUrls) ? this.item.originalImageUrls : [];
+            const urls = this.item.imageUrls.map((url, index) => originals[index] || url);
             console.log('【PostItem】图片预览 - 单图:', {
                 src: this.item.imageUrls[0],
                 originalUrls: this.item.originalImageUrls,
                 compressedUrls: this.item.imageUrls
             });
             this.$emit('preview-image', {
-                src: this.item.imageUrls[0],
-                urls: this.item.originalImageUrls || this.item.imageUrls,
+                src: urls[0],
+                urls,
                 event: e
             });
         },
         // 预览图片（多图swiper内点击）
         onPreviewImageMulti(e) {
             const dataset = e.currentTarget.dataset;
+            const originals = Array.isArray(this.item.originalImageUrls) ? this.item.originalImageUrls : [];
+            const urls = this.item.imageUrls.map((url, index) => originals[index] || url);
             console.log('【PostItem】图片预览 - 多图:', {
                 clickedSrc: dataset.src,
                 originalUrls: this.item.originalImageUrls,
@@ -443,8 +447,8 @@ export default {
             });
             // 直接使用 item 中的原图数组，避免 dataset 转换问题
             this.$emit('preview-image', {
-                src: dataset.src,
-                urls: this.item.originalImageUrls || this.item.imageUrls,
+                src: urls[dataset.imgindex] || urls[this.item.imageUrls.indexOf(dataset.src)] || urls[0],
+                urls,
                 event: e
             });
         },
@@ -736,9 +740,9 @@ export default {
 }
 
 .post-content {
-    font-size: 28rpx;
+    font-size: var(--app-read-post-size, 28rpx);
     color: var(--app-post-content-color, #666666);
-    line-height: 1.6;
+    line-height: var(--app-read-post-line, 38rpx);
     margin-top: 15rpx;
     word-break: break-word;
     overflow: hidden;

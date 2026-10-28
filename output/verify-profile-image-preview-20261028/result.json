@@ -1,0 +1,35 @@
+{
+  "previews": [
+    {
+      "current": "http://127.0.0.1:8081/__profile-preview/original-single.png",
+      "urls": [
+        "http://127.0.0.1:8081/__profile-preview/original-single.png"
+      ]
+    },
+    {
+      "current": "http://127.0.0.1:8081/__profile-preview/original-second.png",
+      "urls": [
+        "http://127.0.0.1:8081/__profile-preview/original-first.png",
+        "http://127.0.0.1:8081/__profile-preview/original-second.png"
+      ]
+    }
+  ],
+  "conversions": [
+    [
+      "cloud://preview-fixture/original-single.png"
+    ],
+    [
+      "cloud://preview-fixture/original-first.png",
+      "cloud://preview-fixture/original-second.png"
+    ]
+  ],
+  "fixturesLoaded": [
+    "thumb-single.png",
+    "thumb-first.png",
+    "thumb-second.png",
+    "original-single.png",
+    "original-first.png",
+    "original-second.png"
+  ],
+  "errors": []
+}

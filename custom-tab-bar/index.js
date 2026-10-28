@@ -30,19 +30,32 @@ function normalizeTabIndex(index) {
   return Number.isNaN(nextIndex) ? null : nextIndex;
 }
 
+function readThemeState() {
+  let mode = 'light';
+  try {
+    mode = wx.getStorageSync(THEME_STORAGE_KEY) || 'light';
+  } catch (error) {}
+  const isDark = mode === 'dark';
+  const theme = isDark ? DARK_TAB_THEME : LIGHT_TAB_THEME;
+  return {
+    isDark,
+    color: theme.color,
+    selectedColor: theme.selectedColor,
+    tabBarStyle: `background: ${theme.backgroundColor};`,
+    iconWrapStyle: theme.iconWrapStyle,
+    iconWrapActiveStyle: theme.iconWrapActiveStyle,
+    iconInnerStyle: theme.iconInnerStyle
+  };
+}
+
 Component({
   data: {
     selected: 0,
-    color: '#999999',
-    selectedColor: '#000000',
     lastTapTime: 0,
     lastTapIndex: -1,
     doubleTapThreshold: 300,
-    tabBarStyle: '',
-    isDark: false,
-    iconWrapStyle: LIGHT_TAB_THEME.iconWrapStyle,
-    iconWrapActiveStyle: LIGHT_TAB_THEME.iconWrapActiveStyle,
-    iconInnerStyle: LIGHT_TAB_THEME.iconInnerStyle,
+    // 冷启动先使用已保存主题；每个新实例在 attached 再同步最新状态。
+    ...readThemeState(),
     list: [
       {
         pagePath: '/pages/index/index',
@@ -80,21 +93,13 @@ Component({
   },
   
   attached() {
-    console.log('=== Custom TabBar attached ===');
-    console.log('TabBar initial selected:', this.data.selected);
-    this.updateTheme();
-    this.updateSafeAreaBottom();
-    // 初始化时同步当前页面
-    this.syncSelectedFromCurrentPage();
+    // 一次提交背景、图标和选中项，避免新 Tab 先画出白底或错误选中态。
+    this.syncPresentation();
   },
   
   pageLifetimes: {
     show() {
-      // 页面显示时同步选中状态
-      console.log('=== TabBar pageLifetimes.show ===');
-      this.updateTheme();
-      this.updateSafeAreaBottom();
-      this.syncSelectedFromCurrentPage();
+      this.syncPresentation();
     }
   },
   
@@ -129,54 +134,30 @@ Component({
       }
     },
 
-    updateTheme() {
-      let mode = 'light';
-      try {
-        mode = wx.getStorageSync(THEME_STORAGE_KEY) || 'light';
-      } catch (error) {}
-
-      const isDark = mode === 'dark';
-      const theme = isDark ? DARK_TAB_THEME : LIGHT_TAB_THEME;
-      this.setData({
-        isDark,
-        color: theme.color,
-        selectedColor: theme.selectedColor,
-        iconWrapStyle: theme.iconWrapStyle,
-        iconWrapActiveStyle: theme.iconWrapActiveStyle,
-        iconInnerStyle: theme.iconInnerStyle
-      }, () => {
-        this.updateSafeAreaBottom();
+    applyPresentation(nextState) {
+      const changed = {};
+      Object.keys(nextState).forEach(key => {
+        if (this.data[key] !== nextState[key]) changed[key] = nextState[key];
       });
+      if (Object.keys(changed).length) this.setData(changed);
     },
 
-    updateSafeAreaBottom() {
-      try {
-        const theme = this.data.isDark ? DARK_TAB_THEME : LIGHT_TAB_THEME;
-        const tabBarStyle = `background: ${theme.backgroundColor};`;
-
-        if (tabBarStyle !== this.data.tabBarStyle) {
-          this.setData({ tabBarStyle });
-        }
-      } catch (error) {
-        if (this.data.tabBarStyle) {
-          this.setData({ tabBarStyle: '' });
-        }
-      }
+    updateTheme() {
+      this.applyPresentation(readThemeState());
     },
 
-    // 根据当前页面路径同步选中状态
-    syncSelectedFromCurrentPage(options = {}) {
+    syncPresentation(options = {}) {
       const routeIndex = this.resolveSelectedFromCurrentPage();
       const cachedIndex = this.getCachedSelected();
       const nextIndex = routeIndex !== null ? routeIndex : cachedIndex;
-
-      if (nextIndex !== null && nextIndex !== this.data.selected) {
-        this.setData({ selected: nextIndex });
-      }
+      this.applyPresentation({
+        ...readThemeState(),
+        ...(nextIndex !== null ? { selected: nextIndex } : {})
+      });
 
       if (routeIndex === null && !options.retry) {
         setTimeout(() => {
-          this.syncSelectedFromCurrentPage({ retry: true });
+          this.syncPresentation({ retry: true });
         }, 0);
       }
     },

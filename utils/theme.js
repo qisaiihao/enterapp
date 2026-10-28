@@ -278,6 +278,23 @@ export function applyNativeThemeChrome(mode = getThemeMode()) {
     }
   } catch (error) {}
 
+  // #ifdef APP-PLUS
+  try {
+    // App-vue 不支持 uni.setBackgroundColor，CSS 也不会改变原生窗口的初始白底。
+    // 每个页面有自己的 WebView，新页面须独立同步，不能按全局主题去重。
+    if (typeof plus !== 'undefined' && typeof getCurrentPages === 'function') {
+      const pages = getCurrentPages();
+      const page = pages[pages.length - 1];
+      const webview = page?.$getAppWebview?.() || page?.$vm?.$getAppWebview?.();
+      webview?.setStyle?.({
+        background: backgroundColor,
+        backgroundColorTop: backgroundColor,
+        backgroundColorBottom: backgroundColor
+      });
+    }
+  } catch (error) {}
+  // #endif
+
   // #ifndef MP-WEIXIN
   try {
     if (typeof uni !== 'undefined' && typeof uni.setTabBarStyle === 'function') {

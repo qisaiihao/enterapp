@@ -305,7 +305,7 @@ export default {
 }
 .custom-back-btn {
   position: absolute;
-  top: calc(60rpx + env(safe-area-inset-top, 0px));
+  top: calc(60rpx + var(--collage-safe-top, env(safe-area-inset-top, 0px)));
   left: 30rpx;
   width: 80rpx;
   height: 80rpx;
@@ -327,7 +327,7 @@ export default {
   height: 38rpx;
 }
 .header {
-  padding: calc(70rpx + env(safe-area-inset-top, 0px)) 20rpx 6rpx;
+  padding: calc(70rpx + var(--collage-safe-top, env(safe-area-inset-top, 0px))) 20rpx 6rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;

@@ -91,7 +91,9 @@ async function refreshActivityBadge({ forceRefresh = false, context } = {}) {
       pageSize: 1,
       scene: 'recent',
       context,
-      forceRefresh: !!forceRefresh
+      forceRefresh: !!forceRefresh,
+      // 红点是后台辅助刷新，失败保留当前状态，不打断首屏阅读。
+      silent: true
     });
 
     const activities = Array.isArray(result && result.activities) ? result.activities : [];

@@ -1,4 +1,7 @@
 <template>
+  <!-- #ifdef MP-WEIXIN -->
+  <page-meta :page-style="'background-color: ' + appThemeVars['--app-page-bg'] + ';'" />
+  <!-- #endif -->
   <view class="mountain white-bg" :data-app-theme="appThemeMode" :style="[appThemeVars, readFontVars]" @touchstart="touchStart" @touchend="touchEnd">
     <!-- 顶部栏 -->
     <top-bar @safe-area-ready="onSafeAreaReady" />

@@ -242,12 +242,16 @@ export default {
 }
 
 .material-image {
-    height: 150rpx;
+    position: relative;
+    aspect-ratio: 3 / 1;
     border-radius: 10rpx;
     background: repeating-conic-gradient(#e9e9e3 0% 25%, #fafaf7 0% 50%) 0 / 14px 14px;
 }
 
 .material-image image {
+    position: absolute;
+    top: 0;
+    left: 0;
     display: block;
     width: 100%;
     height: 100%;

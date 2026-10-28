@@ -1,7 +1,8 @@
-const LEADING_POEM_SPACE_RE = /^[\t \u00A0\u1680\u180E\u2000-\u200D\u2028\u2029\u202F\u205F\u2060\u3000\uFEFF]+/;
+const BLANK_POEM_LINE_RE = /^[\t \u00A0\u1680\u180E\u2000-\u200D\u2028\u2029\u202F\u205F\u2060\u3000\uFEFF]+$/;
 
 function normalizePoemDisplayLine(line = '') {
-  return String(line || '').replace(LEADING_POEM_SPACE_RE, '');
+  // 仅规范纯空白行；内容行的缩进属于诗歌排版，必须与详情页原文一致。
+  return String(line || '').replace(BLANK_POEM_LINE_RE, '');
 }
 
 function trimLeadingBlankLines(lines = []) {

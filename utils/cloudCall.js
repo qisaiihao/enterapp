@@ -186,7 +186,7 @@ export async function cloudCall(name, data = {}, options = {}) {
     for (let attempt = 1; attempt <= totalAttempts; attempt += 1) {
         try {
             const logPayload = Object.assign({}, payload);
-            ['password', 'newPassword', 'confirmPassword', 'code'].forEach(key => {
+            ['password', 'oldPassword', 'newPassword', 'confirmPassword', 'code'].forEach(key => {
                 if (Object.prototype.hasOwnProperty.call(logPayload, key)) logPayload[key] = '***';
             });
             if (name === 'adminManager' && payload.action === 'submitPostReport') {

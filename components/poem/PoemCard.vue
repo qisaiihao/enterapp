@@ -2,7 +2,7 @@
   <view
     v-if="post"
     :class="['poem-card', isSeries && !seriesExpanded ? 'stacked-series-card' : '']"
-    :style="{ backgroundColor: cardBackgroundColor }"
+    :style="[readFontVars, { backgroundColor: cardBackgroundColor }]"
   >
     <view
       v-if="isSeries && !seriesExpanded"
@@ -329,8 +329,8 @@ export default {
   font-family: 'Huiwen-mincho', '汇文明朝', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   font-style: normal;
   font-weight: 500;
-  font-size: 28rpx;
-  line-height: 38rpx;
+  font-size: var(--app-read-post-size, 28rpx);
+  line-height: var(--app-read-post-line, 38rpx);
   margin: 30rpx 0;
   width: 100%;
   overflow-wrap: break-word;

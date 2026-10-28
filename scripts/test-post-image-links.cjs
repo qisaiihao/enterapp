@@ -114,5 +114,62 @@ function esModule(file, globals, names) {
   assert.equal(sent.data.rawImages, true);
   assert.equal(input.rawImages, undefined, 'caller input remains unchanged');
   assert.equal(response.result.posts[0].authorAvatar, 'https://client.example/2/shared.png', 'cloudCall resolves before passing data to pages');
-  console.log('[test-post-image-links] PASS: five real endpoints, 1.7.0 HTTPS compatibility, raw opt-in, shared batches, reuse, source preservation/renewal and changed images');
+
+  // Old profile snapshots may still contain cloud:// originals while thumbnails are HTTPS.
+  const previews = [], toasts = [];
+  const previewBox = { fileUrlCache: urls, uni: {
+    previewImage(options) { previews.push(options); return 'opened'; },
+    showToast(options) { toasts.push(options.title); }
+  } };
+  const previewSource = read('utils/imagePreview.js').replace(/^import .*;\r?$/gm, '')
+    .replace(/export \{[^}]*\};?/g, '').replace('export default {', 'const defaultExport = {');
+  vm.runInNewContext(previewSource + '\nthis.preview = previewImage;', previewBox);
+  const preview = previewBox.preview;
+  assert.equal(preview(null), false);
+  assert.equal(toasts.length, 1);
+  assert.equal(preview(null, { fallbackToast: false }), false);
+  assert.equal(toasts.length, 1);
+  const publicUrls = ['https://public.example/photo.png', '/local/photo.png'];
+  assert.equal(preview({ current: publicUrls[1], urls: publicUrls }), 'opened', 'HTTPS/local previews remain synchronous');
+  assert.deepEqual(Array.from(previews.pop().urls), publicUrls);
+
+  const original = 'cloud://test/original.png';
+  const oldSnapshot = JSON.parse(JSON.stringify({ current: original, urls: [original, publicUrls[0]] }));
+  const beforePreview = batches;
+  const opening = preview(oldSnapshot);
+  assert.equal(previews.length, 0, 'wait for original URL resolution before opening the gallery');
+  assert.equal(await opening, 'opened');
+  const resolvedPreview = previews.pop();
+  assert.equal(resolvedPreview.current, 'https://client.example/2/original.png');
+  assert.deepEqual(Array.from(resolvedPreview.urls), ['https://client.example/2/original.png', publicUrls[0]]);
+  assert.equal(oldSnapshot.urls[0], original, 'preview does not mutate saved snapshots');
+  assert.equal(batches, beforePreview + 1);
+  await preview(oldSnapshot); previews.pop();
+  assert.equal(batches, beforePreview + 1, 'repeated previews reuse the unified URL cache');
+
+  const missing = 'cloud://test/missing.png';
+  urls.setResolver(async () => ({}));
+  assert.equal(await preview({ current: missing, urls: [missing] }), false);
+  assert.equal(previews.length, 0, 'unresolved cloud IDs must not reach the gallery');
+  urls.setResolver(async ids => Object.fromEntries(ids.map(id => [id, { url: 'https://retry.example/original.png' }])));
+  await preview({ current: missing, urls: [missing] });
+  assert.equal(previews.pop().current, 'https://retry.example/original.png', 'failed URL lookup can retry');
+
+  const componentBox = { console: quiet };
+  const componentSource = read('components/PostItem.vue').match(/<script>([\s\S]*?)<\/script>/)[1]
+    .replace(/^import .*;\r?$/gm, '').replace('export default', 'this.component =');
+  vm.runInNewContext(componentSource, componentBox);
+  const emitted = [];
+  const item = { imageUrls: ['https://thumb.example/1.png', 'https://thumb.example/2.png'],
+    originalImageUrls: ['cloud://test/first-original.png', original] };
+  const ctx = { item, $emit: (name, payload) => emitted.push({ name, payload }) };
+  componentBox.component.methods.onPreviewImageMulti.call(ctx, { currentTarget: { dataset: { src: item.imageUrls[1], imgindex: 1 } } });
+  assert.equal(emitted[0].name, 'preview-image');
+  assert.equal(emitted[0].payload.src, original, 'tapping the second thumbnail selects its original');
+  await preview({ current: emitted[0].payload.src, urls: emitted[0].payload.urls });
+  assert.equal(previews.pop().current, 'https://client.example/2/original.png');
+  ctx.item = { imageUrls: [publicUrls[0]], originalImageUrls: [] };
+  componentBox.component.methods.onPreviewImage.call(ctx, {});
+  assert.deepEqual(Array.from(emitted[1].payload.urls), [publicUrls[0]], 'empty originals fall back to display images');
+  console.log('[test-post-image-links] PASS: five real endpoints, 1.7.0 HTTPS compatibility, raw opt-in, shared batches, reuse, renewal, cached profile original previews, lookup retry and clicked-image selection');
 })().catch(error => { console.error(error); process.exitCode = 1; });

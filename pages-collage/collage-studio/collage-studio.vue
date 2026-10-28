@@ -1,10 +1,11 @@
 <template>
-  <view class="studio" :class="{ 'cut-screen': activeTab === 'cut' }" :style="mpNavStyle">
+  <view class="studio" :class="{ 'cut-screen': activeTab === 'cut', 'library-screen': activeTab === 'library' }" :style="mpNavStyle" @tap="clearMaterialSelection">
     <view class="studio-nav">
       <button class="back" aria-label="返回" @tap="goBack">‹</button>
       <view class="tabs">
         <button v-for="tab in tabs" :key="tab.id" :class="{ active: activeTab === tab.id }" :disabled="isBusy" @tap="switchTab(tab.id)">{{ tab.name }}</button>
       </view>
+      <StudioHelp :tab="activeTab" />
     </view>
     <view v-if="error" class="notice" role="alert">{{ error }}</view>
     <view v-if="savingError" class="notice">{{ savingError }}<button size="mini" @tap="persist">重试保存</button></view>
@@ -22,11 +23,11 @@
       <view v-if="!currentSource" class="empty" @tap="importImage"><text class="empty-mark">＋</text><text>导入一页书、一张试卷或一张照片</text><text class="muted">框选喜欢的文字和图案，存成自己的纸片</text></view>
       <template v-else>
         <view class="row mode-row">
-          <button size="mini" :class="{ selected: mode === 'manual' }" :disabled="isBusy" @tap="setMode('manual')">手动框选</button>
-          <button size="mini" :class="{ selected: mode === 'ocr' }" :disabled="isBusy" @tap="setMode('ocr')">识字选取</button>
+          <button size="mini" aria-label="手动框选" :class="{ selected: mode === 'manual' }" :disabled="isBusy" @tap="setMode('manual')">框选</button>
+          <button size="mini" aria-label="识字选取" :class="{ selected: mode === 'ocr' }" :disabled="isBusy" @tap="setMode('ocr')">选字</button>
+          <text v-if="mode === 'manual'" class="mode-hint">{{ pan ? '滑动查看图片' : '框出喜欢的文字' }}</text>
         </view>
         <template v-if="mode === 'manual'">
-        <text class="hint">{{ pan ? '滑动查看图片，双指缩放；关闭移动后可以框选' : '单指框选、移动选框或拖动四角；双指缩放、移动图片' }}</text>
         <view class="image-scroll" @touchstart.stop.prevent="startSourceTouch" @touchmove.stop.prevent="moveSourceTouch" @touchend.stop="endSourceTouch" @touchcancel.stop="cancelSourceTouch"
           @mousedown="startCrop($event, 'draw')" @mousemove="moveCrop" @mouseup="endCrop" @mouseleave="endCrop">
           <view id="collage-source-stage" class="source-stage" :style="sourceStageStyle">
@@ -36,7 +37,7 @@
             <view v-for="corner in corners" :key="corner" :class="['handle', corner]" @touchstart.stop.prevent="startSourceTouch($event, corner)" @mousedown.stop="startCrop($event, corner)" />
           </view>
         </view>
-        <view class="row"><text class="muted">放大 {{ zoom }}%</text><slider class="grow zoom-slider" :min="100" :max="300" :value="zoom" :disabled="isBusy" activeColor="#3d5547" @changing="changeZoom($event, true)" @change="changeZoom" @touchcancel="zoomGesture = null"/><button size="mini" :class="{ selected: pan }" @tap="togglePan">{{ pan ? '框选' : '移动' }}</button><button size="mini" :disabled="isBusy" @tap="rotateSource">旋转</button></view>
+        <view class="row source-tools"><text class="muted zoom-value">{{ zoom }}%</text><slider class="grow zoom-slider" :min="100" :max="300" :value="zoom" :disabled="isBusy" activeColor="#3d5547" @changing="changeZoom($event, true)" @change="changeZoom" @touchcancel="zoomGesture = null"/><StudioIconButton icon="/static/images/collage-tools/move.png" :label="pan ? '框选' : '移动'" :selected="pan" :disabled="isBusy" @action="togglePan" /><StudioIconButton icon="/static/images/collage-tools/rotate.png" label="旋转" :disabled="isBusy" @action="rotateSource" /></view>
         </template>
 
         <view v-if="mode === 'ocr'" class="ocr-panel">
@@ -68,12 +69,11 @@
 
         <view class="cut-settings">
           <view class="edge-controls">
-            <view class="row edge-options"><button v-for="edge in edges" :key="edge.id" size="mini" :disabled="isBusy" :class="{ selected: edgeStyle === edge.id }" @tap="setEdge(edge.id)">{{ edge.name }}</button></view>
+            <view class="row edge-options"><button v-for="edge in edges" :key="edge.id" class="edge-option" size="mini" :disabled="isBusy" :class="{ selected: edgeStyle === edge.id }" :aria-label="edge.name" @tap="setEdge(edge.id)"><view class="edge-sample" :class="'edge-sample--' + edge.id" /><text>{{ edge.name }}</text></button><StudioIconButton v-if="edgeStyle === 'torn'" class="reroll-edge" icon="/static/images/collage-tools/shuffle.png" label="换一种撕边" :disabled="isBusy || !crop" @action="rerollTornEdge" /></view>
             <view v-if="mode === 'ocr'" class="row padding-row"><text class="muted">留白 {{ padding }} px</text><slider class="grow padding-slider" :min="0" :max="48" :value="padding" :disabled="isBusy" activeColor="#3d5547" @changing="setPadding" @change="setPadding"/></view>
           </view>
           <view class="cut-preview" :class="{ 'preview-empty': !cutPreview }"><image v-if="cutPreview" :src="cutPreview" mode="aspectFit" /></view>
           <view class="row cut-actions">
-            <button v-if="edgeStyle === 'torn'" class="grow" :disabled="isBusy || !crop" @tap="rerollTornEdge">换一种撕边</button>
             <button class="primary grow" :disabled="isBusy || (!crop && !(mode === 'ocr' && ocrSelections.length))" :loading="busy === 'save-cut'" @tap="saveCut">{{ mode === 'ocr' && ocrSelections.length > 1 ? '一次制作 ' + ocrSelections.length + ' 张' : '加入素材库' }}</button>
           </view>
         </view>
@@ -81,24 +81,27 @@
     </view>
 
     <view v-show="activeTab === 'library'" class="section">
-      <view class="row spread"><text class="section-title">我的纸片 · {{ workspace.materials.length }}</text><button size="mini" @tap="switchTab('cut')">继续裁切</button></view>
-      <text class="hint">素材保存在当前设备，清理应用数据会移除素材和草稿。</text>
+      <view class="row spread library-header">
+        <text class="section-title">我的纸片 · {{ workspace.materials.length }}</text>
+        <view class="row library-header-actions">
+          <view v-if="selectedMaterial" class="material-actions">
+            <StudioIconButton icon="/static/images/newicons/add.png" label="放到画布" :disabled="isBusy || !urls[selectedMaterial.id]" @action="addToBoard(selectedMaterial)" />
+            <StudioIconButton icon="/static/images/newicons/delete.png" label="删除" :disabled="isBusy" @action="deleteMaterial(selectedMaterial)" />
+          </view>
+          <StudioIconButton icon="/static/images/collage-tools/scissors.png" label="继续裁切" :disabled="isBusy" @action="switchTab('cut')" />
+        </view>
+      </view>
       <view v-if="!workspace.materials.length" class="empty"><text>还没有纸片</text><text class="muted">先从一张图片里剪下喜欢的部分</text></view>
       <view class="material-grid">
-        <view v-for="material in workspace.materials" :key="material.id" class="material-card">
-          <view class="material-image"><image :src="urls[material.id]" mode="aspectFit" @tap="addToBoard(material)" /></view>
-          <view class="material-actions">
-            <button class="material-action" aria-label="放到画布" :disabled="isBusy || !urls[material.id]" hover-class="none" @tap="addToBoard(material)"><image src="/static/images/newicons/add.png" mode="aspectFit" /></button>
-            <button class="material-action" aria-label="删除" :disabled="isBusy" hover-class="none" @tap="deleteMaterial(material)"><image src="/static/images/newicons/delete.png" mode="aspectFit" /></button>
-          </view>
+        <view v-for="(material, index) in workspace.materials" :key="material.id" class="material-card" :class="{ selected: selectedMaterialId === material.id }" role="button" :aria-label="'纸片 ' + (index + 1)" :aria-pressed="selectedMaterialId === material.id" @tap.stop="selectMaterial(material)">
+          <view class="material-image"><image :src="urls[material.id]" mode="aspectFit" /></view>
         </view>
       </view>
       <view class="official-section">
         <view class="row spread">
           <text class="section-title">官方纸片</text>
-          <button size="mini" :disabled="isBusy || officialLibraries.paper.loading" @tap="openOfficialPicker('paper')">{{ officialLibraries.paper.loading ? '加载中…' : '打开素材库' }}</button>
+          <StudioIconButton icon="/static/images/newicons/library.png" label="打开素材库" text="素材" :disabled="isBusy || officialLibraries.paper.loading" :loading="officialLibraries.paper.loading" @action="openOfficialPicker('paper')" />
         </view>
-        <text class="hint">按分组挑选官方纸片，加入画布后会保存到本机素材库，可继续移动和缩放。</text>
         <text v-if="officialLibraries.paper.error" class="official-error">{{ officialLibraries.paper.error }}</text>
       </view>
     </view>
@@ -127,13 +130,13 @@
       <view class="row background-row">
         <view class="row background-colors"><text class="muted">底纸</text><view v-for="color in backgrounds" :key="color" class="swatch" :class="{ chosen: !workspace.backgroundImage && workspace.background === color }" :style="{ background: color }" @tap="setBackground(color)"/></view>
         <view class="row layer-actions">
-          <button size="mini" :disabled="isBusy || !selectedItem" @tap="layerItem(true)">置顶</button>
-          <button size="mini" :disabled="isBusy || !selectedItem" @tap="layerItem(false)">置底</button>
-          <button size="mini" :disabled="isBusy || !selectedItem" @tap="removeItem">删除</button>
+          <StudioIconButton icon="/static/images/collage-tools/bring-front.png" label="置顶" :disabled="isBusy || !selectedItem" @action="layerItem(true)" />
+          <StudioIconButton icon="/static/images/collage-tools/send-back.png" label="置底" :disabled="isBusy || !selectedItem" @action="layerItem(false)" />
+          <StudioIconButton icon="/static/images/newicons/delete.png" label="删除" :disabled="isBusy || !selectedItem" @action="removeItem" />
         </view>
       </view>
       <scroll-view scroll-x class="board-tray"><view class="source-thumbs"><image v-for="material in workspace.materials" :key="material.id" :src="urls[material.id]" mode="aspectFit" @tap="addToBoard(material, false)" /></view></scroll-view>
-      <view class="row"><button class="grow" :disabled="isBusy || !workspace.items.length" :loading="busy === 'export'" @tap="downloadImage">下载</button><button class="primary grow" :disabled="isBusy || !workspace.items.length" :loading="busy === 'export'" @tap="publishImage">发布</button></view>
+      <view class="row export-actions"><StudioIconButton class="download-button grow" icon="/static/images/newicons/save_share.png" label="下载" text="下载" :disabled="isBusy || !workspace.items.length" :loading="busy === 'export'" @action="downloadImage" /><button class="primary grow" :disabled="isBusy || !workspace.items.length" :loading="busy === 'export'" @tap="publishImage">发布</button></view>
       <view v-if="exportedImage" class="export-panel"><image :src="exportedImage" mode="widthFix" @tap="previewExport"/><text class="hint">作品图片 900 × 1200，下载和发布都会按当前画布重新生成</text></view>
     </view>
     <view v-if="busy" class="busy">{{ busyText }}</view>
@@ -156,16 +159,18 @@ import { createCollageLogger } from '@/utils/collage/debug.js';
 import { getCollageNavStyle } from '@/utils/collage/nav.js';
 import AppActionSheet from '@/components/overlay/AppActionSheet.vue';
 import OfficialMaterialPicker from '@/components/OfficialMaterialPicker.vue';
+import StudioIconButton from '@/components/collage/StudioIconButton.vue';
+import StudioHelp from '@/components/collage/StudioHelp.vue';
 
 const log = createCollageLogger('studio');
 
 export default {
-  components: { AppActionSheet, OfficialMaterialPicker },
+  components: { AppActionSheet, OfficialMaterialPicker, StudioIconButton, StudioHelp },
   data() {
     return {
       tabs: [{ id: 'cut', name: '裁切' }, { id: 'library', name: '素材库' }, { id: 'board', name: '拼贴' }],
       edges: [{ id: 'straight', name: '直切' }, { id: 'scissors', name: '剪纸' }, { id: 'torn', name: '撕纸' }],
-      corners: ['nw', 'ne', 'sw', 'se'], backgrounds: ['#f5f0e6', '#ffffff', '#dfdfd6', '#d9e2dc', '#292b29'],
+      corners: ['nw', 'ne', 'sw', 'se'], backgrounds: ['#f5f0e6', '#ffffff', '#d9e2dc', '#292b29'],
       backgroundSheetItems: [
         { text: '上传自己的图片', description: '从相册或相机选择一张图片' },
         { text: '使用素材库', description: '从官方背景素材中选择' }
@@ -182,7 +187,7 @@ export default {
       edgeStyle: 'torn', padding: 6, edgeSeed: 1, edgeVersion: 2, lastSavedEdgeSeed: null, materialName: '', cutPreview: '', selection: null, ocrSelections: [], batchProgress: null,
       previewTimer: null, previewTask: null, previewRevision: 0, previewQueued: false,
       busy: '', error: '', savingError: '', renderWidth: 1, renderHeight: 1, history: [], redoHistory: [],
-      selectedItemId: '', itemGesture: null, itemAdjustment: null, exportedImage: '', disposed: false,
+      selectedItemId: '', selectedMaterialId: '', itemGesture: null, itemAdjustment: null, exportedImage: '', disposed: false,
       mpNavStyle: null
     };
   },
@@ -212,6 +217,7 @@ export default {
     officialPickerEmptyText() { return this.officialPickerType === 'background' ? '官方素材库暂时没有背景' : '官方素材库暂时没有纸片'; },
     officialPickerSelectedId() { return this.officialPickerType === 'background' ? (this.workspace.backgroundImage?.officialId || '') : ''; },
     selectedItem() { return this.workspace.items.find(item => item.id === this.selectedItemId); },
+    selectedMaterial() { return this.workspace.materials.find(material => material.id === this.selectedMaterialId); },
     busyText() { if (this.batchProgress) return `正在制作纸片 ${this.batchProgress.current}/${this.batchProgress.total}…`; return ({ import: '正在准备图片…', rotate: '正在旋转图片…', background: '正在准备背景…', official: '正在获取官方素材…', ocr: '正在识别文字…', 'delete-source': '正在删除原图…', 'save-cut': '正在保存纸片…', preview: '正在生成预览…', export: '正在导出作品…', load: '正在打开素材库…' })[this.busy] || '正在处理…'; }
   },
   watch: {
@@ -243,7 +249,7 @@ export default {
     async restore() {
       await this.run('load', async () => {
         this.cleanupStaleBackgroundFiles();
-        releaseFiles(); this.urls = {}; this.history = []; this.redoHistory = []; this.exportedImage = ''; this.selectedItemId = '';
+        releaseFiles(); this.urls = {}; this.history = []; this.redoHistory = []; this.exportedImage = ''; this.selectedItemId = ''; this.selectedMaterialId = '';
         this.storageKey = workspaceKey(); this.workspace = loadWorkspace(this.storageKey);
         log.info('恢复本机草稿', { storageKey: this.storageKey, sources: this.workspace.sources.length, materials: this.workspace.materials.length, items: this.workspace.items.length });
         for (const item of [...this.workspace.sources, ...this.workspace.materials]) {
@@ -257,7 +263,9 @@ export default {
       });
     },
     goBack() { log.debug('返回上一页'); if (!this.busy && !this.savingError) uni.navigateBack(); },
-    switchTab(tab) { if (this.busy) return; log.debug('切换标签', { tab }); this.cancelSourceTouch(); this.activeTab = tab; if (tab === 'library' && !this.officialLibraries.paper.loaded) this.loadOfficialLibrary('paper'); this.$nextTick(() => this.measureSource()); },
+    switchTab(tab) { if (this.busy) return; log.debug('切换标签', { tab }); this.cancelSourceTouch(); this.selectedMaterialId = ''; this.activeTab = tab; if (tab === 'library' && !this.officialLibraries.paper.loaded) this.loadOfficialLibrary('paper'); this.$nextTick(() => this.measureSource()); },
+    selectMaterial(material) { if (this.busy || !material) return; this.selectedMaterialId = this.selectedMaterialId === material.id ? '' : material.id; },
+    clearMaterialSelection() { if (!this.busy && this.activeTab === 'library') this.selectedMaterialId = ''; },
     async importImage() {
       if (this.busy) return;
       log.info('选择原图');
@@ -605,10 +613,11 @@ export default {
       });
     },
     async deleteMaterial(material) {
-      if (this.busy) return;
+      if (this.busy || !material) return;
       log.info('删除纸片', { materialId: material.id });
       if (!await this.confirm('删除这张纸片，并从当前画布中移除？')) { log.debug('取消删除纸片', { materialId: material.id }); return; }
       this.workspace.materials = this.workspace.materials.filter(item => item.id !== material.id);
+      if (this.selectedMaterialId === material.id) this.selectedMaterialId = '';
       this.workspace.items = this.workspace.items.filter(item => item.materialId !== material.id);
       this.history = []; this.redoHistory = []; this.exportedImage = '';
       if (this.persist()) { delete this.urls[material.id]; await removeFile(material.file); }
@@ -626,6 +635,7 @@ export default {
     undo() { if (this.busy || !this.history.length) return; log.debug('画布后退', { history: this.history.length }); this.redoHistory.push(this.boardSnapshot()); this.restoreBoardSnapshot(this.history.pop()); },
     redo() { if (this.busy || !this.redoHistory.length) return; log.debug('画布前进', { redo: this.redoHistory.length }); this.history.push(this.boardSnapshot()); this.restoreBoardSnapshot(this.redoHistory.pop()); },
     addToBoard(material, navigate = true) {
+      if (!material) return;
       if (this.busy || !this.urls[material.id]) { log.warn('纸片无法放到画布', { materialId: material.id, busy: this.busy, hasUrl: !!this.urls[material.id] }); return; }
       if (this.workspace.items.length >= 60) { log.warn('画布已达 60 张上限'); this.error = '一张画布最多放 60 张纸片'; return; }
       this.checkpoint(); const width = Math.min(360, material.width, 500 * material.width / material.height);
@@ -830,22 +840,16 @@ export default {
 </script>
 
 <style scoped>
-.studio { min-height: 100vh; background: #faf8f3; color: #343b34; padding: calc(8px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom)); box-sizing: border-box; }
+.studio { min-height: 100vh; background: #faf8f3; color: #343b34; padding: calc(8px + var(--collage-safe-top, env(safe-area-inset-top, 0px))) 16px calc(24px + env(safe-area-inset-bottom)); box-sizing: border-box; }
 .studio-nav, .row, .tabs { display: flex; align-items: center; gap: 10px; }
-.studio-nav { max-width: 640px; margin: 0 auto 12px; border-bottom: 1px solid #deded3; }
+.studio-nav { max-width: 640px; margin: 0 auto 12px; gap: 8px; border-bottom: 1px solid #deded3; }
 button { margin: 0; background: #eeeee5; color: #3e4b3e; border-radius: 8px; font-size: 13px; padding: 0 12px; }
 button::after { border: 0; }
 button[disabled] { opacity: .45; }
 .back { flex-shrink: 0; font-size: 30px; line-height: 40px; width: 28px; padding: 0; background: transparent; }
-.tabs { flex: 1; min-width: 0; }
+.tabs { flex: 1; min-width: 0; gap: 6px; }
 .tabs button { flex: 1; background: transparent; border-radius: 0; line-height: 40px; padding: 0; color: #8a8e82; }
 .tabs .active { color: #304d3b; border-bottom: 2px solid #304d3b; }
-/* #ifdef MP-WEIXIN */
-/* 小程序端：避开刘海屏和右上角胶囊按钮，返回按钮与切换栏紧凑靠左 */
-.studio { padding-top: var(--collage-nav-top, calc(8px + env(safe-area-inset-top))); }
-.studio-nav { padding-right: var(--collage-capsule-right, 200rpx); }
-.tabs button { flex: 0 1 auto; min-width: 0; padding: 0 8px; white-space: nowrap; }
-/* #endif */
 .section, .notice { max-width: 640px; margin: 0 auto; }
 .spread { justify-content: space-between; }
 .grow { flex: 1; min-width: 0; }
@@ -867,7 +871,10 @@ button[disabled] { opacity: .45; }
 .chosen { border: 2px solid #3d5547 !important; }
 .empty { min-height: 280px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; text-align: center; border: 1px dashed #d5d8c9; border-radius: 12px; margin-top: 18px; font-size: 14px; }
 .empty-mark { font-size: 36px; color: #899980; }
-.mode-row { flex-wrap: wrap; }
+.mode-row { flex-wrap: wrap; margin-bottom: 10px; }
+.mode-hint { flex: 1; font-size: 12px; color: #858a7d; text-align: right; white-space: nowrap; }
+.source-tools { gap: 6px; margin-top: 4px; }
+.zoom-value { min-width: 34px; font-variant-numeric: tabular-nums; }
 .selected, .primary { background: #3d5547; color: #fff; }
 .image-scroll { position: relative; overflow: hidden; height: 360px; width: 100%; background: #e4e2da; border-radius: 6px; touch-action: none; }
 .source-stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; user-select: none; touch-action: none; will-change: transform; }
@@ -880,6 +887,13 @@ button[disabled] { opacity: .45; }
 .cut-settings > .row { margin-top: 8px; }
 .cut-actions { gap: 8px; }
 .cut-actions button { padding: 0 8px; white-space: nowrap; }
+.edge-options { gap: 6px; }
+.edge-option { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 0 8px; line-height: 40px; }
+.edge-sample { flex-shrink: 0; width: 22px; height: 9px; background: currentColor; opacity: .8; }
+.edge-sample--straight { clip-path: polygon(0 25%, 100% 25%, 100% 75%, 0 75%); }
+.edge-sample--scissors { clip-path: polygon(0 0, 100% 0, 100% 45%, 90% 100%, 80% 45%, 70% 100%, 60% 45%, 50% 100%, 40% 45%, 30% 100%, 20% 45%, 10% 100%, 0 45%); }
+.edge-sample--torn { clip-path: polygon(0 0, 100% 0, 100% 78%, 91% 60%, 81% 97%, 70% 70%, 59% 90%, 50% 56%, 39% 100%, 28% 70%, 20% 89%, 9% 61%, 0 82%); }
+.reroll-edge { margin-left: auto; }
 .ocr-line { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid #e8e8df; }
 .characters, .line-text { flex: 1; line-height: 2; }
 .character { display: inline-block; font-size: 18px; padding: 2px 3px; margin: 2px 0; border-radius: 3px; }
@@ -896,12 +910,14 @@ button[disabled] { opacity: .45; }
 .cut-preview image { width: 100%; height: 120px; }
 .material-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
 .material-card { background: #fff; padding: 10px; border: 1px solid #e7e5db; border-radius: 8px; min-width: 0; }
-.material-image { margin: 0 0 10px; }
-.material-image image { width: 100%; height: 110px; }
+.material-card.selected { border-color: #547458; box-shadow: 0 0 0 1px #547458; background: #f1f5ed; color: #343b34; }
+.material-image { position: relative; margin: 0; aspect-ratio: 3 / 1; }
+.material-image image { position: absolute; top: 0; left: 0; display: block; width: 100%; height: 100%; }
 .material-actions { display: flex; justify-content: flex-end; align-items: center; gap: 6px; }
-.material-action { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; background: transparent; }
-.material-action[disabled] { background: transparent; opacity: .3; }
-.material-action image { width: 24px; height: 24px; }
+.library-screen .studio-nav { position: sticky; top: var(--collage-nav-top, var(--collage-safe-top, env(safe-area-inset-top, 0px))); z-index: 6; background: #faf8f3; }
+.library-header { position: sticky; top: calc(var(--collage-nav-top, var(--collage-safe-top, env(safe-area-inset-top, 0px))) + 44px); z-index: 5; min-height: 40px; background: #faf8f3; }
+.library-header-actions { gap: 6px; flex-shrink: 0; }
+.library-header .section-title { min-width: 0; white-space: nowrap; }
 .official-section { margin-top: 24px; padding-top: 16px; border-top: 1px solid #dfdfd5; }
 .official-error { display: block; margin-top: 10px; font-size: 13px; color: #a45c3d; }
 .board { position: relative; overflow: hidden; box-shadow: 0 2px 14px #00000010; border: 1px solid #e0dfd3; box-sizing: content-box; touch-action: none; }
@@ -912,10 +928,10 @@ button[disabled] { opacity: .45; }
 .board-piece image { width: 100%; height: 100%; display: block; pointer-events: none; }
 .focused { outline: 1px dashed #718067; outline-offset: 4px; }
 .board-empty { position: absolute; top: 45%; left: 0; width: 100%; text-align: center; color: #a6a99a; font-size: 14px; pointer-events: none; }
-.background-row { margin: 12px 0; justify-content: space-between; gap: 8px; }
+.background-row { margin: 12px 0; justify-content: space-between; flex-wrap: nowrap; gap: 8px; }
 .background-colors, .layer-actions { gap: 4px; flex-shrink: 0; }
 .background-colors .muted { white-space: nowrap; margin-right: 2px; }
-.layer-actions button { padding: 0 6px; font-size: 12px; white-space: nowrap; }
+.layer-actions { margin-left: auto; }
 .swatch { width: 22px; height: 22px; box-sizing: border-box; flex-shrink: 0; border: 2px solid #deded5; border-radius: 50%; }
 .board-tray { margin-bottom: 18px; white-space: nowrap; }
 .board-tray image { width: 80px; height: 58px; flex-shrink: 0; background: #eeede6; border-radius: 5px; }
@@ -924,4 +940,12 @@ button[disabled] { opacity: .45; }
 .render-canvas { position: fixed; left: -10000px; top: 0; pointer-events: none; }
 .export-panel { margin-top: 20px; padding-top: 20px; border-top: 1px solid #deded3; }
 .export-panel > image { width: 100%; margin-bottom: 14px; }
+.export-actions { gap: 12px; }
+.export-actions > .download-button { height: 46px; font-size: 14px; }
+.export-actions > .primary { min-height: 46px; line-height: 46px; }
+/* #ifdef MP-WEIXIN */
+.studio { padding-top: var(--collage-nav-top, calc(8px + env(safe-area-inset-top))); }
+.studio-nav { padding-right: var(--collage-capsule-right, 200rpx); }
+.tabs button { flex: 1; min-width: 0; padding: 0; white-space: nowrap; }
+/* #endif */
 </style>

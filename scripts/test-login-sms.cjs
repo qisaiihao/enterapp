@@ -385,6 +385,15 @@ async function logRedactionTests() {
   assert.equal(submitted.code, '654321');
   assert.ok(!JSON.stringify(logs).includes('private-new-password'));
   assert.ok(!JSON.stringify(logs).includes('654321'));
+  await context.module.exports('updateUserProfile', {
+    action: 'updatePassword', mode: 'change', oldPassword: 'private-old-password', newPassword: 'private-profile-password'
+  }, {
+    injectOpenId: false, context: { $tcb: { __skipAuth: true, async callFunction(options) { submitted = options.data; return { result: { success: true } }; } } }
+  });
+  assert.equal(submitted.oldPassword, 'private-old-password');
+  assert.equal(submitted.newPassword, 'private-profile-password');
+  assert.ok(!JSON.stringify(logs).includes('private-old-password'));
+  assert.ok(!JSON.stringify(logs).includes('private-profile-password'));
 }
 
 Promise.resolve().then(backendTests).then(resetTests).then(frontendTests).then(logRedactionTests).then(() => {

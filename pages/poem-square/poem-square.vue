@@ -1,4 +1,7 @@
 <template>
+  <!-- #ifdef MP-WEIXIN -->
+  <page-meta :page-style="'background-color: ' + appThemeVars['--app-page-bg'] + ';'" />
+  <!-- #endif -->
   <view class="poem-square white-bg" :data-app-theme="appThemeMode" :style="[appThemeVars, readFontVars]" @touchstart="touchStart" @touchend="touchEnd">
     <!-- 顶部栏 -->
     <top-bar @safe-area-ready="onSafeAreaReady" />
@@ -123,7 +126,7 @@ import PoemCard from '@/components/poem/PoemCard.vue';
 import { cloudCall } from '@/utils/cloudCall.js';
 import { getPostList as getPostListWithCache, invalidatePostList } from '@/api-cache/post-list.js';
 import { getFollowingPoems, invalidateFollowingPoems, getOriginalPoems, ORIGINAL_POEMS_PAGE_SIZE } from '@/api-cache/poems.js';
-import { takePoemSquarePreload } from '@/utils/splashPreload.js';
+import { consumePoemSquareRefresh, takePoemSquarePreload } from '@/utils/splashPreload.js';
 import { scheduleTabPreload } from '@/utils/tabPreload.js';
 import likeIcon from '@/utils/likeIcon.js';
 import {
@@ -162,26 +165,8 @@ export default {
 
     try { activityBadge.refreshActivityBadge({ context: this }); } catch (_) {}
 
-    const shouldRefreshIndex = uni.getStorageSync('shouldRefreshIndex');
-    const shouldRefreshProfile = uni.getStorageSync('shouldRefreshProfile');
-    const shouldRefreshPoem = uni.getStorageSync('shouldRefreshPoem');
-    const shouldRefreshMountain = uni.getStorageSync('shouldRefreshMountain');
-
-    if (shouldRefreshIndex || shouldRefreshProfile || shouldRefreshPoem || shouldRefreshMountain) {
-      console.log('【poem-square】检测到刷新标记，强制刷新诗歌广场数据:', {
-        shouldRefreshIndex,
-        shouldRefreshProfile,
-        shouldRefreshPoem,
-        shouldRefreshMountain
-      });
-
-      uni.removeStorageSync('shouldRefreshIndex');
-      uni.removeStorageSync('shouldRefreshProfile');
-      uni.removeStorageSync('shouldRefreshPoem');
-      uni.removeStorageSync('shouldRefreshMountain');
-
-      invalidatePostList({ isPoem: true, isOriginal: true });
-      invalidateFollowingPoems();
+    if (consumePoemSquareRefresh()) {
+      console.log('【poem-square】检测到刷新标记，强制刷新诗歌广场数据');
 
       this.applyLocalState({
         page: 0,
@@ -315,9 +300,9 @@ export default {
     // 设备安全区初始化
     this.debugSafeArea();
     // 在首帧渲染前同步接收开屏准备的数据；失效/超时则走原有加载路径。
-    const refreshPending = ['shouldRefreshIndex', 'shouldRefreshProfile', 'shouldRefreshPoem', 'shouldRefreshMountain']
-      .some(key => uni.getStorageSync(key));
-    const startupPosts = refreshPending ? null : takePoemSquarePreload();
+    // 开屏已处理的标记不会在 onShow 再次清空首屏；新标记在首次请求前处理。
+    consumePoemSquareRefresh();
+    const startupPosts = takePoemSquarePreload();
     if (startupPosts !== null) {
       this.applyLocalState({
         postList: startupPosts.map(post => this.normalizePoemCardPost(post)),
@@ -859,7 +844,7 @@ export default {
         }
 
         // 全部模式使用原创诗歌API
-        const list = await getOriginalPoems({
+        const loadOriginalPoems = () => getOriginalPoems({
           page: this.page,
           pageSize: PAGE_SIZE,
           context: this,
@@ -894,6 +879,14 @@ export default {
           }
         });
         
+        let list;
+        try {
+          list = await loadOriginalPoems();
+        } catch (error) {
+          // 手动跳过可能合并开屏的短预算请求。它超时后页面仍应正常加载首批。
+          if (!isFirstLoad || error.code !== 'TIMEOUT') throw error;
+          list = await loadOriginalPoems();
+        }
         await this.processPostList(list, cb);
       } catch (e) {
         console.error(`[poem-square] getPostList failed: ${formatErrorForLog(e)}`);

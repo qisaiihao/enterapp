@@ -2,7 +2,7 @@
   <view
     :key="'activity-poem-font-' + fontRenderTick + '-' + (item && item._id ? item._id : index)"
     :class="['activity-poem-card', isSeries && !seriesExpanded ? 'stacked-series-card' : '']"
-    :style="{ backgroundColor: safeBackgroundColor }"
+    :style="[readFontVars, { backgroundColor: safeBackgroundColor }]"
   >
     <view
       v-if="isSeries && !seriesExpanded"
@@ -206,8 +206,7 @@ export default {
         ? this.safeHighlightLines
         : String(this.displayContent || '')
           .split(/\r?\n/)
-          .map(line => line.trim())
-          .filter(Boolean);
+          .filter(line => line.trim());
 
       const previewLines = sourceLines.slice(0, maxLines);
       if (sourceLines.length > maxLines && previewLines.length > 0) {
@@ -399,8 +398,8 @@ export default {
   font-family: 'Huiwen-mincho', '汇文明朝', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   font-style: normal;
   font-weight: 500;
-  font-size: 28rpx;
-  line-height: 38rpx;
+  font-size: var(--app-read-post-size, 28rpx);
+  line-height: var(--app-read-post-line, 38rpx);
   margin: 30rpx 0;
   width: 100%;
   overflow-wrap: break-word;
@@ -511,7 +510,7 @@ export default {
   font-family: 'Huiwen-mincho', '汇文明朝', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   font-style: normal;
   font-weight: 500;
-  font-size: 28rpx;
-  line-height: 38rpx;
+  font-size: var(--app-read-post-size, 28rpx);
+  line-height: var(--app-read-post-line, 38rpx);
 }
 </style>

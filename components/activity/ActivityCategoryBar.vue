@@ -6,6 +6,9 @@
       :class="['category-item', activeValue === category.value ? 'active' : '']"
       @tap="selectCategory(category)"
     >
+      <view class="category-icon-wrap">
+        <image class="category-icon" :src="category.icon" mode="aspectFit" />
+      </view>
       <text class="category-label">{{ category.label }}</text>
     </view>
   </view>
@@ -44,23 +47,24 @@ export default {
 .activity-category-bar {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 34rpx;
+  gap: 16rpx;
   align-items: center;
   padding: 18rpx 28rpx 0;
   box-sizing: border-box;
 }
 
 .category-item {
-  width: 96rpx;
-  min-height: 96rpx;
+  width: 100%;
+  min-width: 0;
+  min-height: 132rpx;
   justify-self: center;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 12rpx 10rpx;
+  padding: 8rpx 0;
   box-sizing: border-box;
-  border-radius: 8rpx;
-  background: var(--app-subtle-surface-bg, #bfbfbf);
+  background: transparent;
   color: var(--app-secondary-text, #222);
   transition: transform 0.18s ease, opacity 0.18s ease;
 }
@@ -71,14 +75,30 @@ export default {
 }
 
 .category-item.active {
-  background: var(--app-control-active-bg, #b7b7b7);
   color: var(--app-primary-text, #111);
+}
+
+.category-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88rpx;
+  height: 88rpx;
+  margin-bottom: 8rpx;
+  border-radius: 16rpx;
+}
+
+.category-icon {
+  display: block;
+  width: 80rpx;
+  height: 80rpx;
+  filter: var(--app-activity-entry-icon-filter, none);
 }
 
 .category-label {
   font-size: 22rpx;
   line-height: 28rpx;
   text-align: center;
-  word-break: break-all;
+  white-space: nowrap;
 }
 </style>

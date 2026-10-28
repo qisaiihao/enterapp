@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { parse } = require('@babel/parser');
+const { toPostView } = require('../functions/_shared/posts');
 
 const root = path.join(__dirname, '..');
 const quiet = { log() {}, warn() {}, error() {} };
@@ -15,7 +16,7 @@ const posts = Array.from({ length: 37 }, (_, index) => ({
 }));
 const foreignPost = { _id: 'foreign', _openid: 'other', isOriginal: true, createTime: 200 };
 
-function loadBackend() {
+function loadBackend({ rows = posts, fileRequests = [] } = {}) {
   const evaluate = (value, row) => {
     if (typeof value === 'string' && value.startsWith('$$')) return 'me';
     if (typeof value === 'string' && value.startsWith('$')) return row[value.slice(1)];
@@ -32,7 +33,7 @@ function loadBackend() {
         aggregate() { return query; }, match() { return query; }, limit() { return query; },
         lookup(spec) { pipeline = spec.pipeline; return query; }, project() { return query; },
         async end() {
-          let list = structuredClone([...posts, foreignPost]);
+          let list = structuredClone([...rows, foreignPost]);
           for (const stage of pipeline) {
             if (stage.$match) list = list.filter(row => Object.entries(stage.$match).every(([key, value]) =>
               key === '$expr' ? evaluate(value, row) : row[key] === value));
@@ -50,7 +51,14 @@ function loadBackend() {
     exports: {}, console: quiet,
     require(name) {
       if (name === './_lib/posts') return require('../functions/_shared/posts');
-      if (name === 'wx-server-sdk') return { init() {}, database: () => db, getWXContext: () => ({ OPENID: 'me' }) };
+      if (name === 'wx-server-sdk') return {
+        init() {}, database: () => db, getWXContext: () => ({ OPENID: 'me' }),
+        async getTempFileURL({ fileList }) {
+          fileRequests.push(Array.from(fileList));
+          return { fileList: fileList.map(fileID => ({ fileID, status: 0,
+            tempFileURL: fileID.replace('cloud://', 'https://cdn.example/') })) };
+        }
+      };
       if (name.includes('request-context')) return { resolveOpenId: () => 'me' };
       if (name.includes('handlers/drafts')) return { createDraftHandlers: () => ({}) };
       if (name.includes('handlers/favorites')) return { createFavoriteHandlers: () => ({}) };
@@ -119,7 +127,41 @@ function loadPage(getPosts) {
 const clickPosts = instance => instance.switchTab({ currentTarget: { dataset: { tab: 'posts' } } });
 const ids = list => Array.from(list, post => post._id);
 
+async function testProfileImageUrls() {
+  const thumb = 'cloud://profile/thumb.png';
+  const original = 'cloud://profile/original.png';
+  const shared = 'cloud://profile/shared.png';
+  const scalarOriginal = 'cloud://profile/scalar-original.png';
+  const publicImage = 'http://public.example/thumb.png';
+  const publicOriginal = 'https://public.example/original.png';
+  const fileRequests = [];
+  // The users lookup exposes the same schema view as toPostView, including V2's original-image fallback.
+  const fallback = toPostView({ _id: 'schema-fallback', _openid: 'me', schemaVersion: 2,
+    publishMode: 'normal', imageUrls: [thumb], createTime: 1 });
+  const read = loadBackend({ fileRequests, rows: [
+    { _id: 'separate-originals', _openid: 'me', createTime: 3,
+      imageUrls: [thumb, shared, publicImage], originalImageUrls: [original, shared, original, publicOriginal] },
+    { _id: 'scalar-original', _openid: 'me', createTime: 2,
+      imageUrls: [shared], originalImageUrls: scalarOriginal },
+    fallback
+  ] });
+  const result = await read({ limit: 10 });
+  assert.equal(result.success, true);
+  const [separate, scalar, schema] = result.posts;
+  const https = id => id.replace('cloud://', 'https://cdn.example/');
+  assert.deepEqual(separate.imageUrls, [https(thumb), https(shared), publicImage],
+    'profile thumbnails convert cloud files and preserve public HTTP images');
+  assert.deepEqual(separate.originalImageUrls, [https(original), https(shared), https(original), publicOriginal],
+    'profile originals must be converted separately from thumbnails before preview');
+  assert.deepEqual(Array.from(scalar.originalImageUrls), [https(scalarOriginal)], 'legacy scalar originals normalize and convert');
+  assert.deepEqual(schema.originalImageUrls, [https(thumb)], 'V2 posts without stored originals keep their thumbnail fallback');
+  assert.equal(fileRequests.length, 1, 'thumbnails and originals share one conversion request');
+  assert.deepEqual(fileRequests[0].sort(), [thumb, original, shared, scalarOriginal].sort(),
+    'cloud file IDs are deduplicated across posts and both image arrays, excluding HTTP URLs');
+}
+
 async function main() {
+  await testProfileImageUrls();
   const read = loadBackend();
   const getPosts = loadApi(read);
   assert.deepEqual(ids(await getPosts({ pageSize: 50 })), ids(posts), 'default includes originals, reposts and legacy posts');
@@ -190,7 +232,7 @@ async function main() {
   await instance.refreshProfileAtomically();
   assert.equal(instance.postsLoadError, false);
   assert.deepEqual(ids(instance.myPosts), ids(originals.slice(0, pageSize)));
-  console.log('[test-profile-original-filter] PASS: backend/API pagination, anonymous and hidden originals, tab toggle, refresh, stale requests, empty state and retry');
+  console.log('[test-profile-original-filter] PASS: profile thumbnail/original URL conversion, deduplication, legacy/V2 image fallback, backend/API pagination, anonymous and hidden originals, tab toggle, refresh, stale requests, empty state and retry');
 }
 
 main().catch(error => { console.error(error); process.exitCode = 1; });

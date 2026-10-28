@@ -89,7 +89,7 @@ async function testGate() {
 }
 
 function runtime({ count = 10, signature = true } = {}) {
-  const time = fakeTime(), storage = new Map(), calls = [], images = [], backgroundStarts = [];
+  const time = fakeTime(), storage = new Map(), calls = [], images = [], backgroundStarts = [], toasts = [];
   let account = 'viewer';
   const control = { cloud: null, auth: null, image: null };
   const uni = {
@@ -100,12 +100,13 @@ function runtime({ count = 10, signature = true } = {}) {
       if (control.image) control.image.then(() => success({ path: '/local/signature.png' }));
       else success({ path: '/local/signature.png' });
     },
-    $on() {}, $off() {}, hideTabBar() {}, showToast() {}
+    $on() {}, $off() {}, hideTabBar() {}, showToast: options => toasts.push(options.title)
   };
-  const base = { ...time.globals, uni };
+  const base = { ...time.globals, uni, getAppState: () => ({ _loginProcessCompleted: true }) };
   const cacheManager = load('cache/core/manager.js', base);
   const { withTimeout } = load('utils/asyncTimeout.js', base, ['withTimeout']);
   const { buildCacheKey } = load('cache/core/key-builder.js', base, ['buildCacheKey']);
+  const refreshFlags = load('utils/refresh-flags.js', base);
   const api = load('api-cache/post-list.js', {
     ...base, cacheManager, buildCacheKey, withTimeout,
     callCloudAndUnwrap: async (name, payload, options) => {
@@ -115,16 +116,18 @@ function runtime({ count = 10, signature = true } = {}) {
         _id: `p${i}`, content: '测试诗歌', authorSignature: signature && i < 2 ? `cloud://signature-${i}` : '', votes: 0
       })) };
     }
-  }, ['getPostList', 'invalidateAllPostList']);
-  const poems = load('api-cache/poems.js', { ...base, cacheManager, buildCacheKey, getPostList: api.getPostList }, ['getOriginalPoems', 'peekOriginalPoems', 'ORIGINAL_POEMS_PAGE_SIZE']);
+  }, ['getPostList', 'invalidatePostList', 'invalidateAllPostList']);
+  const poems = load('api-cache/poems.js', { ...base, cacheManager, buildCacheKey, getPostList: api.getPostList },
+    ['getOriginalPoems', 'peekOriginalPoems', 'getOriginalPoemsVersion', 'invalidateFollowingPoems', 'ORIGINAL_POEMS_PAGE_SIZE']);
   const service = load('utils/splashPreload.js', {
-    ...base, ...poems, withTimeout, getOpenid: () => account,
+    ...base, ...api, ...poems, ...refreshFlags, withTimeout, getOpenid: () => account,
     ensureRuntimeOpenid: async () => { if (control.auth) await control.auth; account = 'viewer'; return account; },
     fileUrlCache: { getTempUrls: async ids => Object.fromEntries(ids.map(id => [id, 'https://img/' + id])) }
-  }, ['preloadPoemSquare', 'takePoemSquarePreload']);
+  }, ['preloadPoemSquare', 'takePoemSquarePreload', 'hasPoemSquarePreload', 'retainPoemSquarePreload', 'consumePoemSquareRefresh']);
   function square() {
     const options = load('pages/poem-square/poem-square.vue', {
-      ...base, ...poems, ...service, cacheManager, formatErrorForLog: String,
+      ...base, ...api, ...poems, ...service, cacheManager, formatErrorForLog: String,
+      updateTabBarStatus() {}, getSquareBubbleConfig: async () => ({ enabled: false, text: '', target: 'weekly' }),
       scheduleTabPreload: () => backgroundStarts.push(time.now()),
       activityBadge: { getHasNewActivity: () => false, subscribe: () => () => {}, refreshActivityBadge() {} },
       replayBuiltinHuiwenFontReady() {}, getLatestLikeStatus: () => null,
@@ -138,7 +141,20 @@ function runtime({ count = 10, signature = true } = {}) {
     page.syncLikeStatusFromCache = () => {};
     return { page, options };
   }
-  return { time, base, calls, images, api, poems, service, square, control, backgroundStarts, setAccount: value => { account = value; } };
+  function splash() {
+    const navigations = [];
+    const { createSplashGate, SPLASH_MIN_MS } = load('utils/splashGate.js', base, ['createSplashGate', 'SPLASH_MIN_MS']);
+    const options = load('pages/splash/splash.vue', {
+      ...base, ...service, createSplashGate, SPLASH_MIN_MS, lightImpact() {}, formatErrorForLog: String,
+      hasAcceptedPrivacyConsent: () => true, acceptPrivacyConsent() {},
+      uni: { ...uni, reLaunch: options => navigations.push({ at: time.now(), url: options.url }) }
+    });
+    const page = options.data();
+    for (const [name, fn] of Object.entries(options.methods)) page[name] = fn.bind(page);
+    return { page, options, navigations };
+  }
+  return { time, base, calls, images, api, poems, service, square, splash, control, backgroundStarts,
+    cacheManager, refreshFlags, toasts, setAccount: value => { account = value; } };
 }
 
 async function testHandoff() {
@@ -155,6 +171,7 @@ async function testHandoff() {
   const { page, options } = app.square();
   page.getIndexData = () => { throw new Error('首屏不应重新获取'); };
   options.onLoad.call(page, {});
+  options.onShow.call(page);
   assert.equal(app.backgroundStarts.length, 1, '进入广场并交接首屏后才调度后台预热');
   assert.equal(page.isLoading, false, 'onLoad 同步交接，首帧无骨架');
   assert.equal(page.postList.length, 10);
@@ -237,11 +254,321 @@ async function testImageAndInvalidation() {
   let finishLoading;
   page.getIndexData = callback => { refreshes++; finishLoading = callback; };
   options.onLoad.call(page, {});
+  options.onShow.call(page);
   assert.equal(refreshes, 1, '发布/编辑留下刷新标记时不使用启动快照');
   assert.equal(page.postList.length, 0);
   assert.equal(refresh.backgroundStarts.length, 0, '常规加载期间不抢先预热其他 Tab');
   finishLoading();
   assert.equal(refresh.backgroundStarts.length, 1, '常规加载结束后也会启动后台预热');
+}
+
+async function testPendingRefreshBeforePreload() {
+  const app = runtime({ signature: false });
+  app.control.cloud = Promise.resolve({ posts: [{ _id: 'old', content: '旧列表' }] });
+  await app.poems.getOriginalPoems();
+  const following = app.cacheManager.namespace('poems:following');
+  following.set('old-following', [{ _id: 'old-following' }], { ttlMs: 75000 });
+  app.refreshFlags.setFeedRefreshFlags();
+  const network = deferred();
+  app.control.cloud = network.promise;
+  const pending = app.service.preloadPoemSquare({});
+  await drain();
+  assert.equal(app.poems.peekOriginalPoems(), undefined, '先失效遗留标记对应的旧原创缓存');
+  assert.equal(following.get('old-following'), undefined, '同时失效旧关注列表');
+  assert.equal(app.service.hasPoemSquarePreload(), false, '新首批尚未返回不能宣告就绪');
+  assert.ok(app.refreshFlags.FEED_REFRESH_KEYS.every(key => !app.base.uni.getStorageSync(key)), '请求前消费已有标记');
+  network.resolve({ posts: [{ _id: 'fresh', content: '新列表' }] });
+  await pending;
+  assert.equal(app.service.hasPoemSquarePreload(), true);
+  assert.equal(app.service.hasPoemSquarePreload(), true, '导航检查不会消耗交接对象');
+  const { page, options } = app.square();
+  options.onLoad.call(page, {});
+  options.onShow.call(page);
+  await drain();
+  assert.equal(page.postList[0]._id, 'fresh');
+  assert.equal(page.isLoading, false);
+  assert.equal(app.calls.length, 2, '含旧缓存准备共两次请求，onLoad/onShow 不重复重拉成功首批');
+  assert.deepEqual(app.toasts, []);
+}
+
+async function testRefreshArrivingDuringPreload() {
+  const app = runtime({ signature: false }), network = deferred();
+  app.base.uni.setStorageSync('shouldRefreshPoem', true);
+  app.control.cloud = network.promise;
+  const pending = app.service.preloadPoemSquare({}).catch(error => error.code);
+  await drain();
+  assert.equal(app.base.uni.getStorageSync('shouldRefreshPoem'), undefined);
+  app.base.uni.setStorageSync('shouldRefreshPoem', true);
+  network.resolve({ posts: [{ _id: 'superseded', content: '发布前内容' }] });
+  assert.equal(await pending, 'SPLASH_PRELOAD_INVALIDATED');
+  assert.equal(app.base.uni.getStorageSync('shouldRefreshPoem'), true, '预加载中再次设置同名标记不能被旧响应消费');
+  assert.equal(app.service.hasPoemSquarePreload(), false);
+  assert.equal(app.service.takePoemSquarePreload(), null, '带新刷新要求的快照不能交接');
+  app.control.cloud = Promise.resolve({ posts: [{ _id: 'latest', content: '发布后内容' }] });
+  await app.service.preloadPoemSquare({});
+  const { page, options } = app.square();
+  options.onLoad.call(page, {});
+  options.onShow.call(page);
+  await drain();
+  assert.equal(page.postList[0]._id, 'latest');
+  assert.equal(app.calls.length, 2, '新标记只增加一次重取');
+}
+
+async function testAccountChangeReloadsStartupData() {
+  for (const duringRequest of [false, true]) {
+    const app = runtime({ signature: false }), network = deferred();
+    if (duringRequest) app.control.cloud = network.promise;
+    const pending = app.service.preloadPoemSquare({}).catch(error => error.code);
+    await drain();
+    if (!duringRequest) {
+      await pending;
+      assert.equal(app.service.hasPoemSquarePreload(), true);
+    }
+    app.setAccount('another-viewer');
+    assert.equal(app.service.hasPoemSquarePreload(), false, '账号变化后旧首批不能作为导航就绪条件');
+    if (duringRequest) {
+      network.resolve({ posts: [{ _id: 'old-account', content: '旧账号请求' }] });
+      assert.equal(await pending, 'SPLASH_PRELOAD_INVALIDATED');
+      assert.equal(app.poems.peekOriginalPoems(), undefined, '旧账号迟到响应不得成为新账号缓存');
+    }
+    app.control.cloud = Promise.resolve({ posts: [{ _id: 'new-account', content: '新账号请求' }] });
+    await app.service.preloadPoemSquare({});
+    assert.equal(app.calls.length, 2, '重新准备必须为新账号发请求，不能复用旧快照源缓存');
+    assert.equal(app.service.hasPoemSquarePreload(), true);
+    assert.equal(app.service.takePoemSquarePreload()[0]._id, 'new-account');
+  }
+}
+
+async function testSplashRetriesInvalidatedPreload() {
+  const app = runtime({ signature: false }), network = deferred();
+  app.control.cloud = network.promise;
+  const splash = app.splash();
+  splash.options.onLoad.call(splash.page);
+  await drain();
+  app.base.uni.setStorageSync('shouldRefreshPoem', true);
+  app.control.cloud = Promise.resolve({ posts: [{ _id: 'after-refresh', content: '自动重取的新首批' }] });
+  network.resolve({ posts: [{ _id: 'before-refresh', content: '应被丢弃的首批' }] });
+  await app.time.tick(49);
+  assert.equal(app.calls.length, 1, '失效后先让出事件循环，不立即递归重试');
+  await app.time.tick(1);
+  assert.equal(app.calls.length, 2, '预加载失效后开屏主动重试，不被一次 reject 卡到强制进入');
+  await app.time.tick(1650);
+  assert.equal(splash.navigations.length, 1);
+  assert.equal(splash.navigations[0].at, 11700, '重试成功沿用正常打字和淡出时序');
+  const { page, options } = app.square();
+  options.onLoad.call(page, {});
+  options.onShow.call(page);
+  assert.equal(page.postList[0]._id, 'after-refresh');
+  assert.equal(page.isLoading, false);
+}
+
+async function testRepeatedInvalidationYieldsToLifecycle() {
+  for (const mode of ['deadline', 'manual', 'unload']) {
+    const time = fakeTime(), navigations = [];
+    let attempts = 0;
+    const { createSplashGate, SPLASH_MIN_MS } = load('utils/splashGate.js', time.globals, ['createSplashGate', 'SPLASH_MIN_MS']);
+    const options = load('pages/splash/splash.vue', {
+      ...time.globals, createSplashGate, SPLASH_MIN_MS,
+      preloadPoemSquare: () => {
+        attempts++;
+        // 限制错误实现的递归次数，断言失败时测试本身也能退出。
+        const error = new Error(attempts > 200 ? 'retry loop exceeded' : 'invalidated');
+        if (attempts <= 200) error.code = 'SPLASH_PRELOAD_INVALIDATED';
+        return Promise.reject(error);
+      },
+      hasPoemSquarePreload: () => false, retainPoemSquarePreload: () => false, lightImpact() {}, formatErrorForLog: String,
+      getAppState: () => ({ _loginProcessCompleted: true }),
+      hasAcceptedPrivacyConsent: () => true, acceptPrivacyConsent() {},
+      uni: { reLaunch: () => navigations.push(time.now() - 10000), showToast() {} }
+    });
+    const page = options.data();
+    for (const [name, fn] of Object.entries(options.methods)) page[name] = fn.bind(page);
+    options.onLoad.call(page);
+    await drain();
+    assert.equal(attempts, 1, '持续失效不能在微任务中连续递归并阻塞计时器');
+    await time.tick(49);
+    assert.equal(attempts, 1);
+    await time.tick(1);
+    assert.equal(attempts, 2, '重试按 50ms 间隔推进');
+    await time.tick(1450);
+    assert.equal(page.typedText, 'poementer', '持续失效不阻塞正常打字动画');
+    assert.equal(page.showEnterButton, true, '持续失效时手动进入按钮仍可用');
+    assert.equal(navigations.length, 0);
+    if (mode === 'manual') {
+      page.handleEnterButtonClick();
+      assert.deepEqual(navigations, [1500], '持续重试期间点击仍立即进入');
+    } else if (mode === 'unload') {
+      options.onUnload.call(page);
+      assert.equal(time.pending(), 0, '卸载清除重试、动画和截止计时器');
+    } else {
+      await time.tick(4300);
+      assert.equal(page.fadeOut, true, '原 5.8 秒时开始截止淡出');
+      const attemptsAtLeaving = attempts;
+      await time.tick(199);
+      assert.equal(navigations.length, 0);
+      assert.equal(attempts, attemptsAtLeaving, '开始离开后取消下一次预加载重试');
+      await time.tick(1);
+      assert.deepEqual(navigations, [6000], '持续失效也在原 6 秒截止进入');
+    }
+    const attemptsAtStop = attempts;
+    await time.tick(10000);
+    assert.equal(attempts, attemptsAtStop, '进入或卸载后不再继续重试');
+    assert.ok(attempts < 121, '持续失效重试次数受时间间隔约束');
+    assert.equal(navigations.length, mode === 'unload' ? 0 : 1);
+    assert.equal(time.pending(), 0);
+  }
+}
+
+async function testFailedRefreshDoesNotReuseOldCache() {
+  const app = runtime({ signature: false });
+  await app.poems.getOriginalPoems();
+  app.base.uni.setStorageSync('shouldRefreshPoem', true);
+  const network = deferred();
+  app.control.cloud = network.promise;
+  const pending = app.service.preloadPoemSquare({});
+  network.reject(new Error('offline'));
+  await assert.rejects(pending, /offline/);
+  assert.equal(app.service.hasPoemSquarePreload(), false);
+  assert.equal(app.poems.peekOriginalPoems(), undefined, '标记已消费也不能因失败恢复旧首批');
+  app.control.cloud = Promise.resolve({ posts: [{ _id: 'recovered', content: '重试成功' }] });
+  const { page, options } = app.square();
+  options.onLoad.call(page, {});
+  options.onShow.call(page);
+  await drain();
+  assert.equal(page.postList[0]._id, 'recovered');
+  assert.equal(page.isLoading, false);
+  assert.equal(app.calls.length, 3, '旧缓存准备、开屏失败、页面恢复各请求一次');
+}
+
+async function testReadyCacheExpiresBeforeNavigation() {
+  for (const remainingMs of [500, 1600]) {
+    const app = runtime({ signature: false });
+    await app.poems.getOriginalPoems();
+    await app.time.tick(90000 - remainingMs);
+    const startedAt = app.time.now();
+    const splash = app.splash();
+    splash.options.onLoad.call(splash.page);
+    await drain();
+    assert.equal(splash.page.preloadCompleted, true, '缓存有效时可先完成预加载');
+    const network = deferred();
+    app.control.cloud = network.promise;
+    await app.time.tick(1700);
+    assert.equal(splash.navigations.length, 0, '打字期间或淡出期间缓存过期，都不能按旧 ready 进入空页');
+    assert.equal(splash.page.fadeOut, false, '失效后恢复开屏可见状态');
+    assert.equal(app.calls.length, 2, '导航前重新请求已过期的首批');
+    network.resolve({ posts: [{ _id: 'renewed', content: '导航前重取内容' }] });
+    await app.time.tick(200);
+    assert.equal(splash.navigations.length, 1);
+    assert.ok(splash.navigations[0].at - startedAt < 6000, '修复路径仍在正常就绪出口完成');
+    const { page, options } = app.square();
+    options.onLoad.call(page, {});
+    options.onShow.call(page);
+    assert.equal(page.postList[0]._id, 'renewed');
+    assert.equal(page.isLoading, false);
+    await app.time.tick(6000);
+    assert.equal(splash.navigations.length, 1, '重试后原截止定时器不再次导航');
+  }
+}
+
+async function testInvalidatedReadyKeepsOriginalDeadline() {
+  const app = runtime({ signature: false });
+  const splash = app.splash(), startedAt = app.time.now();
+  splash.options.onLoad.call(splash.page);
+  await app.time.tick(1600);
+  app.api.invalidateAllPostList();
+  app.control.cloud = new Promise(() => {});
+  await app.time.tick(100);
+  assert.equal(splash.navigations.length, 0);
+  await app.time.tick(4299);
+  assert.equal(splash.navigations.length, 0);
+  await app.time.tick(1);
+  assert.equal(splash.navigations.length, 1);
+  assert.equal(splash.navigations[0].at - startedAt, 6000, 'ready 失效后的重新预加载不重置 6 秒截止');
+  await app.time.tick(10000);
+  assert.equal(splash.navigations.length, 1);
+}
+
+async function testNativeRouteDelayRetainsFirstBatch() {
+  const app = runtime({ signature: false });
+  await app.poems.getOriginalPoems();
+  await app.time.tick(88200);
+  const startedAt = app.time.now(), version = app.poems.getOriginalPoemsVersion();
+  const splash = app.splash();
+  splash.options.onLoad.call(splash.page);
+  await app.time.tick(1700);
+  assert.equal(splash.navigations.length, 1);
+  assert.equal(splash.navigations[0].at - startedAt, 1700, '缓存还有 100ms 时正常发起导航');
+  // App 原生路由异步创建目标页面，onLoad 不与 reLaunch 同步发生。
+  await app.time.tick(200);
+  assert.equal(app.poems.peekOriginalPoems(), undefined, '路由期间普通缓存自然过期并被 get 清理');
+  assert.equal(app.poems.getOriginalPoemsVersion(), version, '自然到期不等同于显式内容失效');
+  assert.equal(app.service.hasPoemSquarePreload(), true, '已经发起导航的短期交接仍可领取');
+  const { page, options } = app.square();
+  page.getIndexData = () => { throw new Error('原生路由延迟不应丢弃已准备好的首批'); };
+  options.onLoad.call(page, {});
+  options.onShow.call(page);
+  assert.equal(page.postList.length, 10);
+  assert.equal(page.isLoading, false);
+  assert.equal(app.calls.length, 1, 'onLoad/onShow 仍同步显示同一首批，不再发请求');
+  assert.equal(app.service.takePoemSquarePreload(), null, '保留的交接仍只能领取一次');
+  assert.deepEqual(app.toasts, []);
+}
+
+async function testRetainedPreloadRejectsExplicitChanges() {
+  for (const mode of ['invalidate', 'set', 'update', 'clear', 'account', 'refresh', 'expired-invalidation', 'handoff-timeout']) {
+    const app = runtime({ signature: false });
+    await app.poems.getOriginalPoems();
+    await app.time.tick(88200);
+    await app.service.preloadPoemSquare({});
+    assert.equal(app.service.retainPoemSquarePreload(), true);
+    assert.equal(app.service.hasPoemSquarePreload(), true, 'retain 不会消耗交接对象');
+    const ns = app.cacheManager.namespace('posts:list');
+    const key = 'page:0:size:10:poem:true:orig:true';
+    if (mode === 'invalidate') app.api.invalidatePostList({ isPoem: true, isOriginal: true });
+    if (mode === 'set') ns.set(key, ns.get(key), { ttlMs: 90000 });
+    if (mode === 'update') assert.equal(ns.update(key, posts => posts), true);
+    if (mode === 'clear') app.api.invalidateAllPostList();
+    if (mode === 'account') app.setAccount('new-viewer');
+    if (mode === 'refresh') app.base.uni.setStorageSync('shouldRefreshPoem', true);
+    if (mode === 'expired-invalidation') {
+      await app.time.tick(2000);
+      assert.equal(app.poems.peekOriginalPoems(), undefined);
+      assert.equal(app.service.hasPoemSquarePreload(), true, '自然过期后保留交接仍有效');
+      app.api.invalidatePostList({ isPoem: true, isOriginal: true });
+    }
+    if (mode === 'handoff-timeout') await app.time.tick(30000);
+    assert.equal(app.service.hasPoemSquarePreload(), false, `${mode} 后保留对象不得继续宣告就绪`);
+    assert.equal(app.service.retainPoemSquarePreload(), false, `${mode} 后不能通过重复保留恢复旧对象`);
+    assert.equal(app.service.takePoemSquarePreload(), null, `${mode} 后不能交付旧首批`);
+  }
+}
+
+async function testManualSkipRetriesPreloadTimeout() {
+  const app = runtime({ signature: false }), network = deferred();
+  app.control.cloud = network.promise;
+  const splash = app.splash();
+  splash.options.onLoad.call(splash.page);
+  await app.time.tick(1500);
+  splash.page.handleEnterButtonClick();
+  assert.equal(splash.navigations.length, 1, '手动跳过即时进入');
+  splash.options.onUnload.call(splash.page);
+  const { page, options } = app.square();
+  options.onLoad.call(page, {});
+  options.onShow.call(page);
+  await drain();
+  assert.equal(app.calls.length, 1, '页面先复用尚在进行的开屏首批请求');
+  assert.equal(page.isLoading, true);
+  app.control.cloud = Promise.resolve({ posts: [{ _id: 'page-retry', content: '页面正常重试结果' }] });
+  await app.time.tick(3500);
+  assert.equal(app.calls.length, 2, '开屏 5 秒短预算超时后页面独立重试一次');
+  assert.equal(app.calls[1].options.timeoutMs, undefined, '页面重试不继承开屏短预算');
+  assert.equal(page.postList[0]._id, 'page-retry');
+  assert.equal(page.isLoading, false);
+  assert.deepEqual(app.toasts, [], '短预算交接超时恢复时不闪加载失败提示');
+  network.resolve({ posts: [{ _id: 'late', content: '迟到的开屏响应' }] });
+  await drain();
+  assert.equal(page.postList[0]._id, 'page-retry');
+  assert.equal(app.poems.peekOriginalPoems()[0]._id, 'page-retry', '迟到的开屏响应不能覆盖页面恢复结果');
 }
 
 async function testBackgroundTabs() {
@@ -386,12 +713,40 @@ async function testPoetImageQueue() {
   assert.equal(images.length, 5, '图片挂起后停止对应 worker，不累积底层并发');
 }
 
+async function testReadyNavigationRequiresRetention() {
+  const time = fakeTime(), navigations = [];
+  let canRetain = false, preloads = 0;
+  const { createSplashGate, SPLASH_MIN_MS } = load('utils/splashGate.js', time.globals, ['createSplashGate', 'SPLASH_MIN_MS']);
+  const options = load('pages/splash/splash.vue', {
+    ...time.globals, createSplashGate, SPLASH_MIN_MS,
+    preloadPoemSquare: async () => { preloads++; },
+    hasPoemSquarePreload: () => true,
+    retainPoemSquarePreload: () => canRetain,
+    getAppState: () => ({ _loginProcessCompleted: true }),
+    hasAcceptedPrivacyConsent: () => true, lightImpact() {}, formatErrorForLog: String,
+    uni: { reLaunch: () => navigations.push(time.now() - 10000) }
+  });
+  const page = options.data();
+  for (const [name, method] of Object.entries(options.methods)) page[name] = method.bind(page);
+  options.onLoad.call(page);
+  await time.tick(1700);
+  assert.equal(navigations.length, 0, '先前检查通过但最终交接保留失败，不能自动导航');
+  assert.equal(preloads, 2, '保留失败回到同一开屏流程重新准备');
+  canRetain = true;
+  await time.tick(200);
+  assert.deepEqual(navigations, [1900], '只有保留交接成功才能发起 ready 导航');
+  await time.tick(10000);
+  assert.equal(navigations.length, 1);
+}
+
 async function testSplashLifecycle() {
   for (const mode of ['fast', 'slow', 'never', 'error', 'unload', 'double-click', 'error-click', 'navigation-fail']) {
     const time = fakeTime(), network = deferred(), navigations = [], toasts = [];
     const { createSplashGate, SPLASH_MIN_MS } = load('utils/splashGate.js', time.globals, ['createSplashGate', 'SPLASH_MIN_MS']);
     const options = load('pages/splash/splash.vue', {
-      ...time.globals, createSplashGate, SPLASH_MIN_MS, preloadPoemSquare: () => network.promise, lightImpact() {}, formatErrorForLog: String,
+      ...time.globals, createSplashGate, SPLASH_MIN_MS, preloadPoemSquare: () => network.promise,
+      hasPoemSquarePreload: () => true, retainPoemSquarePreload: () => true, lightImpact() {}, formatErrorForLog: String,
+      getAppState: () => ({ _loginProcessCompleted: true }),
       hasAcceptedPrivacyConsent: () => true, acceptPrivacyConsent() {},
       uni: { reLaunch: opt => { navigations.push(time.now() - 10000); if (mode === 'navigation-fail') opt.fail(); },
         showToast: opt => toasts.push(opt.title) }
@@ -467,6 +822,8 @@ async function testPrivacyConsent() {
     const options = load('pages/splash/splash.vue', {
       ...time.globals, createSplashGate, SPLASH_MIN_MS,
       preloadPoemSquare: () => { preloads.count += 1; return network.promise; },
+      hasPoemSquarePreload: () => true, retainPoemSquarePreload: () => true,
+      getAppState: () => ({ _loginProcessCompleted: true }),
       lightImpact() {}, formatErrorForLog: String,
       hasAcceptedPrivacyConsent: consent.hasAcceptedPrivacyConsent,
       acceptPrivacyConsent: consent.acceptPrivacyConsent,
@@ -643,6 +1000,10 @@ module.exports = { load, fakeTime, deferred, drain };
 
 if (require.main === module) (async () => {
   for (const test of [testGate, testHandoff, testEmptyAndShortPages, testTimeoutAndRetry, testImageAndInvalidation, testSplashLifecycle,
+    testPendingRefreshBeforePreload, testRefreshArrivingDuringPreload, testAccountChangeReloadsStartupData,
+    testSplashRetriesInvalidatedPreload, testRepeatedInvalidationYieldsToLifecycle, testFailedRefreshDoesNotReuseOldCache,
+    testReadyCacheExpiresBeforeNavigation, testInvalidatedReadyKeepsOriginalDeadline, testManualSkipRetriesPreloadTimeout,
+    testNativeRouteDelayRetainsFirstBatch, testRetainedPreloadRejectsExplicitChanges, testReadyNavigationRequiresRetention,
     testPrivacyConsent, testAppPrivacyGate, testRuntimeOpenidPrivacyGate, testBackgroundTabs, testBackgroundFailures, testPoetImageQueue]) {
     await test(); console.log('PASS ' + test.name);
   }

@@ -100,10 +100,10 @@ export default {
         }
       ],
       activityCategories: [
-        { value: 'weekly', label: '周刊' },
-        { value: 'campus', label: '高校诗社' },
-        { value: 'market', label: '商城' },
-        { value: 'publish', label: '出版？暂没想到' }
+        { value: 'weekly', label: '周刊', icon: '/static/images/activity/weekly.png' },
+        { value: 'campus', label: '高校诗社', icon: '/static/images/activity/campus.png' },
+        { value: 'market', label: '商城', icon: '/static/images/activity/market.png' },
+        { value: 'publish', label: '待开发', icon: '/static/images/activity/coming-soon.png' }
       ]
     };
   },

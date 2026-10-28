@@ -25,23 +25,17 @@
             <view :class="'tab-item ' + (activeTab === 'all' ? 'active' : '')" @tap="switchTab" data-tab="all">
                 <text>全部</text>
             </view>
-            <view :class="'tab-item ' + (activeTab === 'like' ? 'active' : '')" @tap="switchTab" data-tab="like">
+            <view :class="'tab-item ' + (activeTab === 'like_all' ? 'active' : '')" @tap="switchTab" data-tab="like_all">
                 <text>点赞</text>
             </view>
             <view :class="'tab-item ' + (activeTab === 'comment' ? 'active' : '')" @tap="switchTab" data-tab="comment">
                 <text>评论</text>
             </view>
-            <view :class="'tab-item ' + (activeTab === 'favorite' ? 'active' : '')" @tap="switchTab" data-tab="favorite">
-                <text>收藏</text>
-            </view>
             <view :class="'tab-item ' + (activeTab === 'follow' ? 'active' : '')" @tap="switchTab" data-tab="follow">
                 <text>关注</text>
             </view>
-            <view :class="'tab-item ' + (activeTab === 'feedback_all' ? 'active' : '')" @tap="switchTab" data-tab="feedback_all">
+            <view :class="'tab-item ' + (activeTab === 'feedback_report_all' ? 'active' : '')" @tap="switchTab" data-tab="feedback_report_all">
                 <text>反馈</text>
-            </view>
-            <view :class="'tab-item ' + (activeTab === 'post_report_all' ? 'active' : '')" @tap="switchTab" data-tab="post_report_all">
-                <text>举报</text>
             </view>
             <view :class="'tab-item ' + (activeTab === 'content_review_all' ? 'active' : '')" @tap="switchTab" data-tab="content_review_all">
                 <text>复核</text>
@@ -146,7 +140,7 @@ export default {
             page: 0,
             PAGE_SIZE: 10,
             activeTab: 'all',
-            // all, like, comment, favorite, follow
+            // all, like_all, comment, follow, feedback_report_all, content_review_all
             unreadCount: 0,
             pageInlineStyle: '',
             filterSectionInlineStyle: '',

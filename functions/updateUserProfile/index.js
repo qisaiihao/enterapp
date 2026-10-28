@@ -1,4 +1,5 @@
 const cloud = require('wx-server-sdk');
+const { handlePasswordAction } = require('./password');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
@@ -55,7 +56,7 @@ function getUserId(wxContext, event, context) {
 }
 
 // 更新用户资料
-exports.main = async (event, context) => {
+exports.main = async (event = {}, context = {}) => {
   const wxContext = cloud.getWXContext();
 
   // 获取兼容的数据库实例和上下文
@@ -72,6 +73,15 @@ exports.main = async (event, context) => {
     };
   }
 
+  if (event.action === 'getPasswordStatus' || event.action === 'updatePassword') {
+    return handlePasswordAction(database, openid, event);
+  }
+  // 密码只能经专用流程写入，普通资料保存不能跳过原密码检查。
+  if (['password', 'passwordHash', 'passwordSalt', 'newPassword', 'oldPassword'].some(key =>
+    Object.prototype.hasOwnProperty.call(event, key))) {
+    return { success: false, code: 'PASSWORD_ACTION_REQUIRED', message: '请通过修改密码入口设置或修改密码' };
+  }
+
   const {
     avatarUrl,
     nickName,
@@ -81,7 +91,6 @@ exports.main = async (event, context) => {
     occupation,
     region,
     poemId,
-    password,
     appBackgroundUrl,
     appBackgroundMode,
     clearAppBackground,
@@ -96,7 +105,6 @@ exports.main = async (event, context) => {
     occupation,
     region,
     poemId,
-    password: password ? '***' : 'undefined',
     platform: isTCB ? 'TCB' : 'WeApp'
   });
 
@@ -133,14 +141,10 @@ exports.main = async (event, context) => {
       console.log('🔍 [updateUserProfile] 将更新region');
     }
 
-    // 添加对poemId和password字段的支持
+    // 添加对poemId字段的支持
     if (poemId) {
       updateData.poemId = poemId;
       console.log('🔍 [updateUserProfile] 将更新poemId:', poemId);
-    }
-    if (password) {
-      updateData.password = password;
-      console.log('🔍 [updateUserProfile] 将更新password');
     }
     if (showGrowthStats !== undefined) {
       updateData.showGrowthStats = showGrowthStats === true;

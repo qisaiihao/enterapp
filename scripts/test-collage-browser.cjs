@@ -8,12 +8,16 @@ async function main() {
   assert.ok(executablePath, 'Chrome/Edge required');
   const browser = await puppeteer.launch({ executablePath, headless: true });
   try {
+    const base = process.env.COLLAGE_TEST_URL || 'http://127.0.0.1:8081/';
+    const officialFixtureUrl = new URL('/__collage-test-fixture.png', base).href;
+    let officialFixturePng;
     const page = await browser.newPage();
     await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
     await page.setRequestInterception(true);
     page.on('request', request => {
       const url = request.url();
-      if (/^(data:|blob:|http:\/\/127\.0\.0\.1:)/.test(url)) request.continue();
+      if (url === officialFixtureUrl && officialFixturePng) request.respond({ status: 200, contentType: 'image/png', body: officialFixturePng });
+      else if (/^(data:|blob:|http:\/\/127\.0\.0\.1:)/.test(url)) request.continue();
       else request.abort(); // No production API calls or paid OCR during browser tests.
     });
     const errors = [];
@@ -28,7 +32,6 @@ async function main() {
       await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
       await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     };
-    const base = process.env.COLLAGE_TEST_URL || 'http://127.0.0.1:8081/';
     await page.goto(`${base}#/pages-collage/collage-studio/collage-studio`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('.studio', { timeout: 60000 });
     await page.evaluate(() => {
@@ -456,16 +459,88 @@ async function main() {
     assert.equal(afterDeletion.current, activeSource, 'deleting another thumbnail preserves the current source');
     await tapButton('素材库');
     const libraryCards = await page.$$eval('.material-card', cards => cards.map(card => ({
-      actions: [...card.querySelectorAll('uni-button')].map(button => `${button.getAttribute('aria-label') || ''}:${button.innerHTML.includes('add.png') ? 'add' : button.innerHTML.includes('delete.png') ? 'delete' : ''}`).sort(),
-      alignment: getComputedStyle(card.querySelector('.material-actions')).justifyContent,
+      actionCount: card.querySelectorAll('uni-button').length,
       hasName: !!card.querySelector('.material-name')
     })));
     assert.ok(libraryCards.length > 0, 'library shows saved pieces');
     for (const card of libraryCards) {
-      assert.deepEqual(card.actions, ['放到画布:add', '删除:delete'].sort(), 'library card keeps only icon delete and put-on-canvas buttons');
+      assert.equal(card.actionCount, 0, 'paper cards do not repeat action buttons');
       assert.equal(card.hasName, false, 'piece name is removed from the library card');
-      assert.equal(card.alignment, 'flex-end', 'library card actions align right');
     }
+    const materialSelection = () => page.evaluate(() => {
+      const vm = window.collageTestVm();
+      return {
+        selected: vm.selectedMaterialId,
+        activeTab: vm.activeTab,
+        items: vm.workspace.items.length,
+        materials: vm.workspace.materials.length,
+        selectedCards: [...document.querySelectorAll('.material-grid .material-card')].flatMap((card, index) => card.classList.contains('selected') ? [index] : []),
+        toolbars: [...document.querySelectorAll('.material-actions')].filter(el => el.getClientRects().length).length
+      };
+    });
+    const tapMaterialCard = async index => {
+      const cards = await page.$$('.material-grid .material-card');
+      assert.ok(cards[index], `saved paper ${index} exists`);
+      await cards[index].scrollIntoView(); await cards[index].tap();
+    };
+    const savedMaterialIds = await page.evaluate(() => window.collageTestVm().workspace.materials.map(material => material.id));
+    const unselectedLibrary = { selected: '', activeTab: 'library', items: 2, materials: 2, selectedCards: [], toolbars: 0 };
+    assert.deepEqual(await materialSelection(), unselectedLibrary, 'library opens with no selected paper or action buttons');
+    await tapMaterialCard(0);
+    assert.deepEqual(await materialSelection(), { ...unselectedLibrary, selected: savedMaterialIds[0], selectedCards: [0], toolbars: 1 }, 'tapping a paper selects it without adding it to the board or navigating');
+    await page.waitForFunction(() => {
+      const images = [...document.querySelectorAll('.material-actions img')];
+      return images.length === 2 && images.every(image => image.complete && image.naturalWidth > 0);
+    });
+    const headerActions = await page.$eval('.material-actions', toolbar => {
+      const scissors = document.querySelector('.library-header [aria-label="继续裁切"]');
+      return {
+        inHeader: !!toolbar.closest('.library-header'),
+        actions: [...toolbar.querySelectorAll('uni-button')].map(button => `${button.getAttribute('aria-label') || ''}:${button.innerHTML.includes('add.png') ? 'add' : button.innerHTML.includes('delete.png') ? 'delete' : ''}`).sort(),
+        beforeScissors: toolbar.getBoundingClientRect().right <= scissors.getBoundingClientRect().left + 1
+      };
+    });
+    assert.deepEqual(headerActions, { inHeader: true, actions: ['放到画布:add', '删除:delete'].sort(), beforeScissors: true }, 'one contextual action group appears in the header before the scissors');
+    await tapMaterialCard(1);
+    assert.deepEqual(await materialSelection(), { ...unselectedLibrary, selected: savedMaterialIds[1], selectedCards: [1], toolbars: 1 }, 'choosing another paper moves the single selection and toolbar target');
+    await tapMaterialCard(1);
+    assert.deepEqual(await materialSelection(), unselectedLibrary, 'tapping the selected paper again hides the toolbar');
+    await tapMaterialCard(0);
+    await page.$eval('.material-grid', grid => grid.click());
+    assert.deepEqual(await materialSelection(), unselectedLibrary, 'tapping library whitespace clears the selection');
+    await tapMaterialCard(0);
+    await tapButton('裁切'); await tapButton('素材库');
+    assert.deepEqual(await materialSelection(), unselectedLibrary, 'switching tabs clears the library selection');
+    await tapMaterialCard(1);
+    await tapButton('放到画布');
+    const addedSelectedMaterial = await page.evaluate(() => {
+      const vm = window.collageTestVm();
+      return { activeTab: vm.activeTab, selected: vm.selectedMaterialId, items: vm.workspace.items.length, material: vm.workspace.items.at(-1).materialId };
+    });
+    assert.deepEqual(addedSelectedMaterial, { activeTab: 'board', selected: '', items: 3, material: savedMaterialIds[1] }, 'header add uses the selected paper and clears library selection on navigation');
+    await tapHistory('后退');
+    assert.equal(await page.evaluate(() => window.collageTestVm().workspace.items.length), 2, 'undo restores the board after the selection action check');
+    // Give the deletion case an independent persisted bitmap so the original two remain usable.
+    const temporaryMaterialId = await page.evaluate(async () => {
+      const vm = window.collageTestVm();
+      const { persistFile, resolveFile } = await import('/utils/collage/storage.js');
+      const original = vm.workspace.materials[0];
+      const file = await persistFile(vm.urls[original.id]);
+      const material = { ...original, id: `selection-delete-${Date.now()}`, file };
+      vm.urls[material.id] = await resolveFile(file);
+      vm.workspace.materials.push(material); vm.persist();
+      return material.id;
+    });
+    await tapButton('素材库'); await tapMaterialCard(2); await tapButton('放到画布');
+    await tapButton('素材库'); await tapMaterialCard(2); await tapButton('删除');
+    await dismissDelete(false);
+    await page.waitForFunction(() => ![...document.querySelectorAll('.app-dialog-mask, .uni-modal')].some(el => el.getClientRects().length));
+    assert.deepEqual(await materialSelection(), { selected: temporaryMaterialId, activeTab: 'library', items: 3, materials: 3, selectedCards: [2], toolbars: 1 }, 'canceling contextual deletion preserves the selected paper and its board item');
+    await tapButton('删除'); await dismissDelete(true);
+    await page.waitForFunction(id => !window.collageTestVm().workspace.materials.some(material => material.id === id), {}, temporaryMaterialId);
+    assert.deepEqual(await materialSelection(), unselectedLibrary, 'confirming deletion removes the selected paper and board item, then hides the toolbar');
+    assert.deepEqual(await page.evaluate(() => window.collageTestVm().workspace.materials.map(material => material.id)), savedMaterialIds, 'contextual delete preserves the other saved papers');
+    assert.equal(await page.evaluate(id => !!window.collageTestVm().urls[id], temporaryMaterialId), false, 'deleted paper bitmap is released');
     await tapButton('裁切');
     await tapRemoveSource();
     await dismissDelete(true);
@@ -476,6 +551,8 @@ async function main() {
     await tapButton('导入图片');
     assert.deepEqual(await page.evaluate(() => ({ count: window.collageTestVm().workspace.sources.length, busy: window.collageTestVm().isBusy })), { count: 1, busy: false }, 'cancelling picker leaves current sources usable');
     // Reload proves both metadata and bitmap files survive beyond temporary URLs.
+    await tapButton('素材库'); await tapMaterialCard(0);
+    assert.equal(await page.evaluate(() => window.collageTestVm().selectedMaterialId), savedMaterialIds[0], 'a paper is selected before reloading');
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForSelector('.studio');
     await page.evaluate(() => {
@@ -491,9 +568,9 @@ async function main() {
       const vm = component.proxy;
       while (vm.busy) await new Promise(resolve => setTimeout(resolve, 50));
       const image = new Image(); image.src = vm.urls[vm.workspace.materials[0].id]; await image.decode();
-      return { sources: vm.workspace.sources.length, materials: vm.workspace.materials.length, items: vm.workspace.items.length, bitmap: image.width > 0 };
+      return { sources: vm.workspace.sources.length, materials: vm.workspace.materials.length, items: vm.workspace.items.length, bitmap: image.width > 0, selectedMaterialId: vm.selectedMaterialId };
     });
-    assert.deepEqual(restored, { sources: 1, materials: 2, items: 2, bitmap: true });
+    assert.deepEqual(restored, { sources: 1, materials: 2, items: 2, bitmap: true, selectedMaterialId: '' });
     const repeatedCuts = await page.evaluate(async () => {
       let component = document.querySelector('.studio').__vueParentComponent;
       while (component && !component.proxy?.workspace) component = component.parent;
@@ -553,9 +630,14 @@ async function main() {
     assert.deepEqual({ width: afterRotate.width, height: afterRotate.height, natural: afterRotate.natural, crop: afterRotate.crop, zoom: afterRotate.zoom }, { width: 900, height: 1200, natural: '900x1200', crop: null, zoom: 100 }, 'four clockwise rotations restore the orientation and reset the cut');
     assert.notEqual(afterRotate.file, beforeRotate.file, 'rotation stores a new working file');
     // Official material library: pick a group first, then a piece, mirroring the color picker.
-    await page.evaluate(() => {
+    // Official imports require HTTP(S) URLs; serve the PNG locally through the same request guard.
+    const officialFixtureDataUrl = await page.evaluate(() => {
       const canvas = document.createElement('canvas'); canvas.width = 900; canvas.height = 1200;
-      window.collageTestImage = canvas.toDataURL('image/png');
+      return canvas.toDataURL('image/png');
+    });
+    officialFixturePng = Buffer.from(officialFixtureDataUrl.split(',')[1], 'base64');
+    await page.evaluate(officialFixtureUrl => {
+      window.collageTestImage = officialFixtureUrl;
       const vm = window.collageTestVm();
       const library = vm.officialLibraries.paper;
       library.groups = [
@@ -568,7 +650,7 @@ async function main() {
       ];
       library.loaded = true; library.loading = false; library.error = '';
       vm.openOfficialPicker('paper');
-    });
+    }, officialFixtureUrl);
     await page.waitForSelector('.official-picker .group-card');
     // Wait out the sheet enter animation so taps use the final card positions.
     await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 350)));
@@ -631,7 +713,7 @@ async function main() {
     await page.evaluate(() => window.collageTestVm().closeOfficialPicker());
     await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 300)));
     assert.equal(errors.length, 0, errors.join('\n'));
-    console.log('[test-collage-browser] PASS: actual import/delete buttons, live slider zoom, two-finger anchored zoom/pan/limits/cancellation, crop-to-pinch transitions and remaining-finger suppression, mouse/touch crop and stable release, corner resizing, exact crop size, original pixels, transparent torn PNG, OCR tap-to-deselect single/range/whole-line/overlapping selections, library, official material group/material picker with multi-piece group previews and portrait background frames, transforms, history, download, publish handoff, deletion and persisted bitmap reload; external requests blocked');
+    console.log('[test-collage-browser] PASS: actual import/delete buttons, live slider zoom, two-finger anchored zoom/pan/limits/cancellation, crop-to-pinch transitions and remaining-finger suppression, mouse/touch crop and stable release, corner resizing, exact crop size, original pixels, transparent torn PNG, OCR tap-to-deselect single/range/whole-line/overlapping selections, contextual library selection/clear/add/delete/cancel/reload, official material group/material picker with multi-piece group previews and portrait background frames, transforms, history, download, publish handoff, deletion and persisted bitmap reload; external requests blocked');
   } finally { await browser.close(); }
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

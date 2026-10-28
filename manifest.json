@@ -2,8 +2,8 @@
     "name" : "poementer",
     "appid" : "__UNI__E0A1A41",
     "description" : "S",
-    "versionName" : "1.7.5",
-    "versionCode" : 175,
+    "versionName" : "1.7.6",
+    "versionCode" : 176,
     "transformPx" : false,
     "app-plus" : {
         "usingComponents" : true,

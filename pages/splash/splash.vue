@@ -16,12 +16,13 @@
             </view>
 
             <!-- 按钮层：独立定位，不影响文字 -->
-            <view v-if="showEnterButton" :class="'enter-key-container ' + (preloadCompleted ? '' : 'loading')" @tap="handleEnterButtonClick">
+            <view v-if="showEnterButton" :class="'enter-key-container ' + (preloadCompleted && loginStateReady ? '' : 'loading')" @tap="handleEnterButtonClick">
                 <image class="enter-key-image" src="/static/images/enter_key.png" mode="aspectFit"></image>
             </view>
         </view>
-        <!-- 网络未完成时沿用现有加载提示 -->
-        <view class="loading-indicator" v-if="isPreloading">正在加载内容...</view>
+        <view class="loading-indicator" v-if="isPreloading || !loginStateReady">
+            {{ loginStateFailed ? '登录状态恢复失败，可点击进入' : (!loginStateReady ? '正在恢复登录状态...' : '正在加载内容...') }}
+        </view>
     </view>
     <PrivacyConsentDialog
         :visible="showPrivacyConsent"
@@ -38,7 +39,8 @@ import { formatErrorForLog } from '@/utils/error-log.js';
 import { lightImpact } from '@/utils/haptics.js';
 import { acceptPrivacyConsent, hasAcceptedPrivacyConsent } from '@/utils/privacyConsent.js';
 import { createSplashGate, SPLASH_MIN_MS } from '@/utils/splashGate.js';
-import { preloadPoemSquare } from '@/utils/splashPreload.js';
+import { hasPoemSquarePreload, preloadPoemSquare, retainPoemSquarePreload } from '@/utils/splashPreload.js';
+import { getAppState } from '@/utils/app-state.js';
 
 export default {
     components: { PrivacyConsentDialog },
@@ -52,6 +54,8 @@ export default {
             showNewLineCursor: false,
             textMoveUp: false,
             preloadCompleted: false,
+            loginStateReady: false,
+            loginStateFailed: false,
             isPreloading: true,
             fadeOut: false,
             showPrivacyConsent: false
@@ -72,6 +76,8 @@ export default {
         this._splashDisposed = true;
         clearTimeout(this._typingTimer);
         clearTimeout(this._privacyReopenTimer);
+        clearTimeout(this._preloadRetryTimer);
+        clearTimeout(this._loginStateTimer);
         this._splashGate?.dispose();
     },
     methods: {
@@ -83,7 +89,7 @@ export default {
                 this.typedText = this.fullText.slice(0, this.typedText.length + 1);
                 if (this.typedText.length >= this.fullText.length) {
                     this.typingCompleted = true;
-                    this.showEnterButton = !this.preloadCompleted;
+                    this.showEnterButton = !this.preloadCompleted || !this.loginStateReady;
                     this.textMoveUp = true;
                     this.enterWhenReady();
                     return;
@@ -98,9 +104,31 @@ export default {
             if (this._splashDisposed || this._splashFlowStarted) return;
             this._splashFlowStarted = true;
             this._splashGate = createSplashGate({
+                // openid 可请求帖子，但个人主页还需要完整的 userInfo/isLoggedIn。
+                canAutoEnter: () => this.isStartupLoginReady(),
+                onAutoEnterBlocked: () => {
+                    if (this._splashDisposed) return;
+                    this._splashLeaving = false;
+                    this.fadeOut = false;
+                    this.showNewLineCursor = false;
+                    this.watchStartupLoginState();
+                },
+                // 最后一次检查同时保留交接，失败时不能发出 ready 导航。
+                isReady: ({ navigating }) => navigating ? retainPoemSquarePreload() : hasPoemSquarePreload(),
+                onNotReady: () => {
+                    if (this._splashDisposed) return;
+                    this._splashLeaving = false;
+                    this.fadeOut = false;
+                    this.showNewLineCursor = false;
+                    this.preloadCompleted = false;
+                    this.showEnterButton = this.typingCompleted;
+                    this.startContentPreload();
+                },
                 onLeaving: ({ reason, elapsedMs }) => {
                     this._splashLeaving = true;
                     clearTimeout(this._typingTimer);
+                    clearTimeout(this._preloadRetryTimer);
+                    clearTimeout(this._loginStateTimer);
                     this.showEnterButton = false;
                     this.showNewLineCursor = true;
                     this.isPreloading = false;
@@ -111,18 +139,47 @@ export default {
                 // 隐私确认已占用过开屏展示时间，最短时长只补足剩余部分。
                 minMs: Math.max(0, SPLASH_MIN_MS - (Date.now() - this._startupStartedAt))
             });
+            this.startContentPreload();
+            this.watchStartupLoginState();
+            this.enterWhenReady();
+        },
+        isStartupLoginReady() {
+            const state = getAppState();
+            return !!state._loginProcessCompleted && !state._loginProcessFailed;
+        },
+        watchStartupLoginState() {
+            clearTimeout(this._loginStateTimer);
+            if (this._splashDisposed || this._splashNavigating) return;
+            const state = getAppState();
+            this.loginStateReady = this.isStartupLoginReady();
+            this.loginStateFailed = !!state._loginProcessFailed;
+            if (this.loginStateReady) {
+                this.enterWhenReady();
+                return;
+            }
+            this.showEnterButton = this.typingCompleted;
+            this._loginStateTimer = setTimeout(() => this.watchStartupLoginState(), this.loginStateFailed ? 250 : 100);
+        },
+        startContentPreload() {
+            if (this._splashDisposed || this._splashLeaving || this._splashNavigating) return;
+            this.isPreloading = true;
             preloadPoemSquare(this).then(() => {
-                if (this._splashDisposed) return;
+                if (this._splashDisposed || this._splashLeaving || this._splashNavigating) return;
                 this.preloadCompleted = true;
                 this.isPreloading = false;
                 console.info('[splash] content ready', { elapsedMs: Date.now() - this._startupStartedAt });
                 this.enterWhenReady();
             }).catch(error => {
-                if (this._splashDisposed) return;
+                if (this._splashDisposed || this._splashLeaving || this._splashNavigating) return;
                 console.warn('[splash] preload fallback:', formatErrorForLog(error));
+                if (error.code === 'SPLASH_PRELOAD_INVALIDATED') {
+                    // 仍沿用当前 gate 的原始截止时间，重取不会延长 6 秒上限。
+                    // 让出事件循环，持续失效时也让截止计时器与点击事件正常执行。
+                    clearTimeout(this._preloadRetryTimer);
+                    this._preloadRetryTimer = setTimeout(() => this.startContentPreload(), 50);
+                }
                 // 失败也保留跳过按钮，未点击则由独立的 6 秒截止定时器放行。
             });
-            this.enterWhenReady();
         },
         handlePrivacyConsentAgree() {
             acceptPrivacyConsent();
@@ -158,7 +215,7 @@ export default {
             }, 300);
         },
         enterWhenReady() {
-            if (this._splashDisposed || this._splashLeaving || !this._splashGate || !this.typingCompleted || !this.preloadCompleted) return;
+            if (this._splashDisposed || this._splashLeaving || !this._splashGate || !this.typingCompleted || !this.preloadCompleted || !this.isStartupLoginReady()) return;
             this.showEnterButton = false;
             this._splashGate.settle('ready');
         },
@@ -172,6 +229,8 @@ export default {
             if (this._splashDisposed || this._splashNavigating) return;
             this._splashNavigating = true;
             this._navigationFailed = false;
+            clearTimeout(this._loginStateTimer);
+            retainPoemSquarePreload();
             const url = '/pages/poem-square/poem-square';
             // switchTab 在 App 上会以 auto 关闭非 Tab 窗口，额外触发右滑。
             // 开屏已经自行淡出，reLaunch 用 none 切换并清理开屏页面栈。
@@ -452,7 +511,7 @@ page {
     bottom: 100rpx;
     left: 50%;
     transform: translateX(-50%);
-    color: rgba(255, 255, 255, 0.8);
+    color: #888;
     font-size: 28rpx;
     z-index: 10;
 }

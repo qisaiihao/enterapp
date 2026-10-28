@@ -159,7 +159,8 @@ async function main() {
   const series = activity.normalizePost({
     _id: 'series', seriesBlocks: [{ content: '　甲' }, { content: '  乙' }]
   });
-  assert.equal(series.seriesPoems[0].content, '甲');
+  assert.equal(series.seriesPoems[0].content, '　甲');
+  assert.equal(series.seriesPoems[1].content, '  乙');
   activity.postList.push(series);
   activity.handlePoemCardTap({ postId: 'series', index: 0 });
   assert.equal(activity.postList[2].seriesExpanded, true);

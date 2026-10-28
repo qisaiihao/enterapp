@@ -76,6 +76,39 @@ function testDocumentTargets() {
   assert.ok(app.cssWrites() > darkWrites, '切回浅色仍清除深色专有变量');
 }
 
+function testAppWebviewBackground() {
+  const firstWrites = [], secondWrites = [];
+  const firstWebview = { setStyle: style => firstWrites.push({ ...style }) };
+  const secondWebview = { setStyle: style => secondWrites.push({ ...style }) };
+  let pages = [{ $getAppWebview: () => firstWebview }];
+  // App-vue 没有 uni.setBackgroundColor；必须更新页面自己的原生窗口。
+  const theme = load('utils/theme.js', {
+    uni: {}, plus: {}, getCurrentPages: () => pages
+  }, ['applyNativeThemeChrome']);
+  const darkStyle = { background: '#0f1115', backgroundColorTop: '#0f1115', backgroundColorBottom: '#0f1115' };
+  theme.applyNativeThemeChrome('dark');
+  assert.deepEqual(firstWrites, [darkStyle], '首次进入的 App 窗口在内容渲染前使用深色底色');
+  pages = [{ $vm: { $getAppWebview: () => secondWebview } }];
+  theme.applyNativeThemeChrome('dark');
+  assert.deepEqual(secondWrites, [darkStyle], '新页面不复用旧页面的主题应用状态，并兼容 $vm');
+  assert.equal(firstWrites.length, 1, '只更新当前页面窗口');
+  theme.applyNativeThemeChrome('light');
+  assert.deepEqual(secondWrites[1], {
+    background: '#ffffff', backgroundColorTop: '#ffffff', backgroundColorBottom: '#ffffff'
+  }, '同一窗口切回浅色时同步原生底色');
+  pages = [];
+  assert.doesNotThrow(() => theme.applyNativeThemeChrome('dark'), '启动尚无页面时安全跳过');
+  pages = [{ $getAppWebview: () => { throw new Error('unloaded'); } }];
+  assert.doesNotThrow(() => theme.applyNativeThemeChrome('dark'), '窗口已卸载不会打断主题同步');
+
+  let nonAppReads = 0;
+  const nonApp = load('utils/theme.js', {
+    uni: {}, getCurrentPages: () => { nonAppReads++; return []; }
+  }, ['applyNativeThemeChrome']);
+  nonApp.applyNativeThemeChrome('dark');
+  assert.equal(nonAppReads, 0, '非 App 环境不尝试访问原生窗口');
+}
+
 function testGlobalMixinFanout() {
   const app = runtime(), mixins = [];
   const vueApp = { component() {}, use() {}, mixin(value) { mixins.push(value); } };
@@ -104,12 +137,14 @@ function testGlobalMixinFanout() {
   for (const component of components) mixin.beforeUnmount.call(component);
   assert.equal(app.listeners.get('theme:changed').size, 1, '组件卸载后只保留运行时主题桥接');
   assert.equal(app.listeners.get('read-font-size:changed').size, 1);
+  mixin.onLoad.call({ appThemeMode: 'dark' });
+  assert.equal(app.nativeCalls.length - beforeNative, 6, '首次页面 onLoad 就同步底色，不必等到 onShow');
   for (let index = 0; index < 2; index++) mixin.onShow.call({ appThemeMode: 'dark' });
-  assert.equal(app.nativeCalls.length - beforeNative, 9, '每个页面显示时仍同步独立 WebView 的原生栏');
+  assert.equal(app.nativeCalls.length - beforeNative, 12, '每个页面显示时仍同步独立 WebView 的原生栏');
   assert.equal(app.cssWrites(), afterThemeCss);
 }
 
-for (const test of [testCachedReadsAndExternalEvents, testDocumentTargets, testGlobalMixinFanout]) {
+for (const test of [testCachedReadsAndExternalEvents, testDocumentTargets, testAppWebviewBackground, testGlobalMixinFanout]) {
   test();
   console.log('PASS ' + test.name);
 }
