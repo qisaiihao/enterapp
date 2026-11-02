@@ -419,6 +419,7 @@ import { attachPoemDisplayFields } from '@/utils/poemDisplay.js';
 import { applyThemeMode, getThemeMode } from '@/utils/theme.js';
 
 import { clearPublishDraftStorage } from '@/utils/publishDraft.js';
+import { submitPublishedPoemToSociety } from '@/utils/societySubmission.js';
 
 
 
@@ -2697,6 +2698,8 @@ export default {
 
       const fromAdminActivity = !!sourceData.fromAdminActivity;
 
+      const societyCallId = sourceData.societyCallId || editData.societyCallId || '';
+
       const sessionId = this._submittedDraftSessionId || editData.draftSessionId || (addVm && addVm.draftSessionId) || '';
 
       const revision = this._submittedDraftRevision ?? editData.draftRevision ?? (addVm && addVm.draftRevision) ?? 0;
@@ -2813,6 +2816,11 @@ export default {
 
 
 
+      if (societyCallId && !isEditMode) {
+        this.completeSocietySubmission(societyCallId, res && res._id);
+        return;
+      }
+
       if (isActivityMode && fromAdminActivity) {
 
         uni.navigateBack({
@@ -2877,6 +2885,16 @@ export default {
 
       });
 
+    },
+
+    async completeSocietySubmission(callId, postId) {
+      const result = await submitPublishedPoemToSociety(callId, postId, this);
+      if (result.submitted) {
+        uni.showToast({ title: '投稿成功', icon: 'success' });
+      } else {
+        await new Promise(resolve => uni.showModal({ title: '投稿未完成', content: `诗歌已发表，投稿未完成：${result.error && result.error.message || '请返回征稿页重试'}`, showCancel: false, success: resolve, fail: resolve }));
+      }
+      uni.navigateBack({ delta: 2 });
     },
 
 

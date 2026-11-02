@@ -6,7 +6,8 @@ const { recordSuccessfulLogin } = require('./_lib/login-audit');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database({ throwOnNotFound: false });
 const digest = value => crypto.createHash('sha256').update(value).digest('hex');
-const invalidCode = () => ({ success: false, code: 'CODE_INVALID', message: '验证码错误或已过期，请重新获取' });
+const invalidCode = () => ({ success: false, code: 'CODE_INVALID', message: '验证码不正确或无效，请使用本次登录获取的验证码' });
+const sendingCode = () => ({ success: false, code: 'CODE_SENDING', message: '验证码发送确认中，请稍后再提交' });
 
 exports.main = async (event, context) => {
   const { phoneNumber: rawPhone, code: rawCode } = event || {};
@@ -25,14 +26,32 @@ exports.main = async (event, context) => {
       const ref = transaction.collection('sms_codes').doc(`login_${digest(phoneNumber)}`);
       const { data: record } = await ref.get();
       const now = new Date();
-      if (!record || record.phone !== phoneNumber || record.scene !== 'login' || record.status !== 'sent' ||
-          record.used || !(new Date(record.expiredAt) > now)) return invalidCode();
+      const isSending = async (matchSubmittedCode = false) => {
+        const { data: pending } = await transaction.collection('sms_codes').doc(`login_${digest(phoneNumber)}_pending`).get();
+        if (!pending || pending.phone !== phoneNumber || pending.scene !== 'login' ||
+            pending.status !== 'sending' || !(new Date(pending.expiredAt) > now)) return false;
+        if (!matchSubmittedCode) return true;
+        const expected = typeof pending.codeHash === 'string' ? Buffer.from(pending.codeHash, 'hex') : Buffer.alloc(0);
+        const actual = Buffer.from(digest(`${pending.requestId}:${code}`), 'hex');
+        return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
+      };
+      if (!record || record.phone !== phoneNumber || record.scene !== 'login' || record.status !== 'sent') {
+        return await isSending() ? sendingCode() : invalidCode();
+      }
+      if (record.used || !(new Date(record.expiredAt) > now)) {
+        if (await isSending()) return sendingCode();
+        return record.used
+          ? { success: false, code: 'CODE_USED', message: '该验证码已使用，请重新获取' }
+          : { success: false, code: 'CODE_EXPIRED', message: '验证码已过期，请重新获取' };
+      }
       if (record.attempts >= 5) {
+        if (await isSending()) return sendingCode();
         return { success: false, code: 'CODE_ATTEMPTS_EXCEEDED', message: '验证码错误次数过多，请重新获取' };
       }
       const expected = typeof record.codeHash === 'string' ? Buffer.from(record.codeHash, 'hex') : Buffer.alloc(0);
       const actual = Buffer.from(digest(`${record.requestId}:${code}`), 'hex');
       if (expected.length !== actual.length || !crypto.timingSafeEqual(expected, actual)) {
+        if (await isSending(true)) return sendingCode();
         const attempts = (record.attempts || 0) + 1;
         await ref.update({ data: { attempts } });
         return attempts >= 5
@@ -60,7 +79,9 @@ exports.main = async (event, context) => {
       needBindWechat, isPhoneVerified: true
     };
   } catch (error) {
-    if (error.code === 'LOGIN_AUDIT_UNAVAILABLE') return { success: false, code: error.code, message: error.message };
+    if (error.code === 'LOGIN_AUDIT_UNAVAILABLE') return {
+      success: false, code: error.code, message: '登录记录保存失败，验证码已使用，请重新获取验证码后重试'
+    };
     console.error('[loginWithPhone] 登录失败:', error);
     return { success: false, code: 'LOGIN_ERROR', message: '登录失败，请重新获取验证码后重试' };
   }

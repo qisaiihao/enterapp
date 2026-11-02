@@ -12,30 +12,14 @@
       <text class="feature-empty-sub">编辑正在挑选诗歌，请稍后再来看看</text>
     </view>
 
-    <view v-if="postItems.length" class="poem-stack-wrap" @touchmove.stop.prevent>
-      <view
-        class="poem-stack"
-        @touchstart="handleStackTouchStart"
-        @touchend="handleStackTouchEnd"
-      >
-        <view
-          v-for="(card, stackIndex) in currentStackCards"
-          :key="getPostId(card) || card.title || stackIndex"
-          :class="[
-            'poem-stack-card',
-            'poem-stack-card-' + (stackIndex + 1),
-            stackAnimating ? 'is-shuffling' : ''
-          ]"
-          :style="getCardInlineStyle(card, stackIndex)"
-          @tap="handleCardTap(card, stackIndex)"
-        >
-          <view v-if="stackIndex === 0" class="poem-stack-content">
-            <text class="stack-poem-title" :style="getCardTextStyle(card, stackIndex)">{{ card.title || '未命名作品' }}</text>
-            <text class="stack-poem-copy" :style="getCardTextStyle(card, stackIndex)">{{ getCardCopy(card) }}</text>
-          </view>
+    <PoemStack v-if="postItems.length" :items="postItems" :current="currentPostIndex" :card-style="getCardInlineStyle" @shift="shiftTopCard" @select="handleCardTap">
+      <template #front="{ card }">
+        <view class="poem-stack-content">
+          <text class="stack-poem-title" :style="getCardTextStyle(card)">{{ card.title || '未命名作品' }}</text>
+          <text class="stack-poem-copy" :style="getCardTextStyle(card)">{{ getCardCopy(card) }}</text>
         </view>
-      </view>
-    </view>
+      </template>
+    </PoemStack>
 
     <view v-if="postItems.length" class="author-row">
       <view class="author-left">
@@ -187,6 +171,7 @@
 
 <script>
 import WeeklyFeatureActionBar from '@/components/weekly/WeeklyFeatureActionBar.vue';
+import PoemStack from '@/components/poem/PoemStack.vue';
 import WeeklyShareCardModal from '@/components/weekly/WeeklyShareCardModal.vue';
 import FolderSelector from '@/components/folder-selector/folder-selector.vue';
 import { isUserLoggedIn, requireLogin } from '@/utils/authHelper.js';
@@ -212,6 +197,7 @@ const fallbackPoemColors = ['#a4c4bd', '#c9cfcf', '#906161', '#909388'];
 export default {
   name: 'WeeklyFeatureDetailView',
   components: {
+    PoemStack,
     WeeklyFeatureActionBar,
     WeeklyShareCardModal,
     FolderSelector
@@ -236,9 +222,6 @@ export default {
       commentRequestKey: '',
       currentPostIndex: 0,
       authorProfileLoading: false,
-      stackAnimating: false,
-      stackTouchStartX: 0,
-      stackTouchStartY: 0,
       // 点赞状态：postId -> { votes, isVoted, likeIcon }
       likeOverrides: {},
       votingInProgress: {},
@@ -310,10 +293,6 @@ export default {
 
     selectedIsVoted() {
       return this.selectedLike.isVoted;
-    },
-
-    currentStackCards() {
-      return this.getStackCards(this.currentPostIndex);
     },
 
     postItemsSignature() {
@@ -425,41 +404,7 @@ export default {
       return text;
     },
 
-    getStackCards(startIndex = 0) {
-      if (!this.postItems.length) return [];
-      const total = this.postItems.length;
-      const maxCards = Math.min(4, total);
-      const cards = [];
-
-      for (let offset = 0; offset < maxCards; offset += 1) {
-        cards.push(this.postItems[(startIndex + offset) % total]);
-      }
-
-      return cards;
-    },
-
-    handleStackTouchStart(event) {
-      const touch = event && event.changedTouches && event.changedTouches[0];
-      if (!touch) return;
-      this.stackTouchStartX = touch.clientX || touch.pageX || 0;
-      this.stackTouchStartY = touch.clientY || touch.pageY || 0;
-    },
-
-    handleStackTouchEnd(event) {
-      const touch = event && event.changedTouches && event.changedTouches[0];
-      if (!touch || this.postItems.length <= 1) return;
-
-      const endX = touch.clientX || touch.pageX || 0;
-      const endY = touch.clientY || touch.pageY || 0;
-      const deltaX = endX - this.stackTouchStartX;
-      const deltaY = endY - this.stackTouchStartY;
-
-      if (Math.abs(deltaX) < 42 || Math.abs(deltaX) < Math.abs(deltaY) * 1.15) return;
-      this.shiftTopCard(deltaX < 0 ? 1 : -1);
-    },
-
-    handleCardTap(card, stackIndex = 0) {
-      if (stackIndex !== 0) return;
+    handleCardTap(card) {
       const postId = this.getPostId(card);
       if (!postId) return;
       navigateToPostDetail(postId);
@@ -469,10 +414,6 @@ export default {
       const total = this.postItems.length;
       if (total <= 1) return;
       this.currentPostIndex = (this.currentPostIndex + step + total) % total;
-      this.stackAnimating = true;
-      setTimeout(() => {
-        this.stackAnimating = false;
-      }, 180);
     },
 
     resolvePostAvatar(post) {
@@ -1334,71 +1275,6 @@ export default {
 .feature-empty-sub {
   font-size: 24rpx;
   color: #999999;
-}
-
-.poem-stack-wrap {
-  padding-top: 44rpx;
-  touch-action: none;
-}
-
-.poem-stack {
-  position: relative;
-  width: 550rpx;
-  height: 650rpx;
-  margin: 0 auto;
-}
-
-.poem-stack-card {
-  position: absolute;
-  border-radius: 14rpx;
-  box-sizing: border-box;
-  overflow: hidden;
-  transition: left 0.18s ease, bottom 0.18s ease, width 0.18s ease, height 0.18s ease, transform 0.18s ease;
-}
-
-.poem-stack-card.is-shuffling {
-  transform: scale(0.992);
-}
-
-.poem-stack-card-1 {
-  left: 0;
-  bottom: 0;
-  z-index: 5;
-  width: 484rpx;
-  height: 536rpx;
-  background: #00070a;
-  border: 10rpx solid #00070a;
-  cursor: pointer;
-}
-
-.poem-stack-card-2 {
-  left: 40rpx;
-  bottom: 52rpx;
-  z-index: 4;
-  width: 466rpx;
-  height: 516rpx;
-  background: #f5dfba;
-  border: 10rpx solid #f5dfba;
-}
-
-.poem-stack-card-3 {
-  left: 80rpx;
-  bottom: 104rpx;
-  z-index: 3;
-  width: 448rpx;
-  height: 496rpx;
-  background: #71805c;
-  border: 10rpx solid #71805c;
-}
-
-.poem-stack-card-4 {
-  left: 120rpx;
-  bottom: 156rpx;
-  z-index: 2;
-  width: 430rpx;
-  height: 476rpx;
-  background: #7d2f2a;
-  border: 10rpx solid #bfe9ee;
 }
 
 .poem-stack-content {

@@ -59,6 +59,16 @@
                     </view>
                 </view>
 
+                <!-- 学校 -->
+                <view class="form-row">
+                    <view class="form-label">
+                        <text>学校</text>
+                    </view>
+                    <view class="form-input">
+                        <input class="input-field" type="text" placeholder="请输入学校" :value="school" @input="onSchoolInput" />
+                    </view>
+                </view>
+
                 <!-- 生日 -->
                 <view class="form-row">
                     <view class="form-label">
@@ -293,6 +303,7 @@ export default {
             bio: '',
             occupation: '',
             region: '',
+            school: '',
             poemId: '',        // 新增：poemId字段
             phoneNumber: '',   // 手机号（只读显示）
             endDate: '',
@@ -341,6 +352,7 @@ export default {
                 bio: '',
                 occupation: '',
                 region: '',
+                school: '',
                 poemId: '',
                 showGrowthStats: false,
                 signatureUrl: ''
@@ -357,6 +369,7 @@ export default {
                 this.bio !== this.originalData.bio ||
                 this.occupation !== this.originalData.occupation ||
                 this.region !== this.originalData.region ||
+                this.school !== this.originalData.school ||
                 this.poemId !== this.originalData.poemId ||
                 this.showGrowthStats !== this.originalData.showGrowthStats ||
                 this.signatureUrl !== this.originalData.signatureUrl ||
@@ -461,6 +474,7 @@ export default {
                             bio: user.bio || '',
                             occupation: user.occupation || '',
                             region: user.region || '',
+                            school: user.school || '',
                             poemId: user.poemId || '',          // 新增：设置poemId
                             phoneNumber: user.phoneNumber || '', // 手机号（只读显示）
                             showGrowthStats,
@@ -478,6 +492,7 @@ export default {
                             bio: user.bio || '',
                             occupation: user.occupation || '',
                             region: user.region || '',
+                            school: user.school || '',
                             poemId: user.poemId || '',
                             showGrowthStats,
                             signatureUrl: user.signatureUrl || ''
@@ -764,6 +779,12 @@ export default {
         onRegionInput(e) {
             this.setData({
                 region: e.detail.value
+            });
+        },
+
+        onSchoolInput(e) {
+            this.setData({
+                school: e.detail.value
             });
         },
 
@@ -1172,6 +1193,7 @@ export default {
                 bio: this.bio,
                 occupation: this.occupation,
                 region: this.region,
+                school: this.school,
                 poemId: this.poemId
             });
 
@@ -1198,6 +1220,7 @@ export default {
                         bio: this.bio,
                         occupation: this.occupation,
                         region: this.region,
+                        school: this.school,
                         poemId: this.poemId,  // 新增：保存poemId
                         showGrowthStats: this.showGrowthStats === true
                     };

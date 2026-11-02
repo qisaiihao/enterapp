@@ -2,6 +2,16 @@
   "envId": "cloud1-5gb0pbyl400845f5",
   "functions": [
     {
+      "name": "societyManager",
+      "timeout": 300,
+      "memory": 256,
+      "runtime": "Nodejs20.19",
+      "handler": "index.main",
+      "root": "./functions/societyManager",
+      "installDependency": true,
+      "params": {}
+    },
+    {
       "name": "squareBubbleConfig",
       "timeout": 10,
       "memory": 128,

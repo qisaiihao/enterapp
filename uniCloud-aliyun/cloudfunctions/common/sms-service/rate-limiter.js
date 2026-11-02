@@ -31,7 +31,7 @@ async function checkRateLimit(phone, ip, db) {
       };
     }
 
-    // 2. 检查 24 小时内请求次数（不超过 10 次）
+    // 2. 检查 24 小时内请求次数（不超过 20 次）
     const dailyResult = await logsCollection
       .where({
         phone: phone,
@@ -39,10 +39,10 @@ async function checkRateLimit(phone, ip, db) {
       })
       .count();
 
-    if (dailyResult.total >= 10) {
+    if (dailyResult.total >= 20) {
       return {
         allowed: false,
-        message: '今日发送次数已达上限（10次），请明天再试'
+        message: '24小时内发送次数已达上限（20次），请稍后再试'
       };
     }
 

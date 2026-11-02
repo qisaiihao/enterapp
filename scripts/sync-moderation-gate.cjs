@@ -5,6 +5,7 @@ const source = fs.readFileSync(path.join(root, 'functions/_shared/moderation-gat
 const reviewSource = fs.readFileSync(path.join(root, 'functions/_shared/moderation-review.js'));
 const adminAuthSource = fs.readFileSync(path.join(root, 'functions/adminManager/_lib/admin-auth.js'));
 const consumers = [
+  'societyManager',
   'contentCheck',
   'addComment',
   'createDiscussionPost',

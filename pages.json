@@ -325,6 +325,23 @@
       ]
     },
     {
+      "root": "pages-community",
+      "pages": [
+          { "path": "home/home", "style": { "navigationStyle": "custom", "enablePullDownRefresh": true } },
+          { "path": "calls/calls", "style": { "navigationStyle": "custom", "onReachBottomDistance": 80 } },
+        { "path": "discover/discover", "style": { "navigationStyle": "custom", "onReachBottomDistance": 80 } },
+        { "path": "society/society", "style": { "navigationStyle": "custom", "enablePullDownRefresh": true } },
+        { "path": "members/members", "style": { "navigationStyle": "custom", "onReachBottomDistance": 80 } },
+        { "path": "apply/apply", "style": { "navigationStyle": "custom" } },
+        { "path": "manage/manage", "style": { "navigationStyle": "custom" } },
+        { "path": "profile/profile", "style": { "navigationStyle": "custom" } },
+        { "path": "mine/mine", "style": { "navigationStyle": "custom" } },
+        { "path": "opportunity/opportunity", "style": { "navigationStyle": "custom" } },
+        { "path": "review/review", "style": { "navigationStyle": "custom" } },
+        { "path": "notifications/notifications", "style": { "navigationStyle": "custom", "onReachBottomDistance": 80 } }
+      ]
+    },
+    {
       "root": "pages-tools",
       "pages": [
         {

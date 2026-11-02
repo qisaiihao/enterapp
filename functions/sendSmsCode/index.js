@@ -119,19 +119,21 @@ async function checkSendLimits(phone, clientIP) {
 async function saveVerificationCode(phone, code, clientIP, scene = 'binding') {
   try {
     const now = new Date();
-    await db.collection('sms_codes').add({
+    return await db.collection('sms_codes').add({
       data: {
         phone: phone,
         code: code,
         clientIP: clientIP,
         scene: scene,
-        used: false,
+        // 预先保存但不可校验，短信服务确认成功后再激活。
+        used: true,
+        status: 'sending',
         createdAt: now,
         expiredAt: new Date(now.getTime() + config.limits.codeExpireTime * 1000)
       }
     });
   } catch (error) {
-    console.error('保存验证码记录失败:', error);
+    console.error('保存验证码记录失败:', error.code || 'SMS_SAVE_FAILED');
     throw error;
   }
 }
@@ -234,6 +236,9 @@ exports.main = async (event, context) => {
       };
     }
 
+    // 先持久化；数据库故障时不发出一个永远无法验证的验证码。
+    const saved = await saveVerificationCode(phone, verificationCode, clientIP, scene);
+
     // 6. 发送短信
     const sendResult = await provider.sendVerificationCode(phone, verificationCode);
 
@@ -250,12 +255,16 @@ exports.main = async (event, context) => {
       };
     }
 
-    // 8. 保存验证码到数据库
+    // 8. 激活已经保存的验证码；失败时必须明确返回失败。
     try {
-      await saveVerificationCode(phone, verificationCode, clientIP, scene);
+      await db.collection('sms_codes').doc(saved._id).update({ data: {
+        used: false,
+        status: 'sent',
+        expiredAt: new Date(Date.now() + config.limits.codeExpireTime * 1000)
+      } });
     } catch (dbError) {
-      console.error('📱 [sendSmsCode] 数据库保存失败:', dbError);
-      // 短信已发送，数据库失败不影响用户体验
+      console.error('[sendSmsCode] 验证码激活失败:', dbError.code || 'SMS_ACTIVATION_FAILED');
+      return { success: false, code: 'SEND_FAILED', message: '验证码发送确认失败，请稍后重新获取' };
     }
 
     // 9. 记录成功日志
@@ -276,7 +285,7 @@ exports.main = async (event, context) => {
     };
 
   } catch (error) {
-    console.error('📱 [sendSmsCode] 系统异常:', error);
+    console.error('📱 [sendSmsCode] 系统异常:', error.code || 'SYSTEM_ERROR');
     return {
       success: false,
       code: 'SYSTEM_ERROR',

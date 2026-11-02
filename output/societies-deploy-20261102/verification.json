@@ -1,0 +1,103 @@
+{
+  "envId": "cloud1-5gb0pbyl400845f5",
+  "checkedAt": "2026-11-02T07:48:16.669Z",
+  "checks": [
+    {
+      "action": "home",
+      "success": true
+    },
+    {
+      "action": "list",
+      "success": true
+    },
+    {
+      "action": "callList",
+      "success": true
+    },
+    {
+      "action": "publicMembers",
+      "success": false,
+      "code": "INVALID_REQUEST"
+    },
+    {
+      "action": "saveContent",
+      "success": false,
+      "code": "AUTH_REQUIRED"
+    },
+    {
+      "action": "registration",
+      "success": false,
+      "code": "AUTH_REQUIRED"
+    },
+    {
+      "action": "registrations",
+      "success": false,
+      "code": "AUTH_REQUIRED"
+    },
+    {
+      "action": "submitWork",
+      "success": false,
+      "code": "AUTH_REQUIRED"
+    },
+    {
+      "action": "reviewWork",
+      "success": false,
+      "code": "AUTH_REQUIRED"
+    },
+    {
+      "action": "myParticipation",
+      "success": false,
+      "code": "AUTH_REQUIRED"
+    },
+    {
+      "action": "publishWork",
+      "success": false,
+      "code": "AUTH_REQUIRED"
+    },
+    {
+      "action": "statistics",
+      "success": false,
+      "code": "AUTH_REQUIRED"
+    },
+    {
+      "action": "acceptHost",
+      "success": false,
+      "code": "AUTH_REQUIRED"
+    },
+    {
+      "action": "memberList",
+      "success": false,
+      "code": "AUTH_REQUIRED"
+    },
+    {
+      "action": "requestList",
+      "success": false,
+      "code": "AUTH_REQUIRED"
+    },
+    {
+      "action": "changeMember",
+      "success": false,
+      "code": "AUTH_REQUIRED"
+    },
+    {
+      "action": "updateSociety",
+      "success": false,
+      "code": "AUTH_REQUIRED"
+    },
+    {
+      "action": "notifications",
+      "success": false,
+      "code": "AUTH_REQUIRED"
+    },
+    {
+      "action": "unreadNotifications",
+      "success": false,
+      "code": "AUTH_REQUIRED"
+    },
+    {
+      "action": "readNotification",
+      "success": false,
+      "code": "AUTH_REQUIRED"
+    }
+  ]
+}

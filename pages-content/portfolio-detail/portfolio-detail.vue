@@ -95,21 +95,14 @@
                 <text>暂无原创诗歌</text>
               </view>
               <view v-else class="posts-list-simple">
-                <view
+                <poem-selection-item
                   v-for="post in myPosts"
                   :key="post._id"
-                  class="post-item-simple"
-                  :class="{ selected: selectedPostIds.includes(post._id) }"
-                  @tap="toggleSelectPost(post)"
-                >
-                  <view class="post-content-simple">
-                    <text class="post-title-simple">{{ post.title || '无标题' }}</text>
-                    <text class="post-date-simple">{{ formatDate(post.createTime) }}</text>
-                  </view>
-                  <view v-if="selectedPostIds.includes(post._id)" class="selected-check-simple">
-                    <text>✓</text>
-                  </view>
-                </view>
+                  :post="post"
+                  :selected="selectedPostIds.includes(post._id)"
+                  :date-label="formatDate(post.createTime)"
+                  @select="toggleSelectPost"
+                />
               </view>
             </view>
           </view>
@@ -129,6 +122,7 @@
 
 <script>
 import AppMotion from '@/components/overlay/AppMotion.vue';
+import PoemSelectionItem from '@/components/poem/PoemSelectionItem.vue';
 import skeleton from '@/components/skeleton/skeleton';
 import dualActionTopBar from '@/components/dual-action-top-bar/dual-action-top-bar.vue';
 import { cloudCall } from '@/utils/cloudCall.js';
@@ -143,7 +137,7 @@ import { getWindowInfoCompat } from '@/utils/system-info.js';
 const PAGE_SIZE = 10;
 
 export default {
-  components: { AppMotion,
+  components: { AppMotion, PoemSelectionItem,
     skeleton,
     dualActionTopBar
   },
@@ -905,56 +899,6 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 12rpx;
-}
-
-.post-item-simple {
-  background: var(--create-input-bg);
-  border-radius: 20rpx;
-  padding: 24rpx;
-  border: none;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.post-item-simple.selected {
-  background: var(--create-cancel-bg);
-}
-
-.post-content-simple {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6rpx;
-}
-
-.post-title-simple {
-  font-size: 30rpx;
-  color: var(--create-text);
-  font-weight: 500;
-  line-height: 1.4;
-  overflow-wrap: anywhere;
-}
-
-.post-date-simple {
-  font-size: 24rpx;
-  color: var(--create-muted);
-}
-
-.selected-check-simple {
-  width: 40rpx;
-  height: 40rpx;
-  background: var(--create-confirm-bg);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--create-confirm-text);
-  font-size: 24rpx;
-  font-weight: bold;
-  flex-shrink: 0;
 }
 
 /* 横屏或可视高度较小时，留出足够空间滚动和点选作品。 */

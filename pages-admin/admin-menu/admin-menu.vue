@@ -59,6 +59,15 @@
                 <text class="menu-arrow">→</text>
             </view>
 
+            <view class="menu-item" @tap="navigateTo" data-url="/pages-community/review/review">
+                <view class="menu-icon">校</view>
+                <view class="menu-info">
+                    <text class="menu-title">诗社入驻审核</text>
+                    <text class="menu-desc">审核高校诗社资料，开通诗社主页</text>
+                </view>
+                <text class="menu-arrow">→</text>
+            </view>
+
             <view class="menu-item" @tap="navigateTo" data-url="/pages-admin/activity-management/activity-management">
                 <view class="menu-icon">🎯</view>
                 <view class="menu-info">

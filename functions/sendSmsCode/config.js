@@ -29,7 +29,7 @@ module.exports = {
   // 短信发送限制配置
   limits: {
     // 同一手机号每日最多发送次数
-    dailyLimitPerPhone: 10,
+    dailyLimitPerPhone: 20,
     // 同一IP每日最多发送次数
     dailyLimitPerIP: 50,
     // 发送间隔（秒）

@@ -21,6 +21,7 @@ const TARGET_DIRS = [
   'pages',
   'pages-admin',
   'pages-content',
+  'pages-community',
   'pages-tools',
   'pages-user',
   'components',

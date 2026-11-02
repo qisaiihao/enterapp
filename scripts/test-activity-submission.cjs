@@ -114,6 +114,16 @@ async function main() {
     assert.equal(previewPage.publishData.fromAdminActivity, false);
   }
 
+  addPage = createPage(add, { loadDraft: () => false });
+  await add.onLoad.call(addPage, { societyCallId: 'call%2Fone' });
+  assert.equal(addPage.societyCallId, 'call/one');
+  assert.equal(addPage.publishMode, 'poem');
+  assert.equal(addPage.isOriginal, true);
+  addPage.content = '新诗正文';
+  addPage.goToPreview();
+  assert.equal(previewPost.editData.societyCallId, 'call/one');
+  assert.equal(previewPost.editData.publishMode, 'poem');
+
   // 普通入口、管理员活动发帖和编辑入口继续使用原有默认设置。
   const regular = createPage(add, { loadDraft: () => false });
   await add.onLoad.call(regular, {});

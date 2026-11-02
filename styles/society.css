@@ -1,0 +1,39 @@
+.community-page {
+  color: var(--app-primary-text, #242020);
+  font-size: 28rpx;
+  line-height: 1.65;
+}
+.community-page button { margin: 0; font-size: 26rpx; font-weight: normal; line-height: 1.4; }
+.community-page button::after { border: 0; }
+.community-page .primary-button, .community-page .secondary-button {
+  display: flex; align-items: center; justify-content: center; min-height: 76rpx;
+  padding: 16rpx 30rpx; border-radius: 12rpx; box-sizing: border-box;
+}
+.community-page .primary-button { background: var(--app-control-accent-bg, #403534); color: var(--app-control-accent-text, #fff); }
+.community-page .secondary-button { background: var(--app-control-soft-bg, #f3f1ee); color: var(--app-primary-text, #403534); }
+.community-page button[disabled] { opacity: .45; }
+.community-page .text-button { display: inline-flex; padding: 8rpx 0; background: transparent; color: var(--app-muted-text, #827975); font-size: 24rpx; }
+.community-page .section { margin-top: 48rpx; }
+.community-page .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; margin-bottom: 24rpx; }
+.community-page .section-title { font-size: 34rpx; font-weight: 600; }
+.community-page .muted { color: var(--app-muted-text, #8a807b); font-size: 24rpx; }
+.community-page .eyebrow { color: var(--app-muted-text, #938680); font-size: 20rpx; letter-spacing: 3rpx; }
+.community-page .panel { padding: 28rpx; border: 1rpx solid var(--app-border-color, #e6e0da); border-radius: 14rpx; margin-bottom: 24rpx; background: var(--app-surface-bg, #fff); }
+.community-page .title { display: block; font-size: 48rpx; font-weight: 600; line-height: 1.35; word-break: break-word; }
+.community-page .body-text { white-space: pre-wrap; line-height: 1.9; word-break: break-word; }
+.community-page .row { display: flex; align-items: center; gap: 20rpx; }
+.community-page .spread { justify-content: space-between; }
+.community-page .grow { flex: 1; min-width: 0; }
+.community-page .avatar { width: 104rpx; height: 104rpx; border: 1rpx solid var(--app-border-color, #e6e0da); border-radius: 8rpx; flex-shrink: 0; background: #fff; }
+.community-page .badge { display: inline-block; padding: 3rpx 12rpx; border-radius: 6rpx; font-size: 20rpx; line-height: 1.5; color: var(--app-secondary-text, #696357); background: var(--app-control-soft-bg, #f1f1e9); }
+.community-page .notice { margin: 28rpx 0; padding: 24rpx; background: var(--app-control-soft-bg, #f6f3ed); border-radius: 10rpx; color: var(--app-secondary-text, #7c6a50); font-size: 25rpx; }
+.community-page .field { margin-bottom: 30rpx; }
+.community-page .field-label { display: block; margin-bottom: 12rpx; font-size: 26rpx; }
+.community-page .field-input, .community-page .field-area { width: 100%; box-sizing: border-box; background: var(--app-input-bg, #f7f6f3); border: 1rpx solid var(--app-border-color, #e7e2dc); border-radius: 10rpx; color: var(--app-primary-text, #242020); font-size: 28rpx; padding: 20rpx; }
+.community-page .field-input { height: 88rpx; }
+.community-page .field-area { min-height: 210rpx; line-height: 1.7; }
+.community-page .actions { display: flex; gap: 20rpx; margin-top: 28rpx; }
+.community-page .actions > button { flex: 1; }
+.community-page .footer-note { display: block; margin: 40rpx 0 16rpx; text-align: center; color: var(--app-muted-text, #aaa19a); font-size: 22rpx; }
+.icon-button { display: flex; align-items: center; justify-content: center; min-width: 56rpx; padding: 6rpx !important; }
+.icon-button image { display: block; width: 38rpx; height: 38rpx; filter: var(--app-icon-filter, none); }

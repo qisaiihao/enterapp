@@ -28,6 +28,7 @@ const db = {
   }
 };
 const server = { exports: {}, console: { warn() {} }, require(name) {
+  if (name === './_lib/posts') return { createPostsDatabase: database => database, withPostResponse: value => value };
   assert.equal(name, 'wx-server-sdk');
   return { init() {}, database: () => db };
 } };

@@ -198,6 +198,11 @@ async function entryTests() {
   assert.equal(completing.logs.length, 1, 'completing an existing account is also an authenticated login');
   assert.equal(completing.logs[0].userId, 'incomplete-user');
   assert.equal(completing.logs[0].poemId, 'completed-poet');
+  const forgedRegistration = runtime([user], {});
+  const forgedResult = await forgedRegistration.call('registerUser', { poemId: 'attacker-poet', password: 'attacker-password', nickName: '冒名', openid: user._openid });
+  assert.equal(forgedResult.code, 'ACCOUNT_EXISTS', 'client-provided openid cannot update an existing account');
+  assert.equal(forgedRegistration.tables.users[user._id].password, user.password);
+  assert.equal(forgedRegistration.logs.length, 0);
   const newWechat = runtime([], { OPENID: 'fresh-wechat' });
   const newWechatResult = await newWechat.call('loginWithWechat', {});
   assert.equal(newWechatResult.success, true);

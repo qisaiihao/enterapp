@@ -58,7 +58,7 @@ exports.main = async (event, context) => {
       poemId: poemId
     }).get();
 
-    console.log('🔍 [registerUser] 检查Poem ID是否存在:', existingUserRes);
+    console.log('🔍 [registerUser] 检查Poem ID是否存在:', existingUserRes.data.length > 0);
 
     if (existingUserRes.data.length > 0) {
       return {
@@ -84,6 +84,11 @@ exports.main = async (event, context) => {
     }).get();
 
     if (existingOpenidRes.data.length > 0) {
+      // Completing an existing account is allowed only for the identity proved by WeChat.
+      // A client-provided openid (including a GitHub or anonymous ID) is not proof of ownership.
+      if (!wxContext.OPENID || wxContext.OPENID !== openid) {
+        return { success: false, message: '账号已存在，请直接登录', code: 'ACCOUNT_EXISTS' };
+      }
       // 用户已存在，更新信息
       console.log('🔍 [registerUser] 用户已存在，更新信息');
       const existingUser = existingOpenidRes.data[0] || {};

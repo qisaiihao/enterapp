@@ -358,6 +358,7 @@ import {
 } from './useImages.js';
 
 import { decodeParamSafe } from '@/utils/activity.js';
+import { submitPublishedPoemToSociety } from '@/utils/societySubmission.js';
 import { dismissCurrentOverlay } from '@/utils/appOverlay.js';
 
 const WORKING_DRAFT_KEY = 'publish_working_draft_v1';
@@ -420,6 +421,7 @@ export default {
             joinActivityEnabled: false,
             joinedActivityId: '',
             joinedActivityTitle: '',
+            societyCallId: '',
 
             // 'normal' | 'poem' | 'discussion' 普通模式 | 诗歌模式 | 讨论模式
             isOriginal: false,
@@ -687,7 +689,11 @@ export default {
         }
 
         const joinActivityId = decodeParamSafe(options.joinActivityId).trim();
-        if (joinActivityId && !isActivityMode && options.mode !== 'edit') {
+        const societyCallId = decodeParamSafe(options.societyCallId).trim();
+        if (societyCallId && !isActivityMode && options.mode !== 'edit') {
+            this.onModeSelect({ mode: 'poem', isOriginal: true });
+            this.setData({ societyCallId, joinActivityEnabled: false, joinedActivityId: '', joinedActivityTitle: '' });
+        } else if (joinActivityId && !isActivityMode && options.mode !== 'edit') {
             // 显式投稿入口优先于草稿类型和上次参加的活动。
             this.setData({
                 joinActivityEnabled: true,
@@ -1378,6 +1384,7 @@ export default {
 
         // 切换发布模式
         switchMode: function () {
+            if (this.societyCallId) return;
             if (this.isActivityMode) {
                 uni.showToast({
                     title: 'Activity mode locked',
@@ -1499,6 +1506,10 @@ export default {
 
         // 选择发布模式（组件事件处理）
         onModeSelect: function ({ mode, isOriginal }) {
+            if (this.societyCallId && (mode !== 'poem' || isOriginal !== true)) {
+                this.setData({ showModeSelector: false });
+                return;
+            }
             if (this.isActivityMode) {
                 uni.showToast({
                     title: 'Activity mode locked',
@@ -2080,6 +2091,7 @@ export default {
 
         publishSuccess: function (res) {
             uni.hideLoading();
+            const societyCallId = this.societyCallId;
             const successMessage = this.isEditMode ? '编辑成功！' : '发布成功！';
             uni.showToast({
                 title: successMessage
@@ -2112,9 +2124,23 @@ export default {
             });
             // 发布成功后清除草稿（编辑模式也清除）
             this.clearDraft({ resetForm: true, sessionId: this.draftSessionId, revision: this.draftRevision });
+            if (societyCallId && !this.isEditMode) {
+                this.completeSocietySubmission(societyCallId, res && res._id);
+                return;
+            }
             uni.navigateBack({
                 delta: 1
             });
+        },
+
+        async completeSocietySubmission(callId, postId) {
+            const result = await submitPublishedPoemToSociety(callId, postId, this);
+            if (result.submitted) {
+                uni.showToast({ title: '投稿成功', icon: 'success' });
+            } else {
+                await new Promise(resolve => uni.showModal({ title: '投稿未完成', content: `诗歌已发表，投稿未完成：${result.error && result.error.message || '请返回征稿页重试'}`, showCancel: false, success: resolve, fail: resolve }));
+            }
+            uni.navigateBack({ delta: 1 });
         },
 
         publishFail: function (err) {
@@ -2259,7 +2285,8 @@ export default {
                     fromAdminActivity: this.fromAdminActivity,
                     joinActivityEnabled: !!this.joinActivityEnabled,
                     joinedActivityId: this.joinedActivityId || '',
-                    joinedActivityTitle: this.joinedActivityTitle || ''
+                    joinedActivityTitle: this.joinedActivityTitle || '',
+                    societyCallId: this.societyCallId || ''
                 }
             };
 

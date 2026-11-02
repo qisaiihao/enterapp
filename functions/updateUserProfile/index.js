@@ -90,6 +90,7 @@ exports.main = async (event = {}, context = {}) => {
     signatureUrl,
     occupation,
     region,
+    school,
     poemId,
     appBackgroundUrl,
     appBackgroundMode,
@@ -104,6 +105,7 @@ exports.main = async (event = {}, context = {}) => {
     bio,
     occupation,
     region,
+    school,
     poemId,
     platform: isTCB ? 'TCB' : 'WeApp'
   });
@@ -139,6 +141,10 @@ exports.main = async (event = {}, context = {}) => {
     if (region !== undefined) {
       updateData.region = region;
       console.log('🔍 [updateUserProfile] 将更新region');
+    }
+    if (school !== undefined) {
+      updateData.school = school;
+      console.log('🔍 [updateUserProfile] 将更新school');
     }
 
     // 添加对poemId字段的支持

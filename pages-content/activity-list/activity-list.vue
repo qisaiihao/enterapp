@@ -247,6 +247,10 @@ export default {
     },
 
     handleCategoryChange(value) {
+      if (value === 'campus') {
+        uni.navigateTo({ url: '/pages-community/home/home' });
+        return;
+      }
       if (value === 'weekly') {
         uni.navigateTo({
           url: '/pages-content/weekly-home/weekly-home'

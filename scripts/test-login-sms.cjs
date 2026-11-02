@@ -31,14 +31,23 @@ function runtime(users = [user], cryptoOverrides = {}) {
       doc(id) {
         return {
           async get() { if (state.dbFails) throw new Error('db unavailable'); return { data: structuredClone(data()[id] || null) }; },
-          async set({ data: value }) { write(); data()[id] = { ...structuredClone(value), _id: id }; },
+          async set({ data: value }) {
+            if (state.failActivation && name === 'sms_codes' && !id.endsWith('_pending') && value.status === 'sent') {
+              throw Error('activation write failed');
+            }
+            write(); data()[id] = { ...structuredClone(value), _id: id };
+          },
           async update({ data: value }) {
             if (state.failConsume && name === 'sms_codes' && value.used) throw new Error('code write failed');
             write(); assert.ok(data()[id]); Object.assign(data()[id], structuredClone(value));
           }
         };
       },
-      async add({ data: value }) { write(); const id = `record-${++nextId}`; data()[id] = { ...structuredClone(value), _id: id }; return { _id: id }; },
+      async add({ data: value }) {
+        if (state.failSmsSave && name === 'sms_codes') throw Error('SMS persistence unavailable');
+        if (state.failAudit && name === 'login_logs') throw Error('audit unavailable');
+        write(); const id = `record-${++nextId}`; data()[id] = { ...structuredClone(value), _id: id }; return { _id: id };
+      },
       where(filter) {
         let limit = Infinity, order;
         const rows = () => {
@@ -75,20 +84,24 @@ function runtime(users = [user], cryptoOverrides = {}) {
     }
   };
   const cloud = { init() {}, database: () => db, getWXContext: () => ({ OPENID: 'wechat', CLIENTIP: 'test-ip' }) };
-  const config = { testMode: false, limits: { sendInterval: 60, codeExpireTime: 300, dailyLimitPerPhone: 10, dailyLimitPerIP: 50 } };
+  const config = { testMode: false, limits: { ...require('../functions/sendSmsCode/config').limits } };
   const provider = {
     getProviderName: () => 'TestSms',
     async sendVerificationCode(target, code) {
       state.sent.push({ phone: target, code });
-      if (state.beforeSend) await state.beforeSend();
+      if (state.beforeSend) await state.beforeSend(target, code);
       return { success: !state.sendFails, message: state.sendFails ? 'failure' : 'sent' };
     }
   };
   const cache = {};
+  class TestDate extends Date {
+    constructor(...args) { super(...(args.length ? args : [TestDate.now()])); }
+    static now() { return state.now === undefined ? Date.now() : state.now; }
+  }
   function load(file) {
     if (cache[file]) return cache[file];
     const module = { exports: {} };
-    const context = { module, exports: module.exports, console: quiet, Buffer, process: { env: {} },
+    const context = { module, exports: module.exports, console: quiet, Buffer, Date: TestDate, process: { env: {} },
       require(name) {
         if (name === 'wx-server-sdk') return cloud;
         if (name === './config') return config;
@@ -204,8 +217,13 @@ async function backendTests() {
   const pending = runtime();
   pending.state.beforeSend = async () => assert.equal((await pending.login({ phoneNumber: phone, code: pending.code() })).success, false);
   await pending.send({ phone, scene: 'login' }, {});
+  pending.state.beforeSend = null;
   pending.cooldown();
-  pending.rate().sendCount = 10;
+  assert.equal(pending.config.limits.dailyLimitPerPhone, 20);
+  pending.rate().sendCount = 19;
+  assert.equal((await pending.send({ phone, scene: 'resetPassword' }, {})).success, true, '20th SMS is allowed across shared scenes');
+  assert.equal(pending.rate().sendCount, 20);
+  pending.cooldown();
   delete pending.tables.sms_codes[idFor(phone)];
   assert.equal((await pending.send({ phone, scene: 'login' }, {})).code, 'SEND_LIMIT_EXCEEDED');
   const ip = runtime();
@@ -286,6 +304,114 @@ async function resetTests() {
   changed.state.beforeTransaction = () => { changed.tables.users.user.phoneNumber = '13900139000'; };
   assert.equal((await changed.reset({ phoneNumber: phone, code: changed.code(), newPassword: 'new-secret' })).code, 'PHONE_CHANGED');
   assert.equal(changed.tables.users.user.password, 'secret');
+}
+
+async function deliveryRegressionTests() {
+  for (const scene of ['login', 'resetPassword']) {
+    const verify = (r, code) => scene === 'login'
+      ? r.login({ phoneNumber: phone, code })
+      : r.reset({ phoneNumber: phone, code, newPassword: 'new-secret' });
+    for (const failure of ['rejected', 'exception', 'activation']) {
+      const r = runtime();
+      await r.send({ phone, scene }, {});
+      const receivedCode = r.code();
+      r.cooldown();
+      r.state.sendFails = failure === 'rejected';
+      r.state.beforeSend = async () => {
+        if (failure === 'exception') throw Error('provider timeout');
+        if (failure === 'activation') r.state.failActivation = true;
+      };
+      assert.equal((await r.send({ phone, scene }, {})).success, false);
+      r.state.dbFails = false;
+      assert.equal((await verify(r, receivedCode)).success, true, `${scene}: ${failure} resend must preserve the last delivered code`);
+    }
+
+    const pending = runtime();
+    pending.state.beforeSend = async (_, code) => {
+      assert.equal((await verify(pending, code)).code, 'CODE_SENDING', `${scene}: received SMS before provider confirmation`);
+    };
+    assert.equal((await pending.send({ phone, scene }, {})).success, true);
+    assert.equal((await verify(pending, pending.code())).success, true);
+    assert.equal((await verify(pending, pending.code())).code, 'CODE_USED');
+
+    const expiry = runtime();
+    await expiry.send({ phone, scene }, {});
+    expiry.record(scene).expiredAt = new Date(Date.now() - 1);
+    assert.equal((await verify(expiry, expiry.code())).code, 'CODE_EXPIRED');
+
+    const slow = runtime();
+    const start = Date.now();
+    slow.state.now = start;
+    slow.state.beforeSend = async () => { slow.state.now += 4 * 60 * 1000; };
+    assert.equal((await slow.send({ phone, scene }, {})).success, true);
+    slow.state.now += 2 * 60 * 1000;
+    assert.equal((await verify(slow, slow.code())).success, true, `${scene}: full validity period starts after send confirmation`);
+
+    const consumed = runtime();
+    await consumed.send({ phone, scene }, {});
+    const originalCode = consumed.code();
+    consumed.cooldown();
+    consumed.state.sendFails = true;
+    consumed.state.beforeSend = async () => {
+      assert.equal((await verify(consumed, originalCode)).success, true);
+    };
+    assert.equal((await consumed.send({ phone, scene }, {})).success, false);
+    assert.equal((await verify(consumed, originalCode)).code, 'CODE_USED', 'failed resend must not resurrect a consumed code');
+
+    const guesses = runtime();
+    await guesses.send({ phone, scene }, {});
+    guesses.cooldown();
+    guesses.state.beforeSend = async (_, newCode) => {
+      if (newCode !== guesses.state.sent[0].code) {
+        assert.equal((await verify(guesses, newCode)).code, 'CODE_SENDING');
+        assert.equal(guesses.record(scene).attempts, 0, 'matching pending code does not penalize the old code');
+      }
+      for (let i = 1; i <= 5; i++) {
+        assert.equal((await verify(guesses, '000000')).code, i === 5 ? 'CODE_ATTEMPTS_EXCEEDED' : 'CODE_INVALID');
+      }
+      assert.equal(guesses.record(scene).attempts, 5, 'sending state must not allow unlimited guesses of the active code');
+    };
+    assert.equal((await guesses.send({ phone, scene }, {})).success, true);
+    assert.equal((await verify(guesses, guesses.code())).success, true);
+
+    // Simulate a slow first provider request returning after a newer request succeeded.
+    const reordered = runtime();
+    let release, started;
+    const entered = new Promise(resolve => { started = resolve; });
+    const gate = new Promise(resolve => { release = resolve; });
+    let first = true;
+    reordered.state.beforeSend = async () => {
+      if (first) { first = false; started(); await gate; }
+    };
+    const olderRequest = reordered.send({ phone, scene }, {});
+    await entered;
+    const olderCode = reordered.code();
+    reordered.cooldown();
+    assert.equal((await reordered.send({ phone, scene }, {})).success, true);
+    const latestCode = reordered.code();
+    release();
+    assert.equal((await olderRequest).success, false);
+    if (olderCode !== latestCode) assert.equal((await verify(reordered, olderCode)).success, false);
+    assert.equal((await verify(reordered, latestCode)).success, true, 'late response cannot overwrite latest code');
+  }
+
+  const auditFailure = runtime();
+  await auditFailure.send({ phone, scene: 'login' }, {});
+  auditFailure.state.failAudit = true;
+  const login = await auditFailure.login({ phoneNumber: phone, code: auditFailure.code() });
+  assert.equal(login.code, 'LOGIN_AUDIT_UNAVAILABLE');
+  assert.match(login.message, /重新获取验证码/);
+  assert.equal((await auditFailure.login({ phoneNumber: phone, code: auditFailure.code() })).code, 'CODE_USED');
+
+  const binding = runtime();
+  binding.state.failSmsSave = true;
+  assert.equal((await binding.send({ phone, scene: 'binding' }, {})).success, false, 'cannot claim success without a saved code');
+  assert.equal(binding.state.sent.length, 0, 'persist binding code before sending it');
+  const bindingActivation = runtime();
+  bindingActivation.state.beforeSend = async () => { bindingActivation.state.dbFails = true; };
+  assert.equal((await bindingActivation.send({ phone, scene: 'binding' }, {})).success, false);
+  bindingActivation.state.dbFails = false;
+  assert.equal((await bindingActivation.verify({ phone, code: bindingActivation.code(), scene: 'binding' })).success, false);
 }
 
 async function frontendTests() {
@@ -396,6 +522,6 @@ async function logRedactionTests() {
   assert.ok(!JSON.stringify(logs).includes('private-profile-password'));
 }
 
-Promise.resolve().then(backendTests).then(resetTests).then(frontendTests).then(logRedactionTests).then(() => {
+Promise.resolve().then(deliveryRegressionTests).then(backendTests).then(resetTests).then(frontendTests).then(logRedactionTests).then(() => {
   console.log('SMS login/recovery tests passed: isolation, rate limits, expiry, attempts, atomic reset, replay, compatibility, forms and log redaction.');
 }).catch(error => { console.error(error); process.exitCode = 1; });

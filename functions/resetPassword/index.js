@@ -4,8 +4,9 @@ const crypto = require('crypto');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database({ throwOnNotFound: false });
 const digest = value => crypto.createHash('sha256').update(value).digest('hex');
-const invalidCode = () => ({ success: false, code: 'CODE_INVALID', message: '验证码错误或已过期，请重新获取' });
+const invalidCode = () => ({ success: false, code: 'CODE_INVALID', message: '验证码不正确或无效，请使用本次找回密码获取的验证码' });
 const tooManyAttempts = () => ({ success: false, code: 'CODE_ATTEMPTS_EXCEEDED', message: '验证码错误次数过多，请重新获取' });
+const sendingCode = () => ({ success: false, code: 'CODE_SENDING', message: '验证码发送确认中，请稍后再提交' });
 
 exports.main = async (event) => {
   const { phoneNumber: rawPhone, code: rawCode, newPassword } = event || {};
@@ -28,12 +29,29 @@ exports.main = async (event) => {
       const codeRef = transaction.collection('sms_codes').doc(`resetPassword_${digest(phoneNumber)}`);
       const { data: record } = await codeRef.get();
       const now = new Date();
-      if (!record || record.phone !== phoneNumber || record.scene !== 'resetPassword' || record.status !== 'sent' ||
-          record.used || !(new Date(record.expiredAt) > now)) return invalidCode();
-      if (record.attempts >= 5) return tooManyAttempts();
+      const isSending = async (matchSubmittedCode = false) => {
+        const { data: pending } = await transaction.collection('sms_codes').doc(`resetPassword_${digest(phoneNumber)}_pending`).get();
+        if (!pending || pending.phone !== phoneNumber || pending.scene !== 'resetPassword' ||
+            pending.status !== 'sending' || !(new Date(pending.expiredAt) > now)) return false;
+        if (!matchSubmittedCode) return true;
+        const expected = typeof pending.codeHash === 'string' ? Buffer.from(pending.codeHash, 'hex') : Buffer.alloc(0);
+        const actual = Buffer.from(digest(`${pending.requestId}:${code}`), 'hex');
+        return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
+      };
+      if (!record || record.phone !== phoneNumber || record.scene !== 'resetPassword' || record.status !== 'sent') {
+        return await isSending() ? sendingCode() : invalidCode();
+      }
+      if (record.used || !(new Date(record.expiredAt) > now)) {
+        if (await isSending()) return sendingCode();
+        return record.used
+          ? { success: false, code: 'CODE_USED', message: '该验证码已使用，请重新获取' }
+          : { success: false, code: 'CODE_EXPIRED', message: '验证码已过期，请重新获取' };
+      }
+      if (record.attempts >= 5) return await isSending() ? sendingCode() : tooManyAttempts();
       const expected = typeof record.codeHash === 'string' ? Buffer.from(record.codeHash, 'hex') : Buffer.alloc(0);
       const actual = Buffer.from(digest(`${record.requestId}:${code}`), 'hex');
       if (expected.length !== actual.length || !crypto.timingSafeEqual(expected, actual)) {
+        if (await isSending(true)) return sendingCode();
         const attempts = (record.attempts || 0) + 1;
         await codeRef.update({ data: { attempts } });
         return attempts >= 5 ? tooManyAttempts() : invalidCode();

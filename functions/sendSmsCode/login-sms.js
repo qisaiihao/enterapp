@@ -16,12 +16,14 @@ function generateLoginCode() {
 // 登录与找回密码分别保存验证码，共用发送配额；绑定验证码不能作为认证凭据。
 module.exports = async function sendLoginSms({ db, phone, clientIP, config, createProvider, scene = 'login' }) {
   const id = `${scene}_${digest(phone)}`;
+  const pendingId = `${id}_pending`;
   const code = generateLoginCode();
   const requestId = crypto.randomBytes(16).toString('hex');
   const provider = createProvider(config);
   const reservation = await db.runTransaction(async transaction => {
     const now = Date.now();
-    const ref = transaction.collection('sms_codes').doc(id);
+    // 待发送记录与可用验证码分开，发送失败不能使用户已收到的验证码失效。
+    const ref = transaction.collection('sms_codes').doc(pendingId);
     // 配额记录不设置 expiredAt，避免验证码 TTL 清理后重置发送配额。
     const rateRef = transaction.collection('sms_codes').doc(`login_rate_${digest(phone)}`);
     const { data: previous } = await rateRef.get();
@@ -33,7 +35,7 @@ module.exports = async function sendLoginSms({ db, phone, clientIP, config, crea
     const sameDay = previous && now - new Date(previous.windowStartedAt).getTime() < 86400000;
     const sendCount = sameDay ? previous.sendCount : 0;
     if (sendCount >= config.limits.dailyLimitPerPhone) {
-      return { success: false, code: 'SEND_LIMIT_EXCEEDED', message: '今日发送次数已达上限，请明天再试' };
+      return { success: false, code: 'SEND_LIMIT_EXCEEDED', message: '24小时内发送次数已达上限，请稍后再试' };
     }
     // 手机号和 IP 配额与验证码一起预占，阻止并发绕过发送间隔。
     let ipRef, ipRecord, sameHour;
@@ -64,12 +66,34 @@ module.exports = async function sendLoginSms({ db, phone, clientIP, config, crea
   });
   if (!reservation.success) return reservation;
 
-  const sent = await provider.sendVerificationCode(phone, code);
-  // 超时的旧发送请求不得激活或覆盖后一次发送的验证码。
-  const updated = await db.collection('sms_codes').where({ _id: id, requestId, status: 'sending' }).update({
-    data: { status: sent.success ? 'sent' : 'failed' }
-  });
-  if (!sent.success || updated.stats.updated !== 1) {
+  let sent;
+  try {
+    sent = await provider.sendVerificationCode(phone, code);
+  } catch (_) {
+    sent = { success: false };
+  }
+  // 确认发送成功后才替换可用验证码；旧请求迟到不能覆盖较新的请求。
+  let activated;
+  try {
+    activated = await db.runTransaction(async transaction => {
+      const pendingRef = transaction.collection('sms_codes').doc(pendingId);
+      const { data: pending } = await pendingRef.get();
+      if (!pending || pending.requestId !== requestId || pending.status !== 'sending') return false;
+      await pendingRef.update({ data: { status: sent.success ? 'sent' : 'failed' } });
+      if (!sent.success) return false;
+      const now = new Date();
+      await transaction.collection('sms_codes').doc(id).set({ data: {
+        phone, scene, requestId, codeHash: pending.codeHash,
+        status: 'sent', used: false, attempts: 0,
+        createdAt: now, expiredAt: new Date(now.getTime() + config.limits.codeExpireTime * 1000)
+      } });
+      return true;
+    });
+  } catch (error) {
+    console.error('[sendSmsCode] 验证码激活失败:', error.code || 'SMS_ACTIVATION_FAILED');
+    return { success: false, code: 'SEND_FAILED', message: '验证码发送确认失败，请稍后重新获取' };
+  }
+  if (!activated) {
     return { success: false, code: 'SEND_FAILED', message: '验证码发送失败，请稍后重试' };
   }
   return { success: true, code: 'SUCCESS', message: '验证码已发送，请注意查收',

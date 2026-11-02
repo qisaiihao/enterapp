@@ -1,0 +1,6 @@
+{
+  "runtime": "Nodejs20.19",
+  "timeout": 300,
+  "memory": 256,
+  "hash": "253bd9dcc644570fe99da50f606beb02a46cd2b796505499a367b56449ed90a9"
+}

@@ -132,13 +132,13 @@ async function main() {
 
     const savedFolder = { _id: 'custom', _openid: 'reader', name: '自己的名字', isPublic: false, itemCount: 7, postCount: 7 };
     for (const users of [[], [{ _id: 'user', _openid: 'reader' }]]) {
-      const app = runtime({ users, portfolio_folders: [savedFolder] });
+      const app = runtime({ users, portfolio_folders: [savedFolder] }, users.length ? 'reader' : '');
       assert.equal((await app.load(entry)(userEvent('reader'))).success, true);
       assert.deepEqual(app.tables.portfolio_folders, [savedFolder], 'existing folder and its contents/visibility must survive registration');
       assert.equal(app.legacyAccesses, 0);
     }
 
-    const existing = runtime({ users: [{ _id: 'user', _openid: 'reader' }] });
+    const existing = runtime({ users: [{ _id: 'user', _openid: 'reader' }] }, 'reader');
     assert.equal((await existing.load(entry)(userEvent('reader'))).success, true);
     assert.equal(existing.tables.portfolio_folders.length, 1, 'completing an existing account also repairs a missing default');
 
