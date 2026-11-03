@@ -4,12 +4,19 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const source = fs.readFileSync(path.join(__dirname, '../functions/getUserProfile/index.js'), 'utf8');
-const posts = Array.from({ length: 24 }, (_, index) => ({
-  _id: `post-${index}`, _openid: 'author', createTime: new Date(2026, 8, 12, 0, 0, 24 - index),
+const originals = Array.from({ length: 24 }, (_, index) => ({
+  _id: `post-${index}`, _openid: 'author', isOriginal: true, createTime: new Date(2026, 8, 12, 0, 0, 24 - index),
   ...(index < 11 ? { isHidden: true } : {}),
   ...(index === 12 ? { isActivityPost: true } : {}),
   ...(index === 13 ? { isHidden: false, isActivityPost: false } : {})
 }));
+const posts = [
+  ...Array.from({ length: 13 }, (_, index) => ({
+    _id: `repost-${index}`, _openid: 'author', createTime: new Date(2026, 8, 13, 0, 0, 13 - index),
+    ...(index % 2 ? { isOriginal: false } : {})
+  })),
+  ...originals
+];
 const user = { _openid: 'author', nickName: 'Author', avatarUrl: '/static/avatar.png' };
 
 function runtime(caller = 'viewer', blocked = false) {
@@ -69,17 +76,17 @@ async function main() {
   const first = await read({ userId: 'author', skip: 0, limit: 10 });
   const second = await read({ userId: 'author', skip: 10, limit: 10 });
   assert.equal(first.success, true);
-  assert.equal(first.posts.length, 10, 'hidden posts must not occupy slots in the first page');
+  assert.equal(first.posts.length, 10, 'non-original and hidden posts must not occupy slots in the first page');
   assert.equal(second.posts.length, 2);
   const actual = [...first.posts, ...second.posts].map(post => post._id);
-  const expected = posts.filter(post => !post.isHidden && !post.isActivityPost).map(post => post._id);
-  assert.deepEqual(actual, expected, 'all public posts, including old documents with missing flags, must be reachable');
+  const expected = posts.filter(post => post.isOriginal === true && !post.isHidden && !post.isActivityPost).map(post => post._id);
+  assert.deepEqual(actual, expected, 'all public originals, including old documents with missing visibility flags, must be reachable');
   assert.equal((await read({ userId: 'author', skip: 20, limit: 10 })).posts.length, 0);
 
   const owner = await runtime('author')({ userId: 'author', skip: 0, limit: 30 });
-  assert.equal(owner.posts.length, 23, 'owner still sees hidden posts, excluding official activity posts');
+  assert.equal(owner.posts.length, 23, 'owner sees hidden originals, excluding non-original and official activity posts');
   assert.equal(owner.posts.filter(post => post.isHidden).length, 11);
-  posts.unshift({ _id: 'legacy-anonymous', _openid: 'author', isAnonymous: true, createTime: new Date(2099, 0, 1) });
+  posts.unshift({ _id: 'legacy-anonymous', _openid: 'author', isOriginal: true, isAnonymous: true, createTime: new Date(2099, 0, 1) });
   const withoutAnonymous = await read({ userId: 'author', skip: 0, limit: 10 });
   assert.deepEqual(withoutAnonymous.posts.map(post => post._id), first.posts.map(post => post._id),
     'Anonymous legacy posts must not reveal their author through profile placement or occupy page slots');
@@ -90,7 +97,7 @@ async function main() {
   assert.equal(profile.success, true);
   assert.equal(profile.userInfo.nickName, 'Author');
   assert.equal(profile.posts.length, 0);
-  console.log('[test-profile-pagination] PASS: hidden first page, complete pagination, legacy flags, owner visibility, blocking and profile-only reads');
+  console.log('[test-profile-pagination] PASS: original-only pagination, hidden and anonymous originals, legacy flags, owner visibility, blocking and profile-only reads');
 }
 
 main().catch(error => { console.error(error); process.exitCode = 1; });

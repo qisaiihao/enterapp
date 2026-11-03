@@ -79,15 +79,19 @@ function stripImports(source, globals) {
   return source;
 }
 
-function loadApi(read) {
-  const globals = {};
-  const source = stripImports(fs.readFileSync(path.join(root, 'api-cache/my.js'), 'utf8'), globals);
+function loadCacheManager() {
   const cacheGlobals = {};
   const cacheSource = fs.readFileSync(path.join(root, 'cache/core/manager.js'), 'utf8')
     .replace('export { singleton as cacheManager };', '')
     .replace('export default singleton;', 'globalThis.cacheManager = singleton;');
   vm.runInNewContext(cacheSource, cacheGlobals);
-  globals.cacheManager = cacheGlobals.cacheManager;
+  return cacheGlobals.cacheManager;
+}
+
+function loadApi(read) {
+  const globals = {};
+  const source = stripImports(fs.readFileSync(path.join(root, 'api-cache/my.js'), 'utf8'), globals);
+  globals.cacheManager = loadCacheManager();
   globals.getOpenid = () => 'me';
   globals.callCloudAndUnwrap = async (name, payload) => {
     assert.equal(name, 'getMyProfileData');
@@ -127,6 +131,36 @@ function loadPage(getPosts) {
 const clickPosts = instance => instance.switchTab({ currentTarget: { dataset: { tab: 'posts' } } });
 const ids = list => Array.from(list, post => post._id);
 
+async function testUserPostsCache() {
+  const globals = {};
+  const source = stripImports(fs.readFileSync(path.join(root, 'api-cache/user-profile.js'), 'utf8'), globals);
+  const cacheManager = loadCacheManager();
+  const ns = cacheManager.namespace('userPosts:author', { persistent: true, maxItems: 200 });
+  ns.set('page:0:size:10', [{ _id: 'cached-repost', isOriginal: false }], { ttlMs: 60000 });
+  let calls = 0;
+  Object.assign(globals, {
+    cacheManager,
+    callCloudAndUnwrap: async (name, payload) => {
+      assert.equal(name, 'getUserProfile');
+      assert.equal(payload.userId, 'author');
+      calls++;
+      return { posts: [{ _id: `original-${payload.skip}`, isOriginal: true }] };
+    }
+  });
+  vm.runInNewContext(source.replace(/export /g, '') + '\nglobalThis.api = { getUserPosts, invalidateUserPosts };', globals);
+  const { getUserPosts, invalidateUserPosts } = globals.api;
+  assert.deepEqual(ids(await getUserPosts({ userId: 'author' })), ['original-0'], 'old all-posts cache cannot populate the original-only profile');
+  await getUserPosts({ userId: 'author' });
+  assert.equal(calls, 1, 'original posts still reuse the page cache');
+  await getUserPosts({ userId: 'author', page: 1 });
+  invalidateUserPosts('author', 0);
+  await getUserPosts({ userId: 'author' });
+  assert.equal(calls, 3, 'page invalidation clears the original-only cache key');
+  invalidateUserPosts('author');
+  await getUserPosts({ userId: 'author', page: 1 });
+  assert.equal(calls, 4, 'full invalidation includes all original pages');
+}
+
 async function testProfileImageUrls() {
   const thumb = 'cloud://profile/thumb.png';
   const original = 'cloud://profile/original.png';
@@ -162,6 +196,7 @@ async function testProfileImageUrls() {
 
 async function main() {
   await testProfileImageUrls();
+  await testUserPostsCache();
   const read = loadBackend();
   const getPosts = loadApi(read);
   assert.deepEqual(ids(await getPosts({ pageSize: 50 })), ids(posts), 'default includes originals, reposts and legacy posts');
@@ -175,48 +210,42 @@ async function main() {
   const { instance, globals } = loadPage(getPosts);
   const pageSize = instance.PAGE_SIZE;
   await instance.refreshProfileAtomically();
-  assert.equal(instance.postsOriginalOnly, false);
-  assert.deepEqual(ids(instance.myPosts), ids(posts.slice(0, pageSize)));
-  await clickPosts(instance);
-  assert.equal(instance.postsOriginalOnly, true);
-  assert.deepEqual(ids(instance.myPosts), ids(originals.slice(0, pageSize)));
+  assert.deepEqual(ids(instance.myPosts), ids(originals.slice(0, pageSize)), 'profile opens with originals only');
   for (let page = 1; page < Math.ceil(originals.length / pageSize); page++) await instance.loadMyPosts();
   assert.deepEqual(ids(instance.myPosts), ids(originals));
   assert.equal(instance.hasMore, false);
+  const pagedIds = ids(instance.myPosts);
+  await clickPosts(instance);
+  assert.deepEqual(ids(instance.myPosts), pagedIds, 'clicking the active posts tab preserves the original list and pagination');
   await instance.refreshProfileAtomically({ reason: 'pull-down' });
-  assert.equal(instance.postsOriginalOnly, true, 'refresh keeps the selected filter');
   assert.deepEqual(ids(instance.myPosts), ids(originals.slice(0, pageSize)));
 
   instance.switchTab({ currentTarget: { dataset: { tab: 'portfolio' } } });
   await clickPosts(instance);
-  assert.equal(instance.postsOriginalOnly, true, 'entering the posts tab does not toggle the filter');
-  await clickPosts(instance);
-  assert.equal(instance.postsOriginalOnly, false);
-  assert.deepEqual(ids(instance.myPosts), ids(posts.slice(0, pageSize)));
+  assert.deepEqual(ids(instance.myPosts), ids(originals.slice(0, pageSize)), 'returning from portfolio keeps originals only');
 
   const pending = [];
   globals.getMyPosts = args => new Promise((resolve, reject) => pending.push({ args, resolve, reject }));
   const olderPage = instance.loadMyPosts();
   await instance.loadMyPosts();
   assert.equal(pending.length, 1, 'repeated reach-bottom events share the active pagination request');
-  const toggle = clickPosts(instance);
+  const refresh = instance.refreshProfileAtomically({ reason: 'pull-down' });
+  assert.equal(pending[0].args.originalOnly, true, 'pagination requests originals only');
   assert.equal(pending[1].args.originalOnly, true);
-  assert.equal(instance.myPosts.length, 0, 'old posts are cleared while the new filter loads');
   pending[1].resolve(await getPosts(pending[1].args));
-  await toggle;
+  await refresh;
   pending[0].resolve(await getPosts(pending[0].args));
   await olderPage;
-  assert.deepEqual(ids(instance.myPosts), ids(originals.slice(0, pageSize)), 'old all-posts pagination cannot enter originals');
+  assert.deepEqual(ids(instance.myPosts), ids(originals.slice(0, pageSize)), 'old pagination cannot overwrite the refreshed first page');
   assert.equal(instance.page, 1);
 
-  const allToggle = clickPosts(instance);
-  const originalToggle = clickPosts(instance);
+  const firstRefresh = instance.refreshProfileAtomically();
+  const latestRefresh = instance.refreshProfileAtomically();
   pending[3].resolve(await getPosts(pending[3].args));
-  await originalToggle;
+  await latestRefresh;
   pending[2].resolve(await getPosts(pending[2].args));
-  await allToggle;
-  assert.equal(instance.postsOriginalOnly, true);
-  assert.deepEqual(ids(instance.myPosts), ids(originals.slice(0, pageSize)), 'latest toggle wins even with responses out of order');
+  await firstRefresh;
+  assert.deepEqual(ids(instance.myPosts), ids(originals.slice(0, pageSize)), 'latest refresh wins even with responses out of order');
   assert.equal(instance.isAtomicRefreshing, false);
   assert.equal(instance.isLoading, false);
 
@@ -232,7 +261,7 @@ async function main() {
   await instance.refreshProfileAtomically();
   assert.equal(instance.postsLoadError, false);
   assert.deepEqual(ids(instance.myPosts), ids(originals.slice(0, pageSize)));
-  console.log('[test-profile-original-filter] PASS: profile thumbnail/original URL conversion, deduplication, legacy/V2 image fallback, backend/API pagination, anonymous and hidden originals, tab toggle, refresh, stale requests, empty state and retry');
+  console.log('[test-profile-original-filter] PASS: image URLs, backend/API original pagination, anonymous and hidden originals, original-only tabs, cache isolation and invalidation, refresh, stale requests, empty state and retry');
 }
 
 main().catch(error => { console.error(error); process.exitCode = 1; });

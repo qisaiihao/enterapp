@@ -105,9 +105,10 @@ exports.main = async (event, context) => {
       profileData = { list: profileData.data };
     } else {
       // 完整模式：获取用户信息和帖子
-      // 可见性过滤必须在分页之前，否则隐藏帖会占用分页名额。
+      // 原创和可见性过滤必须在分页之前，保证每页展示完整。
       const postMatch = {
         $expr: { $eq: ['$_openid', '$$user_openid'] },
+        isOriginal: true,
         isActivityPost: { $ne: true }
       };
       if (!isOwner) {
