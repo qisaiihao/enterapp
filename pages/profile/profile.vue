@@ -66,8 +66,8 @@
                     <!-- Tab Navigation -->
                     <view class="tab-navigation">
                         <view :class="'tab-item ' + (currentTab === 'posts' ? 'active' : '')" data-tab="posts" @tap="switchTab">
-                            <image class="tab-icon tab-icon--writing" src="/static/images/writing.png" mode="aspectFit" :alt="postsOriginalOnly ? '仅原创' : '全部帖子'" :title="postsOriginalOnly ? '仅原创，再次点击显示全部' : '全部帖子，再次点击仅看原创'"></image>
-                            <text v-if="currentTab === 'posts' && postsOriginalOnly" class="posts-original-label">原创</text>
+                            <image class="tab-icon tab-icon--writing" src="/static/images/writing.png" mode="aspectFit" alt="原创帖子" title="原创帖子"></image>
+                            <text v-if="currentTab === 'posts'" class="posts-original-label">原创</text>
                         </view>
                         <view :class="'tab-item ' + (currentTab === 'portfolio' ? 'active' : '')" data-tab="portfolio" @tap="switchTab">
                             <image class="tab-icon" src="/static/images/newicons/library.png" mode="aspectFit" alt="作品集" title="作品集"></image>
@@ -112,7 +112,7 @@
                             <view class="profile-bottom-spacer"></view>
                         </block>
                         <view v-else class="empty-tip">
-                            <text>{{ isLoading || isAtomicRefreshing ? '加载中…' : postsLoadError ? '加载失败，请下拉重试' : postsOriginalOnly ? '你还没有发布过原创帖子哦～' : '你还没有发布过帖子哦～' }}</text>
+                            <text>{{ isLoading || isAtomicRefreshing ? '加载中…' : postsLoadError ? '加载失败，请下拉重试' : '你还没有发布过原创帖子哦～' }}</text>
                         </view>
                     </view>
 
@@ -623,7 +623,6 @@ export default {
 
             isSidebarOpen: false,
             myPosts: [],
-            postsOriginalOnly: false,
             postsRequestToken: 0,
             postsLoadError: false,
             page: 0,
@@ -1581,7 +1580,7 @@ export default {
             const sessionId = session && (session._openid || session.openid);
             // Session 与显式账号配对；不接受带有其他账号 ID 的遗留资料。
             const currentSession = session && (sessionId ? sessionId === openid : state.openid === openid) ? session : null;
-            const cached = getCachedMyProfile({ pageSize: PAGE_SIZE, originalOnly: this.postsOriginalOnly });
+            const cached = getCachedMyProfile({ pageSize: PAGE_SIZE, originalOnly: true });
             const user = cached.userInfo || currentSession;
             if (!user) return false;
             const nextUser = this.normalizeProfileUserInfo({ ...user, _openid: openid });
@@ -1697,7 +1696,7 @@ export default {
             return await getMyPosts({
                 page: 0,
                 pageSize: PAGE_SIZE,
-                originalOnly: this.postsOriginalOnly,
+                originalOnly: true,
                 context: this,
                 forceRefresh
             });
@@ -1840,7 +1839,7 @@ export default {
             const favoriteReadCurrent = tab === 'favorites' ? captureFavoriteRead() : () => true;
             const isCurrent = () => !this._profileUnloaded && userId === getOpenid() && token === this.pendingRefreshToken;
             if (tab === 'posts' && !preservePagedPosts) {
-                // 刷新或切换筛选后，旧的分页结果不能再写入当前列表。
+                // 刷新后，旧的分页结果不能再写入当前列表。
                 this.postsRequestToken += 1;
                 this.isLoading = false;
                 this.postsLoadError = false;
@@ -2041,7 +2040,7 @@ export default {
         loadMyPosts: async function (cb, forceRefresh = false) {
             if (this.isLoading || this.isAtomicRefreshing || this._profileUnloaded) return;
             const userId = getOpenid();
-            const { page, PAGE_SIZE, postsOriginalOnly } = this;
+            const { page, PAGE_SIZE } = this;
             const token = ++this.postsRequestToken;
             this.setData({ isLoading: true, postsLoadError: false });
 
@@ -2049,7 +2048,7 @@ export default {
                 const posts = await getMyPosts({
                     page,
                     pageSize: PAGE_SIZE,
-                    originalOnly: postsOriginalOnly,
+                    originalOnly: true,
                     context: this,
                     forceRefresh
                 });
@@ -2648,18 +2647,6 @@ export default {
             const tab = e.currentTarget.dataset.tab;
             console.log('【profile】切换到标签:', tab);
 
-            if (tab === 'posts' && this.currentTab === 'posts') {
-                this.setData({
-                    postsOriginalOnly: !this.postsOriginalOnly,
-                    myPosts: [],
-                    page: 0,
-                    hasMore: true,
-                    swiperHeights: {},
-                    imageClampHeights: {}
-                });
-                return this.refreshProfileAtomically({ reason: 'posts-filter' });
-            }
-
             // 如果点击的是收藏页且当前已经在收藏页，则跳转到收藏夹页面
             if (tab === 'favorites' && this.currentTab === 'favorites') {
                 console.log('【profile】已在收藏页，跳转到收藏夹页面');
@@ -2806,7 +2793,6 @@ export default {
                 this.setData({
                     userInfo: null,
                     myPosts: [],
-                    postsOriginalOnly: false,
                     postsLoadError: false,
                     favoriteList: [],
                     isLoading: false,
