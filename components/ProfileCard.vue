@@ -1,5 +1,5 @@
 <template>
-    <view class="profile-card profile-card-center">
+    <view class="profile-card profile-card-center" :class="{ 'profile-card--search': searchActive }">
         <view v-if="showGrowthStats" class="profile-growth-stats">
             <view class="growth-item" v-for="(value, key) in displayGrowthStats" :key="key">
                 <image class="growth-icon" :src="growthIcons[key]" mode="aspectFit" :alt="growthLabels[key]" :title="growthLabels[key]" />
@@ -20,9 +20,11 @@
         </view>
 
         <view class="profile-info-center">
+            <view class="profile-details">
             <text class="profile-name-center">{{ displayName }}</text>
             <text class="profile-poemid">poemid：{{ poemIdText }}</text>
             <text class="profile-bio-center" @tap.stop="$emit('edit-profile')">{{ bioText }}</text>
+            </view>
             <view class="profile-bottom-row">
                 <text class="profile-followers" @tap.stop="$emit('navigate-fans')">
                     被关注数：{{ followerCountText }}
@@ -31,6 +33,23 @@
                     <view class="edit-profile-btn" @tap.stop="$emit('edit-profile')">
                         <text>编辑主页</text>
                     </view>
+                    <view class="profile-search-control" role="button" aria-label="搜索我的笔记和收藏" @tap.stop="!searchActive && $emit('open-search')">
+                        <view class="profile-search-icon" aria-hidden="true"></view>
+                        <input
+                            v-if="searchActive"
+                            class="profile-search-input"
+                            type="text"
+                            :value="searchKeyword"
+                            :focus="searchFocused"
+                            confirm-type="search"
+                            placeholder="搜索我的笔记/收藏"
+                            placeholder-class="profile-search-placeholder"
+                            @input="$emit('search-input', $event.detail.value)"
+                            @confirm="$emit('search-confirm')"
+                            @tap.stop
+                        />
+                    </view>
+                    <text v-if="searchActive" class="profile-search-cancel" @tap.stop="$emit('close-search')">取消</text>
                     <view class="menu-btn-small" role="button" aria-label="打开侧边栏" @tap.stop="$emit('toggle-sidebar')">
                         <view class="menu-line"></view>
                         <view class="menu-line"></view>
@@ -47,7 +66,7 @@ import { resolveUserObjectAvatar } from '@/utils/defaultAvatar.js';
 
 export default {
     name: 'ProfileCard',
-    emits: ['edit-profile', 'navigate-fans', 'toggle-sidebar', 'avatar-error', 'avatar-click'],
+    emits: ['edit-profile', 'navigate-fans', 'toggle-sidebar', 'avatar-error', 'avatar-click', 'open-search', 'close-search', 'search-input', 'search-confirm'],
     props: {
         userInfo: {
             type: Object,
@@ -68,6 +87,18 @@ export default {
         showGrowthStats: {
             type: Boolean,
             default: false
+        },
+        searchActive: {
+            type: Boolean,
+            default: false
+        },
+        searchFocused: {
+            type: Boolean,
+            default: false
+        },
+        searchKeyword: {
+            type: String,
+            default: ''
         }
     },
     computed: {
@@ -150,6 +181,11 @@ export default {
     flex-direction: column;
     align-items: center;
     overflow: visible;
+    transition: padding 300ms ease;
+}
+
+.profile-card--search {
+    padding: 12rpx 0 0;
 }
 
 .profile-growth-stats {
@@ -161,6 +197,12 @@ export default {
     flex-direction: column;
     align-items: flex-start;
     gap: 18rpx;
+    transition: opacity 180ms ease;
+}
+
+.profile-card--search .profile-growth-stats {
+    opacity: 0;
+    pointer-events: none;
 }
 
 .growth-item {
@@ -185,6 +227,11 @@ export default {
     justify-content: center;
     align-items: center;
     margin: 70rpx 0 40rpx 0;
+    transition: margin 300ms ease;
+}
+
+.profile-card--search .profile-avatar-large {
+    margin: 8rpx 0 26rpx;
 }
 
 .profile-avatar-large image {
@@ -192,6 +239,12 @@ export default {
     height: 175rpx;
     border-radius: 50%;
     display: block;
+    transition: width 300ms ease, height 300ms ease;
+}
+
+.profile-card--search .profile-avatar-large image {
+    width: 76rpx;
+    height: 76rpx;
 }
 
 .profile-info-center {
@@ -200,6 +253,26 @@ export default {
     align-items: flex-start;
     margin-top: 20rpx;
     width: 100%;
+    transition: margin 300ms ease;
+}
+
+.profile-card--search .profile-info-center {
+    margin-top: 0;
+}
+
+.profile-details {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    max-height: 240rpx;
+    opacity: 1;
+    overflow: hidden;
+    transition: max-height 260ms ease, opacity 180ms ease;
+}
+
+.profile-card--search .profile-details {
+    max-height: 0;
+    opacity: 0;
 }
 
 .profile-name-center {
@@ -243,12 +316,30 @@ export default {
     align-items: center;
     width: 100%;
     margin-bottom: 10rpx;
+    transition: padding 300ms ease, background-color 300ms ease;
+}
+
+.profile-card--search .profile-bottom-row {
+    --profile-meta-color: var(--app-surface-meta-color, #888);
+    --profile-name-color: var(--app-surface-text-color, #222);
+    --profile-search-bg: var(--app-subtle-surface-bg, #f3f3f3);
+    box-sizing: border-box;
+    padding: 30rpx 40rpx 24rpx;
+    margin-bottom: 0;
+    background: var(--app-page-bg, #fff);
+    border-radius: 26rpx 26rpx 0 0;
 }
 
 .profile-buttons {
     display: flex;
     align-items: center;
     gap: 20rpx;
+    transition: width 300ms ease;
+}
+
+.profile-card--search .profile-buttons {
+    width: 100%;
+    gap: 0;
 }
 
 .profile-followers {
@@ -258,6 +349,15 @@ export default {
     line-height: 30rpx;
     color: var(--profile-meta-color, #989090);
     margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    transition: max-width 260ms ease, opacity 180ms ease;
+    max-width: 260rpx;
+}
+
+.profile-card--search .profile-followers {
+    max-width: 0;
+    opacity: 0;
 }
 
 .edit-profile-btn {
@@ -272,7 +372,80 @@ export default {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    overflow: hidden;
+    flex-shrink: 0;
+    transition: width 300ms ease, opacity 180ms ease, background-color 0.2s ease;
+}
+
+.profile-card--search .edit-profile-btn {
+    width: 0;
+    opacity: 0;
+    border: 0;
+}
+
+.profile-search-control {
+    width: 44rpx;
+    height: 54rpx;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18rpx;
+    border-radius: 32rpx;
+    color: var(--profile-menu-icon-color, #202020);
+    cursor: pointer;
+    transition: width 300ms ease, background-color 300ms ease, padding 300ms ease;
+}
+
+.profile-card--search .profile-search-control {
+    flex: 1;
+    min-width: 0;
+    justify-content: flex-start;
+    padding: 0 22rpx;
+    background: var(--profile-search-bg, #f3f3f3);
+    color: var(--profile-meta-color, #888);
+}
+
+.profile-search-icon {
+    width: 25rpx;
+    height: 25rpx;
+    border: 3rpx solid currentColor;
+    border-radius: 50%;
+    position: relative;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.profile-search-icon::after {
+    content: '';
+    position: absolute;
+    width: 12rpx;
+    height: 3rpx;
+    background: currentColor;
+    border-radius: 2rpx;
+    right: -9rpx;
+    bottom: -5rpx;
+    transform: rotate(45deg);
+}
+
+.profile-search-input {
+    flex: 1;
+    min-width: 0;
+    height: 54rpx;
+    font-size: 28rpx;
+    color: var(--profile-name-color, #222);
+}
+
+.profile-search-placeholder {
+    color: var(--profile-meta-color, #999);
+}
+
+.profile-search-cancel {
+    flex-shrink: 0;
+    margin-left: 24rpx;
+    font-size: 28rpx;
+    color: var(--profile-meta-color, #777);
 }
 
 .edit-profile-btn:active {
@@ -300,6 +473,14 @@ export default {
     cursor: pointer;
     transition: color 0.2s ease;
     opacity: var(--profile-menu-icon-opacity, 1);
+    overflow: hidden;
+    transition: width 300ms ease, opacity 180ms ease;
+}
+
+.profile-card--search .menu-btn-small {
+    width: 0;
+    opacity: 0;
+    pointer-events: none;
 }
 
 .menu-line {

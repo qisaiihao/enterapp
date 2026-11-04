@@ -54,5 +54,22 @@ function runtimeLoader(db) {
     assert.equal(result.success, true, JSON.stringify(result));
     assert.deepEqual(Array.from(result.posts, post => post._id), expected);
   }
-  console.log('PASS posts runtime: no Object.fromEntries, SDK predicates, V1/V2 lists and home ranking');
+  const seriesMem = memoryDb({
+    posts: [{
+      _id: 'series-seven',
+      schemaVersion: 2,
+      publishMode: 'poem',
+      isOriginal: true,
+      isSeries: true,
+      seriesBlocks: Array.from({ length: 7 }, (_, index) => ({ subtitle: `其${index + 1}`, content: `第${index + 1}首` })),
+      createTime: new Date(3000)
+    }],
+    users: [],
+    votes_log: []
+  }, command);
+  const seriesResult = await runtimeLoader(seriesMem.db)(path.join(root, 'functions/getPostList/index.js')).main({ limit: 10, isPoem: true, isOriginal: true });
+  assert.equal(seriesResult.success, true, JSON.stringify(seriesResult));
+  assert.equal(seriesResult.posts[0].seriesBlocks.length, 7, 'feed must return every series block');
+  assert.equal(seriesResult.posts[0].seriesBlockCount, 7);
+  console.log('PASS posts runtime: no Object.fromEntries, SDK predicates, V1/V2 lists, full series blocks and home ranking');
 })().catch(error => { console.error(error); process.exitCode = 1; });

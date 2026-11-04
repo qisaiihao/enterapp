@@ -49,6 +49,7 @@ function runtime() {
           skip(value) { skip = value; return query; }, limit(value) { limit = value; return query; },
           orderBy(key, value) { orderKey = key; direction = value; return query; }, field(value) { fields = value; return query; },
           async count() { read(); return { total: data[name].filter(row => matches(row, filter)).length }; },
+          async remove() { write(); const before = data[name].length; data[name] = data[name].filter(row => !matches(row, filter)); return { stats: { removed: before - data[name].length } }; },
           async get() {
             read();
             let rows = data[name].filter(row => matches(row, filter));

@@ -38,6 +38,7 @@ const handlers = {
   notifications: (user, event) => notices.notifications(db, user, event),
   unreadNotifications: (user) => notices.unreadCount(db, user),
   readNotification: (user, event) => notices.readNotification(db, user, event),
+  clearNotifications: (user) => notices.clearNotifications(db, user),
   updateSociety: (user, event) => settings.updateSociety(db, cloud, user, event),
   requestList: (user, event) => members.requestList(db, user, event),
   changeMember: (user, event) => members.changeMember(db, user, event),

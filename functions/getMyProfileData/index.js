@@ -87,15 +87,35 @@ exports.main = async (event, context) => {
       .limit(1)
       .lookup({
         from: 'posts',
-        let: { user_openid: '$_openid' },
+        let: {
+          user_openid: '$_openid',
+          show_non_original_poems: '$showNonOriginalPoems'
+        },
         pipeline: [
           {
             $match: {
               ...(originalOnly === true ? { isOriginal: true } : {}),
               $expr: {
-                $or: [
-                  { $eq: ['$_openid', '$$user_openid'] },
-                  { $eq: ['$realAuthorOpenid', '$$user_openid'] }
+                $and: [
+                  {
+                    $or: [
+                      { $eq: ['$_openid', '$$user_openid'] },
+                      { $eq: ['$realAuthorOpenid', '$$user_openid'] }
+                    ]
+                  },
+                  {
+                    $or: [
+                      { $eq: ['$$show_non_original_poems', true] },
+                      { $ne: ['$isOriginal', false] },
+                      {
+                        $and: [
+                          { $ne: ['$isPoem', true] },
+                          { $ne: ['$publishMode', 'poem'] },
+                          { $ne: ['$isSeries', true] }
+                        ]
+                      }
+                    ]
+                  }
                 ]
               }
             }
@@ -122,6 +142,7 @@ exports.main = async (event, context) => {
         password: 1,
         phoneNumber: 1,
         showGrowthStats: 1,
+        showNonOriginalPoems: 1,
         growthCounts: 1,
         posts: '$userPosts'
       })
@@ -147,6 +168,7 @@ exports.main = async (event, context) => {
       password: result.password,
       phoneNumber: result.phoneNumber,
       showGrowthStats: result.showGrowthStats === true,
+      showNonOriginalPoems: result.showNonOriginalPoems === true,
       growthCounts: result.growthCounts || { seed: 0, leaf: 0, flower: 0, peach: 0 }
     };
     userInfo.avatarUrl = await ensureUserDefaultAvatar({ db, openid, user: userInfo });

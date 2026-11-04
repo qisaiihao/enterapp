@@ -33,8 +33,9 @@ export async function societyRequest(action, payload = {}) {
   if (action === 'detail') return { society: f.society, relationship: { role: 'owner', following: true }, viewerId: 'alice', works: f.works.map(item => ({ ...item })), worksCursor: String(f.works.length), worksMore: true, members: f.members, news: f.news, events: f.events, calls: f.calls };
   if (action === 'myApplication') return { application: null, uploadPrefix: 'societies/test' };
   if (action === 'manage') return { society: f.society, managerRole: 'owner', members: f.members, membersMore: false, requests: f.requests, uploadPrefix: 'societies/test', events: f.events, calls: f.calls, news: f.news };
-  if (action === 'notifications') return { notifications: [{ _id: 'notice-a', category: 'membership', title: '入社申请已通过', body: '欢迎加入回车键诗社', targetId: 'society-a', targetKind: 'society', read: false, createdAt: '2026-11-02T09:00:00+08:00', societyName: f.society.name, societyAvatar: f.society.avatarUrl }], hasMore: false };
-  if (action === 'unreadNotifications') return { count: 1 };
+  if (action === 'notifications') return { notifications: window.__societyNotificationsCleared ? [] : [{ _id: 'notice-a', category: 'membership', title: '入社申请已通过', body: '欢迎加入回车键诗社', targetId: 'society-a', targetKind: 'society', read: false, createdAt: '2026-11-02T09:00:00+08:00', societyName: f.society.name, societyAvatar: f.society.avatarUrl }], hasMore: false };
+  if (action === 'unreadNotifications') return { count: window.__societyUnreadCount ?? 1 };
+  if (action === 'clearNotifications') { window.__societyNotificationsCleared = true; window.__societyUnreadCount = 0; return { deleted: 1 }; }
   if (action === 'profile') return { society: f.society, profile: { nickName: '可以锕', avatarUrl: f.society.avatarUrl, role: 'owner', bio: '以诗友芳邻，无问西与东。' }, works: f.works.filter(item => item._openid === payload.userId), hasMore: false };
   if (action === 'mine') return { societies: [{ ...f.society, role: 'owner', following: true }], requests: f.requests };
   if (action === 'opportunity') return { works: payload.kind === 'call' ? f.works : [], item: { ...(payload.kind === 'call' ? f.calls[0] : f.events[0]), societyAvatar: f.society.avatarUrl, coverImage: payload.kind === 'call' ? '' : f.society.avatarUrl, registrationEnd: '2099-12-01T19:00:00+08:00', startTime: '2099-12-02T19:00:00+08:00', deadline: '2099-12-01T19:00:00+08:00', description: f.society.description, requirements: '1. 欢迎喜欢诗歌的同学参与。\n2. 带上一首你最近在读的诗。\n3. 为一句诗，留一点时间。', guests: [{ role: '嘉宾', name: '某某某', bio: '回车键专业教授，诗人', avatarUrl: f.society.avatarUrl }] }, hosts: payload.kind === 'call' ? [{ _id: f.society._id, name: f.society.name, avatarUrl: f.society.avatarUrl }, { _id: 'society-b', name: 'HOLA诗社', avatarUrl: f.society.avatarUrl }] : [{ _id: f.society._id, name: f.society.name, avatarUrl: f.society.avatarUrl }] };
@@ -111,6 +112,22 @@ async function main() {
       }
     }
     await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+    await page.evaluate(() => window.__showSociety('home'));
+    await page.evaluate(() => window.__societyVm.refreshUnread());
+    assert.ok(await page.$('#society-ui-review .notice-button .notice-dot'), 'unread society notifications show a dot on the home button');
+    await page.evaluate(async () => { window.__societyUnreadCount = 0; await window.__societyVm.refreshUnread(); });
+    assert.equal(await page.$('#society-ui-review .notice-button .notice-dot'), null, 'the dot clears when notifications are read');
+    await page.evaluate(async () => { window.__societyUnreadCount = 1; await window.__societyVm.refreshUnread(); });
+    await page.evaluate(() => window.__showSociety('notifications'));
+    assert.ok(await page.$('#society-ui-review .clear-button'), 'society notifications have a clear action');
+    await page.evaluate(() => { window.__originalSocietyModal = uni.showModal; uni.showModal = options => options.success({ confirm: false }); });
+    await page.click('#society-ui-review .clear-button');
+    assert.ok(await page.$('#society-ui-review .notice-item'), 'cancelling clear keeps notifications');
+    await page.evaluate(() => { uni.showModal = options => options.success({ confirm: true }); });
+    await page.click('#society-ui-review .clear-button');
+    await page.waitForFunction(() => window.__societyNotificationsCleared && window.__societyVm.items.length === 0);
+    assert.equal(await page.$('#society-ui-review .notice-item'), null, 'confirmed clear removes the notification list');
+    await page.evaluate(() => { uni.showModal = window.__originalSocietyModal; });
     await page.evaluate(() => window.__showSociety('home'));
     assert.ok((await page.$eval('#society-ui-review .society-card .follow-button', el => el.textContent)).includes('已关注'), 'home restores the saved follow state');
     assert.deepEqual(await page.evaluate(() => { const vm = window.__societyVm; vm.currentCallTotal = 4; vm.pastCallTotal = 7; vm.callFilter = 'current'; const current = vm.hasMoreCalls; vm.callFilter = 'ending'; const ending = vm.hasMoreCalls; vm.callFilter = 'past'; const past = vm.hasMoreCalls; return { current, ending, past }; }), { current: false, ending: true, past: true }, 'the more link follows the selected call filter');

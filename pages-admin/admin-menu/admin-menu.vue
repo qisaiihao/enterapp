@@ -1,6 +1,9 @@
 <template>
     <view class="admin-menu-container">
         <view class="admin-header">
+            <view class="admin-back-btn" @tap="goBack" aria-label="返回">
+                <image class="admin-back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
+            </view>
             <text class="admin-title">管理中心</text>
         </view>
 
@@ -138,6 +141,16 @@
 <script>
 export default {
     methods: {
+        goBack() {
+            try {
+                const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : [];
+                if (pages.length > 1) {
+                    uni.navigateBack({ delta: 1 });
+                    return;
+                }
+            } catch (_) {}
+            uni.switchTab({ url: '/pages/profile/profile' });
+        },
         navigateTo(e) {
             const url = e.currentTarget.dataset.url;
             uni.navigateTo({ url });
@@ -154,16 +167,30 @@ export default {
 }
 
 .admin-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 40rpx 30rpx;
+    display: flex;
+    align-items: center;
+    min-height: 80rpx;
     margin-bottom: 20rpx;
-    border-radius: 10rpx;
+}
+
+.admin-back-btn {
+    width: 72rpx;
+    height: 72rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12rpx;
+}
+
+.admin-back-icon {
+    width: 22rpx;
+    height: 38rpx;
 }
 
 .admin-title {
     font-size: 40rpx;
     font-weight: bold;
-    color: white;
+    color: #333;
 }
 
 .menu-list {

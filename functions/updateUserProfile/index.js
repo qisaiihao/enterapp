@@ -95,7 +95,8 @@ exports.main = async (event = {}, context = {}) => {
     appBackgroundUrl,
     appBackgroundMode,
     clearAppBackground,
-    showGrowthStats
+    showGrowthStats,
+    showNonOriginalPoems
   } = event;
 
   console.log('🔍 [updateUserProfile] 收到的参数:', {
@@ -155,6 +156,10 @@ exports.main = async (event = {}, context = {}) => {
     if (showGrowthStats !== undefined) {
       updateData.showGrowthStats = showGrowthStats === true;
       console.log('🔍 [updateUserProfile] 将更新showGrowthStats');
+    }
+    if (showNonOriginalPoems !== undefined) {
+      updateData.showNonOriginalPoems = showNonOriginalPoems === true;
+      console.log('🔍 [updateUserProfile] 将更新showNonOriginalPoems');
     }
 
     if (clearAppBackground) {

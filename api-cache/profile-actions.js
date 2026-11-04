@@ -1,11 +1,13 @@
 import { cloudCall } from '@/utils/cloudCall.js';
 import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
+import { getOpenid } from '@/utils/app-state.js';
 import { callCloudAndUnwrap, getResult } from './_shared/cloud-wrapper.js';
 import { removeFavoriteRecord } from './favorite-actions.js';
 import {
   invalidateMyInfo,
   invalidateMyPosts
 } from './my.js';
+import { invalidateUserInfo, invalidateUserPosts } from './user-profile.js';
 
 export async function togglePostVisibility(postId, context) {
   console.log('[profile-actions] toggle post visibility', postId);
@@ -120,6 +122,29 @@ export async function getFollowerCount(context) {
   );
 
   return typeof result.total === 'number' ? result.total : 0;
+}
+
+export async function updateProfileVisibility(showNonOriginalPoems, context) {
+  const result = await callCloudAndUnwrap(
+    'updateUserProfile',
+    { showNonOriginalPoems: showNonOriginalPoems === true },
+    {
+      pageTag: 'settings:profile-visibility',
+      context,
+      requireAuth: true
+    },
+    '更新主页显示设置失败'
+  );
+
+  invalidateMyInfo();
+  invalidateMyPosts();
+  const userId = getOpenid();
+  if (userId) {
+    invalidateUserInfo(userId);
+    invalidateUserPosts(userId);
+  }
+
+  return result;
 }
 
 export async function updateUserInfo(userInfo, context) {

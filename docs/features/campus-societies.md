@@ -58,6 +58,7 @@
 | myParticipation | 当前账号的投稿或报名记录分页 |
 | statistics | 管理统计 |
 | memberDirectory | 公开成员目录：负责人、管理员置顶，成员分页 |
+| clearNotifications | 当前账号确认后清空全部分类的诗社通知，其他账号通知不受影响 |
 
 `opportunity` 在征稿类型下额外返回该征稿的已入选作品 `works`（仅包含仍公开可展示的原作）；征稿详情页复用广场 `PostItem` 信息流展示，不复制正文或另建作品数据。
 

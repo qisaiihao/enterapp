@@ -9,39 +9,59 @@ const root = path.join(__dirname, '..');
 const quiet = { log() {}, warn() {}, error() {} };
 const posts = Array.from({ length: 37 }, (_, index) => ({
   _id: `post-${index}`, _openid: 'me', createTime: 100 - index,
-  ...(index >= 13 ? { isOriginal: true } : index % 2 ? { isOriginal: false } : {}),
+  ...(index >= 13
+    ? { isOriginal: true }
+    : index % 2
+      ? (index % 4 === 1
+        ? { isOriginal: false, isPoem: true }
+        : { isOriginal: false, publishMode: 'poem' })
+      : {}),
   ...(index === 20 ? { _openid: 'anonymous', realAuthorOpenid: 'me', isAnonymous: true } : {}),
   ...(index === 21 ? { isHidden: true } : {}),
   ...(index === 22 ? { isSeries: true } : {})
 }));
 const foreignPost = { _id: 'foreign', _openid: 'other', isOriginal: true, createTime: 200 };
 
-function loadBackend({ rows = posts, fileRequests = [] } = {}) {
-  const evaluate = (value, row) => {
-    if (typeof value === 'string' && value.startsWith('$$')) return 'me';
+function loadBackend({ rows = posts, fileRequests = [], showNonOriginalPoems } = {}) {
+  const evaluate = (value, row, vars) => {
+    if (typeof value === 'string' && value.startsWith('$$')) return vars[value.slice(2)];
     if (typeof value === 'string' && value.startsWith('$')) return row[value.slice(1)];
-    if (value && value.$or) return value.$or.some(part => evaluate(part, row));
-    if (value && value.$eq) return evaluate(value.$eq[0], row) === evaluate(value.$eq[1], row);
+    if (value && value.$and) return value.$and.every(part => evaluate(part, row, vars));
+    if (value && value.$or) return value.$or.some(part => evaluate(part, row, vars));
+    if (value && value.$eq) return evaluate(value.$eq[0], row, vars) === evaluate(value.$eq[1], row, vars);
+    if (value && value.$ne) return evaluate(value.$ne[0], row, vars) !== evaluate(value.$ne[1], row, vars);
     return value;
+  };
+  const resolveLetValue = (expression) => {
+    if (typeof expression !== 'string' || !expression.startsWith('$')) return expression;
+    if (expression === '$_openid') return 'me';
+    if (expression === '$showNonOriginalPoems') return showNonOriginalPoems;
+    return undefined;
   };
   const db = {
     command: { aggregate: {} },
     collection(name) {
       assert.equal(name, 'users');
       let pipeline;
+      let vars = {};
       const query = {
         aggregate() { return query; }, match() { return query; }, limit() { return query; },
-        lookup(spec) { pipeline = spec.pipeline; return query; }, project() { return query; },
+        lookup(spec) {
+          pipeline = spec.pipeline;
+          vars = Object.fromEntries(Object.entries(spec.let || {}).map(([key, value]) => [key, resolveLetValue(value)]));
+          return query;
+        },
+        project() { return query; },
         async end() {
           let list = structuredClone([...rows, foreignPost]);
           for (const stage of pipeline) {
             if (stage.$match) list = list.filter(row => Object.entries(stage.$match).every(([key, value]) =>
-              key === '$expr' ? evaluate(value, row) : row[key] === value));
+              key === '$expr' ? evaluate(value, row, vars) : row[key] === value));
             if (stage.$sort) list.sort((a, b) => b.createTime - a.createTime);
             if (stage.$skip !== undefined) list = list.slice(stage.$skip);
             if (stage.$limit !== undefined) list = list.slice(0, stage.$limit);
           }
-          return { list: [{ nickName: '我', avatarUrl: '/static/avatar.png', posts: list }] };
+          return { list: [{ nickName: '我', avatarUrl: '/static/avatar.png', showNonOriginalPoems, posts: list }] };
         }
       };
       return query;
@@ -137,6 +157,7 @@ async function testUserPostsCache() {
   const cacheManager = loadCacheManager();
   const ns = cacheManager.namespace('userPosts:author', { persistent: true, maxItems: 200 });
   ns.set('page:0:size:10', [{ _id: 'cached-repost', isOriginal: false }], { ttlMs: 60000 });
+  ns.set('page:0:size:10:original:1', [{ _id: 'cached-original', isOriginal: true }], { ttlMs: 60000 });
   let calls = 0;
   Object.assign(globals, {
     cacheManager,
@@ -149,16 +170,16 @@ async function testUserPostsCache() {
   });
   vm.runInNewContext(source.replace(/export /g, '') + '\nglobalThis.api = { getUserPosts, invalidateUserPosts };', globals);
   const { getUserPosts, invalidateUserPosts } = globals.api;
-  assert.deepEqual(ids(await getUserPosts({ userId: 'author' })), ['original-0'], 'old all-posts cache cannot populate the original-only profile');
+  assert.deepEqual(ids(await getUserPosts({ userId: 'author' })), ['original-0'], 'older cache formats cannot populate the visibility-aware profile');
   await getUserPosts({ userId: 'author' });
-  assert.equal(calls, 1, 'original posts still reuse the page cache');
+  assert.equal(calls, 1, 'profile posts still reuse the page cache');
   await getUserPosts({ userId: 'author', page: 1 });
   invalidateUserPosts('author', 0);
   await getUserPosts({ userId: 'author' });
-  assert.equal(calls, 3, 'page invalidation clears the original-only cache key');
+  assert.equal(calls, 3, 'page invalidation clears the visibility-aware cache key');
   invalidateUserPosts('author');
   await getUserPosts({ userId: 'author', page: 1 });
-  assert.equal(calls, 4, 'full invalidation includes all original pages');
+  assert.equal(calls, 4, 'full invalidation includes all profile pages');
 }
 
 async function testProfileImageUrls() {
@@ -197,9 +218,20 @@ async function testProfileImageUrls() {
 async function main() {
   await testProfileImageUrls();
   await testUserPostsCache();
-  const read = loadBackend();
+  const unsetResult = await loadBackend()({ limit: 50 });
+  const read = loadBackend({ showNonOriginalPoems: true });
   const getPosts = loadApi(read);
-  assert.deepEqual(ids(await getPosts({ pageSize: 50 })), ids(posts), 'default includes originals, reposts and legacy posts');
+  assert.deepEqual(ids(await getPosts({ pageSize: 50 })), ids(posts), 'enabled switch includes originals, reposts and legacy posts');
+  const hiddenRead = loadBackend({ showNonOriginalPoems: false });
+  const hiddenResult = await hiddenRead({ limit: 50 });
+  const isNonOriginalPoem = post => post.isOriginal === false &&
+    (post.isPoem === true || post.publishMode === 'poem' || post.isSeries === true);
+  const visibleWhenNonOriginalHidden = posts.filter(post => !isNonOriginalPoem(post));
+  assert.deepEqual(ids(unsetResult.posts), ids(visibleWhenNonOriginalHidden),
+    'an account without the setting defaults to hiding non-original poems');
+  assert.equal(unsetResult.userInfo.showNonOriginalPoems, false);
+  assert.deepEqual(ids(hiddenResult.posts), ids(visibleWhenNonOriginalHidden),
+    'disabling non-original poems hides only reposted poems and keeps original and legacy posts');
   const originals = posts.filter(post => post.isOriginal === true);
   const pages = await Promise.all([0, 1, 2].map(page => getPosts({ page, pageSize: 10, originalOnly: true })));
   assert.deepEqual(pages.map(list => list.length), [10, 10, 4], 'filter before pagination even with 13 leading reposts');
@@ -210,19 +242,19 @@ async function main() {
   const { instance, globals } = loadPage(getPosts);
   const pageSize = instance.PAGE_SIZE;
   await instance.refreshProfileAtomically();
-  assert.deepEqual(ids(instance.myPosts), ids(originals.slice(0, pageSize)), 'profile opens with originals only');
-  for (let page = 1; page < Math.ceil(originals.length / pageSize); page++) await instance.loadMyPosts();
-  assert.deepEqual(ids(instance.myPosts), ids(originals));
+  assert.deepEqual(ids(instance.myPosts), ids(posts.slice(0, pageSize)), 'profile opens with all posts when the switch is enabled');
+  for (let page = 1; page < Math.ceil(posts.length / pageSize); page++) await instance.loadMyPosts();
+  assert.deepEqual(ids(instance.myPosts), ids(posts));
   assert.equal(instance.hasMore, false);
   const pagedIds = ids(instance.myPosts);
   await clickPosts(instance);
-  assert.deepEqual(ids(instance.myPosts), pagedIds, 'clicking the active posts tab preserves the original list and pagination');
+  assert.deepEqual(ids(instance.myPosts), pagedIds, 'clicking the active posts tab preserves the list and pagination');
   await instance.refreshProfileAtomically({ reason: 'pull-down' });
-  assert.deepEqual(ids(instance.myPosts), ids(originals.slice(0, pageSize)));
+  assert.deepEqual(ids(instance.myPosts), ids(posts.slice(0, pageSize)));
 
   instance.switchTab({ currentTarget: { dataset: { tab: 'portfolio' } } });
   await clickPosts(instance);
-  assert.deepEqual(ids(instance.myPosts), ids(originals.slice(0, pageSize)), 'returning from portfolio keeps originals only');
+  assert.deepEqual(ids(instance.myPosts), ids(posts.slice(0, pageSize)), 'returning from portfolio keeps the same posts');
 
   const pending = [];
   globals.getMyPosts = args => new Promise((resolve, reject) => pending.push({ args, resolve, reject }));
@@ -230,13 +262,13 @@ async function main() {
   await instance.loadMyPosts();
   assert.equal(pending.length, 1, 'repeated reach-bottom events share the active pagination request');
   const refresh = instance.refreshProfileAtomically({ reason: 'pull-down' });
-  assert.equal(pending[0].args.originalOnly, true, 'pagination requests originals only');
-  assert.equal(pending[1].args.originalOnly, true);
+  assert.equal(pending[0].args.originalOnly, false, 'pagination honors the profile visibility setting');
+  assert.equal(pending[1].args.originalOnly, false);
   pending[1].resolve(await getPosts(pending[1].args));
   await refresh;
   pending[0].resolve(await getPosts(pending[0].args));
   await olderPage;
-  assert.deepEqual(ids(instance.myPosts), ids(originals.slice(0, pageSize)), 'old pagination cannot overwrite the refreshed first page');
+  assert.deepEqual(ids(instance.myPosts), ids(posts.slice(0, pageSize)), 'old pagination cannot overwrite the refreshed first page');
   assert.equal(instance.page, 1);
 
   const firstRefresh = instance.refreshProfileAtomically();
@@ -245,7 +277,7 @@ async function main() {
   await latestRefresh;
   pending[2].resolve(await getPosts(pending[2].args));
   await firstRefresh;
-  assert.deepEqual(ids(instance.myPosts), ids(originals.slice(0, pageSize)), 'latest refresh wins even with responses out of order');
+  assert.deepEqual(ids(instance.myPosts), ids(posts.slice(0, pageSize)), 'latest refresh wins even with responses out of order');
   assert.equal(instance.isAtomicRefreshing, false);
   assert.equal(instance.isLoading, false);
 
@@ -256,12 +288,12 @@ async function main() {
   assert.equal(instance.postsLoadError, false);
   globals.getMyPosts = async () => { throw new Error('offline'); };
   await instance.refreshProfileAtomically();
-  assert.equal(instance.postsLoadError, true, 'load failure is distinct from no originals');
+  assert.equal(instance.postsLoadError, true, 'load failure is distinct from an empty profile');
   globals.getMyPosts = getPosts;
   await instance.refreshProfileAtomically();
   assert.equal(instance.postsLoadError, false);
-  assert.deepEqual(ids(instance.myPosts), ids(originals.slice(0, pageSize)));
-  console.log('[test-profile-original-filter] PASS: image URLs, backend/API original pagination, anonymous and hidden originals, original-only tabs, cache isolation and invalidation, refresh, stale requests, empty state and retry');
+  assert.deepEqual(ids(instance.myPosts), ids(posts.slice(0, pageSize)));
+  console.log('[test-profile-original-filter] PASS: image URLs, original-only API pagination, profile visibility setting, cache isolation and invalidation, refresh, stale requests, empty state and retry');
 }
 
 main().catch(error => { console.error(error); process.exitCode = 1; });

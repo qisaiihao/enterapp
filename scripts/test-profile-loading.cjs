@@ -82,7 +82,7 @@ function runtime() {
     for (const request of pending('posts', from)) request.resolve({ posts: makePosts(suffix) });
   }
   async function seed() {
-    const tasks = [api.getMyInfo(), api.getMyPosts({ pageSize: 5, originalOnly: true }), api.getMyFollowerCount()];
+    const tasks = [api.getMyInfo(), api.getMyPosts({ pageSize: 5, originalOnly: false }), api.getMyFollowerCount()];
     await drain(); settleContent(0, 'cached');
     pending('followers')[0].resolve({ total: 7 });
     await Promise.all(tasks);
@@ -192,7 +192,7 @@ async function testLatestResponseAndUnload() {
   await older; await drain();
   assert.equal(page.userInfo.nickName, 'newest');
   assert.equal(page.followerCount, 40);
-  assert.deepEqual(ids(app.api.getCachedMyProfile({ pageSize: 5, originalOnly: true }).posts), ids(makePosts('newest')),
+  assert.deepEqual(ids(app.api.getCachedMyProfile({ pageSize: 5, originalOnly: false }).posts), ids(makePosts('newest')),
     '迟到请求也不能污染下次进页面的展示缓存');
 
   const start = app.calls.length;
@@ -216,7 +216,7 @@ async function testAccountIsolationAndInvalidation() {
   assert.equal(page.userInfo.nickName, '另一个账号');
   assert.equal(page.myPosts.length, 0);
   assert.equal(page.followerCount, 0, '账号切换不显示前一人的粉丝数');
-  assert.equal(app.api.getCachedMyProfile({ pageSize: 5, originalOnly: true }).posts, undefined);
+  assert.equal(app.api.getCachedMyProfile({ pageSize: 5, originalOnly: false }).posts, undefined);
   await drain();
   for (const request of app.calls.slice(0, from)) {
     request.resolve(request.name === 'follow' ? { total: 99 }
@@ -230,7 +230,7 @@ async function testAccountIsolationAndInvalidation() {
   assert.equal(page.userInfo._openid, 'other');
   assert.equal(page.followerCount, 2);
   app.api.invalidateMyInfo(); app.api.invalidateMyPosts();
-  const cached = app.api.getCachedMyProfile({ pageSize: 5, originalOnly: true });
+  const cached = app.api.getCachedMyProfile({ pageSize: 5, originalOnly: false });
   assert.equal(cached.userInfo, undefined, '资料失效同步清除展示快照');
   assert.equal(cached.posts, undefined, '删帖等失效操作不会从展示快照复活旧帖子');
 }
