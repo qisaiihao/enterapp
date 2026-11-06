@@ -1,4 +1,5 @@
 const { createPostsDatabase, withPostResponse, resolveOwner } = require('./_lib/posts');
+const { normalizePoemFontSize, normalizePoemTextStyles, normalizeDiscussionGroups, mergeDiscussionTextStyles } = require('./_lib/posts/schema');
 const { moderateBeforeWrite } = require('./_lib/moderation-gate');
 const { queueModerationReview } = require('./_lib/moderation-review');
 const cloud = require('wx-server-sdk');
@@ -14,6 +15,8 @@ const EDITABLE_KEYS = [
   'fileIDs',
   'backgroundColor',
   'textColor',
+  'poemFontSize',
+  'poemTextStyles',
   'highlightSentence',
   'highlightLines',
   'sentenceGroups',
@@ -23,6 +26,10 @@ const EDITABLE_KEYS = [
   'author',
   'isPoem',
   'isOriginal',
+  'creationDate',
+  'creationLocation',
+  'showCreationDate',
+  'showCreationLocation',
   'isDiscussion',
   'isSeries',
   'seriesBlocks',
@@ -61,7 +68,7 @@ exports.main = async (event, context) => {
     updateData.seriesBlockCount = input.seriesBlocks.length;
     if (!input.content) {
       const merged = input.seriesBlocks
-        .map(b => (b && b.content ? String(b.content).trim() : ''))
+        .map(b => (b && b.content ? String(b.content) : ''))
         .filter(Boolean)
         .join('\n\n');
       if (merged) updateData.content = merged;
@@ -162,6 +169,25 @@ exports.main = async (event, context) => {
       updateData.isDiscussion = false;
     }
 
+    if (input.poemFontSize !== undefined) updateData.poemFontSize = normalizePoemFontSize(input.poemFontSize);
+    if (input.poemTextStyles !== undefined || input.content !== undefined) {
+      updateData.poemTextStyles = normalizePoemTextStyles(input.poemTextStyles, updateData.content != null ? updateData.content : post.content);
+    }
+    if (updateData.isDiscussion) {
+      if (input.sentenceGroups !== undefined || input.discussionSentences !== undefined) {
+        updateData.sentenceGroups = normalizeDiscussionGroups(input.sentenceGroups !== undefined ? input.sentenceGroups : input.discussionSentences);
+        updateData.discussionSentences = normalizeDiscussionGroups(input.discussionSentences !== undefined ? input.discussionSentences : updateData.sentenceGroups);
+      }
+      updateData.poemTextStyles = mergeDiscussionTextStyles(updateData.sentenceGroups || post.sentenceGroups || post.discussionSentences || [], updateData.content != null ? updateData.content : post.content);
+    }
+
+    if (!updateData.isPoem || !updateData.isOriginal) {
+      updateData.creationDate = '';
+      updateData.creationLocation = '';
+      updateData.showCreationDate = false;
+      updateData.showCreationLocation = false;
+    }
+
     if (input.joinedActivityId !== undefined) {
       const nextJoinedActivityId = String(input.joinedActivityId || '').trim();
       const currentJoinedActivityId = String(post.joinedActivityId || '').trim();
@@ -220,12 +246,13 @@ exports.main = async (event, context) => {
       ? String(post.activityId || '')
       : String(post.joinedActivityId || '');
 
-    const submittedContentKeys = ['title', 'content', 'tags', 'author', 'anonymousAuthorName', 'highlightSentence', 'highlightLines', 'seriesCoverHighlight', 'sentenceGroups', 'discussionSentences', 'seriesBlocks', 'seriesCoverImage', 'fileIDs', 'originalFileIDs'];
+    const submittedContentKeys = ['title', 'content', 'tags', 'author', 'creationLocation', 'anonymousAuthorName', 'highlightSentence', 'highlightLines', 'seriesCoverHighlight', 'sentenceGroups', 'discussionSentences', 'seriesBlocks', 'seriesCoverImage', 'fileIDs', 'originalFileIDs'];
     if (submittedContentKeys.some(key => input[key] !== undefined)) {
       const moderationFailure = await moderateBeforeWrite(cloud, {
         title: updateData.title,
         content: updateData.content,
         author: updateData.author,
+        creationLocation: updateData.creationLocation,
         anonymousAuthorName: updateData.anonymousAuthorName,
         tags: updateData.tags,
         highlightSentence: updateData.highlightSentence,

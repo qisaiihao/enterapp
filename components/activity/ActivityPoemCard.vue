@@ -2,7 +2,7 @@
   <view
     :key="'activity-poem-font-' + fontRenderTick + '-' + (item && item._id ? item._id : index)"
     :class="['activity-poem-card', isSeries && !seriesExpanded ? 'stacked-series-card' : '']"
-    :style="[readFontVars, { backgroundColor: safeBackgroundColor }]"
+    :style="[readFontVars, poemFontVars, { backgroundColor: safeBackgroundColor }]"
   >
     <view
       v-if="isSeries && !seriesExpanded"
@@ -23,7 +23,7 @@
                 {{ currentSeriesPoem.subtitle }}
               </view>
 
-              <view class="post-content expanded" :style="{ color: safeTextColor, whiteSpace: 'pre-wrap' }">{{ currentSeriesPoem.content }}</view>
+              <view class="post-content expanded" :style="{ color: safeTextColor, whiteSpace: 'pre-wrap' }"><PoemRichText :text="currentSeriesPoem.content" :styles="currentSeriesPoem.poemTextStyles || []" :source-text="currentSeriesPoem.sourceContent || currentSeriesPoem.content" :base-font-size="item.poemFontSize" /></view>
 
               <view v-if="showSignature" class="user-signature">
                 <image
@@ -69,15 +69,15 @@
             v-if="displayContent"
             :class="['post-content', expanded ? 'expanded' : 'collapsed', !expanded && collapsedPreviewLines.length === 0 && safeHighlightLines.length === 0 ? 'no-highlight' : '']"
             :style="{ color: safeTextColor, whiteSpace: 'pre-wrap' }"
-          ><block v-if="expanded">{{ displayContent }}</block><block v-else><block v-if="collapsedPreviewLines.length > 0"><text
+          ><block v-if="expanded"><PoemRichText :text="displayContent" :styles="item.poemTextStyles || []" :source-text="item.content" :base-font-size="item.poemFontSize" /></block><block v-else><block v-if="collapsedPreviewLines.length > 0"><view
                   v-for="(highlightLine, highlightIndex) in collapsedPreviewLines"
                   :key="highlightIndex"
                   class="highlight-line"
-                >{{ highlightLine }}</text></block><block v-else-if="safeHighlightLines.length > 0"><text
+                ><PoemRichText :text="highlightLine" :styles="item.poemTextStyles || []" :source-text="item.content" :base-font-size="item.poemFontSize" /></view></block><block v-else-if="safeHighlightLines.length > 0"><view
                   v-for="(highlightLine, highlightIndex) in safeHighlightLines"
                   :key="highlightIndex"
                   class="highlight-line"
-                >{{ highlightLine }}</text></block><block v-else>{{ displayContent }}</block></block></view>
+                ><PoemRichText :text="highlightLine" :styles="item.poemTextStyles || []" :source-text="item.content" :base-font-size="item.poemFontSize" /></view></block><block v-else><PoemRichText :text="displayContent" :styles="item.poemTextStyles || []" :source-text="item.content" :base-font-size="item.poemFontSize" /></block></block></view>
 
           <view v-if="expanded && showSignature" class="user-signature">
             <image
@@ -129,9 +129,12 @@ import {
   normalizeSeriesBlocksForDisplay
 } from '@/utils/poemDisplay.js';
 import { replayBuiltinHuiwenFontReady } from '@/utils/builtinFontReady.js';
+import { getPoemFontVars } from '@/utils/poemTypography.js';
+import PoemRichText from '@/components/poem/PoemRichText.vue';
 
 export default {
   name: 'ActivityPoemCard',
+  components: { PoemRichText },
   emits: ['vote', 'comment-click', 'longpress'],
   props: {
     item: {
@@ -176,6 +179,7 @@ export default {
     // #endif
   },
   computed: {
+    poemFontVars() { return getPoemFontVars(this.item, this.readFontVars); },
     safeBackgroundColor() {
       return this.item && this.item.backgroundColor ? this.item.backgroundColor : '#a4c4bd';
     },

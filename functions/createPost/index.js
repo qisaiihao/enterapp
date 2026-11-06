@@ -1,4 +1,5 @@
 const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
+const { normalizePoemFontSize, normalizePoemTextStyles, normalizeDiscussionGroups, mergeDiscussionTextStyles } = require('./_lib/posts/schema');
 const { moderateBeforeWrite } = require('./_lib/moderation-gate');
 const { queueModerationReview } = require('./_lib/moderation-review');
 // 云函数：createPost
@@ -60,6 +61,10 @@ exports.main = async (event, context) => {
       isPoem: event.publishMode === 'poem' || event.isSeries || false,
       isSeries: event.isSeries || false,
       isOriginal: event.isOriginal || false,
+      creationDate: event.isOriginal && (event.publishMode === 'poem' || event.isSeries) ? (event.creationDate || '') : '',
+      creationLocation: event.isOriginal && (event.publishMode === 'poem' || event.isSeries) ? (event.creationLocation || '') : '',
+      showCreationDate: !!event.isOriginal && (event.publishMode === 'poem' || !!event.isSeries) && event.showCreationDate === true,
+      showCreationLocation: !!event.isOriginal && (event.publishMode === 'poem' || !!event.isSeries) && event.showCreationLocation === true,
       isDiscussion: event.isDiscussion || false,
       author: isAnonymous ? anonymousAuthorName : (event.author || ''),
       tags: event.tags || [],
@@ -67,7 +72,9 @@ exports.main = async (event, context) => {
       anonymousAuthorName,
       realAuthorOpenid: isAnonymous ? openid : null
     };
-    
+    if (postData.isPoem || event.poemFontSize !== undefined) postData.poemFontSize = normalizePoemFontSize(event.poemFontSize);
+    if (postData.isPoem || event.poemTextStyles !== undefined) postData.poemTextStyles = normalizePoemTextStyles(event.poemTextStyles, postData.content);
+
     // 添加颜色信息
     if (event.backgroundColor) {
       postData.backgroundColor = event.backgroundColor;
@@ -94,8 +101,9 @@ exports.main = async (event, context) => {
     
     // 讨论模式特殊处理
     if (event.isDiscussion) {
-      postData.sentenceGroups = event.sentenceGroups || [];
-      postData.discussionSentences = event.discussionSentences || [];
+      postData.sentenceGroups = normalizeDiscussionGroups(event.sentenceGroups !== undefined ? event.sentenceGroups : event.discussionSentences);
+      postData.discussionSentences = normalizeDiscussionGroups(event.discussionSentences !== undefined ? event.discussionSentences : postData.sentenceGroups);
+      postData.poemTextStyles = mergeDiscussionTextStyles(postData.sentenceGroups, postData.content);
     }
     
     // 组诗模式特殊处理
@@ -108,6 +116,7 @@ exports.main = async (event, context) => {
       title: postData.title,
       content: postData.content,
       author: postData.author,
+      creationLocation: postData.creationLocation,
       tags: postData.tags,
       anonymousAuthorName: isAnonymous ? anonymousAuthorName : '',
       highlightSentence: postData.highlightSentence,

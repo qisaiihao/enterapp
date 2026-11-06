@@ -8,7 +8,7 @@ function collectText(input = {}) {
   const add = (value) => {
     if (typeof value === 'string' && value.trim()) fragments.push(value.trim());
   };
-  for (const key of ['title', 'content', 'text', 'author', 'nickname', 'signature', 'anonymousAuthorName', 'highlightSentence', 'seriesCoverHighlight']) add(input[key]);
+  for (const key of ['title', 'content', 'text', 'author', 'creationLocation', 'nickname', 'signature', 'anonymousAuthorName', 'highlightSentence', 'seriesCoverHighlight']) add(input[key]);
   for (const line of (Array.isArray(input.highlightLines) ? input.highlightLines : [])) add(line);
   for (const tag of (Array.isArray(input.tags) ? input.tags : [])) add(tag);
   const groups = [

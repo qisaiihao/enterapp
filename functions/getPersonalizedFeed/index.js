@@ -254,6 +254,7 @@ exports.main = async (event, context) => {
         id: b.id || `series-${i}`,
         subtitle: b.subtitle || b.subTitle || '',
         content: b.content || '',
+        poemTextStyles: b.poemTextStyles || [],
         highlightSentence: b.highlightSentence || (b.content ? String(b.content).split(/\r?\n/).find(l => l && l.trim()) || '' : ''),
         highlightLines: Array.isArray(b.highlightLines) ? b.highlightLines : []
       }));

@@ -30,16 +30,17 @@
         />
 
         <!-- 内容输入区域 -->
-        <view class="content-section">
+        <view class="content-section" :class="{ 'content-section--poem': publishMode === 'poem' }" :style="poemFontVars">
             <!-- 主输入区域 -->
                 <view class="main-input-area" @tap.stop="noop">
                 <!-- 讨论模式：块级编辑器，直接交错正文/引用 -->
                 <template v-if="publishMode === 'discussion'">
-                    <scroll-view class="block-scroll" :scroll-y="true" :show-scrollbar="true" @tap.stop="closeDiscussionInsertMenu">
+                    <scroll-view class="block-scroll" :scroll-y="true" :show-scrollbar="true" :scroll-into-view="discussionScrollTarget" @tap.stop="closeDiscussionInsertMenu">
                         <view class="block-editor">
                             <view
                                 v-for="(block, idx) in blocks"
                                 :key="idx"
+                                :id="'discussion-block-' + idx"
                                 class="block-card discussion-block"
                                 :class="block.type"
                             >
@@ -87,32 +88,16 @@
                                         </view>
                                     </view>
                                 </view>
-                                <textarea
-                                    v-if="block.type === 'content'"
-                                    class="content-textarea"
-                                    placeholder-class="publish-input-placeholder"
-                                    :placeholder="getDiscussionBlockLabel(block, idx)"
-                                    :value="block.text"
-                                    @input="onBlockInput(idx, $event)"
-                                    @tap.stop="closeDiscussionInsertMenu"
-                                    auto-height
-                                    maxlength="1500"
-                                    :show-confirm-bar="false"
-                                    :adjust-position="false"
-                                ></textarea>
-                                <textarea
-                                    v-else
-                                    class="quote-textarea"
-                                    placeholder-class="publish-input-placeholder"
-                                    :placeholder="`${getDiscussionBlockLabel(block, idx)}：每行一句`"
-                                    :value="block.text"
-                                    @input="onBlockInput(idx, $event)"
-                                    @tap.stop="closeDiscussionInsertMenu"
-                                    auto-height
-                                    maxlength="500"
-                                    :show-confirm-bar="false"
-                                    :adjust-position="false"
-                                ></textarea>
+                                <PoemTextEditor
+                                    :content="block.text || ''"
+                                    :format-painter="formatPainter"
+                                    @painter-change="formatPainter = $event"
+                                    :styles="block.poemTextStyles || []"
+                                    :font-size="block.poemFontSize || poemFontSize"
+                                    :placeholder="block.type === 'quote' ? `${getDiscussionBlockLabel(block, idx)}：每行一句` : getDiscussionBlockLabel(block, idx)"
+                                    :max-length="block.type === 'quote' ? 500 : 1500"
+                                    @change="onDiscussionTextChange(idx, $event)"
+                                />
                             </view>
                         </view>
                     </scroll-view>
@@ -172,16 +157,15 @@
                                         </view>
                                     </view>
                                 </view>
-                                <textarea
-                                    class="content-textarea"
-                                    placeholder-class="publish-input-placeholder"
+                                <PoemTextEditor
+                                    :content="block.content"
+                                    :format-painter="formatPainter"
+                                    @painter-change="formatPainter = $event"
+                                    :styles="block.poemTextStyles || []"
+                                    :font-size="poemFontSize"
                                     :placeholder="`组诗段落 ${idx + 1}`"
-                                    :value="block.content"
-                                    @input="onSeriesContentInput(idx, $event)"
-                                    maxlength="1500"
-                                    :show-confirm-bar="false"
-                                    :adjust-position="false"
-                                ></textarea>
+                                    @change="onSeriesPoemTextChange(idx, $event)"
+                                />
                             </view>
                         </view>
                     </scroll-view>
@@ -189,20 +173,15 @@
                 <!-- 普通/诗歌单段输入 -->
                 <template v-else>
                     <view class="content-input-wrapper">
-                        <textarea
-                            class="content-textarea"
-                            placeholder-class="publish-input-placeholder"
+                        <PoemTextEditor
+                            :format-painter="formatPainter"
+                            @painter-change="formatPainter = $event"
+                            :content="content"
+                            :styles="poemTextStyles"
+                            :font-size="poemFontSize"
                             :placeholder="currentPlaceholder"
-                            @input="onContentInput"
-                            @tap.stop="onTextareaTap"
-                            maxlength="1500"
-                            :value="content"
-                            :show-confirm-bar="false"
-                            :adjust-position="false"
-                            @focus="onTextareaFocus"
-                            @blur="onTextareaBlur"
-                        ></textarea>
-                        <view v-if="content.length > 1400" class="char-count">{{ content.length }}/1500</view>
+                            @change="onPoemTextChange"
+                        />
 
                         <!-- 长按选择覆盖层 -->
 
@@ -218,6 +197,7 @@
                     @toggle-tags="toggleTagSelector"
                     @choose-image="handleChooseImage"
                     @switch-mode="switchMode"
+                    @add-quote="addDiscussionQuoteBlock"
                     @toggle-series="toggleSeriesMode"
                     @toggle-highlight="toggleHighlightMode"
                     @select-color="onSelectColor"
@@ -232,15 +212,14 @@
             <view class="helper-text" v-show="publishMode === 'discussion'" :class="{ 'fade-out': !showDiscussionHelper }">上方正文即为你的讨论内容</view>
         </view>
 
-        <!-- 左下角返回按钮 -->
-        <view v-if="!isSeriesComposeLayout" class="back-btn" @tap.stop="goBack">
-            <image class="back-icon" src="/static/images/share.svg" mode="aspectFit"></image>
-        </view>
-
-        <!-- 右下角浮动操作按钮 -->
-        <view class="floating-action-btn" @tap.stop="goToPreview">
-            <view class="preview-btn">
-                <view class="preview-arrow"></view>
+        <view class="compose-actions compose-actions--editor">
+            <view v-if="!isSeriesComposeLayout" class="back-btn" @tap.stop="goBack">
+                <image class="back-icon" src="/static/images/share.svg" mode="aspectFit"></image>
+            </view>
+            <view class="floating-action-btn" @tap.stop="goToPreview">
+                <view class="preview-btn">
+                    <view class="preview-arrow"></view>
+                </view>
             </view>
         </view>
 
@@ -319,6 +298,9 @@ import TagSelectorModal from '../../components/TagSelectorModal.vue';
 import HighlightSelectorModal from '../../components/HighlightSelectorModal.vue';
 import AddImageSection from '../../components/add/AddImageSection.vue';
 import SideToolbar from '../../components/add/SideToolbar.vue';
+import PoemTextEditor from '../../components/add/PoemTextEditor.vue';
+import { getPoemTypographyFields, getPoemFontVars } from '@/utils/poemTypography.js';
+import { getCreationFields } from '@/utils/poemCreation.js';
 import {
     addBlock as discussionAddBlock,
     removeBlock as discussionRemoveBlock,
@@ -374,7 +356,8 @@ export default {
         TagSelectorModal,
         HighlightSelectorModal,
         AddImageSection,
-        SideToolbar
+        SideToolbar,
+        PoemTextEditor
     },
     data() {
         return {
@@ -425,6 +408,9 @@ export default {
 
             // 'normal' | 'poem' | 'discussion' 普通模式 | 诗歌模式 | 讨论模式
             isOriginal: false,
+            ...getCreationFields(),
+            ...getPoemTypographyFields(),
+            formatPainter: null,
             // 组诗模式
             isSeries: false,
             seriesBlocks: [{ id: Date.now(), subtitle: '', content: '', highlightSentence: '' }],
@@ -442,6 +428,7 @@ export default {
         isDiscussion: false,
         showQuotePopup: false,
         discussionInsertMenuIndex: -1,
+        discussionScrollTarget: '',
         parentPostId: '',
         parentPostInfo: null,
         canPublish: false,
@@ -505,6 +492,7 @@ export default {
         };
     },
     computed: {
+        poemFontVars() { return getPoemFontVars(this); },
         isSeriesComposeLayout() {
             return this.publishMode === 'poem' && this.isSeries;
         },
@@ -667,6 +655,7 @@ export default {
                 isDiscussion: false,
                 isSeries: false,
                 showModeSelector: false,
+                formatPainter: null,
                 maxImageCount: 9
             });
         }
@@ -778,6 +767,17 @@ export default {
                 return draftData.blocks;
             }
 
+            const groups = draftData.sentenceGroups || draftData.discussionSentences;
+            if (Array.isArray(groups) && groups.length) {
+                const blocks = [];
+                for (const group of groups) {
+                    if ((group.sentences || []).some(line => line.trim())) blocks.push({ type: 'quote', text: group.sentences.join('\n'), poemTextStyles: group.sentenceTextStyles || [], poemFontSize: group.poemFontSize || draftData.poemFontSize || 14 });
+                    if ((group.comment || '').trim()) blocks.push({ type: 'content', text: group.comment, poemTextStyles: group.commentTextStyles || [], poemFontSize: group.poemFontSize || draftData.poemFontSize || 14 });
+                }
+                if (!blocks.some(block => block.type === 'content')) blocks.unshift({ type: 'content', text: '' });
+                return blocks;
+            }
+
             const quoteBlocks = Array.isArray(draftData.discussionQuoteBlocks)
                 ? draftData.discussionQuoteBlocks.map(text => ({ type: 'quote', text: text || '' }))
                 : ((draftData.discussionQuoteText || '').trim()
@@ -785,7 +785,7 @@ export default {
                     : []);
 
             return [
-                { type: 'content', text: draftData.content || '' },
+                { type: 'content', text: draftData.content || '', poemTextStyles: draftData.poemTextStyles || [], poemFontSize: draftData.poemFontSize || 14 },
                 ...quoteBlocks
             ];
         },
@@ -793,6 +793,7 @@ export default {
         buildDefaultSeriesBlocks(draftData = {}) {
             if (Array.isArray(draftData.seriesBlocks) && draftData.seriesBlocks.length > 0) {
                 return draftData.seriesBlocks.map(block => ({
+                    ...block,
                     id: block.id || `series-${Date.now()}-${Math.random()}`,
                     subtitle: block.subtitle || '',
                     content: block.content || '',
@@ -820,6 +821,8 @@ export default {
                 imageList: Array.isArray(this.imageList) ? this.imageList : [],
                 publishMode: this.publishMode || 'normal',
                 isOriginal: !!this.isOriginal,
+                ...getCreationFields(this),
+                ...getPoemTypographyFields(this),
                 isDiscussion: !!this.isDiscussion,
                 isSeries: !!this.isSeries,
                 seriesBlocks: Array.isArray(this.seriesBlocks) ? this.seriesBlocks : [],
@@ -849,6 +852,25 @@ export default {
                 updatedAt: Date.now(),
                 saveTime: Date.now()
             };
+        },
+
+        onPoemTextChange(value) {
+            const blocks = (this.blocks || []).slice();
+            const index = blocks.findIndex(block => block.type === 'content');
+            const block = { type: 'content', text: value.content, poemTextStyles: value.poemTextStyles, poemFontSize: this.poemFontSize };
+            if (index >= 0) blocks[index] = { ...blocks[index], ...block };
+            else blocks.unshift(block);
+            this.setData({ content: value.content, poemTextStyles: value.poemTextStyles, blocks });
+            this.checkCanPublish();
+            this.scheduleWorkingDraftSave();
+        },
+
+        onSeriesPoemTextChange(index, value) {
+            seriesContentInput(this, index, value.content, value.poemTextStyles);
+        },
+
+        onDiscussionTextChange(index, value) {
+            discussionOnBlockInput(this, index, value.content, value.poemTextStyles);
         },
 
         hasWorkingDraftState(draftData = {}) {
@@ -980,6 +1002,8 @@ export default {
                 imageList: Array.isArray(draftData.imageList) ? draftData.imageList : [],
                 publishMode,
                 isOriginal: !!draftData.isOriginal,
+                ...getCreationFields(draftData),
+                ...getPoemTypographyFields(draftData),
                 isDiscussion: publishMode === 'discussion',
                 isSeries,
                 seriesBlocks,
@@ -1154,9 +1178,12 @@ export default {
 
                         const isPoemPost = post.isPoem === true || post.publishMode === 'poem' || post.isSeries === true;
                         const editPublishMode = isPoemPost ? 'poem' : (post.isDiscussion ? 'discussion' : 'normal');
+                        const editBlocks = this.buildDefaultBlocks(post);
+                        const firstBody = editBlocks.find(block => block.type === 'content');
 
                         this.setData({
-                            content: post.content || '',
+                            content: editPublishMode === 'discussion' ? firstBody.text : (post.content || ''),
+                            blocks: editBlocks,
                             title: post.title || '',
                             author: post.author || '',
                             selectedTags: post.tags || [],
@@ -1172,6 +1199,8 @@ export default {
                             imageList: imageList,
                             publishMode: editPublishMode,
                             isOriginal: post.isOriginal || false,
+                            ...getCreationFields(post),
+                            ...getPoemTypographyFields(post),
                             maxImageCount: isPoemPost ? 1 : 9,
                             editingPost: post,
                             isActivityMode: isOfficialActivityPost,
@@ -1414,7 +1443,14 @@ export default {
         closeQuotePopup() {},
         addBlock(afterIndex, type) {
             this.closeDiscussionInsertMenu();
+            this.setData({ discussionScrollTarget: '' });
             discussionAddBlock(this, afterIndex, type);
+            this.$nextTick(() => {
+                this.setData({ discussionScrollTarget: `discussion-block-${afterIndex + 1}` });
+            });
+        },
+        addDiscussionQuoteBlock() {
+            this.addBlock(this.blocks.length - 1, 'quote');
         },
         removeBlock(idx) {
             this.closeDiscussionInsertMenu();
@@ -1534,7 +1570,7 @@ export default {
 
             if (isDiscussion) {
                 const firstContent = (this.blocks || []).find(b => b.type === 'content');
-                this.setData({ content: firstContent ? firstContent.text || '' : '' });
+                this.setData({ content: firstContent ? firstContent.text || '' : '', poemTextStyles: firstContent ? firstContent.poemTextStyles || [] : [] });
             }
 
             // 根据模式设置图片限制
@@ -1809,8 +1845,10 @@ export default {
                 ? mergeDiscussionContent(discussionSentenceGroups, this.content)
                 : (this.content || '');
             if (this.isSeries) {
-                finalContent = seriesBlocks.map(block => (block.content || block.subtitle || '').trim()).filter(Boolean).join('\n\n');
+                finalContent = seriesBlocks.map(block => block.content || block.subtitle || '').filter(value => value.trim()).join('\n\n');
             }
+
+            const typographyData = getPoemTypographyFields({ poemFontSize: this.poemFontSize, poemTextStyles: this.poemTextStyles, publishMode: this.publishMode, isSeries: this.isSeries, seriesBlocks: this.seriesBlocks, content: finalContent, sentenceGroups: discussionSentenceGroups });
 
             // 检查编辑模式状态
             console.log('【Add】编辑模式检查:', {
@@ -1852,6 +1890,8 @@ export default {
                     publishMode: normalizedPublishMode,
                     isPoem: normalizedIsPoem,
                     isOriginal: normalizedIsOriginal,
+                    ...getCreationFields(this),
+                    ...typographyData,
                     isDiscussion: normalizedIsDiscussion,
                     isSeries: normalizedIsSeries,
                     seriesBlocks: normalizedIsSeries ? seriesBlocks : [],
@@ -1921,6 +1961,8 @@ export default {
                 isPoem: normalizedIsPoem,
                 isOriginal: normalizedIsOriginal,
                 isSeries: normalizedIsSeries,
+                ...getCreationFields(this),
+                ...typographyData,
                 seriesBlocks: normalizedIsSeries ? seriesBlocks : [],
                 seriesBlockCount: normalizedIsSeries ? seriesBlocks.length : 0,
                 // 讨论模式字段
@@ -1982,6 +2024,8 @@ export default {
                 isPoem: normalizedIsPoem,
                 isOriginal: normalizedIsOriginal,
                 author: this.author,
+                ...getCreationFields(this),
+                ...typographyData,
                 tags: this.selectedTags || [],
                 isDiscussion: normalizedIsDiscussion,
                 isSeries: normalizedIsSeries,
@@ -2243,6 +2287,10 @@ export default {
 
             const previewPost = {
                 _id: 'preview-temp-id',
+                isOriginal: this.isOriginal,
+                isPoem: this.publishMode === 'poem',
+                ...getCreationFields(this),
+                ...getPoemTypographyFields({ poemFontSize: this.poemFontSize, poemTextStyles: this.poemTextStyles, publishMode: this.publishMode, isSeries: this.isSeries, seriesBlocks: this.seriesBlocks, content: previewContent, sentenceGroups: previewSentenceGroups }),
                 content: previewContent || '',
                 author: this.author || '',
                 title: this.title || '', // 标题（编辑模式下已有值，新建模式下在预览页面输入）
@@ -2269,6 +2317,8 @@ export default {
                     publishMode: this.publishMode,
                     isOriginal: this.isOriginal,
                     isSeries: this.isSeries,
+                    ...getCreationFields(this),
+                    ...getPoemTypographyFields(this),
                     seriesBlocks: previewSeriesBlocks,
                     selectedTags: this.selectedTags,
                     author: this.author,
@@ -2279,6 +2329,7 @@ export default {
                     isEditMode: this.isEditMode, // 传递编辑模式标记
                     editingPostId: this.editingPostId, // 传递编辑的帖子ID
                     sentenceGroups: previewSentenceGroups,
+                    blocks: this.blocks,
                     isActivityMode: this.isActivityMode,
                     activityId: this.activityId || '',
                     activityTitle: this.activityTitle || '',
@@ -2429,6 +2480,8 @@ export default {
                     publishMode: this.publishMode,
                     isOriginal: this.isOriginal,
                     selectedTags: this.selectedTags,
+                    ...getCreationFields(this),
+                    ...getPoemTypographyFields(this),
                     customTag: this.customTag,
                     author: this.author,
                     selectedBackgroundColor: this.selectedBackgroundColor,
@@ -2542,6 +2595,8 @@ export default {
             // 仅在结束编辑时清空输入，手动保存草稿后仍可继续编辑。
             if (resetForm) {
                 this.setData({
+                    ...getCreationFields(),
+                    ...getPoemTypographyFields(),
                     content: '',
                     title: '',
                     author: '',
@@ -2602,6 +2657,11 @@ page {
 }
 
 /* 主输入区域 - 响应式布局 */
+.content-section--poem .main-input-area .content-textarea {
+    font-size: var(--app-read-post-size, 28rpx);
+    line-height: var(--app-read-post-line, 38rpx);
+}
+
 .main-input-area {
     flex: 1;
     display: flex;
@@ -2815,6 +2875,28 @@ page {
     border-right: 11rpx solid #ffffff;
     transform: translateY(-50%) rotate(45deg);
     box-sizing: border-box;
+}
+
+.compose-actions--editor {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    padding: 28rpx 56rpx calc(36rpx + env(safe-area-inset-bottom));
+    box-sizing: border-box;
+}
+
+.compose-actions--editor .back-btn,
+.compose-actions--editor .floating-action-btn {
+    position: relative;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    left: auto;
+}
+
+.compose-actions--editor .floating-action-btn {
+    margin-left: auto;
 }
 
 /* 让正文为右侧工具栏预留空间及计数避让 */
@@ -3079,7 +3161,7 @@ page {
     max-height: calc(100vh - 360rpx); /* 稍微增高，让编辑区更贴近其他板块高度 */
     margin-right: 70rpx; /* 与 content-input-wrapper 保持一致，为右侧工具栏留出空间 */
     padding-right: 0;
-    padding-bottom: 200rpx; /* 为底部操作按钮留白，避免滚动遮挡 */
+    padding-bottom: 24rpx;
     overflow-y: auto; /* 容器可滚动 */
     overflow-x: hidden;
 }
@@ -3305,7 +3387,7 @@ page {
 .container--series-compose .block-scroll {
     max-height: none;
     margin-right: 108rpx;
-    padding-bottom: 240rpx;
+    padding-bottom: 24rpx;
 }
 
 .container--series-compose .block-editor {
@@ -3572,7 +3654,7 @@ page {
     
     .container--series-compose .block-scroll {
         margin-right: 0;
-        padding-bottom: 280rpx;
+        padding-bottom: 24rpx;
     }
 
     .back-btn,

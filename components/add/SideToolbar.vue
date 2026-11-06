@@ -1,5 +1,5 @@
 <template>
-    <view class="side-toolbar" :class="[toolbarClassName, { 'side-toolbar--dark': isDark }]">
+    <view class="side-toolbar" :class="[toolbarClassName, { 'side-toolbar--dark': isDark, 'side-toolbar--poem': publishMode === 'poem' }]">
         <view class="side-tool-btn" @tap.stop="$emit('toggle-tags')">
             <image class="side-tool-icon" src="/static/images/newicons/tag.png" mode="aspectFit" />
         </view>
@@ -10,6 +10,10 @@
 
         <view class="side-tool-btn mode-switch-btn" @tap.stop="$emit('switch-mode')">
             <image class="side-tool-icon mode-switch-icon" src="/static/images/newicons/switch_publish.png" mode="aspectFit" alt="切换发布模式" />
+        </view>
+
+        <view v-if="publishMode === 'discussion'" class="side-tool-btn quote-tool-btn" role="button" aria-label="插入引用" @tap.stop="$emit('add-quote')">
+            <image class="side-tool-icon quote-tool-icon" src="/static/images/newicons/quote.svg" mode="aspectFit" />
         </view>
 
         <view
@@ -45,7 +49,7 @@
 <script>
 export default {
     name: 'SideToolbar',
-    emits: ['toggle-tags', 'choose-image', 'switch-mode', 'toggle-series', 'toggle-highlight', 'select-color'],
+    emits: ['toggle-tags', 'choose-image', 'switch-mode', 'add-quote', 'toggle-series', 'toggle-highlight', 'select-color'],
     props: {
         publishMode: {
             type: String,
@@ -136,6 +140,11 @@ export default {
 .series-toggle-btn .side-tool-icon {
     width: 60rpx;
     height: 60rpx;
+}
+
+.quote-tool-btn .quote-tool-icon {
+    width: 54rpx;
+    height: 54rpx;
 }
 
 .color-tool-icon {
@@ -310,6 +319,30 @@ export default {
         justify-content: space-around;
         padding: 20rpx 0;
         gap: 10rpx;
+    }
+}
+
+@media screen and (max-height: 600px) {
+    .side-toolbar--poem {
+        padding: 0;
+        gap: 6rpx;
+        overflow: hidden;
+    }
+
+    .side-toolbar--poem .side-tool-btn {
+        flex: 0 1 80rpx;
+        min-height: 44rpx;
+        margin-bottom: 0;
+    }
+
+    .side-toolbar--poem .side-tool-icon {
+        max-width: 80rpx;
+        max-height: 100%;
+    }
+
+    .side-toolbar--poem .color-tool-icon {
+        max-height: none;
+        transform: scale(0.75);
     }
 }
 </style>

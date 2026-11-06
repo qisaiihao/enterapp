@@ -4,6 +4,8 @@
 
 import fontManager from './fontManager.js';
 import fileUrlCache from '@/cache/core/file-url.js';
+import { getCreationLabel } from './poemCreation.js';
+import { layoutPoemText, drawPoemTextLayout } from './poemTypography.js';
 
 // 兼容旧的 fontFamily ID 到 displayName 的映射
 const LEGACY_FONT_MAP = {
@@ -603,7 +605,7 @@ async function calculateShareCardHeight(options) {
         shouldShowSignature = true
     } = options;
 
-    const baseFontSize = shareConfig.fontSize || 38;
+    const baseFontSize = shareConfig.fontSize || (post.poemFontSize ? Math.round(38 * post.poemFontSize / 14) : 38);
     const fontScale = shareConfig.fontScale || 1.0;
     const fontSize = Math.round(baseFontSize * fontScale);
     const lineHeight = Math.round(fontSize * 1.26);
@@ -630,8 +632,18 @@ async function calculateShareCardHeight(options) {
 
     // 计算正文行数和高度
     const processedLines = wrapText(measureCtx, content, textAreaWidth, fontSize, actualFontFamily);
-    const wrappedContentHeight = processedLines.reduce((h, line) => h + (line && line.trim() ? lineHeight : lineHeight * 0.5), 0);
+    const styledLines = post.poemTextStyles?.length
+        ? layoutPoemText(measureCtx, content, post.poemTextStyles, fontSize, post.poemFontSize, textAreaWidth, actualFontFamily)
+        : null;
+    const wrappedContentHeight = styledLines
+        ? styledLines.reduce((height, line) => height + line.before + line.lineHeight + line.after, 0)
+        : processedLines.reduce((h, line) => h + (line && line.trim() ? lineHeight : lineHeight * 0.5), 0);
     const contentHeight = Math.max(wrappedContentHeight, 200);
+    const creationFontSize = Math.round(fontSize * 0.58);
+    const creationLineHeight = Math.round(creationFontSize * 1.8);
+    const creationLabel = getCreationLabel(post);
+    const creationLines = creationLabel ? wrapText(measureCtx, creationLabel, textAreaWidth, creationFontSize, actualFontFamily) : [];
+    const creationHeight = creationLines.length ? 32 + creationLines.length * creationLineHeight : 0;
 
     // 计算标题高度
     let actualTitleHeight = titleLineHeight + 20;
@@ -670,7 +682,7 @@ async function calculateShareCardHeight(options) {
     const isNonOriginalPoem = post.isPoem && post.isOriginal === false && post.author;
     const needsAuthorSpace = shouldShowSignature || isNonOriginalPoem;
 
-    let finalCanvasHeight = textTopPadding + titleHeight + titleBottomSpacing + contentHeight
+    let finalCanvasHeight = textTopPadding + titleHeight + titleBottomSpacing + contentHeight + creationHeight
         + (post.authorSignature && shouldShowSignature
             ? (signatureTopGap + signatureDrawHeight)
             : (needsAuthorSpace && ((post.authorName && post.authorName.trim()) || (post.author && post.author.trim())))
@@ -684,6 +696,10 @@ async function calculateShareCardHeight(options) {
     return {
         canvasHeight: Math.ceil(finalCanvasHeight),
         processedLines,
+        styledLines,
+        creationLines,
+        creationFontSize,
+        creationLineHeight,
         titleHeight,
         signatureDrawHeight,
         fontSize,
@@ -715,7 +731,11 @@ async function drawShareCardContent(options) {
         canvasWidth,
         canvasHeight,
         processedLines,
+        styledLines,
         titleHeight,
+        creationLines = [],
+        creationFontSize,
+        creationLineHeight,
         signatureDrawHeight,
         fontSize,
         lineHeight,
@@ -803,7 +823,9 @@ async function drawShareCardContent(options) {
         ctx.setTextAlign('left');
     };
 
-    processedLines.forEach((line) => {
+    if (styledLines) {
+        y = drawPoemTextLayout(ctx, styledLines, { x, top: y - fontSize, fontFamily: actualFontFamily, textColor });
+    } else processedLines.forEach((line) => {
         if (line.trim()) {
             ctx.fillText(line, x, y);
             y += lineHeight;
@@ -811,6 +833,19 @@ async function drawShareCardContent(options) {
             y += lineHeight * 0.5;
         }
     });
+
+    if (creationLines.length) {
+        y += 32;
+        ctx.font = creationFontSize + 'px ' + actualFontFamily;
+        ctx.setTextAlign('right');
+        ctx.setGlobalAlpha(0.65);
+        creationLines.forEach(line => {
+            ctx.fillText(line, canvasWidth - textPadding, y);
+            y += creationLineHeight;
+        });
+        ctx.setGlobalAlpha(1);
+        ctx.setTextAlign('left');
+    }
 
     // 绘制签名
     if (post.authorSignature && shouldShowSignature) {

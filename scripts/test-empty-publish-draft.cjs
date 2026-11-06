@@ -11,12 +11,21 @@ const renderer = createRenderer({
   parentNode() {}, nextSibling() {}
 });
 const root = path.join(__dirname, '..');
-const pureSource = fs.readFileSync(path.join(root, 'pages-publish/add/addPure.js'), 'utf8');
-const exportsList = parse(pureSource, { sourceType: 'module' }).program.body
-  .filter(node => node.type === 'ExportNamedDeclaration').map(node => node.declaration.id.name);
-const pureSandbox = { module: { exports: {} } };
-vm.runInNewContext(pureSource.replace(/export function /g, 'function ') +
-  `\nmodule.exports = { ${exportsList.join(',')} };`, pureSandbox);
+function namedModule(file, bindings = {}) {
+  let code = fs.readFileSync(path.join(root, file), 'utf8');
+  const nodes = parse(code, { sourceType: 'module' }).program.body;
+  const names = nodes.filter(node => node.type === 'ExportNamedDeclaration')
+    .flatMap(node => node.declaration.id ? [node.declaration.id.name]
+      : node.declaration.declarations.map(item => item.id.name));
+  for (const node of nodes.filter(node => node.type === 'ImportDeclaration').reverse()) {
+    code = code.slice(0, node.start) + code.slice(node.end);
+  }
+  const context = { ...bindings, module: { exports: {} } };
+  vm.runInNewContext(code.replace(/^export /gm, '') + `\nmodule.exports = { ${names.join(',')} };`, context);
+  return context.module.exports;
+}
+const typography = namedModule('utils/poemTypography.js');
+const pure = namedModule('pages-publish/add/addPure.js', typography);
 let source = fs.readFileSync(path.join(root, 'pages-publish/add/add.vue'), 'utf8')
   .match(/<script>([\s\S]*?)<\/script>/)[1];
 const imports = parse(source, { sourceType: 'module' }).program.body
@@ -24,7 +33,7 @@ const imports = parse(source, { sourceType: 'module' }).program.body
 const bindings = {};
 for (const node of imports) {
   for (const specifier of node.specifiers) {
-    bindings[specifier.local.name] = pureSandbox.module.exports[specifier.imported?.name] || (() => {});
+    bindings[specifier.local.name] = pure[specifier.imported?.name] || typography[specifier.imported?.name] || (() => {});
   }
 }
 for (const node of imports.reverse()) source = source.slice(0, node.start) + source.slice(node.end);

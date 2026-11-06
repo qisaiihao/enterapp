@@ -2,7 +2,7 @@
   <view
     v-if="post"
     :class="['poem-card', isSeries && !seriesExpanded ? 'stacked-series-card' : '']"
-    :style="[readFontVars, { backgroundColor: cardBackgroundColor }]"
+    :style="[readFontVars, poemFontVars, { backgroundColor: cardBackgroundColor }]"
   >
     <view
       v-if="isSeries && !seriesExpanded"
@@ -18,7 +18,7 @@
           @tap="emitCardTap"
           @longpress="emitLongpress"
         >
-          <view class="post-item">
+          <view class="post-item" :class="{ 'post-item--creation': creationLabel }">
             <view
               v-if="currentSeriesPoem.subtitle"
               class="series-subtitle"
@@ -30,7 +30,9 @@
             <view
               class="post-content expanded"
               :style="{ color: cardTextColor, whiteSpace: 'pre-wrap' }"
-            >{{ currentSeriesPoem.content }}</view>
+            ><PoemRichText :text="currentSeriesPoem.content" :styles="currentSeriesPoem.poemTextStyles || []" :source-text="currentSeriesPoem.sourceContent || currentSeriesPoem.content" :base-font-size="post.poemFontSize" /></view>
+
+            <PoemCreationMeta :post="post" :color="cardTextColor" />
 
             <view v-if="canShowSignature" class="user-signature">
               <image
@@ -76,7 +78,7 @@
         @tap="emitCardTap"
         @longpress="emitLongpress"
       >
-        <view class="post-item">
+        <view class="post-item" :class="{ 'post-item--creation': creationLabel }">
           <view
             v-if="post.displayContent"
             :class="[
@@ -85,11 +87,13 @@
               !post.isExpanded && highlightLines.length === 0 ? 'no-highlight' : ''
             ]"
             :style="{ color: cardTextColor, whiteSpace: 'pre-wrap' }"
-          ><block v-if="post.isExpanded">{{ post.displayContent }}</block><block v-else><block v-if="highlightLines.length > 0"><text
+          ><block v-if="post.isExpanded"><PoemRichText :text="post.displayContent" :styles="post.poemTextStyles || []" :source-text="post.content" :base-font-size="post.poemFontSize" /></block><block v-else><block v-if="highlightLines.length > 0"><view
                   v-for="(highlightLine, highlightIndex) in highlightLines"
                   :key="highlightIndex"
                   class="highlight-line"
-                >{{ highlightLine }}</text></block><block v-else>{{ post.displayContent }}</block></block></view>
+                ><PoemRichText :text="highlightLine" :styles="post.poemTextStyles || []" :source-text="post.content" :base-font-size="post.poemFontSize" /></view></block><block v-else><PoemRichText :text="post.displayContent" :styles="post.poemTextStyles || []" :source-text="post.content" :base-font-size="post.poemFontSize" /></block></block></view>
+
+          <PoemCreationMeta :post="post" :color="cardTextColor" />
 
           <view v-if="post.isExpanded && canShowSignature" class="user-signature">
             <image
@@ -142,9 +146,14 @@
 
 <script>
 import { getReadableTextColor, getThemedCardBackgroundColor } from '@/utils/uiHelpers.js';
+import PoemCreationMeta from './PoemCreationMeta.vue';
+import { getCreationLabel } from '@/utils/poemCreation.js';
+import { getPoemFontVars } from '@/utils/poemTypography.js';
+import PoemRichText from '@/components/poem/PoemRichText.vue';
 
 export default {
   name: 'PoemCard',
+  components: { PoemRichText, PoemCreationMeta },
   emits: [
     'card-tap',
     'vote',
@@ -172,6 +181,8 @@ export default {
     }
   },
   computed: {
+    poemFontVars() { return getPoemFontVars(this.post, this.readFontVars); },
+    creationLabel() { return getCreationLabel(this.post); },
     cardBackgroundColor() {
       return getThemedCardBackgroundColor(this.post.backgroundColor, this.appThemeMode);
     },
@@ -408,6 +419,14 @@ export default {
 }
 
 .series-single-card .user-signature { bottom: 20rpx; }
+
+.post-item--creation .user-signature,
+.post-item--creation .user-signature-small {
+  position: static;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12rpx;
+}
 
 .user-signature-small {
   position: absolute;

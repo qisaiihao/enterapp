@@ -73,20 +73,25 @@ const globals = {
   console: { log() {}, warn() {}, error: (...args) => callbackErrors.push(args) }
 };
 
-function namedModule(file) {
-  const source = fs.readFileSync(path.join(root, file), 'utf8');
-  const names = parse(source, { sourceType: 'module' }).program.body
+function namedModule(file, bindings = {}) {
+  let source = fs.readFileSync(path.join(root, file), 'utf8');
+  const nodes = parse(source, { sourceType: 'module' }).program.body;
+  const names = nodes
     .filter(node => node.type === 'ExportNamedDeclaration')
     .flatMap(node => node.declaration.id ? [node.declaration.id.name]
       : node.declaration.declarations.map(item => item.id.name));
-  const context = { ...globals, module: { exports: {} } };
+  for (const node of nodes.filter(node => node.type === 'ImportDeclaration').reverse()) {
+    source = source.slice(0, node.start) + source.slice(node.end);
+  }
+  const context = { ...globals, ...bindings, module: { exports: {} } };
   vm.runInNewContext(source.replace(/^export /gm, '') +
     `\nmodule.exports = { ${names.join(',')} };`, context, { filename: file });
   return context.module.exports;
 }
 
 const overlays = namedModule('utils/appOverlay.js');
-const pure = namedModule('pages-publish/add/addPure.js');
+const typography = namedModule('utils/poemTypography.js');
+const pure = namedModule('pages-publish/add/addPure.js', typography);
 const publishDraft = namedModule('utils/publishDraft.js');
 function component(file) {
   let source = fs.readFileSync(path.join(root, file), 'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];
@@ -100,7 +105,7 @@ function component(file) {
   }
   for (const node of imports.reverse()) source = source.slice(0, node.start) + source.slice(node.end);
   const context = {
-    ...globals, ...bindings, ...pure, ...overlays, ...publishDraft,
+    ...globals, ...bindings, ...pure, ...overlays, ...publishDraft, ...typography,
     discussionBuildGroups: pure.buildDiscussionSentenceGroups,
     colorPalettes: [], poemLines: [], tagCategories: [], module: { exports: {} },
     attachPoemDisplayFields: post => post,

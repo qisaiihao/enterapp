@@ -179,6 +179,8 @@ exports.main = async (event, context) => {
         // 颜色信息 - 从帖子中获取
         backgroundColor: post.backgroundColor || null,
         textColor: post.textColor || null,
+        poemFontSize: post.poemFontSize,
+        poemTextStyles: post.poemTextStyles || [],
         // 高光行信息
         highlightLines: post.highlightLines || []
       };

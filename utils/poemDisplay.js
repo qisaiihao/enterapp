@@ -34,6 +34,7 @@ function normalizeSeriesBlocksForDisplay(blocks = []) {
       ...block,
       id: block.id || `series-display-${index}`,
       subtitle: String(block.subtitle || block.subTitle || ''),
+      sourceContent: block.sourceContent || block.content || '',
       content: normalizePoemDisplayText(block.content || ''),
       highlightSentence: normalizePoemDisplayLine(block.highlightSentence || ''),
       highlightLines: normalizePoemDisplayLines(block.highlightLines || [])

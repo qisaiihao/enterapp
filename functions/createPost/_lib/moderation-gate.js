@@ -33,7 +33,7 @@ function hasText(content) {
   const present = value => typeof value === 'string' ? Boolean(value.trim())
     : Array.isArray(value) && value.some(present);
   if (['title', 'content', 'text', 'author', 'nickname', 'signature', 'anonymousAuthorName',
-    'highlightSentence', 'seriesCoverHighlight', 'highlightLines', 'tags'].some(key => present(content[key]))) return true;
+    'creationLocation', 'highlightSentence', 'seriesCoverHighlight', 'highlightLines', 'tags'].some(key => present(content[key]))) return true;
   const groups = [
     ...(Array.isArray(content.sentenceGroups) ? content.sentenceGroups : []),
     ...(Array.isArray(content.discussionSentences) ? content.discussionSentences : [])

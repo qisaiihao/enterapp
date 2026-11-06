@@ -1,4 +1,5 @@
 const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
+const { normalizePoemFontSize, normalizePoemTextStyles } = require('./_lib/posts/schema');
 const cloud = require('wx-server-sdk');
 
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
@@ -41,6 +42,7 @@ exports.main = async (event, context) => {
       order,
       subtitle: b.subtitle || p.title || `其${order + 1}`,
       content,
+      poemTextStyles: p.poemTextStyles || [],
       highlightSentence,
       highlightLines,
       imageUrl: p.imageUrl || '',
@@ -74,6 +76,8 @@ exports.main = async (event, context) => {
     seriesBlocks,
     seriesBlockCount: seriesBlocks.length,
     publishMode: 'poem',
+    poemFontSize: normalizePoemFontSize(event.poemFontSize),
+    poemTextStyles: normalizePoemTextStyles(event.poemTextStyles, mergedContent),
     isOriginal: true,
     highlightSentence: allHighlights[0] || '',
     highlightLines: allHighlights,

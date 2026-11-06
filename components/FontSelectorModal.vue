@@ -13,7 +13,7 @@
                         class="slider"
                         :value="currentFontSize" 
                         :min="24" 
-                        :max="72" 
+                        :max="100"
                         :step="1"
                         @changing="onFontSizeChanging"
                         @change="onFontSizeChange"

@@ -130,6 +130,10 @@ function expandFields(fields) {
   const include = Object.values(out).some(value => value !== 0 && value !== false);
   if (!include) return out;
   out.schemaVersion = true;
+  if (out.content || out.highlightLines || out.seriesBlocks) {
+    out.poemFontSize = true;
+    out.poemTextStyles = true;
+  }
   // Type/privacy information must survive selective projections.
   for (const key of ['publishMode', 'isPoem', 'isDiscussion', 'isAnonymous', 'realAuthorOpenid', 'isSeries', 'isOriginal', 'activityId', 'isActivityPost']) out[key] = true;
   for (const [key, dependencies] of Object.entries(DEPENDENCIES)) if (out[key]) for (const dependency of dependencies) out[dependency] = true;

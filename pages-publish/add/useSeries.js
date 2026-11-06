@@ -1,6 +1,7 @@
 // pages/add/useSeries.js
 // 组诗相关逻辑，保持对外 ctx.setData / ctx.checkCanPublish 兼容
 import { normalizeSeriesBlocks, seriesBlocksToContent } from './addPure.js';
+import { mergeSeriesTextStyles } from '@/utils/poemTypography.js';
 
 function scheduleDraftSave(ctx) {
     ctx.scheduleWorkingDraftSave && ctx.scheduleWorkingDraftSave();
@@ -16,6 +17,7 @@ export function toggleSeriesMode(ctx) {
         const merged = seriesBlocksToContent(ctx.seriesBlocks);
         ctx.setData({
             isSeries: false,
+            poemTextStyles: mergeSeriesTextStyles(ctx.seriesBlocks),
             content: merged
         });
         ctx.checkCanPublish && ctx.checkCanPublish();
@@ -44,6 +46,7 @@ export function toggleSeriesMode(ctx) {
             id: (initialBlocks[0] && initialBlocks[0].id) || `series-${Date.now()}`,
             subtitle: (initialBlocks[0] && initialBlocks[0].subtitle) || '',
             content: currentContent || ((initialBlocks[0] && initialBlocks[0].content) || ''),
+            poemTextStyles: ctx.poemTextStyles || [],
             highlightSentence: (initialBlocks[0] && initialBlocks[0].highlightSentence) || '',
             highlightLines: (initialBlocks[0] && initialBlocks[0].highlightLines) || []
         };
@@ -68,6 +71,7 @@ export function syncSeriesBlocks(ctx, blocks, manualSeriesHighlights = null) {
     ctx.setData({
         seriesBlocks: normalized,
         content: ctx.isSeries ? seriesBlocksToContent(normalized) : ctx.content,
+        poemTextStyles: ctx.isSeries ? mergeSeriesTextStyles(normalized) : ctx.poemTextStyles,
         highlightLines: ctx.isSeries ? highlightLines : ctx.highlightLines,
         highlightSentence: ctx.isSeries ? (highlightSentence || '') : ctx.highlightSentence
     });
@@ -118,8 +122,8 @@ export function onSeriesSubtitleInput(ctx, idx, val) {
     syncSeriesBlocks(ctx, next);
 }
 
-export function onSeriesContentInput(ctx, idx, val) {
+export function onSeriesContentInput(ctx, idx, val, poemTextStyles = []) {
     const next = (ctx.seriesBlocks || []).slice();
-    next[idx] = { ...next[idx], content: val || '' };
+    next[idx] = { ...next[idx], content: val || '', poemTextStyles };
     syncSeriesBlocks(ctx, next);
 }

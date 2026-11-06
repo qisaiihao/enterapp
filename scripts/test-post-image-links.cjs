@@ -155,7 +155,7 @@ function esModule(file, globals, names) {
   await preview({ current: missing, urls: [missing] });
   assert.equal(previews.pop().current, 'https://retry.example/original.png', 'failed URL lookup can retry');
 
-  const componentBox = { console: quiet };
+  const componentBox = { console: quiet, PoemCreationMeta: {}, PoemRichText: {} };
   const componentSource = read('components/PostItem.vue').match(/<script>([\s\S]*?)<\/script>/)[1]
     .replace(/^import .*;\r?$/gm, '').replace('export default', 'this.component =');
   vm.runInNewContext(componentSource, componentBox);

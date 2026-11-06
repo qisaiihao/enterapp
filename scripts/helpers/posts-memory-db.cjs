@@ -23,6 +23,7 @@ function expr(value, row, vars = {}) {
   }
   if (op === '$eq') return values[0] === values[1];
   if (op === '$ne') return values[0] !== values[1];
+  if (op === '$gt') return values[0] > values[1];
   if (op === '$and') return values.every(Boolean);
   if (op === '$or') return values.some(Boolean);
   if (op === '$cond') return values[0] ? values[1] : values[2];
@@ -102,10 +103,19 @@ function memoryDb(initial, command, options = {}) {
         else if(op==='sort')rows.sort((a,b)=>{for(const [key,direction]of Object.entries(value)){const left=a[key] instanceof Date?+a[key]:a[key],right=b[key] instanceof Date?+b[key]:b[key];if(left!==right)return (left>right?1:-1)*direction;}return 0;});
         else if(op==='addFields')rows=rows.map(row=>({...row,...Object.fromEntries(Object.entries(value).map(([k,v])=>[k,expr(v,row)]))}));
         else if(op==='project')rows=rows.map(row=>project(row,value));
+        else if(op==='lookup')rows=rows.map(row=>{
+          const vars=Object.fromEntries(Object.entries(value.let || {}).map(([key,item])=>[key,expr(item,row)]));
+          let joined=clone(tables[value.from] || []);
+          for(const stage of value.pipeline || []){
+            if(stage.$match)joined=joined.filter(item=>matches(item,stage.$match,vars));
+            else throw Error('Unsupported lookup stage: '+JSON.stringify(stage));
+          }
+          return {...row,[value.as]:joined};
+        });
         else if(op==='count')rows=[{[value]:rows.length}];
         else throw Error('Unsupported memory stage: '+op);
       }return {list:rows};}};
-      for(const key of ['match','sort','skip','limit','project','addFields','count'])a[key]=value=>aggregate([...stages,[key,value]]);
+      for(const key of ['match','sort','skip','limit','project','addFields','lookup','count'])a[key]=value=>aggregate([...stages,[key,value]]);
       return a;
     }
     return query();

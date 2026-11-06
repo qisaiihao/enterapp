@@ -45,13 +45,13 @@ export function onQuoteBlockInput(ctx, idx, val) {
     scheduleDraftSave(ctx);
 }
 
-export function onBlockInput(ctx, idx, val) {
+export function onBlockInput(ctx, idx, val, poemTextStyles = []) {
     const next = (ctx.blocks || []).slice();
-    next[idx] = { ...next[idx], text: val || '' };
+    next[idx] = { ...next[idx], text: val || '', poemTextStyles, poemFontSize: ctx.poemFontSize || 14 };
     ctx.setData({ blocks: next });
     const firstContentIndex = next.findIndex(block => block.type === 'content');
     if (firstContentIndex === idx) {
-        ctx.setData({ content: val });
+        ctx.setData({ content: val, poemTextStyles });
     }
     ctx.checkCanPublish && ctx.checkCanPublish();
     scheduleDraftSave(ctx);

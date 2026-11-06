@@ -1,4 +1,5 @@
 const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
+const { normalizePoemFontSize, normalizePoemTextStyles, normalizeDiscussionGroups, mergeDiscussionTextStyles } = require('./_lib/posts/schema');
 const { createModerationService, collectImages } = require('./moderation');
 const { moderateBeforeWrite } = require('./_lib/moderation-gate');
 const { queueModerationReview } = require('./_lib/moderation-review');
@@ -259,21 +260,7 @@ const dedupeTop3 = (lines = []) => {
   // 讨论模式：规范化句子组与高光行
   let normalizedSentenceGroups = [];
   if (isDiscussion) {
-    if (Array.isArray(sentenceGroups)) {
-      normalizedSentenceGroups = sentenceGroups
-        .map(g => ({
-          sentences: Array.isArray(g.sentences) ? g.sentences.filter(s => typeof s === 'string' && s.trim() !== '') : [],
-          comment: (g.comment || '').trim()
-        }))
-        .filter(g => g.sentences.length > 0 || g.comment);
-    } else if (Array.isArray(discussionSentences)) {
-      normalizedSentenceGroups = discussionSentences
-        .map(g => ({
-          sentences: Array.isArray(g.sentences) ? g.sentences.filter(s => typeof s === 'string' && s.trim() !== '') : [],
-          comment: (g.comment || '').trim()
-        }))
-        .filter(g => g.sentences.length > 0 || g.comment);
-    }
+    normalizedSentenceGroups = normalizeDiscussionGroups(Array.isArray(sentenceGroups) && sentenceGroups.length ? sentenceGroups : discussionSentences);
 
     if (normalizedSentenceGroups.length > 0 && effectiveHighlightLines.length === 0) {
       effectiveHighlightLines = clampTop3(normalizedSentenceGroups.reduce((acc, g) => acc.concat(g.sentences || []), []));
@@ -288,7 +275,7 @@ const dedupeTop3 = (lines = []) => {
     normalizedSeriesBlocks = Array.isArray(seriesBlocks)
       ? seriesBlocks
           .map((block, idx) => {
-            const blockContent = (block && block.content ? String(block.content) : '').trim();
+            const blockContent = block && block.content ? String(block.content) : '';
             const blockSubtitle = (block && block.subtitle ? String(block.subtitle) : '').trim();
             const blockHighlight =
               (block && block.highlightSentence && String(block.highlightSentence).trim()) ||
@@ -305,6 +292,7 @@ const dedupeTop3 = (lines = []) => {
               order: typeof block?.order === 'number' ? block.order : idx,
               subtitle: blockSubtitle,
               content: blockContent,
+              poemTextStyles: normalizePoemTextStyles(block.poemTextStyles, blockContent),
               highlightSentence: blockHighlight,
               highlightLines: blockHighlightLines,
               imageUrl,
@@ -349,6 +337,7 @@ const dedupeTop3 = (lines = []) => {
   }
   
   const audit = await moderateContentInBatches({
+    creationLocation: isOriginal && isPoem ? event.creationLocation : '',
     title,
     content,
     text,
@@ -435,15 +424,16 @@ const dedupeTop3 = (lines = []) => {
       seriesCoverImage: normalizedSeriesBlocks[0]?.imageUrl || '',
       seriesCoverHighlight: highlightSentenceValue || '',
       isOriginal: isOriginal,
+      creationDate: isOriginal && isPoem ? (event.creationDate || '') : '',
+      creationLocation: isOriginal && isPoem ? (event.creationLocation || '') : '',
+      showCreationDate: isOriginal && isPoem && event.showCreationDate === true,
+      showCreationLocation: isOriginal && isPoem && event.showCreationLocation === true,
       // 新增讨论相关字段
       isDiscussion: isDiscussion,
       parentPostId: parentPostId || '',
       quotedPostId: quotedPostId || '',
       sentenceGroups: normalizedSentenceGroups,
-      discussionSentences: normalizedSentenceGroups.map(g => ({
-        sentences: g.sentences,
-        comment: g.comment
-      })),
+      discussionSentences: normalizedSentenceGroups.map(g => ({ ...g })),
       // 新增作者字段
       author: authorName,
       authorName: displayAuthorName,
@@ -468,6 +458,8 @@ const dedupeTop3 = (lines = []) => {
       // 审核状态
       // UI 定制：背景色 + 高光句（可选）
       backgroundColor: backgroundColor || '',
+      ...((isPoem || event.poemFontSize !== undefined) ? { poemFontSize: normalizePoemFontSize(event.poemFontSize) } : {}),
+      ...((isPoem || event.poemTextStyles !== undefined) ? { poemTextStyles: isDiscussion ? mergeDiscussionTextStyles(normalizedSentenceGroups, content) : normalizePoemTextStyles(event.poemTextStyles, content) } : {}),
       textColor: textColor || '#000000',
       highlightSentence: highlightSentenceValue || '',
       highlightLines: Array.isArray(effectiveHighlightLines) ? effectiveHighlightLines : [],

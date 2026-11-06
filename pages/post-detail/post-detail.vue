@@ -20,7 +20,7 @@
             </block>
             <block v-else-if="post && post._id">
                 <!-- Post Content -->
-                <view :key="'detail-poem-font-' + poemFontRenderTick" :class="'post-detail-wrapper ' + (post.isOriginal ? 'original-post' : '') + (post.isPoem ? ' poem-post' : '')">
+                <view :key="'detail-poem-font-' + poemFontRenderTick" :class="'post-detail-wrapper ' + (post.isOriginal ? 'original-post' : '') + (post.isPoem ? ' poem-post' : '')" :style="poemFontVars">
                     <view class="author-info">
                         <view class="author-basic">
                             <image
@@ -59,15 +59,13 @@
                             <!-- 句子卡片：仅在有有效句子时显示，避免空灰框 -->
                             <view v-if="hasDiscussionSentences(sentenceGroup)" class="discussion-sentence-card">
                                 <view class="discussion-sentence-content">
-                                    <text v-for="(line, lineIndex) in sentenceGroup.sentences" :key="lineIndex" class="discussion-sentence-line" selectable :user-select="true">
-                                        {{ line }}
-                                    </text>
+                                    <view class="discussion-sentence-line" :style="sentenceGroup.sentenceTextStyles ? { fontStyle: 'normal', fontWeight: '400' } : {}"><PoemRichText :text="sentenceGroup.sentences.join('\n')" :styles="sentenceGroup.sentenceTextStyles || []" :base-font-size="sentenceGroup.poemFontSize || post.poemFontSize" selectable /></view>
                                 </view>
                             </view>
                             
                             <!-- 评论内容 -->
                             <view v-if="sentenceGroup.comment" class="discussion-comment">
-                                <text selectable :user-select="true">{{ sentenceGroup.comment }}</text>
+                                <PoemRichText :text="sentenceGroup.comment" :styles="sentenceGroup.commentTextStyles || []" :base-font-size="sentenceGroup.poemFontSize || post.poemFontSize" selectable />
                             </view>
                         </view>
                     </view>
@@ -75,12 +73,14 @@
                     <view v-else-if="post.isSeries && post.seriesBlocks && post.seriesBlocks.length > 0" class="series-simple-display">
                         <view v-for="(block, idx) in post.seriesBlocks" :key="idx" class="series-poem-block">
                             <view v-if="block.subtitle" class="series-poem-subtitle"><text selectable :user-select="true">{{ block.subtitle }}</text></view>
-                            <view class="post-content"><text selectable :user-select="true">{{ block.content }}</text></view>
+                            <view class="post-content"><PoemRichText :text="block.content" :styles="block.poemTextStyles || []" :base-font-size="post.poemFontSize" selectable /></view>
                         </view>
                     </view>
                     
                     <!-- 普通帖子内容 -->
-                    <view class="post-content" v-else-if="post.content"><text selectable :user-select="true">{{ post.content }}</text></view>
+                    <view class="post-content" v-else-if="post.content"><PoemRichText :text="post.content" :styles="post.poemTextStyles || []" :base-font-size="post.poemFontSize" selectable /></view>
+
+                    <PoemCreationMeta :post="post" />
 
                     <view v-if="post.tags && post.tags.length > 0" class="post-tags">
                         <text class="post-tag" @tap.stop.prevent="onTagClick" :data-tag="item" v-for="(item, index) in post.tags" :key="index">#{{ item }}</text>
@@ -321,8 +321,8 @@
         <!-- #ifndef MP-WEIXIN -->
         <canvas id="shareCanvas" canvas-id="shareCanvas" style="position: fixed; top: -9999px; left: -9999px; width: 750px; border-radius: 15px; overflow: hidden;" :style="{ height: shareCanvasHeight + 'px' }"></canvas>
         <!-- #endif -->
+        <app-overlay-host />
     </view>
-    <app-overlay-host />
 </template>
 
 <script>
@@ -350,6 +350,9 @@ import postGalleryMixin from '@/mixins/postGallery.js';
 import { getCurrentUserId } from '@/utils/auth.js';
 import { calculateActualLines as calcCanvasLines, wrapText, clampText } from '@/utils/canvasText.js';
 import { drawImageAsync, calculateActualLines as calcLines, wrapText as wrapCanvasText, calculateShareCardHeight, drawShareCardContent, exportShareCanvas } from '@/utils/shareCanvas.js';
+import PoemCreationMeta from '@/components/poem/PoemCreationMeta.vue';
+import { getPoemFontVars } from '@/utils/poemTypography.js';
+import PoemRichText from '@/components/poem/PoemRichText.vue';
 import { processComments, validateCommentInput, processCommentImages, findComment, calculateRemainingChars } from '@/utils/commentUtils.js';
 import { generateShareImageName, isValidImageDataUrl, base64ToArrayBuffer, saveImageToAlbum, createTempFilePath, compressImage, getImageInfo } from '@/utils/shareImage.js';
 import { syncLikeStatusForPosts, getLatestLikeStatus } from '@/utils/likeStatusSync.js';
@@ -441,6 +444,9 @@ function createCanvas2DCompatContext(nativeCtx) {
         setFillStyle(value) {
             nativeCtx.fillStyle = value;
         },
+        setGlobalAlpha(value) {
+            nativeCtx.globalAlpha = value;
+        },
         setStrokeStyle(value) {
             nativeCtx.strokeStyle = value;
         },
@@ -462,6 +468,8 @@ function createCanvas2DCompatContext(nativeCtx) {
 }
 export default {
     components: {
+        PoemRichText,
+        PoemCreationMeta,
         cloudTipModal,
         folderSelector,
         portfolioSelector,
@@ -478,6 +486,7 @@ export default {
         }
     },
     computed: {
+        poemFontVars() { return getPoemFontVars(this.post, this.readFontVars); },
         voteMotionState() {
             return { id: this.post?._id, votes: this.post?.votes, voted: this.post?.isVoted };
         },
@@ -1085,6 +1094,8 @@ export default {
             // 初始化shareConfig使用帖子的实际颜色
             this.shareConfig.backgroundColor = this.post.backgroundColor || '#FFFFFF';
             this.shareConfig.textColor = this.post.textColor || '#000000';
+            this.shareConfig.fontSize = this.post.poemFontSize ? Math.round(38 * this.post.poemFontSize / 14) : 38;
+            this.shareConfig.titleFontSize = Math.round(this.shareConfig.fontSize * 1.21);
             this.shareRenderFontFamily = this.shareConfig.fontFamily || '汇文明朝';
             this.shareRenderFontScale = this.shareConfig.fontScale || 1.0;
             this.shareRequestedFontFamily = this.shareConfig.fontFamily || '汇文明朝';

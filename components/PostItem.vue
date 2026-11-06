@@ -1,5 +1,5 @@
 <template>
-    <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" :style="readFontVars">
+    <view :class="'post-item-wrapper ' + (item.isOriginal ? 'original-post' : '')" :style="[readFontVars, poemFontVars]">
         <!-- 右上角三个点菜单按钮 -->
         <view 
             v-if="showMenu" 
@@ -103,27 +103,27 @@
                 <!-- 讨论帖子优先展示引用句子块，其次正文 -->
                 <view v-if="item.isDiscussion && hasValidDiscussionGroups(item)" :class="'discussion-content ' + (profilePreview ? 'discussion-content--profile-preview' : '')">
                     <view v-if="profilePreview" class="profile-discussion-preview">
-                        <view v-if="discussionPreviewSentence" class="post-content post-content--discussion-quote" style="white-space: pre-wrap">{{ discussionPreviewSentence }}</view>
-                        <view v-if="discussionPreviewComment" class="post-content post-content--discussion-comment" style="white-space: pre-wrap">{{ discussionPreviewComment }}</view>
+                        <view v-if="discussionPreviewSentence" class="post-content post-content--discussion-quote" :style="discussionPreviewGroup.sentenceTextStyles ? { fontStyle: 'normal', fontWeight: '400' } : {}"><PoemRichText :text="discussionPreviewSentence" :source-text="discussionPreviewGroup.sentences.join('\n')" :styles="discussionPreviewGroup.sentenceTextStyles || []" :base-font-size="discussionPreviewGroup.poemFontSize || item.poemFontSize" /></view>
+                        <view v-if="discussionPreviewComment" class="post-content post-content--discussion-comment"><PoemRichText :text="discussionPreviewComment" :source-text="discussionPreviewGroup.comment" :styles="discussionPreviewGroup.commentTextStyles || []" :base-font-size="discussionPreviewGroup.poemFontSize || item.poemFontSize" /></view>
                     </view>
                     <!-- 只显示第一个有效的引用句子组 -->
                     <view v-else-if="getFirstValidDiscussionGroup(item)" class="discussion-sentence-group">
                         <view v-if="hasDiscussionSentences(getFirstValidDiscussionGroup(item))" class="discussion-sentence-card">
                             <view class="discussion-sentence-content">
                                 <!-- 只显示第一句 -->
-                                <text class="discussion-sentence-line">
-                                    {{ getFirstValidDiscussionGroup(item).sentences[0] }}
-                                </text>
+                                <view class="discussion-sentence-line" :style="getFirstValidDiscussionGroup(item).sentenceTextStyles ? { fontStyle: 'normal', fontWeight: '400' } : {}"><PoemRichText :text="getFirstValidDiscussionGroup(item).sentences[0]" :source-text="getFirstValidDiscussionGroup(item).sentences.join('\n')" :styles="getFirstValidDiscussionGroup(item).sentenceTextStyles || []" :base-font-size="getFirstValidDiscussionGroup(item).poemFontSize || item.poemFontSize" /></view>
                             </view>
                         </view>
-                        <view v-if="getFirstValidDiscussionGroup(item).comment" class="discussion-comment-preview">{{ getFirstValidDiscussionGroup(item).comment }}</view>
+                        <view v-if="getFirstValidDiscussionGroup(item).comment" class="discussion-comment-preview"><PoemRichText :text="getFirstValidDiscussionGroup(item).comment" :styles="getFirstValidDiscussionGroup(item).commentTextStyles || []" :base-font-size="getFirstValidDiscussionGroup(item).poemFontSize || item.poemFontSize" /></view>
                     </view>
                 </view>
                 <view v-else-if="isSeriesPost(item)" class="series-simple-preview">
-                    <view class="post-content" style="white-space: pre-wrap">{{ getSeriesPreviewText(item) }}</view>
+                    <view class="post-content" style="white-space: pre-wrap"><PoemRichText :text="getSeriesPreviewText(item)" :styles="item.poemTextStyles || []" :source-text="item.content" :base-font-size="item.poemFontSize" /></view>
                     <view class="series-meta-tag">组诗·{{ item.seriesBlockCount || (item.seriesBlocks && item.seriesBlocks.length) }}</view>
                 </view>
-                <view class="post-content" v-else-if="item.content" style="white-space: pre-wrap">{{ item.content }}</view>
+                <view class="post-content" v-else-if="item.content" style="white-space: pre-wrap"><PoemRichText :text="item.content" :styles="item.poemTextStyles || []" :base-font-size="item.poemFontSize" /></view>
+
+                <PoemCreationMeta :post="item" />
 
                 <!-- 标签显示 -->
                 <view v-if="item.tags && item.tags.length > 0" class="post-tags">
@@ -180,8 +180,12 @@
 
 <script>
 import { resolvePostAuthorAvatar } from '@/utils/defaultAvatar.js';
+import PoemCreationMeta from '@/components/poem/PoemCreationMeta.vue';
+import { getPoemFontVars } from '@/utils/poemTypography.js';
+import PoemRichText from '@/components/poem/PoemRichText.vue';
 
 export default {
+    components: { PoemRichText, PoemCreationMeta },
     name: 'PostItem',
     data() { return { voteMotionVersion: 0 }; },
     emits: ['show-action-menu', 'avatar-error', 'avatar-load', 'navigate-to-user', 'preview-image', 'image-error', 'image-load', 'tag-click', 'vote', 'comment-click', 'like-icon-error'],
@@ -244,6 +248,7 @@ export default {
         }
     },
     computed: {
+        poemFontVars() { return getPoemFontVars(this.item, this.readFontVars); },
         voteMotionState() {
             return { id: this.item?._id, votes: this.item?.votes, voted: this.item?.isVoted };
         },

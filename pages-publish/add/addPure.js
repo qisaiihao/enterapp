@@ -1,5 +1,6 @@
 // pages/add/addPure.js
 // 把与界面无关的纯函数集中到这里，便于复用与单测
+import { remapPoemTextStyles } from '@/utils/poemTypography.js';
 
 /**
  * 计算不同模式下的 placeholder 文案
@@ -59,7 +60,8 @@ export function buildDiscussionSentenceGroups(blocks = [], fallbackContent = '')
             if (comment) {
                 groups.push({
                     sentences: [],
-                    comment
+                    comment,
+                    ...(block.poemTextStyles ? { commentTextStyles: remapPoemTextStyles(comment, block.poemTextStyles, block.text || ''), poemFontSize: block.poemFontSize || 14 } : {})
                 });
             }
         } else if (block.type === 'quote') {
@@ -70,7 +72,8 @@ export function buildDiscussionSentenceGroups(blocks = [], fallbackContent = '')
             if (sentences.length) {
                 groups.push({
                     sentences,
-                    comment: ''
+                    comment: '',
+                    ...(block.poemTextStyles ? { sentenceTextStyles: remapPoemTextStyles(sentences.join('\n'), block.poemTextStyles, block.text || ''), poemFontSize: block.poemFontSize || 14 } : {})
                 });
             }
         }
@@ -107,7 +110,7 @@ export function mergeDiscussionContent(groups = [], content = '') {
  */
 export function normalizeSeriesBlocks(blocks = [], manualSeriesHighlights = null, isSeriesMode = true) {
     const normalized = (blocks || []).map((b, order) => {
-        const content = (b.content || '').trim();
+        const content = b.content || '';
         const subtitle = (b.subtitle || '').trim();
         const highlight =
             (b.highlightSentence && b.highlightSentence.trim()) ||
@@ -117,6 +120,7 @@ export function normalizeSeriesBlocks(blocks = [], manualSeriesHighlights = null
                 ? b.highlightLines
                 : (highlight ? [highlight] : []);
         return {
+            ...b,
             id: b.id || `series-${Date.now()}-${order}`,
             subtitle,
             content,
@@ -164,8 +168,8 @@ export function normalizeSeriesBlocks(blocks = [], manualSeriesHighlights = null
  */
 export function seriesBlocksToContent(blocks = []) {
     return (blocks || [])
-        .map(b => (b.content || b.subtitle || '').trim())
-        .filter(Boolean)
+        .map(b => b.content || b.subtitle || '')
+        .filter(value => value.trim())
         .join('\n\n');
 }
 

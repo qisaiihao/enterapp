@@ -31,19 +31,21 @@
 
         <!-- 诗歌模式：使用折叠卡片样式（与poem-square完全一致） -->
 
-        <view v-if="post.editData && post.editData.publishMode === 'poem'" class="post-item-wrapper" :style="{ backgroundColor: post.backgroundColor }">
+        <view v-if="post.editData && post.editData.publishMode === 'poem'" class="post-item-wrapper" :style="[poemFontVars, { backgroundColor: post.backgroundColor }]">
 
           <view class="post-content-navigator" @tap="togglePostExpansion">
 
-            <view class="post-item" :style="{ backgroundColor: post.backgroundColor }">
+            <view class="post-item" :class="{ 'post-item--creation': creationLabel }" :style="{ backgroundColor: post.backgroundColor }">
 
               <block v-if="currentPreviewSeriesPoem">
                 <view v-if="currentPreviewSeriesPoem.subtitle" class="preview-series-subtitle" :style="{ color: post.textColor || '#222' }">{{ currentPreviewSeriesPoem.subtitle }}</view>
-                <view class="post-content expanded" :style="{ color: post.textColor || '#222', whiteSpace: 'pre-wrap' }">{{ currentPreviewSeriesPoem.content }}</view>
+                <view class="post-content expanded" :style="{ color: post.textColor || '#222', whiteSpace: 'pre-wrap' }"><PoemRichText :text="currentPreviewSeriesPoem.content" :styles="currentPreviewSeriesPoem.poemTextStyles || []" :source-text="currentPreviewSeriesPoem.sourceContent || currentPreviewSeriesPoem.content" :base-font-size="post.poemFontSize" /></view>
               </block>
-              <view v-else :class="['post-content', post.isExpanded ? 'expanded' : 'collapsed', !post.isExpanded && getPreviewHighlightLines().length === 0 ? 'no-highlight' : '']" :style="{ color: post.textColor || '#222', whiteSpace: 'pre-wrap' }"><block v-if="post.isExpanded">{{ previewCardContent }}</block><block v-else><block v-if="getPreviewHighlightLines().length > 0"><text v-for="(highlightLine, index) in getPreviewHighlightLines()" :key="index" style="font-weight: 700; display: block;">{{ highlightLine }}</text></block><block v-else>{{ previewCardContent }}</block></block></view>
+              <view v-else :class="['post-content', post.isExpanded ? 'expanded' : 'collapsed', !post.isExpanded && getPreviewHighlightLines().length === 0 ? 'no-highlight' : '']" :style="{ color: post.textColor || '#222', whiteSpace: 'pre-wrap' }"><block v-if="post.isExpanded"><PoemRichText :text="previewCardContent" :styles="post.poemTextStyles || []" :source-text="post.content" :base-font-size="post.poemFontSize" /></block><block v-else><block v-if="getPreviewHighlightLines().length > 0"><view v-for="(highlightLine, index) in getPreviewHighlightLines()" :key="index" style="font-weight: 700;"><PoemRichText :text="highlightLine" :styles="post.poemTextStyles || []" :source-text="post.content" :base-font-size="post.poemFontSize" /></view></block><block v-else><PoemRichText :text="previewCardContent" :styles="post.poemTextStyles || []" :source-text="post.content" :base-font-size="post.poemFontSize" /></block></block></view>
 
 
+
+              <PoemCreationMeta :post="post" :color="post.textColor || '#222'" />
 
               <!-- 作者签名 - 匿名不显示 -->
 
@@ -95,7 +97,7 @@
 
         <!-- 普通帖子和讨论帖子：使用index页面样式 -->
 
-        <view v-else class="post-item-wrapper normal-mode">
+        <view v-else class="post-item-wrapper normal-mode" :style="poemFontVars">
 
           <!-- 作者信息 -->
 
@@ -183,7 +185,13 @@
 
             <!-- 内容 -->
 
-            <view class="post-content" v-if="post.content" style="white-space: pre-wrap">{{ post.displayContent || post.content }}</view>
+            <view v-if="post.isDiscussion && post.sentenceGroups && post.sentenceGroups.length" class="discussion-preview-groups">
+              <view v-for="(group, index) in post.sentenceGroups" :key="index" class="discussion-preview-group">
+                <view v-if="group.sentences && group.sentences.length" class="discussion-preview-quote"><PoemRichText :text="group.sentences.join('\n')" :styles="group.sentenceTextStyles || []" :base-font-size="group.poemFontSize || post.poemFontSize" /></view>
+                <view v-if="group.comment"><PoemRichText :text="group.comment" :styles="group.commentTextStyles || []" :base-font-size="group.poemFontSize || post.poemFontSize" /></view>
+              </view>
+            </view>
+            <view class="post-content" v-else-if="post.content" style="white-space: pre-wrap"><PoemRichText :text="post.displayContent || post.content" :source-text="post.content" :styles="post.poemTextStyles || []" :base-font-size="post.poemFontSize" /></view>
 
 
 
@@ -294,6 +302,12 @@
         </view>
 
 
+
+        <view v-if="post.editData && post.editData.publishMode === 'poem' && post.editData.isOriginal" class="creation-input-section">
+          <view class="creation-input-wrapper">
+            <PoemCreationEditor :value="post" @change="onCreationChange" />
+          </view>
+        </view>
 
         <!-- 参加活动选择区域（恢复为原来的按钮式选择） -->
 
@@ -420,10 +434,16 @@ import { applyThemeMode, getThemeMode } from '@/utils/theme.js';
 
 import { clearPublishDraftStorage } from '@/utils/publishDraft.js';
 import { submitPublishedPoemToSociety } from '@/utils/societySubmission.js';
+import PoemCreationMeta from '@/components/poem/PoemCreationMeta.vue';
+import PoemCreationEditor from '@/components/add/PoemCreationEditor.vue';
+import { getCreationFields, getCreationLabel } from '@/utils/poemCreation.js';
+import { getPoemTypographyFields, getPoemFontVars } from '@/utils/poemTypography.js';
+import PoemRichText from '@/components/poem/PoemRichText.vue';
 
 
 
 export default {
+  components: { PoemRichText, PoemCreationMeta, PoemCreationEditor },
 
   data() {
 
@@ -454,6 +474,8 @@ export default {
   },
 
   computed: {
+    poemFontVars() { return getPoemFontVars(this.post, this.readFontVars); },
+    creationLabel() { return getCreationLabel(this.post || {}); },
 
     previewSeriesPoems() {
       return this.getPreviewSeriesBlocks().filter(block => block && (
@@ -777,6 +799,11 @@ export default {
       post.isSeries = typeof post.isSeries === 'boolean' ? post.isSeries : !!editData.isSeries;
 
       post.isPoem = typeof post.isPoem === 'boolean' ? post.isPoem : editData.publishMode === 'poem';
+      post.isOriginal = typeof post.isOriginal === 'boolean' ? post.isOriginal : !!editData.isOriginal;
+      post.isDiscussion = post.isDiscussion === true || editData.publishMode === 'discussion';
+      Object.assign(post, getCreationFields({ ...editData, ...post }));
+      post.sentenceGroups = post.sentenceGroups || editData.sentenceGroups || [];
+      Object.assign(post, getPoemTypographyFields({ ...editData, ...post }));
 
       post.activityTitle = post.activityTitle || post.activityTitleSnapshot || editData.activityTitle || '';
 
@@ -1005,6 +1032,22 @@ export default {
     },
 
 
+
+    onCreationChange(fields) {
+      if (!this.post) return;
+      const creationFields = { ...getCreationFields(this.post), ...fields };
+      this.post = {
+        ...this.post,
+        ...creationFields,
+        editData: { ...(this.post.editData || {}), ...creationFields }
+      };
+      const addVm = this.getAddPageVm();
+      if (addVm) {
+        if (typeof addVm.setData === 'function') addVm.setData(creationFields);
+        else Object.assign(addVm, creationFields);
+        if (typeof addVm.scheduleWorkingDraftSave === 'function') addVm.scheduleWorkingDraftSave();
+      }
+    },
 
     // 作者输入处理
 
@@ -1708,6 +1751,8 @@ export default {
         isPoem: normalizedIsPoem,
 
         isOriginal: normalizedIsOriginal,
+        ...getCreationFields(addData),
+        ...getPoemTypographyFields(addData),
 
         isDiscussion: normalizedIsDiscussion,
 
@@ -1807,7 +1852,7 @@ export default {
 
         publishData.content = publishData.seriesBlocks
 
-          .map(b => (b.content || b.subtitle || '').trim())
+          .map(b => b.content || b.subtitle || '')
 
           .filter(Boolean)
 
@@ -2205,7 +2250,7 @@ export default {
 
       const mergedSeriesContent = addData.isSeries
 
-        ? seriesBlocks.map(b => (b.content || b.subtitle || '').trim()).filter(Boolean).join('\n\n')
+        ? seriesBlocks.map(b => b.content || b.subtitle || '').filter(value => value.trim()).join('\n\n')
 
         : '';
 
@@ -2263,6 +2308,7 @@ export default {
         const payload = {
 
           title: addData.title || '组诗',
+          ...getPoemTypographyFields(addData),
 
           blocks: seriesBlocks.map((block, order) => ({
 
@@ -2375,6 +2421,8 @@ export default {
           isPoem: normalizedIsPoem,
 
           isOriginal: normalizedIsOriginal,
+          ...getCreationFields(addData),
+          ...getPoemTypographyFields(addData),
 
           isDiscussion: normalizedIsDiscussion,
 
@@ -2491,6 +2539,8 @@ export default {
         isOriginal: normalizedIsOriginal,
 
         isDiscussion: normalizedIsDiscussion,
+        ...getCreationFields(addData),
+        ...getPoemTypographyFields(addData),
 
         author: authorName,
 
@@ -2583,6 +2633,8 @@ export default {
       // 调用云函数提交数据
 
       return contentAudit({
+        ...getCreationFields(addData),
+        ...getPoemTypographyFields(addData),
 
         title: normalizedTitle,
 
@@ -3032,6 +3084,9 @@ export default {
 
 
 <style>
+.discussion-preview-group + .discussion-preview-group { margin-top: 28rpx; }
+.discussion-preview-quote { padding: 24rpx; border-radius: 16rpx; background: var(--app-input-bg, #e8e8e8); }
+.discussion-preview-quote + view { margin-top: 20rpx; }
 
 page {
 
@@ -3247,6 +3302,13 @@ page {
 
 .post-content-navigator { display: block; cursor: pointer; }
 
+.post-item--creation .user-signature {
+  position: static;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12rpx;
+}
+
 .post-item { padding: 40rpx 50rpx; position: relative; }
 
 .post-content { font-size: 32rpx; line-height: 1.6; margin: 30rpx 0; width: 100%; }
@@ -3395,6 +3457,20 @@ page {
 
   padding: 0 20rpx;
 
+}
+
+.creation-input-section {
+  margin-top: 40rpx;
+  padding: 0 20rpx;
+}
+
+.creation-input-wrapper {
+  width: 45%;
+  margin-left: auto;
+}
+
+.creation-input-section + .join-activity-section {
+  margin-top: 80rpx;
 }
 
 
