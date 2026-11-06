@@ -58,6 +58,52 @@ const noOverflow = async () =>
     ),
     "Page must not overflow horizontally",
   );
+const navigateTo = async (name) => {
+  if (await page.$(".sidebar-open")) await page.click(".sidebar-open");
+  await page.click(`.main-nav a[href="#/${name}"]`);
+};
+const footerAtPageEnd = async () => {
+  assert.ok(await page.evaluate(() => {
+    const footer = document.querySelector(".site-footer").getBoundingClientRect();
+    const content = document.querySelector(".main-content > :nth-last-child(2)").getBoundingClientRect();
+    return Math.abs(footer.bottom + scrollY - document.documentElement.scrollHeight) < 2 &&
+      footer.top >= content.bottom && footer.bottom + scrollY >= innerHeight;
+  }), "Footer must end at the page bottom without covering content");
+};
+const pinnedReaderNavigation = async () => {
+  await page.waitForFunction(() => {
+    const navigation = document.querySelector(".reader-navigation")?.getBoundingClientRect();
+    const body = document.querySelector(".reader-scroll")?.getBoundingClientRect();
+    return navigation && body && navigation.height > 0 &&
+      Math.abs(navigation.bottom - (innerHeight - 24)) < 2 &&
+      body.bottom <= navigation.top + 1;
+  });
+};
+const readerTypesetting = () => page.$eval(".reader-scroll", (body) => {
+  const title = body.querySelector("h2");
+  return {
+    width: body.clientWidth,
+    titleOffset: Math.round(title.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop),
+    paragraphs: [...body.querySelectorAll(".poem-text")].map((paragraph) => {
+      const style = getComputedStyle(paragraph);
+      const range = document.createRange();
+      range.selectNodeContents(paragraph);
+      const top = paragraph.getBoundingClientRect().top;
+      return {
+        text: paragraph.textContent,
+        font: style.fontFamily,
+        size: style.fontSize,
+        lineHeight: style.lineHeight,
+        spacing: style.letterSpacing,
+        whiteSpace: style.whiteSpace,
+        lines: [...range.getClientRects()].map((rect) => [
+          Math.round(rect.width * 100) / 100,
+          Math.round((rect.top - top) * 100) / 100,
+        ]),
+      };
+    }),
+  };
+});
 try {
   await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1 });
   await page.goto(base, { waitUntil: "networkidle0" });
@@ -81,7 +127,7 @@ try {
   });
   assert.equal(
     await page.$eval(".reader-toolbar", (el) => getComputedStyle(el).display),
-    "none",
+    "flex",
   );
   assert.ok(
     await page.$eval(
@@ -89,12 +135,66 @@ try {
       (el) => el.getBoundingClientRect().bottom <= 0,
     ),
   );
+  await pinnedReaderNavigation();
   await page.screenshot({ path: "artifacts/desktop-poems-clean.png" });
+  assert.equal(
+    await page.$eval(".sidebar", (el) => getComputedStyle(el).display),
+    "none",
+  );
+  const readingTitle = await page.$eval(".reader-scroll h2", (el) => el.textContent);
+  await page.waitForFunction(() => getComputedStyle(document.querySelector(".reader-scroll h2")).opacity === "1");
+  const initialTypesetting = await readerTypesetting();
+  await page.click(".sidebar-open");
+  assert.equal(
+    await page.$eval(".sidebar", (el) => getComputedStyle(el).display),
+    "flex",
+  );
+  assert.equal(await page.$eval(".reader-scroll h2", (el) => el.textContent), readingTitle);
+  assert.deepEqual(await readerTypesetting(), initialTypesetting);
+  await pinnedReaderNavigation();
+  await page.screenshot({ path: "artifacts/desktop-directory-open.png" });
+  await page.click(".sidebar-close");
+  assert.deepEqual(await readerTypesetting(), initialTypesetting);
+  assert.equal(await page.$eval(".sidebar-open", (el) => el === document.activeElement), true);
+  await noOverflow();
+  const originalText = await page.$eval(".reader-scroll .poem-text", (el) => {
+    const text = el.textContent;
+    el.textContent = "  沿着河岸慢慢走，风把今天吹成很长的一行。".repeat(5) + "\n\n  天色渐暗。\n保留这一行。";
+    return text;
+  });
+  const longLineTypesetting = await readerTypesetting();
+  await page.click(".sidebar-open");
+  assert.deepEqual(await readerTypesetting(), longLineTypesetting);
+  await page.click(".sidebar-close");
+  await page.evaluate(() => { window.scrollTo({ top: 0 }); });
+  await pinnedReaderNavigation();
+  assert.deepEqual(await readerTypesetting(), longLineTypesetting);
+  await page.$eval(".reader-scroll .poem-text", (el, text) => { el.textContent = text; }, originalText);
   await page.reload({ waitUntil: "networkidle0" });
+  await page.waitForSelector(".sidebar-open");
   await page.waitForFunction(() => {
     const stage = document.querySelector(".poetry-stage");
     return stage && Math.abs(stage.getBoundingClientRect().top) < 2;
   });
+  await page.setViewport({ width: 1440, height: 640, deviceScaleFactor: 1 });
+  await pinnedReaderNavigation();
+  assert.ok(await page.$eval(".reader-scroll", (el) => {
+    el.scrollTop = el.scrollHeight;
+    return el.scrollTop > 0;
+  }));
+  await pinnedReaderNavigation();
+  await page.screenshot({ path: "artifacts/desktop-reader-bottom.png" });
+  await page.click(".reader-navigation button:last-child");
+  await page.waitForFunction(() =>
+    document.querySelector(".reader-scroll h2")?.textContent === "雨停以后",
+  );
+  assert.equal(await page.$eval(".reader-scroll", (el) => el.scrollTop), 0);
+  await pinnedReaderNavigation();
+  await page.click(".reader-navigation button:first-child");
+  await page.waitForFunction(() =>
+    document.querySelector(".reader-scroll h2")?.textContent === "把日子写成诗",
+  );
+  await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1 });
   await page.click(".poem-grid .poem-card:nth-child(2)");
   await page.waitForFunction(
     () =>
@@ -115,6 +215,13 @@ try {
   );
   await page.click(".text-size");
   assert.ok(await page.$(".large-type"));
+  assert.equal(await page.$eval(".reader-scroll .poem-text", (el) => getComputedStyle(el).fontSize), "20px");
+  const largeTypesetting = await readerTypesetting();
+  await page.click(".sidebar-open");
+  assert.deepEqual(await readerTypesetting(), largeTypesetting);
+  await page.click(".sidebar-close");
+  assert.deepEqual(await readerTypesetting(), largeTypesetting);
+  await pinnedReaderNavigation();
   await screenshot("desktop-poems");
   await page.type(".search-form input", "月亮");
   await page.click(".search-form button");
@@ -131,7 +238,7 @@ try {
   );
   await clickText(".filter-tabs button", "转载");
   await page.waitForSelector(".empty-state");
-  await page.click('.main-nav a[href="#/mine"]');
+  await navigateTo("mine");
   await page.waitForSelector(".locked-state");
   await page.click(".locked-state .primary-button");
   await page.waitForFunction(() => document.querySelector("dialog").open);
@@ -166,7 +273,7 @@ try {
   await page.waitForFunction(() =>
     Math.abs(document.querySelector(".poetry-stage").getBoundingClientRect().top) < 2,
   );
-  await page.click('.main-nav a[href="#/me"]');
+  await navigateTo("me");
   await page.waitForSelector(".profile-card");
   await screenshot("desktop-profile");
   await page.waitForSelector(".library-portfolio .folder-card");
@@ -197,12 +304,14 @@ try {
       document.querySelector(".reader-scroll h2")?.textContent === "雨停以后",
   );
   assert.ok(page.url().includes("id=sample-2"));
-  await page.click('.main-nav a[href="#/me"]');
+  await navigateTo("me");
   await page.waitForSelector(".profile-card");
   await page.reload({ waitUntil: "networkidle0" });
   await page.waitForSelector(".profile-card");
   await noOverflow();
+  await page.click(".sidebar-close");
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
+  await page.waitForFunction(() => getComputedStyle(document.querySelector(".sidebar")).display === "block");
   await screenshot("mobile-profile");
   await page.waitForSelector(".library-portfolio .folder-card");
   await page.click(".library-portfolio .folder-card");
@@ -328,6 +437,39 @@ try {
   await page.setViewport({ width: 360, height: 780, deviceScaleFactor: 1 });
   await page.goto(`${base}/#/home`, { waitUntil: "networkidle0" });
   await noOverflow();
+  await page.setViewport({ width: 1440, height: 1400, deviceScaleFactor: 1 });
+  await page.goto(`${base}/#/about`, { waitUntil: "networkidle0" });
+  await footerAtPageEnd();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollHeight), 1400);
+  await page.screenshot({ path: "artifacts/desktop-about-footer.png" });
+  await page.setViewport({ width: 390, height: 1400, deviceScaleFactor: 1 });
+  await footerAtPageEnd();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollHeight), 1400);
+  await page.setViewport({ width: 390, height: 640, deviceScaleFactor: 1 });
+  await footerAtPageEnd();
+  assert.ok(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight));
+  await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1 });
+  let previousEntryId = "";
+  for (let attempt = 0; attempt < 4; attempt++) {
+    await page.click(".about-page .primary-button");
+    await page.waitForSelector(".reader-scroll h2");
+    const poemId = new URL(page.url()).hash.split("id=")[1];
+    assert.ok(poemId);
+    assert.notEqual(poemId, previousEntryId);
+    assert.equal(
+      await page.$eval(".poem-card.selected .card-title", (el) => el.textContent),
+      await page.$eval(".reader-scroll h2", (el) => el.textContent),
+    );
+    previousEntryId = poemId;
+    await page.evaluate(() => { location.hash = "/about"; });
+    await page.waitForSelector(".about-page .primary-button");
+  }
+  await navigateTo("home");
+  await page.waitForSelector(".home-cards .poem-card");
+  await footerAtPageEnd();
+  await page.click(".enter-button");
+  await page.waitForSelector(".reader-scroll h2");
+  assert.notEqual(new URL(page.url()).hash.split("id=")[1], previousEntryId);
   assert.deepEqual(errors, []);
   console.log(
     "PASS: clean initial reading, wheel-up/touch-down controls, desktop/mobile navigation, cards, search, filters, keyboard, font size, demo login, session restoration, calendar drilldown, logout, missing detail, no horizontal overflow or browser exceptions.",

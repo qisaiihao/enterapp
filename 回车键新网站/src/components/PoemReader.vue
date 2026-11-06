@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onMounted } from "vue";
+import { ref, watch, onMounted, nextTick, inject } from "vue";
 import { formatDate } from "../lib/poems";
 import { copyText } from "../lib/clipboard";
 import AuthorSignature from "./AuthorSignature.vue";
@@ -24,6 +24,57 @@ watch(large, (value) => {
   } catch {}
 });
 const body = ref(null);
+const fontReady = ref(false);
+inject("readingFontReady").then(async () => {
+  fontReady.value = true;
+  await nextTick();
+  resetReadingPosition();
+});
+function readingAnchor(scroller) {
+  const edge = scroller.getBoundingClientRect().top + 8;
+  for (const paragraph of body.value.querySelectorAll("h2, h3, p")) {
+    const node = paragraph.firstChild;
+    if (!node?.length) continue;
+    const range = document.createRange();
+    range.selectNodeContents(paragraph);
+    const bounds = range.getBoundingClientRect();
+    if (bounds.bottom <= edge) continue;
+    if (bounds.top >= edge || !paragraph.matches(".poem-text")) {
+      range.setStart(node, 0);
+      range.setEnd(node, 1);
+      return { range, top: range.getBoundingClientRect().top };
+    }
+    let low = 0, high = node.length - 1;
+    while (low < high) {
+      const middle = Math.floor((low + high) / 2);
+      range.setStart(node, middle);
+      range.setEnd(node, middle + 1);
+      if (range.getBoundingClientRect().bottom > edge) high = middle;
+      else low = middle + 1;
+    }
+    range.setStart(node, low);
+    range.setEnd(node, low + 1);
+    const lineHeight = parseFloat(getComputedStyle(paragraph).lineHeight);
+    return { range, paragraph, edge, phase: (range.getBoundingClientRect().bottom - edge) / lineHeight };
+  }
+  return null;
+}
+async function toggleTextSize() {
+  const scroller = window.matchMedia("(max-width: 800px)").matches
+    ? body.value.closest(".reader-column") : body.value;
+  const anchor = scroller.scrollTop > 0 ? readingAnchor(scroller) : null;
+  large.value = !large.value;
+  await nextTick();
+  if (anchor) {
+    if (anchor.paragraph) {
+      const lineHeight = parseFloat(getComputedStyle(anchor.paragraph).lineHeight);
+      scroller.scrollTop += anchor.range.getBoundingClientRect().bottom -
+        (anchor.edge + anchor.phase * lineHeight);
+    } else {
+      scroller.scrollTop += anchor.range.getBoundingClientRect().top - anchor.top;
+    }
+  }
+}
 function resetReadingPosition() {
   body.value?.scrollTo({ top: 0 });
   if (!window.matchMedia("(max-width: 800px)").matches) return;
@@ -60,7 +111,8 @@ async function copyLink() {
   <article
     v-if="poem"
     class="poem-reader"
-    :class="{ compact }"
+    :class="{ compact, 'font-loading': !fontReady }"
+    :aria-busy="!fontReady"
     aria-label="诗歌全文"
   >
     <header class="reader-toolbar">
@@ -72,7 +124,7 @@ async function copyLink() {
           class="text-size"
           :aria-pressed="large"
           aria-label="切换诗歌字号"
-          @click="large = !large"
+          @click="toggleTextSize"
         >
           A<span>A</span></button
         ><button
@@ -90,6 +142,7 @@ async function copyLink() {
         }}<template v-if="poem.series.length"> · 组诗</template></span
       ><time :datetime="poem.date">{{ formatDate(poem.date) }}</time>
     </div>
+    <p v-if="!fontReady" class="reader-font-status" role="status">正在打开诗页…</p>
     <div ref="body" class="reader-scroll" :class="{ 'large-type': large }">
       <h2 :key="poem.id">{{ poem.title }}</h2>
       <p class="reader-author">{{ poem.author }}</p>

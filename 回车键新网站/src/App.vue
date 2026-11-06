@@ -30,13 +30,49 @@ function readRoute() {
 }
 const route = ref(readRoute());
 const mode = ref(api.currentMode());
+let publicShelfRequest;
+const knownPoems = new Map();
+const detailRequests = new Map();
+function rememberPoems(items) {
+  for (const poem of items) knownPoems.set(poem.id, poem);
+}
+function clearReadingCache() {
+  publicShelfRequest = null;
+  knownPoems.clear();
+  detailRequests.clear();
+}
+function loadPublicShelf() {
+  if (!publicShelfRequest) {
+    const request = api.listPoems({ scope: "all", limit: 36 }).then((data) => {
+      if (publicShelfRequest === request) rememberPoems(data.poems);
+      return data;
+    }).catch((error) => {
+      if (publicShelfRequest === request) publicShelfRequest = null;
+      throw error;
+    });
+    publicShelfRequest = request;
+  }
+  return publicShelfRequest;
+}
+function loadPoemDetail(id) {
+  if (!detailRequests.has(id)) {
+    const request = api.poemDetail(id).then((poem) => {
+      if (detailRequests.get(id) === request) knownPoems.set(id, poem);
+      return poem;
+    }).finally(() => {
+      if (detailRequests.get(id) === request) detailRequests.delete(id);
+    });
+    detailRequests.set(id, request);
+  }
+  return detailRequests.get(id);
+}
 const footerHighlight = ref(null);
 let footerHighlightVersion = 0;
 async function loadFooterHighlight() {
   const version = ++footerHighlightVersion;
   footerHighlight.value = null;
   try {
-    const { poems: publicPoems } = await api.listPoems({ scope: "all", limit: 36 });
+    const { poems: publicPoems } = await loadPublicShelf();
     if (version === footerHighlightVersion) {
       footerHighlight.value = randomHighlight(publicPoems);
     }
@@ -75,6 +111,8 @@ const loginOpen = ref(false),
   loginBusy = ref(false),
   loginError = ref("");
 const toast = ref("");
+const openingPoem = ref(false);
+let lastEntryPoemId = "";
 let toastTimer,
   listVersion = 0,
   activityVersion = 0,
@@ -94,13 +132,44 @@ const locked = computed(() => privatePage.value && !user.value);
 const poetryPage = computed(
   () => ["poems", "mine"].includes(route.value.page) && !locked.value,
 );
-const poetryStage = ref(null);
-const readingExtras = ref(false);
-function updateReadingExtras() {
-  readingExtras.value = Boolean(
-    poetryStage.value && poetryStage.value.getBoundingClientRect().top > 24,
-  );
+const desktopLayout = window.matchMedia("(min-width: 801px)");
+const isDesktop = ref(desktopLayout.matches);
+function updateDesktopLayout(event) {
+  isDesktop.value = event.matches;
 }
+function readNavigationPreference() {
+  try {
+    const value = localStorage.getItem("poementer:collapsed-navigation");
+    return value === null ? null : value === "yes";
+  } catch {
+    return null;
+  }
+}
+const navigationPreference = ref(readNavigationPreference());
+const navigationCollapsed = computed(
+  () => isDesktop.value && (navigationPreference.value ?? poetryPage.value),
+);
+function toggleNavigation() {
+  navigationPreference.value = !navigationCollapsed.value;
+  try {
+    localStorage.setItem(
+      "poementer:collapsed-navigation",
+      navigationPreference.value ? "yes" : "no",
+    );
+  } catch {}
+  nextTick(() => {
+    document
+      .querySelector(navigationCollapsed.value ? ".sidebar-open" : ".sidebar-close")
+      ?.focus({ preventScroll: true });
+  });
+}
+const poetryStage = ref(null);
+const readerTop = ref(40);
+function updateReaderPosition() {
+  const stageTop = poetryStage.value?.getBoundingClientRect().top ?? 0;
+  readerTop.value = Math.max(40, stageTop + 40);
+}
+watch(navigationCollapsed, () => nextTick(updateReaderPosition));
 function enterPoetry() {
   if (!poetryPage.value || !poetryStage.value) return;
   // Keep the introduction and controls above the initial reading position.
@@ -108,7 +177,7 @@ function enterPoetry() {
     top: window.scrollY + poetryStage.value.getBoundingClientRect().top,
     behavior: "instant",
   });
-  updateReadingExtras();
+  updateReaderPosition();
 }
 const scope = computed(() => (route.value.page === "mine" ? "mine" : "all"));
 const today = ref(dayKey(new Date()));
@@ -158,6 +227,7 @@ function openLogin() {
 }
 function handleAuth(errorValue) {
   if (["AUTH_EXPIRED", "AUTH_REQUIRED"].includes(errorValue.code)) {
+    clearReadingCache();
     ++listVersion;
     ++detailVersion;
     ++activityVersion;
@@ -187,15 +257,22 @@ async function loadPoems(append = false) {
   }
   error.value = "";
   try {
-    const data = await api.listPoems({
-      scope: scope.value,
-      kind: kind.value,
-      query: query.value,
-      day: route.value.day,
-      skip: append ? poems.value.length : 0,
-      limit: 18,
-    });
+    const options = {
+      scope: scope.value, kind: kind.value, query: query.value,
+      day: route.value.day, skip: append ? poems.value.length : 0, limit: 18,
+    };
+    const publicShelf = options.scope === "all" && options.kind === "all" &&
+      !options.query && !options.day ? await loadPublicShelf() : null;
     if (version !== listVersion) return;
+    const data = publicShelf && (!append || options.skip < publicShelf.poems.length)
+      ? {
+          poems: publicShelf.poems.slice(options.skip, options.skip + options.limit),
+          total: publicShelf.total,
+          hasMore: publicShelf.hasMore || options.skip + options.limit < publicShelf.poems.length,
+        }
+      : await api.listPoems(options);
+    if (version !== listVersion) return;
+    rememberPoems(data.poems);
     const existing = append ? poems.value : [];
     poems.value = [
       ...existing,
@@ -220,14 +297,17 @@ async function loadDetail(id) {
   const version = ++detailVersion;
   detailError.value = "";
   if (!id) return;
-  const existing = poems.value.find((p) => p.id === id);
+  const existing = poems.value.find((p) => p.id === id) ||
+    (selected.value?.id === id ? selected.value : null) || knownPoems.get(id);
   if (existing) {
     selected.value = existing;
     return;
   }
   selected.value = null;
   try {
-    const poem = await api.poemDetail(id);
+    await loadPublicShelf().catch(() => null);
+    if (version !== detailVersion) return;
+    const poem = knownPoems.get(id) || await loadPoemDetail(id);
     if (version === detailVersion) selected.value = poem;
   } catch (e) {
     if (version === detailVersion) {
@@ -258,10 +338,39 @@ function choosePoem(poem) {
   if (document.activeElement?.closest(".poem-card"))
     readerFocusOrigin = document.activeElement;
   selected.value = poem;
+  rememberPoems([poem]);
   mobileReading.value = true;
   detailError.value = "";
   const page = route.value.page === "mine" ? "mine" : "poems";
   navigate(page, { id: poem.id, day: route.value.day });
+}
+async function readPoem() {
+  if (openingPoem.value) return;
+  openingPoem.value = true;
+  const entryRoute = route.value;
+  const request = loadPublicShelf();
+  try {
+    const data = await request;
+    if (publicShelfRequest !== request || route.value !== entryRoute) return;
+    const shelf = data.poems.slice(0, 18);
+    const unread = shelf.filter(
+      (poem) => poem.id !== lastEntryPoemId && poem.id !== selected.value?.id,
+    );
+    const alternatives = shelf.filter((poem) => poem.id !== lastEntryPoemId);
+    const choices = unread.length ? unread : alternatives.length ? alternatives : shelf;
+    const poem = choices[Math.floor(Math.random() * choices.length)];
+    if (poem) {
+      lastEntryPoemId = poem.id;
+      choosePoem(poem);
+    } else {
+      navigate("poems");
+    }
+  } catch (error) {
+    notify(error.message);
+    handleAuth(error);
+  } finally {
+    openingPoem.value = false;
+  }
 }
 function closeReader() {
   mobileReading.value = false;
@@ -345,6 +454,7 @@ async function signIn(credentials) {
   loginError.value = "";
   try {
     user.value = await api.login(credentials.poemId, credentials.password);
+    clearReadingCache();
     loginOpen.value = false;
     notify("欢迎回来");
     await Promise.all([loadPoems(), loadActivity()]);
@@ -356,6 +466,7 @@ async function signIn(credentials) {
 }
 function demoSignIn() {
   user.value = api.loginDemo();
+  clearReadingCache();
   loginOpen.value = false;
   notify("已进入示例账号");
   loadPoems();
@@ -379,6 +490,7 @@ async function signOut() {
   } catch {
     notify("本机已退出；云端会话将在到期后失效");
   }
+  clearReadingCache();
   navigate("home");
   if (route.value.page === "home") loadPoems();
 }
@@ -388,6 +500,7 @@ async function changeMode() {
   ++detailVersion;
   ++activityVersion;
   const version = ++accountVersion;
+  clearReadingCache();
   mode.value = mode.value === "demo" ? "cloud" : "demo";
   api.setMode(mode.value);
   user.value = null;
@@ -460,7 +573,7 @@ watch([() => route.value.page, () => route.value.day, poetryPage], () => nextTic
   flush: "post",
 });
 watch(
-  [mobileReading, selected],
+  [mobileReading, selected, isDesktop],
   async ([value]) => {
     const mobile = window.matchMedia("(max-width: 800px)").matches;
     document.body.classList.toggle("reading-open", value && mobile);
@@ -474,9 +587,11 @@ watch(
   { immediate: true },
 );
 onMounted(async () => {
+  desktopLayout.addEventListener("change", updateDesktopLayout);
   window.addEventListener("hashchange", handleHash);
   window.addEventListener("keydown", keydown);
-  window.addEventListener("scroll", updateReadingExtras, { passive: true });
+  window.addEventListener("scroll", updateReaderPosition, { passive: true });
+  window.addEventListener("resize", updateReaderPosition);
   nextTick(enterPoetry);
   const version = ++accountVersion;
   if (api.hasSession()) {
@@ -496,9 +611,11 @@ onMounted(async () => {
   if (route.value.id && !locked.value) loadDetail(route.value.id);
 });
 onBeforeUnmount(() => {
+  desktopLayout.removeEventListener("change", updateDesktopLayout);
   window.removeEventListener("hashchange", handleHash);
   window.removeEventListener("keydown", keydown);
-  window.removeEventListener("scroll", updateReadingExtras);
+  window.removeEventListener("scroll", updateReaderPosition);
+  window.removeEventListener("resize", updateReaderPosition);
   clearTimeout(toastTimer);
 });
 </script>
@@ -507,8 +624,34 @@ onBeforeUnmount(() => {
   <a class="skip-link" href="#main-content" @click.prevent="focusMain"
     >跳到正文</a
   >
-  <div class="site-shell">
-    <aside class="sidebar">
+  <div class="site-shell" :class="{ 'navigation-collapsed': navigationCollapsed }">
+    <button
+      v-if="navigationCollapsed"
+      class="sidebar-open"
+      aria-label="展开导航目录"
+      aria-controls="site-navigation"
+      :aria-expanded="false"
+      @click="toggleNavigation"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+        <path d="M12 5.5C9 3.5 5 3.5 2.5 4.5v15C5 18.5 9 18.5 12 20.5c3-2 7-2 9.5-1v-15C19 3.5 15 3.5 12 5.5Z" />
+        <path d="M12 5.5v15" />
+      </svg>
+      <span>目录</span>
+    </button>
+    <aside id="site-navigation" v-show="!navigationCollapsed" class="sidebar">
+      <button
+        class="sidebar-close"
+        aria-label="收起导航目录"
+        title="收起目录，专心读诗"
+        aria-controls="site-navigation"
+        :aria-expanded="true"
+        @click="toggleNavigation"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+          <path d="m14 6-6 6 6 6" />
+        </svg>
+      </button>
       <a class="brand" href="#/home" aria-label="回车键首页"
         ><span class="brand-mark" aria-hidden="true">↵</span
         ><span>POEMENTER<small>回 车 键</small></span></a
@@ -562,7 +705,6 @@ onBeforeUnmount(() => {
         `page-${route.page}`,
         {
           'mobile-reading': mobileReading,
-          'quiet-reading': poetryPage && !readingExtras,
         },
       ]"
     >
@@ -577,9 +719,14 @@ onBeforeUnmount(() => {
             </h1>
             <div class="hero-bottom">
               <p>再一次，按下回车键。</p>
-              <a href="#/poems" class="enter-button" aria-label="开始读诗"
+              <button
+                class="enter-button"
+                aria-label="开始读诗"
+                :disabled="openingPoem"
+                :aria-busy="openingPoem"
+                @click="readPoem"
                 ><img src="/images/enter_key.png" alt="" aria-hidden="true"
-              /></a
+              /></button
               >
             </div>
           </div>
@@ -654,8 +801,12 @@ onBeforeUnmount(() => {
             </p>
             <p>这里留给阅读。创作、编辑和交流，请回到回车键 App。</p>
           </div>
-          <a href="#/poems" class="primary-button"
-            >现在，读一首诗 <span>↵</span></a
+          <button
+            class="primary-button"
+            :disabled="openingPoem"
+            :aria-busy="openingPoem"
+            @click="readPoem"
+            >{{ openingPoem ? "正在打开诗集…" : "现在，读一首诗" }} <span>↵</span></button
           ><span class="about-mark" aria-hidden="true">↵</span>
         </section></template
       >
@@ -752,8 +903,12 @@ onBeforeUnmount(() => {
               偶遇一首 <span>↗</span>
             </button>
           </div>
-          <div ref="poetryStage" class="poetry-stage">
-            <div v-if="loading" class="shelf-loading" role="status">
+          <div
+            ref="poetryStage"
+            class="poetry-stage"
+            :style="{ '--reader-top': `${readerTop}px` }"
+          >
+            <div v-if="loading && !selected" class="shelf-loading" role="status">
               <div class="skeleton-reader">
                 <span></span><span></span><span></span><span></span>
               </div>
@@ -763,7 +918,7 @@ onBeforeUnmount(() => {
               <span class="sr-only">正在加载诗歌</span>
             </div>
             <div
-              v-else-if="error && !poems.length"
+              v-else-if="error && !poems.length && !selected"
               class="empty-state"
               role="alert"
             >

@@ -107,9 +107,11 @@ a {
   top: 10px;
 }
 .site-shell {
+  display: flex;
+  flex-direction: column;
   max-width: 1920px;
   margin: auto;
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 .sidebar {
   width: 244px;
@@ -122,6 +124,41 @@ a {
   border-right: 1px solid var(--line);
   z-index: 15;
   background: var(--paper);
+}
+.sidebar-open,
+.sidebar-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  min-height: 36px;
+}
+.sidebar-open {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 16;
+  gap: 9px;
+  padding: 8px;
+  background: var(--paper);
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+.sidebar-close {
+  position: absolute;
+  top: 7px;
+  right: 12px;
+  width: 36px;
+}
+.sidebar-open svg,
+.sidebar-close svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.sidebar-open:hover,
+.sidebar-close:hover {
+  color: var(--green);
 }
 .brand {
   display: flex;
@@ -262,10 +299,18 @@ a {
   color: #929589;
 }
 .main-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   margin-left: 244px;
   padding: 0 32px;
-  min-height: 100vh;
   outline: none;
+}
+.main-content > * {
+  flex-shrink: 0;
+}
+.main-content > :nth-last-child(2) {
+  margin-bottom: 52px;
 }
 .eyebrow {
   font-family: Arial, sans-serif;
@@ -536,7 +581,7 @@ a {
   grid-template-columns: minmax(0, 1fr) minmax(0, 3fr) auto;
   align-items: center;
   gap: 16px;
-  margin-top: 52px;
+  margin-top: auto;
   border-top: 1px solid var(--line);
   padding: 23px 0 27px;
   color: #969b8e;
@@ -704,8 +749,19 @@ a {
   min-width: 0;
 }
 .poem-reader {
+  position: relative;
   border-top: 1px solid #6e7863;
   border-bottom: 1px solid var(--line);
+}
+.font-loading .reader-scroll {
+  visibility: hidden;
+}
+.reader-font-status {
+  position: absolute;
+  top: 150px;
+  left: 0;
+  font-size: 12px;
+  color: var(--muted);
 }
 .reader-toolbar {
   display: flex;
@@ -756,7 +812,6 @@ a {
   font-weight: 400;
   letter-spacing: 1.3px;
   margin: 25px 0 11px;
-  animation: reveal 0.3s ease-out;
 }
 .reader-author {
   font-size: 11px;
@@ -832,22 +887,51 @@ a {
   font-size: 9px;
 }
 @media (min-width: 801px) {
-  .quiet-reading .poem-reader {
-    border-color: transparent;
+  .poetry-workspace {
+    --reading-width: clamp(260px, 34vw, 620px);
+    grid-template-columns: var(--reading-width) minmax(0, 1fr);
   }
-  .quiet-reading .reader-toolbar,
-  .quiet-reading .reader-meta,
-  .quiet-reading .reader-footer,
-  .quiet-reading .reader-navigation,
-  .quiet-reading .poem-tags {
-    display: none;
+  .poetry-workspace .reader-column {
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - var(--reader-top, 40px) - 24px);
   }
-  .quiet-reading .reader-scroll {
-    max-height: calc(100dvh - 80px);
-    padding-top: 0;
+  .poetry-workspace .poem-reader {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    border-bottom: 0;
   }
-  .quiet-reading .reader-scroll h2 {
+  .poetry-workspace .reader-toolbar,
+  .poetry-workspace .reader-meta,
+  .poetry-workspace .reader-footer {
+    flex-shrink: 0;
+  }
+  .poetry-workspace .reader-scroll {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    scrollbar-gutter: stable;
+  }
+  .poetry-workspace .poem-text {
+    font-size: 18px;
+    line-height: 2.2;
+  }
+  .poetry-workspace .large-type .poem-text {
+    font-size: 20px;
+  }
+  .poetry-workspace .reader-navigation {
+    flex-shrink: 0;
+    min-height: 48px;
     margin-top: 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+    background: var(--paper);
+  }
+  .poetry-workspace .reader-navigation .text-link {
+    min-height: 36px;
+    font-size: 11px;
   }
 }
 .poem-grid {
@@ -1496,16 +1580,6 @@ a {
     opacity: 0.4;
   }
 }
-@keyframes reveal {
-  from {
-    opacity: 0.4;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 @media (min-width: 1920px) {
   .sidebar {
     left: calc((100vw - 1920px) / 2);
@@ -1590,7 +1664,6 @@ a {
     font-size: 11px;
   }
   .poetry-workspace {
-    grid-template-columns: minmax(230px, 1fr) minmax(0, 1fr);
     gap: 25px;
   }
   .poem-grid {
@@ -1615,7 +1688,22 @@ a {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+@media (min-width: 801px) {
+  .site-shell.navigation-collapsed {
+    max-width: 1560px;
+  }
+  .navigation-collapsed .main-content {
+    margin-left: 0;
+    padding-inline: clamp(88px, 6vw, 100px);
+  }
+  .navigation-collapsed .poetry-workspace {
+    gap: clamp(40px, 5vw, 80px);
+  }
+}
 @media (max-width: 800px) {
+  .sidebar-close {
+    display: none;
+  }
   .site-version-link {
     position: absolute;
     top: 24px;
@@ -1776,9 +1864,11 @@ a {
   }
   .site-footer {
     grid-template-columns: minmax(0, 1fr) auto;
-    margin-top: 36px;
     padding: 22px 0 28px;
     align-items: flex-start;
+  }
+  .main-content > :nth-last-child(2) {
+    margin-bottom: 36px;
   }
   .site-footer .footer-highlight {
     grid-column: 1 / -1;
