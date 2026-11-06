@@ -32,7 +32,7 @@ export function invalidateUserInfo(userId) {
   nsProfile.delete(`${userId}`);
 }
 
-// 用户原创帖子分页缓存：TTL 2min + SWR 1min
+// 用户主页帖子分页缓存：TTL 2min + SWR 1min
 const USER_POSTS_TTL = 2 * 60 * 1000;
 const USER_POSTS_SWR = 60 * 1000;
 
@@ -42,7 +42,7 @@ function postsNs(userId) {
 
 export async function getUserPosts({ userId, page = 0, pageSize = 10, context }) {
   const ns = postsNs(userId);
-  const key = `page:${page}:size:${pageSize}:original:1`;
+  const key = `page:${page}:size:${pageSize}:visibility:1`;
   return ns.getOrFetch(
     key,
     async () => {
@@ -61,7 +61,7 @@ export async function getUserPosts({ userId, page = 0, pageSize = 10, context })
 export function invalidateUserPosts(userId, page, pageSize = 10) {
   const ns = postsNs(userId);
   if (typeof page === 'number') {
-    ns.delete(`page:${page}:size:${pageSize}:original:1`);
+    ns.delete(`page:${page}:size:${pageSize}:visibility:1`);
     return;
   }
   ns.clear();

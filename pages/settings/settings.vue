@@ -1,5 +1,5 @@
 <template>
-  <view class="settings-page" :data-app-theme="appThemeMode" :style="[appThemeVars, readFontVars]">
+  <view class="settings-page" :data-app-theme="appThemeMode" :style="[appThemeVars, readFontVars, pageInlineStyle]">
     <view class="settings-header">
       <view class="settings-back-btn" @tap="goBack">
         <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
@@ -25,6 +25,21 @@
             </view>
           </view>
           <text class="settings-row-desc">调整诗歌正文、详情正文等阅读文字的大小，行高会同步适配。</text>
+        </view>
+      </view>
+
+      <view class="settings-section" v-if="isLoggedIn">
+        <view class="settings-section-title">个人主页</view>
+        <view class="settings-card">
+          <view class="settings-row">
+            <text class="settings-row-label">显示非原创诗歌</text>
+            <switch
+              class="settings-switch"
+              :checked="showNonOriginalPoems"
+              :disabled="savingProfileVisibility"
+              @change="onShowNonOriginalPoemsChange"
+            />
+          </view>
         </view>
       </view>
 
@@ -117,10 +132,12 @@ import AppDialog from '@/components/overlay/AppDialog.vue';
 // #ifdef APP-PLUS
 import { checkAndUpdate, getAppVersionInfo } from '@/utils/appUpdate.js';
 // #endif
-import { cancelAccount, logout } from '@/api-cache/profile-actions.js';
+import { cancelAccount, logout, updateProfileVisibility } from '@/api-cache/profile-actions.js';
+import { invalidateMyInfo, invalidateMyPosts } from '@/api-cache/my.js';
+import { getUserInfo, invalidateUserInfo, invalidateUserPosts } from '@/api-cache/user-profile.js';
 import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
 import { clearCachedAdminFlag } from '@/utils/admin.js';
-import { clearUserSession, getAppState, patchAppState } from '@/utils/app-state.js';
+import { clearUserSession, getAppState, getOpenid, patchAppState } from '@/utils/app-state.js';
 import { getSystemInfoCompat } from '@/utils/system-info.js';
 import { removeFile as removeCollageFile } from '@/utils/collage/storage.js';
 import {
@@ -142,6 +159,8 @@ export default {
       showCancelPassword: false,
       showCancelFinal: false,
       cancelling: false,
+      showNonOriginalPoems: false,
+      savingProfileVisibility: false,
       activeFontSize: getReadFontSizeLevel(),
       fontSizeOptions: READ_FONT_LEVEL_NAMES.map(value => ({
         value,
@@ -157,8 +176,73 @@ export default {
   },
   onShow() {
     this.isLoggedIn = !!getAppState().isLoggedIn;
+    if (this.isLoggedIn) {
+      this.loadProfileVisibility();
+    } else {
+      this.showNonOriginalPoems = false;
+    }
   },
   methods: {
+    async loadProfileVisibility() {
+      const revision = this._profileVisibilityRevision || 0;
+      const state = getAppState();
+      const cachedUser = state.userInfo || {};
+      this.showNonOriginalPoems = false;
+      if (typeof cachedUser.showNonOriginalPoems === 'boolean') {
+        this.showNonOriginalPoems = cachedUser.showNonOriginalPoems;
+      }
+      const userId = getOpenid() || state.openid;
+      if (!userId) return;
+      try {
+        const userInfo = await getUserInfo(userId, this);
+        if (revision === (this._profileVisibilityRevision || 0) && userInfo && typeof userInfo.showNonOriginalPoems === 'boolean') {
+          this.showNonOriginalPoems = userInfo.showNonOriginalPoems;
+        }
+      } catch (error) {
+        console.warn('[settings] 读取主页显示设置失败:', error);
+      }
+    },
+
+    onShowNonOriginalPoemsChange(e) {
+      const next = e && e.detail ? e.detail.value === true : false;
+      this.saveProfileVisibility(next);
+    },
+
+    async saveProfileVisibility(next) {
+      if (this.savingProfileVisibility) return;
+      this._profileVisibilityRevision = (this._profileVisibilityRevision || 0) + 1;
+      const previous = this.showNonOriginalPoems;
+      this.showNonOriginalPoems = next;
+      this.savingProfileVisibility = true;
+      try {
+        await updateProfileVisibility(next, this);
+        invalidateMyInfo();
+        invalidateMyPosts();
+        const userId = getOpenid();
+        if (userId) {
+          invalidateUserInfo(userId);
+          invalidateUserPosts(userId);
+        }
+        const state = getAppState();
+        const nextUser = { ...(state.userInfo || {}), showNonOriginalPoems: next };
+        patchAppState({ userInfo: nextUser });
+        try { uni.setStorageSync('userInfo', nextUser); } catch (_) {}
+        try {
+          const app = getApp();
+          if (app && app.globalData) {
+            app.globalData.userInfo = { ...(app.globalData.userInfo || {}), showNonOriginalPoems: next };
+          }
+        } catch (_) {}
+        try { uni.setStorageSync('shouldRefreshProfile', true); } catch (_) {}
+        uni.showToast({ title: next ? '已显示非原创诗歌' : '已隐藏非原创诗歌', icon: 'none' });
+      } catch (error) {
+        this.showNonOriginalPoems = previous;
+        uni.showToast({ title: '保存失败，请重试', icon: 'none' });
+      } finally {
+        this.savingProfileVisibility = false;
+      }
+    },
+
     async checkUpdate() {
       // #ifdef APP-PLUS
       if (this.checkingUpdate) return;
@@ -445,6 +529,11 @@ export default {
 .settings-row-value {
   font-size: 28rpx;
   color: var(--app-muted-text, #999999);
+}
+
+.settings-switch {
+  transform: scale(0.85);
+  transform-origin: right center;
 }
 
 .settings-row-label.danger {

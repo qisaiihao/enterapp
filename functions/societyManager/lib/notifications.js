@@ -31,4 +31,8 @@ async function readNotification(db, user, event) {
   if (!row.read) await db.collection('society_notifications').doc(noticeId).update({ data: { read: true } });
   return { notification: { ...row, read: true } };
 }
-module.exports = { send, notifications, unreadCount, readNotification };
+async function clearNotifications(db, user) {
+  const result = await db.collection('society_notifications').where({ userId: user._openid }).remove();
+  return { deleted: result?.stats?.removed || 0 };
+}
+module.exports = { send, notifications, unreadCount, readNotification, clearNotifications };

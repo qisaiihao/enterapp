@@ -33,7 +33,8 @@
                     class="profile-main-content"
                     :class="{
                         'profile-main-content--with-background': isFullBackground,
-                        'profile-main-content--header-background': isHeaderBackground
+                        'profile-main-content--header-background': isHeaderBackground,
+                        'profile-main-content--search': isProfileSearchActive
                     }"
                 >
                     <view
@@ -50,24 +51,41 @@
                             :growth-stats="growthStats"
                             :is-self="isViewingSelf"
                             :show-growth-stats="shouldShowGrowthStats"
+                            :search-active="isProfileSearchActive"
+                            :search-focused="profileSearchFocused"
+                            :search-keyword="profileSearchKeyword"
                             @avatar-error="onAvatarError"
                             @edit-profile="navigateToEditProfile"
                             @toggle-sidebar="toggleSidebar"
                             @navigate-fans="navigateToFans"
                             @avatar-click="handleAvatarPreview"
+                            @open-search="openProfileSearch"
+                            @close-search="closeProfileSearch"
+                            @search-input="updateProfileSearch"
+                            @search-confirm="confirmProfileSearch"
                         />
                         </view>
                     </view>
-                    <view v-if="isHeaderBackground" class="profile-body-shell-cap"></view>
+                    <view v-if="isHeaderBackground && !isProfileSearchActive" class="profile-body-shell-cap"></view>
                     <view
                         class="profile-body-shell"
-                        :class="{ 'profile-body-shell--header-background': isHeaderBackground }"
+                        :class="{ 'profile-body-shell--header-background': isHeaderBackground, 'profile-body-shell--search': isProfileSearchActive }"
                     >
+                    <view v-if="isProfileSearchActive" class="profile-search-results">
+                        <view v-if="profileSearchKeyword.trim() && profileSearchResults.length" class="profile-search-result-list">
+                            <view v-for="item in profileSearchResults" :key="item.key" class="profile-search-result" @tap="openProfileSearchResult(item)">
+                                <text class="profile-search-result-type">{{ item.type }}</text>
+                                <text class="profile-search-result-title">{{ item.title }}</text>
+                                <text v-if="item.excerpt" class="profile-search-result-excerpt">{{ item.excerpt }}</text>
+                            </view>
+                        </view>
+                        <view v-else-if="profileSearchKeyword.trim()" class="profile-search-empty">当前已加载的笔记和收藏中没有找到相关内容</view>
+                    </view>
+                    <template v-else>
                     <!-- Tab Navigation -->
                     <view class="tab-navigation">
                         <view :class="'tab-item ' + (currentTab === 'posts' ? 'active' : '')" data-tab="posts" @tap="switchTab">
-                            <image class="tab-icon tab-icon--writing" src="/static/images/writing.png" mode="aspectFit" alt="原创帖子" title="原创帖子"></image>
-                            <text v-if="currentTab === 'posts'" class="posts-original-label">原创</text>
+                            <image class="tab-icon tab-icon--writing" src="/static/images/writing.png" mode="aspectFit" alt="帖子" title="帖子"></image>
                         </view>
                         <view :class="'tab-item ' + (currentTab === 'portfolio' ? 'active' : '')" data-tab="portfolio" @tap="switchTab">
                             <image class="tab-icon" src="/static/images/newicons/library.png" mode="aspectFit" alt="作品集" title="作品集"></image>
@@ -112,7 +130,7 @@
                             <view class="profile-bottom-spacer"></view>
                         </block>
                         <view v-else class="empty-tip">
-                            <text>{{ isLoading || isAtomicRefreshing ? '加载中…' : postsLoadError ? '加载失败，请下拉重试' : '你还没有发布过原创帖子哦～' }}</text>
+                            <text>{{ isLoading || isAtomicRefreshing ? '加载中…' : postsLoadError ? '加载失败，请下拉重试' : '你还没有发布过帖子哦～' }}</text>
                         </view>
                     </view>
 
@@ -176,6 +194,7 @@
                             @export="onTimelineExport"
                         />
                     </view>
+                    </template>
                     </view>
                 </view>
             </view>
@@ -205,7 +224,7 @@
             @removed="handleFavoriteRemoved" />
 
         <!-- #ifndef MP-WEIXIN -->
-        <app-tab-bar ref="customTabBar" :style="tabBarStyle" />
+        <app-tab-bar v-if="!isProfileSearchActive" ref="customTabBar" :style="tabBarStyle" />
         <!-- #endif -->
 
         <!-- 底部操作菜单 -->
@@ -622,6 +641,9 @@ export default {
             },
 
             isSidebarOpen: false,
+            isProfileSearchActive: false,
+            profileSearchFocused: false,
+            profileSearchKeyword: '',
             myPosts: [],
             postsRequestToken: 0,
             postsLoadError: false,
@@ -717,6 +739,27 @@ export default {
         };
     },
     computed: {
+        profileSearchResults() {
+            const keyword = this.profileSearchKeyword.trim().toLocaleLowerCase();
+            if (!keyword) return [];
+            const results = [];
+            const seen = new Set();
+            const add = (post, type) => {
+                if (!post) return;
+                const id = post.postId || post._id;
+                const title = String(post.title || post.poemTitle || '无标题');
+                const excerpt = String(post.content || post.text || '').replace(/\s+/g, ' ').slice(0, 100);
+                const tags = Array.isArray(post.tags) ? post.tags.join(' ') : String(post.tags || '');
+                if (!`${title} ${excerpt} ${tags}`.toLocaleLowerCase().includes(keyword)) return;
+                const key = `${type}-${id || results.length}`;
+                if (seen.has(key)) return;
+                seen.add(key);
+                results.push({ key, id, type, title, excerpt });
+            };
+            (this.myPosts || []).forEach(post => add(post, '笔记'));
+            (this.favoriteList || []).forEach(post => add(post, '收藏'));
+            return results;
+        },
         profileTabIndicatorStyle() {
             const index = this.currentTab === 'portfolio' ? 1 : (this.currentTab === 'favorites' ? 2 : 0);
             return { left: `${(index + 0.5) * 100 / 3}%` };
@@ -872,6 +915,7 @@ export default {
         }).finally(stopRefresh);
     },
     onReachBottom: function () {
+        if (this.isProfileSearchActive) return;
         if (this.isAtomicRefreshing) {
             return;
         }
@@ -887,7 +931,14 @@ export default {
             this.loadFavorites();
         }
     },
-    onHide() { this.isSidebarOpen = false; this._profileFavoritesVisible = false; },
+    onHide() { this.isSidebarOpen = false; this._profileFavoritesVisible = false; this.closeProfileSearch(); },
+    onBackPress() {
+        if (this.isProfileSearchActive) {
+            this.closeProfileSearch();
+            return true;
+        }
+        return false;
+    },
     onUnload: function () {
         this._profileUnloaded = true;
         this._followerRequestToken = (this._followerRequestToken || 0) + 1;
@@ -904,6 +955,44 @@ export default {
         this.finishBackgroundActionSheet({ cancelled: true, silent: true });
     },
     methods: {
+        openProfileSearch() {
+            if (this.isProfileSearchActive) return;
+            this.isProfileSearchActive = true;
+            this.profileSearchFocused = false;
+            // #ifdef MP-WEIXIN
+            uni.hideTabBar({ animation: true });
+            // #endif
+            uni.pageScrollTo({ scrollTop: 0, duration: 300 });
+            if (!this.favoriteList.length && !this.favoriteLoading) this.loadFavorites();
+            if (this._profileSearchFocusTimer) clearTimeout(this._profileSearchFocusTimer);
+            this._profileSearchFocusTimer = setTimeout(() => {
+                if (this.isProfileSearchActive) this.profileSearchFocused = true;
+                this._profileSearchFocusTimer = null;
+            }, 320);
+        },
+        closeProfileSearch() {
+            if (!this.isProfileSearchActive) return;
+            if (this._profileSearchFocusTimer) clearTimeout(this._profileSearchFocusTimer);
+            this._profileSearchFocusTimer = null;
+            this.profileSearchFocused = false;
+            this.isProfileSearchActive = false;
+            this.profileSearchKeyword = '';
+            uni.hideKeyboard && uni.hideKeyboard();
+            // #ifdef MP-WEIXIN
+            uni.showTabBar({ animation: true });
+            // #endif
+        },
+        updateProfileSearch(value) {
+            this.profileSearchKeyword = String(value || '');
+        },
+        confirmProfileSearch() {
+            this.profileSearchFocused = false;
+            uni.hideKeyboard && uni.hideKeyboard();
+        },
+        openProfileSearchResult(item) {
+            if (!item || !item.id) return;
+            uni.navigateTo({ url: `/pages/post-detail/post-detail?id=${encodeURIComponent(item.id)}` });
+        },
         toggleTheme() {
             this.themeMode = toggleThemeMode();
         },
@@ -1580,7 +1669,7 @@ export default {
             const sessionId = session && (session._openid || session.openid);
             // Session 与显式账号配对；不接受带有其他账号 ID 的遗留资料。
             const currentSession = session && (sessionId ? sessionId === openid : state.openid === openid) ? session : null;
-            const cached = getCachedMyProfile({ pageSize: PAGE_SIZE, originalOnly: true });
+            const cached = getCachedMyProfile({ pageSize: PAGE_SIZE, originalOnly: false });
             const user = cached.userInfo || currentSession;
             if (!user) return false;
             const nextUser = this.normalizeProfileUserInfo({ ...user, _openid: openid });
@@ -1696,7 +1785,7 @@ export default {
             return await getMyPosts({
                 page: 0,
                 pageSize: PAGE_SIZE,
-                originalOnly: true,
+                originalOnly: false,
                 context: this,
                 forceRefresh
             });
@@ -2048,7 +2137,7 @@ export default {
                 const posts = await getMyPosts({
                     page,
                     pageSize: PAGE_SIZE,
-                    originalOnly: true,
+                    originalOnly: false,
                     context: this,
                     forceRefresh
                 });
@@ -3105,6 +3194,10 @@ export default {
     background-color: var(--app-page-bg, #ffffff);
 }
 
+.profile-main-content--search {
+    min-height: 100vh;
+}
+
 [data-app-theme="dark"] .profile-main-content--with-background {
     --app-post-wrapper-divider: 1rpx solid rgba(255,255,255,0.10);
 }
@@ -3131,6 +3224,21 @@ export default {
 .profile-hero-section--with-background {
     min-height: 0;
     background-color: #0f0f0f;
+}
+
+.profile-main-content--search .profile-hero-section {
+    transition: min-height 300ms ease;
+}
+
+.profile-main-content--search .profile-hero-section .profile-card-center {
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+    padding: 12rpx 0 0;
+}
+
+.profile-main-content--search .profile-tap-area {
+    width: 100%;
 }
 
 .profile-hero-bg-image,
@@ -3245,6 +3353,46 @@ export default {
     padding-top: 0;
     overflow: visible;
     z-index: 2;
+}
+
+.profile-body-shell--search {
+    min-height: calc(100vh - 220rpx);
+    background: var(--app-page-bg, #ffffff);
+}
+
+.profile-search-results {
+    padding: 12rpx 36rpx 220rpx;
+}
+
+.profile-search-result {
+    display: flex;
+    flex-direction: column;
+    gap: 10rpx;
+    padding: 26rpx 4rpx;
+    border-bottom: 1rpx solid var(--app-border-color, rgba(0, 0, 0, 0.08));
+}
+
+.profile-search-result-type {
+    color: var(--profile-meta-color, #888);
+    font-size: 22rpx;
+}
+
+.profile-search-result-title {
+    color: var(--profile-name-color, #222);
+    font-size: 30rpx;
+    font-weight: 600;
+}
+
+.profile-search-result-excerpt,
+.profile-search-empty {
+    color: var(--profile-meta-color, #888);
+    font-size: 25rpx;
+    line-height: 1.5;
+}
+
+.profile-search-empty {
+    padding: 60rpx 0;
+    text-align: center;
 }
 
 .profile-body-shell--header-background .tab-item {
@@ -3426,15 +3574,6 @@ export default {
     width: 76rpx;
     height: 76rpx;
     transform: translateY(0);
-}
-
-.posts-original-label {
-    position: absolute;
-    right: 16rpx;
-    bottom: 22rpx;
-    color: var(--profile-tab-indicator-color, #333);
-    font-size: 20rpx;
-    line-height: 28rpx;
 }
 
 .tab-item.active .tab-icon {

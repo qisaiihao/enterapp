@@ -4,7 +4,7 @@
     <view class="home-heading">
       <view><text class="home-title">街坊</text><text class="home-motto">以诗友芳邻，无问西与东</text></view>
       <view class="heading-actions">
-        <button class="text-button icon-button notice-button" aria-label="诗社通知" @tap="open('notifications')"><image src="/static/images/newicons/notification.png" mode="aspectFit" /></button>
+        <button class="text-button icon-button notice-button" aria-label="诗社通知" @tap="open('notifications')"><image src="/static/images/newicons/notification.png" mode="aspectFit" /><view v-if="unreadCount > 0" class="notice-dot" /></button>
         <button class="settle-entry" @tap="open('apply')">入驻 ›››</button>
       </view>
     </view>
@@ -58,7 +58,7 @@ import { societyRequest } from '@/api-cache/societies.js';
 import { openSocietyPage, showSocietyError } from '@/utils/society.js';
 export default {
   components: { CommunityShell, CommunityState, SocietyCard, OpportunityCard, SocietyWorks },
-  data: () => ({ societies: [], events: [], calls: [], pastCalls: [], currentCallTotal: 0, pastCallTotal: 0, works: [], callFilter: 'current', callFilters: [{ value: 'current', label: '正在进行' }, { value: 'ending', label: '即将截止' }, { value: 'past', label: '往期' }], loading: true, error: '', searching: false, searchFocus: false, query: '', searchQuery: '', searchResults: [], searchLoading: false, searchLoadingMore: false, searchError: '', searchHasMore: false, searchVersion: 0, searchTimer: null }),
+  data: () => ({ societies: [], events: [], calls: [], pastCalls: [], currentCallTotal: 0, pastCallTotal: 0, works: [], unreadCount: 0, unreadVersion: 0, callFilter: 'current', callFilters: [{ value: 'current', label: '正在进行' }, { value: 'ending', label: '即将截止' }, { value: 'past', label: '往期' }], loading: true, error: '', searching: false, searchFocus: false, query: '', searchQuery: '', searchResults: [], searchLoading: false, searchLoadingMore: false, searchError: '', searchHasMore: false, searchVersion: 0, searchTimer: null }),
   computed: {
     visibleCalls() {
       if (this.callFilter === 'past') return this.pastCalls.slice(0, 6);
@@ -69,12 +69,20 @@ export default {
     },
     hasMoreCalls() { return this.callFilter === 'past' ? this.pastCallTotal > 6 : this.currentCallTotal > (this.callFilter === 'ending' ? 3 : 6); }
   },
-  onShow() { if (this.searching && this.searchQuery) this.loadSearch(false); else if (!this.searching) this.load(); },
-  onHide() { this.searchFocus = false; },
+  onShow() { this.refreshUnread(); if (this.searching && this.searchQuery) this.loadSearch(false); else if (!this.searching) this.load(); },
+  onHide() { this.searchFocus = false; this.unreadVersion++; },
   onReachBottom() { if (this.searching && this.searchHasMore && !this.searchLoading && !this.searchLoadingMore) this.loadSearch(true); },
   onPullDownRefresh() { Promise.resolve(this.searching ? this.runSearch() : this.load()).finally(() => uni.stopPullDownRefresh()); },
   methods: {
     open: openSocietyPage,
+    async refreshUnread() {
+      const version = ++this.unreadVersion;
+      this.unreadCount = 0;
+      try {
+        const result = await societyRequest('unreadNotifications', {}, this);
+        if (version === this.unreadVersion) this.unreadCount = Math.max(0, Number(result.count) || 0);
+      } catch (_) { if (version === this.unreadVersion) this.unreadCount = 0; }
+    },
     selectSociety(item) { this.open('society', { id: item._id }); },
     async followSociety(item) { try { await societyRequest('follow', { societyId: item._id, following: true }, this); item.following = true; } catch (error) { if (error.code !== 'AUTH_REQUIRED') showSocietyError(error); } },
     selectEvent(item) { this.open('opportunity', { id: item._id, kind: 'event' }); },
@@ -129,8 +137,9 @@ export default {
 @import '@/styles/society.css';
 .home-heading { display: flex; align-items: stretch; justify-content: space-between; gap: 24rpx; margin: 8rpx 0 34rpx; }
 .heading-actions { display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; gap: 12rpx; flex-shrink: 0; }
-.notice-button { margin: -4rpx -8rpx 0 0; }
+.notice-button { position: relative; margin: -4rpx -8rpx 0 0; }
 .notice-button image { width: 60rpx; height: 60rpx; }
+.notice-dot { position: absolute; top: 3rpx; right: 1rpx; width: 16rpx; height: 16rpx; border-radius: 50%; background: var(--app-danger-strong-color, #c46b5b); box-shadow: 0 0 0 3rpx var(--app-page-bg, #fff); }
 .home-title { display: block; font-size: 68rpx; font-weight: 600; line-height: 1.45; margin: 0 0 4rpx; }
 .home-motto { font-size: 26rpx; color: var(--app-muted-text, #938680); }
 .settle-entry { color: var(--app-muted-text, #938680); background: transparent; padding: 0 0 6rpx; flex-shrink: 0; }

@@ -49,25 +49,37 @@ async function hydrate(result) {
 // Personal data is deliberately not persisted in the shared list cache.
 export async function societyRequest(action, payload = {}, context) {
   const actor = getCurrentUserId();
-  let response;
-  try {
-    response = await cloudCall('societyManager', { ...payload, action },
-      { context, pageTag: `societies:${action}`, requireAuth: false, timeoutMs: action === 'saveContent' ? 310000 : undefined, silent: true });
-  } catch (cause) {
-    // Keep the transport failure distinguishable from a service-side rejection.
-    // Never surface SDK messages, which may include request details.
-    const code = /^[A-Z][A-Z0-9_]{1,47}$/.test(cause?.code || '') ? cause.code : 'CLOUD_CALL_FAILED';
-    const failure = new Error(`诗社服务调用失败（${code}）`);
-    failure.code = code;
-    throw failure;
-  }
-  if (actor !== getCurrentUserId()) throw new Error('账号已切换，请刷新页面');
-  try { const result = await hydrate(unwrapResult(response, '诗社服务暂时不可用，请稍后重试')); if (actor !== getCurrentUserId()) throw new Error('账号已切换，请刷新页面'); return result; }
-  catch (error) {
-    error.code = error.result?.code || error.code;
-    if (error.code === 'AUTH_REQUIRED') promptLogin().catch(() => {});
-    if (error.code === 'SERVICE_ERROR') error.message = `诗社服务处理失败（${error.code}）`;
-    throw error;
+  // reviewJoin is idempotent for the same request revision and decision. A lost
+  // response or transient service failure can therefore be retried once safely.
+  const attempts = action === 'reviewJoin' ? 2 : 1;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    let response;
+    try {
+      response = await cloudCall('societyManager', { ...payload, action },
+        { context, pageTag: `societies:${action}`, requireAuth: false, timeoutMs: action === 'saveContent' ? 310000 : undefined, silent: true });
+    } catch (cause) {
+      // Never surface SDK messages, which may include request details.
+      const code = /^[A-Z][A-Z0-9_]{1,47}$/.test(cause?.code || '') ? cause.code : 'CLOUD_CALL_FAILED';
+      const failure = new Error(`诗社服务调用失败（${code}）`);
+      failure.code = code;
+      if (actor !== getCurrentUserId()) throw new Error('账号已切换，请刷新页面');
+      if (attempt < attempts && !['NO_OPENID', 'TCB_AUTH_FAILED'].includes(code)) continue;
+      throw failure;
+    }
+    if (actor !== getCurrentUserId()) throw new Error('账号已切换，请刷新页面');
+    try {
+      const result = unwrapResult(response, '诗社服务暂时不可用，请稍后重试');
+      const hydrated = await hydrate(result);
+      if (actor !== getCurrentUserId()) throw new Error('账号已切换，请刷新页面');
+      return hydrated;
+    } catch (error) {
+      error.code = error.result?.code || error.code;
+      if (error.result) console.warn(`[societies:${action}] service rejected request: ${error.code || 'UNKNOWN'}`);
+      if (attempt < attempts && error.code === 'SERVICE_ERROR') continue;
+      if (error.code === 'AUTH_REQUIRED') promptLogin().catch(() => {});
+      if (error.code === 'SERVICE_ERROR') error.message = `诗社服务处理失败（${error.code}）`;
+      throw error;
+    }
   }
 }
 

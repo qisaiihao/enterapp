@@ -96,6 +96,7 @@ exports.main = async (event, context) => {
           appBackgroundMode: 1,
           poemId: 1,
           showGrowthStats: 1,
+          showNonOriginalPoems: 1,
           growthCounts: 1
         })
         .limit(1)
@@ -105,11 +106,27 @@ exports.main = async (event, context) => {
       profileData = { list: profileData.data };
     } else {
       // 完整模式：获取用户信息和帖子
-      // 原创和可见性过滤必须在分页之前，保证每页展示完整。
+      // 用户的非原创诗歌设置和可见性过滤必须在分页之前，保证每页展示完整。
       const postMatch = {
-        $expr: { $eq: ['$_openid', '$$user_openid'] },
-        isOriginal: true,
-        isActivityPost: { $ne: true }
+        isActivityPost: { $ne: true },
+        $expr: {
+          $and: [
+            { $eq: ['$_openid', '$$user_openid'] },
+            {
+              $or: [
+                { $eq: ['$$show_non_original_poems', true] },
+                { $ne: ['$isOriginal', false] },
+                {
+                  $and: [
+                    { $ne: ['$isPoem', true] },
+                    { $ne: ['$publishMode', 'poem'] },
+                    { $ne: ['$isSeries', true] }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       };
       if (!isOwner) {
         postMatch.isHidden = { $ne: true };
@@ -121,7 +138,10 @@ exports.main = async (event, context) => {
         .limit(1)
         .lookup({
           from: 'posts',
-          let: { user_openid: '$_openid' },
+          let: {
+            user_openid: '$_openid',
+            show_non_original_poems: '$showNonOriginalPoems'
+          },
           pipeline: [
             { $match: postMatch },
             { $sort: { createTime: -1 } },
@@ -144,6 +164,7 @@ exports.main = async (event, context) => {
           appBackgroundMode: 1,
           poemId: 1,
           showGrowthStats: 1,
+          showNonOriginalPoems: 1,
           growthCounts: 1,
           // 不返回隐私信息（生日、年龄等）
           posts: 1
@@ -157,6 +178,7 @@ exports.main = async (event, context) => {
 
     const userInfo = profileData.list[0];
     userInfo.showGrowthStats = userInfo.showGrowthStats === true;
+    userInfo.showNonOriginalPoems = userInfo.showNonOriginalPoems === true;
     userInfo.avatarUrl = await ensureUserDefaultAvatar({ db, openid: userId, user: userInfo });
     let posts = onlyProfile ? [] : (userInfo.posts || []);
     
@@ -380,6 +402,7 @@ exports.main = async (event, context) => {
         appBackgroundMode: userInfo.appBackgroundMode || '',
         poemId: userInfo.poemId || '',
         showGrowthStats: userInfo.showGrowthStats === true,
+        showNonOriginalPoems: userInfo.showNonOriginalPoems === true,
         growthCounts: userInfo.growthCounts || { seed: 0, leaf: 0, flower: 0, peach: 0 }
       },
       posts: posts

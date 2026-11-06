@@ -26,7 +26,7 @@ async function main() {
     uni: { getStorageSync: () => null, setStorageSync() {}, removeStorageSync() {} },
     getCurrentUserId: () => actor,
     requireLogin: async () => { loginPrompts++; return true; },
-    cloudCall: async (name, payload) => { calls.push({ name, payload }); if (transportFailure) throw transportFailure; return respond(); },
+    cloudCall: async (name, payload) => { calls.push({ name, payload }); if (transportFailure) { const failure = transportFailure; transportFailure = null; throw failure; } return respond(); },
     unwrapResult(response) { if (!response.result.success) throw Object.assign(new Error(response.result.message), { result: response.result }); return response.result; },
     fileUrlCache: { getTempUrls: async () => ({}) }, hydrateTempUrls: async () => {}
   }, ['societyRequest']);
@@ -49,6 +49,32 @@ async function main() {
   await Promise.all([api.societyRequest('myApplication').catch(() => {}), api.societyRequest('mine').catch(() => {})]);
   assert.equal(loginPrompts, 2, 'parallel failures share one login prompt');
 
+  let reviews = 0;
+  respond = async () => ++reviews === 1
+    ? { result: { success: false, code: 'SERVICE_ERROR', message: 'temporary failure' } }
+    : { result: { success: true } };
+  await api.societyRequest('reviewJoin', { requestId: 'request-a', revision: 1, decision: 'approved' });
+  assert.equal(reviews, 2, 'a transient review failure is retried once');
+
+  reviews = 0;
+  respond = async () => ++reviews === 1
+    ? { result: { success: false, code: 'SERVICE_ERROR' } }
+    : { result: { success: true, alreadyReviewed: true } };
+  assert.equal((await api.societyRequest('reviewJoin', { requestId: 'request-a', revision: 1, decision: 'approved' })).alreadyReviewed, true,
+    'a retry accepts the idempotent result when the first review may have committed');
+  assert.equal(reviews, 2);
+
+  transportFailure = Object.assign(new Error('response lost after commit'), { code: 'CLOUD_CALL_FAILED' });
+  const originalCloudCall = calls.length;
+  respond = async () => ({ result: { success: true, alreadyReviewed: true } });
+  assert.equal((await api.societyRequest('reviewJoin', { requestId: 'request-a', revision: 1, decision: 'approved' })).alreadyReviewed, true);
+  assert.equal(calls.length - originalCloudCall, 2, 'an uncertain transport result is retried only once');
+
+  reviews = 0;
+  respond = async () => { reviews++; return { result: { success: false, code: 'FORBIDDEN', message: 'not allowed' } }; };
+  await assert.rejects(api.societyRequest('reviewJoin', { requestId: 'request-a', revision: 1, decision: 'approved' }), error => error.code === 'FORBIDDEN');
+  assert.equal(reviews, 1, 'authorization failures are not retried');
+
   transportFailure = Object.assign(new Error('SDK details must remain private'), { code: 'TCB_AUTH_FAILED' });
   await assert.rejects(api.societyRequest('saveContent'), error =>
     error.code === 'TCB_AUTH_FAILED' && /TCB_AUTH_FAILED/.test(error.message) && !/SDK details/.test(error.message));
@@ -56,6 +82,6 @@ async function main() {
   respond = async () => ({ result: { success: false, code: 'SERVICE_ERROR', message: '诗社服务暂时不可用，请稍后重试' } });
   await assert.rejects(api.societyRequest('saveContent'), error =>
     error.code === 'SERVICE_ERROR' && /SERVICE_ERROR/.test(error.message));
-  console.log('societies client: PASS — login-only requests, login prompts, account isolation and stale responses');
+  console.log('societies client: PASS — login-only requests, login prompts, account isolation, stale responses and idempotent review retry');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

@@ -247,10 +247,10 @@ exports.main = async (event, context) => {
       }
     }
 
-    // 组诗字段兜底：至少返回前三段
+    // 组诗字段兜底：返回全部段落，诗歌卡片需要完整翻页
     const normalizedPosts = posts.map((post, idx) => {
       const seriesBlocksRaw = Array.isArray(post.seriesBlocks) ? post.seriesBlocks : [];
-      const seriesBlocks = seriesBlocksRaw.slice(0, 3).map((b, i) => ({
+      const seriesBlocks = seriesBlocksRaw.map((b, i) => ({
         id: b.id || `series-${i}`,
         subtitle: b.subtitle || b.subTitle || '',
         content: b.content || '',

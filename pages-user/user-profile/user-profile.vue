@@ -113,7 +113,7 @@
             >
             <view class="tab-navigation">
                 <view :class="'tab-item ' + (currentTab === 'posts' ? 'active' : '')" data-tab="posts" @tap="switchTab">
-                    <image class="tab-icon tab-icon--writing" src="/static/images/writing.png" mode="aspectFit" alt="原创帖子" title="原创帖子"></image>
+                    <image class="tab-icon tab-icon--writing" src="/static/images/writing.png" mode="aspectFit" alt="帖子" title="帖子"></image>
                 </view>
                 <view :class="'tab-item ' + (currentTab === 'portfolio' ? 'active' : '')" data-tab="portfolio" @tap="switchTab">
                     <image class="tab-icon" src="/static/images/newicons/library.png" mode="aspectFit" alt="作品集" title="作品集"></image>
@@ -158,7 +158,7 @@
                     <skeleton pageType="user-posts" />
                 </view>
                 <!-- 真正的空状态 -->
-                <view v-else class="empty-tip"><text>TA还没有发布过原创帖子哦～</text></view>
+                <view v-else class="empty-tip"><text>TA还没有发布过帖子哦～</text></view>
             </view>
 
             <!-- 他人作品集 -->

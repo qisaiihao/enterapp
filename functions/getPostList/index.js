@@ -562,9 +562,9 @@ exports.main = async (event, context) => {
       const commentCount = post.commentCount || 0;
       const isVoted = voterMap.has(post._id);
 
-      // 组诗字段兜底：确保列表返回至少前三段
+      // 组诗字段兜底：返回全部段落，诗歌卡片需要完整翻页
       const seriesBlocksRaw = Array.isArray(post.seriesBlocks) ? post.seriesBlocks : [];
-      const seriesBlocks = seriesBlocksRaw.slice(0, 3).map((b, idx) => ({
+      const seriesBlocks = seriesBlocksRaw.map((b, idx) => ({
         id: b.id || `series-${idx}`,
         subtitle: b.subtitle || b.subTitle || '',
         content: b.content || '',

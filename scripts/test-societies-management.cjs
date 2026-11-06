@@ -25,12 +25,22 @@ async function main() {
   assert.equal((await app.call({ action: 'readNotification', id: notice.notifications[0]._id }, 'other')).code, 'NOT_FOUND');
   await ok(app.call({ action: 'readNotification', id: notice.notifications[0]._id }, 'alice'));
   assert.equal((await ok(app.call({ action: 'unreadNotifications' }, 'alice'))).count, 0);
+  app.seed('society_notifications', [
+    ...Array.from({ length: 25 }, (_, index) => ({ _id: `alice-${index}`, userId: 'alice', category: index % 2 ? 'membership' : 'activity', read: index % 2 === 0 })),
+    { _id: 'bob-unread', userId: 'bob', read: false }
+  ]);
+  assert.equal((await app.call({ action: 'clearNotifications' })).code, 'AUTH_REQUIRED');
+  assert.equal((await app.call({ action: 'clearNotifications', openid: 'alice' }, 'bob')).code, 'AUTH_REQUIRED');
+  assert.equal((await ok(app.call({ action: 'clearNotifications' }, 'alice'))).deleted, 25, 'clear includes every category and pages beyond the first 20');
+  assert.equal((await ok(app.call({ action: 'unreadNotifications' }, 'alice'))).count, 0);
+  assert.equal((await ok(app.call({ action: 'unreadNotifications' }, 'bob'))).count, 1);
+  assert.deepEqual(app.tables.society_notifications.map(row => row._id), ['bob-unread'], 'clearing only removes the current account notices');
   const form = { name: '新诗社', region: '上海', motto: '一起写诗', description: '大家一起读诗写诗，记录校园生活。', avatarUrl, recruitment: 'school' };
   assert.equal((await app.call({ action: 'updateSociety', societyId, form }, 'other')).code, 'FORBIDDEN');
   await ok(app.call({ action: 'updateSociety', societyId, form }, 'bob'));
   assert.equal(app.tables.societies[0].name, '新诗社');
   assert.equal(app.tables.societies[0].recruitment, 'school');
   assert.equal(app.tables.society_names.length, 1);
-  console.log('societies management: PASS — roles, transfer, exit, pagination, notification isolation and profile changes');
+  console.log('societies management: PASS — roles, transfer, exit, pagination, notification clearing/isolation and profile changes');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });
