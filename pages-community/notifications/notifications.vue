@@ -9,10 +9,10 @@
   <app-overlay-host />
 </template>
 <script>
-import CommunityShell from '@/components/society/CommunityShell.vue';
-import CommunityState from '@/components/society/CommunityState.vue';
+import CommunityShell from '@/pages-community/components/society/CommunityShell.vue';
+import CommunityState from '@/pages-community/components/society/CommunityState.vue';
 import { societyRequest } from '@/api-cache/societies.js';
-import { openSocietyPage, openSocietyLogin, societyDate, showSocietyError } from '@/utils/society.js';
+import { openSocietyPage, openSocietyLogin, societyDate, showSocietyError } from '@/pages-community/utils/society.js';
 const categories = [{ value: 'all', label: '全部' }, { value: 'application', label: '入驻' }, { value: 'membership', label: '成员' }, { value: 'activity', label: '活动' }, { value: 'submission', label: '投稿' }, { value: 'invitation', label: '合办' }];
 export default {
   components: { CommunityShell, CommunityState },

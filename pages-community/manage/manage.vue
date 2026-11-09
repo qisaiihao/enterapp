@@ -39,17 +39,17 @@
   <app-overlay-host />
 </template>
 <script>
-import OpportunityCard from '@/components/society/OpportunityCard.vue';
-import CommunityShell from '@/components/society/CommunityShell.vue';
-import CommunityState from '@/components/society/CommunityState.vue';
-import CommunityTabs from '@/components/society/CommunityTabs.vue';
-import SocietyEditor from '@/components/society/SocietyEditor.vue';
-import SubmissionReview from '@/components/society/SubmissionReview.vue';
+import OpportunityCard from '@/pages-community/components/society/OpportunityCard.vue';
+import CommunityShell from '@/pages-community/components/society/CommunityShell.vue';
+import CommunityState from '@/pages-community/components/society/CommunityState.vue';
+import CommunityTabs from '@/pages-community/components/society/CommunityTabs.vue';
+import SocietyEditor from '@/pages-community/components/society/SocietyEditor.vue';
+import SubmissionReview from '@/pages-community/components/society/SubmissionReview.vue';
 import { societyRequest } from '@/api-cache/societies.js';
 import { societyFileUrls } from '@/api-cache/societies.js';
 import { getCurrentUserId } from '@/utils/auth.js';
 import { uploadFile } from '@/utils/uploader.js';
-import { MANAGE_TABS, ROLE_LABELS, RECRUITMENT_LABELS, RECRUITMENT_OPTIONS, SOCIETY_AVATAR, openSocietyPage, openSocietyLogin, decodeSocietyParam, societyDate, showSocietyError } from '@/utils/society.js';
+import { MANAGE_TABS, ROLE_LABELS, RECRUITMENT_LABELS, RECRUITMENT_OPTIONS, SOCIETY_AVATAR, openSocietyPage, openSocietyLogin, decodeSocietyParam, societyDate, showSocietyError } from '@/pages-community/utils/society.js';
 export default {
   components: { OpportunityCard, CommunityShell, CommunityState, CommunityTabs, SocietyEditor, SubmissionReview },
   data: () => ({ id: '', society: null, actor: '', managerRole: '', members: [], membersMore: false, requests: [], requestsMore: false, records: [], stats: {}, notes: {}, tab: 'news', tabs: MANAGE_TABS, roles: ROLE_LABELS, recruitmentOptions: RECRUITMENT_OPTIONS, fallback: SOCIETY_AVATAR, editProfile: false, profileForm: {}, profileAvatar: '', uploadPrefix: '', uploading: false, profileFields: [{ key: 'name', label: '诗社名称', max: 40 }, { key: 'region', label: '地区', max: 40 }, { key: 'motto', label: '口号', max: 60 }],

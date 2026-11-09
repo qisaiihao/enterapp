@@ -12,7 +12,7 @@
   </view>
 </template>
 <script>
-import { SOCIETY_AVATAR, ROLE_LABELS } from '@/utils/society.js';
+import { SOCIETY_AVATAR, ROLE_LABELS } from '@/pages-community/utils/society.js';
 export default { props: { society: { type: Object, required: true }, compact: Boolean, followable: Boolean, followed: Boolean }, emits: ['select', 'follow'], data: () => ({ fallback: SOCIETY_AVATAR, roles: ROLE_LABELS }) };
 </script>
 <style scoped>

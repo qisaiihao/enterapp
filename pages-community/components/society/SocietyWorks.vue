@@ -32,8 +32,8 @@
 import PoemCard from '@/components/poem/PoemCard.vue';
 import PoemStack from '@/components/poem/PoemStack.vue';
 import PostItem from '@/components/PostItem.vue';
-import SocietyStackFront from '@/components/society/SocietyStackFront.vue';
-import { openSocietyPage, societyDate } from '@/utils/society.js';
+import SocietyStackFront from '@/pages-community/components/society/SocietyStackFront.vue';
+import { openSocietyPage, societyDate } from '@/pages-community/utils/society.js';
 import { navigateToPostDetail } from '@/utils/navigation.js';
 import { resolvePostAuthorAvatar } from '@/utils/defaultAvatar.js';
 import { getReadableTextColor, getThemedCardBackgroundColor } from '@/utils/uiHelpers.js';

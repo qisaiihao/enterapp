@@ -17,12 +17,12 @@
   <app-overlay-host />
 </template>
 <script>
-import CommunityShell from '@/components/society/CommunityShell.vue';
-import CommunityState from '@/components/society/CommunityState.vue';
+import CommunityShell from '@/pages-community/components/society/CommunityShell.vue';
+import CommunityState from '@/pages-community/components/society/CommunityState.vue';
 import { societyRequest, societyFileUrls } from '@/api-cache/societies.js';
 import { getCurrentUserId } from '@/utils/auth.js';
 import { uploadFile } from '@/utils/uploader.js';
-import { openSocietyPage, openSocietyLogin, APPLICATION_LABELS, RECRUITMENT_LABELS, RECRUITMENT_OPTIONS, showSocietyError } from '@/utils/society.js';
+import { openSocietyPage, openSocietyLogin, APPLICATION_LABELS, RECRUITMENT_LABELS, RECRUITMENT_OPTIONS, showSocietyError } from '@/pages-community/utils/society.js';
 const emptyForm = () => ({ region: '', school: '', name: '', contactName: '', phone: '', foundedAt: '', motto: '', description: '', proofFiles: [], avatarUrl: '', recruitment: 'open', agreed: false });
 export default {
   components: { CommunityShell, CommunityState },

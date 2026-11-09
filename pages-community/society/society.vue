@@ -23,14 +23,14 @@
   <app-overlay-host />
 </template>
 <script>
-import WorkPicker from '@/components/society/WorkPicker.vue';
-import CommunityShell from '@/components/society/CommunityShell.vue';
-import CommunityTabs from '@/components/society/CommunityTabs.vue';
-import CommunityState from '@/components/society/CommunityState.vue';
-import OpportunityCard from '@/components/society/OpportunityCard.vue';
-import SocietyWorks from '@/components/society/SocietyWorks.vue';
+import WorkPicker from '@/pages-community/components/society/WorkPicker.vue';
+import CommunityShell from '@/pages-community/components/society/CommunityShell.vue';
+import CommunityTabs from '@/pages-community/components/society/CommunityTabs.vue';
+import CommunityState from '@/pages-community/components/society/CommunityState.vue';
+import OpportunityCard from '@/pages-community/components/society/OpportunityCard.vue';
+import SocietyWorks from '@/pages-community/components/society/SocietyWorks.vue';
 import { societyRequest } from '@/api-cache/societies.js';
-import { openSocietyPage, SOCIETY_AVATAR, SOCIETY_TABS, ROLE_LABELS, RECRUITMENT_LABELS, decodeSocietyParam, societyDate, showSocietyError } from '@/utils/society.js';
+import { openSocietyPage, SOCIETY_AVATAR, SOCIETY_TABS, ROLE_LABELS, RECRUITMENT_LABELS, decodeSocietyParam, societyDate, showSocietyError } from '@/pages-community/utils/society.js';
 export default {
   components: { WorkPicker, CommunityShell, CommunityTabs, CommunityState, OpportunityCard, SocietyWorks },
   data: () => ({ id: '', society: null, relationship: {}, viewerId: '', members: [], membersMore: false, news: [], works: [], worksCursor: '', worksMore: false, worksLoading: false, worksVersion: 0, events: [], calls: [], tab: 'news', tabs: SOCIETY_TABS, roles: ROLE_LABELS, fallback: SOCIETY_AVATAR, loading: true, error: '', busy: false, choosing: false, showJoin: false, joinReason: '' }),

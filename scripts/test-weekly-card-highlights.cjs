@@ -38,7 +38,7 @@ getAuthorFeaturedCountMap = async () => ({});
 `, server);
 const { normalizeSnapshot, hydrateSnapshotCardData, buildDetailFromIssue, buildDetailFromTopic } = server.exports.review;
 
-const componentSource = fs.readFileSync(path.join(root, 'components/weekly/WeeklyFeatureDetailView.vue'), 'utf8');
+const componentSource = fs.readFileSync(path.join(root, 'pages-content/components/weekly/WeeklyFeatureDetailView.vue'), 'utf8');
 let componentScript = componentSource.match(/<script>([\s\S]*?)<\/script>/)[1];
 const imports = parse(componentScript, { sourceType: 'module' }).program.body.filter(node => node.type === 'ImportDeclaration');
 const componentContext = { module: { exports: {} } };

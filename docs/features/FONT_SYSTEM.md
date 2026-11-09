@@ -27,7 +27,7 @@ App 本地汇文明朝修复、独立模块拆分和自动检查接入后，用�
 | `App.vue` | 非微信小程序端的中文字体名 CSS 声明 |
 | `components/FontSelectorModal.vue` | 字体选择、加载状态与预览事件 |
 | `pages/post-detail/post-detail.vue` | 卡片加载字体、绘制、降级与重绘调度 |
-| `components/weekly/WeeklyShareCardModal.vue` | 周刊卡片加载与绘制调度 |
+| `pages-content/components/weekly/WeeklyShareCardModal.vue` | 周刊卡片加载与绘制调度 |
 | `utils/shareCanvas.js`、`utils/timelineShareCanvas.js` | 使用运行时名称测量、排版和绘制 |
 
 ## 平台差异

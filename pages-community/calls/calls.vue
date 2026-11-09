@@ -24,12 +24,12 @@
   <app-overlay-host />
 </template>
 <script>
-import CommunityShell from '@/components/society/CommunityShell.vue';
-import CommunityState from '@/components/society/CommunityState.vue';
-import OpportunityCard from '@/components/society/OpportunityCard.vue';
+import CommunityShell from '@/pages-community/components/society/CommunityShell.vue';
+import CommunityState from '@/pages-community/components/society/CommunityState.vue';
+import OpportunityCard from '@/pages-community/components/society/OpportunityCard.vue';
 import AppMotion from '@/components/overlay/AppMotion.vue';
 import { societyRequest } from '@/api-cache/societies.js';
-import { openSocietyPage, decodeSocietyParam } from '@/utils/society.js';
+import { openSocietyPage, decodeSocietyParam } from '@/pages-community/utils/society.js';
 const CALL_FILTERS = [{ value: 'current', label: '正在进行' }, { value: 'ending', label: '即将截止' }, { value: 'past', label: '往期' }];
 export default {
   components: { CommunityShell, CommunityState, OpportunityCard, AppMotion },

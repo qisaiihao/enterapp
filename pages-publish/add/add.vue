@@ -53,7 +53,7 @@
                                             <image
                                                 class="discussion-action-image discussion-action-image--up"
                                                 :class="{ 'discussion-action-image--muted': idx === 0 }"
-                                                :src="idx === 0 ? '/static/images/up.png' : '/static/images/up_black.png'"
+                                                :src="idx === 0 ? '/pages-publish/static/images/up.png' : '/pages-publish/static/images/up_black.png'"
                                                 mode="aspectFit"
                                             />
                                         </view>
@@ -61,7 +61,7 @@
                                             <image
                                                 class="discussion-action-image discussion-action-image--down"
                                                 :class="{ 'discussion-action-image--muted': idx === blocks.length - 1 }"
-                                                src="/static/images/down.png"
+                                                src="/pages-publish/static/images/down.png"
                                                 mode="aspectFit"
                                             />
                                         </view>
@@ -77,7 +77,7 @@
                                             <view class="icon-btn icon-btn--discussion" @tap.stop="toggleDiscussionInsertMenu(idx)">
                                                 <image
                                                     class="discussion-action-image discussion-action-image--add"
-                                                    src="/static/images/add_zushi.png"
+                                                    src="/pages-publish/static/images/add_zushi.png"
                                                     mode="aspectFit"
                                                 />
                                             </view>
@@ -127,7 +127,7 @@
                                             <image
                                                 class="series-action-image series-action-image--up"
                                                 :class="{ 'series-action-image--muted': idx === 0 }"
-                                                :src="idx === 0 ? '/static/images/up.png' : '/static/images/up_black.png'"
+                                                :src="idx === 0 ? '/pages-publish/static/images/up.png' : '/pages-publish/static/images/up_black.png'"
                                                 mode="aspectFit"
                                             />
                                         </view>
@@ -135,7 +135,7 @@
                                             <image
                                                 class="series-action-image series-action-image--down"
                                                 :class="{ 'series-action-image--muted': idx === seriesBlocks.length - 1 }"
-                                                src="/static/images/down.png"
+                                                src="/pages-publish/static/images/down.png"
                                                 mode="aspectFit"
                                             />
                                         </view>
@@ -151,7 +151,7 @@
                                             <image
                                                 class="series-action-image series-action-image--add"
                                                 :class="{ 'series-action-image--muted': seriesBlocks.length >= maxSeriesBlocks }"
-                                                src="/static/images/add_zushi.png"
+                                                src="/pages-publish/static/images/add_zushi.png"
                                                 mode="aspectFit"
                                             />
                                         </view>
@@ -214,7 +214,7 @@
 
         <view class="compose-actions compose-actions--editor">
             <view v-if="!isSeriesComposeLayout" class="back-btn" @tap.stop="goBack">
-                <image class="back-icon" src="/static/images/share.svg" mode="aspectFit"></image>
+                <image class="back-icon" src="/pages-publish/static/images/share.svg" mode="aspectFit"></image>
             </view>
             <view class="floating-action-btn" @tap.stop="goToPreview">
                 <view class="preview-btn">

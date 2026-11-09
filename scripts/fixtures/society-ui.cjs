@@ -1,5 +1,5 @@
 // Used only by the isolated H5 layout test. Never imported by the application.
-const avatar = '/static/images/society-raven.png';
+const avatar = '/pages-community/static/images/society-raven.png';
 const society = { _id: 'society-a', name: '回车键诗社', school: '回车键大学', region: '上海', foundedAt: '2001-02-01',
   motto: '以诗友芳邻，无问西与东', description: '未名湖畔的诗歌共同体，民谣与诗的跨界现场是其传统。\n\n每周一起读诗，在校园里，为一句诗停留三秒。',
   avatarUrl: avatar, memberCount: 278, workCount: 897, eventCount: 4, callCount: 2, recruitment: 'open', following: true };

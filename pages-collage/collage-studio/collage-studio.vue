@@ -37,7 +37,7 @@
             <view v-for="corner in corners" :key="corner" :class="['handle', corner]" @touchstart.stop.prevent="startSourceTouch($event, corner)" @mousedown.stop="startCrop($event, corner)" />
           </view>
         </view>
-        <view class="row source-tools"><text class="muted zoom-value">{{ zoom }}%</text><slider class="grow zoom-slider" :min="100" :max="300" :value="zoom" :disabled="isBusy" activeColor="#3d5547" @changing="changeZoom($event, true)" @change="changeZoom" @touchcancel="zoomGesture = null"/><StudioIconButton icon="/static/images/collage-tools/move.png" :label="pan ? '框选' : '移动'" :selected="pan" :disabled="isBusy" @action="togglePan" /><StudioIconButton icon="/static/images/collage-tools/rotate.png" label="旋转" :disabled="isBusy" @action="rotateSource" /></view>
+        <view class="row source-tools"><text class="muted zoom-value">{{ zoom }}%</text><slider class="grow zoom-slider" :min="100" :max="300" :value="zoom" :disabled="isBusy" activeColor="#3d5547" @changing="changeZoom($event, true)" @change="changeZoom" @touchcancel="zoomGesture = null"/><StudioIconButton icon="/pages-collage/static/images/collage-tools/move.png" :label="pan ? '框选' : '移动'" :selected="pan" :disabled="isBusy" @action="togglePan" /><StudioIconButton icon="/pages-collage/static/images/collage-tools/rotate.png" label="旋转" :disabled="isBusy" @action="rotateSource" /></view>
         </template>
 
         <view v-if="mode === 'ocr'" class="ocr-panel">
@@ -69,7 +69,7 @@
 
         <view class="cut-settings">
           <view class="edge-controls">
-            <view class="row edge-options"><button v-for="edge in edges" :key="edge.id" class="edge-option" size="mini" :disabled="isBusy" :class="{ selected: edgeStyle === edge.id }" :aria-label="edge.name" @tap="setEdge(edge.id)"><view class="edge-sample" :class="'edge-sample--' + edge.id" /><text>{{ edge.name }}</text></button><StudioIconButton v-if="edgeStyle === 'torn'" class="reroll-edge" icon="/static/images/collage-tools/shuffle.png" label="换一种撕边" :disabled="isBusy || !crop" @action="rerollTornEdge" /></view>
+            <view class="row edge-options"><button v-for="edge in edges" :key="edge.id" class="edge-option" size="mini" :disabled="isBusy" :class="{ selected: edgeStyle === edge.id }" :aria-label="edge.name" @tap="setEdge(edge.id)"><view class="edge-sample" :class="'edge-sample--' + edge.id" /><text>{{ edge.name }}</text></button><StudioIconButton v-if="edgeStyle === 'torn'" class="reroll-edge" icon="/pages-collage/static/images/collage-tools/shuffle.png" label="换一种撕边" :disabled="isBusy || !crop" @action="rerollTornEdge" /></view>
             <view v-if="mode === 'ocr'" class="row padding-row"><text class="muted">留白 {{ padding }} px</text><slider class="grow padding-slider" :min="0" :max="48" :value="padding" :disabled="isBusy" activeColor="#3d5547" @changing="setPadding" @change="setPadding"/></view>
           </view>
           <view class="cut-preview" :class="{ 'preview-empty': !cutPreview }"><image v-if="cutPreview" :src="cutPreview" mode="aspectFit" /></view>
@@ -88,7 +88,7 @@
             <StudioIconButton icon="/static/images/newicons/add.png" label="放到画布" :disabled="isBusy || !urls[selectedMaterial.id]" @action="addToBoard(selectedMaterial)" />
             <StudioIconButton icon="/static/images/newicons/delete.png" label="删除" :disabled="isBusy" @action="deleteMaterial(selectedMaterial)" />
           </view>
-          <StudioIconButton icon="/static/images/collage-tools/scissors.png" label="继续裁切" :disabled="isBusy" @action="switchTab('cut')" />
+          <StudioIconButton icon="/pages-collage/static/images/collage-tools/scissors.png" label="继续裁切" :disabled="isBusy" @action="switchTab('cut')" />
         </view>
       </view>
       <view v-if="!workspace.materials.length" class="empty"><text>还没有纸片</text><text class="muted">先从一张图片里剪下喜欢的部分</text></view>
@@ -130,8 +130,8 @@
       <view class="row background-row">
         <view class="row background-colors"><text class="muted">底纸</text><view v-for="color in backgrounds" :key="color" class="swatch" :class="{ chosen: !workspace.backgroundImage && workspace.background === color }" :style="{ background: color }" @tap="setBackground(color)"/></view>
         <view class="row layer-actions">
-          <StudioIconButton icon="/static/images/collage-tools/bring-front.png" label="置顶" :disabled="isBusy || !selectedItem" @action="layerItem(true)" />
-          <StudioIconButton icon="/static/images/collage-tools/send-back.png" label="置底" :disabled="isBusy || !selectedItem" @action="layerItem(false)" />
+          <StudioIconButton icon="/pages-collage/static/images/collage-tools/bring-front.png" label="置顶" :disabled="isBusy || !selectedItem" @action="layerItem(true)" />
+          <StudioIconButton icon="/pages-collage/static/images/collage-tools/send-back.png" label="置底" :disabled="isBusy || !selectedItem" @action="layerItem(false)" />
           <StudioIconButton icon="/static/images/newicons/delete.png" label="删除" :disabled="isBusy || !selectedItem" @action="removeItem" />
         </view>
       </view>

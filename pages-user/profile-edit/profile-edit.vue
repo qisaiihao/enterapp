@@ -111,7 +111,7 @@
                         <switch class="signature-option-switch" :checked="signaturePendingRemoveBg === null ? autoRemoveSignatureBg : signaturePendingRemoveBg" @change="onToggleSignatureBg" />
                     </view>
                     <view class="signature-upload-btn" @tap="onChooseSignature">
-                        <image class="upload-icon" src="/static/images/upload.png" mode="aspectFit"></image>
+                        <image class="upload-icon" src="/pages-user/static/images/upload.png" mode="aspectFit"></image>
                     </view>
                 </view>
                 <view class="signature-container">

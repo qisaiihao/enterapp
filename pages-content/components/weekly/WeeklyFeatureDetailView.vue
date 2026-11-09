@@ -170,9 +170,9 @@
 </template>
 
 <script>
-import WeeklyFeatureActionBar from '@/components/weekly/WeeklyFeatureActionBar.vue';
+import WeeklyFeatureActionBar from '@/pages-content/components/weekly/WeeklyFeatureActionBar.vue';
 import PoemStack from '@/components/poem/PoemStack.vue';
-import WeeklyShareCardModal from '@/components/weekly/WeeklyShareCardModal.vue';
+import WeeklyShareCardModal from '@/pages-content/components/weekly/WeeklyShareCardModal.vue';
 import FolderSelector from '@/components/folder-selector/folder-selector.vue';
 import { isUserLoggedIn, requireLogin } from '@/utils/authHelper.js';
 import { getComments, submitComment } from '@/api-cache/comment.js';

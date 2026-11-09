@@ -27,10 +27,10 @@
   <app-overlay-host />
 </template>
 <script>
-import CommunityShell from '@/components/society/CommunityShell.vue';
-import CommunityState from '@/components/society/CommunityState.vue';
+import CommunityShell from '@/pages-community/components/society/CommunityShell.vue';
+import CommunityState from '@/pages-community/components/society/CommunityState.vue';
 import { societyRequest } from '@/api-cache/societies.js';
-import { openSocietyPage, ROLE_LABELS, decodeSocietyParam, showSocietyError } from '@/utils/society.js';
+import { openSocietyPage, ROLE_LABELS, decodeSocietyParam, showSocietyError } from '@/pages-community/utils/society.js';
 export default {
   components: { CommunityShell, CommunityState },
   data: () => ({ id: '', society: null, managers: [], members: [], hasMore: false, roles: ROLE_LABELS, loading: true, loadingMore: false, error: '', requestVersion: 0 }),

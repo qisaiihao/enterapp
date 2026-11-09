@@ -21,13 +21,13 @@
   <app-overlay-host />
 </template>
 <script>
-import CommunityShell from '@/components/society/CommunityShell.vue';
-import WorkPicker from '@/components/society/WorkPicker.vue';
-import CommunityState from '@/components/society/CommunityState.vue';
-import SocietyWorks from '@/components/society/SocietyWorks.vue';
+import CommunityShell from '@/pages-community/components/society/CommunityShell.vue';
+import WorkPicker from '@/pages-community/components/society/WorkPicker.vue';
+import CommunityState from '@/pages-community/components/society/CommunityState.vue';
+import SocietyWorks from '@/pages-community/components/society/SocietyWorks.vue';
 import { societyRequest } from '@/api-cache/societies.js';
 import { retryPendingSocietySubmission } from '@/utils/societySubmission.js';
-import { openSocietyPage, SOCIETY_AVATAR, CALL_SCOPE_LABELS, decodeSocietyParam, societyDate, showSocietyError } from '@/utils/society.js';
+import { openSocietyPage, SOCIETY_AVATAR, CALL_SCOPE_LABELS, decodeSocietyParam, societyDate, showSocietyError } from '@/pages-community/utils/society.js';
 export default {
   components: { CommunityShell, CommunityState, WorkPicker, SocietyWorks }, data: () => ({ id: '', kind: 'event', item: null, hosts: [], works: [], registered: false, chooseMode: '', busy: false, loading: true, error: '', fallback: SOCIETY_AVATAR }),
   computed: {

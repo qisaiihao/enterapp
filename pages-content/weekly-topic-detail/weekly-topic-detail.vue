@@ -7,7 +7,7 @@
 </template>
 
 <script>
-import WeeklyFeatureDetailView from '@/components/weekly/WeeklyFeatureDetailView.vue';
+import WeeklyFeatureDetailView from '@/pages-content/components/weekly/WeeklyFeatureDetailView.vue';
 import { getWeeklyTopicDetail } from '@/api-cache/weekly.js';
 
 function createEmptyDetail() {

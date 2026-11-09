@@ -119,8 +119,8 @@ class ImageManager {
         if (result.success) {
             return result.url;
         } else {
-            // 如果云端没有，返回默认本地图片
-            return '/static/images/splash.png';
+            // 如果云端没有，返回空字符串，由调用方决定兜底展示
+            return '';
         }
     }
 

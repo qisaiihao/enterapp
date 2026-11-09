@@ -7,11 +7,11 @@
   <app-overlay-host />
 </template>
 <script>
-import CommunityShell from '@/components/society/CommunityShell.vue';
-import CommunityState from '@/components/society/CommunityState.vue';
-import SocietyCard from '@/components/society/SocietyCard.vue';
+import CommunityShell from '@/pages-community/components/society/CommunityShell.vue';
+import CommunityState from '@/pages-community/components/society/CommunityState.vue';
+import SocietyCard from '@/pages-community/components/society/SocietyCard.vue';
 import { societyRequest } from '@/api-cache/societies.js';
-import { openSocietyPage, showSocietyError } from '@/utils/society.js';
+import { openSocietyPage, showSocietyError } from '@/pages-community/utils/society.js';
 export default {
   components: { CommunityShell, CommunityState, SocietyCard },
   data: () => ({ query: '', applied: {}, items: [], loading: true, loadingMore: false, error: '', hasMore: false, requestVersion: 0, autofocus: false }),

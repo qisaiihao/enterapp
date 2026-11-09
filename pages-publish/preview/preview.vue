@@ -391,7 +391,7 @@
 
       <view class="button-item" @tap.stop="publishAnonymously">
 
-        <image class="button-icon" src="/static/images/newicons/anonymous.png" mode="aspectFit"></image>
+        <image class="button-icon" src="/pages-publish/static/images/newicons/anonymous.png" mode="aspectFit"></image>
 
       </view>
 

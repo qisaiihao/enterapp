@@ -49,13 +49,13 @@
   <app-overlay-host />
 </template>
 <script>
-import CommunityShell from '@/components/society/CommunityShell.vue';
-import CommunityState from '@/components/society/CommunityState.vue';
-import SocietyCard from '@/components/society/SocietyCard.vue';
-import OpportunityCard from '@/components/society/OpportunityCard.vue';
-import SocietyWorks from '@/components/society/SocietyWorks.vue';
+import CommunityShell from '@/pages-community/components/society/CommunityShell.vue';
+import CommunityState from '@/pages-community/components/society/CommunityState.vue';
+import SocietyCard from '@/pages-community/components/society/SocietyCard.vue';
+import OpportunityCard from '@/pages-community/components/society/OpportunityCard.vue';
+import SocietyWorks from '@/pages-community/components/society/SocietyWorks.vue';
 import { societyRequest } from '@/api-cache/societies.js';
-import { openSocietyPage, showSocietyError } from '@/utils/society.js';
+import { openSocietyPage, showSocietyError } from '@/pages-community/utils/society.js';
 export default {
   components: { CommunityShell, CommunityState, SocietyCard, OpportunityCard, SocietyWorks },
   data: () => ({ societies: [], events: [], calls: [], pastCalls: [], currentCallTotal: 0, pastCallTotal: 0, works: [], unreadCount: 0, unreadVersion: 0, callFilter: 'current', callFilters: [{ value: 'current', label: '正在进行' }, { value: 'ending', label: '即将截止' }, { value: 'past', label: '往期' }], loading: true, error: '', searching: false, searchFocus: false, query: '', searchQuery: '', searchResults: [], searchLoading: false, searchLoadingMore: false, searchError: '', searchHasMore: false, searchVersion: 0, searchTimer: null }),

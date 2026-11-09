@@ -22,12 +22,12 @@
   <app-overlay-host />
 </template>
 <script>
-import CommunityShell from '@/components/society/CommunityShell.vue';
-import CommunityState from '@/components/society/CommunityState.vue';
-import CommunityTabs from '@/components/society/CommunityTabs.vue';
-import SocietyCard from '@/components/society/SocietyCard.vue';
+import CommunityShell from '@/pages-community/components/society/CommunityShell.vue';
+import CommunityState from '@/pages-community/components/society/CommunityState.vue';
+import CommunityTabs from '@/pages-community/components/society/CommunityTabs.vue';
+import SocietyCard from '@/pages-community/components/society/SocietyCard.vue';
 import { societyRequest } from '@/api-cache/societies.js';
-import { openSocietyPage, openSocietyLogin, societyDate, showSocietyError } from '@/utils/society.js';
+import { openSocietyPage, openSocietyLogin, societyDate, showSocietyError } from '@/pages-community/utils/society.js';
 import { navigateToPostDetail } from '@/utils/navigation.js';
 export default {
   components: { CommunityShell, CommunityState, CommunityTabs, SocietyCard },

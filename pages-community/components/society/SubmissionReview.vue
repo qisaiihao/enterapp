@@ -25,7 +25,7 @@
 <script>
 import CommunityState from './CommunityState.vue';
 import { societyRequest } from '@/api-cache/societies.js';
-import { societyDate, showSocietyError } from '@/utils/society.js';
+import { societyDate, showSocietyError } from '@/pages-community/utils/society.js';
 export default {
   components: { CommunityState }, props: { item: Object, societyId: String }, emits: ['switch', 'reviewed'],
   data: () => ({ records: [], index: 0, pendingSkip: 0, deferredSkip: 0, nextStatus: 'pending', hasMore: true, loading: false, error: '', busy: false, retryMore: false, sequence: 0 }),

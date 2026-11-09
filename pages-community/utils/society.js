@@ -1,4 +1,4 @@
-export const SOCIETY_AVATAR = '/static/images/society-raven.png';
+export const SOCIETY_AVATAR = '/pages-community/static/images/society-raven.png';
 export const SOCIETY_TABS = [
   { value: 'news', label: '动态' }, { value: 'works', label: '作品' },
   { value: 'events', label: '活动' }, { value: 'calls', label: '征稿' }, { value: 'about', label: '关于' }

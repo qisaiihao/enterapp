@@ -12,7 +12,7 @@
 import CommunityState from './CommunityState.vue';
 import PoemSelectionItem from '@/components/poem/PoemSelectionItem.vue';
 import { societyRequest } from '@/api-cache/societies.js';
-import { societyDate } from '@/utils/society.js';
+import { societyDate } from '@/pages-community/utils/society.js';
 export default {
   components: { CommunityState, PoemSelectionItem }, props: { busy: Boolean, label: { type: String, default: '投稿' }, originalOnly: Boolean }, emits: ['cancel', 'select'],
   data: () => ({ works: [], selected: '', skip: 0, hasMore: false, loading: false, error: '' }),

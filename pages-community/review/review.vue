@@ -19,11 +19,11 @@
   <app-overlay-host />
 </template>
 <script>
-import CommunityShell from '@/components/society/CommunityShell.vue';
-import CommunityTabs from '@/components/society/CommunityTabs.vue';
-import CommunityState from '@/components/society/CommunityState.vue';
+import CommunityShell from '@/pages-community/components/society/CommunityShell.vue';
+import CommunityTabs from '@/pages-community/components/society/CommunityTabs.vue';
+import CommunityState from '@/pages-community/components/society/CommunityState.vue';
 import { societyRequest } from '@/api-cache/societies.js';
-import { openSocietyPage, openSocietyLogin, societyDate, APPLICATION_LABELS, RECRUITMENT_LABELS, SOCIETY_AVATAR, showSocietyError } from '@/utils/society.js';
+import { openSocietyPage, openSocietyLogin, societyDate, APPLICATION_LABELS, RECRUITMENT_LABELS, SOCIETY_AVATAR, showSocietyError } from '@/pages-community/utils/society.js';
 export default {
   components: { CommunityShell, CommunityTabs, CommunityState },
   data: () => ({ status: 'pending', tabs: [{ value: 'pending', label: '待审核' }, { value: 'approved', label: '已通过' }, { value: 'rejected', label: '已退回' }], applications: [], notes: {}, loading: true, loadingMore: false, hasMore: false, error: '', authNeeded: false, busy: '', version: 0, labels: APPLICATION_LABELS, recruitmentLabels: RECRUITMENT_LABELS, fallback: SOCIETY_AVATAR }),

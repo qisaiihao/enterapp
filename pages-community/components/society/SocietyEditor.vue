@@ -24,7 +24,7 @@ import CommunityState from './CommunityState.vue';
 import { societyRequest, societyFileUrls } from '@/api-cache/societies.js';
 import { uploadFile } from '@/utils/uploader.js';
 import { getCurrentUserId } from '@/utils/auth.js';
-import { showSocietyError, CALL_SCOPE_OPTIONS, CALL_SCOPE_LABELS } from '@/utils/society.js';
+import { showSocietyError, CALL_SCOPE_OPTIONS, CALL_SCOPE_LABELS } from '@/pages-community/utils/society.js';
 export default {
   components: { CommunityState }, props: { societyId: String, kind: String, itemId: String }, emits: ['cancel', 'saved'],
   data: () => ({ callScopeOptions: CALL_SCOPE_OPTIONS, form: { title: '', content: '', description: '', requirements: '', category: '', coverImage: '', location: '', capacity: '', audience: 'all', guests: [], invitedSocietyIds: [] }, days: {}, times: {}, hosts: [], selectedHosts: [], hostQuery: '', coverUrl: '', loading: false, busy: false, uploading: false, error: '', requestId: `${Date.now()}-${Math.random().toString(36).slice(2)}`, actor: '' }),

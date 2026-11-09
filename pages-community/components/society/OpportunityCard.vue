@@ -13,7 +13,7 @@
   </view>
 </template>
 <script>
-import { SOCIETY_AVATAR, societyDate, CALL_SCOPE_LABELS } from '@/utils/society.js';
+import { SOCIETY_AVATAR, societyDate, CALL_SCOPE_LABELS } from '@/pages-community/utils/society.js';
 export default {
   props: { management: Boolean, item: { type: Object, required: true }, kind: { type: String, default: 'event' } },
   emits: ['select'],
