@@ -1,0 +1,11 @@
+{
+  "envId": "cloud1-5gb0pbyl400845f5",
+  "region": "ap-shanghai",
+  "appid": "__UNI__E0A1A41",
+  "packageName": "com.poementer.app",
+  "certificateSha256": "99c62329cea4b47a4e7dc25ec9517ea81bc2234e7136ee423c32ff48849a84d9",
+  "collection": "app_update_releases",
+  "downloadBase": "https://636c-cloud1-5gb0pbyl400845f5-1378788263.tcb.qcloud.la",
+  "checkUrl": "https://cloud1-5gb0pbyl400845f5-1378788263.ap-shanghai.app.tcloudbase.com/app-update/check",
+  "hbuilderx": "C:/Users/qisaihao/HBuilderX"
+}

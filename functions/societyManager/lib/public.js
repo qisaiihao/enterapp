@@ -1,17 +1,20 @@
 'use strict';
-const { error, text, id, page, read, list, pick, publicSociety, activeSociety, membership, hash, profileTextMatches } = require('./common');
+const { error, text, id, page, read, list, listAll, oneOf, pick, publicSociety, activeSociety, membership, hash, profileTextMatches } = require('./common');
 
-async function publicMembers(db, societyId, pagination = { skip: 0, limit: 50 }) {
+async function publicMemberPage(db, societyId, pagination = { skip: 0, limit: 50 }) {
   const members = await list(db, 'society_members', { societyId, status: 'active' }, { ...pagination, order: 'joinedAt' });
   const users = await Promise.all(members.map(member => read(db, 'users', member.userDocId)));
-  return members.flatMap((member, index) => users[index] ? [{ userId: member.userId, role: member.role, joinedAt: member.joinedAt,
-    nickName: users[index].nickName || '诗友', avatarUrl: users[index].avatarUrl || '' }] : []);
+  return { members: members.flatMap((member, index) => users[index] ? [{ userId: member.userId, role: member.role, joinedAt: member.joinedAt,
+    nickName: users[index].nickName || '诗友', avatarUrl: users[index].avatarUrl || '' }] : []),
+    hasMore: members.length === pagination.limit, nextSkip: (pagination.skip || 0) + members.length };
+}
+async function publicMembers(db, societyId, pagination) {
+  return (await publicMemberPage(db, societyId, pagination)).members;
 }
 async function memberList(db, event) {
   const society = await activeSociety(db, event.societyId);
   const pagination = page(event);
-  const members = await publicMembers(db, society._id, pagination);
-  return { members, hasMore: members.length === pagination.limit };
+  return publicMemberPage(db, society._id, pagination);
 }
 async function publicMemberDirectory(db, societyId, pagination = { skip: 0, limit: 20 }) {
   const [owners, admins, members] = await Promise.all([
@@ -26,7 +29,7 @@ async function publicMemberDirectory(db, societyId, pagination = { skip: 0, limi
   return {
     managers: managers.map((member, index) => present(member, index)).filter(Boolean),
     members: members.map((member, index) => present(member, managers.length + index)).filter(Boolean),
-    hasMore: members.length === pagination.limit
+    hasMore: members.length === pagination.limit, nextSkip: (pagination.skip || 0) + members.length
   };
 }
 async function memberDirectory(db, event) {
@@ -109,16 +112,30 @@ async function publicOpportunities(db, kind, societyId, limit = 6) {
         ? '已截止' : kind === 'call' ? '征稿中' : '报名中') : ''
   }] : []);
 }
+async function societyContent(db, event) {
+  const society = await activeSociety(db, event.societyId);
+  if (!['news', 'event', 'call'].includes(event.kind)) throw error('内容类型无效');
+  const pagination = page(event);
+  let filter = { societyId: society._id, status: 'published' };
+  let owners = new Map([[society._id, society]]);
+  if (event.kind === 'call') {
+    owners = new Map((await listAll(db, 'societies', { status: 'active' })).map(row => [row._id, row]));
+    filter = db.command.and([{ status: 'published' }, oneOf(db, 'societyId', [...owners.keys()]), db.command.or([{ societyId: society._id }, { hostSocietyIds: society._id }])]);
+  }
+  const table = { news: 'society_news', event: 'society_events', call: 'society_calls' }[event.kind];
+  const order = [...(event.kind === 'news' ? [['pinned', 'desc']] : []), ['createdAt', 'desc'], ['_id', 'desc']];
+  const [rows, count] = await Promise.all([list(db, table, filter, { ...pagination, order }), db.collection(table).where(filter).count()]);
+  const records = rows.map(row => event.kind === 'news' ? pick(row, ['_id', 'title', 'content', 'pinned', 'createdAt']) : {
+    ...callItem(row, owners.get(row.societyId)),
+    statusLabel: (event.kind === 'call' ? row.deadline : row.registrationEnd)
+      ? new Date(event.kind === 'call' ? row.deadline : row.registrationEnd).getTime() <= Date.now() ? '已截止' : event.kind === 'call' ? '征稿中' : '报名中' : ''
+  });
+  return { records, nextSkip: pagination.skip + rows.length, hasMore: pagination.skip + rows.length < count.total };
+}
 function deadlineAt(row) { return row.deadline ? new Date(row.deadline).getTime() : 0; }
 function callItem(row, owner, now = Date.now()) {
   return { ...pick(row, ['_id', 'title', 'category', 'coverImage', 'location', 'deadline', 'startTime', 'endTime', 'registrationEnd', 'societyId', 'registrationCount', 'submissionCount', 'hostSocietyIds', 'audience']),
-    societyName: owner.name, statusLabel: row.deadline ? (deadlineAt(row) < now ? '已截止' : '征稿中') : '' };
-}
-function splitCalls(rows, now) {
-  const upcoming = rows.filter(row => deadlineAt(row) > 0 && deadlineAt(row) >= now);
-  const upcomingByDeadline = [...upcoming].sort((a, b) => deadlineAt(a) - deadlineAt(b));
-  const past = rows.filter(row => deadlineAt(row) > 0 && deadlineAt(row) < now).sort((a, b) => deadlineAt(b) - deadlineAt(a));
-  return { upcoming, upcomingByDeadline, past };
+    societyName: owner.name, statusLabel: row.deadline ? (deadlineAt(row) <= now ? '已截止' : '征稿中') : '' };
 }
 function normalizedText(value) { return String(value || '').trim().toLowerCase(); }
 function shuffle(rows) {
@@ -148,34 +165,27 @@ async function recommendedSocieties(db, user, limit = 3) {
   take(rows);
   return picked.map(publicSociety);
 }
-async function presentCallRows(db, rows, now) {
-  const owners = await Promise.all(rows.map(row => read(db, 'societies', row.societyId)));
-  return rows.flatMap((row, index) => owners[index]?.status === 'active' ? [callItem(row, owners[index], now)] : []);
-}
-async function publicCalls(db, event = {}, user) {
-  const now = Date.now();
+async function publicCalls(db, event = {}, user, societies, now = Date.now()) {
   const filter = ['current', 'ending', 'past'].includes(event.filter) ? event.filter : 'current';
   const pagination = page(event);
-  let rows = await list(db, 'society_calls', { status: 'published' }, { limit: 200 });
+  societies ||= await listAll(db, 'societies', { status: 'active' });
+  if (!societies.length) return { calls: [], hasMore: false, total: 0 };
+  const owners = new Map(societies.map(row => [row._id, row]));
+  const conditions = [{ status: 'published', deadline: filter === 'past' ? db.command.lte(new Date(now)) : db.command.gt(new Date(now)) }, oneOf(db, 'societyId', [...owners.keys()])];
   if (event.availableOnly === true) {
-    const memberSocietyIds = new Set();
-    if (user?._openid) {
-      const memberships = await list(db, 'society_members', { userId: user._openid, status: 'active' }, { limit: 100 });
-      for (const membership of memberships) memberSocietyIds.add(membership.societyId);
+    const memberships = user?._openid ? await listAll(db, 'society_members', { userId: user._openid, status: 'active' }) : [];
+    const memberIds = memberships.map(row => row.societyId).filter(societyId => owners.has(societyId));
+    const schoolIds = societies.filter(row => profileTextMatches(row.school, user?.school)).map(row => row._id);
+    const audience = [db.command.and([{ audience: db.command.neq('school') }, { audience: db.command.neq('members') }])];
+    for (const [scope, ids] of [['school', schoolIds], ['members', memberIds]]) {
+      if (ids.length) audience.push(db.command.and([{ audience: scope }, db.command.or([oneOf(db, 'societyId', ids), oneOf(db, 'hostSocietyIds', ids)])]));
     }
-    const schoolCallHostIds = [...new Set(rows.filter(row => row.audience === 'school')
-      .flatMap(row => [row.societyId, ...(row.hostSocietyIds || [])]).filter(Boolean))];
-    const schoolBySociety = new Map(await Promise.all(schoolCallHostIds.map(async societyId => [societyId, (await read(db, 'societies', societyId))?.school || ''])));
-    rows = rows.filter(row => {
-      if (row.audience === 'members') return memberSocietyIds.has(row.societyId) || (row.hostSocietyIds || []).some(id => memberSocietyIds.has(id));
-      if (row.audience === 'school') return [row.societyId, ...(row.hostSocietyIds || [])].some(id => profileTextMatches(schoolBySociety.get(id), user && user.school));
-      return true;
-    });
+    conditions.push(db.command.or(audience));
   }
-  const { upcoming, upcomingByDeadline, past } = splitCalls(rows, now);
-  const matched = filter === 'past' ? past : filter === 'ending' ? upcomingByDeadline : upcoming;
-  const pageRows = matched.slice(pagination.skip, pagination.skip + pagination.limit);
-  return { calls: await presentCallRows(db, pageRows, now), hasMore: pagination.skip + pageRows.length < matched.length, total: matched.length };
+  const where = db.command.and(conditions);
+  const order = [[filter === 'current' ? 'createdAt' : 'deadline', filter === 'ending' ? 'asc' : 'desc'], ['_id', 'desc']];
+  const [rows, count] = await Promise.all([list(db, 'society_calls', where, { ...pagination, order }), db.collection('society_calls').where(where).count()]);
+  return { calls: rows.map(row => callItem(row, owners.get(row.societyId), now)), hasMore: pagination.skip + rows.length < count.total, total: count.total };
 }
 async function latestWorksFromSocieties(db, societyIds, options) {
   const results = await Promise.all(societyIds.map(societyId => works(db, { ...options, societyId })));
@@ -187,17 +197,16 @@ async function latestWorksFromSocieties(db, societyIds, options) {
 }
 async function home(db, user) {
   const now = Date.now();
-  const [societies, events, rows, memberships] = await Promise.all([
+  const [societies, events, active, memberships] = await Promise.all([
     recommendedSocieties(db, user), publicOpportunities(db, 'event'),
-    list(db, 'society_calls', { status: 'published' }, { limit: 200 }),
+    listAll(db, 'societies', { status: 'active' }),
     user?._openid ? list(db, 'society_members', { userId: user._openid, status: 'active' }, { limit: 100 }) : []
   ]);
   const memberSocietyIds = [...new Set(memberships.map(row => row.societyId))];
   const worksOptions = { limit: 3, viewerId: user?._openid };
   const poems = memberSocietyIds.length ? await latestWorksFromSocieties(db, memberSocietyIds, worksOptions) : (await works(db, worksOptions)).works;
-  const { upcomingByDeadline, past } = splitCalls(rows, now);
-  const [calls, pastCalls] = await Promise.all([presentCallRows(db, upcomingByDeadline.slice(0, 6), now), presentCallRows(db, past.slice(0, 6), now)]);
-  return { societies: await withFollowing(db, societies, user), events, calls, pastCalls, currentCallTotal: upcomingByDeadline.length, pastCallTotal: past.length, works: poems };
+  const [current, past] = await Promise.all([publicCalls(db, { filter: 'ending', limit: 6 }, user, active, now), publicCalls(db, { filter: 'past', limit: 6 }, user, active, now)]);
+  return { societies: await withFollowing(db, societies, user), events, calls: current.calls, pastCalls: past.calls, currentCallTotal: current.total, pastCallTotal: past.total, works: poems };
 }
 async function detail(db, user, event) {
   const society = await activeSociety(db, event.societyId);
@@ -205,14 +214,15 @@ async function detail(db, user, event) {
     membership(db, society._id, user?._openid),
     user ? read(db, 'society_follows', hash('follow', society._id, user._openid)) : null,
     user ? read(db, 'society_join_requests', hash('join', society._id, user._openid)) : null,
-    publicMembers(db, society._id), works(db, { societyId: society._id, viewerId: user?._openid }),
-    list(db, 'society_news', { societyId: society._id, status: 'published' }, { limit: 20 }),
-    publicOpportunities(db, 'event', society._id, 20), publicOpportunities(db, 'call', society._id, 20)
+    publicMemberPage(db, society._id), works(db, { societyId: society._id, viewerId: user?._openid }),
+    ...['news', 'event', 'call'].map(kind => societyContent(db, { societyId: society._id, kind, limit: 20 }))
   ]);
   return { society: publicSociety(society), viewerId: user?._openid || '',
     relationship: { role: member?.role || '', following: follow?.following === true, joinStatus: join?.status || '' },
-    members, works: poems.works, worksCursor: poems.cursor, worksMore: poems.hasMore,
-    news: news.sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned)).map(row => pick(row, ['_id', 'title', 'content', 'pinned', 'createdAt'])), events, calls };
+    members: members.members, membersMore: members.hasMore, membersNextSkip: members.nextSkip,
+    works: poems.works, worksCursor: poems.cursor, worksMore: poems.hasMore,
+    news: news.records, events: events.records, calls: calls.records,
+    contentPages: Object.fromEntries([['news', news], ['events', events], ['calls', calls]].map(([kind, result]) => [kind, { nextSkip: result.nextSkip, hasMore: result.hasMore }])) };
 }
 async function profile(db, user, event) {
   const society = await activeSociety(db, event.societyId);
@@ -237,4 +247,4 @@ async function opportunity(db, event, user) {
   ]);
   return { registered: registration?.status === 'registered', hosts: hosts.filter(host => host?.status === 'active').map(publicSociety), works: approved, item: { ...pick(row, ['_id', 'title', 'description', 'requirements', 'category', 'coverImage', 'startTime', 'endTime', 'timeText', 'location', 'deadline', 'societyId', 'guests', 'registrationEnd', 'registrationCount', 'capacity', 'audience', 'submissionCount']), societyName: society.name, societyAvatar: society.avatarUrl } };
 }
-module.exports = { publicMembers, memberList, publicMemberDirectory, memberDirectory, works, societyWorks, approvedCallWorks, listSocieties, publicOpportunities, publicCalls, home, detail, profile, opportunity };
+module.exports = { publicMembers, publicMemberPage, memberList, publicMemberDirectory, memberDirectory, works, societyWorks, societyContent, approvedCallWorks, listSocieties, publicOpportunities, publicCalls, home, detail, profile, opportunity };

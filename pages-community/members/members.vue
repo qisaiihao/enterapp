@@ -33,7 +33,7 @@ import { societyRequest } from '@/api-cache/societies.js';
 import { openSocietyPage, ROLE_LABELS, decodeSocietyParam, showSocietyError } from '@/pages-community/utils/society.js';
 export default {
   components: { CommunityShell, CommunityState },
-  data: () => ({ id: '', society: null, managers: [], members: [], hasMore: false, roles: ROLE_LABELS, loading: true, loadingMore: false, error: '', requestVersion: 0 }),
+  data: () => ({ id: '', society: null, managers: [], members: [], nextSkip: 0, hasMore: false, roles: ROLE_LABELS, loading: true, loadingMore: false, error: '', requestVersion: 0 }),
   onLoad(options) { this.id = decodeSocietyParam(options.id); this.load(); },
   onReachBottom() { this.more(); },
   methods: {
@@ -44,12 +44,14 @@ export default {
       const version = ++this.requestVersion;
       this.error = ''; this.loading = !append; this.loadingMore = !!append;
       try {
-        const result = await societyRequest('memberDirectory', { societyId: this.id, skip: append ? this.members.length : 0, limit: 20 }, this);
+        const skip = append ? this.nextSkip : 0;
+        const result = await societyRequest('memberDirectory', { societyId: this.id, skip, limit: 20 }, this);
         if (version !== this.requestVersion) return;
         this.society = result.society;
         this.managers = result.managers || [];
         this.members = append ? this.members.concat(result.members || []) : (result.members || []);
         this.hasMore = !!result.hasMore;
+        this.nextSkip = result.nextSkip ?? skip + 20;
       } catch (error) {
         if (version === this.requestVersion) { if (append) showSocietyError(error); else this.error = error.message; }
       } finally { if (version === this.requestVersion) { this.loading = false; this.loadingMore = false; } }

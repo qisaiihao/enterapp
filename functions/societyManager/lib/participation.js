@@ -10,12 +10,12 @@ async function published(db, kind, itemId) {
 }
 async function participant(db, item, user) {
   if (user.postingBanned) throw error('账号已被限制参与', 'FORBIDDEN');
-  const hostSocietyIds = item.hostSocietyIds?.length ? item.hostSocietyIds : [item.societyId];
+  const hostSocietyIds = [...new Set([item.societyId, ...(item.hostSocietyIds || [])])];
   if (item.audience === 'school') {
     const hosts = await Promise.all(hostSocietyIds.map(societyId => read(db, 'societies', societyId)));
-    if (!hosts.some(host => profileTextMatches(host?.school, user.school))) throw error('仅限本校学生参与', 'FORBIDDEN');
+    if (!hosts.some(host => host?.status === 'active' && profileTextMatches(host.school, user.school))) throw error('仅限本校学生参与', 'FORBIDDEN');
   } else if (item.audience === 'members') {
-    const members = await Promise.all(hostSocietyIds.map(societyId => membership(db, societyId, user._openid)));
+    const members = await Promise.all(hostSocietyIds.map(async societyId => (await read(db, 'societies', societyId))?.status === 'active' ? membership(db, societyId, user._openid) : null));
     if (!members.some(Boolean)) throw error('仅主办或合办诗社成员可以参与', 'FORBIDDEN');
   }
 }
@@ -100,7 +100,7 @@ async function submissions(db, user, event) {
   const rows = await list(db, 'society_submissions', filter, pagination);
   const posts = await Promise.all(rows.map(row => read(db, 'posts', row.postId)));
   return { records: rows.map((row, i) => ({ ...pick(row, ['_id', 'postId', 'userId', 'status', 'revision', 'submittedAt']),
-    post: eligiblePost(posts[i], row.userId) ? pick(posts[i], ['_id', 'title', 'content', 'seriesBlocks', 'authorName', 'backgroundColor', 'textColor']) : null,
+    post: submittablePost(posts[i], row.userId) ? pick(posts[i], ['_id', 'title', 'content', 'seriesBlocks', 'authorName', 'backgroundColor', 'textColor']) : null,
     changed: !!posts[i] && postFingerprint(posts[i]) !== row.postFingerprint })), hasMore: rows.length === pagination.limit };
 }
 async function reviewWork(db, user, event) {
@@ -115,7 +115,7 @@ async function reviewWork(db, user, event) {
     if (previous?.decision === event.decision && previous.operatorId === user._openid) return { alreadyReviewed: true };
     if (row.revision !== event.revision || !['pending', 'deferred'].includes(row.status)) throw error('稿件已处理或重新提交，请刷新', 'STALE_REVIEW');
     const post = await read(tx, 'posts', row.postId);
-    if (event.decision === 'approved' && (!eligiblePost(post, row.userId) || postFingerprint(post) !== row.postFingerprint)) throw error('原作已修改或不可公开，请退回重新投稿', 'POST_CHANGED');
+    if (event.decision === 'approved' && (!submittablePost(post, row.userId) || postFingerprint(post) !== row.postFingerprint)) throw error('原作已修改或不再符合原创投稿条件，请退回重新投稿', 'POST_CHANGED');
     const society = await activeSociety(tx, item.societyId);
     const publicationId = hash('publication', item.societyId, row.postId);
     const old = await read(tx, 'society_publications', publicationId);

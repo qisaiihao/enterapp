@@ -9,7 +9,7 @@ const SWR_MS = 45 * 1000;
 
 const ns = cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 });
 
-function buildCloudParams({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous, author }) {
+function buildCloudParams({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous, author, originalMix, excludePostIds }) {
   return {
     skip: page * pageSize,
     limit: pageSize,
@@ -18,7 +18,8 @@ function buildCloudParams({ page, pageSize, isPoem, isOriginal, isDiscussion, ta
     isDiscussion,
     tag,
     excludeAnonymous,
-    author
+    author,
+    ...(originalMix ? { originalMix: true, excludePostIds: excludePostIds || [] } : {})
   };
 }
 
@@ -34,6 +35,8 @@ export async function getPostList({
   tag,
   excludeAnonymous,
   author,
+  originalMix = false,
+  excludePostIds,
   context,
   forceRefresh = false,
   onBackgroundUpdate,
@@ -41,18 +44,22 @@ export async function getPostList({
   silent = false
 } = {}) {
   const authorSuffix = author ? `:author:${author}` : '';
-  const key = buildCacheKey({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous }) + authorSuffix;
+  const key = buildCacheKey({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous, originalMix }) + authorSuffix;
   if (forceRefresh && page === 0) ns.delete(key);
 
   const fetchPosts = async () => {
     const result = await withTimeout(callCloudAndUnwrap(
       'getPostList',
-      buildCloudParams({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous, author }),
+      buildCloudParams({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous, author, originalMix, excludePostIds }),
       { pageTag: 'post-list', context, timeoutMs, silent },
       '加载帖子失败'
     ), timeoutMs);
     return result.posts || [];
   };
+
+  // Later mixed pages depend on this reading session's seen IDs. Reusing a page
+  // cached during another refresh could repeat recommendations or skip poems.
+  if (originalMix && (page > 0 || excludePostIds?.length)) return fetchPosts();
 
   return ns.getOrFetch(
     key,
@@ -72,6 +79,7 @@ export function invalidatePostList({ page, pageSize = 10, isPoem, isOriginal, is
   if (typeof page === 'number') {
     const key = buildCacheKey({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous });
     ns.delete(key);
+    if (isPoem === true && isOriginal === true) ns.delete(buildCacheKey({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous, originalMix: true }));
     return;
   }
 

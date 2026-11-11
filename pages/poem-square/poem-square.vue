@@ -126,6 +126,7 @@ import PoemCard from '@/components/poem/PoemCard.vue';
 import { cloudCall } from '@/utils/cloudCall.js';
 import { getPostList as getPostListWithCache, invalidatePostList } from '@/api-cache/post-list.js';
 import { getFollowingPoems, invalidateFollowingPoems, getOriginalPoems, ORIGINAL_POEMS_PAGE_SIZE } from '@/api-cache/poems.js';
+import { getPostDetail } from '@/api-cache/post.js';
 import { consumePoemSquareRefresh, takePoemSquarePreload } from '@/utils/splashPreload.js';
 import { scheduleTabPreload } from '@/utils/tabPreload.js';
 import likeIcon from '@/utils/likeIcon.js';
@@ -547,7 +548,11 @@ export default {
       }
     },
 
-        getIndexData(callback) {
+    getIndexData(callback) {
+      // A cache hit also starts a new reading session. Ignore any pending page
+      // from the previous list, even when no replacement network request runs.
+      this._postListRequestId = (this._postListRequestId || 0) + 1;
+      this.showPageIndicator = false;
       console.log('【poem-square】开始获取数据，callback:', typeof callback);
       console.log('【poem-square】当前状态:', {
         isLoading: this.isLoading,
@@ -585,7 +590,7 @@ export default {
       // 非筛选模式：先尝试从缓存获取第一页数据，立即显示给用户
       const ns = cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 });
       try { if (ns.clearInfiniteCache) ns.clearInfiniteCache(); } catch (_) {}
-      const cacheKey = `page:0:size:${PAGE_SIZE}:poem:true:orig:true`;
+      const cacheKey = `page:0:size:${PAGE_SIZE}:poem:true:orig:true:originalMix:true`;
       
       console.log('🔍 [poem-square-cache] 开始读取缓存，key:', cacheKey);
       
@@ -775,6 +780,7 @@ export default {
 
       if (post.isSeries) {
         post.seriesExpanded = false;
+        post.seriesLoading = false;
         post.currentSeriesIndex = 0;
         post.seriesPoems = Array.isArray(normalized.displaySeriesPoems) ? normalized.displaySeriesPoems : [];
       } else if (!Array.isArray(post.seriesPoems)) {
@@ -797,6 +803,9 @@ export default {
         this._loadingLock = true;
         this.applyLocalState({ isLoadingMore: true });
       }
+      const requestId = this._postListRequestId = (this._postListRequestId || 0) + 1;
+      const requestPage = this.page;
+      const excludePostIds = isFirstLoad ? [] : this.postList.map(post => post._id).filter(Boolean);
       try {
         // 根据模式选择不同的云函数
         const isFollowingMode = this.showFollowingOnly;
@@ -805,7 +814,7 @@ export default {
         if (isFollowingMode) {
           console.log('【poem-square】准备调用关注诗歌API', this.followingSelectedUserId ? `(筛选用户: ${this.followingSelectedUserId})` : '');
           const list = await getFollowingPoems({
-            page: this.page,
+            page: requestPage,
             pageSize: PAGE_SIZE,
             context: this,
             forceRefresh,
@@ -813,7 +822,7 @@ export default {
             // SWR后台更新回调：关注诗歌后台更新完成时调用
             onBackgroundUpdate: async (newPosts) => {
               console.log(' [SWR-PoemSquare-Following] 后台更新完成', newPosts?.length);
-              if (Array.isArray(newPosts) && newPosts.length > 0 && this.showFollowingOnly && this.page === 0) {
+              if (requestId === this._postListRequestId && Array.isArray(newPosts) && newPosts.length > 0 && this.showFollowingOnly && this.page === 0) {
                 try {
                   const visibleList = newPosts.filter(p => p && !p.isAnonymous);
                   visibleList.forEach((p) => {
@@ -822,6 +831,7 @@ export default {
                   
                   // 转换 cloud:// URLs
                   await this.convertCloudUrls(visibleList);
+                  if (requestId !== this._postListRequestId) return;
                   
                   // 只在数据有变化时更新
                   const currentPostIds = this.postList.slice(0, PAGE_SIZE).map(p => p._id).join(',');
@@ -839,20 +849,21 @@ export default {
               }
             }
           });
-          await this.processPostList(list, cb);
+          await this.processPostList(list, cb, requestId);
           return;
         }
 
         // 全部模式使用原创诗歌API
         const loadOriginalPoems = () => getOriginalPoems({
-          page: this.page,
+          page: requestPage,
           pageSize: PAGE_SIZE,
+          excludePostIds,
           context: this,
           forceRefresh,
           // SWR后台更新回调：原创诗歌后台更新完成时调用
           onBackgroundUpdate: async (newPosts) => {
             console.log(' [SWR-PoemSquare-Original] 后台更新完成', newPosts?.length);
-            if (Array.isArray(newPosts) && newPosts.length > 0 && !this.showFollowingOnly && this.page === 0) {
+            if (requestId === this._postListRequestId && Array.isArray(newPosts) && newPosts.length > 0 && !this.showFollowingOnly && this.page === 0) {
               try {
                 const visibleList = newPosts.filter(Boolean);
                 visibleList.forEach((p) => {
@@ -861,6 +872,7 @@ export default {
                 
                 // 转换 cloud:// URLs
                 await this.convertCloudUrls(visibleList);
+                if (requestId !== this._postListRequestId) return;
                 
                 // 只在数据有变化时更新
                 const currentPostIds = this.postList.slice(0, PAGE_SIZE).map(p => p._id).join(',');
@@ -884,11 +896,13 @@ export default {
           list = await loadOriginalPoems();
         } catch (error) {
           // 手动跳过可能合并开屏的短预算请求。它超时后页面仍应正常加载首批。
+          if (requestId !== this._postListRequestId) return;
           if (!isFirstLoad || error.code !== 'TIMEOUT') throw error;
           list = await loadOriginalPoems();
         }
-        await this.processPostList(list, cb);
+        await this.processPostList(list, cb, requestId);
       } catch (e) {
+        if (requestId !== this._postListRequestId) return;
         console.error(`[poem-square] getPostList failed: ${formatErrorForLog(e)}`);
         uni.showToast({ title: '加载失败', icon: 'none' });
         // 只有非首次加载时才设置isLoadingMore
@@ -900,7 +914,8 @@ export default {
       }
     },
     
-    async processPostList(list, cb) {
+    async processPostList(list, cb, requestId) {
+      if (requestId !== undefined && requestId !== this._postListRequestId) return;
       const visibleList = list.filter(p => p && (!this.showFollowingOnly || !p.isAnonymous));
       
       visibleList.forEach((p) => {
@@ -909,6 +924,7 @@ export default {
       
       // 客户端安全网：转换任何未转换的 cloud:// URLs
       await this.convertCloudUrls(visibleList);
+      if (requestId !== undefined && requestId !== this._postListRequestId) return;
       
       let newPostList;
       if (this.page === 0) {
@@ -950,7 +966,7 @@ export default {
         this.onSeriesCardTap(payload);
         return;
       }
-      this.togglePostExpansion(payload);
+      return this.togglePostExpansion(payload);
     },
     togglePostExpansion(payload = {}) {
       const index = Number(payload.index);
@@ -968,35 +984,60 @@ export default {
       
       // 如果是组诗且未展开，则展开组诗
       if (item.isSeries && !item.seriesExpanded) {
-        // 确保 seriesPoems 存在
-        let seriesPoems = item.seriesPoems;
-        if (!seriesPoems || !Array.isArray(seriesPoems) || seriesPoems.length === 0) {
-          // 从 seriesBlocks 转换
-          if (Array.isArray(item.seriesBlocks) && item.seriesBlocks.length > 0) {
-            seriesPoems = attachPoemDisplayFields({
-              seriesBlocks: item.seriesBlocks
-            }).displaySeriesPoems || [];
-          } else {
-            seriesPoems = [];
-          }
-        }
-        
-        console.log('【poem-square】展开组诗', { seriesPoems });
-        
-        const newPostList = [...this.postList];
-        newPostList[index] = {
-          ...item,
-          seriesExpanded: true,
-          currentSeriesIndex: 0,
-          seriesPoems: seriesPoems
-        };
-        this.applyLocalState({ postList: newPostList });
-        return;
+        return this.expandSeriesPost(index);
       }
       
       // 普通卡片的展开/折叠
       const newPostList = toggleArrayItemExpansion(this.postList, index);
       this.applyLocalState({ postList: newPostList });
+    },
+
+    async expandSeriesPost(index) {
+      const item = this.postList[index];
+      if (!item || item.seriesLoading) return;
+      let seriesPoems = attachPoemDisplayFields(item).displaySeriesPoems;
+      let seriesBlocks = item.seriesBlocks;
+
+      // 兼容旧列表接口/持久缓存仅返回前三首的记录，展开前按需补齐。
+      if (!seriesPoems.length || Number(item.seriesBlockCount) > seriesPoems.length) {
+        // 令牌跟随这张卡片；加载下一页不应取消补齐，刷新后的卡片则不接收旧结果。
+        const loadingId = this._seriesLoadingId = (this._seriesLoadingId || 0) + 1;
+        const findLoadingCard = () => this.postList.findIndex(post => post._id === item._id && post.seriesLoading === loadingId);
+        const loadingList = [...this.postList];
+        loadingList[index] = { ...item, seriesLoading: loadingId };
+        this.applyLocalState({ postList: loadingList });
+        try {
+          const result = await getPostDetail(item._id, { forceRefresh: true, context: this });
+          seriesPoems = attachPoemDisplayFields(result.post).displaySeriesPoems;
+          if (!seriesPoems.length || Number(result.post.seriesBlockCount) > seriesPoems.length) {
+            throw new Error('组诗详情不完整');
+          }
+          seriesBlocks = result.post.seriesBlocks;
+        } catch (error) {
+          const currentIndex = findLoadingCard();
+          if (currentIndex < 0) return;
+          const nextList = [...this.postList];
+          nextList[currentIndex] = { ...nextList[currentIndex], seriesLoading: false };
+          this.applyLocalState({ postList: nextList });
+          console.error(`[poem-square] load series failed: ${formatErrorForLog(error)}`);
+          uni.showToast({ title: '组诗加载失败，请重试', icon: 'none' });
+          return;
+        }
+        index = findLoadingCard();
+        if (index < 0) return;
+      }
+
+      const nextList = [...this.postList];
+      nextList[index] = {
+        ...nextList[index],
+        seriesBlocks,
+        seriesPoems,
+        seriesBlockCount: seriesPoems.length,
+        seriesLoading: false,
+        seriesExpanded: true,
+        currentSeriesIndex: 0
+      };
+      this.applyLocalState({ postList: nextList });
     },
     
     // 组诗卡片点击处理

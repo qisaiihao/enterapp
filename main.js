@@ -131,7 +131,7 @@ function normalizeCloudCallOptions(options = {}) {
 }
 
 async function resolveOpenidForCall(functionName) {
-  if (functionName === 'login' || functionName === 'getOpenId' || functionName === 'getPhoneNumberByToken') {
+  if (['login', 'getOpenId', 'getPhoneNumberByToken', 'checkAppUpdate'].includes(functionName)) {
     return { openid: null, allowed: true };
   }
 

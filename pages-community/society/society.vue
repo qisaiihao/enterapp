@@ -17,7 +17,8 @@
       <template v-if="tab === 'works'"><button v-if="relationship.role && !choosing" class="text-button" aria-label="发表作品" @tap="choosing = true">＋</button><work-picker v-if="choosing" label="发表" :busy="busy" @cancel="choosing = false" @select="publish" /><society-works :items="works" :society-id="id" feed /><community-state v-if="!works.length" /><button v-if="worksMore" class="text-button more-works" :disabled="worksLoading" @tap="moreWorks">{{ worksLoading ? '加载中' : '更多作品' }}</button></template>
       <template v-if="tab === 'events'"><opportunity-card v-for="item in events" :key="item._id" :item="item" @select="eventDetail" /><community-state v-if="!events.length" /></template>
       <template v-if="tab === 'calls'"><opportunity-card v-for="item in calls" :key="item._id" kind="call" :item="item" @select="callDetail" /><community-state v-if="!calls.length" /></template>
-      <template v-if="tab === 'about'"><text class="section-title">关于我们</text><view class="body-text about-copy">{{ society.description }}</view><view v-if="members.length" class="section"><text class="section-title">诗社成员</text><view v-for="member in members" :key="member.userId" class="member-row" @tap="open('profile', { id, userId: member.userId })"><image class="avatar" :src="member.avatarUrl || '/static/images/avatar.png'" mode="aspectFill" /><text class="grow">{{ member.nickName }}</text><text class="badge">{{ roles[member.role] }}</text><text>›</text></view><button v-if="membersMore" class="text-button" :disabled="busy" @tap="moreMembers">更多成员</button></view></template>
+      <button v-if="contentPages[tab]?.hasMore" class="text-button more-content" :disabled="contentLoading" @tap="moreContent">{{ contentLoading ? '加载中' : '加载更多' }}</button>
+      <template v-if="tab === 'about'"><text class="section-title">关于我们</text><view class="body-text about-copy">{{ society.description }}</view><view v-if="members.length || membersMore" class="section"><text class="section-title">诗社成员</text><view v-for="member in members" :key="member.userId" class="member-row" @tap="open('profile', { id, userId: member.userId })"><image class="avatar" :src="member.avatarUrl || '/static/images/avatar.png'" mode="aspectFill" /><text class="grow">{{ member.nickName }}</text><text class="badge">{{ roles[member.role] }}</text><text>›</text></view><button v-if="membersMore" class="text-button" :disabled="busy" @tap="moreMembers">更多成员</button></view></template>
     </template>
   </community-shell>
   <app-overlay-host />
@@ -33,27 +34,41 @@ import { societyRequest } from '@/api-cache/societies.js';
 import { openSocietyPage, SOCIETY_AVATAR, SOCIETY_TABS, ROLE_LABELS, RECRUITMENT_LABELS, decodeSocietyParam, societyDate, showSocietyError } from '@/pages-community/utils/society.js';
 export default {
   components: { WorkPicker, CommunityShell, CommunityTabs, CommunityState, OpportunityCard, SocietyWorks },
-  data: () => ({ id: '', society: null, relationship: {}, viewerId: '', members: [], membersMore: false, news: [], works: [], worksCursor: '', worksMore: false, worksLoading: false, worksVersion: 0, events: [], calls: [], tab: 'news', tabs: SOCIETY_TABS, roles: ROLE_LABELS, fallback: SOCIETY_AVATAR, loading: true, error: '', busy: false, choosing: false, showJoin: false, joinReason: '' }),
+  data: () => ({ id: '', society: null, relationship: {}, viewerId: '', members: [], membersMore: false, membersNextSkip: 0, news: [], works: [], worksCursor: '', worksMore: false, worksLoading: false, worksVersion: 0, contentPages: {}, contentLoading: false, events: [], calls: [], tab: 'news', tabs: SOCIETY_TABS, roles: ROLE_LABELS, fallback: SOCIETY_AVATAR, loading: true, error: '', busy: false, choosing: false, showJoin: false, joinReason: '' }),
   computed: { canManage() { return ['owner', 'admin'].includes(this.relationship.role); }, recruitmentLabel() { return RECRUITMENT_LABELS[this.society?.recruitment] || RECRUITMENT_LABELS.open; } },
   onLoad(options) { this.id = decodeSocietyParam(options.id); }, onShow() { this.load(); },
   onPullDownRefresh() { this.load().finally(() => uni.stopPullDownRefresh()); },
-  onReachBottom() { if (this.tab === 'works') this.moreWorks(); },
+  onReachBottom() { if (this.tab === 'works') this.moreWorks(); else this.moreContent(); },
   methods: {
     open: openSocietyPage, date: societyDate,
     eventDetail(item) { this.open('opportunity', { id: item._id, kind: 'event' }); }, callDetail(item) { this.open('opportunity', { id: item._id, kind: 'call' }); },
     async load() {
-      ++this.worksVersion;
+      const version = ++this.worksVersion;
       this.worksLoading = false;
+      this.contentLoading = false;
       this.loading = true; this.error = '';
-      try { const data = await societyRequest('detail', { societyId: this.id }, this); for (const key of ['society', 'relationship', 'viewerId', 'members', 'news', 'works', 'events', 'calls']) this[key] = data[key]; this.membersMore = this.members.length === 50; this.worksCursor = data.worksCursor || ''; this.worksMore = !!data.worksMore; }
-      catch (error) { this.error = error.message; } finally { this.loading = false; }
+      try { const data = await societyRequest('detail', { societyId: this.id }, this); if (version !== this.worksVersion) return; for (const key of ['society', 'relationship', 'viewerId', 'members', 'news', 'works', 'events', 'calls']) this[key] = data[key]; this.membersMore = data.membersMore ?? this.members.length === 50; this.membersNextSkip = data.membersNextSkip ?? this.members.length; this.contentPages = data.contentPages || {}; this.worksCursor = data.worksCursor || ''; this.worksMore = !!data.worksMore; }
+      catch (error) { if (version === this.worksVersion) this.error = error.message; } finally { if (version === this.worksVersion) this.loading = false; }
+    },
+    async moreContent() {
+      const tab = this.tab, pagination = this.contentPages[tab];
+      if (this.loading || this.contentLoading || !pagination?.hasMore) return;
+      const version = this.worksVersion;
+      this.contentLoading = true;
+      try {
+        const result = await societyRequest('societyContent', { societyId: this.id, kind: { news: 'news', events: 'event', calls: 'call' }[tab], skip: pagination.nextSkip, limit: 20 }, this);
+        if (version !== this.worksVersion) return;
+        this[tab].push(...result.records);
+        this.contentPages[tab] = { nextSkip: result.nextSkip, hasMore: result.hasMore };
+      } catch (error) { if (version === this.worksVersion) showSocietyError(error); }
+      finally { if (version === this.worksVersion) this.contentLoading = false; }
     },
     async moreWorks() { if (this.loading || this.worksLoading || !this.worksMore) return; const version = this.worksVersion; this.worksLoading = true; try {
       const result = await societyRequest('societyWorks', { societyId: this.id, cursor: this.worksCursor, limit: 12 }, this);
       if (version !== this.worksVersion) return;
       this.works.push(...result.works); this.worksCursor = result.cursor; this.worksMore = result.hasMore;
     } catch (error) { if (version === this.worksVersion) showSocietyError(error); } finally { if (version === this.worksVersion) this.worksLoading = false; } },
-    async moreMembers() { if (this.busy) return; this.busy = true; try { const result = await societyRequest('publicMembers', { societyId: this.id, skip: this.members.length, limit: 20 }, this); this.members.push(...result.members); this.membersMore = result.hasMore; } catch (error) { showSocietyError(error); } finally { this.busy = false; } },
+    async moreMembers() { if (this.busy || this.loading) return; const version = this.worksVersion; this.busy = true; try { const result = await societyRequest('publicMembers', { societyId: this.id, skip: this.membersNextSkip, limit: 20 }, this); if (version !== this.worksVersion) return; this.members.push(...result.members); this.membersMore = result.hasMore; this.membersNextSkip = result.nextSkip ?? this.membersNextSkip + 20; } catch (error) { if (version === this.worksVersion) showSocietyError(error); } finally { this.busy = false; } },
     async mutate(action, payload) {
       if (this.busy) return;
       this.busy = true;

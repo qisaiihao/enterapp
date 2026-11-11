@@ -128,11 +128,15 @@ function clientHarness(options = {}) {
     clearTimeout(id) { timers.delete(id); }, getCurrentPages: () => [],
     uni: { getStorageSync: key => storage.get(key), setStorageSync: (key, value) => storage.set(key, value), removeStorageSync: key => storage.delete(key),
       showToast: value => calls.toasts.push(value.title), navigateTo(args) { calls.navigation++; options.navigationFail ? args.fail(Error('navigation failed')) : args.success(); } },
-    uniCloud: { async callFunction(request) {
+    cloudCall: async (name, data, config) => {
+      assert.equal(config.injectOpenId, false);
+      assert.equal(config.requireAuth, false);
+      const request = { name, data };
       calls.cloud.push(request);
       if (options.cloudHang) return new Promise(() => {});
       return { result: options.result || { code: 0, hasUpdate: false } };
-    } },
+    },
+    uniCloud: { callFunction() { throw Error('新版 App 不得调用 uniCloud 检查更新'); } },
     plus: { runtime, downloader: { createDownload(url, config, callback) {
       calls.downloads++;
       return { addEventListener() {}, abort() {}, start() {
@@ -322,8 +326,8 @@ test('non-App environments do not request updates', async () => {
 test('manifest and route use migrated client, old plugin is absent', () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
   // 上方 local 仍固定 1.7.0 验证最低支持版本；正式包版本以当前 manifest 为准。
-  assert.equal(manifest.versionName, '1.7.7');
-  assert.equal(manifest.versionCode, 177);
+  assert.equal(manifest.versionName, '1.7.9');
+  assert.equal(manifest.versionCode, 179);
   assert.ok(manifest['app-plus'].distribute.android.permissions.some(value => value.includes('REQUEST_INSTALL_PACKAGES')));
   assert.ok(!fs.existsSync(path.join(root, 'uni_modules/uni-upgrade-center-app')));
   assert.ok(!fs.readFileSync(path.join(root, 'pages.json'), 'utf8').includes('uni-upgrade-center-app'));

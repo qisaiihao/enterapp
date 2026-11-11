@@ -43,9 +43,10 @@ function normalizeSeriesBlocksForDisplay(blocks = []) {
 }
 
 function attachPoemDisplayFields(item = {}) {
-  const rawSeries = Array.isArray(item.seriesPoems) && item.seriesPoems.length > 0
-    ? item.seriesPoems
-    : item.seriesBlocks;
+  // seriesPoems 是页面派生字段，旧缓存可能仅有前三首；原始分块始终优先。
+  const rawSeries = Array.isArray(item.seriesBlocks) && item.seriesBlocks.length > 0
+    ? item.seriesBlocks
+    : item.seriesPoems;
   const displaySeriesPoems = normalizeSeriesBlocksForDisplay(rawSeries);
 
   return {

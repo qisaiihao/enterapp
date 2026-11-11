@@ -1,0 +1,4 @@
+{
+  "envId": "cloud1-5gb0pbyl400845f5",
+  "functions": [{ "name": "checkAppUpdate", "root": "./functions/checkAppUpdate", "runtime": "Nodejs18.15", "handler": "index.main", "timeout": 15, "memory": 128, "installDependency": true }]
+}

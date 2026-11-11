@@ -96,10 +96,15 @@ function memoryDb(initial, command, options = {}) {
       return q;
     }
     function aggregate(stages){
-      const a={async end(){calls.push({name,op:'aggregate',stages});let rows=clone(tables[name]);for(const [op,value]of stages){
+      const a={async end(){calls.push({name,op:'aggregate',stages});options.beforeAggregate?.({name,stages});let rows=clone(tables[name]);for(const [op,value]of stages){
         if(op==='match')rows=rows.filter(row=>matches(row,value));
         else if(op==='skip')rows=rows.slice(value);
         else if(op==='limit')rows=rows.slice(0,value);
+        else if(op==='sample') {
+          const random = options.random || Math.random;
+          for(let index=rows.length-1;index>0;index--){const next=Math.floor(random()*(index+1));[rows[index],rows[next]]=[rows[next],rows[index]];}
+          rows=rows.slice(0,value.size);
+        }
         else if(op==='sort')rows.sort((a,b)=>{for(const [key,direction]of Object.entries(value)){const left=a[key] instanceof Date?+a[key]:a[key],right=b[key] instanceof Date?+b[key]:b[key];if(left!==right)return (left>right?1:-1)*direction;}return 0;});
         else if(op==='addFields')rows=rows.map(row=>({...row,...Object.fromEntries(Object.entries(value).map(([k,v])=>[k,expr(v,row)]))}));
         else if(op==='project')rows=rows.map(row=>project(row,value));
@@ -115,7 +120,7 @@ function memoryDb(initial, command, options = {}) {
         else if(op==='count')rows=[{[value]:rows.length}];
         else throw Error('Unsupported memory stage: '+op);
       }return {list:rows};}};
-      for(const key of ['match','sort','skip','limit','project','addFields','lookup','count'])a[key]=value=>aggregate([...stages,[key,value]]);
+      for(const key of ['match','sort','skip','limit','sample','project','addFields','lookup','count'])a[key]=value=>aggregate([...stages,[key,value]]);
       return a;
     }
     return query();

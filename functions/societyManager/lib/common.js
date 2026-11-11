@@ -12,8 +12,24 @@ async function read(db, collection, documentId) {
   try { const result = await db.collection(collection).doc(documentId).get(); return result?.data || null; }
   catch (err) { if (/document with _id .+ does not exist/.test(String(err.errMsg || err.message))) return null; throw err; }
 }
-async function list(db, collection, filter, { skip = 0, limit = 20, order = 'createdAt' } = {}) {
-  return (await db.collection(collection).where(filter).orderBy(order, 'desc').skip(skip).limit(limit).get()).data || [];
+async function list(db, collection, filter, { skip = 0, limit = 20, order = 'createdAt', direction = 'desc' } = {}) {
+  let query = db.collection(collection).where(filter);
+  for (const [field, sort] of Array.isArray(order) ? order : [[order, direction]]) query = query.orderBy(field, sort);
+  return (await query.skip(skip).limit(limit).get()).data || [];
+}
+async function listAll(db, collection, filter) {
+  const rows = [];
+  for (;;) {
+    const batch = await list(db, collection, filter, { skip: rows.length, limit: 100, order: '_id' });
+    rows.push(...batch);
+    if (batch.length < 100) return rows;
+  }
+}
+function oneOf(db, field, values) {
+  if (!values.length) return { [field]: db.command.in([]) };
+  const groups = [];
+  for (let index = 0; index < values.length; index += 100) groups.push({ [field]: db.command.in(values.slice(index, index + 100)) });
+  return groups.length === 1 ? groups[0] : db.command.or(groups);
 }
 function pick(row, fields) { return Object.fromEntries(fields.filter(key => row[key] !== undefined).map(key => [key, row[key]])); }
 function normalizedText(value) { return String(value || '').trim().toLowerCase(); }
@@ -46,4 +62,4 @@ async function platformAdmin(db, user) {
   const config = await read(db, 'adminConfig', 'admin');
   if (!config || !Array.isArray(config.adminPoemIds) || !config.adminPoemIds.includes(user.poemId)) throw error('仅平台管理员可以审核入驻申请', 'FORBIDDEN');
 }
-module.exports = { hash, error, text, id, page, read, list, pick, publicSociety, activeSociety, membershipId, membership, manager, platformAdmin, profileTextMatches };
+module.exports = { hash, error, text, id, page, read, list, listAll, oneOf, pick, publicSociety, activeSociety, membershipId, membership, manager, platformAdmin, profileTextMatches };

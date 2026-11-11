@@ -10,12 +10,12 @@ export const ORIGINAL_POEMS_PAGE_SIZE = 10;
 
 // 开屏和广场使用完全相同的分页参数与缓存键。
 export function peekOriginalPoems() {
-  const key = buildCacheKey({ page: 0, pageSize: ORIGINAL_POEMS_PAGE_SIZE, isPoem: true, isOriginal: true });
+  const key = buildCacheKey({ page: 0, pageSize: ORIGINAL_POEMS_PAGE_SIZE, isPoem: true, isOriginal: true, originalMix: true });
   return cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 }).get(key);
 }
 
 export function getOriginalPoemsVersion() {
-  const key = buildCacheKey({ page: 0, pageSize: ORIGINAL_POEMS_PAGE_SIZE, isPoem: true, isOriginal: true });
+  const key = buildCacheKey({ page: 0, pageSize: ORIGINAL_POEMS_PAGE_SIZE, isPoem: true, isOriginal: true, originalMix: true });
   return cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 }).getVersion(key);
 }
 
@@ -137,7 +137,7 @@ function invalidateFollowingPoems({ page, pageSize = 10 } = {}) {
 }
 
 /**
- * 获取原创诗歌（square模式）
+ * 获取原创诗歌（新诗中穿插高赞和随机诗）
  * 使用通用的 post-list 缓存，但提供更语义化的接口
  * @param {Object} options
  * @param {number} options.page - 页码，从0开始
@@ -149,6 +149,7 @@ function invalidateFollowingPoems({ page, pageSize = 10 } = {}) {
 async function getOriginalPoems({
   page = 0,
   pageSize = ORIGINAL_POEMS_PAGE_SIZE,
+  excludePostIds = [],
   context,
   forceRefresh = false,
   onBackgroundUpdate,
@@ -160,6 +161,8 @@ async function getOriginalPoems({
     pageSize,
     isPoem: true,
     isOriginal: true,
+    originalMix: true,
+    excludePostIds,
     context,
     forceRefresh,
     onBackgroundUpdate,

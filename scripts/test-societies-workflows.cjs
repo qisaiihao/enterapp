@@ -69,6 +69,13 @@ async function main() {
   await ok(review('rejected', 4));
   await ok(submit());
   const revision = app.tables.society_submissions[0].revision;
+  app.tables.posts[0].isOriginal = false;
+  assert.equal((await review('approved', revision)).code, 'POST_CHANGED', 'removing original status after submission prevents approval');
+  const noLongerOriginal = await ok(app.call({ action: 'submissions', id: call.id, societyId: 'a', status: 'pending' }, 'alice'));
+  assert.equal(noLongerOriginal.records[0].post, null, 'review UI cannot approve a poem that is no longer original');
+  assert.equal(app.tables.society_submissions[0].status, 'pending');
+  assert.equal((app.tables.society_publications || []).length, 0);
+  app.tables.posts[0].isOriginal = true;
   app.state.failWrite = 'society_publications';
   assert.equal((await review('approved', revision)).success, false);
   assert.equal(app.tables.society_submissions[0].status, 'pending', 'review rolls back on publication failure');

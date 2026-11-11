@@ -41,14 +41,17 @@ export default {
     async searchHosts() { try { this.hosts = (await societyRequest('list', { query: this.hostQuery }, this)).societies.filter(host => host._id !== this.societyId && !this.form.invitedSocietyIds.includes(host._id)); } catch (error) { showSocietyError(error); } },
     addHost(host) { if (this.selectedHosts.length >= 10) return; this.selectedHosts.push(host); this.form.invitedSocietyIds.push(host._id); this.hosts = this.hosts.filter(item => item._id !== host._id); },
     removeHost(id) { this.form.invitedSocietyIds = this.form.invitedSocietyIds.filter(value => value !== id); this.selectedHosts = this.selectedHosts.filter(host => host._id !== id); },
-    async upload(guestIndex = -1) { if (this.uploading) return; this.uploading = true; try {
+    async upload(guestIndex = -1) { if (this.uploading) return; const guest = guestIndex >= 0 ? this.form.guests[guestIndex] : null; this.uploading = true; try {
       const result = await new Promise((resolve, reject) => uni.chooseImage({ count: 1, sizeType: ['compressed'], success: resolve, fail: reject }));
       if (getCurrentUserId() !== this.actor) throw new Error('账号已切换，请重新打开编辑页');
       const { uploadPrefix } = await societyRequest('myApplication', {}, this);
       const file = result.tempFilePaths[0]; const extension = file.match(/\.(png|jpe?g|webp)(?:\?|$)/i)?.[1] || 'jpg';
       const fileId = await uploadFile(`${uploadPrefix}/content/${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`, file, { context: this, requireAuth: true, pageTag: 'society-content' });
       if (!fileId) throw new Error('上传失败');
-      const display = (await societyFileUrls([fileId]))[fileId] || fileId; if (guestIndex >= 0 && this.form.guests[guestIndex]) { this.form.guests[guestIndex].avatarUrl = fileId; this.form.guests[guestIndex].avatarDisplay = display; } else { this.form.coverImage = fileId; this.coverUrl = display; }
+      const display = (await societyFileUrls([fileId]))[fileId] || fileId;
+      if (getCurrentUserId() !== this.actor) throw new Error('账号已切换，请重新打开编辑页');
+      if (guestIndex >= 0) { if (guest && this.form.guests.includes(guest)) { guest.avatarUrl = fileId; guest.avatarDisplay = display; } }
+      else { this.form.coverImage = fileId; this.coverUrl = display; }
     } catch (error) { if (!/cancel/i.test(error.errMsg || '')) showSocietyError(error); } finally { this.uploading = false; } },
     async save() { if (this.busy || this.uploading) return; this.busy = true; try {
       if (getCurrentUserId() !== this.actor) throw new Error('账号已切换，请重新打开编辑页');

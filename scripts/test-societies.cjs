@@ -24,7 +24,7 @@ function runtime() {
     if (filter?.$and) return filter.$and.every(item => matches(row, item));
     if (filter?.$or) return filter.$or.some(item => matches(row, item));
     return Object.entries(filter || {}).every(([key, value]) => value?.$regex
-      ? new RegExp(value.$regex, value.options).test(row[key] || '') : value?.$in !== undefined ? value.$in.includes(row[key]) : value?.$gte !== undefined ? row[key] >= value.$gte : value?.$gt !== undefined ? row[key] > value.$gt : value?.$neq !== undefined ? row[key] !== value.$neq : Array.isArray(row[key]) ? row[key].includes(value) : row[key] === value);
+      ? new RegExp(value.$regex, value.options).test(row[key] || '') : value?.$in !== undefined ? (Array.isArray(row[key]) ? row[key].some(item => value.$in.includes(item)) : value.$in.includes(row[key])) : value?.$gte !== undefined ? row[key] >= value.$gte : value?.$gt !== undefined ? row[key] > value.$gt : value?.$lte !== undefined ? row[key] != null && row[key] <= value.$lte : value?.$neq !== undefined ? row[key] !== value.$neq : Array.isArray(row[key]) ? row[key].includes(value) : row[key] === value);
   };
   function collection(name, transaction) {
     const data = transaction ? transaction.tables : tables;
@@ -44,16 +44,24 @@ function runtime() {
         };
       },
       where(filter) {
-        let skip = 0, limit = 100, orderKey, direction, fields;
+        let skip = 0, limit = 100, fields;
+        const orders = [];
         const query = {
           skip(value) { skip = value; return query; }, limit(value) { limit = value; return query; },
-          orderBy(key, value) { orderKey = key; direction = value; return query; }, field(value) { fields = value; return query; },
+          orderBy(key, value) { orders.push([key, value]); return query; }, field(value) { fields = value; return query; },
           async count() { read(); return { total: data[name].filter(row => matches(row, filter)).length }; },
           async remove() { write(); const before = data[name].length; data[name] = data[name].filter(row => !matches(row, filter)); return { stats: { removed: before - data[name].length } }; },
           async get() {
             read();
             let rows = data[name].filter(row => matches(row, filter));
-            if (orderKey) rows = rows.sort((a, b) => (a[orderKey] > b[orderKey] ? 1 : a[orderKey] < b[orderKey] ? -1 : 0) * (direction === 'desc' ? -1 : 1));
+            if (orders.length) rows = rows.sort((a, b) => {
+              for (const [key, direction] of orders) {
+                const left = a[key] ?? false, right = b[key] ?? false;
+                const comparison = (left > right ? 1 : left < right ? -1 : 0) * (direction === 'desc' ? -1 : 1);
+                if (comparison) return comparison;
+              }
+              return 0;
+            });
             rows = rows.slice(skip, skip + limit);
             if (fields) rows = rows.map(row => Object.fromEntries(Object.entries(row).filter(([key]) => key === '_id' || fields[key])));
             return { data: structuredClone(rows) };
@@ -64,7 +72,7 @@ function runtime() {
     };
   }
   const db = {
-    command: { gte: value => ({ $gte: value }), gt: value => ({ $gt: value }), neq: value => ({ $neq: value }), in: values => ({ $in: values }), and: values => ({ $and: values }), or: values => ({ $or: values }) },
+    command: { gte: value => ({ $gte: value }), gt: value => ({ $gt: value }), lte: value => ({ $lte: value }), neq: value => ({ $neq: value }), in: values => ({ $in: values }), and: values => ({ $and: values }), or: values => ({ $or: values }) },
     RegExp: ({ regexp, options }) => ({ $regex: regexp, options }),
     collection: name => collection(name),
     async runTransaction(callback) {

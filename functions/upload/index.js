@@ -5,6 +5,9 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV }) // 使用当前云环境
 
 // 云函数入口函数
 exports.main = async (event, context) => {
+  if (require('./release-path')(event.cloudPath)) {
+    return { success: false, code: 'RELEASE_PATH_RESERVED', message: '安装包只能通过版本管理工具上传' };
+  }
   const wxContext = cloud.getWXContext()
   const openid = wxContext.OPENID || event.openid
 

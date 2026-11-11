@@ -523,7 +523,7 @@ async function testRetainedPreloadRejectsExplicitChanges() {
     assert.equal(app.service.retainPoemSquarePreload(), true);
     assert.equal(app.service.hasPoemSquarePreload(), true, 'retain 不会消耗交接对象');
     const ns = app.cacheManager.namespace('posts:list');
-    const key = 'page:0:size:10:poem:true:orig:true';
+    const key = 'page:0:size:10:poem:true:orig:true:originalMix:true';
     if (mode === 'invalidate') app.api.invalidatePostList({ isPoem: true, isOriginal: true });
     if (mode === 'set') ns.set(key, ns.get(key), { ttlMs: 90000 });
     if (mode === 'update') assert.equal(ns.update(key, posts => posts), true);

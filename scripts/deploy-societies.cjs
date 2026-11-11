@@ -12,9 +12,9 @@ const INDEXES = {
   society_join_requests: [['societyId', 'status', '-createdAt'], ['userId', '-createdAt']],
   society_follows: [['userId', 'following', '-createdAt']],
   society_publications: [['status', '-publishedAt'], ['societyId', 'status', '-publishedAt'], ['societyId', 'authorId', 'status', '-publishedAt']],
-  society_news: [['status', '-createdAt'], ['societyId', 'status', '-createdAt']],
-  society_events: [['status', '-createdAt'], ['societyId', 'status', '-createdAt'], ['societyId', 'status', 'endTime']],
-  society_calls: [['status', '-createdAt'], ['societyId', 'status', '-createdAt'], ['hostSocietyIds', 'status', '-createdAt'], ['invitedSocietyIds', 'status', '-createdAt']],
+  society_news: [['status', '-createdAt'], ['societyId', 'status', '-createdAt'], ['societyId', 'status', '-pinned', '-createdAt', '-_id']],
+  society_events: [['status', '-createdAt'], ['societyId', 'status', '-createdAt'], ['societyId', 'status', '-createdAt', '-_id'], ['societyId', 'status', 'endTime']],
+  society_calls: [['status', '-createdAt'], ['status', '-createdAt', '-_id'], ['status', 'deadline', '-_id'], ['status', '-deadline', '-_id'], ['societyId', 'status', '-createdAt'], ['societyId', 'status', '-createdAt', '-_id'], ['hostSocietyIds', 'status', '-createdAt'], ['invitedSocietyIds', 'status', '-createdAt']],
   society_registrations: [['eventId', 'status', '-createdAt'], ['userId', '-createdAt'], ['societyId', 'status']],
   society_submissions: [['callId', 'status', '-createdAt'], ['callId', '-createdAt'], ['userId', '-createdAt'], ['societyId', 'status', '-submittedAt']],
   society_notifications: [['userId', '-createdAt'], ['userId', 'category', '-createdAt'], ['userId', 'read']]
@@ -42,7 +42,7 @@ async function main() {
       for (const keys of definitions) {
         const schema = keys.map(key => ({ Name: key.replace(/^-/, ''), Direction: key.startsWith('-') ? '-1' : '1' }));
         if (existing.some(index => index.Keys?.length === schema.length && index.Keys.every((key, i) => key.Name === schema[i].Name && String(key.Direction) === schema[i].Direction))) continue;
-        const name = 'soc_' + keys.map(key => key.replace(/^-/, '')).join('_');
+        const name = indexName(keys);
         if (existing.some(index => index.Name === name)) throw Object.assign(new Error(), { code: 'INDEX_DEFINITION_CONFLICT' });
         await manager.database.updateCollection(table, { CreateIndexes: [{ IndexName: name, MgoKeySchema: { MgoIndexKeys: schema, MgoIsUnique: false } }] });
         console.log(`[索引] ${table}/${name}`);
@@ -68,4 +68,5 @@ async function main() {
   console.log('线上公开读取与20项接口鉴权检查通过');
 }
 if (require.main === module) main().catch(error => { console.error('诗社部署/验收失败：', error.code || error.name); process.exitCode = 1; });
-module.exports = { INDEXES };
+function indexName(keys) { return 'soc_' + keys.map(key => key.startsWith('-') ? 'desc_' + key.slice(1) : key).join('_'); }
+module.exports = { INDEXES, indexName };

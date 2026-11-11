@@ -44,6 +44,7 @@ function backend(name) {
     if (id === 'wx-server-sdk') return cloud;
     if (id.includes('get-blocked-user-ids')) return async () => [];
     if (id === './_lib/posts') return require('../functions/_shared/posts');
+    if (name === 'getPostList' && id === './lib/original-poems') return require('../functions/getPostList/lib/original-poems');
     throw new Error(id);
   } }, { filename: name });
   return { run: exports.main, count: () => conversions };

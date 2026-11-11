@@ -4,7 +4,7 @@ const path = require('node:path');
 const puppeteer = require('puppeteer-core');
 const fixtures = require('./fixtures/society-ui.cjs');
 const root = path.resolve(__dirname, '..');
-const output = path.join(root, 'output/societies-ui-20261102');
+const output = path.resolve(root, process.env.SOCIETIES_UI_OUTPUT || 'output/societies-ui-20261102');
 fs.mkdirSync(output, { recursive: true });
 const apiMock = String.raw`
 const f = ${JSON.stringify(fixtures)};
@@ -17,6 +17,7 @@ export async function societyRequest(action, payload = {}) {
   if (action === 'manageContent') return { records: (payload.kind === 'event' ? f.events : payload.kind === 'call' ? f.calls : f.news).map(item => ({ ...item, revision: 1, societyId: 'society-a' })) };
   if (action === 'myWorks') return { works: f.works, hasMore: false };
   if (action === 'societyWorks') return { works: [{ ...f.works[0], _id: 'poem-more' }], cursor: '4', hasMore: false };
+  if (action === 'societyContent') return { records: [{ ...f.events[0], _id: 'event-more', title: '下一页活动' }], nextSkip: 21, hasMore: false };
   if (action === 'registrations') return { records: [{ _id: 'registration', nickName: '某某某', createdAt: new Date().toISOString() }], hasMore: false };
   if (action === 'registration') return { registered: payload.registered };
   if (action === 'myParticipation') return { records: [{ _id: 'submission', callId: f.calls[0]._id, revision: 1, title: '外滩，三个脚步', status: 'approved', item: f.calls[0], submittedAt: new Date().toISOString() }], hasMore: false };
@@ -30,7 +31,7 @@ export async function societyRequest(action, payload = {}) {
   if (action === 'callList') return { calls: payload.filter === 'past' ? [] : f.calls, hasMore: false };
   if (action === 'list') return { societies: payload.query === '不存在' ? [] : [f.society], hasMore: false };
   if (action === 'memberDirectory') return { society: f.society, managers: [...f.members.filter(row => row.role === 'owner'), { ...f.members[1], userId: 'carol', nickName: '管理员', role: 'admin' }], members: f.members.filter(row => row.role === 'member'), hasMore: false };
-  if (action === 'detail') return { society: f.society, relationship: { role: 'owner', following: true }, viewerId: 'alice', works: f.works.map(item => ({ ...item })), worksCursor: String(f.works.length), worksMore: true, members: f.members, news: f.news, events: f.events, calls: f.calls };
+  if (action === 'detail') return { society: f.society, relationship: { role: 'owner', following: true }, viewerId: 'alice', works: f.works.map(item => ({ ...item })), worksCursor: String(f.works.length), worksMore: true, members: f.members, news: f.news, events: f.events, calls: f.calls, contentPages: { events: { hasMore: true, nextSkip: 20 } } };
   if (action === 'myApplication') return { application: null, uploadPrefix: 'societies/test' };
   if (action === 'manage') return { society: f.society, managerRole: 'owner', members: f.members, membersMore: false, requests: f.requests, uploadPrefix: 'societies/test', events: f.events, calls: f.calls, news: f.news };
   if (action === 'notifications') return { notifications: window.__societyNotificationsCleared ? [] : [{ _id: 'notice-a', category: 'membership', title: '入社申请已通过', body: '欢迎加入回车键诗社', targetId: 'society-a', targetKind: 'society', read: false, createdAt: '2026-11-02T09:00:00+08:00', societyName: f.society.name, societyAvatar: f.society.avatarUrl }], hasMore: false };
@@ -157,6 +158,13 @@ async function main() {
     await page.click('#society-ui-review .society-card');
     assert.equal(await page.evaluate(() => window.__societyNavigations.at(-1)), '/pages-community/society/society?id=society-a');
     await page.evaluate(() => window.__showSociety('society'));
+    await page.$$eval('#society-ui-review .community-tab', buttons => buttons.find(button => button.textContent.includes('活动')).click());
+    await page.click('#society-ui-review .more-content');
+    await page.waitForFunction(() => window.__societyVm.events.some(item => item._id === 'event-more'));
+    assert.ok(await page.evaluate(() => window.__societyRequests.some(row => row.action === 'societyContent' && row.payload.kind === 'event' && row.payload.skip === 20)), 'society event tab loads the next server page');
+    assert.equal(await page.$('#society-ui-review .more-content'), null, 'the content pagination button disappears at the end');
+    await page.evaluate(() => { const vm = window.__societyVm; vm.tab = 'about'; vm.members = []; vm.membersMore = true; });
+    await page.waitForFunction(() => document.querySelector('#society-ui-review')?.textContent.includes('更多成员'));
     await page.$$eval('#society-ui-review .community-tab', buttons => buttons.find(button => button.textContent.includes('作品')).click());
     assert.equal(await page.evaluate(() => window.__societyVm.tab), 'works');
     assert.equal(await page.$$('#society-ui-review .society-works--feed .post-item-wrapper').then(items => items.length), fixtures.works.length, 'society works reuse the index feed rows');

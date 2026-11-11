@@ -26,7 +26,7 @@ async function main() {
     uni: { getStorageSync: () => null, setStorageSync() {}, removeStorageSync() {} },
     getCurrentUserId: () => actor,
     requireLogin: async () => { loginPrompts++; return true; },
-    cloudCall: async (name, payload) => { calls.push({ name, payload }); if (transportFailure) { const failure = transportFailure; transportFailure = null; throw failure; } return respond(); },
+    cloudCall: async (name, payload, options) => { calls.push({ name, payload, options }); if (transportFailure) { const failure = transportFailure; transportFailure = null; throw failure; } return respond(); },
     unwrapResult(response) { if (!response.result.success) throw Object.assign(new Error(response.result.message), { result: response.result }); return response.result; },
     fileUrlCache: { getTempUrls: async () => ({}) }, hydrateTempUrls: async () => {}
   }, ['societyRequest']);
@@ -34,6 +34,8 @@ async function main() {
   await api.societyRequest('myApplication');
   assert.equal(calls.at(-1).payload.societyToken, undefined, 'no secondary credential is sent');
   assert.equal(calls.at(-1).payload.openid, undefined, 'the shared cloudCall injects the logged-in account');
+  await api.societyRequest('updateSociety');
+  assert.equal(calls.at(-1).options.timeoutMs, 310000, 'profile moderation gets the same wait budget as content publishing');
 
   let resolve;
   respond = () => new Promise(done => { resolve = done; });

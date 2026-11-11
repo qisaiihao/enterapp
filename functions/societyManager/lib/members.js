@@ -1,6 +1,6 @@
 'use strict';
 const { hash, error, text, id, page, read, list, activeSociety, membership, membershipId, manager, publicSociety, profileTextMatches } = require('./common');
-const { publicMembers, publicOpportunities } = require('./public');
+const { publicMemberPage, publicOpportunities } = require('./public');
 const { send } = require('./notifications');
 
 async function follow(db, user, event) {
@@ -44,19 +44,18 @@ async function manage(db, user, event) {
   const society = await manager(db, event.societyId, user);
   const self = await membership(db, society._id, user._openid);
   const [members, requests, events, calls, news] = await Promise.all([
-    publicMembers(db, society._id, { limit: 20 }), list(db, 'society_join_requests', { societyId: society._id, status: 'pending' }, { limit: 20 }),
+    publicMemberPage(db, society._id, { limit: 20 }), list(db, 'society_join_requests', { societyId: society._id, status: 'pending' }, { limit: 20 }),
     publicOpportunities(db, 'event', society._id, 20), publicOpportunities(db, 'call', society._id, 20),
     list(db, 'society_news', { societyId: society._id, status: 'published' }, { limit: 20 })
   ]);
   const users = await Promise.all(requests.map(row => read(db, 'users', row.userDocId)));
-  return { society: publicSociety(society), managerRole: self.role, uploadPrefix: require('./settings').uploadPrefix(society._id), members, membersMore: members.length === 20, events, calls, news,
+  return { society: publicSociety(society), managerRole: self.role, uploadPrefix: require('./settings').uploadPrefix(society._id), members: members.members, membersMore: members.hasMore, membersNextSkip: members.nextSkip, events, calls, news,
     requests: requests.map((row, index) => ({ ...row, nickName: users[index]?.nickName || '诗友', avatarUrl: users[index]?.avatarUrl || '' })) };
 }
 async function memberList(db, user, event) {
   await manager(db, event.societyId, user);
   const pagination = page(event);
-  const members = await publicMembers(db, event.societyId, pagination);
-  return { members, hasMore: members.length === pagination.limit };
+  return publicMemberPage(db, event.societyId, pagination);
 }
 async function requestList(db, user, event) {
   await manager(db, event.societyId, user);

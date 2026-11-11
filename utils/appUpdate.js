@@ -1,8 +1,9 @@
 import { appid as APP_ID } from '@/manifest.json';
 import { getDeviceInfoCompat } from '@/utils/system-info.js';
 import { isUpdateVersion, compareUpdateVersion } from '@/utils/updateVersion.js';
+import { cloudCall } from '@/utils/cloudCall.js';
 
-const CACHE_KEY = 'appUpdate.v2.latest';
+const CACHE_KEY = 'appUpdate.v3.cloudbase.latest';
 const CACHE_MS = 30 * 60 * 1000;
 let checkFlight = null;
 let installFlight = null;
@@ -143,7 +144,9 @@ async function performCheck(manual) {
       if (cache.fingerprint === fingerprint && age >= 0 && age < CACHE_MS) return { type: 'latest' };
     } catch (_) { /* Cache failure must not prevent a check. */ }
   }
-  const response = await withTimeout(uniCloud.callFunction({ name: 'checkAppUpdate', data: local }),
+  const response = await withTimeout(cloudCall('checkAppUpdate', local, {
+    pageTag: 'app-update', injectOpenId: false, requireAuth: false, silent: true
+  }),
     20000, '检查更新超时，请稍后重试');
   const info = response && response.result;
   if (info && info.code === 0 && info.hasUpdate === false) {

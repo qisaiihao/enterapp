@@ -37,6 +37,9 @@ function getUserId(wxContext, event, context) {
 }
 
 exports.main = async (event, context) => {
+  if (require('./release-path')(event.cloudPath)) {
+    return { success: false, code: 'RELEASE_PATH_RESERVED', message: '安装包只能通过版本管理工具上传' };
+  }
   let { fileContent, cloudPath } = event
   const wxContext = cloud.getWXContext()
   const openid = getUserId(wxContext, event, context)

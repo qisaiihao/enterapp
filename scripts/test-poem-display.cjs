@@ -116,6 +116,20 @@ for (const isSeries of [false, true]) {
 }
 assert.deepEqual(plain(original), before, 'Original page preparation must leave source poem fields intact');
 
+const sevenBlocks = Array.from({ length: 7 }, (_, index) => ({
+  id: `poem-${index + 1}`, subtitle: `第${index + 1}首`, content: `  第${index + 1}首正文`
+}));
+const cachedSeries = freezeDeep({
+  _id: 'seven-poems', isSeries: true, seriesBlockCount: 7, seriesBlocks: sevenBlocks,
+  seriesPoems: sevenBlocks.slice(0, 3).map(block => ({ ...block, content: '旧预览' }))
+});
+const repaired = square.methods.normalizePoemCardPost.call(page, { ...cachedSeries });
+assert.deepEqual(plain(repaired.seriesPoems).map(block => block.content), sevenBlocks.map(block => block.content),
+  'Seven source poems must replace a stale three-poem display cache');
+assert.deepEqual(plain(display.attachPoemDisplayFields({ seriesBlocks: [], seriesPoems: sevenBlocks }).displaySeriesPoems)
+  .map(block => block.content), sevenBlocks.map(block => block.content), 'Legacy seriesPoems-only posts remain supported');
+assert.equal(cachedSeries.seriesPoems.length, 3, 'Do not mutate the incoming cached post');
+
 const activityCard = loadModule('components/activity/ActivityPoemCard.vue', display);
 function preview(item, collapsedMaxLines = 2, expanded = false) {
   return componentContext(activityCard, { item, collapsedMaxLines, expanded }).collapsedPreviewLines;

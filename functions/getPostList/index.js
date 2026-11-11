@@ -1,4 +1,5 @@
 const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
+const { originalPoems } = require('./lib/original-poems');
 // 云函数入口文件
 const cloud = require('wx-server-sdk');
 
@@ -327,12 +328,23 @@ exports.main = async (event, context) => {
     const hasFilter = isPoem !== undefined || isOriginal !== undefined || isDiscussion !== undefined || tag || author || includeActivity === true || !!safeActivityId;
     const enableHomeRanking = homeRanking === true && !hasFilter;
     const enableRandomMix = !hasFilter && !enableHomeRanking;
+    const enableOriginalMix = event.originalMix === true && isPoem === true && isOriginal === true
+      && isDiscussion === undefined && !tag && !author && !includeActivity && !safeActivityId;
     
     let posts = [];
     let timeOrderedPosts = []; // 在外层声明，便于在日志输出时使用
     let randomPosts = []; // 在外层声明，便于在日志输出时使用
     
-    if (enableHomeRanking) {
+    if (enableOriginalMix) {
+      posts = await originalPoems(db, {
+        ...matchConditions,
+        isDeleted: _.neq(true),
+        $and: [
+          { $or: [{ auditStatus: _.exists(false) }, { auditStatus: null }, { auditStatus: '' }, { auditStatus: 'approved' }] },
+          ...(blockedUserIds.length ? [{ realAuthorOpenid: _.nin(blockedUserIds) }] : [])
+        ]
+      }, { limit, excludePostIds: event.excludePostIds || [] });
+    } else if (enableHomeRanking) {
       // 在数据库分页之前加权；刷新和翻页保持同一顺序，不再随机打乱。
       const rankedRes = await query.addFields({
         homeSortTime: {

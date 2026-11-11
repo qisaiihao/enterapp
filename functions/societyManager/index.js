@@ -11,7 +11,7 @@ const notices = require('./lib/notifications');
 const settings = require('./lib/settings');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database({ throwOnNotFound: false });
-const publicActions = new Set(['home', 'list', 'detail', 'profile', 'opportunity', 'publicMembers', 'memberDirectory', 'callList', 'societyWorks']);
+const publicActions = new Set(['home', 'list', 'detail', 'profile', 'opportunity', 'publicMembers', 'memberDirectory', 'callList', 'societyWorks', 'societyContent']);
 const handlers = {
   ...Object.fromEntries(['changeContent', 'editContent', 'acceptHost', 'myWorks', 'publishWork'].map(action => [action, (user, event) => content[action](db, user, event)])),
   saveContent: (user, event) => content.saveContent(db, cloud, user, event),
@@ -22,6 +22,7 @@ const handlers = {
   list: (user, event) => publicApi.listSocieties(db, event, user),
   detail: (user, event) => publicApi.detail(db, user, event),
   societyWorks: (user, event) => publicApi.societyWorks(db, event, user),
+  societyContent: (user, event) => publicApi.societyContent(db, event),
   publicMembers: (user, event) => publicApi.memberList(db, event),
   memberDirectory: (user, event) => publicApi.memberDirectory(db, event),
   profile: (user, event) => publicApi.profile(db, user, event),

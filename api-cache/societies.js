@@ -56,7 +56,7 @@ export async function societyRequest(action, payload = {}, context) {
     let response;
     try {
       response = await cloudCall('societyManager', { ...payload, action },
-        { context, pageTag: `societies:${action}`, requireAuth: false, timeoutMs: action === 'saveContent' ? 310000 : undefined, silent: true });
+        { context, pageTag: `societies:${action}`, requireAuth: false, timeoutMs: ['saveContent', 'updateSociety'].includes(action) ? 310000 : undefined, silent: true });
     } catch (cause) {
       // Never surface SDK messages, which may include request details.
       const code = /^[A-Z][A-Z0-9_]{1,47}$/.test(cause?.code || '') ? cause.code : 'CLOUD_CALL_FAILED';
