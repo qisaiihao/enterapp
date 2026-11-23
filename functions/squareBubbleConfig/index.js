@@ -3,7 +3,7 @@ const { isAdminByPoemId } = require('./_lib/admin-auth');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 const DEFAULT = { enabled: true, text: '来看看本期周刊', target: 'weekly' };
-const TARGETS = ['weekly', 'activities', 'ranking', 'topics'];
+const TARGETS = ['weekly', 'weekly-selection', 'ranking', 'topics', 'activities', 'societies', 'collage', 'search', 'messages', 'favorites', 'portfolio', 'feed', 'mine', 'feedback', 'contact'];
 
 exports.main = async (event = {}) => {
   try {

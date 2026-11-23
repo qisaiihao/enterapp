@@ -6,10 +6,25 @@
     <!-- 顶部栏 -->
     <top-bar @safe-area-ready="onSafeAreaReady">
       <template #center>
-        <button class="poem-mode-btn" :aria-label="isReadingMode ? '切换到原创' : '切换到读诗'" @tap="togglePoemMode">
-          <text>{{ isReadingMode ? '读诗' : '原创' }}</text>
-          <text class="poem-mode-arrow">⇄</text>
-        </button>
+        <view class="poem-mode-tabs">
+          <view
+            class="poem-mode-tab"
+            :class="{ 'poem-mode-tab--active': !isReadingMode }"
+            aria-label="切换到原创"
+            @tap="setPoemMode('original')"
+          >
+            <text class="poem-mode-tab-text">原创</text>
+          </view>
+          <view
+            class="poem-mode-tab"
+            :class="{ 'poem-mode-tab--active': isReadingMode }"
+            aria-label="切换到读诗"
+            @tap="setPoemMode('reading')"
+          >
+            <text class="poem-mode-tab-text">读诗</text>
+          </view>
+          <view class="poem-mode-indicator" :style="poemModeIndicatorStyle"></view>
+        </view>
       </template>
     </top-bar>
 
@@ -42,10 +57,9 @@
       </AppMotion>
     </view>
 
-    <view class="activity-entry-container" :style="{ top: (safeAreaTop * 2 + 118) + 'rpx' }">
-      <view class="activity-entry-btn" role="button" aria-label="打开活动" @tap="navigateToActivityList">
+    <view v-if="!isReadingMode" class="activity-entry-container" :style="{ top: (safeAreaTop * 2 + 144) + 'rpx' }">
+      <view class="activity-entry-btn">
         <image class="activity-entry-icon" src="/static/images/icons/activities.png" mode="aspectFit" />
-        <text class="activity-entry-text">活动</text>
       </view>
       <SquareSpeechBubble
         v-if="!isReadingMode && !showFollowingOnly && showSquareBubble"
@@ -55,7 +69,7 @@
     </view>
 
     <!-- 关注头像栏 - 只在关注模式下显示 -->
-    <view v-if="!isReadingMode && showFollowingOnly" class="following-avatar-bar-wrapper" :style="{ top: (safeAreaTop * 2 + 250) + 'rpx' }">
+    <view v-if="!isReadingMode && showFollowingOnly" class="following-avatar-bar-wrapper" :style="{ top: (safeAreaTop * 2 + 274) + 'rpx' }">
       <following-avatar-bar
         ref="followingAvatarBar"
         mode="poem-square"
@@ -65,7 +79,7 @@
       />
     </view>
 
-    <view v-if="isReadingMode" class="poet-avatar-bar-wrapper" :style="{ top: (safeAreaTop * 2 + 250) + 'rpx' }">
+    <view v-if="isReadingMode" class="poet-avatar-bar-wrapper" :style="{ top: (safeAreaTop * 2 + 150) + 'rpx' }">
       <poet-avatar-bar ref="poetAvatarBar" :selected-poet-name="selectedPoetName" @select="onPoetSelect" />
     </view>
 
@@ -80,7 +94,7 @@
     </view>
 
     <!-- 内容列表 -->
-    <view v-else :class="['square-mode-container', hasAvatarBar ? 'with-avatar-bar' : '']" :style="{ paddingTop: (safeAreaTop * 2 + (hasAvatarBar ? 450 : 250)) + 'rpx' }">
+    <view v-else :class="['square-mode-container', hasAvatarBar ? 'with-avatar-bar' : '']" :style="{ paddingTop: (safeAreaTop * 2 + (isReadingMode ? 350 : (hasAvatarBar ? 474 : 274))) + 'rpx' }">
       <view v-if="isLoading" class="empty-state"><text>加载中...</text></view>
       <view v-else-if="postList.length === 0" class="empty-state">
         <view class="empty-text">{{ !isReadingMode && showFollowingOnly ? '关注的人还没有发布诗歌哦～' : '还没刷出来，再等等~' }}</view>
@@ -265,6 +279,11 @@ export default {
   },
   computed: {
     isReadingMode() { return this.poemMode === 'reading'; },
+    poemModeIndicatorStyle() {
+      const index = this.isReadingMode ? 1 : 0;
+      const translateX = index * 50 + 25;
+      return `left: calc(${translateX}% - 22rpx);`;
+    },
     hasAvatarBar() { return this.isReadingMode || this.showFollowingOnly; },
     squareBubbleKey() {
       return JSON.stringify([this.squareBubble.text, this.squareBubble.target]);
@@ -402,6 +421,11 @@ export default {
     }, 300); // 增加防抖时间到300ms
   },
   methods: {
+    setPoemMode(mode) {
+      const target = mode === 'reading' ? 'reading' : 'original';
+      if (target === this.poemMode) return;
+      this.togglePoemMode();
+    },
     togglePoemMode() {
       if (this.$refs.poemFilterMotion?.rendered) {
         this.$refs.poemFilterMotion.dismiss(() => this.togglePoemMode());
@@ -453,6 +477,10 @@ export default {
       try { uni.setStorageSync(SQUARE_BUBBLE_READ_KEY, this.squareBubbleReadKey); } catch (_) {}
       if (target.value === 'activities') {
         this.navigateToActivityList();
+        return;
+      }
+      if (target.type === 'switchTab') {
+        uni.switchTab({ url: target.url });
         return;
       }
       uni.navigateTo({ url: target.url });
@@ -1547,29 +1575,55 @@ export default {
   color: #ffffff;
 }
 
-.poem-mode-btn {
-  flex-shrink: 0;
-  display: inline-flex;
+.poem-mode-tabs {
+  position: relative;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8rpx;
-  min-width: 128rpx;
-  min-height: 64rpx;
-  margin: 0;
-  padding: 0 16rpx;
-  border-radius: 999rpx;
-  background: var(--app-subtle-surface-bg, #f1efed);
-  color: var(--app-primary-text, #333);
-  font-size: 26rpx;
-  line-height: 1;
+  flex-shrink: 0;
+  height: 100rpx;
 }
 
-.poem-mode-btn::after { border: none; }
-.poem-mode-arrow { font-size: 28rpx; }
+.poem-mode-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 104rpx;
+  height: 100%;
+  padding: 0 8rpx;
+  box-sizing: border-box;
+}
+
+.poem-mode-tab:active {
+  transform: scale(0.96);
+}
+
+.poem-mode-tab-text {
+  font-size: 30rpx;
+  line-height: 1;
+  color: var(--app-secondary-text, #999);
+  font-weight: 500;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.poem-mode-tab--active .poem-mode-tab-text {
+  color: var(--app-primary-text, #000);
+  font-weight: 600;
+  transform: scale(1.02);
+}
+
+.poem-mode-indicator {
+  position: absolute;
+  bottom: 10rpx;
+  width: 44rpx;
+  height: 6rpx;
+  border-radius: 3rpx;
+  background: var(--app-primary-text, #333);
+  transition: left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
 .activity-entry-container {
   position: absolute;
-  top: calc(var(--safe-area-top, 44px) + 118rpx);
+  top: calc(var(--safe-area-top, 44px) + 144rpx);
   left: 30rpx;
   z-index: 5;
   display: flex;
@@ -1589,24 +1643,12 @@ export default {
   justify-content: center;
 }
 
-.activity-entry-btn:active {
-  transform: scale(0.95);
-}
-
 .activity-entry-icon {
   width: 120rpx;
   height: 98rpx;
   display: block;
   filter: var(--app-activity-entry-icon-filter, none);
   opacity: var(--app-activity-entry-icon-opacity, 1);
-}
-
-.activity-entry-text {
-  margin-top: -4rpx;
-  font-size: 22rpx;
-  line-height: 1.2;
-  color: var(--app-activity-entry-text-color, #9b9b9b);
-  text-align: center;
 }
 
 .poet-avatar-bar-wrapper { position: absolute; left: 0; right: 0; z-index: 10; }

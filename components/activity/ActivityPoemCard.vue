@@ -25,7 +25,7 @@
 
               <view class="post-content expanded" :style="{ color: safeTextColor, whiteSpace: 'pre-wrap' }"><PoemRichText :text="currentSeriesPoem.content" :styles="currentSeriesPoem.poemTextStyles || []" :source-text="currentSeriesPoem.sourceContent || currentSeriesPoem.content" :base-font-size="item.poemFontSize" :vertical="item.poemVertical" /></view>
 
-              <view v-if="showSignature" class="user-signature">
+              <view v-if="showSignature" :class="['user-signature', { 'user-signature--vertical': item.poemVertical }]">
                 <image
                   class="signature-image"
                   :src="item.authorSignature"
@@ -89,7 +89,7 @@
                   class="highlight-line"
                 ><PoemRichText :text="highlightLine" :styles="item.poemTextStyles || []" :source-text="item.content" :base-font-size="item.poemFontSize" /></view></block><block v-else><PoemRichText :text="displayContent" :styles="item.poemTextStyles || []" :source-text="item.content" :base-font-size="item.poemFontSize" /></block></block></view>
 
-          <view v-if="expanded && showSignature" class="user-signature">
+          <view v-if="expanded && showSignature" :class="['user-signature', { 'user-signature--vertical': item.poemVertical }]">
             <image
               class="signature-image"
               :src="item.authorSignature"
@@ -100,7 +100,7 @@
             />
           </view>
 
-          <view v-if="!expanded && showSignature" class="user-signature-small">
+          <view v-if="!expanded && showSignature" :class="['user-signature-small', { 'user-signature-small--vertical': item.poemVertical }]">
             <image
               class="signature-image-small"
               :src="item.authorSignature"
@@ -480,6 +480,11 @@ export default {
   pointer-events: none;
 }
 
+.user-signature.user-signature--vertical {
+  left: 60rpx;
+  right: auto;
+}
+
 .signature-image {
   width: 180rpx;
   height: 90rpx;
@@ -499,6 +504,11 @@ export default {
   right: 60rpx;
   z-index: 10;
   pointer-events: none;
+}
+
+.user-signature-small.user-signature-small--vertical {
+  left: 60rpx;
+  right: auto;
 }
 
 .signature-image-small {

@@ -166,8 +166,21 @@ async function testLikeDuringModeSwitch() {
   }
 }
 
+async function testModeTabs() {
+  const { page } = runtime();
+  page.getIndexData(); await drain();
+  page.setPoemMode('original'); await drain();
+  assert.equal(page.isReadingMode, false, '选择当前模式不切换');
+  page.setPoemMode('reading'); await drain();
+  assert.equal(page.isReadingMode, true);
+  page.setPoemMode('reading'); await drain();
+  assert.equal(page.isReadingMode, true, '重复选择同一模式不切换');
+  page.setPoemMode('original'); await drain();
+  assert.equal(page.isReadingMode, false);
+}
+
 (async () => {
-  for (const test of [testModesAndFilters, testLateResponses, testNavigation, testLikeDuringModeSwitch]) {
+  for (const test of [testModesAndFilters, testLateResponses, testNavigation, testLikeDuringModeSwitch, testModeTabs]) {
     await test(); console.log('PASS ' + test.name);
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });

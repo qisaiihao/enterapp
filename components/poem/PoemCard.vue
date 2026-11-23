@@ -34,7 +34,7 @@
 
             <PoemCreationMeta :post="post" :color="cardTextColor" />
 
-            <view v-if="canShowSignature" class="user-signature">
+            <view v-if="canShowSignature" :class="['user-signature', { 'user-signature--vertical': post.poemVertical }]">
               <image
                 class="signature-image"
                 :src="post.authorSignature"
@@ -105,7 +105,7 @@
 
           <PoemCreationMeta :post="post" :color="cardTextColor" />
 
-          <view v-if="post.isExpanded && canShowSignature" class="user-signature">
+          <view v-if="post.isExpanded && canShowSignature" :class="['user-signature', { 'user-signature--vertical': post.poemVertical }]">
             <image
               class="signature-image"
               :src="post.authorSignature"
@@ -117,7 +117,7 @@
             ></image>
           </view>
 
-          <view v-if="!post.isExpanded && canShowSignature" class="user-signature-small">
+          <view v-if="!post.isExpanded && canShowSignature" :class="['user-signature-small', { 'user-signature-small--vertical': post.poemVertical }]">
             <image
               class="signature-image-small"
               :src="post.authorSignature"
@@ -416,6 +416,11 @@ export default {
   pointer-events: none;
 }
 
+.user-signature.user-signature--vertical {
+  left: 60rpx;
+  right: auto;
+}
+
 .signature-image {
   width: 180rpx;
   height: 90rpx;
@@ -438,12 +443,22 @@ export default {
   margin-top: 12rpx;
 }
 
+.post-item--creation .user-signature--vertical,
+.post-item--creation .user-signature-small--vertical {
+  justify-content: flex-start;
+}
+
 .user-signature-small {
   position: absolute;
   bottom: 30rpx;
   right: 60rpx;
   z-index: 10;
   pointer-events: none;
+}
+
+.user-signature-small.user-signature-small--vertical {
+  left: 60rpx;
+  right: auto;
 }
 
 .signature-image-small {

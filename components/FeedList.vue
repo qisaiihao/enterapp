@@ -39,6 +39,7 @@
                 :show-vote-section="true"
                 :list-type="listType"
                 :show-poem-author="showPoemAuthor"
+                :expanded="expanded"
                 @avatar-error="$emit('avatar-error', $event)"
                 @avatar-load="$emit('avatar-load', $event)"
                 @navigate-to-user="$emit('navigate-to-user', $event)"
@@ -106,6 +107,11 @@ export default {
         listType: {
             type: String,
             default: 'home'
+        },
+        // 是否全文展开全部帖子（由页面统一控制）
+        expanded: {
+            type: Boolean,
+            default: false
         },
         // 空状态配置
         emptyText: {

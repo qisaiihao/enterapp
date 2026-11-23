@@ -59,7 +59,7 @@
 
               <!-- 作者签名 - 匿名不显示 -->
 
-              <view v-if="(post.isExpanded || currentPreviewSeriesPoem) && post.authorSignature && !post.isAnonymous" class="user-signature">
+              <view v-if="(post.isExpanded || currentPreviewSeriesPoem) && post.authorSignature && !post.isAnonymous" :class="['user-signature', { 'user-signature--vertical': post.poemVertical }]">
 
                 <image class="signature-image" :src="post.authorSignature" mode="aspectFit" @error="onSignatureError" @load="onSignatureLoad"></image>
 
@@ -433,6 +433,20 @@
 
   </view>
 
+    <AppDialog
+      :visible="showNewPoetConfirm"
+      confirm-text="确定"
+      cancel-text="取消"
+      @confirm="confirmNewPoetPublish"
+      @cancel="cancelNewPoetPublish"
+    >
+      <view class="new-poet-confirm-text">
+        <text>是否确定发布</text>
+        <text class="new-poet-confirm-strong">非原创</text>
+        <text>诗歌</text>
+      </view>
+    </AppDialog>
+
     <app-overlay-host />
 </template>
 
@@ -467,8 +481,12 @@ import PoemCreationMeta from '@/components/poem/PoemCreationMeta.vue';
 import PoemCreationEditor from '@/components/add/PoemCreationEditor.vue';
 import { getCreationFields, getCreationLabel } from '@/utils/poemCreation.js';
 import { getPoemTypographyFields, getPoemFontVars } from '@/utils/poemTypography.js';
+
 import PoemRichText from '@/components/poem/PoemRichText.vue';
 
+import AppDialog from '@/components/overlay/AppDialog.vue';
+
+import { getMountainPoems } from '@/api-cache/poems.js';
 const poemVisibilityOptions = [
   { value: 'public', label: '公开可见' },
   { value: 'self', label: '仅自己可见' },
@@ -477,13 +495,14 @@ const poemVisibilityOptions = [
 
 
 export default {
-  components: { PoemRichText, PoemCreationMeta, PoemCreationEditor },
+  components: { PoemRichText, PoemCreationMeta, PoemCreationEditor, AppDialog },
 
   data() {
 
     return {
 
       post: null,
+      showNewPoetConfirm: false,
       poemVisibilityOptions,
       visibilitySocieties: [],
       visibilitySocietiesLoading: false,
@@ -2028,7 +2047,12 @@ export default {
 
     // 执行发布逻辑
 
-    executePublish(addData) {
+    async executePublish(addData) {
+
+      // 非原创诗歌：诗人名字从未在非原创板块出现过时，提示将新增诗人主页
+      if (await this.shouldConfirmNewPoet(addData)) {
+        return;
+      }
 
       uni.showLoading({
 
@@ -2061,6 +2085,88 @@ export default {
         }
 
       }
+
+    },
+
+
+
+    // 非原创诗歌：若诗人名字从未出现在非原创板块，弹窗确认
+
+    async shouldConfirmNewPoet(addData) {
+
+      const isNonOriginalPoem = (addData.publishMode === 'poem' || addData.isSeries) && !addData.isOriginal;
+
+      if (!isNonOriginalPoem || addData.__skipNewPoetConfirm) return false;
+
+      const author = String(addData.author || '').trim();
+
+      if (!author) return false;
+
+      uni.showLoading({ title: '检测中...' });
+
+      let isNewPoet = false;
+
+      try {
+
+        const posts = await getMountainPoems({
+
+          page: 0,
+
+          pageSize: 1,
+
+          filterByPoet: author,
+
+          forceRefresh: true,
+
+          silent: true,
+
+          context: this
+
+        });
+
+        isNewPoet = !Array.isArray(posts) || posts.length === 0;
+
+      } catch (error) {
+
+        console.error('【Preview】检测诗人是否已存在失败:', error);
+
+      }
+
+      uni.hideLoading();
+
+      if (!isNewPoet) return false;
+
+      this.pendingPublishData = addData;
+
+      this.showNewPoetConfirm = true;
+
+      return true;
+
+    },
+
+
+
+    confirmNewPoetPublish() {
+
+      const pending = this.pendingPublishData;
+
+      this.pendingPublishData = null;
+
+      this.showNewPoetConfirm = false;
+
+      if (!pending) return;
+
+      this.executePublish({ ...pending, __skipNewPoetConfirm: true });
+
+    },
+
+
+
+    cancelNewPoetPublish() {
+
+      this.pendingPublishData = null;
+
+      this.showNewPoetConfirm = false;
 
     },
 
@@ -3448,6 +3554,10 @@ page {
   margin-top: 12rpx;
 }
 
+.post-item--creation .user-signature--vertical {
+  justify-content: flex-start;
+}
+
 .post-item { padding: 40rpx 50rpx; position: relative; }
 
 .post-content { font-size: 32rpx; line-height: 1.6; margin: 30rpx 0; width: 100%; }
@@ -3485,6 +3595,8 @@ page {
 }
 
 .user-signature { position: absolute; bottom: -25rpx; right: 60rpx; z-index: 10; pointer-events: none; }
+
+.user-signature.user-signature--vertical { left: 50rpx; right: auto; }
 
 .signature-image { width: 180rpx; height: 90rpx; opacity: 0.8; filter: drop-shadow(0 2rpx 4rpx rgba(0,0,0,0.1)); display: block; background: transparent; }
 
@@ -4566,6 +4678,34 @@ page {
 .preview-page--dark .author-info-outside .author-avatar {
 
   background-color: rgba(255, 255, 255, 0.08);
+
+}
+
+.new-poet-confirm-text {
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  flex-wrap: wrap;
+
+  width: 100%;
+
+  font-size: 30rpx;
+
+  line-height: 1.6;
+
+  color: var(--overlay-muted);
+
+}
+
+.new-poet-confirm-strong {
+
+  font-weight: 700;
+
+  color: var(--overlay-text);
 
 }
 

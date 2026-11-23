@@ -107,9 +107,12 @@
                                 :swiper-height="swiperHeights[index]"
                                 :show-menu="true"
                                 :show-poem-author="false"
+                                :expanded="allPostsExpanded"
+                                :show-expand-toggle="index === 0"
                                 time-label="发布于"
                                 time-field="formattedCreateTime"
                                 @show-action-menu="handlePostActionMenu"
+                                @toggle-expand="handleToggleAllPostsExpand"
                                 @avatar-error="onAvatarError"
                                 @avatar-load="onAvatarLoad"
                                 @navigate-to-user="handleNavigateToUser"
@@ -659,6 +662,7 @@ export default {
             hasFirstShow_var: false,
 
             currentTab: 'posts',
+            allPostsExpanded: false,
             timelinePosts: [],
             timelineGroups: {},
             timelineLoading: false,
@@ -2975,6 +2979,11 @@ export default {
                     isHidden: data.isHidden
                 }
             });
+        },
+
+        // 展开/收起个人主页全部帖子的完整内容
+        handleToggleAllPostsExpand() {
+            this.allPostsExpanded = !this.allPostsExpanded;
         },
 
         // 处理跳转用户主页

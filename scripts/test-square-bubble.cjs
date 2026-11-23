@@ -44,7 +44,8 @@ async function checkReadState() {
   globals.getSquareBubbleConfig = async () => ({ ...config });
   globals.SQUARE_BUBBLE_TARGETS = [
     { value: 'weekly', url: '/pages-content/weekly-home/weekly-home' },
-    { value: 'activities', url: '/pages/activity/activity' }
+    { value: 'activities', url: '/pages/activity/activity' },
+    { value: 'feed', url: '/pages/index/index', type: 'switchTab' }
   ];
   globals.activityBadge = { markActivitySeen() { activityVisits++; } };
   vm.runInNewContext(source.replace('export default', 'module.exports ='), globals);
@@ -80,6 +81,10 @@ async function checkReadState() {
   assert.equal(activityVisits, 1, '活动气泡保留活动已读标记逻辑');
   instance.navigateToActivityList();
   assert.equal(activityVisits, 2, '气泡隐藏不影响活动页跳转');
+  config = { ...config, target: 'feed' };
+  await instance.loadSquareBubble();
+  instance.openSquareBubble();
+  assert.equal(navigations[navigations.length - 1], '/pages/index/index', 'TabBar 页面使用 switchTab 跳转');
 
   config = { ...config, enabled: false, text: '未开启的消息' };
   await instance.loadSquareBubble();
@@ -111,7 +116,7 @@ async function checkReadState() {
     assert.equal((await main({ action: 'save', enabled: true, ...input })).success, false);
   }
   assert.equal(writes, 0);
-  for (const target of ['weekly', 'activities', 'ranking', 'topics']) {
+  for (const target of ['weekly', 'weekly-selection', 'ranking', 'topics', 'activities', 'societies', 'collage', 'search', 'messages', 'favorites', 'portfolio', 'feed', 'mine', 'feedback', 'contact']) {
     result = await main({ action: 'save', enabled: true, text: ' 新消息 ', target });
     assert.equal(result.success, true);
     assert.equal(result.config.text, '新消息');

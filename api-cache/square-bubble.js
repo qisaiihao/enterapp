@@ -7,9 +7,20 @@ const CONFIG_TTL_MS = 5 * 60 * 1000;
 
 export const SQUARE_BUBBLE_TARGETS = [
   { value: 'weekly', label: '周刊', url: '/pages-content/weekly-home/weekly-home' },
-  { value: 'activities', label: '活动', url: '/pages/activity/activity' },
+  { value: 'weekly-selection', label: '本周精选', url: '/pages-content/weekly-selection/weekly-selection' },
   { value: 'ranking', label: '本周热榜', url: '/pages-content/weekly-ranking/weekly-ranking' },
-  { value: 'topics', label: '主题精选', url: '/pages-content/weekly-topic-submission/weekly-topic-submission' }
+  { value: 'topics', label: '主题精选', url: '/pages-content/weekly-topic-submission/weekly-topic-submission' },
+  { value: 'activities', label: '活动', url: '/pages/activity/activity' },
+  { value: 'societies', label: '诗社', url: '/pages-community/home/home' },
+  { value: 'collage', label: '拼贴诗', url: '/pages-collage/collage-square/collage-square' },
+  { value: 'search', label: '搜索', url: '/pages-tools/search/search' },
+  { value: 'messages', label: '消息', url: '/pages-tools/messages/messages' },
+  { value: 'favorites', label: '收藏', url: '/pages-content/favorite-folders/favorite-folders' },
+  { value: 'portfolio', label: '作品集', url: '/pages-content/portfolio/portfolio' },
+  { value: 'feed', label: '广场', url: '/pages/index/index', type: 'switchTab' },
+  { value: 'mine', label: '我的', url: '/pages/profile/profile', type: 'switchTab' },
+  { value: 'feedback', label: '意见反馈', url: '/pages-tools/feedback/feedback' },
+  { value: 'contact', label: '联系我们', url: '/pages-tools/contact/contact' }
 ];
 
 export async function getSquareBubbleConfig(context) {

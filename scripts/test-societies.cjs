@@ -34,13 +34,21 @@ function runtime() {
       if (state.failWrite === name) throw new Error('Simulated write failure');
       if (transaction) transaction.wrote = true; else version++;
     };
+    // Real CloudBase transactions accept a single in-flight operation; overlapping
+    // calls fail with [ResourceUnavailable.TransactionBusy].
+    const guarded = handler => async (...args) => {
+      if (!transaction) return handler(...args);
+      if (transaction.busy) throw new Error('[ResourceUnavailable.TransactionBusy] Transaction is busy');
+      transaction.busy = true;
+      try { await Promise.resolve(); return await handler(...args); } finally { transaction.busy = false; }
+    };
     return {
       doc(documentId) {
         return {
-          async get() { read(); return { data: structuredClone(data[name].find(row => row._id === documentId) || null) }; },
-          async set({ data: value }) { write(); const index = data[name].findIndex(row => row._id === documentId); const row = { ...structuredClone(value), _id: documentId }; if (index < 0) data[name].push(row); else data[name][index] = row; },
-          async update({ data: value }) { write(); const row = data[name].find(row => row._id === documentId); if (!row) throw new Error('Missing document'); Object.assign(row, structuredClone(value)); },
-          async remove() { write(); data[name] = data[name].filter(row => row._id !== documentId); }
+          get: guarded(async () => { read(); return { data: structuredClone(data[name].find(row => row._id === documentId) || null) }; }),
+          set: guarded(async ({ data: value }) => { write(); const index = data[name].findIndex(row => row._id === documentId); const row = { ...structuredClone(value), _id: documentId }; if (index < 0) data[name].push(row); else data[name][index] = row; }),
+          update: guarded(async ({ data: value }) => { write(); const row = data[name].find(row => row._id === documentId); if (!row) throw new Error('Missing document'); Object.assign(row, structuredClone(value)); }),
+          remove: guarded(async () => { write(); data[name] = data[name].filter(row => row._id !== documentId); })
         };
       },
       where(filter) {
@@ -49,9 +57,9 @@ function runtime() {
         const query = {
           skip(value) { skip = value; return query; }, limit(value) { limit = value; return query; },
           orderBy(key, value) { orders.push([key, value]); return query; }, field(value) { fields = value; return query; },
-          async count() { read(); return { total: data[name].filter(row => matches(row, filter)).length }; },
-          async remove() { write(); const before = data[name].length; data[name] = data[name].filter(row => !matches(row, filter)); return { stats: { removed: before - data[name].length } }; },
-          async get() {
+          count: guarded(async () => { read(); return { total: data[name].filter(row => matches(row, filter)).length }; }),
+          remove: guarded(async () => { write(); const before = data[name].length; data[name] = data[name].filter(row => !matches(row, filter)); return { stats: { removed: before - data[name].length } }; }),
+          get: guarded(async () => {
             read();
             let rows = data[name].filter(row => matches(row, filter));
             if (orders.length) rows = rows.sort((a, b) => {
@@ -65,7 +73,7 @@ function runtime() {
             rows = rows.slice(skip, skip + limit);
             if (fields) rows = rows.map(row => Object.fromEntries(Object.entries(row).filter(([key]) => key === '_id' || fields[key])));
             return { data: structuredClone(rows) };
-          }
+          })
         };
         return query;
       }
@@ -78,7 +86,7 @@ function runtime() {
     async runTransaction(callback) {
       for (let attempt = 0; attempt < 20; attempt++) {
         const previous = version;
-        const transaction = { tables: structuredClone(tables), wrote: false };
+        const transaction = { tables: structuredClone(tables), wrote: false, busy: false };
         const result = await callback({ collection: name => collection(name, transaction) });
         if (previous !== version) { state.conflicts++; continue; }
         if (transaction.wrote) { tables = transaction.tables; version++; }

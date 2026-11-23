@@ -18,10 +18,12 @@ async function applyJoin(db, user, event) {
   return db.runTransaction(async tx => {
     const society = await activeSociety(tx, event.societyId);
     if (society.recruitment === 'school' && !profileTextMatches(society.school, user.school)) throw error('仅限本校学生申请加入', 'FORBIDDEN');
-    const [old, member] = await Promise.all([read(tx, 'society_join_requests', requestId), membership(tx, event.societyId, user._openid)]);
+    const old = await read(tx, 'society_join_requests', requestId);
+    const member = await membership(tx, event.societyId, user._openid);
     if (member) throw error('你已经是诗社成员');
     if (old?.status === 'pending') return { alreadySubmitted: true };
-    const managers = (await Promise.all(['owner', 'admin'].map(role => list(tx, 'society_members', { societyId: event.societyId, status: 'active', role }, { limit: 20 })))).flat();
+    const managers = [];
+    for (const role of ['owner', 'admin']) managers.push(...await list(tx, 'society_members', { societyId: event.societyId, status: 'active', role }, { limit: 20 }));
     const revision = (old?.revision || 0) + 1;
     await tx.collection('society_join_requests').doc(requestId).set({ data: {
       societyId: event.societyId, userId: user._openid, userDocId: user._id, reason,
@@ -112,7 +114,8 @@ async function reviewJoin(db, user, event) {
       if (request.status === event.decision) return { alreadyReviewed: true };
       throw error('申请已处理，请刷新列表', 'STALE_REVIEW');
     }
-    const [existing, applicant] = await Promise.all([membership(tx, societyId, request.userId), read(tx, 'users', request.userDocId)]);
+    const existing = await membership(tx, societyId, request.userId);
+    const applicant = await read(tx, 'users', request.userDocId);
     if (!applicant || applicant._openid !== request.userId) throw error('申请人账号不存在');
     if (event.decision === 'approved' && society.recruitment === 'school' && !profileTextMatches(society.school, applicant.school)) throw error('申请人不符合本校招募范围', 'FORBIDDEN');
     const now = new Date();

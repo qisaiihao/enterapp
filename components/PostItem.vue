@@ -13,6 +13,15 @@
             </view>
         </view>
 
+        <!-- 展开/收起全部帖子按钮（仅第一个帖子显示） -->
+        <view
+            v-if="showExpandToggle"
+            class="expand-toggle-btn"
+            @tap.stop.prevent="onToggleExpand"
+        >
+            <view :class="['expand-triangle', { 'expand-triangle--down': expanded }]"></view>
+        </view>
+
         <!-- 作者信息 -->
         <view class="author-info-outside">
             <image
@@ -32,8 +41,8 @@
         <!-- 可点击的内容区域 - 跳转到详情页 -->
         <navigator class="post-content-navigator" :url="'/pages/post-detail/post-detail?id=' + item._id" hover-class="none">
             <view class="post-item">
-                <view v-if="!profilePreview" class="post-title">{{ item.title }} <text v-if="item.isHidden" class="hidden-tag">已隐藏</text></view>
-                <view v-else-if="hasDisplayTitle || item.isHidden" class="post-title">
+                <view v-if="!profilePreview" class="post-title" :class="{ 'post-title--expanded': expanded }">{{ item.title }} <text v-if="item.isHidden" class="hidden-tag">已隐藏</text></view>
+                <view v-else-if="hasDisplayTitle || item.isHidden" class="post-title" :class="{ 'post-title--expanded': expanded }">
                     <text v-if="hasDisplayTitle">{{ displayTitle }}</text>
                     <text v-if="item.isHidden" class="hidden-tag">已隐藏</text>
                 </view>
@@ -104,7 +113,7 @@
                 <view v-if="item.isDiscussion && hasValidDiscussionGroups(item)" :class="'discussion-content ' + (profilePreview ? 'discussion-content--profile-preview' : '')">
                     <view v-if="profilePreview" class="profile-discussion-preview">
                         <view v-if="discussionPreviewSentence" class="post-content post-content--discussion-quote" :style="discussionPreviewGroup.sentenceTextStyles ? { fontStyle: 'normal', fontWeight: '400' } : {}"><PoemRichText :text="discussionPreviewSentence" :source-text="discussionPreviewGroup.sentences.join('\n')" :styles="discussionPreviewGroup.sentenceTextStyles || []" :base-font-size="discussionPreviewGroup.poemFontSize || item.poemFontSize" /></view>
-                        <view v-if="discussionPreviewComment" class="post-content post-content--discussion-comment"><PoemRichText :text="discussionPreviewComment" :source-text="discussionPreviewGroup.comment" :styles="discussionPreviewGroup.commentTextStyles || []" :base-font-size="discussionPreviewGroup.poemFontSize || item.poemFontSize" /></view>
+                        <view v-if="discussionPreviewComment" class="post-content post-content--discussion-comment" :class="{ 'post-content--expanded': expanded }"><PoemRichText :text="discussionPreviewComment" :source-text="discussionPreviewGroup.comment" :styles="discussionPreviewGroup.commentTextStyles || []" :base-font-size="discussionPreviewGroup.poemFontSize || item.poemFontSize" /></view>
                     </view>
                     <!-- 只显示第一个有效的引用句子组 -->
                     <view v-else-if="getFirstValidDiscussionGroup(item)" class="discussion-sentence-group">
@@ -114,14 +123,14 @@
                                 <view class="discussion-sentence-line" :style="getFirstValidDiscussionGroup(item).sentenceTextStyles ? { fontStyle: 'normal', fontWeight: '400' } : {}"><PoemRichText :text="getFirstValidDiscussionGroup(item).sentences[0]" :source-text="getFirstValidDiscussionGroup(item).sentences.join('\n')" :styles="getFirstValidDiscussionGroup(item).sentenceTextStyles || []" :base-font-size="getFirstValidDiscussionGroup(item).poemFontSize || item.poemFontSize" /></view>
                             </view>
                         </view>
-                        <view v-if="getFirstValidDiscussionGroup(item).comment" class="discussion-comment-preview"><PoemRichText :text="getFirstValidDiscussionGroup(item).comment" :styles="getFirstValidDiscussionGroup(item).commentTextStyles || []" :base-font-size="getFirstValidDiscussionGroup(item).poemFontSize || item.poemFontSize" /></view>
+                        <view v-if="getFirstValidDiscussionGroup(item).comment" class="discussion-comment-preview" :class="{ 'discussion-comment-preview--expanded': expanded }"><PoemRichText :text="getFirstValidDiscussionGroup(item).comment" :styles="getFirstValidDiscussionGroup(item).commentTextStyles || []" :base-font-size="getFirstValidDiscussionGroup(item).poemFontSize || item.poemFontSize" /></view>
                     </view>
                 </view>
                 <view v-else-if="isSeriesPost(item)" class="series-simple-preview">
-                    <view class="post-content" style="white-space: pre-wrap"><PoemRichText :text="getSeriesPreviewText(item)" :styles="item.poemTextStyles || []" :source-text="item.content" :base-font-size="item.poemFontSize" :vertical="item.poemVertical" :max-vertical-columns="3" /></view>
+                    <view class="post-content" :class="{ 'post-content--expanded': expanded }" style="white-space: pre-wrap"><PoemRichText :text="getSeriesPreviewText(item)" :styles="item.poemTextStyles || []" :source-text="item.content" :base-font-size="item.poemFontSize" :vertical="item.poemVertical" :max-vertical-columns="3" /></view>
                     <view class="series-meta-tag">组诗·{{ item.seriesBlockCount || (item.seriesBlocks && item.seriesBlocks.length) }}</view>
                 </view>
-                <view class="post-content" v-else-if="item.content" style="white-space: pre-wrap"><PoemRichText :text="item.content" :styles="item.poemTextStyles || []" :base-font-size="item.poemFontSize" :vertical="item.poemVertical" :max-vertical-columns="3" /></view>
+                <view class="post-content" :class="{ 'post-content--expanded': expanded }" v-else-if="item.content" style="white-space: pre-wrap"><PoemRichText :text="item.content" :styles="item.poemTextStyles || []" :base-font-size="item.poemFontSize" :vertical="item.poemVertical" :max-vertical-columns="3" /></view>
 
                 <PoemCreationMeta :post="item" />
 
@@ -188,7 +197,7 @@ export default {
     components: { PoemRichText, PoemCreationMeta },
     name: 'PostItem',
     data() { return { voteMotionVersion: 0 }; },
-    emits: ['show-action-menu', 'avatar-error', 'avatar-load', 'navigate-to-user', 'preview-image', 'image-error', 'image-load', 'tag-click', 'vote', 'comment-click', 'like-icon-error'],
+    emits: ['show-action-menu', 'avatar-error', 'avatar-load', 'navigate-to-user', 'preview-image', 'image-error', 'image-load', 'tag-click', 'vote', 'comment-click', 'like-icon-error', 'toggle-expand'],
     props: {
         // 帖子数据
         item: {
@@ -237,6 +246,16 @@ export default {
         },
         // 个人/他人主页列表摘要态，避免讨论和诗歌按详情页视觉展开
         profilePreview: {
+            type: Boolean,
+            default: false
+        },
+        // 内容是否处于全部展开状态（由父级统一控制）
+        expanded: {
+            type: Boolean,
+            default: false
+        },
+        // 是否显示展开/收起按钮（仅在第一个帖子显示）
+        showExpandToggle: {
             type: Boolean,
             default: false
         }
@@ -320,7 +339,7 @@ export default {
         isSeriesPost(post) {
             return !!(post && (post.isSeries || (Array.isArray(post.seriesBlocks) && post.seriesBlocks.length > 0)));
         },
-        // 获取组诗预览文本（前三行）
+        // 获取组诗预览文本（默认前三行，展开时显示全部）
         getSeriesPreviewText(post) {
             if (!post || !Array.isArray(post.seriesBlocks) || post.seriesBlocks.length === 0) {
                 return post.content || '';
@@ -331,6 +350,10 @@ export default {
                 .map(block => block.content || '')
                 .join('\n\n')
                 .trim();
+
+            if (this.expanded) {
+                return allContent;
+            }
             
             // 分割成行并取前三行
             const lines = allContent.split(/\r?\n/).filter(line => line.trim());
@@ -400,6 +423,10 @@ export default {
                 index: this.index,
                 isHidden: this.item.isHidden === true
             });
+        },
+        // 切换全部帖子的展开/收起
+        onToggleExpand() {
+            this.$emit('toggle-expand');
         },
         // 头像加载失败
         onAvatarError(e) {
@@ -585,6 +612,42 @@ export default {
     background-color: var(--app-post-menu-dot-color, #666);
 }
 
+/* 展开/收起全部帖子按钮 */
+.expand-toggle-btn {
+    position: absolute;
+    top: 12rpx;
+    right: 76rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40rpx;
+    height: 40rpx;
+    padding: 8rpx;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.expand-toggle-btn:active {
+    transform: scale(0.9);
+    opacity: 0.7;
+}
+
+.expand-triangle {
+    width: 0;
+    height: 0;
+    border-left: 12rpx solid transparent;
+    border-right: 12rpx solid transparent;
+    border-bottom: 18rpx solid var(--app-post-menu-dot-color, #666);
+    transition: transform 0.2s ease;
+}
+
+.expand-triangle--down {
+    border-bottom: none;
+    border-top: 18rpx solid var(--app-post-menu-dot-color, #666);
+}
+
 /* 外部作者信息样式 */
 .author-info-outside {
     display: flex;
@@ -656,6 +719,14 @@ export default {
     -webkit-line-clamp: 2;
     line-clamp: 2;
     -webkit-box-orient: vertical;
+}
+
+/* 展开后标题不再截断 */
+.post-title--expanded {
+    display: block;
+    overflow: visible;
+    -webkit-line-clamp: 1000;
+    line-clamp: 1000;
 }
 
 /* 诗歌作者样式 */
@@ -756,6 +827,15 @@ export default {
     -webkit-line-clamp: 3;
     line-clamp: 3;
     -webkit-box-orient: vertical;
+}
+
+/* 展开后正文不再截断 */
+.post-content.post-content--expanded,
+.discussion-comment-preview.discussion-comment-preview--expanded {
+    display: block;
+    overflow: visible;
+    -webkit-line-clamp: 1000;
+    line-clamp: 1000;
 }
 
 /* 标签样式 */

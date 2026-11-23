@@ -6,7 +6,7 @@
             <!-- 色卡选择界面 -->
             <view v-if="step === 'palette'" class="color-palette-step">
                 <view class="color-picker-title">选择色卡</view>
-                <scroll-view class="palette-scroll" :scroll-y="true">
+                <scroll-view class="palette-scroll" :scroll-y="true" :scroll-top="paletteScrollTop" @scroll="onPaletteScroll">
                     <view class="palette-grid">
                         <view 
                             v-for="(palette, index) in colorPalettes" 
@@ -88,7 +88,9 @@ export default {
         return {
             step: 'palette', // 'palette' 或 'colors'
             currentPalette: null,
-            currentPaletteIndex: 0
+            currentPaletteIndex: 0,
+            paletteScrollTop: 0,
+            savedPaletteScrollTop: 0
         };
     },
     watch: {
@@ -98,21 +100,35 @@ export default {
                 this.step = 'palette';
                 this.currentPalette = null;
                 this.currentPaletteIndex = 0;
+                this.paletteScrollTop = 0;
+                this.savedPaletteScrollTop = 0;
             }
         }
     },
     methods: {
+        // 记录色卡列表的滚动位置，返回时恢复
+        onPaletteScroll(e) {
+            // 切到色系后列表即将销毁，忽略此时程序化归零产生的滚动
+            if (this.step !== 'palette') return;
+            this.savedPaletteScrollTop = e.detail.scrollTop;
+        },
+
         // 选择色卡
         onSelectPalette(index) {
             this.currentPaletteIndex = index;
             this.currentPalette = this.colorPalettes[index];
+            // 列表会被销毁重建，先把绑定值归零，返回时再设置回去以触发滚动
             this.step = 'colors';
+            this.paletteScrollTop = 0;
         },
 
         // 返回色卡选择
         goBackToPalette() {
             this.step = 'palette';
             this.currentPalette = null;
+            this.$nextTick(() => {
+                this.paletteScrollTop = this.savedPaletteScrollTop;
+            });
         },
 
         // 选择颜色

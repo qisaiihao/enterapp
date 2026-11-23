@@ -1,16 +1,16 @@
 <template>
   <view
     class="top-bar-shell"
-    :class="{ 'top-bar-shell--reserve-space': reserveSpace }"
+    :class="{ 'top-bar-shell--reserve-space': reserveSpace, 'top-bar-shell--compact': compact }"
     :style="{ '--top-bar-safe-area-top': safeAreaTop + 'px' }"
   >
     <view class="top-bar-container">
       <view class="custom-top-bar" :style="customTopBarStyle">
-        <view class="top-left" @tap="navigateToAdd">
+        <view v-if="showLeft" class="top-left" @tap="navigateToAdd">
           <image class="top-icon" :src="leftIcon" mode="aspectFit"></image>
         </view>
         <slot name="center" />
-        <view class="top-right">
+        <view v-if="showActions" class="top-right">
           <view class="top-item" @tap="navigateToSearch">
             <image class="top-icon" src="/static/images/newicons/search.png" mode="aspectFit"></image>
           </view>
@@ -44,6 +44,18 @@ export default {
     leftIcon: {
       type: String,
       default: '/static/images/write_poetry.png'
+    },
+    showLeft: {
+      type: Boolean,
+      default: true
+    },
+    showActions: {
+      type: Boolean,
+      default: true
+    },
+    compact: {
+      type: Boolean,
+      default: false
     },
     reserveSpace: Boolean
   },
@@ -191,6 +203,10 @@ export default {
 
 .top-bar-shell--reserve-space {
   height: calc(var(--top-bar-safe-area-top) + var(--top-bar-height));
+}
+
+.top-bar-shell--compact {
+  --top-bar-height: 32rpx;
 }
 
 .top-bar-container {

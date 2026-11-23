@@ -3,11 +3,7 @@
   <page-meta :page-style="'background-color: ' + appThemeVars['--app-page-bg'] + ';'" />
   <!-- #endif -->
   <view class="activity-list-page" :data-app-theme="appThemeMode" :style="appThemeVars">
-    <top-bar reserve-space>
-      <template #center>
-        <text class="activity-header-title">活动</text>
-      </template>
-    </top-bar>
+    <top-bar reserve-space compact :show-left="false" :show-actions="false" />
 
     <activity-notice-carousel :notices="displayNoticeItems" @select="openNotice" />
 
@@ -275,16 +271,6 @@ export default {
   padding: 0 0 calc(160rpx + env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
   color: var(--app-primary-text, #333);
-}
-
-.activity-header-title {
-  min-width: 128rpx;
-  font-size: 30rpx;
-  line-height: 40rpx;
-  font-weight: 600;
-  color: var(--app-primary-text, #000000);
-  text-align: center;
-  white-space: nowrap;
 }
 
 .content-area {

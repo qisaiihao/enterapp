@@ -53,7 +53,10 @@ async function membership(db, societyId, userId) {
   return row?.status === 'active' ? row : null;
 }
 async function manager(db, societyId, user) {
-  const [society, member] = await Promise.all([activeSociety(db, societyId), membership(db, societyId, user._openid)]);
+  // CloudBase transactions accept one operation at a time; parallel reads on a
+  // transaction fail with ResourceUnavailable.TransactionBusy.
+  const society = await activeSociety(db, societyId);
+  const member = await membership(db, societyId, user._openid);
   if (!member || !['owner', 'admin'].includes(member.role)) throw error('你没有这个诗社的管理权限', 'FORBIDDEN');
   return society;
 }

@@ -279,6 +279,16 @@
         <AppActionSheet :visible="showPostActionSheet" title="帖子操作" :items="postMenuItems" variant="plain"
             @cancel="hidePostMenu" @select="onPostMenuSelect" />
 
+        <DeleteModal
+            :visible="showDeleteModal"
+            :is-hidden="!!(post && post.isHidden)"
+            title="删除帖子"
+            @close="hideDeleteModal"
+            @save-draft="savePostToDraft"
+            @hide="hidePostFromDelete"
+            @confirm="confirmDeletePost"
+        />
+
         <!-- 收藏夹选择器 -->
         <folder-selector :show="showFavoriteModal" :post-id="post && post._id ? post._id : ''" @hide="hideFavoriteModal" @favoriteSuccess="onFavoriteSuccess" />
 
@@ -334,6 +344,7 @@ import PostDetailSkeleton from '@/components/PostDetailSkeleton.vue';
 import CommentList from '@/components/CommentList.vue';
 import ShareModal from '@/components/ShareModal.vue';
 import AppActionSheet from '@/components/overlay/AppActionSheet.vue';
+import DeleteModal from '@/components/DeleteModal.vue';
 
 // 工具函数导入
 import { hydrateTempUrls, warmTempUrlsFromPosts } from '@/_utils/hydrate-temp-urls';
@@ -362,7 +373,7 @@ import { colorPalettes } from '@/utils/colorPalettes.js';
 import { poemLines } from '@/utils/poemLines.js';
 import { getCurrentPlatform } from '@/utils/platformDetector.js';
 import { requestAndroidStoragePermission } from '@/utils/permissions.js';
-import { emitCommentCountChanged } from '@/utils/events.js';
+import { emitCommentCountChanged, emitPostVisibilityChanged } from '@/utils/events.js';
 import fontManager from '@/utils/fontManager.js'; // 添加fontManager导入
 import { replayBuiltinHuiwenFontReady } from '@/utils/builtinFontReady.js';
 import { checkContentSafe, checkTextSafe, shouldModerate } from '@/utils/contentModeration.js';
@@ -372,6 +383,7 @@ import { getWindowInfoCompat } from '@/utils/system-info.js';
 
 // API函数导入
 import { getPostDetail, togglePostFavorite, recordPostView } from '@/api-cache/post.js';
+import { togglePostVisibility, deletePost as deletePostApi, saveDraft as saveDraftApi } from '@/api-cache/profile-actions.js';
 import { getComments, submitComment, deleteComment, likeComment } from '@/api-cache/comment.js';
 import { checkFollowStatus, toggleFollowStatus } from '@/api-cache/following.js';
 
@@ -477,7 +489,8 @@ export default {
         PostDetailSkeleton,
         CommentList,
         ShareModal,
-        AppActionSheet
+        AppActionSheet,
+        DeleteModal
     },
     mixins: [postGalleryMixin, favoriteDetail],
     watch: {
@@ -487,6 +500,18 @@ export default {
         }
     },
     computed: {
+        // 自己发布的帖子显示与个人主页一致的编辑菜单，其他人只显示举报
+        postMenuItems() {
+            if (this.isOwnPost) {
+                return [
+                    { text: '编辑', event: 'edit' },
+                    { text: '组诗合成', event: 'compose-series' },
+                    { text: this.post && this.post.isHidden ? '取消隐藏' : '隐藏', event: 'toggle-visibility' },
+                    { text: '删除该动态', event: 'delete', danger: true }
+                ];
+            }
+            return ['举报'];
+        },
         poemFontVars() { return getPoemFontVars(this.post, this.readFontVars); },
         postVisibilityLabel() {
             if (!this.post?.isPoem) return '';
@@ -534,7 +559,7 @@ export default {
             showFavoriteModal: false,
             showPortfolioModal: false,
             showPostActionSheet: false,
-            postMenuItems: ['举报'],
+            showDeleteModal: false,
             showShareModal: false,
             shareImageUrl: '',
             shareImageFilePath: '',
@@ -696,11 +721,133 @@ export default {
         },
         onPostMenuSelect(index) {
             this.hidePostMenu();
-            if (index === 0 && this.post && this.post._id) {
+            const postId = this.post && this.post._id;
+            if (!postId) return;
+            const item = this.postMenuItems[index];
+            if (!item) return;
+            if (typeof item === 'string' || !item.event) {
                 uni.navigateTo({
-                    url: `/pages-tools/post-report/post-report?id=${encodeURIComponent(this.post._id)}`
+                    url: `/pages-tools/post-report/post-report?id=${encodeURIComponent(postId)}`
                 });
+                return;
             }
+            switch (item.event) {
+                case 'edit':
+                    this.editPost();
+                    break;
+                case 'compose-series':
+                    uni.navigateTo({ url: '/pages-publish/series-compose/series-compose' });
+                    break;
+                case 'toggle-visibility':
+                    this.toggleOwnPostVisibility();
+                    break;
+                case 'delete':
+                    this.showDeleteModal = true;
+                    break;
+                default:
+                    break;
+            }
+        },
+        editPost() {
+            const postId = this.post && this.post._id;
+            if (!postId) return;
+            uni.navigateTo({
+                url: `/pages-publish/add/add?mode=edit&postId=${postId}`,
+                fail: () => {
+                    uni.showToast({ title: '跳转失败', icon: 'none' });
+                }
+            });
+        },
+        toggleOwnPostVisibility() {
+            const postId = this.post && this.post._id;
+            if (!postId) return;
+            const targetHidden = !(this.post && this.post.isHidden);
+            uni.showLoading({ title: targetHidden ? '隐藏中...' : '取消隐藏中...' });
+            return togglePostVisibility(postId, this, targetHidden)
+                .then((result) => {
+                    const isHidden = result && typeof result.isHidden === 'boolean' ? result.isHidden : targetHidden;
+                    this.setData({
+                        'post.isHidden': isHidden
+                    });
+                    try { emitPostVisibilityChanged({ postId, isHidden }); } catch (_) {}
+                    uni.showToast({ title: isHidden ? '已隐藏' : '已取消隐藏', icon: 'success' });
+                })
+                .catch((err) => {
+                    uni.showToast({ title: (err && err.message) || '操作失败', icon: 'none' });
+                })
+                .finally(() => {
+                    uni.hideLoading();
+                });
+        },
+        hideDeleteModal() {
+            this.showDeleteModal = false;
+        },
+        hidePostFromDelete() {
+            this.showDeleteModal = false;
+            if (!this.post || this.post.isHidden) return;
+            return this.toggleOwnPostVisibility();
+        },
+        confirmDeletePost() {
+            this.showDeleteModal = false;
+            this.deleteCurrentPost();
+        },
+        deleteCurrentPost(options = {}) {
+            const { silent = false } = options;
+            const postId = this.post && this.post._id;
+            if (!postId) return Promise.resolve();
+            if (!silent) uni.showLoading({ title: '删除中...' });
+            return deletePostApi(postId, this)
+                .then(() => {
+                    if (!silent) uni.showToast({ title: '删除成功' });
+                    try {
+                        uni.setStorageSync('shouldRefreshIndex', true);
+                        uni.setStorageSync('shouldRefreshProfile', true);
+                    } catch (_) {}
+                    setTimeout(() => { this.goBack(); }, 400);
+                })
+                .catch((err) => {
+                    uni.showToast({ title: (err && err.message) || '删除失败', icon: 'none' });
+                    throw err;
+                })
+                .finally(() => {
+                    if (!silent) uni.hideLoading();
+                });
+        },
+        savePostToDraft() {
+            this.showDeleteModal = false;
+            const post = this.post;
+            const postId = post && post._id;
+            if (!postId) return;
+            const draftData = {
+                title: post.title || '',
+                content: post.content || '',
+                imageList: post.imageUrls
+                    ? post.imageUrls.map((url) => ({
+                          previewUrl: url,
+                          compressedPath: url,
+                          originalPath: url,
+                          needCompression: false
+                      }))
+                    : [],
+                publishMode: post.isPoem ? 'poem' : 'normal',
+                isOriginal: post.isOriginal || false,
+                selectedTags: post.tags || [],
+                customTag: '',
+                author: post.author || '',
+                saveTime: new Date()
+            };
+            uni.showLoading({ title: '保存中...' });
+            saveDraftApi(draftData, this)
+                .then(() => this.deleteCurrentPost({ silent: true }))
+                .then(() => {
+                    uni.showToast({ title: '已保存到草稿箱', icon: 'success' });
+                })
+                .catch(() => {
+                    uni.showToast({ title: '保存草稿失败', icon: 'none' });
+                })
+                .finally(() => {
+                    uni.hideLoading();
+                });
         },
         getLikeIconVariantClass(iconSrc) {
             const src = String(iconSrc || '/static/images/seed.png').toLowerCase();

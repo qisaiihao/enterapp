@@ -11,12 +11,19 @@ async function published(db, kind, itemId) {
 async function participant(db, item, user) {
   if (user.postingBanned) throw error('账号已被限制参与', 'FORBIDDEN');
   const hostSocietyIds = [...new Set([item.societyId, ...(item.hostSocietyIds || [])])];
+  // `db` may be a transaction handle here; transaction calls must not run in parallel.
   if (item.audience === 'school') {
-    const hosts = await Promise.all(hostSocietyIds.map(societyId => read(db, 'societies', societyId)));
-    if (!hosts.some(host => host?.status === 'active' && profileTextMatches(host.school, user.school))) throw error('仅限本校学生参与', 'FORBIDDEN');
+    for (const societyId of hostSocietyIds) {
+      const host = await read(db, 'societies', societyId);
+      if (host?.status === 'active' && profileTextMatches(host.school, user.school)) return;
+    }
+    throw error('仅限本校学生参与', 'FORBIDDEN');
   } else if (item.audience === 'members') {
-    const members = await Promise.all(hostSocietyIds.map(async societyId => (await read(db, 'societies', societyId))?.status === 'active' ? membership(db, societyId, user._openid) : null));
-    if (!members.some(Boolean)) throw error('仅主办或合办诗社成员可以参与', 'FORBIDDEN');
+    for (const societyId of hostSocietyIds) {
+      const host = await read(db, 'societies', societyId);
+      if (host?.status === 'active' && await membership(db, societyId, user._openid)) return;
+    }
+    throw error('仅主办或合办诗社成员可以参与', 'FORBIDDEN');
   }
 }
 async function reviewer(db, item, user, societyId) {

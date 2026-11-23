@@ -56,7 +56,15 @@ async function saveContent(db, cloud, user, event) {
     if (old && old.revision !== event.revision) throw error('内容已更新，请刷新后编辑', 'STALE_REVIEW');
     if (event.kind === 'event' && value.capacity && value.capacity < (old?.registrationCount || 0)) throw error('人数上限不能少于已报名人数');
     for (const host of value.invitedSocietyIds || []) await activeSociety(tx, host);
-    const invitedManagers = event.kind === 'call' ? await Promise.all(value.invitedSocietyIds.filter(host => !old?.invitedSocietyIds?.includes(host)).map(async hostId => ({ hostId, rows: (await Promise.all(['owner', 'admin'].map(role => list(tx, 'society_members', { societyId: hostId, status: 'active', role }, { limit: 20 })))).flat() }))) : [];
+    // Transaction operations must stay sequential (no Promise.all).
+    const invitedManagers = [];
+    if (event.kind === 'call') {
+      for (const hostId of value.invitedSocietyIds.filter(host => !old?.invitedSocietyIds?.includes(host))) {
+        const rows = [];
+        for (const role of ['owner', 'admin']) rows.push(...await list(tx, 'society_members', { societyId: hostId, status: 'active', role }, { limit: 20 }));
+        invitedManagers.push({ hostId, rows });
+      }
+    }
     const now = new Date();
     if (event.kind !== 'news' && (event.kind === 'event' ? value.endTime : value.deadline) <= now) throw error('结束时间须晚于当前时间');
     const hosts = event.kind === 'call' ? [...new Set([societyId, ...(old?.hostSocietyIds || []).filter(host => value.invitedSocietyIds.includes(host))])] : [];

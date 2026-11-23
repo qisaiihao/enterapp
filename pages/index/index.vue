@@ -35,6 +35,7 @@
                             :swiper-heights="swiperHeights"
                             :show-poem-author="false"
                             :list-type="homeFeedListType"
+                            :expanded="allPostsExpanded"
                             container-id="post-list-container"
                             empty-text="还没有帖子哦～"
                             empty-subtext="快来发布第一条帖子吧！"
@@ -71,6 +72,7 @@
                             :swiper-heights="swiperHeights"
                             :show-poem-author="false"
                             list-type="following"
+                            :expanded="allPostsExpanded"
                             container-id="following-list-container"
                             empty-text="关注的人还没有发帖"
                             empty-subtext="去关注更多有趣的人吧！"
@@ -116,6 +118,7 @@
                             :refresher-triggered="isRefreshing"
                             :swiper-heights="swiperHeights"
                             list-type="discussion"
+                            :expanded="allPostsExpanded"
                             container-id="discussion-list-container"
                             empty-text="讨论区暂无内容"
                             empty-subtext="快来发起第一个话题吧！"
@@ -170,6 +173,20 @@
                                     @tap="setNormalPostsFilter(true)"
                                 >
                                     只看普通帖子
+                                </view>
+                                <view
+                                    class="home-filter-option"
+                                    :class="{ 'home-filter-option--active': !allPostsExpanded }"
+                                    @tap="setPostsDisplayMode(false)"
+                                >
+                                    略缩显示
+                                </view>
+                                <view
+                                    class="home-filter-option"
+                                    :class="{ 'home-filter-option--active': allPostsExpanded }"
+                                    @tap="setPostsDisplayMode(true)"
+                                >
+                                    全文显示
                                 </view>
                             </view>
                         </AppMotion>
@@ -229,6 +246,7 @@ const PAGE_SIZE = 10;
 const DISCOVER_PAGE_SIZE = 5;
 const MAX_DISCOVER_EXCLUDE_IDS = 200;
 const HOME_NORMAL_POSTS_FILTER_KEY = 'homeShowNormalPostsOnly';
+const HOME_POSTS_EXPANDED_KEY = 'homeAllPostsExpanded';
 export default {
     components: { AppMotion,
         skeleton,
@@ -250,6 +268,12 @@ export default {
             }
         } catch (error) {
             console.warn('【首页】读取帖子筛选偏好失败:', error);
+        }
+        let allPostsExpanded = false;
+        try {
+            allPostsExpanded = uni.getStorageSync(HOME_POSTS_EXPANDED_KEY) === true;
+        } catch (error) {
+            console.warn('【首页】读取展示模式偏好失败:', error);
         }
         return {
             postList: [],
@@ -301,6 +325,7 @@ export default {
             easeOutCubic: 'cubic-bezier(0.33, 1, 0.68, 1)',
             homeFeedRenderKey: 0,
             showNormalPostsOnly,
+            allPostsExpanded,
             showHomeFilterPanel: false,
             useRecommendFeed: false,
             isTouchScrolling: false,
@@ -1476,6 +1501,29 @@ export default {
         // 切换只看普通帖子模式
         toggleNormalPostsFilter: function () {
             this.setNormalPostsFilter(!this.showNormalPostsOnly);
+        },
+
+        // 切换略缩/全文显示模式（作用于当前页面全部帖子）
+        setPostsDisplayMode: function (nextExpanded, afterMotion = false) {
+            if (!afterMotion && this.tapDisabled && this.tapDisabled()) { return; }
+            if (this.$refs?.homeFilterMotion?.rendered) {
+                this.$refs.homeFilterMotion.dismiss(() => this.setPostsDisplayMode(nextExpanded, true));
+                return;
+            }
+            const normalizedMode = !!nextExpanded;
+            try {
+                uni.setStorageSync(HOME_POSTS_EXPANDED_KEY, normalizedMode);
+            } catch (error) {
+                console.warn('【首页】保存展示模式偏好失败:', error);
+            }
+            if (normalizedMode === this.allPostsExpanded) {
+                this.closeHomeFilterPanel();
+                return;
+            }
+            this.setData({
+                allPostsExpanded: normalizedMode,
+                showHomeFilterPanel: false
+            });
         },
 
         // 切换推荐流
