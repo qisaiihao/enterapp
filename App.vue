@@ -398,6 +398,13 @@ text {
     box-sizing: border-box;
 }
 
+/* 搜索关键词高亮：仅加粗提示，去掉 <mark> 浏览器默认黄色背景 */
+.search-highlight {
+    background: transparent;
+    color: inherit;
+    font-weight: 700;
+}
+
 /* 全局字体预加载 - 仅用于诗歌内容 */
 /* 小程序不支持 CSS @font-face 加载本地字体，只在 H5 和 APP 环境使用 */
 /* #ifndef MP-WEIXIN */

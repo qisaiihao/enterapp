@@ -109,10 +109,11 @@
 
 <script>
 import { formatTimeAgo } from '../../utils/time.js';
-import { getUnreadCount, invalidateUnread } from '../../api-cache/unread.js';
+import { getUnreadCount, invalidateUnread, updateUnreadCache } from '../../api-cache/unread.js';
 import {
     getMessages as getMessagesWithCache,
     markMessagesAsRead as markMessagesAsReadApi,
+    markAllMessagesAsRead as markAllMessagesAsReadApi,
     deleteMessageById,
     clearMessages,
     invalidateMessages
@@ -121,7 +122,6 @@ import { toggleFollow } from '../../api-cache/following.js';
 import fileUrlCache from '../../cache/core/file-url.js';
 import unreadBadge from '../../cache/stores/unread-badge.js';
 import followCache from '../../cache/stores/follow.js';
-import { emitUnreadChanged } from '../../utils/events.js';
 import { resolveUserAvatar } from '../../utils/defaultAvatar.js';
 import { getSystemInfoCompat } from '@/utils/system-info.js';
 import { applyThemeMode, getThemeMode } from '@/utils/theme.js';
@@ -165,15 +165,8 @@ export default {
     onShow: function () {
         const mode = applyThemeMode(getThemeMode());
         this.appThemeMode = mode;
-        // 页面显示时刷新消息
-        if (!this.isLoading) {
-            this.page = 0;
-            this.hasMore = true;
-            this.loadMessages(undefined, true);
-        }
-        
-        // 清除未读消息缓存，确保其他页面的小红点能及时更新
-        invalidateUnread();
+        // 进入消息页即把全部消息标为已读，返回后小红点不再显示
+        this.markAllReadThenLoad();
     },
     onUnload: function () {
         if (this.longPressGuardTimer) {
@@ -193,12 +186,6 @@ export default {
         this.loadMessages(() => {
             uni.stopPullDownRefresh();
         }, true); // forceRefresh = true
-    },
-    watch: {
-        // 本页未读数更新时，广播给全局（驱动小红点即时消失）
-        unreadCount(n) {
-            try { emitUnreadChanged({ count: typeof n === 'number' ? n : 0 }); } catch (_) {}
-        }
     },
     methods: {
         setupHeaderLayout() {
@@ -735,6 +722,59 @@ export default {
                 });
         },
 
+        // 进入页面：先把全部消息标为已读，再加载列表
+        markAllReadThenLoad: async function () {
+            await this.markAllMessagesAsRead();
+            if (this.isLoading) {
+                return;
+            }
+            this.page = 0;
+            this.hasMore = true;
+            this.loadMessages(undefined, true);
+        },
+
+        // 全部消息标为已读：本地先清零红点，云端成功后再次确认
+        markAllMessagesAsRead: function () {
+            if (this.messages.some((msg) => !msg.isRead)) {
+                this.setData({
+                    messages: this.messages.map((msg) => (msg.isRead ? msg : Object.assign({}, msg, { isRead: true })))
+                });
+            }
+            this.setData({ unreadCount: 0 });
+            try { unreadBadge.acknowledgeAllRead(); } catch (_) {}
+            updateUnreadCache(0);
+
+            if (this._markAllReadTask) {
+                return this._markAllReadTask;
+            }
+
+            const task = markAllMessagesAsReadApi(this)
+                .catch((error) => {
+                    // 首次失败可能是登录态/网络尚未就绪，短暂等待后重试一次
+                    console.warn('[messages] 标记全部已读失败，准备重试:', error);
+                    return new Promise((resolve) => setTimeout(resolve, 800)).then(() => markAllMessagesAsReadApi(this));
+                })
+                .then((result) => {
+                    try { unreadBadge.acknowledgeAllRead(); } catch (_) {}
+                    updateUnreadCache(0);
+                    invalidateMessages();
+                    return result;
+                })
+                .catch((error) => {
+                    // 仍然失败时回读服务器未读数，避免红点被错误清除
+                    console.warn('[messages] 标记全部已读失败:', error);
+                    invalidateUnread();
+                    return { success: false };
+                })
+                .finally(() => {
+                    if (this._markAllReadTask === task) {
+                        this._markAllReadTask = null;
+                    }
+                });
+            this._markAllReadTask = task;
+            return task;
+        },
+
         // 标记消息为已读
         markMessagesAsRead: function (messageIds) {
             if (!messageIds || messageIds.length === 0) {
@@ -754,8 +794,9 @@ export default {
                         unreadCount: nextUnread
                     });
 
-                    // 使用 unreadBadge 统一管理，自动广播到所有订阅者
-                    unreadBadge.setUnreadCount(nextUnread);
+                    // 以全局未读数为准递减，避免用页面里可能过期的列表计数把红点点亮
+                    try { unreadBadge.decreaseUnread(messageIds.length); } catch (_) {}
+                    updateUnreadCache((prev) => Math.max(0, (typeof prev === 'number' ? prev : 0) - messageIds.length));
 
                     // 清除消息列表缓存
                     invalidateMessages({ type: this.activeTab === 'all' ? null : this.activeTab });
@@ -860,6 +901,7 @@ export default {
 
                                 // 使用 unreadBadge 清零，自动广播到所有订阅者
                                 unreadBadge.clearUnread();
+                                updateUnreadCache(0);
 
                                 // 清除消息列表缓存
                                 invalidateMessages();

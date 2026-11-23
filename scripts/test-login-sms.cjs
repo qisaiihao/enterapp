@@ -430,6 +430,7 @@ async function frontendTests() {
       source = source.slice(0, node.start) + source.slice(node.end);
     } else if (node.type === 'ExportDefaultDeclaration') source = source.slice(0, node.start) + 'module.exports = ' + source.slice(node.declaration.start);
   }
+  context.needsProfileSetup = () => false;
   vm.runInNewContext(source, context);
   const page = context.module.exports;
   const state = { ...page.data() };

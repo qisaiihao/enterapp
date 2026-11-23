@@ -43,10 +43,15 @@ function createInbox() {
   }
   messages.push({ _id: 'foreign', type: 'favorite', toUserId: 'other', fromUserId: 'sender',
     isRead: false, createTime: 999 });
-  const matches = (row, filter) => Object.entries(filter).every(([key, value]) =>
-    value && value.in ? value.in.includes(row[key]) : row[key] === value);
+  messages.push({ _id: 'legacy-unread', type: 'like', toUserId: 'viewer', fromUserId: 'sender',
+    createTime: 998 });
+  const matches = (row, filter) => Object.entries(filter).every(([key, value]) => {
+    if (value && value.in) return value.in.includes(row[key]);
+    if (value && Object.prototype.hasOwnProperty.call(value, 'neq')) return row[key] !== value.neq;
+    return row[key] === value;
+  });
   const db = {
-    command: { in: values => ({ in: values }) },
+    command: { in: values => ({ in: values }), neq: value => ({ neq: value }) },
     collection(name) {
       const rows = name === 'messages' ? messages : [{ _openid: 'sender', nickName: '发送者', avatarUrl: '/avatar.png' }];
       let filter = {}, skip = 0, limit = Infinity, sortField, descending;
@@ -60,22 +65,41 @@ function createInbox() {
         skip(value) { skip = value; return query; }, limit(value) { limit = value; return query; },
         field() { return query; },
         async get() { return { data: structuredClone(selected().slice(skip, skip + limit)) }; },
-        async count() { return { total: selected().length }; }
+        async count() { return { total: selected().length }; },
+        async update({ data }) {
+          const rows = selected();
+          rows.forEach(row => Object.assign(row, data));
+          return { stats: { updated: rows.length } };
+        }
       };
       return query;
     }
   };
-  const sandbox = { exports: {}, console: quiet, require(name) {
-    assert.equal(name, 'wx-server-sdk');
-    return { init() {}, database: () => db, getWXContext: () => ({ OPENID: 'viewer' }) };
-  } };
-  vm.runInNewContext(read('functions/getMessages/index.js'), sandbox);
-  return { messages, main: sandbox.exports.main };
+  const runFunction = (file) => {
+    const sandbox = {
+      exports: {},
+      console: quiet,
+      require(name) {
+        assert.equal(name, 'wx-server-sdk');
+        return {
+          init() {},
+          DYNAMIC_CURRENT_ENV: 'test-env',
+          database: () => db,
+          getWXContext: () => ({ OPENID: 'viewer' })
+        };
+      }
+    };
+    vm.runInNewContext(read(file), sandbox);
+    return sandbox.exports.main;
+  };
+  const main = runFunction('functions/getMessages/index.js');
+  const markMain = runFunction('functions/markMessagesAsRead/index.js');
+  return { messages, main, markMain };
 }
 
 async function checkServer(inbox) {
   const owned = inbox.messages.filter(row => row.toUserId === 'viewer');
-  const unread = owned.filter(row => !row.isRead).length;
+  const unread = owned.filter(row => row.isRead === false).length;
   for (const [type, memberTypes] of Object.entries(groups)) {
     const expected = owned.filter(row => memberTypes.includes(row.type)).sort((a, b) => b.createTime - a.createTime);
     const received = [];
@@ -99,6 +123,22 @@ async function checkServer(inbox) {
   }
 }
 
+async function checkMarkAll(inbox) {
+  const ownedUnread = () => inbox.messages.filter(row => row.toUserId === 'viewer' && row.isRead !== true);
+  const before = ownedUnread().length;
+  assert.ok(before > 0, 'Fixture must start with unread messages');
+  assert.ok(ownedUnread().some(row => row._id === 'legacy-unread'), 'Legacy message without isRead is pending');
+  const response = await inbox.markMain({ markAll: true });
+  assert.equal(response.success, true);
+  assert.equal(response.updated, before, 'markAll reports every updated message, including legacy rows');
+  assert.equal(ownedUnread().length, 0, 'markAll clears every unread message of the viewer');
+  assert.equal(inbox.messages.find(row => row._id === 'foreign').isRead, false, 'markAll must not touch other users');
+  const again = await inbox.markMain({ markAll: true });
+  assert.equal(again.updated, 0, 'markAll is idempotent');
+  const scoped = await inbox.markMain({ messageIds: ['message-0', 'foreign'] });
+  assert.equal(scoped.updated, 0, 'Regular id-based marking still works');
+}
+
 async function checkClient(inbox) {
   const cache = new Map();
   const calls = [];
@@ -111,11 +151,19 @@ async function checkClient(inbox) {
   const api = loadModule('api-cache/messages.js', {
     cacheManager: { namespace: () => namespace },
     async callCloudAndUnwrap(name, payload) {
+      if (name === 'markMessagesAsRead') {
+        assert.equal(payload.markAll, true, 'Bulk mark must be requested as markAll');
+        return inbox.markMain(payload);
+      }
       assert.equal(name, 'getMessages');
       calls.push(plain(payload));
       return inbox.main(payload);
     }
-  }, ['getMessages', 'invalidateMessages']);
+  }, ['getMessages', 'invalidateMessages', 'markAllMessagesAsRead']);
+  const bulkResult = await api.markAllMessagesAsRead();
+  assert.equal(bulkResult.success, true);
+  assert.equal(inbox.messages.filter(row => row.toUserId === 'viewer' && !row.isRead).length, 0,
+    'Client helper marks the whole inbox read');
   for (const type of ['like', 'like_all', 'feedback_all', 'post_report_all', 'feedback_report_all']) {
     await api.getMessages({ type });
     await api.getMessages({ type });
@@ -129,12 +177,19 @@ async function checkClient(inbox) {
   assert.ok(cache.has('type:feedback_all:page:0:size:10'));
   assert.ok(!cache.has('type:feedback_report_all:page:0:size:10'));
 
+  let markAllCalls = 0;
+  let clearBadgeCalls = 0;
   const pageDefinition = loadModule('pages-tools/messages/messages.vue', {
     getMessagesWithCache: api.getMessages, invalidateMessages: api.invalidateMessages,
-    formatTimeAgo: () => '刚刚', uni: { showToast() { assert.fail('Message loading must succeed'); } }
+    formatTimeAgo: () => '刚刚',
+    markAllMessagesAsReadApi: async () => { markAllCalls++; return inbox.markMain({ markAll: true }); },
+    unreadBadge: { clearUnread() { clearBadgeCalls++; }, acknowledgeAllRead() { clearBadgeCalls++; } },
+    updateUnreadCache() {}, invalidateUnread() {},
+    uni: { showToast() { assert.fail('Message loading must succeed'); } }
   });
   const page = pageDefinition.data();
   for (const [name, method] of Object.entries(pageDefinition.methods)) page[name] = method.bind(page);
+  page.onShow = pageDefinition.onShow.bind(page);
   Object.assign(page, { setData(updates) { Object.assign(this, updates); },
     normalizeMessageAvatar() {}, checkFollowStatus() {}, markMessagesAsRead() {} });
   const settle = async () => { for (let index = 0; index < 20; index++) await Promise.resolve(); };
@@ -147,6 +202,16 @@ async function checkClient(inbox) {
     assert.ok(page.messages.length > 0);
     assert.ok(page.messages.every(row => groups[type].includes(row.type)));
   }
+  markAllCalls = 0;
+  clearBadgeCalls = 0;
+  page.unreadCount = 2;
+  page.messages = page.messages.map(row => Object.assign({}, row, { isRead: false }));
+  page.onShow();
+  await settle();
+  assert.equal(markAllCalls, 1, 'Entering the page marks the whole inbox read');
+  assert.equal(page.unreadCount, 0, 'Unread badge clears immediately');
+  assert.ok(clearBadgeCalls > 0, 'Global unread badge is cleared');
+  assert.ok(page.messages.every(row => row.isRead), 'Loaded messages render as read');
   assert.equal(page.getActionText({ type: 'like' }), '点赞了你的帖子');
   assert.equal(page.getActionText({ type: 'favorite' }), '收藏了你的帖子');
   assert.equal(page.getActionText({ type: 'post_report_handled' }), '处理了您的举报');
@@ -162,6 +227,7 @@ async function checkClient(inbox) {
 (async () => {
   const inbox = createInbox();
   await checkServer(inbox);
+  await checkMarkAll(inbox);
   await checkClient(inbox);
-  console.log('[test-message-groups] PASS: merged filtering/pagination, ownership, global unread, legacy queries, page/API keys and cache isolation');
+  console.log('[test-message-groups] PASS: merged filtering/pagination, ownership, global unread, mark-all read, legacy queries, page/API keys and cache isolation');
 })().catch(error => { console.error(error); process.exitCode = 1; });

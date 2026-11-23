@@ -63,6 +63,23 @@ export async function markMessagesAsRead(messageIds, context) {
 }
 
 /**
+ * 将当前用户的全部消息标记为已读
+ */
+export async function markAllMessagesAsRead(context) {
+  const result = await callCloudAndUnwrap(
+    'markMessagesAsRead',
+    { markAll: true },
+    { pageTag: 'messages:markAll', context, requireAuth: true },
+    '标记已读失败'
+  );
+
+  return {
+    success: true,
+    modifiedCount: result.updated || 0
+  };
+}
+
+/**
  * 删除单条消息
  */
 export async function deleteMessageById(messageId, context) {

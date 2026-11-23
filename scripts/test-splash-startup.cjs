@@ -25,7 +25,7 @@ function load(file, globals = {}, exports = []) {
     }
   }
   if (exports.length) source += `\nmodule.exports = { ${exports.join(', ')} };`;
-  const scope = { ...imports, console: quiet, ...globals, module: { exports: {} } };
+  const scope = { ...imports, console: quiet, needsProfileSetup: () => false, ...globals, module: { exports: {} } };
   vm.runInNewContext(source, scope, { filename: file });
   return scope.module.exports;
 }

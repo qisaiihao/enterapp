@@ -24,12 +24,12 @@ function load(file, globals = {}, named = []) {
   return context.module.exports;
 }
 
-function runtime() {
-  const listeners = new Map();
+function runtime(shared = null) {
+  const listeners = shared ? shared.listeners : new Map();
   const timers = new Map();
   let nextTimer = 0;
   const state = { isLoggedIn: true, openid: 'user-a', now: 1000, count: 3, calls: 0, fail: false, pending: null };
-  const uni = {
+  const uni = shared ? shared.uni : {
     $on(event, handler) {
       if (!listeners.has(event)) listeners.set(event, new Set());
       listeners.get(event).add(handler);
@@ -169,6 +169,42 @@ async function testStore() {
   store.stopPolling();
 }
 
+async function testCrossInstanceAndAcknowledge() {
+  const listeners = new Map();
+  const uni = {
+    $on(event, handler) {
+      if (!listeners.has(event)) listeners.set(event, new Set());
+      listeners.get(event).add(handler);
+    },
+    $emit(event, payload) { listeners.get(event)?.forEach(handler => handler(payload)); }
+  };
+  const shared = { listeners, uni };
+  const topBar = runtime(shared);
+  const page = runtime(shared);
+  const seen = [];
+  topBar.store.subscribe(count => seen.push(count));
+  await topBar.store.initUnreadCount();
+  assert.equal(topBar.store.getUnreadCount(), 3, 'Top bar instance holds the current unread count');
+
+  page.store.clearUnread();
+  await flush();
+  assert.equal(topBar.store.getUnreadCount(), 0, 'Clearing in one module instance must reach the other through the event bridge');
+  assert.equal(seen.at(-1), 0);
+
+  const local = runtime();
+  await local.store.initUnreadCount();
+  assert.equal(local.store.getUnreadCount(), 3);
+  local.store.acknowledgeAllRead();
+  assert.equal(local.store.getUnreadCount(), 0, 'acknowledgeAllRead clears immediately');
+  const callsBefore = local.state.calls;
+  await local.store.refreshUnreadCount({ forceRefresh: false });
+  assert.equal(local.state.calls, callsBefore, 'Recent acknowledge suppresses non-forced refresh so stale counts cannot re-light the dot');
+  local.state.count = 5;
+  await local.store.refreshUnreadCount();
+  assert.equal(local.state.calls, callsBefore + 1, 'Forced refresh still queries the server');
+  assert.equal(local.store.getUnreadCount(), 5);
+}
+
 async function testStartupRetryAndComponents() {
   const { store, state } = runtime();
   state.fail = true;
@@ -209,6 +245,7 @@ async function testStartupRetryAndComponents() {
 
 (async () => {
   await testStore();
+  await testCrossInstanceAndAcknowledge();
   await testStartupRetryAndComponents();
-  console.log('[test-unread-badge] PASS: initialization, events, read state, refresh, retry, concurrency, polling and lifecycle');
+  console.log('[test-unread-badge] PASS: initialization, events, read state, cross-instance sync, refresh, retry, concurrency, polling and lifecycle');
 })().catch(error => { console.error(error); process.exitCode = 1; });

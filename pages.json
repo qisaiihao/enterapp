@@ -183,6 +183,13 @@
           }
         },
         {
+          "path": "profile-setup/profile-setup",
+          "style": {
+            "navigationStyle": "custom",
+            "usingComponents": {}
+          }
+        },
+        {
           "path": "profile-edit/profile-edit",
           "style": {
             "navigationStyle": "custom",

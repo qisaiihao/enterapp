@@ -2567,6 +2567,8 @@ export default {
 
         // 主页背景管理菜单
         handleManageBackground: async function () {
+            // 搜索态下易误触，禁用背景管理入口
+            if (this.isProfileSearchActive) return;
             const hasBackground = !!(this.appBackgroundResolvedUrl || (this.userInfo && this.userInfo.appBackgroundUrl));
             // 无背景图：直接进入图片选择（不弹窗）
             if (!hasBackground) {
@@ -3234,11 +3236,13 @@ export default {
     box-sizing: border-box;
     width: 100%;
     margin: 0;
-    padding: 12rpx 0 0;
+    /* 搜索态把卡片整体下移到状态栏/灵动岛与小程序胶囊下方，避免头像和“取消”被遮挡 */
+    padding: calc(var(--app-safe-area-top, 0px) + 12rpx) 0 0;
 }
 
 .profile-main-content--search .profile-tap-area {
     width: 100%;
+    cursor: default;
 }
 
 .profile-hero-bg-image,

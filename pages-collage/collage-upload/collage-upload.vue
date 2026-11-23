@@ -459,8 +459,8 @@ export default {
         if (publicationResult && publicationResult.reviewQueued) {
           uni.hideLoading()
           uni.showModal({
-            title: '已提交管理员复核',
-            content: publicationResult.message || '拼贴诗暂未公开，管理员复核通过后会发布。',
+            title: '已提交审核',
+            content: '您发布的内容已进入人工审核，通过后将自动发布',
             showCancel: false,
             confirmText: '知道了',
             success: () => {

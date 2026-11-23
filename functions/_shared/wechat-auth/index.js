@@ -19,6 +19,16 @@ function linked(user, wxid) {
   return user._openid === wxid && user.wechatLoginDisabled !== true;
 }
 
+// Accounts auto-created by WeChat must complete their profile before entering the app.
+// Accounts created before this flag existed are only treated as incomplete while they
+// still carry the generated default nickname, so existing users are not interrupted.
+function needsProfileSetup(user) {
+  if (!user) return false;
+  if (user.profileCompleted === true) return false;
+  if (user.profileCompleted === false) return true;
+  return typeof user.nickName === 'string' && user.nickName.trim() === '微信用户';
+}
+
 function credentialFingerprint(user, salt) {
   return digest(JSON.stringify([salt, user._id, user._openid, user.poemId,
     user.password || '', user.passwordHash || '', user.phoneNumber || '']));
@@ -159,17 +169,18 @@ async function wechatLogin(db, wxid) {
     const now = new Date();
     const user = { _openid: wxid, wechatOpenId: wxid, poemId, nickName: '微信用户', avatarUrl: '',
       signature: '', isPhoneVerified: false, phoneNumber: '', showGrowthStats: false,
-      createdAt: now, updatedAt: now, bio: '', occupation: '', region: '', followingCount: 0,
-      fansCount: 0, likesCount: 0, postsCount: 0 };
+      profileCompleted: false, createdAt: now, updatedAt: now, bio: '', occupation: '',
+      region: '', followingCount: 0, fansCount: 0, likesCount: 0, postsCount: 0 };
     await userRef.set({ data: user });
     await linkRef.set({ data: { userId: newId, updatedAt: now } });
     return { success: true, user: Object.assign({ _id: newId }, user), isNewUser: true };
   });
   if (!outcome.success) return outcome;
   return { success: true, needRegister: false, isNewUser: outcome.isNewUser,
+    needsProfileSetup: needsProfileSetup(outcome.user),
     userInfo: safeUser(outcome.user), openid: outcome.user._openid,
     isPhoneVerified: !!outcome.user.isPhoneVerified, isBoundAccount: outcome.user._openid !== wxid,
     ...(outcome.isNewUser ? { defaultPoemId: outcome.user.poemId } : {}) };
 }
 
-module.exports = { prepareWechatLogin, bindWechat, wechatLogin, safeUser, linked, bindingId, grantId, GRANT_TTL_MS };
+module.exports = { prepareWechatLogin, bindWechat, wechatLogin, safeUser, linked, needsProfileSetup, bindingId, grantId, GRANT_TTL_MS };

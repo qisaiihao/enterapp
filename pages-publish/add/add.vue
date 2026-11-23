@@ -2204,6 +2204,15 @@ export default {
 
         publishFail: function (err) {
             uni.hideLoading();
+            if (err && err.result && err.result.reviewQueued) {
+                uni.showModal({
+                    title: '已提交审核',
+                    content: '您发布的内容已进入人工审核，通过后将自动发布',
+                    showCancel: false,
+                    confirmText: '知道了'
+                });
+                return;
+            }
             console.error('[发布流程] 失败：', err);
             
             // 显示更详细的错误信息

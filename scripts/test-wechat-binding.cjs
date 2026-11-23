@@ -39,9 +39,20 @@ function runtime(users = []) {
     };
     if (!transaction) result.where = filter => {
       let count = Infinity;
+      const matches = () => Object.values(rows()).filter(row => Object.entries(filter).every(([key, value]) => row[key] === value));
       const query = {
         limit(value) { count = value; return query; },
-        async get() { return { data: structuredClone(Object.values(rows()).filter(row => Object.entries(filter).every(([key, value]) => row[key] === value)).slice(0, count)) }; }
+        async get() { return { data: structuredClone(matches().slice(0, count)) }; },
+        async update({ data }) {
+          const matched = matches();
+          for (const row of matched) {
+            for (const [key, value] of Object.entries(data)) {
+              if (value && value.removeField) delete row[key]; else row[key] = structuredClone(value);
+            }
+          }
+          write();
+          return { stats: { updated: matched.length } };
+        }
       };
       return query;
     };
@@ -81,6 +92,7 @@ function runtime(users = []) {
     password: (wx, id, password = `secret-${id}`) => call('loginWithCredentials', wx, { poemId: `poet-${id}`, password }),
     bind: (wx, id, forceRebind = false, extra = {}) => call('bindWechatToAccount', wx, { poemId: `poet-${id}`, forceRebind, ...extra }),
     login: (wx, extra) => call('loginWithWechat', wx, extra),
+    complete: (wx, data) => call('completeProfile', wx, data),
     grant: (wx, id) => tables.wechat_binding_grants[auth.grantId(wx, id)],
     owner: wx => tables.wechat_bindings[auth.bindingId(wx)]?.userId
   };
@@ -107,6 +119,7 @@ async function backendTests() {
   assert.equal(direct.openid, 'owner-a');
   assert.equal(direct.userInfo.password, undefined);
   assert.equal(direct.isBoundAccount, true);
+  assert.equal(direct.needsProfileSetup, false, 'existing named accounts are not sent back to profile setup');
   assert.equal((await r.password(undefined, 'a')).needBindWechat, false, 'App login requires no WeChat binding');
 
   for (const mutate of [
@@ -169,7 +182,22 @@ async function backendTests() {
   assert.ok(registered.every(result => result.success));
   assert.equal(Object.keys(fresh.tables.users).length, 1);
   assert.equal(new Set(registered.map(result => result.userInfo._id)).size, 1);
+  assert.ok(registered.every(result => result.needsProfileSetup === true), 'new WeChat accounts must complete their profile');
+  assert.equal(registered[0].userInfo.profileCompleted, false);
+  assert.equal(registered[0].userInfo.nickName, '微信用户');
   assert.ok(fresh.state.retries > 0, 'test must actually exercise conflict retries');
+
+  const newUserId = registered[0].userInfo._id;
+  assert.equal((await fresh.complete('brand-new', { nickName: '   ' })).code, 'MISSING_NICKNAME');
+  assert.equal((await fresh.complete('someone-else', { nickName: 'intruder' })).code, 'USER_NOT_FOUND');
+  const completed = await fresh.complete('brand-new', { nickName: '  诗人甲  ', avatarUrl: 'cloud://avatar' });
+  assert.equal(completed.success, true);
+  assert.equal(completed.userInfo._id, newUserId);
+  assert.equal(completed.userInfo.nickName, '诗人甲');
+  assert.equal(completed.userInfo.avatarUrl, 'cloud://avatar');
+  assert.equal(completed.userInfo.profileCompleted, true);
+  assert.equal(fresh.tables.users[newUserId].profileCompleted, true);
+  assert.equal((await fresh.login('brand-new')).needsProfileSetup, false, 'completed account enters normally on next login');
 
   const racing = runtime([account('a'), account('b')]);
   await Promise.all([racing.password('wx', 'a'), racing.password('wx', 'b')]);
@@ -264,10 +292,10 @@ async function pageIntegrationTests() {
     vm.runInNewContext(source, { ...context, ...globals });
     return context.module.exports;
   }
-  let openid = 'previous', resets = [], sessions = [], timers = [], switched = 0;
-  const uni = { setStorageSync() {}, showToast() {}, switchTab() { switched++; } };
+  let openid = 'previous', resets = [], sessions = [], timers = [], switched = 0, relaunched = 0;
+  const uni = { setStorageSync() {}, showToast() {}, switchTab() { switched++; }, reLaunch() { relaunched++; } };
   const page = load('pages/login/login.vue', {
-    uni, getOpenid: () => openid,
+    uni, getOpenid: () => openid, needsProfileSetup: auth.needsProfileSetup,
     setUserSession(user, id) { sessions.push({ user, id }); openid = id; }, patchAppState() {},
     resetAllCachesOnAccountChange({ newOpenId }) { resets.push(newOpenId); return Promise.resolve(); },
     setTimeout(fn) { timers.push(fn); return timers.length; }, clearTimeout() {}
@@ -288,6 +316,14 @@ async function pageIntegrationTests() {
   const count = sessions.length;
   await p.handleLoginResult({ success: true, userInfo: {}, openid: 'late' });
   assert.equal(sessions.length, count);
+
+  timers.length = 0; switched = 0; relaunched = 0; p.loginPageUnloaded = false;
+  await p.handleLoginResult({ result: { success: true, isNewUser: true, needsProfileSetup: true,
+    userInfo: { _openid: 'owner-new', nickName: '微信用户', profileCompleted: false }, openid: 'owner-new' } });
+  assert.equal(timers.length, 1, 'new WeChat account is routed to profile setup instead of the square');
+  timers[0]();
+  assert.equal(relaunched, 1);
+  assert.equal(switched, 0);
 
   // The semantic adapter preserves business conflict codes and never injects a cached owner ID.
   let request;

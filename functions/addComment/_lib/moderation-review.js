@@ -72,8 +72,7 @@ function snapshot(data) {
 function replay(review) {
   if (review.status === 'pending') return {
     success: false, code: 'REVIEW_PENDING', queued: true, reviewQueued: true, reviewStored: true, reviewId: review._id,
-    originalCode: review.audit.code, message: review.kind === 'post_edit'
-      ? '修改已提交管理员复核，通过后将自动生效' : '内容已提交管理员复核，通过后将自动发布'
+    originalCode: review.audit.code, message: '您发布的内容已进入人工审核，通过后将自动发布'
   };
   return {
     success: false, queued: false, reviewQueued: false, reviewStored: true, reviewId: review._id,

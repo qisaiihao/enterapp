@@ -1,3 +1,16 @@
+import { hasAcceptedPrivacyConsent } from './privacyConsent.js';
+
+// uni-app 的 getDeviceInfo/getSystemInfoSync 在读取设备信息时会附带设备标识
+// （HarmonyOS 上为 OAID，审核报告中常表述为 IMEI）。只有用户同意隐私政策后
+// 才允许调用，避免“同意前收集设备标识”的合规问题。
+function canReadDeviceIdentifier() {
+    try {
+        return hasAcceptedPrivacyConsent();
+    } catch (error) {
+        return false;
+    }
+}
+
 function hasKeys(value) {
     return !!(value && typeof value === 'object' && Object.keys(value).length);
 }
@@ -29,6 +42,10 @@ function callPreferredMethod(methodName) {
 }
 
 function getLegacySystemInfo() {
+    if (!canReadDeviceIdentifier()) {
+        return {};
+    }
+
     const uniResult = typeof uni !== 'undefined' ? callSyncMethod(uni, 'getSystemInfoSync') : null;
     if (hasKeys(uniResult)) {
         return uniResult;
@@ -99,9 +116,11 @@ function getWindowInfoCompat() {
 }
 
 function getDeviceInfoCompat() {
-    const info = normalizeInfo(callPreferredMethod('getDeviceInfo'));
-    if (hasKeys(info)) {
-        return info;
+    if (canReadDeviceIdentifier()) {
+        const info = normalizeInfo(callPreferredMethod('getDeviceInfo'));
+        if (hasKeys(info)) {
+            return info;
+        }
     }
 
     return normalizeInfo(getLegacySystemInfo());

@@ -157,6 +157,7 @@ import { getOfficialMaterials } from '@/api-cache/collage-materials.js';
 import { importOfficialImage } from '@/utils/collage/official.js';
 import { createCollageLogger } from '@/utils/collage/debug.js';
 import { getCollageNavStyle } from '@/utils/collage/nav.js';
+import { getWindowInfoCompat } from '@/utils/system-info.js';
 import AppActionSheet from '@/components/overlay/AppActionSheet.vue';
 import OfficialMaterialPicker from '@/components/OfficialMaterialPicker.vue';
 import StudioIconButton from '@/components/collage/StudioIconButton.vue';
@@ -224,7 +225,7 @@ export default {
     previewKey() { this.queuePreview(); }
   },
   onLoad(query) { log.info('进入拼贴工作台', { tab: query.tab || 'cut' }); this.mpNavStyle = getCollageNavStyle(); if (query.tab === 'board') this.activeTab = 'board'; },
-  onReady() { this.viewWidth = Math.min(640, uni.getSystemInfoSync().windowWidth - 32); log.debug('页面就绪', { viewWidth: this.viewWidth }); this.measureSource(); },
+  onReady() { const win = getWindowInfoCompat(); this.viewWidth = Math.min(640, (win.windowWidth || 375) - 32); log.debug('页面就绪', { viewWidth: this.viewWidth }); this.measureSource(); },
   onShow() { log.debug('页面显示', { storageKey: this.storageKey }); if (!this.busy && this.storageKey !== workspaceKey()) this.restore(); },
   onHide() { log.debug('页面隐藏'); this.cancelSourceTouch(); this.endItem(); this.endItemAdjustment(); },
   onUnload() { log.info('离开拼贴工作台'); this.disposed = true; this.cancelPreview(); this.cleanupStaleBackgroundFiles(); releaseFiles(); },

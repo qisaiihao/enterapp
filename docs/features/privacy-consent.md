@@ -38,6 +38,13 @@
 - 未读/活动徽标初始化、登录后 `getMyInfo` 预热延后到同意事件；文件地址解析和缓存事件桥仍是本地初始化，不受影响。
 - `ensureRuntimeOpenid()` 未同意时返回 `null`，H5/App 的 `uniCloud`/`tcb.callFunction` 包装器随后以 `NO_OPENID` 拒绝请求，作为漏网调用的兜底；登录页和开屏预加载只在同意后运行，不受影响。
 
+## 设备标识符与隐私合规（2026-11-23）
+
+- `utils/system-info.js` 的 `getDeviceInfoCompat()` 与 `getLegacySystemInfo()` 在用户同意隐私政策前不再调用 `uni.getDeviceInfo()` / `uni.getSystemInfoSync()`，避免 uni-app 运行时提前读取设备标识（HarmonyOS 上为 OAID，审核报告常表述为 IMEI）；同意后行为与修改前一致。
+- 同意前的平台判断只依赖 `getAppBaseInfo` / `getWindowInfo` / 系统设置等不涉及设备标识的接口；`mp-weixin` 字体缓存清理等启动逻辑在非小程序环境本就提前返回，不受影响。
+- `pages-admin/activity-notice-management/notice-cropper.vue` 与 `pages-collage/collage-studio/collage-studio.vue` 的 `uni.getSystemInfoSync()` 改为 `getWindowInfoCompat()`，只读取窗口尺寸，不触碰设备标识。
+- 隐私政策新增“设备标识符”收集说明及 DCloud uni-app 运行框架条目；`PRIVACY_POLICY_VERSION` 升级到 `2026-11-23`，老用户会重新确认一次。
+
 ## 尚未覆盖
 
 - `main.js` 模块加载时的 `ensureTcbReady()` 仍会初始化 CloudBase SDK 并发起匿名登录；不包含 openid 或用户资料，但严格解读仍应先于同意前初始化，后续可与 SDK 初始化时机一起评估。

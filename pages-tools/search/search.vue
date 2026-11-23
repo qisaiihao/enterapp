@@ -23,7 +23,7 @@
         </view>
 
         <!-- 搜索过滤 -->
-        <view v-if="searchKeyword && !isSearching" class="search-filters">
+        <view v-if="searchKeyword" class="search-filters">
             <view class="filter-item" :class="{ active: currentFilter === 'all' }" @tap="setFilter" data-filter="all">
                 <text class="filter-text">全部</text>
             </view>
@@ -283,6 +283,12 @@ export default {
                 });
                 return;
             }
+
+            // 非空输入立即进入搜索中状态，避免先闪现空结果
+            this.setData({
+                searchResults: [],
+                isSearching: true
+            });
 
             // 设置搜索建议定时器，300ms后获取建议
             const suggestionTimer = setTimeout(() => {
@@ -1129,12 +1135,7 @@ export default {
     color: var(--app-link-color, #333333);
 }
 
-/* 搜索高亮 */
-.search-highlight {
-    background: transparent;
-    color: inherit;
-    font-weight: bold;
-}
+/* 搜索高亮（样式定义在 App.vue 全局，v-html 内容不受页面 scoped 样式影响） */
 
 /* 加载更多 */
 .load-more {

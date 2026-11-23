@@ -5,6 +5,7 @@ cloud.init({
 });
 
 const db = cloud.database();
+const _ = db.command;
 
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
@@ -18,22 +19,49 @@ exports.main = async (event, context) => {
     };
   }
 
-  const { messageIds } = event;
+  const { messageIds, markAll } = event;
 
-  if (!messageIds || !Array.isArray(messageIds) || messageIds.length === 0) {
-    return {
-      success: false,
-      error: '消息ID列表不能为空'
-    };
-  }
-  
   try {
+    if (markAll === true) {
+      // 云函数端单次 update 有条数上限，循环直到没有未读消息可更新
+      let updated = 0;
+      for (let attempt = 0; attempt < 100; attempt += 1) {
+        const batch = await db.collection('messages')
+          .where({
+            toUserId: openid,
+            // 兼容历史数据：只排除明确已读的，isRead 缺失也一并标记
+            isRead: _.neq(true)
+          })
+          .update({
+            data: {
+              isRead: true,
+              readTime: new Date()
+            }
+          });
+        const count = (batch.stats && batch.stats.updated) || 0;
+        updated += count;
+        if (count === 0) break;
+      }
+
+      return {
+        success: true,
+        updated
+      };
+    }
+
+    if (!messageIds || !Array.isArray(messageIds) || messageIds.length === 0) {
+      return {
+        success: false,
+        error: '消息ID列表不能为空'
+      };
+    }
+
     // 批量更新消息为已读
     const result = await db.collection('messages')
       .where({
-        _id: db.command.in(messageIds),
+        _id: _.in(messageIds),
         toUserId: openid,
-        isRead: false
+        isRead: _.neq(true)
       })
       .update({
         data: {

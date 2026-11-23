@@ -2493,8 +2493,8 @@ export default {
                 uni.hideLoading();
                 if (error && error.result && error.result.reviewQueued) {
                     uni.showModal({
-                        title: '已提交管理员复核',
-                        content: error.result.message || '评论暂未公开，管理员复核通过后会显示。',
+                        title: '已提交审核',
+                        content: '您发布的内容已进入人工审核，通过后将自动发布',
                         showCancel: false,
                         confirmText: '知道了',
                         success: () => {

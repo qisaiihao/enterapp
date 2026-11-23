@@ -13,9 +13,20 @@
 
 新查询类型使用独立缓存键，避免命中旧的单类型列表。旧版客户端的 `like`、`favorite`、`feedback_all`、`post_report_all` 查询保持兼容。未读总数继续统计当前用户的全部未读消息，展示后的已读处理仍使用具体消息 ID。
 
+## 进入即全部已读
+
+2026-11-23：行为改为打开消息页就把当前用户的全部消息标记为已读，返回后顶部消息图标的小红点消失，不再只处理当前分页里可见的消息。
+
+- 客户端先在本地把已加载消息标为已读并清零红点，再调用 `markMessagesAsRead` 的 `markAll: true` 模式；云端成功后再次确认并失效列表缓存，失败则回读服务器未读数恢复红点。
+- 云端的 `markMessagesAsRead` 在 `markAll` 模式下按 `toUserId + isRead: false` 批量更新，循环执行直到没有未读记录（单次 update 有条数上限），只影响当前用户。
+- 红点清零必须即时跨实例同步：`unread-badge` 的 `setUnreadCount` 每次都通过 `uni.$emit` 广播（不再只在本地计数变化时广播），页面使用 `acknowledgeAllRead()` 清零并携带 `cleared` 标记，让分包/其他页面实例在短时间内不因旧缓存或在途请求把红点重新点亮；`api-cache/unread` 同步写入 0，页面退出前后读取到的都是已读状态。
+- 列表接口返回的 `unreadCount` 只用于页面展示，不再通过 watcher 反向驱动全局红点，避免缓存中的旧未读数把红点“自动点亮”；单条已读按全局未读数递减（最小为 0），不再用页面本地计数推算。
+- 云端 `markMessagesAsRead` 以 `isRead != true` 作为未读条件，兼容 `isRead` 缺失的历史消息；客户端 `markAll` 失败会重试一次，仍失败才回读服务器未读数恢复红点。
+- 客户端更新后需要部署 `functions/markMessagesAsRead`；若只更新客户端而未部署，`markAll` 会失败，红点会在下一次轮询时重新出现。
+
 ## 验证与部署
 
-- `npm run test:messages`：分组、倒序分页、用户隔离、未读总数、旧查询兼容、页面请求和缓存。
+- `npm run test:messages`：分组、倒序分页、用户隔离、未读总数、全部已读、旧查询兼容、页面请求和缓存。
 - `npm run test:feedback`、`npm run test:post-reports`、`npm run test:unread-badge`：原通知内容、跳转和未读逻辑。
 - 更新客户端之前，需要部署 `functions/getMessages`。无需迁移或重写已有消息。
 

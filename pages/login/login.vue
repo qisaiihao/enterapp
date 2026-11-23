@@ -223,6 +223,7 @@ import { resetAllCachesOnAccountChange } from '@/utils/accountCacheReset.js';
 import { applyAuthenticatedUserSession } from '@/utils/appBackground.js';
 import { getAppState, getOpenid, patchAppState, setUserSession } from '@/utils/app-state.js';
 import { ensureRuntimeOpenid } from '@/utils/runtime-bootstrap.js';
+import { needsProfileSetup } from '@/utils/profileSetup.js';
 
 // #ifdef APP-PLUS
 // 调用 uniCloud 云函数（仅 APP 环境支持，用于一键登录）
@@ -796,6 +797,11 @@ export default {
                     this.applyUserSession(cachedUserInfo, cachedUserInfo._openid || cachedOpenId, {
                         isLoggedIn: true
                     });
+                    if (needsProfileSetup(cachedUserInfo)) {
+                        console.log('🔍 [登录页面] 微信账号尚未完善资料，进入资料填写');
+                        uni.reLaunch({ url: '/pages-user/profile-setup/profile-setup' });
+                        return;
+                    }
                     console.log('✅ [登录页面] 检测到已登录用户，自动跳转');
                     uni.switchTab({ url: '/pages/poem-square/poem-square' });
                 }
@@ -1034,6 +1040,20 @@ export default {
                 this.applyUserSession(result.userInfo, result.openid, {
                     isLoggedIn: true
                 });
+
+                // 微信自动创建的新账号必须先填写昵称/头像，不能直接以“微信用户”进入。
+                if (needsProfileSetup(result.userInfo)) {
+                    console.log('🔍 [handleLoginResult] 需要完善个人信息，进入资料填写页');
+                    this.password = '';
+                    this.loginSmsCode = '';
+                    clearTimeout(this._wechatNavigationTimer);
+                    this._wechatNavigationTimer = setTimeout(() => {
+                        if (!this.loginPageUnloaded) {
+                            uni.reLaunch({ url: '/pages-user/profile-setup/profile-setup' });
+                        }
+                    }, 300);
+                    return;
+                }
 
                 // 检查是否需要绑定手机号
                 // #ifndef MP-WEIXIN

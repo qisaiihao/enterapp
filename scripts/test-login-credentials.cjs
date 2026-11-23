@@ -92,7 +92,8 @@ async function main() {
 
   // Exercise the actual form handler against the cloud function for each identifier.
   let source = read('pages/login/login.vue').match(/<script>([\s\S]*?)<\/script>/)[1];
-  const context = { module: { exports: {} }, console: quiet, uni: { showLoading() {}, hideLoading() {}, showToast() {} } };
+  const context = { module: { exports: {} }, console: quiet, needsProfileSetup: () => false,
+    uni: { showLoading() {}, hideLoading() {}, showToast() {} } };
   for (const node of parse(source, { sourceType: 'module' }).program.body.reverse()) {
     if (node.type === 'ImportDeclaration') {
       for (const specifier of node.specifiers) context[specifier.local.name] = {};
@@ -101,6 +102,7 @@ async function main() {
       source = source.slice(0, node.start) + 'module.exports = ' + source.slice(node.declaration.start);
     }
   }
+  context.needsProfileSetup = () => false;
   vm.runInNewContext(source, context);
   const page = context.module.exports;
   for (const identifier of [user.poemId, user.nickName, user.phoneNumber]) {

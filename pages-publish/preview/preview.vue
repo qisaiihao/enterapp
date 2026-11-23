@@ -3094,8 +3094,8 @@ export default {
 
       if (err && err.result && err.result.reviewQueued) {
         uni.showModal({
-          title: '已提交管理员复核',
-          content: err.result.message || err.result.msg || '内容暂未公开，管理员复核通过后会发布。',
+          title: '已提交审核',
+          content: '您发布的内容已进入人工审核，通过后将自动发布',
           showCancel: false,
           confirmText: '知道了'
         });

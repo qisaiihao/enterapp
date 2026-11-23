@@ -93,6 +93,7 @@ function runtime(platform = 'APP-PLUS', options = {}, file = 'pages/register/reg
     cloudCall: cloud,
     uniCloud: { callFunction: data => cloud(data.name, data.data) },
     applyAuthenticatedUserSession: async (userInfo, data) => sessions.push({ userInfo, ...data }),
+    needsProfileSetup: () => false,
     getAppState: () => appState, getOpenid: () => appState.openid,
     setUserSession(userInfo, openid) { Object.assign(appState, { userInfo, openid }); },
     patchAppState: data => Object.assign(appState, data),

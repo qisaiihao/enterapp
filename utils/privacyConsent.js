@@ -1,5 +1,5 @@
 // 任一文件版本更新后，需要重新确认两份文件。
-export const PRIVACY_POLICY_VERSION = '2026-10-14';
+export const PRIVACY_POLICY_VERSION = '2026-11-23';
 export const USER_AGREEMENT_VERSION = '1';
 export const PRIVACY_CONSENT_VERSION = `${PRIVACY_POLICY_VERSION}:${USER_AGREEMENT_VERSION}`;
 export const PRIVACY_CONSENT_STORAGE_KEY = 'privacyConsentVersion';

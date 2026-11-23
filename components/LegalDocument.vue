@@ -12,8 +12,8 @@
     </view>
   </view>
   <view v-else class="legal-document">
-    <text class="legal-meta" :selectable="selectable" :user-select="selectable">更新日期：2026年10月14日</text>
-    <text class="legal-meta" :selectable="selectable" :user-select="selectable">生效日期：2026年10月14日</text>
+    <text class="legal-meta" :selectable="selectable" :user-select="selectable">更新日期：2026年11月23日</text>
+    <text class="legal-meta" :selectable="selectable" :user-select="selectable">生效日期：2026年11月23日</text>
 
     <text class="legal-paragraph" :selectable="selectable" :user-select="selectable">广州回车键网络科技有限公司（以下简称“我们”）是“回车键”（英文名 Poementer，以下简称“本应用”）的运营者。我们深知个人信息对您的重要性，将按照《中华人民共和国个人信息保护法》《中华人民共和国网络安全法》等法律法规的要求，采取相应的安全保护措施，尽力保护您的个人信息安全可控。</text>
     <text class="legal-paragraph" :selectable="selectable" :user-select="selectable">请您在使用本应用前，仔细阅读并充分理解本隐私政策。本政策将帮助您了解以下内容：我们如何收集和使用您的个人信息、系统权限的调用、信息的共享与披露、信息的存储与保护、您的权利、未成年人保护、第三方服务以及本政策的更新方式。</text>
@@ -23,6 +23,7 @@
     <text class="legal-paragraph" :selectable="selectable" :user-select="selectable">2. 个人资料：您可主动填写昵称、头像、生日、个人简介、签名图片等信息，用于展示您的个人主页。</text>
     <text class="legal-paragraph" :selectable="selectable" :user-select="selectable">3. 创作内容：您发布的诗歌、讨论、评论、回复、图片、标签，以及作品集、收藏夹等信息，将存储在我们的服务器中，用于向您及平台其他用户展示。</text>
     <text class="legal-paragraph" :selectable="selectable" :user-select="selectable">4. 设备与日志信息：为保障服务正常运行与账号安全，我们可能收集设备型号、操作系统版本、网络状态、应用版本号、异常日志等信息。登录成功时，我们会记录账号标识、登录时间、登录方式、使用端、设备和版本信息、浏览器用户代理，以及云平台能够提供的 IP 地址和源端口，用于账号安全、安全审计和网安备案。具体字段以设备环境和云平台实际提供的信息为准。</text>
+    <text class="legal-paragraph" :selectable="selectable" :user-select="selectable">5. 设备标识符：本应用使用 DCloud uni-app 运行框架。为区分设备、保障账号安全、排查崩溃与兼容性问题，框架在获取设备信息时可能读取设备标识符（HarmonyOS 上为 OAID，审核报告中可能表述为 IMEI）。我们不会将其用于广告追踪，也不会将其与您的真实身份直接关联；该类标识符仅在您同意本政策后读取，您拒绝同意时我们不会读取。</text>
 
     <text class="legal-heading" :selectable="selectable" :user-select="selectable">二、系统权限的调用</text>
     <text class="legal-paragraph" :selectable="selectable" :user-select="selectable">在您使用相关功能时，我们可能向您申请以下权限：</text>
@@ -69,6 +70,7 @@
     <text class="legal-paragraph" :selectable="selectable" :user-select="selectable">3. 运营商一键登录服务：提供手机号一键登录及号码认证；</text>
     <text class="legal-paragraph" :selectable="selectable" :user-select="selectable">4. GitHub：提供第三方账号登录（可选）；</text>
     <text class="legal-paragraph" :selectable="selectable" :user-select="selectable">5. 短信服务商：用于向您发送验证码短信。</text>
+    <text class="legal-paragraph" :selectable="selectable" :user-select="selectable">6. DCloud uni-app 运行框架：提供跨端运行环境；为区分设备与排查兼容性问题，可能读取设备标识符（HarmonyOS 上为 OAID），其处理目的与方式见本政策第一条。</text>
     <text class="legal-paragraph" :selectable="selectable" :user-select="selectable">我们仅会出于本政策所述目的，与上述服务商共享必要的信息。</text>
 
     <text class="legal-heading" :selectable="selectable" :user-select="selectable">九、本政策的更新</text>

@@ -30,6 +30,8 @@
 </template>
 
 <script>
+import { getWindowInfoCompat } from '@/utils/system-info.js';
+
 const DEFAULT_CROP_RATIO = 16 / 9;
 const OUTPUT_W = 1600;
 const OUTPUT_H = Math.round(OUTPUT_W / DEFAULT_CROP_RATIO);
@@ -86,7 +88,7 @@ export default {
   },
   methods: {
     initCanvas() {
-      const sys = uni.getSystemInfoSync();
+      const sys = getWindowInfoCompat();
       const windowWidth = (sys && sys.windowWidth) || 375;
       const margin = Math.round(windowWidth * 0.05);
       const canvasW = windowWidth - margin * 2;

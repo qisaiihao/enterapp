@@ -49,6 +49,11 @@ function applyUnreadCount(count) {
 function ensureEventBridge() {
   if (eventsBound || typeof uni === 'undefined' || !uni.$on) return;
   uni.$on(EVENTS.UNREAD_CHANGED, (payload = {}) => {
+    if (payload.cleared) {
+      // 其他实例/分包完成“全部已读”后，本实例短期内不再回源，避免旧数据把红点重新点亮
+      initialized = true;
+      lastRefreshAt = Date.now();
+    }
     if (typeof payload.count === 'number') {
       applyUnreadCount(payload.count);
     } else if (typeof payload.delta === 'number') {
@@ -82,21 +87,22 @@ function getUnreadCount() {
   return globalUnreadCount;
 }
 
-function broadcast(count) {
+function broadcast(count, extra) {
   try {
     if (typeof uni !== 'undefined' && uni.$emit) {
-      uni.$emit(EVENTS.UNREAD_CHANGED, { count });
+      uni.$emit(EVENTS.UNREAD_CHANGED, Object.assign({ count }, extra || {}));
     }
   } catch (_) {}
 }
 
-function setUnreadCount(count) {
+function setUnreadCount(count, { cleared = false } = {}) {
   ensureEventBridge();
   const nextCount = Math.max(0, count | 0);
   const changed = globalUnreadCount !== nextCount;
   applyUnreadCount(nextCount);
+  // 即使本实例计数相同也广播：分包/多实例的顶部栏靠事件同步，不能依赖本地“有变化”判断
+  broadcast(nextCount, cleared ? { cleared: true } : null);
   if (changed) {
-    broadcast(nextCount);
     console.log('[unread-badge] updated:', nextCount);
   }
 }
@@ -107,6 +113,14 @@ function decreaseUnread(delta = 1) {
 
 function clearUnread() {
   setUnreadCount(0);
+}
+
+function acknowledgeAllRead() {
+  // 进入消息页全部已读：立即清零并阻止短期内用旧缓存/在途请求恢复红点
+  ensureEventBridge();
+  initialized = true;
+  lastRefreshAt = Date.now();
+  setUnreadCount(0, { cleared: true });
 }
 
 function refreshUnreadCount({ forceRefresh = true } = {}) {
@@ -176,6 +190,7 @@ const unreadBadge = {
   setUnreadCount,
   decreaseUnread,
   clearUnread,
+  acknowledgeAllRead,
   refreshUnreadCount,
   startPolling,
   stopPolling,
@@ -188,6 +203,7 @@ export {
   setUnreadCount,
   decreaseUnread,
   clearUnread,
+  acknowledgeAllRead,
   refreshUnreadCount,
   startPolling,
   stopPolling,
