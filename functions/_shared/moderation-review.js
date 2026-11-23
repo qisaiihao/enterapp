@@ -1,5 +1,7 @@
 'use strict';
 
+const { isRestricted, canViewPost, insertPublishedPost } = require('./posts/visibility');
+
 // Server-prepared content only. This module is never exposed as a submission action.
 const { createHash } = require('crypto');
 const { resolveOwner } = require('./posts');
@@ -158,7 +160,7 @@ async function getModerationReview(db, event = {}) {
   return { success: true, review: view };
 }
 
-function available(post) { return post && post.isDeleted !== true && post.isHidden !== true; }
+function available(post) { return post && post.isDeleted !== true && post.isHidden !== true && !isRestricted(post); }
 function validateJoinedActivity(activity, now) {
   if (!activity || activity.isDeleted === true) throw new Error('参与的活动不存在');
   if (activity.status !== 'published' || activity.allowUserSubmission === false) throw new Error('该活动暂不接受投稿');
@@ -197,9 +199,10 @@ async function resolveModerationReview(db, event = {}, openid) {
         const quotedId = review.related.quotedPostId || data.quotedPostId || (data.isDiscussion && data.parentPostId) || '';
         if (quotedId) {
           quotedPost = await readDoc(transaction.collection('posts').doc(quotedId));
-          if (!available(quotedPost)) throw new Error('引用的帖子已不存在或不可见');
+          if (!available(quotedPost) || (quotedPost.visibility && quotedPost.visibility !== 'public')) throw new Error('引用的帖子已不存在或不可见');
         }
-        if (review.source === 'contentCheck' && (data.isPoem || data.isSeries) && !data.isOriginal && data.author && data.author.trim()) {
+        if (review.source === 'contentCheck' && (data.isPoem || data.isSeries) && !data.isOriginal && data.author && data.author.trim() &&
+          !['self', 'society'].includes(data.visibility)) {
           const result = await transaction.collection('poets').where({ name: data.author.trim() }).limit(1).get();
           poet = result.data && result.data[0] || null;
         }
@@ -209,7 +212,10 @@ async function resolveModerationReview(db, event = {}, openid) {
         if (postFingerprint(targetPost) !== review.baseFingerprint) throw new Error('原帖已被修改，请重新提交修改，避免覆盖新内容');
       } else if (review.kind === 'comment') {
         targetPost = await readDoc(transaction.collection('posts').doc(data.postId));
-        if (!available(targetPost)) throw new Error('评论所属帖子已不存在或不可见');
+        if (!available(targetPost) && !(targetPost && targetPost.visibility && !targetPost.isDeleted &&
+          await canViewPost(transaction, targetPost, review.submitterOpenid, resolveOwner(targetPost)))) {
+          throw new Error('评论所属帖子已不存在或不可见');
+        }
         if (data.parentId) {
           parentComment = await readDoc(transaction.collection('comments').doc(data.parentId));
           if (!parentComment || parentComment.isDeleted || parentComment.postId !== data.postId) throw new Error('回复的评论已不存在');
@@ -241,9 +247,10 @@ async function resolveModerationReview(db, event = {}, openid) {
         }
         data.auditStatus = 'approved';
         data.auditTime = now;
-        postId = (await transaction.collection('posts').add({ data }))._id;
+        postId = (await insertPublishedPost(transaction, data, { inTransaction: true }))._id;
         if (quotedPost && review.source === 'createDiscussionPost') await transaction.collection('posts').doc(quotedPost._id).update({ data: { discussionCount: command.inc(1), updateTime: now } });
-        if (review.source === 'contentCheck' && !poet && (data.isPoem || data.isSeries) && !data.isOriginal && data.author && data.author.trim()) {
+        if (review.source === 'contentCheck' && !poet && (data.isPoem || data.isSeries) && !data.isOriginal && data.author && data.author.trim() &&
+          !['self', 'society'].includes(data.visibility)) {
           await transaction.collection('poets').add({ data: { name: data.author.trim(), avatar: '', bio: '', createTime: now, updateTime: now, creatorOpenid: review.submitterOpenid } });
         }
       } else if (review.kind === 'post_edit') {

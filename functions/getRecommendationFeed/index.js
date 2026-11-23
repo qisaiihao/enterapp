@@ -3,7 +3,7 @@ const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
 // 混合推荐云函数 - 简化版本，避免云函数间调用
 const cloud = require('wx-server-sdk');
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
-const db = createPostsDatabase(cloud.database());
+const db = createPostsDatabase(cloud.database(), { publicOnly: true });
 const _ = db.command;
 const $ = _.aggregate;
 

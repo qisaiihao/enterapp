@@ -27,8 +27,8 @@ function runtime({ cachedUser = null, consentAccepted = true } = {}) {
   state = load('utils/app-state.js', base, ['getAppState', 'getOpenid', 'patchAppState',
     'setUserSession', 'markLoginProcessStarted', 'markLoginProcessCompleted']);
   const privacy = load('utils/privacyConsent.js', base, ['hasAcceptedPrivacyConsent',
-    'acceptPrivacyConsent', 'runAfterPrivacyConsent', 'PRIVACY_CONSENT_STORAGE_KEY', 'PRIVACY_POLICY_VERSION']);
-  if (consentAccepted) storage.set(privacy.PRIVACY_CONSENT_STORAGE_KEY, privacy.PRIVACY_POLICY_VERSION);
+    'acceptPrivacyConsent', 'runAfterPrivacyConsent', 'PRIVACY_CONSENT_STORAGE_KEY', 'PRIVACY_CONSENT_VERSION']);
+  if (consentAccepted) storage.set(privacy.PRIVACY_CONSENT_STORAGE_KEY, privacy.PRIVACY_CONSENT_VERSION);
   const tcb = {
     async callFunction(options) {
       calls.push(options.name);

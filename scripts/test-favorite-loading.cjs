@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { parse } = require('@babel/parser');
+const { matches } = require('./helpers/posts-memory-db.cjs');
 const root = path.join(__dirname, '..');
 const quiet = { log() {}, warn() {}, error() {} };
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
@@ -34,7 +35,7 @@ function backend() {
     users: [{ _openid: 'author', nickName: '作者', avatarUrl: '' }]
   };
   const db = {
-    command: { aggregate: {}, in: values => ({ in: values }) },
+    command: { aggregate: {}, in: values => ({ $in: values }) },
     collection(name) {
       let filters = {}, skip = 0, limit = 100, sortKey, direction;
       const query = {
@@ -42,8 +43,7 @@ function backend() {
         orderBy(key, dir) { sortKey = key; direction = dir; return query; },
         skip(value) { skip = value; return query; }, limit(value) { limit = value; return query; },
         async get() {
-          let selected = tables[name].filter(row => Object.entries(filters).every(([key, value]) =>
-            value && value.in ? value.in.includes(row[key]) : row[key] === value));
+          let selected = tables[name].filter(row => matches(row, filters));
           if (sortKey) selected.sort((a, b) => (a[sortKey] - b[sortKey]) * (direction === 'desc' ? -1 : 1));
           return { data: structuredClone(selected.slice(skip, skip + limit)) };
         }
@@ -52,7 +52,12 @@ function backend() {
     }
   };
   const cloud = { init() {}, database: () => db, getWXContext: () => ({ OPENID: 'me' }) };
-  const favorites = moduleFrom(read('functions/getMyProfileData/handlers/favorites.js'));
+  const favorites = moduleFrom(read('functions/getMyProfileData/handlers/favorites.js'), {
+    require(name) {
+      assert.equal(name, '../_lib/posts/query');
+      return require('../functions/_shared/posts/query');
+    }
+  });
   const globals = { exports: {}, console: quiet, require(name) {
     if (name === './_lib/posts') return require('../functions/_shared/posts');
     if (name === 'wx-server-sdk') return cloud;

@@ -1,4 +1,4 @@
-const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
+const { createPostsDatabase, withPostResponse, prepareVisibility, insertPublishedPost, requirePublicationSociety } = require('./_lib/posts');
 const { normalizePoemFontSize, normalizePoemTextStyles, normalizeDiscussionGroups, mergeDiscussionTextStyles } = require('./_lib/posts/schema');
 const { createModerationService, collectImages } = require('./moderation');
 const { moderateBeforeWrite } = require('./_lib/moderation-gate');
@@ -424,6 +424,7 @@ const dedupeTop3 = (lines = []) => {
       seriesCoverImage: normalizedSeriesBlocks[0]?.imageUrl || '',
       seriesCoverHighlight: highlightSentenceValue || '',
       isOriginal: isOriginal,
+      ...prepareVisibility(event, { isPoem, isSubmission: Boolean(activityId || joinActivityId), isAnonymous }),
       creationDate: isOriginal && isPoem ? (event.creationDate || '') : '',
       creationLocation: isOriginal && isPoem ? (event.creationLocation || '') : '',
       showCreationDate: isOriginal && isPoem && event.showCreationDate === true,
@@ -460,6 +461,7 @@ const dedupeTop3 = (lines = []) => {
       backgroundColor: backgroundColor || '',
       ...((isPoem || event.poemFontSize !== undefined) ? { poemFontSize: normalizePoemFontSize(event.poemFontSize) } : {}),
       ...((isPoem || event.poemTextStyles !== undefined) ? { poemTextStyles: isDiscussion ? mergeDiscussionTextStyles(normalizedSentenceGroups, content) : normalizePoemTextStyles(event.poemTextStyles, content) } : {}),
+      ...(isPoem && event.poemVertical === true ? { poemVertical: true } : {}),
       textColor: textColor || '#000000',
       highlightSentence: highlightSentenceValue || '',
       highlightLines: Array.isArray(effectiveHighlightLines) ? effectiveHighlightLines : [],
@@ -528,15 +530,14 @@ const dedupeTop3 = (lines = []) => {
     }
 
     if (!audit.success || !audit.passed) {
+      if (postData.visibility === 'society') await requirePublicationSociety(db, postData);
       return await queueModerationReview(db, {
         openid: currentOpenid, source: 'contentCheck', kind: 'post', audit, data: postData,
         related: { activityId: activityId || joinActivityId }
       });
     }
     
-    const result = await db.collection('posts').add({
-      data: postData
-    });
+    const result = await insertPublishedPost(db, postData);
 
     // 回写活动统计（官方活动帖或用户参与活动）
     const targetActivityId = activityId || joinActivityId;
@@ -560,7 +561,8 @@ const dedupeTop3 = (lines = []) => {
     });
 
     // ------------------- 4. 非原创诗歌自动创建诗人主页 -------------------
-    if ((publishMode === 'poem' || isSeries) && !isOriginal && authorName && authorName.trim()) {
+    if ((publishMode === 'poem' || isSeries) && !isOriginal && authorName && authorName.trim() &&
+      !['self', 'society'].includes(postData.visibility)) {
       try {
         const poetName = authorName.trim();
         console.log('检查诗人主页是否存在:', poetName);

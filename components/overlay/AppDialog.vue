@@ -1,16 +1,24 @@
 <template>
   <view v-if="rendered" class="app-dialog-mask app-motion-root app-motion-center" :class="[{ 'overlay-dark': appThemeMode === 'dark' }, 'app-motion-' + motion]" @touchmove.stop.prevent @tap="onMaskTap">
-    <view class="app-dialog app-motion-panel" role="dialog" :aria-label="title" @tap.stop>
+    <view class="app-dialog app-motion-panel" :class="{ 'app-dialog--review': requireScrollToConfirm }" role="dialog" :aria-label="title" @tap.stop>
       <text v-if="title" class="app-dialog-title">{{ title }}</text>
-      <scroll-view class="app-dialog-body" scroll-y @touchmove.stop>
+      <scroll-view
+        class="app-dialog-body"
+        :class="{ 'app-dialog-body--review': requireScrollToConfirm }"
+        scroll-y
+        :lower-threshold="requireScrollToConfirm ? 1 : 50"
+        @touchmove.stop
+        @scrolltolower="handleBodyEnd"
+      >
         <text v-if="message" class="app-dialog-message">{{ message }}</text>
         <input v-if="editable" v-model="inputValue" class="app-dialog-input" :password="password" :placeholder="placeholder" :focus="visible" />
         <slot />
       </scroll-view>
+      <text v-if="requireScrollToConfirm" class="app-dialog-scroll-hint" aria-live="polite">{{ reachedBodyEnd ? '已滑到文末，可以继续' : '请滑动至文末后继续' }}</text>
       <view class="app-dialog-actions">
         <button v-if="showCancel" class="app-dialog-button" :style="cancelText === '取消' ? null : cancelActionStyle(cancelText)" :disabled="busy" @tap="cancel">{{ cancelText }}</button>
         <button v-if="extraText" class="app-dialog-button" :style="extraText === '取消' ? null : cancelActionStyle(extraText)" @tap="answer('extra')">{{ extraText }}</button>
-        <button class="app-dialog-button app-dialog-button--confirm" :class="{ 'is-danger': danger }" :style="confirmText === '取消' ? null : cancelActionStyle(confirmText, appThemeMode, true)" :disabled="busy" @tap="answer('confirm')">{{ confirmText }}</button>
+        <button class="app-dialog-button app-dialog-button--confirm" :class="{ 'is-danger': danger }" :style="confirmText === '取消' ? null : cancelActionStyle(confirmText, appThemeMode, true)" :disabled="confirmDisabled" @tap="answer('confirm')">{{ confirmText }}</button>
       </view>
     </view>
   </view>
@@ -24,13 +32,19 @@ export default {
   props: {
     visible: Boolean, title: String, message: String, danger: Boolean, deferAnswer: Boolean,
     editable: Boolean, password: Boolean, placeholder: String, extraText: String, busy: Boolean,
+    requireScrollToConfirm: Boolean,
     initialValue: { type: String, default: '' },
     showCancel: { type: Boolean, default: true },
     closeOnMask: { type: Boolean, default: false },
     confirmText: { type: String, default: '确定' },
     cancelText: { type: String, default: '取消' }
   },
-  data() { return { inputValue: '', answered: false, rendered: false, motion: '' }; },
+  data() { return { inputValue: '', answered: false, rendered: false, motion: '', reachedBodyEnd: false }; },
+  computed: {
+    confirmDisabled() {
+      return this.busy || (this.requireScrollToConfirm && !this.reachedBodyEnd);
+    }
+  },
   watch: {
     busy(value) { if (!value && this.motion !== 'leave') this.answered = false; },
     visible: {
@@ -43,6 +57,7 @@ export default {
           this.motion = 'enter';
           this.inputValue = this.initialValue;
           this.answered = false;
+          this.reachedBodyEnd = false;
           this.releaseDismiss?.();
           this.releaseDismiss = registerOverlayDismiss(resolveOverlayOwner(this), () => this.cancel());
         } else if (this.rendered) {
@@ -53,6 +68,9 @@ export default {
   },
   beforeUnmount() { this.clearCloseTimer(); this.pendingAnswer = null; this.releaseDismiss?.(); },
   methods: {
+    handleBodyEnd() {
+      if (this.requireScrollToConfirm && this.visible) this.reachedBodyEnd = true;
+    },
     clearCloseTimer() { clearTimeout(this.closeTimer); this.closeTimer = null; },
     closeDialog() {
       if (this.closeTimer) return;
@@ -70,6 +88,7 @@ export default {
     },
     answer(event) {
       if (!this.visible || this.answered || this.busy || this.motion === 'leave') return;
+      if (event === 'confirm' && this.confirmDisabled) return;
       this.answered = true;
       if (this.deferAnswer) {
         this.pendingAnswer = { event, value: this.inputValue };
@@ -113,14 +132,19 @@ export default {
 .app-dialog { width: 100%; max-width: 580rpx; max-height: 100%; display: flex; flex-direction: column; padding: 40rpx; box-sizing: border-box; border: none; border-radius: 32rpx; background: var(--overlay-bg); color: var(--overlay-text); box-shadow: var(--overlay-shadow); }
 .app-dialog-title { display: block; font-size: 36rpx; font-weight: 600; text-align: center; margin-bottom: 24rpx; }
 .app-dialog-body { max-height: 50vh; min-height: 0; }
+.app-dialog--review { max-width: 660rpx; }
+.app-dialog-body--review { height: 50vh; }
+.app-dialog-scroll-hint { flex-shrink: 0; margin-top: 20rpx; color: var(--overlay-muted); font-size: 24rpx; line-height: 1.4; text-align: center; }
 .app-dialog-title, .app-dialog-actions { flex-shrink: 0; }
 .app-dialog-message { display: block; font-size: 28rpx; line-height: 1.6; color: var(--overlay-muted); white-space: pre-wrap; overflow-wrap: anywhere; }
 .app-dialog-actions { display: flex; gap: 24rpx; margin-top: 40rpx; }
+.app-dialog--review .app-dialog-actions { margin-top: 20rpx; }
 .app-dialog-button { flex: 1; min-width: 0; min-height: 88rpx; margin: 0; padding: 16rpx; box-sizing: border-box; line-height: 1.4; font-size: 32rpx; font-weight: 500; border: none; border-radius: 44rpx; background: var(--overlay-button-bg); color: var(--overlay-button-text); display: flex; align-items: center; justify-content: center; white-space: normal; overflow-wrap: anywhere; }
 .app-dialog-button--confirm { background: var(--overlay-confirm-bg); color: var(--overlay-confirm-text); }
 .app-dialog-button::after { border: none; }
 .app-dialog-button:active { opacity: 0.65; }
 .app-dialog-button[disabled] { opacity: 0.45; }
+.app-dialog--review .app-dialog-button--confirm[disabled] { background: var(--overlay-button-bg); color: var(--overlay-muted); opacity: 0.8; }
 .app-dialog-button.is-danger { background: var(--overlay-danger-bg); color: var(--overlay-danger-text); }
 .app-dialog-input { margin-top: 20rpx; padding: 16rpx; height: 52rpx; font-size: 28rpx; border: none; border-radius: 12rpx; background: var(--overlay-input-bg); color: var(--overlay-text); }
 </style>

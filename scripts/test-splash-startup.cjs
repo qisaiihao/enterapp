@@ -12,7 +12,11 @@ function load(file, globals = {}, exports = []) {
   const imports = {};
   for (const node of parse(source, { sourceType: 'module' }).program.body.reverse()) {
     if (node.type === 'ImportDeclaration') {
-      node.specifiers.forEach(spec => { imports[spec.local.name] = {}; });
+      if (node.source.value === '@/utils/postVisibility.js') {
+        Object.assign(imports, load('utils/postVisibility.js', globals, node.specifiers.map(spec => spec.imported.name)));
+      } else {
+        node.specifiers.forEach(spec => { imports[spec.local.name] = {}; });
+      }
       source = source.slice(0, node.start) + source.slice(node.end);
     } else if (node.type === 'ExportNamedDeclaration') {
       source = source.slice(0, node.start) + source.slice(node.declaration ? node.declaration.start : node.end);
@@ -814,13 +818,13 @@ async function testPrivacyConsent() {
         setStorageSync: (key, value) => storage.set(key, value),
         navigateTo: options => navigations.push(options.url)
       }
-    }, ['hasAcceptedPrivacyConsent', 'acceptPrivacyConsent', 'openPrivacyPolicy', 'PRIVACY_POLICY_VERSION', 'PRIVACY_CONSENT_STORAGE_KEY']);
+    }, ['hasAcceptedPrivacyConsent', 'acceptPrivacyConsent', 'PRIVACY_POLICY_VERSION', 'PRIVACY_CONSENT_VERSION', 'PRIVACY_CONSENT_STORAGE_KEY']);
   }
-  function splashRuntime(consent, network, navigations, toasts, preloads) {
+  function splashRuntime(consent, network, navigations, toasts, preloads, plus) {
     const time = fakeTime();
     const { createSplashGate, SPLASH_MIN_MS } = load('utils/splashGate.js', time.globals, ['createSplashGate', 'SPLASH_MIN_MS']);
     const options = load('pages/splash/splash.vue', {
-      ...time.globals, createSplashGate, SPLASH_MIN_MS,
+      ...time.globals, createSplashGate, SPLASH_MIN_MS, plus,
       preloadPoemSquare: () => { preloads.count += 1; return network.promise; },
       hasPoemSquarePreload: () => true, retainPoemSquarePreload: () => true,
       getAppState: () => ({ _loginProcessCompleted: true }),
@@ -840,7 +844,7 @@ async function testPrivacyConsent() {
   {
     const storage = new Map(), navigations = [], toasts = [], preloads = { count: 0 };
     const consent = consentRuntime(storage, navigations);
-    storage.set(consent.PRIVACY_CONSENT_STORAGE_KEY, consent.PRIVACY_POLICY_VERSION);
+    storage.set(consent.PRIVACY_CONSENT_STORAGE_KEY, consent.PRIVACY_CONSENT_VERSION);
     const network = deferred();
     const { time, page, options } = splashRuntime(consent, network, navigations, toasts, preloads);
     options.onLoad.call(page);
@@ -866,7 +870,7 @@ async function testPrivacyConsent() {
     assert.equal(preloads.count, 0, '等待确认期间不发起数据请求');
     page.handlePrivacyConsentAgree();
     assert.equal(page.showPrivacyConsent, false);
-    assert.equal(storage.get(consent.PRIVACY_CONSENT_STORAGE_KEY), consent.PRIVACY_POLICY_VERSION, '同意后记录政策版本');
+    assert.equal(storage.get(consent.PRIVACY_CONSENT_STORAGE_KEY), consent.PRIVACY_CONSENT_VERSION, '同意后记录两份文件的版本');
     assert.equal(consent.hasAcceptedPrivacyConsent(), true);
     assert.equal(preloads.count, 1, '同意后才开始预加载');
     network.resolve(); await drain();
@@ -874,14 +878,25 @@ async function testPrivacyConsent() {
     assert.deepEqual(navigations, ['/pages/poem-square/poem-square'], '同意后正常进入');
   }
 
-  {
+  for (const platform of ['H5', 'iOS', 'Android']) {
     const storage = new Map(), navigations = [], toasts = [], preloads = { count: 0 };
     const consent = consentRuntime(storage, navigations);
     const network = deferred();
-    const { time, page, options } = splashRuntime(consent, network, navigations, toasts, preloads);
+    let quitCalls = 0;
+    const plus = platform === 'H5' ? undefined : { os: { name: platform }, runtime: { quit() { quitCalls++; } } };
+    const { time, page, options } = splashRuntime(consent, network, navigations, toasts, preloads, plus);
     options.onLoad.call(page);
     page.handlePrivacyConsentDecline();
     assert.equal(page.showPrivacyConsent, false);
+    assert.equal(quitCalls, platform === 'Android' ? 1 : 0, `${platform} 退出行为`);
+    if (platform === 'Android') {
+      await time.tick(10000);
+      assert.equal(page.showPrivacyConsent, false);
+      assert.equal(navigations.length, 0);
+      assert.equal(preloads.count, 0);
+      assert.equal(consent.hasAcceptedPrivacyConsent(), false);
+      continue;
+    }
     assert.equal(toasts.length, 1, '不同意且无法退出时提示');
     assert.equal(navigations.length, 0);
     await time.tick(300);
@@ -900,6 +915,8 @@ async function testPrivacyConsent() {
     const storage = new Map();
     const first = consentRuntime(storage);
     assert.equal(first.hasAcceptedPrivacyConsent(), false);
+    storage.set(first.PRIVACY_CONSENT_STORAGE_KEY, first.PRIVACY_POLICY_VERSION);
+    assert.equal(first.hasAcceptedPrivacyConsent(), false, '只同意过隐私政策的用户需要重新确认');
     first.acceptPrivacyConsent();
     const nextLaunch = consentRuntime(storage);
     assert.equal(nextLaunch.hasAcceptedPrivacyConsent(), true, '同意后下次启动不再弹窗');
@@ -921,14 +938,15 @@ async function testPrivacyConsent() {
     const policyNavigations = [];
     const consent = load('utils/privacyConsent.js', {
       uni: { navigateTo: options => policyNavigations.push(options.url) }
-    }, ['openPrivacyPolicy']);
-    const dialog = load('components/PrivacyConsentDialog.vue', { openPrivacyPolicy: consent.openPrivacyPolicy, AppDialog: {} });
+    }, ['openPrivacyPolicy', 'openUserAgreement']);
+    const dialog = load('components/PrivacyConsentDialog.vue');
     const events = [];
     dialog.methods.handleConfirm.call({ $emit: event => events.push(event) });
     dialog.methods.handleCancel.call({ $emit: event => events.push(event) });
-    dialog.methods.openPolicy.call({});
     assert.deepEqual(events, ['agree', 'decline']);
-    assert.deepEqual(policyNavigations, ['/pages/privacy/privacy'], '弹窗内可打开隐私政策页');
+    consent.openUserAgreement();
+    consent.openPrivacyPolicy();
+    assert.deepEqual(policyNavigations, ['/pages/privacy/privacy?document=agreement', '/pages/privacy/privacy'], '设置页可以分别打开两份文件');
   }
 }
 
@@ -947,7 +965,7 @@ async function testAppPrivacyGate() {
     $emit(event, payload) { listeners.get(event)?.forEach(handler => handler(payload)); }
   };
   const consent = load('utils/privacyConsent.js', { uni },
-    ['hasAcceptedPrivacyConsent', 'acceptPrivacyConsent', 'runAfterPrivacyConsent', 'PRIVACY_POLICY_VERSION']);
+    ['hasAcceptedPrivacyConsent', 'acceptPrivacyConsent', 'runAfterPrivacyConsent', 'PRIVACY_CONSENT_STORAGE_KEY', 'PRIVACY_CONSENT_VERSION']);
   const app = load('App.vue', {
     uni,
     hasAcceptedPrivacyConsent: consent.hasAcceptedPrivacyConsent,
@@ -977,7 +995,7 @@ async function testAppPrivacyGate() {
   consent.acceptPrivacyConsent();
   assert.equal(pending.started, 1, '重复同意不重复启动');
 
-  storage.set(consent.PRIVACY_CONSENT_STORAGE_KEY, consent.PRIVACY_POLICY_VERSION);
+  storage.set(consent.PRIVACY_CONSENT_STORAGE_KEY, consent.PRIVACY_CONSENT_VERSION);
   const accepted = createApp();
   app.onLaunch.call(accepted);
   assert.equal(accepted.started, 1, '已同意时直接启动引导');
@@ -996,6 +1014,35 @@ async function testRuntimeOpenidPrivacyGate() {
   assert.equal(await cached.ensureRuntimeOpenid(), 'cached-openid', '已有 openid 直接复用');
 }
 
+async function testH5DirectEntryPrivacyGate() {
+  for (const accepted of [false, true]) {
+    for (const path of ['pages/poem-square/poem-square', 'pages/post-detail/post-detail', 'pages/splash/splash', 'pages/privacy/privacy']) {
+      const navigations = [];
+      let released;
+      const app = load('App.vue', {
+        uni: { removeStorageSync() {}, reLaunch: options => navigations.push(options.url) },
+        installRuntimeBindings() {}, markLoginProcessStarted() {},
+        hasAcceptedPrivacyConsent: () => accepted,
+        runAfterPrivacyConsent: callback => { released = callback; return () => {}; }
+      });
+      const instance = {
+        appState: {}, started: 0, syncGlobalDataFromAppState() {}, applyAppState() {}, runWhenPlusReady() {},
+        $nextTick(callback) { callback(); },
+        startConsentedStartup() { this.started++; }
+      };
+      instance.runPrivacyGatedStartup = app.methods.runPrivacyGatedStartup.bind(instance);
+      app.onLaunch.call(instance, { path });
+      const needsConsent = !accepted && !['pages/splash/splash', 'pages/privacy/privacy'].includes(path);
+      assert.deepEqual(navigations, needsConsent ? ['/pages/splash/splash'] : [], `${path}: 未同意的 H5 业务直链进入开屏，政策页可直接阅读`);
+      assert.equal(instance.started, accepted ? 1 : 0, '确认前不启动登录');
+      if (!accepted) {
+        released();
+        assert.equal(instance.started, 1, '确认后启动登录并恢复首屏加载');
+      }
+    }
+  }
+}
+
 module.exports = { load, fakeTime, deferred, drain };
 
 if (require.main === module) (async () => {
@@ -1004,7 +1051,7 @@ if (require.main === module) (async () => {
     testSplashRetriesInvalidatedPreload, testRepeatedInvalidationYieldsToLifecycle, testFailedRefreshDoesNotReuseOldCache,
     testReadyCacheExpiresBeforeNavigation, testInvalidatedReadyKeepsOriginalDeadline, testManualSkipRetriesPreloadTimeout,
     testNativeRouteDelayRetainsFirstBatch, testRetainedPreloadRejectsExplicitChanges, testReadyNavigationRequiresRetention,
-    testPrivacyConsent, testAppPrivacyGate, testRuntimeOpenidPrivacyGate, testBackgroundTabs, testBackgroundFailures, testPoetImageQueue]) {
+    testPrivacyConsent, testAppPrivacyGate, testRuntimeOpenidPrivacyGate, testH5DirectEntryPrivacyGate, testBackgroundTabs, testBackgroundFailures, testPoetImageQueue]) {
     await test(); console.log('PASS ' + test.name);
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });

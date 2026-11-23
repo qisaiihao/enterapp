@@ -108,7 +108,7 @@ async function acceptHost(db, user, event) {
 }
 function eligiblePost(post, userId) {
   return post && post._openid === userId && post._openid !== '123456' && post.isAnonymous !== true && post.isAnonymous !== 'true'
-    && !post.isHidden && !post.isDeleted && (!post.auditStatus || post.auditStatus === 'approved')
+    && !post.isHidden && !post.isDeleted && (!post.visibility || post.visibility === 'public') && (!post.auditStatus || post.auditStatus === 'approved')
     && (post.publishMode ? post.publishMode === 'poem' : post.isPoem === true);
 }
 function submittablePost(post, userId) {
@@ -131,7 +131,10 @@ async function publishWork(db, user, event) {
     if (!eligiblePost(post, user._openid)) throw error('请选择本人已公开且通过审核的诗歌');
     const relationId = hash('publication', societyId, postId);
     const old = await read(tx, 'society_publications', relationId);
-    if (old?.status === 'published') return { alreadyPublished: true };
+    if (old?.status === 'published') {
+      if (old.membersOnly) await tx.collection('society_publications').doc(relationId).update({ data: { membersOnly: false } });
+      return { alreadyPublished: true };
+    }
     await tx.collection('society_publications').doc(relationId).set({ data: { societyId, postId, authorId: user._openid, status: 'published', publishedAt: new Date() } });
     await tx.collection('societies').doc(societyId).update({ data: { workCount: (society.workCount || 0) + 1 } });
     return {};

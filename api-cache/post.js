@@ -4,6 +4,7 @@
 import cacheManager from '@/cache/core/manager';
 import { getOpenid } from '@/utils/app-state.js';
 import { normalizePost } from '@/utils/postNormalizer.js';
+import { isExpiredPost } from '@/utils/postVisibility.js';
 import {
   callCloudAndGetResult,
   callCloudAndUnwrap,
@@ -23,7 +24,9 @@ const detailKeysFor = postId => nsDetail.keys().filter(key => {
 
 function normalizePostDetailResult(result = {}) {
   if (!result.post) {
-    throw new Error(result.error || result.message || '获取帖子详情失败');
+    const error = new Error(result.error || result.message || '获取帖子详情失败');
+    error.code = result.code;
+    throw error;
   }
   
   const post = normalizePost(result.post, { withTime: false });
@@ -132,7 +135,9 @@ async function getPostDetail(postId, options = {}) {
   const { forceRefresh = false, ...cloudOptions } = options;
   const openid = getOpenid() || '';
   const key = detailKey(postId, openid);
-  if (forceRefresh || nsDetail.get(key)?.post?._partialFromList) {
+  const cachedPost = nsDetail.get(key)?.post;
+  if (forceRefresh || cachedPost?._partialFromList || cachedPost?.visibility === 'society' ||
+      (cachedPost?.visibility === 'scheduled' && isExpiredPost(cachedPost) && !cachedPost.isAuthor)) {
     nsDetail.delete(key);
   }
 
@@ -159,7 +164,8 @@ async function getPostDetail(postId, options = {}) {
  * @param {Object} postFromList 列表中的帖子对象
  */
 function prefillPostDetail(postFromList) {
-  if (!postFromList || !postFromList._id) {
+  if (!postFromList || !postFromList._id || postFromList.visibility === 'society' ||
+      (postFromList.visibility === 'scheduled' && isExpiredPost(postFromList))) {
     return;
   }
   const postId = postFromList._id;

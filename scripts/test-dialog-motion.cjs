@@ -81,6 +81,27 @@ async function main() {
   f.instance.visible = false; await nextTick();
   assert.equal(f.instance.rendered, true, 'controlled external close still animates');
   f.advance(120); assert.equal(f.instance.rendered, false); f.app.unmount();
-  console.log('[test-dialog-motion] PASS: 120ms exit, busy/retry, deferred navigation, duplicate taps/back, input retention, skip, external cancellation, reopen and cleanup');
+
+  const events = [];
+  const review = fixture('components/overlay/AppDialog.vue', {
+    visible: true, requireScrollToConfirm: true, showCancel: true, deferAnswer: true
+  }, { onConfirm: () => events.push('confirm'), onCancel: () => events.push('cancel') });
+  const dialog = review.instance;
+  assert.equal(dialog.confirmDisabled, true);
+  dialog.answer('confirm');
+  assert.equal(dialog.motion, 'enter', '未滑到底时确认不关闭弹窗');
+  dialog.cancel(); review.advance(120);
+  assert.deepEqual(events, ['cancel'], '未滑到底也可以拒绝');
+
+  dialog.visible = false; await nextTick(); dialog.visible = true; await nextTick();
+  dialog.handleBodyEnd();
+  assert.equal(dialog.confirmDisabled, false, '滑到底后启用确认');
+  dialog.answer('confirm'); review.advance(120);
+  assert.deepEqual(events, ['cancel', 'confirm']);
+
+  dialog.visible = false; await nextTick(); dialog.visible = true; await nextTick();
+  assert.equal(dialog.confirmDisabled, true, '重新打开时须重新滑到底');
+  review.app.unmount();
+  console.log('[test-dialog-motion] PASS: 120ms exit, busy/retry, deferred navigation, duplicate taps/back, input retention, skip, external cancellation, reopen, cleanup and scroll-to-confirm');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

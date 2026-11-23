@@ -20,6 +20,7 @@
           />
         </view>
       </view>
+      <view wx:if="{{index === 2 && hasNewActivity}}" class="tab-activity-dot"></view>
       <text
         class="tab-bar-text"
         style="color: {{selected === index ? selectedColor : color}}"

@@ -2,6 +2,7 @@ import cacheManager from '@/cache/core/manager.js';
 import { buildCacheKey } from './cache-key-builder.js';
 import { cloudCall } from '@/utils/cloudCall.js';
 import { withTimeout } from '@/utils/asyncTimeout.js';
+import { filterExpiredPublicPosts } from '@/utils/postVisibility.js';
 
 // 首页广场分页：TTL 90s + SWR 45s
 // 【优化】统一使用 posts:list 命名空间，实现跨页面缓存复用
@@ -20,7 +21,7 @@ function homeQueryParams(params) {
 }
 
 export function peekHomePosts({ page = 0, pageSize = 10, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous } = {}) {
-  return ns.get(buildCacheKey(homeQueryParams({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous })));
+  return filterExpiredPublicPosts(ns.get(buildCacheKey(homeQueryParams({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous }))));
 }
 
 /**
@@ -73,7 +74,7 @@ export async function getHomePosts({
       throw new Error(res?.result?.error?.message || res?.result?.message || '加载帖子失败，请重试');
     },
     { ttlMs: TTL_MS, swrMs: SWR_MS, onBackgroundUpdate }
-  );
+  ).then(filterExpiredPublicPosts);
 }
 
 /**

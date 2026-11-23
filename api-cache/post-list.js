@@ -2,6 +2,7 @@ import cacheManager from '@/cache/core/manager.js';
 import { buildCacheKey } from './cache-key-builder.js';
 import { callCloudAndUnwrap } from './_shared/cloud-wrapper.js';
 import { withTimeout } from '@/utils/asyncTimeout.js';
+import { filterExpiredPublicPosts } from '@/utils/postVisibility.js';
 
 // 通用帖子列表缓存：TTL 90s + SWR 45s
 const TTL_MS = 90 * 1000;
@@ -69,7 +70,7 @@ export async function getPostList({
       swrMs: SWR_MS,
       onBackgroundUpdate
     }
-  );
+  ).then(filterExpiredPublicPosts);
 }
 
 /**

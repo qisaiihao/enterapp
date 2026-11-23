@@ -51,6 +51,7 @@
                         </view>
                     </view>
                     <view class="post-title"><text selectable :user-select="true">{{ post.title }}</text></view>
+                    <text v-if="postVisibilityLabel" class="post-visibility-label">{{ postVisibilityLabel }}</text>
                     <view v-if="post.isPoem && post.author" class="poem-author" :class="{ 'poem-author-clickable': canGoToPoetProfile }" @tap="onPoetNameTap"><text selectable :user-select="true">{{ post.isAnonymous ? '匿名用户' : post.author }}</text></view>
                     
                     <!-- 讨论类型帖子特殊渲染：仅当存在有效句子或评论时展示，否则回退到正文 -->
@@ -73,12 +74,12 @@
                     <view v-else-if="post.isSeries && post.seriesBlocks && post.seriesBlocks.length > 0" class="series-simple-display">
                         <view v-for="(block, idx) in post.seriesBlocks" :key="idx" class="series-poem-block">
                             <view v-if="block.subtitle" class="series-poem-subtitle"><text selectable :user-select="true">{{ block.subtitle }}</text></view>
-                            <view class="post-content"><PoemRichText :text="block.content" :styles="block.poemTextStyles || []" :base-font-size="post.poemFontSize" selectable /></view>
+                            <view class="post-content"><PoemRichText :text="block.content" :styles="block.poemTextStyles || []" :base-font-size="post.poemFontSize" :vertical="post.poemVertical" selectable /></view>
                         </view>
                     </view>
                     
                     <!-- 普通帖子内容 -->
-                    <view class="post-content" v-else-if="post.content"><PoemRichText :text="post.content" :styles="post.poemTextStyles || []" :base-font-size="post.poemFontSize" selectable /></view>
+                    <view class="post-content" v-else-if="post.content"><PoemRichText :text="post.content" :styles="post.poemTextStyles || []" :base-font-size="post.poemFontSize" :vertical="post.poemVertical" selectable /></view>
 
                     <PoemCreationMeta :post="post" />
 
@@ -487,6 +488,16 @@ export default {
     },
     computed: {
         poemFontVars() { return getPoemFontVars(this.post, this.readFontVars); },
+        postVisibilityLabel() {
+            if (!this.post?.isPoem) return '';
+            if (this.post.visibility === 'society') return '诗社成员可见';
+            if (!this.post.isAuthor) return '';
+            if (this.post.isHidden || this.post.visibility === 'self') return '仅自己可见';
+            if (this.post.visibility === 'scheduled') {
+                return `将于 ${new Date(this.post.hideAt).toLocaleString('zh-CN', { hour12: false })} 隐藏`;
+            }
+            return '';
+        },
         voteMotionState() {
             return { id: this.post?._id, votes: this.post?.votes, voted: this.post?.isVoted };
         },
@@ -910,7 +921,7 @@ export default {
                         isCommentLoading: false
                     });
                     uni.showToast({
-                        title: '网络错误',
+                        title: err?.code === 'POST_HIDDEN' ? '该作品目前不可见' : '网络错误',
                         icon: 'none'
                     });
                 })
@@ -3668,6 +3679,13 @@ page {
 
 .post-meta {
     margin-bottom: 15rpx;
+}
+
+.post-visibility-label {
+    display: block;
+    margin-top: 12rpx;
+    font-size: 24rpx;
+    color: var(--app-muted-text, #777);
 }
 
 .post-time {

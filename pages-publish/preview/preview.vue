@@ -39,8 +39,18 @@
 
               <block v-if="currentPreviewSeriesPoem">
                 <view v-if="currentPreviewSeriesPoem.subtitle" class="preview-series-subtitle" :style="{ color: post.textColor || '#222' }">{{ currentPreviewSeriesPoem.subtitle }}</view>
-                <view class="post-content expanded" :style="{ color: post.textColor || '#222', whiteSpace: 'pre-wrap' }"><PoemRichText :text="currentPreviewSeriesPoem.content" :styles="currentPreviewSeriesPoem.poemTextStyles || []" :source-text="currentPreviewSeriesPoem.sourceContent || currentPreviewSeriesPoem.content" :base-font-size="post.poemFontSize" /></view>
+                <view class="post-content expanded" :style="{ color: post.textColor || '#222', whiteSpace: 'pre-wrap' }"><PoemRichText :text="currentPreviewSeriesPoem.content" :styles="currentPreviewSeriesPoem.poemTextStyles || []" :source-text="currentPreviewSeriesPoem.sourceContent || currentPreviewSeriesPoem.content" :base-font-size="post.poemFontSize" :vertical="post.poemVertical" /></view>
               </block>
+              <view v-else-if="post.poemVertical" class="post-content" :style="{ color: post.textColor || '#222' }">
+                <PoemRichText
+                  :text="post.isExpanded || !getPreviewHighlightLines().length ? previewCardContent : getPreviewHighlightLines().join('\n')"
+                  :styles="post.poemTextStyles || []"
+                  :source-text="post.content"
+                  :base-font-size="post.poemFontSize"
+                  :max-vertical-columns="post.isExpanded || getPreviewHighlightLines().length ? 0 : 3"
+                  vertical
+                />
+              </view>
               <view v-else :class="['post-content', post.isExpanded ? 'expanded' : 'collapsed', !post.isExpanded && getPreviewHighlightLines().length === 0 ? 'no-highlight' : '']" :style="{ color: post.textColor || '#222', whiteSpace: 'pre-wrap' }"><block v-if="post.isExpanded"><PoemRichText :text="previewCardContent" :styles="post.poemTextStyles || []" :source-text="post.content" :base-font-size="post.poemFontSize" /></block><block v-else><block v-if="getPreviewHighlightLines().length > 0"><view v-for="(highlightLine, index) in getPreviewHighlightLines()" :key="index" style="font-weight: 700;"><PoemRichText :text="highlightLine" :styles="post.poemTextStyles || []" :source-text="post.content" :base-font-size="post.poemFontSize" /></view></block><block v-else><PoemRichText :text="previewCardContent" :styles="post.poemTextStyles || []" :source-text="post.content" :base-font-size="post.poemFontSize" /></block></block></view>
 
 
@@ -339,6 +349,24 @@
 
         <view class="preview-meta-section">
 
+          <view v-if="showPoemVisibility" class="poem-visibility">
+            <radio-group aria-label="作品可见范围" @change="selectPoemVisibility($event.detail.value)">
+              <label v-for="option in poemVisibilityOptions" :key="option.value" class="poem-visibility-option" :class="{ 'is-disabled': option.value === 'society' && !canSelectSocietyVisibility }">
+                <radio class="poem-visibility-radio" :value="option.value" :checked="visibilitySelection.mode === option.value" :disabled="option.value === 'society' && !canSelectSocietyVisibility" />
+                <view class="poem-visibility-checkbox" :class="{ 'is-checked': visibilitySelection.mode === option.value }" aria-hidden="true" />
+                <text>{{ option.label }}</text>
+              </label>
+            </radio-group>
+            <view v-if="!canSelectSocietyVisibility || visibilitySelection.mode === 'society'" class="poem-visibility-extra">
+              <text v-if="visibilitySocietiesLoading" class="preview-meta-value">正在加载诗社…</text>
+              <button v-else-if="visibilitySocietiesError" size="mini" @tap="loadVisibilitySocieties">重新加载诗社</button>
+              <text v-else-if="!canSelectSocietyVisibility" class="preview-meta-value">加入诗社后可选</text>
+              <picker v-else :range="visibilitySocietyOptions" range-key="name" :value="visibilitySocietyIndex" @change="selectVisibilitySociety">
+                <view class="poem-visibility-picker"><text>{{ selectedVisibilitySociety || '选择诗社' }}</text><text>›</text></view>
+              </picker>
+            </view>
+          </view>
+
           <view v-if="getPreviewTags().length > 0" class="preview-meta-card">
 
             <text class="preview-meta-label">标签</text>
@@ -434,12 +462,18 @@ import { applyThemeMode, getThemeMode } from '@/utils/theme.js';
 
 import { clearPublishDraftStorage } from '@/utils/publishDraft.js';
 import { submitPublishedPoemToSociety } from '@/utils/societySubmission.js';
+import { societyRequest } from '@/api-cache/societies.js';
 import PoemCreationMeta from '@/components/poem/PoemCreationMeta.vue';
 import PoemCreationEditor from '@/components/add/PoemCreationEditor.vue';
 import { getCreationFields, getCreationLabel } from '@/utils/poemCreation.js';
 import { getPoemTypographyFields, getPoemFontVars } from '@/utils/poemTypography.js';
 import PoemRichText from '@/components/poem/PoemRichText.vue';
 
+const poemVisibilityOptions = [
+  { value: 'public', label: '公开可见' },
+  { value: 'self', label: '仅自己可见' },
+  { value: 'society', label: '诗社成员可见' }
+];
 
 
 export default {
@@ -450,6 +484,11 @@ export default {
     return {
 
       post: null,
+      poemVisibilityOptions,
+      visibilitySocieties: [],
+      visibilitySocietiesLoading: false,
+      visibilitySocietiesLoaded: false,
+      visibilitySocietiesError: false,
 
       backgroundColors: ['#a4c4bd', '#c9cfcf', '#906161', '#909388'],
 
@@ -509,12 +548,54 @@ export default {
 
     },
 
+    showPoemVisibility() {
+      const edit = this.post?.editData;
+      return edit?.publishMode === 'poem' && !edit.isEditMode && !edit.societyCallId && !edit.isActivityMode;
+    },
+
+    visibilitySelection() {
+      const selection = this.post?.editData?.poemVisibility;
+      if (selection?.mode === 'scheduled') return { mode: 'self' };
+      if (selection?.mode === 'society' && this.visibilitySocietiesLoaded) {
+        const [society] = this.visibilitySocieties;
+        if (!society || (selection.societyId && !this.visibilitySocieties.some(item => item._id === selection.societyId))) {
+          return { mode: 'self' };
+        }
+        if (this.visibilitySocieties.length === 1) return { ...selection, societyId: society._id };
+      }
+      return selection || { mode: 'public' };
+    },
+
+    canSelectSocietyVisibility() {
+      return this.visibilitySocietiesLoaded && this.visibilitySocieties.length > 0;
+    },
+
+    visibilitySocietyOptions() {
+      return this.visibilitySocieties.length > 1
+        ? [{ _id: '', name: '选择诗社' }, ...this.visibilitySocieties]
+        : this.visibilitySocieties;
+    },
+
+    visibilitySocietyIndex() {
+      return Math.max(0, this.visibilitySocietyOptions.findIndex(society => society._id === this.visibilitySelection.societyId));
+    },
+
+    selectedVisibilitySociety() {
+      return this.visibilitySocieties.find(society => society._id === this.visibilitySelection.societyId)?.name;
+    },
+
     showJoinActivitySelector() {
 
-      return !!this.post && !this.isLockedAdminActivityMode;
+      return !!this.post && !this.isLockedAdminActivityMode && (!this.showPoemVisibility || this.visibilitySelection.mode === 'public');
 
     }
 
+  },
+
+  watch: {
+    showPoemVisibility(visible) {
+      if (visible) this.loadVisibilitySocieties();
+    }
   },
 
   onLoad() {
@@ -715,6 +796,48 @@ export default {
   },
 
   methods: {
+
+    updateVisibilitySelection(changes) {
+      const selection = { ...this.visibilitySelection, ...changes };
+      if (selection.mode === 'society' && this.visibilitySocieties.length === 1) {
+        selection.societyId = this.visibilitySocieties[0]._id;
+      }
+      this.post.editData.poemVisibility = selection;
+      const editor = this.getAddPageVm();
+      if (editor) {
+        editor.poemVisibility = selection;
+        editor.flushWorkingDraft?.();
+      }
+    },
+
+    selectPoemVisibility(mode) {
+      if (mode === 'society' && !this.canSelectSocietyVisibility) return;
+      if (mode !== 'public' && this.joinedActivityId) {
+        this.clearJoinedActivity();
+        uni.showToast({ title: '已取消活动投稿', icon: 'none' });
+      }
+      this.updateVisibilitySelection({ mode });
+    },
+
+    async loadVisibilitySocieties() {
+      if (this.visibilitySocietiesLoaded || this.visibilitySocietiesLoading) return;
+      this.visibilitySocietiesLoading = true;
+      this.visibilitySocietiesError = false;
+      try {
+        const result = await societyRequest('mine', {}, this);
+        this.visibilitySocieties = (result.societies || []).filter(society => society.role);
+        this.visibilitySocietiesLoaded = true;
+      } catch (_) {
+        this.visibilitySocietiesError = true;
+      } finally {
+        this.visibilitySocietiesLoading = false;
+      }
+    },
+
+    selectVisibilitySociety(event) {
+      const society = this.visibilitySocietyOptions[Number(event.detail.value)];
+      if (society) this.updateVisibilitySelection({ societyId: society._id });
+    },
 
     // 页面点击事件 - 点击外部区域退出键盘
 
@@ -1725,6 +1848,13 @@ export default {
       const normalizedIsPoem = normalizedPublishMode === 'poem' || normalizedIsSeries;
       const normalizedIsOriginal = normalizedIsPoem ? !!addData.isOriginal : false;
 
+      const visibility = this.showPoemVisibility ? this.visibilitySelection.mode : undefined;
+      if (visibility === 'society' && (!this.selectedVisibilitySociety || this.post.isAnonymous)) {
+        uni.showToast({ title: this.post.isAnonymous ? '诗社成员可见的作品须署名发布' : '请选择已加入的诗社', icon: 'none' });
+        return;
+      }
+      const joinsPublicActivity = !visibility || visibility === 'public';
+
 
 
       const publishData = {
@@ -1751,6 +1881,8 @@ export default {
         isPoem: normalizedIsPoem,
 
         isOriginal: normalizedIsOriginal,
+        visibility,
+        visibilitySocietyId: visibility === 'society' ? this.visibilitySelection.societyId : undefined,
         ...getCreationFields(addData),
         ...getPoemTypographyFields(addData),
 
@@ -1780,9 +1912,9 @@ export default {
 
         fromAdminActivity: isLockedAdminActivity,
 
-        joinActivityId: isLockedAdminActivity ? '' : selectedJoinActivityId,
+        joinActivityId: isLockedAdminActivity || !joinsPublicActivity ? '' : selectedJoinActivityId,
 
-        joinActivityTitleSnapshot: isLockedAdminActivity ? '' : selectedJoinActivityTitle
+        joinActivityTitleSnapshot: isLockedAdminActivity || !joinsPublicActivity ? '' : selectedJoinActivityTitle
 
       };
 
@@ -2635,6 +2767,8 @@ export default {
       return contentAudit({
         ...getCreationFields(addData),
         ...getPoemTypographyFields(addData),
+        ...(addData.visibility ? { visibility: addData.visibility } : {}),
+        ...(addData.visibilitySocietyId ? { visibilitySocietyId: addData.visibilitySocietyId } : {}),
 
         title: normalizedTitle,
 
@@ -2704,7 +2838,8 @@ export default {
 
           this.publishSuccess({
 
-            _id: result.postId
+            _id: result.postId,
+            redirectToPostDetail: ['self', 'society'].includes(addData.visibility)
 
           });
 
@@ -3004,6 +3139,10 @@ export default {
     // 匿名发布
 
     publishAnonymously() {
+      if (this.showPoemVisibility && this.visibilitySelection.mode === 'society') {
+        uni.showToast({ title: '诗社成员可见的作品须署名发布', icon: 'none' });
+        return;
+      }
 
       if (this.post && this.post.editData && this.post.editData.isActivityMode) {
 
@@ -3148,7 +3287,7 @@ page {
 
   padding-top: 180rpx; /* 增加顶部边距，让内容整体下移 */
 
-  padding-bottom: 120rpx; /* 减少底部padding，为固定按钮留出合适空间 */
+  padding-bottom: calc(200rpx + env(safe-area-inset-bottom)); /* 为固定工具栏留出滚动空间 */
 
 }
 
@@ -3464,7 +3603,8 @@ page {
   padding: 0 20rpx;
 }
 
-.creation-input-wrapper {
+.creation-input-wrapper,
+.poem-visibility {
   width: 45%;
   margin-left: auto;
 }
@@ -3595,6 +3735,88 @@ page {
 
   gap: 20rpx;
 
+}
+
+.poem-visibility {
+  text-align: right;
+}
+
+.poem-visibility-option {
+  position: relative;
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  gap: 16rpx;
+  min-height: 68rpx;
+  font-size: 24rpx;
+  color: var(--app-primary-text, #333);
+}
+
+.poem-visibility-option.is-disabled {
+  opacity: 0.5;
+}
+
+.poem-visibility-radio {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0;
+}
+
+.poem-visibility-checkbox {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 34rpx;
+  height: 34rpx;
+  box-sizing: border-box;
+  border: 2rpx solid var(--app-muted-text, #999);
+  border-radius: 6rpx;
+}
+
+.poem-visibility-option:focus-within .poem-visibility-checkbox {
+  outline: 2rpx solid var(--app-primary-text, #333);
+  outline-offset: 4rpx;
+}
+
+.poem-visibility-checkbox.is-checked {
+  border-color: var(--app-primary-text, #333);
+  background: var(--app-primary-text, #333);
+  color: var(--app-page-bg, #fff);
+}
+
+.poem-visibility-checkbox.is-checked::after {
+  content: '';
+  width: 8rpx;
+  height: 15rpx;
+  border: solid currentColor;
+  border-width: 0 3rpx 3rpx 0;
+  transform: translateY(-2rpx) rotate(45deg);
+}
+
+.poem-visibility-extra {
+  margin-top: 12rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid var(--app-border-color, #eceef2);
+}
+
+.poem-visibility-extra .preview-meta-value {
+  font-size: 22rpx;
+}
+
+.poem-visibility-picker {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12rpx;
+  min-height: 72rpx;
+  margin-bottom: 8rpx;
+  padding: 0 16rpx;
+  border-radius: 12rpx;
+  color: var(--app-primary-text, #333);
+  background: var(--app-subtle-surface-bg, #f4f4f4);
+  font-size: 24rpx;
 }
 
 

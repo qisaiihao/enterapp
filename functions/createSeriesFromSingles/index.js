@@ -78,6 +78,7 @@ exports.main = async (event, context) => {
     publishMode: 'poem',
     poemFontSize: normalizePoemFontSize(event.poemFontSize),
     poemTextStyles: normalizePoemTextStyles(event.poemTextStyles, mergedContent),
+    ...(event.poemVertical === true ? { poemVertical: true } : {}),
     isOriginal: true,
     highlightSentence: allHighlights[0] || '',
     highlightLines: allHighlights,

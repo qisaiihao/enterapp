@@ -65,7 +65,7 @@ function runtime() {
   const time = fakeTime(), calls = [], imports = [], frames = new Map();
   let frameId = 0;
   const source = { route: 'pages/poem-square/poem-square' };
-  const target = { route: 'pages/mountain/mountain', $nextTick: callback => Promise.resolve().then(callback) };
+  const target = { route: 'pages/activity/activity', $nextTick: callback => Promise.resolve().then(callback) };
   let current = source;
   const body = element('BODY'), sourceElement = element('UNI-PAGE');
   sourceElement.setAttribute('data-page', source.route);
@@ -111,7 +111,7 @@ function assertReleased(app) {
 }
 
 async function beginCold(app, options = {}) {
-  app.switchTabH5({ url: '/pages/mountain/mountain', ...options });
+  app.switchTabH5({ url: '/pages/activity/activity', ...options });
   app.imports.at(-1).resolve({});
   await drain();
   assert.equal(app.covers().length, 1);
@@ -121,7 +121,7 @@ async function beginCold(app, options = {}) {
 async function testColdToWarm() {
   for (const readyFirst of [false, true]) {
     const app = runtime();
-    app.switchTabH5({ url: '/pages/mountain/mountain' });
+    app.switchTabH5({ url: '/pages/activity/activity' });
     await app.time.tick(100);
     assert.equal(app.calls.length, 0, '页面模块尚未加载时保留当前路由');
     assert.equal(app.page(), app.source);
@@ -154,7 +154,7 @@ async function testColdToWarm() {
     await app.paint(); assertReleased(app);
 
     app.setPage(app.source);
-    app.switchTabH5({ url: '/pages/mountain/mountain' });
+    app.switchTabH5({ url: '/pages/activity/activity' });
     assert.equal(app.calls.length, 2, '再次进入已绘制页面直接切换');
     assert.equal(app.imports.length, 1);
     assert.equal(app.covers().length, 0, '已加载页面不冻结按钮和内容');
@@ -167,7 +167,7 @@ async function testColdToWarm() {
 async function testPendingModuleCancellation() {
   for (const reason of ['reject', 'timeout', 'cancel', 'hidden', 'pagehide', 'source-unload', 'other-page', 'source-replaced']) {
     const app = runtime(); let failures = 0;
-    app.switchTabH5({ url: '/pages/mountain/mountain', fail: () => failures++ });
+    app.switchTabH5({ url: '/pages/activity/activity', fail: () => failures++ });
     if (reason === 'reject') app.imports[0].reject(new Error('offline'));
     if (reason === 'timeout') await app.time.tick(20000);
     if (reason === 'cancel') app.cancelH5TabTransition();
@@ -184,7 +184,7 @@ async function testPendingModuleCancellation() {
     assert.equal(failures, 1, `${reason}: 失败回调只执行一次，释放按钮状态`);
     assertReleased(app);
     app.setPage(app.source); app.document.hidden = false;
-    app.switchTabH5({ url: '/pages/mountain/mountain' });
+    app.switchTabH5({ url: '/pages/activity/activity' });
     assert.equal(app.imports.length, 2, `${reason}: 可以重新尝试切页`);
     app.cancelH5TabTransition(); assertReleased(app);
   }
@@ -210,7 +210,7 @@ async function testNavigationCleanup() {
     assert.equal(successes, 0, `${reason}: 迟到成功不得反转失败状态`);
     assertReleased(app);
     app.document.hidden = false; app.setPage(app.source);
-    app.switchTabH5({ url: '/pages/mountain/mountain' });
+    app.switchTabH5({ url: '/pages/activity/activity' });
     assert.equal(app.imports.length, 2, `${reason}: 未交接首帧的目标不能误判为已加载`);
     app.cancelH5TabTransition(); assertReleased(app);
   }
@@ -240,7 +240,7 @@ async function testPageInstanceLifetime() {
   await app.paint(); await app.paint(); assertReleased(app);
 
   app.h5TabTransitionMixin.onUnload.call(newPage);
-  app.setPage(app.source); app.switchTabH5({ url: '/pages/mountain/mountain' });
+  app.setPage(app.source); app.switchTabH5({ url: '/pages/activity/activity' });
   assert.equal(app.imports.length, 2, '页面卸载后再次进入仍保护首帧');
   app.cancelH5TabTransition(); assertReleased(app);
 
@@ -249,7 +249,7 @@ async function testPageInstanceLifetime() {
   const replacement = { ...replaced.target };
   replaced.h5TabTransitionMixin.onReady.call(replacement);
   replaced.h5TabTransitionMixin.onUnload.call(replaced.target);
-  replaced.switchTabH5({ url: '/pages/mountain/mountain' });
+  replaced.switchTabH5({ url: '/pages/activity/activity' });
   assert.equal(replaced.calls.length, 1, '旧实例卸载不删除同路由替代实例的就绪记录');
   assert.equal(replaced.imports.length, 0);
   replaced.cancelH5TabTransition(); assertReleased(replaced);
@@ -270,7 +270,7 @@ async function testReplacementDuringPaint() {
 
 async function testFallbackRoutes() {
   const app = runtime();
-  const options = { url: '/pages/mountain/mountain' };
+  const options = { url: '/pages/activity/activity' };
   app.setPage({ route: 'pages/login/login' });
   app.switchTabH5(options);
   assert.equal(app.calls[0], options, '登录/开屏等非 Tab 来源沿用原路由语义');
@@ -288,8 +288,50 @@ async function testFallbackRoutes() {
   assert.equal(noDom.switchTabH5(options), options, '无浏览器 DOM 时保持平台原有回调和返回值');
 }
 
+async function testProfilePreload() {
+  for (const [route, failed] of [
+    ['pages/activity/activity', false],
+    ['pages/activity/activity', true],
+    ['pages/poem-square/poem-square', false],
+    ['pages/poem-square/poem-square', true]
+  ]) {
+    const app = runtime();
+    app.source.route = 'pages/profile/profile';
+    app.sourceElement.setAttribute('data-page', app.source.route);
+    app.target.route = route;
+    app.h5TabTransitionMixin.onReady.call(app.source);
+    await app.time.tick(199);
+    assert.equal(app.imports.length, 0, '个人页首帧先渲染自身');
+    await app.time.tick(1);
+    assert.deepEqual(app.imports.map(request => request.specifier), [
+      '@/pages/activity/activity.vue',
+      '@/pages/poem-square/poem-square.vue'
+    ]);
+    assert.equal(app.calls.length, 0, '预加载只准备模块，不切换路由');
+    assert.equal(app.covers().length, 0);
+    const requestsForRoute = () => app.imports.filter(request => request.specifier === `@/${route}.vue`);
+    if (failed) {
+      requestsForRoute()[0].reject(new Error('offline'));
+      await drain();
+    }
+    app.switchTabH5({ url: `/${route}` });
+    assert.equal(requestsForRoute().length, failed ? 2 : 1,
+      '点击复用后台加载任务；预加载失败后仍可正常重试');
+    assert.equal(app.calls.length, 0, '页面模块未完成时保留原有切换顺序');
+    requestsForRoute().at(-1).resolve({});
+    await drain();
+    assert.equal(app.calls.length, 1);
+    assert.equal(app.covers().length, 1, '模块预加载不冒充页面已挂载，首次切换仍保留快照');
+    app.setPage(app.target);
+    app.calls[0].success({});
+    app.h5TabTransitionMixin.onReady.call(app.target);
+    await drain(); await app.paint(); await app.paint();
+    assertReleased(app);
+  }
+}
+
 async function main() {
-  for (const test of [testColdToWarm, testPendingModuleCancellation, testNavigationCleanup, testPageInstanceLifetime, testReplacementDuringPaint, testFallbackRoutes]) {
+  for (const test of [testColdToWarm, testPendingModuleCancellation, testNavigationCleanup, testPageInstanceLifetime, testReplacementDuringPaint, testFallbackRoutes, testProfilePreload]) {
     await test(); console.log('PASS ' + test.name);
   }
 }

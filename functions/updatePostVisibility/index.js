@@ -28,10 +28,14 @@ exports.main = async (event, context) => {
     }
 
     await db.collection('posts').doc(postId).update({
-      data: { isHidden: hidden, updateTime: new Date() }
+      data: {
+        isHidden: hidden,
+        ...(post.isPoem || post.visibility ? { visibility: hidden ? 'self' : 'public', visibilitySocietyId: null, hideAfterDays: null, hideAt: null } : {}),
+        updateTime: new Date()
+      }
     });
 
-    return { success: true, postId, isHidden: hidden };
+    return { success: true, postId, isHidden: hidden, visibility: hidden ? 'self' : 'public' };
   } catch (e) {
     return { success: false, code: 'ERROR', message: e.message };
   }

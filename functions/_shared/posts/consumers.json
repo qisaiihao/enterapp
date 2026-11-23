@@ -39,6 +39,7 @@
   "functions/likeComment",
   "functions/listMySingles",
   "functions/searchPosts",
+  "functions/societyManager",
   "functions/syncUserPostsMetadata",
   "functions/updatePostContent",
   "functions/updatePostVisibility",

@@ -31,7 +31,8 @@ async function checkReadState() {
     uni: {
       getStorageSync: key => storage.get(key),
       setStorageSync: (key, value) => storage.set(key, value),
-      navigateTo(options) { navigations.push(options.url); options.success?.(); }
+      navigateTo(options) { navigations.push(options.url); options.success?.(); },
+      switchTab(options) { navigations.push(options.url); options.success?.(); }
     }
   };
   let source = fs.readFileSync(path.join(root, 'pages/poem-square/poem-square.vue'), 'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];
@@ -43,7 +44,7 @@ async function checkReadState() {
   globals.getSquareBubbleConfig = async () => ({ ...config });
   globals.SQUARE_BUBBLE_TARGETS = [
     { value: 'weekly', url: '/pages-content/weekly-home/weekly-home' },
-    { value: 'activities', url: '/pages-content/activity-list/activity-list' }
+    { value: 'activities', url: '/pages/activity/activity' }
   ];
   globals.activityBadge = { markActivitySeen() { activityVisits++; } };
   vm.runInNewContext(source.replace('export default', 'module.exports ='), globals);
@@ -78,7 +79,7 @@ async function checkReadState() {
   instance.openSquareBubble();
   assert.equal(activityVisits, 1, '活动气泡保留活动已读标记逻辑');
   instance.navigateToActivityList();
-  assert.equal(activityVisits, 2, '气泡隐藏不影响小乌鸦活动入口');
+  assert.equal(activityVisits, 2, '气泡隐藏不影响活动页跳转');
 
   config = { ...config, enabled: false, text: '未开启的消息' };
   await instance.loadSquareBubble();

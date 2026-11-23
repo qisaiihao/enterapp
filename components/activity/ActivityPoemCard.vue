@@ -23,7 +23,7 @@
                 {{ currentSeriesPoem.subtitle }}
               </view>
 
-              <view class="post-content expanded" :style="{ color: safeTextColor, whiteSpace: 'pre-wrap' }"><PoemRichText :text="currentSeriesPoem.content" :styles="currentSeriesPoem.poemTextStyles || []" :source-text="currentSeriesPoem.sourceContent || currentSeriesPoem.content" :base-font-size="item.poemFontSize" /></view>
+              <view class="post-content expanded" :style="{ color: safeTextColor, whiteSpace: 'pre-wrap' }"><PoemRichText :text="currentSeriesPoem.content" :styles="currentSeriesPoem.poemTextStyles || []" :source-text="currentSeriesPoem.sourceContent || currentSeriesPoem.content" :base-font-size="item.poemFontSize" :vertical="item.poemVertical" /></view>
 
               <view v-if="showSignature" class="user-signature">
                 <image
@@ -65,8 +65,18 @@
         @longpress="onLongPress"
       >
         <view class="post-item">
+          <view v-if="item.poemVertical && displayContent" class="post-content" :style="{ color: safeTextColor }">
+            <PoemRichText
+              :text="verticalPreviewLines.length ? verticalPreviewLines.join('\n') : displayContent"
+              :styles="item.poemTextStyles || []"
+              :source-text="item.content"
+              :base-font-size="item.poemFontSize"
+              :max-vertical-columns="expanded || verticalPreviewLines.length ? 0 : 3"
+              vertical
+            />
+          </view>
           <view
-            v-if="displayContent"
+            v-else-if="displayContent"
             :class="['post-content', expanded ? 'expanded' : 'collapsed', !expanded && collapsedPreviewLines.length === 0 && safeHighlightLines.length === 0 ? 'no-highlight' : '']"
             :style="{ color: safeTextColor, whiteSpace: 'pre-wrap' }"
           ><block v-if="expanded"><PoemRichText :text="displayContent" :styles="item.poemTextStyles || []" :source-text="item.content" :base-font-size="item.poemFontSize" /></block><block v-else><block v-if="collapsedPreviewLines.length > 0"><view
@@ -201,6 +211,10 @@ export default {
     normalizedCollapsedMaxLines() {
       const maxLines = Number(this.collapsedMaxLines);
       return Number.isFinite(maxLines) && maxLines > 0 ? Math.floor(maxLines) : 0;
+    },
+    verticalPreviewLines() {
+      if (this.expanded) return [];
+      return this.collapsedPreviewLines.length ? this.collapsedPreviewLines : this.safeHighlightLines;
     },
     collapsedPreviewLines() {
       const maxLines = this.normalizedCollapsedMaxLines;

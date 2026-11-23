@@ -34,7 +34,7 @@ async function main() {
       const paths = {
         activity: '/pages-content/activity-detail/activity-detail.vue',
         square: '/pages/poem-square/poem-square.vue',
-        mountain: '/pages/mountain/mountain.vue',
+        reading: '/pages/poem-square/poem-square.vue',
         ranking: '/pages-content/weekly-ranking/weekly-ranking.vue',
         tag: '/pages-tools/tag-filter/tag-filter.vue',
         standalone: '/components/poem/PoemCard.vue',
@@ -64,7 +64,7 @@ async function main() {
         } : {
           ...original,
           data() {
-            return { ...original.data.call(this), isLoading: false, hasMore: false, postList: [], rankingItems: [], rankingLoading: false };
+            return { ...original.data.call(this), poemMode: name === 'reading' ? 'reading' : 'original', isLoading: false, hasMore: false, postList: [], rankingItems: [], rankingLoading: false };
           }
         };
         const vnode = h(component);

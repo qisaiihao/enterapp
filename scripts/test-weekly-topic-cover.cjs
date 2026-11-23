@@ -58,7 +58,7 @@ function cloudContext(file) {
   };
   vm.runInNewContext(stripImports(read('pages-admin/weekly-management/weekly-management.vue').match(/<script>([\s\S]*?)<\/script>/)[1]).replace('export default', 'module.exports ='), sandbox);
   const component = sandbox.module.exports;
-  const state = Object.assign(component.data(), component.methods, { loadTopics: async () => {}, loadTopicPeriodPosts() {} });
+  const state = Object.assign(component.data(), component.methods, { loadTopics: async () => {}, refreshTopicSubmissions() {} });
   state.issueCoverPreview = 'issue.jpg';
   state.onTopicCoverCropped({ path: 'local-topic.jpg' });
   assert.equal(state.issueCoverPreview, 'issue.jpg', '主题裁剪不能修改周刊封面');

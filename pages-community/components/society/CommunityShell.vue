@@ -21,7 +21,7 @@ export default {
   methods: {
     back() {
       if (getCurrentPages().length > 1) uni.navigateBack();
-      else uni.reLaunch({ url: '/pages-content/activity-list/activity-list' });
+      else uni.switchTab({ url: '/pages/activity/activity' });
     }
   }
 };

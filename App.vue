@@ -32,7 +32,7 @@ export default {
         };
     },
 
-    onLaunch() {
+    onLaunch(options = {}) {
         installRuntimeBindings(this);
         this.syncGlobalDataFromAppState();
         // #ifdef APP-PLUS
@@ -56,7 +56,7 @@ export default {
         // #endif
 
         this.$nextTick(() => {
-            this.runPrivacyGatedStartup();
+            this.runPrivacyGatedStartup(options);
         });
     },
 
@@ -108,7 +108,7 @@ export default {
         },
 
         // 隐私政策确认前不登录、不检查更新，同意后由事件放行。
-        runPrivacyGatedStartup() {
+        runPrivacyGatedStartup(options = {}) {
             if (hasAcceptedPrivacyConsent()) {
                 this.startConsentedStartup();
                 return;
@@ -117,6 +117,12 @@ export default {
                 this._privacyConsentRelease = null;
                 this.startConsentedStartup();
             });
+            // #ifdef H5
+            const path = (options.path || '').replace(/^\//, '');
+            if (path && path !== 'pages/splash/splash' && path !== 'pages/privacy/privacy') {
+                uni.reLaunch({ url: '/pages/splash/splash' });
+            }
+            // #endif
         },
 
         startConsentedStartup() {

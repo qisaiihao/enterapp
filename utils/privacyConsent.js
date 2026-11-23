@@ -1,5 +1,7 @@
-// 首启隐私政策确认状态。政策内容更新时同步修改版本号，用户会重新确认。
+// 任一文件版本更新后，需要重新确认两份文件。
 export const PRIVACY_POLICY_VERSION = '2026-10-14';
+export const USER_AGREEMENT_VERSION = '1';
+export const PRIVACY_CONSENT_VERSION = `${PRIVACY_POLICY_VERSION}:${USER_AGREEMENT_VERSION}`;
 export const PRIVACY_CONSENT_STORAGE_KEY = 'privacyConsentVersion';
 export const PRIVACY_POLICY_PATH = '/pages/privacy/privacy';
 export const PRIVACY_CONSENT_ACCEPTED_EVENT = 'privacyConsentAccepted';
@@ -14,7 +16,7 @@ export function hasAcceptedPrivacyConsent() {
     try {
         return typeof uni !== 'undefined'
             && typeof uni.getStorageSync === 'function'
-            && uni.getStorageSync(PRIVACY_CONSENT_STORAGE_KEY) === PRIVACY_POLICY_VERSION;
+            && uni.getStorageSync(PRIVACY_CONSENT_STORAGE_KEY) === PRIVACY_CONSENT_VERSION;
     } catch (error) {
         return false;
     }
@@ -25,7 +27,7 @@ export function acceptPrivacyConsent() {
     acceptedInSession = true;
     try {
         if (typeof uni !== 'undefined' && typeof uni.setStorageSync === 'function') {
-            uni.setStorageSync(PRIVACY_CONSENT_STORAGE_KEY, PRIVACY_POLICY_VERSION);
+            uni.setStorageSync(PRIVACY_CONSENT_STORAGE_KEY, PRIVACY_CONSENT_VERSION);
         }
     } catch (error) {}
     if (!alreadyAccepted && typeof uni !== 'undefined' && typeof uni.$emit === 'function') {
@@ -60,13 +62,22 @@ export function openPrivacyPolicy() {
     }
 }
 
+export function openUserAgreement() {
+    if (typeof uni !== 'undefined' && typeof uni.navigateTo === 'function') {
+        uni.navigateTo({ url: `${PRIVACY_POLICY_PATH}?document=agreement` });
+    }
+}
+
 export default {
     PRIVACY_POLICY_VERSION,
+    USER_AGREEMENT_VERSION,
+    PRIVACY_CONSENT_VERSION,
     PRIVACY_CONSENT_STORAGE_KEY,
     PRIVACY_POLICY_PATH,
     PRIVACY_CONSENT_ACCEPTED_EVENT,
     hasAcceptedPrivacyConsent,
     acceptPrivacyConsent,
     runAfterPrivacyConsent,
-    openPrivacyPolicy
+    openPrivacyPolicy,
+    openUserAgreement
 };

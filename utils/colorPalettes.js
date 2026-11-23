@@ -26,7 +26,6 @@ export const colorPalettes = [
         name: 'Inkwell',
         colors: [
             { backgroundColor: '#2C3639', textColor: '#DCD7C9' },
-            { backgroundColor: '#3F4E4F', textColor: '#DCD7C9' },
             { backgroundColor: '#A27B5B', textColor: '#2C3639' },
             { backgroundColor: '#DCD7C9', textColor: '#2C3639' }
         ]
@@ -91,7 +90,6 @@ export const colorPalettes = [
             { backgroundColor: '#E48F50', textColor: '#2D293B' },
             { backgroundColor: '#753130', textColor: '#729BAE' },
             { backgroundColor: '#2D293B', textColor: '#E48F50' },
-            { backgroundColor: '#60859E', textColor: '#2D293B' },
             { backgroundColor: '#729BAE', textColor: '#2D293B' }
         ]
     },
@@ -120,7 +118,6 @@ export const colorPalettes = [
         colors: [
             { backgroundColor: '#AF3D41', textColor: '#EAC891' },
             { backgroundColor: '#70A3AC', textColor: '#131A1F' },
-            { backgroundColor: '#5393A3', textColor: '#131A1F' },
             { backgroundColor: '#17566F', textColor: '#EAC891' },
             { backgroundColor: '#131A1F', textColor: '#AF3D41' }
         ]
@@ -171,39 +168,12 @@ export const colorPalettes = [
         ]
     },
     {
-        name: 'Almond',
-        colors: [
-            { backgroundColor: '#D6BD98', textColor: '#1A3636' },
-            { backgroundColor: '#677D6A', textColor: '#D6BD98' },
-            { backgroundColor: '#40534C', textColor: '#D6BD98' },
-            { backgroundColor: '#1A3636', textColor: '#D6BD98' }
-        ]
-    },
-    {
         name: '蓝灰系',
         colors: [
             { backgroundColor: '#E5E4E0', textColor: '#6A8E74' },
             { backgroundColor: '#A4AEAF', textColor: '#6A8E74' },
             { backgroundColor: '#6A8E74', textColor: '#E5E4E0' },
             { backgroundColor: '#6A8E74', textColor: '#A4AEAF' }
-        ]
-    },
-    {
-        name: '银鱼白系',
-        colors: [
-            { backgroundColor: '#CACED1', textColor: '#414B4E' },
-            { backgroundColor: '#88ADA6', textColor: '#414B4E' },
-            { backgroundColor: '#414B4E', textColor: '#CACED1' },
-            { backgroundColor: '#414B4E', textColor: '#88ADA6' }
-        ]
-    },
-    {
-        name: '黄灰系',
-        colors: [
-            { backgroundColor: '#C8CAC5', textColor: '#2F4941' },
-            { backgroundColor: '#C8CAC5', textColor: '#6E766C' },
-            { backgroundColor: '#2F4941', textColor: '#C8CAC5' },
-            { backgroundColor: '#6E766C', textColor: '#C8CAC5' }
         ]
     },
     {
@@ -216,12 +186,98 @@ export const colorPalettes = [
         ]
     },
     {
-        name: '花白系',
+        name: 'Meadow',
         colors: [
-            { backgroundColor: '#BFC9CE', textColor: '#36434A' },
-            { backgroundColor: '#BFC9CE', textColor: '#748386' },
-            { backgroundColor: '#748386', textColor: '#BFC9CE' },
-            { backgroundColor: '#36434A', textColor: '#BFC9CE' }
+            { backgroundColor: '#AFC867', textColor: '#5E504B' },
+            { backgroundColor: '#5E504B', textColor: '#F1CFD3' },
+            { backgroundColor: '#DD839B', textColor: '#5E504B' },
+            { backgroundColor: '#EEB1CB', textColor: '#5E504B' },
+            { backgroundColor: '#F1CFD3', textColor: '#5E504B' }
+        ]
+    },
+    {
+        name: 'Haze',
+        colors: [
+            { backgroundColor: '#E6FFF8', textColor: '#3B7200' },
+            { backgroundColor: '#F390A3', textColor: '#E6FFF8' },
+            { backgroundColor: '#91C51A', textColor: '#011901' },
+            { backgroundColor: '#3B7200', textColor: '#91C51A' },
+            { backgroundColor: '#011901', textColor: '#91C51A' }
+        ]
+    },
+    {
+        name: 'Sunlight',
+        colors: [
+            { backgroundColor: '#FBA31E', textColor: '#406113' },
+            { backgroundColor: '#8D9625', textColor: '#406113' },
+            { backgroundColor: '#406113', textColor: '#FBA31E' },
+            { backgroundColor: '#4EA2C0', textColor: '#406113' },
+            { backgroundColor: '#E3A5AA', textColor: '#406113' }
+        ]
+    },
+    {
+        name: 'Canary',
+        colors: [
+            { backgroundColor: '#E7DD6A', textColor: '#28477C' },
+            { backgroundColor: '#A0CB75', textColor: '#28477C' },
+            { backgroundColor: '#10B183', textColor: '#28477C' }
+        ]
+    },
+    {
+        name: 'Moonlight',
+        colors: [
+            { backgroundColor: '#F0ECDD', textColor: '#49556D' },
+            { backgroundColor: '#8BA3C5', textColor: '#00002B' }
+        ]
+    },
+    {
+        name: 'Dark Chocolate',
+        colors: [
+            { backgroundColor: '#443025', textColor: '#EC9C9D' },
+            { backgroundColor: '#7F5836', textColor: '#EC9C9D' },
+            { backgroundColor: '#AA7F66', textColor: '#F2CECA' },
+            { backgroundColor: '#EC9C9D', textColor: '#443025' },
+            { backgroundColor: '#F2CECA', textColor: '#7F5836' }
+        ]
+    },
+    {
+        name: 'Overgrowth',
+        colors: [
+            { backgroundColor: '#A1AA71', textColor: '#535B29' },
+            { backgroundColor: '#535B29', textColor: '#B8C996' },
+            { backgroundColor: '#847158', textColor: '#192124' },
+            { backgroundColor: '#487CA2', textColor: '#B2C8A0' },
+            { backgroundColor: '#192124', textColor: '#487CA2' }
+        ]
+    },
+    {
+        name: 'Sand Dollar',
+        colors: [
+            { backgroundColor: '#D4B574', textColor: '#546F36' },
+            { backgroundColor: '#DA892E', textColor: '#546F36' },
+            { backgroundColor: '#546F36', textColor: '#D4B574' },
+            { backgroundColor: '#CD8E96', textColor: '#CD406C' },
+            { backgroundColor: '#CD406C', textColor: '#D4B574' }
+        ]
+    },
+    {
+        name: 'Honey Quartz',
+        colors: [
+            { backgroundColor: '#F7B720', textColor: '#F35900' },
+            { backgroundColor: '#D8CF00', textColor: '#6D7636' },
+            { backgroundColor: '#F35900', textColor: '#F7B720' },
+            { backgroundColor: '#6D7636', textColor: '#D8CF00' },
+            { backgroundColor: '#42421E', textColor: '#F35900' }
+        ]
+    },
+    {
+        name: 'Amaranth',
+        colors: [
+            { backgroundColor: '#933B5B', textColor: '#E3D6BF' },
+            { backgroundColor: '#B5728A', textColor: '#E3D6BF' },
+            { backgroundColor: '#AABAAE', textColor: '#933B5B' },
+            { backgroundColor: '#E3D6BF', textColor: '#933B5B' },
+            { backgroundColor: '#9F9679', textColor: '#933B5B' }
         ]
     }
 ];

@@ -139,6 +139,7 @@ const actionHandlers = {
   setWeeklyFeaturedIssueIds: (event) => setWeeklyFeaturedIssueIds(event),
   generateWeeklyRanking: (event) => generateWeeklyRanking(event),
   listWeeklyCandidatePosts: (event) => listWeeklyCandidatePosts(event),
+  listWeeklySubmissionPosts: (event) => listWeeklyCandidatePosts(event, { submissionsOnly: true }),
   listWeeklyTopics: (event) => listWeeklyTopics(event),
   createWeeklyTopic: (event, openid) => createWeeklyTopic(event, openid),
   updateWeeklyTopic: (event, openid) => updateWeeklyTopic(event, openid),
@@ -1959,38 +1960,46 @@ async function buildWeeklyIssuePayload(data = {}, { current = {}, requireTitle =
   return { data: payload }
 }
 
-async function listWeeklyCandidatePosts(data = {}) {
+async function listWeeklyCandidatePosts(data = {}, { submissionsOnly = false } = {}) {
   const skip = Math.max(0, Number(data.skip) || 0)
   const limit = Math.min(200, Math.max(1, Number(data.limit) || 20))
   const keyword = String(data.keyword || '').trim()
-  const where = {
-    isPoem: true,
-    isOriginal: true,
-    isHidden: _.neq(true)
-  }
-  if (keyword) {
-    where.title = db.RegExp({
-      regexp: keyword,
-      options: 'i'
-    })
-  }
-  if (data.periodStart && data.periodEnd) {
-    const bounds = getWeeklyPeriodBounds(data.periodStart, data.periodEnd)
-    if (bounds) {
-      where.createTime = _.gte(bounds.start).and(_.lte(bounds.end))
+  const where = { isHidden: _.neq(true) }
+  if (submissionsOnly) {
+    const activityId = String(data.activityId || '').trim()
+    where.joinedActivityId = activityId || { $exists: true, $nin: ['', null] }
+    where.$and = [{ $or: [
+      { visibility: { $exists: false } },
+      { visibility: 'public' },
+      { visibility: 'scheduled', hideAt: { $gt: Date.now() } }
+    ] }]
+    if (keyword) {
+      const regexp = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const match = db.RegExp({ regexp, options: 'i' })
+      where.$or = ['title', 'authorName', 'authorNameSnapshot', 'author', 'content']
+        .map(field => ({ [field]: match }))
+    }
+  } else {
+    where.isPoem = true
+    where.isOriginal = true
+    if (keyword) where.title = db.RegExp({ regexp: keyword, options: 'i' })
+    if (data.periodStart && data.periodEnd) {
+      const bounds = getWeeklyPeriodBounds(data.periodStart, data.periodEnd)
+      if (bounds) where.createTime = _.gte(bounds.start).and(_.lte(bounds.end))
     }
   }
   try {
+    const query = db.collection('posts').where(where)
+    const ordered = query.orderBy('createTime', 'desc')
     const [countRes, listRes] = await Promise.all([
-      db.collection('posts').where(where).count(),
-      db.collection('posts')
-        .where(where)
-        .orderBy('createTime', 'desc')
-        .skip(skip)
-        .limit(limit)
-        .get()
+      query.count(),
+      (submissionsOnly ? ordered.orderBy('_id', 'desc') : ordered).skip(skip).limit(limit).get()
     ])
-    const posts = (listRes.data || []).map((post, index) => buildPostSnapshot(post, skip + index + 1))
+    const posts = (listRes.data || []).map((post, index) => {
+      const snapshot = buildPostSnapshot(post, skip + index + 1)
+      if (submissionsOnly) snapshot.activityTitle = post.joinedActivityTitleSnapshot || ''
+      return snapshot
+    })
     return {
       success: true,
       posts,
@@ -1999,7 +2008,7 @@ async function listWeeklyCandidatePosts(data = {}) {
     }
   } catch (error) {
     console.error('[adminManager] listWeeklyCandidatePosts failed:', error)
-    return { success: false, error: 'failed to fetch candidate posts' }
+    return { success: false, error: submissionsOnly ? '加载投稿作品失败' : 'failed to fetch candidate posts' }
   }
 }
 

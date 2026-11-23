@@ -1,4 +1,4 @@
-const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
+const { createPostsDatabase, withPostResponse, isRestricted, canViewPost } = require('./_lib/posts');
 const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
@@ -70,6 +70,9 @@ exports.main = async (event, context) => {
       const postResult = await postRef.get()
       const post = postResult.data
       if (!post) return { success: false, message: 'POST_NOT_FOUND' }
+      if (isRestricted(post) && !await canViewPost(transaction, post, openid, getAuthorOpenid(post))) {
+        return { success: false, code: 'POST_HIDDEN', message: '该内容已隐藏' }
+      }
 
       // 必须先在事务中读帖子，再查询旧点赞记录；保留随机 ID 的历史记录兼容。
       // 所有点赞都更新同一帖子文档，并发冲突时整个回调重跑，重新读取点赞状态。

@@ -68,6 +68,11 @@ function buildActivityToken(activity) {
 }
 
 function broadcast(nextHasNew) {
+  // #ifdef MP-WEIXIN
+  const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : [];
+  const tabBar = pages[pages.length - 1]?.getTabBar?.();
+  tabBar?.setData({ hasNewActivity: !!nextHasNew });
+  // #endif
   try {
     if (typeof uni !== 'undefined' && uni.$emit) {
       uni.$emit(EVENT_NAME, { hasNew: !!nextHasNew });

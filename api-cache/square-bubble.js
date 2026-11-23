@@ -7,7 +7,7 @@ const CONFIG_TTL_MS = 5 * 60 * 1000;
 
 export const SQUARE_BUBBLE_TARGETS = [
   { value: 'weekly', label: '周刊', url: '/pages-content/weekly-home/weekly-home' },
-  { value: 'activities', label: '活动', url: '/pages-content/activity-list/activity-list' },
+  { value: 'activities', label: '活动', url: '/pages/activity/activity' },
   { value: 'ranking', label: '本周热榜', url: '/pages-content/weekly-ranking/weekly-ranking' },
   { value: 'topics', label: '主题精选', url: '/pages-content/weekly-topic-submission/weekly-topic-submission' }
 ];

@@ -1,17 +1,23 @@
 <template>
-  <view class="top-bar-container" :style="{ top: safeAreaTop + 'px' }">
-    <!-- 自定义顶部栏 -->
-    <view class="custom-top-bar" :style="customTopBarStyle">
-      <view class="top-left" @tap="navigateToAdd">
-        <image class="top-icon" :src="leftIcon" mode="aspectFit"></image>
-      </view>
-      <view class="top-right">
-        <view class="top-item" @tap="navigateToSearch">
-          <image class="top-icon" src="/static/images/newicons/search.png" mode="aspectFit"></image>
+  <view
+    class="top-bar-shell"
+    :class="{ 'top-bar-shell--reserve-space': reserveSpace }"
+    :style="{ '--top-bar-safe-area-top': safeAreaTop + 'px' }"
+  >
+    <view class="top-bar-container">
+      <view class="custom-top-bar" :style="customTopBarStyle">
+        <view class="top-left" @tap="navigateToAdd">
+          <image class="top-icon" :src="leftIcon" mode="aspectFit"></image>
         </view>
-        <view class="top-item" @tap="navigateToMessages">
-          <image class="top-icon" src="/static/images/newicons/notification.png" mode="aspectFit"></image>
-          <view v-if="unreadMessageCount > 0" class="unread-dot"></view>
+        <slot name="center" />
+        <view class="top-right">
+          <view class="top-item" @tap="navigateToSearch">
+            <image class="top-icon" src="/static/images/newicons/search.png" mode="aspectFit"></image>
+          </view>
+          <view class="top-item" @tap="navigateToMessages">
+            <image class="top-icon" src="/static/images/newicons/notification.png" mode="aspectFit"></image>
+            <view v-if="unreadMessageCount > 0" class="unread-dot"></view>
+          </view>
         </view>
       </view>
     </view>
@@ -38,7 +44,8 @@ export default {
     leftIcon: {
       type: String,
       default: '/static/images/write_poetry.png'
-    }
+    },
+    reserveSpace: Boolean
   },
   data() {
     return {
@@ -178,8 +185,17 @@ export default {
 </script>
 
 <style>
+.top-bar-shell {
+  --top-bar-height: 120rpx;
+}
+
+.top-bar-shell--reserve-space {
+  height: calc(var(--top-bar-safe-area-top) + var(--top-bar-height));
+}
+
 .top-bar-container {
   position: fixed;
+  top: var(--top-bar-safe-area-top);
   left: 0;
   right: 0;
   background: var(--app-fixed-bar-bg, #ffffff);
@@ -201,20 +217,11 @@ export default {
 }
 
 .custom-top-bar {
-  height: 100rpx;
+  height: var(--top-bar-height);
+  box-sizing: border-box;
   display: flex;
-  /* #ifdef MP-WEIXIN */
-  justify-content: flex-start; /* 小程序端：靠左对齐 */
-  padding-right: 200rpx; /* 小程序端：右侧留出更多空间避免被小程序按钮遮挡 */
-  padding-left: 40rpx;
-  /* #endif */
-  /* #ifndef MP-WEIXIN */
-  justify-content: space-between; /* 非小程序端：两端对齐 */
-  padding-right: 40rpx;
-  padding-left: 40rpx;
-  /* #endif */
-  padding-top: 20rpx;
-  padding-bottom: 0;
+  justify-content: space-between;
+  padding: 20rpx 40rpx 0;
   align-items: center;
   background: var(--app-fixed-bar-bg, #fff);
   border-bottom: none;
@@ -227,12 +234,6 @@ export default {
   cursor: pointer;
   transition: all 0.2s ease;
   padding: 10rpx;
-  /* #ifdef MP-WEIXIN */
-  margin-right: 40rpx; /* 小程序端：与右侧按钮保持间距 */
-  /* #endif */
-  /* #ifndef MP-WEIXIN */
-  margin-right: 0;
-  /* #endif */
 }
 
 .top-left:active {
@@ -244,7 +245,7 @@ export default {
   align-items: center;
   gap: 40rpx;
   /* #ifdef MP-WEIXIN */
-  margin-left: 0; /* 小程序端：紧跟左侧按钮 */
+  gap: 12rpx;
   /* #endif */
 }
 

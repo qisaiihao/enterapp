@@ -133,13 +133,16 @@ export function switchTabSmooth(options) {
   // #ifdef APP-PLUS
   const native = typeof plus !== 'undefined' && plus.nativeObj;
   const source = currentPage();
+  const target = routeOf({ route: options.url });
+  const warm = readyRoutes.has(target);
   let webview;
-  try { webview = source?.$getAppWebview?.(); } catch (_) {}
-  if (native?.Bitmap && native?.View && webview?.draw) {
+  if (!warm) {
+    try { webview = source?.$getAppWebview?.(); } catch (_) {}
+  }
+  if (warm || (native?.Bitmap && native?.View && webview?.draw)) {
     if (active) return false; // 窗口交接期间忽略连点，防止多次导航和快照互相覆盖。
-    const target = routeOf({ route: options.url });
     if (routeOf(source) === target) return false;
-    const state = { id: ++sequence, native, target, warm: readyRoutes.has(target), closed: false, navigated: false, ready: false, switched: false };
+    const state = { id: ++sequence, native, target, warm, closed: false, navigated: false, ready: false, switched: false };
     if (!state.warm) pendingPaintRoutes.add(target);
     state.abort = error => {
       if (state.closed) return;
@@ -165,27 +168,37 @@ export function switchTabSmooth(options) {
           },
           fail: error => state.abort(error)
         });
+        // 目标页面挂载期间准备检测位图，onReady 后只执行原生首帧检查。
+        if (!state.warm && !state.closed) {
+          try { state.probeBitmap ||= new native.Bitmap(`tab-ready-${state.id}`); } catch (_) {}
+        }
       } catch (error) { state.abort(error); }
     };
     if (state.warm) {
       navigate();
       return;
     }
+    const prepareCover = () => {
+      if (state.cover) return;
+      const style = webview.getStyle?.() || {};
+      const vm = source.$vm || source;
+      const dark = vm.appThemeMode === 'dark';
+      const coverStyle = {
+        top: style.top || '0px', left: style.left || '0px', width: style.width || '100%',
+        backgroundColor: vm.appThemeVars?.['--app-page-bg'] || (dark ? '#0f1115' : '#ffffff'),
+        ...(style.height ? { height: style.height } : style.bottom != null ? { bottom: style.bottom } : { height: '100%' })
+      };
+      state.cover = new native.View(`tab-cover-${state.id}`, coverStyle);
+    };
     const showCover = (captured) => {
       if (state.closed || state.captureDone) return;
       state.captureDone = true;
       clearTimeout(state.captureTimer);
       if (currentPage() !== source) { cancelTabTransition(); return; }
       try {
-        const style = webview.getStyle?.() || {};
         const vm = source.$vm || source;
         const dark = vm.appThemeMode === 'dark';
-        const coverStyle = {
-          top: style.top || '0px', left: style.left || '0px', width: style.width || '100%',
-          backgroundColor: vm.appThemeVars?.['--app-page-bg'] || (dark ? '#0f1115' : '#ffffff'),
-          ...(style.height ? { height: style.height } : style.bottom != null ? { bottom: style.bottom } : { height: '100%' })
-        };
-        state.cover = new native.View(`tab-cover-${state.id}`, coverStyle);
+        prepareCover();
         if (captured) {
           try { state.cover.drawBitmap(state.bitmap); } catch (_) { captured = false; }
         }
@@ -226,6 +239,10 @@ export function switchTabSmooth(options) {
       webview.draw(state.bitmap, () => {
         showCover(true);
       }, () => showCover(false), { check: true });
+      // 截图进行时创建隐藏覆盖层；截图完成前不显示，也不切换页面。
+      if (!state.closed && !state.captureDone) {
+        try { prepareCover(); } catch (_) {}
+      }
     } catch (_) { showCover(false); }
     return;
   }

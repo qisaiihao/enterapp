@@ -72,6 +72,9 @@ exports.main = async (event, context) => {
     }
 
     const quotedPost = quotedPostResult.data;
+    if (quotedPost.visibility && quotedPost.visibility !== 'public') {
+      return { success: false, message: '仅可引用公开发布的作品' };
+    }
 
     // 获取用户信息
     const userResult = await db.collection('users').where({

@@ -2,27 +2,34 @@
   <AppDialog
     :visible="visible"
     defer-answer
-    title="隐私政策"
+    require-scroll-to-confirm
+    title="用户协议与隐私政策"
     confirm-text="同意并继续"
     cancel-text="不同意"
     @confirm="handleConfirm"
     @cancel="handleCancel"
   >
     <view class="privacy-consent-body">
-      <text class="privacy-consent-text">欢迎使用回车键（Poementer）！我们非常重视您的个人信息保护，将按照《中华人民共和国个人信息保护法》等法律法规的要求处理您的个人信息。</text>
-      <text class="privacy-consent-text">在使用本应用前，请您仔细阅读并充分理解<text class="privacy-consent-link" @tap.stop="openPolicy">《隐私政策》</text>。点击“同意并继续”即表示您已阅读并同意该政策。</text>
-      <text class="privacy-consent-text">如您不同意，将无法使用本应用的完整功能。</text>
+      <view class="privacy-consent-section">
+        <text class="privacy-consent-section-title">用户协议</text>
+        <LegalDocument is-user-agreement :selectable="false" />
+      </view>
+      <view class="privacy-consent-section">
+        <text class="privacy-consent-section-title">隐私政策</text>
+        <LegalDocument :selectable="false" />
+      </view>
+      <text class="privacy-consent-end">点击“同意并继续”即表示您同意以上两份文件。</text>
     </view>
   </AppDialog>
 </template>
 
 <script>
 import AppDialog from '@/components/overlay/AppDialog.vue';
-import { openPrivacyPolicy } from '@/utils/privacyConsent.js';
+import LegalDocument from '@/components/LegalDocument.vue';
 
 export default {
   name: 'PrivacyConsentDialog',
-  components: { AppDialog },
+  components: { AppDialog, LegalDocument },
   emits: ['agree', 'decline'],
   props: {
     visible: Boolean
@@ -33,9 +40,6 @@ export default {
     },
     handleCancel() {
       this.$emit('decline');
-    },
-    openPolicy() {
-      openPrivacyPolicy();
     }
   }
 };
@@ -43,23 +47,28 @@ export default {
 
 <style scoped>
 .privacy-consent-body {
-  padding-bottom: 4rpx;
+  --legal-muted: var(--overlay-muted, #666);
 }
 
-.privacy-consent-text {
+.privacy-consent-section + .privacy-consent-section {
+  margin-top: 48rpx;
+  padding-top: 32rpx;
+  border-top: 1rpx solid var(--app-border-color, #e8e8e8);
+}
+
+.privacy-consent-section-title {
   display: block;
-  font-size: 28rpx;
+  margin-bottom: 12rpx;
+  font-size: 34rpx;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.privacy-consent-end {
+  display: block;
+  margin-top: 32rpx;
+  color: var(--legal-muted);
+  font-size: 26rpx;
   line-height: 1.6;
-  color: var(--overlay-muted, #666);
-  overflow-wrap: anywhere;
-}
-
-.privacy-consent-text + .privacy-consent-text {
-  margin-top: 16rpx;
-}
-
-.privacy-consent-link {
-  color: var(--app-link-color, #333333);
-  text-decoration: underline;
 }
 </style>

@@ -1,3 +1,5 @@
+const { scopedPublicWhere } = require('../_lib/posts/query');
+
 function createFavoriteHandlers({ db, cloud }) {
 async function getFavoriteFolders(openid) {
   try {
@@ -308,9 +310,9 @@ async function getFavoritesByFolder(openid, folderId, skip, limit) {
     const postIds = favorites.map(fav => fav.postId);
     
     // 获取帖子详细信息
-    const postsResult = await db.collection('posts').where({
+    const postsResult = await db.collection('posts').where(scopedPublicWhere({
       _id: db.command.in(postIds)
-    }).get();
+    })).get();
     
     const postsMap = new Map();
     postsResult.data.forEach(post => {
@@ -543,9 +545,9 @@ async function getAllFavorites(openid, skip, limit) {
     const postIds = favorites.map(fav => fav.postId);
     
     // 获取帖子详细信息
-    const postsResult = await db.collection('posts').where({
+    const postsResult = await db.collection('posts').where(scopedPublicWhere({
       _id: db.command.in(postIds)
-    }).get();
+    })).get();
     
     const postsMap = new Map();
     postsResult.data.forEach(post => {

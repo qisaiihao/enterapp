@@ -4,10 +4,16 @@
   <!-- #endif -->
   <view class="poem-square white-bg" :data-app-theme="appThemeMode" :style="[appThemeVars, readFontVars]" @touchstart="touchStart" @touchend="touchEnd">
     <!-- 顶部栏 -->
-    <top-bar @safe-area-ready="onSafeAreaReady" />
+    <top-bar @safe-area-ready="onSafeAreaReady">
+      <template #center>
+        <button class="poem-mode-btn" :aria-label="isReadingMode ? '切换到原创' : '切换到读诗'" @tap="togglePoemMode">
+          <text>{{ isReadingMode ? '读诗' : '原创' }}</text>
+          <text class="poem-mode-arrow">⇄</text>
+        </button>
+      </template>
+    </top-bar>
 
-
-    <view v-if="!showFollowingOnly" class="poem-filter-container" :style="{ top: (safeAreaTop * 2 + 160) + 'rpx' }">
+    <view v-if="!isReadingMode && !showFollowingOnly" class="poem-filter-container" :style="{ top: (safeAreaTop * 2 + 160) + 'rpx' }">
       <view
         class="poem-filter-trigger"
         :class="{ 'poem-filter-trigger--active': showPoemFilterPanel || showFollowingOnly }"
@@ -36,23 +42,20 @@
       </AppMotion>
     </view>
 
-    <view v-if="!showFollowingOnly" class="activity-entry-container" :style="{ top: (safeAreaTop * 2 + 118) + 'rpx' }">
-      <view class="activity-entry-btn" @tap="navigateToActivityList">
-        <view class="activity-entry-icon-wrap">
-          <image class="activity-entry-icon" src="/static/images/icons/activities.png" mode="aspectFit" />
-          <view v-if="hasNewActivity" class="activity-entry-dot"></view>
-        </view>
+    <view class="activity-entry-container" :style="{ top: (safeAreaTop * 2 + 118) + 'rpx' }">
+      <view class="activity-entry-btn" role="button" aria-label="打开活动" @tap="navigateToActivityList">
+        <image class="activity-entry-icon" src="/static/images/icons/activities.png" mode="aspectFit" />
         <text class="activity-entry-text">活动</text>
       </view>
       <SquareSpeechBubble
-        v-if="showSquareBubble"
+        v-if="!isReadingMode && !showFollowingOnly && showSquareBubble"
         :text="squareBubble.text"
         @tap="openSquareBubble"
       />
     </view>
 
     <!-- 关注头像栏 - 只在关注模式下显示 -->
-    <view v-if="showFollowingOnly" class="following-avatar-bar-wrapper" :style="{ top: (safeAreaTop * 2 + 100) + 'rpx' }">
+    <view v-if="!isReadingMode && showFollowingOnly" class="following-avatar-bar-wrapper" :style="{ top: (safeAreaTop * 2 + 250) + 'rpx' }">
       <following-avatar-bar
         ref="followingAvatarBar"
         mode="poem-square"
@@ -62,9 +65,13 @@
       />
     </view>
 
+    <view v-if="isReadingMode" class="poet-avatar-bar-wrapper" :style="{ top: (safeAreaTop * 2 + 250) + 'rpx' }">
+      <poet-avatar-bar ref="poetAvatarBar" :selected-poet-name="selectedPoetName" @select="onPoetSelect" />
+    </view>
+
     <!-- 加载中骨架 -->
     <!-- 在存在关注组件时不显示骨架屏 -->
-    <view v-if="isLoading && !showFollowingOnly">
+    <view v-if="isLoading && !hasAvatarBar">
       <skeleton
         pageType="poem"
         :hasFilterBar="false"
@@ -73,10 +80,11 @@
     </view>
 
     <!-- 内容列表 -->
-    <view v-else :class="['square-mode-container', showFollowingOnly ? 'with-avatar-bar' : '']" :style="{ paddingTop: showFollowingOnly ? ((safeAreaTop * 2 + 300) + 'rpx') : ((safeAreaTop * 2 + 250) + 'rpx') }">
-      <view v-if="postList.length === 0" class="empty-state">
-        <view class="empty-text">{{ showFollowingOnly ? '关注的人还没有发布诗歌哦～' : '还没刷出来，再等等~' }}</view>
-        <view class="empty-subtext">{{ showFollowingOnly ? '去关注更多有趣的诗人吧！' : '去广场看看吧～' }}</view>
+    <view v-else :class="['square-mode-container', hasAvatarBar ? 'with-avatar-bar' : '']" :style="{ paddingTop: (safeAreaTop * 2 + (hasAvatarBar ? 450 : 250)) + 'rpx' }">
+      <view v-if="isLoading" class="empty-state"><text>加载中...</text></view>
+      <view v-else-if="postList.length === 0" class="empty-state">
+        <view class="empty-text">{{ !isReadingMode && showFollowingOnly ? '关注的人还没有发布诗歌哦～' : '还没刷出来，再等等~' }}</view>
+        <view class="empty-subtext">{{ !isReadingMode && showFollowingOnly ? '去关注更多有趣的诗人吧！' : '去广场看看吧～' }}</view>
       </view>
 
       <view :key="'poem-font-' + poemFontRenderTick" id="post-list-container">
@@ -85,8 +93,8 @@
             v-if="item"
             :post="item"
             :index="index"
-            enable-series
-            show-signature
+            :enable-series="!isReadingMode"
+            :show-signature="!isReadingMode"
             @card-tap="onPoemCardTap"
             @vote="onVote"
             @comment="onCommentClick"
@@ -122,10 +130,11 @@ import AppTabBar from '@/custom-tab-bar/index.vue';
 import skeleton from '@/components/skeleton/skeleton';
 import topBar from '@/components/top-bar/top-bar.vue';
 import FollowingAvatarBar from '@/components/following-avatar-bar/following-avatar-bar.vue';
+import PoetAvatarBar from '@/components/poet-avatar-bar/poet-avatar-bar.vue';
 import PoemCard from '@/components/poem/PoemCard.vue';
 import { cloudCall } from '@/utils/cloudCall.js';
 import { getPostList as getPostListWithCache, invalidatePostList } from '@/api-cache/post-list.js';
-import { getFollowingPoems, invalidateFollowingPoems, getOriginalPoems, ORIGINAL_POEMS_PAGE_SIZE } from '@/api-cache/poems.js';
+import { getFollowingPoems, invalidateFollowingPoems, getOriginalPoems, getMountainPoems, peekMountainPoems, ORIGINAL_POEMS_PAGE_SIZE } from '@/api-cache/poems.js';
 import { getPostDetail } from '@/api-cache/post.js';
 import { consumePoemSquareRefresh, takePoemSquarePreload } from '@/utils/splashPreload.js';
 import { scheduleTabPreload } from '@/utils/tabPreload.js';
@@ -162,11 +171,23 @@ export default {
     try { uni.hideTabBar({ animation: false }); } catch (e) {}
     // #endif
     updateTabBarStatus(this, 1);
+    const openMode = uni.getStorageSync('poemFeed:openMode');
+    if (openMode) {
+      uni.removeStorageSync('poemFeed:openMode');
+      if (openMode !== this.poemMode) this.togglePoemMode();
+    }
     this.loadSquareBubble();
 
     try { activityBadge.refreshActivityBadge({ context: this }); } catch (_) {}
 
-    if (consumePoemSquareRefresh()) {
+    const refreshOriginal = consumePoemSquareRefresh();
+    const refreshReading = !!uni.getStorageSync('shouldRefreshMountain');
+    if (refreshReading) {
+      uni.removeStorageSync('shouldRefreshMountain');
+      invalidatePostList({ isPoem: true, isOriginal: false, excludeAnonymous: true });
+    }
+    if (refreshOriginal || refreshReading) this._poemModeStates = {};
+    if ((!this.isReadingMode && refreshOriginal) || (this.isReadingMode && refreshReading)) {
       console.log('【poem-square】检测到刷新标记，强制刷新诗歌广场数据');
 
       this.applyLocalState({
@@ -185,7 +206,9 @@ export default {
     // 检查缓存新鲜度：从其他页面返回时触发SWR检查
     try {
       if (this.hasEverLoaded && this.postList.length > 0) {
-        if (this.showFollowingOnly) {
+        if (this.isReadingMode) {
+          getMountainPoems({ page: 0, pageSize: PAGE_SIZE, context: this, filterByPoet: this.selectedPoetName }).catch(() => {});
+        } else if (this.showFollowingOnly) {
           getFollowingPoems({ page: 0, pageSize: PAGE_SIZE, context: this }).catch(() => {});
         } else {
           getOriginalPoems({ page: 0, pageSize: PAGE_SIZE, context: this }).catch(() => {});
@@ -205,6 +228,7 @@ export default {
     skeleton,
     topBar,
     FollowingAvatarBar,
+    PoetAvatarBar,
     PoemCard,
     SquareSpeechBubble,
     // #ifndef MP-WEIXIN
@@ -218,6 +242,7 @@ export default {
       hasMore: true,
       isLoading: true,
       isLoadingMore: false,
+      hasEverLoaded: false,
       lastUsedColorIndex: -1,
       backgroundColors: ['#a4c4bd', '#c9cfcf', '#906161', '#909388'],
       showPageIndicator: false,
@@ -227,18 +252,20 @@ export default {
       // 只看关注模式
       showFollowingOnly: false,
       showPoemFilterPanel: false,
+      poemMode: 'original',
+      selectedPoetName: null,
       // 关注头像栏选中的用户ID
       followingSelectedUserId: null,
       // 加载锁定标志，防止重复触发加载
       _loadingLock: false,
-      hasNewActivity: false,
       squareBubble: { enabled: false, text: '', target: 'weekly' },
       squareBubbleReadKey: '',
-      _activityBadgeUnsubscribe: null,
       poemFontRenderTick: 0
     };
   },
   computed: {
+    isReadingMode() { return this.poemMode === 'reading'; },
+    hasAvatarBar() { return this.isReadingMode || this.showFollowingOnly; },
     squareBubbleKey() {
       return JSON.stringify([this.squareBubble.text, this.squareBubble.target]);
     },
@@ -287,19 +314,14 @@ export default {
     try { uni.$on && uni.$on('font-loaded', this._fontLoadedHandler); } catch (_) {}
     replayBuiltinHuiwenFontReady(this, 'onBuiltinFontLoaded', '[poem-square]');
     // #endif
-    try { this.hasNewActivity = !!activityBadge.getHasNewActivity(); } catch (_) {}
-    try {
-      this._activityBadgeUnsubscribe = activityBadge.subscribe((hasNew) => {
-        try {
-          this.applyLocalState({ hasNewActivity: !!hasNew });
-        } catch (_) {
-          this.hasNewActivity = !!hasNew;
-        }
-      });
-    } catch (_) {}
     try { activityBadge.refreshActivityBadge({ context: this }); } catch (_) {}
     // 设备安全区初始化
     this.debugSafeArea();
+    if (options.mode === 'reading') {
+      this.poemMode = 'reading';
+      this.getIndexData();
+      return;
+    }
     // 在首帧渲染前同步接收开屏准备的数据；失效/超时则走原有加载路径。
     // 开屏已处理的标记不会在 onShow 再次清空首屏；新标记在首次请求前处理。
     consumePoemSquareRefresh();
@@ -309,6 +331,7 @@ export default {
         postList: startupPosts.map(post => this.normalizePoemCardPost(post)),
         page: 1,
         hasMore: startupPosts.length === PAGE_SIZE,
+        hasEverLoaded: true,
         isLoading: false,
         isLoadingMore: false,
         _loadingLock: false
@@ -327,24 +350,22 @@ export default {
     try { uni.$off && this._fontLoadedHandler && uni.$off('font-loaded', this._fontLoadedHandler); } catch (_) {}
     this._fontLoadedHandler = null;
     // #endif
-    try {
-      if (typeof this._activityBadgeUnsubscribe === 'function') {
-        this._activityBadgeUnsubscribe();
-      }
-    } catch (_) {}
-    this._activityBadgeUnsubscribe = null;
+    this._postListRequestId = (this._postListRequestId || 0) + 1;
+    clearTimeout(this._scrollTimer);
   },
   onPullDownRefresh() {
     console.log('【poem-square】📱 下拉刷新，重新获取数据');
     // 清除缓存并强制刷新
-    invalidatePostList({ isPoem: true, isOriginal: true });
-    invalidateFollowingPoems();
+    invalidatePostList({ isPoem: true, isOriginal: !this.isReadingMode, ...(this.isReadingMode ? { excludeAnonymous: true } : {}) });
+    if (this.isReadingMode) this.$refs.poetAvatarBar?.refresh();
+    else invalidateFollowingPoems();
     this.getIndexData(() => {
       console.log('【poem-square】✅ 下拉刷新完成，停止刷新动画');
       uni.stopPullDownRefresh();
     });
   },
   onPageScroll(e) {
+    this._poemScrollTop = e.scrollTop;
     // 增加防抖时间到300ms，减少频繁触发
     if (this._scrollTimer) clearTimeout(this._scrollTimer);
     this._scrollTimer = setTimeout(() => {
@@ -381,6 +402,37 @@ export default {
     }, 300); // 增加防抖时间到300ms
   },
   methods: {
+    togglePoemMode() {
+      if (this.$refs.poemFilterMotion?.rendered) {
+        this.$refs.poemFilterMotion.dismiss(() => this.togglePoemMode());
+        return;
+      }
+      const states = this._poemModeStates || (this._poemModeStates = {});
+      states[this.poemMode] = !this.isLoading ? {
+        postList: this.postList, page: this.page, hasMore: this.hasMore,
+        hasEverLoaded: this.hasEverLoaded, scrollTop: this._poemScrollTop || 0
+      } : null;
+      this.poemMode = this.isReadingMode ? 'original' : 'reading';
+      this.showPoemFilterPanel = false;
+      this._postListRequestId = (this._postListRequestId || 0) + 1;
+      clearTimeout(this._scrollTimer);
+      const saved = states[this.poemMode];
+      this._poemScrollTop = saved?.scrollTop || 0;
+      this.showPageIndicator = false;
+      if (saved) {
+        const { scrollTop, ...feed } = saved;
+        this.applyLocalState({ ...feed, isLoading: false, isLoadingMore: false, _loadingLock: false });
+        this.syncLikeStatusFromCache();
+      } else {
+        this.getIndexData();
+      }
+      this.$nextTick(() => uni.pageScrollTo({ scrollTop: this._poemScrollTop, duration: 0 }));
+    },
+    onPoetSelect(poetName) {
+      if (this.selectedPoetName === poetName) return;
+      this.selectedPoetName = poetName;
+      this.getIndexData();
+    },
     async loadSquareBubble() {
       try {
         const readKey = uni.getStorageSync(SQUARE_BUBBLE_READ_KEY);
@@ -549,8 +601,7 @@ export default {
     },
 
     getIndexData(callback) {
-      // A cache hit also starts a new reading session. Ignore any pending page
-      // from the previous list, even when no replacement network request runs.
+      // 命中首批缓存时也要让上一轮加载失效。
       this._postListRequestId = (this._postListRequestId || 0) + 1;
       this.showPageIndicator = false;
       console.log('【poem-square】开始获取数据，callback:', typeof callback);
@@ -564,7 +615,7 @@ export default {
       });
 
       // 判断是否是用户筛选操作
-      const isUserFiltering = this.showFollowingOnly && this.followingSelectedUserId;
+      const isUserFiltering = !this.isReadingMode && this.showFollowingOnly && this.followingSelectedUserId;
 
       if (isUserFiltering) {
         // 用户筛选时：立即清空列表，显示加载状态
@@ -598,8 +649,10 @@ export default {
       let cachedData = null;
       let cacheSource = 'none';
       try {
-        const cached = ns.get(cacheKey);
-        if (!this.showFollowingOnly && Array.isArray(cached)) {
+        const cached = this.isReadingMode
+          ? peekMountainPoems({ pageSize: PAGE_SIZE, filterByPoet: this.selectedPoetName })
+          : ns.get(cacheKey);
+        if ((this.isReadingMode || !this.showFollowingOnly) && Array.isArray(cached)) {
           cachedData = cached;
           cacheSource = 'cache';
           console.log('[poem-square-cache] fresh cache hit:', cachedData.length);
@@ -617,7 +670,7 @@ export default {
       if (Array.isArray(cachedData)) {
         console.log('✅ [poem-square-cache] 发现缓存数据，立即显示，数量:', cachedData.length);
         // 处理缓存数据
-        const visibleList = cachedData.filter(Boolean).map(post => ({ ...post }));
+        const visibleList = cachedData.filter(post => post && (!this.isReadingMode || !post.isAnonymous)).map(post => ({ ...post }));
         
         visibleList.forEach((p) => {
           this.normalizePoemCardPost(p);
@@ -630,6 +683,7 @@ export default {
           hasMore: cachedData.length === PAGE_SIZE,
           isLoading: false,  // 先显示缓存，不显示loading
           isLoadingMore: false,
+          hasEverLoaded: true,
           _loadingLock: false
         });
         // 新鲜缓存直接展示，不能在 100ms 后再强刷掉刚交接的首屏。
@@ -710,8 +764,8 @@ export default {
     },
 
     navigateToActivityList() {
-      uni.navigateTo({
-        url: '/pages-content/activity-list/activity-list',
+      uni.switchTab({
+        url: '/pages/activity/activity',
         success: () => {
           try { activityBadge.markActivitySeen(); } catch (_) {}
         }
@@ -751,9 +805,8 @@ export default {
         page: 0,
         hasMore: true,
         isLoading: true
-      }, () => {
-        this.getIndexData();
       });
+      this.getIndexData();
     },
     generateRandomBackgroundColor() {
       const result = generateRandomBackgroundColor(this.backgroundColors, this.lastUsedColorIndex);
@@ -791,6 +844,7 @@ export default {
     },
     async getPostList(cb, options = {}) {
       const { forceRefresh = false } = options || {};
+      const requestPage = this.page;
       // 双重检查：防止重复调用（首次加载时isLoading为true是正常的）
       const isFirstLoad = this.page === 0;
       if (!isFirstLoad && (this.isLoadingMore || this._loadingLock)) {
@@ -804,9 +858,20 @@ export default {
         this.applyLocalState({ isLoadingMore: true });
       }
       const requestId = this._postListRequestId = (this._postListRequestId || 0) + 1;
-      const requestPage = this.page;
       const excludePostIds = isFirstLoad ? [] : this.postList.map(post => post._id).filter(Boolean);
       try {
+        if (this.isReadingMode) {
+          const list = await getMountainPoems({
+            page: requestPage, pageSize: PAGE_SIZE, context: this, forceRefresh,
+            filterByPoet: this.selectedPoetName,
+            onBackgroundUpdate: newPosts => {
+              if (requestId !== this._postListRequestId || requestPage !== 0) return;
+              this.updateFeedFirstPage(newPosts, requestId);
+            }
+          });
+          await this.processPostList(list, cb, requestId);
+          return;
+        }
         // 根据模式选择不同的云函数
         const isFollowingMode = this.showFollowingOnly;
         
@@ -821,8 +886,9 @@ export default {
             filterByUserId: this.followingSelectedUserId || undefined,
             // SWR后台更新回调：关注诗歌后台更新完成时调用
             onBackgroundUpdate: async (newPosts) => {
+              if (requestId !== this._postListRequestId || requestPage !== 0) return;
               console.log(' [SWR-PoemSquare-Following] 后台更新完成', newPosts?.length);
-              if (requestId === this._postListRequestId && Array.isArray(newPosts) && newPosts.length > 0 && this.showFollowingOnly && this.page === 0) {
+              if (Array.isArray(newPosts) && newPosts.length > 0 && this.showFollowingOnly) {
                 try {
                   const visibleList = newPosts.filter(p => p && !p.isAnonymous);
                   visibleList.forEach((p) => {
@@ -862,8 +928,9 @@ export default {
           forceRefresh,
           // SWR后台更新回调：原创诗歌后台更新完成时调用
           onBackgroundUpdate: async (newPosts) => {
+            if (requestId !== this._postListRequestId || requestPage !== 0) return;
             console.log(' [SWR-PoemSquare-Original] 后台更新完成', newPosts?.length);
-            if (requestId === this._postListRequestId && Array.isArray(newPosts) && newPosts.length > 0 && !this.showFollowingOnly && this.page === 0) {
+            if (Array.isArray(newPosts) && newPosts.length > 0 && !this.showFollowingOnly && this.page === 0) {
               try {
                 const visibleList = newPosts.filter(Boolean);
                 visibleList.forEach((p) => {
@@ -872,7 +939,7 @@ export default {
                 
                 // 转换 cloud:// URLs
                 await this.convertCloudUrls(visibleList);
-                if (requestId !== this._postListRequestId) return;
+                if (requestId !== this._postListRequestId || this.page !== 0) return;
                 
                 // 只在数据有变化时更新
                 const currentPostIds = this.postList.slice(0, PAGE_SIZE).map(p => p._id).join(',');
@@ -914,9 +981,18 @@ export default {
       }
     },
     
-    async processPostList(list, cb, requestId) {
-      if (requestId !== undefined && requestId !== this._postListRequestId) return;
-      const visibleList = list.filter(p => p && (!this.showFollowingOnly || !p.isAnonymous));
+    async updateFeedFirstPage(posts, requestId) {
+      if (!Array.isArray(posts)) return;
+      const visibleList = posts.filter(post => post && !post.isAnonymous)
+        .map(post => this.normalizePoemCardPost({ ...post }));
+      await this.convertCloudUrls(visibleList);
+      if (requestId !== this._postListRequestId) return;
+      this.applyLocalState({ postList: [...visibleList, ...this.postList.slice(PAGE_SIZE)] });
+      this.syncLikeStatusFromCache();
+    },
+    async processPostList(list, cb, requestId = this._postListRequestId) {
+      if (requestId !== this._postListRequestId) return;
+      const visibleList = list.filter(p => p && (!(this.isReadingMode || this.showFollowingOnly) || !p.isAnonymous));
       
       visibleList.forEach((p) => {
         this.normalizePoemCardPost(p);
@@ -924,7 +1000,7 @@ export default {
       
       // 客户端安全网：转换任何未转换的 cloud:// URLs
       await this.convertCloudUrls(visibleList);
-      if (requestId !== undefined && requestId !== this._postListRequestId) return;
+      if (requestId !== this._postListRequestId) return;
       
       let newPostList;
       if (this.page === 0) {
@@ -941,6 +1017,7 @@ export default {
       this.applyLocalState({
         postList: newPostList,
         page: this.page + 1,
+        hasEverLoaded: true,
         hasMore: list.length === PAGE_SIZE
       });
       // URL 转换期间也可能收到其他页面的点赞事件。
@@ -1207,6 +1284,17 @@ export default {
       }
     },
     
+    applyPoemLikeState(postId, state) {
+      const update = list => list.map(post => post._id === postId ? {
+        ...post, votes: state.votes, isVoted: state.isLiked, likeIcon: state.likeIcon
+      } : post);
+      if (this.postList.some(post => post._id === postId)) {
+        this.applyLocalState({ postList: update(this.postList) });
+      }
+      for (const saved of Object.values(this._poemModeStates || {})) {
+        if (saved) saved.postList = update(saved.postList);
+      }
+    },
     onVote(payload = {}) {
       // 未登录不能点赞，提示去登录
       if (!isUserLoggedIn()) {
@@ -1259,19 +1347,7 @@ export default {
       }).then((result) => {
         console.log('【poem-square】服务返回结果:', result);
         if (result.success) {
-          const currentList = this.postList || [];
-          const currentIndex = currentList.findIndex((p) => p._id === postId);
-          if (currentIndex > -1) {
-            const updatedItem = {
-              ...currentList[currentIndex],
-              votes: result.votes,
-              isVoted: result.isLiked,
-              likeIcon: result.likeIcon
-            };
-            const newList = currentList.slice();
-            newList[currentIndex] = updatedItem;
-            this.applyLocalState({ postList: newList });
-          }
+          this.applyPoemLikeState(postId, result);
           console.log('【poem-square】服务调用成功，数据已同步');
           return;
         }
@@ -1282,35 +1358,12 @@ export default {
           likeIcon: likeIcon.getLikeIcon(originalVotes, wasVoted)
         };
         console.warn('【poem-square】服务返回失败，回滚UI');
-        const currentList = this.postList || [];
-        const currentIndex = currentList.findIndex((p) => p._id === postId);
-        if (currentIndex > -1) {
-          const rollbackItem = {
-            ...currentList[currentIndex],
-            votes: rollback.votes,
-            isVoted: rollback.isLiked,
-            likeIcon: rollback.likeIcon
-          };
-          const rollbackList = currentList.slice();
-          rollbackList[currentIndex] = rollbackItem;
-          this.applyLocalState({ postList: rollbackList });
-        }
+        this.applyPoemLikeState(postId, rollback);
         uni.showToast({ title: result?.message || '点赞失败', icon: 'none' });
       }).catch((err) => {
         console.error(`[poem-square] vote request failed: ${formatErrorForLog(err)}`);
-        const currentList = this.postList || [];
-        const currentIndex = currentList.findIndex((p) => p._id === postId);
-        if (currentIndex > -1) {
-          const rollbackItem = {
-            ...currentList[currentIndex],
-            votes: originalVotes,
-            isVoted: wasVoted,
-            likeIcon: likeIcon.getLikeIcon(originalVotes, wasVoted)
-          };
-          const rollbackList = currentList.slice();
-          rollbackList[currentIndex] = rollbackItem;
-          this.applyLocalState({ postList: rollbackList });
-        }
+        this.applyPoemLikeState(postId, { votes: originalVotes, isLiked: wasVoted,
+          likeIcon: likeIcon.getLikeIcon(originalVotes, wasVoted) });
         uni.showToast({ title: '操作失败', icon: 'none' });
       }).finally(() => {
         this.applyLocalState({ [`votingInProgress.${postId}`]: false });
@@ -1370,14 +1423,15 @@ export default {
     onShareAppMessage(res) {
       return getShareAppMessageConfig({
         title: 'poementer',
-        path: '/pages/poem-square/poem-square'
+        path: this.isReadingMode ? '/pages/poem-square/poem-square?mode=reading' : '/pages/poem-square/poem-square'
       });
     },
     
     // 分享到朋友圈
     onShareTimeline() {
       return getShareTimelineConfig({
-        title: 'poementer'
+        title: 'poementer',
+        query: this.isReadingMode ? 'mode=reading' : ''
       });
     }
   }
@@ -1493,6 +1547,26 @@ export default {
   color: #ffffff;
 }
 
+.poem-mode-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  min-width: 128rpx;
+  min-height: 64rpx;
+  margin: 0;
+  padding: 0 16rpx;
+  border-radius: 999rpx;
+  background: var(--app-subtle-surface-bg, #f1efed);
+  color: var(--app-primary-text, #333);
+  font-size: 26rpx;
+  line-height: 1;
+}
+
+.poem-mode-btn::after { border: none; }
+.poem-mode-arrow { font-size: 28rpx; }
+
 .activity-entry-container {
   position: absolute;
   top: calc(var(--safe-area-top, 44px) + 118rpx);
@@ -1519,18 +1593,9 @@ export default {
   transform: scale(0.95);
 }
 
-.activity-entry-icon-wrap {
+.activity-entry-icon {
   width: 120rpx;
   height: 98rpx;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.activity-entry-icon {
-  width: 100%;
-  height: 100%;
   display: block;
   filter: var(--app-activity-entry-icon-filter, none);
   opacity: var(--app-activity-entry-icon-opacity, 1);
@@ -1544,33 +1609,8 @@ export default {
   text-align: center;
 }
 
-.activity-entry-dot {
-  position: absolute;
-  top: 2rpx;
-  right: 2rpx;
-  width: 16rpx;
-  height: 16rpx;
-  background: #ff4d4f;
-  border-radius: 50%;
-  border: 2rpx solid #fff;
-  z-index: 2;
-  animation: activity-dot-pulse 2s infinite;
-}
-
-@keyframes activity-dot-pulse {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.2);
-    opacity: 0.8;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
+.poet-avatar-bar-wrapper { position: absolute; left: 0; right: 0; z-index: 10; }
+.poet-avatar-bar-wrapper :deep(.avatar-bar-container) { padding-top: 0; }
 
 /* 关注头像栏定位 */
 .following-avatar-bar-wrapper {

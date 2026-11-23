@@ -67,6 +67,10 @@
             <text class="settings-row-value">{{ checkingUpdate ? '正在检查…' : '›' }}</text>
           </view>
           <!-- #endif -->
+          <view class="settings-row" @tap="navigateToUserAgreement">
+            <text class="settings-row-label">用户协议</text>
+            <text class="settings-row-value">›</text>
+          </view>
           <view class="settings-row" @tap="navigateToPrivacy">
             <text class="settings-row-label">隐私政策</text>
             <text class="settings-row-value">›</text>
@@ -129,6 +133,7 @@
 <script>
 import { versionName } from '@/manifest.json';
 import AppDialog from '@/components/overlay/AppDialog.vue';
+import { openPrivacyPolicy, openUserAgreement } from '@/utils/privacyConsent.js';
 // #ifdef APP-PLUS
 import { checkAndUpdate, getAppVersionInfo } from '@/utils/appUpdate.js';
 // #endif
@@ -269,8 +274,12 @@ export default {
       uni.showToast({ title: `已切换为${READ_FONT_LEVELS[value].label}字号`, icon: 'none' });
     },
 
+    navigateToUserAgreement() {
+      openUserAgreement();
+    },
+
     navigateToPrivacy() {
-      uni.navigateTo({ url: '/pages/privacy/privacy' });
+      openPrivacyPolicy();
     },
 
     openCancelAccount() {

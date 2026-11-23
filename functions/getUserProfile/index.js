@@ -1,4 +1,4 @@
-const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
+const { createPostsDatabase, withPostResponse, publicVisibilityWhere } = require('./_lib/posts');
 // 云函数入口文件
 const cloud = require('wx-server-sdk');
 const { ensureUserDefaultAvatar } = require('./_lib/default-avatar');
@@ -130,6 +130,7 @@ exports.main = async (event, context) => {
       };
       if (!isOwner) {
         postMatch.isHidden = { $ne: true };
+        Object.assign(postMatch, publicVisibilityWhere());
         postMatch.isAnonymous = { $nin: [true, 'true'] };
         if (blockedUserIds.length > 0) postMatch._openid = { $nin: blockedUserIds };
       }

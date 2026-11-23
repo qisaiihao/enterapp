@@ -51,6 +51,7 @@ function readThemeState() {
 Component({
   data: {
     selected: 0,
+    hasNewActivity: false,
     lastTapTime: 0,
     lastTapIndex: -1,
     doubleTapThreshold: 300,
@@ -67,15 +68,15 @@ Component({
       },
       {
         pagePath: '/pages/poem-square/poem-square',
-        text: '原创',
+        text: '诗歌',
         iconPath: '/static/images/road.png',
         selectedIconPath: '/static/images/road.png',
         darkIconPath: '/static/images/tab-dark/road-dark.png',
         darkSelectedIconPath: '/static/images/tab-dark/roadplus-dark.png'
       },
       {
-        pagePath: '/pages/mountain/mountain',
-        text: '读诗',
+        pagePath: '/pages/activity/activity',
+        text: '活动',
         iconPath: '/static/images/mountain.png',
         selectedIconPath: '/static/images/mountain.png',
         darkIconPath: '/static/images/tab-dark/mountain-dark.png',
@@ -152,6 +153,8 @@ Component({
       const nextIndex = routeIndex !== null ? routeIndex : cachedIndex;
       this.applyPresentation({
         ...readThemeState(),
+        hasNewActivity: !!wx.getStorageSync('activityBadge:latestToken') &&
+          wx.getStorageSync('activityBadge:latestToken') !== wx.getStorageSync('activityBadge:lastSeenToken'),
         ...(nextIndex !== null ? { selected: nextIndex } : {})
       });
 
@@ -306,12 +309,8 @@ Component({
             wx.startPullDownRefresh();
           }
           break;
-        case 'pages/mountain/mountain':
-          if (currentPageInstance.refreshMountainData) {
-            currentPageInstance.refreshMountainData();
-          } else {
-            wx.startPullDownRefresh();
-          }
+        case 'pages/activity/activity':
+          wx.startPullDownRefresh();
           break;
         case 'pages/profile/profile':
           wx.startPullDownRefresh();

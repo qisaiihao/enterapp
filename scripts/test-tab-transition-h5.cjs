@@ -6,7 +6,7 @@ const puppeteer = require('puppeteer-core');
 
 const base = new URL(process.env.H5_URL || 'http://127.0.0.1:8081/');
 const sourceRoute = 'pages/poem-square/poem-square';
-const mountainRoute = 'pages/mountain/mountain';
+const mountainRoute = 'pages/activity/activity';
 const coverSelector = '[data-tab-transition-cover]';
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -20,7 +20,7 @@ async function openReview(browser, mode, behavior = 'delay') {
     const url = new URL(request.url());
     if (['data:', 'blob:', 'about:'].includes(url.protocol)) return request.continue();
     if (url.origin !== base.origin || !['GET', 'HEAD'].includes(request.method())) return request.abort();
-    if (!interceptedModule && url.pathname === '/pages/mountain/mountain.vue') {
+    if (!interceptedModule && url.pathname === '/pages/activity/activity.vue') {
       interceptedModule = true;
       intercepted.push(behavior);
       if (behavior === 'fail') return request.abort();
@@ -28,7 +28,12 @@ async function openReview(browser, mode, behavior = 'delay') {
     }
     return request.continue();
   });
-  await page.goto(new URL(`#/pages/poem-square/poem-square`, base).href, { waitUntil: 'domcontentloaded' });
+  await page.goto(new URL('#/pages/login/login', base).href, { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => typeof uni !== 'undefined' && typeof getCurrentPages === 'function' && getCurrentPages().at(-1)?.$vm);
+  await page.evaluate(async () => {
+    (await import('/utils/privacyConsent.js')).acceptPrivacyConsent();
+    uni.switchTab({ url: '/pages/poem-square/poem-square' });
+  });
   await page.waitForFunction(() => typeof getCurrentPages === 'function' && getCurrentPages().at(-1)?.$vm && document.querySelector('uni-page[data-page] .tab-bar'));
   await page.evaluate(async themeMode => {
     const theme = await import('/utils/theme.js');
@@ -190,6 +195,74 @@ async function testFailureAndCancel(browser) {
   }
 }
 
+async function testProfilePreload(browser, route, index) {
+  const context = await browser.createBrowserContext();
+  const page = await context.newPage();
+  const entry = `/${route}.vue`;
+  const moduleUrls = [];
+  let moduleRequests = 0, finishModule;
+  const moduleRequested = new Promise(resolve => { finishModule = resolve; });
+  await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+  await page.setRequestInterception(true);
+  page.on('request', request => {
+    const url = new URL(request.url());
+    if (['data:', 'blob:', 'about:'].includes(url.protocol)) return request.continue();
+    if (url.origin !== base.origin || !['GET', 'HEAD'].includes(request.method())) return request.abort();
+    if (url.pathname === entry && !url.searchParams.has('vue')) {
+      moduleRequests++;
+      moduleUrls.push(request.url());
+      finishModule();
+      return setTimeout(() => request.continue().catch(() => {}), 700);
+    }
+    return request.continue();
+  });
+  try {
+    await page.goto(new URL('#/pages/login/login', base).href, { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => typeof getCurrentPages === 'function' && getCurrentPages().at(-1)?.$vm);
+    await page.evaluate(async () => {
+      (await import('/utils/privacyConsent.js')).acceptPrivacyConsent();
+      await new Promise((resolve, reject) => uni.reLaunch({ url: '/pages/login/login', success: resolve, fail: reject }));
+    });
+    await page.waitForFunction(() => getCurrentPages().at(-1)?.route === 'pages/login/login' && getCurrentPages().at(-1)?.$vm);
+    await page.evaluate(async () => {
+      const user = { _openid: 'tab-review', nickName: '测试用户' };
+      (await import('/utils/app-state.js')).setUserSession(user, user._openid);
+      uni.showToast = () => {};
+      const tcb = { __skipAuth: true, callFunction: async () => ({ result: {
+        success: true, userInfo: user, posts: [], total: 0, activities: []
+      } }) };
+      getCurrentPages().at(-1).$vm.$.appContext.config.globalProperties.$tcb = tcb;
+      uni.$tcb = tcb;
+      getApp().$tcb = tcb;
+      uni.switchTab({ url: '/pages/profile/profile' });
+    });
+    await page.waitForFunction(() => getCurrentPages().at(-1)?.route === 'pages/profile/profile' &&
+      document.querySelector('uni-page[data-page="pages/profile/profile"] .tab-bar'));
+    await Promise.race([moduleRequested, sleep(5000).then(() => { throw new Error(`个人页没有提前加载 ${route}`); })]);
+    assert.equal(await page.evaluate(() => getCurrentPages().at(-1).route), 'pages/profile/profile');
+    await page.waitForNetworkIdle({ idleTime: 150, timeout: 10000 });
+    await page.evaluate(async () => {
+      const vm = getCurrentPages().at(-1).$vm;
+      Object.assign(vm, { hasInitialSnapshot: true, isLoading: false, isAtomicRefreshing: false,
+        myPosts: Array.from({ length: 50 }, (_, i) => ({ _id: `review-${i}`, isPoem: true,
+          content: '窗外的夜色\n在诗歌中停留', imageUrls: [], tags: [] })) });
+      await vm.$nextTick();
+    });
+    assert.equal(moduleRequests, 1, `个人页后台准备模块，点击时不重复下载: ${moduleUrls.join(', ')}`);
+    assert.equal(await page.$(`uni-page[data-page="${route}"]`), null, '预加载只准备模块');
+    const started = await page.evaluate(tabIndex => {
+      const start = performance.now();
+      document.querySelector(`uni-page[data-page] .tab-bar-item[data-index="${tabIndex}"]`).click();
+      return start;
+    }, index);
+    await page.waitForFunction(target => getCurrentPages().at(-1)?.route === target &&
+      !document.querySelector('[data-tab-transition-cover]'), {}, route);
+    const elapsed = await page.evaluate(start => performance.now() - start, started);
+    assert.equal(moduleRequests, 1);
+    console.log(`PASS profile → ${route}: 50 posts, 700ms module delay prepared before click, switch ${Math.round(elapsed)}ms`);
+  } finally { await context.close(); }
+}
+
 async function main() {
   const output = path.join(os.tmpdir(), 'enterkey-tab-transition-review');
   fs.mkdirSync(output, { recursive: true });
@@ -200,6 +273,8 @@ async function main() {
   try {
     for (const mode of ['light', 'dark']) await testColdAndWarm(browser, mode, output);
     await testFailureAndCancel(browser);
+    await testProfilePreload(browser, sourceRoute, 1);
+    await testProfilePreload(browser, mountainRoute, 2);
     console.log(`PASS H5 tab transition: cold/warm, themes, scroll, failure and cancellation. Evidence: ${output}`);
   } finally { await browser.close(); }
 }

@@ -152,17 +152,23 @@ async function main() {
     assert.deepEqual(plain(editor.poemTextStyles), spans);
     assert.equal(editor.saves, 1);
     assert.equal(editor.content, content);
+    assert.equal(editor.poemVertical, false);
+    add.methods.setPoemVertical.call(editor, true);
+    assert.equal(editor.saves, 2, 'Changing card orientation schedules a draft save');
     const draft = add.methods.buildWorkingDraftData.call(editor);
     assert.deepEqual(plain(draft.poemTextStyles), spans);
+    assert.equal(draft.poemVertical, true);
     const restored = { ...add.data(), setData(data) { Object.assign(this, data); },
         buildDefaultBlocks: add.methods.buildDefaultBlocks, buildDefaultSeriesBlocks: add.methods.buildDefaultSeriesBlocks,
         syncWorkingDraftSession() {}, updatePlaceholder() {}, checkCanPublish() {} };
     add.methods.restoreDraftState.call(restored, draft);
     assert.deepEqual(plain(restored.poemTextStyles), spans);
+    assert.equal(restored.poemVertical, true);
     const prepare = { getAddPageVm: () => null };
     assert.equal(preview.methods.preparePreviewPost.call(prepare, { content: editor.content, editData: { publishMode: 'poem', poemFontSize: 22 } }).poemFontSize, 22);
-    const prepared = preview.methods.preparePreviewPost.call(prepare, { content, editData: { publishMode: 'poem', poemTextStyles: spans } });
+    const prepared = preview.methods.preparePreviewPost.call(prepare, { content, editData: { publishMode: 'poem', poemTextStyles: spans, poemVertical: true } });
     assert.deepEqual(plain(prepared.poemTextStyles), spans);
+    assert.equal(prepared.poemVertical, true);
     assert.ok(!fs.readFileSync(path.join(root, 'pages-publish/preview/preview.vue'), 'utf8').includes('PoemTypographyToolbar'), 'Preview is display only');
     for (const edit of [false, true]) {
         for (const entry of ['add', 'preview']) {
@@ -172,19 +178,21 @@ async function main() {
             else await preview.methods.submitToDatabase.call({ post: {}, publishSuccess() {}, publishFail(error) { throw error; } }, data, []);
             assert.equal(requests.length, 1);
             assert.deepEqual(plain(requests[0].poemTextStyles), spans, `${entry} edit=${edit}`);
+            assert.equal(requests[0].poemVertical, true, `${entry} edit=${edit} sends the card orientation`);
         }
     }
 
     const { expandFields } = require('../functions/_shared/posts/query');
     assert.equal(expandFields({ content: true }).poemFontSize, true, 'Feed projections retain typography');
     assert.equal(expandFields({ content: true }).poemTextStyles, true);
+    assert.equal(expandFields({ content: true }).poemVertical, true);
     const previous = process.env.POSTS_WRITE_SCHEMA;
     try {
         for (const version of ['1', '2']) {
             process.env.POSTS_WRITE_SCHEMA = version;
             const mem = memoryDb({ users: [{ _openid: 'owner', nickName: '作者' }], posts: [], votes_log: [], activities: [] }, command);
             for (const name of ['contentCheck', 'createPost']) {
-                const result = await backend(mem, name)({ publishMode: 'poem', isOriginal: true, content, poemFontSize: 24, poemTextStyles: spans });
+                const result = await backend(mem, name)({ publishMode: 'poem', isOriginal: true, content, poemFontSize: 24, poemTextStyles: spans, poemVertical: true });
                 assert.ok(result.postId, JSON.stringify(result));
                 assert.equal(mem.tables.posts.find(post => post._id === result.postId).poemFontSize, 24, `${name} schema=${version}`);
                 assert.deepEqual(plain(mem.tables.posts.find(post => post._id === result.postId).poemTextStyles), spans);
@@ -192,17 +200,24 @@ async function main() {
                 assert.equal((await update({ postId: result.postId, data: { poemFontSize: 18 } })).success, true);
                 const detail = await backend(mem, 'getPostDetail')({ postId: result.postId });
                 assert.equal(detail.post.poemFontSize, 18);
+                assert.equal(detail.post.poemVertical, true, 'An unrelated edit retains the existing orientation');
                 assert.deepEqual(plain(detail.post.poemTextStyles), spans);
+                assert.equal((await update({ postId: result.postId, data: { poemVertical: false } })).success, true);
+                assert.equal((await backend(mem, 'getPostDetail')({ postId: result.postId })).post.poemVertical, false);
                 await update({ postId: result.postId, data: { poemFontSize: 100 } });
                 assert.equal(mem.tables.posts.find(post => post._id === result.postId).poemFontSize, 36);
                 await update({ postId: result.postId, data: { poemTextStyles: [{ ...spans[0], fontSize: 30 }] } });
                 assert.equal(mem.tables.posts.find(post => post._id === result.postId).poemTextStyles[0].fontSize, 30);
+                await update({ postId: result.postId, data: { poemVertical: true } });
+                assert.equal((await update({ postId: result.postId, data: { publishMode: 'normal' } })).success, true);
+                assert.equal((await backend(mem, 'getPostDetail')({ postId: result.postId })).post.poemVertical, false);
             }
-            const seriesResult = await backend(mem, 'createPost')({ publishMode: 'poem', isOriginal: true, content,
+            const seriesResult = await backend(mem, 'createPost')({ publishMode: 'poem', isOriginal: true, content, poemVertical: true,
                 isSeries: true, seriesBlocks: [{ id: 'part-one', content, poemTextStyles: spans }, { id: 'part-two', content: '下一首' }] });
             assert.ok(seriesResult.postId, JSON.stringify(seriesResult));
             const feed = await backend(mem, 'getPostList')({ openid: 'owner', isPoem: true, isOriginal: true, limit: 20 });
             assert.equal(feed.success, true, JSON.stringify(feed));
+            assert.equal(feed.posts.find(post => post._id === seriesResult.postId).poemVertical, true);
             assert.deepEqual(plain(feed.posts.find(post => post._id === seriesResult.postId).seriesBlocks[0].poemTextStyles), spans, 'Series list cards retain per-poem styles');
             const richPost = await backend(mem, 'contentCheck')({ publishMode: 'poem', isOriginal: true, content: richContent, poemTextStyles: richStyles });
             assert.ok(richPost.postId, JSON.stringify(richPost));
@@ -256,6 +271,19 @@ async function main() {
     assert.ok(painted.some(item => item.text === '月光' && item.font.startsWith('65px ')), 'Canvas paints selected words at their saved size');
     assert.ok(painted.some(item => item.text.includes('留在纸上') && item.font.startsWith('38px ')), 'Canvas leaves neighboring text at its base size');
     assert.ok(painted.filter(item => item.text !== 'poementer').every(item => item.y < mixed.canvasHeight - 30), 'Mixed sizes remain inside the exported card');
+    const verticalContent = '月光，\n\n山河\n' + '風'.repeat(130) + '終';
+    const verticalPost = { content: verticalContent, poemVertical: true, poemTextStyles: [{ start: 0, end: 2, fontSize: 24 }] };
+    const vertical = await canvas.calculateShareCardHeight({ ...options, post: verticalPost });
+    assert.ok(vertical.verticalLayout.bands.length > 1, 'Long vertical poems continue in another band');
+    painted.length = 0;
+    await canvas.drawShareCardContent({ ...options, post: verticalPost, ...vertical, canvasWidth: 750, ctx: drawCtx });
+    const [moon, light, comma, mountain] = painted;
+    assert.deepEqual([moon.text, light.text, comma.text, mountain.text], ['月', '光', '︐', '山']);
+    assert.equal(moon.x, light.x);
+    assert.ok(light.y > moon.y && mountain.x < moon.x, 'Read from top to bottom, then right to left');
+    assert.ok(moon.font.startsWith(`${24 * 38 / 14}px `));
+    const end = painted.find(item => item.text === '終');
+    assert.ok(end.y > mountain.y && end.y < vertical.canvasHeight - 30, 'The last column fits inside the exported card');
     const richCtx = { font: '', measureText(text) { return { width: Array.from(text).length * parseFloat(this.font.match(/([\d.]+)px/)[1]) }; } };
     const richLayout = typography.layoutPoemText(richCtx, richContent, richStyles, 28, 14, 480, 'Huiwen-mincho');
     assert.equal(richLayout[0].before, 16);

@@ -15,7 +15,11 @@ export function getPoemTypographyFields(source = {}) {
         ? mergeSeriesTextStyles(source.seriesBlocks)
         : normalizePoemTextStyles(source.poemTextStyles, source.content || '');
     if ((source.publishMode === 'discussion' || source.isDiscussion) && Array.isArray(source.sentenceGroups)) styles = mergeDiscussionTextStyles(source.sentenceGroups, source.content || '');
-    return { poemFontSize: normalizePoemFontSize(source.poemFontSize), poemTextStyles: styles };
+    return {
+        poemFontSize: normalizePoemFontSize(source.poemFontSize),
+        poemTextStyles: styles,
+        poemVertical: source.poemVertical === true && (!source.publishMode || source.publishMode === 'poem')
+    };
 }
 
 export function normalizePoemTextStyles(styles, text) {
@@ -227,6 +231,128 @@ export function layoutPoemText(ctx, content, styles, fontSize, baseFontSize, max
 
 export function poemCanvasFont(format, size, family) {
     return `${format.italic ? 'italic ' : ''}${format.bold ? 'bold ' : ''}${size}px ${family}`;
+}
+
+const poemGraphemes = typeof Intl !== 'undefined' && Intl.Segmenter
+    ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+    : null;
+const verticalPunctuation = {
+    '，': '︐', '、': '︑', '。': '︒', '；': '︔', '：': '︓', '？': '︖', '！': '︕', '…': '︙', '—': '︱',
+    '（': '︵', '）': '︶', '〔': '︹', '〕': '︺', '【': '︻', '】': '︼', '《': '︽', '》': '︾',
+    '〈': '︿', '〉': '﹀', '「': '﹁', '」': '﹂', '『': '﹃', '』': '﹄'
+};
+
+export function layoutVerticalPoem(content, styles, fontSize, baseFontSize, sourceText = content, maxColumns = 0) {
+    const baseSize = normalizePoemFontSize(baseFontSize);
+    const scale = fontSize / baseSize;
+    const columns = [];
+    const limit = fontSize * 16;
+    for (const { runs, format } of getPoemParagraphs(content, styles, sourceText)) {
+        const first = columns.length;
+        const indent = (format.indent || 0) * 3 * fontSize;
+        let length = 0;
+        let columnRuns = [];
+        let largest = fontSize;
+        const finish = (wrapped) => {
+            columns.push({
+                runs: columnRuns, indent, length, wrapped, align: format.align,
+                width: largest * (format.lineHeight || 1.36) * (columnRuns.length ? 1 : 0.5),
+                before: 0, after: 0
+            });
+            length = 0;
+            columnRuns = [];
+            largest = fontSize;
+        };
+        for (const run of runs) {
+            const size = (run.fontSize || baseSize) * scale;
+            const advance = size + (run.letterSpacing || 0) * scale;
+            const glyphs = poemGraphemes ? Array.from(poemGraphemes.segment(run.text), item => item.segment) : Array.from(run.text);
+            let part = null;
+            for (const glyph of glyphs) {
+                if (glyph === '\r') continue;
+                if (length && indent + length + advance > limit) {
+                    finish(true);
+                    part = null;
+                }
+                if (!part) {
+                    part = { ...run, text: '', glyphs: [], size, advance };
+                    columnRuns.push(part);
+                }
+                part.text += glyph;
+                part.glyphs.push(glyph);
+                length += advance;
+                largest = Math.max(largest, size);
+            }
+        }
+        finish(false);
+        columns[first].before = (format.marginTop || 0) * scale;
+        columns[columns.length - 1].after = (format.marginBottom || 0) * scale;
+        if (maxColumns && columns.length >= maxColumns) break;
+    }
+    return maxColumns ? columns.slice(0, maxColumns) : columns;
+}
+
+export function paginateVerticalPoem(columns, maxWidth, gap) {
+    const bands = [];
+    let band = { columns: [], height: gap, top: 0 };
+    let used = 0;
+    for (const column of columns) {
+        const width = column.before + column.width + column.after;
+        if (used && used + width > maxWidth) {
+            bands.push(band);
+            band = { columns: [], height: gap, top: band.top + band.height + gap };
+            used = 0;
+        }
+        const right = maxWidth - used - column.before;
+        band.columns.push({ ...column, center: right - column.width / 2 });
+        band.height = Math.max(band.height, column.indent + column.length);
+        used += width;
+    }
+    bands.push(band);
+    return { bands, height: band.top + band.height };
+}
+
+export function drawVerticalPoemLayout(ctx, layout, { x, top, fontFamily, textColor }) {
+    ctx.setTextAlign('center');
+    for (const band of layout.bands) {
+        for (const column of band.columns) {
+            const spare = Math.max(0, band.height - column.indent - column.length);
+            const count = column.runs.reduce((total, run) => total + run.glyphs.length, 0);
+            const extra = column.align === 'justify' && column.wrapped && count > 1 ? spare / (count - 1) : 0;
+            let y = top + band.top + column.indent + (column.align === 'center' ? spare / 2 : column.align === 'right' ? spare : 0);
+            const center = x + column.center;
+            let remaining = count;
+            for (const run of column.runs) {
+                const height = run.advance * run.glyphs.length + extra * Math.min(remaining - 1, run.glyphs.length);
+                ctx.font = poemCanvasFont(run, run.size, fontFamily);
+                if (run.backgroundColor) {
+                    ctx.setFillStyle(run.backgroundColor);
+                    ctx.fillRect(center - run.size / 2, y, run.size, height);
+                }
+                const color = run.color || textColor;
+                ctx.setFillStyle(color);
+                for (const [glyphIndex, glyph] of run.glyphs.entries()) {
+                    if (glyph.trim()) ctx.fillText(verticalPunctuation[glyph] || glyph, center, y + glyphIndex * (run.advance + extra) + run.size * 0.85);
+                }
+                if (run.underline || run.strike) {
+                    ctx.setStrokeStyle(color);
+                    ctx.setLineWidth(Math.max(1, run.size / 18));
+                    for (const lineX of [run.underline ? center + run.size / 2 : null, run.strike ? center : null]) {
+                        if (lineX === null) continue;
+                        ctx.beginPath();
+                        ctx.moveTo(lineX, y);
+                        ctx.lineTo(lineX, y + height);
+                        ctx.stroke();
+                    }
+                }
+                y += height;
+                remaining -= run.glyphs.length;
+            }
+        }
+    }
+    ctx.setTextAlign('left');
+    ctx.setFillStyle(textColor);
+    return top + layout.height;
 }
 
 export function drawPoemTextLayout(ctx, lines, { x, top, fontFamily, textColor }) {

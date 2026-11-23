@@ -1,4 +1,4 @@
-const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
+const { createPostsDatabase, withPostResponse, resolveOwner, isRestricted, canViewPost } = require('./_lib/posts');
 // 云函数 getComments 的入口文件
 const cloud = require('wx-server-sdk');
 
@@ -31,6 +31,10 @@ exports.main = async (event, context) => {
   }
 
   try {
+    const { data: post } = await db.collection('posts').doc(postId).get();
+    if (isRestricted(post) && !await canViewPost(db, post, openid, resolveOwner(post))) {
+      return { success: false, code: 'POST_HIDDEN', message: '该内容已隐藏' };
+    }
     // 1. 获取帖子的所有评论
     const commentsRes = await db.collection('comments')
       .where({
@@ -71,8 +75,6 @@ exports.main = async (event, context) => {
     });
 
     // 5. 获取帖子信息，判断是否为匿名帖子
-    const postRes = await db.collection('posts').doc(postId).get();
-    const post = postRes.data;
     const isPostAnonymous = post && post.isAnonymous;
     console.log('【getComments】判断帖子匿名性:', {
         postId: postId,

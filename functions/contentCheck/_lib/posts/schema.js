@@ -8,9 +8,9 @@ const bool = value => value === true || value === 'true';
 const isAnonymousPost = post => !!post && (bool(post.isAnonymous) || post._openid === '123456');
 const FIELDS = new Set(`_openid title content createTime updateTime publishMode isOriginal
   votes commentCount viewCount discussionCount author authorName authorAvatar authorSignature
-  backgroundColor textColor poemFontSize poemTextStyles tags highlightLines sentenceGroups seriesBlocks isSeries
+  backgroundColor textColor poemFontSize poemTextStyles poemVertical tags highlightLines sentenceGroups seriesBlocks isSeries
   creationDate creationLocation showCreationDate showCreationLocation
-  isFoundPoetry isAnonymous realAuthorOpenid isHidden activityId activityTitleSnapshot
+  isFoundPoetry isAnonymous realAuthorOpenid isHidden visibility visibilitySocietyId hideAfterDays hideAt activityId activityTitleSnapshot
   activityPublishTime joinedActivityId joinedActivityTitleSnapshot joinedActivityAt
   parentPostId quotedPostId quotedPostTitle quotedPostAuthor quotedPostAuthorId
   imageUrls originalImageUrls poemBgImage isMergedFrom mergedToSeriesId auditStatus auditTime
@@ -19,7 +19,7 @@ const ALIASES = ['isPoem', 'isDiscussion', 'isActivityPost', 'authorNameSnapshot
   'authorAvatarSnapshot', 'anonymousAuthorName', 'highlightSentence', 'discussionSentences',
   'seriesBlockCount', 'seriesCoverImage', 'seriesCoverHighlight', 'imageUrl',
   'originalImageUrl', 'createdAt', 'updatedAt', 'isVoted', 'isAuthor', 'fileIDs', 'originalFileIDs'];
-const SPARSE = new Set(['isSeries', 'isFoundPoetry', 'isAnonymous', 'isHidden', 'showCreationDate', 'showCreationLocation']);
+const SPARSE = new Set(['isSeries', 'isFoundPoetry', 'isAnonymous', 'isHidden', 'showCreationDate', 'showCreationLocation', 'poemVertical']);
 
 function normalizePoemFontSize(value) {
   const size = Number(value);
@@ -160,7 +160,7 @@ function compactCreate(input) {
   if (bool(source.isSeries) && !list(source.seriesBlocks).length) throw new Error('组诗不能为空');
   if (source.activityId && (source.publishMode !== 'normal' || bool(source.isAnonymous))) throw new Error('官方活动帖子类型无效');
   if (source.publishMode !== 'poem') {
-    for (const key of ['author', 'isOriginal', 'seriesBlocks', 'isSeries']) delete source[key];
+    for (const key of ['author', 'isOriginal', 'seriesBlocks', 'isSeries', 'poemVertical']) delete source[key];
   } else if (bool(source.isSeries)) {
     source.content = list(source.seriesBlocks).map(block => block.content || '').join('\n\n');
   }
@@ -210,7 +210,7 @@ function compactPatch(input, command) {
   // Remove deprecated names even if an older editor sends them back.
   for (const key of ALIASES) if (has(input, key)) out[key] = command.remove();
   if (has(source, 'publishMode') && source.publishMode !== 'poem') {
-    for (const key of ['isOriginal', 'isSeries', 'seriesBlocks', 'seriesBlockCount', 'seriesCoverImage', 'seriesCoverHighlight']) out[key] = command.remove();
+    for (const key of ['isOriginal', 'isSeries', 'seriesBlocks', 'seriesBlockCount', 'seriesCoverImage', 'seriesCoverHighlight', 'poemVertical']) out[key] = command.remove();
   }
   if (has(source, 'publishMode') && source.publishMode !== 'discussion') {
     out.sentenceGroups = command.remove();

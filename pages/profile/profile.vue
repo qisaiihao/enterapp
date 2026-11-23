@@ -1500,7 +1500,7 @@ export default {
 
             uni.showLoading({ title: targetHidden ? '隐藏中...' : '取消隐藏中...' });
 
-            return togglePostVisibility(postId, this)
+            return togglePostVisibility(postId, this, targetHidden)
                 .then((result) => {
                     const path = `myPosts[${index}].isHidden`;
                     const updates = {};
@@ -1589,7 +1589,7 @@ export default {
             if (!postId || typeof index === 'undefined') return;
             const targetHidden = !currentlyHidden;
 
-            togglePostVisibility(postId, this).then(() => {
+            togglePostVisibility(postId, this, targetHidden).then(() => {
                 const path = `myPosts[${index}].isHidden`;
                 const updates = {};
                 updates[path] = targetHidden;

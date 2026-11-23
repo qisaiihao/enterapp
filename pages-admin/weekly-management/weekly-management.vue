@@ -248,7 +248,7 @@
           <view class="form-item full">
             <text class="label">开始日期</text>
             <view class="date-input-row">
-              <input v-model="topicForm.periodStart" class="input date-input" placeholder="2026-06-01" @blur="loadTopicPeriodPosts" />
+              <input v-model.trim="topicForm.periodStart" class="input date-input" placeholder="2026-06-01" />
               <picker mode="date" :value="topicForm.periodStart" @change="onTopicPeriodStartChange">
                 <view class="date-picker-icon">📅</view>
               </picker>
@@ -257,7 +257,7 @@
           <view class="form-item full">
             <text class="label">结束日期</text>
             <view class="date-input-row">
-              <input v-model="topicForm.periodEnd" class="input date-input" placeholder="2026-06-14" @blur="loadTopicPeriodPosts" />
+              <input v-model.trim="topicForm.periodEnd" class="input date-input" placeholder="2026-06-14" />
               <picker mode="date" :value="topicForm.periodEnd" @change="onTopicPeriodEndChange">
                 <view class="date-picker-icon">📅</view>
               </picker>
@@ -275,35 +275,43 @@
           <view class="form-item full poem-select-panel">
             <view class="poem-select-head">
               <view class="poem-select-title-group">
-                <text class="label">选择主题诗歌</text>
+                <text class="label">选择投稿作品</text>
                 <text v-if="topicForm.selectedPostIds && topicForm.selectedPostIds.length" class="badge-count">已选 {{ topicForm.selectedPostIds.length }} 首</text>
               </view>
               <view class="poem-select-ops">
-                <button class="text-op-btn" @tap="selectAllTopicPeriodPosts" :disabled="!filteredTopicPeriodPosts.length">全选当前</button>
+                <button class="text-op-btn" @tap="selectAllTopicSubmissions" :disabled="!topicSubmissions.length">全选已加载</button>
                 <button class="text-op-btn" @tap="clearSelectedTopicPosts" :disabled="!topicForm.selectedPostIds || !topicForm.selectedPostIds.length">清空</button>
-                <button class="text-op-btn" @tap="loadTopicPeriodPosts">刷新</button>
+                <button class="text-op-btn" @tap="refreshTopicSubmissions">刷新</button>
               </view>
             </view>
 
-            <view v-if="topicPeriodPosts.length" class="poem-search-box">
-              <input v-model="topicPeriodKeyword" class="input poem-search-input" placeholder="按诗歌标题或作者快速过滤" />
-              <text v-if="topicPeriodKeyword" class="clear-search-btn" @tap="topicPeriodKeyword = ''">×</text>
+            <picker
+              mode="selector"
+              :range="topicSubmissionActivityOptions"
+              range-key="title"
+              :value="topicSubmissionActivityIndex"
+              :disabled="topicSubmissionActivitiesLoading"
+              @change="onTopicSubmissionActivityChange"
+            >
+              <view class="input picker-input">
+                <text>{{ topicSubmissionActivitiesLoading ? '正在加载活动...' : topicSubmissionActivityOptions[topicSubmissionActivityIndex].title }}</text>
+                <text class="picker-arrow">▼</text>
+              </view>
+            </picker>
+
+            <view class="poem-search-box">
+              <input :value="topicSubmissionKeyword" class="input poem-search-input" placeholder="搜索投稿标题、作者或正文" @input="searchTopicSubmissions($event.detail.value)" />
+              <text v-if="topicSubmissionKeyword" class="clear-search-btn" @tap="searchTopicSubmissions('')">×</text>
             </view>
 
-            <!-- 提示与状态 -->
-            <view v-if="topicPeriodPostsLoading" class="poem-loading-box">
-              <text class="hint-text">正在筛选此时间段内的诗歌...</text>
-            </view>
-            <view v-else-if="!topicForm.periodStart || !topicForm.periodEnd" class="poem-empty-box">
-              <text class="hint-text">📅 请先设置上方「开始日期」和「结束日期」，系统将自动筛选该周期内的原创诗歌供勾选</text>
-            </view>
-            <view v-else-if="!topicPeriodPosts.length" class="poem-empty-box">
-              <text class="hint-text">该周期内（{{ topicForm.periodStart }} ~ {{ topicForm.periodEnd }}）暂无发布的原创诗歌</text>
+            <view v-if="!topicSubmissions.length" class="poem-empty-box">
+              <text v-if="topicSubmissionsLoading" class="hint-text">正在加载投稿作品...</text>
+              <text v-else class="hint-text">{{ topicSubmissionLoadError || (topicSubmissionKeyword.trim() ? '没有匹配的投稿作品' : '暂无投稿作品') }}</text>
             </view>
             <scroll-view v-else class="poem-scroll-list" scroll-y="true">
               <view class="poem-cards-grid">
                 <view
-                  v-for="post in filteredTopicPeriodPosts"
+                  v-for="post in topicSubmissions"
                   :key="post.postId"
                   class="poem-pick-card"
                   :class="{ selected: isTopicPostSelected(post.postId) }"
@@ -314,7 +322,7 @@
                       <text class="poem-pick-author">· {{ post.authorName || '匿名' }}</text>
                     </view>
                     <view class="poem-pick-meta">
-                      <text class="poem-pick-date">{{ formatDate(post.createTime) }}</text>
+                      <text class="poem-pick-date">{{ post.activityTitle ? post.activityTitle + ' · ' : '' }}{{ formatDate(post.createTime) }}</text>
                       <text class="poem-pick-stats">👍 {{ post.votes || 0 }} · 💬 {{ post.comments || 0 }} · 👁️ {{ post.views || 0 }}</text>
                     </view>
                     <text v-if="post.copy" class="poem-pick-snippet">{{ post.copy }}</text>
@@ -323,6 +331,7 @@
                     <text v-if="isTopicPostSelected(post.postId)">✓</text>
                   </view>
                 </view>
+                <button v-if="topicSubmissionsHasMore" class="text-op-btn" :disabled="topicSubmissionsLoading" @tap="loadTopicSubmissions(true)">{{ topicSubmissionsLoading ? '加载中...' : '加载更多投稿' }}</button>
               </view>
             </scroll-view>
 
@@ -367,6 +376,7 @@
 import { getSystemInfoCompat } from '@/utils/system-info.js';
 import { uploadFile } from '@/utils/uploader.js';
 import fileUrlCache from '@/_utils/file-url-cache';
+import { listAdminActivities } from '@/api-cache/admin-activities.js';
 import {
   listAdminWeeklyIssues,
   createAdminWeeklyIssue,
@@ -375,6 +385,7 @@ import {
   archiveAdminWeeklyIssue,
   deleteAdminWeeklyIssue,
   listAdminWeeklyCandidatePosts,
+  listAdminWeeklySubmissionPosts,
   listAdminWeeklyFeaturedIssues,
   updateAdminWeeklyFeaturedIssues,
   listAdminWeeklyTopics,
@@ -452,10 +463,16 @@ export default {
       topicFormVisible: false,
       issueForm: createIssueForm(),
       topicForm: createTopicForm(),
-      topicPeriodPosts: [],
-      topicPeriodPostsLoading: false,
-      topicPeriodRequestId: 0,
-      topicPeriodKeyword: '',
+      topicSubmissionActivities: [],
+      topicSubmissionActivitiesLoading: false,
+      topicSubmissionActivityId: '',
+      topicSubmissions: [],
+      topicSubmissionsLoading: false,
+      topicSubmissionsHasMore: false,
+      topicSubmissionLoadError: '',
+      topicSubmissionRequestId: 0,
+      topicSubmissionKeyword: '',
+      topicSubmissionSearchTimer: null,
       showTopicSelectedDrawer: true,
       periodPosts: [],
       periodPostsLoading: false,
@@ -481,12 +498,12 @@ export default {
     };
   },
   computed: {
-    filteredTopicPeriodPosts() {
-      const keyword = this.topicPeriodKeyword.trim().toLowerCase();
-      return this.topicPeriodPosts.filter(post => !keyword ||
-        [post.title, post.authorName, post.copy].some(value => String(value || '').toLowerCase().includes(keyword)));
+    topicSubmissionActivityOptions() {
+      return [{ _id: '', title: '全部活动' }, ...this.topicSubmissionActivities];
     },
-
+    topicSubmissionActivityIndex() {
+      return Math.max(0, this.topicSubmissionActivityOptions.findIndex(item => item._id === this.topicSubmissionActivityId));
+    },
     issueStatusIndex() {
       const idx = this.statusOptions.findIndex(item => item.value === this.issueForm.status);
       return idx > -1 ? idx : 0;
@@ -519,6 +536,8 @@ export default {
     this.restoreDraftFromStorage();
   },
   onUnload() {
+    clearTimeout(this.topicSubmissionSearchTimer);
+    ++this.topicSubmissionRequestId;
     clearTimeout(this.periodSearchTimer);
     ++this.periodRequestId;
     uni.$off('weekly-cover-cropped', this.onWeeklyCoverCropped);
@@ -613,7 +632,8 @@ export default {
     },
 
     openTopicForm(item) {
-      this.topicPeriodKeyword = '';
+      this.topicSubmissionActivityId = '';
+      this.topicSubmissionKeyword = '';
       this.showTopicSelectedDrawer = true;
       if (!item) {
         this.topicForm = createTopicForm();
@@ -628,55 +648,103 @@ export default {
           status: item.status || 'draft',
           selectedPostIds: Array.isArray(item.selectedPostIds) ? [...item.selectedPostIds] : []
         };
+        const snapshots = Array.isArray(item.selectedSnapshots) ? item.selectedSnapshots : [];
+        snapshots.forEach(post => {
+          const postId = post.postId || post._id || post.id;
+          if (postId && post.title) this.postTitleMap[postId] = post.title;
+        });
       }
+      applyDefaultPeriod(this.topicForm);
       this.topicCoverPendingPath = '';
       this.loadCoverPreview(this.topicForm.coverImage, 'topic');
       this.topicFormVisible = true;
       this.activeTab = 'topics';
-      this.loadTopicPeriodPosts();
+      return this.refreshTopicSubmissions();
     },
 
     onTopicPeriodStartChange(e) {
       this.topicForm.periodStart = e.detail.value;
-      this.loadTopicPeriodPosts();
     },
 
     onTopicPeriodEndChange(e) {
       this.topicForm.periodEnd = e.detail.value;
-      this.loadTopicPeriodPosts();
     },
 
-    async loadTopicPeriodPosts() {
-      applyDefaultPeriod(this.topicForm);
-      const requestId = ++this.topicPeriodRequestId;
-      const start = String(this.topicForm.periodStart || '').trim();
-      const end = String(this.topicForm.periodEnd || '').trim();
-      this.topicPeriodPosts = [];
-      this.topicPeriodPostsLoading = false;
-      if (!start || !end) return;
-      const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(value) && formatDate(value + 'T00:00:00') === value;
-      if (!validDate(start) || !validDate(end) || start > end) {
-        uni.showToast({ title: '请填写有效的起止日期，开始日期不能晚于结束日期', icon: 'none' });
-        return;
-      }
-      this.topicForm.periodStart = start;
-      this.topicForm.periodEnd = end;
-      this.topicPeriodPostsLoading = true;
+    refreshTopicSubmissions() {
+      return Promise.all([this.loadTopicSubmissionActivities(), this.loadTopicSubmissions()]);
+    },
+
+    async loadTopicSubmissionActivities() {
+      if (this.topicSubmissionActivitiesLoading) return;
+      this.topicSubmissionActivitiesLoading = true;
       try {
-        const result = await listAdminWeeklyCandidatePosts({
-          context: this, limit: 100, periodStart: start, periodEnd: end
+        const activities = [];
+        let hasMore = true;
+        while (hasMore) {
+          const result = await listAdminActivities({ context: this, skip: activities.length, limit: 50 });
+          activities.push(...result.activities);
+          hasMore = result.hasMore && result.activities.length > 0;
+        }
+        this.topicSubmissionActivities = activities;
+        if (this.topicSubmissionActivityId && this.topicSubmissionActivityIndex === 0) {
+          this.topicSubmissionActivityId = '';
+          await this.loadTopicSubmissions();
+        }
+      } catch (error) {
+        uni.showToast({ title: '加载活动列表失败', icon: 'none' });
+      } finally {
+        this.topicSubmissionActivitiesLoading = false;
+      }
+    },
+
+    onTopicSubmissionActivityChange(e) {
+      const activity = this.topicSubmissionActivityOptions[Number(e.detail.value)];
+      if (!activity || activity._id === this.topicSubmissionActivityId) return;
+      this.topicSubmissionActivityId = activity._id;
+      return this.loadTopicSubmissions();
+    },
+
+    searchTopicSubmissions(keyword) {
+      this.topicSubmissionKeyword = keyword;
+      clearTimeout(this.topicSubmissionSearchTimer);
+      ++this.topicSubmissionRequestId;
+      this.topicSubmissions = [];
+      this.topicSubmissionsHasMore = false;
+      this.topicSubmissionsLoading = true;
+      this.topicSubmissionSearchTimer = setTimeout(() => this.loadTopicSubmissions(), 300);
+    },
+
+    async loadTopicSubmissions(append = false) {
+      if (append && (this.topicSubmissionsLoading || !this.topicSubmissionsHasMore)) return;
+      clearTimeout(this.topicSubmissionSearchTimer);
+      const requestId = ++this.topicSubmissionRequestId;
+      if (!append) {
+        this.topicSubmissions = [];
+        this.topicSubmissionsHasMore = false;
+      }
+      this.topicSubmissionLoadError = '';
+      this.topicSubmissionsLoading = true;
+      try {
+        const result = await listAdminWeeklySubmissionPosts({
+          context: this,
+          activityId: this.topicSubmissionActivityId,
+          keyword: this.topicSubmissionKeyword.trim(),
+          skip: this.topicSubmissions.length,
+          limit: 30
         });
-        if (requestId !== this.topicPeriodRequestId) return;
-        this.topicPeriodPosts = Array.isArray(result.posts) ? result.posts : [];
-        this.topicPeriodPosts.forEach(post => {
+        if (requestId !== this.topicSubmissionRequestId) return;
+        const posts = result.posts || [];
+        this.topicSubmissions = [...this.topicSubmissions, ...posts];
+        this.topicSubmissionsHasMore = result.hasMore;
+        posts.forEach(post => {
           if (post.postId) this.postTitleMap[post.postId] = post.title || '无标题';
         });
       } catch (error) {
-        if (requestId === this.topicPeriodRequestId) {
-          uni.showToast({ title: error.message || '筛选主题诗歌失败', icon: 'none' });
-        }
+        if (requestId !== this.topicSubmissionRequestId) return;
+        this.topicSubmissionLoadError = error.message || '加载投稿作品失败';
+        uni.showToast({ title: this.topicSubmissionLoadError, icon: 'none' });
       } finally {
-        if (requestId === this.topicPeriodRequestId) this.topicPeriodPostsLoading = false;
+        if (requestId === this.topicSubmissionRequestId) this.topicSubmissionsLoading = false;
       }
     },
 
@@ -690,15 +758,21 @@ export default {
       if (this.isTopicPostSelected(post.postId)) {
         this.removeSelectedTopicPost(post.postId);
       } else {
-        this.topicForm.selectedPostIds.push(post.postId);
+        this.addTopicPosts([post.postId]);
       }
     },
 
-    selectAllTopicPeriodPosts() {
-      this.topicForm.selectedPostIds = Array.from(new Set([
-        ...this.topicForm.selectedPostIds,
-        ...this.filteredTopicPeriodPosts.map(post => post.postId).filter(Boolean)
-      ]));
+    selectAllTopicSubmissions() {
+      this.addTopicPosts(this.topicSubmissions.map(post => post.postId));
+    },
+
+    addTopicPosts(postIds) {
+      const selected = Array.from(new Set([...this.topicForm.selectedPostIds, ...postIds]));
+      if (selected.length > 50) {
+        uni.showToast({ title: '每个主题最多展示 50 首作品', icon: 'none' });
+        return;
+      }
+      this.topicForm.selectedPostIds = selected;
     },
 
     clearSelectedTopicPosts() {

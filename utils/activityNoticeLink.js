@@ -1,7 +1,7 @@
 export const ACTIVITY_NOTICE_LINK_OPTIONS = [
   { label: '不跳转', url: '' },
   { label: '周刊首页', url: '/pages-content/weekly-home/weekly-home' },
-  { label: '活动列表', url: '/pages-content/activity-list/activity-list' },
+  { label: '活动列表', url: '/pages/activity/activity' },
   { label: '联系我们', url: '/pages-tools/contact/contact' },
   { label: '诗歌广场', url: '/pages/poem-square/poem-square' },
   { label: '个人主页', url: '/pages/profile/profile' }
@@ -29,7 +29,8 @@ export function openActivityNoticeLink(value) {
     // #endif
   }
   const pagePath = url.split('?')[0];
-  const tabPages = ['/pages/index/index', '/pages/mountain/mountain', '/pages/poem-square/poem-square', '/pages/profile/profile'];
+  if (url.split('?')[0] === '/pages-content/activity-list/activity-list') return navigate('switchTab', '/pages/activity/activity');
+  const tabPages = ['/pages/index/index', '/pages/activity/activity', '/pages/poem-square/poem-square', '/pages/profile/profile'];
   return tabPages.includes(pagePath) ? navigate('switchTab', pagePath) : navigate('navigateTo', url);
 }
 

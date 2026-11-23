@@ -21,6 +21,7 @@
                         />
                     </view>
                 </view>
+                <view v-if="index === 2 && hasNewActivity" class="tab-activity-dot" />
                 <text class="tab-bar-text" :style="selected === index ? 'color: var(--app-tab-active-text-color, #000000)' : ''">{{ item.text }}</text>
             </view>
         </view>
@@ -31,6 +32,7 @@
 import { lightImpact } from '@/utils/haptics.js';
 import { requireLogin } from '@/utils/authHelper.js';
 import { switchTabSmooth } from '@/utils/appTabTransition.js';
+import activityBadge from '@/cache/stores/activity-badge.js';
 
 const DARK_TAB_ICON_VERSION = '20260429-toned-white';
 
@@ -50,6 +52,7 @@ export default {
     data() {
         return {
             selected: 0,
+            hasNewActivity: false,
             color: '#999999',
             selectedColor: '#000000',
             lastTapTime: 0,
@@ -66,15 +69,15 @@ export default {
                 },
                 {
                     pagePath: 'pages/poem-square/poem-square',
-                    text: '原创',
+                    text: '诗歌',
                     iconPath: '/static/images/road.png',
                     selectedIconPath: '/static/images/road.png',
                     darkIconPath: '/static/images/tab-dark/road-dark.png',
                     darkSelectedIconPath: '/static/images/tab-dark/roadplus-dark.png'
                 },
                 {
-                    pagePath: 'pages/mountain/mountain',
-                    text: '读诗',
+                    pagePath: 'pages/activity/activity',
+                    text: '活动',
                     iconPath: '/static/images/mountain.png',
                     selectedIconPath: '/static/images/mountain.png',
                     darkIconPath: '/static/images/tab-dark/mountain-dark.png',
@@ -93,6 +96,10 @@ export default {
     },
     created() {
         this.syncSelected();
+        this._activityBadgeUnsubscribe = activityBadge.subscribe(hasNew => { this.hasNewActivity = hasNew; });
+    },
+    beforeUnmount() {
+        this._activityBadgeUnsubscribe?.();
     },
     mounted() {
         this.$nextTick(() => {
@@ -225,8 +232,8 @@ export default {
                 case 'pages/poem-square/poem-square':
                     this.refreshPoemPage(currentPageInstance);
                     break;
-                case 'pages/mountain/mountain':
-                    this.refreshMountainPage(currentPageInstance);
+                case 'pages/activity/activity':
+                    uni.startPullDownRefresh();
                     break;
                 case 'pages/profile/profile':
                     this.refreshProfilePage(currentPageInstance);
@@ -237,7 +244,6 @@ export default {
         },
         refreshIndexPage(pageInstance) { if (pageInstance.refreshData) pageInstance.refreshData(); else if (pageInstance.onPullDownRefresh) { /* noop */ } else { uni.startPullDownRefresh(); } },
         refreshPoemPage(pageInstance) { if (pageInstance.refreshPoemData) pageInstance.refreshPoemData(); else if (pageInstance.onPullDownRefresh) { /* noop */ } else { uni.startPullDownRefresh(); } },
-        refreshMountainPage(pageInstance) { if (pageInstance.refreshMountainData) pageInstance.refreshMountainData(); else if (pageInstance.onPullDownRefresh) { /* noop */ } else { uni.startPullDownRefresh(); } },
         refreshProfilePage(pageInstance) { if (pageInstance.onPullDownRefresh) { /* noop */ } else { uni.startPullDownRefresh(); } },
         refreshGenericPage(pageInstance) { if (pageInstance.onPullDownRefresh) { /* noop */ } else { uni.startPullDownRefresh(); } }
     }
@@ -245,6 +251,15 @@ export default {
 </script>
 
 <style>
+.tab-activity-dot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background: #ff4d4f;
+}
 .tab-bar {
   --tab-outer-center: 222rpx;
   --tab-inner-center: 74rpx;

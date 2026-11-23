@@ -1,4 +1,4 @@
-const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
+const { createPostsDatabase, withPostResponse, isRestricted } = require('./_lib/posts');
 // 云函数 getOtherPortfolioItems 的入口文件
 const cloud = require('wx-server-sdk');
 
@@ -122,7 +122,7 @@ exports.main = async (event, context) => {
       }
 
       // 非作者访问时，过滤掉隐藏的帖子
-      if (!isOwner && post.isHidden === true) {
+      if (!isOwner && (post.isHidden === true || isRestricted(post))) {
         return null;
       }
 

@@ -5,6 +5,7 @@ const vm = require('node:vm');
 const { createRequire } = require('node:module');
 const cloud = require('wx-server-sdk');
 const { memoryDb } = require('./helpers/posts-memory-db.cjs');
+const { membershipId } = require('../functions/societyManager/lib/common');
 
 cloud.init({ env: 'moderation-review-integration' });
 const command = cloud.database().command;
@@ -49,12 +50,94 @@ function backend(mem, name, caller = 'owner', audit = blocked) {
   return { call: event => sandbox.exports.main({ ...event, openid: caller }, {}), removedFiles };
 }
 
+async function verifyPoemVisibility() {
+  const mem = fixture();
+  mem.tables.societies = [{ _id: 'club', name: '测试诗社', status: 'active', workCount: 0 }];
+  mem.tables.society_members = ['owner', 'source-owner'].map(userId => ({
+    _id: membershipId('club', userId), societyId: 'club', userId, status: 'active', role: 'member'
+  }));
+  const event = { content: '这是一首诗', publishMode: 'poem', isPoem: true, isOriginal: true };
+  const passed = { success: true, passed: true };
+  const publish = backend(mem, 'contentCheck', 'owner', passed);
+  const detail = (actor, postId) => backend(mem, 'getPostDetail', actor).call({ postId });
+  const works = actor => backend(mem, 'societyManager', actor).call({ action: 'societyWorks', societyId: 'club' });
+  const cases = [
+    { visibility: 'public' },
+    { visibility: 'self' },
+    { visibility: 'society', visibilitySocietyId: 'club' }
+  ];
+  const postIds = [];
+  for (const fields of cases) {
+    const result = await publish.call({ ...event, ...fields, title: fields.visibility });
+    assert.equal(result.success, true, JSON.stringify(result));
+    postIds.push(result.postId);
+    assert.equal((await detail('owner', result.postId)).success, true, '作者始终可查阅已发布作品');
+  }
+  const [publicId, selfId, societyId] = postIds;
+  const scheduledId = 'previously-scheduled';
+  const scheduled = { ...mem.tables.posts.find(post => post._id === publicId), _id: scheduledId,
+    visibility: 'scheduled', hideAt: Date.now() + 86400000 };
+  mem.tables.posts.push(scheduled);
+  postIds.push(scheduledId);
+  assert.equal(mem.tables.societies[0].workCount, 1);
+  assert.equal(mem.tables.society_publications.length, 1);
+
+  assert.equal((await detail('admin', publicId)).success, true);
+  assert.equal((await detail('admin', selfId)).code, 'POST_HIDDEN');
+  assert.equal((await detail('admin', societyId)).code, 'POST_HIDDEN');
+  assert.equal((await detail('source-owner', societyId)).success, true);
+  assert.equal((await detail('admin', scheduledId)).success, true);
+  assert.deepEqual((await works('source-owner')).works.map(post => post._id), [societyId]);
+  assert.deepEqual((await works('admin')).works, []);
+
+  const feedIds = async () => (await backend(mem, 'getPostList', 'admin').call({ limit: 20, isPoem: true })).posts.map(post => post._id);
+  assert.deepEqual((await feedIds()).filter(id => postIds.includes(id)).sort(), [publicId, scheduledId].sort());
+  scheduled.hideAt = Date.now() - 1;
+  assert.deepEqual((await feedIds()).filter(id => postIds.includes(id)), [publicId]);
+  assert.equal((await detail('admin', scheduledId)).code, 'POST_HIDDEN');
+  assert.equal((await detail('owner', scheduledId)).post.isHidden, true);
+
+  mem.tables.society_members.find(member => member.userId === 'source-owner').status = 'left';
+  assert.equal((await detail('source-owner', societyId)).code, 'POST_HIDDEN');
+  assert.deepEqual((await works('source-owner')).works, []);
+  assert.equal((await backend(mem, 'contentCheck', 'admin', passed).call({ ...event, ...cases[2], title: '非成员' })).success, false);
+  for (const entry of ['contentCheck', 'createPost']) {
+    const result = await backend(mem, entry, 'owner', passed).call({ ...event, visibility: 'scheduled', hideAfterDays: 3 });
+    assert.match(result.message || result.msg, /定时隐藏已停用/);
+    assert.equal(result.postId, undefined);
+  }
+
+  const hidden = await backend(mem, 'updatePostVisibility', 'owner').call({ postId: publicId, hidden: true });
+  assert.equal(hidden.isHidden, true);
+  assert.equal((await detail('admin', publicId)).code, 'POST_HIDDEN');
+  assert.equal((await detail('owner', publicId)).success, true);
+
+  const queued = await backend(mem, 'contentCheck').call({ ...event, title: '待复核的旧定时诗歌' });
+  assert.equal(queued.reviewQueued, true);
+  const legacyReview = mem.tables.moderation_review.find(review => review._id === queued.reviewId);
+  Object.assign(legacyReview.data, { visibility: 'scheduled', hideAfterDays: 3 });
+  const approved = await backend(mem, 'adminManager', 'admin').call({ action: 'resolveModerationReview', reviewId: queued.reviewId, decision: 'approve' });
+  assert.equal(approved.success, true, JSON.stringify(approved));
+  const reviewed = mem.tables.posts.find(post => post._id === approved.postId);
+  assert.equal(reviewed.hideAt, +reviewed.createTime + 3 * 86400000, '定时从审核通过实际发布时开始');
+
+  const pendingSociety = await backend(mem, 'contentCheck').call({ ...event, ...cases[2], title: '待复核的诗社诗歌' });
+  assert.equal(pendingSociety.reviewQueued, true);
+  assert.equal(mem.tables.society_publications.length, 1, '复核前诗社作品不可见');
+  const approvedSociety = await backend(mem, 'adminManager', 'admin').call({ action: 'resolveModerationReview', reviewId: pendingSociety.reviewId, decision: 'approve' });
+  assert.equal(approvedSociety.success, true, JSON.stringify(approvedSociety));
+  assert.equal(mem.tables.society_publications.length, 2);
+  assert.equal(mem.tables.societies[0].workCount, 2);
+  assert.equal((await detail('admin', approvedSociety.postId)).code, 'POST_HIDDEN');
+}
+
 async function main() {
   const previous = { mode: process.env.CONTENT_MODERATION_MODE, schema: process.env.POSTS_WRITE_SCHEMA };
   process.env.CONTENT_MODERATION_MODE = 'enforce';
   try {
     for (const schema of ['1', '2']) {
       process.env.POSTS_WRITE_SCHEMA = schema;
+      await verifyPoemVisibility();
       const cases = [
         ['contentCheck', { title: '待审诗', content: '待审正文', publishMode: 'poem', isOriginal: true,
           isAnonymous: true, joinActivityId: 'activity' }, 'post'],

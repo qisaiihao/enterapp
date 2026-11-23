@@ -30,7 +30,7 @@
             <view
               class="post-content expanded"
               :style="{ color: cardTextColor, whiteSpace: 'pre-wrap' }"
-            ><PoemRichText :text="currentSeriesPoem.content" :styles="currentSeriesPoem.poemTextStyles || []" :source-text="currentSeriesPoem.sourceContent || currentSeriesPoem.content" :base-font-size="post.poemFontSize" /></view>
+            ><PoemRichText :text="currentSeriesPoem.content" :styles="currentSeriesPoem.poemTextStyles || []" :source-text="currentSeriesPoem.sourceContent || currentSeriesPoem.content" :base-font-size="post.poemFontSize" :vertical="post.poemVertical" /></view>
 
             <PoemCreationMeta :post="post" :color="cardTextColor" />
 
@@ -79,8 +79,18 @@
         @longpress="emitLongpress"
       >
         <view class="post-item" :class="{ 'post-item--creation': creationLabel }">
+          <view v-if="post.poemVertical && post.displayContent" class="post-content" :style="{ color: cardTextColor }">
+            <PoemRichText
+              :text="post.isExpanded || !highlightLines.length ? post.displayContent : highlightLines.join('\n')"
+              :styles="post.poemTextStyles || []"
+              :source-text="post.content"
+              :base-font-size="post.poemFontSize"
+              :max-vertical-columns="post.isExpanded || highlightLines.length ? 0 : 3"
+              vertical
+            />
+          </view>
           <view
-            v-if="post.displayContent"
+            v-else-if="post.displayContent"
             :class="[
               'post-content',
               post.isExpanded ? 'expanded' : 'collapsed',

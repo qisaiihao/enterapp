@@ -1,12 +1,13 @@
-# 首启隐私政策确认（2026-10-09）
+# 首启协议确认
 
-首次启动必须先阅读并同意《隐私政策》才能进入应用；弹窗复用居中确认框 `AppDialog` 的外观（无描边、32rpx 圆角、胶囊按钮、明暗主题），底部操作说明与 `docs/app-overlay-contract.md` 一致。
+首次启动时，《用户协议》和《隐私政策》在同一个弹窗中分节展示全文。滑到两份文件末尾后启用“同意并继续”，“不同意”始终可选。设置页也提供两份文件的查阅入口。弹窗沿用 `AppDialog` 的圆角、胶囊按钮和明暗主题。
 
 ## 涉及文件
 
-- `pages/privacy/privacy.vue`：隐私政策正文页，设置页入口 `/pages/privacy/privacy`。
-- `components/PrivacyConsentDialog.vue`：居中弹窗，使用 `AppDialog` 的 `defer-answer`，确认后发出 `agree`，取消后发出 `decline`；正文内可点击《隐私政策》打开政策页，不填写内容、不默认勾选。
-- `utils/privacyConsent.js`：政策版本、同意记录读写、政策页路径和同意事件 `privacyConsentAccepted` 的唯一来源；`runAfterPrivacyConsent()` 已同意时立即执行，否则等事件。
+- `pages/privacy/privacy.vue`：两份文件共用的阅读页。`/pages/privacy/privacy` 展示《隐私政策》，`?document=agreement` 展示 `pages/privacy/user-agreement.js` 中的《用户协议》。
+- `components/LegalDocument.vue`：弹窗和设置页共用的协议正文。
+- `components/PrivacyConsentDialog.vue`：全文按用户协议、隐私政策的顺序排列，两个操作按钮固定在滚动区下方。`AppDialog` 的 `require-scroll-to-confirm` 管理确认按钮状态，`defer-answer` 在退出动画后提交选择。
+- `utils/privacyConsent.js`：管理两份文件的版本、同意记录、阅读页入口和 `privacyConsentAccepted` 事件。`runAfterPrivacyConsent()` 已同意时立即执行，否则等待同意事件。
 - `pages/splash/splash.vue`：首启拦截、同意后放行和不同意时的平台处理。
 - `App.vue`：启动引导门禁，同意前不登录、不检查更新、不处理 GitHub 深链回调。
 - `utils/runtime-bootstrap.js`：`ensureRuntimeOpenid()` 在同意前直接返回 `null`，兜底拦截漏网云调用。
@@ -14,24 +15,25 @@
 
 ## 同意记录与版本更新
 
-- 存储键 `privacyConsentVersion`，值必须等于 `PRIVACY_POLICY_VERSION` 才算已同意，避免旧版本记录沿用。
-- 同意一次即写入版本号，同一次启动内不再弹出，后续启动读到相同版本也不会再弹；只有政策版本更新、用户清除应用数据或系统存储读写异常时才会重新出现。
+- 存储键 `privacyConsentVersion` 记录 `PRIVACY_CONSENT_VERSION`，由 `PRIVACY_POLICY_VERSION` 和 `USER_AGREEMENT_VERSION` 组成。旧记录只有隐私政策版本号，升级后须确认一次两份文件。
+- 同意时写入组合版本。同一启动会话内或下次启动读到相同版本时直接放行。
 - 存储写入/读取异常时，本次会话内存仍视为已同意，避免当场重复弹窗和 `ensureRuntimeOpenid` 误拦登录；下次启动是否再弹取决于系统存储是否恢复。
 - 政策正文有实质更新时，同步修改 `utils/privacyConsent.js` 的 `PRIVACY_POLICY_VERSION` 与政策页首部的更新/生效日期，老用户会再次看到弹窗。
-- 只新增存储键、不改版本号时，升级用户不会重复确认；未同意用户每次启动都会看到弹窗。
+- 用户协议有实质更新时，同步修改正文和 `USER_AGREEMENT_VERSION`。
 
 ## 开屏流程
 
 - `onLoad` 先检查同意状态：已同意时同步启动原有开屏放行计时和数据预加载，行为与修改前一致。
 - 未同意时展示弹窗，打字动画照常进行，但不开屏放行计时、不发起首屏预加载，也不进入广场；确认前不会因原有 6 秒上限被放行。
 - 点击“同意并继续”后写入版本并启动预加载和放行计时；最短展示时长只补足剩余部分，不因弹窗等待额外重复计时。
-- 不同意时：App 退出应用，微信小程序调用 `wx.exitMiniProgram`；无法退出的环境提示后重新展示弹窗，不进入应用。
+- 不同意时，Android 退出应用，微信小程序调用 `wx.exitMiniProgram`。iOS、H5 或小程序退出失败时提示并再次显示弹窗。
 - 弹窗随页面通过 `<app-overlay-host />` 之前的显式引入注册，物理返回键与“不同意”等价。
 
 ## 启动引导门禁
 
 - `acceptPrivacyConsent()` 首次写入版本时发出 `privacyConsentAccepted` 事件；`runAfterPrivacyConsent()` 供各处挂载需要同意后才执行的逻辑。
 - `App.vue` 的 `onLaunch` 不再直接调用 `loginAndCheckUser()` 和 `checkAndUpdate()`：未同意时注册事件，同意后调用 `startConsentedStartup()`；已同意时行为与修改前一致。
+- H5 未确认当前版本时，直接打开原创、详情等业务页会先进入开屏的协议确认流程，同意后进入原创页。两份文件的阅读页可直接访问，未同意时从阅读页返回至开屏。已有当前版本确认记录的直链保留原目标页。
 - APP 端 GitHub 回调（启动参数和 `newintent`）同样经 `runAfterPrivacyConsent()` 延后处理，避免深链绕过弹窗写入用户会话。
 - 未读/活动徽标初始化、登录后 `getMyInfo` 预热延后到同意事件；文件地址解析和缓存事件桥仍是本地初始化，不受影响。
 - `ensureRuntimeOpenid()` 未同意时返回 `null`，H5/App 的 `uniCloud`/`tcb.callFunction` 包装器随后以 `NO_OPENID` 拒绝请求，作为漏网调用的兜底；登录页和开屏预加载只在同意后运行，不受影响。
@@ -44,6 +46,9 @@
 
 ## 验证
 
-- `scripts/test-splash-startup.cjs` 的 `testPrivacyConsent` 覆盖：已同意直接进入、首次启动弹窗阻塞（打字继续、6 秒不放行、不预加载）、同意后写入版本并进入、无法退出时提示并重新展示、弹窗组件事件和政策链接。
+- `scripts/test-splash-startup.cjs` 的 `testPrivacyConsent` 覆盖已同意直接进入、旧的隐私政策同意记录需重新确认、首次启动弹窗阻塞、同意后写入双版本并进入，以及拒绝后不放行。
+- `scripts/test-dialog-motion.cjs` 覆盖到达文末启用确认、滑动前可拒绝，以及重开弹窗时重置状态。
 - 同文件的 `testAppPrivacyGate` 覆盖：未同意不启动引导、同意事件放行、重复同意不重复启动、已同意直接启动；`testRuntimeOpenidPrivacyGate` 覆盖 openid 门禁和已有 openid 复用。
+- 同文件的 `testH5DirectEntryPrivacyGate` 覆盖：未同意时业务直链转入开屏、开屏与政策页不重定向、已同意时保留目标页面、确认后启动登录。
+- H5 浏览器以两种手机尺寸验证了明暗主题、触摸滑动、文末解锁、拒绝后重置和设置页查阅。
 - 尚未进行真机验证；需要检查 Android/iOS 物理返回键、App 退出行为、微信退出行为、同意前后进入广场的时序和真机弹窗观感。

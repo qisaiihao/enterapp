@@ -17,6 +17,7 @@ const EDITABLE_KEYS = [
   'textColor',
   'poemFontSize',
   'poemTextStyles',
+  'poemVertical',
   'highlightSentence',
   'highlightLines',
   'sentenceGroups',
@@ -170,6 +171,9 @@ exports.main = async (event, context) => {
     }
 
     if (input.poemFontSize !== undefined) updateData.poemFontSize = normalizePoemFontSize(input.poemFontSize);
+    if (input.poemVertical !== undefined || (!updateData.isPoem && post.poemVertical)) {
+      updateData.poemVertical = updateData.isPoem && input.poemVertical === true;
+    }
     if (input.poemTextStyles !== undefined || input.content !== undefined) {
       updateData.poemTextStyles = normalizePoemTextStyles(input.poemTextStyles, updateData.content != null ? updateData.content : post.content);
     }

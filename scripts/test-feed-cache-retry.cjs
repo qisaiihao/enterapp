@@ -2,6 +2,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
+const { load: loadModule } = require('./test-splash-startup.cjs');
+const { filterExpiredPublicPosts } = loadModule('utils/postVisibility.js', {}, ['filterExpiredPublicPosts']);
 const read = file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
 const quiet = { log() {}, warn() {}, error() {} };
 function manager() {
@@ -10,7 +12,7 @@ function manager() {
   return box.cache;
 }
 function load(file, globals, name) {
-  const box = { console: quiet, ...globals };
+  const box = { console: quiet, filterExpiredPublicPosts, ...globals };
   vm.runInNewContext(read(file).replace(/^import .*;\r?$/gm, '').replace(/export /g, '') + `\nthis.run = ${name};`, box);
   return box.run;
 }
@@ -38,5 +40,6 @@ function load(file, globals, name) {
   resolve[0]({ posts: [{ _id: 'old' }] }); await old;
   assert.equal((await list({}))[0]._id, 'new', 'late forced refresh cannot overwrite the newer result');
   assert.equal(resolve.length, 2);
+  assert.deepEqual(filterExpiredPublicPosts([{ _id: 'expired', visibility: 'scheduled', hideAt: Date.now() - 1 }, { _id: 'public' }]).map(post => post._id), ['public']);
   console.log('[test-feed-cache-retry] PASS: four feed failures retry, successes cache, forced-refresh stale write prevented');
 })().catch(error => { console.error(error); process.exitCode = 1; });

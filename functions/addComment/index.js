@@ -1,4 +1,4 @@
-const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
+const { createPostsDatabase, withPostResponse, resolveOwner, isRestricted, canViewPost } = require('./_lib/posts');
 const { moderateBeforeWrite } = require('./_lib/moderation-gate');
 const { queueModerationReview } = require('./_lib/moderation-review');
 const cloud = require('wx-server-sdk');
@@ -87,6 +87,9 @@ exports.main = async (event, context) => {
   try {
     const targetPost = await db.collection('posts').doc(postId).get();
     if (!targetPost.data) return { success: false, code: 'POST_NOT_FOUND', message: '帖子不存在' };
+    if (isRestricted(targetPost.data) && !await canViewPost(db, targetPost.data, openid, resolveOwner(targetPost.data))) {
+      return { success: false, code: 'POST_HIDDEN', message: '该内容已隐藏' };
+    }
     if (parentId) {
       const parent = await db.collection('comments').doc(parentId).get();
       if (!parent.data || parent.data.postId !== postId) {

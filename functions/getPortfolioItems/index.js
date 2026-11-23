@@ -180,6 +180,7 @@ exports.main = async (event, context) => {
         backgroundColor: post.backgroundColor || null,
         textColor: post.textColor || null,
         poemFontSize: post.poemFontSize,
+        poemVertical: post.poemVertical,
         poemTextStyles: post.poemTextStyles || [],
         // 高光行信息
         highlightLines: post.highlightLines || []

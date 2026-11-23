@@ -24,13 +24,13 @@ export default {
                 },
                 {
                     pagePath: 'pages/poem-square/poem-square',
-                    text: '原创',
+                    text: '诗歌',
                     iconPath: '/static/images/road.png',
                     selectedIconPath: '/static/images/road.png'
                 },
                 {
-                    pagePath: 'pages/mountain/mountain',
-                    text: '读诗',
+                    pagePath: 'pages/activity/activity',
+                    text: '活动',
                     iconPath: '/static/images/mountain.png',
                     selectedIconPath: '/static/images/mountain.png'
                 },

@@ -1,7 +1,9 @@
 'use strict';
 
 const { ALIASES, SPARSE, compactCreate, compactPatch, toPostView, resolveOwner, isAnonymousPost } = require('./schema');
-const { compatibleWhere, viewFields, expandFields, postLookup } = require('./query');
+const { compatibleWhere, viewFields, expandFields, postLookup, scopedPublicWhere } = require('./query');
+const visibility = require('./visibility');
+const { isRestricted, publicVisibilityWhere } = visibility;
 
 const databases = new WeakMap();
 const writeV2 = () => process.env.POSTS_WRITE_SCHEMA === '2';
@@ -10,7 +12,7 @@ const sensitivePatch = data => Object.keys(data).some(key => ALIASES.includes(ke
   || data[key] === '' || data[key] === null || (Array.isArray(data[key]) && !data[key].length));
 
 function createPostsDatabase(raw, options = {}) {
-  if (databases.has(raw)) return databases.get(raw);
+  if (!options.publicOnly && databases.has(raw)) return databases.get(raw);
   const command = options.command || raw.command;
   const versions = new Map();
   const remember = post => {
@@ -25,10 +27,15 @@ function createPostsDatabase(raw, options = {}) {
   function wrap(ref, state = {}) {
     return new Proxy(ref, {
       get(target, key) {
-        if (key === 'where') return filter => wrap(target.where(compatibleWhere(filter)), { ...state, filter });
+        const scopeRoot = () => options.publicOnly && !state.scoped && !state.id ? target.where(publicVisibilityWhere()) : target;
+        if (key === 'where') return filter => wrap(target.where(options.publicOnly ? scopedPublicWhere(filter) : compatibleWhere(filter)), { ...state, filter, scoped: true });
         if (key === 'doc') return id => wrap(target.doc(id), { ...state, id });
-        if (key === 'field') return fields => wrap(target.field(expandFields(fields)), state);
-        if (key === 'get') return async (...args) => read(await target.get(...args));
+        if (key === 'field') return fields => wrap(scopeRoot().field(expandFields(fields)), { ...state, scoped: true });
+        if (key === 'get') return async (...args) => {
+          const result = await scopeRoot().get(...args);
+          return options.publicOnly && state.id && isRestricted(result.data) ? { ...result, data: null } : read(result);
+        };
+        if (key === 'count') return (...args) => scopeRoot().count(...args);
         if (key === 'add') return async request => {
           const modern = writeV2();
           const result = await target.add({ ...request, data: modern ? compactCreate(request.data) : request.data });
@@ -54,10 +61,13 @@ function createPostsDatabase(raw, options = {}) {
           return { ...modern, stats: { ...modern.stats, updated: ((legacy.stats || {}).updated || 0) + ((modern.stats || {}).updated || 0) } };
         };
         if (key === 'set') return () => { throw new Error('posts 不允许整文档覆盖，请使用受控更新'); };
-        if (key === 'aggregate') return () => aggregate(target.aggregate(), true);
+        if (key === 'aggregate') return () => {
+          const query = target.aggregate();
+          return aggregate(options.publicOnly ? query.match(publicVisibilityWhere()) : query, true);
+        };
         const value = target[key];
         if (typeof value !== 'function') return value;
-        if (['orderBy', 'limit', 'skip'].includes(key)) return (...args) => wrap(value.apply(target, args), state);
+        if (['orderBy', 'limit', 'skip'].includes(key)) return (...args) => wrap(scopeRoot()[key](...args), { ...state, scoped: true });
         return value.bind(target);
       }
     });
@@ -79,7 +89,7 @@ function createPostsDatabase(raw, options = {}) {
             next = next.addFields(viewFields()); ready = true;
           }
           if (key === 'match' && isPost && !ready) args[0] = compatibleWhere(args[0]);
-          if (key === 'lookup') args[0] = postLookup(args[0]);
+          if (key === 'lookup') args[0] = postLookup(args[0], options.publicOnly);
           if (key === 'project' && isPost && postShape) args[0] = expandFields(args[0]);
           return aggregate(next[key](...args), isPost, ready, postShape && !['group', 'count', 'replaceRoot'].includes(key));
         };
@@ -104,7 +114,7 @@ function createPostsDatabase(raw, options = {}) {
       return typeof value === 'function' ? value.bind(target) : value;
     }
   });
-  databases.set(raw, db);
+  if (!options.publicOnly) databases.set(raw, db);
   return db;
 }
 
@@ -116,6 +126,7 @@ function publicResult(value) {
   for (const [key, item] of Object.entries(value)) {
     if (key !== 'realAuthorOpenid') result[key] = publicResult(item);
   }
+  if (result.visibility === 'scheduled' && isRestricted(result)) result.isHidden = true;
   if (isAnonymousPost(result)) {
     result.isAnonymous = true;
     result._openid = '123456';
@@ -131,4 +142,4 @@ function publicResult(value) {
 }
 const withPostResponse = handler => async (...args) => publicResult(await handler(...args));
 
-module.exports = { createPostsDatabase, withPostResponse, resolveOwner, toPostView, compactCreate, compactPatch, compatibleWhere, writeV2 };
+module.exports = { createPostsDatabase, withPostResponse, resolveOwner, toPostView, compactCreate, compactPatch, compatibleWhere, writeV2, ...visibility };

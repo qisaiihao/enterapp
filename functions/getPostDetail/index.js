@@ -1,4 +1,4 @@
-const { createPostsDatabase, withPostResponse, resolveOwner } = require('./_lib/posts');
+const { createPostsDatabase, withPostResponse, resolveOwner, canViewPost } = require('./_lib/posts');
 // 云函数入口文件
 const cloud = require('wx-server-sdk');
 
@@ -42,7 +42,7 @@ exports.main = async (event, context) => {
     const postRes = await db.collection('posts').doc(postId).get();
     const post = postRes.data;
     // 如果帖子被隐藏且当前用户不是作者，禁止访问
-    if (post && post.isHidden === true && resolveOwner(post) !== openid) {
+    if (post && !await canViewPost(db, post, openid, resolveOwner(post))) {
       return {
         success: false,
         code: 'POST_HIDDEN',

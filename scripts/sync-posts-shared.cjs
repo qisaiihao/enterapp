@@ -3,7 +3,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const shared = path.join(root, 'functions/_shared/posts');
 const consumers = require('../functions/_shared/posts/consumers.json');
-const files = ['index.js', 'schema.js', 'query.js'];
+const files = ['index.js', 'schema.js', 'query.js', 'visibility.js'];
 const check = process.argv.includes('--check');
 let failed = false;
 // Catch new direct readers/writers that otherwise escape the deployment inventory.

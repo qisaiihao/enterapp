@@ -2,13 +2,21 @@
 const loaders = {
   'pages/index/index': () => import('@/pages/index/index.vue'),
   'pages/poem-square/poem-square': () => import('@/pages/poem-square/poem-square.vue'),
-  'pages/mountain/mountain': () => import('@/pages/mountain/mountain.vue'),
+  'pages/activity/activity': () => import('@/pages/activity/activity.vue'),
   'pages/profile/profile': () => import('@/pages/profile/profile.vue')
 };
 const readyPages = new WeakMap();
 const readyRoutes = new Map();
 const pendingRoutes = new Set();
+const preloadedPages = new Map();
 let active = null;
+
+function preloadPage(route) {
+  if (preloadedPages.has(route)) return;
+  const task = loaders[route]();
+  preloadedPages.set(route, task);
+  task.catch(() => preloadedPages.delete(route));
+}
 
 function routeOf(page) {
   return String(page?.route || page?.$page?.fullPath || page?.$scope?.route || '')
@@ -83,6 +91,13 @@ export const h5TabTransitionMixin = {
     readyPages.set(this, route);
     if (route && !pendingRoutes.has(route)) readyRoutes.set(route, this);
     pageReady(this);
+    if (route === 'pages/profile/profile') {
+      // 个人页首帧后准备活动和诗歌页面的代码。
+      setTimeout(() => {
+        preloadPage('pages/activity/activity');
+        preloadPage('pages/poem-square/poem-square');
+      }, 200);
+    }
   },
   onShow() {
     const route = pageRoute(this);
@@ -126,16 +141,22 @@ function createCover(sourceRoute) {
   const sourceRect = source.getBoundingClientRect();
   snapshot.style.cssText += `;position:absolute;top:${sourceRect.top}px;left:${sourceRect.left}px;width:${sourceRect.width}px;height:${sourceRect.height}px;margin:0;`;
   cover.appendChild(snapshot);
-  document.body.appendChild(cover);
   const originals = [source, ...source.querySelectorAll('*')];
   const copies = [snapshot, ...snapshot.querySelectorAll('*')];
+  const scrollPositions = [];
   originals.forEach((node, index) => {
     const copy = copies[index];
-    copy.scrollTop = node.scrollTop;
-    copy.scrollLeft = node.scrollLeft;
+    const { scrollTop, scrollLeft } = node;
+    if (scrollTop || scrollLeft) scrollPositions.push({ copy, scrollTop, scrollLeft });
     if (node.tagName === 'CANVAS') {
       try { copy.getContext('2d')?.drawImage(node, 0, 0); } catch (_) {}
     }
+  });
+  // 先读取源页位置，再挂载并恢复实际滚动的节点，避免逐节点读写触发布局。
+  document.body.appendChild(cover);
+  scrollPositions.forEach(({ copy, scrollTop, scrollLeft }) => {
+    copy.scrollTop = scrollTop;
+    copy.scrollLeft = scrollLeft;
   });
   return cover;
 }
@@ -180,5 +201,5 @@ export function switchTabH5(options) {
   if (state.warm) { navigate(); return; }
   // 加载失败/超时停留原页，迟到的模块下载结果不得再触发导航。
   state.timer = setTimeout(() => state.abort({ errMsg: 'switchTab:fail page preload timeout' }), 8000);
-  loaders[target]().then(navigate, error => state.abort({ errMsg: `switchTab:fail page preload: ${error.message || error}` }));
+  (preloadedPages.get(target) || loaders[target]()).then(navigate, error => state.abort({ errMsg: `switchTab:fail page preload: ${error.message || error}` }));
 }

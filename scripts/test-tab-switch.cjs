@@ -4,20 +4,22 @@ const { load, fakeTime, deferred, drain } = require('./test-splash-startup.cjs')
 function nativeRuntime({ theme = 'light', sourceStyle = { top: '0px', height: '100%' }, coverVisible = true } = {}) {
   const time = fakeTime(), captures = [], probes = [], calls = [], covers = [], bitmaps = [], events = [];
   const control = { coverVisible };
+  const nativeReads = { sourceWebview: 0, sourceStyle: 0 };
   const sourceWebview = {
     draw: (bitmap, success, fail, options) => captures.push({ bitmap, success, fail, options }),
-    getStyle: () => sourceStyle
+    getStyle: () => { nativeReads.sourceStyle++; return sourceStyle; }
   };
   const targetWebview = {
     draw: (bitmap, success, fail, options) => probes.push({ bitmap, success, fail, options }),
     getStyle: () => ({ top: '0px', height: '100%' })
   };
-  const source = { route: 'pages/poem-square/poem-square', appThemeMode: theme, $getAppWebview: () => sourceWebview };
+  const source = { route: 'pages/poem-square/poem-square', appThemeMode: theme,
+    $getAppWebview: () => { nativeReads.sourceWebview++; return sourceWebview; } };
   let current = source;
   const plus = { nativeObj: {
-    Bitmap: class { constructor(id) { this.id = id; this.recycled = 0; bitmaps.push(this); } recycle() { this.recycled++; } },
+    Bitmap: class { constructor(id) { this.id = id; this.createdAt = time.now(); this.recycled = 0; bitmaps.push(this); } recycle() { this.recycled++; } },
     View: class {
-      constructor(id, style) { this.id = id; this.style = style; this.closed = 0; this.shown = false; this.texts = []; covers.push(this); }
+      constructor(id, style) { this.id = id; this.createdAt = time.now(); this.style = style; this.closed = 0; this.shown = false; this.texts = []; covers.push(this); }
       drawBitmap(bitmap) { this.bitmap = bitmap; }
       drawText(text, position, style) { this.texts.push({ text, position, style }); }
       show() { this.shown = true; events.push('cover'); }
@@ -30,8 +32,8 @@ function nativeRuntime({ theme = 'light', sourceStyle = { top: '0px', height: '1
     getThemeVars: () => ({ '--app-page-bg': theme === 'dark' ? '#0f1115' : '#ffffff' }),
     getCurrentPages: () => [current], uni: { switchTab: options => { events.push('navigate'); calls.push(options); } }
   }, ['switchTabSmooth', 'cancelTabTransition', 'appTabTransitionMixin']);
-  const target = { route: 'pages/mountain/mountain', $getAppWebview: () => targetWebview, $nextTick: fn => Promise.resolve().then(fn) };
-  return { ...api, time, captures, probes, calls, covers, bitmaps, events, source, target, control, setPage: page => { current = page; } };
+  const target = { route: 'pages/activity/activity', $getAppWebview: () => targetWebview, $nextTick: fn => Promise.resolve().then(fn) };
+  return { ...api, time, captures, probes, calls, covers, bitmaps, events, source, target, control, nativeReads, setPage: page => { current = page; } };
 }
 
 function assertNativeReleased(app) {
@@ -41,7 +43,7 @@ function assertNativeReleased(app) {
 }
 
 async function startColdNavigation(app, options = {}) {
-  app.switchTabSmooth({ url: '/pages/mountain/mountain', ...options });
+  app.switchTabSmooth({ url: '/pages/activity/activity', ...options });
   app.captures.at(-1).success();
   await app.time.tick(16);
   app.setPage(app.target);
@@ -57,7 +59,7 @@ async function readyColdTarget(app) {
 async function testNativeTransition() {
   for (const readyFirst of [true, false]) {
     const app = nativeRuntime();
-    app.switchTabSmooth({ url: '/pages/mountain/mountain' });
+    app.switchTabSmooth({ url: '/pages/activity/activity' });
     assert.equal(app.calls.length, 0, '截图期间保留原页');
     assert.equal(app.captures[0].options.check, true, '空白截图不可用作过渡');
     app.captures[0].success();
@@ -85,19 +87,21 @@ async function testNativeTransition() {
     await app.time.tick(1);
     assertNativeReleased(app);
     app.setPage(app.source);
-    app.switchTabSmooth({ url: '/pages/mountain/mountain' });
+    app.switchTabSmooth({ url: '/pages/activity/activity' });
     assert.equal(app.captures.length, 1, '首帧已确认的目标再次进入直接使用 warm 路径');
     assert.equal(app.calls.length, 2);
     app.cancelTabTransition();
   }
   const reused = nativeRuntime();
   reused.appTabTransitionMixin.onReady.call(reused.target);
-  reused.switchTabSmooth({ url: '/pages/mountain/mountain' });
+  reused.switchTabSmooth({ url: '/pages/activity/activity' });
   assert.equal(reused.captures.length, 0, '已就绪 Tab 不截图，不冻结按压动画');
   assert.equal(reused.calls.length, 1, '已就绪 Tab 同步发起导航');
   assert.equal(reused.covers.length, 0);
   assert.equal(reused.bitmaps.length, 0);
   assert.equal(reused.probes.length, 0, 'warm 路径也不对目标做截图检查');
+  assert.equal(reused.nativeReads.sourceWebview, 0, '已就绪 Tab 直接导航，不再查询源原生窗口');
+  assert.equal(reused.nativeReads.sourceStyle, 0);
   assert.equal(reused.switchTabSmooth({ url: '/pages/index/index' }), false, '直接切换同样防止并发导航');
   reused.setPage(reused.target);
   reused.appTabTransitionMixin.onShow.call(reused.target);
@@ -105,7 +109,7 @@ async function testNativeTransition() {
   await drain();
   assert.equal(reused.time.pending(), 0, 'onShow + nextTick 后立即结束，不增加绘制等待');
   reused.setPage(reused.source);
-  reused.switchTabSmooth({ url: '/pages/mountain/mountain' });
+  reused.switchTabSmooth({ url: '/pages/activity/activity' });
   assert.equal(reused.calls.length, 2, '已释放直接切换的导航锁');
   reused.cancelTabTransition();
 }
@@ -114,7 +118,7 @@ async function testReadyPageLifetime() {
   const unloaded = nativeRuntime();
   unloaded.appTabTransitionMixin.onReady.call(unloaded.target);
   unloaded.appTabTransitionMixin.onUnload.call(unloaded.target);
-  unloaded.switchTabSmooth({ url: '/pages/mountain/mountain' });
+  unloaded.switchTabSmooth({ url: '/pages/activity/activity' });
   assert.equal(unloaded.captures.length, 1, '卸载后必须恢复首次打开的防白屏保护');
   unloaded.cancelTabTransition();
 
@@ -123,16 +127,16 @@ async function testReadyPageLifetime() {
   const newPage = { ...replaced.target };
   replaced.appTabTransitionMixin.onReady.call(newPage);
   replaced.appTabTransitionMixin.onUnload.call(replaced.target);
-  replaced.switchTabSmooth({ url: '/pages/mountain/mountain' });
+  replaced.switchTabSmooth({ url: '/pages/activity/activity' });
   assert.equal(replaced.captures.length, 0, '旧实例迟到卸载不能移除同路由新实例的就绪记录');
   replaced.cancelTabTransition();
 
   const nativeVm = nativeRuntime();
   const vm = { $nextTick: fn => Promise.resolve().then(fn) };
-  nativeVm.setPage({ route: 'pages/mountain/mountain', $vm: vm });
+  nativeVm.setPage({ route: 'pages/activity/activity', $vm: vm });
   nativeVm.appTabTransitionMixin.onReady.call(vm);
   nativeVm.setPage(nativeVm.source);
-  nativeVm.switchTabSmooth({ url: '/pages/mountain/mountain' });
+  nativeVm.switchTabSmooth({ url: '/pages/activity/activity' });
   assert.equal(nativeVm.captures.length, 0, '页面 VM 没有 route 时读取对应原生页面的路由');
   nativeVm.cancelTabTransition();
 
@@ -146,7 +150,7 @@ async function testReadyPageLifetime() {
     assertNativeReleased(app);
     assert.equal(app.probes.length, 0, '首帧就绪之前卸载的目标，迟到 nextTick 不得启动探测');
     app.setPage(app.source);
-    app.switchTabSmooth({ url: '/pages/mountain/mountain' });
+    app.switchTabSmooth({ url: '/pages/activity/activity' });
     assert.equal(app.captures.length, 2, '未完成首帧的已卸载页面保持 cold 状态');
     app.cancelTabTransition();
     assertNativeReleased(app);
@@ -156,7 +160,7 @@ async function testReadyPageLifetime() {
 async function testWarmCallbackOrderAndTimeout() {
   const app = nativeRuntime();
   app.appTabTransitionMixin.onReady.call(app.target);
-  app.switchTabSmooth({ url: '/pages/mountain/mountain' });
+  app.switchTabSmooth({ url: '/pages/activity/activity' });
   app.calls[0].success({});
   await drain();
   assert.equal(app.switchTabSmooth({ url: '/pages/index/index' }), false, '路由成功仍需目标 onShow 完成后再释放导航锁');
@@ -167,25 +171,79 @@ async function testWarmCallbackOrderAndTimeout() {
 
   app.setPage(app.source);
   let failures = 0;
-  app.switchTabSmooth({ url: '/pages/mountain/mountain', fail: () => failures++ });
+  app.switchTabSmooth({ url: '/pages/activity/activity', fail: () => failures++ });
   await app.time.tick(1200);
   assert.equal(failures, 1, '直接切换也有超时兜底');
   assert.equal(app.captures.length, 0);
-  app.switchTabSmooth({ url: '/pages/mountain/mountain' });
+  app.switchTabSmooth({ url: '/pages/activity/activity' });
   assert.equal(app.calls.length, 3, '超时后可重新导航');
   app.cancelTabTransition();
   assert.equal(app.time.pending(), 0);
+}
+
+async function testProfileToOriginalPreparation() {
+  const app = nativeRuntime();
+  app.source.route = 'pages/profile/profile';
+  app.target.route = 'pages/poem-square/poem-square';
+  app.switchTabSmooth({ url: '/pages/poem-square/poem-square' });
+  assert.equal(app.captures.length, 1);
+  assert.equal(app.covers.length, 1, '源截图进行时已创建过渡层');
+  const cover = app.covers[0], preparedAt = cover.createdAt;
+  assert.equal(cover.shown, false, '提前创建的过渡层不会遮住个人主页');
+  assert.equal(app.calls.length, 0);
+  await app.time.tick(200);
+  app.captures[0].success();
+  assert.equal(app.covers[0], cover, '截图完成后复用已准备的原生过渡层');
+  assert.equal(app.nativeReads.sourceStyle, 1, '截图完成后不重复读取原生窗口尺寸');
+  assert.equal(cover.bitmap, app.bitmaps[0]);
+  assert.equal(cover.createdAt, preparedAt);
+  await app.time.tick(16);
+  assert.equal(app.calls.length, 1);
+  const probe = app.bitmaps.find(bitmap => bitmap.id.startsWith('tab-ready-'));
+  assert.ok(probe, '页面挂载期间已创建首帧检测位图');
+  const probePreparedAt = probe.createdAt;
+  assert.equal(app.probes.length, 0, '位图准备不会提前执行目标首帧检测');
+  await app.time.tick(200);
+  app.setPage(app.target);
+  await readyColdTarget(app);
+  assert.equal(app.probes[0].bitmap, probe, '页面就绪后复用检测位图');
+  assert.ok(probePreparedAt < app.time.now());
+  assert.equal(app.bitmaps.length, 2, '每次冷切换仍只创建源截图与首帧检测两张位图');
+  app.probes[0].success();
+  await app.time.tick(32);
+  assertNativeReleased(app);
+
+  app.setPage(app.source);
+  const nativeReads = app.nativeReads.sourceWebview;
+  app.switchTabSmooth({ url: '/pages/poem-square/poem-square' });
+  assert.equal(app.calls.length, 2, '再次进入原创同步发起导航');
+  assert.equal(app.nativeReads.sourceWebview, nativeReads);
+  assert.equal(app.captures.length, 1);
+  assert.equal(app.covers.length, 1);
+  app.cancelTabTransition();
+  assertNativeReleased(app);
+
+  const cancelled = nativeRuntime();
+  cancelled.switchTabSmooth({ url: '/pages/activity/activity' });
+  assert.equal(cancelled.covers[0].shown, false);
+  cancelled.cancelTabTransition();
+  cancelled.captures[0].success();
+  await cancelled.time.tick(500);
+  assert.equal(cancelled.covers[0].shown, false, '取消后迟到截图不会显示提前准备的过渡层');
+  assert.equal(cancelled.calls.length, 0);
+  assertNativeReleased(cancelled);
 }
 
 async function testColdCaptureFallback() {
   for (const theme of ['light', 'dark']) {
     for (const mode of ['capture-fail', 'capture-timeout']) {
       const app = nativeRuntime({ theme });
-      app.switchTabSmooth({ url: '/pages/mountain/mountain' });
+      app.switchTabSmooth({ url: '/pages/activity/activity' });
       if (mode === 'capture-fail') app.captures[0].fail();
       else {
         await app.time.tick(349);
-        assert.equal(app.covers.length, 0, '冷截图拥有完整预算，不在 100ms 时提前放弃');
+        assert.equal(app.covers.length, 1, '截图期间已准备过渡层');
+        assert.equal(app.covers[0].shown, false, '冷截图拥有完整预算，准备的过渡层保持隐藏');
         assert.equal(app.calls.length, 0);
         await app.time.tick(1);
       }
@@ -206,7 +264,7 @@ async function testColdCaptureFallback() {
     }
   }
   const slow = nativeRuntime();
-  slow.switchTabSmooth({ url: '/pages/mountain/mountain' });
+  slow.switchTabSmooth({ url: '/pages/activity/activity' });
   await slow.time.tick(340);
   slow.captures[0].success();
   assert.equal(slow.covers[0].bitmap, slow.bitmaps[0], '预算内慢截图仍可作为过渡帧');
@@ -219,7 +277,7 @@ async function testColdCaptureFallback() {
 
 async function testCoverVisibilityAndGeometry() {
   const app = nativeRuntime({ theme: 'dark', sourceStyle: { top: '24px', left: '0px', bottom: '12px', width: '100%' }, coverVisible: false });
-  app.switchTabSmooth({ url: '/pages/mountain/mountain' });
+  app.switchTabSmooth({ url: '/pages/activity/activity' });
   app.captures[0].success();
   assert.equal(app.covers[0].style.top, '24px');
   assert.equal(app.covers[0].style.bottom, '12px', '保留源 WebView 的底部安全区域约束');
@@ -234,7 +292,7 @@ async function testCoverVisibilityAndGeometry() {
   assertNativeReleased(app);
 
   const invisible = nativeRuntime({ coverVisible: false });
-  invisible.switchTabSmooth({ url: '/pages/mountain/mountain' });
+  invisible.switchTabSmooth({ url: '/pages/activity/activity' });
   invisible.captures[0].success();
   await invisible.time.tick(159);
   assert.equal(invisible.calls.length, 0);
@@ -272,7 +330,7 @@ async function testNativeFrameProbe() {
   assertNativeReleased(pending);
   pending.probes[0].success(); pending.probes[0].fail({});
   pending.setPage(pending.source);
-  pending.switchTabSmooth({ url: '/pages/mountain/mountain' });
+  pending.switchTabSmooth({ url: '/pages/activity/activity' });
   assert.equal(pending.captures.length, 2, 'onReady 后探测一直挂起的页面不得被误记为已绘制');
   assert.equal(pending.calls.length, 1);
   pending.cancelTabTransition();
@@ -286,7 +344,7 @@ async function testNativeFrameProbe() {
   lateReady.appTabTransitionMixin.onReady.call(lateReady.target);
   await drain();
   lateReady.setPage(lateReady.source);
-  lateReady.switchTabSmooth({ url: '/pages/mountain/mountain' });
+  lateReady.switchTabSmooth({ url: '/pages/activity/activity' });
   assert.equal(lateReady.captures.length, 2, '超时之后迟到的 onReady 也不能把未验证的冷页面登记为 warm');
   lateReady.cancelTabTransition();
   assertNativeReleased(lateReady);
@@ -296,7 +354,7 @@ async function testNativeFallbackAndCleanup() {
   for (const mode of ['navigation-fail', 'ready-timeout', 'app-hide', 'source-changed']) {
     const app = nativeRuntime();
     let failures = 0;
-    app.switchTabSmooth({ url: '/pages/mountain/mountain', fail: () => failures++ });
+    app.switchTabSmooth({ url: '/pages/activity/activity', fail: () => failures++ });
     if (mode === 'source-changed') {
       app.setPage({ route: 'pages/login/login' });
       app.captures[0].success();
@@ -309,7 +367,8 @@ async function testNativeFallbackAndCleanup() {
     await app.time.tick(2600);
     app.captures[0].success(); app.captures[0].fail();
     assert.equal(app.calls.length, mode === 'source-changed' ? 0 : 1);
-    assert.equal(app.covers.length, mode === 'source-changed' ? 0 : 1);
+    assert.equal(app.covers.length, 1);
+    assert.equal(app.covers[0].shown, mode !== 'source-changed', '源页面改变后不显示提前准备的过渡层');
     assert.equal(failures, 1, '取消、导航失败和超时均通知调用方释放按钮导航锁');
     assertNativeReleased(app);
   }
@@ -329,7 +388,7 @@ async function testNativeFallbackAndCleanup() {
     await app.time.tick(32);
     assertNativeReleased(app);
     app.setPage(app.source);
-    app.switchTabSmooth({ url: '/pages/mountain/mountain' });
+    app.switchTabSmooth({ url: '/pages/activity/activity' });
     assert.equal(app.captures.length, 2, '取消、卸载或路由替换后迟到检测不能登记 warm 页面');
     app.cancelTabTransition();
     assertNativeReleased(app);
@@ -343,7 +402,7 @@ async function testNativeFallbackAndCleanup() {
     const app = nativeRuntime();
     let successes = 0, failures = 0;
     if (warm) app.appTabTransitionMixin.onReady.call(app.target);
-    app.switchTabSmooth({ url: '/pages/mountain/mountain', success: () => successes++, fail: () => failures++ });
+    app.switchTabSmooth({ url: '/pages/activity/activity', success: () => successes++, fail: () => failures++ });
     if (!warm) { app.captures[0].success(); await app.time.tick(16); }
     app.calls[0].success({});
     app.cancelTabTransition();
@@ -356,7 +415,7 @@ async function testNativeFallbackAndCleanup() {
 
   const cancelled = nativeRuntime();
   let callbacks = 0;
-  cancelled.switchTabSmooth({ url: '/pages/mountain/mountain', success: () => callbacks++, fail: () => callbacks++ });
+  cancelled.switchTabSmooth({ url: '/pages/activity/activity', success: () => callbacks++, fail: () => callbacks++ });
   cancelled.captures[0].success();
   await cancelled.time.tick(16);
   cancelled.cancelTabTransition(); cancelled.cancelTabTransition();
@@ -437,9 +496,9 @@ async function testCachedFirstFrame() {
   const homeKey = buildCacheKey({ page: 0, pageSize: 10, isPoem: false, isDiscussion: false });
   ns.set(mountainKey, posts, { ttlMs: 90000 });
   ns.set(homeKey, posts, { ttlMs: 90000 });
-  const mountain = load('pages/mountain/mountain.vue', { ...base, ...poems });
-  const page = { selectedPoetName: null, setData(value) { Object.assign(this, value); },
-    normalizePoemCardPost(post) { post.isExpanded = false; return post; }, syncLikeStatusFromCache() {},
+  const mountain = load('pages/poem-square/poem-square.vue', { ...base, ...poems, cacheManager, ORIGINAL_POEMS_PAGE_SIZE: 10 });
+  const page = { postList: [], page: 0, isReadingMode: true, selectedPoetName: null, applyLocalState(value) { Object.assign(this, value); },
+    normalizePoemCardPost(post) { post.isExpanded = false; return post; }, syncLikeStatusFromCache() {}, convertCloudUrls: async () => {},
     getPostList() { throw Error('cached mountain must not fetch'); } };
   let callback = 0;
   mountain.methods.getIndexData.call(page, () => callback++);
@@ -470,7 +529,7 @@ async function testCachedFirstFrame() {
 }
 
 (async () => {
-  for (const test of [testNativeTransition, testReadyPageLifetime, testWarmCallbackOrderAndTimeout, testColdCaptureFallback, testCoverVisibilityAndGeometry, testNativeFrameProbe, testNativeFallbackAndCleanup, testTabBarActions, testCachedFirstFrame]) {
+  for (const test of [testNativeTransition, testReadyPageLifetime, testWarmCallbackOrderAndTimeout, testProfileToOriginalPreparation, testColdCaptureFallback, testCoverVisibilityAndGeometry, testNativeFrameProbe, testNativeFallbackAndCleanup, testTabBarActions, testCachedFirstFrame]) {
     await test(); console.log('PASS ' + test.name);
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });

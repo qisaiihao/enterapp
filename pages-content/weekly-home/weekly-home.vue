@@ -301,7 +301,7 @@ export default {
           return;
         }
       } catch (_) {}
-      uni.navigateTo({ url: '/pages-content/activity-list/activity-list' });
+      uni.switchTab({ url: '/pages/activity/activity' });
     }
   }
 };

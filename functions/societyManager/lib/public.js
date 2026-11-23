@@ -1,5 +1,6 @@
 'use strict';
 const { error, text, id, page, read, list, listAll, oneOf, pick, publicSociety, activeSociety, membership, hash, profileTextMatches } = require('./common');
+const { isRestricted } = require('../_lib/posts/visibility');
 
 async function publicMemberPage(db, societyId, pagination = { skip: 0, limit: 50 }) {
   const members = await list(db, 'society_members', { societyId, status: 'active' }, { ...pagination, order: 'joinedAt' });
@@ -37,7 +38,7 @@ async function memberDirectory(db, event) {
   const pagination = page(event);
   return { society: publicSociety(society), ...(await publicMemberDirectory(db, society._id, pagination)) };
 }
-async function presentWorks(db, relations, viewerId = '', userId = '') {
+async function presentWorks(db, relations, viewerId = '', userId = '', memberSocietyId = '') {
   const posts = await Promise.all(relations.map(row => read(db, 'posts', row.postId)));
   const societies = await Promise.all(relations.map(row => read(db, 'societies', row.societyId)));
   const blocks = viewerId ? await list(db, 'blocks', { blockerId: viewerId }, { limit: 100 }) : [];
@@ -46,14 +47,15 @@ async function presentWorks(db, relations, viewerId = '', userId = '') {
   const result = [];
   relations.forEach((relation, index) => {
     const post = posts[index];
-    if (!post || societies[index]?.status !== 'active' || post.isHidden === true || post.isDeleted === true ||
+    const memberWork = memberSocietyId && post?.visibility === 'society' && post.visibilitySocietyId === memberSocietyId;
+    if (!post || societies[index]?.status !== 'active' || (!memberWork && (post.isHidden === true || isRestricted(post))) || post.isDeleted === true ||
       post.isAnonymous === true || post.isAnonymous === 'true' || post._openid === '123456' ||
       (post.auditStatus && post.auditStatus !== 'approved') ||
       (post.publishMode ? post.publishMode !== 'poem' : post.isPoem !== true) ||
       post._openid !== relation.authorId || (userId && post._openid !== userId) || blockedIds.has(post._openid) || seen.has(post._id)) return;
     seen.add(post._id);
     result.push({ ...pick(post, ['_id', '_openid', 'title', 'content', 'authorName', 'authorAvatar', 'authorSignature',
-      'createTime', 'backgroundColor', 'textColor', 'highlightLines', 'isSeries', 'seriesBlocks', 'votes', 'commentCount', 'isOriginal']),
+      'createTime', 'backgroundColor', 'textColor', 'highlightLines', 'isSeries', 'seriesBlocks', 'votes', 'commentCount', 'isOriginal', 'visibility', 'hideAt']),
       isPoem: true, displayContent: post.content || '', displayHighlightLines: post.highlightLines || [],
       societyId: relation.societyId, societyPublishedAt: relation.publishedAt });
   });
@@ -73,8 +75,10 @@ async function works(db, { societyId, userId, cursor = '', limit = 12, viewerId 
   const filter = { status: 'published' };
   if (societyId) filter.societyId = societyId;
   if (userId) filter.authorId = userId;
+  const memberSocietyId = societyId && await membership(db, societyId, viewerId) ? societyId : '';
+  if (!memberSocietyId) filter.membersOnly = db.command.neq(true);
   const relations = await list(db, 'society_publications', filter, { skip, limit, order: 'publishedAt' });
-  return { works: await presentWorks(db, relations, viewerId, userId), cursor: String(skip + relations.length), hasMore: relations.length === limit };
+  return { works: await presentWorks(db, relations, viewerId, userId, memberSocietyId), cursor: String(skip + relations.length), hasMore: relations.length === limit };
 }
 async function societyWorks(db, event, user) {
   const society = await activeSociety(db, event.societyId);

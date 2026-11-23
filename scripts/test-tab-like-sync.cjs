@@ -3,7 +3,7 @@ const { load, fakeTime } = require('./test-splash-startup.cjs');
 
 const LIST_NAMESPACES = ['posts:list', 'posts:discover', 'posts:tag:poem', 'me:posts', 'userPosts:reader', 'myLikes'];
 const CACHE_PAGES = 40;
-const PAGE_FILES = ['pages/index/index.vue', 'pages/poem-square/poem-square.vue', 'pages/mountain/mountain.vue'];
+const PAGE_FILES = ['pages/index/index.vue', 'pages/poem-square/poem-square.vue'];
 const HOME_LISTS = ['postList', 'discoverPostList', 'discussionPostList', 'followingPostList'];
 
 function posts(suffix = '') {
@@ -135,7 +135,7 @@ async function testActualLikeStillUpdatesCaches() {
 
 (async () => {
   testPageReconciliationDoesNotPersist();
-  console.log('PASS tab UI like sync: three real pages, 240 cached lists, zero storage writes');
+  console.log('PASS tab UI like sync: two real pages, 240 cached lists, zero storage writes');
   await testActualLikeStillUpdatesCaches();
   console.log('PASS actual like: service and event bridge update memory, persisted lists and like status');
 })().catch(error => { console.error(error); process.exitCode = 1; });

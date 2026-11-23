@@ -1,5 +1,6 @@
 'use strict';
 
+const { publicVisibilityWhere } = require('./visibility');
 const DERIVED = new Set(['isPoem', 'isDiscussion', 'isActivityPost']);
 const SPARSE = new Set(['isAnonymous', 'isSeries', 'isHidden', 'isFoundPoetry']);
 const logic = value => value && Array.isArray(value.operands) && ['and', 'or', 'nor', 'not'].includes(value.operator);
@@ -133,18 +134,23 @@ function expandFields(fields) {
   if (out.content || out.highlightLines || out.seriesBlocks) {
     out.poemFontSize = true;
     out.poemTextStyles = true;
+    out.poemVertical = true;
   }
   // Type/privacy information must survive selective projections.
-  for (const key of ['publishMode', 'isPoem', 'isDiscussion', 'isAnonymous', 'realAuthorOpenid', 'isSeries', 'isOriginal', 'activityId', 'isActivityPost']) out[key] = true;
+  for (const key of ['publishMode', 'isPoem', 'isDiscussion', 'isAnonymous', 'realAuthorOpenid', 'isSeries', 'isOriginal', 'activityId', 'isActivityPost', 'visibility', 'hideAt']) out[key] = true;
   for (const [key, dependencies] of Object.entries(DEPENDENCIES)) if (out[key]) for (const dependency of dependencies) out[dependency] = true;
   return out;
 }
 
-function postLookup(options) {
+function scopedPublicWhere(input) {
+  return literal({ $and: [compatibleWhere(input), publicVisibilityWhere()] });
+}
+
+function postLookup(options, publicOnly) {
   if (options.from !== 'posts') return options;
   if (!options.pipeline) return options;
   let hydrated = false;
-  const pipeline = [];
+  const pipeline = publicOnly ? [{ $match: publicVisibilityWhere() }] : [];
   for (const stage of options.pipeline) {
     if (!hydrated && !['$match', '$sort', '$skip', '$limit'].some(key => key in stage)) {
       pipeline.push({ $addFields: viewFields() }); hydrated = true;
@@ -154,4 +160,4 @@ function postLookup(options) {
   if (!hydrated) pipeline.push({ $addFields: viewFields() });
   return { ...options, pipeline };
 }
-module.exports = { compatibleWhere, viewFields, expandFields, postLookup };
+module.exports = { compatibleWhere, viewFields, expandFields, postLookup, scopedPublicWhere };

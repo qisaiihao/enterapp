@@ -1,4 +1,4 @@
-const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
+const { createPostsDatabase, withPostResponse, prepareVisibility, insertPublishedPost, requirePublicationSociety } = require('./_lib/posts');
 const { normalizePoemFontSize, normalizePoemTextStyles, normalizeDiscussionGroups, mergeDiscussionTextStyles } = require('./_lib/posts/schema');
 const { moderateBeforeWrite } = require('./_lib/moderation-gate');
 const { queueModerationReview } = require('./_lib/moderation-review');
@@ -61,6 +61,7 @@ exports.main = async (event, context) => {
       isPoem: event.publishMode === 'poem' || event.isSeries || false,
       isSeries: event.isSeries || false,
       isOriginal: event.isOriginal || false,
+      ...prepareVisibility(event, { isPoem: event.publishMode === 'poem' || event.isSeries, isSubmission: Boolean(event.activityId || event.joinActivityId), isAnonymous }),
       creationDate: event.isOriginal && (event.publishMode === 'poem' || event.isSeries) ? (event.creationDate || '') : '',
       creationLocation: event.isOriginal && (event.publishMode === 'poem' || event.isSeries) ? (event.creationLocation || '') : '',
       showCreationDate: !!event.isOriginal && (event.publishMode === 'poem' || !!event.isSeries) && event.showCreationDate === true,
@@ -74,6 +75,7 @@ exports.main = async (event, context) => {
     };
     if (postData.isPoem || event.poemFontSize !== undefined) postData.poemFontSize = normalizePoemFontSize(event.poemFontSize);
     if (postData.isPoem || event.poemTextStyles !== undefined) postData.poemTextStyles = normalizePoemTextStyles(event.poemTextStyles, postData.content);
+    if (postData.isPoem && event.poemVertical === true) postData.poemVertical = true;
 
     // 添加颜色信息
     if (event.backgroundColor) {
@@ -129,15 +131,14 @@ exports.main = async (event, context) => {
     });
     if (moderationFailure) {
       if (!['CONTENT_BLOCKED', 'REVIEW_REQUIRED'].includes(moderationFailure.code)) return moderationFailure;
+      if (postData.visibility === 'society') await requirePublicationSociety(db, postData);
       return await queueModerationReview(db, {
         openid, source: 'createPost', kind: 'post', audit: moderationFailure, data: postData
       });
     }
 
     // 创建帖子
-    const result = await db.collection('posts').add({
-      data: postData
-    });
+    const result = await insertPublishedPost(db, postData);
     
     console.log('✅ [createPost] 帖子创建成功:', result._id);
     

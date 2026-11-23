@@ -5,7 +5,7 @@ cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
 
-const db = createPostsDatabase(cloud.database());
+const db = createPostsDatabase(cloud.database(), { publicOnly: true });
 
 // 云函数入口函数
 exports.main = async (event, context) => {

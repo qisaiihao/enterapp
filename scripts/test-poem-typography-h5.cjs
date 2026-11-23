@@ -19,9 +19,9 @@ async function main() {
         page.setDefaultTimeout(15000);
         await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
         await page.goto((process.env.H5_URL || 'http://127.0.0.1:8081/') + '#/pages/login/login', { waitUntil: 'networkidle2' });
-        await page.evaluate(() => {
-            uni.setStorageSync('privacyConsentVersion', '2026-10-14');
-            uni.reLaunch({ url: '/pages/login/login' });
+        await page.evaluate(async () => {
+            (await import('/utils/privacyConsent.js')).acceptPrivacyConsent();
+            await new Promise((resolve, reject) => uni.reLaunch({ url: '/pages/login/login', success: resolve, fail: reject }));
         });
         await page.waitForFunction(() => getCurrentPages().at(-1)?.route === 'pages/login/login');
         await page.waitForFunction(() => typeof getCurrentPages === 'function' && getCurrentPages().at(-1)?.$vm);
@@ -61,7 +61,14 @@ async function main() {
                 const original = kind === 'add' ? add : kind === 'detail' ? detail : preview;
                 const node = h({ ...original, onLoad: undefined, onShow: undefined, onReady: undefined, onHide: undefined, onUnload: undefined, onBackPress: undefined,
                     beforeCreate() { this.$.$pageInstance = pageVm.$; },
-                    methods: { ...original.methods, scheduleWorkingDraftSave() {}, goBack() {}, exitWithOptionalSave() {}, getAddPageVm() { return null; } }
+                    methods: {
+                        ...original.methods,
+                        scheduleWorkingDraftSave() {},
+                        goBack() {},
+                        exitWithOptionalSave() {},
+                        getAddPageVm() { return null; },
+                        loadVisibilitySocieties() {}
+                    }
                 }, kind === 'detail' ? { id: 'review-post-detail', 'data-review-page': 'detail' } : null);
                 node.appContext = context;
                 render(node, container);
@@ -385,6 +392,42 @@ async function main() {
         await page.waitForFunction(() => window.__typographyReview.instance.seriesBlocks[0].poemTextStyles?.length === 1);
         assert.ok(!await page.evaluate(() => window.__typographyReview.instance.seriesBlocks[1].poemTextStyles?.length), 'Other series poems are unchanged');
         await page.screenshot({ path: path.join(output, 'series-light-390.png') });
+
+        await page.setViewport({ width: 320, height: 640, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+        const poem = '月光落在窗前。\n\n水面仍有微风\n' + '远处传来一阵潮声'.repeat(7)
+            + '\n' + Array.from({ length: 20 }, () => '一盏灯还醒着').join('\n') + '\n末句';
+        await page.evaluate(content => window.__typographyReview.mount('add', 'light', false, { content }), poem);
+        await page.click('#typography-review .poem-layout-option:last-child');
+        await page.waitForFunction(() => window.__typographyReview.instance.poemVertical);
+        const verticalPost = await page.evaluate(() => {
+            const navigate = uni.navigateTo;
+            try {
+                uni.navigateTo = () => {};
+                window.__typographyReview.instance.goToPreview();
+                return uni.getStorageSync('preview_post');
+            } finally {
+                uni.navigateTo = navigate;
+            }
+        });
+        assert.equal(verticalPost.poemVertical, true);
+        assert.equal(verticalPost.editData.poemVertical, true);
+        assert.equal(verticalPost.content, poem);
+        await page.evaluate(post => window.__typographyReview.mount('preview', 'light', false, post), verticalPost);
+        const columns = await page.$$eval('#typography-review .poem-rich-column', elements => elements.map(el => {
+            const box = el.getBoundingClientRect();
+            return { text: el.textContent.trim(), mode: getComputedStyle(el).writingMode, left: box.left, top: box.top, right: box.right };
+        }));
+        assert.equal(columns[0].mode, 'vertical-rl');
+        assert.ok(columns[0].left > columns[1].left && columns[1].left > columns[2].left, 'Columns read from the right');
+        assert.equal(columns[1].text, '', 'A stanza break reserves an empty column');
+        assert.equal(columns.at(-1).text, '末句');
+        assert.ok(columns.at(-1).top > columns[0].top && columns.every(column => column.left >= 0 && column.right <= 320), 'Long poems continue below without clipping');
+        await page.screenshot({ path: path.join(output, 'vertical-preview-320.png') });
+        await page.evaluate(post => window.__typographyReview.mount('add', 'dark', false, post), verticalPost);
+        assert.equal(await page.$eval('#typography-review .poem-layout-option.is-selected', el => el.textContent.trim()), '竖排');
+        await page.click('#typography-review .poem-layout-option:first-child');
+        await page.waitForFunction(() => !window.__typographyReview.instance.poemVertical);
+
         await page.evaluate(() => window.__typographyReview.mount('detail', 'light'));
         assert.equal(await page.$eval('#typography-review .post-detail-page', el => el.id), 'review-post-detail', 'Route id is bound to the detail page root');
         assert.equal(await page.$$eval('#typography-review [id="review-post-detail"]', elements => elements.length), 1, 'Overlay host does not inherit the page id');

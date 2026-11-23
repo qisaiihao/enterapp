@@ -5,7 +5,7 @@
 import fontManager from './fontManager.js';
 import fileUrlCache from '@/cache/core/file-url.js';
 import { getCreationLabel } from './poemCreation.js';
-import { layoutPoemText, drawPoemTextLayout } from './poemTypography.js';
+import { layoutPoemText, drawPoemTextLayout, layoutVerticalPoem, paginateVerticalPoem, drawVerticalPoemLayout } from './poemTypography.js';
 
 // 兼容旧的 fontFamily ID 到 displayName 的映射
 const LEGACY_FONT_MAP = {
@@ -631,11 +631,14 @@ async function calculateShareCardHeight(options) {
     }
 
     // 计算正文行数和高度
-    const processedLines = wrapText(measureCtx, content, textAreaWidth, fontSize, actualFontFamily);
-    const styledLines = post.poemTextStyles?.length
+    const verticalLayout = post.poemVertical === true
+        ? paginateVerticalPoem(layoutVerticalPoem(content, post.poemTextStyles, fontSize, post.poemFontSize), textAreaWidth, fontSize)
+        : null;
+    const processedLines = verticalLayout ? [] : wrapText(measureCtx, content, textAreaWidth, fontSize, actualFontFamily);
+    const styledLines = !verticalLayout && post.poemTextStyles?.length
         ? layoutPoemText(measureCtx, content, post.poemTextStyles, fontSize, post.poemFontSize, textAreaWidth, actualFontFamily)
         : null;
-    const wrappedContentHeight = styledLines
+    const wrappedContentHeight = verticalLayout ? verticalLayout.height : styledLines
         ? styledLines.reduce((height, line) => height + line.before + line.lineHeight + line.after, 0)
         : processedLines.reduce((h, line) => h + (line && line.trim() ? lineHeight : lineHeight * 0.5), 0);
     const contentHeight = Math.max(wrappedContentHeight, 200);
@@ -697,6 +700,7 @@ async function calculateShareCardHeight(options) {
         canvasHeight: Math.ceil(finalCanvasHeight),
         processedLines,
         styledLines,
+        verticalLayout,
         creationLines,
         creationFontSize,
         creationLineHeight,
@@ -732,6 +736,7 @@ async function drawShareCardContent(options) {
         canvasHeight,
         processedLines,
         styledLines,
+        verticalLayout,
         titleHeight,
         creationLines = [],
         creationFontSize,
@@ -823,7 +828,9 @@ async function drawShareCardContent(options) {
         ctx.setTextAlign('left');
     };
 
-    if (styledLines) {
+    if (verticalLayout) {
+        y = drawVerticalPoemLayout(ctx, verticalLayout, { x, top: y - fontSize, fontFamily: actualFontFamily, textColor });
+    } else if (styledLines) {
         y = drawPoemTextLayout(ctx, styledLines, { x, top: y - fontSize, fontFamily: actualFontFamily, textColor });
     } else processedLines.forEach((line) => {
         if (line.trim()) {

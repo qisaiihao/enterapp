@@ -9,14 +9,14 @@ import {
 } from './my.js';
 import { invalidateUserInfo, invalidateUserPosts } from './user-profile.js';
 
-export async function togglePostVisibility(postId, context) {
+export async function togglePostVisibility(postId, context, hidden) {
   console.log('[profile-actions] toggle post visibility', postId);
 
   const result = await callCloudAndUnwrap(
-    'getMyProfileData',
+    'updatePostVisibility',
     {
-      action: 'togglePostVisibility',
-      postId
+      postId,
+      hidden
     },
     {
       pageTag: 'profile:toggle-visibility',
@@ -30,7 +30,8 @@ export async function togglePostVisibility(postId, context) {
 
   return {
     success: true,
-    isHidden: result.isHidden
+    isHidden: result.isHidden,
+    visibility: result.visibility
   };
 }
 

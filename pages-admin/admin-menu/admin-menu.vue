@@ -5,6 +5,7 @@
                 <image class="admin-back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
             </view>
             <text class="admin-title">管理中心</text>
+            <button class="admin-exit-button" hover-class="admin-exit-button--pressed" @tap="exitAdmin">退出</button>
         </view>
 
         <view class="menu-list">
@@ -151,6 +152,9 @@ export default {
             } catch (_) {}
             uni.switchTab({ url: '/pages/profile/profile' });
         },
+        exitAdmin() {
+            uni.switchTab({ url: '/pages/profile/profile' });
+        },
         navigateTo(e) {
             const url = e.currentTarget.dataset.url;
             uni.navigateTo({ url });
@@ -170,6 +174,10 @@ export default {
     display: flex;
     align-items: center;
     min-height: 80rpx;
+    justify-content: space-between;
+    gap: 20rpx;
+    background: white;
+    padding: 40rpx 30rpx;
     margin-bottom: 20rpx;
 }
 
@@ -191,6 +199,27 @@ export default {
     font-size: 40rpx;
     font-weight: bold;
     color: #333;
+}
+
+.admin-exit-button {
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0 28rpx;
+    height: 68rpx;
+    line-height: 66rpx;
+    border: 1px solid #333;
+    border-radius: 34rpx;
+    background: transparent;
+    color: #333;
+    font-size: 28rpx;
+}
+
+.admin-exit-button::after {
+    border: none;
+}
+
+.admin-exit-button--pressed {
+    background: #f2f2f2;
 }
 
 .menu-list {

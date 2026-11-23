@@ -92,6 +92,14 @@ function listAdminWeeklyCandidatePosts({ skip = 0, limit = 20, keyword = '', per
   );
 }
 
+function listAdminWeeklySubmissionPosts({ skip = 0, limit = 20, keyword = '', activityId = '', context } = {}) {
+  return callAdminWeekly(
+    'listWeeklySubmissionPosts',
+    { skip, limit, keyword, activityId },
+    { pageTag: 'admin-weekly-submissions', context, fallbackMessage: '加载投稿作品失败' }
+  );
+}
+
 function listAdminWeeklyTopics({ skip = 0, limit = 20, status = '', context } = {}) {
   return callAdminWeekly(
     'listWeeklyTopics',
@@ -142,6 +150,7 @@ const adminWeeklyApi = {
   deleteAdminWeeklyIssue,
   generateAdminWeeklyRanking,
   listAdminWeeklyCandidatePosts,
+  listAdminWeeklySubmissionPosts,
   listAdminWeeklyFeaturedIssues,
   updateAdminWeeklyFeaturedIssues,
   listAdminWeeklyTopics,
@@ -161,6 +170,7 @@ export {
   deleteAdminWeeklyIssue,
   generateAdminWeeklyRanking,
   listAdminWeeklyCandidatePosts,
+  listAdminWeeklySubmissionPosts,
   listAdminWeeklyFeaturedIssues,
   updateAdminWeeklyFeaturedIssues,
   listAdminWeeklyTopics,

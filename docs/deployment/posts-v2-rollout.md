@@ -22,7 +22,7 @@
 - [共享模块](../../functions/_shared/posts/index.js)：统一 posts 数据库访问、聚合/lookup 兼容、返回前移除匿名真实身份、事务读写适配。
 - [存储契约](../../functions/_shared/posts/schema.js)：创建白名单、V2 精简文档、V2 PATCH 删除空字段与旧别名，以及旧接口视图。
 - [查询适配](../../functions/_shared/posts/query.js)：在数据库筛选阶段处理类型字段；聚合在需要投影/计算时补兼容字段，不新增数据库往返。
-- [部署目录清单](../../functions/_shared/posts/consumers.json)：45 个目录，包括独立网站 webReader。各目录带 `_lib/posts/`，独立上传可运行。
+- [部署目录清单](../../functions/_shared/posts/consumers.json) 包括独立网站 webReader。各目录带 `_lib/posts/`，独立上传可运行。
 - [同步与检查脚本](../../scripts/sync-posts-shared.cjs)：共享源码复制到部署目录，并检查副本一致及新增访问者是否进入清单。
 - [契约测试](../../scripts/test-posts-schema.cjs)：真实 SDK 查询编码、混合分页、投影、五个创建入口、详情、编辑、匿名权限与发布请求数。
 - 前端 `utils/postNormalizer.js` 对旧缓存和新旧字段提供展示回退。
@@ -45,7 +45,7 @@
 ## 部署步骤
 
 1. 执行 `npm run sync:posts`，再执行 `npm run test:posts`。共享源码只能改 `functions/_shared/posts/`，不要手改各函数的生成副本。
-2. 对照 consumers.json 部署全部相关云函数及 webReader，确认上传内容包含 `_lib/posts/` 三个文件。第一轮保持写入开关未设置或为 1。
+2. 对照 consumers.json 部署全部相关云函数及 webReader，确认上传内容包含完整的 `_lib/posts/`。第一轮保持写入开关未设置或为 1。
 3. 在测试环境准备旧记录及 V2 记录，验证列表、搜索、详情、管理筛选、个人页、活动、作品集、收藏、推荐、周刊、拼贴和网站。
 4. 观察包含 schemaVersion / publishMode 的双分支查询计划。按实际过滤及排序建立 V2 组合索引；保留原有 V1 索引。不能仅根据本地测试通过判断云端查询可执行或索引成本合适。
 5. 用已发布且拟支持的旧 App、新整包和小程序验证读取及发布、编辑、隐藏/恢复、匿名、删除。旧 App 如曾绕过云函数直读 posts，必须单独识别并处理，不能假设兼容层覆盖它。
@@ -57,6 +57,12 @@
 ## 回滚
 
 将五个创建函数的开关改回 1，保留已部署的兼容读取代码，已产生的 V2 帖子继续正常读取和编辑。不要退回只认识 isPoem/isDiscussion 存储字段的旧云函数。无需紧急扫描全库补字段。
+
+## 诗歌发布范围
+
+发布预览由 `contentCheck` 写入诗歌可见范围。普通发布默认公开。仅自己可见继续写入 `isHidden`。已加入诗社的发布者可选诗社成员可见，发布时同时写入 `society_publications`，作者和所选诗社的当前成员可读。发布后可通过 `updatePostVisibility` 手动隐藏。旧定时作品及已提交复核的定时作品仍按原有期限处理，发布接口拒绝新建定时作品。平台活动和诗社征稿使用公开发布。
+
+发布新安装包前，服务端需先验证 App/H5 账号身份。当前 CloudBase 调用依赖客户端注入的 `openid`，只能覆盖正常登录路径。后台部署应先同步并更新所有含可见范围判断的读取云函数（包括 `webReader`），再更新发布写入口。旧写入口会忽略新增字段。现有 `posts` 和 `society_publications` 集合可承载新增字段。
 
 ## 验证记录
 

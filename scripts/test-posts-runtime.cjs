@@ -20,6 +20,7 @@ function runtimeLoader(db) {
     cache.set(filename, module);
     const localRequire = id => {
       if (id === 'wx-server-sdk') return { init() {}, database: () => db, getWXContext: () => ({ OPENID: 'viewer' }) };
+      if (id === 'crypto') return require(id);
       if (id.includes('get-blocked-user-ids')) return async () => [];
       if (id.startsWith('.')) return load(path.resolve(path.dirname(filename), id));
       throw Error('Unexpected dependency: ' + id);

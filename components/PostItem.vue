@@ -118,10 +118,10 @@
                     </view>
                 </view>
                 <view v-else-if="isSeriesPost(item)" class="series-simple-preview">
-                    <view class="post-content" style="white-space: pre-wrap"><PoemRichText :text="getSeriesPreviewText(item)" :styles="item.poemTextStyles || []" :source-text="item.content" :base-font-size="item.poemFontSize" /></view>
+                    <view class="post-content" style="white-space: pre-wrap"><PoemRichText :text="getSeriesPreviewText(item)" :styles="item.poemTextStyles || []" :source-text="item.content" :base-font-size="item.poemFontSize" :vertical="item.poemVertical" :max-vertical-columns="3" /></view>
                     <view class="series-meta-tag">组诗·{{ item.seriesBlockCount || (item.seriesBlocks && item.seriesBlocks.length) }}</view>
                 </view>
-                <view class="post-content" v-else-if="item.content" style="white-space: pre-wrap"><PoemRichText :text="item.content" :styles="item.poemTextStyles || []" :base-font-size="item.poemFontSize" /></view>
+                <view class="post-content" v-else-if="item.content" style="white-space: pre-wrap"><PoemRichText :text="item.content" :styles="item.poemTextStyles || []" :base-font-size="item.poemFontSize" :vertical="item.poemVertical" :max-vertical-columns="3" /></view>
 
                 <PoemCreationMeta :post="item" />
 

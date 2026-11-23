@@ -16,11 +16,11 @@
             </view>
 
             <!-- 按钮层：独立定位，不影响文字 -->
-            <view v-if="showEnterButton" :class="'enter-key-container ' + (preloadCompleted && loginStateReady ? '' : 'loading')" @tap="handleEnterButtonClick">
+            <view v-if="splashFlowStarted && showEnterButton" :class="'enter-key-container ' + (preloadCompleted && loginStateReady ? '' : 'loading')" @tap="handleEnterButtonClick">
                 <image class="enter-key-image" src="/static/images/enter_key.png" mode="aspectFit"></image>
             </view>
         </view>
-        <view class="loading-indicator" v-if="isPreloading || !loginStateReady">
+        <view class="loading-indicator" v-if="splashFlowStarted && (isPreloading || !loginStateReady)">
             {{ loginStateFailed ? '登录状态恢复失败，可点击进入' : (!loginStateReady ? '正在恢复登录状态...' : '正在加载内容...') }}
         </view>
     </view>
@@ -58,17 +58,18 @@ export default {
             loginStateFailed: false,
             isPreloading: true,
             fadeOut: false,
-            showPrivacyConsent: false
+            showPrivacyConsent: false,
+            splashFlowStarted: false
         };
     },
     onLoad() {
         this._splashDisposed = false;
         this._splashLeaving = false;
         this._splashNavigating = false;
-        this._splashFlowStarted = false;
+        this.splashFlowStarted = false;
         this._startupStartedAt = Date.now();
         this.executeTypingAnimation();
-        // 未确认隐私政策前不启动数据预加载和开屏放行计时，确认后再进入。
+        // 同意两份文件后启动数据预加载和开屏放行计时。
         if (hasAcceptedPrivacyConsent()) this.startSplashFlow();
         else this.showPrivacyConsent = true;
     },
@@ -101,8 +102,8 @@ export default {
             this._typingTimer = setTimeout(typeNextChar, interval);
         },
         startSplashFlow() {
-            if (this._splashDisposed || this._splashFlowStarted) return;
-            this._splashFlowStarted = true;
+            if (this._splashDisposed || this.splashFlowStarted) return;
+            this.splashFlowStarted = true;
             this._splashGate = createSplashGate({
                 // openid 可请求帖子，但个人主页还需要完整的 userInfo/isLoggedIn。
                 canAutoEnter: () => this.isStartupLoginReady(),
@@ -193,7 +194,7 @@ export default {
         },
         exitForPrivacyConsent() {
             // #ifdef APP-PLUS
-            if (typeof plus !== 'undefined' && plus.runtime && typeof plus.runtime.quit === 'function') {
+            if (typeof plus !== 'undefined' && plus.os?.name === 'Android' && typeof plus.runtime?.quit === 'function') {
                 plus.runtime.quit();
                 return true;
             }
@@ -208,7 +209,7 @@ export default {
         },
         reopenPrivacyConsent() {
             if (this._splashDisposed) return;
-            uni.showToast({ title: '请同意隐私政策后使用本应用', icon: 'none' });
+            uni.showToast({ title: '请同意用户协议与隐私政策后继续', icon: 'none' });
             clearTimeout(this._privacyReopenTimer);
             this._privacyReopenTimer = setTimeout(() => {
                 if (!this._splashDisposed) this.showPrivacyConsent = true;

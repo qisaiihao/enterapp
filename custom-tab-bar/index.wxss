@@ -177,3 +177,12 @@
     transform: none;
   }
 }
+.tab-activity-dot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background: #ff4d4f;
+}

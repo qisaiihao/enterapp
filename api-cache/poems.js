@@ -2,6 +2,7 @@ import cacheManager from '@/cache/core/manager.js';
 import { buildCacheKey } from './cache-key-builder.js';
 import { cloudCall } from '@/utils/cloudCall.js';
 import { getPostList } from './post-list.js';
+import { filterExpiredPublicPosts } from '@/utils/postVisibility.js';
 
 // 诗歌相关API缓存：TTL 75s + SWR 30s (诗歌更新频率适中)
 const TTL_MS = 75 * 1000;
@@ -11,7 +12,7 @@ export const ORIGINAL_POEMS_PAGE_SIZE = 10;
 // 开屏和广场使用完全相同的分页参数与缓存键。
 export function peekOriginalPoems() {
   const key = buildCacheKey({ page: 0, pageSize: ORIGINAL_POEMS_PAGE_SIZE, isPoem: true, isOriginal: true, originalMix: true });
-  return cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 }).get(key);
+  return filterExpiredPublicPosts(cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 }).get(key));
 }
 
 export function getOriginalPoemsVersion() {
@@ -22,7 +23,7 @@ export function getOriginalPoemsVersion() {
 export function peekMountainPoems({ pageSize = 10, filterByPoet } = {}) {
   const key = buildCacheKey({ page: 0, pageSize, isPoem: true, isOriginal: false, excludeAnonymous: true })
     + (filterByPoet ? `:author:${filterByPoet}` : '');
-  return cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 }).get(key);
+  return filterExpiredPublicPosts(cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 }).get(key));
 }
 
 // 使用独立的 poems:following 命名空间
@@ -114,7 +115,7 @@ async function getFollowingPoems({
       swrMs: SWR_MS,
       onBackgroundUpdate
     }
-  );
+  ).then(filterExpiredPublicPosts);
 }
 
 /**

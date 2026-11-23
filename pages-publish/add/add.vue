@@ -31,6 +31,13 @@
 
         <!-- 内容输入区域 -->
         <view class="content-section" :class="{ 'content-section--poem': publishMode === 'poem' }" :style="poemFontVars">
+            <view v-if="publishMode === 'poem'" class="poem-layout-control">
+                <text class="poem-layout-label">卡片排版</text>
+                <view class="poem-layout-options">
+                    <button class="poem-layout-option" :class="{ 'is-selected': !poemVertical }" :aria-pressed="!poemVertical" @tap.stop="setPoemVertical(false)">横排</button>
+                    <button class="poem-layout-option" :class="{ 'is-selected': poemVertical }" :aria-pressed="poemVertical" @tap.stop="setPoemVertical(true)">竖排</button>
+                </view>
+            </view>
             <!-- 主输入区域 -->
                 <view class="main-input-area" @tap.stop="noop">
                 <!-- 讨论模式：块级编辑器，直接交错正文/引用 -->
@@ -405,6 +412,7 @@ export default {
             joinedActivityId: '',
             joinedActivityTitle: '',
             societyCallId: '',
+            poemVisibility: null,
 
             // 'normal' | 'poem' | 'discussion' 普通模式 | 诗歌模式 | 讨论模式
             isOriginal: false,
@@ -820,6 +828,7 @@ export default {
                 content: this.content || '',
                 imageList: Array.isArray(this.imageList) ? this.imageList : [],
                 publishMode: this.publishMode || 'normal',
+                poemVisibility: this.poemVisibility,
                 isOriginal: !!this.isOriginal,
                 ...getCreationFields(this),
                 ...getPoemTypographyFields(this),
@@ -852,6 +861,11 @@ export default {
                 updatedAt: Date.now(),
                 saveTime: Date.now()
             };
+        },
+
+        setPoemVertical(vertical) {
+            this.poemVertical = vertical;
+            this.scheduleWorkingDraftSave();
         },
 
         onPoemTextChange(value) {
@@ -1001,6 +1015,7 @@ export default {
                 content,
                 imageList: Array.isArray(draftData.imageList) ? draftData.imageList : [],
                 publishMode,
+                poemVisibility: draftData.poemVisibility || null,
                 isOriginal: !!draftData.isOriginal,
                 ...getCreationFields(draftData),
                 ...getPoemTypographyFields(draftData),
@@ -1070,10 +1085,10 @@ export default {
                 const prevRoute = prevPage.route;
                 
                 if (prevRoute === 'pages/poem-square/poem-square') {
-                    // 从poem-square进入，设置为原创诗歌模式
+                    // 诗歌页沿用当前浏览模式设置原创属性
                     this.setData({
                         publishMode: 'poem',
-                        isOriginal: true,
+                        isOriginal: (prevPage.$vm || prevPage).poemMode !== 'reading',
                         maxImageCount: 1,
                         imageList: this.imageList.length > 1 ? [this.imageList[0]] : this.imageList // 限制图片数量
                     });
@@ -1848,7 +1863,7 @@ export default {
                 finalContent = seriesBlocks.map(block => block.content || block.subtitle || '').filter(value => value.trim()).join('\n\n');
             }
 
-            const typographyData = getPoemTypographyFields({ poemFontSize: this.poemFontSize, poemTextStyles: this.poemTextStyles, publishMode: this.publishMode, isSeries: this.isSeries, seriesBlocks: this.seriesBlocks, content: finalContent, sentenceGroups: discussionSentenceGroups });
+            const typographyData = getPoemTypographyFields({ poemFontSize: this.poemFontSize, poemTextStyles: this.poemTextStyles, poemVertical: this.poemVertical, publishMode: this.publishMode, isSeries: this.isSeries, seriesBlocks: this.seriesBlocks, content: finalContent, sentenceGroups: discussionSentenceGroups });
 
             // 检查编辑模式状态
             console.log('【Add】编辑模式检查:', {
@@ -2290,7 +2305,7 @@ export default {
                 isOriginal: this.isOriginal,
                 isPoem: this.publishMode === 'poem',
                 ...getCreationFields(this),
-                ...getPoemTypographyFields({ poemFontSize: this.poemFontSize, poemTextStyles: this.poemTextStyles, publishMode: this.publishMode, isSeries: this.isSeries, seriesBlocks: this.seriesBlocks, content: previewContent, sentenceGroups: previewSentenceGroups }),
+                ...getPoemTypographyFields({ poemFontSize: this.poemFontSize, poemTextStyles: this.poemTextStyles, poemVertical: this.poemVertical, publishMode: this.publishMode, isSeries: this.isSeries, seriesBlocks: this.seriesBlocks, content: previewContent, sentenceGroups: previewSentenceGroups }),
                 content: previewContent || '',
                 author: this.author || '',
                 title: this.title || '', // 标题（编辑模式下已有值，新建模式下在预览页面输入）
@@ -2337,7 +2352,8 @@ export default {
                     joinActivityEnabled: !!this.joinActivityEnabled,
                     joinedActivityId: this.joinedActivityId || '',
                     joinedActivityTitle: this.joinedActivityTitle || '',
-                    societyCallId: this.societyCallId || ''
+                    societyCallId: this.societyCallId || '',
+                    poemVisibility: this.poemVisibility
                 }
             };
 
@@ -2478,6 +2494,7 @@ export default {
                     content: this.content,
                     imageList: this.imageList,
                     publishMode: this.publishMode,
+                    poemVisibility: this.poemVisibility,
                     isOriginal: this.isOriginal,
                     selectedTags: this.selectedTags,
                     ...getCreationFields(this),
@@ -2614,6 +2631,7 @@ export default {
                     parentPostId: '',
                     parentPostInfo: null,
                     editingPost: null,
+                    poemVisibility: null,
                     canPublish: false
                 });
             }
@@ -2654,6 +2672,43 @@ page {
     min-height: 0;
     overflow: visible; /* 改为visible，允许浮动按钮显示 */
     position: relative;
+}
+
+.poem-layout-control {
+    display: flex;
+    align-items: center;
+    gap: 16rpx;
+    margin: 0 30rpx 16rpx;
+    min-height: 56rpx;
+}
+
+.poem-layout-label {
+    font-size: 24rpx;
+    color: var(--app-muted-text, #666);
+}
+
+.poem-layout-options {
+    display: flex;
+    gap: 4rpx;
+    padding: 4rpx;
+    border-radius: 14rpx;
+    background: var(--app-input-bg, #e8e8e8);
+}
+
+.poem-layout-option {
+    margin: 0;
+    padding: 0 18rpx;
+    border-radius: 10rpx;
+    background: transparent;
+    color: var(--app-primary-text, #333);
+    font-size: 24rpx;
+    line-height: 52rpx;
+}
+
+.poem-layout-option::after { border: 0; }
+.poem-layout-option.is-selected {
+    background: var(--app-control-accent-bg, #333);
+    color: var(--app-control-accent-text, #fff);
 }
 
 /* 主输入区域 - 响应式布局 */
