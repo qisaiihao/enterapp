@@ -42,6 +42,9 @@
                 "packagename" : "com.poementer.app",
                 "schemes" : "poementer",
                 "targetSdkVersion" : 33,
+                "permissionPhoneState" : {
+                    "request" : "none"
+                },
                 "permissions" : [
                     "<uses-permission android:name=\"android.permission.INTERNET\"/>",
                     "<uses-permission android:name=\"android.permission.REQUEST_INSTALL_PACKAGES\"/>",
@@ -173,30 +176,30 @@
             "bundleName" : "com.example.poementer",
             "signingConfigs" : {
                 "default" : {
-                    "certpath" : "C:/Users/qisaihao/Desktop/enterkeydocs/poementer_dev.cer",
+                    "certpath" : "poementer_dev.cer",
                     "keyAlias" : "testalias",
-                    "keyPassword" : "0000001B0E5F7B21AAC3478692CB4AA17E816F146C136B2B635C9F80AB7EE8B0F41D13C8691917AC7676BA",
-                    "profile" : "C:/Users/qisaihao/Desktop/enterkeydocs/poementerDebug.p7b",
+                    "keyPassword" : "0000001B0589F10A109C7F8CC36EAF347CBD436354590B981F0C313A0DA38436222D19F35B71889082F76A",
+                    "profile" : "poementerDebug.p7b",
                     "signAlg" : "SHA256withECDSA",
-                    "storeFile" : "C:/Users/qisaihao/Desktop/enterkeydocs/poementer_harmony.p12",
-                    "storePassword" : "0000001B15205A16540A3A84639C245229C648CFCFDAD4689253C1CF716E1638F10614D941B525C57F7B85"
+                    "storeFile" : "poementer_harmony.p12",
+                    "storePassword" : "0000001BA64FBFB2FDFE4FB544146155AAFF44D0C8DA9D75355B8B2E5EB40AE3447BBE1C21474640E8B045"
                 },
                 "release" : {
-                    "certpath" : "C:/Users/qisaihao/Desktop/enterkeydocs/poementer_release.cer",
+                    "certpath" : "poementer_release.cer",
                     "keyAlias" : "testalias",
-                    "keyPassword" : "0000001BEFC14B4A5497DF6CB2931FD8ABD65788255BE93EF3C33A31220DB5FA1775C7912747131753EA2C",
-                    "profile" : "C:/Users/qisaihao/Desktop/enterkeydocs/poementer_releaseRelease.p7b",
+                    "keyPassword" : "0000001BEA7A5CE2364EF36834CC9AF14F523BB4AEEF32965C0F56BC904EB469701AAB88E13A25AFE9AEC8",
+                    "profile" : "poementer_releaseRelease.p7b",
                     "signAlg" : "SHA256withECDSA",
-                    "storeFile" : "C:/Users/qisaihao/Desktop/enterkeydocs/poementer_harmony.p12",
-                    "storePassword" : "0000001B0FCAEA6E84F9ACED80B59F7BEFACC0511AADA8DE3A1409717969BE07907AD27946B33CD8CC5B8A"
+                    "storeFile" : "poementer_harmony.p12",
+                    "storePassword" : "0000001BEC99F795A0783A811060D69A7247FA0E5C54D8DF1AD34643AD900C41362C60245A30730EFB8BCA"
                 }
             },
             "icons" : {
-                "foreground" : "C:/Users/qisaihao/Desktop/enterkeydocs/1024x1024.png",
-                "background" : "C:/Users/qisaihao/Desktop/enterkeydocs/1024x1024.png"
+                "foreground" : "cert/1024x1024.png",
+                "background" : "cert/1024x1024.png"
             },
             "splashScreens" : {
-                "startWindowIcon" : "C:/Users/qisaihao/Desktop/enterkeydocs/1024x1024.png"
+                "startWindowIcon" : "cert/1024x1024.png"
             },
             "deviceTypes" : [ "phone", "tablet" ]
         }

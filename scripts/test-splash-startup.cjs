@@ -948,6 +948,31 @@ async function testPrivacyConsent() {
     consent.openPrivacyPolicy();
     assert.deepEqual(policyNavigations, ['/pages/privacy/privacy?document=agreement', '/pages/privacy/privacy'], '设置页可以分别打开两份文件');
   }
+
+  {
+    const storage = new Map();
+    const nativeCalls = [];
+    const native = {
+      runtime: {
+        agreed: false,
+        isAgreePrivacy() { return this.agreed; },
+        agreePrivacy() { this.agreed = true; nativeCalls.push('agree'); }
+      }
+    };
+    const consent = load('utils/privacyConsent.js', {
+      uni: {
+        getStorageSync: key => storage.get(key),
+        setStorageSync: (key, value) => storage.set(key, value)
+      },
+      plus: native
+    }, ['hasAcceptedPrivacyConsent', 'acceptPrivacyConsent', 'PRIVACY_CONSENT_STORAGE_KEY', 'PRIVACY_CONSENT_VERSION']);
+    assert.equal(consent.hasAcceptedPrivacyConsent(), false, '原生提示框未同意时不放行');
+    native.runtime.agreed = true;
+    assert.equal(consent.hasAcceptedPrivacyConsent(), true, '原生 template 同意后直接放行');
+    assert.equal(storage.get(consent.PRIVACY_CONSENT_STORAGE_KEY), consent.PRIVACY_CONSENT_VERSION, '原生同意状态同步到存储');
+    consent.acceptPrivacyConsent();
+    assert.deepEqual(nativeCalls, ['agree'], '自定义弹窗同意时同步原生同意状态');
+  }
 }
 
 async function testAppPrivacyGate() {

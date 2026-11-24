@@ -45,6 +45,14 @@
 - `pages-admin/activity-notice-management/notice-cropper.vue` 与 `pages-collage/collage-studio/collage-studio.vue` 的 `uni.getSystemInfoSync()` 改为 `getWindowInfoCompat()`，只读取窗口尺寸，不触碰设备标识。
 - 隐私政策新增“设备标识符”收集说明及 DCloud uni-app 运行框架条目；`PRIVACY_POLICY_VERSION` 升级到 `2026-11-23`，老用户会重新确认一次。
 
+## Android 原生隐私提示框（2026-11-24）
+
+- 根目录新增 `androidPrivacy.json`，`prompt` 使用 `template`，由 DCloud 运行时在开屏原生界面先弹出隐私提示框并阻塞应用启动；用户点击“同意并继续”前，SDK 不初始化、不读取 IMEI/OAID 等设备标识，解决安装包在同意前被检测为获取 IMEI 的问题。
+- `androidPrivacy.json` 的 `version` 必须与 `utils/privacyConsent.js` 的 `PRIVACY_CONSENT_VERSION` 保持一致；隐私政策版本升级时两处同步修改，否则原生提示框不会重新弹出。App 端以原生同意状态为准。
+- App 端 `hasAcceptedPrivacyConsent()` 会读取 `plus.runtime.isAgreePrivacy()`，原生同意后写入本地组合版本并跳过自定义弹窗；`acceptPrivacyConsent()` 在自定义弹窗同意时同步调用 `plus.runtime.agreePrivacy()`，保持两端状态一致。
+- `androidPrivacy.json` 中的协议链接指向 H5 阅读页（`https://www.poementer.com/#/pages/privacy/privacy`），`hrefLoader` 使用 `system` 由系统浏览器打开，避免检测机构把内置 webview 的读取行为计入隐私风险。
+- 该配置在 HBuilderX `3.2.15+` 的云端打包中生效；修改后必须重新生成安装包，热更新（wgt）不会更新原生隐私提示框配置。
+
 ## 尚未覆盖
 
 - `main.js` 模块加载时的 `ensureTcbReady()` 仍会初始化 CloudBase SDK 并发起匿名登录；不包含 openid 或用户资料，但严格解读仍应先于同意前初始化，后续可与 SDK 初始化时机一起评估。

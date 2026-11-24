@@ -9,8 +9,51 @@ export const PRIVACY_CONSENT_ACCEPTED_EVENT = 'privacyConsentAccepted';
 // 存储写入/读取异常时本次会话仍视为已同意，避免当场重复弹窗和门禁误拦。
 let acceptedInSession = false;
 
+// App 端以 androidPrivacy.json 的 template 原生提示框为放行条件：DCloud 运行时先弹窗并
+// 阻塞启动，用户未同意前不会初始化 SDK、不会读取设备标识。这里读取原生同意状态，
+// 并与 JS 侧存储对齐，避免 App 端再次弹出自定义隐私弹窗。
+function readNativePrivacyConsent() {
+    // #ifdef APP-PLUS
+    try {
+        const runtime = typeof plus !== 'undefined' && plus ? plus.runtime : null;
+        if (runtime && typeof runtime.isAgreePrivacy === 'function') {
+            return runtime.isAgreePrivacy() === true;
+        }
+    } catch (error) {}
+    // #endif
+    return null;
+}
+
+function syncNativePrivacyConsent(agreed) {
+    // #ifdef APP-PLUS
+    try {
+        const runtime = typeof plus !== 'undefined' && plus ? plus.runtime : null;
+        if (!runtime) {
+            return;
+        }
+        const method = agreed ? 'agreePrivacy' : 'disagreePrivacy';
+        if (typeof runtime[method] === 'function') {
+            runtime[method]();
+        }
+    } catch (error) {}
+    // #endif
+}
+
+function persistPrivacyConsent() {
+    try {
+        if (typeof uni !== 'undefined' && typeof uni.setStorageSync === 'function') {
+            uni.setStorageSync(PRIVACY_CONSENT_STORAGE_KEY, PRIVACY_CONSENT_VERSION);
+        }
+    } catch (error) {}
+}
+
 export function hasAcceptedPrivacyConsent() {
     if (acceptedInSession) {
+        return true;
+    }
+    if (readNativePrivacyConsent() === true) {
+        acceptedInSession = true;
+        persistPrivacyConsent();
         return true;
     }
     try {
@@ -25,11 +68,8 @@ export function hasAcceptedPrivacyConsent() {
 export function acceptPrivacyConsent() {
     const alreadyAccepted = hasAcceptedPrivacyConsent();
     acceptedInSession = true;
-    try {
-        if (typeof uni !== 'undefined' && typeof uni.setStorageSync === 'function') {
-            uni.setStorageSync(PRIVACY_CONSENT_STORAGE_KEY, PRIVACY_CONSENT_VERSION);
-        }
-    } catch (error) {}
+    persistPrivacyConsent();
+    syncNativePrivacyConsent(true);
     if (!alreadyAccepted && typeof uni !== 'undefined' && typeof uni.$emit === 'function') {
         uni.$emit(PRIVACY_CONSENT_ACCEPTED_EVENT);
     }

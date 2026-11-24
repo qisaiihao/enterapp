@@ -1,0 +1,16 @@
+{
+  "version": "2026-11-23:1",
+  "prompt": "template",
+  "title": "用户协议和隐私政策",
+  "message": "　　欢迎使用回车键（Poementer）。请你务必审慎阅读、充分理解<a href=\"https://www.poementer.com/#/pages/privacy/privacy?document=agreement\">《用户协议》</a>和<a href=\"https://www.poementer.com/#/pages/privacy/privacy\">《隐私政策》</a>各条款，特别是关于个人信息收集与使用的说明。<br/>　　我们仅在你点击下方按钮同意后，才会初始化相关服务并收集为提供服务所必需的设备标识、操作日志等信息；未经你同意，我们不会收集你的个人信息。如果你不同意，请点击“暂不同意”退出应用。",
+  "buttonAccept": "同意并继续",
+  "buttonRefuse": "暂不同意",
+  "hrefLoader": "system",
+  "backToExit": "false",
+  "second": {
+    "title": "确认提示",
+    "message": "　　进入应用前，你需要先同意<a href=\"https://www.poementer.com/#/pages/privacy/privacy?document=agreement\">《用户协议》</a>和<a href=\"https://www.poementer.com/#/pages/privacy/privacy\">《隐私政策》</a>，否则将退出应用。",
+    "buttonAccept": "同意并继续",
+    "buttonRefuse": "退出应用"
+  }
+}
