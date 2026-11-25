@@ -1,5 +1,6 @@
 const { createPostsDatabase, withPostResponse } = require('./_lib/posts');
-const { originalPoems } = require('./lib/original-poems');
+const { originalPoems, randomPoems } = require('./lib/poem-selection');
+const { rankedHomePosts, mixedHomePosts, randomHomePosts } = require('./lib/home-posts');
 // 云函数入口文件
 const cloud = require('wx-server-sdk');
 
@@ -10,9 +11,6 @@ cloud.init({
 const db = createPostsDatabase(cloud.database(), { publicOnly: true });
 const _ = db.command;
 const $ = _.aggregate;
-
-// 普通帖获得一天的新鲜度加成，不会长期压过更新的诗歌或讨论。
-const HOME_NORMAL_POST_BOOST_MS = 24 * 60 * 60 * 1000;
 
 // 频率限制配置
 const RATE_LIMITS = {
@@ -136,8 +134,9 @@ async function checkRateLimit(openid) {
 
 // 云函数入口函数
 exports.main = async (event, context) => {
+  const { excludePostIds, previousPostIds, ...queryParams } = event;
   console.log('🔍 [getPostList] ========== 云函数开始执行 ==========');
-  console.log('🔍 [getPostList] 接收到的参数:', JSON.stringify(event, null, 2));
+  console.log('🔍 [getPostList] 接收到的参数:', JSON.stringify(queryParams, null, 2));
   
   const wxContext = cloud.getWXContext();
   const wxCtxOpenid = wxContext.OPENID;
@@ -322,49 +321,33 @@ exports.main = async (event, context) => {
       });
     }
 
-    // 判断是否启用随机混合逻辑
-    // 只有当没有筛选条件时（广场页面），才启用随机混合
-    // 有筛选条件时，只返回时间顺序的帖子
     const hasFilter = isPoem !== undefined || isOriginal !== undefined || isDiscussion !== undefined || tag || author || includeActivity === true || !!safeActivityId;
     const enableHomeRanking = homeRanking === true && !hasFilter;
+    const enableHomeMix = event.homeMix === true && enableHomeRanking && !excludeAnonymous
+      && (skip === 0 || Array.isArray(excludePostIds));
     const enableRandomMix = !hasFilter && !enableHomeRanking;
-    const enableOriginalMix = event.originalMix === true && isPoem === true && isOriginal === true
+    const isUnfilteredOriginalFeed = isPoem === true && isOriginal === true
       && isDiscussion === undefined && !tag && !author && !includeActivity && !safeActivityId;
     
     let posts = [];
     let timeOrderedPosts = []; // 在外层声明，便于在日志输出时使用
     let randomPosts = []; // 在外层声明，便于在日志输出时使用
     
-    if (enableOriginalMix) {
-      posts = await originalPoems(db, {
+    if (enableHomeMix || (isUnfilteredOriginalFeed && (event.randomPoems === true || event.originalMix === true))) {
+      const feedConditions = {
         ...matchConditions,
         isDeleted: _.neq(true),
         $and: [
           { $or: [{ auditStatus: _.exists(false) }, { auditStatus: null }, { auditStatus: '' }, { auditStatus: 'approved' }] },
           ...(blockedUserIds.length ? [{ realAuthorOpenid: _.nin(blockedUserIds) }] : [])
         ]
-      }, { limit, excludePostIds: event.excludePostIds || [] });
+      };
+      const selectHomePosts = event.homeRandom === true ? randomHomePosts : mixedHomePosts;
+      const selectPoems = event.randomPoems === true ? randomPoems : originalPoems;
+      const selectPosts = enableHomeMix ? selectHomePosts : selectPoems;
+      posts = await selectPosts(db, feedConditions, { limit, excludePostIds: excludePostIds || [], previousPostIds });
     } else if (enableHomeRanking) {
-      // 在数据库分页之前加权；刷新和翻页保持同一顺序，不再随机打乱。
-      const rankedRes = await query.addFields({
-        homeSortTime: {
-          $add: [
-            { $ifNull: ['$createTime', new Date(0)] },
-            { $cond: [
-              { $and: [
-                { $ne: [{ $ifNull: ['$isPoem', false] }, true] },
-                { $ne: [{ $ifNull: ['$isDiscussion', false] }, true] }
-              ] },
-              HOME_NORMAL_POST_BOOST_MS,
-              0
-            ] }
-          ]
-        }
-      }).sort({ homeSortTime: -1, createTime: -1, _id: -1 })
-        .skip(skip)
-        .limit(limit)
-        .end();
-      posts = (rankedRes.list || []).map(({ homeSortTime, ...post }) => post);
+      posts = await rankedHomePosts(query, { skip, limit });
     } else if (enableRandomMix) {
       // 广场页面：使用随机混合逻辑（6个时间顺序 + 4个随机）
       const TIME_ORDERED_COUNT = 6;  // 按时间顺序的帖子数量

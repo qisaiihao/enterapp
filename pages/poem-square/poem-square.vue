@@ -28,10 +28,11 @@
       </template>
     </top-bar>
 
-    <view v-if="!isReadingMode && !showFollowingOnly" class="poem-filter-container" :style="{ top: (safeAreaTop * 2 + 160) + 'rpx' }">
+    <view v-if="!isReadingMode && !showFollowingOnly" class="poem-filter-container" :style="{ top: (safeAreaTop * 2 + 153) + 'rpx' }">
       <view
         class="poem-filter-trigger"
-        :class="{ 'poem-filter-trigger--active': showPoemFilterPanel || showFollowingOnly }"
+        :class="{ 'poem-filter-trigger--active': showPoemFilterPanel || isRandomPoemOrder }"
+        aria-label="筛选诗歌"
         @tap.stop="togglePoemFilterPanel"
       >
         <image class="poem-filter-trigger-icon" src="/static/images/filter.png" mode="aspectFit" />
@@ -41,23 +42,29 @@
           <view class="poem-filter-panel app-motion-panel" @tap.stop>
               <view
                   class="poem-filter-option"
-                  :class="{ 'poem-filter-option--active': !showFollowingOnly }"
-                  @tap="setFollowingFilterMode(false)"
+                  :class="{ 'poem-filter-option--active': !isRandomPoemOrder }"
+                  @tap="setRandomPoemOrder(false)"
               >
                   全部诗歌
               </view>
               <view
                   class="poem-filter-option"
-                  :class="{ 'poem-filter-option--active': showFollowingOnly }"
                   @tap="setFollowingFilterMode(true)"
               >
                   只看关注
+              </view>
+              <view
+                  class="poem-filter-option"
+                  :class="{ 'poem-filter-option--active': isRandomPoemOrder }"
+                  @tap="setRandomPoemOrder(true)"
+              >
+                  随机刷新
               </view>
           </view>
       </AppMotion>
     </view>
 
-    <view v-if="!isReadingMode" class="activity-entry-container" :style="{ top: (safeAreaTop * 2 + 144) + 'rpx' }">
+    <view v-if="!isReadingMode" class="activity-entry-container" :style="{ top: (safeAreaTop * 2 + 122) + 'rpx' }">
       <view class="activity-entry-btn">
         <image class="activity-entry-icon" src="/static/images/icons/activities.png" mode="aspectFit" />
       </view>
@@ -147,7 +154,7 @@ import FollowingAvatarBar from '@/components/following-avatar-bar/following-avat
 import PoetAvatarBar from '@/components/poet-avatar-bar/poet-avatar-bar.vue';
 import PoemCard from '@/components/poem/PoemCard.vue';
 import { cloudCall } from '@/utils/cloudCall.js';
-import { getPostList as getPostListWithCache, invalidatePostList } from '@/api-cache/post-list.js';
+import { invalidatePostList } from '@/api-cache/post-list.js';
 import { getFollowingPoems, invalidateFollowingPoems, getOriginalPoems, getMountainPoems, peekMountainPoems, ORIGINAL_POEMS_PAGE_SIZE } from '@/api-cache/poems.js';
 import { getPostDetail } from '@/api-cache/post.js';
 import { consumePoemSquareRefresh, takePoemSquarePreload } from '@/utils/splashPreload.js';
@@ -219,7 +226,7 @@ export default {
     }
     // 检查缓存新鲜度：从其他页面返回时触发SWR检查
     try {
-      if (this.hasEverLoaded && this.postList.length > 0) {
+      if (!this.isRandomPoemOrder && this.hasEverLoaded && this.postList.length > 0) {
         if (this.isReadingMode) {
           getMountainPoems({ page: 0, pageSize: PAGE_SIZE, context: this, filterByPoet: this.selectedPoetName }).catch(() => {});
         } else if (this.showFollowingOnly) {
@@ -267,6 +274,7 @@ export default {
       showFollowingOnly: false,
       showPoemFilterPanel: false,
       poemMode: 'original',
+      randomPoemOrder: false,
       selectedPoetName: null,
       // 关注头像栏选中的用户ID
       followingSelectedUserId: null,
@@ -279,6 +287,7 @@ export default {
   },
   computed: {
     isReadingMode() { return this.poemMode === 'reading'; },
+    isRandomPoemOrder() { return !this.isReadingMode && this.randomPoemOrder; },
     poemModeIndicatorStyle() {
       const index = this.isReadingMode ? 1 : 0;
       const translateX = index * 50 + 25;
@@ -374,8 +383,9 @@ export default {
   },
   onPullDownRefresh() {
     console.log('【poem-square】📱 下拉刷新，重新获取数据');
-    // 清除缓存并强制刷新
-    invalidatePostList({ isPoem: true, isOriginal: !this.isReadingMode, ...(this.isReadingMode ? { excludeAnonymous: true } : {}) });
+    if (!this.isRandomPoemOrder) {
+      invalidatePostList({ isPoem: true, isOriginal: !this.isReadingMode, ...(this.isReadingMode ? { excludeAnonymous: true } : {}) });
+    }
     if (this.isReadingMode) this.$refs.poetAvatarBar?.refresh();
     else invalidateFollowingPoems();
     this.getIndexData(() => {
@@ -645,9 +655,7 @@ export default {
       // 判断是否是用户筛选操作
       const isUserFiltering = !this.isReadingMode && this.showFollowingOnly && this.followingSelectedUserId;
 
-      if (isUserFiltering) {
-        // 用户筛选时：立即清空列表，显示加载状态
-        console.log('🔍 [poem-square] 用户筛选模式，立即清空列表');
+      if (isUserFiltering || this.isRandomPoemOrder) {
         this.applyLocalState({
           postList: [],
           page: 0,
@@ -657,7 +665,6 @@ export default {
           _loadingLock: false
         });
         this.getPostList(() => {
-          console.log('【poem-square】用户筛选 getPostList 完成，设置 isLoading: false');
           this.applyLocalState({ isLoading: false });
           if (typeof callback === 'function') {
             callback();
@@ -756,6 +763,20 @@ export default {
       });
     },
 
+    setRandomPoemOrder(enabled) {
+      if (this.$refs.poemFilterMotion?.rendered) {
+        this.$refs.poemFilterMotion.dismiss(() => this.setRandomPoemOrder(enabled));
+        return;
+      }
+      this.closePoemFilterPanel();
+      if (!enabled && !this.isRandomPoemOrder) return;
+      this.randomPoemOrder = enabled;
+      this._poemScrollTop = 0;
+      clearTimeout(this._scrollTimer);
+      this.getIndexData();
+      uni.pageScrollTo({ scrollTop: 0, duration: 0 });
+    },
+
     setFollowingFilterMode(onlyFollowing) {
       if (this.$refs?.poemFilterMotion?.rendered) {
         this.$refs.poemFilterMotion.dismiss(() => this.setFollowingFilterMode(onlyFollowing));
@@ -776,6 +797,7 @@ export default {
 
     toggleFollowingFilter() {
       console.log('【poem-square】进入只看关注模式');
+      this.randomPoemOrder = false;
       
       this.applyLocalState({
         showFollowingOnly: true,
@@ -951,6 +973,7 @@ export default {
         const loadOriginalPoems = () => getOriginalPoems({
           page: requestPage,
           pageSize: PAGE_SIZE,
+          randomPoems: this.isRandomPoemOrder,
           excludePostIds,
           context: this,
           forceRefresh,
@@ -1472,7 +1495,8 @@ export default {
 .white-bg {
   background: var(--app-page-bg, #fff);
   min-height: 100vh;
-  padding-top: env(safe-area-inset-top, var(--safe-area-inset-top, 44px)); /* 添加状态栏安全区域，备选方案 */
+  /* 状态栏安全区已由列表内联 paddingTop（safeAreaTop * 2）预留，
+     iOS/微信端再叠加 env(safe-area-inset-top) 会重复留白。 */
 }
 .square-mode-container {
   padding-left: 100rpx;
@@ -1509,9 +1533,9 @@ export default {
 
 .poem-filter-container {
   position: absolute;
-  top: calc(var(--safe-area-top, 44px) + 160rpx);
+  top: calc(var(--safe-area-top, 44px) + 153rpx);
   right: 30rpx;
-  z-index: 1200;
+  z-index: 999;
 }
 
 .poem-filter-trigger {
@@ -1577,6 +1601,7 @@ export default {
 
 .poem-mode-tabs {
   position: relative;
+  top: -4rpx;
   display: flex;
   align-items: center;
   flex-shrink: 0;
@@ -1613,7 +1638,7 @@ export default {
 
 .poem-mode-indicator {
   position: absolute;
-  bottom: 10rpx;
+  bottom: 22rpx;
   width: 44rpx;
   height: 6rpx;
   border-radius: 3rpx;
@@ -1623,7 +1648,7 @@ export default {
 
 .activity-entry-container {
   position: absolute;
-  top: calc(var(--safe-area-top, 44px) + 144rpx);
+  top: calc(var(--safe-area-top, 44px) + 122rpx);
   left: 30rpx;
   z-index: 5;
   display: flex;

@@ -1,4 +1,5 @@
 const { createPostsDatabase, withPostResponse, resolveOwner, canViewPost } = require('./_lib/posts');
+const { URL } = require('url');
 // 云函数入口文件
 const cloud = require('wx-server-sdk');
 
@@ -8,12 +9,56 @@ cloud.init({
 
 const db = createPostsDatabase(cloud.database());
 
+const SIGNATURE_BUCKET = '636c-cloud1-5gb0pbyl400845f5-1378788263';
+const SIGNATURE_FILE_PREFIX = `cloud://cloud1-5gb0pbyl400845f5.${SIGNATURE_BUCKET}/`;
+const SIGNATURE_PATH = /^user_signatures\/[\w.-]+\.(?:png|jpe?g|webp)$/i;
+const MAX_SIGNATURE_BYTES = 2 * 1024 * 1024;
+const PNG_HEADER = Buffer.from('89504e470d0a1a0a', 'hex');
+
+function getSignatureFileId(source) {
+  if (typeof source !== 'string') return '';
+  let path;
+  if (source.startsWith(SIGNATURE_FILE_PREFIX)) {
+    path = source.slice(SIGNATURE_FILE_PREFIX.length);
+  } else {
+    try {
+      // 旧记录可能保存了临时 HTTPS 链接，按存储桶和路径还原文件 ID。
+      const url = new URL(source);
+      const cosSuffix = url.hostname.slice(SIGNATURE_BUCKET.length);
+      if (url.protocol !== 'https:' || !url.hostname.startsWith(SIGNATURE_BUCKET) ||
+          (cosSuffix !== '.tcb.qcloud.la' && !/^\.cos\.[a-z0-9-]+\.myqcloud\.com$/.test(cosSuffix))) return '';
+      path = decodeURIComponent(url.pathname.slice(1));
+    } catch (_) {
+      return '';
+    }
+  }
+  return SIGNATURE_PATH.test(path) ? SIGNATURE_FILE_PREFIX + path : '';
+}
+
+async function getCardSignature(source) {
+  const fileID = getSignatureFileId(source);
+  if (!fileID) return { success: true, signatureDataUrl: '' };
+
+  const { fileContent } = await cloud.downloadFile({ fileID });
+  if (!Buffer.isBuffer(fileContent) || fileContent.length > MAX_SIGNATURE_BYTES) {
+    return { success: true, signatureDataUrl: '' };
+  }
+
+  let mime;
+  if (fileContent.slice(0, 8).equals(PNG_HEADER)) mime = 'image/png';
+  else if (fileContent.slice(0, 3).toString('hex') === 'ffd8ff') mime = 'image/jpeg';
+  else if (fileContent.toString('ascii', 0, 4) === 'RIFF' && fileContent.toString('ascii', 8, 12) === 'WEBP') mime = 'image/webp';
+
+  return { success: true, signatureDataUrl: mime ? `data:${mime};base64,${fileContent.toString('base64')}` : '' };
+}
+
 // 云函数入口函数
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
   const wxCtxOpenid = wxContext.OPENID;
   const eventOpenid = event.openid;
-  const openid = eventOpenid || wxCtxOpenid;
+  const signatureOnly = event.action === 'getCardSignature';
+  const openid = signatureOnly ? (wxCtxOpenid || eventOpenid) : (eventOpenid || wxCtxOpenid);
   const { postId } = event;
 
   if (!openid) {
@@ -57,6 +102,10 @@ exports.main = async (event, context) => {
       };
     }
 
+    if (signatureOnly && (!post.isPoem || !post.isOriginal || post.isAnonymous)) {
+      return { success: true, signatureDataUrl: '' };
+    }
+
     console.log('获取到的帖子数据:', {
       _id: post._id,
       title: post.title,
@@ -75,6 +124,8 @@ exports.main = async (event, context) => {
         avatarUrl: '',
         signatureUrl: ''
     };
+    const authorSignature = post.isAnonymous ? '' : (post.authorSignature || author.signatureUrl || '');
+    if (signatureOnly) return await getCardSignature(authorSignature);
 
     // 3. 获取当前用户的点赞记录
     const voteRes = await db.collection('votes_log').where({
@@ -88,7 +139,7 @@ exports.main = async (event, context) => {
       ...post,
       authorName: post.authorName || post.authorNameSnapshot || author.nickName || '匿名用户',
       authorAvatar: post.authorAvatar || post.authorAvatarSnapshot || author.avatarUrl || '',
-      authorSignature: post.isAnonymous ? '' : (post.authorSignature || author.signatureUrl || ''),
+      authorSignature,
       isAuthor: resolveOwner(post) === openid,
       isVoted: voteRes.data.length > 0,
       tags: post.tags || [] // 确保标签字段存在

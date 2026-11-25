@@ -13,7 +13,7 @@ export function computePlaceholder(publishMode = 'normal', isOriginal = false) {
         return '在这里写下你的原创诗歌~';
     }
     if (publishMode === 'poem' && !isOriginal) {
-        return '在这里分享你喜欢的诗歌~';
+        return '在这里分享你喜欢的诗歌~\n分享原创诗歌请在右边切换发布模式';
     }
     if (publishMode === 'discussion') {
         return '在这里说说你想要讨论的吧~';

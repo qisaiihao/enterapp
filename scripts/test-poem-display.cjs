@@ -116,6 +116,12 @@ for (const isSeries of [false, true]) {
 }
 assert.deepEqual(plain(original), before, 'Original page preparation must leave source poem fields intact');
 
+const coloredCard = componentContext(card, {
+  post: { _id: 'colored', isPoem: true, backgroundColor: '#DA892E', textColor: '#536E31', content: '同行' }
+});
+assert.equal(coloredCard.cardTextColor, '#536E31',
+  'Light-mode card must keep the author text color instead of contrast-correcting it, matching the downloaded card');
+
 const sevenBlocks = Array.from({ length: 7 }, (_, index) => ({
   id: `poem-${index + 1}`, subtitle: `第${index + 1}首`, content: `  第${index + 1}首正文`
 }));

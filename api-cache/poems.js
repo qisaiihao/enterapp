@@ -138,11 +138,12 @@ function invalidateFollowingPoems({ page, pageSize = 10 } = {}) {
 }
 
 /**
- * 获取原创诗歌（新诗中穿插高赞和随机诗）
+ * 获取原创诗歌（默认混排，或全随机抽取）
  * 使用通用的 post-list 缓存，但提供更语义化的接口
  * @param {Object} options
  * @param {number} options.page - 页码，从0开始
  * @param {number} options.pageSize - 每页数量
+ * @param {boolean} options.randomPoems - 全随机抽取
  * @param {Object} options.context - 页面上下文
  * @param {boolean} options.forceRefresh - 是否强制刷新（跳过缓存）
  * @param {Function} options.onBackgroundUpdate - SWR后台更新完成回调
@@ -150,6 +151,7 @@ function invalidateFollowingPoems({ page, pageSize = 10 } = {}) {
 async function getOriginalPoems({
   page = 0,
   pageSize = ORIGINAL_POEMS_PAGE_SIZE,
+  randomPoems = false,
   excludePostIds = [],
   context,
   forceRefresh = false,
@@ -162,7 +164,8 @@ async function getOriginalPoems({
     pageSize,
     isPoem: true,
     isOriginal: true,
-    originalMix: true,
+    originalMix: !randomPoems,
+    randomPoems,
     excludePostIds,
     context,
     forceRefresh,

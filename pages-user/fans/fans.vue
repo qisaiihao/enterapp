@@ -1,13 +1,12 @@
 <template>
     <view>
-        <!-- 自定义返回按钮 -->
-        <view class="custom-back-btn" @tap="goBack">
-            <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
-        </view>
-        
         <view class="container">
             <!-- 分段控制器 -->
             <view class="segmented-control">
+                <!-- 自定义返回按钮 -->
+                <view class="custom-back-btn" @tap="goBack">
+                    <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
+                </view>
                 <view class="segment-item" 
                       :class="{ active: currentTab === 'following' }" 
                       @tap="switchTab('following')">
@@ -24,6 +23,7 @@
         <relation-user-list
             v-if="currentTab === 'following'"
             :users="displayFollowings"
+            :load-state="currentListState.status"
             :pending-openid="pendingOpenid"
             :default-avatar="defaultAvatar"
             empty-text="还没有关注任何人，去广场看看吧～"
@@ -32,12 +32,14 @@
             @user-tap="openUserProfile"
             @action-tap="onToggleFollow"
             @avatar-error="onAvatarError"
+            @retry="retryFollowList"
         />
 
         <!-- 粉丝列表 -->
         <relation-user-list
             v-if="currentTab === 'followers'"
             :users="displayFollowers"
+            :load-state="currentListState.status"
             :pending-openid="pendingOpenid"
             :default-avatar="defaultAvatar"
             default-bio="这个人很懒，什么都没留下~"
@@ -45,11 +47,12 @@
             @user-tap="openUserProfile"
             @action-tap="onToggleFollow"
             @avatar-error="onAvatarError"
+            @retry="retryFollowList"
         />
 
             <!-- 底部提示 -->
             <view v-if="getCurrentList().length > 0" class="footer-hint">
-                <view v-if="!hasMore" class="loading-more">已经到底啦</view>
+                <view v-if="currentListState.status !== 'loading' && !currentListState.hasMore" class="loading-more">已经到底啦</view>
             </view>
         </view>
     </view>
@@ -58,31 +61,24 @@
 
 <script>
 import RelationUserList from '@/components/relation/user-list.vue';
+import followListMixin from '../../mixins/follow-list.js';
 import { formatRelativeTime } from '../../utils/time.js';
 import {
-    getFollowingList,
-    getFollowerList,
     toggleFollowRelation,
     checkFollowRelation,
     markFollowNotificationsRead
 } from '../../api-cache/relation.js';
 
 export default {
+    mixins: [followListMixin],
     components: {
         RelationUserList
     },
     data() {
         return {
             currentTab: 'followers', // 默认显示被关注页面
-            followings: [],
-            followers: [],
-            isLoading: false,
-            hasMore: true,
-            page: 0,
-            PAGE_SIZE: 20,
             pendingOpenid: null,
-            defaultAvatar: '/images/avatar.png',
-            total: ''
+            defaultAvatar: '/images/avatar.png'
         };
     },
     computed: {
@@ -107,119 +103,9 @@ export default {
             }));
         }
     },
-    onLoad() {
-        this.markFollowNotificationsRead();
-        this.loadFollowers(true);
-    },
-    onPullDownRefresh() {
-        if (this.currentTab === 'following') {
-            this.loadFollowings(true);
-        } else {
-            this.loadFollowers(true);
-        }
-    },
-    onReachBottom() {
-        if (!this.hasMore || this.isLoading) {
-            return;
-        }
-        if (this.currentTab === 'following') {
-            this.loadFollowings();
-        } else {
-            this.loadFollowers();
-        }
-    },
     methods: {
         // 统一时间格式化
         formatTime: undefined,
-        async loadFollowers(reset = false) {
-            if (this.isLoading) {
-                return;
-            }
-            if (reset) {
-                this.setData({
-                    page: 0,
-                    hasMore: true
-                });
-                this.markFollowNotificationsRead();
-            }
-            const page = reset ? 0 : this.page;
-            this.setData({
-                isLoading: true
-            });
-            try {
-                const result = await getFollowerList({
-                    page,
-                    pageSize: this.PAGE_SIZE,
-                    context: this
-                });
-                const list = result.list || [];
-                const newList = reset ? list : this.followers.concat(list);
-                this.setData({
-                    followers: newList,
-                    page: page + 1,
-                    hasMore: !!result.hasMore,
-                    total: result.total || newList.length
-                });
-            } catch (err) {
-                console.error('获取粉丝列表失败:', err);
-                uni.showToast({
-                    title: err.message || '加载失败',
-                    icon: 'none'
-                });
-            } finally {
-                this.setData({
-                    isLoading: false
-                });
-                if (reset) {
-                    uni.stopPullDownRefresh();
-                }
-            }
-        },
-
-        async loadFollowings(reset = false) {
-            if (this.isLoading) {
-                return;
-            }
-            if (reset) {
-                this.setData({
-                    page: 0,
-                    hasMore: true
-                });
-            }
-            const page = reset ? 0 : this.page;
-            this.setData({
-                isLoading: true
-            });
-            try {
-                const result = await getFollowingList({
-                    page,
-                    pageSize: this.PAGE_SIZE,
-                    context: this
-                });
-                const list = result.list || [];
-                const newList = reset ? list : this.followings.concat(list);
-                this.setData({
-                    followings: newList,
-                    page: page + 1,
-                    hasMore: !!result.hasMore,
-                    total: result.total || newList.length
-                });
-            } catch (err) {
-                console.error('获取关注列表失败:', err);
-                uni.showToast({
-                    title: err.message || '加载失败',
-                    icon: 'none'
-                });
-            } finally {
-                this.setData({
-                    isLoading: false
-                });
-                if (reset) {
-                    uni.stopPullDownRefresh();
-                }
-            }
-        },
-
         markFollowNotificationsRead() {
             markFollowNotificationsRead({
                 context: this
@@ -234,6 +120,7 @@ export default {
             if (!openid || index === undefined || this.pendingOpenid) {
                 return;
             }
+            const listKey = this.currentTab === 'following' ? 'followings' : 'followers';
             this.setData({
                 pendingOpenid: openid
             });
@@ -243,7 +130,6 @@ export default {
                     context: this,
                     pageTag: 'fans:toggle-follow'
                 });
-                const listKey = this.currentTab === 'following' ? 'followings' : 'followers';
                 this.setData({
                     [`${listKey}[${index}].isMutual`]: isFollowing
                 });
@@ -251,7 +137,7 @@ export default {
                     title: isFollowing ? '关注成功' : '已取消关注',
                     icon: 'success'
                 });
-                this.refreshUserStatus(openid, index);
+                this.refreshUserStatus(openid, index, listKey);
             } catch (err) {
                 console.error('操作关注状态失败:', err);
                 uni.showToast({
@@ -265,13 +151,12 @@ export default {
             }
         },
 
-        refreshUserStatus(openid, index) {
+        refreshUserStatus(openid, index, listKey) {
             checkFollowRelation({
                 targetOpenid: openid,
                 context: this,
                 pageTag: 'fans:check-follow'
             }).then((result) => {
-                const listKey = this.currentTab === 'following' ? 'followings' : 'followers';
                 this.setData({
                     [`${listKey}[${index}].isMutual`]: !!result.isMutual
                 });
@@ -299,24 +184,6 @@ export default {
             uni.navigateTo({
                 url: `/pages-user/user-profile/user-profile?userId=${openid}`
             });
-        },
-
-        // 切换标签页
-        switchTab(tab) {
-            if (this.currentTab === tab) {
-                return;
-            }
-            this.setData({
-                currentTab: tab,
-                page: 0,
-                hasMore: true
-            });
-            
-            if (tab === 'following') {
-                this.loadFollowings(true);
-            } else {
-                this.loadFollowers(true);
-            }
         },
 
         // 获取按钮文字
@@ -365,22 +232,22 @@ export default {
 /* 自定义返回按钮 */
 .custom-back-btn {
     position: absolute;
-    top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
-    left: 40rpx;
-    width: 100rpx;
-    height: 100rpx;
+    top: 50%;
+    left: 20rpx;
+    transform: translateY(-50%);
+    width: 80rpx;
+    height: 80rpx;
     z-index: 999;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--app-elevated-bg, rgba(255, 255, 255, 0.9));
-    border-radius: 50%;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
 }
 
 .custom-back-btn:active {
-    transform: scale(0.95);
+    transform: translateY(-50%) scale(0.9);
 }
 
 .custom-back-btn .back-icon {
@@ -400,6 +267,7 @@ export default {
 
 /* 分段控制器 */
 .segmented-control {
+    position: relative;
     display: flex;
     background-color: var(--app-fixed-bar-bg, #fff);
     border-bottom: 1rpx solid var(--app-border-color, #f0f0f0);

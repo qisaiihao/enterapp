@@ -39,8 +39,8 @@
 
 ### 首启隐私确认（2026-10-09）
 
-- `components/PrivacyConsentDialog.vue` 在同一滚动区内分节展示《用户协议》和《隐私政策》。`AppDialog` 的 `require-scroll-to-confirm` 在文末启用确认，保留拒绝操作，重新打开时重置状态。点击遮罩保留弹窗，物理返回键等同“不同意”。开屏页在同意前不启动数据预加载和 6 秒放行计时。不同意时 Android 和微信小程序退出，iOS 和 H5 提示后重新展示弹窗。存储键、版本更新和真机验收项见 [首启协议确认](features/privacy-consent.md)。
-- `scripts/test-splash-startup.cjs` 覆盖同意前后和拒绝重弹，`scripts/test-dialog-motion.cjs` 覆盖滑动确认。
+- `components/PrivacyConsentDialog.vue` 在同一滚动区内分节展示《用户协议》和《隐私政策》。`AppDialog` 的 `require-scroll-to-confirm` 在文末启用确认。首启弹窗也配置了 10 秒兜底，计满后启用按钮，仍需用户主动选择。拒绝操作始终可用，重新打开时重置状态及计时。点击遮罩保留弹窗，物理返回键等同“不同意”。开屏页在同意前不启动数据预加载和 6 秒放行计时。不同意时 Android 和微信小程序退出，iOS 和 H5 提示后重新展示弹窗。存储键、版本更新和真机验收项见 [首启协议确认](features/privacy-consent.md)。
+- `scripts/test-splash-startup.cjs` 覆盖同意前后和拒绝重弹，`scripts/test-dialog-motion.cjs` 覆盖文末解锁和 10 秒兜底。
 - 设置页“注销账号”复用 `AppDialog`：说明确认、密码验证（`editable` + 新增 `password` 密文输入）和最终确认最多三步，失败保留弹窗可重试；流程与云端清理矩阵见 [应用内注销账号](features/account-cancellation.md)，测试纳入 `npm run test:cancel-account`。
 - App 热更新与整包更新由 `AppUpdateDialog` 在页面的 `app-overlay-host` 中居中显示，外观与 `AppDialog` 一致。开屏页的宿主暂缓显示更新，进入主页面后展示；普通更新可稍后处理或取消下载，强制更新不可关闭，下载与安装进度、失败重试和 WGT 重启保留在弹窗内。
 

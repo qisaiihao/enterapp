@@ -61,9 +61,9 @@
 
 版本集合 `app_update_releases` 为 `ADMINONLY`；对外云函数仅提供更新查询。发布、下线及上传只通过本机管理员工具执行。
 
-现有存储桶兼容业务上传权限；每个安装包对象在上传前追加客户端写入保护。三个可指定路径的业务上传函数 `upload`、`uploadAvatar`、`uploadCollagePoetry` 也拒绝写入 `app-updates` 路径。服务端管理员 SDK 可操作该目录，故云端管理凭据仍应只留在本机登录态中。
+版本管理工具在上传前确认 `app-updates/` 整个目录禁止客户端写入，其他路径继续使用既有业务规则。三个可指定路径的业务上传函数 `upload`、`uploadAvatar`、`uploadCollagePoetry` 也拒绝写入 `app-updates` 路径。服务端管理员 SDK 可操作该目录，故云端管理凭据仍应只留在本机登录态中。
 
-权限规则有传播延迟，工具在上传后保留发布等待时间；当前使用逐对象规则，不更改其他业务目录的权限。发布很多历史版本后若达到规则长度上限，上传会停止，应先迁移安装包到独立存储桶；不要删除已发布包的保护来继续上传。规则语法与生效延迟见 [CloudBase 安全规则](https://docs.cloudbase.net/storage/security-rules)。
+工具将旧版逐对象规则迁移为目录规则，并在修改前保存原规则快照。目录规则长度与安装包数量无关。为覆盖规则传播延迟，工具仍会在上传后保留发布等待时间。规则语法与生效延迟见 [CloudBase 安全规则](https://docs.cloudbase.net/storage/security-rules)。
 
 ## 本次部署记录
 
@@ -104,4 +104,4 @@
 
 本次 `npm run check:quality`、`npm run build:app`、`npm run build:mp-weixin` 均已通过。线上已验证受保护路径明确返回 `STORAGE_EXCEED_AUTHORITY`、普通测试文件可上传、匿名 SDK 可检查更新。未改字体加载路径、注册时机或绘制名称。原生桌面截图工具超时，管理窗口尚未完成人工视觉验收。
 
-可手动执行 `node scripts/test-app-update-storage-live.cjs` 进行线上匿名写权限及 SDK 验证。它仅操作随机命名测试文件，等待规则传播后验证，结束时清理测试文件和对应临时规则；不会上传或发布正式版本。
+目录规则部署并生效后，可手动执行 `node scripts/test-app-update-storage-live.cjs`，验证匿名客户端的目录写权限、业务上传及 SDK 更新查询。脚本只写入和清理随机命名的测试文件。

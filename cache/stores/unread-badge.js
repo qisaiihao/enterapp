@@ -3,6 +3,7 @@ import {
   getUnreadCount as fetchUnreadCount,
   invalidateUnread
 } from '@/api-cache/unread.js';
+import { prefetchMessages } from '@/api-cache/messages.js';
 import { formatErrorForLog } from '@/utils/error-log.js';
 import { getAppState } from '@/utils/app-state.js';
 
@@ -142,7 +143,11 @@ function refreshUnreadCount({ forceRefresh = true } = {}) {
       const count = await fetchUnreadCount();
       // 请求期间若已读操作更新了状态，不允许旧响应重新点亮红点。
       if (currentUserKey() === userKey && activeUserKey === userKey) {
-        if (revision === countRevision) setUnreadCount(count || 0);
+        if (revision === countRevision) {
+          const shouldPrefetch = count > 0 && count !== globalUnreadCount;
+          setUnreadCount(count || 0);
+          if (shouldPrefetch) prefetchMessages(undefined, { forceRefresh: true });
+        }
         initialized = true;
         lastRefreshAt = Date.now();
       }

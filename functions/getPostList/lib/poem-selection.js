@@ -1,8 +1,6 @@
 'use strict';
 
-// Continue through unseen poems instead of skipping a fixed number of rows:
-// poems recommended on an earlier page must not cause newer poems to be skipped.
-async function originalPoems(db, baseFilter, { limit, excludePostIds = [] }) {
+function unseenPoemQuery(db, baseFilter, { limit, excludePostIds = [] }) {
   const size = Math.min(50, Math.max(1, Math.floor(Number(limit) || 10)));
   if (!Array.isArray(excludePostIds) || excludePostIds.some(id => typeof id !== 'string' || !id || id.length > 128)) {
     throw new Error('已读诗歌标识无效');
@@ -17,6 +15,17 @@ async function originalPoems(db, baseFilter, { limit, excludePostIds = [] }) {
     }
     return db.collection('posts').aggregate().match({ $and: conditions });
   };
+  return { query, size, used };
+}
+
+async function randomPoems(db, baseFilter, options) {
+  const { query, size } = unseenPoemQuery(db, baseFilter, options);
+  return (await query().sample({ size }).end()).list || [];
+}
+
+// Continue through unseen poems so recommendations do not skip newer poems.
+async function originalPoems(db, baseFilter, options) {
+  const { query, size, used } = unseenPoemQuery(db, baseFilter, options);
   const collect = rows => rows.filter(row => {
     if (!row || !row._id || used.has(row._id)) return false;
     used.add(row._id);
@@ -53,4 +62,4 @@ async function originalPoems(db, baseFilter, { limit, excludePostIds = [] }) {
   return posts;
 }
 
-module.exports = { originalPoems };
+module.exports = { originalPoems, randomPoems };

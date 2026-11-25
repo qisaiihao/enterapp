@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { createRequire } = require('node:module');
 const cloudSdk = require('wx-server-sdk');
 const { memoryDb } = require('./helpers/posts-memory-db.cjs');
 const root = path.resolve(__dirname, '..');
@@ -40,12 +41,13 @@ function backend(name) {
   const cloud = { init() {}, database: () => mem.db, getWXContext: () => ({ OPENID: 'viewer' }),
     async getTempFileURL({ fileList }) { conversions++; return { fileList: fileList.map(fileID => ({ fileID, status: 0, tempFileURL: 'https://server.example/image.png' })) }; } };
   const exports = {};
-  vm.runInNewContext(read(`functions/${name}/index.js`), { exports, console: quiet, require(id) {
+  const sourceFile = `functions/${name}/index.js`;
+  const localRequire = createRequire(path.join(root, sourceFile));
+  vm.runInNewContext(read(sourceFile), { exports, console: quiet, require(id) {
     if (id === 'wx-server-sdk') return cloud;
     if (id.includes('get-blocked-user-ids')) return async () => [];
     if (id === './_lib/posts') return require('../functions/_shared/posts');
-    if (name === 'getPostList' && id === './lib/original-poems') return require('../functions/getPostList/lib/original-poems');
-    throw new Error(id);
+    return localRequire(id);
   } }, { filename: name });
   return { run: exports.main, count: () => conversions };
 }

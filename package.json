@@ -16,6 +16,8 @@
 		"postbuild:app": "node scripts/check-app-overlay-bundle.cjs",
 		"prebuild:app": "npm run test:app-font && node scripts/check-android-privacy.cjs",
 		"check:android-privacy": "node scripts/check-android-privacy.cjs",
+		"app:privacy:huawei": "node scripts/check-android-privacy.cjs --set huawei",
+		"app:privacy:default": "node scripts/check-android-privacy.cjs --set default",
 		"test:app-font": "node scripts/test-app-font.cjs",
 		"test:app-update": "node scripts/sync-app-update.cjs --check && node scripts/test-app-update.cjs && node scripts/test-cloudbase-app-update.cjs",
 		"app:versions": "python scripts/app-versions/gui.py",

@@ -1,15 +1,14 @@
 'use strict';
 const fs = require('node:fs');
 const path = require('node:path');
-const { connect, list } = require('./app-versions/manager.cjs');
+const { connect } = require('./app-versions/manager.cjs');
+const { ensurePackageProtection } = require('./app-versions/storage-protection.cjs');
 const root = path.resolve(__dirname, '..');
 async function protect() {
-  const { manager, db } = await connect();
+  const { manager } = await connect();
   const dir = path.join(root, 'unpackage/app-update-migration/storage-protection', Date.now().toString());
   fs.mkdirSync(dir, { recursive: true });
-  for (const row of await list(db)) {
-    if (row.artifact?.cloudPath) await require('./app-versions/storage-protection.cjs').protectArtifact(manager, row.artifact.cloudPath);
-  }
+  await ensurePackageProtection(manager);
   // Server SDK bypasses storage rules. Apply just the directory guard to the
   // downloaded live code, preserving any unrelated production-only changes.
   for (const name of ['upload', 'uploadAvatar', 'uploadCollagePoetry']) {

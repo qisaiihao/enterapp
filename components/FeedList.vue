@@ -76,7 +76,7 @@ export default {
         skeleton,
         PostItem
     },
-    emits: ['avatar-error', 'avatar-load', 'navigate-to-user', 'preview-image', 'image-error', 'image-load', 'tag-click', 'vote', 'comment-click', 'like-icon-error', 'refresh', 'load-more', 'touch-start', 'touch-move', 'touch-end'],
+    emits: ['avatar-error', 'avatar-load', 'navigate-to-user', 'preview-image', 'image-error', 'image-load', 'tag-click', 'vote', 'comment-click', 'like-icon-error', 'refresh', 'load-more', 'scroll-top', 'touch-start', 'touch-move', 'touch-end'],
     props: {
         // 帖子列表
         posts: {
@@ -195,6 +195,8 @@ export default {
 
         // 滚动事件 - 检测是否需要加载更多
         handleScroll(e) {
+            const scrollTop = (e && e.detail && e.detail.scrollTop) || 0;
+            this.$emit('scroll-top', scrollTop);
             if (this.scrollTimer) {
                 clearTimeout(this.scrollTimer);
             }

@@ -159,6 +159,13 @@ async function getPostDetail(postId, options = {}) {
   return normalizePostDetailResult(detail);
 }
 
+async function getPostCardSignature(postId) {
+  const result = await callCloudAndGetResult('getPostDetail', { postId, action: 'getCardSignature' }, {
+    pageTag: 'post-detail-card-signature', silent: true, timeoutMs: 5000
+  });
+  return result.success === true ? result.signatureDataUrl || '' : '';
+}
+
 /**
  * 从列表缓存预填充帖子详情
  * @param {Object} postFromList 列表中的帖子对象
@@ -365,6 +372,7 @@ async function getRelatedPosts(postId, options = {}) {
 
 const postApi = {
   getPostDetail,
+  getPostCardSignature,
   prefillPostDetail,
   invalidatePostDetail,
   syncPostDetailCommentCount,
@@ -378,6 +386,7 @@ const postApi = {
 
 export {
   getPostDetail,
+  getPostCardSignature,
   prefillPostDetail,
   invalidatePostDetail,
   syncPostDetailCommentCount,

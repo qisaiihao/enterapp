@@ -268,7 +268,10 @@ export default {
 .activity-list-page {
   min-height: 100vh;
   background: var(--app-page-bg, #ffffff);
-  padding: 0 0 calc(160rpx + env(safe-area-inset-bottom, 0px));
+  padding: 0 0 calc(160rpx + env(safe-area-inset-bottom, var(--safe-area-inset-bottom, 0px)));
+  /* #ifdef APP-PLUS */
+  padding: 0 0 calc(160rpx + var(--safe-area-inset-bottom, 0px));
+  /* #endif */
   box-sizing: border-box;
   color: var(--app-primary-text, #333);
 }

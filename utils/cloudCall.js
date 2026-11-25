@@ -198,6 +198,10 @@ export async function cloudCall(name, data = {}, options = {}) {
                     if (Object.prototype.hasOwnProperty.call(logPayload, key)) logPayload[key] = '[redacted]';
                 });
             }
+            if (name === 'getPostList' && payload.homeMix === true) {
+                delete logPayload.excludePostIds;
+                delete logPayload.previousPostIds;
+            }
             console.log(`[cloudCall][${pageTag}] calling "${name}" (${attempt}/${totalAttempts})`, logPayload);
             const result = await invokeCloudFunction(method, {
                 context,

@@ -110,7 +110,51 @@ async function testCache() {
   assert.equal(poems.peekOriginalPoems(), undefined, 'explicit first-page invalidation clears mixed recommendations too');
   await poems.getMountainPoems();
   assert.equal(calls.at(-1).originalMix, undefined, 'non-original mountain feed keeps its existing query');
+  const random = { randomPoems: true };
+  const beforeRandom = calls.length;
+  await poems.getOriginalPoems(random);
+  await poems.getOriginalPoems(random);
+  await poems.getOriginalPoems({ ...random, page: 1, excludePostIds: ['shown'] });
+  assert.equal(calls.length, beforeRandom + 3, 'all random pages bypass the persistent cache');
+  assert.equal(calls.at(-1).randomPoems, true);
+  assert.equal(calls.at(-1).isOriginal, true);
+  assert.equal(calls.at(-1).originalMix, undefined);
+  assert.deepEqual(Array.from(calls.at(-1).excludePostIds), ['shown']);
+  ns.set(keys.buildCacheKey({ page: 0, pageSize: 10, isPoem: true, isOriginal: true, originalMix: true }), [{ _id: 'cached-mix' }], { ttlMs: 90000 });
+  await poems.getOriginalPoems();
+  assert.equal(calls.length, beforeRandom + 3, 'random refresh leaves the normal feed cache available');
   assert.equal(keys.parseCacheKey(keys.buildCacheKey({ page: 0, pageSize: 10, originalMix: true })).originalMix, true);
+}
+
+async function testRandomServer() {
+  const eligible = Array.from({ length: 13 }, (_, i) => post(`original-${i}`, i));
+  eligible[0] = { ...eligible[0], schemaVersion: 2, publishMode: 'poem', isPoem: undefined };
+  const corpus = [...eligible,
+    post('reading-new', 0, { isOriginal: false }),
+    post('reading-old', 2, { isOriginal: false }),
+    post('hidden', 0, { isHidden: true }),
+    post('private', 0, { visibility: 'self' }),
+    post('deleted', 0, { isDeleted: true }),
+    post('pending', 0, { auditStatus: 'pending' }),
+    post('activity', 0, { schemaVersion: 2, publishMode: 'poem', activityId: 'activity' }),
+    post('blocked', 0, { _openid: 'blocked' }),
+    post('blocked-anonymous', 0, { isAnonymous: true, realAuthorOpenid: 'blocked' })
+  ];
+  const query = { originalMix: false, randomPoems: true };
+  const app = service(corpus);
+  const first = await app.run(query);
+  const firstIds = first.map(row => row._id);
+  assert.equal(first.length, 10);
+  const sample = app.calls.find(call => call.stages?.some(([op]) => op === 'sample'));
+  assert.ok(sample);
+  assert.ok(sample.stages.some(([op, value]) => op === 'sample' && value.size === 10));
+  assert.ok(!sample.stages.some(([op]) => op === 'sort' || op === 'skip'));
+  const next = await app.run({ ...query, skip: 10, excludePostIds: firstIds });
+  assert.equal(next.length, 3);
+  assert.deepEqual([...firstIds, ...next.map(row => row._id)].sort(), eligible.map(row => row._id).sort());
+  const alternate = await service(corpus, () => 0.91).run(query);
+  assert.notDeepEqual(alternate.map(row => row._id), firstIds, 'a new sample may produce different poems and order');
+  assert.deepEqual((await app.run({ ...query, isOriginal: false })).map(row => row._id), ['reading-new', 'reading-old']);
 }
 
 async function testPage() {
@@ -173,7 +217,8 @@ async function testPage() {
 }
 
 async function main() {
-  await testServer(); await testCache(); await testPage();
+  await testServer(); await testRandomServer(); await testCache(); await testPage();
   console.log('original poem mix: PASS — 6 recent / 2 high-vote / 2 random, visibility, V1/V2, complete pagination, fallbacks, cache isolation and refresh races');
+  console.log('random poem refresh: PASS — database sampling, visibility, pagination and cache bypass');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

@@ -10,7 +10,7 @@ const SWR_MS = 45 * 1000;
 
 const ns = cacheManager.namespace('posts:list', { persistent: true, maxItems: 256 });
 
-function buildCloudParams({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous, author, originalMix, excludePostIds }) {
+function buildCloudParams({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous, author, originalMix, randomPoems, excludePostIds }) {
   return {
     skip: page * pageSize,
     limit: pageSize,
@@ -20,7 +20,9 @@ function buildCloudParams({ page, pageSize, isPoem, isOriginal, isDiscussion, ta
     tag,
     excludeAnonymous,
     author,
-    ...(originalMix ? { originalMix: true, excludePostIds: excludePostIds || [] } : {})
+    ...(originalMix ? { originalMix: true } : {}),
+    ...(randomPoems ? { randomPoems: true } : {}),
+    ...(originalMix || randomPoems ? { excludePostIds: excludePostIds || [] } : {})
   };
 }
 
@@ -37,6 +39,7 @@ export async function getPostList({
   excludeAnonymous,
   author,
   originalMix = false,
+  randomPoems = false,
   excludePostIds,
   context,
   forceRefresh = false,
@@ -44,19 +47,21 @@ export async function getPostList({
   timeoutMs,
   silent = false
 } = {}) {
-  const authorSuffix = author ? `:author:${author}` : '';
-  const key = buildCacheKey({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous, originalMix }) + authorSuffix;
-  if (forceRefresh && page === 0) ns.delete(key);
-
   const fetchPosts = async () => {
     const result = await withTimeout(callCloudAndUnwrap(
       'getPostList',
-      buildCloudParams({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous, author, originalMix, excludePostIds }),
+      buildCloudParams({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous, author, originalMix, randomPoems, excludePostIds }),
       { pageTag: 'post-list', context, timeoutMs, silent },
       '加载帖子失败'
     ), timeoutMs);
     return result.posts || [];
   };
+
+  if (randomPoems) return filterExpiredPublicPosts(await fetchPosts());
+
+  const authorSuffix = author ? `:author:${author}` : '';
+  const key = buildCacheKey({ page, pageSize, isPoem, isOriginal, isDiscussion, tag, excludeAnonymous, originalMix }) + authorSuffix;
+  if (forceRefresh && page === 0) ns.delete(key);
 
   // Later mixed pages depend on this reading session's seen IDs. Reusing a page
   // cached during another refresh could repeat recommendations or skip poems.

@@ -7,6 +7,7 @@ const { execFileSync } = require('node:child_process');
 const { createManager, listCollectionNames } = require('../init-societies-db.cjs');
 const domain = require('./domain.cjs');
 const config = require('./config.json');
+const { ensurePackageProtection, packageDirectory } = require('./storage-protection.cjs');
 const root = path.resolve(__dirname, '../..');
 const output = path.join(root, 'unpackage/app-update-migration');
 const { assert } = domain;
@@ -66,6 +67,19 @@ async function verifyDownload(url, expected) {
   }
   assert(size === expected.size && hash.digest('hex') === expected.sha256, '云端下载文件与本地校验值不同，未发布');
 }
+function describeCloudError(error, operation) {
+  const requestId = error.requestId ? `，请求 ID ${error.requestId}` : '';
+  return `${operation}失败（${error.code}${requestId}）`;
+}
+async function uploadStep(operation, action) {
+  try {
+    return await action();
+  } catch (error) {
+    if (!error.code) throw error;
+    const reason = error.message === '[ModifyStorageSafeRule] rule invalid' ? '，腾讯云拒绝了写保护规则' : '';
+    throw new Error(describeCloudError(error, operation) + reason, { cause: error });
+  }
+}
 async function upload(manager, filename) {
   const suffix = path.extname(filename).toLowerCase();
   assert(['.apk', '.wgt'].includes(suffix), '请选择 APK 或 WGT 文件');
@@ -75,12 +89,13 @@ async function upload(manager, filename) {
   try {
     const artifact = inspect(snapshot);
     artifact.filename = path.basename(filename);
-    const cloudPath = `app-updates/${config.appid}/${artifact.type}/${artifact.version}/${artifact.sha256}${suffix}`;
-    await require('./storage-protection.cjs').protectArtifact(manager, cloudPath);
-    // Security rules propagate asynchronously. Do not publish a new key until
-    // its client write protection has had the documented three minutes.
+    const cloudPath = `${packageDirectory}${config.appid}/${artifact.type}/${artifact.version}/${artifact.sha256}${suffix}`;
+    assert(/^[A-Za-z0-9_./-]+$/.test(cloudPath), '安装包存储路径无效');
+    await uploadStep('配置云存储写保护', () => ensurePackageProtection(manager));
+    // Another window may have just installed the rule. Keep the publish wait
+    // even if the rule was already visible to the management API.
     const protectionReadyAt = Date.now() + 185000;
-    await manager.storage.uploadFile({ localPath: snapshot, cloudPath });
+    await uploadStep('上传安装包到云存储', () => manager.storage.uploadFile({ localPath: snapshot, cloudPath }));
     const url = `${config.downloadBase.replace(/\/$/, '')}/${cloudPath}`;
     await verifyDownload(url, artifact);
     const result = { ...artifact, cloudPath, url, protectionReadyAt, verifiedAt: new Date().toISOString() };
@@ -171,6 +186,10 @@ if (require.main === module) {
   process.stdin.on('data', value => { input += value; });
   process.stdin.on('end', async () => {
     try { const data = await run(JSON.parse(input)); console.log(JSON.stringify({ success: true, data })); }
-    catch (error) { console.log(JSON.stringify({ success: false, error: error.code ? `${error.code}：云端操作失败，请检查 tcb login 登录态、权限和网络` : error.message })); process.exitCode = 1; }
+    catch (error) {
+      const message = error.code && error.code !== 'AUTH_REQUIRED' ? describeCloudError(error, '云端操作') : error.message;
+      console.log(JSON.stringify({ success: false, error: message }));
+      process.exitCode = 1;
+    }
   });
 }

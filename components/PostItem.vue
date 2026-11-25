@@ -640,12 +640,12 @@ export default {
     border-left: 12rpx solid transparent;
     border-right: 12rpx solid transparent;
     border-bottom: 18rpx solid var(--app-post-menu-dot-color, #666);
-    transition: transform 0.2s ease;
+    transform-origin: center center;
+    transition: transform 0.3s cubic-bezier(0.33, 1, 0.68, 1);
 }
 
 .expand-triangle--down {
-    border-bottom: none;
-    border-top: 18rpx solid var(--app-post-menu-dot-color, #666);
+    transform: rotate(180deg);
 }
 
 /* 外部作者信息样式 */

@@ -382,7 +382,7 @@ import { resolvePostAuthorAvatar } from '@/utils/defaultAvatar.js';
 import { getWindowInfoCompat } from '@/utils/system-info.js';
 
 // API函数导入
-import { getPostDetail, togglePostFavorite, recordPostView } from '@/api-cache/post.js';
+import { getPostDetail, getPostCardSignature, togglePostFavorite, recordPostView } from '@/api-cache/post.js';
 import { togglePostVisibility, deletePost as deletePostApi, saveDraft as saveDraftApi } from '@/api-cache/profile-actions.js';
 import { getComments, submitComment, deleteComment, likeComment } from '@/api-cache/comment.js';
 import { checkFollowStatus, toggleFollowStatus } from '@/api-cache/following.js';
@@ -399,7 +399,7 @@ function updateCanvas2DFontSize(ctx, fontSize) {
     ctx.font = `${fontSize}px ${family}`;
 }
 
-function createCanvas2DCompatContext(nativeCtx) {
+function createCanvas2DCompatContext(nativeCtx, canvas) {
     if (!nativeCtx) return null;
 
     return {
@@ -408,6 +408,9 @@ function createCanvas2DCompatContext(nativeCtx) {
         },
         set font(value) {
             nativeCtx.font = value;
+        },
+        createImage() {
+            return canvas.createImage();
         },
         clearRect(...args) {
             return nativeCtx.clearRect(...args);
@@ -919,7 +922,7 @@ export default {
                         const runtime = {
                             canvas,
                             nativeCtx,
-                            ctx: createCanvas2DCompatContext(nativeCtx),
+                            ctx: createCanvas2DCompatContext(nativeCtx, canvas),
                             logicalWidth,
                             logicalHeight,
                             pixelRatio
@@ -1505,6 +1508,7 @@ export default {
                 };
                 // 签名URL已从云函数返回，直接使用post.authorSignature（匿名帖子或非原创诗歌不显示签名）
                 const shouldShowSignature = (!!this.post && !this.post.isAnonymous && !(this.post.isPoem && this.post.isOriginal === false));
+                const postId = this.post && this.post._id;
                 
                 // 【优化】使用独立模块计算Canvas高度
                 const measureCtx = platform === 'mp-weixin'
@@ -1515,7 +1519,8 @@ export default {
                     post: this.post,
                     shareConfig: effectiveShareConfig,
                     canvasWidth,
-                    shouldShowSignature
+                    shouldShowSignature,
+                    loadSignatureFallback: platform === 'h5' && postId ? () => getPostCardSignature(postId) : undefined
                 });
                 
                 const canvasHeight = heightResult.canvasHeight;

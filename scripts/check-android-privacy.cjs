@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 /**
- * Android 安装包隐私合规守卫。
+ * 检查 Android 隐私配置，也可切换 HBuilderX 云打包使用的弹窗模式。
  *
- * 1. 根目录必须存在 androidPrivacy.json，且 prompt 为 template：
- *    DCloud 运行时会在开屏原生界面先弹隐私提示框，用户同意前不初始化 SDK、
- *    不读取 IMEI/OAID 等设备标识。
+ * 1. 普通包使用 none，由开屏页展示自定义弹窗。华为包使用 template，
+ *    由 DCloud 在应用启动前展示原生提示框。
  * 2. androidPrivacy.json 的 version 必须与 utils/privacyConsent.js 的
  *    PRIVACY_CONSENT_VERSION 一致，隐私政策升级时两处同步重新弹窗。
  * 3. manifest.json 必须显式关闭启动时的电话状态权限申请
@@ -18,6 +17,7 @@ const ROOT = path.join(__dirname, '..');
 const PRIVACY_CONFIG = path.join(ROOT, 'androidPrivacy.json');
 const CONSENT_SOURCE = path.join(ROOT, 'utils', 'privacyConsent.js');
 const MANIFEST = path.join(ROOT, 'manifest.json');
+const prompts = new Map([['default', 'none'], ['huawei', 'template']]);
 
 const failures = [];
 
@@ -35,19 +35,26 @@ function readJson(file, label) {
 }
 
 function main() {
+  const args = process.argv.slice(2);
+  const [action, profile] = args;
+  if (args.length && (args.length !== 2 || action !== '--set' || !prompts.has(profile))) {
+    console.error('用法: node scripts/check-android-privacy.cjs [--set default|huawei]');
+    process.exit(1);
+  }
+
   let config = null;
   if (!fs.existsSync(PRIVACY_CONFIG)) {
-    fail('缺少 androidPrivacy.json，Android 安装包无法在同意前阻止读取设备标识');
+    fail('缺少 androidPrivacy.json，无法检查 Android 安装包的隐私弹窗模式');
   } else {
     config = readJson(PRIVACY_CONFIG, 'androidPrivacy.json');
   }
 
   if (config) {
-    if (config.prompt !== 'template') {
-      fail(`androidPrivacy.json 的 prompt 必须为 template，当前为 ${JSON.stringify(config.prompt)}`);
+    if (config.prompt !== 'none' && config.prompt !== 'template') {
+      fail(`androidPrivacy.json 的 prompt 必须为 none 或 template，当前为 ${JSON.stringify(config.prompt)}`);
     }
     if (!String(config.message || '').trim()) {
-      fail('androidPrivacy.json 缺少 message，隐私提示框将无正文');
+      fail('androidPrivacy.json 缺少 message，华为包的原生隐私提示框将无正文');
     }
   }
 
@@ -89,7 +96,19 @@ function main() {
     failures.forEach((message) => console.error(`  ${message}`));
     process.exit(1);
   }
-  console.log(`[check-android-privacy] PASS (androidPrivacy ${config.version}, permissionPhoneState none)`);
+  if (action === '--set' && config.prompt !== prompts.get(profile)) {
+    config.prompt = prompts.get(profile);
+    const nextConfig = `${PRIVACY_CONFIG}.${process.pid}.tmp`;
+    try {
+      fs.writeFileSync(nextConfig, `${JSON.stringify(config, null, 2)}\n`);
+      fs.renameSync(nextConfig, PRIVACY_CONFIG);
+    } finally {
+      fs.rmSync(nextConfig, { force: true });
+    }
+  }
+
+  const activeProfile = config.prompt === 'template' ? 'huawei' : 'default';
+  console.log(`[check-android-privacy] PASS (${activeProfile}: ${config.prompt}, version ${config.version}, permissionPhoneState none)`);
 }
 
 main();

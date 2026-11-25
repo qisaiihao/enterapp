@@ -120,6 +120,17 @@ async function main() {
             await page.evaluate(({ paragraph, start, end, editorIndex }) => window.__typographyReview.select(paragraph, start, end, editorIndex), { paragraph, start, end, editorIndex });
             await page.waitForFunction(async text => new Promise(resolve => window.__typographyReview.editor.editorContext.getSelectionText({ success: result => resolve(result.text === text) })), {}, expected);
         }
+        async function caret(text, offset = 0) {
+            await page.evaluate(({ text, offset }) => {
+                const quill = document.querySelector('#typography-review .poem-native-editor').__quill;
+                quill.setSelection(quill.getText().indexOf(text) + offset, 0, 'user');
+            }, { text, offset });
+            await page.waitForFunction(({ text, offset }) => {
+                const quill = document.querySelector('#typography-review .poem-native-editor').__quill;
+                const range = quill.getSelection();
+                return !!range && range.length === 0 && range.index === quill.getText().indexOf(text) + offset && window.__typographyReview.editor.everFocused;
+            }, {}, { text, offset });
+        }
         async function enter(size, controls = toolbar) {
             const input = await page.$(controls + ' input');
             await input.focus();
@@ -167,6 +178,15 @@ async function main() {
                 const bounds = await page.$eval(toolbar, el => ({ width: el.clientWidth, scrollWidth: el.scrollWidth, height: el.getBoundingClientRect().height }));
                 assert.ok(bounds.scrollWidth <= bounds.width + 1, `${width} ${mode}: toolbar fits`);
                 assert.ok(bounds.height <= 44, `${width} ${mode}: toolbar stays on one compact row`);
+                const order = await page.evaluate(() => {
+                    const rect = selector => {
+                        const box = document.querySelector('#typography-review ' + selector).getBoundingClientRect();
+                        return { top: box.top, bottom: box.bottom, height: box.height };
+                    };
+                    return { toolbar: rect('.poem-typography-toolbar'), layout: rect('.poem-layout-control'), editor: rect('.poem-native-editor') };
+                });
+                assert.ok(order.layout.top >= order.toolbar.bottom - 1, `${width} ${mode}: layout switch sits below the typography toolbar ${JSON.stringify(order)}`);
+                assert.ok(order.editor.top >= order.layout.bottom - 1, `${width} ${mode}: editor sits below the layout switch ${JSON.stringify(order)}`);
                 await page.waitForSelector(toolbar + ' .toolbar-scroll-next');
                 await page.waitForFunction(() => window.__typographyReview.toolbar.canScrollForward);
                 const arrow = await page.$eval(toolbar + ' .toolbar-scroll-next', el => {
@@ -282,6 +302,28 @@ async function main() {
         await page.waitForFunction(() => window.__typographyReview.instance.poemTextStyles.some(style => style.start === 7 && style.fontSize === 14 && !style.bold && !style.color && style.letterSpacing === undefined));
         assert.ok(await page.evaluate(() => window.__typographyReview.instance.poemTextStyles.some(style => style.start === 2 && style.bold && style.color === '#906161')), 'Clearing the target keeps the source formatting');
         await page.screenshot({ path: path.join(output, 'editor-rich-dark-390.png') });
+        await page.evaluate(() => window.__typographyReview.mount('add', 'light'));
+        await ready();
+        await caret('把一页空白翻向远方', 2);
+        await page.click(toolbar + ' .format-bold');
+        await page.waitForFunction(() => window.__typographyReview.instance.poemTextStyles.some(style => style.start === 7 && style.end === 16 && style.bold));
+        const collapsed = await page.evaluate(() => {
+            const range = document.querySelector('#typography-review .poem-native-editor').__quill.getSelection();
+            return { index: range && range.index, length: range && range.length };
+        });
+        assert.deepEqual(collapsed, { index: 9, length: 0 }, 'Line formatting applies to the caret line and restores a collapsed caret');
+        await enter(24);
+        await page.waitForFunction(() => window.__typographyReview.instance.poemTextStyles.some(style => style.start === 7 && style.end === 16 && style.fontSize === 24));
+        await caret('把一页空白翻向远方', 2);
+        await page.click(toolbar + ' .size-reset');
+        await page.waitForFunction(() => {
+            const styles = window.__typographyReview.instance.poemTextStyles.filter(style => style.start < 16 && style.end > 7);
+            return styles.some(style => style.fontSize === 14) && styles.every(style => !style.bold);
+        });
+        await caret('把一页空白翻向远方', 2);
+        await page.click(toolbar + ' .format-align-center');
+        await page.waitForFunction(() => document.querySelectorAll('#typography-review .ql-editor p')[1].style.textAlign === 'center');
+        await page.screenshot({ path: path.join(output, 'editor-line-format-390.png') });
         for (const mode of ['normal', 'poem']) {
             await page.evaluate(mode => window.__typographyReview.mount('add', 'light', false, { publishMode: mode, isOriginal: false }), mode);
             await ready();
@@ -437,7 +479,9 @@ async function main() {
         console.log('Poem selection H5: selection formatting, typography tools, discussion quote insertion and scrolling, independent body/quote formats, cross-block painter, light/dark, draft restoration, preview, series formatting and detail route attributes passed.');
         console.log(`Screenshots: ${output}`);
     } catch (error) {
-        if (page) await page.screenshot({ path: path.join(output, 'failure.png') });
+        if (page) {
+            try { await page.screenshot({ path: path.join(output, 'failure.png') }); } catch (screenshotError) { console.error('Failure screenshot skipped:', screenshotError.message); }
+        }
         throw error;
     } finally { await browser.close(); }
 }

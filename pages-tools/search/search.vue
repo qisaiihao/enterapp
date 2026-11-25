@@ -2,7 +2,10 @@
     <!-- pages/search/search.wxml -->
     <view class="container" :class="{ 'container--dark': appThemeMode === 'dark' }" :data-app-theme="appThemeMode" :style="[appThemeVars, readFontVars]">
         <!-- 搜索框 -->
-        <view class="search-header">
+        <view class="search-header" :style="headerStyle">
+            <view class="back-btn" @tap="goBack" aria-label="返回">
+                <image class="back-icon" src="/static/images/left_exit.png" mode="aspectFit"></image>
+            </view>
             <view class="search-input-container">
                 <view class="search-icon" aria-hidden="true">
                     <view class="search-icon-ring"></view>
@@ -241,10 +244,14 @@ export default {
             searchTimer: null,
             suggestionTimer: null,
 
+            // 自定义导航栏：小程序端避让右上角胶囊
+            headerStyle: {},
+
             img: ''
         };
     },
     onLoad: function (options) {
+        this.setupHeaderLayout();
         // 加载搜索历史
         this.loadSearchHistory();
         // 获取热门搜索词
@@ -259,6 +266,38 @@ export default {
         clearTimeout(this.suggestionTimer);
     },
     methods: {
+        // 自定义导航栏布局：小程序端为右上角胶囊预留空间
+        setupHeaderLayout: function () {
+            // #ifdef MP-WEIXIN
+            try {
+                const menuButton = wx.getMenuButtonBoundingClientRect ? wx.getMenuButtonBoundingClientRect() : null;
+                const windowInfo = uni.getSystemInfoSync ? uni.getSystemInfoSync() : {};
+                if (menuButton && menuButton.left > 0 && windowInfo.windowWidth) {
+                    const rightGap = windowInfo.windowWidth - menuButton.left + 8;
+                    this.setData({
+                        headerStyle: {
+                            paddingRight: `${rightGap}px`
+                        }
+                    });
+                }
+            } catch (err) {
+                console.warn('[search] setupHeaderLayout failed:', err);
+            }
+            // #endif
+        },
+
+        // 返回上一页
+        goBack: function () {
+            const pages = getCurrentPages();
+            if (pages && pages.length > 1) {
+                uni.navigateBack();
+                return;
+            }
+            uni.switchTab({
+                url: '/pages/index/index'
+            });
+        },
+
         // 搜索输入处理
         onSearchInput: function (e) {
             const keyword = e.detail.value;
@@ -692,17 +731,119 @@ export default {
 <style>
 /* pages/search/search.wxss */
 .container {
-    padding: 20rpx;
+    padding: 0 24rpx 24rpx;
     background-color: var(--app-page-bg, #f7f8fa);
     min-height: 100vh;
     color: var(--app-primary-text, #333);
+}
+
+/* 进入搜索页动效：参考个人主页搜索的延展淡入 */
+.search-header {
+    animation: searchHeaderIn 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.search-input-container {
+    animation: searchPillIn 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.back-btn {
+    animation: searchBackIn 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.search-filters,
+.search-history,
+.hot-searches,
+.search-suggestions,
+.search-results,
+.empty-state {
+    animation: searchPanelIn 360ms cubic-bezier(0.22, 1, 0.36, 1) 80ms both;
+}
+
+@keyframes searchHeaderIn {
+    from {
+        opacity: 0;
+        transform: translateY(-18rpx);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes searchPillIn {
+    from {
+        opacity: 0;
+        transform: scale(0.94);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes searchBackIn {
+    from {
+        opacity: 0;
+        transform: translateX(-12rpx);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes searchPanelIn {
+    from {
+        opacity: 0;
+        transform: translateY(16rpx);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .search-header,
+    .search-input-container,
+    .back-btn,
+    .search-filters,
+    .search-history,
+    .hot-searches,
+    .search-suggestions,
+    .search-results,
+    .empty-state {
+        animation: none;
+    }
 }
 
 /* 搜索头部 */
 .search-header {
     display: flex;
     align-items: center;
-    margin-bottom: 30rpx;
+    padding: calc(var(--app-safe-area-top, 0px) + 48rpx) 0 20rpx;
+}
+
+.back-btn {
+    flex-shrink: 0;
+    width: 64rpx;
+    height: 64rpx;
+    margin-right: 10rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.2s ease;
+}
+
+.back-btn:active {
+    opacity: 0.55;
+}
+
+.back-icon {
+    width: 26rpx;
+    height: 44rpx;
+    display: block;
+    filter: var(--app-icon-filter, none);
 }
 
 .search-input-container {
@@ -710,19 +851,20 @@ export default {
     min-width: 0;
     display: flex;
     align-items: center;
+    height: 76rpx;
+    padding: 0 10rpx 0 26rpx;
     background-color: var(--app-surface-bg, #fff);
-    border-radius: 16rpx;
-    padding: 20rpx 30rpx;
+    border-radius: 999rpx;
     box-shadow: var(--app-surface-shadow, 0 4rpx 12rpx rgba(0, 0, 0, 0.05));
     border: var(--app-surface-border-line, 1rpx solid rgba(0, 0, 0, 0.05));
 }
 
 .search-icon {
     position: relative;
-    width: 36rpx;
-    height: 36rpx;
+    width: 32rpx;
+    height: 32rpx;
     flex-shrink: 0;
-    margin-right: 20rpx;
+    margin-right: 16rpx;
     color: var(--app-muted-text, #999);
 }
 
@@ -730,8 +872,8 @@ export default {
     position: absolute;
     top: 2rpx;
     left: 2rpx;
-    width: 24rpx;
-    height: 24rpx;
+    width: 22rpx;
+    height: 22rpx;
     box-sizing: border-box;
     border: 3rpx solid currentColor;
     border-radius: 50%;
@@ -739,9 +881,9 @@ export default {
 
 .search-icon-handle {
     position: absolute;
-    top: 22rpx;
-    left: 22rpx;
-    width: 14rpx;
+    top: 20rpx;
+    left: 20rpx;
+    width: 13rpx;
     height: 3rpx;
     border-radius: 3rpx;
     background: currentColor;
@@ -752,15 +894,19 @@ export default {
 .search-input {
     flex: 1;
     min-width: 0;
+    height: 100%;
     font-size: 28rpx;
     color: var(--app-primary-text, #333);
 }
 
 .clear-btn {
-    font-size: 40rpx;
+    flex-shrink: 0;
+    font-size: 36rpx;
+    line-height: 1;
     color: var(--app-muted-text, #999);
-    margin-left: 20rpx;
-    padding: 10rpx;
+    margin-left: 10rpx;
+    margin-right: 14rpx;
+    padding: 8rpx;
 }
 
 /* 搜索过滤 */

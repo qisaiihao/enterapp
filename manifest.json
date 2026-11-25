@@ -2,13 +2,20 @@
     "name" : "poementer",
     "appid" : "__UNI__E0A1A41",
     "description" : "S",
-    "versionName" : "1.8.0",
-    "versionCode" : 180,
+    "versionName" : "1.8.1",
+    "versionCode" : 181,
     "transformPx" : false,
     "app-plus" : {
         "usingComponents" : true,
         "softinput" : {
             "mode" : "adjustResize"
+        },
+        "safearea" : {
+            "background" : "#F6F6F6",
+            "backgroundDark" : "#0f1115",
+            "bottom" : {
+                "offset" : "none"
+            }
         },
         "nvueStyleCompiler" : "uni-app",
         "compilerVersion" : 3,

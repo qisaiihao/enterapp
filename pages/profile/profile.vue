@@ -107,12 +107,12 @@
                                 :swiper-height="swiperHeights[index]"
                                 :show-menu="true"
                                 :show-poem-author="false"
-                                :expanded="allPostsExpanded"
-                                :show-expand-toggle="index === 0"
+                                :expanded="isPostExpanded(item)"
+                                :show-expand-toggle="true"
                                 time-label="发布于"
                                 time-field="formattedCreateTime"
                                 @show-action-menu="handlePostActionMenu"
-                                @toggle-expand="handleToggleAllPostsExpand"
+                                @toggle-expand="handleTogglePostExpand(item)"
                                 @avatar-error="onAvatarError"
                                 @avatar-load="onAvatarLoad"
                                 @navigate-to-user="handleNavigateToUser"
@@ -662,7 +662,7 @@ export default {
             hasFirstShow_var: false,
 
             currentTab: 'posts',
-            allPostsExpanded: false,
+            expandedPosts: {},
             timelinePosts: [],
             timelineGroups: {},
             timelineLoading: false,
@@ -2981,9 +2981,19 @@ export default {
             });
         },
 
-        // 展开/收起个人主页全部帖子的完整内容
-        handleToggleAllPostsExpand() {
-            this.allPostsExpanded = !this.allPostsExpanded;
+        // 判断单个帖子是否展开
+        isPostExpanded(item) {
+            const postId = item && item._id;
+            return !!(postId && this.expandedPosts[postId]);
+        },
+
+        // 展开/收起当前帖子的完整内容
+        handleTogglePostExpand(item) {
+            const postId = item && item._id;
+            if (!postId) {
+                return;
+            }
+            this.expandedPosts[postId] = !this.expandedPosts[postId];
         },
 
         // 处理跳转用户主页

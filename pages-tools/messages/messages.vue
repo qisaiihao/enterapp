@@ -43,16 +43,21 @@
         </view>
 
         <!-- 消息列表 -->
-        <scroll-view :scroll-y="true" class="message-list" @scrolltolower="handleScrollToLower" @scrolltoupper="onScrollToUpper">
-            <view v-if="messages.length === 0 && !isLoading" class="empty-container">
+        <scroll-view :scroll-y="true" class="message-list" @scrolltolower="handleScrollToLower"
+                     refresher-enabled :refresher-triggered="isRefreshing" @refresherrefresh="refreshMessages">
+            <view v-if="showLoadingState" class="loading-state">
+                <text class="loading-text">加载中...</text>
+            </view>
+
+            <view v-else-if="messages.length === 0" class="empty-container">
                 <image class="empty-icon" src="/static/images/icons/empty-message.svg" mode="aspectFit"></image>
                 <text class="empty-text">暂无消息通知</text>
             </view>
 
-            <view class="message-item-wrapper" v-for="(item, index) in messages" :key="index">
+            <view class="message-item-wrapper" v-for="(item, index) in messages" :key="item._id">
                 <!-- 左滑操作按钮 -->
                 <view class="swipe-actions" :class="{ 'swipe-actions-show': item.isSwipeOpen }">
-                    <view class="action-btn delete-btn" @tap.stop="deleteMessage" :data-messageid="item._id" :data-index="index">
+                    <view class="action-btn delete-btn" @tap.stop="deleteMessage" :data-messageid="item._id">
                         <text>删除</text>
                     </view>
                 </view>
@@ -79,7 +84,7 @@
                             <text class="sender-name">{{ item.fromUserName || '某用户' }}</text>
                             <text class="action-text">{{ getActionText(item) }}</text>
                             <!-- 关注按钮（仅关注类型显示，放在时间左边） -->
-                            <view v-if="item.type === 'follow'" :class="'follow-btn ' + (item.isFollowing ? 'following' : '')" @tap.stop="followBack" :data-user-id="item.fromUserId" :data-index="index">
+                            <view v-if="item.type === 'follow'" :class="'follow-btn ' + (item.isFollowing ? 'following' : '')" @tap.stop="followBack" :data-user-id="item.fromUserId">
                                 <text>{{ item.isFollowing ? '已关注' : '回关' }}</text>
                             </view>
                             <text class="message-time">{{ item.formattedTime || '刚刚' }}</text>
@@ -109,14 +114,15 @@
 
 <script>
 import { formatTimeAgo } from '../../utils/time.js';
-import { getUnreadCount, invalidateUnread, updateUnreadCache } from '../../api-cache/unread.js';
+import { invalidateUnread, updateUnreadCache } from '../../api-cache/unread.js';
 import {
+    getCachedMessages,
+    getMessageViewer,
     getMessages as getMessagesWithCache,
     markMessagesAsRead as markMessagesAsReadApi,
     markAllMessagesAsRead as markAllMessagesAsReadApi,
     deleteMessageById,
-    clearMessages,
-    invalidateMessages
+    clearMessages
 } from '../../api-cache/messages.js';
 import { toggleFollow } from '../../api-cache/following.js';
 import fileUrlCache from '../../cache/core/file-url.js';
@@ -127,15 +133,16 @@ import { getSystemInfoCompat } from '@/utils/system-info.js';
 import { applyThemeMode, getThemeMode } from '@/utils/theme.js';
 import { feedbackDetailUrl } from '../../utils/feedback.js';
 import { refreshAdminStatus } from '../../utils/admin.js';
+import { requireLogin } from '../../utils/authHelper.js';
 import { invalidatePostDetail } from '../../api-cache/post.js';
-// pages/messages/messages.js
-const app = getApp();
 
 export default {
     data() {
         return {
             messages: [],
             isLoading: false,
+            isRefreshing: false,
+            hasLoaded: false,
             hasMore: true,
             page: 0,
             PAGE_SIZE: 10,
@@ -157,6 +164,9 @@ export default {
     computed: {
         messagePageStyle() {
             return Object.assign({}, this.appThemeVars || {}, this.pageInlineStyle || {});
+        },
+        showLoadingState() {
+            return !this.hasLoaded;
         }
     },
     onLoad: function (options) {
@@ -165,10 +175,24 @@ export default {
     onShow: function () {
         const mode = applyThemeMode(getThemeMode());
         this.appThemeMode = mode;
-        // 进入消息页即把全部消息标为已读，返回后小红点不再显示
-        this.markAllReadThenLoad();
+        const viewer = getMessageViewer();
+        if (viewer !== this._messageViewer) {
+            this._messageViewer = viewer;
+            this._markAllReadTask = null;
+            this._messageSnapshot = null;
+            this.setData({ messages: [], page: 0, hasMore: true, hasLoaded: false, unreadCount: 0 });
+        }
+        if (!viewer) {
+            this.hasLoaded = true;
+            requireLogin();
+            return;
+        }
+        this.markAllMessagesAsRead(viewer);
+        return this.loadMessages({ reset: true });
     },
     onUnload: function () {
+        this._messageViewer = null;
+        this._messageRequestId = (this._messageRequestId || 0) + 1;
         if (this.longPressGuardTimer) {
             clearTimeout(this.longPressGuardTimer);
             this.longPressGuardTimer = null;
@@ -176,16 +200,9 @@ export default {
         this.justLongPressed = false;
     },
     onPullDownRefresh: function () {
-        // 下拉刷新时清除缓存并强制刷新
-        invalidateMessages({ type: this.activeTab === 'all' ? null : this.activeTab });
-        this.setData({
-            messages: [],
-            page: 0,
-            hasMore: true
-        });
-        this.loadMessages(() => {
+        return this.refreshMessages().finally(() => {
             uni.stopPullDownRefresh();
-        }, true); // forceRefresh = true
+        });
     },
     methods: {
         setupHeaderLayout() {
@@ -246,28 +263,10 @@ export default {
             }
         },
 
-        // 获取当前用户ID
-        getCurrentUserId: function () {
-            const appInstance = getApp();
-            const openid = appInstance && appInstance.globalData && appInstance.globalData.openid;
-            return openid || uni.getStorageSync('openid') || uni.getStorageSync('userOpenId');
-        },
-
-        normalizeMessageAvatar(message) {
-            const resolvedAvatar = resolveUserAvatar(
-                message && message.fromUserAvatar,
-                message && (message.fromUserId || message._openid || message.userId || message.fromUserName || message._id)
-            );
-
-            if (message && typeof message === 'object') {
-                message.fromUserAvatar = resolvedAvatar;
-            }
-
-            return resolvedAvatar;
-        },
-
         getMessageAvatar(message) {
-            return this.normalizeMessageAvatar(message);
+            const source = message.fromUserAvatar;
+            const avatar = typeof source === 'string' && source.startsWith('cloud://') ? message.displayAvatar : source;
+            return resolveUserAvatar(avatar, message.fromUserId || message._openid || message.userId || message.fromUserName || message._id);
         },
 
         // 触摸开始
@@ -459,167 +458,101 @@ export default {
             });
         },
 
-        // 滚动到顶部刷新
-        onScrollToUpper() {
-            console.log('🔍 [消息页] 滚动到顶部，刷新消息');
-            // 清除当前类型的缓存并强制刷新
-            invalidateMessages({ type: this.activeTab === 'all' ? null : this.activeTab });
-            this.setData({
-                messages: [],
-                page: 0,
-                hasMore: true
-            });
-            this.loadMessages(null, true); // forceRefresh = true
-        },
-
-        // 转换cloud://URL为可访问的URL
-        async convertCloudUrl(cloudUrl) {
-            if (!cloudUrl || !cloudUrl.startsWith('cloud://')) {
-                return cloudUrl;
-            }
-            
-            try {
-                console.log('转换cloud://URL:', cloudUrl);
-                // 使用fileUrlCache工具进行URL转换
-                const convertedUrl = await fileUrlCache.getTempUrl(cloudUrl);
-                console.log('成功转换URL:', convertedUrl);
-                return convertedUrl;
-            } catch (error) {
-                console.error('转换cloud://URL失败:', error);
-                // 转换失败时返回默认头像
-                return '/static/images/avatar.png';
-            }
-        },
-
         // 滚动到底部加载更多
         handleScrollToLower() {
-            console.log('🔍 [消息页] 滚动到底部，加载更多消息');
-            if (this.hasMore && !this.isLoading) {
+            if (this.page > 0 && this.hasMore && !this.isLoading) {
                 this.loadMessages();
             }
         },
 
-
-        // 切换消息类型标签
-        switchTab: function (e) {
+        switchTab(e) {
             const tab = e.currentTarget.dataset.tab;
             if (tab === this.activeTab) {
                 return;
             }
-            console.log('🔍 [消息页] 切换标签:', this.activeTab, '->', tab);
-            // 清除旧标签的缓存，确保切换时能获取最新数据
-            invalidateMessages({ type: this.activeTab === 'all' ? null : this.activeTab });
-            // 重置状态并加载新标签的数据
-            this.setData({
-                activeTab: tab,
-                messages: [],
-                page: 0,
-                hasMore: true,
-                isLoading: false  // 重置加载状态，确保可以加载新标签的数据
-            });
-            // 强制刷新新标签的数据
-            this.loadMessages(null, true);
+            this._messageSnapshot = null;
+            this.setData({ activeTab: tab, messages: [], page: 0, hasMore: true, hasLoaded: false });
+            return this.loadMessages({ reset: true });
         },
 
-        // 加载消息列表（使用缓存）
-        loadMessages: function (callback, forceRefresh = false) {
-            if (this.isLoading) {
-                console.log('🔍 [消息页] 正在加载中，跳过重复请求');
-                if (typeof callback === 'function') {
-                    callback();
-                }
+        async refreshMessages() {
+            if (this.isRefreshing) return;
+            this.isRefreshing = true;
+            try {
+                await this.loadMessages({ reset: true, forceRefresh: true });
+            } finally {
+                this.isRefreshing = false;
+            }
+        },
+
+        async loadMessages({ reset = false, forceRefresh = false } = {}) {
+            const viewer = getMessageViewer();
+            if (!viewer || viewer !== this._messageViewer || (!reset && this.isLoading)) {
                 return;
             }
-            console.log('🔍 [消息页] 开始加载消息，页码:', this.page, '类型:', this.activeTab, 'forceRefresh:', forceRefresh);
-            this.setData({
-                isLoading: true
-            });
-            const { page, PAGE_SIZE, activeTab } = this;
-            
-            // 使用缓存封装的接口
-            getMessagesWithCache({
-                page,
-                pageSize: PAGE_SIZE,
-                type: activeTab === 'all' ? null : activeTab,
-                context: this,
-                forceRefresh
-            }).then((result) => {
-                console.log('🔍 [消息页] 缓存接口返回结果:', result);
-                const newMessages = result.messages || [];
-                const unreadCount = result.unreadCount || 0;
-                
-                // 批量转换头像URL - 处理cloud://协议
-                const avatarUrls = newMessages
-                    .filter(msg => msg.fromUserAvatar && msg.fromUserAvatar.startsWith('cloud://'))
-                    .map(msg => msg.fromUserAvatar);
+            const requestId = (this._messageRequestId || 0) + 1;
+            this._messageRequestId = requestId;
+            const isCurrent = () => this._messageRequestId === requestId && getMessageViewer() === viewer;
+            const page = reset ? 0 : this.page;
+            const type = this.activeTab === 'all' ? null : this.activeTab;
+            const cached = reset ? getCachedMessages({ type, pageSize: this.PAGE_SIZE }) : undefined;
+            this.isLoading = true;
 
-                if (avatarUrls.length > 0) {
-                    fileUrlCache.getTempUrls(avatarUrls)
-                        .then(convertedUrls => {
-                            newMessages.forEach((msg) => {
-                                if (msg.fromUserAvatar && msg.fromUserAvatar.startsWith('cloud://')) {
-                                    const convertedUrl = convertedUrls[msg.fromUserAvatar];
-                                    if (convertedUrl) {
-                                        msg.fromUserAvatar = convertedUrl;
-                                    } else {
-                                        msg.fromUserAvatar = '';
-                                    }
-                                }
-                            });
-
-                            // 继续处理消息
-                            this.processMessagesAfterAvatarConversion(newMessages, page, PAGE_SIZE, unreadCount, callback);
-                        })
-                        .catch(error => {
-                            console.error('批量转换头像URL失败:', error);
-                            // 转换失败时使用默认头像
-                            newMessages.forEach((msg) => {
-                                if (msg.fromUserAvatar && msg.fromUserAvatar.startsWith('cloud://')) {
-                                    msg.fromUserAvatar = '';
-                                }
-                            });
-
-                            // 继续处理消息
-                            this.processMessagesAfterAvatarConversion(newMessages, page, PAGE_SIZE, unreadCount, callback);
-                        });
-                } else {
-                    // 没有需要转换的头像，直接处理消息
-                    this.processMessagesAfterAvatarConversion(newMessages, page, PAGE_SIZE, unreadCount, callback);
+            try {
+                if (cached && cached !== this._messageSnapshot) {
+                    this._messageSnapshot = cached;
+                    this.applyMessages(cached.messages, page, cached.unreadCount, { cached: true });
                 }
-            }).catch((err) => {
+                const result = await getMessagesWithCache({
+                    page, pageSize: this.PAGE_SIZE, type, context: this, forceRefresh
+                });
+                if (isCurrent() && (!reset || result !== this._messageSnapshot)) {
+                    if (reset) this._messageSnapshot = result;
+                    this.applyMessages(result.messages, page, result.unreadCount);
+                }
+            } catch (err) {
+                if (!isCurrent()) return;
                 console.error('获取消息失败:', err);
-                // 根据错误类型显示不同的提示
-                let errorMessage = '获取消息失败';
-                if (err && err.message) {
-                    if (err.message.includes('网络')) {
+                if (forceRefresh || !this.hasLoaded || !reset) {
+                    let errorMessage = '获取消息失败';
+                    if (err?.message?.includes('网络')) {
                         errorMessage = '网络连接失败，请检查网络';
-                    } else if (err.message.includes('权限')) {
+                    } else if (err?.message?.includes('权限')) {
                         errorMessage = '权限不足，请重新登录';
-                    } else if (err.message.includes('超时')) {
+                    } else if (err?.message?.includes('超时')) {
                         errorMessage = '请求超时，请重试';
                     }
+                    uni.showToast({ title: errorMessage, icon: 'none', duration: 3000 });
                 }
-                uni.showToast({
-                    title: errorMessage,
-                    icon: 'none',
-                    duration: 3000
-                });
-
-                // 错误情况下也要完成加载状态
-                this.setData({
-                    isLoading: false
-                });
-                if (callback) {
-                    callback();
+            } finally {
+                if (isCurrent()) {
+                    this.setData({ isLoading: false, hasLoaded: true });
                 }
-            });
+            }
         },
 
-        // 处理消息（格式化时间、内容等）
-        processMessagesAfterAvatarConversion: function (newMessages, page, PAGE_SIZE, unreadCount, callback) {
+        resolveMessageAvatars(messages) {
+            const avatarIds = messages.map(msg => msg.fromUserAvatar)
+                .filter(url => typeof url === 'string' && url.startsWith('cloud://'));
+            if (avatarIds.length === 0) return;
+
+            const viewer = this._messageViewer;
+            fileUrlCache.getTempUrls(avatarIds).then(urls => {
+                if (this._messageViewer !== viewer || getMessageViewer() !== viewer) return;
+                this.messages.forEach(msg => {
+                    const url = urls[msg.fromUserAvatar];
+                    if (url) msg.displayAvatar = url;
+                });
+            }).catch(error => console.warn('转换消息头像失败:', error));
+        },
+
+        applyMessages(rows, page, unreadCount, { cached = false } = {}) {
+            const markAllTask = this._markAllReadTask;
+            const unreadIds = cached ? [] : rows.filter(msg => !msg.isRead).map(msg => msg._id);
+            // 格式化后的文字、头像和已读状态都只写入页面副本。
+            const newMessages = rows.map(msg => ({ ...msg, isRead: cached || !!markAllTask || msg.isRead }));
             // 格式化时间和消息内容
             newMessages.forEach((msg) => {
-                this.normalizeMessageAvatar(msg);
                 if (msg.createTime) {
                     const timeAgo = formatTimeAgo(msg.createTime);
                     msg.formattedTime = timeAgo;
@@ -690,51 +623,30 @@ export default {
             this.setData({
                 messages: allMessages,
                 page: page + 1,
-                hasMore: newMessages.length === PAGE_SIZE,
-                unreadCount: unreadCount || 0
+                hasMore: newMessages.length === this.PAGE_SIZE,
+                unreadCount: cached || markAllTask ? 0 : unreadCount || 0,
+                hasLoaded: true
             });
 
-            // 检查关注消息的互相关注状态
-            this.checkFollowStatus(allMessages);
+            this.resolveMessageAvatars(newMessages);
+            this.checkFollowStatus(newMessages);
 
-            // 标记已读
-            if (newMessages.length > 0) {
-                this.markMessagesAsRead(newMessages.filter((msg) => !msg.isRead).map((msg) => msg._id));
-            }
-
-            // 完成加载
-            this.setData({
-                isLoading: false
-            });
-            if (callback) {
-                callback();
-            }
-        },
-
-        // 检查未读消息数量
-        checkUnreadCount: function () {
-            getUnreadCount(this).then((count) => {
-                    this.setData({
-                        unreadCount: count || 0
+            if (unreadIds.length > 0) {
+                if (markAllTask) {
+                    const viewer = this._messageViewer;
+                    markAllTask.then(result => {
+                        if (!result.success && this._messageViewer === viewer && getMessageViewer() === viewer) {
+                            this.markMessagesAsRead(unreadIds);
+                        }
                     });
-                }).catch((err) => {
-                    console.error('获取未读消息数量失败:', err);
-                });
-        },
-
-        // 进入页面：先把全部消息标为已读，再加载列表
-        markAllReadThenLoad: async function () {
-            await this.markAllMessagesAsRead();
-            if (this.isLoading) {
-                return;
+                } else {
+                    this.markMessagesAsRead(unreadIds);
+                }
             }
-            this.page = 0;
-            this.hasMore = true;
-            this.loadMessages(undefined, true);
         },
 
-        // 全部消息标为已读：本地先清零红点，云端成功后再次确认
-        markAllMessagesAsRead: function () {
+        // 进入页面立即清除红点，同时在后台同步服务器已读状态。
+        markAllMessagesAsRead: function (viewer) {
             if (this.messages.some((msg) => !msg.isRead)) {
                 this.setData({
                     messages: this.messages.map((msg) => (msg.isRead ? msg : Object.assign({}, msg, { isRead: true })))
@@ -752,18 +664,21 @@ export default {
                 .catch((error) => {
                     // 首次失败可能是登录态/网络尚未就绪，短暂等待后重试一次
                     console.warn('[messages] 标记全部已读失败，准备重试:', error);
-                    return new Promise((resolve) => setTimeout(resolve, 800)).then(() => markAllMessagesAsReadApi(this));
+                    return new Promise((resolve) => setTimeout(resolve, 800)).then(() => {
+                        return getMessageViewer() === viewer ? markAllMessagesAsReadApi(this) : { success: false };
+                    });
                 })
                 .then((result) => {
-                    try { unreadBadge.acknowledgeAllRead(); } catch (_) {}
-                    updateUnreadCache(0);
-                    invalidateMessages();
+                    if (result.success && getMessageViewer() === viewer) {
+                        try { unreadBadge.acknowledgeAllRead(); } catch (_) {}
+                        updateUnreadCache(0);
+                    }
                     return result;
                 })
                 .catch((error) => {
                     // 仍然失败时回读服务器未读数，避免红点被错误清除
                     console.warn('[messages] 标记全部已读失败:', error);
-                    invalidateUnread();
+                    if (getMessageViewer() === viewer) invalidateUnread();
                     return { success: false };
                 })
                 .finally(() => {
@@ -780,7 +695,9 @@ export default {
             if (!messageIds || messageIds.length === 0) {
                 return;
             }
+            const viewer = this._messageViewer;
             markMessagesAsReadApi(messageIds, this).then(() => {
+                    if (getMessageViewer() !== viewer) return;
                     // 更新本地数据
                     const updatedMessages = this.messages.map((msg) => {
                         if (messageIds.includes(msg._id)) {
@@ -797,9 +714,6 @@ export default {
                     // 以全局未读数为准递减，避免用页面里可能过期的列表计数把红点点亮
                     try { unreadBadge.decreaseUnread(messageIds.length); } catch (_) {}
                     updateUnreadCache((prev) => Math.max(0, (typeof prev === 'number' ? prev : 0) - messageIds.length));
-
-                    // 清除消息列表缓存
-                    invalidateMessages({ type: this.activeTab === 'all' ? null : this.activeTab });
 
                     console.log('【messages】已标记已读，未读数:', nextUnread);
                 }).catch((err) => {
@@ -860,19 +774,18 @@ export default {
         // 删除单条消息
         deleteMessage: function (e) {
             const messageId = e.currentTarget.dataset.messageid;
-            const index = e.currentTarget.dataset.index;
-            console.log('删除消息:', messageId, index);
+            const viewer = this._messageViewer;
             uni.showModal({
                 title: '确认删除',
                 content: '确定要删除这条消息吗？',
                 success: (res) => {
-                    if (res.confirm) {
-                        console.log('开始删除消息:', messageId);
+                    if (res.confirm && viewer && viewer === getMessageViewer()) {
                         deleteMessageById(messageId, this).then(() => {
-                                const messages = this.messages.filter((msg, i) => i !== index);
-                                this.messages = messages;
+                                if (this._messageViewer !== viewer || getMessageViewer() !== viewer) return;
+                                this.messages = this.messages.filter(msg => msg._id !== messageId);
                                 // 关闭滑动操作
                                 this.closeAllSwipeActions();
+                                this.loadMessages({ reset: true });
                                 uni.showToast({
                                     title: '删除成功',
                                     icon: 'success'
@@ -891,21 +804,21 @@ export default {
 
         // 清空所有消息
         clearAllMessages: function () {
+            const viewer = this._messageViewer;
             uni.showModal({
                 title: '清空消息',
                 content: '确定要清空所有消息吗？此操作不可恢复。',
                 success: (res) => {
-                    if (res.confirm) {
+                    if (res.confirm && viewer && viewer === getMessageViewer()) {
                         clearMessages(this).then(() => {
-                                this.setData({ messages: [], page: 0, hasMore: false, unreadCount: 0 });
+                                if (this._messageViewer !== viewer || getMessageViewer() !== viewer) return;
+                                this._messageRequestId = (this._messageRequestId || 0) + 1;
+                                this._messageSnapshot = null;
+                                this.setData({ messages: [], page: 0, hasMore: false, unreadCount: 0, isLoading: false, hasLoaded: true });
 
                                 // 使用 unreadBadge 清零，自动广播到所有订阅者
                                 unreadBadge.clearUnread();
                                 updateUnreadCache(0);
-
-                                // 清除消息列表缓存
-                                invalidateMessages();
-                                console.log('【messages】清空消息后已清除所有缓存');
 
                                 uni.showToast({
                                     title: '已清空',
@@ -973,20 +886,18 @@ export default {
         // 关注回关
         followBack: function (e) {
             const userId = e.currentTarget.dataset.userId;
-            const index = e.currentTarget.dataset.index;
-            if (userId) {
+            const viewer = this._messageViewer;
+            if (userId && viewer && getMessageViewer() === viewer) {
                 toggleFollow(userId, {
                     context: this,
                     pageTag: 'messages:toggle-follow'
                 }).then((result) => {
-                        // 更新本地数据中的关注状态
-                        const updatedMessages = [...this.messages];
-                        if (updatedMessages[index]) {
-                            updatedMessages[index].isFollowing = result.isFollowing;
-                            updatedMessages[index].isMutual = result.isMutual;
-                        }
-                        this.setData({
-                            messages: updatedMessages
+                        if (this._messageViewer !== viewer || getMessageViewer() !== viewer) return;
+                        this.messages.forEach(msg => {
+                            if (msg.type === 'follow' && msg.fromUserId === userId) {
+                                msg.isFollowing = result.isFollowing;
+                                msg.isMutual = result.isMutual;
+                            }
                         });
                         
                         const message = result.isFollowing ? '关注成功' : '取消关注';
@@ -1012,7 +923,7 @@ export default {
             }
 
             // 使用关注缓存批量查询，避免频繁调用云函数
-            const currentUserId = this.getCurrentUserId();
+            const currentUserId = this._messageViewer;
             if (!currentUserId) {
                 return;
             }
@@ -1024,27 +935,15 @@ export default {
 
             // 使用批量查询接口，减少云函数调用次数
             followCache.getBatchFollowStatus(currentUserId, userIds).then(statuses => {
-                const updatedMessages = [...messages];
-                let changed = false;
-                
-                followMessages.forEach((msg) => {
-                    if (!msg.fromUserId) return;
+                if (this._messageViewer !== currentUserId || getMessageViewer() !== currentUserId) return;
+                this.messages.forEach(msg => {
+                    if (msg.type !== 'follow') return;
                     const status = statuses[msg.fromUserId];
-                    if (status && status.isFollowing !== undefined) {
-                        const msgIndex = updatedMessages.findIndex(m => m._id === msg._id);
-                        if (msgIndex !== -1 && updatedMessages[msgIndex].isFollowing !== status.isFollowing) {
-                            updatedMessages[msgIndex].isFollowing = status.isFollowing;
-                            updatedMessages[msgIndex].isMutual = status.isMutual;
-                            changed = true;
-                        }
+                    if (status?.isFollowing !== undefined) {
+                        msg.isFollowing = status.isFollowing;
+                        msg.isMutual = status.isMutual;
                     }
                 });
-                
-                if (changed) {
-                    this.setData({
-                        messages: updatedMessages
-                    });
-                }
             }).catch(err => {
                 console.error('检查关注状态失败:', err);
             });
@@ -1191,6 +1090,19 @@ export default {
 }
 
 .empty-text {
+    font-size: 30rpx;
+    color: var(--app-muted-text, #999);
+}
+
+/* 首次加载状态 */
+.loading-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 200rpx 0;
+}
+
+.loading-text {
     font-size: 30rpx;
     color: var(--app-muted-text, #999);
 }
@@ -1438,6 +1350,7 @@ export default {
 
 .container--dark .message-time,
 .container--dark .empty-text,
+.container--dark .loading-text,
 .container--dark .loading-more,
 .container--dark .no-more {
     color: #8e96a3;

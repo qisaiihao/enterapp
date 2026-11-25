@@ -31,13 +31,7 @@
 
         <!-- 内容输入区域 -->
         <view class="content-section" :class="{ 'content-section--poem': publishMode === 'poem' }" :style="poemFontVars">
-            <view v-if="publishMode === 'poem'" class="poem-layout-control">
-                <text class="poem-layout-label">卡片排版</text>
-                <view class="poem-layout-options">
-                    <button class="poem-layout-option" :class="{ 'is-selected': !poemVertical }" :aria-pressed="!poemVertical" @tap.stop="setPoemVertical(false)">横排</button>
-                    <button class="poem-layout-option" :class="{ 'is-selected': poemVertical }" :aria-pressed="poemVertical" @tap.stop="setPoemVertical(true)">竖排</button>
-                </view>
-            </view>
+            <PoemLayoutControl v-if="isSeriesComposeLayout" :vertical="poemVertical" @change="setPoemVertical" />
             <!-- 主输入区域 -->
                 <view class="main-input-area" @tap.stop="noop">
                 <!-- 讨论模式：块级编辑器，直接交错正文/引用 -->
@@ -188,7 +182,11 @@
                             :font-size="poemFontSize"
                             :placeholder="currentPlaceholder"
                             @change="onPoemTextChange"
-                        />
+                        >
+                            <template #under-toolbar>
+                                <PoemLayoutControl v-if="publishMode === 'poem'" inline :vertical="poemVertical" @change="setPoemVertical" />
+                            </template>
+                        </PoemTextEditor>
 
                         <!-- 长按选择覆盖层 -->
 
@@ -219,7 +217,7 @@
             <view class="helper-text" v-show="publishMode === 'discussion'" :class="{ 'fade-out': !showDiscussionHelper }">上方正文即为你的讨论内容</view>
         </view>
 
-        <view class="compose-actions compose-actions--editor">
+        <view v-show="!isKeyboardVisible" class="compose-actions compose-actions--editor">
             <view v-if="!isSeriesComposeLayout" class="back-btn" @tap.stop="goBack">
                 <image class="back-icon" src="/pages-publish/static/images/share.svg" mode="aspectFit"></image>
             </view>
@@ -288,7 +286,6 @@ import { getAllTags } from '@/api-cache/tags.js';
 import { getPostDetail, updatePostContent } from '@/api-cache/post.js';
 import { checkDuplicatePoem as checkDuplicatePoemApi, contentAudit, saveDraft as saveDraftApi } from '@/api-cache/publish.js';
 import { validatePublishData, canPublish, generateDraftData, generatePublishData, processUploadResults } from '@/utils/publishUtils.js';
-import { getWindowInfoCompat } from '@/utils/system-info.js';
 import { applyThemeMode, getThemeMode } from '@/utils/theme.js';
 import { createPublishDraftSessionId, clearPublishDraftStorage } from '@/utils/publishDraft.js';
 
@@ -306,6 +303,7 @@ import HighlightSelectorModal from '../../components/HighlightSelectorModal.vue'
 import AddImageSection from '../../components/add/AddImageSection.vue';
 import SideToolbar from '../../components/add/SideToolbar.vue';
 import PoemTextEditor from '../../components/add/PoemTextEditor.vue';
+import PoemLayoutControl from '../../components/add/PoemLayoutControl.vue';
 import { getPoemTypographyFields, getPoemFontVars } from '@/utils/poemTypography.js';
 import { getCreationFields } from '@/utils/poemCreation.js';
 import {
@@ -364,7 +362,8 @@ export default {
         HighlightSelectorModal,
         AddImageSection,
         SideToolbar,
-        PoemTextEditor
+        PoemTextEditor,
+        PoemLayoutControl
     },
     data() {
         return {
@@ -480,10 +479,8 @@ export default {
             // 讨论模式：统一块列表（content | quote），默认一个正文块
             blocks: [{ type: 'content', text: '' }],
 
-            // 作者信息
-            keyboardHeight: 0,
+            isKeyboardVisible: false,
 
-            // 键盘高度
             // 编辑模式相关
             isEditMode: false,
             editingPostId: '',
@@ -539,7 +536,7 @@ export default {
             } else if (this.publishMode === 'poem' && this.isOriginal) {
                 return '在这里写下你的原创诗歌~';
             } else if (this.publishMode === 'poem' && !this.isOriginal) {
-                return '在这里分享你喜欢的诗歌~';
+                return '在这里分享你喜欢的诗歌~\n分享原创诗歌请在右边切换发布模式';
             } else if (this.publishMode === 'discussion') {
                 return '在这里说说你想要讨论的吧~';
             }
@@ -711,10 +708,20 @@ export default {
     onShow: function () {
         const mode = applyThemeMode(getThemeMode());
         this.appThemeMode = mode;
+        // #ifdef APP-PLUS
+        if (typeof plus !== 'undefined' && plus.os.name === 'Android' && !this._composeKeyboardListener) {
+            // 键盘会压缩可视区，隐藏底部按钮栏以给编辑器留出空间。
+            this._composeKeyboardListener = ({ height }) => {
+                this.isKeyboardVisible = height > 0;
+            };
+            uni.onKeyboardHeightChange(this._composeKeyboardListener);
+        }
+        // #endif
         // 每次显示页面时都确保页面不会滚动
         this.preventPageScroll();
     },
     onUnload: function () {
+        this.stopComposeKeyboardListener();
         // 清除讨论模式提示定时器
         if (this.discussionHelperTimer) {
             clearTimeout(this.discussionHelperTimer);
@@ -733,6 +740,7 @@ export default {
         }
     },
     onHide: function () {
+        this.stopComposeKeyboardListener();
         // 其它情况不再提示，仅重置临时隐藏标志
         if (!this.isPublished && !this.discardWorkingDraftOnExit) {
             this.flushWorkingDraft && this.flushWorkingDraft();
@@ -754,6 +762,15 @@ export default {
         return false; // 允许默认返回行为
     },
     methods: {
+        stopComposeKeyboardListener() {
+            // #ifdef APP-PLUS
+            if (!this._composeKeyboardListener) return;
+            uni.offKeyboardHeightChange(this._composeKeyboardListener);
+            this._composeKeyboardListener = null;
+            this.isKeyboardVisible = false;
+            // #endif
+        },
+
         // 更新placeholder文字
         updatePlaceholder() {
             this.setData({
@@ -1367,34 +1384,6 @@ export default {
         onTextareaTap: function (event) {
             // 确保输入框能正常获取焦点
             console.log('textarea被点击，应该获取焦点');
-        },
-
-        // 输入框获得焦点时触发，获取键盘高度
-        onTextareaFocus: function (e) {
-            console.log('textarea获得焦点，键盘高度:', e.detail.height);
-            // 在开发者工具中，键盘高度可能为0，我们需要设置一个默认值
-            let keyboardHeight = e.detail.height;
-
-            // 如果键盘高度为0，可能是开发者工具的问题，设置一个合理的默认值
-            if (!keyboardHeight || keyboardHeight === 0) {
-                // 获取系统信息来设置合适的键盘高度
-                const systemInfo = getWindowInfoCompat();
-                console.log('系统信息:', systemInfo);
-                // 根据屏幕高度设置键盘高度，通常是屏幕高度的1/3到1/2
-                keyboardHeight = Math.min(systemInfo.windowHeight * 0.4, 300);
-                console.log('使用默认键盘高度:', keyboardHeight);
-            }
-            this.setData({
-                keyboardHeight: keyboardHeight
-            });
-        },
-
-        // 输入框失去焦点时触发，重置键盘高度
-        onTextareaBlur: function () {
-            console.log('textarea失去焦点');
-            this.setData({
-                keyboardHeight: 0
-            });
         },
 
   
@@ -2681,43 +2670,6 @@ page {
     min-height: 0;
     overflow: visible; /* 改为visible，允许浮动按钮显示 */
     position: relative;
-}
-
-.poem-layout-control {
-    display: flex;
-    align-items: center;
-    gap: 16rpx;
-    margin: 0 30rpx 16rpx;
-    min-height: 56rpx;
-}
-
-.poem-layout-label {
-    font-size: 24rpx;
-    color: var(--app-muted-text, #666);
-}
-
-.poem-layout-options {
-    display: flex;
-    gap: 4rpx;
-    padding: 4rpx;
-    border-radius: 14rpx;
-    background: var(--app-input-bg, #e8e8e8);
-}
-
-.poem-layout-option {
-    margin: 0;
-    padding: 0 18rpx;
-    border-radius: 10rpx;
-    background: transparent;
-    color: var(--app-primary-text, #333);
-    font-size: 24rpx;
-    line-height: 52rpx;
-}
-
-.poem-layout-option::after { border: 0; }
-.poem-layout-option.is-selected {
-    background: var(--app-control-accent-bg, #333);
-    color: var(--app-control-accent-text, #fff);
 }
 
 /* 主输入区域 - 响应式布局 */

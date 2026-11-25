@@ -24,7 +24,7 @@ function isH5BrowserEnv() {
 
 function isCanvasSafeUrl(url) {
     if (!url || typeof url !== 'string') return false;
-    if (/^(data:|blob:|file:|\/)/i.test(url)) return true;
+    if (/^(data:|blob:|file:|\/(?!\/))/i.test(url)) return true;
     if (!isH5BrowserEnv()) return false;
     try {
         const parsed = new URL(url, window.location.origin);
@@ -145,7 +145,25 @@ async function resolveCloudUrl(url) {
     return url;
 }
 
-async function prepareSignatureForCard(signatureUrl) {
+async function fetchSignatureDataUrl(url) {
+    if (isCloudUrl(url) || typeof fetch !== 'function') return '';
+    try {
+        const response = await fetch(url, { mode: 'cors', cache: 'no-store' });
+        if (!response.ok) return '';
+        const blob = await response.blob();
+        // uni-app 的传统 CanvasContext 接收图片路径字符串。
+        return await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    } catch (_) {
+        return '';
+    }
+}
+
+async function prepareSignatureForCard(signatureUrl, { postId, loadSignatureFallback } = {}) {
     if (!signatureUrl || typeof signatureUrl !== 'string') return signatureUrl;
 
     // 【修复】将 cloud:// 签名 URL 转换为可访问的 HTTP 临时 URL，
@@ -153,36 +171,20 @@ async function prepareSignatureForCard(signatureUrl) {
     const resolvedUrl = await resolveCloudUrl(signatureUrl);
 
     // 去底只在上传时执行：保留用户开关选择和已有透明笔画，分享时不重复抠图。
-    const cacheKey = resolvedUrl;
+    const cacheKey = loadSignatureFallback ? `${postId}\n${resolvedUrl}` : resolvedUrl;
     if (signaturePreprocessCache.has(cacheKey)) {
         return signaturePreprocessCache.get(cacheKey);
     }
 
     const task = (async () => {
         if (isH5BrowserEnv()) {
-            if (isCanvasSafeUrl(resolvedUrl) || typeof fetch !== 'function') {
-                return resolvedUrl;
-            }
-            try {
-                const response = await fetch(resolvedUrl, { mode: 'cors', cache: 'no-store' });
-                if (!response || !response.ok) return resolvedUrl;
-                const blob = await response.blob();
-                if (!blob) return resolvedUrl;
-                // 【修复】H5 使用 data URL 替代 blob URL，
-                // blob URL 在 uni-app 传统 CanvasContext 中会导致 ctx.drawImage()
-                // 内部渲染时序异常，使之前绘制的背景色被覆盖为白色。
-                // data URL 对所有 Canvas/Image/getImageInfo 原生支持，无 CORS/时序问题。
-                const dataUrl = await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(reader.result);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(blob);
-                });
-                console.log('[shareCanvas] H5 签名已转为 data URL，长度:', dataUrl ? dataUrl.length : 0);
-                return dataUrl;
-            } catch (_) {
-                return resolvedUrl;
-            }
+            if (isCanvasSafeUrl(resolvedUrl)) return resolvedUrl;
+            const dataUrl = await fetchSignatureDataUrl(resolvedUrl);
+            if (dataUrl) return dataUrl;
+
+            // 浏览器无法读取跨域响应时，通过帖子详情取得已保存的签名原图。
+            const fallback = loadSignatureFallback && await loadSignatureFallback();
+            return /^data:image\/(?:png|jpeg|webp);base64,/.test(fallback) ? fallback : resolvedUrl;
         }
 
         if (!isMiniProgramEnv()) return resolvedUrl;
@@ -193,7 +195,11 @@ async function prepareSignatureForCard(signatureUrl) {
     // 仅缓存资源转换，限制长会话占用。
     if (signaturePreprocessCache.size >= 32) signaturePreprocessCache.delete(signaturePreprocessCache.keys().next().value);
     signaturePreprocessCache.set(cacheKey, task);
-    return task;
+    const prepared = await task;
+    if (isH5BrowserEnv() && !isCanvasSafeUrl(prepared) && signaturePreprocessCache.get(cacheKey) === task) {
+        signaturePreprocessCache.delete(cacheKey);
+    }
+    return prepared;
 }
 
 /**
@@ -236,9 +242,10 @@ function resolveShareCanvasFontFamily(fontFamily) {
  * @param {number} x - x 坐标
  * @param {number} y - y 坐标
  * @param {number} fixedWidth - 固定宽度
+ * @param {Object} [imageInfo] - 布局阶段已取得的图片尺寸和本地路径
  * @returns {Promise<{width: number, height: number}>}
  */
-async function drawImageAsync(ctx, url, x, y, fixedWidth) {
+async function drawImageAsync(ctx, url, x, y, fixedWidth, imageInfo) {
     if (!url || typeof url !== 'string') {
         throw new Error('invalid image url');
     }
@@ -248,7 +255,7 @@ async function drawImageAsync(ctx, url, x, y, fixedWidth) {
         throw new Error('cloud:// URL is not supported for canvas drawing, use a resolved HTTP URL instead');
     }
 
-    const res = await new Promise((resolve, reject) => {
+    const res = imageInfo || await new Promise((resolve, reject) => {
         uni.getImageInfo({
             src: url,
             success: resolve,
@@ -602,7 +609,8 @@ async function calculateShareCardHeight(options) {
         post,
         shareConfig,
         canvasWidth = 750,
-        shouldShowSignature = true
+        shouldShowSignature = true,
+        loadSignatureFallback
     } = options;
 
     const baseFontSize = shareConfig.fontSize || (post.poemFontSize ? Math.round(38 * post.poemFontSize / 14) : 38);
@@ -665,12 +673,14 @@ async function calculateShareCardHeight(options) {
     const signatureTextFontSize = 28;
     let signatureDrawHeight = 0;
     let preparedSignatureUrl = '';
+    let signatureImageInfo = null;
     
     if (post.authorSignature && shouldShowSignature) {
         try {
-            preparedSignatureUrl = await prepareSignatureForCard(post.authorSignature);
+            preparedSignatureUrl = await prepareSignatureForCard(post.authorSignature, { postId: post._id, loadSignatureFallback });
             const sigInfo = await getImageInfoSafe(preparedSignatureUrl || post.authorSignature);
-            if (sigInfo && sigInfo.width > 0) {
+            if (sigInfo && sigInfo.width > 0 && sigInfo.height > 0) {
+                signatureImageInfo = sigInfo;
                 const scale = fixedSignatureWidth / sigInfo.width;
                 signatureDrawHeight = Math.max(1, Math.round(sigInfo.height * scale));
             } else {
@@ -719,7 +729,8 @@ async function calculateShareCardHeight(options) {
         signatureTopGap,
         fixedSignatureWidth,
         signatureTextFontSize,
-        preparedSignatureUrl
+        preparedSignatureUrl,
+        signatureImageInfo
     };
 }
 
@@ -755,7 +766,8 @@ async function drawShareCardContent(options) {
         fixedSignatureWidth,
         signatureTextFontSize,
         shouldShowSignature,
-        preparedSignatureUrl
+        preparedSignatureUrl,
+        signatureImageInfo
     } = options;
 
     // 设置字体
@@ -860,7 +872,8 @@ async function drawShareCardContent(options) {
         const signatureX = canvasWidth - fixedSignatureWidth - signatureMargin;
         const signatureY = Math.min(y + signatureTopGap, canvasHeight - signatureDrawHeight - signatureMargin);
         try {
-            await drawImageAsync(ctx, preparedSignatureUrl || post.authorSignature, signatureX, signatureY, fixedSignatureWidth);
+            await drawImageAsync(ctx, preparedSignatureUrl || post.authorSignature,
+                signatureX, signatureY, fixedSignatureWidth, signatureImageInfo);
         } catch (e) {
             console.warn('draw signature image failed, fallback to text signature', e);
             drawTextSignature(post.authorName || post.author);

@@ -5,15 +5,11 @@ const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const { connect, config } = require('./app-versions/manager.cjs');
-const { protectArtifact } = require('./app-versions/storage-protection.cjs');
 async function main() {
   const { manager } = await connect();
   const suffix = crypto.randomUUID();
   const denied = `app-updates/verification-${suffix}.txt`;
-  const allowed = `app-update-verification/${suffix}.txt`;
-  await protectArtifact(manager, denied);
-  console.log('等待云存储权限生效（3 分钟），期间不会操作正式安装包。');
-  await new Promise(resolve => setTimeout(resolve, 185000));
+  const allowed = [`app-updates-extra/${suffix}.txt`, `user_avatars/verification-${suffix}.txt`];
   const bundle = await require('esbuild').build({ stdin: { contents: "import cloudbase from '@cloudbase/js-sdk'; window.testCloudbase = cloudbase;", resolveDir: path.resolve(__dirname, '..') }, bundle: true, write: false, format: 'iife', platform: 'browser' });
   const browser = await require('puppeteer-core').launch({ executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: true });
   try {
@@ -42,26 +38,25 @@ async function main() {
         } catch (error) { return { uploaded: false, error: { code: error.code, message: error.message } }; }
       };
       const protectedFile = await upload(denied, 'release-probe');
-      const ordinary = await upload(allowed, 'ordinary-probe');
+      const ordinary = await Promise.all(allowed.map(key => upload(key, 'ordinary-probe')));
       const update = await app.callFunction({ name: 'checkAppUpdate', data: { appid: '__UNI__E0A1A41', platform: 'android', appVersion: '1.7.9', wgtVersion: '1.7.9', protocolVersion: 2 } });
-      return { blocked: !protectedFile.uploaded, protectedFile, ordinary, ordinaryUploaded: ordinary.uploaded, update: update.result };
+      return { protectedFile, ordinary, update: update.result };
     }, { envId: config.envId, denied, allowed });
     console.log(JSON.stringify(result));
-    assert.equal(result.blocked, true);
+    assert.equal(result.protectedFile.uploaded, false);
     assert.match(result.protectedFile.error.message, /STORAGE_EXCEED_AUTHORITY/);
-    assert.equal(result.ordinaryUploaded, true);
+    for (const ordinary of result.ordinary) assert.equal(ordinary.uploaded, true);
     assert.equal(result.update.updateSource, 'cloudbase');
     const dir = path.resolve(__dirname, '../unpackage/app-update-migration');
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, 'storage-live-verification.json'), JSON.stringify(result, null, 2));
   } finally {
     await browser.close();
-    // Both exact names are generated in this invocation and cannot refer to a release.
-    for (const key of [denied, allowed]) {
+    // These exact names are generated in this invocation and cannot refer to a release.
+    for (const key of [denied, ...allowed]) {
       try { await manager.storage.getFileInfo(key); await manager.storage.deleteFile([key]); }
       catch (error) { if (error.statusCode !== 404 && !String(error.message).includes('STORAGE_FILE_NONEXIST')) console.warn('验证文件清理：', error.code || error.message); }
     }
-    await require('./app-versions/storage-protection.cjs').removeProbeRules(manager, [denied]);
   }
 }
 main().catch(error => { console.error(error.code || error.message); process.exitCode = 1; });

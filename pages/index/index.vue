@@ -44,6 +44,7 @@
                             :refresher-enabled="!isSwiping"
                             @refresh="onHomeRefresh"
                             @load-more="loadHomeMore"
+                            @scroll-top="onHomeFeedScroll"
                             @avatar-error="onAvatarError"
                             @avatar-load="onAvatarLoad"
                             @navigate-to-user="handleNavigateToUser"
@@ -152,17 +153,24 @@
                     <view class="home-filter-container">
                         <view
                             class="home-filter-trigger"
-                            :class="{ 'home-filter-trigger--active': showHomeFilterPanel || showNormalPostsOnly }"
-                            @tap.stop="toggleHomeFilterPanel"
+                            :class="{
+                                'home-filter-trigger--active': showHomeFilterPanel || showNormalPostsOnly || isRandomHomeOrder,
+                                'home-filter-trigger--morph': filterScrolledMode
+                            }"
+                            @tap.stop="onHomeFilterTriggerTap"
                         >
                             <image class="home-filter-trigger-icon" src="/static/images/filter.png" mode="aspectFit" />
+                            <view
+                                class="home-filter-triangle"
+                                :class="{ 'home-filter-triangle--down': allPostsExpanded }"
+                            ></view>
                         </view>
                         <AppMotion ref="homeFilterMotion" :visible="showHomeFilterPanel" placement="popover" @dismiss="closeHomeFilterPanel">
                             <view class="home-filter-mask" @tap="$refs.homeFilterMotion.dismiss()"></view>
                             <view class="home-filter-panel app-motion-panel" @tap.stop>
                                 <view
                                     class="home-filter-option"
-                                    :class="{ 'home-filter-option--active': !showNormalPostsOnly }"
+                                    :class="{ 'home-filter-option--active': !showNormalPostsOnly && !isRandomHomeOrder }"
                                     @tap="setNormalPostsFilter(false)"
                                 >
                                     显示全部
@@ -173,6 +181,13 @@
                                     @tap="setNormalPostsFilter(true)"
                                 >
                                     只看普通帖子
+                                </view>
+                                <view
+                                    class="home-filter-option"
+                                    :class="{ 'home-filter-option--active': isRandomHomeOrder }"
+                                    @tap="setHomeFeedMode('random')"
+                                >
+                                    随机刷新
                                 </view>
                                 <view
                                     class="home-filter-option"
@@ -325,8 +340,11 @@ export default {
             easeOutCubic: 'cubic-bezier(0.33, 1, 0.68, 1)',
             homeFeedRenderKey: 0,
             showNormalPostsOnly,
+            isRandomHomeOrder: false,
             allPostsExpanded,
             showHomeFilterPanel: false,
+            filterScrolledMode: false,
+            homeFeedScrollTop: 0,
             useRecommendFeed: false,
             isTouchScrolling: false,
             touchStartX: 0,
@@ -437,7 +455,9 @@ export default {
 
         // 检查缓存新鲜度：从其他页面返回时触发SWR检查
         try {
-            if (this.homeHasEverLoaded && this.postList.length > 0) {
+            if (!this.isRandomHomeOrder && this.homeHasEverLoaded && this.postList.length > 0 && this.page === 1
+                && !this.isLoading && !this.isLoadingMore && !this.isRefreshing) {
+                const requestId = this._homeFeedRequestId;
                 const filterParams = {};
                 if (this.showNormalPostsOnly) {
                     filterParams.isPoem = false;
@@ -452,7 +472,8 @@ export default {
                         if (!Array.isArray(newPosts) || newPosts.length === 0) return;
                         try {
                             const posts = await processPostList(newPosts);
-                            if (this.currentPage === 'home' && this.swiperCurrent === 0) {
+                            if (requestId === this._homeFeedRequestId && this.page === 1
+                                && this.currentPage === 'home' && this.swiperCurrent === 0) {
                                 const currentPostIds = this.postList.map(p => p._id).join(',');
                                 const newPostIds = posts.map(p => p._id).join(',');
                                 if (currentPostIds !== newPostIds) {
@@ -471,6 +492,7 @@ export default {
             },
     onHide() { this.showHomeFilterPanel = false; },
     onUnload: function () {
+        this._homeFeedRequestId = (this._homeFeedRequestId || 0) + 1;
         this.releaseGlobalEventBindings();
         if (this.swiperChangeTimer) {
             clearTimeout(this.swiperChangeTimer);
@@ -520,22 +542,7 @@ export default {
                     }, 100);
                     return;
                 }
-                try {
-                    invalidateHomePosts({});
-                } catch (e) {
-                    console.error('清除首页缓存失败:', e);
-                }
-                this.setData({
-                    page: 0,
-                    hasMore: true,
-                    postList: []
-                }, () => {
-                    this.getPostList(() => {
-                        setTimeout(() => {
-                            this.isRefreshing = false;
-                        }, 100);
-                    });
-                });
+                return this.onHomeRefresh();
             } else if (this.currentPage === 'discover') {
                 this.refreshDiscoverPosts();
                 setTimeout(() => {
@@ -558,26 +565,20 @@ export default {
 
         // 首页刷新（FeedList 组件触发）
         onHomeRefresh: function () {
+            if (this.isRefreshing) return;
             this.isRefreshing = true;
-            // TODO: AI推荐算法暂时停用
-            // if (this.useRecommendFeed) {
-            //     this.refreshDiscoverPosts();
-            //     return;
-            // }
-            try {
-                invalidateHomePosts({});
-            } catch (e) {
-                console.error('清除首页缓存失败:', e);
+            this.homeFeedScrollTop = 0;
+            if (this.filterScrolledMode) {
+                this.setData({ filterScrolledMode: false });
             }
-            this.setData({
-                page: 0,
-                hasMore: true,
-                postList: []
-            }, () => {
-                this.getPostList(() => {
-                    this.isRefreshing = false;
-                });
-            });
+            if (!this.isRandomHomeOrder) {
+                try {
+                    invalidateHomePosts(this.showNormalPostsOnly ? { isPoem: false, isDiscussion: false } : {});
+                } catch (e) {
+                    console.error('清除首页缓存失败:', e);
+                }
+            }
+            return this.getPostList(() => { this.isRefreshing = false; }, { refresh: true });
         },
 
         // 首页加载更多（根据推荐开关走不同逻辑）
@@ -838,6 +839,8 @@ export default {
                     currentPage: pageType,
                     currentTab: tabValue,
                     showHomeFilterPanel: false,
+                    filterScrolledMode: false,
+                    homeFeedScrollTop: 0,
                     isSwiping: false,
                     swipeDirectionDecided: false
                 };
@@ -892,6 +895,8 @@ export default {
                 swiperCurrent: swiperIndex,
                 currentPage: pageType,
                 showHomeFilterPanel: false,
+                filterScrolledMode: false,
+                homeFeedScrollTop: 0,
                 isSwiping: false,
                 swipeDirectionDecided: false
             };
@@ -924,7 +929,11 @@ export default {
             this.getIndexData();
         },
         getIndexData: function () {
+            if (this.isRandomHomeOrder) return this.onHomeRefresh();
             console.log('🔍 [getIndexData] 开始加载首页数据');
+            const requestId = (this._homeFeedRequestId || 0) + 1;
+            this._homeFeedRequestId = requestId;
+            this.setData({ isLoadingMore: false, isRefreshing: false });
 
             // 清理永不过期缓存（修复旧的错误缓存）
             try {
@@ -959,7 +968,8 @@ export default {
                     if (!Array.isArray(newPosts) || newPosts.length === 0) return;
                     try {
                         const posts = await processPostList(newPosts);
-                        if (this.currentPage === 'home' && this.swiperCurrent === 0) {
+                        if (requestId === this._homeFeedRequestId && this.page === 1
+                            && this.currentPage === 'home' && this.swiperCurrent === 0) {
                             const currentPostIds = this.postList.map(p => p._id).join(',');
                             const newPostIds = posts.map(p => p._id).join(',');
                             if (currentPostIds !== newPostIds) {
@@ -970,10 +980,12 @@ export default {
                 }
             })
                 .then(async (list) => {
+                    if (requestId !== this._homeFeedRequestId) return;
                     console.log('🔍 [getIndexData] 云函数返回数据:', list?.length || 0, '条');
                     const postsRaw = Array.isArray(list) ? list : [];
                     console.log('🔍 [getIndexData] 开始处理帖子数据...');
                     const posts = await processPostList(postsRaw);
+                    if (requestId !== this._homeFeedRequestId) return;
                     console.log('🔍 [getIndexData] 帖子数据处理完成:', posts.length, '条');
                     console.log('🔍 [getIndexData] 第一条帖子:', posts[0]);
 
@@ -1001,6 +1013,7 @@ export default {
                     }, 500);
                 })
                 .catch((err) => {
+                    if (requestId !== this._homeFeedRequestId) return;
                     console.error('【首页】getIndexData（缓存封装）失败:', err);
                     this.setData({ isLoading: false, homeHasEverLoaded: true });
                     uni.showToast({ title: '网络错误', icon: 'none' });
@@ -1274,7 +1287,7 @@ export default {
         },
 
         // 优化 getPostList 函数，这是核心
-        getPostList: function (cb) {
+        getPostList: function (cb, { refresh = false, previousPostIds } = {}) {
             console.log('🔍 [首页] getPostList 开始调用');
             console.log('🔍 [首页] 当前状态:', {
                 isLoading: this.isLoading,
@@ -1285,36 +1298,25 @@ export default {
             });
 
             // 【修复】同时检查 isLoading 和 isLoadingMore，确保只有一个请求在进行
-            if (this.isLoading || this.isLoadingMore || !this.hasMore) {
+            if (!refresh && (this.isLoading || this.isLoadingMore || this.isRefreshing || !this.hasMore)) {
                 console.log('【首页】getPostList被阻止：正在加载中或没有更多数据');
                 if (typeof cb === 'function') {
                     cb();
                 }
                 return;
             }
-            const skip = this.page * PAGE_SIZE;
-            const isFirstLoad = this.page === 0;
+            const requestId = (this._homeFeedRequestId || 0) + 1;
+            this._homeFeedRequestId = requestId;
+            const page = refresh ? 0 : this.page;
+            const isFirstLoad = page === 0;
 
             console.log('🔍 [首页] 请求参数:', {
-                skip,
-                page: this.page,
+                page,
                 isFirstLoad,
                 PAGE_SIZE
             });
 
-            // 根据加载类型设置不同的状态
-            if (isFirstLoad) {
-                // 首次加载：显示骨架屏
-                this.setData({
-                    isLoading: true
-                });
-            } else {
-                // 滑动加载更多：显示底部加载提示
-                this.setData({
-                    isLoadingMore: true
-                });
-            }
-            const apiStartTime = Date.now();
+            this.setData({ isLoading: isFirstLoad && !refresh, isLoadingMore: !isFirstLoad });
             // 根据showNormalPostsOnly状态决定筛选参数
             const filterParams = {};
             if (this.showNormalPostsOnly) {
@@ -1322,21 +1324,28 @@ export default {
                 filterParams.isPoem = false;
                 filterParams.isDiscussion = false;
             }
-            // 使用缓存封装的首页分页数据，SWR + TTL
-            getHomePosts({
-                page: this.page,
+            const refreshedPostIds = refresh && !this.showNormalPostsOnly
+                ? this.postList.slice(0, PAGE_SIZE).map(post => post._id) : undefined;
+            const excludePostIds = !isFirstLoad && !this.showNormalPostsOnly
+                ? this.postList.map(post => post._id) : undefined;
+            return getHomePosts({
+                page,
                 pageSize: PAGE_SIZE,
                 context: this,
-                // 首次加载强制刷新，确保最新的组诗分块
                 forceRefresh: isFirstLoad,
+                homeRandom: this.isRandomHomeOrder,
+                previousPostIds: previousPostIds ?? refreshedPostIds,
+                excludePostIds,
                 ...filterParams
             })
                 .then(async (list) => {
+                    if (requestId !== this._homeFeedRequestId) return;
                     const postsRaw = Array.isArray(list) ? list : [];
                     console.log('✅ [首页] 获取到帖子数量（缓存封装）:', postsRaw.length);
                     console.log('✅ [首页] 原始数据示例:', postsRaw[0]);
 
                     const posts = await processPostList(postsRaw);
+                    if (requestId !== this._homeFeedRequestId) return;
                     console.log('✅ [首页] 处理后帖子数量:', posts.length);
                     console.log('✅ [首页] 处理后数据示例:', posts[0]);
 
@@ -1356,15 +1365,16 @@ export default {
                     const newPostList = isFirstLoad ? posts : currentPostList.concat(uniqueNewPosts);
                     const updateData = {
                         postList: newPostList,
-                        page: this.page + 1,
-                        hasMore: newPostsCount === PAGE_SIZE
+                        page: page + 1,
+                        hasMore: newPostsCount === PAGE_SIZE,
+                        homeHasEverLoaded: true
                     };
                     console.log('✅ [首页] 更新数据（缓存封装）:', {
                         isFirstLoad,
                         newPostListLength: newPostList.length,
                         currentPostListLength: currentPostList.length,
-                        currentPage: this.page,
-                        newPage: this.page + 1,
+                        currentPage: page,
+                        newPage: page + 1,
                         hasMore: updateData.hasMore,
                         newPostsCount
                     });
@@ -1382,20 +1392,17 @@ export default {
                     }
                 })
                 .catch((err) => {
+                    if (requestId !== this._homeFeedRequestId) return;
                     console.error('【首页】getPostList（缓存封装）失败:', err);
                     if (isFirstLoad) {
                         uni.showToast({ title: '网络错误', icon: 'none' });
                     }
                 })
                 .finally(() => {
-                    if (isFirstLoad) {
-                        this.setData({ isLoading: false });
-                    } else {
-                        this.setData({ isLoadingMore: false });
-                    }
+                    if (requestId !== this._homeFeedRequestId) return;
+                    this.setData({ isLoading: false, isLoadingMore: false });
                     if (typeof cb === 'function') cb();
                 });
-            return;
         },
 
         // 模式切换现在通过底部tabBar实现，不再需要手动切换
@@ -1446,6 +1453,29 @@ export default {
             });
         },
 
+        // 首页列表滚动：向下滚动后筛选按钮平滑变为展开/收起三角形
+        onHomeFeedScroll: function (scrollTop) {
+            const offset = Number(scrollTop) || 0;
+            this.homeFeedScrollTop = offset;
+            // 滞回阈值，避免在临界点附近来回抖动
+            const nextMode = this.filterScrolledMode ? offset > 32 : offset > 72;
+            if (nextMode === this.filterScrolledMode) { return; }
+            const updateData = { filterScrolledMode: nextMode };
+            if (nextMode) {
+                updateData.showHomeFilterPanel = false;
+            }
+            this.setData(updateData);
+        },
+
+        // 筛选按钮/三角形点击：顶部时打开筛选，滚动后切换全部帖子展开状态
+        onHomeFilterTriggerTap: function () {
+            if (this.filterScrolledMode) {
+                this.setPostsDisplayMode(!this.allPostsExpanded);
+                return;
+            }
+            this.toggleHomeFilterPanel();
+        },
+
         closeHomeFilterPanel: function () {
             if (!this.showHomeFilterPanel) { return; }
             this.setData({
@@ -1453,48 +1483,55 @@ export default {
             });
         },
 
-        setNormalPostsFilter: function (nextMode, afterMotion = false) {
+        setNormalPostsFilter: function (nextMode) {
+            return this.setHomeFeedMode(nextMode ? 'normal' : 'all');
+        },
+
+        setHomeFeedMode: function (mode, afterMotion = false) {
             if (!afterMotion && this.tapDisabled && this.tapDisabled()) { return; }
             if (this.$refs?.homeFilterMotion?.rendered) {
-                this.$refs.homeFilterMotion.dismiss(() => this.setNormalPostsFilter(nextMode, true));
+                this.$refs.homeFilterMotion.dismiss(() => this.setHomeFeedMode(mode, true));
                 return;
             }
-            const normalizedMode = !!nextMode;
+            const showNormalPostsOnly = mode === 'normal';
+            const isRandomHomeOrder = mode === 'random';
 
-            try {
-                uni.setStorageSync(HOME_NORMAL_POSTS_FILTER_KEY, normalizedMode);
-            } catch (error) {
-                console.warn('【首页】保存帖子筛选偏好失败:', error);
-            }
-
-            if (normalizedMode === this.showNormalPostsOnly) {
+            if (showNormalPostsOnly === this.showNormalPostsOnly && isRandomHomeOrder === this.isRandomHomeOrder) {
                 this.closeHomeFilterPanel();
+                if (isRandomHomeOrder) return this.onHomeRefresh();
                 return;
             }
 
-            console.log('【首页】切换只看普通帖子模式:', normalizedMode);
-
-            try {
-                if (normalizedMode) {
-                    invalidateHomePosts({ isPoem: false, isDiscussion: false });
-                } else {
-                    invalidateHomePosts({});
+            if (!isRandomHomeOrder) {
+                try {
+                    uni.setStorageSync(HOME_NORMAL_POSTS_FILTER_KEY, showNormalPostsOnly);
+                } catch (error) {
+                    console.warn('【首页】保存帖子筛选偏好失败:', error);
                 }
-                console.log('✅ [首页] 已清除新模式缓存，准备强制刷新');
-            } catch (e) {
-                console.error('❌ [首页] 清除缓存失败:', e);
+                try {
+                    invalidateHomePosts(showNormalPostsOnly ? { isPoem: false, isDiscussion: false } : {});
+                } catch (e) {
+                    console.error('❌ [首页] 清除缓存失败:', e);
+                }
             }
 
+            const previousPostIds = isRandomHomeOrder ? this.postList.slice(0, PAGE_SIZE).map(post => post._id) : undefined;
+            this._homeFeedRequestId = (this._homeFeedRequestId || 0) + 1;
             this.setData({
-                showNormalPostsOnly: normalizedMode,
+                showNormalPostsOnly,
+                isRandomHomeOrder,
                 showHomeFilterPanel: false,
+                homeFeedRenderKey: this.homeFeedRenderKey + 1,
+                homeFeedScrollTop: 0,
+                filterScrolledMode: false,
                 postList: [],
                 page: 0,
                 hasMore: true,
                 isLoading: false,
-                isLoadingMore: false
+                isLoadingMore: false,
+                isRefreshing: false
             }, () => {
-                this.getPostList();
+                this.getPostList(undefined, { previousPostIds });
             });
         },
 
@@ -1987,6 +2024,7 @@ export default {
 
         // 刷新广场页数据（发布帖子后调用）
         refreshIndexData: function () {
+            if (this.isRandomHomeOrder) return this.onHomeRefresh();
             console.log('【index】开始刷新广场页数据');
 
             // 清除首页缓存
@@ -2321,15 +2359,21 @@ export default {
 
 .container {
     /* #ifdef APP-PLUS || APP-HARMONY */
-    padding-top: 276rpx;
+    /* 顶部 fixed top-bar(120rpx) + 切换栏(88rpx) 共 208rpx，叠加安全区，避免内容钻到切换栏下面 */
+    padding-top: calc(208rpx + env(safe-area-inset-top, 44px));
+    padding-top: calc(208rpx + var(--safe-area-inset-top, env(safe-area-inset-top, 44px)));
     /* #endif */
     /* #ifdef H5 */
-    padding-top: 200rpx;
+    padding-top: calc(208rpx + env(safe-area-inset-top, 0px));
+    padding-top: calc(208rpx + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)));
     /* #endif */
     /* #ifdef MP-WEIXIN */
     padding-top: 0;
     /* #endif */
-    padding-bottom: 100rpx;
+    /* 为底部固定 TabBar（120rpx + 安全区）预留空间，避免末条内容被遮挡 */
+    padding-bottom: calc(140rpx + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(140rpx + constant(safe-area-inset-bottom));
+    padding-bottom: calc(140rpx + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
     background-color: var(--app-page-bg, #ffffff);
     min-height: 100vh;
     position: relative;
@@ -2549,6 +2593,7 @@ export default {
 }
 
 .home-filter-trigger {
+    position: relative;
     width: 64rpx;
     height: 64rpx;
     border-radius: 18rpx;
@@ -2572,6 +2617,39 @@ export default {
     width: 40rpx;
     height: 40rpx;
     filter: var(--app-filter-icon-filter, none);
+    transform-origin: center center;
+    transition: opacity 0.18s ease, transform 0.3s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+/* 滚动后筛选图标缩退，正三角形升起（与个人主页展开三角一致） */
+.home-filter-triangle {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 0;
+    height: 0;
+    border-left: 14rpx solid transparent;
+    border-right: 14rpx solid transparent;
+    border-bottom: 24rpx solid var(--app-post-menu-dot-color, #666);
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2) rotate(-90deg);
+    transform-origin: center center;
+    transition: opacity 0.18s ease, transform 0.3s cubic-bezier(0.33, 1, 0.68, 1);
+    pointer-events: none;
+}
+
+.home-filter-trigger--morph .home-filter-trigger-icon {
+    opacity: 0;
+    transform: scale(0.3) rotate(90deg);
+}
+
+.home-filter-trigger--morph .home-filter-triangle {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+}
+
+.home-filter-trigger--morph .home-filter-triangle--down {
+    transform: translate(-50%, -50%) scale(1) rotate(180deg);
 }
 
 .home-filter-panel {
@@ -2625,10 +2703,15 @@ export default {
 
 .page-swiper {
     /* #ifdef APP-PLUS || APP-HARMONY */
-    height: calc(100vh - 276rpx - 100rpx);
+    /* 与 .container 的 padding 保持一致：顶部 top-bar+tabs+安全区，底部 TabBar+安全区 */
+    height: calc(100vh - 208rpx - var(--safe-area-inset-top, env(safe-area-inset-top, 44px)) - 140rpx - env(safe-area-inset-bottom, 0px));
+    height: calc(100vh - 208rpx - var(--safe-area-inset-top, env(safe-area-inset-top, 44px)) - 140rpx - constant(safe-area-inset-bottom));
+    height: calc(100vh - 208rpx - var(--safe-area-inset-top, env(safe-area-inset-top, 44px)) - 140rpx - var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
     /* #endif */
     /* #ifdef H5 */
-    height: calc(100vh - 188rpx - 100rpx);
+    height: calc(100vh - 208rpx - var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) - 140rpx - env(safe-area-inset-bottom, 0px));
+    height: calc(100vh - 208rpx - var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) - 140rpx - constant(safe-area-inset-bottom));
+    height: calc(100vh - 208rpx - var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) - 140rpx - var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
     /* #endif */
     /* #ifdef MP-WEIXIN */
     height: 100%; /* 小程序端：使用父容器的高度 */

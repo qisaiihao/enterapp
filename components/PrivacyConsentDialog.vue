@@ -3,6 +3,7 @@
     :visible="visible"
     defer-answer
     require-scroll-to-confirm
+    :scroll-confirm-timeout-seconds="10"
     title="用户协议与隐私政策"
     confirm-text="同意并继续"
     cancel-text="不同意"

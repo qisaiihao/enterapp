@@ -197,7 +197,13 @@ export default {
       return getThemedCardBackgroundColor(this.post.backgroundColor, this.appThemeMode);
     },
     cardTextColor() {
-      return getReadableTextColor(this.cardBackgroundColor, this.post.textColor || '#222');
+      const textColor = this.post.textColor || '#222';
+      // 浅色模式下保留作者选定的字体颜色，与下载的诗歌卡片保持一致；
+      // 仅在深色模式背景被压暗时做可读性兜底
+      if (this.appThemeMode !== 'dark') {
+        return textColor;
+      }
+      return getReadableTextColor(this.cardBackgroundColor, textColor);
     },
     isSeries() {
       return this.enableSeries && !!this.post.isSeries;

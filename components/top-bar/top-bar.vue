@@ -26,6 +26,7 @@
 
 <script>
 import unreadBadge from '@/cache/stores/unread-badge.js';
+import { prefetchMessages } from '@/api-cache/messages.js';
 import { getMenuButtonBoundingClientRectCompat, getStatusBarHeightCompat, getWindowInfoCompat } from '@/utils/system-info.js';
 
 function getDefaultStatusBarHeight() {
@@ -170,6 +171,7 @@ export default {
 
     // 跳转到消息页面
     navigateToMessages() {
+      prefetchMessages(this);
       uni.navigateTo({
         url: '/pages-tools/messages/messages',
         fail: (err) => {

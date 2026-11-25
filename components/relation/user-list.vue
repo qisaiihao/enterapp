@@ -29,6 +29,12 @@
         </view>
       </view>
     </block>
+    <view v-else-if="loadState === 'idle' || loadState === 'loading'" class="empty">
+      <text>加载中...</text>
+    </view>
+    <view v-else-if="loadState === 'error'" class="empty" @tap="$emit('retry')">
+      <text>加载失败，点击重试</text>
+    </view>
     <view v-else class="empty">
       <text>{{ emptyText }}</text>
     </view>
@@ -39,7 +45,7 @@
 import { resolveUserAvatar } from '@/utils/defaultAvatar.js';
 
 export default {
-  emits: ['user-tap', 'action-tap', 'avatar-error'],
+  emits: ['user-tap', 'action-tap', 'avatar-error', 'retry'],
   props: {
     users: {
       type: Array,
@@ -60,6 +66,10 @@ export default {
     emptyText: {
       type: String,
       default: '暂无数据'
+    },
+    loadState: {
+      type: String,
+      default: 'loaded'
     },
     actionText: {
       type: String,

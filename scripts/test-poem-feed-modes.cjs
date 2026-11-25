@@ -12,7 +12,7 @@ function deferred() {
 
 function runtime() {
   const requests = [], scrolls = [], invalidations = [], storage = new Map(), toasts = [];
-  const control = { original: null, reading: null, following: null, hydrate: null };
+  const control = { original: null, reading: null, following: null, random: null, hydrate: null };
   const fetch = mode => options => {
     requests.push({ mode, options });
     return control[mode]?.promise || Promise.resolve([{ _id: mode, content: mode }]);
@@ -27,7 +27,8 @@ function runtime() {
     },
     cacheManager: { namespace: () => ({ get: () => undefined }) },
     peekMountainPoems: () => undefined,
-    getOriginalPoems: fetch('original'), getMountainPoems: fetch('reading'), getFollowingPoems: fetch('following'),
+    getOriginalPoems: options => fetch(options.randomPoems ? 'random' : 'original')(options),
+    getMountainPoems: fetch('reading'), getFollowingPoems: fetch('following'),
     invalidatePostList: options => invalidations.push(options), invalidateFollowingPoems() {},
     getLatestLikeStatus: () => null,
     isUserLoggedIn: () => true,
@@ -119,6 +120,43 @@ async function testLateResponses() {
   assert.equal(page.postList[0]._id, 'reading', '旧筛选的后台更新保持隔离');
 }
 
+async function testRandomRefresh() {
+  const app = runtime(), { page, control, requests, component } = app;
+  page.setRandomPoemOrder(true); await drain();
+  assert.equal(page.isRandomPoemOrder, true);
+  assert.equal(page.postList[0]._id, 'random');
+  const { options } = requests.at(-1);
+  assert.equal(options.randomPoems, true);
+  assert.deepEqual(Array.from(options.excludePostIds), []);
+  assert.equal(app.scrolls.at(-1), 0);
+
+  await page.getPostList();
+  assert.deepEqual(Array.from(requests.at(-1).options.excludePostIds), ['random']);
+  const pending = control.random = deferred();
+  page.setRandomPoemOrder(true); await drain();
+  assert.deepEqual(Array.from(requests.at(-1).options.excludePostIds), []);
+  page.setRandomPoemOrder(false); await drain();
+  pending.resolve([{ _id: 'stale-random' }]); await drain();
+  assert.equal(page.postList[0]._id, 'original');
+
+  control.random = null;
+  page.setRandomPoemOrder(true); await drain();
+  component.onPullDownRefresh.call(page); await drain();
+  assert.equal(requests.at(-1).mode, 'random');
+  assert.equal(requests.at(-1).options.page, 0);
+  page.setPoemMode('reading'); await drain();
+  assert.equal(page.isRandomPoemOrder, false);
+  assert.equal(requests.at(-1).mode, 'reading');
+  page.onPoetSelect('海子'); await drain();
+  assert.equal(requests.at(-1).options.filterByPoet, '海子');
+  page.setPoemMode('original'); await drain();
+  assert.equal(page.isRandomPoemOrder, true);
+  assert.equal(page.postList[0]._id, 'random');
+  page.setFollowingFilterMode(true); await drain();
+  assert.equal(requests.at(-1).mode, 'following');
+  assert.equal(page.isRandomPoemOrder, false);
+}
+
 async function testNavigation() {
   const config = JSON.parse(fs.readFileSync(path.join(__dirname, '../pages.json'), 'utf8'));
   assert.deepEqual(config.tabBar.list.map(item => item.text), ['广场', '诗歌', '活动', '我']);
@@ -180,7 +218,7 @@ async function testModeTabs() {
 }
 
 (async () => {
-  for (const test of [testModesAndFilters, testLateResponses, testNavigation, testLikeDuringModeSwitch, testModeTabs]) {
+  for (const test of [testModesAndFilters, testLateResponses, testRandomRefresh, testNavigation, testLikeDuringModeSwitch, testModeTabs]) {
     await test(); console.log('PASS ' + test.name);
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -35,13 +35,13 @@ function page(options, overrides = {}) {
   for (const [key, method] of Object.entries(options.methods)) result[key] = method.bind(result);
   return Object.assign(result, { setData(data) { Object.assign(this, data); } }, overrides);
 }
-function backend(mem, name, caller = 'owner') {
+function backend(mem, name, caller = 'owner', cloudOverrides = {}) {
   const filename = path.join(root, 'functions', name, 'index.js');
   const localRequire = createRequire(filename);
   const sandbox = { exports: {}, process, Buffer, console: quiet, require(id) {
     if (id === 'wx-server-sdk') return {
       init() {}, database: () => mem.db, getWXContext: () => ({ OPENID: caller }),
-      callFunction: async () => ({ result: { success: true, passed: true, code: 'MODERATION_OFF' } })
+      callFunction: async () => ({ result: { success: true, passed: true, code: 'MODERATION_OFF' } }), ...cloudOverrides
     };
     if (id.includes('get-blocked-user-ids')) return async () => [];
     return localRequire(id);
@@ -65,7 +65,42 @@ function fixture() {
   }, command);
 }
 
+async function checkCardSignature() {
+  const mem = fixture();
+  const bucket = '636c-cloud1-5gb0pbyl400845f5-1378788263';
+  const fileId = `cloud://cloud1-5gb0pbyl400845f5.${bucket}/user_signatures/author.png`;
+  const legacyUrl = `https://${bucket}.tcb.qcloud.la/user_signatures/author.png?sign=expired`;
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a/JkAAAAASUVORK5CYII=', 'base64');
+  mem.tables.users[0].signatureUrl = fileId;
+  const post = { _openid: 'owner', isPoem: true, isOriginal: true, commentCount: 0 };
+  mem.tables.posts.push(
+    { ...post, _id: 'profile-signature' },
+    { ...post, _id: 'legacy-signature', authorSignature: legacyUrl },
+    { ...post, _id: 'anonymous-signature', isAnonymous: true, authorSignature: fileId },
+    { ...post, _id: 'repost-signature', isOriginal: false, authorSignature: fileId },
+    { ...post, _id: 'hidden-signature', isHidden: true, authorSignature: fileId },
+    { ...post, _id: 'external-signature', authorSignature: `https://${bucket}.tcb.qcloud.la.example.test/user_signatures/author.png` },
+    { ...post, _id: 'non-signature-file', authorSignature: fileId.replace('user_signatures/', 'private/') }
+  );
+  const downloaded = [];
+  const detail = backend(mem, 'getPostDetail', 'visitor', {
+    async downloadFile({ fileID }) { downloaded.push(fileID); return { fileContent: png }; },
+    async getTempFileURL() { return { fileList: [] }; }
+  });
+  const query = postId => detail({ postId, action: 'getCardSignature', openid: 'owner', fileID: 'client-supplied' });
+  for (const id of ['profile-signature', 'legacy-signature']) {
+    assert.equal((await query(id)).signatureDataUrl, `data:image/png;base64,${png.toString('base64')}`);
+  }
+  for (const id of ['anonymous-signature', 'repost-signature', 'external-signature', 'non-signature-file']) {
+    assert.equal((await query(id)).signatureDataUrl, '');
+  }
+  assert.equal((await query('hidden-signature')).code, 'POST_HIDDEN');
+  assert.equal((await detail({ postId: 'profile-signature' })).post.authorSignature, fileId);
+  assert.deepEqual(downloaded, [fileId, fileId], 'Only eligible posts with a stored signature may read image bytes');
+}
+
 async function main() {
+  await checkCardSignature();
   const previous = process.env.POSTS_WRITE_SCHEMA;
   try {
     for (const version of ['1', '2']) {

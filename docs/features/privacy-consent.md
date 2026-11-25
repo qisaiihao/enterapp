@@ -1,12 +1,14 @@
 # 首启协议确认
 
-首次启动时，《用户协议》和《隐私政策》在同一个弹窗中分节展示全文。滑到两份文件末尾后启用“同意并继续”，“不同意”始终可选。设置页也提供两份文件的查阅入口。弹窗沿用 `AppDialog` 的圆角、胶囊按钮和明暗主题。
+自定义首启弹窗以 `AppDialog` 分节展示《用户协议》和《隐私政策》全文。滑到两份文件末尾或弹窗打开满 10 秒后，“同意并继续”即可点击。“不同意”始终可选。设置页也提供两份文件的查阅入口。
 
 ## 涉及文件
 
 - `pages/privacy/privacy.vue`：两份文件共用的阅读页。`/pages/privacy/privacy` 展示《隐私政策》，`?document=agreement` 展示 `pages/privacy/user-agreement.js` 中的《用户协议》。
 - `components/LegalDocument.vue`：弹窗和设置页共用的协议正文。
 - `components/PrivacyConsentDialog.vue`：全文按用户协议、隐私政策的顺序排列，两个操作按钮固定在滚动区下方。`AppDialog` 的 `require-scroll-to-confirm` 管理确认按钮状态，`defer-answer` 在退出动画后提交选择。
+- 文末留出 8 像素空白。滚动区接近底部时启用“同意并继续”；若触底事件漏发，文末空白进入可视区时也可启用按钮。仍由用户点击按钮提交同意。
+- 首启弹窗通过 `scroll-confirm-timeout-seconds` 从每次打开时计时 10 秒。到时即可手动同意，文末解锁或关闭弹窗时清除计时。
 - `utils/privacyConsent.js`：管理两份文件的版本、同意记录、阅读页入口和 `privacyConsentAccepted` 事件。`runAfterPrivacyConsent()` 已同意时立即执行，否则等待同意事件。
 - `pages/splash/splash.vue`：首启拦截、同意后放行和不同意时的平台处理。
 - `App.vue`：启动引导门禁，同意前不登录、不检查更新、不处理 GitHub 深链回调。
@@ -45,13 +47,16 @@
 - `pages-admin/activity-notice-management/notice-cropper.vue` 与 `pages-collage/collage-studio/collage-studio.vue` 的 `uni.getSystemInfoSync()` 改为 `getWindowInfoCompat()`，只读取窗口尺寸，不触碰设备标识。
 - 隐私政策新增“设备标识符”收集说明及 DCloud uni-app 运行框架条目；`PRIVACY_POLICY_VERSION` 升级到 `2026-11-23`，老用户会重新确认一次。
 
-## Android 原生隐私提示框（2026-11-24）
+## Android 打包与华为应用市场
 
-- 根目录新增 `androidPrivacy.json`，`prompt` 使用 `template`，由 DCloud 运行时在开屏原生界面先弹出隐私提示框并阻塞应用启动；用户点击“同意并继续”前，SDK 不初始化、不读取 IMEI/OAID 等设备标识，解决安装包在同意前被检测为获取 IMEI 的问题。
-- `androidPrivacy.json` 的 `version` 必须与 `utils/privacyConsent.js` 的 `PRIVACY_CONSENT_VERSION` 保持一致；隐私政策版本升级时两处同步修改，否则原生提示框不会重新弹出。App 端以原生同意状态为准。
-- App 端 `hasAcceptedPrivacyConsent()` 会读取 `plus.runtime.isAgreePrivacy()`，原生同意后写入本地组合版本并跳过自定义弹窗；`acceptPrivacyConsent()` 在自定义弹窗同意时同步调用 `plus.runtime.agreePrivacy()`，保持两端状态一致。
-- `androidPrivacy.json` 中的协议链接指向 H5 阅读页（`https://www.poementer.com/#/pages/privacy/privacy`），`hrefLoader` 使用 `system` 由系统浏览器打开，避免检测机构把内置 webview 的读取行为计入隐私风险。
-- 该配置在 HBuilderX `3.2.15+` 的云端打包中生效；修改后必须重新生成安装包，热更新（wgt）不会更新原生隐私提示框配置。
+- 普通 Android 包默认使用开屏页的自定义 `AppDialog`。`androidPrivacy.json` 的 `prompt` 为 `none`，以本地记录的协议版本判断是否需要确认。自定义弹窗同意时调用 `plus.runtime.agreePrivacy()`，拒绝退出时调用 `plus.runtime.disagreePrivacy()`。
+- 华为专属包使用 `prompt: template`。DCloud 原生提示框在应用启动前展示。原生同意后，`hasAcceptedPrivacyConsent()` 将同意状态同步到本地版本记录，开屏页直接放行。 [DCloud Android 隐私提示框文档](https://uniapp.dcloud.net.cn/tutorial/app-privacy-android.html)
+- 华为原生模板及二次确认框都保存在 `androidPrivacy.json`。两处协议链接使用 `hrefLoader: system` 打开 CloudBase H5 阅读页。 [隐私政策](https://cloud1-5gb0pbyl400845f5-1378788263.tcloudbaseapp.com/#/pages/privacy/privacy)
+- 更新协议时，让 `androidPrivacy.json` 的 `version` 与 `utils/privacyConsent.js` 的 `PRIVACY_CONSENT_VERSION` 一致。
+
+1. 打普通包时执行 `npm run app:privacy:default`，然后在 HBuilderX 云打包 Android。
+2. 打华为专属包时执行 `npm run app:privacy:huawei`，然后在 HBuilderX 使用原包名和签名证书云打包 Android。打包结束后执行 `npm run app:privacy:default`，恢复普通包配置。
+3. `npm run check:android-privacy` 会报告当前模式。弹窗模式随 Android 整包发行，切换后需重新云打包安装。
 
 ## 尚未覆盖
 
@@ -61,8 +66,8 @@
 
 ## 验证
 
-- `scripts/test-splash-startup.cjs` 的 `testPrivacyConsent` 覆盖已同意直接进入、旧的隐私政策同意记录需重新确认、首次启动弹窗阻塞、同意后写入双版本并进入，以及拒绝后不放行。
-- `scripts/test-dialog-motion.cjs` 覆盖到达文末启用确认、滑动前可拒绝，以及重开弹窗时重置状态。
+- `scripts/test-splash-startup.cjs` 的 `testPrivacyConsent` 覆盖普通 Android 包的首次启动、旧版同意记录、同意和拒绝的原生状态同步，以及华为包原生同意后直接进入。
+- `scripts/test-dialog-motion.cjs` 覆盖文末可见性检测、10 秒解锁、手动确认、等待期间可拒绝，以及重开弹窗时重新计时。
 - 同文件的 `testAppPrivacyGate` 覆盖：未同意不启动引导、同意事件放行、重复同意不重复启动、已同意直接启动；`testRuntimeOpenidPrivacyGate` 覆盖 openid 门禁和已有 openid 复用。
 - 同文件的 `testH5DirectEntryPrivacyGate` 覆盖：未同意时业务直链转入开屏、开屏与政策页不重定向、已同意时保留目标页面、确认后启动登录。
 - H5 浏览器以两种手机尺寸验证了明暗主题、触摸滑动、文末解锁、拒绝后重置和设置页查阅。

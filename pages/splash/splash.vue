@@ -38,6 +38,9 @@ import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareH
 import { formatErrorForLog } from '@/utils/error-log.js';
 import { lightImpact } from '@/utils/haptics.js';
 import { acceptPrivacyConsent, hasAcceptedPrivacyConsent } from '@/utils/privacyConsent.js';
+// #ifdef APP-PLUS
+import { declinePrivacyConsent } from '@/utils/privacyConsent.js';
+// #endif
 import { createSplashGate, SPLASH_MIN_MS } from '@/utils/splashGate.js';
 import { hasPoemSquarePreload, preloadPoemSquare, retainPoemSquarePreload } from '@/utils/splashPreload.js';
 import { getAppState } from '@/utils/app-state.js';
@@ -196,6 +199,7 @@ export default {
         exitForPrivacyConsent() {
             // #ifdef APP-PLUS
             if (typeof plus !== 'undefined' && plus.os?.name === 'Android' && typeof plus.runtime?.quit === 'function') {
+                declinePrivacyConsent();
                 plus.runtime.quit();
                 return true;
             }

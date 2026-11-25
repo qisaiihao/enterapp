@@ -28,7 +28,7 @@ function runtime(shared = null) {
   const listeners = shared ? shared.listeners : new Map();
   const timers = new Map();
   let nextTimer = 0;
-  const state = { isLoggedIn: true, openid: 'user-a', now: 1000, count: 3, calls: 0, fail: false, pending: null };
+  const state = { isLoggedIn: true, openid: 'user-a', now: 1000, count: 3, calls: 0, prefetches: 0, fail: false, pending: null };
   const uni = shared ? shared.uni : {
     $on(event, handler) {
       if (!listeners.has(event)) listeners.set(event, new Set());
@@ -53,6 +53,10 @@ function runtime(shared = null) {
   const store = load('cache/stores/unread-badge.js', {
     Date: { now: () => state.now },
     uni, EVENTS, fetchUnreadCount: api.getUnreadCount, invalidateUnread: api.invalidateUnread,
+    prefetchMessages(context, options) {
+      assert.equal(options.forceRefresh, true);
+      state.prefetches++;
+    },
     getAppState: () => state, formatErrorForLog: error => error.message,
     setInterval(callback, delay) {
       assert.equal(delay, 120000, '前台每两分钟轮询');
@@ -73,6 +77,7 @@ async function testStore() {
   store.subscribe(count => second.push(count));
   await Promise.all([store.initUnreadCount(), store.refreshUnreadCount(), store.initUnreadCount()]);
   assert.equal(state.calls, 1, '启动和多个顶部栏并发刷新只请求一次');
+  assert.equal(state.prefetches, 1, '确认有新未读时预取消息首页');
   assert.deepEqual(first, [0, 3], '先挂载的顶部栏在初始化完成时收到未读数');
   assert.deepEqual(second, [0, 3]);
   await store.refreshUnreadCount({ forceRefresh: false });

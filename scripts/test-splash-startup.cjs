@@ -811,14 +811,15 @@ async function testSplashLifecycle() {
 }
 
 async function testPrivacyConsent() {
-  function consentRuntime(storage, navigations = []) {
+  function consentRuntime(storage, navigations = [], app = {}) {
     return load('utils/privacyConsent.js', {
+      ...app,
       uni: {
         getStorageSync: key => storage.get(key),
         setStorageSync: (key, value) => storage.set(key, value),
         navigateTo: options => navigations.push(options.url)
       }
-    }, ['hasAcceptedPrivacyConsent', 'acceptPrivacyConsent', 'PRIVACY_POLICY_VERSION', 'PRIVACY_CONSENT_VERSION', 'PRIVACY_CONSENT_STORAGE_KEY']);
+    }, ['hasAcceptedPrivacyConsent', 'acceptPrivacyConsent', 'declinePrivacyConsent', 'PRIVACY_POLICY_VERSION', 'PRIVACY_CONSENT_VERSION', 'PRIVACY_CONSENT_STORAGE_KEY']);
   }
   function splashRuntime(consent, network, navigations, toasts, preloads, plus) {
     const time = fakeTime();
@@ -831,6 +832,7 @@ async function testPrivacyConsent() {
       lightImpact() {}, formatErrorForLog: String,
       hasAcceptedPrivacyConsent: consent.hasAcceptedPrivacyConsent,
       acceptPrivacyConsent: consent.acceptPrivacyConsent,
+      declinePrivacyConsent: consent.declinePrivacyConsent,
       uni: {
         reLaunch: opt => navigations.push(opt.url),
         showToast: opt => toasts.push(opt.title)
@@ -880,15 +882,21 @@ async function testPrivacyConsent() {
 
   for (const platform of ['H5', 'iOS', 'Android']) {
     const storage = new Map(), navigations = [], toasts = [], preloads = { count: 0 };
-    const consent = consentRuntime(storage, navigations);
     const network = deferred();
-    let quitCalls = 0;
-    const plus = platform === 'H5' ? undefined : { os: { name: platform }, runtime: { quit() { quitCalls++; } } };
+    const nativeCalls = [];
+    const plus = platform === 'H5' ? undefined : {
+      os: { name: platform },
+      runtime: {
+        disagreePrivacy() { nativeCalls.push('disagree'); },
+        quit() { nativeCalls.push('quit'); }
+      }
+    };
+    const consent = consentRuntime(storage, navigations, { plus, androidPrivacyPrompt: 'none' });
     const { time, page, options } = splashRuntime(consent, network, navigations, toasts, preloads, plus);
     options.onLoad.call(page);
     page.handlePrivacyConsentDecline();
     assert.equal(page.showPrivacyConsent, false);
-    assert.equal(quitCalls, platform === 'Android' ? 1 : 0, `${platform} 退出行为`);
+    assert.deepEqual(nativeCalls, platform === 'Android' ? ['disagree', 'quit'] : [], `${platform} 退出行为`);
     if (platform === 'Android') {
       await time.tick(10000);
       assert.equal(page.showPrivacyConsent, false);
@@ -952,25 +960,34 @@ async function testPrivacyConsent() {
   {
     const storage = new Map();
     const nativeCalls = [];
-    const native = {
+    const plus = {
+      os: { name: 'Android' },
       runtime: {
         agreed: false,
         isAgreePrivacy() { return this.agreed; },
         agreePrivacy() { this.agreed = true; nativeCalls.push('agree'); }
       }
     };
-    const consent = load('utils/privacyConsent.js', {
-      uni: {
-        getStorageSync: key => storage.get(key),
-        setStorageSync: (key, value) => storage.set(key, value)
-      },
-      plus: native
-    }, ['hasAcceptedPrivacyConsent', 'acceptPrivacyConsent', 'PRIVACY_CONSENT_STORAGE_KEY', 'PRIVACY_CONSENT_VERSION']);
+    const consent = consentRuntime(storage, [], { plus, androidPrivacyPrompt: 'template' });
     assert.equal(consent.hasAcceptedPrivacyConsent(), false, '原生提示框未同意时不放行');
-    native.runtime.agreed = true;
+    plus.runtime.agreed = true;
     assert.equal(consent.hasAcceptedPrivacyConsent(), true, '原生 template 同意后直接放行');
     assert.equal(storage.get(consent.PRIVACY_CONSENT_STORAGE_KEY), consent.PRIVACY_CONSENT_VERSION, '原生同意状态同步到存储');
-    consent.acceptPrivacyConsent();
+    const huawei = splashRuntime(consent, deferred(), [], [], { count: 0 }, plus);
+    huawei.options.onLoad.call(huawei.page);
+    assert.equal(huawei.page.showPrivacyConsent, false, '华为包仅展示原生提示框');
+
+    const defaultApp = { plus, androidPrivacyPrompt: 'none' };
+    const defaultConsent = consentRuntime(new Map(), [], defaultApp);
+    assert.equal(defaultConsent.hasAcceptedPrivacyConsent(), false, '普通包首次启动等待自定义弹窗同意');
+    storage.set(consent.PRIVACY_CONSENT_STORAGE_KEY, 'old-version');
+    const currentConsent = consentRuntime(storage, [], defaultApp);
+    const defaultBuild = splashRuntime(currentConsent, deferred(), [], [], { count: 0 }, plus);
+    defaultBuild.options.onLoad.call(defaultBuild.page);
+    assert.equal(defaultBuild.page.showPrivacyConsent, true, '普通包的历史原生同意不能跳过当前版本确认');
+    defaultBuild.page.handlePrivacyConsentAgree();
+    assert.equal(storage.get(consent.PRIVACY_CONSENT_STORAGE_KEY), consent.PRIVACY_CONSENT_VERSION);
+    assert.equal(consentRuntime(storage, [], defaultApp).hasAcceptedPrivacyConsent(), true, '普通包保留当前版本的同意记录');
     assert.deepEqual(nativeCalls, ['agree'], '自定义弹窗同意时同步原生同意状态');
   }
 }

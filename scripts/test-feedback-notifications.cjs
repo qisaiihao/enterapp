@@ -134,7 +134,7 @@ function loadMessagePage() {
   const page = component.data();
   for (const [key, method] of Object.entries(component.methods)) page[key] = method.bind(page);
   Object.assign(page, {
-    setData(updates) { Object.assign(this, updates); }, normalizeMessageAvatar() {}, checkFollowStatus() {},
+    setData(updates) { Object.assign(this, updates); }, checkFollowStatus() {},
     markMessagesAsRead(ids) { readIds.push(...ids); }
   });
   return { page, dialogs, readIds, navigations };
@@ -185,7 +185,7 @@ async function main() {
     assert.equal(archived.messages[0].fromUserAvatar, '/static/admin.png');
 
     const { page, dialogs, readIds, navigations } = loadMessagePage();
-    page.processMessagesAfterAvatarConversion(inbox.messages, 0, 10, 1);
+    page.applyMessages(inbox.messages, 0, 1);
     assert.equal(page.getActionText(page.messages[0]), '解决了您反馈的问题');
     assert.equal(page.messages[0].content, '张三解决了您反馈的问题');
     assert.equal(page.messages[0].feedbackContent, message.feedbackContent);

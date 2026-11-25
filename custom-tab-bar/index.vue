@@ -273,6 +273,10 @@ export default {
   height: calc(120rpx + env(safe-area-inset-bottom, var(--safe-area-inset-bottom, 0px))) !important;
   padding-bottom: constant(safe-area-inset-bottom) !important;
   padding-bottom: env(safe-area-inset-bottom, var(--safe-area-inset-bottom, 0px)) !important;
+  /* #ifdef APP-PLUS */
+  height: calc(120rpx + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))) !important;
+  padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) !important;
+  /* #endif */
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;

@@ -7,6 +7,7 @@ const { fromCloudBase } = require('../uniCloud-aliyun/cloudfunctions/common/app-
 const policy = require('../functions/_shared/app-update');
 const domain = require('./app-versions/domain.cjs');
 const manager = require('./app-versions/manager.cjs');
+const { ensurePackageProtection, protectedWriteRule } = require('./app-versions/storage-protection.cjs');
 const tests = []; const test = (name, fn) => tests.push([name, fn]);
 const appid = '__UNI__E0A1A41';
 const request = { appid, platform: 'android', appVersion: '1.7.8', wgtVersion: '1.7.8', protocolVersion: 2 };
@@ -150,6 +151,34 @@ test('publish rejects a corrupted CDN file and only publishes the verified revis
     assert.equal(published.revision, 2);
     await assert.rejects(manager.setPublished(db, { id: r._id, revision: 1 }, true), /刷新/);
   } finally { global.fetch = originalFetch; }
+});
+test('directory protection replaces per-package rules without changing ordinary write access', () => {
+  const packages = Array.from({ length: 8 }, (_, index) => `app-updates/${appid}/wgt/1.8.${index}/${'a'.repeat(64)}.wgt`);
+  const legacy = packages.reduce((write, key) => `(${write}) && resource.path != '${key}'`, 'true');
+  assert.ok(legacy.length > 1024);
+  const write = protectedWriteRule(legacy);
+  assert.equal(write, protectedWriteRule('true'));
+  assert.ok(write.length < 1024);
+  const allowed = new Function('resource', `return ${write}`);
+  for (const path of [...packages, 'app-updates/', 'app-updates/future.apk']) assert.equal(allowed({ path }), false, path);
+  for (const path of ['user_avatars/a.jpg', 'app-updates-extra/a.jpg', 'app-updates0/a.jpg', 'app-updates', '拼贴/a.jpg']) {
+    assert.equal(allowed({ path }), true, path);
+  }
+});
+test('directory protection preserves custom expressions and does not rewrite an installed rule', async () => {
+  const base = "resource.path != 'locked/a.jpg' && auth.uid != null";
+  const write = protectedWriteRule(base);
+  const allowed = new Function('resource', 'auth', `return ${write}`);
+  assert.equal(allowed({ path: 'user_avatars/a.jpg' }, { uid: 'user' }), true);
+  assert.equal(allowed({ path: 'user_avatars/a.jpg' }, { uid: null }), false);
+  assert.equal(allowed({ path: 'locked/a.jpg' }, { uid: 'user' }), false);
+  assert.equal(allowed({ path: 'app-updates/future.apk' }, { uid: 'user' }), false);
+  const actions = [];
+  await ensurePackageProtection({ commonService: () => ({ async call({ Action }) {
+    actions.push(Action);
+    return { Rule: JSON.stringify({ read: 'true', write }) };
+  } }) });
+  assert.deepEqual(actions, ['DescribeStorageSafeRule']);
 });
 test('business upload guards reserve packages but preserve normal image paths', () => {
   for (const name of ['upload', 'uploadAvatar', 'uploadCollagePoetry']) {

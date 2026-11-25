@@ -32,12 +32,15 @@ async function main() {
       (await import('/utils/app-state.js')).setUserSession(user, user._openid);
       uni.showToast = () => {};
       uni.$ensureTcbAuthenticated = async () => {};
+      let randomBatch = 0;
       const tcb = { __skipAuth: true, async callFunction({ name, data = {} }) {
         let result = { success: true, posts: [], poets: [], activities: [], notices: [], total: 0 };
         if (name === 'getPostList') {
           const original = data.isOriginal !== false;
+          const feed = original ? 'original' : 'reading';
+          const batch = data.randomPoems ? `${feed}-random-${++randomBatch}` : feed;
           result.posts = data.skip ? [] : [0, 1, 2].map(index => ({
-            _id: `${original ? 'original' : 'reading'}-${index}`, isPoem: true, isOriginal: original,
+            _id: `${batch}-${index}`, isPoem: true, isOriginal: original,
             title: original ? '窗前' : '晚风', author: data.author || (original ? '林间' : '海子'),
             content: original ? '一阵风经过窗前\n把未说完的话\n留在翻动的书页间' : '晚风轻轻翻过山坡\n灯火在远处亮起\n我们沿着小路回家',
             votes: 3, isVoted: false, imageUrls: [], tags: []
@@ -57,6 +60,14 @@ async function main() {
       uni.switchTab({ url: '/pages/poem-square/poem-square' });
     });
     const current = () => page.evaluate(() => ({ route: getCurrentPages().at(-1).route, mode: getCurrentPages().at(-1).$vm.poemMode }));
+    const selectFilter = async (label, expectedLabels) => {
+      await page.click('.poem-filter-trigger');
+      await page.waitForSelector('.poem-filter-option');
+      const labels = await page.$$eval('.poem-filter-option', nodes => nodes.map(node => node.textContent.trim()));
+      assert.deepEqual(labels, expectedLabels);
+      await page.click(`.poem-filter-option:nth-child(${labels.indexOf(label) + 1})`);
+      await page.waitForSelector('.poem-filter-option', { hidden: true });
+    };
     await page.waitForFunction(() => getCurrentPages().at(-1)?.$vm?.postList?.[0]?._id === 'original-0');
     await page.waitForSelector('.custom-top-bar .poem-mode-tabs');
     await page.waitForFunction(() => document.querySelector('.activity-entry-icon img')?.src.endsWith('/static/images/icons/activities.png'));
@@ -64,12 +75,20 @@ async function main() {
       const box = selector => { const r = document.querySelector(selector).getBoundingClientRect(); return { top: r.top, bottom: r.bottom }; };
       return { tabs: box('.custom-top-bar .poem-mode-tabs'), crow: box('.activity-entry-btn') };
     });
-    assert.ok(originalLayout.crow.top >= originalLayout.tabs.bottom + 4, '乌鸦与切换栏保持距离');
     await page.screenshot({ path: path.join(output, 'original.png') });
+    const originalOptions = ['全部诗歌', '只看关注', '随机刷新'];
+    for (const batch of [1, 2]) {
+      await selectFilter('随机刷新', originalOptions);
+      await page.waitForFunction(expected => getCurrentPages().at(-1).$vm.postList?.[0]?._id === expected, {}, `original-random-${batch}-0`);
+    }
+    await selectFilter('全部诗歌', originalOptions);
+    await page.waitForFunction(() => getCurrentPages().at(-1).$vm.postList?.[0]?._id === 'original-0');
     await page.click('.custom-top-bar .poem-mode-tabs .poem-mode-tab:nth-child(2)');
     await page.waitForFunction(() => getCurrentPages().at(-1).$vm.postList?.[0]?._id === 'reading-0' && document.querySelector('.poet-avatar-bar-wrapper .avatar-name'));
     assert.deepEqual(await current(), { route: 'pages/poem-square/poem-square', mode: 'reading' });
     assert.equal(await page.$('.poem-filter-container'), null);
+    console.log('PASS H5 original random refresh and reading menu visibility');
+    assert.ok(originalLayout.crow.top >= originalLayout.tabs.bottom + 4, '乌鸦与切换栏保持距离');
     const geometry = await page.evaluate(() => {
       const box = selector => { const r = document.querySelector(selector).getBoundingClientRect(); return { top: r.top, bottom: r.bottom }; };
       return { poets: box('.poet-avatar-bar-wrapper'), card: box('.poem-card') };

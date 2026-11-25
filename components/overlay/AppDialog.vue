@@ -3,18 +3,20 @@
     <view class="app-dialog app-motion-panel" :class="{ 'app-dialog--review': requireScrollToConfirm }" role="dialog" :aria-label="title" @tap.stop>
       <text v-if="title" class="app-dialog-title">{{ title }}</text>
       <scroll-view
+        :key="reviewBodyKey"
         class="app-dialog-body"
         :class="{ 'app-dialog-body--review': requireScrollToConfirm }"
         scroll-y
-        :lower-threshold="requireScrollToConfirm ? 1 : 50"
+        :lower-threshold="requireScrollToConfirm ? 8 : 50"
         @touchmove.stop
-        @scrolltolower="handleBodyEnd"
+        @scrolltolower="unlockScrollConfirm"
       >
         <text v-if="message" class="app-dialog-message">{{ message }}</text>
         <input v-if="editable" v-model="inputValue" class="app-dialog-input" :password="password" :placeholder="placeholder" :focus="visible" />
         <slot />
+        <view v-if="requireScrollToConfirm" class="app-dialog-body-end" aria-hidden="true" />
       </scroll-view>
-      <text v-if="requireScrollToConfirm" class="app-dialog-scroll-hint" aria-live="polite">{{ reachedBodyEnd ? '已滑到文末，可以继续' : '请滑动至文末后继续' }}</text>
+      <text v-if="requireScrollToConfirm" class="app-dialog-scroll-hint" aria-live="polite">{{ scrollConfirmHint }}</text>
       <view class="app-dialog-actions">
         <button v-if="showCancel" class="app-dialog-button" :style="cancelText === '取消' ? null : cancelActionStyle(cancelText)" :disabled="busy" @tap="cancel">{{ cancelText }}</button>
         <button v-if="extraText" class="app-dialog-button" :style="extraText === '取消' ? null : cancelActionStyle(extraText)" @tap="answer('extra')">{{ extraText }}</button>
@@ -33,16 +35,22 @@ export default {
     visible: Boolean, title: String, message: String, danger: Boolean, deferAnswer: Boolean,
     editable: Boolean, password: Boolean, placeholder: String, extraText: String, busy: Boolean,
     requireScrollToConfirm: Boolean,
+    scrollConfirmTimeoutSeconds: { type: Number, default: 0 },
     initialValue: { type: String, default: '' },
     showCancel: { type: Boolean, default: true },
     closeOnMask: { type: Boolean, default: false },
     confirmText: { type: String, default: '确定' },
     cancelText: { type: String, default: '取消' }
   },
-  data() { return { inputValue: '', answered: false, rendered: false, motion: '', reachedBodyEnd: false }; },
+  data() { return { inputValue: '', answered: false, rendered: false, motion: '', scrollConfirmUnlocked: false, reviewBodyKey: 0 }; },
   computed: {
     confirmDisabled() {
-      return this.busy || (this.requireScrollToConfirm && !this.reachedBodyEnd);
+      return this.busy || (this.requireScrollToConfirm && !this.scrollConfirmUnlocked);
+    },
+    scrollConfirmHint() {
+      if (this.scrollConfirmUnlocked) return '可以继续，请确认是否同意';
+      if (this.scrollConfirmTimeoutSeconds > 0) return `请滑至文末，或等待 ${this.scrollConfirmTimeoutSeconds} 秒后继续`;
+      return '请滑动至文末后继续';
     }
   },
   watch: {
@@ -57,7 +65,14 @@ export default {
           this.motion = 'enter';
           this.inputValue = this.initialValue;
           this.answered = false;
-          this.reachedBodyEnd = false;
+          this.scrollConfirmUnlocked = false;
+          if (this.requireScrollToConfirm) {
+            const key = ++this.reviewBodyKey;
+            if (this.scrollConfirmTimeoutSeconds > 0) {
+              this.scrollConfirmTimer = setTimeout(this.unlockScrollConfirm, this.scrollConfirmTimeoutSeconds * 1000);
+            }
+            this.$nextTick(() => this.observeBodyEnd(key));
+          }
           this.releaseDismiss?.();
           this.releaseDismiss = registerOverlayDismiss(resolveOverlayOwner(this), () => this.cancel());
         } else if (this.rendered) {
@@ -66,14 +81,38 @@ export default {
       }
     }
   },
-  beforeUnmount() { this.clearCloseTimer(); this.pendingAnswer = null; this.releaseDismiss?.(); },
+  beforeUnmount() {
+    this.reviewBodyKey++;
+    this.stopScrollConfirmChecks();
+    this.clearCloseTimer();
+    this.pendingAnswer = null;
+    this.releaseDismiss?.();
+  },
   methods: {
-    handleBodyEnd() {
-      if (this.requireScrollToConfirm && this.visible) this.reachedBodyEnd = true;
+    observeBodyEnd(key) {
+      if (key !== this.reviewBodyKey || !this.visible || this.motion !== 'enter' || this.scrollConfirmUnlocked) return;
+      if (typeof uni.createIntersectionObserver !== 'function') return;
+      const observer = uni.createIntersectionObserver(this, { thresholds: [0.5] });
+      this.bodyEndObserver = observer;
+      observer.relativeTo('.app-dialog-body').observe('.app-dialog-body-end', ({ intersectionRatio }) => {
+        if (this.bodyEndObserver === observer && intersectionRatio >= 0.5) this.unlockScrollConfirm();
+      });
+    },
+    stopScrollConfirmChecks() {
+      clearTimeout(this.scrollConfirmTimer);
+      this.scrollConfirmTimer = null;
+      this.bodyEndObserver?.disconnect();
+      this.bodyEndObserver = null;
+    },
+    unlockScrollConfirm() {
+      if (!this.requireScrollToConfirm || !this.visible || this.motion !== 'enter' || this.scrollConfirmUnlocked) return;
+      this.scrollConfirmUnlocked = true;
+      this.stopScrollConfirmChecks();
     },
     clearCloseTimer() { clearTimeout(this.closeTimer); this.closeTimer = null; },
     closeDialog() {
       if (this.closeTimer) return;
+      this.stopScrollConfirmChecks();
       this.motion = 'leave';
       this.closeTimer = setTimeout(() => {
         this.clearCloseTimer();
@@ -134,6 +173,8 @@ export default {
 .app-dialog-body { max-height: 50vh; min-height: 0; }
 .app-dialog--review { max-width: 660rpx; }
 .app-dialog-body--review { height: 50vh; }
+/* Match lower-threshold so the scroll event also waits until the text is visible. */
+.app-dialog-body-end { height: 8px; }
 .app-dialog-scroll-hint { flex-shrink: 0; margin-top: 20rpx; color: var(--overlay-muted); font-size: 24rpx; line-height: 1.4; text-align: center; }
 .app-dialog-title, .app-dialog-actions { flex-shrink: 0; }
 .app-dialog-message { display: block; font-size: 28rpx; line-height: 1.6; color: var(--overlay-muted); white-space: pre-wrap; overflow-wrap: anywhere; }

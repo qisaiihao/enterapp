@@ -8,6 +8,7 @@
 - `utils/signatureImage.js` 负责图片解码和 PNG 导出。H5 使用 DOM Canvas；微信使用页面 2D Canvas；App 使用 `createCanvasContext`、`canvasGetImageData`、`canvasPutImageData` 和 `canvasToTempFilePath`，等待每一步回调后再继续。
 - `utils/signatureMatting.js` 只处理 RGBA 像素，不访问平台或云服务。
 - `utils/shareCanvas.js` 仅转换云文件地址并加载签名，不再次去底。上传预览、帖子显示和分享使用同一图片，关闭去底的选择也会保留。
+- H5 详情页下载诗歌卡片时，浏览器先尝试读取签名。跨域读取失败时，`getPostDetail` 的 `getCardSignature` 操作按帖子可见性校验并返回已保存的签名原图。上线时先更新该云函数，再发布 H5。
 
 ## 图像约定
 

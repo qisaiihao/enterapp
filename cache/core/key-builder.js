@@ -16,6 +16,7 @@
  * @param {boolean} [params.includeActivity] - 是否查询活动帖子
  * @param {string} [params.activityId] - 活动ID
  * @param {boolean} [params.homeRanking] - 首页普通帖加权排序
+ * @param {boolean} [params.homeMix] - 首页随机与高赞混排
  * @param {boolean} [params.originalMix] - 原创诗歌混排
  * @returns {string} 缓存键
  */
@@ -31,6 +32,7 @@ export function buildCacheKey(params) {
     includeActivity,
     activityId,
     homeRanking,
+    homeMix,
     originalMix
   } = params;
   const parts = [];
@@ -43,6 +45,7 @@ export function buildCacheKey(params) {
   if (includeActivity === true) parts.push('inclAct:true');
   if (activityId) parts.push(`act:${activityId}`);
   if (homeRanking === true) parts.push('homeRanking:true');
+  if (homeMix === true) parts.push('homeMix:true');
   if (originalMix === true) parts.push('originalMix:true');
   
   const filterKey = parts.length > 0 ? parts.join(':') : 'all';
@@ -78,6 +81,7 @@ export function parseCacheKey(cacheKey) {
       case 'inclAct': if (value === 'true') params.includeActivity = true; break;
       case 'act': params.activityId = value; break;
       case 'homeRanking': if (value === 'true') params.homeRanking = true; break;
+      case 'homeMix': if (value === 'true') params.homeMix = true; break;
       case 'originalMix': if (value === 'true') params.originalMix = true; break;
     }
   }

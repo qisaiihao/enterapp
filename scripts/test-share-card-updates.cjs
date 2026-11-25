@@ -94,7 +94,9 @@ async function main() {
   await checkSingleColorEvent();
   await checkLateCanvasAndExport();
   await checkPaintedColors();
-  console.log('[test-share-card-updates] PASS: font/color updates, latest requests, close cancellation, late draws/exports and painted colors');
+  await checkPaintedSignature('mp-weixin');
+  await checkPaintedSignature('app');
+  console.log('[test-share-card-updates] PASS: card colors, render cancellation and App/WeChat signature images');
 }
 
 async function checkPendingFontPreview() {
@@ -208,10 +210,9 @@ async function checkLateCanvasAndExport() {
     'The preview and save path must retain the latest selected-color export');
 }
 
-async function checkPaintedColors() {
-  const painted = [];
+function createPaintContext(painted) {
   let fillColor;
-  const ctx = {
+  return {
     clearRect() {}, beginPath() {}, moveTo() {}, lineTo() {}, arcTo() {},
     quadraticCurveTo() {}, closePath() {}, save() {}, restore() {}, stroke() {},
     setLineWidth() {}, setStrokeStyle() {}, setTextAlign() {}, setFontSize() {},
@@ -221,6 +222,11 @@ async function checkPaintedColors() {
     measureText(text) { return { width: text.length * 20 }; },
     draw(reserve, callback) { callback(); }
   };
+}
+
+async function checkPaintedColors() {
+  const painted = [];
+  const ctx = createPaintContext(painted);
   const canvas = loadModule('utils/shareCanvas.js');
   const state = createPage({
     ...canvas,
@@ -243,6 +249,86 @@ async function checkPaintedColors() {
     }
   }
   assert.deepEqual(plain(state.page.post), before, 'Card customization must not change original post colors');
+}
+
+async function checkPaintedSignature(platform) {
+  const remotePath = 'https://storage.example.test/signature.png';
+  const localPath = '/tmp/signature.png';
+  const cloudId = 'cloud://fixture/signature.png';
+  const painted = [];
+  const imageRequests = [];
+  const ctx = createPaintContext(painted);
+  ctx.drawImage = (image, x, y, width, height) => {
+    if (platform === 'mp-weixin' && typeof image === 'string') {
+      throw new TypeError('2D canvas requires an image created by its canvas node');
+    }
+    painted.push({ kind: 'image', path: typeof image === 'string' ? image : image.src, width, height });
+  };
+  const canvasNode = {
+    getContext: () => ctx,
+    createImage: () => ({
+      get src() { return this.path; },
+      set src(path) { this.path = path; this.onload(); }
+    })
+  };
+  const uni = {
+    createCanvasContext: () => ctx,
+    getImageInfo({ src, success, fail }) {
+      imageRequests.push(src);
+      if (src === remotePath || src === localPath) success({ path: localPath, width: 360, height: 90 });
+      else fail(new Error('Signature unavailable'));
+    },
+    hideLoading() {}, showToast() {}
+  };
+  const wx = platform === 'mp-weixin' ? {
+    createSelectorQuery: () => ({
+      in() { return this; },
+      select() { return this; },
+      fields(options, callback) { this.callback = callback; return this; },
+      exec() { this.callback({ node: canvasNode }); }
+    })
+  } : undefined;
+  const canvas = loadModule('utils/shareCanvas.js', {
+    uni, wx, fileUrlCache: { getTempUrl: async id => id === cloudId ? remotePath : id }
+  });
+  const { page, clock } = createPage({ ...canvas, uni, wx,
+    getCurrentPlatform: () => platform, getWindowInfoCompat: () => ({ pixelRatio: 2 })
+  });
+  const exports = [];
+  page.exportCanvas = (...args) => exports.push(args);
+  page.shareRenderToken = 1;
+  const post = { ...page.post, isPoem: true, isOriginal: true, authorSignature: cloudId };
+
+  async function drawPost(fields) {
+    painted.length = 0;
+    imageRequests.length = 0;
+    exports.length = 0;
+    page.post = { ...post, ...fields };
+    const task = page.drawCanvas(1);
+    await clock.flush();
+    await clock.advance(500);
+    await clock.advance(500);
+    assert.equal(exports.length, 1, 'The rendered card must reach export');
+    await task;
+  }
+
+  await drawPost();
+  assert.deepEqual(painted.find(item => item.kind === 'image'),
+    { kind: 'image', path: localPath, width: 240, height: 60 },
+    `${platform} must export the signature image at its original aspect ratio`);
+  assert.ok(!painted.some(item => item.text === post.authorName), 'A loaded signature replaces the author name');
+  assert.equal(imageRequests.filter(src => src === remotePath).length, 1, 'Measurement and drawing share the fetched image');
+
+  await drawPost({ authorSignature: 'https://storage.example.test/missing.png' });
+  assert.ok(painted.some(item => item.text === post.authorName), 'An unavailable signature falls back to the author name');
+
+  await drawPost({ isAnonymous: true });
+  assert.deepEqual(imageRequests, [], 'Anonymous posts must not load the signature');
+  assert.ok(!painted.some(item => item.kind === 'image' || item.text === post.authorName));
+
+  await drawPost({ isOriginal: false, author: '原作者' });
+  assert.deepEqual(imageRequests, [], 'Reposted poems must not load the poster’s signature');
+  assert.ok(painted.some(item => item.text === '原作者'));
 }
 
 main().catch(error => { console.error(error); process.exitCode = 1; });

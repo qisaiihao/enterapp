@@ -18,6 +18,8 @@ let failSave;
 let savedDraft;
 let previewInstance;
 const previewApps = [];
+const keyboardListeners = new Set();
+const plus = { os: { name: 'iOS' } };
 const lifecycleEvents = [];
 const navigationEvents = [];
 const callbackErrors = [];
@@ -26,6 +28,9 @@ const draftKeys = ['publish_working_draft_v1', 'publish_draft', 'editing_draft',
 const uni = {
   showModal() { throw new Error('Expected the page overlay host'); },
   showActionSheet() {}, showLoading() {}, hideLoading() {}, showToast() {},
+  pageScrollTo() {},
+  onKeyboardHeightChange: listener => keyboardListeners.add(listener),
+  offKeyboardHeightChange: listener => keyboardListeners.delete(listener),
   getStorageSync: key => storage.get(key),
   // Real uni-app storage serializes the value rather than retaining Vue proxies.
   setStorageSync: (key, value) => storage.set(key, copy(value)),
@@ -68,7 +73,7 @@ const uni = {
   }
 };
 const globals = {
-  uni, getCurrentPages: () => stack, getApp: () => ({ globalData: { openid: 'test-user' } }),
+  uni, plus, getCurrentPages: () => stack, getApp: () => ({ globalData: { openid: 'test-user' } }),
   setTimeout, clearTimeout,
   console: { log() {}, warn() {}, error: (...args) => callbackErrors.push(args) }
 };
@@ -542,8 +547,47 @@ async function checkFailedSaveExit() {
   reopened.app.unmount();
 }
 
+function checkKeyboardFooter() {
+  const source = fs.readFileSync(path.join(root, 'pages-publish/add/add.vue'), 'utf8');
+  assert.match(source, /<view v-show="!isKeyboardVisible" class="compose-actions compose-actions--editor">/);
+
+  const { app } = mount();
+  const otherListener = () => {};
+  const changeHeight = height => keyboardListeners.forEach(listener => listener({ height }));
+  uni.onKeyboardHeightChange(otherListener);
+
+  page.onShow.call(instance);
+  assert.equal(keyboardListeners.size, 1, 'iOS keeps its existing keyboard layout');
+  plus.os.name = 'Android';
+  page.onShow.call(instance);
+  page.onShow.call(instance);
+  assert.equal(keyboardListeners.size, 2, 'Android registers one listener for the shown page');
+  assert.equal(instance.isKeyboardVisible, false, 'footer is visible at rest');
+  changeHeight(280);
+  assert.equal(instance.isKeyboardVisible, true, 'keyboard hides the footer');
+  changeHeight(340);
+  assert.equal(instance.isKeyboardVisible, true, 'switching keyboard panels keeps the footer hidden');
+  changeHeight(0);
+  assert.equal(instance.isKeyboardVisible, false, 'closing the keyboard restores the footer');
+
+  changeHeight(280);
+  hideEditor();
+  assert.deepEqual([...keyboardListeners], [otherListener], 'hiding the page removes only its listener');
+  assert.equal(instance.isKeyboardVisible, false, 'hiding the page clears keyboard state');
+  page.onShow.call(instance);
+  changeHeight(280);
+  assert.equal(instance.isKeyboardVisible, true, 'returning to the page resumes listening');
+  page.onUnload.call(instance);
+  assert.deepEqual([...keyboardListeners], [otherListener], 'unloading also removes the page listener');
+  assert.equal(instance.isKeyboardVisible, false);
+  uni.offKeyboardHeightChange(otherListener);
+  plus.os.name = 'iOS';
+  app.unmount();
+}
+
 async function main() {
   overlays.installAppOverlays();
+  checkKeyboardFooter();
   await checkExit('toolbar discard', () => instance.goBack(), 'cancel');
   await checkExit('toolbar save', () => instance.goBack(), 'confirm');
   await checkExit('native back then discard', () => assert.equal(backPress('backbutton'), true), 'cancel');
@@ -583,6 +627,6 @@ async function main() {
   assert.equal(navigations, 1, 'empty editor returns immediately');
   assert.equal(overlayHost.request, null, 'empty editor does not prompt');
   app.unmount();
-  console.log('[test-publish-back] PASS: toolbar/native back, discard, cloud save success/failure, direct/preview publication, late publication after navigation, new draft isolation, all compose modes and draft recovery');
+  console.log('[test-publish-back] PASS: Android keyboard footer, toolbar/native back, discard, cloud save success/failure, direct/preview publication, late publication after navigation, new draft isolation, all compose modes and draft recovery');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });
