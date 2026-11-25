@@ -22,17 +22,18 @@ class WindowTests(unittest.TestCase):
         row = dict(_id='one', version='1.7.9', type='native_app', uni_platform='android',
                    title='迁移更新', contents='保留旧版升级入口', url='https://example.test/app.apk',
                    stable_publish=False, is_mandatory=True, is_silently=False,
-                   legacy_migration=True, revision=1)
+                   legacy_migration=True, unicloud_only=True, revision=1)
         self.app.rows = {'one': row}
         self.app.tree.insert('', 'end', iid='one', values=('1.7.9', 'Android / 整包', '草稿'))
         self.app.tree.selection_set('one')
         self.app.select()
         form = self.app.record()
-        for key in ('version', 'type', 'uni_platform', 'title', 'contents', 'is_mandatory', 'legacy_migration'):
+        for key in ('version', 'type', 'uni_platform', 'title', 'contents', 'is_mandatory', 'legacy_migration', 'unicloud_only'):
             self.assertEqual(form[key], row[key])
         self.app.new()
         self.assertIsNone(self.app.current)
         self.assertFalse(self.app.record()['legacy_migration'])
+        self.assertFalse(self.app.record()['unicloud_only'])
 
 
 if __name__ == '__main__':

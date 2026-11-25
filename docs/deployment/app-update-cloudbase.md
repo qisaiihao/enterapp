@@ -43,6 +43,14 @@
 - 静默安装仅对 WGT 生效，不能与强制更新同时选择。
 - iOS 整包使用 App Store 的长期 HTTPS 链接；它不使用 APK，也不勾选 Android 迁移入口。iOS 实际上架和升级流程尚未真机验收。
 
+### 仅旧 uniCloud 客户端（unicloud_only）
+
+- 版本记录可勾选「仅旧 uniCloud 客户端」。勾选后，该记录只在经 uniCloud 桥接的请求中返回；已切换到腾讯云直连的 `1.7.9+` 客户端不会收到。
+- 服务端按请求来源区分：HTTP 触发（uniCloud 桥接）视为 `unicloud`，SDK 直连视为 `cloudbase`（`functions/checkAppUpdate/handler.js`）。共享策略 `functions/_shared/app-update.js` 对 `unicloud_only` 记录做来源过滤；桥接层转发和本地复核都会带 `via: 'unicloud'`。
+- 典型用途：把 `1.8.0` 整包只推给还没有腾讯云更新逻辑的旧用户，`1.7.9` 用户不被这条整包覆盖。它不改变客户端代码；预览选择「旧版 App（uniCloud）」应命中，选择「新版 App（腾讯云）」应显示不下发。
+- 该标记只影响下发范围，不改变签名、安装或强制/静默语义；整包和 WGT 都可设置。
+- 修改共享策略后需执行 `node scripts/sync-app-update.cjs`，重新部署腾讯云函数（`node scripts/deploy-app-update.cjs`）；因为桥接层有改动，还要用 HBuilderX 重新上传 uniCloud 公共模块 `app-update`。
+
 ## 存储与权限
 
 使用现有环境 `cloud1-5gb0pbyl400845f5`（上海）。CloudBase 云存储自带 CDN 分发，下载不经过云函数转发：[官方云存储说明](https://docs.cloudbase.net/storage/introduce)。当前下载域名为：

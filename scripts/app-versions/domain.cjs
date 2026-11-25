@@ -19,6 +19,7 @@ function validate(record) {
   }
   assert(!(record.is_mandatory && record.is_silently), '强制更新不能同时设置静默安装');
   assert(!record.is_silently || record.type === 'wgt', '只有 WGT 支持静默安装');
+  assert(record.unicloud_only === undefined || typeof record.unicloud_only === 'boolean', 'unicloud_only 必须为布尔值');
   assert(!record.legacy_migration || (record.type === 'native_app' && record.cloudbase_ready === true), '旧版迁移入口必须使用已包含腾讯云更新逻辑的整包');
   if (!(record.type === 'native_app' && record.uni_platform === 'ios')) {
     assert(record.artifact && /^[a-f0-9]{64}$/.test(record.artifact.sha256), '请先选择并上传经过校验的安装包');
@@ -38,7 +39,8 @@ function draft(input, artifact) {
     type: input.type, version: input.version, title: input.title?.trim(), contents: input.contents || '',
     url: artifact?.url || input.url, min_uni_version: input.min_uni_version || '', max_uni_version: input.max_uni_version || '',
     is_mandatory: input.is_mandatory === true, is_silently: input.is_silently === true,
-    legacy_migration: input.legacy_migration === true, cloudbase_ready: artifact?.cloudbase_ready === true,
+    legacy_migration: input.legacy_migration === true, unicloud_only: input.unicloud_only === true,
+    cloudbase_ready: artifact?.cloudbase_ready === true,
     artifact: artifact || null, stable_publish: false
   };
   validate(record);

@@ -13,7 +13,9 @@ async function handle(event = {}, context = {}, cloud) {
     if (!data || data.appid !== APP_ID) throw Error('应用参数无效');
     const mode = data.mode || 'current';
     if (!['current', 'legacy', 'legacy-wgt'].includes(mode)) throw Error('更新协议无效');
-    result = await checkUpdate(data, context, cloud, mode, 'app_update_releases');
+    // HTTP trigger = uniCloud bridge (old clients); SDK call = client already on Tencent.
+    // Derive the channel here instead of trusting a client-supplied field.
+    result = await checkUpdate({ ...data, via: http ? 'unicloud' : 'cloudbase' }, context, cloud, mode, 'app_update_releases');
     // Log only protocol/version for transition monitoring; no account/device identifiers.
     console.log('[app-update-cloudbase]', JSON.stringify({ mode, version: data.wgtVersion, code: result.code }));
   } catch (_) {

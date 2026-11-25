@@ -49,6 +49,34 @@ test('bridge failure, malformed data and no replacement preserve uniCloud fallba
     assert.equal(await fromCloudBase(request, {}, c, 'current'), null);
   }
 });
+test('CloudBase endpoint only returns unicloud-only releases to bridged HTTP callers', async () => {
+  const old = { ...native, _id: 'old', version: '1.8.0', legacy_migration: false, unicloud_only: true, url: 'https://files.example.test/180.apk' };
+  assert.equal((await handle(request, {}, cloud([old]))).code, 0);
+  const http = JSON.parse((await handle({ httpMethod: 'POST', body: JSON.stringify(request) }, {}, cloud([old]))).body);
+  assert.equal(http.code, 102);
+  assert.equal(http.version, '1.8.0');
+  assert.equal(http.unicloud_only, true);
+});
+test('bridge marks forwarded checks as uniCloud so unicloud-only releases survive revalidation', async () => {
+  const old = { ...native, version: '1.8.0', legacy_migration: false, unicloud_only: true };
+  let forwarded;
+  const c = { httpclient: { async request(url, options) {
+    forwarded = options.data;
+    const response = await handle({ httpMethod: 'POST', body: JSON.stringify(options.data) }, {}, cloud([old]));
+    return { status: 200, data: JSON.parse(response.body) };
+  } } };
+  const res = await fromCloudBase(request, {}, c, 'current');
+  assert.equal(forwarded.via, 'unicloud');
+  assert.equal(res.code, 102);
+  assert.equal(res.version, '1.8.0');
+});
+test('draft keeps unicloud-only targeting and domain rejects a non-boolean flag', () => {
+  assert.equal(domain.draft({ ...input, unicloud_only: true }, artifact).unicloud_only, true);
+  assert.equal(domain.draft(input, artifact).unicloud_only, false);
+  const bad = domain.draft(input, artifact);
+  bad.unicloud_only = 'yes';
+  assert.throws(() => domain.validate(bad), /unicloud_only/);
+});
 const artifact = { appid, version: '1.7.9', type: 'native_app', cloudbase_ready: true, sha256: 'a'.repeat(64), size: 2, url: native.url };
 const input = { ...native, title: '更新', contents: '修复', legacy_migration: true };
 test('draft validation blocks false migration packages and version/address mismatch', () => {

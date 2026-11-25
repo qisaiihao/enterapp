@@ -26,14 +26,14 @@ class VersionManager(tk.Tk):
         self.jobs = queue.Queue()
         self.actions = []
         self.vars = {key: tk.StringVar() for key in ('version', 'title', 'url', 'min_uni_version', 'max_uni_version')}
-        self.vars.update({key: tk.BooleanVar() for key in ('is_mandatory', 'is_silently', 'legacy_migration')})
+        self.vars.update({key: tk.BooleanVar() for key in ('is_mandatory', 'is_silently', 'legacy_migration', 'unicloud_only')})
         self.platform = tk.StringVar(value='Android')
         self.kind = tk.StringVar(value='APK 整包')
         self.status = tk.StringVar(value='就绪')
         self.package_status = tk.StringVar(value='尚未选择安装包')
         self.device_native = tk.StringVar(value='1.7.8')
         self.device_wgt = tk.StringVar(value='1.7.8')
-        self.device_mode = tk.StringVar(value='新版 App')
+        self.device_mode = tk.StringVar(value='新版 App（腾讯云）')
         style = ttk.Style(self)
         style.theme_use('clam')
         style.configure('.', font=('Microsoft YaHei UI', 10), background='#f4f3ef')
@@ -105,7 +105,7 @@ class VersionManager(tk.Tk):
         ttk.Label(compatibility, text='最高可留空', style='Hint.TLabel').pack(side='left')
         flags = ttk.Frame(right)
         flags.pack(fill='x', pady=(10, 0))
-        for key, label in [('is_mandatory', '强制更新'), ('is_silently', '静默安装 WGT')]:
+        for key, label in [('is_mandatory', '强制更新'), ('is_silently', '静默安装 WGT'), ('unicloud_only', '仅旧 uniCloud 客户端')]:
             ttk.Checkbutton(flags, text=label, variable=self.vars[key]).pack(side='left', padx=(0, 16))
         ttk.Checkbutton(right, text='作为旧版 App 迁移整包（需包含腾讯云更新逻辑）', variable=self.vars['legacy_migration']).pack(anchor='w', pady=(8, 4))
         buttons = ttk.Frame(right)
@@ -114,7 +114,7 @@ class VersionManager(tk.Tk):
             self.button(buttons, label, action).pack(side='left', padx=(0, 8))
         preview = ttk.LabelFrame(self, text='检查用户会收到哪个版本', padding=12)
         preview.pack(fill='x', padx=24, pady=12)
-        ttk.Combobox(preview, textvariable=self.device_mode, values=['新版 App', '旧版插件', '旧版 WGT 回退'], state='readonly', width=16).pack(side='left')
+        ttk.Combobox(preview, textvariable=self.device_mode, values=['新版 App（腾讯云）', '旧版 App（uniCloud）', '旧版插件', '旧版 WGT 回退'], state='readonly', width=20).pack(side='left')
         for title, variable in [('原生版本', self.device_native), ('资源版本', self.device_wgt)]:
             ttk.Label(preview, text=title).pack(side='left', padx=(15, 6))
             ttk.Entry(preview, textvariable=variable, width=12).pack(side='left')
@@ -180,7 +180,7 @@ class VersionManager(tk.Tk):
         self.platform.set('Android')
         self.kind.set('APK 整包')
         for key, variable in self.vars.items():
-            variable.set(False if key in ('is_mandatory', 'is_silently', 'legacy_migration') else '')
+            variable.set(False if key in ('is_mandatory', 'is_silently', 'legacy_migration', 'unicloud_only') else '')
         self.vars['title'].set('发现新版本')
         self.contents.delete('1.0', 'end')
         self.package_status.set('选择安装包后将自动读取版本并校验签名，上传到腾讯云 CDN。')
@@ -192,7 +192,7 @@ class VersionManager(tk.Tk):
         self.current = row
         self.artifact = row.get('artifact')
         for key, variable in self.vars.items():
-            variable.set(row.get(key, False if key in ('is_mandatory', 'is_silently', 'legacy_migration') else ''))
+            variable.set(row.get(key, False if key in ('is_mandatory', 'is_silently', 'legacy_migration', 'unicloud_only') else ''))
         self.platform.set('Android' if row['uni_platform'] == 'android' else 'iOS')
         self.kind.set('WGT 资源包' if row['type'] == 'wgt' else 'App Store' if row['uni_platform'] == 'ios' else 'APK 整包')
         self.contents.delete('1.0', 'end')
@@ -253,9 +253,10 @@ class VersionManager(tk.Tk):
                   lambda row: self.refresh(row['_id']), '正在校验并' + verb + '版本…')
 
     def preview(self):
-        mode = {'新版 App': 'current', '旧版插件': 'legacy', '旧版 WGT 回退': 'legacy-wgt'}[self.device_mode.get()]
+        mode, via = {'新版 App（腾讯云）': ('current', 'cloudbase'), '旧版 App（uniCloud）': ('current', 'unicloud'),
+                     '旧版插件': ('legacy', 'unicloud'), '旧版 WGT 回退': ('legacy-wgt', 'unicloud')}[self.device_mode.get()]
         request = {'action': 'preview', 'mode': mode, 'device': {'platform': 'ios' if self.platform.get() == 'iOS' else 'android',
-                   'appVersion': self.device_native.get(), 'wgtVersion': self.device_wgt.get()}}
+                   'appVersion': self.device_native.get(), 'wgtVersion': self.device_wgt.get(), 'via': via}}
         def done(result):
             text = f"将收到 {result['version']}（{'整包' if result['type'] == 'native_app' else 'WGT'}）" if result.get('hasUpdate') else result.get('message', '无更新')
             self.status.set(text)

@@ -42,6 +42,7 @@ function validateRecord(record) {
     if (record.max_uni_version && (!isVersion(record.max_uni_version) ||
       compareVersion(record.max_uni_version, record.min_uni_version) < 0)) return false;
   }
+  if (record.unicloud_only !== undefined && typeof record.unicloud_only !== 'boolean') return false;
   return ['wgt', 'native_app'].includes(record.type);
 }
 
@@ -52,6 +53,7 @@ function responseFor(record, platform) {
     title: record.title || '发现新版本', contents: record.contents || '',
     platform: [PLATFORM_LABEL[platform]], uni_platform: platform,
     min_uni_version: record.min_uni_version || '', max_uni_version: record.max_uni_version || '',
+    unicloud_only: record.unicloud_only === true,
     is_mandatory: record.is_mandatory === true,
     is_silently: record.type === 'wgt' && record.is_silently === true && record.is_mandatory !== true,
     _id: record._id
@@ -70,9 +72,13 @@ function selectUpdate(records, request, mode = 'current') {
   if (mode === 'current' && (request.protocolVersion !== 2 || !isVersion(request.appVersion))) {
     return { code: -102, message: '请使用协议 2，并传入原生版本名称' };
   }
+  // Records marked unicloud_only are for clients that still check through the
+  // uniCloud bridge. Direct CloudBase callers (clients already on Tencent) must
+  // never receive them, otherwise an old-targeted APK would reach everyone.
+  const channelEligible = record => record.unicloud_only !== true || request.via === 'unicloud';
   const relevant = records.filter(record => record.appid === request.appid &&
     record.stable_publish === true && matchesPlatform(record, platform) &&
-    ['native_app', 'wgt'].includes(record.type));
+    ['native_app', 'wgt'].includes(record.type) && channelEligible(record));
 
   // Old resource versionCode cannot identify the native version: never infer
   // 168 -> 1.6.8. Only send an explicitly designated full migration package.

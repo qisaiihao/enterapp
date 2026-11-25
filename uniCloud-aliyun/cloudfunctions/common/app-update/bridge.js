@@ -4,7 +4,7 @@ const config = require('./cloudbase.json');
 
 async function fromCloudBase(event, context, cloud, mode) {
   if (!config.enabled || !cloud.httpclient || !cloud.httpclient.request) return null;
-  const request = { ...event, mode };
+  const request = { ...event, mode, via: 'unicloud' };
   if (mode === 'legacy') request.platform = String(context && context.OS || request.platform || '').toLowerCase();
   if (selectUpdate([], request, mode).code < 0) return null;
   try {

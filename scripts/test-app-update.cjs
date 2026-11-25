@@ -81,6 +81,21 @@ test('migration never downgrades resources; new client does not loop on migratio
   assert.equal(select([target], { ...local, wgtVersion: '1.7.1' }, 'legacy').code, 0);
   assert.equal(select([target]).code, 0);
 });
+test('unicloud-only release reaches bridged uniCloud callers, never direct CloudBase callers', () => {
+  const target = release({ version: '1.8.0', type: 'native_app', unicloud_only: true });
+  assert.equal(select([target], { ...local, via: 'unicloud' }).code, 102);
+  assert.equal(select([target], { ...local, via: 'cloudbase' }).code, 0);
+  assert.equal(select([target], local).code, 0);
+  assert.equal(select([release({ version: '1.9.0', type: 'native_app' })], { ...local, via: 'cloudbase' }).code, 102);
+});
+test('unicloud-only release also reaches the legacy native plugin contract', () => {
+  const target = release({ version: '1.8.0', type: 'native_app', legacy_migration: true, unicloud_only: true });
+  assert.equal(select([target], { ...local, appVersion: '168', wgtVersion: '1.6.8', via: 'unicloud' }, 'legacy').code, 102);
+  assert.equal(select([target], { ...local, appVersion: '168', wgtVersion: '1.6.8' }, 'legacy').code, 0);
+});
+test('unicloud-only must be boolean and a bad value is a release configuration error', () => {
+  assert.equal(select([release({ unicloud_only: 'yes' })], { ...local, via: 'unicloud' }).code, -422);
+});
 
 function cloudMock(records) {
   return { database: () => ({ collection: () => {
@@ -326,8 +341,8 @@ test('non-App environments do not request updates', async () => {
 test('manifest and route use migrated client, old plugin is absent', () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
   // 上方 local 仍固定 1.7.0 验证最低支持版本；正式包版本以当前 manifest 为准。
-  assert.equal(manifest.versionName, '1.7.9');
-  assert.equal(manifest.versionCode, 179);
+  assert.equal(manifest.versionName, '1.8.0');
+  assert.equal(manifest.versionCode, 180);
   assert.ok(manifest['app-plus'].distribute.android.permissions.some(value => value.includes('REQUEST_INSTALL_PACKAGES')));
   assert.ok(!fs.existsSync(path.join(root, 'uni_modules/uni-upgrade-center-app')));
   assert.ok(!fs.readFileSync(path.join(root, 'pages.json'), 'utf8').includes('uni-upgrade-center-app'));
