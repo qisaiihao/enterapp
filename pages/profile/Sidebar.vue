@@ -132,7 +132,6 @@ export default {
     methods: {
         closeThen(callback) {
             if (this.inline) {
-                this.$emit('close');
                 if (callback) callback();
                 return;
             }

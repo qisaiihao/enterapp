@@ -1,48 +1,53 @@
 <template>
-  <view class="activity-notice-carousel">
-    <view class="notice-viewport">
+  <view class="activity-notice-carousel" :class="{ 'activity-notice-carousel--two-up': isTwoUp, 'activity-notice-carousel--wide-single': isWideLayout && !isTwoUp }">
+    <view class="notice-viewport" :class="{ 'notice-viewport--two-up': isTwoUp }">
       <swiper
+        :key="'notice-swiper-' + displayCount"
         class="notice-swiper"
-        :current="activeIndex"
-        :autoplay="true"
+        :current="safeCurrentIndex"
+        :display-multiple-items="displayCount"
+        :autoplay="canLoop"
         :interval="4200"
         :duration="450"
-        :circular="true"
+        :circular="canLoop"
         @change="handleChange"
       >
         <swiper-item
           v-for="notice in safeNotices"
           :key="notice.value"
+          class="notice-swiper-item"
         >
-          <view :class="['notice-card', notice.tone || 'default', { 'is-linked': !!notice.linkUrl, 'has-image': !!notice.image }]" @tap="handleSelect(notice)">
-            <image
-              v-if="notice.image"
-              class="notice-image"
-              :src="notice.image"
-              mode="aspectFill"
-              :lazy-load="true"
-              @error="onImageError(notice)"
-            />
-            <template v-else>
-              <view class="notice-copy">
-                <text class="notice-kicker">{{ notice.kicker }}</text>
-                <text class="notice-title">{{ notice.title }}</text>
-                <text class="notice-summary">{{ notice.summary }}</text>
-              </view>
-              <view class="notice-art">
-                <text class="notice-art-mark">{{ notice.mark }}</text>
-              </view>
-            </template>
+          <view class="notice-slide-slot">
+            <view :class="['notice-card', notice.tone || 'default', { 'is-linked': !!notice.linkUrl, 'has-image': !!notice.image }]" @tap="handleSelect(notice)">
+              <image
+                v-if="notice.image"
+                class="notice-image"
+                :src="notice.image"
+                mode="aspectFill"
+                :lazy-load="true"
+                @error="onImageError(notice)"
+              />
+              <template v-else>
+                <view class="notice-copy">
+                  <text class="notice-kicker">{{ notice.kicker }}</text>
+                  <text class="notice-title">{{ notice.title }}</text>
+                  <text class="notice-summary">{{ notice.summary }}</text>
+                </view>
+                <view class="notice-art">
+                  <text class="notice-art-mark">{{ notice.mark }}</text>
+                </view>
+              </template>
+            </view>
           </view>
         </swiper-item>
       </swiper>
     </view>
 
-    <view class="notice-dots" aria-hidden="true">
+    <view v-if="canLoop" class="notice-dots" aria-hidden="true">
       <view
         v-for="(notice, index) in safeNotices"
         :key="`${notice.value}-dot`"
-        :class="['notice-dot', activeIndex === index ? 'active' : '']"
+        :class="['notice-dot', safeCurrentIndex === index ? 'active' : '']"
       ></view>
     </view>
   </view>
@@ -85,6 +90,21 @@ export default {
           }
           return base;
         });
+    },
+    isTwoUp() {
+      return !!(this.isWideLayout && this.safeNotices.length >= 2);
+    },
+    displayCount() {
+      return this.isTwoUp ? 2 : 1;
+    },
+    canLoop() {
+      return this.safeNotices.length > this.displayCount;
+    },
+    safeCurrentIndex() {
+      const len = this.safeNotices.length;
+      if (len <= 0) return 0;
+      const maxIndex = this.canLoop ? len - 1 : Math.max(0, len - this.displayCount);
+      return Math.min(Math.max(0, this.activeIndex), maxIndex);
     }
   },
   methods: {
@@ -118,12 +138,45 @@ export default {
   padding-top: 56.25%;
 }
 
+.notice-viewport--two-up {
+  padding-top: 28.125%;
+}
+
+.activity-notice-carousel--two-up {
+  padding: 16px 12px 0;
+}
+
+.activity-notice-carousel--wide-single .notice-viewport {
+  max-width: 560px;
+  margin: 0 auto;
+  padding-top: min(56.25%, 315px);
+}
+
 .notice-swiper {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
+}
+
+.notice-swiper-item {
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.notice-slide-slot {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.activity-notice-carousel--two-up .notice-slide-slot {
+  padding: 0 8px;
+}
+
+.activity-notice-carousel--two-up .notice-card {
+  border-radius: 12px;
 }
 
 .notice-card {

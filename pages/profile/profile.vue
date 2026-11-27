@@ -78,10 +78,10 @@
                             <view class="profile-left-menu-slot">
                                 <Sidebar
                                     inline
-                                    :isVisible="isSidebarOpen"
+                                    :isVisible="isInlineMenuExpanded"
                                     :userInfo="userInfo"
                                     :isDarkTheme="isDarkTheme"
-                                    @close="isSidebarOpen = false"
+                                    @close="isInlineMenuExpanded = false"
                                     @avatar-error="onAvatarError"
                                     @logout-confirm="showLogoutConfirm"
                                     @toggle-theme="toggleTheme"
@@ -681,6 +681,7 @@ export default {
             },
 
             isSidebarOpen: false,
+            isInlineMenuExpanded: true,
             isProfileSearchActive: false,
             profileSearchFocused: false,
             profileSearchKeyword: '',
@@ -2584,8 +2585,14 @@ export default {
             console.log('=== 图片URL测试完成 ===');
         },
 
-        // 切换侧边栏显示/隐藏
+        // 切换侧边栏显示/隐藏（宽屏分栏模式下切换名片卡下方内联按钮区展开/收起）
         toggleSidebar: function () {
+            if (this.isSplitDetailLayout && !this.isProfileSearchActive) {
+                this.setData({
+                    isInlineMenuExpanded: !this.isInlineMenuExpanded
+                });
+                return;
+            }
             this.setData({
                 isSidebarOpen: !this.isSidebarOpen
             });

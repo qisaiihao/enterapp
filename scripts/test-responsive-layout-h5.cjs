@@ -63,7 +63,9 @@ async function main() {
 
     for (const vp of VIEWPORTS) {
       await page.setViewport({ width: vp.width, height: vp.height, deviceScaleFactor: 1, isMobile: vp.width < 600, hasTouch: true });
-      await page.evaluate(() => {
+      await page.evaluate(() => window.dispatchEvent(new Event('resize')));
+      await new Promise((r) => setTimeout(r, 220));
+      await page.evaluate(async () => {
         const vm = getCurrentPages().at(-1)?.$vm;
         if (vm) {
           vm.useRecommendFeed = false;
@@ -75,10 +77,9 @@ async function main() {
               { _id: 'fixture-2', title: '山风吹过旧书架', content: '翻到夹着银杏叶的那一页\n字迹已经微微泛黄', authorName: '林间客', isPoem: true, isOriginal: true, tags: ['读书'], formattedCreateTime: '5分钟前', votes: 28, commentCount: 7 }
             ];
           }
+          if (typeof vm.$nextTick === 'function') await vm.$nextTick();
         }
-        window.dispatchEvent(new Event('resize'));
       });
-      await new Promise((r) => setTimeout(r, 220));
 
       const metrics = await page.evaluate(() => {
         const root = document.documentElement;
@@ -192,7 +193,6 @@ async function main() {
       vm.userInfo = { _openid: 'u-fixture', nickName: 'Álvaro de Campos', poemId: 'qisaihao', bio: '谁此时孤独，就永远孤独' };
       vm.followerCount = 72;
       vm.currentTab = 'posts';
-      vm.isSidebarOpen = true;
       vm.myPosts = [
         { _id: 'p-1', title: '春夜读诗记', content: '窗外的雨落得很轻\n檐下旧灯摇曳着微光', authorName: 'Álvaro de Campos', isPoem: true, formattedCreateTime: '1天前' },
         { _id: 'p-2', title: '拼贴诗', content: '金融债务 潮来潮去', authorName: 'Álvaro de Campos', isPoem: true, formattedCreateTime: '2026-11-16' }
@@ -205,9 +205,10 @@ async function main() {
       const hero = document.querySelector('.profile-hero-section');
       const vTab = document.querySelector('.tab-navigation--vertical');
       const body = document.querySelector('.profile-body-shell');
+      const inlinePanel = document.querySelector('.sidebar-inline-panel');
       const inlineGrid = document.querySelector('.sidebar-inline-grid');
       const drawer = document.querySelector('.sidebar');
-      if (!leftCol || !hero || !vTab || !body || !inlineGrid) return null;
+      if (!leftCol || !hero || !vTab || !body || !inlinePanel || !inlineGrid) return null;
       const l = leftCol.getBoundingClientRect();
       const h = hero.getBoundingClientRect();
       const t = vTab.getBoundingClientRect();
@@ -215,6 +216,7 @@ async function main() {
       const g = inlineGrid.getBoundingClientRect();
       return {
         hasDrawer: !!drawer,
+        inlineExpandedByDefault: getComputedStyle(inlinePanel).display !== 'none' && g.height > 100,
         buttonCount: inlineGrid.querySelectorAll('.sidebar-inline-btn').length,
         heroWidth: Math.round(h.width),
         heroBottom: Math.round(h.bottom),
@@ -228,14 +230,43 @@ async function main() {
     });
     assert.ok(profileMetrics, 'profile page must render wide card + lower inline grid & vertical tab rail on tablet');
     assert.equal(profileMetrics.hasDrawer, false, 'wide split profile must replace drawer with inline button panel');
+    assert.equal(profileMetrics.inlineExpandedByDefault, true, 'inline profile menu must be expanded by default on wide screens');
     assert.ok(profileMetrics.buttonCount >= 10, `inline button panel must include sidebar actions (got ${profileMetrics.buttonCount})`);
     assert.ok(profileMetrics.heroWidth >= 380, `profile card should be wider (${profileMetrics.heroWidth}px)`);
     assert.ok(profileMetrics.tabTop >= profileMetrics.heroBottom - 2, 'vertical tabs must sit below the profile card');
     assert.ok(profileMetrics.tabLeft >= profileMetrics.gridRight - 2, 'vertical tabs must sit to the right of inline buttons');
     assert.ok(profileMetrics.bodyLeft >= profileMetrics.leftRight - 2, 'post list must sit to the right of the left column');
+    // 点击原侧边栏按钮可收起，再点重新展开
+    const collapsed = await page.evaluate(async () => {
+      const vm = getCurrentPages().at(-1)?.$vm;
+      vm.toggleSidebar();
+      await new Promise(r => setTimeout(r, 80));
+      const hidden = getComputedStyle(document.querySelector('.sidebar-inline-panel')).display === 'none';
+      vm.toggleSidebar();
+      await new Promise(r => setTimeout(r, 80));
+      const reopened = getComputedStyle(document.querySelector('.sidebar-inline-panel')).display !== 'none';
+      return { hidden, reopened };
+    });
+    assert.equal(collapsed.hidden, true, 'toggling sidebar button in wide profile must collapse inline buttons');
+    assert.equal(collapsed.reopened, true, 'toggling sidebar button again must re-expand inline buttons');
     await page.screenshot({ path: path.join(outDir, 'profile-ipad-landscape.png') });
 
-    console.log(`[test-responsive-layout-h5] PASS: ${VIEWPORTS.length} index viewports + dual-pane post-detail + wide profile verified; screenshots saved to ${outDir}`);
+    // 验证活动页在平板横屏下顶部公告双图并排展示，显著压缩高度
+    await page.evaluate(() => uni.switchTab({ url: '/pages/activity/activity' }));
+    await page.waitForFunction(() => getCurrentPages().at(-1)?.route === 'pages/activity/activity');
+    await new Promise((r) => setTimeout(r, 260));
+    const activityMetrics = await page.evaluate(() => {
+      const carousel = document.querySelector('.activity-notice-carousel--two-up');
+      const viewport = document.querySelector('.notice-viewport--two-up');
+      if (!carousel || !viewport) return null;
+      const v = viewport.getBoundingClientRect();
+      return { width: Math.round(v.width), height: Math.round(v.height) };
+    });
+    assert.ok(activityMetrics, 'activity notice carousel must switch to two-up mode on wide screens');
+    assert.ok(activityMetrics.height > 120 && activityMetrics.height <= 340, `two-up banner height must stay compact (got ${activityMetrics.height}px)`);
+    await page.screenshot({ path: path.join(outDir, 'activity-ipad-landscape.png') });
+
+    console.log(`[test-responsive-layout-h5] PASS: ${VIEWPORTS.length} index viewports + dual-pane post-detail + wide profile + two-up activity carousel verified; screenshots saved to ${outDir}`);
   } finally {
     await browser.close();
   }
