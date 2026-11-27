@@ -79,16 +79,17 @@ function buildSafeAreaInsets(info = {}) {
         };
     }
 
-    const screenWidth = Number(info.screenWidth || info.windowWidth || 0);
-    const screenHeight = Number(info.screenHeight || info.windowHeight || 0);
+    const screenWidth = Number(info.windowWidth || info.screenWidth || 0);
+    const screenHeight = Number(info.windowHeight || info.screenHeight || 0);
+    const safeAreaLeft = Math.max(0, Number(safeArea.left || 0));
     const safeAreaRight = Number(safeArea.right || 0);
     const safeAreaBottom = Number(safeArea.bottom || 0);
 
     return {
-        top: Number(safeArea.top || info.statusBarHeight || 0),
-        left: Number(safeArea.left || 0),
-        right: screenWidth > 0 ? Math.max(0, screenWidth - safeAreaRight) : 0,
-        bottom: screenHeight > 0 ? Math.max(0, screenHeight - safeAreaBottom) : 0
+        top: Math.max(0, Number(safeArea.top || info.statusBarHeight || 0)),
+        left: safeAreaLeft,
+        right: screenWidth > 0 && safeAreaRight > 0 ? Math.max(0, screenWidth - safeAreaRight) : 0,
+        bottom: screenHeight > 0 && safeAreaBottom > 0 ? Math.max(0, screenHeight - safeAreaBottom) : 0
     };
 }
 

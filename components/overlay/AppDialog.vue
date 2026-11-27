@@ -188,4 +188,18 @@ export default {
 .app-dialog--review .app-dialog-button--confirm[disabled] { background: var(--overlay-button-bg); color: var(--overlay-muted); opacity: 0.8; }
 .app-dialog-button.is-danger { background: var(--overlay-danger-bg); color: var(--overlay-danger-text); }
 .app-dialog-input { margin-top: 20rpx; padding: 16rpx; height: 52rpx; font-size: 28rpx; border: none; border-radius: 12rpx; background: var(--overlay-input-bg); color: var(--overlay-text); }
+
+@media screen and (min-width: 600px) {
+  .app-dialog { max-width: 440px; }
+  .app-dialog--review { max-width: 520px; }
+}
+
+@media screen and (max-height: 500px) {
+  .app-dialog-mask { padding: 14px 24px; }
+  .app-dialog { padding: 24rpx 32rpx; }
+  .app-dialog-title { margin-bottom: 14rpx; }
+  .app-dialog-body { max-height: 42vh; }
+  .app-dialog-body--review { height: 42vh; }
+  .app-dialog-actions { margin-top: 20rpx; }
+}
 </style>

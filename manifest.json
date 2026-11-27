@@ -2,11 +2,17 @@
     "name" : "poementer",
     "appid" : "__UNI__E0A1A41",
     "description" : "S",
-    "versionName" : "1.8.1",
-    "versionCode" : 181,
+    "versionName" : "1.8.3",
+    "versionCode" : 183,
     "transformPx" : false,
     "app-plus" : {
         "usingComponents" : true,
+        "screenOrientation" : [
+            "portrait-primary",
+            "portrait-secondary",
+            "landscape-primary",
+            "landscape-secondary"
+        ],
         "softinput" : {
             "mode" : "adjustResize"
         },
@@ -49,6 +55,7 @@
                 "packagename" : "com.poementer.app",
                 "schemes" : "poementer",
                 "targetSdkVersion" : 33,
+                "resizeableActivity" : true,
                 "permissionPhoneState" : {
                     "request" : "none"
                 },
@@ -77,6 +84,8 @@
                 "abiFilters" : [ "armeabi-v7a", "arm64-v8a" ]
             },
             "ios" : {
+                "devices" : "universal",
+                "UIRequiresFullScreen" : false,
                 "dSYMs" : false,
                 "urltypes" : [
                     {

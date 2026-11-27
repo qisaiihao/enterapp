@@ -1,5 +1,5 @@
 <template>
-    <view class="post-detail-page" :data-app-theme="appThemeMode" :style="[appThemeVars, readFontVars]">
+    <view class="post-detail-page" :class="{ 'post-detail-page--split': isSplitDetailLayout }" :data-app-theme="appThemeMode" :style="[appThemeVars, readFontVars]">
         
         <!-- pages/post-detail/post-detail.wxml -->
         <!-- 自定义返回按钮 -->
@@ -19,6 +19,8 @@
                 <post-detail-skeleton :comment-count="commentSkeletonCount" />
             </block>
             <block v-else-if="post && post._id">
+                <view class="detail-layout" :class="{ 'detail-layout--split': isSplitDetailLayout }">
+                <view class="detail-primary-pane">
                 <!-- Post Content -->
                 <view :key="'detail-poem-font-' + poemFontRenderTick" :class="'post-detail-wrapper ' + (post.isOriginal ? 'original-post' : '') + (post.isPoem ? ' poem-post' : '')" :style="poemFontVars">
                     <view class="author-info">
@@ -168,7 +170,9 @@
                         </view>
                     </view>
                 </view>
+                </view>
 
+                <view class="detail-secondary-pane">
                 <!-- Comment Section -->
                 <comment-list
                     :comments="comments"
@@ -183,6 +187,9 @@
                     @preview-image="handleCommentPreviewImage"
                     @toggle-replies="handleToggleReplies"
                 />
+                <view v-if="isSplitDetailLayout" class="bottom-spacer bottom-spacer--split"></view>
+                </view>
+                </view>
             </block>
             <block v-else>
                 <view class="error-container">
@@ -190,14 +197,14 @@
                 </view>
             </block>
             <!-- 底部间隔，确保固定底栏不遮挡内容 -->
-            <view class="bottom-spacer"></view>
+            <view v-if="!isSplitDetailLayout" class="bottom-spacer"></view>
         </view>
 
         <!-- 遮罩层：当输入框展开时显示 -->
         <view :class="'input-overlay ' + (isInputExpanded ? 'show' : '')" @tap="collapseInput"></view>
 
         <!-- 输入框容器：保持在页面底部 -->
-        <view v-if="isInputExpanded" class="comment-input-area" :style="'bottom: ' + keyboardHeight + 'px;'">
+        <view v-if="isInputExpanded" class="comment-input-area" :class="{ 'comment-input-area--split': isSplitDetailLayout }" :style="'bottom: ' + keyboardHeight + 'px;'">
 
             <!-- 展开状态：真正的输入区域 -->
             <view v-if="isInputExpanded" class="expanded-container">
@@ -251,7 +258,7 @@
         </view>
 
         <!-- 底部操作栏 -->
-        <view class="bottom-action-bar" v-if="!isInputExpanded">
+        <view class="bottom-action-bar" :class="{ 'bottom-action-bar--split': isSplitDetailLayout }" v-if="!isInputExpanded">
             <view class="comment-input-container">
                 <input 
                     class="comment-input" 
@@ -380,6 +387,7 @@ import { checkContentSafe, checkTextSafe, shouldModerate } from '@/utils/content
 import { getShareAppMessageConfig, getShareTimelineConfig } from '@/utils/shareHelper.js';
 import { resolvePostAuthorAvatar } from '@/utils/defaultAvatar.js';
 import { getWindowInfoCompat } from '@/utils/system-info.js';
+import { rpxToPx } from '@/utils/layout.js';
 
 // API函数导入
 import { getPostDetail, getPostCardSignature, togglePostFavorite, recordPostView } from '@/api-cache/post.js';
@@ -2225,9 +2233,11 @@ export default {
         initializeCommentTextareaMetrics: function () {
             try {
                 const systemInfo = getWindowInfoCompat();
-                const rpxToPx = systemInfo && systemInfo.windowWidth ? systemInfo.windowWidth / 750 : 0.5;
-                const minHeight = Math.round(180 * rpxToPx);
-                const maxHeight = Math.round(350 * rpxToPx);
+                const width = (this.appLayout && this.appLayout.windowWidth) || (systemInfo && systemInfo.windowWidth) || 375;
+                const height = (this.appLayout && this.appLayout.windowHeight) || (systemInfo && systemInfo.windowHeight) || 667;
+                const minHeight = Math.max(72, Math.round(rpxToPx(180, width)));
+                const rawMaxHeight = Math.round(rpxToPx(350, width));
+                const maxHeight = Math.max(minHeight, Math.min(rawMaxHeight, Math.round(height * 0.32)));
 
                 this.setData({
                     commentTextareaMinHeight: minHeight,
@@ -3417,7 +3427,7 @@ export default {
 .custom-back-btn,
 .custom-more-btn {
     position: absolute;
-    top: calc(30rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px))); /* 添加安全区域偏移 */
+    top: var(--app-safe-area-top, env(safe-area-inset-top, 0px)); /* 紧贴顶部安全区下方，避免 iOS 端叠加留白 */
     width: 100rpx;
     height: 100rpx;
     background: transparent;
@@ -3483,7 +3493,7 @@ page {
     color: var(--app-primary-text, #111111);
     /* min-height: 100vh; */
     padding-bottom: 20rpx;
-    padding-top: calc(100rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px))); /* 添加安全区域上边距，为状态栏留空间 */
+    padding-top: calc(88rpx + var(--app-safe-area-top, env(safe-area-inset-top, 0px))); /* 统一使用运行时安全区高度，避免 App 端 iOS/Android 偏差 */
     position: relative; /* 为返回按钮提供定位上下文 */
     /* 新增，确保在内容不足时也能撑满一屏 */
     display: flex;
@@ -3491,17 +3501,6 @@ page {
     min-height: 100vh; /* 内容不足时也覆盖整屏背景 */
     box-sizing: border-box; /* 加上这个好习惯 */
 }
-
-/* #ifdef APP-PLUS || APP-HARMONY */
-.custom-back-btn,
-.custom-more-btn {
-    top: calc(90rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
-}
-
-.post-detail-page > .container {
-    padding-top: calc(160rpx + env(safe-area-inset-top, var(--safe-area-inset-top, 0px)));
-}
-/* #endif */
 
 /* #ifdef MP-WEIXIN */
 .custom-more-btn {
@@ -4668,6 +4667,91 @@ page {
     color: var(--app-secondary-text, #666);
     margin-bottom: 20rpx;
     opacity: 0.8;
+}
+
+/* ========== 宽屏 / 平板 / 折叠屏左诗右评双栏布局 ========== */
+.post-detail-page--split {
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+}
+
+.post-detail-page--split > .container {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    padding-top: calc(56px + var(--app-safe-area-top, env(safe-area-inset-top, 0px))) !important;
+    padding-bottom: 0 !important;
+    padding-left: calc(20px + var(--app-safe-area-left, 0px));
+    padding-right: calc(20px + var(--app-safe-area-right, 0px));
+}
+
+.post-detail-page--split .custom-back-btn {
+    left: calc(24px + var(--app-safe-area-left, 0px));
+    top: calc(12px + var(--app-safe-area-top, env(safe-area-inset-top, 0px))) !important;
+}
+
+.post-detail-page--split .custom-more-btn {
+    right: calc(24px + var(--app-safe-area-right, 0px));
+    top: calc(12px + var(--app-safe-area-top, env(safe-area-inset-top, 0px))) !important;
+}
+
+.detail-layout--split {
+    display: flex;
+    align-items: stretch;
+    gap: 28px;
+    width: 100%;
+    max-width: 1240px;
+    height: 100%;
+    margin: 0 auto;
+    min-height: 0;
+    box-sizing: border-box;
+}
+
+.detail-layout--split .detail-primary-pane {
+    flex: 0 0 54%;
+    min-width: 0;
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 16px;
+    padding-bottom: calc(32px + var(--app-safe-area-bottom, 0px));
+    border-right: 1px solid var(--app-border-color, rgba(0, 0, 0, 0.08));
+    box-sizing: border-box;
+}
+
+.detail-layout--split .detail-secondary-pane {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: calc(84px + var(--app-safe-area-bottom, 0px));
+    box-sizing: border-box;
+}
+
+.detail-layout--split .post-detail-wrapper {
+    padding-left: 12px;
+    padding-right: 12px;
+    border-bottom: none;
+}
+
+.bottom-action-bar--split {
+    left: calc(54% + 16px + var(--app-safe-area-left, 0px));
+    right: calc(20px + var(--app-safe-area-right, 0px));
+    border-top: 1px solid var(--app-border-color, rgba(0, 0, 0, 0.08));
+    border-radius: 16px 16px 0 0;
+}
+
+.comment-input-area--split {
+    left: calc(54% + 16px + var(--app-safe-area-left, 0px));
+    right: calc(20px + var(--app-safe-area-right, 0px));
+    width: auto;
+    border-radius: 18px 18px 0 0;
+}
+
+.bottom-spacer--split {
+    height: 40px;
 }
 
 </style>

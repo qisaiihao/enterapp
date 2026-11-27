@@ -112,8 +112,19 @@ function testAppWebviewBackground() {
 function testGlobalMixinFanout() {
   const app = runtime(), mixins = [];
   const vueApp = { component() {}, use() {}, mixin(value) { mixins.push(value); } };
+  const layoutSnapshot = {
+    windowWidth: 390, windowHeight: 844, isLandscape: false, isShortLandscape: false,
+    sizeClass: 'compact', isCompact: true, isMedium: false, isExpanded: false,
+    isWide: false, isSplitDetail: false, navMode: 'bottom', navRailWidth: 0,
+    safeAreaInsets: { top: 0, right: 0, bottom: 0, left: 0 }
+  };
   const { createApp } = load('main.js', {
     uni: app.uni, ...app.theme, ...app.font,
+    LAYOUT_CHANGED_EVENT: 'layout:changed',
+    getLayoutSnapshot: () => layoutSnapshot,
+    refreshLayoutSnapshot: () => layoutSnapshot,
+    getLayoutCssVars: () => ({}),
+    installLayoutListener() { return layoutSnapshot; },
     createCollageLogger: () => ({ info() {} }), silenceConsoleInProduction() {},
     markBuiltinHuiwenFontPending() {}, markBuiltinHuiwenFontReady() {},
     appFontManager: { ensureFontAvailable: () => Promise.resolve() },
@@ -137,6 +148,7 @@ function testGlobalMixinFanout() {
   for (const component of components) mixin.beforeUnmount.call(component);
   assert.equal(app.listeners.get('theme:changed').size, 1, '组件卸载后只保留运行时主题桥接');
   assert.equal(app.listeners.get('read-font-size:changed').size, 1);
+  assert.equal(app.listeners.get('layout:changed')?.size || 0, 0, '组件卸载后清理全部布局监听');
   mixin.onLoad.call({ appThemeMode: 'dark' });
   assert.equal(app.nativeCalls.length - beforeNative, 6, '首次页面 onLoad 就同步底色，不必等到 onShow');
   for (let index = 0; index < 2; index++) mixin.onShow.call({ appThemeMode: 'dark' });

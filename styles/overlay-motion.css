@@ -8,7 +8,7 @@
 .app-motion-center.app-motion-leave .app-motion-panel { animation: app-motion-center-out 120ms ease-in both; }
 .app-motion-sheet.app-motion-enter .app-motion-panel { animation: app-motion-sheet-in 180ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 .app-motion-sheet.app-motion-leave .app-motion-panel { animation: app-motion-sheet-out 120ms ease-in both; }
-.app-sidebar-mask { position: fixed; inset: 0; z-index: 1001; background: rgba(0, 0, 0, 0.56); }
+.app-sidebar-mask { position: fixed; inset: 0; z-index: 1010; background: rgba(0, 0, 0, 0.56); }
 .app-motion-drawer.app-motion-enter .app-motion-panel { animation: app-motion-drawer-in 180ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 .app-motion-drawer.app-motion-leave .app-motion-panel { animation: app-motion-drawer-out 120ms ease-in both; }
 .app-motion-popover.app-motion-enter { animation-duration: 150ms; }
@@ -45,9 +45,17 @@
     z-index: 130;
     display: flex;
     align-items: flex-end;
-    width: 100vw;
-    height: 100vh;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
     box-sizing: border-box;
+}
+
+@media screen and (min-width: 600px) {
+    .app-motion-root.tag-selector-mask {
+        align-items: center;
+        padding: 24px;
+    }
 }
 
 .app-motion-root.tag-selector-mask--dark {

@@ -1,16 +1,20 @@
 <template>
   <view
     class="top-bar-shell"
-    :class="{ 'top-bar-shell--reserve-space': reserveSpace, 'top-bar-shell--compact': compact }"
+    :class="{
+      'top-bar-shell--reserve-space': reserveSpace,
+      'top-bar-shell--compact': compact,
+      'top-bar-shell--wide-rail': isWideRailMode
+    }"
     :style="{ '--top-bar-safe-area-top': safeAreaTop + 'px' }"
   >
-    <view class="top-bar-container">
-      <view class="custom-top-bar" :style="customTopBarStyle">
-        <view v-if="showLeft" class="top-left" @tap="navigateToAdd">
+    <view class="top-bar-container" :class="{ 'top-bar-container--wide-rail': isWideRailMode }">
+      <view class="custom-top-bar" :class="{ 'custom-top-bar--wide-rail': isWideRailMode }" :style="customTopBarStyle">
+        <view v-if="showLeft && !hideDuplicateNavActions" class="top-left" @tap="navigateToAdd">
           <image class="top-icon" :src="leftIcon" mode="aspectFit"></image>
         </view>
         <slot name="center" />
-        <view v-if="showActions" class="top-right">
+        <view v-if="showActions && !hideDuplicateNavActions" class="top-right">
           <view class="top-item" @tap="navigateToSearch">
             <image class="top-icon" src="/static/images/newicons/search.png" mode="aspectFit"></image>
           </view>
@@ -28,6 +32,7 @@
 import unreadBadge from '@/cache/stores/unread-badge.js';
 import { prefetchMessages } from '@/api-cache/messages.js';
 import { getMenuButtonBoundingClientRectCompat, getStatusBarHeightCompat, getWindowInfoCompat } from '@/utils/system-info.js';
+import { LAYOUT_CHANGED_EVENT, rpxToPx } from '@/utils/layout.js';
 
 function getDefaultStatusBarHeight() {
   // #ifdef H5
@@ -58,17 +63,28 @@ export default {
       type: Boolean,
       default: false
     },
-    reserveSpace: Boolean
+    reserveSpace: Boolean,
+    adaptToNavRail: {
+      type: Boolean,
+      default: true
+    }
   },
   data() {
     return {
       unreadMessageCount: 0,
       safeAreaTop: DEFAULT_STATUS_BAR_HEIGHT,
       capsuleAvoidRight: 40,
-      _unsubscribe: null
+      _unsubscribe: null,
+      _layoutUnsub: null
     };
   },
   computed: {
+    isWideRailMode() {
+      return !!(this.adaptToNavRail && this.hasLeftNavRail);
+    },
+    hideDuplicateNavActions() {
+      return this.isWideRailMode;
+    },
     customTopBarStyle() {
       // #ifdef MP-WEIXIN
       return {
@@ -87,6 +103,13 @@ export default {
     this._unsubscribe = unreadBadge.subscribe((count) => {
       this.unreadMessageCount = count;
     });
+    if (typeof uni !== 'undefined' && typeof uni.$on === 'function') {
+      this._layoutUnsub = () => {
+        this.getSafeAreaTop();
+        this.updateCapsuleAvoidance();
+      };
+      uni.$on(LAYOUT_CHANGED_EVENT, this._layoutUnsub);
+    }
     this.refreshUnreadCount();
   },
   beforeUnmount() {
@@ -95,6 +118,10 @@ export default {
       this._unsubscribe();
       this._unsubscribe = null;
     }
+    if (this._layoutUnsub && typeof uni !== 'undefined' && typeof uni.$off === 'function') {
+      uni.$off(LAYOUT_CHANGED_EVENT, this._layoutUnsub);
+      this._layoutUnsub = null;
+    }
   },
   // 暴露方法给父组件在 onShow 时调用
   expose: ['refreshUnreadCount', 'forceRefreshUnreadCount'],
@@ -102,8 +129,11 @@ export default {
     // 获取安全区域高度
     getSafeAreaTop() {
       try {
-        // 使用状态栏高度作为安全区域
-        const safeAreaTop = Number(getStatusBarHeightCompat() || 0) || DEFAULT_STATUS_BAR_HEIGHT;
+        const layoutTop = this.appLayout && this.appLayout.safeAreaInsets ? Number(this.appLayout.safeAreaInsets.top) : NaN;
+        const rawTop = Number.isFinite(layoutTop) ? layoutTop : Number(getStatusBarHeightCompat() || 0);
+        // 横屏下 iOS/H5 状态栏高度可能为 0，仅在非横屏且未拿到值时回退默认高度
+        const isLandscape = !!(this.appLayout && this.appLayout.isLandscape);
+        const safeAreaTop = rawTop > 0 ? rawTop : (isLandscape ? 0 : DEFAULT_STATUS_BAR_HEIGHT);
         
         this.safeAreaTop = safeAreaTop;
         try {
@@ -137,7 +167,7 @@ export default {
       } catch (error) {
         console.warn('【top-bar】获取小程序胶囊区域失败:', error);
       }
-      this.capsuleAvoidRight = typeof uni !== 'undefined' && typeof uni.upx2px === 'function' ? uni.upx2px(200) : 100;
+      this.capsuleAvoidRight = rpxToPx(200) || 100;
       // #endif
     },
 
@@ -211,6 +241,14 @@ export default {
   --top-bar-height: 32rpx;
 }
 
+.top-bar-shell--wide-rail {
+  --top-bar-height: 52px;
+}
+
+.top-bar-shell--wide-rail.top-bar-shell--compact {
+  --top-bar-height: 16px;
+}
+
 .top-bar-container {
   position: fixed;
   top: var(--top-bar-safe-area-top);
@@ -221,6 +259,12 @@ export default {
   border-bottom: none;
   box-shadow: none;
   /* 添加伪元素作为状态栏区域的白色背景 */
+}
+
+.top-bar-container--wide-rail {
+  left: var(--app-nav-rail-width, 0px);
+  right: var(--app-safe-area-right, 0px);
+  border-bottom: 1px solid var(--app-border-color, rgba(0, 0, 0, 0.06));
 }
 
 .top-bar-container::before {
@@ -239,11 +283,16 @@ export default {
   box-sizing: border-box;
   display: flex;
   justify-content: space-between;
-  padding: 20rpx 40rpx 0;
+  padding: 20rpx calc(40rpx + var(--app-safe-area-right, 0px)) 0 calc(40rpx + var(--app-safe-area-left, 0px));
   align-items: center;
   background: var(--app-fixed-bar-bg, #fff);
   border-bottom: none;
   box-shadow: none;
+}
+
+.custom-top-bar--wide-rail {
+  justify-content: center;
+  padding: 0 24px;
 }
 
 .top-left {

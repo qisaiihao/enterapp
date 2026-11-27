@@ -407,4 +407,40 @@ export default {
     border: 4rpx solid rgba(255, 255, 255, 0.8);
     box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.15);
 }
+
+@media screen and (min-width: 680px) {
+    .share-modal {
+        width: min(88%, 760px);
+    }
+
+    .share-content {
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 32px;
+        padding: 28px 20px;
+        min-height: 100vh;
+    }
+
+    .share-images {
+        flex: 1 1 0;
+        max-width: 440px;
+    }
+
+    .share-generated-image {
+        margin-bottom: 16px;
+    }
+
+    .share-toolbar {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        padding: 20px 14px;
+        margin-top: 0;
+        background: rgba(255, 255, 255, 0.10);
+        backdrop-filter: blur(12px);
+        flex-shrink: 0;
+    }
+}
 </style>

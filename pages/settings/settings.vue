@@ -28,6 +28,17 @@
         </view>
       </view>
 
+      <!-- #ifdef APP-PLUS -->
+      <view class="settings-section">
+        <view class="settings-card">
+          <view class="settings-row" @tap="openPoemWidget">
+            <text class="settings-row-label">桌面小组件</text>
+            <text class="settings-row-value">›</text>
+          </view>
+        </view>
+      </view>
+      <!-- #endif -->
+
       <view class="settings-section" v-if="isLoggedIn">
         <view class="settings-section-title">个人主页</view>
         <view class="settings-card">
@@ -188,6 +199,12 @@ export default {
     }
   },
   methods: {
+    // #ifdef APP-PLUS
+    openPoemWidget() {
+      uni.navigateTo({ url: '/pages-user/poem-widget/poem-widget' });
+    },
+    // #endif
+
     async loadProfileVisibility() {
       const revision = this._profileVisibilityRevision || 0;
       const state = getAppState();

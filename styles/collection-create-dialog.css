@@ -110,3 +110,27 @@
 .collection-create-dialog .collection-create-panel .collection-create-button::after { border: none; }
 .collection-create-dialog .collection-create-panel .collection-create-button:active { opacity: 0.65; }
 .collection-create-dialog .collection-create-panel .collection-create-button[disabled] { opacity: 0.45; }
+
+@media screen and (min-width: 600px) {
+  .collection-create-dialog .collection-create-panel {
+    max-width: 460px;
+  }
+}
+
+@media screen and (max-height: 500px) {
+  .collection-create-dialog {
+    padding: 14px 24px;
+  }
+  .collection-create-dialog .collection-create-panel {
+    padding: 24rpx 32rpx;
+  }
+  .collection-create-dialog .collection-create-panel .collection-create-header {
+    margin-bottom: 14rpx;
+  }
+  .collection-create-dialog .collection-create-panel .collection-create-body {
+    max-height: 42vh;
+  }
+  .collection-create-dialog .collection-create-panel .collection-create-footer {
+    margin-top: 20rpx;
+  }
+}

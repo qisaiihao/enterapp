@@ -54,6 +54,12 @@ export function cancelTabTransition() {
   active?.abort({ errMsg: 'switchTab:fail cancelled' });
 }
 
+if (typeof uni !== 'undefined' && typeof uni.$on === 'function') {
+  uni.$on('layout:changed', () => {
+    if (active) cancelTabTransition();
+  });
+}
+
 function finishWhenPainted(state) {
   if (!state || state.closed || !state.switched || !state.ready || state.paintTimer) return;
   if (state.warm) { dispose(state); return; }

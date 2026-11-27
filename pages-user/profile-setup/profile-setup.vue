@@ -40,6 +40,7 @@
         <text class="ek-text">{{ isSaving ? '保存中…' : '进入 ↵' }}</text>
       </view>
     </view>
+    <app-overlay-host />
   </view>
 </template>
 

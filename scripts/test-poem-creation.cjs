@@ -57,6 +57,23 @@ async function main() {
     }
     assert.equal(creation.getCreationLabel({ isPoem: true, isOriginal: true }), '');
 
+    const card = load('components/poem/PoemCard.vue', creation);
+    const cardState = { post: { ...poem }, enableSeries: true, hideCreationMetaWhenCollapsed: true };
+    for (const name of ['isSeries', 'seriesExpanded']) {
+        Object.defineProperty(cardState, name, { get: () => card.computed[name].call(cardState) });
+    }
+    const showCreationMeta = () => card.computed.showCreationMeta.call(cardState);
+    assert.equal(showCreationMeta(), false, 'Collapsed single poems hide the creation label');
+    cardState.post.isExpanded = true;
+    assert.equal(showCreationMeta(), true);
+    cardState.post.isSeries = true;
+    assert.equal(showCreationMeta(), false, 'The series cover uses the series expansion state');
+    cardState.post.seriesExpanded = true;
+    assert.equal(showCreationMeta(), true);
+    cardState.post.seriesExpanded = false;
+    cardState.hideCreationMetaWhenCollapsed = card.props.hideCreationMetaWhenCollapsed.default;
+    assert.equal(showCreationMeta(), true, 'Other lists keep the creation label on collapsed cards by default');
+
     const requests = [];
     const globals = { ...creation, uni: { getStorageSync: () => ({ nickName: '作者' }) },
         async contentAudit(data) { requests.push(data); return { code: 0, postId: 'new' }; },
@@ -157,6 +174,6 @@ async function main() {
     assert.equal(footer.map(item => item.text).join(''), creation.getCreationLabel(post));
     assert.ok(painted.find(item => item.text === '作者').y > footer.at(-1).y, 'Signature follows the footer');
     assert.ok(painted.every(item => item.y < sized.canvasHeight - 30), 'All text fits inside the card');
-    console.log('Poem creation: independent options, drafts, publishing, both storage schemas, editing, detail and share layout passed.');
+    console.log('Poem creation: independent options, card expansion, drafts, publishing, both storage schemas, editing, detail and share layout passed.');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

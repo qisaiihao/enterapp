@@ -1,0 +1,26 @@
+import { UTSAndroid } from 'io.dcloud.uts'
+import PoemWidgetBridge from 'uts.sdk.modules.poemWidget.PoemWidgetBridge'
+
+export function isPoemWidgetAvailable(): boolean {
+  const context = UTSAndroid.getAppContext()
+  return context != null && PoemWidgetBridge.isAvailable(context)
+}
+
+export function readPoemWidgetSettings(): string {
+  const context = UTSAndroid.getAppContext()
+  return context == null ? '{}' : PoemWidgetBridge.readSettings(context)
+}
+
+export function writePoemWidgetSettings(json: string): boolean {
+  const context = UTSAndroid.getAppContext()
+  return context != null && PoemWidgetBridge.writeSettings(context, json)
+}
+
+export function readPoemWidgetPreview(size: string): string {
+  const context = UTSAndroid.getAppContext()
+  return context == null ? '{}' : PoemWidgetBridge.readPreview(context, size)
+}
+
+export function requestPoemWidgetNext(token: string): boolean {
+  return false
+}

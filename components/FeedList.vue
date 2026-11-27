@@ -29,28 +29,78 @@
         </view>
 
         <!-- 帖子列表 -->
-        <view v-else :id="containerId">
-            <post-item
-                v-for="(item, index) in posts"
-                :key="index"
-                :item="item"
-                :index="index"
-                :swiper-height="swiperHeights[index]"
-                :show-vote-section="true"
-                :list-type="listType"
-                :show-poem-author="showPoemAuthor"
-                :expanded="expanded"
-                @avatar-error="$emit('avatar-error', $event)"
-                @avatar-load="$emit('avatar-load', $event)"
-                @navigate-to-user="$emit('navigate-to-user', $event)"
-                @preview-image="$emit('preview-image', $event)"
-                @image-error="$emit('image-error', $event)"
-                @image-load="$emit('image-load', $event)"
-                @tag-click="$emit('tag-click', $event)"
-                @vote="$emit('vote', $event)"
-                @comment-click="$emit('comment-click', $event)"
-                @like-icon-error="$emit('like-icon-error', $event)"
-            />
+        <view v-else :id="containerId" :class="['feed-posts-container', { 'feed-posts-container--masonry': useTwoColumnLayout }]">
+            <view v-if="useTwoColumnLayout" class="app-masonry-columns feed-masonry">
+                <view class="app-masonry-column">
+                    <post-item
+                        v-for="entry in leftColumnPosts"
+                        :key="entry.item && entry.item._id ? entry.item._id : entry.index"
+                        :item="entry.item"
+                        :index="entry.index"
+                        :swiper-height="swiperHeights[entry.index]"
+                        :show-vote-section="true"
+                        :list-type="listType"
+                        :show-poem-author="showPoemAuthor"
+                        :expanded="expanded"
+                        @avatar-error="$emit('avatar-error', $event)"
+                        @avatar-load="$emit('avatar-load', $event)"
+                        @navigate-to-user="$emit('navigate-to-user', $event)"
+                        @preview-image="$emit('preview-image', $event)"
+                        @image-error="$emit('image-error', $event)"
+                        @image-load="$emit('image-load', $event)"
+                        @tag-click="$emit('tag-click', $event)"
+                        @vote="$emit('vote', $event)"
+                        @comment-click="$emit('comment-click', $event)"
+                        @like-icon-error="$emit('like-icon-error', $event)"
+                    />
+                </view>
+                <view class="app-masonry-column">
+                    <post-item
+                        v-for="entry in rightColumnPosts"
+                        :key="entry.item && entry.item._id ? entry.item._id : entry.index"
+                        :item="entry.item"
+                        :index="entry.index"
+                        :swiper-height="swiperHeights[entry.index]"
+                        :show-vote-section="true"
+                        :list-type="listType"
+                        :show-poem-author="showPoemAuthor"
+                        :expanded="expanded"
+                        @avatar-error="$emit('avatar-error', $event)"
+                        @avatar-load="$emit('avatar-load', $event)"
+                        @navigate-to-user="$emit('navigate-to-user', $event)"
+                        @preview-image="$emit('preview-image', $event)"
+                        @image-error="$emit('image-error', $event)"
+                        @image-load="$emit('image-load', $event)"
+                        @tag-click="$emit('tag-click', $event)"
+                        @vote="$emit('vote', $event)"
+                        @comment-click="$emit('comment-click', $event)"
+                        @like-icon-error="$emit('like-icon-error', $event)"
+                    />
+                </view>
+            </view>
+            <template v-else>
+                <post-item
+                    v-for="(item, index) in posts"
+                    :key="item && item._id ? item._id : index"
+                    :item="item"
+                    :index="index"
+                    :swiper-height="swiperHeights[index]"
+                    :show-vote-section="true"
+                    :list-type="listType"
+                    :show-poem-author="showPoemAuthor"
+                    :expanded="expanded"
+                    @avatar-error="$emit('avatar-error', $event)"
+                    @avatar-load="$emit('avatar-load', $event)"
+                    @navigate-to-user="$emit('navigate-to-user', $event)"
+                    @preview-image="$emit('preview-image', $event)"
+                    @image-error="$emit('image-error', $event)"
+                    @image-load="$emit('image-load', $event)"
+                    @tag-click="$emit('tag-click', $event)"
+                    @vote="$emit('vote', $event)"
+                    @comment-click="$emit('comment-click', $event)"
+                    @like-icon-error="$emit('like-icon-error', $event)"
+                />
+            </template>
         </view>
 
         <!-- 加载更多提示 -->
@@ -170,6 +220,27 @@ export default {
             touchStartY: 0,
             touchMoved: false
         };
+    },
+    computed: {
+        useTwoColumnLayout() {
+            return !!(this.appLayout && this.appLayout.feedColumns >= 2);
+        },
+        leftColumnPosts() {
+            const list = Array.isArray(this.posts) ? this.posts : [];
+            const out = [];
+            for (let i = 0; i < list.length; i += 2) {
+                out.push({ item: list[i], index: i });
+            }
+            return out;
+        },
+        rightColumnPosts() {
+            const list = Array.isArray(this.posts) ? this.posts : [];
+            const out = [];
+            for (let i = 1; i < list.length; i += 2) {
+                out.push({ item: list[i], index: i });
+            }
+            return out;
+        }
     },
     mounted() {
         console.log('📋 [FeedList] mounted');
@@ -357,5 +428,19 @@ export default {
 .end-text {
     font-size: 24rpx;
     color: var(--app-muted-text, #ccc);
+}
+
+.feed-posts-container--masonry {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 16px 20px 24px;
+    box-sizing: border-box;
+}
+
+.feed-masonry :deep(.post-item-wrapper) {
+    border-radius: 14px;
+    border: 1px solid var(--app-border-color, rgba(0, 0, 0, 0.08));
+    margin: 0 0 16px 0;
+    box-shadow: var(--app-post-wrapper-shadow, 0 4px 16px rgba(0, 0, 0, 0.05));
 }
 </style>

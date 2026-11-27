@@ -1,28 +1,86 @@
 <template>
-    <view class="tab-bar">
-        <view
-            class="tab-bar-item"
-            v-for="(item, index) in list"
-            :key="index"
-            :data-index="index"
-            :data-path="item.pagePath"
-            hover-class="tab-bar-item--touching"
-            :hover-start-time="0"
-            :hover-stay-time="80"
-            @tap="switchTab"
-        >
-            <view class="tab-bar-content">
-                <view :class="['icon-wrap', selected === index ? 'is-selected' : '']">
-                    <view class="icon-inner">
-                        <image
-                            :class="['icon-img', selected === index ? 'icon-img--active' : '']"
-                            :src="resolveIconPath(item, index)"
-                            mode="aspectFill"
-                        />
+    <view
+        class="tab-bar"
+        :class="{
+            'tab-bar--rail': navMode === 'rail',
+            'tab-bar--sidebar': navMode === 'sidebar',
+            'tab-bar--left-dock': isLeftDock
+        }"
+    >
+        <!-- 宽屏左侧导航顶部：写诗快捷入口（对应窄屏顶栏左侧） -->
+        <view v-if="isLeftDock" class="tab-bar-rail-top">
+            <view
+                class="tab-bar-action-btn tab-bar-action-btn--compose"
+                role="button"
+                aria-label="写诗"
+                hover-class="tab-bar-item--touching"
+                :hover-start-time="0"
+                :hover-stay-time="80"
+                @tap="navigateToAdd"
+            >
+                <image class="tab-bar-action-icon" src="/static/images/write_poetry.png" mode="aspectFit" />
+                <text v-if="navMode === 'sidebar'" class="tab-bar-action-label">写诗</text>
+            </view>
+        </view>
+
+        <view :class="['tab-bar-nav-group', { 'tab-bar-nav-group--left': isLeftDock }]">
+            <view
+                class="tab-bar-item"
+                :class="{
+                    'tab-bar-item--selected': selected === index,
+                    'tab-bar-item--left': isLeftDock,
+                    'tab-bar-item--sidebar': navMode === 'sidebar'
+                }"
+                v-for="(item, index) in list"
+                :key="index"
+                :data-index="index"
+                :data-path="item.pagePath"
+                hover-class="tab-bar-item--touching"
+                :hover-start-time="0"
+                :hover-stay-time="80"
+                @tap="switchTab"
+            >
+                <view :class="['tab-bar-content', { 'tab-bar-content--left': isLeftDock, 'tab-bar-content--sidebar': navMode === 'sidebar' }]">
+                    <view :class="['icon-wrap', selected === index ? 'is-selected' : '', { 'icon-wrap--left': isLeftDock }]">
+                        <view class="icon-inner">
+                            <image
+                                :class="['icon-img', selected === index ? 'icon-img--active' : '']"
+                                :src="resolveIconPath(item, index)"
+                                mode="aspectFill"
+                            />
+                        </view>
+                        <view v-if="index === 2 && hasNewActivity" class="tab-activity-dot" />
                     </view>
+                    <text
+                        :class="['tab-bar-text', { 'tab-bar-text--sidebar': navMode === 'sidebar', 'tab-bar-text--active': selected === index }]"
+                        :style="selected === index ? 'color: var(--app-tab-active-text-color, #000000)' : ''"
+                    >{{ item.text }}</text>
                 </view>
-                <view v-if="index === 2 && hasNewActivity" class="tab-activity-dot" />
-                <text class="tab-bar-text" :style="selected === index ? 'color: var(--app-tab-active-text-color, #000000)' : ''">{{ item.text }}</text>
+            </view>
+        </view>
+
+        <!-- 宽屏左侧导航底部：搜索与消息入口（对应窄屏顶栏右侧） -->
+        <view v-if="isLeftDock" class="tab-bar-rail-bottom">
+            <view
+                class="tab-bar-action-btn"
+                role="button"
+                aria-label="搜索"
+                @tap="navigateToSearch"
+            >
+                <image class="tab-bar-action-icon" src="/static/images/newicons/search.png" mode="aspectFit" />
+                <text v-if="navMode === 'sidebar'" class="tab-bar-action-label">搜索</text>
+            </view>
+            <view
+                class="tab-bar-action-btn"
+                role="button"
+                aria-label="消息"
+                @tap="navigateToMessages"
+            >
+                <view class="tab-bar-action-icon-wrap">
+                    <image class="tab-bar-action-icon" src="/static/images/newicons/notification.png" mode="aspectFit" />
+                    <view v-if="unreadMessageCount > 0" class="tab-unread-dot" />
+                </view>
+                <text v-if="navMode === 'sidebar'" class="tab-bar-action-label">消息</text>
             </view>
         </view>
     </view>
@@ -33,6 +91,8 @@ import { lightImpact } from '@/utils/haptics.js';
 import { requireLogin } from '@/utils/authHelper.js';
 import { switchTabSmooth } from '@/utils/appTabTransition.js';
 import activityBadge from '@/cache/stores/activity-badge.js';
+import unreadBadge from '@/cache/stores/unread-badge.js';
+import { prefetchMessages } from '@/api-cache/messages.js';
 
 const DARK_TAB_ICON_VERSION = '20260429-toned-white';
 
@@ -53,6 +113,7 @@ export default {
         return {
             selected: 0,
             hasNewActivity: false,
+            unreadMessageCount: 0,
             color: '#999999',
             selectedColor: '#000000',
             lastTapTime: 0,
@@ -94,12 +155,22 @@ export default {
             ]
         };
     },
+    computed: {
+        navMode() {
+            return (this.appLayout && this.appLayout.navMode) || 'bottom';
+        },
+        isLeftDock() {
+            return this.navMode === 'rail' || this.navMode === 'sidebar';
+        }
+    },
     created() {
         this.syncSelected();
         this._activityBadgeUnsubscribe = activityBadge.subscribe(hasNew => { this.hasNewActivity = hasNew; });
+        this._unreadBadgeUnsubscribe = unreadBadge.subscribe(count => { this.unreadMessageCount = count; });
     },
     beforeUnmount() {
         this._activityBadgeUnsubscribe?.();
+        this._unreadBadgeUnsubscribe?.();
     },
     mounted() {
         this.$nextTick(() => {
@@ -245,7 +316,20 @@ export default {
         refreshIndexPage(pageInstance) { if (pageInstance.refreshData) pageInstance.refreshData(); else if (pageInstance.onPullDownRefresh) { /* noop */ } else { uni.startPullDownRefresh(); } },
         refreshPoemPage(pageInstance) { if (pageInstance.refreshPoemData) pageInstance.refreshPoemData(); else if (pageInstance.onPullDownRefresh) { /* noop */ } else { uni.startPullDownRefresh(); } },
         refreshProfilePage(pageInstance) { if (pageInstance.onPullDownRefresh) { /* noop */ } else { uni.startPullDownRefresh(); } },
-        refreshGenericPage(pageInstance) { if (pageInstance.onPullDownRefresh) { /* noop */ } else { uni.startPullDownRefresh(); } }
+        refreshGenericPage(pageInstance) { if (pageInstance.onPullDownRefresh) { /* noop */ } else { uni.startPullDownRefresh(); } },
+        navigateToAdd() {
+            lightImpact();
+            uni.navigateTo({ url: '/pages-publish/add/add' });
+        },
+        navigateToSearch() {
+            lightImpact();
+            uni.navigateTo({ url: '/pages-tools/search/search' });
+        },
+        navigateToMessages() {
+            lightImpact();
+            prefetchMessages(this);
+            uni.navigateTo({ url: '/pages-tools/messages/messages' });
+        }
     }
 };
 </script>
@@ -285,6 +369,122 @@ export default {
   box-sizing: border-box !important;
 }
 
+.tab-bar-nav-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+/* 宽屏左侧常驻导航栏（Navigation Rail / Sidebar） */
+.tab-bar.tab-bar--left-dock {
+  top: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: auto !important;
+  width: var(--app-nav-rail-width, 80px) !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  padding-top: calc(16px + var(--app-safe-area-top, env(safe-area-inset-top, 0px))) !important;
+  padding-bottom: calc(16px + var(--app-safe-area-bottom, env(safe-area-inset-bottom, 0px))) !important;
+  padding-left: calc(8px + var(--app-safe-area-left, env(safe-area-inset-left, 0px))) !important;
+  padding-right: 8px !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  align-items: stretch !important;
+  border-right: 1px solid var(--app-border-color, rgba(0, 0, 0, 0.08));
+  z-index: 1005 !important;
+}
+
+.tab-bar.tab-bar--sidebar {
+  padding-left: calc(12px + var(--app-safe-area-left, env(safe-area-inset-left, 0px))) !important;
+  padding-right: 12px !important;
+}
+
+.tab-bar-rail-top,
+.tab-bar-rail-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.tab-bar--sidebar .tab-bar-rail-top,
+.tab-bar--sidebar .tab-bar-rail-bottom {
+  align-items: stretch;
+}
+
+.tab-bar-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background-color 150ms ease, transform 120ms ease;
+  box-sizing: border-box;
+}
+
+.tab-bar--sidebar .tab-bar-action-btn {
+  justify-content: flex-start;
+  padding: 8px 12px;
+}
+
+.tab-bar-action-btn--compose {
+  background: var(--app-subtle-surface-bg, rgba(0, 0, 0, 0.04));
+}
+
+.tab-bar-action-btn:active {
+  transform: scale(0.96);
+  background: var(--app-control-press-bg, rgba(0, 0, 0, 0.06));
+}
+
+.tab-bar-action-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tab-bar-action-icon {
+  width: 28px;
+  height: 28px;
+  display: block;
+  flex-shrink: 0;
+  filter: var(--app-icon-filter, drop-shadow(0 1px 2px rgba(0, 0, 0, 0.08)));
+}
+
+.tab-bar-action-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--app-primary-text, #111111);
+  white-space: nowrap;
+}
+
+.tab-unread-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff6b6b;
+  border: 1.5px solid var(--app-fixed-bar-bg, #ffffff);
+}
+
+.tab-bar-nav-group--left {
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+}
+
 .tab-bar-item {
   display: flex;
   flex-direction: column;
@@ -293,6 +493,24 @@ export default {
   height: 100%;
   flex: 1 1 25%;
   min-width: 0;
+}
+
+.tab-bar-item--left {
+  flex: 0 0 auto;
+  width: 100%;
+  height: auto;
+  padding: 6px 4px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+
+.tab-bar-item--sidebar {
+  padding: 8px 10px;
+}
+
+.tab-bar-item--left.tab-bar-item--selected {
+  background: var(--app-subtle-surface-bg, rgba(0, 0, 0, 0.05));
 }
 
 /* 热区覆盖整栏，内容仍保持原先居中的图标间距。 */
@@ -305,20 +523,75 @@ export default {
   align-items: center;
 }
 
-.tab-bar-item:nth-child(1) .tab-bar-content {
+.tab-bar-content--left {
+  width: 100%;
+  transform: none !important;
+}
+
+.tab-bar-content--sidebar {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.tab-bar-item:not(.tab-bar-item--left):nth-child(1) .tab-bar-content {
   transform: translateX(calc(37.5vw - var(--tab-outer-center)));
 }
 
-.tab-bar-item:nth-child(2) .tab-bar-content {
+.tab-bar-item:not(.tab-bar-item--left):nth-child(2) .tab-bar-content {
   transform: translateX(calc(12.5vw - var(--tab-inner-center)));
 }
 
-.tab-bar-item:nth-child(3) .tab-bar-content {
+.tab-bar-item:not(.tab-bar-item--left):nth-child(3) .tab-bar-content {
   transform: translateX(calc(var(--tab-inner-center) - 12.5vw));
 }
 
-.tab-bar-item:nth-child(4) .tab-bar-content {
+.tab-bar-item:not(.tab-bar-item--left):nth-child(4) .tab-bar-content {
   transform: translateX(calc(var(--tab-outer-center) - 37.5vw));
+}
+
+.icon-wrap--left {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  flex-shrink: 0;
+}
+
+.tab-bar-text--sidebar {
+  font-size: 14px;
+  margin-top: 0;
+  white-space: nowrap;
+}
+
+.tab-bar-text--active {
+  font-weight: 600;
+}
+
+@media screen and (max-height: 460px) {
+  .tab-bar.tab-bar--left-dock {
+    padding-top: calc(8px + var(--app-safe-area-top, 0px)) !important;
+    padding-bottom: calc(8px + var(--app-safe-area-bottom, 0px)) !important;
+  }
+  .tab-bar-nav-group--left {
+    gap: 2px;
+  }
+  .tab-bar-item--left {
+    padding: 3px 2px;
+  }
+  .icon-wrap--left {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+  }
+  .tab-bar-action-btn {
+    min-height: 34px;
+    padding: 3px 6px;
+  }
+  .tab-bar-action-icon {
+    width: 22px;
+    height: 22px;
+  }
 }
 
 .icon-wrap {

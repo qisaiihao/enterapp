@@ -4,7 +4,12 @@
     <!-- #endif -->
     <view
         class="profile-page-root"
-        :class="{ 'profile-page-root--with-background': isFullBackground }"
+        :class="{
+            'profile-page-root--with-background': isFullBackground,
+            'profile-page-root--wide-rail': hasLeftNavRail,
+            'profile-page-root--wide': isWideLayout,
+            'profile-page-root--split': isSplitDetailLayout
+        }"
         :data-app-theme="appThemeMode"
         :style="profilePageStyle"
     >
@@ -37,35 +42,66 @@
                         'profile-main-content--search': isProfileSearchActive
                     }"
                 >
-                    <view
-                        class="profile-hero-section"
-                        :class="{ 'profile-hero-section--with-background': isHeaderBackground }"
-                        :style="profileHeroStyle"
-                    >
-                        <view v-if="isHeaderBackground" class="profile-hero-bg-image"></view>
-                        <view v-if="isHeaderBackground" class="profile-hero-bg-overlay"></view>
-                        <view class="profile-tap-area" @tap="handleManageBackground">
-                        <ProfileCard
-                            :user-info="userInfo"
-                            :follower-count="followerCount"
-                            :growth-stats="growthStats"
-                            :is-self="isViewingSelf"
-                            :show-growth-stats="shouldShowGrowthStats"
-                            :search-active="isProfileSearchActive"
-                            :search-focused="profileSearchFocused"
-                            :search-keyword="profileSearchKeyword"
-                            @avatar-error="onAvatarError"
-                            @edit-profile="navigateToEditProfile"
-                            @toggle-sidebar="toggleSidebar"
-                            @navigate-fans="navigateToFans"
-                            @avatar-click="handleAvatarPreview"
-                            @open-search="openProfileSearch"
-                            @close-search="closeProfileSearch"
-                            @search-input="updateProfileSearch"
-                            @search-confirm="confirmProfileSearch"
-                        />
+                    <view class="profile-left-column">
+                        <view
+                            class="profile-hero-section"
+                            :class="{ 'profile-hero-section--with-background': isHeaderBackground }"
+                            :style="profileHeroStyle"
+                        >
+                            <view v-if="isHeaderBackground" class="profile-hero-bg-image"></view>
+                            <view v-if="isHeaderBackground" class="profile-hero-bg-overlay"></view>
+                            <view class="profile-tap-area" @tap="handleManageBackground">
+                            <ProfileCard
+                                :user-info="userInfo"
+                                :follower-count="followerCount"
+                                :growth-stats="growthStats"
+                                :is-self="isViewingSelf"
+                                :show-growth-stats="shouldShowGrowthStats"
+                                :search-active="isProfileSearchActive"
+                                :search-focused="profileSearchFocused"
+                                :search-keyword="profileSearchKeyword"
+                                @avatar-error="onAvatarError"
+                                @edit-profile="navigateToEditProfile"
+                                @toggle-sidebar="toggleSidebar"
+                                @navigate-fans="navigateToFans"
+                                @avatar-click="handleAvatarPreview"
+                                @open-search="openProfileSearch"
+                                @close-search="closeProfileSearch"
+                                @search-input="updateProfileSearch"
+                                @search-confirm="confirmProfileSearch"
+                            />
+                            </view>
+                        </view>
+
+                        <!-- 宽屏分栏模式下，名片卡下方左置展开双列按钮，右置竖排三 Tab -->
+                        <view v-if="isSplitDetailLayout && !isProfileSearchActive" class="profile-left-lower">
+                            <view class="profile-left-menu-slot">
+                                <Sidebar
+                                    inline
+                                    :isVisible="isSidebarOpen"
+                                    :userInfo="userInfo"
+                                    :isDarkTheme="isDarkTheme"
+                                    @close="isSidebarOpen = false"
+                                    @avatar-error="onAvatarError"
+                                    @logout-confirm="showLogoutConfirm"
+                                    @toggle-theme="toggleTheme"
+                                />
+                            </view>
+                            <view class="tab-navigation tab-navigation--vertical">
+                                <view :class="'tab-item tab-item--vertical ' + (currentTab === 'posts' ? 'active' : '')" data-tab="posts" @tap="switchTab">
+                                    <image class="tab-icon tab-icon--writing" src="/static/images/writing.png" mode="aspectFit" alt="帖子" title="帖子"></image>
+                                </view>
+                                <view :class="'tab-item tab-item--vertical ' + (currentTab === 'portfolio' ? 'active' : '')" data-tab="portfolio" @tap="switchTab">
+                                    <image class="tab-icon" src="/static/images/newicons/library.png" mode="aspectFit" alt="作品集" title="作品集"></image>
+                                </view>
+                                <view :class="'tab-item tab-item--vertical ' + (currentTab === 'favorites' ? 'active' : '')" data-tab="favorites" @tap="switchTab">
+                                    <image class="tab-icon" src="/static/images/newicons/collection.png" mode="aspectFit" alt="收藏" title="收藏"></image>
+                                </view>
+                                <view class="profile-tab-indicator profile-tab-indicator--vertical" :style="profileVerticalTabIndicatorStyle"></view>
+                            </view>
                         </view>
                     </view>
+
                     <view v-if="isHeaderBackground && !isProfileSearchActive" class="profile-body-shell-cap"></view>
                     <view
                         class="profile-body-shell"
@@ -82,8 +118,8 @@
                         <view v-else-if="profileSearchKeyword.trim()" class="profile-search-empty">当前已加载的笔记和收藏中没有找到相关内容</view>
                     </view>
                     <template v-else>
-                    <!-- Tab Navigation -->
-                    <view class="tab-navigation">
+                    <!-- Tab Navigation（窄屏竖排时保留在内容区顶部） -->
+                    <view v-if="!isSplitDetailLayout" class="tab-navigation">
                         <view :class="'tab-item ' + (currentTab === 'posts' ? 'active' : '')" data-tab="posts" @tap="switchTab">
                             <image class="tab-icon tab-icon--writing" src="/static/images/writing.png" mode="aspectFit" alt="帖子" title="帖子"></image>
                         </view>
@@ -204,8 +240,9 @@
         </view>
         <!-- 这是一个<view class="container"> 添加的结束标签 -->
 
-        <!-- 与底部导航同级，避免侧边栏被内容容器的层叠上下文限制 -->
+        <!-- 与底部导航同级，窄屏下以抽屉展示；宽屏分栏已由左卡下方内联面板取代 -->
         <Sidebar
+            v-if="!isSplitDetailLayout || isProfileSearchActive"
             :isVisible="isSidebarOpen"
             :userInfo="userInfo"
             :isDarkTheme="isDarkTheme"
@@ -768,6 +805,10 @@ export default {
             const index = this.currentTab === 'portfolio' ? 1 : (this.currentTab === 'favorites' ? 2 : 0);
             return { left: `${(index + 0.5) * 100 / 3}%` };
         },
+        profileVerticalTabIndicatorStyle() {
+            const index = this.currentTab === 'portfolio' ? 1 : (this.currentTab === 'favorites' ? 2 : 0);
+            return { top: `${(index + 0.5) * 100 / 3}%` };
+        },
         deletePostIsHidden() {
             const post = this.myPosts.find(item => item._id === this.deletePostId);
             return !!(post && post.isHidden);
@@ -857,9 +898,10 @@ export default {
             return;
         }
 
-        // 计算3:4比例高度（宽3高4，竖屏）
-        const windowWidth = getWindowInfoCompat().windowWidth;
-        const fixedHeight = Math.round((windowWidth * 4) / 3);
+        // 计算3:4比例高度（宽屏下按卡片阅读宽度收敛，避免横屏撑爆轮播高度）
+        const windowWidth = (this.appLayout && this.appLayout.windowWidth) || getWindowInfoCompat().windowWidth || 375;
+        const effectiveCardWidth = Math.min(windowWidth, 420);
+        const fixedHeight = Math.round((effectiveCardWidth * 4) / 3);
         this.setData({
             swiperFixedHeight: fixedHeight
         });
@@ -3811,10 +3853,122 @@ export default {
     color: #333;
 }
 
+/* ========== 宽屏 / 平板 / 折叠屏个人主页适配 ========== */
+.profile-page-root--wide-rail .profile-container {
+    padding-left: var(--app-nav-rail-width, 0px);
+    padding-right: var(--app-safe-area-right, 0px);
+    box-sizing: border-box;
+    height: auto;
+    min-height: 100vh;
+}
 
+.profile-page-root--wide-rail .profile-main-content {
+    padding-bottom: calc(40px + var(--app-safe-area-bottom, 0px));
+}
 
+.profile-page-root--wide-rail .profile-bottom-spacer {
+    height: 24px;
+}
 
+.profile-page-root--wide .profile-main-content {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding-left: 20px;
+    padding-right: 20px;
+    box-sizing: border-box;
+}
 
+.profile-left-column {
+    width: 100%;
+}
 
+.profile-page-root--split .profile-main-content:not(.profile-main-content--search) {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    padding-top: calc(16px + var(--app-safe-area-top, 0px));
+}
+
+.profile-page-root--split .profile-main-content:not(.profile-main-content--search) .profile-left-column {
+    flex: 0 0 408px;
+    width: 408px;
+    max-width: 46%;
+    position: sticky;
+    top: calc(16px + var(--app-safe-area-top, 0px));
+    max-height: calc(100vh - 32px - var(--app-safe-area-top, 0px));
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding-bottom: 12px;
+}
+
+.profile-page-root--split .profile-main-content:not(.profile-main-content--search) .profile-hero-section {
+    position: relative;
+    border-radius: 18px;
+    border: 1px solid var(--app-border-color, rgba(0, 0, 0, 0.08));
+    box-shadow: var(--app-surface-shadow, 0 8px 24px rgba(0, 0, 0, 0.06));
+}
+
+.profile-left-lower {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 14px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.profile-left-menu-slot {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.tab-navigation--vertical {
+    flex: 0 0 64px;
+    width: 64px;
+    margin: 0;
+    position: relative;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 8px 0;
+    border-radius: 16px;
+    background: var(--app-elevated-bg, var(--app-surface-bg, #ffffff));
+    border: 1px solid var(--app-border-color, rgba(0, 0, 0, 0.08));
+    box-shadow: var(--app-surface-shadow, 0 4px 16px rgba(0, 0, 0, 0.05));
+    box-sizing: border-box;
+}
+
+.tab-item--vertical {
+    flex: 0 0 auto;
+    height: 64px;
+    padding: 0 4px;
+    cursor: pointer;
+    background: transparent;
+}
+
+.tab-item--vertical.active {
+    background: var(--app-subtle-surface-bg, rgba(0, 0, 0, 0.04));
+}
+
+.profile-tab-indicator--vertical {
+    left: auto;
+    right: 3px;
+    bottom: auto;
+    width: 3px;
+    height: 24px;
+    transform: translateY(-50%);
+    transition: top 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.profile-page-root--split .profile-main-content:not(.profile-main-content--search) .profile-body-shell-cap {
+    display: none;
+}
+
+.profile-page-root--split .profile-main-content:not(.profile-main-content--search) .profile-body-shell {
+    flex: 1 1 0;
+    min-width: 0;
+    margin-top: 0;
+    border-radius: 16px;
+}
 
 </style>

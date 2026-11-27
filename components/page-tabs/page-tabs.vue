@@ -1,9 +1,23 @@
 <template>
   <view class="page-tabs-wrapper">
-    <top-bar ref="topBar" @safe-area-ready="onSafeAreaReady" />
+    <top-bar ref="topBar" @safe-area-ready="onSafeAreaReady">
+      <template v-if="hasLeftNavRail" #center>
+        <view class="tabs-list tabs-list--inline">
+          <view
+            v-for="(tab, index) in tabs"
+            :key="index"
+            :class="['tab-item', 'tab-item--inline', { active: currentTab === tab.value }]"
+            @tap="switchTab(tab.value)"
+          >
+            <text class="tab-text">{{ tab.label }}</text>
+          </view>
+          <view class="tab-indicator tab-indicator--inline" :style="indicatorStyle"></view>
+        </view>
+      </template>
+    </top-bar>
 
-    <!-- 页面切换标签栏 - 定位在 top-bar 下方 -->
-    <view class="tabs-container" :style="{ top: tabsTopPosition }">
+    <!-- 页面切换标签栏 - 窄屏时定位在 top-bar 下方 -->
+    <view v-if="!hasLeftNavRail" class="tabs-container" :style="{ top: tabsTopPosition }">
       <view class="tabs-list">
         <view
           v-for="(tab, index) in tabs"
@@ -22,7 +36,7 @@
 
 <script>
 import topBar from '@/components/top-bar/top-bar.vue';
-import { getWindowInfoCompat } from '@/utils/system-info.js';
+import { rpxToPx } from '@/utils/layout.js';
 
 const TOP_BAR_HEIGHT_RPX = 120;
 
@@ -66,10 +80,8 @@ export default {
     },
     // 计算 tabs 的 top 位置
     tabsTopPosition() {
-      const topBarHeightPx = this.safeAreaTop + this.rpxToPx(TOP_BAR_HEIGHT_RPX);
-      console.log('📍 [page-tabs] safeAreaTop:', this.safeAreaTop);
-      console.log('📍 [page-tabs] topBarHeightPx:', topBarHeightPx);
-      console.log('📍 [page-tabs] tabsTopPosition:', topBarHeightPx + 'px');
+      const width = this.appLayout && this.appLayout.windowWidth;
+      const topBarHeightPx = this.safeAreaTop + this.rpxToPx(TOP_BAR_HEIGHT_RPX, width);
       return topBarHeightPx + 'px';
     }
   },
@@ -83,19 +95,11 @@ export default {
 
     // 接收 top-bar 传递的安全区域高度
     onSafeAreaReady(height) {
-      console.log('📍 [page-tabs] 接收到 safeAreaTop:', height);
       this.safeAreaTop = height;
-      console.log('📍 [page-tabs] 设置后 this.safeAreaTop:', this.safeAreaTop);
     },
 
-    rpxToPx(value) {
-      if (typeof uni !== 'undefined' && typeof uni.upx2px === 'function') {
-        return uni.upx2px(value);
-      }
-
-      const info = getWindowInfoCompat();
-      const width = Number(info.windowWidth || info.screenWidth || 375) || 375;
-      return value * width / 750;
+    rpxToPx(value, width) {
+      return rpxToPx(value, width);
     }
   }
 };
@@ -123,6 +127,21 @@ export default {
   display: flex;
   height: 100%;
   align-items: center;
+  position: relative;
+}
+
+.tabs-list--inline {
+  width: 320px;
+  max-width: 100%;
+  height: 100%;
+}
+
+.tab-item--inline {
+  cursor: pointer;
+}
+
+.tab-indicator--inline {
+  bottom: 4px;
 }
 
 .tab-item {

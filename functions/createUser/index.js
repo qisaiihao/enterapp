@@ -1,6 +1,7 @@
 // 云函数入口文件
 const cloud = require('wx-server-sdk')
 const { ensureDefaultPortfolio } = require('./_lib/ensure-default-portfolio')
+const { normalizePoemId, saveWithPoemIdCheck, poemIdFailure } = require('./_lib/poem-id')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 
@@ -26,11 +27,16 @@ exports.main = async (event, context) => {
     }
   }
 
-  const { nickName, avatarFileID, poemId, password } = event
+  const { nickName, avatarFileID, poemId: requestedPoemId, password } = event
 
   try {
+    const poemId = normalizePoemId(requestedPoemId)
+    const users = db.collection('users')
     // 检查用户是否已存在
-    const userRecord = await db.collection('users').where({ _openid: openid }).get()
+    const userRecord = await users.where({ _openid: openid }).get()
+    if (poemId && userRecord.data.length > 1) {
+      return { success: false, code: 'AMBIGUOUS_ACCOUNT', message: '账号信息重复，请联系管理员处理' }
+    }
 
     if (userRecord.data.length > 0) {
       // 用户已存在，执行更新操作
@@ -44,9 +50,9 @@ exports.main = async (event, context) => {
       if (poemId) updateData.poemId = poemId;
       if (password) updateData.password = password;
       
-      await db.collection('users').doc(userRecord.data[0]._id).update({
-        data: updateData
-      })
+      const userId = userRecord.data[0]._id
+      await saveWithPoemIdCheck(db, poemId, userId,
+        () => users.where({ _id: userId, _openid: openid }).update({ data: updateData }))
       await ensureUserPortfolio(openid)
       return { success: true, message: '用户信息更新成功' }
     } else {
@@ -63,15 +69,15 @@ exports.main = async (event, context) => {
       if (poemId) createData.poemId = poemId;
       if (password) createData.password = password;
       
-      await db.collection('users').add({
-        data: createData
-      })
+      await saveWithPoemIdCheck(db, poemId, undefined, () => users.add({ data: createData }))
 
       await ensureUserPortfolio(openid)
 
       return { success: true, message: '用户创建成功' }
     }
   } catch (e) {
+    const failure = poemIdFailure(e);
+    if (failure) return failure;
     console.error(e)
     return { success: false, error: e }
   }

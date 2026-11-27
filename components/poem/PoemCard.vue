@@ -18,7 +18,7 @@
           @tap="emitCardTap"
           @longpress="emitLongpress"
         >
-          <view class="post-item" :class="{ 'post-item--creation': creationLabel }">
+          <view class="post-item" :class="{ 'post-item--creation': showCreationMeta }">
             <view
               v-if="currentSeriesPoem.subtitle"
               class="series-subtitle"
@@ -32,7 +32,7 @@
               :style="{ color: cardTextColor, whiteSpace: 'pre-wrap' }"
             ><PoemRichText :text="currentSeriesPoem.content" :styles="currentSeriesPoem.poemTextStyles || []" :source-text="currentSeriesPoem.sourceContent || currentSeriesPoem.content" :base-font-size="post.poemFontSize" :vertical="post.poemVertical" /></view>
 
-            <PoemCreationMeta :post="post" :color="cardTextColor" />
+            <PoemCreationMeta v-if="showCreationMeta" :post="post" :color="cardTextColor" />
 
             <view v-if="canShowSignature" :class="['user-signature', { 'user-signature--vertical': post.poemVertical }]">
               <image
@@ -78,7 +78,7 @@
         @tap="emitCardTap"
         @longpress="emitLongpress"
       >
-        <view class="post-item" :class="{ 'post-item--creation': creationLabel }">
+        <view class="post-item" :class="{ 'post-item--creation': showCreationMeta }">
           <view v-if="post.poemVertical && post.displayContent" class="post-content" :style="{ color: cardTextColor }">
             <PoemRichText
               :text="post.isExpanded || !highlightLines.length ? post.displayContent : highlightLines.join('\n')"
@@ -103,7 +103,7 @@
                   class="highlight-line"
                 ><PoemRichText :text="highlightLine" :styles="post.poemTextStyles || []" :source-text="post.content" :base-font-size="post.poemFontSize" /></view></block><block v-else><PoemRichText :text="post.displayContent" :styles="post.poemTextStyles || []" :source-text="post.content" :base-font-size="post.poemFontSize" /></block></block></view>
 
-          <PoemCreationMeta :post="post" :color="cardTextColor" />
+          <PoemCreationMeta v-if="showCreationMeta" :post="post" :color="cardTextColor" />
 
           <view v-if="post.isExpanded && canShowSignature" :class="['user-signature', { 'user-signature--vertical': post.poemVertical }]">
             <image
@@ -185,6 +185,10 @@ export default {
       type: Boolean,
       default: false
     },
+    hideCreationMetaWhenCollapsed: {
+      type: Boolean,
+      default: false
+    },
     showSignature: {
       type: Boolean,
       default: false
@@ -192,7 +196,10 @@ export default {
   },
   computed: {
     poemFontVars() { return getPoemFontVars(this.post, this.readFontVars); },
-    creationLabel() { return getCreationLabel(this.post); },
+    showCreationMeta() {
+      const expanded = this.isSeries ? this.seriesExpanded : !!this.post.isExpanded;
+      return (!this.hideCreationMetaWhenCollapsed || expanded) && !!getCreationLabel(this.post);
+    },
     cardBackgroundColor() {
       return getThemedCardBackgroundColor(this.post.backgroundColor, this.appThemeMode);
     },

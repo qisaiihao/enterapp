@@ -12,6 +12,12 @@
 
 发布时先部署腾讯云函数 `functions/loginWithCredentials`，再发布客户端。新客户端使用 `account` 参数，依赖新版云函数；旧客户端可继续调用新版云函数。
 
+## Poem ID 保存查重
+
+注册、资料更新和旧版建号入口保存 Poem ID 前会去除首尾空格，按原大小写查询已有账号。修改资料时允许继续使用本账号的 Poem ID，其他账号占用的值返回 `POEM_ID_EXISTS`。历史小写字段 `poemid` 也参与查询。
+
+发布时运行 `npm run init:poem-id-index` 检查线上重号和索引，再以 `npm run init:poem-id-index -- --apply` 建立 `users.poemId` 的部分唯一索引。索引覆盖非空 Poem ID，并发写入同值时只有一条能成功。已有完全重号时，脚本报告数量。部署 `createUser`、`updateUser`、`updateUserProfile`、`registerUser` 和 `loginWithWechat` 时随包带上各自的 `_lib/poem-id.js`。共享文件修改后运行 `npm run sync:poem-id`。[CloudBase 索引接口](https://cloud.tencent.com/document/product/876/127964)
+
 ## App 新账号注册手机号绑定（2026-10-11）
 
 新版 App 注册必须先通过本机号码一键授权或短信验证码验证手机号。一键授权未完成时切换到短信绑定；绑定弹窗提供“取消”，关闭后返回注册表单，不提交注册。验证期间 App 锁定输入和弹窗关闭，注册保存本次实际验证的号码。提交注册和跳过绑定方法均有 App 检查，未绑定时不会调用注册云函数。GitHub 新用户完善资料也进入同一注册页面，适用同一规则。

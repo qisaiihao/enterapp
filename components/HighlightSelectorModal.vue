@@ -208,6 +208,13 @@ export default {
     height: calc(100% - constant(safe-area-inset-top) - 16px);
 }
 
+@media screen and (min-width: 600px) {
+    .highlight-modal-content {
+        max-width: 720px;
+        margin: 0 auto;
+    }
+}
+
 .highlight-modal-header {
     display: flex;
     align-items: center;

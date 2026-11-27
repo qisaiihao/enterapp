@@ -1,3 +1,5 @@
+import { LAYOUT_CHANGED_EVENT, getLayoutSnapshot } from '@/utils/layout.js';
+
 const DEFAULT_MIN_RATIO = 9 / 16; // 0.5625
 const DEFAULT_MAX_RATIO = 16 / 9; // 1.777...
 
@@ -61,7 +63,8 @@ function clampRatio(ratio, minRatio, maxRatio) {
 const postGalleryMixin = {
     data() {
         return {
-            __galleryImageMeta: {}
+            __galleryImageMeta: {},
+            __galleryEntries: {}
         };
     },
     created() {
@@ -74,8 +77,61 @@ const postGalleryMixin = {
         if (typeof this.imageCache === 'undefined') {
             this.imageCache = {};
         }
+        this.__galleryLastWindowWidth = getLayoutSnapshot().windowWidth;
+        this.__galleryResizeTimer = null;
+        if (typeof uni !== 'undefined' && typeof uni.$on === 'function') {
+            this.__galleryLayoutHandler = (snapshot) => {
+                const nextWidth = snapshot && Number(snapshot.windowWidth);
+                if (!nextWidth || nextWidth === this.__galleryLastWindowWidth) {
+                    return;
+                }
+                this.__galleryLastWindowWidth = nextWidth;
+                this.scheduleGalleryRecalculate();
+            };
+            uni.$on(LAYOUT_CHANGED_EVENT, this.__galleryLayoutHandler);
+        }
+    },
+    beforeUnmount() {
+        this.__cleanupGalleryLayoutListener();
+    },
+    onUnload() {
+        this.__cleanupGalleryLayoutListener();
     },
     methods: {
+        __cleanupGalleryLayoutListener() {
+            if (this.__galleryResizeTimer) {
+                clearTimeout(this.__galleryResizeTimer);
+                this.__galleryResizeTimer = null;
+            }
+            if (this.__galleryLayoutHandler && typeof uni !== 'undefined' && typeof uni.$off === 'function') {
+                uni.$off(LAYOUT_CHANGED_EVENT, this.__galleryLayoutHandler);
+                this.__galleryLayoutHandler = null;
+            }
+        },
+
+        scheduleGalleryRecalculate() {
+            if (this.__galleryResizeTimer) {
+                clearTimeout(this.__galleryResizeTimer);
+            }
+            this.__galleryResizeTimer = setTimeout(() => {
+                this.__galleryResizeTimer = null;
+                this.recalculateGalleryHeights();
+            }, 120);
+        },
+
+        recalculateGalleryHeights() {
+            const entries = this.__galleryEntries || {};
+            Object.keys(entries).forEach((entryKey) => {
+                const entry = entries[entryKey];
+                if (!entry) return;
+                if (entry.type === 'multi') {
+                    this.__updateSwiperHeight(entry);
+                } else if (entry.type === 'single') {
+                    this.__updateClampHeight(entry);
+                }
+            });
+        },
+
         onImageLoad(e) {
             if (!e || !e.detail || !e.currentTarget) {
                 return;
@@ -103,12 +159,20 @@ const postGalleryMixin = {
 
             if (type === 'multi' && Number(imgIndex) === 0) {
                 const selector = dataset.swiperSelector || dataset.gallerySelector || `#swiper-${key}`;
-                this.__updateSwiperHeight({ key, selector, originalWidth, originalHeight, minRatio, maxRatio });
+                const entry = { type: 'multi', key, selector, originalWidth, originalHeight, minRatio, maxRatio };
+                if (this.__galleryEntries) {
+                    this.__galleryEntries[`multi:${key}`] = entry;
+                }
+                this.__updateSwiperHeight(entry);
             }
 
             if (type === 'single') {
                 const selector = dataset.singleSelector || dataset.imageSelector || `#single-image-${key}`;
-                this.__updateClampHeight({ key, selector, originalWidth, originalHeight, minRatio });
+                const entry = { type: 'single', key, selector, originalWidth, originalHeight, minRatio };
+                if (this.__galleryEntries) {
+                    this.__galleryEntries[`single:${key}`] = entry;
+                }
+                this.__updateClampHeight(entry);
             }
         },
 

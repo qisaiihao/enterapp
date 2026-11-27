@@ -31,17 +31,9 @@ async function originalPoems(db, baseFilter, options) {
     used.add(row._id);
     return true;
   });
-  const hotSize = Math.floor(size / 5), randomSize = Math.floor(size / 5);
-  const latest = collect((await query().sort({ createTime: -1, _id: -1 }).limit(size - hotSize - randomSize).end()).list || []);
-  let hot = [], random = [];
-  if (hotSize) {
-    try {
-      hot = collect((await query().match({ votes: db.command.gt(0) })
-        .sort({ votes: -1, createTime: -1, _id: -1 }).limit(hotSize).end()).list || []);
-    } catch (_) {
-      console.warn('[original-poems] hot query unavailable; filling with recent poems');
-    }
-  }
+  const randomSize = Math.floor(size / 5) * 2;
+  const latest = collect((await query().sort({ createTime: -1, _id: -1 }).limit(size - randomSize).end()).list || []);
+  let random = [];
   if (randomSize) {
     try {
       random = collect((await query().sample({ size: randomSize }).end()).list || []);
@@ -49,15 +41,15 @@ async function originalPoems(db, baseFilter, options) {
       console.warn('[original-poems] random query unavailable; filling with recent poems');
     }
   }
-  const missing = size - latest.length - hot.length - random.length;
+  const missing = size - latest.length - random.length;
   if (missing > 0) latest.push(...collect((await query().sort({ createTime: -1, _id: -1 }).limit(missing).end()).list || []));
 
   const posts = [];
-  let next = 0, hotIndex = 0, randomIndex = 0;
-  while (next < latest.length || hotIndex < hot.length || randomIndex < random.length) {
-    posts.push(...latest.slice(next, next + 3)); next += 3;
-    if (hotIndex < hot.length) posts.push(hot[hotIndex++]);
-    if (randomIndex < random.length) posts.push(random[randomIndex++]);
+  let latestIndex = 0, randomIndex = 0;
+  while (latestIndex < latest.length || randomIndex < random.length) {
+    posts.push(...latest.slice(latestIndex, latestIndex + 3), ...random.slice(randomIndex, randomIndex + 2));
+    latestIndex += 3;
+    randomIndex += 2;
   }
   return posts;
 }

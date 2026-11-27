@@ -1,0 +1,86 @@
+/* 全站宽屏 / 横屏 / 平板与折叠屏基础布局壳 */
+
+/* 一级 Tab 页在宽屏左侧栏模式下让出左侧导航轨道，不再为消失的底部 TabBar 预留大段底部空间 */
+.app-tab-page-wide {
+  padding-left: var(--app-nav-rail-width, 0px) !important;
+  padding-right: var(--app-safe-area-right, 0px) !important;
+  box-sizing: border-box;
+}
+
+/* 通用单栏阅读/表单内容收敛壳（设置、消息、搜索、作品集、社团、编辑页等） */
+.app-readable-column {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media screen and (min-width: 600px) {
+  .app-readable-column {
+    max-width: var(--app-content-max-width, 760px);
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* 通用二级页面在宽屏下避让左右安全区并居中收敛，保持诗歌留白呼吸感 */
+  .settings-page,
+  .messages-page,
+  .search-page,
+  .favorite-folders-page,
+  .portfolio-page,
+  .draft-box-page,
+  .following-page,
+  .fans-page,
+  .blocked-users-page,
+  .my-likes-page {
+    padding-left: var(--app-safe-area-left, 0px);
+    padding-right: var(--app-safe-area-right, 0px);
+    box-sizing: border-box;
+  }
+}
+
+/* 响应式多列卡片容器 */
+.app-responsive-grid-2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.app-responsive-grid-3 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media screen and (min-width: 600px) {
+  .app-responsive-grid-2,
+  .app-responsive-grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+}
+
+@media screen and (min-width: 840px) {
+  .app-responsive-grid-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+  }
+}
+
+/* 双列分桶瀑布流容器（用于展开高度会动态变化的诗歌卡片与社区帖子流） */
+.app-masonry-columns {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.app-masonry-column {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}

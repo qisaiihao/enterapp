@@ -129,6 +129,7 @@
 <script>
 import { cloudCall } from '@/utils/cloudCall.js';
 import { getWindowInfoCompat } from '@/utils/system-info.js';
+import { LAYOUT_CHANGED_EVENT, rpxToPx } from '@/utils/layout.js';
 
 const DEFAULT_BACKGROUND_COLOR = '#a4c4bd';
 const DEFAULT_TEXT_COLOR = '#333333';
@@ -161,17 +162,30 @@ export default {
   },
   onLoad() {
     this.initNavMetrics();
+    if (typeof uni !== 'undefined' && typeof uni.$on === 'function') {
+      this._seriesLayoutHandler = () => this.initNavMetrics();
+      uni.$on(LAYOUT_CHANGED_EVENT, this._seriesLayoutHandler);
+    }
     this.fetchSingles();
   },
   onShow() {
+    this.initNavMetrics();
     this.fetchSingles();
+  },
+  onUnload() {
+    if (this._seriesLayoutHandler && typeof uni !== 'undefined' && typeof uni.$off === 'function') {
+      uni.$off(LAYOUT_CHANGED_EVENT, this._seriesLayoutHandler);
+      this._seriesLayoutHandler = null;
+    }
   },
   methods: {
     initNavMetrics() {
       try {
         const systemInfo = getWindowInfoCompat();
-        const safeAreaTop = systemInfo.statusBarHeight || 0;
-        const navBarHeight = systemInfo.windowWidth ? (systemInfo.windowWidth / 750) * 100 : 50;
+        const layoutTop = this.appLayout && this.appLayout.safeAreaInsets ? Number(this.appLayout.safeAreaInsets.top) : NaN;
+        const safeAreaTop = Number.isFinite(layoutTop) ? layoutTop : (systemInfo.statusBarHeight || 0);
+        const width = (this.appLayout && this.appLayout.windowWidth) || systemInfo.windowWidth || 375;
+        const navBarHeight = rpxToPx(100, width) || 50;
         this.safeAreaTop = safeAreaTop;
         this.contentTopOffset = safeAreaTop + navBarHeight + 12;
       } catch (error) {

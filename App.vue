@@ -1,6 +1,8 @@
 <script>
 // #ifdef APP-PLUS
 import { checkAndUpdate } from '@/utils/appUpdate.js';
+import { requestPoemWidgetNext } from '@/uni_modules/poem-widget';
+import { getPoemWidgetNextToken } from '@/utils/poemWidget.js';
 // #endif
 // #ifdef APP-PLUS || H5
 import { cancelTabTransition } from '@/utils/appTabTransition.js';
@@ -37,10 +39,7 @@ export default {
         this.syncGlobalDataFromAppState();
         // #ifdef APP-PLUS
         this.runWhenPlusReady((plusInstance) => {
-            const args = this.getPlusRuntimeArguments(plusInstance);
-            if (args && args.includes('github-callback')) {
-                runAfterPrivacyConsent(() => this.handleUrlScheme({ path: args }));
-            }
+            this.dispatchNativeUrlScheme(this.getPlusRuntimeArguments(plusInstance));
         }, 'handle launch args');
         // #endif
 
@@ -64,17 +63,11 @@ export default {
         unreadBadge.startPolling();
         // #ifdef APP-PLUS
         this.runWhenPlusReady((plusInstance) => {
-            const args = this.getPlusRuntimeArguments(plusInstance);
-            if (args && args.includes('github-callback')) {
-                runAfterPrivacyConsent(() => this.handleUrlScheme({ path: args }));
-            }
+            this.dispatchNativeUrlScheme(this.getPlusRuntimeArguments(plusInstance));
 
             if (!this._newintentListenerAdded && plusInstance.globalEvent && plusInstance.globalEvent.addEventListener) {
                 plusInstance.globalEvent.addEventListener('newintent', () => {
-                    const nextArgs = this.getPlusRuntimeArguments(plusInstance);
-                    if (nextArgs) {
-                        runAfterPrivacyConsent(() => this.handleUrlScheme({ path: nextArgs }));
-                    }
+                    this.dispatchNativeUrlScheme(this.getPlusRuntimeArguments(plusInstance));
                 });
                 this._newintentListenerAdded = true;
             }
@@ -181,6 +174,26 @@ export default {
                 console.warn(`[App] read plus runtime arguments failed: ${formatErrorForLog(error)}`);
                 return '';
             }
+        },
+
+        dispatchNativeUrlScheme(args) {
+            // #ifdef APP-PLUS
+            if (typeof args !== 'string' || !args) return;
+            if (args.includes('github-callback')) {
+                runAfterPrivacyConsent(() => this.handleUrlScheme({ path: args }));
+                return;
+            }
+            const token = getPoemWidgetNextToken(args);
+            if (token) {
+                runAfterPrivacyConsent(() => {
+                    try {
+                        requestPoemWidgetNext(token);
+                    } catch (error) {
+                        console.warn(`[App] poem widget action failed: ${formatErrorForLog(error)}`);
+                    }
+                });
+            }
+            // #endif
         },
 
         handleUrlScheme(options) {
@@ -384,6 +397,7 @@ export default {
 
 <style>
 @import './styles/overlay-motion.css';
+@import './styles/responsive-layout.css';
 page,
 body,
 #app,

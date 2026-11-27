@@ -1,5 +1,45 @@
 <template>
-    <AppMotion ref="motion" :visible="isVisible" placement="drawer" mask-class="app-sidebar-mask" close-on-mask @dismiss="$emit('close')">
+    <view v-if="inline" v-show="isVisible" class="sidebar-inline-panel" :class="{ 'sidebar-inline-panel--open': isVisible }" @tap.stop>
+        <view class="sidebar-inline-grid">
+            <view class="sidebar-inline-btn" hover-class="sidebar-inline-btn--active" @tap="handleToggleTheme">
+                <text class="sidebar-inline-btn-text">{{ isDarkTheme ? '日间模式' : '黑夜模式' }}</text>
+            </view>
+            <view class="sidebar-inline-btn" hover-class="sidebar-inline-btn--active" @tap="navigateToMyLikes">
+                <text class="sidebar-inline-btn-text">我的点赞</text>
+            </view>
+            <view class="sidebar-inline-btn" hover-class="sidebar-inline-btn--active" @tap="navigateToPortfolio">
+                <text class="sidebar-inline-btn-text">作品集</text>
+            </view>
+            <view class="sidebar-inline-btn" hover-class="sidebar-inline-btn--active" @tap="navigateToDraftBox">
+                <text class="sidebar-inline-btn-text">草稿箱</text>
+            </view>
+            <view class="sidebar-inline-btn" hover-class="sidebar-inline-btn--active" @tap="navigateToSettings">
+                <text class="sidebar-inline-btn-text">设置</text>
+            </view>
+            <view class="sidebar-inline-btn" hover-class="sidebar-inline-btn--active" @tap="navigateToFeedback">
+                <text class="sidebar-inline-btn-text">意见反馈</text>
+            </view>
+            <view class="sidebar-inline-btn" hover-class="sidebar-inline-btn--active" @tap="navigateToContact">
+                <text class="sidebar-inline-btn-text">联系我们</text>
+            </view>
+            <view class="sidebar-inline-btn" hover-class="sidebar-inline-btn--active" @tap="navigateToCollage">
+                <text class="sidebar-inline-btn-text">拼贴诗</text>
+            </view>
+            <view class="sidebar-inline-btn" hover-class="sidebar-inline-btn--active" @tap="navigateToBlockedUsers">
+                <text class="sidebar-inline-btn-text">黑名单</text>
+            </view>
+            <view v-if="isAdmin" class="sidebar-inline-btn" hover-class="sidebar-inline-btn--active" @tap="navigateToAdmin">
+                <text class="sidebar-inline-btn-text">管理</text>
+            </view>
+            <view v-if="isAdmin" class="sidebar-inline-btn" hover-class="sidebar-inline-btn--active" @tap="navigateToTest">
+                <text class="sidebar-inline-btn-text">测试</text>
+            </view>
+            <view class="sidebar-inline-btn sidebar-inline-btn--danger logout-item" hover-class="sidebar-inline-btn--danger-active" @tap="showLogoutConfirm">
+                <text class="sidebar-inline-btn-text">退出登录</text>
+            </view>
+        </view>
+    </view>
+    <AppMotion v-else ref="motion" :visible="isVisible" placement="drawer" mask-class="app-sidebar-mask" close-on-mask @dismiss="$emit('close')">
         <view class="sidebar app-motion-panel" @tap.stop @touchmove.stop>
             <view class="sidebar-header">
                 <image class="sidebar-avatar" :src="avatarSrc" mode="aspectFill" @error="onAvatarError"></image>
@@ -74,6 +114,10 @@ export default {
         isDarkTheme: {
             type: Boolean,
             default: false
+        },
+        inline: {
+            type: Boolean,
+            default: false
         }
     },
     computed: {
@@ -87,6 +131,11 @@ export default {
     },
     methods: {
         closeThen(callback) {
+            if (this.inline) {
+                this.$emit('close');
+                if (callback) callback();
+                return;
+            }
             this.$refs.motion.dismiss(() => {
                 this.$emit('close');
                 if (callback) callback();
@@ -185,11 +234,12 @@ export default {
     top: 0;
     left: 0;
     width: 70%;
+    max-width: 340px;
     height: 100%;
     background-color: var(--app-surface-bg, #ffffff);
     box-shadow: var(--profile-sidebar-shadow, 8rpx 0 28rpx rgba(0, 0, 0, 0.16));
     border-right: 1rpx solid var(--app-border-color, rgba(0, 0, 0, 0.06));
-    z-index: 1002;
+    z-index: 1012;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
@@ -197,6 +247,82 @@ export default {
     padding-bottom: 24rpx;
     padding-bottom: calc(24rpx + constant(safe-area-inset-bottom));
     padding-bottom: calc(24rpx + env(safe-area-inset-bottom, var(--safe-area-inset-bottom, 0px)));
+}
+
+/* 宽屏内联展开按钮面板（取代抽屉侧边栏） */
+.sidebar-inline-panel {
+    margin-top: 0;
+    animation: sidebarInlineReveal 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes sidebarInlineReveal {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.sidebar-inline-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.sidebar-inline-btn {
+    min-height: 44px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background-color: var(--app-elevated-bg, var(--app-surface-bg, #ffffff));
+    border: 1px solid var(--app-border-color, rgba(0, 0, 0, 0.09));
+    box-shadow: var(--app-surface-shadow, 0 2px 8px rgba(0, 0, 0, 0.04));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition: transform 120ms ease, background-color 140ms ease, border-color 140ms ease;
+}
+
+.sidebar-inline-btn--active,
+.sidebar-inline-btn:active {
+    transform: scale(0.97);
+    background-color: var(--app-subtle-surface-bg, rgba(0, 0, 0, 0.04));
+}
+
+.sidebar-inline-btn-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--app-primary-text, #222222);
+    line-height: 1.25;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.sidebar-inline-btn--danger,
+.sidebar-inline-btn--danger.logout-item {
+    margin-top: 0;
+    border: 1px solid rgba(255, 107, 107, 0.28);
+}
+
+.sidebar-inline-btn--danger .sidebar-inline-btn-text {
+    color: var(--profile-sidebar-danger-color, #e05252);
+}
+
+.sidebar-inline-btn--danger-active,
+.sidebar-inline-btn--danger:active {
+    background-color: var(--profile-sidebar-danger-active-bg, rgba(255, 107, 107, 0.10));
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sidebar-inline-panel {
+        animation: none;
+    }
 }
 
 /* 侧边栏头部 */

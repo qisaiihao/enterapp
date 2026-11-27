@@ -23,6 +23,7 @@
   "functions/getOtherPortfolioItems",
   "functions/getPersonalizedFeed",
   "functions/getPoemContentFeed",
+  "functions/getPoemWidgetFeed",
   "functions/getPoetInfo",
   "functions/getPoetPosts",
   "functions/getPortfolioFolders",

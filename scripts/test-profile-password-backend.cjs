@@ -93,6 +93,7 @@ function runtime(users = [initialUser], options = {}) {
       require(name) {
         if (name === 'wx-server-sdk') return cloud;
         if (name === './password') return load('functions/updateUserProfile/password.js');
+        if (name === './_lib/poem-id') return require('../functions/updateUserProfile/_lib/poem-id');
         if (name === './_lib/login-audit') return { async recordSuccessfulLogin() {} };
         if (name === './_lib/wechat-auth') return {
           async prepareWechatLogin() { return { needBindWechat: false }; },

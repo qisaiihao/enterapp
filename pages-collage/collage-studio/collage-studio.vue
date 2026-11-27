@@ -225,11 +225,34 @@ export default {
     previewKey() { this.queuePreview(); }
   },
   onLoad(query) { log.info('进入拼贴工作台', { tab: query.tab || 'cut' }); this.mpNavStyle = getCollageNavStyle(); if (query.tab === 'board') this.activeTab = 'board'; },
-  onReady() { const win = getWindowInfoCompat(); this.viewWidth = Math.min(640, (win.windowWidth || 375) - 32); log.debug('页面就绪', { viewWidth: this.viewWidth }); this.measureSource(); },
-  onShow() { log.debug('页面显示', { storageKey: this.storageKey }); if (!this.busy && this.storageKey !== workspaceKey()) this.restore(); },
+  onReady() {
+    this.updateStudioViewport();
+    if (typeof uni !== 'undefined' && typeof uni.$on === 'function') {
+      this._studioLayoutHandler = () => this.updateStudioViewport();
+      uni.$on('layout:changed', this._studioLayoutHandler);
+    }
+  },
+  onShow() { log.debug('页面显示', { storageKey: this.storageKey }); this.updateStudioViewport(); if (!this.busy && this.storageKey !== workspaceKey()) this.restore(); },
   onHide() { log.debug('页面隐藏'); this.cancelSourceTouch(); this.endItem(); this.endItemAdjustment(); },
-  onUnload() { log.info('离开拼贴工作台'); this.disposed = true; this.cancelPreview(); this.cleanupStaleBackgroundFiles(); releaseFiles(); },
+  onUnload() {
+    if (this._studioLayoutHandler && typeof uni !== 'undefined' && typeof uni.$off === 'function') {
+      uni.$off('layout:changed', this._studioLayoutHandler);
+      this._studioLayoutHandler = null;
+    }
+    log.info('离开拼贴工作台'); this.disposed = true; this.cancelPreview(); this.cleanupStaleBackgroundFiles(); releaseFiles();
+  },
   methods: {
+    updateStudioViewport() {
+      const win = getWindowInfoCompat();
+      const width = (this.appLayout && this.appLayout.windowWidth) || (win && win.windowWidth) || 375;
+      const isWide = width >= 600;
+      const nextWidth = isWide ? Math.min(720, Math.max(320, width - 80)) : Math.min(640, Math.max(280, width - 32));
+      if (this.viewWidth !== nextWidth) {
+        this.viewWidth = nextWidth;
+        log.debug('更新工作台视口宽度', { viewWidth: this.viewWidth });
+      }
+      this.$nextTick(() => this.measureSource());
+    },
     async run(task, action) {
       if (this.busy) { log.debug('任务被占用，忽略', { task, busy: this.busy }); return; }
       this.busy = task; this.error = '';
@@ -927,6 +950,31 @@ button[disabled] { opacity: .45; }
 .board-background-add image { width: 24px; height: 24px; }
 .board-piece { position: absolute; touch-action: none; user-select: none; }
 .board-piece image { width: 100%; height: 100%; display: block; pointer-events: none; }
+
+@media screen and (min-width: 760px) {
+  .studio {
+    padding-left: calc(24px + var(--app-safe-area-left, env(safe-area-inset-left, 0px)));
+    padding-right: calc(24px + var(--app-safe-area-right, env(safe-area-inset-right, 0px)));
+  }
+  .studio-nav,
+  .section,
+  .notice {
+    max-width: 980px;
+  }
+  .image-scroll {
+    height: min(56vh, 460px);
+  }
+  .material-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+}
+
+@media screen and (min-width: 1080px) {
+  .material-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
 .focused { outline: 1px dashed #718067; outline-offset: 4px; }
 .board-empty { position: absolute; top: 45%; left: 0; width: 100%; text-align: center; color: #a6a99a; font-size: 14px; pointer-events: none; }
 .background-row { margin: 12px 0; justify-content: space-between; flex-wrap: nowrap; gap: 8px; }

@@ -82,6 +82,7 @@ function runtime(users = []) {
         if (id === 'wx-server-sdk') return cloud;
         if (id === './_lib/wechat-auth') return require(path.join(root, `functions/${name}/_lib/wechat-auth.js`));
         if (id === './_lib/login-audit') return require(path.join(root, `functions/${name}/_lib/login-audit.js`));
+        if (id === './_lib/poem-id') return require(path.join(root, `functions/${name}/_lib/poem-id.js`));
         throw Error(`unexpected dependency ${id}`);
       }
     });

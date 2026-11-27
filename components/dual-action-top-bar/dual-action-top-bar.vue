@@ -20,6 +20,7 @@
 
 <script>
 import { getStatusBarHeightCompat } from '@/utils/system-info.js';
+import { LAYOUT_CHANGED_EVENT } from '@/utils/layout.js';
 
 export default {
   name: 'DualActionTopBar',
@@ -48,16 +49,28 @@ export default {
   },
   data() {
     return {
-      safeAreaTop: 0
+      safeAreaTop: 0,
+      _layoutHandler: null
     };
   },
   mounted() {
     this.initSafeAreaTop();
+    if (typeof uni !== 'undefined' && typeof uni.$on === 'function') {
+      this._layoutHandler = () => this.initSafeAreaTop();
+      uni.$on(LAYOUT_CHANGED_EVENT, this._layoutHandler);
+    }
+  },
+  beforeUnmount() {
+    if (this._layoutHandler && typeof uni !== 'undefined' && typeof uni.$off === 'function') {
+      uni.$off(LAYOUT_CHANGED_EVENT, this._layoutHandler);
+      this._layoutHandler = null;
+    }
   },
   methods: {
     initSafeAreaTop() {
       try {
-        const safeAreaTop = getStatusBarHeightCompat();
+        const layoutTop = this.appLayout && this.appLayout.safeAreaInsets ? Number(this.appLayout.safeAreaInsets.top) : NaN;
+        const safeAreaTop = Number.isFinite(layoutTop) ? layoutTop : getStatusBarHeightCompat();
 
         this.safeAreaTop = safeAreaTop;
         this.$emit('safe-area-ready', safeAreaTop);
@@ -117,8 +130,8 @@ export default {
   height: 100rpx;
   display: flex;
   align-items: center;
-  padding-left: 30rpx;
-  padding-right: 40rpx;
+  padding-left: calc(30rpx + var(--app-safe-area-left, 0px));
+  padding-right: calc(40rpx + var(--app-safe-area-right, 0px));
   box-sizing: border-box;
   position: relative;
   z-index: 1;
@@ -128,7 +141,7 @@ export default {
   /* #ifndef MP-WEIXIN */
   justify-content: space-between;
   /* 加号右侧有 22rpx 透明留白，补 8rpx 后与返回箭头的 30rpx 边距一致。 */
-  padding-right: 8rpx;
+  padding-right: calc(8rpx + var(--app-safe-area-right, 0px));
   /* #endif */
 }
 

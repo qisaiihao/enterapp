@@ -164,6 +164,12 @@
       "root": "pages-user",
       "pages": [
         {
+          "path": "poem-widget/poem-widget",
+          "style": {
+            "navigationBarTitleText": "桌面小组件"
+          }
+        },
+        {
           "path": "user-profile/user-profile",
           "style": {
             "usingComponents": {},
@@ -289,6 +295,12 @@
             "navigationStyle": "custom",
             "enablePullDownRefresh": true,
             "onReachBottomDistance": 50
+          }
+        },
+        {
+          "path": "market/market",
+          "style": {
+            "navigationBarTitleText": "商城"
           }
         },
         {
@@ -771,6 +783,10 @@
   "style": "v2",
   "lazyCodeLoading": "requiredComponents",
   "globalStyle": {
+    "pageOrientation": "auto",
+    "rpxCalcMaxDeviceWidth": 500,
+    "rpxCalcBaseDeviceWidth": 400,
+    "rpxCalcIncludeWidth": 750,
     "backgroundColor": "#F6F6F6",
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#F6F6F6",

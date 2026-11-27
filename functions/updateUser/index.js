@@ -1,12 +1,12 @@
 // 云函数入口文件
 const cloud = require('wx-server-sdk');
+const { normalizePoemId, saveWithPoemIdCheck, poemIdFailure } = require('./_lib/poem-id');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 });
 
 const db = cloud.database();
-const _ = db.command;
 
 // 平台检测和兼容性处理
 function getDatabaseAndContext() {
@@ -82,7 +82,7 @@ exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
   
   // 关键改动：所有参数都从 params 对象中解构（兼容两种调用方式）
-  const { nickName, avatarUrl, poemId, password, phoneNumber, githubUsername, githubAvatar, githubEmail, githubOpenid } = params;
+  const { nickName, avatarUrl, poemId: requestedPoemId, password, phoneNumber, githubUsername, githubAvatar, githubEmail, githubOpenid } = params;
 
   // 获取兼容的数据库实例和上下文
   const { db: database, isTCB } = getDatabaseAndContext();
@@ -100,11 +100,17 @@ exports.main = async (event, context) => {
   }
 
   try {
+    const poemId = normalizePoemId(requestedPoemId);
+    const users = database.collection('users');
 
     // 使用统一的_openid字段，与项目其他云函数保持一致
-    const userRecord = await database.collection('users').where({
+    const userRecord = await users.where({
       _openid: openid
     }).get();
+
+    if (poemId && userRecord.data.length > 1) {
+      return { success: false, code: 'AMBIGUOUS_ACCOUNT', message: '账号信息重复，请联系管理员处理' };
+    }
 
     
     if (userRecord.data.length > 0) {
@@ -167,11 +173,9 @@ exports.main = async (event, context) => {
         updateData.githubOpenid = githubOpenid;
       }
 
-      const updateResult = await database.collection('users').where({
-        _openid: openid
-      }).update({
-        data: updateData
-      });
+      const userId = poemId ? userRecord.data[0]._id : undefined;
+      const filter = userId ? { _id: userId, _openid: openid } : { _openid: openid };
+      await saveWithPoemIdCheck(database, poemId, userId, () => users.where(filter).update({ data: updateData }));
 
     } else {
       // User does not exist, add it
@@ -191,9 +195,7 @@ exports.main = async (event, context) => {
         createData.password = password;
       }
 
-      const createResult = await database.collection('users').add({
-        data: createData
-      });
+      await saveWithPoemIdCheck(database, poemId, undefined, () => users.add({ data: createData }));
 
     }
 
@@ -205,6 +207,8 @@ exports.main = async (event, context) => {
     };
 
   } catch (e) {
+    const failure = poemIdFailure(e);
+    if (failure) return { ...failure, platform: isTCB ? 'TCB' : 'WeApp' };
     console.error('❌ [updateUser] 数据库操作失败:', e);
     console.error('❌ [updateUser] 错误详情:', JSON.stringify(e, null, 2));
     console.error('❌ [updateUser] 错误类型:', typeof e);

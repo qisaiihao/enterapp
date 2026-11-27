@@ -54,6 +54,10 @@ $RECYCLE.BIN/
 *.xcscmblueprint
 xcuserdata/
 DerivedData/
+/nativeResources/ios/PoemWidget.mobileprovision
+/nativeResources/ios/ios-extension.json
+/nativeResources/ios/UniApp.entitlements
+/uni_modules/poem-widget/utssdk/app-ios/Plugins/PoemWidget.appex/
 
 # Netbeans
 /nbproject/private/

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="uts.sdk.modules.poemWidget">
+    <application>
+        <receiver
+            android:name="uts.sdk.modules.poemWidget.PoemWidgetProvider$Compact"
+            android:exported="false"
+            android:label="@string/poem_widget_compact">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/poem_widget_compact" />
+        </receiver>
+        <receiver
+            android:name="uts.sdk.modules.poemWidget.PoemWidgetProvider$Wide"
+            android:exported="false"
+            android:label="@string/poem_widget_wide">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/poem_widget_wide" />
+        </receiver>
+    </application>
+</manifest>

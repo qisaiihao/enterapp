@@ -144,6 +144,49 @@ export default {
 @keyframes app-sheet-mask-out { from { background-color: rgba(0, 0, 0, 0.4); } to { background-color: rgba(0, 0, 0, 0); } }
 @keyframes app-sheet-slide-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
 @keyframes app-sheet-slide-out { from { transform: translateY(0); } to { transform: translateY(100%); } }
+@media screen and (min-width: 600px) {
+  .app-sheet-mask {
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+  }
+  .app-sheet,
+  .app-sheet-plain .app-sheet {
+    width: 100%;
+    max-width: 460px;
+    border-radius: 18px;
+    border-bottom: 1px solid var(--overlay-border);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22);
+  }
+  .app-sheet-plain .app-sheet {
+    border: none;
+  }
+  .app-sheet-list,
+  .app-sheet-plain .app-sheet-list {
+    max-height: 55vh;
+  }
+  .app-sheet-plain .app-sheet-cancel {
+    padding-bottom: 24rpx;
+  }
+}
+
+@media screen and (max-height: 500px) {
+  .app-sheet-mask {
+    padding: 12px 24px;
+  }
+  .app-sheet-list,
+  .app-sheet-plain .app-sheet-list {
+    max-height: 44vh;
+  }
+  .app-sheet-plain .app-sheet-item,
+  .app-sheet-plain .app-sheet-cancel {
+    min-height: 84rpx;
+    padding-top: 16rpx;
+    padding-bottom: 16rpx;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .app-sheet-enter, .app-sheet-leave, .app-sheet-enter .app-sheet, .app-sheet-leave .app-sheet { animation-duration: 1ms; }
 }

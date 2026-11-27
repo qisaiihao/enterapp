@@ -3,6 +3,7 @@ const cloud = require('wx-server-sdk');
 const { getUserDefaultAvatar, needsDefaultAvatar } = require('./_lib/default-avatar');
 const { ensureDefaultPortfolio } = require('./_lib/ensure-default-portfolio');
 const { recordSuccessfulLogin } = require('./_lib/login-audit');
+const { normalizePoemId, saveWithPoemIdCheck, poemIdFailure } = require('./_lib/poem-id');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
@@ -22,11 +23,11 @@ async function ensureUserPortfolio(openid) {
 // 云函数入口函数
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext();
-  const { poemId, password, nickName, avatarFileID, phoneNumber, openid: providedOpenid, githubUsername, githubAvatar, githubEmail } = event;
+  const { poemId: requestedPoemId, password, nickName, avatarFileID, phoneNumber, openid: providedOpenid, githubUsername, githubAvatar, githubEmail } = event;
 
-  console.log('🔍 [registerUser] 收到注册请求:', { poemId, nickName, password: password ? '***' : 'undefined', phoneNumber: phoneNumber ? '***' : 'undefined', providedOpenid: providedOpenid ? '***' : 'undefined' });
+  console.log('🔍 [registerUser] 收到注册请求:', { poemId: requestedPoemId, nickName, password: password ? '***' : 'undefined', phoneNumber: phoneNumber ? '***' : 'undefined', providedOpenid: providedOpenid ? '***' : 'undefined' });
 
-  if (!poemId || !password || !nickName) {
+  if (!requestedPoemId || !password || !nickName) {
     return {
       success: false,
       message: 'Poem ID、密码和昵称不能为空',
@@ -35,6 +36,8 @@ exports.main = async (event, context) => {
   }
 
   try {
+    const poemId = normalizePoemId(requestedPoemId);
+    const users = db.collection('users');
     // 如果提供了手机号，先检查手机号是否已存在
     if (phoneNumber && phoneNumber.trim()) {
       console.log('🔍 [registerUser] 检查手机号是否已存在');
@@ -53,21 +56,6 @@ exports.main = async (event, context) => {
       console.log('✅ [registerUser] 手机号可用');
     }
     
-    // 检查Poem ID是否已存在
-    const existingUserRes = await db.collection('users').where({
-      poemId: poemId
-    }).get();
-
-    console.log('🔍 [registerUser] 检查Poem ID是否存在:', existingUserRes.data.length > 0);
-
-    if (existingUserRes.data.length > 0) {
-      return {
-        success: false,
-        message: '该Poem ID已被使用，请选择其他ID',
-        code: 'POEM_ID_EXISTS'
-      };
-    }
-
     // 获取当前用户的openid（优先使用传入的 openid，用于 GitHub 登录）
     const openid = providedOpenid || wxContext.OPENID || event.openid;
     if (!openid) {
@@ -79,9 +67,9 @@ exports.main = async (event, context) => {
     }
 
     // 检查openid是否已注册
-    const existingOpenidRes = await db.collection('users').where({
+    const existingOpenidRes = await users.where({
       _openid: openid
-    }).get();
+    }).limit(2).get();
 
     if (existingOpenidRes.data.length > 0) {
       // Completing an existing account is allowed only for the identity proved by WeChat.
@@ -89,9 +77,12 @@ exports.main = async (event, context) => {
       if (!wxContext.OPENID || wxContext.OPENID !== openid) {
         return { success: false, message: '账号已存在，请直接登录', code: 'ACCOUNT_EXISTS' };
       }
+      if (existingOpenidRes.data.length > 1) {
+        return { success: false, code: 'AMBIGUOUS_ACCOUNT', message: '账号信息重复，请联系管理员处理' };
+      }
       // 用户已存在，更新信息
       console.log('🔍 [registerUser] 用户已存在，更新信息');
-      const existingUser = existingOpenidRes.data[0] || {};
+      const existingUser = existingOpenidRes.data[0];
       const resolvedAvatarUrl = avatarFileID || (needsDefaultAvatar(existingUser.avatarUrl) ? getUserDefaultAvatar(openid) : existingUser.avatarUrl);
       const updateData = {
         poemId: poemId,
@@ -112,11 +103,8 @@ exports.main = async (event, context) => {
       if (githubAvatar) updateData.githubAvatar = githubAvatar;
       if (githubEmail) updateData.githubEmail = githubEmail;
       
-      await db.collection('users').where({
-        _openid: openid
-      }).update({
-        data: updateData
-      });
+      await saveWithPoemIdCheck(db, poemId, undefined,
+        () => users.where({ _id: existingUser._id, _openid: openid }).update({ data: updateData }));
 
       await ensureUserPortfolio(openid);
 
@@ -162,9 +150,7 @@ exports.main = async (event, context) => {
       if (githubAvatar) createData.githubAvatar = githubAvatar;
       if (githubEmail) createData.githubEmail = githubEmail;
       
-      await db.collection('users').add({
-        data: createData
-      });
+      await saveWithPoemIdCheck(db, poemId, undefined, () => users.add({ data: createData }));
 
       await ensureUserPortfolio(openid);
 
@@ -187,6 +173,8 @@ exports.main = async (event, context) => {
     }
 
   } catch (error) {
+    const failure = poemIdFailure(error);
+    if (failure) return failure;
     if (error.code === 'LOGIN_AUDIT_UNAVAILABLE') return { success: false, code: error.code, message: '账号已保存，登录记录暂时无法保存，请稍后使用账号密码登录' };
     console.error('❌ [registerUser] 注册失败:', error);
     return {

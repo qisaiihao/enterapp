@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="poem_widget_compact">桌面诗歌 · 1×4</string>
+    <string name="poem_widget_wide">桌面诗歌 · 2×4</string>
+    <string name="poem_widget_waiting">诗句正在加载</string>
+    <string name="poem_widget_next">换一首</string>
+</resources>

@@ -1,0 +1,9 @@
+{
+  "PoemWidget.appex": {
+    "identifier": "com.poementer.app.PoemWidget",
+    "profile": "PoemWidget.mobileprovision",
+    "entitlements": {
+      "com.apple.security.application-groups": ["group.com.poementer.app.widgets"]
+    }
+  }
+}

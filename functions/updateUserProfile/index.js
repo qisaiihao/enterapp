@@ -1,5 +1,6 @@
 const cloud = require('wx-server-sdk');
 const { handlePasswordAction } = require('./password');
+const { normalizePoemId, saveWithPoemIdCheck, poemIdFailure } = require('./_lib/poem-id');
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
@@ -91,7 +92,7 @@ exports.main = async (event = {}, context = {}) => {
     occupation,
     region,
     school,
-    poemId,
+    poemId: requestedPoemId,
     appBackgroundUrl,
     appBackgroundMode,
     clearAppBackground,
@@ -107,12 +108,13 @@ exports.main = async (event = {}, context = {}) => {
     occupation,
     region,
     school,
-    poemId,
+    poemId: requestedPoemId,
     platform: isTCB ? 'TCB' : 'WeApp'
   });
 
   try {
     const updateData = {};
+    const poemId = normalizePoemId(requestedPoemId);
 
     // Only add fields to the update object if they are provided
     if (avatarUrl) {
@@ -148,10 +150,8 @@ exports.main = async (event = {}, context = {}) => {
       console.log('🔍 [updateUserProfile] 将更新school');
     }
 
-    // 添加对poemId字段的支持
     if (poemId) {
       updateData.poemId = poemId;
-      console.log('🔍 [updateUserProfile] 将更新poemId:', poemId);
     }
     if (showGrowthStats !== undefined) {
       updateData.showGrowthStats = showGrowthStats === true;
@@ -181,15 +181,26 @@ exports.main = async (event = {}, context = {}) => {
 
     console.log('🔍 [updateUserProfile] 准备更新的数据:', updateData);
 
-    const updateResult = await database.collection('users').where({ _openid: openid }).update({
-      data: updateData
-    });
+    const users = database.collection('users');
+    let userId;
+    if (poemId) {
+      const { data: matches } = await users.where({ _openid: openid }).limit(2).get();
+      if (matches.length === 0) return { success: false, code: 'USER_NOT_FOUND', message: '账号不存在，请重新登录' };
+      if (matches.length > 1) return { success: false, code: 'AMBIGUOUS_ACCOUNT', message: '账号信息重复，请联系管理员处理' };
+      userId = matches[0]._id;
+      if (matches[0].poemId === poemId) delete updateData.poemId;
+    }
+    const filter = userId ? { _id: userId, _openid: openid } : { _openid: openid };
+    const updateResult = Object.keys(updateData).length > 0
+      ? await saveWithPoemIdCheck(database, updateData.poemId, userId,
+        () => users.where(filter).update({ data: updateData }))
+      : null;
 
     console.log('🔍 [updateUserProfile] 更新结果:', updateResult);
 
     // 如果更新了昵称、头像或签名，异步同步到历史帖子（不阻塞返回）
     // 只传递实际更新的字段，避免覆盖未修改的数据
-    if (updateResult.stats && updateResult.stats.updated > 0) {
+    if (updateResult?.stats?.updated > 0) {
       const syncData = { openid: openid };
       
       // 只有在 updateData 中实际包含了这些字段时才传递
@@ -229,6 +240,8 @@ exports.main = async (event = {}, context = {}) => {
     };
 
   } catch (e) {
+    const failure = poemIdFailure(e);
+    if (failure) return { ...failure, platform: isTCB ? 'TCB' : 'WeApp' };
     console.error('❌ [updateUserProfile] 数据库操作失败:', e);
     console.error('❌ [updateUserProfile] 错误详情:', JSON.stringify(e, null, 2));
     console.error('❌ [updateUserProfile] 错误消息:', e.message);

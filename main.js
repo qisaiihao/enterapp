@@ -16,7 +16,13 @@ import { ensureRuntimeOpenid, ensureTcbAuthenticated, ensureTcbReady, installRun
 import zpMixins from '@/uni_modules/zp-mixins/index.js';
 import appFontManager from './utils/fontManager.js';
 import { THEME_CHANGED_EVENT, applyNativeThemeChrome, applyThemeMode, getThemeMode, getThemeVars } from '@/utils/theme.js';
-import { getStatusBarHeightCompat, getWindowInfoCompat } from '@/utils/system-info.js';
+import {
+  LAYOUT_CHANGED_EVENT,
+  getLayoutCssVars,
+  getLayoutSnapshot,
+  installLayoutListener,
+  refreshLayoutSnapshot
+} from '@/utils/layout.js';
 import {
   BUILTIN_HUIWEN_FONT_FAMILY,
   markBuiltinHuiwenFontPending,
@@ -228,23 +234,10 @@ function notifyH5AppReady() {
   // #endif
 }
 
-function getGlobalStyleVars(mode) {
+function getGlobalStyleVars(mode, layoutSnapshot = getLayoutSnapshot()) {
   const themeVars = getThemeVars(mode);
-  let safeAreaTop = 0;
-  let safeAreaBottom = 0;
-  try {
-    const windowInfo = getWindowInfoCompat() || {};
-    safeAreaTop = Number(windowInfo.safeAreaInsets?.top || windowInfo.statusBarHeight || getStatusBarHeightCompat() || 0) || 0;
-    safeAreaBottom = Number(windowInfo.safeAreaInsets?.bottom || 0) || 0;
-  } catch (error) {}
-
-  return Object.assign({}, themeVars, {
-    '--app-safe-area-top': `${safeAreaTop}px`,
-    '--app-safe-area-bottom': `${safeAreaBottom}px`,
-    '--safe-area-inset-top': `${safeAreaTop}px`,
-    '--safe-area-inset-bottom': `${safeAreaBottom}px`,
-    '--status-bar-height': `${safeAreaTop}px`
-  });
+  const layoutVars = getLayoutCssVars(layoutSnapshot);
+  return Object.assign({}, themeVars, layoutVars);
 }
 
 import { createSSRApp } from 'vue';
@@ -277,6 +270,7 @@ export function createApp() {
     onShow() {
       // App 页面拥有独立 WebView；原生栏在页面显示时同步一次。
       applyNativeThemeChrome(this.appThemeMode || getThemeMode());
+      this.appLayout = refreshLayoutSnapshot();
     },
     // App 的 loadFontFace 注册到当前页面，必须等页面视图就绪。
     // #ifdef APP-PLUS
@@ -289,15 +283,28 @@ export function createApp() {
     data() {
       return {
         appThemeMode: getThemeMode(),
-        readFontLevel: getReadFontSizeLevel()
+        readFontLevel: getReadFontSizeLevel(),
+        appLayout: getLayoutSnapshot()
       };
     },
     computed: {
       appThemeVars() {
-        return getGlobalStyleVars(this.appThemeMode);
+        return getGlobalStyleVars(this.appThemeMode, this.appLayout);
       },
       readFontVars() {
         return getReadFontVars(this.readFontLevel);
+      },
+      isWideLayout() {
+        return !!(this.appLayout && this.appLayout.isWide);
+      },
+      isSplitDetailLayout() {
+        return !!(this.appLayout && this.appLayout.isSplitDetail);
+      },
+      layoutSizeClass() {
+        return (this.appLayout && this.appLayout.sizeClass) || 'compact';
+      },
+      hasLeftNavRail() {
+        return !!(this.appLayout && this.appLayout.navRailWidth > 0);
       }
     },
     methods: {
@@ -319,8 +326,12 @@ export function createApp() {
       this._appReadFontChangedHandler = (payload = {}) => {
         this.readFontLevel = payload.level || getReadFontSizeLevel();
       };
+      this._appLayoutChangedHandler = (snapshot) => {
+        this.appLayout = snapshot || getLayoutSnapshot();
+      };
       uni.$on(THEME_CHANGED_EVENT, this._appThemeChangedHandler);
       uni.$on(READ_FONT_SIZE_CHANGED_EVENT, this._appReadFontChangedHandler);
+      uni.$on(LAYOUT_CHANGED_EVENT, this._appLayoutChangedHandler);
     },
     beforeUnmount() {
       if (this._appThemeChangedHandler && typeof uni !== 'undefined' && typeof uni.$off === 'function') {
@@ -329,11 +340,16 @@ export function createApp() {
       if (this._appReadFontChangedHandler && typeof uni !== 'undefined' && typeof uni.$off === 'function') {
         uni.$off(READ_FONT_SIZE_CHANGED_EVENT, this._appReadFontChangedHandler);
       }
+      if (this._appLayoutChangedHandler && typeof uni !== 'undefined' && typeof uni.$off === 'function') {
+        uni.$off(LAYOUT_CHANGED_EVENT, this._appLayoutChangedHandler);
+      }
       this._appThemeChangedHandler = null;
       this._appReadFontChangedHandler = null;
+      this._appLayoutChangedHandler = null;
     }
   });
   app.component('app-background-page-root', AppBackgroundPageRoot);
+  installLayoutListener();
   applyThemeMode(getThemeMode());
   applyReadFontSize(getReadFontSizeLevel());
   notifyH5AppReady();

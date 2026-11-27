@@ -2,7 +2,7 @@
   <!-- #ifdef MP-WEIXIN -->
   <page-meta :page-style="'background-color: ' + appThemeVars['--app-page-bg'] + ';'" />
   <!-- #endif -->
-  <view class="poem-square white-bg" :data-app-theme="appThemeMode" :style="[appThemeVars, readFontVars]" @touchstart="touchStart" @touchend="touchEnd">
+  <view class="poem-square white-bg" :class="{ 'poem-square--wide-rail': hasLeftNavRail, 'poem-square--wide': isWideLayout }" :data-app-theme="appThemeMode" :style="[appThemeVars, readFontVars]" @touchstart="touchStart" @touchend="touchEnd">
     <!-- 顶部栏 -->
     <top-bar @safe-area-ready="onSafeAreaReady">
       <template #center>
@@ -28,7 +28,7 @@
       </template>
     </top-bar>
 
-    <view v-if="!isReadingMode && !showFollowingOnly" class="poem-filter-container" :style="{ top: (safeAreaTop * 2 + 153) + 'rpx' }">
+    <view v-if="!isReadingMode && !showFollowingOnly" class="poem-filter-container" :style="poemFilterContainerStyle">
       <view
         class="poem-filter-trigger"
         :class="{ 'poem-filter-trigger--active': showPoemFilterPanel || isRandomPoemOrder }"
@@ -64,7 +64,7 @@
       </AppMotion>
     </view>
 
-    <view v-if="!isReadingMode" class="activity-entry-container" :style="{ top: (safeAreaTop * 2 + 122) + 'rpx' }">
+    <view v-if="!isReadingMode" class="activity-entry-container" :style="activityEntryContainerStyle">
       <view class="activity-entry-btn">
         <image class="activity-entry-icon" src="/static/images/icons/activities.png" mode="aspectFit" />
       </view>
@@ -76,7 +76,7 @@
     </view>
 
     <!-- 关注头像栏 - 只在关注模式下显示 -->
-    <view v-if="!isReadingMode && showFollowingOnly" class="following-avatar-bar-wrapper" :style="{ top: (safeAreaTop * 2 + 274) + 'rpx' }">
+    <view v-if="!isReadingMode && showFollowingOnly" class="following-avatar-bar-wrapper" :style="followingAvatarBarStyle">
       <following-avatar-bar
         ref="followingAvatarBar"
         mode="poem-square"
@@ -86,7 +86,7 @@
       />
     </view>
 
-    <view v-if="isReadingMode" class="poet-avatar-bar-wrapper" :style="{ top: (safeAreaTop * 2 + 150) + 'rpx' }">
+    <view v-if="isReadingMode" class="poet-avatar-bar-wrapper" :style="poetAvatarBarStyle">
       <poet-avatar-bar ref="poetAvatarBar" :selected-poet-name="selectedPoetName" @select="onPoetSelect" />
     </view>
 
@@ -101,7 +101,7 @@
     </view>
 
     <!-- 内容列表 -->
-    <view v-else :class="['square-mode-container', hasAvatarBar ? 'with-avatar-bar' : '']" :style="{ paddingTop: (safeAreaTop * 2 + (isReadingMode ? 350 : (hasAvatarBar ? 474 : 274))) + 'rpx' }">
+    <view v-else :class="['square-mode-container', hasAvatarBar ? 'with-avatar-bar' : '', { 'square-mode-container--wide': isWideLayout }]" :style="poemContentContainerStyle">
       <view v-if="isLoading" class="empty-state"><text>加载中...</text></view>
       <view v-else-if="postList.length === 0" class="empty-state">
         <view class="empty-text">{{ !isReadingMode && showFollowingOnly ? '关注的人还没有发布诗歌哦～' : '还没刷出来，再等等~' }}</view>
@@ -109,12 +109,51 @@
       </view>
 
       <view :key="'poem-font-' + poemFontRenderTick" id="post-list-container">
-        <block v-for="(item, index) in postList" :key="item && item._id ? item._id : index">
+        <view v-if="useTwoColumnPoems" class="app-masonry-columns poem-masonry">
+          <view class="app-masonry-column">
+            <block v-for="entry in leftColumnPoems" :key="entry.item && entry.item._id ? entry.item._id : entry.index">
+              <poem-card
+                v-if="entry.item"
+                :post="entry.item"
+                :index="entry.index"
+                :enable-series="!isReadingMode"
+                :hide-creation-meta-when-collapsed="!isReadingMode"
+                :show-signature="!isReadingMode"
+                @card-tap="onPoemCardTap"
+                @vote="onVote"
+                @comment="onCommentClick"
+                @longpress="onLongPressCard"
+                @signature-error="onSignatureError"
+                @signature-load="onSignatureLoad"
+              />
+            </block>
+          </view>
+          <view class="app-masonry-column">
+            <block v-for="entry in rightColumnPoems" :key="entry.item && entry.item._id ? entry.item._id : entry.index">
+              <poem-card
+                v-if="entry.item"
+                :post="entry.item"
+                :index="entry.index"
+                :enable-series="!isReadingMode"
+                :hide-creation-meta-when-collapsed="!isReadingMode"
+                :show-signature="!isReadingMode"
+                @card-tap="onPoemCardTap"
+                @vote="onVote"
+                @comment="onCommentClick"
+                @longpress="onLongPressCard"
+                @signature-error="onSignatureError"
+                @signature-load="onSignatureLoad"
+              />
+            </block>
+          </view>
+        </view>
+        <block v-else v-for="(item, index) in postList" :key="item && item._id ? item._id : index">
           <poem-card
             v-if="item"
             :post="item"
             :index="index"
             :enable-series="!isReadingMode"
+            :hide-creation-meta-when-collapsed="!isReadingMode"
             :show-signature="!isReadingMode"
             @card-tap="onPoemCardTap"
             @vote="onVote"
@@ -294,6 +333,49 @@ export default {
       return `left: calc(${translateX}% - 22rpx);`;
     },
     hasAvatarBar() { return this.isReadingMode || this.showFollowingOnly; },
+    useTwoColumnPoems() {
+      return !!(this.appLayout && this.appLayout.poemColumns >= 2);
+    },
+    leftColumnPoems() {
+      const list = Array.isArray(this.postList) ? this.postList : [];
+      const out = [];
+      for (let i = 0; i < list.length; i += 2) {
+        out.push({ item: list[i], index: i });
+      }
+      return out;
+    },
+    rightColumnPoems() {
+      const list = Array.isArray(this.postList) ? this.postList : [];
+      const out = [];
+      for (let i = 1; i < list.length; i += 2) {
+        out.push({ item: list[i], index: i });
+      }
+      return out;
+    },
+    poemFilterContainerStyle() {
+      const offset = this.hasLeftNavRail ? '66px' : '153rpx';
+      return { top: `calc(var(--app-safe-area-top, 0px) + ${offset})` };
+    },
+    activityEntryContainerStyle() {
+      const offset = this.hasLeftNavRail ? '58px' : '122rpx';
+      return { top: `calc(var(--app-safe-area-top, 0px) + ${offset})` };
+    },
+    followingAvatarBarStyle() {
+      const offset = this.hasLeftNavRail ? '128px' : '274rpx';
+      return { top: `calc(var(--app-safe-area-top, 0px) + ${offset})` };
+    },
+    poetAvatarBarStyle() {
+      const offset = this.hasLeftNavRail ? '66px' : '150rpx';
+      return { top: `calc(var(--app-safe-area-top, 0px) + ${offset})` };
+    },
+    poemContentContainerStyle() {
+      if (this.hasLeftNavRail) {
+        const offset = this.isReadingMode ? '170px' : (this.hasAvatarBar ? '230px' : '126px');
+        return { paddingTop: `calc(var(--app-safe-area-top, 0px) + ${offset})` };
+      }
+      const offsetRpx = this.isReadingMode ? 350 : (this.hasAvatarBar ? 474 : 274);
+      return { paddingTop: `calc(var(--app-safe-area-top, 0px) + ${offsetRpx}rpx)` };
+    },
     squareBubbleKey() {
       return JSON.stringify([this.squareBubble.text, this.squareBubble.target]);
     },
@@ -574,7 +656,6 @@ export default {
         // #endif
 
         console.log('【poem-square】最终safeAreaTop值:', safeAreaTop);
-        console.log('【poem-square】计算的paddingTop:', (safeAreaTop * 2 + 250) + 'rpx');
 
         // 设置页面数据
         if (!safeAreaTop) {
@@ -1495,7 +1576,7 @@ export default {
 .white-bg {
   background: var(--app-page-bg, #fff);
   min-height: 100vh;
-  /* 状态栏安全区已由列表内联 paddingTop（safeAreaTop * 2）预留，
+  /* 状态栏安全区已由列表内联 paddingTop（--app-safe-area-top）预留，
      iOS/微信端再叠加 env(safe-area-inset-top) 会重复留白。 */
 }
 .square-mode-container {
@@ -1690,5 +1771,40 @@ export default {
 
 .following-avatar-bar-wrapper :deep(.avatar-bar-container) {
   padding-top: 0;
+}
+
+.poem-square--wide-rail {
+  padding-left: var(--app-nav-rail-width, 0px);
+  padding-right: var(--app-safe-area-right, 0px);
+  box-sizing: border-box;
+}
+
+.poem-square--wide-rail .activity-entry-container {
+  left: calc(var(--app-nav-rail-width, 0px) + 24px);
+}
+
+.poem-square--wide-rail .poem-filter-container {
+  right: calc(var(--app-safe-area-right, 0px) + 24px);
+}
+
+.poem-square--wide-rail .poet-avatar-bar-wrapper,
+.poem-square--wide-rail .following-avatar-bar-wrapper {
+  left: var(--app-nav-rail-width, 0px);
+  right: var(--app-safe-area-right, 0px);
+}
+
+.square-mode-container--wide {
+  max-width: 1080px;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 0;
+  padding-left: 24px;
+  padding-right: 24px;
+  padding-bottom: calc(36px + var(--app-safe-area-bottom, 0px));
+  box-sizing: border-box;
+}
+
+.poem-masonry :deep(.poem-card) {
+  margin-bottom: 20px;
 }
 </style>

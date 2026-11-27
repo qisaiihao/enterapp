@@ -47,9 +47,15 @@ async function testServer() {
   ];
   const app = service([...eligible, ...excluded]);
   const first = await app.run();
+  const insertedSlots = [3, 4, 8, 9];
   assert.deepEqual([0, 1, 2, 5, 6, 7].map(i => first[i]._id), ['new-0', 'new-1', 'new-2', 'new-3', 'new-4', 'new-5'], 'six newest poems retain their order around insertions');
-  assert.deepEqual([first[3]._id, first[8]._id], ['hot-a', 'hot-b'], 'two older high-vote poems are inserted between new poems');
-  assert.ok(app.calls.some(call => call.stages?.some(([op, value]) => op === 'sample' && value.size === 2)), 'random poems are sampled by the database');
+  const sampleQueries = app.calls.filter(call => call.stages?.some(([op]) => op === 'sample'));
+  assert.equal(sampleQueries.length, 1, 'the database samples all insertions together');
+  assert.equal(sampleQueries[0].stages.find(([op]) => op === 'sample')[1].size, 4);
+  assert.ok(insertedSlots.every(i => first[i].votes === 0), 'zero-vote poems can fill all four insertion slots');
+  const changedVotes = eligible.map((row, index) => ({ ...row, votes: 1000 - index }));
+  const sameSample = await service([...changedVotes, ...excluded]).run();
+  assert.deepEqual(sameSample.map(row => row._id), first.map(row => row._id), 'vote counts do not affect which poems are inserted or their order');
   assert.equal(new Set(first.map(row => row._id)).size, 10);
   assert.ok(first.every(row => row.isPoem && row.isOriginal));
   const seen = first.map(row => row._id);
@@ -70,15 +76,11 @@ async function testServer() {
   assert.equal((await service([]).run()).length, 0);
   assert.equal((await service(eligible).run({ limit: 5 })).length, 5, 'custom page sizes are respected');
   const alternate = await service(eligible, () => 0.91).run();
-  assert.notDeepEqual([first[4]._id, first[9]._id], [alternate[4]._id, alternate[9]._id], 'sampling can change recommendations while preserving recent and high-vote slots');
-  for (const failingQuery of ['hot', 'random']) {
-    const degraded = service(eligible, undefined, { beforeAggregate({ stages }) {
-      if (stages.some(([op, value]) => failingQuery === 'hot' ? op === 'sort' && value.votes : op === 'sample')) throw Error('recommendations unavailable');
-    } });
-    const rows = await degraded.run();
-    assert.equal(rows.length, 10, `${failingQuery} failures are filled with recent poems`);
-    assert.equal(new Set(rows.map(row => row._id)).size, 10);
-  }
+  assert.notDeepEqual(insertedSlots.map(i => first[i]._id), insertedSlots.map(i => alternate[i]._id), 'a different sample can change the four insertions');
+  const degraded = service(eligible, undefined, { beforeAggregate({ stages }) {
+    if (stages.some(([op]) => op === 'sample')) throw Error('recommendations unavailable');
+  } });
+  assert.deepEqual((await degraded.run()).map(row => row._id), eligible.slice(0, 10).map(row => row._id), 'a sampling failure is filled with recent poems in order');
   const manySeen = [...Array.from({ length: 120 }, (_, i) => `seen-${i}`), ...first.map(row => row._id)];
   const afterMany = await app.run({ excludePostIds: manySeen });
   assert.ok(afterMany.every(row => !manySeen.includes(row._id)), 'long reading sessions preserve exclusions across query chunks');
@@ -218,7 +220,7 @@ async function testPage() {
 
 async function main() {
   await testServer(); await testRandomServer(); await testCache(); await testPage();
-  console.log('original poem mix: PASS — 6 recent / 2 high-vote / 2 random, visibility, V1/V2, complete pagination, fallbacks, cache isolation and refresh races');
+  console.log('original poem mix: PASS — 6 recent / 4 random, vote-independent sampling, visibility, V1/V2, complete pagination, fallbacks, cache isolation and refresh races');
   console.log('random poem refresh: PASS — database sampling, visibility, pagination and cache bypass');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

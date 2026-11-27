@@ -3784,4 +3784,19 @@ page {
 }
 
 .selected-tag:active, .hl-done:active, .quote-popup-btn:active { opacity: 0.65; }
+
+@media screen and (min-width: 680px) {
+    .container {
+        padding-left: calc(24px + var(--app-safe-area-left, 0px));
+        padding-right: calc(24px + var(--app-safe-area-right, 0px));
+        box-sizing: border-box;
+    }
+
+    .content-section {
+        max-width: 760px;
+        margin-left: auto;
+        margin-right: auto;
+        width: 100%;
+    }
+}
 </style>

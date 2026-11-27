@@ -33,6 +33,11 @@ async function main() {
   });
   try {
     const page = await browser.newPage();
+    await page.evaluateOnNewDocument(() => {
+      try {
+        localStorage.setItem('privacyConsentVersion', JSON.stringify({ type: 'string', data: '2026-11-23:1' }));
+      } catch (_) {}
+    });
     await page.setViewport({ width: 320, height: 568, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
     await page.goto((process.env.H5_URL || 'http://127.0.0.1:8081/') + '#/pages/login/login', { waitUntil: 'networkidle2' });
     await page.waitForFunction(() => typeof getCurrentPages === 'function' && getCurrentPages().at(-1)?.$vm);
@@ -91,7 +96,7 @@ async function main() {
     });
     const failures = [];
     let checked = 0;
-    for (const [width, height] of [[320, 568], [390, 844], [844, 390], [390, 400]]) {
+    for (const [width, height] of [[320, 568], [390, 844], [844, 390], [390, 400], [768, 1024], [840, 720], [1194, 834]]) {
       await page.setViewport({ width, height, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
       for (const theme of ['light', 'dark']) {
         for (const [name, state, selector] of cases) {

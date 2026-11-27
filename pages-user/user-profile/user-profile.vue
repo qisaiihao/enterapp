@@ -2,7 +2,11 @@
     <!-- pages/user-profile/user-profile.wxml -->
     <view
         class="user-profile-page-root"
-        :class="{ 'user-profile-page-root--with-background': isFullBackground }"
+        :class="{
+            'user-profile-page-root--with-background': isFullBackground,
+            'user-profile-page-root--wide': isWideLayout,
+            'user-profile-page-root--split': isSplitDetailLayout
+        }"
         :style="userProfileRootStyle"
         :data-layout-recovery-tick="layoutRecoveryTick"
     >
@@ -25,6 +29,7 @@
             }"
         >
             <!-- User Profile Card -->
+            <view class="user-profile-left-column">
             <view
                 class="profile-hero-section"
                 :class="{ 'profile-hero-section--with-background': isHeaderBackground }"
@@ -103,6 +108,21 @@
 
             <!-- 切换栏：帖子 / 作品集 / 收藏 -->
             </view>
+            <view v-if="isSplitDetailLayout" class="user-profile-left-lower">
+                <view class="tab-navigation tab-navigation--vertical">
+                    <view :class="'tab-item tab-item--vertical ' + (currentTab === 'posts' ? 'active' : '')" data-tab="posts" @tap="switchTab">
+                        <image class="tab-icon tab-icon--writing" src="/static/images/writing.png" mode="aspectFit" alt="帖子" title="帖子"></image>
+                    </view>
+                    <view :class="'tab-item tab-item--vertical ' + (currentTab === 'portfolio' ? 'active' : '')" data-tab="portfolio" @tap="switchTab">
+                        <image class="tab-icon" src="/static/images/newicons/library.png" mode="aspectFit" alt="作品集" title="作品集"></image>
+                    </view>
+                    <view :class="'tab-item tab-item--vertical ' + (currentTab === 'favorites' ? 'active' : '')" data-tab="favorites" @tap="switchTab">
+                        <image class="tab-icon" src="/static/images/newicons/collection.png" mode="aspectFit" alt="收藏" title="收藏"></image>
+                    </view>
+                    <view class="profile-tab-indicator profile-tab-indicator--vertical" :style="profileVerticalTabIndicatorStyle"></view>
+                </view>
+            </view>
+            </view>
             <view v-if="isHeaderBackground" class="profile-body-shell-cap"></view>
             <view
                 class="profile-body-shell"
@@ -111,7 +131,7 @@
                     'profile-body-shell--full-background': isFullBackground
                 }"
             >
-            <view class="tab-navigation">
+            <view v-if="!isSplitDetailLayout" class="tab-navigation">
                 <view :class="'tab-item ' + (currentTab === 'posts' ? 'active' : '')" data-tab="posts" @tap="switchTab">
                     <image class="tab-icon tab-icon--writing" src="/static/images/writing.png" mode="aspectFit" alt="帖子" title="帖子"></image>
                 </view>
@@ -527,6 +547,10 @@ export default {
         profileTabIndicatorStyle() {
             const index = this.currentTab === 'portfolio' ? 1 : (this.currentTab === 'favorites' ? 2 : 0);
             return { left: `${(index + 0.5) * 100 / 3}%` };
+        },
+        profileVerticalTabIndicatorStyle() {
+            const index = this.currentTab === 'portfolio' ? 1 : (this.currentTab === 'favorites' ? 2 : 0);
+            return { top: `${(index + 0.5) * 100 / 3}%` };
         },
         resolvedAppBackgroundUrl() {
             return normalizeAppBackgroundUrl(this.userInfo && this.userInfo.appBackgroundUrl);
@@ -2383,6 +2407,92 @@ uni-page:has(.user-profile-page-root) .user-profile-page-root .container {
     padding: 60rpx 40rpx;
     color: var(--profile-empty-text-color, #666);
     font-size: 28rpx;
+}
+
+.user-profile-page-root--wide .main-content {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding-left: calc(20px + var(--app-safe-area-left, 0px));
+    padding-right: calc(20px + var(--app-safe-area-right, 0px));
+    box-sizing: border-box;
+}
+
+.user-profile-left-column {
+    width: 100%;
+}
+
+.user-profile-page-root--split .main-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    padding-top: calc(16px + var(--app-safe-area-top, 0px));
+}
+
+.user-profile-page-root--split .user-profile-left-column {
+    flex: 0 0 408px;
+    width: 408px;
+    max-width: 46%;
+    position: sticky;
+    top: calc(16px + var(--app-safe-area-top, 0px));
+}
+
+.user-profile-page-root--split .profile-hero-section {
+    position: relative;
+    border-radius: 18px;
+    border: 1px solid var(--app-border-color, rgba(0, 0, 0, 0.08));
+}
+
+.user-profile-left-lower {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 14px;
+}
+
+.user-profile-page-root--split .tab-navigation--vertical {
+    flex: 0 0 64px;
+    width: 64px;
+    margin: 0;
+    position: relative;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 8px 0;
+    border-radius: 16px;
+    background: var(--app-elevated-bg, var(--app-surface-bg, #ffffff));
+    border: 1px solid var(--app-border-color, rgba(0, 0, 0, 0.08));
+    box-shadow: var(--app-surface-shadow, 0 4px 16px rgba(0, 0, 0, 0.05));
+    box-sizing: border-box;
+}
+
+.user-profile-page-root--split .tab-item--vertical {
+    flex: 0 0 auto;
+    height: 64px;
+    padding: 0 4px;
+    cursor: pointer;
+    background: transparent;
+}
+
+.user-profile-page-root--split .tab-item--vertical.active {
+    background: var(--app-subtle-surface-bg, rgba(0, 0, 0, 0.04));
+}
+
+.user-profile-page-root--split .profile-tab-indicator--vertical {
+    left: auto;
+    right: 3px;
+    bottom: auto;
+    width: 3px;
+    height: 24px;
+    transform: translateY(-50%);
+    transition: top 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.user-profile-page-root--split .profile-body-shell-cap {
+    display: none;
+}
+
+.user-profile-page-root--split .profile-body-shell {
+    flex: 1 1 0;
+    min-width: 0;
+    margin-top: 0;
 }
 
 </style>

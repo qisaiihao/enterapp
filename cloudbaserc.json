@@ -83,6 +83,16 @@
       "params": {}
     },
     {
+      "name": "getPoemWidgetFeed",
+      "timeout": 10,
+      "memory": 128,
+      "runtime": "Nodejs18.15",
+      "handler": "index.main",
+      "root": "./functions/getPoemWidgetFeed",
+      "installDependency": true,
+      "params": {}
+    },
+    {
       "name": "getCollageMaterials",
       "timeout": 3,
       "memory": 256,

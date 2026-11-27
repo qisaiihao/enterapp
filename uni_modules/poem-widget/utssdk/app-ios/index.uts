@@ -1,0 +1,19 @@
+export function isPoemWidgetAvailable(): boolean {
+  return PoemWidgetBridge.isAvailable()
+}
+
+export function readPoemWidgetSettings(): string {
+  return PoemWidgetBridge.readSettings()
+}
+
+export function writePoemWidgetSettings(json: string): boolean {
+  return PoemWidgetBridge.writeSettings(json)
+}
+
+export function readPoemWidgetPreview(size: string): string {
+  return PoemWidgetBridge.readPreview(size)
+}
+
+export function requestPoemWidgetNext(token: string): boolean {
+  return PoemWidgetBridge.requestNext(token)
+}

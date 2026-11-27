@@ -253,6 +253,16 @@ export default {
     box-sizing: border-box;
 }
 
+@media screen and (min-width: 600px) {
+    .tag-selector {
+        max-width: 520px;
+        border-radius: 18px;
+        padding: 24px 22px;
+        max-height: 78vh;
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22);
+    }
+}
+
 /* 已选标签显示区域样式 */
 .selected-tags-section {
     margin-bottom: 20rpx;

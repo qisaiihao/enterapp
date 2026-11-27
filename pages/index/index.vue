@@ -2,8 +2,8 @@
     <!-- #ifdef MP-WEIXIN -->
     <page-meta :page-style="'background-color: ' + appThemeVars['--app-page-bg'] + ';'" />
     <!-- #endif -->
-    <view class="page-wrapper" :class="{ 'is-scrolling': isTouchScrolling }" :data-app-theme="appThemeMode" :style="[appThemeVars, readFontVars]">
-        <view class="container">
+    <view class="page-wrapper" :class="{ 'is-scrolling': isTouchScrolling, 'page-wrapper--wide-rail': hasLeftNavRail }" :data-app-theme="appThemeMode" :style="[appThemeVars, readFontVars]">
+        <view class="container" :class="{ 'container--wide-rail': hasLeftNavRail }">
             <page-tabs ref="pageTabs" :current-tab="currentTab" @tab-change="onTabChange"></page-tabs>
 
             <view class="square-mode-container" :style="squareContainerStyle">
@@ -147,7 +147,7 @@
                 <view
                     v-if="swiperCurrent === 0"
                     class="home-filter-layer"
-                    :style="{ top: (safeAreaTop * 2 + 220) + 'rpx' }"
+                    :style="homeFilterLayerStyle"
                 >
 
                     <view class="home-filter-container">
@@ -375,32 +375,26 @@ export default {
         homeFeedListType() {
             return this.useRecommendFeed ? 'discover' : 'home';
         },
+        homeFilterLayerStyle() {
+            if (this.hasLeftNavRail) {
+                return {
+                    top: 'calc(var(--app-safe-area-top, 0px) + 10px)',
+                    zIndex: 1002
+                };
+            }
+            return {
+                top: 'calc(var(--app-safe-area-top, 0px) + 220rpx)'
+            };
+        },
         // 计算 square-mode-container 的样式
         squareContainerStyle() {
-            console.log('🎨 [squareContainerStyle] 开始计算样式');
-            console.log('🎨 [squareContainerStyle] safeAreaTop:', this.safeAreaTop);
-
             // #ifdef MP-WEIXIN
-            // 小程序端：safeAreaTop + top-bar(100rpx) + tabs(88rpx) + 额外间距(20rpx)
-            // safeAreaTop 需要从 px 转换为 rpx（px * 2 = rpx，基于 iPhone 6 基准）
-            const safeAreaTopRpx = this.safeAreaTop * 2; // 将 px 转换为 rpx
-            const topBarHeight = 100; // top-bar 高度（rpx）
-            const tabsHeight = 88;    // tabs 高度（rpx）
-            const extraSpacing = 20;  // 额外间距（rpx）
-            const totalHeight = safeAreaTopRpx + topBarHeight + tabsHeight + extraSpacing;
-            console.log('🎨 [MP-WEIXIN] safeAreaTopRpx:', safeAreaTopRpx, 'rpx');
-            console.log('🎨 [MP-WEIXIN] topBarHeight:', topBarHeight, 'rpx');
-            console.log('🎨 [MP-WEIXIN] tabsHeight:', tabsHeight, 'rpx');
-            console.log('🎨 [MP-WEIXIN] extraSpacing:', extraSpacing, 'rpx');
-            console.log('🎨 [MP-WEIXIN] totalHeight:', totalHeight, 'rpx');
-            const style = { paddingTop: totalHeight + 'rpx' };
-            console.log('🎨 [MP-WEIXIN] 返回样式:', style);
-            return style;
+            return {
+                paddingTop: 'calc(var(--app-safe-area-top, 0px) + 208rpx)'
+            };
             // #endif
 
             // #ifndef MP-WEIXIN
-            // APP 和 H5 端：使用原来的固定值（已在 .container 中设置）
-            console.log('🎨 [APP/H5] 返回空样式对象');
             return {};
             // #endif
         }
@@ -2347,7 +2341,7 @@ export default {
 <style>
 .page-wrapper {
     height: 100vh;
-    width: 100vw;
+    width: 100%;
     overflow: hidden;
     position: fixed;
     top: 0;
@@ -2388,7 +2382,7 @@ export default {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100vw;
+    width: 100%;
     height: 100vh;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     z-index: 100;
@@ -2755,5 +2749,21 @@ export default {
 .swiper-page .uni-pull-refresh,
 .swiper-page .wx-pull-refresh {
     background: var(--app-page-bg, #ffffff);
+}
+
+.container--wide-rail {
+    padding-top: calc(52px + var(--app-safe-area-top, 0px)) !important;
+    padding-bottom: var(--app-safe-area-bottom, 0px) !important;
+    padding-left: var(--app-nav-rail-width, 0px) !important;
+    padding-right: var(--app-safe-area-right, 0px) !important;
+}
+
+.container--wide-rail .page-swiper {
+    height: 100% !important;
+}
+
+.container--wide-rail .home-filter-layer {
+    left: var(--app-nav-rail-width, 0px);
+    right: var(--app-safe-area-right, 0px);
 }
 </style>

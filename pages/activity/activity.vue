@@ -2,42 +2,44 @@
   <!-- #ifdef MP-WEIXIN -->
   <page-meta :page-style="'background-color: ' + appThemeVars['--app-page-bg'] + ';'" />
   <!-- #endif -->
-  <view class="activity-list-page" :data-app-theme="appThemeMode" :style="appThemeVars">
+  <view class="activity-list-page" :class="{ 'app-tab-page-wide': hasLeftNavRail, 'activity-list-page--wide': isWideLayout }" :data-app-theme="appThemeMode" :style="appThemeVars">
     <top-bar reserve-space compact :show-left="false" :show-actions="false" />
 
-    <activity-notice-carousel :notices="displayNoticeItems" @select="openNotice" />
+    <view class="activity-page-inner">
+      <activity-notice-carousel :notices="displayNoticeItems" @select="openNotice" />
 
-    <activity-category-bar
-      :categories="activityCategories"
-      :active-value="activeCategory"
-      @change="handleCategoryChange"
-    />
+      <activity-category-bar
+        :categories="activityCategories"
+        :active-value="activeCategory"
+        @change="handleCategoryChange"
+      />
 
-    <view class="content-area">
-      <view v-if="loading && activities.length === 0" class="state-box">
-        <text class="state-text">加载中...</text>
+      <view class="content-area">
+        <view v-if="loading && activities.length === 0" class="state-box">
+          <text class="state-text">加载中...</text>
+        </view>
+
+        <view v-else-if="activities.length === 0" class="state-box">
+          <text class="state-title">暂无近期活动</text>
+          <text class="state-subtitle">这里会展示进行中和近期结束的活动</text>
+        </view>
+
+        <view v-else class="activity-list">
+          <activity-poster-card
+            v-for="item in activities"
+            :key="item._id"
+            :item="item"
+            @select="openActivity"
+          />
+        </view>
       </view>
 
-      <view v-else-if="activities.length === 0" class="state-box">
-        <text class="state-title">暂无近期活动</text>
-        <text class="state-subtitle">这里会展示进行中和近期结束的活动</text>
+      <view v-if="loadingMore" class="footer-tip">
+        <text>加载中...</text>
       </view>
-
-      <view v-else class="activity-list">
-        <activity-poster-card
-          v-for="item in activities"
-          :key="item._id"
-          :item="item"
-          @select="openActivity"
-        />
+      <view v-if="!hasMore && activities.length > 0" class="footer-tip">
+        <text>没有更多活动了</text>
       </view>
-    </view>
-
-    <view v-if="loadingMore" class="footer-tip">
-      <text>加载中...</text>
-    </view>
-    <view v-if="!hasMore && activities.length > 0" class="footer-tip">
-      <text>没有更多活动了</text>
     </view>
     <!-- #ifndef MP-WEIXIN -->
     <app-tab-bar ref="customTabBar" />
@@ -59,6 +61,8 @@ import { getActivityNotices, invalidateActivityNotices } from '@/api-cache/activ
 import { getRecentActivities, invalidateRecentActivities } from '@/api-cache/activities.js';
 import activityBadge from '@/cache/stores/activity-badge.js';
 import { openActivityNoticeLink } from '@/utils/activityNoticeLink.js';
+
+const MARKET_PAGE = '/pages-content/market/market';
 
 export default {
   components: {
@@ -100,10 +104,11 @@ export default {
         },
         {
           value: 'market',
-          kicker: '商城上新',
-          title: '出版与周边预告',
-          summary: '刊物、诗集与周边商品后续将在这里通知',
-          mark: '新',
+          kicker: '商城',
+          title: '我们做了一些文创',
+          summary: '看看回车键的明信片和软盘',
+          linkUrl: MARKET_PAGE,
+          mark: '物',
           tone: 'market'
         }
       ],
@@ -231,6 +236,22 @@ export default {
         });
         return;
       }
+      if (value === 'market') {
+        uni.navigateTo({ url: MARKET_PAGE });
+        return;
+      }
+      if (value === 'publish') {
+        uni.showModal({
+          title: '待开发',
+          content: '更多功能正在陆续开发中，您有什么好建议吗？',
+          cancelText: '取消',
+          confirmText: '去建议',
+          success: ({ confirm }) => {
+            if (confirm) uni.navigateTo({ url: '/pages-tools/feedback/feedback' });
+          }
+        });
+        return;
+      }
       this.activeCategory = value;
     },
 
@@ -311,5 +332,33 @@ export default {
   color: var(--app-muted-text, #999);
   font-size: 24rpx;
   padding: 28rpx 0 20rpx;
+}
+
+.activity-list-page.app-tab-page-wide {
+  padding-bottom: calc(36px + var(--app-safe-area-bottom, 0px));
+}
+
+.activity-list-page--wide .activity-page-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 12px 20px 0;
+  box-sizing: border-box;
+}
+
+.activity-list-page--wide .content-area {
+  padding: 0 4px;
+}
+
+.activity-list-page--wide .activity-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+@media screen and (min-width: 840px) {
+  .activity-list-page--wide .activity-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 22px;
+  }
 }
 </style>

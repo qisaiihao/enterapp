@@ -27,7 +27,7 @@ function runtime(seed = [user], wxContext = { OPENID: user._openid }) {
     wechat_binding_grants: {}, wechat_bindings: {}, portfolio_folders: {}
   };
   let nextId = 0;
-  const state = { failedCollection: '', writes: [] };
+  const state = { failedCollection: '', writes: [], poemIdIndexConflicts: 0 };
   const matches = (row, filter) => Object.entries(filter).every(([key, value]) => row[key] === value);
   function collection(name, tx) {
     assert.ok(Object.hasOwn(tables, name), `Unexpected collection ${name}`);
@@ -36,19 +36,38 @@ function runtime(seed = [user], wxContext = { OPENID: user._openid }) {
       if (name === state.failedCollection) throw Error('injected audit persistence failure');
       state.writes.push(name);
     }
+    function enforcePoemIdIndex(candidate) {
+      if (name !== 'users' || typeof candidate.poemId !== 'string' || !candidate.poemId) return;
+      if (Object.values(rows()).some(user => user._id !== candidate._id && user.poemId === candidate.poemId)) {
+        state.poemIdIndexConflicts++;
+        throw Object.assign(new Error('E11000 duplicate key index: users_poem_id_unique'), { code: 11000 });
+      }
+    }
     const result = {
       doc(id) {
         return {
           async get() { return { data: structuredClone(rows()[id] || null) }; },
-          async set({ data }) { write(); rows()[id] = { ...structuredClone(data), _id: id }; },
-          async update({ data }) { write(); assert.ok(rows()[id]); Object.assign(rows()[id], structuredClone(data)); }
+          async set({ data }) {
+            const candidate = { ...structuredClone(data), _id: id };
+            enforcePoemIdIndex(candidate);
+            write();
+            rows()[id] = candidate;
+          },
+          async update({ data }) {
+            assert.ok(rows()[id]);
+            if (Object.hasOwn(data, 'poemId')) enforcePoemIdIndex({ ...rows()[id], ...data });
+            write();
+            Object.assign(rows()[id], structuredClone(data));
+          }
         };
       },
       async add({ data }) {
-        write();
         const id = data._id || `record-${++nextId}`;
         if (rows()[id]) throw Error('duplicate id');
-        rows()[id] = { ...structuredClone(data), _id: id };
+        const candidate = { ...structuredClone(data), _id: id };
+        enforcePoemIdIndex(candidate);
+        write();
+        rows()[id] = candidate;
         return { _id: id };
       },
       where(filter) {
@@ -57,7 +76,13 @@ function runtime(seed = [user], wxContext = { OPENID: user._openid }) {
         const query = {
           limit(value) { limit = value; return query; },
           async get() { return { data: structuredClone(selected()) }; },
-          async update({ data }) { write(); const values = selected(); values.forEach(row => Object.assign(row, structuredClone(data))); return { stats: { updated: values.length } }; }
+          async update({ data }) {
+            const values = selected();
+            if (Object.hasOwn(data, 'poemId')) values.forEach(row => enforcePoemIdIndex({ ...row, ...data }));
+            write();
+            values.forEach(row => Object.assign(row, structuredClone(data)));
+            return { stats: { updated: values.length } };
+          }
         };
         return query;
       }
@@ -82,9 +107,9 @@ function runtime(seed = [user], wxContext = { OPENID: user._openid }) {
       const filename = path.join(root, 'functions', name, 'index.js');
       const localRequire = createRequire(filename);
       const module = { exports: {} };
-      const cloud = { init() {}, database: () => db, getWXContext: () => wxContext };
+      const cloud = { init() {}, database: () => db, getWXContext: () => wxContext, async callFunction() {} };
       vm.runInNewContext(fs.readFileSync(filename, 'utf8'), {
-        module, exports: module.exports, console: quiet, Buffer,
+        module, exports: module.exports, console: quiet, Buffer, process, global: {},
         require: id => id === 'wx-server-sdk' ? cloud : localRequire(id)
       }, { filename });
       return module.exports.main(event, context);
@@ -344,10 +369,45 @@ async function databaseApiTests() {
   }
 }
 
+async function poemIdWriteTests() {
+  const other = { _id: 'other-user', _openid: 'other-owner', poemId: 'taken-id', poemid: 'legacy-id' };
+  for (const name of ['updateUserProfile', 'updateUser', 'createUser']) {
+    const app = runtime([user, other]);
+    for (const poemId of [' taken-id ', 'legacy-id']) {
+      const before = structuredClone(app.tables.users);
+      const result = await app.call(name, { poemId, nickName: 'should not be saved' });
+      assert.equal(result.code, 'POEM_ID_EXISTS', name);
+      assert.deepEqual(app.tables.users, before, name);
+      assert.equal(app.state.writes.length, 0, name);
+    }
+    assert.equal((await app.call(name, { poemId: ['assigned-id'] })).code, 'INVALID_POEM_ID', name);
+    assert.equal((await app.call(name, { poemId: user.poemId, nickName: user.nickName })).success, true, name);
+    assert.equal((await app.call(name, { poemId: ' Taken-id ', nickName: user.nickName })).success, true, name);
+    assert.equal(app.tables.users[user._id].poemId, 'Taken-id', name);
+  }
+  for (const name of ['updateUser', 'createUser', 'registerUser']) {
+    const app = runtime([user, other], { OPENID: 'new-owner' });
+    const result = await app.call(name, { ...events.registerUser(), poemId: other.poemId, phoneNumber: undefined });
+    assert.equal(result.code, 'POEM_ID_EXISTS', name);
+    assert.equal(Object.keys(app.tables.users).length, 2, name);
+  }
+  const race = runtime([], {});
+  const signup = openid => race.call('registerUser', {
+    openid, poemId: 'same-id', nickName: 'Test', password: 'private-new-password'
+  });
+  const results = await Promise.all([signup('first-owner'), signup('second-owner')]);
+  assert.equal(results.filter(result => result.success).length, 1);
+  assert.equal(results.find(result => !result.success).code, 'POEM_ID_EXISTS');
+  assert.equal(race.state.poemIdIndexConflicts, 1, 'the duplicate must be caught even when both reads passed');
+  assert.equal(Object.keys(race.tables.users).length, 1);
+  assert.equal(race.logs.length, 1);
+}
+
 (async () => {
   await packagingTests();
   await entryTests();
   await networkTests();
   await databaseApiTests();
+  await poemIdWriteTests();
   console.log('Login audit tests passed: all login routes, server identity/time/network, sensitive data exclusion, fail-closed writes, both database SDKs, IP/port validation and legacy clients.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
